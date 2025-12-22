@@ -404,8 +404,8 @@ export class GameRenderer {
     
     private drawHolographicHUD(ctx: CanvasRenderingContext2D, agent: Agent, w: number, h: number, cam: Camera) {
         // Position: Top Right, floating
-        const hudX = w - 280;
-        const hudY = 80;
+        const hudX = w - 260; 
+        const hudY = 60;
         const width = 240;
         const height = 160;
 
@@ -413,16 +413,19 @@ export class GameRenderer {
         
         // --- 1. Glitch Effect ---
         let gx = 0, gy = 0;
+        let alphaMod = 1.0;
         if (this.holoGlitchTimer > 0) {
-            gx = (Math.random() - 0.5) * 20;
-            gy = (Math.random() - 0.5) * 10;
-            if (Math.random() > 0.7) return; // Flicker off
+            gx = (Math.random() - 0.5) * 10;
+            gy = (Math.random() - 0.5) * 5;
+            alphaMod = 0.5 + Math.random() * 0.5;
+            if (Math.random() > 0.8) alphaMod = 0.2; // Flicker out
         }
         
         // --- 2. Perspective Transform ---
-        // Skew to match isometric feel (Parallel to ground planes)
-        // matrix(1, -0.1, 0, 1, x, y) gives a slight "leaning back" feel
-        ctx.transform(1, -0.12, 0, 1, hudX + gx, hudY + gy);
+        // CHANGED: Use Horizontal Shear (c=-0.15) instead of Vertical Shear (b=-0.12).
+        // This keeps text horizontal (better readability) while making the panel lean left.
+        // matrix(1, 0, -0.15, 1, x, y)
+        ctx.transform(1, 0, -0.15, 1, hudX + gx, hudY + gy);
 
         // --- 3. Glass Background ---
         const bgGrad = ctx.createLinearGradient(0, 0, width, height);
@@ -432,6 +435,7 @@ export class GameRenderer {
         bgGrad.addColorStop(1, `${baseColor}05`); // 2% opacity
         
         ctx.fillStyle = bgGrad;
+        ctx.globalAlpha = alphaMod;
         ctx.fillRect(0, 0, width, height);
         
         // Grid Lines
@@ -516,10 +520,10 @@ export class GameRenderer {
         // Special Alert: ULTIMATE
         if (agent.castingSkillIdx !== -1 && agent.skills[agent.castingSkillIdx]?.tag === 'ULT') {
             ctx.fillStyle = '#ef4444';
-            ctx.globalAlpha = 0.5 + Math.sin(this.globalTime * 20) * 0.5;
+            ctx.globalAlpha = (0.5 + Math.sin(this.globalTime * 20) * 0.5) * alphaMod;
             ctx.fillRect(0, 130, width, 20);
             ctx.fillStyle = '#fff';
-            ctx.globalAlpha = 1.0;
+            ctx.globalAlpha = 1.0 * alphaMod;
             ctx.font = 'bold 12px monospace';
             ctx.textAlign = 'center';
             ctx.fillText('WARNING: ULTIMATE DETECTED', width/2, 144);
@@ -530,6 +534,8 @@ export class GameRenderer {
         }
 
         // --- 5. Tether Line to Unit ---
+        // Tether should NOT be transformed by the panel skew to look connected to world
+        // But since we are in transformed state, we draw a short "antenna" instead.
         ctx.beginPath();
         ctx.moveTo(10, height);
         ctx.lineTo(10, height + 20);

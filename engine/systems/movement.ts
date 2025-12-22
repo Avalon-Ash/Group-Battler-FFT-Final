@@ -22,6 +22,9 @@ export class MovementSystem {
     private _pfQueue: Int32Array; 
     private _pfCameFrom: Map<number, number> = new Map();
     private _pfBlockers: Set<number> = new Set();
+    
+    // Optimization: Reuse Stacking Map to reduce GC
+    private _stackingMap = new Map<number, Agent[]>();
 
     constructor() {
         this._pfQueue = new Int32Array(QUEUE_CAPACITY);
@@ -212,7 +215,8 @@ export class MovementSystem {
     }
 
     public resolveStacking(engine: GameEngine) {
-        const map = new Map<number, Agent[]>();
+        this._stackingMap.clear();
+        const map = this._stackingMap;
         
         engine.agents.forEach(a => {
             if (a.hp <= 0 || a.banished) return;

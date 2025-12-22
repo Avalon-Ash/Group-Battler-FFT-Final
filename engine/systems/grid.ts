@@ -19,10 +19,26 @@ interface CachedTile {
     h: number;
 }
 
+// OPTIMIZATION: Precompute Hex Polygon Offsets to avoid Trig in render loop
+const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
+const HEX_CORNERS: {x: number, y: number}[] = [];
+for (let i = 0; i < 6; i++) {
+    const angle = START_ANGLE + i * Math.PI / 3;
+    HEX_CORNERS.push({ 
+        x: HEX_SIZE * Math.cos(angle), 
+        y: HEX_SIZE * Math.sin(angle) * ISO_SCALE_Y 
+    });
+}
+
 export class GridSystem {
     // Optimization: Cache tiles to avoid re-parsing keys and re-calculating positions every frame
     private _tileCache: CachedTile[] = [];
     private _lastMapVersion: number = -1;
+
+    // Optimization: Reuseable buffers to reduce GC pressure
+    private _dangerZones = new Map<string, {color: string, progress: number}>();
+    private _unitPresence = new Set<string>();
+    private _unitVisualStatus = new Map<string, string>();
 
     // Passthrough
     getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
@@ -138,7 +154,11 @@ export class GridSystem {
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
 
-        const dangerZones = new Map<string, {color: string, progress: number}>();
+        // Clear and Reuse Buffers
+        this._dangerZones.clear();
+        this._unitPresence.clear();
+        this._unitVisualStatus.clear();
+
         engine.agents.forEach(a => {
             if (a.hp > 0 && a.castingSkillIdx !== -1) {
                 const s = a.skills[a.castingSkillIdx];
@@ -150,8 +170,9 @@ export class GridSystem {
 
                     if (centerHex) {
                         const progress = 1 - (a.castTimer / s.cast);
+                        // Using raw HexUtils range which creates arrays, acceptable for small radii
                         HexUtils.range(centerHex, s.aoeRadius || 1).forEach(h => {
-                            dangerZones.set(`${h.q},${h.r}`, {
+                            this._dangerZones.set(`${h.q},${h.r}`, {
                                 color: s.color, 
                                 progress: progress
                             });
@@ -159,17 +180,12 @@ export class GridSystem {
                     }
                 }
             }
-        });
-
-        const unitPresence = new Map<string, boolean>();
-        const unitVisualStatus = new Map<string, string>(); 
-
-        engine.agents.forEach(a => {
+            
             if(a.hp > 0) {
                 const key = `${a.q},${a.r}`;
-                unitPresence.set(key, true);
+                this._unitPresence.add(key);
                 if (a.visualStatus !== 'NONE') {
-                    unitVisualStatus.set(key, a.visualStatus);
+                    this._unitVisualStatus.set(key, a.visualStatus);
                 }
             }
         });
@@ -225,9 +241,9 @@ export class GridSystem {
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             
             const k = `${q},${r}`;
-            const dangerInfo = dangerZones.get(k);
-            const hasUnit = unitPresence.has(k);
-            const specialStatus = unitVisualStatus.get(k);
+            const dangerInfo = this._dangerZones.get(k);
+            const hasUnit = this._unitPresence.has(k);
+            const specialStatus = this._unitVisualStatus.get(k);
 
             let lightColor = null;
             let lightIntensity = 0;
@@ -283,55 +299,44 @@ export class GridSystem {
         specialStatus: string | undefined,
         globalTime: number
     ) {
-        // Use standard compressed hex factor defined in utils.ts
-        const Y_SCALE = ISO_SCALE_Y; 
         const BASE_THICKNESS = 12; // Visual foundation thickness
-        
-        const corners: {x: number, y: number}[] = [];
-        // Standard Pointy Top (PI/6) + 45 deg Rotation (PI/4) for Diamond Grid alignment
-        const startAngle = Math.PI / 6 + Math.PI / 4; 
-        
-        for (let i = 0; i < 6; i++) {
-            const angle = startAngle + i * Math.PI / 3;
-            corners.push({ 
-                x: x + size * Math.cos(angle), 
-                y: y + size * Math.sin(angle) * Y_SCALE 
-            });
-        }
         
         // This is the TOP face Y level relative to ground (y)
         const topY = height; 
 
+        // Use precomputed corners to avoid trig calls per tile
         const traceTopFace = () => {
             ctx.beginPath();
-            ctx.moveTo(corners[0].x, corners[0].y - topY);
+            const c0 = HEX_CORNERS[0];
+            ctx.moveTo(x + c0.x, y + c0.y - topY);
             for (let i = 1; i < 6; i++) {
-                ctx.lineTo(corners[i].x, corners[i].y - topY);
+                const c = HEX_CORNERS[i];
+                ctx.lineTo(x + c.x, y + c.y - topY);
             }
             ctx.closePath();
         };
 
         // --- 1. Draw Side Faces (The Stack) ---
         // Rotated 45deg: Front faces are 5, 0, 1 (Right-Down, Down, Left-Down)
-        // Previous standard [0,1,2] causes gaps because face 2 is now Hidden and Face 5 is now Visible.
         const visibleIndices = [5, 0, 1];
 
         for (const i of visibleIndices) {
             const j = (i + 1) % 6;
+            const c1 = HEX_CORNERS[i];
+            const c2 = HEX_CORNERS[j];
             
             // Top vertices (Visual Top)
-            const x1 = corners[i].x;
-            const y1_top = corners[i].y - topY;
-            const x2 = corners[j].x;
-            const y2_top = corners[j].y - topY;
+            const x1 = x + c1.x;
+            const y1_top = y + c1.y - topY;
+            const x2 = x + c2.x;
+            const y2_top = y + c2.y - topY;
 
-            // Bottom vertices (Visual Base/Foundation) -> Extended down by BASE_THICKNESS
-            const y1_bottom = corners[i].y + BASE_THICKNESS;
-            const y2_bottom = corners[j].y + BASE_THICKNESS;
+            // Bottom vertices (Visual Base/Foundation)
+            const y1_bottom = y + c1.y + BASE_THICKNESS;
+            const y2_bottom = y + c2.y + BASE_THICKNESS;
             
             const grad = ctx.createLinearGradient(0, y - topY, 0, y + BASE_THICKNESS);
             // Alternate brightness for 3D effect
-            // Faces 5 and 1 are side-ish, Face 0 is center-front.
             const baseColor = (i === 0) ? theme.sideDark : theme.sideLight;
             grad.addColorStop(0, baseColor);
             grad.addColorStop(1, '#020617'); // Darker at the very bottom foundation
@@ -351,8 +356,8 @@ export class GridSystem {
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 for (let hStep = BLOCK_HEIGHT; hStep < height; hStep += BLOCK_HEIGHT) {
-                    ctx.moveTo(x1, corners[i].y - hStep);
-                    ctx.lineTo(x2, corners[j].y - hStep);
+                    ctx.moveTo(x1, y + c1.y - hStep);
+                    ctx.lineTo(x2, y + c2.y - hStep);
                 }
                 ctx.stroke();
             }
