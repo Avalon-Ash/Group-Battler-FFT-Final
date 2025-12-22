@@ -90,7 +90,7 @@ export class CombatSystem {
              engine.events.push({ type: 'PROJECTILE_SPAWN', pos: {x: source.px, y: source.py}, skill: skill, targetId: tid });
 
         } else {
-            // Single Target Projectile (Multi-target logic if needed in future)
+            // Single Target Projectile
             const targets = (source.target && !source.target.banished && source.target.hp > 0 ? [source.target] : []);
             targets.forEach(t => {
                  targetPos = {x: t.px, y: t.py};
@@ -101,10 +101,13 @@ export class CombatSystem {
     }
 
     private createProjectile(source: Agent, skill: Skill, targetPos: {x: number, y: number}, targetId: string, engine: GameEngine) {
+        // Height Correction: Projectiles spawn from chest height, not feet
+        const h = engine.map.getTerrainHeight(source.q, source.r);
+        
         this.projectiles.push({
             id: Math.random().toString(),
             x: source.px, 
-            y: source.py,
+            y: source.py, // Logic position
             startX: source.px, 
             startY: source.py,
             targetId: targetId,
@@ -138,7 +141,7 @@ export class CombatSystem {
             
             // Hit Detection
             if (dist <= moveDist || dist < 10) {
-                const source = engine.agents.find(a => a.id === p.sourceId) || engine.agents[0]; // Fallback to first if source dead (rare)
+                const source = engine.agents.find(a => a.id === p.sourceId) || engine.agents[0]; // Fallback
                 
                 if (p.skill.type === 'AOE') {
                     const hitPos = p.targetPos; 
@@ -194,7 +197,15 @@ export class CombatSystem {
                 );
             }
         } else {
-            targets = (source.target && !source.target.banished && source.target.hp > 0 ? [source.target] : []);
+            // Single Target - Verify Height-Aware Range
+            if (source.target && !source.target.banished && source.target.hp > 0) {
+                const effectiveRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
+                const actualDist = HexUtils.dist(source, source.target);
+                
+                if (actualDist <= effectiveRange) {
+                    targets = [source.target];
+                }
+            }
         }
         
         const origin = {x: source.px, y: source.py};

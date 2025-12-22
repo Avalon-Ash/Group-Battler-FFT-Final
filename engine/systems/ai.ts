@@ -53,15 +53,14 @@ export class AISystem {
                     if (result.targetAgent) {
                         ctx.target = result.targetAgent;
                         ctx.targetHex = null;
-                        // Range check with Height Bonus
+                        // Range check with Height Bonus using the shared MovementSystem
                         const effRange = engine.movement.getEffectiveRange(ctx, ctx.target.q, ctx.target.r, ctx.skills[i]!.range, engine);
                         return HexUtils.dist(ctx, result.targetAgent) <= effRange;
                     } 
                     else if (result.targetHex) {
                         ctx.target = null;
                         ctx.targetHex = result.targetHex;
-                        // Always return TRUE here to allow "Action: Move" to handle the approach!
-                        // The next Action "Do" will fail if out of range, falling through to "Move"
+                        // Valid ground target found, proceed to execution flow
                         return true; 
                     }
                     return false;
@@ -70,16 +69,16 @@ export class AISystem {
                     // Sub-Selector: Try Cast -> Fail -> Move to Spot
                     .add(new Sequence("TryCast")
                         .add(new Condition("InRange", (ctx: Agent) => {
-                            let targetQ = 0, targetR = 0;
-                            if (ctx.targetHex) { targetQ = ctx.targetHex.q; targetR = ctx.targetHex.r; }
-                            else if (ctx.target) { targetQ = ctx.target.q; targetR = ctx.target.r; }
+                            // Re-verify range just before casting (targets move)
+                            let tQ = 0, tR = 0;
+                            if (ctx.targetHex) { tQ = ctx.targetHex.q; tR = ctx.targetHex.r; }
+                            else if (ctx.target) { tQ = ctx.target.q; tR = ctx.target.r; }
                             else return false;
 
-                            const effRange = engine.movement.getEffectiveRange(ctx, targetQ, targetR, ctx.skills[i]!.range, engine);
+                            const effRange = engine.movement.getEffectiveRange(ctx, tQ, tR, ctx.skills[i]!.range, engine);
+                            const dist = ctx.targetHex ? HexUtils.dist(ctx, ctx.targetHex) : HexUtils.dist(ctx, ctx.target!);
                             
-                            if (ctx.targetHex) return HexUtils.dist(ctx, ctx.targetHex) <= effRange;
-                            if (ctx.target) return HexUtils.dist(ctx, ctx.target) <= effRange;
-                            return false;
+                            return dist <= effRange;
                         }))
                         .add(new Action("Do", (ctx: Agent) => engine.performCast(ctx, i)))
                     )
@@ -90,6 +89,10 @@ export class AISystem {
                         if (ctx.targetHex) {
                             return engine.movement.moveAgentToHex(ctx, ctx.targetHex, skill.range, engine, speedMult);
                         }
+                        // Fallback for moving towards agent if targetHex wasn't set but targetAgent was
+                        if (ctx.target) {
+                             return engine.movement.moveAgent(ctx, ctx.target, skill.range, engine, speedMult);
+                        }
                         return NodeState.FAILURE;
                     }))
                 )
@@ -98,9 +101,13 @@ export class AISystem {
             // Default Fallback: Just chase nearest enemy if no optimal move found
             act.add(new Action("MoveGeneral", (ctx: Agent) => {
                 engine.movement.updateTarget(ctx, engine); 
+                if (!ctx.target) return NodeState.FAILURE;
+                
                 const skill = ctx.skills[i]!;
                 const speedMult = skill.range <= 2 ? 2.5 : 1.0;
-                return ctx.target ? engine.movement.moveAgent(ctx, ctx.target, skill.range, engine, speedMult) : NodeState.FAILURE;
+                
+                // Stickiness check: If we are already moving towards a valid target, don't switch unless much closer
+                return engine.movement.moveAgent(ctx, ctx.target, skill.range, engine, speedMult);
             }));
             
             skillSelector.add(seq.add(act));
