@@ -213,7 +213,7 @@ function App() {
             // Requirement 1: Clear units immediately when grid exits
             // We manually empty the arrays so the map falls empty
             engineRef.current.agents = [];
-            engineRef.current.projectiles = [];
+            engineRef.current.combat.projectiles = [];
             
             // 2. Wait for drop animation (1.5s)
             setTimeout(() => {
@@ -408,7 +408,18 @@ function App() {
             {/* Toolbar: Hidden in Showcase */}
             <div className={`h-14 bg-slate-900 border-t border-slate-700 flex items-center justify-between px-2 md:px-4 shrink-0 overflow-x-auto no-scrollbar gap-4 z-10 transition-all duration-500 ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
                 <div className="flex items-center gap-2 shrink-0">
-                    {/* Unit Tools */}
+                    {/* Tool Selection */}
+                    <button 
+                        disabled={isPlaying || winner !== null} 
+                        onClick={() => setTool(ToolType.SELECT)} 
+                        className={`px-3 py-1.5 text-[10px] font-bold rounded border flex items-center gap-1 transition-all ${tool === ToolType.SELECT ? 'bg-slate-700 border-blue-400 text-white shadow-[0_0_0_1px_#60a5fa]' : 'bg-slate-800 border-slate-700 text-slate-400 opacity-80 hover:bg-slate-700'}`}
+                        title="選取 / 移動"
+                    >
+                        <span>👆</span> <span className="hidden sm:inline">選取</span>
+                    </button>
+
+                    <div className="w-px h-6 bg-slate-700 mx-1"></div>
+
                     <button disabled={isPlaying || winner !== null} onClick={() => setTool(ToolType.ADD_BLUE)} className={`px-3 py-1.5 text-[10px] font-bold rounded border flex items-center gap-1 transition-all ${tool === ToolType.ADD_BLUE ? 'bg-slate-800 border-blue-500 shadow-[0_0_0_1px_#3b82f6]' : 'bg-slate-800 border-slate-700 opacity-80'} text-blue-400 ${isPlaying || winner !== null ? 'opacity-30 cursor-not-allowed' : ''}`}><span>🔵</span> <span className="hidden sm:inline">藍方</span></button>
                     <button disabled={isPlaying || winner !== null} onClick={() => setTool(ToolType.ADD_RED)} className={`px-3 py-1.5 text-[10px] font-bold rounded border flex items-center gap-1 transition-all ${tool === ToolType.ADD_RED ? 'bg-slate-800 border-slate-700 border-red-500 shadow-[0_0_0_1px_#ef4444]' : 'bg-slate-800 border-slate-700 opacity-80'} text-red-400 ${isPlaying || winner !== null ? 'opacity-30 cursor-not-allowed' : ''}`}><span>🔴</span> <span className="hidden sm:inline">紅方</span></button>
                     

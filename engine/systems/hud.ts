@@ -1,6 +1,6 @@
 
 import { Agent } from "../game";
-import { COLORS } from "../../constants";
+import { COLORS, UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
 import { Role } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
 
@@ -87,48 +87,51 @@ export class HUDSystem {
         }
     }
 
-    private getUnitScale(role: Role): number {
-        switch (role) {
-            case Role.TANK: return 1.8;
-            case Role.WARRIOR: return 1.6;
-            default: return 1.4;
-        }
-    }
-
     draw(ctx: CanvasRenderingContext2D, agents: Agent[], getTerrainHeight: (q: number, r: number) => number, mapConfig: MapConfig) {
         // 1. Draw HP/MP Bars
         agents.forEach(a => {
             if (a.hp <= 0) return;
             if (a.spawnTimer > 0) return; 
             
-            // Fix: Use visual position (px, py) to determine height to avoid bars detaching during knockback
-            // Or interpolate if moving to keep bar attached to unit head
+            // Determine Ground Level Logic
             let h = 0;
-            
             if (a.isMoving && a.path.length > 0) {
-                // Interpolate height for smoother visual
-                // Note: a.q, a.r is the START of movement logic in this codebase structure (updated at end)
+                // Interpolate terrain height during movement
                 const startH = getTerrainHeight(a.q, a.r);
                 const endHex = a.path[0];
                 const endH = getTerrainHeight(endHex.q, endHex.r);
                 h = HexUtils.lerp(startH, endH, a.moveProgress);
             } else {
-                // Static or knocked back (physics drift)
+                // Static or knocked back (drift check)
                 const visualHex = HexUtils.fromPx(a.px, a.py, mapConfig);
                 h = getTerrainHeight(visualHex.q, visualHex.r);
             }
 
-            const scale = this.getUnitScale(a.role);
-            
+            // Visual Position Base (Ground)
             const groundY = a.py - h;
-            const baseOffset = 5; 
-            const bodyHeightApprox = 35 * scale; 
-            const floatOffset = a.physics.y; 
+            
+            // Physics Offset:
+            // a.physics.y is lateral spring jitter (usually small)
+            // a.physics.z is vertical jump/knockup (POSITIVE is UP in our logic)
+            // Screen Y = World Y - World Z. So we subtract Z.
+            const physicsOffsetY = a.physics.y - a.physics.z; 
+
+            // --- STANDARD ANCHOR CALCULATION ---
+            // Formula: Ground - VisualHeightStandard - PhysicsOffset - Padding
+            // This guarantees the bar is always exactly UNIT_VISUAL_HEIGHT + PADDING pixels above the visual center,
+            // regardless of the unit's scaling or animation state.
+            
+            /* 
+             * ANTI-REGRESSION WARNING:
+             * Do NOT hardcode arbitrary offsets here (e.g., -40, -50). 
+             * Use UNIT_VISUAL_HEIGHT defined in constants.ts.
+             * This ensures UI bars clear even the tallest unit models.
+             */
+            const anchorY = groundY - UNIT_VISUAL_HEIGHT + physicsOffsetY - HUD_PADDING;
             
             const headX = a.px + a.physics.x;
-            const headY = groundY - baseOffset - bodyHeightApprox + floatOffset;
 
-            this.drawUnitBars(ctx, a, headX, headY);
+            this.drawUnitBars(ctx, a, headX, anchorY);
         });
 
         // 2. Draw Floating Text

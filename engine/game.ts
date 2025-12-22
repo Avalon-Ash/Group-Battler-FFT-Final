@@ -176,7 +176,8 @@ export class GameEngine {
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
     
-    public projectiles: Projectile[] = [];
+    // Delegated to CombatSystem (Single Source of Truth)
+    get projectiles() { return this.combat.projectiles; }
 
     public events: GameEvent[] = [];
     
@@ -291,7 +292,7 @@ export class GameEngine {
             a.reset(this.mapConfig);
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
-        this.projectiles = [];
+        this.combat.projectiles = []; // Clear projectiles via combat system
         this.battleTime = 0;
         this.play();
     }
@@ -302,7 +303,7 @@ export class GameEngine {
         this.agentMap.clear();
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
-        this.projectiles = [];
+        this.combat.projectiles = []; // Clear projectiles via combat system
         this.logs = [];
         this.directorTargetId = null;
         if (!keepScene) this.map.randomizeEnvironment(this); 

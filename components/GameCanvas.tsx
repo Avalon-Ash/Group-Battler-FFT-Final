@@ -240,6 +240,41 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
             );
         };
 
+        // HIT TEST for Unit Selection (Prioritizes Units over Tiles)
+        const getHitAgent = (e: MouseEvent) => {
+            const rect = cvs.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+            const wx = mouseX / camera.current.zoom + camera.current.x;
+            const wy = mouseY / camera.current.zoom + camera.current.y;
+
+            // Sort agents by Y (depth) desc so we pick the one in front (visually on top)
+            const sorted = [...engine.agents].sort((a, b) => b.py - a.py);
+            
+            for (const agent of sorted) {
+                if (agent.hp <= 0 && agent.fullyDead) continue;
+                
+                // Get terrain height for this agent's position
+                const h = rendererRef.current.getTerrainHeight(agent.q, agent.r, engine);
+                
+                // Visual base position
+                const baseX = agent.px;
+                const baseY = agent.py - h;
+                
+                // Hitbox: Centered horizontally on agent.px
+                // Vertical: From BaseY up to Head. Approx 80px tall.
+                // Center of hitbox roughly at (baseX, baseY - 40)
+                const dx = Math.abs(wx - baseX);
+                const dy = wy - (baseY - 40); 
+                
+                // 30px width radius, 50px height radius (Total 60x100 box)
+                if (dx < 30 && Math.abs(dy) < 50) {
+                    return agent;
+                }
+            }
+            return null;
+        };
+
         const getWorldPosFromEvent = (e: MouseEvent) => {
             const rect = cvs.getBoundingClientRect();
             const mouseX = e.clientX - rect.left;
@@ -287,19 +322,36 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                 return;
             }
 
-            const h = getHexFromEvent(e);
-            const agent = engine.getAgentAt(h.q, h.r);
+            // 1. Try to hit an agent first (Screen Space Hitbox)
+            const hitAgent = getHitAgent(e);
             
-            if (agent && tool === ToolType.SELECT) {
+            if (hitAgent && tool === ToolType.SELECT) {
                 // Clicking a unit in Select Mode -> Select/Drag
                 pendingAction.current = false;
-                onSelect(agent);
+                onSelect(hitAgent);
                 if (!engine.isRunning) {
-                    draggedAgentRef.current = agent;
-                    dragStartHex.current = { q: agent.q, r: agent.r };
+                    draggedAgentRef.current = hitAgent;
+                    dragStartHex.current = { q: hitAgent.q, r: hitAgent.r };
                     isDraggingUnit.current = true;
                 }
                 return;
+            }
+
+            // 2. Fallback to Tile Logic
+            const h = getHexFromEvent(e);
+            
+            // Legacy check: engine.getAgentAt uses spatial hash, which might miss if visual is offset
+            // But we already did getHitAgent, so this is mostly for overlapping tiles
+            const gridAgent = engine.getAgentAt(h.q, h.r);
+            if (gridAgent && tool === ToolType.SELECT && !hitAgent) {
+                 pendingAction.current = false;
+                 onSelect(gridAgent);
+                 if (!engine.isRunning) {
+                    draggedAgentRef.current = gridAgent;
+                    dragStartHex.current = { q: gridAgent.q, r: gridAgent.r };
+                    isDraggingUnit.current = true;
+                 }
+                 return;
             }
 
             // Clicking empty space or Painting tools -> Start Painting/Action
@@ -322,6 +374,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                 hoveredHexRef.current = h;
             } else {
                 hoveredHexRef.current = null;
+            }
+
+            // Cursor Feedback for Hovering Units
+            if (tool === ToolType.SELECT && !isDraggingUnit.current && !isPanning.current) {
+                const hit = getHitAgent(e);
+                if (canvasRef.current) {
+                    canvasRef.current.style.cursor = hit ? 'pointer' : 'default';
+                }
+            } else if (isDraggingUnit.current && canvasRef.current) {
+                canvasRef.current.style.cursor = 'grabbing';
             }
 
             if (isPanning.current) {
@@ -377,18 +439,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                 const isOccupiedByOther = occupant && occupant !== agent;
 
                 if (isValidHex && !isObstacle && !isOccupiedByOther) {
-                    agent.q = h.q;
-                    agent.r = h.r;
+                    // Update Engine Logic Position
+                    engine.updateAgentPosition(agent, h.q, h.r);
+                    
+                    // Update Visuals to match Logic (Snap to tile center)
                     const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                     agent.px = p.x;
                     agent.py = p.y;
                 } else {
+                    // Revert to start
                     if (dragStartHex.current) {
                         agent.q = dragStartHex.current.q;
                         agent.r = dragStartHex.current.r;
                         const p = HexUtils.toPx(agent.q, agent.r, engine.mapConfig);
                         agent.px = p.x;
                         agent.py = p.y;
+                        
+                        // Ensure engine map is consistent (just in case)
+                        engine.updateAgentPosition(agent, agent.q, agent.r);
                     }
                 }
 
@@ -396,6 +464,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                 dragStartHex.current = null;
                 isDraggingUnit.current = false;
                 onSelect(agent);
+                if (canvasRef.current) canvasRef.current.style.cursor = 'default';
                 return;
             }
 
@@ -404,10 +473,11 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                 const h = getHexFromEvent(e);
                 
                 if (tool === ToolType.SELECT) {
-                    onSelect(null);
+                    // Try hit agent again just in case click didn't move
+                    const hitAgent = getHitAgent(e);
+                    if (hitAgent) onSelect(hitAgent);
+                    else onSelect(null);
                 } 
-                // Note: Painting logic handles the click action in MouseDown usually, 
-                // but if we just clicked without moving, MouseDown handled it.
             }
             
             pointerDownStart.current = null;

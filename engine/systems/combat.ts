@@ -52,7 +52,6 @@ export class CombatSystem {
             a.curCDs[a.castingSkillIdx] = s.cd;
             
             // Execution Branch: Projectile vs Instant
-            // Rule: No Invisible Attacks. Every attack must have a visual representation.
             if (s.projectileSpeed && s.projectileSpeed > 0) {
                  this.spawnProjectile(a, s, engine);
             } else {
@@ -115,7 +114,7 @@ export class CombatSystem {
             startY: source.py,
             targetId: targetId,
             targetPos: targetPos,
-            speed: skill.projectileSpeed || 300, // Safe default
+            speed: skill.projectileSpeed || 600, // Safe default
             skill: skill,
             sourceId: source.id,
             team: source.team,

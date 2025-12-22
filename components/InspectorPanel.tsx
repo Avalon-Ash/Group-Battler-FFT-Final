@@ -375,14 +375,21 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                                 <div className="grid grid-cols-4 gap-1 text-[9px] font-mono text-slate-500 mb-1">
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-300 border border-slate-700/50">威力 {currentSkill.power}</div>
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-300 border border-slate-700/50">冷卻 {currentSkill.cd}s</div>
-                                                    <div className="bg-slate-800 rounded px-1 py-1 text-center text-blue-400 border border-slate-700/50">-{currentSkill.cost} MP</div>
+                                                    
+                                                    {/* COST / GAIN */}
+                                                    <div className="bg-slate-800 rounded px-1 py-1 text-center border border-slate-700/50 flex justify-center gap-1">
+                                                        <span className="text-blue-400">-{currentSkill.cost}</span>
+                                                        {currentSkill.gain > 0 && <span className="text-emerald-400">+{currentSkill.gain}</span>}
+                                                        <span className="text-slate-500">MP</span>
+                                                    </div>
+
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-300 border border-slate-700/50">射程 {currentSkill.range}</div>
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-300 border border-slate-700/50">詠唱 {currentSkill.cast}s</div>
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-400 border border-slate-700/50 col-span-2">
                                                         {currentSkill.type === 'AOE' ? `範圍 (R:${currentSkill.aoeRadius})` : '單體'}
                                                     </div>
                                                     <div className="bg-slate-800 rounded px-1 py-1 text-center text-slate-400 border border-slate-700/50">
-                                                        {currentSkill.projectileSpeed ? '彈道' : '瞬發'}
+                                                        {currentSkill.projectileSpeed ? `${currentSkill.visual} (${currentSkill.projectileSpeed})` : `${currentSkill.visual || '瞬發'}`}
                                                     </div>
                                                 </div>
                                                 {(currentSkill.ccType || currentSkill.ccType2 || currentSkill.effectType) && (
@@ -502,30 +509,67 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
 
                                     {selectedSkillId === skill.id && (
                                         <div className="p-2 border-t border-slate-700 bg-slate-950/30 text-[10px]">
-                                            <div className="grid grid-cols-3 gap-2 mb-2">
+                                            <div className="grid grid-cols-4 gap-2 mb-2">
                                                 <div className="space-y-1">
                                                     <label className="text-slate-500 block text-[9px]">威力</label>
                                                     <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.power} onChange={e => updateSkill('power', parseInt(e.target.value))} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-500 block text-[9px]">消耗</label>
+                                                    <label className="text-slate-500 block text-[9px]">CD (秒)</label>
+                                                    <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.cd} step="0.5" onChange={e => updateSkill('cd', parseFloat(e.target.value))} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-slate-500 block text-[9px]">消耗 (MP)</label>
                                                     <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.cost} onChange={e => updateSkill('cost', parseInt(e.target.value))} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-500 block text-[9px]">CD</label>
-                                                    <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.cd} step="0.5" onChange={e => updateSkill('cd', parseFloat(e.target.value))} />
+                                                    <label className="text-slate-500 block text-[9px]">獲得 (MP)</label>
+                                                    <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.gain || 0} onChange={e => updateSkill('gain', parseInt(e.target.value))} />
                                                 </div>
+
                                                 <div className="space-y-1">
                                                     <label className="text-slate-500 block text-[9px]">射程</label>
                                                     <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.range} onChange={e => updateSkill('range', parseInt(e.target.value))} />
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-500 block text-[9px]">詠唱</label>
+                                                    <label className="text-slate-500 block text-[9px]">詠唱 (秒)</label>
                                                     <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.cast} step="0.1" onChange={e => updateSkill('cast', parseFloat(e.target.value))} />
                                                 </div>
+                                                <div className="space-y-1 col-span-2">
+                                                    <label className="text-slate-500 block text-[9px]">類型</label>
+                                                    <div className="flex gap-1">
+                                                        <select className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.type} onChange={e => updateSkill('type', e.target.value)}>
+                                                            <option value="SINGLE">單體</option>
+                                                            <option value="AOE">範圍 (AOE)</option>
+                                                        </select>
+                                                        {skill.type === 'AOE' && (
+                                                            <input type="number" className="w-12 bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.aoeRadius || 1} onChange={e => updateSkill('aoeRadius', parseInt(e.target.value))} placeholder="R" />
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-1 col-span-2">
+                                                    <label className="text-slate-500 block text-[9px]">視覺特效 (Visual)</label>
+                                                    <select className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.visual || 'BOLT'} onChange={e => updateSkill('visual', e.target.value)}>
+                                                        <option value="ARROW">ARROW (弓箭)</option>
+                                                        <option value="FIREBALL">FIREBALL (火球)</option>
+                                                        <option value="BOLT">BOLT (能量彈)</option>
+                                                        <option value="BOMB">BOMB (炸彈)</option>
+                                                        <option value="SLASH">SLASH (斬擊)</option>
+                                                        <option value="SMASH">SMASH (重擊)</option>
+                                                        <option value="BEAM">BEAM (光束)</option>
+                                                    </select>
+                                                </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-slate-500 block text-[9px]">彈速</label>
+                                                    <label className="text-slate-500 block text-[9px]">彈速 (0=瞬發)</label>
                                                     <input type="number" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200" value={skill.projectileSpeed || 0} onChange={e => updateSkill('projectileSpeed', parseInt(e.target.value))} />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-slate-500 block text-[9px]">顏色 (Hex)</label>
+                                                    <div className="flex gap-1">
+                                                        <input type="color" className="w-6 h-6 p-0 border-0 bg-transparent cursor-pointer" value={skill.color} onChange={e => updateSkill('color', e.target.value)} />
+                                                        <input type="text" className="w-full bg-slate-900 border border-slate-700 rounded px-1 py-1 text-slate-200 text-[9px]" value={skill.color} onChange={e => updateSkill('color', e.target.value)} />
+                                                    </div>
                                                 </div>
                                             </div>
                                             

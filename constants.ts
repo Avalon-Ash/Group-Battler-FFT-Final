@@ -5,6 +5,11 @@ export const HEX_SIZE = 36; // Slightly smaller to accommodate height
 export const BLOCK_HEIGHT = 24; // Increased to 24 for distinct "Step" look (Tactics Ogre style)
 export const MAX_TERRAIN_TIER = 6; // Max height steps
 
+// --- VISUAL STANDARDS (UNIT ANCHORS) ---
+export const UNIT_VISUAL_HEIGHT = 90; // Standardized "Head" position. Ensures clearance for tallest sprites.
+export const HUD_PADDING = 10;        // Safety buffer between sprite top and UI elements.
+export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
+
 export const PALETTE = {
     UI_BG: '#0a0a0c', // LoL Client Dark Grey
     UI_BORDER: '#785a28', // Hextech Gold

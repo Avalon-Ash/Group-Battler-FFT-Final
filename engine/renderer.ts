@@ -4,16 +4,20 @@ import { HexUtils } from "./utils";
 import { SpriteManager } from "./sprites";
 import { AssetManager } from "./assets";
 import { Hex, GameEvent, Skill, SceneTheme, Team } from "../types";
-import { HEX_SIZE } from "../constants";
+import { HEX_SIZE, UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../constants";
 
 // Sub-systems
 import { GridSystem, RenderableItem } from "./systems/grid";
 import { VFXSystem } from "./systems/vfx";
+import * as VFXSpawners from "./systems/vfx/spawners"; // Import Spawners
+import { VFXRenderer } from "./systems/vfx/render";
 import { UnitRenderSystem } from "./systems/unit";
 import { HUDSystem } from "./systems/hud";
 
 // Constants
-const HUD_TEXT_OFFSET = 40; 
+// Update HUD_TEXT_OFFSET to be dynamically based on Visual Height + Padding + small gap
+// This ensures text floats ABOVE the HP bar (which is at VisualHeight + Padding)
+const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20; 
 const OBSTACLE_Z_INDEX = 10;
 const OBSTACLE_OFFSET_Y = 86; 
 
@@ -29,6 +33,7 @@ export class GameRenderer {
     // Sub-systems
     public grid: GridSystem;
     public vfx: VFXSystem;
+    private vfxRenderer: VFXRenderer; // Presentation
     public unit: UnitRenderSystem;
     public hud: HUDSystem;
 
@@ -47,6 +52,7 @@ export class GameRenderer {
     constructor() {
         this.grid = new GridSystem();
         this.vfx = new VFXSystem();
+        this.vfxRenderer = new VFXRenderer(); // Instantiate Renderer
         this.unit = new UnitRenderSystem();
         this.hud = new HUDSystem();
     }
@@ -129,6 +135,7 @@ export class GameRenderer {
             } else if (event.type === 'CAST_START') {
                  if (event.skill && event.skill.tag !== 'BASIC') {
                      const isUlt = event.skill.tag === 'ULT';
+                     // Shift cast shouts slightly higher
                      const baseY = visualY - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
                      const xOffset = 55; 
                      this.hud.addFloatingText(event.pos.x + xOffset, baseY, event.skill.name, event.skill.color, 14, 'SHOUT', isUlt);
@@ -136,7 +143,7 @@ export class GameRenderer {
             } else if (event.type === 'CAST_FINISH') {
                  if (event.skill && event.skill.tag === 'ULT') {
                      if (event.skill.projectileSpeed === 0 || event.skill.power <= 0) {
-                         this.vfx.spawnDomainExpansion(event.pos.x, event.pos.y, event.skill.color, 4.0);
+                         VFXSpawners.spawnDomainExpansion(this.vfx, event.pos.x, event.pos.y, event.skill.color, 4.0);
                          this.triggerCameraShake(0.5, 8); 
                      }
                  }
@@ -147,11 +154,11 @@ export class GameRenderer {
                 case 'DAMAGE': 
                     // IMPACT JUICE: Always spawn generic sparks/blood for feedback
                     const isHeavy = Math.abs(event.value || 0) > 50;
-                    this.vfx.spawnExplosion(event.pos.x, visualY - 20, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
+                    VFXSpawners.spawnExplosion(this.vfx, event.pos.x, visualY - 20, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
                     
                     if (isHeavy) {
                         this.triggerCameraShake(0.2, 5); // Micro shake
-                        this.vfx.spawnDebris(event.pos.x, visualY - 20, event.color || '#fff', 3);
+                        VFXSpawners.spawnDebris(this.vfx, event.pos.x, visualY - 20, event.color || '#fff', 3);
                     }
                     break;
 
@@ -168,8 +175,8 @@ export class GameRenderer {
                             const tx = event.pos.x;
                             const ty = visualY - 20; // Hit Height (Chest)
                             
-                            this.vfx.spawnBeam(sx, sy, tx, ty, event.color || '#fff');
-                            this.vfx.spawnExplosion(tx, ty, 0, 8, event.color || '#fff', 0.5, 0.5, 'SPARK');
+                            VFXSpawners.spawnBeam(this.vfx, sx, sy, tx, ty, event.color || '#fff');
+                            VFXSpawners.spawnExplosion(this.vfx, tx, ty, 0, 8, event.color || '#fff', 0.5, 0.5, 'SPARK');
                         }
                     }
                     break;
@@ -180,12 +187,12 @@ export class GameRenderer {
 
                 case 'DEATH':
                     const team = event.team !== undefined ? event.team : Team.BLUE; 
-                    this.vfx.spawnUnitShatter(event.pos.x, visualY, team);
+                    VFXSpawners.spawnUnitShatter(this.vfx, event.pos.x, visualY, team);
                     this.triggerCameraShake(0.3, 10);
                     break;
 
                 case 'SPAWN':
-                    this.vfx.spawnTeleport(event.pos.x, visualY, event.color || '#fff');
+                    VFXSpawners.spawnTeleport(this.vfx, event.pos.x, visualY, event.color || '#fff');
                     break;
             }
         });
@@ -197,8 +204,8 @@ export class GameRenderer {
         
         if (isUlt) {
             this.triggerCameraShake(0.6, 15); 
-            this.vfx.spawnDivinePillar(event.pos.x, visualY, color, 1.5);
-            this.vfx.spawnShockwave(event.pos.x, visualY, color, 2.0);
+            VFXSpawners.spawnDivinePillar(this.vfx, event.pos.x, visualY, color, 1.5);
+            VFXSpawners.spawnShockwave(this.vfx, event.pos.x, visualY, color, 2.0);
             
             if (event.skill?.type === 'AOE') {
                 const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
@@ -214,16 +221,16 @@ export class GameRenderer {
                         const distToCenter = Math.abs(h.q - centerHex.q) + Math.abs(h.r - centerHex.r);
                         if (distToCenter > 0) {
                             const delay = distToCenter * 0.05;
-                            this.vfx.spawnDivinePillar(tilePos.x, tileVisualY, color, 0.7, delay);
-                            this.vfx.addGridFlash(h.q, h.r, color);
+                            VFXSpawners.spawnDivinePillar(this.vfx, tilePos.x, tileVisualY, color, 0.7, delay);
+                            VFXSpawners.addGridFlash(this.vfx, h.q, h.r, color);
                         } else {
-                            this.vfx.addGridFlash(h.q, h.r, color);
+                            VFXSpawners.addGridFlash(this.vfx, h.q, h.r, color);
                         }
                     }
                 });
             } else {
-                this.vfx.addImpact(event.pos.x, visualY, color, 'RING', 3.0);
-                this.vfx.spawnExplosion(event.pos.x, visualY, 0, 50, color, 2.0, 1.0, 'SPARK');
+                VFXSpawners.addImpact(this.vfx, event.pos.x, visualY, color, 'RING', 3.0);
+                VFXSpawners.spawnExplosion(this.vfx, event.pos.x, visualY, 0, 50, color, 2.0, 1.0, 'SPARK');
             }
         } else {
             if (event.skill?.type === 'AOE') {
@@ -231,16 +238,16 @@ export class GameRenderer {
                 const radius = event.skill.aoeRadius || 1;
                 HexUtils.range(center, radius).forEach(h => {
                     if (engine.isValid(h.q, h.r)) {
-                        this.vfx.addGridFlash(h.q, h.r, color);
+                        VFXSpawners.addGridFlash(this.vfx, h.q, h.r, color);
                         if (h.q === center.q && h.r === center.r) {
-                            this.vfx.addDecal(event.pos.x, visualY, color);
+                            VFXSpawners.addDecal(this.vfx, event.pos.x, visualY, color);
                         }
                     }
                 });
-                this.vfx.addImpact(event.pos.x, visualY, color, 'RING', 1.2);
+                VFXSpawners.addImpact(this.vfx, event.pos.x, visualY, color, 'RING', 1.2);
             } else {
-                this.vfx.addImpact(event.pos.x, visualY, color, 'RING', 0.8);
-                this.vfx.spawnExplosion(event.pos.x, visualY, 0, 8, color, 1.2, 0.6, 'SPARK');
+                VFXSpawners.addImpact(this.vfx, event.pos.x, visualY, color, 'RING', 0.8);
+                VFXSpawners.spawnExplosion(this.vfx, event.pos.x, visualY, 0, 8, color, 1.2, 0.6, 'SPARK');
             }
         }
     }
@@ -288,13 +295,15 @@ export class GameRenderer {
         
         renderList.push(...this.grid.collectRenderables(
             engine, hoveredHex, hoveredSkill, highlight, 
-            this.vfx.gridFlashes, engine.projectiles,
+            this.vfx.state.gridFlashes, engine.projectiles,
             this.transitionT, this.transitionPhase,
             this.globalTime
         ));
         
-        renderList.push(...this.vfx.collectRenderables(
+        // DELEGATED TO VFX RENDERER
+        renderList.push(...this.vfxRenderer.collectRenderables(
             engine,
+            this.vfx,
             (q, r) => this.grid.getTerrainHeight(q, r, engine),
             engine.mapConfig,
             this.transitionT,
@@ -376,7 +385,8 @@ export class GameRenderer {
         this.drawTacticalOverlay(ctx, engine, highlight);
 
         // 7. Top VFX
-        this.vfx.drawTopLayerParticles(ctx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
+        // DELEGATED TO VFX RENDERER
+        this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
         // 8. HUD
         this.hud.draw(ctx, engine.agents, (q, r) => this.grid.getTerrainHeight(q, r, engine), engine.mapConfig);
