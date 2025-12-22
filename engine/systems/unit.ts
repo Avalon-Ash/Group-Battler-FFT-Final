@@ -170,8 +170,10 @@ export class UnitRenderSystem {
 
         // --- PREPARE BODY TRANSFORM ---
         // Shift up to align body feet with ground (y=0)
-        // Standard body drawing has feet around y=15. So we shift up by -15.
-        const BODY_GROUNDING_OFFSET = -15; 
+        // Visual Base Top Surface is approx -16px relative to base drawing origin.
+        // We want feet (~ +15px in local body space) to land at -16px.
+        // So we shift up by ~ -31px.
+        const BODY_GROUNDING_OFFSET = -31; 
         
         let bodyFloat = BODY_GROUNDING_OFFSET; 
         
@@ -295,7 +297,7 @@ export class UnitRenderSystem {
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
         const totalDuration = 0.5;
         const alpha = Math.max(0, agent.spawnTimer / totalDuration);
-        const yOffset = -40 * scale; 
+        const yOffset = -85 * scale; // Moved up higher because body is now higher
 
         ctx.save();
         ctx.translate(x, y + yOffset);
