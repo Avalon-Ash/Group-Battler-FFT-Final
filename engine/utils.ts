@@ -14,6 +14,11 @@ export interface MapConfig {
 // Scale Y to simulate 3D perspective on standard hex grid
 export const ISO_SCALE_Y = 0.58; 
 
+// Rotation Constants (45 degrees)
+const ANGLE = Math.PI / 4;
+const SIN_A = Math.sin(ANGLE);
+const COS_A = Math.cos(ANGLE);
+
 // --- Integer Hashing Constants ---
 // Hash = (q + 128) << 16 | (r + 128)
 // This maps q,r to a unique 32-bit integer.
@@ -64,35 +69,48 @@ export const HexUtils = {
     },
 
     /**
-     * STANDARD POINTY-TOPPED HEX PROJECTION (ISOMETRIC)
-     * Maps Axial (q, r) to Screen (x, y) using standard hex formulas.
-     * Applies Y-axis compression to simulate 3D camera angle.
+     * ROTATED ISOMETRIC PROJECTION
+     * 1. Convert Hex to orthogonal (Cartesian Pointy-Topped)
+     * 2. Rotate 45 degrees
+     * 3. Squash Y for 2.5D effect
      */
     toPx: (q: number, r: number, config: MapConfig): Point => {
-        // 1. Standard Pointy-topped Hex Conversion
-        // x spacing is sqrt(3) * size
-        // y spacing is 1.5 * size
-        const x = (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r) * HEX_SIZE;
-        const y = (1.5 * r) * HEX_SIZE;
+        // 1. Standard Pointy-topped Hex Conversion (Cartesian)
+        const cx = (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r) * HEX_SIZE;
+        const cy = (1.5 * r) * HEX_SIZE; // Fixed 3.0/2 -> 1.5
         
-        // 2. Apply Isometric Transformation (Y compression)
-        // ISO_SCALE_Y is approx 0.58 (near 1/sqrt(3))
+        // 2. Rotate 45 degrees (Rotation Matrix)
+        const rx = cx * COS_A - cy * SIN_A;
+        const ry = cx * SIN_A + cy * COS_A;
+        
+        // 3. Apply Offset and Y-Compression
         return { 
-            x: config.offsetX + x, 
-            y: config.offsetY + y * ISO_SCALE_Y 
+            x: config.offsetX + rx, 
+            y: config.offsetY + ry * ISO_SCALE_Y 
         };
     },
 
     /**
-     * Inverse of toPx for Mouse Picking.
+     * Inverse Projection (Mouse Picking)
+     * Reverses the Rotated Isometric Projection.
      */
     fromPx: (x: number, y: number, config: MapConfig): Hex => {
-        const lx = x - config.offsetX;
-        const ly = (y - config.offsetY) / ISO_SCALE_Y; // Undo Y compression first
+        // 1. Remove Offset
+        const dx = x - config.offsetX;
+        const dy = y - config.offsetY;
 
-        // Standard Hex Inverse Calculation
-        const q = (Math.sqrt(3)/3 * lx - 1/3 * ly) / HEX_SIZE;
-        const r = (2/3 * ly) / HEX_SIZE;
+        // 2. Un-squash Y
+        const unsquashedY = dy / ISO_SCALE_Y;
+
+        // 3. Inverse Rotation (-45 degrees)
+        // x = x'*cos + y'*sin
+        // y = -x'*sin + y'*cos
+        const cx = dx * COS_A + unsquashedY * SIN_A;
+        const cy = -dx * SIN_A + unsquashedY * COS_A;
+
+        // 4. Standard Hex Inverse Calculation
+        const q = (Math.sqrt(3)/3 * cx - 1/3 * cy) / HEX_SIZE;
+        const r = (2/3 * cy) / HEX_SIZE;
 
         return HexUtils.round(q, r);
     },

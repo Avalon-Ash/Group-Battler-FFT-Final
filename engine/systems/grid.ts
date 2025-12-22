@@ -283,11 +283,13 @@ export class GridSystem {
         specialStatus: string | undefined,
         globalTime: number
     ) {
-        // Use standard compressed hex factor
+        // Use standard compressed hex factor defined in utils.ts
         const Y_SCALE = ISO_SCALE_Y; 
+        const BASE_THICKNESS = 12; // Visual foundation thickness
         
         const corners: {x: number, y: number}[] = [];
-        const startAngle = Math.PI / 6; 
+        // Standard Pointy Top (PI/6) + 45 deg Rotation (PI/4) for Diamond Grid alignment
+        const startAngle = Math.PI / 6 + Math.PI / 4; 
         
         for (let i = 0; i < 6; i++) {
             const angle = startAngle + i * Math.PI / 3;
@@ -297,7 +299,7 @@ export class GridSystem {
             });
         }
         
-        // This is the TOP face Y level
+        // This is the TOP face Y level relative to ground (y)
         const topY = height; 
 
         const traceTopFace = () => {
@@ -310,26 +312,36 @@ export class GridSystem {
         };
 
         // --- 1. Draw Side Faces (The Stack) ---
-        // We render sides that are facing the camera (bottom 3 faces for hex)
-        // Indices 0, 1, 2 are usually the top-ish faces in this corner gen order.
-        
-        const visibleIndices = [0, 1, 2];
+        // Rotated 45deg: Front faces are 5, 0, 1 (Right-Down, Down, Left-Down)
+        // Previous standard [0,1,2] causes gaps because face 2 is now Hidden and Face 5 is now Visible.
+        const visibleIndices = [5, 0, 1];
 
         for (const i of visibleIndices) {
             const j = (i + 1) % 6;
             
-            const grad = ctx.createLinearGradient(0, y - topY, 0, y);
+            // Top vertices (Visual Top)
+            const x1 = corners[i].x;
+            const y1_top = corners[i].y - topY;
+            const x2 = corners[j].x;
+            const y2_top = corners[j].y - topY;
+
+            // Bottom vertices (Visual Base/Foundation) -> Extended down by BASE_THICKNESS
+            const y1_bottom = corners[i].y + BASE_THICKNESS;
+            const y2_bottom = corners[j].y + BASE_THICKNESS;
+            
+            const grad = ctx.createLinearGradient(0, y - topY, 0, y + BASE_THICKNESS);
             // Alternate brightness for 3D effect
-            const baseColor = (i === 1) ? theme.sideDark : theme.sideLight;
+            // Faces 5 and 1 are side-ish, Face 0 is center-front.
+            const baseColor = (i === 0) ? theme.sideDark : theme.sideLight;
             grad.addColorStop(0, baseColor);
-            grad.addColorStop(1, '#020617'); 
+            grad.addColorStop(1, '#020617'); // Darker at the very bottom foundation
 
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.moveTo(corners[i].x, corners[i].y); // Ground corner
-            ctx.lineTo(corners[j].x, corners[j].y); // Ground next corner
-            ctx.lineTo(corners[j].x, corners[j].y - topY); // Top next corner
-            ctx.lineTo(corners[i].x, corners[i].y - topY); // Top corner
+            ctx.moveTo(x1, y1_bottom); // Bottom Left (Foundation)
+            ctx.lineTo(x2, y2_bottom); // Bottom Right (Foundation)
+            ctx.lineTo(x2, y2_top);    // Top Right
+            ctx.lineTo(x1, y1_top);    // Top Left
             ctx.closePath();
             ctx.fill();
             
@@ -339,8 +351,8 @@ export class GridSystem {
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 for (let hStep = BLOCK_HEIGHT; hStep < height; hStep += BLOCK_HEIGHT) {
-                    ctx.moveTo(corners[i].x, corners[i].y - hStep);
-                    ctx.lineTo(corners[j].x, corners[j].y - hStep);
+                    ctx.moveTo(x1, corners[i].y - hStep);
+                    ctx.lineTo(x2, corners[j].y - hStep);
                 }
                 ctx.stroke();
             }
