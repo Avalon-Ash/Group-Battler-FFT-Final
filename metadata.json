@@ -1,0 +1,5 @@
+{
+  "name": "Group Battler FFT_Final",
+  "description": "A tactical auto-battler simulation with customizable units, hexagonal grid combat, and real-time behavior tree visualization.",
+  "requestFramePermissions": []
+}
