@@ -128,7 +128,7 @@ const generateWarningRune = (): HTMLCanvasElement => {
     ctx.lineWidth = 3;
     
     // Perspective Squash
-    ctx.scale(1, 0.5);
+    ctx.scale(1, 0.5); 
     
     // Outer Circle
     ctx.beginPath(); 
@@ -211,6 +211,28 @@ const generateProjectileSprite = (visual: string, color: string): HTMLCanvasElem
             ctx.beginPath();
             ctx.arc(cx + 25, cy, 10, 0, Math.PI * 2);
             ctx.fill();
+            break;
+
+        case 'BOMB':
+            // Round bomb body
+            ctx.fillStyle = '#1c1917'; // Dark Iron
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 5;
+            ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI*2); ctx.fill();
+            
+            // Highlight
+            ctx.fillStyle = '#57534e';
+            ctx.beginPath(); ctx.arc(cx - 4, cy - 4, 4, 0, Math.PI*2); ctx.fill();
+            
+            // Fuse
+            ctx.strokeStyle = '#d6d3d1';
+            ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(cx, cy - 12); ctx.quadraticCurveTo(cx + 5, cy - 18, cx + 10, cy - 15); ctx.stroke();
+            
+            // Spark
+            ctx.fillStyle = color; // Glow Color
+            ctx.shadowColor = color; ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(cx + 10, cy - 15, 3, 0, Math.PI*2); ctx.fill();
             break;
 
         case 'BOLT':
@@ -328,6 +350,7 @@ const generateSkillIcon = (visual: string, color: string): HTMLCanvasElement => 
         case 'BOLT': symbol = '⚡'; break;
         case 'BEAM': symbol = '✨'; break;
         case 'SMASH': symbol = '🔨'; break;
+        case 'BOMB': symbol = '💣'; break;
     }
 
     ctx.fillText(symbol, ICON_SIZE / 2, ICON_SIZE / 2 + 2); // +2 for visual centering
@@ -412,7 +435,7 @@ export const AssetManager = {
         const key = `PROJ_${visual}_${color}`;
         if (!cache.has(key)) {
             // Fallback to BOLT if unknown
-            const v = ['ARROW', 'FIREBALL', 'BOLT'].includes(visual) ? visual : 'BOLT';
+            const v = ['ARROW', 'FIREBALL', 'BOLT', 'BOMB'].includes(visual) ? visual : 'BOLT';
             cache.set(key, generateProjectileSprite(v, color));
         }
         return cache.get(key)!;

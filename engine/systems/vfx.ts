@@ -369,7 +369,8 @@ export class VFXSystem {
                  const currentTerrainHeight = hStart + (hEnd - hStart) * t;
                  
                  let arcOffset = 0;
-                 if (p.skill.visual === 'ARROW' || p.skill.visual === 'FIREBALL') {
+                 // Apply Arc to ARROW, FIREBALL, and BOMB
+                 if (p.skill.visual === 'ARROW' || p.skill.visual === 'FIREBALL' || p.skill.visual === 'BOMB') {
                      const apex = Math.min(150, totalDist * 0.3);
                      arcOffset = Math.sin(t * Math.PI) * apex; 
                  }
@@ -377,18 +378,48 @@ export class VFXSystem {
                  const off = this.getTransitionOffset(lx, ly, mapConfig, transitionT, transitionPhase);
                  return {
                      x: lx,
-                     y: ly - currentTerrainHeight - UNIT_CHEST_HEIGHT - arcOffset + off
+                     y: ly - currentTerrainHeight - UNIT_CHEST_HEIGHT - arcOffset + off,
+                     shadowY: ly - currentTerrainHeight + off
                  };
              };
 
              const headVis = getVisualPos(p.x, p.y);
+             
+             // Calculate Pitch Rotation (Visual Angle)
+             // Use current direction to target to allow for homing curves
+             const lookAheadDist = 5;
+             const currentDir = Vector.sub(p.targetPos, {x: p.x, y: p.y});
+             const distRemaining = Vector.mag(currentDir);
+             // If extremely close to target, use simple fallback to avoid jitter
+             const dir = distRemaining > 0.1 ? Vector.normalize(currentDir) : {x: 1, y: 0};
+
+             const nextLx = p.x + dir.x * lookAheadDist;
+             const nextLy = p.y + dir.y * lookAheadDist;
+             const nextVis = getVisualPos(nextLx, nextLy);
+             
+             const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
+             
+             // Extra rotation for bombs (spin)
+             const spin = p.skill.visual === 'BOMB' ? (Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y}) * 0.1) : 0;
+
              list.push({
                  y: p.y + 50 + offsetP, z: 20, 
                  draw: (ctx) => {
+                    // Draw Shadow
+                    ctx.save();
+                    ctx.translate(headVis.x, headVis.shadowY);
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
+
+                    // Draw Projectile
                     ctx.save();
                     ctx.translate(headVis.x, headVis.y);
-                    const angle = Math.atan2(p.targetPos.y - p.startY, p.targetPos.x - p.startX);
-                    ctx.rotate(angle);
+                    if (p.skill.visual === 'BOMB') {
+                        ctx.rotate(spin);
+                    } else {
+                        ctx.rotate(angle);
+                    }
                     
                     const img = AssetManager.getProjectile(p.skill.visual || 'BOLT', p.skill.color);
                     ctx.drawImage(img, -48, -32, 96, 64);

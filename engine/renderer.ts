@@ -88,11 +88,13 @@ export class GameRenderer {
 
     public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void {
         events.forEach(event => {
+            const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
+            const terrainHeight = this.grid.getTerrainHeight(hex.q, hex.r, engine);
+            const visualY = event.pos.y - terrainHeight;
+
             // 1. HUD Events (Floating Text)
             if (['DAMAGE', 'HEAL', 'CC_APPLIED'].includes(event.type)) {
-                 const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                 const terrainHeight = this.grid.getTerrainHeight(hex.q, hex.r, engine);
-                 const baseY = event.pos.y - terrainHeight - HUD_TEXT_OFFSET; 
+                 const baseY = visualY - HUD_TEXT_OFFSET; 
 
                  let text = "";
                  let color = "#fff";
@@ -123,29 +125,11 @@ export class GameRenderer {
                  if (text) {
                      this.hud.addFloatingText(event.pos.x + xOffset, baseY, text, color, size, type);
                  }
-                 
-                 // --- BEAM VISUAL CHECK ---
-                 if (event.skill && event.skill.visual === 'BEAM' && event.sourceId) {
-                     const source = engine.agents.find(a => a.id === event.sourceId);
-                     if (source) {
-                         // Use visual position for beam start/end
-                         const sHex = HexUtils.fromPx(source.px, source.py, engine.mapConfig);
-                         const sH = this.grid.getTerrainHeight(sHex.q, sHex.r, engine);
-                         const sx = source.px;
-                         const sy = source.py - sH - 40; 
-                         const tH = terrainHeight; 
-                         const tx = event.pos.x;
-                         const ty = event.pos.y - tH - 20; 
-                         this.vfx.spawnBeam(sx, sy, tx, ty, event.skill.color);
-                     }
-                 }
 
             } else if (event.type === 'CAST_START') {
                  if (event.skill && event.skill.tag !== 'BASIC') {
-                     const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                     const terrainHeight = this.grid.getTerrainHeight(hex.q, hex.r, engine);
                      const isUlt = event.skill.tag === 'ULT';
-                     const baseY = event.pos.y - terrainHeight - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
+                     const baseY = visualY - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
                      const xOffset = 55; 
                      this.hud.addFloatingText(event.pos.x + xOffset, baseY, event.skill.name, event.skill.color, 14, 'SHOUT', isUlt);
                  }
@@ -158,25 +142,49 @@ export class GameRenderer {
                  }
             }
 
-            const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-            const terrainHeight = this.grid.getTerrainHeight(hex.q, hex.r, engine);
-            const visualY = event.pos.y - terrainHeight;
-
+            // 2. VFX Handling
             switch (event.type) {
                 case 'DAMAGE': 
-                    this.vfx.spawnExplosion(event.pos.x, visualY, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK'); 
+                    // IMPACT JUICE: Always spawn generic sparks/blood for feedback
+                    const isHeavy = Math.abs(event.value || 0) > 50;
+                    this.vfx.spawnExplosion(event.pos.x, visualY - 20, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
+                    
+                    if (isHeavy) {
+                        this.triggerCameraShake(0.2, 5); // Micro shake
+                        this.vfx.spawnDebris(event.pos.x, visualY - 20, event.color || '#fff', 3);
+                    }
                     break;
+
+                case 'VISUAL_BEAM':
+                    // Instant Ranged Attack Tracer
+                    if (event.sourceId) {
+                        const source = engine.agents.find(a => a.id === event.sourceId);
+                        if (source) {
+                            const sHex = HexUtils.fromPx(source.px, source.py, engine.mapConfig);
+                            const sH = this.grid.getTerrainHeight(sHex.q, sHex.r, engine);
+                            const sx = source.px;
+                            const sy = source.py - sH - 40; // Chest Height
+                            
+                            const tx = event.pos.x;
+                            const ty = visualY - 20; // Hit Height (Chest)
+                            
+                            this.vfx.spawnBeam(sx, sy, tx, ty, event.color || '#fff');
+                            this.vfx.spawnExplosion(tx, ty, 0, 8, event.color || '#fff', 0.5, 0.5, 'SPARK');
+                        }
+                    }
+                    break;
+
                 case 'PROJECTILE_HIT': 
                     this.handleHitVisuals(event, engine, visualY); 
                     break;
+
                 case 'DEATH':
-                    // Trigger massive shatter effect
-                    // event.team is passed from AgentManager
                     const team = event.team !== undefined ? event.team : Team.BLUE; 
                     this.vfx.spawnUnitShatter(event.pos.x, visualY, team);
+                    this.triggerCameraShake(0.3, 10);
                     break;
+
                 case 'SPAWN':
-                    // Trigger spawn visual (Beam in)
                     this.vfx.spawnTeleport(event.pos.x, visualY, event.color || '#fff');
                     break;
             }

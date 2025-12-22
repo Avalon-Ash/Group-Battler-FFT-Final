@@ -51,7 +51,8 @@ export class CombatSystem {
             a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
             a.curCDs[a.castingSkillIdx] = s.cd;
             
-            // Execution
+            // Execution Branch: Projectile vs Instant
+            // Rule: No Invisible Attacks. Every attack must have a visual representation.
             if (s.projectileSpeed && s.projectileSpeed > 0) {
                  this.spawnProjectile(a, s, engine);
             } else {
@@ -70,6 +71,11 @@ export class CombatSystem {
     // =========================================================================================
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
+        // Fallback Visual: Ensure no invisible projectiles
+        if (!skill.visual) {
+            skill.visual = 'BOLT'; 
+        }
+
         let tx = 0, ty = 0;
         let tid = "";
         let targetPos = {x: 0, y: 0};
@@ -101,18 +107,15 @@ export class CombatSystem {
     }
 
     private createProjectile(source: Agent, skill: Skill, targetPos: {x: number, y: number}, targetId: string, engine: GameEngine) {
-        // Height Correction: Projectiles spawn from chest height, not feet
-        const h = engine.map.getTerrainHeight(source.q, source.r);
-        
         this.projectiles.push({
             id: Math.random().toString(),
             x: source.px, 
-            y: source.py, // Logic position
+            y: source.py, 
             startX: source.px, 
             startY: source.py,
             targetId: targetId,
             targetPos: targetPos,
-            speed: skill.projectileSpeed!,
+            speed: skill.projectileSpeed || 300, // Safe default
             skill: skill,
             sourceId: source.id,
             team: source.team,
@@ -141,7 +144,7 @@ export class CombatSystem {
             
             // Hit Detection
             if (dist <= moveDist || dist < 10) {
-                const source = engine.agents.find(a => a.id === p.sourceId) || engine.agents[0]; // Fallback
+                const source = engine.agents.find(a => a.id === p.sourceId) || engine.agents[0]; 
                 
                 if (p.skill.type === 'AOE') {
                     const hitPos = p.targetPos; 
@@ -157,7 +160,6 @@ export class CombatSystem {
                     engine.events.push({ type: 'PROJECTILE_HIT', pos: {x: p.x, y: p.y}, skill: p.skill });
                 }
                 
-                // Remove projectile (swap and pop for performance)
                 const lastIdx = this.projectiles.length - 1;
                 if (i !== lastIdx) {
                     this.projectiles[i] = this.projectiles[lastIdx];
@@ -172,7 +174,7 @@ export class CombatSystem {
     }
 
     // =========================================================================================
-    // 💥 SKILL EXECUTION
+    // 💥 SKILL EXECUTION (Instant)
     // =========================================================================================
 
     public executeInstantSkill(source: Agent, skill: Skill, engine: GameEngine) {
@@ -180,6 +182,7 @@ export class CombatSystem {
         let targets: Agent[] = [];
         let centerHex: Hex | null = null;
 
+        // 1. Identify Targets
         if (skill.type === 'AOE') {
             if (source.targetHex) {
                 centerHex = source.targetHex;
@@ -210,7 +213,28 @@ export class CombatSystem {
         
         const origin = {x: source.px, y: source.py};
         
-        targets.forEach(t => this.applyDamage(source, t, skill, origin, engine));
+        // 2. VISUAL ENFORCEMENT: Beam/Tracer for Ranged Instant Attacks
+        // If range > 1, we MUST draw a line. If range == 1, it's melee (SMASH/SLASH) handles itself via hit effect.
+        targets.forEach(t => {
+            const dist = HexUtils.dist(source, t);
+            if (dist > 1) {
+                engine.events.push({
+                    type: 'VISUAL_BEAM',
+                    pos: { x: t.px, y: t.py }, // Beam End Point
+                    sourceId: source.id,
+                    targetId: t.id,
+                    skill: skill,
+                    color: skill.color
+                });
+            }
+            this.applyDamage(source, t, skill, origin, engine);
+        });
+
+        // 3. Melee / Self / Miss Visuals
+        if (targets.length === 0 && skill.type === 'AOE' && centerHex) {
+             // Missed/Ground Hit logic if needed, but CAST_FINISH handles the ground circle/smash visual
+        }
+
         engine.events.push({ type: 'CAST_FINISH', pos: {x: source.px, y: source.py}, skill: skill });
     }
 
@@ -288,6 +312,7 @@ export class CombatSystem {
              engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: `+${amt} MP`, color: "#60a5fa" });
         }
 
+        // EMIT EVENT
         engine.events.push({
             type: evtType,
             pos: { x: target.px, y: target.py },
@@ -341,9 +366,6 @@ export class CombatSystem {
                 target.visualStatus = 'STASIS'; 
             }
         } else if (type === 'KNOCKBACK' || type === 'PULL') {
-            // --- WEIGHTED KNOCKBACK LOGIC ---
-            
-            // 1. Calculate push tiles: (Skill Force - Unit Weight)
             const rawForce = Math.max(1, power);
             const resistance = target.weight || 1; 
             const tilesToPush = Math.max(0, rawForce - resistance);
@@ -361,13 +383,11 @@ export class CombatSystem {
             let currentHeight = engine.map.getTerrainHeight(currentH.q, currentH.r);
             let finalH = currentH;
 
-            // Iterative push
             for(let k=0; k<tilesToPush; k++) {
                 const neighbors = HexUtils.neighbors(currentH);
                 let bestN = null;
                 let bestDot = -99;
                 
-                // Find best neighbor matching direction
                 for(const n of neighbors) {
                     const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
                     const cPx = HexUtils.toPx(currentH.q, currentH.r, engine.mapConfig);
@@ -381,25 +401,13 @@ export class CombatSystem {
                 }
 
                 if (bestN) {
-                    // Check Validity
-                    if (!engine.isValid(bestN.q, bestN.r)) break; // Map Edge
-                    if (engine.hasObstacle(bestN.q, bestN.r)) break; // Wall collision
+                    if (!engine.isValid(bestN.q, bestN.r)) break; 
+                    if (engine.hasObstacle(bestN.q, bestN.r)) break; 
                     
                     const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);
-                    
-                    // Height Check (Tactics Ogre Physics)
-                    // If hitting a wall > 1 block high -> STOP
-                    if (nextHeight > currentHeight + BLOCK_HEIGHT) {
-                        break; 
-                    }
-                    
-                    // If falling off a cliff > 2 blocks -> STOP (or future: fall damage)
-                    // Currently stopping to prevent weirdness, but allow small drops
-                    if (nextHeight < currentHeight - BLOCK_HEIGHT * 2) {
-                        break; 
-                    }
+                    if (nextHeight > currentHeight + BLOCK_HEIGHT) break; 
+                    if (nextHeight < currentHeight - BLOCK_HEIGHT * 2) break; 
 
-                    // Move one step
                     currentH = bestN;
                     currentHeight = nextHeight;
                     finalH = bestN;
@@ -413,8 +421,6 @@ export class CombatSystem {
                 target.isMoving = false; 
                 engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: type === 'PULL' ? "牽引" : "擊退", color: "#fff" });
                 target.setAnim(AnimState.HIT);
-                
-                // Add upward impulse for "hop" effect visually
                 target.physics.vz += 200;
             }
         } else if (type === 'DOT') {

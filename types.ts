@@ -84,7 +84,7 @@ export interface Skill {
     effectVal2?: number;
 
     projectileSpeed?: number; // 0 = Instant
-    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM';
+    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
 }
 
 export interface UnitStats {
@@ -136,7 +136,8 @@ export interface Projectile {
 }
 
 // Event System (Bridge between Logic and Visuals)
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN';
+// Added VISUAL_BEAM for strict enforcement of instant ranged attacks
+export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM';
 
 export interface GameEvent {
     type: GameEventType;
