@@ -235,6 +235,12 @@ function App() {
       [Role.SUPPORT]: '⚕️'
   };
 
+  // Helper to toggle tools (clicking active tool turns it off)
+  const toggleTool = (t: ToolType) => {
+      if (tool === t) setTool(ToolType.SELECT);
+      else setTool(t);
+  };
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       
@@ -384,30 +390,21 @@ function App() {
                 {/* Safe area padding added for modern phones */}
                 <div className={`bg-slate-950 border-t border-slate-800 shrink-0 z-30 transition-all duration-500 w-full pb-[env(safe-area-inset-bottom)] ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
                     
-                    {/* MOBILE GRID LAYOUT (< md) - 2x4 GRID */}
+                    {/* MOBILE GRID LAYOUT (< md) - 4x2 GRID */}
                     <div className="md:hidden grid grid-cols-4 gap-2 p-2 h-auto">
-                        {/* Row 1: Primary Actions */}
-                        <button onClick={() => setTool(ToolType.SELECT)} className={`h-12 tactical-btn ${tool === ToolType.SELECT ? 'active' : ''}`}>
-                            <span className="text-xl">⌖</span>
+                        
+                        {/* ROW 1: PRIMARY ACTIONS */}
+                        <button onClick={() => toggleTool(ToolType.ADD_BLUE)} className={`h-12 tactical-btn btn-blue ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-70'}`}>
+                            <span className="text-2xl">🔵</span>
                         </button>
                         
-                        <button onClick={() => setTool(ToolType.ADD_BLUE)} className={`h-12 tactical-btn btn-blue ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-70'}`}>
-                            <span className="text-xl">🔵</span>
-                        </button>
-                        
-                        <button onClick={() => setTool(ToolType.ADD_RED)} className={`h-12 tactical-btn btn-red ${tool === ToolType.ADD_RED ? 'active' : 'opacity-70'}`}>
-                            <span className="text-xl">🔴</span>
-                        </button>
-                        
-                        <button onClick={() => setTool(ToolType.DELETE)} className={`h-12 tactical-btn text-red-400 border-red-900/50 ${tool === ToolType.DELETE ? 'active bg-red-950/50 border-red-500' : ''}`}>
-                            <span className="text-xl">❌</span>
+                        <button onClick={() => toggleTool(ToolType.ADD_RED)} className={`h-12 tactical-btn btn-red ${tool === ToolType.ADD_RED ? 'active' : 'opacity-70'}`}>
+                            <span className="text-2xl">🔴</span>
                         </button>
 
-                        {/* Row 2: Secondary & Config */}
-                        {/* Slot 5: Obstacle Tool + Dropdown Overlay */}
                         <div className={`relative h-12 tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active border-cyan-500' : ''}`}>
-                            <button onClick={() => setTool(ToolType.OBSTACLE)} className="w-full h-full flex items-center justify-center gap-1">
-                                <span className="text-xl">🧱</span>
+                            <button onClick={() => toggleTool(ToolType.OBSTACLE)} className="w-full h-full flex items-center justify-center">
+                                <span className="text-2xl">🧱</span>
                                 <span className="text-[8px] absolute bottom-0.5 right-1 opacity-50">▼</span>
                             </button>
                             <select 
@@ -418,19 +415,22 @@ function App() {
                                 {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                             </select>
                         </div>
+                        
+                        <button onClick={() => toggleTool(ToolType.DELETE)} className={`h-12 tactical-btn text-red-400 border-red-900/50 ${tool === ToolType.DELETE ? 'active bg-red-950/50 border-red-500' : ''}`}>
+                            <span className="text-2xl">❌</span>
+                        </button>
 
-                        {/* Slot 6: HP Input */}
+                        {/* ROW 2: CONFIG & INSPECT */}
                         <div className="h-12 flex items-center justify-center bg-slate-900 border border-slate-700 rounded-sm relative">
                             <span className="text-[8px] text-slate-500 absolute -top-1.5 left-1 bg-slate-900 px-0.5">HP</span>
                             <input 
                                 type="number" 
                                 value={hpInput} 
                                 onChange={e => setHpInput(parseInt(e.target.value))} 
-                                className="w-full h-full bg-transparent text-center text-xs font-mono text-slate-200 outline-none"
+                                className="w-full h-full bg-transparent text-center text-sm font-mono text-slate-200 outline-none"
                             />
                         </div>
 
-                        {/* Slot 7: Map Settings Toggle */}
                         <button 
                             onClick={() => setShowMapSettings(!showMapSettings)}
                             className={`h-12 tactical-btn ${showMapSettings ? 'border-cyan-500 text-cyan-400' : ''}`}
@@ -438,43 +438,45 @@ function App() {
                             <span className="text-xl">🗺️</span>
                         </button>
 
-                        {/* Slot 8: Inspect Toggle */}
                         <button 
                             onClick={() => selectedAgent && setShowMobileInspector(!showMobileInspector)}
                             disabled={!selectedAgent}
-                            className={`h-12 tactical-btn ${showMobileInspector ? 'active' : ''} ${selectedAgent ? 'border-blue-500/50 text-blue-300 animate-pulse-glow' : 'opacity-30'}`}
+                            className={`col-span-2 h-12 tactical-btn ${showMobileInspector ? 'active' : ''} ${selectedAgent ? 'border-blue-500/50 text-blue-300 animate-pulse-glow' : 'opacity-30'}`}
                         >
-                            <span className="text-xl">👁️</span>
+                            <span className="text-lg mr-2">👁️</span>
+                            <span className="text-xs">單位資訊</span>
                         </button>
                     </div>
 
                     {/* DESKTOP FLEX LAYOUT (>= md) */}
                     <div className="hidden md:flex h-40 overflow-x-auto overflow-y-hidden">
                         
-                        {/* ZONE 1: COMMAND TOOLS */}
+                        {/* ZONE 1: COMMAND TOOLS (Expanded to fill space) */}
                         <div className="w-48 border-r border-slate-800 p-3 flex flex-col gap-2 shrink-0">
-                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">指揮工具</div>
-                            <div className="grid grid-cols-2 gap-2 flex-1">
-                                <button onClick={() => setTool(ToolType.SELECT)} className={`tactical-btn flex-col ${tool === ToolType.SELECT ? 'active' : ''}`}>
-                                    <span className="text-lg">⌖</span>
-                                    <span className="text-[9px]">選取</span>
-                                </button>
-                                <button onClick={() => setTool(ToolType.DELETE)} className={`tactical-btn flex-col text-red-400 border-red-900/50 hover:border-red-500 ${tool === ToolType.DELETE ? 'active border-red-500 bg-red-950/30' : ''}`}>
-                                    <span className="text-lg">❌</span>
-                                    <span className="text-[9px]">移除</span>
-                                </button>
-                                <button onClick={() => setTool(ToolType.OBSTACLE)} className={`tactical-btn flex-col col-span-2 ${tool === ToolType.OBSTACLE ? 'active' : ''}`}>
-                                    <span className="flex items-center gap-2">
-                                        <span className="text-lg">🧱</span>
-                                        <span className="text-[9px]">地形</span>
-                                    </span>
+                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">地圖編輯</div>
+                            <div className="flex gap-2 flex-1">
+                                <div className={`flex-1 relative flex flex-col tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active' : ''}`}>
+                                    <button onClick={() => toggleTool(ToolType.OBSTACLE)} className="w-full flex-1 flex flex-col items-center justify-center gap-1">
+                                        <span className="text-2xl">🧱</span>
+                                        <span className="text-[10px]">地形</span>
+                                    </button>
+                                    <div className="h-6 w-full border-t border-slate-700 relative bg-black/20">
+                                        <select 
+                                            className="w-full h-full bg-transparent text-[10px] text-center appearance-none cursor-pointer text-slate-400 outline-none"
+                                            value={selectedObstacle} 
+                                            onChange={e => { setSelectedObstacle(e.target.value); setTool(ToolType.OBSTACLE); }}
+                                        >
+                                            {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
+                                        </select>
+                                        <span className="absolute right-1 top-1.5 text-[8px] opacity-50 pointer-events-none">▼</span>
+                                    </div>
+                                </div>
+                                
+                                <button onClick={() => toggleTool(ToolType.DELETE)} className={`flex-1 tactical-btn flex-col text-red-400 border-red-900/50 hover:border-red-500 ${tool === ToolType.DELETE ? 'active border-red-500 bg-red-950/30' : ''}`}>
+                                    <span className="text-2xl">❌</span>
+                                    <span className="text-[10px]">移除</span>
                                 </button>
                             </div>
-                            {tool === ToolType.OBSTACLE && (
-                                <select className="bg-slate-900 border border-slate-700 text-xs p-1 rounded text-slate-400 outline-none" value={selectedObstacle} onChange={e => setSelectedObstacle(e.target.value)}>
-                                    {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                                </select>
-                            )}
                         </div>
 
                         {/* ZONE 2: DEPLOYMENT (Flexible Width) */}
@@ -487,11 +489,11 @@ function App() {
                             <div className="flex gap-4 h-full">
                                 {/* Team Selectors (Sets Tool) */}
                                 <div className="flex flex-col gap-2 w-28 shrink-0">
-                                    <button onClick={() => setTool(ToolType.ADD_BLUE)} className={`flex-1 tactical-btn btn-blue flex items-center justify-between px-3 ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-60 hover:opacity-100'}`}>
+                                    <button onClick={() => toggleTool(ToolType.ADD_BLUE)} className={`flex-1 tactical-btn btn-blue flex items-center justify-between px-3 ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-60 hover:opacity-100'}`}>
                                         <span className="font-bold text-xs">藍隊</span>
                                         <span className="text-lg">🔵</span>
                                     </button>
-                                    <button onClick={() => setTool(ToolType.ADD_RED)} className={`flex-1 tactical-btn btn-red flex items-center justify-between px-3 ${tool === ToolType.ADD_RED ? 'active' : 'opacity-60 hover:opacity-100'}`}>
+                                    <button onClick={() => toggleTool(ToolType.ADD_RED)} className={`flex-1 tactical-btn btn-red flex items-center justify-between px-3 ${tool === ToolType.ADD_RED ? 'active' : 'opacity-60 hover:opacity-100'}`}>
                                         <span className="font-bold text-xs">紅隊</span>
                                         <span className="text-lg">🔴</span>
                                     </button>
