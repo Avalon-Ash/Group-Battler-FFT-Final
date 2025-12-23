@@ -3,6 +3,8 @@ import { GameEngine } from "../game";
 import { SCENE_DB } from "../../data/scenes";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../constants";
+import { MovementType } from "../../types";
+import { OBSTACLE_DB } from "../../data/obstacles";
 
 export class MapSystem {
     public mapKeys: Set<string> = new Set();
@@ -297,10 +299,30 @@ export class MapSystem {
         return this.obstaclesHash.has(h);
     }
     
-    public isBlocked(q: number, r: number, engine: GameEngine, ignoreId: string | null = null) { 
+    // Updated isBlocked to support Flying Logic
+    public isBlocked(q: number, r: number, engine: GameEngine, ignoreId: string | null = null, movementType: MovementType = MovementType.GROUND) { 
         const h = HexUtils.hash(q, r);
-        if (this.obstaclesHash.has(h)) return true;
         
+        // 1. Obstacle Check
+        if (this.obstaclesHash.has(h)) {
+            const obsId = this.obstacles.get(HexUtils.key({q, r}));
+            if (obsId) {
+                const def = OBSTACLE_DB[obsId];
+                if (def) {
+                    if (movementType === MovementType.FLYING) {
+                        if (def.blocksFlying) return true;
+                    } else {
+                        if (def.blocksMovement) return true;
+                    }
+                } else {
+                    return true; // Unknown obstacle, block safe
+                }
+            } else {
+                return true;
+            }
+        }
+        
+        // 2. Unit Collision Check
         const occupant = engine.agentMap.get(h);
         if (occupant) {
             if (occupant.id === ignoreId) return false;
@@ -308,7 +330,7 @@ export class MapSystem {
             return true;
         }
         
-        // Check moving agents destination
+        // 3. Reserved Path Check
         return engine.agents.some(a => {
             if (a.id === ignoreId) return false;
             if (!a.isMoving || a.path.length === 0) return false;

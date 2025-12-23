@@ -129,6 +129,10 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
     const btContainerRef = useRef<HTMLDivElement>(null);
     const isDraggingBT = useRef(false);
 
+    // Touch Interaction State for BT
+    const lastTouchPos = useRef<{x: number, y: number} | null>(null);
+    const lastPinchDist = useRef<number>(0);
+
     useEffect(() => {
         if (tab !== 'INSPECTOR' || !agent) return;
         const intervalMs = 1000 / btFps;
@@ -174,6 +178,46 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
         if (isDraggingBT.current) setBtPos(p => ({ x: p.x + e.movementX, y: p.y + e.movementY }));
     };
     const handleBtMouseUp = () => { isDraggingBT.current = false; };
+
+    // --- Touch Handlers for Behavior Tree ---
+    const handleBtTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 1) {
+            lastTouchPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            isDraggingBT.current = true;
+        } else if (e.touches.length === 2) {
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            lastPinchDist.current = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+            isDraggingBT.current = false; // Disable panning during pinch
+        }
+    };
+
+    const handleBtTouchMove = (e: React.TouchEvent) => {
+        if (e.touches.length === 1 && lastTouchPos.current && isDraggingBT.current) {
+            const touch = e.touches[0];
+            const dx = touch.clientX - lastTouchPos.current.x;
+            const dy = touch.clientY - lastTouchPos.current.y;
+            setBtPos(p => ({ x: p.x + dx, y: p.y + dy }));
+            lastTouchPos.current = { x: touch.clientX, y: touch.clientY };
+        } else if (e.touches.length === 2) {
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const currentDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+            
+            if (lastPinchDist.current > 0) {
+                const delta = currentDist - lastPinchDist.current;
+                const zoomSensitivity = 0.005;
+                setBtScale(s => Math.max(0.1, Math.min(3.0, s + delta * zoomSensitivity)));
+            }
+            lastPinchDist.current = currentDist;
+        }
+    };
+
+    const handleBtTouchEnd = () => {
+        isDraggingBT.current = false;
+        lastTouchPos.current = null;
+        lastPinchDist.current = 0;
+    };
 
     const setSkill = (idx: number, id: string) => {
         if (agent) { agent.skillIds[idx] = id || null; setVersion(n => n + 1); }
@@ -406,7 +450,19 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                         )}
 
                         {inspectorSubTab === 'AI' && (
-                             <div className="flex-1 bg-[#0f1115] relative overflow-hidden flex flex-col min-h-0" ref={btContainerRef} onWheel={handleBtWheel} onMouseDown={handleBtMouseDown} onMouseMove={handleBtMouseMove} onMouseUp={handleBtMouseUp} onMouseLeave={handleBtMouseUp} style={{cursor: isDraggingBT.current ? 'grabbing' : 'grab'}}>
+                             <div 
+                                className="flex-1 bg-[#0f1115] relative overflow-hidden flex flex-col min-h-0" 
+                                ref={btContainerRef} 
+                                onWheel={handleBtWheel} 
+                                onMouseDown={handleBtMouseDown} 
+                                onMouseMove={handleBtMouseMove} 
+                                onMouseUp={handleBtMouseUp} 
+                                onMouseLeave={handleBtMouseUp}
+                                onTouchStart={handleBtTouchStart}
+                                onTouchMove={handleBtTouchMove}
+                                onTouchEnd={handleBtTouchEnd}
+                                style={{cursor: isDraggingBT.current ? 'grabbing' : 'grab', touchAction: 'none'}}
+                             >
                                 <div className="absolute top-0 left-0 w-full px-3 py-2 bg-gradient-to-b from-slate-900 to-transparent text-[10px] text-slate-400 z-30 flex justify-between items-center pointer-events-none">
                                     <div className="flex items-center bg-slate-800/90 rounded px-2 py-1 border border-slate-700 shadow-lg pointer-events-auto">
                                         <span className="mr-2 text-slate-500 font-bold text-[9px]">刷新率</span>

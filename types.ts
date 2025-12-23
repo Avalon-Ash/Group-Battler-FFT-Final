@@ -12,6 +12,11 @@ export enum Role {
     SUPPORT = 'SUPPORT'
 }
 
+export enum MovementType {
+    GROUND = 0,
+    FLYING = 1
+}
+
 export enum AnimState {
     IDLE = 0,
     COMBAT_IDLE = 1,
@@ -93,6 +98,7 @@ export interface UnitStats {
     maxMp: number;
     baseHp: number; // For scaling reference
     moveSpeed: number; // Tiles per second. 1.0 = 1 tile/sec
+    movementType: MovementType; // Ground or Flying
 }
 
 export interface ObstacleDef {
@@ -100,6 +106,7 @@ export interface ObstacleDef {
     name: string;
     blocksVision: boolean;
     blocksMovement: boolean;
+    blocksFlying?: boolean; // New: If true, blocks even flying units (High Towers/Pillars)
 }
 
 // Logic State Types

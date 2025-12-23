@@ -1,61 +1,63 @@
 
-import { Role, UnitStats } from "../types";
+import { Role, UnitStats, MovementType } from "../types";
 
 /**
  * Base stats for each unit role.
- * baseHp is often used for visual scaling references.
- * maxHp is the actual starting health.
- * moveSpeed: Tiles per second. 
- *   - 1.0 = 1 sec per tile (Warrior Baseline)
- *   - 0.65 = ~1.5 sec per tile (Tank)
- *   - 1.5 = ~0.66 sec per tile (Ranger/Assassin)
- * jump: Max height tiers climbable (1 Tier = 24px)
- * weight: Resistance to knockback (1 = Light, 3 = Heavy)
+ * Rebalanced for "Terrain-Pacing":
+ * - Tanks: Slow, anchored, heavy.
+ * - Rangers: Fast, agile, light.
+ * - Warriors: Balanced.
+ * - Mages: Now configured as FLYING units (Air Superiority)
  */
 export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }> = {
     [Role.TANK]: {
         role: Role.TANK,
-        baseHp: 900,
-        maxHp: 900,
+        baseHp: 1000,
+        maxHp: 1000,
         maxMp: 100,
-        moveSpeed: 0.9,
+        moveSpeed: 0.85, // Tier: Heavy (Slow)
         jump: 1,
-        weight: 3 // Heavy: Hard to push
+        weight: 4, // Physics: Very hard to knockback
+        movementType: MovementType.GROUND
     },
     [Role.WARRIOR]: {
         role: Role.WARRIOR,
-        baseHp: 700,
-        maxHp: 700,
+        baseHp: 750,
+        maxHp: 750,
         maxMp: 100,
-        moveSpeed: 1.0,
-        jump: 1,
-        weight: 2 // Medium
+        moveSpeed: 1.0, // Tier: Standard
+        jump: 2, // Athletic: Can climb 2 blocks
+        weight: 2, // Physics: Medium
+        movementType: MovementType.GROUND
     },
     [Role.RANGER]: {
         role: Role.RANGER,
-        baseHp: 500,
-        maxHp: 480, 
+        baseHp: 550,
+        maxHp: 550, 
         maxMp: 100,
-        moveSpeed: 1.5,
-        jump: 2, // High Jump: Can climb taller walls
-        weight: 1 // Light
+        moveSpeed: 1.3, // Tier: Scout/Assassin (Fast)
+        jump: 3, // Parkour: Can scale tall walls quickly
+        weight: 1, // Physics: Light (Easy to push)
+        movementType: MovementType.GROUND
     },
     [Role.MAGE]: {
         role: Role.MAGE,
         baseHp: 450,
         maxHp: 450, 
-        maxMp: 120,
-        moveSpeed: 0.8,
+        maxMp: 150, // Higher mana pool
+        moveSpeed: 1.2, // Tier: Air Superiority (Fast)
         jump: 1,
-        weight: 1 // Light
+        weight: 1, // Physics: Light
+        movementType: MovementType.FLYING // FLIGHT ENABLED (Hover mechanics active)
     },
     [Role.SUPPORT]: {
         role: Role.SUPPORT,
-        baseHp: 550,
+        baseHp: 600,
         maxHp: 600, 
         maxMp: 150,
-        moveSpeed: 0.8,
+        moveSpeed: 0.9, // Tier: Backline
         jump: 1,
-        weight: 1 // Light
+        weight: 2, // Physics: Medium
+        movementType: MovementType.GROUND
     }
 };

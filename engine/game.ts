@@ -2,7 +2,7 @@
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { UNIT_DB } from "../data/units";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 import { COLORS } from "../constants";
@@ -35,6 +35,7 @@ export class Agent {
     public moveSpeedMult: number = 1.0; 
     public jump: number = 1; // Vertical mobility tier
     public weight: number = 1; // Knockback resistance
+    public movementType: MovementType = MovementType.GROUND;
     
     // Skills
     public skillIds: (string | null)[] = [null, null, null];
@@ -137,6 +138,7 @@ export class Agent {
             this.maxMp = stats.maxMp;
             this.jump = stats.jump;
             this.weight = stats.weight;
+            this.movementType = stats.movementType;
         }
 
         this.castingSkillIdx = -1;
@@ -229,7 +231,8 @@ export class GameEngine {
     toggleObstacle(q: number, r: number, type: string = 'WALL') { this.map.toggleObstacle(q, r, this, type); }
     
     isValid(q: number, r: number) { return this.map.isValid(q, r); }
-    isBlocked(q: number, r: number, ignoreId?: string) { return this.map.isBlocked(q, r, this, ignoreId); }
+    // Updated to support flying logic check
+    isBlocked(q: number, r: number, ignoreId?: string, movementType: MovementType = MovementType.GROUND) { return this.map.isBlocked(q, r, this, ignoreId, movementType); }
     isValidHash(h: number) { return this.map.isValidHash(h); }
     hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }

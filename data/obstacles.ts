@@ -6,30 +6,35 @@ export const OBSTACLE_DB: Record<string, ObstacleDef> = {
         id: 'WALL',
         name: '石牆',
         blocksMovement: true,
-        blocksVision: true
+        blocksVision: true,
+        blocksFlying: false // Flyers can pass
     },
     'TREE': {
         id: 'TREE',
         name: '古木',
         blocksMovement: true,
-        blocksVision: true // Forest theme
+        blocksVision: true,
+        blocksFlying: false // Flyers fly over canopy
     },
     'ICE_CRYSTAL': {
         id: 'ICE_CRYSTAL',
         name: '冰晶',
         blocksMovement: true,
-        blocksVision: false // Translucent? Currently logic treats all as blocking vision, but good for metadata
+        blocksVision: false,
+        blocksFlying: false
     },
     'OBSIDIAN_PILLAR': {
         id: 'OBSIDIAN_PILLAR',
         name: '黑曜石柱',
         blocksMovement: true,
-        blocksVision: true // Magma theme
+        blocksVision: true,
+        blocksFlying: true // Too tall / dangerous to fly over
     },
     'SANDSTONE': {
         id: 'SANDSTONE',
         name: '砂岩',
         blocksMovement: true,
-        blocksVision: true // Desert theme
+        blocksVision: true,
+        blocksFlying: false
     }
 };

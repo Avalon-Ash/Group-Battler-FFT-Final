@@ -1,8 +1,9 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, Vector, NEIGHBOR_HASH_OFFSETS } from "../utils";
-import { AnimState, Hex, NodeState } from "../../types";
+import { AnimState, Hex, NodeState, MovementType } from "../../types";
 import { BLOCK_HEIGHT } from "../../constants";
+import { OBSTACLE_DB } from "../../data/obstacles";
 
 // Constants extracted from game.ts
 const PATHFINDING_MAX_ITERATIONS = 2500; 
@@ -73,9 +74,29 @@ export class MovementSystem {
         a.physics.vy += ay * dt;
         a.physics.vAngle += aRot * dt;
         
-        // 4. Gravity (Z-axis)
-        if (isDead || isAirborne) {
-            a.physics.vz -= GRAVITY * dt;
+        // 4. Vertical Dynamics (Gravity vs Flight)
+        if (a.movementType === MovementType.FLYING && !isDead) {
+            // Flying Unit Logic
+            if (a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH') {
+                // CRASH STATE: Apply Gravity immediately
+                a.physics.vz -= GRAVITY * dt;
+            } else {
+                // HOVER STATE: Bob around a target altitude
+                // Increased to 90 to visually clear walls (80px)
+                const hoverHeight = 90; 
+                const hoverFreq = 3;
+                const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 10;
+                
+                // Soft spring to maintain height
+                const dz = targetZ - a.physics.z;
+                a.physics.vz += dz * 5 * dt;
+                a.physics.vz *= 0.95; // Drag to stop oscillation
+            }
+        } else {
+            // Ground Unit Logic
+            if (isDead || isAirborne) {
+                a.physics.vz -= GRAVITY * dt;
+            }
         }
 
         // 5. Integrate Position
@@ -181,7 +202,8 @@ export class MovementSystem {
             const next = path[0];
             
             // CRITICAL CHECK: Even if we found a ghost path, is the IMMEDIATE NEXT STEP blocked?
-            if (engine.isBlocked(next.q, next.r, a.id)) {
+            // Updated to pass movementType to isBlocked
+            if (engine.isBlocked(next.q, next.r, a.id, a.movementType)) {
                 // We know where we WANT to go, but it's blocked right now.
                 // Instead of failing (which causes AI jitter/wandering), we WAIT.
                 // This simulates "queueing" behind the frontline.
@@ -240,7 +262,7 @@ export class MovementSystem {
                         [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
                     }
                     
-                    let target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine));
+                    let target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, agent.id, agent.movementType));
                     
                     // Fallback: Try valid but not obstacle (ignoring units)
                     if (!target) target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.hasObstacle(n.q, n.r));
@@ -329,8 +351,21 @@ export class MovementSystem {
                 // Map Bounds Check
                 if (!engine.map.isValidHash(nextH)) continue;
                 
-                // Static Obstacle Check (Always active)
-                if (engine.map.hasObstacleHash(nextH)) continue;
+                // Static Obstacle Check
+                // NEW: Flying Logic Check
+                if (engine.map.hasObstacleHash(nextH)) {
+                    // We need to check obstacle type
+                    const obstacleTypeId = engine.map.obstacles.get(HexUtils.key(HexUtils.unhash(nextH)));
+                    const obstacleDef = OBSTACLE_DB[obstacleTypeId || 'WALL'];
+                    
+                    if (startAgent.movementType === MovementType.FLYING) {
+                        // Flying units only blocked by specific "Sky Blockers" (like tall pillars)
+                        if (obstacleDef?.blocksFlying) continue;
+                    } else {
+                        // Ground units blocked by standard "blocksMovement"
+                        if (obstacleDef?.blocksMovement) continue;
+                    }
+                }
                 
                 // Dynamic Unit Check (Only if not ignoring units)
                 if (!ignoreUnits && this._pfBlockers.has(nextH)) {
@@ -338,16 +373,19 @@ export class MovementSystem {
                 }
 
                 // --- TACTICS OGRE HEIGHT CHECK ---
-                const nextHexCoord = HexUtils.unhash(nextH);
-                const nextTerrainH = engine.map.getTerrainHeight(nextHexCoord.q, nextHexCoord.r);
-                const deltaH = Math.abs(nextTerrainH - currentTerrainH);
-                
-                // Allow climb/drop if deltaH <= Jump Height (in pixels)
-                // Using max(1, jump) to ensure at least 1 block can be traversed by default
-                const maxClimb = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
-                
-                if (deltaH > maxClimb) {
-                    continue; // Too steep!
+                // Flying units IGNORE terrain height traversal costs
+                if (startAgent.movementType !== MovementType.FLYING) {
+                    const nextHexCoord = HexUtils.unhash(nextH);
+                    const nextTerrainH = engine.map.getTerrainHeight(nextHexCoord.q, nextHexCoord.r);
+                    const deltaH = Math.abs(nextTerrainH - currentTerrainH);
+                    
+                    // Allow climb/drop if deltaH <= Jump Height (in pixels)
+                    // Using max(1, jump) to ensure at least 1 block can be traversed by default
+                    const maxClimb = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
+                    
+                    if (deltaH > maxClimb) {
+                        continue; // Too steep!
+                    }
                 }
 
                 this._pfCameFrom.set(nextH, currentH);
