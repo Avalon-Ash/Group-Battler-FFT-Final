@@ -153,7 +153,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
                     ctx.shadowBlur = 30;
                     ctx.shadowOffsetY = 30;
                     ctx.globalAlpha = 0.9;
-                    ctx.drawImage(sprite, px - 32, py - 86 - liftOffset);
+                    // Adjusted offset from 86 to 80 to match engine renderer
+                    ctx.drawImage(sprite, px - 32, py - 80 - liftOffset);
                     ctx.restore();
                 }
             }

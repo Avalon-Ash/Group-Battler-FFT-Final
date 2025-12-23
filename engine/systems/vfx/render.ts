@@ -136,14 +136,63 @@ export class VFXRenderer {
              list.push({
                  y: p.y + 50 + offsetP, z: 20, 
                  draw: (ctx) => {
-                    // Draw Shadow
+                    // --- 1. Draw Trail (Before Head) ---
+                    if (p.trail.length > 1) {
+                        const trailVis = p.trail.map(t => getVisualPos(t.x, t.y));
+                        // Add current head position to close the gap
+                        trailVis.push(headVis);
+
+                        ctx.save();
+                        
+                        if (p.skill.visual === 'ARROW') {
+                            // ARROW: Thin, faint motion blur line
+                            ctx.beginPath();
+                            ctx.moveTo(trailVis[0].x, trailVis[0].y);
+                            for (let i = 1; i < trailVis.length; i++) {
+                                ctx.lineTo(trailVis[i].x, trailVis[i].y);
+                            }
+                            ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
+                            ctx.lineWidth = 1;
+                            ctx.stroke();
+                        } else {
+                            // MAGIC / BOLT / FIREBALL: Tapered glowing ribbon
+                            ctx.lineCap = 'round';
+                            ctx.lineJoin = 'round';
+                            ctx.globalCompositeOperation = 'lighter';
+
+                            // Iterate segments to vary width/opacity
+                            for (let i = 0; i < trailVis.length - 1; i++) {
+                                const pt = trailVis[i];
+                                const next = trailVis[i+1];
+                                
+                                // Ratio 0 (tail) -> 1 (head)
+                                const ratio = i / (trailVis.length - 1); 
+                                
+                                ctx.beginPath();
+                                ctx.moveTo(pt.x, pt.y);
+                                ctx.lineTo(next.x, next.y);
+                                
+                                const baseWidth = (p.skill.visual === 'FIREBALL' || p.skill.visual === 'SMASH') ? 24 : 12;
+                                ctx.lineWidth = baseWidth * ratio;
+                                
+                                // Color handling
+                                ctx.strokeStyle = p.skill.color;
+                                ctx.globalAlpha = ratio * 0.5; // Fade out tail
+                                
+                                ctx.stroke();
+                            }
+                        }
+                        ctx.restore();
+                    }
+
+                    // --- 2. Draw Shadow ---
                     ctx.save();
                     ctx.translate(headVis.x, headVis.shadowY);
                     ctx.fillStyle = 'rgba(0,0,0,0.3)';
                     ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2); ctx.fill();
                     ctx.restore();
 
-                    // Draw Projectile
+                    // --- 3. Draw Projectile Head ---
                     ctx.save();
                     ctx.translate(headVis.x, headVis.y);
                     if (p.skill.visual === 'BOMB') {
@@ -154,11 +203,10 @@ export class VFXRenderer {
                     
                     const img = AssetManager.getProjectile(p.skill.visual || 'BOLT', p.skill.color);
                     
-                    // DEBUG: Visual Fallback for Missing Assets
+                    // Visual Fallback for Missing Assets
                     if (img && img.width > 0) {
                         ctx.drawImage(img, -48, -32, 96, 64);
                     } else {
-                        // Draw pink box if asset is broken
                         ctx.fillStyle = '#ff00ff';
                         ctx.fillRect(-5, -5, 10, 10);
                     }

@@ -237,14 +237,14 @@ const generateProjectileSprite = (visual: string, color: string): HTMLCanvasElem
 
         case 'BOLT':
         default:
-            // Outer Glow
-            const boltGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, 30);
+            // Outer Glow - SHARPENED
+            const boltGrad = ctx.createRadialGradient(cx, cy, 5, cx, cy, 22); // Reduced from 30
             boltGrad.addColorStop(0, '#fff');
             boltGrad.addColorStop(0.3, color);
             boltGrad.addColorStop(1, 'transparent');
             ctx.fillStyle = boltGrad;
             ctx.beginPath(); 
-            ctx.arc(cx, cy, 30, 0, Math.PI * 2); 
+            ctx.arc(cx, cy, 22, 0, Math.PI * 2); // Reduced from 30
             ctx.fill();
 
             // Diamond Core

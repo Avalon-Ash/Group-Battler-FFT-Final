@@ -20,7 +20,8 @@ import { TacticalRenderer } from "./renderers/tactical";
 // Constants
 const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20; 
 const OBSTACLE_Z_INDEX = 10;
-const OBSTACLE_OFFSET_Y = 86; 
+// CHANGED: From 86 to 80 to match Sprite Generation Anchor (cy=80)
+const OBSTACLE_OFFSET_Y = 80; 
 
 export interface Camera {
     x: number;
@@ -342,7 +343,8 @@ export class GameRenderer {
                      y: visualY, z: OBSTACLE_Z_INDEX,
                      draw: (c) => {
                          const sprite = SpriteManager.getObstacleSprite(type || defaultStyle);
-                         c.drawImage(sprite, pos.x - 32, visualY - terrainH - OBSTACLE_OFFSET_Y + 20);
+                         // REMOVED +20 OFFSET to align visual Y=80 anchor to tile center
+                         c.drawImage(sprite, pos.x - 32, visualY - terrainH - OBSTACLE_OFFSET_Y);
                      }
                  });
              }
