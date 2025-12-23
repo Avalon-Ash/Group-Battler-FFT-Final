@@ -38,6 +38,11 @@ export class AgentManager {
         a.hp = a.maxHp;
         a.maxMp = stats.maxMp;
         a.moveSpeed = stats.moveSpeed; 
+        
+        // Critical Fix: Copy Physics/Movement properties
+        a.movementType = stats.movementType;
+        a.jump = stats.jump;
+        a.weight = stats.weight;
 
         // Skill Selection: 1 Ult, 1 Active, 1 Basic
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));

@@ -34,14 +34,23 @@ export const ProjectileRenderer = {
              // Calculate Visual Position with Arcing/Wobble
              const getVisualPos = (lx: number, ly: number, flightProgress: number) => {
                  const t = flightProgress;
-                 const currentTerrainHeight = hStart + (hEnd - hStart) * t;
+                 // Trajectory Height: Interpolated line between shooter and target
+                 const trajectoryTerrainHeight = hStart + (hEnd - hStart) * t;
                  
+                 // Actual Ground Height: Look up what's directly underneath the projectile now
+                 const currentHex = HexUtils.fromPx(lx, ly, engine.mapConfig);
+                 const groundHeight = getTerrainHeight(currentHex.q, currentHex.r);
+
                  let arcOffset = 0;
                  
                  // TYPE 1: PHYSICAL ARC (Arrow, Bomb) - Gravity based
                  if (p.skill.visual === 'ARROW' || p.skill.visual === 'BOMB') {
-                     // High arc for bombs, shallow for arrows
-                     const arcHeight = p.skill.visual === 'BOMB' ? 250 : 80; 
+                     // Dynamic Arc Height: Scale based on distance to avoid ICBM effect on short shots
+                     // Min arc 10, max arc 150 + bonus for Bombs
+                     const distFactor = Math.min(150, totalDist * 0.25);
+                     const baseArc = p.skill.visual === 'BOMB' ? 100 : 20;
+                     const arcHeight = baseArc + distFactor;
+                     
                      // Parabola: 4 * h * t * (1-t)
                      arcOffset = 4 * arcHeight * t * (1 - t);
                  } 
@@ -54,10 +63,13 @@ export const ProjectileRenderer = {
                  }
                  
                  const off = getTransitionOffset(lx, ly, engine.mapConfig, transitionT, transitionPhase);
+                 
                  return {
                      x: lx,
-                     y: ly - currentTerrainHeight - UNIT_CHEST_HEIGHT - arcOffset + off,
-                     shadowY: ly - currentTerrainHeight + off
+                     // Projectile follows trajectory + arc
+                     y: ly - trajectoryTerrainHeight - UNIT_CHEST_HEIGHT - arcOffset + off,
+                     // Shadow sticks to the ACTUAL ground
+                     shadowY: ly - groundHeight + off
                  };
              };
 
@@ -66,7 +78,6 @@ export const ProjectileRenderer = {
              const headVis = getVisualPos(p.x, p.y, progress);
              
              // Look-Ahead Rotation Calculation
-             // We sample a point slightly ahead on the ideal trajectory to determine angle
              const lookAheadDist = 10;
              const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
              const nextLx = p.x + rawDir.x * lookAheadDist;
@@ -78,23 +89,18 @@ export const ProjectileRenderer = {
              const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
              const spin = p.skill.visual === 'BOMB' ? (progress * 15) : 0;
              
-             // Style Logic
              const isChaos = isChaosStyle(p.skill.color);
+             const isUlt = p.skill.tag === 'ULT';
 
              list.push({
                  y: p.y + 50 + offsetP, z: 20, 
                  draw: (ctx) => {
                     // --- 1. Draw Trail ---
                     if (p.trail.length > 1) {
-                        // Re-calculate trail visual positions based on their stored world pos
-                        // Note: trails store just {x, y}, we need to derive progress for height
-                        
                         ctx.save();
                         
                         if (p.skill.visual === 'ARROW') {
-                            // Thin faint line
                             ctx.beginPath();
-                            // Move to tail
                             const tail = p.trail[0];
                             const tailDist = Vector.dist({x: p.startX, y: p.startY}, tail);
                             const tailVis = getVisualPos(tail.x, tail.y, tailDist/totalDist);
@@ -105,7 +111,6 @@ export const ProjectileRenderer = {
                             ctx.lineWidth = 1;
                             ctx.stroke();
                         } else {
-                            // MAGICAL RIBBON
                             ctx.lineCap = 'round';
                             ctx.lineJoin = 'round';
                             ctx.globalCompositeOperation = 'lighter';
@@ -116,14 +121,13 @@ export const ProjectileRenderer = {
                             });
                             trailPoints.push(headVis);
 
-                            // Draw segment by segment
                             for (let i = 0; i < trailPoints.length - 1; i++) {
                                 const pt = trailPoints[i];
                                 const next = trailPoints[i+1];
                                 const ratio = i / (trailPoints.length - 1); 
                                 
                                 const baseWidth = (p.skill.visual === 'FIREBALL' || p.skill.visual === 'SMASH') ? 24 : 12;
-                                ctx.lineWidth = baseWidth * ratio;
+                                ctx.lineWidth = baseWidth * ratio * (isUlt ? 1.5 : 0.8);
                                 ctx.strokeStyle = p.skill.color;
                                 
                                 ctx.beginPath();
@@ -148,14 +152,18 @@ export const ProjectileRenderer = {
                     }
 
                     // --- 2. Draw Shadow ---
-                    ctx.save();
-                    ctx.translate(headVis.x, headVis.shadowY);
+                    // Only draw shadow if we are decently above ground to avoid clutter
                     const altitude = headVis.shadowY - headVis.y;
-                    const shadowScale = Math.max(0.2, 1 - altitude/300);
-                    ctx.scale(shadowScale, shadowScale);
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
+                    if (altitude > 5) {
+                        ctx.save();
+                        ctx.translate(headVis.x, headVis.shadowY);
+                        // Make shadow shrink as projectile goes higher
+                        const shadowScale = Math.max(0.2, 1 - altitude/400);
+                        ctx.scale(shadowScale, shadowScale);
+                        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                        ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+                        ctx.restore();
+                    }
 
                     // --- 3. Draw Projectile Head ---
                     ctx.save();
@@ -165,6 +173,15 @@ export const ProjectileRenderer = {
                     
                     const img = AssetManager.getProjectile(p.skill.visual || 'BOLT', p.skill.color);
                     if (img && img.width > 0) {
+                        // Projectile Size Scaling
+                        // Default sprites are 96x64 which is huge for a 36px hex.
+                        // Standard Attack: 0.6x
+                        // Ult: 1.0x or 1.2x for Bombs
+                        let scale = 0.6;
+                        if (isUlt) scale = 1.0;
+                        if (p.skill.visual === 'BOMB' || p.skill.visual === 'FIREBALL') scale *= 1.2;
+
+                        ctx.scale(scale, scale);
                         ctx.drawImage(img, -48, -32, 96, 64);
                     }
                     ctx.restore();

@@ -23,6 +23,8 @@ export class ProjectileSystem {
             const dist = Vector.dist({x: p.x, y: p.y}, p.targetPos);
             const moveDist = p.speed * dt;
             
+            // Add current pos to trail
+            // Limit trail length for performance
             p.trail.push({x: p.x, y: p.y});
             if (p.trail.length > 20) p.trail.shift();
             

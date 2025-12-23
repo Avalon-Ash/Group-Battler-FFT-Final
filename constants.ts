@@ -8,6 +8,7 @@ export const ISO_SCALE_Y = 0.58; // Moved here from utils.ts
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
 export const UNIT_VISUAL_HEIGHT = 90; // Standardized "Head" position. Ensures clearance for tallest sprites.
+export const UNIT_BODY_OFFSET = 45;   // NEW: The visual "Chest/Center" height from the ground. Syncs Render & VFX.
 export const HUD_PADDING = 10;        // Safety buffer between sprite top and UI elements.
 export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
 
@@ -51,14 +52,24 @@ export const COLORS = {
     CAST: '#fbbf24'
 };
 
-// 3D Terrain Materials
-// FIX: Darkened ICE top color to improve VFX visibility
-export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string }> = {
-    'VOID': { top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155' },
-    'FOREST': { top: '#166534', sideLight: '#14532d', sideDark: '#052e16', detail: '#15803d' }, // Darker Green
-    'ICE': { top: '#60a5fa', sideLight: '#3b82f6', sideDark: '#1e40af', detail: '#93c5fd' }, // Blue-400 (Frozen Lake) instead of White
-    'MAGMA': { top: '#450a0a', sideLight: '#2a0a0a', sideDark: '#1a0505', detail: '#ef4444' }, // Obsidian
-    'DESERT': { top: '#b45309', sideLight: '#92400e', sideDark: '#78350f', detail: '#d97706' } // Sandstone
+// 3D Terrain Materials (Updated for Material 2.0)
+// Added 'rim' for edge highlighting and tweaked colors for better contrast
+export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
+    'VOID': { 
+        top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155', rim: '#475569' 
+    },
+    'FOREST': { 
+        top: '#14532d', sideLight: '#166534', sideDark: '#052e16', detail: '#22c55e', rim: '#4ade80' 
+    }, 
+    'ICE': { 
+        top: '#3b82f6', sideLight: '#2563eb', sideDark: '#1e3a8a', detail: '#bfdbfe', rim: '#ffffff' 
+    }, 
+    'MAGMA': { 
+        top: '#450a0a', sideLight: '#2a0a0a', sideDark: '#1a0505', detail: '#ef4444', rim: '#f87171' 
+    }, 
+    'DESERT': { 
+        top: '#92400e', sideLight: '#78350f', sideDark: '#451a03', detail: '#d97706', rim: '#fcd34d' 
+    } 
 };
 
 // Obstacle Visual Styles

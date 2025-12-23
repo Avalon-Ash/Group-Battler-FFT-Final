@@ -14,85 +14,50 @@ export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t:
     
     // We are at Ground Level (0,0).
     // Unit Feet are at (physX, physY - physZ).
-    // We want to draw a column connecting Ground(0,0) to Feet.
     
     const feetX = physX;
     const feetY = physY - physZ; 
     
     ctx.save();
 
-    // 1. "Divine Light" Lift Column (Gradient Fill)
-    const grad = ctx.createLinearGradient(0, 0, feetX, feetY);
-    // Transparent at bottom to blend with ground, stronger at top to show lift source
-    grad.addColorStop(0, isBlue ? 'rgba(96, 165, 250, 0.0)' : 'rgba(248, 113, 113, 0.0)');
-    grad.addColorStop(0.3, isBlue ? 'rgba(96, 165, 250, 0.1)' : 'rgba(248, 113, 113, 0.1)');
-    grad.addColorStop(1.0, isBlue ? 'rgba(96, 165, 250, 0.3)' : 'rgba(248, 113, 113, 0.3)');
-
-    // Column Shape (Tapered Cylinder)
-    const baseW = 20; // Ground width
-    const topW = 15;  // Feet width
-    
-    ctx.beginPath();
-    // Start Bottom Left
-    ctx.moveTo(-baseW, 0);
-    // Line to Top Left
-    ctx.lineTo(feetX - topW, feetY);
-    // Curve Top (Feet)
-    ctx.ellipse(feetX, feetY, topW, topW * 0.5, 0, Math.PI, 0); // Top semi-circle
-    // Line to Bottom Right
-    ctx.lineTo(baseW, 0);
-    // Curve Bottom (Ground)
-    ctx.ellipse(0, 0, baseW, baseW * 0.5, 0, 0, Math.PI); // Bottom semi-circle
-    
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    // 2. Rising Energy Streams / Rings
-    // Adds motion inside the column
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 1.5;
-    
-    const height = Math.abs(feetY);
-    // Density of rings based on height
-    const ringCount = Math.max(2, Math.floor(height / 25));
-    
-    for(let i=0; i<ringCount; i++) {
-        // Scroll rings upward
-        const phase = (t * 1.5 + i / ringCount) % 1; 
-        
-        // Interpolate position between ground(0,0) and feet(feetX, feetY)
-        const curX = feetX * phase;
-        const curY = feetY * phase;
-        
-        // Interpolate width
-        const curW = baseW + (topW - baseW) * phase;
-        
-        // Fade in/out at ends
-        const alpha = Math.sin(phase * Math.PI); 
-        
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.beginPath();
-        ctx.ellipse(curX, curY, curW, curW * 0.5, 0, 0, Math.PI * 2);
-        ctx.stroke();
-    }
-
-    // 3. Ground Anchor Ring (Target Reticle)
-    ctx.globalAlpha = 1.0;
-    const pulse = 1 + Math.sin(t * 8) * 0.1;
+    // 1. Ground Shadow / Rune (Projection Source)
+    // No more solid column. Just a projection mark on the ground.
+    ctx.globalAlpha = 0.6;
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]); 
+    
+    // Scale shadow based on height to give depth cue
+    // Higher = Smaller shadow
+    const heightRatio = Math.max(0.5, 1 - Math.abs(physZ) / 300);
+    ctx.scale(heightRatio, heightRatio);
+    
     ctx.beginPath();
-    ctx.ellipse(0, 0, 35 * pulse, 18 * pulse, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Crosshair Center
-    ctx.setLineDash([]);
+    // Rotating crosshair
+    ctx.save();
+    ctx.rotate(t);
     ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
     ctx.beginPath();
-    ctx.moveTo(-8, 0); ctx.lineTo(8, 0);
-    ctx.moveTo(0, -4); ctx.lineTo(0, 4);
+    ctx.arc(0, 0, 15, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.restore();
+
+    // 2. Faint Connection Line (Optional, very subtle holographic tether)
+    // Only visible if very high up to help tracking
+    if (Math.abs(physZ) > 60) {
+        ctx.restore(); // Reset scale
+        ctx.save();
+        ctx.globalAlpha = 0.15;
+        ctx.setLineDash([4, 8]);
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(feetX, feetY);
+        ctx.stroke();
+    }
 
     ctx.restore();
 }
@@ -101,39 +66,34 @@ export function drawFlightVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: nu
     const color = agent.team === Team.BLUE ? '#bae6fd' : '#fecaca'; 
     
     ctx.save();
-    ctx.translate(0, 10); // Slightly below body center (feet)
+    ctx.translate(0, 5); // Just below body
     ctx.scale(1, 0.5); 
 
     // Rotating Wind/Energy Swirl at Feet
-    ctx.rotate(t * 5); // Faster spin
+    ctx.rotate(t * 8); // Faster spin for thrusters
     
     // Inner Turbine Ring
     ctx.beginPath();
-    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.arc(0, 0, 10, 0, Math.PI * 2);
     ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = 0.5;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6;
     ctx.stroke();
 
     // Outer Thruster Arcs
     ctx.beginPath();
-    ctx.arc(0, 0, 18 + Math.sin(t * 15) * 2, 0, Math.PI * 1.5);
+    // 3 Arcs for stability look
+    for(let i=0; i<3; i++) {
+        const offset = i * (Math.PI * 2 / 3);
+        const arcLen = Math.PI / 2;
+        ctx.moveTo(Math.cos(offset) * 18, Math.sin(offset) * 18);
+        ctx.arc(0, 0, 18, offset, offset + arcLen);
+    }
+    
     ctx.strokeStyle = color;
     ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.7;
-    ctx.lineCap = 'round';
+    ctx.globalAlpha = 0.5 + Math.sin(t * 20) * 0.2; // Flicker
     ctx.stroke();
-
-    // Particles (Exhaust)
-    ctx.fillStyle = color;
-    for(let i=0; i<3; i++) {
-        const angle = t * 8 + i * (Math.PI * 2 / 3);
-        const r = 16;
-        const px = Math.cos(angle) * r;
-        const py = Math.sin(angle) * r;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath(); ctx.arc(px, py, 2.5, 0, Math.PI*2); ctx.fill();
-    }
 
     ctx.restore();
 }
@@ -189,17 +149,12 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
 }
 
 export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: number, drawX: number, drawY: number, scaleFactor: number) {
-    // Only keeping this logic for casting glow if needed, but HUDSystem handles the main gauge now.
-    // We can keep the "Glow" behind the unit here if desired, or remove it.
-    // For now, let's just keep the particle glow effect if casting, but remove the UI elements (Icon/Bar).
-    
     if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (skill) {
             ctx.save();
             ctx.translate(0, -110);
             
-            // Just the ambient energy glow behind the head, no UI
             const glow = AssetManager.getGlowSprite(skill.color);
             ctx.globalCompositeOperation = 'lighter';
             const pulse = 0.5 + Math.sin(t * 10) * 0.1;
@@ -215,69 +170,198 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
     if (agent.hp <= 0) return;
     
     ctx.save();
-    // Undo facing flip so icons don't flip
     if (agent.facing < 0) ctx.scale(-1, 1);
     
-    const HEAD_Y = -75; // Adjusted head position for icons
+    const HEAD_Y = -60; 
 
-    // 1. STUN
-    if (agent.stunTimer > 0 && !agent.banished && agent.visualStatus !== 'FROZEN') {
-        const icon = AssetManager.getStatusIcon('STUN');
-        const angle = t * 5;
-        ctx.drawImage(icon, -20 + Math.cos(angle)*10, HEAD_Y + Math.sin(angle)*5, 24, 24);
-        ctx.drawImage(icon, -10 + Math.cos(angle + 2)*10, HEAD_Y - 10 + Math.sin(angle + 2)*5, 16, 16);
-    }
-
-    // 2. SILENCE
-    if (agent.silenceTimer > 0) {
-        const icon = AssetManager.getStatusIcon('SILENCE');
-        ctx.drawImage(icon, 15, HEAD_Y - 5 + Math.sin(t * 3) * 3, 24, 24);
-    }
-
-    // 3. BANISH
-    if (agent.banished && agent.visualStatus === 'NONE') {
-        const icon = AssetManager.getStatusIcon('BANISH');
-        ctx.globalAlpha = 0.7;
-        ctx.drawImage(icon, -12, HEAD_Y - 20 + Math.sin(t * 2) * 5, 24, 24);
-    }
-
-    // 4. DoT
-    if (agent.dotTimer > 0) {
-        const pulse = 1 + Math.sin(t * 10) * 0.2;
-        const iconSize = 28 * pulse; 
-        const icon = AssetManager.getStatusIcon('POISON'); 
-        const glow = AssetManager.getGlowSprite('#ef4444');
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.drawImage(glow, -35 - iconSize/2, HEAD_Y - iconSize/2, iconSize*2, iconSize*2);
+    // 1. FROZEN - ICE PRISM (Encasing the unit)
+    if (agent.visualStatus === 'FROZEN') {
+        ctx.save();
+        ctx.translate(0, -40); // Center of body
+        
+        // Draw Hexagonal Prism
+        const w = 30;
+        const h = 50;
+        
         ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(icon, -35, HEAD_Y, iconSize, iconSize);
+        // Back Faces
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.4)'; // Light Blue
+        ctx.beginPath();
+        ctx.moveTo(-w, -h); ctx.lineTo(w, -h); ctx.lineTo(w, h); ctx.lineTo(-w, h);
+        ctx.fill();
+        
+        // Front Faces (Glassy)
+        const grad = ctx.createLinearGradient(-w, -h, w, h);
+        grad.addColorStop(0, 'rgba(255,255,255,0.6)');
+        grad.addColorStop(0.5, 'rgba(56, 189, 248, 0.3)');
+        grad.addColorStop(1, 'rgba(14, 165, 233, 0.5)');
+        
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        
+        ctx.beginPath();
+        ctx.moveTo(0, -h - 10); // Top Tip
+        ctx.lineTo(w + 5, -h + 10);
+        ctx.lineTo(w, h);
+        ctx.lineTo(0, h + 10); // Bottom Tip
+        ctx.lineTo(-w, h);
+        ctx.lineTo(-w - 5, -h + 10);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        
+        // Glint
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.beginPath();
+        ctx.moveTo(0, -h-10); ctx.lineTo(0, h+10);
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+        ctx.stroke();
+        
+        ctx.restore();
+    }
 
+    // 2. BANISH - GHOSTLY CAGE (Rotates around unit)
+    if (agent.banished && agent.visualStatus !== 'POLYMORPH') {
+        ctx.translate(0, -30); // Body center
+        
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 3;
         ctx.globalAlpha = 0.8;
-        for(let i=0; i<5; i++) {
-            const cycle = (t * 2 + i * 0.7) % 1;
-            const yOff = -cycle * 60; 
-            const xOff = Math.sin(t * 5 + i) * 15;
-            const size = (1 - cycle) * 7;
-            ctx.fillStyle = i % 2 === 0 ? '#10b981' : '#a855f7';
-            if (cycle < 1) {
-                ctx.beginPath(); ctx.arc(xOff, -20 + yOff, size, 0, Math.PI*2); ctx.fill();
+        
+        // Vertical Bars orbiting (Simulated 3D Cylinder)
+        const bars = 5;
+        const radius = 25;
+        const height = 50;
+        
+        for(let i=0; i<bars; i++) {
+            // Rotate bars over time
+            const angle = t * 2 + (i / bars) * Math.PI * 2;
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle); // Depth
+            
+            // Perspective scale
+            const scale = 1 + z * 0.1;
+            const alpha = 0.5 + (z + 1) * 0.25; // Fade back bars
+            
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.moveTo(x, -height);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+            
+            // Runes on bars
+            if (i % 2 === 0) {
+                ctx.fillStyle = '#d8b4fe';
+                ctx.beginPath(); ctx.arc(x, -height/2 + Math.sin(t*3+i)*10, 3, 0, Math.PI*2); ctx.fill();
             }
         }
+        
+        // Top and Bottom Rings
+        ctx.globalAlpha = 0.6;
+        ctx.save();
+        ctx.scale(1, 0.3); // Isometric
+        ctx.beginPath(); ctx.arc(0, -height / 0.3, radius, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, height / 0.3, radius, 0, Math.PI*2); ctx.stroke();
+        ctx.restore();
     }
 
-    // 5. HoT
-    if (agent.hotTimer > 0) {
-        const icon = AssetManager.getStatusIcon('REGEN');
-        ctx.drawImage(icon, 25, HEAD_Y, 24, 24);
-        ctx.globalAlpha = 0.8;
-        ctx.fillStyle = '#4ade80';
-        ctx.font = 'bold 14px sans-serif';
-        for(let i=0; i<3; i++) {
-            const cycle = (t * 1.5 + i * 0.4) % 1;
-            const yOff = -cycle * 40;
-            const xOff = Math.cos(t * 3 + i) * 15;
-            if (cycle < 1) ctx.fillText('+', xOff, -20 + yOff);
+    // 3. STUN - 3D DIZZY RING
+    if (agent.stunTimer > 0 && !agent.banished && agent.visualStatus !== 'FROZEN') {
+        ctx.translate(0, HEAD_Y - 10);
+        
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.lineWidth = 3;
+        
+        const count = 5;
+        const radius = 25;
+        
+        // Orbiting Stars
+        for(let i=0; i<count; i++) {
+            const angle = t * 4 + (i / count) * Math.PI * 2;
+            // 3D Orbit: Y is squashed
+            const x = Math.cos(angle) * radius;
+            const y = Math.sin(angle) * radius * 0.3;
+            // Z-sort simulation: if sin(angle) > 0, it's in front
+            const scale = 1 + Math.sin(angle) * 0.3;
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.scale(scale, scale);
+            
+            ctx.fillStyle = '#facc15';
+            ctx.shadowColor = '#fbbf24';
+            ctx.shadowBlur = 10;
+            
+            // Draw Star
+            ctx.beginPath();
+            const starPts = 5;
+            for(let j=0; j<starPts*2; j++) {
+                const r = j%2===0 ? 6 : 2;
+                const a = j * Math.PI / starPts;
+                ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+            }
+            ctx.fill();
+            ctx.restore();
         }
+    }
+
+    // 4. SILENCE - FLOATING RUNE SEAL
+    if (agent.silenceTimer > 0) {
+        ctx.translate(0, HEAD_Y - 15);
+        
+        const scale = 1 + Math.sin(t * 5) * 0.1;
+        ctx.scale(scale, scale);
+        
+        ctx.fillStyle = '#1e1b4b'; 
+        ctx.strokeStyle = '#a855f7';
+        ctx.lineWidth = 2;
+        ctx.shadowColor = '#c084fc';
+        ctx.shadowBlur = 10;
+        
+        // Rune Box
+        ctx.beginPath();
+        ctx.rect(-15, -10, 30, 20);
+        ctx.fill();
+        ctx.stroke();
+        
+        // "X" or Rune Text
+        ctx.beginPath();
+        ctx.moveTo(-8, -5); ctx.lineTo(8, 5);
+        ctx.moveTo(8, -5); ctx.lineTo(-8, 5);
+        ctx.stroke();
+    }
+
+    // 5. DoT - Rising Bubbles / Smoke
+    if (agent.dotTimer > 0) {
+        ctx.translate(0, -40);
+        const count = 3;
+        for(let i=0; i<count; i++) {
+            const phase = (t + i/count) % 1;
+            const y = -phase * 40;
+            const x = Math.sin(phase * 10 + i) * 10;
+            const size = (1-phase) * 6;
+            
+            ctx.fillStyle = i%2===0 ? '#10b981' : '#a855f7'; 
+            ctx.globalAlpha = (1-phase);
+            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+        }
+    }
+
+    // 6. HoT - Spiraling +
+    if (agent.hotTimer > 0) {
+        ctx.translate(0, -30);
+        const angle = -t * 3;
+        const radius = 25;
+        
+        const x = Math.cos(angle) * radius;
+        const y = Math.sin(angle) * radius * 0.3; // Flattened
+        
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('+', x, y);
     }
 
     ctx.restore();
@@ -287,7 +371,7 @@ export function drawSpawnIndicator(ctx: CanvasRenderingContext2D, agent: Agent, 
     const assets = SpriteManager.getUnitImages(agent.role, agent.team);
     const totalDuration = 0.5;
     const alpha = Math.max(0, agent.spawnTimer / totalDuration);
-    const yOffset = -85 * scale; // Moved up higher because body is now higher
+    const yOffset = -85 * scale; 
 
     ctx.save();
     ctx.translate(x, y + yOffset);

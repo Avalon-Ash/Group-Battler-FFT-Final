@@ -10,23 +10,72 @@ export const ParticleRenderer = {
         // Shared translation
         ctx.translate(p.x, p.y);
 
-        if (p.type === 'BEAM') {
+        if (p.type === 'SPRITE') {
+            if (p.image) {
+                const alpha = Math.min(1, (1 - progress) * 5); 
+                ctx.globalAlpha = alpha;
+                if (p.z < 20) {
+                    ctx.save();
+                    ctx.translate(0, p.z);
+                    ctx.scale(1, 0.5);
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.beginPath(); ctx.arc(0, 0, p.size/3, 0, Math.PI*2); ctx.fill();
+                    ctx.restore();
+                }
+                ctx.rotate(p.rotation);
+                const scale = p.size / 64; 
+                ctx.scale(scale, scale);
+                ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
+            }
+
+        } else if (p.type === 'CHIP') {
+            ctx.rotate(p.rotation); 
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = 1 - Math.pow(progress, 4);
+            const s = p.size;
+            ctx.beginPath();
+            ctx.moveTo(-s, -s/2); ctx.lineTo(0, -s); ctx.lineTo(s, -s/2); ctx.lineTo(0, s);
+            ctx.fill();
+
+        } else if (p.type === 'SHARD') {
+            ctx.rotate(p.rotation);
+            ctx.fillStyle = p.color;
+            ctx.beginPath();
+            const s = p.size;
+            ctx.moveTo(-s, -s/2); ctx.lineTo(0, -s); ctx.lineTo(s, -s/2); ctx.lineTo(0, s);
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+        } else if (p.type === 'SMOKE') {
+            const r = p.size * (0.5 + progress * 2); 
+            // Softer Alpha
+            ctx.globalAlpha = (1 - progress) * 0.3;
+            ctx.fillStyle = p.color; 
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+
+        } else if (p.type === 'BLAST') {
+            ctx.scale(1, 0.55); 
+            const r = p.size * (progress * 2); 
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = (1 - progress) * 5; 
+            ctx.globalAlpha = (1 - progress) * 0.8;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+
+        } else if (p.type === 'BEAM') {
             if (p.targetX !== undefined && p.targetY !== undefined) {
-                // Beams are world-space endpoints, undo translate for now or calculate relative
-                // Easier to undo translate
-                ctx.translate(-p.x, -p.y);
-                
+                ctx.translate(-p.x, -p.y); 
                 ctx.globalCompositeOperation = 'lighter';
                 const sx = p.x; const sy = p.y;
                 const tx = p.targetX; const ty = p.targetY;
                 
                 if (isChaos) {
-                    // Siphon / Lightning
                     ctx.strokeStyle = p.color;
                     ctx.lineWidth = 3;
                     ctx.beginPath();
                     ctx.moveTo(sx, sy);
-                    // Jagged line
                     const segs = 10;
                     const dx = tx - sx; const dy = ty - sy;
                     for(let i=1; i<segs; i++) {
@@ -36,15 +85,12 @@ export const ParticleRenderer = {
                     }
                     ctx.lineTo(tx, ty);
                     ctx.stroke();
-                    // Dark Core
                     ctx.lineWidth = 1; ctx.strokeStyle = '#000'; ctx.stroke();
                 } else {
-                    // Holy Beam
                     ctx.strokeStyle = p.color;
                     ctx.lineWidth = (1 - Math.abs(progress - 0.5)*2) * 8;
                     ctx.lineCap = 'round';
                     ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
-                    // White Hot Center
                     ctx.lineWidth /= 2; ctx.strokeStyle = '#fff'; ctx.stroke();
                 }
             }
@@ -54,243 +100,198 @@ export const ParticleRenderer = {
             ctx.strokeStyle = p.color;
             ctx.lineWidth = 2;
             ctx.globalAlpha = 1 - progress;
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.beginPath(); 
-            if(isChaos) {
-                // Jagged Ring
-                for(let i=0; i<=16; i++) {
-                    const a = (i/16)*Math.PI*2;
-                    const rr = r * (1 + (Math.random()-0.5)*0.2);
-                    if(i===0) ctx.moveTo(Math.cos(a)*rr, Math.sin(a)*rr);
-                    else ctx.lineTo(Math.cos(a)*rr, Math.sin(a)*rr);
-                }
-            } else {
-                ctx.arc(0, 0, r, 0, Math.PI * 2); 
-            }
-            ctx.stroke();
-            ctx.closePath();
+            // Removed 'lighter' to reduce exposure, standard alpha blend
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
 
         } else if (p.type === 'SPARK') {
-            // High Tech Upgrade: Velocity Stretch (Motion Blur)
-            const speedSq = p.vx * p.vx + p.vy * p.vy;
-            if (speedSq > 100) {
-                const angle = Math.atan2(p.vy, p.vx);
-                ctx.rotate(angle);
-                // Stretch based on speed
-                const stretch = Math.min(4.0, 1.0 + Math.sqrt(speedSq) * 0.005);
-                ctx.scale(stretch, 1.0 / Math.max(1.0, stretch * 0.5));
-            }
-
             const r = p.size;
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-            grad.addColorStop(0, '#fff'); 
-            grad.addColorStop(0.4, p.color);
-            grad.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad;
+            ctx.fillStyle = p.color;
             ctx.globalAlpha = 1 - Math.pow(progress, 3); 
             ctx.globalCompositeOperation = 'lighter'; 
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
 
-        } else if (p.type === 'DEBRIS' || p.type === 'SHARD') {
-            // Physics rotation applied in VFXSystem, render here
+        } else if (p.type === 'DEBRIS') {
             ctx.fillStyle = p.color;
             ctx.rotate(p.rotation);
-            ctx.beginPath();
-            const s = p.size;
-            if (p.type === 'SHARD') {
-                ctx.moveTo(-s, -s/2); ctx.lineTo(0, -s); ctx.lineTo(s, -s/2); ctx.lineTo(0, s);
-            } else {
-                ctx.rect(-s/2, -s/2, s, s);
-            }
-            ctx.fill();
-            // Rim Light
-            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+            
         } else if (p.type === 'PILLAR') {
-            // Undo translate to use relative coord logic inside func (or refactor, but keeping consistent)
             ctx.translate(0, -20); 
-            this.drawPillar(ctx, p, progress, isChaos);
+            this.drawDivinePillar(ctx, p, progress);
         } else if (p.type === 'SHOCKWAVE') {
             ctx.translate(0, -20);
             this.drawShockwave(ctx, p, progress, isChaos);
         } else if (p.type === 'DOMAIN') {
             ctx.translate(0, -20);
-            this.drawDomain(ctx, p, progress, isChaos);
+            this.drawBloodRitual(ctx, p, progress);
         }
 
         ctx.restore();
     },
 
-    drawPillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
-        ctx.globalCompositeOperation = 'lighter';
-        
+    // 🏛️ BLUE: DIVINE PILLAR (ORDER)
+    // Enhanced: Faster flow, central core beam, energetic fade
+    drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         const lifeRatio = p.life / p.maxLife;
-        const alpha = Math.sin(lifeRatio * Math.PI) * 0.8; 
-        const height = 1200; 
-        const baseWidth = 60 * (1 + Math.sin(progress * 20) * 0.1);
+        let alpha = 0;
+        // Sharper fade in/out for impact
+        if (lifeRatio > 0.8) alpha = (1 - lifeRatio) * 5; 
+        else if (lifeRatio < 0.2) alpha = lifeRatio * 5; 
+        else alpha = 1.0;
+
+        const height = 1500; // Even taller
+        const width = p.size;
 
         ctx.save();
         ctx.scale(1, 0.55); 
+
+        // 1. Ground Energy Ring (Impact Zone)
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 4 * alpha;
+        ctx.globalAlpha = alpha * 0.8;
+        ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2); ctx.stroke();
         
-        // Ground Blast Ring
-        const ringSize = baseWidth * 2;
-        const ringGrad = ctx.createRadialGradient(0, 0, ringSize * 0.2, 0, 0, ringSize);
-        ringGrad.addColorStop(0, isChaos ? '#000' : '#fff');
-        ringGrad.addColorStop(0.4, p.color);
-        ringGrad.addColorStop(1, 'transparent');
+        // 2. Rising Energy Rings (Faster Speed)
+        ctx.lineWidth = 2;
+        const ringCount = 4;
+        for(let i=0; i<ringCount; i++) {
+            // Speed up the flow
+            const ringH = ((progress * 8 + i) % ringCount) * 150;
+            const ringAlpha = (1 - ringH/600) * alpha;
+            ctx.globalAlpha = ringAlpha * 0.6;
+            ctx.beginPath(); ctx.ellipse(0, -ringH * 2, width * (1 - ringH/1000), width * (1 - ringH/1000), 0, 0, Math.PI*2); ctx.stroke();
+        }
         
-        ctx.fillStyle = ringGrad;
-        ctx.globalAlpha = alpha;
-        ctx.beginPath(); ctx.arc(0, 0, ringSize, 0, Math.PI*2); ctx.fill();
         ctx.restore();
 
-        // BEAM COLUMN
-        if (isChaos) {
-            // CHAOS PILLAR: Dark Core, Unstable
-            const chaosGrad = ctx.createLinearGradient(0, 0, 0, -height);
-            chaosGrad.addColorStop(0, p.color);
-            chaosGrad.addColorStop(0.5, 'transparent');
-            
-            ctx.fillStyle = chaosGrad;
-            ctx.globalAlpha = alpha * 0.8;
-            
-            ctx.beginPath();
-            const segs = 10;
-            const hw = baseWidth / 2;
-            ctx.moveTo(-hw, 0);
-            for(let i=1; i<=segs; i++) {
-                const y = -height * (i/segs);
-                const xOff = (Math.random()-0.5) * 20;
-                ctx.lineTo(-hw + xOff, y);
-            }
-            for(let i=segs; i>=0; i--) {
-                const y = -height * (i/segs);
-                const xOff = (Math.random()-0.5) * 20;
-                ctx.lineTo(hw + xOff, y);
-            }
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = '#000';
-            ctx.globalAlpha = alpha * 0.6;
-            ctx.fillRect(-baseWidth * 0.2, -height, baseWidth * 0.4, height);
+        // 3. The Pillar Core (Intense Beam)
+        ctx.globalCompositeOperation = 'lighter';
+        
+        // A. Wide Soft Glow
+        const softGrad = ctx.createLinearGradient(0, 0, 0, -height);
+        softGrad.addColorStop(0, p.color);
+        softGrad.addColorStop(0.5, 'transparent');
+        ctx.fillStyle = softGrad;
+        ctx.globalAlpha = alpha * 0.3; 
+        ctx.fillRect(-width * 0.8, -height, width * 1.6, height);
 
-        } else {
-            // ORDER PILLAR: Bright Core
-            const coreGrad = ctx.createLinearGradient(0, 0, 0, -height);
-            coreGrad.addColorStop(0, '#ffffff');
-            coreGrad.addColorStop(0.3, '#ffffff');
-            coreGrad.addColorStop(1, 'transparent');
-            
-            ctx.fillStyle = coreGrad;
-            ctx.globalAlpha = alpha;
-            ctx.fillRect(-baseWidth * 0.2, -height, baseWidth * 0.4, height);
+        // B. Hard Inner Core (White Hot)
+        const coreGrad = ctx.createLinearGradient(0, 0, 0, -height);
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.3, p.color);
+        coreGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = coreGrad;
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.fillRect(-width * 0.2, -height, width * 0.4, height);
 
-            const glowGrad = ctx.createLinearGradient(0, 0, 0, -height);
-            glowGrad.addColorStop(0, p.color);
-            glowGrad.addColorStop(0.7, 'transparent');
-            
-            ctx.fillStyle = glowGrad;
-            ctx.globalAlpha = alpha * 0.5;
-            ctx.fillRect(-baseWidth, -height, baseWidth * 2, height);
+        // C. Rising Particles (Sparkles inside)
+        ctx.fillStyle = '#fff';
+        const sparkCount = 10;
+        for(let i=0; i<sparkCount; i++) {
+            const sparkY = -((progress * 20 + i) % 10) * 100;
+            const sparkX = (Math.sin(i * 132) * width * 0.3);
+            const sAlpha = (1 - Math.abs(sparkY)/800) * alpha;
+            ctx.globalAlpha = sAlpha;
+            ctx.beginPath(); ctx.rect(sparkX, sparkY, 4, 20); ctx.fill();
         }
+    },
+
+    // 🩸 RED: BLOOD RITUAL (CHAOS)
+    drawBloodRitual(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
+         const lifeRatio = p.life / p.maxLife;
+         const alpha = Math.sin(lifeRatio * Math.PI); 
+         const r = p.size;
+
+         ctx.save();
+         ctx.scale(1, 0.55); 
+
+         // 1. The Void (Ground Hole)
+         ctx.globalCompositeOperation = 'source-over'; 
+         const voidGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+         voidGrad.addColorStop(0, '#000'); // Black center
+         voidGrad.addColorStop(0.7, '#220000');
+         voidGrad.addColorStop(1, 'transparent');
+         ctx.fillStyle = voidGrad;
+         ctx.globalAlpha = alpha * 0.9;
+         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+         // 2. Cracks / Runes
+         ctx.strokeStyle = p.color; // Red/Orange
+         ctx.lineWidth = 3;
+         ctx.globalAlpha = alpha;
+         ctx.beginPath();
+         // Jagged lines from center
+         for(let i=0; i<6; i++) {
+             const angle = i * (Math.PI/3) + progress;
+             ctx.moveTo(0,0);
+             ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r);
+         }
+         ctx.stroke();
+
+         // 3. Rising Dark Miasma (Noise)
+         ctx.globalCompositeOperation = 'lighter'; // Glowy smoke
+         ctx.fillStyle = p.color;
+         const bubbles = 5;
+         for(let i=0; i<bubbles; i++) {
+             const bAngle = i * (Math.PI * 2 / bubbles) + progress * 2;
+             const dist = r * 0.6;
+             const bx = Math.cos(bAngle) * dist;
+             const by = Math.sin(bAngle) * dist;
+             const bSize = r * 0.3 * Math.sin(progress * 10 + i);
+             
+             ctx.globalAlpha = alpha * 0.3;
+             ctx.beginPath(); ctx.arc(bx, by, Math.abs(bSize), 0, Math.PI*2); ctx.fill();
+         }
+
+         ctx.restore();
+         
+         // 4. Vertical "Heat" Haze (Not a pillar)
+         ctx.globalCompositeOperation = 'lighter';
+         const heatGrad = ctx.createLinearGradient(0, 0, 0, -300);
+         heatGrad.addColorStop(0, p.color);
+         heatGrad.addColorStop(1, 'transparent');
+         ctx.fillStyle = heatGrad;
+         ctx.globalAlpha = alpha * 0.2;
+         
+         // Irregular shape
+         ctx.beginPath();
+         ctx.moveTo(-r/2, 0); 
+         ctx.lineTo(-r/4, -300);
+         ctx.lineTo(r/4, -300);
+         ctx.lineTo(r/2, 0);
+         ctx.fill();
     },
 
     drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.scale(1, 0.55); 
-        ctx.globalCompositeOperation = 'lighter';
+        // Chaos Shockwave = Jagged
+        // Order Shockwave = Smooth Ring
         
         const r = progress * 300; 
         const width = 30 * (1 - progress);
-        
+        ctx.globalAlpha = (1 - progress);
         ctx.strokeStyle = p.color;
         ctx.lineWidth = width;
-        ctx.globalAlpha = (1 - progress);
-        
-        ctx.beginPath(); 
+
         if (isChaos) {
-            for(let i=0; i<=32; i++) {
-                const a = (i/32)*Math.PI*2;
-                const d = r + (Math.random()-0.5) * 30;
-                if(i===0) ctx.moveTo(Math.cos(a)*d, Math.sin(a)*d);
-                else ctx.lineTo(Math.cos(a)*d, Math.sin(a)*d);
+            // Jagged
+            ctx.globalCompositeOperation = 'source-over'; // Darker/Physical
+            ctx.beginPath();
+            const segs = 16;
+            for(let i=0; i<=segs; i++) {
+                const a = i * (Math.PI*2 / segs);
+                const varR = r + (i%2===0 ? 20 : -20);
+                const px = Math.cos(a)*varR;
+                const py = Math.sin(a)*varR;
+                if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
             }
+            ctx.closePath();
+            ctx.stroke();
         } else {
-            ctx.arc(0, 0, r, 0, Math.PI * 2); 
+            // Smooth
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
         }
-        ctx.closePath();
-        ctx.stroke();
-    },
-
-    drawDomain(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
-         ctx.scale(1, 0.55); 
-         const time = performance.now() / 1000;
-         const baseRadius = 250;
-         const pulse = 1 + Math.sin(time * 5) * 0.02;
-         const r = baseRadius * pulse;
-
-         ctx.globalCompositeOperation = 'lighter'; 
-
-         // Base Field
-         const grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
-         grad.addColorStop(0, 'transparent'); 
-         const safeColor = normalizeHex(p.color);
-         grad.addColorStop(0.7, safeColor + '4D'); 
-         grad.addColorStop(0.95, p.color); 
-         grad.addColorStop(1, 'transparent');
-
-         ctx.fillStyle = grad;
-         ctx.globalAlpha = 0.5 * (1 - progress); 
-         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-         // Rune Rings
-         ctx.globalAlpha = 0.8 * (1 - progress);
-         ctx.strokeStyle = p.color;
-         
-         ctx.save();
-         ctx.rotate(time * 0.5);
-         ctx.lineWidth = 3;
-         if (isChaos) {
-             ctx.setLineDash([10, 25]); 
-             ctx.beginPath();
-             for(let i=0; i<=12; i++) {
-                 const a = (i/12)*Math.PI*2;
-                 const d = r * 0.95 + (i%2===0 ? 15 : -15);
-                 if(i===0) ctx.moveTo(Math.cos(a)*d, Math.sin(a)*d);
-                 else ctx.lineTo(Math.cos(a)*d, Math.sin(a)*d);
-             }
-             ctx.closePath();
-             ctx.stroke();
-         } else {
-             ctx.setLineDash([50, 20]); 
-             ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.stroke();
-             ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2); 
-             ctx.setLineDash([20, 10]);
-             ctx.stroke();
-         }
-         ctx.restore();
-
-         // Vertical Energy Walls
-         ctx.globalAlpha = 0.3 * (1 - progress);
-         const spikeCount = isChaos ? 8 : 12;
-         for(let i=0; i<spikeCount; i++) {
-             const angle = (i / spikeCount) * Math.PI * 2 + (isChaos ? -time : time);
-             const sx = Math.cos(angle) * r;
-             const sy = Math.sin(angle) * r;
-             
-             ctx.beginPath();
-             ctx.moveTo(sx, sy);
-             const topX = sx + (isChaos ? (Math.random()-0.5)*40 : 0);
-             ctx.lineTo(topX, sy - 100); 
-             ctx.lineWidth = 4;
-             
-             const beamGrad = ctx.createLinearGradient(sx, sy, topX, sy - 100);
-             beamGrad.addColorStop(0, p.color);
-             beamGrad.addColorStop(1, 'transparent');
-             ctx.strokeStyle = beamGrad;
-             ctx.stroke();
-         }
     }
 };

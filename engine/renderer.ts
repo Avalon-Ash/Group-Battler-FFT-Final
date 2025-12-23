@@ -18,7 +18,10 @@ import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
 
 const OBSTACLE_Z_INDEX = 10;
-const OBSTACLE_OFFSET_Y = 80; 
+// SPRITE ANCHOR: The factory generates 80x110 sprites.
+// The "feet" or base of the obstacle is defined at y=95 in the factory.
+const OBSTACLE_ANCHOR_Y = 95; 
+const OBSTACLE_HALF_WIDTH = 40; // 80 / 2
 
 // Re-export Camera for compatibility
 export { Camera };
@@ -148,6 +151,7 @@ export class GameRenderer {
              const pos = HexUtils.toPx(q, r, engine.mapConfig);
              
              let visualY = pos.y;
+             // Transition Logic
              if (this.transitionPhase !== 'IDLE') {
                  const centerQ = Math.floor(engine.mapConfig.w / 2);
                  const centerR = Math.floor(engine.mapConfig.h / 2);
@@ -175,7 +179,8 @@ export class GameRenderer {
                      y: visualY, z: OBSTACLE_Z_INDEX,
                      draw: (c) => {
                          const sprite = SpriteManager.getObstacleSprite(type || defaultStyle);
-                         c.drawImage(sprite, pos.x - 32, visualY - terrainH - OBSTACLE_OFFSET_Y);
+                         // Center Correctly: -40 for 80px width, -95 for anchor offset
+                         c.drawImage(sprite, pos.x - OBSTACLE_HALF_WIDTH, visualY - terrainH - OBSTACLE_ANCHOR_Y);
                      }
                  });
              }

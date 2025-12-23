@@ -4,7 +4,7 @@ import { SpriteManager } from "../sprites";
 import { AssetManager } from "../assets";
 import { Role, Team, MovementType } from "../../types";
 import { RenderableItem } from "./grid";
-import { HEX_SIZE } from "../../constants";
+import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
 
 // Modules
@@ -52,11 +52,11 @@ export class UnitRenderSystem {
                 }
             }
 
-            // Apply Visual Offset (Y is down in Canvas, so subtract height to move "up")
+            // Ground Y (The floor)
             const visualY = agent.py - h;
             
             list.push({
-                y: agent.py + 1, // Sort by base position (ground level)
+                y: agent.py + 1, // Sort by base position
                 z: 10,
                 draw: (ctx) => this.drawAssembly(
                     ctx, 
@@ -117,44 +117,44 @@ export class UnitRenderSystem {
         isSelected: boolean,
         isSilhouette: boolean
     ) {
-        // 1. Setup Constraint Space
         const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
         
         // Distinct Scale Factors for Roles
         let roleScaleMod = 1.0;
         switch(agent.role) {
-            case Role.TANK: roleScaleMod = 1.25; break; // Bulky
-            case Role.WARRIOR: roleScaleMod = 1.1; break; // Standard strong
-            case Role.RANGER: roleScaleMod = 0.9; break; // Agile/Slim
-            case Role.MAGE: roleScaleMod = 0.9; break; // Small/Floating
+            case Role.TANK: roleScaleMod = 1.25; break; 
+            case Role.WARRIOR: roleScaleMod = 1.1; break; 
+            case Role.RANGER: roleScaleMod = 0.9; break; 
+            case Role.MAGE: roleScaleMod = 0.9; break; 
             case Role.SUPPORT: roleScaleMod = 0.95; break;
         }
 
         const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
 
         ctx.save();
-        ctx.translate(drawX, drawY);
+        ctx.translate(drawX, drawY); // Base Position (Ground)
         ctx.scale(scaleFactor, scaleFactor);
 
-        // 3. Apply Physics (Z-Jump / Blast)
+        // Physics values scaled
         const physX = agent.physics.x / scaleFactor;
         const physY = agent.physics.y / scaleFactor;
         const physZ = agent.physics.z / scaleFactor; 
 
-        // --- DRAW BASE & ANCHOR (Ground Level) ---
+        // --- 1. DRAW BASE (Solid physical object on Ground) ---
         if (!isSilhouette && agent.hp > 0 && agent.visualStatus !== 'POLYMORPH') {
             const assets = SpriteManager.getUnitImages(agent.role, agent.team);
             
-            // Standard Ground Base
+            // Draw The Heavy Base
             ctx.save();
             ctx.drawImage(assets.base, -64, -79); 
-            
-            // FLYING UNIT ANCHOR
+            ctx.restore();
+
+            // Flying Tether (If flying)
             if (agent.movementType === MovementType.FLYING) {
                 drawFlyingAnchor(ctx, agent, globalTime, physX, physY, physZ);
             }
 
-            // Casting Floor Rune
+            // Ground Rune (If Casting)
             if (agent.castingSkillIdx !== -1) {
                 const skill = agent.skills[agent.castingSkillIdx];
                 if (skill) {
@@ -167,28 +167,29 @@ export class UnitRenderSystem {
                     ctx.restore();
                 }
             }
-            ctx.restore();
         }
 
-        // Apply Logic/Physics Offset to Body
+        // --- 2. PREPARE BODY TRANSFORM (The Projection) ---
+        // Move to physics offset (X, Y) and apply Lift (Z)
         ctx.translate(physX, physY - physZ); 
         ctx.rotate(agent.physics.angle); 
 
-        // --- PREPARE BODY TRANSFORM ---
-        const BODY_GROUNDING_OFFSET = -31; 
-        let bodyFloat = BODY_GROUNDING_OFFSET; 
+        // Vertical Float Animation (Visual only, distinct from Physics Z)
+        // Body is offset by UNIT_BODY_OFFSET to ensure it floats above base.
+        // We use the negative of the constant because canvas Y-up is negative.
+        let bodyFloat = -UNIT_BODY_OFFSET; 
         
-        if (agent.hp > 0) {
-             if ((agent.role === Role.MAGE || agent.role === Role.SUPPORT) && !agent.isMoving && agent.visualStatus === 'NONE') {
-                bodyFloat -= 5 + Math.sin(globalTime * 2) * 3; 
-            }
-        } else {
-            bodyFloat = -5; 
+        if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
+             // Breathing float for ground units
+             bodyFloat -= Math.sin(globalTime * 2) * 3; 
+        } else if (agent.movementType === MovementType.FLYING) {
+             // Flyers use Physics Z, but add micro-bob here
+             bodyFloat -= Math.sin(globalTime * 4) * 2;
         }
 
         ctx.translate(0, bodyFloat);
 
-        // --- 2. Spawn Animation ---
+        // Spawn Animation
         let spawnAlpha = 1.0;
         let whiteOverlay = 0;
 
@@ -198,14 +199,13 @@ export class UnitRenderSystem {
             const eased = 1 - Math.pow(1 - progress, 3); 
             
             spawnAlpha = eased;
-            const spawnStretch = 2.0 - eased; 
             whiteOverlay = 1 - eased; 
             
-            ctx.scale(1, spawnStretch);
+            ctx.scale(1, 2.0 - eased); // Vertical stretch on spawn
             ctx.globalAlpha *= spawnAlpha;
         }
 
-        // Hit Flash / Death Filter
+        // Hit/Death Filters
         if (agent.hp <= 0 && !isSilhouette) {
             ctx.filter = 'grayscale(100%) opacity(80%)'; 
         } else if (!isSilhouette && agent.hitFlashTimer > 0) {
@@ -214,33 +214,33 @@ export class UnitRenderSystem {
             ctx.filter = `brightness(${100 + whiteOverlay * 200}%)`;
         }
 
-        // --- FLIGHT VFX ---
+        // Flight Thrusters (For Flying Units)
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             drawFlightVFX(ctx, agent, globalTime);
         }
 
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
 
-        // SILHOUETTE MODE SETUP
+        // Silhouette Setup
         if (isSilhouette) {
             ctx.globalCompositeOperation = 'source-over'; 
             ctx.globalAlpha = 0.8; 
         }
 
-        // 4. Render Body (or Special Form)
+        // --- 3. DRAW BODY ---
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(globalTime * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
-            // DELEGATED FACTION RENDERERS
+            // DELEGATED RENDERERS (Blue vs Red)
             if (agent.team === Team.BLUE) {
                 ImperialRenderer.draw(ctx, agent, globalTime, isSilhouette);
             } else {
                 CovenantRenderer.draw(ctx, agent, globalTime, isSilhouette);
             }
             
-            // Casting VFX
+            // Casting Particles
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
                 drawCastingVFX(ctx, agent, globalTime);
             }
@@ -270,7 +270,7 @@ export class UnitRenderSystem {
             }
         }
 
-        // 6. Selection Ring & Status
+        // --- 4. STATUS & UI ---
         if (!isSilhouette) {
             drawStatusIcons(ctx, agent, globalTime, drawX, drawY, scaleFactor);
             drawStatusEffects(ctx, agent, globalTime);
@@ -286,7 +286,7 @@ export class UnitRenderSystem {
 
         ctx.restore(); 
 
-        // 7. Spawn Role Indicator
+        // Spawn Role Icon
         if (agent.spawnTimer > 0 && !isSilhouette) {
             drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);
         }
