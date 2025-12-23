@@ -43,15 +43,16 @@ export class PhysicsEngine {
                 a.physics.vz -= GRAVITY * dt;
             } else {
                 // HOVER STATE: Bob around a target altitude
-                // Increased to 90 to visually clear walls (80px)
-                const hoverHeight = 90; 
-                const hoverFreq = 3;
-                const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 10;
+                // Adjusted: Lowered from 90 to 55 to be closer to action but still visually flying
+                const hoverHeight = 55; 
+                const hoverFreq = 2.5; // Slightly slower bob
+                // Reduced amplitude from 10 to 5 for stability
+                const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
                 
                 // Soft spring to maintain height
                 const dz = targetZ - a.physics.z;
                 a.physics.vz += dz * 5 * dt;
-                a.physics.vz *= 0.95; // Drag to stop oscillation
+                a.physics.vz *= 0.92; // Increased drag (was 0.95) to stop oscillation at lower height
             }
         } else {
             // Ground Unit Logic
