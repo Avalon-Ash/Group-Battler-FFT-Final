@@ -20,7 +20,12 @@ export class SkillResolutionSystem {
                 const skillName = s.name;
                 engine.log(a, 'CC', '中斷', skillName, '詠唱被打斷');
                 
-                // --- EMIT BREAK EVENT (Physics Shatter) ---
+                // --- 1. STOP "START" VISUAL IMMEDIATELY ---
+                // We do this by clearing the skill index. 
+                // The GridSystem checks castingSkillIdx, so resetting it hides the AOE circle instantly.
+                // We rely on the CAST_BREAK event to spawn the "Broken" particles.
+                
+                // --- 2. EMIT BREAK EVENT (Physics Shatter) ---
                 let centerHex = { q: a.q, r: a.r };
                 let centerPos = { x: a.px, y: a.py };
                 
