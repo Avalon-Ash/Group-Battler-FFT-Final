@@ -4,7 +4,12 @@ import { GameEngine, Agent } from './engine/game';
 import GameCanvas from './components/GameCanvas';
 import InspectorPanel from './components/InspectorPanel';
 import { ToolType, Team, Skill, Role } from './types';
-import { OBSTACLE_DB } from './data/obstacles';
+
+// UI Components
+import { ShowcaseOverlay } from './components/ui/ShowcaseOverlay';
+import { MapSettingsModal } from './components/ui/MapSettingsModal';
+import { PlaybackHUD } from './components/ui/PlaybackHUD';
+import { ControlDock } from './components/ui/ControlDock';
 
 function App() {
   const engineRef = useRef(new GameEngine());
@@ -227,12 +232,9 @@ function App() {
     }
   };
 
-  const roleIcons: Record<Role, string> = {
-      [Role.TANK]: '🛡️',
-      [Role.WARRIOR]: '⚔️',
-      [Role.RANGER]: '🏹',
-      [Role.MAGE]: '🔮',
-      [Role.SUPPORT]: '⚕️'
+  const handleShowcaseStart = () => {
+      setIsShowcaseMode(true);
+      startShowcaseMatch();
   };
 
   // Helper to toggle tools (clicking active tool turns it off)
@@ -259,72 +261,21 @@ function App() {
 
       {/* MAP SETTINGS MODAL (Mobile Only) */}
       {showMapSettings && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center bg-black/50 backdrop-blur-sm p-4 animate-fade-in" onClick={() => setShowMapSettings(false)}>
-            <div className="bg-slate-900 border border-slate-700 p-4 rounded-xl shadow-2xl w-full max-w-sm space-y-4 mb-32 sm:mb-0 pointer-events-auto" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
-                    <h3 className="font-bold text-slate-300">地圖設定</h3>
-                    <button onClick={() => setShowMapSettings(false)} className="text-slate-500 hover:text-slate-300 w-8 h-8 flex items-center justify-center">✕</button>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                        <label className="text-xs text-slate-500 font-bold uppercase">寬度</label>
-                        <input type="number" className="tactical-input w-full text-center h-10 text-lg" value={mapW} onChange={e=>setMapW(Number(e.target.value))} />
-                    </div>
-                    <div className="space-y-1">
-                        <label className="text-xs text-slate-500 font-bold uppercase">高度</label>
-                        <input type="number" className="tactical-input w-full text-center h-10 text-lg" value={mapH} onChange={e=>setMapH(Number(e.target.value))} />
-                    </div>
-                </div>
-                <div className="flex gap-3 pt-2">
-                    <button onClick={() => { updateMap(); setShowMapSettings(false); }} className="flex-1 tactical-btn py-3 border-slate-600 hover:bg-slate-800">重建地圖</button>
-                    <button onClick={() => { handleClear(); setShowMapSettings(false); }} className="flex-1 tactical-btn py-3 text-red-400 border-red-900 hover:bg-red-950">清空單位</button>
-                </div>
-            </div>
-        </div>
+        <MapSettingsModal 
+            width={mapW} height={mapH} 
+            onChangeW={setMapW} onChangeH={setMapH}
+            onRebuild={updateMap} onClear={handleClear}
+            onClose={() => setShowMapSettings(false)}
+        />
       )}
 
-      {/* SHOWCASE OVERLAY (Ghost Layer) */}
+      {/* SHOWCASE OVERLAY */}
       {isShowcaseMode && (
-            <div className="absolute inset-0 z-50 pointer-events-none overflow-hidden flex flex-col justify-end">
-                {/* 1. Dynamic Bottom Background (Glassmorphism & Gradient) */}
-                <div className="absolute inset-x-0 bottom-0 h-[45vh] pointer-events-none">
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/60 to-transparent backdrop-blur-[4px]"></div>
-                    {/* Subtle Flowing Energy */}
-                    <div className="absolute inset-0 opacity-30 mix-blend-screen">
-                        <div className="absolute inset-0 bg-gradient-to-r from-blue-900/20 via-purple-900/20 to-cyan-900/20 animate-gradient-flow"></div>
-                    </div>
-                </div>
-
-                {/* 2. Content */}
-                <div className="relative z-10 w-full flex flex-col items-center pb-32">
-                    <div className="text-center pointer-events-auto animate-fade-in px-4">
-                        <h1 className="text-5xl md:text-7xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-cyan-100 to-red-500 mb-4 drop-shadow-[0_0_20px_rgba(6,182,212,0.5)] font-mono tracking-tighter">
-                            TACTICAL<span className="text-slate-100">.</span>OS
-                        </h1>
-                        <div className="text-cyan-500 text-xs md:text-sm tracking-[0.5em] mb-10 uppercase font-bold text-shadow">戰場模擬引擎 v4.0</div>
-                        <button 
-                            onClick={enterManualMode}
-                            className="group relative px-10 py-4 bg-slate-900/80 border border-cyan-500/50 text-cyan-400 font-bold tracking-[0.2em] text-sm uppercase overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_30px_rgba(6,182,212,0.2)] hover:shadow-[0_0_50px_rgba(6,182,212,0.4)] hover:border-cyan-400 hover:bg-slate-800 backdrop-blur-sm"
-                        >
-                            <span className="relative z-10 flex items-center gap-4">
-                                <span>初始化指揮系統</span>
-                                <span className="text-lg">➜</span>
-                            </span>
-                        </button>
-                    </div>
-                </div>
-
-                {/* 3. Discrete Time Control for Showcase */}
-                <div className="absolute bottom-8 right-8 z-50 pointer-events-auto flex items-center gap-4 glass-panel px-5 py-3 rounded-full group animate-fade-in border-slate-600/50">
-                    <span className="text-[10px] text-cyan-500 font-bold uppercase tracking-wider">模擬速率</span>
-                    <input 
-                        type="range" min="0.1" max="4.0" step="0.1" 
-                        value={timeScale} onChange={(e) => setTimeScale(parseFloat(e.target.value))}
-                        className="w-24 md:w-32 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                    />
-                    <span className="text-[10px] w-8 text-right font-mono text-cyan-300 font-bold">{timeScale.toFixed(1)}x</span>
-                </div>
-            </div>
+        <ShowcaseOverlay 
+            onEnter={enterManualMode} 
+            timeScale={timeScale} 
+            setTimeScale={setTimeScale} 
+        />
       )}
 
       {/* MAIN CONTENT ROW */}
@@ -333,55 +284,17 @@ function App() {
           {/* LEFT COLUMN: Canvas + Dock + Floating HUD */}
           <div className="flex-1 flex flex-col relative min-w-0 min-h-0 z-0 basis-0 bg-slate-900">
                 
-                {/* FLOATING HUD (Moved inside Left Column to center on Game View and avoid Right Panel overlap) */}
-                <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 w-auto max-w-[95%] pointer-events-none ${isShowcaseMode ? '-translate-y-32 opacity-0' : 'translate-y-0 opacity-100'}`}>
-                    <div className="glass-panel px-3 py-2 rounded-xl md:rounded-full flex flex-wrap md:flex-nowrap items-center justify-center gap-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-600/50 backdrop-blur-lg pointer-events-auto">
-                            
-                            {/* Control Group */}
-                            <div className="flex items-center gap-3">
-                                <button 
-                                    onClick={togglePlay} 
-                                    disabled={winner !== null}
-                                    className={`flex items-center justify-center w-10 h-10 rounded-full border transition-all shadow-lg ${isPlaying ? 'bg-amber-900/50 border-amber-500 text-amber-400' : 'bg-emerald-900/50 border-emerald-500 text-emerald-400 hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]'}`}
-                                >
-                                    {isPlaying ? '⏸' : '▶'}
-                                </button>
-                                
-                                <button 
-                                    onClick={handleRestart} 
-                                    disabled={!isPlaying && winner === null}
-                                    className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-800 border border-slate-600 text-slate-400 hover:text-white hover:border-white transition-colors"
-                                    title="重置回合"
-                                >
-                                    ↺
-                                </button>
-                            </div>
-
-                            <div className="hidden xl:block w-px h-8 bg-slate-700"></div>
-
-                            {/* Speed Control - Hidden on small screens */}
-                            <div className="hidden xl:flex flex-1 flex-col items-center min-w-[120px]">
-                                <div className="flex items-center justify-between w-full mb-1">
-                                    <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">模擬速度</span>
-                                    <div className="text-[10px] font-mono text-cyan-400">{timeScale.toFixed(1)}x</div>
-                                </div>
-                                <input 
-                                    type="range" min="0.1" max="3.0" step="0.1" 
-                                    value={timeScale} onChange={(e) => setTimeScale(parseFloat(e.target.value))}
-                                    className="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500"
-                                />
-                            </div>
-
-                            {/* Mode Switch (Desktop Only) */}
-                            <button 
-                                onClick={() => { setIsShowcaseMode(true); startShowcaseMatch(); }}
-                                className="hidden lg:flex px-3 py-1.5 rounded bg-slate-800/50 hover:bg-purple-900/30 border border-transparent hover:border-purple-500/50 text-xs font-bold text-slate-400 hover:text-purple-300 transition-all items-center gap-2"
-                            >
-                                <span>📺</span>
-                                <span>展示模式</span>
-                            </button>
-                    </div>
-                </div>
+                {/* FLOATING HUD */}
+                <PlaybackHUD 
+                    hidden={isShowcaseMode}
+                    isPlaying={isPlaying}
+                    winner={winner}
+                    timeScale={timeScale}
+                    onTogglePlay={togglePlay}
+                    onRestart={handleRestart}
+                    onSetTimeScale={setTimeScale}
+                    onShowcase={handleShowcaseStart}
+                />
 
                 <GameCanvas 
                     engine={engineRef.current} 
@@ -401,189 +314,34 @@ function App() {
                 />
 
                 {/* BOTTOM DOCK */}
-                {/* Safe area padding added for modern phones */}
-                <div className={`bg-slate-950 border-t border-slate-800 shrink-0 z-30 transition-all duration-500 w-full pb-[env(safe-area-inset-bottom)] ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
-                    
-                    {/* MOBILE GRID LAYOUT (< md) - 4x2 GRID */}
-                    <div className="md:hidden grid grid-cols-4 gap-2 p-2 h-auto">
-                        
-                        {/* ROW 1: PRIMARY ACTIONS */}
-                        <button onClick={() => toggleTool(ToolType.ADD_BLUE)} className={`h-12 tactical-btn btn-blue ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-70'}`}>
-                            <span className="text-2xl">🔵</span>
-                        </button>
-                        
-                        <button onClick={() => toggleTool(ToolType.ADD_RED)} className={`h-12 tactical-btn btn-red ${tool === ToolType.ADD_RED ? 'active' : 'opacity-70'}`}>
-                            <span className="text-2xl">🔴</span>
-                        </button>
-
-                        <div className={`relative h-12 tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active border-cyan-500' : ''}`}>
-                            <button onClick={() => toggleTool(ToolType.OBSTACLE)} className="w-full h-full flex items-center justify-center">
-                                <span className="text-2xl">🧱</span>
-                                <span className="text-[8px] absolute bottom-0.5 right-1 opacity-50">▼</span>
-                            </button>
-                            <select 
-                                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                                value={selectedObstacle} 
-                                onChange={e => { setSelectedObstacle(e.target.value); setTool(ToolType.OBSTACLE); }}
-                            >
-                                {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                            </select>
-                        </div>
-                        
-                        <button onClick={() => toggleTool(ToolType.DELETE)} className={`h-12 tactical-btn text-red-400 border-red-900/50 ${tool === ToolType.DELETE ? 'active bg-red-950/50 border-red-500' : ''}`}>
-                            <span className="text-2xl">❌</span>
-                        </button>
-
-                        {/* ROW 2: CONFIG & INSPECT */}
-                        <div className="h-12 flex items-center justify-center bg-slate-900 border border-slate-700 rounded-sm relative">
-                            <span className="text-[8px] text-slate-500 absolute -top-1.5 left-1 bg-slate-900 px-0.5">HP</span>
-                            <input 
-                                type="number" 
-                                value={hpInput} 
-                                onChange={e => setHpInput(parseInt(e.target.value))} 
-                                className="w-full h-full bg-transparent text-center text-sm font-mono text-slate-200 outline-none"
-                            />
-                        </div>
-
-                        <button 
-                            onClick={() => setShowMapSettings(!showMapSettings)}
-                            className={`h-12 tactical-btn ${showMapSettings ? 'border-cyan-500 text-cyan-400' : ''}`}
-                        >
-                            <span className="text-xl">🗺️</span>
-                        </button>
-
-                        <button 
-                            onClick={() => selectedAgent && setShowMobileInspector(!showMobileInspector)}
-                            disabled={!selectedAgent}
-                            className={`col-span-2 h-12 tactical-btn ${showMobileInspector ? 'active' : ''} ${selectedAgent ? 'border-blue-500/50 text-blue-300 animate-pulse-glow' : 'opacity-30'}`}
-                        >
-                            <span className="text-lg mr-2">👁️</span>
-                            <span className="text-xs">單位資訊</span>
-                        </button>
-                    </div>
-
-                    {/* DESKTOP FLEX LAYOUT (>= md) */}
-                    <div className="hidden md:flex h-40 overflow-x-auto overflow-y-hidden">
-                        
-                        {/* ZONE 1: COMMAND TOOLS (Expanded to fill space) */}
-                        <div className="w-48 border-r border-slate-800 p-3 flex flex-col gap-2 shrink-0">
-                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">地圖編輯</div>
-                            <div className="flex gap-2 flex-1">
-                                <div className={`flex-1 relative flex flex-col tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active' : ''}`}>
-                                    <button onClick={() => toggleTool(ToolType.OBSTACLE)} className="w-full flex-1 flex flex-col items-center justify-center gap-1">
-                                        <span className="text-2xl">🧱</span>
-                                        <span className="text-[10px]">地形</span>
-                                    </button>
-                                    <div className="h-6 w-full border-t border-slate-700 relative bg-black/20">
-                                        <select 
-                                            className="w-full h-full bg-transparent text-[10px] text-center appearance-none cursor-pointer text-slate-400 outline-none"
-                                            value={selectedObstacle} 
-                                            onChange={e => { setSelectedObstacle(e.target.value); setTool(ToolType.OBSTACLE); }}
-                                        >
-                                            {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
-                                        </select>
-                                        <span className="absolute right-1 top-1.5 text-[8px] opacity-50 pointer-events-none">▼</span>
-                                    </div>
-                                </div>
-                                
-                                <button onClick={() => toggleTool(ToolType.DELETE)} className={`flex-1 tactical-btn flex-col text-red-400 border-red-900/50 hover:border-red-500 ${tool === ToolType.DELETE ? 'active border-red-500 bg-red-950/30' : ''}`}>
-                                    <span className="text-2xl">❌</span>
-                                    <span className="text-[10px]">移除</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* ZONE 2: DEPLOYMENT (Flexible Width) */}
-                        <div className="flex-1 p-3 flex flex-col gap-2 relative min-w-[300px]">
-                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1 flex justify-between">
-                                <span>單位部署</span>
-                                <span className="text-slate-700 font-mono">單位數: {unitCount}</span>
-                            </div>
-                            
-                            <div className="flex gap-4 h-full">
-                                {/* Team Selectors (Sets Tool) */}
-                                <div className="flex flex-col gap-2 w-28 shrink-0">
-                                    <button onClick={() => toggleTool(ToolType.ADD_BLUE)} className={`flex-1 tactical-btn btn-blue flex items-center justify-between px-3 ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-60 hover:opacity-100'}`}>
-                                        <span className="font-bold text-xs">藍隊</span>
-                                        <span className="text-lg">🔵</span>
-                                    </button>
-                                    <button onClick={() => toggleTool(ToolType.ADD_RED)} className={`flex-1 tactical-btn btn-red flex items-center justify-between px-3 ${tool === ToolType.ADD_RED ? 'active' : 'opacity-60 hover:opacity-100'}`}>
-                                        <span className="font-bold text-xs">紅隊</span>
-                                        <span className="text-lg">🔴</span>
-                                    </button>
-                                </div>
-
-                                {/* Mode & Draft Config */}
-                                <div className="flex-1 bg-slate-900 border border-slate-800 rounded p-2 flex flex-col gap-2 min-w-[200px]">
-                                    <div className="flex bg-slate-950 rounded p-1 gap-1 shrink-0">
-                                        <button onClick={() => setSpawnMode('RANDOM')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors ${spawnMode === 'RANDOM' ? 'bg-slate-700 text-cyan-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
-                                            🎲 隨機
-                                        </button>
-                                        <button onClick={() => setSpawnMode('DRAFT')} className={`flex-1 py-1 text-[10px] font-bold rounded transition-colors ${spawnMode === 'DRAFT' ? 'bg-slate-700 text-amber-400 shadow-sm' : 'text-slate-500 hover:text-slate-300'}`}>
-                                            📝 自選
-                                        </button>
-                                    </div>
-
-                                    <div className="flex-1 flex items-center justify-center relative overflow-hidden">
-                                        {spawnMode === 'RANDOM' ? (
-                                            <div className="text-slate-600 font-mono text-xs flex flex-col items-center animate-pulse">
-                                                <span className="text-2xl mb-1">🎲</span>
-                                                <span>隨機職階</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex gap-1.5 w-full justify-center">
-                                                {Object.values(Role).map(role => (
-                                                    <button 
-                                                        key={role}
-                                                        onClick={() => setDraftRole(role)}
-                                                        className={`w-10 h-10 rounded border flex flex-col items-center justify-center transition-all ${draftRole === role ? 'bg-amber-900/40 border-amber-500 text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.3)] scale-110' : 'bg-slate-800 border-slate-700 text-slate-500 hover:border-slate-500 hover:text-slate-300'}`}
-                                                        title={role}
-                                                    >
-                                                        <span className="text-lg -mt-1 filter drop-shadow-md">{roleIcons[role]}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                                
-                                {/* HP Pool */}
-                                <div className="flex flex-col justify-center gap-1 w-16 shrink-0">
-                                    <label className="text-[9px] text-slate-500 font-bold uppercase text-center">生命值</label>
-                                    <input 
-                                        type="number" 
-                                        value={hpInput} 
-                                        onChange={e => setHpInput(parseInt(e.target.value))} 
-                                        className="tactical-input text-center text-lg h-10 border-slate-700 focus:border-cyan-500 px-0"
-                                    />
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ZONE 3: MAP OPS */}
-                        <div className="w-36 border-l border-slate-800 p-3 flex flex-col gap-2 shrink-0 bg-slate-950/50">
-                            <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">地圖操作</div>
-                            <div className="grid grid-cols-2 gap-2">
-                                <div className="flex flex-col">
-                                    <label className="text-[8px] text-slate-500">寬度</label>
-                                    <input type="number" className="tactical-input p-1 text-center" value={mapW} onChange={e=>setMapW(Number(e.target.value))}/>
-                                </div>
-                                <div className="flex flex-col">
-                                    <label className="text-[8px] text-slate-500">高度</label>
-                                    <input type="number" className="tactical-input p-1 text-center" value={mapH} onChange={e=>setMapH(Number(e.target.value))}/>
-                                </div>
-                            </div>
-                            <div className="flex gap-2 mt-auto">
-                                <button onClick={updateMap} className="flex-1 tactical-btn text-[9px] px-1 py-2 justify-center border-slate-600 hover:bg-slate-800">重建</button>
-                                <button onClick={handleClear} className="flex-1 tactical-btn text-[9px] px-1 py-2 justify-center text-red-400 border-red-900 hover:bg-red-950">清空單位</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <ControlDock 
+                    hidden={isShowcaseMode}
+                    tool={tool}
+                    setTool={setTool}
+                    spawnMode={spawnMode}
+                    setSpawnMode={setSpawnMode}
+                    draftRole={draftRole}
+                    setDraftRole={setDraftRole}
+                    selectedObstacle={selectedObstacle}
+                    setSelectedObstacle={setSelectedObstacle}
+                    hpInput={hpInput}
+                    setHpInput={setHpInput}
+                    mapW={mapW}
+                    setMapW={setMapW}
+                    mapH={mapH}
+                    setMapH={setMapH}
+                    unitCount={unitCount}
+                    onUpdateMap={updateMap}
+                    onClearMap={handleClear}
+                    showMapSettings={showMapSettings}
+                    setShowMapSettings={setShowMapSettings}
+                    showMobileInspector={showMobileInspector}
+                    setShowMobileInspector={setShowMobileInspector}
+                    hasSelectedAgent={!!selectedAgent}
+                />
           </div>
 
           {/* RIGHT COLUMN: Inspector (Z-40) */}
-          {/* Resizer - Hidden on small screens or when showcase */}
           {isLargeScreen && !isShowcaseMode && (
             <div 
                 className="hidden lg:flex w-1 bg-slate-950 hover:bg-cyan-600 cursor-col-resize items-center justify-center shrink-0 transition-colors z-40 border-l border-slate-800"
@@ -595,7 +353,6 @@ function App() {
           )}
 
           {/* Panel - Desktop Sidebar OR Mobile Overlay Drawer */}
-          {/* LOGIC SPLIT: Mobile is a Modal (Fixed), Desktop is a Flex Col (Relative) */}
           {isLargeScreen ? (
               // DESKTOP LAYOUT
               <div 
