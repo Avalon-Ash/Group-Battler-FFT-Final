@@ -1,5 +1,5 @@
 
-import { HEX_SIZE } from "../constants";
+import { HEX_SIZE, ISO_SCALE_Y } from "../constants";
 import { Hex, Point } from "../types";
 
 export interface MapConfig {
@@ -12,7 +12,7 @@ export interface MapConfig {
 // FFT Style Isometric Constants
 // Projection Angle: ~35 degrees
 // Scale Y to simulate 3D perspective on standard hex grid
-export const ISO_SCALE_Y = 0.58; 
+// ISO_SCALE_Y moved to constants.ts
 
 // Rotation Constants (45 degrees)
 const ANGLE = Math.PI / 4;

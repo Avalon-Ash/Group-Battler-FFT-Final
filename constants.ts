@@ -4,6 +4,7 @@ import { Team } from './types';
 export const HEX_SIZE = 36; // Slightly smaller to accommodate height
 export const BLOCK_HEIGHT = 24; // Increased to 24 for distinct "Step" look (Tactics Ogre style)
 export const MAX_TERRAIN_TIER = 6; // Max height steps
+export const ISO_SCALE_Y = 0.58; // Moved here from utils.ts
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
 export const UNIT_VISUAL_HEIGHT = 90; // Standardized "Head" position. Ensures clearance for tallest sprites.

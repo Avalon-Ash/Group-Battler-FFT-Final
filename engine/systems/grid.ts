@@ -1,9 +1,12 @@
 
-import { HEX_SIZE, BLOCK_HEIGHT, TERRAIN_THEMES, MAX_TERRAIN_TIER } from "../../constants";
+import { HEX_SIZE, BLOCK_HEIGHT, TERRAIN_THEMES } from "../../constants";
 import { GameEngine, Agent } from "../game";
-import { HexUtils, ISO_SCALE_Y } from "../utils";
-import { AssetManager } from "../assets";
+import { HexUtils } from "../utils";
 import { Hex, Skill, Projectile } from "../../types";
+
+// Renderers
+import { TerrainRenderer } from "../renderers/grid/TerrainRenderer";
+import { GridOverlays } from "../renderers/grid/GridOverlays";
 
 export interface RenderableItem {
     y: number;
@@ -17,17 +20,6 @@ interface CachedTile {
     px: number;
     py: number;
     h: number;
-}
-
-// OPTIMIZATION: Precompute Hex Polygon Offsets to avoid Trig in render loop
-const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
-const HEX_CORNERS: {x: number, y: number}[] = [];
-for (let i = 0; i < 6; i++) {
-    const angle = START_ANGLE + i * Math.PI / 3;
-    HEX_CORNERS.push({ 
-        x: HEX_SIZE * Math.cos(angle), 
-        y: HEX_SIZE * Math.sin(angle) * ISO_SCALE_Y 
-    });
 }
 
 export class GridSystem {
@@ -261,322 +253,25 @@ export class GridSystem {
             list.push({
                 y: visualY, 
                 z: 0,        
-                draw: (ctx) => this.drawIsoBlock(
-                    ctx, 
-                    px, visualY, 
-                    HEX_SIZE, h, 
-                    theme, 
-                    flash, 
-                    isRange, rangeColor, 
-                    isHover, 
-                    dangerInfo, 
-                    hasUnit,
-                    lightColor,
-                    Math.min(1, lightIntensity),
-                    q, r, scene.textureType,
-                    specialStatus,
-                    globalTime
-                )
+                draw: (ctx) => {
+                    // 1. Draw Physical Block
+                    TerrainRenderer.drawBlockGeometry(ctx, px, visualY, HEX_SIZE, h, theme);
+                    
+                    // 2. Draw Texture Detail
+                    TerrainRenderer.drawTerrainDetail(ctx, px, visualY - h, q, r, scene.textureType, theme.detail);
+
+                    // 3. Draw Overlays (Status, Range, Danger, Lighting)
+                    GridOverlays.drawOverlays(
+                        ctx, px, visualY - h, HEX_SIZE,
+                        specialStatus, dangerInfo,
+                        lightColor, Math.min(1, lightIntensity),
+                        flash, isRange, rangeColor, isHover, hasUnit,
+                        q, r, globalTime
+                    );
+                }
             });
         }
 
         return list;
-    }
-
-    private drawIsoBlock(
-        ctx: CanvasRenderingContext2D, 
-        x: number, y: number, 
-        size: number, height: number, 
-        theme: any, 
-        flash: any, 
-        isRange: boolean, rangeColor: string, 
-        isHover: boolean, 
-        dangerInfo: {color: string, progress: number} | undefined, 
-        hasUnit: boolean,
-        lightColor: string | null,
-        lightIntensity: number,
-        q: number = 0, r: number = 0, textureType: string = 'VOID',
-        specialStatus: string | undefined,
-        globalTime: number
-    ) {
-        const BASE_THICKNESS = 12; // Visual foundation thickness
-        
-        // This is the TOP face Y level relative to ground (y)
-        const topY = height; 
-
-        // Use precomputed corners to avoid trig calls per tile
-        const traceTopFace = () => {
-            ctx.beginPath();
-            const c0 = HEX_CORNERS[0];
-            ctx.moveTo(x + c0.x, y + c0.y - topY);
-            for (let i = 1; i < 6; i++) {
-                const c = HEX_CORNERS[i];
-                ctx.lineTo(x + c.x, y + c.y - topY);
-            }
-            ctx.closePath();
-        };
-
-        // --- 1. Draw Side Faces (The Stack) ---
-        // Rotated 45deg: Front faces are 5, 0, 1 (Right-Down, Down, Left-Down)
-        const visibleIndices = [5, 0, 1];
-
-        for (const i of visibleIndices) {
-            const j = (i + 1) % 6;
-            const c1 = HEX_CORNERS[i];
-            const c2 = HEX_CORNERS[j];
-            
-            // Top vertices (Visual Top)
-            const x1 = x + c1.x;
-            const y1_top = y + c1.y - topY;
-            const x2 = x + c2.x;
-            const y2_top = y + c2.y - topY;
-
-            // Bottom vertices (Visual Base/Foundation)
-            const y1_bottom = y + c1.y + BASE_THICKNESS;
-            const y2_bottom = y + c2.y + BASE_THICKNESS;
-            
-            const grad = ctx.createLinearGradient(0, y - topY, 0, y + BASE_THICKNESS);
-            // Alternate brightness for 3D effect
-            const baseColor = (i === 0) ? theme.sideDark : theme.sideLight;
-            grad.addColorStop(0, baseColor);
-            grad.addColorStop(1, '#020617'); // Darker at the very bottom foundation
-
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.moveTo(x1, y1_bottom); // Bottom Left (Foundation)
-            ctx.lineTo(x2, y2_bottom); // Bottom Right (Foundation)
-            ctx.lineTo(x2, y2_top);    // Top Right
-            ctx.lineTo(x1, y1_top);    // Top Left
-            ctx.closePath();
-            ctx.fill();
-            
-            // "Layer Lines" for Block Stack Effect (Tactics Ogre)
-            if (height > BLOCK_HEIGHT) {
-                ctx.strokeStyle = 'rgba(0,0,0,0.3)';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                for (let hStep = BLOCK_HEIGHT; hStep < height; hStep += BLOCK_HEIGHT) {
-                    ctx.moveTo(x1, y + c1.y - hStep);
-                    ctx.lineTo(x2, y + c2.y - hStep);
-                }
-                ctx.stroke();
-            }
-
-            // Outline Side
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)'; 
-            ctx.lineWidth = 1; 
-            ctx.stroke();
-        }
-
-        // --- 2. Draw Top Face (Base) ---
-        traceTopFace();
-        
-        const topGrad = ctx.createRadialGradient(x, y - topY, 0, x, y - topY, size);
-        topGrad.addColorStop(0, theme.top);
-        topGrad.addColorStop(1, theme.detail); 
-        ctx.fillStyle = topGrad;
-        ctx.fill();
-        
-        // --- 2.5 Draw Terrain Texture (Detailing) ---
-        this.drawTerrainDetail(ctx, x, y - topY, size, q, r, textureType, theme.detail);
-
-        // --- 2.6 SPECIAL STATUS FLOOR EFFECT ---
-        if (specialStatus) {
-            traceTopFace(); 
-            ctx.save();
-            ctx.globalCompositeOperation = 'overlay';
-            if (specialStatus === 'FROZEN') {
-                ctx.fillStyle = '#bae6fd'; 
-                ctx.globalAlpha = 0.6;
-            } else if (specialStatus === 'POLYMORPH') {
-                ctx.fillStyle = '#d8b4fe'; 
-                ctx.globalAlpha = 0.5;
-            } else if (specialStatus === 'STASIS') {
-                ctx.fillStyle = '#fde047';
-                ctx.globalAlpha = 0.5;
-            }
-            ctx.fill(); 
-            ctx.restore();
-        }
-
-        // --- 2.7 AOE TELEGRAPH ---
-        if (dangerInfo) {
-            traceTopFace(); 
-            ctx.save();
-            // 1. Tile Coloring
-            const opacity = 0.1 + dangerInfo.progress * 0.6;
-            ctx.fillStyle = dangerInfo.color;
-            ctx.globalAlpha = opacity;
-            ctx.globalCompositeOperation = 'source-over'; 
-            ctx.fill(); 
-            
-            // 2. Glowing Border
-            ctx.strokeStyle = dangerInfo.color;
-            ctx.lineWidth = 1 + dangerInfo.progress * 2;
-            ctx.globalAlpha = 0.8;
-            ctx.stroke();
-
-            // 3. Particles
-            if (dangerInfo.progress > 0.2) {
-                const particleCount = 3 + Math.floor(dangerInfo.progress * 5);
-                ctx.fillStyle = dangerInfo.color;
-                ctx.globalCompositeOperation = 'lighter'; 
-                
-                for(let i=0; i<particleCount; i++) {
-                    const seed = (Math.abs(q * 100 + r * 10) + i * 123.45);
-                    const speed = 20 + (seed % 20);
-                    const t = (globalTime * speed * 0.05 + seed) % 1; 
-                    const pAlpha = 1 - t;
-                    
-                    const pX = x + Math.sin(t * 10 + seed) * (size * 0.5);
-                    const pY = (y - topY) - (t * 40); 
-                    
-                    ctx.globalAlpha = pAlpha * opacity; 
-                    const pSize = 1 + (seed % 2);
-                    
-                    ctx.beginPath();
-                    ctx.arc(pX, pY, pSize, 0, Math.PI*2);
-                    ctx.fill();
-                }
-            }
-            ctx.restore();
-        }
-
-        // --- 3. Dynamic Lighting ---
-        if (lightColor && lightIntensity > 0) {
-            traceTopFace(); 
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter'; 
-            ctx.globalAlpha = lightIntensity * 0.8; 
-            ctx.fillStyle = lightColor;
-            ctx.fill();
-            ctx.restore();
-        }
-
-        // --- 4. Interactive Overlays ---
-        if (flash || isRange || isHover || hasUnit) {
-            ctx.save();
-            traceTopFace(); 
-
-            if (isRange) { 
-                ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.2; 
-                ctx.fill();
-                ctx.strokeStyle = rangeColor; 
-                ctx.lineWidth = 2; 
-                ctx.globalAlpha = 0.8; 
-                ctx.stroke();
-            }
-            
-            if (isHover) { 
-                ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
-                ctx.globalAlpha = 1.0;
-                ctx.fill(); 
-                ctx.strokeStyle = '#fff'; 
-                ctx.lineWidth = 3; 
-                ctx.stroke(); 
-            }
-            
-            if (flash) {
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = flash.color;
-                ctx.globalAlpha = 0.6;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-            }
-            
-            if (hasUnit && !isHover && !dangerInfo) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
-            
-            ctx.restore();
-        }
-    }
-
-    private noise(q: number, r: number) {
-        return Math.sin(q * 12.9898 + r * 78.233) * 43758.5453 - Math.floor(Math.sin(q * 12.9898 + r * 78.233) * 43758.5453);
-    }
-
-    private drawTerrainDetail(
-        ctx: CanvasRenderingContext2D, 
-        cx: number, cy: number, 
-        size: number, 
-        q: number, r: number, 
-        type: string, 
-        detailColor: string
-    ) {
-        ctx.save();
-        ctx.fillStyle = detailColor;
-        ctx.strokeStyle = detailColor;
-        ctx.globalAlpha = 0.3; 
-        
-        const n = this.noise(q, r);
-        const n2 = this.noise(r, q);
-
-        if (type === 'VOID') {
-            if (n > 0.6) {
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.moveTo(cx - 10, cy - 5);
-                ctx.lineTo(cx, cy + 5);
-                ctx.lineTo(cx + 10, cy - 2);
-                ctx.stroke();
-            } else if (n < 0.3) {
-                ctx.beginPath();
-                ctx.arc(cx + n2 * 10, cy + n * 10, 2, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        } else if (type === 'FOREST') {
-            const tufts = Math.floor(n * 3) + 1;
-            for(let i=0; i<tufts; i++) {
-                const ox = (this.noise(q+i, r) - 0.5) * 20;
-                const oy = (this.noise(r, q+i) - 0.5) * 10;
-                ctx.beginPath();
-                ctx.moveTo(cx + ox, cy + oy);
-                ctx.lineTo(cx + ox - 3, cy + oy - 5);
-                ctx.moveTo(cx + ox, cy + oy);
-                ctx.lineTo(cx + ox + 3, cy + oy - 5);
-                ctx.stroke();
-            }
-        } else if (type === 'ICE') {
-            ctx.globalAlpha = 0.5;
-            ctx.fillStyle = '#fff';
-            if (n > 0.5) {
-                ctx.beginPath();
-                ctx.moveTo(cx - 15, cy + 5);
-                ctx.lineTo(cx + 15, cy - 5);
-                ctx.lineTo(cx + 18, cy - 4);
-                ctx.lineTo(cx - 12, cy + 6);
-                ctx.fill();
-            }
-        } else if (type === 'MAGMA') {
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath();
-            ctx.moveTo(cx - 10, cy);
-            ctx.lineTo(cx - 5, cy + 5 * n);
-            ctx.lineTo(cx + 5, cy - 5 * n2);
-            ctx.lineTo(cx + 10, cy);
-            ctx.stroke();
-            if (n > 0.8) {
-                ctx.fillStyle = '#ef4444';
-                ctx.globalAlpha = 0.6;
-                ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI*2); ctx.fill();
-            }
-        } else if (type === 'DESERT') {
-            ctx.strokeStyle = '#92400e';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.2;
-            ctx.beginPath();
-            ctx.arc(cx - 10, cy - 10, 30, 0.5, 2.0);
-            ctx.stroke();
-        }
-
-        ctx.restore();
     }
 }
