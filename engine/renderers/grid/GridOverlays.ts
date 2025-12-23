@@ -1,5 +1,6 @@
 
 import { TerrainRenderer } from "./TerrainRenderer";
+import { AOERenderer } from "./AOERenderer";
 
 export const GridOverlays = {
     
@@ -8,7 +9,7 @@ export const GridOverlays = {
         x: number, y: number, // Note: y here should be the "visual top" y (y - topY)
         size: number,
         specialStatus: string | undefined,
-        dangerInfo: {color: string, progress: number} | undefined,
+        dangerInfo: {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number} | undefined,
         lightColor: string | null,
         lightIntensity: number,
         flash: any,
@@ -41,48 +42,15 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 2. AOE TELEGRAPH (Danger Zone)
+        // 2. AOE TELEGRAPH (Danger Zone) - Delegated
         if (dangerInfo) {
-            trace(); 
-            ctx.save();
-            // Tile Coloring
-            const opacity = 0.1 + dangerInfo.progress * 0.6;
-            ctx.fillStyle = dangerInfo.color;
-            ctx.globalAlpha = opacity;
-            ctx.globalCompositeOperation = 'source-over'; 
-            ctx.fill(); 
-            
-            // Glowing Border
-            ctx.strokeStyle = dangerInfo.color;
-            ctx.lineWidth = 1 + dangerInfo.progress * 2;
-            ctx.globalAlpha = 0.8;
-            ctx.stroke();
-
-            // Rising Particles
-            if (dangerInfo.progress > 0.2) {
-                const particleCount = 3 + Math.floor(dangerInfo.progress * 5);
-                ctx.fillStyle = dangerInfo.color;
-                ctx.globalCompositeOperation = 'lighter'; 
-                
-                for(let i=0; i<particleCount; i++) {
-                    const seed = (Math.abs(q * 100 + r * 10) + i * 123.45);
-                    const speed = 20 + (seed % 20);
-                    const t = (globalTime * speed * 0.05 + seed) % 1; 
-                    const pAlpha = 1 - t;
-                    
-                    // Simple particle offset logic relative to tile center
-                    const pX = x + Math.sin(t * 10 + seed) * (size * 0.5);
-                    const pY = y - (t * 40); 
-                    
-                    ctx.globalAlpha = pAlpha * opacity; 
-                    const pSize = 1 + (seed % 2);
-                    
-                    ctx.beginPath();
-                    ctx.arc(pX, pY, pSize, 0, Math.PI*2);
-                    ctx.fill();
-                }
-            }
-            ctx.restore();
+            AOERenderer.draw(
+                ctx, x, y, size, 
+                dangerInfo.color, dangerInfo.visual, dangerInfo.progress, 
+                globalTime, q, r,
+                dangerInfo.state, 
+                dangerInfo.fadeRatio
+            );
         }
 
         // 3. Dynamic Lighting (Projectile Pass)
@@ -103,35 +71,36 @@ export const GridOverlays = {
 
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.2; 
+                ctx.globalAlpha = 0.1; // Fainter fill
                 ctx.fill();
                 ctx.strokeStyle = rangeColor; 
                 ctx.lineWidth = 2; 
-                ctx.globalAlpha = 0.8; 
+                ctx.globalAlpha = 0.6; 
                 ctx.stroke();
             }
             
             if (isHover) { 
-                ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
+                ctx.fillStyle = 'rgba(255,255,255,0.1)'; 
                 ctx.globalAlpha = 1.0;
                 ctx.fill(); 
                 ctx.strokeStyle = '#fff'; 
-                ctx.lineWidth = 3; 
+                ctx.lineWidth = 2; 
                 ctx.stroke(); 
             }
             
             if (flash) {
                 ctx.globalCompositeOperation = 'lighter';
                 ctx.fillStyle = flash.color;
-                ctx.globalAlpha = 0.6;
+                ctx.globalAlpha = 0.4;
                 ctx.fill();
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
                 ctx.stroke();
             }
             
+            // Only draw unit base ring if not hovering and no danger zone (cleaner look)
             if (hasUnit && !isHover && !dangerInfo) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }

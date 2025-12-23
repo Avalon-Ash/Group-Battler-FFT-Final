@@ -58,7 +58,7 @@ export class Agent {
     // Visual State
     public visualStatus: SpecialVisualStatus = 'NONE';
     public spawnTimer: number = 0;
-
+    
     // Lifecycle
     public deadLogged: boolean = false;
     public fullyDead: boolean = false;

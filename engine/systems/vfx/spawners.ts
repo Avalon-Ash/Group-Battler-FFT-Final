@@ -45,6 +45,67 @@ export function spawnUnitShatter(system: VFXSystem, x: number, y: number, team: 
     addDecal(system, x, y, '#000');
 }
 
+export function spawnDomainShatter(system: VFXSystem, x: number, y: number, radiusTiles: number, color: string) {
+    // Convert hex radius to pixel radius (approx)
+    const radiusPx = radiusTiles * 40; 
+    
+    // Circumference Shards (The ring breaking)
+    const count = Math.max(8, radiusTiles * 6);
+    
+    for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2;
+        const p = system.state.getParticle();
+        
+        const px = x + Math.cos(angle) * radiusPx;
+        const py = y + Math.sin(angle) * radiusPx * 0.55; // Squash for isometric perspective
+        
+        p.x = px;
+        p.y = py;
+        p.z = 10; // Start slightly off ground
+        
+        // Explosion Velocity (Outward + Up)
+        const speed = 50 + Math.random() * 100;
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+        p.vz = 150 + Math.random() * 200; // Jump up
+        
+        p.life = 1.5; p.maxLife = 1.5;
+        p.color = color;
+        p.size = 3 + Math.random() * 4;
+        p.type = 'SHARD'; // Uses physics in VFXSystem
+        p.rotation = angle;
+        p.vRotation = (Math.random() - 0.5) * 15;
+        p.delay = 0;
+        
+        system.state.particles.push(p);
+    }
+    
+    // Inner Debris (Filling)
+    const innerCount = Math.floor(count / 2);
+    for(let i=0; i<innerCount; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.random() * radiusPx;
+        const px = x + Math.cos(angle) * r;
+        const py = y + Math.sin(angle) * r * 0.55;
+        
+        const p = system.state.getParticle();
+        p.x = px; p.y = py; p.z = 5;
+        p.vx = (Math.random()-0.5) * 50;
+        p.vy = (Math.random()-0.5) * 50;
+        p.vz = 50 + Math.random() * 100;
+        p.life = 1.0; p.maxLife = 1.0;
+        p.color = color;
+        p.size = 2 + Math.random() * 3;
+        p.type = 'DEBRIS';
+        p.rotation = Math.random() * Math.PI;
+        p.vRotation = (Math.random() - 0.5) * 10;
+        system.state.particles.push(p);
+    }
+    
+    // Flash
+    addImpact(system, x, y, '#ffffff', 'RING', 0.3);
+}
+
 export function spawnBeam(system: VFXSystem, sx: number, sy: number, tx: number, ty: number, color: string) {
     const p = system.state.getParticle();
     p.x = sx; p.y = sy; p.z = 0;

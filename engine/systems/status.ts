@@ -25,7 +25,7 @@ export class StatusSystem {
         if (agent.spawnTimer > 0) {
             agent.spawnTimer -= dt;
         }
-
+        
         // 5. Visual State Reset
         if (agent.visualStatus === 'FROZEN' && agent.stunTimer <= 0) agent.visualStatus = 'NONE';
         if (agent.visualStatus === 'POLYMORPH' && !agent.banished) agent.visualStatus = 'NONE';

@@ -191,6 +191,12 @@ export class GameRenderer {
                 case 'SPAWN':
                     VFXSpawners.spawnTeleport(this.vfx, event.pos.x, visualY, event.color || '#fff');
                     break;
+                    
+                case 'CAST_BREAK':
+                    // Trigger the physics-based domain shatter
+                    VFXSpawners.spawnDomainShatter(this.vfx, event.pos.x, event.pos.y, event.value || 1, event.color || '#fff');
+                    this.triggerCameraShake(0.2, 5);
+                    break;
             }
         });
     }

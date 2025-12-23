@@ -314,35 +314,42 @@ export class VFXRenderer {
         ctx.globalCompositeOperation = 'lighter';
         
         const lifeRatio = p.life / p.maxLife;
-        const pulse = 1 + Math.sin(progress * 15) * 0.1;
+        // Pulse width at start, then thin out
+        const pulse = 1 + Math.sin(progress * 20) * 0.2;
         const baseWidth = 50 * (lifeRatio < 0.2 ? lifeRatio * 5 : 1) * pulse;
-        const height = 1000;
+        const height = 1200; // Taller to go off screen
         const alpha = Math.sin(lifeRatio * Math.PI) * 0.8; 
         
         ctx.save();
         ctx.scale(1, 0.55); 
-        const ringSize = baseWidth * 1.5;
-        const ringGrad = ctx.createRadialGradient(0, 0, ringSize * 0.5, 0, 0, ringSize);
-        ringGrad.addColorStop(0, 'rgba(255,255,255,0)');
-        ringGrad.addColorStop(0.5, p.color);
-        ringGrad.addColorStop(1, 'rgba(255,255,255,0)');
+        
+        // Ground Blast Ring
+        const ringSize = baseWidth * 1.8;
+        const ringGrad = ctx.createRadialGradient(0, 0, ringSize * 0.3, 0, 0, ringSize);
+        ringGrad.addColorStop(0, 'rgba(255,255,255,0.8)');
+        ringGrad.addColorStop(0.4, p.color);
+        ringGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        
         ctx.fillStyle = ringGrad;
-        ctx.globalAlpha = alpha * 0.6;
+        ctx.globalAlpha = alpha;
         ctx.beginPath(); ctx.arc(0, 0, ringSize, 0, Math.PI*2); ctx.fill();
         ctx.restore();
 
+        // Core Beam (Solid White Center)
+        const coreWidth = baseWidth * 0.3;
         const coreGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        coreGrad.addColorStop(0, '#fff');
-        coreGrad.addColorStop(0.3, 'rgba(255,255,255,0.2)');
+        coreGrad.addColorStop(0, '#ffffff');
+        coreGrad.addColorStop(0.2, '#ffffff');
         coreGrad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = coreGrad;
         ctx.globalAlpha = alpha;
-        ctx.fillRect(-baseWidth * 0.2, -height, baseWidth * 0.4, height);
+        ctx.fillRect(-coreWidth/2, -height, coreWidth, height);
 
+        // Outer Glow Beam (Color)
         const glowGrad = ctx.createLinearGradient(0, 0, 0, -height);
         glowGrad.addColorStop(0, p.color);
-        glowGrad.addColorStop(0.5, 'transparent');
+        glowGrad.addColorStop(0.6, 'transparent');
         
         ctx.fillStyle = glowGrad;
         ctx.globalAlpha = alpha * 0.6;
@@ -351,23 +358,90 @@ export class VFXRenderer {
 
     private drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         ctx.scale(1, 0.55); 
-        const r = progress * 250; 
-        const width = 30 * (1 - progress);
         ctx.globalCompositeOperation = 'lighter';
+        
+        // Main Outer Ring
+        const r = progress * 250; 
+        const width = 20 * (1 - progress);
+        
         ctx.strokeStyle = p.color;
         ctx.lineWidth = width;
-        ctx.globalAlpha = (1 - progress) * 0.8;
+        ctx.globalAlpha = (1 - progress) * 0.9;
         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+
+        // Inner Fast Ring (Echo)
+        if (progress > 0.1) {
+            const r2 = (progress - 0.1) * 300;
+            const w2 = 10 * (1 - progress);
+            ctx.lineWidth = w2;
+            ctx.globalAlpha = (1 - progress) * 0.5;
+            ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2); ctx.stroke();
+        }
     }
 
     private drawDomain(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-         ctx.scale(1, 0.55); 
-         ctx.fillStyle = p.color;
-         ctx.globalAlpha = 0.3 * (1 - progress);
-         ctx.globalCompositeOperation = 'screen';
-         ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI * 2); ctx.fill();
+         ctx.scale(1, 0.55); // Isometric squash
+         const time = performance.now() / 1000;
+         
+         // 1. Dynamic Radius Pulse
+         const baseRadius = 250;
+         const pulse = 1 + Math.sin(time * 5) * 0.02;
+         const r = baseRadius * pulse;
+
+         ctx.globalCompositeOperation = 'lighter'; // Additive blending for energy feel
+
+         // 2. Base Energy Field (Gradient instead of flat color)
+         const grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
+         grad.addColorStop(0, 'transparent'); // Clear center to see units
+         grad.addColorStop(0.7, p.color + '33'); // Faint color (approx 0.2 alpha)
+         grad.addColorStop(0.95, p.color); // Hard edge
+         grad.addColorStop(1, 'transparent');
+
+         ctx.fillStyle = grad;
+         ctx.globalAlpha = 0.6 * (1 - progress); // Fade out over lifetime
+         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+
+         // 3. Rotating Rune Rings (The "Turbulence")
+         ctx.globalAlpha = 0.8 * (1 - progress);
          ctx.strokeStyle = p.color;
+         
+         // Ring 1: Slow Clockwise
+         ctx.save();
+         ctx.rotate(time * 0.5);
+         ctx.lineWidth = 3;
+         ctx.setLineDash([40, 60]); // Dashed "Rune" look
+         ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.stroke();
+         ctx.restore();
+
+         // Ring 2: Fast Counter-Clockwise
+         ctx.save();
+         ctx.rotate(-time * 1.2);
          ctx.lineWidth = 2;
-         ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI*2); ctx.stroke();
+         ctx.setLineDash([20, 30]);
+         ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2); ctx.stroke();
+         ctx.restore();
+
+         // 4. Vertical Energy Spikes (Simulated 3D wall)
+         // Draw small vertical lines along the rim
+         ctx.globalAlpha = 0.4 * (1 - progress);
+         const spikeCount = 12;
+         for(let i=0; i<spikeCount; i++) {
+             const angle = (i / spikeCount) * Math.PI * 2 + time;
+             const sx = Math.cos(angle) * r;
+             const sy = Math.sin(angle) * r;
+             // Un-squash Y for vertical height
+             // Since context is scaled (1, 0.55), drawing Y-100 means visual height ~55
+             ctx.beginPath();
+             ctx.moveTo(sx, sy);
+             ctx.lineTo(sx, sy - 80); // Beam height
+             ctx.lineWidth = 4;
+             
+             // Fade out tip
+             const beamGrad = ctx.createLinearGradient(sx, sy, sx, sy - 80);
+             beamGrad.addColorStop(0, p.color);
+             beamGrad.addColorStop(1, 'transparent');
+             ctx.strokeStyle = beamGrad;
+             ctx.stroke();
+         }
     }
 }

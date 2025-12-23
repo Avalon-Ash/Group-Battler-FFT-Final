@@ -28,7 +28,8 @@ export class GridSystem {
     private _lastMapVersion: number = -1;
 
     // Optimization: Reuseable buffers to reduce GC pressure
-    private _dangerZones = new Map<string, {color: string, progress: number}>();
+    // Updated: Include 'state' in the value ('ACTIVE' | 'BROKEN')
+    private _dangerZones = new Map<string, {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number}>();
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
 
@@ -152,7 +153,8 @@ export class GridSystem {
         this._unitVisualStatus.clear();
 
         engine.agents.forEach(a => {
-            if (a.hp > 0 && a.castingSkillIdx !== -1) {
+            // 1. ACTIVE CASTS (Only if not suppressed)
+            if (a.hp > 0 && a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.type === 'AOE') {
                     let centerHex: Hex | null = null;
@@ -162,12 +164,20 @@ export class GridSystem {
 
                     if (centerHex) {
                         const progress = 1 - (a.castTimer / s.cast);
-                        // Using raw HexUtils range which creates arrays, acceptable for small radii
-                        HexUtils.range(centerHex, s.aoeRadius || 1).forEach(h => {
-                            this._dangerZones.set(`${h.q},${h.r}`, {
-                                color: s.color, 
-                                progress: progress
-                            });
+                        // DYNAMIC EXPANSION:
+                        const currentRadius = Math.max(0.5, (s.aoeRadius || 1) * progress);
+                        const potentialHexes = HexUtils.range(centerHex, s.aoeRadius || 1);
+                        
+                        potentialHexes.forEach(h => {
+                            if (HexUtils.dist(centerHex!, h) <= currentRadius) {
+                                this._dangerZones.set(`${h.q},${h.r}`, {
+                                    color: s.color, 
+                                    progress: progress,
+                                    visual: s.visual || 'BOLT',
+                                    state: 'ACTIVE',
+                                    fadeRatio: 1.0
+                                });
+                            }
                         });
                     }
                 }
@@ -191,7 +201,6 @@ export class GridSystem {
             
             // --- TRANSITION LOGIC ---
             let visualY = py;
-            
             if (transitionPhase !== 'IDLE') {
                 const dist = Math.sqrt((q - centerQ)**2 + (r - centerR)**2);
                 const d = dist / maxDist; 
@@ -218,7 +227,6 @@ export class GridSystem {
             let rangeColor = '';
             
             if (hoveredSkill && highlightAgent) {
-                // HEIGHT AWARE RANGE CHECK
                 const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
                 const tileH = h;
                 const bonus = Math.max(0, Math.floor((agentH - tileH) / BLOCK_HEIGHT));

@@ -10,19 +10,49 @@ const HIT_IMPULSE_MIN = 5;
 export class SkillResolutionSystem {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine) {
-        // Interrupt Checks
-        if (a.stunTimer > 0 || a.banished || a.silenceTimer > 0) {
-            const skillName = a.skills[a.castingSkillIdx]?.name || '技能';
+        // Interrupt Checks (Stun / Silence / Banish / Death)
+        if (a.stunTimer > 0 || a.banished || a.silenceTimer > 0 || a.hp <= 0) {
+            const skillIdx = a.castingSkillIdx;
             
-            // Log interrupt only once when timer is just set? 
-            // Since this runs every frame, we rely on state transition handling in GameEngine or StatusSystem.
-            // But if we want to log the interruption moment, we should do it where the CC is applied.
-            // Here we just cancel the cast.
-            
-            // To prevent log spam, we just cancel silently here as the CC application logs the cause.
-            // But we can add a specific "Interrupted" log if we track state change.
-            if (a.castTimer > 0) {
-                 engine.log(a, 'CC', '中斷', skillName, '詠唱被打斷');
+            // If actively casting, create a visual snapshot of the "Broken" spell
+            if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
+                const s = a.skills[skillIdx]!;
+                const skillName = s.name;
+                engine.log(a, 'CC', '中斷', skillName, '詠唱被打斷');
+                
+                // --- EMIT BREAK EVENT (Physics Shatter) ---
+                let centerHex = { q: a.q, r: a.r };
+                let centerPos = { x: a.px, y: a.py };
+                
+                if (s.type === 'AOE') {
+                    if (a.targetHex) {
+                        centerHex = a.targetHex;
+                        centerPos = HexUtils.toPx(centerHex.q, centerHex.r, engine.mapConfig);
+                        // Adjust Y for terrain height
+                        const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
+                        centerPos.y -= h;
+                    }
+                    else if (a.target) {
+                        centerHex = {q: a.target.q, r: a.target.r};
+                        centerPos = {x: a.target.px, y: a.target.py};
+                    } else {
+                        // Self cast AOE
+                        const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
+                        centerPos.y -= h;
+                    }
+                } else {
+                    // Single target cast break - maybe just show on caster
+                    const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
+                    centerPos.y -= h;
+                }
+                
+                engine.events.push({
+                    type: 'CAST_BREAK',
+                    pos: centerPos,
+                    value: s.aoeRadius || 1, // Pass radius for particle spread
+                    color: s.color,
+                    skill: s
+                });
             }
             
             a.castingSkillIdx = -1;
