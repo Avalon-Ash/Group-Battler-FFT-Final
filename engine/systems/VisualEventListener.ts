@@ -1,5 +1,4 @@
 
-
 import { GameEngine } from "../game";
 import { GameEvent, Team } from "../../types";
 import { HexUtils } from "../utils";
@@ -13,8 +12,14 @@ import { CameraSystem } from "./CameraSystem";
 import * as VFXSpawners from "./vfx/spawners";
 
 const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20;
+// TA TUNING: Increased from 5.0s to 12.0s. 
+// Auto-battler units have move/cast times that make 5s too strict for a Penta.
+const KILL_STREAK_WINDOW = 12.0; 
 
 export class VisualEventListener {
+    // Kill Streak State: AgentID -> { Count, LastTime }
+    private killStreaks = new Map<string, { count: number, lastTime: number }>();
+    private firstBlood = false;
     
     public process(
         events: GameEvent[], 
@@ -24,6 +29,12 @@ export class VisualEventListener {
         grid: GridSystem,
         camera: CameraSystem
     ) {
+        // Reset Logic: If battle just started or reset, clear streaks
+        if (engine.battleTime < 0.1) {
+            this.killStreaks.clear();
+            this.firstBlood = false;
+        }
+
         events.forEach(event => {
             const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
             const terrainHeight = grid.getTerrainHeight(hex.q, hex.r, engine);
@@ -82,7 +93,74 @@ export class VisualEventListener {
                  }
             }
 
-            // 2. VFX Handling
+            // 2. Kill Streaks (New)
+            if (event.type === 'KILL' && event.sourceId) {
+                const now = engine.battleTime;
+                const killer = event.sourceId;
+                const killerAgent = engine.agents.find(a => a.id === killer);
+                
+                // FIRST BLOOD LOGIC
+                if (!this.firstBlood) {
+                    this.firstBlood = true;
+                    if (killerAgent) {
+                        const kHex = HexUtils.fromPx(killerAgent.px, killerAgent.py, engine.mapConfig);
+                        const kH = grid.getTerrainHeight(kHex.q, kHex.r, engine);
+                        hud.addFloatingText(
+                            killerAgent.px, 
+                            killerAgent.py - kH - HUD_TEXT_OFFSET - 60, 
+                            "FIRST BLOOD", 
+                            "#ef4444", 
+                            36, 
+                            'KILL_STREAK'
+                        );
+                        camera.addTrauma(0.3);
+                    }
+                }
+
+                let streak = 1;
+                const existing = this.killStreaks.get(killer);
+                
+                if (existing) {
+                    if (now - existing.lastTime <= KILL_STREAK_WINDOW) {
+                        streak = existing.count + 1;
+                    } else {
+                        streak = 1; // Expired
+                    }
+                }
+                
+                this.killStreaks.set(killer, { count: streak, lastTime: now });
+                
+                // Trigger Visual if Streak > 1
+                if (streak >= 2) {
+                    let streakText = "";
+                    let streakColor = "#fff";
+                    let trauma = 0;
+                    
+                    if (streak === 2) { streakText = "DOUBLE KILL"; streakColor = "#cbd5e1"; trauma = 0.2; }
+                    else if (streak === 3) { streakText = "TRIPLE KILL"; streakColor = "#fcd34d"; trauma = 0.3; }
+                    else if (streak === 4) { streakText = "QUADRA KILL"; streakColor = "#fb923c"; trauma = 0.4; }
+                    else if (streak >= 5) { streakText = "PENTA KILL"; streakColor = "#ef4444"; trauma = 0.6; } // Epic
+                    
+                    // Display above unit
+                    if (killerAgent) {
+                        const kHex = HexUtils.fromPx(killerAgent.px, killerAgent.py, engine.mapConfig);
+                        const kH = grid.getTerrainHeight(kHex.q, kHex.r, engine);
+                        // Offset higher than damage numbers
+                        hud.addFloatingText(
+                            killerAgent.px, 
+                            killerAgent.py - kH - HUD_TEXT_OFFSET - 40, 
+                            streakText, 
+                            streakColor, 
+                            32 + (streak * 4), // Scale up size with streak
+                            'KILL_STREAK'
+                        );
+                        
+                        camera.addTrauma(trauma);
+                    }
+                }
+            }
+
+            // 3. VFX Handling
             switch (event.type) {
                 case 'VISUAL_SLASH':
                     if (event.sourceId && event.targetId) {

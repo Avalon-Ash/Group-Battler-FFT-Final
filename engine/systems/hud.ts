@@ -22,14 +22,14 @@ interface FloatingText {
     life: number; 
     maxLife: number;
     size: number;
-    type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC';
+    type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK';
     isUlt?: boolean; // New flag for Ultimate visuals
 }
 
 export class HUDSystem {
     damageNumbers: FloatingText[] = [];
 
-    addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' = 'DAMAGE', isUlt: boolean = false) {
+    addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
         let vx = 0;
         let vy = 0;
         let life = TEXT_LIFESPAN;
@@ -48,6 +48,12 @@ export class HUDSystem {
             // Static float for CC text
             vy = -20; 
             life = 1.5;
+        } else if (type === 'KILL_STREAK') {
+            // KILL STREAK: Epic float
+            vx = 0;
+            vy = -30;
+            life = 3.5; // Stay very long
+            size = 32; // HUGE
         } else {
             // DAMAGE / HEAL
             vx = (Math.random() - 0.5) * 60; 
@@ -81,6 +87,9 @@ export class HUDSystem {
                 d.vy += GRAVITY * dt;
             } else if (d.type === 'SHOUT' || d.type === 'CC') {
                 d.vy *= 0.95; // Friction
+            } else if (d.type === 'KILL_STREAK') {
+                // Anti-gravity float for Kill Streaks
+                d.vy *= 0.92; // Slow down to a halt
             }
 
             if (d.life <= 0) {
@@ -243,7 +252,46 @@ export class HUDSystem {
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            if (d.type === 'SHOUT') {
+            if (d.type === 'KILL_STREAK') {
+                // --- EPIC KILL STREAK ---
+                ctx.save();
+                ctx.translate(d.x, d.y);
+                
+                // Pop-in Scale Effect
+                const pop = Math.min(1, (1 - lifePct) * 5); // Rapid entry
+                // Pulse logic
+                const pulse = 1 + Math.sin(lifePct * 10) * 0.1;
+                const scale = pop * pulse * 1.5; 
+                ctx.scale(scale, scale);
+
+                // Text Style
+                ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
+                
+                // Fancy Gradient
+                const grad = ctx.createLinearGradient(0, -d.size/2, 0, d.size/2);
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.5, d.color);
+                grad.addColorStop(1, '#000000');
+                
+                // Stroke
+                ctx.lineWidth = 4;
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = '#000';
+                ctx.strokeText(d.text, 0, 0);
+                
+                // Fill
+                ctx.fillStyle = grad;
+                ctx.fillText(d.text, 0, 0);
+                
+                // Shine
+                ctx.fillStyle = '#fff';
+                ctx.shadowColor = d.color;
+                ctx.shadowBlur = 10 * pulse;
+                ctx.fillText(d.text, 0, 0);
+
+                ctx.restore();
+
+            } else if (d.type === 'SHOUT') {
                 if (d.isUlt) {
                     // --- ULTIMATE STYLE ---
                     const scale = 1 + (1 - lifePct) * 0.1; 

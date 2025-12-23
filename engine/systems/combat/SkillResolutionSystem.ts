@@ -267,6 +267,14 @@ export class SkillResolutionSystem {
         // RICH LOG: Kill
         if (oldHp > 0 && newHp <= 0) {
             engine.log(source, 'DEATH', '擊殺', target.id, `${target.id} 已陣亡`);
+            
+            // Emit KILL event for Kill Streak tracking
+            engine.events.push({
+                type: 'KILL',
+                pos: { x: target.px, y: target.py },
+                sourceId: source.id,
+                targetId: target.id
+            });
         }
     }
 
