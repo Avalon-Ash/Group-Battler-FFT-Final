@@ -7,25 +7,32 @@ export const ParticleRenderer = {
     drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.save();
         
+        // Shared translation
+        ctx.translate(p.x, p.y);
+
         if (p.type === 'BEAM') {
             if (p.targetX !== undefined && p.targetY !== undefined) {
-                ctx.translate(p.x, p.y);
+                // Beams are world-space endpoints, undo translate for now or calculate relative
+                // Easier to undo translate
+                ctx.translate(-p.x, -p.y);
+                
                 ctx.globalCompositeOperation = 'lighter';
-                const tx = p.targetX - p.x;
-                const ty = p.targetY - p.y;
+                const sx = p.x; const sy = p.y;
+                const tx = p.targetX; const ty = p.targetY;
                 
                 if (isChaos) {
                     // Siphon / Lightning
                     ctx.strokeStyle = p.color;
                     ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.moveTo(0, 0);
+                    ctx.moveTo(sx, sy);
                     // Jagged line
                     const segs = 10;
+                    const dx = tx - sx; const dy = ty - sy;
                     for(let i=1; i<segs; i++) {
                         const ratio = i/segs;
                         const jit = (Math.random()-0.5) * 20;
-                        ctx.lineTo(tx * ratio + jit, ty * ratio + jit);
+                        ctx.lineTo(sx + dx * ratio + jit, sy + dy * ratio + jit);
                     }
                     ctx.lineTo(tx, ty);
                     ctx.stroke();
@@ -36,13 +43,12 @@ export const ParticleRenderer = {
                     ctx.strokeStyle = p.color;
                     ctx.lineWidth = (1 - Math.abs(progress - 0.5)*2) * 8;
                     ctx.lineCap = 'round';
-                    ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(tx, ty); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(tx, ty); ctx.stroke();
                     // White Hot Center
                     ctx.lineWidth /= 2; ctx.strokeStyle = '#fff'; ctx.stroke();
                 }
             }
         } else if (p.type === 'RING') {
-            ctx.translate(p.x, p.y);
             ctx.scale(1, 0.55); 
             const r = progress * 40;
             ctx.strokeStyle = p.color;
@@ -65,11 +71,20 @@ export const ParticleRenderer = {
             ctx.closePath();
 
         } else if (p.type === 'SPARK') {
-            ctx.translate(p.x, p.y);
+            // High Tech Upgrade: Velocity Stretch (Motion Blur)
+            const speedSq = p.vx * p.vx + p.vy * p.vy;
+            if (speedSq > 100) {
+                const angle = Math.atan2(p.vy, p.vx);
+                ctx.rotate(angle);
+                // Stretch based on speed
+                const stretch = Math.min(4.0, 1.0 + Math.sqrt(speedSq) * 0.005);
+                ctx.scale(stretch, 1.0 / Math.max(1.0, stretch * 0.5));
+            }
+
             const r = p.size;
             const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
             grad.addColorStop(0, '#fff'); 
-            grad.addColorStop(0.3, p.color);
+            grad.addColorStop(0.4, p.color);
             grad.addColorStop(1, 'transparent');
             ctx.fillStyle = grad;
             ctx.globalAlpha = 1 - Math.pow(progress, 3); 
@@ -77,7 +92,7 @@ export const ParticleRenderer = {
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
 
         } else if (p.type === 'DEBRIS' || p.type === 'SHARD') {
-            ctx.translate(p.x, p.y);
+            // Physics rotation applied in VFXSystem, render here
             ctx.fillStyle = p.color;
             ctx.rotate(p.rotation);
             ctx.beginPath();
@@ -88,17 +103,19 @@ export const ParticleRenderer = {
                 ctx.rect(-s/2, -s/2, s, s);
             }
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            // Rim Light
+            ctx.strokeStyle = 'rgba(255,255,255,0.5)';
             ctx.lineWidth = 1;
             ctx.stroke();
         } else if (p.type === 'PILLAR') {
-            ctx.translate(p.x, p.y - 20); // slightly above ground
+            // Undo translate to use relative coord logic inside func (or refactor, but keeping consistent)
+            ctx.translate(0, -20); 
             this.drawPillar(ctx, p, progress, isChaos);
         } else if (p.type === 'SHOCKWAVE') {
-            ctx.translate(p.x, p.y - 20);
+            ctx.translate(0, -20);
             this.drawShockwave(ctx, p, progress, isChaos);
         } else if (p.type === 'DOMAIN') {
-            ctx.translate(p.x, p.y - 20);
+            ctx.translate(0, -20);
             this.drawDomain(ctx, p, progress, isChaos);
         }
 

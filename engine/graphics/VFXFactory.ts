@@ -18,6 +18,12 @@ function isChaosStyle(color: string): boolean {
            c.includes('#1c');
 }
 
+// Pseudo-Random Noise generator for textures
+function pseudoNoise(x: number, y: number, seed: number) {
+    const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
+    return n - Math.floor(n);
+}
+
 export const VFXFactory = {
 
     generateGlowOrb(color: string, size: number = VFX_SIZE): HTMLCanvasElement {
@@ -73,22 +79,22 @@ export const VFXFactory = {
         const cx = FOG_SIZE / 2;
         const cy = FOG_SIZE / 2;
         
+        // Use Noise for Fog
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, FOG_SIZE / 2);
         grad.addColorStop(0, color);
-        grad.addColorStop(0.5, color);
-        grad.addColorStop(1, 'transparent');
+        grad.addColorStop(0.6, 'transparent');
         
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.3;
         
-        // Perlin-ish blobs
-        for(let i=0; i<8; i++) {
+        // Fractal Summation for detail
+        for(let i=0; i<12; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * (FOG_SIZE * 0.25);
-            const r = FOG_SIZE * (0.15 + Math.random() * 0.15);
+            const dist = Math.random() * (FOG_SIZE * 0.3);
+            const size = FOG_SIZE * (0.1 + Math.random() * 0.2);
             
             ctx.beginPath(); 
-            ctx.arc(cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist, r, 0, Math.PI*2); 
+            ctx.arc(cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist, size, 0, Math.PI*2); 
             ctx.fill();
         }
         
@@ -340,50 +346,41 @@ export const VFXFactory = {
         
         ctx.scale(1, 0.5); 
         
-        const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 50);
+        // Procedural Noise Rings instead of simple gradient
+        const rings = 5;
+        for(let i = 0; i < rings; i++) {
+            const r = (50 / rings) * (i + 1);
+            const alpha = 1.0 - (i / rings);
+            
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2 + Math.random() * 2;
+            ctx.globalAlpha = alpha * 0.5;
+            
+            // Noisy circle
+            const segments = 24;
+            for(let j=0; j<=segments; j++) {
+                const a = (j/segments) * Math.PI * 2;
+                const offset = pseudoNoise(j, i, 100) * 10;
+                const radius = r + offset;
+                const px = cx + Math.cos(a) * radius;
+                const py = cy * 2 + Math.sin(a) * radius;
+                if (j===0) ctx.moveTo(px, py);
+                else ctx.lineTo(px, py);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+        
+        // Inner Core
+        const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 25);
         grad.addColorStop(0, isChaos ? '#000' : '#fff'); 
         grad.addColorStop(0.5, color);
         grad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = grad;
         ctx.globalAlpha = 0.8;
-        
-        if (isChaos) {
-            // Splatter / Cracks
-            ctx.beginPath();
-            for(let i=0; i<16; i++) {
-                const angle = (i / 16) * Math.PI * 2;
-                const r = 35 + Math.random() * 25;
-                const x = cx + Math.cos(angle) * r;
-                const y = cy * 2 + Math.sin(angle) * r;
-                ctx.lineTo(x, y);
-            }
-            ctx.fill();
-            
-            // Inner cracks
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            ctx.globalCompositeOperation = 'source-over';
-            for(let i=0; i<5; i++) {
-                ctx.beginPath();
-                ctx.moveTo(cx, cy*2);
-                const a = Math.random() * Math.PI * 2;
-                ctx.lineTo(cx + Math.cos(a)*40, cy*2 + Math.sin(a)*40);
-                ctx.stroke();
-            }
-
-        } else {
-            // Clean Shockwave Ring
-            ctx.beginPath(); ctx.arc(cx, cy * 2, 45, 0, Math.PI * 2); ctx.fill();
-            
-            // Energy Rings
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
-            ctx.beginPath(); ctx.arc(cx, cy * 2, 48, 0, Math.PI * 2); ctx.stroke();
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = '#fff';
-            ctx.beginPath(); ctx.arc(cx, cy * 2, 35, 0, Math.PI * 2); ctx.stroke();
-        }
+        ctx.beginPath(); ctx.arc(cx, cy * 2, 25, 0, Math.PI*2); ctx.fill();
 
         return canvas;
     }
