@@ -4,7 +4,7 @@ import React, { useRef, useEffect } from 'react';
 import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { HexUtils } from '../engine/utils';
-import { Team, ToolType, Hex, Skill, GameEvent } from '../types';
+import { Team, ToolType, Hex, Skill, GameEvent, Role } from '../types';
 import { BLOCK_HEIGHT } from '../constants'; 
 
 interface GameCanvasProps {
@@ -15,6 +15,8 @@ interface GameCanvasProps {
     selectedAgent: Agent | null; 
     hoveredSkill: Skill | null;
     isShowcaseMode: boolean; 
+    spawnMode: 'RANDOM' | 'DRAFT'; // New
+    draftRole: Role; // New
     onSelect: (a: Agent | null) => void;
     onWin: (team: Team) => void;
     winner: Team | null;
@@ -22,7 +24,7 @@ interface GameCanvasProps {
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
 }
 
-const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, isShowcaseMode, onSelect, onWin, winner, rematch, transitionPhase }) => {
+const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, isShowcaseMode, spawnMode, draftRole, onSelect, onWin, winner, rematch, transitionPhase }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const camera = useRef({ x: 0, y: 0, zoom: 1.0 }); // Adjusted default zoom
@@ -249,18 +251,44 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
             if (lastPaintHex.current === k) return; 
             
             lastPaintHex.current = k;
-            if (tool === ToolType.ADD_BLUE) engine.addAgent(Team.BLUE, h.q, h.r, hpInput);
-            else if (tool === ToolType.ADD_RED) engine.addAgent(Team.RED, h.q, h.r, hpInput);
-            else if (tool === ToolType.OBSTACLE) {
+            
+            let agent: Agent | null = null;
+
+            if (tool === ToolType.ADD_BLUE) {
+                agent = engine.addAgent(Team.BLUE, h.q, h.r, hpInput);
+            } else if (tool === ToolType.ADD_RED) {
+                agent = engine.addAgent(Team.RED, h.q, h.r, hpInput);
+            } else if (tool === ToolType.OBSTACLE) {
                 if (engine.getAgentAt(h.q, h.r)) engine.removeAgent(h.q, h.r);
                 engine.setObstacle(h.q, h.r, selectedObstacle);
-            }
-            else if (tool === ToolType.DELETE) {
+            } else if (tool === ToolType.DELETE) {
                 if (engine.hasObstacle(h.q, h.r)) engine.removeObstacle(h.q, h.r);
                 if (engine.getAgentAt(h.q, h.r)) {
                     engine.removeAgent(h.q, h.r);
                     onSelect(null);
                 }
+            }
+
+            // DRAFT MODE LOGIC
+            // If in Draft Mode, force the selected role and re-roll skills
+            if (agent && spawnMode === 'DRAFT') {
+                agent.role = draftRole;
+                
+                // 1. Re-roll skills compatible with the new role
+                const validSkills = engine.skillDB.filter(s => s.role === agent!.role && (s.team === undefined || s.team === agent!.team));
+                const rnd = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(Math.random() * ar.length)].id : null;
+                
+                agent.skillIds = [
+                    rnd(validSkills.filter(s => s.tag === 'ULT')),
+                    rnd(validSkills.filter(s => s.tag === 'ACTIVE')),
+                    rnd(validSkills.filter(s => s.tag === 'BASIC'))
+                ];
+
+                // 2. Persist new state
+                agent.saveState();
+                
+                // 3. Reset to apply stats from UNIT_DB based on the new role
+                agent.reset(engine.mapConfig);
             }
         };
 
@@ -498,7 +526,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ engine, tool, selectedObstacle,
             cvs.removeEventListener('touchmove', onTouchMove);
             cvs.removeEventListener('touchend', onTouchEnd);
         };
-    }, [engine, tool, selectedObstacle, hpInput, onSelect, winner]);
+    }, [engine, tool, selectedObstacle, hpInput, onSelect, winner, spawnMode, draftRole]);
 
     return (
         <div ref={wrapperRef} className="flex-1 overflow-hidden relative bg-slate-950 border-r border-slate-700">
