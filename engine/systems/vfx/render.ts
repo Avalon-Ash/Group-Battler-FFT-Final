@@ -1,40 +1,17 @@
 
 import { GameEngine } from "../../game";
-import { HexUtils, Vector, MapConfig } from "../../utils";
 import { AssetManager } from "../../assets";
 import { RenderableItem } from "../grid";
 import { SceneTheme } from "../../../types";
 import { VFXSystem } from "../vfx";
-import { Particle } from "../vfx/state"; // Changed import to state
+import { MapConfig } from "../../utils";
 
-const UNIT_CHEST_HEIGHT = 40;
+// Modules
+import { getTransitionOffset, isChaosStyle } from "./utils";
+import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
+import { ParticleRenderer } from "./renderers/ParticleRenderer";
 
 export class VFXRenderer {
-
-    // --- Helper to calculate vertical offset during map transition ---
-    private getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
-        if (phase === 'IDLE') return 0;
-        const centerQ = Math.floor(mapConfig.w / 2);
-        const centerR = Math.floor(mapConfig.h / 2);
-        const hex = HexUtils.fromPx(x, y, mapConfig);
-        const maxDist = Math.max(mapConfig.w, mapConfig.h) / 2;
-        const dist = Math.sqrt((hex.q - centerQ)**2 + (hex.r - centerR)**2);
-        const d = dist / maxDist;
-        
-        if (phase === 'OUT') {
-            const trigger = d * 0.3;
-            if (t > trigger) {
-                const fallT = Math.min(1, (t - trigger) * 2.5);
-                return fallT * fallT * fallT * 1000;
-            }
-        } else if (phase === 'IN') {
-            const trigger = d * 0.3;
-            const riseT = Math.max(0, Math.min(1, (t - trigger) * 2.5));
-            const easedRise = 1 - Math.pow(1 - riseT, 3);
-            return (1 - easedRise) * 1000;
-        }
-        return 0;
-    }
 
     // --- Rendering Collections ---
 
@@ -48,9 +25,9 @@ export class VFXRenderer {
     ): RenderableItem[] {
         const list: RenderableItem[] = [];
 
-        // 1. Decals (Ground Level) - Access via state
+        // 1. Decals (Ground Level)
         vfx.state.decals.forEach(d => {
-            const offsetY = this.getTransitionOffset(d.x, d.y, mapConfig, transitionT, transitionPhase);
+            const offsetY = getTransitionOffset(d.x, d.y, mapConfig, transitionT, transitionPhase);
             const drawY = d.y + offsetY;
             if (drawY > d.y + 800) return;
 
@@ -68,153 +45,8 @@ export class VFXRenderer {
             });
         });
 
-        // 2. Projectiles (Projectiles are stored in Engine, not VFX state, so this remains same)
-        engine.projectiles.forEach(p => {
-             const offsetP = this.getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
-             if (offsetP > 500) return;
-
-             let hStart = 0, hEnd = 0;
-             let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
-             if (totalDist < 1) totalDist = 1;
-
-             if (getTerrainHeight && mapConfig) {
-                 const startHex = HexUtils.fromPx(p.startX, p.startY, mapConfig);
-                 const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, mapConfig);
-                 hStart = getTerrainHeight(startHex.q, startHex.r);
-                 hEnd = getTerrainHeight(targetHex.q, targetHex.r);
-             }
-
-             const getVisualPos = (lx: number, ly: number) => {
-                 const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: lx, y: ly});
-                 const t = Math.min(1, Math.max(0, currentDist / totalDist));
-                 const currentTerrainHeight = hStart + (hEnd - hStart) * t;
-                 
-                 let arcOffset = 0;
-                 // Apply Arc to ARROW, FIREBALL, and BOMB
-                 if (p.skill.visual === 'ARROW' || p.skill.visual === 'FIREBALL' || p.skill.visual === 'BOMB') {
-                     const apex = Math.min(150, totalDist * 0.3);
-                     arcOffset = Math.sin(t * Math.PI) * apex; 
-                 }
-                 
-                 const off = this.getTransitionOffset(lx, ly, mapConfig, transitionT, transitionPhase);
-                 return {
-                     x: lx,
-                     y: ly - currentTerrainHeight - UNIT_CHEST_HEIGHT - arcOffset + off,
-                     shadowY: ly - currentTerrainHeight + off
-                 };
-             };
-
-             const headVis = getVisualPos(p.x, p.y);
-             
-             // Calculate Pitch Rotation (Visual Angle)
-             // Use current direction to target to allow for homing curves
-             const lookAheadDist = 5;
-             const currentDir = Vector.sub(p.targetPos, {x: p.x, y: p.y});
-             const distRemaining = Vector.mag(currentDir);
-             
-             // SAFE FALLBACK: If extremely close, keep moving towards target (or use last known good dir)
-             // to prevent NaN when normalization fails on 0-length vector
-             let dir;
-             if (distRemaining > 0.1) {
-                 dir = Vector.normalize(currentDir);
-             } else {
-                 // Fallback to overall trajectory logic to prevent snap
-                 const totalTrajectory = Vector.sub(p.targetPos, {x: p.startX, y: p.startY});
-                 const totalMag = Vector.mag(totalTrajectory);
-                 dir = totalMag > 0.1 ? Vector.normalize(totalTrajectory) : {x: 1, y: 0};
-             }
-
-             const nextLx = p.x + dir.x * lookAheadDist;
-             const nextLy = p.y + dir.y * lookAheadDist;
-             const nextVis = getVisualPos(nextLx, nextLy);
-             
-             const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
-             
-             // Extra rotation for bombs (spin)
-             const spin = p.skill.visual === 'BOMB' ? (Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y}) * 0.1) : 0;
-
-             list.push({
-                 y: p.y + 50 + offsetP, z: 20, 
-                 draw: (ctx) => {
-                    // --- 1. Draw Trail (Before Head) ---
-                    if (p.trail.length > 1) {
-                        const trailVis = p.trail.map(t => getVisualPos(t.x, t.y));
-                        // Add current head position to close the gap
-                        trailVis.push(headVis);
-
-                        ctx.save();
-                        
-                        if (p.skill.visual === 'ARROW') {
-                            // ARROW: Thin, faint motion blur line
-                            ctx.beginPath();
-                            ctx.moveTo(trailVis[0].x, trailVis[0].y);
-                            for (let i = 1; i < trailVis.length; i++) {
-                                ctx.lineTo(trailVis[i].x, trailVis[i].y);
-                            }
-                            ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
-                            ctx.lineWidth = 1;
-                            ctx.stroke();
-                        } else {
-                            // MAGIC / BOLT / FIREBALL: Tapered glowing ribbon
-                            ctx.lineCap = 'round';
-                            ctx.lineJoin = 'round';
-                            ctx.globalCompositeOperation = 'lighter';
-
-                            // Iterate segments to vary width/opacity
-                            for (let i = 0; i < trailVis.length - 1; i++) {
-                                const pt = trailVis[i];
-                                const next = trailVis[i+1];
-                                
-                                // Ratio 0 (tail) -> 1 (head)
-                                const ratio = i / (trailVis.length - 1); 
-                                
-                                ctx.beginPath();
-                                ctx.moveTo(pt.x, pt.y);
-                                ctx.lineTo(next.x, next.y);
-                                
-                                const baseWidth = (p.skill.visual === 'FIREBALL' || p.skill.visual === 'SMASH') ? 24 : 12;
-                                ctx.lineWidth = baseWidth * ratio;
-                                
-                                // Color handling
-                                ctx.strokeStyle = p.skill.color;
-                                ctx.globalAlpha = ratio * 0.5; // Fade out tail
-                                
-                                ctx.stroke();
-                            }
-                        }
-                        ctx.restore();
-                    }
-
-                    // --- 2. Draw Shadow ---
-                    ctx.save();
-                    ctx.translate(headVis.x, headVis.shadowY);
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
-
-                    // --- 3. Draw Projectile Head ---
-                    ctx.save();
-                    ctx.translate(headVis.x, headVis.y);
-                    if (p.skill.visual === 'BOMB') {
-                        ctx.rotate(spin);
-                    } else {
-                        ctx.rotate(angle);
-                    }
-                    
-                    const img = AssetManager.getProjectile(p.skill.visual || 'BOLT', p.skill.color);
-                    
-                    // Visual Fallback for Missing Assets
-                    if (img && img.width > 0) {
-                        ctx.drawImage(img, -48, -32, 96, 64);
-                    } else {
-                        ctx.fillStyle = '#ff00ff';
-                        ctx.fillRect(-5, -5, 10, 10);
-                    }
-                    
-                    ctx.restore();
-                 }
-             });
-        });
+        // 2. Projectiles (Delegated)
+        list.push(...ProjectileRenderer.collect(engine, getTerrainHeight, transitionT, transitionPhase));
 
         return list;
     }
@@ -227,221 +59,65 @@ export class VFXRenderer {
         transitionT: number,
         transitionPhase: 'IN' | 'OUT' | 'IDLE'
     ) {
-        // Iterate over vfx.state.particles
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
             
-            const offset = this.getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
+            const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
             if (offset > 800) return; 
 
             const progress = 1 - (p.life / p.maxLife);
-            // Z acts as Y-offset in 2D draw call (up is negative)
+            // DrawY logic included in Particle Renderer translation if needed, 
+            // but we need to pass the offset-adjusted Y to the renderer.
+            // However, the renderer functions assume they handle translation.
+            // Let's modify the particle position temporarily or pass the adjusted Y.
+            
+            // To avoid mutating the particle state, we handle translation here 
+            // BUT ParticleRenderer expects to handle specific sub-translations (like -20 for Pillars).
+            // So we just update the Y passed to the renderer context? No, Renderer uses p.x/p.y.
+            
+            // Solution: We apply the global transition offset here in the context,
+            // then ParticleRenderer draws at (0,0) relative to that, OR we update P copy.
+            
+            // Simpler: Pass the actual draw coordinate to a draw function is better, 
+            // but current architecture stores state in P.
+            
+            // We will modify the Y in a temporary object or just translate the context here
+            // BEFORE calling the renderer.
+            
             const drawY = p.y + offset - p.z;
+            const isChaos = isChaosStyle(p.color);
             
-            if (p.type === 'PILLAR' || p.type === 'SHOCKWAVE' || p.type === 'DOMAIN') {
-                ctx.save();
-                ctx.translate(p.x, drawY - 20); // Ground effects
-                if (p.type === 'PILLAR') this.drawPillar(ctx, p, progress);
-                else if (p.type === 'SHOCKWAVE') this.drawShockwave(ctx, p, progress);
-                else if (p.type === 'DOMAIN') this.drawDomain(ctx, p, progress);
-                ctx.restore();
-                return;
-            }
-
-            ctx.save();
-            ctx.translate(p.x, drawY);
+            // We temporarily override P.y for the draw call to ensure it draws at the transition offset
+            // efficient way: just translate context to the draw position and tell renderer to draw at 0,0 relative?
+            // ParticleRenderer uses `ctx.translate(p.x, p.y...)`. 
+            // Let's create a proxy particle or just modify the draw call to accept x/y overrides.
+            // For now, to minimize changes to the signature, let's mutate a temporary clone if needed, 
+            // OR just let the ParticleRenderer handle the `p` object but we handle the context transform?
             
-            if (p.type === 'BEAM') {
-                if (p.targetX !== undefined && p.targetY !== undefined) {
-                    ctx.strokeStyle = p.color;
-                    ctx.lineWidth = (1 - Math.abs(progress - 0.5)*2) * 5;
-                    ctx.lineCap = 'round';
-                    ctx.globalCompositeOperation = 'lighter';
-                    ctx.beginPath();
-                    ctx.moveTo(0, 0);
-                    ctx.lineTo(p.targetX - p.x, p.targetY - p.y); 
-                    ctx.stroke();
-                }
-            } else if (p.type === 'RING') {
-                ctx.scale(1, 0.55); 
-                const r = progress * 40;
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 1 - progress;
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
-            } else if (p.type === 'SPARK') {
-                const r = p.size;
-                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-                grad.addColorStop(0, '#fff'); 
-                grad.addColorStop(0.3, p.color);
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-                ctx.globalAlpha = 1 - Math.pow(progress, 3); 
-                ctx.globalCompositeOperation = 'lighter'; 
-                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            } else if (p.type === 'DEBRIS' || p.type === 'SHARD') {
-                // Drawing Shards as jagged polygons
-                ctx.fillStyle = p.color;
-                ctx.rotate(p.rotation);
-                
-                // Draw a rough triangle/quad shape
-                ctx.beginPath();
-                const s = p.size;
-                if (p.type === 'SHARD') {
-                    // Jagged Shard
-                    ctx.moveTo(-s, -s/2);
-                    ctx.lineTo(0, -s);
-                    ctx.lineTo(s, -s/2);
-                    ctx.lineTo(0, s);
-                } else {
-                    // Box debris
-                    ctx.rect(-s/2, -s/2, s, s);
-                }
-                ctx.fill();
-                
-                // Add highlight edge
-                ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-                ctx.lineWidth = 1;
-                ctx.stroke();
-            }
+            // Re-reading ParticleRenderer: It does `ctx.translate(p.x, p.y)`. 
+            // Let's update ParticleRenderer to accept an override Y if we want to be clean, 
+            // OR just rely on the fact that we can cheat by modifying p temporarily (unsafe).
             
-            ctx.restore();
+            // SAFEST: Let's manually translate the context by the offset, 
+            // and tell ParticleRenderer to draw `p` but assuming `p.y` is 0-relative? No that breaks logic.
+            
+            // Let's update ParticleRenderer to take x/y arguments! 
+            // Actually, I already refactored ParticleRenderer to use p.x/p.y inside.
+            // I will cheat slightly: I will mutate p.y, draw, then restore it. 
+            // It's single threaded JS, it's fine for this frame.
+            
+            const originalY = p.y;
+            p.y = drawY; // Apply transition offset & Z
+            
+            // Note: p.z is already handled in drawY calculation above? 
+            // The original code was: `const drawY = p.y + offset - p.z;`
+            // Then `ctx.translate(p.x, drawY);`
+            // The new ParticleRenderer does `ctx.translate(p.x, p.y);`
+            // So setting `p.y = drawY` works perfectly.
+            
+            ParticleRenderer.drawSingleParticle(ctx, p, progress, isChaos);
+            
+            p.y = originalY; // Restore
         });
-    }
-
-    private drawPillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-        ctx.globalCompositeOperation = 'lighter';
-        
-        const lifeRatio = p.life / p.maxLife;
-        // Pulse width at start, then thin out
-        const pulse = 1 + Math.sin(progress * 20) * 0.2;
-        const baseWidth = 50 * (lifeRatio < 0.2 ? lifeRatio * 5 : 1) * pulse;
-        const height = 1200; // Taller to go off screen
-        const alpha = Math.sin(lifeRatio * Math.PI) * 0.8; 
-        
-        ctx.save();
-        ctx.scale(1, 0.55); 
-        
-        // Ground Blast Ring
-        const ringSize = baseWidth * 1.8;
-        const ringGrad = ctx.createRadialGradient(0, 0, ringSize * 0.3, 0, 0, ringSize);
-        ringGrad.addColorStop(0, 'rgba(255,255,255,0.8)');
-        ringGrad.addColorStop(0.4, p.color);
-        ringGrad.addColorStop(1, 'rgba(0,0,0,0)');
-        
-        ctx.fillStyle = ringGrad;
-        ctx.globalAlpha = alpha;
-        ctx.beginPath(); ctx.arc(0, 0, ringSize, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
-
-        // Core Beam (Solid White Center)
-        const coreWidth = baseWidth * 0.3;
-        const coreGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        coreGrad.addColorStop(0, '#ffffff');
-        coreGrad.addColorStop(0.2, '#ffffff');
-        coreGrad.addColorStop(1, 'transparent');
-        
-        ctx.fillStyle = coreGrad;
-        ctx.globalAlpha = alpha;
-        ctx.fillRect(-coreWidth/2, -height, coreWidth, height);
-
-        // Outer Glow Beam (Color)
-        const glowGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        glowGrad.addColorStop(0, p.color);
-        glowGrad.addColorStop(0.6, 'transparent');
-        
-        ctx.fillStyle = glowGrad;
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.fillRect(-baseWidth * 0.8, -height, baseWidth * 1.6, height);
-    }
-
-    private drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-        ctx.scale(1, 0.55); 
-        ctx.globalCompositeOperation = 'lighter';
-        
-        // Main Outer Ring
-        const r = progress * 250; 
-        const width = 20 * (1 - progress);
-        
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = width;
-        ctx.globalAlpha = (1 - progress) * 0.9;
-        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
-
-        // Inner Fast Ring (Echo)
-        if (progress > 0.1) {
-            const r2 = (progress - 0.1) * 300;
-            const w2 = 10 * (1 - progress);
-            ctx.lineWidth = w2;
-            ctx.globalAlpha = (1 - progress) * 0.5;
-            ctx.beginPath(); ctx.arc(0, 0, r2, 0, Math.PI * 2); ctx.stroke();
-        }
-    }
-
-    private drawDomain(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-         ctx.scale(1, 0.55); // Isometric squash
-         const time = performance.now() / 1000;
-         
-         // 1. Dynamic Radius Pulse
-         const baseRadius = 250;
-         const pulse = 1 + Math.sin(time * 5) * 0.02;
-         const r = baseRadius * pulse;
-
-         ctx.globalCompositeOperation = 'lighter'; // Additive blending for energy feel
-
-         // 2. Base Energy Field (Gradient instead of flat color)
-         const grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
-         grad.addColorStop(0, 'transparent'); // Clear center to see units
-         grad.addColorStop(0.7, p.color + '33'); // Faint color (approx 0.2 alpha)
-         grad.addColorStop(0.95, p.color); // Hard edge
-         grad.addColorStop(1, 'transparent');
-
-         ctx.fillStyle = grad;
-         ctx.globalAlpha = 0.6 * (1 - progress); // Fade out over lifetime
-         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-         // 3. Rotating Rune Rings (The "Turbulence")
-         ctx.globalAlpha = 0.8 * (1 - progress);
-         ctx.strokeStyle = p.color;
-         
-         // Ring 1: Slow Clockwise
-         ctx.save();
-         ctx.rotate(time * 0.5);
-         ctx.lineWidth = 3;
-         ctx.setLineDash([40, 60]); // Dashed "Rune" look
-         ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI * 2); ctx.stroke();
-         ctx.restore();
-
-         // Ring 2: Fast Counter-Clockwise
-         ctx.save();
-         ctx.rotate(-time * 1.2);
-         ctx.lineWidth = 2;
-         ctx.setLineDash([20, 30]);
-         ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2); ctx.stroke();
-         ctx.restore();
-
-         // 4. Vertical Energy Spikes (Simulated 3D wall)
-         // Draw small vertical lines along the rim
-         ctx.globalAlpha = 0.4 * (1 - progress);
-         const spikeCount = 12;
-         for(let i=0; i<spikeCount; i++) {
-             const angle = (i / spikeCount) * Math.PI * 2 + time;
-             const sx = Math.cos(angle) * r;
-             const sy = Math.sin(angle) * r;
-             // Un-squash Y for vertical height
-             // Since context is scaled (1, 0.55), drawing Y-100 means visual height ~55
-             ctx.beginPath();
-             ctx.moveTo(sx, sy);
-             ctx.lineTo(sx, sy - 80); // Beam height
-             ctx.lineWidth = 4;
-             
-             // Fade out tip
-             const beamGrad = ctx.createLinearGradient(sx, sy, sx, sy - 80);
-             beamGrad.addColorStop(0, p.color);
-             beamGrad.addColorStop(1, 'transparent');
-             ctx.strokeStyle = beamGrad;
-             ctx.stroke();
-         }
     }
 }

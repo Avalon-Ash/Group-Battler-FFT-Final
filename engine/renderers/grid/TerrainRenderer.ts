@@ -85,6 +85,17 @@ export const TerrainRenderer = {
         topGrad.addColorStop(1, theme.detail); 
         ctx.fillStyle = topGrad;
         ctx.fill();
+
+        // 3. Rim Light (New) - Adds a highlight to the top edge closest to light source
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.beginPath();
+        // Highlight top-left and top-right edges
+        ctx.moveTo(x + HEX_CORNERS[4].x, y - topY + HEX_CORNERS[4].y);
+        ctx.lineTo(x + HEX_CORNERS[3].x, y - topY + HEX_CORNERS[3].y); // Top
+        ctx.lineTo(x + HEX_CORNERS[2].x, y - topY + HEX_CORNERS[2].y); // Top Left
+        ctx.stroke();
     },
 
     drawTerrainDetail(
@@ -139,19 +150,21 @@ export const TerrainRenderer = {
                 ctx.fill();
             }
         } else if (type === 'MAGMA') {
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.4;
+            // Glowing cracks
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.6 + Math.sin(performance.now() * 0.005 + n * 10) * 0.2;
             ctx.beginPath();
             ctx.moveTo(cx - 10, cy);
             ctx.lineTo(cx - 5, cy + 5 * n);
             ctx.lineTo(cx + 5, cy - 5 * n2);
             ctx.lineTo(cx + 10, cy);
             ctx.stroke();
+            
             if (n > 0.8) {
-                ctx.fillStyle = '#ef4444';
-                ctx.globalAlpha = 0.6;
-                ctx.beginPath(); ctx.arc(cx, cy, 3, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#fb923c';
+                ctx.globalAlpha = 0.8;
+                ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI*2); ctx.fill();
             }
         } else if (type === 'DESERT') {
             ctx.strokeStyle = '#92400e';
