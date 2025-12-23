@@ -46,7 +46,6 @@ export const VFXFactory = {
              const spikes = 12;
              for(let i=0; i<spikes; i++) {
                  const angle = (i / spikes) * Math.PI * 2;
-                 // Randomize radius for "wobbly" look
                  const rad = r * (0.6 + Math.random() * 0.4);
                  const x = cx + Math.cos(angle) * rad;
                  const y = cy + Math.sin(angle) * rad;
@@ -60,13 +59,10 @@ export const VFXFactory = {
              ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2); 
              ctx.fill();
              
-             // Lens flare cross
              ctx.fillStyle = '#fff';
              ctx.globalAlpha = 0.8;
              ctx.beginPath();
-             // Horizontal soft beam
              ctx.ellipse(cx, cy, r, r*0.15, 0, 0, Math.PI*2);
-             // Vertical sharp beam
              ctx.ellipse(cx, cy, r*0.15, r, 0, 0, Math.PI*2);
              ctx.fill();
          }
@@ -79,7 +75,6 @@ export const VFXFactory = {
         const cx = FOG_SIZE / 2;
         const cy = FOG_SIZE / 2;
         
-        // Use Noise for Fog
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, FOG_SIZE / 2);
         grad.addColorStop(0, color);
         grad.addColorStop(0.6, 'transparent');
@@ -87,7 +82,6 @@ export const VFXFactory = {
         ctx.fillStyle = grad;
         ctx.globalAlpha = 0.3;
         
-        // Fractal Summation for detail
         for(let i=0; i<12; i++) {
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.random() * (FOG_SIZE * 0.3);
@@ -114,12 +108,10 @@ export const VFXFactory = {
         ctx.lineWidth = 2;
 
         if (isChaos) {
-            // --- CHAOS RUNE (Jagged, asymmetrical, blood-like) ---
             ctx.beginPath();
             const points = 9;
             for(let i=0; i<=points; i++) {
                 const angle = i * (Math.PI * 2 / points);
-                // Heavy distortion
                 const r = radius * (0.85 + Math.random() * 0.3); 
                 const x = cx + Math.cos(angle) * r;
                 const y = cy + Math.sin(angle) * r;
@@ -128,7 +120,6 @@ export const VFXFactory = {
             ctx.closePath();
             ctx.stroke();
             
-            // Inner scribble / Eye
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(cx - 25, cy); 
@@ -140,15 +131,12 @@ export const VFXFactory = {
             ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
 
         } else {
-            // --- ORDER RUNE (Geometric, Symmetrical, Mandalas) ---
-            // Outer Ring
             ctx.beginPath(); 
             ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
             ctx.stroke();
             
             ctx.lineWidth = 1.5;
             if (isUlt) {
-                // Complex Hexagram (Star of David style)
                 const drawPoly = (sides: number, r: number, offset: number) => {
                     ctx.beginPath();
                     for (let i = 0; i <= sides; i++) {
@@ -160,14 +148,12 @@ export const VFXFactory = {
                     ctx.stroke();
                 };
                 
-                drawPoly(3, radius, -Math.PI/2); // Triangle Up
-                drawPoly(3, radius, Math.PI/2);  // Triangle Down
+                drawPoly(3, radius, -Math.PI/2); 
+                drawPoly(3, radius, Math.PI/2);  
                 
-                // Inner Circle
                 ctx.beginPath(); ctx.arc(cx, cy, radius * 0.5, 0, Math.PI*2); ctx.stroke();
 
             } else {
-                // Simple Square/Diamond
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(Math.PI/4);
@@ -193,13 +179,11 @@ export const VFXFactory = {
         ctx.lineWidth = 3;
         ctx.scale(1, 0.5); 
         
-        // Skull-like Hazard Symbol
         ctx.beginPath(); 
         ctx.arc(cx, cy * 2, 40, 0, Math.PI * 2); 
         ctx.stroke();
         
         ctx.beginPath();
-        // X mark
         ctx.moveTo(cx - 15, cy * 2 - 25); ctx.lineTo(cx + 15, cy * 2 + 25);
         ctx.moveTo(cx + 15, cy * 2 - 25); ctx.lineTo(cx - 15, cy * 2 + 25);
         ctx.stroke();
@@ -220,7 +204,6 @@ export const VFXFactory = {
 
         switch (visual) {
             case 'ARROW':
-                // Chaos: Barbed bone arrow | Order: Energy light arrow
                 ctx.strokeStyle = isChaos ? '#a8a29e' : '#e2e8f0'; 
                 ctx.lineWidth = 2;
                 ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(75, cy); ctx.stroke();
@@ -228,24 +211,20 @@ export const VFXFactory = {
                 ctx.fillStyle = isChaos ? '#7f1d1d' : '#f0f9ff';
                 ctx.beginPath();
                 if (isChaos) {
-                    // Jagged Head
                     ctx.moveTo(85, cy); 
                     ctx.lineTo(65, cy - 8); ctx.lineTo(70, cy); ctx.lineTo(65, cy + 8);
                 } else {
-                    // Clean Bodkin
                     ctx.moveTo(90, cy); ctx.lineTo(70, cy - 6); ctx.lineTo(70, cy + 6);
                 }
                 ctx.closePath();
                 ctx.fill();
                 
-                // Trail feather / energy
                 ctx.strokeStyle = color;
                 ctx.beginPath();
                 if (isChaos) {
                     ctx.moveTo(20, cy); ctx.lineTo(5, cy - 10);
                     ctx.moveTo(20, cy); ctx.lineTo(5, cy + 10);
                 } else {
-                    // Glowing flight
                     ctx.moveTo(15, cy - 5); ctx.lineTo(5, cy); ctx.lineTo(15, cy + 5);
                 }
                 ctx.stroke();
@@ -253,7 +232,6 @@ export const VFXFactory = {
 
             case 'FIREBALL':
             case 'BOMB':
-                // Core
                 const coreGrad = ctx.createRadialGradient(cx+20, cy, 0, cx+20, cy, 15);
                 coreGrad.addColorStop(0, '#fff');
                 coreGrad.addColorStop(0.5, color);
@@ -262,35 +240,48 @@ export const VFXFactory = {
                 
                 ctx.beginPath(); ctx.arc(cx + 20, cy, 14, 0, Math.PI * 2); ctx.fill();
                 
-                // Tail / Comet
                 ctx.fillStyle = color;
                 ctx.globalAlpha = 0.8;
                 ctx.beginPath();
                 if (isChaos) {
-                    // Wild Flame
                     ctx.moveTo(cx + 20, cy - 12);
                     ctx.lineTo(cx, cy - 20); ctx.lineTo(cx - 20, cy - 5);
                     ctx.lineTo(cx - 35, cy);
                     ctx.lineTo(cx - 20, cy + 8); ctx.lineTo(cx, cy + 22);
                     ctx.lineTo(cx + 20, cy + 12);
                 } else {
-                    // Smooth Streamline
                     ctx.ellipse(cx + 5, cy, 35, 12, 0, 0, Math.PI * 2);
                 }
                 ctx.fill();
+                break;
+
+            case 'SLASH':
+                // New specialized slash shape for 2-tile attacks
+                ctx.translate(cx, cy);
+                // Draw a crescent moon shape
+                ctx.beginPath();
+                ctx.arc(0, 0, 30, -Math.PI/3, Math.PI/3, false);
+                ctx.arc(-10, 0, 30, Math.PI/3, -Math.PI/3, true);
+                ctx.closePath();
+                ctx.fillStyle = '#fff';
+                ctx.fill();
+                
+                ctx.shadowColor = color;
+                ctx.shadowBlur = 15;
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
                 break;
 
             case 'BOLT':
             case 'BEAM':
             default:
                 if (isChaos) {
-                    // --- CHAOS BOLT (Dark Energy Skull/Claw) ---
-                    ctx.fillStyle = '#1c1917'; // Dark core
+                    ctx.fillStyle = '#1c1917'; 
                     ctx.strokeStyle = color;
                     ctx.lineWidth = 3;
                     
                     ctx.beginPath();
-                    // Jagged shape
                     ctx.moveTo(cx + 35, cy);
                     ctx.lineTo(cx + 10, cy - 15);
                     ctx.lineTo(cx - 10, cy - 5);
@@ -300,15 +291,12 @@ export const VFXFactory = {
                     ctx.closePath();
                     ctx.fill(); ctx.stroke();
                     
-                    // Lightning Arcs
                     ctx.beginPath();
                     ctx.moveTo(cx + 35, cy); ctx.lineTo(cx + 45, cy - 12);
                     ctx.moveTo(cx + 35, cy); ctx.lineTo(cx + 45, cy + 12);
                     ctx.stroke();
 
                 } else {
-                    // --- HOLY BOLT (Geometric Star/Diamond) ---
-                    // Inner Light
                     const boltGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 25); 
                     boltGrad.addColorStop(0, '#fff');
                     boltGrad.addColorStop(0.5, color);
@@ -316,17 +304,14 @@ export const VFXFactory = {
                     ctx.fillStyle = boltGrad;
                     ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.fill();
 
-                    // Hard Core Shape
                     ctx.fillStyle = '#fff';
                     ctx.shadowColor = '#fff';
                     ctx.beginPath();
-                    // Diamond
                     ctx.moveTo(cx + 35, cy); ctx.lineTo(cx, cy - 12);
                     ctx.lineTo(cx - 15, cy); ctx.lineTo(cx, cy + 12);
                     ctx.closePath();
                     ctx.fill();
                     
-                    // Orbital Rings
                     ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.shadowBlur = 5;
                     ctx.beginPath(); 
                     ctx.ellipse(cx, cy, 15, 8, 0, 0, Math.PI*2); 
@@ -346,7 +331,6 @@ export const VFXFactory = {
         
         ctx.scale(1, 0.5); 
         
-        // Procedural Noise Rings instead of simple gradient
         const rings = 5;
         for(let i = 0; i < rings; i++) {
             const r = (50 / rings) * (i + 1);
@@ -357,7 +341,6 @@ export const VFXFactory = {
             ctx.lineWidth = 2 + Math.random() * 2;
             ctx.globalAlpha = alpha * 0.5;
             
-            // Noisy circle
             const segments = 24;
             for(let j=0; j<=segments; j++) {
                 const a = (j/segments) * Math.PI * 2;
@@ -372,7 +355,6 @@ export const VFXFactory = {
             ctx.stroke();
         }
         
-        // Inner Core
         const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 25);
         grad.addColorStop(0, isChaos ? '#000' : '#fff'); 
         grad.addColorStop(0.5, color);

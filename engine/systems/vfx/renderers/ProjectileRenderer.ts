@@ -31,15 +31,26 @@ export const ProjectileRenderer = {
                  hEnd = getTerrainHeight(targetHex.q, targetHex.r);
              }
 
-             const getVisualPos = (lx: number, ly: number) => {
-                 const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: lx, y: ly});
-                 const t = Math.min(1, Math.max(0, currentDist / totalDist));
+             // Calculate Visual Position with Arcing/Wobble
+             const getVisualPos = (lx: number, ly: number, flightProgress: number) => {
+                 const t = flightProgress;
                  const currentTerrainHeight = hStart + (hEnd - hStart) * t;
                  
                  let arcOffset = 0;
-                 if (p.skill.visual === 'ARROW' || p.skill.visual === 'FIREBALL' || p.skill.visual === 'BOMB') {
-                     const apex = Math.min(150, totalDist * 0.3);
-                     arcOffset = Math.sin(t * Math.PI) * apex; 
+                 
+                 // TYPE 1: PHYSICAL ARC (Arrow, Bomb) - Gravity based
+                 if (p.skill.visual === 'ARROW' || p.skill.visual === 'BOMB') {
+                     // High arc for bombs, shallow for arrows
+                     const arcHeight = p.skill.visual === 'BOMB' ? 250 : 80; 
+                     // Parabola: 4 * h * t * (1-t)
+                     arcOffset = 4 * arcHeight * t * (1 - t);
+                 } 
+                 // TYPE 2: MAGICAL (Bolt, Fireball) - Wobble/Straight
+                 else if (p.skill.visual === 'BOLT' || p.skill.visual === 'FIREBALL') {
+                     // Sine wave wobble based on distance traveled
+                     const wobbleFreq = 0.2; 
+                     const wobbleAmp = 10;
+                     arcOffset = Math.sin(lx * wobbleFreq + ly * wobbleFreq) * wobbleAmp;
                  }
                  
                  const off = getTransitionOffset(lx, ly, engine.mapConfig, transitionT, transitionPhase);
@@ -50,26 +61,22 @@ export const ProjectileRenderer = {
                  };
              };
 
-             const headVis = getVisualPos(p.x, p.y);
+             const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y});
+             const progress = Math.min(1, Math.max(0, currentDist / totalDist));
+             const headVis = getVisualPos(p.x, p.y, progress);
              
-             // Direction Logic
-             const lookAheadDist = 5;
-             const currentDir = Vector.sub(p.targetPos, {x: p.x, y: p.y});
-             const distRemaining = Vector.mag(currentDir);
-             let dir;
-             if (distRemaining > 0.1) {
-                 dir = Vector.normalize(currentDir);
-             } else {
-                 const totalTrajectory = Vector.sub(p.targetPos, {x: p.startX, y: p.startY});
-                 const totalMag = Vector.mag(totalTrajectory);
-                 dir = totalMag > 0.1 ? Vector.normalize(totalTrajectory) : {x: 1, y: 0};
-             }
-
-             const nextLx = p.x + dir.x * lookAheadDist;
-             const nextLy = p.y + dir.y * lookAheadDist;
-             const nextVis = getVisualPos(nextLx, nextLy);
+             // Look-Ahead Rotation Calculation
+             // We sample a point slightly ahead on the ideal trajectory to determine angle
+             const lookAheadDist = 10;
+             const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
+             const nextLx = p.x + rawDir.x * lookAheadDist;
+             const nextLy = p.y + rawDir.y * lookAheadDist;
+             const nextProgress = Math.min(1, Math.max(0, Vector.dist({x: p.startX, y: p.startY}, {x: nextLx, y: nextLy}) / totalDist));
+             
+             const nextVis = getVisualPos(nextLx, nextLy, nextProgress);
+             
              const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
-             const spin = p.skill.visual === 'BOMB' ? (Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y}) * 0.1) : 0;
+             const spin = p.skill.visual === 'BOMB' ? (progress * 15) : 0;
              
              // Style Logic
              const isChaos = isChaosStyle(p.skill.color);
@@ -79,17 +86,22 @@ export const ProjectileRenderer = {
                  draw: (ctx) => {
                     // --- 1. Draw Trail ---
                     if (p.trail.length > 1) {
-                        const trailVis = p.trail.map(t => getVisualPos(t.x, t.y));
-                        trailVis.push(headVis);
-
+                        // Re-calculate trail visual positions based on their stored world pos
+                        // Note: trails store just {x, y}, we need to derive progress for height
+                        
                         ctx.save();
                         
                         if (p.skill.visual === 'ARROW') {
                             // Thin faint line
                             ctx.beginPath();
-                            ctx.moveTo(trailVis[0].x, trailVis[0].y);
-                            for (let i = 1; i < trailVis.length; i++) ctx.lineTo(trailVis[i].x, trailVis[i].y);
-                            ctx.strokeStyle = `rgba(255, 255, 255, 0.2)`;
+                            // Move to tail
+                            const tail = p.trail[0];
+                            const tailDist = Vector.dist({x: p.startX, y: p.startY}, tail);
+                            const tailVis = getVisualPos(tail.x, tail.y, tailDist/totalDist);
+                            ctx.moveTo(tailVis.x, tailVis.y);
+                            ctx.lineTo(headVis.x, headVis.y);
+                            
+                            ctx.strokeStyle = `rgba(255, 255, 255, 0.4)`;
                             ctx.lineWidth = 1;
                             ctx.stroke();
                         } else {
@@ -98,36 +110,35 @@ export const ProjectileRenderer = {
                             ctx.lineJoin = 'round';
                             ctx.globalCompositeOperation = 'lighter';
 
-                            // Draw segment by segment to allow for jitter/style
-                            for (let i = 0; i < trailVis.length - 1; i++) {
-                                const pt = trailVis[i];
-                                const next = trailVis[i+1];
-                                const ratio = i / (trailVis.length - 1); 
+                            const trailPoints = p.trail.map(t => {
+                                const d = Vector.dist({x: p.startX, y: p.startY}, t);
+                                return getVisualPos(t.x, t.y, d/totalDist);
+                            });
+                            trailPoints.push(headVis);
+
+                            // Draw segment by segment
+                            for (let i = 0; i < trailPoints.length - 1; i++) {
+                                const pt = trailPoints[i];
+                                const next = trailPoints[i+1];
+                                const ratio = i / (trailPoints.length - 1); 
                                 
                                 const baseWidth = (p.skill.visual === 'FIREBALL' || p.skill.visual === 'SMASH') ? 24 : 12;
                                 ctx.lineWidth = baseWidth * ratio;
                                 ctx.strokeStyle = p.skill.color;
                                 
                                 ctx.beginPath();
+                                ctx.moveTo(pt.x, pt.y);
+                                ctx.lineTo(next.x, next.y);
                                 
                                 if (isChaos) {
-                                    // CHAOS: Jittery, Electric Arc
-                                    const jitterX = (Math.random() - 0.5) * 5 * (1-ratio);
-                                    const jitterY = (Math.random() - 0.5) * 5 * (1-ratio);
-                                    ctx.moveTo(pt.x + jitterX, pt.y + jitterY);
-                                    ctx.lineTo(next.x + jitterX, next.y + jitterY);
-                                    ctx.globalAlpha = ratio; 
+                                    ctx.globalAlpha = ratio * 0.8; 
                                 } else {
-                                    // ORDER: Smooth, glowing center
-                                    ctx.moveTo(pt.x, pt.y);
-                                    ctx.lineTo(next.x, next.y);
-                                    ctx.globalAlpha = ratio * 0.6;
+                                    ctx.globalAlpha = ratio * 0.5;
                                 }
                                 ctx.stroke();
                                 
                                 if (!isChaos) {
-                                    // White core for Order
-                                    ctx.lineWidth = baseWidth * ratio * 0.4;
+                                    ctx.lineWidth = baseWidth * ratio * 0.3;
                                     ctx.strokeStyle = '#fff';
                                     ctx.stroke();
                                 }
@@ -139,6 +150,9 @@ export const ProjectileRenderer = {
                     // --- 2. Draw Shadow ---
                     ctx.save();
                     ctx.translate(headVis.x, headVis.shadowY);
+                    const altitude = headVis.shadowY - headVis.y;
+                    const shadowScale = Math.max(0.2, 1 - altitude/300);
+                    ctx.scale(shadowScale, shadowScale);
                     ctx.fillStyle = 'rgba(0,0,0,0.3)';
                     ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
                     ctx.restore();

@@ -1,4 +1,5 @@
 
+
 export enum Team {
     BLUE = 0,
     RED = 1
@@ -154,7 +155,7 @@ export interface Projectile {
 
 // Event System (Bridge between Logic and Visuals)
 // Added VISUAL_BEAM for strict enforcement of instant ranged attacks
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK';
+export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH';
 
 export interface GameEvent {
     type: GameEventType;

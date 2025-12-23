@@ -1,4 +1,5 @@
 
+
 import { Agent, GameEngine } from "../../game";
 import { Skill, GameEventType, AnimState } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
@@ -14,18 +15,11 @@ export class SkillResolutionSystem {
         if (a.stunTimer > 0 || a.banished || a.silenceTimer > 0 || a.hp <= 0) {
             const skillIdx = a.castingSkillIdx;
             
-            // If actively casting, create a visual snapshot of the "Broken" spell
             if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
                 const s = a.skills[skillIdx]!;
                 const skillName = s.name;
                 engine.log(a, 'CC', '中斷', skillName, '詠唱被打斷');
                 
-                // --- 1. STOP "START" VISUAL IMMEDIATELY ---
-                // We do this by clearing the skill index. 
-                // The GridSystem checks castingSkillIdx, so resetting it hides the AOE circle instantly.
-                // We rely on the CAST_BREAK event to spawn the "Broken" particles.
-                
-                // --- 2. EMIT BREAK EVENT (Physics Shatter) ---
                 let centerHex = { q: a.q, r: a.r };
                 let centerPos = { x: a.px, y: a.py };
                 
@@ -33,7 +27,6 @@ export class SkillResolutionSystem {
                     if (a.targetHex) {
                         centerHex = a.targetHex;
                         centerPos = HexUtils.toPx(centerHex.q, centerHex.r, engine.mapConfig);
-                        // Adjust Y for terrain height
                         const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
                         centerPos.y -= h;
                     }
@@ -41,12 +34,10 @@ export class SkillResolutionSystem {
                         centerHex = {q: a.target.q, r: a.target.r};
                         centerPos = {x: a.target.px, y: a.target.py};
                     } else {
-                        // Self cast AOE
                         const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
                         centerPos.y -= h;
                     }
                 } else {
-                    // Single target cast break - maybe just show on caster
                     const h = engine.map.getTerrainHeight(centerHex.q, centerHex.r);
                     centerPos.y -= h;
                 }
@@ -54,7 +45,7 @@ export class SkillResolutionSystem {
                 engine.events.push({
                     type: 'CAST_BREAK',
                     pos: centerPos,
-                    value: s.aoeRadius || 1, // Pass radius for particle spread
+                    value: s.aoeRadius || 1, 
                     color: s.color,
                     skill: s
                 });
@@ -128,26 +119,40 @@ export class SkillResolutionSystem {
         
         const origin = {x: source.px, y: source.py};
         
-        // 2. VISUAL ENFORCEMENT: Beam/Tracer for Ranged Instant Attacks
-        // If range > 1, we MUST draw a line. If range == 1, it's melee (SMASH/SLASH) handles itself via hit effect.
+        // 2. VISUAL HANDLING
         targets.forEach(t => {
             const dist = HexUtils.dist(source, t);
-            if (dist > 1) {
+            
+            // A. Long Range Instant (Beams)
+            if (dist > 2) {
                 engine.events.push({
                     type: 'VISUAL_BEAM',
-                    pos: { x: t.px, y: t.py }, // Beam End Point
+                    pos: { x: t.px, y: t.py },
+                    sourceId: source.id,
+                    targetId: t.id,
+                    skill: skill,
+                    color: skill.color
+                });
+            } 
+            // B. Extended Melee (Range 2) - "Lunge" or "Phantom Strike"
+            else if (dist === 2) {
+                engine.events.push({
+                    type: 'VISUAL_SLASH',
+                    pos: { x: t.px, y: t.py },
                     sourceId: source.id,
                     targetId: t.id,
                     skill: skill,
                     color: skill.color
                 });
             }
+            // C. Close Melee (Range 1) - Standard impact handled in resolveHit
+
             this.resolveHit(source, t, skill, origin, engine);
         });
 
         // 3. Melee / Self / Miss Visuals
         if (targets.length === 0 && skill.type === 'AOE' && centerHex) {
-             // Missed/Ground Hit logic if needed, but CAST_FINISH handles the ground circle/smash visual
+             // Ground Hit logic...
         }
 
         engine.events.push({ type: 'CAST_FINISH', pos: {x: source.px, y: source.py}, skill: skill });
@@ -169,6 +174,18 @@ export class SkillResolutionSystem {
         let val = 0;
         const oldHp = Math.ceil(target.hp);
 
+        // --- PHYSICS & DIRECTIONAL IMPACT CALCULATION ---
+        const originX = origin ? origin.x : source.px;
+        const originY = origin ? origin.y : source.py;
+        let dx = target.px - originX;
+        let dy = target.py - originY;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        let impactDir = { x: 0, y: 0 };
+        
+        if (len > 0) {
+            impactDir = { x: dx / len, y: dy / len };
+        }
+
         if (rawDmg > 0) {
             target.hp -= rawDmg;
             val = -rawDmg;
@@ -177,16 +194,10 @@ export class SkillResolutionSystem {
             target.hitFlashTimer = 0.2;
 
             // Physics Impulse
-            const originX = origin ? origin.x : source.px;
-            const originY = origin ? origin.y : source.py;
-            let dx = target.px - originX;
-            let dy = target.py - originY;
-            const len = Math.sqrt(dx * dx + dy * dy);
             if (len > 0) {
-                dx /= len; dy /= len;
                 const impactForce = Math.min(HIT_IMPULSE_MAX, Math.max(HIT_IMPULSE_MIN, rawDmg * 0.3));
-                target.physics.vx += dx * impactForce;
-                target.physics.vy += dy * impactForce;
+                target.physics.vx += impactDir.x * impactForce;
+                target.physics.vy += impactDir.y * impactForce;
                 target.physics.vAngle += (Math.random() - 0.5) * impactForce * 0.05;
             }
 

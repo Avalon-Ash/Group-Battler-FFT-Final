@@ -1,4 +1,5 @@
 
+
 import { GameEngine } from "../game";
 import { GameEvent, Team } from "../../types";
 import { HexUtils } from "../utils";
@@ -41,8 +42,10 @@ export class VisualEventListener {
                  if (event.type === 'DAMAGE') {
                      const val = Math.abs(event.value || 0);
                      text = val.toString();
-                     color = val > 100 ? '#ef4444' : '#fff'; 
-                     size = val > 100 ? 24 : 16;
+                     // Highlight high damage
+                     const isCrit = val > 100;
+                     color = isCrit ? '#ef4444' : '#fff'; 
+                     size = isCrit ? 24 : 16;
                      type = 'DAMAGE';
                      xOffset = (Math.random() - 0.5) * 10;
                  } else if (event.type === 'HEAL') {
@@ -73,20 +76,80 @@ export class VisualEventListener {
                  if (event.skill && event.skill.tag === 'ULT') {
                      if (event.skill.projectileSpeed === 0 || event.skill.power <= 0) {
                          VFXSpawners.spawnDomainExpansion(vfx, event.pos.x, event.pos.y, event.skill.color, 4.0);
-                         camera.addTrauma(0.3); 
+                         // Reduced cast impact
+                         camera.addTrauma(0.2); 
                      }
                  }
             }
 
             // 2. VFX Handling
             switch (event.type) {
+                case 'VISUAL_SLASH':
+                    if (event.sourceId && event.targetId) {
+                        const source = engine.agents.find(a => a.id === event.sourceId);
+                        const target = engine.agents.find(a => a.id === event.targetId);
+                        if (source && target) {
+                            const sHex = HexUtils.fromPx(source.px, source.py, engine.mapConfig);
+                            const sH = grid.getTerrainHeight(sHex.q, sHex.r, engine);
+                            
+                            const tHex = HexUtils.fromPx(target.px, target.py, engine.mapConfig);
+                            const tH = grid.getTerrainHeight(tHex.q, tHex.r, engine);
+
+                            VFXSpawners.spawnConnectorSlash(
+                                vfx,
+                                source.px, source.py - sH,
+                                target.px, target.py - tH,
+                                event.color || '#fff',
+                                event.skill?.visual || 'SLASH'
+                            );
+                        }
+                    }
+                    break;
+
                 case 'DAMAGE': 
-                    const isHeavy = Math.abs(event.value || 0) > 50;
-                    VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY - 20, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
+                    const dmg = Math.abs(event.value || 0);
+                    const isHeavy = dmg > 50; 
+                    
+                    // Directional Impact Logic
+                    let handled = false;
+                    if (event.sourceId && event.targetId) {
+                        const s = engine.agents.find(a => a.id === event.sourceId);
+                        const t = engine.agents.find(a => a.id === event.targetId);
+                        if (s && t) {
+                            // Calc direction
+                            // We use world coordinates (px, py) from Agent, which are flat.
+                            const dx = t.px - s.px;
+                            const dy = t.py - s.py;
+                            const len = Math.sqrt(dx*dx + dy*dy);
+                            if (len > 0) {
+                                const dirX = dx / len;
+                                const dirY = dy / len;
+                                
+                                const type = (event.skill?.visual === 'SLASH' || event.skill?.visual === 'SMASH') ? 'PHYSICAL' : 'MAGICAL';
+                                
+                                VFXSpawners.spawnDirectionalImpact(
+                                    vfx,
+                                    event.pos.x, visualY - 20,
+                                    dirX, dirY,
+                                    event.color || '#fff',
+                                    type
+                                );
+                                handled = true;
+                            }
+                        }
+                    }
+
+                    if (!handled) {
+                        // Fallback generic explosion
+                        // Reduced particle count via factory
+                        VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY - 20, 0, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
+                    }
                     
                     if (isHeavy) {
+                        // Only shake on heavy hits
                         camera.addTrauma(0.15);
-                        VFXSpawners.spawnDebris(vfx, event.pos.x, visualY - 20, event.color || '#fff', 3);
+                        // Debris is now disabled in spawner, but we could re-enable for crits here if desired
+                        // VFXSpawners.spawnDebris(vfx, event.pos.x, visualY - 20, event.color || '#fff', 3);
                     }
                     break;
 
@@ -103,7 +166,7 @@ export class VisualEventListener {
                             const ty = visualY - 20; 
                             
                             VFXSpawners.spawnBeam(vfx, sx, sy, tx, ty, event.color || '#fff');
-                            VFXSpawners.spawnExplosion(vfx, tx, ty, 0, 8, event.color || '#fff', 0.5, 0.5, 'SPARK');
+                            VFXSpawners.spawnExplosion(vfx, tx, ty, 0, 5, event.color || '#fff', 0.5, 0.5, 'SPARK');
                         }
                     }
                     break;
@@ -124,7 +187,7 @@ export class VisualEventListener {
                     
                 case 'CAST_BREAK':
                     VFXSpawners.spawnDomainShatter(vfx, event.pos.x, event.pos.y, event.value || 1, event.color || '#fff');
-                    camera.addTrauma(0.15);
+                    camera.addTrauma(0.1);
                     break;
             }
         });
@@ -142,9 +205,9 @@ export class VisualEventListener {
         const isUlt = event.skill?.tag === 'ULT';
         
         if (isUlt) {
-            camera.addTrauma(0.5); 
-            VFXSpawners.spawnDivinePillar(vfx, event.pos.x, visualY, color, 1.5);
-            VFXSpawners.spawnShockwave(vfx, event.pos.x, visualY, color, 2.0);
+            camera.addTrauma(0.4); // Ult impact
+            VFXSpawners.spawnDivinePillar(vfx, event.pos.x, visualY, color, 1.2);
+            VFXSpawners.spawnShockwave(vfx, event.pos.x, visualY, color, 1.5);
             
             if (event.skill?.type === 'AOE') {
                 const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
@@ -157,36 +220,34 @@ export class VisualEventListener {
                         const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                         const tileVisualY = tilePos.y - tileH;
                         
-                        const distToCenter = Math.abs(h.q - centerHex.q) + Math.abs(h.r - centerHex.r);
-                        if (distToCenter > 0) {
-                            const delay = distToCenter * 0.05;
-                            VFXSpawners.spawnDivinePillar(vfx, tilePos.x, tileVisualY, color, 0.7, delay);
-                            VFXSpawners.addGridFlash(vfx, h.q, h.r, color);
-                        } else {
-                            VFXSpawners.addGridFlash(vfx, h.q, h.r, color);
+                        // Reduced visual density for AOE tiles
+                        if (Math.random() < 0.3) { 
+                            VFXSpawners.spawnExplosion(vfx, tilePos.x, tileVisualY, 0, 3, color, 1.0, 0.5, 'SPARK');
                         }
                     }
                 });
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 2.0);
             } else {
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 3.0);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, color, 2.0, 1.0, 'SPARK');
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 2.0);
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 30, color, 1.5, 0.8, 'SPARK');
             }
         } else {
+            // Normal Projectile
             if (event.skill?.type === 'AOE') {
                 const center = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
                 const radius = event.skill.aoeRadius || 1;
                 HexUtils.range(center, radius).forEach(h => {
                     if (engine.isValid(h.q, h.r)) {
-                        VFXSpawners.addGridFlash(vfx, h.q, h.r, color);
+                        // REMOVED: GridFlash on normal hits (Too noisy)
                         if (h.q === center.q && h.r === center.r) {
                             VFXSpawners.addDecal(vfx, event.pos.x, visualY, color);
                         }
                     }
                 });
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 1.2);
-            } else {
                 VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 0.8);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 8, color, 1.2, 0.6, 'SPARK');
+            } else {
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, color, 'RING', 0.6);
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 5, color, 1.0, 0.5, 'SPARK');
             }
         }
     }
