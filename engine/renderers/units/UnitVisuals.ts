@@ -10,9 +10,9 @@ import { Team } from "../../../types";
 
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
     const isBlue = agent.team === Team.BLUE;
-    const color = isBlue ? '#60a5fa' : '#f87171'; // Blue-400 : Red-400
+    const color = isBlue ? '#60a5fa' : '#f87171';
     
-    // We are at Ground Level (0,0).
+    // We are at Ground Level (0,0) in the scaled context.
     // Unit Feet are at (physX, physY - physZ).
     
     const feetX = physX;
@@ -20,43 +20,64 @@ export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t:
     
     ctx.save();
 
-    // 1. Ground Shadow / Rune (Projection Source)
-    // No more solid column. Just a projection mark on the ground.
+    // 1. Ground Anchor (The Base)
+    // Rotating Rune Ring - Clear indication of ground position
+    ctx.save();
+    ctx.scale(1, 0.58); // Isometric flat on ground
+    ctx.rotate(t * 0.5);
+    
+    // Outer dashed ring
     ctx.globalAlpha = 0.6;
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
-    
-    // Scale shadow based on height to give depth cue
-    // Higher = Smaller shadow
-    const heightRatio = Math.max(0.5, 1 - Math.abs(physZ) / 300);
-    ctx.scale(heightRatio, heightRatio);
-    
+    ctx.setLineDash([8, 4]);
     ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI * 2);
+    ctx.arc(0, 0, 18, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Rotating crosshair
-    ctx.save();
-    ctx.rotate(t);
+    // Inner solid ring/plate
+    ctx.setLineDash([]);
     ctx.lineWidth = 1;
-    ctx.setLineDash([5, 5]);
+    ctx.globalAlpha = 0.3;
     ctx.beginPath();
-    ctx.arc(0, 0, 15, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.arc(0, 0, 12, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 
-    // 2. Faint Connection Line (Optional, very subtle holographic tether)
-    // Only visible if very high up to help tracking
-    if (Math.abs(physZ) > 60) {
-        ctx.restore(); // Reset scale
-        ctx.save();
-        ctx.globalAlpha = 0.15;
-        ctx.setLineDash([4, 8]);
-        ctx.lineWidth = 1;
+    // 2. Holographic Tether (The Lift)
+    // Only visible if unit is airborne to show connection
+    if (physZ > 5) {
+        const grad = ctx.createLinearGradient(0, 0, feetX, feetY);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, 'transparent'); // Fade out near unit feet
+
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.5;
+        
+        // Draw Main Tether Line
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(feetX, feetY);
         ctx.stroke();
+
+        // Draw Moving Energy Pulses up the tether
+        const pulseCount = 3;
+        ctx.fillStyle = isBlue ? '#e0f2fe' : '#fecaca';
+        ctx.globalAlpha = 0.8;
+        
+        for(let i=0; i<pulseCount; i++) {
+            const p = (t * 0.8 + i / pulseCount) % 1.0; // 0 to 1, faster speed
+            const px = feetX * p;
+            const py = feetY * p;
+            
+            // Draw small horizontal dash/disk traveling up
+            // Scale based on height to simulate perspective
+            const scale = 1 - p * 0.5;
+            ctx.beginPath();
+            ctx.ellipse(px, py, 4 * scale, 2 * scale, 0, 0, Math.PI*2);
+            ctx.fill();
+        }
     }
 
     ctx.restore();
