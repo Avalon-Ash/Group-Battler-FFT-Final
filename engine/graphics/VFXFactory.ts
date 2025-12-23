@@ -33,10 +33,12 @@ export const VFXFactory = {
          const r = size / 2;
          const isChaos = isChaosStyle(color);
          
-         const grad = ctx.createRadialGradient(cx, cy, r * 0.1, cx, cy, r);
+         // Improved Gradient for softer falloff (Fixes banding)
+         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
          grad.addColorStop(0, '#fff');        
-         grad.addColorStop(0.4, color);       
-         grad.addColorStop(1, 'transparent'); 
+         grad.addColorStop(0.15, color); // Tight core
+         grad.addColorStop(0.4, color);  
+         grad.addColorStop(1, 'rgba(0,0,0,0)'); 
          
          ctx.fillStyle = grad;
          
@@ -46,7 +48,7 @@ export const VFXFactory = {
              const spikes = 12;
              for(let i=0; i<spikes; i++) {
                  const angle = (i / spikes) * Math.PI * 2;
-                 const rad = r * (0.6 + Math.random() * 0.4);
+                 const rad = r * (0.7 + Math.random() * 0.3);
                  const x = cx + Math.cos(angle) * rad;
                  const y = cy + Math.sin(angle) * rad;
                  if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -54,16 +56,19 @@ export const VFXFactory = {
              ctx.closePath();
              ctx.fill();
          } else {
-             // Order: Perfect Sphere with Cross Flare
+             // Order: Perfect Sphere
              ctx.beginPath(); 
-             ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2); 
+             ctx.arc(cx, cy, r, 0, Math.PI * 2); 
              ctx.fill();
              
+             // Soft Cross Flare
              ctx.fillStyle = '#fff';
-             ctx.globalAlpha = 0.8;
+             ctx.globalAlpha = 0.5;
              ctx.beginPath();
-             ctx.ellipse(cx, cy, r, r*0.15, 0, 0, Math.PI*2);
-             ctx.ellipse(cx, cy, r*0.15, r, 0, 0, Math.PI*2);
+             ctx.ellipse(cx, cy, r * 0.8, r * 0.1, 0, 0, Math.PI*2);
+             ctx.fill();
+             ctx.beginPath();
+             ctx.ellipse(cx, cy, r * 0.1, r * 0.8, 0, 0, Math.PI*2);
              ctx.fill();
          }
          

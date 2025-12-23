@@ -7,23 +7,39 @@ export const ParticleRenderer = {
     drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.save();
         
-        // Shared translation
+        // Context is already translated to Visual Position (Ground Y - Z)
         ctx.translate(p.x, p.y);
+
+        // --- PHYSICAL SHADOW PASS (Fixes "Floating" feeling) ---
+        // We are currently at [x, GroundY - Z].
+        // To draw shadow at GroundY, we must translate down by Z.
+        if (['DEBRIS', 'SHARD', 'SPRITE'].includes(p.type) && p.z > 5) {
+            ctx.save();
+            ctx.translate(0, p.z); // Move "down" to ground level
+            ctx.scale(1, 0.5); // Isometric shadow squash
+            
+            // Dynamic shadow opacity based on height
+            const shadowAlpha = Math.max(0, 0.4 - (p.z / 400));
+            if (shadowAlpha > 0) {
+                ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+                const shadowSize = p.size * 0.8;
+                ctx.beginPath();
+                ctx.arc(0, 0, shadowSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
 
         if (p.type === 'SPRITE') {
             if (p.image) {
                 const alpha = Math.min(1, (1 - progress) * 5); 
                 ctx.globalAlpha = alpha;
-                if (p.z < 20) {
-                    ctx.save();
-                    ctx.translate(0, p.z);
-                    ctx.scale(1, 0.5);
-                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                    ctx.beginPath(); ctx.arc(0, 0, p.size/3, 0, Math.PI*2); ctx.fill();
-                    ctx.restore();
-                }
+                
+                // Perspective Scale: Things closer to camera (higher Z) look slightly bigger
+                const perspective = 1.0 + (p.z * 0.002);
+                
                 ctx.rotate(p.rotation);
-                const scale = p.size / 64; 
+                const scale = (p.size / 64) * perspective; 
                 ctx.scale(scale, scale);
                 ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
             }
@@ -32,6 +48,12 @@ export const ParticleRenderer = {
             ctx.rotate(p.rotation); 
             ctx.fillStyle = p.color;
             ctx.globalAlpha = 1 - Math.pow(progress, 4);
+            
+            // Motion Stretch
+            const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+            const stretch = Math.min(2.0, 1 + speed / 1000);
+            ctx.scale(stretch, 1/stretch);
+
             const s = p.size;
             ctx.beginPath();
             ctx.moveTo(-s, -s/2); ctx.lineTo(0, -s); ctx.lineTo(s, -s/2); ctx.lineTo(0, s);
@@ -40,11 +62,18 @@ export const ParticleRenderer = {
         } else if (p.type === 'SHARD') {
             ctx.rotate(p.rotation);
             ctx.fillStyle = p.color;
-            ctx.beginPath();
+            
+            // Spin blur effect
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = p.vRotation > 5 ? 10 : 0;
+
             const s = p.size;
+            ctx.beginPath();
             ctx.moveTo(-s, -s/2); ctx.lineTo(0, -s); ctx.lineTo(s, -s/2); ctx.lineTo(0, s);
             ctx.fill();
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            
+            // Highlight edge
+            ctx.strokeStyle = 'rgba(255,255,255,0.6)';
             ctx.lineWidth = 1;
             ctx.stroke();
 
@@ -100,7 +129,6 @@ export const ParticleRenderer = {
             ctx.strokeStyle = p.color;
             ctx.lineWidth = 2;
             ctx.globalAlpha = 1 - progress;
-            // Removed 'lighter' to reduce exposure, standard alpha blend
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
 
         } else if (p.type === 'SPARK') {
@@ -108,6 +136,15 @@ export const ParticleRenderer = {
             ctx.fillStyle = p.color;
             ctx.globalAlpha = 1 - Math.pow(progress, 3); 
             ctx.globalCompositeOperation = 'lighter'; 
+            
+            // Motion Stretch for Sparks
+            const vel = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
+            if (vel > 50) {
+                const angle = Math.atan2(p.vy, p.vx);
+                ctx.rotate(angle);
+                ctx.scale(1 + vel/500, 0.5);
+            }
+            
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
 
         } else if (p.type === 'DEBRIS') {
@@ -116,7 +153,8 @@ export const ParticleRenderer = {
             ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
             
         } else if (p.type === 'PILLAR') {
-            ctx.translate(0, -20); 
+            // Anchor correction for pillar to grow UP from ground
+            // p.y is ground, p.z is 0 usually for pillar anchors
             this.drawDivinePillar(ctx, p, progress);
         } else if (p.type === 'SHOCKWAVE') {
             ctx.translate(0, -20);
@@ -129,72 +167,102 @@ export const ParticleRenderer = {
         ctx.restore();
     },
 
-    // 🏛️ BLUE: DIVINE PILLAR (ORDER)
-    // Enhanced: Faster flow, central core beam, energetic fade
+    // 🏛️ BLUE: DIVINE PILLAR (High-End Technical Art)
+    // Optimized: Replaced solid rects with multi-layered blending for an ethereal look.
     drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         const lifeRatio = p.life / p.maxLife;
+        
+        // Easing: Fast In, Slow Out
         let alpha = 0;
-        // Sharper fade in/out for impact
-        if (lifeRatio > 0.8) alpha = (1 - lifeRatio) * 5; 
-        else if (lifeRatio < 0.2) alpha = lifeRatio * 5; 
-        else alpha = 1.0;
-
-        const height = 1500; // Even taller
+        if (lifeRatio > 0.9) alpha = (1 - lifeRatio) * 10; // 0.1s fade in
+        else alpha = Math.pow(lifeRatio, 0.5); // Slow decay
+        
+        const maxHeight = 1200;
+        // Growth animation: Shoots up instantly, then holds
+        const currentHeight = maxHeight * (progress < 0.1 ? progress * 10 : 1.0);
         const width = p.size;
 
         ctx.save();
-        ctx.scale(1, 0.55); 
-
-        // 1. Ground Energy Ring (Impact Zone)
-        ctx.globalCompositeOperation = 'lighter';
+        
+        // Layer 1: Ground Seal (The Impact Point)
+        ctx.save();
+        ctx.scale(1, 0.55);
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = alpha;
+        
+        // Inner hot ring
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.arc(0, 0, width * 0.8, 0, Math.PI*2); ctx.stroke();
+        
+        // Outer shockwave ring
+        const wave = (progress * 2) % 1;
         ctx.strokeStyle = p.color;
-        ctx.lineWidth = 4 * alpha;
-        ctx.globalAlpha = alpha * 0.8;
-        ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2); ctx.stroke();
-        
-        // 2. Rising Energy Rings (Faster Speed)
         ctx.lineWidth = 2;
-        const ringCount = 4;
-        for(let i=0; i<ringCount; i++) {
-            // Speed up the flow
-            const ringH = ((progress * 8 + i) % ringCount) * 150;
-            const ringAlpha = (1 - ringH/600) * alpha;
-            ctx.globalAlpha = ringAlpha * 0.6;
-            ctx.beginPath(); ctx.ellipse(0, -ringH * 2, width * (1 - ringH/1000), width * (1 - ringH/1000), 0, 0, Math.PI*2); ctx.stroke();
-        }
-        
+        ctx.globalAlpha = alpha * (1 - wave);
+        ctx.beginPath(); ctx.arc(0, 0, width * (0.8 + wave * 0.5), 0, Math.PI*2); ctx.stroke();
         ctx.restore();
 
-        // 3. The Pillar Core (Intense Beam)
-        ctx.globalCompositeOperation = 'lighter';
+        // Layer 2: The Beam (Vertical Gradient)
+        ctx.globalCompositeOperation = 'screen'; // Key for the "Light" look
         
-        // A. Wide Soft Glow
-        const softGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        softGrad.addColorStop(0, p.color);
-        softGrad.addColorStop(0.5, 'transparent');
-        ctx.fillStyle = softGrad;
-        ctx.globalAlpha = alpha * 0.3; 
-        ctx.fillRect(-width * 0.8, -height, width * 1.6, height);
-
-        // B. Hard Inner Core (White Hot)
-        const coreGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        coreGrad.addColorStop(0, '#ffffff');
-        coreGrad.addColorStop(0.3, p.color);
-        coreGrad.addColorStop(1, 'transparent');
+        // A. The Core (White Hot)
+        const coreW = width * 0.3;
+        const coreGrad = ctx.createLinearGradient(0, 0, 0, -currentHeight);
+        coreGrad.addColorStop(0, 'rgba(255,255,255,0)');
+        coreGrad.addColorStop(0.1, 'rgba(255,255,255,0.9)');
+        coreGrad.addColorStop(0.8, 'rgba(255,255,255,0.0)');
+        
         ctx.fillStyle = coreGrad;
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.fillRect(-width * 0.2, -height, width * 0.4, height);
+        ctx.globalAlpha = alpha;
+        ctx.fillRect(-coreW/2, -currentHeight, coreW, currentHeight);
 
-        // C. Rising Particles (Sparkles inside)
+        // B. The Glow (Colored Edge)
+        const glowW = width;
+        const glowGrad = ctx.createLinearGradient(-glowW, 0, glowW, 0); // Horizontal fade
+        glowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        glowGrad.addColorStop(0.2, p.color);
+        glowGrad.addColorStop(0.5, 'rgba(255,255,255,0.5)');
+        glowGrad.addColorStop(0.8, p.color);
+        glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        
+        ctx.save();
+        // Mask the vertical fade
+        const vMask = ctx.createLinearGradient(0, 0, 0, -currentHeight);
+        vMask.addColorStop(0, 'rgba(0,0,0,0)');
+        vMask.addColorStop(0.1, 'rgba(0,0,0,1)'); // Black = visible in mask logic? No, canvas gradient opacity
+        // Actually for direct fill, we combine alpha.
+        // We draw the horizontal gradient rect, but modulate alpha vertically? 
+        // Simpler: Just draw rect with horizontal grad, but set global alpha.
+        
+        ctx.fillStyle = glowGrad;
+        ctx.globalAlpha = alpha * 0.6;
+        // Add jitter to width for "energy instability"
+        const jitter = Math.random() * 10;
+        ctx.fillRect(-(glowW + jitter)/2, -currentHeight, glowW + jitter, currentHeight);
+        ctx.restore();
+
+        // Layer 3: Interference Lines (Rising Energy)
+        ctx.globalAlpha = alpha * 0.5;
         ctx.fillStyle = '#fff';
-        const sparkCount = 10;
-        for(let i=0; i<sparkCount; i++) {
-            const sparkY = -((progress * 20 + i) % 10) * 100;
-            const sparkX = (Math.sin(i * 132) * width * 0.3);
-            const sAlpha = (1 - Math.abs(sparkY)/800) * alpha;
-            ctx.globalAlpha = sAlpha;
-            ctx.beginPath(); ctx.rect(sparkX, sparkY, 4, 20); ctx.fill();
+        const lines = 8;
+        for(let i=0; i<lines; i++) {
+            // Lines move UP
+            const yPos = -((Date.now()/500 + i/lines) % 1) * currentHeight;
+            // Parabolic fade (visible in middle, faded at ends)
+            const hRatio = Math.abs(yPos) / currentHeight;
+            const lineAlpha = 1 - Math.pow(2 * hRatio - 1, 2); 
+            
+            if (lineAlpha > 0.1) {
+                ctx.globalAlpha = alpha * lineAlpha * 0.8;
+                const lineW = width * (0.5 + Math.random()*0.5);
+                ctx.fillRect(-lineW/2, yPos, lineW, 2 + Math.random() * 4);
+            }
         }
+
+        ctx.restore();
     },
 
     // 🩸 RED: BLOOD RITUAL (CHAOS)
