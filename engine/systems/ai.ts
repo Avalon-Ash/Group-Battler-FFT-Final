@@ -80,17 +80,22 @@ export class AISystem {
                             
                             return dist <= effRange;
                         }))
-                        .add(new Action("Do", (ctx: Agent) => engine.performCast(ctx, i)))
+                        .add(new Action("Do", (ctx: Agent) => {
+                            engine.log(ctx, 'DECISION', 'AI決策', '施放技能', `決定使用 ${ctx.skills[i]!.name}`);
+                            return engine.performCast(ctx, i);
+                        }))
                     )
                     .add(new Action("MoveToSpot", (ctx: Agent) => {
                         const skill = ctx.skills[i]!;
                         // Charge Logic: If skill is melee/short-range (<= 2), burst speed to close gap
                         const speedMult = skill.range <= 2 ? 2.5 : 1.0;
                         if (ctx.targetHex) {
+                            if (!ctx.isMoving) engine.log(ctx, 'DECISION', 'AI決策', '戰術移動', `前往最佳施法位置 (${ctx.targetHex.q},${ctx.targetHex.r})`);
                             return engine.movement.moveAgentToHex(ctx, ctx.targetHex, skill.range, engine, speedMult);
                         }
                         // Fallback for moving towards agent if targetHex wasn't set but targetAgent was
                         if (ctx.target) {
+                             if (!ctx.isMoving) engine.log(ctx, 'DECISION', 'AI決策', '戰術移動', `接近目標 ${ctx.target.id}`);
                              return engine.movement.moveAgent(ctx, ctx.target, skill.range, engine, speedMult);
                         }
                         return NodeState.FAILURE;
@@ -107,6 +112,7 @@ export class AISystem {
                 const speedMult = skill.range <= 2 ? 2.5 : 1.0;
                 
                 // Stickiness check: If we are already moving towards a valid target, don't switch unless much closer
+                if (!ctx.isMoving) engine.log(ctx, 'DECISION', 'AI決策', '追擊', `追擊最近目標 ${ctx.target.id}`);
                 return engine.movement.moveAgent(ctx, ctx.target, skill.range, engine, speedMult);
             }));
             

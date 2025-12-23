@@ -41,7 +41,7 @@ interface FieldDef {
 
 const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
     {
-        name: '基本資訊',
+        name: '基本資訊 (Basic)',
         fields: [
             { key: 'name', label: '技能名稱', type: 'text' },
             { key: 'id', label: 'ID', type: 'text' },
@@ -52,7 +52,7 @@ const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         ]
     },
     {
-        name: '戰鬥數值',
+        name: '戰鬥數值 (Combat)',
         fields: [
             { key: 'power', label: '威力 (負數為治療)', type: 'number' },
             { key: 'cost', label: '魔力消耗', type: 'number' },
@@ -65,7 +65,7 @@ const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         ]
     },
     {
-        name: '視覺表現',
+        name: '視覺表現 (Visuals)',
         fields: [
             { key: 'visual', label: '特效模型', type: 'select', options: ['ARROW', 'FIREBALL', 'BOLT', 'SLASH', 'SMASH', 'BEAM', 'BOMB'] },
             { key: 'color', label: '主色調 (Hex/RGBA)', type: 'color' }, 
@@ -73,7 +73,7 @@ const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         ]
     },
     {
-        name: '特效模組 A (主控場)',
+        name: '特效模組 A (Primary Effect)',
         fields: [
             { key: 'ccType', label: '控場類型', type: 'select', options: ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE'] },
             { key: 'ccDur', label: '持續時間', type: 'number', step: 0.5 },
@@ -83,7 +83,7 @@ const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         ]
     },
     {
-        name: '特效模組 B (副效果)',
+        name: '特效模組 B (Secondary Effect)',
         fields: [
             { key: 'ccType2', label: '控場類型', type: 'select', options: ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE'] },
             { key: 'ccDur2', label: '持續時間', type: 'number', step: 0.5 },
@@ -356,7 +356,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                 ) : (
                     <div className="flex flex-col h-full">
                          {/* UNIT HEADER */}
-                        <div className="p-4 border-b border-slate-800 shrink-0 bg-slate-900 z-20 shadow-lg">
+                        <div className="p-4 pt-6 border-b border-slate-800 shrink-0 bg-slate-900 z-20 shadow-lg">
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <div className="flex items-center gap-3 mb-1">
@@ -386,7 +386,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
 
                         {/* TAB CONTENT: STATUS */}
                         {inspectorSubTab === 'STATUS' && (
-                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-6">
+                            <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24 space-y-6">
                                 {/* STAT BLOCK */}
                                 <div className="space-y-4">
                                     <div>
@@ -540,7 +540,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                     縮放: {Math.round(btScale * 100)}%
                                 </div>
 
-                                <div className="absolute w-full h-full flex justify-center items-start pt-20 origin-top-center will-change-transform" 
+                                <div className="absolute w-full h-full flex justify-center items-start pt-20 pb-20 origin-top-center will-change-transform" 
                                      style={{
                                          transform: `translate(${btPos.x}px, ${btPos.y}px) scale(${btScale})`, 
                                          backgroundImage: 'radial-gradient(#334155 1px, transparent 1px)', 
@@ -563,7 +563,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                 匯出 JSON
                             </button>
                         </div>
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 font-mono">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pb-24 font-mono">
                             {localLogs.slice().reverse().map(log => (
                                 <LogItem key={log.id} log={log} />
                             ))}
@@ -597,7 +597,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                             </select>
                         </div>
                         
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-3 pb-24 space-y-2">
                             {filteredSkills.map(skill => (
                                 <div key={skill.id} className={`border rounded transition-all duration-200 ${selectedSkillId === skill.id ? 'border-cyan-500 bg-slate-800 shadow-lg' : 'border-slate-800 bg-slate-900 hover:border-slate-600'}`}>
                                     <div 

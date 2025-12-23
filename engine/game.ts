@@ -2,7 +2,7 @@
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { UNIT_DB } from "../data/units";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 import { COLORS } from "../constants";
@@ -267,7 +267,7 @@ export class GameEngine {
             this.agents.forEach(a => a.saveState());
             this.battleTime = 0;
             this.logs = [];
-            this.log(null, '開始', null, '戰鬥分析開始');
+            this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
         }
         
         this.agentMap.clear();
@@ -405,7 +405,7 @@ export class GameEngine {
             if (a.target) targetName = a.target.id;
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
             
-            this.log(a, '詠唱', targetName, a.skills[i]!.name);
+            this.log(a, 'CAST', '詠唱', targetName, `開始引導 ${a.skills[i]!.name} (需 ${a.skills[i]!.cast} 秒)`);
             this.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: a.skills[i]! });
             
             a.setAnim(AnimState.ATTACK);
@@ -420,19 +420,75 @@ export class GameEngine {
         return NodeState.RUNNING;
     }
     
-    log(agent: Agent | null, action: string, targetId: string | null, detail: string) {
+    // Rich Logging Overhaul
+    log(agent: Agent | null, typeOrAction: LogActionType | string, actionNameOrTarget: string | null, detailOrTargetInfo: string, legacyDetail?: string) {
         const time = this.battleTime.toFixed(1);
+        
+        let actionType: LogActionType = 'SYSTEM';
+        let actionName = 'Action';
+        let targetInfo = '';
+        let detail = '';
+        let color = '#94a3b8'; // default slate
+
+        // Handle Legacy Calls (from StatusSystem, AgentManager, etc.)
+        // Old: log(agent, actionString, targetId, detailString)
+        const isLegacy = !this.isLogActionType(typeOrAction);
+
+        if (isLegacy) {
+            const rawAction = typeOrAction as string;
+            actionName = rawAction;
+            targetInfo = actionNameOrTarget || '';
+            detail = detailOrTargetInfo;
+
+            // Map Legacy strings to Types
+            if (rawAction === '死亡') { actionType = 'DEATH'; color = '#71717a'; }
+            else if (rawAction === '放逐結束') { actionType = 'CC'; color = '#c084fc'; }
+            else if (rawAction === '中斷') { actionType = 'CC'; color = '#facc15'; }
+            else if (rawAction === '命中') { actionType = 'HIT'; color = '#ef4444'; }
+            else { actionType = 'SYSTEM'; }
+        } else {
+            // New Rich Signature
+            // log(agent, type, actionName, targetInfo, detail)
+            actionType = typeOrAction as LogActionType;
+            actionName = actionNameOrTarget || '';
+            targetInfo = detailOrTargetInfo || '';
+            detail = legacyDetail || '';
+
+            switch(actionType) {
+                case 'MOVE': color = '#3b82f6'; break; // Blue
+                case 'CAST': color = '#f59e0b'; break; // Amber
+                case 'HIT': color = '#ef4444'; break; // Red
+                case 'HEAL': color = '#22c55e'; break; // Green
+                case 'DECISION': color = '#a855f7'; break; // Purple
+                case 'DEATH': color = '#71717a'; break; // Zinc
+                case 'CC': color = '#facc15'; break; // Yellow
+                default: color = '#94a3b8'; break;
+            }
+        }
+
         const entry: LogEntry = {
             id: Math.random().toString(36),
             time,
-            action,
-            target: targetId || '自身',
-            detail,
-            agentId: agent?.id || (agent === null ? '系統' : undefined),
+            turn: Math.floor(this.battleTime * 10), // Tick
+            agentId: agent?.id || 'SYSTEM',
             team: agent?.team,
-            loc: agent ? `@(${agent.q},${agent.r})` : undefined
+            location: agent ? `(${agent.q},${agent.r})` : 'global',
+            actionType: actionType,
+            actionName: actionName,
+            targetInfo: targetInfo,
+            detail: detail,
+            visualColor: color,
+            // Legacy compat
+            action: actionName,
+            target: targetInfo,
+            loc: agent ? `@(${agent.q},${agent.r})` : ''
         };
+
         this.logs.push(entry);
         if (this.logs.length > 2000) this.logs.shift();
+    }
+
+    private isLogActionType(val: any): val is LogActionType {
+        return ['MOVE','CAST','HIT','DECISION','DEATH','SYSTEM','HEAL','CC'].includes(val);
     }
 }

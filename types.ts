@@ -116,15 +116,25 @@ export enum NodeState {
     RUNNING = 'R'
 }
 
+export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC';
+
 export interface LogEntry {
     id: string;
     time: string;
-    agentId?: string;
-    team?: Team;
-    loc?: string;
-    action: string;
+    turn: number; // Battle tick or frame count
+    agentId: string; // "Who"
+    team: Team | undefined;
+    location: string; // "Where" (e.g., "(10, 5)")
+    actionType: LogActionType;
+    actionName: string; // "What" (e.g., "Fireball", "MoveTo")
+    targetInfo?: string; // "To Whom" (e.g., "Tank-A @ (12,5)")
+    detail: string; // Narrative details
+    visualColor?: string; // For UI highlighting
+    
+    // Legacy support fields (optional)
+    action?: string;
     target?: string;
-    detail: string;
+    loc?: string;
 }
 
 export interface Projectile {

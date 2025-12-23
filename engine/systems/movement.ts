@@ -166,6 +166,7 @@ export class MovementSystem {
         if (a.moveProgress >= 1) {
             // Commit move
             engine.updateAgentPosition(a, nextHex.q, nextHex.r);
+            engine.log(a, 'MOVE', '移動', `(${nextHex.q},${nextHex.r})`, '抵達目的地');
             
             a.isMoving = false;
             a.moveSpeedMult = 1.0; // Reset speed after step completes
@@ -207,11 +208,18 @@ export class MovementSystem {
                 // We know where we WANT to go, but it's blocked right now.
                 // Instead of failing (which causes AI jitter/wandering), we WAIT.
                 // This simulates "queueing" behind the frontline.
-                a.setAnim(AnimState.COMBAT_IDLE); 
+                a.setAnim(AnimState.COMBAT_IDLE);
+                
+                // Only log block once to avoid spam
+                if (Math.random() < 0.05) {
+                    engine.log(a, 'MOVE', '移動', `(${next.q},${next.r})`, '路徑被阻擋，等待中');
+                }
+                
                 // Return RUNNING to keep the AI node active, preventing re-calculation jitter
                 return NodeState.RUNNING; 
             }
 
+            engine.log(a, 'MOVE', '移動', `前往 (${next.q},${next.r})`, '開始移動');
             a.path = [next];
             a.trajectory = path; // Visual only
             a.isMoving = true;

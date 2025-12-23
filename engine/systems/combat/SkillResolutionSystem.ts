@@ -13,7 +13,17 @@ export class SkillResolutionSystem {
         // Interrupt Checks
         if (a.stunTimer > 0 || a.banished || a.silenceTimer > 0) {
             const skillName = a.skills[a.castingSkillIdx]?.name || '技能';
-            engine.log(a, '中斷', null, `${skillName} 被打斷`);
+            
+            // Log interrupt only once when timer is just set? 
+            // Since this runs every frame, we rely on state transition handling in GameEngine or StatusSystem.
+            // But if we want to log the interruption moment, we should do it where the CC is applied.
+            // Here we just cancel the cast.
+            
+            // To prevent log spam, we just cancel silently here as the CC application logs the cause.
+            // But we can add a specific "Interrupted" log if we track state change.
+            if (a.castTimer > 0) {
+                 engine.log(a, 'CC', '中斷', skillName, '詠唱被打斷');
+            }
             
             a.castingSkillIdx = -1;
             a.castTimer = 0;
@@ -122,6 +132,7 @@ export class SkillResolutionSystem {
 
         let evtType: GameEventType = 'DAMAGE';
         let val = 0;
+        const oldHp = Math.ceil(target.hp);
 
         if (rawDmg > 0) {
             target.hp -= rawDmg;
@@ -163,6 +174,8 @@ export class SkillResolutionSystem {
             evtType = 'HEAL';
         }
 
+        const newHp = Math.ceil(target.hp);
+
         // Mana Burn
         const isBurn1 = skill.effectType === 'MANA_BURN';
         const isBurn2 = skill.effectType2 === 'MANA_BURN';
@@ -196,7 +209,19 @@ export class SkillResolutionSystem {
         this.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
         this.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
 
-        engine.log(source, '命中', target.id, `${skill.name} ${rawDmg > 0 ? `-${rawDmg}` : (rawDmg < 0 ? `+${-rawDmg}` : '')}`);
+        // RICH LOG: Hit
+        engine.log(
+            source, 
+            rawDmg < 0 ? 'HEAL' : 'HIT', 
+            skill.name, 
+            target.id, 
+            `${rawDmg > 0 ? '造成傷害' : '回復生命'} ${Math.abs(rawDmg)} (HP: ${oldHp} -> ${newHp})`
+        );
+
+        // RICH LOG: Kill
+        if (oldHp > 0 && newHp <= 0) {
+            engine.log(source, 'DEATH', '擊殺', target.id, `${target.id} 已陣亡`);
+        }
     }
 
     public applyCC(source: Agent, target: Agent, skill: Skill, type: string | undefined, dur: number | undefined, force: number | undefined, origin: {x: number, y: number} | undefined, engine: GameEngine) {

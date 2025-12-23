@@ -118,7 +118,7 @@ function App() {
   const resize = useCallback((e: MouseEvent) => {
       if (isResizing.current) {
           const newWidth = window.innerWidth - e.clientX;
-          if (newWidth > 300 && newWidth < window.innerWidth * 0.6) {
+          if (newWidth > 300 && newWidth < window.innerWidth * 0.9) {
               setSidebarWidth(newWidth);
           }
       }
@@ -214,9 +214,9 @@ function App() {
   return (
     <div className="h-screen w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
       
-      {/* FLOATING HUD (Top Center) - Responsive Layout */}
-      <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-40 transition-all duration-500 w-[95%] max-w-[600px] ${isShowcaseMode ? '-translate-y-32 opacity-0' : 'translate-y-0 opacity-100'}`}>
-          <div className="glass-panel px-3 py-2 rounded-xl md:rounded-full flex flex-wrap md:flex-nowrap items-center justify-between gap-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-600/50 backdrop-blur-lg">
+      {/* FLOATING HUD (Top Center) - Z-Index 30 */}
+      <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 w-auto max-w-[90%] pointer-events-none ${isShowcaseMode ? '-translate-y-32 opacity-0' : 'translate-y-0 opacity-100'}`}>
+          <div className="glass-panel px-3 py-2 rounded-xl md:rounded-full flex flex-wrap md:flex-nowrap items-center justify-between gap-3 shadow-[0_0_20px_rgba(0,0,0,0.5)] border-slate-600/50 backdrop-blur-lg pointer-events-auto">
                 
                 {/* Control Group */}
                 <div className="flex items-center gap-3">
@@ -238,10 +238,10 @@ function App() {
                     </button>
                 </div>
 
-                <div className="hidden md:block w-px h-8 bg-slate-700"></div>
+                <div className="hidden xl:block w-px h-8 bg-slate-700"></div>
 
-                {/* Speed Control - Collapsible on tiny screens */}
-                <div className="flex-1 flex flex-col items-center min-w-[120px]">
+                {/* Speed Control - Hidden on small screens */}
+                <div className="hidden xl:flex flex-1 flex-col items-center min-w-[120px]">
                     <div className="flex items-center justify-between w-full mb-1">
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">模擬速度</span>
                         <div className="text-[10px] font-mono text-cyan-400">{timeScale.toFixed(1)}x</div>
@@ -253,7 +253,7 @@ function App() {
                     />
                 </div>
 
-                <div className="hidden md:block w-px h-8 bg-slate-700"></div>
+                <div className="hidden xl:block w-px h-8 bg-slate-700"></div>
 
                 {/* Mode Switch */}
                 <button 
@@ -311,10 +311,10 @@ function App() {
       )}
 
       {/* MAIN CONTENT ROW */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
           
           {/* LEFT COLUMN: Canvas + Dock */}
-          <div className="flex-1 flex flex-col relative min-w-0">
+          <div className="flex-1 flex flex-col relative min-w-0 z-0">
                 <GameCanvas 
                     engine={engineRef.current} 
                     tool={tool}
@@ -325,14 +325,14 @@ function App() {
                     isShowcaseMode={isShowcaseMode}
                     spawnMode={spawnMode}
                     draftRole={draftRole}
-                    onSelect={handleSelectAgent} // Needs wrap
+                    onSelect={handleSelectAgent} 
                     onWin={onWin}
                     winner={winner}
                     rematch={() => { setWinner(null); engineRef.current.restart(); setIsPlaying(true); }}
                     transitionPhase={transitionPhase}
                 />
 
-                {/* BOTTOM DOCK */}
+                {/* BOTTOM DOCK - Z-Index 30 */}
                 <div className={`h-40 bg-slate-950 border-t border-slate-800 shrink-0 z-30 flex overflow-x-auto transition-all duration-500 ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
                     
                     {/* ZONE 1: COMMAND TOOLS */}
@@ -449,21 +449,21 @@ function App() {
                 </div>
           </div>
 
-          {/* RIGHT COLUMN: Inspector */}
-          {/* Resizer */}
+          {/* RIGHT COLUMN: Inspector (Z-40) */}
+          {/* Resizer - Hidden on small screens or when showcase */}
           {!isShowcaseMode && (
             <div 
-                className="w-1 bg-slate-950 hover:bg-cyan-600 cursor-col-resize flex items-center justify-center shrink-0 transition-colors z-30 border-l border-slate-800"
+                className="hidden lg:flex w-1 bg-slate-950 hover:bg-cyan-600 cursor-col-resize items-center justify-center shrink-0 transition-colors z-40 border-l border-slate-800"
                 onMouseDown={startResizing}
             >
                 <div className="w-[1px] h-8 bg-slate-600"></div>
             </div>
           )}
 
-          {/* Panel */}
+          {/* Panel - Absolute overlay on small screens, relative on large */}
           <div 
-            className={`flex flex-col shrink-0 z-20 shadow-2xl bg-slate-900 border-l border-slate-700 transition-all duration-300 ${isShowcaseMode ? 'w-0 border-l-0 overflow-hidden' : ''}`}
-            style={{ width: isShowcaseMode ? 0 : sidebarWidth }}
+            className={`flex flex-col shrink-0 z-40 shadow-2xl bg-slate-900 border-l border-slate-700 transition-all duration-300 lg:relative absolute right-0 h-full ${isShowcaseMode ? 'w-0 border-l-0 overflow-hidden' : ''}`}
+            style={{ width: isShowcaseMode ? 0 : (window.innerWidth < 1024 ? '100%' : sidebarWidth), maxWidth: '100%' }}
           >
             <InspectorPanel 
                 agent={selectedAgent} 
