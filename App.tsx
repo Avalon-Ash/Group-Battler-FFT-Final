@@ -13,9 +13,12 @@ function App() {
   const [isShowcaseMode, setIsShowcaseMode] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [unitCount, setUnitCount] = useState(0);
-  const [showMobileInspector, setShowMobileInspector] = useState(false); // Mobile Only State
-  const [showMapSettings, setShowMapSettings] = useState(false); // Mobile Map Modal
+  const [showMobileInspector, setShowMobileInspector] = useState(false);
+  const [showMapSettings, setShowMapSettings] = useState(false);
   
+  // Layout State (Responsive)
+  const [isLargeScreen, setIsLargeScreen] = useState(() => window.innerWidth >= 1024);
+
   // Tooling
   const [tool, setTool] = useState<ToolType>(ToolType.SELECT);
   const [selectedObstacle, setSelectedObstacle] = useState<string>('WALL'); 
@@ -38,6 +41,13 @@ function App() {
   const isResizing = useRef(false);
   const [showFactionWarning, setShowFactionWarning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
+
+  // --- Responsive Listener ---
+  useEffect(() => {
+      const handleResize = () => setIsLargeScreen(window.innerWidth >= 1024);
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // --- Logic ---
 
@@ -105,10 +115,13 @@ function App() {
       engineRef.current.timeScale = timeScale;
   }, [timeScale]);
 
-  const startResizing = useCallback(() => {
+  // --- Hybrid Input Resizing (Mouse & Touch) ---
+  const startResizing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
       isResizing.current = true;
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      // Prevent scrolling on touch
+      if ('touches' in e) e.stopPropagation();
   }, []);
 
   const stopResizing = useCallback(() => {
@@ -117,23 +130,32 @@ function App() {
       document.body.style.userSelect = '';
   }, []);
 
-  const resize = useCallback((e: MouseEvent) => {
+  const performResize = useCallback((clientX: number) => {
       if (isResizing.current) {
-          const newWidth = window.innerWidth - e.clientX;
-          if (newWidth > 300 && newWidth < window.innerWidth * 0.9) {
+          const newWidth = window.innerWidth - clientX;
+          // Constraints for Tablet/Desktop
+          const maxWidth = window.innerWidth * 0.8;
+          if (newWidth > 300 && newWidth < maxWidth) {
               setSidebarWidth(newWidth);
           }
       }
   }, []);
 
+  const handleMouseMove = useCallback((e: MouseEvent) => performResize(e.clientX), [performResize]);
+  const handleTouchMove = useCallback((e: TouchEvent) => performResize(e.touches[0].clientX), [performResize]);
+
   useEffect(() => {
-      window.addEventListener('mousemove', resize);
+      window.addEventListener('mousemove', handleMouseMove);
       window.addEventListener('mouseup', stopResizing);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('touchend', stopResizing);
       return () => {
-          window.removeEventListener('mousemove', resize);
+          window.removeEventListener('mousemove', handleMouseMove);
           window.removeEventListener('mouseup', stopResizing);
+          window.removeEventListener('touchmove', handleTouchMove);
+          window.removeEventListener('touchend', stopResizing);
       };
-  }, [resize, stopResizing]);
+  }, [handleMouseMove, handleTouchMove, stopResizing]);
 
   const togglePlay = useCallback(() => {
     if (winner !== null) return;
@@ -182,7 +204,6 @@ function App() {
 
   const handleSelectAgent = useCallback((agent: Agent | null) => {
     setSelectedAgent(agent);
-    // Removed auto-inspector logic to fix drag conflict
   }, []);
 
   const onWin = (team: Team) => {
@@ -215,7 +236,7 @@ function App() {
   };
 
   return (
-    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
+    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       
       {/* FLOATING HUD (Top Center) - Z-Index 30 */}
       <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 w-auto max-w-[95%] pointer-events-none ${isShowcaseMode ? '-translate-y-32 opacity-0' : 'translate-y-0 opacity-100'}`}>
@@ -341,7 +362,6 @@ function App() {
       <div className="flex-1 flex overflow-hidden relative z-0">
           
           {/* LEFT COLUMN: Canvas + Dock */}
-          {/* CRITICAL FIX: flex-1, min-w-0, min-h-0 to ensure it shrinks properly in flex container */}
           <div className="flex-1 flex flex-col relative min-w-0 min-h-0 z-0 basis-0 bg-slate-900">
                 <GameCanvas 
                     engine={engineRef.current} 
@@ -361,32 +381,33 @@ function App() {
                 />
 
                 {/* BOTTOM DOCK */}
-                <div className={`bg-slate-950 border-t border-slate-800 shrink-0 z-30 transition-all duration-500 w-full ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
+                {/* Safe area padding added for modern phones */}
+                <div className={`bg-slate-950 border-t border-slate-800 shrink-0 z-30 transition-all duration-500 w-full pb-[env(safe-area-inset-bottom)] ${isShowcaseMode ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'}`}>
                     
                     {/* MOBILE GRID LAYOUT (< md) - 2x4 GRID */}
                     <div className="md:hidden grid grid-cols-4 gap-2 p-2 h-auto">
                         {/* Row 1: Primary Actions */}
-                        <button onClick={() => setTool(ToolType.SELECT)} className={`h-10 tactical-btn ${tool === ToolType.SELECT ? 'active' : ''}`}>
-                            <span className="text-lg">⌖</span>
+                        <button onClick={() => setTool(ToolType.SELECT)} className={`h-12 tactical-btn ${tool === ToolType.SELECT ? 'active' : ''}`}>
+                            <span className="text-xl">⌖</span>
                         </button>
                         
-                        <button onClick={() => setTool(ToolType.ADD_BLUE)} className={`h-10 tactical-btn btn-blue ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-70'}`}>
-                            <span className="text-lg">🔵</span>
+                        <button onClick={() => setTool(ToolType.ADD_BLUE)} className={`h-12 tactical-btn btn-blue ${tool === ToolType.ADD_BLUE ? 'active' : 'opacity-70'}`}>
+                            <span className="text-xl">🔵</span>
                         </button>
                         
-                        <button onClick={() => setTool(ToolType.ADD_RED)} className={`h-10 tactical-btn btn-red ${tool === ToolType.ADD_RED ? 'active' : 'opacity-70'}`}>
-                            <span className="text-lg">🔴</span>
+                        <button onClick={() => setTool(ToolType.ADD_RED)} className={`h-12 tactical-btn btn-red ${tool === ToolType.ADD_RED ? 'active' : 'opacity-70'}`}>
+                            <span className="text-xl">🔴</span>
                         </button>
                         
-                        <button onClick={() => setTool(ToolType.DELETE)} className={`h-10 tactical-btn text-red-400 border-red-900/50 ${tool === ToolType.DELETE ? 'active bg-red-950/50 border-red-500' : ''}`}>
-                            <span className="text-lg">❌</span>
+                        <button onClick={() => setTool(ToolType.DELETE)} className={`h-12 tactical-btn text-red-400 border-red-900/50 ${tool === ToolType.DELETE ? 'active bg-red-950/50 border-red-500' : ''}`}>
+                            <span className="text-xl">❌</span>
                         </button>
 
                         {/* Row 2: Secondary & Config */}
                         {/* Slot 5: Obstacle Tool + Dropdown Overlay */}
-                        <div className={`relative h-10 tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active border-cyan-500' : ''}`}>
+                        <div className={`relative h-12 tactical-btn p-0 ${tool === ToolType.OBSTACLE ? 'active border-cyan-500' : ''}`}>
                             <button onClick={() => setTool(ToolType.OBSTACLE)} className="w-full h-full flex items-center justify-center gap-1">
-                                <span className="text-lg">🧱</span>
+                                <span className="text-xl">🧱</span>
                                 <span className="text-[8px] absolute bottom-0.5 right-1 opacity-50">▼</span>
                             </button>
                             <select 
@@ -399,7 +420,7 @@ function App() {
                         </div>
 
                         {/* Slot 6: HP Input */}
-                        <div className="h-10 flex items-center justify-center bg-slate-900 border border-slate-700 rounded-sm relative">
+                        <div className="h-12 flex items-center justify-center bg-slate-900 border border-slate-700 rounded-sm relative">
                             <span className="text-[8px] text-slate-500 absolute -top-1.5 left-1 bg-slate-900 px-0.5">HP</span>
                             <input 
                                 type="number" 
@@ -412,18 +433,18 @@ function App() {
                         {/* Slot 7: Map Settings Toggle */}
                         <button 
                             onClick={() => setShowMapSettings(!showMapSettings)}
-                            className={`h-10 tactical-btn ${showMapSettings ? 'border-cyan-500 text-cyan-400' : ''}`}
+                            className={`h-12 tactical-btn ${showMapSettings ? 'border-cyan-500 text-cyan-400' : ''}`}
                         >
-                            <span className="text-lg">🗺️</span>
+                            <span className="text-xl">🗺️</span>
                         </button>
 
                         {/* Slot 8: Inspect Toggle */}
                         <button 
                             onClick={() => selectedAgent && setShowMobileInspector(!showMobileInspector)}
                             disabled={!selectedAgent}
-                            className={`h-10 tactical-btn ${showMobileInspector ? 'active' : ''} ${selectedAgent ? 'border-blue-500/50 text-blue-300 animate-pulse-glow' : 'opacity-30'}`}
+                            className={`h-12 tactical-btn ${showMobileInspector ? 'active' : ''} ${selectedAgent ? 'border-blue-500/50 text-blue-300 animate-pulse-glow' : 'opacity-30'}`}
                         >
-                            <span className="text-lg">👁️</span>
+                            <span className="text-xl">👁️</span>
                         </button>
                     </div>
 
@@ -547,42 +568,67 @@ function App() {
 
           {/* RIGHT COLUMN: Inspector (Z-40) */}
           {/* Resizer - Hidden on small screens or when showcase */}
-          {!isShowcaseMode && (
+          {isLargeScreen && !isShowcaseMode && (
             <div 
                 className="hidden lg:flex w-1 bg-slate-950 hover:bg-cyan-600 cursor-col-resize items-center justify-center shrink-0 transition-colors z-40 border-l border-slate-800"
                 onMouseDown={startResizing}
+                onTouchStart={startResizing}
             >
                 <div className="w-[1px] h-8 bg-slate-600"></div>
             </div>
           )}
 
-          {/* Panel - Desktop Sidebar OR Mobile Overlay */}
-          <div 
-            className={`
-                flex flex-col z-40 shadow-2xl bg-slate-900 border-l border-slate-700 transition-all duration-300
-                ${/* MOBILE MODE: Overlay */ ''}
-                ${window.innerWidth < 1024 ? 'fixed inset-0 lg:static' : 'relative h-full'}
-                ${/* VISIBILITY LOGIC */ ''}
-                ${window.innerWidth < 1024 && !showMobileInspector ? 'pointer-events-none opacity-0 translate-x-full lg:pointer-events-auto lg:opacity-100 lg:translate-x-0' : 'opacity-100 translate-x-0'}
-                ${/* SHOWCASE MODE: Hide completely on desktop */ ''}
-                ${isShowcaseMode ? 'w-0 border-l-0 overflow-hidden' : ''}
-            `}
-            style={{ width: (window.innerWidth >= 1024 && !isShowcaseMode) ? sidebarWidth : undefined }}
-          >
-            {/* Mobile Header for Close */}
-            <div className="lg:hidden p-3 border-b border-slate-700 bg-slate-950 flex justify-between items-center shrink-0">
-                 <h3 className="font-bold text-slate-200">單位監控面板</h3>
-                 <button onClick={() => setShowMobileInspector(false)} className="w-8 h-8 flex items-center justify-center bg-slate-800 rounded text-slate-400">✕</button>
-            </div>
-
-            <InspectorPanel 
-                agent={selectedAgent} 
-                engine={engineRef.current}
-                logs={[]} 
-                db={engineRef.current.skillDB}
-                onHoverSkill={setHoveredSkill}
-            />
-          </div>
+          {/* Panel - Desktop Sidebar OR Mobile Overlay Drawer */}
+          {/* LOGIC SPLIT: Mobile is a Modal (Fixed), Desktop is a Flex Col (Relative) */}
+          {isLargeScreen ? (
+              // DESKTOP LAYOUT
+              <div 
+                className={`
+                    flex flex-col z-40 shadow-2xl bg-slate-900 border-l border-slate-700 transition-all duration-300 relative h-full
+                    ${isShowcaseMode ? 'w-0 border-l-0 overflow-hidden' : ''}
+                `}
+                style={{ width: !isShowcaseMode ? sidebarWidth : 0 }}
+              >
+                <InspectorPanel 
+                    agent={selectedAgent} 
+                    engine={engineRef.current}
+                    logs={[]} 
+                    db={engineRef.current.skillDB}
+                    onHoverSkill={setHoveredSkill}
+                />
+              </div>
+          ) : (
+              // MOBILE DRAWER LAYOUT
+              <div 
+                className={`fixed inset-0 z-50 transition-opacity duration-300 ${showMobileInspector ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setShowMobileInspector(false)}
+              >
+                  {/* Backdrop */}
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+                  
+                  {/* Slide-in Panel */}
+                  <div 
+                    className={`absolute right-0 top-0 bottom-0 w-full sm:w-[400px] bg-slate-900 shadow-2xl border-l border-slate-700 transform transition-transform duration-300 flex flex-col ${showMobileInspector ? 'translate-x-0' : 'translate-x-full'}`}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                      {/* Mobile Header */}
+                      <div className="p-4 border-b border-slate-700 bg-slate-950 flex justify-between items-center shrink-0 pt-safe-top">
+                           <h3 className="font-bold text-slate-200 text-lg">單位監控面板</h3>
+                           <button onClick={() => setShowMobileInspector(false)} className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-full text-slate-400 active:scale-95">✕</button>
+                      </div>
+                      
+                      <div className="flex-1 overflow-hidden">
+                        <InspectorPanel 
+                            agent={selectedAgent} 
+                            engine={engineRef.current}
+                            logs={[]} 
+                            db={engineRef.current.skillDB}
+                            onHoverSkill={setHoveredSkill}
+                        />
+                      </div>
+                  </div>
+              </div>
+          )}
       </div>
     </div>
   );
