@@ -16,6 +16,7 @@ export const PRESET_PALETTES = {
 };
 
 export const DEFAULT_MATRIX_CONFIG: MatrixConfig = {
+    enabled: true,
     direction: 'DOWN',
     speed: 1.0,
     fontSize: 16,

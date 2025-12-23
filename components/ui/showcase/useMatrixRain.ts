@@ -36,6 +36,12 @@ export const useMatrixRain = (
         canvas.width = width;
         canvas.height = height;
 
+        // --- MASTER SWITCH CHECK ---
+        if (!config.enabled) {
+            ctx.clearRect(0, 0, width, height);
+            return; // Exit effect, no animation loop started
+        }
+
         const { direction, fontSize, spacing } = configRef.current;
         const isVertical = direction === 'DOWN' || direction === 'UP';
         
@@ -243,5 +249,5 @@ export const useMatrixRain = (
         return () => {
             cancelAnimationFrame(animationId);
         };
-    }, [width, height, config.direction, config.fontSize, config.spacing, config.depthVariance, config.streamGap]); 
+    }, [width, height, config.direction, config.fontSize, config.spacing, config.depthVariance, config.streamGap, config.enabled]); 
 };

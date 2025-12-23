@@ -35,9 +35,26 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
     return (
         <div className="absolute top-16 left-4 z-[60] w-80 bg-slate-950/95 border border-slate-700 backdrop-blur shadow-2xl p-4 animate-slide-up pointer-events-auto rounded-sm select-none max-h-[85vh] flex flex-col">
-            <div className="text-xs font-bold text-cyan-500 uppercase tracking-widest mb-4 border-b border-slate-800 pb-2 flex justify-between shrink-0">
-                <span>// SYSTEM_CONFIG</span>
-                <button onClick={onClose} className="hover:text-white">✕</button>
+            <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-2 shrink-0">
+                <span className="text-xs font-bold text-cyan-500 uppercase tracking-widest">// SYSTEM_CONFIG</span>
+                <div className="flex items-center gap-4">
+                    <label className="flex items-center cursor-pointer gap-2" title="特效總開關">
+                        <span className={`text-[10px] font-bold ${config.enabled ? 'text-cyan-400' : 'text-slate-600'}`}>
+                            {config.enabled ? 'ON' : 'OFF'}
+                        </span>
+                        <div className="relative">
+                            <input 
+                                type="checkbox" 
+                                className="sr-only" 
+                                checked={config.enabled} 
+                                onChange={(e) => updateConfig('enabled', e.target.checked)}
+                            />
+                            <div className={`block w-8 h-4 rounded-full transition-colors ${config.enabled ? 'bg-cyan-900 border border-cyan-500' : 'bg-slate-800 border border-slate-600'}`}></div>
+                            <div className={`absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-transform ${config.enabled ? 'translate-x-4 bg-cyan-100' : 'bg-slate-400'}`}></div>
+                        </div>
+                    </label>
+                    <button onClick={onClose} className="hover:text-white text-slate-500">✕</button>
+                </div>
             </div>
 
             <div className="space-y-4 overflow-y-auto custom-scrollbar pr-2 flex-1 min-h-0">
@@ -105,6 +122,18 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
                     <div className="space-y-1">
                         <div className="flex justify-between text-xs text-slate-400">
+                            <span>字元大小 (Size)</span>
+                            <span className="font-mono text-cyan-300">{config.fontSize}px</span>
+                        </div>
+                        <input 
+                            type="range" min="8" max="64" step="2" 
+                            value={config.fontSize} onChange={(e) => updateConfig('fontSize', parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
+                        />
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-slate-400">
                             <span>景深效果 (Depth)</span>
                             <span className="font-mono text-cyan-300">{Math.round(config.depthVariance * 100)}%</span>
                         </div>
@@ -126,6 +155,19 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                             className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
                         />
                         <p className="text-[9px] text-slate-500 text-right">0 = 頭尾相接</p>
+                    </div>
+
+                    <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-slate-400">
+                            <span>間距 (Spacing)</span>
+                            <span className="font-mono text-cyan-300">{config.spacing}px</span>
+                        </div>
+                        <input 
+                            type="range" min="0" max="100" step="2" 
+                            value={config.spacing} onChange={(e) => updateConfig('spacing', parseInt(e.target.value))}
+                            className="w-full h-1 bg-slate-800 rounded appearance-none cursor-pointer accent-cyan-500"
+                        />
+                        <p className="text-[9px] text-slate-500 text-right">0 = 全螢幕覆蓋</p>
                     </div>
 
                     <div className="space-y-1">

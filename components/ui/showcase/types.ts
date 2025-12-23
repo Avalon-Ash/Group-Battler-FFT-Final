@@ -3,6 +3,9 @@ export type LayoutPreset = 'CENTER' | 'BOTTOM_CENTER' | 'BOTTOM_LEFT' | 'BOTTOM_
 export type StreamDirection = 'DOWN' | 'UP' | 'LEFT' | 'RIGHT';
 
 export interface MatrixConfig {
+    // System
+    enabled: boolean;     // Master toggle
+
     // Physics
     direction: StreamDirection;
     speed: number;        // Global Speed Multiplier
