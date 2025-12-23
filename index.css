@@ -143,7 +143,17 @@
   100% { transform: scale(1); }
 }
 
+@keyframes gradientFlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
 .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
 .animate-slide-up { animation: slideUp 0.4s ease-out forwards; }
 .animate-pulse-glow { animation: pulseGlow 2s infinite; }
 .animate-bounce-in { animation: bounceIn 0.5s cubic-bezier(0.215, 0.610, 0.355, 1.000) both; }
+.animate-gradient-flow {
+  background-size: 200% 200%;
+  animation: gradientFlow 8s ease infinite;
+}
