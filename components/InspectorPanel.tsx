@@ -13,6 +13,87 @@ interface InspectorProps {
     onHoverSkill?: (skill: Skill | null) => void;
 }
 
+// Translation Maps
+const ROLE_MAP: Record<string, string> = {
+    [Role.TANK]: '坦克',
+    [Role.WARRIOR]: '戰士',
+    [Role.RANGER]: '遊俠',
+    [Role.MAGE]: '法師',
+    [Role.SUPPORT]: '輔助'
+};
+
+const TAG_MAP: Record<string, string> = {
+    'ULT': '奧義',
+    'ACTIVE': '主動',
+    'BASIC': '普攻'
+};
+
+// --- FIELD DEFINITIONS FOR SKILL DB ---
+type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'color';
+
+interface FieldDef {
+    key: keyof Skill;
+    label: string;
+    type: FieldType;
+    options?: string[]; // For Select: Raw values or special keys
+    step?: number;      // For Number
+}
+
+const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
+    {
+        name: '基本資訊',
+        fields: [
+            { key: 'name', label: '技能名稱', type: 'text' },
+            { key: 'id', label: 'ID', type: 'text' },
+            { key: 'tag', label: '類型標籤', type: 'select', options: ['BASIC', 'ACTIVE', 'ULT'] },
+            { key: 'role', label: '專屬職階', type: 'select', options: Object.values(Role) },
+            { key: 'team', label: '專屬陣營', type: 'select', options: ['ANY', 'BLUE', 'RED'] },
+            { key: 'desc', label: '技能描述', type: 'textarea' },
+        ]
+    },
+    {
+        name: '戰鬥數值',
+        fields: [
+            { key: 'power', label: '威力 (負數為治療)', type: 'number' },
+            { key: 'cost', label: '魔力消耗', type: 'number' },
+            { key: 'gain', label: '魔力回復', type: 'number' },
+            { key: 'cd', label: '冷卻時間 (秒)', type: 'number', step: 0.1 },
+            { key: 'cast', label: '詠唱時間 (秒)', type: 'number', step: 0.1 },
+            { key: 'range', label: '射程 (格)', type: 'number' },
+            { key: 'type', label: '目標類型', type: 'select', options: ['SINGLE', 'AOE'] },
+            { key: 'aoeRadius', label: 'AOE 半徑', type: 'number' },
+        ]
+    },
+    {
+        name: '視覺表現',
+        fields: [
+            { key: 'visual', label: '特效模型', type: 'select', options: ['ARROW', 'FIREBALL', 'BOLT', 'SLASH', 'SMASH', 'BEAM', 'BOMB'] },
+            { key: 'color', label: '主色調 (Hex/RGBA)', type: 'color' }, 
+            { key: 'projectileSpeed', label: '彈速 (0=即時)', type: 'number', step: 50 },
+        ]
+    },
+    {
+        name: '特效模組 A (主控場)',
+        fields: [
+            { key: 'ccType', label: '控場類型', type: 'select', options: ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE'] },
+            { key: 'ccDur', label: '持續時間', type: 'number', step: 0.5 },
+            { key: 'ccForce', label: '強度/層數', type: 'number' },
+            { key: 'effectType', label: '特殊效果', type: 'select', options: ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE'] },
+            { key: 'effectVal', label: '係數/數值', type: 'number', step: 0.1 },
+        ]
+    },
+    {
+        name: '特效模組 B (副效果)',
+        fields: [
+            { key: 'ccType2', label: '控場類型', type: 'select', options: ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE'] },
+            { key: 'ccDur2', label: '持續時間', type: 'number', step: 0.5 },
+            { key: 'ccForce2', label: '強度/層數', type: 'number' },
+            { key: 'effectType2', label: '特殊效果', type: 'select', options: ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE'] },
+            { key: 'effectVal2', label: '係數/數值', type: 'number', step: 0.1 },
+        ]
+    }
+];
+
 // --- VISUALIZATION COMPONENTS ---
 
 const TreeNode: React.FC<{ node: BTNode, version: number, now: number }> = ({ node, version, now }) => {
@@ -99,7 +180,7 @@ const LogItem = memo(({ log }: { log: LogEntry }) => (
         <span className="text-slate-500 w-14 shrink-0 opacity-70">[{log.time}s]</span>
         <div className="flex-1 min-w-0 break-words">
             <span className={`font-bold mr-2 ${log.team === Team.BLUE ? 'text-blue-400' : (log.team === Team.RED ? 'text-red-400' : 'text-slate-400')}`}>
-                {log.agentId ? `${log.agentId}` : 'SYSTEM'}
+                {log.agentId ? `${log.agentId}` : '系統'}
             </span>
             <span className="text-slate-300 mr-2 font-semibold">{log.action}</span>
             {log.target !== '自身' && log.target && (
@@ -212,7 +293,17 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
     const setRole = (r: string) => { if (agent) { agent.role = r as Role; setVersion(n => n + 1); } };
     const updateSkill = (field: keyof Skill, value: any) => {
         const skill = db.find(s => s.id === selectedSkillId);
-        if (skill) { (skill as any)[field] = value; setVersion(n => n + 1); }
+        if (skill) { 
+            // Type safety helper
+            if (field === 'team') {
+                if (value === 'ANY') (skill as any)[field] = undefined;
+                else if (value === 'BLUE') (skill as any)[field] = Team.BLUE;
+                else if (value === 'RED') (skill as any)[field] = Team.RED;
+            } else {
+                (skill as any)[field] = value; 
+            }
+            setVersion(n => n + 1); 
+        }
     };
     const downloadLogs = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(engine.logs, null, 2));
@@ -250,7 +341,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                         onClick={() => setTab(t as any)} 
                         className={`flex-1 py-4 text-sm font-bold tracking-wider transition-all ${tab === t ? 'text-cyan-400 border-b-2 border-cyan-500 bg-slate-800' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900'}`}
                     >
-                        {t === 'INSPECTOR' ? 'UNIT DATA' : (t === 'LOG' ? 'BATTLE LOG' : 'DATABASE')}
+                        {t === 'INSPECTOR' ? '單位監控' : (t === 'LOG' ? '戰況紀錄' : '技能資料庫')}
                     </button>
                 ))}
             </div>
@@ -259,8 +350,8 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                 {tab === 'INSPECTOR' && (!agent ? (
                     <div className="flex-1 flex flex-col items-center justify-center text-slate-600 p-8 text-center">
                         <div className="text-6xl mb-4 opacity-20">⌖</div>
-                        <div className="text-lg font-bold">NO UNIT SELECTED</div>
-                        <div className="text-sm">Select a unit on the battlefield to inspect.</div>
+                        <div className="text-lg font-bold">未選取單位</div>
+                        <div className="text-sm">請在地圖上選取單位以查看詳情。</div>
                     </div>
                 ) : (
                     <div className="flex flex-col h-full">
@@ -273,13 +364,13 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                         <span className="font-mono text-2xl font-bold text-white tracking-tight">{agent.id}</span>
                                     </div>
                                     <div className="text-slate-400 text-xs font-mono flex gap-3">
-                                        <span>POS: <span className="text-slate-200">{agent.q}, {agent.r}</span></span>
+                                        <span>位置: <span className="text-slate-200">{agent.q}, {agent.r}</span></span>
                                         <span>|</span>
                                         <span>HP: <span className={agent.hp < agent.maxHp * 0.3 ? 'text-red-500 animate-pulse' : 'text-green-400'}>{Math.ceil(agent.hp)}</span>/{agent.maxHp}</span>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">CURRENT ACTION</div>
+                                    <div className="text-[10px] uppercase text-slate-500 font-bold tracking-widest mb-1">當前行動</div>
                                     <div className="bg-slate-800 border border-slate-600 px-3 py-1 rounded text-cyan-300 font-bold text-sm shadow-inner min-w-[100px] text-center">
                                         {agent.btStatus}
                                     </div>
@@ -288,8 +379,8 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                             
                             {/* SUB TABS */}
                             <div className="flex bg-slate-950 rounded p-1 gap-1 border border-slate-800">
-                                <button onClick={() => setInspectorSubTab('STATUS')} className={`flex-1 py-2 text-xs rounded font-bold transition-all ${inspectorSubTab === 'STATUS' ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:bg-slate-900'}`}>STATUS & SKILLS</button>
-                                <button onClick={() => setInspectorSubTab('AI')} className={`flex-1 py-2 text-xs rounded font-bold transition-all ${inspectorSubTab === 'AI' ? 'bg-slate-800 text-amber-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:bg-slate-900'}`}>BEHAVIOR TREE</button>
+                                <button onClick={() => setInspectorSubTab('STATUS')} className={`flex-1 py-2 text-xs rounded font-bold transition-all ${inspectorSubTab === 'STATUS' ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:bg-slate-900'}`}>狀態數值</button>
+                                <button onClick={() => setInspectorSubTab('AI')} className={`flex-1 py-2 text-xs rounded font-bold transition-all ${inspectorSubTab === 'AI' ? 'bg-slate-800 text-amber-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:bg-slate-900'}`}>AI 行為</button>
                             </div>
                         </div>
 
@@ -299,19 +390,19 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                 {/* STAT BLOCK */}
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Role Classification</label>
+                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">職階分類</label>
                                         <select 
                                             className={`tactical-input h-12 w-full text-lg font-bold bg-slate-900 border-2 ${getRoleColor(agent.role)}`}
                                             value={agent.role} 
                                             onChange={(e) => setRole(e.target.value)}
                                         >
-                                            {Object.values(Role).map(r => <option key={r} value={r}>{r}</option>)}
+                                            {Object.values(Role).map(r => <option key={r} value={r}>{ROLE_MAP[r]}</option>)}
                                         </select>
                                     </div>
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="bg-slate-900 p-3 rounded border border-slate-800">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Health Pool</label>
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">生命值</label>
                                             <input 
                                                 type="number" 
                                                 className="tactical-input h-12 w-full text-2xl text-center text-green-400 font-mono bg-black/30 border-green-900/50 focus:border-green-500"
@@ -323,7 +414,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                             </div>
                                         </div>
                                         <div className="bg-slate-900 p-3 rounded border border-slate-800">
-                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">Mana Capacity</label>
+                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">魔力值</label>
                                             <input 
                                                 type="number" 
                                                 className="tactical-input h-12 w-full text-2xl text-center text-blue-400 font-mono bg-black/30 border-blue-900/50 focus:border-blue-500"
@@ -338,7 +429,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                 </div>
 
                                 <div className="border-t border-slate-800 pt-4">
-                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Active Skillset</div>
+                                    <div className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">技能組</div>
                                     <div className="space-y-4">
                                         {['ULT', 'ACTIVE', 'BASIC'].map((tag, i) => {
                                             const currentSkillId = agent.skillIds[i];
@@ -359,7 +450,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                                         <SkillIcon skill={currentSkill} className="w-12 h-12" />
                                                         <div className="flex-1">
                                                             <div className="text-[10px] font-bold text-slate-500 mb-1 flex justify-between">
-                                                                <span>{tag} SLOT</span>
+                                                                <span>{TAG_MAP[tag]} 欄位</span>
                                                                 {currentSkill && <span className="text-slate-400 font-mono">ID: {currentSkill.id}</span>}
                                                             </div>
                                                             <select 
@@ -367,12 +458,12 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                                                 value={agent.skillIds[i] || ""} 
                                                                 onChange={(e) => setSkill(i, e.target.value)}
                                                             >
-                                                                <option value="">-- EMPTY SLOT --</option>
+                                                                <option value="">-- 空欄位 --</option>
                                                                 {roleOrder.map(role => {
                                                                     const skills = skillsByRole[role];
                                                                     if (!skills || skills.length === 0) return null;
                                                                     return (
-                                                                        <optgroup key={role} label={role} className="bg-slate-900 text-slate-400">
+                                                                        <optgroup key={role} label={ROLE_MAP[role]} className="bg-slate-900 text-slate-400">
                                                                             {skills.map(s => (
                                                                                 <option key={s.id} value={s.id} className="text-white">
                                                                                     {s.name} {s.team !== undefined ? (s.team === Team.BLUE ? '🔵' : '🔴') : ''}
@@ -392,19 +483,19 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                                             </div>
                                                             <div className="grid grid-cols-4 gap-2 text-xs font-mono text-slate-300">
                                                                 <div className="bg-slate-950 p-2 rounded text-center border border-slate-800">
-                                                                    <div className="text-slate-500 text-[10px] mb-1">PWR</div>
+                                                                    <div className="text-slate-500 text-[10px] mb-1">威力</div>
                                                                     <div className="font-bold text-base">{currentSkill.power}</div>
                                                                 </div>
                                                                 <div className="bg-slate-950 p-2 rounded text-center border border-slate-800">
-                                                                    <div className="text-slate-500 text-[10px] mb-1">CD</div>
+                                                                    <div className="text-slate-500 text-[10px] mb-1">冷卻</div>
                                                                     <div className="font-bold text-base">{currentSkill.cd}s</div>
                                                                 </div>
                                                                 <div className="bg-slate-950 p-2 rounded text-center border border-slate-800">
-                                                                    <div className="text-slate-500 text-[10px] mb-1">COST</div>
+                                                                    <div className="text-slate-500 text-[10px] mb-1">消耗</div>
                                                                     <div className="font-bold text-base text-blue-400">{currentSkill.cost}</div>
                                                                 </div>
                                                                 <div className="bg-slate-950 p-2 rounded text-center border border-slate-800">
-                                                                    <div className="text-slate-500 text-[10px] mb-1">RNG</div>
+                                                                    <div className="text-slate-500 text-[10px] mb-1">射程</div>
                                                                     <div className="font-bold text-base">{currentSkill.range}</div>
                                                                 </div>
                                                             </div>
@@ -440,13 +531,13 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                 style={{touchAction: 'none'}}
                              >
                                 <div className="absolute top-4 left-4 z-10 glass-panel px-3 py-2 flex items-center gap-3">
-                                    <div className="text-xs font-bold text-slate-400 uppercase">Refresh Rate</div>
+                                    <div className="text-xs font-bold text-slate-400 uppercase">刷新率</div>
                                     <input type="range" min="1" max="60" value={btFps} onChange={e => setBtFps(parseInt(e.target.value))} className="w-24 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
                                     <span className="text-cyan-400 font-mono text-xs w-6 text-right">{btFps}</span>
                                 </div>
                                 
                                 <div className="absolute top-4 right-4 z-10 glass-panel px-3 py-2 text-xs font-mono text-slate-400">
-                                    ZOOM: {Math.round(btScale * 100)}%
+                                    縮放: {Math.round(btScale * 100)}%
                                 </div>
 
                                 <div className="absolute w-full h-full flex justify-center items-start pt-20 origin-top-center will-change-transform" 
@@ -467,16 +558,16 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                 {tab === 'LOG' && (
                     <div className="flex flex-col h-full bg-slate-900">
                         <div className="p-3 border-b border-slate-800 bg-slate-950 flex justify-between items-center shrink-0">
-                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Live Feed (Last 100)</span>
+                            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">即時戰況 (最近100筆)</span>
                             <button onClick={downloadLogs} className="tactical-btn text-xs">
-                                EXPORT JSON
+                                匯出 JSON
                             </button>
                         </div>
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 font-mono">
                             {localLogs.slice().reverse().map(log => (
                                 <LogItem key={log.id} log={log} />
                             ))}
-                            {localLogs.length === 0 && <div className="text-slate-600 text-center mt-20 italic">No combat data recorded</div>}
+                            {localLogs.length === 0 && <div className="text-slate-600 text-center mt-20 italic">尚無戰鬥紀錄</div>}
                         </div>
                     </div>
                 )}
@@ -491,7 +582,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                         onClick={() => setDbTypeTab(t as any)} 
                                         className={`flex-1 py-2 text-xs rounded font-bold transition-all ${dbTypeTab === t ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:text-slate-300'}`}
                                     >
-                                        {t}
+                                        {t === 'ALL' ? '全部' : TAG_MAP[t]}
                                     </button>
                                 ))}
                             </div>
@@ -501,8 +592,8 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                 value={dbRoleFilter}
                                 onChange={(e) => setDbRoleFilter(e.target.value as any)}
                             >
-                                <option value="ALL">FILTER ROLE: ALL</option>
-                                {Object.values(Role).map(r => <option key={r} value={r}>ROLE: {r}</option>)}
+                                <option value="ALL">篩選職階: 全部</option>
+                                {Object.values(Role).map(r => <option key={r} value={r}>職階: {ROLE_MAP[r]}</option>)}
                             </select>
                         </div>
                         
@@ -517,9 +608,9 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                         <div className="flex-1 min-w-0">
                                             <div className="font-bold text-sm text-slate-200">{skill.name}</div>
                                             <div className="text-xs text-slate-500 flex gap-2 items-center mt-1">
-                                                <span className="font-mono font-bold">{skill.role}</span>
+                                                <span className="font-mono font-bold">{ROLE_MAP[skill.role]}</span>
                                                 <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-                                                <span className={`${skill.tag === 'ULT' ? 'text-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-400' : 'text-slate-400')} font-bold`}>{skill.tag}</span>
+                                                <span className={`${skill.tag === 'ULT' ? 'text-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-400' : 'text-slate-400')} font-bold`}>{TAG_MAP[skill.tag]}</span>
                                             </div>
                                         </div>
                                         <div className="text-slate-600 text-lg">
@@ -528,33 +619,82 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                                     </div>
 
                                     {selectedSkillId === skill.id && (
-                                        <div className="p-4 border-t border-slate-700 bg-black/20">
-                                            <div className="grid grid-cols-2 gap-4 mb-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-500">POWER</label>
-                                                    <input type="number" className="tactical-input w-full h-10" value={skill.power} onChange={e => updateSkill('power', parseInt(e.target.value))} />
+                                        <div className="p-4 border-t border-slate-700 bg-black/20 text-left">
+                                            {SKILL_FIELD_GROUPS.map((group) => (
+                                                <div key={group.name} className="mb-4 last:mb-0">
+                                                    <div className="text-[10px] font-bold text-slate-500 uppercase border-b border-slate-700 mb-2 pb-1">
+                                                        {group.name}
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {group.fields.map((field) => {
+                                                            const val = (skill as any)[field.key];
+                                                            
+                                                            // Helper for special handling of Team Enum
+                                                            let displayVal = val;
+                                                            if (field.key === 'team') {
+                                                                if (val === undefined) displayVal = 'ANY';
+                                                                else if (val === Team.BLUE) displayVal = 'BLUE';
+                                                                else if (val === Team.RED) displayVal = 'RED';
+                                                            } else if (val === undefined || val === null) {
+                                                                displayVal = '';
+                                                            }
+
+                                                            const isWide = field.type === 'textarea';
+
+                                                            return (
+                                                                <div key={field.key} className={isWide ? "col-span-2 space-y-1" : "space-y-1"}>
+                                                                    <label className="text-[9px] font-bold text-slate-500 block truncate" title={field.label}>{field.label}</label>
+                                                                    
+                                                                    {field.type === 'textarea' ? (
+                                                                        <textarea 
+                                                                            className="tactical-input w-full p-2 h-20 text-sm resize-none"
+                                                                            value={displayVal}
+                                                                            onChange={e => updateSkill(field.key, e.target.value)}
+                                                                        />
+                                                                    ) : field.type === 'select' ? (
+                                                                        <select 
+                                                                            className="tactical-input w-full h-8 text-xs appearance-none cursor-pointer"
+                                                                            value={displayVal}
+                                                                            onChange={e => {
+                                                                                const v = e.target.value;
+                                                                                if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key, undefined);
+                                                                                else updateSkill(field.key, v); // Handled by updateSkill special logic for Team
+                                                                            }}
+                                                                        >
+                                                                            {field.options?.map(opt => (
+                                                                                <option key={opt} value={opt}>{opt}</option>
+                                                                            ))}
+                                                                        </select>
+                                                                    ) : field.type === 'color' ? (
+                                                                        <div className="flex gap-1 items-center">
+                                                                            <input 
+                                                                                type="text" 
+                                                                                className="tactical-input flex-1 h-8 text-xs min-w-0" 
+                                                                                value={displayVal} 
+                                                                                onChange={e => updateSkill(field.key, e.target.value)} 
+                                                                            />
+                                                                            <input 
+                                                                                type="color" 
+                                                                                className="w-6 h-8 p-0 border-0 bg-transparent cursor-pointer" 
+                                                                                value={displayVal.startsWith('#') ? displayVal : '#ffffff'} 
+                                                                                onChange={e => updateSkill(field.key, e.target.value)} 
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <input 
+                                                                            type={field.type} 
+                                                                            className="tactical-input w-full h-8 text-xs"
+                                                                            value={displayVal}
+                                                                            step={field.step || 1}
+                                                                            onChange={e => updateSkill(field.key, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                                                                        />
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-500">COOLDOWN</label>
-                                                    <input type="number" className="tactical-input w-full h-10" value={skill.cd} step="0.5" onChange={e => updateSkill('cd', parseFloat(e.target.value))} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-500">COST</label>
-                                                    <input type="number" className="tactical-input w-full h-10" value={skill.cost} onChange={e => updateSkill('cost', parseInt(e.target.value))} />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-500">RANGE</label>
-                                                    <input type="number" className="tactical-input w-full h-10" value={skill.range} onChange={e => updateSkill('range', parseInt(e.target.value))} />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-xs font-bold text-slate-500">DESCRIPTION</label>
-                                                <textarea 
-                                                    className="tactical-input w-full p-2 h-20 text-sm resize-none"
-                                                    value={skill.desc || ""}
-                                                    onChange={e => updateSkill('desc', e.target.value)}
-                                                />
-                                            </div>
+                                            ))}
                                         </div>
                                     )}
                                 </div>
