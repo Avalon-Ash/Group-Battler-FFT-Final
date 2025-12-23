@@ -3,6 +3,7 @@ import { Agent } from "../game";
 import { COLORS, UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
 import { Role } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
+import { AssetManager } from "../assets";
 
 // --- Constants ---
 const GRAVITY = 200;
@@ -118,15 +119,7 @@ export class HUDSystem {
 
             // --- STANDARD ANCHOR CALCULATION ---
             // Formula: Ground - VisualHeightStandard - PhysicsOffset - Padding
-            // This guarantees the bar is always exactly UNIT_VISUAL_HEIGHT + PADDING pixels above the visual center,
-            // regardless of the unit's scaling or animation state.
-            
-            /* 
-             * ANTI-REGRESSION WARNING:
-             * Do NOT hardcode arbitrary offsets here (e.g., -40, -50). 
-             * Use UNIT_VISUAL_HEIGHT defined in constants.ts.
-             * This ensures UI bars clear even the tallest unit models.
-             */
+            // REMOVED dynamicOffset to prevent jitter
             const anchorY = groundY - UNIT_VISUAL_HEIGHT + physicsOffsetY - HUD_PADDING;
             
             const headX = a.px + a.physics.x;
@@ -164,6 +157,58 @@ export class HUDSystem {
             ctx.fillStyle = COLORS.MP; 
             ctx.fillRect(x - w/2, mpY + b, w * mpPct, mpH);
         }
+
+        // --- CIRCULAR CAST GAUGE (Integrated) ---
+        if (agent.castingSkillIdx !== -1) {
+            const skill = agent.skills[agent.castingSkillIdx];
+            if (skill) {
+                this.drawCircularCast(ctx, x, y, agent.castTimer, skill.cast, skill.visual, skill.color);
+            }
+        }
+    }
+
+    private drawCircularCast(ctx: CanvasRenderingContext2D, x: number, y: number, current: number, total: number, visual: string | undefined, color: string) {
+        const radius = 14;
+        const iconY = y - 18; // Float slightly above the bar center
+        
+        // 1. Icon Background (Clip)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#1e293b';
+        ctx.fill();
+        ctx.clip();
+        
+        // 2. Icon Sprite
+        const icon = AssetManager.getSkillIcon(visual || 'BOLT', color);
+        ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
+        ctx.restore();
+
+        // 3. Dark Track (Background Ring)
+        ctx.beginPath();
+        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // 4. Progress Ring
+        const pct = Math.max(0, Math.min(1, 1 - (current / total)));
+        if (pct > 0) {
+            ctx.beginPath();
+            // Start from top (-PI/2)
+            ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * pct));
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+        }
+        
+        // 5. Shine/Gloss (Optional visual polish)
+        ctx.beginPath();
+        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 
     private drawFloatingText(ctx: CanvasRenderingContext2D) {

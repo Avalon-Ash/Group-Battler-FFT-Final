@@ -189,31 +189,23 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
 }
 
 export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: number, drawX: number, drawY: number, scaleFactor: number) {
-        if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
+    // Only keeping this logic for casting glow if needed, but HUDSystem handles the main gauge now.
+    // We can keep the "Glow" behind the unit here if desired, or remove it.
+    // For now, let's just keep the particle glow effect if casting, but remove the UI elements (Icon/Bar).
+    
+    if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
         const skill = agent.skills[agent.castingSkillIdx];
-        if (skill && skill.visual) {
-            const icon = AssetManager.getSkillIcon(skill.visual, skill.color);
+        if (skill) {
             ctx.save();
-            // Move Higher relative to Body top (approx -120 local)
             ctx.translate(0, -110);
-            const pulse = 1 + Math.sin(t * 10) * 0.1;
-            ctx.scale(pulse, pulse);
             
+            // Just the ambient energy glow behind the head, no UI
             const glow = AssetManager.getGlowSprite(skill.color);
             ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.6;
-            ctx.drawImage(glow, -32, -32, 64, 64);
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.globalAlpha = 1.0;
-
-            ctx.drawImage(icon, -12, -12, 24, 24);
+            const pulse = 0.5 + Math.sin(t * 10) * 0.1;
+            ctx.globalAlpha = 0.3 * pulse;
+            ctx.drawImage(glow, -40, -40, 80, 80);
             
-            // Cast Bar
-            ctx.fillStyle = '#000';
-            ctx.fillRect(-14, 20, 28, 5); 
-            ctx.fillStyle = skill.color;
-            const pct = Math.max(0, 1 - (agent.castTimer / skill.cast));
-            ctx.fillRect(-14, 20, 28 * pct, 5);
             ctx.restore();
         }
     }
