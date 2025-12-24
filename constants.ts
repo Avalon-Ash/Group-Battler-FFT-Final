@@ -12,6 +12,39 @@ export const UNIT_BODY_OFFSET = 45;   // NEW: The visual "Chest/Center" height f
 export const HUD_PADDING = 10;        // Safety buffer between sprite top and UI elements.
 export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
 
+// --- ASSET PALETTES ---
+
+// 1. FACTION THEMES (Used by Renderers)
+export const THEME_IMPERIAL = {
+    primary: '#2563eb',    // Blue-600
+    secondary: '#facc15',  // Yellow-400
+    armorLight: '#f8fafc', // Slate-50
+    armorDark: '#1e3a8a',  // Blue-900
+    energy: '#60a5fa',     // Blue-400
+    cape: 'rgba(30, 58, 138, 0.8)' // Blue-900 alpha
+};
+
+export const THEME_COVENANT = {
+    primary: '#b91c1c',    // Red-700
+    secondary: '#ef4444',  // Red-500 (Glow)
+    armorDark: '#18181b',  // Zinc-900
+    armorBase: '#27272a',  // Zinc-800
+    accent: '#7f1d1d',     // Red-900
+    spike: '#27272a'       // Zinc-800
+};
+
+// 2. LOG & UI COLORS (Used by GameEngine & Logs)
+export const LOG_COLORS = {
+    MOVE: '#3b82f6',     // Blue
+    CAST: '#f59e0b',     // Amber
+    HIT: '#ef4444',      // Red
+    HEAL: '#22c55e',     // Green
+    DECISION: '#a855f7', // Purple
+    DEATH: '#71717a',    // Zinc
+    CC: '#facc15',       // Yellow
+    SYSTEM: '#94a3b8'    // Slate
+};
+
 export const PALETTE = {
     UI_BG: '#0a0a0c', // LoL Client Dark Grey
     UI_BORDER: '#785a28', // Hextech Gold
@@ -50,6 +83,18 @@ export const COLORS = {
     HP: '#16a34a', // LoL Green HP bar
     MP: '#60a5fa', // Blue-400 (Brighter for visibility)
     CAST: '#fbbf24'
+};
+
+// --- GAMEPLAY PARAMETERS (Separated from Logic) ---
+export const COMBAT_PARAM = {
+    HIT_IMPULSE_MAX: 20,
+    HIT_IMPULSE_MIN: 5,
+    DR_RESET_TIME: 10.0,
+    EXECUTE_THRESHOLD: 0.3, // 30% HP
+    BASE_EXECUTE_MULTIPLIER: 1.5,
+    BASE_VAMP_PCT: 0.5,
+    MANA_BURN_DEFAULT: 30,
+    MANA_RESTORE_DEFAULT: 30,
 };
 
 // 3D Terrain Materials (Updated for Material 2.0)

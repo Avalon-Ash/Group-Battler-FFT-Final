@@ -4,7 +4,7 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
-import { COLORS } from "../constants";
+import { COLORS, LOG_COLORS } from "../constants";
 
 // Core Entities
 import { Agent, SpecialVisualStatus } from "./core/Agent";
@@ -290,7 +290,7 @@ export class GameEngine {
         let actionName = 'Action';
         let targetInfo = '';
         let detail = '';
-        let color = '#94a3b8'; // default slate
+        let color = LOG_COLORS.SYSTEM;
 
         // Handle Legacy Calls (from StatusSystem, AgentManager, etc.)
         // Old: log(agent, actionString, targetId, detailString)
@@ -303,10 +303,10 @@ export class GameEngine {
             detail = detailOrTargetInfo;
 
             // Map Legacy strings to Types
-            if (rawAction === '死亡') { actionType = 'DEATH'; color = '#71717a'; }
-            else if (rawAction === '放逐結束') { actionType = 'CC'; color = '#c084fc'; }
-            else if (rawAction === '中斷') { actionType = 'CC'; color = '#facc15'; }
-            else if (rawAction === '命中') { actionType = 'HIT'; color = '#ef4444'; }
+            if (rawAction === '死亡') { actionType = 'DEATH'; color = LOG_COLORS.DEATH; }
+            else if (rawAction === '放逐結束') { actionType = 'CC'; color = LOG_COLORS.CC; }
+            else if (rawAction === '中斷') { actionType = 'CC'; color = LOG_COLORS.CC; }
+            else if (rawAction === '命中') { actionType = 'HIT'; color = LOG_COLORS.HIT; }
             else { actionType = 'SYSTEM'; }
         } else {
             // New Rich Signature
@@ -317,14 +317,14 @@ export class GameEngine {
             detail = legacyDetail || '';
 
             switch(actionType) {
-                case 'MOVE': color = '#3b82f6'; break; // Blue
-                case 'CAST': color = '#f59e0b'; break; // Amber
-                case 'HIT': color = '#ef4444'; break; // Red
-                case 'HEAL': color = '#22c55e'; break; // Green
-                case 'DECISION': color = '#a855f7'; break; // Purple
-                case 'DEATH': color = '#71717a'; break; // Zinc
-                case 'CC': color = '#facc15'; break; // Yellow
-                default: color = '#94a3b8'; break;
+                case 'MOVE': color = LOG_COLORS.MOVE; break;
+                case 'CAST': color = LOG_COLORS.CAST; break;
+                case 'HIT': color = LOG_COLORS.HIT; break;
+                case 'HEAL': color = LOG_COLORS.HEAL; break;
+                case 'DECISION': color = LOG_COLORS.DECISION; break;
+                case 'DEATH': color = LOG_COLORS.DEATH; break;
+                case 'CC': color = LOG_COLORS.CC; break;
+                default: color = LOG_COLORS.SYSTEM; break;
             }
         }
 
