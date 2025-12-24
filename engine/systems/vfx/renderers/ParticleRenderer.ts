@@ -153,17 +153,135 @@ export const ParticleRenderer = {
             ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
             
         } else if (p.type === 'PILLAR') {
-            // Anchor correction for pillar to grow UP from ground
-            // p.y is ground, p.z is 0 usually for pillar anchors
             this.drawDivinePillar(ctx, p, progress);
         } else if (p.type === 'SHOCKWAVE') {
+            // Keep generic shockwave logic
             ctx.translate(0, -20);
             this.drawShockwave(ctx, p, progress, isChaos);
         } else if (p.type === 'DOMAIN') {
             ctx.translate(0, -20);
             this.drawBloodRitual(ctx, p, progress);
+        } else if (p.type === 'GRID_FIELD') {
+            this.drawGridField(ctx, p, progress, isChaos);
         }
 
+        ctx.restore();
+    },
+
+    // 🌫️ VOLUMETRIC GRID FOG (Procedural)
+    // Simulates a lingering energy field strictly bound to the tile hex.
+    drawGridField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
+        // Hex Geometry (Matches TerrainRenderer)
+        const size = 36; 
+        const drawHex = () => {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+                const angle = (Math.PI / 6 + Math.PI / 4) + i * Math.PI / 3;
+                const x = size * Math.cos(angle);
+                const y = size * Math.sin(angle) * 0.58; // ISO squashing
+                if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.closePath();
+        };
+
+        const fade = Math.sin(progress * Math.PI); // Smooth fade in/out
+        
+        ctx.save();
+        
+        if (isChaos) {
+            // RED: CRACKED EARTH + RISING MIASMA
+            
+            // 1. Ground Cracks (Base)
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.save();
+            // Jittery crack expansion
+            const jitter = (Math.random() - 0.5) * 2;
+            ctx.translate(jitter, jitter);
+            
+            // Mask to hex shape
+            drawHex();
+            ctx.clip();
+            
+            // Fill dark background
+            ctx.fillStyle = `rgba(20, 5, 5, ${fade * 0.8})`;
+            ctx.fill();
+            
+            // Draw cracks
+            ctx.strokeStyle = p.color; // Hot red
+            ctx.lineWidth = 2;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 10;
+            ctx.globalAlpha = fade;
+            
+            ctx.beginPath();
+            // Procedural lightning shape across hex
+            ctx.moveTo(-20, -10); ctx.lineTo(-10, 5); ctx.lineTo(5, -5); ctx.lineTo(20, 10);
+            ctx.moveTo(0, 0); ctx.lineTo(-5, 15);
+            ctx.stroke();
+            ctx.restore();
+
+            // 2. Rising Miasma (Volumetric Fog)
+            ctx.globalCompositeOperation = 'lighter';
+            
+            // Simulate 3 distinct smoke puffs moving UP within the column
+            const puffs = 3;
+            for(let i=0; i<puffs; i++) {
+                // Time offset for each puff
+                const t = (Date.now() / 1000 + i * 100) % 1;
+                // Move UP: y goes from 10 to -40
+                const yPos = 10 - t * 60; 
+                // Scale fades as it goes up
+                const scale = 1 + t * 0.5;
+                const puffAlpha = fade * (1 - t);
+                
+                ctx.globalAlpha = puffAlpha * 0.4;
+                ctx.fillStyle = p.color;
+                
+                ctx.beginPath();
+                ctx.ellipse((Math.sin(t*10 + i)*5), yPos, 15 * scale, 8 * scale, 0, 0, Math.PI*2);
+                ctx.fill();
+            }
+
+        } else {
+            // BLUE: HOLY CONSECRATION + LIGHT DUST
+            
+            // 1. Clean Hex Outline
+            ctx.globalCompositeOperation = 'screen';
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = fade * 0.8;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 15;
+            
+            drawHex();
+            ctx.stroke();
+            
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = fade * 0.2;
+            ctx.fill();
+
+            // 2. Vertical Light Beams (Stationary)
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = '#fff';
+            
+            const beams = 4;
+            for(let i=0; i<beams; i++) {
+                const angle = (Date.now() / 2000 + i * (Math.PI*2/beams)) % (Math.PI*2);
+                const r = 15;
+                const px = Math.cos(angle) * r;
+                const py = Math.sin(angle) * r * 0.58;
+                
+                const beamHeight = 40 + Math.sin(Date.now()/500 + i)*10;
+                
+                const grad = ctx.createLinearGradient(0, py, 0, py - beamHeight);
+                grad.addColorStop(0, `rgba(255,255,255,${fade * 0.5})`);
+                grad.addColorStop(1, 'rgba(255,255,255,0)');
+                
+                ctx.fillStyle = grad;
+                ctx.fillRect(px - 1, py - beamHeight, 2, beamHeight);
+            }
+        }
+        
         ctx.restore();
     },
 
@@ -232,10 +350,7 @@ export const ParticleRenderer = {
         // Mask the vertical fade
         const vMask = ctx.createLinearGradient(0, 0, 0, -currentHeight);
         vMask.addColorStop(0, 'rgba(0,0,0,0)');
-        vMask.addColorStop(0.1, 'rgba(0,0,0,1)'); // Black = visible in mask logic? No, canvas gradient opacity
-        // Actually for direct fill, we combine alpha.
-        // We draw the horizontal gradient rect, but modulate alpha vertically? 
-        // Simpler: Just draw rect with horizontal grad, but set global alpha.
+        vMask.addColorStop(0.1, 'rgba(0,0,0,1)'); 
         
         ctx.fillStyle = glowGrad;
         ctx.globalAlpha = alpha * 0.6;
@@ -333,8 +448,6 @@ export const ParticleRenderer = {
 
     drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.scale(1, 0.55); 
-        // Chaos Shockwave = Jagged
-        // Order Shockwave = Smooth Ring
         
         const r = progress * 300; 
         const width = 30 * (1 - progress);

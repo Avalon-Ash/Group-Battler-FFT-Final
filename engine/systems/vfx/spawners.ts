@@ -54,33 +54,24 @@ export function spawnBloodRitual(system: VFXSystem, x: number, y: number, color:
 // --- 2. GRID CONSISTENCY ---
 
 export function spawnGridImpact(system: VFXSystem, x: number, y: number, color: string, team: Team, delay: number) {
-    // A smaller effect for EACH tile in an AOE
+    // Replaced shockwaves with "GRID_FIELD" which is a stationary volumetric effect
+    const p = system.state.getParticle();
+    p.x = x; p.y = y; p.z = 0;
     
-    if (team === Team.BLUE) {
-        // Blue: Mini pillar / Light shaft
-        const p = system.state.getParticle();
-        p.x = x; p.y = y; p.z = 0;
-        p.life = 0.6; p.maxLife = 0.6;
-        p.color = color;
-        p.size = 40; // Fits within a Hex
-        p.type = 'PILLAR'; // Mini pillar
-        p.delay = delay;
-        system.state.particles.push(p);
-    } else {
-        // Red: Ground erupting spike
-        const p = system.state.getParticle();
-        p.x = x; p.y = y; p.z = 0;
-        p.life = 0.6; p.maxLife = 0.6;
-        p.color = color;
-        p.size = 40;
-        p.type = 'SHOCKWAVE'; // Will render as a jagged blast
-        p.delay = delay;
-        system.state.particles.push(p);
-        
-        // Add a spark
+    // Duration needs to be long enough to feel like a "Zone" logic execution
+    // Standard impact duration + fade
+    p.life = 1.2; p.maxLife = 1.2;
+    p.color = color;
+    p.size = 36; // Matches HEX_SIZE approx
+    p.type = 'GRID_FIELD'; 
+    p.delay = delay;
+    system.state.particles.push(p);
+
+    // Add a quick flash for immediate impact feel
+    if (Math.random() > 0.5) {
         const s = system.state.getParticle();
         s.x = x; s.y = y; s.z = 10;
-        s.vx = 0; s.vy = 0; s.vz = 150;
+        s.vx = 0; s.vy = 0; s.vz = 150; // Fly up
         s.life = 0.4; s.maxLife = 0.4;
         s.color = color; s.size = 20;
         s.type = 'SPARK';
