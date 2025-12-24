@@ -1,8 +1,9 @@
 
 import { HEX_SIZE, BLOCK_HEIGHT, TERRAIN_THEMES } from "../../constants";
 import { GameEngine, Agent } from "../game";
-import { HexUtils } from "../utils";
+import { HexUtils, getTransitionOffset } from "../utils";
 import { Hex, Skill, Projectile } from "../../types";
+import { SpriteManager } from "../sprites";
 
 // Renderers
 import { TerrainRenderer } from "../renderers/grid/TerrainRenderer";
@@ -22,18 +23,20 @@ interface CachedTile {
     h: number;
 }
 
+const OBSTACLE_Z_INDEX = 10;
+const OBSTACLE_ANCHOR_Y = 95; 
+const OBSTACLE_HALF_WIDTH = 40; 
+
 export class GridSystem {
     // Optimization: Cache tiles to avoid re-parsing keys and re-calculating positions every frame
     private _tileCache: CachedTile[] = [];
     private _lastMapVersion: number = -1;
 
     // Optimization: Reuseable buffers to reduce GC pressure
-    // Updated: Include 'state' in the value ('ACTIVE' | 'BROKEN')
     private _dangerZones = new Map<string, {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number}>();
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
 
-    // Passthrough
     getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
         if(engine) return engine.map.getTerrainHeight(q, r);
         return 0; 
@@ -60,7 +63,6 @@ export class GridSystem {
     getHexAtScreenPoint(mx: number, my: number, camera: {x: number, y: number, zoom: number}, engine: GameEngine): Hex | null {
         this.ensureCache(engine);
         
-        // Convert screen mouse to world coordinates (unzoomed)
         const wx = mx / camera.zoom + camera.x;
         const wy = my / camera.zoom + camera.y;
 
@@ -74,7 +76,6 @@ export class GridSystem {
             }
         }
 
-        // Sort by visual depth (Front to Back)
         candidates.sort((a, b) => b.py - a.py);
 
         for (const cand of candidates) {
@@ -88,9 +89,6 @@ export class GridSystem {
         return null;
     }
 
-    /**
-     * Identifies agents that are visually blocked by taller terrain in front of them.
-     */
     getOccludedAgents(engine: GameEngine): Agent[] {
         const occluded: Agent[] = [];
         
@@ -100,8 +98,6 @@ export class GridSystem {
             const uPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const uHeight = engine.map.getTerrainHeight(a.q, a.r);
 
-            // In Diamond Isometric, "Front" means Higher Y on screen.
-            // Blocks with higher Y and higher Z can occlude units with lower Y.
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
             let isBlocked = false;
 
@@ -109,11 +105,8 @@ export class GridSystem {
                 const k = HexUtils.key(n);
                 if (engine.mapKeys.has(k)) {
                     const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
-                    
-                    // Check if neighbor is physically "in front" (Screen Y is larger)
                     if (nPx.y > uPx.y) {
                          const nHeight = engine.map.getTerrainHeight(n.q, n.r);
-                         // If the blocking tile is strictly taller
                          if (nHeight > uHeight) {
                              isBlocked = true;
                              break;
@@ -146,14 +139,14 @@ export class GridSystem {
         const list: RenderableItem[] = [];
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
+        const defaultObsStyle = scene.obstacleStyle || 'WALL';
 
-        // Clear and Reuse Buffers
         this._dangerZones.clear();
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
 
+        // 1. Pre-calc Unit States
         engine.agents.forEach(a => {
-            // 1. ACTIVE CASTS (Only if not suppressed)
             if (a.hp > 0 && a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.type === 'AOE') {
@@ -164,7 +157,6 @@ export class GridSystem {
 
                     if (centerHex) {
                         const progress = 1 - (a.castTimer / s.cast);
-                        // DYNAMIC EXPANSION:
                         const currentRadius = Math.max(0.5, (s.aoeRadius || 1) * progress);
                         const potentialHexes = HexUtils.range(centerHex, s.aoeRadius || 1);
                         
@@ -182,46 +174,43 @@ export class GridSystem {
                     }
                 }
             }
-            
             if(a.hp > 0) {
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
-                if (a.visualStatus !== 'NONE') {
-                    this._unitVisualStatus.set(key, a.visualStatus);
-                }
+                if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
             }
         });
 
-        const centerQ = Math.floor(engine.mapConfig.w / 2);
-        const centerR = Math.floor(engine.mapConfig.h / 2);
-        const maxDist = Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2;
+        // 2. Iterate Tiles & Obstacles
+        const PROJ_LIGHT_RADIUS = 40; 
+        const PROJ_LIGHT_RADIUS_SQ = PROJ_LIGHT_RADIUS * PROJ_LIGHT_RADIUS;
 
         for (const tile of this._tileCache) {
             const { q, r, px, py, h } = tile;
             
-            // --- TRANSITION LOGIC ---
-            let visualY = py;
-            if (transitionPhase !== 'IDLE') {
-                const dist = Math.sqrt((q - centerQ)**2 + (r - centerR)**2);
-                const d = dist / maxDist; 
-                
-                if (transitionPhase === 'OUT') {
-                    const trigger = d * 0.3;
-                    if (transitionT > trigger) {
-                        const fallT = Math.min(1, (transitionT - trigger) * 2.5);
-                        const easedFall = fallT * fallT * fallT;
-                        visualY += easedFall * 1000;
-                    }
-                } else if (transitionPhase === 'IN') {
-                    const trigger = d * 0.3;
-                    const riseT = Math.max(0, Math.min(1, (transitionT - trigger) * 2.5));
-                    const easedRise = 1 - Math.pow(1 - riseT, 3);
-                    visualY += (1 - easedRise) * 1000;
-                }
-            }
+            // Shared Transition Math
+            const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
+            const visualY = py + offset;
 
+            // Cull if dropped too far
             if (visualY > py + 800) continue;
 
+            const k = `${q},${r}`;
+            
+            // --- DRAW OBSTACLE ---
+            const obstacleType = engine.obstacles.get(k);
+            if (obstacleType) {
+                list.push({
+                    y: visualY, // Sorts along with terrain row
+                    z: OBSTACLE_Z_INDEX,
+                    draw: (ctx) => {
+                        const sprite = SpriteManager.getObstacleSprite(obstacleType);
+                        ctx.drawImage(sprite, px - OBSTACLE_HALF_WIDTH, visualY - h - OBSTACLE_ANCHOR_Y);
+                    }
+                });
+            }
+
+            // --- DRAW TERRAIN ---
             const flash = flashes.find(f => f.q === q && f.r === r);
             let isRange = false;
             let rangeColor = '';
@@ -239,16 +228,12 @@ export class GridSystem {
             }
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            
-            const k = `${q},${r}`;
             const dangerInfo = this._dangerZones.get(k);
             const hasUnit = this._unitPresence.has(k);
             const specialStatus = this._unitVisualStatus.get(k);
 
             let lightColor = null;
             let lightIntensity = 0;
-            const PROJ_LIGHT_RADIUS = 40; 
-            const PROJ_LIGHT_RADIUS_SQ = PROJ_LIGHT_RADIUS * PROJ_LIGHT_RADIUS;
             
             for (const p of projectiles) {
                 const distSq = (p.x - px)**2 + (p.y - py)**2;

@@ -12,6 +12,10 @@ export const UNIT_BODY_OFFSET = 45;   // NEW: The visual "Chest/Center" height f
 export const HUD_PADDING = 10;        // Safety buffer between sprite top and UI elements.
 export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
 
+// --- HUD & FEEDBACK CONFIG ---
+export const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20;
+export const KILL_STREAK_WINDOW = 12.0; // Seconds allowed between kills to count as a streak
+
 // --- ASSET PALETTES ---
 
 // 1. FACTION THEMES (Used by Renderers)
