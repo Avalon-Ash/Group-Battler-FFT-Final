@@ -11,18 +11,18 @@ export const ROLE_MAP: Record<Role, { label: string; icon: string; color: string
     [Role.TANK]:    { label: '坦克', icon: '🛡️', color: 'text-amber-400', border: 'border-amber-500' },
     [Role.WARRIOR]: { label: '戰士', icon: '⚔️', color: 'text-red-400', border: 'border-red-500' },
     [Role.RANGER]:  { label: '遊俠', icon: '🏹', color: 'text-emerald-400', border: 'border-emerald-500' },
-    [Role.MAGE]:    { label: '法師', icon: '🔮', color: 'text-blue-400', border: 'border-blue-500' },
-    [Role.SUPPORT]: { label: '輔助', icon: '⚕️', color: 'text-cyan-400', border: 'border-cyan-500' }
+    [Role.MAGE]:    { label: '法師', icon: '🔮', color: 'text-cyan-400', border: 'border-cyan-500' },
+    [Role.SUPPORT]: { label: '輔助', icon: '⚕️', color: 'text-purple-400', border: 'border-purple-500' }
 };
 
 export const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
-    [Team.BLUE]: { label: '藍軍 (Alliance)', color: 'text-blue-400', bg: 'bg-blue-900' },
+    [Team.BLUE]: { label: '藍軍 (Alliance)', color: 'text-cyan-400', bg: 'bg-cyan-900' },
     [Team.RED]:  { label: '紅軍 (Horde)',    color: 'text-red-400',  bg: 'bg-red-900' }
 };
 
 export const TAG_MAP: Record<string, { label: string; color: string }> = {
     'ULT':    { label: '奧義', color: 'text-purple-400' },
-    'ACTIVE': { label: '主動', color: 'text-blue-400' },
+    'ACTIVE': { label: '主動', color: 'text-cyan-400' },
     'BASIC':  { label: '普攻', color: 'text-slate-400' }
 };
 

@@ -18,7 +18,6 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
     showLogs, showDB, showUnitDetail, selectedAgent, engine, onClose
 }) => {
     
-    // If no modal is active, render nothing
     if (!showLogs && !showDB && (!showUnitDetail || !selectedAgent)) {
         return null;
     }
@@ -27,21 +26,21 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
         <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 md:p-8 animate-fade-in" 
              onClick={onClose}>
             
-            {/* Maximize modal size for better visibility */}
-            <div className="liquid-glass w-full h-[95%] max-w-[95%] rounded-3xl overflow-hidden flex flex-col transition-all bg-black/40" onClick={e => e.stopPropagation()}>
+            {/* Main Modal Container */}
+            <div className="liquid-card w-full h-[90%] max-w-6xl overflow-hidden flex flex-col animate-bounce-in bg-black/80" onClick={e => e.stopPropagation()}>
                 
-                {/* Modal Header */}
-                <div className="flex justify-between items-center p-4 border-b border-white/10 shrink-0 bg-black/20">
-                    <h2 className="text-lg font-bold text-cyan-400 truncate pr-4 flex items-center gap-2">
-                        {showLogs && <><span className="text-2xl">📜</span> 戰況紀錄</>}
-                        {showDB && <><span className="text-2xl">📚</span> 技能資料庫</>}
-                        {showUnitDetail && <><span className="text-2xl">🔍</span> 單位神經網路分析</>}
+                {/* Header */}
+                <div className="flex justify-between items-center p-5 border-b border-white/10 shrink-0 bg-white/5">
+                    <h2 className="text-lg font-bold text-white tracking-widest flex items-center gap-3">
+                        {showLogs && <><span className="text-2xl filter drop-shadow-md">📜</span> BATTLE LOGS</>}
+                        {showDB && <><span className="text-2xl filter drop-shadow-md">📚</span> SKILL DATABASE</>}
+                        {showUnitDetail && <><span className="text-2xl filter drop-shadow-md">🔍</span> NEURAL ANALYSIS</>}
                     </h2>
-                    <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-slate-400 hover:text-white transition-all">✕</button>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-transparent hover:border-white/10">✕</button>
                 </div>
                 
-                {/* Modal Content */}
-                <div className="flex-1 overflow-hidden relative min-h-0 bg-transparent">
+                {/* Content */}
+                <div className="flex-1 overflow-hidden relative min-h-0">
                     {showLogs && <LogTab engine={engine} />}
                     {showDB && <SkillDbTab db={engine.skillDB} onUpdate={() => {}} />}
                     {showUnitDetail && selectedAgent && <UnitDetailView agent={selectedAgent} db={engine.skillDB} engine={engine} />}

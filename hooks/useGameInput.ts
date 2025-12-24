@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role, Skill } from '../types';
@@ -26,54 +25,36 @@ interface GameInputProps {
     onCameraZoom: (delta: number) => void;
 }
 
-export const useGameInput = ({
-    canvasRef, engine, rendererRef, cameraRef,
-    tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
-    onSelect, onCameraPan, onCameraZoom
-}: GameInputProps) => {
-    
-    // --- 1. STATE REFS (Shared between Mouse & Touch) ---
-    type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAN' | 'PAINT';
+type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAN' | 'PAINT';
+
+export const useGameInput = (props: GameInputProps) => {
+    const { 
+        canvasRef, engine, rendererRef, cameraRef, 
+        tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
+        onSelect, onCameraPan, onCameraZoom 
+    } = props;
+
+    // --- State Refs (Mutable for Performance) ---
     const interactionMode = useRef<InteractionMode>('IDLE');
-
-    // Tooling State Refs (Keep fresh without re-binding listeners)
-    const toolRef = useRef(tool);
-    const obsRef = useRef(selectedObstacle);
-    const hpRef = useRef(hpInput);
-    const spawnRef = useRef(spawnMode);
-    const roleRef = useRef(draftRole);
-    const winnerRef = useRef(winner);
-
-    // Sync Props to Refs
-    useEffect(() => {
-        toolRef.current = tool;
-        obsRef.current = selectedObstacle;
-        hpRef.current = hpInput;
-        spawnRef.current = spawnMode;
-        roleRef.current = draftRole;
-        winnerRef.current = winner;
-    }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
-
-    // Operational Refs
+    const pressStartPos = useRef<{x: number, y: number} | null>(null);
+    const lastPointerPos = useRef<{x: number, y: number} | null>(null);
+    const lastPinchDist = useRef<number>(0);
+    
+    // Action Context Refs
     const pressedAgentRef = useRef<Agent | null>(null);
     const draggedObstacleRef = useRef<{ type: string; originQ: number; originR: number; px: number; py: number; } | null>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
-    
-    // Tracking Refs
-    const pressStartPos = useRef<{x: number, y: number} | null>(null);
-    const lastPointerPos = useRef<{x: number, y: number} | null>(null);
-    const dragStartHex = useRef<{q: number, r: number} | null>(null);
-    const lastPaintHex = useRef<string>(""); 
-    
-    // Touch Specific Refs
-    const lastPinchDist = useRef<number>(0);
+    const lastPaintHex = useRef<string>("");
 
-    // --- 2. CORE UTILITIES (Shared Logic) ---
+    // Config Refs (Sync with props to avoid stale closures in event listeners)
+    const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
+    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
+
+    // --- 1. HELPERS: Coordinate Mapping & Hit Testing ---
 
     const getHexFromCoords = (sx: number, sy: number) => {
         const hex = rendererRef.current.getHexAtScreenPoint(sx, sy, cameraRef.current, engine);
         if (hex) return hex;
-        // Fallback to ground plane raycast
         return HexUtils.fromPx(
             sx / cameraRef.current.zoom + cameraRef.current.x,
             sy / cameraRef.current.zoom + cameraRef.current.y,
@@ -81,7 +62,7 @@ export const useGameInput = ({
         );
     };
 
-    const getWorldPosFromCoords = (sx: number, sy: number) => {
+    const getWorldPos = (sx: number, sy: number) => {
         const wx = sx / cameraRef.current.zoom + cameraRef.current.x;
         const hex = rendererRef.current.getHexAtScreenPoint(sx, sy, cameraRef.current, engine);
         let h = BLOCK_HEIGHT + 6;
@@ -90,183 +71,187 @@ export const useGameInput = ({
         return { x: wx, y: wy };
     };
 
-    const getHitAgentFromCoords = (sx: number, sy: number) => {
+    const getHitAgent = (sx: number, sy: number) => {
         const wx = sx / cameraRef.current.zoom + cameraRef.current.x;
         const wy = sy / cameraRef.current.zoom + cameraRef.current.y;
-        // Search front-to-back
-        const sorted = [...engine.agents].sort((a, b) => b.py - a.py);
         
-        for (const agent of sorted) {
-            if (agent.hp <= 0 && agent.fullyDead) continue;
-            const h = rendererRef.current.getTerrainHeight(agent.q, agent.r, engine);
-            const baseX = agent.px;
-            const baseY = agent.py - h;
-            // Hitbox approx (Waist area)
-            const dx = Math.abs(wx - baseX);
-            const dy = wy - (baseY - 40); 
-            if (dx < 35 && Math.abs(dy) < 60) return agent;
+        // Painter's Algorithm Hit Test (Front units first)
+        const candidates = engine.agents.map(a => {
+            if (a.hp <= 0 && a.fullyDead) return null;
+            const h = rendererRef.current.getTerrainHeight(a.q, a.r, engine);
+            const visualY = a.py - h - 40; 
+            return { agent: a, visualY, dist: Math.abs(wy - visualY) + Math.abs(wx - a.px) };
+        }).filter(Boolean) as { agent: Agent, visualY: number }[];
+
+        candidates.sort((a, b) => b.visualY - a.visualY);
+
+        for (const item of candidates) {
+            const dx = Math.abs(wx - item.agent.px);
+            const dy = wy - item.visualY; 
+            if (dx < 35 && dy > -35 && dy < 40) return item.agent;
         }
         return null;
     };
 
-    const executeToolAction = (h: Hex) => {
-        const _tool = toolRef.current;
-        const _winner = winnerRef.current;
-        const _obs = obsRef.current;
-        const _spawn = spawnRef.current;
-        const _role = roleRef.current;
-        const _hp = hpRef.current;
+    // --- 2. LOGIC: Action Execution ---
 
-        if (engine.isRunning || _winner !== null) return;
+    const executePaintAction = (h: Hex) => {
+        const { tool, winner, selectedObstacle, spawnMode, draftRole, hpInput } = configRef.current;
+        if (engine.isRunning || winner !== null) return;
+        
         const k = HexUtils.key(h);
         if (lastPaintHex.current === k) return; 
-        
         lastPaintHex.current = k;
-        const existingAgent = engine.getAgentAt(h.q, h.r);
-        let agent: Agent | null = null;
 
-        if (_tool === ToolType.DELETE) {
-            if (engine.hasObstacle(h.q, h.r)) engine.removeObstacle(h.q, h.r);
-            if (existingAgent) {
-                engine.removeAgent(h.q, h.r);
-                onSelect(null);
-            }
+        if (tool === ToolType.DELETE) {
+            engine.removeObstacle(h.q, h.r);
+            engine.removeAgent(h.q, h.r);
             return;
         }
 
-        if (_tool === ToolType.OBSTACLE) {
+        const existingAgent = engine.getAgentAt(h.q, h.r);
+        if (tool === ToolType.OBSTACLE) {
             if (existingAgent) engine.removeAgent(h.q, h.r);
-            engine.setObstacle(h.q, h.r, _obs);
+            engine.setObstacle(h.q, h.r, selectedObstacle);
             return;
         }
 
         if (!existingAgent && !engine.hasObstacle(h.q, h.r)) {
-            if (_tool === ToolType.ADD_BLUE) agent = engine.addAgent(Team.BLUE, h.q, h.r, _hp);
-            else if (_tool === ToolType.ADD_RED) agent = engine.addAgent(Team.RED, h.q, h.r, _hp);
-        }
+            let agent: Agent | null = null;
+            if (tool === ToolType.ADD_BLUE) agent = engine.addAgent(Team.BLUE, h.q, h.r, hpInput);
+            else if (tool === ToolType.ADD_RED) agent = engine.addAgent(Team.RED, h.q, h.r, hpInput);
 
-        if (agent && _spawn === 'DRAFT') {
-            agent.role = _role;
-            const validSkills = engine.skillDB.filter(s => s.role === agent!.role && (s.team === undefined || s.team === agent!.team));
-            const rnd = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(Math.random() * ar.length)].id : null;
-            agent.skillIds = [
-                rnd(validSkills.filter(s => s.tag === 'ULT')),
-                rnd(validSkills.filter(s => s.tag === 'ACTIVE')),
-                rnd(validSkills.filter(s => s.tag === 'BASIC'))
-            ];
-            agent.saveState();
-            agent.reset(engine.mapConfig);
+            if (agent && spawnMode === 'DRAFT') {
+                agent.role = draftRole;
+                // Assign random skills for draft role
+                const validSkills = engine.skillDB.filter(s => s.role === agent!.role && (s.team === undefined || s.team === agent!.team));
+                const rnd = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(Math.random() * ar.length)].id : null;
+                agent.skillIds = [
+                    rnd(validSkills.filter(s => s.tag === 'ULT')),
+                    rnd(validSkills.filter(s => s.tag === 'ACTIVE')),
+                    rnd(validSkills.filter(s => s.tag === 'BASIC'))
+                ];
+                agent.saveState();
+                agent.reset(engine.mapConfig);
+            }
         }
     };
 
-    // --- 3. COMMON INTERACTION LOGIC (Used by both handlers) ---
+    // --- 3. EVENT HANDLERS (Unified Logic) ---
 
-    const startInteraction = (sx: number, sy: number, isRightClick: boolean) => {
+    const handleInputStart = (sx: number, sy: number, isRightClick: boolean) => {
         pressStartPos.current = { x: sx, y: sy };
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
-        interactionMode.current = 'DOWN';
-
-        if (isRightClick || engine.isRunning) {
+        
+        if (isRightClick) {
             interactionMode.current = 'PAN';
             return;
         }
 
-        // 1. Check Unit Hit
-        const hitAgent = getHitAgentFromCoords(sx, sy);
+        // 1. Hit Test Agent
+        const hitAgent = getHitAgent(sx, sy);
         if (hitAgent) {
             pressedAgentRef.current = hitAgent;
-            if (toolRef.current !== ToolType.DELETE) {
-                dragStartHex.current = { q: hitAgent.q, r: hitAgent.r };
-            }
+            interactionMode.current = 'DOWN'; // Wait to see if drag or click
             return;
         }
 
-        // 2. Check Obstacle Hit
+        // 2. Editing Logic
+        const { tool, winner } = configRef.current;
+        const isEditing = !engine.isRunning && winner === null;
         const h = getHexFromCoords(sx, sy);
-        if (engine.isValid(h.q, h.r) && engine.hasObstacle(h.q, h.r) && toolRef.current !== ToolType.DELETE) {
-            const obsType = engine.obstacles.get(HexUtils.key(h));
-            if (obsType) {
-                draggedObstacleRef.current = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
+
+        if (isEditing) {
+            // Hit Obstacle?
+            if (tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
+                const obsType = engine.obstacles.get(HexUtils.key(h));
+                if (obsType) {
+                    draggedObstacleRef.current = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
+                    interactionMode.current = 'DOWN';
+                    return;
+                }
+            }
+            // Paint Tool?
+            if (tool !== ToolType.SELECT) {
+                // Immediate paint on down for better feel
+                if (engine.isValid(h.q, h.r)) {
+                    executePaintAction(h);
+                    interactionMode.current = 'PAINT';
+                }
+                return;
             }
         }
+
+        interactionMode.current = 'DOWN'; // Default to potential pan
     };
 
-    const updateInteraction = (sx: number, sy: number) => {
+    const handleInputMove = (sx: number, sy: number) => {
         const cvs = canvasRef.current;
         const h = getHexFromCoords(sx, sy);
-        
-        // ** FIX 1: Update Hover Ref Every Frame **
         hoveredHexRef.current = engine.isValid(h.q, h.r) ? h : null;
 
-        // Cursor Logic
+        // Cursor & Hover Logic
         if (cvs) {
-            const hitAgent = getHitAgentFromCoords(sx, sy);
+            const { tool, winner } = configRef.current;
+            const isEditing = !engine.isRunning && winner === null;
+            const hitAgent = getHitAgent(sx, sy);
+            
             if (interactionMode.current === 'DRAG_UNIT' || interactionMode.current === 'DRAG_OBS') cvs.style.cursor = 'grabbing';
             else if (interactionMode.current === 'PAN') cvs.style.cursor = 'move';
-            else if (hitAgent) cvs.style.cursor = 'pointer'; 
-            else if (engine.hasObstacle(h.q, h.r)) cvs.style.cursor = 'grab';
-            else if (toolRef.current === ToolType.SELECT) cvs.style.cursor = 'default';
-            else cvs.style.cursor = 'crosshair'; 
+            else if (isEditing && tool !== ToolType.SELECT) cvs.style.cursor = 'crosshair';
+            else if (hitAgent) cvs.style.cursor = 'pointer';
+            else cvs.style.cursor = 'default';
         }
 
-        // Delta for Panning
+        if (interactionMode.current === 'IDLE') return;
+
         const prev = lastPointerPos.current || { x: sx, y: sy };
         const dx = sx - prev.x;
         const dy = sy - prev.y;
         lastPointerPos.current = { x: sx, y: sy };
 
-        if (interactionMode.current === 'IDLE') return;
-
+        // --- Active State Handling ---
         if (interactionMode.current === 'PAN') {
-            onCameraPan(dx, dy); 
+            onCameraPan(dx, dy);
             return;
         }
-
         if (interactionMode.current === 'PAINT') {
-            if (engine.isValid(h.q, h.r)) executeToolAction(h);
+            if (engine.isValid(h.q, h.r)) executePaintAction(h);
             return;
         }
-
         if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
-            const wPos = getWorldPosFromCoords(sx, sy);
+            const wPos = getWorldPos(sx, sy);
             pressedAgentRef.current.px = wPos.x;
             pressedAgentRef.current.py = wPos.y;
             return;
         }
-
         if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
-            const wPos = getWorldPosFromCoords(sx, sy);
+            const wPos = getWorldPos(sx, sy);
             draggedObstacleRef.current.px = wPos.x;
             draggedObstacleRef.current.py = wPos.y;
             return;
         }
 
-        // Threshold Check: Convert DOWN to DRAG or PAN
+        // --- State Transition (Threshold Check) ---
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
-            const dist = Math.sqrt((sx - pressStartPos.current.x)**2 + (sy - pressStartPos.current.y)**2);
-            if (dist > 10) {
-                const _tool = toolRef.current;
-                
-                if (pressedAgentRef.current && _tool !== ToolType.DELETE) {
+            const dist = Math.hypot(sx - pressStartPos.current.x, sy - pressStartPos.current.y);
+            if (dist > 8) {
+                const { tool, winner } = configRef.current;
+                const isEditing = !engine.isRunning && winner === null;
+
+                if (isEditing && pressedAgentRef.current && tool === ToolType.SELECT) {
                     interactionMode.current = 'DRAG_UNIT';
-                    pressedAgentRef.current.physics.z = 20; 
+                    pressedAgentRef.current.physics.z = 20; // Lift
                     onSelect(pressedAgentRef.current);
-                    return;
-                }
-                if (draggedObstacleRef.current && _tool !== ToolType.DELETE) {
+                } else if (isEditing && draggedObstacleRef.current && tool === ToolType.SELECT) {
                     interactionMode.current = 'DRAG_OBS';
+                    // Remove from grid temporarily
                     const { originQ, originR } = draggedObstacleRef.current;
                     engine.removeObstacle(originQ, originR);
-                    onSelect(null);
-                    const wPos = getWorldPosFromCoords(sx, sy);
+                    const wPos = getWorldPos(sx, sy);
                     draggedObstacleRef.current.px = wPos.x;
                     draggedObstacleRef.current.py = wPos.y;
-                    return;
-                }
-                if (engine.isValid(h.q, h.r) && (_tool === ToolType.OBSTACLE || _tool === ToolType.DELETE)) {
-                    interactionMode.current = 'PAINT';
-                    executeToolAction(h);
                 } else {
                     interactionMode.current = 'PAN';
                     onCameraPan(dx, dy);
@@ -275,45 +260,41 @@ export const useGameInput = ({
         }
     };
 
-    const endInteraction = (sx: number, sy: number) => {
+    const handleInputEnd = (sx: number, sy: number) => {
+        const { tool, winner } = configRef.current;
+        const isEditing = !engine.isRunning && winner === null;
         const h = getHexFromCoords(sx, sy);
-        const _tool = toolRef.current;
 
+        // Click Logic (Released without dragging)
         if (interactionMode.current === 'DOWN') {
-            // Click Logic
             if (pressedAgentRef.current) {
-                if (_tool === ToolType.DELETE) {
+                if (isEditing && tool === ToolType.DELETE) {
                     engine.removeAgent(pressedAgentRef.current.q, pressedAgentRef.current.r);
                     onSelect(null);
                 } else {
                     onSelect(pressedAgentRef.current);
                 }
-            } else if (engine.hasObstacle(h.q, h.r)) {
-                if (_tool === ToolType.DELETE) engine.removeObstacle(h.q, h.r);
-            } else if (_tool !== ToolType.SELECT && _tool !== ToolType.DELETE) {
-                if (engine.isValid(h.q, h.r)) executeToolAction(h);
-            } else {
+            } else if (isEditing && engine.hasObstacle(h.q, h.r) && tool === ToolType.DELETE) {
+                engine.removeObstacle(h.q, h.r);
+            } else if (!pressedAgentRef.current) {
                 onSelect(null);
             }
         }
 
-        // Drag Drop Logic
+        // Drop Logic
         if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const agent = pressedAgentRef.current;
             agent.physics.z = 0;
-            const valid = engine.isValid(h.q, h.r) && !engine.hasObstacle(h.q, h.r) && (!engine.getAgentAt(h.q, h.r) || engine.getAgentAt(h.q, h.r) === agent);
+            const valid = engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, agent.id, agent.movementType);
             
             if (valid) {
                 engine.updateAgentPosition(agent, h.q, h.r);
                 const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                 agent.px = p.x; agent.py = p.y;
-            } else if (dragStartHex.current) {
+            } else {
                 // Revert
-                agent.q = dragStartHex.current.q;
-                agent.r = dragStartHex.current.r;
                 const p = HexUtils.toPx(agent.q, agent.r, engine.mapConfig);
                 agent.px = p.x; agent.py = p.y;
-                engine.updateAgentPosition(agent, agent.q, agent.r);
             }
             onSelect(agent);
         }
@@ -321,57 +302,93 @@ export const useGameInput = ({
         if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
             const { type, originQ, originR } = draggedObstacleRef.current;
             const valid = engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r);
-            
             if (valid) engine.setObstacle(h.q, h.r, type);
             else engine.setObstacle(originQ, originR, type); // Revert
         }
 
+        // Reset
         interactionMode.current = 'IDLE';
         pressedAgentRef.current = null;
         draggedObstacleRef.current = null;
         pressStartPos.current = null;
-        lastPointerPos.current = null;
-        lastPaintHex.current = "";
-        if (canvasRef.current) canvasRef.current.style.cursor = 'default';
     };
 
-    // --- 4. PLATFORM SPECIFIC HANDLERS ---
+    // --- 4. BINDINGS ---
 
-    // === MOUSE HANDLERS ===
-    const setupMouseListeners = (cvs: HTMLCanvasElement) => {
-        const getCoords = (e: MouseEvent) => {
-            const rect = cvs.getBoundingClientRect();
-            return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        };
+    useEffect(() => {
+        const cvs = canvasRef.current;
+        if (!cvs) return;
 
+        // --- Mouse ---
         const onMouseDown = (e: MouseEvent) => {
-            const { x, y } = getCoords(e);
-            startInteraction(x, y, e.button === 2);
+            const rect = cvs.getBoundingClientRect();
+            handleInputStart(e.clientX - rect.left, e.clientY - rect.top, e.button === 2);
         };
-
         const onMouseMove = (e: MouseEvent) => {
-            const { x, y } = getCoords(e);
-            updateInteraction(x, y);
+            const rect = cvs.getBoundingClientRect();
+            handleInputMove(e.clientX - rect.left, e.clientY - rect.top);
         };
-
         const onMouseUp = (e: MouseEvent) => {
-            const { x, y } = getCoords(e);
-            endInteraction(x, y);
+            const rect = cvs.getBoundingClientRect();
+            handleInputEnd(e.clientX - rect.left, e.clientY - rect.top);
         };
-
         const onWheel = (e: WheelEvent) => {
             e.preventDefault();
             const delta = e.deltaY > 0 ? -0.1 : 0.1;
             onCameraZoom(delta);
         };
-
         const onCtx = (e: MouseEvent) => e.preventDefault();
+
+        // --- Touch ---
+        const getTouchPos = (t: Touch) => {
+            const rect = cvs.getBoundingClientRect();
+            return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+        };
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            if (e.touches.length === 1) {
+                const { x, y } = getTouchPos(e.touches[0]);
+                handleInputStart(x, y, false);
+            } else if (e.touches.length === 2) {
+                const t1 = getTouchPos(e.touches[0]);
+                const t2 = getTouchPos(e.touches[1]);
+                lastPinchDist.current = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+                interactionMode.current = 'IDLE'; 
+            }
+        };
+        const onTouchMove = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            if (e.touches.length === 1) {
+                const { x, y } = getTouchPos(e.touches[0]);
+                handleInputMove(x, y);
+            } else if (e.touches.length === 2) {
+                const t1 = getTouchPos(e.touches[0]);
+                const t2 = getTouchPos(e.touches[1]);
+                const dist = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+                if (lastPinchDist.current > 0) {
+                    onCameraZoom((dist - lastPinchDist.current) * 0.005);
+                }
+                lastPinchDist.current = dist;
+            }
+        };
+        const onTouchEnd = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            if (e.changedTouches.length > 0 && e.touches.length === 0) {
+                const { x, y } = getTouchPos(e.changedTouches[0]);
+                handleInputEnd(x, y);
+            }
+            if (e.touches.length < 2) lastPinchDist.current = 0;
+        };
 
         cvs.addEventListener('mousedown', onMouseDown);
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
         cvs.addEventListener('wheel', onWheel, { passive: false });
         cvs.addEventListener('contextmenu', onCtx);
+        cvs.addEventListener('touchstart', onTouchStart, { passive: false });
+        cvs.addEventListener('touchmove', onTouchMove, { passive: false });
+        cvs.addEventListener('touchend', onTouchEnd, { passive: false });
+        cvs.addEventListener('touchcancel', onTouchEnd, { passive: false });
 
         return () => {
             cvs.removeEventListener('mousedown', onMouseDown);
@@ -379,91 +396,16 @@ export const useGameInput = ({
             window.removeEventListener('mouseup', onMouseUp);
             cvs.removeEventListener('wheel', onWheel);
             cvs.removeEventListener('contextmenu', onCtx);
-        };
-    };
-
-    // === TOUCH HANDLERS ===
-    const setupTouchListeners = (cvs: HTMLCanvasElement) => {
-        const getCoords = (t: Touch) => {
-            const rect = cvs.getBoundingClientRect();
-            return { x: t.clientX - rect.left, y: t.clientY - rect.top };
-        };
-
-        const onTouchStart = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.touches.length === 1) {
-                const { x, y } = getCoords(e.touches[0]);
-                startInteraction(x, y, false);
-            } else if (e.touches.length === 2) {
-                const t1 = getCoords(e.touches[0]);
-                const t2 = getCoords(e.touches[1]);
-                lastPinchDist.current = Math.hypot(t1.x - t2.x, t1.y - t2.y);
-                interactionMode.current = 'IDLE'; // Reset interaction if pinching
-                pressedAgentRef.current = null;
-            }
-        };
-
-        const onTouchMove = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.touches.length === 1) {
-                const { x, y } = getCoords(e.touches[0]);
-                updateInteraction(x, y);
-            } else if (e.touches.length === 2) {
-                const t1 = getCoords(e.touches[0]);
-                const t2 = getCoords(e.touches[1]);
-                const dist = Math.hypot(t1.x - t2.x, t1.y - t2.y);
-                if (lastPinchDist.current > 0) {
-                    const delta = dist - lastPinchDist.current;
-                    onCameraZoom(delta * 0.005);
-                }
-                lastPinchDist.current = dist;
-            }
-        };
-
-        const onTouchEnd = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.changedTouches.length > 0 && e.touches.length === 0) {
-                // Last finger lifted
-                const { x, y } = getCoords(e.changedTouches[0]);
-                endInteraction(x, y);
-            }
-            if (e.touches.length < 2) lastPinchDist.current = 0;
-        };
-
-        cvs.addEventListener('touchstart', onTouchStart, { passive: false });
-        cvs.addEventListener('touchmove', onTouchMove, { passive: false });
-        cvs.addEventListener('touchend', onTouchEnd, { passive: false });
-        cvs.addEventListener('touchcancel', onTouchEnd, { passive: false });
-
-        return () => {
             cvs.removeEventListener('touchstart', onTouchStart);
             cvs.removeEventListener('touchmove', onTouchMove);
             cvs.removeEventListener('touchend', onTouchEnd);
             cvs.removeEventListener('touchcancel', onTouchEnd);
         };
-    };
-
-    // --- 5. INITIALIZATION ---
-    useEffect(() => {
-        const cvs = canvasRef.current;
-        if (!cvs) return;
-
-        const cleanupMouse = setupMouseListeners(cvs);
-        const cleanupTouch = setupTouchListeners(cvs);
-
-        return () => {
-            cleanupMouse();
-            cleanupTouch();
-        };
-    }, []); 
+    }, []);
 
     return {
         pressedAgent: pressedAgentRef.current,
         draggedObstacle: draggedObstacleRef.current,
-        // ** FIX 2: Return Ref Object directly so Render Loop can read fresh value **
         hoveredHexRef: hoveredHexRef
     };
 };

@@ -34,7 +34,9 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
     };
 
     return (
-        <div className="absolute top-20 left-6 z-[60] w-80 liquid-glass rounded-3xl p-5 animate-slide-up pointer-events-auto select-none max-h-[80vh] flex flex-col shadow-[0_10px_40px_rgba(0,0,0,0.5)] bg-black/60 border border-white/10">
+        // Fix: Use min(20rem, calc(100vw-3rem)) to prevent overflow on very small screens
+        // Also adjusted left/right positioning to be safe on mobile
+        <div className="absolute top-20 left-4 md:left-6 z-[60] w-[min(20rem,calc(100vw-2rem))] liquid-glass rounded-3xl p-5 animate-slide-up pointer-events-auto select-none max-h-[80vh] flex flex-col shadow-[0_10px_40px_rgba(0,0,0,0.5)] bg-black/60 border border-white/10">
             <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-3 shrink-0">
                 <div className="flex items-center gap-2">
                     <span className="text-lg">⚙️</span>

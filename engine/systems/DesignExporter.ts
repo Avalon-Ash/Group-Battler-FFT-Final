@@ -4,7 +4,7 @@ import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT } from "../../consta
 export class DesignExporter {
 
     static downloadSpec() {
-        const text = this.generateSpec();
+        const text = DesignExporter.generateSpec();
         const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
