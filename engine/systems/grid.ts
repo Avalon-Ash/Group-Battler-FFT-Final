@@ -3,17 +3,7 @@ import { HEX_SIZE, BLOCK_HEIGHT, TERRAIN_THEMES } from "../../constants";
 import { GameEngine, Agent } from "../game";
 import { HexUtils, getTransitionOffset } from "../utils";
 import { Hex, Skill, Projectile } from "../../types";
-import { SpriteManager } from "../sprites";
-
-// Renderers
-import { TerrainRenderer } from "../renderers/grid/TerrainRenderer";
-import { GridOverlays } from "../renderers/grid/GridOverlays";
-
-export interface RenderableItem {
-    y: number;
-    z: number;
-    draw: (ctx: CanvasRenderingContext2D) => void;
-}
+import { RenderList, RenderOpType } from "../renderers/RenderList";
 
 interface CachedTile {
     q: number;
@@ -25,7 +15,6 @@ interface CachedTile {
 
 const OBSTACLE_Z_INDEX = 10;
 const OBSTACLE_ANCHOR_Y = 95; 
-const OBSTACLE_HALF_WIDTH = 40; 
 
 export class GridSystem {
     // Optimization: Cache tiles to avoid re-parsing keys and re-calculating positions every frame
@@ -123,7 +112,9 @@ export class GridSystem {
         return occluded;
     }
 
-    collectRenderables(
+    // --- REFACTORED FOR RENDER POOLING ---
+    submitRenderables(
+        renderList: RenderList,
         engine: GameEngine, 
         hoveredHex: Hex | null, 
         hoveredSkill: Skill | null, 
@@ -133,13 +124,11 @@ export class GridSystem {
         transitionT: number,      
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
         globalTime: number
-    ): RenderableItem[] {
+    ) {
         this.ensureCache(engine);
         
-        const list: RenderableItem[] = [];
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
-        const defaultObsStyle = scene.obstacleStyle || 'WALL';
 
         this._dangerZones.clear();
         this._unitPresence.clear();
@@ -192,25 +181,24 @@ export class GridSystem {
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualY = py + offset;
 
-            // Cull if dropped too far
             if (visualY > py + 800) continue;
 
             const k = `${q},${r}`;
             
-            // --- DRAW OBSTACLE ---
+            // --- SUBMIT OBSTACLE ---
             const obstacleType = engine.obstacles.get(k);
             if (obstacleType) {
-                list.push({
-                    y: visualY, // Sorts along with terrain row
-                    z: OBSTACLE_Z_INDEX,
-                    draw: (ctx) => {
-                        const sprite = SpriteManager.getObstacleSprite(obstacleType);
-                        ctx.drawImage(sprite, px - OBSTACLE_HALF_WIDTH, visualY - h - OBSTACLE_ANCHOR_Y);
-                    }
-                });
+                const op = renderList.next();
+                op.type = RenderOpType.OBSTACLE;
+                op.y = visualY; 
+                op.z = OBSTACLE_Z_INDEX;
+                op.tx = px; 
+                // Visual Y includes height and anchor offset for drawing
+                op.ty = visualY - h - OBSTACLE_ANCHOR_Y; 
+                op.ttype = obstacleType;
             }
 
-            // --- DRAW TERRAIN ---
+            // --- SUBMIT TERRAIN ---
             const flash = flashes.find(f => f.q === q && f.r === r);
             let isRange = false;
             let rangeColor = '';
@@ -243,28 +231,33 @@ export class GridSystem {
                 }
             }
 
-            list.push({
-                y: visualY, 
-                z: 0,        
-                draw: (ctx) => {
-                    // 1. Draw Physical Block
-                    TerrainRenderer.drawBlockGeometry(ctx, px, visualY, HEX_SIZE, h, theme);
-                    
-                    // 2. Draw Texture Detail
-                    TerrainRenderer.drawTerrainDetail(ctx, px, visualY - h, q, r, scene.textureType, theme.detail);
-
-                    // 3. Draw Overlays (Status, Range, Danger, Lighting)
-                    GridOverlays.drawOverlays(
-                        ctx, px, visualY - h, HEX_SIZE,
-                        specialStatus, dangerInfo,
-                        lightColor, Math.min(1, lightIntensity),
-                        flash, isRange, rangeColor, isHover, hasUnit,
-                        q, r, globalTime
-                    );
-                }
-            });
+            // Populate RenderOp for Terrain
+            const op = renderList.next();
+            op.type = RenderOpType.TERRAIN;
+            op.y = visualY; 
+            op.z = 0;
+            
+            op.tx = px; 
+            op.ty = visualY; // Base Y
+            op.th = h;
+            op.tsize = HEX_SIZE;
+            op.ttheme = theme;
+            op.ttype = scene.textureType;
+            op.tdetail = theme.detail;
+            op.tq = q;
+            op.tr = r;
+            
+            // Overlays
+            op.oStatus = specialStatus;
+            op.oDanger = dangerInfo;
+            op.oLightCol = lightColor;
+            op.oLightInt = Math.min(1, lightIntensity);
+            op.oFlash = flash;
+            op.oRange = isRange;
+            op.oRangeCol = rangeColor;
+            op.oHover = isHover;
+            op.oHasUnit = hasUnit;
+            op.time = globalTime;
         }
-
-        return list;
     }
 }

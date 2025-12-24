@@ -3,7 +3,7 @@ import { Agent } from "../game";
 import { SpriteManager } from "../sprites";
 import { AssetManager } from "../assets";
 import { Role, Team, MovementType } from "../../types";
-import { RenderableItem } from "./grid";
+import { RenderList, RenderOpType } from "../renderers/RenderList";
 import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
 
@@ -18,15 +18,14 @@ const UNIT_REFERENCE_HEIGHT = 100;
 
 export class UnitRenderSystem {
     
-    public collectRenderables(
+    public submitRenderables(
+        renderList: RenderList,
         agents: Agent[], 
         getTerrainHeight: (q: number, r: number) => number, 
         globalTime: number, 
         highlightAgent: Agent | null,
         mapConfig: MapConfig
-    ): RenderableItem[] {
-        const list: RenderableItem[] = [];
-        
+    ) {
         agents.forEach(agent => {
             if (agent.hp <= 0 && agent.fullyDead) return;
 
@@ -34,16 +33,13 @@ export class UnitRenderSystem {
             let h = 0;
             
             if (agent.isMoving && agent.path.length > 0) {
-                // Movement Interpolation
                 const h1 = getTerrainHeight(agent.q, agent.r);
                 const nextHex = agent.path[0];
                 const h2 = getTerrainHeight(nextHex.q, nextHex.r);
                 h = HexUtils.lerp(h1, h2, agent.moveProgress);
             } else {
-                // Static / Physics Drift
                 const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
                 const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
-                
                 if (distSq > 100) {
                     const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
                     h = getTerrainHeight(visualHex.q, visualHex.r);
@@ -55,25 +51,20 @@ export class UnitRenderSystem {
             // Ground Y (The floor)
             const visualY = agent.py - h;
             
-            list.push({
-                y: agent.py + 1, // Sort by base position
-                z: 10,
-                draw: (ctx) => this.drawAssembly(
-                    ctx, 
-                    agent, 
-                    agent.px, 
-                    visualY, 
-                    globalTime, 
-                    highlightAgent === agent,
-                    false // Normal Mode
-                )
-            });
+            const op = renderList.next();
+            op.type = RenderOpType.UNIT;
+            op.y = agent.py + 1; // Sort base
+            op.z = 10;
+            
+            op.agent = agent;
+            op.tx = agent.px; // Draw X
+            op.ty = visualY;  // Draw Y (Ground)
+            op.time = globalTime;
+            op.uSelected = (highlightAgent === agent);
+            op.uSilhouette = false;
         });
-
-        return list;
     }
 
-    // Called by Renderer for Occlusion Pass
     public drawSilhouette(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
@@ -81,7 +72,6 @@ export class UnitRenderSystem {
         globalTime: number,
         mapConfig: MapConfig
     ) {
-        // Consistent height logic for silhouettes
         let h = 0;
         if (agent.isMoving && agent.path.length > 0) {
             const h1 = getTerrainHeight(agent.q, agent.r);
@@ -98,17 +88,12 @@ export class UnitRenderSystem {
                 h = getTerrainHeight(agent.q, agent.r);
             }
         }
-        
         const visualY = agent.py - h;
-
         this.drawAssembly(ctx, agent, agent.px, visualY, globalTime, false, true);
     }
 
-    // =================================================================================
-    // 🎨 HIERARCHICAL VECTOR ASSEMBLY RENDERER
-    // =================================================================================
-
-    private drawAssembly(
+    // Now Public for the Renderer to call from RenderOp
+    public drawAssembly(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
         drawX: number, 
@@ -119,7 +104,6 @@ export class UnitRenderSystem {
     ) {
         const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
         
-        // Distinct Scale Factors for Roles
         let roleScaleMod = 1.0;
         switch(agent.role) {
             case Role.TANK: roleScaleMod = 1.25; break; 
@@ -132,29 +116,23 @@ export class UnitRenderSystem {
         const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
 
         ctx.save();
-        ctx.translate(drawX, drawY); // Base Position (Ground)
+        ctx.translate(drawX, drawY); 
         ctx.scale(scaleFactor, scaleFactor);
 
-        // Physics values scaled
         const physX = agent.physics.x / scaleFactor;
         const physY = agent.physics.y / scaleFactor;
         const physZ = agent.physics.z / scaleFactor; 
 
-        // --- 1. DRAW BASE (Solid physical object on Ground) ---
         if (!isSilhouette && agent.hp > 0 && agent.visualStatus !== 'POLYMORPH') {
             const assets = SpriteManager.getUnitImages(agent.role, agent.team);
-            
-            // Draw The Heavy Base
             ctx.save();
             ctx.drawImage(assets.base, -64, -79); 
             ctx.restore();
 
-            // Flying Tether (If flying)
             if (agent.movementType === MovementType.FLYING) {
                 drawFlyingAnchor(ctx, agent, globalTime, physX, physY, physZ);
             }
 
-            // Ground Rune (If Casting)
             if (agent.castingSkillIdx !== -1) {
                 const skill = agent.skills[agent.castingSkillIdx];
                 if (skill) {
@@ -169,27 +147,18 @@ export class UnitRenderSystem {
             }
         }
 
-        // --- 2. PREPARE BODY TRANSFORM (The Projection) ---
-        // Move to physics offset (X, Y) and apply Lift (Z)
         ctx.translate(physX, physY - physZ); 
         ctx.rotate(agent.physics.angle); 
 
-        // Vertical Float Animation (Visual only, distinct from Physics Z)
-        // Body is offset by UNIT_BODY_OFFSET to ensure it floats above base.
-        // We use the negative of the constant because canvas Y-up is negative.
         let bodyFloat = -UNIT_BODY_OFFSET; 
-        
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             // Breathing float for ground units
              bodyFloat -= Math.sin(globalTime * 2) * 3; 
         } else if (agent.movementType === MovementType.FLYING) {
-             // Flyers use Physics Z, but add micro-bob here
              bodyFloat -= Math.sin(globalTime * 4) * 2;
         }
 
         ctx.translate(0, bodyFloat);
 
-        // Spawn Animation
         let spawnAlpha = 1.0;
         let whiteOverlay = 0;
 
@@ -197,15 +166,12 @@ export class UnitRenderSystem {
             const SPAWN_DURATION = 0.5; 
             const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 
             const eased = 1 - Math.pow(1 - progress, 3); 
-            
             spawnAlpha = eased;
             whiteOverlay = 1 - eased; 
-            
-            ctx.scale(1, 2.0 - eased); // Vertical stretch on spawn
+            ctx.scale(1, 2.0 - eased); 
             ctx.globalAlpha *= spawnAlpha;
         }
 
-        // Hit/Death Filters
         if (agent.hp <= 0 && !isSilhouette) {
             ctx.filter = 'grayscale(100%) opacity(80%)'; 
         } else if (!isSilhouette && agent.hitFlashTimer > 0) {
@@ -214,38 +180,32 @@ export class UnitRenderSystem {
             ctx.filter = `brightness(${100 + whiteOverlay * 200}%)`;
         }
 
-        // Flight Thrusters (For Flying Units)
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             drawFlightVFX(ctx, agent, globalTime);
         }
 
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
 
-        // Silhouette Setup
         if (isSilhouette) {
             ctx.globalCompositeOperation = 'source-over'; 
             ctx.globalAlpha = 0.8; 
         }
 
-        // --- 3. DRAW BODY ---
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(globalTime * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
-            // DELEGATED RENDERERS (Blue vs Red)
             if (agent.team === Team.BLUE) {
                 ImperialRenderer.draw(ctx, agent, globalTime, isSilhouette);
             } else {
                 CovenantRenderer.draw(ctx, agent, globalTime, isSilhouette);
             }
             
-            // Casting Particles
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
                 drawCastingVFX(ctx, agent, globalTime);
             }
             
-            // Frozen Overlay
             if (agent.visualStatus === 'FROZEN') {
                 const ice = SpriteManager.getSpecialModel('ICE');
                 ctx.save();
@@ -254,7 +214,6 @@ export class UnitRenderSystem {
                 ctx.restore();
             }
             
-            // Stasis Overlay
             if (agent.visualStatus === 'STASIS') {
                 ctx.save();
                 ctx.fillStyle = '#facc15';
@@ -270,7 +229,6 @@ export class UnitRenderSystem {
             }
         }
 
-        // --- 4. STATUS & UI ---
         if (!isSilhouette) {
             drawStatusIcons(ctx, agent, globalTime, drawX, drawY, scaleFactor);
             drawStatusEffects(ctx, agent, globalTime);
@@ -286,7 +244,57 @@ export class UnitRenderSystem {
 
         ctx.restore(); 
 
-        // Spawn Role Icon
+        if (isSelected && !isSilhouette) {
+            ctx.save();
+            const centerHeight = 50 * scaleFactor;
+            ctx.translate(0, -centerHeight); 
+
+            const bracketSize = 60 * scaleFactor;
+            ctx.rotate(globalTime * 0.5);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#22d3ee'; 
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 10;
+            
+            const cornerLen = Math.PI / 3;
+            for(let i=0; i<4; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
+                ctx.stroke();
+            }
+
+            ctx.rotate(-globalTime * 1.5);
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.restore(); 
+
+            ctx.save();
+            const bounce = Math.sin(globalTime * 8) * 8;
+            const arrowHeight = 110 * scaleFactor;
+            ctx.translate(0, -arrowHeight + bounce);
+            
+            ctx.fillStyle = '#22d3ee';
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 15;
+            
+            ctx.beginPath();
+            ctx.moveTo(-10, -15); 
+            ctx.lineTo(10, -15);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(0, -22, 3, 0, Math.PI*2); ctx.fill();
+            
+            ctx.restore();
+        }
+
         if (agent.spawnTimer > 0 && !isSilhouette) {
             drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);
         }
