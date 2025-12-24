@@ -1,5 +1,4 @@
 
-
 import { Agent, GameEngine } from "../../game";
 import { Skill, GameEventType, AnimState } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
@@ -7,6 +6,7 @@ import { BLOCK_HEIGHT } from "../../../constants";
 
 const HIT_IMPULSE_MAX = 20;
 const HIT_IMPULSE_MIN = 5;
+const DR_RESET_TIME = 10.0; // Seconds to reset DR stack
 
 export class SkillResolutionSystem {
 
@@ -279,15 +279,56 @@ export class SkillResolutionSystem {
     }
 
     public applyCC(source: Agent, target: Agent, skill: Skill, type: string | undefined, dur: number | undefined, force: number | undefined, origin: {x: number, y: number} | undefined, engine: GameEngine) {
-        if (!type) return;
-        const duration = dur || 0;
+        if (!type || type === 'NONE') return;
+        
+        let baseDuration = dur || 0;
         const power = force || 0;
 
+        // --- DIMINISHING RETURNS (DR) LOGIC ---
+        // Applicable to Hard CC: STUN, SILENCE, BANISH, KNOCKBACK (Partial)
+        const isHardCC = ['STUN', 'SILENCE', 'BANISH'].includes(type);
+        let statusText = "";
+        let statusColor = "#fff";
+
+        if (isHardCC) {
+            const drType = type;
+            const currentStack = target.drStacks[drType] || 0;
+            
+            // Formula: 1 / (2 ^ stack)
+            // Stack 0: 100%, Stack 1: 50%, Stack 2: 25%, Stack 3: 0% (Immune)
+            let drMultiplier = Math.pow(0.5, currentStack);
+            
+            // If multiplier < 0.2, consider it immune to prevent micro-stuns
+            if (drMultiplier < 0.2) drMultiplier = 0;
+
+            const effectiveDuration = baseDuration * drMultiplier;
+
+            // Log DR event if reduced
+            if (drMultiplier < 1.0) {
+                if (drMultiplier === 0) {
+                    engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "免疫!", color: "#9ca3af" });
+                    return; // IMMUNE: Stop processing
+                } else {
+                    engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py - 20}, text: "抵抗", color: "#9ca3af" });
+                }
+            }
+
+            // Apply DR Stack
+            target.drStacks[drType] = currentStack + 1;
+            target.drTimers[drType] = DR_RESET_TIME;
+            
+            // Update Base Duration for application
+            baseDuration = effectiveDuration;
+        }
+
+        // --- APPLY EFFECTS ---
+
         if (type === 'STUN') {
-            target.stunTimer = Math.max(target.stunTimer, duration);
+            target.stunTimer = Math.max(target.stunTimer, baseDuration);
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "暈眩", color: "#facc15" });
+            statusText = "暈眩";
+            statusColor = "#facc15"; 
             
             const isIce = skill.color.toLowerCase().includes('blue') || 
                           skill.color.includes('#60a5fa') || 
@@ -300,14 +341,16 @@ export class SkillResolutionSystem {
                 target.visualStatus = 'FROZEN';
             }
         } else if (type === 'SILENCE') {
-            target.silenceTimer = Math.max(target.silenceTimer, duration);
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "沉默", color: "#94a3b8" });
+            target.silenceTimer = Math.max(target.silenceTimer, baseDuration);
+            statusText = "沉默";
+            statusColor = "#94a3b8"; 
         } else if (type === 'BANISH') {
-            target.banishTimer = Math.max(target.banishTimer, duration);
+            target.banishTimer = Math.max(target.banishTimer, baseDuration);
             target.banished = true;
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "放逐", color: "#c084fc" });
+            statusText = "放逐";
+            statusColor = "#c084fc"; 
             
             if (skill.name.includes("變形") || skill.name.includes("羊") || skill.name.includes("動物")) {
                 target.visualStatus = 'POLYMORPH'; 
@@ -315,6 +358,9 @@ export class SkillResolutionSystem {
                 target.visualStatus = 'STASIS'; 
             }
         } else if (type === 'KNOCKBACK' || type === 'PULL') {
+            // Knockback isn't traditionally DR'd by duration, but we can DR the force?
+            // For now, let's keep Knockback physical and reliable, but subject to weight
+            
             const rawForce = Math.max(1, power);
             const resistance = target.weight || 1; 
             const tilesToPush = Math.max(0, rawForce - resistance);
@@ -368,18 +414,25 @@ export class SkillResolutionSystem {
             if (finalH.q !== target.q || finalH.r !== target.r) {
                 engine.updateAgentPosition(target, finalH.q, finalH.r);
                 target.isMoving = false; 
-                engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: type === 'PULL' ? "牽引" : "擊退", color: "#fff" });
+                statusText = type === 'PULL' ? "牽引" : "擊退";
+                statusColor = "#fff";
                 target.setAnim(AnimState.HIT);
                 target.physics.vz += 200;
             }
         } else if (type === 'DOT') {
             target.dotDmg = power || 5;
-            target.dotTimer = duration || 3;
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "中毒", color: "#10b981" });
+            target.dotTimer = baseDuration || 3;
+            statusText = "中毒";
+            statusColor = "#10b981";
         } else if (type === 'HOT') {
             target.hotVal = power || 5;
-            target.hotTimer = duration || 3;
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "再生", color: "#86efac" });
+            target.hotTimer = baseDuration || 3;
+            statusText = "再生";
+            statusColor = "#86efac";
+        }
+
+        if (statusText) {
+            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: statusText, color: statusColor });
         }
     }
 }

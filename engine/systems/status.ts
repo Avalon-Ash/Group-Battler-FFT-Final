@@ -21,17 +21,31 @@ export class StatusSystem {
             }
         }
 
-        // 4. Spawn Animation Timer
+        // 4. Diminishing Returns (DR) Reset Logic
+        // Iterating keys of Record<string, number>
+        for (const type in agent.drTimers) {
+            if (agent.drTimers.hasOwnProperty(type)) {
+                agent.drTimers[type] -= dt;
+                if (agent.drTimers[type] <= 0) {
+                    // Reset DR stack for this CC type
+                    agent.drStacks[type] = 0;
+                    delete agent.drTimers[type];
+                    // Optional: Visual cue for DR reset could go here
+                }
+            }
+        }
+
+        // 5. Spawn Animation Timer
         if (agent.spawnTimer > 0) {
             agent.spawnTimer -= dt;
         }
         
-        // 5. Visual State Reset
+        // 6. Visual State Reset
         if (agent.visualStatus === 'FROZEN' && agent.stunTimer <= 0) agent.visualStatus = 'NONE';
         if (agent.visualStatus === 'POLYMORPH' && !agent.banished) agent.visualStatus = 'NONE';
         if (agent.visualStatus === 'STASIS' && !agent.banished) agent.visualStatus = 'NONE';
 
-        // 6. DoT (Damage over Time)
+        // 7. DoT (Damage over Time)
         if (agent.dotTimer > 0) {
             agent.dotTimer -= dt;
             agent.hp -= agent.dotDmg * dt;
@@ -47,7 +61,7 @@ export class StatusSystem {
             }
         }
 
-        // 7. HoT (Heal over Time)
+        // 8. HoT (Heal over Time)
         if (agent.hotTimer > 0) {
             agent.hotTimer -= dt;
             agent.hp = Math.min(agent.maxHp, agent.hp + agent.hotVal * dt);
@@ -61,7 +75,7 @@ export class StatusSystem {
             }
         }
 
-        // 8. Animation State Reset
+        // 9. Animation State Reset
         // If not stunned, not banished, not moving, and not casting -> Return to Idle
         if (agent.stunTimer <= 0 && agent.banishTimer <= 0 && !agent.isMoving && agent.castingSkillIdx === -1) {
             if (agent.target) agent.setAnim(AnimState.COMBAT_IDLE);

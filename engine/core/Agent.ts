@@ -54,6 +54,12 @@ export class Agent {
     public dotDmg: number = 0;
     public hotTimer: number = 0;
     public hotVal: number = 0;
+
+    // Diminishing Returns (DR) System
+    // Tracks current stack count per CC type (STUN, SILENCE, etc.)
+    public drStacks: Record<string, number> = {}; 
+    // Tracks time until DR resets for that type
+    public drTimers: Record<string, number> = {}; 
     
     // Visual State
     public visualStatus: SpecialVisualStatus = 'NONE';
@@ -148,6 +154,10 @@ export class Agent {
         this.hotTimer = 0;
         this.visualStatus = 'NONE';
         
+        // Reset DR
+        this.drStacks = {};
+        this.drTimers = {};
+
         this.hitFlashTimer = 0;
         this.deadLogged = false;
         this.fullyDead = false;
