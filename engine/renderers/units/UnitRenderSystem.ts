@@ -64,7 +64,7 @@ export class UnitRenderSystem {
                     agent.px, 
                     visualY, 
                     globalTime, 
-                    highlightAgent === agent,
+                    highlightAgent === agent, // Direct reference check
                     false // Normal Mode
                 )
             });
@@ -81,7 +81,6 @@ export class UnitRenderSystem {
         globalTime: number,
         mapConfig: MapConfig
     ) {
-        // Consistent height logic for silhouettes
         let h = 0;
         if (agent.isMoving && agent.path.length > 0) {
             const h1 = getTerrainHeight(agent.q, agent.r);
@@ -100,7 +99,6 @@ export class UnitRenderSystem {
         }
         
         const visualY = agent.py - h;
-
         this.drawAssembly(ctx, agent, agent.px, visualY, globalTime, false, true);
     }
 
@@ -174,16 +172,11 @@ export class UnitRenderSystem {
         ctx.translate(physX, physY - physZ); 
         ctx.rotate(agent.physics.angle); 
 
-        // Vertical Float Animation (Visual only, distinct from Physics Z)
-        // Body is offset by UNIT_BODY_OFFSET to ensure it floats above base.
-        // We use the negative of the constant because canvas Y-up is negative.
+        // Vertical Float Animation
         let bodyFloat = -UNIT_BODY_OFFSET; 
-        
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             // Breathing float for ground units
              bodyFloat -= Math.sin(globalTime * 2) * 3; 
         } else if (agent.movementType === MovementType.FLYING) {
-             // Flyers use Physics Z, but add micro-bob here
              bodyFloat -= Math.sin(globalTime * 4) * 2;
         }
 
@@ -201,7 +194,7 @@ export class UnitRenderSystem {
             spawnAlpha = eased;
             whiteOverlay = 1 - eased; 
             
-            ctx.scale(1, 2.0 - eased); // Vertical stretch on spawn
+            ctx.scale(1, 2.0 - eased); 
             ctx.globalAlpha *= spawnAlpha;
         }
 
@@ -214,12 +207,7 @@ export class UnitRenderSystem {
             ctx.filter = `brightness(${100 + whiteOverlay * 200}%)`;
         }
 
-        // Ghostly effect for generic Banish (Not Stasis/Polymorph)
-        if (agent.banished && agent.visualStatus === 'NONE' && !isSilhouette) {
-            ctx.globalAlpha *= 0.5;
-        }
-
-        // Flight Thrusters (For Flying Units)
+        // Flight Thrusters
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             drawFlightVFX(ctx, agent, globalTime);
         }
@@ -238,19 +226,16 @@ export class UnitRenderSystem {
             const bounce = Math.abs(Math.sin(globalTime * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
-            // DELEGATED RENDERERS (Blue vs Red)
             if (agent.team === Team.BLUE) {
                 ImperialRenderer.draw(ctx, agent, globalTime, isSilhouette);
             } else {
                 CovenantRenderer.draw(ctx, agent, globalTime, isSilhouette);
             }
             
-            // Casting Particles
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
                 drawCastingVFX(ctx, agent, globalTime);
             }
             
-            // Frozen Overlay
             if (agent.visualStatus === 'FROZEN') {
                 const ice = SpriteManager.getSpecialModel('ICE');
                 ctx.save();
@@ -259,7 +244,6 @@ export class UnitRenderSystem {
                 ctx.restore();
             }
             
-            // Stasis Overlay
             if (agent.visualStatus === 'STASIS') {
                 ctx.save();
                 ctx.fillStyle = '#facc15';
@@ -279,17 +263,69 @@ export class UnitRenderSystem {
         if (!isSilhouette) {
             drawStatusIcons(ctx, agent, globalTime, drawX, drawY, scaleFactor);
             drawStatusEffects(ctx, agent, globalTime);
-            
-            if (isSelected && agent.hp > 0) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2 / scaleFactor; 
-                ctx.beginPath();
-                ctx.ellipse(0, -20, 30, 15, 0, 0, Math.PI * 2);
-                ctx.stroke();
-            }
         }
 
-        ctx.restore(); 
+        ctx.restore(); // Undo Body Transform
+
+        // --- 5. TACTICAL SELECTION (DRAWN IN WORLD SPACE ON TOP) ---
+        // Moved here to ensure it is not affected by body scaling/rotation, but shares position
+        if (isSelected && !isSilhouette) {
+            ctx.save();
+            // We are at Ground Level (drawX, drawY). Move up to "center" of unit height for bracket
+            const centerHeight = 50 * scaleFactor;
+            ctx.translate(0, -centerHeight); 
+
+            // A. Rotating Brackets (Reticle)
+            const bracketSize = 60 * scaleFactor;
+            ctx.rotate(globalTime * 0.5);
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#22d3ee'; // Bright Cyan
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 10;
+            
+            // Draw 4 corners
+            const cornerLen = Math.PI / 3;
+            for(let i=0; i<4; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
+                ctx.stroke();
+            }
+
+            // B. Counter-Rotating Inner Ring
+            ctx.rotate(-globalTime * 1.5);
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.restore(); // Back to Ground
+
+            // C. Floating Arrow (Bounce)
+            ctx.save();
+            const bounce = Math.sin(globalTime * 8) * 8;
+            const arrowHeight = 110 * scaleFactor;
+            ctx.translate(0, -arrowHeight + bounce);
+            
+            ctx.fillStyle = '#22d3ee';
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 15;
+            
+            // Arrow Down Shape
+            ctx.beginPath();
+            ctx.moveTo(-10, -15); 
+            ctx.lineTo(10, -15);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Glow Dot
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(0, -22, 3, 0, Math.PI*2); ctx.fill();
+            
+            ctx.restore();
+        }
 
         // Spawn Role Icon
         if (agent.spawnTimer > 0 && !isSilhouette) {

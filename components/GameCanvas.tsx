@@ -36,6 +36,10 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     
+    // Animation State ref (Mutable to avoid re-renders during loop)
+    const transitionProgress = useRef(0);
+    const lastPhase = useRef(transitionPhase);
+
     // Lifecycle: Instantiate Renderer ONCE using Lazy Initialization.
     const rendererRef = useRef<GameRenderer | null>(null);
     if (rendererRef.current === null) {
@@ -46,18 +50,35 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { camera, centerCamera, pan, zoom } = useGameCamera(engine);
 
     // 2. Input System
-    // Note: hoveredHexRef is a RefObject now, keeping the value fresh across renders
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
         onSelect, onCameraPan: pan, onCameraZoom: zoom
     });
 
+    // Reset progress when phase changes
+    useEffect(() => {
+        if (transitionPhase !== lastPhase.current) {
+            transitionProgress.current = 0;
+            lastPhase.current = transitionPhase;
+        }
+    }, [transitionPhase]);
+
     // 3. Render Handler (Memoized)
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {
         if (!rendererRef.current) return;
 
-        rendererRef.current.setTransition(0, transitionPhase); 
+        // --- ANIMATION LOGIC FIX ---
+        // Increment progress if we are in a transition
+        if (transitionPhase !== 'IDLE') {
+            const dt = 1 / 60; // Assume 60fps delta for smoothness or use real dt
+            // Speed of animation Adjusted: 0.4 for slower, majestic float (approx 2.5s duration)
+            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.4);
+        } else {
+            transitionProgress.current = 0;
+        }
+
+        rendererRef.current.setTransition(transitionProgress.current, transitionPhase); 
         const highlight = pressedAgent || selectedAgent || null;
         
         // Access fresh hover state directly from ref during render loop
@@ -75,27 +96,14 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
 
         // Draw Ghost Obstacle (Drag Visual Overlay)
         if (draggedObstacle && canvasRef.current) {
-            // Note: Canvas Context is already scaled by DPR in renderer.draw(),
-            // but we need to ensure this overlays correctly.
-            // However, drawGhost is ad-hoc here.
-            // For safety, let's rely on simple screen space mapping provided by the camera transform manually.
-            
-            // To be strict, we should implement Ghost rendering inside Renderer to share the DPR context state.
-            // But for this patch, we assume standard behavior.
-            
             const { type, px, py } = draggedObstacle;
             const { x, y, zoom: camZoom } = camera.current;
             const dpr = window.devicePixelRatio || 1;
-            
-            // Note: renderer.draw() ends with state restored. We need to re-apply DPR scale here manually
-            // or trust the context is clean (identity).
-            // Since we are drawing on top, we need to respect the scaling.
             
             ctx.save();
             ctx.scale(dpr, dpr); // Apply High-DPI scale
             
             // Camera Transform
-            // We use the logical width/height for centering
             const logicalW = canvasRef.current.width / dpr;
             const logicalH = canvasRef.current.height / dpr;
             
@@ -116,8 +124,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         }
     }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
 
-    // Resize Logic (Called by useGameLoop via Debounce)
-    // Now receives LOGICAL width/height to avoid DOM thrashing
+    // Resize Logic
     const handleResize = useCallback((w: number, h: number) => {
         if (w > 0 && h > 0) {
             centerCamera(w, h);
@@ -155,7 +162,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">
             <canvas 
                 ref={canvasRef} 
-                className="block shadow-inner w-full h-full"
+                className="block w-full h-full"
                 style={{ 
                     backgroundColor: engine.currentScene.background,
                     touchAction: 'none' 
@@ -163,14 +170,17 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             
-            {/* VICTORY SCREEN */}
+            {/* VICTORY SCREEN - Liquid Glass Style */}
             {winner !== null && !isShowcaseMode && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 z-50 pointer-events-auto">
-                    <div className="text-center p-8 bg-slate-900 rounded-lg border border-slate-700 shadow-2xl animate-bounce-in">
-                        <h2 className={`text-4xl font-bold mb-4 font-serif tracking-widest ${winner === Team.BLUE ? 'text-blue-400' : 'text-red-400'}`}>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
+                    <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-md w-full">
+                        <h2 className={`text-6xl font-black mb-2 tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.6)]'}`}>
                             {winner === Team.BLUE ? 'VICTORY' : 'DEFEAT'}
                         </h2>
-                        <button onClick={rematch} className="bg-slate-700 hover:bg-slate-600 text-white font-bold py-2 px-6 rounded border border-slate-500">REMATCH</button>
+                        <div className="h-1 w-20 mx-auto bg-white/20 rounded-full mb-8"></div>
+                        <button onClick={rematch} className="liquid-btn px-10 py-4 rounded-full text-xl font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white shadow-lg w-full">
+                            再戰一局
+                        </button>
                     </div>
                 </div>
             )}
