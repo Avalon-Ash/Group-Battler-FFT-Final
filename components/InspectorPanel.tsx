@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Agent } from '../engine/game';
 import { Skill, LogEntry, Team } from '../types';
+import { DesignExporter } from '../engine/systems/DesignExporter';
 
 // Tabs
 import { LogTab } from './inspector/tabs/LogTab';
@@ -36,7 +37,7 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
     return (
         <div className="flex flex-col h-full bg-slate-950 text-slate-200 w-full select-none border-l border-slate-800">
             {/* MAIN TAB NAV */}
-            <div className="flex border-b border-slate-800 bg-slate-900/50 shrink-0">
+            <div className="flex border-b border-slate-800 bg-slate-900/50 shrink-0 items-center pr-2">
                 {['INSPECTOR', 'LOG', 'DB'].map(t => (
                     <button 
                         key={t} 
@@ -46,6 +47,17 @@ const InspectorPanel: React.FC<InspectorProps> = ({ agent, engine, db, onHoverSk
                         {t === 'INSPECTOR' ? '單位監控' : (t === 'LOG' ? '戰況紀錄' : '技能資料庫')}
                     </button>
                 ))}
+                
+                {/* Export Spec Button */}
+                <button 
+                    onClick={() => DesignExporter.downloadSpec()}
+                    className="ml-2 w-8 h-8 flex items-center justify-center rounded bg-slate-800 border border-slate-600 text-slate-400 hover:text-cyan-400 hover:border-cyan-500 transition-all shadow-sm"
+                    title="導出遊戲設計規格 (TXT)"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                </button>
             </div>
 
             <div className="flex-1 overflow-hidden flex flex-col min-h-0 relative">
