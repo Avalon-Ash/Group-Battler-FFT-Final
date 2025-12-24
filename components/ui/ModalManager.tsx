@@ -4,6 +4,7 @@ import { Agent, GameEngine } from '../../engine/game';
 import { LogTab } from '../inspector/tabs/LogTab';
 import { SkillDbTab } from '../inspector/tabs/SkillDbTab';
 import { UnitDetailView } from '../ui/UnitDetailView';
+import { Icons } from './icons';
 
 interface ModalManagerProps {
     showLogs: boolean;
@@ -32,11 +33,13 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
                 {/* Header */}
                 <div className="flex justify-between items-center p-5 border-b border-white/10 shrink-0 bg-white/5">
                     <h2 className="text-lg font-bold text-white tracking-widest flex items-center gap-3">
-                        {showLogs && <><span className="text-2xl filter drop-shadow-md">📜</span> BATTLE LOGS</>}
-                        {showDB && <><span className="text-2xl filter drop-shadow-md">📚</span> SKILL DATABASE</>}
-                        {showUnitDetail && <><span className="text-2xl filter drop-shadow-md">🔍</span> NEURAL ANALYSIS</>}
+                        {showLogs && <><Icons.Log className="w-6 h-6 text-cyan-400" /> BATTLE LOGS</>}
+                        {showDB && <><Icons.Database className="w-6 h-6 text-amber-400" /> SKILL DATABASE</>}
+                        {showUnitDetail && <><Icons.Settings className="w-6 h-6 text-cyan-400" /> NEURAL ANALYSIS</>}
                     </h2>
-                    <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-transparent hover:border-white/10">✕</button>
+                    <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-transparent hover:border-white/10">
+                        <Icons.Close className="w-5 h-5" />
+                    </button>
                 </div>
                 
                 {/* Content */}

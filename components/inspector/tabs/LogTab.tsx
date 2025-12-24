@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState, memo } from 'react';
 import { LogEntry, Team } from '../../../types';
+import { Icons } from '../../ui/icons';
 
 interface LogTabProps {
     engine: any;
@@ -76,8 +77,8 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                     <LogItem key={log.id} log={log} />
                 ))}
                 {localLogs.length === 0 && (
-                    <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-3 mt-10">
-                        <span className="text-4xl filter grayscale opacity-50">📡</span>
+                    <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-3 mt-10 text-slate-500">
+                        <Icons.Empty className="w-12 h-12 opacity-50" />
                         <span className="text-xs font-mono tracking-widest">AWAITING SIGNAL...</span>
                     </div>
                 )}

@@ -1,9 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { Agent, GameEngine } from '../../engine/game';
-import { Skill } from '../../types';
+import { Role, Skill } from '../../types';
 import { UnitStatusTab } from '../inspector/tabs/UnitStatusTab';
 import { BehaviorTreeTab } from '../inspector/tabs/BehaviorTreeTab';
+import { Icons } from './icons';
 
 interface UnitDetailViewProps {
     agent: Agent;
@@ -25,17 +26,24 @@ export const UnitDetailView: React.FC<UnitDetailViewProps> = ({ agent, db, engin
         setVersion(n => n + 1);
     };
 
+    const renderRoleIcon = (role: Role) => {
+        switch (role) {
+            case Role.TANK: return <Icons.RoleTank className="w-6 h-6" />;
+            case Role.WARRIOR: return <Icons.RoleWarrior className="w-6 h-6" />;
+            case Role.RANGER: return <Icons.RoleRanger className="w-6 h-6" />;
+            case Role.MAGE: return <Icons.RoleMage className="w-6 h-6" />;
+            case Role.SUPPORT: return <Icons.RoleSupport className="w-6 h-6" />;
+            default: return null;
+        }
+    };
+
     return (
         <div className="flex flex-col h-full w-full select-none">
             {/* UNIT HEADER (Liquid Glass) */}
             <div className="p-5 border-b border-white/10 shrink-0 z-20 flex items-center justify-between gap-4 bg-slate-900/40 backdrop-blur-md">
                 <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 flex items-center justify-center rounded-2xl liquid-card-dark border text-2xl shadow-inner ${agent.team === 0 ? 'border-blue-500/50 text-blue-400' : 'border-red-500/50 text-red-400'}`}>
-                        {agent.role === 'TANK' && '🛡️'}
-                        {agent.role === 'WARRIOR' && '⚔️'}
-                        {agent.role === 'RANGER' && '🏹'}
-                        {agent.role === 'MAGE' && '🔮'}
-                        {agent.role === 'SUPPORT' && '⚕️'}
+                        {renderRoleIcon(agent.role)}
                     </div>
                     <div>
                         <div className="font-mono font-black text-2xl leading-none text-white tracking-tight">{agent.id}</div>

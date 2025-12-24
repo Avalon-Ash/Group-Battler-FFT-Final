@@ -7,12 +7,12 @@ import { OBSTACLE_DB } from '../../data/obstacles';
 // 1. CORE ENUM MAPPINGS (Visual & Labels)
 // =========================================================================================
 
-export const ROLE_MAP: Record<Role, { label: string; icon: string; color: string; border: string }> = {
-    [Role.TANK]:    { label: '坦克', icon: '🛡️', color: 'text-amber-400', border: 'border-amber-500' },
-    [Role.WARRIOR]: { label: '戰士', icon: '⚔️', color: 'text-red-400', border: 'border-red-500' },
-    [Role.RANGER]:  { label: '遊俠', icon: '🏹', color: 'text-emerald-400', border: 'border-emerald-500' },
-    [Role.MAGE]:    { label: '法師', icon: '🔮', color: 'text-cyan-400', border: 'border-cyan-500' },
-    [Role.SUPPORT]: { label: '輔助', icon: '⚕️', color: 'text-purple-400', border: 'border-purple-500' }
+export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
+    [Role.TANK]:    { label: '坦克', color: 'text-amber-400', border: 'border-amber-500' },
+    [Role.WARRIOR]: { label: '戰士', color: 'text-red-400', border: 'border-red-500' },
+    [Role.RANGER]:  { label: '遊俠', color: 'text-emerald-400', border: 'border-emerald-500' },
+    [Role.MAGE]:    { label: '法師', color: 'text-cyan-400', border: 'border-cyan-500' },
+    [Role.SUPPORT]: { label: '輔助', color: 'text-purple-400', border: 'border-purple-500' }
 };
 
 export const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
@@ -192,7 +192,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
 // =========================================================================================
 
 export const Helpers = {
-    getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, icon: '❓', color: 'text-slate-400', border: 'border-slate-500' },
+    getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, color: 'text-slate-400', border: 'border-slate-500' },
     
     getTeamConfig: (team: Team) => TEAM_MAP[team] || { label: 'Unknown', color: 'text-slate-400', bg: 'bg-slate-800' },
     

@@ -3,6 +3,7 @@ import React, { useState, useRef } from 'react';
 import { Agent } from '../../engine/game';
 import { Team, Role } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
+import { Icons } from './icons';
 
 interface UnitInspectorHUDProps {
     agent: Agent | null;
@@ -41,6 +42,17 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
     const hpPct = (agent.hp / agent.maxHp) * 100;
     const mpPct = (agent.mp / agent.maxMp) * 100;
 
+    const renderRoleIcon = (role: Role) => {
+        switch (role) {
+            case Role.TANK: return <Icons.RoleTank className="w-6 h-6" />;
+            case Role.WARRIOR: return <Icons.RoleWarrior className="w-6 h-6" />;
+            case Role.RANGER: return <Icons.RoleRanger className="w-6 h-6" />;
+            case Role.MAGE: return <Icons.RoleMage className="w-6 h-6" />;
+            case Role.SUPPORT: return <Icons.RoleSupport className="w-6 h-6" />;
+            default: return null;
+        }
+    };
+
     return (
         <div 
             ref={ref}
@@ -60,7 +72,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
                         onPointerDown={e => e.stopPropagation()}
                         className="w-6 h-6 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition-all"
                     >
-                        ↗
+                        <Icons.Expand className="w-4 h-4" />
                     </button>
                 </div>
             ) : (
@@ -73,11 +85,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
                             {/* Class Icon Container (Liquid Style) */}
                             <div className={`w-12 h-12 flex items-center justify-center rounded-2xl liquid-card-dark border ${borderColor} ${themeColor} text-2xl shadow-inner relative overflow-hidden`}>
                                 <div className={`absolute inset-0 opacity-20 bg-gradient-to-br from-white to-transparent`}></div>
-                                {agent.role === Role.TANK && '🛡️'}
-                                {agent.role === Role.WARRIOR && '⚔️'}
-                                {agent.role === Role.RANGER && '🏹'}
-                                {agent.role === Role.MAGE && '🔮'}
-                                {agent.role === Role.SUPPORT && '⚕️'}
+                                {renderRoleIcon(agent.role)}
                             </div>
                             <div>
                                 <div className={`font-mono font-black text-xl ${themeColor} leading-none tracking-tight`}>{agent.id}</div>
@@ -90,13 +98,17 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
                         
                         {/* Controls */}
                         <div className="flex gap-1" onPointerDown={e => e.stopPropagation()}>
-                            <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-white/10">_</button>
+                            <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-white/10">
+                                <Icons.Minimize className="w-4 h-4" />
+                            </button>
                             {onExpand && (
                                 <button onClick={onExpand} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-cyan-500/20 hover:text-cyan-400">
-                                    🔍
+                                    <Icons.Expand className="w-4 h-4" />
                                 </button>
                             )}
-                            <button onClick={onClose} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-red-500/20 hover:text-red-400">✕</button>
+                            <button onClick={onClose} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-red-500/20 hover:text-red-400">
+                                <Icons.Close className="w-4 h-4" />
+                            </button>
                         </div>
                     </div>
 

@@ -4,6 +4,7 @@ import { ToolType, Role } from '../../types';
 import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
+import { Icons } from './icons';
 
 interface MapEditorToolbarProps {
     tool: ToolType;
@@ -72,7 +73,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     title="選取 / 移動"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" /></svg>
+                    <Icons.Select className="w-5 h-5" />
                 </button>
                 
                 <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -84,7 +85,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     title="部署藍軍"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 22h20L12 2zm0 4.8l5.6 11.2H6.4L12 6.8z"/></svg>
+                    <Icons.Deploy className="w-5 h-5" />
                 </button>
 
                 {/* 3. RED TEAM */}
@@ -94,7 +95,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     title="部署紅軍"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L12 12l-2.5-1.25L12 11zm0 2.5l-5-2.5-5 2.5L12 22l10-8.5-5-2.5-5 2.5z"/></svg>
+                    <Icons.Deploy className="w-5 h-5" />
                 </button>
                 
                 <div className="w-px h-6 bg-white/10 mx-1"></div>
@@ -106,7 +107,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     title="地形編輯"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                    <Icons.Obstacle className="w-5 h-5" />
                 </button>
 
                 {/* 5. DELETE */}
@@ -116,7 +117,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     title="移除"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <Icons.Delete className="w-5 h-5" />
                 </button>
             </div>
 

@@ -101,25 +101,90 @@ export const UnitFactory = {
         
         // Emissive holographic text color
         const color = team === Team.BLUE ? '#e0f2fe' : '#fecaca';
+        const shadowColor = team === Team.BLUE ? '#3b82f6' : '#ef4444';
 
+        ctx.strokeStyle = color;
         ctx.fillStyle = color;
-        ctx.font = '900 28px sans-serif'; 
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = 10;
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        ctx.translate(cx, cy);
         
-        let char = '';
-        switch (role) {
-            case Role.TANK: char = '🛡️'; break;
-            case Role.WARRIOR: char = '⚔️'; break;
-            case Role.RANGER: char = '🏹'; break;
-            case Role.MAGE: char = '🔮'; break;
-            case Role.SUPPORT: char = '⚕️'; break;
+        // Scale down to fit nicely in 64x64
+        const scale = 1.2;
+        ctx.scale(scale, scale);
+
+        // Vector Drawings instead of Emojis
+        ctx.beginPath();
+        if (role === Role.TANK) {
+            // Shield Icon
+            ctx.moveTo(0, 12);
+            ctx.lineTo(9, 12);
+            ctx.lineTo(12, -6);
+            ctx.lineTo(0, -12);
+            ctx.lineTo(-12, -6);
+            ctx.lineTo(-9, 12);
+            ctx.closePath();
+            ctx.stroke();
+            // Inner cross
+            ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(0, 6); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(-6, 0); ctx.lineTo(6, 0); ctx.stroke();
+
+        } else if (role === Role.WARRIOR) {
+            // Crossed Swords
+            const drawSword = () => {
+                ctx.moveTo(-8, -8); ctx.lineTo(8, 8); // Blade
+                ctx.moveTo(-5, -8); ctx.lineTo(-8, -5); // Hilt Guard
+                ctx.moveTo(5, 8); ctx.lineTo(8, 5); // Tip detail
+            };
+            ctx.save();
+            ctx.beginPath();
+            drawSword();
+            ctx.stroke();
+            ctx.scale(-1, 1); // Flip for X
+            ctx.beginPath();
+            drawSword();
+            ctx.stroke();
+            ctx.restore();
+
+        } else if (role === Role.RANGER) {
+            // Bow & Arrow
+            ctx.beginPath();
+            ctx.arc(0, 0, 12, -Math.PI/2, Math.PI/2); // Bow string
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(0, -14); ctx.lineTo(0, 14); // Bow Riser
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-10, 0); ctx.lineTo(14, 0); // Arrow
+            ctx.lineTo(10, -4); ctx.moveTo(14, 0); ctx.lineTo(10, 4); // Arrow head
+            ctx.stroke();
+
+        } else if (role === Role.MAGE) {
+            // Staff / Spark
+            ctx.beginPath();
+            ctx.moveTo(-10, 10); ctx.lineTo(10, -10); // Staff
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(10, -10, 5, 0, Math.PI*2); // Orb
+            ctx.stroke();
+            // Sparkles
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(14, -14, 2, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(6, -6, 1.5, 0, Math.PI*2); ctx.fill();
+
+        } else if (role === Role.SUPPORT) {
+            // Cross / Ankh
+            ctx.beginPath();
+            ctx.moveTo(0, -12); ctx.lineTo(0, 12);
+            ctx.moveTo(-8, -4); ctx.lineTo(8, -4);
+            ctx.stroke();
+            // Circle top
+            ctx.beginPath(); ctx.arc(0, -8, 4, 0, Math.PI*2); ctx.stroke();
         }
-        
-        // Heavy Glow to look like a projection
-        ctx.shadowColor = team === Team.BLUE ? '#3b82f6' : '#ef4444';
-        ctx.shadowBlur = 15;
-        ctx.fillText(char, cx, cy);
         
         return canvas;
     },

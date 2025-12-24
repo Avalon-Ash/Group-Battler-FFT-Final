@@ -2,6 +2,7 @@
 import React, { useRef } from 'react';
 import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
+import { Icons } from './icons';
 
 interface PlaybackHUDProps {
     hidden: boolean;
@@ -43,25 +44,27 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         title={isPlaying ? "暫停" : "開始"}
                         onPointerDown={e => e.stopPropagation()}
                     >
-                        <span className="group-active:scale-90 transition-transform">{isPlaying ? '⏸' : '▶'}</span>
+                        <span className="group-active:scale-90 transition-transform">
+                            {isPlaying ? <Icons.Pause className="w-6 h-6" /> : <Icons.Play className="w-6 h-6" />}
+                        </span>
                     </button>
                     
                     <div className="flex flex-col gap-1.5">
                         <button 
                             onClick={(e) => { e.stopPropagation(); onRestart(); }}
-                            className="w-10 h-5 rounded-full bg-white/5 hover:bg-white/15 text-[10px] text-slate-400 hover:text-white flex items-center justify-center border border-white/10 transition-colors"
+                            className="w-10 h-5 rounded-full bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white flex items-center justify-center border border-white/10 transition-colors"
                             title="重置回合"
                             onPointerDown={e => e.stopPropagation()}
                         >
-                            ↺
+                            <Icons.Restart className="w-3 h-3" />
                         </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); onRandom(); }}
-                            className="w-10 h-5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-[10px] text-purple-300 hover:text-white flex items-center justify-center border border-purple-500/20 hover:border-purple-400/50 transition-colors"
+                            className="w-10 h-5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-purple-300 hover:text-white flex items-center justify-center border border-purple-500/20 hover:border-purple-400/50 transition-colors"
                             title="隨機戰場"
                             onPointerDown={e => e.stopPropagation()}
                         >
-                            🎲
+                            <Icons.Dice className="w-3 h-3" />
                         </button>
                     </div>
                 </div>
@@ -96,7 +99,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     title="返回展示模式"
                     onPointerDown={e => e.stopPropagation()}
                 >
-                    <span className="text-xl filter drop-shadow-md">📺</span>
+                    <Icons.TV className="w-6 h-6 filter drop-shadow-md" />
                 </button>
                 
                 {/* Drag Handle */}

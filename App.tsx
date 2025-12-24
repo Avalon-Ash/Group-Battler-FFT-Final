@@ -9,6 +9,7 @@ import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
 import { SystemMenu } from './components/ui/SystemMenu';
 import { ModalManager } from './components/ui/ModalManager';
+import { Icons } from './components/ui/icons';
 
 // Hook
 import { useGameApp } from './hooks/useGameApp';
@@ -23,7 +24,7 @@ function App() {
       {state.showFactionWarning && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce-in pointer-events-none w-[90%] max-w-md">
                 <div className="liquid-glass px-6 py-3 rounded-full border-red-500/50 flex items-center gap-3 shadow-xl text-red-200 bg-red-950/80">
-                    <span className="text-xl">⚠️</span>
+                    <Icons.Warning className="w-6 h-6 text-red-400" />
                     <div className="flex flex-col">
                         <span className="text-xs font-bold tracking-widest text-red-400 uppercase">部署錯誤</span>
                         <span className="text-xs">請部署雙方單位以開始戰鬥。</span>
