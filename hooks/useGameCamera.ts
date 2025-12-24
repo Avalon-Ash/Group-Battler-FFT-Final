@@ -16,27 +16,37 @@ export const useGameCamera = (engine: GameEngine) => {
         let minY = Infinity, maxY = -Infinity;
         let count = 0;
 
+        // 1. Terrain Bounds
         engine.mapKeys.forEach(k => {
             const [q, r] = k.split(',').map(Number);
             const p = HexUtils.toPx(q, r, engine.mapConfig);
             const h = engine.map.getTerrainHeight(q, r);
             
-            // Adjust bounds based on Hex size
-            const halfW = 20; // Approx half width
-            
+            const halfW = 20;
             if (p.x - halfW < minX) minX = p.x - halfW;
             if (p.x + halfW > maxX) maxX = p.x + halfW;
             
-            // Visual Top (includes block height)
-            // Note: In screen coords, Y decreases as we go up.
-            // p.y is the "ground floor" center. The block extends UP by `h`.
-            // And maybe a bit more for the surface.
             const visualTop = p.y - h - BLOCK_HEIGHT; 
             const visualBottom = p.y + BLOCK_HEIGHT/2;
 
             if (visualTop < minY) minY = visualTop;
             if (visualBottom > maxY) maxY = visualBottom;
             
+            count++;
+        });
+
+        // 2. Unit Bounds (Important if units are flying or high up)
+        engine.agents.forEach(a => {
+            if (a.hp <= 0 && a.fullyDead) return;
+            // Rough unit bounds
+            if (a.px < minX) minX = a.px;
+            if (a.px > maxX) maxX = a.px;
+            
+            // Account for height
+            const h = engine.map.getTerrainHeight(a.q, a.r);
+            const topY = a.py - h - 100; // Approx unit height
+            if (topY < minY) minY = topY;
+            if (a.py > maxY) maxY = a.py;
             count++;
         });
 
@@ -53,19 +63,13 @@ export const useGameCamera = (engine: GameEngine) => {
 
         // Visual Correction:
         // Center the calculated bounding box on screen.
-        // Camera (0,0) is screen center.
-        // Camera Position (x,y) is the point in world space that is mapped to screen center.
-        // So we just set camera x,y to the map center.
-        
-        // No extra offset needed if bounding box is correct.
-        
         camera.current.x = mapCenterX;
         camera.current.y = mapCenterY;
         
         // SNAP LOGIC
         engine.renderer?.camera.snapTo(camera.current.x, camera.current.y, camera.current.zoom);
 
-    }, [engine.mapConfig, engine.mapKeys]);
+    }, [engine.mapConfig, engine.mapKeys, engine.agents]); // Added agents to dependency to frame them if map is small
 
     const pan = useCallback((dx: number, dy: number) => {
         if (isNaN(dx) || isNaN(dy)) return;

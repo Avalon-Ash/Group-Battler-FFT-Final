@@ -31,7 +31,6 @@ export class HUDSystem {
 
     addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
         // UX FIX: Prevent Kill Streak Overlap
-        // If a new kill streak appears, instantly clear the old one to keep the center stage clean.
         if (type === 'KILL_STREAK') {
             this.damageNumbers = this.damageNumbers.filter(d => d.type !== 'KILL_STREAK');
         }
@@ -51,11 +50,9 @@ export class HUDSystem {
                 size = 14; // Smaller to be less intrusive
             }
         } else if (type === 'CC') {
-            // Static float for CC text
             vy = -20; 
             life = 1.5;
         } else if (type === 'KILL_STREAK') {
-            // KILL STREAK: Epic float
             vx = 0;
             vy = -30;
             life = 3.5; // Stay very long
@@ -138,19 +135,12 @@ export class HUDSystem {
 
     private drawUnitStatusGauges(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
         // --- PRIORITY SYSTEM FOR STATUS DISPLAY ---
-        // Priority: 
-        // 1. Hard CC (Banish/Polymorph/Stasis)
-        // 2. Stun
-        // 3. Silence
-        // 4. Casting (Only if not CC'd)
-
         let activeTimer = 0;
         let maxTimer = 0;
         let iconType = '';
         let gaugeColor = '';
 
         if (agent.banished) {
-            // Check visual type first
             activeTimer = agent.banishTimer;
             maxTimer = agent.banishMax || activeTimer;
             
@@ -175,23 +165,15 @@ export class HUDSystem {
             iconType = 'SILENCE';
             gaugeColor = '#94a3b8'; // Grey
         } else if (agent.castingSkillIdx !== -1) {
-            // Casting (Existing Logic moved here)
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
-                // UX FIX: Casting should FILL UP (Clockwise Growth)
-                // castTimer counts DOWN from Max to 0.
-                // So (1 - timer/max) goes from 0 to 1.
                 const progress = 1 - (agent.castTimer / skill.cast);
                 this.drawCircularGauge(ctx, x, y, progress, skill.visual || 'BOLT', skill.color, true);
                 return;
             }
         }
 
-        // Draw CC Gauge if any
         if (iconType && maxTimer > 0) {
-            // UX FIX: CC should DRAIN DOWN (Counter-Clockwise Shrink)
-            // timer counts DOWN from Max to 0.
-            // So (timer/max) goes from 1 to 0.
             const progress = activeTimer / maxTimer;
             this.drawCircularGauge(ctx, x, y, progress, iconType, gaugeColor, false);
         }
@@ -225,10 +207,6 @@ export class HUDSystem {
         }
     }
 
-    // Unified Gauge Drawer for both Casting and CC
-    // 'pct' should be 0.0 to 1.0
-    // If Growing (Cast), call with 0->1. Arc draws clockwise from top.
-    // If Shrinking (CC), call with 1->0. Arc shrinks counter-clockwise to top.
     private drawCircularGauge(
         ctx: CanvasRenderingContext2D, 
         x: number, y: number, 
@@ -240,7 +218,6 @@ export class HUDSystem {
         const radius = 14;
         const iconY = y - 18; 
         
-        // 1. Icon Background (Clip)
         ctx.save();
         ctx.beginPath();
         ctx.arc(x, iconY, radius, 0, Math.PI * 2);
@@ -248,7 +225,6 @@ export class HUDSystem {
         ctx.fill();
         ctx.clip();
         
-        // 2. Icon Sprite
         let icon;
         if (isSkill) {
             icon = AssetManager.getSkillIcon(visualKey, color);
@@ -256,28 +232,21 @@ export class HUDSystem {
             icon = AssetManager.getStatusIcon(visualKey);
         }
         
-        // Ensure icon fits nicely
         if (icon) {
             ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
         }
         ctx.restore();
 
-        // 3. Dark Track
         ctx.beginPath();
         ctx.arc(x, iconY, radius, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
         ctx.lineWidth = 4;
         ctx.stroke();
 
-        // 4. Progress Ring
         const safePct = Math.max(0, Math.min(1, pct));
         
         if (safePct > 0) {
             ctx.beginPath();
-            // Start at Top (-PI/2)
-            // Draw Clockwise towards End Angle
-            // For Casting (0->1): End Angle moves Clockwise.
-            // For CC (1->0): End Angle moves Counter-Clockwise (Retracting).
             ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * safePct));
             
             ctx.strokeStyle = color;
@@ -286,7 +255,6 @@ export class HUDSystem {
             ctx.stroke();
         }
         
-        // 5. Shine / Bevel
         ctx.beginPath();
         ctx.arc(x, iconY, radius, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
@@ -297,35 +265,30 @@ export class HUDSystem {
     private drawFloatingText(ctx: CanvasRenderingContext2D) {
         this.damageNumbers.forEach(d => {
             const lifePct = d.life / d.maxLife;
-            // Fade logic
             const alpha = lifePct < 0.3 ? lifePct / 0.3 : 1.0;
             
             ctx.globalAlpha = alpha;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+            ctx.shadowBlur = 0; // RESET SHADOW
             
             if (d.type === 'KILL_STREAK') {
-                // --- EPIC KILL STREAK ---
                 ctx.save();
                 ctx.translate(d.x, d.y);
                 
-                // Pop-in Scale Effect
-                const pop = Math.min(1, (1 - lifePct) * 5); // Rapid entry
-                // Pulse logic
+                const pop = Math.min(1, (1 - lifePct) * 5); 
                 const pulse = 1 + Math.sin(lifePct * 10) * 0.1;
                 const scale = pop * pulse * 1.5; 
                 ctx.scale(scale, scale);
 
-                // Text Style
                 ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
                 
-                // Fancy Gradient
                 const grad = ctx.createLinearGradient(0, -d.size/2, 0, d.size/2);
                 grad.addColorStop(0, '#ffffff');
                 grad.addColorStop(0.5, d.color);
                 grad.addColorStop(1, '#000000');
                 
-                // Stroke
+                // Stroke (Sharp)
                 ctx.lineWidth = 4;
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = '#000';
@@ -335,17 +298,11 @@ export class HUDSystem {
                 ctx.fillStyle = grad;
                 ctx.fillText(d.text, 0, 0);
                 
-                // Shine
-                ctx.fillStyle = '#fff';
-                ctx.shadowColor = d.color;
-                ctx.shadowBlur = 10 * pulse;
-                ctx.fillText(d.text, 0, 0);
-
+                // No shadowBlur to avoid ghosting artifacts
                 ctx.restore();
 
             } else if (d.type === 'SHOUT') {
                 if (d.isUlt) {
-                    // --- ULTIMATE STYLE ---
                     const scale = 1 + (1 - lifePct) * 0.1; 
                     ctx.save();
                     ctx.translate(d.x, d.y);
@@ -356,7 +313,6 @@ export class HUDSystem {
                     const w = textMetrics.width / 2 + 30;
                     const h = d.size + 16;
 
-                    // Gradient Bar
                     const bgGrad = ctx.createLinearGradient(-w, 0, w, 0);
                     bgGrad.addColorStop(0, 'rgba(0,0,0,0)');
                     bgGrad.addColorStop(0.2, 'rgba(0,0,0,0.6)'); 
@@ -366,9 +322,6 @@ export class HUDSystem {
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(-w, -h/2, w*2, h);
 
-                    // Text Glow
-                    ctx.shadowColor = d.color;
-                    ctx.shadowBlur = 10;
                     ctx.fillStyle = '#fff';
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
@@ -379,7 +332,6 @@ export class HUDSystem {
                     ctx.restore();
 
                 } else {
-                    // --- NORMAL SKILL ---
                     ctx.font = `bold italic ${d.size}px "Segoe UI", sans-serif`;
                     ctx.lineWidth = 3;
                     ctx.lineJoin = 'round';
@@ -390,8 +342,6 @@ export class HUDSystem {
                 }
 
             } else if (d.type === 'CC') {
-                // CC is handled by status label mostly, but this is for immediate feedback
-                // Make it smaller or different to avoid conflict
                 ctx.font = `900 ${d.size}px "Arial Black", sans-serif`; 
                 ctx.strokeStyle = 'rgba(0,0,0,1.0)';
                 ctx.lineWidth = 3;
@@ -410,8 +360,6 @@ export class HUDSystem {
             }
             
             ctx.globalAlpha = 1.0;
-            ctx.shadowBlur = 0;
-            ctx.shadowColor = 'transparent';
         });
     }
 }

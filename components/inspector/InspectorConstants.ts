@@ -74,7 +74,35 @@ export const EFFECT_TYPES = [
 ];
 
 // =========================================================================================
-// 3. ENVIRONMENT & TOOLS
+// 3. AI & BEHAVIOR TREE CONSTANTS (Registry Mappings)
+// Purpose: Definitions for AI construction from JSON data.
+// Dependency: Syncs with `engine/ai/BTRegistry.ts` keys.
+// =========================================================================================
+
+export const AI_CONDITION_OPTIONS = [
+    { value: 'IsDead', label: '死亡狀態 (IsDead)' },
+    { value: 'IsAlive', label: '存活狀態 (IsAlive)' },
+    { value: 'IsStunned', label: '被暈眩 (IsStunned)' },
+    { value: 'IsBanished', label: '被放逐 (IsBanished)' },
+    { value: 'IsSilenced', label: '被沉默 (IsSilenced)' },
+    { value: 'HasTarget', label: '有目標 (HasTarget)' },
+    { value: 'HpBelow', label: 'HP 低於 (HpBelow)', args: ['threshold'] },
+    { value: 'MpAbove', label: 'MP 高於 (MpAbove)', args: ['amount'] },
+    { value: 'SkillReady', label: '技能就緒 (SkillReady)', args: ['slot'] },
+    { value: 'FindOptimalTarget', label: '尋找最佳目標 (FindOptimalTarget)', args: ['slot'] },
+    { value: 'IsTargetInRange', label: '目標在射程內 (IsTargetInRange)', args: ['slot'] }
+];
+
+export const AI_ACTION_OPTIONS = [
+    { value: 'Wait', label: '等待 (Wait)', args: ['status'] },
+    { value: 'Idle', label: '閒置 (Idle)' },
+    { value: 'CastSkill', label: '施放技能 (CastSkill)', args: ['slot'] },
+    { value: 'MoveToOptimal', label: '戰術移動 (MoveToOptimal)', args: ['slot'] },
+    { value: 'ChaseTarget', label: '追擊目標 (ChaseTarget)', args: ['slot'] }
+];
+
+// =========================================================================================
+// 4. ENVIRONMENT & TOOLS
 // Purpose: Configuration for Map Editor interactions.
 // Dependency: Syncs with `SCENE_DB` and `OBSTACLE_DB`.
 // =========================================================================================
@@ -99,7 +127,7 @@ export const TOOL_MAP: Record<ToolType, string> = {
 };
 
 // =========================================================================================
-// 4. FIELD DEFINITIONS (For Inspector Forms)
+// 5. FIELD DEFINITIONS (For Inspector Forms)
 // Purpose: metadata for generating the Skill DB Edit Form.
 // =========================================================================================
 
@@ -195,7 +223,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
 ];
 
 // =========================================================================================
-// 5. HELPER FUNCTIONS (Safe Accessors)
+// 6. HELPER FUNCTIONS (Safe Accessors)
 // Purpose: Utility functions used by React components to render labels/colors safely.
 // =========================================================================================
 

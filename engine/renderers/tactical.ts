@@ -1,18 +1,19 @@
 
 import { Agent, GameEngine } from "../game";
-import { Camera } from "../renderer"; // Circular dependency? Camera interface should ideally be shared
+import { Camera } from "../renderer"; 
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
-import { Team } from "../../types";
+import { Team, Role } from "../../types";
+import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
 
-// Re-define Camera interface locally or import if exported from types
-// Assuming it was exported from renderer.ts, we should use that or move Camera to types.
-// For now, let's redefine locally to match usage if not easily accessible
 export interface RenderCamera {
     x: number;
     y: number;
     zoom: number;
 }
+
+const MAX_UNIT_SIZE_RATIO = 0.85; 
+const UNIT_REFERENCE_HEIGHT = 100; 
 
 export class TacticalRenderer {
     // Hologram Glitch State
@@ -31,6 +32,85 @@ export class TacticalRenderer {
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number) {
         ctx.save();
         
+        // A. Selection Bracket (Moved from UnitRenderSystem for crispness)
+        if (highlight && highlight.hp > 0) {
+            const hH = grid.getTerrainHeight(highlight.q, highlight.r, engine);
+            const visualY = highlight.py - hH; // Ground
+            
+            // Calculate Scale Factor (Same logic as UnitRenderSystem)
+            const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
+            let roleScaleMod = 1.0;
+            switch(highlight.role) {
+                case Role.TANK: roleScaleMod = 1.25; break; 
+                case Role.WARRIOR: roleScaleMod = 1.1; break; 
+                case Role.RANGER: roleScaleMod = 0.9; break; 
+                case Role.MAGE: roleScaleMod = 0.9; break; 
+                case Role.SUPPORT: roleScaleMod = 0.95; break;
+            }
+            const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
+
+            ctx.save();
+            ctx.translate(highlight.px, visualY);
+            ctx.scale(scaleFactor, scaleFactor);
+            
+            // Move up to "center" of unit height for bracket
+            const centerHeight = 50;
+            ctx.translate(0, -centerHeight); 
+
+            // 1. Rotating Brackets (Reticle)
+            const bracketSize = 60;
+            ctx.rotate(globalTime * 0.5);
+            ctx.lineWidth = 3 / scaleFactor; // Compensate scale
+            ctx.strokeStyle = '#22d3ee'; // Bright Cyan
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 10;
+            
+            const cornerLen = Math.PI / 3;
+            for(let i=0; i<4; i++) {
+                ctx.beginPath();
+                ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
+                ctx.stroke();
+            }
+
+            // 2. Counter-Rotating Inner Ring
+            ctx.rotate(-globalTime * 1.5);
+            ctx.lineWidth = 1 / scaleFactor;
+            ctx.setLineDash([5, 5]);
+            ctx.beginPath();
+            ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 3. Floating Arrow (Bounce) - Needs to be un-rotated
+            ctx.restore(); // Back to Ground
+            
+            ctx.save();
+            ctx.translate(highlight.px, visualY);
+            ctx.scale(scaleFactor, scaleFactor);
+            
+            const bounce = Math.sin(globalTime * 8) * 8;
+            const arrowHeight = 110;
+            ctx.translate(0, -arrowHeight + bounce);
+            
+            ctx.fillStyle = '#22d3ee';
+            ctx.shadowColor = '#06b6d4';
+            ctx.shadowBlur = 15;
+            
+            // Arrow Down Shape
+            ctx.beginPath();
+            ctx.moveTo(-10, -15); 
+            ctx.lineTo(10, -15);
+            ctx.lineTo(0, 5);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Glow Dot
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.arc(0, -22, 3, 0, Math.PI*2); ctx.fill();
+            
+            ctx.restore();
+        }
+
         // B. Selected Agent Details (Path & Targets)
         if (highlight && highlight.hp > 0) {
             const hH = grid.getTerrainHeight(highlight.q, highlight.r, engine);

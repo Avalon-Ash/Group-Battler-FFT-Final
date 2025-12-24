@@ -267,65 +267,8 @@ export class UnitRenderSystem {
 
         ctx.restore(); // Undo Body Transform
 
-        // --- 5. TACTICAL SELECTION (DRAWN IN WORLD SPACE ON TOP) ---
-        // Moved here to ensure it is not affected by body scaling/rotation, but shares position
-        if (isSelected && !isSilhouette) {
-            ctx.save();
-            // We are at Ground Level (drawX, drawY). Move up to "center" of unit height for bracket
-            const centerHeight = 50 * scaleFactor;
-            ctx.translate(0, -centerHeight); 
-
-            // A. Rotating Brackets (Reticle)
-            const bracketSize = 60 * scaleFactor;
-            ctx.rotate(globalTime * 0.5);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#22d3ee'; // Bright Cyan
-            ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 10;
-            
-            // Draw 4 corners
-            const cornerLen = Math.PI / 3;
-            for(let i=0; i<4; i++) {
-                ctx.beginPath();
-                ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
-                ctx.stroke();
-            }
-
-            // B. Counter-Rotating Inner Ring
-            ctx.rotate(-globalTime * 1.5);
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.restore(); // Back to Ground
-
-            // C. Floating Arrow (Bounce)
-            ctx.save();
-            const bounce = Math.sin(globalTime * 8) * 8;
-            const arrowHeight = 110 * scaleFactor;
-            ctx.translate(0, -arrowHeight + bounce);
-            
-            ctx.fillStyle = '#22d3ee';
-            ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 15;
-            
-            // Arrow Down Shape
-            ctx.beginPath();
-            ctx.moveTo(-10, -15); 
-            ctx.lineTo(10, -15);
-            ctx.lineTo(0, 5);
-            ctx.closePath();
-            ctx.fill();
-            
-            // Glow Dot
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(0, -22, 3, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-        }
+        // --- SELECTION BRACKET REMOVED FROM HERE ---
+        // Moved to TacticalRenderer for clean Overlay drawing
 
         // Spawn Role Icon
         if (agent.spawnTimer > 0 && !isSilhouette) {
