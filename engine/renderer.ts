@@ -12,7 +12,7 @@ import { HUDSystem } from "./systems/hud";
 import { CameraSystem, Camera } from "./systems/CameraSystem";
 import { VisualEventListener } from "./systems/VisualEventListener";
 
-// NEW Renderers & Pool
+// Renderers & Pool
 import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
 import { RenderList, RenderOpType } from "./renderers/RenderList";
@@ -21,8 +21,7 @@ import { TerrainRenderer } from "./renderers/grid/TerrainRenderer";
 import { GridOverlays } from "./renderers/grid/GridOverlays";
 import { AssetManager } from "./assets";
 import { ParticleRenderer } from "./systems/vfx/renderers/ParticleRenderer";
-import { Vector } from "./utils";
-import { isChaosStyle } from "./systems/vfx/utils";
+import { PostProcessor } from "./renderers/PostProcessor"; 
 
 const OBSTACLE_HALF_WIDTH = 40;
 
@@ -42,6 +41,7 @@ export class GameRenderer {
     
     private backgroundRenderer: BackgroundRenderer;
     private tacticalRenderer: TacticalRenderer;
+    private postProcessor: PostProcessor;
     
     // Memory Pool
     private renderList: RenderList;
@@ -59,6 +59,7 @@ export class GameRenderer {
         this.eventListener = new VisualEventListener();
         this.backgroundRenderer = new BackgroundRenderer();
         this.tacticalRenderer = new TacticalRenderer();
+        this.postProcessor = new PostProcessor();
         this.renderList = new RenderList();
     }
 
@@ -73,8 +74,18 @@ export class GameRenderer {
         return this.grid.getTerrainHeight(q, r, engine);
     }
 
-    public getHexAtScreenPoint(mouseX: number, mouseY: number, camera: Camera, engine: GameEngine): Hex | null {
-        return this.grid.getHexAtScreenPoint(mouseX, mouseY, camera, engine);
+    // UPDATED: Now performs proper Screen->World transform taking center pivot into account
+    public getHexAtScreenPoint(mouseX: number, mouseY: number, width: number, height: number, camera: Camera, engine: GameEngine): Hex | null {
+        // Center Pivot Logic (Matching ApplyTransform)
+        // Screen = (World - Cam) * Zoom + Center
+        // World = (Screen - Center) / Zoom + Cam
+        const cx = width / 2;
+        const cy = height / 2;
+        
+        const wx = (mouseX - cx) / camera.zoom + camera.x;
+        const wy = (mouseY - cy) / camera.zoom + camera.y;
+        
+        return this.grid.getHexAtWorldPoint(wx, wy, engine);
     }
 
     // --- Update Loop ---
@@ -102,6 +113,18 @@ export class GameRenderer {
             this.grid, 
             this.camera
         );
+        
+        // Trigger Soft Camera Focus for Ultimates
+        events.forEach(e => {
+            if (e.type === 'CAST_START' && e.skill?.tag === 'ULT') {
+                const target = engine.agents.find(a => a.id === e.targetId);
+                if (target) {
+                    this.camera.setInterestPoint(target.px, target.py, 2.5);
+                } else if (e.pos) {
+                    this.camera.setInterestPoint(e.pos.x, e.pos.y, 2.5);
+                }
+            }
+        });
     }
 
     // --- Main Rendering Loop ---
@@ -115,7 +138,6 @@ export class GameRenderer {
         hoveredHex: Hex | null, 
         hoveredSkill: Skill | null
     ): void {
-        // High-DPI Handling
         const physicalWidth = ctx.canvas.width;
         const physicalHeight = ctx.canvas.height;
         
@@ -139,11 +161,11 @@ export class GameRenderer {
 
         // 4. Camera Transform
         ctx.save();
-        this.camera.sync(camera);
+        // Pass mapConfig AND mapKeys to calculate correct center
+        this.camera.sync(camera, engine.mapConfig, engine.mapKeys); 
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
 
         // 5. MAIN PASS: Collect and Sort Renderables
-        // Reset pool
         this.renderList.reset();
         
         const terrainHeightFunc = (q: number, r: number) => this.grid.getTerrainHeight(q, r, engine);
@@ -185,7 +207,10 @@ export class GameRenderer {
             
             switch (op.type) {
                 case RenderOpType.TERRAIN:
-                    TerrainRenderer.drawBlockGeometry(ctx, op.tx, op.ty, op.tsize, op.th, op.ttheme);
+                    // Pass globalTime to TerrainRenderer for animations
+                    TerrainRenderer.drawBlockGeometry(
+                        ctx, op.tx, op.ty, op.tsize, op.th, op.ttheme, op.ttype, this.globalTime
+                    );
                     TerrainRenderer.drawTerrainDetail(ctx, op.tx, op.ty - op.th, op.tq, op.tr, op.ttype, op.tdetail);
                     GridOverlays.drawOverlays(
                         ctx, op.tx, op.ty - op.th, op.tsize,
@@ -219,22 +244,8 @@ export class GameRenderer {
                     
                 case RenderOpType.VFX:
                     if (op.particle) {
-                        // Temp modification of particle state for drawing to match visual offset
-                        // We must be careful not to mutate physics state
-                        // The particle renderer expects `p.x` `p.y` to be center. 
-                        // Our op.tx/ty are already the visual coordinates.
-                        // We create a proxy object or just translate context
-                        // ParticleRenderer.drawSingleParticle expects the object to have x,y.
-                        // Let's modify the context to be at op.tx, op.ty and tell renderer we are at 0,0
-                        
-                        // Hack: Modifying particle temporarily is dangerous if shared
-                        // Instead, ParticleRenderer should accept x,y override?
-                        // Let's rely on the context translation in ParticleRenderer which uses p.x/p.y
-                        // We will trick it by setting p.x/p.y to 0 and translating context ourselves.
-                        
                         ctx.save();
                         ctx.translate(op.tx, op.ty); // Visual position
-                        // Shadow needs to know 'z' (height from ground). passed in op.th
                         const pProxy = op.particle;
                         const originalX = pProxy.x; 
                         const originalY = pProxy.y;
@@ -268,28 +279,35 @@ export class GameRenderer {
             ctx.restore();
         }
 
-        // 7. Tactical Overlay Lines
-        this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
-
-        // 8. Top VFX (Particles above everything)
+        // 7. Top VFX (Particles above everything, e.g. Weather or High flying magic)
+        // Kept before Post-Process to allow them to glow/bloom properly.
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
+
+        // --- POST PROCESSING BARRIER ---
+        // Everything drawn so far (Scene) will be processed.
+        ctx.restore(); // Exit Camera Space
+        
+        this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.camera.getTrauma());
+        
+        ctx.save(); // Prepare for UI overlays (Screen Space or World Space projection)
+        
+        // RE-APPLY CAMERA TRANSFORM for World-Space UI (Tactical Lines, HUD Bars)
+        this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
+
+        // 8. Tactical Overlay Lines (Clean lines, no bloom/ghosting)
+        this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
 
         // 9. HUD (Health bars, floating text)
         this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig);
 
+        ctx.restore(); // Exit Camera Space
+
         // 10. Holographic Director HUD (Screen Space)
         if (engine.directorTargetId) {
-            ctx.restore(); // Exit Camera Space
             this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, this.globalTime);
-            ctx.save(); // Dummy save to match restore below
-        } else {
-            ctx.restore();
-            ctx.save();
-        }
+        } 
 
-        // 11. Post Processing & Debug
-        ctx.restore(); 
-        this.camera.applyPostProcessing(ctx, logicalWidth, logicalHeight);
+        // 11. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
     }
 
@@ -300,14 +318,6 @@ export class GameRenderer {
             ctx.save();
             if (op.pSkillVis === 'ARROW') {
                 ctx.beginPath();
-                const tail = p.trail[0];
-                // Recalculate tail pos visual? Too expensive.
-                // Simplified trail for optimization: Line from start visual to head visual? 
-                // No, physical trails are nicer.
-                // We'll skip complex trails in the hot loop optimization for now or implement proper trail op.
-                // Fallback: simple line
-                ctx.moveTo(p.startX, p.startY); // This is wrong visually (no height)
-                // Let's skip trail for this iteration of refactor to ensure stability
             }
             ctx.restore();
         }

@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role, Skill } from '../types';
@@ -53,32 +54,48 @@ export const useGameInput = (props: GameInputProps) => {
     // --- 1. HELPERS: Coordinate Mapping & Hit Testing ---
 
     const getHexFromCoords = (sx: number, sy: number) => {
-        const hex = rendererRef.current.getHexAtScreenPoint(sx, sy, cameraRef.current, engine);
-        if (hex) return hex;
-        return HexUtils.fromPx(
-            sx / cameraRef.current.zoom + cameraRef.current.x,
-            sy / cameraRef.current.zoom + cameraRef.current.y,
-            engine.mapConfig
-        );
+        const rect = canvasRef.current!.getBoundingClientRect();
+        return rendererRef.current.getHexAtScreenPoint(sx, sy, rect.width, rect.height, cameraRef.current, engine);
     };
 
     const getWorldPos = (sx: number, sy: number) => {
-        const wx = sx / cameraRef.current.zoom + cameraRef.current.x;
-        const hex = rendererRef.current.getHexAtScreenPoint(sx, sy, cameraRef.current, engine);
-        let h = BLOCK_HEIGHT + 6;
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const { x: camX, y: camY, zoom } = cameraRef.current;
+        
+        // Correct Screen->World transform
+        const wx = (sx - cx) / zoom + camX;
+        
+        // For Y, we need to account for terrain height if possible, but for dragging objects 
+        // we essentially want the ground plane projection.
+        // We do a best guess by checking what hex is under cursor.
+        const hex = getHexFromCoords(sx, sy);
+        let h = 0;
         if (hex) h = rendererRef.current.getTerrainHeight(hex.q, hex.r, engine);
-        const wy = sy / cameraRef.current.zoom + cameraRef.current.y + h;
-        return { x: wx, y: wy };
+        
+        // World Y (Visual top)
+        const visualWy = (sy - cy) / zoom + camY;
+        
+        // The object's "ground" y is lower than visual y by height
+        return { x: wx, y: visualWy + h };
     };
 
     const getHitAgent = (sx: number, sy: number) => {
-        const wx = sx / cameraRef.current.zoom + cameraRef.current.x;
-        const wy = sy / cameraRef.current.zoom + cameraRef.current.y;
+        const rect = canvasRef.current!.getBoundingClientRect();
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const { x: camX, y: camY, zoom } = cameraRef.current;
+
+        // Correct World Coordinates of the mouse click
+        const wx = (sx - cx) / zoom + camX;
+        const wy = (sy - cy) / zoom + camY;
         
         // Painter's Algorithm Hit Test (Front units first)
         const candidates = engine.agents.map(a => {
             if (a.hp <= 0 && a.fullyDead) return null;
             const h = rendererRef.current.getTerrainHeight(a.q, a.r, engine);
+            // Visual top of unit (approx)
             const visualY = a.py - h - 40; 
             return { agent: a, visualY, dist: Math.abs(wy - visualY) + Math.abs(wx - a.px) };
         }).filter(Boolean) as { agent: Agent, visualY: number }[];
@@ -88,6 +105,7 @@ export const useGameInput = (props: GameInputProps) => {
         for (const item of candidates) {
             const dx = Math.abs(wx - item.agent.px);
             const dy = wy - item.visualY; 
+            // Hit box check (approx 70x80 box centered on visual center)
             if (dx < 35 && dy > -35 && dy < 40) return item.agent;
         }
         return null;
@@ -160,14 +178,17 @@ export const useGameInput = (props: GameInputProps) => {
         // 2. Editing Logic
         const { tool, winner } = configRef.current;
         const isEditing = !engine.isRunning && winner === null;
+        
+        // Safe hex check
         const h = getHexFromCoords(sx, sy);
+        const hasHex = h && engine.isValid(h.q, h.r);
 
-        if (isEditing) {
+        if (isEditing && hasHex) {
             // Hit Obstacle?
-            if (tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
-                const obsType = engine.obstacles.get(HexUtils.key(h));
+            if (tool === ToolType.SELECT && engine.hasObstacle(h!.q, h!.r)) {
+                const obsType = engine.obstacles.get(HexUtils.key(h!));
                 if (obsType) {
-                    draggedObstacleRef.current = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
+                    draggedObstacleRef.current = { type: obsType, originQ: h!.q, originR: h!.r, px: 0, py: 0 };
                     interactionMode.current = 'DOWN';
                     return;
                 }
@@ -175,10 +196,8 @@ export const useGameInput = (props: GameInputProps) => {
             // Paint Tool?
             if (tool !== ToolType.SELECT) {
                 // Immediate paint on down for better feel
-                if (engine.isValid(h.q, h.r)) {
-                    executePaintAction(h);
-                    interactionMode.current = 'PAINT';
-                }
+                executePaintAction(h!);
+                interactionMode.current = 'PAINT';
                 return;
             }
         }
@@ -189,7 +208,7 @@ export const useGameInput = (props: GameInputProps) => {
     const handleInputMove = (sx: number, sy: number) => {
         const cvs = canvasRef.current;
         const h = getHexFromCoords(sx, sy);
-        hoveredHexRef.current = engine.isValid(h.q, h.r) ? h : null;
+        hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
 
         // Cursor & Hover Logic
         if (cvs) {
@@ -217,7 +236,7 @@ export const useGameInput = (props: GameInputProps) => {
             return;
         }
         if (interactionMode.current === 'PAINT') {
-            if (engine.isValid(h.q, h.r)) executePaintAction(h);
+            if (h && engine.isValid(h.q, h.r)) executePaintAction(h);
             return;
         }
         if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
@@ -274,7 +293,7 @@ export const useGameInput = (props: GameInputProps) => {
                 } else {
                     onSelect(pressedAgentRef.current);
                 }
-            } else if (isEditing && engine.hasObstacle(h.q, h.r) && tool === ToolType.DELETE) {
+            } else if (isEditing && h && engine.hasObstacle(h.q, h.r) && tool === ToolType.DELETE) {
                 engine.removeObstacle(h.q, h.r);
             } else if (!pressedAgentRef.current) {
                 onSelect(null);
@@ -285,9 +304,9 @@ export const useGameInput = (props: GameInputProps) => {
         if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const agent = pressedAgentRef.current;
             agent.physics.z = 0;
-            const valid = engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, agent.id, agent.movementType);
+            const valid = h && engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, agent.id, agent.movementType);
             
-            if (valid) {
+            if (valid && h) {
                 engine.updateAgentPosition(agent, h.q, h.r);
                 const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                 agent.px = p.x; agent.py = p.y;
@@ -301,8 +320,8 @@ export const useGameInput = (props: GameInputProps) => {
 
         if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
             const { type, originQ, originR } = draggedObstacleRef.current;
-            const valid = engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r);
-            if (valid) engine.setObstacle(h.q, h.r, type);
+            const valid = h && engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r);
+            if (valid && h) engine.setObstacle(h.q, h.r, type);
             else engine.setObstacle(originQ, originR, type); // Revert
         }
 

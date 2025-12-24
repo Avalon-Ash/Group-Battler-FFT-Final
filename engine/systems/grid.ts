@@ -49,12 +49,10 @@ export class GridSystem {
         });
     }
 
-    getHexAtScreenPoint(mx: number, my: number, camera: {x: number, y: number, zoom: number}, engine: GameEngine): Hex | null {
+    // RENAMED: Now expects World Coordinates (wx, wy)
+    getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine): Hex | null {
         this.ensureCache(engine);
         
-        const wx = mx / camera.zoom + camera.x;
-        const wy = my / camera.zoom + camera.y;
-
         const candidates: CachedTile[] = [];
         const limit = HEX_SIZE * 2; 
         

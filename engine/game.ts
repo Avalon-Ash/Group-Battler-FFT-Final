@@ -16,6 +16,9 @@ import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
+import { EventBus } from "./events/EventBus";
+// Import Renderer Type ONLY (to avoid circular value dependency issue if possible, though strict loop might need loose coupling)
+import type { GameRenderer } from "./renderer";
 
 // Re-export for compatibility
 export { Agent, SpecialVisualStatus };
@@ -32,6 +35,12 @@ export class GameEngine {
 
     public events: GameEvent[] = [];
     
+    // NEW: Central Event Bus
+    public bus: EventBus = new EventBus();
+    
+    // Weak reference to renderer for camera control
+    public renderer?: GameRenderer;
+    
     public isRunning: boolean = false;
     public timeScale: number = 1.0;
     public battleTime: number = 0;
@@ -43,8 +52,6 @@ export class GameEngine {
     public logs: LogEntry[] = [];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
-    public onWin?: (team: Team) => void;
-
     // AI Director State
     public directorTargetId: string | null = null;
     private directorTimer: number = 0;
@@ -74,13 +81,11 @@ export class GameEngine {
     
     addAgent(team: Team, q: number, r: number, hpOverride?: number) { return this.agentManager.addAgent(this, team, q, r, hpOverride); }
     
-    // Updated to support Paint Mode
     setObstacle(q: number, r: number, type: string) { this.map.setObstacle(q, r, type); }
     removeObstacle(q: number, r: number) { this.map.removeObstacle(q, r); }
     toggleObstacle(q: number, r: number, type: string = 'WALL') { this.map.toggleObstacle(q, r, this, type); }
     
     isValid(q: number, r: number) { return this.map.isValid(q, r); }
-    // Updated to support flying logic check
     isBlocked(q: number, r: number, ignoreId?: string, movementType: MovementType = MovementType.GROUND) { return this.map.isBlocked(q, r, this, ignoreId, movementType); }
     isValidHash(h: number) { return this.map.isValidHash(h); }
     hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
@@ -117,6 +122,7 @@ export class GameEngine {
             this.battleTime = 0;
             this.logs = [];
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
+            this.bus.emit('GAME_START', {});
         }
         
         this.agentMap.clear();
@@ -126,7 +132,7 @@ export class GameEngine {
                 if (!id) return null;
                 return this.skillDB.find(s => s.id === id) || null;
             });
-            a.bt = this.ai.buildAI(a, this); // Use AI System
+            a.bt = this.ai.buildAI(a, this); // Use New Data-Driven AI System
             a.animState = AnimState.IDLE;
             if (a.hp > 0) {
                 this.agentMap.set(HexUtils.hash(a.q, a.r), a);
@@ -144,7 +150,6 @@ export class GameEngine {
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
             
-            // Re-link skills immediately so Tooltips/UI work while paused
             a.skills = a.skillIds.map(id => {
                 if (!id) return null;
                 return this.skillDB.find(s => s.id === id) || null;
@@ -153,13 +158,11 @@ export class GameEngine {
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
         
-        this.combat.projectiles = []; // Clear projectiles via combat system
-        this.events = []; // Clear pending events
+        this.combat.projectiles = []; 
+        this.events = []; 
         this.battleTime = 0;
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
-        
-        // BUG FIX: Do NOT auto-play. Wait for user to click play.
-        // this.play(); 
+        this.bus.emit('GAME_RESET', {});
     }
 
     clear(keepScene: boolean = false) {
@@ -168,11 +171,12 @@ export class GameEngine {
         this.agentMap.clear();
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
-        this.combat.projectiles = []; // Clear projectiles via combat system
+        this.combat.projectiles = [];
         this.logs = [];
         this.directorTargetId = null;
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 
+        this.bus.emit('GAME_CLEAR', {});
     }
 
     // --- Main Game Loop ---
@@ -180,23 +184,27 @@ export class GameEngine {
     tick(dt: number) {
         if (!this.isRunning) return;
         
-        // Memory Optimization: Reuse array instead of reallocation
         this.events.length = 0;
         
-        this.updateDirector(dt); // AI Director Logic
+        this.updateDirector(dt);
 
         // Win Condition Check
         let blue = 0, red = 0;
         for (const a of this.agents) {
             if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
         }
-        if (blue === 0 && red > 0) { this.stop(); this.onWin?.(Team.RED); }
-        else if (red === 0 && blue > 0) { this.stop(); this.onWin?.(Team.BLUE); }
+        if (blue === 0 && red > 0) { 
+            this.stop(); 
+            this.bus.emit('GAME_OVER', { winner: Team.RED });
+        }
+        else if (red === 0 && blue > 0) { 
+            this.stop(); 
+            this.bus.emit('GAME_OVER', { winner: Team.BLUE });
+        }
 
         for (const a of this.agents) {
             if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
             
-            // Physics delegated to MovementSystem
             this.movement.updatePhysics(a, dt, this);
 
             if (a.hp <= 0) {
@@ -204,15 +212,12 @@ export class GameEngine {
                 continue;
             }
 
-            // --- DELEGATED SYSTEMS ---
             this.status.update(a, dt, this);
             
-            // Movement Update
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
 
-            // AI Update
             if (a.bt) {
                 const resetTree = (node: BTNode) => { 
                     node.status = null; 
@@ -232,14 +237,12 @@ export class GameEngine {
     private updateDirector(dt: number) {
         this.directorTimer -= dt;
         
-        // Ensure current target is still valid
         const current = this.agents.find(a => a.id === this.directorTargetId);
         if (!current || current.hp <= 0) {
-            this.directorTimer = -1; // Force switch
+            this.directorTimer = -1;
         }
 
         if (this.directorTimer <= 0) {
-            // Pick new target logic (simplified for brevity, logic remains same)
             const alive = this.agents.filter(a => a.hp > 0);
             if (alive.length > 0) {
                 const ultCasters = alive.filter(a => a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === 'ULT');
@@ -282,7 +285,6 @@ export class GameEngine {
         return NodeState.RUNNING;
     }
     
-    // Rich Logging Overhaul
     log(agent: Agent | null, typeOrAction: LogActionType | string, actionNameOrTarget: string | null, detailOrTargetInfo: string, legacyDetail?: string) {
         const time = this.battleTime.toFixed(1);
         
@@ -292,8 +294,6 @@ export class GameEngine {
         let detail = '';
         let color = LOG_COLORS.SYSTEM;
 
-        // Handle Legacy Calls (from StatusSystem, AgentManager, etc.)
-        // Old: log(agent, actionString, targetId, detailString)
         const isLegacy = !this.isLogActionType(typeOrAction);
 
         if (isLegacy) {
@@ -302,15 +302,12 @@ export class GameEngine {
             targetInfo = actionNameOrTarget || '';
             detail = detailOrTargetInfo;
 
-            // Map Legacy strings to Types
             if (rawAction === '死亡') { actionType = 'DEATH'; color = LOG_COLORS.DEATH; }
             else if (rawAction === '放逐結束') { actionType = 'CC'; color = LOG_COLORS.CC; }
             else if (rawAction === '中斷') { actionType = 'CC'; color = LOG_COLORS.CC; }
             else if (rawAction === '命中') { actionType = 'HIT'; color = LOG_COLORS.HIT; }
             else { actionType = 'SYSTEM'; }
         } else {
-            // New Rich Signature
-            // log(agent, type, actionName, targetInfo, detail)
             actionType = typeOrAction as LogActionType;
             actionName = actionNameOrTarget || '';
             targetInfo = detailOrTargetInfo || '';
@@ -331,7 +328,7 @@ export class GameEngine {
         const entry: LogEntry = {
             id: Math.random().toString(36),
             time,
-            turn: Math.floor(this.battleTime * 10), // Tick
+            turn: Math.floor(this.battleTime * 10),
             agentId: agent?.id || 'SYSTEM',
             team: agent?.team,
             location: agent ? `(${agent.q},${agent.r})` : 'global',
@@ -340,7 +337,6 @@ export class GameEngine {
             targetInfo: targetInfo,
             detail: detail,
             visualColor: color,
-            // Legacy compat
             action: actionName,
             target: targetInfo,
             loc: agent ? `@(${agent.q},${agent.r})` : ''

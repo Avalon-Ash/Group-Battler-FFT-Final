@@ -32,6 +32,52 @@ export const useGameApp = () => {
     const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
     const [showFactionWarning, setShowFactionWarning] = useState(false);
 
+    // --- EVENT LISTENER SETUP ---
+    // This allows the engine to drive state changes without prop drilling
+    useEffect(() => {
+        const engine = engineRef.current;
+        
+        const handleGameOver = (data: { winner: Team }) => {
+            setWinner(data.winner);
+            // If in showcase, auto-restart flow logic is moved here or kept in loop?
+            // Actually, hooks can read state better.
+            
+            // Logic moved from old onWin prop:
+            if (engine.isRunning) engine.stop(); // Ensure stopped
+            
+            // Note: We access current value of isShowcaseMode via ref if needed, or rely on state updates
+            // Since this effect closes over initial state, we need to be careful.
+            // Better to trigger visual updates here.
+            setIsPlaying(false);
+        };
+
+        engine.bus.on('GAME_OVER', handleGameOver);
+        
+        return () => {
+            engine.bus.off('GAME_OVER', handleGameOver);
+        };
+    }, []);
+
+    // Showcase Auto-Loop Logic (Reactive to winner state)
+    useEffect(() => {
+        if (isShowcaseMode && winner !== null) {
+            const timer = setTimeout(() => {
+                setTransitionPhase('OUT');
+                engineRef.current.agents = [];
+                engineRef.current.combat.projectiles = [];
+                setTimeout(() => {
+                    setupShowcaseMap(); 
+                    setTransitionPhase('IN'); 
+                    setTimeout(() => {
+                        setTransitionPhase('IDLE');
+                        spawnShowcaseUnits(); 
+                    }, 1200);
+                }, 1500);
+            }, 2000);
+            return () => clearTimeout(timer);
+        }
+    }, [winner, isShowcaseMode]);
+
     // --- LOGIC ---
 
     const setupShowcaseMap = useCallback(() => {
@@ -192,26 +238,7 @@ export const useGameApp = () => {
         }
     }, [isPlaying, winner]);
 
-    const onWin = (team: Team) => {
-        setWinner(team);
-        if (isShowcaseMode) {
-            setTimeout(() => {
-                setTransitionPhase('OUT');
-                engineRef.current.agents = [];
-                engineRef.current.combat.projectiles = [];
-                setTimeout(() => {
-                    setupShowcaseMap(); 
-                    setTransitionPhase('IN'); 
-                    setTimeout(() => {
-                        setTransitionPhase('IDLE');
-                        spawnShowcaseUnits(); 
-                    }, 1200);
-                }, 1500);
-            }, 2000);
-        } else {
-            setIsPlaying(false);
-        }
-    };
+    // onWin is now handled via EventBus listener in useEffect
 
     const handleSelectAgent = (a: Agent | null) => {
         setSelectedAgent(a);
@@ -239,7 +266,7 @@ export const useGameApp = () => {
             handleRandomBattlefield,
             handleReset,
             togglePlay,
-            onWin,
+            onWin: (team: Team) => { engineRef.current.bus.emit('GAME_OVER', {winner: team}) }, // Manual trigger shim
             handleSelectAgent,
             startShowcaseMatch,
             downloadSpec: DesignExporter.downloadSpec,

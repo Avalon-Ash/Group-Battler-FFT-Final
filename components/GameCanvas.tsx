@@ -21,7 +21,7 @@ interface GameCanvasProps {
     spawnMode: 'RANDOM' | 'DRAFT';
     draftRole: Role; 
     onSelect: (a: Agent | null) => void;
-    onWin: (team: Team) => void;
+    // onWin removed - handled by EventBus in parent
     winner: Team | null;
     rematch: () => void;
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
@@ -30,7 +30,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, onSelect, onWin, winner, rematch, transitionPhase 
+        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, transitionPhase 
     } = props;
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,6 +44,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const rendererRef = useRef<GameRenderer | null>(null);
     if (rendererRef.current === null) {
         rendererRef.current = new GameRenderer();
+        // Link renderer to engine for camera control
+        engine.renderer = rendererRef.current;
     }
 
     // 1. Camera System
@@ -109,7 +111,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             
             ctx.translate(logicalW / 2, logicalH / 2);
             ctx.scale(camZoom, camZoom);
-            ctx.translate(-x - logicalW / 2 / camZoom, -y - logicalH / 2 / camZoom);
+            ctx.translate(-x, -y); // Use simpler translation matching CameraSystem
             
             const sprite = SpriteManager.getObstacleSprite(type);
             const liftOffset = 40; 
@@ -152,11 +154,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             return () => clearTimeout(t);
         }
     }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
-
-    // Win Callback Sync
-    useEffect(() => {
-        engine.onWin = onWin;
-    }, [engine, onWin]);
 
     return (
         <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">

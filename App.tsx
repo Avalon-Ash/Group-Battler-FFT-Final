@@ -104,7 +104,7 @@ function App() {
                 spawnMode={state.spawnMode}
                 draftRole={state.draftRole}
                 onSelect={actions.handleSelectAgent} 
-                onWin={actions.onWin}
+                // onWin removed - handled via Bus
                 winner={state.winner}
                 rematch={actions.rematch}
                 transitionPhase={state.transitionPhase}
