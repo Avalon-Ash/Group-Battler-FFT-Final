@@ -15,7 +15,7 @@ import { VisualEventListener } from "./systems/VisualEventListener";
 // Renderers & Pool
 import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
-import { RenderList, RenderOpType } from "./renderers/RenderList";
+import { RenderList, RenderOpType, RenderOp } from "./renderers/RenderList";
 import { SpriteManager } from "./sprites";
 import { TerrainRenderer } from "./renderers/grid/TerrainRenderer";
 import { GridOverlays } from "./renderers/grid/GridOverlays";
@@ -311,32 +311,77 @@ export class GameRenderer {
         this.tacticalRenderer.drawDebug(ctx, fps);
     }
 
-    private drawProjectile(ctx: CanvasRenderingContext2D, op: any) {
+    private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
         // --- 1. Draw Trail ---
-        const p = op.proj;
-        if (p && p.trail.length > 1) {
+        // Using the pre-calculated visual trail points in op.pTrail
+        if (op.pTrail && op.pTrail.length > 1) {
             ctx.save();
-            if (op.pSkillVis === 'ARROW') {
-                ctx.beginPath();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = op.pColor;
+            
+            // Trail Width Logic: Tapering
+            // We iterate through the visual points (Screen Space relative to map origin)
+            // BUT our context is currently translated to the CAMERA transform only.
+            // Wait, RenderOp draw loop does NOT translate to op.tx, op.ty for Projectiles?
+            // The switch case calls `drawProjectile(ctx, op)` without translation.
+            // Correct.
+            
+            // Draw the line strip
+            ctx.beginPath();
+            
+            const trail = op.pTrail;
+            if (trail.length > 0) {
+                // The first point in trail array is the HEAD (newest)
+                ctx.moveTo(trail[0].x, trail[0].y);
+                for(let i=1; i<trail.length; i++) {
+                    ctx.lineTo(trail[i].x, trail[i].y);
+                }
             }
+            
+            // Style: Fade out
+            const grad = ctx.createLinearGradient(trail[0].x, trail[0].y, trail[trail.length-1].x, trail[trail.length-1].y);
+            grad.addColorStop(0, op.pColor); // Head
+            grad.addColorStop(1, 'rgba(0,0,0,0)'); // Tail
+            
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+            
+            // Inner Core Line
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.6;
+            ctx.stroke();
+            
             ctx.restore();
         }
 
         // --- 2. Draw Shadow ---
-        const altitude = op.pVisShadowY - op.pVisY;
-        if (altitude > 5) {
+        // Simple blob shadow on ground
+        // We use pVisShadowY stored in op
+        const shadowAltitude = op.pVisShadowY - op.pVisY; // Difference between ground and air
+        
+        // Don't draw shadow if too low (to avoid clipping with sprite)
+        // Or if really high, shadow fades
+        if (Math.abs(shadowAltitude) > 5) {
             ctx.save();
             ctx.translate(op.pVisX, op.pVisShadowY);
-            const shadowScale = Math.max(0.2, 1 - altitude/400);
-            ctx.scale(shadowScale, shadowScale);
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.fill();
+            // Scale shadow based on height (higher = smaller/blurrier)
+            const shadowScale = Math.max(0.2, 1 - Math.abs(shadowAltitude)/600);
+            const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/800);
+            
+            ctx.scale(shadowScale, shadowScale * 0.5); // Flattened ellipse
+            ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
+            ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
         // --- 3. Draw Projectile Head ---
         ctx.save();
         ctx.translate(op.pVisX, op.pVisY);
+        
         if (op.pSkillVis === 'BOMB') ctx.rotate(op.pSpin);
         else ctx.rotate(op.pAngle);
         

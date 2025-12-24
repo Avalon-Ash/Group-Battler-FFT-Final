@@ -16,16 +16,18 @@ export const EnvironmentFactory = {
         const style = OBSTACLE_STYLES[styleKey] || OBSTACLE_STYLES['WALL'];
 
         // Common Shadow (Ground Ambient Occlusion) - Cleaner ellipse
-        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.filter = 'blur(4px)';
         ctx.beginPath();
         ctx.ellipse(cx, cy - 2, 28, 14, 0, 0, Math.PI*2);
         ctx.fill();
+        ctx.filter = 'none';
 
         if (styleKey === 'TREE') {
             // --- STYLIZED PINE (Clean Geometric Layers) ---
             
             // Trunk
-            ctx.fillStyle = '#3e2723'; // Dark Wood
+            ctx.fillStyle = '#291815'; // Darker Wood
             ctx.beginPath();
             ctx.moveTo(cx - 6, cy); 
             ctx.lineTo(cx + 6, cy);
@@ -34,32 +36,41 @@ export const EnvironmentFactory = {
             ctx.fill();
 
             const layers = 3;
-            const topY = cy - 90;
+            const topY = cy - 95;
             const bottomY = cy - 20;
             
             for (let i = 0; i < layers; i++) {
                 const ratio = i / layers;
                 const layerY = topY + (bottomY - topY) * ratio;
-                const nextY = topY + (bottomY - topY) * ((i+1)/layers);
-                const spread = 15 + i * 12;
+                // const nextY = topY + (bottomY - topY) * ((i+1)/layers);
+                const spread = 15 + i * 14;
                 
                 const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
-                grad.addColorStop(0, '#4ade80'); // Bright Green Top
-                grad.addColorStop(1, '#14532d'); // Dark Green Bottom
+                grad.addColorStop(0, style.highlight); // Bright Tip
+                grad.addColorStop(0.4, style.main); 
+                grad.addColorStop(1, style.dark); // Dark Bottom
                 
                 ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.moveTo(cx, layerY - 15); // Tip
+                ctx.moveTo(cx, layerY - 18); // Tip
                 // Left Flare
                 ctx.quadraticCurveTo(cx - spread * 0.5, layerY + 5, cx - spread, layerY + 15);
                 // Bottom Curve (Concave up)
                 ctx.quadraticCurveTo(cx, layerY + 10, cx + spread, layerY + 15);
                 // Right Flare
-                ctx.quadraticCurveTo(cx + spread * 0.5, layerY + 5, cx, layerY - 15);
+                ctx.quadraticCurveTo(cx + spread * 0.5, layerY + 5, cx, layerY - 18);
                 ctx.fill();
                 
+                // Edge Highlight (Rim)
+                ctx.strokeStyle = style.light;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(cx, layerY - 18);
+                ctx.lineTo(cx - spread, layerY + 15);
+                ctx.stroke();
+                
                 // Shadow underneath layer
-                ctx.fillStyle = 'rgba(0,0,0,0.2)';
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
                 ctx.beginPath();
                 ctx.moveTo(cx, layerY + 10);
                 ctx.lineTo(cx + spread, layerY + 15);
@@ -82,13 +93,14 @@ export const EnvironmentFactory = {
                 // Facet 2 (Right/Light)
                 const grad = ctx.createLinearGradient(0, -h, 0, 5);
                 grad.addColorStop(0, '#ffffff');
-                grad.addColorStop(1, style.light);
+                grad.addColorStop(0.3, style.light);
+                grad.addColorStop(1, style.main);
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(w, 0); ctx.lineTo(0, 5); ctx.fill();
                 
                 // Rim
-                ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = style.highlight;
+                ctx.lineWidth = 2;
                 ctx.stroke();
                 
                 ctx.restore();
@@ -106,9 +118,9 @@ export const EnvironmentFactory = {
             
             // Main Body Gradient
             const rockGrad = ctx.createLinearGradient(cx - w, topY, cx + w, cy);
-            rockGrad.addColorStop(0, '#52525b');
-            rockGrad.addColorStop(0.4, '#18181b');
-            rockGrad.addColorStop(1, '#09090b');
+            rockGrad.addColorStop(0, style.light);
+            rockGrad.addColorStop(0.4, style.main);
+            rockGrad.addColorStop(1, style.dark);
             ctx.fillStyle = rockGrad;
             
             ctx.beginPath();
@@ -121,7 +133,7 @@ export const EnvironmentFactory = {
             ctx.fill();
             
             // Facet Highlights (Edges)
-            ctx.strokeStyle = '#3f3f46';
+            ctx.strokeStyle = style.light;
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(cx, topY); ctx.lineTo(cx + w, cy - 20);
@@ -130,8 +142,8 @@ export const EnvironmentFactory = {
             ctx.stroke();
             
             // Emissive Veins
-            ctx.strokeStyle = '#ef4444';
-            ctx.shadowColor = '#f87171';
+            ctx.strokeStyle = style.detail;
+            ctx.shadowColor = style.highlight;
             ctx.shadowBlur = 10;
             ctx.lineWidth = 2;
             
@@ -153,7 +165,14 @@ export const EnvironmentFactory = {
                 const nextY = currentY - h;
                 const nextW = currentW * (0.6 + Math.random() * 0.2); // Taper up
                 
-                ctx.fillStyle = i % 2 === 0 ? style.main : style.light;
+                // Gradient for rounded volume
+                const grad = ctx.createLinearGradient(cx - currentW, 0, cx + currentW, 0);
+                const color = i % 2 === 0 ? style.main : style.light;
+                grad.addColorStop(0, style.dark);
+                grad.addColorStop(0.2, color);
+                grad.addColorStop(0.8, color);
+                grad.addColorStop(1, style.dark);
+                ctx.fillStyle = grad;
                 
                 ctx.beginPath();
                 ctx.ellipse(cx, currentY, currentW, 10, 0, 0, Math.PI*2);
@@ -162,10 +181,13 @@ export const EnvironmentFactory = {
                 // Block body
                 ctx.fillRect(cx - nextW, nextY, nextW * 2, currentY - nextY);
                 
-                // Side shading
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                ctx.fillRect(cx, nextY, nextW, currentY - nextY);
-                
+                // Top Highlight Rim
+                ctx.strokeStyle = style.highlight;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.5;
+                ctx.beginPath(); ctx.ellipse(cx, nextY, nextW, 6, 0, 0, Math.PI*2); ctx.stroke();
+                ctx.globalAlpha = 1.0;
+
                 currentY = nextY;
                 currentW = nextW;
             }
@@ -209,7 +231,7 @@ export const EnvironmentFactory = {
             ctx.fill();
             
             // 4. Edges / Outline
-            ctx.strokeStyle = '#334155';
+            ctx.strokeStyle = style.highlight;
             ctx.lineWidth = 1;
             
             ctx.beginPath();
@@ -220,7 +242,7 @@ export const EnvironmentFactory = {
             ctx.stroke();
             
             // Rivet Details
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = style.dark;
             ctx.beginPath(); ctx.arc(cx, topY + 30, 3, 0, Math.PI*2); ctx.fill();
         }
 
@@ -228,40 +250,53 @@ export const EnvironmentFactory = {
     },
 
     generateIceBlock(): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(96, 128);
-        const cx = 48, cy = 110;
+        const width = 96;
+        const height = 128;
+        const { canvas, ctx } = createCanvas(width, height);
+        const cx = width / 2;
+        const cy = height - 20;
         
-        // Crystalline Prism
-        const grad = ctx.createLinearGradient(0, 0, 96, 128);
-        grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-        grad.addColorStop(0.5, 'rgba(125, 211, 252, 0.7)'); 
-        grad.addColorStop(1, 'rgba(3, 105, 161, 0.8)');    
+        // Ice block uses ICE_CRYSTAL theme
+        const style = OBSTACLE_STYLES['ICE_CRYSTAL'] || { 
+            main: '#7dd3fc', light: '#bae6fd', dark: '#0ea5e9', detail: '#e0f2fe', highlight: '#ffffff' 
+        };
+
+        const drawShard = (x: number, y: number, w: number, h: number, angle: number) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            
+            // Left Face
+            ctx.fillStyle = style.dark;
+            ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(-w, 0); ctx.lineTo(0, w/2); ctx.fill();
+
+            // Right Face
+            const grad = ctx.createLinearGradient(0, -h, 0, w/2);
+            grad.addColorStop(0, '#fff');
+            grad.addColorStop(0.4, style.light);
+            grad.addColorStop(1, style.main);
+            ctx.fillStyle = grad;
+            
+            ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(w, 0); ctx.lineTo(0, w/2); ctx.fill();
+            
+            // Highlights
+            ctx.strokeStyle = style.highlight;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            ctx.restore();
+        };
+
+        // Cluster of ice shards
+        drawShard(cx - 20, cy, 15, 60, -0.3);
+        drawShard(cx + 20, cy - 5, 18, 50, 0.3);
+        drawShard(cx, cy + 10, 25, 90, 0); // Main center shard
         
-        ctx.fillStyle = grad;
-        ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-        ctx.lineWidth = 1.5;
-        
+        // Ground ice
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
         ctx.beginPath();
-        ctx.moveTo(cx, cy - 105); // Top Tip
-        ctx.lineTo(cx + 35, cy - 80); // Right Shoulder
-        ctx.lineTo(cx + 30, cy - 5);  // Right Base
-        ctx.lineTo(cx, cy);           // Bottom Center
-        ctx.lineTo(cx - 30, cy - 5);  // Left Base
-        ctx.lineTo(cx - 35, cy - 80); // Left Shoulder
-        ctx.closePath();
+        ctx.ellipse(cx, cy, 30, 10, 0, 0, Math.PI*2);
         ctx.fill();
-        ctx.stroke();
-        
-        // Inner Facets
-        ctx.beginPath(); 
-        ctx.moveTo(cx, cy - 105); ctx.lineTo(cx, cy); // Spine
-        ctx.moveTo(cx - 35, cy - 80); ctx.lineTo(cx, cy - 40); ctx.lineTo(cx + 35, cy - 80); // Cross cut
-        ctx.stroke();
-        
-        // Ground Frost
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.beginPath(); ctx.ellipse(cx, cy, 35, 12, 0, 0, Math.PI*2); ctx.fill();
-        
+
         return canvas;
     }
 };

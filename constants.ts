@@ -20,38 +20,38 @@ export const KILL_STREAK_WINDOW = 12.0; // Seconds allowed between kills to coun
 
 // 1. FACTION THEMES (Used by Renderers)
 export const THEME_IMPERIAL = {
-    primary: '#2563eb',    // Blue-600
-    secondary: '#facc15',  // Yellow-400
-    armorLight: '#f8fafc', // Slate-50
+    primary: '#3b82f6',    // Blue-500 (Brighter)
+    secondary: '#fde047',  // Yellow-300 (Energy)
+    armorLight: '#f1f5f9', // Slate-100
     armorDark: '#1e3a8a',  // Blue-900
     energy: '#60a5fa',     // Blue-400
-    cape: 'rgba(30, 58, 138, 0.8)' // Blue-900 alpha
+    cape: 'rgba(30, 58, 138, 0.9)' // Blue-900 alpha
 };
 
 export const THEME_COVENANT = {
-    primary: '#b91c1c',    // Red-700
-    secondary: '#ef4444',  // Red-500 (Glow)
-    armorDark: '#18181b',  // Zinc-900
+    primary: '#ef4444',    // Red-500
+    secondary: '#f87171',  // Red-400 (Glow)
+    armorDark: '#09090b',  // Zinc-950
     armorBase: '#27272a',  // Zinc-800
     accent: '#7f1d1d',     // Red-900
-    spike: '#27272a'       // Zinc-800
+    spike: '#18181b'       // Zinc-900
 };
 
 // 2. LOG & UI COLORS (Used by GameEngine & Logs)
 export const LOG_COLORS = {
-    MOVE: '#3b82f6',     // Blue
-    CAST: '#f59e0b',     // Amber
-    HIT: '#ef4444',      // Red
-    HEAL: '#22c55e',     // Green
-    DECISION: '#a855f7', // Purple
-    DEATH: '#71717a',    // Zinc
-    CC: '#facc15',       // Yellow
-    SYSTEM: '#94a3b8'    // Slate
+    MOVE: '#38bdf8',     // Sky-400
+    CAST: '#fbbf24',     // Amber-400
+    HIT: '#f87171',      // Red-400
+    HEAL: '#4ade80',     // Green-400
+    DECISION: '#c084fc', // Purple-400
+    DEATH: '#94a3b8',    // Slate-400
+    CC: '#facc15',       // Yellow-400
+    SYSTEM: '#64748b'    // Slate-500
 };
 
 export const PALETTE = {
-    UI_BG: '#0a0a0c', // LoL Client Dark Grey
-    UI_BORDER: '#785a28', // Hextech Gold
+    UI_BG: '#020617', // Slate 950
+    UI_BORDER: '#1e293b', // Slate 800
     SHADOW: 'rgba(0, 0, 0, 0.6)',
     
     // FACTION THEMES (WoW Style)
@@ -84,9 +84,9 @@ export const PALETTE = {
 export const COLORS = {
     [Team.BLUE]: PALETTE.TEAMS[Team.BLUE].main,
     [Team.RED]: PALETTE.TEAMS[Team.RED].main,
-    HP: '#16a34a', // LoL Green HP bar
-    MP: '#60a5fa', // Blue-400 (Brighter for visibility)
-    CAST: '#fbbf24'
+    HP: '#22c55e', // Green-500
+    MP: '#3b82f6', // Blue-500
+    CAST: '#eab308' // Yellow-500
 };
 
 // --- GAMEPLAY PARAMETERS (Separated from Logic) ---
@@ -101,31 +101,61 @@ export const COMBAT_PARAM = {
     MANA_RESTORE_DEFAULT: 30,
 };
 
-// 3D Terrain Materials (Updated for Material 2.0)
-// Added 'rim' for edge highlighting and tweaked colors for better contrast
+// --- MATERIAL 2.0 DEFINITIONS ---
+// Improved palette for better lighting simulation in 2D
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID': { 
-        top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155', rim: '#475569' 
+        top: '#1e293b',        // Slate-800
+        sideLight: '#0f172a',  // Slate-900
+        sideDark: '#020617',   // Slate-950
+        detail: '#334155',     // Slate-700 (Circuit lines)
+        rim: '#64748b'         // Slate-500 (Edge Highlight)
     },
     'FOREST': { 
-        top: '#14532d', sideLight: '#166534', sideDark: '#052e16', detail: '#22c55e', rim: '#4ade80' 
+        top: '#15803d',        // Green-700
+        sideLight: '#14532d',  // Green-900
+        sideDark: '#052e16',   // Darker Green
+        detail: '#4ade80',     // Green-400 (Grass blades)
+        rim: '#86efac'         // Green-300 (Sunlight edge)
     }, 
     'ICE': { 
-        top: '#3b82f6', sideLight: '#2563eb', sideDark: '#1e3a8a', detail: '#bfdbfe', rim: '#ffffff' 
+        top: '#60a5fa',        // Blue-400 (Glacier top)
+        sideLight: '#2563eb',  // Blue-600
+        sideDark: '#1e40af',   // Blue-800
+        detail: '#dbeafe',     // Blue-100 (Frost)
+        rim: '#ffffff'         // Pure White (Specular)
     }, 
     'MAGMA': { 
-        top: '#450a0a', sideLight: '#2a0a0a', sideDark: '#1a0505', detail: '#ef4444', rim: '#f87171' 
+        top: '#450a0a',        // Red-950 (Cooling rock)
+        sideLight: '#27272a',  // Zinc-800 (Charred)
+        sideDark: '#18181b',   // Zinc-900
+        detail: '#ef4444',     // Red-500 (Lava veins)
+        rim: '#f87171'         // Red-400 (Glow edge)
     }, 
     'DESERT': { 
-        top: '#92400e', sideLight: '#78350f', sideDark: '#451a03', detail: '#d97706', rim: '#fcd34d' 
+        top: '#d97706',        // Amber-600
+        sideLight: '#b45309',  // Amber-700
+        sideDark: '#78350f',   // Amber-900
+        detail: '#fbbf24',     // Amber-400 (Sand ripples)
+        rim: '#fcd34d'         // Amber-300 (Bright sand)
     } 
 };
 
-// Obstacle Visual Styles
-export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string }> = {
-    'WALL': { main: '#52525b', light: '#71717a', dark: '#3f3f46', detail: '#166534' }, // Stone + Moss
-    'TREE': { main: '#431407', light: '#78350f', dark: '#271c19', detail: '#15803d' }, // Dark Wood + Green Leaves
-    'ICE_CRYSTAL': { main: '#bae6fd', light: '#e0f2fe', dark: '#7dd3fc', detail: '#fff' }, // Light Blue Ice
-    'OBSIDIAN_PILLAR': { main: '#27272a', light: '#3f3f46', dark: '#18181b', detail: '#ef4444' }, // Black Stone + Magma Veins
-    'SANDSTONE': { main: '#d97706', light: '#f59e0b', dark: '#b45309', detail: '#78350f' } // Orange Rock
+// Obstacle Visual Styles (Matched to Themes)
+export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string, highlight: string }> = {
+    'WALL': { 
+        main: '#475569', light: '#64748b', dark: '#334155', detail: '#94a3b8', highlight: '#cbd5e1' 
+    }, 
+    'TREE': { 
+        main: '#3f6212', light: '#4d7c0f', dark: '#1a2e05', detail: '#84cc16', highlight: '#bef264' 
+    }, 
+    'ICE_CRYSTAL': { 
+        main: '#7dd3fc', light: '#bae6fd', dark: '#0ea5e9', detail: '#e0f2fe', highlight: '#ffffff' 
+    }, 
+    'OBSIDIAN_PILLAR': { 
+        main: '#18181b', light: '#27272a', dark: '#09090b', detail: '#ef4444', highlight: '#fca5a5' 
+    }, 
+    'SANDSTONE': { 
+        main: '#b45309', light: '#d97706', dark: '#92400e', detail: '#f59e0b', highlight: '#fde047' 
+    } 
 };

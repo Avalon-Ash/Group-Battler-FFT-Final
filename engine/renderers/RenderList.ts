@@ -1,7 +1,7 @@
 
 import { Agent } from "../game";
 import { Particle } from "../systems/vfx/state";
-import { Projectile } from "../../types";
+import { Projectile, Point } from "../../types";
 
 export enum RenderOpType {
     TERRAIN,
@@ -61,8 +61,10 @@ export class RenderOp {
     pIsUlt: boolean = false;
     pAngle: number = 0;
     pSpin: number = 0;
-    // For trails, we might need a reference or simplified data. 
-    // To strictly avoid allocs, trails are tricky. We will pass the reference for now.
+    
+    // Updated: Store pre-calculated visual trail points
+    pTrail: Point[] = []; 
+    
     proj: Projectile | null = null;
     
     // --- DECAL DATA ---

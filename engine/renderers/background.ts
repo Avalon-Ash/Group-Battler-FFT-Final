@@ -27,7 +27,7 @@ export class BackgroundRenderer {
         const rad = Math.min(width, height) * 0.8;
         const vig = ctx.createRadialGradient(width/2, height/2, rad * 0.5, width/2, height/2, rad * 1.5);
         vig.addColorStop(0, 'transparent');
-        vig.addColorStop(1, 'rgba(0,0,0,0.6)');
+        vig.addColorStop(1, 'rgba(0,0,0,0.5)'); // Reduced opacity to let colors shine
         ctx.fillStyle = vig;
         ctx.fillRect(0, 0, width, height);
     }
@@ -36,12 +36,24 @@ export class BackgroundRenderer {
         // 1. Base Gradient (Sky + Horizon)
         const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
         bgGrad.addColorStop(0, scene.background); // Sky Top
-        bgGrad.addColorStop(0.6, scene.horizon);  // Horizon Line
-        bgGrad.addColorStop(1, '#020617');        // Ground Blend
+        bgGrad.addColorStop(0.5, scene.horizon);  // Horizon Line
+        bgGrad.addColorStop(1, '#020617');        // Ground Blend (Dark)
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, w, h);
 
         ctx.save();
+
+        // 1.5 Horizon Glow (Bloom)
+        const hY = h * 0.6;
+        const hGlow = ctx.createRadialGradient(w/2, hY, w*0.1, w/2, hY, w*0.8);
+        hGlow.addColorStop(0, scene.horizon);
+        hGlow.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.4;
+        ctx.fillStyle = hGlow;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1.0;
 
         // 2. Dynamic Moving Clouds (Parallax Layers)
         if (scene.id !== 'VOID') {
