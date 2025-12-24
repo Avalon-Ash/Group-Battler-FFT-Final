@@ -10,7 +10,7 @@ export class VFXSystem {
     // Ambient Spawn State
     private ambientTimer: number = 0;
 
-    update(dt: number, globalTime: number, ambientType: string) {
+    update(dt: number, globalTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {
         // Update Particles
         // Iterate backwards to allow safe removal
         for (let i = this.state.particles.length - 1; i >= 0; i--) {
@@ -28,38 +28,79 @@ export class VFXSystem {
                 continue;
             }
 
-            // Physics Integration
-            p.x += p.vx * dt;
-            p.y += p.vy * dt;
-            p.z += p.vz * dt;
-            p.rotation += p.vRotation * dt;
+            // --- PHYSICS UPDATE ---
+            // Types affected by gravity and floor collisions
+            const isPhysical = p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'SPRITE';
 
-            // Gravity & Environment Logic
-            if (p.type === 'DEBRIS' || p.type === 'SHARD') {
-                p.vz -= GRAVITY * dt; // Gravity
-                
-                // Ground Bounce
-                if (p.z < 0) {
-                    p.z = 0;
-                    if (Math.abs(p.vz) > 100) {
-                        p.vz = -p.vz * 0.5; // Bounce
-                        p.vx *= 0.6; // Friction
-                        p.vy *= 0.6;
-                        p.vRotation *= 0.5;
-                    } else {
-                        p.vz = 0;
-                        p.vx *= 0.1; // Stop sliding
-                        p.vy *= 0.1;
+            if (isPhysical) {
+                // Get ground height at particle position
+                let groundH = 0;
+                if (getTerrainHeight) {
+                    groundH = getTerrainHeight(p.x, p.y);
+                }
+
+                // RESTING CHECK (The Anti-Jitter Fix)
+                // If on ground (at terrain height) and barely moving
+                const distToGround = p.z - groundH;
+                const isResting = distToGround <= 0.5 && Math.abs(p.vz) < 50 && Math.abs(p.vx) < 10 && Math.abs(p.vy) < 10;
+
+                if (isResting) {
+                    p.z = groundH; // Snap to terrain top
+                    p.vz = 0;
+                    p.vx = 0;
+                    p.vy = 0;
+                    p.vRotation = 0;
+                    // Skip integration, just render static
+                } else {
+                    // Apply Gravity
+                    p.vz -= GRAVITY * dt;
+                    
+                    // Integrate Position
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.z += p.vz * dt;
+                    p.rotation += p.vRotation * dt;
+
+                    // Ground Collision
+                    // Recalculate groundH for new position if moving horizontally?
+                    // Ideally yes, but for small dt it's okay. 
+                    // Better: clamp z to current pos groundH.
+                    
+                    if (p.z < groundH) {
+                        p.z = groundH;
+                        // Bounce Logic
+                        if (Math.abs(p.vz) > 100) {
+                            // High Energy: Bounce
+                            p.vz = -p.vz * 0.5; 
+                            p.vx *= 0.6; // Friction on bounce
+                            p.vy *= 0.6;
+                            p.vRotation *= 0.5;
+                        } else {
+                            // Low Energy: Slide
+                            p.vz = 0;
+                            // Heavy Ground Friction
+                            p.vx *= 0.1; 
+                            p.vy *= 0.1;
+                            p.vRotation *= 0.1;
+                        }
                     }
                 }
-            } else if (p.type === 'SPARK' || p.type === 'SMOKE') {
-                p.vx *= 0.90; 
-                p.vy *= 0.90;
-                p.vz *= 0.90; // Drag
-            } else if (p.type === 'GLOW') {
-                // Ambient particles float/wobble
-                p.vx += Math.sin(globalTime * 2 + p.x) * 50 * dt;
-                p.vy += Math.cos(globalTime * 2 + p.y) * 50 * dt;
+            } else {
+                // Non-Physical Particles (Smoke, Sparks, etc.)
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.z += p.vz * dt;
+                p.rotation += p.vRotation * dt;
+
+                if (p.type === 'SPARK' || p.type === 'SMOKE') {
+                    p.vx *= 0.90; 
+                    p.vy *= 0.90;
+                    p.vz *= 0.90; // Drag
+                } else if (p.type === 'GLOW') {
+                    // Ambient particles float/wobble
+                    p.vx += Math.sin(globalTime * 2 + p.x) * 50 * dt;
+                    p.vy += Math.cos(globalTime * 2 + p.y) * 50 * dt;
+                }
             }
         }
 
@@ -94,7 +135,6 @@ export class VFXSystem {
 
     private spawnAmbientParticle(type: string) {
         // Spawn randomly in a large area around center
-        // Hardcoded viewport assumption roughly 1000x800, better to pass camera but this works for ambient
         const x = Math.random() * 1200 - 100;
         const y = Math.random() * 800 - 100;
         

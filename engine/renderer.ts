@@ -83,7 +83,14 @@ export class GameRenderer {
         // Update Sub-systems
         this.camera.update(dt);
         this.tacticalRenderer.update(dt, engine);
-        this.vfx.update(dt, this.globalTime, engine.currentScene.ambientType);
+        
+        // Callback for physics collision with terrain
+        const getTerrainHeightPx = (x: number, y: number) => {
+            const hex = HexUtils.fromPx(x, y, engine.mapConfig);
+            return this.grid.getTerrainHeight(hex.q, hex.r, engine);
+        };
+
+        this.vfx.update(dt, this.globalTime, engine.currentScene.ambientType, getTerrainHeightPx);
         this.hud.update(dt);
     }
 
