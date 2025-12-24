@@ -5,19 +5,21 @@ import { OBSTACLE_DB } from '../../data/obstacles';
 
 // =========================================================================================
 // 1. CORE ENUM MAPPINGS (Visual & Labels)
+// Purpose: Provide UI-friendly labels and colors for internal Enums.
+// Dependency: Used by UnitInspector, SkillDbTab, and Tooltips.
 // =========================================================================================
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
-    [Role.TANK]:    { label: '坦克', color: 'text-amber-400', border: 'border-amber-500' },
-    [Role.WARRIOR]: { label: '戰士', color: 'text-red-400', border: 'border-red-500' },
-    [Role.RANGER]:  { label: '遊俠', color: 'text-emerald-400', border: 'border-emerald-500' },
-    [Role.MAGE]:    { label: '法師', color: 'text-cyan-400', border: 'border-cyan-500' },
-    [Role.SUPPORT]: { label: '輔助', color: 'text-purple-400', border: 'border-purple-500' }
+    [Role.TANK]:    { label: '坦克 (Tank)',    color: 'text-amber-400', border: 'border-amber-500' },
+    [Role.WARRIOR]: { label: '戰士 (Warrior)', color: 'text-red-400',   border: 'border-red-500' },
+    [Role.RANGER]:  { label: '遊俠 (Ranger)',  color: 'text-emerald-400', border: 'border-emerald-500' },
+    [Role.MAGE]:    { label: '法師 (Mage)',    color: 'text-cyan-400',    border: 'border-cyan-500' },
+    [Role.SUPPORT]: { label: '輔助 (Support)', color: 'text-purple-400', border: 'border-purple-500' }
 };
 
 export const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
-    [Team.BLUE]: { label: '藍軍 (Alliance)', color: 'text-cyan-400', bg: 'bg-cyan-900' },
-    [Team.RED]:  { label: '紅軍 (Horde)',    color: 'text-red-400',  bg: 'bg-red-900' }
+    [Team.BLUE]: { label: '藍軍 (Imperial)', color: 'text-cyan-400', bg: 'bg-cyan-900' },
+    [Team.RED]:  { label: '紅軍 (Covenant)', color: 'text-red-400',  bg: 'bg-red-900' }
 };
 
 export const TAG_MAP: Record<string, { label: string; color: string }> = {
@@ -38,6 +40,8 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
 
 // =========================================================================================
 // 2. SKILL & COMBAT CONSTANTS (Effects & Visuals)
+// Purpose: Dropdown options for Skill Editor.
+// Dependency: Must match string literals in `types.ts` Skill interface.
 // =========================================================================================
 
 export const VISUAL_TYPES = [
@@ -71,6 +75,8 @@ export const EFFECT_TYPES = [
 
 // =========================================================================================
 // 3. ENVIRONMENT & TOOLS
+// Purpose: Configuration for Map Editor interactions.
+// Dependency: Syncs with `SCENE_DB` and `OBSTACLE_DB`.
 // =========================================================================================
 
 export const SCENE_OPTIONS = SCENE_DB.map(s => ({ 
@@ -94,6 +100,7 @@ export const TOOL_MAP: Record<ToolType, string> = {
 
 // =========================================================================================
 // 4. FIELD DEFINITIONS (For Inspector Forms)
+// Purpose: metadata for generating the Skill DB Edit Form.
 // =========================================================================================
 
 export type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'color';
@@ -189,6 +196,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
 
 // =========================================================================================
 // 5. HELPER FUNCTIONS (Safe Accessors)
+// Purpose: Utility functions used by React components to render labels/colors safely.
 // =========================================================================================
 
 export const Helpers = {
