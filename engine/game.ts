@@ -140,13 +140,26 @@ export class GameEngine {
     restart() {
         this.stop();
         this.agentMap.clear();
+        
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
+            
+            // Re-link skills immediately so Tooltips/UI work while paused
+            a.skills = a.skillIds.map(id => {
+                if (!id) return null;
+                return this.skillDB.find(s => s.id === id) || null;
+            });
+
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
+        
         this.combat.projectiles = []; // Clear projectiles via combat system
+        this.events = []; // Clear pending events
         this.battleTime = 0;
-        this.play();
+        this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
+        
+        // BUG FIX: Do NOT auto-play. Wait for user to click play.
+        // this.play(); 
     }
 
     clear(keepScene: boolean = false) {

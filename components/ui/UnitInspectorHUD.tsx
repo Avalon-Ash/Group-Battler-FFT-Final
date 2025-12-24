@@ -26,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
 export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClose, onExpand }) => {
     const [isMinimized, setIsMinimized] = useState(false);
     
+    // The ref moves the outer container
     const ref = useRef<HTMLDivElement>(null);
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-right',
@@ -37,18 +38,18 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
     const isBlue = agent.team === Team.BLUE;
     const themeColor = isBlue ? 'text-blue-400' : 'text-red-400';
     const borderColor = isBlue ? 'border-blue-500/50' : 'border-red-500/50';
-    const glowClass = isBlue ? 'shadow-[0_0_30px_rgba(59,130,246,0.15)]' : 'shadow-[0_0_30px_rgba(239,68,68,0.15)]';
+    const glowClass = isBlue ? 'shadow-[0_8px_32px_rgba(59,130,246,0.25)]' : 'shadow-[0_8px_32px_rgba(239,68,68,0.25)]';
 
     const hpPct = (agent.hp / agent.maxHp) * 100;
     const mpPct = (agent.mp / agent.maxMp) * 100;
 
     const renderRoleIcon = (role: Role) => {
         switch (role) {
-            case Role.TANK: return <Icons.RoleTank className="w-6 h-6" />;
-            case Role.WARRIOR: return <Icons.RoleWarrior className="w-6 h-6" />;
-            case Role.RANGER: return <Icons.RoleRanger className="w-6 h-6" />;
-            case Role.MAGE: return <Icons.RoleMage className="w-6 h-6" />;
-            case Role.SUPPORT: return <Icons.RoleSupport className="w-6 h-6" />;
+            case Role.TANK: return <Icons.RoleTank className="w-5 h-5" />;
+            case Role.WARRIOR: return <Icons.RoleWarrior className="w-5 h-5" />;
+            case Role.RANGER: return <Icons.RoleRanger className="w-5 h-5" />;
+            case Role.MAGE: return <Icons.RoleMage className="w-5 h-5" />;
+            case Role.SUPPORT: return <Icons.RoleSupport className="w-5 h-5" />;
             default: return null;
         }
     };
@@ -56,110 +57,101 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, onClo
     return (
         <div 
             ref={ref}
-            className={`z-30 w-[calc(100%-2rem)] md:w-80 pointer-events-auto select-none transition-transform duration-200`}
+            className={`z-30 w-[calc(100%-2rem)] md:w-72 pointer-events-auto select-none transition-transform duration-75 ease-out`}
             style={style}
-            {...dragHandlers}
         >
             {isMinimized ? (
-                // Minimized Pill
+                // Minimized Pill (Fully Draggable)
                 <div 
-                    className={`liquid-card !rounded-full p-2 pl-3 flex items-center gap-3 cursor-grab ${isDragging ? 'cursor-grabbing' : ''} w-fit ml-auto border-l-4 ${borderColor}`}
+                    {...dragHandlers}
+                    className={`liquid-card !rounded-full p-2 pl-3 flex items-center gap-3 cursor-grab active:cursor-grabbing w-fit ml-auto border-l-4 ${borderColor} ${glowClass}`}
                 >
                     <div className={`w-2 h-2 rounded-full ${isBlue ? 'bg-blue-500 box-shadow-[0_0_10px_blue]' : 'bg-red-500 box-shadow-[0_0_10px_red]'} animate-pulse`}></div>
                     <span className="font-mono font-bold text-xs text-white tracking-widest">{agent.id}</span>
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsMinimized(false); }}
                         onPointerDown={e => e.stopPropagation()}
-                        className="w-6 h-6 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition-all"
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/20 text-slate-300 hover:text-white transition-all"
                     >
                         <Icons.Expand className="w-4 h-4" />
                     </button>
                 </div>
             ) : (
                 // Full Card
-                <div className={`liquid-card p-4 flex flex-col gap-3 ${glowClass} cursor-grab ${isDragging ? 'cursor-grabbing scale-[1.01]' : ''}`}>
+                <div className={`liquid-card !rounded-[24px] overflow-hidden flex flex-col ${glowClass} border border-white/10 backdrop-blur-3xl bg-slate-900/90`}>
                     
-                    {/* Header */}
-                    <div className="flex justify-between items-start border-b border-white/5 pb-3">
-                        <div className="flex items-center gap-3 pointer-events-none">
-                            {/* Class Icon Container (Liquid Style) */}
-                            <div className={`w-12 h-12 flex items-center justify-center rounded-2xl liquid-card-dark border ${borderColor} ${themeColor} text-2xl shadow-inner relative overflow-hidden`}>
-                                <div className={`absolute inset-0 opacity-20 bg-gradient-to-br from-white to-transparent`}></div>
-                                {renderRoleIcon(agent.role)}
-                            </div>
-                            <div>
-                                <div className={`font-mono font-black text-xl ${themeColor} leading-none tracking-tight`}>{agent.id}</div>
-                                <div className="flex items-center gap-2 mt-1">
-                                    <span className="liquid-tag bg-white/5 border-white/10 text-slate-300 shadow-sm">{agent.role}</span>
-                                    <span className={`liquid-tag ${isBlue ? 'bg-blue-500/10 border-blue-500/30 text-blue-300' : 'bg-red-500/10 border-red-500/30 text-red-300'} shadow-sm`}>LV.1</span>
+                    {/* Header - DRAGGABLE HANDLE ONLY */}
+                    <div 
+                        {...dragHandlers}
+                        className={`p-4 pb-3 bg-gradient-to-b from-white/5 to-transparent relative cursor-grab active:cursor-grabbing ${isDragging ? 'cursor-grabbing' : ''}`}
+                    >
+                        <div className="flex justify-between items-start mb-2 pointer-events-none">
+                            <div className="flex items-center gap-3">
+                                {/* Role Icon */}
+                                <div className={`w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 border ${borderColor} ${themeColor} shadow-inner`}>
+                                    {renderRoleIcon(agent.role)}
+                                </div>
+                                <div className="flex flex-col">
+                                    <div className={`font-mono font-black text-lg ${themeColor} leading-none tracking-tight drop-shadow-md`}>{agent.id}</div>
+                                    <div className="flex items-center gap-1.5 mt-1">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{agent.role}</span>
+                                        <span className={`text-[9px] font-bold px-1.5 rounded-md ${isBlue ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300'}`}>LV.1</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                         
-                        {/* Controls */}
-                        <div className="flex gap-1" onPointerDown={e => e.stopPropagation()}>
-                            <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-white/10">
-                                <Icons.Minimize className="w-4 h-4" />
+                        {/* Controls (Absolute positioning to overlay the draggable header but remain clickable) */}
+                        <div className="absolute top-4 right-4 flex gap-1 pointer-events-auto" onPointerDown={e => e.stopPropagation()}>
+                            <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-6 h-6 text-[10px] bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border-transparent">
+                                <Icons.Minimize className="w-3 h-3" />
                             </button>
                             {onExpand && (
-                                <button onClick={onExpand} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-cyan-500/20 hover:text-cyan-400">
-                                    <Icons.Expand className="w-4 h-4" />
+                                <button onClick={onExpand} className="liquid-icon-btn w-6 h-6 text-[10px] bg-cyan-500/10 hover:bg-cyan-500/30 text-cyan-400 border-transparent">
+                                    <Icons.Expand className="w-3 h-3" />
                                 </button>
                             )}
-                            <button onClick={onClose} className="liquid-icon-btn w-7 h-7 text-xs bg-transparent border-transparent hover:bg-red-500/20 hover:text-red-400">
-                                <Icons.Close className="w-4 h-4" />
+                            <button onClick={onClose} className="liquid-icon-btn w-6 h-6 text-[10px] bg-red-500/10 hover:bg-red-500/30 text-red-400 border-transparent">
+                                <Icons.Close className="w-3 h-3" />
                             </button>
                         </div>
-                    </div>
 
-                    {/* Vitals (Liquid Tube Style) */}
-                    <div className="space-y-3 pointer-events-none py-1">
-                        {/* HP */}
-                        <div className="relative group">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1 tracking-wider">
-                                <span>INTEGRITY</span>
-                                <span className={`font-mono ${agent.hp < agent.maxHp * 0.3 ? 'text-red-400 animate-pulse' : 'text-green-400'}`}>{Math.ceil(agent.hp)} / {agent.maxHp}</span>
-                            </div>
-                            <div className="h-3 bg-black/60 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+                        {/* Integrated Slim Bars (Non-interactive) */}
+                        <div className="space-y-1 mt-1 pointer-events-none">
+                            {/* HP */}
+                            <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex">
                                 <div 
-                                    className="h-full bg-gradient-to-r from-green-800 via-green-500 to-green-400 transition-all duration-300 relative" 
+                                    className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all duration-300" 
                                     style={{width: `${Math.max(0, hpPct)}%`}}
-                                >
-                                    <div className="absolute top-0 left-0 w-full h-[1px] bg-white/30"></div>
-                                    <div className="absolute bottom-0 left-0 w-full h-[1px] bg-black/20"></div>
+                                ></div>
+                            </div>
+                            {/* MP */}
+                            {agent.maxMp > 0 && (
+                                <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-blue-700 to-cyan-400 transition-all duration-300" 
+                                        style={{width: `${mpPct}%`}}
+                                    ></div>
                                 </div>
-                            </div>
-                        </div>
-                        {/* MP */}
-                        <div className="relative group">
-                            <div className="flex justify-between text-[9px] font-bold text-slate-400 mb-1 tracking-wider">
-                                <span>ENERGY</span>
-                                <span className="font-mono text-blue-400">{Math.floor(agent.mp)}%</span>
-                            </div>
-                            <div className="h-2 bg-black/60 rounded-full overflow-hidden border border-white/10 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
-                                <div 
-                                    className="h-full bg-gradient-to-r from-blue-800 via-blue-500 to-blue-400 transition-all duration-300 relative" 
-                                    style={{width: `${mpPct}%`}}
-                                >
-                                    <div className="absolute top-0 left-0 w-full h-[1px] bg-white/30"></div>
-                                </div>
-                            </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* AI Monitor */}
-                    <div className="flex justify-between items-center liquid-card-dark p-3 pointer-events-none border-l-2 border-cyan-500/50 shadow-inner">
-                        <div className="flex flex-col">
-                            <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">NEURAL STATE</span>
-                            <span className={`text-sm font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300 text-glow-cyan'}`}>
-                                {STATUS_LABELS[agent.btStatus] || agent.btStatus}
-                            </span>
-                        </div>
-                        {/* Active Effects */}
-                        <div className="flex gap-1">
-                            {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-[0_0_10px_rgba(245,158,11,0.3)]">STUN</span>}
-                            {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300">SILENCE</span>}
-                            {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)]">BANISH</span>}
+                    {/* Compact Body: Status Only - NOT DRAGGABLE */}
+                    <div className="px-4 pb-4 pt-0 cursor-default" onPointerDown={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center bg-black/20 rounded-xl p-3 border border-white/5">
+                            <div className="flex flex-col">
+                                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest mb-0.5">STATE</span>
+                                <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300 text-glow-cyan'}`}>
+                                    {STATUS_LABELS[agent.btStatus] || agent.btStatus}
+                                </span>
+                            </div>
+                            {/* Active Effects */}
+                            <div className="flex gap-1">
+                                {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[9px] px-1.5">STUN</span>}
+                                {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300 text-[9px] px-1.5">SILENCE</span>}
+                                {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 text-[9px] px-1.5">BANISH</span>}
+                            </div>
                         </div>
                     </div>
                 </div>
