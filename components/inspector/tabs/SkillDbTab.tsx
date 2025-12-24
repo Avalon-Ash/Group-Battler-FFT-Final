@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Role, Skill, Team } from '../../../types';
-import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP } from '../InspectorConstants';
+import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP, Helpers } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 
 interface SkillDbTabProps {
@@ -51,7 +51,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                             onClick={() => setDbTypeTab(t as any)} 
                             className={`flex-1 py-2 text-xs rounded font-bold transition-all ${dbTypeTab === t ? 'bg-slate-800 text-cyan-400 shadow-sm border border-slate-700' : 'text-slate-500 hover:text-slate-300'}`}
                         >
-                            {t === 'ALL' ? '全部' : TAG_MAP[t]}
+                            {t === 'ALL' ? '全部' : TAG_MAP[t].label}
                         </button>
                     ))}
                 </div>
@@ -62,7 +62,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                     onChange={(e) => setDbRoleFilter(e.target.value as any)}
                 >
                     <option value="ALL">篩選職階: 全部</option>
-                    {Object.values(Role).map(r => <option key={r} value={r}>職階: {ROLE_MAP[r]}</option>)}
+                    {Object.values(Role).map(r => <option key={r} value={r}>職階: {ROLE_MAP[r].label}</option>)}
                 </select>
             </div>
             
@@ -77,9 +77,9 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                             <div className="flex-1 min-w-0">
                                 <div className="font-bold text-sm text-slate-200">{skill.name}</div>
                                 <div className="text-xs text-slate-500 flex gap-2 items-center mt-1">
-                                    <span className="font-mono font-bold">{ROLE_MAP[skill.role]}</span>
+                                    <span className="font-mono font-bold">{ROLE_MAP[skill.role].label}</span>
                                     <span className="w-1 h-1 bg-slate-600 rounded-full"></span>
-                                    <span className={`${skill.tag === 'ULT' ? 'text-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-400' : 'text-slate-400')} font-bold`}>{TAG_MAP[skill.tag]}</span>
+                                    <span className={`${skill.tag === 'ULT' ? 'text-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-400' : 'text-slate-400')} font-bold`}>{TAG_MAP[skill.tag].label}</span>
                                 </div>
                             </div>
                             <div className="text-slate-600 text-lg">
@@ -130,9 +130,11 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                     else updateSkill(field.key, v); 
                                                                 }}
                                                             >
-                                                                {field.options?.map(opt => (
-                                                                    <option key={opt} value={opt}>{opt}</option>
-                                                                ))}
+                                                                {/* Support both Simple String options and Labeled options */}
+                                                                {field.options ? 
+                                                                    field.options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>) :
+                                                                    field.simpleOptions?.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                                                                }
                                                             </select>
                                                         ) : field.type === 'color' ? (
                                                             <div className="flex gap-1 items-center">

@@ -63,6 +63,17 @@ export class AgentManager {
             sourceId: a.id
         });
 
+        // CRITICAL FIX: If game is already running, we must build AI immediately
+        // otherwise this unit will be brainless until next restart.
+        if (engine.isRunning) {
+            a.skills = a.skillIds.map(id => {
+                if (!id) return null;
+                return engine.skillDB.find(s => s.id === id) || null;
+            });
+            a.bt = engine.ai.buildAI(a, engine);
+            a.animState = AnimState.IDLE;
+        }
+
         // Register
         engine.agents.push(a);
         engine.agentMap.set(HexUtils.hash(q, r), a);

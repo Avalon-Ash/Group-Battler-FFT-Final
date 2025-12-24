@@ -18,12 +18,9 @@ import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
 
 const OBSTACLE_Z_INDEX = 10;
-// SPRITE ANCHOR: The factory generates 80x110 sprites.
-// The "feet" or base of the obstacle is defined at y=95 in the factory.
 const OBSTACLE_ANCHOR_Y = 95; 
-const OBSTACLE_HALF_WIDTH = 40; // 80 / 2
+const OBSTACLE_HALF_WIDTH = 40; 
 
-// Re-export Camera for compatibility
 export { Camera };
 
 export class GameRenderer {
@@ -38,11 +35,9 @@ export class GameRenderer {
     public camera: CameraSystem;
     private eventListener: VisualEventListener;
     
-    // New Composition Renderers
     private backgroundRenderer: BackgroundRenderer;
     private tacticalRenderer: TacticalRenderer;
 
-    // Transition State
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
 
@@ -54,8 +49,6 @@ export class GameRenderer {
         this.hud = new HUDSystem();
         this.camera = new CameraSystem();
         this.eventListener = new VisualEventListener();
-        
-        // Initialize sub-renderers
         this.backgroundRenderer = new BackgroundRenderer();
         this.tacticalRenderer = new TacticalRenderer();
     }
@@ -79,12 +72,9 @@ export class GameRenderer {
 
     public update(dt: number, engine: GameEngine): void {
         this.globalTime += dt;
-        
-        // Update Sub-systems
         this.camera.update(dt);
         this.tacticalRenderer.update(dt, engine);
         
-        // Callback for physics collision with terrain
         const getTerrainHeightPx = (x: number, y: number) => {
             const hex = HexUtils.fromPx(x, y, engine.mapConfig);
             return this.grid.getTerrainHeight(hex.q, hex.r, engine);
@@ -116,20 +106,40 @@ export class GameRenderer {
         hoveredHex: Hex | null, 
         hoveredSkill: Skill | null
     ): void {
-        const { width: canvasWidth, height: canvasHeight } = ctx.canvas;
+        // High-DPI Handling
+        // Canvas dimensions are PHYSICAL (e.g. 2000px wide for a 1000px screen on Retina)
+        const physicalWidth = ctx.canvas.width;
+        const physicalHeight = ctx.canvas.height;
+        
+        // Zero-dimension Safety Guard
+        if (physicalWidth === 0 || physicalHeight === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        // Logical dimensions are what the game logic thinks the screen size is
+        const logicalWidth = physicalWidth / dpr;
+        const logicalHeight = physicalHeight / dpr;
+
         const scene = engine.currentScene;
         const defaultStyle = scene.obstacleStyle || 'WALL'; 
 
-        // 1. Clear & Background
-        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
-        this.backgroundRenderer.draw(ctx, canvasWidth, canvasHeight, scene, engine.mapConfig, this.globalTime);
+        // 1. Reset & Clear (Use Physical coords to clear everything)
+        ctx.resetTransform();
+        ctx.clearRect(0, 0, physicalWidth, physicalHeight);
 
-        // 2. Camera Transform (Delegated)
+        // 2. Apply Global Scale for High-DPI
+        // All subsequent drawing calls can assume logical coordinates
+        ctx.scale(dpr, dpr);
+
+        // 3. Background (Draws in Logical Coords)
+        this.backgroundRenderer.draw(ctx, logicalWidth, logicalHeight, scene, engine.mapConfig, this.globalTime);
+
+        // 4. Camera Transform
         ctx.save();
         this.camera.sync(camera);
-        this.camera.applyTransform(ctx, canvasWidth, canvasHeight);
+        // Pass LOGICAL dimensions to camera centering logic
+        this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
 
-        // 3. MAIN PASS: Collect and Sort Renderables
+        // 5. MAIN PASS: Collect and Sort Renderables
         let renderList: RenderableItem[] = [];
         
         renderList.push(...this.grid.collectRenderables(
@@ -152,13 +162,12 @@ export class GameRenderer {
             engine.agents, (q, r) => this.grid.getTerrainHeight(q, r, engine), this.globalTime, highlight, engine.mapConfig
         ));
 
-        // Iterate over Obstacles
+        // Obstacles
         engine.obstacles.forEach((type, key) => {
              const [q, r] = key.split(',').map(Number);
              const pos = HexUtils.toPx(q, r, engine.mapConfig);
              
              let visualY = pos.y;
-             // Transition Logic
              if (this.transitionPhase !== 'IDLE') {
                  const centerQ = Math.floor(engine.mapConfig.w / 2);
                  const centerR = Math.floor(engine.mapConfig.h / 2);
@@ -186,7 +195,6 @@ export class GameRenderer {
                      y: visualY, z: OBSTACLE_Z_INDEX,
                      draw: (c) => {
                          const sprite = SpriteManager.getObstacleSprite(type || defaultStyle);
-                         // Center Correctly: -40 for 80px width, -95 for anchor offset
                          c.drawImage(sprite, pos.x - OBSTACLE_HALF_WIDTH, visualY - terrainH - OBSTACLE_ANCHOR_Y);
                      }
                  });
@@ -202,7 +210,7 @@ export class GameRenderer {
         
         renderList.forEach(item => item.draw(ctx));
 
-        // 4. Occlusion Pass
+        // 6. Occlusion Pass
         const occludedAgents = this.grid.getOccludedAgents(engine);
         if (occludedAgents.length > 0) {
             ctx.save();
@@ -217,30 +225,31 @@ export class GameRenderer {
             ctx.restore();
         }
 
-        // 5. Tactical Overlay Lines
+        // 7. Tactical Overlay Lines
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
 
-        // 6. Top VFX
+        // 8. Top VFX
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
-        // 7. HUD
+        // 9. HUD
         this.hud.draw(ctx, engine.agents, (q, r) => this.grid.getTerrainHeight(q, r, engine), engine.mapConfig);
 
-        // 8. Holographic Director HUD
+        // 10. Holographic Director HUD
         if (engine.directorTargetId) {
             ctx.restore(); // Undo Camera
-            this.tacticalRenderer.drawHUD(ctx, engine, canvasWidth, canvasHeight, camera, this.globalTime);
+            // Tactical HUD draws in Screen Space (Logical)
+            this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, this.globalTime);
             ctx.save(); // Restore dummy state for symmetric restore below
         } else {
             ctx.restore();
             ctx.save();
         }
 
-        // 9. Post Processing (Delegated)
-        ctx.restore(); // Ensure we are in Screen Space
-        this.camera.applyPostProcessing(ctx, canvasWidth, canvasHeight);
+        // 11. Post Processing
+        ctx.restore(); // Ensure we are in Screen Space (but still Scaled by DPR)
+        this.camera.applyPostProcessing(ctx, logicalWidth, logicalHeight);
 
-        // 10. Debug Overlay
+        // 12. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
     }
 }

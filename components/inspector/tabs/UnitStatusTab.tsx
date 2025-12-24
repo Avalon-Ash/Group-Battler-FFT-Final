@@ -2,7 +2,7 @@
 import React from 'react';
 import { Agent } from '../../../engine/game';
 import { Role, Skill, Team } from '../../../types';
-import { ROLE_MAP, TAG_MAP } from '../InspectorConstants';
+import { ROLE_MAP, TAG_MAP, Helpers } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 
 interface UnitStatusTabProps {
@@ -24,16 +24,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         onUpdate();
     };
 
-    const getRoleColor = (r: Role) => {
-        switch(r) {
-            case Role.TANK: return 'text-amber-400 border-amber-500/50';
-            case Role.WARRIOR: return 'text-red-400 border-red-500/50';
-            case Role.RANGER: return 'text-emerald-400 border-emerald-500/50';
-            case Role.MAGE: return 'text-blue-400 border-blue-500/50';
-            case Role.SUPPORT: return 'text-cyan-400 border-cyan-500/50';
-            default: return 'text-slate-400 border-slate-500/50';
-        }
-    };
+    const roleConfig = Helpers.getRoleConfig(agent.role);
 
     return (
         <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-24 space-y-6">
@@ -42,11 +33,11 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                 <div>
                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-2">職階分類</label>
                     <select 
-                        className={`tactical-input h-12 w-full text-lg font-bold bg-slate-900 border-2 ${getRoleColor(agent.role)}`}
+                        className={`tactical-input h-12 w-full text-lg font-bold bg-slate-900 border-2 ${roleConfig.color} ${roleConfig.border}`}
                         value={agent.role} 
                         onChange={(e) => setRole(e.target.value)}
                     >
-                        {Object.values(Role).map(r => <option key={r} value={r}>{ROLE_MAP[r]}</option>)}
+                        {Object.values(Role).map(r => <option key={r} value={r}>{ROLE_MAP[r].label}</option>)}
                     </select>
                 </div>
                 
@@ -99,7 +90,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                     <SkillIcon skill={currentSkill || null} className="w-12 h-12" />
                                     <div className="flex-1">
                                         <div className="text-[10px] font-bold text-slate-500 mb-1 flex justify-between">
-                                            <span>{TAG_MAP[tag]} 欄位</span>
+                                            <span>{TAG_MAP[tag].label} 欄位</span>
                                             {currentSkill && <span className="text-slate-400 font-mono">ID: {currentSkill.id}</span>}
                                         </div>
                                         <select 
@@ -112,7 +103,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                                 const skills = skillsByRole[role];
                                                 if (!skills || skills.length === 0) return null;
                                                 return (
-                                                    <optgroup key={role} label={ROLE_MAP[role]} className="bg-slate-900 text-slate-400">
+                                                    <optgroup key={role} label={ROLE_MAP[role].label} className="bg-slate-900 text-slate-400">
                                                         {skills.map(s => (
                                                             <option key={s.id} value={s.id} className="text-white">
                                                                 {s.name} {s.team !== undefined ? (s.team === Team.BLUE ? '🔵' : '🔴') : ''}

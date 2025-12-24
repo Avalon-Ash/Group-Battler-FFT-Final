@@ -2,14 +2,20 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { GameEngine, Agent } from './engine/game';
 import GameCanvas from './components/GameCanvas';
-import InspectorPanel from './components/InspectorPanel';
 import { ToolType, Team, Skill, Role } from './types';
+import { SCENE_DB } from './data/scenes';
 
 // UI Components
 import { ShowcaseOverlay } from './components/ui/ShowcaseOverlay';
-import { MapSettingsModal } from './components/ui/MapSettingsModal';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
-import { ControlDock } from './components/ui/ControlDock';
+import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
+import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
+import { SystemMenu } from './components/ui/SystemMenu';
+import { UnitDetailView } from './components/ui/UnitDetailView';
+
+// Independent Tab Contents
+import { LogTab } from './components/inspector/tabs/LogTab';
+import { SkillDbTab } from './components/inspector/tabs/SkillDbTab';
 
 function App() {
   const engineRef = useRef(new GameEngine());
@@ -17,13 +23,8 @@ function App() {
   // App States
   const [isShowcaseMode, setIsShowcaseMode] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [unitCount, setUnitCount] = useState(0);
-  const [showMobileInspector, setShowMobileInspector] = useState(false);
-  const [showMapSettings, setShowMapSettings] = useState(false);
+  const [unitCount, setUnitCount] = useState(0); 
   
-  // Layout State (Responsive)
-  const [isLargeScreen, setIsLargeScreen] = useState(() => window.innerWidth >= 1024);
-
   // Tooling
   const [tool, setTool] = useState<ToolType>(ToolType.SELECT);
   const [selectedObstacle, setSelectedObstacle] = useState<string>('WALL'); 
@@ -36,23 +37,19 @@ function App() {
   const [mapH, setMapH] = useState(8);
   const [timeScale, setTimeScale] = useState(1.0);
   const [winner, setWinner] = useState<Team | null>(null);
+  const [currentSceneId, setCurrentSceneId] = useState('VOID');
   
   // Spawn Logic
   const [spawnMode, setSpawnMode] = useState<'RANDOM' | 'DRAFT'>('RANDOM');
   const [draftRole, setDraftRole] = useState<Role>(Role.WARRIOR);
 
-  // Layout & UI
-  const [sidebarWidth, setSidebarWidth] = useState(420);
-  const isResizing = useRef(false);
-  const [showFactionWarning, setShowFactionWarning] = useState(false);
+  // Modals
+  const [showLogs, setShowLogs] = useState(false);
+  const [showDB, setShowDB] = useState(false);
+  const [showUnitDetail, setShowUnitDetail] = useState(false);
+  
   const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
-
-  // --- Responsive Listener ---
-  useEffect(() => {
-      const handleResize = () => setIsLargeScreen(window.innerWidth >= 1024);
-      window.addEventListener('resize', handleResize);
-      return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const [showFactionWarning, setShowFactionWarning] = useState(false);
 
   // --- Logic ---
 
@@ -61,9 +58,11 @@ function App() {
       engine.stop();
       setWinner(null);
       setSelectedAgent(null);
+      setShowUnitDetail(false); // Close details on reset
       engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
       engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
-      engine.clear(false); 
+      engine.randomizeEnvironment(); 
+      setCurrentSceneId(engine.currentScene.id);
   }, []);
 
   const spawnShowcaseUnits = useCallback(() => {
@@ -107,6 +106,9 @@ function App() {
       engineRef.current.clear(true); 
       engineRef.current.agents = [];
       setUnitCount(0);
+      setMapW(engineRef.current.mapConfig.w);
+      setMapH(engineRef.current.mapConfig.h);
+      setCurrentSceneId(engineRef.current.currentScene.id);
   };
 
   useEffect(() => {
@@ -120,47 +122,68 @@ function App() {
       engineRef.current.timeScale = timeScale;
   }, [timeScale]);
 
-  // --- Hybrid Input Resizing (Mouse & Touch) ---
-  const startResizing = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-      isResizing.current = true;
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-      // Prevent scrolling on touch
-      if ('touches' in e) e.stopPropagation();
+  // --- Map Editor Logic ---
+
+  const handleUpdateMapSize = useCallback((w: number, h: number) => {
+      setMapW(w);
+      setMapH(h);
+      engineRef.current.mapConfig.w = w;
+      engineRef.current.mapConfig.h = h;
+      engineRef.current.clear(false); 
+      setSelectedAgent(null);
+      setWinner(null);
   }, []);
 
-  const stopResizing = useCallback(() => {
-      isResizing.current = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-  }, []);
-
-  const performResize = useCallback((clientX: number) => {
-      if (isResizing.current) {
-          const newWidth = window.innerWidth - clientX;
-          // Constraints for Tablet/Desktop
-          const maxWidth = window.innerWidth * 0.8;
-          if (newWidth > 300 && newWidth < maxWidth) {
-              setSidebarWidth(newWidth);
-          }
+  const handleSetScene = useCallback((id: string) => {
+      const scene = SCENE_DB.find(s => s.id === id);
+      if (scene) {
+          engineRef.current.currentScene = scene;
+          engineRef.current.map.rebuildMap(engineRef.current);
+          setCurrentSceneId(id);
       }
   }, []);
 
-  const handleMouseMove = useCallback((e: MouseEvent) => performResize(e.clientX), [performResize]);
-  const handleTouchMove = useCallback((e: TouchEvent) => performResize(e.touches[0].clientX), [performResize]);
+  const handleRandomBattlefield = useCallback(() => {
+      const engine = engineRef.current;
+      engine.stop();
+      setWinner(null);
+      setSelectedAgent(null);
+      engine.clear(false); 
+      
+      engine.randomizeEnvironment();
+      setMapW(engine.mapConfig.w);
+      setMapH(engine.mapConfig.h);
+      setCurrentSceneId(engine.currentScene.id);
 
-  useEffect(() => {
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', stopResizing);
-      window.addEventListener('touchmove', handleTouchMove);
-      window.addEventListener('touchend', stopResizing);
-      return () => {
-          window.removeEventListener('mousemove', handleMouseMove);
-          window.removeEventListener('mouseup', stopResizing);
-          window.removeEventListener('touchmove', handleTouchMove);
-          window.removeEventListener('touchend', stopResizing);
+      const validHexes = (Array.from(engine.mapKeys) as string[]).map(k => {
+          const [q, r] = k.split(',').map(Number);
+          return {q, r};
+      });
+      for (let i = validHexes.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
+      }
+      let spawnIndex = 0;
+      const spawn = (team: Team) => {
+          if (spawnIndex < validHexes.length) {
+              const h = validHexes[spawnIndex++];
+              const hp = 500 + Math.floor(Math.random() * 400); 
+              engine.addAgent(team, h.q, h.r, hp);
+          }
       };
-  }, [handleMouseMove, handleTouchMove, stopResizing]);
+      for(let i=0; i<5; i++) spawn(Team.BLUE);
+      for(let i=0; i<5; i++) spawn(Team.RED);
+      
+      setIsPlaying(false); 
+  }, []);
+
+  const handleReset = useCallback(() => {
+      engineRef.current.restart();
+      setIsPlaying(false); 
+      setWinner(null);
+  }, []);
+
+  // --- Interaction ---
 
   const togglePlay = useCallback(() => {
     if (winner !== null) return;
@@ -184,33 +207,6 @@ function App() {
     }
   }, [isPlaying, winner]);
 
-  const handleRestart = useCallback(() => {
-    if (winner !== null) return;
-    engineRef.current.restart();
-    setIsPlaying(true);
-    setTool(ToolType.SELECT);
-  }, [winner]);
-
-  const handleClear = useCallback(() => {
-    engineRef.current.clear(); 
-    setIsPlaying(false);
-    setSelectedAgent(null);
-    setWinner(null);
-    setHoveredSkill(null);
-  }, []);
-
-  const updateMap = useCallback(() => {
-      engineRef.current.mapConfig.w = mapW;
-      engineRef.current.mapConfig.h = mapH;
-      engineRef.current.clear(true);
-      setSelectedAgent(null);
-      setWinner(null);
-  }, [mapW, mapH]);
-
-  const handleSelectAgent = useCallback((agent: Agent | null) => {
-    setSelectedAgent(agent);
-  }, []);
-
   const onWin = (team: Team) => {
     setWinner(team);
     if (isShowcaseMode) {
@@ -232,15 +228,9 @@ function App() {
     }
   };
 
-  const handleShowcaseStart = () => {
-      setIsShowcaseMode(true);
-      startShowcaseMatch();
-  };
-
-  // Helper to toggle tools (clicking active tool turns it off)
-  const toggleTool = (t: ToolType) => {
-      if (tool === t) setTool(ToolType.SELECT);
-      else setTool(t);
+  const handleSelectAgent = (a: Agent | null) => {
+      setSelectedAgent(a);
+      if (!a) setShowUnitDetail(false);
   };
 
   return (
@@ -259,16 +249,6 @@ function App() {
             </div>
       )}
 
-      {/* MAP SETTINGS MODAL (Mobile Only) */}
-      {showMapSettings && (
-        <MapSettingsModal 
-            width={mapW} height={mapH} 
-            onChangeW={setMapW} onChangeH={setMapH}
-            onRebuild={updateMap} onClear={handleClear}
-            onClose={() => setShowMapSettings(false)}
-        />
-      )}
-
       {/* SHOWCASE OVERLAY */}
       {isShowcaseMode && (
         <ShowcaseOverlay 
@@ -278,131 +258,103 @@ function App() {
         />
       )}
 
-      {/* MAIN CONTENT ROW */}
-      <div className="flex-1 flex overflow-hidden relative z-0">
-          
-          {/* LEFT COLUMN: Canvas + Dock + Floating HUD */}
-          <div className="flex-1 flex flex-col relative min-w-0 min-h-0 z-0 basis-0 bg-slate-900">
-                
-                {/* FLOATING HUD */}
-                <PlaybackHUD 
-                    hidden={isShowcaseMode}
-                    isPlaying={isPlaying}
-                    winner={winner}
-                    timeScale={timeScale}
-                    onTogglePlay={togglePlay}
-                    onRestart={handleRestart}
-                    onSetTimeScale={setTimeScale}
-                    onShowcase={handleShowcaseStart}
-                />
+      {/* --- HUD LAYERS --- */}
+      
+      {/* 1. Playback Controls (Top Center) */}
+      <PlaybackHUD 
+          hidden={isShowcaseMode}
+          isPlaying={isPlaying}
+          winner={winner}
+          timeScale={timeScale}
+          onTogglePlay={togglePlay}
+          onRestart={handleReset}
+          onSetTimeScale={setTimeScale}
+          onShowcase={() => { setIsShowcaseMode(true); startShowcaseMatch(); }}
+      />
 
-                <GameCanvas 
-                    engine={engineRef.current} 
-                    tool={tool}
-                    selectedObstacle={selectedObstacle}
-                    hpInput={hpInput}
-                    selectedAgent={selectedAgent}
-                    hoveredSkill={hoveredSkill}
-                    isShowcaseMode={isShowcaseMode}
-                    spawnMode={spawnMode}
-                    draftRole={draftRole}
-                    onSelect={handleSelectAgent} 
-                    onWin={onWin}
-                    winner={winner}
-                    rematch={() => { setWinner(null); engineRef.current.restart(); setIsPlaying(true); }}
-                    transitionPhase={transitionPhase}
-                />
+      {/* 2. System Menu (Top Right) */}
+      {!isShowcaseMode && (
+          <SystemMenu 
+              onToggleLogs={() => setShowLogs(!showLogs)} 
+              onToggleDB={() => setShowDB(!showDB)} 
+          />
+      )}
 
-                {/* BOTTOM DOCK */}
-                <ControlDock 
-                    hidden={isShowcaseMode}
-                    tool={tool}
-                    setTool={setTool}
-                    spawnMode={spawnMode}
-                    setSpawnMode={setSpawnMode}
-                    draftRole={draftRole}
-                    setDraftRole={setDraftRole}
-                    selectedObstacle={selectedObstacle}
-                    setSelectedObstacle={setSelectedObstacle}
-                    hpInput={hpInput}
-                    setHpInput={setHpInput}
-                    mapW={mapW}
-                    setMapW={setMapW}
-                    mapH={mapH}
-                    setMapH={setMapH}
-                    unitCount={unitCount}
-                    onUpdateMap={updateMap}
-                    onClearMap={handleClear}
-                    showMapSettings={showMapSettings}
-                    setShowMapSettings={setShowMapSettings}
-                    showMobileInspector={showMobileInspector}
-                    setShowMobileInspector={setShowMobileInspector}
-                    hasSelectedAgent={!!selectedAgent}
-                />
-          </div>
+      {/* 3. Unit Inspector (Floating Right Bottom) */}
+      {!isShowcaseMode && selectedAgent && (
+          <UnitInspectorHUD 
+              agent={selectedAgent} 
+              onClose={() => handleSelectAgent(null)} 
+              onExpand={() => setShowUnitDetail(true)}
+          />
+      )}
 
-          {/* RIGHT COLUMN: Inspector (Z-40) */}
-          {isLargeScreen && !isShowcaseMode && (
-            <div 
-                className="hidden lg:flex w-1 bg-slate-950 hover:bg-cyan-600 cursor-col-resize items-center justify-center shrink-0 transition-colors z-40 border-l border-slate-800"
-                onMouseDown={startResizing}
-                onTouchStart={startResizing}
-            >
-                <div className="w-[1px] h-8 bg-slate-600"></div>
-            </div>
-          )}
-
-          {/* Panel - Desktop Sidebar OR Mobile Overlay Drawer */}
-          {isLargeScreen ? (
-              // DESKTOP LAYOUT
-              <div 
-                className={`
-                    flex flex-col z-40 shadow-2xl bg-slate-900 border-l border-slate-700 transition-all duration-300 relative h-full
-                    ${isShowcaseMode ? 'w-0 border-l-0 overflow-hidden' : ''}
-                `}
-                style={{ width: !isShowcaseMode ? sidebarWidth : 0 }}
-              >
-                <InspectorPanel 
-                    agent={selectedAgent} 
-                    engine={engineRef.current}
-                    logs={[]} 
-                    db={engineRef.current.skillDB}
-                    onHoverSkill={setHoveredSkill}
-                />
-              </div>
-          ) : (
-              // MOBILE DRAWER LAYOUT
-              <div 
-                className={`fixed inset-0 z-50 transition-opacity duration-300 ${showMobileInspector ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
-                onClick={() => setShowMobileInspector(false)}
-              >
-                  {/* Backdrop */}
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      {/* 4. MODALS (Logs / DB / Unit Detail) */}
+      {/* Wrapper */}
+      {(showLogs || showDB || (showUnitDetail && selectedAgent)) && !isShowcaseMode && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-8 animate-fade-in" 
+               onClick={() => { setShowLogs(false); setShowDB(false); setShowUnitDetail(false); }}>
+              
+              {/* Maximize modal size for better visibility */}
+              <div className="w-full h-[95%] max-w-[95%] bg-slate-900 border border-slate-700 shadow-2xl rounded-lg overflow-hidden flex flex-col transition-all" onClick={e => e.stopPropagation()}>
                   
-                  {/* Slide-in Panel */}
-                  <div 
-                    className={`absolute right-0 top-0 bottom-0 w-full sm:w-[400px] bg-slate-900 shadow-2xl border-l border-slate-700 transform transition-transform duration-300 flex flex-col ${showMobileInspector ? 'translate-x-0' : 'translate-x-full'}`}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                      {/* Mobile Header */}
-                      <div className="p-4 border-b border-slate-700 bg-slate-950 flex justify-between items-center shrink-0 pt-safe-top">
-                           <h3 className="font-bold text-slate-200 text-lg">單位監控面板</h3>
-                           <button onClick={() => setShowMobileInspector(false)} className="w-10 h-10 flex items-center justify-center bg-slate-800 rounded-full text-slate-400 active:scale-95">✕</button>
-                      </div>
-                      
-                      <div className="flex-1 overflow-hidden">
-                        <InspectorPanel 
-                            agent={selectedAgent} 
-                            engine={engineRef.current}
-                            logs={[]} 
-                            db={engineRef.current.skillDB}
-                            onHoverSkill={setHoveredSkill}
-                        />
-                      </div>
+                  {/* Modal Header */}
+                  <div className="flex justify-between items-center p-3 md:p-4 border-b border-slate-800 bg-slate-950 shrink-0">
+                      <h2 className="text-base md:text-lg font-bold text-cyan-400 truncate pr-4">
+                          {showLogs && '戰況紀錄'}
+                          {showDB && '技能資料庫'}
+                          {showUnitDetail && '單位神經網路分析'}
+                      </h2>
+                      <button onClick={() => { setShowLogs(false); setShowDB(false); setShowUnitDetail(false); }} className="text-slate-500 hover:text-white px-2 py-1">✕</button>
+                  </div>
+                  
+                  {/* Modal Content */}
+                  <div className="flex-1 overflow-hidden relative bg-slate-900 min-h-0">
+                      {showLogs && <LogTab engine={engineRef.current} />}
+                      {showDB && <SkillDbTab db={engineRef.current.skillDB} onUpdate={() => {}} />}
+                      {showUnitDetail && selectedAgent && <UnitDetailView agent={selectedAgent} db={engineRef.current.skillDB} engine={engineRef.current} />}
                   </div>
               </div>
-          )}
+          </div>
+      )}
+
+      {/* MAIN GAME VIEW */}
+      <div className="flex-1 relative z-0 bg-slate-900">
+            <GameCanvas 
+                engine={engineRef.current} 
+                tool={tool}
+                selectedObstacle={selectedObstacle}
+                hpInput={hpInput}
+                selectedAgent={selectedAgent}
+                hoveredSkill={hoveredSkill}
+                isShowcaseMode={isShowcaseMode}
+                spawnMode={spawnMode}
+                draftRole={draftRole}
+                onSelect={handleSelectAgent} 
+                onWin={onWin}
+                winner={winner}
+                rematch={() => { setWinner(null); engineRef.current.restart(); setIsPlaying(true); }}
+                transitionPhase={transitionPhase}
+            />
       </div>
+
+      {/* 5. Map Editor Toolbar (Bottom) */}
+      {!isShowcaseMode && (
+          <MapEditorToolbar 
+              tool={tool}
+              setTool={setTool}
+              mapW={mapW} setMapW={(w) => handleUpdateMapSize(w, mapH)}
+              mapH={mapH} setMapH={(h) => handleUpdateMapSize(mapW, h)}
+              currentSceneId={currentSceneId}
+              onSetScene={handleSetScene}
+              spawnMode={spawnMode} setSpawnMode={setSpawnMode}
+              draftRole={draftRole} setDraftRole={setDraftRole}
+              hpInput={hpInput} setHpInput={setHpInput}
+              selectedObstacle={selectedObstacle} setSelectedObstacle={setSelectedObstacle}
+              onRandomBattlefield={handleRandomBattlefield}
+              onReset={handleReset}
+          />
+      )}
     </div>
   );
 }
