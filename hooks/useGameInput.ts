@@ -32,11 +32,11 @@ export const useGameInput = ({
     onSelect, onCameraPan, onCameraZoom
 }: GameInputProps) => {
     
-    // Interaction State Machine
+    // --- 1. STATE REFS (Shared between Mouse & Touch) ---
     type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAN' | 'PAINT';
     const interactionMode = useRef<InteractionMode>('IDLE');
 
-    // Refs for mutable props to prevent Effect re-binding
+    // Tooling State Refs (Keep fresh without re-binding listeners)
     const toolRef = useRef(tool);
     const obsRef = useRef(selectedObstacle);
     const hpRef = useRef(hpInput);
@@ -44,6 +44,7 @@ export const useGameInput = ({
     const roleRef = useRef(draftRole);
     const winnerRef = useRef(winner);
 
+    // Sync Props to Refs
     useEffect(() => {
         toolRef.current = tool;
         obsRef.current = selectedObstacle;
@@ -53,26 +54,26 @@ export const useGameInput = ({
         winnerRef.current = winner;
     }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
 
-    // Drag Data
+    // Operational Refs
     const pressedAgentRef = useRef<Agent | null>(null);
     const draggedObstacleRef = useRef<{ type: string; originQ: number; originR: number; px: number; py: number; } | null>(null);
+    const hoveredHexRef = useRef<Hex | null>(null);
     
-    // Tracking
+    // Tracking Refs
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
-    const lastMousePos = useRef<{x: number, y: number} | null>(null);
+    const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const dragStartHex = useRef<{q: number, r: number} | null>(null);
     const lastPaintHex = useRef<string>(""); 
     
-    // Touch
+    // Touch Specific Refs
     const lastPinchDist = useRef<number>(0);
-    const lastTouchPos = useRef<{x: number, y: number} | null>(null);
-    const hoveredHexRef = useRef<Hex | null>(null);
 
-    // --- Helpers ---
+    // --- 2. CORE UTILITIES (Shared Logic) ---
 
     const getHexFromCoords = (sx: number, sy: number) => {
         const hex = rendererRef.current.getHexAtScreenPoint(sx, sy, cameraRef.current, engine);
         if (hex) return hex;
+        // Fallback to ground plane raycast
         return HexUtils.fromPx(
             sx / cameraRef.current.zoom + cameraRef.current.x,
             sy / cameraRef.current.zoom + cameraRef.current.y,
@@ -92,13 +93,15 @@ export const useGameInput = ({
     const getHitAgentFromCoords = (sx: number, sy: number) => {
         const wx = sx / cameraRef.current.zoom + cameraRef.current.x;
         const wy = sy / cameraRef.current.zoom + cameraRef.current.y;
-        const sorted = [...engine.agents].sort((a, b) => b.py - a.py); // Front to back
+        // Search front-to-back
+        const sorted = [...engine.agents].sort((a, b) => b.py - a.py);
         
         for (const agent of sorted) {
             if (agent.hp <= 0 && agent.fullyDead) continue;
             const h = rendererRef.current.getTerrainHeight(agent.q, agent.r, engine);
             const baseX = agent.px;
             const baseY = agent.py - h;
+            // Hitbox approx (Waist area)
             const dx = Math.abs(wx - baseX);
             const dy = wy - (baseY - 40); 
             if (dx < 35 && Math.abs(dy) < 60) return agent;
@@ -156,19 +159,20 @@ export const useGameInput = ({
         }
     };
 
-    // --- Input Handlers ---
+    // --- 3. COMMON INTERACTION LOGIC (Used by both handlers) ---
 
-    const handleDown = (sx: number, sy: number, button: number = 0) => {
+    const startInteraction = (sx: number, sy: number, isRightClick: boolean) => {
         pressStartPos.current = { x: sx, y: sy };
-        lastMousePos.current = { x: sx, y: sy };
+        lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         interactionMode.current = 'DOWN';
 
-        if (button === 2 || engine.isRunning) {
+        if (isRightClick || engine.isRunning) {
             interactionMode.current = 'PAN';
             return;
         }
 
+        // 1. Check Unit Hit
         const hitAgent = getHitAgentFromCoords(sx, sy);
         if (hitAgent) {
             pressedAgentRef.current = hitAgent;
@@ -178,6 +182,7 @@ export const useGameInput = ({
             return;
         }
 
+        // 2. Check Obstacle Hit
         const h = getHexFromCoords(sx, sy);
         if (engine.isValid(h.q, h.r) && engine.hasObstacle(h.q, h.r) && toolRef.current !== ToolType.DELETE) {
             const obsType = engine.obstacles.get(HexUtils.key(h));
@@ -187,17 +192,14 @@ export const useGameInput = ({
         }
     };
 
-    const handleMove = (sx: number, sy: number) => {
-        // Delta Calculation
-        const prev = lastMousePos.current || { x: sx, y: sy };
-        const dx = sx - prev.x;
-        const dy = sy - prev.y;
-        lastMousePos.current = { x: sx, y: sy };
-
+    const updateInteraction = (sx: number, sy: number) => {
+        const cvs = canvasRef.current;
         const h = getHexFromCoords(sx, sy);
+        
+        // ** FIX 1: Update Hover Ref Every Frame **
         hoveredHexRef.current = engine.isValid(h.q, h.r) ? h : null;
 
-        const cvs = canvasRef.current;
+        // Cursor Logic
         if (cvs) {
             const hitAgent = getHitAgentFromCoords(sx, sy);
             if (interactionMode.current === 'DRAG_UNIT' || interactionMode.current === 'DRAG_OBS') cvs.style.cursor = 'grabbing';
@@ -208,10 +210,15 @@ export const useGameInput = ({
             else cvs.style.cursor = 'crosshair'; 
         }
 
+        // Delta for Panning
+        const prev = lastPointerPos.current || { x: sx, y: sy };
+        const dx = sx - prev.x;
+        const dy = sy - prev.y;
+        lastPointerPos.current = { x: sx, y: sy };
+
         if (interactionMode.current === 'IDLE') return;
 
         if (interactionMode.current === 'PAN') {
-            // FIX: Removed inversion (-dx, -dy) to make drag follow mouse
             onCameraPan(dx, dy); 
             return;
         }
@@ -235,6 +242,7 @@ export const useGameInput = ({
             return;
         }
 
+        // Threshold Check: Convert DOWN to DRAG or PAN
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Math.sqrt((sx - pressStartPos.current.x)**2 + (sy - pressStartPos.current.y)**2);
             if (dist > 10) {
@@ -261,19 +269,18 @@ export const useGameInput = ({
                     executeToolAction(h);
                 } else {
                     interactionMode.current = 'PAN';
-                    // We consume the initial drag to prevent jump
-                    // FIX: Removed inversion here too
                     onCameraPan(dx, dy);
                 }
             }
         }
     };
 
-    const handleUp = (sx: number, sy: number) => {
+    const endInteraction = (sx: number, sy: number) => {
         const h = getHexFromCoords(sx, sy);
         const _tool = toolRef.current;
 
         if (interactionMode.current === 'DOWN') {
+            // Click Logic
             if (pressedAgentRef.current) {
                 if (_tool === ToolType.DELETE) {
                     engine.removeAgent(pressedAgentRef.current.q, pressedAgentRef.current.r);
@@ -290,6 +297,7 @@ export const useGameInput = ({
             }
         }
 
+        // Drag Drop Logic
         if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const agent = pressedAgentRef.current;
             agent.physics.z = 0;
@@ -300,6 +308,7 @@ export const useGameInput = ({
                 const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                 agent.px = p.x; agent.py = p.y;
             } else if (dragStartHex.current) {
+                // Revert
                 agent.q = dragStartHex.current.q;
                 agent.r = dragStartHex.current.r;
                 const p = HexUtils.toPx(agent.q, agent.r, engine.mapConfig);
@@ -314,111 +323,40 @@ export const useGameInput = ({
             const valid = engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r);
             
             if (valid) engine.setObstacle(h.q, h.r, type);
-            else engine.setObstacle(originQ, originR, type); 
+            else engine.setObstacle(originQ, originR, type); // Revert
         }
 
         interactionMode.current = 'IDLE';
         pressedAgentRef.current = null;
         draggedObstacleRef.current = null;
         pressStartPos.current = null;
-        lastMousePos.current = null;
+        lastPointerPos.current = null;
         lastPaintHex.current = "";
         if (canvasRef.current) canvasRef.current.style.cursor = 'default';
     };
 
-    // --- Listeners Binding ---
-    useEffect(() => {
-        const cvs = canvasRef.current;
-        if (!cvs) return;
+    // --- 4. PLATFORM SPECIFIC HANDLERS ---
 
-        const getCoords = (e: MouseEvent | Touch) => {
+    // === MOUSE HANDLERS ===
+    const setupMouseListeners = (cvs: HTMLCanvasElement) => {
+        const getCoords = (e: MouseEvent) => {
             const rect = cvs.getBoundingClientRect();
             return { x: e.clientX - rect.left, y: e.clientY - rect.top };
         };
 
         const onMouseDown = (e: MouseEvent) => {
-            const {x, y} = getCoords(e);
-            handleDown(x, y, e.button);
+            const { x, y } = getCoords(e);
+            startInteraction(x, y, e.button === 2);
         };
+
         const onMouseMove = (e: MouseEvent) => {
-            const {x, y} = getCoords(e);
-            handleMove(x, y);
+            const { x, y } = getCoords(e);
+            updateInteraction(x, y);
         };
+
         const onMouseUp = (e: MouseEvent) => {
-            const {x, y} = getCoords(e);
-            handleUp(x, y);
-        };
-
-        const onTouchStart = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.touches.length === 1) {
-                const {x, y} = getCoords(e.touches[0]);
-                lastTouchPos.current = {x, y};
-                handleDown(x, y, 0);
-            } else if (e.touches.length === 2) {
-                const t1 = getCoords(e.touches[0]);
-                const t2 = getCoords(e.touches[1]);
-                lastPinchDist.current = Math.hypot(t1.x - t2.x, t1.y - t2.y);
-                interactionMode.current = 'IDLE';
-                pressedAgentRef.current = null;
-                draggedObstacleRef.current = null;
-            }
-        };
-
-        const onTouchMove = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.touches.length === 1 && lastTouchPos.current) {
-                if (lastPinchDist.current > 0) {
-                    const {x, y} = getCoords(e.touches[0]);
-                    lastTouchPos.current = {x, y};
-                    lastPinchDist.current = 0;
-                    return;
-                }
-
-                const {x, y} = getCoords(e.touches[0]);
-                // Manual delta for touch
-                // Note: Touch delta is not used directly, we rely on state tracking
-                // But for move handler we need sx, sy
-                handleMove(x, y);
-                lastTouchPos.current = {x, y};
-            } else if (e.touches.length === 2) {
-                const t1 = getCoords(e.touches[0]);
-                const t2 = getCoords(e.touches[1]);
-                const dist = Math.hypot(t1.x - t2.x, t1.y - t2.y);
-                if (lastPinchDist.current > 0) {
-                    const delta = dist - lastPinchDist.current;
-                    onCameraZoom(delta * 0.005);
-                }
-                lastPinchDist.current = dist;
-            }
-        };
-
-        const onTouchEnd = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            
-            if (e.changedTouches.length > 0 && lastTouchPos.current) {
-                if (e.touches.length === 0) {
-                    const {x, y} = getCoords(e.changedTouches[0]);
-                    handleUp(x, y);
-                }
-            }
-            if (e.touches.length < 2) {
-                lastPinchDist.current = 0;
-            }
-            if (e.touches.length === 0) {
-                lastTouchPos.current = null;
-            }
-        };
-
-        const onTouchCancel = (e: TouchEvent) => {
-            if (e.cancelable) e.preventDefault();
-            interactionMode.current = 'IDLE';
-            pressedAgentRef.current = null;
-            draggedObstacleRef.current = null;
-            lastTouchPos.current = null;
-            lastPinchDist.current = 0;
+            const { x, y } = getCoords(e);
+            endInteraction(x, y);
         };
 
         const onWheel = (e: WheelEvent) => {
@@ -434,10 +372,6 @@ export const useGameInput = ({
         window.addEventListener('mouseup', onMouseUp);
         cvs.addEventListener('wheel', onWheel, { passive: false });
         cvs.addEventListener('contextmenu', onCtx);
-        cvs.addEventListener('touchstart', onTouchStart, { passive: false });
-        cvs.addEventListener('touchmove', onTouchMove, { passive: false });
-        cvs.addEventListener('touchend', onTouchEnd, { passive: false });
-        cvs.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
         return () => {
             cvs.removeEventListener('mousedown', onMouseDown);
@@ -445,16 +379,91 @@ export const useGameInput = ({
             window.removeEventListener('mouseup', onMouseUp);
             cvs.removeEventListener('wheel', onWheel);
             cvs.removeEventListener('contextmenu', onCtx);
+        };
+    };
+
+    // === TOUCH HANDLERS ===
+    const setupTouchListeners = (cvs: HTMLCanvasElement) => {
+        const getCoords = (t: Touch) => {
+            const rect = cvs.getBoundingClientRect();
+            return { x: t.clientX - rect.left, y: t.clientY - rect.top };
+        };
+
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            
+            if (e.touches.length === 1) {
+                const { x, y } = getCoords(e.touches[0]);
+                startInteraction(x, y, false);
+            } else if (e.touches.length === 2) {
+                const t1 = getCoords(e.touches[0]);
+                const t2 = getCoords(e.touches[1]);
+                lastPinchDist.current = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+                interactionMode.current = 'IDLE'; // Reset interaction if pinching
+                pressedAgentRef.current = null;
+            }
+        };
+
+        const onTouchMove = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            
+            if (e.touches.length === 1) {
+                const { x, y } = getCoords(e.touches[0]);
+                updateInteraction(x, y);
+            } else if (e.touches.length === 2) {
+                const t1 = getCoords(e.touches[0]);
+                const t2 = getCoords(e.touches[1]);
+                const dist = Math.hypot(t1.x - t2.x, t1.y - t2.y);
+                if (lastPinchDist.current > 0) {
+                    const delta = dist - lastPinchDist.current;
+                    onCameraZoom(delta * 0.005);
+                }
+                lastPinchDist.current = dist;
+            }
+        };
+
+        const onTouchEnd = (e: TouchEvent) => {
+            if (e.cancelable) e.preventDefault();
+            
+            if (e.changedTouches.length > 0 && e.touches.length === 0) {
+                // Last finger lifted
+                const { x, y } = getCoords(e.changedTouches[0]);
+                endInteraction(x, y);
+            }
+            if (e.touches.length < 2) lastPinchDist.current = 0;
+        };
+
+        cvs.addEventListener('touchstart', onTouchStart, { passive: false });
+        cvs.addEventListener('touchmove', onTouchMove, { passive: false });
+        cvs.addEventListener('touchend', onTouchEnd, { passive: false });
+        cvs.addEventListener('touchcancel', onTouchEnd, { passive: false });
+
+        return () => {
             cvs.removeEventListener('touchstart', onTouchStart);
             cvs.removeEventListener('touchmove', onTouchMove);
             cvs.removeEventListener('touchend', onTouchEnd);
-            cvs.removeEventListener('touchcancel', onTouchCancel);
+            cvs.removeEventListener('touchcancel', onTouchEnd);
         };
-    }, [engine, onSelect, onCameraPan, onCameraZoom]); 
+    };
+
+    // --- 5. INITIALIZATION ---
+    useEffect(() => {
+        const cvs = canvasRef.current;
+        if (!cvs) return;
+
+        const cleanupMouse = setupMouseListeners(cvs);
+        const cleanupTouch = setupTouchListeners(cvs);
+
+        return () => {
+            cleanupMouse();
+            cleanupTouch();
+        };
+    }, []); 
 
     return {
         pressedAgent: pressedAgentRef.current,
         draggedObstacle: draggedObstacleRef.current,
-        hoveredHex: hoveredHexRef.current
+        // ** FIX 2: Return Ref Object directly so Render Loop can read fresh value **
+        hoveredHexRef: hoveredHexRef
     };
 };

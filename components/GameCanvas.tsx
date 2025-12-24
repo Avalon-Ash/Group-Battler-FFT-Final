@@ -46,7 +46,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { camera, centerCamera, pan, zoom } = useGameCamera(engine);
 
     // 2. Input System
-    const { pressedAgent, draggedObstacle, hoveredHex } = useGameInput({
+    // Note: hoveredHexRef is a RefObject now, keeping the value fresh across renders
+    const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
         onSelect, onCameraPan: pan, onCameraZoom: zoom
@@ -59,13 +60,16 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         rendererRef.current.setTransition(0, transitionPhase); 
         const highlight = pressedAgent || selectedAgent || null;
         
+        // Access fresh hover state directly from ref during render loop
+        const currentHoverHex = hoveredHexRef.current;
+
         rendererRef.current.draw(
             ctx, 
             engine, 
             camera.current, 
             highlight, 
             fps, 
-            hoveredHex, 
+            currentHoverHex, 
             hoveredSkill
         );
 
@@ -110,7 +114,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.drawImage(sprite, px - 32, py - 80 - liftOffset);
             ctx.restore();
         }
-    }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHex, hoveredSkill, draggedObstacle, camera]);
+    }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
 
     // Resize Logic (Called by useGameLoop via Debounce)
     // Now receives LOGICAL width/height to avoid DOM thrashing
