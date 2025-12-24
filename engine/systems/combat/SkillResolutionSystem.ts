@@ -324,7 +324,10 @@ export class SkillResolutionSystem {
         // --- APPLY EFFECTS ---
 
         if (type === 'STUN') {
-            target.stunTimer = Math.max(target.stunTimer, baseDuration);
+            if (baseDuration > target.stunTimer) {
+                target.stunTimer = baseDuration;
+                target.stunMax = baseDuration; // Reset Max for UI ring
+            }
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
             statusText = "暈眩";
@@ -341,11 +344,17 @@ export class SkillResolutionSystem {
                 target.visualStatus = 'FROZEN';
             }
         } else if (type === 'SILENCE') {
-            target.silenceTimer = Math.max(target.silenceTimer, baseDuration);
+            if (baseDuration > target.silenceTimer) {
+                target.silenceTimer = baseDuration;
+                target.silenceMax = baseDuration;
+            }
             statusText = "沉默";
             statusColor = "#94a3b8"; 
         } else if (type === 'BANISH') {
-            target.banishTimer = Math.max(target.banishTimer, baseDuration);
+            if (baseDuration > target.banishTimer) {
+                target.banishTimer = baseDuration;
+                target.banishMax = baseDuration;
+            }
             target.banished = true;
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
@@ -356,10 +365,12 @@ export class SkillResolutionSystem {
             // 1. Polymorph: Transforms unit model (highest priority visual)
             if (skill.name.includes("變形") || skill.name.includes("羊") || skill.name.includes("動物")) {
                 target.visualStatus = 'POLYMORPH'; 
+                statusText = "變形"; // Correct HUD Text
             } 
             // 2. Stasis: Golden Statue Effect (Invulnerability)
             else if (skill.name.includes("無敵") || skill.name.includes("金身") || skill.name.includes("干涉")) {
                 target.visualStatus = 'STASIS'; 
+                statusText = "凝滯"; // Correct HUD Text
             } 
             // 3. Generic Banish: Ghostly/Cage Effect
             else {

@@ -85,6 +85,16 @@ export const UIFactory = {
                 ctx.fillStyle = '#d8b4fe';
                 ctx.fillText('👻', cx, cy);
                 break;
+            case 'POLYMORPH':
+                ctx.shadowColor = '#f472b6';
+                ctx.fillStyle = '#fbcfe8';
+                ctx.fillText('🐑', cx, cy);
+                break;
+            case 'STASIS':
+                ctx.shadowColor = '#facc15';
+                ctx.fillStyle = '#fef08a';
+                ctx.fillText('🛡️', cx, cy);
+                break;
         }
 
         return canvas;

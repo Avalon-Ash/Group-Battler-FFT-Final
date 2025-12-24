@@ -30,6 +30,12 @@ export class HUDSystem {
     damageNumbers: FloatingText[] = [];
 
     addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
+        // UX FIX: Prevent Kill Streak Overlap
+        // If a new kill streak appears, instantly clear the old one to keep the center stage clean.
+        if (type === 'KILL_STREAK') {
+            this.damageNumbers = this.damageNumbers.filter(d => d.type !== 'KILL_STREAK');
+        }
+
         let vx = 0;
         let vy = 0;
         let life = TEXT_LIFESPAN;
@@ -122,44 +128,72 @@ export class HUDSystem {
             const headX = a.px + a.physics.x;
 
             this.drawUnitBars(ctx, a, headX, anchorY);
-            this.drawStatusLabel(ctx, a, headX, anchorY);
+            // Replace text label with gauges
+            this.drawUnitStatusGauges(ctx, a, headX, anchorY);
         });
 
         // 2. Draw Floating Text
         this.drawFloatingText(ctx);
     }
 
-    private drawStatusLabel(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
-        // PRIORITY STATUS DISPLAY
-        // Show status directly above HP bar for maximum readability
-        let statusText = "";
-        let statusColor = "";
-        
-        if (agent.stunTimer > 0) {
-            statusText = "暈眩";
-            statusColor = "#facc15"; // Yellow
-        } else if (agent.banished) {
-            statusText = "放逐";
-            statusColor = "#c084fc"; // Purple
+    private drawUnitStatusGauges(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
+        // --- PRIORITY SYSTEM FOR STATUS DISPLAY ---
+        // Priority: 
+        // 1. Hard CC (Banish/Polymorph/Stasis)
+        // 2. Stun
+        // 3. Silence
+        // 4. Casting (Only if not CC'd)
+
+        let activeTimer = 0;
+        let maxTimer = 0;
+        let iconType = '';
+        let gaugeColor = '';
+
+        if (agent.banished) {
+            // Check visual type first
+            activeTimer = agent.banishTimer;
+            maxTimer = agent.banishMax || activeTimer;
+            
+            if (agent.visualStatus === 'POLYMORPH') {
+                iconType = 'POLYMORPH';
+                gaugeColor = '#d8b4fe'; // Pink/Purple
+            } else if (agent.visualStatus === 'STASIS') {
+                iconType = 'STASIS';
+                gaugeColor = '#facc15'; // Gold
+            } else {
+                iconType = 'BANISH';
+                gaugeColor = '#7e22ce'; // Dark Purple
+            }
+        } else if (agent.stunTimer > 0) {
+            activeTimer = agent.stunTimer;
+            maxTimer = agent.stunMax || activeTimer;
+            iconType = 'STUN';
+            gaugeColor = '#fbbf24'; // Amber/Yellow
         } else if (agent.silenceTimer > 0) {
-            statusText = "沉默";
-            statusColor = "#94a3b8"; // Grey
+            activeTimer = agent.silenceTimer;
+            maxTimer = agent.silenceMax || activeTimer;
+            iconType = 'SILENCE';
+            gaugeColor = '#94a3b8'; // Grey
+        } else if (agent.castingSkillIdx !== -1) {
+            // Casting (Existing Logic moved here)
+            const skill = agent.skills[agent.castingSkillIdx];
+            if (skill) {
+                // UX FIX: Casting should FILL UP (Clockwise Growth)
+                // castTimer counts DOWN from Max to 0.
+                // So (1 - timer/max) goes from 0 to 1.
+                const progress = 1 - (agent.castTimer / skill.cast);
+                this.drawCircularGauge(ctx, x, y, progress, skill.visual || 'BOLT', skill.color, true);
+                return;
+            }
         }
 
-        if (statusText) {
-            ctx.save();
-            ctx.font = "bold 12px sans-serif";
-            ctx.textAlign = "center";
-            
-            // Text Stroke
-            ctx.strokeStyle = "rgba(0,0,0,0.8)";
-            ctx.lineWidth = 3;
-            ctx.strokeText(statusText, x, y - 8);
-            
-            // Text Fill
-            ctx.fillStyle = statusColor;
-            ctx.fillText(statusText, x, y - 8);
-            ctx.restore();
+        // Draw CC Gauge if any
+        if (iconType && maxTimer > 0) {
+            // UX FIX: CC should DRAIN DOWN (Counter-Clockwise Shrink)
+            // timer counts DOWN from Max to 0.
+            // So (timer/max) goes from 1 to 0.
+            const progress = activeTimer / maxTimer;
+            this.drawCircularGauge(ctx, x, y, progress, iconType, gaugeColor, false);
         }
     }
 
@@ -189,17 +223,20 @@ export class HUDSystem {
             ctx.fillStyle = COLORS.MP; 
             ctx.fillRect(x - w/2, mpY + b, w * mpPct, mpH);
         }
-
-        // --- CIRCULAR CAST GAUGE (Integrated) ---
-        if (agent.castingSkillIdx !== -1) {
-            const skill = agent.skills[agent.castingSkillIdx];
-            if (skill) {
-                this.drawCircularCast(ctx, x, y, agent.castTimer, skill.cast, skill.visual, skill.color);
-            }
-        }
     }
 
-    private drawCircularCast(ctx: CanvasRenderingContext2D, x: number, y: number, current: number, total: number, visual: string | undefined, color: string) {
+    // Unified Gauge Drawer for both Casting and CC
+    // 'pct' should be 0.0 to 1.0
+    // If Growing (Cast), call with 0->1. Arc draws clockwise from top.
+    // If Shrinking (CC), call with 1->0. Arc shrinks counter-clockwise to top.
+    private drawCircularGauge(
+        ctx: CanvasRenderingContext2D, 
+        x: number, y: number, 
+        pct: number, 
+        visualKey: string, 
+        color: string, 
+        isSkill: boolean
+    ) {
         const radius = 14;
         const iconY = y - 18; 
         
@@ -212,8 +249,17 @@ export class HUDSystem {
         ctx.clip();
         
         // 2. Icon Sprite
-        const icon = AssetManager.getSkillIcon(visual || 'BOLT', color);
-        ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
+        let icon;
+        if (isSkill) {
+            icon = AssetManager.getSkillIcon(visualKey, color);
+        } else {
+            icon = AssetManager.getStatusIcon(visualKey);
+        }
+        
+        // Ensure icon fits nicely
+        if (icon) {
+            ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
+        }
         ctx.restore();
 
         // 3. Dark Track
@@ -224,17 +270,23 @@ export class HUDSystem {
         ctx.stroke();
 
         // 4. Progress Ring
-        const pct = Math.max(0, Math.min(1, 1 - (current / total)));
-        if (pct > 0) {
+        const safePct = Math.max(0, Math.min(1, pct));
+        
+        if (safePct > 0) {
             ctx.beginPath();
-            ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * pct));
+            // Start at Top (-PI/2)
+            // Draw Clockwise towards End Angle
+            // For Casting (0->1): End Angle moves Clockwise.
+            // For CC (1->0): End Angle moves Counter-Clockwise (Retracting).
+            ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * safePct));
+            
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.stroke();
         }
         
-        // 5. Shine
+        // 5. Shine / Bevel
         ctx.beginPath();
         ctx.arc(x, iconY, radius, 0, Math.PI * 2);
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';

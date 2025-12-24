@@ -47,9 +47,16 @@ export class Agent {
     
     // Status Effects
     public stunTimer: number = 0;
+    public stunMax: number = 0; // For UI Progress
+    
     public banishTimer: number = 0;
+    public banishMax: number = 0; // For UI Progress
+    
     public silenceTimer: number = 0;
+    public silenceMax: number = 0; // For UI Progress
+    
     public banished: boolean = false;
+    
     public dotTimer: number = 0;
     public dotDmg: number = 0;
     public hotTimer: number = 0;
@@ -147,8 +154,11 @@ export class Agent {
         this.moveProgress = 0;
         
         this.stunTimer = 0;
+        this.stunMax = 0;
         this.banishTimer = 0;
+        this.banishMax = 0;
         this.silenceTimer = 0;
+        this.silenceMax = 0;
         this.banished = false;
         this.dotTimer = 0;
         this.hotTimer = 0;
