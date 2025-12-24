@@ -352,10 +352,18 @@ export class SkillResolutionSystem {
             statusText = "放逐";
             statusColor = "#c084fc"; 
             
+            // Strict Visual Separation:
+            // 1. Polymorph: Transforms unit model (highest priority visual)
             if (skill.name.includes("變形") || skill.name.includes("羊") || skill.name.includes("動物")) {
                 target.visualStatus = 'POLYMORPH'; 
-            } else {
+            } 
+            // 2. Stasis: Golden Statue Effect (Invulnerability)
+            else if (skill.name.includes("無敵") || skill.name.includes("金身") || skill.name.includes("干涉")) {
                 target.visualStatus = 'STASIS'; 
+            } 
+            // 3. Generic Banish: Ghostly/Cage Effect
+            else {
+                target.visualStatus = 'NONE'; // Let 'banished' flag drive the Ghost Cage VFX in UnitVisuals
             }
         } else if (type === 'KNOCKBACK' || type === 'PULL') {
             // Knockback isn't traditionally DR'd by duration, but we can DR the force?

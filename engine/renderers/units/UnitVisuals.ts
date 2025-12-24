@@ -243,7 +243,8 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
     }
 
     // 2. BANISH - GHOSTLY CAGE (Rotates around unit)
-    if (agent.banished && agent.visualStatus !== 'POLYMORPH') {
+    // MUTUALLY EXCLUSIVE: Only draw if NOT Poly'd and NOT Stasis
+    if (agent.banished && agent.visualStatus !== 'POLYMORPH' && agent.visualStatus !== 'STASIS') {
         ctx.translate(0, -30); // Body center
         
         ctx.globalCompositeOperation = 'source-over';
