@@ -32,8 +32,8 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                     >
                         <Icons.Log className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                         <div className="flex flex-col items-start">
-                            <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">BATTLE LOGS</span>
-                            <span className="text-[9px] text-slate-500 uppercase">View History</span>
+                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-cyan-300">BATTLE LOGS</span>
+                            <span className="text-[11px] text-slate-500 uppercase">View History</span>
                         </div>
                     </button>
 
@@ -43,8 +43,8 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                     >
                         <Icons.Database className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                         <div className="flex flex-col items-start">
-                            <span className="text-xs font-bold tracking-widest text-white group-hover:text-amber-300">DATABASE</span>
-                            <span className="text-[9px] text-slate-500 uppercase">Skill Reference</span>
+                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-amber-300">DATABASE</span>
+                            <span className="text-[11px] text-slate-500 uppercase">Skill Reference</span>
                         </div>
                     </button>
 
@@ -54,8 +54,8 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                     >
                         <Icons.Save className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                         <div className="flex flex-col items-start">
-                            <span className="text-xs font-bold tracking-widest text-white group-hover:text-emerald-300">EXPORT SPEC</span>
-                            <span className="text-[9px] text-slate-500 uppercase">Download .txt</span>
+                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-emerald-300">EXPORT SPEC</span>
+                            <span className="text-[11px] text-slate-500 uppercase">Download .txt</span>
                         </div>
                     </button>
                 </div>

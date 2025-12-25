@@ -39,7 +39,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
             {/* Header / Controls */}
             <div className="p-5 border-b border-white/5 shrink-0 space-y-4">
                 <div className="flex justify-between items-end">
-                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em]">Neural Archive</div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Neural Archive</div>
                     <div className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-1 rounded-md border border-cyan-500/20">
                         {filteredSkills.length} ENTRIES
                     </div>
@@ -52,7 +52,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                             <button 
                                 key={t}
                                 onClick={() => setDbTypeTab(t as any)} 
-                                className={`flex-1 py-2 text-[10px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                className={`flex-1 py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
                                 {t === 'ALL' ? 'ALL' : TAG_MAP[t].label}
                             </button>
@@ -91,8 +91,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                 <div className="flex-1 min-w-0">
                                     <div className={`font-bold text-sm ${isSelected ? 'text-cyan-300' : 'text-slate-200'}`}>{skill.name}</div>
                                     <div className="flex gap-2 items-center mt-1.5">
-                                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-black/30 px-1.5 py-0.5 rounded-md border border-white/5">{ROLE_MAP[skill.role].label}</span>
-                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-opacity-10 border-opacity-20 ${skill.tag === 'ULT' ? 'text-purple-300 bg-purple-500 border-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-300 bg-blue-500 border-blue-400' : 'text-slate-400 bg-slate-500 border-slate-400')}`}>
+                                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-black/30 px-1.5 py-0.5 rounded-md border border-white/5">{ROLE_MAP[skill.role].label}</span>
+                                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md border bg-opacity-10 border-opacity-20 ${skill.tag === 'ULT' ? 'text-purple-300 bg-purple-500 border-purple-400' : (skill.tag === 'ACTIVE' ? 'text-blue-300 bg-blue-500 border-blue-400' : 'text-slate-400 bg-slate-500 border-slate-400')}`}>
                                             {TAG_MAP[skill.tag].label}
                                         </span>
                                     </div>
@@ -128,7 +128,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
 
                                                     return (
                                                         <div key={field.key} className={isWide ? "col-span-2 space-y-1.5" : "space-y-1.5"}>
-                                                            <label className="text-[9px] font-bold text-slate-400 block ml-1" title={field.label}>{field.label}</label>
+                                                            <label className="text-[10px] font-bold text-slate-400 block ml-1" title={field.label}>{field.label}</label>
                                                             
                                                             {field.type === 'textarea' ? (
                                                                 <textarea 

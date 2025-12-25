@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 
 interface DraggableOptions {
     initialX?: number;
@@ -8,13 +9,24 @@ interface DraggableOptions {
 }
 
 export const useDraggable = (ref: React.RefObject<HTMLElement>, options: DraggableOptions = {}) => {
+    const { anchor = 'top-left', margin = 20 } = options;
+    
+    // The "Committed" position (synced with React state)
     const [position, setPosition] = useState({ x: options.initialX || 0, y: options.initialY || 0 });
     const [isDragging, setIsDragging] = useState(false);
-    const dragStartRef = useRef({ x: 0, y: 0 });
-    const posRef = useRef(position); // Sync ref for event handlers
+    
+    // Refs for Drag Logic (Mutable, no re-renders)
+    const dragStartMouseRef = useRef({ x: 0, y: 0 }); // Mouse Pos at Down
+    const dragStartElemRef = useRef({ x: 0, y: 0 });  // Element Pos at Down
+    const currentPosRef = useRef(position);           // Current tracking pos
     const hasInitialized = useRef(false);
 
-    const { anchor = 'top-left', margin = 20 } = options;
+    // Sync ref if position is updated externally (rare)
+    useEffect(() => {
+        if (!isDragging) {
+            currentPosRef.current = position;
+        }
+    }, [position, isDragging]);
 
     // --- 1. Auto-Positioning (Initial & Resize) ---
     const clampToScreen = useCallback(() => {
@@ -24,41 +36,30 @@ export const useDraggable = (ref: React.RefObject<HTMLElement>, options: Draggab
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        setPosition(prev => {
-            // Keep within bounds
-            // We use the current visual position to calculate new bounds
-            // But if it's the first run, we respect the anchor
-            
-            let newX = prev.x;
-            let newY = prev.y;
+        let newX = currentPosRef.current.x;
+        let newY = currentPosRef.current.y;
 
-            // Clamping Logic based on current transform
-            // Note: Since we use transform: translate(x, y), x/y are relative to the *initial* render position 
-            // if we weren't using absolute positioning.
-            // To simplify, we will assume the component uses fixed/absolute positioning at 0,0 
-            // and the transform drives the entire location.
-            
-            const currentAbsX = newX;
-            const currentAbsY = newY;
+        const maxX = vw - rect.width - margin;
+        const maxY = vh - rect.height - margin;
+        const minX = margin;
+        const minY = margin;
 
-            const maxX = vw - rect.width - margin;
-            const maxY = vh - rect.height - margin;
-            const minX = margin;
-            const minY = margin;
+        const clampedX = Math.min(Math.max(newX, minX), maxX);
+        const clampedY = Math.min(Math.max(newY, minY), maxY);
 
-            const clampedX = Math.min(Math.max(currentAbsX, minX), maxX);
-            const clampedY = Math.min(Math.max(currentAbsY, minY), maxY);
-
-            return { x: clampedX, y: clampedY };
-        });
+        // Update if changed
+        if (clampedX !== newX || clampedY !== newY) {
+            const p = { x: clampedX, y: clampedY };
+            currentPosRef.current = p;
+            setPosition(p);
+        }
     }, [margin, ref]);
 
-    // Initial Placement Logic
+    // Initial Placement
     useEffect(() => {
         if (hasInitialized.current || !ref.current) return;
         
         const el = ref.current;
-        // Need a slight delay for dimensions to be real if loading
         requestAnimationFrame(() => {
             const rect = el.getBoundingClientRect();
             const vw = window.innerWidth;
@@ -70,68 +71,80 @@ export const useDraggable = (ref: React.RefObject<HTMLElement>, options: Draggab
             if (anchor.includes('center')) x = (vw / 2) - (rect.width / 2);
             if (anchor.includes('right')) x = vw - rect.width - margin;
             
-            if (anchor.includes('bottom')) y = vh - rect.height - (margin * 2); // Extra margin for bottom
+            if (anchor.includes('bottom')) y = vh - rect.height - (margin * 2); 
             
-            // If explicit coordinates were passed, override
             if (options.initialX !== undefined) x = options.initialX;
             if (options.initialY !== undefined) y = options.initialY;
 
-            setPosition({ x, y });
-            posRef.current = { x, y };
+            const p = { x, y };
+            setPosition(p);
+            currentPosRef.current = p;
             hasInitialized.current = true;
         });
     }, [anchor, margin, options.initialX, options.initialY]);
 
-    // Resize Handler
+    // Resize
     useEffect(() => {
-        const handleResize = () => {
-            // Re-clamp on resize
-            clampToScreen();
-        };
+        const handleResize = () => clampToScreen();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [clampToScreen]);
 
-    // --- 2. Drag Logic ---
+    // --- 2. Restore Position on Re-render ---
+    // Critical: If the component re-renders while dragging (e.g. UnitInspector updating),
+    // React would reset the style to `position` state (start of drag).
+    // This forces the style back to the current dragged position.
+    useLayoutEffect(() => {
+        if (isDragging && ref.current) {
+            ref.current.style.transform = `translate3d(${currentPosRef.current.x}px, ${currentPosRef.current.y}px, 0)`;
+        }
+    });
+
+    // --- 3. Drag Handlers ---
     const handlePointerDown = (e: React.PointerEvent) => {
-        // Prevent dragging if clicking input or button (unless it's a specific drag handle)
         const target = e.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') return;
-        // Buttons are usually clickable, so we might want to allow dragging *unless* it triggers an action.
-        // But for HUDs, usually clicking empty space or specific headers initiates drag.
+        // Ignore interactions with form elements
+        if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
         
-        // Stop default browser drag
         e.preventDefault(); 
         
         setIsDragging(true);
-        dragStartRef.current = { x: e.clientX, y: e.clientY };
-        posRef.current = position;
+        dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
+        dragStartElemRef.current = currentPosRef.current;
         
-        // Capture pointer to track outside window
+        // Remove transition during drag for instant follow
+        if (ref.current) ref.current.style.transition = 'none';
+        
         (e.target as Element).setPointerCapture(e.pointerId);
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isDragging) return;
+        if (!isDragging || !ref.current) return;
         
-        const dx = e.clientX - dragStartRef.current.x;
-        const dy = e.clientY - dragStartRef.current.y;
+        const dx = e.clientX - dragStartMouseRef.current.x;
+        const dy = e.clientY - dragStartMouseRef.current.y;
 
         const newPos = {
-            x: posRef.current.x + dx,
-            y: posRef.current.y + dy
+            x: dragStartElemRef.current.x + dx,
+            y: dragStartElemRef.current.y + dy
         };
 
-        setPosition(newPos);
+        currentPosRef.current = newPos;
+        // Direct DOM Update (Bypassing React Render Cycle)
+        ref.current.style.transform = `translate3d(${newPos.x}px, ${newPos.y}px, 0)`;
     };
 
     const handlePointerUp = (e: React.PointerEvent) => {
         if (isDragging) {
             setIsDragging(false);
-            posRef.current = position; // Commit final position
             (e.target as Element).releasePointerCapture(e.pointerId);
             
-            // Optional: Snap to bounds on release
+            if (ref.current) ref.current.style.transition = ''; // Restore CSS transitions
+            
+            // Commit final position to React State
+            setPosition(currentPosRef.current);
+            
+            // Optional: Clamp on release
             clampToScreen();
         }
     };
@@ -148,6 +161,8 @@ export const useDraggable = (ref: React.RefObject<HTMLElement>, options: Draggab
             position: 'fixed' as const,
             left: 0,
             top: 0,
+            // Use state position for default rendering. 
+            // During drag, DOM override + LayoutEffect takes precedence.
             transform: `translate3d(${position.x}px, ${position.y}px, 0)`,
             touchAction: 'none' as const
         }

@@ -23,8 +23,12 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-center',
-        margin: 40
+        margin: 30
     });
+
+    const glowClass = winner !== null 
+        ? (winner === Team.BLUE ? 'shadow-[0_0_30px_rgba(59,130,246,0.4)] border-blue-500/30' : 'shadow-[0_0_30px_rgba(239,68,68,0.4)] border-red-500/30') 
+        : (isPlaying ? 'shadow-[0_0_20px_rgba(16,185,129,0.2)] border-white/10' : 'border-white/10');
 
     return (
         <div 
@@ -33,81 +37,98 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
             style={style}
             {...dragHandlers}
         >
-            <div className={`liquid-card !rounded-full p-2 pr-6 flex items-center gap-5 select-none cursor-grab ${isDragging ? 'cursor-grabbing scale-105 shadow-[0_0_30px_rgba(6,182,212,0.3)]' : ''} bg-black/60`}>
+            {/* Main Capsule Container - Updated to Liquid Glass */}
+            <div className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
                 
-                {/* 1. Main Controls (Circle Buttons) */}
-                <div className="flex items-center gap-2 pl-1">
+                {/* 1. Play/Pause (Primary Action) */}
+                <div className="relative group">
+                    <div className={`absolute inset-0 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity ${isPlaying ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                     <button 
                         onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
+                        onPointerDown={(e) => e.stopPropagation()} 
                         disabled={winner !== null}
-                        className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-300 shadow-lg group ${isPlaying ? 'bg-amber-500/10 text-amber-400 border border-amber-500/50 hover:bg-amber-500/20' : 'bg-white/5 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-400/60'}`}
-                        title={isPlaying ? "暫停" : "開始"}
-                        onPointerDown={e => e.stopPropagation()}
+                        className={`relative w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-200 border shadow-lg
+                            ${isPlaying 
+                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105' 
+                                : 'bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/30 hover:scale-105'}
+                            disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                        <span className="group-active:scale-90 transition-transform">
-                            {isPlaying ? <Icons.Pause className="w-6 h-6" /> : <Icons.Play className="w-6 h-6" />}
-                        </span>
+                        {isPlaying ? <Icons.Pause className="w-6 h-6 fill-current" /> : <Icons.Play className="w-6 h-6 fill-current ml-1" />}
                     </button>
-                    
-                    <div className="flex flex-col gap-1.5">
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onRestart(); }}
-                            className="w-10 h-5 rounded-full bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white flex items-center justify-center border border-white/10 transition-colors"
-                            title="重置回合"
-                            onPointerDown={e => e.stopPropagation()}
-                        >
-                            <Icons.Restart className="w-3 h-3" />
-                        </button>
-                        <button 
-                            onClick={(e) => { e.stopPropagation(); onRandom(); }}
-                            className="w-10 h-5 rounded-full bg-purple-500/10 hover:bg-purple-500/30 text-purple-300 hover:text-white flex items-center justify-center border border-purple-500/20 hover:border-purple-400/50 transition-colors"
-                            title="隨機戰場"
-                            onPointerDown={e => e.stopPropagation()}
-                        >
-                            <Icons.Dice className="w-3 h-3" />
-                        </button>
-                    </div>
                 </div>
 
-                {/* Divider */}
-                <div className="w-px h-8 bg-white/10"></div>
+                {/* 2. Secondary Controls (Reset / Random) */}
+                <div className="flex flex-col gap-1.5">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onRestart(); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 hover:border-white/20 flex items-center justify-center transition-all active:scale-95 group"
+                        title="重置 (Reset)"
+                    >
+                        <Icons.Restart className="w-4 h-4 group-hover:-rotate-180 transition-transform duration-500" />
+                    </button>
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); onRandom(); }}
+                        onPointerDown={(e) => e.stopPropagation()}
+                        className="w-8 h-8 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
+                        title="隨機戰場 (Random)"
+                    >
+                        <Icons.Dice className="w-4 h-4" />
+                    </button>
+                </div>
 
-                {/* 2. Time Control */}
-                <div className="flex flex-col w-32 md:w-40 gap-1">
+                <div className="h-8 w-px bg-white/10 mx-1"></div>
+
+                {/* 3. Time Dilation Control */}
+                <div className="flex flex-col w-32 gap-1.5" onPointerDown={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-center px-1">
-                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">SIM_SPEED</span>
-                        <span className="text-[10px] font-mono font-bold text-cyan-400 text-glow-cyan">{timeScale.toFixed(1)}x</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sim Speed</span>
+                        <span className={`text-xs font-mono font-bold ${timeScale > 1.0 ? 'text-cyan-400 text-glow-cyan' : 'text-slate-300'}`}>
+                            {timeScale.toFixed(1)}x
+                        </span>
                     </div>
-                    {/* Thicker slider for mobile (h-8) */}
-                    <div className="relative h-8 bg-black/40 rounded-lg border border-white/5 overflow-hidden group">
-                        <div className="absolute top-0 left-0 h-full bg-cyan-500/20 transition-all" style={{width: `${(timeScale/3)*100}%`}}></div>
-                        {/* Indicator Bar inside */}
-                        <div className="absolute top-1.5 left-0.5 bottom-1.5 bg-cyan-500/50 rounded-md transition-all pointer-events-none" style={{width: `calc(${(timeScale/3)*100}% - 4px)`}}></div>
+                    
+                    {/* Enhanced Slider Track */}
+                    <div className="relative h-6 w-full flex items-center group cursor-pointer">
+                        {/* Background Track */}
+                        <div className="absolute left-0 right-0 h-2 bg-black/40 rounded-full border border-white/10 overflow-hidden">
+                            {/* Fill Progress */}
+                            <div 
+                                className="h-full bg-gradient-to-r from-cyan-900 to-cyan-500 transition-all duration-100 ease-out" 
+                                style={{width: `${(timeScale/3)*100}%`}}
+                            ></div>
+                        </div>
                         
+                        {/* Thumb Knob (Visual Only, follows logic) */}
+                        <div 
+                            className="absolute h-4 w-1.5 bg-white rounded-full shadow-[0_0_10px_cyan] pointer-events-none transition-all duration-100 ease-out z-10"
+                            style={{left: `calc(${(timeScale/3)*100}% - 3px)`}}
+                        ></div>
+
+                        {/* Invisible Touch Target - High Z-Index to capture events */}
                         <input 
                             type="range" min="0.1" max="3.0" step="0.1" 
                             value={timeScale} onChange={(e) => onSetTimeScale(parseFloat(e.target.value))}
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                            onPointerDown={e => e.stopPropagation()}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20"
+                            onPointerDown={(e) => e.stopPropagation()}
                         />
                     </div>
                 </div>
 
-                {/* Divider */}
-                <div className="w-px h-8 bg-white/10"></div>
+                <div className="h-8 w-px bg-white/10 mx-1"></div>
 
-                {/* 3. System */}
+                {/* 4. Showcase / System */}
                 <button 
                     onClick={(e) => { e.stopPropagation(); onShowcase(); }}
-                    className="text-slate-500 hover:text-white transition-all hover:scale-110 active:scale-95"
-                    title="返回展示模式"
-                    onPointerDown={e => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                    className="w-10 h-10 rounded-full hover:bg-cyan-950/30 text-slate-500 hover:text-cyan-400 transition-all flex items-center justify-center group"
+                    title="展示模式 (Showcase)"
                 >
-                    <Icons.TV className="w-6 h-6 filter drop-shadow-md" />
+                    <Icons.TV className="w-5 h-5 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                 </button>
-                
-                {/* Drag Handle */}
-                <div className="flex flex-col gap-1 opacity-20 px-1 cursor-grab active:cursor-grabbing">
+
+                {/* Drag Handle Indicator */}
+                <div className="w-1.5 h-8 flex flex-col justify-center gap-1 opacity-20 cursor-grab active:cursor-grabbing hover:opacity-50 transition-opacity">
                     <div className="w-1 h-1 rounded-full bg-white"></div>
                     <div className="w-1 h-1 rounded-full bg-white"></div>
                     <div className="w-1 h-1 rounded-full bg-white"></div>

@@ -109,7 +109,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                 <div className="flex flex-col min-w-0">
                                     <div className={`font-mono font-bold text-sm ${themeColor} leading-none tracking-tight truncate`}>{agent.id}</div>
                                     <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{agent.role}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{agent.role}</span>
                                         {/* Config Button (Larger & clearer) */}
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setIsConfigExpanded(!isConfigExpanded); }}
@@ -129,24 +129,30 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                 <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 mr-2">
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'AI' ? 'NONE' : 'AI')} 
-                                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold transition-all ${viewMode === 'AI' ? 'bg-amber-500/20 text-amber-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
+                                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${viewMode === 'AI' ? 'bg-amber-500/20 text-amber-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
                                         title="AI Monitor"
                                     >
                                         AI
                                     </button>
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'SKILLS' ? 'NONE' : 'SKILLS')} 
-                                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold transition-all ${viewMode === 'SKILLS' ? 'bg-cyan-500/20 text-cyan-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
+                                        className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${viewMode === 'SKILLS' ? 'bg-cyan-500/20 text-cyan-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
                                         title="Linkage"
                                     >
                                         LINK
                                     </button>
                                 </div>
 
-                                <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-8 h-8 text-[10px] bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border-transparent">
+                                <button 
+                                    onClick={() => setIsMinimized(true)} 
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border border-transparent transition-all active:scale-95"
+                                >
                                     <Icons.Minimize className="w-3 h-3" />
                                 </button>
-                                <button onClick={onClose} className="liquid-icon-btn w-8 h-8 text-[10px] bg-red-500/10 hover:bg-red-500/30 text-red-400 border-transparent">
+                                <button 
+                                    onClick={onClose} 
+                                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 border border-transparent transition-all active:scale-95"
+                                >
                                     <Icons.Close className="w-3 h-3" />
                                 </button>
                             </div>
@@ -159,9 +165,9 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                         >
                             <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
                                 <div className="space-y-1">
-                                    <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block text-center">Class</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block text-center">Class</label>
                                     <select 
-                                        className="liquid-input h-8 w-full text-[10px] font-bold bg-black/50 !rounded-lg border-white/10 focus:border-cyan-500/50 p-0 pl-2 text-white"
+                                        className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 focus:border-cyan-500/50 p-0 pl-2 text-white"
                                         value={agent.role} 
                                         onChange={(e) => setRole(e.target.value)}
                                     >
@@ -169,7 +175,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[8px] font-bold text-green-500/70 uppercase tracking-widest block text-center">HP</label>
+                                    <label className="text-[10px] font-bold text-green-500/70 uppercase tracking-widest block text-center">HP</label>
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-green-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-green-500/50 p-0"
@@ -178,7 +184,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[8px] font-bold text-blue-500/70 uppercase tracking-widest block text-center">MP</label>
+                                    <label className="text-[10px] font-bold text-blue-500/70 uppercase tracking-widest block text-center">MP</label>
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-blue-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-blue-500/50 p-0"
@@ -207,15 +213,15 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                         <div className="px-3 pb-3 cursor-default" onPointerDown={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center bg-black/20 rounded-lg p-2 border border-white/5">
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] text-slate-500 font-bold uppercase tracking-widest">CURRENT STATE</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">CURRENT STATE</span>
                                     <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300'}`}>
                                         {Helpers.getStatusLabel(agent.btStatus)}
                                     </span>
                                 </div>
                                 <div className="flex gap-1">
-                                    {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[9px] px-1.5">STUN</span>}
-                                    {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300 text-[9px] px-1.5">MUTE</span>}
-                                    {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 text-[9px] px-1.5">BANISH</span>}
+                                    {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[10px] px-1.5">STUN</span>}
+                                    {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300 text-[10px] px-1.5">MUTE</span>}
+                                    {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 text-[10px] px-1.5">BANISH</span>}
                                 </div>
                             </div>
                         </div>
@@ -231,7 +237,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                             {viewMode === 'AI' ? (
                                 <div className="w-full h-full relative">
                                     <BehaviorTreeTab agent={agent} version={version} engine={engine} />
-                                    <div className="absolute bottom-2 right-2 text-[9px] text-white/20 font-mono pointer-events-none">
+                                    <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono pointer-events-none">
                                         LIVE MONITORING
                                     </div>
                                 </div>

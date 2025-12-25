@@ -116,7 +116,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
             >
-                <div className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-3 sticky top-0 bg-slate-900/95 backdrop-blur z-10 py-2 border-b border-white/5 pointer-events-none">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-3 sticky top-0 bg-slate-900/95 backdrop-blur z-10 py-2 border-b border-white/5 pointer-events-none">
                     <Icons.Database className="w-3 h-3" />
                     NEURAL LINKAGE
                 </div>
@@ -140,10 +140,10 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                     <SkillIcon skill={currentSkill || null} className="w-10 h-10 !rounded-lg shadow-lg shrink-0 border border-white/10 bg-black/50" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-center mb-1">
-                                            <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 rounded border ${tag === 'ULT' ? 'text-purple-300 border-purple-500/30 bg-purple-500/10' : (tag === 'ACTIVE' ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : 'text-slate-300 border-slate-500/30 bg-slate-500/10')}`}>
+                                            <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 rounded border ${tag === 'ULT' ? 'text-purple-300 border-purple-500/30 bg-purple-500/10' : (tag === 'ACTIVE' ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : 'text-slate-300 border-slate-500/30 bg-slate-500/10')}`}>
                                                 {TAG_MAP[tag].label} SLOT
                                             </span>
-                                            {currentSkill && <span className="text-[9px] text-slate-500 font-mono">{currentSkill.id}</span>}
+                                            {currentSkill && <span className="text-[10px] text-slate-500 font-mono">{currentSkill.id}</span>}
                                         </div>
                                         <div className="relative">
                                             <select 
@@ -167,21 +167,21 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                                     );
                                                 })}
                                             </select>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[8px]">▼</div>
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">▼</div>
                                         </div>
                                     </div>
                                 </div>
 
                                 {currentSkill && (
                                     <div className="px-3 py-2 text-xs bg-black/20 border-t border-white/5 pointer-events-none">
-                                        <div className="text-slate-400 italic mb-2 leading-relaxed border-l-2 border-white/10 pl-2 text-[10px]">
+                                        <div className="text-slate-400 italic mb-2 leading-relaxed border-l-2 border-white/10 pl-2 text-[11px]">
                                             {currentSkill.desc}
                                         </div>
-                                        <div className="grid grid-cols-4 gap-2 text-[9px] font-mono text-slate-400">
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[8px] uppercase">PWR</span> <span className="text-slate-200">{currentSkill.power}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[8px] uppercase">CD</span> <span className="text-slate-200">{currentSkill.cd}s</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[8px] uppercase">MP</span> <span className="text-blue-300">{currentSkill.cost}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[8px] uppercase">RNG</span> <span className="text-slate-200">{currentSkill.range}</span></div>
+                                        <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-slate-400">
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">PWR</span> <span className="text-slate-200">{currentSkill.power}</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">CD</span> <span className="text-slate-200">{currentSkill.cd}s</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">MP</span> <span className="text-blue-300">{currentSkill.cost}</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">RNG</span> <span className="text-slate-200">{currentSkill.range}</span></div>
                                         </div>
                                     </div>
                                 )}
