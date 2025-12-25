@@ -393,39 +393,81 @@ export class HUDSystem {
                     ctx.scale(scale, scale);
                     ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
                     const textMetrics = ctx.measureText(d.text);
-                    const w = textMetrics.width / 2 + 30;
-                    const h = d.size + 16;
+                    // Add significant padding for the "Cinema Mode" backdrop
+                    const w = textMetrics.width / 2 + 25;
+                    const h = d.size + 12;
 
-                    // Liquid Glass Badge for Ult Shout
-                    const bgGrad = ctx.createLinearGradient(-w, -h/2, w, h/2);
+                    // --- ULT BACKGROUND (Liquid Glass Banner) ---
+                    // Dark center, transparent edges to avoid harsh cutoffs
+                    const bgGrad = ctx.createLinearGradient(-w - 20, 0, w + 20, 0);
                     bgGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                    bgGrad.addColorStop(0.2, 'rgba(0,0,0,0.8)'); 
-                    bgGrad.addColorStop(0.8, 'rgba(0,0,0,0.8)');
+                    bgGrad.addColorStop(0.3, 'rgba(2, 6, 23, 0.85)'); // Slate-950
+                    bgGrad.addColorStop(0.7, 'rgba(2, 6, 23, 0.85)');
                     bgGrad.addColorStop(1, 'rgba(0,0,0,0)');
                     
                     ctx.fillStyle = bgGrad;
-                    ctx.fillRect(-w, -h/2, w*2, h);
+                    ctx.fillRect(-w - 20, -h/2, w*2 + 40, h);
                     
-                    // Text Glow
+                    // --- NEON ACCENTS (Top/Bottom Lines) ---
+                    ctx.strokeStyle = d.color;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = alpha * 0.8;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(-w, -h/2); ctx.lineTo(w, -h/2); // Top Line
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(-w * 0.8, h/2); ctx.lineTo(w * 0.8, h/2); // Bottom Line (Shorter)
+                    ctx.stroke();
+                    
+                    ctx.globalAlpha = alpha;
+
+                    // --- TEXT ---
                     ctx.shadowColor = d.color;
                     ctx.shadowBlur = 15;
                     ctx.fillStyle = '#fff';
                     ctx.fillText(d.text, 0, 0);
-                    ctx.shadowBlur = 0;
                     
-                    ctx.strokeStyle = d.color;
-                    ctx.lineWidth = 1;
+                    // Subtle stroke for clarity against bright VFX
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                    ctx.lineWidth = 3;
                     ctx.strokeText(d.text, 0, 0);
+                    ctx.fillText(d.text, 0, 0);
                     
                     ctx.restore();
                 } else {
-                    ctx.font = `bold italic ${d.size}px "Segoe UI", sans-serif`;
-                    ctx.lineWidth = 3;
-                    ctx.lineJoin = 'round';
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)'; 
-                    ctx.strokeText(d.text, d.x, d.y);
-                    ctx.fillStyle = d.color;
+                    // --- ACTIVE SKILL (Pill Glass) ---
+                    ctx.font = `bold ${d.size}px "Segoe UI", sans-serif`;
+                    const textMetrics = ctx.measureText(d.text);
+                    const padX = 12;
+                    const padY = 6;
+                    const w = textMetrics.width;
+                    const h = d.size;
+                    
+                    // Dark Frosted Capsule Background
+                    // Ensures visibility on dark maps and light maps alike
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.75)'; // Slate-900 semi-transparent
+                    ctx.beginPath();
+                    if (ctx.roundRect) {
+                        ctx.roundRect(d.x - w/2 - padX, d.y - h/2 - padY, w + padX*2, h + padY*2, 8);
+                    } else {
+                        ctx.rect(d.x - w/2 - padX, d.y - h/2 - padY, w + padX*2, h + padY*2);
+                    }
+                    ctx.fill();
+                    
+                    // Subtle Rim
+                    ctx.strokeStyle = `rgba(255,255,255,0.15)`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Text with colored glow
+                    ctx.shadowColor = d.color;
+                    ctx.shadowBlur = 8;
+                    ctx.fillStyle = '#fff'; // White text always pops on dark pill
                     ctx.fillText(d.text, d.x, d.y);
+                    ctx.shadowBlur = 0;
                 }
 
             } else if (d.type === 'CC') {
