@@ -54,18 +54,25 @@ export const ParticleRenderer = {
             ctx.fill();
 
         } else if (p.type === 'SMOKE') {
-            // ☁️ VOLUMETRIC SMOKE (Cluster of puffs)
-            const scale = 0.5 + progress * 1.5; // Expands
-            const alpha = (1 - progress) * 0.4;
+            // ☁️ VOLUMETRIC SMOKE / FIRE CLOUD
+            const scale = 0.5 + progress * 2.0; // Expands more
+            const alpha = (1 - progress) * 0.6; // Slightly more opaque start
             
             ctx.scale(scale, scale);
-            ctx.rotate(p.rotation + progress); // Slowly rotates
+            ctx.rotate(p.rotation + progress * 0.5); // Slowly rotates
             ctx.globalAlpha = alpha;
-            ctx.fillStyle = p.color;
+            
+            // Enhanced Shading for Explosions
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+            grad.addColorStop(0, p.color);
+            grad.addColorStop(1, 'rgba(0,0,0,0)'); // Soft edge
+            
+            ctx.fillStyle = grad;
             
             // Draw cluster
             ctx.beginPath();
             ctx.arc(0, 0, p.size, 0, Math.PI*2);
+            // Add irregularities
             ctx.arc(p.size*0.5, p.size*0.5, p.size*0.6, 0, Math.PI*2);
             ctx.arc(-p.size*0.4, -p.size*0.3, p.size*0.7, 0, Math.PI*2);
             ctx.fill();
@@ -401,7 +408,7 @@ export const ParticleRenderer = {
 
     drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.scale(1, 0.55); 
-        const r = progress * 300; 
+        const r = progress * p.size; // Expands to max size
         const width = 30 * (1 - progress);
         ctx.globalAlpha = (1 - progress);
         ctx.strokeStyle = p.color;

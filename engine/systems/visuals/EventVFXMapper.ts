@@ -39,11 +39,33 @@ export class EventVFXMapper {
                 break;
 
             case 'IMPACT_AOE':
-                // NEW: Explicit large blast for AOE impacts
+                // Check for High-Tier Ultimates first
+                if (event.skill) {
+                    // Tactical Nuke (Red Ranger Ult 2)
+                    if (event.skill.id === 'rr_u2') {
+                        VFXSpawners.spawnTacticalNuke(vfx, event.pos.x, visualGroundY, event.color || '#ef4444');
+                        camera.addTrauma(0.8); // MASSIVE SHAKE
+                        return;
+                    }
+                    // Meteor (Red Mage Ult 1)
+                    if (event.skill.id === 'mr_u1') {
+                        VFXSpawners.spawnMeteorImpact(vfx, event.pos.x, visualGroundY, event.color || '#ea580c');
+                        camera.addTrauma(0.6);
+                        return;
+                    }
+                    // Black Hole (Blue Mage Ult 1)
+                    if (event.skill.id === 'mb_u1') {
+                        VFXSpawners.spawnBlackHoleCollapse(vfx, event.pos.x, visualGroundY, '#000');
+                        camera.addTrauma(0.4);
+                        return;
+                    }
+                }
+
+                // Default AOE Blast
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY, 0, 20, event.color || '#fff', 2.0, 0.6, 'SPARK');
                 VFXSpawners.addImpact(vfx, event.pos.x, visualGroundY, 0, event.color || '#fff', 'BLAST', 0.5);
                 VFXSpawners.spawnShockwave(vfx, event.pos.x, visualGroundY, event.color || '#fff', 0.6);
-                camera.addTrauma(0.25); // Screen shake for AOE
+                camera.addTrauma(0.25); 
                 break;
 
             case 'PROJECTILE_HIT': 
@@ -160,8 +182,15 @@ export class EventVFXMapper {
                 VFXSpawners.spawnBloodRitual(vfx, event.pos.x, centerVisualY, color, 1.5);
             }
 
-            // Single Target Ult
-            VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
+            // Check for specific single target ults
+            if (skill && skill.id === 'wr_u1') { // Ragnarok
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, '#991b1b', 2.0, 1.0, 'DEBRIS'); // Blood explosion
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 0, '#ef4444', 'BLAST', 0.8);
+                camera.addTrauma(0.5);
+            } else {
+                // Generic Single Target Ult
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
+            }
             
         } else {
             // --- NORMAL SKILLS (Specific Visuals) ---

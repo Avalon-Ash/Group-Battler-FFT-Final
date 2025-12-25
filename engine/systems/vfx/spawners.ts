@@ -51,7 +51,158 @@ export function spawnBloodRitual(system: VFXSystem, x: number, y: number, color:
     }
 }
 
-// --- 2. IMPACTS & EXPLOSIONS ---
+// --- 2. SUPER ULTIMATES (Cinematic Levels) ---
+
+// ☢️ TACTICAL NUKE (Mushroom Cloud)
+export function spawnTacticalNuke(system: VFXSystem, x: number, y: number, color: string) {
+    // 1. Initial Blinding Flash
+    const flash = system.state.getParticle();
+    flash.x = x; flash.y = y; flash.z = 50;
+    flash.life = 0.2; flash.maxLife = 0.2;
+    flash.color = '#fff'; flash.size = 800; // Screen filler
+    flash.type = 'GLOW'; // Reuse GLOW for simple flash
+    system.state.particles.push(flash);
+
+    // 2. The Stem (Rising Pillar of Fire/Smoke)
+    const stemLayers = 8;
+    for(let i=0; i<stemLayers; i++) {
+        const p = system.state.getParticle();
+        p.x = x; p.y = y; p.z = 10;
+        p.vx = (Math.random()-0.5) * 20;
+        p.vy = (Math.random()-0.5) * 20;
+        p.vz = 100 + i * 80; // Fast rising
+        p.life = 1.5 + Math.random(); p.maxLife = p.life;
+        p.color = i < 3 ? '#fbbf24' : '#4b5563'; // Fire bottom, Smoke top
+        p.size = 40 + i * 5;
+        p.type = 'SMOKE';
+        p.delay = 0.1;
+        system.state.particles.push(p);
+    }
+
+    // 3. The Cap (Expanding Mushroom Top)
+    const capCount = 12;
+    for(let i=0; i<capCount; i++) {
+        const p = system.state.getParticle();
+        const angle = Math.random() * Math.PI * 2;
+        const dist = Math.random() * 30;
+        p.x = x + Math.cos(angle)*dist; 
+        p.y = y + Math.sin(angle)*dist; 
+        p.z = 250; // Start high
+        p.vx = Math.cos(angle) * 80; // Expand outward
+        p.vy = Math.sin(angle) * 80;
+        p.vz = 20 + Math.random() * 40; // Slowly rise
+        p.life = 2.0; p.maxLife = 2.0;
+        p.color = Math.random() > 0.5 ? '#ef4444' : '#1f2937'; // Red/Dark Grey
+        p.size = 60 + Math.random() * 40;
+        p.type = 'SMOKE';
+        p.rotation = Math.random() * Math.PI;
+        p.delay = 0.3; // Wait for stem
+        system.state.particles.push(p);
+    }
+
+    // 4. Ground Shockwave Rings
+    for(let i=0; i<3; i++) {
+        const p = system.state.getParticle();
+        p.x = x; p.y = y; p.z = 5;
+        p.life = 0.8 + i * 0.2; p.maxLife = p.life;
+        p.color = color;
+        p.size = 150 + i * 50; 
+        p.type = 'SHOCKWAVE';
+        p.delay = i * 0.1;
+        system.state.particles.push(p);
+    }
+
+    // 5. Debris flying everywhere
+    spawnExplosion(system, x, y, 10, 20, '#000', 3.0, 1.5, 'DEBRIS');
+}
+
+// ☄️ METEOR IMPACT
+export function spawnMeteorImpact(system: VFXSystem, x: number, y: number, color: string) {
+    // 1. The Falling Rock (Fast Beam down)
+    const meteor = system.state.getParticle();
+    meteor.x = x - 200; meteor.y = y - 400; meteor.z = 0; // Visual start
+    meteor.targetX = x; meteor.targetY = y;
+    meteor.life = 0.2; meteor.maxLife = 0.2;
+    meteor.color = '#ea580c'; meteor.size = 40;
+    meteor.type = 'BEAM'; 
+    system.state.particles.push(meteor);
+
+    // 2. Massive Impact (Delayed)
+    const delay = 0.2;
+    
+    // Core Blast
+    const blast = system.state.getParticle();
+    blast.x = x; blast.y = y; blast.z = 20;
+    blast.life = 0.8; blast.maxLife = 0.8;
+    blast.color = '#f97316'; blast.size = 120;
+    blast.type = 'BLAST';
+    blast.delay = delay;
+    system.state.particles.push(blast);
+
+    // Ejected Magma
+    for(let i=0; i<15; i++) {
+        const p = system.state.getParticle();
+        const angle = Math.random() * Math.PI * 2;
+        const spd = 100 + Math.random() * 300;
+        p.x = x; p.y = y; p.z = 10;
+        p.vx = Math.cos(angle) * spd;
+        p.vy = Math.sin(angle) * spd;
+        p.vz = 200 + Math.random() * 400;
+        p.life = 1.0; p.maxLife = 1.0;
+        p.color = Math.random() > 0.5 ? '#fca5a5' : '#7f1d1d';
+        p.size = 6 + Math.random() * 8;
+        p.type = 'SHARD';
+        p.delay = delay;
+        system.state.particles.push(p);
+    }
+}
+
+// 🕳️ BLACK HOLE COLLAPSE
+export function spawnBlackHoleCollapse(system: VFXSystem, x: number, y: number, color: string) {
+    // 1. Event Horizon (Dark Sphere)
+    const hole = system.state.getParticle();
+    hole.x = x; hole.y = y; hole.z = 50;
+    hole.vx = 0; hole.vy = 0; hole.vz = 0;
+    hole.life = 1.5; hole.maxLife = 1.5;
+    hole.color = '#000000'; hole.size = 100;
+    hole.type = 'GLOW'; // Re-purposed as dark matter orb
+    system.state.particles.push(hole);
+
+    // 2. Accretion Disk (Swirling Particles INWARD)
+    const count = 30;
+    for(let i=0; i<count; i++) {
+        const p = system.state.getParticle();
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 200 + Math.random() * 100;
+        p.x = x + Math.cos(angle) * dist;
+        p.y = y + Math.sin(angle) * dist;
+        p.z = 50;
+        p.targetX = x; p.targetY = y; // Custom logic needed or simulate via velocity
+        // Calculate velocity towards center
+        const dx = x - p.x; const dy = y - p.y;
+        const len = Math.sqrt(dx*dx + dy*dy);
+        const speed = 400;
+        p.vx = (dx/len) * speed;
+        p.vy = (dy/len) * speed;
+        p.vz = 0;
+        p.life = len / speed; p.maxLife = p.life;
+        p.color = Math.random() > 0.5 ? '#60a5fa' : '#c084fc';
+        p.size = 4 + Math.random() * 4;
+        p.type = 'SPARK'; // Streaks
+        system.state.particles.push(p);
+    }
+
+    // 3. Final Pop (Delayed)
+    const shock = system.state.getParticle();
+    shock.x = x; shock.y = y; shock.z = 50;
+    shock.life = 0.5; shock.maxLife = 0.5;
+    shock.color = '#fff'; shock.size = 200;
+    shock.type = 'RING';
+    shock.delay = 1.2; // When collapse finishes
+    system.state.particles.push(shock);
+}
+
+// --- 3. IMPACTS & EXPLOSIONS ---
 
 export function spawnGridImpact(system: VFXSystem, x: number, y: number, color: string, team: Team, delay: number) {
     const p = system.state.getParticle();
@@ -281,7 +432,7 @@ export function spawnBeam(system: VFXSystem, sx: number, sy: number, tx: number,
     system.state.particles.push(p);
 }
 
-export function spawnExplosion(system: VFXSystem, x: number, y: number, z: number, count: number, color: string, speed: number, life: number, type: 'SPARK' | 'SMOKE' | 'SHARD') {
+export function spawnExplosion(system: VFXSystem, x: number, y: number, z: number, count: number, color: string, speed: number, life: number, type: 'SPARK' | 'SMOKE' | 'SHARD' | 'DEBRIS') {
     const safeCount = Math.min(type === 'SPARK' ? 12 : 6, count);
     for (let i = 0; i < safeCount; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -295,7 +446,7 @@ export function spawnExplosion(system: VFXSystem, x: number, y: number, z: numbe
         p.color = color;
         // Size varies more
         p.size = type === 'SPARK' ? Math.random() * 4 + 3 : Math.random() * 20 + 20;
-        if (type === 'SHARD') p.size = 5 + Math.random() * 5;
+        if (type === 'SHARD' || type === 'DEBRIS') p.size = 5 + Math.random() * 5;
         p.type = type; p.delay = 0;
         system.state.particles.push(p);
     }
