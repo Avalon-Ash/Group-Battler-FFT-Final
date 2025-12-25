@@ -10,7 +10,7 @@ import { HexUtils, MapConfig } from "../utils";
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
 import { CovenantRenderer } from "../renderers/units/factions/CovenantRenderer";
-import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSpawnIndicator } from "../renderers/units/UnitVisuals";
+import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSpawnIndicator, drawUltimateGroundCircle, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
 
 // Visual Constants
 const MAX_UNIT_SIZE_RATIO = 0.85; 
@@ -40,6 +40,7 @@ export class UnitRenderSystem {
             } else {
                 const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
                 const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
+                
                 if (distSq > 100) {
                     const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
                     h = getTerrainHeight(visualHex.q, visualHex.r);
@@ -68,8 +69,8 @@ export class UnitRenderSystem {
     public drawSilhouette(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
-        getTerrainHeight: (q: number, r: number) => number,
-        globalTime: number,
+        getTerrainHeight: (q: number, r: number) => number, 
+        globalTime: number, 
         mapConfig: MapConfig
     ) {
         let h = 0;
@@ -92,7 +93,9 @@ export class UnitRenderSystem {
         this.drawAssembly(ctx, agent, agent.px, visualY, globalTime, false, true);
     }
 
-    // Now Public for the Renderer to call from RenderOp
+    // =========================================================================================
+    // 🎨 ASSEMBLY PIPELINE: The core drawing logic
+    // =========================================================================================
     public drawAssembly(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
@@ -102,8 +105,8 @@ export class UnitRenderSystem {
         isSelected: boolean,
         isSilhouette: boolean
     ) {
+        // 1. Calculate Scaling
         const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
-        
         let roleScaleMod = 1.0;
         switch(agent.role) {
             case Role.TANK: roleScaleMod = 1.25; break; 
@@ -112,53 +115,104 @@ export class UnitRenderSystem {
             case Role.MAGE: roleScaleMod = 0.9; break; 
             case Role.SUPPORT: roleScaleMod = 0.95; break;
         }
-
         const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
 
+        // START MAIN TRANSFORM STACK
         ctx.save();
+        
+        // 2. Global Position Transform (Screen Space -> Unit Root)
         ctx.translate(drawX, drawY); 
         ctx.scale(scaleFactor, scaleFactor);
 
+        // Calculate Physics Offsets (Scaled to Local Space)
         const physX = agent.physics.x / scaleFactor;
         const physY = agent.physics.y / scaleFactor;
         const physZ = agent.physics.z / scaleFactor; 
 
+        // 3. LAYER: GROUND (Shadows / Base Plates / Casting Circles)
+        // These are drawn relative to physics X/Y but usually stay on ground (Z=0)
         if (!isSilhouette && agent.hp > 0 && agent.visualStatus !== 'POLYMORPH') {
-            const assets = SpriteManager.getUnitImages(agent.role, agent.team);
-            ctx.save();
-            ctx.drawImage(assets.base, -64, -79); 
-            ctx.restore();
+            this.drawGroundElements(ctx, agent, physX, physY, physZ, globalTime);
+        }
 
-            if (agent.movementType === MovementType.FLYING) {
-                drawFlyingAnchor(ctx, agent, globalTime, physX, physY, physZ);
-            }
+        // 4. LAYER: UNIT BODY ROOT (Apply Physics Translation)
+        // Now we move the context to the unit's actual body center (Chest/Feet)
+        ctx.translate(physX, physY - physZ); 
 
-            if (agent.castingSkillIdx !== -1) {
-                const skill = agent.skills[agent.castingSkillIdx];
-                if (skill) {
-                    const circle = AssetManager.getMagicCircle(skill.color, skill.tag === 'ULT');
+        // 5. Apply Body Physics Rotation (e.g. Knockback spin)
+        ctx.rotate(agent.physics.angle); 
+
+        // 6. LAYER: ANIMATED BODY
+        this.drawBodyElements(ctx, agent, globalTime, isSilhouette, isSelected, scaleFactor);
+
+        // END MAIN TRANSFORM STACK
+        ctx.restore();
+
+        // 7. LAYER: SPAWN INDICATOR (Screen Space / World Space Overlay)
+        // This is drawn outside the scale/rotate stack to keep text readable
+        if (agent.spawnTimer > 0 && !isSilhouette) {
+            drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);
+        }
+    }
+
+    private drawGroundElements(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number) {
+        const assets = SpriteManager.getUnitImages(agent.role, agent.team);
+        
+        // Base Token / Shadow
+        ctx.save();
+        // Base stays at feet level (py), ignoring jump height (pz) usually, unless we want shadow to jump
+        ctx.translate(px, py - pz); 
+        ctx.drawImage(assets.base, -64, -79); 
+        ctx.restore();
+
+        // Flying Tether
+        if (agent.movementType === MovementType.FLYING) {
+            drawFlyingAnchor(ctx, agent, t, px, py, pz);
+        }
+
+        // Casting Magic Circle
+        if (agent.castingSkillIdx !== -1) {
+            const skill = agent.skills[agent.castingSkillIdx];
+            if (skill) {
+                if (skill.tag === 'ULT') {
+                    const progress = 1 - (agent.castTimer / skill.cast);
+                    ctx.save();
+                    // Draw directly without transforms first, then inside func handles it?
+                    // drawUltimateGroundCircle takes center x,y. 
+                    // Current context is scaled and translated. 
+                    // Actually, drawGroundElements is called with px, py relative to drawX/drawY
+                    // but we want to draw at the "Ground" point.
+                    // The context is at drawX, drawY (screen).
+                    // px, py are local offsets.
+                    // The function drawUltimateGroundCircle expects coordinates.
+                    // We are already inside ctx.translate(drawX, drawY), so we pass px, py-pz.
+                    drawUltimateGroundCircle(ctx, px, py - pz, skill.color, t, progress);
+                    ctx.restore();
+                } else {
+                    const circle = AssetManager.getMagicCircle(skill.color, false);
                     ctx.save(); 
+                    ctx.translate(px, py - pz); 
                     ctx.scale(1, 0.5); 
-                    ctx.rotate(globalTime * 2);
+                    ctx.rotate(t * 2);
                     ctx.globalAlpha = 0.6;
                     ctx.drawImage(circle, -64, -64, 128, 128); 
                     ctx.restore();
                 }
             }
         }
+    }
 
-        ctx.translate(physX, physY - physZ); 
-        ctx.rotate(agent.physics.angle); 
-
+    private drawBodyElements(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean, isSelected: boolean, scaleFactor: number) {
+        // "Breathing" Animation (Idle Float)
         let bodyFloat = -UNIT_BODY_OFFSET; 
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             bodyFloat -= Math.sin(globalTime * 2) * 3; 
+             bodyFloat -= Math.sin(t * 2) * 3; 
         } else if (agent.movementType === MovementType.FLYING) {
-             bodyFloat -= Math.sin(globalTime * 4) * 2;
+             bodyFloat -= Math.sin(t * 4) * 2;
         }
-
         ctx.translate(0, bodyFloat);
 
+        // Spawn / Hit Flash effects
         let spawnAlpha = 1.0;
         let whiteOverlay = 0;
 
@@ -175,15 +229,16 @@ export class UnitRenderSystem {
         if (agent.hp <= 0 && !isSilhouette) {
             ctx.filter = 'grayscale(100%) opacity(80%)'; 
         } else if (!isSilhouette && agent.hitFlashTimer > 0) {
-            ctx.filter = 'brightness(200%)'; 
-        } else if (whiteOverlay > 0) {
-            ctx.filter = `brightness(${100 + whiteOverlay * 200}%)`;
+             whiteOverlay = 0.6; 
+             ctx.filter = 'brightness(200%)';
         }
 
+        // Apply Flight VFX (Thrusters)
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
-            drawFlightVFX(ctx, agent, globalTime);
+            drawFlightVFX(ctx, agent, t);
         }
 
+        // Face Direction
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
 
         if (isSilhouette) {
@@ -191,19 +246,26 @@ export class UnitRenderSystem {
             ctx.globalAlpha = 0.8; 
         }
 
+        // Draw Model
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
-            const bounce = Math.abs(Math.sin(globalTime * 5) * 5);
+            const bounce = Math.abs(Math.sin(t * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
             if (agent.team === Team.BLUE) {
-                ImperialRenderer.draw(ctx, agent, globalTime, isSilhouette);
+                ImperialRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                CovenantRenderer.draw(ctx, agent, globalTime, isSilhouette);
+                CovenantRenderer.draw(ctx, agent, t, isSilhouette);
             }
             
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
-                drawCastingVFX(ctx, agent, globalTime);
+                // Check if ULT to dispatch to new renderer
+                const skill = agent.skills[agent.castingSkillIdx];
+                if (skill && skill.tag === 'ULT') {
+                    drawUltimateChantVFX(ctx, agent, t);
+                } else {
+                    drawCastingVFX(ctx, agent, t);
+                }
             }
             
             if (agent.visualStatus === 'FROZEN') {
@@ -229,24 +291,10 @@ export class UnitRenderSystem {
             }
         }
 
+        // Icons
         if (!isSilhouette) {
-            drawStatusIcons(ctx, agent, globalTime, drawX, drawY, scaleFactor);
-            drawStatusEffects(ctx, agent, globalTime);
-            
-            if (isSelected && agent.hp > 0) {
-                // Subtle white ring on body, acceptable highlight
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2 / scaleFactor; 
-                ctx.beginPath();
-                ctx.ellipse(0, -20, 30, 15, 0, 0, Math.PI * 2);
-                ctx.stroke();
-            }
-        }
-
-        ctx.restore(); 
-
-        if (agent.spawnTimer > 0 && !isSilhouette) {
-            drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);
+            drawStatusIcons(ctx, agent, t, 0, 0, scaleFactor);
+            drawStatusEffects(ctx, agent, t);
         }
     }
 }

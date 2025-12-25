@@ -8,6 +8,11 @@ import { Team } from "../../../types";
 // 🧚 UNIT VISUAL EFFECTS (Flight, Casting, Status)
 // =================================================================================
 
+// COLORS
+const COL_PURPLE = '#8b5cf6'; // Violet-500
+const COL_GOLD = '#facc15';   // Yellow-400
+const COL_CRIMSON = '#ef4444'; // Red-500
+
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
     const isBlue = agent.team === Team.BLUE;
     const color = isBlue ? '#60a5fa' : '#f87171';
@@ -123,6 +128,11 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
     const skill = agent.skills[agent.castingSkillIdx];
     if (!skill) return;
     
+    if (skill.tag === 'ULT') {
+        drawUltimateChantVFX(ctx, agent, t);
+        return;
+    }
+
     const progress = 1 - (agent.castTimer / skill.cast);
     const color = skill.color;
     
@@ -165,6 +175,131 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(0, -20, 30, 0, Math.PI*2); ctx.fill();
     }
+
+    ctx.restore();
+}
+
+// 🌀 NEW: ULTIMATE CHANT VFX (Body)
+export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
+    const skill = agent.skills[agent.castingSkillIdx];
+    if (!skill) return;
+
+    const progress = 1 - (agent.castTimer / skill.cast);
+    const factionColor = agent.team === Team.BLUE ? COL_GOLD : COL_CRIMSON;
+    const mainColor = COL_PURPLE;
+
+    ctx.save();
+    
+    // 1. Atmosphere (Localized Darkening)
+    // Draw a large dark vignette behind the unit to make runes pop
+    const vignetteSize = 120 * progress;
+    const vignette = ctx.createRadialGradient(0, -40, 20, 0, -40, vignetteSize);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.6)');
+    
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = vignette;
+    ctx.beginPath(); ctx.arc(0, -40, vignetteSize, 0, Math.PI*2); ctx.fill();
+
+    // 2. Implosion (Energy Gathering)
+    // Particles moving from radius inwards to chest
+    ctx.globalCompositeOperation = 'lighter';
+    const pCount = 16;
+    const radius = 80;
+    
+    for(let i=0; i<pCount; i++) {
+        const speed = 2.0 + progress * 2.0; // Speed up as cast finishes
+        const offset = i * (1/pCount);
+        const lifetime = (t * speed + offset) % 1.0;
+        
+        // lifetime 0 = spawn at edge, 1 = hit center
+        // Reverse for implosion: spawn far (p=0), move in (p=1)
+        const curDist = radius * (1 - Math.pow(lifetime, 2)); // Ease in
+        const angle = i * (Math.PI * 2 / pCount) + t + (progress * 5); // Spiral in
+        
+        const px = Math.cos(angle) * curDist;
+        const py = Math.sin(angle) * curDist - 40; // Center on chest (-40)
+        
+        const size = (2 + progress * 3) * lifetime; // Grow slightly as they condense
+        const alpha = Math.sin(lifetime * Math.PI); 
+        
+        ctx.fillStyle = i % 2 === 0 ? factionColor : mainColor;
+        ctx.globalAlpha = alpha;
+        ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI*2); ctx.fill();
+        
+        // Trail
+        if (curDist > 10) {
+            ctx.strokeStyle = ctx.fillStyle;
+            ctx.lineWidth = size * 0.5;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            const tailX = Math.cos(angle - 0.2) * (curDist + 15);
+            const tailY = Math.sin(angle - 0.2) * (curDist + 15) - 40;
+            ctx.lineTo(tailX, tailY);
+            ctx.stroke();
+        }
+    }
+
+    // 3. Core Overload (Bright center glow)
+    const pulse = 1 + Math.sin(t * 30) * 0.2;
+    ctx.globalAlpha = 0.4 * progress;
+    ctx.fillStyle = '#fff';
+    ctx.shadowColor = factionColor;
+    ctx.shadowBlur = 20 * progress;
+    ctx.beginPath(); ctx.arc(0, -40, 15 * pulse, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore();
+}
+
+// 🌀 NEW: ULTIMATE GROUND CIRCLE (Replaces AssetManager circle)
+export function drawUltimateGroundCircle(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, t: number, progress: number) {
+    const pulse = 1 + Math.sin(t * 5) * 0.05;
+    const baseSize = 70 * pulse; 
+    
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, 0.58); // Isometric projection
+    ctx.globalCompositeOperation = 'lighter';
+
+    // 1. Outer Ring (Slow Rotate)
+    ctx.save();
+    ctx.rotate(t * 0.5);
+    ctx.strokeStyle = COL_PURPLE;
+    ctx.lineWidth = 3;
+    ctx.globalAlpha = 0.6 + progress * 0.4;
+    ctx.setLineDash([20, 10]); // Runes
+    ctx.beginPath(); ctx.arc(0, 0, baseSize, 0, Math.PI*2); ctx.stroke();
+    
+    // Glow
+    ctx.shadowColor = COL_PURPLE;
+    ctx.shadowBlur = 10;
+    ctx.stroke();
+    ctx.restore();
+
+    // 2. Inner Ring (Fast Counter-Rotate)
+    ctx.save();
+    ctx.rotate(-t * 1.5);
+    ctx.strokeStyle = COL_GOLD; // Gold core for contrast
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.8;
+    ctx.setLineDash([5, 15, 2, 10]); // Complex pattern
+    ctx.beginPath(); ctx.arc(0, 0, baseSize * 0.7, 0, Math.PI*2); ctx.stroke();
+    ctx.restore();
+
+    // 3. Central Geometry (Triangle/Square pulse)
+    ctx.save();
+    ctx.rotate(t);
+    ctx.globalAlpha = 0.3 * progress;
+    ctx.fillStyle = color;
+    const r = baseSize * 0.5 * progress;
+    ctx.beginPath();
+    for(let i=0; i<3; i++) {
+        const a = i * (Math.PI*2/3);
+        ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 
     ctx.restore();
 }

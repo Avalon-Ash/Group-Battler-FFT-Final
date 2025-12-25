@@ -21,6 +21,9 @@ import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
 
+// Constants
+export const VICTORY_PHASE_DURATION = 0.8; // Reduced to 0.8s for snappier finish
+
 export class GameEngine {
     public agents: Agent[] = [];
     
@@ -33,10 +36,19 @@ export class GameEngine {
     public renderer?: GameRenderer;
     
     public isRunning: boolean = false;
+    
+    // Time & Speed Control
     public timeScale: number = 1.0;
+    public targetTimeScale: number = 1.0; // New: For smooth slow-mo transitions
+    
     public battleTime: number = 0;
     public mapVersion: number = 0; 
     
+    // Finishing Sequence State
+    public isFinishing: boolean = false;
+    public victoryTimer: number = 0;
+    public winningTeam: Team | null = null;
+
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0 };
     public currentScene: SceneTheme = SCENE_DB[0];
     
@@ -105,6 +117,10 @@ export class GameEngine {
             this.agents.forEach(a => a.saveState());
             this.battleTime = 0;
             this.logs = [];
+            this.isFinishing = false;
+            this.winningTeam = null;
+            this.targetTimeScale = 1.0;
+            this.timeScale = 1.0;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', {});
         }
@@ -127,6 +143,10 @@ export class GameEngine {
 
     restart() {
         this.stop();
+        this.isFinishing = false;
+        this.winningTeam = null;
+        this.targetTimeScale = 1.0;
+        this.timeScale = 1.0;
         this.agentMap.clear();
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
@@ -159,22 +179,52 @@ export class GameEngine {
 
     tick(dt: number) {
         if (!this.isRunning) return;
+        
+        // 1. Time Dilation Logic (Smooth Slow Mo)
+        if (Math.abs(this.targetTimeScale - this.timeScale) > 0.01) {
+            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; // Soft lerp
+        } else {
+            this.timeScale = this.targetTimeScale;
+        }
+
         this.events.length = 0;
         this.updateDirector(dt);
+
+        // 2. Victory Check Logic
+        if (this.isFinishing) {
+            this.victoryTimer -= dt;
+            // Continue animating death falls and particles
+            this.updateEntities(dt);
+            
+            if (this.victoryTimer <= 0) {
+                this.stop();
+                // Reset timescale for next run
+                this.targetTimeScale = 1.0;
+                this.timeScale = 1.0;
+                this.bus.emit('GAME_OVER', { winner: this.winningTeam });
+            }
+            return;
+        }
 
         let blue = 0, red = 0;
         for (const a of this.agents) {
             if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
         }
-        if (blue === 0 && red > 0) { 
-            this.stop(); 
-            this.bus.emit('GAME_OVER', { winner: Team.RED });
-        }
-        else if (red === 0 && blue > 0) { 
-            this.stop(); 
-            this.bus.emit('GAME_OVER', { winner: Team.BLUE });
+
+        if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
+            // Enter Finishing Sequence
+            this.isFinishing = true;
+            this.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
+            this.victoryTimer = VICTORY_PHASE_DURATION; // Use Constant
+            // Note: The slow motion trigger (0.1x) happens in SkillResolutionSystem on the lethal hit.
+            // Here we ensure it doesn't stay frozen forever, drifting back up to 0.4x for the fall.
+            this.targetTimeScale = 0.4; 
         }
 
+        this.updateEntities(dt);
+    }
+
+    private updateEntities(dt: number) {
         for (const a of this.agents) {
             if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
             this.movement.updatePhysics(a, dt, this);

@@ -13,8 +13,9 @@ import { OBSTACLE_DB } from '../../data/obstacles';
 // - Tooltips: Use Helpers.* functions for consistent status text.
 // - Engine AI: AI_CONDITION_OPTIONS map directly to `BTRegistry.ts` keys.
 // - Map Editor: SCENE_OPTIONS and OBSTACLE_OPTIONS sync with `data/scenes` and `data/obstacles`.
+// - GameEngine: 'isFinishing' state triggers PostProcessor blur effect (Frosted Glass).
 //
-// LAST UPDATED: 4.0.4 (Removal of Selection Artifacts)
+// LAST UPDATED: 4.0.7 (Faster Victory Sequence)
 // =========================================================================================
 
 // =========================================================================================

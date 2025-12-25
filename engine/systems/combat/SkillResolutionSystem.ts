@@ -117,9 +117,22 @@ export class SkillResolutionSystem {
     public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine) {
         // 1. Math: Calculate final damage and effects
         const calc = this.calculateDamageValues(source, target, skill);
-        
         const oldHp = Math.ceil(target.hp);
         
+        // --- MATRIX SLOW MOTION CHECK ---
+        if (calc.finalDamage >= target.hp && !engine.isFinishing) {
+            // Check if this is the LAST unit of the team
+            const alliesAlive = engine.agents.filter(a => a.team === target.team && a.hp > 0 && a.id !== target.id).length;
+            
+            if (alliesAlive === 0) {
+                // THE FINAL BLOW!
+                engine.timeScale = 0.1; // Snap to instant slow-mo
+                engine.targetTimeScale = 0.1; // Hold it
+                // We don't set isFinishing here, Engine.tick will detect the death next frame and handle the victory sequence.
+                // This just ensures the hit itself is felt.
+            }
+        }
+
         // 2. State Mutation: Apply Damage/Heal
         target.hp = Math.min(target.maxHp, target.hp - calc.finalDamage);
         

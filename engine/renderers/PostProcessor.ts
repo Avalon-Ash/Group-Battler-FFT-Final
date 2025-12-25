@@ -93,4 +93,39 @@ export class PostProcessor {
         // RESTORE STATE: Go back to DPR scaled context for UI drawing
         ctx.restore();
     }
+
+    // New: Game Over Blur Effect (Frosted Glass)
+    public applyFinishBlur(ctx: CanvasRenderingContext2D, width: number, height: number, progress: number) {
+        if (progress <= 0) return;
+
+        const w = Math.floor(width);
+        const h = Math.floor(height);
+
+        // Resize buffer if needed
+        if (this.tempCanvas.width !== w || this.tempCanvas.height !== h) {
+            this.tempCanvas.width = w;
+            this.tempCanvas.height = h;
+        }
+
+        ctx.save();
+        ctx.resetTransform();
+
+        // 1. Copy scene to buffer
+        this.tempCtx.clearRect(0, 0, w, h);
+        this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
+
+        // 2. Draw Back with Blur Filter
+        const blurAmount = Math.floor(progress * 10); // Max 10px blur
+        ctx.filter = `blur(${blurAmount}px)`;
+        ctx.clearRect(0, 0, w, h);
+        ctx.drawImage(this.tempCanvas, 0, 0, w, h);
+        ctx.filter = 'none';
+
+        // 3. Frosted Glass Overlay (White Tint)
+        // Ramps up from 0 to 20% opacity
+        ctx.fillStyle = `rgba(255, 255, 255, ${progress * 0.2})`;
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.restore();
+    }
 }

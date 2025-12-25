@@ -1,5 +1,5 @@
 
-import { Agent, GameEngine } from "./game";
+import { Agent, GameEngine, VICTORY_PHASE_DURATION } from "./game";
 import { HexUtils } from "./utils";
 import { Hex, GameEvent, Skill } from "../types";
 
@@ -271,8 +271,7 @@ export class GameRenderer {
         // Kept before Post-Process to allow them to glow/bloom properly.
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
-        // --- POST PROCESSING BARRIER ---
-        // Everything drawn so far (Scene) will be processed.
+        // --- POST PROCESSING BARRIER (Bloom / Shake) ---
         ctx.restore(); // Exit Camera Space
         
         this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.camera.getTrauma());
@@ -298,6 +297,14 @@ export class GameRenderer {
 
         // 11. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
+
+        // --- FINAL PASS: GAME OVER BLUR (Frosted Glass) ---
+        // This must be the absolutely last step to blur everything including HUD
+        if (engine.isFinishing) {
+            const progress = 1 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
+            const clampedProgress = Math.max(0, Math.min(1, progress));
+            this.postProcessor.applyFinishBlur(ctx, physicalWidth, physicalHeight, clampedProgress);
+        }
     }
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
