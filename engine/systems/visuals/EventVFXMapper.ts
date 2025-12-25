@@ -27,7 +27,11 @@ export class EventVFXMapper {
                 break;
 
             case 'DAMAGE': 
-                this.handleDamageImpact(event, engine, vfx, visualGroundY, camera);
+                // Only spawn impact if it wasn't a projectile hit (which handles its own visuals)
+                // or if it's a direct instant damage event.
+                if (!event.skill?.projectileSpeed) {
+                    this.handleDamageImpact(event, engine, vfx, visualGroundY, camera);
+                }
                 break;
 
             case 'VISUAL_BEAM':
@@ -125,6 +129,7 @@ export class EventVFXMapper {
         const color = event.skill?.color || '#fff';
         const isUlt = event.skill?.tag === 'ULT';
         const skill = event.skill;
+        const visualType = skill?.visual || 'BOLT';
         
         const source = engine.agents.find(a => a.id === event.sourceId);
         const faction = source ? source.team : Team.BLUE;
@@ -134,9 +139,9 @@ export class EventVFXMapper {
         const centerVisualY = event.pos.y - centerH;
 
         if (isUlt) {
-            camera.addTrauma(0.1); // Minimized from 0.2
+            camera.addTrauma(0.15); 
             
-            // 1. FACTION RITUAL
+            // 1. FACTION RITUAL (The Ground Effect)
             if (faction === Team.BLUE) {
                 VFXSpawners.spawnDivinePillar(vfx, event.pos.x, centerVisualY, color, 1.5, 0);
                 VFXSpawners.spawnShockwave(vfx, event.pos.x, centerVisualY, color, 1.2);
@@ -144,11 +149,12 @@ export class EventVFXMapper {
                 VFXSpawners.spawnBloodRitual(vfx, event.pos.x, centerVisualY, color, 1.5);
             }
 
-            // 2. AOE RIPPLE
+            // 2. AOE RIPPLE (The Spread)
             if (skill?.type === 'AOE') {
                 const radius = skill.aoeRadius || 1;
                 const affectedHexes = HexUtils.range(centerHex, radius);
                 
+                // Spawn sequential explosions
                 affectedHexes.forEach(h => {
                     if (engine.isValid(h.q, h.r)) {
                         const tileH = grid.getTerrainHeight(h.q, h.r, engine);
@@ -165,14 +171,50 @@ export class EventVFXMapper {
                     }
                 });
             } else {
+                // Single Target Ult
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
             }
         } else {
-            // Normal Skill Logic
+            // --- NORMAL SKILLS (Specific Visuals) ---
+            
+            // 1. SMASH: Heavy Ground Impact
+            if (visualType === 'SMASH') {
+                VFXSpawners.addImpact(vfx, event.pos.x, centerVisualY, 0, color, 'SHOCKWAVE', 0.4);
+                // Debris flies up
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, centerVisualY, 0, 8, color, 0.5, 0.6, 'SHARD'); 
+                if (skill?.type === 'AOE') {
+                    VFXSpawners.addDecal(vfx, event.pos.x, centerVisualY, color);
+                }
+            } 
+            // 2. SLASH: Directional Energy
+            else if (visualType === 'SLASH') {
+                // Direction calculated relative to source
+                if (source) {
+                    const dx = event.pos.x - source.px;
+                    const dy = event.pos.y - source.py;
+                    const len = Math.sqrt(dx*dx + dy*dy) || 1;
+                    VFXSpawners.spawnDirectionalImpact(vfx, event.pos.x, visualY, 30, dx/len, dy/len, color, 'PHYSICAL');
+                } else {
+                    VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 8, color, 1.5, 0.4, 'SPARK');
+                }
+            }
+            // 3. FIREBALL / BOMB: Volumetric Explosion
+            else if (visualType === 'FIREBALL' || visualType === 'BOMB') {
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 20, color, 'BLAST', 0.5);
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 5, color, 0.5, 1.0, 'SMOKE');
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 8, '#fff', 1.0, 0.3, 'SPARK');
+                if (skill?.type === 'AOE') VFXSpawners.addDecal(vfx, event.pos.x, centerVisualY, '#000');
+            }
+            // 4. BOLT / ARROW / BEAM: High Precision
+            else {
+                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 30, color, 'RING', 0.4);
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 12, color, 2.0, 0.4, 'SPARK');
+            }
+
+            // Apply AOE secondary effects (Smoke/Decals)
             if (skill?.type === 'AOE') {
                 const radius = skill.aoeRadius || 1;
                 const affected = HexUtils.range(centerHex, radius);
-                VFXSpawners.addDecal(vfx, event.pos.x, centerVisualY, color);
                 
                 affected.forEach(h => {
                     if (engine.isValid(h.q, h.r)) {
@@ -182,8 +224,8 @@ export class EventVFXMapper {
                         const dist = HexUtils.dist(centerHex, h);
                         
                         if (dist <= radius) {
-                            if (Math.random() < 0.6) { 
-                                VFXSpawners.addImpact(vfx, tilePos.x, tileVisualY, 0, color, 'RING', 0.4);
+                            if (Math.random() < 0.3) { 
+                                VFXSpawners.spawnExplosion(vfx, tilePos.x, tileVisualY, 0, 3, color, 0.5, 0.5, 'SPARK');
                             }
                             if (skill.ccType === 'DOT') {
                                 VFXSpawners.spawnLingeringField(vfx, tilePos.x, tileVisualY, color, skill.ccType, 3.0, dist * 0.05);
@@ -191,9 +233,6 @@ export class EventVFXMapper {
                         }
                     }
                 });
-            } else {
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 30, color, 'RING', 0.6);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 12, color, 1.0, 0.5, 'SPARK');
             }
         }
     }

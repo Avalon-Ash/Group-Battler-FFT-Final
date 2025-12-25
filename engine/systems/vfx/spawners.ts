@@ -236,7 +236,7 @@ export function spawnBeam(system: VFXSystem, sx: number, sy: number, tx: number,
     system.state.particles.push(p);
 }
 
-export function spawnExplosion(system: VFXSystem, x: number, y: number, z: number, count: number, color: string, speed: number, life: number, type: 'SPARK' | 'SMOKE') {
+export function spawnExplosion(system: VFXSystem, x: number, y: number, z: number, count: number, color: string, speed: number, life: number, type: 'SPARK' | 'SMOKE' | 'SHARD') {
     const safeCount = Math.min(type === 'SPARK' ? 12 : 6, count);
     for (let i = 0; i < safeCount; i++) {
         const angle = Math.random() * Math.PI * 2;
@@ -250,6 +250,7 @@ export function spawnExplosion(system: VFXSystem, x: number, y: number, z: numbe
         p.color = color;
         // Size varies more
         p.size = type === 'SPARK' ? Math.random() * 4 + 3 : Math.random() * 20 + 20;
+        if (type === 'SHARD') p.size = 5 + Math.random() * 5;
         p.type = type; p.delay = 0;
         system.state.particles.push(p);
     }
@@ -271,7 +272,7 @@ export function spawnShockwave(system: VFXSystem, x: number, y: number, color: s
     system.state.particles.push(p);
 }
 
-export function addImpact(system: VFXSystem, x: number, y: number, z: number, color: string, type: 'RING', life: number) {
+export function addImpact(system: VFXSystem, x: number, y: number, z: number, color: string, type: 'RING' | 'BLAST' | 'SHOCKWAVE', life: number) {
     const p = system.state.getParticle();
     p.x = x; p.y = y; p.z = z;
     p.vx = 0; p.vy = 0; p.vz = 0;
