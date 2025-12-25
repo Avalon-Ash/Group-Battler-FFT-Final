@@ -115,14 +115,6 @@ export class VFXSystem {
             }
         }
 
-        // Update Grid Flashes
-        for (let i = this.state.gridFlashes.length - 1; i >= 0; i--) {
-            this.state.gridFlashes[i].life -= dt * 2.0;
-            if (this.state.gridFlashes[i].life <= 0) {
-                this.state.gridFlashes.splice(i, 1);
-            }
-        }
-
         // --- AMBIENT SPAWNER ---
         this.updateAmbient(dt, ambientType);
     }

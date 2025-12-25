@@ -28,17 +28,9 @@ export interface Decal {
     scale: number;
 }
 
-export interface GridFlash {
-    q: number;
-    r: number;
-    color: string;
-    life: number;
-}
-
 export class VFXStateManager {
     public particles: Particle[] = [];
     public decals: Decal[] = [];
-    public gridFlashes: GridFlash[] = [];
 
     // Object Pool
     private particlePool: Particle[] = [];

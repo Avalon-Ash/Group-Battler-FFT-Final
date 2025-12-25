@@ -188,16 +188,6 @@ export interface GameEvent {
     team?: Team;
 }
 
-export interface FloatingText {
-    id: string;
-    x: number;
-    y: number;
-    text: string;
-    color: string;
-    life: number;
-    velocity: number;
-}
-
 // Tooling
 export enum ToolType {
     SELECT = 'SELECT',

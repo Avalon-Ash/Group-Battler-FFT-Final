@@ -161,7 +161,7 @@ export class GameRenderer {
         this.grid.submitRenderables(
             this.renderList,
             engine, hoveredHex, hoveredSkill, highlight, 
-            this.vfx.state.gridFlashes, engine.projectiles,
+            engine.projectiles,
             this.transitionT, this.transitionPhase,
             this.globalTime
         );
@@ -203,7 +203,7 @@ export class GameRenderer {
                         ctx, op.tx, op.ty - op.th, op.tsize,
                         op.oStatus, op.oDanger,
                         op.oLightCol, op.oLightInt,
-                        op.oFlash, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit,
+                        op.oRange, op.oRangeCol, op.oHover, op.oHasUnit,
                         op.tq, op.tr, op.time
                     );
                     break;

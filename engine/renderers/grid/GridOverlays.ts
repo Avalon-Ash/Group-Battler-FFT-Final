@@ -12,7 +12,6 @@ export const GridOverlays = {
         dangerInfo: {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number} | undefined,
         lightColor: string | null,
         lightIntensity: number,
-        flash: any,
         isRange: boolean,
         rangeColor: string,
         isHover: boolean,
@@ -64,8 +63,8 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 4. Interactive Highlights (Hover/Range/Flash)
-        if (flash || isRange || isHover || hasUnit) {
+        // 4. Interactive Highlights (Hover/Range)
+        if (isRange || isHover || hasUnit) {
             ctx.save();
             trace(); 
 
@@ -86,16 +85,6 @@ export const GridOverlays = {
                 ctx.strokeStyle = '#fff'; 
                 ctx.lineWidth = 2; 
                 ctx.stroke(); 
-            }
-            
-            if (flash) {
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.fillStyle = flash.color;
-                ctx.globalAlpha = 0.4;
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
             }
             
             // Only draw unit base ring if not hovering and no danger zone (cleaner look)

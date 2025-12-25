@@ -35,7 +35,6 @@ export class RenderOp {
     oDanger: any;
     oLightCol: string | null = null;
     oLightInt: number = 0;
-    oFlash: any;
     oRange: boolean = false;
     oRangeCol: string = '';
     oHover: boolean = false;

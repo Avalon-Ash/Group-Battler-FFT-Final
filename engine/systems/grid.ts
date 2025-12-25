@@ -120,7 +120,6 @@ export class GridSystem {
         hoveredHex: Hex | null, 
         hoveredSkill: Skill | null, 
         highlightAgent: Agent | null, 
-        flashes: any[],
         projectiles: Projectile[],
         transitionT: number,      
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
@@ -210,7 +209,6 @@ export class GridSystem {
                 }
             }
 
-            const flash = flashes.find(f => f.q === q && f.r === r);
             let isRange = false;
             let rangeColor = '';
             
@@ -262,7 +260,7 @@ export class GridSystem {
             op.oDanger = dangerInfo;
             op.oLightCol = lightColor;
             op.oLightInt = Math.min(1, lightIntensity);
-            op.oFlash = flash;
+            // op.oFlash removed
             op.oRange = isRange;
             op.oRangeCol = rangeColor;
             op.oHover = isHover;
