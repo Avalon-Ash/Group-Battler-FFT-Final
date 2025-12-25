@@ -1,27 +1,24 @@
 
-import { Role, Skill, Team, ToolType, AnimState } from '../../types';
-import { SCENE_DB } from '../../data/scenes';
-import { OBSTACLE_DB } from '../../data/obstacles';
+import { Role, Skill, Team, AnimState } from '../../types';
 
 // =========================================================================================
 // [SYSTEM DEPENDENCIES & CONSTANTS]
 // This file acts as the central registry for UI definitions and their mappings to Game Engine systems.
 // 
-// DEPENDENCIES:
-// - UnitInspectorHUD: Uses ROLE_MAP, TEAM_MAP, TAG_MAP for label/color resolution.
-// - SkillDbTab: Uses SKILL_FIELD_GROUPS to auto-generate the editing form.
-// - Tooltips: Use Helpers.* functions for consistent status text.
-// - Engine AI: AI_CONDITION_OPTIONS map directly to `BTRegistry.ts` keys.
-// - Map Editor: SCENE_OPTIONS and OBSTACLE_OPTIONS sync with `data/scenes` and `data/obstacles`.
-// - GameEngine: 'isFinishing' state triggers PostProcessor blur effect (Frosted Glass).
+// CORE PURPOSE:
+// 1. Visual Translation: Maps internal Enums (Role, Team) to UI Colors/Labels.
+// 2. Form Schema: Defines the structure of the Skill Database Editor.
+// 3. Dropdown Options: Provides valid values for Effects, CCs, and Visuals.
 //
-// LAST UPDATED: 4.0.8 (Status Label Expansion)
+// DEPENDENCIES:
+// - UnitInspectorHUD
+// - SkillDbTab
+// - UnitStatusTab
 // =========================================================================================
 
 // =========================================================================================
 // 1. CORE ENUM MAPPINGS (Visual & Labels)
 // Purpose: Provide UI-friendly labels and colors for internal Enums.
-// Dependency: Used by UnitInspector, SkillDbTab, and Tooltips.
 // =========================================================================================
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
@@ -90,7 +87,7 @@ export const EFFECT_TYPES = [
 
 // =========================================================================================
 // 3. AI & BEHAVIOR TREE CONSTANTS (Registry Mappings)
-// Purpose: Definitions for AI construction from JSON data.
+// Purpose: Definitions for future AI Editor features.
 // Dependency: Syncs with `engine/ai/BTRegistry.ts` keys.
 // =========================================================================================
 
@@ -117,33 +114,8 @@ export const AI_ACTION_OPTIONS = [
 ];
 
 // =========================================================================================
-// 4. ENVIRONMENT & TOOLS
-// Purpose: Configuration for Map Editor interactions.
-// Dependency: Syncs with `SCENE_DB` and `OBSTACLE_DB`.
-// =========================================================================================
-
-export const SCENE_OPTIONS = SCENE_DB.map(s => ({ 
-    value: s.id, 
-    label: s.name,
-    color: s.fogColor 
-}));
-
-export const OBSTACLE_OPTIONS = Object.values(OBSTACLE_DB).map(o => ({
-    value: o.id,
-    label: o.name
-}));
-
-export const TOOL_MAP: Record<ToolType, string> = {
-    [ToolType.SELECT]: '選取游標',
-    [ToolType.ADD_BLUE]: '部署藍軍',
-    [ToolType.ADD_RED]: '部署紅軍',
-    [ToolType.OBSTACLE]: '地形編輯',
-    [ToolType.DELETE]: '移除物件'
-};
-
-// =========================================================================================
-// 5. FIELD DEFINITIONS (For Inspector Forms)
-// Purpose: metadata for generating the Skill DB Edit Form.
+// 4. FIELD DEFINITIONS (For Inspector Forms)
+// Purpose: Metadata for generating the Skill DB Edit Form.
 // =========================================================================================
 
 export type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'color';
@@ -238,7 +210,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
 ];
 
 // =========================================================================================
-// 6. HELPER FUNCTIONS (Safe Accessors)
+// 5. HELPER FUNCTIONS (Safe Accessors)
 // Purpose: Utility functions used by React components to render labels/colors safely.
 // =========================================================================================
 

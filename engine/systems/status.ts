@@ -1,6 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { AnimState } from "../../types";
+import { COMBAT_PARAM } from "../../constants";
 
 export class StatusSystem {
     
@@ -30,7 +31,7 @@ export class StatusSystem {
             agent.banishTimer -= dt;
             if (agent.banishTimer <= 0) {
                 agent.banished = false;
-                engine.log(agent, 'CC', '放逐結束', '重返戰場');
+                engine.log(agent, 'CC', '放逐結束', null, '重返戰場');
             } else {
                 // *** TIME STOP EFFECT ***
                 // Standard Banish stops time for buffs/debuffs.

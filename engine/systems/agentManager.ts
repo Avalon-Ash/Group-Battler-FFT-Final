@@ -85,7 +85,7 @@ export class AgentManager {
         if (a.fullyDead) return;
         
         if (!a.deadLogged) {
-            engine.log(a, '死亡', null, '陣亡');
+            engine.log(a, 'DEATH', '死亡', null, '陣亡');
             
             // Push Event: Renderer will handle the visual explosion (Shatter)
             engine.events.push({ 

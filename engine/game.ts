@@ -315,41 +315,19 @@ export class GameEngine {
         return NodeState.RUNNING;
     }
     
-    log(agent: Agent | null, typeOrAction: LogActionType | string, actionNameOrTarget: string | null, detailOrTargetInfo: string, legacyDetail?: string) {
+    public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {
         const time = this.battleTime.toFixed(1);
-        let actionType: LogActionType = 'SYSTEM';
-        let actionName = 'Action';
-        let targetInfo = '';
-        let detail = '';
         let color = LOG_COLORS.SYSTEM;
 
-        const isLegacy = !this.isLogActionType(typeOrAction);
-
-        if (isLegacy) {
-            const rawAction = typeOrAction as string;
-            actionName = rawAction;
-            targetInfo = actionNameOrTarget || '';
-            detail = detailOrTargetInfo;
-            if (rawAction === '死亡') { actionType = 'DEATH'; color = LOG_COLORS.DEATH; }
-            else if (rawAction === '放逐結束') { actionType = 'CC'; color = LOG_COLORS.CC; }
-            else if (rawAction === '中斷') { actionType = 'CC'; color = LOG_COLORS.CC; }
-            else if (rawAction === '命中') { actionType = 'HIT'; color = LOG_COLORS.HIT; }
-            else { actionType = 'SYSTEM'; }
-        } else {
-            actionType = typeOrAction as LogActionType;
-            actionName = actionNameOrTarget || '';
-            targetInfo = detailOrTargetInfo || '';
-            detail = legacyDetail || '';
-            switch(actionType) {
-                case 'MOVE': color = LOG_COLORS.MOVE; break;
-                case 'CAST': color = LOG_COLORS.CAST; break;
-                case 'HIT': color = LOG_COLORS.HIT; break;
-                case 'HEAL': color = LOG_COLORS.HEAL; break;
-                case 'DECISION': color = LOG_COLORS.DECISION; break;
-                case 'DEATH': color = LOG_COLORS.DEATH; break;
-                case 'CC': color = LOG_COLORS.CC; break;
-                default: color = LOG_COLORS.SYSTEM; break;
-            }
+        switch(type) {
+            case 'MOVE': color = LOG_COLORS.MOVE; break;
+            case 'CAST': color = LOG_COLORS.CAST; break;
+            case 'HIT': color = LOG_COLORS.HIT; break;
+            case 'HEAL': color = LOG_COLORS.HEAL; break;
+            case 'DECISION': color = LOG_COLORS.DECISION; break;
+            case 'DEATH': color = LOG_COLORS.DEATH; break;
+            case 'CC': color = LOG_COLORS.CC; break;
+            default: color = LOG_COLORS.SYSTEM; break;
         }
 
         const entry: LogEntry = {
@@ -359,21 +337,17 @@ export class GameEngine {
             agentId: agent?.id || 'SYSTEM',
             team: agent?.team,
             location: agent ? `(${agent.q},${agent.r})` : 'global',
-            actionType: actionType,
+            actionType: type,
             actionName: actionName,
-            targetInfo: targetInfo,
+            targetInfo: targetInfo || '',
             detail: detail,
             visualColor: color,
             action: actionName,
-            target: targetInfo,
+            target: targetInfo || '',
             loc: agent ? `@(${agent.q},${agent.r})` : ''
         };
 
         this.logs.push(entry);
         if (this.logs.length > 2000) this.logs.shift();
-    }
-
-    private isLogActionType(val: any): val is LogActionType {
-        return ['MOVE','CAST','HIT','DECISION','DEATH','SYSTEM','HEAL','CC'].includes(val);
     }
 }
