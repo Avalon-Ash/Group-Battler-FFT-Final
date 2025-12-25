@@ -8,7 +8,6 @@ const cache: Map<string, any> = new Map();
 
 export interface UnitAssets {
     base: HTMLCanvasElement; // Pre-rendered base
-    weapon: HTMLCanvasElement; // Pre-rendered weapon
     icon: HTMLCanvasElement;   // Pre-rendered class icon
     color: string;           // Glow color
 }
@@ -26,13 +25,6 @@ export const SpriteManager = {
             cache.set(keyBase, base);
         }
 
-        const keyWep = `WEAPON_${role}_${team}_V3`;
-        let weapon = cache.get(keyWep);
-        if (!weapon) {
-            weapon = UnitFactory.generateWeapon(role, team);
-            cache.set(keyWep, weapon);
-        }
-
         const keyIcon = `ROLE_ICON_${role}_${team}_V3`;
         let icon = cache.get(keyIcon);
         if (!icon) {
@@ -42,7 +34,6 @@ export const SpriteManager = {
 
         return {
             base: base,
-            weapon: weapon,
             icon: icon,
             color: PALETTE.TEAMS[team].glow
         };

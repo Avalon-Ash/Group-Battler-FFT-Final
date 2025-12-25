@@ -12,9 +12,12 @@ export class VFXSystem {
 
     update(dt: number, globalTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {
         // Update Particles
-        // Iterate backwards to allow safe removal
-        for (let i = this.state.particles.length - 1; i >= 0; i--) {
-            const p = this.state.particles[i];
+        // PERF: Iterate backwards to allow Swap-Pop removal
+        const particles = this.state.particles;
+        let count = particles.length;
+
+        for (let i = count - 1; i >= 0; i--) {
+            const p = particles[i];
             
             if (p.delay && p.delay > 0) {
                 p.delay -= dt;
@@ -24,7 +27,10 @@ export class VFXSystem {
             p.life -= dt;
             if (p.life <= 0) {
                 this.state.releaseParticle(p);
-                this.state.particles.splice(i, 1);
+                // PERF: Swap-and-Pop O(1) removal
+                particles[i] = particles[count - 1];
+                particles.pop();
+                count--;
                 continue;
             }
 
@@ -62,10 +68,6 @@ export class VFXSystem {
                     p.rotation += p.vRotation * dt;
 
                     // Ground Collision
-                    // Recalculate groundH for new position if moving horizontally?
-                    // Ideally yes, but for small dt it's okay. 
-                    // Better: clamp z to current pos groundH.
-                    
                     if (p.z < groundH) {
                         p.z = groundH;
                         // Bounce Logic
@@ -107,13 +109,18 @@ export class VFXSystem {
         // Update Decals
         for (let i = this.state.decals.length - 1; i >= 0; i--) {
             this.state.decals[i].life -= dt * 0.5;
-            if (this.state.decals[i].life <= 0) this.state.decals.splice(i, 1);
+            if (this.state.decals[i].life <= 0) {
+                // Simple Splice OK here as count is low
+                this.state.decals.splice(i, 1);
+            }
         }
 
         // Update Grid Flashes
         for (let i = this.state.gridFlashes.length - 1; i >= 0; i--) {
             this.state.gridFlashes[i].life -= dt * 2.0;
-            if (this.state.gridFlashes[i].life <= 0) this.state.gridFlashes.splice(i, 1);
+            if (this.state.gridFlashes[i].life <= 0) {
+                this.state.gridFlashes.splice(i, 1);
+            }
         }
 
         // --- AMBIENT SPAWNER ---

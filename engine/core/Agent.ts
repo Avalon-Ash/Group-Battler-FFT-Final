@@ -76,7 +76,6 @@ export class Agent {
     public deadLogged: boolean = false;
     public fullyDead: boolean = false;
     public animState: AnimState = AnimState.IDLE;
-    public animTimer: number = 0; 
     public hitFlashTimer: number = 0;
 
     // Physics
@@ -106,7 +105,6 @@ export class Agent {
     setAnim(state: AnimState) {
         if (this.animState !== state && this.animState !== AnimState.DEAD) {
             this.animState = state;
-            this.animTimer = 0;
         }
     }
 

@@ -17,6 +17,9 @@ import { useGameApp } from './hooks/useGameApp';
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
   
+  const isGameOver = state.winner !== null;
+  const hideHUD = state.isShowcaseMode || isGameOver;
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       
@@ -46,7 +49,7 @@ function App() {
       
       {/* 1. Playback Controls */}
       <PlaybackHUD 
-          hidden={state.isShowcaseMode}
+          hidden={hideHUD}
           isPlaying={state.isPlaying}
           winner={state.winner}
           timeScale={state.timeScale}
@@ -58,7 +61,7 @@ function App() {
       />
 
       {/* 2. System Menu */}
-      {!state.isShowcaseMode && (
+      {!hideHUD && (
           <SystemMenu 
               onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
               onToggleDB={() => setters.setShowDB(!state.showDB)}
@@ -66,27 +69,27 @@ function App() {
           />
       )}
 
-      {/* 3. Unit Inspector */}
-      {!state.isShowcaseMode && state.selectedAgent && (
+      {/* 3. Unit Inspector (Now receives Engine for direct BT rendering) */}
+      {!hideHUD && state.selectedAgent && (
           <UnitInspectorHUD 
               agent={state.selectedAgent} 
+              engine={engineRef.current}
               onClose={() => actions.handleSelectAgent(null)} 
-              onExpand={() => setters.setShowUnitDetail(true)}
           />
       )}
 
-      {/* 4. Modals (Logs / DB / Details) */}
-      {!state.isShowcaseMode && (
+      {/* 4. Modals (Logs / DB) - Removed UnitDetail trigger from here */}
+      {!hideHUD && (
           <ModalManager 
               showLogs={state.showLogs}
               showDB={state.showDB}
-              showUnitDetail={state.showUnitDetail}
-              selectedAgent={state.selectedAgent}
+              // Unit Detail is now inline in HUD, so we disable the modal version
+              showUnitDetail={false} 
+              selectedAgent={null}
               engine={engineRef.current}
               onClose={() => {
                   setters.setShowLogs(false);
                   setters.setShowDB(false);
-                  setters.setShowUnitDetail(false);
               }}
           />
       )}
@@ -104,15 +107,15 @@ function App() {
                 spawnMode={state.spawnMode}
                 draftRole={state.draftRole}
                 onSelect={actions.handleSelectAgent} 
-                // onWin removed - handled via Bus
                 winner={state.winner}
                 rematch={actions.rematch}
+                nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}
             />
       </div>
 
       {/* 5. Map Editor Dock */}
-      {!state.isShowcaseMode && (
+      {!hideHUD && (
           <MapEditorToolbar 
               tool={state.tool}
               setTool={setters.setTool}

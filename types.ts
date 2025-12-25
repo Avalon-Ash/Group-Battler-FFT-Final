@@ -96,7 +96,6 @@ export interface UnitStats {
     role: Role;
     maxHp: number;
     maxMp: number;
-    baseHp: number; // For scaling reference
     moveSpeed: number; // Tiles per second. 1.0 = 1 tile/sec
     movementType: MovementType; // Ground or Flying
 }

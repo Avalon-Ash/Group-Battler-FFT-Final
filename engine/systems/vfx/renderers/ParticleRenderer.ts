@@ -1,6 +1,7 @@
 
 import { Particle } from "../state";
 import { isChaosStyle, normalizeHex } from "../utils";
+import { AssetManager } from "../../../assets";
 
 export const ParticleRenderer = {
     
@@ -43,6 +44,17 @@ export const ParticleRenderer = {
                 ctx.scale(scale, scale);
                 ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
             }
+
+        } else if (p.type === 'GLOW') {
+            // New Handler for Ambient Effects (Snow, Ash, Embers)
+            const img = AssetManager.getGlowSprite(p.color);
+            const fade = Math.sin(progress * Math.PI); // Pulse
+            const scale = (p.size / 64) * (0.8 + fade * 0.4); 
+            
+            ctx.globalAlpha = fade * 0.8;
+            ctx.globalCompositeOperation = 'screen'; 
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, -32, -32);
 
         } else if (p.type === 'CHIP') {
             ctx.rotate(p.rotation); 
@@ -155,7 +167,6 @@ export const ParticleRenderer = {
         } else if (p.type === 'PILLAR') {
             this.drawDivinePillar(ctx, p, progress);
         } else if (p.type === 'SHOCKWAVE') {
-            // Keep generic shockwave logic
             ctx.translate(0, -20);
             this.drawShockwave(ctx, p, progress, isChaos);
         } else if (p.type === 'DOMAIN') {
@@ -169,7 +180,6 @@ export const ParticleRenderer = {
     },
 
     // 🌫️ VOLUMETRIC GRID FOG (Procedural)
-    // Simulates a lingering energy field strictly bound to the tile hex.
     drawGridField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         // Hex Geometry (Matches TerrainRenderer)
         const size = 36; 
@@ -194,19 +204,15 @@ export const ParticleRenderer = {
             // 1. Ground Cracks (Base)
             ctx.globalCompositeOperation = 'source-over';
             ctx.save();
-            // Jittery crack expansion
             const jitter = (Math.random() - 0.5) * 2;
             ctx.translate(jitter, jitter);
             
-            // Mask to hex shape
             drawHex();
             ctx.clip();
             
-            // Fill dark background
             ctx.fillStyle = `rgba(20, 5, 5, ${fade * 0.8})`;
             ctx.fill();
             
-            // Draw cracks
             ctx.strokeStyle = p.color; // Hot red
             ctx.lineWidth = 2;
             ctx.shadowColor = p.color;
@@ -214,7 +220,6 @@ export const ParticleRenderer = {
             ctx.globalAlpha = fade;
             
             ctx.beginPath();
-            // Procedural lightning shape across hex
             ctx.moveTo(-20, -10); ctx.lineTo(-10, 5); ctx.lineTo(5, -5); ctx.lineTo(20, 10);
             ctx.moveTo(0, 0); ctx.lineTo(-5, 15);
             ctx.stroke();
@@ -223,14 +228,10 @@ export const ParticleRenderer = {
             // 2. Rising Miasma (Volumetric Fog)
             ctx.globalCompositeOperation = 'lighter';
             
-            // Simulate 3 distinct smoke puffs moving UP within the column
             const puffs = 3;
             for(let i=0; i<puffs; i++) {
-                // Time offset for each puff
                 const t = (Date.now() / 1000 + i * 100) % 1;
-                // Move UP: y goes from 10 to -40
                 const yPos = 10 - t * 60; 
-                // Scale fades as it goes up
                 const scale = 1 + t * 0.5;
                 const puffAlpha = fade * (1 - t);
                 
@@ -286,17 +287,14 @@ export const ParticleRenderer = {
     },
 
     // 🏛️ BLUE: DIVINE PILLAR (High-End Technical Art)
-    // Optimized: Replaced solid rects with multi-layered blending for an ethereal look.
     drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         const lifeRatio = p.life / p.maxLife;
         
-        // Easing: Fast In, Slow Out
         let alpha = 0;
         if (lifeRatio > 0.9) alpha = (1 - lifeRatio) * 10; // 0.1s fade in
         else alpha = Math.pow(lifeRatio, 0.5); // Slow decay
         
         const maxHeight = 1200;
-        // Growth animation: Shoots up instantly, then holds
         const currentHeight = maxHeight * (progress < 0.1 ? progress * 10 : 1.0);
         const width = p.size;
 
@@ -308,14 +306,12 @@ export const ParticleRenderer = {
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = alpha;
         
-        // Inner hot ring
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 3;
         ctx.shadowColor = p.color;
         ctx.shadowBlur = 20;
         ctx.beginPath(); ctx.arc(0, 0, width * 0.8, 0, Math.PI*2); ctx.stroke();
         
-        // Outer shockwave ring
         const wave = (progress * 2) % 1;
         ctx.strokeStyle = p.color;
         ctx.lineWidth = 2;
@@ -324,9 +320,8 @@ export const ParticleRenderer = {
         ctx.restore();
 
         // Layer 2: The Beam (Vertical Gradient)
-        ctx.globalCompositeOperation = 'screen'; // Key for the "Light" look
+        ctx.globalCompositeOperation = 'screen';
         
-        // A. The Core (White Hot)
         const coreW = width * 0.3;
         const coreGrad = ctx.createLinearGradient(0, 0, 0, -currentHeight);
         coreGrad.addColorStop(0, 'rgba(255,255,255,0)');
@@ -337,7 +332,6 @@ export const ParticleRenderer = {
         ctx.globalAlpha = alpha;
         ctx.fillRect(-coreW/2, -currentHeight, coreW, currentHeight);
 
-        // B. The Glow (Colored Edge)
         const glowW = width;
         const glowGrad = ctx.createLinearGradient(-glowW, 0, glowW, 0); // Horizontal fade
         glowGrad.addColorStop(0, 'rgba(0,0,0,0)');
@@ -347,14 +341,12 @@ export const ParticleRenderer = {
         glowGrad.addColorStop(1, 'rgba(0,0,0,0)');
         
         ctx.save();
-        // Mask the vertical fade
         const vMask = ctx.createLinearGradient(0, 0, 0, -currentHeight);
         vMask.addColorStop(0, 'rgba(0,0,0,0)');
         vMask.addColorStop(0.1, 'rgba(0,0,0,1)'); 
         
         ctx.fillStyle = glowGrad;
         ctx.globalAlpha = alpha * 0.6;
-        // Add jitter to width for "energy instability"
         const jitter = Math.random() * 10;
         ctx.fillRect(-(glowW + jitter)/2, -currentHeight, glowW + jitter, currentHeight);
         ctx.restore();
@@ -364,9 +356,7 @@ export const ParticleRenderer = {
         ctx.fillStyle = '#fff';
         const lines = 8;
         for(let i=0; i<lines; i++) {
-            // Lines move UP
             const yPos = -((Date.now()/500 + i/lines) % 1) * currentHeight;
-            // Parabolic fade (visible in middle, faded at ends)
             const hRatio = Math.abs(yPos) / currentHeight;
             const lineAlpha = 1 - Math.pow(2 * hRatio - 1, 2); 
             
@@ -404,7 +394,6 @@ export const ParticleRenderer = {
          ctx.lineWidth = 3;
          ctx.globalAlpha = alpha;
          ctx.beginPath();
-         // Jagged lines from center
          for(let i=0; i<6; i++) {
              const angle = i * (Math.PI/3) + progress;
              ctx.moveTo(0,0);
@@ -437,7 +426,6 @@ export const ParticleRenderer = {
          ctx.fillStyle = heatGrad;
          ctx.globalAlpha = alpha * 0.2;
          
-         // Irregular shape
          ctx.beginPath();
          ctx.moveTo(-r/2, 0); 
          ctx.lineTo(-r/4, -300);

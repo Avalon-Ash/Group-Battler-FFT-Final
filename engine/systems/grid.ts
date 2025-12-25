@@ -13,16 +13,26 @@ interface CachedTile {
     h: number;
 }
 
+// Lightweight struct to track Danger Zones without map allocation
+interface DangerSource {
+    q: number;
+    r: number;
+    radiusSq: number; // Squared radius for fast check
+    color: string;
+    visual: string;
+    progress: number;
+}
+
 const OBSTACLE_Z_INDEX = 10;
 const OBSTACLE_ANCHOR_Y = 95; 
 
 export class GridSystem {
-    // Optimization: Cache tiles to avoid re-parsing keys and re-calculating positions every frame
+    // Cache
     private _tileCache: CachedTile[] = [];
     private _lastMapVersion: number = -1;
 
-    // Optimization: Reuseable buffers to reduce GC pressure
-    private _dangerZones = new Map<string, {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number}>();
+    // Optimization: Reuse buffers
+    private _dangerSources: DangerSource[] = [];
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
 
@@ -49,45 +59,44 @@ export class GridSystem {
         });
     }
 
-    // RENAMED: Now expects World Coordinates (wx, wy)
     getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine): Hex | null {
         this.ensureCache(engine);
-        
-        const candidates: CachedTile[] = [];
         const limit = HEX_SIZE * 2; 
         
+        // Find closest tile visual center
+        let bestTile: CachedTile | null = null;
+        let bestDist = Infinity;
+
+        // Optimization: Simple distance check first
         for (const tile of this._tileCache) {
-            const dist = Math.abs(wx - tile.px) + Math.abs(wy - (tile.py - tile.h));
-            if (dist < limit) { 
-                candidates.push(tile);
+            // Visual Y center is py - h
+            const visualY = tile.py - tile.h;
+            const dist = Math.abs(wx - tile.px) + Math.abs(wy - visualY);
+            if (dist < limit && dist < bestDist) { 
+                bestDist = dist;
+                bestTile = tile;
             }
         }
 
-        candidates.sort((a, b) => b.py - a.py);
-
-        for (const cand of candidates) {
-            const testHex = HexUtils.fromPx(wx, wy + cand.h, engine.mapConfig);
+        if (bestTile) {
+            // Precise check
+            const testHex = HexUtils.fromPx(wx, wy + bestTile.h, engine.mapConfig);
             const rounded = HexUtils.round(testHex.q, testHex.r);
-            if (rounded.q === cand.q && rounded.r === cand.r) {
-                return { q: cand.q, r: cand.r };
+            if (rounded.q === bestTile.q && rounded.r === bestTile.r) {
+                return { q: bestTile.q, r: bestTile.r };
             }
         }
-
         return null;
     }
 
     getOccludedAgents(engine: GameEngine): Agent[] {
         const occluded: Agent[] = [];
-        
         engine.agents.forEach(a => {
             if (a.hp <= 0 && a.fullyDead) return;
-
             const uPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const uHeight = engine.map.getTerrainHeight(a.q, a.r);
-
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
-            let isBlocked = false;
-
+            
             for (const n of neighbors) {
                 const k = HexUtils.key(n);
                 if (engine.mapKeys.has(k)) {
@@ -95,22 +104,16 @@ export class GridSystem {
                     if (nPx.y > uPx.y) {
                          const nHeight = engine.map.getTerrainHeight(n.q, n.r);
                          if (nHeight > uHeight) {
-                             isBlocked = true;
+                             occluded.push(a);
                              break;
                          }
                     }
                 }
             }
-
-            if (isBlocked) {
-                occluded.push(a);
-            }
         });
-
         return occluded;
     }
 
-    // --- REFACTORED FOR RENDER POOLING ---
     submitRenderables(
         renderList: RenderList,
         engine: GameEngine, 
@@ -128,54 +131,48 @@ export class GridSystem {
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
 
-        this._dangerZones.clear();
+        // Reset buffers
+        this._dangerSources.length = 0;
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
 
-        // 1. Pre-calc Unit States
-        engine.agents.forEach(a => {
-            if (a.hp > 0 && a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
-                const s = a.skills[a.castingSkillIdx];
-                if (s && s.type === 'AOE') {
-                    let centerHex: Hex | null = null;
-                    if (a.targetHex) centerHex = a.targetHex;
-                    else if (a.target) centerHex = {q: a.target.q, r: a.target.r};
-                    else centerHex = {q: a.q, r: a.r};
+        // 1. Scan Agents for AOE and Status
+        for (const a of engine.agents) {
+            if (a.hp > 0) {
+                // Populate Unit Status Maps
+                const key = `${a.q},${a.r}`;
+                this._unitPresence.add(key);
+                if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
 
-                    if (centerHex) {
-                        const progress = 1 - (a.castTimer / s.cast);
-                        const currentRadius = Math.max(0.5, (s.aoeRadius || 1) * progress);
-                        const potentialHexes = HexUtils.range(centerHex, s.aoeRadius || 1);
+                // Populate Danger Sources (No allocations)
+                if (a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
+                    const s = a.skills[a.castingSkillIdx];
+                    if (s && s.type === 'AOE') {
+                        let tq = a.q, tr = a.r;
+                        if (a.targetHex) { tq = a.targetHex.q; tr = a.targetHex.r; }
+                        else if (a.target) { tq = a.target.q; tr = a.target.r; }
                         
-                        potentialHexes.forEach(h => {
-                            if (HexUtils.dist(centerHex!, h) <= currentRadius) {
-                                this._dangerZones.set(`${h.q},${h.r}`, {
-                                    color: s.color, 
-                                    progress: progress,
-                                    visual: s.visual || 'BOLT',
-                                    state: 'ACTIVE',
-                                    fadeRatio: 1.0
-                                });
-                            }
+                        const progress = 1 - (a.castTimer / s.cast);
+                        const radius = Math.max(0.5, (s.aoeRadius || 1) * progress);
+                        
+                        this._dangerSources.push({
+                            q: tq, r: tr,
+                            radiusSq: radius + 0.1, // Slight buffer
+                            color: s.color,
+                            visual: s.visual || 'BOLT',
+                            progress: progress
                         });
                     }
                 }
             }
-            if(a.hp > 0) {
-                const key = `${a.q},${a.r}`;
-                this._unitPresence.add(key);
-                if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
-            }
-        });
+        }
 
         // 2. Iterate Tiles & Obstacles
-        const PROJ_LIGHT_RADIUS = 40; 
-        const PROJ_LIGHT_RADIUS_SQ = PROJ_LIGHT_RADIUS * PROJ_LIGHT_RADIUS;
+        const PROJ_LIGHT_RADIUS_SQ = 1600; // 40^2
 
         for (const tile of this._tileCache) {
             const { q, r, px, py, h } = tile;
             
-            // Shared Transition Math
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualY = py + offset;
 
@@ -191,30 +188,45 @@ export class GridSystem {
                 op.y = visualY; 
                 op.z = OBSTACLE_Z_INDEX;
                 op.tx = px; 
-                // Visual Y includes height and anchor offset for drawing
                 op.ty = visualY - h - OBSTACLE_ANCHOR_Y; 
                 op.ttype = obstacleType;
             }
 
             // --- SUBMIT TERRAIN ---
+            // Determine Danger Zone without allocation
+            let dangerInfo = undefined;
+            for (const ds of this._dangerSources) {
+                // Dist calculation
+                const dist = (Math.abs(q - ds.q) + Math.abs(q + r - ds.q - ds.r) + Math.abs(r - ds.r)) / 2;
+                if (dist <= ds.radiusSq) {
+                    dangerInfo = {
+                        color: ds.color,
+                        progress: ds.progress,
+                        visual: ds.visual,
+                        state: 'ACTIVE',
+                        fadeRatio: 1.0
+                    };
+                    break; // Just take the first overlapping danger zone
+                }
+            }
+
             const flash = flashes.find(f => f.q === q && f.r === r);
             let isRange = false;
             let rangeColor = '';
             
             if (hoveredSkill && highlightAgent) {
                 const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
-                const tileH = h;
-                const bonus = Math.max(0, Math.floor((agentH - tileH) / BLOCK_HEIGHT));
+                const bonus = Math.max(0, Math.floor((agentH - h) / BLOCK_HEIGHT));
                 const effRange = hoveredSkill.range + bonus;
+                const dist = (Math.abs(q - highlightAgent.q) + Math.abs(q + r - highlightAgent.q - highlightAgent.r) + Math.abs(r - highlightAgent.r)) / 2;
 
-                if (HexUtils.dist({q, r}, highlightAgent) <= effRange) {
+                if (dist <= effRange) {
                     isRange = true; 
                     rangeColor = hoveredSkill.color;
                 }
             }
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            const dangerInfo = this._dangerZones.get(k);
             const hasUnit = this._unitPresence.has(k);
             const specialStatus = this._unitVisualStatus.get(k);
 
@@ -225,7 +237,7 @@ export class GridSystem {
                 const distSq = (p.x - px)**2 + (p.y - py)**2;
                 if (distSq < PROJ_LIGHT_RADIUS_SQ) {
                     lightColor = p.skill.color;
-                    lightIntensity += (1 - Math.sqrt(distSq) / PROJ_LIGHT_RADIUS);
+                    lightIntensity += (1 - Math.sqrt(distSq) / 40);
                 }
             }
 

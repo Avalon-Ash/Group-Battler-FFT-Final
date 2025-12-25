@@ -10,11 +10,6 @@ export interface MapConfig {
 }
 
 // FFT Style Isometric Constants
-// Projection Angle: ~35 degrees
-// Scale Y to simulate 3D perspective on standard hex grid
-// ISO_SCALE_Y moved to constants.ts
-
-// Rotation Constants (45 degrees)
 const ANGLE = Math.PI / 4;
 const SIN_A = Math.sin(ANGLE);
 const COS_A = Math.cos(ANGLE);
@@ -43,7 +38,6 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
     
     const centerQ = Math.floor(mapConfig.w / 2);
     const centerR = Math.floor(mapConfig.h / 2);
-    // Approximate hex from pixel for distance calc
     const hex = HexUtils.fromPx(x, y, mapConfig);
     
     const maxDist = Math.max(mapConfig.w, mapConfig.h) / 2;
@@ -53,33 +47,17 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
     if (phase === 'OUT') {
         const trigger = d * 0.3;
         if (t > trigger) {
-            // Accelerate down
             const fallT = Math.min(1, (t - trigger) * 2.5);
             return fallT * fallT * fallT * 1000;
         }
     } else if (phase === 'IN') {
         const trigger = d * 0.3;
-        // Decelerate from bottom
         const riseT = Math.max(0, Math.min(1, (t - trigger) * 2.5));
         const easedRise = 1 - Math.pow(1 - riseT, 3);
         return (1 - easedRise) * 1000;
     }
     return 0;
 }
-
-export const Easing = {
-    easeInOutQuad: (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
-    easeOutBack: (t: number) => {
-        const c1 = 1.70158;
-        const c3 = c1 + 1;
-        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
-    },
-    easeInBack: (t: number) => {
-        const c1 = 1.70158;
-        const c3 = c1 + 1;
-        return c3 * t * t * t - c1 * t * t;
-    }
-};
 
 export const HexUtils = {
     offsetToAxial: (col: number, row: number, config: MapConfig): Hex => {

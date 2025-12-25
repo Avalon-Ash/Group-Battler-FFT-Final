@@ -9,6 +9,7 @@ import { Team, ToolType, Skill, Role } from '../types';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
+import { Icons } from './ui/icons';
 
 interface GameCanvasProps {
     engine: GameEngine;
@@ -24,13 +25,14 @@ interface GameCanvasProps {
     // onWin removed - handled by EventBus in parent
     winner: Team | null;
     rematch: () => void;
+    nextLevel: () => void; // New Prop
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
 }
 
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, transitionPhase 
+        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, nextLevel, transitionPhase 
     } = props;
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -74,8 +76,9 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         // Increment progress if we are in a transition
         if (transitionPhase !== 'IDLE') {
             const dt = 1 / 60; // Assume 60fps delta for smoothness or use real dt
-            // Speed of animation Adjusted: 0.4 for slower, majestic float (approx 2.5s duration)
-            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.4);
+            // Speed adjusted: 1.2 ensures animation finishes in ~0.83s
+            // This fits comfortably within the 1.2s/1.5s logic timers in useGameApp
+            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 1.2);
         } else {
             transitionProgress.current = 0;
         }
@@ -167,17 +170,42 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             
-            {/* VICTORY SCREEN - Liquid Glass Style */}
+            {/* VICTORY SCREEN - God View Style */}
             {winner !== null && !isShowcaseMode && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
-                    <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-md w-full">
-                        <h2 className={`text-6xl font-black mb-2 tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_20px_rgba(239,68,68,0.6)]'}`}>
-                            {winner === Team.BLUE ? 'VICTORY' : 'DEFEAT'}
-                        </h2>
-                        <div className="h-1 w-20 mx-auto bg-white/20 rounded-full mb-8"></div>
-                        <button onClick={rematch} className="liquid-btn px-10 py-4 rounded-full text-xl font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white shadow-lg w-full">
-                            再戰一局
-                        </button>
+                    <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+                        
+                        {/* Winner Label */}
+                        <div className="mb-6">
+                            <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">Simulation Complete</span>
+                            <h2 className={`text-5xl md:text-6xl font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
+                                {winner === Team.BLUE ? 'IMPERIAL' : 'COVENANT'}
+                            </h2>
+                            <h2 className="text-4xl md:text-5xl font-black text-white tracking-widest mt-1 opacity-90">
+                                VICTORY
+                            </h2>
+                        </div>
+
+                        <div className="h-px w-24 mx-auto bg-white/20 rounded-full mb-8"></div>
+                        
+                        {/* Actions */}
+                        <div className="flex flex-col gap-3">
+                            <button 
+                                onClick={rematch} 
+                                className="liquid-btn px-8 py-4 rounded-xl text-lg font-bold bg-white/5 hover:bg-white/10 border-white/20 text-slate-200 shadow-lg w-full flex items-center justify-center gap-3 group"
+                            >
+                                <Icons.Restart className="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:-rotate-90 transition-all" />
+                                <span>再戰一局 (Rematch)</span>
+                            </button>
+                            
+                            <button 
+                                onClick={nextLevel} 
+                                className="liquid-btn-primary px-8 py-4 rounded-xl text-lg font-bold shadow-lg w-full flex items-center justify-center gap-3 group"
+                            >
+                                <Icons.Dice className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                                <span>前進下一關 (Next Level)</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

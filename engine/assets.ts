@@ -5,13 +5,6 @@ import { UIFactory } from "./graphics/UIFactory";
 const cache: Map<string, HTMLCanvasElement> = new Map();
 
 export const AssetManager = {
-    // VFX: Generic Glow Particles
-    getVFX(visual: string, color: string): HTMLCanvasElement {
-         const key = `VFX_ORB_${color}`;
-         if (!cache.has(key)) cache.set(key, VFXFactory.generateGlowOrb(color));
-         return cache.get(key)!;
-    },
-    
     // New: Optimized Glow Sprite (Small) for replacement of shadowBlur
     getGlowSprite(color: string): HTMLCanvasElement {
         const key = `GLOW_SPRITE_${color}`;
@@ -62,13 +55,6 @@ export const AssetManager = {
     getMagicCircle(color: string, isUlt: boolean): HTMLCanvasElement {
         const key = `MAGIC_CIRCLE_${color}_${isUlt}`;
         if (!cache.has(key)) cache.set(key, VFXFactory.generateMagicCircle(color, isUlt));
-        return cache.get(key)!;
-    },
-
-    // VFX: Danger Indicators
-    getWarningRune(): HTMLCanvasElement {
-        const key = 'WARNING_RUNE';
-        if (!cache.has(key)) cache.set(key, VFXFactory.generateWarningRune());
         return cache.get(key)!;
     }
 };

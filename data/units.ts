@@ -12,7 +12,6 @@ import { Role, UnitStats, MovementType } from "../types";
 export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }> = {
     [Role.TANK]: {
         role: Role.TANK,
-        baseHp: 1000,
         maxHp: 1000,
         maxMp: 100,
         moveSpeed: 0.85, // Tier: Heavy (Slow)
@@ -22,7 +21,6 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
     },
     [Role.WARRIOR]: {
         role: Role.WARRIOR,
-        baseHp: 750,
         maxHp: 750,
         maxMp: 100,
         moveSpeed: 1.0, // Tier: Standard
@@ -32,7 +30,6 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
     },
     [Role.RANGER]: {
         role: Role.RANGER,
-        baseHp: 550,
         maxHp: 550, 
         maxMp: 100,
         moveSpeed: 1.3, // Tier: Scout/Assassin (Fast)
@@ -42,7 +39,6 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
     },
     [Role.MAGE]: {
         role: Role.MAGE,
-        baseHp: 450,
         maxHp: 450, 
         maxMp: 150, // Higher mana pool
         moveSpeed: 1.2, // Tier: Air Superiority (Fast)
@@ -52,7 +48,6 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
     },
     [Role.SUPPORT]: {
         role: Role.SUPPORT,
-        baseHp: 600,
         maxHp: 600, 
         maxMp: 150,
         moveSpeed: 0.9, // Tier: Backline

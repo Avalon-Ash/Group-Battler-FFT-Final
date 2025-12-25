@@ -210,6 +210,18 @@ export const useGameApp = () => {
         setIsPlaying(false); 
     }, []);
 
+    const handleNextLevel = useCallback(() => {
+        // Reuse random logic but start playing immediately
+        handleRandomBattlefield();
+        
+        // Need to wait a tick for agents to be ready? 
+        // handleRandomBattlefield runs synchronously, so we can just play.
+        const engine = engineRef.current;
+        engine.play();
+        setIsPlaying(true);
+        setTool(ToolType.SELECT);
+    }, [handleRandomBattlefield]);
+
     const handleReset = useCallback(() => {
         engineRef.current.restart();
         setIsPlaying(false); 
@@ -238,8 +250,6 @@ export const useGameApp = () => {
         }
     }, [isPlaying, winner]);
 
-    // onWin is now handled via EventBus listener in useEffect
-
     const handleSelectAgent = (a: Agent | null) => {
         setSelectedAgent(a);
         if (!a) setShowUnitDetail(false);
@@ -264,13 +274,19 @@ export const useGameApp = () => {
             handleUpdateMapSize,
             handleSetScene,
             handleRandomBattlefield,
+            handleNextLevel, // New action
             handleReset,
             togglePlay,
             onWin: (team: Team) => { engineRef.current.bus.emit('GAME_OVER', {winner: team}) }, // Manual trigger shim
             handleSelectAgent,
             startShowcaseMatch,
             downloadSpec: DesignExporter.downloadSpec,
-            rematch: () => { setWinner(null); engineRef.current.restart(); setIsPlaying(true); }
+            rematch: () => { 
+                setWinner(null); 
+                engineRef.current.restart(); 
+                engineRef.current.play(); // FIX: Explicitly start engine
+                setIsPlaying(true); 
+            }
         }
     };
 };

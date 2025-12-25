@@ -178,7 +178,7 @@ export function spawnUnitShatter(system: VFXSystem, x: number, y: number, team: 
         system.state.particles.push(p);
     }
 
-    spawnSprite(assets.weapon, 0.7, 50, 400); 
+    // Spawn Icon (Head)
     spawnSprite(assets.icon, 0.6, 70, 300);   
 
     const coreColor = team === Team.BLUE ? '#3b82f6' : '#ef4444';

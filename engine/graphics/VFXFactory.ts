@@ -172,30 +172,6 @@ export const VFXFactory = {
         return canvas;
     },
 
-    generateWarningRune(): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(128, 64);
-        const cx = 64;
-        const cy = 32;
-        const color = '#ef4444'; 
-        
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3;
-        ctx.scale(1, 0.5); 
-        
-        ctx.beginPath(); 
-        ctx.arc(cx, cy * 2, 40, 0, Math.PI * 2); 
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(cx - 15, cy * 2 - 25); ctx.lineTo(cx + 15, cy * 2 + 25);
-        ctx.moveTo(cx + 15, cy * 2 - 25); ctx.lineTo(cx - 15, cy * 2 + 25);
-        ctx.stroke();
-
-        return canvas;
-    },
-
     generateProjectileSprite(visual: string, color: string): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(PROJ_WIDTH, PROJ_HEIGHT);
         const cx = PROJ_WIDTH / 2;

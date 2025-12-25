@@ -1,3 +1,4 @@
+
 import { Agent } from "../../../game";
 import { AnimState, Role } from "../../../../types";
 import { getCastProgress } from "../utils";
@@ -86,10 +87,7 @@ export const CovenantRenderer = {
             return;
         }
 
-        if (agent.hp > 0) {
-            ctx.shadowColor = 'rgba(239, 68, 68, 0.4)';
-            ctx.shadowBlur = 10;
-        }
+        // PERF: Removed ctx.shadowBlur = 10;
 
         ctx.translate(bodyRecoilX + hitShakeX, floatY + bodyRecoilY);
         ctx.translate(0, -40); 
@@ -115,7 +113,6 @@ export const CovenantRenderer = {
         drawCovenantWeapon(ctx, agent.role, t);
         ctx.restore();
 
-        ctx.shadowBlur = 0;
         ctx.restore();
     }
 };

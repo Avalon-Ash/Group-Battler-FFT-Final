@@ -82,35 +82,51 @@ export const TerrainRenderer = {
         // 2. Draw Top Face (Base)
         this.traceTopFace(ctx, x, y - topY);
         
-        // --- DYNAMIC TEXTURE LOGIC ---
+        // --- BASE MATERIAL ---
+        // Static Gradient for base material to ensure solid look
+        const topGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
+        topGrad.addColorStop(0, theme.rim); 
+        topGrad.addColorStop(0.3, theme.top);
+        topGrad.addColorStop(1, theme.sideDark); 
+        ctx.fillStyle = topGrad;
+        ctx.fill();
+
+        // --- DYNAMIC OVERLAYS (Texture 2.0) ---
         if (type === 'MAGMA') {
-            // Animated Magma Pulse
-            const pulse = Math.sin(globalTime * 2.0 + x * 0.05 + y * 0.05); // Spatial offset
-            const magColor = pulse > 0 ? '#ef4444' : '#b91c1c'; // Red <-> Dark Red
-            
-            const magmaGrad = ctx.createRadialGradient(x, y - topY, 0, x, y - topY, size);
-            magmaGrad.addColorStop(0, '#fca5a5'); // Hot Center
-            magmaGrad.addColorStop(0.5, magColor);
-            magmaGrad.addColorStop(1, '#450a0a'); // Crust Edge
-            
-            ctx.fillStyle = magmaGrad;
+            // FIX: Magma is now a dark rock with SUBTLE pulsing heat cracks, not a glowing neon block
+            const pulse = Math.sin(globalTime * 1.5 + x * 0.1 + y * 0.1); 
+            // Only draw heat if pulse is high, and keep opacity low
+            if (pulse > 0) {
+                const heatAlpha = pulse * 0.3; // Max 30% opacity
+                const magmaGrad = ctx.createRadialGradient(x, y - topY, 0, x, y - topY, size);
+                magmaGrad.addColorStop(0, `rgba(239, 68, 68, ${heatAlpha})`); // Red center
+                magmaGrad.addColorStop(0.8, `rgba(69, 10, 10, 0)`); // Fade to nothing
+                
+                ctx.fillStyle = magmaGrad;
+                ctx.fill();
+            }
             
         } else if (type === 'ICE') {
-            // Shimmering Ice
-            const shimmer = Math.sin(globalTime * 3.0 + x * 0.1);
-            const base = theme.top;
-            ctx.fillStyle = shimmer > 0.8 ? '#ffffff' : base;
+            // FIX: Ice is now a glossy surface with a moving specular reflection, not a flashing strobe
+            // Specular band moving across the tile
+            const bandPos = (globalTime * 50 + x + y) % (size * 4) - size * 2;
             
-        } else {
-            // Static Gradient
-            const topGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
-            topGrad.addColorStop(0, theme.rim); 
-            topGrad.addColorStop(0.3, theme.top);
-            topGrad.addColorStop(1, theme.sideDark); 
-            ctx.fillStyle = topGrad;
-        }
-        
-        ctx.fill();
+            ctx.save();
+            ctx.clip(); // Clip to hex
+            
+            const specGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
+            // Gentle white/cyan reflection
+            specGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
+            specGrad.addColorStop(0.45, 'rgba(255, 255, 255, 0)');
+            specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)'); // Subtle highlight
+            specGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0)');
+            specGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.translate(bandPos * 0.5, 0); // Move reflection
+            ctx.fillStyle = specGrad;
+            ctx.fill();
+            ctx.restore();
+        } 
 
         // 3. Rim Light
         ctx.lineCap = 'round';
@@ -157,13 +173,12 @@ export const TerrainRenderer = {
         const time = performance.now() / 1000;
 
         if (type === 'MAGMA') {
-            // Emissive Cracks
-            const pulse = 0.5 + Math.sin(time * 2 + n * 10) * 0.5;
-            ctx.globalAlpha = 0.8 + pulse * 0.2;
-            ctx.strokeStyle = '#fef08a'; // Bright yellow cracks
+            // Charred Cracks (Darker, less glowing)
+            const pulse = 0.5 + Math.sin(time + n * 10) * 0.5;
+            
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.strokeStyle = '#280505'; // Dark crack
             ctx.lineWidth = 2;
-            ctx.shadowColor = '#ef4444';
-            ctx.shadowBlur = 10 * pulse;
             
             ctx.beginPath();
             ctx.moveTo(cx - 12, cy + 5);
@@ -172,40 +187,70 @@ export const TerrainRenderer = {
             ctx.lineTo(cx + 15, cy - 5);
             ctx.stroke();
             
-            ctx.shadowBlur = 0;
+            // Only occasional glowing ember spots
+            if (pulse > 0.8) {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.fillStyle = '#ef4444';
+                ctx.globalAlpha = (pulse - 0.8) * 3; 
+                ctx.beginPath(); ctx.arc(cx - 5, cy - 2, 2, 0, Math.PI*2); ctx.fill();
+            }
+
         } else if (type === 'VOID') {
-            // ... existing void logic
-            ctx.globalAlpha = 0.2;
-            if (n > 0.5) {
+            // ENHANCED: Digital Circuitry
+            ctx.globalAlpha = 0.3;
+            
+            // Static Grid Node
+            if (n > 0.3) {
+                ctx.fillStyle = '#38bdf8';
+                ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI*2); ctx.fill();
+                
+                // Connecting lines
+                ctx.strokeStyle = '#38bdf8';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
-                ctx.moveTo(cx - 10, cy - 5);
-                ctx.lineTo(cx, cy + 5);
-                ctx.lineTo(cx + 10, cy - 2);
+                if (n > 0.6) { ctx.moveTo(cx, cy); ctx.lineTo(cx + 15, cy - 8); }
+                if (n < 0.4) { ctx.moveTo(cx, cy); ctx.lineTo(cx - 15, cy + 8); }
                 ctx.stroke();
-                ctx.beginPath(); ctx.arc(cx + 10, cy - 2, 1.5, 0, Math.PI*2); ctx.fill();
-            } else if (n < 0.2) {
-                ctx.beginPath();
-                ctx.rect(cx - 5, cy - 5, 4, 4);
-                ctx.fill();
             }
+
+            // Moving Data Packet
+            const packetTime = (time * 0.5 + n) % 2; // 2 second loop
+            if (packetTime < 1.0) {
+                ctx.globalAlpha = 1.0 - packetTime; // Fade out
+                ctx.fillStyle = '#bae6fd';
+                const px = cx + (Math.cos(n * 10) * 20 * packetTime);
+                const py = cy + (Math.sin(n * 10) * 10 * packetTime); // Squashed Y
+                ctx.fillRect(px, py, 2, 2);
+            }
+
         } else if (type === 'FOREST') {
+            // ENHANCED: Moving Grass
             ctx.globalAlpha = 0.6;
-            const tufts = Math.floor(n * 4) + 2;
+            const tufts = Math.floor(n * 3) + 2;
+            
             for(let i=0; i<tufts; i++) {
                 const ox = (noise(q+i, r) - 0.5) * 20;
                 const oy = (noise(r, q+i) - 0.5) * 12;
-                const wind = Math.sin(time + cx * 0.01) * 2;
+                
+                // Wind Sway Logic
+                const wind = Math.sin(time * 2 + cx * 0.05 + i) * 3;
+                
                 ctx.beginPath();
+                // Blade 1
                 ctx.moveTo(cx + ox, cy + oy);
-                ctx.quadraticCurveTo(cx + ox - 2 + wind, cy + oy - 6, cx + ox - 4 + wind*2, cy + oy - 8);
+                ctx.quadraticCurveTo(cx + ox - 2 + wind, cy + oy - 6, cx + ox - 4 + wind * 1.5, cy + oy - 8);
+                // Blade 2
                 ctx.moveTo(cx + ox, cy + oy);
-                ctx.quadraticCurveTo(cx + ox + 2 + wind, cy + oy - 5, cx + ox + 4 + wind*2, cy + oy - 7);
+                ctx.quadraticCurveTo(cx + ox + 2 + wind, cy + oy - 5, cx + ox + 4 + wind * 1.5, cy + oy - 7);
+                
                 ctx.lineWidth = 1.5;
+                ctx.strokeStyle = i % 2 === 0 ? '#4ade80' : '#22c55e'; // Varied greens
                 ctx.stroke();
             }
+
         } else if (type === 'ICE') {
-            ctx.globalAlpha = 0.4;
+            // Subtler scratches
+            ctx.globalAlpha = 0.3;
             ctx.fillStyle = '#fff';
             if (n > 0.4) {
                 ctx.beginPath();
@@ -214,22 +259,27 @@ export const TerrainRenderer = {
                 ctx.lineTo(cx + 15, cy - 4);
                 ctx.lineTo(cx - 5, cy + 8);
                 ctx.fill();
-                const glint = Math.sin(time * 2 + n * 10);
-                if (glint > 0.8) {
-                    ctx.globalAlpha = (glint - 0.8) * 2;
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI*2); ctx.fill();
-                }
             }
+
         } else if (type === 'DESERT') {
-            ctx.globalAlpha = 0.3;
+            // ENHANCED: Moving Sand Ripples
+            ctx.globalAlpha = 0.2;
             ctx.strokeStyle = '#92400e';
             ctx.lineWidth = 2;
+            
+            // Scroll ripples
+            const offset = (time * 5) % 20; 
+            
             ctx.beginPath();
-            ctx.arc(cx - 10, cy - 5, 20, 0.5, 1.5);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(cx + 5, cy + 5, 20, 0.5, 1.5);
+            // Draw 2 ripples
+            for(let i=0; i<2; i++) {
+                const yBase = cy - 10 + i * 15;
+                const shift = offset + (n * 20); // Random offset per tile
+                const xStart = cx - 15 + (shift % 10);
+                
+                ctx.moveTo(xStart, yBase);
+                ctx.quadraticCurveTo(xStart + 10, yBase - 3, xStart + 20, yBase);
+            }
             ctx.stroke();
         }
 

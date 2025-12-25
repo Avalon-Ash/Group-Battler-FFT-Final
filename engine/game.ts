@@ -17,28 +17,19 @@ import { MapSystem } from "./systems/map";
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
 import { EventBus } from "./events/EventBus";
-// Import Renderer Type ONLY (to avoid circular value dependency issue if possible, though strict loop might need loose coupling)
 import type { GameRenderer } from "./renderer";
 
-// Re-export for compatibility
 export { Agent, SpecialVisualStatus };
 
 export class GameEngine {
     public agents: Agent[] = [];
     
-    // Delegated to MapSystem
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
-    
-    // Delegated to CombatSystem (Single Source of Truth)
     get projectiles() { return this.combat.projectiles; }
 
     public events: GameEvent[] = [];
-    
-    // NEW: Central Event Bus
     public bus: EventBus = new EventBus();
-    
-    // Weak reference to renderer for camera control
     public renderer?: GameRenderer;
     
     public isRunning: boolean = false;
@@ -58,7 +49,6 @@ export class GameEngine {
 
     public agentMap: Map<number, Agent> = new Map();
 
-    // Subsystems
     public movement: MovementSystem;
     public status: StatusSystem;
     public combat: CombatSystem;
@@ -73,14 +63,10 @@ export class GameEngine {
         this.map = new MapSystem();
         this.ai = new AISystem();
         this.agentManager = new AgentManager();
-        
         this.map.randomizeEnvironment(this);
     }
 
-    // --- Passthroughs ---
-    
     addAgent(team: Team, q: number, r: number, hpOverride?: number) { return this.agentManager.addAgent(this, team, q, r, hpOverride); }
-    
     setObstacle(q: number, r: number, type: string) { this.map.setObstacle(q, r, type); }
     removeObstacle(q: number, r: number) { this.map.removeObstacle(q, r); }
     toggleObstacle(q: number, r: number, type: string = 'WALL') { this.map.toggleObstacle(q, r, this, type); }
@@ -114,8 +100,6 @@ export class GameEngine {
         this.agentMap.set(HexUtils.hash(agent.q, agent.r), agent);
     }
 
-    // --- Core Logic Control ---
-
     play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
@@ -124,15 +108,13 @@ export class GameEngine {
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', {});
         }
-        
         this.agentMap.clear();
-        
         this.agents.forEach(a => {
             a.skills = a.skillIds.map(id => {
                 if (!id) return null;
                 return this.skillDB.find(s => s.id === id) || null;
             });
-            a.bt = this.ai.buildAI(a, this); // Use New Data-Driven AI System
+            a.bt = this.ai.buildAI(a, this); 
             a.animState = AnimState.IDLE;
             if (a.hp > 0) {
                 this.agentMap.set(HexUtils.hash(a.q, a.r), a);
@@ -146,18 +128,14 @@ export class GameEngine {
     restart() {
         this.stop();
         this.agentMap.clear();
-        
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
-            
             a.skills = a.skillIds.map(id => {
                 if (!id) return null;
                 return this.skillDB.find(s => s.id === id) || null;
             });
-
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
-        
         this.combat.projectiles = []; 
         this.events = []; 
         this.battleTime = 0;
@@ -179,16 +157,11 @@ export class GameEngine {
         this.bus.emit('GAME_CLEAR', {});
     }
 
-    // --- Main Game Loop ---
-
     tick(dt: number) {
         if (!this.isRunning) return;
-        
         this.events.length = 0;
-        
         this.updateDirector(dt);
 
-        // Win Condition Check
         let blue = 0, red = 0;
         for (const a of this.agents) {
             if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
@@ -204,20 +177,15 @@ export class GameEngine {
 
         for (const a of this.agents) {
             if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
-            
             this.movement.updatePhysics(a, dt, this);
-
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
                 continue;
             }
-
             this.status.update(a, dt, this);
-            
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
-
             if (a.bt) {
                 const resetTree = (node: BTNode) => { 
                     node.status = null; 
@@ -227,33 +195,43 @@ export class GameEngine {
                 a.bt.tick(a);
             }
         }
-
         this.combat.update(dt, this);
         this.movement.resolveStacking(this);
     }
 
-    // --- Loop Sub-Methods ---
-
     private updateDirector(dt: number) {
         this.directorTimer -= dt;
         
-        const current = this.agents.find(a => a.id === this.directorTargetId);
-        if (!current || current.hp <= 0) {
-            this.directorTimer = -1;
+        // If current target is dead, force reset
+        if (this.directorTargetId) {
+            const current = this.agents.find(a => a.id === this.directorTargetId);
+            if (!current || current.hp <= 0) {
+                this.directorTimer = -1;
+            }
         }
 
         if (this.directorTimer <= 0) {
-            const alive = this.agents.filter(a => a.hp > 0);
-            if (alive.length > 0) {
-                const ultCasters = alive.filter(a => a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === 'ULT');
+            let candidates: Agent[] = [];
+            let ultCasters: Agent[] = [];
+            
+            // Single loop to find candidates (Avoids array allocation of .filter)
+            for (const a of this.agents) {
+                if (a.hp > 0) {
+                    candidates.push(a);
+                    if (a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === 'ULT') {
+                        ultCasters.push(a);
+                    }
+                }
+            }
+
+            if (candidates.length > 0) {
                 if (ultCasters.length > 0) {
                      this.directorTargetId = ultCasters[Math.floor(Math.random() * ultCasters.length)].id;
-                     this.directorTimer = 4.0;
-                     return;
+                     this.directorTimer = 4.0; // Stay longer on Ult
+                } else {
+                     this.directorTargetId = candidates[Math.floor(Math.random() * candidates.length)].id;
+                     this.directorTimer = 3.0;
                 }
-                
-                this.directorTargetId = alive[Math.floor(Math.random() * alive.length)].id;
-                this.directorTimer = 3.0;
             }
         }
     }
@@ -263,7 +241,6 @@ export class GameEngine {
             a.castingSkillIdx = i;
             a.castTimer = a.skills[i]!.cast;
             a.castingAnimationTimer = a.skills[i]!.cast; 
-            
             a.btStatus = `詠唱 ${a.skills[i]!.tag}`;
             
             let targetName = '地面';
@@ -287,7 +264,6 @@ export class GameEngine {
     
     log(agent: Agent | null, typeOrAction: LogActionType | string, actionNameOrTarget: string | null, detailOrTargetInfo: string, legacyDetail?: string) {
         const time = this.battleTime.toFixed(1);
-        
         let actionType: LogActionType = 'SYSTEM';
         let actionName = 'Action';
         let targetInfo = '';
@@ -301,7 +277,6 @@ export class GameEngine {
             actionName = rawAction;
             targetInfo = actionNameOrTarget || '';
             detail = detailOrTargetInfo;
-
             if (rawAction === '死亡') { actionType = 'DEATH'; color = LOG_COLORS.DEATH; }
             else if (rawAction === '放逐結束') { actionType = 'CC'; color = LOG_COLORS.CC; }
             else if (rawAction === '中斷') { actionType = 'CC'; color = LOG_COLORS.CC; }
@@ -312,7 +287,6 @@ export class GameEngine {
             actionName = actionNameOrTarget || '';
             targetInfo = detailOrTargetInfo || '';
             detail = legacyDetail || '';
-
             switch(actionType) {
                 case 'MOVE': color = LOG_COLORS.MOVE; break;
                 case 'CAST': color = LOG_COLORS.CAST; break;

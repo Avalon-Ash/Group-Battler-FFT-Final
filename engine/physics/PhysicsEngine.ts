@@ -5,22 +5,25 @@ import { HexUtils } from "../utils";
 
 // Physics Constants
 const PHYSICS_STIFFNESS_ALIVE = 150;
-const PHYSICS_STIFFNESS_DEAD = 0;
 const PHYSICS_DAMPING_ALIVE = 25; 
-const PHYSICS_DAMPING_DEAD = 1.0; 
 const GRAVITY = 2000; 
 
 export class PhysicsEngine {
 
     public update(a: Agent, dt: number, engine: GameEngine) {
-        const isDead = a.hp <= 0;
-        const stiffness = isDead ? PHYSICS_STIFFNESS_DEAD : PHYSICS_STIFFNESS_ALIVE; 
-        
-        // If airborne (z > 0), reduce drag to allow projectile motion
-        const isAirborne = a.physics.z > 0;
-        const damping = (isDead && isAirborne) ? 0.5 : (isDead ? PHYSICS_DAMPING_DEAD : PHYSICS_DAMPING_ALIVE);
+        // PERF: Skip physics for units that are fully removed from visual play
+        if (a.fullyDead) return;
 
+        const isDead = a.hp <= 0;
+        
+        // If dead but not fully processed, we still apply basic gravity but skip spring forces to let them drop?
+        // Actually, if they are dead, we just want them to fall if airborne, otherwise stay put.
+        
         // 1. Spring Forces (Return to 0,0 relative local space)
+        // Only apply stiffness if alive. Dead units go limp (no spring back).
+        const stiffness = isDead ? 0 : PHYSICS_STIFFNESS_ALIVE;
+        const damping = PHYSICS_DAMPING_ALIVE; // Keep damping to prevent oscillation
+
         const fx = -stiffness * a.physics.x;
         const fy = -stiffness * a.physics.y;
         const fRot = -stiffness * a.physics.angle * 0.1; 
@@ -36,6 +39,8 @@ export class PhysicsEngine {
         a.physics.vAngle += aRot * dt;
         
         // 4. Vertical Dynamics (Gravity vs Flight)
+        const isAirborne = a.physics.z > 0;
+
         if (a.movementType === MovementType.FLYING && !isDead) {
             // Flying Unit Logic
             if (a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH') {
@@ -52,11 +57,11 @@ export class PhysicsEngine {
                 // Soft spring to maintain height
                 const dz = targetZ - a.physics.z;
                 a.physics.vz += dz * 5 * dt;
-                a.physics.vz *= 0.92; // Increased drag (was 0.95) to stop oscillation at lower height
+                a.physics.vz *= 0.92; // Increased drag to stop oscillation
             }
         } else {
             // Ground Unit Logic
-            if (isDead || isAirborne) {
+            if (isAirborne) {
                 a.physics.vz -= GRAVITY * dt;
             }
         }
@@ -81,7 +86,7 @@ export class PhysicsEngine {
             }
         }
 
-        // 7. World Position Drift (Slide effect for dead units or knockback correction)
+        // 7. World Position Drift (Slide effect for knockback correction)
         if (!isDead && !a.isMoving) {
             const targetPos = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const dx = targetPos.x - a.px;
@@ -90,7 +95,7 @@ export class PhysicsEngine {
             
             // Increased snap threshold to stop jitter
             if (distSq > 0.5) {
-                const driftSpeed = 12.0 * dt;
+                const driftSpeed = 12.0 * dt; // Exp decay
                 a.px += dx * driftSpeed;
                 a.py += dy * driftSpeed;
                 if (distSq < 2) {
@@ -101,10 +106,6 @@ export class PhysicsEngine {
                 a.px = targetPos.x;
                 a.py = targetPos.y;
             }
-        } else if (isDead) {
-            // Apply physics velocity to world position (Flying through air)
-            a.px += a.physics.vx * dt * 0.1; 
-            a.py += a.physics.vy * dt * 0.1;
         }
     }
 }

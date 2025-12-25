@@ -1,7 +1,6 @@
 
 import { Agent } from "../game";
 import { COLORS, UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
-import { Role } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
 import { AssetManager } from "../assets";
 
@@ -13,6 +12,7 @@ const BAR_HEIGHT = 5;
 const BAR_BORDER = 1;
 
 interface FloatingText {
+    active: boolean;
     x: number; 
     y: number;
     vx: number; 
@@ -23,16 +23,39 @@ interface FloatingText {
     maxLife: number;
     size: number;
     type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK';
-    isUlt?: boolean; // New flag for Ultimate visuals
+    isUlt: boolean; 
 }
 
 export class HUDSystem {
+    // Active Texts
     damageNumbers: FloatingText[] = [];
+    
+    // Memory Pool
+    private pool: FloatingText[] = [];
 
-    addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
+    constructor() {
+        // Pre-allocate pool
+        for(let i=0; i<50; i++) this.pool.push(this.createEmpty());
+    }
+
+    private createEmpty(): FloatingText {
+        return {
+            active: false,
+            x: 0, y: 0, vx: 0, vy: 0,
+            text: '', color: '#fff', life: 0, maxLife: 0, size: 0,
+            type: 'DAMAGE', isUlt: false
+        };
+    }
+
+    public addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
         // UX FIX: Prevent Kill Streak Overlap
         if (type === 'KILL_STREAK') {
-            this.damageNumbers = this.damageNumbers.filter(d => d.type !== 'KILL_STREAK');
+            for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
+                if (this.damageNumbers[i].type === 'KILL_STREAK') {
+                    this.release(this.damageNumbers[i]);
+                    this.damageNumbers.splice(i, 1);
+                }
+            }
         }
 
         let vx = 0;
@@ -63,20 +86,33 @@ export class HUDSystem {
             vy = -100; // Initial jump
         }
 
-        this.damageNumbers.push({
-            x, y,
-            vx, vy, 
-            text, 
-            color, 
-            life, 
-            maxLife: life, 
-            size,
-            type,
-            isUlt
-        });
+        // Get from pool
+        let ft: FloatingText;
+        if (this.pool.length > 0) {
+            ft = this.pool.pop()!;
+        } else {
+            ft = this.createEmpty();
+        }
+
+        // Init
+        ft.active = true;
+        ft.x = x; ft.y = y;
+        ft.vx = vx; ft.vy = vy;
+        ft.text = text; ft.color = color;
+        ft.life = life; ft.maxLife = life;
+        ft.size = size; ft.type = type;
+        ft.isUlt = isUlt;
+
+        this.damageNumbers.push(ft);
+    }
+
+    private release(ft: FloatingText) {
+        ft.active = false;
+        this.pool.push(ft);
     }
 
     update(dt: number) {
+        // Reverse iterate to allow removal
         for (let i = this.damageNumbers.length - 1; i >= 0; i--) { 
             const d = this.damageNumbers[i]; 
             d.life -= dt; 
@@ -91,17 +127,17 @@ export class HUDSystem {
             } else if (d.type === 'SHOUT' || d.type === 'CC') {
                 d.vy *= 0.95; // Friction
             } else if (d.type === 'KILL_STREAK') {
-                // Anti-gravity float for Kill Streaks
-                d.vy *= 0.92; // Slow down to a halt
+                d.vy *= 0.92; // Anti-gravity float
             }
 
             if (d.life <= 0) {
-                this.damageNumbers.splice(i, 1); 
+                this.release(d);
+                this.damageNumbers.splice(i, 1); // Fast remove from active list
             }
         }
     }
 
-    draw(ctx: CanvasRenderingContext2D, agents: Agent[], getTerrainHeight: (q: number, r: number) => number, mapConfig: MapConfig) {
+    draw(ctx: CanvasRenderingContext2D, agents: Agent[], getTerrainHeight: (q: number, r: number) => number, mapConfig: MapConfig, highlight: Agent | null, time: number) {
         // 1. Draw HP/MP Bars & Status Labels
         agents.forEach(a => {
             if (a.hp <= 0) return;
@@ -124,8 +160,8 @@ export class HUDSystem {
             const anchorY = groundY - UNIT_VISUAL_HEIGHT + physicsOffsetY - HUD_PADDING;
             const headX = a.px + a.physics.x;
 
-            this.drawUnitBars(ctx, a, headX, anchorY);
-            // Replace text label with gauges
+            const isSelected = (a === highlight);
+            this.drawUnitBars(ctx, a, headX, anchorY, isSelected, time);
             this.drawUnitStatusGauges(ctx, a, headX, anchorY);
         });
 
@@ -134,7 +170,6 @@ export class HUDSystem {
     }
 
     private drawUnitStatusGauges(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
-        // --- PRIORITY SYSTEM FOR STATUS DISPLAY ---
         let activeTimer = 0;
         let maxTimer = 0;
         let iconType = '';
@@ -145,25 +180,20 @@ export class HUDSystem {
             maxTimer = agent.banishMax || activeTimer;
             
             if (agent.visualStatus === 'POLYMORPH') {
-                iconType = 'POLYMORPH';
-                gaugeColor = '#d8b4fe'; // Pink/Purple
+                iconType = 'POLYMORPH'; gaugeColor = '#d8b4fe';
             } else if (agent.visualStatus === 'STASIS') {
-                iconType = 'STASIS';
-                gaugeColor = '#facc15'; // Gold
+                iconType = 'STASIS'; gaugeColor = '#facc15';
             } else {
-                iconType = 'BANISH';
-                gaugeColor = '#7e22ce'; // Dark Purple
+                iconType = 'BANISH'; gaugeColor = '#7e22ce';
             }
         } else if (agent.stunTimer > 0) {
             activeTimer = agent.stunTimer;
             maxTimer = agent.stunMax || activeTimer;
-            iconType = 'STUN';
-            gaugeColor = '#fbbf24'; // Amber/Yellow
+            iconType = 'STUN'; gaugeColor = '#fbbf24';
         } else if (agent.silenceTimer > 0) {
             activeTimer = agent.silenceTimer;
             maxTimer = agent.silenceMax || activeTimer;
-            iconType = 'SILENCE';
-            gaugeColor = '#94a3b8'; // Grey
+            iconType = 'SILENCE'; gaugeColor = '#94a3b8';
         } else if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
@@ -179,42 +209,41 @@ export class HUDSystem {
         }
     }
 
-    private drawUnitBars(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
+    private drawUnitBars(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, isSelected: boolean, time: number) {
         const w = BAR_WIDTH;
         const h = BAR_HEIGHT;
         const b = BAR_BORDER;
 
-        // Background (Black Border)
         ctx.fillStyle = '#000'; 
-        ctx.fillRect(x - w/2 - b, y - b, w + b*2, h + b*2);
+        const totalHeight = (agent.maxMp > 0) ? (h*1.5 + b*3) : (h + b*2);
         
-        // HP Fill
+        ctx.fillRect(x - w/2 - b, y - b, w + b*2, totalHeight);
+        
+        if (isSelected) {
+            ctx.save();
+            const pulse = 0.6 + Math.sin(time * 8) * 0.4;
+            ctx.shadowColor = `rgba(255, 255, 255, ${pulse})`;
+            ctx.shadowBlur = 10 + pulse * 5;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(x - w/2 - b - 1, y - b - 1, w + b*2 + 2, totalHeight + 2);
+            ctx.restore();
+        }
+        
         const hpPct = Math.max(0, agent.hp / agent.maxHp);
         ctx.fillStyle = COLORS.HP; 
         ctx.fillRect(x - w/2, y, w * hpPct, h);
 
-        // MP Bar (Only if unit uses MP)
         if (agent.maxMp > 0) {
             const mpH = h / 2 + 1;
             const mpY = y + h + b;
-            
-            ctx.fillStyle = '#000'; 
-            ctx.fillRect(x - w/2 - b, mpY, w + b*2, mpH + b*2);
-            
             const mpPct = Math.max(0, agent.mp / agent.maxMp);
             ctx.fillStyle = COLORS.MP; 
-            ctx.fillRect(x - w/2, mpY + b, w * mpPct, mpH);
+            ctx.fillRect(x - w/2, mpY, w * mpPct, mpH);
         }
     }
 
-    private drawCircularGauge(
-        ctx: CanvasRenderingContext2D, 
-        x: number, y: number, 
-        pct: number, 
-        visualKey: string, 
-        color: string, 
-        isSkill: boolean
-    ) {
+    private drawCircularGauge(ctx: CanvasRenderingContext2D, x: number, y: number, pct: number, visualKey: string, color: string, isSkill: boolean) {
         const radius = 14;
         const iconY = y - 18; 
         
@@ -232,9 +261,7 @@ export class HUDSystem {
             icon = AssetManager.getStatusIcon(visualKey);
         }
         
-        if (icon) {
-            ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
-        }
+        if (icon) ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
         ctx.restore();
 
         ctx.beginPath();
@@ -248,7 +275,6 @@ export class HUDSystem {
         if (safePct > 0) {
             ctx.beginPath();
             ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * safePct));
-            
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
@@ -264,23 +290,23 @@ export class HUDSystem {
 
     private drawFloatingText(ctx: CanvasRenderingContext2D) {
         this.damageNumbers.forEach(d => {
+            if (!d.active) return;
+
             const lifePct = d.life / d.maxLife;
             const alpha = lifePct < 0.3 ? lifePct / 0.3 : 1.0;
             
             ctx.globalAlpha = alpha;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.shadowBlur = 0; // RESET SHADOW
+            ctx.shadowBlur = 0; 
             
             if (d.type === 'KILL_STREAK') {
                 ctx.save();
                 ctx.translate(d.x, d.y);
-                
                 const pop = Math.min(1, (1 - lifePct) * 5); 
                 const pulse = 1 + Math.sin(lifePct * 10) * 0.1;
                 const scale = pop * pulse * 1.5; 
                 ctx.scale(scale, scale);
-
                 ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
                 
                 const grad = ctx.createLinearGradient(0, -d.size/2, 0, d.size/2);
@@ -288,17 +314,12 @@ export class HUDSystem {
                 grad.addColorStop(0.5, d.color);
                 grad.addColorStop(1, '#000000');
                 
-                // Stroke (Sharp)
                 ctx.lineWidth = 4;
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = '#000';
                 ctx.strokeText(d.text, 0, 0);
-                
-                // Fill
                 ctx.fillStyle = grad;
                 ctx.fillText(d.text, 0, 0);
-                
-                // No shadowBlur to avoid ghosting artifacts
                 ctx.restore();
 
             } else if (d.type === 'SHOUT') {
@@ -307,7 +328,6 @@ export class HUDSystem {
                     ctx.save();
                     ctx.translate(d.x, d.y);
                     ctx.scale(scale, scale);
-
                     ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
                     const textMetrics = ctx.measureText(d.text);
                     const w = textMetrics.width / 2 + 30;
@@ -321,16 +341,12 @@ export class HUDSystem {
                     
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(-w, -h/2, w*2, h);
-
                     ctx.fillStyle = '#fff';
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 3;
-                    
                     ctx.strokeText(d.text, 0, 0);
                     ctx.fillText(d.text, 0, 0);
-
                     ctx.restore();
-
                 } else {
                     ctx.font = `bold italic ${d.size}px "Segoe UI", sans-serif`;
                     ctx.lineWidth = 3;
@@ -350,7 +366,6 @@ export class HUDSystem {
                 ctx.fillText(d.text, d.x, d.y);
 
             } else {
-                // DAMAGE / HEAL
                 ctx.font = `bold ${d.size}px "Segoe UI", sans-serif`;
                 ctx.fillStyle = d.color; 
                 ctx.strokeStyle = 'rgba(0,0,0,0.8)'; 

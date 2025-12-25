@@ -41,7 +41,7 @@ export class EventVFXMapper {
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) VFXSpawners.spawnUnitShatter(vfx, event.pos.x, visualGroundY, dAgent.team, dAgent.role);
-                camera.addTrauma(0.3); 
+                camera.addTrauma(0.05); // Minimal impact
                 break;
 
             case 'SPAWN':
@@ -50,14 +50,14 @@ export class EventVFXMapper {
                 
             case 'CAST_BREAK':
                 VFXSpawners.spawnDomainShatter(vfx, event.pos.x, event.pos.y, event.value || 1, event.color || '#fff');
-                camera.addTrauma(0.1);
+                camera.addTrauma(0.05);
                 break;
                 
             case 'CAST_FINISH':
                 if (event.skill && event.skill.tag === 'ULT') {
-                     // Screen shake on Ult finish (if instant)
+                     // Very slight nudge on Ult finish
                      if (event.skill.projectileSpeed === 0 || event.skill.power <= 0) {
-                         camera.addTrauma(0.2); 
+                         camera.addTrauma(0.05); 
                      }
                  }
                  break;
@@ -110,7 +110,7 @@ export class EventVFXMapper {
             VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY, 25, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
         }
         
-        if (dmg > 50) camera.addTrauma(0.15);
+        if (dmg > 50) camera.addTrauma(0.05); // Minimized
     }
 
     private handleHitVisuals(
@@ -133,7 +133,7 @@ export class EventVFXMapper {
         const centerVisualY = event.pos.y - centerH;
 
         if (isUlt) {
-            camera.addTrauma(0.5);
+            camera.addTrauma(0.1); // Minimized from 0.2
             
             // 1. FACTION RITUAL
             if (faction === Team.BLUE) {

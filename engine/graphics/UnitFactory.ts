@@ -6,7 +6,6 @@ import { createCanvas } from "./CanvasUtils";
 // Dimensions
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
-const WEAPON_SIZE = 128;
 
 export const UnitFactory = {
     
@@ -187,11 +186,6 @@ export const UnitFactory = {
         }
         
         return canvas;
-    },
-
-    generateWeapon(role: Role, team: Team): HTMLCanvasElement {
-        const { canvas } = createCanvas(WEAPON_SIZE, WEAPON_SIZE);
-        return canvas; 
     },
 
     generateSheep(): HTMLCanvasElement {

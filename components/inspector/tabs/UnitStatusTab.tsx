@@ -20,7 +20,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         onUpdate();
     };
 
-    // --- GRAB & DRAG SCROLL LOGIC ---
+    // --- GRAB & DRAG SCROLL LOGIC (POINTER EVENTS) ---
     const scrollRef = useRef<HTMLDivElement>(null);
     const rafRef = useRef<number>(0);
     const dragState = useRef({
@@ -39,10 +39,13 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         }
     };
 
-    const handleMouseDown = (e: React.MouseEvent) => {
+    const handlePointerDown = (e: React.PointerEvent) => {
         if (!scrollRef.current) return;
         // Ignore drag if clicking interactive elements (selects)
         if ((e.target as HTMLElement).tagName === 'SELECT') return;
+
+        e.stopPropagation(); // Prevent parent window drag
+        e.preventDefault();
 
         dragState.current.isDown = true;
         dragState.current.startY = e.pageY;
@@ -53,14 +56,17 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         
         stopMomentum();
         
-        // Force cursor style during drag
+        // Capture
+        (e.target as Element).setPointerCapture(e.pointerId);
+        
         scrollRef.current.style.cursor = 'grabbing';
         scrollRef.current.style.userSelect = 'none';
     };
 
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.PointerEvent) => {
         if (!dragState.current.isDown || !scrollRef.current) return;
         e.preventDefault();
+        e.stopPropagation();
         
         const now = performance.now();
         const y = e.pageY;
@@ -73,17 +79,18 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         const timeDelta = now - dragState.current.lastTime;
         if (timeDelta > 0) {
             const dist = y - dragState.current.lastY;
-            // Smooth velocity slightly
             dragState.current.velocity = dist; 
             dragState.current.lastY = y;
             dragState.current.lastTime = now;
         }
     };
 
-    const handleMouseUp = () => {
+    const handlePointerUp = (e: React.PointerEvent) => {
         if (!dragState.current.isDown) return;
         dragState.current.isDown = false;
         
+        (e.target as Element).releasePointerCapture(e.pointerId);
+
         if (scrollRef.current) {
             scrollRef.current.style.cursor = 'grab';
             scrollRef.current.style.removeProperty('user-select');
@@ -123,18 +130,16 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
             {/* SKILL SLOTS (Scrollable Area with Grab & Drag) */}
             <div 
                 ref={scrollRef}
-                className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 py-4 cursor-grab active:cursor-grabbing"
-                onMouseDown={handleMouseDown}
-                onMouseMove={handleMouseMove}
-                onMouseUp={handleMouseUp}
-                onMouseLeave={handleMouseUp}
+                className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 py-4 cursor-grab active:cursor-grabbing touch-none"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
             >
                 <div className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-3 sticky top-0 bg-slate-900/95 backdrop-blur z-10 py-2 border-b border-white/5 pointer-events-none">
                     <Icons.Database className="w-3 h-3" />
                     NEURAL LINKAGE
                 </div>
 
-                {/* Added pb-24 to ensure the bottom-most dropdown has space to open or be seen when scrolled */}
                 <div className="space-y-3 pb-24">
                     {['ULT', 'ACTIVE', 'BASIC'].map((tag, i) => {
                         const currentSkillId = agent.skillIds[i];
@@ -164,7 +169,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                                 className={`liquid-input h-8 w-full text-xs font-bold appearance-none cursor-pointer uppercase tracking-wide !rounded-lg pr-8 ${!currentSkillId ? 'text-slate-500 !bg-black/30' : 'text-slate-200 !bg-black/50 hover:!bg-black/70'}`}
                                                 value={agent.skillIds[i] || ""} 
                                                 onChange={(e) => setSkill(i, e.target.value)}
-                                                onMouseDown={(e) => e.stopPropagation()} // Stop drag when interacting with select
+                                                onPointerDown={(e) => e.stopPropagation()} // Stop drag when interacting with select
                                             >
                                                 <option value="">-- NO LINKAGE --</option>
                                                 {roleOrder.map(role => {

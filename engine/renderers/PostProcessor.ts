@@ -12,6 +12,10 @@ export class PostProcessor {
     }
 
     public apply(ctx: CanvasRenderingContext2D, width: number, height: number, trauma: number) {
+        // PERF: Early exit if trauma is negligible. 
+        // ctx.drawImage(ctx.canvas) forces a GPU->CPU sync which is extremely expensive.
+        if (trauma <= 0.05) return;
+
         // Ensure strictly integer dimensions to avoid sub-pixel blurring
         const w = Math.floor(width);
         const h = Math.floor(height);
@@ -33,9 +37,9 @@ export class PostProcessor {
         this.tempCtx.clearRect(0, 0, w, h);
         this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
 
-        // 2. Chromatic Aberration (Significantly Toned Down)
-        if (trauma > 0.1) {
-            const offset = Math.floor(trauma * 4); // Smaller offset
+        // 2. Chromatic Aberration (Only on high trauma to reduce blurriness)
+        if (trauma > 0.4) {
+            const offset = Math.floor(trauma * 1.5); 
             
             if (offset > 0) {
                 ctx.save();

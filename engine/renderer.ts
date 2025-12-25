@@ -113,18 +113,6 @@ export class GameRenderer {
             this.grid, 
             this.camera
         );
-        
-        // Trigger Soft Camera Focus for Ultimates
-        events.forEach(e => {
-            if (e.type === 'CAST_START' && e.skill?.tag === 'ULT') {
-                const target = engine.agents.find(a => a.id === e.targetId);
-                if (target) {
-                    this.camera.setInterestPoint(target.px, target.py, 2.5);
-                } else if (e.pos) {
-                    this.camera.setInterestPoint(e.pos.x, e.pos.y, 2.5);
-                }
-            }
-        });
     }
 
     // --- Main Rendering Loop ---
@@ -161,8 +149,8 @@ export class GameRenderer {
 
         // 4. Camera Transform
         ctx.save();
-        // Pass mapConfig AND mapKeys to calculate correct center
-        this.camera.sync(camera, engine.mapConfig, engine.mapKeys); 
+        // Updated Sync: Purely syncs pos/zoom, removed mapConfig args
+        this.camera.sync(camera); 
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
 
         // 5. MAIN PASS: Collect and Sort Renderables
@@ -298,7 +286,8 @@ export class GameRenderer {
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
 
         // 9. HUD (Health bars, floating text)
-        this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig);
+        // PASSED highlight Agent for Selection Glow
+        this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
 
         ctx.restore(); // Exit Camera Space
 
@@ -321,10 +310,6 @@ export class GameRenderer {
             
             // Trail Width Logic: Tapering
             // We iterate through the visual points (Screen Space relative to map origin)
-            // BUT our context is currently translated to the CAMERA transform only.
-            // Wait, RenderOp draw loop does NOT translate to op.tx, op.ty for Projectiles?
-            // The switch case calls `drawProjectile(ctx, op)` without translation.
-            // Correct.
             
             // Draw the line strip
             ctx.beginPath();

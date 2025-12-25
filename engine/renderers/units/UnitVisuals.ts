@@ -264,7 +264,7 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
             const z = Math.sin(angle); // Depth
             
             // Perspective scale
-            const scale = 1 + z * 0.1;
+            // const scale = 1 + z * 0.1;
             const alpha = 0.5 + (z + 1) * 0.25; // Fade back bars
             
             ctx.globalAlpha = alpha;
@@ -313,8 +313,9 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
             ctx.scale(scale, scale);
             
             ctx.fillStyle = '#facc15';
-            ctx.shadowColor = '#fbbf24';
-            ctx.shadowBlur = 10;
+            // PERF: Removed shadowBlur for stun stars
+            // ctx.shadowColor = '#fbbf24';
+            // ctx.shadowBlur = 10;
             
             // Draw Star
             ctx.beginPath();
@@ -339,8 +340,9 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         ctx.fillStyle = '#1e1b4b'; 
         ctx.strokeStyle = '#a855f7';
         ctx.lineWidth = 2;
-        ctx.shadowColor = '#c084fc';
-        ctx.shadowBlur = 10;
+        // PERF: Removed shadowBlur for Silence rune
+        // ctx.shadowColor = '#c084fc';
+        // ctx.shadowBlur = 10;
         
         // Rune Box
         ctx.beginPath();

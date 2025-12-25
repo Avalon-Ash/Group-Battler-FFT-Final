@@ -77,10 +77,7 @@ export const ImperialRenderer = {
             return;
         }
 
-        if (agent.hp > 0) {
-            ctx.shadowColor = 'rgba(255, 255, 255, 0.4)';
-            ctx.shadowBlur = 10;
-        }
+        // PERF: Removed ctx.shadowBlur = 10; (Performance Killer)
 
         ctx.translate(bodyRecoilX, floatY + bodyRecoilY);
         ctx.translate(0, -40); 
@@ -106,7 +103,6 @@ export const ImperialRenderer = {
         drawImperialWeapon(ctx, agent.role, t);
         ctx.restore();
 
-        ctx.shadowBlur = 0;
         ctx.restore();
     }
 };
