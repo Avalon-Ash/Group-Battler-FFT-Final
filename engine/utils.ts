@@ -15,7 +15,6 @@ const SIN_A = Math.sin(ANGLE);
 const COS_A = Math.cos(ANGLE);
 
 // --- Integer Hashing Constants ---
-// Hash = (q + 128) << 16 | (r + 128)
 const Q_STEP = 1 << 16;
 const R_STEP = 1;
 
@@ -31,53 +30,59 @@ export const NEIGHBOR_HASH_OFFSETS = [
 // --- VISUAL UTILS ---
 
 /**
- * Calculates the vertical visual offset for map transitions (Flying in/out).
- * WAVE LOGIC V5: Inverted Gravity.
- * OUT: Falls DOWN (+Y).
- * IN: Rises UP from below (+Y to 0).
+ * Calculates the vertical visual offset for map transitions (Phase Jump).
+ * V6 LOGIC: Snappy, non-linear acceleration with delay based on distance from center.
  */
 export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
     if (phase === 'IDLE') return 0;
     
+    // Normalize distance from center (0 to 1)
     const centerQ = Math.floor(mapConfig.w / 2);
     const centerR = Math.floor(mapConfig.h / 2);
     const hex = HexUtils.fromPx(x, y, mapConfig);
-    
-    const maxDist = Math.max(mapConfig.w, mapConfig.h) / 2;
+    const maxDist = Math.max(mapConfig.w, mapConfig.h) / 1.5;
     const dist = Math.sqrt((hex.q - centerQ)**2 + (hex.r - centerR)**2);
-    
-    // Normalize distance 0 to 1
     const d = Math.min(1, dist / maxDist);
-    const BASE_OFFSET = 1200;
+    
+    // Base travel distance (Pixels)
+    const BASE_OFFSET = 1500; 
 
     if (phase === 'OUT') {
-        // LEAVING: Tiles fall DOWN (Gravity).
-        // Center leaves first, edges follow.
-        // t: 0 -> 1
+        // LEAVING: Tiles Fall. Center drops first, edges drag behind.
+        // t goes 0 -> 1
         
-        // Effective Time with lag
-        // Center (d=0): moves immediately
-        // Edge (d=1): waits slightly
-        const lag = 1 + d * 1.5; 
-        const effectiveT = Math.pow(t, lag);
+        // Delay Logic: Center (d=0) starts at t=0. Edge (d=1) starts at t=0.3.
+        const startT = d * 0.3;
         
-        // Quadratic acceleration DOWN (Positive Y)
-        return effectiveT * effectiveT * BASE_OFFSET;
+        if (t < startT) return 0; // Waiting to drop
+
+        // Local progress for this specific tile (0 to 1)
+        // Scaled to complete faster once started
+        let localT = (t - startT) * 1.8; 
+        localT = Math.max(0, Math.min(1, localT));
+        
+        // Physics: BackIn easing (Anticipation hop before fall)
+        // s = overshoot amount
+        const s = 0.5; 
+        const eased = localT * localT * ((s + 1) * localT - s);
+        
+        return eased * BASE_OFFSET;
 
     } else if (phase === 'IN') {
-        // ARRIVING: Tiles rise UP from below (Abyss).
-        // T=0 -> Offset = +1200
-        // T=1 -> Offset = 0
+        // ARRIVING: Tiles Rise from abyss. Center arrives first.
         
-        // Lag: Edges arrive later than center
-        // Center: fast finish. Edges: slow finish.
-        const lag = 1 + d * 1.5;
-        const progress = Math.pow(t, lag); 
+        // Delay Logic: Center starts rising immediately. Edges delayed.
+        const startT = d * 0.2;
         
-        // Eased landing
-        const eased = 1 - Math.pow(1 - progress, 3);
+        if (t < startT) return BASE_OFFSET; // Still in abyss
+
+        let localT = (t - startT) * 1.5;
+        localT = Math.max(0, Math.min(1, localT));
         
-        // Start at positive offset (Below) -> 0
+        // Physics: Elastic/Back Out (Snap into place)
+        // 1 - (1-t)^4 gives a nice sharp deceleration
+        const eased = 1 - Math.pow(1 - localT, 4);
+        
         return (1 - eased) * BASE_OFFSET;
     }
     return 0;

@@ -149,7 +149,6 @@ export class GameRenderer {
 
         // 4. Camera Transform
         ctx.save();
-        // Updated Sync: Purely syncs pos/zoom, removed mapConfig args
         this.camera.sync(camera); 
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
 
@@ -268,29 +267,38 @@ export class GameRenderer {
         }
 
         // 7. Top VFX (Particles above everything, e.g. Weather or High flying magic)
-        // Kept before Post-Process to allow them to glow/bloom properly.
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
-        // --- POST PROCESSING BARRIER (Bloom / Shake) ---
+        // --- POST PROCESSING BARRIER ---
         ctx.restore(); // Exit Camera Space
         
-        this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.camera.getTrauma());
+        // Calculate Transition Aberration Intensity
+        // Peak distortion when transition is active
+        let transitionAberration = 0;
+        if (this.transitionPhase !== 'IDLE') {
+            // Intensity curve: 0 -> 1 -> 0 based on progress
+            // transitionT goes 0 to 1.
+            // Using parabola for smooth effect: 4 * x * (1-x)
+            transitionAberration = 4 * this.transitionT * (1 - this.transitionT) * 0.5;
+        }
+
+        // Apply Post Process (Trauma + Transition Warp)
+        this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.camera.getTrauma(), transitionAberration);
         
-        ctx.save(); // Prepare for UI overlays (Screen Space or World Space projection)
+        ctx.save(); // Prepare for UI overlays
         
-        // RE-APPLY CAMERA TRANSFORM for World-Space UI (Tactical Lines, HUD Bars)
+        // RE-APPLY CAMERA TRANSFORM for World-Space UI
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
 
-        // 8. Tactical Overlay Lines (Clean lines, no bloom/ghosting)
+        // 8. Tactical Overlay Lines
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
 
         // 9. HUD (Health bars, floating text)
-        // PASSED highlight Agent for Selection Glow
         this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
 
         ctx.restore(); // Exit Camera Space
 
-        // 10. Holographic Director HUD (Screen Space)
+        // 10. Holographic Director HUD
         if (engine.directorTargetId) {
             this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, this.globalTime);
         } 
@@ -298,27 +306,17 @@ export class GameRenderer {
         // 11. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
 
-        // --- FINAL PASS: FROSTED GLASS TRANSITIONS (Victory / Map Swap) ---
-        // Enhanced Logic: Strict Sync
+        // --- FINAL PASS: FROSTED GLASS TRANSITIONS ---
         let blurAmount = 0;
-        
         if (engine.isFinishing) {
-            // 1. Victory Phase: Blur Ramps 0 -> 1
             blurAmount = 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
         } else if (engine.winningTeam !== null) {
-            // 2. Bridge Gap: Blur Holds at 1.0
             blurAmount = 1.0;
         }
 
-        // Transition Overrides
-        // Logic:
-        // OUT: Map Falls. Blur stays at 1.0 to hide the fall and connect with Victory.
-        // IN: Map Rises. Blur fades 1.0 -> 0.0 to reveal the new map.
         if (this.transitionPhase === 'OUT') {
             blurAmount = 1.0; 
         } else if (this.transitionPhase === 'IN') {
-            // 1 -> 0
-            // Linear fade out to perfectly match the tile landing at t=1.0
             blurAmount = 1.0 - this.transitionT;
         }
 
@@ -330,28 +328,20 @@ export class GameRenderer {
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
         // --- 1. Draw Trail ---
-        // Using the pre-calculated visual trail points in op.pTrail
         if (op.pTrail && op.pTrail.length > 1) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
             ctx.strokeStyle = op.pColor;
             
-            // Trail Width Logic: Tapering
-            // We iterate through the visual points (Screen Space relative to map origin)
-            
-            // Draw the line strip
             ctx.beginPath();
-            
             const trail = op.pTrail;
             if (trail.length > 0) {
-                // The first point in trail array is the HEAD (newest)
                 ctx.moveTo(trail[0].x, trail[0].y);
                 for(let i=1; i<trail.length; i++) {
                     ctx.lineTo(trail[i].x, trail[i].y);
                 }
             }
             
-            // Style: Fade out
             const grad = ctx.createLinearGradient(trail[0].x, trail[0].y, trail[trail.length-1].x, trail[trail.length-1].y);
             grad.addColorStop(0, op.pColor); // Head
             grad.addColorStop(1, 'rgba(0,0,0,0)'); // Tail
@@ -362,7 +352,6 @@ export class GameRenderer {
             ctx.lineJoin = 'round';
             ctx.stroke();
             
-            // Inner Core Line
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 1;
             ctx.globalAlpha = 0.6;
@@ -372,20 +361,14 @@ export class GameRenderer {
         }
 
         // --- 2. Draw Shadow ---
-        // Simple blob shadow on ground
-        // We use pVisShadowY stored in op
-        const shadowAltitude = op.pVisShadowY - op.pVisY; // Difference between ground and air
-        
-        // Don't draw shadow if too low (to avoid clipping with sprite)
-        // Or if really high, shadow fades
+        const shadowAltitude = op.pVisShadowY - op.pVisY; 
         if (Math.abs(shadowAltitude) > 5) {
             ctx.save();
             ctx.translate(op.pVisX, op.pVisShadowY);
-            // Scale shadow based on height (higher = smaller/blurrier)
             const shadowScale = Math.max(0.2, 1 - Math.abs(shadowAltitude)/600);
             const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/800);
             
-            ctx.scale(shadowScale, shadowScale * 0.5); // Flattened ellipse
+            ctx.scale(shadowScale, shadowScale * 0.5); 
             ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
             ctx.restore();

@@ -78,14 +78,11 @@ function App() {
           />
       )}
 
-      {/* 4. Modals (Logs / DB) - Removed UnitDetail trigger from here */}
+      {/* 4. Modals (Logs / DB) */}
       {!hideHUD && (
           <ModalManager 
               showLogs={state.showLogs}
               showDB={state.showDB}
-              // Unit Detail is now inline in HUD, so we disable the modal version
-              showUnitDetail={false} 
-              selectedAgent={null}
               engine={engineRef.current}
               onClose={() => {
                   setters.setShowLogs(false);

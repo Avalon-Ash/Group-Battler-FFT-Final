@@ -28,7 +28,6 @@ export const useGameApp = () => {
     // UI State
     const [showLogs, setShowLogs] = useState(false);
     const [showDB, setShowDB] = useState(false);
-    const [showUnitDetail, setShowUnitDetail] = useState(false);
     const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
     const [showFactionWarning, setShowFactionWarning] = useState(false);
 
@@ -39,15 +38,7 @@ export const useGameApp = () => {
         
         const handleGameOver = (data: { winner: Team }) => {
             setWinner(data.winner);
-            // If in showcase, auto-restart flow logic is moved here or kept in loop?
-            // Actually, hooks can read state better.
-            
-            // Logic moved from old onWin prop:
-            if (engine.isRunning) engine.stop(); // Ensure stopped
-            
-            // Note: We access current value of isShowcaseMode via ref if needed, or rely on state updates
-            // Since this effect closes over initial state, we need to be careful.
-            // Better to trigger visual updates here.
+            if (engine.isRunning) engine.stop(); 
             setIsPlaying(false);
         };
 
@@ -62,7 +53,6 @@ export const useGameApp = () => {
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
             // STEP 1: Battle Ends.
-            // REDUCED: Wait 0.8s (was 1.5s) for quick glance at death animations.
             const timer = setTimeout(() => {
                 
                 // STEP 2: Trigger OUT (Blur Ramps Up + Map Falls Down)
@@ -95,7 +85,6 @@ export const useGameApp = () => {
         engine.stop();
         setWinner(null);
         setSelectedAgent(null);
-        setShowUnitDetail(false);
         engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
         engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
         engine.randomizeEnvironment(); 
@@ -221,11 +210,7 @@ export const useGameApp = () => {
     }, []);
 
     const handleNextLevel = useCallback(() => {
-        // Reuse random logic but start playing immediately
         handleRandomBattlefield();
-        
-        // Need to wait a tick for agents to be ready? 
-        // handleRandomBattlefield runs synchronously, so we can just play.
         const engine = engineRef.current;
         engine.play();
         setIsPlaying(true);
@@ -262,7 +247,6 @@ export const useGameApp = () => {
 
     const handleSelectAgent = (a: Agent | null) => {
         setSelectedAgent(a);
-        if (!a) setShowUnitDetail(false);
     };
 
     // --- RETURN ---
@@ -272,29 +256,29 @@ export const useGameApp = () => {
             isShowcaseMode, isPlaying, unitCount, tool, selectedObstacle,
             selectedAgent, hoveredSkill, hpInput, mapW, mapH, timeScale,
             winner, currentSceneId, spawnMode, draftRole, showLogs, showDB,
-            showUnitDetail, transitionPhase, showFactionWarning
+            transitionPhase, showFactionWarning
         },
         setters: {
             setTool, setSelectedObstacle, setHpInput, setTimeScale, 
             setSpawnMode, setDraftRole, setShowLogs, setShowDB, 
-            setShowUnitDetail, setIsShowcaseMode, setSelectedAgent, setHoveredSkill
+            setIsShowcaseMode, setSelectedAgent, setHoveredSkill
         },
         actions: {
             enterManualMode,
             handleUpdateMapSize,
             handleSetScene,
             handleRandomBattlefield,
-            handleNextLevel, // New action
+            handleNextLevel,
             handleReset,
             togglePlay,
-            onWin: (team: Team) => { engineRef.current.bus.emit('GAME_OVER', {winner: team}) }, // Manual trigger shim
+            onWin: (team: Team) => { engineRef.current.bus.emit('GAME_OVER', {winner: team}) },
             handleSelectAgent,
             startShowcaseMatch,
             downloadSpec: DesignExporter.downloadSpec,
             rematch: () => { 
                 setWinner(null); 
                 engineRef.current.restart(); 
-                engineRef.current.play(); // FIX: Explicitly start engine
+                engineRef.current.play(); 
                 setIsPlaying(true); 
             }
         }

@@ -1,25 +1,22 @@
 
 import React from 'react';
-import { Agent, GameEngine } from '../../engine/game';
+import { GameEngine } from '../../engine/game';
 import { LogTab } from '../inspector/tabs/LogTab';
 import { SkillDbTab } from '../inspector/tabs/SkillDbTab';
-import { UnitDetailView } from '../ui/UnitDetailView';
 import { Icons } from './icons';
 
 interface ModalManagerProps {
     showLogs: boolean;
     showDB: boolean;
-    showUnitDetail: boolean;
-    selectedAgent: Agent | null;
     engine: GameEngine;
     onClose: () => void;
 }
 
 export const ModalManager: React.FC<ModalManagerProps> = ({
-    showLogs, showDB, showUnitDetail, selectedAgent, engine, onClose
+    showLogs, showDB, engine, onClose
 }) => {
     
-    if (!showLogs && !showDB && (!showUnitDetail || !selectedAgent)) {
+    if (!showLogs && !showDB) {
         return null;
     }
 
@@ -35,7 +32,6 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
                     <h2 className="text-lg font-bold text-white tracking-widest flex items-center gap-3">
                         {showLogs && <><Icons.Log className="w-6 h-6 text-cyan-400" /> BATTLE LOGS</>}
                         {showDB && <><Icons.Database className="w-6 h-6 text-amber-400" /> SKILL DATABASE</>}
-                        {showUnitDetail && <><Icons.Settings className="w-6 h-6 text-cyan-400" /> NEURAL ANALYSIS</>}
                     </h2>
                     <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-transparent hover:border-white/10">
                         <Icons.Close className="w-5 h-5" />
@@ -46,7 +42,6 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
                 <div className="flex-1 overflow-hidden relative min-h-0">
                     {showLogs && <LogTab engine={engine} />}
                     {showDB && <SkillDbTab db={engine.skillDB} onUpdate={() => {}} />}
-                    {showUnitDetail && selectedAgent && <UnitDetailView agent={selectedAgent} db={engine.skillDB} engine={engine} />}
                 </div>
             </div>
         </div>
