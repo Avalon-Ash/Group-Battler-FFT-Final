@@ -228,7 +228,7 @@ function drawImperialWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number
     drawImperialHand(ctx);
 
     if (role === Role.WARRIOR) {
-        ctx.rotate(Math.PI / 2);
+        ctx.rotate(Math.PI / 4); // Adjusted to 45 degrees for better idle stance
         ctx.fillStyle = '#475569';
         ctx.fillRect(-4, -10, 8, 20); 
         ctx.fillStyle = THEME_IMPERIAL.secondary;
