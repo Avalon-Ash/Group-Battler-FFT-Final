@@ -275,6 +275,7 @@ export class SkillResolutionSystem {
                 statusText = type === 'PULL' ? "牽引" : "擊退";
                 statusColor = "#fff";
                 target.setAnim(AnimState.HIT);
+                // Visual pop-up when knocked
                 target.physics.vz += 200;
             } else {
                 engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "抵抗", color: "#94a3b8" });
@@ -383,6 +384,8 @@ export class SkillResolutionSystem {
     private calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine) {
         const rawForce = Math.max(1, force);
         const resistance = target.weight || 1; 
+        
+        // --- PHYSICS RULE: Force must exceed resistance to move ---
         const tilesToPush = Math.max(0, rawForce - resistance);
         
         if (tilesToPush === 0) return { applied: false };
@@ -395,11 +398,13 @@ export class SkillResolutionSystem {
         let currentHeight = engine.map.getTerrainHeight(currentH.q, currentH.r);
         let finalH = currentH;
 
+        // --- KNOCKBACK ITERATION ---
         for(let k=0; k<tilesToPush; k++) {
             const neighbors = HexUtils.neighbors(currentH);
             let bestN = null;
             let bestDot = -99;
             
+            // Find direction
             for(const n of neighbors) {
                 const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
                 const cPx = HexUtils.toPx(currentH.q, currentH.r, engine.mapConfig);
@@ -413,12 +418,23 @@ export class SkillResolutionSystem {
             }
 
             if (bestN) {
+                // 1. Map Bounds
                 if (!engine.isValid(bestN.q, bestN.r)) break; 
-                if (engine.hasObstacle(bestN.q, bestN.r)) break; 
                 
+                // 2. Unit Collision (Block if another unit is there)
+                // We pass 'target.id' as ignoreId, because we don't want to collide with ourselves, 
+                // but we DO want to collide with everyone else.
+                if (engine.isBlocked(bestN.q, bestN.r, target.id, target.movementType)) break;
+                
+                // 3. PULL Special Rule: Do not pull INTO the source (Stop adjacent)
+                // If the next tile is the source tile, and it's a pull, stop here.
+                if (type === 'PULL' && bestN.q === source.q && bestN.r === source.r) break;
+
+                // 4. Height Check (Walls/Cliffs)
+                // Knockback ignores some height rules but shouldn't push up a 50m wall
                 const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);
-                if (nextHeight > currentHeight + BLOCK_HEIGHT) break; // Can't push up too high
-                if (nextHeight < currentHeight - BLOCK_HEIGHT * 2) break; // Can't push off huge cliff safely
+                if (nextHeight > currentHeight + BLOCK_HEIGHT * 2) break; // Can't push up too high
+                if (nextHeight < currentHeight - BLOCK_HEIGHT * 3) break; // Can't push off huge cliff safely
 
                 currentH = bestN;
                 currentHeight = nextHeight;
@@ -430,6 +446,11 @@ export class SkillResolutionSystem {
         
         if (finalH.q !== target.q || finalH.r !== target.r) {
             engine.updateAgentPosition(target, finalH.q, finalH.r);
+            // Visual: Reset path interpolation to avoid glitching
+            if (target.isMoving) {
+                target.isMoving = false;
+                target.path = [];
+            }
             return { applied: true };
         }
         return { applied: false };

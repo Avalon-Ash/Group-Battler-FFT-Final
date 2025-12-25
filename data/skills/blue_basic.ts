@@ -10,7 +10,7 @@ export const BLUE_BASIC: Skill[] = [
     { id: 'tb_b2', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', name: '制裁', desc: '神聖傷害', range: 1, cast: 0.7, cd: 0.9, cost: 0, gain: 40, type: 'SINGLE', power: 60, color: '#cbd5e1', visual: 'SMASH', projectileSpeed: 0 },
     { id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', name: '守護平砍', desc: '快速連擊', range: 1, cast: 0.5, cd: 0.6, cost: 0, gain: 40, type: 'SINGLE', power: 35, color: '#93c5fd', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'tb_b4', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', name: '正義追擊', desc: '微量吸血', range: 1, cast: 0.6, cd: 0.8, cost: 0, gain: 30, type: 'SINGLE', power: 45, color: '#bfdbfe', visual: 'SLASH', projectileSpeed: 0, effectType: 'VAMP', effectVal: 0.3 },
-    { id: 'tb_b5', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', name: '盾牌猛擊', desc: '擊退普攻', range: 1, cast: 0.8, cd: 1.2, cost: 0, gain: 50, type: 'SINGLE', power: 65, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 2 },
+    { id: 'tb_b5', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', name: '盾牌猛擊', desc: '擊退普攻', range: 1, cast: 0.8, cd: 1.2, cost: 0, gain: 50, type: 'SINGLE', power: 65, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 3 }, // Force 2 -> 3 (Can push Warriors now)
 
     // ==========================================
     // ⚔️ BLUE WARRIOR (Knight/Swordmaster)
@@ -29,7 +29,7 @@ export const BLUE_BASIC: Skill[] = [
     { id: 'rb_b1', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '長弓射擊', desc: '遠距普攻', range: 7, cast: 0.8, cd: 0.9, cost: 0, gain: 35, type: 'SINGLE', power: 75, color: '#fcd34d', visual: 'ARROW', projectileSpeed: 700 }, // Slower for arc
     { id: 'rb_b2', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '連發', desc: '快速攻擊', range: 5, cast: 0.4, cd: 0.5, cost: 0, gain: 20, type: 'SINGLE', power: 40, color: '#fbbf24', visual: 'ARROW', projectileSpeed: 800 },
     { id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '寒冰箭', desc: '微量緩速', range: 6, cast: 0.7, cd: 0.8, cost: 0, gain: 30, type: 'SINGLE', power: 60, color: '#bae6fd', visual: 'ARROW', projectileSpeed: 600 },
-    { id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '重矢', desc: '高傷擊退', range: 5, cast: 1.0, cd: 1.2, cost: 0, gain: 45, type: 'SINGLE', power: 95, color: '#d97706', visual: 'ARROW', projectileSpeed: 500, ccType: 'KNOCKBACK', ccForce: 1 },
+    { id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '重矢', desc: '高傷擊退', range: 5, cast: 1.0, cd: 1.2, cost: 0, gain: 45, type: 'SINGLE', power: 95, color: '#d97706', visual: 'ARROW', projectileSpeed: 500, ccType: 'KNOCKBACK', ccForce: 2 }, // Force 1 -> 2 (Push lighter units easier)
     { id: 'rb_b5', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', name: '精靈火', desc: '燃魔射擊', range: 6, cast: 0.6, cd: 0.7, cost: 0, gain: 30, type: 'SINGLE', power: 50, color: '#818cf8', visual: 'BOLT', projectileSpeed: 800, effectType: 'MANA_BURN', effectVal: 15 },
 
     // ==========================================

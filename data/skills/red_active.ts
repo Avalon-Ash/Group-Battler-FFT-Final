@@ -5,7 +5,7 @@ export const RED_ACTIVE: Skill[] = [
     // ==========================================
     // 🛡️ RED TANK
     // ==========================================
-    { id: 'tr_a1', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', name: '戰爭踢擊', desc: '強力擊退', range: 1, cast: 0.4, cd: 6.0, cost: 30, gain: 0, type: 'SINGLE', power: 100, color: '#991b1b', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 4 },
+    { id: 'tr_a1', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', name: '戰爭踢擊', desc: '強力擊退', range: 1, cast: 0.4, cd: 6.0, cost: 30, gain: 0, type: 'SINGLE', power: 100, color: '#991b1b', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 5 }, // Force 4 -> 5
     { id: 'tr_a2', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', name: '鮮血沸騰', desc: '範圍吸血', range: 0, cast: 0.5, cd: 9.0, cost: 40, gain: 0, type: 'AOE', aoeRadius: 2, power: 70, color: '#dc2626', visual: 'SMASH', projectileSpeed: 0, effectType: 'VAMP', effectVal: 0.5 },
     { id: 'tr_a3', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', name: '死亡之鉤', desc: '抓人', range: 5, cast: 0.6, cd: 10.0, cost: 35, gain: 0, type: 'SINGLE', power: 60, color: '#450a0a', visual: 'BOLT', projectileSpeed: 700, ccType: 'PULL', ccForce: 5 },
     { id: 'tr_a4', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', name: '骸骨護盾', desc: '護盾(假血)', range: 0, cast: 0.3, cd: 12.0, cost: 30, gain: 0, type: 'SINGLE', power: -200, color: '#f5f5f4', visual: 'SMASH', projectileSpeed: 0 },

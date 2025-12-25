@@ -16,7 +16,7 @@ export const BLUE_ACTIVE: Skill[] = [
     // ==========================================
     { id: 'wb_a1', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '半月斬', desc: '前方順劈', range: 1, cast: 0.5, cd: 5.0, cost: 35, gain: 0, type: 'AOE', aoeRadius: 1, power: 150, color: '#bae6fd', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wb_a2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '無畏衝鋒', desc: '衝鋒暈眩', range: 5, cast: 0.2, cd: 8.0, cost: 40, gain: 0, type: 'SINGLE', power: 150, color: '#3b82f6', visual: 'SMASH', projectileSpeed: 0, ccType: 'STUN', ccDur: 1.5 },
-    { id: 'wb_a3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '雷霆一擊', desc: '範圍緩速', range: 0, cast: 0.6, cd: 6.0, cost: 40, gain: 0, type: 'AOE', aoeRadius: 2, power: 110, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 2 },
+    { id: 'wb_a3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '雷霆一擊', desc: '範圍緩速', range: 0, cast: 0.6, cd: 6.0, cost: 40, gain: 0, type: 'AOE', aoeRadius: 2, power: 110, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 3 }, // Force 2 -> 3
     { id: 'wb_a4', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '弱點擊破', desc: '爆發傷害', range: 1, cast: 0.5, cd: 6.0, cost: 30, gain: 0, type: 'SINGLE', power: 200, color: '#1d4ed8', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wb_a5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '劍刃屏障', desc: '自我招架(補血)', range: 0, cast: 0.2, cd: 10.0, cost: 30, gain: 0, type: 'SINGLE', power: -150, color: '#eff6ff', visual: 'BEAM', projectileSpeed: 0 },
 
