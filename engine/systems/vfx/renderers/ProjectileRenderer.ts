@@ -76,14 +76,13 @@ export const ProjectileRenderer = {
              const spin = p.skill.visual === 'BOMB' ? (progress * 15) : 0;
              
              // 3. Trail Calculation (Visual Points)
-             // We map the raw ground trail points to their visual heights
+             // Map raw trail to visual positions
              const visualTrail: Point[] = [];
              if (p.trail.length > 1) {
                  // Add current head as start of trail
                  visualTrail.push({ x: headVis.x, y: headVis.y });
                  
-                 // Process history points (skip every other for performance if dense?)
-                 // Iterate backwards from newest to oldest
+                 // Process history points
                  for (let i = p.trail.length - 1; i >= 0; i--) {
                      const tp = p.trail[i];
                      const tDist = Vector.dist({x: p.startX, y: p.startY}, tp);
@@ -108,7 +107,7 @@ export const ProjectileRenderer = {
              op.pIsUlt = p.skill.tag === 'ULT';
              op.pAngle = angle;
              op.pSpin = spin;
-             op.pTrail = visualTrail; // Pass the visual trail
+             op.pTrail = visualTrail; 
         });
     }
 };

@@ -18,12 +18,6 @@ function isChaosStyle(color: string): boolean {
            c.includes('#1c');
 }
 
-// Pseudo-Random Noise generator for textures
-function pseudoNoise(x: number, y: number, seed: number) {
-    const n = Math.sin(x * 12.9898 + y * 78.233 + seed) * 43758.5453;
-    return n - Math.floor(n);
-}
-
 export const VFXFactory = {
 
     generateGlowOrb(color: string, size: number = VFX_SIZE): HTMLCanvasElement {
@@ -33,22 +27,23 @@ export const VFXFactory = {
          const r = size / 2;
          const isChaos = isChaosStyle(color);
          
-         // Improved Gradient for softer falloff (Fixes banding)
+         // Modern "Hot Core" Glow
          const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-         grad.addColorStop(0, '#fff');        
-         grad.addColorStop(0.15, color); // Tight core
-         grad.addColorStop(0.4, color);  
-         grad.addColorStop(1, 'rgba(0,0,0,0)'); 
+         grad.addColorStop(0, '#ffffff');        // White hot center
+         grad.addColorStop(0.2, color);          // Intense inner color
+         grad.addColorStop(0.5, color);          // Falloff start
+         grad.addColorStop(1, 'rgba(0,0,0,0)');  // Fade out
          
          ctx.fillStyle = grad;
          
          if (isChaos) {
-             // Chaos: Unstable plasma blob
+             // Chaos: Unstable plasma blob with spikes
              ctx.beginPath();
-             const spikes = 12;
+             const spikes = 16;
              for(let i=0; i<spikes; i++) {
                  const angle = (i / spikes) * Math.PI * 2;
-                 const rad = r * (0.7 + Math.random() * 0.3);
+                 // Randomize radius for jagged look
+                 const rad = r * (0.6 + Math.random() * 0.4);
                  const x = cx + Math.cos(angle) * rad;
                  const y = cy + Math.sin(angle) * rad;
                  if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -56,20 +51,15 @@ export const VFXFactory = {
              ctx.closePath();
              ctx.fill();
          } else {
-             // Order: Perfect Sphere
+             // Order: Smooth Sphere with Halo
              ctx.beginPath(); 
-             ctx.arc(cx, cy, r, 0, Math.PI * 2); 
+             ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2); 
              ctx.fill();
              
-             // Soft Cross Flare
-             ctx.fillStyle = '#fff';
-             ctx.globalAlpha = 0.5;
-             ctx.beginPath();
-             ctx.ellipse(cx, cy, r * 0.8, r * 0.1, 0, 0, Math.PI*2);
-             ctx.fill();
-             ctx.beginPath();
-             ctx.ellipse(cx, cy, r * 0.1, r * 0.8, 0, 0, Math.PI*2);
-             ctx.fill();
+             // Lens Flare Ring
+             ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+             ctx.lineWidth = 1;
+             ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI*2); ctx.stroke();
          }
          
          return canvas;
@@ -80,17 +70,19 @@ export const VFXFactory = {
         const cx = FOG_SIZE / 2;
         const cy = FOG_SIZE / 2;
         
+        // Multi-layered noise cloud
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, FOG_SIZE / 2);
         grad.addColorStop(0, color);
-        grad.addColorStop(0.6, 'transparent');
+        grad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = 0.2; // Softer base
         
-        for(let i=0; i<12; i++) {
+        // Draw multiple overlapping blobs to simulate volume
+        for(let i=0; i<16; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * (FOG_SIZE * 0.3);
-            const size = FOG_SIZE * (0.1 + Math.random() * 0.2);
+            const dist = Math.random() * (FOG_SIZE * 0.35);
+            const size = FOG_SIZE * (0.1 + Math.random() * 0.15);
             
             ctx.beginPath(); 
             ctx.arc(cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist, size, 0, Math.PI*2); 
@@ -108,16 +100,17 @@ export const VFXFactory = {
         const isChaos = isChaosStyle(color);
         
         ctx.shadowColor = color;
-        ctx.shadowBlur = 8;
+        ctx.shadowBlur = 10;
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
 
         if (isChaos) {
+            // Chaos Rune: Spiky, Broken
             ctx.beginPath();
-            const points = 9;
+            const points = 7; // Odd number for asymmetry
             for(let i=0; i<=points; i++) {
                 const angle = i * (Math.PI * 2 / points);
-                const r = radius * (0.85 + Math.random() * 0.3); 
+                const r = radius * (0.8 + Math.random() * 0.2); 
                 const x = cx + Math.cos(angle) * r;
                 const y = cy + Math.sin(angle) * r;
                 if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
@@ -125,23 +118,22 @@ export const VFXFactory = {
             ctx.closePath();
             ctx.stroke();
             
+            // Inner Scratch
             ctx.lineWidth = 1;
             ctx.beginPath();
-            ctx.moveTo(cx - 25, cy); 
-            ctx.quadraticCurveTo(cx, cy - 15, cx + 25, cy);
-            ctx.quadraticCurveTo(cx, cy + 15, cx - 25, cy);
+            ctx.moveTo(cx - 20, cy - 20); ctx.lineTo(cx + 20, cy + 20);
+            ctx.moveTo(cx + 20, cy - 20); ctx.lineTo(cx - 20, cy + 20);
             ctx.stroke();
-            
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(cx, cy, 5, 0, Math.PI*2); ctx.fill();
 
         } else {
+            // Order Rune: Geometric, Perfect
             ctx.beginPath(); 
             ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
             ctx.stroke();
             
             ctx.lineWidth = 1.5;
             if (isUlt) {
+                // Complex Mandala
                 const drawPoly = (sides: number, r: number, offset: number) => {
                     ctx.beginPath();
                     for (let i = 0; i <= sides; i++) {
@@ -150,22 +142,24 @@ export const VFXFactory = {
                         const y = cy + Math.sin(angle) * r;
                         if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
                     }
+                    ctx.closePath();
                     ctx.stroke();
                 };
                 
-                drawPoly(3, radius, -Math.PI/2); 
-                drawPoly(3, radius, Math.PI/2);  
+                drawPoly(3, radius, -Math.PI/2); // Triangle Up
+                drawPoly(3, radius, Math.PI/2);  // Triangle Down (Star of David style)
                 
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.5, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.4, 0, Math.PI*2); ctx.stroke();
 
             } else {
+                // Simple Rune
                 ctx.save();
                 ctx.translate(cx, cy);
                 ctx.rotate(Math.PI/4);
-                ctx.strokeRect(-radius * 0.7, -radius * 0.7, radius * 1.4, radius * 1.4);
+                ctx.strokeRect(-radius * 0.6, -radius * 0.6, radius * 1.2, radius * 1.2);
                 ctx.restore();
                 
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.3, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.8, 0, Math.PI*2); ctx.stroke();
             }
         }
         
@@ -176,128 +170,88 @@ export const VFXFactory = {
         const { canvas, ctx } = createCanvas(PROJ_WIDTH, PROJ_HEIGHT);
         const cx = PROJ_WIDTH / 2;
         const cy = PROJ_HEIGHT / 2;
-        const isChaos = isChaosStyle(color);
 
+        // Modern "Neon" Style - Less blur, more bloom
         ctx.shadowColor = color;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 15;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
         switch (visual) {
             case 'ARROW':
-                ctx.strokeStyle = isChaos ? '#a8a29e' : '#e2e8f0'; 
-                ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(75, cy); ctx.stroke();
-
-                ctx.fillStyle = isChaos ? '#7f1d1d' : '#f0f9ff';
-                ctx.beginPath();
-                if (isChaos) {
-                    ctx.moveTo(85, cy); 
-                    ctx.lineTo(65, cy - 8); ctx.lineTo(70, cy); ctx.lineTo(65, cy + 8);
-                } else {
-                    ctx.moveTo(90, cy); ctx.lineTo(70, cy - 6); ctx.lineTo(70, cy + 6);
-                }
-                ctx.closePath();
-                ctx.fill();
+                // High-Tech Arrow (Kinetic Rod)
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(20, cy); ctx.lineTo(70, cy); ctx.stroke();
                 
-                ctx.strokeStyle = color;
+                // Glowing Head
+                ctx.fillStyle = color;
                 ctx.beginPath();
-                if (isChaos) {
-                    ctx.moveTo(20, cy); ctx.lineTo(5, cy - 10);
-                    ctx.moveTo(20, cy); ctx.lineTo(5, cy + 10);
-                } else {
-                    ctx.moveTo(15, cy - 5); ctx.lineTo(5, cy); ctx.lineTo(15, cy + 5);
-                }
-                ctx.stroke();
+                ctx.moveTo(80, cy); 
+                ctx.lineTo(60, cy - 6); 
+                ctx.lineTo(65, cy); 
+                ctx.lineTo(60, cy + 6);
+                ctx.fill();
                 break;
 
             case 'FIREBALL':
             case 'BOMB':
-                const coreGrad = ctx.createRadialGradient(cx+20, cy, 0, cx+20, cy, 15);
+                // Plasma Orb
+                const coreGrad = ctx.createRadialGradient(cx+20, cy, 0, cx+20, cy, 18);
                 coreGrad.addColorStop(0, '#fff');
-                coreGrad.addColorStop(0.5, color);
+                coreGrad.addColorStop(0.3, color);
                 coreGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = coreGrad;
                 
-                ctx.beginPath(); ctx.arc(cx + 20, cy, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx + 20, cy, 16, 0, Math.PI * 2); ctx.fill();
                 
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.8;
+                // Trailing arcs
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.6;
                 ctx.beginPath();
-                if (isChaos) {
-                    ctx.moveTo(cx + 20, cy - 12);
-                    ctx.lineTo(cx, cy - 20); ctx.lineTo(cx - 20, cy - 5);
-                    ctx.lineTo(cx - 35, cy);
-                    ctx.lineTo(cx - 20, cy + 8); ctx.lineTo(cx, cy + 22);
-                    ctx.lineTo(cx + 20, cy + 12);
-                } else {
-                    ctx.ellipse(cx + 5, cy, 35, 12, 0, 0, Math.PI * 2);
-                }
-                ctx.fill();
+                ctx.arc(cx + 20, cy, 12, Math.PI * 0.2, Math.PI * 1.8);
+                ctx.stroke();
                 break;
 
             case 'SLASH':
-                // New specialized slash shape for 2-tile attacks
+                // Energy Wave
                 ctx.translate(cx, cy);
-                // Draw a crescent moon shape
                 ctx.beginPath();
                 ctx.arc(0, 0, 30, -Math.PI/3, Math.PI/3, false);
-                ctx.arc(-10, 0, 30, Math.PI/3, -Math.PI/3, true);
+                ctx.arc(-10, 0, 25, Math.PI/3, -Math.PI/3, true);
                 ctx.closePath();
                 ctx.fillStyle = '#fff';
                 ctx.fill();
                 
-                ctx.shadowColor = color;
-                ctx.shadowBlur = 15;
                 ctx.strokeStyle = color;
-                ctx.lineWidth = 3;
+                ctx.lineWidth = 4;
                 ctx.stroke();
                 break;
 
             case 'BOLT':
             case 'BEAM':
             default:
-                if (isChaos) {
-                    ctx.fillStyle = '#1c1917'; 
-                    ctx.strokeStyle = color;
-                    ctx.lineWidth = 3;
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(cx + 35, cy);
-                    ctx.lineTo(cx + 10, cy - 15);
-                    ctx.lineTo(cx - 10, cy - 5);
-                    ctx.lineTo(cx - 30, cy);
-                    ctx.lineTo(cx - 10, cy + 5);
-                    ctx.lineTo(cx + 10, cy + 15);
-                    ctx.closePath();
-                    ctx.fill(); ctx.stroke();
-                    
-                    ctx.beginPath();
-                    ctx.moveTo(cx + 35, cy); ctx.lineTo(cx + 45, cy - 12);
-                    ctx.moveTo(cx + 35, cy); ctx.lineTo(cx + 45, cy + 12);
-                    ctx.stroke();
+                // Sci-Fi Energy Slug
+                const boltPath = new Path2D();
+                boltPath.moveTo(cx + 40, cy);      // Tip
+                boltPath.lineTo(cx + 10, cy - 8);  // Top
+                boltPath.lineTo(cx - 20, cy);      // Tail Center
+                boltPath.lineTo(cx + 10, cy + 8);  // Bottom
+                boltPath.closePath();
 
-                } else {
-                    const boltGrad = ctx.createRadialGradient(cx, cy, 2, cx, cy, 25); 
-                    boltGrad.addColorStop(0, '#fff');
-                    boltGrad.addColorStop(0.5, color);
-                    boltGrad.addColorStop(1, 'transparent');
-                    ctx.fillStyle = boltGrad;
-                    ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.fill();
-
-                    ctx.fillStyle = '#fff';
-                    ctx.shadowColor = '#fff';
-                    ctx.beginPath();
-                    ctx.moveTo(cx + 35, cy); ctx.lineTo(cx, cy - 12);
-                    ctx.lineTo(cx - 15, cy); ctx.lineTo(cx, cy + 12);
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.shadowBlur = 5;
-                    ctx.beginPath(); 
-                    ctx.ellipse(cx, cy, 15, 8, 0, 0, Math.PI*2); 
-                    ctx.stroke();
-                }
+                ctx.fillStyle = '#fff';
+                ctx.fill(boltPath);
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.stroke(boltPath);
+                
+                // Side vents
+                ctx.beginPath();
+                ctx.moveTo(cx, cy - 10); ctx.lineTo(cx - 10, cy - 15);
+                ctx.moveTo(cx, cy + 10); ctx.lineTo(cx - 10, cy + 15);
+                ctx.stroke();
                 break;
         }
 
@@ -310,68 +264,37 @@ export const VFXFactory = {
         const cy = BLAST_HEIGHT / 2;
         const isChaos = isChaosStyle(color);
         
+        // Isometric Flatten
         ctx.scale(1, 0.5); 
         
-        const rings = 5;
-        for(let i = 0; i < rings; i++) {
-            const r = (50 / rings) * (i + 1);
-            const alpha = 1.0 - (i / rings);
-            
-            ctx.beginPath();
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 2 + Math.random() * 2;
-            ctx.globalAlpha = alpha * 0.5;
-            
-            const segments = 24;
-            for(let j=0; j<=segments; j++) {
-                const a = (j/segments) * Math.PI * 2;
-                const offset = pseudoNoise(j, i, 100) * 10;
-                const radius = r + offset;
-                const px = cx + Math.cos(a) * radius;
-                const py = cy * 2 + Math.sin(a) * radius;
-                if (j===0) ctx.moveTo(px, py);
-                else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        }
+        // 1. Scorch Marks (Not cracks)
+        // Draw irregular blobs
+        ctx.fillStyle = isChaos ? '#000' : '#475569';
+        ctx.globalAlpha = 0.5;
         
-        const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 25);
-        grad.addColorStop(0, isChaos ? '#000' : '#fff'); 
-        grad.addColorStop(0.5, color);
+        for(let i=0; i<3; i++) {
+            ctx.beginPath();
+            const r = 30 + Math.random() * 20;
+            const offset = (Math.random() - 0.5) * 20;
+            ctx.ellipse(cx + offset, cy*2 + offset, r, r * 0.6, Math.random(), 0, Math.PI*2);
+            ctx.fill();
+        }
+
+        // 2. Energy Residual (Outer Ring)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath(); ctx.arc(cx, cy * 2, 45, 0, Math.PI*2); ctx.stroke();
+
+        // 3. Central Hotspot
+        const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 30);
+        grad.addColorStop(0, color); 
         grad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.8;
-        ctx.beginPath(); ctx.arc(cx, cy * 2, 25, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath(); ctx.arc(cx, cy * 2, 30, 0, Math.PI*2); ctx.fill();
 
-        return canvas;
-    },
-
-    generateJaggedShockwave(): HTMLCanvasElement {
-        const size = 128;
-        const { canvas, ctx } = createCanvas(size, size);
-        const cx = size / 2;
-        const cy = size / 2;
-        
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 4;
-        ctx.lineJoin = 'miter';
-        
-        // Draw jagged expanding ring
-        ctx.beginPath();
-        const segments = 16;
-        const r = 40;
-        for(let i=0; i<=segments; i++) {
-            const a = (i / segments) * Math.PI * 2;
-            const spike = (i % 2 === 0) ? 10 : -10;
-            const x = cx + Math.cos(a) * (r + spike);
-            const y = cy + Math.sin(a) * (r + spike);
-            if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.closePath();
-        ctx.stroke();
-        
         return canvas;
     }
 };
