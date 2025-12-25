@@ -234,6 +234,7 @@ export class UnitRenderSystem {
             drawStatusEffects(ctx, agent, globalTime);
             
             if (isSelected && agent.hp > 0) {
+                // Subtle white ring on body, acceptable highlight
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2 / scaleFactor; 
                 ctx.beginPath();
@@ -243,57 +244,6 @@ export class UnitRenderSystem {
         }
 
         ctx.restore(); 
-
-        if (isSelected && !isSilhouette) {
-            ctx.save();
-            const centerHeight = 50 * scaleFactor;
-            ctx.translate(0, -centerHeight); 
-
-            const bracketSize = 60 * scaleFactor;
-            ctx.rotate(globalTime * 0.5);
-            ctx.lineWidth = 3;
-            ctx.strokeStyle = '#22d3ee'; 
-            ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 10;
-            
-            const cornerLen = Math.PI / 3;
-            for(let i=0; i<4; i++) {
-                ctx.beginPath();
-                ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
-                ctx.stroke();
-            }
-
-            ctx.rotate(-globalTime * 1.5);
-            ctx.lineWidth = 1;
-            ctx.setLineDash([5, 5]);
-            ctx.beginPath();
-            ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            ctx.restore(); 
-
-            ctx.save();
-            const bounce = Math.sin(globalTime * 8) * 8;
-            const arrowHeight = 110 * scaleFactor;
-            ctx.translate(0, -arrowHeight + bounce);
-            
-            ctx.fillStyle = '#22d3ee';
-            ctx.shadowColor = '#06b6d4';
-            ctx.shadowBlur = 15;
-            
-            ctx.beginPath();
-            ctx.moveTo(-10, -15); 
-            ctx.lineTo(10, -15);
-            ctx.lineTo(0, 5);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(0, -22, 3, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-        }
 
         if (agent.spawnTimer > 0 && !isSilhouette) {
             drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);

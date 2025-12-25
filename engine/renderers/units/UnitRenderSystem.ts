@@ -139,13 +139,6 @@ export class UnitRenderSystem {
         // Now we move the context to the unit's actual body center (Chest/Feet)
         ctx.translate(physX, physY - physZ); 
 
-        // --- SELECTION BRACKET (FIXED) ---
-        // Drawn HERE, inside the translation stack, so it follows the unit.
-        // Drawn BEFORE rotation so it stays upright.
-        if (isSelected && !isSilhouette) {
-            this.drawSelectionBracket(ctx, globalTime);
-        }
-
         // 5. Apply Body Physics Rotation (e.g. Knockback spin)
         ctx.rotate(agent.physics.angle); 
 
@@ -168,9 +161,6 @@ export class UnitRenderSystem {
         // Base Token / Shadow
         ctx.save();
         // Base stays at feet level (py), ignoring jump height (pz) usually, unless we want shadow to jump
-        // But `py` in physics includes movement. Let's assume shadow tracks ground position.
-        // However, existing logic passed (physX, physY-physZ) implying shadow jumps. 
-        // We stick to established visual style:
         ctx.translate(px, py - pz); 
         ctx.drawImage(assets.base, -64, -79); 
         ctx.restore();
@@ -281,64 +271,8 @@ export class UnitRenderSystem {
 
         // Icons
         if (!isSilhouette) {
-            // Note: Passed 0,0 because we are already translated to correct position
             drawStatusIcons(ctx, agent, t, 0, 0, scaleFactor);
             drawStatusEffects(ctx, agent, t);
         }
-    }
-
-    private drawSelectionBracket(ctx: CanvasRenderingContext2D, t: number) {
-        ctx.save();
-        ctx.translate(0, -45); // Center vertically on unit chest
-
-        // 1. Rotating Brackets
-        ctx.save();
-        const bracketSize = 55; 
-        ctx.rotate(t * 0.5);
-        ctx.lineWidth = 3;
-        ctx.strokeStyle = '#22d3ee'; 
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 10;
-        
-        const cornerLen = Math.PI / 3;
-        for(let i=0; i<4; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, bracketSize, i * (Math.PI/2) - cornerLen/2, i * (Math.PI/2) + cornerLen/2);
-            ctx.stroke();
-        }
-
-        // 2. Inner Ring
-        ctx.rotate(-t * 1.5);
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 5]);
-        ctx.beginPath();
-        ctx.arc(0, 0, bracketSize * 0.85, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.restore();
-
-        // 3. Floating Arrow
-        ctx.save();
-        const bounce = Math.sin(t * 8) * 6;
-        const arrowHeight = 85; 
-        ctx.translate(0, -arrowHeight + bounce);
-        
-        ctx.fillStyle = '#22d3ee';
-        ctx.shadowColor = '#06b6d4';
-        ctx.shadowBlur = 15;
-        
-        ctx.beginPath();
-        ctx.moveTo(-8, -12); 
-        ctx.lineTo(8, -12);
-        ctx.lineTo(0, 6);
-        ctx.closePath();
-        ctx.fill();
-        
-        // Dot
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(0, -18, 3, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
-
-        ctx.restore();
     }
 }

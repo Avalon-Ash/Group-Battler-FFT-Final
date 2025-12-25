@@ -4,6 +4,20 @@ import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 
 // =========================================================================================
+// [SYSTEM DEPENDENCIES & CONSTANTS]
+// This file acts as the central registry for UI definitions and their mappings to Game Engine systems.
+// 
+// DEPENDENCIES:
+// - UnitInspectorHUD: Uses ROLE_MAP, TEAM_MAP, TAG_MAP for label/color resolution.
+// - SkillDbTab: Uses SKILL_FIELD_GROUPS to auto-generate the editing form.
+// - Tooltips: Use Helpers.* functions for consistent status text.
+// - Engine AI: AI_CONDITION_OPTIONS map directly to `BTRegistry.ts` keys.
+// - Map Editor: SCENE_OPTIONS and OBSTACLE_OPTIONS sync with `data/scenes` and `data/obstacles`.
+//
+// LAST UPDATED: 4.0.4 (Removal of Selection Artifacts)
+// =========================================================================================
+
+// =========================================================================================
 // 1. CORE ENUM MAPPINGS (Visual & Labels)
 // Purpose: Provide UI-friendly labels and colors for internal Enums.
 // Dependency: Used by UnitInspector, SkillDbTab, and Tooltips.
