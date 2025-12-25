@@ -15,7 +15,7 @@ import { OBSTACLE_DB } from '../../data/obstacles';
 // - Map Editor: SCENE_OPTIONS and OBSTACLE_OPTIONS sync with `data/scenes` and `data/obstacles`.
 // - GameEngine: 'isFinishing' state triggers PostProcessor blur effect (Frosted Glass).
 //
-// LAST UPDATED: 4.0.7 (Faster Victory Sequence)
+// LAST UPDATED: 4.0.8 (Status Label Expansion)
 // =========================================================================================
 
 // =========================================================================================
@@ -261,7 +261,9 @@ export const Helpers = {
         if(status === '放逐') return 'BANISHED';
         if(status === '沉默') return 'SILENCED';
         if(status === '死亡') return 'KIA';
+        if(status === '被控') return 'DISABLED';
+        if(status === '等待') return 'WAITING';
         if(status.startsWith('詠唱')) return 'CASTING';
-        return status;
+        return status.toUpperCase();
     }
 };

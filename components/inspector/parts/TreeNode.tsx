@@ -35,26 +35,26 @@ export const TreeNode: React.FC<TreeNodeProps> = ({ node, version, now }) => {
     };
 
     const typeSymbol = (t: string) => {
-        if(t === '?') return <span className="text-purple-400 font-bold mr-2 text-lg drop-shadow-md">?</span>;
-        if(t === '->') return <span className="text-blue-400 font-bold mr-2 text-lg drop-shadow-md">➜</span>;
-        if(t === 'COND') return <span className="text-pink-400 text-sm mr-2 font-bold">◆</span>;
-        if(t === 'ACT') return <span className="text-yellow-400 text-sm mr-2 font-bold">⚡</span>;
+        if(t === '?') return <span className="text-purple-400 font-bold mr-3 text-xl drop-shadow-md">?</span>;
+        if(t === '->') return <span className="text-blue-400 font-bold mr-3 text-xl drop-shadow-md">➜</span>;
+        if(t === 'COND') return <span className="text-pink-400 text-base mr-3 font-bold">◆</span>;
+        if(t === 'ACT') return <span className="text-yellow-400 text-base mr-3 font-bold">⚡</span>;
         return null;
     }
 
     return (
         <div className="flex flex-col items-center">
             <div 
-                className={`flex items-center px-5 py-3 rounded-2xl border transition-all duration-200 cursor-default select-none min-w-[140px] justify-center backdrop-blur-md ${statusStyle(visualState)}`}
+                className={`flex items-center px-6 py-4 rounded-2xl border transition-all duration-200 cursor-default select-none min-w-[160px] justify-center backdrop-blur-md ${statusStyle(visualState)}`}
                 style={{ opacity: opacity }}
             >
                 {typeSymbol(node.type)}
-                <span className="whitespace-nowrap truncate max-w-[180px] font-bold text-xs tracking-wider font-mono">{node.n}</span>
+                <span className="whitespace-nowrap truncate max-w-[200px] font-bold text-sm tracking-wider font-mono">{node.n}</span>
             </div>
             {node.c && node.c.length > 0 && (
                 <div className="flex flex-col items-center">
                     <div className={`w-px h-8 ${isFading ? 'bg-slate-600/30' : 'bg-slate-600/60'}`}></div>
-                    <div className="flex items-start gap-4">
+                    <div className="flex items-start gap-6">
                         {node.c.map((child, idx) => (
                             <div key={child.id} className="flex flex-col items-center relative">
                                 {/* Connector Lines */}

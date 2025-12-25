@@ -11,7 +11,7 @@ interface BehaviorTreeTabProps {
 
 export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version, engine }) => {
     // BT Interaction State
-    const [btScale, setBtScale] = useState(0.65); // Smaller default scale for HUD embedding
+    const [btScale, setBtScale] = useState(0.9); // Increased default scale for readability
     const [btPos, setBtPos] = useState({x: 0, y: 30});
     const btContainerRef = useRef<HTMLDivElement>(null);
     const [btFps, setBtFps] = useState(20); 
@@ -34,7 +34,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
     // Reset view on agent change
     useEffect(() => {
         setBtPos({x: 0, y: 30});
-        setBtScale(0.65);
+        setBtScale(0.9);
     }, [agent.id]);
 
     const handleBtWheel = (e: React.WheelEvent) => {

@@ -7,9 +7,9 @@ import { AssetManager } from "../assets";
 // --- Constants ---
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
-const BAR_WIDTH = 40;
-const BAR_HEIGHT = 5;
-const BAR_BORDER = 1;
+const BAR_WIDTH = 44; // Slightly wider for liquid look
+const BAR_HEIGHT = 6; // Thicker for better gradient
+const BAR_PADDING = 3;
 
 interface FloatingText {
     active: boolean;
@@ -210,58 +210,111 @@ export class HUDSystem {
     }
 
     private drawUnitBars(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, isSelected: boolean, time: number) {
-        const w = BAR_WIDTH;
-        const h = BAR_HEIGHT;
-        const b = BAR_BORDER;
+        // --- LIQUID GLASS DESIGN ---
+        const hasMp = agent.maxMp > 0;
+        
+        // Dimensions
+        const contentW = BAR_WIDTH;
+        const hpHeight = BAR_HEIGHT;
+        const mpHeight = hasMp ? 3 : 0;
+        const gap = hasMp ? 2 : 0;
+        
+        const contentH = hpHeight + gap + mpHeight;
+        const totalW = contentW + BAR_PADDING * 2;
+        const totalH = contentH + BAR_PADDING * 2;
+        
+        const startX = x - totalW / 2;
+        const startY = y - 5; // Slight offset upwards
 
-        ctx.fillStyle = '#000'; 
-        const totalHeight = (agent.maxMp > 0) ? (h*1.5 + b*3) : (h + b*2);
-        
-        ctx.fillRect(x - w/2 - b, y - b, w + b*2, totalHeight);
-        
-        if (isSelected) {
-            ctx.save();
-            const pulse = 0.6 + Math.sin(time * 8) * 0.4;
-            
-            // OPTIMIZATION: Replaced shadowBlur with lighter multi-pass
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
-            
-            // Glow pass
-            ctx.lineWidth = 4;
-            ctx.globalAlpha = 0.3;
-            ctx.strokeRect(x - w/2 - b - 2, y - b - 2, w + b*2 + 4, totalHeight + 4);
-            
-            // Core pass
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 1.0;
-            ctx.strokeRect(x - w/2 - b - 1, y - b - 1, w + b*2 + 2, totalHeight + 2);
-            
-            ctx.restore();
+        // 1. Glass Container
+        ctx.save();
+        ctx.beginPath();
+        if (ctx.roundRect) {
+            ctx.roundRect(startX, startY, totalW, totalH, 6);
+        } else {
+            ctx.rect(startX, startY, totalW, totalH); // Fallback
         }
         
-        const hpPct = Math.max(0, agent.hp / agent.maxHp);
-        ctx.fillStyle = COLORS.HP; 
-        ctx.fillRect(x - w/2, y, w * hpPct, h);
+        // Glass Material
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.6)'; // Slate-950 semi-transparent
+        ctx.fill();
+        
+        // Rim Light
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.stroke();
 
-        if (agent.maxMp > 0) {
-            const mpH = h / 2 + 1;
-            const mpY = y + h + b;
+        // Selection Pulse
+        if (isSelected) {
+            const pulse = 0.5 + Math.sin(time * 8) * 0.3;
+            ctx.shadowColor = 'rgba(6, 182, 212, 0.8)'; // Cyan Glow
+            ctx.shadowBlur = 10 + pulse * 5;
+            ctx.strokeStyle = `rgba(6, 182, 212, ${0.4 + pulse * 0.4})`;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+        }
+        ctx.restore();
+
+        // Helper for Fluid Bars
+        const drawFluidBar = (bx: number, by: number, bw: number, bh: number, pct: number, colTop: string, colBot: string, glow: string) => {
+            if (pct <= 0.01) return;
+            const fillW = Math.max(bh, bw * pct); // Keep capsule shape even when low
+            
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh, bh/2);
+            else ctx.rect(bx, by, fillW, bh);
+            
+            // Liquid Gradient
+            const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            grad.addColorStop(0, colTop);
+            grad.addColorStop(1, colBot);
+            ctx.fillStyle = grad;
+            
+            // Inner Glow (Neon Core)
+            ctx.shadowColor = glow;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+
+            // Surface Reflection (Glossy Top)
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh * 0.4, bh/2);
+            else ctx.rect(bx, by, fillW, bh * 0.4);
+            ctx.fill();
+            
+            ctx.restore();
+        };
+
+        const barX = startX + BAR_PADDING;
+        const barY = startY + BAR_PADDING;
+
+        // 2. HP Bar
+        const hpPct = Math.max(0, agent.hp / agent.maxHp);
+        // Emerald Fluid
+        drawFluidBar(barX, barY, contentW, hpHeight, hpPct, '#6ee7b7', '#10b981', 'rgba(16, 185, 129, 0.5)');
+
+        // 3. MP Bar
+        if (hasMp) {
             const mpPct = Math.max(0, agent.mp / agent.maxMp);
-            ctx.fillStyle = COLORS.MP; 
-            ctx.fillRect(x - w/2, mpY, w * mpPct, mpH);
+            const mpY = barY + hpHeight + gap;
+            // Cyan Fluid
+            drawFluidBar(barX, mpY, contentW, mpHeight, mpPct, '#7dd3fc', '#0ea5e9', 'rgba(14, 165, 233, 0.5)');
         }
     }
 
     private drawCircularGauge(ctx: CanvasRenderingContext2D, x: number, y: number, pct: number, visualKey: string, color: string, isSkill: boolean) {
         const radius = 14;
-        const iconY = y - 18; 
+        const iconY = y - 24; // Lifted slightly higher to clear the new glass HUD
         
         ctx.save();
+        // Glass Background for Icon
         ctx.beginPath();
         ctx.arc(x, iconY, radius, 0, Math.PI * 2);
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = 'rgba(2, 6, 23, 0.8)';
         ctx.fill();
+        ctx.save();
         ctx.clip();
         
         let icon;
@@ -271,31 +324,31 @@ export class HUDSystem {
             icon = AssetManager.getStatusIcon(visualKey);
         }
         
+        // Icon Opacity
+        ctx.globalAlpha = 0.8;
         if (icon) ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
         ctx.restore();
 
-        ctx.beginPath();
-        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.lineWidth = 4;
+        // Rim
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
+        // Progress Ring (Neon)
         const safePct = Math.max(0, Math.min(1, pct));
-        
         if (safePct > 0) {
             ctx.beginPath();
+            // Start from top (-PI/2)
             ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * safePct));
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 8;
             ctx.stroke();
         }
         
-        ctx.beginPath();
-        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
+        ctx.restore();
     }
 
     private drawFloatingText(ctx: CanvasRenderingContext2D) {
@@ -343,19 +396,27 @@ export class HUDSystem {
                     const w = textMetrics.width / 2 + 30;
                     const h = d.size + 16;
 
-                    const bgGrad = ctx.createLinearGradient(-w, 0, w, 0);
+                    // Liquid Glass Badge for Ult Shout
+                    const bgGrad = ctx.createLinearGradient(-w, -h/2, w, h/2);
                     bgGrad.addColorStop(0, 'rgba(0,0,0,0)');
-                    bgGrad.addColorStop(0.2, 'rgba(0,0,0,0.6)'); 
-                    bgGrad.addColorStop(0.8, 'rgba(0,0,0,0.6)');
+                    bgGrad.addColorStop(0.2, 'rgba(0,0,0,0.8)'); 
+                    bgGrad.addColorStop(0.8, 'rgba(0,0,0,0.8)');
                     bgGrad.addColorStop(1, 'rgba(0,0,0,0)');
                     
                     ctx.fillStyle = bgGrad;
                     ctx.fillRect(-w, -h/2, w*2, h);
+                    
+                    // Text Glow
+                    ctx.shadowColor = d.color;
+                    ctx.shadowBlur = 15;
                     ctx.fillStyle = '#fff';
-                    ctx.strokeStyle = '#000';
-                    ctx.lineWidth = 3;
-                    ctx.strokeText(d.text, 0, 0);
                     ctx.fillText(d.text, 0, 0);
+                    ctx.shadowBlur = 0;
+                    
+                    ctx.strokeStyle = d.color;
+                    ctx.lineWidth = 1;
+                    ctx.strokeText(d.text, 0, 0);
+                    
                     ctx.restore();
                 } else {
                     ctx.font = `bold italic ${d.size}px "Segoe UI", sans-serif`;
