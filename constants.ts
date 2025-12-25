@@ -91,8 +91,8 @@ export const COLORS = {
 
 // --- GAMEPLAY PARAMETERS (Separated from Logic) ---
 export const COMBAT_PARAM = {
-    HIT_IMPULSE_MAX: 20,
-    HIT_IMPULSE_MIN: 5,
+    HIT_IMPULSE_MAX: 400, // Significantly increased from 20 for visible physics kick
+    HIT_IMPULSE_MIN: 100, // Significantly increased from 5
     DR_RESET_TIME: 10.0,
     EXECUTE_THRESHOLD: 0.3, // 30% HP
     BASE_EXECUTE_MULTIPLIER: 1.5,

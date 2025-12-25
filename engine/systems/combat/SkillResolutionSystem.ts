@@ -84,22 +84,25 @@ export class SkillResolutionSystem {
     public executeInstantSkill(source: Agent, skill: Skill, engine: GameEngine) {
         const radius = skill.aoeRadius || 1;
         let targets: Agent[] = [];
-        let centerHex: { q: number, r: number } | null = null;
+        let origin = {x: source.px, y: source.py}; // Default to caster
 
         // Target Acquisition (Logic)
         if (skill.type === 'AOE') {
-            centerHex = source.targetHex || (source.target ? { q: source.target.q, r: source.target.r } : { q: source.q, r: source.r });
+            const centerHex = source.targetHex || (source.target ? { q: source.target.q, r: source.target.r } : { q: source.q, r: source.r });
             targets = engine.agents.filter(e => 
                 e.team !== source.team && e.hp > 0 && !e.banished && HexUtils.dist(centerHex!, e) <= radius
             );
+            
+            // For AOE, the impulse origin should be the CENTER of the blast, not the caster
+            const p = HexUtils.toPx(centerHex!.q, centerHex!.r, engine.mapConfig);
+            origin = { x: p.x, y: p.y };
+
         } else {
             if (source.target && !source.target.banished && source.target.hp > 0) {
                 const effectiveRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
                 if (HexUtils.dist(source, source.target) <= effectiveRange) targets = [source.target];
             }
         }
-        
-        const origin = {x: source.px, y: source.py};
         
         // Apply Hits
         targets.forEach(t => {
@@ -161,6 +164,7 @@ export class SkillResolutionSystem {
             target.hitFlashTimer = 0.2;
             
             // Physics Impulse
+            // Force origin to be what was passed (explosion center), fall back to source if undefined (e.g. projectile)
             const originPx = origin ? origin : {x: source.px, y: source.py};
             const impulse = this.calculateImpulseVector(originPx, {x: target.px, y: target.py}, calc.finalDamage);
             target.physics.vx += impulse.x;
@@ -349,9 +353,19 @@ export class SkillResolutionSystem {
         const dy = target.y - origin.y;
         const len = Math.sqrt(dx * dx + dy * dy);
         
-        if (len <= 0) return { x: 0, y: 0 };
+        // If center hit, random scatter
+        if (len <= 0) {
+            const ang = Math.random() * Math.PI * 2;
+            return {
+                x: Math.cos(ang) * COMBAT_PARAM.HIT_IMPULSE_MIN,
+                y: Math.sin(ang) * COMBAT_PARAM.HIT_IMPULSE_MIN
+            };
+        }
         
-        const force = Math.min(COMBAT_PARAM.HIT_IMPULSE_MAX, Math.max(COMBAT_PARAM.HIT_IMPULSE_MIN, damage * 0.3));
+        // Dynamic Force Calculation
+        // Use a much stronger multiplier to be visible against physics stiffness
+        const force = Math.min(COMBAT_PARAM.HIT_IMPULSE_MAX, Math.max(COMBAT_PARAM.HIT_IMPULSE_MIN, damage * 1.5));
+        
         return {
             x: (dx / len) * force,
             y: (dy / len) * force

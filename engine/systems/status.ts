@@ -76,8 +76,9 @@ export class StatusSystem {
         }
 
         // 9. Animation State Reset
-        // If not stunned, not banished, not moving, and not casting -> Return to Idle
-        if (agent.stunTimer <= 0 && agent.banishTimer <= 0 && !agent.isMoving && agent.castingSkillIdx === -1) {
+        // Condition: Not Stunned, Not Banished, Not Moving, Not Casting
+        // AND Not currently in Hit Recovery (hitFlashTimer)
+        if (agent.stunTimer <= 0 && agent.banishTimer <= 0 && !agent.isMoving && agent.castingSkillIdx === -1 && agent.hitFlashTimer <= 0) {
             if (agent.target) agent.setAnim(AnimState.COMBAT_IDLE);
             else agent.setAnim(AnimState.IDLE);
         }
