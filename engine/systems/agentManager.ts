@@ -101,9 +101,14 @@ export class AgentManager {
             // Remove from spatial map so others can walk here
             engine.agentMap.delete(HexUtils.hash(a.q, a.r));
             
+            // SANITIZATION: Clear all Status Effects
+            a.banished = false;
+            a.stunTimer = 0;
+            a.silenceTimer = 0;
+            a.visualStatus = 'NONE';
+            
             // INSTANT VANISH: logic is done, body is hidden, particles take over
             a.fullyDead = true; 
-            a.visualStatus = 'NONE';
             a.isMoving = false; 
             a.path = [];
         }
