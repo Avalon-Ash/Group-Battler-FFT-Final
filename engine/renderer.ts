@@ -303,20 +303,19 @@ export class GameRenderer {
         let blurAmount = 0;
         
         if (engine.isFinishing) {
-            // Ramping Up (Active Victory Phase)
+            // 1. Victory Phase: Blur Ramps 0 -> 1
             blurAmount = 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
         } else if (engine.winningTeam !== null) {
-            // Bridge Gap: Game finished but transition hasn't started
+            // 2. Bridge Gap: Blur Holds at 1.0
             blurAmount = 1.0;
         }
 
         // Transition Overrides
         // Logic:
-        // OUT: Fade Blur In (0 -> 1) as map leaves.
-        // IN: Fade Blur Out (1 -> 0) as map enters.
+        // OUT: Map Falls. Blur stays at 1.0 to hide the fall and connect with Victory.
+        // IN: Map Rises. Blur fades 1.0 -> 0.0 to reveal the new map.
         if (this.transitionPhase === 'OUT') {
-            // 0 -> 1
-            blurAmount = this.transitionT; 
+            blurAmount = 1.0; 
         } else if (this.transitionPhase === 'IN') {
             // 1 -> 0
             // Linear fade out to perfectly match the tile landing at t=1.0
