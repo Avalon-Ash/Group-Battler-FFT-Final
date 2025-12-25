@@ -16,7 +16,9 @@ export function spawnDivinePillar(system: VFXSystem, x: number, y: number, color
     p.x = x; p.y = y; p.z = 0;
     p.vx = 0; p.vy = 0; p.vz = 0;
     p.life = life; p.maxLife = life;
-    p.color = color; p.size = 100; 
+    p.color = color; 
+    // Size reduced to 18 (approx half Hex width) to ensure gaps between adjacent pillars
+    p.size = 18; 
     p.type = 'PILLAR'; 
     p.delay = delay;
     system.state.particles.push(p);
@@ -51,7 +53,62 @@ export function spawnBloodRitual(system: VFXSystem, x: number, y: number, color:
     }
 }
 
+export function spawnDeathRay(system: VFXSystem, sx: number, sy: number, tx: number, ty: number, color: string) {
+    const p = system.state.getParticle();
+    p.x = sx; p.y = sy; p.z = 0; 
+    p.targetX = tx; p.targetY = ty;
+    p.life = 0.3; p.maxLife = 0.3; // Very fast, sharp flash
+    p.color = color; 
+    p.size = 8; // Thin beam
+    p.type = 'DEATH_RAY'; 
+    p.delay = 0;
+    system.state.particles.push(p);
+}
+
 // --- 2. SUPER ULTIMATES (Cinematic Levels) ---
+
+// 🛰️ ORBITAL RAY (Legacy / Deprecated for now, replaced by Grid Ripple)
+export function spawnOrbitalRay(system: VFXSystem, x: number, y: number, color: string) {
+    // Just spawn a slightly larger pillar for fallback
+    spawnDivinePillar(system, x, y, color, 1.5, 0);
+}
+
+// ✝️ GRAND CROSS (Divine Field)
+export function spawnGrandCross(system: VFXSystem, x: number, y: number, color: string) {
+    // Center Blast
+    spawnDivinePillar(system, x, y, color, 1.5, 0);
+    
+    // 4 Directional Waves (Creating the Cross shape)
+    const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+    dirs.forEach((d, i) => {
+        // Create a line of explosions radiating out
+        for(let step=1; step<=3; step++) {
+            const dist = step * 40;
+            const px = x + d[0] * dist;
+            const py = y + d[1] * dist;
+            
+            const p = system.state.getParticle();
+            p.x = px; p.y = py; p.z = 0;
+            p.life = 0.5; p.maxLife = 0.5;
+            p.color = color;
+            p.size = 60;
+            p.type = 'BLAST';
+            p.delay = step * 0.05; // Ripple out
+            system.state.particles.push(p);
+            
+            // Vertical Light Spike at each point
+            const spike = system.state.getParticle();
+            spike.x = px; spike.y = py; spike.z = 0;
+            spike.life = 0.8; spike.maxLife = 0.8;
+            spike.color = '#fff'; spike.size = 30;
+            spike.type = 'PILLAR';
+            spike.delay = step * 0.05;
+            system.state.particles.push(spike);
+        }
+    });
+
+    addImpact(system, x, y, 0, color, 'SHOCKWAVE', 0.8);
+}
 
 // ☢️ TACTICAL NUKE (Mushroom Cloud)
 export function spawnTacticalNuke(system: VFXSystem, x: number, y: number, color: string) {

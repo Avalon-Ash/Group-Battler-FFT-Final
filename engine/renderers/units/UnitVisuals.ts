@@ -29,7 +29,8 @@ export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t:
     // Rotating Rune Ring - Clear indication of ground position
     ctx.save();
     ctx.scale(1, 0.58); // Isometric flat on ground
-    ctx.rotate(t * 0.5);
+    // Use lineDashOffset to simulate rotation without distorting the ellipse
+    ctx.lineDashOffset = -t * 20;
     
     // Outer dashed ring
     ctx.globalAlpha = 0.6;
@@ -266,9 +267,12 @@ export function drawUltimateGroundCircle(ctx: CanvasRenderingContext2D, x: numbe
     ctx.scale(1, 0.58); // Isometric projection
     ctx.globalCompositeOperation = 'lighter';
 
-    // 1. Outer Ring (Slow Rotate)
+    // 1. Outer Ring (Slow Rotate via lineDashOffset)
     ctx.save();
-    ctx.rotate(t * 0.5);
+    // FIX: Do NOT rotate the context, it distorts the isometric ellipse to a wobbling egg!
+    // Instead, animate the dash offset to simulate spinning.
+    ctx.lineDashOffset = -t * 30; // Speed of spin
+    
     ctx.strokeStyle = COL_PURPLE;
     ctx.setLineDash([20, 10]); // Runes
     
@@ -282,9 +286,10 @@ export function drawUltimateGroundCircle(ctx: CanvasRenderingContext2D, x: numbe
     ctx.stroke();
     ctx.restore();
 
-    // 2. Inner Ring (Fast Counter-Rotate)
+    // 2. Inner Ring (Fast Counter-Rotate via lineDashOffset)
     ctx.save();
-    ctx.rotate(-t * 1.5);
+    ctx.lineDashOffset = t * 60; // Counter spin
+    
     ctx.strokeStyle = COL_GOLD; // Gold core for contrast
     ctx.lineWidth = 2;
     ctx.globalAlpha = 0.8;
@@ -293,14 +298,21 @@ export function drawUltimateGroundCircle(ctx: CanvasRenderingContext2D, x: numbe
     ctx.restore();
 
     // 3. Central Geometry (Triangle/Square pulse)
+    // NOTE: Geometry rotation inside the flat plane is fine as long as we calculate points manually
+    // or if we accept that non-circular shapes will wobble.
+    // For a triangle, wobbling is actually acceptable/cool energy effect.
+    // But let's keep it stable for now by manually calculating points.
     ctx.save();
-    ctx.rotate(t);
     ctx.globalAlpha = 0.3 * progress;
     ctx.fillStyle = color;
     const r = baseSize * 0.5 * progress;
+    
     ctx.beginPath();
     for(let i=0; i<3; i++) {
-        const a = i * (Math.PI*2/3);
+        // Manually calculate rotated points to ensure they stay on the isometric plane
+        // Actually, for a filled shape, standard context rotation IS the wobble.
+        // To fix, we just define the points rotated by `t`.
+        const a = t + i * (Math.PI*2/3);
         ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
     }
     ctx.closePath();

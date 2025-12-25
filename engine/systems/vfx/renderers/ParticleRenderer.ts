@@ -29,23 +29,21 @@ export const ParticleRenderer = {
 
         if (p.type === 'SPARK') {
             // ✨ KINETIC SPARKS (Light Streaks)
-            // No gravity feel. Just pure energy moving fast.
             const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
-            // Stretch based on speed, but clamp it
             const stretch = Math.min(4.0, 1.0 + speed / 150); 
-            const angle = Math.atan2(p.vy, p.vx); // Align with motion
+            const angle = Math.atan2(p.vy, p.vx); 
 
             ctx.rotate(angle);
-            ctx.scale(stretch, 0.6); // Stretch length, squash width
+            ctx.scale(stretch, 0.6); 
             
-            ctx.globalCompositeOperation = 'lighter'; // Additive blending for glow
-            ctx.globalAlpha = Math.pow(1 - progress, 2); // Fade out non-linearly
+            ctx.globalCompositeOperation = 'lighter'; 
+            ctx.globalAlpha = Math.pow(1 - progress, 2); 
 
             // Streamlined Shape
             const grad = ctx.createLinearGradient(-p.size, 0, p.size, 0);
             grad.addColorStop(0, 'transparent');
             grad.addColorStop(0.2, p.color);
-            grad.addColorStop(0.8, '#fff'); // Bright head
+            grad.addColorStop(0.8, '#fff'); 
             grad.addColorStop(1, 'transparent');
 
             ctx.fillStyle = grad;
@@ -54,43 +52,36 @@ export const ParticleRenderer = {
             ctx.fill();
 
         } else if (p.type === 'SMOKE') {
-            // ☁️ VOLUMETRIC SMOKE / FIRE CLOUD
-            const scale = 0.5 + progress * 2.0; // Expands more
-            const alpha = (1 - progress) * 0.6; // Slightly more opaque start
+            // ☁️ VOLUMETRIC SMOKE
+            const scale = 0.5 + progress * 2.0; 
+            const alpha = (1 - progress) * 0.6; 
             
             ctx.scale(scale, scale);
-            ctx.rotate(p.rotation + progress * 0.5); // Slowly rotates
+            ctx.rotate(p.rotation + progress * 0.5); 
             ctx.globalAlpha = alpha;
             
-            // Enhanced Shading for Explosions
             const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
             grad.addColorStop(0, p.color);
-            grad.addColorStop(1, 'rgba(0,0,0,0)'); // Soft edge
+            grad.addColorStop(1, 'rgba(0,0,0,0)'); 
             
             ctx.fillStyle = grad;
-            
-            // Draw cluster
             ctx.beginPath();
             ctx.arc(0, 0, p.size, 0, Math.PI*2);
-            // Add irregularities
             ctx.arc(p.size*0.5, p.size*0.5, p.size*0.6, 0, Math.PI*2);
             ctx.arc(-p.size*0.4, -p.size*0.3, p.size*0.7, 0, Math.PI*2);
             ctx.fill();
 
         } else if (p.type === 'RING') {
-            // 🌊 ENERGY RIPPLE (Sonic Boom)
-            ctx.scale(1, 0.55); // Isometric
-            const r = progress * p.size * 2; // Expands outward
+            // 🌊 ENERGY RIPPLE
+            ctx.scale(1, 0.55); 
+            const r = progress * p.size * 2; 
             
             ctx.globalCompositeOperation = 'lighter';
             ctx.strokeStyle = p.color;
-            
-            // Main Ring
             ctx.lineWidth = (1 - progress) * 4;
             ctx.globalAlpha = 1 - progress;
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
             
-            // Echo Ring (Inner)
             if (progress > 0.2) {
                 ctx.lineWidth = (1 - progress) * 2;
                 ctx.globalAlpha = (1 - progress) * 0.5;
@@ -107,12 +98,10 @@ export const ParticleRenderer = {
             ctx.lineWidth = (1 - progress) * 6; 
             ctx.globalAlpha = (1 - progress);
             
-            // Spiky Circle
             ctx.beginPath(); 
             const spikes = 12;
             for(let i=0; i<=spikes; i++) {
                 const angle = (i/spikes) * Math.PI*2;
-                // Add noise to radius
                 const rad = r * (1.0 + (i%2===0 ? 0.2 : 0)); 
                 const px = Math.cos(angle) * rad;
                 const py = Math.sin(angle) * rad;
@@ -122,27 +111,21 @@ export const ParticleRenderer = {
             ctx.stroke();
 
         } else if (p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'CHIP') {
-            // 💎 MATERIAL 2.0: ENHANCED DEBRIS
-            // Uses gradients to simulate lighting/metallic surface
-            
+            // 💎 MATERIAL
             ctx.rotate(p.rotation);
             
-            // Base Gradient (Simulate light from top-left)
             const grad = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
-            grad.addColorStop(0, '#ffffff'); // Specular highlight
+            grad.addColorStop(0, '#ffffff'); 
             grad.addColorStop(0.3, p.color);
-            grad.addColorStop(1, '#000000'); // Shadow side
+            grad.addColorStop(1, '#000000'); 
             
             ctx.fillStyle = grad;
-            
-            // Rim Light (Edge definition)
             ctx.strokeStyle = 'rgba(255,255,255,0.4)';
             ctx.lineWidth = 1;
             
             if (p.type === 'CHIP') {
                 ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
             } else {
-                // Irregular jagged shard
                 ctx.beginPath();
                 ctx.moveTo(-p.size, -p.size/2); 
                 ctx.lineTo(p.size * 0.8, -p.size * 0.2); 
@@ -154,9 +137,8 @@ export const ParticleRenderer = {
             }
 
         } else if (p.type === 'GLOW') {
-            // ✨ STATIC GLOW ORB (Pre-rendered)
             const img = AssetManager.getGlowSprite(p.color);
-            const fade = Math.sin(progress * Math.PI); // Pulse: Fade In -> Fade Out
+            const fade = Math.sin(progress * Math.PI); 
             const scale = (p.size / 64) * (0.8 + fade * 0.4); 
             
             ctx.globalAlpha = fade * 0.9;
@@ -166,18 +148,12 @@ export const ParticleRenderer = {
 
         } else if (p.type === 'SPRITE') {
             if (p.image) {
-                // Sprite fades out and shrinks slightly
                 const alpha = Math.max(0, 1 - Math.pow(progress, 3)); 
                 ctx.globalAlpha = alpha;
-                
-                // Spin faster as it dies (angular momentum conservation fake)
                 ctx.rotate(p.rotation + progress * 5);
-                
                 const perspective = 1.0 + (p.z * 0.002);
                 const scale = (p.size / 64) * perspective * (1 - progress * 0.5); 
                 ctx.scale(scale, scale);
-                
-                // Add a "Ghost" trail effect by drawing lower opacity copies
                 ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
             }
 
@@ -185,6 +161,8 @@ export const ParticleRenderer = {
             if (p.targetX !== undefined && p.targetY !== undefined) {
                 this.drawHelixBeam(ctx, p, progress);
             }
+        } else if (p.type === 'DEATH_RAY') {
+            this.drawDeathRay(ctx, p, progress);
         } else if (p.type === 'PILLAR') {
             this.drawDivinePillar(ctx, p, progress);
         } else if (p.type === 'SHOCKWAVE') {
@@ -200,7 +178,7 @@ export const ParticleRenderer = {
         ctx.restore();
     },
 
-    // ⚡ HELIX BEAM (Optimized)
+    // ⚡ HELIX BEAM
     drawHelixBeam(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         ctx.translate(-p.x, -p.y); 
         ctx.globalCompositeOperation = 'lighter';
@@ -263,6 +241,62 @@ export const ParticleRenderer = {
         ctx.restore();
     },
 
+    // ☠️ DEATH RAY (High Velocity Particle Beam)
+    drawDeathRay(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
+        ctx.translate(-p.x, -p.y); 
+        
+        const sx = p.x; const sy = p.y;
+        const tx = p.targetX!; const ty = p.targetY!;
+        const dx = tx - sx;
+        const dy = ty - sy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const angle = Math.atan2(dy, dx);
+
+        ctx.save();
+        ctx.translate(sx, sy);
+        ctx.rotate(angle);
+
+        const alpha = Math.pow(1 - progress, 2);
+        
+        // 1. Dark Void Core (Source-Over to block light)
+        ctx.globalCompositeOperation = 'source-over'; 
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 4 * alpha;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+
+        // 2. Intense Crimson Glow (Lighter)
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.strokeStyle = p.color; 
+        ctx.lineWidth = 12 * alpha;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // 3. White Hot Needle Center
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2 * alpha;
+        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+
+        // 4. Chaotic Crackles
+        ctx.strokeStyle = '#fca5a5'; 
+        ctx.lineWidth = 2 * alpha;
+        ctx.beginPath();
+        let cx = 0;
+        ctx.moveTo(0, 0);
+        const segmentLen = 40;
+        const steps = Math.ceil(dist / segmentLen);
+        for(let i=0; i<steps; i++) {
+            cx += segmentLen;
+            const cy = (Math.random() - 0.5) * 20 * alpha;
+            ctx.lineTo(cx, cy);
+        }
+        ctx.lineTo(dist, 0);
+        ctx.stroke();
+
+        ctx.restore();
+    },
+
     // 🌫️ VOLUMETRIC GRID FOG
     drawGridField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         const size = 36; 
@@ -315,50 +349,59 @@ export const ParticleRenderer = {
         ctx.restore();
     },
 
-    // 🏛️ DIVINE PILLAR 3.0
+    // 🏛️ DIVINE PILLAR 4.0: THIN SHAFT (Clean Edition)
     drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         const lifeRatio = p.life / p.maxLife;
-        let alpha = lifeRatio > 0.8 ? (1 - lifeRatio) * 5 : (lifeRatio < 0.2 ? lifeRatio * 5 : 1.0);
-        // Decrease max height slightly for "Soul" usage
-        const maxHeight = p.size * 12; // Dynamic height based on size
-        const width = p.size; 
+        
+        let alpha = 0;
+        if (lifeRatio > 0.8) alpha = (1 - lifeRatio) * 5; 
+        else if (lifeRatio < 0.3) alpha = lifeRatio * 3.3; 
+        else alpha = 1.0;
 
+        const height = 800; 
+        const width = p.size; // Strictly respects spawn size (18)
+
+        // --- 1. THE BEAM CORE ---
         ctx.save();
-        ctx.globalCompositeOperation = 'screen'; 
-
-        // Base
-        ctx.save();
-        ctx.scale(1, 0.58);
-        ctx.rotate(Date.now() * 0.002);
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = alpha * 0.4;
-        ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = p.color; ctx.lineWidth = 3; ctx.globalAlpha = alpha * 0.8; ctx.stroke();
-        ctx.restore();
-
-        // Beam
-        const coreWidth = width * 0.5;
-        const beamGrad = ctx.createLinearGradient(-coreWidth, 0, coreWidth, 0);
+        // Use source-over to prevent additive blowout when multiple beams overlap
+        ctx.globalCompositeOperation = 'source-over'; 
+        
+        const beamGrad = ctx.createLinearGradient(-width, 0, width, 0);
         beamGrad.addColorStop(0, 'rgba(255,255,255,0)');
         beamGrad.addColorStop(0.2, p.color);
-        beamGrad.addColorStop(0.5, '#ffffff'); 
+        beamGrad.addColorStop(0.5, 'rgba(255,255,255,0.6)'); 
         beamGrad.addColorStop(0.8, p.color);
         beamGrad.addColorStop(1, 'rgba(255,255,255,0)');
         
-        ctx.fillStyle = beamGrad;
-        ctx.globalAlpha = alpha * 0.9;
-        ctx.fillRect(-coreWidth, -maxHeight, coreWidth * 2, maxHeight);
+        // Vertical fade
+        const vGrad = ctx.createLinearGradient(0, 0, 0, -height);
+        vGrad.addColorStop(0, 'rgba(255,255,255,1)');
+        vGrad.addColorStop(0.8, 'rgba(255,255,255,0.5)');
+        vGrad.addColorStop(1, 'rgba(255,255,255,0)');
 
-        // Data Streams
-        const lines = 8;
-        for(let i=0; i<lines; i++) {
-            const offsetX = (Math.random() - 0.5) * width * 1.6;
-            const speed = 2500 + Math.random() * 1500;
-            const yPos = -((Date.now() * speed / 2000 + i * 137) % maxHeight);
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = alpha * (0.6 + Math.random()*0.4);
-            ctx.fillRect(offsetX - 2, yPos, 4, 100); 
-        }
+        ctx.fillStyle = beamGrad;
+        ctx.globalAlpha = alpha * 0.7; 
+        ctx.fillRect(-width, -height, width * 2, height);
+        
+        // --- 2. GROUND RIPPLE (Impact Ring) ---
+        ctx.save();
+        ctx.scale(1, 0.58); 
+        
+        // Ground glow is okay to be Screen
+        ctx.globalCompositeOperation = 'screen';
+        const ringSize = width * 1.5 * (0.5 + (1-lifeRatio)); 
+        
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = alpha * 0.9;
+        ctx.beginPath(); ctx.arc(0, 0, ringSize, 0, Math.PI*2); ctx.stroke();
+        
+        // Center spot
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = alpha * 0.6;
+        ctx.beginPath(); ctx.arc(0, 0, width * 0.5, 0, Math.PI*2); ctx.fill();
+        
+        ctx.restore();
         ctx.restore();
     },
 
