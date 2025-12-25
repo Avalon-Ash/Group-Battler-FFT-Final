@@ -241,11 +241,16 @@ export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent
     }
 
     // 3. Core Overload (Bright center glow)
+    // OPTIMIZATION: Removed shadowBlur, replaced with Radial Gradient
     const pulse = 1 + Math.sin(t * 30) * 0.2;
-    ctx.globalAlpha = 0.4 * progress;
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = factionColor;
-    ctx.shadowBlur = 20 * progress;
+    ctx.globalAlpha = 0.8 * progress;
+    
+    const coreGrad = ctx.createRadialGradient(0, -40, 2, 0, -40, 15 * pulse);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.4, factionColor);
+    coreGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    
+    ctx.fillStyle = coreGrad;
     ctx.beginPath(); ctx.arc(0, -40, 15 * pulse, 0, Math.PI*2); ctx.fill();
 
     ctx.restore();
@@ -265,14 +270,15 @@ export function drawUltimateGroundCircle(ctx: CanvasRenderingContext2D, x: numbe
     ctx.save();
     ctx.rotate(t * 0.5);
     ctx.strokeStyle = COL_PURPLE;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.6 + progress * 0.4;
     ctx.setLineDash([20, 10]); // Runes
+    
+    // OPTIMIZATION: Fake Glow (Double Stroke)
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = (0.6 + progress * 0.4) * 0.3; // Low alpha for width
     ctx.beginPath(); ctx.arc(0, 0, baseSize, 0, Math.PI*2); ctx.stroke();
     
-    // Glow
-    ctx.shadowColor = COL_PURPLE;
-    ctx.shadowBlur = 10;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.6 + progress * 0.4;
     ctx.stroke();
     ctx.restore();
 
@@ -448,11 +454,7 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
             ctx.scale(scale, scale);
             
             ctx.fillStyle = '#facc15';
-            // PERF: Removed shadowBlur for stun stars
-            // ctx.shadowColor = '#fbbf24';
-            // ctx.shadowBlur = 10;
-            
-            // Draw Star
+            // OPTIMIZATION: Removed shadowBlur. Added fake glow circle.
             ctx.beginPath();
             const starPts = 5;
             for(let j=0; j<starPts*2; j++) {
@@ -461,6 +463,11 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
                 ctx.lineTo(Math.cos(a)*r, Math.sin(a)*r);
             }
             ctx.fill();
+            
+            // Fake Glow
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
+            
             ctx.restore();
         }
     }
@@ -474,22 +481,25 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         
         ctx.fillStyle = '#1e1b4b'; 
         ctx.strokeStyle = '#a855f7';
-        ctx.lineWidth = 2;
-        // PERF: Removed shadowBlur for Silence rune
-        // ctx.shadowColor = '#c084fc';
-        // ctx.shadowBlur = 10;
         
-        // Rune Box
-        ctx.beginPath();
-        ctx.rect(-15, -10, 30, 20);
-        ctx.fill();
-        ctx.stroke();
+        // OPTIMIZATION: Fake glow via multi-pass stroke instead of shadowBlur
+        ctx.globalCompositeOperation = 'lighter';
         
-        // "X" or Rune Text
-        ctx.beginPath();
-        ctx.moveTo(-8, -5); ctx.lineTo(8, 5);
-        ctx.moveTo(8, -5); ctx.lineTo(-8, 5);
-        ctx.stroke();
+        const drawRune = (width: number, alpha: number) => {
+            ctx.lineWidth = width;
+            ctx.globalAlpha = alpha;
+            ctx.beginPath();
+            ctx.rect(-15, -10, 30, 20);
+            ctx.fill();
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(-8, -5); ctx.lineTo(8, 5);
+            ctx.moveTo(8, -5); ctx.lineTo(-8, 5);
+            ctx.stroke();
+        };
+
+        drawRune(4, 0.3); // Glow pass
+        drawRune(2, 1.0); // Core pass
     }
 
     // 5. DoT - Rising Bubbles / Smoke
@@ -538,10 +548,24 @@ export function drawSpawnIndicator(ctx: CanvasRenderingContext2D, agent: Agent, 
     ctx.scale(popScale, popScale);
     ctx.globalAlpha = alpha;
     
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)'; 
-    ctx.strokeStyle = agent.team === Team.BLUE ? 'rgba(59, 130, 246, 0.8)' : 'rgba(239, 68, 68, 0.8)';
+    // OPTIMIZATION: Fake glow strokes instead of standard stroke
+    const mainCol = agent.team === Team.BLUE ? '#60a5fa' : '#f87171';
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.strokeStyle = mainCol;
+    
+    // Outer Glow
+    ctx.lineWidth = 4;
+    ctx.globalAlpha = alpha * 0.4;
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2); ctx.stroke();
+    
+    // Inner Core
     ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = alpha;
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI*2); ctx.stroke();
+    
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)'; 
+    ctx.fill();
 
     ctx.drawImage(assets.icon, -12, -12, 24, 24);
     

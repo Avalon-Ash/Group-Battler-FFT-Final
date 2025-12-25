@@ -298,25 +298,30 @@ export class GameRenderer {
         // 11. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
 
-        // --- FINAL PASS: GAME OVER BLUR (Frosted Glass) ---
-        // Enhanced Logic: Fade out blur during new match entry
+        // --- FINAL PASS: FROSTED GLASS TRANSITIONS (Victory / Map Swap) ---
+        // Enhanced Logic: Smoothly handle both Enter (Clear) and Exit (Blur)
         let blurAmount = 0;
         
         if (engine.isFinishing) {
             // Ramping Up (Active Victory Phase)
             blurAmount = 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
         } else if (engine.winningTeam !== null) {
-            // Bridge Gap: Game finished but showcase loop hasn't reset yet
+            // Bridge Gap: Game finished but transition hasn't started
             blurAmount = 1.0;
         }
 
         // Transition Overrides
         if (this.transitionPhase === 'OUT') {
-            // Leaving: Keep blurred
-            blurAmount = 1.0;
+            // LEAVING: Fade to Blur (0 -> 1)
+            // Ramp up semi-linear to catch the exit
+            blurAmount = Math.max(blurAmount, this.transitionT);
         } else if (this.transitionPhase === 'IN') {
-            // Entering: Fade Out (1.0 -> 0.0)
-            blurAmount = 1.0 - this.transitionT;
+            // ENTERING: Fade from Blur (1 -> 0)
+            // FIXED: Using Cosine ease-in to keep blur HIGH during the initial movement
+            // t=0 (start) -> blur=1
+            // t=0.5 (mid) -> blur=0.7 (still blurry)
+            // t=1.0 (end) -> blur=0 (clear)
+            blurAmount = Math.cos(this.transitionT * Math.PI / 2);
         }
 
         if (blurAmount > 0) {

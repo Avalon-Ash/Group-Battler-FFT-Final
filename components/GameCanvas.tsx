@@ -76,8 +76,9 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         // Increment progress if we are in a transition
         if (transitionPhase !== 'IDLE') {
             const dt = 1 / 60; // Assume 60fps delta for smoothness or use real dt
-            // Speed adjusted: 3.0 for ~0.33s transitions (Snappy!)
-            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 3.0);
+            // SPEED ADJUSTED: 1.3 multiplier = ~0.77s duration.
+            // Slower speed allows the "wave" to be seen properly without snapping.
+            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 1.3);
         } else {
             transitionProgress.current = 0;
         }

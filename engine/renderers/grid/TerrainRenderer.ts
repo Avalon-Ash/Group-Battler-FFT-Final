@@ -93,16 +93,15 @@ export const TerrainRenderer = {
 
         // --- DYNAMIC OVERLAYS (Texture 2.0) ---
         if (type === 'MAGMA') {
-            // FIX: Magma is now a dark rock with SUBTLE pulsing heat cracks, not a glowing neon block
+            // OPTIMIZATION: Replaced per-tile Gradient with flat fill.
+            // Creating RadialGradient 100+ times per frame kills FPS.
             const pulse = Math.sin(globalTime * 1.5 + x * 0.1 + y * 0.1); 
-            // Only draw heat if pulse is high, and keep opacity low
-            if (pulse > 0) {
-                const heatAlpha = pulse * 0.3; // Max 30% opacity
-                const magmaGrad = ctx.createRadialGradient(x, y - topY, 0, x, y - topY, size);
-                magmaGrad.addColorStop(0, `rgba(239, 68, 68, ${heatAlpha})`); // Red center
-                magmaGrad.addColorStop(0.8, `rgba(69, 10, 10, 0)`); // Fade to nothing
-                
-                ctx.fillStyle = magmaGrad;
+            
+            // Only draw heat if pulse is high
+            if (pulse > 0.2) {
+                // Map pulse (-1 to 1) to alpha (0 to 0.25)
+                const heatAlpha = (pulse - 0.2) * 0.3; 
+                ctx.fillStyle = `rgba(239, 68, 68, ${heatAlpha})`; // Flat Red Overlay
                 ctx.fill();
             }
             
@@ -176,8 +175,9 @@ export const TerrainRenderer = {
             // Charred Cracks (Darker, less glowing)
             const pulse = 0.5 + Math.sin(time + n * 10) * 0.5;
             
-            ctx.globalCompositeOperation = 'multiply';
-            ctx.strokeStyle = '#280505'; // Dark crack
+            // OPTIMIZATION: Removed globalCompositeOperation 'multiply'.
+            // Switching blend modes per-tile is expensive. Use alpha-blended dark line instead.
+            ctx.strokeStyle = 'rgba(40, 5, 5, 0.7)'; // Dark crack
             ctx.lineWidth = 2;
             
             ctx.beginPath();
@@ -189,7 +189,8 @@ export const TerrainRenderer = {
             
             // Only occasional glowing ember spots
             if (pulse > 0.8) {
-                ctx.globalCompositeOperation = 'lighter';
+                // OPTIMIZATION: Removed globalCompositeOperation 'lighter'.
+                // Just draw bright red on top.
                 ctx.fillStyle = '#ef4444';
                 ctx.globalAlpha = (pulse - 0.8) * 3; 
                 ctx.beginPath(); ctx.arc(cx - 5, cy - 2, 2, 0, Math.PI*2); ctx.fill();

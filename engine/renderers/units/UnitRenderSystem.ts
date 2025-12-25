@@ -211,10 +211,12 @@ export class UnitRenderSystem {
         }
 
         if (agent.hp <= 0 && !isSilhouette) {
-            ctx.filter = 'grayscale(100%) opacity(80%)'; 
+            // Using globalAlpha instead of filter to improve performance on death
+            ctx.globalAlpha *= 0.8; 
         } else if (!isSilhouette && agent.hitFlashTimer > 0) {
              whiteOverlay = 0.6; 
-             ctx.filter = 'brightness(200%)';
+             // OPTIMIZATION: Removed expensive brightness filter
+             // ctx.filter = 'brightness(200%)';
         }
 
         // Apply Flight VFX (Thrusters)
@@ -267,6 +269,21 @@ export class UnitRenderSystem {
                 ctx.stroke();
                 ctx.restore();
             }
+        }
+
+        // Hit Flash Overlay (Performant)
+        if (whiteOverlay > 0) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter'; // or 'overlay'
+            ctx.globalAlpha = whiteOverlay;
+            // Draw a white blob over the unit approximate area
+            // Ideally we'd mask the sprite, but a radial gradient bloom works for "Flash"
+            const flashGrad = ctx.createRadialGradient(0, -20, 0, 0, -20, 50);
+            flashGrad.addColorStop(0, 'rgba(255,255,255,1)');
+            flashGrad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = flashGrad;
+            ctx.beginPath(); ctx.arc(0, -20, 50, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
         }
 
         // Icons

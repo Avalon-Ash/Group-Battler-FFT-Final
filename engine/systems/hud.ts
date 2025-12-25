@@ -222,11 +222,21 @@ export class HUDSystem {
         if (isSelected) {
             ctx.save();
             const pulse = 0.6 + Math.sin(time * 8) * 0.4;
-            ctx.shadowColor = `rgba(255, 255, 255, ${pulse})`;
-            ctx.shadowBlur = 10 + pulse * 5;
-            ctx.strokeStyle = '#fff';
+            
+            // OPTIMIZATION: Replaced shadowBlur with lighter multi-pass
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.strokeStyle = `rgba(255, 255, 255, ${pulse})`;
+            
+            // Glow pass
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = 0.3;
+            ctx.strokeRect(x - w/2 - b - 2, y - b - 2, w + b*2 + 4, totalHeight + 4);
+            
+            // Core pass
             ctx.lineWidth = 2;
+            ctx.globalAlpha = 1.0;
             ctx.strokeRect(x - w/2 - b - 1, y - b - 1, w + b*2 + 2, totalHeight + 2);
+            
             ctx.restore();
         }
         

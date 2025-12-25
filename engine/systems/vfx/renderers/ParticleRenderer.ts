@@ -75,9 +75,9 @@ export const ParticleRenderer = {
             ctx.rotate(p.rotation);
             ctx.fillStyle = p.color;
             
-            // Spin blur effect
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = p.vRotation > 5 ? 10 : 0;
+            // OPTIMIZATION: Removed expensive shadowBlur for thousands of shards
+            // ctx.shadowColor = p.color;
+            // ctx.shadowBlur = p.vRotation > 5 ? 10 : 0;
 
             const s = p.size;
             ctx.beginPath();
@@ -200,7 +200,7 @@ export const ParticleRenderer = {
         
         if (isChaos) {
             // RED: CRACKED EARTH + RISING MIASMA
-            
+            // ... (Red chaos logic unchanged as it uses shadowBlur but it's acceptable for fewer particles) ...
             // 1. Ground Cracks (Base)
             ctx.globalCompositeOperation = 'source-over';
             ctx.save();
@@ -215,8 +215,6 @@ export const ParticleRenderer = {
             
             ctx.strokeStyle = p.color; // Hot red
             ctx.lineWidth = 2;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 10;
             ctx.globalAlpha = fade;
             
             ctx.beginPath();
@@ -246,14 +244,19 @@ export const ParticleRenderer = {
         } else {
             // BLUE: HOLY CONSECRATION + LIGHT DUST
             
-            // 1. Clean Hex Outline
+            // 1. Clean Hex Outline (OPTIMIZED: Replaced shadowBlur with double stroke)
             ctx.globalCompositeOperation = 'screen';
             ctx.strokeStyle = '#fff';
+            
+            // Glow Pass
+            ctx.lineWidth = 4;
+            ctx.globalAlpha = fade * 0.4;
+            drawHex();
+            ctx.stroke();
+            
+            // Core Pass
             ctx.lineWidth = 2;
             ctx.globalAlpha = fade * 0.8;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = 15;
-            
             drawHex();
             ctx.stroke();
             
@@ -304,13 +307,19 @@ export const ParticleRenderer = {
         ctx.save();
         ctx.scale(1, 0.55);
         ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = alpha;
         
+        // OPTIMIZATION: Replaced shadowBlur with multi-pass stroke
         ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 3;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 20;
+        
+        // Glow pass
+        ctx.lineWidth = 6;
+        ctx.globalAlpha = alpha * 0.3;
         ctx.beginPath(); ctx.arc(0, 0, width * 0.8, 0, Math.PI*2); ctx.stroke();
+        
+        // Core pass
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = alpha;
+        ctx.stroke();
         
         const wave = (progress * 2) % 1;
         ctx.strokeStyle = p.color;

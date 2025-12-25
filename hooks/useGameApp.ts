@@ -62,19 +62,29 @@ export const useGameApp = () => {
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
             // Speed up the showcase loop significantly
+            // 1. Wait a brief moment to see the victory text/effects
+            // EXTENDED: 1000ms buffer to match new slower transition
             const timer = setTimeout(() => {
+                // 2. Trigger OUT transition (Blur out + Fly out)
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
                 engineRef.current.combat.projectiles = [];
+                
+                // 3. Wait for OUT animation to finish
+                // EXTENDED: 1000ms for full exit
                 setTimeout(() => {
                     setupShowcaseMap(); 
+                    // 4. Trigger IN transition (Fly in + Blur clear)
                     setTransitionPhase('IN'); 
+                    
+                    // 5. Wait for IN animation to finish
+                    // EXTENDED: 1000ms for full entry
                     setTimeout(() => {
                         setTransitionPhase('IDLE');
                         spawnShowcaseUnits(); 
-                    }, 500); // 0.5s fade in (syncs with map flying in)
-                }, 500); // 0.5s fly out
-            }, 1000); // 1.0s dwell on victory (slow mo)
+                    }, 1000); 
+                }, 1000); 
+            }, 1000); 
             return () => clearTimeout(timer);
         }
     }, [winner, isShowcaseMode]);
