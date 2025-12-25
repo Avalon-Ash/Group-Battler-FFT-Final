@@ -108,142 +108,125 @@ export class TacticalRenderer {
         const agent = engine.agents.find(a => a.id === engine.directorTargetId);
         if (!agent) return;
 
-        // Position: Top Right, floating
-        const hudX = w - 260; 
-        const hudY = 60;
-        const width = 240;
-        const height = 160;
+        // Position: Top Right
+        const width = 260;
+        const height = 140;
+        const hudX = w - width - 20;
+        const hudY = 20;
 
         ctx.save();
         
-        // --- 1. Glitch Effect ---
+        // Glitch logic (Keep existing if any)
         let gx = 0, gy = 0;
-        let alphaMod = 1.0;
         if (this.holoGlitchTimer > 0) {
-            gx = (Math.random() - 0.5) * 10;
-            gy = (Math.random() - 0.5) * 5;
-            alphaMod = 0.5 + Math.random() * 0.5;
-            if (Math.random() > 0.8) alphaMod = 0.2; // Flicker out
+             gx = (Math.random() - 0.5) * 5;
+             gy = (Math.random() - 0.5) * 5;
         }
-        
-        // --- 2. Perspective Transform ---
-        // matrix(1, 0, -0.15, 1, x, y)
-        ctx.transform(1, 0, -0.15, 1, hudX + gx, hudY + gy);
+        ctx.translate(hudX + gx, hudY + gy);
 
-        // --- 3. Glass Background ---
-        const bgGrad = ctx.createLinearGradient(0, 0, width, height);
-        const baseColor = agent.team === Team.BLUE ? '#06b6d4' : '#f97316'; // Cyan vs Orange
+        const teamColor = agent.team === Team.BLUE ? '#06b6d4' : '#ef4444'; // Cyan / Red
+
+        // --- BACKGROUND (Liquid Glass) ---
+        // Rounded Rect
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(0, 0, width, height, 16);
+        else ctx.rect(0, 0, width, height);
         
-        bgGrad.addColorStop(0, `${baseColor}40`); // 25% opacity
-        bgGrad.addColorStop(1, `${baseColor}05`); // 2% opacity
-        
+        // Fill
+        const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
+        bgGrad.addColorStop(0, 'rgba(15, 23, 42, 0.8)'); // Slate-900
+        bgGrad.addColorStop(1, 'rgba(15, 23, 42, 0.5)');
         ctx.fillStyle = bgGrad;
-        ctx.globalAlpha = alphaMod;
-        ctx.fillRect(0, 0, width, height);
-        
-        // Grid Lines
-        ctx.strokeStyle = `${baseColor}30`;
+        ctx.fill();
+
+        // Border & Glow
+        ctx.shadowColor = teamColor;
+        ctx.shadowBlur = 10;
+        ctx.strokeStyle = teamColor;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Inner Highlight
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(1, 1, width-2, height-2, 16);
+        else ctx.rect(1, 1, width-2, height-2);
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
-        ctx.beginPath();
-        for(let i=0; i<=width; i+=20) { ctx.moveTo(i, 0); ctx.lineTo(i, height); }
-        for(let i=0; i<=height; i+=20) { ctx.moveTo(0, i); ctx.lineTo(width, i); }
         ctx.stroke();
 
-        // Border corners
-        ctx.strokeStyle = baseColor;
-        ctx.lineWidth = 2;
-        const len = 15;
-        ctx.beginPath();
-        ctx.moveTo(0, len); ctx.lineTo(0, 0); ctx.lineTo(len, 0); // TL
-        ctx.moveTo(width-len, 0); ctx.lineTo(width, 0); ctx.lineTo(width, len); // TR
-        ctx.moveTo(width, height-len); ctx.lineTo(width, height); ctx.lineTo(width-len, height); // BR
-        ctx.moveTo(len, height); ctx.lineTo(0, height); ctx.lineTo(0, height-len); // BL
-        ctx.stroke();
-
-        // --- 4. Content: Logic Visualization ---
+        // --- CONTENT ---
+        ctx.fillStyle = teamColor;
+        ctx.font = 'bold 13px "JetBrains Mono", monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText(`TARGET: ${agent.id}`, 20, 30);
         
-        // Header
-        ctx.fillStyle = baseColor;
-        ctx.font = 'bold 12px monospace';
-        ctx.fillText(`TARGET: ${agent.id}`, 10, 20);
-        ctx.font = '10px monospace';
-        ctx.fillStyle = '#fff';
-        ctx.fillText(`STATUS: ${agent.btStatus.toUpperCase()}`, 10, 35);
+        ctx.fillStyle = '#94a3b8'; // Slate-400
+        ctx.font = '11px "JetBrains Mono", monospace';
+        ctx.fillText(`STATUS:`, 20, 50);
+        
+        ctx.fillStyle = '#f8fafc'; // Slate-50
+        ctx.fillText(agent.btStatus || 'IDLE', 70, 50);
 
-        // Logic Graph
-        // [SCAN] -> [DECISION] -> [ACTION]
+        // --- PIPELINE GRAPH ---
+        const startX = 50;
+        const startY = 90;
+        const gap = 80;
         const nodes = [
-            { x: 30, y: 80, label: 'SCAN', active: true }, // Always active
-            { x: 100, y: 80, label: 'THINK', active: agent.btStatus !== '待機' },
-            { x: 170, y: 80, label: 'ACT', active: agent.castingSkillIdx !== -1 || agent.isMoving }
+            { label: 'SCAN', active: true },
+            { label: 'THINK', active: agent.btStatus !== '待機' && agent.btStatus !== 'IDLE' },
+            { label: 'ACT', active: agent.isMoving || agent.castingSkillIdx !== -1 }
         ];
 
-        // Draw Connections
-        ctx.strokeStyle = `${baseColor}60`;
-        ctx.lineWidth = 2;
+        // Connecting Line
         ctx.beginPath();
-        ctx.moveTo(nodes[0].x, nodes[0].y);
-        ctx.lineTo(nodes[2].x, nodes[2].y);
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(startX + gap * 2, startY);
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
-        // Draw Active Flow (Pulse)
-        const flowTime = (globalTime * 3) % 1; 
-        const flowX = 30 + flowTime * 140;
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(flowX, 80);
-        ctx.lineTo(flowX + 15, 80);
-        ctx.stroke();
+        // Active Line Progress
+        if (nodes[1].active) {
+            const t = (globalTime * 2) % 1;
+            const flowX = startX + t * (gap * 2);
+            ctx.beginPath();
+            ctx.arc(flowX, startY, 2, 0, Math.PI*2);
+            ctx.fillStyle = '#fff';
+            ctx.fill();
+        }
 
-        // Draw Nodes
-        nodes.forEach(n => {
-            const isActive = n.active;
+        nodes.forEach((n, i) => {
+            const x = startX + i * gap;
             
-            // Outer Ring
-            ctx.strokeStyle = isActive ? baseColor : `${baseColor}40`;
-            ctx.fillStyle = `${baseColor}10`;
-            ctx.beginPath(); ctx.arc(n.x, n.y, 10, 0, Math.PI*2); 
-            ctx.fill(); ctx.stroke();
+            // Node Circle
+            ctx.beginPath();
+            ctx.arc(x, startY, 8, 0, Math.PI*2);
             
-            // Inner Dot
-            if (isActive) {
-                ctx.fillStyle = '#fff';
-                ctx.shadowColor = baseColor; ctx.shadowBlur = 10;
-                ctx.beginPath(); ctx.arc(n.x, n.y, 4, 0, Math.PI*2); ctx.fill();
+            if (n.active) {
+                ctx.fillStyle = teamColor;
+                ctx.shadowColor = teamColor;
+                ctx.shadowBlur = 10;
+                ctx.fill();
                 ctx.shadowBlur = 0;
+                
+                // White Core
+                ctx.fillStyle = '#fff';
+                ctx.beginPath(); ctx.arc(x, startY, 3, 0, Math.PI*2); ctx.fill();
+            } else {
+                ctx.fillStyle = '#1e293b'; // Slate-800
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.fill();
+                ctx.stroke();
             }
 
             // Label
-            ctx.fillStyle = isActive ? '#fff' : `${baseColor}60`;
+            ctx.font = 'bold 10px "JetBrains Mono", monospace';
             ctx.textAlign = 'center';
-            ctx.fillText(n.label, n.x, n.y + 22);
+            ctx.fillStyle = n.active ? '#fff' : '#64748b';
+            ctx.fillText(n.label, x, startY + 20);
         });
-
-        // Special Alert: ULTIMATE
-        if (agent.castingSkillIdx !== -1 && agent.skills[agent.castingSkillIdx]?.tag === 'ULT') {
-            ctx.fillStyle = '#ef4444';
-            ctx.globalAlpha = (0.5 + Math.sin(globalTime * 20) * 0.5) * alphaMod;
-            ctx.fillRect(0, 130, width, 20);
-            ctx.fillStyle = '#fff';
-            ctx.globalAlpha = 1.0 * alphaMod;
-            ctx.font = 'bold 12px monospace';
-            ctx.textAlign = 'center';
-            ctx.fillText('WARNING: ULTIMATE DETECTED', width/2, 144);
-        } else if (agent.hp < agent.maxHp * 0.3) {
-            ctx.fillStyle = '#ef4444';
-            ctx.font = 'bold 10px monospace';
-            ctx.fillText('CRITICAL CONDITION', width - 70, 20);
-        }
-
-        // --- 5. Tether Line to Unit ---
-        ctx.beginPath();
-        ctx.moveTo(10, height);
-        ctx.lineTo(10, height + 20);
-        ctx.strokeStyle = `${baseColor}40`;
-        ctx.setLineDash([2, 4]);
-        ctx.stroke();
-        ctx.setLineDash([]);
 
         ctx.restore();
     }
