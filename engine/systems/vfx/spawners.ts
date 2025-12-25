@@ -3,6 +3,7 @@ import { VFXSystem } from "../vfx";
 import { Team, Role } from "../../../types";
 import { SpriteManager } from "../../sprites";
 import { VFXFactory } from "../../graphics/VFXFactory"; 
+import { THEME_IMPERIAL, THEME_COVENANT } from "../../../constants";
 
 // =========================================================================================
 // 🏭 PARTICLE SPAWNERS (Factory Functions)
@@ -194,38 +195,82 @@ export function spawnConnectorSlash(system: VFXSystem, x1: number, y1: number, x
     system.state.particles.push(p);
 }
 
+// 💥 IMPROVED UNIT SHATTER 💥
 export function spawnUnitShatter(system: VFXSystem, x: number, y: number, team: Team, role: Role) {
     const assets = SpriteManager.getUnitImages(role, team);
-    const spawnSprite = (img: HTMLCanvasElement, scale: number, zBase: number, vZ: number) => {
-        const p = system.state.getParticle();
-        p.x = x; p.y = y; p.z = zBase; 
-        const angle = Math.random() * Math.PI * 2;
-        const dist = 100 + Math.random() * 150; 
-        p.vx = Math.cos(angle) * dist; p.vy = Math.sin(angle) * dist; p.vz = vZ;
-        p.life = 3.0; p.maxLife = 3.0;
-        p.color = '#fff'; p.size = 64 * scale; 
-        p.type = 'SPRITE'; p.image = img;
-        p.rotation = Math.random() * Math.PI * 2; p.vRotation = (Math.random() - 0.5) * 20; 
-        system.state.particles.push(p);
-    };
+    const isBlue = team === Team.BLUE;
+    
+    const theme = isBlue ? THEME_IMPERIAL : THEME_COVENANT;
+    const baseColor = isBlue ? '#94a3b8' : '#27272a'; // Base debris (Pedestal)
+    const armorColor = theme.primary; // Armor chunks
+    const glowColor = isBlue ? THEME_IMPERIAL.energy : theme.secondary; // Soul energy
 
-    const baseColor = '#52525b';
-    for (let i = 0; i < 6; i++) {
+    // 1. Icon Sprite (Spinning out)
+    const p = system.state.getParticle();
+    p.x = x; p.y = y; p.z = 60; 
+    const angle = Math.random() * Math.PI * 2;
+    p.vx = Math.cos(angle) * 150; 
+    p.vy = Math.sin(angle) * 150; 
+    p.vz = 350; // Pop up high
+    p.life = 1.5; p.maxLife = 1.5;
+    p.color = '#fff'; p.size = 64 * 0.6; 
+    p.type = 'SPRITE'; p.image = assets.icon;
+    p.rotation = Math.random() * Math.PI * 2; 
+    p.vRotation = (Math.random() - 0.5) * 40; // Fast spin
+    system.state.particles.push(p);
+
+    // 2. Base Debris (Heavy, Darker)
+    for (let i = 0; i < 5; i++) {
         const p = system.state.getParticle();
-        const angle = (i / 6) * Math.PI * 2 + (Math.random()-0.5)*0.5;
-        p.x = x; p.y = y; p.z = 5;
-        const speed = 100 + Math.random() * 100;
-        p.vx = Math.cos(angle) * speed; p.vy = Math.sin(angle) * speed; p.vz = 50 + Math.random() * 100; 
-        p.life = 3.0; p.maxLife = 3.0;
-        p.color = baseColor; p.size = 10 + Math.random() * 10;
-        p.type = 'SHARD'; p.rotation = angle; p.vRotation = (Math.random()-0.5)*10;
+        const angle = (i / 5) * Math.PI * 2;
+        p.x = x; p.y = y; p.z = 10;
+        // Explode outward
+        const speed = 150 + Math.random() * 100;
+        p.vx = Math.cos(angle) * speed; 
+        p.vy = Math.sin(angle) * speed; 
+        p.vz = 150 + Math.random() * 150; 
+        p.life = 2.0; p.maxLife = 2.0;
+        p.color = baseColor; 
+        p.size = 8 + Math.random() * 8; // Chunky
+        p.type = 'DEBRIS'; 
+        p.rotation = angle; 
+        p.vRotation = (Math.random()-0.5)*15;
         system.state.particles.push(p);
     }
 
-    spawnSprite(assets.icon, 0.6, 70, 300);   
+    // 3. Armor Shards (Light, Neon/Colored)
+    for (let i = 0; i < 8; i++) {
+        const p = system.state.getParticle();
+        const angle = Math.random() * Math.PI * 2;
+        p.x = x; p.y = y; p.z = 40; // Higher center
+        // Fly further
+        const speed = 200 + Math.random() * 200;
+        p.vx = Math.cos(angle) * speed; 
+        p.vy = Math.sin(angle) * speed; 
+        p.vz = 250 + Math.random() * 250; 
+        p.life = 1.5; p.maxLife = 1.5;
+        p.color = Math.random() > 0.5 ? armorColor : theme.secondary; 
+        p.size = 5 + Math.random() * 5; // Smaller, sharper
+        p.type = 'SHARD'; 
+        p.rotation = angle; 
+        p.vRotation = (Math.random()-0.5)*25;
+        system.state.particles.push(p);
+    }
 
+    // 4. Soul Release (Vertical Beam/Glow)
+    const soul = system.state.getParticle();
+    soul.x = x; soul.y = y; soul.z = 10;
+    soul.vx = 0; soul.vy = 0; soul.vz = 20; // Slowly rise
+    soul.life = 0.8; soul.maxLife = 0.8;
+    soul.color = glowColor;
+    soul.size = 120;
+    soul.type = 'PILLAR'; // Use miniature pillar effect
+    system.state.particles.push(soul);
+
+    // 5. Ground Scorch
     addDecal(system, x, y, '#000'); 
-    spawnExplosion(system, x, y, 10, 8, '#71717a', 0.5, 1.0, 'SMOKE');
+    spawnShockwave(system, x, y, glowColor, 0.4);
+    spawnExplosion(system, x, y, 40, 15, baseColor, 0.8, 0.8, 'SMOKE');
 }
 
 export function spawnBeam(system: VFXSystem, sx: number, sy: number, tx: number, ty: number, color: string) {

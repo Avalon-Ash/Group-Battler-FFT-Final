@@ -119,6 +119,7 @@ export class ProjectileSystem {
             y: source.py, 
             startX: source.px, 
             startY: source.py,
+            startZ: source.physics.z, // Capture Height
             targetId: targetId,
             targetPos: targetPos,
             speed: skill.projectileSpeed || 600, // Safe default

@@ -142,6 +142,7 @@ export interface Projectile {
     y: number;
     startX: number; // New: For Height Interpolation
     startY: number; // New: For Height Interpolation
+    startZ?: number; // New: Initial height offset (for flying units)
     targetId: string;
     targetPos: Point;
     speed: number;

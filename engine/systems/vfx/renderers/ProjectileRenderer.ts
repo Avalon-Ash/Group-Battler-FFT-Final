@@ -28,7 +28,8 @@ export const ProjectileRenderer = {
              if (getTerrainHeight && engine.mapConfig) {
                  const startHex = HexUtils.fromPx(p.startX, p.startY, engine.mapConfig);
                  const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
-                 hStart = getTerrainHeight(startHex.q, startHex.r);
+                 // Add startZ offset to terrain height
+                 hStart = getTerrainHeight(startHex.q, startHex.r) + (p.startZ || 0);
                  hEnd = getTerrainHeight(targetHex.q, targetHex.r);
              }
 

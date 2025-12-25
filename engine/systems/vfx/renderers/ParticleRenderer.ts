@@ -114,24 +114,33 @@ export const ParticleRenderer = {
             ctx.closePath();
             ctx.stroke();
 
-        } else if (p.type === 'SHARD' || p.type === 'CHIP') {
-            // 💎 ENERGY SHARD / MATERIAL CHIP
-            // Only used for Unit Shatter effect now.
-            ctx.rotate(p.rotation);
-            ctx.fillStyle = p.color;
+        } else if (p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'CHIP') {
+            // 💎 MATERIAL 2.0: ENHANCED DEBRIS
+            // Uses gradients to simulate lighting/metallic surface
             
-            // Rim Light effect by drawing border
-            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.rotate(p.rotation);
+            
+            // Base Gradient (Simulate light from top-left)
+            const grad = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
+            grad.addColorStop(0, '#ffffff'); // Specular highlight
+            grad.addColorStop(0.3, p.color);
+            grad.addColorStop(1, '#000000'); // Shadow side
+            
+            ctx.fillStyle = grad;
+            
+            // Rim Light (Edge definition)
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
             ctx.lineWidth = 1;
             
             if (p.type === 'CHIP') {
                 ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
             } else {
-                // Irregular triangle
+                // Irregular jagged shard
                 ctx.beginPath();
                 ctx.moveTo(-p.size, -p.size/2); 
-                ctx.lineTo(p.size, 0); 
+                ctx.lineTo(p.size * 0.8, -p.size * 0.2); 
                 ctx.lineTo(0, p.size); 
+                ctx.lineTo(-p.size * 0.5, p.size * 0.5);
                 ctx.closePath();
                 ctx.fill();
                 ctx.stroke();
@@ -150,12 +159,18 @@ export const ParticleRenderer = {
 
         } else if (p.type === 'SPRITE') {
             if (p.image) {
-                const alpha = Math.min(1, (1 - progress) * 5); 
+                // Sprite fades out and shrinks slightly
+                const alpha = Math.max(0, 1 - Math.pow(progress, 3)); 
                 ctx.globalAlpha = alpha;
+                
+                // Spin faster as it dies (angular momentum conservation fake)
+                ctx.rotate(p.rotation + progress * 5);
+                
                 const perspective = 1.0 + (p.z * 0.002);
-                ctx.rotate(p.rotation);
-                const scale = (p.size / 64) * perspective; 
+                const scale = (p.size / 64) * perspective * (1 - progress * 0.5); 
                 ctx.scale(scale, scale);
+                
+                // Add a "Ghost" trail effect by drawing lower opacity copies
                 ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
             }
 
@@ -297,7 +312,8 @@ export const ParticleRenderer = {
     drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
         const lifeRatio = p.life / p.maxLife;
         let alpha = lifeRatio > 0.8 ? (1 - lifeRatio) * 5 : (lifeRatio < 0.2 ? lifeRatio * 5 : 1.0);
-        const maxHeight = 1200;
+        // Decrease max height slightly for "Soul" usage
+        const maxHeight = p.size * 12; // Dynamic height based on size
         const width = p.size; 
 
         ctx.save();
