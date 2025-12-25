@@ -78,8 +78,12 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">SIM_SPEED</span>
                         <span className="text-[10px] font-mono font-bold text-cyan-400 text-glow-cyan">{timeScale.toFixed(1)}x</span>
                     </div>
-                    <div className="relative h-2 bg-black/40 rounded-full border border-white/5 overflow-hidden group">
-                        <div className="absolute top-0 left-0 h-full bg-cyan-500/50 rounded-full transition-all" style={{width: `${(timeScale/3)*100}%`}}></div>
+                    {/* Thicker slider for mobile (h-8) */}
+                    <div className="relative h-8 bg-black/40 rounded-lg border border-white/5 overflow-hidden group">
+                        <div className="absolute top-0 left-0 h-full bg-cyan-500/20 transition-all" style={{width: `${(timeScale/3)*100}%`}}></div>
+                        {/* Indicator Bar inside */}
+                        <div className="absolute top-1.5 left-0.5 bottom-1.5 bg-cyan-500/50 rounded-md transition-all pointer-events-none" style={{width: `calc(${(timeScale/3)*100}% - 4px)`}}></div>
+                        
                         <input 
                             type="range" min="0.1" max="3.0" step="0.1" 
                             value={timeScale} onChange={(e) => onSetTimeScale(parseFloat(e.target.value))}

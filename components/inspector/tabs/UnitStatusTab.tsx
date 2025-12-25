@@ -20,7 +20,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         onUpdate();
     };
 
-    // --- GRAB & DRAG SCROLL LOGIC (POINTER EVENTS) ---
+    // --- GRAB & DRAG SCROLL LOGIC ---
     const scrollRef = useRef<HTMLDivElement>(null);
     const rafRef = useRef<number>(0);
     const dragState = useRef({
@@ -41,10 +41,9 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
 
     const handlePointerDown = (e: React.PointerEvent) => {
         if (!scrollRef.current) return;
-        // Ignore drag if clicking interactive elements (selects)
         if ((e.target as HTMLElement).tagName === 'SELECT') return;
 
-        e.stopPropagation(); // Prevent parent window drag
+        e.stopPropagation();
         e.preventDefault();
 
         dragState.current.isDown = true;
@@ -55,10 +54,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         dragState.current.lastTime = performance.now();
         
         stopMomentum();
-        
-        // Capture
         (e.target as Element).setPointerCapture(e.pointerId);
-        
         scrollRef.current.style.cursor = 'grabbing';
         scrollRef.current.style.userSelect = 'none';
     };
@@ -71,11 +67,8 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
         const now = performance.now();
         const y = e.pageY;
         const delta = y - dragState.current.startY;
-        
-        // Update Scroll
         scrollRef.current.scrollTop = dragState.current.scrollTop - delta;
 
-        // Calculate Velocity (pixels per ms)
         const timeDelta = now - dragState.current.lastTime;
         if (timeDelta > 0) {
             const dist = y - dragState.current.lastY;
@@ -88,26 +81,19 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
     const handlePointerUp = (e: React.PointerEvent) => {
         if (!dragState.current.isDown) return;
         dragState.current.isDown = false;
-        
         (e.target as Element).releasePointerCapture(e.pointerId);
-
         if (scrollRef.current) {
             scrollRef.current.style.cursor = 'grab';
             scrollRef.current.style.removeProperty('user-select');
         }
-        
         startMomentum();
     };
 
     const startMomentum = () => {
         stopMomentum();
-        
         const step = () => {
             if (!scrollRef.current) return;
-            
-            // Apply friction
             dragState.current.velocity *= 0.95; 
-            
             if (Math.abs(dragState.current.velocity) > 0.5) {
                 scrollRef.current.scrollTop -= dragState.current.velocity;
                 rafRef.current = requestAnimationFrame(step);
@@ -115,19 +101,14 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                 dragState.current.velocity = 0;
             }
         };
-        
         step();
     };
 
-    // Cleanup RAF on unmount
-    useEffect(() => {
-        return () => stopMomentum();
-    }, []);
+    useEffect(() => { return () => stopMomentum(); }, []);
 
     return (
         <div className="flex flex-col h-full w-full bg-transparent overflow-hidden">
             
-            {/* SKILL SLOTS (Scrollable Area with Grab & Drag) */}
             <div 
                 ref={scrollRef}
                 className="flex-1 overflow-y-auto custom-scrollbar min-h-0 px-4 py-4 cursor-grab active:cursor-grabbing touch-none"
@@ -156,29 +137,29 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                         return (
                             <div key={i} className="liquid-card !bg-slate-900/40 border border-white/5 transition-all hover:border-white/20 group !rounded-xl overflow-visible" onMouseEnter={() => onHoverSkill && onHoverSkill(currentSkill || null)} onMouseLeave={() => onHoverSkill && onHoverSkill(null)}>
                                 <div className="flex items-center gap-3 p-3 bg-white/[0.02]">
-                                    <SkillIcon skill={currentSkill || null} className="w-10 h-10 !rounded-lg shadow-lg shrink-0" />
+                                    <SkillIcon skill={currentSkill || null} className="w-10 h-10 !rounded-lg shadow-lg shrink-0 border border-white/10 bg-black/50" />
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 rounded border ${tag === 'ULT' ? 'text-purple-300 border-purple-500/30 bg-purple-500/10' : (tag === 'ACTIVE' ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : 'text-slate-300 border-slate-500/30 bg-slate-500/10')}`}>
                                                 {TAG_MAP[tag].label} SLOT
                                             </span>
-                                            {currentSkill && <span className="text-[9px] text-slate-600 font-mono">{currentSkill.id}</span>}
+                                            {currentSkill && <span className="text-[9px] text-slate-500 font-mono">{currentSkill.id}</span>}
                                         </div>
                                         <div className="relative">
                                             <select 
-                                                className={`liquid-input h-8 w-full text-xs font-bold appearance-none cursor-pointer uppercase tracking-wide !rounded-lg pr-8 ${!currentSkillId ? 'text-slate-500 !bg-black/30' : 'text-slate-200 !bg-black/50 hover:!bg-black/70'}`}
+                                                className={`liquid-input h-8 w-full text-xs font-bold appearance-none cursor-pointer uppercase tracking-wide !rounded-lg pr-8 text-white ${!currentSkillId ? 'text-slate-500 !bg-black/30' : 'text-slate-200 !bg-black/50 hover:!bg-black/70'}`}
                                                 value={agent.skillIds[i] || ""} 
                                                 onChange={(e) => setSkill(i, e.target.value)}
-                                                onPointerDown={(e) => e.stopPropagation()} // Stop drag when interacting with select
+                                                onPointerDown={(e) => e.stopPropagation()} 
                                             >
-                                                <option value="">-- NO LINKAGE --</option>
+                                                <option value="" className="bg-slate-900 text-slate-500">-- NO LINKAGE --</option>
                                                 {roleOrder.map(role => {
                                                     const skills = skillsByRole[role];
                                                     if (!skills || skills.length === 0) return null;
                                                     return (
                                                         <optgroup key={role} label={ROLE_MAP[role].label} className="bg-slate-900 text-slate-400">
                                                             {skills.map(s => (
-                                                                <option key={s.id} value={s.id} className="text-white">
+                                                                <option key={s.id} value={s.id} className="text-white bg-slate-900">
                                                                     {s.name} {s.team !== undefined ? (s.team === Team.BLUE ? '🔵' : '🔴') : ''}
                                                                 </option>
                                                             ))}
@@ -186,7 +167,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                                     );
                                                 })}
                                             </select>
-                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[8px]">▼</div>
+                                            <div className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[8px]">▼</div>
                                         </div>
                                     </div>
                                 </div>

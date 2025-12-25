@@ -4,7 +4,7 @@ import { Agent, GameEngine } from '../../engine/game';
 import { Team, Role } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
-import { Helpers } from '../inspector/InspectorConstants';
+import { Helpers, ROLE_MAP } from '../inspector/InspectorConstants';
 import { BehaviorTreeTab } from '../inspector/tabs/BehaviorTreeTab';
 import { UnitStatusTab } from '../inspector/tabs/UnitStatusTab';
 
@@ -19,6 +19,7 @@ type TabType = 'NONE' | 'AI' | 'SKILLS';
 export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engine, onClose }) => {
     const [viewMode, setViewMode] = useState<TabType>('NONE'); // NONE = Compact, AI/SKILLS = Expanded
     const [isMinimized, setIsMinimized] = useState(false);
+    const [isConfigExpanded, setIsConfigExpanded] = useState(false); // Config Drawer State
     const [version, setVersion] = useState(0); // For forcing UI refresh
 
     // The ref moves the outer container
@@ -30,7 +31,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
 
     // Refresh Loop for visual updates (Health, AI Nodes) when expanded
     useEffect(() => {
-        if (viewMode !== 'NONE' && !isMinimized) {
+        if (!isMinimized) {
             const interval = setInterval(() => setVersion(n => n + 1), 100);
             return () => clearInterval(interval);
         }
@@ -57,13 +58,20 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
         }
     };
 
+    const setRole = (r: string) => { 
+        if (agent) {
+            agent.role = r as Role; 
+            setVersion(v => v + 1);
+        }
+    };
+
     return (
         <div 
             ref={ref}
             className={`z-30 pointer-events-auto select-none transition-all duration-300 ease-out`}
             style={{ 
                 ...style, 
-                width: isMinimized ? 'auto' : (viewMode === 'NONE' ? '300px' : '400px'),
+                width: isMinimized ? 'auto' : (viewMode === 'NONE' ? '320px' : '420px'),
                 maxWidth: '95vw'
             }}
         >
@@ -85,71 +93,116 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                 </div>
             ) : (
                 // --- FULL CARD ---
-                <div className={`liquid-card !rounded-[20px] overflow-hidden flex flex-col ${glowClass} border border-white/10 backdrop-blur-xl bg-slate-900/80`}>
+                <div className={`liquid-card !rounded-[24px] overflow-hidden flex flex-col ${glowClass} border border-white/10 backdrop-blur-xl bg-slate-900/90`}>
                     
                     {/* Header - DRAGGABLE */}
                     <div 
                         {...dragHandlers}
                         className={`p-3 bg-gradient-to-b from-white/10 to-transparent relative cursor-grab active:cursor-grabbing ${isDragging ? 'cursor-grabbing' : ''}`}
                     >
-                        <div className="flex justify-between items-center gap-4">
-                            {/* Identity */}
-                            <div className="flex items-center gap-3">
-                                <div className={`w-9 h-9 flex items-center justify-center rounded-lg bg-black/40 border ${borderColor} ${themeColor} shadow-inner`}>
+                        <div className="flex justify-between items-start gap-4">
+                            {/* Identity & Config Toggle */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className={`w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 border ${borderColor} ${themeColor} shadow-inner shrink-0`}>
                                     {renderRoleIcon(agent.role)}
                                 </div>
-                                <div className="flex flex-col">
-                                    <div className={`font-mono font-bold text-sm ${themeColor} leading-none tracking-tight`}>{agent.id}</div>
-                                    <div className="flex items-center gap-1.5 mt-1">
-                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{agent.role}</span>
-                                        <span className={`text-[9px] font-bold px-1.5 rounded-md ${isBlue ? 'bg-blue-500/20 text-blue-300' : 'bg-red-500/20 text-red-300'}`}>LV.1</span>
+                                <div className="flex flex-col min-w-0">
+                                    <div className={`font-mono font-bold text-sm ${themeColor} leading-none tracking-tight truncate`}>{agent.id}</div>
+                                    <div className="flex items-center gap-2 mt-1.5">
+                                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider truncate">{agent.role}</span>
+                                        {/* Config Button (Larger & clearer) */}
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); setIsConfigExpanded(!isConfigExpanded); }}
+                                            onPointerDown={e => e.stopPropagation()}
+                                            className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${isConfigExpanded ? 'bg-cyan-500 text-white shadow-md' : 'bg-white/10 text-slate-400 hover:text-white hover:bg-white/20'}`}
+                                            title="Edit Unit Stats"
+                                        >
+                                            <Icons.Settings className={`w-4 h-4 ${isConfigExpanded ? 'animate-spin-slow' : ''}`} />
+                                        </button>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Controls */}
-                            <div className="flex gap-1 items-center" onPointerDown={e => e.stopPropagation()}>
+                            <div className="flex gap-1 items-center shrink-0" onPointerDown={e => e.stopPropagation()}>
                                 {/* Mode Toggles */}
                                 <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 mr-2">
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'AI' ? 'NONE' : 'AI')} 
-                                        className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${viewMode === 'AI' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}
+                                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold transition-all ${viewMode === 'AI' ? 'bg-amber-500/20 text-amber-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
                                         title="AI Monitor"
                                     >
                                         AI
                                     </button>
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'SKILLS' ? 'NONE' : 'SKILLS')} 
-                                        className={`px-2 py-1 rounded text-[9px] font-bold transition-all ${viewMode === 'SKILLS' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}
+                                        className={`px-3 py-1.5 rounded-md text-[9px] font-bold transition-all ${viewMode === 'SKILLS' ? 'bg-cyan-500/20 text-cyan-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
                                         title="Linkage"
                                     >
                                         LINK
                                     </button>
                                 </div>
 
-                                <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-6 h-6 text-[10px] bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border-transparent">
+                                <button onClick={() => setIsMinimized(true)} className="liquid-icon-btn w-8 h-8 text-[10px] bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border-transparent">
                                     <Icons.Minimize className="w-3 h-3" />
                                 </button>
-                                <button onClick={onClose} className="liquid-icon-btn w-6 h-6 text-[10px] bg-red-500/10 hover:bg-red-500/30 text-red-400 border-transparent">
+                                <button onClick={onClose} className="liquid-icon-btn w-8 h-8 text-[10px] bg-red-500/10 hover:bg-red-500/30 text-red-400 border-transparent">
                                     <Icons.Close className="w-3 h-3" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Vitals Bars (Always Visible) */}
+                        {/* CONFIG DRAWER */}
+                        <div 
+                            className={`overflow-hidden transition-all duration-300 ease-out ${isConfigExpanded ? 'max-h-32 opacity-100 mt-3 pb-1 scale-100' : 'max-h-0 opacity-0 scale-95 origin-top'}`}
+                            onPointerDown={e => e.stopPropagation()}
+                        >
+                            <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-bold text-slate-500 uppercase tracking-widest block text-center">Class</label>
+                                    <select 
+                                        className="liquid-input h-8 w-full text-[10px] font-bold bg-black/50 !rounded-lg border-white/10 focus:border-cyan-500/50 p-0 pl-2 text-white"
+                                        value={agent.role} 
+                                        onChange={(e) => setRole(e.target.value)}
+                                    >
+                                        {Object.values(Role).map(r => <option key={r} value={r} className="bg-slate-900">{ROLE_MAP[r].label.split(' ')[0]}</option>)}
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-bold text-green-500/70 uppercase tracking-widest block text-center">HP</label>
+                                    <input 
+                                        type="number" 
+                                        className="liquid-input h-8 w-full text-center text-green-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-green-500/50 p-0"
+                                        value={Math.round(agent.maxHp)} 
+                                        onChange={(e) => { const v = parseInt(e.target.value); agent.maxHp = v; agent.hp = v; setVersion(n=>n+1); }} 
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-[8px] font-bold text-blue-500/70 uppercase tracking-widest block text-center">MP</label>
+                                    <input 
+                                        type="number" 
+                                        className="liquid-input h-8 w-full text-center text-blue-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-blue-500/50 p-0"
+                                        value={Math.round(agent.maxMp)} 
+                                        onChange={(e) => { agent.maxMp = parseInt(e.target.value); setVersion(n=>n+1); }} 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Vitals Bars */}
                         <div className="space-y-1 mt-3 pointer-events-none">
-                            <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex">
+                            <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                                 <div className="h-full bg-emerald-500 transition-all duration-300" style={{width: `${Math.max(0, hpPct)}%`}}></div>
                             </div>
                             {agent.maxMp > 0 && (
-                                <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex">
+                                <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                                     <div className="h-full bg-cyan-500 transition-all duration-300" style={{width: `${mpPct}%`}}></div>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    {/* Compact Status (Only visible when NOT expanded) */}
+                    {/* Compact Status */}
                     {viewMode === 'NONE' && (
                         <div className="px-3 pb-3 cursor-default" onPointerDown={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center bg-black/20 rounded-lg p-2 border border-white/5">
@@ -172,13 +225,12 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                     {viewMode !== 'NONE' && (
                         <div 
                             className="border-t border-white/5 bg-black/20 animate-slide-down overflow-hidden flex flex-col transition-all"
-                            style={{ height: '320px' }} // Fixed height for monitor mode
+                            style={{ height: '320px' }} 
                             onPointerDown={e => e.stopPropagation()}
                         >
                             {viewMode === 'AI' ? (
                                 <div className="w-full h-full relative">
                                     <BehaviorTreeTab agent={agent} version={version} engine={engine} />
-                                    {/* Transparent hint */}
                                     <div className="absolute bottom-2 right-2 text-[9px] text-white/20 font-mono pointer-events-none">
                                         LIVE MONITORING
                                     </div>
