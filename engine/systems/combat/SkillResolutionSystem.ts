@@ -260,13 +260,24 @@ export class SkillResolutionSystem {
             statusText = "放逐";
             statusColor = "#c084fc"; 
             
-            // Visual Sub-types
+            // Visual Sub-types & Logic Differentiation
             if (skill.name.includes("變形") || skill.name.includes("羊") || skill.name.includes("動物")) {
-                target.visualStatus = 'POLYMORPH'; statusText = "變形";
+                target.visualStatus = 'POLYMORPH'; 
+                statusText = "變形";
+                // Polymorph keeps negative effects ticking (it's a curse)
             } else if (skill.name.includes("無敵") || skill.name.includes("金身") || skill.name.includes("干涉")) {
-                target.visualStatus = 'STASIS'; statusText = "凝滯";
+                target.visualStatus = 'STASIS'; 
+                statusText = "無敵";
+                // *** CLEANSE LOGIC ***
+                // Invulnerability removes negative statuses immediately
+                target.stunTimer = 0;
+                target.silenceTimer = 0;
+                target.dotTimer = 0;
+                target.dotDmg = 0;
+                engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py - 20}, text: "淨化!", color: "#fff" });
             } else {
                 target.visualStatus = 'NONE';
+                // Standard Banish (Time Prison) - Effects will be PAUSED in StatusSystem
             }
 
         } else if (type === 'KNOCKBACK' || type === 'PULL') {

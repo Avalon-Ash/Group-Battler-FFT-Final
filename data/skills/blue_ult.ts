@@ -32,7 +32,8 @@ export const BLUE_ULT: Skill[] = [
     // ==========================================
     // 🔮 BLUE MAGE
     // ==========================================
-    { id: 'mb_u1', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', name: '事件視界', desc: '範圍黑洞牽引', range: 6, cast: 1.5, cd: 5.0, cost: 100, gain: 0, type: 'AOE', aoeRadius: 5, power: 400, color: '#172554', visual: 'SMASH', projectileSpeed: 200, ccType: 'PULL', ccForce: 6 }, // Power 350 -> 400
+    // Updated: High Pull Force (5), 6s Duration for maximum suction effect
+    { id: 'mb_u1', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', name: '事件視界', desc: '黑洞牽引+緩速', range: 6, cast: 1.5, cd: 5.0, cost: 100, gain: 0, type: 'AOE', aoeRadius: 5, power: 400, color: '#172554', visual: 'SMASH', projectileSpeed: 200, ccType: 'PULL', ccForce: 6, ccDur: 6.0 }, 
     { id: 'mb_u2', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', name: '絕對零度', desc: '大範圍凍結', range: 6, cast: 1.2, cd: 6.0, cost: 100, gain: 0, type: 'AOE', aoeRadius: 4, power: 300, color: '#e0f2fe', visual: 'SMASH', projectileSpeed: 0, ccType: 'STUN', ccDur: 4.0 }, // Power 200 -> 300
     { id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', name: '奧術洪流', desc: '範圍沉默+燒魔', range: 0, cast: 0.8, cd: 5.0, cost: 90, gain: 0, type: 'AOE', aoeRadius: 5, power: 400, color: '#7c3aed', visual: 'SMASH', projectileSpeed: 0, ccType: 'SILENCE', ccDur: 5.0, effectType: 'MANA_BURN', effectVal: 150 }, // Power 300 -> 400
     { id: 'mb_u4', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', name: '時空裂隙', desc: '單體長時放逐', range: 7, cast: 1.0, cd: 8.0, cost: 100, gain: 0, type: 'SINGLE', power: 200, color: '#d946ef', visual: 'BOLT', projectileSpeed: 500, ccType: 'BANISH', ccDur: 8.0 }, // Power 150 -> 200

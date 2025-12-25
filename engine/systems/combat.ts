@@ -3,7 +3,7 @@ import { Agent, GameEngine } from "../game";
 import { Projectile, Skill, BattleField } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { SkillResolutionSystem } from "./combat/SkillResolutionSystem";
-import { HexUtils } from "../utils";
+import { HexUtils, Vector } from "../utils";
 import { HEX_SIZE } from "../../constants";
 import * as VFXSpawners from "./vfx/spawners";
 
@@ -36,6 +36,9 @@ export class CombatSystem {
 
         // 3. Update Persistent Ground Fields (Poison clouds, etc.)
         this.updateFields(dt, engine);
+        
+        // 4. Update Field Physics (Gravity/Suction - Per Frame)
+        this.updateFieldPhysics(dt, engine);
     }
 
     private updateFields(dt: number, engine: GameEngine) {
@@ -59,14 +62,47 @@ export class CombatSystem {
         }
     }
 
+    private updateFieldPhysics(dt: number, engine: GameEngine) {
+        // Optimized physics loop for continuous effects (Black Hole / Gravity)
+        // This runs every frame, unlike damage ticks.
+        
+        for (const field of engine.fields) {
+            // Only 'PULL' fields generate gravity
+            if (field.skill.ccType !== 'PULL' && field.skill.ccType2 !== 'PULL') continue;
+
+            const rPxSq = field.radiusPx * field.radiusPx;
+            const pullForce = (field.skill.ccForce || 5) * 150; // Base force multiplier
+
+            engine.agents.forEach(agent => {
+                if (agent.hp <= 0 || agent.banished || agent.team === field.team) return;
+
+                const dx = field.pos.x - agent.px;
+                const dy = field.pos.y - agent.py;
+                const distSq = dx * dx + dy * dy;
+
+                if (distSq <= rPxSq && distSq > 100) { // Don't pull if already at center (jitter fix)
+                    // 1. GRAVITY: Apply force towards center
+                    // We calculate a normalized vector
+                    const dist = Math.sqrt(distSq);
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+
+                    // Apply continuous acceleration
+                    // We rely on PhysicsEngine damping to prevent infinite speed
+                    agent.physics.vx += nx * pullForce * dt;
+                    agent.physics.vy += ny * pullForce * dt;
+
+                    // 2. EVENT HORIZON: Massive Slow
+                    // If you are in a black hole, you can barely walk away
+                    agent.moveSpeedMult = 0.3; // 70% Slow override
+                }
+            });
+        }
+    }
+
     private resolveFieldTick(field: BattleField, engine: GameEngine) {
         const source = engine.agents.find(a => a.id === field.sourceId);
-        // Even if source is dead, field might persist, but we need a source for damage attribution.
-        // If source missing, we can create a dummy or just skip damage attribution log?
-        // Let's create a dummy logic proxy if needed, but usually we just skip attribution text.
         
-        // Find agents in radius
-        // Optimization: Use squared distance
         const rPx = field.radiusPx * field.radiusPx;
         
         engine.agents.forEach(agent => {
@@ -78,14 +114,14 @@ export class CombatSystem {
 
             if (distSq <= rPx) {
                 // Determine damage. 
-                // Logic: Fields usually do dotDamage (ccForce) or a fraction of power.
-                // We use ccForce if available, otherwise 20% of power.
-                const damage = field.skill.ccForce || (field.skill.power * 0.2) || 10;
+                // Use ccForce if available, otherwise 20% of power.
+                // For Black Holes, damage is usually low per tick but high utility.
+                const damage = (field.skill.power * 0.2) || 10;
                 
-                // Direct HP modification to avoid triggering full "Hit" animation every 0.5s which looks jerky
+                // Direct HP modification
                 agent.hp = Math.max(0, agent.hp - damage);
                 
-                // Add tiny floating text without spamming the log
+                // Add tiny floating text
                 engine.events.push({ 
                     type: 'DAMAGE', 
                     pos: {x: agent.px, y: agent.py}, 
@@ -94,8 +130,8 @@ export class CombatSystem {
                 });
 
                 // Apply Status Effect if applicable (Refresh DoT timer)
-                if (field.skill.ccType) {
-                    // Re-apply status with 1s duration just to keep it active while in field
+                // Note: We don't apply PULL here, that's handled in updateFieldPhysics
+                if (field.skill.ccType && field.skill.ccType !== 'PULL') {
                     this.skillResolution.applyCC(
                         source || agent, agent, field.skill, 
                         field.skill.ccType, 1.0, 0, undefined, engine
