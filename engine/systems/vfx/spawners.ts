@@ -2,6 +2,7 @@
 import { VFXSystem } from "../vfx";
 import { Team, Role } from "../../../types";
 import { SpriteManager } from "../../sprites";
+import { VFXFactory } from "../../graphics/VFXFactory"; // Added Import
 
 // =========================================================================================
 // 🏭 PARTICLE SPAWNERS (Factory Functions)
@@ -105,7 +106,77 @@ export function spawnLingeringField(system: VFXSystem, x: number, y: number, col
     }
 }
 
-// --- 3. EXISTING HELPERS (Preserved) ---
+// --- 3. DOMAIN BREAK / INTERRUPTION ---
+
+export function spawnCastBreak(system: VFXSystem, x: number, y: number, radiusTiles: number, color: string) {
+    // 1. The Shockwave Flash (Jagged)
+    // We reuse SPRITE type but pass a custom canvas
+    const flash = system.state.getParticle();
+    flash.x = x; flash.y = y; flash.z = 10;
+    flash.vx = 0; flash.vy = 0; flash.vz = 0;
+    flash.life = 0.3; flash.maxLife = 0.3;
+    flash.color = '#fff'; 
+    flash.size = 150; // Large
+    flash.type = 'SPRITE';
+    flash.image = VFXFactory.generateJaggedShockwave(); 
+    // Rapid expansion logic will need to be handled by renderer or simulated by size growth? 
+    // ParticleRenderer creates size based on 'size' prop. We can't anim size easily without a custom type.
+    // Instead, we use 'BLAST' type but set color to white/cyan
+    
+    // Actually, let's use BLAST with high chaos
+    const blast = system.state.getParticle();
+    blast.x = x; blast.y = y; blast.z = 20;
+    blast.vx = 0; blast.vy = 0; blast.vz = 0;
+    blast.life = 0.2; blast.maxLife = 0.2;
+    blast.color = '#00ffff'; // Cyan Flash
+    blast.size = 100;
+    blast.type = 'BLAST';
+    system.state.particles.push(blast);
+
+    // 2. High Velocity Shards (The "Shatter")
+    const shardCount = 12;
+    for(let i=0; i<shardCount; i++) {
+        const p = system.state.getParticle();
+        const angle = (Math.PI * 2 * i) / shardCount;
+        const speed = 400 + Math.random() * 400; // High speed
+        
+        p.x = x; p.y = y; p.z = 30;
+        p.vx = Math.cos(angle) * speed;
+        p.vy = Math.sin(angle) * speed;
+        p.vz = 200 + Math.random() * 300; // Fly up fast
+        
+        p.life = 0.5 + Math.random() * 0.3; // Short life
+        p.maxLife = p.life;
+        p.color = Math.random() > 0.5 ? color : '#e2e8f0'; // Mix skill color + shards
+        p.size = 5 + Math.random() * 5;
+        p.type = 'SHARD';
+        p.rotation = Math.random() * Math.PI;
+        p.vRotation = (Math.random() - 0.5) * 30; // Fast spin
+        system.state.particles.push(p);
+    }
+
+    // 3. Glitch Chips (Chromatic Aberration Simulation)
+    const glitchCount = 8;
+    for(let i=0; i<glitchCount; i++) {
+        const p = system.state.getParticle();
+        p.x = x + (Math.random()-0.5)*40;
+        p.y = y + (Math.random()-0.5)*40;
+        p.z = 40;
+        
+        p.vx = (Math.random()-0.5) * 50; 
+        p.vy = (Math.random()-0.5) * 50;
+        p.vz = 0;
+        
+        p.life = 0.3; p.maxLife = 0.3;
+        // Cyan and Magenta for digital glitch look
+        p.color = Math.random() > 0.5 ? '#00ffff' : '#ff00ff';
+        p.size = 4 + Math.random() * 4;
+        p.type = 'CHIP'; // Flat squares
+        system.state.particles.push(p);
+    }
+}
+
+// --- 4. EXISTING HELPERS (Preserved) ---
 
 export function spawnDirectionalImpact(system: VFXSystem, x: number, y: number, z: number, dirX: number, dirY: number, color: string, type: 'PHYSICAL' | 'MAGICAL') {
     const isPhysical = type === 'PHYSICAL';

@@ -22,7 +22,7 @@ import type { GameRenderer } from "./renderer";
 export { Agent, SpecialVisualStatus };
 
 // Constants
-export const VICTORY_PHASE_DURATION = 0.8; // Reduced to 0.8s for snappier finish
+export const VICTORY_PHASE_DURATION = 0.5; // Reduced to 0.5s for snappier finish
 
 export class GameEngine {
     public agents: Agent[] = [];

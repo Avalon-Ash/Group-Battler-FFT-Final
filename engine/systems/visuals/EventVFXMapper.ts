@@ -49,8 +49,9 @@ export class EventVFXMapper {
                 break;
                 
             case 'CAST_BREAK':
-                VFXSpawners.spawnDomainShatter(vfx, event.pos.x, event.pos.y, event.value || 1, event.color || '#fff');
-                camera.addTrauma(0.05);
+                // New: High Impact Cast Break
+                VFXSpawners.spawnCastBreak(vfx, event.pos.x, visualGroundY, event.value || 1, event.color || '#fff');
+                camera.addTrauma(0.3); // High trauma to feel the "SNAP"
                 break;
                 
             case 'CAST_FINISH':

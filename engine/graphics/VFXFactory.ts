@@ -346,5 +346,32 @@ export const VFXFactory = {
         ctx.beginPath(); ctx.arc(cx, cy * 2, 25, 0, Math.PI*2); ctx.fill();
 
         return canvas;
+    },
+
+    generateJaggedShockwave(): HTMLCanvasElement {
+        const size = 128;
+        const { canvas, ctx } = createCanvas(size, size);
+        const cx = size / 2;
+        const cy = size / 2;
+        
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'miter';
+        
+        // Draw jagged expanding ring
+        ctx.beginPath();
+        const segments = 16;
+        const r = 40;
+        for(let i=0; i<=segments; i++) {
+            const a = (i / segments) * Math.PI * 2;
+            const spike = (i % 2 === 0) ? 10 : -10;
+            const x = cx + Math.cos(a) * (r + spike);
+            const y = cy + Math.sin(a) * (r + spike);
+            if (i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        
+        return canvas;
     }
 };

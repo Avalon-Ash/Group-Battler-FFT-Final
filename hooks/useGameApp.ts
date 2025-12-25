@@ -61,6 +61,7 @@ export const useGameApp = () => {
     // Showcase Auto-Loop Logic (Reactive to winner state)
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
+            // Speed up the showcase loop significantly
             const timer = setTimeout(() => {
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
@@ -71,9 +72,9 @@ export const useGameApp = () => {
                     setTimeout(() => {
                         setTransitionPhase('IDLE');
                         spawnShowcaseUnits(); 
-                    }, 1200);
-                }, 1500);
-            }, 2000);
+                    }, 500); // 0.5s fade in (syncs with map flying in)
+                }, 500); // 0.5s fly out
+            }, 1000); // 1.0s dwell on victory (slow mo)
             return () => clearTimeout(timer);
         }
     }, [winner, isShowcaseMode]);

@@ -299,10 +299,28 @@ export class GameRenderer {
         this.tacticalRenderer.drawDebug(ctx, fps);
 
         // --- FINAL PASS: GAME OVER BLUR (Frosted Glass) ---
-        // This must be the absolutely last step to blur everything including HUD
+        // Enhanced Logic: Fade out blur during new match entry
+        let blurAmount = 0;
+        
         if (engine.isFinishing) {
-            const progress = 1 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
-            const clampedProgress = Math.max(0, Math.min(1, progress));
+            // Ramping Up (Active Victory Phase)
+            blurAmount = 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
+        } else if (engine.winningTeam !== null) {
+            // Bridge Gap: Game finished but showcase loop hasn't reset yet
+            blurAmount = 1.0;
+        }
+
+        // Transition Overrides
+        if (this.transitionPhase === 'OUT') {
+            // Leaving: Keep blurred
+            blurAmount = 1.0;
+        } else if (this.transitionPhase === 'IN') {
+            // Entering: Fade Out (1.0 -> 0.0)
+            blurAmount = 1.0 - this.transitionT;
+        }
+
+        if (blurAmount > 0) {
+            const clampedProgress = Math.max(0, Math.min(1, blurAmount));
             this.postProcessor.applyFinishBlur(ctx, physicalWidth, physicalHeight, clampedProgress);
         }
     }
