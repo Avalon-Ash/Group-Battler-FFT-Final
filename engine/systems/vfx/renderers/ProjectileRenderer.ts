@@ -40,12 +40,15 @@ export const ProjectileRenderer = {
                  const groundHeight = getTerrainHeight(currentHex.q, currentHex.r);
 
                  let arcOffset = 0;
+                 // Arcs for Arrows and Bombs
                  if (p.skill.visual === 'ARROW' || p.skill.visual === 'BOMB') {
                      const distFactor = Math.min(150, totalDist * 0.25);
                      const baseArc = p.skill.visual === 'BOMB' ? 100 : 20;
                      const arcHeight = baseArc + distFactor;
                      arcOffset = 4 * arcHeight * t * (1 - t);
-                 } else if (p.skill.visual === 'BOLT' || p.skill.visual === 'FIREBALL') {
+                 } 
+                 // Slight weave for Fireballs, straight for Bolts
+                 else if (p.skill.visual === 'FIREBALL') {
                      const wobbleFreq = 0.2; 
                      const wobbleAmp = 10;
                      arcOffset = Math.sin(lx * wobbleFreq + ly * wobbleFreq) * wobbleAmp;

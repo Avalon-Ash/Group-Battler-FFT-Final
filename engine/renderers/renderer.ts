@@ -329,121 +329,126 @@ export class GameRenderer {
     }
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
-        // --- 1. Ribbon Trail (Kinetic Energy Look) ---
-        if (op.pTrail && op.pTrail.length > 2) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            
-            // Build the ribbon polygon
-            // For each point, calculate normal vector to get thickness
-            
-            const trail = op.pTrail;
-            
-            // Helper to get normals
-            const getNorm = (idx: number) => {
-                let dx, dy;
-                if (idx < trail.length - 1) {
-                    dx = trail[idx+1].x - trail[idx].x;
-                    dy = trail[idx+1].y - trail[idx].y;
-                } else {
-                    dx = trail[idx].x - trail[idx-1].x;
-                    dy = trail[idx].y - trail[idx-1].y;
-                }
-                const len = Math.sqrt(dx*dx + dy*dy);
-                if (len === 0) return { x: 0, y: 0 };
-                return { x: -dy/len, y: dx/len };
-            };
-
-            // Draw filled polygon for glowy trail
-            ctx.beginPath();
-            
-            // Forward pass (Right side of ribbon)
-            const maxWidth = 6; 
-            for(let i=0; i<trail.length; i++) {
-                const width = maxWidth * (1 - i / trail.length); // Taper to tail
-                const norm = getNorm(i);
-                ctx.lineTo(trail[i].x + norm.x * width, trail[i].y + norm.y * width);
-            }
-            
-            // Backward pass (Left side of ribbon)
-            for(let i=trail.length-1; i>=0; i--) {
-                const width = maxWidth * (1 - i / trail.length);
-                const norm = getNorm(i);
-                ctx.lineTo(trail[i].x - norm.x * width, trail[i].y - norm.y * width);
-            }
-            ctx.closePath();
-            
-            // Gradient fill along the path
-            const head = trail[0];
-            const tail = trail[trail.length-1];
-            const grad = ctx.createLinearGradient(head.x, head.y, tail.x, tail.y);
-            grad.addColorStop(0, op.pColor); // Bright Head
-            grad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade Tail
-            
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = 0.6;
-            ctx.fill();
-            
-            // Core line
-            ctx.beginPath();
-            ctx.moveTo(head.x, head.y);
-            for(let i=1; i<trail.length; i++) ctx.lineTo(trail[i].x, trail[i].y);
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2; // Increased from 1 to 2
-            ctx.stroke();
-            
-            ctx.restore();
-        }
-
-        // --- 2. Draw Shadow ---
+        // --- 1. Draw Shadow (Depth Cue) ---
+        // Shadow fades and shrinks as projectile flies higher
         const shadowAltitude = op.pVisShadowY - op.pVisY; 
         if (Math.abs(shadowAltitude) > 5) {
             ctx.save();
             ctx.translate(op.pVisX, op.pVisShadowY);
-            const shadowScale = Math.max(0.2, 1 - Math.abs(shadowAltitude)/600);
-            const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/800);
+            
+            // Dynamics: Higher = Smaller & lighter shadow
+            const shadowScale = Math.max(0.2, 1.0 - Math.abs(shadowAltitude)/600);
+            const shadowAlpha = Math.max(0, 0.3 - Math.abs(shadowAltitude)/800);
+            
             ctx.scale(shadowScale, shadowScale * 0.5); 
             ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
-        // --- 3. Draw Projectile Head ---
+        // --- 2. Smooth Trail (Energy Ribbon) ---
+        // Using Quadratic Curve for smooth path instead of jagged lines
+        const trail = op.pTrail;
+        if (trail && trail.length > 2) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            
+            // Fade-out Gradient for Trail
+            const head = trail[0];
+            const tail = trail[trail.length - 1];
+            const grad = ctx.createLinearGradient(head.x, head.y, tail.x, tail.y);
+            grad.addColorStop(0, op.pColor);
+            grad.addColorStop(1, 'transparent');
+
+            // Pass 1: Wide Glow
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = op.pIsUlt ? 8 : 4;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.globalAlpha = 0.4;
+            
+            ctx.beginPath();
+            ctx.moveTo(head.x, head.y);
+            for (let i = 1; i < trail.length - 1; i++) {
+                const xc = (trail[i].x + trail[i + 1].x) / 2;
+                const yc = (trail[i].y + trail[i + 1].y) / 2;
+                ctx.quadraticCurveTo(trail[i].x, trail[i].y, xc, yc);
+            }
+            ctx.lineTo(tail.x, tail.y);
+            ctx.stroke();
+
+            // Pass 2: White Hot Core
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = op.pIsUlt ? 3 : 1.5;
+            ctx.globalAlpha = 0.8;
+            ctx.stroke(); // Reuse path
+            
+            ctx.restore();
+        }
+
+        // --- 3. Projectile Head ---
         ctx.save();
         ctx.translate(op.pVisX, op.pVisY);
-        
-        if (op.pSkillVis === 'BOMB') ctx.rotate(op.pSpin);
-        else ctx.rotate(op.pAngle);
-        
-        const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
-        if (img && img.width > 0) {
-            let scale = 0.6;
-            if (op.pIsUlt) scale = 1.0;
-            if (op.pSkillVis === 'BOMB' || op.pSkillVis === 'FIREBALL') scale *= 1.2;
+        ctx.rotate(op.pAngle + op.pSpin); // Apply rotation + spin (for bombs)
 
-            ctx.scale(scale, scale);
-            ctx.drawImage(img, -48, -32, 96, 64);
+        const isEnergy = op.pSkillVis === 'BOLT' || op.pSkillVis === 'BEAM';
+        
+        if (isEnergy) {
+            // PROCEDURAL RENDERING (Infinite Resolution)
+            // No sprites for pure energy to ensure crispness at any zoom
             
-            // LENS FLARE (Sci-Fi Cross Dazzle)
-            if (op.pSkillVis === 'BOLT' || op.pSkillVis === 'ARROW') {
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.globalAlpha = 0.8;
-                ctx.rotate(-op.pAngle); // Counter-rotate to keep flare upright relative to screen? Or align with motion?
-                // Let's align flare with motion
-                ctx.rotate(op.pAngle); 
+            ctx.globalCompositeOperation = 'lighter';
+            const size = op.pIsUlt ? 1.5 : 1.0;
+            
+            // Main Capsule
+            ctx.shadowColor = op.pColor;
+            ctx.shadowBlur = 15 * size;
+            ctx.fillStyle = '#fff';
+            
+            ctx.beginPath();
+            // Capsule shape
+            ctx.ellipse(0, 0, 20 * size, 6 * size, 0, 0, Math.PI*2);
+            ctx.fill();
+            
+            // Inner Core Color
+            ctx.shadowBlur = 0;
+            ctx.fillStyle = op.pColor;
+            ctx.globalAlpha = 0.5;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 15 * size, 4 * size, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // Lens Flare (Cross)
+            ctx.globalAlpha = 0.8;
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.ellipse(8, 0, 25 * size, 1, 0, 0, Math.PI*2); // Horizontal streak
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(8, 0, 2, 15 * size, 0, 0, Math.PI*2); // Vertical streak
+            ctx.fill();
+
+        } else {
+            // SPRITE RENDERING (Arrows, Bombs, Fireballs)
+            const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
+            if (img && img.width > 0) {
+                let scale = 0.6;
+                if (op.pIsUlt) scale = 1.0;
+                if (op.pSkillVis === 'BOMB' || op.pSkillVis === 'FIREBALL') scale *= 1.2;
+
+                ctx.scale(scale, scale);
+                // Center the sprite (Asset is usually 96x64, center ~ 48,32)
+                ctx.drawImage(img, -48, -32, 96, 64);
                 
-                // Draw cross
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                // Horizontal
-                ctx.ellipse(20, 0, 30, 2, 0, 0, Math.PI*2);
-                ctx.fill();
-                // Vertical
-                ctx.beginPath();
-                ctx.ellipse(20, 0, 4, 20, 0, 0, Math.PI*2);
-                ctx.fill();
+                // Add Glow to Sprites too
+                if (op.pIsUlt) {
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = 0.3;
+                    ctx.drawImage(img, -48, -32, 96, 64);
+                }
             }
         }
+
         ctx.restore();
     }
 }

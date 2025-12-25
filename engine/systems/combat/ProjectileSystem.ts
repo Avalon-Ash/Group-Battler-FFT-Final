@@ -23,10 +23,14 @@ export class ProjectileSystem {
             const dist = Vector.dist({x: p.x, y: p.y}, p.targetPos);
             const moveDist = p.speed * dt;
             
-            // Add current pos to trail
-            // Limit trail length for performance
-            p.trail.push({x: p.x, y: p.y});
-            if (p.trail.length > 20) p.trail.shift();
+            // TRAIL UPDATE
+            // Only add trail point if moved enough to prevent stacking
+            // Limit trail buffer size for performance
+            const lastTrail = p.trail.length > 0 ? p.trail[p.trail.length - 1] : null;
+            if (!lastTrail || Vector.dist(lastTrail, {x: p.x, y: p.y}) > 10) {
+                p.trail.push({x: p.x, y: p.y});
+                if (p.trail.length > 12) p.trail.shift(); // Keep trail shorter but smoother
+            }
             
             // Hit Detection
             if (dist <= moveDist || dist < 10) {
