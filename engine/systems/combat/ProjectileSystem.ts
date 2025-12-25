@@ -46,7 +46,16 @@ export class ProjectileSystem {
                         if (source) skillResolver.resolveHit(source, t, p.skill, hitPos, engine); 
                     });
                     
+                    // NEW: Persistent Field Logic
+                    // If AOE has DOT or specific lingering tag, spawn a Field
+                    if (p.skill.ccType === 'DOT' || p.skill.name.includes("霧") || p.skill.name.includes("雨") || p.skill.name.includes("暴風")) {
+                        if (source) engine.combat.spawnField(source, p.skill, hitPos, engine);
+                    }
+
+                    // IMPACT EVENT
+                    engine.events.push({ type: 'IMPACT_AOE', pos: {x: hitPos.x, y: hitPos.y}, skill: p.skill, color: p.skill.color });
                     engine.events.push({ type: 'PROJECTILE_HIT', pos: {x: hitPos.x, y: hitPos.y}, skill: p.skill });
+
                 } else {
                     if (target && target.hp > 0 && !target.banished) {
                         if (source) skillResolver.resolveHit(source, target, p.skill, undefined, engine);

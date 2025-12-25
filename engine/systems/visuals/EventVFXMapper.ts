@@ -38,8 +38,19 @@ export class EventVFXMapper {
                 this.handleBeam(event, engine, grid, vfx, visualGroundY);
                 break;
 
+            case 'IMPACT_AOE':
+                // NEW: Explicit large blast for AOE impacts
+                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY, 0, 20, event.color || '#fff', 2.0, 0.6, 'SPARK');
+                VFXSpawners.addImpact(vfx, event.pos.x, visualGroundY, 0, event.color || '#fff', 'BLAST', 0.5);
+                VFXSpawners.spawnShockwave(vfx, event.pos.x, visualGroundY, event.color || '#fff', 0.6);
+                camera.addTrauma(0.25); // Screen shake for AOE
+                break;
+
             case 'PROJECTILE_HIT': 
-                this.handleHitVisuals(event, engine, visualGroundY, vfx, grid, camera); 
+                // Only handle special visuals if not handled by IMPACT_AOE
+                if (event.skill?.type !== 'AOE') {
+                    this.handleHitVisuals(event, engine, visualGroundY, vfx, grid, camera); 
+                }
                 break;
 
             case 'DEATH':
@@ -53,9 +64,9 @@ export class EventVFXMapper {
                 break;
                 
             case 'CAST_BREAK':
-                // New: High Impact Cast Break
+                // High Impact Cast Break
                 VFXSpawners.spawnCastBreak(vfx, event.pos.x, visualGroundY, event.value || 1, event.color || '#fff');
-                camera.addTrauma(0.3); // High trauma to feel the "SNAP"
+                camera.addTrauma(0.3); 
                 break;
                 
             case 'CAST_FINISH':
@@ -149,31 +160,9 @@ export class EventVFXMapper {
                 VFXSpawners.spawnBloodRitual(vfx, event.pos.x, centerVisualY, color, 1.5);
             }
 
-            // 2. AOE RIPPLE (The Spread)
-            if (skill?.type === 'AOE') {
-                const radius = skill.aoeRadius || 1;
-                const affectedHexes = HexUtils.range(centerHex, radius);
-                
-                // Spawn sequential explosions
-                affectedHexes.forEach(h => {
-                    if (engine.isValid(h.q, h.r)) {
-                        const tileH = grid.getTerrainHeight(h.q, h.r, engine);
-                        const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
-                        const tileVisualY = tilePos.y - tileH;
-                        const dist = HexUtils.dist(centerHex, h);
-                        const delay = dist * 0.08; 
-                        
-                        VFXSpawners.spawnGridImpact(vfx, tilePos.x, tileVisualY, color, faction, delay);
-                        
-                        if (skill.ccType === 'DOT' || skill.ccType === 'SILENCE') {
-                            VFXSpawners.spawnLingeringField(vfx, tilePos.x, tileVisualY, color, skill.ccType, 4.0, delay);
-                        }
-                    }
-                });
-            } else {
-                // Single Target Ult
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
-            }
+            // Single Target Ult
+            VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
+            
         } else {
             // --- NORMAL SKILLS (Specific Visuals) ---
             
@@ -182,9 +171,6 @@ export class EventVFXMapper {
                 VFXSpawners.addImpact(vfx, event.pos.x, centerVisualY, 0, color, 'SHOCKWAVE', 0.4);
                 // Debris flies up
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, centerVisualY, 0, 8, color, 0.5, 0.6, 'SHARD'); 
-                if (skill?.type === 'AOE') {
-                    VFXSpawners.addDecal(vfx, event.pos.x, centerVisualY, color);
-                }
             } 
             // 2. SLASH: Directional Energy
             else if (visualType === 'SLASH') {
@@ -203,36 +189,11 @@ export class EventVFXMapper {
                 VFXSpawners.addImpact(vfx, event.pos.x, visualY, 20, color, 'BLAST', 0.5);
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 5, color, 0.5, 1.0, 'SMOKE');
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 8, '#fff', 1.0, 0.3, 'SPARK');
-                if (skill?.type === 'AOE') VFXSpawners.addDecal(vfx, event.pos.x, centerVisualY, '#000');
             }
             // 4. BOLT / ARROW / BEAM: High Precision
             else {
                 VFXSpawners.addImpact(vfx, event.pos.x, visualY, 30, color, 'RING', 0.4);
                 VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 12, color, 2.0, 0.4, 'SPARK');
-            }
-
-            // Apply AOE secondary effects (Smoke/Decals)
-            if (skill?.type === 'AOE') {
-                const radius = skill.aoeRadius || 1;
-                const affected = HexUtils.range(centerHex, radius);
-                
-                affected.forEach(h => {
-                    if (engine.isValid(h.q, h.r)) {
-                        const tileH = grid.getTerrainHeight(h.q, h.r, engine);
-                        const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
-                        const tileVisualY = tilePos.y - tileH;
-                        const dist = HexUtils.dist(centerHex, h);
-                        
-                        if (dist <= radius) {
-                            if (Math.random() < 0.3) { 
-                                VFXSpawners.spawnExplosion(vfx, tilePos.x, tileVisualY, 0, 3, color, 0.5, 0.5, 'SPARK');
-                            }
-                            if (skill.ccType === 'DOT') {
-                                VFXSpawners.spawnLingeringField(vfx, tilePos.x, tileVisualY, color, skill.ccType, 3.0, dist * 0.05);
-                            }
-                        }
-                    }
-                });
             }
         }
     }

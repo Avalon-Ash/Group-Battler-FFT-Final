@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType, BattleField } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 import { COLORS, LOG_COLORS } from "../constants";
@@ -26,6 +26,7 @@ export const VICTORY_PHASE_DURATION = 0.5; // Reduced to 0.5s for snappier finis
 
 export class GameEngine {
     public agents: Agent[] = [];
+    public fields: BattleField[] = []; // NEW: Persistent Ground Effects
     
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
@@ -157,6 +158,7 @@ export class GameEngine {
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
         this.combat.projectiles = []; 
+        this.fields = []; // Reset fields
         this.events = []; 
         this.battleTime = 0;
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
@@ -170,6 +172,7 @@ export class GameEngine {
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.combat.projectiles = [];
+        this.fields = [];
         this.logs = [];
         this.directorTargetId = null;
         if (!keepScene) this.map.randomizeEnvironment(this); 

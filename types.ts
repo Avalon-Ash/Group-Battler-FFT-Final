@@ -151,9 +151,29 @@ export interface Projectile {
     trail: Point[];
 }
 
+// NEW: Persistent Ground Effects (Logic Layer)
+export interface BattleField {
+    id: string;
+    pos: Point;        // Center in PX
+    q: number;         // Center Hex Q
+    r: number;         // Center Hex R
+    radius: number;    // Radius in Hexes (Logic)
+    radiusPx: number;  // Radius in PX (Collision)
+    
+    skill: Skill;      // Source skill
+    sourceId: string;
+    team: Team;        // Team that created it (usually hurts opposite)
+    
+    duration: number;  // Remaining time
+    tickTimer: number; // Time until next damage tick
+    
+    visualType: string;
+    color: string;
+}
+
 // Event System (Bridge between Logic and Visuals)
 // Added VISUAL_BEAM for strict enforcement of instant ranged attacks
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL';
+export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE';
 
 export interface GameEvent {
     type: GameEventType;

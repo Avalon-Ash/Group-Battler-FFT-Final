@@ -97,6 +97,14 @@ export class SkillResolutionSystem {
             const p = HexUtils.toPx(centerHex!.q, centerHex!.r, engine.mapConfig);
             origin = { x: p.x, y: p.y };
 
+            // NEW: Spawn Persistent Field if CC Type is DOT (e.g. Poison Cloud, Blizzard)
+            if (skill.ccType === 'DOT' || skill.name.includes("霧") || skill.name.includes("雨")) {
+                engine.combat.spawnField(source, skill, origin, engine);
+            }
+
+            // AOE Impact Event
+            engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color });
+
         } else {
             if (source.target && !source.target.banished && source.target.hp > 0) {
                 const effectiveRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
