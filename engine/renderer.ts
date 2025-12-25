@@ -299,7 +299,7 @@ export class GameRenderer {
         this.tacticalRenderer.drawDebug(ctx, fps);
 
         // --- FINAL PASS: FROSTED GLASS TRANSITIONS (Victory / Map Swap) ---
-        // Enhanced Logic: Smoothly handle both Enter (Clear) and Exit (Blur)
+        // Enhanced Logic: Strict Sync
         let blurAmount = 0;
         
         if (engine.isFinishing) {
@@ -311,17 +311,16 @@ export class GameRenderer {
         }
 
         // Transition Overrides
+        // Logic:
+        // OUT: Fade Blur In (0 -> 1) as map leaves.
+        // IN: Fade Blur Out (1 -> 0) as map enters.
         if (this.transitionPhase === 'OUT') {
-            // LEAVING: Fade to Blur (0 -> 1)
-            // Ramp up semi-linear to catch the exit
-            blurAmount = Math.max(blurAmount, this.transitionT);
+            // 0 -> 1
+            blurAmount = this.transitionT; 
         } else if (this.transitionPhase === 'IN') {
-            // ENTERING: Fade from Blur (1 -> 0)
-            // FIXED: Using Cosine ease-in to keep blur HIGH during the initial movement
-            // t=0 (start) -> blur=1
-            // t=0.5 (mid) -> blur=0.7 (still blurry)
-            // t=1.0 (end) -> blur=0 (clear)
-            blurAmount = Math.cos(this.transitionT * Math.PI / 2);
+            // 1 -> 0
+            // Linear fade out to perfectly match the tile landing at t=1.0
+            blurAmount = 1.0 - this.transitionT;
         }
 
         if (blurAmount > 0) {

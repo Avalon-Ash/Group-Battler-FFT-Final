@@ -61,30 +61,29 @@ export const useGameApp = () => {
     // Showcase Auto-Loop Logic (Reactive to winner state)
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
-            // Speed up the showcase loop significantly
-            // 1. Wait a brief moment to see the victory text/effects
-            // EXTENDED: 1000ms buffer to match new slower transition
+            // STEP 1: Battle Ends.
+            // REDUCED: Wait 0.8s (was 1.5s) for quick glance at death animations.
             const timer = setTimeout(() => {
-                // 2. Trigger OUT transition (Blur out + Fly out)
+                
+                // STEP 2: Trigger OUT (Blur Ramps Up + Map Falls Down)
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
                 engineRef.current.combat.projectiles = [];
                 
-                // 3. Wait for OUT animation to finish
-                // EXTENDED: 1000ms for full exit
+                // Wait 1.2s for OUT animation to complete fully (Cinematic feel)
                 setTimeout(() => {
                     setupShowcaseMap(); 
-                    // 4. Trigger IN transition (Fly in + Blur clear)
+                    
+                    // STEP 3: Trigger IN (Map Rises Up + Blur Fades Out)
                     setTransitionPhase('IN'); 
                     
-                    // 5. Wait for IN animation to finish
-                    // EXTENDED: 1000ms for full entry
+                    // Wait 1.2s for IN animation to assemble
                     setTimeout(() => {
                         setTransitionPhase('IDLE');
                         spawnShowcaseUnits(); 
-                    }, 1000); 
-                }, 1000); 
-            }, 1000); 
+                    }, 1200); 
+                }, 1200); 
+            }, 800); 
             return () => clearTimeout(timer);
         }
     }, [winner, isShowcaseMode]);

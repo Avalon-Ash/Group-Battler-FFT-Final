@@ -76,9 +76,9 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         // Increment progress if we are in a transition
         if (transitionPhase !== 'IDLE') {
             const dt = 1 / 60; // Assume 60fps delta for smoothness or use real dt
-            // SPEED ADJUSTED: 1.3 multiplier = ~0.77s duration.
-            // Slower speed allows the "wave" to be seen properly without snapping.
-            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 1.3);
+            // SPEED ADJUSTED: 0.8 multiplier = ~1.25s duration.
+            // Very slow, deliberate movement to allow the Blur to sync perfectly.
+            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.8);
         } else {
             transitionProgress.current = 0;
         }

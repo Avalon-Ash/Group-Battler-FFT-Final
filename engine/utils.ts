@@ -32,9 +32,9 @@ export const NEIGHBOR_HASH_OFFSETS = [
 
 /**
  * Calculates the vertical visual offset for map transitions (Flying in/out).
- * WAVE LOGIC V3: Continuous motion.
- * No 'trigger wait' dead zone. Everyone moves from T=0.
- * Distance (d) adds 'drag' or 'lag' to the easing function.
+ * WAVE LOGIC V5: Inverted Gravity.
+ * OUT: Falls DOWN (+Y).
+ * IN: Rises UP from below (+Y to 0).
  */
 export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
     if (phase === 'IDLE') return 0;
@@ -48,43 +48,36 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
     
     // Normalize distance 0 to 1
     const d = Math.min(1, dist / maxDist);
-    
     const BASE_OFFSET = 1200;
 
     if (phase === 'OUT') {
-        // LEAVING: Center falls first, edges follow (Wave Out)
-        // t goes 0 -> 1
-        // We want effectiveT to be slower for edges (high d)
-        // Effective T = t ^ (1 + d * lagFactor)
+        // LEAVING: Tiles fall DOWN (Gravity).
+        // Center leaves first, edges follow.
+        // t: 0 -> 1
         
-        const lag = 1 + d * 2.0; // Edges are 3x slower to start falling
+        // Effective Time with lag
+        // Center (d=0): moves immediately
+        // Edge (d=1): waits slightly
+        const lag = 1 + d * 1.5; 
         const effectiveT = Math.pow(t, lag);
         
-        // Quadratic acceleration down
+        // Quadratic acceleration DOWN (Positive Y)
         return effectiveT * effectiveT * BASE_OFFSET;
 
     } else if (phase === 'IN') {
-        // ARRIVING: Center lands first, edges lag behind (Wave In)
-        // t goes 0 -> 1
-        // Start position is BASE_OFFSET
-        // End position is 0
+        // ARRIVING: Tiles rise UP from below (Abyss).
+        // T=0 -> Offset = +1200
+        // T=1 -> Offset = 0
         
-        // Edges should reach 1.0 (landed) LATER than center
-        // Center: reaches 1.0 quickly. Edges: reach 1.0 slowly.
-        // We use Power to curve the completion.
-        
-        // Invert d for incoming wave? No, center should land first.
-        // So edges have higher lag.
-        
-        const lag = 1 + d * 1.5; 
-        
-        // progress: 0 -> 1
-        // We want edge progress to be < center progress at any given t < 1
+        // Lag: Edges arrive later than center
+        // Center: fast finish. Edges: slow finish.
+        const lag = 1 + d * 1.5;
         const progress = Math.pow(t, lag); 
         
-        // Easing: Elastic overshoot or cubic ease-out
+        // Eased landing
         const eased = 1 - Math.pow(1 - progress, 3);
         
+        // Start at positive offset (Below) -> 0
         return (1 - eased) * BASE_OFFSET;
     }
     return 0;
