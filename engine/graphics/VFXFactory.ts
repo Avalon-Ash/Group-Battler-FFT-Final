@@ -3,14 +3,13 @@ import { createCanvas } from "./CanvasUtils";
 import { isChaosStyle } from "../systems/vfx/utils";
 
 // Dimensions
-const TEXTURE_SIZE = 128; // Standard size for pre-baked assets
+const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
 
 class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
-    // Accessor for legacy code and new system
-    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST', color: string): HTMLCanvasElement {
+    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST' | 'SHARD' | 'CHIP' | 'CRACKS', color: string): HTMLCanvasElement {
         const key = `${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
@@ -21,37 +20,29 @@ class VFXTextureCache {
 
     private bakeTexture(type: string, color: string): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
-        const r = CENTER - 4; // Padding to avoid clipping
+        const r = CENTER - 4;
 
         ctx.translate(CENTER, CENTER);
 
-        // Pre-bake blend mode adjustments? 
-        // No, keep pixel data pure. Blend mode is applied at render time.
-
         if (type === 'GLOW') {
-            // Soft blurry hex
             const grad = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r);
             grad.addColorStop(0, '#ffffff');
             grad.addColorStop(0.2, color);
             grad.addColorStop(1, 'transparent');
-            
             ctx.fillStyle = grad;
             this.pathHex(ctx, r);
             ctx.fill();
         } 
         else if (type === 'SOLID') {
-            // Crisp solid hex with rim
             ctx.fillStyle = color;
             this.pathHex(ctx, r * 0.9);
             ctx.fill();
-            
             ctx.strokeStyle = 'rgba(255,255,255,0.4)';
             ctx.lineWidth = 2;
             this.pathHex(ctx, r * 0.9);
             ctx.stroke();
         }
         else if (type === 'OUTLINE') {
-            // Sharp stroke
             ctx.strokeStyle = color;
             ctx.lineWidth = 4;
             ctx.shadowColor = color;
@@ -60,12 +51,9 @@ class VFXTextureCache {
             ctx.stroke();
         }
         else if (type === 'NOISE') {
-            // Textured hex
             ctx.fillStyle = color;
             this.pathHex(ctx, r);
             ctx.fill();
-            
-            // Overlay Noise
             ctx.globalCompositeOperation = 'overlay';
             ctx.fillStyle = 'rgba(0,0,0,0.3)';
             for(let i=0; i<20; i++) {
@@ -78,7 +66,6 @@ class VFXTextureCache {
         else if (type === 'BLAST') {
             const isChaos = isChaosStyle(color);
             if (isChaos) {
-                // Chaos Spikes
                 ctx.fillStyle = color;
                 ctx.beginPath();
                 for(let i=0; i<12; i++) {
@@ -91,7 +78,6 @@ class VFXTextureCache {
                 ctx.closePath();
                 ctx.fill();
             } else {
-                // Order Lens Flare
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
                 grad.addColorStop(0, '#ffffff');        
                 grad.addColorStop(0.3, color);          
@@ -99,6 +85,57 @@ class VFXTextureCache {
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
             }
+        }
+        else if (type === 'CHIP') {
+            // Simple Square Chip
+            ctx.fillStyle = color;
+            ctx.fillRect(-r/2, -r/2, r, r);
+        }
+        else if (type === 'SHARD') {
+            // Triangular Shard
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(r, 0);
+            ctx.lineTo(-r * 0.5, r * 0.4);
+            ctx.lineTo(-r * 0.5, -r * 0.4);
+            ctx.fill();
+            // Subtle highlight
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+        }
+        else if (type === 'CRACKS') {
+            // Pre-baked jagged fractal lines for Magma/Ground effects
+            // This replaces the expensive per-frame drawing
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            
+            const branches = 4;
+            for(let i=0; i<branches; i++) {
+                const angle = (i / branches) * Math.PI * 2 + (Math.random()*0.5);
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                
+                let cx = 0, cy = 0;
+                const len = r * 0.9;
+                const steps = 3;
+                for(let j=0; j<steps; j++) {
+                    const stepLen = len / steps;
+                    // Deterministic randomness for baking
+                    const r1 = Math.sin(i * 99 + j * 33);
+                    const r2 = Math.cos(i * 55 + j * 77);
+                    
+                    cx += Math.cos(angle) * stepLen + r1 * 8;
+                    cy += Math.sin(angle) * stepLen + r2 * 8;
+                    ctx.lineTo(cx, cy);
+                }
+                ctx.stroke();
+            }
+            // Glowing Core
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
         }
 
         return canvas;
@@ -116,30 +153,27 @@ class VFXTextureCache {
         ctx.closePath();
     }
 
-    // --- Legacy Bridge Methods (To keep existing code working) ---
-    // These now alias to the new cached system where possible or create on demand
-    
     generateGlowOrb(color: string, size: number = 64): HTMLCanvasElement {
         return this.getTexture('GLOW', color);
     }
 
     generateFogCloud(color: string): HTMLCanvasElement {
-        // Fog is unique enough to keep a dedicated generator or just use a large GLOW
         return this.getTexture('GLOW', color); 
     }
 
     generateProjectileSprite(visual: string, color: string): HTMLCanvasElement {
-        // Projectiles are complex sprites, keep using dedicated generation
-        // But we could optimize this later
         return this.createLegacyProjectile(visual, color);
     }
 
     generateBlastZone(color: string): HTMLCanvasElement {
-        // Just use a large Glow/Blast texture
         return this.getTexture('BLAST', color);
     }
 
-    // Moved legacy generator here for encapsulation
+    // New Accessor for Cracks
+    generateCracks(color: string): HTMLCanvasElement {
+        return this.getTexture('CRACKS', color);
+    }
+
     private createLegacyProjectile(visual: string, color: string): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(96, 64);
         const cx = 48, cy = 32;
@@ -152,7 +186,6 @@ class VFXTextureCache {
             ctx.fillStyle = color;
             ctx.beginPath(); ctx.moveTo(90, cy); ctx.lineTo(70, cy - 8); ctx.lineTo(75, cy); ctx.lineTo(70, cy + 8); ctx.fill();
         } else {
-            // Bolt
             const grad = ctx.createLinearGradient(0, 0, 96, 0);
             grad.addColorStop(0, 'transparent'); grad.addColorStop(0.5, color); grad.addColorStop(1, '#fff');
             ctx.fillStyle = grad;

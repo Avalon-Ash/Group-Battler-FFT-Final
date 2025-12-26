@@ -337,6 +337,7 @@ export class GameEngine {
             case 'DECISION': color = LOG_COLORS.DECISION; break;
             case 'DEATH': color = LOG_COLORS.DEATH; break;
             case 'CC': color = LOG_COLORS.CC; break;
+            case 'HAZARD': color = LOG_COLORS.HAZARD; break;
             default: color = LOG_COLORS.SYSTEM; break;
         }
 
@@ -358,6 +359,6 @@ export class GameEngine {
         };
 
         this.logs.push(entry);
-        if (this.logs.length > 2000) this.logs.shift();
+        if (this.logs.length > 5000) this.logs.shift(); // Increased buffer
     }
 }

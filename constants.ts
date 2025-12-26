@@ -46,7 +46,8 @@ export const LOG_COLORS = {
     DECISION: '#c084fc', // Purple-400
     DEATH: '#94a3b8',    // Slate-400
     CC: '#facc15',       // Yellow-400
-    SYSTEM: '#64748b'    // Slate-500
+    SYSTEM: '#64748b',   // Slate-500
+    HAZARD: '#fb923c'    // Orange-400 (New for Ground Effects)
 };
 
 export const PALETTE = {

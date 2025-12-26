@@ -1,5 +1,6 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
+import { VFXFactory } from "./VFXFactory";
 
 // Precomputed Hex for Geometry
 const HEX_CORNERS: {x: number, y: number}[] = [];
@@ -26,7 +27,7 @@ export const SurfaceAssets = {
     },
 
     // 1. LIQUID SURFACE (Blood, Lava, Acid)
-    // Concept: Wobbly meniscus inside the hex, specular highlights
+    // OPTIMIZED: Reduced segment count and simplified noise calculation
     drawLiquidSurface(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -36,16 +37,17 @@ export const SurfaceAssets = {
     ) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(1, ISO_SCALE_Y); // Flatten to isometric plane
+        ctx.scale(1, ISO_SCALE_Y); 
 
-        // Wobbly Circle Base
+        // Optimized Wobbly Circle
         ctx.beginPath();
         const r = HEX_SIZE * 0.9;
-        const segments = 12;
+        const segments = 8; // Reduced from 12
         for (let i = 0; i <= segments; i++) {
             const angle = (i / segments) * Math.PI * 2;
-            // Noise offset based on time and angle to create surface tension wobble
-            const noise = Math.sin(angle * 3 + time * 2) * 3 + Math.cos(angle * 5 - time) * 2;
+            // Simplified noise: Single sin wave + time offset
+            // We removed the inner cos calculation to save CPU
+            const noise = Math.sin(angle * 3 + time * 3) * 2.5; 
             const px = Math.cos(angle) * (r + noise);
             const py = Math.sin(angle) * (r + noise);
             if (i === 0) ctx.moveTo(px, py);
@@ -59,24 +61,23 @@ export const SurfaceAssets = {
         ctx.fill();
 
         // Inner darker pool (Depth)
+        // Grouped Composite Operations to reduce state changes
         ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.5;
         ctx.beginPath();
         ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
-        ctx.fillStyle = color; // Darker version via multiply
-        ctx.globalAlpha = 0.5;
         ctx.fill();
 
-        // Specular Highlights (Surface Tension)
+        // Specular Highlights
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = 0.6;
         ctx.fillStyle = '#fff';
         
-        // Highlight 1 (Top Edge Reflection)
         ctx.beginPath();
         ctx.ellipse(0, -r * 0.6, r * 0.4, 4, 0, 0, Math.PI*2);
         ctx.fill();
         
-        // Highlight 2 (Bubble)
         const bubbleX = Math.sin(time) * r * 0.3;
         const bubbleY = Math.cos(time) * r * 0.3;
         ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 3, 0, Math.PI*2); ctx.fill();
@@ -85,93 +86,73 @@ export const SurfaceAssets = {
     },
 
     // 2. VOLUMETRIC FOG (Poison, Smoke)
-    // Concept: Multiple drifting cloud puffs with soft gradients to simulate volume
+    // OPTIMIZED: Uses cached GLOW texture instead of real-time gradients
     drawVolumetricFog(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
         color: string,
         time: number
     ) {
+        const puffTexture = VFXFactory.getTexture('GLOW', color);
+        const textureSize = puffTexture.width;
+        const halfSize = textureSize / 2;
+
         ctx.save();
         ctx.translate(x, y);
         
+        ctx.globalCompositeOperation = 'screen'; 
+        ctx.globalAlpha = 0.2; 
+
         // Create cloud puffs
-        const puffs = 5;
+        const puffs = 4; // Reduced from 5
         for(let i=0; i<puffs; i++) {
-            const tOffset = i * 1.5;
-            
-            // Orbiting motion around center of tile
+            // Orbiting motion logic preserved
             const angle = time * 0.5 + i * (Math.PI * 2 / puffs);
             const dist = Math.sin(time * 0.2 + i) * 15;
             const px = Math.cos(angle) * dist;
-            const py = Math.sin(angle) * dist * ISO_SCALE_Y - 15; // Floating slightly up
+            const py = Math.sin(angle) * dist * ISO_SCALE_Y - 15; 
             
-            // Breath (Scale)
-            const scale = 1.0 + Math.sin(time + i) * 0.2;
-            const radius = 25 * scale;
-
-            const grad = ctx.createRadialGradient(px, py, 0, px, py, radius);
-            grad.addColorStop(0, color);
-            grad.addColorStop(1, 'transparent');
-
-            ctx.globalAlpha = 0.3; // Low alpha for stacking
-            ctx.globalCompositeOperation = 'screen'; // Additive blending for gas
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(px, py, radius, 0, Math.PI*2);
-            ctx.fill();
+            const scale = (1.0 + Math.sin(time + i) * 0.2) * 0.5; // Scale relative to texture size
+            const size = textureSize * scale;
+            
+            // Draw Cached Texture
+            ctx.drawImage(puffTexture, px - size/2, py - size/2, size, size);
         }
         
-        // Ground Haze (Base layer)
-        ctx.globalCompositeOperation = 'source-over';
+        // Ground Haze (Base layer) using same texture stretched
         ctx.scale(1, ISO_SCALE_Y);
-        ctx.globalAlpha = 0.2;
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE, 0, Math.PI*2); ctx.fill();
+        ctx.globalAlpha = 0.15;
+        const baseSize = HEX_SIZE * 2.5;
+        ctx.drawImage(puffTexture, -baseSize/2, -baseSize/2, baseSize, baseSize);
 
         ctx.restore();
     },
 
     // 3. GROUND CRACKS (Smash, Earthquake)
-    // Concept: Jagged fractal lines radiating from center
+    // OPTIMIZED: Uses pre-baked CRACKS texture instead of procedural drawing
     drawGroundCracks(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
         color: string,
         intensity: number
     ) {
+        const texture = VFXFactory.generateCracks(color);
+        const size = HEX_SIZE * 2.2; 
+        const half = size / 2;
+
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y);
 
-        ctx.strokeStyle = color; // Lava color or Energy color
-        ctx.lineWidth = 2 * intensity;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.globalCompositeOperation = 'lighter'; // Glowing cracks
+        ctx.globalCompositeOperation = 'lighter'; 
+        ctx.globalAlpha = intensity;
         
-        const branches = 4;
-        for(let i=0; i<branches; i++) {
-            const angle = (i / branches) * Math.PI * 2 + (Math.random()*0.5);
-            ctx.beginPath();
-            ctx.moveTo(0, 0);
-            
-            // Jagged segments
-            let cx = 0, cy = 0;
-            const len = HEX_SIZE * intensity;
-            const steps = 3;
-            for(let j=0; j<steps; j++) {
-                const stepLen = len / steps;
-                cx += Math.cos(angle) * stepLen + (Math.random()-0.5) * 8;
-                cy += Math.sin(angle) * stepLen + (Math.random()-0.5) * 8;
-                ctx.lineTo(cx, cy);
-            }
-            ctx.stroke();
-        }
-        
-        // Glowing Core
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(0, 0, 8 * intensity, 0, Math.PI*2); ctx.fill();
+        // Slight rotation for variety based on position (pseudo-random)
+        // using x coordinate as seed to keep it static per tile
+        const staticRot = (x % 3) * (Math.PI / 3);
+        ctx.rotate(staticRot);
+
+        ctx.drawImage(texture, -half, -half, size, size);
 
         ctx.restore();
     },
@@ -203,6 +184,7 @@ export const SurfaceAssets = {
             if (i === 0) shade = 0.5; 
             if (i === 1) shade = 0.9; 
 
+            // NOTE: Gradient here is still needed for depth, but it's only 3 per hex
             const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
             grad.addColorStop(0, color);
             grad.addColorStop(1, 'transparent');
@@ -260,30 +242,36 @@ export const SurfaceAssets = {
         color: string,
         globalTime: number
     ) {
-        ctx.save();
-        ctx.fillStyle = color;
-        ctx.strokeStyle = color;
-        const n = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453;
-        const seed = n - Math.floor(n);
+        // Optimized Seed: Use bitwise ops for speed
+        // const n = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453;
+        // const seed = n - Math.floor(n);
+        // Simple hash is faster for pure visuals
+        const seed = ((q * 73856093) ^ (r * 19349663)) / 2147483647; 
+        const normalizedSeed = Math.abs(seed - Math.floor(seed));
 
         if (type === 'MAGMA') {
-            if (seed > 0.5) {
-                ctx.globalAlpha = 0.6;
-                ctx.beginPath();
-                ctx.moveTo(cx - 10, cy);
-                ctx.lineTo(cx, cy + 5);
-                ctx.lineTo(cx + 10, cy - 2);
-                ctx.stroke();
+            if (normalizedSeed > 0.5) {
+                // Now uses cached texture logic inside SurfaceAssets? 
+                // Actually SurfaceAssets calls drawGroundCracks itself sometimes? 
+                // No, TerrainRenderer calls drawTexture directly.
+                // We reimplement a simple crack draw here or use the cached one.
+                
+                // Using the optimized drawGroundCracks which now uses cache
+                this.drawGroundCracks(ctx, cx, cy, '#ef4444', 0.6);
             }
         } else if (type === 'VOID') {
-            if (seed > 0.7) {
+            // VOID texture logic remains simple rects, but use context save/restore carefully
+            if (normalizedSeed > 0.7) {
+                ctx.save();
                 ctx.fillStyle = '#38bdf8';
                 ctx.globalAlpha = 0.4;
                 ctx.fillRect(cx - 2, cy - 2, 4, 4);
+                
+                ctx.strokeStyle = color;
                 ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+10, cy-5); ctx.stroke();
+                ctx.restore();
             }
         }
-        ctx.restore();
     },
 
     drawUnitRune(

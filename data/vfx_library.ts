@@ -18,29 +18,77 @@ export const VFX_LIBRARY = {
     ] as VFXEntry[],
     
     ULT_BLUE: [
-        { key: 'tb_u1', name: '神聖領域 (Sanctuary)', desc: '坦克', visuals: ['金色巨石陣', '光柱墜落', '落地衝擊環'] },
-        { key: 'tb_u2', name: '王者祝福 (Kings Blessing)', desc: '坦克', visuals: ['神聖飛升', '中央光柱', '旋轉光環 (Halo)'] },
-        { key: 'wb_u1', name: '雷霆跳斬 (Thunder)', desc: '戰士', visuals: ['電漿爆發', '藍色衝擊波', '散射閃電'] },
-        { key: 'wb_u2', name: '破曉 (Daybreak)', desc: '戰士', visuals: ['太陽耀斑', '金色光球升起', '水平神聖光束'] },
-        { key: 'rb_u1', name: '水晶巨箭 (Crystal Arrow)', desc: '遊俠', visuals: ['冰晶碎裂', '玻璃碎片飛濺', '寒氣煙霧'] },
-        { key: 'rb_u2', name: '星隕箭雨 (Starfall)', desc: '遊俠', visuals: ['流星雨', '金色星體墜落', '大範圍光圈'] },
-        { key: 'mb_u1', name: '事件視界 (Event Horizon)', desc: '法師', visuals: ['黑洞塌縮', '黑色吸積盤', '粒子吸入', '空間扭曲'] },
-        { key: 'mb_u2', name: '絕對零度 (Absolute Zero)', desc: '法師', visuals: ['冰河時代', '地面結霜', '地底冰刺', '白色寒氣'] },
-        { key: 'sb_u1', name: '神聖干涉 (Intervention)', desc: '輔助', visuals: ['光之翼', '柔和金色領域', '羽毛粒子'] },
-        { key: 'sb_u2', name: '復活之光 (Resurrection)', desc: '輔助', visuals: ['生命之柱', '巨大綠色光柱', '擴散能量環'] }
+        // TANK
+        { key: 'tb_u1', name: '神聖領域 (Sanctuary)', desc: '坦克 | 召喚巨石陣', visuals: ['金色巨石陣', '光柱墜落', '落地衝擊環'] },
+        { key: 'tb_u2', name: '王者祝福 (Kings Blessing)', desc: '坦克 | 神聖飛升', visuals: ['中央光柱', '旋轉光環', '無敵金光'] },
+        { key: 'tb_u3', name: '神盾降臨 (Aegis Fall)', desc: '坦克 | 護盾衝擊', visuals: ['巨大能量盾牌墜落', '藍色衝擊波'] },
+        { key: 'tb_u4', name: '泰坦重擊 (Titan Smash)', desc: '坦克 | 地裂重擊', visuals: ['地面裂縫', '碎石飛濺', '塵土煙霧'] },
+        { key: 'tb_u5', name: '最終防線 (Final Defense)', desc: '坦克 | 絕對防禦', visuals: ['巨大藍色半圓護罩', '能量力場'] },
+        
+        // WARRIOR
+        { key: 'wb_u1', name: '雷霆跳斬 (Thunder)', desc: '戰士 | 電漿爆發', visuals: ['六角鎖定標記', '藍色閃電柱', '電弧擴散'] },
+        { key: 'wb_u2', name: '破曉 (Daybreak)', desc: '戰士 | 太陽耀斑', visuals: ['金色光球升起', '水平神聖光束', '烈陽爆炸'] },
+        { key: 'wb_u3', name: '王者之劍 (Excalibur)', desc: '戰士 | 聖劍裁決', visuals: ['巨大光之劍', '垂直斬擊', '金色衝擊'] },
+        { key: 'wb_u4', name: '劍刃風暴 (Bladestorm)', desc: '戰士 | 旋風斬', visuals: ['旋轉的藍色劍氣', '刀光殘影'] },
+        { key: 'wb_u5', name: '光速衝擊 (Lightspeed)', desc: '戰士 | 超速突進', visuals: ['瞬間殘影', '音爆雲', '藍色閃光'] },
+        
+        // RANGER
+        { key: 'rb_u1', name: '水晶巨箭 (Crystal Arrow)', desc: '遊俠 | 冰晶碎裂', visuals: ['巨大冰箭撞擊', '玻璃碎片飛濺', '寒氣煙霧'] },
+        { key: 'rb_u2', name: '星隕箭雨 (Starfall)', desc: '遊俠 | 流星雨', visuals: ['金色星體墜落', '落地爆炸', '多重打擊'] },
+        { key: 'rb_u3', name: '軌道轟炸 (Orbital)', desc: '遊俠 | 衛星打擊', visuals: ['天基離子砲', '垂直藍色雷射', '地面燒灼'] },
+        { key: 'rb_u4', name: '絕對封鎖 (Lockdown)', desc: '遊俠 | 電磁矩陣', visuals: ['紫色六角網格', '封鎖結界'] },
+        { key: 'rb_u5', name: '超載連射 (Overload)', desc: '遊俠 | 極速爆發', visuals: ['高密度火花', '槍口過熱煙霧'] },
+        
+        // MAGE
+        { key: 'mb_u1', name: '事件視界 (Black Hole)', desc: '法師 | 黑洞塌縮', visuals: ['黑色吸積盤', '紫色光環', '碎片吸入'] },
+        { key: 'mb_u2', name: '絕對零度 (Frostfall)', desc: '法師 | 冰河世紀', visuals: ['地面結霜', '地底冰刺噴發', '白色寒氣'] },
+        { key: 'mb_u3', name: '時間停止 (Time Stop)', desc: '法師 | 砸瓦魯多', visuals: ['金色球體領域', '全場凝滯', '時間波紋'] },
+        { key: 'mb_u4', name: '奧術洪流 (Arcane Torrent)', desc: '法師 | 魔力爆發', visuals: ['紫色能量噴泉', '魔法粒子亂流'] },
+        { key: 'mb_u5', name: '聚能光束 (Focus Beam)', desc: '法師 | 持續雷射', visuals: ['高能藍色雷射', '聚焦光點'] },
+        
+        // SUPPORT
+        { key: 'sb_u1', name: '神聖干涉 (Intervention)', desc: '輔助 | 光之翼', visuals: ['柔和金色領域', '中央光柱', '羽毛粒子'] },
+        { key: 'sb_u2', name: '復活之光 (Resurrection)', desc: '輔助 | 生命之柱', visuals: ['巨大綠色光柱', '螺旋上升靈魂', '擴散能量環'] },
+        { key: 'sb_u3', name: '英勇讚美詩 (Hymn)', desc: '輔助 | 能量音波', visuals: ['藍色音符粒子', '擴散波紋'] },
+        { key: 'sb_u4', name: '神之怒 (Wrath)', desc: '輔助 | 神聖震擊', visuals: ['金色閃電', '地面爆裂'] },
+        { key: 'sb_u5', name: '寧靜之雨 (Rain)', desc: '輔助 | 治癒之雨', visuals: ['全場綠色雨絲', '地面漣漪'] }
     ] as VFXEntry[],
 
     ULT_RED: [
-        { key: 'tr_u1', name: '斷頭台 (Guillotine)', desc: '坦克', visuals: ['處刑巨刃', '紅色粒子刀刃', '鮮血飛濺'] },
-        { key: 'tr_u2', name: '亡靈大軍 (Undead Army)', desc: '坦克', visuals: ['腐化大地', '綠色毒霧', '墓碑/骨頭升起'] },
-        { key: 'wr_u1', name: '諸神黃昏 (Ragnarok)', desc: '戰士', visuals: ['熔岩噴發', '地面裂開', '岩漿', '紅色衝擊波'] },
-        { key: 'wr_u2', name: '血腥旋風 (Blood Storm)', desc: '戰士', visuals: ['鮮血龍捲', '漏斗狀螺旋粒子'] },
-        { key: 'rr_u1', name: '終極爆破 (Railgun)', desc: '遊俠', visuals: ['磁軌砲', '黑色貫穿光束', '後座力光環'] },
-        { key: 'rr_u2', name: '戰術核彈 (Nuke)', desc: '遊俠', visuals: ['蕈狀雲', '巨大閃光', '煙霧蘑菇雲'] },
-        { key: 'mr_u1', name: '毀滅隕石 (Meteor)', desc: '法師', visuals: ['隕石撞擊', '巨大火球拖尾', '熔岩碎塊'] },
-        { key: 'mr_u2', name: '死亡一指 (Death Finger)', desc: '法師', visuals: ['死亡射線', '極細紅/黑雷射', '聚能爆炸'] },
-        { key: 'sr_u1', name: '靈魂連結 (Soul Link)', desc: '輔助', visuals: ['虛空之網', '深紫色虛空', '鎖鏈射出'] },
-        { key: 'sr_u2', name: '先祖之魂 (Ancestors)', desc: '輔助', visuals: ['圖騰之火', '綠色靈魂火', '幽靈粒子'] }
+        // TANK
+        { key: 'tr_u1', name: '斷頭台 (Guillotine)', desc: '坦克 | 處刑巨刃', visuals: ['黑色凶兆網格', '巨大紅色斧刃', '鮮血飛濺'] },
+        { key: 'tr_u2', name: '亡靈大軍 (Undead Army)', desc: '坦克 | 腐化大地', visuals: ['綠色沼澤地面', '墓碑/骨頭升起', '毒霧'] },
+        { key: 'tr_u3', name: '血魔之擁 (Blood Embrace)', desc: '坦克 | 鮮血聚爆', visuals: ['紅色反向衝擊波', '血液向中心匯聚'] },
+        { key: 'tr_u4', name: '不朽屍王 (Undying)', desc: '坦克 | 邪能變身', visuals: ['綠色邪能光環', '身體巨大化'] },
+        { key: 'tr_u5', name: '腐爛爆發 (Rot)', desc: '坦克 | 毒氣爆炸', visuals: ['綠色毒雲擴散', '黏液飛濺'] },
+        
+        // WARRIOR
+        { key: 'wr_u1', name: '諸神黃昏 (Ragnarok)', desc: '戰士 | 熔岩地裂', visuals: ['地面熔岩裂縫', '地底光束噴發', '紅色衝擊波'] },
+        { key: 'wr_u2', name: '血腥旋風 (Blood Storm)', desc: '戰士 | 鮮血龍捲', visuals: ['紅色螺旋煙霧', '血滴粒子'] },
+        { key: 'wr_u3', name: '惡魔變身 (Demon Form)', desc: '戰士 | 暗影爆發', visuals: ['黑色煙霧爆炸', '紅色惡魔氣場'] },
+        { key: 'wr_u4', name: '無限劍制 (Unlimited)', desc: '戰士 | 劍刃亂舞', visuals: ['無數紅色光劍', '空間斬擊'] },
+        { key: 'wr_u5', name: '毀滅重擊 (Devastate)', desc: '戰士 | 虛空重擊', visuals: ['黑色衝擊波', '暗紅碎石'] },
+        
+        // RANGER
+        { key: 'rr_u1', name: '終極爆破 (Railgun)', desc: '遊俠 | 磁軌砲', visuals: ['黑色貫穿光束', '紅色後座力光環', '即時打擊'] },
+        { key: 'rr_u2', name: '戰術核彈 (Nuke)', desc: '遊俠 | 核爆', visuals: ['全屏閃光', '蕈狀雲柱', '蕈狀雲冠', '輻射塵'] },
+        { key: 'rr_u3', name: '彈幕時間 (Bullet Time)', desc: '遊俠 | 槍林彈雨', visuals: ['全方位紅色彈道', '殘影'] },
+        { key: 'rr_u4', name: '煉獄手雷 (Inferno)', desc: '遊俠 | 燃燒彈', visuals: ['持續燃燒區域', '橘色火焰'] },
+        { key: 'rr_u5', name: '獵頭者 (Headhunter)', desc: '遊俠 | 鎖定狙擊', visuals: ['紅色十字準星', '鎖定雷射'] },
+        
+        // MAGE
+        { key: 'mr_u1', name: '毀滅隕石 (Meteor)', desc: '法師 | 隕石撞擊', visuals: ['巨大隕石墜落', '地面坑洞光效', '烈火煙霧'] },
+        { key: 'mr_u2', name: '死亡一指 (Death Finger)', desc: '法師 | 死亡射線', visuals: ['極細紅黑雷射', '目標點聚能爆炸'] },
+        { key: 'mr_u3', name: '混亂之雨 (Chaos Rain)', desc: '法師 | 魔能轟炸', visuals: ['綠色混亂光球', '多點轟炸'] },
+        { key: 'mr_u4', name: '虛空傳送門 (Void Portal)', desc: '法師 | 虛空召喚', visuals: ['紫色漩渦傳送門', '重力扭曲'] },
+        { key: 'mr_u5', name: '靈魂燃燒 (Soul Burn)', desc: '法師 | 靈魂收割', visuals: ['紫色靈魂火花', '魔力燃燒特效'] },
+        
+        // SUPPORT
+        { key: 'sr_u1', name: '靈魂連結 (Soul Link)', desc: '輔助 | 虛空鎖鏈', visuals: ['深紫色鎖鏈', '中心擴散連結'] },
+        { key: 'sr_u2', name: '先祖之魂 (Ancestors)', desc: '輔助 | 圖騰復活', visuals: ['紅色圖騰領域', '金色靈魂火粒子'] },
+        { key: 'sr_u3', name: '巫毒大陣 (Voodoo)', desc: '輔助 | 妖術結界', visuals: ['綠色巫毒煙霧', '變形煙塵'] },
+        { key: 'sr_u4', name: '鮮血契約 (Blood Pact)', desc: '輔助 | 犧牲治療', visuals: ['血紅衝擊波', '生命力擴散'] },
+        { key: 'sr_u5', name: '夢魘降臨 (Nightmare)', desc: '輔助 | 群體恐懼', visuals: ['深紫色夢魘迷霧', '暗影觸手'] }
     ] as VFXEntry[],
 
     STATUS: [

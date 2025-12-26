@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, memo, useRef } from 'react';
-import { LogEntry, Team } from '../../../types';
+import { LogEntry, Team, LogActionType } from '../../../types';
 import { Icons } from '../../ui/icons';
 
 interface LogTabProps {
@@ -8,7 +8,8 @@ interface LogTabProps {
 }
 
 const LogItem = memo(({ log }: { log: LogEntry }) => (
-    <div className="relative pl-6 py-2 group">
+    <div className="relative pl-6 py-2 group pointer-events-none"> 
+        {/* Pointer events none on item to ensure drag goes through to container */}
         {/* Timeline Line */}
         <div className="absolute left-[11px] top-0 bottom-0 w-px bg-white/5 group-hover:bg-cyan-500/30 transition-colors"></div>
         {/* Timeline Dot */}
@@ -41,23 +42,147 @@ const LogItem = memo(({ log }: { log: LogEntry }) => (
     </div>
 ));
 
+type FilterCategory = 'ALL' | 'BATTLE' | 'SKILL' | 'OTHER';
+type SourceCategory = 'ALL' | 'BLUE' | 'RED';
+
 export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
     const [localLogs, setLocalLogs] = useState<LogEntry[]>([]);
-    const endRef = useRef<HTMLDivElement>(null);
+    
+    // Filters
+    const [filterType, setFilterType] = useState<FilterCategory>('ALL');
+    const [filterSource, setFilterSource] = useState<SourceCategory>('ALL');
 
+    // --- DRAG SCROLL LOGIC (Kinetic) ---
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const rafRef = useRef<number>(0);
+    const dragState = useRef({
+        isDown: false,
+        startY: 0,
+        scrollTop: 0,
+        lastY: 0,
+        velocity: 0,
+        lastTime: 0
+    });
+
+    const stopMomentum = () => {
+        if (rafRef.current) {
+            cancelAnimationFrame(rafRef.current);
+            rafRef.current = 0;
+        }
+    };
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        if (!scrollRef.current) return;
+        // Allow clicking buttons in header, but catch drag in body
+        if ((e.target as HTMLElement).tagName === 'BUTTON') return;
+
+        e.stopPropagation();
+        e.preventDefault();
+
+        dragState.current.isDown = true;
+        dragState.current.startY = e.pageY;
+        dragState.current.scrollTop = scrollRef.current.scrollTop;
+        dragState.current.lastY = e.pageY;
+        dragState.current.velocity = 0;
+        dragState.current.lastTime = performance.now();
+        
+        stopMomentum();
+        (e.target as Element).setPointerCapture(e.pointerId);
+        scrollRef.current.style.cursor = 'grabbing';
+    };
+
+    const handlePointerMove = (e: React.PointerEvent) => {
+        if (!dragState.current.isDown || !scrollRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const now = performance.now();
+        const y = e.pageY;
+        const delta = y - dragState.current.startY;
+        scrollRef.current.scrollTop = dragState.current.scrollTop - delta;
+
+        const timeDelta = now - dragState.current.lastTime;
+        if (timeDelta > 0) {
+            const dist = y - dragState.current.lastY;
+            dragState.current.velocity = dist; 
+            dragState.current.lastY = y;
+            dragState.current.lastTime = now;
+        }
+    };
+
+    const handlePointerUp = (e: React.PointerEvent) => {
+        if (!dragState.current.isDown) return;
+        dragState.current.isDown = false;
+        (e.target as Element).releasePointerCapture(e.pointerId);
+        if (scrollRef.current) {
+            scrollRef.current.style.cursor = 'grab';
+        }
+        startMomentum();
+    };
+
+    const startMomentum = () => {
+        stopMomentum();
+        const step = () => {
+            if (!scrollRef.current) return;
+            dragState.current.velocity *= 0.95; // Friction
+            if (Math.abs(dragState.current.velocity) > 0.5) {
+                scrollRef.current.scrollTop -= dragState.current.velocity;
+                rafRef.current = requestAnimationFrame(step);
+            } else {
+                dragState.current.velocity = 0;
+            }
+        };
+        step();
+    };
+
+    useEffect(() => { return () => stopMomentum(); }, []);
+
+    // --- DATA SYNC ---
     useEffect(() => {
         const interval = setInterval(() => {
+            // Only update if count changed to avoid re-rendering entire list constantly
             if (engine.logs.length !== localLogs.length) {
-                setLocalLogs(engine.logs.slice(-100)); // Keep last 100
+                setLocalLogs(engine.logs.slice()); 
             }
         }, 200);
         return () => clearInterval(interval);
     }, [engine, localLogs.length]);
 
-    // Auto-scroll to bottom on new logs (if near bottom)
+    // --- FILTERING ---
+    const getFilteredLogs = () => {
+        return localLogs.filter(log => {
+            // 1. Source Filter
+            if (filterSource === 'BLUE' && log.team !== Team.BLUE) return false;
+            if (filterSource === 'RED' && log.team !== Team.RED) return false;
+
+            // 2. Type Filter
+            if (filterType === 'ALL') return true;
+            
+            const type = log.actionType;
+            if (filterType === 'BATTLE') {
+                return type === 'HIT' || type === 'HEAL' || type === 'DEATH' || type === 'HAZARD';
+            }
+            if (filterType === 'SKILL') {
+                return type === 'CAST' || type === 'CC';
+            }
+            if (filterType === 'OTHER') {
+                return type === 'MOVE' || type === 'DECISION' || type === 'SYSTEM';
+            }
+            return true;
+        });
+    };
+
+    const filteredLogs = getFilteredLogs();
+
+    // Auto-scroll logic (Only if near bottom AND not dragging)
     useEffect(() => {
-        endRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [localLogs]);
+        if (dragState.current.isDown || !scrollRef.current) return;
+        const div = scrollRef.current;
+        // Tolerance of 100px
+        if (div.scrollHeight - div.scrollTop - div.clientHeight < 200) {
+            div.scrollTop = div.scrollHeight;
+        }
+    }, [localLogs.length]); // Trigger on count change, not filtered change
 
     const downloadLogs = () => {
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(engine.logs, null, 2));
@@ -68,35 +193,75 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
     };
 
     return (
-        <div className="flex flex-col h-full bg-transparent">
+        <div className="flex flex-col h-full bg-transparent overflow-hidden">
             {/* Control Header */}
-            <div className="flex justify-between items-center p-5 border-b border-white/5 shrink-0">
-                <div className="flex items-center gap-3">
-                    <div className="relative">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 absolute animate-ping opacity-75"></span>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 relative block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+            <div className="p-4 border-b border-white/5 shrink-0 bg-slate-900/50 backdrop-blur-md space-y-3 z-10">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <div className="relative">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 absolute animate-ping opacity-75"></span>
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 relative block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
+                        </div>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Data Stream</span>
+                        <span className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
+                            {filteredLogs.length} / {localLogs.length}
+                        </span>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Data Stream</span>
+                    <button 
+                        onClick={downloadLogs} 
+                        className="liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
+                    >
+                        <Icons.Save className="w-3 h-3 mr-1.5" /> EXPORT
+                    </button>
                 </div>
-                <button 
-                    onClick={downloadLogs} 
-                    className="liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
-                >
-                    <Icons.Save className="w-3 h-3 mr-1.5" /> EXPORT
-                </button>
+
+                {/* Filters */}
+                <div className="flex flex-wrap gap-2">
+                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 flex-1 min-w-[200px]">
+                        {(['ALL', 'BATTLE', 'SKILL', 'OTHER'] as FilterCategory[]).map(t => (
+                            <button 
+                                key={t}
+                                onClick={() => setFilterType(t)} 
+                                className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterType === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                            >
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 w-[120px]">
+                        {(['ALL', 'BLUE', 'RED'] as SourceCategory[]).map(s => (
+                            <button 
+                                key={s}
+                                onClick={() => setFilterSource(s)} 
+                                className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterSource === s ? (s === 'BLUE' ? 'bg-blue-500/20 text-blue-400' : (s==='RED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')) : 'text-slate-500 hover:text-slate-300'}`}
+                            >
+                                {s === 'ALL' ? 'ANY' : s}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
 
-            {/* Log Stream */}
-            <div className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-1 relative">
-                {localLogs.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-4 mt-10">
+            {/* Log Stream Area with Drag Scroll */}
+            <div 
+                ref={scrollRef}
+                className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 space-y-1 relative cursor-grab active:cursor-grabbing touch-none"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+                onPointerUp={handlePointerUp}
+                onPointerLeave={handlePointerUp}
+                onWheel={() => stopMomentum()} // Stop momentum if user uses wheel
+            >
+                {filteredLogs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-4 mt-10 pointer-events-none">
                         <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-600 animate-spin-slow"></div>
-                        <span className="text-xs font-mono tracking-widest text-slate-500">AWAITING INPUT...</span>
+                        <span className="text-xs font-mono tracking-widest text-slate-500">NO RECORDS FOUND</span>
                     </div>
                 ) : (
-                    localLogs.map(log => <LogItem key={log.id} log={log} />)
+                    // Reverse map to show newest at bottom, but render order is preserved by array order
+                    // We render from 0 to N.
+                    filteredLogs.map(log => <LogItem key={log.id} log={log} />)
                 )}
-                <div ref={endRef} />
             </div>
         </div>
     );

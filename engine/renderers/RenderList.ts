@@ -16,7 +16,7 @@ export class RenderOp {
     type: RenderOpType = RenderOpType.TERRAIN;
     y: number = 0; 
     z: number = 0; 
-    sortBias: number = 0; // Added for manual Z-depth tweaking
+    sortBias: number = 0; 
     
     tx: number = 0; 
     ty: number = 0; 
@@ -30,7 +30,7 @@ export class RenderOp {
     
     oStatus: string | undefined;
     oDanger: any;
-    oHazard: GroundHazard | undefined; // NEW
+    oHazard: GroundHazard | undefined; 
     oLightCol: string | null = null;
     oLightInt: number = 0;
     oRange: boolean = false;
@@ -67,7 +67,8 @@ export class RenderOp {
 export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
-    private capacity: number = 4000;
+    // Increased capacity to 8000 to handle massive particle counts without resizing
+    private capacity: number = 8000;
 
     constructor() {
         for(let i=0; i<this.capacity; i++) this.ops.push(new RenderOp());
@@ -79,10 +80,11 @@ export class RenderList {
     
     public next(): RenderOp {
         if (this.count >= this.ops.length) {
+            // Expand pool if necessary (should be rare now)
             for(let i=0; i<1000; i++) this.ops.push(new RenderOp());
         }
         const op = this.ops[this.count++];
-        op.sortBias = 0; // Reset bias on reuse
+        op.sortBias = 0; 
         return op;
     }
     

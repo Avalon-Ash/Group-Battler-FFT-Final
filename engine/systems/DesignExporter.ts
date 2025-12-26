@@ -1,5 +1,5 @@
 
-import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT } from "../../constants";
+import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT, COMBAT_PARAM, ISO_SCALE_Y } from "../../constants";
 
 export class DesignExporter {
 
@@ -17,129 +17,89 @@ export class DesignExporter {
     private static generateSpec(): string {
         return `
 ================================================================================
-TACTICAL BATTLE SYSTEM - DESIGN SPECIFICATION
+TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
+Version: 6.1.0 (Stable)
 Generated: ${new Date().toLocaleString()}
-Engine Version: 4.0.3 (Tactical.OS)
+Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
 
-[1. 全域物理與環境設定 (Physics & Environment)]
+[1. 空間幾何與座標系統 (Spatial Geometry & Coordinates)]
 --------------------------------------------------------------------------------
-系統採用 2.5D 等距視角 (Isometric)，但在邏輯上運行於 3D 座標系 (x, y, z)。
+系統採用等距視角 (Isometric 2.5D) 表現，底層邏輯運行於擬 3D 空間。
 
-* 重力常數 (Gravity): ${1800} units/s²
-  - 影響所有空中單位、被擊飛單位以及物理碎片。
-  - 地面單位預設緊貼地形高度 (z = 地形高度)。
+* 轉換公式 (Coordinate Transformation):
+  - 投影比例 (ISO_Y): ${ISO_SCALE_Y}
+  - 網格單元: 六角網格 (Axial / Cube Coordinates).
+  - 像素換算: 物理 X/Y/Z 直接映射至畫布 translate 變換，Z 軸轉化為垂直位移偏移。
 
-* 地形規則 (Terrain):
-  - 網格系統: 六角網格 (Hexagonal Grid)。
-  - 高度層級: 最大 ${MAX_TERRAIN_TIER} 層。
-  - 單層高度: ${BLOCK_HEIGHT} px。
-  - 單位高度標準: ${UNIT_VISUAL_HEIGHT} px。
+* 地形規則 (Terrain Architecture):
+  - 最大高度: ${MAX_TERRAIN_TIER} 階梯層級 (Tiers).
+  - 單層物理高度: ${BLOCK_HEIGHT} px.
+  - 視覺標準: 單位頭部參考高度為地表上方 ${UNIT_VISUAL_HEIGHT} px.
 
-* 阻擋規則 (Obstacles):
-  - 視線阻擋 (Line of Sight): 是 (牆壁、樹木、柱子)。
-  - 移動阻擋 (Movement): 是 (所有障礙物)。
-  - 飛行阻擋 (Fly Logic): 部分障礙物 (如高聳的黑曜石柱) 可阻擋飛行單位。
-
-[2. 移動與導航邏輯 (Movement & Navigation)]
+[2. 物理模擬與運動學 (Physics & Kinematics)]
 --------------------------------------------------------------------------------
-* 地面單位 (Ground Units):
-  - 移動方式: 沿網格中心點路徑移動。
-  - 地形限制: 只能跨越高度差 <= 跳躍力 (Jump Stat) 的相鄰網格。
-  - 預設跳躍力: 1~2 層 (依職階而定)。
-  - 物理表現: 移動時會有微幅的 "呼吸" 浮動與傾斜。
+* 重力系統 (Gravitational Field):
+  - 全域重力: 1800 units/s².
+  - 碰撞檢測: 實時地表高度檢索 (Heightmap Lookup).
+  - 彈性係數: 0.5 (落地反彈與動能損耗).
 
-* 飛行單位 (Flying Units):
-  - 移動方式: 直線飛行，或沿網格中心點 (視尋路演算法而定)。
-  - 地形限制: 無視地形高度差與地面障礙物 (除非障礙物標記為 BlocksFlying)。
-  - 懸浮高度: 55px (受重力與懸浮力動態平衡)。
-  - 墜落機制: 若受到 [暈眩/冰凍/變形] 狀態，引擎會切斷懸浮力，導致單位墜落地面。
+* 飛行機制 (Flight Mechanics):
+  - 懸浮高度 (Hover Height): 55 px (動態正弦波浮動).
+  - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
+  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH] 狀態時，升力消失，強制切換至重力物理運算。
 
-* 堆疊處理 (Stacking):
-  - 規則: 同一網格在靜止狀態下不可重疊。
-  - 解析: 若多單位因位移重疊，系統會將其向周圍空網格推擠 (Force: 5)。
+* 移動導航 (Navigation):
+  - 地面單位受限於 [Jump] 屬性，落差 > (Jump * ${BLOCK_HEIGHT})px 之相鄰網格不可通行。
+  - 碰撞解析 (Stacking): 同一網格靜止點僅允許單一單位，動態重疊會觸發解離推力 (Force: 5)。
 
-[3. 尋敵與戰鬥判定 (Targeting & Combat)]
+[3. 戰鬥邏輯與判定 (Combat Logic & Calculations)]
 --------------------------------------------------------------------------------
-* 索敵權重 (Targeting Priority):
-  1. 優先尋找 [射程內] 的敵方單位。
-  2. 若多個目標在射程內，選擇 [距離最近] 者。
-  3. 特殊邏輯: [沉默] 類技能會優先鎖定 [正在詠唱] 或 [擁有奧義] 的目標。
+* 高地優勢 (Elevation Advantage):
+  - 公式: Effective_Range = Skill_Range + max(0, floor(Attacker_H - Target_H) / ${BLOCK_HEIGHT}).
+  - 描述: 垂直高度每領先一階，遠程射程提升 1 格。
 
-* 高地優勢 (High Ground Mechanics):
-  - 公式: EffectiveRange = BaseRange + max(0, floor(HeightDiff / BlockHeight))
-  - 描述: 攻擊方每高於目標 1 層地形 (${BLOCK_HEIGHT}px)，射程 +1 格。
-  - 低地懲罰: 無 (避免遊戲體驗過於挫折)。
+* 傷害模型 (Damage Modeling):
+  - 斬殺判定 (Execute): 目標 HP < 30% 時，觸發 ${COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER}x 傷害係數。
+  - 吸血機制 (Vampirism): 預設轉化 50% 傷害為生命回復。
+  - 擊退衝擊 (Impulse): 基於傷害量計算向量位移，最大限制 ${COMBAT_PARAM.HIT_IMPULSE_MAX} 向量單位。
 
-* AOE 判定 (Area of Effect):
-  - 判定方式: 圓形/六角形半徑檢測。
-  - 友軍傷害 (Friendly Fire): 無 (技能只篩選敵對陣營)。
-  - 命中判定: 以目標所在的網格中心點計算距離。
+* 控場階級 (CC Hierarchy):
+  - 硬控場 (Hard CC): Stun, Banish (中斷詠唱，禁止所有行動).
+  - 軟控場 (Soft CC): Silence (禁止主動/奧義，允許普攻移動).
+  - 遞減機制 (Diminishing Returns): 同一類型控場連續施加，持續時間減半，3 次後免疫，持續 10 秒。
 
-[4. 狀態效果定義 (Status Effects Rules)]
+[4. 渲染管線技術 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
-以下定義各類狀態標籤 (Tag) 在引擎中的具體行為：
+* 繪製流程:
+  1. 靜態背景緩存 (Static Background Caching).
+  2. 動態環境要素 (Atmospheric Fog / Dynamic Clouds).
+  3. 渲染隊列構建 (RenderList Collection): 遍歷 Tile, Unit, VFX, Projectile.
+  4. 深度排序 (Painters Algorithm): 以 Ground_Y 為 Key，配合 SortBias 修正 Z-Fighting.
+  5. 像素對齊 (Pixel Snapping): 所有 tx/ty 進行 Math.round()，消除 sub-pixel 模糊。
 
-[HARD CC - 硬控場]
-* STUN (暈眩):
-  - 行為: 禁止移動 (isMoving=false)、禁止施法、中斷當前詠唱。
-  - 視覺: 頭頂出現旋轉星星光環。
-  - 物理: 飛行單位失去升力。
+* 後處理 (Post-Processing):
+  - 震動 (Trauma): 基於平方衰減的相機位移。
+  - 色差 (Chromatic Aberration): 戰鬥高潮與轉場時的 RGB 頻道分離特效。
+  - 高斯模糊 (Finish Blur): 模擬毛玻璃質感的轉場與勝利介面。
 
-* BANISH (放逐):
-  - 行為: 無敵狀態、無法被選取為目標、禁止動作、中斷詠唱。
-  - 視覺: 單位變透明或被籠子/特效包覆。
-  - 變體 POLYMORPH (變形): 視為放逐，但強制替換模型為 [綿羊]，並在地面亂跑。
-  - 變體 STASIS (凝滯): 視為放逐，但凍結動畫幀並變成金色。
-
-[SOFT CC - 軟控場]
-* SILENCE (沉默):
-  - 行為: 禁止施放 [ACTIVE] 與 [ULT] 技能。允許 [BASIC] 普攻與移動。
-  - 視覺: 頭頂出現符文封印。
-
-* KNOCKBACK / PULL (擊退/牽引):
-  - 行為: 強制施加物理速度向量 (Velocity)。
-  - 規則: 無視地形高度 (可被推下懸崖或推上高地)。
-  - 抵抗: 單位的 [Weight] 屬性可抵銷推力距離。
-
-[DOT / HOT - 持續效果]
-* DOT (Damage over Time):
-  - 行為: 每 tick 扣除 HP，可能觸發受擊閃爍但不打斷動作。
-* HOT (Heal over Time):
-  - 行為: 每 tick 回復 HP。
-
-[5. AI 行為樹結構 (Standard Behavior Tree)]
+[5. AI 行為決策樹 (AI Behavior Tree)]
 --------------------------------------------------------------------------------
-所有單位預設使用以下決策邏輯 (由上而下優先權):
+採用決策優先級 (Selector) 結構：
 
-ROOT (Selector)
- ├── [死亡檢查] Sequence
- │    ├── 條件: HP <= 0
- │    └── 動作: 進入死亡狀態 (停止思考)
- │
- ├── [被控檢查] Sequence
- │    ├── 條件: 被暈眩 OR 被放逐
- │    └── 動作: 等待 (Wait)
- │
- └── [戰鬥循環] Sequence
-      ├── [索敵] Condition: 掃描視野內最近敵人
-      │
-      └── [技能決策] Selector (依序嘗試)
-           ├── [奧義] Sequence (Slot 0)
-           │    ├── 條件: CD就緒 & MP足夠 & 射程內 & 未沉默
-           │    └── 動作: 
-           │         ├── 計算最佳施法點 (AOE最大化/單體斬殺)
-           │         ├── 移動至施法點 (若需)
-           │         └── 執行詠唱
-           │
-           ├── [主動技] Sequence (Slot 1)
-           │    └── (邏輯同上)
-           │
-           ├── [普攻] Sequence (Slot 2)
-           │    └── (邏輯同上)
-           │
-           └── [預設移動] Action
-                └── 動作: 往最近敵人的座標移動 (Pathfinding)
+1. [自保/狀態檢查]: 優先處理死亡與受控狀態，執行 Wait 行為。
+2. [奧義優先等級]: MP 滿載且 CD 就緒時，掃描全場最佳施法點 (AOE 最大化/斬殺優先)。
+3. [戰術移動]: 若目標超出射程，利用 A* 尋路進行位移，近戰單位觸發 Charge 加速。
+4. [預設動作]: 若無可用技能，保持最近敵對目標的鎖定並進行追擊。
+
+[6. 陣營視覺語義 (Faction Visual Semantics)]
+--------------------------------------------------------------------------------
+* 藍軍 (Imperial):
+  - 色彩: 鈷藍 (Cobalt), 黃金 (Gold), 能量青 (Cyan).
+  - 形狀: 圓形、六角、規整對稱。
+* 紅軍 (Covenant):
+  - 色彩: 深紅 (Crimson), 黃銅 (Brass), 邪能綠 (Fel Green).
+  - 形狀: 尖銳、不規則鋸齒、混沌發散。
 
 ================================================================================
 END OF SPECIFICATION

@@ -27,12 +27,13 @@ interface GameCanvasProps {
     rematch: () => void;
     nextLevel: () => void; // New Prop
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
+    onOpenLogs: () => void; // New Prop
 }
 
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, nextLevel, transitionPhase 
+        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, nextLevel, transitionPhase, onOpenLogs 
     } = props;
 
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -191,19 +192,27 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                         {/* Actions */}
                         <div className="flex flex-col gap-3">
                             <button 
-                                onClick={rematch} 
-                                className="liquid-btn px-8 py-4 rounded-xl text-lg font-bold bg-white/5 hover:bg-white/10 border-white/20 text-slate-200 shadow-lg w-full flex items-center justify-center gap-3 group"
-                            >
-                                <Icons.Restart className="w-5 h-5 opacity-70 group-hover:opacity-100 group-hover:-rotate-90 transition-all" />
-                                <span>再戰一局 (Rematch)</span>
-                            </button>
-                            
-                            <button 
                                 onClick={nextLevel} 
                                 className="liquid-btn-primary px-8 py-4 rounded-xl text-lg font-bold shadow-lg w-full flex items-center justify-center gap-3 group"
                             >
                                 <Icons.Dice className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                 <span>前進下一關 (Next Level)</span>
+                            </button>
+
+                            <button 
+                                onClick={onOpenLogs} 
+                                className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-slate-800/50 hover:bg-slate-700/50 border-white/10 text-cyan-400 shadow-md w-full flex items-center justify-center gap-2 group"
+                            >
+                                <Icons.Log className="w-4 h-4 opacity-80 group-hover:scale-110 transition-transform" />
+                                <span>戰鬥記錄 (Battle Logs)</span>
+                            </button>
+
+                            <button 
+                                onClick={rematch} 
+                                className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 shadow-lg w-full flex items-center justify-center gap-2 group"
+                            >
+                                <Icons.Restart className="w-4 h-4 opacity-70 group-hover:opacity-100 group-hover:-rotate-90 transition-all" />
+                                <span>再戰一局 (Rematch)</span>
                             </button>
                         </div>
                     </div>

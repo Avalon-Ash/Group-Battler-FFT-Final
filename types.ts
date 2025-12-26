@@ -115,7 +115,7 @@ export enum NodeState {
     RUNNING = 'R'
 }
 
-export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC';
+export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC' | 'HAZARD';
 
 export interface LogEntry {
     id: string;

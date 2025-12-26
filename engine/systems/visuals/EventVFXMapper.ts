@@ -48,8 +48,10 @@ export class EventVFXMapper {
 
             case 'VISUAL_BEAM':
                 if (event.skill?.id === 'mr_u2') {
-                    // Death Finger (Covenant Ult) - Handled in AOE block mostly, but catch direct calls here
+                    // Death Finger (Covenant Ult) - handled in dispatchUltVFX usually, but catch direct beam events
                     Generic.spawnDeathRay(vfx, origin, target, event.color || '#be123c');
+                } else if (event.skill?.id === 'rb_u3') {
+                    // Orbital Bombardment - handled in dispatchUltVFX
                 } else {
                     // Generic Beam
                     Generic.spawnBeam(vfx, origin, target, event.color || '#fff');
@@ -66,7 +68,7 @@ export class EventVFXMapper {
 
             case 'PROJECTILE_HIT': 
                 if (event.skill?.type !== 'AOE') {
-                    this.handleHitVisuals(event, engine, vfx, target, groundZ, camera); 
+                    this.handleHitVisuals(event, engine, vfx, grid, target, groundZ, camera); 
                 } else {
                     Generic.addImpact(vfx, event.pos.x, event.pos.y, groundZ + 10, event.skill?.color || '#fff', 'BLAST', 0.3);
                 }
@@ -106,11 +108,6 @@ export class EventVFXMapper {
         }
     }
 
-    /**
-     * 📐 CORE 3D RESOLUTION
-     * Returns {x, y, z} where z includes Terrain + Physics + Chest Offset.
-     * This is the "Visual Center" of the unit or point.
-     */
     private resolvePoint(defaultX: number, defaultY: number, agentId: string | undefined, engine: GameEngine, grid: GridSystem): Point3D {
         let agent = agentId ? engine.agents.find(a => a.id === agentId) : null;
 
@@ -121,7 +118,6 @@ export class EventVFXMapper {
 
         if (agent) {
             const terrainH = grid.getTerrainHeight(agent.q, agent.r, engine);
-            // Z = Terrain + Physics Jump + Chest Height
             return {
                 x: agent.px,
                 y: agent.py,
@@ -135,14 +131,12 @@ export class EventVFXMapper {
         return {
             x: defaultX,
             y: defaultY,
-            z: terrainH // Ground level for non-agent points
+            z: terrainH 
         };
     }
 
     private handleDamageImpact(event: GameEvent, engine: GameEngine, vfx: VFXSystem, target: Point3D) {
-        let dx = 0;
-        let dy = -1;
-
+        let dx = 0; let dy = -1;
         if (event.sourceId && event.targetId) {
             const s = engine.agents.find(a => a.id === event.sourceId);
             const t = engine.agents.find(a => a.id === event.targetId);
@@ -150,28 +144,17 @@ export class EventVFXMapper {
                 const diffX = t.px - s.px; 
                 const diffY = t.py - s.py;
                 const len = Math.sqrt(diffX*diffX + diffY*diffY);
-                if (len > 0) {
-                    dx = diffX/len;
-                    dy = diffY/len;
-                }
+                if (len > 0) { dx = diffX/len; dy = diffY/len; }
                 const isVictimBlue = t.team === Team.BLUE;
                 const debrisColor = isVictimBlue ? THEME_IMPERIAL.energy : THEME_COVENANT.secondary;
                 Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
                 return;
             }
         }
-        
         Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, 0, -1, event.color || '#94a3b8');
     }
 
-    private handleHitVisuals(
-        event: GameEvent, 
-        engine: GameEngine, 
-        vfx: VFXSystem, 
-        target: Point3D,
-        groundZ: number,
-        camera: CameraSystem
-    ): void {
+    private handleHitVisuals(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, target: Point3D, groundZ: number, camera: CameraSystem): void {
         const color = event.skill?.color || '#fff';
         const isUlt = event.skill?.tag === 'ULT';
         const skill = event.skill;
@@ -179,26 +162,20 @@ export class EventVFXMapper {
         const source = engine.agents.find(a => a.id === event.sourceId);
         const faction = source ? source.team : Team.BLUE;
 
-        if (isUlt) {
+        if (isUlt && skill) {
+            // 🚨 ROUTING FIX: Direct Single-Target Ults to their specific spawners
+            if (this.dispatchUltVFX(skill.id, target, color, engine, vfx, grid, camera, groundZ, event.sourceId)) {
+                return;
+            }
+
+            // Fallback for unmapped Ults
             camera.addTrauma(0.15); 
-            if (skill && skill.id === 'mr_u2') {
-                Generic.addImpact(vfx, target.x, target.y, target.z, '#be123c', 'BLAST', 0.5);
-                Generic.spawnShockwave(vfx, target.x, target.y, groundZ, '#000', 0.5);
-                return; 
-            }
-            if (faction === Team.BLUE) {
-                Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.8);
-            } else {
-                Generic.spawnBloodRitual(vfx, target.x, target.y, target.z, color, 1.5);
-            }
-            if (skill && skill.id === 'wr_u1') { 
-                Generic.addImpact(vfx, target.x, target.y, target.z, '#ef4444', 'BLAST', 0.8);
-                camera.addTrauma(0.5);
-            } 
+            if (faction === Team.BLUE) Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.8);
+            else Generic.spawnBloodRitual(vfx, target.x, target.y, target.z, color, 1.5);
         } else {
+            // Standard Skills
             let dx = 0, dy = 0;
             let debrisColor = color; 
-            
             if (event.targetId) {
                 const t = engine.agents.find(a => a.id === event.targetId);
                 if (t) {
@@ -208,20 +185,15 @@ export class EventVFXMapper {
             }
             if (source) {
                 const len = Math.sqrt((target.x - source.px)**2 + (target.y - source.py)**2) || 1;
-                dx = (target.x - source.px) / len;
-                dy = (target.y - source.py) / len;
+                dx = (target.x - source.px) / len; dy = (target.y - source.py) / len;
             }
-
             if (visualType === 'SMASH') {
                 Generic.addImpact(vfx, target.x, target.y, target.z, color, 'SHOCKWAVE', 0.4);
                 Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
             } 
             else if (visualType === 'SLASH') {
-                if (source) {
-                    Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
-                } else {
-                    Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.4);
-                }
+                if (source) Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
+                else Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.4);
             }
             else if (visualType === 'FIREBALL' || visualType === 'BOMB') {
                 Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.5);
@@ -229,74 +201,26 @@ export class EventVFXMapper {
             }
             else {
                 Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.4);
-                if (dx !== 0 || dy !== 0) {
-                    Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
-                }
+                if (dx !== 0 || dy !== 0) Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
             }
         }
     }
 
     private handleAOE(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, groundZ: number) {
         if (!event.skill) return;
-        const id = event.skill.id;
+        const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ };
         const color = event.color || '#fff';
+
+        // 🚨 ROUTING FIX: Try specific spawners first
+        if (this.dispatchUltVFX(event.skill.id, centerPt, color, engine, vfx, grid, camera, groundZ, event.sourceId)) {
+            return;
+        }
+
+        // Generic Grid Reaction (Fallback for standard AOEs)
         const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const radius = event.skill.aoeRadius || 1;
         const affectedHexes = HexUtils.range(centerHex, radius);
 
-        // --- SKILL SPECIFIC EFFECTS ---
-        
-        // Railgun (Directional)
-        if (id === 'rr_u1') { 
-            const src = engine.agents.find(a => a.id === event.sourceId);
-            if (src) {
-                // Explicit 3D Source -> Impact Point
-                const srcPt = this.resolvePoint(src.px, src.py, src.id, engine, grid);
-                const dstPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 40 }; // Impact mid-air
-                Covenant.spawnCovenantRailgun(vfx, srcPt, dstPt, color); 
-                camera.addTrauma(0.8);
-            }
-            return; 
-        }
-        
-        // Death Finger (Directional)
-        if (id === 'mr_u2') { 
-            const src = engine.agents.find(a => a.id === event.sourceId);
-            if (src) {
-                const srcPt = this.resolvePoint(src.px, src.py, src.id, engine, grid);
-                const dstPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 40 };
-                Covenant.spawnCovenantDeathFinger(vfx, srcPt, dstPt, color);
-                camera.addTrauma(0.7);
-            }
-            return; 
-        }
-
-        // Standard Area Effects (Using 3D points where applicable)
-        const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ };
-
-        // IMPERIAL
-        if (id === 'tb_u1') { Imperial.spawnImperialSanctuary(vfx, centerPt, color); camera.addTrauma(0.7); return; }
-        if (id === 'tb_u2') { Imperial.spawnImperialKingsBlessing(vfx, centerPt, color); camera.addTrauma(0.3); return; }
-        if (id === 'wb_u1') { Imperial.spawnImperialThunder(vfx, centerPt, color); camera.addTrauma(0.6); return; }
-        if (id === 'wb_u2') { Imperial.spawnImperialDaybreak(vfx, centerPt, color); camera.addTrauma(0.8); return; }
-        if (id === 'rb_u1') { Imperial.spawnImperialCrystalArrow(vfx, centerPt, color); camera.addTrauma(0.6); return; }
-        if (id === 'rb_u2') { Imperial.spawnImperialStarfall(vfx, centerPt, color); camera.addTrauma(0.4); return; }
-        if (id === 'mb_u1') { Imperial.spawnImperialBlackHole(vfx, centerPt, color); camera.addTrauma(0.5); return; }
-        if (id === 'mb_u2') { Imperial.spawnImperialFrostfall(vfx, centerPt, color); camera.addTrauma(0.5); return; }
-        if (id === 'sb_u1') { Imperial.spawnImperialIntervention(vfx, centerPt, color); camera.addTrauma(0.3); return; }
-        if (id === 'sb_u2') { Imperial.spawnImperialResurrection(vfx, centerPt, color); camera.addTrauma(0.4); return; }
-
-        // COVENANT
-        if (id === 'tr_u1') { Covenant.spawnCovenantGuillotine(vfx, centerPt, color); camera.addTrauma(0.8); return; }
-        if (id === 'tr_u2') { Covenant.spawnCovenantUndeadArmy(vfx, centerPt, color); camera.addTrauma(0.5); return; }
-        if (id === 'wr_u1') { Covenant.spawnCovenantRagnarok(vfx, centerPt, color); camera.addTrauma(0.9); return; }
-        if (id === 'wr_u2') { Covenant.spawnCovenantBloodStorm(vfx, centerPt, color); camera.addTrauma(0.6); return; }
-        if (id === 'rr_u2') { Covenant.spawnCovenantNuke(vfx, centerPt, color); camera.addTrauma(1.0); return; }
-        if (id === 'mr_u1') { Covenant.spawnCovenantMeteor(vfx, centerPt, color); camera.addTrauma(0.7); return; }
-        if (id === 'sr_u1') { Covenant.spawnCovenantSoulLink(vfx, centerPt, color); camera.addTrauma(0.3); return; }
-        if (id === 'sr_u2') { Covenant.spawnCovenantAncestors(vfx, centerPt, color); camera.addTrauma(0.3); return; }
-
-        // Generic Grid Reaction
         affectedHexes.forEach(h => {
             if (engine.map.isValid(h.q, h.r)) {
                 const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
@@ -307,8 +231,118 @@ export class EventVFXMapper {
             }
         });
 
-        // Generic Fallback
+        // Generic Core Impact
         Generic.addImpact(vfx, event.pos.x, event.pos.y, groundZ, event.color || '#fff', 'BLAST', 0.5);
         camera.addTrauma(0.25); 
+    }
+
+    // --- CENTRALIZED ULT DISPATCHER ---
+    // Returns true if a specific handler was found and executed
+    private dispatchUltVFX(
+        id: string, 
+        pt: Point3D, 
+        color: string, 
+        engine: GameEngine, 
+        vfx: VFXSystem, 
+        grid: GridSystem, 
+        camera: CameraSystem, 
+        groundZ: number,
+        sourceId?: string
+    ): boolean {
+        
+        // --- DIRECTIONAL SPECIAL CASES (Require Source) ---
+        if (id === 'rr_u1') { // Railgun
+            const src = sourceId ? engine.agents.find(a => a.id === sourceId) : null;
+            if (src) {
+                const srcPt = this.resolvePoint(src.px, src.py, src.id, engine, grid);
+                // Use pt (target) as end, but ensure Z is reasonable
+                const dstPt = { x: pt.x, y: pt.y, z: pt.z }; 
+                Covenant.spawnCovenantRailgun(vfx, srcPt, dstPt, color); 
+                camera.addTrauma(0.8);
+                return true;
+            }
+        }
+        if (id === 'mr_u2') { // Death Finger
+            const src = sourceId ? engine.agents.find(a => a.id === sourceId) : null;
+            if (src) {
+                const srcPt = this.resolvePoint(src.px, src.py, src.id, engine, grid);
+                const dstPt = { x: pt.x, y: pt.y, z: pt.z };
+                Covenant.spawnCovenantDeathFinger(vfx, srcPt, dstPt, color); 
+                camera.addTrauma(0.7);
+                return true;
+            }
+        }
+
+        // ================= IMPERIAL =================
+        // Tank
+        if (id === 'tb_u1') { Imperial.spawnImperialSanctuary(vfx, pt, color); camera.addTrauma(0.7); return true; }
+        if (id === 'tb_u2') { Imperial.spawnImperialKingsBlessing(vfx, pt, color); camera.addTrauma(0.3); return true; }
+        if (id === 'tb_u3') { Imperial.spawnImperialAegis(vfx, pt, color); camera.addTrauma(0.5); return true; }
+        if (id === 'tb_u4') { Imperial.spawnImperialTitan(vfx, pt, color); camera.addTrauma(0.6); return true; }
+        if (id === 'tb_u5') { Imperial.spawnImperialDefense(vfx, pt, color); return true; }
+        // Warrior
+        if (id === 'wb_u1') { Imperial.spawnImperialThunder(vfx, pt, color); camera.addTrauma(0.6); return true; }
+        if (id === 'wb_u2') { Imperial.spawnImperialDaybreak(vfx, pt, color); camera.addTrauma(0.8); return true; }
+        if (id === 'wb_u3') { Imperial.spawnImperialExcalibur(vfx, pt, color); camera.addTrauma(0.7); return true; }
+        if (id === 'wb_u4') { Imperial.spawnImperialBladestorm(vfx, pt, color); return true; }
+        if (id === 'wb_u5') { Imperial.spawnImperialLightspeed(vfx, pt, color); return true; }
+        // Ranger
+        if (id === 'rb_u1') { 
+            // SPECIAL FIX: Force shockwave to ground Z, but impact at body Z
+            const groundPt = { x: pt.x, y: pt.y, z: groundZ };
+            Imperial.spawnImperialCrystalArrow(vfx, pt, color); 
+            // Add extra ground ring because Crystal Arrow impact is high up
+            Generic.spawnShockwave(vfx, pt.x, pt.y, groundZ, '#60a5fa', 0.8);
+            camera.addTrauma(0.6); 
+            return true; 
+        }
+        if (id === 'rb_u2') { Imperial.spawnImperialStarfall(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'rb_u3') { Imperial.spawnImperialOrbit(vfx, pt, color); camera.addTrauma(0.6); return true; }
+        if (id === 'rb_u4') { Imperial.spawnImperialLockdown(vfx, pt, color); return true; }
+        if (id === 'rb_u5') { Imperial.spawnImperialOverload(vfx, pt, color); return true; }
+        // Mage
+        if (id === 'mb_u1') { Imperial.spawnImperialBlackHole(vfx, pt, color); camera.addTrauma(0.5); return true; }
+        if (id === 'mb_u2') { Imperial.spawnImperialFrostfall(vfx, pt, color); camera.addTrauma(0.5); return true; }
+        if (id === 'mb_u3') { Imperial.spawnImperialTimeStop(vfx, pt, color); camera.addTrauma(0.3); return true; }
+        if (id === 'mb_u4') { Imperial.spawnImperialArcane(vfx, pt, color); return true; }
+        if (id === 'mb_u5') { Imperial.spawnImperialFocus(vfx, pt, color); return true; }
+        // Support
+        if (id === 'sb_u1') { Imperial.spawnImperialIntervention(vfx, pt, color); camera.addTrauma(0.3); return true; }
+        if (id === 'sb_u2') { Imperial.spawnImperialResurrection(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'sb_u3') { Imperial.spawnImperialHymn(vfx, pt, color); return true; }
+        if (id === 'sb_u4') { Imperial.spawnImperialWrath(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'sb_u5') { Imperial.spawnImperialRain(vfx, pt, color); return true; }
+
+        // ================= COVENANT =================
+        // Tank
+        if (id === 'tr_u1') { Covenant.spawnCovenantGuillotine(vfx, pt, color); camera.addTrauma(0.8); return true; }
+        if (id === 'tr_u2') { Covenant.spawnCovenantUndeadArmy(vfx, pt, color); camera.addTrauma(0.5); return true; }
+        if (id === 'tr_u3') { Covenant.spawnCovenantBloodEmbrace(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'tr_u4') { Covenant.spawnCovenantUndying(vfx, pt, color); return true; }
+        if (id === 'tr_u5') { Covenant.spawnCovenantRot(vfx, pt, color); return true; }
+        // Warrior
+        if (id === 'wr_u1') { Covenant.spawnCovenantRagnarok(vfx, pt, color); camera.addTrauma(0.9); return true; }
+        if (id === 'wr_u2') { Covenant.spawnCovenantBloodStorm(vfx, pt, color); camera.addTrauma(0.6); return true; }
+        if (id === 'wr_u3') { Covenant.spawnCovenantDemon(vfx, pt, color); camera.addTrauma(0.5); return true; }
+        if (id === 'wr_u4') { Covenant.spawnCovenantUnlimited(vfx, pt, color); return true; }
+        if (id === 'wr_u5') { Covenant.spawnCovenantDevastate(vfx, pt, color); camera.addTrauma(0.6); return true; }
+        // Ranger
+        if (id === 'rr_u2') { Covenant.spawnCovenantNuke(vfx, pt, color); camera.addTrauma(1.0); return true; }
+        if (id === 'rr_u3') { Covenant.spawnCovenantBulletTime(vfx, pt, color); return true; }
+        if (id === 'rr_u4') { Covenant.spawnCovenantInferno(vfx, pt, color); return true; }
+        if (id === 'rr_u5') { Covenant.spawnCovenantHeadhunter(vfx, pt, color); return true; }
+        // Mage
+        if (id === 'mr_u1') { Covenant.spawnCovenantMeteor(vfx, pt, color); camera.addTrauma(0.7); return true; }
+        if (id === 'mr_u3') { Covenant.spawnCovenantChaosRain(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'mr_u4') { Covenant.spawnCovenantVoidPortal(vfx, pt, color); return true; }
+        if (id === 'mr_u5') { Covenant.spawnCovenantSoulBurn(vfx, pt, color); return true; }
+        // Support
+        if (id === 'sr_u1') { Covenant.spawnCovenantSoulLink(vfx, pt, color); camera.addTrauma(0.3); return true; }
+        if (id === 'sr_u2') { Covenant.spawnCovenantAncestors(vfx, pt, color); camera.addTrauma(0.3); return true; }
+        if (id === 'sr_u3') { Covenant.spawnCovenantVoodoo(vfx, pt, color); return true; }
+        if (id === 'sr_u4') { Covenant.spawnCovenantBloodPact(vfx, pt, color); camera.addTrauma(0.4); return true; }
+        if (id === 'sr_u5') { Covenant.spawnCovenantNightmare(vfx, pt, color); return true; }
+
+        return false;
     }
 }

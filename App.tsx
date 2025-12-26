@@ -20,6 +20,9 @@ function App() {
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
 
+  // UX Fix: Allow modals to appear even if HUD is hidden (e.g. viewing logs during Game Over)
+  const showModals = !hideHUD || state.showLogs || state.showDB || state.showVFXMap;
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       
@@ -80,7 +83,8 @@ function App() {
       )}
 
       {/* 4. Modals (Logs / DB / VFX Map) */}
-      {!hideHUD && (
+      {/* Logic Update: Can now show on Victory Screen */}
+      {showModals && (
           <ModalManager 
               showLogs={state.showLogs}
               showDB={state.showDB}
@@ -111,6 +115,7 @@ function App() {
                 rematch={actions.rematch}
                 nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}
+                onOpenLogs={() => setters.setShowLogs(true)}
             />
       </div>
 

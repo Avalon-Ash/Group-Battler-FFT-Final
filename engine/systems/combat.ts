@@ -57,6 +57,7 @@ export class CombatSystem {
                     const dmg = h.power;
                     agent.hp = Math.max(0, agent.hp - dmg);
                     
+                    // Visual Feedback
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: {x: agent.px, y: agent.py}, 
@@ -65,6 +66,9 @@ export class CombatSystem {
                         // Mock skill for color consistency in renderer
                         skill: { color: h.color, ccType: 'DOT' } as any 
                     });
+
+                    // Log the Environment Damage (New)
+                    engine.log(agent, 'HAZARD', h.type, `(${h.q},${h.r})`, `受到地形傷害 ${Math.floor(dmg)}`);
                 });
             }
         }
@@ -95,6 +99,4 @@ export class CombatSystem {
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
         this.projectileSystem.spawnProjectile(source, skill, engine);
     }
-    
-    // Deprecated spawnField removed in favor of direct MapSystem calls
 }
