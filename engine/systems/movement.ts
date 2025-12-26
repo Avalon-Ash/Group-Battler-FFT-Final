@@ -11,12 +11,10 @@ import { TargetingSystem } from "../ai/TargetingSystem";
 const STACKING_RESOLUTION_FORCE = 5;
 
 export class MovementSystem {
-    // Logic Modules
     public physics: PhysicsEngine;
     public pathfinder: Pathfinder;
     public targeting: TargetingSystem;
 
-    // Optimization: Reuse Stacking Map to reduce GC
     private _stackingMap = new Map<number, Agent[]>();
 
     constructor() {
@@ -24,10 +22,6 @@ export class MovementSystem {
         this.pathfinder = new Pathfinder();
         this.targeting = new TargetingSystem();
     }
-
-    // =========================================================================================
-    // 🏹 PROXIES (For backward compatibility & cleaner access)
-    // =========================================================================================
 
     public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, engine: GameEngine): number {
         return this.targeting.getEffectiveRange(a, targetQ, targetR, baseRange, engine);
@@ -41,23 +35,25 @@ export class MovementSystem {
         return this.targeting.calculateOptimalTarget(source, skill, engine);
     }
 
-    // =========================================================================================
-    // 🏃 MOVEMENT & PHYSICS ORCHESTRATION
-    // =========================================================================================
-
     public updatePhysics(a: Agent, dt: number, engine: GameEngine) {
         this.physics.update(a, dt, engine);
     }
 
     public updateMovement(a: Agent, dt: number, engine: GameEngine) {
-        // Use per-agent move speed WITH dynamic multiplier (Charge effect)
-        a.moveProgress += a.moveSpeed * a.moveSpeedMult * dt;
+        // --- 1. SLOW EFFECT LOGIC ---
+        // If slowed, reduce speed by 50%
+        // We multiply the incoming speedMult (e.g. Charge) by the slow factor
+        let effectiveSpeedMult = a.moveSpeedMult;
+        if (a.slowTimer > 0) {
+            effectiveSpeedMult *= 0.5;
+        }
+
+        a.moveProgress += a.moveSpeed * effectiveSpeedMult * dt;
         
         const c = HexUtils.toPx(a.q, a.r, engine.mapConfig);
         const nextHex = a.path[0];
         const n = HexUtils.toPx(nextHex.q, nextHex.r, engine.mapConfig);
         
-        // Simple facing logic based on screen X
         if (n.x > c.x) a.facing = 1;
         else if (n.x < c.x) a.facing = -1;
         
@@ -65,37 +61,42 @@ export class MovementSystem {
         a.py = HexUtils.lerp(c.y, n.y, a.moveProgress);
         
         if (a.moveProgress >= 1) {
-            // Commit move
             engine.updateAgentPosition(a, nextHex.q, nextHex.r);
-            engine.log(a, 'MOVE', '移動', `(${nextHex.q},${nextHex.r})`, '抵達目的地');
+            // Log logic kept minimal to avoid spam
+            // engine.log(a, 'MOVE', '移動', `(${nextHex.q},${nextHex.r})`, '抵達目的地');
             
             a.isMoving = false;
-            a.moveSpeedMult = 1.0; // Reset speed after step completes
-            
-            // Small nudge to separate stacked units visually if they glitch
+            a.moveSpeedMult = 1.0; 
             a.physics.vx -= a.facing * STACKING_RESOLUTION_FORCE; 
         }
     }
 
     public moveAgentToHex(a: Agent, targetHex: Hex, r: number, engine: GameEngine, speedMult: number = 1.0): NodeState {
+        // --- 2. ROOT / STUN / BANISH CHECK ---
+        if (a.stunTimer > 0 || a.banished || a.rootTimer > 0) {
+            if (a.isMoving) {
+                // Force stop if rooted mid-move
+                a.isMoving = false;
+                a.path = [];
+                a.setAnim(AnimState.IDLE);
+            }
+            return NodeState.FAILURE;
+        }
+
         if (a.isMoving) {
-            a.moveSpeedMult = speedMult; // Update dynamic speed
+            a.moveSpeedMult = speedMult; 
             a.setAnim(AnimState.MOVE);
             return NodeState.RUNNING;
         }
         
-        // Check range (With Height Bonus)
         const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, engine);
         if (HexUtils.dist(a, targetHex) <= effRange) {
             a.setAnim(AnimState.COMBAT_IDLE);
             return NodeState.SUCCESS;
         }
         
-        // 1. Try Standard Pathfinding (Respecting Allies)
         let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, engine, this.targeting);
         
-        // 2. Fallback: Ghost Pathfinding (Ignoring Allies)
-        // If normal path failed, try to find a path ignoring units to see if "direction" exists
         if (path.length === 0) {
             path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, true, engine, this.targeting); 
         }
@@ -103,38 +104,69 @@ export class MovementSystem {
         if (path.length > 0) {
             const next = path[0];
             
-            // CRITICAL CHECK: Even if we found a ghost path, is the IMMEDIATE NEXT STEP blocked?
             if (engine.isBlocked(next.q, next.r, a.id, a.movementType)) {
-                // Wait queue logic
                 a.setAnim(AnimState.COMBAT_IDLE);
-                // Only log block once to avoid spam (throttling)
-                if (Math.random() < 0.05) {
-                    engine.log(a, 'MOVE', '移動', `(${next.q},${next.r})`, '路徑被阻擋，等待中');
-                }
                 return NodeState.RUNNING; 
             }
 
-            engine.log(a, 'MOVE', '移動', `前往 (${next.q},${next.r})`, '開始移動');
+            // engine.log(a, 'MOVE', '移動', `前往 (${next.q},${next.r})`, '開始移動');
             a.path = [next];
-            a.trajectory = path; // Visual only
+            a.trajectory = path; 
             a.isMoving = true;
             a.moveProgress = 0;
             a.moveSpeedMult = speedMult;
             a.setAnim(AnimState.MOVE);
             
-            // Physics Lean (Visual flair)
             const dir = a.facing;
             a.physics.vx += dir * 2; 
             
             return NodeState.RUNNING;
         }
 
-        // Truly unreachable (walled off)
         return NodeState.FAILURE;
     }
 
     public moveAgent(a: Agent, t: Agent, r: number, engine: GameEngine, speedMult: number = 1.0): NodeState {
-        // When chasing a unit, we want to get within range R of them.
+        // --- 3. FEAR & CONFUSION LOGIC ---
+        
+        // FEAR: Run away from source
+        if (a.fearTimer > 0 && a.fearSourceId) {
+            const source = engine.agents.find(ag => ag.id === a.fearSourceId);
+            if (source) {
+                // Find neighbor furthest from source
+                const neighbors = HexUtils.neighbors(a);
+                let bestN = null;
+                let maxDist = -1;
+                
+                for (const n of neighbors) {
+                    if (engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, a.id, a.movementType)) {
+                        const d = HexUtils.dist(n, source);
+                        if (d > maxDist) {
+                            maxDist = d;
+                            bestN = n;
+                        }
+                    }
+                }
+                
+                if (bestN) {
+                    // Override any tactical movement with Flee
+                    return this.moveAgentToHex(a, bestN, 0, engine, 1.2); // Flee slightly faster?
+                }
+            }
+        }
+
+        // CONFUSION: Move Randomly
+        if (a.confusionTimer > 0) {
+            const neighbors = HexUtils.neighbors(a);
+            const valid = neighbors.filter(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, a.id, a.movementType));
+            
+            if (valid.length > 0) {
+                const rnd = valid[Math.floor(Math.random() * valid.length)];
+                return this.moveAgentToHex(a, rnd, 0, engine, 0.8); // Stumble speed
+            }
+        }
+
+        // Standard Chase
         return this.moveAgentToHex(a, {q: t.q, r: t.r}, r, engine, speedMult);
     }
 
@@ -158,6 +190,7 @@ export class MovementSystem {
                 const toDisplace = list.filter(a => a !== keep);
                 
                 toDisplace.forEach(agent => {
+                    // Rooted units cannot be displaced easily, but for physics engine we allow it to prevent bug overlap
                     const neighbors = HexUtils.neighbors(coords);
                     for (let i = neighbors.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
@@ -166,12 +199,10 @@ export class MovementSystem {
                     
                     let target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, agent.id, agent.movementType));
                     
-                    // Fallback: Try valid but not obstacle (ignoring units)
                     if (!target) target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.hasObstacle(n.q, n.r));
                     
                     if (target) {
                         engine.updateAgentPosition(agent, target.q, target.r);
-                        // Cancel current move to allow physics drift to slide unit visually
                         if (agent.isMoving) {
                             agent.isMoving = false;
                             agent.path = [];

@@ -71,12 +71,13 @@ export interface Skill {
     color: string;
     
     // Control Effects (Slot 1)
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
+    // Updated with New CC Types
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION';
     ccDur?: number;
     ccForce?: number;
 
-    // Control Effects (Slot 2) - NEW: Allows composite effects like Knockback + Stun
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
+    // Control Effects (Slot 2)
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION';
     ccDur2?: number;
     ccForce2?: number;
     
