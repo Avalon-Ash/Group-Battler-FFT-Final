@@ -37,7 +37,9 @@ export const VISUAL_TYPES = [
     { value: 'SLASH', label: '斬擊 (Slash)', icon: '⚔️' },
     { value: 'SMASH', label: '重擊 (Smash)', icon: '🔨' },
     { value: 'BEAM', label: '光束 (Beam)', icon: '✨' },
-    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' }
+    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' },
+    { value: 'BLAST', label: '爆破 (Blast)', icon: '💥' },
+    { value: 'WAVE', label: '波動 (Wave)', icon: '〰️' }
 ];
 
 export const CC_TYPES = [

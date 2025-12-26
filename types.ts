@@ -90,7 +90,7 @@ export interface Skill {
     effectVal2?: number;
 
     projectileSpeed?: number; // 0 = Instant
-    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
+    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB' | 'BLAST' | 'WAVE';
 }
 
 export interface UnitStats {
