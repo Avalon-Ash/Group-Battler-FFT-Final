@@ -49,6 +49,13 @@ export class StatusSystem {
         if (agent.fearTimer > 0) agent.fearTimer -= dt;
         if (agent.confusionTimer > 0) agent.confusionTimer -= dt;
         
+        if (agent.tauntTimer > 0) {
+            agent.tauntTimer -= dt;
+            if (agent.tauntTimer <= 0) {
+                agent.tauntTargetId = null;
+            }
+        }
+        
         if (agent.slowTimer > 0) {
             agent.slowTimer -= dt;
             // Apply Slow Effect directly here to ensure it sticks

@@ -13,7 +13,7 @@ export const RED_ACTIVE: Skill[] = [
     { id: 'wr_a1', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '斬殺', desc: '殘血收割', range: 1, cast: 0.4, cd: 6.0, cost: 30, gain: 0, type: 'SINGLE', power: 150, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, effectType: 'EXECUTE', effectVal: 2.0 },
     { id: 'wr_a2', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '旋風斬', desc: '範圍傷害', range: 0, cast: 0.8, cd: 7.0, cost: 50, gain: 0, type: 'AOE', aoeRadius: 2, power: 140, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wr_a3', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '撕裂傷口', desc: '重度流血', range: 1, cast: 0.4, cd: 6.0, cost: 35, gain: 0, type: 'SINGLE', power: 80, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, ccType: 'DOT', ccForce: 60, ccDur: 4 },
-    { id: 'wr_a4', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '魯莽怒火', desc: '自我受傷換取爆發', range: 1, cast: 0.3, cd: 5.0, cost: 20, gain: 0, type: 'SINGLE', power: 250, color: '#f87171', visual: 'SMASH', projectileSpeed: 0 },
+    { id: 'wr_a4', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '戰爭怒吼', desc: '範圍嘲諷與吸血', range: 0, cast: 0.3, cd: 10.0, cost: 35, gain: 0, type: 'AOE', aoeRadius: 3, power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, ccType: 'TAUNT', ccDur: 2.5, effectType: 'VAMP', effectVal: 0.5 },
     { id: 'wr_a5', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', name: '野蠻衝撞', desc: '擊退並暈眩', range: 3, cast: 0.5, cd: 10.0, cost: 40, gain: 0, type: 'SINGLE', power: 120, color: '#450a0a', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 6 },
 
     // 🏹 RED RANGER

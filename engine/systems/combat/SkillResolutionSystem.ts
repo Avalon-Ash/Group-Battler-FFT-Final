@@ -7,11 +7,22 @@ import { BLOCK_HEIGHT, COMBAT_PARAM } from "../../../constants";
 export class SkillResolutionSystem {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine) {
-        // Interruption Check: Stun, Banish, Death, Fear, Confusion
+        // Interruption Check: Stun, Banish, Death, Fear, Confusion, Taunt (Indirectly via Action Lock)
         // Root/Slow do NOT interrupt casting
         if (a.stunTimer > 0 || a.banished || a.hp <= 0 || a.fearTimer > 0 || a.confusionTimer > 0) {
             this.handleInterruption(a, engine);
             return;
+        }
+
+        // Taunt interrupts casting if the target is NOT the taunter
+        if (a.tauntTimer > 0 && a.tauntTargetId) {
+            const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
+            // If casting a beneficial skill or targeting someone else, break it
+            // Simple logic: Taunt breaks ANY current cast to force retargeting next tick
+            if (currentSkill) {
+                this.handleInterruption(a, engine);
+                return;
+            }
         }
 
         if (a.silenceTimer > 0 && a.castingSkillIdx !== -1) {
@@ -213,7 +224,7 @@ export class SkillResolutionSystem {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py - 20}, text: "抵抗", color: "#9ca3af" });
         }
 
-        if (['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION'].includes(type)) {
+        if (['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION', 'TAUNT'].includes(type)) {
             target.drStacks[type] = (target.drStacks[type] || 0) + 1;
             target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME;
         }
@@ -259,7 +270,6 @@ export class SkillResolutionSystem {
                 target.fearMax = effectiveDuration;
                 target.fearSourceId = source.id; // Run away from caster
             }
-            // Fear interrupts current cast
             target.castingSkillIdx = -1;
             statusText = "恐懼"; statusColor = "#a855f7";
 
@@ -270,6 +280,15 @@ export class SkillResolutionSystem {
             }
             target.castingSkillIdx = -1;
             statusText = "混亂"; statusColor = "#f472b6";
+
+        } else if (type === 'TAUNT') {
+            // New: Taunt Logic
+            if (effectiveDuration > target.tauntTimer) {
+                target.tauntTimer = effectiveDuration;
+                target.tauntTargetId = source.id;
+            }
+            target.castingSkillIdx = -1; // Break current cast
+            statusText = "嘲諷"; statusColor = "#ef4444";
 
         } else if (type === 'BANISH') {
             if (effectiveDuration > target.banishTimer) {
@@ -353,7 +372,7 @@ export class SkillResolutionSystem {
     }
 
     private calculateControlDuration(target: Agent, type: string, baseDuration: number) {
-        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION'].includes(type);
+        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION', 'TAUNT'].includes(type);
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false, isReduced: false };
 
         const currentStack = target.drStacks[type] || 0;

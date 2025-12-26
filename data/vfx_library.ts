@@ -100,6 +100,7 @@ export const VFX_LIBRARY = {
         { key: 'STASIS', name: '凝滯/金身 (Stasis)', desc: '特殊', visuals: ['金色無敵護盾', '時間停止'] },
         { key: 'DOT', name: '持續傷 (DoT)', desc: '狀態', visuals: ['身上冒出綠色/紫色氣泡或煙霧'] },
         { key: 'HOT', name: '回春 (HoT)', desc: '狀態', visuals: ['身上飄出綠色「+」號'] },
-        { key: 'CASTING', name: '詠唱 (Casting)', desc: '動作', visuals: ['腳下魔法陣(八芒星/方陣)', '聚氣光效'] }
+        { key: 'CASTING', name: '詠唱 (Casting)', desc: '動作', visuals: ['腳下魔法陣(八芒星/方陣)', '聚氣光效'] },
+        { key: 'TAUNT', name: '嘲諷 (Taunt)', desc: '控制', visuals: ['頭頂紅色憤怒符號'] }
     ] as VFXEntry[]
 };

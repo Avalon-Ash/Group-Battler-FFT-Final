@@ -9,7 +9,7 @@ const CENTER = TEXTURE_SIZE / 2;
 class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
-    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST' | 'SHARD' | 'CHIP' | 'CRACKS', color: string): HTMLCanvasElement {
+    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST' | 'SHARD' | 'CHIP' | 'CRACKS' | 'LAVA', color: string): HTMLCanvasElement {
         const key = `${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
@@ -106,7 +106,6 @@ class VFXTextureCache {
         }
         else if (type === 'CRACKS') {
             // Pre-baked jagged fractal lines for Magma/Ground effects
-            // This replaces the expensive per-frame drawing
             ctx.strokeStyle = color;
             ctx.lineWidth = 3;
             ctx.lineJoin = 'round';
@@ -123,7 +122,6 @@ class VFXTextureCache {
                 const steps = 3;
                 for(let j=0; j<steps; j++) {
                     const stepLen = len / steps;
-                    // Deterministic randomness for baking
                     const r1 = Math.sin(i * 99 + j * 33);
                     const r2 = Math.cos(i * 55 + j * 77);
                     
@@ -136,6 +134,44 @@ class VFXTextureCache {
             // Glowing Core
             ctx.fillStyle = color;
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
+        }
+        else if (type === 'LAVA') {
+            // High-Performance Baked Liquid
+            // 1. Fluid Body
+            ctx.fillStyle = color;
+            // Use a slightly irregular shape for base
+            ctx.beginPath();
+            for(let i=0; i<=12; i++) {
+                const a = (i/12) * Math.PI * 2;
+                // Static noise for shape
+                const noise = Math.sin(a * 3) * 5; 
+                const rad = r * 0.9 + noise;
+                const x = Math.cos(a) * rad;
+                const y = Math.sin(a) * rad;
+                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // 2. Inner Depth (Crust/Darker Pool)
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.fillStyle = color; 
+            ctx.beginPath(); 
+            ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2); 
+            ctx.fill();
+
+            // 3. Specular Highlights (Gloss)
+            ctx.globalCompositeOperation = 'screen';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.beginPath();
+            ctx.ellipse(0, -r * 0.55, r * 0.4, 6, 0, 0, Math.PI*2);
+            ctx.fill();
+
+            // 4. Baked Bubbles (Static)
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = 0.7;
+            ctx.beginPath(); ctx.arc(r*0.3, r*0.3, r*0.08, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(-r*0.25, -r*0.15, r*0.05, 0, Math.PI*2); ctx.fill();
         }
 
         return canvas;
@@ -169,7 +205,6 @@ class VFXTextureCache {
         return this.getTexture('BLAST', color);
     }
 
-    // New Accessor for Cracks
     generateCracks(color: string): HTMLCanvasElement {
         return this.getTexture('CRACKS', color);
     }

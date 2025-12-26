@@ -68,6 +68,9 @@ export class Agent {
 
     public confusionTimer: number = 0;
     public confusionMax: number = 0;
+
+    public tauntTimer: number = 0; // NEW: Taunt duration
+    public tauntTargetId: string | null = null; // NEW: Who taunted me?
     // ---------------------
 
     public banished: boolean = false;
@@ -178,6 +181,8 @@ export class Agent {
         this.slowTimer = 0; this.slowMax = 0;
         this.fearTimer = 0; this.fearMax = 0; this.fearSourceId = null;
         this.confusionTimer = 0; this.confusionMax = 0;
+        
+        this.tauntTimer = 0; this.tauntTargetId = null;
 
         this.banished = false;
         this.dotTimer = 0;

@@ -52,7 +52,8 @@ export const CC_TYPES = [
     { value: 'PULL', label: '牽引 (Pull)', color: '#fff' },
     { value: 'DOT', label: '持續傷 (DoT)', color: '#10b981' },
     { value: 'HOT', label: '再生 (HoT)', color: '#86efac' },
-    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' }
+    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' },
+    { value: 'TAUNT', label: '嘲諷 (Taunt)', color: '#ef4444' }
 ];
 
 export const EFFECT_TYPES = [

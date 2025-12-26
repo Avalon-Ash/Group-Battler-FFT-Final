@@ -187,6 +187,13 @@ export class HUDSystem {
             activeTimer = agent.stunTimer;
             maxTimer = agent.stunMax || activeTimer;
             iconType = 'STUN'; gaugeColor = '#fbbf24';
+        } else if (agent.tauntTimer > 0) {
+            // New Taunt Visual
+            activeTimer = agent.tauntTimer;
+            // Assuming taunt timer is set similar to stun timer on application, 
+            // but we don't have tauntMax yet in Agent (let's use timer for now or add it later if needed for precise bar)
+            maxTimer = activeTimer; 
+            iconType = 'TAUNT'; gaugeColor = '#ef4444';
         } else if (agent.silenceTimer > 0) {
             activeTimer = agent.silenceTimer;
             maxTimer = agent.silenceMax || activeTimer;

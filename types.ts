@@ -71,13 +71,13 @@ export interface Skill {
     color: string;
     
     // Control Effects (Slot 1)
-    // Updated with New CC Types
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION';
+    // Updated with New CC Types + TAUNT
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION' | 'TAUNT';
     ccDur?: number;
     ccForce?: number;
 
     // Control Effects (Slot 2)
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION';
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION' | 'TAUNT';
     ccDur2?: number;
     ccForce2?: number;
     
