@@ -27,8 +27,7 @@ export const SurfaceAssets = {
     },
 
     // 1. LIQUID SURFACE (Blood, Lava, Acid)
-    // OPTIMIZED: Replaced expensive procedural path generation with Cached Texture + Transform Animation
-    // This reduces draw calls per hex from ~10 to 1, removing composite operation switches inside the loop.
+    // PERFORMANCE OVERHAUL: Now uses cached texture + simple scaling instead of procedural noise paths
     drawLiquidSurface(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -36,38 +35,35 @@ export const SurfaceAssets = {
         time: number,
         intensity: number
     ) {
-        const texture = VFXFactory.getTexture('LAVA', color);
-        const size = HEX_SIZE * 2.5; 
-        const half = size / 2;
+        const texture = VFXFactory.getTexture('LIQUID', color);
+        // Texture size is 128, Hex size is approx 72.
+        const scaleFactor = (HEX_SIZE * 2.2) / 128;
 
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y); 
 
-        // Simulate fluid motion via transforms instead of vertex recalculation
-        // 1. Breathing Scale (Pulsing heat)
-        const pulse = 1.0 + Math.sin(time * 2 + x * 0.1) * 0.05;
-        // 2. Slow Rotation (Flow) - Randomized phase by X pos
-        const rot = Math.sin(time * 0.5 + y * 0.1) * 0.1;
+        // Simulate "breathing" liquid via simple scaling instead of recalculating 12 vertex points
+        const breath = 1.0 + Math.sin(time * 2.5) * 0.05;
+        const finalScale = scaleFactor * breath;
         
-        ctx.rotate(rot);
-        ctx.scale(pulse, pulse);
+        ctx.scale(finalScale, finalScale);
         
+        // Draw cached pool
         ctx.globalAlpha = 0.9 * intensity;
-        
-        // Single draw call replaces the entire complex path/gradient/composite stack
-        ctx.drawImage(texture, -half, -half, size, size);
+        ctx.drawImage(texture, -64, -64, 128, 128);
 
-        // Optional: Simple dynamic bubble (cheap)
-        if (intensity > 0.8) {
-            const bubbleX = Math.sin(time * 3 + x) * (HEX_SIZE * 0.4);
-            const bubbleY = Math.cos(time * 2 + y) * (HEX_SIZE * 0.4);
-            
-            ctx.fillStyle = 'rgba(255,255,255,0.6)';
-            ctx.beginPath(); 
-            ctx.arc(bubbleX, bubbleY, 3, 0, Math.PI*2); 
-            ctx.fill();
-        }
+        // Simple cheap highlight bubble (keeps it feeling alive)
+        ctx.globalCompositeOperation = 'screen';
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.5 * intensity;
+        
+        const bubbleX = Math.sin(time) * 20;
+        const bubbleY = Math.cos(time * 0.8) * 15;
+        
+        ctx.beginPath();
+        ctx.ellipse(bubbleX, bubbleY, 8, 3, 0, 0, Math.PI*2);
+        ctx.fill();
 
         ctx.restore();
     },

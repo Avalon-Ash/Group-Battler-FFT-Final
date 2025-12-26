@@ -47,32 +47,14 @@ export class Agent {
     
     // Status Effects
     public stunTimer: number = 0;
-    public stunMax: number = 0; 
+    public stunMax: number = 0; // For UI Progress
     
     public banishTimer: number = 0;
-    public banishMax: number = 0; 
+    public banishMax: number = 0; // For UI Progress
     
     public silenceTimer: number = 0;
-    public silenceMax: number = 0; 
+    public silenceMax: number = 0; // For UI Progress
     
-    // --- NEW CC TIMERS ---
-    public rootTimer: number = 0;
-    public rootMax: number = 0;
-
-    public slowTimer: number = 0;
-    public slowMax: number = 0;
-
-    public fearTimer: number = 0;
-    public fearMax: number = 0;
-    public fearSourceId: string | null = null; // To run away from
-
-    public confusionTimer: number = 0;
-    public confusionMax: number = 0;
-
-    public tauntTimer: number = 0; // NEW: Taunt duration
-    public tauntTargetId: string | null = null; // NEW: Who taunted me?
-    // ---------------------
-
     public banished: boolean = false;
     
     public dotTimer: number = 0;
@@ -175,15 +157,6 @@ export class Agent {
         this.banishMax = 0;
         this.silenceTimer = 0;
         this.silenceMax = 0;
-        
-        // Reset New CCs
-        this.rootTimer = 0; this.rootMax = 0;
-        this.slowTimer = 0; this.slowMax = 0;
-        this.fearTimer = 0; this.fearMax = 0; this.fearSourceId = null;
-        this.confusionTimer = 0; this.confusionMax = 0;
-        
-        this.tauntTimer = 0; this.tauntTargetId = null;
-
         this.banished = false;
         this.dotTimer = 0;
         this.hotTimer = 0;

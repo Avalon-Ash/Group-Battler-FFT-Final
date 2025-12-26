@@ -173,17 +173,6 @@ export const UIFactory = {
                 ctx.closePath();
                 ctx.fill();
                 break;
-            case 'TAUNT':
-                ctx.strokeStyle = '#ef4444';
-                ctx.shadowColor = '#dc2626';
-                // Angry Veins symbol
-                ctx.beginPath();
-                ctx.moveTo(-10, -10); ctx.lineTo(-5, -5);
-                ctx.moveTo(10, -10); ctx.lineTo(5, -5);
-                ctx.moveTo(0, -8); ctx.lineTo(0, 0);
-                ctx.stroke();
-                ctx.beginPath(); ctx.arc(0, 5, 10, 0, Math.PI*2); ctx.stroke();
-                break;
         }
 
         return canvas;

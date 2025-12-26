@@ -88,34 +88,6 @@ export function spawnShockwave(system: VFXSystem, x: number, y: number, z: numbe
     addImpact(system, x, y, z + 5, color, 'SHOCKWAVE', life);
 }
 
-// 🎯 NEW: LIGHTWEIGHT RIPPLE (No flash, no sparks, just a ring)
-export function spawnRipple(system: VFXSystem, x: number, y: number, z: number, color: string, size: number = 50) {
-    const p = system.state.getParticle();
-    p.x = x; p.y = y; p.z = z + 5;
-    p.life = 1.0; p.maxLife = 1.0;
-    p.color = color; 
-    p.size = size;
-    p.type = 'SHOCKWAVE'; // Uses generic expanding ring texture
-    p.vx = 0; p.vy = 0; p.vz = 0;
-    system.state.particles.push(p);
-}
-
-// 🎯 NEW: SOFT STATUS POP (Glow that rises gently)
-export function spawnSoftStatusEffect(system: VFXSystem, x: number, y: number, z: number, color: string, type: 'RIPPLE' | 'GLOW') {
-    if (type === 'RIPPLE') {
-        spawnRipple(system, x, y, z, color, 60);
-    } else {
-        const p = system.state.getParticle();
-        p.x = x; p.y = y; p.z = z + 20;
-        p.vx = 0; p.vy = 0; p.vz = 30; // Slow rise
-        p.life = 1.0; p.maxLife = 1.0;
-        p.color = color;
-        p.size = 40;
-        p.type = 'GLOW';
-        system.state.particles.push(p);
-    }
-}
-
 // 🎯 REFACTORED BEAM: Uses explicit start/end 3D anchors like Projectiles
 export function spawnBeam(system: VFXSystem, start: Point3D, end: Point3D, color: string, duration: number = 0.4, size: number = 4) {
     const p = system.state.getParticle();
@@ -292,19 +264,17 @@ export function spawnLingeringField(system: VFXSystem, x: number, y: number, z: 
 }
 
 export function spawnCastBreak(system: VFXSystem, x: number, y: number, z: number, radiusTiles: number, color: string) {
-    // Reduced impact: Use Ripple instead of Blast for cast break if possible, or very small blast
-    addImpact(system, x, y, z + 40, color, 'BLAST', 0.1); 
-    
-    for(let i=0; i<3; i++) {
+    addImpact(system, x, y, z + 40, color, 'BLAST', 0.2); 
+    for(let i=0; i<8; i++) {
         const p = system.state.getParticle();
         p.x = x; p.y = y; p.z = z + 30;
         const angle = Math.random() * Math.PI * 2;
-        const speed = 100 + Math.random() * 100;
+        const speed = 150 + Math.random() * 200;
         p.vx = Math.cos(angle) * speed; 
         p.vy = Math.sin(angle) * speed;
-        p.vz = 150 + Math.random() * 100; 
-        p.life = 0.4; p.maxLife = 0.4;
-        p.color = color; p.size = 4 + Math.random() * 4; 
+        p.vz = 200 + Math.random() * 150; 
+        p.life = 0.6; p.maxLife = 0.6;
+        p.color = color; p.size = 8 + Math.random() * 8; 
         p.type = 'SHARD'; 
         system.state.particles.push(p);
     }

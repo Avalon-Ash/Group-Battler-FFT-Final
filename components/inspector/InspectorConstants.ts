@@ -1,6 +1,26 @@
 
 import { Role, Skill, Team, AnimState } from '../../types';
 
+// =========================================================================================
+// [SYSTEM DEPENDENCIES & CONSTANTS]
+// This file acts as the central registry for UI definitions and their mappings to Game Engine systems.
+// 
+// CORE PURPOSE:
+// 1. Visual Translation: Maps internal Enums (Role, Team) to UI Colors/Labels.
+// 2. Form Schema: Defines the structure of the Skill Database Editor.
+// 3. Dropdown Options: Provides valid values for Effects, CCs, and Visuals.
+//
+// DEPENDENCIES:
+// - UnitInspectorHUD
+// - SkillDbTab
+// - UnitStatusTab
+// =========================================================================================
+
+// =========================================================================================
+// 1. CORE ENUM MAPPINGS (Visual & Labels)
+// Purpose: Provide UI-friendly labels and colors for internal Enums.
+// =========================================================================================
+
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: '坦克 (Tank)',    color: 'text-amber-400', border: 'border-amber-500' },
     [Role.WARRIOR]: { label: '戰士 (Warrior)', color: 'text-red-400',   border: 'border-red-500' },
@@ -30,6 +50,12 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
     [AnimState.DEAD]: 'DEAD'
 };
 
+// =========================================================================================
+// 2. SKILL & COMBAT CONSTANTS (Effects & Visuals)
+// Purpose: Dropdown options for Skill Editor.
+// Dependency: Must match string literals in `types.ts` Skill interface.
+// =========================================================================================
+
 export const VISUAL_TYPES = [
     { value: 'ARROW', label: '箭矢 (Arrow)', icon: '🏹' },
     { value: 'FIREBALL', label: '火球 (Fireball)', icon: '🔥' },
@@ -37,25 +63,18 @@ export const VISUAL_TYPES = [
     { value: 'SLASH', label: '斬擊 (Slash)', icon: '⚔️' },
     { value: 'SMASH', label: '重擊 (Smash)', icon: '🔨' },
     { value: 'BEAM', label: '光束 (Beam)', icon: '✨' },
-    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' },
-    { value: 'BLAST', label: '爆破 (Blast)', icon: '💥' },
-    { value: 'WAVE', label: '波動 (Wave)', icon: '〰️' }
+    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' }
 ];
 
 export const CC_TYPES = [
     { value: 'NONE', label: '無', color: '#94a3b8' },
     { value: 'STUN', label: '暈眩 (Stun)', color: '#facc15' },
-    { value: 'ROOT', label: '定身 (Root)', color: '#4ade80' },
-    { value: 'SLOW', label: '緩速 (Slow)', color: '#93c5fd' },
-    { value: 'FEAR', label: '恐懼 (Fear)', color: '#a855f7' },
-    { value: 'CONFUSION', label: '混亂 (Confusion)', color: '#f472b6' },
     { value: 'BANISH', label: '放逐 (Banish)', color: '#c084fc' },
     { value: 'KNOCKBACK', label: '擊退 (Knockback)', color: '#fff' },
     { value: 'PULL', label: '牽引 (Pull)', color: '#fff' },
     { value: 'DOT', label: '持續傷 (DoT)', color: '#10b981' },
     { value: 'HOT', label: '再生 (HoT)', color: '#86efac' },
-    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' },
-    { value: 'TAUNT', label: '嘲諷 (Taunt)', color: '#ef4444' }
+    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' }
 ];
 
 export const EFFECT_TYPES = [
@@ -65,6 +84,12 @@ export const EFFECT_TYPES = [
     { value: 'EXECUTE', label: '斬殺 (Execute)', color: '#dc2626' },
     { value: 'MANA_RESTORE', label: '回魔 (Mana Restore)', color: '#60a5fa' }
 ];
+
+// =========================================================================================
+// 3. AI & BEHAVIOR TREE CONSTANTS (Registry Mappings)
+// Purpose: Definitions for future AI Editor features.
+// Dependency: Syncs with `engine/ai/BTRegistry.ts` keys.
+// =========================================================================================
 
 export const AI_CONDITION_OPTIONS = [
     { value: 'IsDead', label: '死亡狀態 (IsDead)' },
@@ -87,6 +112,11 @@ export const AI_ACTION_OPTIONS = [
     { value: 'MoveToOptimal', label: '戰術移動 (MoveToOptimal)', args: ['slot'] },
     { value: 'ChaseTarget', label: '追擊目標 (ChaseTarget)', args: ['slot'] }
 ];
+
+// =========================================================================================
+// 4. FIELD DEFINITIONS (For Inspector Forms)
+// Purpose: Metadata for generating the Skill DB Edit Form.
+// =========================================================================================
 
 export type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'color';
 
@@ -179,13 +209,24 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
     }
 ];
 
+// =========================================================================================
+// 5. HELPER FUNCTIONS (Safe Accessors)
+// Purpose: Utility functions used by React components to render labels/colors safely.
+// =========================================================================================
+
 export const Helpers = {
     getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, color: 'text-slate-400', border: 'border-slate-500' },
+    
     getTeamConfig: (team: Team) => TEAM_MAP[team] || { label: 'Unknown', color: 'text-slate-400', bg: 'bg-slate-800' },
+    
     getTagLabel: (tag: string) => TAG_MAP[tag]?.label || tag,
+    
     getCCColor: (type?: string) => CC_TYPES.find(c => c.value === type)?.color || '#fff',
+    
     getEffectLabel: (type?: string) => EFFECT_TYPES.find(e => e.value === type)?.label || type,
+
     getStatusLabel: (status: string) => {
+        // Mapping raw strings from game engine to friendly UI labels
         if(status === '待機') return 'IDLE';
         if(status === '移動') return 'MOVING';
         if(status === '暈眩') return 'STUNNED';

@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.2.0 (Stable)
+Version: 6.1.0 (Stable)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
@@ -47,15 +47,11 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 * 飛行機制 (Flight Mechanics):
   - 懸浮高度 (Hover Height): 55 px (動態正弦波浮動).
   - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
-  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH / 恐懼 FEAR] 狀態時，升力消失，強制切換至重力物理運算。
+  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH] 狀態時，升力消失，強制切換至重力物理運算。
 
 * 移動導航 (Navigation):
   - 地面單位受限於 [Jump] 屬性，落差 > (Jump * ${BLOCK_HEIGHT})px 之相鄰網格不可通行。
   - 碰撞解析 (Stacking): 同一網格靜止點僅允許單一單位，動態重疊會觸發解離推力 (Force: 5)。
-  - 強制位移 (Forced Movement): 
-    * FEAR: 強制背向來源移動，速度 120%。
-    * CONFUSION: 隨機相鄰格移動，速度 80%。
-    * KNOCKBACK/PULL: 物理向量推移，無視地形高度差 (空中)。
 
 [3. 戰鬥邏輯與判定 (Combat Logic & Calculations)]
 --------------------------------------------------------------------------------
@@ -69,21 +65,9 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 擊退衝擊 (Impulse): 基於傷害量計算向量位移，最大限制 ${COMBAT_PARAM.HIT_IMPULSE_MAX} 向量單位。
 
 * 控場階級 (CC Hierarchy):
-  - 完全失控 (Hard CC):
-    * STUN (暈眩): 禁止所有行動，停止移動。
-    * BANISH (放逐): 禁止所有行動，單位無敵/不可選取 (含 Polymorph/Stasis)。
-    * FEAR (恐懼): 禁止攻擊/施法，強制逃跑，打斷詠唱。
-    * CONFUSION (混亂): 禁止攻擊/施法，隨機移動，打斷詠唱。
-  
-  - 行動限制 (Soft/Mobility CC):
-    * ROOT (定身): 禁止移動 (Velocity=0)，可攻擊/施法。
-    * SILENCE (沉默): 禁止主動/奧義技能，可普攻/移動。
-    * SLOW (緩速): 移動速度降低 50%，不影響其他行動。
-
-  - 遞減機制 (Diminishing Returns): 
-    * 針對上述所有類型 (Dot/Hot 除外) 進行獨立計數。
-    * 同類型連續施加時時長衰減 (100% -> 50% -> 25% -> 0%)。
-    * 免疫重置時間: ${COMBAT_PARAM.DR_RESET_TIME} 秒。
+  - 硬控場 (Hard CC): Stun, Banish (中斷詠唱，禁止所有行動).
+  - 軟控場 (Soft CC): Silence (禁止主動/奧義，允許普攻移動).
+  - 遞減機制 (Diminishing Returns): 同一類型控場連續施加，持續時間減半，3 次後免疫，持續 10 秒。
 
 [4. 渲染管線技術 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
@@ -103,20 +87,19 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 --------------------------------------------------------------------------------
 採用決策優先級 (Selector) 結構：
 
-1. [狀態檢查]: 優先處理死亡 (Dead)、受控 (CC) 狀態。
-2. [奧義判斷]: MP 滿載且 CD 就緒時，掃描全場最佳施法點 (AOE 最大化/斬殺優先)。
-3. [技能循環]: 依序檢查 Active -> Basic 技能的可用性與射程。
-4. [戰術移動]: 若目標超出射程，利用 A* 尋路進行位移 (支持 Charge 加速)。
-5. [待機]: 若無可行動作，保持警戒。
+1. [自保/狀態檢查]: 優先處理死亡與受控狀態，執行 Wait 行為。
+2. [奧義優先等級]: MP 滿載且 CD 就緒時，掃描全場最佳施法點 (AOE 最大化/斬殺優先)。
+3. [戰術移動]: 若目標超出射程，利用 A* 尋路進行位移，近戰單位觸發 Charge 加速。
+4. [預設動作]: 若無可用技能，保持最近敵對目標的鎖定並進行追擊。
 
 [6. 陣營視覺語義 (Faction Visual Semantics)]
 --------------------------------------------------------------------------------
 * 藍軍 (Imperial):
   - 色彩: 鈷藍 (Cobalt), 黃金 (Gold), 能量青 (Cyan).
-  - 風格: 秩序、科技、幾何對稱、神聖光輝。
+  - 形狀: 圓形、六角、規整對稱。
 * 紅軍 (Covenant):
   - 色彩: 深紅 (Crimson), 黃銅 (Brass), 邪能綠 (Fel Green).
-  - 風格: 混沌、原始、尖刺、鮮血與腐化。
+  - 形狀: 尖銳、不規則鋸齒、混沌發散。
 
 ================================================================================
 END OF SPECIFICATION

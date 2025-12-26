@@ -6,23 +6,14 @@ import { BLOCK_HEIGHT, COMBAT_PARAM } from "../../../constants";
 
 export class SkillResolutionSystem {
 
+    // =================================================================================
+    // 🧠 LOGIC LAYER: ORCHESTRATION
+    // =================================================================================
+
     public updateCasting(a: Agent, dt: number, engine: GameEngine) {
-        // Interruption Check: Stun, Banish, Death, Fear, Confusion, Taunt (Indirectly via Action Lock)
-        // Root/Slow do NOT interrupt casting
-        if (a.stunTimer > 0 || a.banished || a.hp <= 0 || a.fearTimer > 0 || a.confusionTimer > 0) {
+        if (a.stunTimer > 0 || a.banished || a.hp <= 0) {
             this.handleInterruption(a, engine);
             return;
-        }
-
-        // Taunt interrupts casting if the target is NOT the taunter
-        if (a.tauntTimer > 0 && a.tauntTargetId) {
-            const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
-            // If casting a beneficial skill or targeting someone else, break it
-            // Simple logic: Taunt breaks ANY current cast to force retargeting next tick
-            if (currentSkill) {
-                this.handleInterruption(a, engine);
-                return;
-            }
         }
 
         if (a.silenceTimer > 0 && a.castingSkillIdx !== -1) {
@@ -43,6 +34,7 @@ export class SkillResolutionSystem {
 
     private handleInterruption(a: Agent, engine: GameEngine) {
         const skillIdx = a.castingSkillIdx;
+        
         if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
             const s = a.skills[skillIdx]!;
             const skillName = s.name;
@@ -104,6 +96,7 @@ export class SkillResolutionSystem {
             const p = HexUtils.toPx(centerHex!.q, centerHex!.r, engine.mapConfig);
             origin = { x: p.x, y: p.y };
 
+            // --- SPAWN HAZARD (AOE) ---
             if (skill.ccType === 'DOT' || skill.ccType === 'PULL' || skill.name.includes("霧") || skill.name.includes("雨") || skill.name.includes("域")) {
                 const affectedTiles = HexUtils.range(centerHex!, radius);
                 const dur = skill.ccDur || 5.0;
@@ -121,8 +114,8 @@ export class SkillResolutionSystem {
                         source.id, 
                         source.team, 
                         skill.color,
-                        (skill.power * 0.2) || 10, 
-                        0.5 
+                        (skill.power * 0.2) || 10, // Approx DoT damage
+                        0.5 // Tick rate
                     );
                 });
             }
@@ -224,7 +217,7 @@ export class SkillResolutionSystem {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py - 20}, text: "抵抗", color: "#9ca3af" });
         }
 
-        if (['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION', 'TAUNT'].includes(type)) {
+        if (['STUN', 'SILENCE', 'BANISH'].includes(type)) {
             target.drStacks[type] = (target.drStacks[type] || 0) + 1;
             target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME;
         }
@@ -239,7 +232,8 @@ export class SkillResolutionSystem {
             }
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
-            statusText = "暈眩"; statusColor = "#facc15"; 
+            statusText = "暈眩";
+            statusColor = "#facc15"; 
             if (this.isIceSkill(skill)) target.visualStatus = 'FROZEN';
 
         } else if (type === 'SILENCE') {
@@ -247,48 +241,8 @@ export class SkillResolutionSystem {
                 target.silenceTimer = effectiveDuration;
                 target.silenceMax = effectiveDuration;
             }
-            statusText = "沉默"; statusColor = "#94a3b8"; 
-
-        } else if (type === 'ROOT') {
-            if (effectiveDuration > target.rootTimer) {
-                target.rootTimer = effectiveDuration;
-                target.rootMax = effectiveDuration;
-            }
-            target.isMoving = false; // Immediate stop
-            statusText = "定身"; statusColor = "#4ade80"; // Greenish for vines/earth
-
-        } else if (type === 'SLOW') {
-            if (effectiveDuration > target.slowTimer) {
-                target.slowTimer = effectiveDuration;
-                target.slowMax = effectiveDuration;
-            }
-            statusText = "緩速"; statusColor = "#93c5fd";
-
-        } else if (type === 'FEAR') {
-            if (effectiveDuration > target.fearTimer) {
-                target.fearTimer = effectiveDuration;
-                target.fearMax = effectiveDuration;
-                target.fearSourceId = source.id; // Run away from caster
-            }
-            target.castingSkillIdx = -1;
-            statusText = "恐懼"; statusColor = "#a855f7";
-
-        } else if (type === 'CONFUSION') {
-            if (effectiveDuration > target.confusionTimer) {
-                target.confusionTimer = effectiveDuration;
-                target.confusionMax = effectiveDuration;
-            }
-            target.castingSkillIdx = -1;
-            statusText = "混亂"; statusColor = "#f472b6";
-
-        } else if (type === 'TAUNT') {
-            // New: Taunt Logic
-            if (effectiveDuration > target.tauntTimer) {
-                target.tauntTimer = effectiveDuration;
-                target.tauntTargetId = source.id;
-            }
-            target.castingSkillIdx = -1; // Break current cast
-            statusText = "嘲諷"; statusColor = "#ef4444";
+            statusText = "沉默";
+            statusColor = "#94a3b8"; 
 
         } else if (type === 'BANISH') {
             if (effectiveDuration > target.banishTimer) {
@@ -298,13 +252,19 @@ export class SkillResolutionSystem {
             target.banished = true;
             target.isMoving = false;
             target.setAnim(AnimState.STUN);
-            statusText = "放逐"; statusColor = "#c084fc"; 
+            statusText = "放逐";
+            statusColor = "#c084fc"; 
             
             if (skill.name.includes("變形") || skill.name.includes("羊") || skill.name.includes("動物")) {
-                target.visualStatus = 'POLYMORPH'; statusText = "變形";
+                target.visualStatus = 'POLYMORPH'; 
+                statusText = "變形";
             } else if (skill.name.includes("無敵") || skill.name.includes("金身") || skill.name.includes("干涉")) {
-                target.visualStatus = 'STASIS'; statusText = "無敵";
-                target.stunTimer = 0; target.silenceTimer = 0; target.dotTimer = 0;
+                target.visualStatus = 'STASIS'; 
+                statusText = "無敵";
+                target.stunTimer = 0;
+                target.silenceTimer = 0;
+                target.dotTimer = 0;
+                target.dotDmg = 0;
                 engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py - 20}, text: "淨化!", color: "#fff" });
             } else {
                 target.visualStatus = 'NONE';
@@ -324,12 +284,14 @@ export class SkillResolutionSystem {
         } else if (type === 'DOT') {
             target.dotDmg = force || 5;
             target.dotTimer = effectiveDuration || 3;
-            statusText = "中毒"; statusColor = "#10b981";
+            statusText = "中毒";
+            statusColor = "#10b981";
 
         } else if (type === 'HOT') {
             target.hotVal = force || 5;
             target.hotTimer = effectiveDuration || 3;
-            statusText = "再生"; statusColor = "#86efac";
+            statusText = "再生";
+            statusColor = "#86efac";
         }
 
         if (statusText) {
@@ -372,7 +334,7 @@ export class SkillResolutionSystem {
     }
 
     private calculateControlDuration(target: Agent, type: string, baseDuration: number) {
-        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'CONFUSION', 'TAUNT'].includes(type);
+        const isHardCC = ['STUN', 'SILENCE', 'BANISH'].includes(type);
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false, isReduced: false };
 
         const currentStack = target.drStacks[type] || 0;
@@ -408,9 +370,6 @@ export class SkillResolutionSystem {
     }
 
     private calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine) {
-        // Can't knockback rooted units
-        if (target.rootTimer > 0) return { applied: false };
-
         const rawForce = Math.max(1, force);
         const resistance = target.weight || 1; 
         const tilesToPush = Math.max(0, rawForce - resistance);
@@ -444,7 +403,9 @@ export class SkillResolutionSystem {
 
             if (bestN) {
                 if (!engine.isValid(bestN.q, bestN.r)) break; 
+                
                 if (engine.isBlocked(bestN.q, bestN.r, target.id, target.movementType)) break;
+                
                 if (type === 'PULL' && bestN.q === source.q && bestN.r === source.r) break;
 
                 const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);

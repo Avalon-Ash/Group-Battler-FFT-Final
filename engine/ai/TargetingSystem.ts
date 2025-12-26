@@ -27,19 +27,6 @@ export class TargetingSystem {
     // =========================================================================================
 
     public updateTarget(a: Agent, engine: GameEngine) {
-        // TAUNT LOGIC: If taunted, forced to target the teaser
-        if (a.tauntTimer > 0 && a.tauntTargetId) {
-            const taunter = engine.agents.find(ag => ag.id === a.tauntTargetId);
-            if (taunter && taunter.hp > 0 && !taunter.banished) {
-                a.target = taunter;
-                return; // Override all other logic
-            } else {
-                // Taunter dead or gone? Break taunt early
-                a.tauntTargetId = null;
-                a.tauntTimer = 0;
-            }
-        }
-
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
         let minD = 999;
         let t: Agent | null = null;
@@ -54,19 +41,6 @@ export class TargetingSystem {
     }
 
     public calculateOptimalTarget(source: Agent, skill: Skill, engine: GameEngine): { targetAgent: Agent | null, targetHex: Hex | null } {
-        // 0. Taunt Override: If taunted, can ONLY cast if target matches taunter
-        // Usually Taunt implies Silence for skills, but we handle that in Condition checks "SkillReady" logic 
-        // or effectively by forcing target here.
-        if (source.tauntTimer > 0 && source.tauntTargetId) {
-            const taunter = engine.agents.find(a => a.id === source.tauntTargetId);
-            if (taunter && taunter.hp > 0) {
-                // We return the taunter as the ONLY valid target.
-                // The Movement system will try to move to it.
-                // The Cast action will check range.
-                return { targetAgent: taunter, targetHex: null };
-            }
-        }
-
         // 1. Special Case: Silence Logic (Prioritize Casters/Ults)
         if (skill.ccType === 'SILENCE' || skill.ccType2 === 'SILENCE') {
             const enemies = engine.agents.filter(a => 

@@ -71,13 +71,12 @@ export interface Skill {
     color: string;
     
     // Control Effects (Slot 1)
-    // Updated with New CC Types + TAUNT
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION' | 'TAUNT';
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
     ccDur?: number;
     ccForce?: number;
 
-    // Control Effects (Slot 2)
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'SLOW' | 'ROOT' | 'FEAR' | 'CONFUSION' | 'TAUNT';
+    // Control Effects (Slot 2) - NEW: Allows composite effects like Knockback + Stun
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
     ccDur2?: number;
     ccForce2?: number;
     
@@ -90,7 +89,7 @@ export interface Skill {
     effectVal2?: number;
 
     projectileSpeed?: number; // 0 = Instant
-    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB' | 'BLAST' | 'WAVE';
+    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
 }
 
 export interface UnitStats {
