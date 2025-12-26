@@ -265,16 +265,17 @@ export function spawnLingeringField(system: VFXSystem, x: number, y: number, z: 
 
 export function spawnCastBreak(system: VFXSystem, x: number, y: number, z: number, radiusTiles: number, color: string) {
     addImpact(system, x, y, z + 40, color, 'BLAST', 0.2); 
-    for(let i=0; i<8; i++) {
+    // Reduced shard count (8 -> 4) and size for cleaner "interrupted" feel
+    for(let i=0; i<4; i++) {
         const p = system.state.getParticle();
         p.x = x; p.y = y; p.z = z + 30;
         const angle = Math.random() * Math.PI * 2;
-        const speed = 150 + Math.random() * 200;
+        const speed = 150 + Math.random() * 150;
         p.vx = Math.cos(angle) * speed; 
         p.vy = Math.sin(angle) * speed;
-        p.vz = 200 + Math.random() * 150; 
-        p.life = 0.6; p.maxLife = 0.6;
-        p.color = color; p.size = 8 + Math.random() * 8; 
+        p.vz = 200 + Math.random() * 100; 
+        p.life = 0.5; p.maxLife = 0.5;
+        p.color = color; p.size = 6 + Math.random() * 6; 
         p.type = 'SHARD'; 
         system.state.particles.push(p);
     }

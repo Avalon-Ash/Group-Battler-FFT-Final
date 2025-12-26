@@ -7,7 +7,7 @@ export const BLUE_ACTIVE: Skill[] = [
     { id: 'tb_a2', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', name: '聖盾衝撞', desc: '強力擊退', range: 1, cast: 0.5, cd: 7.0, cost: 35, gain: 0, type: 'SINGLE', power: 100, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, ccType: 'KNOCKBACK', ccForce: 5 },
     { id: 'tb_a3', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', name: '神聖護盾', desc: '高額自我護盾', range: 0, cast: 0.3, cd: 10.0, cost: 40, gain: 0, type: 'SINGLE', power: -200, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0 },
     { id: 'tb_a4', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', name: '奉獻', desc: '範圍持續傷害', range: 0, cast: 0.5, cd: 8.0, cost: 50, gain: 0, type: 'AOE', aoeRadius: 2, power: 80, color: '#f59e0b', visual: 'SMASH', projectileSpeed: 0, ccType: 'DOT', ccForce: 20, ccDur: 5 },
-    { id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', name: '榮耀挑戰', desc: '群體嘲諷', range: 0, cast: 0.3, cd: 12.0, cost: 45, gain: 0, type: 'AOE', aoeRadius: 3, power: 30, color: '#38bdf8', visual: 'SMASH', projectileSpeed: 0, ccType: 'TAUNT', ccDur: 3.0 },
+    { id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', name: '榮耀挑戰', desc: '群體嘲諷', range: 0, cast: 0.3, cd: 12.0, cost: 45, gain: 0, type: 'AOE', aoeRadius: 2, power: 30, color: '#38bdf8', visual: 'SMASH', projectileSpeed: 0, ccType: 'TAUNT', ccDur: 3.0 },
 
     // ⚔️ BLUE WARRIOR
     { id: 'wb_a1', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', name: '雷霆一擊', desc: '範圍緩速', range: 0, cast: 0.6, cd: 7.0, cost: 45, gain: 0, type: 'AOE', aoeRadius: 2, power: 130, color: '#93c5fd', visual: 'SMASH', projectileSpeed: 0, ccType: 'SLOW', ccDur: 4.0 },

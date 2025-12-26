@@ -95,7 +95,7 @@ export class EventVFXMapper {
                 
             case 'CAST_BREAK':
                 Generic.spawnCastBreak(vfx, origin.x, origin.y, origin.z, event.value || 1, event.color || '#fff');
-                camera.addTrauma(0.3); 
+                camera.addTrauma(0.1); // Reduced from 0.3 to prevent crazy shake on mass interrupts
                 break;
                 
             case 'CAST_FINISH':
@@ -233,7 +233,7 @@ export class EventVFXMapper {
 
         // Generic Core Impact
         Generic.addImpact(vfx, event.pos.x, event.pos.y, groundZ, event.color || '#fff', 'BLAST', 0.5);
-        camera.addTrauma(0.25); 
+        camera.addTrauma(0.15); // Reduced from 0.25
     }
 
     // --- CENTRALIZED ULT DISPATCHER ---
