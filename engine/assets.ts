@@ -49,12 +49,5 @@ export const AssetManager = {
         const key = `BLAST_${color}_V2`; // V2 for updated style
         if (!cache.has(key)) cache.set(key, VFXFactory.generateBlastZone(color));
         return cache.get(key)!;
-    },
-
-    // VFX: Casting Circles
-    getMagicCircle(color: string, isUlt: boolean): HTMLCanvasElement {
-        const key = `MAGIC_CIRCLE_${color}_${isUlt}`;
-        if (!cache.has(key)) cache.set(key, VFXFactory.generateMagicCircle(color, isUlt));
-        return cache.get(key)!;
     }
 };

@@ -13,6 +13,7 @@ export interface Particle {
     maxLife: number;
     color: string;
     size: number;
+    // Consolidated Types for Simplicity
     type: 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'RING' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY';
     targetX?: number; // For BEAM
     targetY?: number; // For BEAM
@@ -56,5 +57,14 @@ export class VFXStateManager {
         p.active = false;
         p.image = undefined;
         this.particlePool.push(p);
+    }
+
+    public reset() {
+        // Return active particles to pool immediately
+        while (this.particles.length > 0) {
+            const p = this.particles.pop();
+            if (p) this.releaseParticle(p);
+        }
+        this.decals.length = 0;
     }
 }

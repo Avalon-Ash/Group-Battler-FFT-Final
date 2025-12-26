@@ -1,22 +1,14 @@
 
 import { createCanvas } from "./CanvasUtils";
+import { isChaosStyle } from "../systems/vfx/utils";
 
 // Dimensions
 const VFX_SIZE = 64;
-const MAGIC_CIRCLE_SIZE = 128;
 const PROJ_WIDTH = 96;
 const PROJ_HEIGHT = 64;
 const BLAST_WIDTH = 128;
 const BLAST_HEIGHT = 64;
 const FOG_SIZE = 256;
-
-// Helper: Chaos color detection
-function isChaosStyle(color: string): boolean {
-    const c = color.toLowerCase();
-    return c.includes('#dc') || c.includes('#ef') || c.includes('#b9') || c.includes('#45') || 
-           c.includes('#7f') || c.includes('#4c') || c.includes('#a3') || c.includes('#58') ||
-           c.includes('#1c');
-}
 
 export const VFXFactory = {
 
@@ -27,39 +19,52 @@ export const VFXFactory = {
          const r = size / 2;
          const isChaos = isChaosStyle(color);
          
-         // Modern "Hot Core" Glow
-         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-         grad.addColorStop(0, '#ffffff');        // White hot center
-         grad.addColorStop(0.2, color);          // Intense inner color
-         grad.addColorStop(0.5, color);          // Falloff start
-         grad.addColorStop(1, 'rgba(0,0,0,0)');  // Fade out
-         
-         ctx.fillStyle = grad;
-         
+         // Clear previous styles
+         ctx.globalCompositeOperation = 'source-over';
+
          if (isChaos) {
-             // Chaos: Unstable plasma blob with spikes
+             // CHAOS: Unstable Plasma Core
+             // Darker center, jagged edges
+             const grad = ctx.createRadialGradient(cx, cy, r*0.1, cx, cy, r);
+             grad.addColorStop(0, '#ffffff');
+             grad.addColorStop(0.3, color);
+             grad.addColorStop(0.6, 'rgba(0,0,0,0.8)'); // Dark halo
+             grad.addColorStop(1, 'transparent');
+             
+             ctx.fillStyle = grad;
+             
+             // Jagged star shape
              ctx.beginPath();
-             const spikes = 16;
-             for(let i=0; i<spikes; i++) {
-                 const angle = (i / spikes) * Math.PI * 2;
-                 // Randomize radius for jagged look
-                 const rad = r * (0.6 + Math.random() * 0.4);
+             const spikes = 12;
+             for(let i=0; i<spikes*2; i++) {
+                 const angle = (i / (spikes*2)) * Math.PI * 2;
+                 const rad = (i % 2 === 0) ? r : r * 0.4;
                  const x = cx + Math.cos(angle) * rad;
                  const y = cy + Math.sin(angle) * rad;
                  if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
              }
              ctx.closePath();
              ctx.fill();
+
          } else {
-             // Order: Smooth Sphere with Halo
-             ctx.beginPath(); 
-             ctx.arc(cx, cy, r * 0.8, 0, Math.PI * 2); 
-             ctx.fill();
+             // ORDER: Perfect Lens Flare / Star
+             // Soft gaussian feel with distinct cross spike
+             const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+             grad.addColorStop(0, '#ffffff');        
+             grad.addColorStop(0.15, color);          
+             grad.addColorStop(0.5, color);          
+             grad.addColorStop(1, 'rgba(0,0,0,0)');  
              
-             // Lens Flare Ring
-             ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-             ctx.lineWidth = 1;
-             ctx.beginPath(); ctx.arc(cx, cy, r * 0.5, 0, Math.PI*2); ctx.stroke();
+             ctx.fillStyle = grad;
+             ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+             
+             // Cross flare
+             ctx.fillStyle = '#fff';
+             ctx.globalAlpha = 0.8;
+             ctx.beginPath();
+             ctx.ellipse(cx, cy, r * 0.8, r * 0.1, 0, 0, Math.PI*2);
+             ctx.ellipse(cx, cy, r * 0.1, r * 0.8, 0, 0, Math.PI*2);
+             ctx.fill();
          }
          
          return canvas;
@@ -70,97 +75,28 @@ export const VFXFactory = {
         const cx = FOG_SIZE / 2;
         const cy = FOG_SIZE / 2;
         
-        // Multi-layered noise cloud
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, FOG_SIZE / 2);
         grad.addColorStop(0, color);
         grad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.2; // Softer base
+        ctx.globalAlpha = 0.15; // Very subtle
         
-        // Draw multiple overlapping blobs to simulate volume
-        for(let i=0; i<16; i++) {
+        // Organic irregular blobs
+        for(let i=0; i<12; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = Math.random() * (FOG_SIZE * 0.35);
-            const size = FOG_SIZE * (0.1 + Math.random() * 0.15);
+            const dist = Math.random() * (FOG_SIZE * 0.3);
+            const r = FOG_SIZE * (0.15 + Math.random() * 0.2);
             
             ctx.beginPath(); 
-            ctx.arc(cx + Math.cos(angle)*dist, cy + Math.sin(angle)*dist, size, 0, Math.PI*2); 
+            ctx.ellipse(
+                cx + Math.cos(angle)*dist, 
+                cy + Math.sin(angle)*dist, 
+                r, r * 0.6, 
+                Math.random() * Math.PI, 
+                0, Math.PI*2
+            ); 
             ctx.fill();
-        }
-        
-        return canvas;
-    },
-
-    generateMagicCircle(color: string, isUlt: boolean): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(MAGIC_CIRCLE_SIZE, MAGIC_CIRCLE_SIZE);
-        const cx = MAGIC_CIRCLE_SIZE / 2;
-        const cy = MAGIC_CIRCLE_SIZE / 2;
-        const radius = 50;
-        const isChaos = isChaosStyle(color);
-        
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-
-        if (isChaos) {
-            // Chaos Rune: Spiky, Broken
-            ctx.beginPath();
-            const points = 7; // Odd number for asymmetry
-            for(let i=0; i<=points; i++) {
-                const angle = i * (Math.PI * 2 / points);
-                const r = radius * (0.8 + Math.random() * 0.2); 
-                const x = cx + Math.cos(angle) * r;
-                const y = cy + Math.sin(angle) * r;
-                if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-            }
-            ctx.closePath();
-            ctx.stroke();
-            
-            // Inner Scratch
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(cx - 20, cy - 20); ctx.lineTo(cx + 20, cy + 20);
-            ctx.moveTo(cx + 20, cy - 20); ctx.lineTo(cx - 20, cy + 20);
-            ctx.stroke();
-
-        } else {
-            // Order Rune: Geometric, Perfect
-            ctx.beginPath(); 
-            ctx.arc(cx, cy, radius, 0, Math.PI * 2); 
-            ctx.stroke();
-            
-            ctx.lineWidth = 1.5;
-            if (isUlt) {
-                // Complex Mandala
-                const drawPoly = (sides: number, r: number, offset: number) => {
-                    ctx.beginPath();
-                    for (let i = 0; i <= sides; i++) {
-                        const angle = offset + (i * Math.PI * 2) / sides;
-                        const x = cx + Math.cos(angle) * r;
-                        const y = cy + Math.sin(angle) * r;
-                        if(i===0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-                    }
-                    ctx.closePath();
-                    ctx.stroke();
-                };
-                
-                drawPoly(3, radius, -Math.PI/2); // Triangle Up
-                drawPoly(3, radius, Math.PI/2);  // Triangle Down (Star of David style)
-                
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.4, 0, Math.PI*2); ctx.stroke();
-
-            } else {
-                // Simple Rune
-                ctx.save();
-                ctx.translate(cx, cy);
-                ctx.rotate(Math.PI/4);
-                ctx.strokeRect(-radius * 0.6, -radius * 0.6, radius * 1.2, radius * 1.2);
-                ctx.restore();
-                
-                ctx.beginPath(); ctx.arc(cx, cy, radius * 0.8, 0, Math.PI*2); ctx.stroke();
-            }
         }
         
         return canvas;
@@ -171,87 +107,74 @@ export const VFXFactory = {
         const cx = PROJ_WIDTH / 2;
         const cy = PROJ_HEIGHT / 2;
 
-        // Modern "Neon" Style - Less blur, more bloom
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 10;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
         switch (visual) {
             case 'ARROW':
-                // High-Tech Arrow (Kinetic Rod)
+                // Energy Arrow
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(20, cy); ctx.lineTo(70, cy); ctx.stroke();
+                ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.moveTo(10, cy); ctx.lineTo(80, cy); ctx.stroke();
                 
-                // Glowing Head
+                // Head
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.moveTo(80, cy); 
-                ctx.lineTo(60, cy - 6); 
-                ctx.lineTo(65, cy); 
-                ctx.lineTo(60, cy + 6);
+                ctx.moveTo(90, cy); ctx.lineTo(70, cy - 8); ctx.lineTo(75, cy); ctx.lineTo(70, cy + 8);
                 ctx.fill();
+                // Fletching
+                ctx.strokeStyle = color;
+                ctx.beginPath();
+                ctx.moveTo(20, cy); ctx.lineTo(10, cy - 6);
+                ctx.moveTo(20, cy); ctx.lineTo(10, cy + 6);
+                ctx.stroke();
                 break;
 
             case 'FIREBALL':
             case 'BOMB':
-                // Plasma Orb
-                const coreGrad = ctx.createRadialGradient(cx+20, cy, 0, cx+20, cy, 18);
+                // Magma Core
+                const coreGrad = ctx.createRadialGradient(cx+20, cy, 0, cx+20, cy, 20);
                 coreGrad.addColorStop(0, '#fff');
-                coreGrad.addColorStop(0.3, color);
+                coreGrad.addColorStop(0.2, color);
                 coreGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = coreGrad;
-                
-                ctx.beginPath(); ctx.arc(cx + 20, cy, 16, 0, Math.PI * 2); ctx.fill();
-                
-                // Trailing arcs
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.6;
-                ctx.beginPath();
-                ctx.arc(cx + 20, cy, 12, Math.PI * 0.2, Math.PI * 1.8);
-                ctx.stroke();
+                ctx.beginPath(); ctx.arc(cx + 20, cy, 18, 0, Math.PI * 2); ctx.fill();
                 break;
 
             case 'SLASH':
-                // Energy Wave
+                // Crescent Wave
                 ctx.translate(cx, cy);
+                ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(0, 0, 30, -Math.PI/3, Math.PI/3, false);
-                ctx.arc(-10, 0, 25, Math.PI/3, -Math.PI/3, true);
-                ctx.closePath();
-                ctx.fillStyle = '#fff';
+                ctx.arc(0, 0, 30, -Math.PI/2, Math.PI/2, false);
+                ctx.bezierCurveTo(10, 20, 10, -20, 0, -30);
                 ctx.fill();
-                
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 4;
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
                 ctx.stroke();
                 break;
 
             case 'BOLT':
             case 'BEAM':
             default:
-                // Sci-Fi Energy Slug
-                const boltPath = new Path2D();
-                boltPath.moveTo(cx + 40, cy);      // Tip
-                boltPath.lineTo(cx + 10, cy - 8);  // Top
-                boltPath.lineTo(cx - 20, cy);      // Tail Center
-                boltPath.lineTo(cx + 10, cy + 8);  // Bottom
-                boltPath.closePath();
-
-                ctx.fillStyle = '#fff';
-                ctx.fill(boltPath);
+                // Magic Missile (Tapered slug)
+                const grad = ctx.createLinearGradient(0, 0, PROJ_WIDTH, 0);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(0.5, color);
+                grad.addColorStop(1, '#fff');
                 
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 3;
-                ctx.stroke(boltPath);
-                
-                // Side vents
+                ctx.fillStyle = grad;
                 ctx.beginPath();
-                ctx.moveTo(cx, cy - 10); ctx.lineTo(cx - 10, cy - 15);
-                ctx.moveTo(cx, cy + 10); ctx.lineTo(cx - 10, cy + 15);
-                ctx.stroke();
+                ctx.ellipse(cx, cy, 30, 8, 0, 0, Math.PI*2);
+                ctx.fill();
+                
+                // Core
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.ellipse(cx + 15, cy, 10, 3, 0, 0, Math.PI*2);
+                ctx.fill();
                 break;
         }
 
@@ -264,36 +187,41 @@ export const VFXFactory = {
         const cy = BLAST_HEIGHT / 2;
         const isChaos = isChaosStyle(color);
         
-        // Isometric Flatten
-        ctx.scale(1, 0.5); 
+        ctx.scale(1, 0.5); // Perspective squash
         
-        // 1. Scorch Marks (Not cracks)
-        // Draw irregular blobs
-        ctx.fillStyle = isChaos ? '#000' : '#475569';
-        ctx.globalAlpha = 0.5;
-        
-        for(let i=0; i<3; i++) {
+        if (isChaos) {
+            // Chaos: Cracks and Scorch
+            ctx.fillStyle = '#1a0505'; // Dark scorch
+            ctx.globalAlpha = 0.8;
             ctx.beginPath();
-            const r = 30 + Math.random() * 20;
-            const offset = (Math.random() - 0.5) * 20;
-            ctx.ellipse(cx + offset, cy*2 + offset, r, r * 0.6, Math.random(), 0, Math.PI*2);
+            ctx.arc(cx, cy*2, 40, 0, Math.PI*2);
             ctx.fill();
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy*2); ctx.lineTo(cx+30, cy*2-20);
+            ctx.moveTo(cx, cy*2); ctx.lineTo(cx-20, cy*2+30);
+            ctx.moveTo(cx, cy*2); ctx.lineTo(cx+10, cy*2+40);
+            ctx.stroke();
+
+        } else {
+            // Order: Clean Energy Residual
+            const grad = ctx.createRadialGradient(cx, cy * 2, 10, cx, cy * 2, 50);
+            grad.addColorStop(0, color); 
+            grad.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = 0.4;
+            ctx.beginPath(); ctx.arc(cx, cy * 2, 50, 0, Math.PI*2); ctx.fill();
+            
+            // Ring
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath(); ctx.arc(cx, cy * 2, 40, 0, Math.PI*2); ctx.stroke();
         }
-
-        // 2. Energy Residual (Outer Ring)
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.4;
-        ctx.beginPath(); ctx.arc(cx, cy * 2, 45, 0, Math.PI*2); ctx.stroke();
-
-        // 3. Central Hotspot
-        const grad = ctx.createRadialGradient(cx, cy * 2, 0, cx, cy * 2, 30);
-        grad.addColorStop(0, color); 
-        grad.addColorStop(1, 'transparent');
-        
-        ctx.fillStyle = grad;
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath(); ctx.arc(cx, cy * 2, 30, 0, Math.PI*2); ctx.fill();
 
         return canvas;
     }

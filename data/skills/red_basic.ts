@@ -14,7 +14,7 @@ export const RED_BASIC: Skill[] = [
     // ⚔️ RED WARRIOR (Berserker)
     // Concept: Cleave, Bleed, High DPS
     // ==========================================
-    { id: 'wr_b1', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', name: '狂暴揮擊', desc: '高傷普攻', range: 1, cast: 0.5, cd: 0.6, cost: 0, gain: 30, type: 'SINGLE', power: 75, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0 },
+    { id: 'wr_b1', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', name: '狂暴揮擊', desc: '高傷普攻', range: 1, cast: 0.5, cd: 0.6, cost: 0, gain: 30, type: 'SINGLE', power: 75, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wr_b2', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', name: '順劈斬', desc: '前方AOE', range: 1, cast: 0.8, cd: 0.9, cost: 0, gain: 35, type: 'AOE', aoeRadius: 1, power: 55, color: '#fca5a5', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wr_b3', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', name: '投擲飛斧', desc: '中程攻擊', range: 3, cast: 0.5, cd: 0.6, cost: 0, gain: 25, type: 'SINGLE', power: 50, color: '#78350f', visual: 'BOLT', projectileSpeed: 700 },
 
@@ -22,7 +22,7 @@ export const RED_BASIC: Skill[] = [
     // 🏹 RED RANGER (Gunner)
     // Concept: Mid Range (5), Explosive, Burst
     // ==========================================
-    { id: 'rr_b1', role: Role.RANGER, team: Team.RED, tag: 'BASIC', name: '黑火藥射擊', desc: '高爆發', range: 5, cast: 1.0, cd: 1.2, cost: 0, gain: 45, type: 'SINGLE', power: 95, color: '#7f1d1d', visual: 'BOLT', projectileSpeed: 900 },
+    { id: 'rr_b1', role: Role.RANGER, team: Team.RED, tag: 'BASIC', name: '黑火藥射擊', desc: '高爆發', range: 5, cast: 1.0, cd: 1.2, cost: 0, gain: 45, type: 'SINGLE', power: 95, color: '#450a0a', visual: 'BOLT', projectileSpeed: 900 },
     { id: 'rr_b2', role: Role.RANGER, team: Team.RED, tag: 'BASIC', name: '散彈', desc: '近距AOE', range: 3, cast: 0.7, cd: 0.9, cost: 0, gain: 30, type: 'AOE', aoeRadius: 1, power: 60, color: '#b91c1c', visual: 'BOLT', projectileSpeed: 800 },
     { id: 'rr_b3', role: Role.RANGER, team: Team.RED, tag: 'BASIC', name: '毒標', desc: '中毒', range: 5, cast: 0.5, cd: 0.6, cost: 0, gain: 20, type: 'SINGLE', power: 35, color: '#4ade80', visual: 'ARROW', projectileSpeed: 900, ccType: 'DOT', ccForce: 12, ccDur: 3 },
 

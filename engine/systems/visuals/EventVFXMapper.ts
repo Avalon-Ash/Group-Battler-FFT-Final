@@ -6,7 +6,11 @@ import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
-import * as VFXSpawners from "../vfx/spawners";
+
+// Modular Spawners
+import * as Generic from "../vfx/spawners/generic";
+import * as Imperial from "../vfx/spawners/imperial";
+import * as Covenant from "../vfx/spawners/covenant";
 
 export class EventVFXMapper {
 
@@ -27,8 +31,6 @@ export class EventVFXMapper {
                 break;
 
             case 'DAMAGE': 
-                // Only spawn impact if it wasn't a projectile hit (which handles its own visuals)
-                // or if it's a direct instant damage event.
                 if (!event.skill?.projectileSpeed) {
                     this.handleDamageImpact(event, engine, vfx, visualGroundY, camera);
                 }
@@ -39,74 +41,105 @@ export class EventVFXMapper {
                 break;
 
             case 'IMPACT_AOE':
-                // 1. UNIVERSAL GRID REACTION (The "Floor Tile Explosion")
                 if (event.skill) {
                     const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
                     const radius = event.skill.aoeRadius || 1;
                     const affectedHexes = HexUtils.range(centerHex, radius);
                     
-                    // 2. SPECIALIZED ULTIMATE VFX (Cinematic Layer)
                     const id = event.skill.id;
                     const color = event.color || '#fff';
 
-                    // --- BLUE FACTION ULTS ---
+                    // =================================================================
+                    // 🔵 IMPERIAL (BLUE) ULTIMATE VFX MAPPING
+                    // =================================================================
                     
-                    // 🛰️ Divine Intervention (Support Blue Ult 1)
-                    // REWORKED: Instead of one big beam, rain down light on EVERY tile in range with ripple
-                    if (id === 'sb_u1') {
-                        affectedHexes.forEach(h => {
-                            if (engine.map.isValid(h.q, h.r)) {
-                                const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
-                                const hHeight = grid.getTerrainHeight(h.q, h.r, engine);
-                                const tileVisualY = tilePos.y - hHeight;
-                                
-                                // Ripple Logic: Delay based on distance from center
-                                const dist = HexUtils.dist(centerHex, h);
-                                const delay = dist * 0.08; // 80ms wave speed per tile
-
-                                // Spawn independent, grid-sized pillar
-                                VFXSpawners.spawnDivinePillar(
-                                    vfx, 
-                                    tilePos.x, 
-                                    tileVisualY, 
-                                    color, 
-                                    0.8, // Shorter life
-                                    delay
-                                );
-                            }
-                        });
-                        camera.addTrauma(0.5);
-                        return; // Skip generic explosion
+                    if (id === 'tb_u1') { // Sanctuary
+                        Imperial.spawnImperialSanctuary(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.7); return;
+                    }
+                    if (id === 'tb_u2') { // Kings Blessing
+                        Imperial.spawnImperialKingsBlessing(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.3); return;
+                    }
+                    if (id === 'wb_u1') { // Thunder
+                        Imperial.spawnImperialThunder(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.6); return;
+                    }
+                    if (id === 'wb_u2') { // Daybreak
+                        Imperial.spawnImperialDaybreak(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.8); return;
+                    }
+                    if (id === 'rb_u1') { // Crystal Arrow
+                        Imperial.spawnImperialCrystalArrow(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.6); return;
+                    }
+                    if (id === 'rb_u2') { // Starfall
+                        Imperial.spawnImperialStarfall(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.4); return;
+                    }
+                    if (id === 'mb_u1') { // Black Hole
+                        Imperial.spawnImperialBlackHole(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.5); return;
+                    }
+                    if (id === 'mb_u2') { // Absolute Zero
+                        Imperial.spawnImperialFrostfall(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.5); return;
+                    }
+                    if (id === 'sb_u1') { // Intervention
+                        Imperial.spawnImperialIntervention(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.3); return;
+                    }
+                    if (id === 'sb_u2') { // Resurrection
+                        Imperial.spawnImperialResurrection(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.4); return;
                     }
 
-                    // ✝️ Grand Cross (Tank Blue Ult 1)
-                    if (id === 'tb_u1') {
-                        VFXSpawners.spawnGrandCross(vfx, event.pos.x, visualGroundY, color);
-                        camera.addTrauma(0.6);
-                        return;
+                    // =================================================================
+                    // 🔴 COVENANT (RED) ULTIMATE VFX MAPPING
+                    // =================================================================
+                    
+                    if (id === 'tr_u1') { // Guillotine
+                        Covenant.spawnCovenantGuillotine(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.8); return;
+                    }
+                    if (id === 'tr_u2') { // Undead Army
+                        Covenant.spawnCovenantUndeadArmy(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.5); return;
+                    }
+                    if (id === 'wr_u1') { // Ragnarok
+                        Covenant.spawnCovenantRagnarok(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.9); return;
+                    }
+                    if (id === 'wr_u2') { // Blood Storm
+                        Covenant.spawnCovenantBloodStorm(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.6); return;
+                    }
+                    if (id === 'rr_u1') { // Railgun
+                        Covenant.spawnCovenantRailgun(vfx, event.pos.x - 200, event.pos.y, event.pos.x, event.pos.y, color);
+                        camera.addTrauma(0.8); return;
+                    }
+                    if (id === 'rr_u2') { // Nuke
+                        Covenant.spawnCovenantNuke(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.8); return;
+                    }
+                    if (id === 'mr_u1') { // Meteor
+                        Covenant.spawnCovenantMeteor(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.7); return;
+                    }
+                    if (id === 'mr_u2') { // Death Finger (AOE fallback)
+                        Covenant.spawnCovenantDeathFinger(vfx, event.pos.x, event.pos.y - 200, event.pos.x, event.pos.y, color);
+                        camera.addTrauma(0.7); return;
+                    }
+                    if (id === 'sr_u1') { // Soul Link
+                        Covenant.spawnCovenantSoulLink(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.3); return;
+                    }
+                    if (id === 'sr_u2') { // Ancestors
+                        Covenant.spawnCovenantAncestors(vfx, event.pos.x, visualGroundY, color);
+                        camera.addTrauma(0.3); return;
                     }
 
-                    // --- RED FACTION ULTS ---
-                    // ☢️ Tactical Nuke (Ranger Red Ult 2)
-                    if (id === 'rr_u2') {
-                        VFXSpawners.spawnTacticalNuke(vfx, event.pos.x, visualGroundY, color);
-                        camera.addTrauma(0.8); 
-                        return;
-                    }
-                    // ☄️ Meteor (Mage Red Ult 1)
-                    if (id === 'mr_u1') {
-                        VFXSpawners.spawnMeteorImpact(vfx, event.pos.x, visualGroundY, color);
-                        camera.addTrauma(0.6);
-                        return;
-                    }
-                    // 🕳️ Black Hole (Mage Blue Ult 1 - Event Horizon)
-                    if (id === 'mb_u1') {
-                        VFXSpawners.spawnBlackHoleCollapse(vfx, event.pos.x, visualGroundY, '#000');
-                        camera.addTrauma(0.4);
-                        return;
-                    }
-
-                    // Generic Grid Reaction for non-special AOEs
+                    // Generic Grid Reaction
                     affectedHexes.forEach(h => {
                         if (engine.map.isValid(h.q, h.r)) {
                             const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
@@ -115,36 +148,57 @@ export class EventVFXMapper {
                             const dist = HexUtils.dist(centerHex, h);
                             const delay = dist * 0.06;
 
-                            VFXSpawners.spawnGridImpact(vfx, tilePos.x, tileVisualY, event.color || '#fff', Team.BLUE, delay);
+                            Generic.spawnGridImpact(vfx, tilePos.x, tileVisualY, event.color || '#fff', Team.BLUE, delay);
                         }
                     });
                 }
 
-                // 3. GENERIC AOE BLAST (Fallback)
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY, 0, 20, event.color || '#fff', 2.0, 0.6, 'SPARK');
-                VFXSpawners.addImpact(vfx, event.pos.x, visualGroundY, 0, event.color || '#fff', 'BLAST', 0.5);
-                VFXSpawners.spawnShockwave(vfx, event.pos.x, visualGroundY, event.color || '#fff', 0.6);
+                // Generic Fallback
+                Generic.spawnExplosion(vfx, event.pos.x, visualGroundY, 0, 20, event.color || '#fff', 2.0, 0.6, 'SPARK');
+                Generic.addImpact(vfx, event.pos.x, visualGroundY, 0, event.color || '#fff', 'BLAST', 0.5);
+                Generic.spawnShockwave(vfx, event.pos.x, visualGroundY, event.color || '#fff', 0.6);
                 camera.addTrauma(0.25); 
                 break;
 
             case 'PROJECTILE_HIT': 
                 if (event.skill?.type !== 'AOE') {
                     this.handleHitVisuals(event, engine, visualGroundY, vfx, grid, camera); 
+                } else {
+                    const hitColor = event.skill?.color || '#fff';
+                    Generic.spawnExplosion(vfx, event.pos.x, visualGroundY, 20, 8, hitColor, 1.0, 0.3, 'SPARK');
                 }
                 break;
 
             case 'DEATH':
+                // Look for the agent in the engine (it might still exist in the array briefly)
+                // OR we pass the team/role/velocity directly in the event data if agent is already gone from array.
+                // The AgentManager handles 'fullyDead' later, so agent *should* still be findable by ID.
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
-                if (dAgent) VFXSpawners.spawnUnitShatter(vfx, event.pos.x, visualGroundY, dAgent.team, dAgent.role);
-                camera.addTrauma(0.05);
+                
+                if (dAgent) {
+                    // Extract physics momentum to give the ragdoll debris direction
+                    const vx = dAgent.physics.vx || 0;
+                    const vy = dAgent.physics.vy || 0;
+                    
+                    Generic.spawnUnitShatter(
+                        vfx, 
+                        event.pos.x, 
+                        visualGroundY, 
+                        dAgent.team, 
+                        dAgent.role,
+                        vx,
+                        vy
+                    );
+                }
+                camera.addTrauma(0.15); // Increased trauma on death
                 break;
 
             case 'SPAWN':
-                VFXSpawners.spawnTeleport(vfx, event.pos.x, visualGroundY, event.color || '#fff');
+                Generic.spawnTeleport(vfx, event.pos.x, visualGroundY, event.color || '#fff');
                 break;
                 
             case 'CAST_BREAK':
-                VFXSpawners.spawnCastBreak(vfx, event.pos.x, visualGroundY, event.value || 1, event.color || '#fff');
+                Generic.spawnCastBreak(vfx, event.pos.x, visualGroundY, event.value || 1, event.color || '#fff');
                 camera.addTrauma(0.3); 
                 break;
                 
@@ -168,7 +222,7 @@ export class EventVFXMapper {
                 const tHex = HexUtils.fromPx(target.px, target.py, engine.mapConfig);
                 const tH = grid.getTerrainHeight(tHex.q, tHex.r, engine);
 
-                VFXSpawners.spawnConnectorSlash(vfx, source.px, source.py - sH, target.px, target.py - tH, event.color || '#fff', event.skill?.visual || 'SLASH');
+                Generic.spawnConnectorSlash(vfx, source.px, source.py - sH, target.px, target.py - tH, event.color || '#fff', event.skill?.visual || 'SLASH');
             }
         }
     }
@@ -180,14 +234,14 @@ export class EventVFXMapper {
                 const sHex = HexUtils.fromPx(source.px, source.py, engine.mapConfig);
                 const sH = grid.getTerrainHeight(sHex.q, sHex.r, engine);
                 
-                // Special Visual for Death Finger (mr_u2)
+                // Red Mage Death Finger (mr_u2) - Single Target Special
                 if (event.skill?.id === 'mr_u2') {
-                    VFXSpawners.spawnDeathRay(vfx, source.px, source.py - sH - 45, event.pos.x, visualGroundY - 30, event.color || '#be123c');
+                    Generic.spawnDeathRay(vfx, source.px, source.py - sH - 45, event.pos.x, visualGroundY - 30, event.color || '#be123c');
                     return;
                 }
 
-                VFXSpawners.spawnBeam(vfx, source.px, source.py - sH - 40, event.pos.x, visualGroundY - 30, event.color || '#fff');
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY - 30, 0, 5, event.color || '#fff', 0.5, 0.5, 'SPARK');
+                Generic.spawnBeam(vfx, source.px, source.py - sH - 40, 0, event.pos.x, visualGroundY - 30, 0, event.color || '#fff');
+                Generic.spawnExplosion(vfx, event.pos.x, visualGroundY - 30, 0, 5, event.color || '#fff', 0.5, 0.5, 'SPARK');
             }
         }
     }
@@ -204,14 +258,14 @@ export class EventVFXMapper {
                 const len = Math.sqrt(dx*dx + dy*dy);
                 if (len > 0) {
                     const type = (event.skill?.visual === 'SLASH' || event.skill?.visual === 'SMASH') ? 'PHYSICAL' : 'MAGICAL';
-                    VFXSpawners.spawnDirectionalImpact(vfx, event.pos.x, visualGroundY, bodyHeight, dx/len, dy/len, event.color || '#fff', type);
+                    Generic.spawnDirectionalImpact(vfx, event.pos.x, visualGroundY, bodyHeight, dx/len, dy/len, event.color || '#fff', type);
                 }
             }
         } else {
-            VFXSpawners.spawnExplosion(vfx, event.pos.x, visualGroundY, 25, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
+            Generic.spawnExplosion(vfx, event.pos.x, visualGroundY, 25, 5, event.color || '#fff', 1.0, 0.8, 'SPARK');
         }
         
-        if (dmg > 50) camera.addTrauma(0.05); // Minimized
+        if (dmg > 50) camera.addTrauma(0.05); 
     }
 
     private handleHitVisuals(
@@ -237,54 +291,54 @@ export class EventVFXMapper {
         if (isUlt) {
             camera.addTrauma(0.15); 
             
-            // Special handling for Death Finger (mr_u2) target hit
+            // Death Finger target hit check
             if (skill && skill.id === 'mr_u2') {
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, '#000', 3.0, 0.5, 'SPARK');
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 20, '#be123c', 'BLAST', 0.5);
-                VFXSpawners.spawnShockwave(vfx, event.pos.x, visualY, '#000', 0.5);
-                return;
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, '#000', 3.0, 0.5, 'SPARK');
+                Generic.addImpact(vfx, event.pos.x, visualY, 20, '#be123c', 'BLAST', 0.5);
+                Generic.spawnShockwave(vfx, event.pos.x, visualY, '#000', 0.5);
+                return; 
             }
 
-            // 1. FACTION RITUAL (The Ground Effect)
+            // FACTION RITUAL (Ult Hit)
             if (faction === Team.BLUE) {
-                // For Blue faction normal ult hits (single target), use a smaller fast pillar
-                VFXSpawners.spawnDivinePillar(vfx, event.pos.x, centerVisualY, color, 0.6, 0);
-                VFXSpawners.spawnShockwave(vfx, event.pos.x, centerVisualY, color, 0.8);
+                // Remove Pillar fallback. Use pure explosion/shockwave.
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.5, 0.8, 'SPARK');
+                Generic.spawnShockwave(vfx, event.pos.x, centerVisualY, color, 0.8);
             } else {
-                VFXSpawners.spawnBloodRitual(vfx, event.pos.x, centerVisualY, color, 1.5);
+                // Red faction uses Blood Ritual
+                Generic.spawnBloodRitual(vfx, event.pos.x, centerVisualY, color, 1.5);
             }
 
-            if (skill && skill.id === 'wr_u1') { // Ragnarok
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, '#991b1b', 2.0, 1.0, 'DEBRIS');
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 0, '#ef4444', 'BLAST', 0.8);
+            if (skill && skill.id === 'wr_u1') { // Ragnarok Hit
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 0, 50, '#991b1b', 2.0, 1.0, 'DEBRIS');
+                Generic.addImpact(vfx, event.pos.x, visualY, 0, '#ef4444', 'BLAST', 0.8);
                 camera.addTrauma(0.5);
-            } else {
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 0, 40, color, 1.2, 0.8, 'SPARK');
-            }
+            } 
             
         } else {
+            // Standard Hits
             if (visualType === 'SMASH') {
-                VFXSpawners.addImpact(vfx, event.pos.x, centerVisualY, 0, color, 'SHOCKWAVE', 0.4);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, centerVisualY, 0, 8, color, 0.5, 0.6, 'SHARD'); 
+                Generic.addImpact(vfx, event.pos.x, centerVisualY, 0, color, 'SHOCKWAVE', 0.4);
+                Generic.spawnExplosion(vfx, event.pos.x, centerVisualY, 0, 8, color, 0.5, 0.6, 'SHARD'); 
             } 
             else if (visualType === 'SLASH') {
                 if (source) {
                     const dx = event.pos.x - source.px;
                     const dy = event.pos.y - source.py;
                     const len = Math.sqrt(dx*dx + dy*dy) || 1;
-                    VFXSpawners.spawnDirectionalImpact(vfx, event.pos.x, visualY, 30, dx/len, dy/len, color, 'PHYSICAL');
+                    Generic.spawnDirectionalImpact(vfx, event.pos.x, visualY, 30, dx/len, dy/len, color, 'PHYSICAL');
                 } else {
-                    VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 8, color, 1.5, 0.4, 'SPARK');
+                    Generic.spawnExplosion(vfx, event.pos.x, visualY, 30, 8, color, 1.5, 0.4, 'SPARK');
                 }
             }
             else if (visualType === 'FIREBALL' || visualType === 'BOMB') {
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 20, color, 'BLAST', 0.5);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 5, color, 0.5, 1.0, 'SMOKE');
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 20, 8, '#fff', 1.0, 0.3, 'SPARK');
+                Generic.addImpact(vfx, event.pos.x, visualY, 20, color, 'BLAST', 0.5);
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 20, 5, color, 0.5, 1.0, 'SMOKE');
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 20, 8, '#fff', 1.0, 0.3, 'SPARK');
             }
             else {
-                VFXSpawners.addImpact(vfx, event.pos.x, visualY, 30, color, 'RING', 0.4);
-                VFXSpawners.spawnExplosion(vfx, event.pos.x, visualY, 30, 12, color, 2.0, 0.4, 'SPARK');
+                Generic.addImpact(vfx, event.pos.x, visualY, 30, color, 'RING', 0.4);
+                Generic.spawnExplosion(vfx, event.pos.x, visualY, 30, 12, color, 2.0, 0.4, 'SPARK');
             }
         }
     }

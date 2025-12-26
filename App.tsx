@@ -65,6 +65,7 @@ function App() {
           <SystemMenu 
               onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
               onToggleDB={() => setters.setShowDB(!state.showDB)}
+              onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
               onDownloadSpec={actions.downloadSpec}
           />
       )}
@@ -78,15 +79,17 @@ function App() {
           />
       )}
 
-      {/* 4. Modals (Logs / DB) */}
+      {/* 4. Modals (Logs / DB / VFX Map) */}
       {!hideHUD && (
           <ModalManager 
               showLogs={state.showLogs}
               showDB={state.showDB}
+              showVFXMap={state.showVFXMap}
               engine={engineRef.current}
               onClose={() => {
                   setters.setShowLogs(false);
                   setters.setShowDB(false);
+                  setters.setShowVFXMap(false);
               }}
           />
       )}

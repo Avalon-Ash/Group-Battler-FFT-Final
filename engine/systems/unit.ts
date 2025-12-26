@@ -10,7 +10,7 @@ import { HexUtils, MapConfig } from "../utils";
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
 import { CovenantRenderer } from "../renderers/units/factions/CovenantRenderer";
-import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSpawnIndicator, drawUltimateGroundCircle, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
+import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSpawnIndicator, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
 
 // Visual Constants
 const MAX_UNIT_SIZE_RATIO = 0.85; 
@@ -147,12 +147,6 @@ export class UnitRenderSystem {
 
         // END MAIN TRANSFORM STACK
         ctx.restore();
-
-        // 7. LAYER: SPAWN INDICATOR (Screen Space / World Space Overlay)
-        // This is drawn outside the scale/rotate stack to keep text readable
-        if (agent.spawnTimer > 0 && !isSilhouette) {
-            drawSpawnIndicator(ctx, agent, drawX, drawY, scaleFactor);
-        }
     }
 
     private drawGroundElements(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number) {
@@ -162,42 +156,45 @@ export class UnitRenderSystem {
         ctx.save();
         // Base stays at feet level (py), ignoring jump height (pz) usually, unless we want shadow to jump
         ctx.translate(px, py - pz); 
-        ctx.drawImage(assets.base, -64, -79); 
-        ctx.restore();
+        
+        // 1. Draw Base Plate
+        // Use -64, -64 to perfectly center the 128x128 isometric base asset on the tile center
+        ctx.drawImage(assets.base, -64, -64); 
+
+        // 2. Draw Role Icon (Chess Piece Style)
+        ctx.save();
+        const iconBaseY = -24; 
+        ctx.translate(0, iconBaseY);
+        const breath = Math.sin(t * 2) * 1.5;
+        ctx.translate(0, breath);
+
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.beginPath(); ctx.ellipse(0, 28, 14, 6, 0, 0, Math.PI*2); ctx.fill();
+
+        ctx.globalAlpha = 1.0; 
+        ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 5;
+        ctx.drawImage(assets.icon, -32, -32, 64, 64);
+        
+        ctx.restore(); // End Icon
+        ctx.restore(); // End Ground Group
 
         // Flying Tether
         if (agent.movementType === MovementType.FLYING) {
             drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }
 
-        // Casting Magic Circle
+        // Casting Magic Circle (NEW: Unified Volumetric System)
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
-                if (skill.tag === 'ULT') {
-                    const progress = 1 - (agent.castTimer / skill.cast);
-                    ctx.save();
-                    // Draw directly without transforms first, then inside func handles it?
-                    // drawUltimateGroundCircle takes center x,y. 
-                    // Current context is scaled and translated. 
-                    // Actually, drawGroundElements is called with px, py relative to drawX/drawY
-                    // but we want to draw at the "Ground" point.
-                    // The context is at drawX, drawY (screen).
-                    // px, py are local offsets.
-                    // The function drawUltimateGroundCircle expects coordinates.
-                    // We are already inside ctx.translate(drawX, drawY), so we pass px, py-pz.
-                    drawUltimateGroundCircle(ctx, px, py - pz, skill.color, t, progress);
-                    ctx.restore();
-                } else {
-                    const circle = AssetManager.getMagicCircle(skill.color, false);
-                    ctx.save(); 
-                    ctx.translate(px, py - pz); 
-                    ctx.scale(1, 0.5); 
-                    ctx.rotate(t * 2);
-                    ctx.globalAlpha = 0.6;
-                    ctx.drawImage(circle, -64, -64, 128, 128); 
-                    ctx.restore();
-                }
+                const progress = 1 - (agent.castTimer / skill.cast);
+                const radius = skill.aoeRadius || 1;
+                const isAOE = skill.type === 'AOE';
+                
+                ctx.save();
+                // Pass the tag to determine visual intensity (Basic vs Active vs Ult)
+                drawSkillGroundIndicator(ctx, px, py - pz, skill.color, t, progress, radius, skill.tag, isAOE);
+                ctx.restore();
             }
         }
     }

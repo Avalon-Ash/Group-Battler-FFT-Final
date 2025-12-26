@@ -1,5 +1,6 @@
 
 import { HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../../constants";
+import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 
 // Optimization: Precompute Hex Polygon Offsets
 const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
@@ -12,11 +13,6 @@ for (let i = 0; i < 6; i++) {
     });
 }
 
-// Procedural Noise function
-function noise(q: number, r: number) {
-    return Math.sin(q * 12.9898 + r * 78.233) * 43758.5453 - Math.floor(Math.sin(q * 12.9898 + r * 78.233) * 43758.5453);
-}
-
 export const TerrainRenderer = {
     
     drawBlockGeometry(
@@ -25,7 +21,7 @@ export const TerrainRenderer = {
         size: number, height: number, 
         theme: any,
         type: string,
-        globalTime: number // NEW: Time injection for animation
+        globalTime: number
     ) {
         const BASE_THICKNESS = 12; 
         const topY = height; 
@@ -83,7 +79,6 @@ export const TerrainRenderer = {
         this.traceTopFace(ctx, x, y - topY);
         
         // --- BASE MATERIAL ---
-        // Static Gradient for base material to ensure solid look
         const topGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
         topGrad.addColorStop(0, theme.rim); 
         topGrad.addColorStop(0.3, theme.top);
@@ -91,37 +86,23 @@ export const TerrainRenderer = {
         ctx.fillStyle = topGrad;
         ctx.fill();
 
-        // --- DYNAMIC OVERLAYS (Texture 2.0) ---
+        // --- DYNAMIC OVERLAYS ---
         if (type === 'MAGMA') {
-            // OPTIMIZATION: Replaced per-tile Gradient with flat fill.
-            // Creating RadialGradient 100+ times per frame kills FPS.
             const pulse = Math.sin(globalTime * 1.5 + x * 0.1 + y * 0.1); 
-            
-            // Only draw heat if pulse is high
             if (pulse > 0.2) {
-                // Map pulse (-1 to 1) to alpha (0 to 0.25)
                 const heatAlpha = (pulse - 0.2) * 0.3; 
-                ctx.fillStyle = `rgba(239, 68, 68, ${heatAlpha})`; // Flat Red Overlay
+                ctx.fillStyle = `rgba(239, 68, 68, ${heatAlpha})`; 
                 ctx.fill();
             }
-            
         } else if (type === 'ICE') {
-            // FIX: Ice is now a glossy surface with a moving specular reflection, not a flashing strobe
-            // Specular band moving across the tile
             const bandPos = (globalTime * 50 + x + y) % (size * 4) - size * 2;
-            
             ctx.save();
-            ctx.clip(); // Clip to hex
-            
+            ctx.clip(); 
             const specGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
-            // Gentle white/cyan reflection
-            specGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-            specGrad.addColorStop(0.45, 'rgba(255, 255, 255, 0)');
-            specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)'); // Subtle highlight
-            specGrad.addColorStop(0.55, 'rgba(255, 255, 255, 0)');
-            specGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            
-            ctx.translate(bandPos * 0.5, 0); // Move reflection
+            specGrad.addColorStop(0, 'transparent');
+            specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)'); 
+            specGrad.addColorStop(1, 'transparent');
+            ctx.translate(bandPos * 0.5, 0); 
             ctx.fillStyle = specGrad;
             ctx.fill();
             ctx.restore();
@@ -164,127 +145,8 @@ export const TerrainRenderer = {
         type: string, 
         detailColor: string
     ) {
-        ctx.save();
-        ctx.fillStyle = detailColor;
-        ctx.strokeStyle = detailColor;
-        
-        const n = noise(q, r);
-        const time = performance.now() / 1000;
-
-        if (type === 'MAGMA') {
-            // Charred Cracks (Darker, less glowing)
-            const pulse = 0.5 + Math.sin(time + n * 10) * 0.5;
-            
-            // OPTIMIZATION: Removed globalCompositeOperation 'multiply'.
-            // Switching blend modes per-tile is expensive. Use alpha-blended dark line instead.
-            ctx.strokeStyle = 'rgba(40, 5, 5, 0.7)'; // Dark crack
-            ctx.lineWidth = 2;
-            
-            ctx.beginPath();
-            ctx.moveTo(cx - 12, cy + 5);
-            ctx.lineTo(cx - 5, cy - 2);
-            ctx.lineTo(cx + 8, cy + 3);
-            ctx.lineTo(cx + 15, cy - 5);
-            ctx.stroke();
-            
-            // Only occasional glowing ember spots
-            if (pulse > 0.8) {
-                // OPTIMIZATION: Removed globalCompositeOperation 'lighter'.
-                // Just draw bright red on top.
-                ctx.fillStyle = '#ef4444';
-                ctx.globalAlpha = (pulse - 0.8) * 3; 
-                ctx.beginPath(); ctx.arc(cx - 5, cy - 2, 2, 0, Math.PI*2); ctx.fill();
-            }
-
-        } else if (type === 'VOID') {
-            // ENHANCED: Digital Circuitry
-            ctx.globalAlpha = 0.3;
-            
-            // Static Grid Node
-            if (n > 0.3) {
-                ctx.fillStyle = '#38bdf8';
-                ctx.beginPath(); ctx.arc(cx, cy, 2, 0, Math.PI*2); ctx.fill();
-                
-                // Connecting lines
-                ctx.strokeStyle = '#38bdf8';
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                if (n > 0.6) { ctx.moveTo(cx, cy); ctx.lineTo(cx + 15, cy - 8); }
-                if (n < 0.4) { ctx.moveTo(cx, cy); ctx.lineTo(cx - 15, cy + 8); }
-                ctx.stroke();
-            }
-
-            // Moving Data Packet
-            const packetTime = (time * 0.5 + n) % 2; // 2 second loop
-            if (packetTime < 1.0) {
-                ctx.globalAlpha = 1.0 - packetTime; // Fade out
-                ctx.fillStyle = '#bae6fd';
-                const px = cx + (Math.cos(n * 10) * 20 * packetTime);
-                const py = cy + (Math.sin(n * 10) * 10 * packetTime); // Squashed Y
-                ctx.fillRect(px, py, 2, 2);
-            }
-
-        } else if (type === 'FOREST') {
-            // ENHANCED: Moving Grass
-            ctx.globalAlpha = 0.6;
-            const tufts = Math.floor(n * 3) + 2;
-            
-            for(let i=0; i<tufts; i++) {
-                const ox = (noise(q+i, r) - 0.5) * 20;
-                const oy = (noise(r, q+i) - 0.5) * 12;
-                
-                // Wind Sway Logic
-                const wind = Math.sin(time * 2 + cx * 0.05 + i) * 3;
-                
-                ctx.beginPath();
-                // Blade 1
-                ctx.moveTo(cx + ox, cy + oy);
-                ctx.quadraticCurveTo(cx + ox - 2 + wind, cy + oy - 6, cx + ox - 4 + wind * 1.5, cy + oy - 8);
-                // Blade 2
-                ctx.moveTo(cx + ox, cy + oy);
-                ctx.quadraticCurveTo(cx + ox + 2 + wind, cy + oy - 5, cx + ox + 4 + wind * 1.5, cy + oy - 7);
-                
-                ctx.lineWidth = 1.5;
-                ctx.strokeStyle = i % 2 === 0 ? '#4ade80' : '#22c55e'; // Varied greens
-                ctx.stroke();
-            }
-
-        } else if (type === 'ICE') {
-            // Subtler scratches
-            ctx.globalAlpha = 0.3;
-            ctx.fillStyle = '#fff';
-            if (n > 0.4) {
-                ctx.beginPath();
-                ctx.moveTo(cx - 15, cy + 2);
-                ctx.lineTo(cx + 5, cy - 8);
-                ctx.lineTo(cx + 15, cy - 4);
-                ctx.lineTo(cx - 5, cy + 8);
-                ctx.fill();
-            }
-
-        } else if (type === 'DESERT') {
-            // ENHANCED: Moving Sand Ripples
-            ctx.globalAlpha = 0.2;
-            ctx.strokeStyle = '#92400e';
-            ctx.lineWidth = 2;
-            
-            // Scroll ripples
-            const offset = (time * 5) % 20; 
-            
-            ctx.beginPath();
-            // Draw 2 ripples
-            for(let i=0; i<2; i++) {
-                const yBase = cy - 10 + i * 15;
-                const shift = offset + (n * 20); // Random offset per tile
-                const xStart = cx - 15 + (shift % 10);
-                
-                ctx.moveTo(xStart, yBase);
-                ctx.quadraticCurveTo(xStart + 10, yBase - 3, xStart + 20, yBase);
-            }
-            ctx.stroke();
-        }
-
-        ctx.restore();
+        // Delegate to SurfaceAssets to keep Renderer pure
+        SurfaceAssets.drawTexture(ctx, cx, cy, q, r, type, detailColor, performance.now() / 1000);
     },
 
     traceTopFace(ctx: CanvasRenderingContext2D, x: number, y: number) {

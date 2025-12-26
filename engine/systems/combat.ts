@@ -1,11 +1,10 @@
-
 import { Agent, GameEngine } from "../game";
 import { Projectile, Skill, BattleField } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { SkillResolutionSystem } from "./combat/SkillResolutionSystem";
 import { HexUtils, Vector } from "../utils";
 import { HEX_SIZE } from "../../constants";
-import * as VFXSpawners from "./vfx/spawners";
+import * as GenericVFX from "./vfx/spawners/generic";
 
 const FIELD_TICK_RATE = 0.5; // Damage every 0.5s
 
@@ -21,6 +20,10 @@ export class CombatSystem {
     // Proxy for accessors to maintain GameEngine compatibility
     get projectiles(): Projectile[] { return this.projectileSystem.projectiles; }
     set projectiles(v: Projectile[]) { this.projectileSystem.projectiles = v; }
+
+    public reset() {
+        this.projectileSystem.projectiles = [];
+    }
 
     public update(dt: number, engine: GameEngine) {
         // 1. Casting Updates (Logic)
@@ -153,10 +156,14 @@ export class CombatSystem {
         // Determine Duration: Use ccDur if > 0, else default 5s
         const duration = (skill.ccDur && skill.ccDur > 0) ? skill.ccDur : 5.0;
 
+        // Calculate Q, R from Pos for Grid Lookup
+        const hex = HexUtils.fromPx(pos.x, pos.y, engine.mapConfig);
+
         const field: BattleField = {
             id: Math.random().toString(36).substr(2, 5),
             pos: pos,
-            q: 0, r: 0, // Not strictly needed for collision if we use PX, but good for debug
+            q: hex.q, 
+            r: hex.r, 
             radius: radiusGrid,
             radiusPx: radiusPx,
             skill: skill,
@@ -170,9 +177,7 @@ export class CombatSystem {
 
         engine.fields.push(field);
         
-        // Spawn Visuals immediately
-        // Note: The VFXSpawner `spawnLingeringField` spawns particles with life = duration.
-        // This matches perfectly.
-        VFXSpawners.spawnLingeringField(engine.renderer!.vfx, pos.x, pos.y, skill.color, 'SMOKE', duration, 0);
+        // Spawn Visuals immediately (Just initial puff, persistent zone handled by ZoneRenderer)
+        GenericVFX.spawnLingeringField(engine.renderer!.vfx, pos.x, pos.y, skill.color, 'SMOKE', 1.0, 0);
     }
 }

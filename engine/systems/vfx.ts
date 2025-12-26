@@ -10,6 +10,11 @@ export class VFXSystem {
     // Ambient Spawn State
     private ambientTimer: number = 0;
 
+    public reset() {
+        this.state.reset();
+        this.ambientTimer = 0;
+    }
+
     update(dt: number, globalTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {
         // Update Particles
         // PERF: Iterate backwards to allow Swap-Pop removal

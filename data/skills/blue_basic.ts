@@ -16,7 +16,7 @@ export const BLUE_BASIC: Skill[] = [
     // ==========================================
     { id: 'wb_b1', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', name: '迅捷劍', desc: '極快攻擊', range: 1, cast: 0.4, cd: 0.5, cost: 0, gain: 25, type: 'SINGLE', power: 45, color: '#bae6fd', visual: 'SLASH', projectileSpeed: 0 },
     { id: 'wb_b2', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', name: '騎士斬', desc: '標準劍術', range: 1, cast: 0.6, cd: 0.8, cost: 0, gain: 30, type: 'SINGLE', power: 65, color: '#60a5fa', visual: 'SLASH', projectileSpeed: 0 },
-    { id: 'wb_b3', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', name: '破魔劍', desc: '燃燒魔力', range: 1, cast: 0.6, cd: 0.7, cost: 0, gain: 30, type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'SLASH', projectileSpeed: 0, effectType: 'MANA_BURN', effectVal: 20 },
+    { id: 'wb_b3', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', name: '破魔劍', desc: '燃燒魔力', range: 1, cast: 0.6, cd: 0.7, cost: 0, gain: 30, type: 'SINGLE', power: 50, color: '#3b82f6', visual: 'SLASH', projectileSpeed: 0, effectType: 'MANA_BURN', effectVal: 20 },
 
     // ==========================================
     // 🏹 BLUE RANGER (Longbow)
@@ -39,6 +39,6 @@ export const BLUE_BASIC: Skill[] = [
     // Concept: Light healing, Buffs
     // ==========================================
     { id: 'sb_b1', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', name: '懲戒之光', desc: '神聖傷害', range: 5, cast: 0.7, cd: 0.8, cost: 0, gain: 35, type: 'SINGLE', power: 45, color: '#fef08a', visual: 'BOLT', projectileSpeed: 700 },
-    { id: 'sb_b2', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', name: '祈禱', desc: '治療自身', range: 0, cast: 1.0, cd: 1.2, cost: 0, gain: 50, type: 'SINGLE', power: -40, color: '#fff', visual: 'BEAM', projectileSpeed: 0 },
+    { id: 'sb_b2', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', name: '祈禱', desc: '治療自身', range: 0, cast: 1.0, cd: 1.2, cost: 0, gain: 50, type: 'SINGLE', power: -40, color: '#ffffff', visual: 'BEAM', projectileSpeed: 0 },
     { id: 'sb_b3', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', name: '聖印', desc: '持續恢復', range: 5, cast: 0.7, cd: 0.9, cost: 0, gain: 30, type: 'SINGLE', power: 20, color: '#86efac', visual: 'BEAM', projectileSpeed: 0, ccType: 'HOT', ccForce: 15, ccDur: 4 },
 ];

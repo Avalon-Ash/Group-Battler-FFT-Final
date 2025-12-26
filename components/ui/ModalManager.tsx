@@ -3,20 +3,22 @@ import React from 'react';
 import { GameEngine } from '../../engine/game';
 import { LogTab } from '../inspector/tabs/LogTab';
 import { SkillDbTab } from '../inspector/tabs/SkillDbTab';
+import { VFXMapTab } from '../inspector/tabs/VFXMapTab';
 import { Icons } from './icons';
 
 interface ModalManagerProps {
     showLogs: boolean;
     showDB: boolean;
+    showVFXMap?: boolean; // Added optional prop
     engine: GameEngine;
     onClose: () => void;
 }
 
 export const ModalManager: React.FC<ModalManagerProps> = ({
-    showLogs, showDB, engine, onClose
+    showLogs, showDB, showVFXMap, engine, onClose
 }) => {
     
-    if (!showLogs && !showDB) {
+    if (!showLogs && !showDB && !showVFXMap) {
         return null;
     }
 
@@ -32,6 +34,7 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
                     <h2 className="text-lg font-bold text-white tracking-widest flex items-center gap-3">
                         {showLogs && <><Icons.Log className="w-6 h-6 text-cyan-400" /> BATTLE LOGS</>}
                         {showDB && <><Icons.Database className="w-6 h-6 text-amber-400" /> SKILL DATABASE</>}
+                        {showVFXMap && <><Icons.VFX className="w-6 h-6 text-purple-400" /> VFX MAP</>}
                     </h2>
                     <button onClick={onClose} className="w-10 h-10 rounded-xl hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all border border-transparent hover:border-white/10">
                         <Icons.Close className="w-5 h-5" />
@@ -42,6 +45,7 @@ export const ModalManager: React.FC<ModalManagerProps> = ({
                 <div className="flex-1 overflow-hidden relative min-h-0">
                     {showLogs && <LogTab engine={engine} />}
                     {showDB && <SkillDbTab db={engine.skillDB} onUpdate={() => {}} />}
+                    {showVFXMap && <VFXMapTab />}
                 </div>
             </div>
         </div>

@@ -38,6 +38,13 @@ export class HUDSystem {
         for(let i=0; i<50; i++) this.pool.push(this.createEmpty());
     }
 
+    public reset() {
+        for (const d of this.damageNumbers) {
+            this.release(d);
+        }
+        this.damageNumbers.length = 0;
+    }
+
     private createEmpty(): FloatingText {
         return {
             active: false,

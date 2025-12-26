@@ -36,6 +36,10 @@ export class CameraSystem {
         this.zoom = this.targetZoom = zoom;
     }
 
+    public reset() {
+        this.trauma = 0;
+    }
+
     // Sync directly with user input. 
     // Removed 'mapConfig' and 'mapKeys' args as we no longer calculate cinematic centers.
     public sync(camera: Camera) {

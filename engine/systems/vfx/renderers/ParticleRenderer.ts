@@ -2,477 +2,234 @@
 import { Particle } from "../state";
 import { isChaosStyle } from "../utils";
 import { AssetManager } from "../../../assets";
+import { ISO_SCALE_Y } from "../../../../constants";
+import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 
 export const ParticleRenderer = {
     
     drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
         ctx.save();
         
-        // Context is already translated to Visual Position (Ground Y - Z)
-        ctx.translate(p.x, p.y);
-
-        // --- PHYSICAL SHADOW PASS ---
-        if (['DEBRIS', 'SHARD', 'SPRITE'].includes(p.type) && p.z > 5) {
-            ctx.save();
-            ctx.translate(0, p.z); // Move "down" to ground level
-            ctx.scale(1, 0.5); // Isometric shadow squash
-            const shadowAlpha = Math.max(0, 0.3 - (p.z / 400)); // Lighter shadow
-            if (shadowAlpha > 0) {
-                ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
-                const shadowSize = p.size * 0.8;
-                ctx.beginPath(); ctx.arc(0, 0, shadowSize, 0, Math.PI * 2); ctx.fill();
-            }
-            ctx.restore();
+        // 1. POSITIONING: Strict adherence to grid for field effects
+        const isGridLocked = ['GRID_FIELD', 'DOMAIN', 'SHOCKWAVE', 'PILLAR'].includes(p.type);
+        
+        if (isGridLocked) {
+            // Snap to pixel perfect center
+            ctx.translate(Math.round(p.x), Math.round(p.y));
+        } else {
+            ctx.translate(p.x, p.y);
         }
 
         // --- RENDER LOGIC BY TYPE ---
 
-        if (p.type === 'SPARK') {
-            // ✨ KINETIC SPARKS (Light Streaks)
-            const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy + p.vz*p.vz);
+        if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
+            // ⚡ VOLUMETRIC ENERGY BEAM
+            // We need to inverse the translation to draw from start (0,0) to target
+            if (p.targetX !== undefined) {
+                // p.x, p.y is START. targetX, targetY is END.
+                // Context is already at p.x, p.y.
+                
+                // Calculate vector in local space
+                const dx = p.targetX - p.x;
+                const dy = p.targetY! - p.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const angle = Math.atan2(dy, dx);
+                
+                ctx.rotate(angle);
+                
+                // Animate Beam Width (Fade in/out)
+                // 0 -> 1 -> 0
+                const widthMod = Math.sin(progress * Math.PI);
+                const width = p.size * widthMod;
+                
+                if (width > 0.5) {
+                    ctx.lineCap = 'round';
+                    
+                    // 1. Outer Glow (Wide, Transparent, Additive)
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.strokeStyle = p.color;
+                    ctx.lineWidth = width * 4;
+                    ctx.globalAlpha = 0.3;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+                    
+                    // 2. Inner Core (White/Bright)
+                    ctx.lineWidth = width;
+                    ctx.globalAlpha = 0.8;
+                    ctx.strokeStyle = '#fff';
+                    ctx.shadowColor = p.color;
+                    ctx.shadowBlur = 10;
+                    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+                    
+                    // 3. Chaos Arcs (Optional)
+                    if (isChaos || p.type === 'DEATH_RAY') {
+                        ctx.shadowBlur = 0;
+                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = p.color;
+                        ctx.beginPath();
+                        const segments = dist / 20;
+                        ctx.moveTo(0,0);
+                        for(let i=1; i<segments; i++) {
+                            const x = i * 20;
+                            const jitter = (Math.random() - 0.5) * 10 * widthMod;
+                            ctx.lineTo(x, jitter);
+                        }
+                        ctx.lineTo(dist, 0);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+        } else if (p.type === 'BLAST') {
+            // 💥 STARBURST SHOCKWAVE
+            const scale = p.size * (1 - Math.pow(progress - 1, 4)); // Fast expansion
+            
+            ctx.scale(scale, scale * ISO_SCALE_Y); // Perspective scale
+            ctx.globalCompositeOperation = 'lighter';
+            
+            // Spike Burst
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = progress; // Fade out
+            
+            ctx.beginPath();
+            const spikes = 12;
+            for(let i=0; i<spikes*2; i++) {
+                const angle = (i / (spikes*2)) * Math.PI * 2;
+                // Outer radius = 1.0, Inner = 0.3
+                const r = (i % 2 === 0) ? 1.0 : 0.3;
+                ctx.lineTo(Math.cos(angle) * r, Math.sin(angle) * r);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            // Central White Hot Core
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = progress * 0.8;
+            ctx.beginPath(); ctx.arc(0, 0, 0.4, 0, Math.PI*2); ctx.fill();
+
+        } else if (p.type === 'SMOKE') {
+            // ☁️ VOLUMETRIC SMOKE CLOUD
+            // Expands and rotates over life
+            const growth = 1.0 + (1.0 - progress) * 1.5; 
+            const alpha = Math.min(1, progress * 1.5); // Fade out at end
+            
+            ctx.scale(growth, growth);
+            ctx.rotate(p.rotation + (1.0-progress)); // Slow rotation
+            
+            ctx.globalAlpha = alpha * 0.6;
+            
+            if (isChaos) {
+                // Dark, thick smoke
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillStyle = p.color; 
+            } else {
+                // Light, misty smoke
+                ctx.globalCompositeOperation = 'screen';
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+                grad.addColorStop(0, '#fff');
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad; // Tinted by global color if needed
+            }
+            
+            // Draw Blobby Shape
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size, 0, Math.PI*2);
+            // Add a sub-puff
+            ctx.arc(p.size*0.5, p.size*0.2, p.size*0.6, 0, Math.PI*2);
+            ctx.arc(-p.size*0.4, -p.size*0.3, p.size*0.5, 0, Math.PI*2);
+            ctx.fill();
+
+        } else if (p.type === 'SPARK') {
+            // ✨ KINETIC SPARKS (Streaks)
+            const speed = Math.sqrt(p.vx*p.vx + p.vy*p.vy);
             const stretch = Math.min(4.0, 1.0 + speed / 150); 
             const angle = Math.atan2(p.vy, p.vx); 
 
             ctx.rotate(angle);
-            ctx.scale(stretch, 0.6); 
+            ctx.scale(stretch, 0.5); 
             
             ctx.globalCompositeOperation = 'lighter'; 
-            ctx.globalAlpha = Math.pow(1 - progress, 2); 
+            ctx.globalAlpha = progress; 
 
-            // Streamlined Shape
-            const grad = ctx.createLinearGradient(-p.size, 0, p.size, 0);
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(0.2, p.color);
-            grad.addColorStop(0.8, '#fff'); 
-            grad.addColorStop(1, 'transparent');
-
-            ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI*2);
-            ctx.fill();
-
-        } else if (p.type === 'SMOKE') {
-            // ☁️ VOLUMETRIC SMOKE
-            const scale = 0.5 + progress * 2.0; 
-            const alpha = (1 - progress) * 0.6; 
+            // Core
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.ellipse(0, 0, p.size, p.size * 0.5, 0, 0, Math.PI*2); ctx.fill();
             
-            ctx.scale(scale, scale);
-            ctx.rotate(p.rotation + progress * 0.5); 
-            ctx.globalAlpha = alpha;
+            // Glow Trail
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = progress * 0.6;
+            ctx.beginPath(); ctx.ellipse(-p.size, 0, p.size * 2, p.size, 0, 0, Math.PI*2); ctx.fill();
+
+        } else if (p.type === 'GRID_FIELD') {
+            // 🧱 VOLUMETRIC GRID BLOCK
+            const height = 15; // Extrude up
+            const alpha = Math.sin(progress * Math.PI); 
+            SurfaceAssets.drawExtrudedHex(ctx, 0, 0, height, p.color, alpha * 0.6, false);
+
+        } else if (p.type === 'DOMAIN') {
+            // 🏰 VOLUMETRIC FORTRESS
+            const maxH = 120;
+            const h = maxH * Math.sin(progress * Math.PI); 
+            const alpha = Math.min(1, Math.sin(progress * Math.PI) * 1.5);
+            SurfaceAssets.drawExtrudedHex(ctx, 0, 0, h, p.color, alpha * 0.2, true); 
+            ctx.globalCompositeOperation = 'screen';
+            SurfaceAssets.drawUnitRune(ctx, 0, 0, p.color, Date.now() * 0.001, 1.0);
+
+        } else if (p.type === 'PILLAR') {
+            // 🏛️ BEAM OF LIGHT
+            const h = 800; 
+            const width = p.size; 
+            const alpha = progress < 0.2 ? progress * 5 : (progress > 0.8 ? (1-progress)*5 : 1.0);
             
-            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, p.size);
+            ctx.globalCompositeOperation = 'screen';
+            const grad = ctx.createLinearGradient(0, 0, 0, -h);
             grad.addColorStop(0, p.color);
-            grad.addColorStop(1, 'rgba(0,0,0,0)'); 
+            grad.addColorStop(0.2, '#ffffff');
+            grad.addColorStop(1, 'transparent');
             
             ctx.fillStyle = grad;
-            ctx.beginPath();
-            ctx.arc(0, 0, p.size, 0, Math.PI*2);
-            ctx.arc(p.size*0.5, p.size*0.5, p.size*0.6, 0, Math.PI*2);
-            ctx.arc(-p.size*0.4, -p.size*0.3, p.size*0.7, 0, Math.PI*2);
-            ctx.fill();
+            ctx.globalAlpha = alpha * 0.6;
+            ctx.fillRect(-width/2, -h, width, h);
+            ctx.fillStyle = '#fff';
+            ctx.globalAlpha = alpha * 0.3;
+            ctx.fillRect(-width/4, -h, width/2, h);
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2);
+            ctx.strokeStyle = p.color; ctx.lineWidth = 2; ctx.stroke();
 
-        } else if (p.type === 'RING') {
-            // 🌊 ENERGY RIPPLE
-            ctx.scale(1, 0.55); 
-            const r = progress * p.size * 2; 
+        } else if (p.type === 'SHOCKWAVE') {
+            // 🌊 EXPANDING RING
+            const r = (1 - progress) * p.size; // Grow as life decreases (progress 1->0)
+            // Wait, usually progress is 1->0. Let's fix loop in VFXSystem to be clearer or just assume:
+            // p.life goes Max -> 0.
+            // render progress = p.life / p.maxLife (1 -> 0).
+            // So to expand: size * (1 - progress)
             
-            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = progress; // Fade out
             ctx.strokeStyle = p.color;
-            ctx.lineWidth = (1 - progress) * 4;
-            ctx.globalAlpha = 1 - progress;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+            ctx.lineWidth = 4 * progress;
             
-            if (progress > 0.2) {
-                ctx.lineWidth = (1 - progress) * 2;
-                ctx.globalAlpha = (1 - progress) * 0.5;
-                ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI * 2); ctx.stroke();
-            }
-
-        } else if (p.type === 'BLAST') {
-            // 💥 SPIKED EXPLOSION
-            ctx.scale(1, 0.55); 
-            const r = p.size * (progress); 
+            if (isChaos) ctx.globalCompositeOperation = 'source-over';
+            else ctx.globalCompositeOperation = 'screen';
             
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = (1 - progress) * 6; 
-            ctx.globalAlpha = (1 - progress);
-            
-            ctx.beginPath(); 
-            const spikes = 12;
-            for(let i=0; i<=spikes; i++) {
-                const angle = (i/spikes) * Math.PI*2;
-                const rad = r * (1.0 + (i%2===0 ? 0.2 : 0)); 
-                const px = Math.cos(angle) * rad;
-                const py = Math.sin(angle) * rad;
-                if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
-            }
-            ctx.closePath();
+            SurfaceAssets.pathHex(ctx, 0, 0, r / 32); 
             ctx.stroke();
-
-        } else if (p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'CHIP') {
-            // 💎 MATERIAL
-            ctx.rotate(p.rotation);
-            
-            const grad = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
-            grad.addColorStop(0, '#ffffff'); 
-            grad.addColorStop(0.3, p.color);
-            grad.addColorStop(1, '#000000'); 
-            
-            ctx.fillStyle = grad;
-            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-            ctx.lineWidth = 1;
-            
-            if (p.type === 'CHIP') {
-                ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
-            } else {
-                ctx.beginPath();
-                ctx.moveTo(-p.size, -p.size/2); 
-                ctx.lineTo(p.size * 0.8, -p.size * 0.2); 
-                ctx.lineTo(0, p.size); 
-                ctx.lineTo(-p.size * 0.5, p.size * 0.5);
-                ctx.closePath();
-                ctx.fill();
-                ctx.stroke();
-            }
 
         } else if (p.type === 'GLOW') {
             const img = AssetManager.getGlowSprite(p.color);
-            const fade = Math.sin(progress * Math.PI); 
-            const scale = (p.size / 64) * (0.8 + fade * 0.4); 
-            
-            ctx.globalAlpha = fade * 0.9;
-            ctx.globalCompositeOperation = 'screen'; 
+            // Pulse size
+            const scale = (p.size / 64) * (0.8 + Math.sin(progress * Math.PI) * 0.2); 
+            ctx.globalAlpha = progress;
+            ctx.globalCompositeOperation = 'screen';
             ctx.scale(scale, scale);
             ctx.drawImage(img, -32, -32);
 
-        } else if (p.type === 'SPRITE') {
-            if (p.image) {
-                const alpha = Math.max(0, 1 - Math.pow(progress, 3)); 
-                ctx.globalAlpha = alpha;
-                ctx.rotate(p.rotation + progress * 5);
-                const perspective = 1.0 + (p.z * 0.002);
-                const scale = (p.size / 64) * perspective * (1 - progress * 0.5); 
-                ctx.scale(scale, scale);
-                ctx.drawImage(p.image, -p.image.width/2, -p.image.height/2);
-            }
-
-        } else if (p.type === 'BEAM') {
-            if (p.targetX !== undefined && p.targetY !== undefined) {
-                this.drawHelixBeam(ctx, p, progress);
-            }
-        } else if (p.type === 'DEATH_RAY') {
-            this.drawDeathRay(ctx, p, progress);
-        } else if (p.type === 'PILLAR') {
-            this.drawDivinePillar(ctx, p, progress);
-        } else if (p.type === 'SHOCKWAVE') {
-            ctx.translate(0, -20);
-            this.drawShockwave(ctx, p, progress, isChaos);
-        } else if (p.type === 'DOMAIN') {
-            ctx.translate(0, -20);
-            this.drawBloodRitual(ctx, p, progress);
-        } else if (p.type === 'GRID_FIELD') {
-            this.drawGridField(ctx, p, progress, isChaos);
-        }
-
-        ctx.restore();
-    },
-
-    // ⚡ HELIX BEAM
-    drawHelixBeam(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-        ctx.translate(-p.x, -p.y); 
-        ctx.globalCompositeOperation = 'lighter';
-        
-        const sx = p.x; const sy = p.y;
-        const tx = p.targetX!; const ty = p.targetY!;
-        const dx = tx - sx;
-        const dy = ty - sy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const angle = Math.atan2(dy, dx);
-        
-        const beamWidth = 6 * (1 - Math.pow(progress, 3)); 
-        if (beamWidth < 0.2) return;
-
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(angle);
-
-        // Core
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = Math.max(2, beamWidth * 0.5);
-        ctx.lineCap = 'round';
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dist, 0); ctx.stroke();
-
-        // Glow
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = beamWidth * 2.5; 
-        ctx.globalAlpha = 0.5 * (1 - progress);
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(dist, 0); ctx.stroke();
-
-        // Helix
-        const freq = 0.12; 
-        const amp = 8 * (1 - progress); 
-        const phase = Date.now() * 0.025; 
-        
-        ctx.lineWidth = 2; 
-        ctx.globalAlpha = 0.9 * (1 - progress);
-        ctx.strokeStyle = p.color; 
-        
-        ctx.beginPath();
-        for(let i=0; i<=dist; i+=5) {
-            const yOffset = Math.sin(i * freq - phase) * amp;
-            if(i===0) ctx.moveTo(i, yOffset); else ctx.lineTo(i, yOffset);
-        }
-        ctx.stroke();
-        
-        ctx.beginPath();
-        for(let i=0; i<=dist; i+=5) {
-            const yOffset = Math.sin(i * freq - phase + Math.PI) * amp;
-            if(i===0) ctx.moveTo(i, yOffset); else ctx.lineTo(i, yOffset);
-        }
-        ctx.stroke();
-
-        // Flares
-        ctx.fillStyle = '#fff';
-        ctx.globalAlpha = 1 - progress;
-        ctx.beginPath(); ctx.arc(0, 0, beamWidth * 1.5, 0, Math.PI*2); ctx.fill();
-        ctx.beginPath(); ctx.arc(dist, 0, beamWidth * 2.5, 0, Math.PI*2); ctx.fill();
-
-        ctx.restore();
-    },
-
-    // ☠️ DEATH RAY (High Velocity Particle Beam)
-    drawDeathRay(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-        ctx.translate(-p.x, -p.y); 
-        
-        const sx = p.x; const sy = p.y;
-        const tx = p.targetX!; const ty = p.targetY!;
-        const dx = tx - sx;
-        const dy = ty - sy;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        const angle = Math.atan2(dy, dx);
-
-        ctx.save();
-        ctx.translate(sx, sy);
-        ctx.rotate(angle);
-
-        const alpha = Math.pow(1 - progress, 2);
-        
-        // 1. Dark Void Core (Source-Over to block light)
-        ctx.globalCompositeOperation = 'source-over'; 
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4 * alpha;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
-
-        // 2. Intense Crimson Glow (Lighter)
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.strokeStyle = p.color; 
-        ctx.lineWidth = 12 * alpha;
-        ctx.shadowColor = p.color;
-        ctx.shadowBlur = 20;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
-        ctx.shadowBlur = 0;
-
-        // 3. White Hot Needle Center
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2 * alpha;
-        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
-
-        // 4. Chaotic Crackles
-        ctx.strokeStyle = '#fca5a5'; 
-        ctx.lineWidth = 2 * alpha;
-        ctx.beginPath();
-        let cx = 0;
-        ctx.moveTo(0, 0);
-        const segmentLen = 40;
-        const steps = Math.ceil(dist / segmentLen);
-        for(let i=0; i<steps; i++) {
-            cx += segmentLen;
-            const cy = (Math.random() - 0.5) * 20 * alpha;
-            ctx.lineTo(cx, cy);
-        }
-        ctx.lineTo(dist, 0);
-        ctx.stroke();
-
-        ctx.restore();
-    },
-
-    // 🌫️ VOLUMETRIC GRID FOG
-    drawGridField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
-        const size = 36; 
-        const drawHex = () => {
-            ctx.beginPath();
-            for (let i = 0; i < 6; i++) {
-                const angle = (Math.PI / 6 + Math.PI / 4) + i * Math.PI / 3;
-                const x = size * Math.cos(angle);
-                const y = size * Math.sin(angle) * 0.58; 
-                if (i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-            }
-            ctx.closePath();
-        };
-
-        const fade = Math.sin(progress * Math.PI); 
-        ctx.save();
-        
-        if (isChaos) {
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.save();
-            const jitter = (Math.random() - 0.5) * 2;
-            ctx.translate(jitter, jitter);
-            drawHex();
-            ctx.clip();
-            ctx.fillStyle = `rgba(20, 5, 5, ${fade * 0.8})`;
-            ctx.fill();
-            ctx.strokeStyle = p.color; 
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = fade;
-            ctx.beginPath();
-            ctx.moveTo(-20, -10); ctx.lineTo(-10, 5); ctx.lineTo(5, -5); ctx.lineTo(20, 10);
-            ctx.moveTo(0, 0); ctx.lineTo(-5, 15);
-            ctx.stroke();
-            ctx.restore();
-        } else {
-            ctx.globalCompositeOperation = 'screen';
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 4;
-            ctx.globalAlpha = fade * 0.4;
-            drawHex();
-            ctx.stroke();
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = fade * 0.8;
-            drawHex();
-            ctx.stroke();
+        } else if (['DEBRIS', 'SHARD', 'CHIP'].includes(p.type)) {
+            // 💎 PHYSICAL DEBRIS
+            ctx.rotate(p.rotation);
             ctx.fillStyle = p.color;
-            ctx.globalAlpha = fade * 0.2;
-            ctx.fill();
+            ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
         }
+
         ctx.restore();
-    },
-
-    // 🏛️ DIVINE PILLAR 4.0: THIN SHAFT (Clean Edition)
-    drawDivinePillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-        const lifeRatio = p.life / p.maxLife;
-        
-        let alpha = 0;
-        if (lifeRatio > 0.8) alpha = (1 - lifeRatio) * 5; 
-        else if (lifeRatio < 0.3) alpha = lifeRatio * 3.3; 
-        else alpha = 1.0;
-
-        const height = 800; 
-        const width = p.size; // Strictly respects spawn size (18)
-
-        // --- 1. THE BEAM CORE ---
-        ctx.save();
-        // Use source-over to prevent additive blowout when multiple beams overlap
-        ctx.globalCompositeOperation = 'source-over'; 
-        
-        const beamGrad = ctx.createLinearGradient(-width, 0, width, 0);
-        beamGrad.addColorStop(0, 'rgba(255,255,255,0)');
-        beamGrad.addColorStop(0.2, p.color);
-        beamGrad.addColorStop(0.5, 'rgba(255,255,255,0.6)'); 
-        beamGrad.addColorStop(0.8, p.color);
-        beamGrad.addColorStop(1, 'rgba(255,255,255,0)');
-        
-        // Vertical fade
-        const vGrad = ctx.createLinearGradient(0, 0, 0, -height);
-        vGrad.addColorStop(0, 'rgba(255,255,255,1)');
-        vGrad.addColorStop(0.8, 'rgba(255,255,255,0.5)');
-        vGrad.addColorStop(1, 'rgba(255,255,255,0)');
-
-        ctx.fillStyle = beamGrad;
-        ctx.globalAlpha = alpha * 0.7; 
-        ctx.fillRect(-width, -height, width * 2, height);
-        
-        // --- 2. GROUND RIPPLE (Impact Ring) ---
-        ctx.save();
-        ctx.scale(1, 0.58); 
-        
-        // Ground glow is okay to be Screen
-        ctx.globalCompositeOperation = 'screen';
-        const ringSize = width * 1.5 * (0.5 + (1-lifeRatio)); 
-        
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = alpha * 0.9;
-        ctx.beginPath(); ctx.arc(0, 0, ringSize, 0, Math.PI*2); ctx.stroke();
-        
-        // Center spot
-        ctx.fillStyle = '#fff';
-        ctx.globalAlpha = alpha * 0.6;
-        ctx.beginPath(); ctx.arc(0, 0, width * 0.5, 0, Math.PI*2); ctx.fill();
-        
-        ctx.restore();
-        ctx.restore();
-    },
-
-    // 🩸 BLOOD RITUAL
-    drawBloodRitual(ctx: CanvasRenderingContext2D, p: Particle, progress: number) {
-         const lifeRatio = p.life / p.maxLife;
-         const alpha = Math.sin(lifeRatio * Math.PI); 
-         const r = p.size;
-
-         ctx.save();
-         ctx.scale(1, 0.55); 
-
-         // Void Hole
-         ctx.globalCompositeOperation = 'source-over'; 
-         const voidGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-         voidGrad.addColorStop(0, '#000'); 
-         voidGrad.addColorStop(0.7, '#220000');
-         voidGrad.addColorStop(1, 'transparent');
-         ctx.fillStyle = voidGrad;
-         ctx.globalAlpha = alpha * 0.9;
-         ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-
-         // Cracks
-         ctx.strokeStyle = p.color; 
-         ctx.lineWidth = 3;
-         ctx.globalAlpha = alpha;
-         ctx.beginPath();
-         for(let i=0; i<6; i++) {
-             const angle = i * (Math.PI/3) + progress;
-             ctx.moveTo(0,0);
-             ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r);
-         }
-         ctx.stroke();
-         ctx.restore();
-         
-         // Rising Heat
-         ctx.globalCompositeOperation = 'lighter';
-         const heatGrad = ctx.createLinearGradient(0, 0, 0, -300);
-         heatGrad.addColorStop(0, p.color);
-         heatGrad.addColorStop(1, 'transparent');
-         ctx.fillStyle = heatGrad;
-         ctx.globalAlpha = alpha * 0.2;
-         ctx.beginPath();
-         ctx.moveTo(-r/2, 0); ctx.lineTo(-r/4, -300); ctx.lineTo(r/4, -300); ctx.lineTo(r/2, 0);
-         ctx.fill();
-    },
-
-    drawShockwave(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
-        ctx.scale(1, 0.55); 
-        const r = progress * p.size; // Expands to max size
-        const width = 30 * (1 - progress);
-        ctx.globalAlpha = (1 - progress);
-        ctx.strokeStyle = p.color;
-        ctx.lineWidth = width;
-
-        if (isChaos) {
-            ctx.globalCompositeOperation = 'source-over'; 
-            ctx.beginPath();
-            const segs = 16;
-            for(let i=0; i<=segs; i++) {
-                const a = i * (Math.PI*2 / segs);
-                const varR = r + (i%2===0 ? 20 : -20);
-                const px = Math.cos(a)*varR;
-                const py = Math.sin(a)*varR;
-                if(i===0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-            }
-            ctx.closePath();
-            ctx.stroke();
-        } else {
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
-        }
     }
 };

@@ -21,6 +21,10 @@ export class VisualEventListener {
         this.vfxMapper = new EventVFXMapper();
     }
     
+    public reset() {
+        this.hudMapper.reset();
+    }
+
     public process(
         events: GameEvent[], 
         engine: GameEngine, 

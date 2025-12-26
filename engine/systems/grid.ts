@@ -4,6 +4,7 @@ import { GameEngine, Agent } from "../game";
 import { HexUtils, getTransitionOffset } from "../utils";
 import { Hex, Skill, Projectile } from "../../types";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
+import { SurfaceAssets } from "../graphics/SurfaceAssets";
 
 interface CachedTile {
     q: number;
@@ -13,14 +14,16 @@ interface CachedTile {
     h: number;
 }
 
-// Lightweight struct to track Danger Zones without map allocation
-interface DangerSource {
+// Lightweight struct to track Zones (Both Instant Casts & Persistent Fields)
+interface ZoneSource {
+    type: 'CAST' | 'FIELD';
     q: number;
     r: number;
-    radiusSq: number; // Squared radius for fast check
+    radius: number; // Hex radius
+    radiusSq: number; // For fast distance check (cached)
     color: string;
     visual: string;
-    progress: number;
+    progress: number; // 0-1 for CAST, 1.0 for FIELD
 }
 
 const OBSTACLE_Z_INDEX = 10;
@@ -32,9 +35,17 @@ export class GridSystem {
     private _lastMapVersion: number = -1;
 
     // Optimization: Reuse buffers
-    private _dangerSources: DangerSource[] = [];
+    private _activeZones: ZoneSource[] = [];
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
+
+    public reset() {
+        this._activeZones.length = 0;
+        this._unitPresence.clear();
+        this._unitVisualStatus.clear();
+        // Force tile cache rebuild on next frame just in case
+        this._lastMapVersion = -1; 
+    }
 
     getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
         if(engine) return engine.map.getTerrainHeight(q, r);
@@ -67,9 +78,7 @@ export class GridSystem {
         let bestTile: CachedTile | null = null;
         let bestDist = Infinity;
 
-        // Optimization: Simple distance check first
         for (const tile of this._tileCache) {
-            // Visual Y center is py - h
             const visualY = tile.py - tile.h;
             const dist = Math.abs(wx - tile.px) + Math.abs(wy - visualY);
             if (dist < limit && dist < bestDist) { 
@@ -79,7 +88,6 @@ export class GridSystem {
         }
 
         if (bestTile) {
-            // Precise check
             const testHex = HexUtils.fromPx(wx, wy + bestTile.h, engine.mapConfig);
             const rounded = HexUtils.round(testHex.q, testHex.r);
             if (rounded.q === bestTile.q && rounded.r === bestTile.r) {
@@ -131,19 +139,19 @@ export class GridSystem {
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
 
         // Reset buffers
-        this._dangerSources.length = 0;
+        this._activeZones.length = 0;
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
 
-        // 1. Scan Agents for AOE and Status
+        // 1. COLLECT ZONES (Casting & Fields)
+        
+        // A. Casting Agents (Telegraphs)
         for (const a of engine.agents) {
             if (a.hp > 0) {
-                // Populate Unit Status Maps
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
                 if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
 
-                // Populate Danger Sources (No allocations)
                 if (a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
                     const s = a.skills[a.castingSkillIdx];
                     if (s && s.type === 'AOE') {
@@ -152,11 +160,13 @@ export class GridSystem {
                         else if (a.target) { tq = a.target.q; tr = a.target.r; }
                         
                         const progress = 1 - (a.castTimer / s.cast);
-                        const radius = Math.max(0.5, (s.aoeRadius || 1) * progress);
+                        const radius = (s.aoeRadius || 1);
                         
-                        this._dangerSources.push({
+                        this._activeZones.push({
+                            type: 'CAST',
                             q: tq, r: tr,
-                            radiusSq: radius + 0.1, // Slight buffer
+                            radius: radius,
+                            radiusSq: radius + 0.5, 
                             color: s.color,
                             visual: s.visual || 'BOLT',
                             progress: progress
@@ -166,7 +176,23 @@ export class GridSystem {
             }
         }
 
-        // 2. Iterate Tiles & Obstacles
+        // B. Persistent Fields (Poison, Gravity, etc.)
+        for (const f of engine.fields) {
+            // Decoupled Visual Logic: Ask the Asset Library what this should look like
+            const visual = SurfaceAssets.resolveFieldVisual(f.skill, f.visualType);
+            
+            this._activeZones.push({
+                type: 'FIELD',
+                q: f.q, r: f.r, 
+                radius: f.radius,
+                radiusSq: f.radius + 0.5,
+                color: f.color,
+                visual: visual,
+                progress: 1.0 
+            });
+        }
+
+        // 2. ITERATE TILES
         const PROJ_LIGHT_RADIUS_SQ = 1600; // 40^2
 
         for (const tile of this._tileCache) {
@@ -192,20 +218,25 @@ export class GridSystem {
             }
 
             // --- SUBMIT TERRAIN ---
-            // Determine Danger Zone without allocation
-            let dangerInfo = undefined;
-            for (const ds of this._dangerSources) {
-                // Dist calculation
-                const dist = (Math.abs(q - ds.q) + Math.abs(q + r - ds.q - ds.r) + Math.abs(r - ds.r)) / 2;
-                if (dist <= ds.radiusSq) {
-                    dangerInfo = {
-                        color: ds.color,
-                        progress: ds.progress,
-                        visual: ds.visual,
-                        state: 'ACTIVE',
-                        fadeRatio: 1.0
+            
+            let zoneInfo = undefined;
+            
+            // Iterate zones to find overlap
+            for (const zone of this._activeZones) {
+                const dist = (Math.abs(q - zone.q) + Math.abs(q + r - zone.q - zone.r) + Math.abs(r - zone.r)) / 2;
+                
+                if (dist <= zone.radius) {
+                    zoneInfo = {
+                        type: zone.type,
+                        color: zone.color,
+                        visual: zone.visual,
+                        progress: zone.progress,
+                        centerQ: zone.q, 
+                        centerR: zone.r, 
+                        radius: zone.radius,
+                        dist: dist 
                     };
-                    break; // Just take the first overlapping danger zone
+                    if (zone.type === 'FIELD') break; 
                 }
             }
 
@@ -225,7 +256,10 @@ export class GridSystem {
             }
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            const hasUnit = this._unitPresence.has(k);
+            
+            // UX UPDATE: Only show unit footprint indicators when NOT running (Planning phase)
+            const hasUnit = !engine.isRunning && this._unitPresence.has(k);
+            
             const specialStatus = this._unitVisualStatus.get(k);
 
             let lightColor = null;
@@ -239,14 +273,13 @@ export class GridSystem {
                 }
             }
 
-            // Populate RenderOp for Terrain
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
             op.y = visualY; 
             op.z = 0;
             
             op.tx = px; 
-            op.ty = visualY; // Base Y
+            op.ty = visualY; 
             op.th = h;
             op.tsize = HEX_SIZE;
             op.ttheme = theme;
@@ -257,10 +290,9 @@ export class GridSystem {
             
             // Overlays
             op.oStatus = specialStatus;
-            op.oDanger = dangerInfo;
+            op.oDanger = zoneInfo; 
             op.oLightCol = lightColor;
             op.oLightInt = Math.min(1, lightIntensity);
-            // op.oFlash removed
             op.oRange = isRange;
             op.oRangeCol = rangeColor;
             op.oHover = isHover;

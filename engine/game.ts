@@ -22,11 +22,11 @@ import type { GameRenderer } from "./renderer";
 export { Agent, SpecialVisualStatus };
 
 // Constants
-export const VICTORY_PHASE_DURATION = 0.5; // Reduced to 0.5s for snappier finish
+export const VICTORY_PHASE_DURATION = 0.5; 
 
 export class GameEngine {
     public agents: Agent[] = [];
-    public fields: BattleField[] = []; // NEW: Persistent Ground Effects
+    public fields: BattleField[] = []; 
     
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
@@ -40,7 +40,7 @@ export class GameEngine {
     
     // Time & Speed Control
     public timeScale: number = 1.0;
-    public targetTimeScale: number = 1.0; // New: For smooth slow-mo transitions
+    public targetTimeScale: number = 1.0; 
     
     public battleTime: number = 0;
     public mapVersion: number = 0; 
@@ -149,6 +149,8 @@ export class GameEngine {
         this.targetTimeScale = 1.0;
         this.timeScale = 1.0;
         this.agentMap.clear();
+        
+        // 1. Reset Agents
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
             a.skills = a.skillIds.map(id => {
@@ -157,9 +159,19 @@ export class GameEngine {
             });
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
-        this.combat.projectiles = []; 
-        this.fields = []; // Reset fields
+        
+        // 2. Logic Cleanup
+        this.fields = []; 
         this.events = []; 
+        this.combat.reset(); 
+        
+        // 3. Visual Deep Cleanup (CRITICAL)
+        if (this.renderer) {
+            this.renderer.reset();
+            this.renderer.grid.reset(); // Clear cached zones
+            this.renderer.vfx.reset();  // Clear all particles immediately
+        }
+        
         this.battleTime = 0;
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_RESET', {});
@@ -171,21 +183,31 @@ export class GameEngine {
         this.agentMap.clear();
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
-        this.combat.projectiles = [];
-        this.fields = [];
+        
+        this.combat.reset(); 
+        this.fields = []; 
+        this.events = [];
+        
+        if (this.renderer) {
+            this.renderer.reset();
+            this.renderer.grid.reset();
+            this.renderer.vfx.reset();
+        }
+        
         this.logs = [];
         this.directorTargetId = null;
+        
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 
+        
         this.bus.emit('GAME_CLEAR', {});
     }
 
     tick(dt: number) {
         if (!this.isRunning) return;
         
-        // 1. Time Dilation Logic (Smooth Slow Mo)
         if (Math.abs(this.targetTimeScale - this.timeScale) > 0.01) {
-            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; // Soft lerp
+            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; 
         } else {
             this.timeScale = this.targetTimeScale;
         }
@@ -193,15 +215,12 @@ export class GameEngine {
         this.events.length = 0;
         this.updateDirector(dt);
 
-        // 2. Victory Check Logic
         if (this.isFinishing) {
             this.victoryTimer -= dt;
-            // Continue animating death falls and particles
             this.updateEntities(dt);
             
             if (this.victoryTimer <= 0) {
                 this.stop();
-                // Reset timescale for next run
                 this.targetTimeScale = 1.0;
                 this.timeScale = 1.0;
                 this.bus.emit('GAME_OVER', { winner: this.winningTeam });
@@ -215,12 +234,9 @@ export class GameEngine {
         }
 
         if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
-            // Enter Finishing Sequence
             this.isFinishing = true;
             this.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
-            this.victoryTimer = VICTORY_PHASE_DURATION; // Use Constant
-            // Note: The slow motion trigger (0.1x) happens in SkillResolutionSystem on the lethal hit.
-            // Here we ensure it doesn't stay frozen forever, drifting back up to 0.4x for the fall.
+            this.victoryTimer = VICTORY_PHASE_DURATION; 
             this.targetTimeScale = 0.4; 
         }
 
@@ -254,8 +270,6 @@ export class GameEngine {
 
     private updateDirector(dt: number) {
         this.directorTimer -= dt;
-        
-        // If current target is dead, force reset
         if (this.directorTargetId) {
             const current = this.agents.find(a => a.id === this.directorTargetId);
             if (!current || current.hp <= 0) {
@@ -267,7 +281,6 @@ export class GameEngine {
             let candidates: Agent[] = [];
             let ultCasters: Agent[] = [];
             
-            // Single loop to find candidates (Avoids array allocation of .filter)
             for (const a of this.agents) {
                 if (a.hp > 0) {
                     candidates.push(a);
@@ -280,7 +293,7 @@ export class GameEngine {
             if (candidates.length > 0) {
                 if (ultCasters.length > 0) {
                      this.directorTargetId = ultCasters[Math.floor(Math.random() * ultCasters.length)].id;
-                     this.directorTimer = 4.0; // Stay longer on Ult
+                     this.directorTimer = 4.0; 
                 } else {
                      this.directorTargetId = candidates[Math.floor(Math.random() * candidates.length)].id;
                      this.directorTimer = 3.0;

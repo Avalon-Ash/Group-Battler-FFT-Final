@@ -1,15 +1,27 @@
 
 import { TerrainRenderer } from "./TerrainRenderer";
-import { AOERenderer } from "./AOERenderer";
+import { ZoneRenderer } from "./ZoneRenderer";
+
+// Updated Interface matching GridSystem
+interface ZoneInfo {
+    type: 'CAST' | 'FIELD';
+    color: string;
+    visual: string;
+    progress: number;
+    centerQ: number;
+    centerR: number;
+    radius: number;
+    dist: number;
+}
 
 export const GridOverlays = {
     
     drawOverlays(
         ctx: CanvasRenderingContext2D,
-        x: number, y: number, // Note: y here should be the "visual top" y (y - topY)
+        x: number, y: number, // Visual top Y
         size: number,
         specialStatus: string | undefined,
-        dangerInfo: {color: string, progress: number, visual: string, state: 'ACTIVE' | 'BROKEN', fadeRatio: number} | undefined,
+        zoneInfo: ZoneInfo | undefined, // Replaces dangerInfo
         lightColor: string | null,
         lightIntensity: number,
         isRange: boolean,
@@ -19,10 +31,9 @@ export const GridOverlays = {
         q: number, r: number,
         globalTime: number
     ) {
-        // Helper to trace the hex shape at current position
         const trace = () => TerrainRenderer.traceTopFace(ctx, x, y);
 
-        // 1. SPECIAL STATUS FLOOR EFFECT (Frozen/Polymorph)
+        // 1. SPECIAL STATUS FLOOR EFFECT
         if (specialStatus) {
             trace(); 
             ctx.save();
@@ -41,18 +52,21 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 2. AOE TELEGRAPH (Danger Zone) - Delegated
-        if (dangerInfo) {
-            AOERenderer.draw(
-                ctx, x, y, size, 
-                dangerInfo.color, dangerInfo.visual, dangerInfo.progress, 
-                globalTime, q, r,
-                dangerInfo.state, 
-                dangerInfo.fadeRatio
+        // 2. ZONE RENDERING (Cast Ripple / Persistent Fields)
+        if (zoneInfo) {
+            ZoneRenderer.draw(
+                ctx, x, y, size,
+                zoneInfo.color,
+                zoneInfo.type,
+                zoneInfo.visual,
+                zoneInfo.progress,
+                globalTime,
+                zoneInfo.dist,
+                zoneInfo.radius
             );
         }
 
-        // 3. Dynamic Lighting (Projectile Pass)
+        // 3. Dynamic Lighting
         if (lightColor && lightIntensity > 0) {
             trace(); 
             ctx.save();
@@ -63,14 +77,14 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 4. Interactive Highlights (Hover/Range)
+        // 4. Interactive Highlights
         if (isRange || isHover || hasUnit) {
             ctx.save();
             trace(); 
 
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.1; // Fainter fill
+                ctx.globalAlpha = 0.1;
                 ctx.fill();
                 ctx.strokeStyle = rangeColor; 
                 ctx.lineWidth = 2; 
@@ -87,8 +101,7 @@ export const GridOverlays = {
                 ctx.stroke(); 
             }
             
-            // Only draw unit base ring if not hovering and no danger zone (cleaner look)
-            if (hasUnit && !isHover && !dangerInfo) {
+            if (hasUnit && !isHover && !zoneInfo) {
                 ctx.strokeStyle = 'rgba(255,255,255,0.15)';
                 ctx.lineWidth = 1;
                 ctx.stroke();

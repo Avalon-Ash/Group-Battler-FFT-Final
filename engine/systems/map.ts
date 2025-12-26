@@ -32,6 +32,11 @@ export class MapSystem {
     }
 
     public rebuildMap(engine: GameEngine) {
+        // 1. CRITICAL: Clear combat fields (Ground Effects)
+        // Since the terrain is changing, old coordinates are invalid.
+        engine.fields = [];
+        
+        // 2. Clear Map Data
         this.mapKeys.clear();
         this.validHashes.clear();
         this.obstacles.clear();
@@ -129,6 +134,11 @@ export class MapSystem {
         this.generateDecorations(engine);
 
         engine.mapVersion++;
+        
+        // Force GridSystem reset to clear cached tiles immediately
+        if (engine.renderer) {
+            engine.renderer.grid.reset();
+        }
     }
 
     private generateDecorations(engine: GameEngine) {

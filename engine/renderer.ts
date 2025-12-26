@@ -63,6 +63,13 @@ export class GameRenderer {
         this.renderList = new RenderList();
     }
 
+    public reset() {
+        this.vfx.reset();
+        this.hud.reset();
+        this.camera.reset();
+        this.eventListener.reset();
+    }
+
     public setTransition(t: number, phase: 'IN' | 'OUT' | 'IDLE') {
         this.transitionT = t;
         this.transitionPhase = phase;

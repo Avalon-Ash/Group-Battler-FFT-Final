@@ -28,6 +28,7 @@ export const useGameApp = () => {
     // UI State
     const [showLogs, setShowLogs] = useState(false);
     const [showDB, setShowDB] = useState(false);
+    const [showVFXMap, setShowVFXMap] = useState(false); // NEW
     const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
     const [showFactionWarning, setShowFactionWarning] = useState(false);
 
@@ -255,12 +256,12 @@ export const useGameApp = () => {
         state: {
             isShowcaseMode, isPlaying, unitCount, tool, selectedObstacle,
             selectedAgent, hoveredSkill, hpInput, mapW, mapH, timeScale,
-            winner, currentSceneId, spawnMode, draftRole, showLogs, showDB,
+            winner, currentSceneId, spawnMode, draftRole, showLogs, showDB, showVFXMap,
             transitionPhase, showFactionWarning
         },
         setters: {
             setTool, setSelectedObstacle, setHpInput, setTimeScale, 
-            setSpawnMode, setDraftRole, setShowLogs, setShowDB, 
+            setSpawnMode, setDraftRole, setShowLogs, setShowDB, setShowVFXMap,
             setIsShowcaseMode, setSelectedAgent, setHoveredSkill
         },
         actions: {

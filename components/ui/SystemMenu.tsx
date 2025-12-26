@@ -5,10 +5,11 @@ import { Icons } from './icons';
 interface SystemMenuProps {
     onToggleLogs: () => void;
     onToggleDB: () => void;
+    onToggleVFXMap?: () => void;
     onDownloadSpec: () => void;
 }
 
-export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onDownloadSpec }) => {
+export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onToggleVFXMap, onDownloadSpec }) => {
     const [isOpen, setIsOpen] = useState(false);
 
     return (
@@ -47,6 +48,19 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                             <span className="text-[11px] text-slate-500 uppercase">Skill Reference</span>
                         </div>
                     </button>
+
+                    {onToggleVFXMap && (
+                        <button 
+                            onClick={() => { onToggleVFXMap(); setIsOpen(false); }}
+                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-purple-400 hover:bg-black/60 hover:border-purple-500/30 transition-all group min-w-[180px]"
+                        >
+                            <Icons.VFX className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                            <div className="flex flex-col items-start">
+                                <span className="text-sm font-bold tracking-widest text-white group-hover:text-purple-300">VFX MAP</span>
+                                <span className="text-[11px] text-slate-500 uppercase">Visual Reference</span>
+                            </div>
+                        </button>
+                    )}
 
                     <button 
                         onClick={() => { onDownloadSpec(); setIsOpen(false); }}
