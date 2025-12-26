@@ -27,7 +27,7 @@ export const SurfaceAssets = {
     },
 
     // 1. LIQUID SURFACE (Blood, Lava, Acid)
-    // PERFORMANCE OVERHAUL: Now uses cached texture + simple scaling instead of procedural noise paths
+    // OPTIMIZED: Reduced segment count and simplified noise calculation
     drawLiquidSurface(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -35,35 +35,52 @@ export const SurfaceAssets = {
         time: number,
         intensity: number
     ) {
-        const texture = VFXFactory.getTexture('LIQUID', color);
-        // Texture size is 128, Hex size is approx 72.
-        const scaleFactor = (HEX_SIZE * 2.2) / 128;
-
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y); 
 
-        // Simulate "breathing" liquid via simple scaling instead of recalculating 12 vertex points
-        const breath = 1.0 + Math.sin(time * 2.5) * 0.05;
-        const finalScale = scaleFactor * breath;
-        
-        ctx.scale(finalScale, finalScale);
-        
-        // Draw cached pool
-        ctx.globalAlpha = 0.9 * intensity;
-        ctx.drawImage(texture, -64, -64, 128, 128);
+        // Optimized Wobbly Circle
+        ctx.beginPath();
+        const r = HEX_SIZE * 0.9;
+        const segments = 8; // Reduced from 12
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            // Simplified noise: Single sin wave + time offset
+            // We removed the inner cos calculation to save CPU
+            const noise = Math.sin(angle * 3 + time * 3) * 2.5; 
+            const px = Math.cos(angle) * (r + noise);
+            const py = Math.sin(angle) * (r + noise);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
 
-        // Simple cheap highlight bubble (keeps it feeling alive)
+        // Fluid Body
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.8 * intensity;
+        ctx.fill();
+
+        // Inner darker pool (Depth)
+        // Grouped Composite Operations to reduce state changes
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Specular Highlights
         ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.6;
         ctx.fillStyle = '#fff';
-        ctx.globalAlpha = 0.5 * intensity;
-        
-        const bubbleX = Math.sin(time) * 20;
-        const bubbleY = Math.cos(time * 0.8) * 15;
         
         ctx.beginPath();
-        ctx.ellipse(bubbleX, bubbleY, 8, 3, 0, 0, Math.PI*2);
+        ctx.ellipse(0, -r * 0.6, r * 0.4, 4, 0, 0, Math.PI*2);
         ctx.fill();
+        
+        const bubbleX = Math.sin(time) * r * 0.3;
+        const bubbleY = Math.cos(time) * r * 0.3;
+        ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 3, 0, Math.PI*2); ctx.fill();
 
         ctx.restore();
     },
@@ -226,11 +243,19 @@ export const SurfaceAssets = {
         globalTime: number
     ) {
         // Optimized Seed: Use bitwise ops for speed
+        // const n = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453;
+        // const seed = n - Math.floor(n);
+        // Simple hash is faster for pure visuals
         const seed = ((q * 73856093) ^ (r * 19349663)) / 2147483647; 
         const normalizedSeed = Math.abs(seed - Math.floor(seed));
 
         if (type === 'MAGMA') {
             if (normalizedSeed > 0.5) {
+                // Now uses cached texture logic inside SurfaceAssets? 
+                // Actually SurfaceAssets calls drawGroundCracks itself sometimes? 
+                // No, TerrainRenderer calls drawTexture directly.
+                // We reimplement a simple crack draw here or use the cached one.
+                
                 // Using the optimized drawGroundCracks which now uses cache
                 this.drawGroundCracks(ctx, cx, cy, '#ef4444', 0.6);
             }

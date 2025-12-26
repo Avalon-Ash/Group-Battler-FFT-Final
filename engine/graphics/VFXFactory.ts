@@ -9,7 +9,7 @@ const CENTER = TEXTURE_SIZE / 2;
 class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
-    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST' | 'SHARD' | 'CHIP' | 'CRACKS' | 'LIQUID', color: string): HTMLCanvasElement {
+    public getTexture(type: 'GLOW' | 'SOLID' | 'OUTLINE' | 'NOISE' | 'BLAST' | 'SHARD' | 'CHIP' | 'CRACKS', color: string): HTMLCanvasElement {
         const key = `${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
@@ -136,31 +136,6 @@ class VFXTextureCache {
             // Glowing Core
             ctx.fillStyle = color;
             ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-        }
-        else if (type === 'LIQUID') {
-            // Pre-baked liquid pool to save per-frame drawing costs
-            const poolR = r * 0.85;
-            
-            // Base fluid
-            ctx.fillStyle = color;
-            ctx.beginPath(); 
-            ctx.arc(0, 0, poolR, 0, Math.PI * 2); 
-            ctx.fill();
-
-            // Inner depth (Darker center)
-            ctx.globalCompositeOperation = 'multiply';
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            ctx.beginPath();
-            ctx.arc(0, 0, poolR * 0.7, 0, Math.PI * 2);
-            ctx.fill();
-
-            // Rim Highlight
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(0, 0, poolR - 2, 0, Math.PI * 2);
-            ctx.stroke();
         }
 
         return canvas;
