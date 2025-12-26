@@ -81,11 +81,7 @@ export class GameRenderer {
         return this.grid.getTerrainHeight(q, r, engine);
     }
 
-    // UPDATED: Now performs proper Screen->World transform taking center pivot into account
     public getHexAtScreenPoint(mouseX: number, mouseY: number, width: number, height: number, camera: Camera, engine: GameEngine): Hex | null {
-        // Center Pivot Logic (Matching ApplyTransform)
-        // Screen = (World - Cam) * Zoom + Center
-        // World = (Screen - Center) / Zoom + Cam
         const cx = width / 2;
         const cy = height / 2;
         
@@ -192,44 +188,48 @@ export class GameRenderer {
             engine.mapConfig
         );
 
-        // Sort In-Place (No allocation)
+        // Sort In-Place (Now utilizing strictly logical Y for stability)
         this.renderList.sort();
         
         // Execute Draws
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i];
             
+            // PIXEL SNAPPING: Strictly align all translation anchors to integer coordinates
+            const snapX = Math.round(op.tx);
+            const snapY = Math.round(op.ty);
+
             switch (op.type) {
                 case RenderOpType.TERRAIN:
-                    // Pass globalTime to TerrainRenderer for animations
                     TerrainRenderer.drawBlockGeometry(
-                        ctx, op.tx, op.ty, op.tsize, op.th, op.ttheme, op.ttype, this.globalTime
+                        ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, this.globalTime
                     );
-                    TerrainRenderer.drawTerrainDetail(ctx, op.tx, op.ty - op.th, op.tq, op.tr, op.ttype, op.tdetail);
+                    TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY - op.th, op.tq, op.tr, op.ttype, op.tdetail);
                     GridOverlays.drawOverlays(
-                        ctx, op.tx, op.ty - op.th, op.tsize,
+                        ctx, snapX, snapY - op.th, op.tsize,
                         op.oStatus, op.oDanger,
                         op.oLightCol, op.oLightInt,
                         op.oRange, op.oRangeCol, op.oHover, op.oHasUnit,
-                        op.tq, op.tr, op.time
+                        op.tq, op.tr, op.time,
+                        op.oHazard
                     );
                     break;
                     
                 case RenderOpType.OBSTACLE:
                     const sprite = SpriteManager.getObstacleSprite(op.ttype);
-                    ctx.drawImage(sprite, op.tx - OBSTACLE_HALF_WIDTH, op.ty);
+                    ctx.drawImage(sprite, snapX - OBSTACLE_HALF_WIDTH, snapY);
                     break;
                     
                 case RenderOpType.UNIT:
                     if (op.agent) {
-                        this.unit.drawAssembly(ctx, op.agent, op.tx, op.ty, op.time, op.uSelected, op.uSilhouette);
+                        this.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette);
                     }
                     break;
                     
                 case RenderOpType.DECAL:
                     const dImg = AssetManager.getBlastZone(op.dColor);
                     ctx.save();
-                    ctx.translate(op.tx, op.ty);
+                    ctx.translate(snapX, snapY);
                     ctx.scale(op.dScale, op.dScale);
                     ctx.globalAlpha = Math.min(1, op.dLife);
                     ctx.drawImage(dImg, -64, -32, 128, 64);
@@ -239,15 +239,50 @@ export class GameRenderer {
                 case RenderOpType.VFX:
                     if (op.particle) {
                         ctx.save();
-                        ctx.translate(op.tx, op.ty); // Visual position
+                        // 1. Translate to the visual source position
+                        ctx.translate(snapX, snapY);
+                        
                         const pProxy = op.particle;
-                        const originalX = pProxy.x; 
+                        
+                        // 2. Temporarily relativize coordinates for drawing in local space
+                        const originalX = pProxy.x;
                         const originalY = pProxy.y;
-                        pProxy.x = 0; pProxy.y = 0; // Relative to context
+                        const originalTx = pProxy.targetX;
+                        const originalTy = pProxy.targetY;
+                        // Don't need to restore targetZ as it's not mutated, but we read it.
+                        
+                        // Visual Source becomes (0,0) in the new context
+                        pProxy.x = 0; 
+                        pProxy.y = 0;
+                        
+                        // Fix for Beams: Convert absolute World Target to Relative Visual Target
+                        if (pProxy.targetX !== undefined && pProxy.targetY !== undefined) {
+                            // Target X relative to Source X (Horizontal distance)
+                            pProxy.targetX = originalTx! - snapX; 
+                            
+                            // VISUAL TARGET Y CALCULATION (Critical Fix)
+                            // snapY = Source.y + Offset - Source.z
+                            // We need TargetVisualY = Target.y + Offset - Target.z
+                            // RelativeY = TargetVisualY - snapY
+                            
+                            // Since we don't have the transition offset for the target here cheaply,
+                            // we assume offset is similar (valid for beams which are short range).
+                            // TargetVisualY ~= Target.y - Target.z ( + offset)
+                            
+                            // relativeY = (originalTy - (pProxy.targetZ || 0)) - snapY.
+                            // Note: originalTy from particle is Ground Y.
+                            
+                            pProxy.targetY = (originalTy! - (pProxy.targetZ || 0)) - snapY; 
+                        }
                         
                         ParticleRenderer.drawSingleParticle(ctx, pProxy, op.vProgress, op.vChaos);
                         
-                        pProxy.x = originalX; pProxy.y = originalY; // Restore
+                        // 3. Restore original absolute coordinates
+                        pProxy.x = originalX; 
+                        pProxy.y = originalY;
+                        pProxy.targetX = originalTx;
+                        pProxy.targetY = originalTy;
+                        
                         ctx.restore();
                     }
                     break;
@@ -273,47 +308,30 @@ export class GameRenderer {
             ctx.restore();
         }
 
-        // 7. Top VFX (Particles above everything, e.g. Weather or High flying magic)
+        // 7. Top VFX (Particles above everything)
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
-        // --- POST PROCESSING BARRIER ---
-        ctx.restore(); // Exit Camera Space
+        ctx.restore(); 
         
-        // Calculate Transition Aberration Intensity
-        // Peak distortion when transition is active
         let transitionAberration = 0;
         if (this.transitionPhase !== 'IDLE') {
-            // Intensity curve: 0 -> 1 -> 0 based on progress
-            // transitionT goes 0 to 1.
-            // Using parabola for smooth effect: 4 * x * (1-x)
             transitionAberration = 4 * this.transitionT * (1 - this.transitionT) * 0.5;
         }
 
-        // Apply Post Process (Trauma + Transition Warp)
         this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.camera.getTrauma(), transitionAberration);
         
-        ctx.save(); // Prepare for UI overlays
-        
-        // RE-APPLY CAMERA TRANSFORM for World-Space UI
+        ctx.save(); 
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
-
-        // 8. Tactical Overlay Lines
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
-
-        // 9. HUD (Health bars, floating text)
         this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
+        ctx.restore(); 
 
-        ctx.restore(); // Exit Camera Space
-
-        // 10. Holographic Director HUD
         if (engine.directorTargetId) {
             this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, this.globalTime);
         } 
 
-        // 11. Debug Overlay
         this.tacticalRenderer.drawDebug(ctx, fps);
 
-        // --- FINAL PASS: FROSTED GLASS TRANSITIONS ---
         let blurAmount = 0;
         if (engine.isFinishing) {
             blurAmount = 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION);
@@ -321,70 +339,109 @@ export class GameRenderer {
             blurAmount = 1.0;
         }
 
-        if (this.transitionPhase === 'OUT') {
-            blurAmount = 1.0; 
-        } else if (this.transitionPhase === 'IN') {
-            blurAmount = 1.0 - this.transitionT;
-        }
+        if (this.transitionPhase === 'OUT') blurAmount = 1.0; 
+        else if (this.transitionPhase === 'IN') blurAmount = 1.0 - this.transitionT;
 
         if (blurAmount > 0) {
-            const clampedProgress = Math.max(0, Math.min(1, blurAmount));
-            this.postProcessor.applyFinishBlur(ctx, physicalWidth, physicalHeight, clampedProgress);
+            this.postProcessor.applyFinishBlur(ctx, physicalWidth, physicalHeight, Math.max(0, Math.min(1, blurAmount)));
         }
     }
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
-        // --- 1. Draw Trail ---
-        if (op.pTrail && op.pTrail.length > 1) {
+        // --- VECTOR BEAM REFACTOR (Moving High-Speed Projectiles) ---
+        const isRay = op.pSkillVis === 'BEAM' || (op.proj && (op.proj.skill.id === 'rr_u1' || op.proj.skill.id === 'mr_u2'));
+        
+        if (isRay && op.pTrail && op.pTrail.length > 0) {
             ctx.save();
             ctx.globalCompositeOperation = 'lighter';
-            ctx.strokeStyle = op.pColor;
             
+            const start = op.pTrail[op.pTrail.length - 1]; 
+            const end = { x: op.pVisX, y: op.pVisY };
+            const dx = end.x - start.x;
+            const dy = end.y - start.y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const angle = Math.atan2(dy, dx);
+
+            // 1. Energetic Core Beam
+            const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
+            grad.addColorStop(0, 'rgba(0,0,0,0)');
+            grad.addColorStop(0.2, op.pColor);
+            grad.addColorStop(0.8, op.pColor);
+            grad.addColorStop(1, '#fff');
+
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = op.pIsUlt ? 6 : 3;
+            ctx.lineCap = 'round';
+            ctx.globalAlpha = 1.0;
             ctx.beginPath();
-            const trail = op.pTrail;
-            if (trail.length > 0) {
-                ctx.moveTo(trail[0].x, trail[0].y);
-                for(let i=1; i<trail.length; i++) {
-                    ctx.lineTo(trail[i].x, trail[i].y);
+            ctx.moveTo(Math.round(start.x), Math.round(start.y));
+            ctx.lineTo(Math.round(end.x), Math.round(end.y));
+            ctx.stroke();
+
+            // 2. Shock Rings (Mach Cones)
+            // Draw perpendicular rings along the beam
+            if (len > 20) {
+                const ringCount = Math.floor(len / 30);
+                ctx.translate(start.x, start.y);
+                ctx.rotate(angle);
+                ctx.strokeStyle = op.pColor;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.6;
+                
+                for(let i=1; i<=ringCount; i++) {
+                    const x = i * 30 - (this.globalTime * 200 % 30); // Move rings backwards
+                    if (x > 0 && x < len) {
+                        ctx.beginPath();
+                        // Vertical ellipse (perp to beam)
+                        ctx.ellipse(x, 0, 3, 10, 0, 0, Math.PI*2);
+                        ctx.stroke();
+                    }
                 }
             }
             
-            const grad = ctx.createLinearGradient(trail[0].x, trail[0].y, trail[trail.length-1].x, trail[trail.length-1].y);
-            grad.addColorStop(0, op.pColor); // Head
-            grad.addColorStop(1, 'rgba(0,0,0,0)'); // Tail
+            // 3. Bloom
+            ctx.shadowColor = op.pColor;
+            ctx.shadowBlur = 15;
+            ctx.strokeStyle = op.pColor;
+            ctx.lineWidth = op.pIsUlt ? 16 : 8;
+            ctx.globalAlpha = 0.3;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
             
-            ctx.strokeStyle = grad;
+            ctx.restore();
+            return;
+        }
+
+        // --- STANDARD SPRITE PROJECTILE ---
+        if (op.pTrail && op.pTrail.length > 1) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.beginPath();
+            const trail = op.pTrail;
+            ctx.moveTo(Math.round(trail[0].x), Math.round(trail[0].y));
+            for(let i=1; i<trail.length; i++) {
+                ctx.lineTo(Math.round(trail[i].x), Math.round(trail[i].y));
+            }
+            ctx.strokeStyle = op.pColor;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
             ctx.stroke();
-            
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 1;
-            ctx.globalAlpha = 0.6;
-            ctx.stroke();
-            
             ctx.restore();
         }
 
-        // --- 2. Draw Shadow ---
         const shadowAltitude = op.pVisShadowY - op.pVisY; 
         if (Math.abs(shadowAltitude) > 5) {
             ctx.save();
-            ctx.translate(op.pVisX, op.pVisShadowY);
-            const shadowScale = Math.max(0.2, 1 - Math.abs(shadowAltitude)/600);
+            ctx.translate(Math.round(op.pVisX), Math.round(op.pVisShadowY));
             const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/800);
-            
-            ctx.scale(shadowScale, shadowScale * 0.5); 
+            ctx.scale(1, 0.5); 
             ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
             ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
-        // --- 3. Draw Projectile Head ---
         ctx.save();
-        ctx.translate(op.pVisX, op.pVisY);
-        
+        ctx.translate(Math.round(op.pVisX), Math.round(op.pVisY));
         if (op.pSkillVis === 'BOMB') ctx.rotate(op.pSpin);
         else ctx.rotate(op.pAngle);
         
@@ -392,8 +449,6 @@ export class GameRenderer {
         if (img && img.width > 0) {
             let scale = 0.6;
             if (op.pIsUlt) scale = 1.0;
-            if (op.pSkillVis === 'BOMB' || op.pSkillVis === 'FIREBALL') scale *= 1.2;
-
             ctx.scale(scale, scale);
             ctx.drawImage(img, -48, -32, 96, 64);
         }

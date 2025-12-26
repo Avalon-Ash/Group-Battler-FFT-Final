@@ -1,7 +1,5 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
-import { isChaosStyle } from "../systems/vfx/utils";
-import { Skill } from "../../types";
 
 // Precomputed Hex for Geometry
 const HEX_CORNERS: {x: number, y: number}[] = [];
@@ -13,13 +11,6 @@ for (let i = 0; i < 6; i++) {
     });
 }
 
-// 2.5D Volumetric Geometry Helpers
-const FACE_INDICES = [
-    [0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 0]
-];
-
-// Determine visible faces based on camera/perspective
-// In isometric, usually faces 0, 1, 5 are "front" facing
 const VISIBLE_FACES = [0, 1, 5]; 
 
 export const SurfaceAssets = {
@@ -34,17 +25,158 @@ export const SurfaceAssets = {
         ctx.closePath();
     },
 
-    // NEW: Helper for Visual Resolver
-    resolveFieldVisual(skill: Skill, visualType: string): string {
-        if (skill.ccType === 'PULL' || skill.name.includes('黑洞')) return 'GRAVITY';
-        if (skill.ccType === 'DOT') return 'POISON';
-        if (visualType === 'FIREBALL') return 'LAVA';
-        if (skill.name.includes('冰') || skill.name.includes('雪')) return 'ICE';
-        return visualType;
+    // 1. LIQUID SURFACE (Blood, Lava, Acid)
+    // Concept: Wobbly meniscus inside the hex, specular highlights
+    drawLiquidSurface(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        color: string,
+        time: number,
+        intensity: number
+    ) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(1, ISO_SCALE_Y); // Flatten to isometric plane
+
+        // Wobbly Circle Base
+        ctx.beginPath();
+        const r = HEX_SIZE * 0.9;
+        const segments = 12;
+        for (let i = 0; i <= segments; i++) {
+            const angle = (i / segments) * Math.PI * 2;
+            // Noise offset based on time and angle to create surface tension wobble
+            const noise = Math.sin(angle * 3 + time * 2) * 3 + Math.cos(angle * 5 - time) * 2;
+            const px = Math.cos(angle) * (r + noise);
+            const py = Math.sin(angle) * (r + noise);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+
+        // Fluid Body
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.8 * intensity;
+        ctx.fill();
+
+        // Inner darker pool (Depth)
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = color; // Darker version via multiply
+        ctx.globalAlpha = 0.5;
+        ctx.fill();
+
+        // Specular Highlights (Surface Tension)
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.6;
+        ctx.fillStyle = '#fff';
+        
+        // Highlight 1 (Top Edge Reflection)
+        ctx.beginPath();
+        ctx.ellipse(0, -r * 0.6, r * 0.4, 4, 0, 0, Math.PI*2);
+        ctx.fill();
+        
+        // Highlight 2 (Bubble)
+        const bubbleX = Math.sin(time) * r * 0.3;
+        const bubbleY = Math.cos(time) * r * 0.3;
+        ctx.beginPath(); ctx.arc(bubbleX, bubbleY, 3, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
     },
 
-    // NEW: Volumetric Prism (Extruded Hex)
-    // Used for thick fields, pillars, and elevated zones
+    // 2. VOLUMETRIC FOG (Poison, Smoke)
+    // Concept: Multiple drifting cloud puffs with soft gradients to simulate volume
+    drawVolumetricFog(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        color: string,
+        time: number
+    ) {
+        ctx.save();
+        ctx.translate(x, y);
+        
+        // Create cloud puffs
+        const puffs = 5;
+        for(let i=0; i<puffs; i++) {
+            const tOffset = i * 1.5;
+            
+            // Orbiting motion around center of tile
+            const angle = time * 0.5 + i * (Math.PI * 2 / puffs);
+            const dist = Math.sin(time * 0.2 + i) * 15;
+            const px = Math.cos(angle) * dist;
+            const py = Math.sin(angle) * dist * ISO_SCALE_Y - 15; // Floating slightly up
+            
+            // Breath (Scale)
+            const scale = 1.0 + Math.sin(time + i) * 0.2;
+            const radius = 25 * scale;
+
+            const grad = ctx.createRadialGradient(px, py, 0, px, py, radius);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, 'transparent');
+
+            ctx.globalAlpha = 0.3; // Low alpha for stacking
+            ctx.globalCompositeOperation = 'screen'; // Additive blending for gas
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(px, py, radius, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        // Ground Haze (Base layer)
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.scale(1, ISO_SCALE_Y);
+        ctx.globalAlpha = 0.2;
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
+    },
+
+    // 3. GROUND CRACKS (Smash, Earthquake)
+    // Concept: Jagged fractal lines radiating from center
+    drawGroundCracks(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        color: string,
+        intensity: number
+    ) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(1, ISO_SCALE_Y);
+
+        ctx.strokeStyle = color; // Lava color or Energy color
+        ctx.lineWidth = 2 * intensity;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+        ctx.globalCompositeOperation = 'lighter'; // Glowing cracks
+        
+        const branches = 4;
+        for(let i=0; i<branches; i++) {
+            const angle = (i / branches) * Math.PI * 2 + (Math.random()*0.5);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            
+            // Jagged segments
+            let cx = 0, cy = 0;
+            const len = HEX_SIZE * intensity;
+            const steps = 3;
+            for(let j=0; j<steps; j++) {
+                const stepLen = len / steps;
+                cx += Math.cos(angle) * stepLen + (Math.random()-0.5) * 8;
+                cy += Math.sin(angle) * stepLen + (Math.random()-0.5) * 8;
+                ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+        }
+        
+        // Glowing Core
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(0, 0, 8 * intensity, 0, Math.PI*2); ctx.fill();
+
+        ctx.restore();
+    },
+
+    // Original Extruded Hex (Kept for basic fields/walls/indicators)
     drawExtrudedHex(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -57,12 +189,8 @@ export const SurfaceAssets = {
         const bottomY = y;
 
         ctx.save();
+        ctx.globalAlpha = opacity * 0.6;
         
-        // 1. Side Faces (The "Volume")
-        // We simulate light direction to differentiate faces
-        ctx.globalAlpha = opacity * 0.6; // Sides are dimmer
-        
-        // Front-facing sides only to save perf
         for (const i of VISIBLE_FACES) {
             const idx1 = i;
             const idx2 = (i + 1) % 6;
@@ -70,23 +198,16 @@ export const SurfaceAssets = {
             const c1 = HEX_CORNERS[idx1];
             const c2 = HEX_CORNERS[idx2];
 
-            // Calculate simple lighting based on face angle
-            // Face 0 = Right, Face 1 = Front-Right, Face 5 = Front-Left
             let shade = 1.0;
-            if (i === 5) shade = 0.7; // Darker
-            if (i === 0) shade = 0.5; // Darkest
-            if (i === 1) shade = 0.9; // Brightest
+            if (i === 5) shade = 0.7; 
+            if (i === 0) shade = 0.5; 
+            if (i === 1) shade = 0.9; 
 
-            // Create gradient for vertical fade
             const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
             grad.addColorStop(0, color);
             grad.addColorStop(1, 'transparent');
 
             ctx.fillStyle = grad;
-            // Hack to tint the gradient without parsing color string
-            // We draw transparently then apply shadow or multiple passes if needed
-            // For performance, we assume 'color' is the main hue
-            
             ctx.beginPath();
             ctx.moveTo(x + c1.x, topY + c1.y);
             ctx.lineTo(x + c2.x, topY + c2.y);
@@ -94,12 +215,10 @@ export const SurfaceAssets = {
             ctx.lineTo(x + c1.x, bottomY + c1.y);
             ctx.closePath();
             
-            // Apply shading via alpha modulation
             const oldAlpha = ctx.globalAlpha;
             ctx.globalAlpha = oldAlpha * shade;
             ctx.fill();
             
-            // Rim Line for definition
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
             ctx.globalAlpha = opacity * 0.8;
@@ -111,14 +230,12 @@ export const SurfaceAssets = {
             ctx.globalAlpha = oldAlpha;
         }
 
-        // 2. Top Face (The "Cap")
         if (!isHollow) {
             ctx.globalAlpha = opacity;
             ctx.fillStyle = color;
             this.pathHex(ctx, x, topY, 1.0);
             ctx.fill();
             
-            // Inner glow
             ctx.globalCompositeOperation = 'lighter';
             ctx.globalAlpha = opacity * 0.5;
             this.pathHex(ctx, x, topY, 0.8);
@@ -126,7 +243,6 @@ export const SurfaceAssets = {
             ctx.globalCompositeOperation = 'source-over';
         }
 
-        // 3. Top Rim
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = opacity;
@@ -136,66 +252,6 @@ export const SurfaceAssets = {
         ctx.restore();
     },
 
-    // 🎯 TACTICAL GRID (Clean, Solid)
-    drawTacticalGrid(
-        ctx: CanvasRenderingContext2D, 
-        x: number, y: number, 
-        color: string, 
-        progress: number, 
-        isCenter: boolean
-    ) {
-        ctx.save();
-        const isChaos = isChaosStyle(color);
-        const alpha = 0.6 + Math.sin(Date.now() * 0.01) * 0.2;
-
-        if (isChaos) {
-            // Chaos: Jagged Rune Floor
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = color;
-            ctx.globalAlpha = alpha;
-            
-            // Outer Hex
-            this.pathHex(ctx, x, y, 0.9);
-            ctx.stroke();
-            
-            // Inner Cross
-            ctx.beginPath();
-            ctx.moveTo(x - 15, y - 10); ctx.lineTo(x + 15, y + 10);
-            ctx.moveTo(x + 15, y - 10); ctx.lineTo(x - 15, y + 10);
-            ctx.stroke();
-            
-            // Glow center
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.2;
-            ctx.fill();
-
-        } else {
-            // Imperial: Holographic Projection
-            // Draw extruded base (hologram thickness)
-            const height = 10 * progress;
-            this.drawExtrudedHex(ctx, x, y, height, color, 0.4, true); // Hollow top
-            
-            // Top Scanner
-            const topY = y - height;
-            ctx.globalCompositeOperation = 'screen';
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.8;
-            this.pathHex(ctx, x, topY, 1.0);
-            ctx.stroke();
-            
-            // Scanning fill
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.1;
-            this.pathHex(ctx, x, topY, 0.9);
-            ctx.fill();
-        }
-
-        ctx.restore();
-    },
-
-    // 🌍 TERRAIN TEXTURES
     drawTexture(
         ctx: CanvasRenderingContext2D, 
         cx: number, cy: number, 
@@ -204,17 +260,13 @@ export const SurfaceAssets = {
         color: string,
         globalTime: number
     ) {
-        // Simple static details, keeping it performant
         ctx.save();
         ctx.fillStyle = color;
         ctx.strokeStyle = color;
-        
-        // Random seed based on coord
         const n = Math.sin(q * 12.9898 + r * 78.233) * 43758.5453;
         const seed = n - Math.floor(n);
 
         if (type === 'MAGMA') {
-            // Cracks
             if (seed > 0.5) {
                 ctx.globalAlpha = 0.6;
                 ctx.beginPath();
@@ -224,7 +276,6 @@ export const SurfaceAssets = {
                 ctx.stroke();
             }
         } else if (type === 'VOID') {
-            // Tech nodes
             if (seed > 0.7) {
                 ctx.fillStyle = '#38bdf8';
                 ctx.globalAlpha = 0.4;
@@ -232,8 +283,6 @@ export const SurfaceAssets = {
                 ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx+10, cy-5); ctx.stroke();
             }
         }
-        // ... (Simplified other types for speed)
-        
         ctx.restore();
     },
 
@@ -247,28 +296,15 @@ export const SurfaceAssets = {
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y); 
-
-        const r = HEX_SIZE * 0.8 * progress; // Animate expansion
-        
+        const r = HEX_SIZE * 0.8 * progress; 
         ctx.globalAlpha = 0.8;
         ctx.strokeStyle = color;
         ctx.lineWidth = 2;
-        
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI*2);
-        ctx.stroke();
-        
-        // Rotating notches
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.stroke();
         ctx.rotate(t * 2);
         ctx.lineWidth = 4;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI/4);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.arc(0, 0, r, Math.PI, Math.PI + Math.PI/4);
-        ctx.stroke();
-
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI/4); ctx.stroke();
+        ctx.beginPath(); ctx.arc(0, 0, r, Math.PI, Math.PI + Math.PI/4); ctx.stroke();
         ctx.restore();
     }
 };

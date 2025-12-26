@@ -1,6 +1,7 @@
 
 import { HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../../constants";
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
+import { GridOverlays } from "./GridOverlays";
 
 // Optimization: Precompute Hex Polygon Offsets
 const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
@@ -24,9 +25,10 @@ export const TerrainRenderer = {
         globalTime: number
     ) {
         const BASE_THICKNESS = 12; 
-        const topY = height; 
+        const heightOffset = height; 
+        const faceY = y - heightOffset;
 
-        // 1. Draw Side Faces (The Stack)
+        // 1. Draw Side Faces
         const visibleIndices = [5, 0, 1];
 
         for (const i of visibleIndices) {
@@ -35,14 +37,14 @@ export const TerrainRenderer = {
             const c2 = HEX_CORNERS[j];
             
             const x1 = x + c1.x;
-            const y1_top = y + c1.y - topY;
+            const y1_top = y + c1.y - heightOffset;
             const x2 = x + c2.x;
-            const y2_top = y + c2.y - topY;
+            const y2_top = y + c2.y - heightOffset;
 
             const y1_bottom = y + c1.y + BASE_THICKNESS;
             const y2_bottom = y + c2.y + BASE_THICKNESS;
             
-            const grad = ctx.createLinearGradient(0, y - topY, 0, y + BASE_THICKNESS);
+            const grad = ctx.createLinearGradient(0, y - heightOffset, 0, y + BASE_THICKNESS);
             const baseColor = (i === 0) ? theme.sideDark : theme.sideLight; 
             
             grad.addColorStop(0, baseColor);
@@ -58,7 +60,6 @@ export const TerrainRenderer = {
             ctx.closePath();
             ctx.fill();
             
-            // Layer Lines
             if (height > BLOCK_HEIGHT) {
                 ctx.strokeStyle = 'rgba(0,0,0,0.2)';
                 ctx.lineWidth = 1;
@@ -75,32 +76,30 @@ export const TerrainRenderer = {
             ctx.stroke();
         }
 
-        // 2. Draw Top Face (Base)
-        this.traceTopFace(ctx, x, y - topY);
-        
-        // --- BASE MATERIAL ---
-        const topGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
+        // 2. Draw Top Face
+        this.traceTopFace(ctx, x, faceY);
+        const topGrad = ctx.createLinearGradient(x - size, faceY - size, x + size, faceY + size);
         topGrad.addColorStop(0, theme.rim); 
         topGrad.addColorStop(0.3, theme.top);
         topGrad.addColorStop(1, theme.sideDark); 
         ctx.fillStyle = topGrad;
         ctx.fill();
 
-        // --- DYNAMIC OVERLAYS ---
+        // 3. Surface Assets
         if (type === 'MAGMA') {
-            const pulse = Math.sin(globalTime * 1.5 + x * 0.1 + y * 0.1); 
-            if (pulse > 0.2) {
-                const heatAlpha = (pulse - 0.2) * 0.3; 
-                ctx.fillStyle = `rgba(239, 68, 68, ${heatAlpha})`; 
-                ctx.fill();
-            }
+            SurfaceAssets.drawLiquidSurface(ctx, x, faceY, '#ef4444', globalTime, 1.0);
+            const crackInt = 0.5 + Math.sin(globalTime) * 0.2;
+            SurfaceAssets.drawGroundCracks(ctx, x, faceY, '#fca5a5', crackInt);
+        } else if (type === 'VOID') {
+            SurfaceAssets.drawVolumetricFog(ctx, x, faceY, theme.fogColor || '#6366f1', globalTime);
         } else if (type === 'ICE') {
             const bandPos = (globalTime * 50 + x + y) % (size * 4) - size * 2;
             ctx.save();
+            this.traceTopFace(ctx, x, faceY);
             ctx.clip(); 
-            const specGrad = ctx.createLinearGradient(x - size, y - topY - size, x + size, y - topY + size);
+            const specGrad = ctx.createLinearGradient(x - size, faceY - size, x + size, faceY + size);
             specGrad.addColorStop(0, 'transparent');
-            specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)'); 
+            specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)'); 
             specGrad.addColorStop(1, 'transparent');
             ctx.translate(bandPos * 0.5, 0); 
             ctx.fillStyle = specGrad;
@@ -108,33 +107,24 @@ export const TerrainRenderer = {
             ctx.restore();
         } 
 
-        // 3. Rim Light
+        // 4. Rim Light
         ctx.lineCap = 'round';
         ctx.lineWidth = 2;
         ctx.strokeStyle = theme.rim || 'rgba(255,255,255,0.3)';
         ctx.globalAlpha = 0.6;
-        
         ctx.beginPath();
         const c4 = HEX_CORNERS[4];
         const c3 = HEX_CORNERS[3];
         const c2 = HEX_CORNERS[2];
-        
-        ctx.moveTo(x + c4.x, y - topY + c4.y);
-        ctx.lineTo(x + c3.x, y - topY + c3.y);
-        ctx.lineTo(x + c2.x, y - topY + c2.y); 
+        ctx.moveTo(x + c4.x, faceY + c4.y);
+        ctx.lineTo(x + c3.x, faceY + c3.y);
+        ctx.lineTo(x + c2.x, faceY + c2.y); 
         ctx.stroke();
-        
         ctx.globalAlpha = 1.0;
         
-        // 4. Subtle Outline
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-        ctx.beginPath();
-        ctx.moveTo(x + HEX_CORNERS[2].x, y - topY + HEX_CORNERS[2].y);
-        ctx.lineTo(x + HEX_CORNERS[1].x, y - topY + HEX_CORNERS[1].y);
-        ctx.lineTo(x + HEX_CORNERS[0].x, y - topY + HEX_CORNERS[0].y);
-        ctx.lineTo(x + HEX_CORNERS[5].x, y - topY + HEX_CORNERS[5].y);
-        ctx.lineTo(x + HEX_CORNERS[4].x, y - topY + HEX_CORNERS[4].y);
+        this.traceTopFace(ctx, x, faceY);
         ctx.stroke();
     },
 
@@ -145,7 +135,6 @@ export const TerrainRenderer = {
         type: string, 
         detailColor: string
     ) {
-        // Delegate to SurfaceAssets to keep Renderer pure
         SurfaceAssets.drawTexture(ctx, cx, cy, q, r, type, detailColor, performance.now() / 1000);
     },
 

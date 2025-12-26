@@ -10,7 +10,7 @@ import { HexUtils, MapConfig } from "../utils";
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
 import { CovenantRenderer } from "../renderers/units/factions/CovenantRenderer";
-import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSpawnIndicator, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
+import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
 
 // Visual Constants
 const MAX_UNIT_SIZE_RATIO = 0.85; 
@@ -183,7 +183,7 @@ export class UnitRenderSystem {
             drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }
 
-        // Casting Magic Circle (NEW: Unified Volumetric System)
+        // Casting Magic Circle (Unified Volumetric System)
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
@@ -192,8 +192,15 @@ export class UnitRenderSystem {
                 const isAOE = skill.type === 'AOE';
                 
                 ctx.save();
+                
+                // VISUAL FIX: 
+                // For AOE skills, we clamp the ground indicator to the caster's personal space (0.8 tiles).
+                // The actual area coverage is handled by the GridSystem's terrain-conforming overlay.
+                // This prevents large flat circles from clipping into uneven terrain.
+                const visualRadius = isAOE ? 0.8 : radius;
+
                 // Pass the tag to determine visual intensity (Basic vs Active vs Ult)
-                drawSkillGroundIndicator(ctx, px, py - pz, skill.color, t, progress, radius, skill.tag, isAOE);
+                drawSkillGroundIndicator(ctx, px, py - pz, skill.color, t, progress, visualRadius, skill.tag, isAOE);
                 ctx.restore();
             }
         }

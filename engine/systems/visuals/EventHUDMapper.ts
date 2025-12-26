@@ -56,10 +56,23 @@ export class EventHUDMapper {
             const val = Math.abs(event.value || 0);
             text = val.toString();
             const isCrit = val > 100;
-            color = isCrit ? '#ef4444' : '#fff'; 
+            
+            // 2. TEXT COLORING LOGIC
+            // Check if damage comes from DOT (Poison/Burn/Bleed)
+            const isDot = event.skill?.ccType === 'DOT';
+            
+            if (isDot) {
+                color = '#a3e635'; // Lime Green for Poison/Dot
+            } else if (isCrit) {
+                color = '#ef4444'; // Red for Crit
+            } else {
+                color = '#fff';    // White for normal
+            }
+            
             size = isCrit ? 24 : 16;
             type = 'DAMAGE';
             xOffset = (Math.random() - 0.5) * 10;
+
         } else if (event.type === 'HEAL') {
             text = "+" + Math.abs(event.value || 0);
             color = '#4ade80';

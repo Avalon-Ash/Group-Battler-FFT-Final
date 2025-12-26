@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType, BattleField } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 import { COLORS, LOG_COLORS } from "../constants";
@@ -26,7 +26,6 @@ export const VICTORY_PHASE_DURATION = 0.5;
 
 export class GameEngine {
     public agents: Agent[] = [];
-    public fields: BattleField[] = []; 
     
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
@@ -161,7 +160,6 @@ export class GameEngine {
         });
         
         // 2. Logic Cleanup
-        this.fields = []; 
         this.events = []; 
         this.combat.reset(); 
         
@@ -185,7 +183,6 @@ export class GameEngine {
         this.map.obstaclesHash.clear();
         
         this.combat.reset(); 
-        this.fields = []; 
         this.events = [];
         
         if (this.renderer) {

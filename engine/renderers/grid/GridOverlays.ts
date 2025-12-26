@@ -1,10 +1,10 @@
 
 import { TerrainRenderer } from "./TerrainRenderer";
 import { ZoneRenderer } from "./ZoneRenderer";
+import { GroundHazard } from "../../../types";
 
-// Updated Interface matching GridSystem
 interface ZoneInfo {
-    type: 'CAST' | 'FIELD';
+    type: 'CAST';
     color: string;
     visual: string;
     progress: number;
@@ -21,7 +21,7 @@ export const GridOverlays = {
         x: number, y: number, // Visual top Y
         size: number,
         specialStatus: string | undefined,
-        zoneInfo: ZoneInfo | undefined, // Replaces dangerInfo
+        zoneInfo: ZoneInfo | undefined,
         lightColor: string | null,
         lightIntensity: number,
         isRange: boolean,
@@ -29,11 +29,17 @@ export const GridOverlays = {
         isHover: boolean,
         hasUnit: boolean,
         q: number, r: number,
-        globalTime: number
+        globalTime: number,
+        hazard: GroundHazard | undefined // NEW
     ) {
         const trace = () => TerrainRenderer.traceTopFace(ctx, x, y);
 
-        // 1. SPECIAL STATUS FLOOR EFFECT
+        // 1. HAZARDS (Persistent Ground Effects)
+        if (hazard) {
+            ZoneRenderer.drawActiveHazard(ctx, x, y, size, hazard, globalTime);
+        }
+
+        // 2. SPECIAL STATUS FLOOR EFFECT (Unit State)
         if (specialStatus) {
             trace(); 
             ctx.save();
@@ -52,7 +58,7 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 2. ZONE RENDERING (Cast Ripple / Persistent Fields)
+        // 3. ZONE RENDERING (Cast Ripple)
         if (zoneInfo) {
             ZoneRenderer.draw(
                 ctx, x, y, size,
@@ -66,7 +72,7 @@ export const GridOverlays = {
             );
         }
 
-        // 3. Dynamic Lighting
+        // 4. Dynamic Lighting
         if (lightColor && lightIntensity > 0) {
             trace(); 
             ctx.save();
@@ -77,19 +83,19 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 4. Interactive Highlights
+        // 5. Interactive Highlights
         if (isRange || isHover || hasUnit) {
             ctx.save();
             trace(); 
 
             if (isRange) { 
-                ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.1;
-                ctx.fill();
                 ctx.strokeStyle = rangeColor; 
-                ctx.lineWidth = 2; 
+                ctx.lineWidth = 1.5; 
                 ctx.globalAlpha = 0.6; 
                 ctx.stroke();
+                ctx.fillStyle = rangeColor;
+                ctx.globalAlpha = 0.05; 
+                ctx.fill();
             }
             
             if (isHover) { 

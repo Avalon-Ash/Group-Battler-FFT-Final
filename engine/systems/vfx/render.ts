@@ -41,7 +41,8 @@ export class VFXRenderer {
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
             // Only Physical types that should be occluded by units
-            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE'].includes(p.type)) {
+            // Added ROCK to the list
+            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) {
                 
                 const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
                 if (offset > 800) return;
@@ -51,15 +52,20 @@ export class VFXRenderer {
                 
                 const op = renderList.next();
                 op.type = RenderOpType.VFX;
-                op.y = p.y + offset; // Sort Y
-                op.z = 5;
                 
-                // We store the original particle and transform info in op
+                // V6.1 FIX: Use correct sorting by Ground Y, but draw at Visual Y
+                // Visual Y = GroundY - Height(z)
+                // We do NOT need to look up terrain height again if `p.z` contains it (which it does now from EventVFXMapper)
+                
+                op.y = p.y + offset; // Sort Key (Ground Level)
+                op.z = 5;
+                op.sortBias = p.sortBias || 0; // Pass the bias
+                
                 op.particle = p;
                 op.vProgress = progress;
                 op.vChaos = isChaos;
                 op.tx = p.x;
-                op.ty = p.y + offset - p.z; // Drawing Y (visual)
+                op.ty = p.y + offset - p.z; // Drawing Y: Lifted by Z (Height)
                 op.th = p.z; // Height used for shadow calc
             }
         });
@@ -80,7 +86,8 @@ export class VFXRenderer {
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
             
-            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE'].includes(p.type)) return;
+            // Filter out physicals already drawn
+            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) return;
 
             const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
             if (offset > 800) return; 

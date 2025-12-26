@@ -1,248 +1,254 @@
 
 import { VFXSystem } from "../vfx";
-import { spawnExplosion, spawnShockwave, addImpact, spawnBeam, spawnRisingSpikes, spawnLingeringField } from "./generic";
+import { spawnExplosion, spawnShockwave, addImpact, spawnBeam, spawnLingeringField } from "./generic";
+import { ISO_SCALE_Y } from "../../../../constants";
 
-// =========================================================================================
-// 🔵 IMPERIAL (BLUE) - ULTRAMARINES THEME
-// Keywords: Order, Tactical, Orbital Bombardment, Bolter Fire, Golden Light
-// =========================================================================================
+interface Point3D { x: number; y: number; z: number; }
 
 // 🛡️ TANK: FORTRESS OF HERA (tb_u1)
-// "Sanctuary" -> Defensive Pylons. No giant walls.
-export function spawnImperialSanctuary(system: VFXSystem, x: number, y: number, color: string) {
+export function spawnImperialSanctuary(system: VFXSystem, pt: Point3D, color: string) {
     const radius = 160;
     
-    // 1. Central Aquila Beacon
+    // Central Pillar
     const beacon = system.state.getParticle();
-    beacon.x = x; beacon.y = y; beacon.z = 0;
+    beacon.x = pt.x; beacon.y = pt.y; beacon.z = pt.z;
     beacon.life = 3.0; beacon.maxLife = 3.0;
-    beacon.color = '#fbbf24'; // Gold
-    beacon.size = 20; // Small width
+    beacon.color = '#fbbf24'; 
+    beacon.size = 40; 
     beacon.type = 'PILLAR'; 
+    beacon.locked = true;
+    beacon.sortBias = 20; 
     system.state.particles.push(beacon);
 
-    // 2. Perimeter Shield Drones (Small points of light)
+    // Perimeter Beams (Start at perimeter ground, End at center waist)
     for(let i=0; i<6; i++) {
         const angle = (i / 6) * Math.PI * 2;
-        const px = x + Math.cos(angle) * radius;
-        const py = y + Math.sin(angle) * radius;
+        const px = pt.x + Math.cos(angle) * radius;
+        const py = pt.y + Math.sin(angle) * radius;
         
-        const p = system.state.getParticle();
-        p.x = px; p.y = py; p.z = 10;
-        p.life = 3.0; p.maxLife = 3.0;
-        p.color = '#60a5fa'; // Blue
-        p.size = 4; 
-        p.type = 'GLOW'; // Just a glow dot
-        system.state.particles.push(p);
+        // Start: Perimeter Ground (+10 lift)
+        const start = { x: px, y: py, z: pt.z + 10 };
+        // End: Center (+40 waist)
+        const end = { x: pt.x, y: pt.y, z: pt.z + 40 };
         
-        // Connect to center (Laser fence)
-        const fence = system.state.getParticle();
-        fence.x = px; fence.y = py; fence.z = 10;
-        fence.targetX = x; fence.targetY = y; // Star shape pattern
-        fence.life = 3.0; fence.maxLife = 3.0;
-        fence.color = '#3b82f6';
-        fence.size = 1; // Very thin
-        fence.type = 'BEAM';
-        system.state.particles.push(fence);
+        spawnBeam(system, start, end, '#3b82f6', 3.0, 2);
     }
 }
 
 // 🛡️ TANK: THE EMPEROR'S LIGHT (tb_u2)
-// "Kings Blessing" -> Holy Halo.
-export function spawnImperialKingsBlessing(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Ascending Golden Halo
-    const halo = system.state.getParticle();
-    halo.x = x; halo.y = y; halo.z = 0;
-    halo.vx = 0; halo.vy = 0; halo.vz = 50; // Slowly rising
-    halo.life = 2.0; halo.maxLife = 2.0;
-    halo.color = '#fcd34d'; // Gold
-    halo.size = 60;
-    halo.type = 'RING';
-    system.state.particles.push(halo);
-
-    // 2. Shaft of Light (Transparent)
+export function spawnImperialKingsBlessing(system: VFXSystem, pt: Point3D, color: string) {
     const beam = system.state.getParticle();
-    beam.x = x; beam.y = y; beam.z = 0;
-    beam.life = 1.0; beam.maxLife = 1.0;
-    beam.color = '#fff';
-    beam.size = 30;
+    beam.x = pt.x; beam.y = pt.y; beam.z = pt.z;
+    beam.life = 2.0; beam.maxLife = 2.0;
+    beam.color = '#fcd34d';
+    beam.size = 80; 
     beam.type = 'PILLAR';
+    beam.locked = true;
+    beam.sortBias = 20;
     system.state.particles.push(beam);
+    
+    spawnExplosion(system, pt.x, pt.y, pt.z, 20, '#fff', 5.0, 2.0, 'GLOW');
 }
 
 // ⚔️ WARRIOR: ORBITAL STRIKE (wb_u1)
-// "Thunder" -> Lance Strike from Orbit.
-export function spawnImperialThunder(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. The Lance (Fast Beam)
-    const beam = system.state.getParticle();
-    beam.x = x; beam.y = y; beam.z = 0;
-    beam.life = 0.2; beam.maxLife = 0.2;
-    beam.color = '#60a5fa'; // Plasma Blue
-    beam.size = 40; 
-    beam.type = 'PILLAR';
-    system.state.particles.push(beam);
-    
-    // 2. Ground Debris
-    spawnExplosion(system, x, y, 0, 10, '#1e3a8a', 2.0, 0.5, 'DEBRIS'); // Blue chunks
-    
-    // 3. Shockwave
-    spawnShockwave(system, x, y, '#93c5fd', 0.5);
+export function spawnImperialThunder(system: VFXSystem, pt: Point3D, color: string) {
+    const lock = system.state.getParticle();
+    lock.x = pt.x; lock.y = pt.y; lock.z = pt.z + 5;
+    lock.life = 0.5; lock.maxLife = 0.5;
+    lock.color = '#22d3ee'; 
+    lock.size = 60;
+    lock.type = 'HEX_LOCK';
+    lock.rotation = Math.random() * Math.PI;
+    lock.locked = true;
+    system.state.particles.push(lock);
+
+    setTimeout(() => {
+        const stackHeight = 12;
+        for(let i=0; i<stackHeight; i++) {
+            const p = system.state.getParticle();
+            p.x = pt.x; p.y = pt.y; 
+            p.z = pt.z + i * 80; 
+            
+            p.life = 0.3 + (i * 0.02); 
+            p.maxLife = p.life;
+            
+            p.color = '#60a5fa';
+            p.size = 40; 
+            p.type = 'HEX_BEAM';
+            p.locked = true; 
+            p.sortBias = 20;
+            system.state.particles.push(p);
+        }
+        
+        spawnExplosion(system, pt.x, pt.y, pt.z + 10, 20, '#fff', 3.0, 0.5, 'SPARK');
+    }, 200);
+
+    setTimeout(() => {
+        spawnShockwave(system, pt.x, pt.y, pt.z, '#93c5fd', 0.6);
+        addImpact(system, pt.x, pt.y, pt.z, '#3b82f6', 'BLAST', 0.5);
+    }, 250);
 }
 
 // ⚔️ WARRIOR: EXTERMINATUS (wb_u2)
-// "Daybreak" -> Massive Explosion.
-export function spawnImperialDaybreak(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Central Flash
-    spawnExplosion(system, x, y, 10, 20, '#f59e0b', 3.0, 0.8, 'SPARK');
+export function spawnImperialDaybreak(system: VFXSystem, pt: Point3D, color: string) {
+    spawnExplosion(system, pt.x, pt.y, pt.z + 10, 30, '#f59e0b', 4.0, 1.0, 'SPARK');
+    addImpact(system, pt.x, pt.y, pt.z + 20, '#fbbf24', 'BLAST', 1.0);
     
-    // 2. Expanding Ring
-    const ring = system.state.getParticle();
-    ring.x = x; ring.y = y; ring.z = 10;
-    ring.life = 0.8; ring.maxLife = 0.8;
-    ring.color = '#fbbf24';
-    ring.size = 250;
-    ring.type = 'RING';
-    system.state.particles.push(ring);
-    
-    // 3. Smoke Puffs
-    for(let i=0; i<8; i++) {
-        const p = system.state.getParticle();
-        const a = (i/8) * Math.PI * 2;
-        p.x = x; p.y = y; p.z = 20;
-        p.vx = Math.cos(a) * 200; p.vy = Math.sin(a) * 200; p.vz = 50;
-        p.life = 1.5; p.maxLife = 1.5;
-        p.color = '#fffbeb'; // White smoke
-        p.size = 40;
-        p.type = 'SMOKE';
-        system.state.particles.push(p);
-    }
+    const beam = system.state.getParticle();
+    beam.x = pt.x; beam.y = pt.y; beam.z = pt.z;
+    beam.life = 1.0; beam.maxLife = 1.0;
+    beam.color = '#fffbeb';
+    beam.size = 150;
+    beam.type = 'PILLAR';
+    beam.locked = true;
+    beam.sortBias = 20;
+    system.state.particles.push(beam);
 }
 
 // 🏹 RANGER: BOLTER VOLLEY (rb_u1)
-// "Crystal Arrow" -> Concentrated Bolter Fire.
-export function spawnImperialCrystalArrow(system: VFXSystem, x: number, y: number, color: string) {
-    // Multiple small explosions in a line/cluster
+export function spawnImperialCrystalArrow(system: VFXSystem, pt: Point3D, color: string) {
     for(let i=0; i<5; i++) {
         setTimeout(() => {
-            const ox = (Math.random()-0.5) * 40;
-            const oy = (Math.random()-0.5) * 40;
-            spawnExplosion(system, x+ox, y+oy, 20, 5, '#facc15', 1.0, 0.3, 'SPARK');
-            spawnExplosion(system, x+ox, y+oy, 20, 3, '#1e293b', 0.5, 0.5, 'SMOKE');
-        }, i * 100);
+            const ox = (Math.random()-0.5) * 60;
+            const oy = (Math.random()-0.5) * 60;
+            spawnExplosion(system, pt.x+ox, pt.y+oy, pt.z + 20, 8, '#facc15', 1.5, 0.4, 'SPARK');
+            spawnExplosion(system, pt.x+ox, pt.y+oy, pt.z + 20, 5, '#1e293b', 0.8, 0.8, 'SMOKE');
+        }, i * 80);
     }
 }
 
 // 🏹 RANGER: DROP POD ASSAULT (rb_u2)
-// "Starfall" -> Drop Pods landing.
-export function spawnImperialStarfall(system: VFXSystem, x: number, y: number, color: string) {
-    const count = 5;
-    const radius = 150;
+export function spawnImperialStarfall(system: VFXSystem, pt: Point3D, color: string) {
+    const count = 6;
+    const radius = 180;
     
     for(let i=0; i<count; i++) {
         const angle = (i / count) * Math.PI * 2;
-        const px = x + Math.cos(angle) * radius;
-        const py = y + Math.sin(angle) * radius;
+        const px = pt.x + Math.cos(angle) * radius;
+        const py = pt.y + Math.sin(angle) * radius;
         
-        // Falling Pod trail
         const pod = system.state.getParticle();
-        pod.x = px; pod.y = py; pod.z = 800;
-        pod.vx = 0; pod.vy = 0; pod.vz = -2000; // Fast fall
+        pod.x = px; pod.y = py; pod.z = pt.z + 1000;
+        pod.vx = 0; pod.vy = 0; pod.vz = -2500; 
         pod.life = 0.4; pod.maxLife = 0.4;
-        pod.color = '#1e3a8a';
-        pod.size = 20;
-        pod.type = 'DEBRIS'; // Represent pod as big debris
+        pod.color = '#fcd34d'; 
+        pod.size = 25;
+        pod.type = 'DEBRIS'; 
         pod.delay = i * 0.1;
         system.state.particles.push(pod);
         
-        // Impact
         setTimeout(() => {
-            spawnExplosion(system, px, py, 0, 8, '#94a3b8', 1.0, 0.5, 'DEBRIS');
-            addImpact(system, px, py, 0, '#fff', 'BLAST', 0.3);
+            spawnExplosion(system, px, py, pt.z, 12, '#94a3b8', 1.5, 0.6, 'DEBRIS');
+            addImpact(system, px, py, pt.z, '#fff', 'BLAST', 0.4);
         }, 400 + (i * 100));
     }
 }
 
 // 🔮 MAGE: VORTEX GRENADE (mb_u1)
-// "Black Hole" -> Vortex Grenade (Warp implosion).
-export function spawnImperialBlackHole(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Implosion Sphere (Small, Dark)
-    const hole = system.state.getParticle();
-    hole.x = x; hole.y = y; hole.z = 40;
-    hole.life = 3.0; hole.maxLife = 3.0;
-    hole.color = '#000'; 
-    hole.size = 60;
-    hole.type = 'GLOW'; // Black orb
-    system.state.particles.push(hole);
+export function spawnImperialBlackHole(system: VFXSystem, pt: Point3D, color: string) {
+    const coreLife = 6.0;
 
-    // 2. Reality Tears (Lightning)
-    for(let i=0; i<10; i++) {
+    const core = system.state.getParticle();
+    core.x = pt.x; core.y = pt.y; core.z = pt.z + 50;
+    core.life = coreLife; core.maxLife = coreLife;
+    core.color = '#000000'; 
+    core.size = 120;
+    core.type = 'GIANT_HEX';
+    core.locked = true;
+    core.sortBias = 100; 
+    core.vRotation = 5;  
+    system.state.particles.push(core);
+
+    const horizon = system.state.getParticle();
+    horizon.x = pt.x; horizon.y = pt.y; horizon.z = pt.z + 49; 
+    horizon.life = coreLife; horizon.maxLife = coreLife;
+    horizon.color = '#8800FF'; 
+    horizon.size = 160;
+    horizon.type = 'HEX_GLOW';
+    horizon.locked = true;
+    horizon.sortBias = 90; 
+    horizon.vRotation = -30; 
+    system.state.particles.push(horizon);
+
+    const debrisCount = 40;
+    for(let i=0; i<debrisCount; i++) {
         const p = system.state.getParticle();
-        p.x = x; p.y = y; p.z = 40;
-        p.targetX = x + (Math.random()-0.5)*200;
-        p.targetY = y + (Math.random()-0.5)*200;
-        p.life = 0.2; p.maxLife = 0.2;
-        p.color = '#3b82f6'; // Arcane Blue
-        p.size = 2;
-        p.type = 'BEAM';
-        p.delay = Math.random() * 3.0;
+        
+        const angle = Math.random() * Math.PI * 2;
+        const radius = 250 + Math.random() * 150;
+        
+        p.x = pt.x + Math.cos(angle) * radius;
+        p.y = pt.y + Math.sin(angle) * radius * ISO_SCALE_Y; 
+        p.z = pt.z + 50; 
+        
+        const speed = 20 + Math.random() * 40;
+        p.vx = -Math.cos(angle) * speed;
+        p.vy = -Math.sin(angle) * speed * ISO_SCALE_Y;
+        
+        p.life = 2.0 + Math.random(); 
+        p.maxLife = p.life;
+        
+        const palette = ['#fff', '#60a5fa', '#a855f7'];
+        p.color = palette[Math.floor(Math.random() * palette.length)];
+        
+        p.size = 10 + Math.random() * 10;
+        p.type = 'DEBRIS'; 
+        p.drag = -0.05; 
+        
+        p.targetX = pt.x;
+        p.targetY = pt.y;
+        p.killAtTarget = 50 * 50; 
+        p.delay = Math.random() * 2.0; 
+        
         system.state.particles.push(p);
     }
 }
 
 // 🔮 MAGE: CRYOGENIC STASIS (mb_u2)
-// "Absolute Zero" -> Tech-Freeze.
-export function spawnImperialFrostfall(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Grid Freeze (Floor)
+export function spawnImperialFrostfall(system: VFXSystem, pt: Point3D, color: string) {
     const grid = system.state.getParticle();
-    grid.x = x; grid.y = y; grid.z = 0;
-    grid.life = 2.0; grid.maxLife = 2.0;
+    grid.x = pt.x; grid.y = pt.y; grid.z = pt.z;
+    grid.life = 3.0; grid.maxLife = 3.0;
     grid.color = '#bfdbfe';
-    grid.size = 200;
+    grid.size = 250;
     grid.type = 'GRID_FIELD';
+    grid.locked = true;
     system.state.particles.push(grid);
     
-    // 2. Mist
-    spawnLingeringField(system, x, y, '#e0f2fe', 'SMOKE', 2.0, 0);
+    spawnLingeringField(system, pt.x, pt.y, pt.z, '#e0f2fe', 'SMOKE', 3.0, 0);
 }
 
 // ⚕️ SUPPORT: IRON HALO (sb_u1)
-// "Intervention" -> Protective Field.
-export function spawnImperialIntervention(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Clean Dome Outline
+export function spawnImperialIntervention(system: VFXSystem, pt: Point3D, color: string) {
     const dome = system.state.getParticle();
-    dome.x = x; dome.y = y; dome.z = 0;
-    dome.life = 3.0; dome.maxLife = 3.0;
-    dome.color = '#fef3c7'; // Pale Gold
-    dome.size = 180;
-    dome.type = 'DOMAIN'; // Uses new thin line render
+    dome.x = pt.x; dome.y = pt.y; dome.z = pt.z;
+    dome.life = 4.0; dome.maxLife = 4.0;
+    dome.color = '#fef3c7'; 
+    dome.size = 200;
+    dome.type = 'DOMAIN'; 
+    dome.locked = true;
     system.state.particles.push(dome);
-}
-
-// ⚕️ SUPPORT: APOTHECARY BEACON (sb_u2)
-// "Resurrection" -> Helix.
-export function spawnImperialResurrection(system: VFXSystem, x: number, y: number, color: string) {
-    // 1. Medical Helix
+    
     const beam = system.state.getParticle();
-    beam.x = x; beam.y = y; beam.z = 0;
-    beam.targetX = x; beam.targetY = y; // Vertical
-    beam.life = 2.0; beam.maxLife = 2.0;
-    beam.color = '#fff'; 
-    beam.size = 20; 
-    beam.type = 'BEAM'; // Hack: Use beam as vertical shaft
-    // Actually BEAM draws horizontal. Let's use PILLAR but strictly white/clean.
-    // Revert to PILLAR for simplicity
+    beam.x = pt.x; beam.y = pt.y; beam.z = pt.z;
+    beam.life = 4.0; beam.maxLife = 4.0;
+    beam.color = '#fff';
+    beam.size = 40;
     beam.type = 'PILLAR';
+    beam.locked = true;
+    beam.sortBias = 20;
     system.state.particles.push(beam);
 }
 
-// HELPER for Grid Highlights
-function spawnGridImpact(system: VFXSystem, x: number, y: number, color: string, team: number, delay: number) {
-    const p = system.state.getParticle();
-    p.x = x; p.y = y; p.z = 0;
-    p.life = 1.0; p.maxLife = 1.0;
-    p.color = color;
-    p.size = 36; 
-    p.type = 'GRID_FIELD'; 
-    p.delay = delay;
-    system.state.particles.push(p);
+// ⚕️ SUPPORT: APOTHECARY BEACON (sb_u2)
+export function spawnImperialResurrection(system: VFXSystem, pt: Point3D, color: string) {
+    const beam = system.state.getParticle();
+    beam.x = pt.x; beam.y = pt.y; beam.z = pt.z;
+    beam.life = 2.5; beam.maxLife = 2.5;
+    beam.color = '#86efac'; 
+    beam.size = 60; 
+    beam.type = 'PILLAR'; 
+    beam.locked = true;
+    beam.sortBias = 20;
+    system.state.particles.push(beam);
 }

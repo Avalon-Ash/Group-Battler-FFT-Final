@@ -20,7 +20,6 @@ export const ProjectileRenderer = {
              const offsetP = getTransitionOffset(p.x, p.y, engine.mapConfig, transitionT, transitionPhase);
              if (offsetP > 500) return;
 
-             // Pre-calculate trajectory parameters
              let hStart = 0, hEnd = 0;
              let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
              if (totalDist < 1) totalDist = 1;
@@ -28,12 +27,10 @@ export const ProjectileRenderer = {
              if (getTerrainHeight && engine.mapConfig) {
                  const startHex = HexUtils.fromPx(p.startX, p.startY, engine.mapConfig);
                  const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
-                 // Add startZ offset to terrain height
                  hStart = getTerrainHeight(startHex.q, startHex.r) + (p.startZ || 0);
                  hEnd = getTerrainHeight(targetHex.q, targetHex.r);
              }
 
-             // --- Helper to get Visual Position (With Arc and Height) ---
              const getVisualPos = (lx: number, ly: number, flightProgress: number): { x: number, y: number, shadowY: number } => {
                  const t = flightProgress;
                  const trajectoryTerrainHeight = hStart + (hEnd - hStart) * t;
@@ -41,14 +38,12 @@ export const ProjectileRenderer = {
                  const groundHeight = getTerrainHeight(currentHex.q, currentHex.r);
 
                  let arcOffset = 0;
-                 // Arcs for Arrows and Bombs
                  if (p.skill.visual === 'ARROW' || p.skill.visual === 'BOMB') {
                      const distFactor = Math.min(150, totalDist * 0.25);
                      const baseArc = p.skill.visual === 'BOMB' ? 100 : 20;
                      const arcHeight = baseArc + distFactor;
                      arcOffset = 4 * arcHeight * t * (1 - t);
                  } 
-                 // Slight weave for Fireballs, straight for Bolts
                  else if (p.skill.visual === 'FIREBALL') {
                      const wobbleFreq = 0.2; 
                      const wobbleAmp = 10;
@@ -63,12 +58,10 @@ export const ProjectileRenderer = {
                  };
              };
 
-             // 1. Calculate Head Position
              const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y});
              const progress = Math.min(1, Math.max(0, currentDist / totalDist));
              const headVis = getVisualPos(p.x, p.y, progress);
              
-             // 2. Rotation Calculation (Look Ahead)
              const lookAheadDist = 10;
              const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
              const nextLx = p.x + rawDir.x * lookAheadDist;
@@ -79,14 +72,9 @@ export const ProjectileRenderer = {
              const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
              const spin = p.skill.visual === 'BOMB' ? (progress * 15) : 0;
              
-             // 3. Trail Calculation (Visual Points)
-             // Map raw trail to visual positions
              const visualTrail: Point[] = [];
              if (p.trail.length > 1) {
-                 // Add current head as start of trail
                  visualTrail.push({ x: headVis.x, y: headVis.y });
-                 
-                 // Process history points
                  for (let i = p.trail.length - 1; i >= 0; i--) {
                      const tp = p.trail[i];
                      const tDist = Vector.dist({x: p.startX, y: p.startY}, tp);
@@ -96,7 +84,6 @@ export const ProjectileRenderer = {
                  }
              }
 
-             // Submit Op
              const op = renderList.next();
              op.type = RenderOpType.PROJECTILE;
              op.y = p.y + 50 + offsetP; 

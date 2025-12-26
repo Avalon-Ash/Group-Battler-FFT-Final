@@ -17,19 +17,16 @@ export class CameraSystem {
     private targetZoom: number = 1.0;
 
     // Physics Constants
-    // Higher damping = Snappier response, less "floaty"
     private readonly PAN_DAMPING = 12.0; 
     private readonly ZOOM_DAMPING = 10.0;
     
-    // Trauma System (Screen Shake)
-    // Range: 0.0 to 1.0
+    // Trauma System (Non-Nauseating Shake)
     private trauma: number = 0;
-    // Max pixels to offset during 100% trauma. Kept low to be subtle.
-    private readonly SHAKE_POWER = 3.0; 
+    private readonly SHAKE_POWER = 15.0; // Max pixels at 100% trauma
+    private readonly DECAY_RATE = 1.2;    // Trauma points per second
 
     constructor() {}
 
-    // Force immediate snap (used on init/resize)
     public snapTo(x: number, y: number, zoom: number) {
         this.x = this.targetX = x;
         this.y = this.targetY = y;
@@ -40,8 +37,6 @@ export class CameraSystem {
         this.trauma = 0;
     }
 
-    // Sync directly with user input. 
-    // Removed 'mapConfig' and 'mapKeys' args as we no longer calculate cinematic centers.
     public sync(camera: Camera) {
         this.targetX = camera.x;
         this.targetY = camera.y;
@@ -49,9 +44,8 @@ export class CameraSystem {
     }
 
     public addTrauma(amount: number) {
-        // Cap trauma to prevent nausea even during intense combat
-        // Decay is fast, so this is just instantaneous impact
-        this.trauma = Math.min(0.5, this.trauma + amount);
+        // Cap trauma to 1.0 (Full intensity)
+        this.trauma = Math.min(1.0, this.trauma + amount);
     }
 
     public getTrauma(): number {
@@ -59,13 +53,12 @@ export class CameraSystem {
     }
 
     public update(dt: number) {
-        // Fast Trauma Decay (Screen stabilizes quickly)
+        // 1. Linear Decay
         if (this.trauma > 0) {
-            this.trauma = Math.max(0, this.trauma - dt * 3.0);
+            this.trauma = Math.max(0, this.trauma - dt * this.DECAY_RATE);
         }
 
-        // Smooth Camera Movement (Spring-like interpolation)
-        // Using exponential decay for frame-rate independence
+        // 2. Smooth Interpolation
         const panT = 1 - Math.exp(-this.PAN_DAMPING * dt);
         const zoomT = 1 - Math.exp(-this.ZOOM_DAMPING * dt);
 
@@ -75,8 +68,8 @@ export class CameraSystem {
     }
 
     public applyTransform(ctx: CanvasRenderingContext2D, width: number, height: number) {
-        // Calculate Shake on the fly (Stateless shake prevents permanent drift)
-        // Non-linear trauma: square it so small trauma is barely felt
+        // 1. Calculate Shake Offset
+        // Use trauma squared for a more natural impact curve
         let sx = 0, sy = 0;
         if (this.trauma > 0) {
             const mag = this.trauma * this.trauma * this.SHAKE_POWER;
@@ -87,12 +80,17 @@ export class CameraSystem {
         const cx = width / 2;
         const cy = height / 2;
 
-        // 1. Shake (Translation Only - No Rotation)
-        ctx.translate(sx, sy);
+        /**
+         * STABILIZATION LOGIC:
+         * To prevent "pixel crawling" or blur, the final world-to-screen translation
+         * must be an integer. We calculate the theoretical offset and snap it.
+         */
+        const targetTx = cx - this.x * this.zoom + sx;
+        const targetTy = cy - this.y * this.zoom + sy;
         
-        // 2. Camera View Transform (Pivot around screen center)
-        ctx.translate(cx, cy);
+        ctx.translate(Math.round(targetTx), Math.round(targetTy));
         ctx.scale(this.zoom, this.zoom);
-        ctx.translate(-this.x, -this.y);
+        
+        // Final matrix is now: Snap(ScreenCenter - WorldPos * Zoom + Shake)
     }
 }

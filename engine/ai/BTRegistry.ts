@@ -24,7 +24,18 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "SkillReady": (a, _, args) => {
         const idx = args.slot; // 0=Ult, 1=Active, 2=Basic
         const s = a.skills[idx];
-        return !!s && a.curCDs[idx] <= 0 && a.mp >= s.cost && a.castingSkillIdx === -1 && a.silenceTimer <= 0;
+        
+        // Basic Validity
+        if (!s || a.curCDs[idx] > 0 || a.mp < s.cost || a.castingSkillIdx !== -1) {
+            return false;
+        }
+
+        // Silence Logic: Block only if NOT Basic
+        if (a.silenceTimer > 0 && s.tag !== 'BASIC') {
+            return false;
+        }
+
+        return true;
     },
     
     // Tactical Checks
