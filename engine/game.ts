@@ -16,6 +16,7 @@ import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
+import { AnnouncerSystem } from "./systems/AnnouncerSystem"; // Import Announcer
 import { EventBus } from "./events/EventBus";
 import type { GameRenderer } from "./renderer";
 
@@ -67,6 +68,7 @@ export class GameEngine {
     public map: MapSystem;
     public ai: AISystem;
     public agentManager: AgentManager;
+    public announcer: AnnouncerSystem; // Register Announcer
 
     constructor() {
         this.movement = new MovementSystem();
@@ -75,6 +77,7 @@ export class GameEngine {
         this.map = new MapSystem();
         this.ai = new AISystem();
         this.agentManager = new AgentManager();
+        this.announcer = new AnnouncerSystem(); // Initialize
         this.map.randomizeEnvironment(this);
     }
 
@@ -163,6 +166,7 @@ export class GameEngine {
         this.targetTimeScale = 1.0;
         this.timeScale = 1.0;
         this.agentMap.clear();
+        this.announcer.reset(); // Reset Announcer
         
         // 1. Reset Agents
         this.agents.forEach(a => {
@@ -196,6 +200,7 @@ export class GameEngine {
         this.agentMap.clear();
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
+        this.announcer.reset();
         
         this.combat.reset(); 
         this.events = [];
@@ -278,6 +283,9 @@ export class GameEngine {
         }
         this.combat.update(dt, this);
         this.movement.resolveStacking(this);
+        
+        // Announcer runs AFTER combat to catch kills
+        this.announcer.update(dt, this);
     }
 
     private updateDirector(dt: number) {

@@ -15,6 +15,7 @@ import { VisualEventListener } from "./systems/VisualEventListener";
 // Renderers & Pool
 import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
+import { HUDRenderer } from "./renderers/HUDRenderer"; // Import new renderer
 import { RenderList, RenderOpType, RenderOp } from "./renderers/RenderList";
 import { SpriteManager } from "./sprites";
 import { TerrainRenderer } from "./renderers/grid/TerrainRenderer";
@@ -36,6 +37,7 @@ export class GameRenderer {
     private vfxRenderer: VFXRenderer;
     public unit: UnitRenderSystem;
     public hud: HUDSystem;
+    private hudRenderer: HUDRenderer; // New renderer instance
     public camera: CameraSystem;
     private eventListener: VisualEventListener;
     
@@ -55,6 +57,7 @@ export class GameRenderer {
         this.vfxRenderer = new VFXRenderer();
         this.unit = new UnitRenderSystem();
         this.hud = new HUDSystem();
+        this.hudRenderer = new HUDRenderer(); // Initialize
         this.camera = new CameraSystem();
         this.eventListener = new VisualEventListener();
         this.backgroundRenderer = new BackgroundRenderer();
@@ -238,53 +241,21 @@ export class GameRenderer {
                     
                 case RenderOpType.VFX:
                     if (op.particle) {
-                        // FIXED: Do not modify particle state. Use local drawing coordinates.
                         const p = op.particle;
-                        
-                        // We translate the Context to the visual position (snapX, snapY)
                         ctx.save();
                         ctx.translate(snapX, snapY);
                         
-                        // Pass 0,0 as draw coordinates because context is already translated.
-                        // However, we might need to modify p.targetX/Y properties temporarily for beam rendering relative calculations.
-                        // Ideally ParticleRenderer should calculate relative targets based on passed in coords, but for now 
-                        // we calculate the relative targets here and pass them or attach to a temporary context? 
-                        // No, let's keep it simple: Just draw at 0,0. 
-                        
-                        // Handle Beam Target Relative calc without mutating state dangerously
-                        // If p.targetX exists, we need to convert it to local space for the renderer
                         if (p.targetX !== undefined && p.targetY !== undefined) {
-                            // Cloning the particle object is too expensive.
-                            // We will temporarily mutate, but restore IMMEDIATELY.
-                            // Since JS is single-threaded, this is safe within the synchronous draw loop.
-                            
                             const origTx = p.targetX;
                             const origTy = p.targetY;
-                            
-                            // Visual Target calculation:
-                            // TargetVisualY ~= TargetGroundY - TargetHeight
-                            // We approximate TargetHeight using p.targetZ if available, or just p.z (source height) if naive.
-                            // EventVFXMapper ensures target coordinates are 3D (x,y,z).
-                            // But here p.targetX/Y are usually world coords.
-                            
-                            // Transform World Target to Local Target relative to (snapX, snapY)
-                            // snapX = p.x
-                            // snapY = p.y + offset - p.z
-                            
                             p.targetX = origTx - snapX;
-                            // Approximate visual Y for target
-                            // We don't have target's transition offset easily, assume same as source for short beams
                             p.targetY = (origTy - (p.targetZ || 0)) - snapY;
-                            
                             ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
-                            
-                            // Restore
                             p.targetX = origTx;
                             p.targetY = origTy;
                         } else {
                             ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
                         }
-                        
                         ctx.restore();
                     }
                     break;
@@ -324,8 +295,12 @@ export class GameRenderer {
         
         ctx.save(); 
         this.camera.applyTransform(ctx, logicalWidth, logicalHeight);
+        
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
-        this.hud.draw(ctx, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
+        
+        // Use the new HUDRenderer
+        this.hudRenderer.draw(ctx, this.hud, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
+        
         ctx.restore(); 
 
         if (engine.directorTargetId) {

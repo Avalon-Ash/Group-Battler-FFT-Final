@@ -21,9 +21,10 @@ export class CameraSystem {
     private readonly ZOOM_DAMPING = 10.0;
     
     // Trauma System (Non-Nauseating Shake)
+    // REBALANCED V2.0: Much tighter, snappier shakes.
     private trauma: number = 0;
-    private readonly SHAKE_POWER = 15.0; // Max pixels at 100% trauma
-    private readonly DECAY_RATE = 1.2;    // Trauma points per second
+    private readonly SHAKE_POWER = 8.0;   // Reduced from 15.0. Max displacement in pixels at 100% trauma.
+    private readonly DECAY_RATE = 3.0;    // Increased from 1.2. Recovery speed. Higher = Snappier.
 
     constructor() {}
 
@@ -45,7 +46,9 @@ export class CameraSystem {
 
     public addTrauma(amount: number) {
         // Cap trauma to 1.0 (Full intensity)
-        this.trauma = Math.min(1.0, this.trauma + amount);
+        // Soft cap: Adding trauma when already shaking has diminishing returns
+        const effectiveAdd = amount * (1.0 - this.trauma * 0.5);
+        this.trauma = Math.min(1.0, this.trauma + effectiveAdd);
     }
 
     public getTrauma(): number {
@@ -69,7 +72,8 @@ export class CameraSystem {
 
     public applyTransform(ctx: CanvasRenderingContext2D, width: number, height: number) {
         // 1. Calculate Shake Offset
-        // Use trauma squared for a more natural impact curve
+        // Use trauma squared for a more natural impact curve (Square falloff)
+        // Low trauma = barely moves. High trauma = kicks hard.
         let sx = 0, sy = 0;
         if (this.trauma > 0) {
             const mag = this.trauma * this.trauma * this.SHAKE_POWER;

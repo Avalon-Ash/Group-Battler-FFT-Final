@@ -5,16 +5,13 @@ import { HUDSystem } from "../hud";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { HUD_TEXT_OFFSET, KILL_STREAK_WINDOW } from "../../../constants";
+import { HUD_TEXT_OFFSET } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 export class EventHUDMapper {
-    private killStreaks = new Map<string, { count: number, lastTime: number }>();
-    private firstBlood = false;
 
     public reset() {
-        this.killStreaks.clear();
-        this.firstBlood = false;
+        // No local state needed anymore
     }
 
     public process(
@@ -24,8 +21,6 @@ export class EventHUDMapper {
         grid: GridSystem,
         camera: CameraSystem
     ) {
-        if (engine.battleTime < 0.1) this.reset();
-
         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const terrainHeight = grid.getTerrainHeight(hex.q, hex.r, engine);
         const visualGroundY = event.pos.y - terrainHeight;
@@ -39,8 +34,17 @@ export class EventHUDMapper {
             case 'CAST_START':
                 this.handleCastText(event, visualGroundY, hud);
                 break;
-            case 'KILL':
-                this.handleKillStreak(event, engine, grid, hud, camera);
+            case 'KILL_STREAK':
+                // Now we just handle the visual text spawning, logic is upstream
+                if (event.text && event.color) {
+                    // Larger text, positioned higher
+                    const textY = visualGroundY - HUD_TEXT_OFFSET - 40;
+                    const size = 32 + ((event.value || 1) * 4); // Scale by rank
+                    hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
+                    
+                    // Camera trauma from the event
+                    camera.addTrauma(0.2 + (event.value || 0) * 0.1);
+                }
                 break;
         }
     }
@@ -96,45 +100,6 @@ export class EventHUDMapper {
             const baseY = visualY - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
             const xOffset = 55; 
             hud.addFloatingText(event.pos.x + xOffset, baseY, event.skill.name, event.skill.color, 14, 'SHOUT', isUlt);
-        }
-    }
-
-    private handleKillStreak(event: GameEvent, engine: GameEngine, grid: GridSystem, hud: HUDSystem, camera: CameraSystem) {
-        if (!event.sourceId) return;
-
-        const now = engine.battleTime;
-        const killer = event.sourceId;
-        const killerAgent = engine.agents.find(a => a.id === killer);
-        
-        if (!killerAgent) return;
-
-        // Visual Position for Streak Text
-        const kHex = HexUtils.fromPx(killerAgent.px, killerAgent.py, engine.mapConfig);
-        const kH = grid.getTerrainHeight(kHex.q, kHex.r, engine);
-        const textY = killerAgent.py - kH - HUD_TEXT_OFFSET;
-
-        if (!this.firstBlood) {
-            this.firstBlood = true;
-            hud.addFloatingText(killerAgent.px, textY - 60, "FIRST BLOOD", "#ef4444", 36, 'KILL_STREAK');
-            camera.addTrauma(0.3);
-        }
-
-        let streak = 1;
-        const existing = this.killStreaks.get(killer);
-        if (existing && now - existing.lastTime <= KILL_STREAK_WINDOW) streak = existing.count + 1;
-        
-        this.killStreaks.set(killer, { count: streak, lastTime: now });
-        
-        if (streak >= 2) {
-            let streakText = "DOUBLE KILL";
-            let streakColor = "#cbd5e1";
-            
-            if (streak === 3) { streakText = "TRIPLE KILL"; streakColor = "#fcd34d"; }
-            else if (streak === 4) { streakText = "QUADRA KILL"; streakColor = "#fb923c"; }
-            else if (streak >= 5) { streakText = "PENTA KILL"; streakColor = "#ef4444"; }
-            
-            hud.addFloatingText(killerAgent.px, textY - 40, streakText, streakColor, 32 + (streak * 4), 'KILL_STREAK');
-            camera.addTrauma(0.2 + streak * 0.1);
         }
     }
 }

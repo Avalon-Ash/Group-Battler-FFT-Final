@@ -8,6 +8,7 @@ import { HexUtils } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
 import { SpriteManager } from "../../sprites";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
+import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 
 // Architect
 import { UltArchitect } from "./UltArchitect";
@@ -50,21 +51,26 @@ export class EventVFXMapper {
                 }
                 // Use generic beam logic
                 vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
-                vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, event.color);
+                // Tiny impact trigger
+                this.resolveImpact(event, engine, vfx, target, false); 
                 break;
 
             case 'DAMAGE': 
                 if (!event.skill?.projectileSpeed) {
-                    this.handleDamageImpact(event, engine, vfx, target);
+                    this.resolveImpact(event, engine, vfx, target, true);
                 }
                 break;
 
             case 'PROJECTILE_HIT': 
                 if (event.skill?.type !== 'AOE') {
-                    this.handleHitVisuals(event, engine, vfx, grid, target, groundZ, camera); 
+                    // For single target projectiles, we trigger impact VFX
+                    this.resolveImpact(event, engine, vfx, target, true);
+                    // REDUCED: Standard projectile hits should be barely perceptible
+                    camera.addTrauma(0.05); 
                 } else {
-                    // Force slightly above ground to prevent Z-fighting
-                    vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color);
+                    // AOE Projectiles trigger impact slightly above ground to avoid Z-fighting
+                    // Actual large AOE effect is handled by IMPACT_AOE
+                    vfx.playEffect('FX_HIT_GENERIC', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color);
                 }
                 break;
 
@@ -75,10 +81,10 @@ export class EventVFXMapper {
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) {
-                    // Spawn Manual Unit Parts
                     this.spawnUnitShatter(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
                 }
-                camera.addTrauma(0.15); 
+                // REDUCED: Unit death is common, shouldn't shake screen too much
+                camera.addTrauma(0.1); 
                 break;
 
             case 'SPAWN':
@@ -87,12 +93,14 @@ export class EventVFXMapper {
                 
             case 'CAST_BREAK':
                 vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
-                camera.addTrauma(0.3); 
+                // REDUCED: Interrupt is important but not an explosion
+                camera.addTrauma(0.15); 
                 break;
                 
             case 'CAST_FINISH':
                 if (event.skill && event.skill.tag === 'ULT') {
                      if (event.skill.projectileSpeed === 0 || event.skill.power <= 0) {
+                         // Very subtle bump for Ult cast completion
                          camera.addTrauma(0.05); 
                      }
                  }
@@ -127,79 +135,118 @@ export class EventVFXMapper {
         };
     }
 
-    private handleDamageImpact(event: GameEvent, engine: GameEngine, vfx: VFXSystem, target: Point3D) {
-        if (event.skill && event.skill.visualHitEffect) {
-            vfx.playEffect(event.skill.visualHitEffect, target.x, target.y, target.z, event.color);
-            return;
-        }
-        // Fallback
-        vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, event.color || '#94a3b8');
-    }
-
-    private handleHitVisuals(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, target: Point3D, groundZ: number, camera: CameraSystem): void {
-        const color = event.skill?.color || '#fff';
-        const isUlt = event.skill?.tag === 'ULT';
+    // =========================================================================================
+    // 💥 IMPACT RESOLUTION LOGIC
+    // Determines the best VFX to play based on Skill > Element > Faction.
+    // =========================================================================================
+    private resolveImpact(event: GameEvent, engine: GameEngine, vfx: VFXSystem, target: Point3D, checkUlt: boolean) {
         const skill = event.skill;
+        const color = event.color || '#fff';
         const source = engine.agents.find(a => a.id === event.sourceId);
         
-        if (isUlt && skill) {
-            if (UltArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) {
-                return; 
+        // 1. Ult Architect Override
+        if (checkUlt && skill && skill.tag === 'ULT') {
+            if (UltArchitect.play(skill.id, target, engine, vfx, engine.renderer!.grid, engine.renderer!.camera, event.sourceId)) {
+                return;
             }
         }
 
-        if (skill && skill.visualHitEffect) {
+        // 2. Explicit Skill Override (Highest Priority)
+        if (skill && skill.visualHitEffect && VFX_REGISTRY[skill.visualHitEffect]) {
             vfx.playEffect(skill.visualHitEffect, target.x, target.y, target.z, color);
             return;
         }
 
-        camera.addTrauma(0.2);
-        
+        // 3. Element / Tag Based Fallback
+        if (skill) {
+            if (skill.element === 'FIRE') { 
+                // Check Faction flavor
+                if (source?.team === Team.RED) vfx.playEffect('FX_HIT_RED_MAGMA', target.x, target.y, target.z);
+                else vfx.playEffect('FX_HIT_FIRE', target.x, target.y, target.z); // Generic/Blue Fire
+                return;
+            }
+            if (skill.element === 'ICE' || skill.specialVisualStatus === 'FROZEN') {
+                vfx.playEffect('FX_HIT_BLUE_ICE', target.x, target.y, target.z);
+                return;
+            }
+            if (skill.element === 'POISON' || skill.ccType === 'DOT') {
+                if (source?.team === Team.RED) vfx.playEffect('FX_HIT_RED_FEL', target.x, target.y, target.z);
+                else vfx.playEffect('FX_HIT_POISON', target.x, target.y, target.z);
+                return;
+            }
+            if (skill.element === 'VOID' || skill.element === 'ARCANE') {
+                if (source?.team === Team.RED) vfx.playEffect('FX_HIT_RED_SHADOW', target.x, target.y, target.z);
+                else vfx.playEffect('FX_HIT_BLUE_ARCANE', target.x, target.y, target.z);
+                return;
+            }
+            if (skill.element === 'HOLY') {
+                vfx.playEffect('FX_HIT_BLUE_HOLY', target.x, target.y, target.z);
+                return;
+            }
+            if (skill.element === 'LIGHTNING') {
+                vfx.playEffect('FX_HIT_BLUE_TECH', target.x, target.y, target.z);
+                return;
+            }
+            if (skill.element === 'BLOOD') {
+                vfx.playEffect('FX_HIT_RED_BLOOD', target.x, target.y, target.z);
+                return;
+            }
+        }
+
+        // 4. Faction Default (Physical/Standard)
         const faction = source ? source.team : Team.BLUE;
-        const factionVis = FACTION_VISUALS[faction] || FACTION_VISUALS[Team.BLUE];
+        const factionVis = FACTION_VISUALS[faction];
         
-        vfx.playEffect(factionVis.defaultHitEffect, target.x, target.y, target.z, color);
+        // Use faction default if available
+        if (factionVis && factionVis.defaultHitEffect && VFX_REGISTRY[factionVis.defaultHitEffect]) {
+            vfx.playEffect(factionVis.defaultHitEffect, target.x, target.y, target.z, color);
+        } else {
+            // Ultimate fallback
+            vfx.playEffect('FX_HIT_GENERIC', target.x, target.y, target.z, color);
+        }
     }
 
     private handleAOE(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, groundZ: number) {
         if (!event.skill) return;
-        // Bias Z by +5 to float slightly above terrain
+        
         const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 5 };
         const color = event.color || '#fff';
 
+        // 1. Ult Check
         if (UltArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) {
             return;
         }
 
-        if (event.skill.visualHitEffect) {
-            vfx.playEffect(event.skill.visualHitEffect, centerPt.x, centerPt.y, centerPt.z, color);
-        }
+        // 2. Center Impact (Re-use Resolve Logic for consistency)
+        this.resolveImpact(event, engine, vfx, centerPt, false);
 
-        // GRID SYSTEM REACTION
+        // 3. Grid Floor Effects
         const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const radius = event.skill.aoeRadius || 1;
         const affectedHexes = HexUtils.range(centerHex, radius);
         const source = engine.agents.find(a => a.id === event.sourceId);
         const faction = source ? source.team : Team.BLUE;
 
+        // Determine Grid Style
         let gridEffectId = faction === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED';
+        
+        // Override Grid Style based on Skill
         if (event.skill.ccType === 'PULL' || event.skill.visual === 'BOMB') {
              if (faction === Team.RED) gridEffectId = 'FX_GRID_IMPACT_RED';
         }
         if (event.skill.visual === 'BEAM') gridEffectId = 'FX_GRID_IMPACT_VOID';
 
+        // Spawn Grid Effects
         affectedHexes.forEach(h => {
             if (engine.map.isValid(h.q, h.r)) {
                 const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                 const hHeight = grid.getTerrainHeight(h.q, h.r, engine);
-                // Float tile impact slightly (+2px)
                 vfx.playEffect(gridEffectId, tilePos.x, tilePos.y, hHeight + 2, color);
             }
         });
 
-        // Center Impact
-        vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 10, event.color);
-        camera.addTrauma(0.25); 
+        // REDUCED: Standard AOE Impact
+        camera.addTrauma(0.15); 
     }
 
     private spawnUnitShatter(system: VFXSystem, x: number, y: number, z: number, team: Team, role: Role, impulseX: number = 0, impulseY: number = 0) {

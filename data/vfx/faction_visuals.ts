@@ -36,7 +36,7 @@ export const FACTION_VISUALS: Record<Team, FactionVisualDef> = {
         darkColor: THEME_IMPERIAL.armorDark,
         
         flightTrailColor: '#bae6fd',
-        defaultHitEffect: 'FX_IMPACT_PHYSICAL',
+        defaultHitEffect: 'FX_HIT_BLUE_PHYSICAL', // Updated
         
         deathShatterColors: [THEME_IMPERIAL.primary, THEME_IMPERIAL.armorLight, THEME_IMPERIAL.armorDark],
         deathSpiritColor: '#60a5fa'
@@ -50,7 +50,7 @@ export const FACTION_VISUALS: Record<Team, FactionVisualDef> = {
         darkColor: THEME_COVENANT.armorDark,
         
         flightTrailColor: '#fecaca',
-        defaultHitEffect: 'FX_BLOOD_RITUAL',
+        defaultHitEffect: 'FX_HIT_RED_PHYSICAL', // Updated
         
         deathShatterColors: [THEME_COVENANT.primary, THEME_COVENANT.armorBase, '#450a0a'],
         deathSpiritColor: '#ef4444'

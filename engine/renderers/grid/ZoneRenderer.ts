@@ -71,6 +71,7 @@ export const ZoneRenderer = {
 
     /**
      * Renders casting indicators and AOE warnings.
+     * REFACTORED: Now uses a global ripple logic (Center -> Outwards)
      */
     drawZone(
         ctx: CanvasRenderingContext2D,
@@ -93,54 +94,66 @@ export const ZoneRenderer = {
         ctx.save();
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
-        // Logic for "Ripple" Effect
-        // We want a ring that expands/contracts based on progress
-        const radiusPx = (maxRadius + 0.5) * size * 1.5; // Approximate pixel radius of zone
-        const myDistPx = dist * size * 1.5;
+        // --- MATH: GLOBAL RIPPLE PROPAGATION ---
+        // We want a wave that travels from Dist 0 to Dist MaxRadius based on Progress
+        // Normalized Distance (0.0 at center, 1.0 at edge)
+        const normDist = dist / Math.max(1, maxRadius);
         
-        // Normalized position within the zone (0 = center, 1 = edge)
-        const normalizedPos = myDistPx / Math.max(1, radiusPx);
+        // The "Wave Front" position (0.0 to 1.0)
+        // We speed it up slightly (1.2) so it finishes expanding before the cast is fully done
+        // allowing the full field to be lit up at the end.
+        const wavePos = progress * 1.2; 
         
-        // Pulse Logic
+        // Calculate intensity based on proximity to the wave front
+        // If wavePos > normDist, it means the wave has passed this tile -> It stays lit (Filled)
+        // If wavePos is close to normDist, it's the "Leading Edge" (Bright)
+        
+        const isFilled = wavePos >= normDist;
+        const distToWave = Math.abs(wavePos - normDist);
+        const isLeadingEdge = distToWave < 0.15; // Width of the ripple ring
+
         const pulse = 1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1;
         
-        // --- A. BASE FILL ---
-        // Always draw a faint background for the zone
-        ctx.fillStyle = color;
-        ctx.globalAlpha = def.fillOpacityBase * pulse * (1 - normalizedPos * 0.5);
-        SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
-        ctx.fill();
-
-        // --- B. CHARGE RIPPLE ---
-        // A band that moves inward or outward
-        const waveWidth = 0.2;
-        const wavePos = 1.0 - progress; // Move inward as cast completes
-        
-        if (Math.abs(normalizedPos - wavePos) < waveWidth) {
-            ctx.globalAlpha = def.fillOpacityMax * pulse;
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = def.innerRingWidth || 1;
-            SurfaceAssets.traceHex(ctx, x, y, size * 0.85);
-            if (def.innerRingWidth > 0) ctx.stroke();
-            
+        // --- A. BASE FILL (Accumulates as wave passes) ---
+        if (isFilled) {
             ctx.fillStyle = color;
+            // Opacity increases as we get closer to completion
+            ctx.globalAlpha = def.fillOpacityBase * pulse * progress; 
+            SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
+            ctx.fill();
+        }
+
+        // --- B. LEADING EDGE RIPPLE (The moving ring) ---
+        if (isLeadingEdge) {
+            const edgeIntensity = 1.0 - (distToWave / 0.15); // Fade out at edges of the ring
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = (def.innerRingWidth || 2) * edgeIntensity;
+            ctx.globalAlpha = def.fillOpacityMax * edgeIntensity;
+            
+            // Slight scale pop on the wave front
+            SurfaceAssets.traceHex(ctx, x, y, size * (0.9 + 0.05 * edgeIntensity));
+            ctx.stroke();
+            
+            // Add a glow to the leading edge
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.4 * edgeIntensity;
             ctx.fill();
         }
 
         // --- C. OUTER BORDER (Perimeter) ---
         // Only drawn on tiles at the edge of the radius
         if (dist >= maxRadius - 0.5) {
+            // Only show border if the wave has reached it (or fade it in)
+            const borderAlpha = Math.max(0, Math.min(1, (progress * 2) - 0.5)); // Fade in halfway through
+            
             ctx.strokeStyle = color;
             ctx.lineWidth = def.baseRingWidth;
-            ctx.globalAlpha = 0.8 * pulse;
+            ctx.globalAlpha = 0.8 * pulse * borderAlpha;
             
             if (def.dashed) ctx.setLineDash([10, 5]);
-            
-            // Rotating Runes Effect (Simulated by rotating hex slightly? No, keeping it stable is better for grid)
-            // Just draw the border
             SurfaceAssets.traceHex(ctx, x, y, size * 0.92);
             ctx.stroke();
-            
             ctx.setLineDash([]);
         }
 
