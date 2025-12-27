@@ -90,6 +90,11 @@ export interface Skill {
 
     projectileSpeed?: number; // 0 = Instant
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
+
+    // --- PHASE 2: DATA DRIVEN VFX LINKS ---
+    visualHitEffect?: string;  // ID in VFXRegistry (Impact)
+    visualCastEffect?: string; // ID in VFXRegistry (Muzzle flash / Cast finish)
+    visualProjectileEffect?: string; // ID for Projectile Visuals (Future)
 }
 
 export interface UnitStats {
@@ -165,6 +170,7 @@ export interface GroundHazard {
     power: number; // Damage per tick
     interval: number; // Tick rate
     timer: number; // Current tick timer
+    vfxId?: string; // NEW: Phase 3 ready
 }
 
 // Event System (Bridge between Logic and Visuals)

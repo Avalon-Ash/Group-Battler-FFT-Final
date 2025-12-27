@@ -1,5 +1,6 @@
 
 import { Role, Skill, Team, AnimState } from '../../types';
+import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 
 // =========================================================================================
 // [SYSTEM DEPENDENCIES & CONSTANTS]
@@ -65,6 +66,11 @@ export const VISUAL_TYPES = [
     { value: 'BEAM', label: '光束 (Beam)', icon: '✨' },
     { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' }
 ];
+
+export const VFX_HIT_EFFECTS = Object.keys(VFX_REGISTRY).map(key => ({
+    value: key,
+    label: `${key} (${VFX_REGISTRY[key].description || 'Custom'})`
+}));
 
 export const CC_TYPES = [
     { value: 'NONE', label: '無', color: '#94a3b8' },
@@ -134,7 +140,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         name: '基本資訊 (Basic)',
         fields: [
             { key: 'name', label: '技能名稱', type: 'text' },
-            { key: 'id', label: 'ID', type: 'text' },
+            { key: 'id', label: 'ID (奧義需對應 UltArchitect)', type: 'text' },
             { key: 'tag', label: '類型標籤', type: 'select', simpleOptions: Object.keys(TAG_MAP) },
             { key: 'role', label: '專屬職階', type: 'select', simpleOptions: Object.values(Role) },
             { key: 'team', label: '專屬陣營', type: 'select', simpleOptions: ['ANY', 'BLUE', 'RED'] },
@@ -159,9 +165,15 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
         fields: [
             { 
                 key: 'visual', 
-                label: '特效模型', 
+                label: '投射物 / 模型', 
                 type: 'select', 
                 options: VISUAL_TYPES.map(v => ({ value: v.value, label: `${v.icon} ${v.label}` })) 
+            },
+            { 
+                key: 'visualHitEffect', 
+                label: '命中特效 (VFX Registry)', 
+                type: 'select', 
+                options: [{value: '', label: '預設 (Default)'}, ...VFX_HIT_EFFECTS]
             },
             { key: 'color', label: '主色調 (Hex/RGBA)', type: 'color' }, 
             { key: 'projectileSpeed', label: '彈速 (0=即時)', type: 'number', step: 50 },

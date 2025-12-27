@@ -2,6 +2,7 @@
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { GroundHazard } from "../../../types";
+import { HAZARD_VISUALS } from "../../../data/hazard_visuals";
 
 // Helper
 function traceHex(ctx: CanvasRenderingContext2D, r: number) {
@@ -25,16 +26,24 @@ export const ZoneRenderer = {
         hazard: GroundHazard,
         globalTime: number
     ) {
-        if (hazard.type === 'POISON' || hazard.type === 'GENERIC') {
-            SurfaceAssets.drawVolumetricFog(ctx, x, y, hazard.color, globalTime);
+        // 1. Load Definition
+        const def = HAZARD_VISUALS[hazard.type] || HAZARD_VISUALS['GENERIC'];
+        
+        // 2. Render based on Type
+        if (def.type === 'LIQUID') {
+            const flow = globalTime * def.speed;
+            const intensity = def.intensity * (0.8 + Math.sin(flow) * 0.2);
+            SurfaceAssets.drawLiquidSurface(ctx, x, y, def.primaryColor, flow, intensity);
+            
+            if (def.cracks) {
+                SurfaceAssets.drawGroundCracks(ctx, x, y, def.secondaryColor, intensity);
+            }
         }
-        else if (hazard.type === 'FIRE') {
-            const intensity = 0.8 + Math.sin(globalTime * 3) * 0.2;
-            SurfaceAssets.drawLiquidSurface(ctx, x, y, hazard.color, globalTime, intensity);
-            SurfaceAssets.drawGroundCracks(ctx, x, y, '#fdba74', intensity);
+        else if (def.type === 'FOG') {
+            SurfaceAssets.drawVolumetricFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
         }
-        else if (hazard.type === 'ICE') {
-            SurfaceAssets.drawExtrudedHex(ctx, x, y, 5, hazard.color, 0.4, false);
+        else if (def.type === 'CRYSTAL' && def.extrude) {
+            SurfaceAssets.drawExtrudedHex(ctx, x, y, 5, def.primaryColor, 0.4, false);
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
@@ -43,18 +52,18 @@ export const ZoneRenderer = {
             ctx.fill();
             ctx.restore();
         }
-        else if (hazard.type === 'GRAVITY') {
-            // Hexagonal Black Hole
+        else if (def.type === 'VOID_HOLE') {
+            // Hexagonal Black Hole / Portal
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
-            ctx.fillStyle = '#000';
-            ctx.globalAlpha = 0.7;
+            ctx.fillStyle = def.primaryColor;
+            ctx.globalAlpha = def.intensity;
             traceHex(ctx, size * 0.9);
             ctx.fill();
             
-            ctx.rotate(globalTime * 2);
-            ctx.strokeStyle = hazard.color;
+            ctx.rotate(globalTime * def.speed);
+            ctx.strokeStyle = def.secondaryColor;
             ctx.lineWidth = 2;
             traceHex(ctx, size * 0.6); ctx.stroke();
             

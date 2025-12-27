@@ -1,5 +1,6 @@
 
 import { VFXStateManager } from "./vfx/state";
+import { VFXPlayer } from "./vfx/VFXPlayer";
 
 const GRAVITY = 1800; 
 
@@ -10,6 +11,18 @@ export class VFXSystem {
     public reset() {
         this.state.reset();
         this.ambientTimer = 0;
+    }
+
+    /**
+     * New Data-Driven Entry Point (Phase 1)
+     * @param effectId ID key from VFXRegistry
+     * @param x World X
+     * @param y World Y
+     * @param z Height Z (Terrain + Unit)
+     * @param colorOverride Optional: Force a specific color (e.g. Team Color)
+     */
+    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string) {
+        VFXPlayer.play(this, effectId, x, y, z, colorOverride);
     }
 
     update(dt: number, globalTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {

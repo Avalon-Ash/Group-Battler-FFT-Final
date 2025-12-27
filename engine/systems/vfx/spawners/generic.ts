@@ -238,31 +238,6 @@ export function spawnTeleport(system: VFXSystem, x: number, y: number, z: number
     spawnShockwave(system, x, y, z, color, 0.5);
 }
 
-export function spawnLingeringField(system: VFXSystem, x: number, y: number, z: number, color: string, type: string, duration: number, delay: number) {
-    const count = 5;
-    for(let i=0; i<count; i++) {
-        const p = system.state.getParticle();
-        const r = 20;
-        const a = Math.random() * Math.PI * 2;
-        const dist = Math.random() * r;
-        
-        p.x = x + Math.cos(a) * dist;
-        p.y = y + Math.sin(a) * dist * ISO_SCALE_Y;
-        p.z = z + 5;
-        
-        p.vx = (Math.random()-0.5) * 10;
-        p.vy = (Math.random()-0.5) * 10;
-        p.vz = 10 + Math.random() * 10; 
-        p.life = duration + Math.random(); p.maxLife = p.life;
-        p.color = color;
-        p.size = 40 + Math.random() * 20; 
-        p.type = 'SMOKE';
-        p.delay = delay + (i * 0.1); 
-        p.vRotation = (Math.random() - 0.5) * 5;
-        system.state.particles.push(p);
-    }
-}
-
 export function spawnCastBreak(system: VFXSystem, x: number, y: number, z: number, radiusTiles: number, color: string) {
     addImpact(system, x, y, z + 40, color, 'BLAST', 0.2); 
     for(let i=0; i<8; i++) {
@@ -280,18 +255,6 @@ export function spawnCastBreak(system: VFXSystem, x: number, y: number, z: numbe
     }
 }
 
-export function spawnGridImpact(system: VFXSystem, x: number, y: number, z: number, color: string, team: Team, delay: number) {
-    const p = system.state.getParticle();
-    p.x = x; p.y = y; p.z = z;
-    p.life = 1.0; p.maxLife = 1.0;
-    p.color = color;
-    p.size = 36; 
-    p.type = 'GRID_FIELD'; 
-    p.delay = delay;
-    p.locked = true;
-    system.state.particles.push(p);
-}
-
 export function spawnBloodRitual(system: VFXSystem, x: number, y: number, z: number, color: string, scale: number) {
     addImpact(system, x, y, z, color, 'BLAST', 0.5);
     for(let i=0; i<10; i++) {
@@ -307,6 +270,27 @@ export function spawnBloodRitual(system: VFXSystem, x: number, y: number, z: num
         p.size = 20 + Math.random() * 10;
         p.type = 'SMOKE';
         p.vRotation = (Math.random()-0.5)*5;
+        system.state.particles.push(p);
+    }
+}
+
+export function spawnLingeringField(system: VFXSystem, x: number, y: number, z: number, color: string, type: string, duration: number, delay: number = 0) {
+    const count = 10;
+    for(let i=0; i<count; i++) {
+        const p = system.state.getParticle();
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * 60;
+        p.x = x + Math.cos(a)*r; 
+        p.y = y + Math.sin(a)*r; 
+        p.z = z + 10;
+        p.vx = (Math.random()-0.5)*20; 
+        p.vy = (Math.random()-0.5)*20; 
+        p.vz = 10 + Math.random()*30; 
+        p.life = duration * (0.6 + Math.random() * 0.4); p.maxLife = p.life;
+        p.color = color; p.size = 25 + Math.random() * 25;
+        p.type = type as any; 
+        p.drag = 0.1; 
+        p.delay = delay + Math.random() * 0.5;
         system.state.particles.push(p);
     }
 }
