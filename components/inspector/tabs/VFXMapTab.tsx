@@ -4,7 +4,7 @@ import { VFX_LIBRARY, VFXEntry } from '../../../data/vfx/vfx_library';
 import { Icons } from '../../ui/icons';
 
 export const VFXMapTab: React.FC = () => {
-    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'CAST'>('GENERIC');
+    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'IMP_PROJ' | 'COV_PROJ' | 'CAST'>('GENERIC');
 
     const renderList = (list: VFXEntry[], themeColor: string) => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -69,16 +69,22 @@ export const VFXMapTab: React.FC = () => {
                         Ult (Red)
                     </button>
                     <button 
+                        onClick={() => setActiveCategory('IMP_PROJ')} 
+                        className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'IMP_PROJ' ? 'bg-cyan-600/30 text-cyan-300 border border-cyan-500/30' : 'text-slate-500 hover:text-cyan-400'}`}
+                    >
+                        Proj (Blue)
+                    </button>
+                    <button 
+                        onClick={() => setActiveCategory('COV_PROJ')} 
+                        className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'COV_PROJ' ? 'bg-orange-600/30 text-orange-300 border border-orange-500/30' : 'text-slate-500 hover:text-orange-400'}`}
+                    >
+                        Proj (Red)
+                    </button>
+                    <button 
                         onClick={() => setActiveCategory('STATUS')} 
                         className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'STATUS' ? 'bg-amber-600/30 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-amber-400'}`}
                     >
                         Status
-                    </button>
-                    <button 
-                        onClick={() => setActiveCategory('PROJECTILES')} 
-                        className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'PROJECTILES' ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30' : 'text-slate-500 hover:text-emerald-400'}`}
-                    >
-                        Proj
                     </button>
                     <button 
                         onClick={() => setActiveCategory('CAST')} 
@@ -94,6 +100,8 @@ export const VFXMapTab: React.FC = () => {
                 {activeCategory === 'GENERIC' && renderList(VFX_LIBRARY.GENERIC, 'text-slate-200')}
                 {activeCategory === 'ULT_BLUE' && renderList(VFX_LIBRARY.ULT_BLUE, 'text-blue-400')}
                 {activeCategory === 'ULT_RED' && renderList(VFX_LIBRARY.ULT_RED, 'text-red-400')}
+                {activeCategory === 'IMP_PROJ' && renderList(VFX_LIBRARY.IMP_PROJ, 'text-cyan-400')}
+                {activeCategory === 'COV_PROJ' && renderList(VFX_LIBRARY.COV_PROJ, 'text-orange-400')}
                 {activeCategory === 'STATUS' && renderList(VFX_LIBRARY.STATUS, 'text-amber-400')}
                 {activeCategory === 'PROJECTILES' && renderList(VFX_LIBRARY.PROJECTILES, 'text-emerald-400')}
                 {activeCategory === 'CAST' && renderList(VFX_LIBRARY.CAST_RINGS, 'text-cyan-400')}

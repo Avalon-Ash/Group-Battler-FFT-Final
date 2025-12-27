@@ -6,7 +6,7 @@ import { getTransitionOffset } from "../utils";
 import { Point } from "../../../../types";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
-import { UNIT_BODY_OFFSET } from "../../../../constants"; // Replaces UNIT_CHEST_HEIGHT for consistency
+import { UNIT_BODY_OFFSET } from "../../../../constants"; 
 
 export const ProjectileRenderer = {
     submit(
@@ -23,7 +23,6 @@ export const ProjectileRenderer = {
              if (offsetP > 800) return;
 
              // 1. Resolve Visual Definition
-             // CRITICAL FIX: Check visualProjectileEffect first!
              const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
              const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
 
@@ -32,9 +31,17 @@ export const ProjectileRenderer = {
              const startHex = HexUtils.fromPx(p.startX, p.startY, engine.mapConfig);
              const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
              
-             // Use stored startZ if available (for flying units), else terrain height
+             // Use stored startZ if available (includes Body Offset from ProjectileSystem), else fallback
              const hStart = (p.startZ !== undefined) ? (getTerrainHeight(startHex.q, startHex.r) + p.startZ) : (getTerrainHeight(startHex.q, startHex.r) + UNIT_BODY_OFFSET);
-             const hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET;
+             
+             // FIXED: Dynamic End Height
+             // If target is an agent, aim for their current physical body center (terrain + physZ + bodyOffset)
+             let hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET;
+             const targetAgent = engine.agents.find(a => a.id === p.targetId);
+             if (targetAgent) {
+                 const tHex = HexUtils.fromPx(targetAgent.px, targetAgent.py, engine.mapConfig);
+                 hEnd = getTerrainHeight(tHex.q, tHex.r) + targetAgent.physics.z + UNIT_BODY_OFFSET;
+             }
 
              let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
              if (totalDist < 1) totalDist = 1;
@@ -127,9 +134,6 @@ export const ProjectileRenderer = {
              
              // Sort Order:
              // Base sorting on Y (ground position).
-             // High flying projectiles should render 'in front' of the tile they are over, 
-             // but 'behind' a wall that is physically in front of them.
-             // Standard painter's algo handles this via p.y
              op.y = p.y + offsetP; 
              
              // Z-Bias: Ensure projectiles draw above units/terrain on the same tile

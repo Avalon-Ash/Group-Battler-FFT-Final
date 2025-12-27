@@ -4,6 +4,7 @@ import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
 import { SkillResolutionSystem } from "./SkillResolutionSystem";
 import { PROJECTILE_VISUALS } from "../../../data/vfx/projectile_visuals";
+import { UNIT_BODY_OFFSET } from "../../../constants";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
@@ -125,7 +126,9 @@ export class ProjectileSystem {
         this.projectiles.push({
             id: Math.random().toString(36).substr(2, 6),
             x: source.px, y: source.py, 
-            startX: source.px, startY: source.py, startZ: source.physics.z, 
+            startX: source.px, startY: source.py, 
+            // FIXED: Start Z includes Body Offset to launch from chest, not feet
+            startZ: source.physics.z + UNIT_BODY_OFFSET, 
             targetId, targetPos,
             speed: skill.projectileSpeed || 600, skill, sourceId: source.id, team: source.team, trail: []
         });

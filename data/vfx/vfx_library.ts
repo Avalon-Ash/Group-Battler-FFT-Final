@@ -103,13 +103,29 @@ export const VFX_LIBRARY = {
         { key: 'CASTING', name: '詠唱 (Casting)', desc: '動作', visuals: ['腳下魔法陣(八芒星/方陣)', '聚氣光效'] }
     ] as VFXEntry[],
 
+    // GENERIC PROJECTILES
     PROJECTILES: [
-        { key: 'ARROW', name: '箭矢 (ARC)', desc: '拋物線 | 遠程', visuals: ['ArcHeight: 120', 'Sprite: ARROW'] },
-        { key: 'BOLT', name: '能量彈 (LINEAR)', desc: '直線 | 中程', visuals: ['Linear', 'Sprite: BOLT'] },
-        { key: 'FIREBALL', name: '火球 (WOBBLE)', desc: '波動 | 魔法', visuals: ['Sine Wave', 'Sprite: FIREBALL'] },
-        { key: 'BOMB', name: '炸彈 (ARC+SPIN)', desc: '拋物線 | 投擲', visuals: ['ArcHeight: 200', 'Spin: 15rad/s'] },
-        { key: 'BEAM', name: '光束 (RAY)', desc: '即時 | 連結', visuals: ['Instant Hit', 'Width: 3px'] },
-        { key: 'DEATH_RAY', name: '死亡射線 (RAY)', desc: 'Ult | 穿透', visuals: ['Instant', 'Width: 16px', 'Black Core'] }
+        { key: 'ARROW', name: '箭矢 (Generic)', desc: '拋物線 | 遠程', visuals: ['ArcHeight: 120', 'Sprite: ARROW'] },
+        { key: 'BOLT', name: '能量彈 (Generic)', desc: '直線 | 中程', visuals: ['Linear', 'Sprite: BOLT'] },
+        { key: 'FIREBALL', name: '火球 (Generic)', desc: '波動 | 魔法', visuals: ['Sine Wave', 'Sprite: FIREBALL'] },
+        { key: 'BOMB', name: '炸彈 (Generic)', desc: '拋物線 | 投擲', visuals: ['ArcHeight: 200', 'Spin: 15rad/s'] },
+        { key: 'BEAM', name: '光束 (Ray)', desc: '即時 | 連結', visuals: ['Instant Hit', 'Width: 3px'] }
+    ] as VFXEntry[],
+
+    // --- IMPERIAL PROJECTILES (NEW) ---
+    IMP_PROJ: [
+        { key: 'PROJ_BLUE_SNIPER', name: '磁軌狙擊彈', desc: 'Ranger | 高速動能', visuals: ['Sprite: HEX_DART', 'Speed: 1500', 'Linear'] },
+        { key: 'PROJ_BLUE_ICE_ARROW', name: '極地冰箭', desc: 'Ranger | 冰霜', visuals: ['Sprite: CRYSTAL', 'Arc', 'Spin: 2'] },
+        { key: 'PROJ_BLUE_ORB', name: '奧術法球', desc: 'Mage | 追蹤', visuals: ['Sprite: ORB', 'Wobble', 'Trail: 8'] },
+        { key: 'PROJ_BLUE_FROST_BOLT', name: '寒冰錐', desc: 'Mage | 凍結', visuals: ['Sprite: CRYSTAL', 'Linear', 'Scale: 1.2'] }
+    ] as VFXEntry[],
+
+    // --- COVENANT PROJECTILES (NEW) ---
+    COV_PROJ: [
+        { key: 'PROJ_RED_AXE', name: '旋轉飛斧', desc: 'Warrior | 物理', visuals: ['Sprite: AXE', 'Arc', 'Spin: 15'] },
+        { key: 'PROJ_RED_CHAOS_ORB', name: '混沌法球', desc: 'Mage | 邪能', visuals: ['Sprite: FIREBALL', 'Heavy Wobble', 'Spin: 5'] },
+        { key: 'PROJ_RED_HEAVY_BOLT', name: '重型弩箭', desc: 'Ranger | 爆破', visuals: ['Sprite: BOLT', 'Linear', 'Scale: 2.0'] },
+        { key: 'PROJ_RED_SHADOW', name: '暗影波', desc: 'Mage | 虛空', visuals: ['Sprite: BOLT', 'Wobble', 'Purple Trail'] }
     ] as VFXEntry[],
 
     CAST_RINGS: [

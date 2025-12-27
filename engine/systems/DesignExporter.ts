@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.2.0 (Architecture Refined)
+Version: 6.3.0 (Projectile 2.0 & High-Fidelity Assets)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
@@ -49,11 +49,24 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
   - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH] 狀態時，升力消失，強制切換至重力物理運算。
 
-* 移動導航 (Navigation):
-  - 地面單位受限於 [Jump] 屬性，落差 > (Jump * ${BLOCK_HEIGHT})px 之相鄰網格不可通行。
-  - 碰撞解析 (Stacking): 同一網格靜止點僅允許單一單位，動態重疊會觸發解離推力 (Force: 5)。
+[3. 投射物彈道學 (Projectile Ballistics 2.0)]
+--------------------------------------------------------------------------------
+* 發射與命中 (Launch & Impact):
+  - 起點修正 (Origin): 投射物從單位 "胸口" (Body Offset: 45px) 發射，而非腳底。
+  - 動態追蹤 (Homing): 目標高度 (Target Z) 實時鎖定對方物理中心 (TerrainH + JumpH + BodyOffset)，確保空中單位被準確擊中。
 
-[3. 戰鬥邏輯與判定 (Combat Logic & Calculations)]
+* 軌跡演算法 (Trajectory Algorithms):
+  - Linear: 直線高速彈道 (如: 狙擊彈, 能量束).
+  - Arc: 拋物線重力模擬 (如: 箭矢, 炸彈), ArcHeight 可配置.
+  - Wobble: 正弦波側向擾動 (如: 火球, 混沌法球).
+  - Spin: 獨立於移動方向的自旋角速度 (如: 飛斧 15 rad/s).
+
+* 視覺渲染 (Visual Rendering):
+  - 獨立繪圖器 (ProjectilePainter): 支援高精度 Canvas 繪圖 (Hex Dart, Crystal, Axe).
+  - 拖尾系統 (Trail History): 記錄最近 N 幀位置以繪製平滑拖尾。
+  - 速度調整: 彈速下調至 800-1500 px/s 以適應肉眼動態捕捉。
+
+[4. 戰鬥邏輯與判定 (Combat Logic & Calculations)]
 --------------------------------------------------------------------------------
 * 高地優勢 (Elevation Advantage):
   - 公式: Effective_Range = Skill_Range + max(0, floor(Attacker_H - Target_H) / ${BLOCK_HEIGHT}).
@@ -64,12 +77,7 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 吸血機制 (Vampirism): 預設轉化 50% 傷害為生命回復。
   - 擊退衝擊 (Impulse): 基於傷害量計算向量位移，最大限制 ${COMBAT_PARAM.HIT_IMPULSE_MAX} 向量單位。
 
-* 控場階級 (CC Hierarchy):
-  - 硬控場 (Hard CC): Stun, Banish (中斷詠唱，禁止所有行動).
-  - 軟控場 (Soft CC): Silence (禁止主動/奧義，允許普攻移動).
-  - 遞減機制 (Diminishing Returns): 同一類型控場連續施加，持續時間減半，3 次後免疫，持續 10 秒。
-
-[4. 渲染管線技術 (Rendering Pipeline)]
+[5. 渲染管線技術 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
 * 繪製流程:
   1. 靜態背景緩存 (Static Background Caching).
@@ -83,7 +91,7 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 色差 (Chromatic Aberration): 戰鬥高潮與轉場時的 RGB 頻道分離特效。
   - 高斯模糊 (Finish Blur): 模擬毛玻璃質感的轉場與勝利介面。
 
-[5. 系統架構解耦 (Decoupled Architecture)]
+[6. 系統架構解耦 (Decoupled Architecture)]
 --------------------------------------------------------------------------------
 * 核心原則 (Core Principles):
   - 數學純粹性 (Pure Math): 所有軌跡運算 (拋物線、螺旋、正弦波) 獨立於 \`engine/math/TrajectoryMath.ts\`。
@@ -93,28 +101,16 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
     - \`GridSystem\`: 地形緩存與圖層計算。
     - \`ProjectileRenderer\`: 僅負責將邏輯位置轉換為視覺像素。
 
-* 檔案結構 (Key Paths):
-  - Math Lib: \`engine/math/TrajectoryMath.ts\`
-  - Visual Configs: \`data/vfx/projectile_visuals.ts\`, \`data/vfx/cast_visuals.ts\`
-  - Renderers: \`engine/systems/vfx/renderers/*\`
-
-[6. AI 行為決策樹 (AI Behavior Tree)]
---------------------------------------------------------------------------------
-採用決策優先級 (Selector) 結構：
-
-1. [自保/狀態檢查]: 優先處理死亡與受控狀態，執行 Wait 行為。
-2. [奧義優先等級]: MP 滿載且 CD 就緒時，掃描全場最佳施法點 (AOE 最大化/斬殺優先)。
-3. [戰術移動]: 若目標超出射程，利用 A* 尋路進行位移，近戰單位觸發 Charge 加速。
-4. [預設動作]: 若無可用技能，保持最近敵對目標的鎖定並進行追擊。
-
 [7. 陣營視覺語義 (Faction Visual Semantics)]
 --------------------------------------------------------------------------------
 * 藍軍 (Imperial):
   - 色彩: 鈷藍 (Cobalt), 黃金 (Gold), 能量青 (Cyan).
   - 形狀: 圓形、六角、規整對稱。
+  - 投射物: 科技飛鏢 (Hex Dart), 水晶 (Crystal), 能量球 (Orb).
 * 紅軍 (Covenant):
   - 色彩: 深紅 (Crimson), 黃銅 (Brass), 邪能綠 (Fel Green).
   - 形狀: 尖銳、不規則鋸齒、混沌發散。
+  - 投射物: 飛斧 (Axe), 混沌火球 (Chaos Orb), 重型弩箭 (Heavy Bolt).
 
 ================================================================================
 END OF SPECIFICATION
