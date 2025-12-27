@@ -8,27 +8,31 @@ export const COVENANT_PROJECTILES: Record<string, ProjectileVisualDef> = {
         trajectory: 'LINEAR',
         renderType: 'SPRITE',
         spriteKey: 'BOLT',
-        scale: 1.5,
+        scale: 2.0, // Heavy impact
         colorOverride: '#450a0a', 
+        speed: 900, // Slow and heavy
         trailLength: 10
     },
     'PROJ_RED_CHAOS_ORB': {
         trajectory: 'WOBBLE',
-        wobbleFreq: 0.3,
+        wobbleFreq: 0.3, // Erratic
         wobbleAmp: 15,
         renderType: 'SPRITE',
         spriteKey: 'FIREBALL',
         colorOverride: '#a3e635', 
-        trailLength: 12
+        scale: 1.5,
+        spinSpeed: 5,
+        trailLength: 15
     },
     'PROJ_RED_AXE': {
-        trajectory: 'LINEAR',
+        trajectory: 'ARC',
+        arcHeight: 60,
         renderType: 'SPRITE',
-        spriteKey: 'SMASH', 
-        spinSpeed: 25, 
-        scale: 1.2,
+        spriteKey: 'AXE', 
+        spinSpeed: 15, // Visible spin
+        scale: 1.4,
         colorOverride: '#7f1d1d',
-        trailLength: 4
+        trailLength: 5
     },
     'PROJ_RED_SHADOW': {
         trajectory: 'WOBBLE',
@@ -37,7 +41,8 @@ export const COVENANT_PROJECTILES: Record<string, ProjectileVisualDef> = {
         renderType: 'SPRITE',
         spriteKey: 'BOLT',
         colorOverride: '#581c87', 
-        trailLength: 8
+        scale: 1.3,
+        trailLength: 10
     },
     
     // ULT BEAMS

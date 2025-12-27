@@ -23,7 +23,9 @@ export const ProjectileRenderer = {
              if (offsetP > 800) return;
 
              // 1. Resolve Visual Definition
-             const def: ProjectileVisualDef = PROJECTILE_VISUALS[p.skill.id] || PROJECTILE_VISUALS[p.skill.visual || 'BOLT'] || DEFAULT_PROJECTILE;
+             // CRITICAL FIX: Check visualProjectileEffect first!
+             const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
+             const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
 
              // 2. Trajectory Math
              // Calculate Logical Start/End Height

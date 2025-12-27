@@ -38,7 +38,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
         name: '拘束力場', desc: '單體定身', 
         range: 3, cast: 0.8, cd: 14.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 60, color: '#3b82f6', visual: 'BOLT', projectileSpeed: 800, 
+        type: 'SINGLE', power: 60, color: '#3b82f6', visual: 'BOLT', projectileSpeed: 600, // Reduced from 800
         ccType: 'STUN', ccDur: 2.0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
@@ -89,35 +89,35 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'rb_a1', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '冷凍手雷', desc: '範圍凍結', 
         range: 6, cast: 0.8, cd: 15.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 60, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 800, 
+        type: 'AOE', aoeRadius: 2, power: 60, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 700, // Reduced from 800
         ccType: 'STUN', ccDur: 2.0, element: 'ICE', visualHitEffect: 'FX_HIT_BLUE_ICE' 
     },
     { 
         id: 'rb_a2', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '閃光彈', desc: '範圍沉默', 
         range: 5, cast: 0.5, cd: 12.0, cost: 40, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 40, color: '#fff', visual: 'BOMB', projectileSpeed: 1000, 
+        type: 'AOE', aoeRadius: 3, power: 40, color: '#fff', visual: 'BOMB', projectileSpeed: 900, // Reduced from 1000
         ccType: 'SILENCE', ccDur: 3.0, visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
         id: 'rb_a3', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '穿甲彈', desc: '直線高傷', 
         range: 8, cast: 1.5, cd: 10.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 180, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000, 
+        type: 'SINGLE', power: 180, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 2000, // Reduced from 3000
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER' 
     },
     { 
         id: 'rb_a4', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '箭雨', desc: '範圍物理壓制', 
         range: 6, cast: 1.2, cd: 14.0, cost: 55, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 100, color: '#94a3b8', visual: 'ARROW', projectileSpeed: 800, 
+        type: 'AOE', aoeRadius: 3, power: 100, color: '#94a3b8', visual: 'ARROW', projectileSpeed: 700, // Reduced from 800
         ccType: 'DOT', ccForce: 20, ccDur: 4.0, visualHitEffect: 'FX_HIT_BLUE_PHYSICAL' 
     },
     { 
         id: 'rb_a5', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '精準狙擊', desc: '超遠斬殺', 
         range: 10, cast: 2.0, cd: 18.0, cost: 60, gain: 0, 
-        type: 'SINGLE', power: 250, color: '#2563eb', visual: 'BOLT', projectileSpeed: 4000, 
+        type: 'SINGLE', power: 250, color: '#2563eb', visual: 'BOLT', projectileSpeed: 2500, // Reduced from 4000
         effectType: 'EXECUTE', effectVal: 2.0, visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
 
@@ -142,7 +142,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '奧術爆破', desc: '純粹範圍傷害', 
         range: 6, cast: 1.2, cd: 10.0, cost: 55, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 150, color: '#a855f7', visual: 'BOLT', projectileSpeed: 600, 
+        type: 'AOE', aoeRadius: 2, power: 150, color: '#a855f7', visual: 'BOLT', projectileSpeed: 500, // Reduced from 600
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
     { 
@@ -156,7 +156,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'mb_a5', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '超魔導飛彈', desc: '連發高傷', 
         range: 6, cast: 1.0, cd: 8.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 180, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 1200, 
+        type: 'SINGLE', power: 180, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 900, // Reduced from 1200
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
 

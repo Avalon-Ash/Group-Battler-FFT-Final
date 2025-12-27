@@ -9,7 +9,7 @@ export const RED_ACTIVE: Skill[] = [
         id: 'tr_a1', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
         name: '鮮血之鉤', desc: '將敵人拉至身前', 
         range: 5, cast: 0.6, cd: 12.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 80, color: '#7f1d1d', visual: 'BEAM', projectileSpeed: 1500, 
+        type: 'SINGLE', power: 80, color: '#7f1d1d', visual: 'BEAM', projectileSpeed: 1200, // Reduced from 1500
         ccType: 'PULL', ccForce: 5, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
@@ -87,28 +87,28 @@ export const RED_ACTIVE: Skill[] = [
         id: 'rr_a1', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '燒夷彈', desc: '範圍燃燒', 
         range: 6, cast: 1.0, cd: 14.0, cost: 55, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 90, color: '#f97316', visual: 'BOMB', projectileSpeed: 900, 
+        type: 'AOE', aoeRadius: 3, power: 90, color: '#f97316', visual: 'BOMB', projectileSpeed: 700, // Reduced from 900
         ccType: 'DOT', ccForce: 30, ccDur: 5.0, element: 'FIRE', visualHitEffect: 'FX_HIT_RED_MAGMA' 
     },
     { 
         id: 'rr_a2', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '霰彈轟炸', desc: '近身擊退', 
         range: 3, cast: 0.4, cd: 10.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 150, color: '#ea580c', visual: 'SMASH', projectileSpeed: 2000, 
+        type: 'SINGLE', power: 150, color: '#ea580c', visual: 'SMASH', projectileSpeed: 1500, // Reduced from 2000
         ccType: 'KNOCKBACK', ccForce: 5, visualHitEffect: 'FX_HIT_RED_HEAVY' 
     },
     { 
         id: 'rr_a3', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '毒氣陷阱', desc: '範圍中毒', 
         range: 5, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 50, color: '#65a30d', visual: 'BOMB', projectileSpeed: 800, 
+        type: 'AOE', aoeRadius: 2, power: 50, color: '#65a30d', visual: 'BOMB', projectileSpeed: 600, // Reduced from 800
         ccType: 'DOT', ccForce: 50, ccDur: 8.0, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
         id: 'rr_a4', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '高爆炸藥', desc: '單體重傷', 
         range: 6, cast: 1.5, cd: 15.0, cost: 60, gain: 0, 
-        type: 'SINGLE', power: 250, color: '#7f1d1d', visual: 'BOMB', projectileSpeed: 600, 
+        type: 'SINGLE', power: 250, color: '#7f1d1d', visual: 'BOMB', projectileSpeed: 500, // Reduced from 600
         visualHitEffect: 'FX_HIT_RED_MAGMA' 
     },
     { 
@@ -126,7 +126,7 @@ export const RED_ACTIVE: Skill[] = [
         id: 'mr_a1', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '靈魂腐化', desc: '持續傷害與沉默', 
         range: 5, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 60, color: '#a3e635', visual: 'BOLT', projectileSpeed: 600, 
+        type: 'SINGLE', power: 60, color: '#a3e635', visual: 'BOLT', projectileSpeed: 500, // Reduced from 600
         ccType: 'DOT', ccForce: 40, ccDur: 6.0, ccType2: 'SILENCE', ccDur2: 3.0, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
@@ -154,7 +154,7 @@ export const RED_ACTIVE: Skill[] = [
         id: 'mr_a5', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '混亂箭', desc: '高傷隨機暈眩', 
         range: 6, cast: 1.5, cd: 12.0, cost: 55, gain: 0, 
-        type: 'SINGLE', power: 200, color: '#22c55e', visual: 'BOLT', projectileSpeed: 800, 
+        type: 'SINGLE', power: 200, color: '#22c55e', visual: 'BOLT', projectileSpeed: 700, // Reduced from 800
         ccType: 'STUN', ccDur: 1.5, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
 
@@ -172,7 +172,7 @@ export const RED_ACTIVE: Skill[] = [
         id: 'sr_a2', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
         name: '痛苦轉移', desc: '給予敵人DoT', 
         range: 6, cast: 0.5, cd: 8.0, cost: 30, gain: 0, 
-        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 800, 
+        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 600, // Reduced from 800
         ccType: 'DOT', ccForce: 30, ccDur: 5.0, visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
     { 

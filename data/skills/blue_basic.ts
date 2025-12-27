@@ -92,35 +92,35 @@ export const BLUE_BASIC: Skill[] = [
         id: 'rb_b1', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '磁軌射擊', desc: '極高彈速', 
         range: 7, cast: 0.8, cd: 1.0, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 55, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 2500, 
+        type: 'SINGLE', power: 55, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 1500, // Reduced from 2500
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'PROJ_BLUE_SNIPER' 
     },
     { 
         id: 'rb_b2', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '冰霜箭', desc: '緩速(視覺)', 
         range: 6, cast: 0.6, cd: 1.2, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 45, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 1200, 
+        type: 'SINGLE', power: 45, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 1000, // Reduced from 1200
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW'
     },
     { 
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '雙重射擊', desc: '快速低傷', 
         range: 5, cast: 0.2, cd: 0.4, cost: 0, gain: 15, 
-        type: 'SINGLE', power: 25, color: '#7dd3fc', visual: 'ARROW', projectileSpeed: 1500, 
+        type: 'SINGLE', power: 25, color: '#7dd3fc', visual: 'ARROW', projectileSpeed: 1100, // Reduced from 1500
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL' 
     },
     { 
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '追蹤彈', desc: '必定命中', 
         range: 8, cast: 1.0, cd: 1.5, cost: 0, gain: 40, 
-        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 800, 
+        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 700, // Reduced from 800
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
         id: 'rb_b5', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '衝擊彈', desc: '輕微擊退', 
         range: 5, cast: 0.5, cd: 1.5, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 35, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 1200, 
+        type: 'SINGLE', power: 35, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 900, // Reduced from 1200
         ccType: 'KNOCKBACK', ccForce: 1,
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL' 
     },
@@ -132,14 +132,14 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b1', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '奧術飛彈', desc: '追蹤飛彈', 
         range: 6, cast: 0.6, cd: 0.8, cost: 0, gain: 40, 
-        type: 'SINGLE', power: 50, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 800, 
+        type: 'SINGLE', power: 50, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 600, // Reduced from 800
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB' 
     },
     { 
         id: 'mb_b2', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '寒冰錐', desc: '機率凍結', 
         range: 5, cast: 0.8, cd: 1.2, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 45, color: '#c084fc', visual: 'BOLT', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 45, color: '#c084fc', visual: 'BOLT', projectileSpeed: 800, // Reduced from 1000
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_FROST_BOLT'
     },
     { 
@@ -160,7 +160,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b5', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '虛空法球', desc: '緩慢高傷', 
         range: 5, cast: 1.2, cd: 2.0, cost: 0, gain: 50, 
-        type: 'SINGLE', power: 80, color: '#4c1d95', visual: 'FIREBALL', projectileSpeed: 400, 
+        type: 'SINGLE', power: 80, color: '#4c1d95', visual: 'FIREBALL', projectileSpeed: 300, // Reduced from 400
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
 
@@ -185,7 +185,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'sb_b3', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '戰術指令', desc: '回復自身魔力', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 50, 
-        type: 'SINGLE', power: 30, color: '#22d3ee', visual: 'BOLT', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 30, color: '#22d3ee', visual: 'BOLT', projectileSpeed: 800, // Reduced from 1000
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
