@@ -37,8 +37,7 @@ export const SurfaceAssets = {
 
     /**
      * NEW: Volumetric Hexagon
-     * Draws a soft, fog-like hexagon using pre-baked textures scaled to fit the grid.
-     * Replaces hard vector fills for a more atmospheric look.
+     * Renders a soft, glowing pillar base or fog pool.
      */
     drawVolumetricHex(
         ctx: CanvasRenderingContext2D,
@@ -47,24 +46,30 @@ export const SurfaceAssets = {
         color: string,
         opacity: number
     ) {
-        const texture = VFXFactory.generateHexFog(color);
-        const size = radius * 2.5; // Texture includes padding
+        // We use the "ATMOSPHERE" texture which is a perfect soft radial glow
+        const texture = VFXFactory.getTexture('ATMOSPHERE', color);
+        const size = radius * 2.8; // Oversize slightly for bleed
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.scale(1, ISO_SCALE_Y); // Match isometric projection
+        ctx.scale(1, ISO_SCALE_Y); // Flatten to ground plane
         
         ctx.globalAlpha = opacity;
+        ctx.globalCompositeOperation = 'screen';
         
         // Draw the soft fog texture
         ctx.drawImage(texture, -size/2, -size/2, size, size);
+        
+        // Optional: Draw a second smaller, brighter core
+        ctx.globalAlpha = opacity * 0.5;
+        const coreSize = size * 0.6;
+        ctx.drawImage(texture, -coreSize/2, -coreSize/2, coreSize, coreSize);
         
         ctx.restore();
     },
 
     /**
-     * NEW: Hex Ripple
-     * Draws a thick, blurred hexagonal stroke for expanding waves.
+     * NEW: Hex Ripple (Volumetric Ring)
      */
     drawHexRipple(
         ctx: CanvasRenderingContext2D,
@@ -81,17 +86,17 @@ export const SurfaceAssets = {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
-        // Soften the line
+        // Soft glow for the line
         ctx.shadowColor = color;
-        ctx.shadowBlur = width * 2;
+        ctx.shadowBlur = width * 1.5;
         
         this.traceHex(ctx, x, y, radius);
         ctx.stroke();
         
-        // Add a secondary thinner white core for "energy" feel
-        ctx.lineWidth = width * 0.3;
+        // Secondary white hot core
+        ctx.lineWidth = width * 0.2;
         ctx.strokeStyle = '#ffffff';
-        ctx.globalAlpha = opacity * 0.5;
+        ctx.globalAlpha = opacity * 0.8;
         ctx.shadowBlur = 0;
         ctx.stroke();
 
@@ -111,11 +116,13 @@ export const SurfaceAssets = {
 
         const r = HEX_SIZE * 0.9;
         
+        // 1. Base Liquid Shape (Wobbly)
         ctx.beginPath();
-        const segments = 10; 
+        const segments = 12; 
         for (let i = 0; i <= segments; i++) {
             const theta = (i / segments) * Math.PI * 2;
-            const noise = Math.sin(theta * 3 + time * 2) * 3 + Math.cos(theta * 5 - time) * 2; 
+            // More organic noise
+            const noise = Math.sin(theta * 4 + time) * 3 + Math.cos(theta * 2 - time * 1.5) * 2; 
             const px = Math.cos(theta) * (r + noise);
             const py = Math.sin(theta) * (r + noise);
             if (i === 0) ctx.moveTo(px, py);
@@ -123,22 +130,27 @@ export const SurfaceAssets = {
         }
         ctx.closePath();
 
+        // 2. Deep Base
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.7 * intensity;
+        ctx.globalAlpha = 0.8 * intensity;
         ctx.fill();
 
+        // 3. Surface Ripples (Darker)
         ctx.globalCompositeOperation = 'multiply';
         ctx.beginPath();
-        ctx.arc(Math.sin(time) * 5, Math.cos(time * 0.8) * 5, r * 0.6, 0, Math.PI * 2);
+        const rippleX = Math.sin(time) * 5;
+        const rippleY = Math.cos(time * 0.8) * 5;
+        ctx.ellipse(rippleX, rippleY, r * 0.6, r * 0.5, time*0.1, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.globalCompositeOperation = 'screen';
+        // 4. Specular Highlights (Bubbles/Reflection)
+        ctx.globalCompositeOperation = 'overlay';
         ctx.fillStyle = '#fff';
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.5;
         
         const bX = Math.cos(time * 1.5) * r * 0.4;
         const bY = Math.sin(time * 1.5) * r * 0.4;
-        ctx.beginPath(); ctx.arc(bX, bY, 4, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(bX, bY, 6, 3, 0, 0, Math.PI*2); ctx.fill();
         
         ctx.restore();
     },
@@ -149,30 +161,33 @@ export const SurfaceAssets = {
         color: string,
         time: number
     ) {
-        const texture = VFXFactory.getTexture('GLOW', color);
-        const size = HEX_SIZE * 2.5;
+        // Use the factory generated cloud texture for better performance & look
+        const texture = VFXFactory.getTexture('SMOKE_PUFF', color);
+        const size = HEX_SIZE * 3.0;
 
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y);
 
         ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.2;
+        ctx.globalAlpha = 0.15; // Very subtle
 
         const puffs = 3;
         for(let i=0; i<puffs; i++) {
-            const angle = time * 0.3 + (i * Math.PI * 2 / puffs);
-            const dist = 10 + Math.sin(time + i) * 5;
+            const angle = time * 0.2 + (i * Math.PI * 2 / puffs);
+            const dist = 12 + Math.sin(time + i) * 6;
             const px = Math.cos(angle) * dist;
             const py = Math.sin(angle) * dist;
             
-            const pulse = 1.0 + Math.sin(time * 2 + i) * 0.2;
-            const pSize = size * 0.6 * pulse;
+            // Breathe
+            const pulse = 1.0 + Math.sin(time * 1.5 + i) * 0.1;
+            const pSize = size * 0.5 * pulse;
             
             ctx.drawImage(texture, px - pSize/2, py - pSize/2, pSize, pSize);
         }
         
-        ctx.globalAlpha = 0.15;
+        // Center Core
+        ctx.globalAlpha = 0.2;
         ctx.drawImage(texture, -size/2, -size/2, size, size);
 
         ctx.restore();
@@ -194,7 +209,7 @@ export const SurfaceAssets = {
         ctx.globalCompositeOperation = 'lighter';
         ctx.globalAlpha = intensity;
         
-        const staticRot = (x + y) * 0.1;
+        const staticRot = (x + y) * 0.1; // Consistent rotation based on position
         ctx.rotate(staticRot);
 
         ctx.drawImage(texture, -size/2, -size/2, size, size);
@@ -225,9 +240,10 @@ export const SurfaceAssets = {
             const x2 = x + HEX_SIZE * HEX_COS[j];
             const y2 = HEX_SIZE * HEX_SIN[j] * ISO_SCALE_Y; 
 
+            // Gradient for 3D depth
             const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
             grad.addColorStop(0, color);
-            grad.addColorStop(1, 'transparent');
+            grad.addColorStop(1, 'transparent'); // Fade into ground
 
             ctx.fillStyle = grad;
             ctx.beginPath();
@@ -238,6 +254,7 @@ export const SurfaceAssets = {
             ctx.closePath();
             ctx.fill();
             
+            // Edges
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
             ctx.globalAlpha = opacity * 0.5;
@@ -245,11 +262,13 @@ export const SurfaceAssets = {
             ctx.globalAlpha = opacity;
         }
 
+        // Top Cap
         ctx.fillStyle = color;
-        ctx.globalAlpha = opacity * 0.5;
+        ctx.globalAlpha = opacity * 0.6;
         this.traceHex(ctx, x, topY, HEX_SIZE);
         ctx.fill();
         
+        // Rim
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = opacity;
@@ -265,27 +284,67 @@ export const SurfaceAssets = {
         color: string,
         seed: number
     ) {
-        if (type === 'MAGMA') {
-            if (seed > 0.6) {
-                this.drawCracks(ctx, x, y, '#ef4444', 0.6);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(1, ISO_SCALE_Y);
+        
+        ctx.fillStyle = color;
+        ctx.globalAlpha = type === 'VOID' ? 0.1 : 0.3;
+
+        // Simple deterministic random
+        const rnd = (offset: number) => {
+            const v = Math.sin(seed + offset) * 1000;
+            return v - Math.floor(v);
+        };
+
+        if (type === 'FOREST') {
+            for(let i=0; i<8; i++) {
+                const px = (rnd(i) - 0.5) * HEX_SIZE * 1.4;
+                const py = (rnd(i+10) - 0.5) * HEX_SIZE * 1.4;
+                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(px - 1.5, py - 5);
+                ctx.lineTo(px + 1.5, py - 5);
+                ctx.fill();
+            }
+        } else if (type === 'DESERT') {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+            for(let i=0; i<3; i++) {
+                const py = (rnd(i) - 0.5) * HEX_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(-10, py);
+                ctx.quadraticCurveTo(0, py + 4, 10, py);
+                ctx.stroke();
             }
         } else if (type === 'VOID') {
-            if (seed > 0.7) {
-                ctx.save();
-                ctx.translate(x, y);
-                ctx.scale(1, ISO_SCALE_Y);
-                
-                ctx.fillStyle = '#38bdf8';
-                ctx.globalAlpha = 0.3;
-                const s = 4;
-                ctx.fillRect(-s/2, -s/2, s, s);
-                
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 1;
-                ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(10, -5); ctx.stroke();
-                
-                ctx.restore();
+             // Circuit lines
+             ctx.strokeStyle = color;
+             ctx.lineWidth = 1;
+             ctx.beginPath();
+             const px = (rnd(1) - 0.5) * HEX_SIZE;
+             const py = (rnd(2) - 0.5) * HEX_SIZE;
+             ctx.moveTo(px, py);
+             ctx.lineTo(px + 10, py);
+             ctx.lineTo(px + 15, py + 5);
+             ctx.stroke();
+             ctx.fillStyle = color;
+             ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
+        } else {
+            // Generic
+            for(let i=0; i<5; i++) {
+                const px = (rnd(i*2) - 0.5) * HEX_SIZE * 1.2;
+                const py = (rnd(i*2+1) - 0.5) * HEX_SIZE * 1.2;
+                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
+                ctx.beginPath();
+                ctx.arc(px, py, 1.5 + rnd(i*3), 0, Math.PI*2);
+                ctx.fill();
             }
         }
-    }
+        
+        ctx.restore();
+    },
 };

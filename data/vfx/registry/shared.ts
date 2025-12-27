@@ -25,22 +25,54 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     },
     
     // --- BASIC HIT EFFECTS (PHYSICAL REMASTER) ---
-    // Concept: Striking Stone.
-    // 1. Shards (3D faceted chunks)
-    // 2. Rubble (Tiny gravel spray) - Replaces Smoke
-    // 3. Spike (Sharp starburst) - Replaces Ring/Glow
+    // Concept: Hardcore Kinetic Impact.
+    // 1. Shockwave (Flattened Ground Ring)
+    // 2. Debris (Solid physics chunks with Gravity)
+    // 3. Spike (Instant Flash)
     
     'FX_HIT_GENERIC': {
         id: 'FX_HIT_GENERIC',
+        description: 'Physical Ground Impact (Hardcore)',
         emitters: [
-            // 1. Faceted Debris
-            { particleType: 'SHARD', count: [4, 6], lifetime: [0.4, 0.7], size: [6, 10], speed: [200, 450], gravity: 1200, colors: ['#cbd5e1', '#94a3b8'], shape: 'BURST_DIR', delay: 0, vRotation: [10, 30] },
-            // 2. Gravel Spray
-            { particleType: 'RUBBLE', count: [2, 3], lifetime: [0.3, 0.5], size: [20, 30], speed: [50, 100], colors: ['#64748b'], shape: 'POINT', blendMode: 'source-over', delay: 0 },
-            // 3. Sharp Impact Flash
-            { particleType: 'SPIKE', count: 1, lifetime: [0.1, 0.2], size: [40, 60], speed: [0, 0], colors: ['#fff'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            // 4. Fast Sparks
-            { particleType: 'SPARK', count: [3, 5], lifetime: [0.1, 0.2], size: [2, 4], speed: [400, 600], colors: ['#fff', '#fef3c7'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
+            // 1. Ground Shockwave (Flattens to floor)
+            {
+                particleType: 'SHOCKWAVE', 
+                count: 1,
+                lifetime: [0.2, 0.2],
+                size: [30, 50],
+                colors: ['#ffffff'],
+                speed: [0, 0],
+                shape: 'POINT',
+                blendMode: 'screen',
+                delay: 0
+            },
+            // 2. Physical Debris (Gravity & Bounce)
+            {
+                particleType: 'RUBBLE',
+                count: [4, 6],
+                lifetime: [0.3, 0.5],
+                size: [4, 8],
+                speed: [150, 350],
+                gravity: 1200,      // Heavy gravity
+                drag: 0.92,         // Air resistance
+                colors: ['#78716c', '#44403c'], // Stone colors
+                blendMode: 'source-over',       // SOLID, not glowing
+                shape: 'BURST_DIR',
+                vRotation: [10, 30],
+                delay: 0
+            },
+            // 3. Impact Spike (Instant Flash, 3 frames only)
+            {
+                particleType: 'SPIKE',
+                count: 1,
+                lifetime: [0.05, 0.05], 
+                size: [60, 90],
+                colors: ['#fff'],
+                speed: [0, 0],
+                shape: 'POINT',
+                blendMode: 'screen',
+                delay: 0
+            }
         ]
     },
 

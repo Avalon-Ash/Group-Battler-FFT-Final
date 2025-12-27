@@ -2,6 +2,7 @@
 import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
+import { VFXFactory } from "../../graphics/VFXFactory";
 
 // Helper: Get random number from Range [min, max] or number
 const rnd = (r: Range | number): number => {
@@ -21,7 +22,7 @@ export class VFXPlayer {
         const asset = VFX_REGISTRY[effectId];
         
         if (!asset) {
-            console.warn(`VFXPlayer: Asset '${effectId}' not found.`);
+            // console.warn(`VFXPlayer: Asset '${effectId}' not found.`);
             return;
         }
 
@@ -89,6 +90,16 @@ export class VFXPlayer {
             if (config.locked) p.locked = true;
             if (config.vRotation) p.vRotation = rnd(config.vRotation);
             else p.vRotation = (Math.random() - 0.5) * 10; // Default gentle rotation
+
+            if (config.blendMode) p.blendMode = config.blendMode;
+
+            // --- CRITICAL FIX: HYDRATE TEXTURE ---
+            // Force load the high-quality Hexagon texture immediately.
+            // This prevents the renderer from using the fallback "White Square" vector.
+            if (!p.image && !['PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN'].includes(p.type)) {
+                // We cast p.type to any because the Factory accepts specific string literals
+                p.image = VFXFactory.getTexture(p.type as any, p.color);
+            }
 
             // Push to System
             system.state.particles.push(p);

@@ -132,7 +132,7 @@ export class VFXSystem {
                     p.vx *= 0.90; 
                     p.vy *= 0.90;
                     p.vz *= 0.90; 
-                } else if (p.type === 'GLOW') {
+                } else if (p.type === 'ATMOSPHERE' || p.type === 'GLOW') {
                     // Float
                     p.vx += Math.sin(globalTime * 2 + p.x) * 50 * dt;
                     p.vy += Math.cos(globalTime * 2 + p.y) * 50 * dt;
@@ -163,7 +163,7 @@ export class VFXSystem {
             
             const p = this.state.getParticle();
             p.x = x; p.y = y; p.z = Math.random() * 200 + 50;
-            p.type = 'GLOW';
+            p.type = 'ATMOSPHERE'; // Replaces generic GLOW
             
             if (type === 'SNOW') {
                 p.color = '#fff';
@@ -171,24 +171,28 @@ export class VFXSystem {
                 p.vx = 20 + Math.random() * 20;
                 p.vy = 50 + Math.random() * 30;
                 p.life = 3.0; p.maxLife = 3.0;
+                p.blendMode = 'source-over'; // Opaque flakes
             } else if (type === 'ASH') {
                 p.color = '#78350f';
                 p.size = Math.random() * 4 + 1;
                 p.vx = 30 + Math.random() * 30;
                 p.vy = 20 + Math.random() * 20;
                 p.life = 4.0; p.maxLife = 4.0;
+                p.blendMode = 'source-over';
             } else if (type === 'EMBER') {
                 p.color = '#fbbf24';
                 p.size = Math.random() * 2 + 1;
                 p.vx = (Math.random() - 0.5) * 20;
                 p.vy = -30 - Math.random() * 20;
                 p.life = 2.0; p.maxLife = 2.0;
+                p.blendMode = 'screen'; // Glowing but not additive blowout
             } else if (type === 'SPORES') {
                 p.color = Math.random() > 0.5 ? '#bef264' : '#a855f7';
                 p.size = Math.random() * 2 + 1;
                 p.vx = (Math.random() - 0.5) * 10;
                 p.vy = (Math.random() - 0.5) * 10;
                 p.life = 5.0; p.maxLife = 5.0;
+                p.blendMode = 'screen';
             }
             this.state.particles.push(p);
         }

@@ -1,11 +1,10 @@
 
 import { Particle } from "../state";
 import { ISO_SCALE_Y } from "../../../../constants";
-import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 import { VFXFactory } from "../../../graphics/VFXFactory";
-import { PROCEDURAL_VISUALS, PillarVisualDef, DomainVisualDef, HexVisualDef, BeamVisualDef, GridVisualDef, DEFAULT_PILLAR_CONFIG, DEFAULT_DOMAIN_CONFIG, DEFAULT_BEAM_CONFIG, DEFAULT_GRID_CONFIG } from "../../../../data/vfx/procedural_visuals";
+import { PROCEDURAL_VISUALS, PillarVisualDef } from "../../../../data/vfx/procedural_visuals";
 
-// Helper for hex tracing
+// Helper for hex tracing (used by procedural beams)
 const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
 const HEX_CORNERS_X: number[] = [];
 const HEX_CORNERS_Y: number[] = [];
@@ -29,171 +28,183 @@ export const ParticleRenderer = {
 
         const now = Date.now() / 1000;
 
-        // Texture Resolution - Map types to new Hard Surface textures
-        if (!p.texture && !p.image && !['PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'GRID_FIELD', 'DEATH_RAY', 'BEAM'].includes(p.type)) {
-            let texType: any = 'RUBBLE'; // Default to gravel
-            
-            if (p.type === 'SHARD' || p.type === 'DEBRIS' || p.type === 'ROCK') texType = 'SHARD';
-            else if (p.type === 'SMOKE' || p.type === 'DUST' || p.type === 'RUBBLE') texType = 'RUBBLE';
-            else if (p.type === 'SPARK' || p.type === 'STREAK') texType = 'SPARK';
-            else if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'BLAST' || p.type === 'SPIKE') texType = 'SPIKE';
-            else if (p.type === 'GLOW') texType = 'SPIKE'; // No more soft glows
-            else if (p.type === 'CRACKS') texType = 'CRACKS';
-            
-            p.texture = VFXFactory.getTexture(texType, p.color);
+        // --- 1. PERSPECTIVE CORRECTION (THE 2.5D RULE) ---
+        const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE'].includes(p.type);
+        if (isGroundEffect) {
+            ctx.scale(1, ISO_SCALE_Y); 
         }
 
-        if (p.image) {
-            ctx.rotate(p.rotation);
-            ctx.globalAlpha = 1 - progress;
-            const size = Math.floor(p.size);
-            ctx.drawImage(p.image, -size/2, -size/2, size, size);
-        }
-        else if (p.texture) {
-            // PHYSICAL RENDERING
-            ctx.rotate(p.rotation);
-            
-            // Blending Logic
-            if (p.type === 'SPARK' || p.type === 'STREAK') {
-                ctx.globalCompositeOperation = 'lighter'; 
-            } else if (p.type === 'SPIKE' || p.type === 'SHOCKWAVE') {
-                ctx.globalCompositeOperation = 'screen'; 
+        ctx.rotate(p.rotation);
+
+        // --- 2. BLEND MODES ---
+        if (p.blendMode) {
+            ctx.globalCompositeOperation = p.blendMode;
+        } else {
+            if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'CHIP'].includes(p.type)) {
+                 ctx.globalCompositeOperation = 'source-over'; 
+            } else if (['SMOKE', 'SMOKE_PUFF', 'ATMOSPHERE'].includes(p.type)) {
+                 ctx.globalCompositeOperation = 'screen';      
             } else {
-                ctx.globalCompositeOperation = 'source-over'; // Rocks are solid
+                 ctx.globalCompositeOperation = 'screen';      
             }
-
-            // Alpha / Size Logic
-            let alpha = 1.0;
-            let scale = 1.0;
-
-            if (p.type === 'RUBBLE' || p.type === 'SMOKE') {
-                // Gravel scatters and fades
-                scale = 0.5 + progress * 0.5;
-                alpha = (1 - progress) * 0.9;
-            } else if (p.type === 'SHARD' || p.type === 'DEBRIS') {
-                // Solids stay solid until very end
-                scale = 1.0;
-                alpha = progress > 0.8 ? (1 - progress) * 5 : 1.0;
-            } else if (p.type === 'SPARK') {
-                scale = 1.0 - progress;
-                alpha = 1.0 - progress;
-            } else if (p.type === 'SPIKE') {
-                // Impact flash
-                scale = 0.5 + progress * 1.5;
-                alpha = 1.0 - Math.pow(progress, 2);
-            }
-
-            ctx.globalAlpha = alpha;
-            const s2 = p.size * scale * 2;
-            ctx.drawImage(p.texture, -s2/2, -s2/2, s2, s2);
         }
-        else {
+
+        // --- 3. RENDERING ---
+        
+        // A. PROCEDURAL COMPLEX SHAPES (Beams, Pillars, Domains)
+        if (['BEAM', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'GRID_FIELD', 'DOMAIN', 'DEATH_RAY'].includes(p.type)) {
             this.drawProcedural(ctx, p, progress, isChaos, now);
+        }
+        // B. TEXTURE BASED (Everything else)
+        else {
+            // Safety Net: If image missing, try fetch one last time
+            if (!p.image && !p.texture) {
+                p.image = VFXFactory.getTexture(p.type as any, p.color);
+            }
+
+            const img = p.image || p.texture;
+
+            if (img) {
+                this.drawTexture(ctx, img, p.size, progress, p.type);
+            } else {
+                // LAST RESORT: Simple Circle (No Squares allowed!)
+                const s = p.size * (1 - progress);
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI*2); ctx.fill();
+            }
         }
 
         ctx.restore();
     },
 
-    // ... (Procedural methods kept same) ...
+    drawTexture(ctx: CanvasRenderingContext2D, img: HTMLCanvasElement, baseSize: number, progress: number, type: string) {
+        let scale = 1.0;
+        let alpha = 1.0 - progress;
+
+        if (type === 'SHOCKWAVE' || type === 'RING') {
+            scale = 0.5 + progress * 2.0;
+            alpha = 1.0 - Math.pow(progress, 3);
+        } else if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
+            scale = 0.8 + progress * 1.2;
+            alpha = (1.0 - progress) * 0.5; 
+        } else {
+            scale = 1.0 - Math.pow(progress, 2);
+        }
+
+        const drawSize = baseSize * scale;
+        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+        
+        // Shadow for solid objects
+        if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD'].includes(type)) {
+            ctx.save();
+            ctx.globalCompositeOperation = 'multiply';
+            ctx.globalAlpha = 0.5 * alpha;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            // Draw a hex shadow instead of circle
+            traceHexagonFast(ctx, drawSize * 0.5);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        ctx.drawImage(img, -drawSize, -drawSize, drawSize * 2, drawSize * 2);
+    },
+
     drawProcedural(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean, now: number) {
         
         if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
              if (p.targetX !== undefined && p.targetY !== undefined) {
                 const dx = p.targetX;
-                const dy = p.targetY; // relative coords
+                const dy = p.targetY; 
+                
                 ctx.beginPath();
                 ctx.moveTo(0,0);
                 ctx.lineTo(dx, dy - (p.targetZ || 0));
                 ctx.strokeStyle = p.color;
-                ctx.lineWidth = p.size * (1-progress);
-                ctx.lineCap = 'butt'; // Sharp ends
+                ctx.lineWidth = p.size * (1-progress) * 1.5; 
+                ctx.lineCap = 'round';
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 15;
                 ctx.globalCompositeOperation = 'screen';
                 ctx.stroke();
                 
-                // White core
                 ctx.strokeStyle = '#fff';
-                ctx.lineWidth = p.size * (1-progress) * 0.3;
+                ctx.lineWidth = p.size * (1-progress) * 0.4;
+                ctx.shadowBlur = 0;
                 ctx.stroke();
              }
         }
         else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
-            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || 
-                          (p.type === 'HEX_BEAM' ? PROCEDURAL_VISUALS['HEX_CORE'] : PROCEDURAL_VISUALS['HEX_SOLID']);
-            const def = rawDef as HexVisualDef;
             ctx.scale(1, ISO_SCALE_Y);
-            if (p.type === 'GIANT_HEX') ctx.rotate(p.rotation);
-            if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
-            if (def.filled) {
-                ctx.fillStyle = p.color;
-                ctx.globalAlpha = (1 - progress) * (p.type === 'HEX_BEAM' ? 0.9 : 0.8);
-                traceHexagonFast(ctx, p.size); ctx.fill();
-            }
-            if (def.innerScale) {
-                ctx.fillStyle = '#fff';
-                traceHexagonFast(ctx, p.size * def.innerScale); ctx.fill();
-            }
-            if (def.stroked) {
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = def.strokeWidth || 2;
-                traceHexagonFast(ctx, p.size); ctx.stroke();
-            }
-        }
-        else if (p.type === 'GRID_FIELD') {
-            let config: GridVisualDef = DEFAULT_GRID_CONFIG;
-            if (p.style && PROCEDURAL_VISUALS[p.style]) {
-                config = PROCEDURAL_VISUALS[p.style] as GridVisualDef;
-            } 
-            if (config.blendMode) ctx.globalCompositeOperation = config.blendMode;
-            if (config.isLiquid) {
-                SurfaceAssets.drawLiquid(ctx, 0, 0, config.color, now, progress);
-            } else {
-                const height = (config.height || 15) * progress;
-                SurfaceAssets.drawExtrusion(ctx, 0, 0, height, config.color, config.opacity || 0.6);
-            }
+            // Spin effect
+            if (p.vRotation) ctx.rotate(p.vRotation * now);
+            
+            ctx.globalCompositeOperation = 'screen';
+            
+            const grad = ctx.createRadialGradient(0,0,0,0,0,p.size);
+            grad.addColorStop(0, p.color); 
+            grad.addColorStop(0.8, p.color);
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = (1 - progress) * 0.8;
+            traceHexagonFast(ctx, p.size); ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.globalAlpha = 1 - progress;
+            traceHexagonFast(ctx, p.size * 0.9); ctx.stroke();
         }
         else if (p.type === 'PILLAR') {
-            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || DEFAULT_PILLAR_CONFIG;
+            // ... (Pillar logic remains valid)
+            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || {};
             const def = rawDef as PillarVisualDef;
             const h = def.height || 1200; 
             const width = p.size * (1 - progress * 0.5) * (def.widthScale || 1.0);
+            
             ctx.save();
             if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
-            const grad = ctx.createLinearGradient(0, 0, 0, -h);
-            const colBottom = def.gradientBottom === 'current' ? p.color : (def.gradientBottom || p.color);
-            grad.addColorStop(0, colBottom || p.color);
-            grad.addColorStop(0.2, '#fff');
-            grad.addColorStop(1, def.gradientTop || 'rgba(0,0,0,0)');
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = (1 - progress);
+            
+            const cylinderGrad = ctx.createLinearGradient(-width/2, 0, width/2, 0);
+            cylinderGrad.addColorStop(0, p.color); 
+            cylinderGrad.addColorStop(0.5, '#ffffff'); 
+            cylinderGrad.addColorStop(1, p.color); 
+            
+            ctx.fillStyle = cylinderGrad;
+            ctx.globalAlpha = (1 - progress) * 0.8;
+            
             ctx.fillRect(-width/2, -h, width, h);
+            
             if (def.hasBaseRing) {
                 ctx.scale(1, ISO_SCALE_Y);
-                ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2);
-                ctx.strokeStyle = p.color;
-                ctx.lineWidth = 3;
-                ctx.stroke();
+                const ringGrad = ctx.createRadialGradient(0,0, width*0.5, 0,0, width*1.2);
+                ringGrad.addColorStop(0, 'transparent');
+                ringGrad.addColorStop(0.5, p.color);
+                ringGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = ringGrad;
+                ctx.beginPath(); ctx.arc(0, 0, width*1.5, 0, Math.PI*2); ctx.fill();
             }
             ctx.restore();
         }
-        else if (p.type === 'DOMAIN') {
-            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || DEFAULT_DOMAIN_CONFIG;
-            const def = rawDef as DomainVisualDef;
+        else if (p.type === 'DOMAIN' || p.type === 'GRID_FIELD') {
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
-            if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
-            const grad = ctx.createRadialGradient(0, 0, r*0.5, 0, 0, r);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(0.8, p.color);
-            grad.addColorStop(1, 'rgba(255,255,255,0.5)');
+            
+            const grad = ctx.createRadialGradient(0, 0, r*0.2, 0, 0, r);
+            grad.addColorStop(0, 'rgba(255,255,255,0)');
+            grad.addColorStop(0.7, p.color); 
+            grad.addColorStop(1, 'transparent');
+            
             ctx.fillStyle = grad;
-            ctx.globalAlpha = (def.fillAlpha || 0.3) * (1 - progress);
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = def.rimColor || '#ffffff';
-            ctx.globalAlpha = 0.15;
-            ctx.lineWidth = def.rimWidth || 1;
-            if (def.dashed) ctx.setLineDash([10, 10]);
-            ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI*2); ctx.stroke();
+            ctx.globalAlpha = 0.4 * (1 - progress);
+            ctx.globalCompositeOperation = 'screen';
+            // Use Hex shape for domains too!
+            traceHexagonFast(ctx, r); ctx.fill();
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.2;
+            traceHexagonFast(ctx, r * 0.9); ctx.stroke();
+            
             ctx.restore();
         }
     }

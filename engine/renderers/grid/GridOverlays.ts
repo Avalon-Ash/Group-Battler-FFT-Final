@@ -1,10 +1,8 @@
 
-import { TerrainRenderer } from "./TerrainRenderer";
 import { ZoneRenderer } from "./ZoneRenderer";
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { GroundHazard } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
-import { HEX_SIZE } from "../../../constants";
 
 interface ZoneInfo {
     type: 'CAST';
@@ -91,35 +89,44 @@ export const GridOverlays = {
         // --- LAYER 5: INTERACTIVE UI HIGHLIGHTS ---
         if (isRange || isHover || hasUnit) {
             ctx.save();
-            SurfaceAssets.traceHex(ctx, x, y, size);
+            
+            // Use 'screen' for light projection look instead of flat paint
+            ctx.globalCompositeOperation = 'screen';
 
             // Valid Move/Skill Range
             if (isRange) { 
+                ctx.fillStyle = rangeColor;
+                ctx.globalAlpha = 0.2; 
+                SurfaceAssets.traceHex(ctx, x, y, size);
+                ctx.fill();
+                
                 ctx.strokeStyle = rangeColor; 
                 ctx.lineWidth = 2; 
-                ctx.globalAlpha = 0.4; 
+                ctx.globalAlpha = 0.5; 
+                SurfaceAssets.traceHex(ctx, x, y, size);
                 ctx.stroke();
-                
-                ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.08; 
-                ctx.fill();
             }
             
-            // Mouse Hover
+            // Mouse Hover - Bright Spotlight
             if (isHover) { 
-                ctx.fillStyle = 'rgba(255,255,255,0.1)'; 
-                ctx.globalAlpha = 1.0;
+                ctx.fillStyle = '#ffffff'; 
+                ctx.globalAlpha = 0.2;
+                SurfaceAssets.traceHex(ctx, x, y, size);
                 ctx.fill(); 
                 
                 ctx.strokeStyle = '#fff'; 
                 ctx.lineWidth = 2; 
+                ctx.globalAlpha = 0.8;
+                SurfaceAssets.traceHex(ctx, x, y, size);
                 ctx.stroke(); 
             }
             
-            // Unit Position
+            // Unit Position - Subtle selection ring
             if (hasUnit && !isHover && !zoneInfo) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-                ctx.lineWidth = 1;
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = 0.3;
+                SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
                 ctx.stroke();
             }
             

@@ -20,8 +20,8 @@ export interface Particle {
     color: string;
     size: number;
     
-    // Added RUBBLE, SPIKE, DUST
-    type: 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST';
+    // Added RUBBLE, SPIKE, DUST, ATMOSPHERE, GENERIC_DEBUG
+    type: 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'GENERIC_DEBUG';
     
     // 🎯 BEAM TARGETING (Explicit 3D Anchors)
     sx?: number; sy?: number; sz?: number; 
@@ -66,8 +66,8 @@ export class VFXStateManager {
             p.vx = 0; p.vy = 0; p.vz = 0;
             p.rotation = 0; p.vRotation = 0;
             p.life = 0; p.maxLife = 0;
-            p.color = '#fff'; p.size = 0;
-            p.type = 'SPARK';
+            p.color = '#ff00ff'; p.size = 0;
+            p.type = 'GENERIC_DEBUG'; // Distinctive default
             
             p.sx = undefined; p.sy = undefined; p.sz = undefined;
             p.tx = undefined; p.ty = undefined; p.tz = undefined;
@@ -93,7 +93,7 @@ export class VFXStateManager {
             active: true,
             x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, 
             rotation: 0, vRotation: 0,
-            life: 0, maxLife: 0, color: '#fff', size: 0, type: 'SPARK',
+            life: 0, maxLife: 0, color: '#ff00ff', size: 0, type: 'GENERIC_DEBUG',
             delay: 0,
             locked: false,
             sortBias: 0

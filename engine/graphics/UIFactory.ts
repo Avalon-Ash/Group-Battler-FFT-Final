@@ -101,7 +101,7 @@ export const UIFactory = {
 
         // Render Shape
         switch (def.iconShape) {
-            case 'SPIRAL':
+            case 'HEX_HALO': // Stun
                 ctx.beginPath();
                 for(let i=0; i<10; i++) {
                     const angle = i * 0.5;
@@ -112,7 +112,7 @@ export const UIFactory = {
                 }
                 ctx.stroke();
                 break;
-            case 'MUTE_BUBBLE':
+            case 'HEX_LOCK': // Silence
                 ctx.strokeRect(-12, -10, 24, 16);
                 ctx.beginPath();
                 ctx.moveTo(-6, -2); ctx.lineTo(-6, -2);
@@ -121,47 +121,54 @@ export const UIFactory = {
                 ctx.lineWidth = 4; // dots
                 ctx.stroke();
                 break;
-            case 'SKULL':
-                ctx.beginPath(); ctx.arc(0, -2, 10, 0, Math.PI*2); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-4, 10); ctx.lineTo(4, 10); ctx.stroke();
-                break;
-            case 'FLAME':
-                ctx.beginPath();
-                ctx.arc(0, 5, 8, 0, Math.PI*2);
-                ctx.moveTo(0, -10); ctx.lineTo(-5, 0); ctx.lineTo(5, 0);
-                ctx.fill();
-                break;
-            case 'CROSS':
-                ctx.beginPath();
-                ctx.moveTo(0, -10); ctx.lineTo(0, 10);
-                ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-                ctx.stroke();
-                break;
-            case 'GHOST':
-                ctx.beginPath();
-                ctx.arc(0, -5, 10, Math.PI, 0);
-                ctx.lineTo(10, 10);
-                ctx.lineTo(5, 5); ctx.lineTo(0, 10);
-                ctx.lineTo(-5, 5); ctx.lineTo(-10, 10);
-                ctx.closePath();
-                ctx.stroke();
-                break;
-            case 'SHEEP':
-                ctx.beginPath();
-                ctx.arc(0, 0, 10, 0, Math.PI*2);
-                ctx.moveTo(-12, -5); ctx.arc(-8, -5, 4, 0, Math.PI*2);
-                ctx.stroke();
-                break;
-            case 'SHIELD':
+            case 'HEX_PRISM': // Banish / Stasis (Shield shape)
                 ctx.beginPath();
                 ctx.moveTo(-10, -10); ctx.lineTo(10, -10);
                 ctx.lineTo(10, 0); ctx.lineTo(0, 12); ctx.lineTo(-10, 0);
                 ctx.closePath();
                 ctx.fill();
                 break;
+            case 'HEX_RUNE': // Poison, Burn, Regen
+                if (statusId === 'POISON') {
+                    // Skull
+                    ctx.beginPath(); ctx.arc(0, -2, 10, 0, Math.PI*2); ctx.stroke();
+                    ctx.beginPath(); ctx.moveTo(-4, 10); ctx.lineTo(4, 10); ctx.stroke();
+                } else if (statusId === 'BURN') {
+                    // Flame
+                    ctx.beginPath();
+                    ctx.arc(0, 5, 8, 0, Math.PI*2);
+                    ctx.moveTo(0, -10); ctx.lineTo(-5, 0); ctx.lineTo(5, 0);
+                    ctx.fill();
+                } else if (statusId === 'REGEN') {
+                    // Cross
+                    ctx.beginPath();
+                    ctx.moveTo(0, -10); ctx.lineTo(0, 10);
+                    ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
+                    ctx.stroke();
+                } else {
+                    // Generic Rune / Ghost
+                    ctx.beginPath();
+                    ctx.arc(0, -5, 10, Math.PI, 0);
+                    ctx.lineTo(10, 10);
+                    ctx.lineTo(5, 5); ctx.lineTo(0, 10);
+                    ctx.lineTo(-5, 5); ctx.lineTo(-10, 10);
+                    ctx.closePath();
+                    ctx.stroke();
+                }
+                break;
+            case 'NONE':
             default:
-                // Circle fallback
-                ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.stroke();
+                // Handle overrides
+                if (statusId === 'POLYMORPH') {
+                    // Sheep
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 10, 0, Math.PI*2);
+                    ctx.moveTo(-12, -5); ctx.arc(-8, -5, 4, 0, Math.PI*2);
+                    ctx.stroke();
+                } else {
+                    // Circle fallback
+                    ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.stroke();
+                }
                 break;
         }
 
