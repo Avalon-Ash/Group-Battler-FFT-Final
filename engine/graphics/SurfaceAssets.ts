@@ -69,6 +69,42 @@ export const SurfaceAssets = {
     },
 
     /**
+     * NEW: Draw Hatching Pattern (Stripes)
+     * Used for Danger Zones / Warnings
+     */
+    drawHatch(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        radius: number,
+        color: string,
+        opacity: number
+    ) {
+        ctx.save();
+        // 1. Clip to Hexagon
+        this.traceHex(ctx, x, y, radius);
+        ctx.clip();
+
+        // 2. Draw Diagonal Lines
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2; 
+        ctx.globalAlpha = opacity;
+        
+        const size = radius * 2;
+        const spacing = 8; // Dense hatching
+        
+        ctx.beginPath();
+        // Draw across the bounding box of the hex
+        // We draw at screen angle (45deg look) to make them stand out against the ISO grid
+        for (let i = -size; i < size; i += spacing) {
+            ctx.moveTo(x + i - size, y - size);
+            ctx.lineTo(x + i + size, y + size);
+        }
+        ctx.stroke();
+        
+        ctx.restore();
+    },
+
+    /**
      * NEW: Hex Ripple (Volumetric Ring)
      */
     drawHexRipple(

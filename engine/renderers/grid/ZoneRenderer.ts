@@ -115,21 +115,33 @@ export const ZoneRenderer = {
         // --- 2. WARNING PULSE (High Frequency) ---
         // Flash red vigorously if it's a warning
         const pulse = isWarning 
-            ? (0.6 + Math.abs(Math.sin(globalTime * 15)) * 0.4) 
+            ? (0.8 + Math.abs(Math.sin(globalTime * 15)) * 0.4) 
             : (1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1);
 
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
         // A. INNER FILL
-        if (isInsideWave) {
-            // Opacity ramps up as skill completes
-            let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
-            if (isWarning) fogOpacity = 0.3 * pulse; // Higher opacity for warning
+        // For WARNINGS, we draw the solid fill regardless of "wave" expansion so it's instantly visible
+        if (isInsideWave || isWarning) {
+            
+            if (isWarning) {
+                // VISUAL FIX: Solid Danger Zone
+                ctx.fillStyle = color;
+                ctx.globalAlpha = 0.3 * pulse; // Significant base opacity
+                SurfaceAssets.traceHex(ctx, x, y, size * 0.95);
+                ctx.fill();
 
-            SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
+                // Add Striped Texture (Hatching)
+                SurfaceAssets.drawHatch(ctx, x, y, size, color, 0.4 * pulse);
+
+            } else {
+                // Friendly Volumetric Fog
+                let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
+                SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
+            }
         }
 
-        // B. EXPANDING EDGE
+        // B. EXPANDING EDGE (Ripple)
         if (isWaveEdge) {
             const edgeOpacity = def.fillOpacityMax * pulse;
             const edgeWidth = (def.baseRingWidth || 3);
@@ -139,24 +151,14 @@ export const ZoneRenderer = {
         // C. PERIMETER MARKER (Always Visible for Warning)
         const showBorder = isWarning || (dist >= maxRadius - 0.5);
         if (showBorder) {
-            const borderAlpha = isWarning ? 0.8 * pulse : Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
+            const borderAlpha = isWarning ? 0.9 * pulse : Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = isWarning ? 2 : 1; 
+            ctx.lineWidth = isWarning ? 3 : 1; 
             ctx.globalAlpha = borderAlpha;
             
             if (def.dashed) ctx.setLineDash([5, 5]);
             
-            // Draw Warning Crosshatch?
-            if (isWarning) {
-                // SurfaceAssets.drawHatch(ctx, x, y, size, color, 0.2); // Optional: add hatching
-                ctx.fillStyle = color; // Tint floor slightly
-                ctx.globalAlpha = 0.1 * pulse;
-                SurfaceAssets.traceHex(ctx, x, y, size);
-                ctx.fill();
-                ctx.globalAlpha = borderAlpha;
-            }
-
             SurfaceAssets.traceHex(ctx, x, y, size);
             ctx.stroke();
             ctx.setLineDash([]);
