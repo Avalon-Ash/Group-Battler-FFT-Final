@@ -5,9 +5,9 @@
 
 export type ParticleType = 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX';
 export type EmitterShape = 'POINT' | 'CIRCLE' | 'CONE' | 'BURST_DIR';
-export type BlendMode = 'source-over' | 'lighter' | 'screen' | 'overlay';
+export type BlendMode = 'source-over' | 'lighter' | 'screen' | 'overlay' | 'multiply';
 
-// Range Helper [min, max] for randomness
+// Range Helper [min, max] or number
 export type Range = [number, number]; 
 
 export interface EmitterConfig {

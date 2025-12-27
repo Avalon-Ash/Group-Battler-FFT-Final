@@ -1,17 +1,16 @@
-
-import { GameEvent, Team } from "../../../types";
+import { GameEvent, Team, Role } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { UNIT_BODY_OFFSET, THEME_IMPERIAL, THEME_COVENANT } from "../../../constants";
+import { SpriteManager } from "../../sprites";
 
-// Modular Spawners
-import * as Generic from "../vfx/spawners/generic";
+// Architect
 import { UltArchitect } from "./UltArchitect";
 
-// Explicit 3D Point Interface (Terrain Z + Physics Z + Body Offset)
+// Explicit 3D Point Interface
 interface Point3D { x: number; y: number; z: number; }
 
 export class EventVFXMapper {
@@ -23,42 +22,35 @@ export class EventVFXMapper {
         grid: GridSystem, 
         camera: CameraSystem
     ) {
-        // 1. Calculate Absolute 3D Points (World X, World Y, Terrain Z + Body Height)
         const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine, grid);
         let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine, grid);
         
-        // Ground Z for surface effects (No body offset)
         const groundZ = grid.getTerrainHeight(
             HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig).q,
             HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig).r,
             engine
         );
 
-        // Fallback: If hitting ground (no unit), lift target slightly to avoid z-fighting
         if (!event.targetId) target.z = groundZ + 20;
 
         switch (event.type) {
-            // --- BEAMS & CONNECTORS ---
             case 'VISUAL_SLASH':
                 if (event.sourceId && event.targetId) {
-                    Generic.spawnConnectorSlash(vfx, origin, target, event.color || '#fff');
+                    vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
                 }
                 break;
 
             case 'VISUAL_BEAM':
-                // Check if this beam is actually an Ult masquerading as a basic visual event
                 if (event.skill && event.skill.tag === 'ULT') {
                      if (UltArchitect.play(event.skill.id, target, engine, vfx, grid, camera, event.sourceId)) {
                          return;
                      }
                 }
-                
-                // Generic Beam
-                Generic.spawnBeam(vfx, origin, target, event.color || '#fff');
-                Generic.addImpact(vfx, target.x, target.y, target.z, event.color || '#fff', 'BLAST', 0.4);
+                // Use generic beam logic
+                vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
+                vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, event.color);
                 break;
 
-            // --- IMPACTS ---
             case 'DAMAGE': 
                 if (!event.skill?.projectileSpeed) {
                     this.handleDamageImpact(event, engine, vfx, target);
@@ -69,31 +61,29 @@ export class EventVFXMapper {
                 if (event.skill?.type !== 'AOE') {
                     this.handleHitVisuals(event, engine, vfx, grid, target, groundZ, camera); 
                 } else {
-                    Generic.addImpact(vfx, event.pos.x, event.pos.y, groundZ + 10, event.skill?.color || '#fff', 'BLAST', 0.3);
+                    vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 10, event.skill?.color);
                 }
                 break;
 
-            // --- AOE & SKILLS ---
             case 'IMPACT_AOE':
                 this.handleAOE(event, engine, vfx, grid, camera, groundZ);
                 break;
 
-            // --- UNITS ---
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) {
-                    // Use origin which has body offset
-                    Generic.spawnUnitShatter(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
+                    // Spawn Manual Unit Parts (Can't be purely data-driven yet due to sprite generation)
+                    this.spawnUnitShatter(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
                 }
                 camera.addTrauma(0.15); 
                 break;
 
             case 'SPAWN':
-                Generic.spawnTeleport(vfx, origin.x, origin.y, origin.z, event.color || '#fff');
+                vfx.playEffect('FX_TELEPORT', origin.x, origin.y, origin.z, event.color);
                 break;
                 
             case 'CAST_BREAK':
-                Generic.spawnCastBreak(vfx, origin.x, origin.y, origin.z, event.value || 1, event.color || '#fff');
+                vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
                 camera.addTrauma(0.3); 
                 break;
                 
@@ -135,30 +125,12 @@ export class EventVFXMapper {
     }
 
     private handleDamageImpact(event: GameEvent, engine: GameEngine, vfx: VFXSystem, target: Point3D) {
-        let dx = 0; let dy = -1;
-        if (event.sourceId && event.targetId) {
-            const s = engine.agents.find(a => a.id === event.sourceId);
-            const t = engine.agents.find(a => a.id === event.targetId);
-            if (s && t) {
-                const diffX = t.px - s.px; 
-                const diffY = t.py - s.py;
-                const len = Math.sqrt(diffX*diffX + diffY*diffY);
-                if (len > 0) { dx = diffX/len; dy = diffY/len; }
-                const isVictimBlue = t.team === Team.BLUE;
-                const debrisColor = isVictimBlue ? THEME_IMPERIAL.energy : THEME_COVENANT.secondary;
-                Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, dx, dy, debrisColor);
-                return;
-            }
-        }
-        
-        // Check: Does the skill have a specific Hit Effect?
         if (event.skill && event.skill.visualHitEffect) {
             vfx.playEffect(event.skill.visualHitEffect, target.x, target.y, target.z, event.color);
             return;
         }
-
-        // Fallback: Generic Physics Splatter
-        Generic.spawnPhysicsSplatter(vfx, target.x, target.y, target.z, 0, -1, event.color || '#94a3b8');
+        // Fallback
+        vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, event.color || '#94a3b8');
     }
 
     private handleHitVisuals(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, target: Point3D, groundZ: number, camera: CameraSystem): void {
@@ -168,27 +140,22 @@ export class EventVFXMapper {
         const source = engine.agents.find(a => a.id === event.sourceId);
         const faction = source ? source.team : Team.BLUE;
 
-        // 1. DATA-DRIVEN ARCHITECT
         if (isUlt && skill) {
             if (UltArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) {
                 return; 
             }
         }
 
-        // 2. DATA-DRIVEN: VISUAL HIT EFFECT
         if (skill && skill.visualHitEffect) {
             vfx.playEffect(skill.visualHitEffect, target.x, target.y, target.z, color);
             return;
         }
 
-        // 3. FALLBACK
         camera.addTrauma(0.2); 
-        
         if (faction === Team.BLUE) {
-            Generic.addImpact(vfx, target.x, target.y, target.z, color, 'BLAST', 0.6);
-            Generic.spawnShockwave(vfx, target.x, target.y, target.z, color, 0.4);
+            vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, color);
         } else {
-            Generic.spawnBloodRitual(vfx, target.x, target.y, target.z, color, 1.2);
+            vfx.playEffect('FX_BLOOD_RITUAL', target.x, target.y, target.z, color);
         }
     }
 
@@ -197,24 +164,21 @@ export class EventVFXMapper {
         const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ };
         const color = event.color || '#fff';
 
-        // 1. DATA-DRIVEN ARCHITECT
         if (UltArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) {
             return;
         }
 
-        // 2. DATA-DRIVEN: VISUAL HIT EFFECT
         if (event.skill.visualHitEffect) {
             vfx.playEffect(event.skill.visualHitEffect, centerPt.x, centerPt.y, centerPt.z, color);
         }
 
-        // 3. GRID SYSTEM REACTION (Data-Driven)
+        // GRID SYSTEM REACTION
         const centerHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const radius = event.skill.aoeRadius || 1;
         const affectedHexes = HexUtils.range(centerHex, radius);
         const source = engine.agents.find(a => a.id === event.sourceId);
         const faction = source ? source.team : Team.BLUE;
 
-        // Determine which Grid Effect to play
         let gridEffectId = faction === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED';
         if (event.skill.ccType === 'PULL' || event.skill.visual === 'BOMB') {
              if (faction === Team.RED) gridEffectId = 'FX_GRID_IMPACT_RED';
@@ -229,8 +193,53 @@ export class EventVFXMapper {
             }
         });
 
-        // Generic Core Impact (Center)
-        Generic.addImpact(vfx, event.pos.x, event.pos.y, groundZ, event.color || '#fff', 'BLAST', 0.5);
+        // Center Impact
+        vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ, event.color);
         camera.addTrauma(0.25); 
+    }
+
+    // Logic moved from generic.ts to keep specific sprite logic here
+    private spawnUnitShatter(system: VFXSystem, x: number, y: number, z: number, team: Team, role: Role, impulseX: number = 0, impulseY: number = 0) {
+        const assets = SpriteManager.getUnitImages(role, team);
+        
+        // 1. Core Components (Base & Icon) - Not data driven because they need specific Image Assets
+        const base = system.state.getParticle();
+        base.x = x; base.y = y; base.z = z + 10;
+        base.vx = impulseX * 0.8; base.vy = impulseY * 0.8;
+        base.vz = 150 + Math.random() * 100;
+        base.life = 2.0; base.maxLife = 2.0;
+        base.color = '#fff'; base.size = 50; 
+        base.type = 'SPRITE'; base.image = assets.base;
+        base.vRotation = (Math.random() - 0.5) * 10;
+        system.state.particles.push(base);
+
+        const icon = system.state.getParticle();
+        icon.x = x; icon.y = y; icon.z = z + 40; 
+        icon.vx = impulseX * 1.2; icon.vy = impulseY * 1.2;
+        icon.vz = 300 + Math.random() * 200;
+        icon.life = 2.0; icon.maxLife = 2.0;
+        icon.color = '#fff'; icon.size = 64; 
+        icon.type = 'SPRITE'; icon.image = assets.icon;
+        icon.vRotation = (Math.random() - 0.5) * 20; 
+        system.state.particles.push(icon);
+
+        const theme = team === Team.BLUE ? THEME_IMPERIAL : THEME_COVENANT;
+        
+        // Shards & Sparks can use generic registry logic if we want, or manual push
+        // Manual push is fine here for specific physics control
+        const shardCount = 8;
+        for(let i=0; i<shardCount; i++) {
+            const p = system.state.getParticle();
+            p.x = x + (Math.random()-0.5)*20; p.y = y + (Math.random()-0.5)*20; p.z = z + 30;
+            const a = Math.random() * Math.PI * 2;
+            const s = 150 + Math.random() * 250;
+            p.vx = Math.cos(a)*s + impulseX*0.5; p.vy = Math.sin(a)*s + impulseY*0.5; p.vz = 250 + Math.random()*250; 
+            p.life = 1.5; p.maxLife = 1.5;
+            p.type = 'SHARD'; 
+            p.color = Math.random() > 0.4 ? theme.primary : theme.armorDark;
+            p.size = 6 + Math.random()*8; 
+            p.vRotation = (Math.random()-0.5)*30; 
+            system.state.particles.push(p);
+        }
     }
 }

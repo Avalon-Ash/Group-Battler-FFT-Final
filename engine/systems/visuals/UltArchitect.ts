@@ -3,12 +3,8 @@ import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { GameEngine } from "../../game";
-import { HexUtils } from "../../utils";
-import { ULT_VISUALS, UltVisualDef } from "../../../data/ult_visuals";
+import { ULT_VISUALS } from "../../../data/ult_visuals";
 import { UNIT_BODY_OFFSET } from "../../../constants";
-
-// Import generic spawners to compose archetypes
-import * as Generic from "../vfx/spawners/generic";
 
 interface Point3D { x: number; y: number; z: number; }
 
@@ -24,11 +20,10 @@ export class UltArchitect {
         sourceId?: string
     ): boolean {
         const def = ULT_VISUALS[id];
-        if (!def) return false; // Not defined in data, fall back to legacy/generic
+        if (!def) return false; 
 
         const { archetype, primaryColor, secondaryColor, scale, count, height, vfxOverride } = def;
 
-        // Camera Trauma Scaling based on Impact Scale
         camera.addTrauma(0.3 * scale);
 
         switch (archetype) {
@@ -61,34 +56,25 @@ export class UltArchitect {
     }
 
     private static playHeavenFall(vfx: VFXSystem, target: Point3D, pColor: string, sColor: string, height: number, scale: number, type?: string) {
-        // 1. The Falling Object
+        // Falling Object
         const projectile = vfx.state.getParticle();
         projectile.x = target.x; 
         projectile.y = target.y; 
         projectile.z = target.z + height;
-        
         projectile.vx = 0; 
         projectile.vy = 0; 
-        
-        // Calculate speed to hit roughly in 0.4s
         const speed = height / 0.4;
         projectile.vz = -speed;
-        
-        projectile.life = 0.45; // slightly longer to ensure hit
-        projectile.maxLife = 0.45;
+        projectile.life = 0.45; projectile.maxLife = 0.45;
         projectile.color = pColor;
         projectile.size = 100 * scale;
-        projectile.type = (type as any) || 'GIANT_HEX'; // Default to Hex if not specified
-        
+        projectile.type = (type as any) || 'GIANT_HEX'; 
         if (projectile.type === 'GIANT_HEX') projectile.rotation = Math.random() * Math.PI;
-        
         vfx.state.particles.push(projectile);
 
-        // 2. The Impact (Delayed)
+        // Impact
         setTimeout(() => {
-            Generic.spawnExplosion(vfx, target.x, target.y, target.z, 20, sColor, 3.0 * scale, 1.0, 'DEBRIS');
-            Generic.spawnShockwave(vfx, target.x, target.y, target.z, pColor, 1.2);
-            Generic.addImpact(vfx, target.x, target.y, target.z, sColor, 'BLAST', 0.8 * scale);
+            vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, sColor);
         }, 400);
     }
 
@@ -111,7 +97,9 @@ export class UltArchitect {
             const py = target.y + Math.sin(angle) * radius;
             const start = { x: px, y: py, z: target.z + 10 };
             const end = { x: target.x, y: target.y, z: target.z + 40 };
-            Generic.spawnBeam(vfx, start, end, sColor, 3.0, 2 * scale);
+            
+            // Using New Beam System
+            vfx.playBeam('TELEPORT_PILLAR', start, end, sColor, 3.0);
         }
     }
 
@@ -126,8 +114,13 @@ export class UltArchitect {
         zone.locked = true;
         vfx.state.particles.push(zone);
 
-        // Initial Shockwave
-        Generic.spawnShockwave(vfx, target.x, target.y, target.z, sColor, 1.5);
+        // Initial Shockwave from generic registry logic (simulated manually here for custom scale)
+        const shock = vfx.state.getParticle();
+        shock.x = target.x; shock.y = target.y; shock.z = target.z + 5;
+        shock.life = 1.5; shock.maxLife = 1.5;
+        shock.color = sColor; shock.size = 50 * scale;
+        shock.type = 'SHOCKWAVE';
+        vfx.state.particles.push(shock);
     }
 
     private static playBeamSnipe(vfx: VFXSystem, engine: GameEngine, grid: GridSystem, target: Point3D, sourceId: string | undefined, pColor: string, sColor: string, scale: number) {
@@ -135,7 +128,6 @@ export class UltArchitect {
         const srcAgent = engine.agents.find(a => a.id === sourceId);
         if (!srcAgent) return;
 
-        // Resolve Source Point including body height
         const terrainH = grid.getTerrainHeight(srcAgent.q, srcAgent.r, engine);
         const srcPt = {
             x: srcAgent.px,
@@ -143,17 +135,15 @@ export class UltArchitect {
             z: terrainH + srcAgent.physics.z + UNIT_BODY_OFFSET
         };
 
-        // Beam
         if (pColor === '#000') {
-             // Railgun style (Black core, colored glow)
-             Generic.spawnDeathRay(vfx, srcPt, target, '#000');
-             Generic.spawnShockwave(vfx, srcPt.x, srcPt.y, srcPt.z, sColor, 0.5);
+             // Railgun
+             vfx.playBeam('DEATH_RAY', srcPt, target, undefined, 0.6);
         } else {
-             Generic.spawnDeathRay(vfx, srcPt, target, pColor);
+             // Generic Snipe
+             vfx.playBeam('GENERIC_BEAM', srcPt, target, pColor, 0.6);
         }
         
-        // Impact at target
-        Generic.addImpact(vfx, target.x, target.y, target.z, sColor, 'BLAST', 0.5 * scale);
+        vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, sColor);
     }
 
     private static playStorm(vfx: VFXSystem, target: Point3D, pColor: string, sColor: string, count: number, scale: number, overrideType?: string) {
@@ -173,10 +163,13 @@ export class UltArchitect {
                 p.z = target.z + 500;
                 p.vx = 0; p.vy = 0; p.vz = -800;
                 p.life = 0.6; p.maxLife = 0.6;
-                p.type = 'BEAM'; // Rain drop reuse
+                p.type = 'BEAM'; 
+                p.beamStyle = 'GENERIC_BEAM';
+                // Hack: Set target Z far below to create vertical rain beam
+                p.sx = p.x; p.sy = p.y; p.sz = p.z;
+                p.tx = p.x; p.ty = p.y; p.tz = p.z - 800;
                 p.size = 3;
             } else {
-                // Chaotic movement (Bladestorm / Firestorm)
                 p.z = target.z + Math.random() * 50;
                 p.vx = (Math.random()-0.5) * 200;
                 p.vy = (Math.random()-0.5) * 200;
@@ -195,17 +188,11 @@ export class UltArchitect {
 
     private static playInstantImpact(vfx: VFXSystem, target: Point3D, pColor: string, sColor: string, scale: number, overrideType?: string) {
         if (overrideType === 'GRID_FIELD') {
-            const grid = vfx.state.getParticle();
-            grid.x = target.x; grid.y = target.y; grid.z = target.z;
-            grid.life = 2.0; grid.maxLife = 2.0;
-            grid.color = pColor; grid.size = 200 * scale;
-            grid.type = 'GRID_FIELD'; grid.locked = true;
-            vfx.state.particles.push(grid);
+            vfx.playEffect('FX_GRID_IMPACT_VOID', target.x, target.y, target.z, pColor);
         } else {
-            Generic.spawnExplosion(vfx, target.x, target.y, target.z, 15, pColor, 4.0 * scale, 1.0, (overrideType as any) || 'SPARK');
+            // Manual Explosion for scale control
+            // Ideally we'd have Scalable Registry Effects, but for now this works or adding FX_EXPLOSION_LARGE
+            vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, pColor);
         }
-        
-        Generic.addImpact(vfx, target.x, target.y, target.z, sColor, 'BLAST', 0.8 * scale);
-        Generic.spawnShockwave(vfx, target.x, target.y, target.z, pColor, 1.0 * scale);
     }
 }

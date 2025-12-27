@@ -4,6 +4,7 @@ import { isChaosStyle } from "../utils";
 import { ISO_SCALE_Y } from "../../../../constants";
 import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 import { VFXFactory } from "../../../graphics/VFXFactory";
+import { BEAM_VISUALS, BeamVisualDef } from "../../../../../data/vfx/beam_visuals";
 
 const UNIT_CHEST_HEIGHT = 40;
 
@@ -19,6 +20,14 @@ function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
     }
     ctx.closePath();
 }
+
+// Fallback if visual config missing
+const DEFAULT_BEAM: BeamVisualDef = {
+    type: 'HELIX',
+    width: 6,
+    coreColor: '#fff',
+    glowColor: '#fff'
+};
 
 export const ParticleRenderer = {
     
@@ -83,7 +92,6 @@ export const ParticleRenderer = {
     },
 
     drawProcedural(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean, now: number) {
-        // Optimized: Removed simple CHIP/SHARD drawing as they are now textured
         
         if (p.type === 'HEX_BEAM') {
             ctx.scale(1, ISO_SCALE_Y);
@@ -150,10 +158,13 @@ export const ParticleRenderer = {
             ctx.restore();
         }
         else if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
-            // Optimized Beam drawing
+            // New Beam Drawing Logic using Data
             if (p.sx !== undefined && p.sy !== undefined && p.sz !== undefined &&
                 p.tx !== undefined && p.ty !== undefined && p.tz !== undefined) {
                 
+                const styleId = p.beamStyle || (p.type === 'DEATH_RAY' ? 'DEATH_RAY' : 'GENERIC_BEAM');
+                const conf = BEAM_VISUALS[styleId] || DEFAULT_BEAM;
+
                 const dx = p.tx - p.sx; 
                 const startVisY = -UNIT_CHEST_HEIGHT;
                 
@@ -168,13 +179,17 @@ export const ParticleRenderer = {
                 ctx.translate(0, startVisY); 
                 ctx.rotate(angle);
                 
-                if (p.type === 'BEAM') {
-                    const coreWidth = p.size * Math.sin((1-progress) * Math.PI);
+                // Color Override Logic (Particle Color > Config Color)
+                const coreCol = p.color !== '#fff' ? p.color : conf.coreColor;
+                const glowCol = p.color !== '#fff' ? p.color : conf.glowColor;
+                const width = conf.width * (p.size / 4); // Scale by particle size param
+
+                if (conf.blendMode) ctx.globalCompositeOperation = conf.blendMode;
+
+                if (conf.type === 'HELIX') {
+                    const coreWidth = width * Math.sin((1-progress) * Math.PI);
                     if (coreWidth > 0.5) {
-                        ctx.lineCap = 'round';
-                        ctx.globalCompositeOperation = 'screen';
-                        
-                        ctx.strokeStyle = p.color;
+                        ctx.strokeStyle = glowCol;
                         ctx.globalAlpha = 0.3 * (1 - progress);
                         ctx.lineWidth = coreWidth * 6;
                         ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
@@ -183,9 +198,11 @@ export const ParticleRenderer = {
                         ctx.globalAlpha = 0.8 * (1 - progress);
                         ctx.lineWidth = Math.max(1, coreWidth * 0.8);
                         
-                        // Optimized Helix: Less segments
-                        const freq = 0.1; const amp = Math.max(3, coreWidth * 2);
-                        const speed = now * 20; const step = 10; // Increased step size
+                        // Configurable Helix
+                        const freq = conf.helixFreq || 0.1; 
+                        const amp = (conf.helixAmp || 3) * (width / 4);
+                        const speed = now * 20; 
+                        const step = 10; 
 
                         ctx.beginPath();
                         for (let i = 0; i <= dist; i += step) {
@@ -194,31 +211,40 @@ export const ParticleRenderer = {
                         }
                         ctx.stroke();
 
-                        ctx.strokeStyle = '#fff';
+                        ctx.strokeStyle = coreCol;
                         ctx.lineWidth = Math.max(1, coreWidth);
                         ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
                     }
-                } else {
-                    const width = p.size * (1 - progress);
-                    if (width > 0.5) {
-                        ctx.globalCompositeOperation = 'source-over';
-                        ctx.strokeStyle = '#000';
-                        ctx.lineWidth = width * 1.5;
-                        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
-
-                        ctx.globalCompositeOperation = 'lighter';
-                        ctx.strokeStyle = p.color;
-                        ctx.shadowColor = p.color;
-                        ctx.shadowBlur = 10; // Reduced blur
-                        ctx.lineWidth = Math.max(1, width * 0.6);
-                        ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(dist, 0); ctx.stroke();
+                } 
+                else if (conf.type === 'STRAIGHT' || conf.type === 'VIBRANT') {
+                    const w = width * (1 - progress);
+                    if (w > 0.5) {
+                        // Outer Glow
+                        ctx.strokeStyle = glowCol;
+                        ctx.shadowColor = glowCol;
+                        ctx.shadowBlur = (conf.noiseScale || 0) * 5 + 10;
+                        ctx.lineWidth = w * 2;
+                        ctx.globalAlpha = 0.6 * (1 - progress);
                         
-                        ctx.strokeStyle = '#fff';
-                        ctx.lineWidth = Math.max(1, width * 0.2);
-                        ctx.shadowBlur = 0; // Remove blur for inner core
-                        ctx.stroke();
+                        // Jitter for VIBRANT
+                        let y1 = 0, y2 = 0;
+                        if (conf.noiseScale && conf.noiseScale > 0) {
+                            y1 = (Math.random()-0.5) * conf.noiseScale;
+                            y2 = (Math.random()-0.5) * conf.noiseScale;
+                        }
+
+                        ctx.beginPath(); ctx.moveTo(0,y1); ctx.lineTo(dist, y2); ctx.stroke();
+                        ctx.shadowBlur = 0;
+
+                        // Inner Core
+                        ctx.globalCompositeOperation = 'source-over';
+                        ctx.strokeStyle = coreCol;
+                        ctx.lineWidth = w;
+                        ctx.globalAlpha = 1.0;
+                        ctx.beginPath(); ctx.moveTo(0,y1); ctx.lineTo(dist, y2); ctx.stroke();
                     }
                 }
+
                 ctx.restore();
             }
         }

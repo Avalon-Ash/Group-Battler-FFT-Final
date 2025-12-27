@@ -4,6 +4,9 @@ import { VFXPlayer } from "./vfx/VFXPlayer";
 
 const GRAVITY = 1800; 
 
+// Interface for 3D points
+interface Point3D { x: number; y: number; z: number; }
+
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
     private ambientTimer: number = 0;
@@ -14,15 +17,33 @@ export class VFXSystem {
     }
 
     /**
-     * New Data-Driven Entry Point (Phase 1)
-     * @param effectId ID key from VFXRegistry
-     * @param x World X
-     * @param y World Y
-     * @param z Height Z (Terrain + Unit)
-     * @param colorOverride Optional: Force a specific color (e.g. Team Color)
+     * Play a particle effect from the registry
      */
     public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string) {
         VFXPlayer.play(this, effectId, x, y, z, colorOverride);
+    }
+
+    /**
+     * Play a beam effect between two points
+     */
+    public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4) {
+        const p = this.state.getParticle();
+        
+        // 3D Anchors
+        p.sx = start.x; p.sy = start.y; p.sz = start.z;
+        p.tx = end.x;   p.ty = end.y;   p.tz = end.z;
+        
+        // Sorting Key (Start Point)
+        p.x = start.x; p.y = start.y; p.z = start.z;
+        
+        p.life = duration; 
+        p.maxLife = duration; 
+        p.color = colorOverride || '#fff'; 
+        p.type = 'BEAM'; 
+        p.beamStyle = styleId; // The crucial link to visual data
+        p.locked = true;
+        
+        this.state.particles.push(p);
     }
 
     update(dt: number, globalTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {
