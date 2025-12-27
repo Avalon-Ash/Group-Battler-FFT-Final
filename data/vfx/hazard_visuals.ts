@@ -1,66 +1,50 @@
 
-// =========================================================================================
-// ☣️ HAZARD VISUAL DEFINITIONS
-// 
-// This file controls the "Look" of persistent ground effects (Zones).
-// Modifying this file changes the visuals without touching the rendering engine.
-// =========================================================================================
-
 export interface HazardVisualDef {
-    type: 'LIQUID' | 'FOG' | 'CRYSTAL' | 'VOID_HOLE'; // Render Mode
-    primaryColor: string;   // Main body color
-    secondaryColor: string; // Cracks / Highlights / Rim
-    intensity: number;      // Opacity or Glow multiplier
-    speed: number;          // Animation speed multiplier
-    cracks?: boolean;       // Draw ground cracks? (For Magma/Fire)
-    extrude?: boolean;      // Draw 3D volume? (For Ice)
+    type: 'LIQUID' | 'FOG' | 'CRYSTAL' | 'VOID_HOLE'; 
+    primaryColor: string;
+    secondaryColor: string;
+    intensity: number;
+    speed: number;
+    cracks?: boolean;
+    extrude?: boolean;
+    
+    // NEW: Spawn VFX (played when hazard is created)
+    spawnVfx?: string; 
 }
 
 export const HAZARD_VISUALS: Record<string, HazardVisualDef> = {
-    // 🔥 FIRE / LAVA
     'FIRE': {
         type: 'LIQUID',
-        primaryColor: '#ea580c', // Orange-600
-        secondaryColor: '#fdba74', // Orange-300 (Cracks)
-        intensity: 1.0,
-        speed: 3.0,
-        cracks: true
+        primaryColor: '#ea580c', 
+        secondaryColor: '#fdba74',
+        intensity: 1.0, speed: 3.0, cracks: true,
+        spawnVfx: 'FX_HIT_RED_MAGMA'
     },
-
-    // 🧪 POISON / ACID
     'POISON': {
         type: 'FOG',
-        primaryColor: '#65a30d', // Lime-600
-        secondaryColor: '#bef264', // Lime-300
-        intensity: 0.8,
-        speed: 1.0
+        primaryColor: '#65a30d', 
+        secondaryColor: '#bef264',
+        intensity: 0.8, speed: 1.0,
+        spawnVfx: 'FX_HIT_RED_FEL'
     },
-
-    // ❄️ ICE / FROST
     'ICE': {
         type: 'CRYSTAL',
-        primaryColor: '#38bdf8', // Sky-400
-        secondaryColor: '#e0f2fe', // Sky-100
-        intensity: 0.5,
-        speed: 0.0,
-        extrude: true
+        primaryColor: '#38bdf8', 
+        secondaryColor: '#e0f2fe',
+        intensity: 0.5, speed: 0.0, extrude: true,
+        spawnVfx: 'FX_HIT_BLUE_ICE'
     },
-
-    // ⚫ GRAVITY / VOID
     'GRAVITY': {
         type: 'VOID_HOLE',
         primaryColor: '#000000',
-        secondaryColor: '#7c3aed', // Violet-600 (Ring)
-        intensity: 0.7,
-        speed: 2.0
+        secondaryColor: '#7c3aed',
+        intensity: 0.7, speed: 2.0,
+        spawnVfx: 'FX_HIT_RED_SHADOW'
     },
-
-    // ☁️ GENERIC (Smoke/Mist)
     'GENERIC': {
         type: 'FOG',
-        primaryColor: '#94a3b8', // Slate-400
+        primaryColor: '#94a3b8', 
         secondaryColor: '#fff',
-        intensity: 0.5,
-        speed: 0.5
+        intensity: 0.5, speed: 0.5
     }
 };

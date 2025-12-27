@@ -25,8 +25,8 @@ export const GridOverlays = {
         size: number,
         
         // State Props
-        specialStatus: string | undefined, // Unit Status (e.g. Frozen)
-        zoneInfo: ZoneInfo | undefined,    // Cast Range / AOE Warning
+        specialStatus: string | undefined, 
+        zoneInfo: ZoneInfo | undefined,    
         
         // Lighting
         lightColor: string | null,
@@ -44,18 +44,17 @@ export const GridOverlays = {
         hazard: GroundHazard | undefined
     ) {
         // --- LAYER 1: HAZARDS ---
-        // Persistent ground effects (Fire, Ice, Poison)
         if (hazard) {
             ZoneRenderer.drawHazard(ctx, x, y, hazard, globalTime);
         }
 
         // --- LAYER 2: UNIT STATUS FLOOR TINT ---
-        // e.g. Polymorph creates a purple rune, Frozen creates ice patch
         if (specialStatus && specialStatus !== 'NONE') {
             const def = STATUS_VISUALS[specialStatus];
             if (def && def.floorColor) {
                 ctx.save();
-                ctx.globalCompositeOperation = 'overlay';
+                // Use source-over for tinted glass look instead of additive
+                ctx.globalCompositeOperation = 'source-over';
                 ctx.fillStyle = def.floorColor;
                 ctx.globalAlpha = def.floorOpacity || 0.5;
                 SurfaceAssets.traceHex(ctx, x, y, size);
@@ -64,8 +63,7 @@ export const GridOverlays = {
             }
         }
 
-        // --- LAYER 3: CAST ZONES & AOE WARNINGS ---
-        // Dynamic casting indicators
+        // --- LAYER 3: CAST ZONES (Volumetric) ---
         if (zoneInfo) {
             ZoneRenderer.drawZone(
                 ctx, x, y, size,
@@ -79,11 +77,11 @@ export const GridOverlays = {
         }
 
         // --- LAYER 4: DYNAMIC LIGHTING ---
-        // Light from projectiles passing overhead
+        // Reduced intensity to prevent overexposure
         if (lightColor && lightIntensity > 0) {
             ctx.save();
-            ctx.globalCompositeOperation = 'lighter'; 
-            ctx.globalAlpha = lightIntensity * 0.6; 
+            ctx.globalCompositeOperation = 'screen'; // Screen is safer than lighter
+            ctx.globalAlpha = Math.min(0.5, lightIntensity * 0.4); 
             ctx.fillStyle = lightColor;
             SurfaceAssets.traceHex(ctx, x, y, size);
             ctx.fill();
@@ -99,17 +97,17 @@ export const GridOverlays = {
             if (isRange) { 
                 ctx.strokeStyle = rangeColor; 
                 ctx.lineWidth = 2; 
-                ctx.globalAlpha = 0.5; 
+                ctx.globalAlpha = 0.4; 
                 ctx.stroke();
                 
                 ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = 0.1; 
+                ctx.globalAlpha = 0.08; 
                 ctx.fill();
             }
             
             // Mouse Hover
             if (isHover) { 
-                ctx.fillStyle = 'rgba(255,255,255,0.15)'; 
+                ctx.fillStyle = 'rgba(255,255,255,0.1)'; 
                 ctx.globalAlpha = 1.0;
                 ctx.fill(); 
                 
@@ -118,9 +116,9 @@ export const GridOverlays = {
                 ctx.stroke(); 
             }
             
-            // Unit Position (Passive Indicator)
+            // Unit Position
             if (hasUnit && !isHover && !zoneInfo) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.strokeStyle = 'rgba(255,255,255,0.15)';
                 ctx.lineWidth = 1;
                 ctx.stroke();
             }

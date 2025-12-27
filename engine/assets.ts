@@ -8,7 +8,7 @@ export const AssetManager = {
     // New: Optimized Glow Sprite (Small) for replacement of shadowBlur
     getGlowSprite(color: string): HTMLCanvasElement {
         const key = `GLOW_SPRITE_${color}`;
-        if (!cache.has(key)) cache.set(key, VFXFactory.generateGlowOrb(color, 64));
+        if (!cache.has(key)) cache.set(key, VFXFactory.generateGlowOrb(color));
         return cache.get(key)!;
     },
 

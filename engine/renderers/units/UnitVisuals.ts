@@ -5,98 +5,111 @@ import { HEX_SIZE } from "../../../constants";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
+import { AssetManager } from "../../assets";
+import { VFXFactory } from "../../graphics/VFXFactory";
 
+/**
+ * Draws the "Tether" for flying units.
+ * Replaces old dashed line with a vertical energy beam gradient.
+ */
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
     const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
     const color = faction.deathSpiritColor; 
     
-    const feetX = Math.round(physX);
-    const feetY = Math.round(physY - physZ); 
+    // Calculate ground point relative to current context (already translated to unit head)
+    // Unit drawing context is at: physX, physY - physZ
+    // So ground is at: 0, +physZ
     
     ctx.save();
     
-    ctx.lineDashOffset = -t * 20;
-    ctx.globalAlpha = 0.6;
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 4]);
+    // Vertical Gradient Beam
+    const grad = ctx.createLinearGradient(0, 0, 0, physZ);
+    grad.addColorStop(0, 'rgba(0,0,0,0)'); // Fade at body
+    grad.addColorStop(0.5, color);        // Brightest in middle
+    grad.addColorStop(1, 'rgba(0,0,0,0)'); // Fade at ground
     
-    // REPLACED: Use SurfaceAssets to guarantee this matches the grid exactly
-    SurfaceAssets.traceHex(ctx, feetX, feetY, 18);
-    ctx.stroke();
+    ctx.globalAlpha = 0.4 + Math.sin(t * 5) * 0.1;
+    ctx.fillStyle = grad;
     
-    ctx.setLineDash([]);
+    // Thin beam
+    const w = 2;
+    ctx.fillRect(-w/2, 0, w, physZ);
+    
+    // Ground anchor glow
+    ctx.translate(0, physZ);
+    ctx.scale(1, 0.5); // Flatten for ISO
+    
+    const glow = VFXFactory.getTexture('GLOW', color);
+    const sz = 24;
+    ctx.globalCompositeOperation = 'screen';
+    ctx.drawImage(glow, -sz/2, -sz/2, sz, sz);
 
-    if (physZ > 5) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.3;
-        ctx.beginPath(); 
-        ctx.moveTo(feetX, feetY); 
-        ctx.lineTo(feetX, feetY + physZ); // Line to ground
-        ctx.stroke(); 
-    }
     ctx.restore();
 }
 
+/**
+ * Draws jet/flight trails.
+ * Replaces rotating hex lines with scaling glow sprites.
+ */
 export function drawFlightVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
     const color = faction.flightTrailColor;
+    const glow = VFXFactory.getTexture('GLOW', color);
 
     ctx.save();
-    ctx.translate(0, 5); 
-    ctx.scale(1, 0.5); 
-    ctx.rotate(t * 8); 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.globalAlpha = 0.5 + Math.sin(t * 20) * 0.2; 
+    ctx.translate(0, 10); 
     
-    ctx.beginPath();
-    for(let i=0; i<6; i++) {
-        const a = i * Math.PI / 3;
-        const x = Math.cos(a) * 15;
-        const y = Math.sin(a) * 15;
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    // Draw 2 oscillating thrusters
+    for(let i = -1; i <= 1; i += 2) {
+        ctx.save();
+        const offsetX = i * 10;
+        const pulse = Math.sin(t * 20 + i) * 0.2 + 0.8;
+        
+        ctx.translate(offsetX, 0);
+        ctx.scale(0.5 * pulse, 1.0 * pulse);
+        
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 0.6;
+        ctx.drawImage(glow, -16, 0, 32, 48); // Stretch downwards
+        ctx.restore();
     }
-    ctx.closePath();
-    ctx.stroke();
+    
     ctx.restore();
 }
 
+/**
+ * Draws casting indicator (Charging).
+ * Replaces vector hexes with a rotating Ring Texture.
+ */
 export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     const skill = agent.skills[agent.castingSkillIdx];
     if (!skill) return;
     
     const progress = 1 - (agent.castTimer / skill.cast);
     const color = skill.color;
+    const ring = VFXFactory.getTexture('RING', color);
     
     ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    const orbitRadius = 25;
-    for (let i = 0; i < 3; i++) {
-        const offset = i * (Math.PI * 2 / 3);
-        const ox = Math.round(Math.cos(t * 6 + offset) * orbitRadius);
-        const oy = Math.round(Math.sin(t * 6 + offset) * orbitRadius * 0.5) - 35;
-        
-        ctx.save();
-        ctx.translate(ox, oy);
-        ctx.rotate(t * 10);
-        
-        ctx.beginPath();
-        for(let j=0; j<6; j++) {
-            const a = j * Math.PI / 3;
-            const r = 4 * progress;
-            const x = Math.cos(a) * r;
-            const y = Math.sin(a) * r;
-            if(j===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-        }
-        ctx.closePath();
-        
-        ctx.fillStyle = '#fff';
-        ctx.shadowColor = color; ctx.shadowBlur = 10;
-        ctx.fill();
-        ctx.restore();
-    }
+    ctx.globalCompositeOperation = 'screen';
+    
+    // Floating Ring above head
+    ctx.translate(0, -60); 
+    
+    // Scale up as cast completes
+    const scale = 0.5 + progress * 0.5;
+    ctx.scale(scale, scale * 0.6); // Flattened
+    
+    ctx.rotate(t * 5);
+    ctx.globalAlpha = 0.8 * progress;
+    
+    const size = 64;
+    ctx.drawImage(ring, -size/2, -size/2, size, size);
+    
+    // Second ring rotating opposite
+    ctx.rotate(t * -10);
+    ctx.scale(0.7, 0.7);
+    ctx.drawImage(ring, -size/2, -size/2, size, size);
+
     ctx.restore();
 
     if (skill.type === 'AOE') {
@@ -104,54 +117,63 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
     }
 }
 
+/**
+ * Draws AOE warning on caster.
+ * Replaces stroke with expanding Shockwave texture.
+ */
 export function drawDomainExpansion(ctx: CanvasRenderingContext2D, agent: Agent, t: number, color: string, progress: number) {
-    ctx.save();
-    ctx.translate(0, -40); 
-    const scale = 0.5 + progress * 0.5;
-    ctx.scale(scale, scale); 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
-    ctx.globalCompositeOperation = 'screen';
+    const texture = VFXFactory.getTexture('RING', color); // Use Ring for clean expansion
     
     ctx.save();
-    ctx.rotate(t * 2);
-    ctx.beginPath();
-    const r = 60;
-    for(let i=0; i<6; i++) {
-        const a = i * Math.PI / 3;
-        const x = Math.cos(a) * r;
-        const y = Math.sin(a) * r * 0.6;
-        if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-    }
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
+    ctx.translate(0, -40); 
+    const scale = (0.5 + progress * 1.5) * 2.0; // Expand outward
+    ctx.scale(scale, scale * 0.6); 
+    
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = (1 - progress) * 0.5; // Fade out as it expands
+    
+    const size = 64;
+    ctx.drawImage(texture, -size/2, -size/2, size, size);
     
     ctx.restore();
 }
 
+/**
+ * Draws Ultimate preparation.
+ * Uses Magic Circle texture.
+ */
 export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     const skill = agent.skills[agent.castingSkillIdx];
     if (!skill) return;
     const progress = 1 - (agent.castTimer / skill.cast);
     const color = skill.color;
+    const texture = VFXFactory.getTexture('MAGIC_CIRCLE', color);
 
     ctx.save();
     ctx.translate(0, -40); 
-    const size = Math.round(50 * (0.2 + progress * 0.8));
+    
+    // Spin faster as it completes
+    ctx.rotate(t * (2 + progress * 5));
+    ctx.scale(1, 0.6);
+    
     ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = 0.4 + progress * 0.6;
     
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.3;
-    SurfaceAssets.traceHex(ctx, 0, 0, size); ctx.fill();
-    
-    ctx.fillStyle = '#fff';
+    const size = 100;
+    ctx.drawImage(texture, -size/2, -size/2, size, size);
+
+    // Core glow
+    const glow = VFXFactory.getTexture('GLOW', color);
     ctx.globalAlpha = 0.5;
-    SurfaceAssets.traceHex(ctx, 0, 0, size * 0.6); ctx.fill();
+    ctx.drawImage(glow, -30, -30, 60, 60);
 
     ctx.restore();
 }
 
+/**
+ * Draws the ground indicator for skills.
+ * Uses Volumetric Hex from SurfaceAssets (Texture based).
+ */
 export function drawSkillGroundIndicator(
     ctx: CanvasRenderingContext2D, 
     x: number, y: number, 
@@ -162,70 +184,56 @@ export function drawSkillGroundIndicator(
     type: string, 
     isAOE: boolean
 ) {
-    ctx.save();
-    // Do NOT translate context. Use x,y directly.
+    // Note: Context is already translated to ground target position by caller
     
     const maxPx = Math.max(1, skillRadius) * HEX_SIZE;
     const currentRadius = maxPx * progress;
+    const opacity = 0.3 + Math.sin(t * 5) * 0.1;
 
-    // --- LAYER 1: BASE FIELD (Hex Fill) ---
-    // REPLACED: Use SurfaceAssets for perfect alignment
-    SurfaceAssets.traceHex(ctx, x, y, currentRadius);
-    ctx.fillStyle = color;
-    ctx.globalAlpha = 0.35; 
-    ctx.fill();
-
-    // --- LAYER 2: ENERGY RIM (Hex Glow) ---
-    ctx.save();
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 5;
-    ctx.globalAlpha = 0.9;
-    ctx.shadowColor = color;
-    ctx.shadowBlur = 15;
-    SurfaceAssets.traceHex(ctx, x, y, currentRadius);
-    ctx.stroke();
-    ctx.restore();
-
-    // --- LAYER 3: RUNIC BORDER (Static dashed) ---
-    ctx.save();
-    ctx.strokeStyle = '#fff'; 
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 8]); 
-    ctx.globalAlpha = 0.8;
+    // Use Volumetric Draw (No Vectors!)
+    // We convert pixel radius back to approximate Hex unit for the drawing function
+    // drawVolumetricHex expects screen coords x,y and radius in pixels
+    SurfaceAssets.drawVolumetricHex(ctx, x, y, currentRadius, color, opacity);
     
-    const pulse = 1 + Math.sin(t * 10) * 0.05;
-    SurfaceAssets.traceHex(ctx, x, y, (currentRadius + 2) * pulse);
-    ctx.stroke();
-    ctx.restore();
-
+    // Add a Ring at the edge for definition
+    const ringSize = currentRadius * 2.5; 
+    const ring = VFXFactory.getTexture('RING', color);
+    
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(1, 0.58); // ISO
+    ctx.globalCompositeOperation = 'screen';
+    ctx.globalAlpha = opacity * 1.5;
+    ctx.drawImage(ring, -ringSize/2, -ringSize/2, ringSize, ringSize);
     ctx.restore();
 }
 
+/**
+ * Draws status icons overhead.
+ * Uses textures for backgrounds.
+ */
 export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: number, drawX: number, drawY: number, scaleFactor: number) {
     if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (skill) {
             ctx.save();
-            ctx.translate(0, Math.round(-110));
+            ctx.translate(0, -110);
             
-            ctx.globalAlpha = 0.3 * (0.5 + Math.sin(t * 10) * 0.1);
-            ctx.fillStyle = skill.color;
-            ctx.beginPath();
-            for(let i=0; i<6; i++) {
-                const a = i * Math.PI/3;
-                const x = Math.cos(a)*40;
-                const y = Math.sin(a)*40; 
-                if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-            }
-            ctx.closePath();
-            ctx.fill();
+            // Background Glow
+            const bg = VFXFactory.getTexture('GLOW', skill.color);
+            ctx.globalAlpha = 0.6;
+            ctx.globalCompositeOperation = 'screen';
+            ctx.drawImage(bg, -30, -30, 60, 60);
             
             ctx.restore();
         }
     }
 }
 
+/**
+ * Draws status effects (Stun, Silence, etc.)
+ * Uses AssetManager icons.
+ */
 export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     if (agent.hp <= 0) return;
     
@@ -242,46 +250,23 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
     ctx.save();
     if (agent.facing < 0) ctx.scale(-1, 1);
     
-    ctx.translate(0, Math.round(-65));
+    // Position above head
+    ctx.translate(0, Math.round(-70));
 
-    if (def.overheadType === 'STAR_SPIN') {
-        const angle = t * 5;
-        const x = Math.round(Math.cos(angle) * 20);
-        const y = Math.round(Math.sin(angle) * 6); 
-        ctx.fillStyle = def.primaryColor;
+    if (def.overheadType === 'ICON' || def.overheadType === 'GHOST_FLOAT' || def.overheadType === 'BUBBLE_POP') {
+        const bob = Math.sin(t * 4) * 5;
+        ctx.translate(0, bob);
         
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(t * 10);
-        ctx.beginPath();
-        for(let i=0; i<5; i++) {
-            const a = i * Math.PI * 2 / 5;
-            const rx = Math.cos(a) * 4;
-            const ry = Math.sin(a) * 4;
-            if(i===0) ctx.moveTo(rx, ry); else ctx.lineTo(rx, ry);
+        const icon = AssetManager.getStatusIcon(statusId);
+        if (icon) {
+            const size = 32;
+            // Shadow for readability
+            ctx.shadowColor = 'rgba(0,0,0,0.8)';
+            ctx.shadowBlur = 4;
+            ctx.drawImage(icon, -size/2, -size/2, size, size);
+            ctx.shadowBlur = 0;
         }
-        ctx.fill();
-        ctx.restore();
-    } else if (def.overheadType === 'BUBBLE_POP') {
-        const scale = 1 + Math.sin(t * 3) * 0.1;
-        ctx.scale(scale, scale);
-        ctx.fillStyle = def.primaryColor;
-        ctx.globalAlpha = 0.6;
-        ctx.beginPath();
-        ctx.arc(0, 0, 8, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-    } else if (def.overheadType === 'GHOST_FLOAT') {
-        const float = Math.sin(t * 2) * 5;
-        ctx.translate(0, float);
-        ctx.fillStyle = def.primaryColor;
-        ctx.globalAlpha = 0.5;
-        ctx.beginPath();
-        ctx.arc(0, 0, 6, 0, Math.PI*2);
-        ctx.fill();
-    }
+    } 
 
     ctx.restore();
 }

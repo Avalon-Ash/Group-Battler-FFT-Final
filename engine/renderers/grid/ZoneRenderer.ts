@@ -7,9 +7,6 @@ import { CAST_VISUALS } from "../../../data/vfx/cast_visuals";
 
 export const ZoneRenderer = {
     
-    /**
-     * Renders persistent ground hazards (Fire, Poison, etc.)
-     */
     drawHazard(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -18,27 +15,17 @@ export const ZoneRenderer = {
     ) {
         const def = HAZARD_VISUALS[hazard.type] || HAZARD_VISUALS['GENERIC'];
         
-        // 1. LIQUID (Magma, Water)
         if (def.type === 'LIQUID') {
             const speed = globalTime * def.speed;
             const intensity = def.intensity * (0.85 + Math.sin(speed) * 0.15);
-            
             SurfaceAssets.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
-            
-            if (def.cracks) {
-                SurfaceAssets.drawCracks(ctx, x, y, def.secondaryColor, intensity);
-            }
+            if (def.cracks) SurfaceAssets.drawCracks(ctx, x, y, def.secondaryColor, intensity);
         }
-        // 2. FOG (Poison, Smoke)
         else if (def.type === 'FOG') {
             SurfaceAssets.drawFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
         }
-        // 3. CRYSTAL (Ice, Wall)
         else if (def.type === 'CRYSTAL') {
-            if (def.extrude) {
-                SurfaceAssets.drawExtrusion(ctx, x, y, 8, def.primaryColor, 0.5);
-            }
-            // Base Glow
+            if (def.extrude) SurfaceAssets.drawExtrusion(ctx, x, y, 8, def.primaryColor, 0.5);
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
@@ -47,31 +34,26 @@ export const ZoneRenderer = {
             ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.8, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
-        // 4. VOID HOLE (Gravity)
         else if (def.type === 'VOID_HOLE') {
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
-            
-            // Black Hole Center
-            ctx.fillStyle = def.primaryColor; // Usually black
+            ctx.fillStyle = def.primaryColor;
             ctx.globalAlpha = def.intensity;
             ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.7, 0, Math.PI*2); ctx.fill();
-            
-            // Accretion Disk (Rotating Ring)
             ctx.rotate(globalTime * def.speed);
             ctx.strokeStyle = def.secondaryColor;
             ctx.lineWidth = 3;
             ctx.setLineDash([10, 15]);
             ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.8, 0, Math.PI*2); ctx.stroke();
-            
             ctx.restore();
         }
     },
 
     /**
-     * Renders casting indicators and AOE warnings.
-     * REFACTORED: Now uses a global ripple logic (Center -> Outwards)
+     * REFACTORED: Volumetric Hex Expansion
+     * Replaces the thin "Ripple" logic with a growing, soft hexagon volume.
+     * STRICTLY follows the Hexagonal shape rule for Standard AOE.
      */
     drawZone(
         ctx: CanvasRenderingContext2D,
@@ -92,67 +74,56 @@ export const ZoneRenderer = {
         const def = CAST_VISUALS[styleKey] || CAST_VISUALS['BASIC'];
 
         ctx.save();
+        
+        // 1. Blend Mode Correction (Avoid Exposure Blowout)
+        // Default to screen or source-over for volumetric fog, lighter only for intense sparks
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
-        // --- MATH: GLOBAL RIPPLE PROPAGATION ---
-        // We want a wave that travels from Dist 0 to Dist MaxRadius based on Progress
-        // Normalized Distance (0.0 at center, 1.0 at edge)
+        // --- VOLUMETRIC WAVE LOGIC ---
+        // Instead of a thin line, we draw a "Volume" that fills up.
+        
         const normDist = dist / Math.max(1, maxRadius);
+        // The wave expands slightly past 1.0 to ensure full coverage
+        const wavePos = progress * 1.1; 
         
-        // The "Wave Front" position (0.0 to 1.0)
-        // We speed it up slightly (1.2) so it finishes expanding before the cast is fully done
-        // allowing the full field to be lit up at the end.
-        const wavePos = progress * 1.2; 
-        
-        // Calculate intensity based on proximity to the wave front
-        // If wavePos > normDist, it means the wave has passed this tile -> It stays lit (Filled)
-        // If wavePos is close to normDist, it's the "Leading Edge" (Bright)
-        
-        const isFilled = wavePos >= normDist;
-        const distToWave = Math.abs(wavePos - normDist);
-        const isLeadingEdge = distToWave < 0.15; // Width of the ripple ring
+        const isInsideWave = wavePos >= normDist;
+        const distToEdge = Math.abs(wavePos - normDist);
+        const isEdge = distToEdge < 0.2; // Broader edge for volume
 
+        // Pulse effect
         const pulse = 1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1;
         
-        // --- A. BASE FILL (Accumulates as wave passes) ---
-        if (isFilled) {
-            ctx.fillStyle = color;
-            // Opacity increases as we get closer to completion
-            ctx.globalAlpha = def.fillOpacityBase * pulse * progress; 
-            SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
-            ctx.fill();
+        // A. INNER VOLUME (The Fog)
+        if (isInsideWave) {
+            // Opacity ramps up as skill completes
+            const fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
+            
+            // Draw Volumetric Hex (Soft Gradient Fill)
+            SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.95, color, fogOpacity);
         }
 
-        // --- B. LEADING EDGE RIPPLE (The moving ring) ---
-        if (isLeadingEdge) {
-            const edgeIntensity = 1.0 - (distToWave / 0.15); // Fade out at edges of the ring
-            
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = (def.innerRingWidth || 2) * edgeIntensity;
-            ctx.globalAlpha = def.fillOpacityMax * edgeIntensity;
-            
-            // Slight scale pop on the wave front
-            SurfaceAssets.traceHex(ctx, x, y, size * (0.9 + 0.05 * edgeIntensity));
-            ctx.stroke();
-            
-            // Add a glow to the leading edge
-            ctx.fillStyle = color;
-            ctx.globalAlpha = 0.4 * edgeIntensity;
-            ctx.fill();
+        // B. EXPANDING EDGE (The Shockwave)
+        if (isEdge) {
+            const edgeIntensity = 1.0 - (distToEdge / 0.2); 
+            const edgeOpacity = def.fillOpacityMax * edgeIntensity;
+            const edgeWidth = (def.baseRingWidth || 3) * edgeIntensity * 2;
+
+            // Draw thick, blurred hex stroke
+            SurfaceAssets.drawHexRipple(ctx, x, y, size, color, edgeOpacity, edgeWidth);
         }
 
-        // --- C. OUTER BORDER (Perimeter) ---
-        // Only drawn on tiles at the edge of the radius
+        // C. PERIMETER MARKER (Static Border)
+        // Only drawn on tiles at the exact edge of the radius to define the boundary clearly
+        // But softer now.
         if (dist >= maxRadius - 0.5) {
-            // Only show border if the wave has reached it (or fade it in)
-            const borderAlpha = Math.max(0, Math.min(1, (progress * 2) - 0.5)); // Fade in halfway through
+            const borderAlpha = Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.5; // Fade in later, lower alpha
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = def.baseRingWidth;
-            ctx.globalAlpha = 0.8 * pulse * borderAlpha;
+            ctx.lineWidth = 1; // Thin guide line
+            ctx.globalAlpha = borderAlpha;
             
-            if (def.dashed) ctx.setLineDash([10, 5]);
-            SurfaceAssets.traceHex(ctx, x, y, size * 0.92);
+            if (def.dashed) ctx.setLineDash([5, 5]);
+            SurfaceAssets.traceHex(ctx, x, y, size);
             ctx.stroke();
             ctx.setLineDash([]);
         }

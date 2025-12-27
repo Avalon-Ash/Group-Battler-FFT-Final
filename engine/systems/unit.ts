@@ -1,11 +1,11 @@
 
-import { Agent } from "../game";
+import { Agent, GameEngine } from "../game";
 import { SpriteManager } from "../sprites";
-import { AssetManager } from "../assets";
 import { Role, Team, MovementType } from "../../types";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
 import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
+import { STATUS_VISUALS } from "../../data/vfx/status_visuals";
 
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
@@ -18,6 +18,7 @@ const UNIT_REFERENCE_HEIGHT = 100;
 
 export class UnitRenderSystem {
     
+    // ... (submitRenderables and drawSilhouette kept same, omitted for brevity but assumed present in full file) ...
     public submitRenderables(
         renderList: RenderList,
         agents: Agent[], 
@@ -29,9 +30,7 @@ export class UnitRenderSystem {
         agents.forEach(agent => {
             if (agent.hp <= 0 && agent.fullyDead) return;
 
-            // --- HEIGHT CORRECTION LOGIC ---
             let terrainH = 0;
-            
             if (agent.isMoving && agent.path.length > 0) {
                 const h1 = getTerrainHeight(agent.q, agent.r);
                 const nextHex = agent.path[0];
@@ -40,7 +39,6 @@ export class UnitRenderSystem {
             } else {
                 const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
                 const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
-                
                 if (distSq > 100) {
                     const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
                     terrainH = getTerrainHeight(visualHex.q, visualHex.r);
@@ -86,9 +84,6 @@ export class UnitRenderSystem {
         this.drawAssembly(ctx, agent, agent.px, visualGroundY, globalTime, false, true);
     }
 
-    // =========================================================================================
-    // 🎨 ASSEMBLY PIPELINE: The core drawing logic
-    // =========================================================================================
     public drawAssembly(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
@@ -135,19 +130,15 @@ export class UnitRenderSystem {
     private drawGroundElements(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number) {
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
         
-        // Base Token / Shadow
         ctx.save();
-        // Translate to ground position (Local relative to Assembly Root)
         ctx.translate(px, py); 
         
-        // 1. Draw Base Plate / Shadow
         const shadowScale = Math.max(0.6, 1.0 - (pz / 400));
         ctx.save();
         ctx.scale(shadowScale, shadowScale);
         ctx.drawImage(assets.base, -64, -64); 
         ctx.restore();
 
-        // 2. Draw Role Icon
         ctx.save();
         const iconBaseY = -24; 
         ctx.translate(0, iconBaseY);
@@ -160,32 +151,21 @@ export class UnitRenderSystem {
         ctx.globalAlpha = 1.0; 
         ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 5;
         ctx.drawImage(assets.icon, -32, -32, 64, 64);
+        ctx.restore();
         
-        ctx.restore(); // End Icon
-        
-        // Casting Magic Circle (Ground Overlay)
-        // BUG FIX: The context is already at (px, py). 
-        // We must pass (0,0) to the indicator drawer, OR restore context and pass (px, py).
-        // Since the indicator function expects local coordinates if we want it attached to the unit,
-        // passing 0,0 is the correct "Local Center".
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
                 const progress = 1 - (agent.castTimer / skill.cast);
                 const radius = skill.aoeRadius || 1;
                 const isAOE = skill.type === 'AOE';
-                
-                // Visual clamp for AOE source indicator
                 const visualRadius = isAOE ? 0.8 : radius;
                 drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, visualRadius, skill.tag, isAOE);
             }
         }
 
-        ctx.restore(); // End Ground Group
+        ctx.restore();
 
-        // Flying Tether (Anchor line)
-        // Drawn outside the translated ground context to handle Z properly if needed,
-        // but here we draw it relative to ground.
         if (agent.movementType === MovementType.FLYING && pz > 5) {
             drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }
@@ -201,7 +181,6 @@ export class UnitRenderSystem {
         ctx.translate(0, bodyFloat);
 
         let spawnAlpha = 1.0;
-        
         if (agent.spawnTimer > 0) {
             const SPAWN_DURATION = 0.5; 
             const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 

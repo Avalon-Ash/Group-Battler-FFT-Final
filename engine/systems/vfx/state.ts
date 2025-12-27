@@ -20,30 +20,23 @@ export interface Particle {
     color: string;
     size: number;
     
-    type: 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW';
+    // Added RUBBLE, SPIKE, DUST
+    type: 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST';
     
     // 🎯 BEAM TARGETING (Explicit 3D Anchors)
-    // We store Source and Target completely separately to emulate Projectile data structure
-    sx?: number; sy?: number; sz?: number; // Start (World X, World Y, Terrain Z)
-    tx?: number; ty?: number; tz?: number; // Target (World X, World Y, Terrain Z)
+    sx?: number; sy?: number; sz?: number; 
+    tx?: number; ty?: number; tz?: number; 
     
-    // For moving particles
     targetX?: number; 
     targetY?: number; 
     targetZ?: number; 
     
-    // Asset Keys
-    style?: string; // Generic Style Key (Looked up in BEAM_VISUALS or PROCEDURAL_VISUALS)
-    
+    style?: string; 
     delay?: number;
     image?: HTMLCanvasElement; 
-    
-    // Flags
     locked?: boolean; 
     drag?: number;    
     killAtTarget?: number; 
-    
-    // Rendering
     texture?: HTMLCanvasElement; 
     blendMode?: GlobalCompositeOperation; 
     sortBias?: number; 
@@ -86,7 +79,7 @@ export class VFXStateManager {
             p.image = undefined; 
             p.texture = undefined;
             p.blendMode = undefined;
-            p.style = undefined; // Reset style
+            p.style = undefined; 
             
             p.delay = 0; 
             p.locked = false; 

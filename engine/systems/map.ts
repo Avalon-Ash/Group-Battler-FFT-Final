@@ -4,6 +4,7 @@ import { HexUtils } from "../utils";
 import { MovementType, GroundHazard, Team } from "../../types";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { MapGenerator } from "./map/MapGenerator";
+import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
 
 export class MapSystem {
     public mapKeys: Set<string> = new Set();
@@ -12,44 +13,19 @@ export class MapSystem {
     public obstacles: Map<string, string> = new Map();
     public obstaclesHash: Set<number> = new Set();
     
-    // Changed to public for Generator access, or use setter
     public heightMap: Map<string, number> = new Map();
-
     public hazards: Map<string, GroundHazard> = new Map();
 
     constructor() {}
 
-    // --- ACCESSORS ---
-
-    public getTerrainHeight(q: number, r: number): number {
-        return this.heightMap.get(HexUtils.key({q, r})) || 0;
-    }
-    
-    public getHeightByKey(key: string): number {
-        return this.heightMap.get(key) || 0;
-    }
-
-    public getMapKeys(): Set<string> {
-        return this.mapKeys;
-    }
-
-    public isValid(q: number, r: number) { 
-        return this.validHashes.has(HexUtils.hash(q, r));
-    }
-
-    public isValidHash(h: number) {
-        return this.validHashes.has(h);
-    }
-
-    public hasObstacle(q: number, r: number) {
-        return this.obstaclesHash.has(HexUtils.hash(q, r));
-    }
-
-    public hasObstacleHash(h: number) {
-        return this.obstaclesHash.has(h);
-    }
-
-    // --- MUTATORS (Used by Generator) ---
+    // ... (Existing accessors and basic mutators) ...
+    public getTerrainHeight(q: number, r: number): number { return this.heightMap.get(HexUtils.key({q, r})) || 0; }
+    public getHeightByKey(key: string): number { return this.heightMap.get(key) || 0; }
+    public getMapKeys(): Set<string> { return this.mapKeys; }
+    public isValid(q: number, r: number) { return this.validHashes.has(HexUtils.hash(q, r)); }
+    public isValidHash(h: number) { return this.validHashes.has(h); }
+    public hasObstacle(q: number, r: number) { return this.obstaclesHash.has(HexUtils.hash(q, r)); }
+    public hasObstacleHash(h: number) { return this.obstaclesHash.has(h); }
 
     public resetData() {
         this.hazards.clear(); 
@@ -77,9 +53,7 @@ export class MapSystem {
         this.obstaclesHash.delete(h);
     }
 
-    public setHeight(key: string, height: number) {
-        this.heightMap.set(key, height);
-    }
+    public setHeight(key: string, height: number) { this.heightMap.set(key, height); }
 
     public setObstacle(q: number, r: number, type: string) {
         if (!this.isValid(q, r)) return;
@@ -96,17 +70,8 @@ export class MapSystem {
         this.obstaclesHash.delete(h);
     }
 
-    // --- DELEGATED GENERATION ---
-
-    public randomizeEnvironment(engine: GameEngine) {
-        MapGenerator.randomize(this, engine);
-    }
-
-    public rebuildMap(engine: GameEngine) {
-        MapGenerator.rebuild(this, engine);
-    }
-
-    // --- RUNTIME LOGIC ---
+    public randomizeEnvironment(engine: GameEngine) { MapGenerator.randomize(this, engine); }
+    public rebuildMap(engine: GameEngine) { MapGenerator.rebuild(this, engine); }
 
     public toggleObstacle(q: number, r: number, engine: GameEngine, type: string = 'WALL') {
         if (!this.isValid(q, r)) return;
@@ -135,12 +100,8 @@ export class MapSystem {
                     } else {
                         if (def.blocksMovement) return true;
                     }
-                } else {
-                    return true; 
-                }
-            } else {
-                return true;
-            }
+                } else return true; 
+            } else return true;
         }
         const occupant = engine.agentMap.get(h);
         if (occupant) {
@@ -164,25 +125,29 @@ export class MapSystem {
         team: Team, 
         color: string,
         power: number,
-        interval: number
+        interval: number,
+        engine?: GameEngine // Passed optionally for VFX
     ) {
         if (!this.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
         
+        // Don't overwrite if stronger hazard exists? For now, overwrite.
         const hazard: GroundHazard = {
             id: Math.random().toString(36).substr(2, 6),
-            q, r,
-            type,
-            duration,
-            sourceId,
-            team,
-            color,
-            power,
-            interval,
-            timer: 0 
+            q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
         };
         
         this.hazards.set(key, hazard);
+
+        // --- NEW: Trigger VFX ---
+        if (engine && engine.renderer) {
+            const def = HAZARD_VISUALS[type];
+            if (def && def.spawnVfx) {
+                const px = HexUtils.toPx(q, r, engine.mapConfig);
+                const h = this.getTerrainHeight(q, r);
+                engine.renderer.vfx.playEffect(def.spawnVfx, px.x, px.y, h);
+            }
+        }
     }
 
     public getHazardAt(q: number, r: number): GroundHazard | undefined {
@@ -191,16 +156,11 @@ export class MapSystem {
 
     public tickHazards(dt: number, engine: GameEngine) {
         const toRemove: string[] = [];
-
         for (const [key, h] of this.hazards.entries()) {
             h.duration -= dt;
             h.timer -= dt;
-            
-            if (h.duration <= 0) {
-                toRemove.push(key);
-            }
+            if (h.duration <= 0) toRemove.push(key);
         }
-        
         toRemove.forEach(k => this.hazards.delete(k));
     }
 }

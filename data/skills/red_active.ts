@@ -2,243 +2,198 @@
 import { Role, Skill, Team } from '../../types';
 
 export const RED_ACTIVE: Skill[] = [
-    // ==========================================
-    // 🛡️ RED TANK (Drain & Control)
-    // ==========================================
+    // =================================================================
+    // 🛡️ TANK
+    // =================================================================
     { 
         id: 'tr_a1', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '死亡之鉤', desc: '單體牽引', 
+        name: '鮮血之鉤', desc: '將敵人拉至身前', 
         range: 5, cast: 0.6, cd: 12.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 90, 
-        color: '#450a0a', visual: 'BOLT', projectileSpeed: 900, 
-        ccType: 'PULL', ccForce: 5, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT' 
+        type: 'SINGLE', power: 80, color: '#7f1d1d', visual: 'BEAM', projectileSpeed: 1500, 
+        ccType: 'PULL', ccForce: 5, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
         id: 'tr_a2', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '絞殺', desc: '沉默+傷害', 
-        range: 1, cast: 0.5, cd: 10.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 160, 
-        color: '#7f1d1d', visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'SILENCE', ccDur: 3.5, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD' 
+        name: '恐懼怒吼', desc: '範圍恐懼', 
+        range: 0, cast: 0.4, cd: 15.0, cost: 50, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 40, color: '#7c3aed', visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'BANISH', ccDur: 2.0, visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
     { 
         id: 'tr_a3', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '鮮血沸騰', desc: '範圍吸血', 
-        range: 0, cast: 0.5, cd: 10.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 90, 
-        color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
-        effectType: 'VAMP', effectVal: 0.8, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD' 
+        name: '肢解', desc: '單體壓制(暈眩+傷害)', 
+        range: 1, cast: 0.5, cd: 14.0, cost: 45, gain: 0, 
+        type: 'SINGLE', power: 150, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
+        ccType: 'STUN', ccDur: 2.5, ccType2: 'DOT', ccDur2: 3.0, ccForce2: 30, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
         id: 'tr_a4', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '瘟疫爆發', desc: '範圍中毒', 
-        range: 0, cast: 0.8, cd: 12.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 70, 
-        color: '#a3e635', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 30, ccDur: 6, 
-        visualHitEffect: 'FX_HIT_RED_FEL' 
+        name: '血肉壁壘', desc: '大量回血(偽護盾)', 
+        range: 0, cast: 0.5, cd: 18.0, cost: 50, gain: 0, 
+        type: 'SINGLE', power: -350, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
+        visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
         id: 'tr_a5', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '反魔法護罩', desc: '護盾與回魔', 
-        range: 0, cast: 0.4, cd: 15.0, cost: 30, gain: 0, 
-        type: 'SINGLE', power: -200, 
-        color: '#a855f7', visual: 'BEAM', projectileSpeed: 0, 
-        effectType: 'MANA_RESTORE', effectVal: 60, 
-        visualHitEffect: 'FX_HIT_RED_SHADOW' 
+        name: '戰爭踐踏', desc: '範圍暈眩', 
+        range: 0, cast: 0.8, cd: 16.0, cost: 55, gain: 0, 
+        type: 'AOE', aoeRadius: 3, power: 100, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'STUN', ccDur: 1.5, visualHitEffect: 'FX_HIT_RED_HEAVY' 
     },
 
-    // ==========================================
-    // ⚔️ RED WARRIOR (Berserker)
-    // ==========================================
+    // =================================================================
+    // ⚔️ WARRIOR
+    // =================================================================
     { 
         id: 'wr_a1', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
-        name: '斬殺', desc: '殘血收割', 
-        range: 1, cast: 0.4, cd: 8.0, cost: 30, gain: 0, 
-        type: 'SINGLE', power: 180, 
-        color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
-        effectType: 'EXECUTE', effectVal: 2.2, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD' 
+        name: '劍刃風暴', desc: '周圍持續傷害', 
+        range: 0, cast: 0.5, cd: 10.0, cost: 50, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 120, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
+        visualHitEffect: 'FX_HIT_RED_HEAVY' 
     },
     { 
         id: 'wr_a2', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
-        name: '旋風斬', desc: '範圍傷害', 
-        range: 0, cast: 0.8, cd: 9.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 150, 
-        color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY' 
+        name: '魯莽衝鋒', desc: '突進並擊退', 
+        range: 4, cast: 0.3, cd: 8.0, cost: 30, gain: 0, 
+        type: 'SINGLE', power: 100, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'KNOCKBACK', ccForce: 3, visualHitEffect: 'FX_HIT_RED_PHYSICAL' 
     },
     { 
         id: 'wr_a3', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
-        name: '撕裂傷口', desc: '重度流血', 
-        range: 1, cast: 0.4, cd: 8.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 90, 
-        color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 70, ccDur: 5, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD' 
+        name: '嗜血打擊', desc: '高吸血單體', 
+        range: 1, cast: 0.5, cd: 12.0, cost: 40, gain: 0, 
+        type: 'SINGLE', power: 120, color: '#be123c', visual: 'SLASH', projectileSpeed: 0, 
+        effectType: 'VAMP', effectVal: 1.0, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
         id: 'wr_a4', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
-        name: '魯莽怒火', desc: '自我受傷換取爆發', 
-        range: 1, cast: 0.3, cd: 6.0, cost: 20, gain: 0, 
-        type: 'SINGLE', power: 280, // Massive damage
-        color: '#f87171', visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_RED_MAGMA' 
+        name: '旋風斬', desc: '瞬發AOE', 
+        range: 0, cast: 0.2, cd: 6.0, cost: 35, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 80, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, 
+        visualHitEffect: 'FX_HIT_RED_PHYSICAL' 
     },
     { 
         id: 'wr_a5', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
-        name: '野蠻衝撞', desc: '擊退並暈眩', 
-        range: 3, cast: 0.5, cd: 12.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 140, 
-        color: '#450a0a', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 7, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY' 
+        name: '斷筋', desc: '強力斬殺', 
+        range: 1, cast: 0.6, cd: 10.0, cost: 45, gain: 0, 
+        type: 'SINGLE', power: 180, color: '#450a0a', visual: 'SMASH', projectileSpeed: 0, 
+        effectType: 'EXECUTE', effectVal: 2.0, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
 
-    // ==========================================
-    // 🏹 RED RANGER (Explosive)
-    // ==========================================
+    // =================================================================
+    // 🏹 RANGER
+    // =================================================================
     { 
         id: 'rr_a1', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '穿甲彈', desc: '極高單體傷', 
-        range: 6, cast: 1.5, cd: 10.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 300, 
-        color: '#18181b', visual: 'BOLT', projectileSpeed: 1800, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT' 
+        name: '燒夷彈', desc: '範圍燃燒', 
+        range: 6, cast: 1.0, cd: 14.0, cost: 55, gain: 0, 
+        type: 'AOE', aoeRadius: 3, power: 90, color: '#f97316', visual: 'BOMB', projectileSpeed: 900, 
+        ccType: 'DOT', ccForce: 30, ccDur: 5.0, element: 'FIRE', visualHitEffect: 'FX_HIT_RED_MAGMA' 
     },
     { 
         id: 'rr_a2', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '爆炸射擊', desc: '範圍火傷', 
-        range: 5, cast: 1.0, cd: 12.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 160, 
-        color: '#f87171', visual: 'FIREBALL', projectileSpeed: 800, 
-        visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'BOMB' 
+        name: '霰彈轟炸', desc: '近身擊退', 
+        range: 3, cast: 0.4, cd: 10.0, cost: 40, gain: 0, 
+        type: 'SINGLE', power: 150, color: '#ea580c', visual: 'SMASH', projectileSpeed: 2000, 
+        ccType: 'KNOCKBACK', ccForce: 5, visualHitEffect: 'FX_HIT_RED_HEAVY' 
     },
     { 
         id: 'rr_a3', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '震盪彈', desc: '擊退', 
-        range: 5, cast: 0.8, cd: 12.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 120, 
-        color: '#52525b', visual: 'BOLT', projectileSpeed: 900, 
-        ccType: 'KNOCKBACK', ccForce: 5, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT'
+        name: '毒氣陷阱', desc: '範圍中毒', 
+        range: 5, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 50, color: '#65a30d', visual: 'BOMB', projectileSpeed: 800, 
+        ccType: 'DOT', ccForce: 50, ccDur: 8.0, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
         id: 'rr_a4', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '集束炸彈', desc: '隨機多次傷害', 
-        range: 6, cast: 1.2, cd: 15.0, cost: 55, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 100, 
-        color: '#fca5a5', visual: 'BOMB', projectileSpeed: 600, 
-        ccType: 'STUN', ccDur: 0.8, 
-        visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'BOMB'
+        name: '高爆炸藥', desc: '單體重傷', 
+        range: 6, cast: 1.5, cd: 15.0, cost: 60, gain: 0, 
+        type: 'SINGLE', power: 250, color: '#7f1d1d', visual: 'BOMB', projectileSpeed: 600, 
+        visualHitEffect: 'FX_HIT_RED_MAGMA' 
     },
     { 
         id: 'rr_a5', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '腐蝕酸液', desc: '範圍持續傷', 
-        range: 5, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 70, 
-        color: '#a3e635', visual: 'BOMB', projectileSpeed: 500, 
-        ccType: 'DOT', ccForce: 25, ccDur: 6, 
-        visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'BOMB'
+        name: '煙霧彈', desc: '自身防禦(暫為範圍暈眩)', 
+        range: 0, cast: 0.2, cd: 20.0, cost: 40, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 0, color: '#52525b', visual: 'BOMB', projectileSpeed: 0, 
+        ccType: 'STUN', ccDur: 2.0, visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
 
-    // ==========================================
-    // 🔮 RED MAGE (Warlock)
-    // ==========================================
+    // =================================================================
+    // 🔮 MAGE
+    // =================================================================
     { 
         id: 'mr_a1', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '暗影灼燒', desc: '斬殺法術', 
-        range: 5, cast: 0.6, cd: 8.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 200, 
-        color: '#581c87', visual: 'BOLT', projectileSpeed: 1000, 
-        effectType: 'EXECUTE', effectVal: 2.0, 
-        visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW' 
+        name: '靈魂腐化', desc: '持續傷害與沉默', 
+        range: 5, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
+        type: 'SINGLE', power: 60, color: '#a3e635', visual: 'BOLT', projectileSpeed: 600, 
+        ccType: 'DOT', ccForce: 40, ccDur: 6.0, ccType2: 'SILENCE', ccDur2: 3.0, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
         id: 'mr_a2', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '地獄烈焰', desc: '範圍持續傷', 
-        range: 5, cast: 1.0, cd: 10.0, cost: 55, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 140, 
-        color: '#ef4444', visual: 'FIREBALL', projectileSpeed: 500, 
-        ccType: 'DOT', ccForce: 50, ccDur: 5, 
-        visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'FIREBALL'
+        name: '生命虹吸', desc: '持續吸血連結', 
+        range: 5, cast: 2.0, cd: 10.0, cost: 50, gain: 0, 
+        type: 'SINGLE', power: 150, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'VAMP', effectVal: 1.0, visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
         id: 'mr_a3', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '恐懼術', desc: '短暫放逐', 
-        range: 4, cast: 0.5, cd: 15.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 40, 
-        color: '#9333ea', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 3.0, 
+        name: '暗影之怒', desc: '範圍暗影傷害', 
+        range: 6, cast: 1.2, cd: 10.0, cost: 60, gain: 0, 
+        type: 'AOE', aoeRadius: 3, power: 120, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
     { 
         id: 'mr_a4', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '靈魂碎片', desc: '回復魔力', 
-        range: 0, cast: 0.8, cd: 18.0, cost: 0, gain: 100, 
-        type: 'SINGLE', power: 0, 
-        color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
-        effectType: 'MANA_RESTORE', effectVal: 60, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD' 
+        name: '烈焰風暴', desc: '範圍火海', 
+        range: 6, cast: 1.5, cd: 14.0, cost: 70, gain: 0, 
+        type: 'AOE', aoeRadius: 4, power: 100, color: '#ea580c', visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'DOT', ccDur: 5.0, ccForce: 40, element: 'FIRE', visualHitEffect: 'FX_HIT_RED_MAGMA' 
     },
     { 
         id: 'mr_a5', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '混沌之箭', desc: '極高隨機傷害', 
-        range: 6, cast: 1.5, cd: 12.0, cost: 60, gain: 0, 
-        type: 'SINGLE', power: 350, 
-        color: '#22c55e', visual: 'BOLT', projectileSpeed: 700, 
-        visualHitEffect: 'FX_IMPACT_ARCANE', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB' 
+        name: '混亂箭', desc: '高傷隨機暈眩', 
+        range: 6, cast: 1.5, cd: 12.0, cost: 55, gain: 0, 
+        type: 'SINGLE', power: 200, color: '#22c55e', visual: 'BOLT', projectileSpeed: 800, 
+        ccType: 'STUN', ccDur: 1.5, visualHitEffect: 'FX_HIT_RED_FEL' 
     },
 
-    // ==========================================
-    // ⚕️ RED SUPPORT (Shaman / Hex)
-    // ==========================================
+    // =================================================================
+    // ⚕️ SUPPORT
+    // =================================================================
     { 
         id: 'sr_a1', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '治療鏈', desc: '群體治療', 
-        range: 5, cast: 1.0, cd: 8.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: -160, 
-        color: '#facc15', visual: 'BOLT', projectileSpeed: 700, 
-        visualHitEffect: 'FX_IMPACT_LIGHTNING', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB' 
-    },
-    { 
-        id: 'sr_a2', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '妖術', desc: '變羊(放逐)', 
-        range: 5, cast: 0.5, cd: 15.0, cost: 50, gain: 0, 
-        type: 'SINGLE', power: 30, 
-        color: '#84cc16', visual: 'BOLT', projectileSpeed: 800, 
-        ccType: 'BANISH', ccDur: 3.5, 
-        specialVisualStatus: 'POLYMORPH',
-        visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB' 
-    },
-    { 
-        id: 'sr_a3', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '暗言術:痛', desc: '強力DoT', 
-        range: 6, cast: 0.5, cd: 6.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 60, 
-        color: '#7e22ce', visual: 'BOLT', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 60, ccDur: 6, 
-        visualHitEffect: 'FX_HIT_RED_SHADOW' 
-    },
-    { 
-        id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '嗜血術', desc: '範圍回魔加速', 
-        range: 0, cast: 0.8, cd: 20.0, cost: 60, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 0, 
-        color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
-        effectType: 'MANA_RESTORE', effectVal: 40, 
+        name: '鮮血圖騰', desc: '犧牲生命治療隊友', 
+        range: 5, cast: 1.0, cd: 10.0, cost: 0, gain: 50, 
+        type: 'SINGLE', power: -300, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_RED_BLOOD' 
     },
     { 
-        id: 'sr_a5', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '地縛圖騰', desc: '範圍緩速', 
-        range: 0, cast: 0.6, cd: 12.0, cost: 40, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: 50, 
-        color: '#78350f', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 3, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY' 
+        id: 'sr_a2', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
+        name: '痛苦轉移', desc: '給予敵人DoT', 
+        range: 6, cast: 0.5, cd: 8.0, cost: 30, gain: 0, 
+        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 800, 
+        ccType: 'DOT', ccForce: 30, ccDur: 5.0, visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
+    { 
+        id: 'sr_a3', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
+        name: '狂熱', desc: '燃燒隊友生命換魔力(未實裝,暫為補魔)', 
+        range: 5, cast: 0.5, cd: 12.0, cost: 0, gain: 0, 
+        type: 'SINGLE', power: 0, color: '#ea580c', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'MANA_RESTORE', effectVal: 80, visualHitEffect: 'FX_HIT_RED_MAGMA' 
+    },
+    { 
+        id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
+        name: '暗影癒合', desc: '快速治療', 
+        range: 5, cast: 0.8, cd: 6.0, cost: 40, gain: 0, 
+        type: 'SINGLE', power: -180, color: '#9333ea', visual: 'BEAM', projectileSpeed: 0, 
+        visualHitEffect: 'FX_HIT_RED_SHADOW' 
+    },
+    { 
+        id: 'sr_a5', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
+        name: '精神控制', desc: '強力單體控制', 
+        range: 5, cast: 1.0, cd: 18.0, cost: 60, gain: 0, 
+        type: 'SINGLE', power: 20, color: '#000', visual: 'BEAM', projectileSpeed: 0, 
+        ccType: 'STUN', ccDur: 3.0, visualHitEffect: 'FX_HIT_RED_SHADOW' 
+    }
 ];
