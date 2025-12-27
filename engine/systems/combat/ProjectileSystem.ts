@@ -1,7 +1,9 @@
+
 import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
 import { SkillResolutionSystem } from "./SkillResolutionSystem";
+import { PROJECTILE_VISUALS } from "../../../data/projectile_visuals";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
@@ -10,9 +12,13 @@ export class ProjectileSystem {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
             
+            // 1. Resolve Definition
+            const def = PROJECTILE_VISUALS[p.skill.id] || PROJECTILE_VISUALS[p.skill.visual || 'BOLT'];
+            const isInstant = def ? def.trajectory === 'INSTANT' : false;
+
             // LOGICAL RAY DETECTION
-            // High velocity skills (e.g., rr_u1 Railgun) move instantly to prevent trail gaps
-            const isInstantRay = p.skill.projectileSpeed > 1400 || p.skill.id === 'rr_u1' || p.skill.id === 'mr_u2';
+            // High velocity skills or INSTANT trajectory move instantly
+            const moveInstantly = isInstant || p.skill.projectileSpeed > 1400;
 
             const isGroundTarget = p.targetId.startsWith('ground-');
             let target = isGroundTarget ? null : engine.agents.find(a => a.id === p.targetId);
@@ -22,7 +28,7 @@ export class ProjectileSystem {
             }
 
             const dist = Vector.dist({x: p.x, y: p.y}, p.targetPos);
-            const moveDist = isInstantRay ? 4000 * dt : p.speed * dt;
+            const moveDist = moveInstantly ? 4000 * dt : p.speed * dt;
             
             // Update trail before moving
             const lastTrail = p.trail.length > 0 ? p.trail[p.trail.length - 1] : null;

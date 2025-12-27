@@ -349,7 +349,8 @@ export class GameRenderer {
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
         // --- VECTOR BEAM REFACTOR (Moving High-Speed Projectiles) ---
-        const isRay = op.pSkillVis === 'BEAM' || (op.proj && (op.proj.skill.id === 'rr_u1' || op.proj.skill.id === 'mr_u2'));
+        // Data-driven check using the flag set by ProjectileRenderer from PROJECTILE_VISUALS
+        const isRay = op.pSkillVis === 'BEAM'; 
         
         if (isRay && op.pTrail && op.pTrail.length > 0) {
             ctx.save();
@@ -379,7 +380,6 @@ export class GameRenderer {
             ctx.stroke();
 
             // 2. Shock Rings (Mach Cones)
-            // Draw perpendicular rings along the beam
             if (len > 20) {
                 const ringCount = Math.floor(len / 30);
                 ctx.translate(start.x, start.y);
@@ -389,10 +389,9 @@ export class GameRenderer {
                 ctx.globalAlpha = 0.6;
                 
                 for(let i=1; i<=ringCount; i++) {
-                    const x = i * 30 - (this.globalTime * 200 % 30); // Move rings backwards
+                    const x = i * 30 - (this.globalTime * 200 % 30); 
                     if (x > 0 && x < len) {
                         ctx.beginPath();
-                        // Vertical ellipse (perp to beam)
                         ctx.ellipse(x, 0, 3, 10, 0, 0, Math.PI*2);
                         ctx.stroke();
                     }
@@ -442,7 +441,7 @@ export class GameRenderer {
 
         ctx.save();
         ctx.translate(Math.round(op.pVisX), Math.round(op.pVisY));
-        if (op.pSkillVis === 'BOMB') ctx.rotate(op.pSpin);
+        if (op.pSpin !== 0) ctx.rotate(op.pSpin); // Using calc spin from config
         else ctx.rotate(op.pAngle);
         
         const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
