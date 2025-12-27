@@ -1,7 +1,7 @@
 
 import { Particle } from "../state";
 import { isChaosStyle } from "../utils";
-import { ISO_SCALE_Y } from "../../../../constants";
+import { ISO_SCALE_Y, HEX_SIZE } from "../../../../constants";
 import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 
@@ -18,13 +18,21 @@ import {
     DEFAULT_HEX_CONFIG,
     DEFAULT_BEAM_CONFIG,
     DEFAULT_GRID_CONFIG
-} from "../../../../../data/vfx/procedural_visuals";
+} from "../../../../data/vfx/procedural_visuals";
 
 const UNIT_CHEST_HEIGHT = 40;
 
 // Optimization: Precomputed Unit Hexagon (Radius 1.0)
-const HEX_CORNERS_X = [1, 0.5, -0.5, -1, -0.5, 0.5];
-const HEX_CORNERS_Y = [0, 0.866, 0.866, 0, -0.866, -0.866];
+// FIXED: Alignment with Terrain
+const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
+const HEX_CORNERS_X: number[] = [];
+const HEX_CORNERS_Y: number[] = [];
+
+for (let i = 0; i < 6; i++) {
+    const angle = START_ANGLE + i * Math.PI / 3;
+    HEX_CORNERS_X.push(Math.cos(angle));
+    HEX_CORNERS_Y.push(Math.sin(angle));
+}
 
 function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
     ctx.beginPath();
@@ -37,11 +45,22 @@ function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
 
 export const ParticleRenderer = {
     
-    drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean) {
+    /**
+     * Draws a single particle at the given LOCAL coordinates (0,0 assumed if context is translated).
+     * @param ctx Canvas Context
+     * @param p Particle Data
+     * @param drawX Local X offset (usually 0 if caller handled translate)
+     * @param drawY Local Y offset (usually 0 if caller handled translate)
+     * @param progress Lifecycle 0->1
+     * @param isChaos Visual style flag
+     */
+    drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, isChaos: boolean) {
         ctx.save();
         
-        // 1. Base Position (Int Snapping for Speed)
-        ctx.translate(Math.floor(p.x), Math.floor(p.y));
+        // 1. Base Position
+        // CRITICAL FIX: Do NOT use p.x/p.y here. The context is already translated by the RenderList.
+        // We only translate by the local offset (drawX, drawY), which is typically 0,0.
+        ctx.translate(drawX, drawY);
 
         const now = Date.now() / 1000;
 
@@ -104,7 +123,6 @@ export const ParticleRenderer = {
             const rawDef = PROCEDURAL_VISUALS[p.style || ''] || 
                           (p.type === 'HEX_BEAM' ? PROCEDURAL_VISUALS['HEX_CORE'] : PROCEDURAL_VISUALS['HEX_SOLID']);
             
-            // Cast to Specific Interface
             const def = rawDef as HexVisualDef;
             
             ctx.scale(1, ISO_SCALE_Y);
@@ -130,28 +148,18 @@ export const ParticleRenderer = {
         }
         // --- 2. GRID FIELD (Data Driven) ---
         else if (p.type === 'GRID_FIELD') {
-            // Find definition based on particle style or fallback logic
-            // To maintain compatibility with old events that don't pass style, we try to guess based on color
             let config: GridVisualDef = DEFAULT_GRID_CONFIG;
-            
             if (p.style && PROCEDURAL_VISUALS[p.style]) {
                 config = PROCEDURAL_VISUALS[p.style] as GridVisualDef;
-            } else {
-                // Fallback guessing for legacy particles (can be removed later)
-                if (p.color === '#be123c' || p.color.includes('blood')) config = PROCEDURAL_VISUALS['GRID_BLOOD'] as GridVisualDef;
-                else if (p.color === '#3b82f6') config = PROCEDURAL_VISUALS['GRID_TECH_BLUE'] as GridVisualDef;
-                else if (p.color === '#ef4444') config = PROCEDURAL_VISUALS['GRID_CORRUPT_RED'] as GridVisualDef;
-            }
-
-            if (!config) config = DEFAULT_GRID_CONFIG;
+            } 
 
             if (config.blendMode) ctx.globalCompositeOperation = config.blendMode;
 
             if (config.isLiquid) {
-                SurfaceAssets.drawLiquidSurface(ctx, 0, 0, config.color, now, progress);
+                SurfaceAssets.drawLiquid(ctx, 0, 0, config.color, now, progress);
             } else {
                 const height = (config.height || 15) * progress;
-                SurfaceAssets.drawExtrudedHex(ctx, 0, 0, height, config.color, config.opacity || 0.6, false);
+                SurfaceAssets.drawExtrusion(ctx, 0, 0, height, config.color, config.opacity || 0.6);
             }
         }
         // --- 3. PILLARS ---
@@ -216,20 +224,23 @@ export const ParticleRenderer = {
         }
         // --- 5. BEAMS ---
         else if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
-            if (p.sx !== undefined && p.sy !== undefined && p.sz !== undefined &&
-                p.tx !== undefined && p.ty !== undefined && p.tz !== undefined) {
-                
+            // NOTE: Beam logic uses p.targetX relative calculations.
+            // Since we are now in local space (0,0), we rely on the p.targetX/Y that was prepared in RenderList
+            // OR we must ensure p has the relative coords.
+            // The renderer logic in GameRenderer.ts prepares this relative coordinate.
+            
+            if (p.targetX !== undefined && p.targetY !== undefined) {
                 const styleId = p.style || (p.type === 'DEATH_RAY' ? 'DEATH_RAY' : 'GENERIC_BEAM');
-                // Updated to fetch from aggregated registry
                 const rawDef = PROCEDURAL_VISUALS[styleId] || DEFAULT_BEAM_CONFIG;
                 const conf = rawDef as BeamVisualDef;
 
-                const dx = p.tx - p.sx; 
+                // Source is (0,0) because of context translation
                 const startVisY = -UNIT_CHEST_HEIGHT;
                 
-                const worldYDelta = p.ty - p.sy;
-                const zDelta = p.tz - p.sz;
-                const targetVisY = worldYDelta - zDelta - UNIT_CHEST_HEIGHT;
+                // Target is relative
+                const dx = p.targetX;
+                const dy = p.targetY;
+                const targetVisY = dy - UNIT_CHEST_HEIGHT; // Approximate visual target Y relative to source visual Y
                 
                 const dist = Math.sqrt(dx*dx + (targetVisY - startVisY)**2);
                 const angle = Math.atan2(targetVisY - startVisY, dx);
@@ -238,10 +249,9 @@ export const ParticleRenderer = {
                 ctx.translate(0, startVisY); 
                 ctx.rotate(angle);
                 
-                // Color Override Logic (Particle Color > Config Color)
                 const coreCol = p.color !== '#fff' ? p.color : conf.coreColor;
                 const glowCol = p.color !== '#fff' ? p.color : conf.glowColor;
-                const width = conf.width * (p.size / 4); // Scale by particle size param
+                const width = conf.width * (p.size / 4); 
 
                 if (conf.blendMode) ctx.globalCompositeOperation = conf.blendMode;
 
@@ -257,7 +267,6 @@ export const ParticleRenderer = {
                         ctx.globalAlpha = 0.8 * (1 - progress);
                         ctx.lineWidth = Math.max(1, coreWidth * 0.8);
                         
-                        // Configurable Helix
                         const freq = conf.helixFreq || 0.1; 
                         const amp = (conf.helixAmp || 3) * (width / 4);
                         const speed = now * 20; 
@@ -278,14 +287,12 @@ export const ParticleRenderer = {
                 else if (conf.type === 'STRAIGHT' || conf.type === 'VIBRANT') {
                     const w = width * (1 - progress);
                     if (w > 0.5) {
-                        // Outer Glow
                         ctx.strokeStyle = glowCol;
                         ctx.shadowColor = glowCol;
                         ctx.shadowBlur = (conf.noiseScale || 0) * 5 + 10;
                         ctx.lineWidth = w * 2;
                         ctx.globalAlpha = 0.6 * (1 - progress);
                         
-                        // Jitter for VIBRANT
                         let y1 = 0, y2 = 0;
                         if (conf.noiseScale && conf.noiseScale > 0) {
                             y1 = (Math.random()-0.5) * conf.noiseScale;
@@ -295,7 +302,6 @@ export const ParticleRenderer = {
                         ctx.beginPath(); ctx.moveTo(0,y1); ctx.lineTo(dist, y2); ctx.stroke();
                         ctx.shadowBlur = 0;
 
-                        // Inner Core
                         ctx.globalCompositeOperation = 'source-over';
                         ctx.strokeStyle = coreCol;
                         ctx.lineWidth = w;

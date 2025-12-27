@@ -105,6 +105,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
         emitters: [
             {
                 particleType: 'GRID_FIELD',
+                visualStyle: 'GRID_TECH_BLUE', // Explicit Style
                 count: 1,
                 lifetime: [0.8, 1.0],
                 size: [36, 36], // Fits exactly on tile
@@ -123,6 +124,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
         emitters: [
             {
                 particleType: 'GRID_FIELD',
+                visualStyle: 'GRID_CORRUPT_RED', // Explicit Style
                 count: 1,
                 lifetime: [1.0, 1.2],
                 size: [36, 36],
@@ -141,6 +143,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
         emitters: [
             {
                 particleType: 'GRID_FIELD',
+                visualStyle: 'GRID_VOID', // Explicit Style
                 count: 1,
                 lifetime: [1.2, 1.5],
                 size: [36, 36],

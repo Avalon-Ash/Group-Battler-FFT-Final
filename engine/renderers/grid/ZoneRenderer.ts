@@ -3,142 +3,145 @@ import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { GroundHazard } from "../../../types";
 import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
-
-// Helper
-function traceHex(ctx: CanvasRenderingContext2D, r: number) {
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-        const angle = i * Math.PI / 3;
-        const x = r * Math.cos(angle);
-        const y = r * Math.sin(angle);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-}
+import { CAST_VISUALS } from "../../../data/vfx/cast_visuals";
 
 export const ZoneRenderer = {
     
-    drawActiveHazard(
+    /**
+     * Renders persistent ground hazards (Fire, Poison, etc.)
+     */
+    drawHazard(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
-        size: number,
         hazard: GroundHazard,
         globalTime: number
     ) {
-        // 1. Load Definition
         const def = HAZARD_VISUALS[hazard.type] || HAZARD_VISUALS['GENERIC'];
         
-        // 2. Render based on Type
+        // 1. LIQUID (Magma, Water)
         if (def.type === 'LIQUID') {
-            const flow = globalTime * def.speed;
-            const intensity = def.intensity * (0.8 + Math.sin(flow) * 0.2);
-            SurfaceAssets.drawLiquidSurface(ctx, x, y, def.primaryColor, flow, intensity);
+            const speed = globalTime * def.speed;
+            const intensity = def.intensity * (0.85 + Math.sin(speed) * 0.15);
+            
+            SurfaceAssets.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
             
             if (def.cracks) {
-                SurfaceAssets.drawGroundCracks(ctx, x, y, def.secondaryColor, intensity);
+                SurfaceAssets.drawCracks(ctx, x, y, def.secondaryColor, intensity);
             }
         }
+        // 2. FOG (Poison, Smoke)
         else if (def.type === 'FOG') {
-            SurfaceAssets.drawVolumetricFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
+            SurfaceAssets.drawFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
         }
-        else if (def.type === 'CRYSTAL' && def.extrude) {
-            SurfaceAssets.drawExtrudedHex(ctx, x, y, 5, def.primaryColor, 0.4, false);
+        // 3. CRYSTAL (Ice, Wall)
+        else if (def.type === 'CRYSTAL') {
+            if (def.extrude) {
+                SurfaceAssets.drawExtrusion(ctx, x, y, 8, def.primaryColor, 0.5);
+            }
+            // Base Glow
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            traceHex(ctx, size*0.8);
-            ctx.fill();
+            ctx.fillStyle = def.secondaryColor;
+            ctx.globalAlpha = 0.3;
+            ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.8, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
+        // 4. VOID HOLE (Gravity)
         else if (def.type === 'VOID_HOLE') {
-            // Hexagonal Black Hole / Portal
             ctx.save();
             ctx.translate(x, y);
             ctx.scale(1, ISO_SCALE_Y);
-            ctx.fillStyle = def.primaryColor;
-            ctx.globalAlpha = def.intensity;
-            traceHex(ctx, size * 0.9);
-            ctx.fill();
             
+            // Black Hole Center
+            ctx.fillStyle = def.primaryColor; // Usually black
+            ctx.globalAlpha = def.intensity;
+            ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.7, 0, Math.PI*2); ctx.fill();
+            
+            // Accretion Disk (Rotating Ring)
             ctx.rotate(globalTime * def.speed);
             ctx.strokeStyle = def.secondaryColor;
-            ctx.lineWidth = 2;
-            traceHex(ctx, size * 0.6); ctx.stroke();
-            
-            ctx.rotate(1); // Offset ring
-            traceHex(ctx, size * 0.4); ctx.stroke();
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 15]);
+            ctx.beginPath(); ctx.arc(0, 0, HEX_SIZE * 0.8, 0, Math.PI*2); ctx.stroke();
             
             ctx.restore();
         }
     },
 
-    draw(
+    /**
+     * Renders casting indicators and AOE warnings.
+     */
+    drawZone(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
         size: number,
         color: string,
-        type: 'CAST',
-        visual: string,
-        progress: number, 
+        visualTag: string, 
+        progress: number, // 0.0 (Start) -> 1.0 (Ready)
         globalTime: number,
-        dist: number, 
-        maxRadius: number
+        dist: number,     // Distance from center of zone (in tiles)
+        maxRadius: number // Radius of zone (in tiles)
     ) {
-        const snapX = Math.floor(x);
-        const snapY = Math.floor(y);
+        // Resolve Config
+        const styleKey = (visualTag === 'ULT') ? 'ULT' : 
+                         (visualTag === 'ACTIVE') ? 'ACTIVE' : 
+                         (visualTag === 'AOE_WARNING') ? 'AOE_WARNING' : 'BASIC';
+                         
+        const def = CAST_VISUALS[styleKey] || CAST_VISUALS['BASIC'];
 
         ctx.save();
-        ctx.translate(snapX, snapY);
-        ctx.scale(1, ISO_SCALE_Y); 
+        if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
-        if (type === 'CAST') {
-            const totalRadiusPx = Math.max(1, maxRadius) * HEX_SIZE * 1.5;
-            const tileDistPx = dist * HEX_SIZE * 1.5;
-            const normalizedDist = tileDistPx / totalRadiusPx;
-            const wavePos = progress; 
-            const bandWidth = 0.15;
-            const distFromWave = Math.abs(normalizedDist - wavePos);
+        // Logic for "Ripple" Effect
+        // We want a ring that expands/contracts based on progress
+        const radiusPx = (maxRadius + 0.5) * size * 1.5; // Approximate pixel radius of zone
+        const myDistPx = dist * size * 1.5;
+        
+        // Normalized position within the zone (0 = center, 1 = edge)
+        const normalizedPos = myDistPx / Math.max(1, radiusPx);
+        
+        // Pulse Logic
+        const pulse = 1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1;
+        
+        // --- A. BASE FILL ---
+        // Always draw a faint background for the zone
+        ctx.fillStyle = color;
+        ctx.globalAlpha = def.fillOpacityBase * pulse * (1 - normalizedPos * 0.5);
+        SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
+        ctx.fill();
+
+        // --- B. CHARGE RIPPLE ---
+        // A band that moves inward or outward
+        const waveWidth = 0.2;
+        const wavePos = 1.0 - progress; // Move inward as cast completes
+        
+        if (Math.abs(normalizedPos - wavePos) < waveWidth) {
+            ctx.globalAlpha = def.fillOpacityMax * pulse;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = def.innerRingWidth || 1;
+            SurfaceAssets.traceHex(ctx, x, y, size * 0.85);
+            if (def.innerRingWidth > 0) ctx.stroke();
             
-            // Draw Hex Ripple
-            if (distFromWave < bandWidth) {
-                const intensity = (1 - distFromWave / bandWidth);
-                ctx.save();
-                ctx.globalCompositeOperation = 'lighter';
-                
-                const alpha = intensity * (1.0 - progress * 0.5) * 0.8;
-                ctx.fillStyle = color;
-                ctx.globalAlpha = alpha;
-                traceHex(ctx, size * 0.9);
-                ctx.fill();
-                
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = alpha;
-                traceHex(ctx, size * 0.9);
-                ctx.stroke();
-                
-                ctx.restore();
-            } else if (normalizedDist < wavePos) {
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.15 * (1.0 - progress * 0.5);
-                traceHex(ctx, size * 0.8);
-                ctx.fill();
-            }
+            ctx.fillStyle = color;
+            ctx.fill();
+        }
 
-            const isUlt = visual === 'ULT' || maxRadius >= 3; 
-            if (isUlt && dist >= maxRadius - 0.5) {
-                ctx.save();
-                ctx.rotate(globalTime * 2);
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 3;
-                ctx.setLineDash([10, 5]);
-                traceHex(ctx, size * 0.95);
-                ctx.stroke();
-                ctx.setLineDash([]);
-                ctx.restore();
-            }
+        // --- C. OUTER BORDER (Perimeter) ---
+        // Only drawn on tiles at the edge of the radius
+        if (dist >= maxRadius - 0.5) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = def.baseRingWidth;
+            ctx.globalAlpha = 0.8 * pulse;
+            
+            if (def.dashed) ctx.setLineDash([10, 5]);
+            
+            // Rotating Runes Effect (Simulated by rotating hex slightly? No, keeping it stable is better for grid)
+            // Just draw the border
+            SurfaceAssets.traceHex(ctx, x, y, size * 0.92);
+            ctx.stroke();
+            
+            ctx.setLineDash([]);
         }
 
         ctx.restore();

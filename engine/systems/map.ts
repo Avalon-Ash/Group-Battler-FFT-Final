@@ -112,6 +112,8 @@ export class MapSystem {
         if (!this.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
         
+        // Overwrite existing hazard (Last applied wins, simplified logic)
+        // Future: Handle stacking or merging
         const hazard: GroundHazard = {
             id: Math.random().toString(36).substr(2, 6),
             q, r,
@@ -122,7 +124,7 @@ export class MapSystem {
             color,
             power,
             interval,
-            timer: 0 
+            timer: 0 // Start fresh
         };
         
         this.hazards.set(key, hazard);
@@ -133,17 +135,21 @@ export class MapSystem {
     }
 
     public tickHazards(dt: number, engine: GameEngine) {
+        const toRemove: string[] = [];
+
         for (const [key, h] of this.hazards.entries()) {
             h.duration -= dt;
             h.timer -= dt;
             
             if (h.duration <= 0) {
-                this.hazards.delete(key);
-                continue;
+                toRemove.push(key);
             }
         }
+        
+        toRemove.forEach(k => this.hazards.delete(k));
     }
 
+    // ... (Keep existing generation code below unchanged) ...
     private generateDecorations(engine: GameEngine) {
         const obstacleType = engine.currentScene.obstacleStyle || 'WALL';
         this._heightMap.forEach((hPx, key) => {

@@ -32,6 +32,12 @@ export interface Hex {
     r: number;
 }
 
+export interface Cube {
+    x: number;
+    y: number;
+    z: number;
+}
+
 export interface Point {
     x: number;
     y: number;
@@ -70,6 +76,10 @@ export interface Skill {
     power: number;
     color: string;
     
+    // Semantic Visual Tags (NEW: Fully Decoupled)
+    element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
+    specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
+
     // Control Effects (Slot 1)
     ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
     ccDur?: number;

@@ -101,5 +101,21 @@ export const VFX_LIBRARY = {
         { key: 'DOT', name: '持續傷 (DoT)', desc: '狀態', visuals: ['身上冒出綠色/紫色氣泡或煙霧'] },
         { key: 'HOT', name: '回春 (HoT)', desc: '狀態', visuals: ['身上飄出綠色「+」號'] },
         { key: 'CASTING', name: '詠唱 (Casting)', desc: '動作', visuals: ['腳下魔法陣(八芒星/方陣)', '聚氣光效'] }
+    ] as VFXEntry[],
+
+    PROJECTILES: [
+        { key: 'ARROW', name: '箭矢 (ARC)', desc: '拋物線 | 遠程', visuals: ['ArcHeight: 120', 'Sprite: ARROW'] },
+        { key: 'BOLT', name: '能量彈 (LINEAR)', desc: '直線 | 中程', visuals: ['Linear', 'Sprite: BOLT'] },
+        { key: 'FIREBALL', name: '火球 (WOBBLE)', desc: '波動 | 魔法', visuals: ['Sine Wave', 'Sprite: FIREBALL'] },
+        { key: 'BOMB', name: '炸彈 (ARC+SPIN)', desc: '拋物線 | 投擲', visuals: ['ArcHeight: 200', 'Spin: 15rad/s'] },
+        { key: 'BEAM', name: '光束 (RAY)', desc: '即時 | 連結', visuals: ['Instant Hit', 'Width: 3px'] },
+        { key: 'DEATH_RAY', name: '死亡射線 (RAY)', desc: 'Ult | 穿透', visuals: ['Instant', 'Width: 16px', 'Black Core'] }
+    ] as VFXEntry[],
+
+    CAST_RINGS: [
+        { key: 'BASIC', name: '普攻詠唱', desc: '弱引導', visuals: ['透明度: 0.3', '無符文', '白色邊框'] },
+        { key: 'ACTIVE', name: '主動技詠唱', desc: '標準引導', visuals: ['透明度: 0.4', '有符文', '旋轉速度: 1.0'] },
+        { key: 'ULT', name: '奧義詠唱', desc: '強力引導', visuals: ['透明度: 0.6', '雙層符文', '旋轉速度: 2.5', '虛線邊框'] },
+        { key: 'AOE_WARNING', name: '危險預警', desc: '敵方AOE', visuals: ['紅色高亮', '快速閃爍', '虛線'] }
     ] as VFXEntry[]
 };

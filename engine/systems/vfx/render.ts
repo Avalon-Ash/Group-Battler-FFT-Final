@@ -96,12 +96,7 @@ export class VFXRenderer {
             const drawY = p.y + offset - p.z;
             const isChaos = isChaosStyle(p.color);
             
-            const originalY = p.y;
-            p.y = drawY; 
-            
-            ParticleRenderer.drawSingleParticle(ctx, p, progress, isChaos);
-            
-            p.y = originalY; 
+            ParticleRenderer.drawSingleParticle(ctx, p, p.x, drawY, progress, isChaos);
         });
     }
 }

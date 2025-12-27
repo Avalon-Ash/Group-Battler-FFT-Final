@@ -16,6 +16,14 @@ export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
 export const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20;
 export const KILL_STREAK_WINDOW = 12.0; // Seconds allowed between kills to count as a streak
 
+// --- PHYSICS & FALL DAMAGE ---
+export const PHYSICS = {
+    GRAVITY: 2000,
+    SAFE_FALL_VELOCITY: 700, // Velocity below this takes no damage
+    FATAL_FALL_VELOCITY: 2200, // Velocity at which you take ~100% HP damage
+    FALL_DAMAGE_MIN: 50, // Minimum flat damage if threshold crossed
+};
+
 // --- ASSET PALETTES ---
 
 // 1. FACTION THEMES (Used by Renderers)

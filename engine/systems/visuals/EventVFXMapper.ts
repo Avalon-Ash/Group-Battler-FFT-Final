@@ -63,7 +63,8 @@ export class EventVFXMapper {
                 if (event.skill?.type !== 'AOE') {
                     this.handleHitVisuals(event, engine, vfx, grid, target, groundZ, camera); 
                 } else {
-                    vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 10, event.skill?.color);
+                    // Force slightly above ground to prevent Z-fighting
+                    vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color);
                 }
                 break;
 
@@ -154,7 +155,6 @@ export class EventVFXMapper {
 
         camera.addTrauma(0.2);
         
-        // Data-Driven Fallback based on Attacker's Faction
         const faction = source ? source.team : Team.BLUE;
         const factionVis = FACTION_VISUALS[faction] || FACTION_VISUALS[Team.BLUE];
         
@@ -163,7 +163,8 @@ export class EventVFXMapper {
 
     private handleAOE(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, groundZ: number) {
         if (!event.skill) return;
-        const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ };
+        // Bias Z by +5 to float slightly above terrain
+        const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 5 };
         const color = event.color || '#fff';
 
         if (UltArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) {
@@ -191,21 +192,20 @@ export class EventVFXMapper {
             if (engine.map.isValid(h.q, h.r)) {
                 const tilePos = HexUtils.toPx(h.q, h.r, engine.mapConfig);
                 const hHeight = grid.getTerrainHeight(h.q, h.r, engine);
-                vfx.playEffect(gridEffectId, tilePos.x, tilePos.y, hHeight, color);
+                // Float tile impact slightly (+2px)
+                vfx.playEffect(gridEffectId, tilePos.x, tilePos.y, hHeight + 2, color);
             }
         });
 
         // Center Impact
-        vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ, event.color);
+        vfx.playEffect('FX_IMPACT_PHYSICAL', event.pos.x, event.pos.y, groundZ + 10, event.color);
         camera.addTrauma(0.25); 
     }
 
-    // Logic moved from generic.ts to keep specific sprite logic here
     private spawnUnitShatter(system: VFXSystem, x: number, y: number, z: number, team: Team, role: Role, impulseX: number = 0, impulseY: number = 0) {
         const assets = SpriteManager.getUnitImages(role, team);
         const factionConfig = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         
-        // 1. Core Components (Base & Icon)
         const base = system.state.getParticle();
         base.x = x; base.y = y; base.z = z + 10;
         base.vx = impulseX * 0.8; base.vy = impulseY * 0.8;
@@ -226,7 +226,6 @@ export class EventVFXMapper {
         icon.vRotation = (Math.random() - 0.5) * 20; 
         system.state.particles.push(icon);
 
-        // 2. Data-Driven Shards
         const shardCount = 8;
         const colors = factionConfig.deathShatterColors;
         
@@ -238,7 +237,6 @@ export class EventVFXMapper {
             p.vx = Math.cos(a)*s + impulseX*0.5; p.vy = Math.sin(a)*s + impulseY*0.5; p.vz = 250 + Math.random()*250; 
             p.life = 1.5; p.maxLife = 1.5;
             p.type = 'SHARD'; 
-            // Randomly pick a color from the faction palette
             p.color = colors[Math.floor(Math.random() * colors.length)];
             p.size = 6 + Math.random()*8; 
             p.vRotation = (Math.random()-0.5)*30; 

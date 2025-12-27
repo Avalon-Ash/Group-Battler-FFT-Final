@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.1.0 (Stable)
+Version: 6.2.0 (Architecture Refined)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
@@ -83,7 +83,22 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 色差 (Chromatic Aberration): 戰鬥高潮與轉場時的 RGB 頻道分離特效。
   - 高斯模糊 (Finish Blur): 模擬毛玻璃質感的轉場與勝利介面。
 
-[5. AI 行為決策樹 (AI Behavior Tree)]
+[5. 系統架構解耦 (Decoupled Architecture)]
+--------------------------------------------------------------------------------
+* 核心原則 (Core Principles):
+  - 數學純粹性 (Pure Math): 所有軌跡運算 (拋物線、螺旋、正弦波) 獨立於 \`engine/math/TrajectoryMath.ts\`。
+  - 資產配置化 (Data-Driven Assets): 視覺定義 (Cast, Projectile, Hazard) 完全移至 \`data/vfx/*.ts\`，渲染器僅負責讀取與繪製。
+  - 系統專責化 (Single Responsibility): 
+    - \`VFXSystem\`: 粒子生命週期與物理。
+    - \`GridSystem\`: 地形緩存與圖層計算。
+    - \`ProjectileRenderer\`: 僅負責將邏輯位置轉換為視覺像素。
+
+* 檔案結構 (Key Paths):
+  - Math Lib: \`engine/math/TrajectoryMath.ts\`
+  - Visual Configs: \`data/vfx/projectile_visuals.ts\`, \`data/vfx/cast_visuals.ts\`
+  - Renderers: \`engine/systems/vfx/renderers/*\`
+
+[6. AI 行為決策樹 (AI Behavior Tree)]
 --------------------------------------------------------------------------------
 採用決策優先級 (Selector) 結構：
 
@@ -92,7 +107,7 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 3. [戰術移動]: 若目標超出射程，利用 A* 尋路進行位移，近戰單位觸發 Charge 加速。
 4. [預設動作]: 若無可用技能，保持最近敵對目標的鎖定並進行追擊。
 
-[6. 陣營視覺語義 (Faction Visual Semantics)]
+[7. 陣營視覺語義 (Faction Visual Semantics)]
 --------------------------------------------------------------------------------
 * 藍軍 (Imperial):
   - 色彩: 鈷藍 (Cobalt), 黃金 (Gold), 能量青 (Cyan).

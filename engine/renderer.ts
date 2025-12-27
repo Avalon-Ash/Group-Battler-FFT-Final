@@ -238,50 +238,52 @@ export class GameRenderer {
                     
                 case RenderOpType.VFX:
                     if (op.particle) {
+                        // FIXED: Do not modify particle state. Use local drawing coordinates.
+                        const p = op.particle;
+                        
+                        // We translate the Context to the visual position (snapX, snapY)
                         ctx.save();
-                        // 1. Translate to the visual source position
                         ctx.translate(snapX, snapY);
                         
-                        const pProxy = op.particle;
+                        // Pass 0,0 as draw coordinates because context is already translated.
+                        // However, we might need to modify p.targetX/Y properties temporarily for beam rendering relative calculations.
+                        // Ideally ParticleRenderer should calculate relative targets based on passed in coords, but for now 
+                        // we calculate the relative targets here and pass them or attach to a temporary context? 
+                        // No, let's keep it simple: Just draw at 0,0. 
                         
-                        // 2. Temporarily relativize coordinates for drawing in local space
-                        const originalX = pProxy.x;
-                        const originalY = pProxy.y;
-                        const originalTx = pProxy.targetX;
-                        const originalTy = pProxy.targetY;
-                        // Don't need to restore targetZ as it's not mutated, but we read it.
-                        
-                        // Visual Source becomes (0,0) in the new context
-                        pProxy.x = 0; 
-                        pProxy.y = 0;
-                        
-                        // Fix for Beams: Convert absolute World Target to Relative Visual Target
-                        if (pProxy.targetX !== undefined && pProxy.targetY !== undefined) {
-                            // Target X relative to Source X (Horizontal distance)
-                            pProxy.targetX = originalTx! - snapX; 
+                        // Handle Beam Target Relative calc without mutating state dangerously
+                        // If p.targetX exists, we need to convert it to local space for the renderer
+                        if (p.targetX !== undefined && p.targetY !== undefined) {
+                            // Cloning the particle object is too expensive.
+                            // We will temporarily mutate, but restore IMMEDIATELY.
+                            // Since JS is single-threaded, this is safe within the synchronous draw loop.
                             
-                            // VISUAL TARGET Y CALCULATION (Critical Fix)
-                            // snapY = Source.y + Offset - Source.z
-                            // We need TargetVisualY = Target.y + Offset - Target.z
-                            // RelativeY = TargetVisualY - snapY
+                            const origTx = p.targetX;
+                            const origTy = p.targetY;
                             
-                            // Since we don't have the transition offset for the target here cheaply,
-                            // we assume offset is similar (valid for beams which are short range).
-                            // TargetVisualY ~= Target.y - Target.z ( + offset)
+                            // Visual Target calculation:
+                            // TargetVisualY ~= TargetGroundY - TargetHeight
+                            // We approximate TargetHeight using p.targetZ if available, or just p.z (source height) if naive.
+                            // EventVFXMapper ensures target coordinates are 3D (x,y,z).
+                            // But here p.targetX/Y are usually world coords.
                             
-                            // relativeY = (originalTy - (pProxy.targetZ || 0)) - snapY.
-                            // Note: originalTy from particle is Ground Y.
+                            // Transform World Target to Local Target relative to (snapX, snapY)
+                            // snapX = p.x
+                            // snapY = p.y + offset - p.z
                             
-                            pProxy.targetY = (originalTy! - (pProxy.targetZ || 0)) - snapY; 
+                            p.targetX = origTx - snapX;
+                            // Approximate visual Y for target
+                            // We don't have target's transition offset easily, assume same as source for short beams
+                            p.targetY = (origTy - (p.targetZ || 0)) - snapY;
+                            
+                            ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
+                            
+                            // Restore
+                            p.targetX = origTx;
+                            p.targetY = origTy;
+                        } else {
+                            ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
                         }
-                        
-                        ParticleRenderer.drawSingleParticle(ctx, pProxy, op.vProgress, op.vChaos);
-                        
-                        // 3. Restore original absolute coordinates
-                        pProxy.x = originalX; 
-                        pProxy.y = originalY;
-                        pProxy.targetX = originalTx;
-                        pProxy.targetY = originalTy;
                         
                         ctx.restore();
                     }
@@ -349,7 +351,6 @@ export class GameRenderer {
 
     private drawProjectile(ctx: CanvasRenderingContext2D, op: RenderOp) {
         // --- VECTOR BEAM REFACTOR (Moving High-Speed Projectiles) ---
-        // Data-driven check using the flag set by ProjectileRenderer from PROJECTILE_VISUALS
         const isRay = op.pSkillVis === 'BEAM'; 
         
         if (isRay && op.pTrail && op.pTrail.length > 0) {

@@ -6,6 +6,9 @@ import { isChaosStyle } from "../systems/vfx/utils";
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
 
+// FIXED: Align with Terrain Geometry
+const START_ANGLE = Math.PI / 6 + Math.PI / 4;
+
 class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
@@ -144,7 +147,7 @@ class VFXTextureCache {
     private pathHex(ctx: CanvasRenderingContext2D, r: number) {
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            const angle = i * Math.PI / 3;
+            const angle = START_ANGLE + i * Math.PI / 3;
             const x = Math.cos(angle) * r;
             const y = Math.sin(angle) * r;
             if (i === 0) ctx.moveTo(x, y);

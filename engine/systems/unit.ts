@@ -30,36 +30,35 @@ export class UnitRenderSystem {
             if (agent.hp <= 0 && agent.fullyDead) return;
 
             // --- HEIGHT CORRECTION LOGIC ---
-            let h = 0;
+            let terrainH = 0;
             
             if (agent.isMoving && agent.path.length > 0) {
                 const h1 = getTerrainHeight(agent.q, agent.r);
                 const nextHex = agent.path[0];
                 const h2 = getTerrainHeight(nextHex.q, nextHex.r);
-                h = HexUtils.lerp(h1, h2, agent.moveProgress);
+                terrainH = HexUtils.lerp(h1, h2, agent.moveProgress);
             } else {
                 const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
                 const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
                 
                 if (distSq > 100) {
                     const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
-                    h = getTerrainHeight(visualHex.q, visualHex.r);
+                    terrainH = getTerrainHeight(visualHex.q, visualHex.r);
                 } else {
-                    h = getTerrainHeight(agent.q, agent.r);
+                    terrainH = getTerrainHeight(agent.q, agent.r);
                 }
             }
 
-            // Ground Y (The floor)
-            const visualY = agent.py - h;
+            const visualGroundY = agent.py - terrainH;
             
             const op = renderList.next();
             op.type = RenderOpType.UNIT;
-            op.y = agent.py + 1; // Sort base
+            op.y = agent.py + 1; 
             op.z = 10;
-            
             op.agent = agent;
-            op.tx = agent.px; // Draw X
-            op.ty = visualY;  // Draw Y (Ground)
+            op.tx = agent.px; 
+            op.ty = visualGroundY;  
+            op.th = terrainH; 
             op.time = globalTime;
             op.uSelected = (highlightAgent === agent);
             op.uSilhouette = false;
@@ -73,24 +72,18 @@ export class UnitRenderSystem {
         globalTime: number, 
         mapConfig: MapConfig
     ) {
-        let h = 0;
+        let terrainH = 0;
         if (agent.isMoving && agent.path.length > 0) {
             const h1 = getTerrainHeight(agent.q, agent.r);
             const nextHex = agent.path[0];
             const h2 = getTerrainHeight(nextHex.q, nextHex.r);
-            h = HexUtils.lerp(h1, h2, agent.moveProgress);
+            terrainH = HexUtils.lerp(h1, h2, agent.moveProgress);
         } else {
-            const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
-            const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
-            if (distSq > 100) {
-                const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
-                h = getTerrainHeight(visualHex.q, visualHex.r);
-            } else {
-                h = getTerrainHeight(agent.q, agent.r);
-            }
+            terrainH = getTerrainHeight(agent.q, agent.r);
         }
-        const visualY = agent.py - h;
-        this.drawAssembly(ctx, agent, agent.px, visualY, globalTime, false, true);
+        
+        const visualGroundY = agent.py - terrainH;
+        this.drawAssembly(ctx, agent, agent.px, visualGroundY, globalTime, false, true);
     }
 
     // =========================================================================================
@@ -105,7 +98,6 @@ export class UnitRenderSystem {
         isSelected: boolean,
         isSilhouette: boolean
     ) {
-        // 1. Calculate Scaling
         const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
         let roleScaleMod = 1.0;
         switch(agent.role) {
@@ -117,35 +109,26 @@ export class UnitRenderSystem {
         }
         const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
 
-        // START MAIN TRANSFORM STACK
         ctx.save();
-        
-        // 2. Global Position Transform (Screen Space -> Unit Root)
         ctx.translate(drawX, drawY); 
         ctx.scale(scaleFactor, scaleFactor);
 
-        // Calculate Physics Offsets (Scaled to Local Space)
         const physX = agent.physics.x / scaleFactor;
         const physY = agent.physics.y / scaleFactor;
         const physZ = agent.physics.z / scaleFactor; 
 
-        // 3. LAYER: GROUND (Shadows / Base Plates / Casting Circles)
-        // These are drawn relative to physics X/Y but usually stay on ground (Z=0)
+        // 3. LAYER: GROUND
         if (!isSilhouette && agent.hp > 0 && agent.visualStatus !== 'POLYMORPH') {
             this.drawGroundElements(ctx, agent, physX, physY, physZ, globalTime);
         }
 
-        // 4. LAYER: UNIT BODY ROOT (Apply Physics Translation)
-        // Now we move the context to the unit's actual body center (Chest/Feet)
+        // 4. LAYER: UNIT BODY ROOT
         ctx.translate(physX, physY - physZ); 
-
-        // 5. Apply Body Physics Rotation (e.g. Knockback spin)
         ctx.rotate(agent.physics.angle); 
 
         // 6. LAYER: ANIMATED BODY
         this.drawBodyElements(ctx, agent, globalTime, isSilhouette, isSelected, scaleFactor);
 
-        // END MAIN TRANSFORM STACK
         ctx.restore();
     }
 
@@ -154,14 +137,17 @@ export class UnitRenderSystem {
         
         // Base Token / Shadow
         ctx.save();
-        // Base stays at feet level (py), ignoring jump height (pz) usually, unless we want shadow to jump
-        ctx.translate(px, py - pz); 
+        // Translate to ground position (Local relative to Assembly Root)
+        ctx.translate(px, py); 
         
-        // 1. Draw Base Plate
-        // Use -64, -64 to perfectly center the 128x128 isometric base asset on the tile center
+        // 1. Draw Base Plate / Shadow
+        const shadowScale = Math.max(0.6, 1.0 - (pz / 400));
+        ctx.save();
+        ctx.scale(shadowScale, shadowScale);
         ctx.drawImage(assets.base, -64, -64); 
+        ctx.restore();
 
-        // 2. Draw Role Icon (Chess Piece Style)
+        // 2. Draw Role Icon
         ctx.save();
         const iconBaseY = -24; 
         ctx.translate(0, iconBaseY);
@@ -176,14 +162,12 @@ export class UnitRenderSystem {
         ctx.drawImage(assets.icon, -32, -32, 64, 64);
         
         ctx.restore(); // End Icon
-        ctx.restore(); // End Ground Group
-
-        // Flying Tether
-        if (agent.movementType === MovementType.FLYING) {
-            drawFlyingAnchor(ctx, agent, t, px, py, pz);
-        }
-
-        // Casting Magic Circle (Unified Volumetric System)
+        
+        // Casting Magic Circle (Ground Overlay)
+        // BUG FIX: The context is already at (px, py). 
+        // We must pass (0,0) to the indicator drawer, OR restore context and pass (px, py).
+        // Since the indicator function expects local coordinates if we want it attached to the unit,
+        // passing 0,0 is the correct "Local Center".
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
@@ -191,23 +175,23 @@ export class UnitRenderSystem {
                 const radius = skill.aoeRadius || 1;
                 const isAOE = skill.type === 'AOE';
                 
-                ctx.save();
-                
-                // VISUAL FIX: 
-                // For AOE skills, we clamp the ground indicator to the caster's personal space (0.8 tiles).
-                // The actual area coverage is handled by the GridSystem's terrain-conforming overlay.
-                // This prevents large flat circles from clipping into uneven terrain.
+                // Visual clamp for AOE source indicator
                 const visualRadius = isAOE ? 0.8 : radius;
-
-                // Pass the tag to determine visual intensity (Basic vs Active vs Ult)
-                drawSkillGroundIndicator(ctx, px, py - pz, skill.color, t, progress, visualRadius, skill.tag, isAOE);
-                ctx.restore();
+                drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, visualRadius, skill.tag, isAOE);
             }
+        }
+
+        ctx.restore(); // End Ground Group
+
+        // Flying Tether (Anchor line)
+        // Drawn outside the translated ground context to handle Z properly if needed,
+        // but here we draw it relative to ground.
+        if (agent.movementType === MovementType.FLYING && pz > 5) {
+            drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }
     }
 
     private drawBodyElements(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean, isSelected: boolean, scaleFactor: number) {
-        // "Breathing" Animation (Idle Float)
         let bodyFloat = -UNIT_BODY_OFFSET; 
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
              bodyFloat -= Math.sin(t * 2) * 3; 
@@ -216,16 +200,13 @@ export class UnitRenderSystem {
         }
         ctx.translate(0, bodyFloat);
 
-        // Spawn / Hit Flash effects
         let spawnAlpha = 1.0;
-        let whiteOverlay = 0;
-
+        
         if (agent.spawnTimer > 0) {
             const SPAWN_DURATION = 0.5; 
             const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 
             const eased = 1 - Math.pow(1 - progress, 3); 
             spawnAlpha = eased;
-            whiteOverlay = 1 - eased; 
             ctx.scale(1, 2.0 - eased); 
             ctx.globalAlpha *= spawnAlpha;
         }
@@ -233,16 +214,13 @@ export class UnitRenderSystem {
         if (agent.hp <= 0 && !isSilhouette) {
             ctx.filter = 'grayscale(100%) opacity(80%)'; 
         } else if (!isSilhouette && agent.hitFlashTimer > 0) {
-             whiteOverlay = 0.6; 
              ctx.filter = 'brightness(200%)';
         }
 
-        // Apply Flight VFX (Thrusters)
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             drawFlightVFX(ctx, agent, t);
         }
 
-        // Face Direction
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
 
         if (isSilhouette) {
@@ -250,7 +228,6 @@ export class UnitRenderSystem {
             ctx.globalAlpha = 0.8; 
         }
 
-        // Draw Model
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(t * 5) * 5);
@@ -263,7 +240,6 @@ export class UnitRenderSystem {
             }
             
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
-                // Check if ULT to dispatch to new renderer
                 const skill = agent.skills[agent.castingSkillIdx];
                 if (skill && skill.tag === 'ULT') {
                     drawUltimateChantVFX(ctx, agent, t);
@@ -295,7 +271,6 @@ export class UnitRenderSystem {
             }
         }
 
-        // Icons
         if (!isSilhouette) {
             drawStatusIcons(ctx, agent, t, 0, 0, scaleFactor);
             drawStatusEffects(ctx, agent, t);

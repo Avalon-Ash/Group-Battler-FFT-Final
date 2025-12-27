@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../game";
 import { HexUtils, Vector } from "../utils";
 import { AnimState, Hex, NodeState, MovementType } from "../../types";
+import { BLOCK_HEIGHT } from "../../constants";
 
 // Modules
 import { PhysicsEngine } from "../physics/PhysicsEngine";
@@ -72,6 +73,15 @@ export class MovementSystem {
             a.isMoving = false;
             a.moveSpeedMult = 1.0; // Reset speed after step completes
             
+            // Physics Stabilization: 
+            // When arriving, ensure physics state (z) aligns with new terrain if grounded.
+            if (a.movementType === MovementType.GROUND) {
+                // updateAgentPosition already handles the Z-shift logic to maintain continuity.
+                // We just need to dampen residual horizontal velocity to prevent drifting off the new tile.
+                a.physics.vx *= 0.1;
+                a.physics.vy *= 0.1;
+            }
+            
             // Small nudge to separate stacked units visually if they glitch
             a.physics.vx -= a.facing * STACKING_RESOLUTION_FORCE; 
         }
@@ -104,6 +114,7 @@ export class MovementSystem {
             const next = path[0];
             
             // CRITICAL CHECK: Even if we found a ghost path, is the IMMEDIATE NEXT STEP blocked?
+            // This prevents units from phasing through each other.
             if (engine.isBlocked(next.q, next.r, a.id, a.movementType)) {
                 // Wait queue logic
                 a.setAnim(AnimState.COMBAT_IDLE);
@@ -152,6 +163,7 @@ export class MovementSystem {
         map.forEach((list, hash) => {
             if (list.length > 1) {
                 const coords = HexUtils.unhash(hash);
+                const currentHeight = engine.map.getTerrainHeight(coords.q, coords.r);
                 
                 const stationary = list.filter(a => !a.isMoving);
                 const keep = stationary.length > 0 ? stationary[0] : list[0];
@@ -159,15 +171,34 @@ export class MovementSystem {
                 
                 toDisplace.forEach(agent => {
                     const neighbors = HexUtils.neighbors(coords);
+                    // Shuffle neighbors to avoid directional bias
                     for (let i = neighbors.length - 1; i > 0; i--) {
                         const j = Math.floor(Math.random() * (i + 1));
                         [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
                     }
                     
-                    let target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, agent.id, agent.movementType));
-                    
-                    // Fallback: Try valid but not obstacle (ignoring units)
-                    if (!target) target = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.map.hasObstacle(n.q, n.r));
+                    let target = neighbors.find(n => {
+                        // 1. Basic Validity
+                        if (!engine.map.isValid(n.q, n.r)) return false;
+                        
+                        // 2. Obstacle Check
+                        if (engine.isBlocked(n.q, n.r, agent.id, agent.movementType)) return false;
+                        
+                        // 3. Height Check (Safety)
+                        // Don't push ground units off cliffs or into walls unintentionally
+                        if (agent.movementType === MovementType.GROUND) {
+                            const nHeight = engine.map.getTerrainHeight(n.q, n.r);
+                            const deltaH = Math.abs(nHeight - currentHeight);
+                            const maxSafeStep = Math.max(1, agent.jump) * BLOCK_HEIGHT;
+                            if (deltaH > maxSafeStep) return false;
+                        }
+                        
+                        // 4. Occupancy Check (Don't push into another stack)
+                        // Allow pushing into empty tile only
+                        if (engine.getAgentAt(n.q, n.r)) return false;
+                        
+                        return true;
+                    });
                     
                     if (target) {
                         engine.updateAgentPosition(agent, target.q, target.r);

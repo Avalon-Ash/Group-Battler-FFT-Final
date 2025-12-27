@@ -1,6 +1,7 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../constants";
 import { Hex, Point } from "../types";
+import { HexMath } from "./math/HexMath";
 
 export interface MapConfig {
     w: number;
@@ -8,11 +9,6 @@ export interface MapConfig {
     offsetX: number;
     offsetY: number;
 }
-
-// FFT Style Isometric Constants
-const ANGLE = Math.PI / 4;
-const SIN_A = Math.sin(ANGLE);
-const COS_A = Math.cos(ANGLE);
 
 // --- Integer Hashing Constants ---
 const Q_STEP = 1 << 16;
@@ -31,7 +27,6 @@ export const NEIGHBOR_HASH_OFFSETS = [
 
 /**
  * Calculates the vertical visual offset for map transitions (Phase Jump).
- * V6 LOGIC: Snappy, non-linear acceleration with delay based on distance from center.
  */
 export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
     if (phase === 'IDLE') return 0;
@@ -39,50 +34,32 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
     // Normalize distance from center (0 to 1)
     const centerQ = Math.floor(mapConfig.w / 2);
     const centerR = Math.floor(mapConfig.h / 2);
-    const hex = HexUtils.fromPx(x, y, mapConfig);
-    const maxDist = Math.max(mapConfig.w, mapConfig.h) / 1.5;
-    const dist = Math.sqrt((hex.q - centerQ)**2 + (hex.r - centerR)**2);
+    
+    // Use Pixel Distance estimation for smoothness
+    const cx = mapConfig.offsetX;
+    const cy = mapConfig.offsetY;
+    const dist = Math.sqrt((x - cx)**2 + (y - cy)**2);
+    const maxDist = 1000;
     const d = Math.min(1, dist / maxDist);
     
     // Base travel distance (Pixels)
     const BASE_OFFSET = 1500; 
 
     if (phase === 'OUT') {
-        // LEAVING: Tiles Fall. Center drops first, edges drag behind.
-        // t goes 0 -> 1
-        
-        // Delay Logic: Center (d=0) starts at t=0. Edge (d=1) starts at t=0.3.
         const startT = d * 0.3;
-        
-        if (t < startT) return 0; // Waiting to drop
-
-        // Local progress for this specific tile (0 to 1)
-        // Scaled to complete faster once started
+        if (t < startT) return 0; 
         let localT = (t - startT) * 1.8; 
         localT = Math.max(0, Math.min(1, localT));
-        
-        // Physics: BackIn easing (Anticipation hop before fall)
-        // s = overshoot amount
         const s = 0.5; 
         const eased = localT * localT * ((s + 1) * localT - s);
-        
         return eased * BASE_OFFSET;
 
     } else if (phase === 'IN') {
-        // ARRIVING: Tiles Rise from abyss. Center arrives first.
-        
-        // Delay Logic: Center starts rising immediately. Edges delayed.
         const startT = d * 0.2;
-        
-        if (t < startT) return BASE_OFFSET; // Still in abyss
-
+        if (t < startT) return BASE_OFFSET; 
         let localT = (t - startT) * 1.5;
         localT = Math.max(0, Math.min(1, localT));
-        
-        // Physics: Elastic/Back Out (Snap into place)
-        // 1 - (1-t)^4 gives a nice sharp deceleration
         const eased = 1 - Math.pow(1 - localT, 4);
-        
         return (1 - eased) * BASE_OFFSET;
     }
     return 0;
@@ -95,53 +72,33 @@ export const HexUtils = {
         return { q: Math.floor(q), r };
     },
 
+    /**
+     * Converts Hex coordinates to Screen Pixels.
+     * DELEGATES TO HexMath.hexToPixel for consistent geometry.
+     */
     toPx: (q: number, r: number, config: MapConfig): Point => {
-        const cx = (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r) * HEX_SIZE;
-        const cy = (1.5 * r) * HEX_SIZE; 
-        
-        const rx = cx * COS_A - cy * SIN_A;
-        const ry = cx * SIN_A + cy * COS_A;
-        
-        return { 
-            x: config.offsetX + rx, 
-            y: config.offsetY + ry * ISO_SCALE_Y 
-        };
+        return HexMath.hexToPixel(q, r, config.offsetX, config.offsetY);
     },
 
+    /**
+     * Converts Screen Pixels to Hex coordinates.
+     * DELEGATES TO HexMath.pixelToHex for consistent picking.
+     */
     fromPx: (x: number, y: number, config: MapConfig): Hex => {
-        const dx = x - config.offsetX;
-        const dy = y - config.offsetY;
-        const unsquashedY = dy / ISO_SCALE_Y;
-
-        const cx = dx * COS_A + unsquashedY * SIN_A;
-        const cy = -dx * SIN_A + unsquashedY * COS_A;
-
-        const q = (Math.sqrt(3)/3 * cx - 1/3 * cy) / HEX_SIZE;
-        const r = (2/3 * cy) / HEX_SIZE;
-
-        return HexUtils.round(q, r);
+        const frac = HexMath.pixelToHex(x, y, config.offsetX, config.offsetY);
+        return HexMath.cubeToAxial(HexMath.cubeRound(HexMath.axialToCube(frac)));
     },
 
     round: (q: number, r: number): Hex => {
-        let s = -q - r;
-        let qi = Math.round(q);
-        let ri = Math.round(r);
-        let si = Math.round(s);
-        const q_diff = Math.abs(qi - q);
-        const r_diff = Math.abs(ri - r);
-        const s_diff = Math.abs(si - s);
-        
-        if (q_diff > r_diff && q_diff > s_diff) qi = -ri - si;
-        else if (r_diff > s_diff) ri = -qi - si;
-        
-        return { q: qi, r: ri };
+        const c = HexMath.cubeRound({x: q, z: r, y: -q-r});
+        return { q: c.x, r: c.z };
     },
 
     dist: (a: Hex, b: Hex): number => {
-        const aq = Math.round(a.q); const ar = Math.round(a.r);
-        const bq = Math.round(b.q); const br = Math.round(b.r);
-        return (Math.abs(aq - bq) + Math.abs(aq + ar - bq - br) + Math.abs(ar - br)) / 2;
+        return HexMath.distance(a, b);
     },
+
+    lerp: (a: number, b: number, t: number): number => a + (b - a) * t,
 
     key: (h: Hex): string => `${h.q},${h.r}`,
 
@@ -155,21 +112,13 @@ export const HexUtils = {
         return { q, r };
     },
 
-    lerp: (a: number, b: number, t: number): number => a + (b - a) * t,
-
     neighbors: (h: Hex): Hex[] => {
         const dirs = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
         return dirs.map(d => ({ q: h.q + d[0], r: h.r + d[1] }));
     },
 
     range: (center: Hex, n: number): Hex[] => {
-        const results: Hex[] = [];
-        for (let q = -n; q <= n; q++) {
-            for (let r = Math.max(-n, -q - n); r <= Math.min(n, -q + n); r++) {
-                results.push({ q: center.q + q, r: center.r + r });
-            }
-        }
-        return results;
+        return HexMath.range(center, n);
     }
 };
 

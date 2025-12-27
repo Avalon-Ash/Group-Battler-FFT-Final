@@ -94,26 +94,43 @@ export const useGameApp = () => {
 
     const spawnShowcaseUnits = useCallback(() => {
         const engine = engineRef.current;
-        const validHexes = (Array.from(engine.mapKeys) as string[]).map(k => {
-            const [q, r] = k.split(',').map(Number);
-            return {q, r};
-        });
-        // Fisher-Yates shuffle
+        
+        // 1. Get Valid Hexes (Filter out Obstacles immediately)
+        let validHexes = (Array.from(engine.mapKeys) as string[])
+            .map(k => {
+                const [q, r] = k.split(',').map(Number);
+                return {q, r};
+            })
+            .filter(h => !engine.map.hasObstacle(h.q, h.r)); // Critical: Exclude obstacles
+
+        // 2. Fisher-Yates shuffle
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
         
+        // 3. Balanced Spawning
         let spawnIndex = 0;
-        const spawn = (team: Team) => {
-            if (spawnIndex < validHexes.length) {
+        const TARGET_PER_TEAM = 5;
+        
+        const spawnTeam = (team: Team) => {
+            let count = 0;
+            // Keep trying until we hit target count or run out of map space
+            while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
                 const h = validHexes[spawnIndex++];
                 const hp = 500 + Math.floor(Math.random() * 400); 
-                engine.addAgent(team, h.q, h.r, hp);
+                
+                // Attempt add (returns null if failed logic, e.g. blocked)
+                const agent = engine.addAgent(team, h.q, h.r, hp);
+                if (agent) {
+                    count++;
+                }
             }
         };
-        for(let i=0; i<5; i++) spawn(Team.BLUE);
-        for(let i=0; i<5; i++) spawn(Team.RED);
+
+        spawnTeam(Team.BLUE);
+        spawnTeam(Team.RED);
+        
         engine.play();
         setIsPlaying(true);
     }, []);
@@ -187,25 +204,36 @@ export const useGameApp = () => {
         setMapH(engine.mapConfig.h);
         setCurrentSceneId(engine.currentScene.id);
 
-        // Quick Spawn logic for manual random
-        const validHexes = (Array.from(engine.mapKeys) as string[]).map(k => {
-            const [q, r] = k.split(',').map(Number);
-            return {q, r};
-        });
+        // 1. Get Valid Hexes (Filter out Obstacles)
+        let validHexes = (Array.from(engine.mapKeys) as string[])
+            .map(k => {
+                const [q, r] = k.split(',').map(Number);
+                return {q, r};
+            })
+            .filter(h => !engine.map.hasObstacle(h.q, h.r));
+
+        // 2. Shuffle
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
+
+        // 3. Balanced Spawning
         let spawnIndex = 0;
-        const spawn = (team: Team) => {
-            if (spawnIndex < validHexes.length) {
+        const TARGET_PER_TEAM = 5;
+
+        const spawnTeam = (team: Team) => {
+            let count = 0;
+            while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
                 const h = validHexes[spawnIndex++];
                 const hp = 500 + Math.floor(Math.random() * 400); 
-                engine.addAgent(team, h.q, h.r, hp);
+                const agent = engine.addAgent(team, h.q, h.r, hp);
+                if (agent) count++;
             }
         };
-        for(let i=0; i<5; i++) spawn(Team.BLUE);
-        for(let i=0; i<5; i++) spawn(Team.RED);
+
+        spawnTeam(Team.BLUE);
+        spawnTeam(Team.RED);
         
         setIsPlaying(false); 
     }, []);

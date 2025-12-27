@@ -1,12 +1,12 @@
 
 import { Agent, GameEngine } from "../game";
-import { MovementType } from "../../types";
+import { MovementType, AnimState } from "../../types";
 import { HexUtils } from "../utils";
+import { PHYSICS } from "../../constants";
 
 // Physics Constants
 const PHYSICS_STIFFNESS_ALIVE = 150;
 const PHYSICS_DAMPING_ALIVE = 25; 
-const GRAVITY = 2000; 
 
 export class PhysicsEngine {
 
@@ -15,9 +15,6 @@ export class PhysicsEngine {
         if (a.fullyDead) return;
 
         const isDead = a.hp <= 0;
-        
-        // If dead but not fully processed, we still apply basic gravity but skip spring forces to let them drop?
-        // Actually, if they are dead, we just want them to fall if airborne, otherwise stay put.
         
         // 1. Spring Forces (Return to 0,0 relative local space)
         // Only apply stiffness if alive. Dead units go limp (no spring back).
@@ -40,29 +37,24 @@ export class PhysicsEngine {
         
         // 4. Vertical Dynamics (Gravity vs Flight)
         const isAirborne = a.physics.z > 0;
+        const isFlying = a.movementType === MovementType.FLYING && !isDead;
+        const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
 
-        if (a.movementType === MovementType.FLYING && !isDead) {
-            // Flying Unit Logic
-            if (a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH') {
-                // CRASH STATE: Apply Gravity immediately
-                a.physics.vz -= GRAVITY * dt;
-            } else {
-                // HOVER STATE: Bob around a target altitude
-                // Adjusted: Lowered from 90 to 55 to be closer to action but still visually flying
-                const hoverHeight = 55; 
-                const hoverFreq = 2.5; // Slightly slower bob
-                // Reduced amplitude from 10 to 5 for stability
-                const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
-                
-                // Soft spring to maintain height
-                const dz = targetZ - a.physics.z;
-                a.physics.vz += dz * 5 * dt;
-                a.physics.vz *= 0.92; // Increased drag to stop oscillation
-            }
+        if (isFlying && !isDisabled) {
+            // HOVER STATE: Bob around a target altitude
+            // Adjusted: Lowered from 90 to 55 to be closer to action but still visually flying
+            const hoverHeight = 55; 
+            const hoverFreq = 2.5; 
+            const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
+            
+            // Soft spring to maintain height
+            const dz = targetZ - a.physics.z;
+            a.physics.vz += dz * 5 * dt;
+            a.physics.vz *= 0.92; // Increased drag to stop oscillation
         } else {
-            // Ground Unit Logic
-            if (isAirborne) {
-                a.physics.vz -= GRAVITY * dt;
+            // Gravity applies if airborne OR if grounded-but-dead (to prevent float glitches) OR if flying unit crashed
+            if (isAirborne || a.physics.z > 0.1) {
+                a.physics.vz -= PHYSICS.GRAVITY * dt;
             }
         }
 
@@ -72,16 +64,68 @@ export class PhysicsEngine {
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
         
-        // 6. Ground Collision (Bounce)
+        // 6. Ground Collision & FALL DAMAGE
         if (a.physics.z < 0) {
+            // Snap to ground
             a.physics.z = 0;
-            // Elastic collision with ground loss
-            if (Math.abs(a.physics.vz) > 100) {
-                a.physics.vz = -a.physics.vz * 0.5; // Bounce back
-                a.physics.vx *= 0.6; // Ground friction
-                a.physics.vy *= 0.6;
+            
+            // --- IMPACT CALCULATION ---
+            // Only check if moving downwards fast
+            if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
+                const impactSpeed = Math.abs(a.physics.vz);
+                
+                // Fall Damage Logic
+                // Only alive units take fall damage.
+                // Flying units crash if disabled, so they DO take damage here.
+                if (!isDead) {
+                    const velocityOverhead = impactSpeed - PHYSICS.SAFE_FALL_VELOCITY;
+                    const scaling = PHYSICS.FATAL_FALL_VELOCITY - PHYSICS.SAFE_FALL_VELOCITY;
+                    
+                    // Damage % = Linear interpolation between Safe and Fatal velocity
+                    const pct = Math.min(1.0, velocityOverhead / scaling);
+                    const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
+                    
+                    // Apply Damage
+                    a.hp = Math.max(0, a.hp - rawDmg);
+                    
+                    // Feedback
+                    engine.events.push({ 
+                        type: 'DAMAGE', 
+                        pos: {x: a.px, y: a.py}, 
+                        value: -rawDmg, 
+                        color: '#ef4444',
+                        text: "墜落"
+                    });
+                    engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg} (速度: ${Math.round(impactSpeed)})`);
+                    
+                    // Camera Shake based on impact
+                    if (engine.renderer) engine.renderer.camera.addTrauma(pct * 0.5);
+                    
+                    // Visuals
+                    engine.events.push({ 
+                        type: 'IMPACT_AOE', 
+                        pos: {x: a.px, y: a.py}, 
+                        color: '#9ca3af',
+                        skill: { aoeRadius: 1 } as any // Mock skill for size
+                    });
+
+                    // Death Check
+                    if (a.hp <= 0) {
+                        engine.log(a, 'DEATH', '墜落', null, '死於重力');
+                        engine.agentManager.handleDeadState(a, engine);
+                    } else {
+                        a.setAnim(AnimState.HIT);
+                    }
+                }
+
+                // Bounce Physics
+                a.physics.vz = -a.physics.vz * 0.3; // Dampened bounce
+                a.physics.vx *= 0.5; // Friction
+                a.physics.vy *= 0.5;
                 a.physics.vAngle *= 0.5;
+
             } else {
+                // Soft Landing
                 a.physics.vz = 0;
             }
         }

@@ -84,9 +84,10 @@ export class VFXSystem {
             }
 
             // --- PHYSICS UPDATE ---
-            const isPhysical = p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'SPRITE' || p.type === 'ROCK';
+            const isPhysical = p.type === 'DEBRIS' || p.type === 'SHARD' || p.type === 'SPRITE' || p.type === 'ROCK' || p.type === 'CHIP';
 
             if (isPhysical) {
+                // IMPORTANT: Fetch dynamic terrain height for this particle's location
                 let groundH = getTerrainHeight ? getTerrainHeight(p.x, p.y) : 0;
 
                 // Apply Gravity to Z (Height)

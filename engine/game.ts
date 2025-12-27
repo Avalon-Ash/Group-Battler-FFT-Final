@@ -1,3 +1,4 @@
+
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
@@ -105,6 +106,21 @@ export class GameEngine {
     }
 
     updateAgentPosition(agent: Agent, newQ: number, newR: number) {
+        // --- GRAVITY CONTINUITY LOGIC ---
+        // When stepping off a cliff or jumping up, we must compensate physics.z
+        // to maintain World Space Height continuity.
+        const oldH = this.map.getTerrainHeight(agent.q, agent.r);
+        const newH = this.map.getTerrainHeight(newQ, newR);
+        const deltaH = oldH - newH;
+        
+        // Add difference to local Z. 
+        // Example 1: Fall off 100px cliff. oldH=100, newH=0. deltaH=100.
+        // agent.physics.z becomes 100 (floating in air). Gravity will pull it down.
+        // Example 2: Jump up 100px cliff. oldH=0, newH=100. deltaH=-100.
+        // agent.physics.z becomes -100. Physics engine usually snaps this to 0 instantly for ground units,
+        // effectively "teleporting" them up, which is fine for step-climbing.
+        agent.physics.z += deltaH;
+
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
         agent.q = newQ;
         agent.r = newR;

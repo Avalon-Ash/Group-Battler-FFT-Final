@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { Projectile, Skill } from "../../types";
+import { Projectile, Skill, MovementType } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { SkillResolutionSystem } from "./combat/SkillResolutionSystem";
 import { HexUtils, Vector } from "../utils";
@@ -54,6 +54,12 @@ export class CombatSystem {
                 );
                 
                 occupants.forEach(agent => {
+                    // Height Check: Flying units avoid ground hazards (Liquid/Low Fog)
+                    // unless hazard is "tall" (like Gravity or high gas)
+                    if (agent.movementType === MovementType.FLYING && (h.type === 'FIRE')) {
+                        return; // Safe
+                    }
+
                     const dmg = h.power;
                     agent.hp = Math.max(0, agent.hp - dmg);
                     
@@ -67,7 +73,6 @@ export class CombatSystem {
                         skill: { color: h.color, ccType: 'DOT' } as any 
                     });
 
-                    // Log the Environment Damage (New)
                     engine.log(agent, 'HAZARD', h.type, `(${h.q},${h.r})`, `受到地形傷害 ${Math.floor(dmg)}`);
                 });
             }
@@ -90,7 +95,7 @@ export class CombatSystem {
                     const pull = 300 * dt;
                     agent.physics.vx += (dx/dist) * pull;
                     agent.physics.vy += (dy/dist) * pull;
-                    agent.moveSpeedMult = 0.3;
+                    agent.moveSpeedMult = 0.3; // Slow down
                 }
             }
         });
