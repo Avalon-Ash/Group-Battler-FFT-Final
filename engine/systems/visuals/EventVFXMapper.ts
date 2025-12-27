@@ -95,8 +95,31 @@ export class EventVFXMapper {
                 break;
                 
             case 'CAST_BREAK':
+                // Standard Break
                 vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
-                camera.addTrauma(0.15); 
+                
+                // --- RESTORED: DOMAIN SHATTER FOR ULTS ---
+                if (event.skill && event.skill.tag === 'ULT') {
+                    // Spawn extra large shards to simulate the domain breaking
+                    for(let i=0; i<8; i++) {
+                        const p = vfx.state.getParticle();
+                        p.x = origin.x + (Math.random()-0.5)*50;
+                        p.y = origin.y + (Math.random()-0.5)*50;
+                        p.z = origin.z + 50;
+                        p.vx = (Math.random()-0.5) * 600;
+                        p.vy = (Math.random()-0.5) * 600;
+                        p.vz = 400 + Math.random() * 400;
+                        p.life = 1.0; p.maxLife = 1.0;
+                        p.color = event.color || '#fff';
+                        p.size = 20 + Math.random() * 30; // Big chunks
+                        p.type = 'SHARD'; 
+                        p.gravity = 1500;
+                        vfx.state.particles.push(p);
+                    }
+                    camera.addTrauma(0.4); // Significant impact for stopping an Ult
+                } else {
+                    camera.addTrauma(0.15); 
+                }
                 break;
         }
     }

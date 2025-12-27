@@ -1,14 +1,14 @@
 
 import { Agent } from "../../game";
 import { Team } from "../../../types";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../../constants";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { AssetManager } from "../../assets";
 import { VFXFactory } from "../../graphics/VFXFactory";
 
-// ... (Keep existing imports and functions up to drawStatusEffects) ...
+// ... (Keep existing imports and functions up to drawDomainExpansion) ...
 
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
     const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
@@ -86,20 +86,29 @@ export function drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: n
 
     ctx.restore();
 
+    // If AOE, draw ground expansion
     if (skill.type === 'AOE') {
         drawDomainExpansion(ctx, agent, t, color, progress);
     }
 }
 
 export function drawDomainExpansion(ctx: CanvasRenderingContext2D, agent: Agent, t: number, color: string, progress: number) {
+    // Large Ground Ripple
     const texture = VFXFactory.getTexture('SHOCKWAVE', color); 
     ctx.save();
-    ctx.translate(0, 0); 
+    // Move to feet (ctx is currently at body center usually, depends on caller. 
+    // Usually caller sets context to unit logical pos + physics. 
+    // We want feet level. Logic: -BodyOffset?)
+    // Actually drawAssembly translates to unit center.
+    // Let's assume 0,0 is unit anchor.
+    
+    ctx.translate(0, UNIT_BODY_OFFSET); // Move down to feet level roughly
     ctx.scale(1, ISO_SCALE_Y); 
     
-    const scale = (0.5 + progress * 1.5) * 3.0; 
+    // Scale up massively
+    const scale = (0.5 + progress * 2.5) * 4.0; 
     ctx.globalCompositeOperation = 'screen';
-    ctx.globalAlpha = (1 - progress) * 0.4; 
+    ctx.globalAlpha = (1 - progress) * 0.3; // Fade as it gets huge
     
     const size = 64 * scale;
     ctx.drawImage(texture, -size/2, -size/2, size, size);
@@ -111,8 +120,9 @@ export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent
     if (!skill) return;
     const progress = 1 - (agent.castTimer / skill.cast);
     const color = skill.color;
+    
+    // 1. Magic Circle (Spinning)
     const texture = VFXFactory.getTexture('MAGIC_CIRCLE', color);
-
     ctx.save();
     ctx.translate(0, -60); 
     const rot = t * (2 + progress * 5);
@@ -124,10 +134,32 @@ export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent
     const size = 120;
     ctx.drawImage(texture, -size/2, -size/2, size, size);
     ctx.restore();
+    
+    // 2. Rising Energy
     const glow = VFXFactory.getTexture('GLOW', color);
     ctx.globalAlpha = 0.5 * progress;
     ctx.scale(0.5, 1.5); 
     ctx.drawImage(glow, -40, -40 - (progress * 50), 80, 80);
+    ctx.restore();
+
+    // 3. RESTORED: Domain Expansion (Ground Aura)
+    // Moves to feet and expands a huge volumetric hex
+    ctx.save();
+    ctx.translate(0, 40); // Move to ground relative to center
+    
+    // Pulse expansion
+    const domainSize = 200 * progress;
+    SurfaceAssets.drawVolumetricHex(ctx, 0, 0, domainSize, color, 0.3 * progress);
+    
+    // Sharp Ring
+    ctx.scale(1, ISO_SCALE_Y);
+    ctx.beginPath();
+    ctx.arc(0, 0, domainSize * 1.5, 0, Math.PI * 2);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.globalAlpha = 0.2 * progress;
+    ctx.stroke();
+    
     ctx.restore();
 }
 
@@ -173,9 +205,6 @@ export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: 
     }
 }
 
-/**
- * REFACTORED: Volumetric CC Visualization (Fixed: Larger, Animated)
- */
 function draw3DHexPrism(ctx: CanvasRenderingContext2D, t: number, color: string, height: number, radius: number) {
     const startAngle = Math.PI / 6 + Math.PI / 4;
     const r = radius;
@@ -245,55 +274,44 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
 
     if (statusId === 'NONE') return;
 
-    // --- 1. BANISH / STASIS: 3D Holographic Prison ---
     if (statusId === 'BANISH' || statusId === 'STASIS') {
         const color = statusId === 'STASIS' ? '#facc15' : '#c084fc';
         ctx.save();
         ctx.translate(0, 0); 
-        draw3DHexPrism(ctx, t, color, 120, 45); // Bigger prism
+        draw3DHexPrism(ctx, t, color, 120, 45); 
         ctx.restore();
         return;
     }
 
-    // --- 2. STUN: Double Spinning Hex Halo ---
     if (statusId === 'STUN') {
         const color = '#facc15';
         const halo = VFXFactory.getTexture('HEX_HALO', color);
-        
         ctx.save();
         ctx.translate(0, -90); 
-        
         const float = Math.sin(t * 8) * 5;
         ctx.translate(0, float);
         ctx.globalCompositeOperation = 'screen';
-        
-        // Inner fast ring
         ctx.save();
         ctx.scale(1, 0.4); 
         ctx.rotate(t * 6); 
-        const size1 = 60; // Bigger
-        ctx.globalAlpha = 1.0; // Brighter
+        const size1 = 60; 
+        ctx.globalAlpha = 1.0; 
         ctx.drawImage(halo, -size1/2, -size1/2, size1, size1);
         ctx.restore();
-        
-        // Outer slow ring
         ctx.save();
         ctx.scale(1, 0.4);
         ctx.rotate(-t * 2); 
-        const size2 = 90; // Bigger
+        const size2 = 90; 
         ctx.globalAlpha = 0.7;
         ctx.drawImage(halo, -size2/2, -size2/2, size2, size2);
         ctx.restore();
-        
         ctx.restore();
         return;
     }
 
-    // --- 3. SILENCE: Floating Lock Rune ---
     if (statusId === 'SILENCE') {
         const color = '#94a3b8';
         const lock = VFXFactory.getTexture('HEX_LOCK', color);
-        
         ctx.save();
         ctx.translate(0, -100); 
         const float = Math.sin(t * 3) * 3;
@@ -301,11 +319,8 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         ctx.globalCompositeOperation = 'source-over';
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
-        
-        // Pulse Size
         const pulse = 1 + Math.sin(t * 5) * 0.1;
-        const size = 48 * pulse; // Bigger
-        
+        const size = 48 * pulse; 
         ctx.drawImage(lock, -size/2, -size/2, size, size);
         ctx.restore();
         return;

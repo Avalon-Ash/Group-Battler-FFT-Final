@@ -81,8 +81,7 @@ export const ZoneRenderer = {
     },
 
     /**
-     * REFACTORED: Volumetric Hex Expansion
-     * Draws a "Volume" of light that fills up the hex.
+     * REFACTORED: Volumetric Hex Expansion with Warning Support
      */
     drawZone(
         ctx: CanvasRenderingContext2D,
@@ -95,53 +94,69 @@ export const ZoneRenderer = {
         dist: number,     // Distance from center of zone (in tiles)
         maxRadius: number // Radius of zone (in tiles)
     ) {
-        const styleKey = (visualTag === 'ULT') ? 'ULT' : 
-                         (visualTag === 'ACTIVE') ? 'ACTIVE' : 
-                         (visualTag === 'AOE_WARNING') ? 'AOE_WARNING' : 'BASIC';
-                         
+        // Warning Override: If color is red/enemy, assume warning logic
+        const isWarning = visualTag === 'AOE_WARNING';
+        
+        const styleKey = isWarning ? 'AOE_WARNING' : (visualTag === 'ULT' ? 'ULT' : (visualTag === 'ACTIVE' ? 'ACTIVE' : 'BASIC'));
         const def = CAST_VISUALS[styleKey] || CAST_VISUALS['BASIC'];
 
         ctx.save();
         
+        // --- 1. DYNAMIC EXPANSION ---
+        // Progress determines how far out the "wave" has gone
+        // progress 0.0 = center only
+        // progress 1.0 = full radius coverage
+        const currentExpansion = progress * (maxRadius + 0.5); 
+        const normDist = dist; 
+        
+        const isInsideWave = normDist <= currentExpansion;
+        const isWaveEdge = Math.abs(normDist - currentExpansion) < 0.8;
+
+        // --- 2. WARNING PULSE (High Frequency) ---
+        // Flash red vigorously if it's a warning
+        const pulse = isWarning 
+            ? (0.6 + Math.abs(Math.sin(globalTime * 15)) * 0.4) 
+            : (1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1);
+
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
-        const normDist = dist / Math.max(1, maxRadius);
-        const wavePos = progress * 1.1; 
-        
-        const isInsideWave = wavePos >= normDist;
-        const distToEdge = Math.abs(wavePos - normDist);
-        const isEdge = distToEdge < 0.25; 
-
-        const pulse = 1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1;
-        
-        // A. INNER VOLUME (The Fog)
+        // A. INNER FILL
         if (isInsideWave) {
             // Opacity ramps up as skill completes
-            const fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
-            
-            // Use improved volumetric renderer
+            let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
+            if (isWarning) fogOpacity = 0.3 * pulse; // Higher opacity for warning
+
             SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
         }
 
-        // B. EXPANDING EDGE (The Shockwave)
-        if (isEdge) {
-            const edgeIntensity = 1.0 - (distToEdge / 0.25); 
-            const edgeOpacity = def.fillOpacityMax * edgeIntensity;
-            const edgeWidth = (def.baseRingWidth || 3) * edgeIntensity * 1.5;
-
-            // Draw thick, blurred hex stroke
+        // B. EXPANDING EDGE
+        if (isWaveEdge) {
+            const edgeOpacity = def.fillOpacityMax * pulse;
+            const edgeWidth = (def.baseRingWidth || 3);
             SurfaceAssets.drawHexRipple(ctx, x, y, size, color, edgeOpacity, edgeWidth);
         }
 
-        // C. PERIMETER MARKER
-        if (dist >= maxRadius - 0.5) {
-            const borderAlpha = Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
+        // C. PERIMETER MARKER (Always Visible for Warning)
+        const showBorder = isWarning || (dist >= maxRadius - 0.5);
+        if (showBorder) {
+            const borderAlpha = isWarning ? 0.8 * pulse : Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = 1; 
+            ctx.lineWidth = isWarning ? 2 : 1; 
             ctx.globalAlpha = borderAlpha;
             
             if (def.dashed) ctx.setLineDash([5, 5]);
+            
+            // Draw Warning Crosshatch?
+            if (isWarning) {
+                // SurfaceAssets.drawHatch(ctx, x, y, size, color, 0.2); // Optional: add hatching
+                ctx.fillStyle = color; // Tint floor slightly
+                ctx.globalAlpha = 0.1 * pulse;
+                SurfaceAssets.traceHex(ctx, x, y, size);
+                ctx.fill();
+                ctx.globalAlpha = borderAlpha;
+            }
+
             SurfaceAssets.traceHex(ctx, x, y, size);
             ctx.stroke();
             ctx.setLineDash([]);

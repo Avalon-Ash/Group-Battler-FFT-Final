@@ -35,7 +35,8 @@ export interface Particle {
     delay?: number;
     image?: HTMLCanvasElement; 
     locked?: boolean; 
-    drag?: number;    
+    drag?: number;
+    gravity?: number; // Override default gravity    
     killAtTarget?: number; 
     texture?: HTMLCanvasElement; 
     blendMode?: GlobalCompositeOperation; 
@@ -85,6 +86,7 @@ export class VFXStateManager {
             p.locked = false; 
             p.sortBias = 0; 
             p.drag = undefined; 
+            p.gravity = undefined;
             p.killAtTarget = undefined; 
             
             return p;

@@ -13,10 +13,25 @@ for (let i = 0; i < 6; i++) {
     HEX_CORNERS_X.push(Math.cos(angle));
     HEX_CORNERS_Y.push(Math.sin(angle));
 }
+
+// Fixed Trace (Static)
 function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
     ctx.beginPath();
     ctx.moveTo(HEX_CORNERS_X[0] * r, HEX_CORNERS_Y[0] * r);
     for (let i = 1; i < 6; i++) ctx.lineTo(HEX_CORNERS_X[i] * r, HEX_CORNERS_Y[i] * r);
+    ctx.closePath();
+}
+
+// Dynamic Rotation Trace (Fixes the wobble issue)
+function traceHexagonRotated(ctx: CanvasRenderingContext2D, r: number, rotation: number) {
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        const angle = START_ANGLE + i * Math.PI / 3 + rotation;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r; // Note: ISO Scale applied by context, so we draw perfect hex here
+        if (i===0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
     ctx.closePath();
 }
 
@@ -30,17 +45,21 @@ export const ParticleRenderer = {
 
         // --- 1. PERSPECTIVE CORRECTION (THE 2.5D RULE) ---
         const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE'].includes(p.type);
+        // GIANT_HEX handles scale internally to fix rotation artifacts
         if (isGroundEffect) {
             ctx.scale(1, ISO_SCALE_Y); 
         }
 
-        ctx.rotate(p.rotation);
+        // Standard 2D Sprite Rotation (Billboard)
+        if (!['GIANT_HEX', 'HEX_BEAM'].includes(p.type)) {
+            ctx.rotate(p.rotation);
+        }
 
         // --- 2. BLEND MODES ---
         if (p.blendMode) {
             ctx.globalCompositeOperation = p.blendMode;
         } else {
-            if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'CHIP'].includes(p.type)) {
+            if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'CHIP', 'GIANT_HEX'].includes(p.type)) {
                  ctx.globalCompositeOperation = 'source-over'; 
             } else if (['SMOKE', 'SMOKE_PUFF', 'ATMOSPHERE'].includes(p.type)) {
                  ctx.globalCompositeOperation = 'screen';      
@@ -81,13 +100,19 @@ export const ParticleRenderer = {
         let scale = 1.0;
         let alpha = 1.0 - progress;
 
-        if (type === 'SHOCKWAVE' || type === 'RING') {
+        // FIX: Solid Large Projectiles (Meteors/Rocks) should not fade/shrink
+        if (type === 'ROCK' && baseSize > 30) {
+            scale = 1.0;
+            alpha = 1.0; // Maintain opacity
+        }
+        else if (type === 'SHOCKWAVE' || type === 'RING') {
             scale = 0.5 + progress * 2.0;
             alpha = 1.0 - Math.pow(progress, 3);
         } else if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
             scale = 0.8 + progress * 1.2;
             alpha = (1.0 - progress) * 0.5; 
         } else {
+            // Standard debris fade out
             scale = 1.0 - Math.pow(progress, 2);
         }
 
@@ -134,24 +159,75 @@ export const ParticleRenderer = {
              }
         }
         else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
+            // FIX: Handle Scale locally to allow correct rotation math
+            ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
-            // Spin effect
-            if (p.vRotation) ctx.rotate(p.vRotation * now);
             
-            ctx.globalCompositeOperation = 'screen';
+            // Calculate Current Rotation
+            const rot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
             
-            const grad = ctx.createRadialGradient(0,0,0,0,0,p.size);
-            grad.addColorStop(0, p.color); 
-            grad.addColorStop(0.8, p.color);
-            grad.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = (1 - progress) * 0.8;
-            traceHexagonFast(ctx, p.size); ctx.fill();
-            
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 1 - progress;
-            traceHexagonFast(ctx, p.size * 0.9); ctx.stroke();
+            // FIX: Giant Hex (Heaven Fall / Black Hole)
+            if (p.type === 'GIANT_HEX') {
+                ctx.globalCompositeOperation = 'source-over';
+                
+                // Solid Core (Accretion Disk)
+                ctx.fillStyle = p.color; 
+                ctx.globalAlpha = 1.0;
+                traceHexagonRotated(ctx, p.size, rot); 
+                ctx.fill();
+
+                // Bright Rim
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 4;
+                traceHexagonRotated(ctx, p.size, rot); 
+                ctx.stroke();
+
+                // Inner Detail (Opposite spin)
+                ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                traceHexagonRotated(ctx, p.size * 0.6, -rot * 1.5);
+                ctx.fill();
+                
+                // --- BLACK HOLE SPECIAL: SINGULARITY SPHERE ---
+                // Draw a non-iso-scaled black circle in center if color is black-ish
+                if (p.color === '#000' || p.color === '#000000' || p.color === '#0f172a') {
+                    ctx.restore(); // Pop the ISO scale
+                    ctx.save();
+                    // Draw Sphere
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.fillStyle = '#000';
+                    ctx.shadowColor = '#8b5cf6'; // Purple glow
+                    ctx.shadowBlur = 20;
+                    ctx.beginPath(); ctx.arc(0, 0, p.size * 0.4, 0, Math.PI * 2); ctx.fill();
+                    
+                    // White Ring (Event Horizon)
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.shadowBlur = 0;
+                    ctx.beginPath(); ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2); ctx.stroke();
+                    ctx.restore(); // Pop Sphere
+                    // Re-add dummy save for final restore
+                    ctx.save();
+                }
+
+            } else {
+                // HEX_BEAM (Energy)
+                ctx.globalCompositeOperation = 'screen';
+                const grad = ctx.createRadialGradient(0,0,0,0,0,p.size);
+                grad.addColorStop(0, p.color); 
+                grad.addColorStop(0.8, p.color);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.globalAlpha = (1 - progress) * 0.8;
+                traceHexagonRotated(ctx, p.size, rot); 
+                ctx.fill();
+                
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 1 - progress;
+                traceHexagonRotated(ctx, p.size * 0.9, rot); 
+                ctx.stroke();
+            }
+            ctx.restore();
         }
         else if (p.type === 'PILLAR') {
             // ... (Pillar logic remains valid)

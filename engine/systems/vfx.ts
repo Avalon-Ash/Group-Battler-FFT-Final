@@ -91,7 +91,8 @@ export class VFXSystem {
                 let groundH = getTerrainHeight ? getTerrainHeight(p.x, p.y) : 0;
 
                 // Apply Gravity to Z (Height)
-                p.vz -= GRAVITY * dt;
+                const g = p.gravity !== undefined ? p.gravity : GRAVITY;
+                p.vz -= g * dt;
                 
                 // Integrate
                 p.x += p.vx * dt;
