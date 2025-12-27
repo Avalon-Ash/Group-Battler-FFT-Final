@@ -2,7 +2,7 @@
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { GroundHazard } from "../../../types";
-import { HAZARD_VISUALS } from "../../../data/hazard_visuals";
+import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
 
 // Helper
 function traceHex(ctx: CanvasRenderingContext2D, r: number) {

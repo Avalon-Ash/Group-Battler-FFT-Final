@@ -26,6 +26,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
             },
             {
                 particleType: 'PILLAR',
+                visualStyle: 'PILLAR_HOLY', // Using Style Registry
                 count: 1,
                 lifetime: [0.5, 0.5],
                 size: [30, 40],
@@ -286,6 +287,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
         emitters: [
             {
                 particleType: 'PILLAR', // Vertical beam flash
+                visualStyle: 'PILLAR_HOLY',
                 count: 1,
                 lifetime: [0.3, 0.3],
                 size: [30, 40],

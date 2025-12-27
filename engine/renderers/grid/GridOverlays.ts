@@ -2,6 +2,7 @@
 import { TerrainRenderer } from "./TerrainRenderer";
 import { ZoneRenderer } from "./ZoneRenderer";
 import { GroundHazard } from "../../../types";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 interface ZoneInfo {
     type: 'CAST';
@@ -30,7 +31,7 @@ export const GridOverlays = {
         hasUnit: boolean,
         q: number, r: number,
         globalTime: number,
-        hazard: GroundHazard | undefined // NEW
+        hazard: GroundHazard | undefined
     ) {
         const trace = () => TerrainRenderer.traceTopFace(ctx, x, y);
 
@@ -40,22 +41,18 @@ export const GridOverlays = {
         }
 
         // 2. SPECIAL STATUS FLOOR EFFECT (Unit State)
-        if (specialStatus) {
-            trace(); 
-            ctx.save();
-            ctx.globalCompositeOperation = 'overlay';
-            if (specialStatus === 'FROZEN') {
-                ctx.fillStyle = '#bae6fd'; 
-                ctx.globalAlpha = 0.6;
-            } else if (specialStatus === 'POLYMORPH') {
-                ctx.fillStyle = '#d8b4fe'; 
-                ctx.globalAlpha = 0.5;
-            } else if (specialStatus === 'STASIS') {
-                ctx.fillStyle = '#fde047';
-                ctx.globalAlpha = 0.5;
+        // Data-Driven Floor Tint
+        if (specialStatus && specialStatus !== 'NONE') {
+            const def = STATUS_VISUALS[specialStatus];
+            if (def && def.floorColor) {
+                trace(); 
+                ctx.save();
+                ctx.globalCompositeOperation = 'overlay';
+                ctx.fillStyle = def.floorColor;
+                ctx.globalAlpha = def.floorOpacity || 0.5;
+                ctx.fill(); 
+                ctx.restore();
             }
-            ctx.fill(); 
-            ctx.restore();
         }
 
         // 3. ZONE RENDERING (Cast Ripple)

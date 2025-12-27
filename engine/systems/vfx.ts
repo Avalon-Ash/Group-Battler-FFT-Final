@@ -40,7 +40,7 @@ export class VFXSystem {
         p.maxLife = duration; 
         p.color = colorOverride || '#fff'; 
         p.type = 'BEAM'; 
-        p.beamStyle = styleId; // The crucial link to visual data
+        p.style = styleId; // Generic Style Key
         p.locked = true;
         
         this.state.particles.push(p);

@@ -1,6 +1,5 @@
-
 import { Agent } from "../game";
-import { COLORS, UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
+import { UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
 import { AssetManager } from "../assets";
 import { Team } from "../../types";

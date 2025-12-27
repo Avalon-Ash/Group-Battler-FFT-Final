@@ -33,7 +33,7 @@ export interface Particle {
     targetZ?: number; 
     
     // Asset Keys
-    beamStyle?: string; // New: Key for BEAM_VISUALS
+    style?: string; // Generic Style Key (Looked up in BEAM_VISUALS or PROCEDURAL_VISUALS)
     
     delay?: number;
     image?: HTMLCanvasElement; 
@@ -86,7 +86,7 @@ export class VFXStateManager {
             p.image = undefined; 
             p.texture = undefined;
             p.blendMode = undefined;
-            p.beamStyle = undefined; // Reset beam style
+            p.style = undefined; // Reset style
             
             p.delay = 0; 
             p.locked = false; 

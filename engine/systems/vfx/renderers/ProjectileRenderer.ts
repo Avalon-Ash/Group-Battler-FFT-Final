@@ -5,7 +5,7 @@ import { AssetManager } from "../../../assets";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { getTransitionOffset } from "../utils";
 import { Point } from "../../../../types";
-import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../../data/projectile_visuals";
+import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../../data/vfx/projectile_visuals";
 
 const UNIT_CHEST_HEIGHT = 40;
 

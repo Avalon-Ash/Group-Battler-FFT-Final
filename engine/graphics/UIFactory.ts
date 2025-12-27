@@ -1,5 +1,6 @@
 
 import { createCanvas } from "./CanvasUtils";
+import { STATUS_VISUALS } from "../../data/vfx/status_visuals";
 
 const ICON_SIZE = 32;
 const STATUS_SIZE = 48;
@@ -79,22 +80,28 @@ export const UIFactory = {
         return canvas;
     },
 
-    generateStatusIcon(type: string): HTMLCanvasElement {
+    generateStatusIcon(statusId: string): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(STATUS_SIZE, STATUS_SIZE);
         const cx = STATUS_SIZE / 2;
         const cy = STATUS_SIZE / 2;
         
+        // Load Definition
+        const def = STATUS_VISUALS[statusId] || STATUS_VISUALS['DEFAULT'];
+
         ctx.translate(cx, cy);
         ctx.shadowBlur = 5;
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
+        
+        // Apply Definition Colors
+        ctx.strokeStyle = def.primaryColor;
+        ctx.fillStyle = def.primaryColor;
+        ctx.shadowColor = def.secondaryColor;
 
-        switch (type) {
-            case 'STUN':
-                ctx.strokeStyle = '#facc15';
-                ctx.shadowColor = '#facc15';
-                // Spiral
+        // Render Shape
+        switch (def.iconShape) {
+            case 'SPIRAL':
                 ctx.beginPath();
                 for(let i=0; i<10; i++) {
                     const angle = i * 0.5;
@@ -105,10 +112,7 @@ export const UIFactory = {
                 }
                 ctx.stroke();
                 break;
-            case 'SILENCE':
-                ctx.strokeStyle = '#e2e8f0';
-                ctx.shadowColor = '#94a3b8';
-                // Chat bubble with dots
+            case 'MUTE_BUBBLE':
                 ctx.strokeRect(-12, -10, 24, 16);
                 ctx.beginPath();
                 ctx.moveTo(-6, -2); ctx.lineTo(-6, -2);
@@ -117,35 +121,23 @@ export const UIFactory = {
                 ctx.lineWidth = 4; // dots
                 ctx.stroke();
                 break;
-            case 'POISON': // DoT
-                ctx.strokeStyle = '#4ade80';
-                ctx.shadowColor = '#22c55e';
-                // Skull simple
+            case 'SKULL':
                 ctx.beginPath(); ctx.arc(0, -2, 10, 0, Math.PI*2); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(-4, 10); ctx.lineTo(4, 10); ctx.stroke();
                 break;
-            case 'BURN': // DoT
-                ctx.fillStyle = '#f87171';
-                ctx.shadowColor = '#ef4444';
-                // Flame
+            case 'FLAME':
                 ctx.beginPath();
                 ctx.arc(0, 5, 8, 0, Math.PI*2);
                 ctx.moveTo(0, -10); ctx.lineTo(-5, 0); ctx.lineTo(5, 0);
                 ctx.fill();
                 break;
-            case 'REGEN': // HoT
-                ctx.strokeStyle = '#86efac';
-                ctx.shadowColor = '#4ade80';
-                // Cross
+            case 'CROSS':
                 ctx.beginPath();
                 ctx.moveTo(0, -10); ctx.lineTo(0, 10);
                 ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
                 ctx.stroke();
                 break;
-            case 'BANISH':
-                ctx.strokeStyle = '#d8b4fe';
-                ctx.shadowColor = '#c084fc';
-                // Ghost shape
+            case 'GHOST':
                 ctx.beginPath();
                 ctx.arc(0, -5, 10, Math.PI, 0);
                 ctx.lineTo(10, 10);
@@ -154,24 +146,22 @@ export const UIFactory = {
                 ctx.closePath();
                 ctx.stroke();
                 break;
-            case 'POLYMORPH':
-                ctx.strokeStyle = '#fbcfe8';
-                ctx.shadowColor = '#f472b6';
-                // Sheep curly
+            case 'SHEEP':
                 ctx.beginPath();
                 ctx.arc(0, 0, 10, 0, Math.PI*2);
                 ctx.moveTo(-12, -5); ctx.arc(-8, -5, 4, 0, Math.PI*2);
                 ctx.stroke();
                 break;
-            case 'STASIS':
-                ctx.fillStyle = '#fef08a';
-                ctx.shadowColor = '#facc15';
-                // Shield solid
+            case 'SHIELD':
                 ctx.beginPath();
                 ctx.moveTo(-10, -10); ctx.lineTo(10, -10);
                 ctx.lineTo(10, 0); ctx.lineTo(0, 12); ctx.lineTo(-10, 0);
                 ctx.closePath();
                 ctx.fill();
+                break;
+            default:
+                // Circle fallback
+                ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.stroke();
                 break;
         }
 

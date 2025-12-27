@@ -3,7 +3,7 @@ import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { GameEngine } from "../../game";
-import { ULT_VISUALS } from "../../../data/ult_visuals";
+import { ULT_VISUALS } from "../../../data/vfx/ult_visuals";
 import { UNIT_BODY_OFFSET } from "../../../constants";
 
 interface Point3D { x: number; y: number; z: number; }
@@ -164,7 +164,7 @@ export class UltArchitect {
                 p.vx = 0; p.vy = 0; p.vz = -800;
                 p.life = 0.6; p.maxLife = 0.6;
                 p.type = 'BEAM'; 
-                p.beamStyle = 'GENERIC_BEAM';
+                p.style = 'GENERIC_BEAM';
                 // Hack: Set target Z far below to create vertical rain beam
                 p.sx = p.x; p.sy = p.y; p.sz = p.z;
                 p.tx = p.x; p.ty = p.y; p.tz = p.z - 800;

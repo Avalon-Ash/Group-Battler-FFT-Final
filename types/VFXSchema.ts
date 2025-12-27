@@ -16,6 +16,10 @@ export interface EmitterConfig {
     particleType: ParticleType;
     textureId?: string; // Optional: If specific texture needed from VFXFactory
     
+    // Visual Style Reference (New)
+    // Points to entries in BEAM_VISUALS or PROCEDURAL_VISUALS
+    visualStyle?: string; 
+    
     // Spawning Logic
     count: number | Range; // How many particles
     delay: number | Range; // Start delay

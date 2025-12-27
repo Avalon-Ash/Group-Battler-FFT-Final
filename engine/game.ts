@@ -1,10 +1,9 @@
-
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
-import { COLORS, LOG_COLORS } from "../constants";
+import { LOG_COLORS } from "../constants";
 
 // Core Entities
 import { Agent, SpecialVisualStatus } from "./core/Agent";

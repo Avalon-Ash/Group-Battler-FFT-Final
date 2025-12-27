@@ -82,14 +82,6 @@ export const PALETTE = {
     MAGIC: '#8b5cf6' 
 };
 
-export const COLORS = {
-    [Team.BLUE]: PALETTE.TEAMS[Team.BLUE].main,
-    [Team.RED]: PALETTE.TEAMS[Team.RED].main,
-    HP: '#22c55e', // Green-500
-    MP: '#3b82f6', // Blue-500
-    CAST: '#eab308' // Yellow-500
-};
-
 // --- GAMEPLAY PARAMETERS (Separated from Logic) ---
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 400, // Significantly increased from 20 for visible physics kick

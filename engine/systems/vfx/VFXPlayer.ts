@@ -81,6 +81,9 @@ export class VFXPlayer {
             // Type Casting (Ensure string matches Particle internal type)
             p.type = config.particleType as any;
             
+            // Apply Visual Style if defined
+            if (config.visualStyle) p.style = config.visualStyle;
+            
             // Optional Physics Overrides
             if (config.drag !== undefined) p.drag = config.drag;
             if (config.locked) p.locked = true;

@@ -2,7 +2,7 @@
 import { GameEngine, Agent } from "../game";
 import { Role, Team, Skill, AnimState } from "../../types";
 import { UNIT_DB } from "../../data/units";
-import { COLORS } from "../../constants";
+import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { HexUtils } from "../utils";
 
 export class AgentManager {
@@ -54,12 +54,14 @@ export class AgentManager {
             rnd(validSkills.filter(s => s.tag === 'BASIC'))
         ];
         
-        // Spawn Effect
+        // Spawn Effect - Use Data Driven Color
+        const visual = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
+        
         a.spawnTimer = 0.5;
         engine.events.push({ 
             type: 'SPAWN', 
             pos: { x: a.px, y: a.py },
-            color: COLORS[team],
+            color: visual.primaryColor,
             sourceId: a.id
         });
 

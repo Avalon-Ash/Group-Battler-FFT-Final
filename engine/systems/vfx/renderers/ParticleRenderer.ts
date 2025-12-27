@@ -4,7 +4,21 @@ import { isChaosStyle } from "../utils";
 import { ISO_SCALE_Y } from "../../../../constants";
 import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 import { VFXFactory } from "../../../graphics/VFXFactory";
-import { BEAM_VISUALS, BeamVisualDef } from "../../../../../data/vfx/beam_visuals";
+
+// Import aggregated registry and specific types
+import { 
+    PROCEDURAL_VISUALS, 
+    PillarVisualDef, 
+    DomainVisualDef, 
+    HexVisualDef,
+    BeamVisualDef,
+    GridVisualDef,
+    DEFAULT_PILLAR_CONFIG,
+    DEFAULT_DOMAIN_CONFIG,
+    DEFAULT_HEX_CONFIG,
+    DEFAULT_BEAM_CONFIG,
+    DEFAULT_GRID_CONFIG
+} from "../../../../../data/vfx/procedural_visuals";
 
 const UNIT_CHEST_HEIGHT = 40;
 
@@ -20,14 +34,6 @@ function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
     }
     ctx.closePath();
 }
-
-// Fallback if visual config missing
-const DEFAULT_BEAM: BeamVisualDef = {
-    type: 'HELIX',
-    width: 6,
-    coreColor: '#fff',
-    glowColor: '#fff'
-};
 
 export const ParticleRenderer = {
     
@@ -93,77 +99,130 @@ export const ParticleRenderer = {
 
     drawProcedural(ctx: CanvasRenderingContext2D, p: Particle, progress: number, isChaos: boolean, now: number) {
         
-        if (p.type === 'HEX_BEAM') {
+        // --- 1. HEX SHAPES (Hex Beam / Giant Hex) ---
+        if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
+            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || 
+                          (p.type === 'HEX_BEAM' ? PROCEDURAL_VISUALS['HEX_CORE'] : PROCEDURAL_VISUALS['HEX_SOLID']);
+            
+            // Cast to Specific Interface
+            const def = rawDef as HexVisualDef;
+            
             ctx.scale(1, ISO_SCALE_Y);
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = (1 - progress) * 0.9;
-            traceHexagonFast(ctx, p.size); ctx.fill();
-            ctx.fillStyle = '#fff';
-            traceHexagonFast(ctx, p.size * 0.6); ctx.fill();
-        }
-        else if (p.type === 'GRID_FIELD') {
-            if (p.color === '#be123c' || p.color.includes('blood')) {
-                SurfaceAssets.drawLiquidSurface(ctx, 0, 0, '#991b1b', now, progress);
-            } else {
-                const height = 15 * progress;
-                SurfaceAssets.drawExtrudedHex(ctx, 0, 0, height, p.color, 0.6, false);
+            if (p.type === 'GIANT_HEX') ctx.rotate(p.rotation);
+            if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
+            
+            if (def.filled) {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = (1 - progress) * (p.type === 'HEX_BEAM' ? 0.9 : 0.8);
+                traceHexagonFast(ctx, p.size); ctx.fill();
+            }
+            
+            if (def.innerScale) {
+                ctx.fillStyle = '#fff';
+                traceHexagonFast(ctx, p.size * def.innerScale); ctx.fill();
+            }
+            
+            if (def.stroked) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = def.strokeWidth || 2;
+                traceHexagonFast(ctx, p.size); ctx.stroke();
             }
         }
+        // --- 2. GRID FIELD (Data Driven) ---
+        else if (p.type === 'GRID_FIELD') {
+            // Find definition based on particle style or fallback logic
+            // To maintain compatibility with old events that don't pass style, we try to guess based on color
+            let config: GridVisualDef = DEFAULT_GRID_CONFIG;
+            
+            if (p.style && PROCEDURAL_VISUALS[p.style]) {
+                config = PROCEDURAL_VISUALS[p.style] as GridVisualDef;
+            } else {
+                // Fallback guessing for legacy particles (can be removed later)
+                if (p.color === '#be123c' || p.color.includes('blood')) config = PROCEDURAL_VISUALS['GRID_BLOOD'] as GridVisualDef;
+                else if (p.color === '#3b82f6') config = PROCEDURAL_VISUALS['GRID_TECH_BLUE'] as GridVisualDef;
+                else if (p.color === '#ef4444') config = PROCEDURAL_VISUALS['GRID_CORRUPT_RED'] as GridVisualDef;
+            }
+
+            if (!config) config = DEFAULT_GRID_CONFIG;
+
+            if (config.blendMode) ctx.globalCompositeOperation = config.blendMode;
+
+            if (config.isLiquid) {
+                SurfaceAssets.drawLiquidSurface(ctx, 0, 0, config.color, now, progress);
+            } else {
+                const height = (config.height || 15) * progress;
+                SurfaceAssets.drawExtrudedHex(ctx, 0, 0, height, config.color, config.opacity || 0.6, false);
+            }
+        }
+        // --- 3. PILLARS ---
         else if (p.type === 'PILLAR') {
-            const h = 1200; 
-            const width = p.size * (1 - progress * 0.5);
+            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || DEFAULT_PILLAR_CONFIG;
+            const def = rawDef as PillarVisualDef;
+
+            const h = def.height || 1200; 
+            const width = p.size * (1 - progress * 0.5) * (def.widthScale || 1.0);
             
             ctx.save();
-            ctx.globalCompositeOperation = 'screen';
+            if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
             
             const grad = ctx.createLinearGradient(0, 0, 0, -h);
-            grad.addColorStop(0, p.color);
+            const colBottom = def.gradientBottom === 'current' ? p.color : (def.gradientBottom || p.color);
+            
+            grad.addColorStop(0, colBottom || p.color);
             grad.addColorStop(0.2, '#fff');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            grad.addColorStop(1, def.gradientTop || 'rgba(0,0,0,0)');
             
             ctx.fillStyle = grad;
             ctx.globalAlpha = (1 - progress);
             ctx.fillRect(-width/2, -h, width, h);
             
-            ctx.scale(1, ISO_SCALE_Y);
-            ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2);
-            ctx.strokeStyle = p.color;
-            ctx.lineWidth = 3;
-            ctx.stroke();
+            if (def.hasBaseRing) {
+                ctx.scale(1, ISO_SCALE_Y);
+                ctx.beginPath(); ctx.arc(0, 0, width, 0, Math.PI*2);
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
             
             ctx.restore();
         }
+        // --- 4. DOMAINS ---
         else if (p.type === 'DOMAIN') {
+            const rawDef = PROCEDURAL_VISUALS[p.style || ''] || DEFAULT_DOMAIN_CONFIG;
+            const def = rawDef as DomainVisualDef;
+            
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
             
-            ctx.globalCompositeOperation = 'lighter';
+            if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
+            
             const grad = ctx.createRadialGradient(0, 0, r*0.5, 0, 0, r);
             grad.addColorStop(0, 'rgba(0,0,0,0)');
             grad.addColorStop(0.8, p.color);
             grad.addColorStop(1, 'rgba(255,255,255,0.5)');
             
             ctx.fillStyle = grad;
-            ctx.globalAlpha = 0.3 * (1 - progress);
+            ctx.globalAlpha = (def.fillAlpha || 0.3) * (1 - progress);
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
             
-            ctx.strokeStyle = '#ffffff';
+            ctx.strokeStyle = def.rimColor || '#ffffff';
             ctx.globalAlpha = 0.15;
-            ctx.lineWidth = 1;
-            ctx.setLineDash([10, 10]);
+            ctx.lineWidth = def.rimWidth || 1;
+            if (def.dashed) ctx.setLineDash([10, 10]);
             ctx.beginPath(); ctx.arc(0, 0, r * 0.9, 0, Math.PI*2); ctx.stroke();
             
             ctx.restore();
         }
+        // --- 5. BEAMS ---
         else if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
-            // New Beam Drawing Logic using Data
             if (p.sx !== undefined && p.sy !== undefined && p.sz !== undefined &&
                 p.tx !== undefined && p.ty !== undefined && p.tz !== undefined) {
                 
-                const styleId = p.beamStyle || (p.type === 'DEATH_RAY' ? 'DEATH_RAY' : 'GENERIC_BEAM');
-                const conf = BEAM_VISUALS[styleId] || DEFAULT_BEAM;
+                const styleId = p.style || (p.type === 'DEATH_RAY' ? 'DEATH_RAY' : 'GENERIC_BEAM');
+                // Updated to fetch from aggregated registry
+                const rawDef = PROCEDURAL_VISUALS[styleId] || DEFAULT_BEAM_CONFIG;
+                const conf = rawDef as BeamVisualDef;
 
                 const dx = p.tx - p.sx; 
                 const startVisY = -UNIT_CHEST_HEIGHT;
@@ -247,16 +306,6 @@ export const ParticleRenderer = {
 
                 ctx.restore();
             }
-        }
-        else if (p.type === 'GIANT_HEX') {
-            ctx.scale(1, ISO_SCALE_Y);
-            ctx.rotate(p.rotation);
-            ctx.fillStyle = p.color;
-            ctx.globalAlpha = 0.8;
-            traceHexagonFast(ctx, p.size); ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            traceHexagonFast(ctx, p.size); ctx.stroke();
         }
     }
 };

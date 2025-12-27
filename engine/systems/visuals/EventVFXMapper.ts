@@ -1,11 +1,13 @@
+
 import { GameEvent, Team, Role } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { UNIT_BODY_OFFSET, THEME_IMPERIAL, THEME_COVENANT } from "../../../constants";
+import { UNIT_BODY_OFFSET } from "../../../constants";
 import { SpriteManager } from "../../sprites";
+import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 
 // Architect
 import { UltArchitect } from "./UltArchitect";
@@ -72,7 +74,7 @@ export class EventVFXMapper {
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) {
-                    // Spawn Manual Unit Parts (Can't be purely data-driven yet due to sprite generation)
+                    // Spawn Manual Unit Parts
                     this.spawnUnitShatter(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
                 }
                 camera.addTrauma(0.15); 
@@ -138,8 +140,7 @@ export class EventVFXMapper {
         const isUlt = event.skill?.tag === 'ULT';
         const skill = event.skill;
         const source = engine.agents.find(a => a.id === event.sourceId);
-        const faction = source ? source.team : Team.BLUE;
-
+        
         if (isUlt && skill) {
             if (UltArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) {
                 return; 
@@ -151,12 +152,13 @@ export class EventVFXMapper {
             return;
         }
 
-        camera.addTrauma(0.2); 
-        if (faction === Team.BLUE) {
-            vfx.playEffect('FX_IMPACT_PHYSICAL', target.x, target.y, target.z, color);
-        } else {
-            vfx.playEffect('FX_BLOOD_RITUAL', target.x, target.y, target.z, color);
-        }
+        camera.addTrauma(0.2);
+        
+        // Data-Driven Fallback based on Attacker's Faction
+        const faction = source ? source.team : Team.BLUE;
+        const factionVis = FACTION_VISUALS[faction] || FACTION_VISUALS[Team.BLUE];
+        
+        vfx.playEffect(factionVis.defaultHitEffect, target.x, target.y, target.z, color);
     }
 
     private handleAOE(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, groundZ: number) {
@@ -201,8 +203,9 @@ export class EventVFXMapper {
     // Logic moved from generic.ts to keep specific sprite logic here
     private spawnUnitShatter(system: VFXSystem, x: number, y: number, z: number, team: Team, role: Role, impulseX: number = 0, impulseY: number = 0) {
         const assets = SpriteManager.getUnitImages(role, team);
+        const factionConfig = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         
-        // 1. Core Components (Base & Icon) - Not data driven because they need specific Image Assets
+        // 1. Core Components (Base & Icon)
         const base = system.state.getParticle();
         base.x = x; base.y = y; base.z = z + 10;
         base.vx = impulseX * 0.8; base.vy = impulseY * 0.8;
@@ -223,11 +226,10 @@ export class EventVFXMapper {
         icon.vRotation = (Math.random() - 0.5) * 20; 
         system.state.particles.push(icon);
 
-        const theme = team === Team.BLUE ? THEME_IMPERIAL : THEME_COVENANT;
-        
-        // Shards & Sparks can use generic registry logic if we want, or manual push
-        // Manual push is fine here for specific physics control
+        // 2. Data-Driven Shards
         const shardCount = 8;
+        const colors = factionConfig.deathShatterColors;
+        
         for(let i=0; i<shardCount; i++) {
             const p = system.state.getParticle();
             p.x = x + (Math.random()-0.5)*20; p.y = y + (Math.random()-0.5)*20; p.z = z + 30;
@@ -236,7 +238,8 @@ export class EventVFXMapper {
             p.vx = Math.cos(a)*s + impulseX*0.5; p.vy = Math.sin(a)*s + impulseY*0.5; p.vz = 250 + Math.random()*250; 
             p.life = 1.5; p.maxLife = 1.5;
             p.type = 'SHARD'; 
-            p.color = Math.random() > 0.4 ? theme.primary : theme.armorDark;
+            // Randomly pick a color from the faction palette
+            p.color = colors[Math.floor(Math.random() * colors.length)];
             p.size = 6 + Math.random()*8; 
             p.vRotation = (Math.random()-0.5)*30; 
             system.state.particles.push(p);

@@ -6,6 +6,7 @@ import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { HUD_TEXT_OFFSET, KILL_STREAK_WINDOW } from "../../../constants";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 export class EventHUDMapper {
     private killStreaks = new Map<string, { count: number, lastTime: number }>();
@@ -58,11 +59,11 @@ export class EventHUDMapper {
             const isCrit = val > 100;
             
             // 2. TEXT COLORING LOGIC
-            // Check if damage comes from DOT (Poison/Burn/Bleed)
             const isDot = event.skill?.ccType === 'DOT';
             
             if (isDot) {
-                color = '#a3e635'; // Lime Green for Poison/Dot
+                // Use registered poison color if available, or lime
+                color = STATUS_VISUALS['POISON']?.primaryColor || '#a3e635';
             } else if (isCrit) {
                 color = '#ef4444'; // Red for Crit
             } else {
@@ -75,7 +76,7 @@ export class EventHUDMapper {
 
         } else if (event.type === 'HEAL') {
             text = "+" + Math.abs(event.value || 0);
-            color = '#4ade80';
+            color = STATUS_VISUALS['REGEN']?.primaryColor || '#4ade80';
             type = 'HEAL';
             xOffset = (Math.random() - 0.5) * 10;
         } else {

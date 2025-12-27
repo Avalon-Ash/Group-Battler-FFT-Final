@@ -1,9 +1,9 @@
 
 import { Agent } from "../../game";
-import { AssetManager } from "../../assets";
 import { Team } from "../../../types";
-import { SurfaceAssets } from "../../graphics/SurfaceAssets";
 import { HEX_SIZE } from "../../../constants";
+import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 // Helper: Local Hexagon Trace
 function traceHex(ctx: CanvasRenderingContext2D, r: number) {
@@ -19,8 +19,9 @@ function traceHex(ctx: CanvasRenderingContext2D, r: number) {
 }
 
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
-    const isBlue = agent.team === Team.BLUE;
-    const color = isBlue ? '#60a5fa' : '#f87171';
+    // 1. Load Faction Visual
+    const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
+    const color = faction.deathSpiritColor; // Reusing spirit color for anchor as it fits the "energy" look
     
     const feetX = Math.round(physX);
     const feetY = Math.round(physY - physZ); 
@@ -49,7 +50,10 @@ export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t:
 }
 
 export function drawFlightVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
-    const color = agent.team === Team.BLUE ? '#bae6fd' : '#fecaca'; 
+    // 2. Load Faction Visual
+    const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
+    const color = faction.flightTrailColor;
+
     ctx.save();
     ctx.translate(0, 5); 
     ctx.scale(1, 0.5); 
@@ -122,7 +126,6 @@ export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent
     ctx.globalCompositeOperation = 'screen';
     
     // Hexagonal Gradient Fill
-    // We can't do radial gradient easily on a path, so we just use stacked hexes
     ctx.fillStyle = color;
     ctx.globalAlpha = 0.3;
     traceHex(ctx, size); ctx.fill();
@@ -205,23 +208,59 @@ export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: 
 
 export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     if (agent.hp <= 0) return;
+    
+    // Determine active status ID
+    let statusId = 'NONE';
+    if (agent.banished) statusId = 'BANISH';
+    else if (agent.stunTimer > 0) statusId = 'STUN';
+    else if (agent.silenceTimer > 0) statusId = 'SILENCE';
+    
+    // Fallback if visualStatus override is set
+    if (agent.visualStatus !== 'NONE') statusId = agent.visualStatus;
+
+    // Load Definition
+    const def = STATUS_VISUALS[statusId];
+    if (!def || def.overheadType === 'NONE') return;
+
     ctx.save();
     if (agent.facing < 0) ctx.scale(-1, 1);
     
-    if (agent.stunTimer > 0) {
-        ctx.translate(0, Math.round(-65));
+    // Overhead Anchor
+    ctx.translate(0, Math.round(-65));
+
+    if (def.overheadType === 'STAR_SPIN') {
         const angle = t * 5;
         const x = Math.round(Math.cos(angle) * 20);
         const y = Math.round(Math.sin(angle) * 6); 
-        ctx.fillStyle = '#facc15';
+        ctx.fillStyle = def.primaryColor;
         
-        // Spinning Star/Hex
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(t * 10);
         traceHex(ctx, 4);
         ctx.fill();
         ctx.restore();
+    } else if (def.overheadType === 'BUBBLE_POP') {
+        // Simple pulsing bubble for silence
+        const scale = 1 + Math.sin(t * 3) * 0.1;
+        ctx.scale(scale, scale);
+        ctx.fillStyle = def.primaryColor;
+        ctx.globalAlpha = 0.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, 8, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+    } else if (def.overheadType === 'GHOST_FLOAT') {
+        const float = Math.sin(t * 2) * 5;
+        ctx.translate(0, float);
+        ctx.fillStyle = def.primaryColor;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI*2);
+        ctx.fill();
     }
+
     ctx.restore();
 }

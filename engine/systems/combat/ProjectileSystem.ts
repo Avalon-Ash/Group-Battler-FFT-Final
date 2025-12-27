@@ -3,7 +3,7 @@ import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
 import { SkillResolutionSystem } from "./SkillResolutionSystem";
-import { PROJECTILE_VISUALS } from "../../../data/projectile_visuals";
+import { PROJECTILE_VISUALS } from "../../../data/vfx/projectile_visuals";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
