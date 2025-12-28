@@ -16,7 +16,8 @@ import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
-import { AnnouncerSystem } from "./systems/AnnouncerSystem"; // Import Announcer
+import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
+import { DirectorSystem } from "./systems/DirectorSystem"; // New Import
 import { EventBus } from "./events/EventBus";
 import type { GameRenderer } from "./renderer";
 
@@ -56,19 +57,20 @@ export class GameEngine {
     public logs: LogEntry[] = [];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
-    // AI Director State
-    public directorTargetId: string | null = null;
-    private directorTimer: number = 0;
-
     public agentMap: Map<number, Agent> = new Map();
 
+    // Systems
     public movement: MovementSystem;
     public status: StatusSystem;
     public combat: CombatSystem;
     public map: MapSystem;
     public ai: AISystem;
     public agentManager: AgentManager;
-    public announcer: AnnouncerSystem; // Register Announcer
+    public announcer: AnnouncerSystem; 
+    public director: DirectorSystem; // New System
+
+    // Proxy for Renderer Access
+    get directorTargetId() { return this.director.targetId; }
 
     constructor() {
         this.movement = new MovementSystem();
@@ -77,7 +79,8 @@ export class GameEngine {
         this.map = new MapSystem();
         this.ai = new AISystem();
         this.agentManager = new AgentManager();
-        this.announcer = new AnnouncerSystem(); // Initialize
+        this.announcer = new AnnouncerSystem(); 
+        this.director = new DirectorSystem();
         this.map.randomizeEnvironment(this);
     }
 
@@ -109,19 +112,10 @@ export class GameEngine {
     }
 
     updateAgentPosition(agent: Agent, newQ: number, newR: number) {
-        // --- GRAVITY CONTINUITY LOGIC ---
-        // When stepping off a cliff or jumping up, we must compensate physics.z
-        // to maintain World Space Height continuity.
         const oldH = this.map.getTerrainHeight(agent.q, agent.r);
         const newH = this.map.getTerrainHeight(newQ, newR);
         const deltaH = oldH - newH;
         
-        // Add difference to local Z. 
-        // Example 1: Fall off 100px cliff. oldH=100, newH=0. deltaH=100.
-        // agent.physics.z becomes 100 (floating in air). Gravity will pull it down.
-        // Example 2: Jump up 100px cliff. oldH=0, newH=100. deltaH=-100.
-        // agent.physics.z becomes -100. Physics engine usually snaps this to 0 instantly for ground units,
-        // effectively "teleporting" them up, which is fine for step-climbing.
         agent.physics.z += deltaH;
 
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
@@ -166,7 +160,8 @@ export class GameEngine {
         this.targetTimeScale = 1.0;
         this.timeScale = 1.0;
         this.agentMap.clear();
-        this.announcer.reset(); // Reset Announcer
+        this.announcer.reset(); 
+        this.director.reset();
         
         // 1. Reset Agents
         this.agents.forEach(a => {
@@ -182,11 +177,11 @@ export class GameEngine {
         this.events = []; 
         this.combat.reset(); 
         
-        // 3. Visual Deep Cleanup (CRITICAL)
+        // 3. Visual Deep Cleanup
         if (this.renderer) {
             this.renderer.reset();
-            this.renderer.grid.reset(); // Clear cached zones
-            this.renderer.vfx.reset();  // Clear all particles immediately
+            this.renderer.grid.reset(); 
+            this.renderer.vfx.reset(); 
         }
         
         this.battleTime = 0;
@@ -201,6 +196,7 @@ export class GameEngine {
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.announcer.reset();
+        this.director.reset();
         
         this.combat.reset(); 
         this.events = [];
@@ -212,7 +208,6 @@ export class GameEngine {
         }
         
         this.logs = [];
-        this.directorTargetId = null;
         
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 
@@ -230,7 +225,9 @@ export class GameEngine {
         }
 
         this.events.length = 0;
-        this.updateDirector(dt);
+        
+        // Update Director System
+        this.director.update(dt, this);
 
         if (this.isFinishing) {
             this.victoryTimer -= dt;
@@ -284,42 +281,8 @@ export class GameEngine {
         this.combat.update(dt, this);
         this.movement.resolveStacking(this);
         
-        // Announcer runs AFTER combat to catch kills
+        // Announcer runs AFTER combat
         this.announcer.update(dt, this);
-    }
-
-    private updateDirector(dt: number) {
-        this.directorTimer -= dt;
-        if (this.directorTargetId) {
-            const current = this.agents.find(a => a.id === this.directorTargetId);
-            if (!current || current.hp <= 0) {
-                this.directorTimer = -1;
-            }
-        }
-
-        if (this.directorTimer <= 0) {
-            let candidates: Agent[] = [];
-            let ultCasters: Agent[] = [];
-            
-            for (const a of this.agents) {
-                if (a.hp > 0) {
-                    candidates.push(a);
-                    if (a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === 'ULT') {
-                        ultCasters.push(a);
-                    }
-                }
-            }
-
-            if (candidates.length > 0) {
-                if (ultCasters.length > 0) {
-                     this.directorTargetId = ultCasters[Math.floor(Math.random() * ultCasters.length)].id;
-                     this.directorTimer = 4.0; 
-                } else {
-                     this.directorTargetId = candidates[Math.floor(Math.random() * candidates.length)].id;
-                     this.directorTimer = 3.0;
-                }
-            }
-        }
     }
 
     performCast(a: Agent, i: number): NodeState {
@@ -382,6 +345,6 @@ export class GameEngine {
         };
 
         this.logs.push(entry);
-        if (this.logs.length > 5000) this.logs.shift(); // Increased buffer
+        if (this.logs.length > 5000) this.logs.shift(); 
     }
 }
