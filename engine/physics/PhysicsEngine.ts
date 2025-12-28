@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { MovementType, AnimState } from "../../types";
-import { HexUtils } from "../utils";
+import { HexUtils, Vector } from "../utils";
 import { PHYSICS } from "../../constants";
 
 // Physics Constants
@@ -9,6 +9,48 @@ const PHYSICS_STIFFNESS_ALIVE = 150;
 const PHYSICS_DAMPING_ALIVE = 25; 
 
 export class PhysicsEngine {
+
+    // --- STATIC UTILS (Decoupled Physics Math) ---
+    
+    /**
+     * Calculates and applies a physical impulse vector to an agent based on an origin point.
+     */
+    public static applyImpulse(
+        target: Agent, 
+        origin: {x: number, y: number}, 
+        force: number, 
+        randomness: number = 0
+    ) {
+        const dx = target.px - origin.x;
+        const dy = target.py - origin.y;
+        const len = Math.sqrt(dx * dx + dy * dy);
+        
+        // Minimum force clamp to ensure impact feel
+        const effectiveForce = Math.min(400, Math.max(50, force));
+        
+        let vx = 0, vy = 0;
+
+        if (len <= 0.1) {
+            // Stacked perfectly? Push random direction
+            const ang = Math.random() * Math.PI * 2;
+            vx = Math.cos(ang) * effectiveForce;
+            vy = Math.sin(ang) * effectiveForce;
+        } else {
+            vx = (dx / len) * effectiveForce;
+            vy = (dy / len) * effectiveForce;
+        }
+
+        // Apply
+        target.physics.vx += vx;
+        target.physics.vy += vy;
+        
+        // Add rotational torque impact
+        if (randomness > 0) {
+            target.physics.vAngle += (Math.random() - 0.5) * randomness;
+        }
+    }
+
+    // --- INSTANCE METHODS ---
 
     public update(a: Agent, dt: number, engine: GameEngine) {
         // PERF: Skip physics for units that are fully removed from visual play

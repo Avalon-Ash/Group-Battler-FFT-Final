@@ -1,11 +1,12 @@
 
 import { Agent, GameEngine } from "../../game";
 import { Skill, GameEventType, AnimState, Hex } from "../../../types";
-import { HexUtils, Vector } from "../../utils";
+import { HexUtils } from "../../utils";
 import { HexMath } from "../../math/HexMath";
 import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
+import { PhysicsEngine } from "../../physics/PhysicsEngine";
 
 export class SkillResolutionSystem {
 
@@ -159,12 +160,11 @@ export class SkillResolutionSystem {
         if (result.finalValue < 0) { 
             target.setAnim(AnimState.HIT);
             target.hitFlashTimer = 0.2;
-            const originPx = origin ? origin : {x: source.px, y: source.py};
-            const impulse = this.calculateImpulseVector(originPx, {x: target.px, y: target.py}, Math.abs(result.finalValue));
             
-            target.physics.vx += impulse.x;
-            target.physics.vy += impulse.y;
-            target.physics.vAngle += (Math.random() - 0.5) * 0.5;
+            // Delegate Impulse Calc to PhysicsEngine
+            const originPx = origin ? origin : {x: source.px, y: source.py};
+            const damageForce = Math.abs(result.finalValue) * 2.0;
+            PhysicsEngine.applyImpulse(target, originPx, damageForce, 0.5);
         }
 
         if (result.isExecute) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "斬殺!", color: "#dc2626" });
@@ -198,19 +198,5 @@ export class SkillResolutionSystem {
             engine.log(source, 'DEATH', '擊殺', target.id, `${target.id} 已陣亡`);
             engine.events.push({ type: 'KILL', pos: { x: target.px, y: target.py }, sourceId: source.id, targetId: target.id });
         }
-    }
-
-    private calculateImpulseVector(origin: {x: number, y: number}, target: {x: number, y: number}, damage: number) {
-        const dx = target.x - origin.x;
-        const dy = target.y - origin.y;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        
-        const force = Math.min(400, Math.max(50, damage * 2.0));
-        
-        if (len <= 0.1) {
-            const ang = Math.random() * Math.PI * 2;
-            return { x: Math.cos(ang) * force, y: Math.sin(ang) * force };
-        }
-        return { x: (dx / len) * force, y: (dy / len) * force };
     }
 }
