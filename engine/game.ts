@@ -17,7 +17,7 @@ import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
 import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
 import { DirectorSystem } from "./systems/DirectorSystem"; 
-import { BattleLogger } from "./systems/BattleLogger"; // New Import
+import { BattleLogger } from "./systems/BattleLogger"; 
 import { EventBus } from "./events/EventBus";
 import type { GameRenderer } from "./renderer";
 
@@ -33,7 +33,6 @@ export class GameEngine {
     get obstacles() { return this.map.obstacles; }
     get projectiles() { return this.combat.projectiles; }
     
-    // Proxy for Logger Access
     get logs() { return this.logger.logs; }
 
     public events: GameEvent[] = [];
@@ -42,14 +41,12 @@ export class GameEngine {
     
     public isRunning: boolean = false;
     
-    // Time & Speed Control
     public timeScale: number = 1.0;
     public targetTimeScale: number = 1.0; 
     
     public battleTime: number = 0;
     public mapVersion: number = 0; 
     
-    // Finishing Sequence State
     public isFinishing: boolean = false;
     public victoryTimer: number = 0;
     public winningTeam: Team | null = null;
@@ -70,9 +67,8 @@ export class GameEngine {
     public agentManager: AgentManager;
     public announcer: AnnouncerSystem; 
     public director: DirectorSystem;
-    public logger: BattleLogger; // New System
+    public logger: BattleLogger; 
 
-    // Proxy for Renderer Access
     get directorTargetId() { return this.director.targetId; }
 
     constructor() {
@@ -167,7 +163,6 @@ export class GameEngine {
         this.announcer.reset(); 
         this.director.reset();
         
-        // 1. Reset Agents
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
             a.skills = a.skillIds.map(id => {
@@ -177,11 +172,9 @@ export class GameEngine {
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
         
-        // 2. Logic Cleanup
         this.events = []; 
         this.combat.reset(); 
         
-        // 3. Visual Deep Cleanup
         if (this.renderer) {
             this.renderer.reset();
             this.renderer.grid.reset(); 
@@ -229,8 +222,6 @@ export class GameEngine {
         }
 
         this.events.length = 0;
-        
-        // Update Director System
         this.director.update(dt, this);
 
         if (this.isFinishing) {
@@ -284,35 +275,7 @@ export class GameEngine {
         }
         this.combat.update(dt, this);
         this.movement.resolveStacking(this);
-        
-        // Announcer runs AFTER combat
         this.announcer.update(dt, this);
-    }
-
-    performCast(a: Agent, i: number): NodeState {
-        if (a.castingSkillIdx === -1) {
-            a.castingSkillIdx = i;
-            a.castTimer = a.skills[i]!.cast;
-            a.castingAnimationTimer = a.skills[i]!.cast; 
-            a.btStatus = `詠唱 ${a.skills[i]!.tag}`;
-            
-            let targetName = '地面';
-            if (a.target) targetName = a.target.id;
-            else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
-            
-            this.log(a, 'CAST', '詠唱', targetName, `開始引導 ${a.skills[i]!.name} (需 ${a.skills[i]!.cast} 秒)`);
-            this.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: a.skills[i]! });
-            
-            a.setAnim(AnimState.ATTACK);
-            
-            if (a.target) {
-                a.facing = a.target.px > a.px ? 1 : -1;
-            } else if (a.targetHex) {
-                const tx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, this.mapConfig).x;
-                a.facing = tx > a.px ? 1 : -1;
-            }
-        }
-        return NodeState.RUNNING;
     }
     
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {

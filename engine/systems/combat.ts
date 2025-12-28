@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { Projectile, Skill, MovementType } from "../../types";
+import { Projectile, Skill, NodeState, AnimState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { SkillResolutionSystem } from "./combat/SkillResolutionSystem";
 import { HexUtils, Vector } from "../utils";
@@ -20,6 +20,35 @@ export class CombatSystem {
 
     public reset() {
         this.projectileSystem.projectiles = [];
+    }
+
+    public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
+        if (a.castingSkillIdx === -1) {
+            const skill = a.skills[skillIdx];
+            if (!skill) return NodeState.FAILURE;
+
+            a.castingSkillIdx = skillIdx;
+            a.castTimer = skill.cast;
+            a.castingAnimationTimer = skill.cast; 
+            a.btStatus = `詠唱 ${skill.tag}`;
+            
+            let targetName = '地面';
+            if (a.target) targetName = a.target.id;
+            else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
+            
+            engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
+            engine.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: skill });
+            
+            a.setAnim(AnimState.ATTACK);
+            
+            if (a.target) {
+                a.facing = a.target.px > a.px ? 1 : -1;
+            } else if (a.targetHex) {
+                const tx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig).x;
+                a.facing = tx > a.px ? 1 : -1;
+            }
+        }
+        return NodeState.RUNNING;
     }
 
     public update(dt: number, engine: GameEngine) {
@@ -54,11 +83,7 @@ export class CombatSystem {
                 );
                 
                 occupants.forEach(agent => {
-                    // Height Check: Flying units avoid ground hazards (Liquid/Low Fog)
-                    // unless hazard is "tall" (like Gravity or high gas)
-                    if (agent.movementType === MovementType.FLYING && (h.type === 'FIRE')) {
-                        return; // Safe
-                    }
+                    if (agent.movementType === 1 && (h.type === 'FIRE')) return; // Flyers avoid fire
 
                     const dmg = h.power;
                     agent.hp = Math.max(0, agent.hp - dmg);

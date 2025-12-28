@@ -2,6 +2,7 @@
 // --- Constants ---
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
+const MAX_ACTIVE_TEXTS = 100; // Cap to prevent infinite loops
 
 export interface FloatingText {
     active: boolean;
@@ -46,6 +47,12 @@ export class HUDSystem {
     }
 
     public addFloatingText(x: number, y: number, text: string, color: string, size: number, type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', isUlt: boolean = false) {
+        if (this.damageNumbers.length > MAX_ACTIVE_TEXTS) {
+            // Remove oldest if limit reached
+            const old = this.damageNumbers.shift();
+            if (old) this.release(old);
+        }
+
         if (type === 'KILL_STREAK') {
             for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
                 if (this.damageNumbers[i].type === 'KILL_STREAK') {

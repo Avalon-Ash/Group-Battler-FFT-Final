@@ -91,7 +91,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         if (!a.skills[idx]) return NodeState.FAILURE;
         engine.log(a, 'DECISION', 'AI決策', '施放技能', `決定使用 ${a.skills[idx]!.name}`);
-        return engine.performCast(a, idx);
+        return engine.combat.initiateCast(a, idx, engine);
     },
     "MoveToOptimal": (a, engine, args) => {
         const idx = args.slot;

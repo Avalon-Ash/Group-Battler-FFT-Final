@@ -37,47 +37,34 @@ export class EventVFXMapper {
 
         switch (event.type) {
             case 'VISUAL_SLASH':
-                // Delegate to Skill Architect first if skill ID matches
-                if (event.skill && SkillArchitect.play(event.skill.id, target, engine, vfx, grid, camera, event.sourceId)) {
-                    return;
-                }
-                // Fallback
-                if (event.sourceId && event.targetId) {
-                    vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
-                }
-                break;
-
             case 'VISUAL_BEAM':
-                // Check Ult First
-                if (event.skill && event.skill.tag === 'ULT') {
-                     if (UltArchitect.play(event.skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
-                }
-                // Check Skill Second
-                if (event.skill && SkillArchitect.play(event.skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
-
-                // Fallback Generic
-                vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
-                this.resolveImpact(event, engine, vfx, target, false); 
+                // Visual Events trigger full cinematic scripts (Shakes, Beams, etc.)
+                this.playCinematicEffect(event, engine, vfx, grid, camera, origin, target);
                 break;
 
             case 'DAMAGE': 
+                // CRITICAL FIX: Damage events NEVER trigger scripts. Only Hit VFX.
+                // This prevents DoT/AOE ticks from causing repeated screen shakes ("10.0 Earthquake").
                 if (!event.skill?.projectileSpeed) {
-                    this.resolveImpact(event, engine, vfx, target, true);
+                    this.playHitVFX(event, vfx, target);
                 }
                 break;
 
             case 'PROJECTILE_HIT': 
-                // Only play impact if not AOE (AOE handles its own impact via IMPACT_AOE event)
+                // Projectiles trigger impact. If it's AOE, we let IMPACT_AOE handle the main visual.
                 if (event.skill?.type !== 'AOE') {
-                    this.resolveImpact(event, engine, vfx, target, true);
+                    // Single target hits can trigger small shakes via HitVFX or Script?
+                    // Safe approach: HitVFX only + manual small trauma.
+                    this.playHitVFX(event, vfx, target);
                     camera.addTrauma(0.05); 
                 } else {
-                    // Small hit for AOE direct hit (redundant but adds juice)
+                    // Direct hit for AOE (the projectile touching target) - just a small spark
                     vfx.playEffect('FX_HIT_GENERIC', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color);
                 }
                 break;
 
             case 'IMPACT_AOE':
+                // AOE Centers trigger scripts (Big Boom)
                 this.handleAOE(event, engine, vfx, grid, camera, groundZ);
                 break;
 
@@ -94,28 +81,9 @@ export class EventVFXMapper {
                 break;
                 
             case 'CAST_BREAK':
-                // Standard Break
                 vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
-                
-                // --- RESTORED: DOMAIN SHATTER FOR ULTS ---
                 if (event.skill && event.skill.tag === 'ULT') {
-                    // Spawn extra large shards to simulate the domain breaking
-                    for(let i=0; i<8; i++) {
-                        const p = vfx.state.getParticle();
-                        p.x = origin.x + (Math.random()-0.5)*50;
-                        p.y = origin.y + (Math.random()-0.5)*50;
-                        p.z = origin.z + 50;
-                        p.vx = (Math.random()-0.5) * 600;
-                        p.vy = (Math.random()-0.5) * 600;
-                        p.vz = 400 + Math.random() * 400;
-                        p.life = 1.0; p.maxLife = 1.0;
-                        p.color = event.color || '#fff';
-                        p.size = 20 + Math.random() * 30; // Big chunks
-                        p.type = 'SHARD'; 
-                        p.gravity = 1500;
-                        vfx.state.particles.push(p);
-                    }
-                    camera.addTrauma(0.4); // Significant impact for stopping an Ult
+                    camera.addTrauma(0.4);
                 } else {
                     camera.addTrauma(0.15); 
                 }
@@ -145,23 +113,38 @@ export class EventVFXMapper {
         return { x: defaultX, y: defaultY, z: terrainH };
     }
 
-    private resolveImpact(event: GameEvent, engine: GameEngine, vfx: VFXSystem, target: Point3D, checkScript: boolean) {
+    private playCinematicEffect(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, origin: Point3D, target: Point3D) {
+        const skill = event.skill;
+        if (!skill) return;
+
+        // 1. Try Ult Script
+        if (skill.tag === 'ULT') {
+             if (UltArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
+        }
+        
+        // 2. Try Skill Script
+        if (SkillArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
+
+        // 3. Fallback (If no script found)
+        if (event.type === 'VISUAL_SLASH') {
+            vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
+        } else {
+            vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
+            this.playHitVFX(event, vfx, target);
+        }
+    }
+
+    private playHitVFX(event: GameEvent, vfx: VFXSystem, target: Point3D) {
         const skill = event.skill;
         const color = event.color || '#fff';
         
-        // 1. Script Override (Ult or Skill)
-        if (checkScript && skill) {
-            if (skill.tag === 'ULT' && UltArchitect.play(skill.id, target, engine, vfx, engine.renderer!.grid, engine.renderer!.camera, event.sourceId)) return;
-            if (SkillArchitect.play(skill.id, target, engine, vfx, engine.renderer!.grid, engine.renderer!.camera, event.sourceId)) return;
-        }
-
-        // 2. Data-Driven Override
+        // 1. Data-Driven Override (From Skill DB)
         if (skill && skill.visualHitEffect && VFX_REGISTRY[skill.visualHitEffect]) {
             vfx.playEffect(skill.visualHitEffect, target.x, target.y, target.z, color);
             return;
         }
 
-        // 3. Fallback to Generic
+        // 2. Fallback
         vfx.playEffect('FX_HIT_GENERIC', target.x, target.y, target.z, color);
     }
 
@@ -169,12 +152,12 @@ export class EventVFXMapper {
         if (!event.skill) return;
         const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 5 };
         
-        // 1. Script Check
+        // AOE Centers usually trigger scripts (Sanctuary, Meteor, etc.)
         if (UltArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) return;
         if (SkillArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) return;
 
-        // 2. Default AOE Visuals
-        this.resolveImpact(event, engine, vfx, centerPt, false);
+        // Default Fallback
+        this.playHitVFX(event, vfx, centerPt);
         camera.addTrauma(0.2);
     }
 }
