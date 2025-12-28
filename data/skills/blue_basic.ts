@@ -10,7 +10,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 25,
         type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 1,
-        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
     },
     { 
         id: 'tb_b2', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
@@ -34,7 +34,7 @@ export const BLUE_BASIC: Skill[] = [
         range: 1, cast: 0.3, cd: 1.5, cost: 0, gain: 25,
         type: 'SINGLE', power: 55, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 0.5,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'PHYSICAL'
     },
     { 
         id: 'tb_b5', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
@@ -57,14 +57,14 @@ export const BLUE_BASIC: Skill[] = [
         name: '弱點刺擊', desc: '穿透攻擊', 
         range: 2, cast: 0.4, cd: 1.0, cost: 0, gain: 25, 
         type: 'SINGLE', power: 60, color: '#bae6fd', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
     },
     { 
         id: 'wb_b3', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
         name: '弧光斬', desc: '順劈斬', 
         range: 1, cast: 0.5, cd: 1.2, cost: 0, gain: 25, 
         type: 'AOE', aoeRadius: 1, power: 50, color: '#60a5fa', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'LIGHTNING'
+        visualHitEffect: 'FX_HIT_BLUE_ARCANE', element: 'LIGHTNING'
     },
     { 
         id: 'wb_b4', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 

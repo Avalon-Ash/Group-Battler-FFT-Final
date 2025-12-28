@@ -14,11 +14,12 @@ export const ProceduralPainter = {
              // Beams usually handle their own transform because they connect two points.
              // Skipped here as ProjectileRenderer or VFXSystem handles beams explicitly.
         }
-        else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
+        else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE') {
             const rot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
             
             // KEY FIX: Use traceRotatedHex with applyIso=true to ensure
-            // the spinning hexagon matches the floor perspective perfectly.
+            // the spinning hexagon/circle matches the floor perspective perfectly.
+            // This fixes the "wobbly" effect seen when using context rotation on squashed scales.
             
             if (p.type === 'GIANT_HEX') {
                 ctx.globalCompositeOperation = 'source-over';
@@ -56,6 +57,33 @@ export const ProceduralPainter = {
                     ctx.beginPath(); ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2); ctx.stroke();
                     ctx.restore();
                 }
+
+            } else if (p.type === 'MAGIC_CIRCLE') {
+                // Procedural Magic Circle (Drawing directly instead of Texture to fix perspective)
+                ctx.globalCompositeOperation = 'screen';
+                
+                // Outer Hex
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 10;
+                
+                // Spin Direction A
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
+                ctx.stroke();
+                
+                // Inner Hex (Spin Direction B)
+                ctx.lineWidth = 1;
+                ctx.shadowBlur = 0;
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size * 0.7, -rot * 2, true);
+                ctx.stroke();
+                
+                // Inner Circle (Perspective Correct)
+                ctx.save();
+                ctx.scale(1, ISO_SCALE_Y);
+                ctx.beginPath(); ctx.arc(0, 0, p.size * 0.4, 0, Math.PI * 2); 
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.restore();
 
             } else {
                 // HEX_BEAM (Energy / Wireframe style)

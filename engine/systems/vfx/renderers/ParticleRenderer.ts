@@ -11,8 +11,9 @@ export const ParticleRenderer = {
 
         // --- DISPATCHER ---
         
-        // 1. Procedural Complex Shapes (Pillars, Beams, Domains)
-        if (['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM'].includes(p.type)) {
+        // 1. Procedural Complex Shapes (Pillars, Beams, Domains, Magic Circles)
+        // Moved MAGIC_CIRCLE here to fix isometric rotation distortion
+        if (['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE'].includes(p.type)) {
             ctx.save();
             ctx.translate(drawX, drawY);
             ProceduralPainter.draw(ctx, p, progress, now);
@@ -22,7 +23,7 @@ export const ParticleRenderer = {
 
         // 2. Ground/Floor Effects (Must Scale Y for Perspective)
         // These stick to the grid surface.
-        if (['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE', 'HEX_GLOW'].includes(p.type)) {
+        if (['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW'].includes(p.type)) {
             GroundPainter.draw(ctx, p, progress, drawX, drawY);
             return;
         }
