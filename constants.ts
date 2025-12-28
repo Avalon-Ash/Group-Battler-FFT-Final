@@ -1,27 +1,32 @@
 
 import { Team } from './types';
 
-export const HEX_SIZE = 36; // Slightly smaller to accommodate height
-export const BLOCK_HEIGHT = 24; // Increased to 24 for distinct "Step" look (Tactics Ogre style)
-export const MAX_TERRAIN_TIER = 6; // Max height steps
-export const ISO_SCALE_Y = 0.58; // Moved here from utils.ts
+// --- GEOMETRY SCALE ---
+export const HEX_SIZE = 44; // Increased from 36 to 44 for better unit spacing
+export const BLOCK_HEIGHT = 24; 
+export const MAX_TERRAIN_TIER = 6; 
+export const ISO_SCALE_Y = 0.58; 
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
-export const UNIT_VISUAL_HEIGHT = 90; // Standardized "Head" position. Ensures clearance for tallest sprites.
-export const UNIT_BODY_OFFSET = 45;   // NEW: The visual "Chest/Center" height from the ground. Syncs Render & VFX.
-export const HUD_PADDING = 10;        // Safety buffer between sprite top and UI elements.
-export const HUD_ANCHOR_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING;
+// Tweak heights to separate HUD from Status Icons
+export const UNIT_VISUAL_HEIGHT = 100; // Head position relative to feet
+export const UNIT_BODY_OFFSET = 40;    // Center of mass relative to feet
+export const HUD_PADDING = 10;         
+
+// Anchor adjustments
+export const STATUS_ICON_OFFSET = 120; // Height for Status Icons (Stun stars etc)
+export const HUD_BAR_OFFSET = 150;     // Height for HP Bar (Above Status)
 
 // --- HUD & FEEDBACK CONFIG ---
-export const HUD_TEXT_OFFSET = UNIT_VISUAL_HEIGHT + HUD_PADDING + 20;
-export const KILL_STREAK_WINDOW = 12.0; // Seconds allowed between kills to count as a streak
+export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
+export const KILL_STREAK_WINDOW = 12.0; 
 
 // --- PHYSICS & FALL DAMAGE ---
 export const PHYSICS = {
     GRAVITY: 2000,
-    SAFE_FALL_VELOCITY: 700, // Velocity below this takes no damage
-    FATAL_FALL_VELOCITY: 2200, // Velocity at which you take ~100% HP damage
-    FALL_DAMAGE_MIN: 50, // Minimum flat damage if threshold crossed
+    SAFE_FALL_VELOCITY: 700, 
+    FATAL_FALL_VELOCITY: 2200, 
+    FALL_DAMAGE_MIN: 50, 
 };
 
 // --- ASSET PALETTES ---
@@ -103,7 +108,6 @@ export const COMBAT_PARAM = {
 };
 
 // --- MATERIAL 2.0 DEFINITIONS ---
-// Improved palette for better lighting simulation in 2D
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID': { 
         top: '#1e293b',        // Slate-800
@@ -142,7 +146,6 @@ export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, si
     } 
 };
 
-// Obstacle Visual Styles (Matched to Themes)
 export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string, highlight: string }> = {
     'WALL': { 
         main: '#475569', light: '#64748b', dark: '#334155', detail: '#94a3b8', highlight: '#cbd5e1' 

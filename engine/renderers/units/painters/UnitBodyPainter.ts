@@ -8,6 +8,8 @@ import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitAuraPainter } from "./UnitAuraPainter";
 import { SpriteManager } from "../../../sprites";
 
+const HOVER_LIFT = 6; // Must match UnitShadowPainter
+
 export const UnitBodyPainter = {
     draw(
         ctx: CanvasRenderingContext2D, 
@@ -24,7 +26,8 @@ export const UnitBodyPainter = {
         // px, py are Ground Coordinates.
         // pz is Height from terrain.
         // UNIT_BODY_OFFSET shifts from feet to center of mass.
-        const bodyY = py - pz - UNIT_BODY_OFFSET;
+        // HOVER_LIFT shifts up to match the floating chessboard.
+        const bodyY = py - pz - UNIT_BODY_OFFSET - HOVER_LIFT;
         
         ctx.translate(px, bodyY); 
         ctx.rotate(agent.physics.angle); 

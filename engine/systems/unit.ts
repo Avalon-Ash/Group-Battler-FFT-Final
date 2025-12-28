@@ -25,9 +25,9 @@ export class UnitRenderSystem {
             const op = renderList.next();
             op.type = RenderOpType.UNIT;
             
-            // Sort by ground Y for correct occlusion (Painter's Algorithm)
-            // Add +1 to draw slightly in front of center-aligned terrain elements
-            op.y = state.y + 1; 
+            // Sort by calculated SortY (Safe Max Y approach)
+            // Add +1 to ensure it draws slightly in front of the terrain block if positions are identical
+            op.y = state.sortY + 1; 
             op.z = 10;
             
             op.agent = agent;

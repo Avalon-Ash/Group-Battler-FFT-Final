@@ -1,6 +1,6 @@
 
 import { Agent } from "../game";
-import { UNIT_VISUAL_HEIGHT, HUD_PADDING } from "../../constants";
+import { HUD_BAR_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
 import { HUDSystem } from "../systems/hud";
 
@@ -29,7 +29,9 @@ export class HUDRenderer {
 
             const groundY = a.py - h;
             const physicsOffsetY = a.physics.y - a.physics.z; 
-            const anchorY = groundY - UNIT_VISUAL_HEIGHT + physicsOffsetY - HUD_PADDING;
+            
+            // Draw HP Bar much higher to avoid collision with Stun Icons
+            const anchorY = groundY + physicsOffsetY - HUD_BAR_OFFSET;
             const headX = a.px + a.physics.x;
 
             const isSelected = (a === highlight);

@@ -5,6 +5,7 @@ import { HexUtils } from "../utils";
 import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
 
 export class HazardSystem {
+    // Spatial Hash Map: "q,r" -> Hazard
     public hazards: Map<string, GroundHazard> = new Map();
 
     public reset() {
@@ -25,21 +26,19 @@ export class HazardSystem {
         if (!engine || !engine.map.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
         
-        // --- PERSISTENCE FIX ---
-        // Check if a compatible hazard already exists
+        // Persistence Logic: Extend existing hazards of same type/team
         const existing = this.hazards.get(key);
         
         if (existing) {
-            // If same type and team, EXTEND it instead of replacing it.
             if (existing.type === type && existing.team === team) {
                 existing.duration = Math.max(existing.duration, duration);
-                existing.power = Math.max(existing.power, power); // Update power if stronger
-                existing.sourceId = sourceId; // Update credit
+                existing.power = Math.max(existing.power, power); 
+                existing.sourceId = sourceId; 
                 return;
             }
         }
 
-        // Create New
+        // New Hazard Instance
         const hazard: GroundHazard = {
             id: Math.random().toString(36).substr(2, 6),
             q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
@@ -47,7 +46,7 @@ export class HazardSystem {
         
         this.hazards.set(key, hazard);
 
-        // Trigger Spawn VFX only on NEW creation
+        // Spawn VFX
         if (engine.renderer) {
             const def = HAZARD_VISUALS[type];
             if (def && def.spawnVfx) {
@@ -65,64 +64,74 @@ export class HazardSystem {
     public update(dt: number, engine: GameEngine) {
         const toRemove: string[] = [];
         
-        // 1. Tick Durations & Update Global Timers
+        // 1. Hazard Lifecycle Management
         for (const [key, h] of this.hazards.entries()) {
             h.duration -= dt;
-            h.timer -= dt; // Tick timer counts down
+            h.timer -= dt; 
             if (h.duration <= 0) toRemove.push(key);
         }
         toRemove.forEach(k => this.hazards.delete(k));
 
-        // 2. Resolve Effects (Optimized: Iterate Agents, not Hazards)
-        // O(Agents) is much better than O(Hazards * Agents) when carpet bombing
-        
+        // 2. Spatial Effect Application (Iterate Agents O(N))
         engine.agents.forEach(agent => {
             if (agent.hp <= 0 || agent.banished) return;
             
-            // Spatial Lookup
+            // O(1) Lookup
             const hazard = this.getHazardAt(agent.q, agent.r);
             if (!hazard) return;
 
-            // Effect Logic
-            if (hazard.timer <= 0) {
-                // Apply Damage if hostile
-                if (hazard.team !== agent.team) {
-                    if (agent.movementType === 1 && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return; // Flyers check
+            // Hostility Check
+            const isHostile = hazard.team !== agent.team;
+            if (!isHostile) return;
 
-                    const dmg = hazard.power;
-                    agent.hp = Math.max(0, agent.hp - dmg);
-                    
-                    engine.events.push({ 
-                        type: 'DAMAGE', 
-                        pos: {x: agent.px, y: agent.py}, 
-                        value: -Math.floor(dmg), 
-                        color: hazard.color,
-                        skill: { color: hazard.color, ccType: 'DOT' } as any 
-                    });
-
-                    engine.log(agent, 'HAZARD', hazard.type, `(${hazard.q},${hazard.r})`, `受到地形傷害 ${Math.floor(dmg)}`);
-                }
+            // Flyer Immunity Check
+            // Flying units avoid Ground Fire/Poison, but Gravity/Generic (Magic) hits them
+            if (agent.movementType === 1 && (hazard.type === 'FIRE' || hazard.type === 'POISON')) {
+                return;
             }
 
-            // Physics Logic (Gravity)
-            if (hazard.type === 'GRAVITY' && hazard.team !== agent.team) {
+            // A. Damage Tick
+            if (hazard.timer <= 0) {
+                const dmg = hazard.power;
+                agent.hp = Math.max(0, agent.hp - dmg);
+                
+                engine.events.push({ 
+                    type: 'DAMAGE', 
+                    pos: {x: agent.px, y: agent.py}, 
+                    value: -Math.floor(dmg), 
+                    color: hazard.color,
+                    skill: { color: hazard.color, ccType: 'DOT' } as any 
+                });
+
+                engine.log(agent, 'HAZARD', hazard.type, `(${hazard.q},${hazard.r})`, `地形傷害 ${Math.floor(dmg)}`);
+            }
+
+            // B. Physics Tick (Continuous)
+            if (hazard.type === 'GRAVITY') {
                 const center = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
                 const dx = center.x - agent.px;
                 const dy = center.y - agent.py;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
                 if (dist > 5) {
-                    const pull = 300 * dt;
-                    agent.physics.vx += (dx/dist) * pull;
-                    agent.physics.vy += (dy/dist) * pull;
-                    agent.moveSpeedMult = 0.3; // Slow down
+                    const pullForce = 300; 
+                    const fx = (dx/dist) * pullForce;
+                    const fy = (dy/dist) * pullForce;
+                    
+                    // Directly modify physics velocity
+                    agent.physics.vx += fx * dt;
+                    agent.physics.vy += fy * dt;
+                    
+                    // Strong Slow
+                    agent.moveSpeedMult = 0.3; 
                 }
+            } else if (hazard.type === 'ICE') {
+                // Minor slip? Or just slow?
+                agent.moveSpeedMult = 0.6;
             }
         });
 
-        // 3. Reset Hazard Timers (Batch)
-        // Since logic is applied via Agent iteration, we need to reset the tick timer for hazards that "fired".
-        // But since hazards fire on a frequency, we can just reset any negative timer.
+        // 3. Reset Hazard Timers (Safe Batch Reset)
         for (const h of this.hazards.values()) {
             if (h.timer <= 0) {
                 h.timer = h.interval;

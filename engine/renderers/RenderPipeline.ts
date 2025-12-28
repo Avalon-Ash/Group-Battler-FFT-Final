@@ -18,8 +18,7 @@ import { GridOverlays } from "./grid/GridOverlays";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { SpriteManager } from "../sprites";
 import { AssetManager } from "../assets";
-
-const OBSTACLE_HALF_WIDTH = 40;
+import { ENV_ANCHOR_X, ENV_ANCHOR_Y } from "../graphics/EnvironmentFactory";
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -157,8 +156,10 @@ export class RenderPipeline {
                     
                 case RenderOpType.OBSTACLE:
                     const sprite = SpriteManager.getObstacleSprite(op.ttype);
-                    // Obstacles anchor bottom-center to ty
-                    ctx.drawImage(sprite, snapX - OBSTACLE_HALF_WIDTH, snapY - 100); // 100 is approx height of obstacle asset
+                    // Standardized drawing:
+                    // op.tx, op.ty is the Visual Surface Center of the hex.
+                    // We offset by the factory's anchor point to align it perfectly.
+                    ctx.drawImage(sprite, snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
                     break;
                     
                 case RenderOpType.UNIT:

@@ -18,6 +18,7 @@ export interface UnitVisualState {
     scale: number;
     isSilhouette: boolean;
     isSelected: boolean;
+    sortY: number; // New: Explicit sort key
     
     // Flags
     isDead: boolean;
@@ -36,10 +37,10 @@ export class UnitVisualProcessor {
         const isDead = agent.hp <= 0;
         
         // 1. Interpolate Ground Position (Lerp if moving)
-        // Use HexMath for consistency
         let logicalX = 0;
         let logicalY = 0;
         let terrainH = 0;
+        let sortY = 0;
 
         if (agent.isMoving && agent.path.length > 0) {
             const startPx = HexMath.hexToPixel(agent.q, agent.r, mapConfig.offsetX, mapConfig.offsetY);
@@ -52,18 +53,32 @@ export class UnitVisualProcessor {
             
             const startH = getTerrainHeight(agent.q, agent.r);
             const endH = getTerrainHeight(nextHex.q, nextHex.r);
-            terrainH = startH + (endH - startH) * agent.moveProgress;
+            
+            // STEP LOGIC: Snap height at midpoint to assume "stepping up/down" the block
+            // This prevents the unit from clipping through the wall of a higher block or floating diagonally.
+            terrainH = agent.moveProgress < 0.5 ? startH : endH;
+            
+            // SORT LOGIC: When moving, always sort in front of BOTH the start and end tiles.
+            // In isometric, larger Y = Front.
+            // We set the sort key to the 'most front' tile involved in the move.
+            sortY = Math.max(startPx.y, endPx.y);
+
         } else {
             const pos = HexMath.hexToPixel(agent.q, agent.r, mapConfig.offsetX, mapConfig.offsetY);
             logicalX = pos.x;
             logicalY = pos.y;
             terrainH = getTerrainHeight(agent.q, agent.r);
+            sortY = logicalY;
         }
 
         // Apply visual physics offsets
         const visualX = logicalX + agent.physics.x;
-        const visualY = logicalY + agent.physics.y; // This is the GROUND Y used for sorting
-        const visualZ = terrainH + agent.physics.z; // Total Height
+        // visualY corresponds to the Ground Base Y
+        const visualY = logicalY + agent.physics.y; 
+        const visualZ = terrainH + agent.physics.z; 
+
+        // Apply physics to sort key too (e.g. knocked forward)
+        sortY += agent.physics.y;
 
         const isSelected = (agent === highlightAgent);
 
@@ -76,6 +91,7 @@ export class UnitVisualProcessor {
             scale: 1.0, 
             isSilhouette: false,
             isSelected,
+            sortY,
             isDead,
             isVisible: !agent.fullyDead
         };

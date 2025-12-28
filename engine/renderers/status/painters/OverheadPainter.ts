@@ -1,6 +1,6 @@
 
 import { Agent } from "../../../../game";
-import { UNIT_BODY_OFFSET } from "../../../../../constants";
+import { STATUS_ICON_OFFSET } from "../../../../../constants";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../../data/vfx/status_visuals";
 
@@ -21,7 +21,9 @@ export const OverheadPainter = {
 
         // Bobbing Animation
         const bob = Math.sin(t * 6) * 5;
-        const anchorY = y - z - UNIT_BODY_OFFSET - 60 + bob; // Approx 60px above body center
+        
+        // Anchored closer to head, below HP bar
+        const anchorY = y - z - STATUS_ICON_OFFSET + bob; 
 
         ctx.save();
         ctx.translate(x, anchorY);
