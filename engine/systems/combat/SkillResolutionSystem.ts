@@ -8,24 +8,30 @@ import { DamageCalculator } from "./DamageCalculator";
 
 export class SkillResolutionSystem {
 
-    // ... (Previous logic unchanged, omitting for brevity until spawnHazards) ...
-
     public updateCasting(a: Agent, dt: number, engine: GameEngine) {
-        if (a.stunTimer > 0 || a.banished || a.hp <= 0 || a.fearTimer > 0 || a.silenceTimer > 0) {
-            // Fear also interrupts casting
-            // Silence interrupts Non-Basic
-            const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
-            const isSilencedInterrupt = a.silenceTimer > 0 && currentSkill && currentSkill.tag !== 'BASIC';
-            const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
+        // 1. HARD CC INTERRUPT CHECK
+        // Stun, Banish, Fear, and Death interrupt all casting.
+        // Silence only interrupts Active/Ult skills (Basic attacks usually physical or muscle memory).
+        const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
+        
+        if (isHardCC) {
+            this.handleInterruption(a, engine);
+            return;
+        }
 
-            if (isHardCC || isSilencedInterrupt) {
+        if (a.silenceTimer > 0) {
+            const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
+            // Interrupt if not a basic attack
+            if (currentSkill && currentSkill.tag !== 'BASIC') {
                 this.handleInterruption(a, engine);
                 return;
             }
         }
         
+        // 2. CAST PROGRESS
         a.castTimer -= dt;
         if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt; 
+        
         if (a.castTimer <= 0) {
             this.completeCast(a, engine);
         }
@@ -35,9 +41,12 @@ export class SkillResolutionSystem {
         const skillIdx = a.castingSkillIdx;
         if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
             const s = a.skills[skillIdx]!;
-            engine.log(a, 'CC', '中斷', s.name, '詠唱被打斷');
-            let centerPos = { x: a.px, y: a.py };
-            engine.events.push({ type: 'CAST_BREAK', pos: centerPos, value: 0, color: s.color, skill: s });
+            // Only log significant interruptions to avoid spam
+            if (s.tag !== 'BASIC') {
+                engine.log(a, 'CC', '中斷', s.name, '詠唱被打斷');
+                let centerPos = { x: a.px, y: a.py };
+                engine.events.push({ type: 'CAST_BREAK', pos: centerPos, value: 0, color: s.color, skill: s });
+            }
         }
         a.castingSkillIdx = -1;
         a.castTimer = 0;
@@ -47,15 +56,23 @@ export class SkillResolutionSystem {
 
     private completeCast(a: Agent, engine: GameEngine) {
         const s = a.skills[a.castingSkillIdx]!;
+        
+        // Resource Management
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
-        a.curCDs[a.castingSkillIdx] = s.cd;
+        a.curCDs[a.castingSkillIdx] = s.cd; // Apply Cooldown
+        
+        // Execution Fork: Projectile vs Instant
         if (s.projectileSpeed && s.projectileSpeed > 0) {
              engine.combat.spawnProjectile(a, s, engine);
         } else {
             this.executeInstantSkill(a, s, engine);
         }
+        
+        // Reset State
         a.castingSkillIdx = -1;
         a.castingAnimationTimer = 0;
+        
+        // Return to Combat Idle (Ready state)
         a.setAnim(AnimState.COMBAT_IDLE);
     }
 
@@ -64,23 +81,32 @@ export class SkillResolutionSystem {
         let origin = {x: source.px, y: source.py}; 
         let targetHex = source.targetHex || (source.target ? {q: source.target.q, r: source.target.r} : {q: source.q, r: source.r});
 
+        // 1. Calculate Impact Area (AOE or Single)
         const impactCells = engine.movement.targeting.getImpactArea(source, targetHex, skill, engine);
 
         if (skill.type === 'AOE' || impactCells.length > 1) {
+            // --- AOE LOGIC ---
             impactCells.forEach(cell => {
                 const u = engine.getAgentAt(cell.q, cell.r);
                 if (u && u.hp > 0 && !u.banished) {
+                    // Filter Logic: Damage hits Enemies, Heal hits Allies
                     if (skill.power >= 0 && u.team !== source.team) targets.push(u);
                     else if (skill.power < 0 && u.team === source.team) targets.push(u);
                 }
             });
+            
+            // Visual Origin for AOE is the center of the impact
             const p = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
             origin = { x: p.x, y: p.y };
+            
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color });
             
+            // Spawn Persistent Hazards (Fire, Poison Cloud, etc.)
             this.spawnHazards(source, impactCells, skill, engine);
 
         } else {
+            // --- SINGLE TARGET LOGIC ---
+            // Re-validate target existence and range (Latency/Movement check)
             if (source.target && source.target.hp > 0 && !source.target.banished) {
                 const effRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
                 if (HexMath.distance(source, source.target) <= effRange) {
@@ -89,25 +115,36 @@ export class SkillResolutionSystem {
             }
         }
         
-        // Self-Target for buffs (Shields etc) if target list empty and skill is beneficial
+        // Self-Target Exception: Buffs/Shields with no target default to self
         if (targets.length === 0 && skill.power <= 0 && skill.type === 'SINGLE') {
             targets.push(source);
         }
         
+        // 2. Resolve Hits
         targets.forEach(t => {
             const dist = HexMath.distance(source, t);
-            if (dist > 1) engine.events.push({ type: 'VISUAL_BEAM', pos: { x: t.px, y: t.py }, sourceId: source.id, targetId: t.id, skill, color: skill.color });
-            else engine.events.push({ type: 'VISUAL_SLASH', pos: { x: t.px, y: t.py }, sourceId: source.id, targetId: t.id, skill, color: skill.color });
+            
+            // Visual Connector: Slash for melee, Beam for range
+            if (dist > 1) {
+                engine.events.push({ type: 'VISUAL_BEAM', pos: { x: t.px, y: t.py }, sourceId: source.id, targetId: t.id, skill, color: skill.color });
+            } else {
+                engine.events.push({ type: 'VISUAL_SLASH', pos: { x: t.px, y: t.py }, sourceId: source.id, targetId: t.id, skill, color: skill.color });
+            }
+            
             this.resolveHit(source, t, skill, origin, engine);
         });
 
-        engine.events.push({ type: 'CAST_FINISH', pos: {x: source.px, y: source.py}, skill: skill });
+        // Only emit CAST_FINISH for significant skills to trigger screen shake/audio
+        if (skill.tag !== 'BASIC') {
+            engine.events.push({ type: 'CAST_FINISH', pos: {x: source.px, y: source.py}, skill: skill });
+        }
     }
 
     private spawnHazards(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine) {
         const dur = skill.ccDur || 5.0;
         let hType: any = null;
 
+        // Map Skill Properties to Hazard Types
         if (skill.ccType === 'DOT') hType = 'POISON';
         if (skill.element === 'FIRE') hType = 'FIRE';
         if (skill.element === 'ICE') hType = 'ICE';
@@ -124,16 +161,17 @@ export class SkillResolutionSystem {
                     skill.color,
                     (Math.abs(skill.power) * 0.2) || 10, 
                     0.5,
-                    engine // Pass engine for VFX trigger
+                    engine 
                 );
             });
         }
     }
 
     public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine) {
+        // 1. Math Calculation (Crit, Block, Execute, etc.)
         const result = DamageCalculator.calculate(source, target, skill);
         
-        // Handle MISS
+        // 2. Handle MISS
         if (result.isMiss) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "MISS", color: "#94a3b8" });
             return;
@@ -141,14 +179,19 @@ export class SkillResolutionSystem {
 
         const oldHp = Math.ceil(target.hp);
         
-        // Absorb feedback
+        // 3. Apply Feedback (Shield Absorb)
         if (result.shieldAbsorb > 0) {
             target.shield -= result.shieldAbsorb;
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "ABSORB", color: "#bae6fd" });
+            // Only show absorb text if significant
+            if (result.shieldAbsorb > 20) {
+                engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "ABSORB", color: "#bae6fd" });
+            }
         }
 
+        // 4. Apply HP Change
         target.hp = Math.min(target.maxHp, target.hp + result.finalValue);
         
+        // 5. Secondary Effects (Vamp, Mana)
         if (result.vampAmount > 0 && source.hp > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#86efac' });
@@ -163,41 +206,51 @@ export class SkillResolutionSystem {
              engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: `+${result.manaRestore} MP`, color: "#60a5fa" });
         }
 
+        // 6. Physics Impulse & Animation
         if (result.finalValue < 0) { 
             target.setAnim(AnimState.HIT);
             target.hitFlashTimer = 0.2;
             const originPx = origin ? origin : {x: source.px, y: source.py};
             const impulse = this.calculateImpulseVector(originPx, {x: target.px, y: target.py}, Math.abs(result.finalValue));
+            
+            // Apply physics kick
             target.physics.vx += impulse.x;
             target.physics.vy += impulse.y;
             target.physics.vAngle += (Math.random() - 0.5) * 0.5;
         }
 
+        // 7. Critical / Special Text
         if (result.isExecute) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "斬殺!", color: "#dc2626" });
         if (result.isCrit) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "CRIT!", color: "#ef4444" });
         if (result.isBlock) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "BLOCK", color: "#9ca3af" });
 
+        // 8. Main Visual Event (Floating Damage Number)
         engine.events.push({
             type: result.finalValue < 0 ? 'DAMAGE' : 'HEAL',
             pos: { x: target.px, y: target.py },
             value: result.finalValue,
             sourceId: source.id,
             targetId: target.id,
-            skill: skill,
+            skill: skill, // Pass skill for color coding in EventHUDMapper
             color: skill.color
         });
 
-        // SHIELD APPLICATION Logic (Negative damage + HOT type usually)
-        // But better to use explicit CC Type for Shield
-        // If skill power is negative (heal) and ccType is SHIELD, apply shield hp
-        
+        // 9. Apply Status Effects (CC)
         this.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
         this.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
 
+        // 10. Logging
         const newHp = Math.ceil(target.hp);
         const actionType = result.finalValue < 0 ? 'HIT' : 'HEAL';
-        engine.log(source, actionType, skill.name, target.id, `${actionType === 'HIT' ? '造成傷害' : '回復生命'} ${Math.abs(result.finalValue)} (HP: ${oldHp} -> ${newHp})`);
+        
+        // Log Filter: Reduce spam for basic attacks unless they kill or crit
+        const shouldLog = skill.tag !== 'BASIC' || result.isCrit || result.isExecute || newHp <= 0;
+        
+        if (shouldLog) {
+            engine.log(source, actionType, skill.name, target.id, `${actionType === 'HIT' ? '造成傷害' : '回復生命'} ${Math.abs(result.finalValue)} (HP: ${oldHp} -> ${newHp})`);
+        }
 
+        // 11. Death Check
         if (oldHp > 0 && newHp <= 0) {
             engine.log(source, 'DEATH', '擊殺', target.id, `${target.id} 已陣亡`);
             engine.events.push({ type: 'KILL', pos: { x: target.px, y: target.py }, sourceId: source.id, targetId: target.id });
@@ -208,7 +261,10 @@ export class SkillResolutionSystem {
         const dx = target.x - origin.x;
         const dy = target.y - origin.y;
         const len = Math.sqrt(dx * dx + dy * dy);
-        const force = Math.min(400, Math.max(100, damage * 1.5));
+        
+        // Scale impulse by damage, clamped for sanity
+        const force = Math.min(400, Math.max(50, damage * 2.0));
+        
         if (len <= 0.1) {
             const ang = Math.random() * Math.PI * 2;
             return { x: Math.cos(ang) * force, y: Math.sin(ang) * force };
@@ -218,7 +274,9 @@ export class SkillResolutionSystem {
 
     public applyCC(source: Agent, target: Agent, skill: Skill, type: string | undefined, dur: number | undefined, force: number | undefined, origin: {x: number, y: number} | undefined, engine: GameEngine) {
         if (!type || type === 'NONE') return;
+        
         const { effectiveDuration, isImmune } = this.checkDR(target, type, dur || 0);
+        
         if (isImmune) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "免疫", color: "#9ca3af" });
             return;
@@ -256,8 +314,6 @@ export class SkillResolutionSystem {
                 statusText = "放逐"; statusColor = "#c084fc";
                 if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
                 break;
-            
-            // --- NEW EFFECTS ---
             case 'ROOT':
                 if (effectiveDuration > target.rootTimer) target.rootTimer = effectiveDuration;
                 target.isMoving = false;
@@ -270,7 +326,7 @@ export class SkillResolutionSystem {
             case 'TAUNT':
                 if (effectiveDuration > target.tauntTimer) {
                     target.tauntTimer = effectiveDuration;
-                    target.tauntTargetId = source.id; // Target the caster
+                    target.tauntTargetId = source.id; // Force target to caster
                 }
                 statusText = "嘲諷"; statusColor = "#ef4444";
                 break;
@@ -279,8 +335,6 @@ export class SkillResolutionSystem {
                 statusText = "致盲"; statusColor = "#cbd5e1";
                 break;
             case 'SHIELD':
-                // Shield amount passed via ccForce or just power
-                // If it's a heal/buff skill, use negative power? Or just use ccForce
                 const amount = force || 50;
                 target.shield += amount;
                 target.maxShield = Math.max(target.maxShield, target.shield);
@@ -293,7 +347,7 @@ export class SkillResolutionSystem {
                 if (result.applied) {
                     statusText = type === 'PULL' ? "牽引" : "擊退";
                     target.setAnim(AnimState.HIT);
-                    target.physics.vz += 200; 
+                    target.physics.vz += 150; // Pop up slightly
                 }
                 break;
             case 'DOT':
@@ -310,7 +364,7 @@ export class SkillResolutionSystem {
 
         if (statusText) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: statusText, color: statusColor });
-            // Added explicit LOG for CC application
+            // Explicitly log CC application
             engine.log(source, 'CC', type, target.id, `施加 ${statusText} (${effectiveDuration.toFixed(1)}s)`);
         }
     }
@@ -318,23 +372,29 @@ export class SkillResolutionSystem {
     private checkDR(target: Agent, type: string, baseDuration: number) {
         const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false };
+        
         const stacks = target.drStacks[type] || 0;
-        const multiplier = Math.pow(0.5, stacks);
+        const multiplier = Math.pow(0.5, stacks); // 100% -> 50% -> 25%
+        
         if (multiplier < 0.2) return { effectiveDuration: 0, isImmune: true };
+        
         target.drStacks[type] = stacks + 1;
-        target.drTimers[type] = 10.0;
+        target.drTimers[type] = 10.0; // Reset window
+        
         return { effectiveDuration: baseDuration * multiplier, isImmune: false };
     }
 
     private calculateKnockback(target: Agent, force: number, source: Agent, origin: {x: number, y: number} | undefined, type: string, engine: GameEngine) {
         const rawForce = Math.max(1, force);
         const resistance = target.weight || 1; 
+        
+        // Calculate tiles to push: Force minus Weight
         const tilesToPush = Math.max(0, rawForce - resistance);
         if (tilesToPush === 0) return { applied: false };
 
         const originPx = origin ? origin : {x: source.px, y: source.py};
         const dir = Vector.normalize(Vector.sub({x: target.px, y: target.py}, originPx));
-        const vector = type === 'KNOCKBACK' ? dir : Vector.mult(dir, -1);
+        const vector = type === 'KNOCKBACK' ? dir : Vector.mult(dir, -1); // Reverse for Pull
         
         let currentH = {q: target.q, r: target.r};
         let finalH = currentH;
@@ -343,6 +403,8 @@ export class SkillResolutionSystem {
             const neighbors = HexUtils.neighbors(currentH);
             let bestN: Hex | null = null;
             let bestDot = -99;
+            
+            // Find neighbor best matching the knockback vector
             for(const n of neighbors) {
                 const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
                 const cPx = HexUtils.toPx(currentH.q, currentH.r, engine.mapConfig);
@@ -353,12 +415,17 @@ export class SkillResolutionSystem {
                     bestN = n;
                 }
             }
+            
             if (bestN) {
+                // Collision Checks
                 if (!engine.map.isValid(bestN.q, bestN.r) || engine.map.hasObstacle(bestN.q, bestN.r)) break; 
-                if (engine.getAgentAt(bestN.q, bestN.r)) break;
+                if (engine.getAgentAt(bestN.q, bestN.r)) break; // Hit another unit
+                
+                // Height Check: Cannot get knocked UP a cliff, only down or level
                 const curHeight = engine.map.getTerrainHeight(currentH.q, currentH.r);
                 const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);
-                if (nextHeight > curHeight + 24) break; 
+                if (nextHeight > curHeight + 24) break; // Wall collision
+                
                 currentH = bestN;
                 finalH = bestN;
             } else {

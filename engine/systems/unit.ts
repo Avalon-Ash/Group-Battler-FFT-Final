@@ -10,7 +10,7 @@ import { STATUS_VISUALS } from "../../data/vfx/status_visuals";
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
 import { CovenantRenderer } from "../renderers/units/factions/CovenantRenderer";
-import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawStatusEffects, drawStatusIcons, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
+import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
 
 // Visual Constants
 const MAX_UNIT_SIZE_RATIO = 0.85; 
@@ -18,7 +18,6 @@ const UNIT_REFERENCE_HEIGHT = 100;
 
 export class UnitRenderSystem {
     
-    // ... (submitRenderables and drawSilhouette kept same, omitted for brevity but assumed present in full file) ...
     public submitRenderables(
         renderList: RenderList,
         agents: Agent[], 
@@ -118,37 +117,19 @@ export class UnitRenderSystem {
         }
 
         // 4. LAYER: UNIT BODY ROOT
-        ctx.save(); // Push body transform state
+        ctx.save(); 
         ctx.translate(physX, physY - physZ); 
         ctx.rotate(agent.physics.angle); 
 
         // 6. LAYER: ANIMATED BODY
         this.drawBodyElements(ctx, agent, globalTime, isSilhouette, isSelected, scaleFactor);
         
-        ctx.restore(); // Pop body transform (reset rotation/facing)
+        ctx.restore(); 
 
-        // 7. LAYER: STATUS EFFECTS (Un-flipped, World Aligned)
-        // We are still at (drawX, drawY) scaled by scaleFactor.
-        // We need to translate to the unit's visual top center (physX, physY - physZ)
-        if (!isSilhouette && agent.hp > 0) {
-            ctx.save();
-            ctx.translate(physX, physY - physZ);
-            
-            // Adjust for body float (UnitVisuals usually expects 0,0 to be feet)
-            let bodyFloat = -UNIT_BODY_OFFSET;
-            if (agent.movementType !== MovementType.FLYING) bodyFloat -= Math.sin(globalTime * 2) * 3;
-            else bodyFloat -= Math.sin(globalTime * 4) * 2;
-            
-            ctx.translate(0, bodyFloat);
+        // NOTE: Layer 7 (Status Effects) removed from here. 
+        // It is now handled by StatusRenderLayer in the main Render Loop.
 
-            // Draw Status overheads (Not mirrored)
-            drawStatusIcons(ctx, agent, globalTime, 0, 0, scaleFactor);
-            drawStatusEffects(ctx, agent, globalTime);
-            
-            ctx.restore();
-        }
-
-        ctx.restore(); // Pop global scale/translate
+        ctx.restore(); 
     }
 
     private drawGroundElements(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number) {
@@ -258,8 +239,6 @@ export class UnitRenderSystem {
                 ctx.drawImage(ice, -48, -75, 96, 128);
                 ctx.restore();
             }
-            
-            // Note: Stasis/StatusEffects moved outside
         }
     }
 }

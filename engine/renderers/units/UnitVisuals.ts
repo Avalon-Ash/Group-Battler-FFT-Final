@@ -3,12 +3,19 @@ import { Agent } from "../../game";
 import { Team } from "../../../types";
 import { HEX_SIZE, ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../../constants";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
-import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { SurfaceAssets } from "../../graphics/SurfaceAssets";
-import { AssetManager } from "../../assets";
 import { VFXFactory } from "../../graphics/VFXFactory";
 
-// ... (Keep existing imports and functions up to drawDomainExpansion) ...
+// =========================================================================================
+// 🦴 UNIT BODY VISUALS (Pure Geometry & Animation)
+// 
+// Responsible ONLY for:
+// 1. Casting Animations (Chant circles)
+// 2. Flight/Hover Effects
+// 3. Skill Indicators (Ground decals)
+//
+// MOVED OUT: Status Effects -> StatusRenderLayer.ts
+// =========================================================================================
 
 export function drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
     const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
@@ -174,121 +181,4 @@ export function drawSkillGroundIndicator(
     ctx.globalAlpha = opacity * 1.2;
     ctx.drawImage(ring, -ringSize/2, -ringSize/2, ringSize, ringSize);
     ctx.restore();
-}
-
-export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: number, drawX: number, drawY: number, scaleFactor: number) {
-    if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
-        const skill = agent.skills[agent.castingSkillIdx];
-        if (skill) {
-            ctx.save();
-            ctx.translate(0, -110);
-            const bg = VFXFactory.getTexture('GLOW', skill.color);
-            ctx.globalAlpha = 0.6;
-            ctx.globalCompositeOperation = 'screen';
-            ctx.drawImage(bg, -30, -30, 60, 60);
-            ctx.restore();
-        }
-    }
-}
-
-export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
-    if (agent.hp <= 0) return;
-    
-    // Priority Status Drawing
-    // We check specific conditions and draw the corresponding VFX
-    
-    // 1. ROOT (Chains at feet)
-    if (agent.rootTimer > 0) {
-        const color = '#fbbf24'; // Amber chains
-        ctx.save();
-        ctx.translate(0, 40); // Ground level
-        // Draw 3 Spikes
-        for(let i=0; i<3; i++) {
-            const angle = i * (Math.PI*2/3) + t;
-            const r = 15;
-            const px = Math.cos(angle) * r;
-            const py = Math.sin(angle) * r * ISO_SCALE_Y;
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(px, py - 30); // Spike Up
-            ctx.lineTo(px + 5, py);
-            ctx.fillStyle = color;
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.fill();
-        }
-        
-        // Ring
-        SurfaceAssets.drawHexRipple(ctx, 0, 0, 20, color, 0.8, 2);
-        ctx.restore();
-    }
-
-    // 2. SHIELD (Rotating Prism Shell)
-    if (agent.shield > 0) {
-        // Shield color depends on team or generic
-        const color = agent.team === Team.BLUE ? '#bae6fd' : '#f87171';
-        const pulse = 0.3 + Math.sin(t * 2) * 0.1;
-        
-        ctx.save();
-        ctx.translate(0, 40); // Ground level anchor for Prism
-        ctx.globalCompositeOperation = 'screen';
-        
-        // Rotating shell
-        ctx.save();
-        // Since Prism drawing is static, we can't rotate it easily without 3D math.
-        // Instead, we just draw the prism with pulsing opacity to simulate field.
-        SurfaceAssets.draw3DPrism(ctx, 0, 0, 35, 90, color, pulse, 'SOLID');
-        ctx.restore();
-        
-        // Inner brighter rim
-        SurfaceAssets.drawHexRipple(ctx, 0, -45, 30, color, 0.5, 2);
-        
-        ctx.restore();
-    }
-
-    // 3. BANISH / STASIS (Full Encapsulation)
-    if (agent.banished) {
-        const color = agent.visualStatus === 'STASIS' ? '#facc15' : '#c084fc';
-        const pulse = 0.5 + Math.sin(t * 3) * 0.2;
-        
-        ctx.save();
-        ctx.translate(0, 40); 
-        // Use standard Prism for consistent look
-        // Height 100 covers the unit comfortably
-        SurfaceAssets.draw3DPrism(ctx, 0, 0, 40, 100, color, pulse, 'SOLID');
-        ctx.restore();
-        return; // Banish hides other effects
-    }
-
-    // 4. OVERHEAD ICONS (Stun, Silence, Fear, Taunt, Blind)
-    let iconType = '';
-    let iconColor = '#fff';
-    
-    if (agent.stunTimer > 0) { iconType = 'STUN'; iconColor = '#facc15'; }
-    else if (agent.fearTimer > 0) { iconType = 'FEAR'; iconColor = '#a855f7'; }
-    else if (agent.tauntTimer > 0) { iconType = 'TAUNT'; iconColor = '#ef4444'; }
-    else if (agent.silenceTimer > 0) { iconType = 'SILENCE'; iconColor = '#94a3b8'; }
-    else if (agent.blindTimer > 0) { iconType = 'BLIND'; iconColor = '#cbd5e1'; }
-
-    if (iconType) {
-        const def = STATUS_VISUALS[iconType];
-        const shape = def.iconShape;
-        const color = def.primaryColor;
-        
-        ctx.save();
-        ctx.translate(0, -95); // Head height + padding
-        
-        // Float animation
-        const float = Math.sin(t * 5) * 4;
-        ctx.translate(0, float);
-        
-        // Draw the specific icon from AssetManager/UIFactory logic
-        // Since UnitVisuals usually calls factories, we can do manual drawing here or helper
-        // Let's use the Factory texture for consistency
-        const icon = AssetManager.getStatusIcon(iconType);
-        
-        ctx.scale(0.8, 0.8); // Scale down slightly for overhead
-        ctx.drawImage(icon, -24, -24, 48, 48);
-        
-        ctx.restore();
-    }
 }

@@ -15,7 +15,8 @@ import { VisualEventListener } from "./systems/VisualEventListener";
 // Renderers & Pool
 import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
-import { HUDRenderer } from "./renderers/HUDRenderer"; // Import new renderer
+import { HUDRenderer } from "./renderers/HUDRenderer";
+import { StatusRenderLayer } from "./renderers/layers/StatusRenderLayer"; // NEW IMPORT
 import { RenderList, RenderOpType, RenderOp } from "./renderers/RenderList";
 import { SpriteManager } from "./sprites";
 import { TerrainRenderer } from "./renderers/grid/TerrainRenderer";
@@ -36,8 +37,9 @@ export class GameRenderer {
     public vfx: VFXSystem;
     private vfxRenderer: VFXRenderer;
     public unit: UnitRenderSystem;
+    public statusLayer: StatusRenderLayer; // NEW LAYER
     public hud: HUDSystem;
-    private hudRenderer: HUDRenderer; // New renderer instance
+    private hudRenderer: HUDRenderer;
     public camera: CameraSystem;
     private eventListener: VisualEventListener;
     
@@ -56,8 +58,9 @@ export class GameRenderer {
         this.vfx = new VFXSystem();
         this.vfxRenderer = new VFXRenderer();
         this.unit = new UnitRenderSystem();
+        this.statusLayer = new StatusRenderLayer(); // Init
         this.hud = new HUDSystem();
-        this.hudRenderer = new HUDRenderer(); // Initialize
+        this.hudRenderer = new HUDRenderer(); 
         this.camera = new CameraSystem();
         this.eventListener = new VisualEventListener();
         this.backgroundRenderer = new BackgroundRenderer();
@@ -281,7 +284,11 @@ export class GameRenderer {
             ctx.restore();
         }
 
-        // 7. Top VFX (Particles above everything)
+        // 7. STATUS LAYER PASS (NEW: Dedicated Channel)
+        // Draws persistent effects (Shields, CC) on top of units but below UI overlay
+        this.statusLayer.draw(ctx, engine.agents, this.globalTime);
+
+        // 8. Top VFX (Particles above everything)
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
         ctx.restore(); 
@@ -298,7 +305,6 @@ export class GameRenderer {
         
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.grid, this.globalTime);
         
-        // Use the new HUDRenderer
         this.hudRenderer.draw(ctx, this.hud, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, this.globalTime);
         
         ctx.restore(); 
@@ -417,7 +423,7 @@ export class GameRenderer {
 
         ctx.save();
         ctx.translate(Math.round(op.pVisX), Math.round(op.pVisY));
-        if (op.pSpin !== 0) ctx.rotate(op.pSpin); // Using calc spin from config
+        if (op.pSpin !== 0) ctx.rotate(op.pSpin); 
         else ctx.rotate(op.pAngle);
         
         const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
