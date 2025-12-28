@@ -10,6 +10,7 @@ import { Agent, SpecialVisualStatus } from "./core/Agent";
 
 // Systems
 import { MovementSystem } from "./systems/movement";
+import { PhysicsSystem } from "./systems/PhysicsSystem"; // New
 import { StatusSystem } from "./systems/status";
 import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
@@ -18,6 +19,9 @@ import { AgentManager } from "./systems/agentManager";
 import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
 import { DirectorSystem } from "./systems/DirectorSystem"; 
 import { BattleLogger } from "./systems/BattleLogger"; 
+import { TimeSystem } from "./systems/TimeSystem"; 
+import { VictorySystem } from "./systems/VictorySystem"; 
+import { ZoneSystem } from "./systems/ZoneSystem"; 
 import { EventBus } from "./events/EventBus";
 import type { GameRenderer } from "./renderer";
 
@@ -40,16 +44,19 @@ export class GameEngine {
     public renderer?: GameRenderer;
     
     public isRunning: boolean = false;
-    
-    public timeScale: number = 1.0;
-    public targetTimeScale: number = 1.0; 
-    
-    public battleTime: number = 0;
     public mapVersion: number = 0; 
     
-    public isFinishing: boolean = false;
-    public victoryTimer: number = 0;
-    public winningTeam: Team | null = null;
+    // Time & Victory Proxies
+    get timeScale() { return this.time.timeScale; }
+    set timeScale(v: number) { this.time.timeScale = v; }
+    get targetTimeScale() { return this.time.targetTimeScale; }
+    set targetTimeScale(v: number) { this.time.targetTimeScale = v; }
+    get battleTime() { return this.time.battleTime; }
+    set battleTime(v: number) { this.time.battleTime = v; }
+    
+    get isFinishing() { return this.victory.isFinishing; }
+    get victoryTimer() { return this.victory.victoryTimer; }
+    get winningTeam() { return this.victory.winningTeam; }
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0 };
     public currentScene: SceneTheme = SCENE_DB[0];
@@ -60,6 +67,7 @@ export class GameEngine {
 
     // Systems
     public movement: MovementSystem;
+    public physics: PhysicsSystem; // New
     public status: StatusSystem;
     public combat: CombatSystem;
     public map: MapSystem;
@@ -68,11 +76,15 @@ export class GameEngine {
     public announcer: AnnouncerSystem; 
     public director: DirectorSystem;
     public logger: BattleLogger; 
+    public time: TimeSystem; 
+    public victory: VictorySystem; 
+    public zones: ZoneSystem; 
 
     get directorTargetId() { return this.director.targetId; }
 
     constructor() {
         this.movement = new MovementSystem();
+        this.physics = new PhysicsSystem();
         this.status = new StatusSystem();
         this.combat = new CombatSystem();
         this.map = new MapSystem();
@@ -81,6 +93,9 @@ export class GameEngine {
         this.announcer = new AnnouncerSystem(); 
         this.director = new DirectorSystem();
         this.logger = new BattleLogger();
+        this.time = new TimeSystem();
+        this.victory = new VictorySystem();
+        this.zones = new ZoneSystem();
         this.map.randomizeEnvironment(this);
     }
 
@@ -127,12 +142,9 @@ export class GameEngine {
     play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
-            this.battleTime = 0;
+            this.time.reset();
             this.logger.clear();
-            this.isFinishing = false;
-            this.winningTeam = null;
-            this.targetTimeScale = 1.0;
-            this.timeScale = 1.0;
+            this.victory.reset();
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', {});
         }
@@ -155,10 +167,8 @@ export class GameEngine {
 
     restart() {
         this.stop();
-        this.isFinishing = false;
-        this.winningTeam = null;
-        this.targetTimeScale = 1.0;
-        this.timeScale = 1.0;
+        this.victory.reset();
+        this.time.reset();
         this.agentMap.clear();
         this.announcer.reset(); 
         this.director.reset();
@@ -181,7 +191,6 @@ export class GameEngine {
             this.renderer.vfx.reset(); 
         }
         
-        this.battleTime = 0;
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_RESET', {});
     }
@@ -215,55 +224,40 @@ export class GameEngine {
     tick(dt: number) {
         if (!this.isRunning) return;
         
-        if (Math.abs(this.targetTimeScale - this.timeScale) > 0.01) {
-            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; 
-        } else {
-            this.timeScale = this.targetTimeScale;
-        }
-
+        this.time.update(dt);
         this.events.length = 0;
         this.director.update(dt, this);
+        this.zones.update(this); 
 
-        if (this.isFinishing) {
-            this.victoryTimer -= dt;
+        // Check Victory
+        if (this.victory.check(this)) {
+            this.victory.updateFinishing(dt, this);
             this.updateEntities(dt);
-            
-            if (this.victoryTimer <= 0) {
-                this.stop();
-                this.targetTimeScale = 1.0;
-                this.timeScale = 1.0;
-                this.bus.emit('GAME_OVER', { winner: this.winningTeam });
-            }
             return;
-        }
-
-        let blue = 0, red = 0;
-        for (const a of this.agents) {
-            if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
-        }
-
-        if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
-            this.isFinishing = true;
-            this.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
-            this.victoryTimer = VICTORY_PHASE_DURATION; 
-            this.targetTimeScale = 0.4; 
         }
 
         this.updateEntities(dt);
     }
 
     private updateEntities(dt: number) {
+        // 1. Physics (Global)
+        this.physics.update(dt, this);
+
+        // 2. Logic
         for (const a of this.agents) {
             if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
-            this.movement.updatePhysics(a, dt, this);
+            
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
                 continue;
             }
+            
             this.status.update(a, dt, this);
+            
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
+            
             if (a.bt) {
                 const resetTree = (node: BTNode) => { 
                     node.status = null; 
@@ -273,6 +267,8 @@ export class GameEngine {
                 a.bt.tick(a);
             }
         }
+        
+        // 3. Combat
         this.combat.update(dt, this);
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);

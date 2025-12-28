@@ -36,6 +36,7 @@ export const VolumePainter = {
 
     /**
      * Draw Hatching Pattern (Stripes) for Warnings
+     * OPTIMIZED: Use cached texture instead of complex clipping/compositing in main loop.
      */
     drawHatch(
         ctx: CanvasRenderingContext2D,
@@ -44,26 +45,22 @@ export const VolumePainter = {
         color: string,
         opacity: number
     ) {
-        ctx.save();
-        HexGeometry.traceHex(ctx, x, y, radius);
-        ctx.clip();
+        // Use pre-rendered texture. It's safer and faster.
+        const texture = VFXFactory.getTexture('WARNING_HATCH', color);
+        const size = radius * 2.2;
 
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 3; 
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.scale(1, ISO_SCALE_Y);
+        
         ctx.globalAlpha = opacity;
+        ctx.globalCompositeOperation = 'source-over'; // Standard blend
         
-        const size = radius * 2;
-        const spacing = 12; 
-        
-        ctx.beginPath();
-        for (let i = -size; i < size; i += spacing) {
-            ctx.moveTo(x + i - size, y - size);
-            ctx.lineTo(x + i + size, y + size);
-        }
-        ctx.stroke();
+        ctx.drawImage(texture, -size/2, -size/2, size, size);
         
         ctx.restore();
-    },
+    }
+    ,
 
     /**
      * Generalized 3D Prism
@@ -122,23 +119,34 @@ export const VolumePainter = {
 
         ctx.fillStyle = color;
         ctx.globalAlpha = opacity * 0.3;
-        HexGeometry.traceHex(ctx, x, topY, radius);
-        ctx.fill();
         
         if (style === 'HATCHED_WARNING') {
+            // Draw Hatch on top face
             this.drawHatch(ctx, x, topY, radius, '#ffffff', opacity);
+            
         } else if (style === 'SOLID') {
             ctx.fillStyle = color;
             ctx.globalAlpha = opacity * 0.2;
             HexGeometry.traceHex(ctx, x, topY, radius);
             ctx.fill();
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = Math.min(1.0, opacity * 3.0 + 0.4); 
+            HexGeometry.traceHex(ctx, x, topY, radius);
+            ctx.stroke();
+        } else {
+            // Gradient Fade
+            ctx.fillStyle = color;
+            ctx.globalAlpha = opacity * 0.3;
+            HexGeometry.traceHex(ctx, x, topY, radius);
+            ctx.fill();
+            
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            HexGeometry.traceHex(ctx, x, topY, radius);
+            ctx.stroke();
         }
-        
-        ctx.strokeStyle = color;
-        ctx.lineWidth = style === 'HATCHED_WARNING' ? 2 : 1.5;
-        ctx.globalAlpha = Math.min(1.0, opacity * 3.0 + 0.4); 
-        HexGeometry.traceHex(ctx, x, topY, radius);
-        ctx.stroke();
 
         if (radius > 20) {
             ctx.globalCompositeOperation = 'screen';
@@ -152,7 +160,7 @@ export const VolumePainter = {
         }
 
         ctx.restore();
-    },
+    }
 
     drawWarningBlock(
         ctx: CanvasRenderingContext2D,

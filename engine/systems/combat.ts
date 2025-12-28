@@ -23,10 +23,19 @@ export class CombatSystem {
     }
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
-        if (a.castingSkillIdx === -1) {
-            const skill = a.skills[skillIdx];
-            if (!skill) return NodeState.FAILURE;
+        // --- LOOP BUG FIX: Strict State Check ---
+        // Prevents AI from spamming initiateCast when unit is disabled,
+        // which causes infinite CastStart -> CastBreak loops.
+        const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
+        if (isHardCC) return NodeState.FAILURE;
 
+        const skill = a.skills[skillIdx];
+        if (!skill) return NodeState.FAILURE;
+
+        // Silence check
+        if (a.silenceTimer > 0 && skill.tag !== 'BASIC') return NodeState.FAILURE;
+
+        if (a.castingSkillIdx === -1) {
             a.castingSkillIdx = skillIdx;
             a.castTimer = skill.cast;
             a.castingAnimationTimer = skill.cast; 

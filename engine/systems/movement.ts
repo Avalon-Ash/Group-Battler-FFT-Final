@@ -5,7 +5,6 @@ import { AnimState, Hex, NodeState, MovementType } from "../../types";
 import { BLOCK_HEIGHT } from "../../constants";
 
 // Modules
-import { PhysicsEngine } from "../physics/PhysicsEngine";
 import { Pathfinder } from "../ai/Pathfinder";
 import { TargetingSystem } from "../ai/TargetingSystem";
 
@@ -13,7 +12,6 @@ const STACKING_RESOLUTION_FORCE = 5;
 
 export class MovementSystem {
     // Logic Modules
-    public physics: PhysicsEngine;
     public pathfinder: Pathfinder;
     public targeting: TargetingSystem;
 
@@ -21,7 +19,6 @@ export class MovementSystem {
     private _stackingMap = new Map<number, Agent[]>();
 
     constructor() {
-        this.physics = new PhysicsEngine();
         this.pathfinder = new Pathfinder();
         this.targeting = new TargetingSystem();
     }
@@ -43,12 +40,8 @@ export class MovementSystem {
     }
 
     // =========================================================================================
-    // 🏃 MOVEMENT & PHYSICS ORCHESTRATION
+    // 🏃 MOVEMENT ORCHESTRATION
     // =========================================================================================
-
-    public updatePhysics(a: Agent, dt: number, engine: GameEngine) {
-        this.physics.update(a, dt, engine);
-    }
 
     public updateMovement(a: Agent, dt: number, engine: GameEngine) {
         // Use per-agent move speed WITH dynamic multiplier (Charge effect)

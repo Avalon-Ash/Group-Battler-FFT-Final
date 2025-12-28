@@ -18,11 +18,15 @@ export const SurfacePainter = {
         const r = HEX_SIZE * 0.9;
         
         // 1. Base Liquid Shape (Wobbly)
+        // OPTIMIZED: Reduced segments from 12 to 8. Pre-calculated constants where possible.
         ctx.beginPath();
-        const segments = 12; 
+        const segments = 8; 
+        const twoPi = Math.PI * 2;
+        
         for (let i = 0; i <= segments; i++) {
-            const theta = (i / segments) * Math.PI * 2;
-            const noise = Math.sin(theta * 4 + time) * 3 + Math.cos(theta * 2 - time * 1.5) * 2; 
+            const theta = (i / segments) * twoPi;
+            // Simplified noise math
+            const noise = Math.sin(theta * 3 + time) * 3 + Math.cos(theta * 2 - time) * 2; 
             const px = Math.cos(theta) * (r + noise);
             const py = Math.sin(theta) * (r + noise);
             if (i === 0) ctx.moveTo(px, py);
@@ -37,9 +41,10 @@ export const SurfacePainter = {
         // 3. Surface Ripples (Darker)
         ctx.globalCompositeOperation = 'multiply';
         ctx.beginPath();
-        const rippleX = Math.sin(time) * 5;
-        const rippleY = Math.cos(time * 0.8) * 5;
-        ctx.ellipse(rippleX, rippleY, r * 0.6, r * 0.5, time*0.1, 0, Math.PI * 2);
+        // Optimized ripple math
+        const rippleX = Math.sin(time) * 4;
+        const rippleY = Math.cos(time * 0.7) * 4;
+        ctx.ellipse(rippleX, rippleY, r * 0.6, r * 0.5, time * 0.1, 0, twoPi);
         ctx.fill();
 
         // 4. Specular Highlights (Bubbles/Reflection)
@@ -49,7 +54,7 @@ export const SurfacePainter = {
         
         const bX = Math.cos(time * 1.5) * r * 0.4;
         const bY = Math.sin(time * 1.5) * r * 0.4;
-        ctx.beginPath(); ctx.ellipse(bX, bY, 6, 3, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(bX, bY, 6, 3, 0, 0, twoPi); ctx.fill();
         
         ctx.restore();
     },
@@ -71,8 +76,10 @@ export const SurfacePainter = {
         ctx.globalAlpha = 0.15; 
 
         const puffs = 3;
+        const twoPi = Math.PI * 2;
+        
         for(let i=0; i<puffs; i++) {
-            const angle = time * 0.2 + (i * Math.PI * 2 / puffs);
+            const angle = time * 0.2 + (i * twoPi / puffs);
             const dist = 12 + Math.sin(time + i) * 6;
             const px = Math.cos(angle) * dist;
             const py = Math.sin(angle) * dist;

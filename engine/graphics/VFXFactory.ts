@@ -68,6 +68,10 @@ export class VFXTextureCache {
                 GeometryPainter.drawHex(ctx, 0, 0, r * 0.9, 'STROKE');
                 ctx.beginPath(); ctx.arc(0, 0, r*0.7, 0, Math.PI*2); ctx.stroke();
                 break;
+            // NEW: Pre-rendered Hatch Pattern for AOE Warnings
+            case 'WARNING_HATCH':
+                this.drawWarningHatch(ctx, r, color);
+                break;
             default:
                 // Fallback debug shape
                 ctx.fillStyle = color;
@@ -77,6 +81,33 @@ export class VFXTextureCache {
 
         this.cache.set(key, canvas);
         return canvas;
+    }
+
+    private drawWarningHatch(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        // Draw Hex Mask
+        ctx.save();
+        GeometryPainter.drawHex(ctx, 0, 0, r, 'FILL');
+        ctx.globalCompositeOperation = 'source-in';
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        
+        // Draw Stripes
+        const size = r * 2;
+        const spacing = 10;
+        ctx.beginPath();
+        for (let i = -size; i < size; i += spacing) {
+            ctx.moveTo(i - size, -size);
+            ctx.lineTo(i + size, size);
+        }
+        ctx.stroke();
+        
+        // Border
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.lineWidth = 2;
+        GeometryPainter.drawHex(ctx, 0, 0, r, 'STROKE');
+        
+        ctx.restore();
     }
 
     /**

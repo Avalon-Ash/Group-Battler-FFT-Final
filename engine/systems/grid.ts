@@ -15,31 +15,17 @@ interface CachedTile {
     key: string;
 }
 
-interface ZoneSource {
-    type: 'CAST';
-    q: number;
-    r: number;
-    radius: number;
-    radiusSq: number;
-    color: string;
-    visual: string;
-    progress: number;
-}
-
 const OBSTACLE_Z_INDEX = 10;
 const OBSTACLE_ANCHOR_Y = 95; 
 
 export class GridSystem {
-    // Spatial Hash Map for O(1) lookup by key
     private _tileMap: Map<string, CachedTile> = new Map();
-    private _tileList: CachedTile[] = []; // Keep list for iteration
+    private _tileList: CachedTile[] = []; 
     private _lastMapVersion: number = -1;
-    private _activeZones: ZoneSource[] = [];
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
 
     public reset() {
-        this._activeZones.length = 0;
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
         this._lastMapVersion = -1; 
@@ -71,49 +57,13 @@ export class GridSystem {
         });
     }
 
-    /**
-     * Optimized Raycast for picking tiles.
-     * Uses mathematical projection to guess the coordinate, then scans a small vertical range 
-     * to account for terrain height (Z-axis).
-     * O(1) complexity relative to map size.
-     */
-    getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine): Hex | null {
+    public getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine): Hex | null {
         this.ensureCache(engine);
-
-        // 1. Project assuming Height = 0 (Base plane)
-        // Note: wy passed here acts as the visual Y on screen relative to world origin
-        // Visual Y = (Grid Y * Iso) - Height
-        
-        // We test a range of possible heights.
-        // Assuming max terrain height is around 6 tiers * 24px = 144px.
         const maxHeight = 200; 
         const step = BLOCK_HEIGHT;
-        
-        // We iterate "up" the visual column.
-        // A click at (wx, wy) could be a tile at height 0, or a tile "below" it visually (higher y in 2D) at height H
-        
         let bestHex: Hex | null = null;
-        let minDepth = Infinity; // Depth here refers to visual sorting order
 
-        // Heuristic: Project assuming average height, then search neighborhood?
-        // Better: Project assuming ground, then check valid tiles in the vertical column.
-        
-        // The mathematical projection from Screen to Hex (ignoring height)
-        const baseHexFrac = HexMath.pixelToHex(wx, wy, engine.mapConfig.offsetX, engine.mapConfig.offsetY);
-        const baseHex = HexMath.cubeToAxial(HexMath.cubeRound(HexMath.axialToCube(baseHexFrac)));
-
-        // Because height offsets Y upwards (negative Y visually), 
-        // a tile with height H would visually appear at y_vis = y_iso - H.
-        // So if we clicked at y_click, and the tile has height H, 
-        // the true iso-y should have been y_click + H.
-        
-        // Search candidates:
-        // We construct a "Ray" in 3D Hex space.
-        // Since H only affects Y, we just need to check:
-        // projected_hex(wx, wy + possible_H)
-        
         for (let h = 0; h <= maxHeight; h += step) {
-            // Re-project with height compensation
             const testY = wy + h; 
             const frac = HexMath.pixelToHex(wx, testY, engine.mapConfig.offsetX, engine.mapConfig.offsetY);
             const rounded = HexMath.cubeToAxial(HexMath.cubeRound(HexMath.axialToCube(frac)));
@@ -122,28 +72,12 @@ export class GridSystem {
             const tile = this._tileMap.get(key);
             
             if (tile) {
-                // Precision check
-                // Does this tile's actual height match the height we probed?
-                // Or rather, is the click *on* the hexagon face at this height?
-                
-                // Visual top of this tile
                 const tileVisualY = tile.py - tile.h;
-                
-                // Distance from click center to tile center (in screen space)
-                // Use Manhattan distance for rough box or Euclidean for circle
                 const dx = Math.abs(wx - tile.px);
                 const dy = Math.abs(wy - tileVisualY);
                 
-                // Hex radius approx 36. 
                 if (dx < HEX_SIZE * 0.9 && dy < HEX_SIZE * 0.6) {
-                    // Found a candidate.
-                    // Since we iterate h from 0 upwards, we are checking "lower" visual points first?
-                    // No, wy + h means we are checking assuming the ground was lower relative to click.
-                    // Painters algorithm: Higher H (closer to camera) should block lower H.
-                    
-                    // Prioritize highest height (visually closest)
                     if (tile.h >= h - step && tile.h <= h + step) {
-                         // Simple overlapping logic: Store candidate, if we find a "higher" one that is also valid, take it.
                          if (!bestHex || tile.h > (this._tileMap.get(HexUtils.key(bestHex))?.h || -999)) {
                              bestHex = rounded;
                          }
@@ -151,7 +85,6 @@ export class GridSystem {
                 }
             }
         }
-
         return bestHex;
     }
 
@@ -193,43 +126,14 @@ export class GridSystem {
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
 
-        this._activeZones.length = 0;
+        // Update Unit Presence map for overlays
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
-
-        // 1. Pre-process Unit Zones
         for (const a of engine.agents) {
             if (a.hp > 0) {
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
                 if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
-                if (a.stunTimer <= 0 && a.silenceTimer <= 0 && !a.banished && a.castingSkillIdx !== -1) {
-                    const s = a.skills[a.castingSkillIdx];
-                    if (s && s.type === 'AOE') {
-                        let tq = a.q, tr = a.r;
-                        if (a.targetHex) { tq = a.targetHex.q; tr = a.targetHex.r; }
-                        else if (a.target) { tq = a.target.q; tr = a.target.r; }
-                        const progress = 1 - (a.castTimer / s.cast);
-                        const radius = (s.aoeRadius || 1);
-                        
-                        // --- FIX: VISUAL TAGGING LOGIC ---
-                        // Red Team = Danger = 'AOE_WARNING'
-                        // Blue Team = Friendly = Skill Tag ('ULT' / 'ACTIVE' / 'BASIC')
-                        let visualTag = s.tag as string;
-                        if (a.team === Team.RED) {
-                            visualTag = 'AOE_WARNING';
-                        }
-
-                        this._activeZones.push({ 
-                            type: 'CAST', 
-                            q: tq, r: tr, 
-                            radius, radiusSq: radius + 0.5, 
-                            color: s.color, 
-                            visual: visualTag, 
-                            progress 
-                        });
-                    }
-                }
             }
         }
 
@@ -245,7 +149,7 @@ export class GridSystem {
 
             if (offset > 800) continue;
 
-            const sortY = py; // Stable sort key based on ground position
+            const sortY = py; 
 
             // Obstacles
             const obstacleType = engine.obstacles.get(key);
@@ -259,22 +163,27 @@ export class GridSystem {
                 op.ttype = obstacleType;
             }
 
-            // Zones (Cast Preview) - Math Optimized
+            // Zones (Delegated to ZoneSystem)
             let zoneInfo = undefined;
-            // Only check zones if tile is reasonably close? 
-            // For now, iterate active zones (usually < 10)
-            for (const zone of this._activeZones) {
-                const dist = HexMath.distance({q, r}, {q: zone.q, r: zone.r});
-                if (dist <= zone.radius) {
-                    zoneInfo = { type: zone.type, color: zone.color, visual: zone.visual, progress: zone.progress, centerQ: zone.q, centerR: zone.r, radius: zone.radius, dist };
-                }
+            const zResult = engine.zones.getZoneAt(q, r);
+            if (zResult) {
+                const { zone, dist } = zResult;
+                zoneInfo = { 
+                    type: zone.type, 
+                    color: zone.color, 
+                    visual: zone.visual, 
+                    progress: zone.progress, 
+                    centerQ: zone.q, 
+                    centerR: zone.r, 
+                    radius: zone.radius, 
+                    dist 
+                };
             }
 
             // Interactive Highlights
             let isRange = false;
             let rangeColor = '';
             if (hoveredSkill && highlightAgent) {
-                // Height-Aware Range check
                 const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
                 const bonus = Math.max(0, Math.floor((agentH - h) / BLOCK_HEIGHT));
                 const dist = HexMath.distance({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
@@ -289,7 +198,7 @@ export class GridSystem {
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
             const hazard = engine.map.getHazardAt(q, r);
 
-            // Projectile Lights (Distance Squared check is fast)
+            // Projectile Lights
             let lightColor = null;
             let lightIntensity = 0;
             for (const p of projectiles) {
