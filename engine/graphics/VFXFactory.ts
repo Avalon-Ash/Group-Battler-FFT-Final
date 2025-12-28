@@ -32,7 +32,6 @@ export class VFXTextureCache {
             case 'ZONE_BASE':
                 this.drawZoneBase(ctx, r, color);
                 break;
-            // REMOVED: ZONE_RIPPLE, WARNING_HATCH - Deprecated
             case 'ATMOSPHERE':
             case 'GLOW':
                 ParticlePainter.drawAtmosphere(ctx, r, color);
@@ -80,6 +79,15 @@ export class VFXTextureCache {
                 break;
             case 'SHADOW_BLOB':
                 this.drawShadowBlob(ctx, r, color);
+                break;
+            case 'BEAM':
+                // For God Rays
+                const grad = ctx.createLinearGradient(-r, 0, r, 0);
+                grad.addColorStop(0, 'transparent');
+                grad.addColorStop(0.5, color);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.fillRect(-r*2, -r, r*4, r*2);
                 break;
             default:
                 ctx.fillStyle = color;

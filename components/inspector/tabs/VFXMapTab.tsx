@@ -1,10 +1,25 @@
 
 import React, { useState } from 'react';
 import { VFX_LIBRARY, VFXEntry } from '../../../data/vfx/vfx_library';
+import { PROCEDURAL_VISUALS } from '../../../data/vfx/procedural_visuals'; 
 import { Icons } from '../../ui/icons';
 
+// Generate entries for procedural assets automatically
+const PROCEDURAL_ENTRIES: VFXEntry[] = Object.keys(PROCEDURAL_VISUALS).map(key => {
+    const def = PROCEDURAL_VISUALS[key];
+    let desc = `Type: ${def.type}`;
+    if (def.type === 'PILLAR') desc += ` | Height: ${(def as any).height}`;
+    if (['STRAIGHT', 'HELIX', 'LIGHTNING', 'VIBRANT'].includes(def.type)) desc += ` | Width: ${(def as any).width}`;
+    return {
+        key,
+        name: key.replace(/_/g, ' '),
+        desc,
+        visuals: [(def.blendMode || 'Normal').toUpperCase()]
+    };
+});
+
 export const VFXMapTab: React.FC = () => {
-    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'IMP_PROJ' | 'COV_PROJ' | 'CAST'>('GENERIC');
+    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'IMP_PROJ' | 'COV_PROJ' | 'CAST' | 'PROCEDURAL'>('GENERIC');
 
     const renderList = (list: VFXEntry[], themeColor: string) => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -12,10 +27,10 @@ export const VFXMapTab: React.FC = () => {
                 <div key={idx} className="liquid-card p-4 !bg-white/[0.03] border border-white/5 hover:border-white/20 hover:!bg-white/[0.06] transition-all group">
                     <div className="flex justify-between items-start mb-2">
                         <div className="flex flex-col">
-                            <h3 className={`font-bold text-sm ${themeColor} tracking-wide`}>{item.name}</h3>
+                            <h3 className={`font-bold text-sm ${themeColor} tracking-wide truncate pr-2`}>{item.name}</h3>
                             <span className="text-[10px] text-slate-500 font-mono mt-0.5">{item.key}</span>
                         </div>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 border border-white/10 ${themeColor} opacity-50 group-hover:opacity-100 transition-opacity`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-black/40 border border-white/10 ${themeColor} opacity-50 group-hover:opacity-100 transition-opacity shrink-0`}>
                             <Icons.VFX className="w-4 h-4" />
                         </div>
                     </div>
@@ -92,6 +107,12 @@ export const VFXMapTab: React.FC = () => {
                     >
                         Cast
                     </button>
+                    <button 
+                        onClick={() => setActiveCategory('PROCEDURAL')} 
+                        className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'PROCEDURAL' ? 'bg-pink-600/30 text-pink-300 border border-pink-500/30' : 'text-slate-500 hover:text-pink-400'}`}
+                    >
+                        Procedural
+                    </button>
                 </div>
             </div>
 
@@ -105,6 +126,7 @@ export const VFXMapTab: React.FC = () => {
                 {activeCategory === 'STATUS' && renderList(VFX_LIBRARY.STATUS, 'text-amber-400')}
                 {activeCategory === 'PROJECTILES' && renderList(VFX_LIBRARY.PROJECTILES, 'text-emerald-400')}
                 {activeCategory === 'CAST' && renderList(VFX_LIBRARY.CAST_RINGS, 'text-cyan-400')}
+                {activeCategory === 'PROCEDURAL' && renderList(PROCEDURAL_ENTRIES, 'text-pink-400')}
             </div>
         </div>
     );

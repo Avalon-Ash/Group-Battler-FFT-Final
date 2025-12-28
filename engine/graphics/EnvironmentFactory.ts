@@ -6,7 +6,7 @@ export const EnvironmentFactory = {
     
     generateObstacle(styleKey: string): HTMLCanvasElement {
         // Dimensions
-        const width = 80;
+        const width = 96; // Slightly wider for 3-face geometry
         const height = 110;
         const { canvas, ctx } = createCanvas(width, height);
         const cx = width / 2;
@@ -15,24 +15,29 @@ export const EnvironmentFactory = {
         // Default Fallback
         const style = OBSTACLE_STYLES[styleKey] || OBSTACLE_STYLES['WALL'];
 
-        // Common Shadow (Ground Ambient Occlusion) - Cleaner ellipse
+        // Common Shadow (Flat Top Hex Shape)
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         ctx.filter = 'blur(4px)';
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 2, 28, 14, 0, 0, Math.PI*2);
+        // Squashed flat-top hexagon shadow
+        ctx.moveTo(cx - 30, cy);
+        ctx.lineTo(cx - 15, cy + 12);
+        ctx.lineTo(cx + 15, cy + 12);
+        ctx.lineTo(cx + 30, cy);
+        ctx.lineTo(cx + 15, cy - 12);
+        ctx.lineTo(cx - 15, cy - 12);
         ctx.fill();
         ctx.filter = 'none';
 
         if (styleKey === 'TREE') {
-            // --- STYLIZED PINE (Clean Geometric Layers) ---
-            
+            // --- STYLIZED PINE (Rounder for Flat Top) ---
             // Trunk
-            ctx.fillStyle = '#291815'; // Darker Wood
+            ctx.fillStyle = '#291815'; 
             ctx.beginPath();
-            ctx.moveTo(cx - 6, cy); 
-            ctx.lineTo(cx + 6, cy);
-            ctx.lineTo(cx + 4, cy - 25);
-            ctx.lineTo(cx - 4, cy - 25);
+            ctx.moveTo(cx - 7, cy); 
+            ctx.lineTo(cx + 7, cy);
+            ctx.lineTo(cx + 5, cy - 25);
+            ctx.lineTo(cx - 5, cy - 25);
             ctx.fill();
 
             const layers = 3;
@@ -42,55 +47,42 @@ export const EnvironmentFactory = {
             for (let i = 0; i < layers; i++) {
                 const ratio = i / layers;
                 const layerY = topY + (bottomY - topY) * ratio;
-                // const nextY = topY + (bottomY - topY) * ((i+1)/layers);
-                const spread = 15 + i * 14;
+                const spread = 24 + i * 14; 
                 
                 const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
-                grad.addColorStop(0, style.highlight); // Bright Tip
+                grad.addColorStop(0, style.highlight); 
                 grad.addColorStop(0.4, style.main); 
-                grad.addColorStop(1, style.dark); // Dark Bottom
+                grad.addColorStop(1, style.dark); 
                 
                 ctx.fillStyle = grad;
                 ctx.beginPath();
                 ctx.moveTo(cx, layerY - 18); // Tip
-                // Left Flare
                 ctx.quadraticCurveTo(cx - spread * 0.5, layerY + 5, cx - spread, layerY + 15);
-                // Bottom Curve (Concave up)
                 ctx.quadraticCurveTo(cx, layerY + 10, cx + spread, layerY + 15);
-                // Right Flare
                 ctx.quadraticCurveTo(cx + spread * 0.5, layerY + 5, cx, layerY - 18);
                 ctx.fill();
                 
-                // Edge Highlight (Rim)
                 ctx.strokeStyle = style.light;
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(cx, layerY - 18);
                 ctx.lineTo(cx - spread, layerY + 15);
                 ctx.stroke();
-                
-                // Shadow underneath layer
-                ctx.fillStyle = 'rgba(0,0,0,0.3)';
-                ctx.beginPath();
-                ctx.moveTo(cx, layerY + 10);
-                ctx.lineTo(cx + spread, layerY + 15);
-                ctx.lineTo(cx - spread, layerY + 15);
-                ctx.fill();
             }
 
         } else if (styleKey === 'ICE_CRYSTAL') {
             // --- SHARP CRYSTAL CLUSTER ---
-            
+            // Adjusted spread for flat top base
             const drawCrystal = (x: number, y: number, w: number, h: number, angle: number, color: string) => {
                 ctx.save();
                 ctx.translate(x, y);
                 ctx.rotate(angle);
                 
-                // Facet 1 (Left/Dark)
+                // Left Face
                 ctx.fillStyle = style.dark;
                 ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(-w, 0); ctx.lineTo(0, 5); ctx.fill();
                 
-                // Facet 2 (Right/Light)
+                // Right Face
                 const grad = ctx.createLinearGradient(0, -h, 0, 5);
                 grad.addColorStop(0, '#ffffff');
                 grad.addColorStop(0.3, style.light);
@@ -98,48 +90,61 @@ export const EnvironmentFactory = {
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.moveTo(0, -h); ctx.lineTo(w, 0); ctx.lineTo(0, 5); ctx.fill();
                 
-                // Rim
                 ctx.strokeStyle = style.highlight;
                 ctx.lineWidth = 2;
                 ctx.stroke();
-                
                 ctx.restore();
             };
 
-            drawCrystal(cx - 15, cy - 5, 10, 40, -0.2, '#fff');
-            drawCrystal(cx + 12, cy, 12, 35, 0.3, '#fff');
-            drawCrystal(cx, cy + 5, 16, 65, 0, '#fff'); // Main
+            drawCrystal(cx - 18, cy - 5, 12, 45, -0.3, '#fff');
+            drawCrystal(cx + 15, cy, 14, 40, 0.3, '#fff');
+            drawCrystal(cx, cy + 5, 18, 70, 0, '#fff'); 
 
         } else if (styleKey === 'OBSIDIAN_PILLAR') {
-            // --- MONOLITH (Dark Geometric) ---
+            // --- MONOLITH (Flat Top Hex Prism) ---
+            const topY = cy - 85;
+            const w = 22; // Half Width
+            const d = 12; // Depth skew
             
-            const topY = cy - 75;
-            const w = 25;
+            // 3 Faces Visible from Front
             
-            // Main Body Gradient
-            const rockGrad = ctx.createLinearGradient(cx - w, topY, cx + w, cy);
-            rockGrad.addColorStop(0, style.light);
-            rockGrad.addColorStop(0.4, style.main);
-            rockGrad.addColorStop(1, style.dark);
-            ctx.fillStyle = rockGrad;
-            
+            // 1. Left (Dark)
+            ctx.fillStyle = style.dark;
             ctx.beginPath();
-            ctx.moveTo(cx, topY); // Top tip
-            ctx.lineTo(cx + w, cy - 20); // Right mid
-            ctx.lineTo(cx + 10, cy); // Base Right
-            ctx.lineTo(cx - 10, cy); // Base Left
-            ctx.lineTo(cx - w, cy - 20); // Left mid
-            ctx.closePath();
+            ctx.moveTo(cx - w, topY + d);
+            ctx.lineTo(cx - w/2, topY + d*2);
+            ctx.lineTo(cx - w/2, cy + d*2);
+            ctx.lineTo(cx - w, cy + d);
             ctx.fill();
-            
-            // Facet Highlights (Edges)
-            ctx.strokeStyle = style.light;
-            ctx.lineWidth = 1;
+
+            // 2. Center (Main)
+            ctx.fillStyle = style.main;
             ctx.beginPath();
-            ctx.moveTo(cx, topY); ctx.lineTo(cx + w, cy - 20);
-            ctx.moveTo(cx, topY); ctx.lineTo(cx - w, cy - 20);
-            ctx.moveTo(cx, topY); ctx.lineTo(cx, cy); // Center spine
-            ctx.stroke();
+            ctx.moveTo(cx - w/2, topY + d*2);
+            ctx.lineTo(cx + w/2, topY + d*2);
+            ctx.lineTo(cx + w/2, cy + d*2);
+            ctx.lineTo(cx - w/2, cy + d*2);
+            ctx.fill();
+
+            // 3. Right (Lit)
+            ctx.fillStyle = style.light;
+            ctx.beginPath();
+            ctx.moveTo(cx + w/2, topY + d*2);
+            ctx.lineTo(cx + w, topY + d);
+            ctx.lineTo(cx + w, cy + d);
+            ctx.lineTo(cx + w/2, cy + d*2);
+            ctx.fill();
+
+            // Top Cap
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.moveTo(cx - w, topY + d);
+            ctx.lineTo(cx - w/2, topY + d*2);
+            ctx.lineTo(cx + w/2, topY + d*2);
+            ctx.lineTo(cx + w, topY + d);
+            ctx.lineTo(cx + w/2, topY);
+            ctx.lineTo(cx - w/2, topY);
+            ctx.fill();
             
             // Emissive Veins
             ctx.strokeStyle = style.detail;
@@ -148,102 +153,85 @@ export const EnvironmentFactory = {
             ctx.lineWidth = 2;
             
             ctx.beginPath();
-            ctx.moveTo(cx - 5, cy - 10); ctx.lineTo(cx + 5, cy - 30); ctx.lineTo(cx, cy - 50);
+            ctx.moveTo(cx, cy - 20); ctx.lineTo(cx, cy - 60);
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-        } else if (styleKey === 'SANDSTONE') {
-            // --- MESA STACK (Rounded Layers) ---
-            
-            const layers = 5;
-            const w = 35;
-            let currentW = w;
-            let currentY = cy;
-            
-            for(let i=0; i<layers; i++) {
-                const h = 15 + Math.random() * 5;
-                const nextY = currentY - h;
-                const nextW = currentW * (0.6 + Math.random() * 0.2); // Taper up
-                
-                // Gradient for rounded volume
-                const grad = ctx.createLinearGradient(cx - currentW, 0, cx + currentW, 0);
-                const color = i % 2 === 0 ? style.main : style.light;
-                grad.addColorStop(0, style.dark);
-                grad.addColorStop(0.2, color);
-                grad.addColorStop(0.8, color);
-                grad.addColorStop(1, style.dark);
-                ctx.fillStyle = grad;
-                
-                ctx.beginPath();
-                ctx.ellipse(cx, currentY, currentW, 10, 0, 0, Math.PI*2);
-                ctx.fill();
-                
-                // Block body
-                ctx.fillRect(cx - nextW, nextY, nextW * 2, currentY - nextY);
-                
-                // Top Highlight Rim
-                ctx.strokeStyle = style.highlight;
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.5;
-                ctx.beginPath(); ctx.ellipse(cx, nextY, nextW, 6, 0, 0, Math.PI*2); ctx.stroke();
-                ctx.globalAlpha = 1.0;
-
-                currentY = nextY;
-                currentW = nextW;
-            }
-            // Top Cap
-            ctx.fillStyle = style.light;
-            ctx.beginPath();
-            ctx.ellipse(cx, currentY, currentW, 6, 0, 0, Math.PI*2);
-            ctx.fill();
-
         } else {
-            // --- STONE PILLAR (Stylized Fortification) ---
-            const w = 30; // Half width
-            const h = 60; // Height
+            // --- WALL / STONE BLOCK (3-Face Perspective) ---
+            const w = 40; // Total width
+            const h = 55; 
             const topY = cy - h;
+            const skew = 10;
             
-            // 1. Right Face (Shadow)
+            // Coordinates for 3 vertical columns (Left, Center, Right faces)
+            const xL = cx - w/2 - 10;
+            const xLM = cx - 15;
+            const xRM = cx + 15;
+            const xR = cx + w/2 + 10;
+            
+            const yBack = topY;
+            const yFront = topY + skew;
+            const yBaseBack = cy;
+            const yBaseFront = cy + skew;
+
+            // 1. Left Face (Angled)
             ctx.fillStyle = style.dark;
             ctx.beginPath();
-            ctx.moveTo(cx, topY);
-            ctx.lineTo(cx + w, topY + 10); // Isometric top-right
-            ctx.lineTo(cx + w, cy - 10);   // Bottom-right
-            ctx.lineTo(cx, cy);            // Bottom-center
+            ctx.moveTo(xL, yBack);
+            ctx.lineTo(xLM, yFront);
+            ctx.lineTo(xLM, yBaseFront);
+            ctx.lineTo(xL, yBaseBack);
             ctx.fill();
             
-            // 2. Left Face (Mid)
+            // 2. Center Face (Flat)
             ctx.fillStyle = style.main;
             ctx.beginPath();
-            ctx.moveTo(cx, topY);
-            ctx.lineTo(cx - w, topY + 10);
-            ctx.lineTo(cx - w, cy - 10);
-            ctx.lineTo(cx, cy);
+            ctx.moveTo(xLM, yFront);
+            ctx.lineTo(xRM, yFront);
+            ctx.lineTo(xRM, yBaseFront);
+            ctx.lineTo(xLM, yBaseFront);
             ctx.fill();
             
-            // 3. Top Face (Light)
-            ctx.fillStyle = style.light;
+            // 3. Right Face (Angled)
+            ctx.fillStyle = style.light; // Simulate light from right
             ctx.beginPath();
-            ctx.moveTo(cx, topY);
-            ctx.lineTo(cx + w, topY + 10);
-            ctx.lineTo(cx, topY + 20); // Center-down
-            ctx.lineTo(cx - w, topY + 10);
+            ctx.moveTo(xRM, yFront);
+            ctx.lineTo(xR, yBack);
+            ctx.lineTo(xR, yBaseBack);
+            ctx.lineTo(xRM, yBaseFront);
             ctx.fill();
             
-            // 4. Edges / Outline
+            // 4. Top Face
+            ctx.fillStyle = style.light;
+            ctx.globalAlpha = 0.8;
+            ctx.beginPath();
+            ctx.moveTo(xL, yBack);
+            ctx.lineTo(xLM, yFront);
+            ctx.lineTo(xRM, yFront);
+            ctx.lineTo(xR, yBack);
+            ctx.lineTo(xRM, yBack - skew);
+            ctx.lineTo(xLM, yBack - skew);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            
+            // 5. Edges
             ctx.strokeStyle = style.highlight;
             ctx.lineWidth = 1;
+            ctx.lineJoin = 'round';
             
-            ctx.beginPath();
-            // Central Spine
-            ctx.moveTo(cx, topY); ctx.lineTo(cx, cy);
-            // Top Diamond
-            ctx.moveTo(cx, topY); ctx.lineTo(cx + w, topY + 10); ctx.lineTo(cx, topY + 20); ctx.lineTo(cx - w, topY + 10); ctx.lineTo(cx, topY);
+            // Vertical Spines
+            ctx.beginPath(); ctx.moveTo(xLM, yFront); ctx.lineTo(xLM, yBaseFront); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(xRM, yFront); ctx.lineTo(xRM, yBaseFront); ctx.stroke();
+            
+            // Top Outline
+            ctx.beginPath(); 
+            ctx.moveTo(xL, yBack); ctx.lineTo(xLM, yFront); ctx.lineTo(xRM, yFront); ctx.lineTo(xR, yBack);
             ctx.stroke();
             
-            // Rivet Details
+            // Rivets
             ctx.fillStyle = style.dark;
-            ctx.beginPath(); ctx.arc(cx, topY + 30, 3, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx, yFront + 15, 3, 0, Math.PI*2); ctx.fill();
         }
 
         return canvas;

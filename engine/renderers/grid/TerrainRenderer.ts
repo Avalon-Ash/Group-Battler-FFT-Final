@@ -3,6 +3,8 @@ import { ISO_SCALE_Y } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 
+const SLAB_THICKNESS = 12; // Visual thickness of the base floor plate
+
 export const TerrainRenderer = {
     
     /**
@@ -21,35 +23,39 @@ export const TerrainRenderer = {
         globalTime: number
     ) {
         // Pre-calc visual coordinates
-        const topOffset = -height; // Y axis goes down, so height moves Up (Negative Y)
+        // Top Surface is at y - height
+        // Bottom Surface is at y + SLAB_THICKNESS
+        const topOffset = -height;
+        const bottomOffset = SLAB_THICKNESS;
         
-        // Vertices relative to (0,0) center
+        // Vertices relative to (0,0) center.
+        // Indices for Flat Top (0 deg start):
+        // 0: Right (0)
+        // 1: Bottom-Right (60)
+        // 2: Bottom-Left (120)
+        // 3: Left (180)
+        // 4: Top-Left (240)
+        // 5: Top-Right (300)
         const vertices = HexGeometry.getVertices(size, true); 
 
         ctx.save();
         ctx.translate(x, y);
 
         // --- 1. DRAW SIDE WALLS (The Pedestal) ---
-        // Only draw if there is height. 
-        // We draw the "Front" faces (Indices 0, 1, 5 correspond to Bottom-Right, Bottom, Bottom-Left usually)
-        // But HexGeometry starts at 30+45 deg? Let's assume standard indices for front-facing.
-        // In standard flat-top/pointy-top conversion, visible faces are usually 0, 1, 2 or 5, 0, 1.
+        // For Flat Top Hex viewed from South, we see 3 Faces:
+        // Face A: Vertex 3 -> Vertex 2 (Front-Left) - Lit
+        // Face B: Vertex 2 -> Vertex 1 (Front-Center) - Medium
+        // Face C: Vertex 1 -> Vertex 0 (Front-Right) - Dark
         
-        if (height > 0) {
-            // Draw a continuous strip for the visible sides
-            // Vertices order: 0 (BR), 1 (B), 2 (BL), 3 (TL), 4 (T), 5 (TR)
-            
-            // Side Wall Gradient (Fake Lighting: Left is Lit, Right is Dark)
-            
-            // Left Face (Index 1-2)
-            this.drawSideFace(ctx, vertices, 1, 2, topOffset, theme.sideLight);
-            
-            // Right Face (Index 0-1)
-            this.drawSideFace(ctx, vertices, 0, 1, topOffset, theme.sideDark);
-            
-            // Far Right Face (Index 5-0) - Optional depending on angle, usually visible
-            this.drawSideFace(ctx, vertices, 5, 0, topOffset, theme.sideDark);
-        }
+        // Always draw walls if there is height OR slab thickness (which is always true now)
+        // Left-Front (Lit)
+        this.drawSideFace(ctx, vertices, 3, 2, topOffset, bottomOffset, theme.sideLight);
+        
+        // Front-Center (Medium/Dark)
+        this.drawSideFace(ctx, vertices, 2, 1, topOffset, bottomOffset, theme.sideDark);
+        
+        // Right-Front (Shadow)
+        this.drawSideFace(ctx, vertices, 1, 0, topOffset, bottomOffset, theme.sideDark);
 
         // --- 2. DRAW TOP FACE (The Platform) ---
         ctx.translate(0, topOffset);
@@ -71,16 +77,22 @@ export const TerrainRenderer = {
         ctx.fill();
 
         // --- 3. EDGE HIGHLIGHT (The Bevel) ---
+        // Highlight the top-front edges for distinctness
         ctx.strokeStyle = theme.rim;
         ctx.lineWidth = 1.5;
+        
+        // Draw just the front rim: 3 -> 2 -> 1 -> 0
+        ctx.beginPath();
+        ctx.moveTo(vertices[3].x, vertices[3].y);
+        ctx.lineTo(vertices[2].x, vertices[2].y);
+        ctx.lineTo(vertices[1].x, vertices[1].y);
+        ctx.lineTo(vertices[0].x, vertices[0].y);
         ctx.stroke();
 
         // --- 4. SURFACE DETAILS ---
-        // Special renderers for Liquid/Void
         if (type === 'MAGMA') {
             SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0);
         } else if (type === 'VOID') {
-            // Circuit pattern
             ctx.strokeStyle = '#334155';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -92,21 +104,26 @@ export const TerrainRenderer = {
         ctx.restore();
     },
 
-    drawSideFace(ctx: CanvasRenderingContext2D, verts: {x:number, y:number}[], i1: number, i2: number, topOffset: number, color: string) {
+    drawSideFace(ctx: CanvasRenderingContext2D, verts: {x:number, y:number}[], i1: number, i2: number, topOffset: number, bottomOffset: number, color: string) {
         ctx.fillStyle = color;
         ctx.beginPath();
-        // Bottom Edge
-        ctx.moveTo(verts[i1].x, verts[i1].y);
-        ctx.lineTo(verts[i2].x, verts[i2].y);
-        // Up to Top Edge
+        // Start at Bottom-Left of the face (at Slab Base)
+        ctx.moveTo(verts[i1].x, verts[i1].y + bottomOffset);
+        // Draw to Bottom-Right of the face (at Slab Base)
+        ctx.lineTo(verts[i2].x, verts[i2].y + bottomOffset);
+        // Draw Up to Top-Right (at Platform Top)
         ctx.lineTo(verts[i2].x, verts[i2].y + topOffset);
+        // Draw to Top-Left (at Platform Top)
         ctx.lineTo(verts[i1].x, verts[i1].y + topOffset);
         ctx.closePath();
         ctx.fill();
         
-        // Seam fix line
-        ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+        // Vertical Seam line
+        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
         ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        ctx.moveTo(verts[i1].x, verts[i1].y + bottomOffset);
+        ctx.lineTo(verts[i1].x, verts[i1].y + topOffset);
         ctx.stroke();
     },
 

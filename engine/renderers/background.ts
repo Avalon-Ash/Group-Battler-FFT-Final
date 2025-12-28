@@ -165,6 +165,29 @@ export class BackgroundRenderer {
             ctx.drawImage(fogSprite, x - size/2, y - size/2, size, size * 0.6);
         }
 
+        // 3. Ice Aurora (Special)
+        if (scene.id === 'ICE') {
+            const auroraH = h * 0.4;
+            const grad = ctx.createLinearGradient(0, 0, w, 0);
+            const offset = (t * 0.2) % 1;
+            grad.addColorStop(0, 'transparent');
+            grad.addColorStop((0.3 + offset)%1, '#06b6d4');
+            grad.addColorStop((0.7 + offset)%1, '#818cf8');
+            grad.addColorStop(1, 'transparent');
+            
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = 0.2;
+            ctx.globalCompositeOperation = 'screen';
+            ctx.beginPath();
+            ctx.moveTo(0, auroraH);
+            for(let x=0; x<=w; x+=50) {
+                ctx.lineTo(x, auroraH + Math.sin(x * 0.01 + t) * 50);
+            }
+            ctx.lineTo(w, 0);
+            ctx.lineTo(0, 0);
+            ctx.fill();
+        }
+
         ctx.restore();
     }
 }

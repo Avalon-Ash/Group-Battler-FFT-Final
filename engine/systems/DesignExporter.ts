@@ -18,9 +18,9 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.6.0 (Visual Polish & Hazard Refactor)
+Version: 6.7.0 (Theater Mode & Atmospheric Update)
 Generated: ${new Date().toLocaleString()}
-Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
+Engine: Hybrid 2.5D Isometric (Flat-Top) / Phys-Logical 3D
 ================================================================================
 
 [1. 空間幾何與座標系統 (Spatial Geometry & Coordinates)]
@@ -28,14 +28,17 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 系統採用等距視角 (Isometric 2.5D) 表現，底層邏輯運行於擬 3D 空間。
 
 * 轉換公式 (Coordinate Transformation):
+  - 網格類型: Flat-Top Hexagon (旋轉 0 度).
   - 投影比例 (ISO_Y): ${ISO_SCALE_Y}
-  - 網格單元: 六角網格 (Axial / Cube Coordinates).
-  - 像素換算: 物理 X/Y/Z 直接映射至畫布 translate 變換，Z 軸轉化為垂直位移偏移。
+  - 渲染基準 (Pivot): 地塊繪製使用 3-Face Prism (Left/Center/Right) 以呈現厚度體積感。
+  - 像素換算: 
+    x = size * 3/2 * q
+    y = size * sqrt(3) * (r + q/2) * ISO_Y
 
 * 地形規則 (Terrain Architecture):
   - 最大高度: ${MAX_TERRAIN_TIER} 階梯層級 (Tiers).
   - 單層物理高度: ${BLOCK_HEIGHT} px.
-  - 視覺標準: 單位頭部參考高度為地表上方 ${UNIT_VISUAL_HEIGHT} px.
+  - Slab Base: 地塊底部延伸 ${12}px (SLAB_THICKNESS) 確保無懸空感。
 
 [2. 物理模擬與運動學 (Physics & Kinematics)]
 --------------------------------------------------------------------------------
@@ -45,48 +48,34 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - 彈性係數: 0.5 (落地反彈與動能損耗).
 
 * 飛行機制 (Flight Mechanics):
-  - 懸浮高度 (Hover Height): 55 px (動態正弦波浮動).
+  - 戰術懸停 (Tactical Hover): 飛行單位擁有全息投影錨點 (Holographic Anchor)，連接身體與地表網格中心。
+  - 懸浮高度: 55 px (動態正弦波浮動).
   - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
-  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH / 恐懼 FEAR] 狀態時，升力消失，強制切換至重力物理運算。
 
 [3. 投射物彈道學 (Projectile Ballistics 2.0)]
 --------------------------------------------------------------------------------
 * 發射與命中 (Launch & Impact):
   - 起點修正 (Origin): 投射物從單位 "胸口" (Body Offset: 45px) 發射，而非腳底。
-  - 動態追蹤 (Homing): 目標高度 (Target Z) 實時鎖定對方物理中心 (TerrainH + JumpH + BodyOffset)，確保空中單位被準確擊中。
-
-* 軌跡演算法 (Trajectory Algorithms):
-  - Linear: 直線高速彈道 (如: 狙擊彈, 能量束).
-  - Arc: 拋物線重力模擬 (如: 箭矢, 炸彈), ArcHeight 可配置.
-  - Wobble: 正弦波側向擾動 (如: 火球, 混沌法球).
-  - Spin: 獨立於移動方向的自旋角速度 (如: 飛斧 15 rad/s).
+  - 動態追蹤 (Homing): 目標高度 (Target Z) 實時鎖定對方物理中心 (TerrainH + JumpH + BodyOffset)。
 
 [4. 異常狀態體系 (Control Status System)]
 --------------------------------------------------------------------------------
-* 硬控場 (Hard CC):
-  - 暈眩 (Stun): 無法移動、無法施法、無法迴避。
-  - 恐懼 (Fear): 強制隨機移動，打斷施法。
-  - 嘲諷 (Taunt): 強制攻擊施法者，無法切換目標。
-  - 放逐 (Banish/Stasis): 移出戰場，無敵且無法行動。
-
-* 軟控場 (Soft CC):
-  - 禁錮 (Root): 無法移動，但可施法/攻擊。
-  - 沉默 (Silence): 無法施放技能，僅能普攻。
-  - 致盲 (Blind): 普攻與指向性技能高機率 MISS。
-
-* 防禦機制 (Defense):
-  - 護盾 (Shield): 優先扣除護盾值，吸收 DoT 與直傷。
-  - 抗性遞減 (DR): 同一類型 CC 在 ${COMBAT_PARAM.DR_RESET_TIME} 秒內重複施加效果減半。
+* 硬控場 (Hard CC): 暈眩 (Stun), 恐懼 (Fear), 嘲諷 (Taunt), 放逐 (Banish).
+* 軟控場 (Soft CC): 禁錮 (Root), 沉默 (Silence), 致盲 (Blind).
+* 防禦機制 (Defense): 護盾 (Shield), 抗性遞減 (DR) ${COMBAT_PARAM.DR_RESET_TIME}s.
 
 [5. 渲染管線技術 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
-* 繪製流程:
-  1. 靜態背景緩存 (Static Background Caching).
-  2. 動態環境要素 (Atmospheric Fog / Dynamic Clouds).
-  3. 渲染隊列構建 (RenderList Collection): 遍歷 Tile, Unit, VFX, Projectile.
-  4. 深度排序 (Painters Algorithm): 以 Ground_Y 為 Key，配合 SortBias 修正 Z-Fighting.
-  5. 像素對齊 (Pixel Snapping): 所有 tx/ty 進行 Math.round()，消除 sub-pixel 模糊。
-  6. 災害層 (Hazard Layer): 獨立的 HazardPainter，支援 Volumetric Fog (毒) 與 Liquid Surface (熔岩)。
+* 環境渲染 (Atmospheric Rendering):
+  - 靜態層 (Static): 預渲染背景梯度、星空、遠景山脈輪廓。
+  - 動態層 (Dynamic): 
+    - God Rays (體積光束) - Forest/Desert 場景。
+    - Aurora (極光) - Ice 場景。
+    - Atmospheric Fog (流動霧氣)。
+  
+* 障礙物渲染 (Obstacle 2.5D):
+  - 幾何適配: 所有障礙物重構為 3-Face Perspective 以匹配 Flat-Top 網格視角。
+  - 陰影: 使用自適應 ISO 投影陰影。
 
 ================================================================================
 END OF SPECIFICATION

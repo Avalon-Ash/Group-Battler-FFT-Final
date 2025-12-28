@@ -1,10 +1,15 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 
-// 1. Static Geometry Cache (Unit Scale)
-// Vertices for a "Pointy Top" Hexagon.
-// Angle 0 is at 30 degrees (PI/6) to align flat top with screen Y in ISO
-const START_ANGLE = Math.PI / 6 + Math.PI / 4; // 75 degrees base rotation to align with game iso
+// 1. Static Geometry Cache (Flat Top Hexagon)
+// Angles: 0, 60, 120, 180, 240, 300 degrees.
+// Vertex 0: Right
+// Vertex 1: Bottom-Right
+// Vertex 2: Bottom-Left
+// Vertex 3: Left
+// Vertex 4: Top-Left
+// Vertex 5: Top-Right
+const START_ANGLE = 0; 
 
 // Pre-calculate base vertices (Flat 2D, Radius 1.0)
 const BASE_VERTICES: {x: number, y: number}[] = [];
@@ -17,7 +22,7 @@ for (let i = 0; i < 6; i++) {
 }
 
 // 2. Performance Cache
-let CACHED_PATH_STD: Path2D | null = null; // Standard ISO Hex Path
+let CACHED_PATH_STD: Path2D | null = null;
 
 export const HexGeometry = {
     
@@ -37,7 +42,10 @@ export const HexGeometry = {
 
     /**
      * Draw a hex path on the context at (x,y).
-     * This ensures ALL hexes in the game share the exact same shape.
+     * @param x - Center Screen X
+     * @param y - Center Screen Y
+     * @param radius - Size
+     * @param applyIso - Use ISO projection
      */
     traceHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, applyIso: boolean = true) {
         // Optimization: Use Path2D for standard grid size
@@ -46,11 +54,9 @@ export const HexGeometry = {
         if (isStandard) {
             if (!CACHED_PATH_STD) this.rebuildCache();
             ctx.translate(x, y);
-            // Note: We perform the fill/stroke outside, this just sets the path
-            // But Path2D objects need to be filled/stroked directly. 
-            // For compatibility with 'beginPath' workflows, we fallback to manual trace if not using Path2D API directly.
-            // To keep "Painter" logic simple (which expects to call stroke()/fill()), we manually trace points.
-            // Using a pre-calculated array is faster than Math.cos/sin every frame.
+            // Path2D must be filled/stroked by caller using the path object, 
+            // but to support generic context drawing we manually trace here if not using explicit path API.
+            // Using the pre-calc cache is still faster.
         }
 
         const verts = this.getVertices(radius, applyIso);
@@ -60,15 +66,6 @@ export const HexGeometry = {
             ctx.lineTo(x + verts[i].x, y + verts[i].y);
         }
         ctx.closePath();
-    },
-
-    /**
-     * Returns a Path2D object for the standard ISO hex.
-     * Useful for hit testing or clipping.
-     */
-    getStandardPath(): Path2D {
-        if (!CACHED_PATH_STD) this.rebuildCache();
-        return CACHED_PATH_STD!;
     },
 
     rebuildCache() {

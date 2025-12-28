@@ -18,46 +18,45 @@ export const ProjectileRenderer = {
     ) {
         engine.projectiles.forEach(p => {
              const offsetP = getTransitionOffset(p.x, p.y, engine.mapConfig, transitionT, transitionPhase);
-             
-             // Cull if off-screen (transition logic)
              if (offsetP > 800) return;
 
-             // 1. Resolve Visual Definition
              const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
              const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
 
-             // 2. Trajectory Math
-             // Calculate Logical Start/End Height
+             // --- STRICT Z-AXIS CALCULATION ---
              const startHex = HexUtils.fromPx(p.startX, p.startY, engine.mapConfig);
              const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
              
-             // Use stored startZ if available (includes Body Offset from ProjectileSystem), else fallback
-             const hStart = (p.startZ !== undefined) ? (getTerrainHeight(startHex.q, startHex.r) + p.startZ) : (getTerrainHeight(startHex.q, startHex.r) + UNIT_BODY_OFFSET);
+             // Start Height: Default to (Terrain + BodyOffset) if not stored
+             const hStartTerrain = getTerrainHeight(startHex.q, startHex.r);
+             const hStart = (p.startZ !== undefined) ? (hStartTerrain + p.startZ) : (hStartTerrain + UNIT_BODY_OFFSET);
              
-             // FIXED: Dynamic End Height
-             // If target is an agent, aim for their current physical body center (terrain + physZ + bodyOffset)
-             let hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET;
+             // End Height: Dynamic. If targeting a unit, aim for their current Chest Height.
+             let hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET; // Default ground target height
+             
              const targetAgent = engine.agents.find(a => a.id === p.targetId);
              if (targetAgent) {
                  const tHex = HexUtils.fromPx(targetAgent.px, targetAgent.py, engine.mapConfig);
-                 hEnd = getTerrainHeight(tHex.q, tHex.r) + targetAgent.physics.z + UNIT_BODY_OFFSET;
+                 const tTerrain = getTerrainHeight(tHex.q, tHex.r);
+                 // Aim for Chest: Terrain + JumpHeight + BodyOffset
+                 hEnd = tTerrain + targetAgent.physics.z + UNIT_BODY_OFFSET;
              }
 
              let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
              if (totalDist < 1) totalDist = 1;
 
-             // Helper to calculate visual position at any progress point t (0 to 1)
+             // Helper to calculate visual position
              const getVisualPos = (lx: number, ly: number, flightProgress: number): { x: number, y: number, shadowY: number, visualZ: number } => {
                  const t = flightProgress;
                  
-                 // Linear interpolation of the "Ideal" trajectory height line
+                 // Linear height interpolation
                  const idealBaseH = hStart + (hEnd - hStart) * t;
                  
-                 // Sample REAL terrain height at current position for Shadow/Clipping check
+                 // Real-time terrain sample for shadow
                  const currentHex = HexUtils.fromPx(lx, ly, engine.mapConfig);
                  const currentGroundH = getTerrainHeight(currentHex.q, currentHex.r);
 
-                 // --- TRAJECTORY OFFSETS ---
+                 // Trajectory offsets
                  let heightOffset = 0;
                  let lateralOffset = 0;
 
@@ -74,20 +73,16 @@ export const ProjectileRenderer = {
                  }
                  
                  const transOffset = getTransitionOffset(lx, ly, engine.mapConfig, transitionT, transitionPhase);
-                 
-                 // Total Visual Height (Z) from ground zero
                  const totalZ = idealBaseH + heightOffset; 
                  
-                 // The visual Y coordinate on screen
-                 // Y_screen = Y_iso - Z_total
+                 // Visual Y = BaseY - TotalZ
                  const visY = ly - totalZ + transOffset;
                  
-                 // The shadow Y coordinate
-                 // Y_shadow = Y_iso - Z_ground
+                 // Shadow Y = BaseY - GroundZ
                  const shadY = ly - currentGroundH + transOffset;
 
                  return {
-                     x: lx + lateralOffset, // Apply wobble to X
+                     x: lx + lateralOffset,
                      y: visY,
                      shadowY: shadY,
                      visualZ: totalZ
@@ -99,7 +94,7 @@ export const ProjectileRenderer = {
              const progress = Math.min(1, Math.max(0, currentDist / totalDist));
              const headVis = getVisualPos(p.x, p.y, progress);
              
-             // 4. Rotation Calculation (Look Ahead)
+             // 4. Rotation Lookahead
              const lookAheadDist = 10;
              const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
              const nextLx = p.x + rawDir.x * lookAheadDist;
@@ -107,15 +102,13 @@ export const ProjectileRenderer = {
              const nextProgress = Math.min(1, Math.max(0, Vector.dist({x: p.startX, y: p.startY}, {x: nextLx, y: nextLy}) / totalDist));
              const nextVis = getVisualPos(nextLx, nextLy, nextProgress);
              
-             // Angle in screen space
              const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
              const spin = def.spinSpeed ? (progress * def.spinSpeed) : 0;
              
-             // 5. Trail Generation (History)
+             // 5. Trail
              const visualTrail: Point[] = [];
              if ((def.trailLength || 0) > 0 && p.trail.length > 1) {
                  visualTrail.push({ x: headVis.x, y: headVis.y });
-                 
                  const pointsToProcess = Math.min(p.trail.length, (def.trailLength || 5) + 1);
                  
                  for (let i = p.trail.length - 1; i >= p.trail.length - pointsToProcess; i--) {
@@ -128,15 +121,10 @@ export const ProjectileRenderer = {
                  }
              }
 
-             // 6. Create Render Op
+             // 6. Submit Op
              const op = renderList.next();
              op.type = RenderOpType.PROJECTILE;
-             
-             // Sort Order:
-             // Base sorting on Y (ground position).
              op.y = p.y + offsetP; 
-             
-             // Z-Bias: Ensure projectiles draw above units/terrain on the same tile
              op.z = 50; 
              
              op.proj = p;

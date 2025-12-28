@@ -3,7 +3,7 @@ import React from 'react';
 import GameCanvas from './components/GameCanvas';
 
 // UI Components
-import { ShowcaseOverlay } from './components/ui/ShowcaseOverlay';
+import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
 import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';

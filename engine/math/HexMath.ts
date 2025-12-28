@@ -2,12 +2,8 @@
 import { Hex, Point, Cube } from "../../types";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
-/**
- * Cube Coordinate interface (x + y + z = 0)
- */
 export { Cube };
 
-// Constants for Isometric Projection (Pointy Top)
 const SQRT3 = Math.sqrt(3);
 
 export const HexMath = {
@@ -41,19 +37,22 @@ export const HexMath = {
         return { x: q, y: s, z: r };
     },
 
-    // --- PROJECTION CORE (THE SOURCE OF TRUTH) ---
+    // --- PROJECTION CORE (FLAT-TOP SOURCE OF TRUTH) ---
 
     /**
      * Converts Hex(q, r) to Screen Pixel(x, y).
-     * @returns The CENTER POINT of the hexagon's BASE (Ground Level).
+     * @returns The CENTER POINT of the hexagon's GROUND BASE (Z=0).
+     * Updated for FLAT TOP orientation.
      */
     hexToPixel(q: number, r: number, offsetX: number, offsetY: number): Point {
-        // Standard Pointy Top Hex to Pixel conversion
-        const x = (SQRT3 * q + SQRT3 / 2 * r) * HEX_SIZE;
-        const y = (3 / 2 * r) * HEX_SIZE;
+        // Flat Top Hex to Pixel
+        // x = size * 3/2 * q
+        // y = size * sqrt(3) * (r + q/2)
+        const x = (3 / 2 * q) * HEX_SIZE;
+        const y = (SQRT3 * (r + q / 2)) * HEX_SIZE;
 
         // Apply ISO Squash (2.5D Projection)
-        // We only scale Y to simulate the viewing angle
+        // Only scale Y.
         return {
             x: x + offsetX,
             y: (y * ISO_SCALE_Y) + offsetY
@@ -62,14 +61,15 @@ export const HexMath = {
 
     /**
      * Converts Screen Pixel(x, y) to Fractional Hex.
-     * Inverse of hexToPixel.
+     * Inverse of hexToPixel (Flat Top). Assumes Z=0 input.
      */
     pixelToHex(x: number, y: number, offsetX: number, offsetY: number): Hex {
         const dx = x - offsetX;
         const dy = (y - offsetY) / ISO_SCALE_Y; // Un-squash
 
-        const q = (SQRT3 / 3 * dx - 1 / 3 * dy) / HEX_SIZE;
-        const r = (2 / 3 * dy) / HEX_SIZE;
+        // Inverse Flat Top Matrix
+        const q = (2 / 3 * dx) / HEX_SIZE;
+        const r = (-1 / 3 * dx + SQRT3 / 3 * dy) / HEX_SIZE;
 
         return { q, r };
     },
@@ -115,22 +115,6 @@ export const HexMath = {
         for (let q = -n; q <= n; q++) {
             for (let r = Math.max(-n, -q - n); r <= Math.min(n, -q + n); r++) {
                 results.push({ q: center.q + q, r: center.r + r });
-            }
-        }
-        return results;
-    },
-    
-    ring(center: Hex, radius: number): Hex[] {
-        const results: Hex[] = [];
-        if (radius === 0) return [center];
-        let curr = HexMath.axialToCube({ q: center.q, r: center.r - radius });
-        const directions = [{x:1, y:-1, z:0}, {x:1, y:0, z:-1}, {x:0, y:1, z:-1}, {x:-1, y:1, z:0}, {x:-1, y:0, z:1}, {x:0, y:-1, z:1}];
-        for (let i = 0; i < 6; i++) {
-            for (let j = 0; j < radius; j++) {
-                results.push(HexMath.cubeToAxial(curr));
-                curr.x += directions[i].x;
-                curr.y += directions[i].y;
-                curr.z += directions[i].z;
             }
         }
         return results;
