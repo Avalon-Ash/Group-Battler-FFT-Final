@@ -1,18 +1,17 @@
 
-import { GameEvent, Team, Role } from "../../../types";
+import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
-import { SpriteManager } from "../../sprites";
-import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 
-// Architects
+// Architects & Effects
 import { UltArchitect } from "./UltArchitect";
 import { SkillArchitect } from "./SkillArchitect";
+import { UnitShatter } from "./effects/UnitShatter";
 
 interface Point3D { x: number; y: number; z: number; }
 
@@ -85,7 +84,7 @@ export class EventVFXMapper {
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) {
-                    this.spawnUnitShatter(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
+                    UnitShatter.spawn(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
                 }
                 camera.addTrauma(0.1); 
                 break;
@@ -177,44 +176,5 @@ export class EventVFXMapper {
         // 2. Default AOE Visuals
         this.resolveImpact(event, engine, vfx, centerPt, false);
         camera.addTrauma(0.2);
-    }
-
-    private spawnUnitShatter(system: VFXSystem, x: number, y: number, z: number, team: Team, role: Role, impulseX: number, impulseY: number) {
-        // ... (Existing shatter logic remains good)
-        const assets = SpriteManager.getUnitImages(role, team);
-        const factionConfig = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
-        
-        const base = system.state.getParticle();
-        base.x = x; base.y = y; base.z = z + 10;
-        base.vx = impulseX * 0.8; base.vy = impulseY * 0.8; base.vz = 150 + Math.random() * 100;
-        base.life = 2.0; base.maxLife = 2.0;
-        base.color = '#fff'; base.size = 50; 
-        base.type = 'SPRITE'; base.image = assets.base;
-        base.vRotation = (Math.random() - 0.5) * 10;
-        system.state.particles.push(base);
-
-        const icon = system.state.getParticle();
-        icon.x = x; icon.y = y; icon.z = z + 40; 
-        icon.vx = impulseX * 1.2; icon.vy = impulseY * 1.2; icon.vz = 300 + Math.random() * 200;
-        icon.life = 2.0; icon.maxLife = 2.0;
-        icon.color = '#fff'; icon.size = 64; 
-        icon.type = 'SPRITE'; icon.image = assets.icon;
-        icon.vRotation = (Math.random() - 0.5) * 20; 
-        system.state.particles.push(icon);
-
-        const shardCount = 8;
-        const colors = factionConfig.deathShatterColors;
-        for(let i=0; i<shardCount; i++) {
-            const p = system.state.getParticle();
-            p.x = x + (Math.random()-0.5)*20; p.y = y + (Math.random()-0.5)*20; p.z = z + 30;
-            const a = Math.random() * Math.PI * 2;
-            const s = 150 + Math.random() * 250;
-            p.vx = Math.cos(a)*s + impulseX*0.5; p.vy = Math.sin(a)*s + impulseY*0.5; p.vz = 250 + Math.random()*250; 
-            p.life = 1.5; p.maxLife = 1.5;
-            p.type = 'SHARD'; p.color = colors[Math.floor(Math.random() * colors.length)];
-            p.size = 6 + Math.random()*8; 
-            p.vRotation = (Math.random()-0.5)*30; 
-            system.state.particles.push(p);
-        }
     }
 }

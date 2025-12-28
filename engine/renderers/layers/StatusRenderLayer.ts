@@ -1,8 +1,8 @@
 
-import { Agent, GameEngine } from "../../game";
+import { Agent } from "../../game";
 import { Team } from "../../../types";
 import { ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../../constants";
-import { SurfaceAssets } from "../../graphics/SurfaceAssets";
+import { VolumePainter } from "../../graphics/painters/VolumePainter";
 import { AssetManager } from "../../assets";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
@@ -55,7 +55,7 @@ export class StatusRenderLayer {
             
             // Dynamic pulsing ring
             const pulse = 0.8 + Math.sin(t * 10) * 0.2;
-            SurfaceAssets.drawHexRipple(ctx, 0, 0, 20, color, pulse, 2);
+            VolumePainter.drawHexRipple(ctx, 0, 0, 20, color, pulse, 2);
 
             // 3D Spikes (Simulated)
             ctx.fillStyle = color;
@@ -92,7 +92,7 @@ export class StatusRenderLayer {
             
             // Volumetric Prism Shell
             // Height 90 covers most standard units
-            SurfaceAssets.draw3DPrism(ctx, 0, 0, 35, 90, color, pulse, 'SOLID');
+            VolumePainter.draw3DPrism(ctx, 0, 0, 35, 90, color, pulse, 'SOLID');
             
             // Inner Core Ripple
             ctx.translate(0, -45); // Center mass
@@ -151,10 +151,10 @@ export class StatusRenderLayer {
         ctx.save();
         ctx.translate(x, y - z);
         
-        // Use SurfaceAssets for high-quality Prism
+        // Use VolumePainter for high-quality Prism
         // Opacity oscillation
         const opacity = 0.4 + Math.sin(t * 2) * 0.1;
-        SurfaceAssets.draw3DPrism(ctx, 0, 0, 40, height, color, opacity, 'SOLID');
+        VolumePainter.draw3DPrism(ctx, 0, 0, 40, height, color, opacity, 'SOLID');
         
         // Lock Icon Floating inside
         const icon = AssetManager.getStatusIcon(isStasis ? 'STASIS' : 'BANISH');
