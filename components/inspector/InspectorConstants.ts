@@ -4,6 +4,7 @@ import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 
 // =========================================================================================
 // [SYSTEM DEPENDENCIES & CONSTANTS]
+// Version: 7.1.1 (Precision Patch)
 // =========================================================================================
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {

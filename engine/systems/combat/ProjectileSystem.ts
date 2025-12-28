@@ -4,7 +4,7 @@ import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { PROJECTILE_VISUALS } from "../../../data/vfx/projectile_visuals";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE } from "../../../constants";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
@@ -124,10 +124,11 @@ export class ProjectileSystem {
     }
 
     private createProjectile(source: Agent, skill: Skill, targetPos: {x: number, y: number}, targetId: string) {
-        // FIXED: Start Z must equal the visual body center relative to ground.
-        // Stack: Physics Z (Jump) + Body Offset + Hover Lift.
-        // This ensures the projectile aligns with the chest, not the feet.
-        const launchHeight = source.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
+        // FIXED: Start Z must be at Chest Height relative to ground.
+        // Base = Physics Z (Jump) + Body Offset + Hover Lift.
+        // Chest = Base + (VisualHeight * 0.4 * Scale)
+        const chestHeight = UNIT_VISUAL_HEIGHT * 0.4 * UNIT_SCALE;
+        const launchHeight = source.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestHeight;
 
         this.projectiles.push({
             id: Math.random().toString(36).substr(2, 6),

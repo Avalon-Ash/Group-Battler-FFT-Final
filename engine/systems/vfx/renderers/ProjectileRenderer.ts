@@ -6,7 +6,7 @@ import { getTransitionOffset } from "../utils";
 import { Point } from "../../../../types";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../../constants"; 
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE } from "../../../../constants"; 
 
 export const ProjectileRenderer = {
     submit(
@@ -27,20 +27,22 @@ export const ProjectileRenderer = {
              const startHex = HexUtils.fromPx(p.startX, p.startY, engine.mapConfig);
              const targetHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
              
+             // Chest Offset Calculation
+             const chestOffset = (UNIT_VISUAL_HEIGHT * 0.4) * UNIT_SCALE;
+
              // Start Height: 
-             // If stored, add to terrain. If not stored (legacy/spawned elsewhere), assume Chest Height.
              const hStartTerrain = getTerrainHeight(startHex.q, startHex.r);
-             const hStart = (p.startZ !== undefined) ? (hStartTerrain + p.startZ) : (hStartTerrain + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET);
+             const hStart = (p.startZ !== undefined) ? (hStartTerrain + p.startZ) : (hStartTerrain + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestOffset);
              
              // End Height: Dynamic.
-             let hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET; 
+             let hEnd = getTerrainHeight(targetHex.q, targetHex.r) + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestOffset; 
              
              const targetAgent = engine.agents.find(a => a.id === p.targetId);
              if (targetAgent) {
                  const tHex = HexUtils.fromPx(targetAgent.px, targetAgent.py, engine.mapConfig);
                  const tTerrain = getTerrainHeight(tHex.q, tHex.r);
-                 // Aim for Chest: Terrain + JumpHeight + BodyOffset + Hover
-                 hEnd = tTerrain + targetAgent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
+                 // Aim for Chest: Terrain + JumpHeight + BodyOffset + Hover + ChestOffset
+                 hEnd = tTerrain + targetAgent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestOffset;
              }
 
              let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);

@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT v7.0",
-  "description": "Tactical Auto-Battler v7.0.0 - Architecture Remaster. Featuring: ECS-lite rendering pipeline, Modular Ult Registry, and Advanced Physics.",
+  "name": "Group Battler FFT v7.1.1",
+  "description": "Tactical Auto-Battler v7.1.1 - Precision Patch. Featuring: Corrected Projectile Anchors (Chest-Level), 10x10 Arena Optimization, and Global Unit Scaling.",
   "requestFramePermissions": []
 }

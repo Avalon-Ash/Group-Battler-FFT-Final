@@ -19,7 +19,7 @@ const PROCEDURAL_ENTRIES: VFXEntry[] = Object.keys(PROCEDURAL_VISUALS).map(key =
 });
 
 export const VFXMapTab: React.FC = () => {
-    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'IMP_PROJ' | 'COV_PROJ' | 'CAST' | 'PROCEDURAL'>('GENERIC');
+    const [activeCategory, setActiveCategory] = useState<'GENERIC' | 'FACTION_HITS' | 'ULT_BLUE' | 'ULT_RED' | 'STATUS' | 'PROJECTILES' | 'IMP_PROJ' | 'COV_PROJ' | 'CAST' | 'PROCEDURAL'>('GENERIC');
 
     const renderList = (list: VFXEntry[], themeColor: string) => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -72,6 +72,12 @@ export const VFXMapTab: React.FC = () => {
                         Generic
                     </button>
                     <button 
+                        onClick={() => setActiveCategory('FACTION_HITS')} 
+                        className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'FACTION_HITS' ? 'bg-slate-600 text-slate-100 shadow-md' : 'text-slate-500 hover:text-slate-300'}`}
+                    >
+                        Faction Hits
+                    </button>
+                    <button 
                         onClick={() => setActiveCategory('ULT_BLUE')} 
                         className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'ULT_BLUE' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30' : 'text-slate-500 hover:text-blue-400'}`}
                     >
@@ -119,6 +125,7 @@ export const VFXMapTab: React.FC = () => {
             {/* Content */}
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                 {activeCategory === 'GENERIC' && renderList(VFX_LIBRARY.GENERIC, 'text-slate-200')}
+                {activeCategory === 'FACTION_HITS' && renderList(VFX_LIBRARY.FACTION_HITS, 'text-indigo-300')}
                 {activeCategory === 'ULT_BLUE' && renderList(VFX_LIBRARY.ULT_BLUE, 'text-blue-400')}
                 {activeCategory === 'ULT_RED' && renderList(VFX_LIBRARY.ULT_RED, 'text-red-400')}
                 {activeCategory === 'IMP_PROJ' && renderList(VFX_LIBRARY.IMP_PROJ, 'text-cyan-400')}

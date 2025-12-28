@@ -5,7 +5,7 @@ import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { UNIT_BODY_OFFSET } from "../../../constants";
+import { UNIT_BODY_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, UNIT_HOVER_OFFSET } from "../../../constants";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 
 // Sub-Handlers
@@ -67,11 +67,12 @@ export class EventVFXMapper {
         // If ID matches, snap to that unit's physical center
         if (agent) {
             const terrainH = grid.getTerrainHeight(agent.q, agent.r, engine);
+            const chestOffset = (UNIT_VISUAL_HEIGHT * 0.4) * UNIT_SCALE;
             return {
                 x: agent.px,
                 y: agent.py,
-                // Critical: Target is Chest Height (Terrain + PhysZ + Offset)
-                z: terrainH + agent.physics.z + UNIT_BODY_OFFSET
+                // Critical: Target is Chest Height (Terrain + PhysZ + BaseOffset + Hover + ChestOffset)
+                z: terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestOffset
             };
         }
 

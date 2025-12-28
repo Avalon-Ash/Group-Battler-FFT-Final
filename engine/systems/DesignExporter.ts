@@ -1,5 +1,5 @@
 
-import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT, COMBAT_PARAM, ISO_SCALE_Y } from "../../constants";
+import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT, COMBAT_PARAM, ISO_SCALE_Y, UNIT_SCALE, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../constants";
 
 export class DesignExporter {
 
@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 7.0.0 (Architecture Remaster)
+Version: 7.1.1 (Precision Patch)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric (Flat-Top) / Phys-Logical 3D
 ================================================================================
@@ -27,55 +27,43 @@ Engine: Hybrid 2.5D Isometric (Flat-Top) / Phys-Logical 3D
 --------------------------------------------------------------------------------
 系統採用等距視角 (Isometric 2.5D) 表現，底層邏輯運行於擬 3D 空間。
 
+* 視覺縮放 (Visual Scale):
+  - 全域單位縮放 (Unit Scale): ${UNIT_SCALE} (70% Original Size).
+  - 確保單位與 10x10 網格的比例更為協調，保留戰術空間感。
+
 * 轉換公式 (Coordinate Transformation):
   - 網格類型: Flat-Top Hexagon (旋轉 0 度).
   - 投影比例 (ISO_Y): ${ISO_SCALE_Y}
-  - 渲染基準 (Pivot): 地塊繪製使用 3-Face Prism (Left/Center/Right) 以呈現厚度體積感。
-  - 像素換算: 
-    x = size * 3/2 * q
-    y = size * sqrt(3) * (r + q/2) * ISO_Y
+  - 渲染基準 (Pivot): 地塊繪製使用 3-Face Prism 以呈現體積感。
 
 * 地形規則 (Terrain Architecture):
+  - 地圖尺寸限制: 8x8 ~ 10x10 (Performance Optimized).
   - 最大高度: ${MAX_TERRAIN_TIER} 階梯層級 (Tiers).
   - 單層物理高度: ${BLOCK_HEIGHT} px.
-  - Slab Base: 地塊底部延伸 ${12}px (SLAB_THICKNESS) 確保無懸空感。
 
 [2. 物理模擬與運動學 (Physics & Kinematics)]
 --------------------------------------------------------------------------------
 * 重力系統 (Gravitational Field):
-  - 全域重力: 1800 units/s².
+  - 全域重力: 2500 units/s² (Snappy falls).
   - 碰撞檢測: 實時地表高度檢索 (Heightmap Lookup).
-  - 彈性係數: 0.5 (落地反彈與動能損耗).
 
 * 飛行機制 (Flight Mechanics):
-  - 戰術懸停 (Tactical Hover): 飛行單位擁有全息投影錨點 (Holographic Anchor)，連接身體與地表網格中心。
+  - 戰術懸停 (Tactical Hover): 飛行單位擁有全息投影錨點。
   - 懸浮高度: 55 px (動態正弦波浮動).
-  - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
+  - 視覺錨點修正: 飛行線條現在正確連接至縮小後的單位底部。
 
 [3. 投射物彈道學 (Projectile Ballistics 2.0)]
 --------------------------------------------------------------------------------
 * 發射與命中 (Launch & Impact):
-  - 起點修正 (Origin): 投射物從單位 "胸口" (Body Offset: 45px) 發射，而非腳底。
-  - 動態追蹤 (Homing): 目標高度 (Target Z) 實時鎖定對方物理中心 (TerrainH + JumpH + BodyOffset)。
+  - 核心修正 (Core Fix): 彈道起點與終點現在嚴格對齊單位的 "視覺核心" (Visual Chest)。
+  - 高度公式: TerrainZ + PhysicsZ + BodyOffset(${UNIT_BODY_OFFSET}) + HoverLift(${UNIT_HOVER_OFFSET}) + (VisualHeight * 0.4 * Scale).
+  - 這解決了 "射腳底" (Toe-Shooting) 的視覺誤差。
 
 [4. 異常狀態體系 (Control Status System)]
 --------------------------------------------------------------------------------
 * 硬控場 (Hard CC): 暈眩 (Stun), 恐懼 (Fear), 嘲諷 (Taunt), 放逐 (Banish).
 * 軟控場 (Soft CC): 禁錮 (Root), 沉默 (Silence), 致盲 (Blind).
 * 防禦機制 (Defense): 護盾 (Shield), 抗性遞減 (DR) ${COMBAT_PARAM.DR_RESET_TIME}s.
-
-[5. 渲染管線技術 (Rendering Pipeline)]
---------------------------------------------------------------------------------
-* 環境渲染 (Atmospheric Rendering):
-  - 靜態層 (Static): 預渲染背景梯度、星空、遠景山脈輪廓。
-  - 動態層 (Dynamic): 
-    - God Rays (體積光束) - Forest/Desert 場景。
-    - Aurora (極光) - Ice 場景。
-    - Atmospheric Fog (流動霧氣)。
-  
-* 障礙物渲染 (Obstacle 2.5D):
-  - 幾何適配: 所有障礙物重構為 3-Face Perspective 以匹配 Flat-Top 網格視角。
-  - 陰影: 使用自適應 ISO 投影陰影。
 
 ================================================================================
 END OF SPECIFICATION
