@@ -21,10 +21,10 @@ export const CovenantRangerUlts: Record<string, UltScriptFn> = {
     'rr_u2': (ctx) => {
         const seq = new UltSequencer(ctx);
         
-        // 1. Flash
+        // 1. Flash (Instant Whiteout)
         seq.effect('FX_ULT_RED_NUKE_FLASH', { ...ctx.target, z: ctx.target.z + 100 }, '#fff', 0);
         
-        // 2. Mushroom Stem
+        // 2. Mushroom Stem (Rising column)
         const stem = ctx.vfx.state.getParticle();
         stem.x = ctx.target.x; stem.y = ctx.target.y; stem.z = ctx.target.z;
         stem.life = 2.5; stem.maxLife = 2.5;
@@ -32,13 +32,14 @@ export const CovenantRangerUlts: Record<string, UltScriptFn> = {
         stem.type = 'PILLAR'; stem.style = 'PILLAR_VOID';
         ctx.vfx.state.particles.push(stem);
 
-        // 3. Cap
-        seq.wait(100, () => {
+        // 3. Cap (Delayed slightly to appear as flash fades)
+        // INCREASED DELAY to 300ms to let flash settle so dark smoke is visible
+        seq.wait(300, () => {
             seq.effect('FX_ULT_RED_NUKE_CLOUD', { ...ctx.target, z: ctx.target.z + 400 }, '#fca5a5', 0);
             seq.shake(0.6, 0);
         });
 
-        // 4. Wave
+        // 4. Wave (Ground Shockwave)
         const wave = ctx.vfx.state.getParticle();
         wave.x = ctx.target.x; wave.y = ctx.target.y; wave.z = ctx.target.z + 10;
         wave.life = 1.0; wave.maxLife = 1.0;

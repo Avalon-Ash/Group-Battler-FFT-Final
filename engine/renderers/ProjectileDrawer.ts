@@ -4,44 +4,55 @@ import { AssetManager } from "../assets";
 
 export const ProjectileDrawer = {
     draw(ctx: CanvasRenderingContext2D, op: RenderOp, globalTime: number) {
-        // --- BEAM / LASER STYLE ---
+        
+        // --- BEAM / LASER STYLE (ENHANCED) ---
         const isRay = op.pSkillVis === 'BEAM'; 
         
         if (isRay && op.pTrail && op.pTrail.length > 0) {
             ctx.save();
-            ctx.globalCompositeOperation = 'screen'; // Use Screen for additive but not blown out
+            ctx.globalCompositeOperation = 'screen'; 
             
             const start = op.pTrail[op.pTrail.length - 1]; 
             const end = { x: op.pVisX, y: op.pVisY };
             
-            // 1. Outer Glow (Wide)
+            // 1. Outer Glow (The "Halo")
+            // Significantly increased width for impact
             ctx.shadowColor = op.pColor;
-            ctx.shadowBlur = 20;
+            ctx.shadowBlur = 15;
             ctx.strokeStyle = op.pColor;
-            ctx.lineWidth = op.pIsUlt ? 12 : 6;
-            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = op.pIsUlt ? 16 : 8; // Thicker beams!
+            ctx.globalAlpha = 0.5;
             ctx.beginPath();
             ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y);
             ctx.stroke();
             ctx.shadowBlur = 0;
 
-            // 2. Inner Core (Bright)
+            // 2. Inner Core (Bright White Energy)
+            // Beams should always have a white hot center
             const grad = ctx.createLinearGradient(start.x, start.y, end.x, end.y);
             grad.addColorStop(0, 'rgba(255,255,255,0)');
-            grad.addColorStop(0.2, op.pColor);
-            grad.addColorStop(1, '#ffffff'); // White hot tip
+            grad.addColorStop(0.1, op.pColor);
+            grad.addColorStop(0.5, '#ffffff'); // White core
+            grad.addColorStop(1, '#ffffff'); 
 
             ctx.strokeStyle = grad;
-            ctx.lineWidth = op.pIsUlt ? 4 : 2;
+            ctx.lineWidth = op.pIsUlt ? 6 : 3; // Thicker core
             ctx.globalAlpha = 1.0;
             ctx.beginPath();
             ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y);
             ctx.stroke();
 
-            // 3. Head Flare
+            // 3. Head Flare (Impact Point)
             ctx.translate(end.x, end.y);
             ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(0, 0, op.pIsUlt ? 6 : 3, 0, Math.PI*2); ctx.fill();
+            
+            // Pulse the head
+            const pulse = 1.0 + Math.sin(globalTime * 20) * 0.2;
+            const headSize = (op.pIsUlt ? 12 : 6) * pulse;
+            
+            ctx.shadowColor = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath(); ctx.arc(0, 0, headSize, 0, Math.PI*2); ctx.fill();
             
             ctx.restore();
             return;
@@ -58,24 +69,28 @@ export const ProjectileDrawer = {
                 ctx.lineTo(trail[i].x, trail[i].y);
             }
             
-            // Fading trail
+            // Trail Styling
             ctx.strokeStyle = op.pColor;
-            ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.5;
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.globalAlpha = 0.6;
+            ctx.shadowColor = op.pColor;
+            ctx.shadowBlur = 5;
             ctx.stroke();
             
             ctx.restore();
         }
 
-        // Shadow
+        // Shadow (Height cues)
         const shadowAltitude = op.pVisShadowY - op.pVisY; 
         if (Math.abs(shadowAltitude) > 5) {
             ctx.save();
             ctx.translate(Math.round(op.pVisX), Math.round(op.pVisShadowY));
-            const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/1000);
+            const shadowAlpha = Math.max(0, 0.4 - Math.abs(shadowAltitude)/1200);
             ctx.scale(1, 0.5); 
             ctx.fillStyle = `rgba(0,0,0,${shadowAlpha})`;
-            ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
@@ -85,28 +100,28 @@ export const ProjectileDrawer = {
         if (op.pSpin !== 0) ctx.rotate(op.pSpin); 
         else ctx.rotate(op.pAngle);
         
-        // Draw Mach Cone (Shockwave front) for fast objects
+        // Draw Mach Cone (Shockwave front) for linear fast objects
         if (!op.pSpin) {
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
-            ctx.globalAlpha = 0.3;
+            ctx.globalAlpha = 0.4;
             ctx.fillStyle = op.pColor;
             ctx.beginPath();
-            ctx.moveTo(20, 0); ctx.lineTo(-10, -15); ctx.lineTo(-5, 0); ctx.lineTo(-10, 15);
+            ctx.moveTo(25, 0); ctx.lineTo(-15, -18); ctx.lineTo(-5, 0); ctx.lineTo(-15, 18);
             ctx.fill();
             ctx.restore();
         }
 
         const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
         if (img && img.width > 0) {
-            let scale = 0.8; // Beefier projectiles
-            if (op.pIsUlt) scale = 1.2;
+            let scale = 1.0; 
+            if (op.pIsUlt) scale = 1.5;
             ctx.scale(scale, scale);
             ctx.drawImage(img, -48, -32, 96, 64);
             
             // Bloom Overlay
             ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.5;
+            ctx.globalAlpha = 0.6;
             ctx.drawImage(img, -48, -32, 96, 64);
         }
         ctx.restore();
