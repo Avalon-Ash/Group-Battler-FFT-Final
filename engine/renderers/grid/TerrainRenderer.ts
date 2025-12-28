@@ -1,6 +1,6 @@
 
 import { HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../../constants";
-import { GEOMETRY, HexGeometry } from "../../graphics/utils/HexGeometry";
+import { HEX_VERTICES, HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { GridOverlays } from "./GridOverlays";
 
@@ -19,24 +19,21 @@ export const TerrainRenderer = {
         const faceY = y - heightOffset;
 
         // 1. Draw Side Faces
-        const visibleIndices = [5, 0, 1];
+        const visibleIndices = [5, 0, 1]; // Bottom 3 faces in Pointy-Top ISO
 
         for (const i of visibleIndices) {
             const j = (i + 1) % 6;
             
-            const c1x = size * GEOMETRY.HEX_COS[i];
-            const c1y = size * GEOMETRY.HEX_SIN[i] * ISO_SCALE_Y;
+            const v1 = HEX_VERTICES[i];
+            const v2 = HEX_VERTICES[j];
             
-            const c2x = size * GEOMETRY.HEX_COS[j];
-            const c2y = size * GEOMETRY.HEX_SIN[j] * ISO_SCALE_Y;
-            
-            const x1 = x + c1x;
-            const y1_top = faceY + c1y;     
-            const x2 = x + c2x;
-            const y2_top = faceY + c2y;     
+            const x1 = x + v1.x * size;
+            const y1_top = faceY + v1.y * size * ISO_SCALE_Y;
+            const x2 = x + v2.x * size;
+            const y2_top = faceY + v2.y * size * ISO_SCALE_Y;
 
-            const y1_bottom = y + c1y + BASE_THICKNESS; 
-            const y2_bottom = y + c2y + BASE_THICKNESS;
+            const y1_bottom = y + v1.y * size * ISO_SCALE_Y + BASE_THICKNESS; 
+            const y2_bottom = y + v2.y * size * ISO_SCALE_Y + BASE_THICKNESS;
             
             const grad = ctx.createLinearGradient(0, faceY, 0, y + BASE_THICKNESS);
             const baseColor = (i === 0) ? theme.sideDark : theme.sideLight; 
@@ -54,13 +51,14 @@ export const TerrainRenderer = {
             ctx.closePath();
             ctx.fill();
             
+            // Tier lines for height reference
             if (height > BLOCK_HEIGHT) {
                 ctx.strokeStyle = 'rgba(0,0,0,0.2)';
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 for (let hStep = BLOCK_HEIGHT; hStep < height; hStep += BLOCK_HEIGHT) {
-                    ctx.moveTo(x1, y - hStep + c1y);
-                    ctx.lineTo(x2, y - hStep + c2y);
+                    ctx.moveTo(x1, y - hStep + v1.y * size * ISO_SCALE_Y);
+                    ctx.lineTo(x2, y - hStep + v2.y * size * ISO_SCALE_Y);
                 }
                 ctx.stroke();
             }
@@ -78,7 +76,7 @@ export const TerrainRenderer = {
         topGrad.addColorStop(1, theme.sideDark); 
         ctx.fillStyle = topGrad;
         
-        HexGeometry.traceHex(ctx, x, faceY, size);
+        HexGeometry.traceHex(ctx, x, faceY, size, true);
         ctx.fill();
 
         // 3. Surface Assets
@@ -91,7 +89,7 @@ export const TerrainRenderer = {
         } else if (type === 'ICE') {
             const bandPos = (globalTime * 50 + x + y) % (size * 4) - size * 2;
             ctx.save();
-            HexGeometry.traceHex(ctx, x, faceY, size);
+            HexGeometry.traceHex(ctx, x, faceY, size, true);
             ctx.clip(); 
             const specGrad = ctx.createLinearGradient(x - size, faceY - size, x + size, faceY + size);
             specGrad.addColorStop(0, 'transparent');
@@ -110,19 +108,23 @@ export const TerrainRenderer = {
         ctx.globalAlpha = 0.6;
         
         ctx.beginPath();
-        const c4 = {x: size*GEOMETRY.HEX_COS[4], y: size*GEOMETRY.HEX_SIN[4]*ISO_SCALE_Y};
-        const c3 = {x: size*GEOMETRY.HEX_COS[3], y: size*GEOMETRY.HEX_SIN[3]*ISO_SCALE_Y};
-        const c2 = {x: size*GEOMETRY.HEX_COS[2], y: size*GEOMETRY.HEX_SIN[2]*ISO_SCALE_Y};
+        // Visible top edges (4, 3, 2 indices based on HEX_VERTICES rotation)
+        // Indices in HEX_VERTICES are rotated PI/6 + PI/4.
+        // Let's use vertices directly.
+        const v4 = HEX_VERTICES[4];
+        const v3 = HEX_VERTICES[3];
+        const v2 = HEX_VERTICES[2];
         
-        ctx.moveTo(x + c4.x, faceY + c4.y);
-        ctx.lineTo(x + c3.x, faceY + c3.y);
-        ctx.lineTo(x + c2.x, faceY + c2.y); 
+        ctx.moveTo(x + v4.x * size, faceY + v4.y * size * ISO_SCALE_Y);
+        ctx.lineTo(x + v3.x * size, faceY + v3.y * size * ISO_SCALE_Y);
+        ctx.lineTo(x + v2.x * size, faceY + v2.y * size * ISO_SCALE_Y);
+        
         ctx.stroke();
         ctx.globalAlpha = 1.0;
         
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-        HexGeometry.traceHex(ctx, x, faceY, size);
+        HexGeometry.traceHex(ctx, x, faceY, size, true);
         ctx.stroke();
     },
 

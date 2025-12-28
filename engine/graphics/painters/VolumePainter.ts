@@ -1,6 +1,5 @@
-
 import { ISO_SCALE_Y } from "../../../constants";
-import { GEOMETRY, HexGeometry } from "../utils/HexGeometry";
+import { HEX_VERTICES, HexGeometry } from "../utils/HexGeometry";
 import { VFXFactory } from "../VFXFactory";
 
 export const VolumePainter = {
@@ -83,11 +82,11 @@ export const VolumePainter = {
         for (const i of indices) {
             const j = (i + 1) % 6;
             
-            const x1 = x + radius * GEOMETRY.HEX_COS[i];
-            const y1 = y + radius * GEOMETRY.HEX_SIN[i] * ISO_SCALE_Y;
+            const x1 = x + radius * HEX_VERTICES[i].x;
+            const y1 = y + radius * HEX_VERTICES[i].y * ISO_SCALE_Y;
             
-            const x2 = x + radius * GEOMETRY.HEX_COS[j];
-            const y2 = y + radius * GEOMETRY.HEX_SIN[j] * ISO_SCALE_Y;
+            const x2 = x + radius * HEX_VERTICES[j].x;
+            const y2 = y + radius * HEX_VERTICES[j].y * ISO_SCALE_Y;
             
             const grad = ctx.createLinearGradient(0, topY, 0, y);
             grad.addColorStop(0, color);
@@ -223,11 +222,11 @@ export const VolumePainter = {
         for (const i of visibleFaces) {
             const j = (i + 1) % 6;
             
-            const x1 = x + radius * GEOMETRY.HEX_COS[i];
-            const y1 = radius * GEOMETRY.HEX_SIN[i] * ISO_SCALE_Y; 
+            const x1 = x + radius * HEX_VERTICES[i].x;
+            const y1 = radius * HEX_VERTICES[i].y * ISO_SCALE_Y; 
             
-            const x2 = x + radius * GEOMETRY.HEX_COS[j];
-            const y2 = radius * GEOMETRY.HEX_SIN[j] * ISO_SCALE_Y; 
+            const x2 = x + radius * HEX_VERTICES[j].x;
+            const y2 = radius * HEX_VERTICES[j].y * ISO_SCALE_Y; 
 
             const grad = ctx.createLinearGradient(0, topY, 0, bottomY);
             grad.addColorStop(0, color);

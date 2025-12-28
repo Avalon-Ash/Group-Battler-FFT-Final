@@ -4,37 +4,7 @@ import { ISO_SCALE_Y } from "../../../../constants";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { PROCEDURAL_VISUALS, PillarVisualDef } from "../../../../data/vfx/procedural_visuals";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
-
-// Helper for hex tracing (used by procedural beams)
-const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
-const HEX_CORNERS_X: number[] = [];
-const HEX_CORNERS_Y: number[] = [];
-for (let i = 0; i < 6; i++) {
-    const angle = START_ANGLE + i * Math.PI / 3;
-    HEX_CORNERS_X.push(Math.cos(angle));
-    HEX_CORNERS_Y.push(Math.sin(angle));
-}
-
-// Fixed Trace (Static)
-function traceHexagonFast(ctx: CanvasRenderingContext2D, r: number) {
-    ctx.beginPath();
-    ctx.moveTo(HEX_CORNERS_X[0] * r, HEX_CORNERS_Y[0] * r);
-    for (let i = 1; i < 6; i++) ctx.lineTo(HEX_CORNERS_X[i] * r, HEX_CORNERS_Y[i] * r);
-    ctx.closePath();
-}
-
-// Dynamic Rotation Trace (Fixes the wobble issue)
-function traceHexagonRotated(ctx: CanvasRenderingContext2D, r: number, rotation: number) {
-    ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
-        const angle = START_ANGLE + i * Math.PI / 3 + rotation;
-        const x = Math.cos(angle) * r;
-        const y = Math.sin(angle) * r; // Note: ISO Scale applied by context, so we draw perfect hex here
-        if (i===0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-}
+import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 
 export const ParticleRenderer = {
     
@@ -45,11 +15,7 @@ export const ParticleRenderer = {
         const now = Date.now() / 1000;
 
         // --- 1. PERSPECTIVE CORRECTION (THE 2.5D RULE) ---
-        // For standard sprites and ground effects. 
-        // NOTE: SurfaceAssets handles ISO scale internally, so we don't scale here if using it.
-        // But for legacy texture drawing we need to scale.
         const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type);
-        // GIANT_HEX, HEX_BEAM, DOMAIN handle scale internally
         if (isGroundEffect) {
             ctx.scale(1, ISO_SCALE_Y); 
         }
@@ -80,7 +46,6 @@ export const ParticleRenderer = {
         }
         // B. TEXTURE BASED (Everything else)
         else {
-            // Safety Net: If image missing, try fetch one last time
             if (!p.image && !p.texture) {
                 p.image = VFXFactory.getTexture(p.type as any, p.color);
             }
@@ -90,7 +55,6 @@ export const ParticleRenderer = {
             if (img) {
                 this.drawTexture(ctx, img, p.size, progress, p.type);
             } else {
-                // LAST RESORT: Simple Circle (No Squares allowed!)
                 const s = p.size * (1 - progress);
                 ctx.fillStyle = p.color;
                 ctx.beginPath(); ctx.arc(0, 0, s, 0, Math.PI*2); ctx.fill();
@@ -104,10 +68,9 @@ export const ParticleRenderer = {
         let scale = 1.0;
         let alpha = 1.0 - progress;
 
-        // FIX: Solid Large Projectiles (Meteors/Rocks) should not fade/shrink
         if (type === 'ROCK' && baseSize > 30) {
             scale = 1.0;
-            alpha = 1.0; // Maintain opacity
+            alpha = 1.0; 
         }
         else if (type === 'SHOCKWAVE' || type === 'RING') {
             scale = 0.5 + progress * 2.0;
@@ -116,21 +79,19 @@ export const ParticleRenderer = {
             scale = 0.8 + progress * 1.2;
             alpha = (1.0 - progress) * 0.5; 
         } else {
-            // Standard debris fade out
             scale = 1.0 - Math.pow(progress, 2);
         }
 
         const drawSize = baseSize * scale;
         ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
         
-        // Shadow for solid objects
         if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD'].includes(type)) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
             ctx.globalAlpha = 0.5 * alpha;
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            // Draw a hex shadow instead of circle
-            traceHexagonFast(ctx, drawSize * 0.5);
+            // Use unified hex geometry for shadow
+            HexGeometry.traceHex(ctx, 0, 0, drawSize * 0.5, true);
             ctx.fill();
             ctx.restore();
         }
@@ -165,7 +126,7 @@ export const ParticleRenderer = {
         else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
             // FIX: Handle Scale locally to allow correct rotation math
             ctx.save();
-            ctx.scale(1, ISO_SCALE_Y);
+            // Don't pre-scale Y here, HexGeometry.traceRotatedHex handles scaling via flag
             
             // Calculate Current Rotation
             const rot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
@@ -177,26 +138,24 @@ export const ParticleRenderer = {
                 // Solid Core (Accretion Disk)
                 ctx.fillStyle = p.color; 
                 ctx.globalAlpha = 1.0;
-                traceHexagonRotated(ctx, p.size, rot); 
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
                 ctx.fill();
 
                 // Bright Rim
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 4;
-                traceHexagonRotated(ctx, p.size, rot); 
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
                 ctx.stroke();
 
                 // Inner Detail (Opposite spin)
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
-                traceHexagonRotated(ctx, p.size * 0.6, -rot * 1.5);
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size * 0.6, -rot * 1.5, true);
                 ctx.fill();
                 
                 // --- BLACK HOLE SPECIAL: SINGULARITY SPHERE ---
-                // Draw a non-iso-scaled black circle in center if color is black-ish
                 if (p.color === '#000' || p.color === '#000000' || p.color === '#0f172a') {
-                    ctx.restore(); // Pop the ISO scale
+                    // Sphere isn't iso scaled
                     ctx.save();
-                    // Draw Sphere
                     ctx.globalCompositeOperation = 'source-over';
                     ctx.fillStyle = '#000';
                     ctx.shadowColor = '#8b5cf6'; // Purple glow
@@ -208,9 +167,7 @@ export const ParticleRenderer = {
                     ctx.lineWidth = 2;
                     ctx.shadowBlur = 0;
                     ctx.beginPath(); ctx.arc(0, 0, p.size * 0.42, 0, Math.PI * 2); ctx.stroke();
-                    ctx.restore(); // Pop Sphere
-                    // Re-add dummy save for final restore
-                    ctx.save();
+                    ctx.restore();
                 }
 
             } else {
@@ -222,19 +179,18 @@ export const ParticleRenderer = {
                 grad.addColorStop(1, 'transparent');
                 ctx.fillStyle = grad;
                 ctx.globalAlpha = (1 - progress) * 0.8;
-                traceHexagonRotated(ctx, p.size, rot); 
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
                 ctx.fill();
                 
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 2;
                 ctx.globalAlpha = 1 - progress;
-                traceHexagonRotated(ctx, p.size * 0.9, rot); 
+                HexGeometry.traceRotatedHex(ctx, 0, 0, p.size * 0.9, rot, true);
                 ctx.stroke();
             }
             ctx.restore();
         }
         else if (p.type === 'PILLAR') {
-            // ... (Pillar logic remains valid)
             const rawDef = PROCEDURAL_VISUALS[p.style || ''] || {};
             const def = rawDef as PillarVisualDef;
             const h = def.height || 1200; 
@@ -265,11 +221,8 @@ export const ParticleRenderer = {
             ctx.restore();
         }
         else if (p.type === 'DOMAIN') {
-            // 3D DOMAIN UPGRADE
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
-            const height = 40; // Wall height for volume
-            
-            // If it's a shield (from style), maybe higher walls?
+            const height = 40;
             const isShield = p.style === 'DOMAIN_SHIELD';
             const h = isShield ? 120 : 40;
             const opacity = 0.4 * (1 - progress);
@@ -277,8 +230,6 @@ export const ParticleRenderer = {
             VolumePainter.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE');
         }
         else if (p.type === 'GRID_FIELD') {
-            ctx.save();
-            ctx.scale(1, ISO_SCALE_Y);
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
             
             const grad = ctx.createRadialGradient(0, 0, r*0.2, 0, 0, r);
@@ -289,15 +240,15 @@ export const ParticleRenderer = {
             ctx.fillStyle = grad;
             ctx.globalAlpha = 0.4 * (1 - progress);
             ctx.globalCompositeOperation = 'screen';
-            // Use Hex shape for domains too!
-            traceHexagonFast(ctx, r); ctx.fill();
+            // Use unified Hex trace
+            HexGeometry.traceHex(ctx, 0, 0, r, true); 
+            ctx.fill();
             
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 1;
             ctx.globalAlpha = 0.2;
-            traceHexagonFast(ctx, r * 0.9); ctx.stroke();
-            
-            ctx.restore();
+            HexGeometry.traceHex(ctx, 0, 0, r * 0.9, true);
+            ctx.stroke();
         }
     }
 };
