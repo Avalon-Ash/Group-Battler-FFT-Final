@@ -94,8 +94,8 @@ export const ZoneRenderer = {
         dist: number,     // Distance from center of zone (in tiles)
         maxRadius: number // Radius of zone (in tiles)
     ) {
-        // Warning Override: If color is red/enemy, assume warning logic
         const isWarning = visualTag === 'AOE_WARNING';
+        const isUlt = visualTag === 'ULT';
         
         const styleKey = isWarning ? 'AOE_WARNING' : (visualTag === 'ULT' ? 'ULT' : (visualTag === 'ACTIVE' ? 'ACTIVE' : 'BASIC'));
         const def = CAST_VISUALS[styleKey] || CAST_VISUALS['BASIC'];
@@ -103,39 +103,35 @@ export const ZoneRenderer = {
         ctx.save();
         
         // --- 1. DYNAMIC EXPANSION ---
-        // Progress determines how far out the "wave" has gone
-        // progress 0.0 = center only
-        // progress 1.0 = full radius coverage
         const currentExpansion = progress * (maxRadius + 0.5); 
         const normDist = dist; 
         
         const isInsideWave = normDist <= currentExpansion;
         const isWaveEdge = Math.abs(normDist - currentExpansion) < 0.8;
 
-        // --- 2. WARNING PULSE (High Frequency) ---
-        // Flash red vigorously if it's a warning
+        // --- 2. PULSE ---
         const pulse = isWarning 
-            ? (0.8 + Math.abs(Math.sin(globalTime * 15)) * 0.4) 
+            ? (0.5 + Math.abs(Math.sin(globalTime * 15)) * 0.5) 
             : (1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1);
 
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
         // A. INNER FILL
-        // For WARNINGS, we draw the solid fill regardless of "wave" expansion so it's instantly visible
+        // For WARNINGS & ULTS, we draw volumetric fill
         if (isInsideWave || isWarning) {
             
             if (isWarning) {
-                // VISUAL FIX: Solid Danger Zone
-                ctx.fillStyle = color;
-                ctx.globalAlpha = 0.3 * pulse; // Significant base opacity
-                SurfaceAssets.traceHex(ctx, x, y, size * 0.95);
-                ctx.fill();
-
-                // Add Striped Texture (Hatching)
-                SurfaceAssets.drawHatch(ctx, x, y, size, color, 0.4 * pulse);
-
-            } else {
-                // Friendly Volumetric Fog
+                // Danger: Hatched Prism (Height 14, Opacity ~0.2)
+                SurfaceAssets.drawWarningBlock(ctx, x, y, size, color, pulse);
+            } 
+            else if (isUlt) {
+                // Friendly Ult: Smooth Prism
+                // Balance intensity with warning (Height 30 -> 14, Opacity 0.4 -> 0.25)
+                const height = 14;
+                SurfaceAssets.draw3DPrism(ctx, x, y, size, height, color, 0.25 * pulse, 'SOLID');
+            }
+            else {
+                // Basic/Active: Fog
                 let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
                 SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
             }
@@ -149,12 +145,13 @@ export const ZoneRenderer = {
         }
 
         // C. PERIMETER MARKER (Always Visible for Warning)
-        const showBorder = isWarning || (dist >= maxRadius - 0.5);
+        // If it's a warning or ult, the block already handles the rim
+        const showBorder = (!isWarning && !isUlt) && (dist >= maxRadius - 0.5);
         if (showBorder) {
-            const borderAlpha = isWarning ? 0.9 * pulse : Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
+            const borderAlpha = Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
             
             ctx.strokeStyle = color;
-            ctx.lineWidth = isWarning ? 3 : 1; 
+            ctx.lineWidth = 1; 
             ctx.globalAlpha = borderAlpha;
             
             if (def.dashed) ctx.setLineDash([5, 5]);

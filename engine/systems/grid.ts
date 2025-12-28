@@ -3,7 +3,7 @@ import { HEX_SIZE, BLOCK_HEIGHT, TERRAIN_THEMES, ISO_SCALE_Y } from "../../const
 import { GameEngine, Agent } from "../game";
 import { HexUtils, getTransitionOffset } from "../utils";
 import { HexMath } from "../math/HexMath";
-import { Hex, Skill, Projectile } from "../../types";
+import { Hex, Skill, Projectile, Team } from "../../types";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
 
 interface CachedTile {
@@ -211,7 +211,23 @@ export class GridSystem {
                         else if (a.target) { tq = a.target.q; tr = a.target.r; }
                         const progress = 1 - (a.castTimer / s.cast);
                         const radius = (s.aoeRadius || 1);
-                        this._activeZones.push({ type: 'CAST', q: tq, r: tr, radius, radiusSq: radius + 0.5, color: s.color, visual: s.visual || 'BOLT', progress });
+                        
+                        // --- FIX: VISUAL TAGGING LOGIC ---
+                        // Red Team = Danger = 'AOE_WARNING'
+                        // Blue Team = Friendly = Skill Tag ('ULT' / 'ACTIVE' / 'BASIC')
+                        let visualTag = s.tag as string;
+                        if (a.team === Team.RED) {
+                            visualTag = 'AOE_WARNING';
+                        }
+
+                        this._activeZones.push({ 
+                            type: 'CAST', 
+                            q: tq, r: tr, 
+                            radius, radiusSq: radius + 0.5, 
+                            color: s.color, 
+                            visual: visualTag, 
+                            progress 
+                        });
                     }
                 }
             }

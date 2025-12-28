@@ -3,6 +3,7 @@ import { Particle } from "../state";
 import { ISO_SCALE_Y } from "../../../../constants";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { PROCEDURAL_VISUALS, PillarVisualDef } from "../../../../data/vfx/procedural_visuals";
+import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
 
 // Helper for hex tracing (used by procedural beams)
 const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
@@ -44,14 +45,17 @@ export const ParticleRenderer = {
         const now = Date.now() / 1000;
 
         // --- 1. PERSPECTIVE CORRECTION (THE 2.5D RULE) ---
-        const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE'].includes(p.type);
-        // GIANT_HEX handles scale internally to fix rotation artifacts
+        // For standard sprites and ground effects. 
+        // NOTE: SurfaceAssets handles ISO scale internally, so we don't scale here if using it.
+        // But for legacy texture drawing we need to scale.
+        const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type);
+        // GIANT_HEX, HEX_BEAM, DOMAIN handle scale internally
         if (isGroundEffect) {
             ctx.scale(1, ISO_SCALE_Y); 
         }
 
         // Standard 2D Sprite Rotation (Billboard)
-        if (!['GIANT_HEX', 'HEX_BEAM'].includes(p.type)) {
+        if (!['GIANT_HEX', 'HEX_BEAM', 'DOMAIN', 'PILLAR'].includes(p.type)) {
             ctx.rotate(p.rotation);
         }
 
@@ -260,7 +264,19 @@ export const ParticleRenderer = {
             }
             ctx.restore();
         }
-        else if (p.type === 'DOMAIN' || p.type === 'GRID_FIELD') {
+        else if (p.type === 'DOMAIN') {
+            // 3D DOMAIN UPGRADE
+            const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
+            const height = 40; // Wall height for volume
+            
+            // If it's a shield (from style), maybe higher walls?
+            const isShield = p.style === 'DOMAIN_SHIELD';
+            const h = isShield ? 120 : 40;
+            const opacity = 0.4 * (1 - progress);
+            
+            SurfaceAssets.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE');
+        }
+        else if (p.type === 'GRID_FIELD') {
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 

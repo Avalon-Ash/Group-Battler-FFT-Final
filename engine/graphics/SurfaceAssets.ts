@@ -86,11 +86,11 @@ export const SurfaceAssets = {
 
         // 2. Draw Diagonal Lines
         ctx.strokeStyle = color;
-        ctx.lineWidth = 2; 
+        ctx.lineWidth = 3; // Thicker lines for visibility
         ctx.globalAlpha = opacity;
         
         const size = radius * 2;
-        const spacing = 8; // Dense hatching
+        const spacing = 12; // Wider spacing
         
         ctx.beginPath();
         // Draw across the bounding box of the hex
@@ -102,6 +102,123 @@ export const SurfaceAssets = {
         ctx.stroke();
         
         ctx.restore();
+    },
+
+    /**
+     * NEW: Generalized 3D Prism
+     * Renders a 3D hex pillar/zone with gradient walls
+     */
+    draw3DPrism(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        radius: number,
+        height: number,
+        color: string,
+        opacity: number,
+        style: 'SOLID' | 'GRADIENT_FADE' | 'HATCHED_WARNING'
+    ) {
+        const topY = y - height;
+
+        ctx.save();
+        
+        // 1. Vertical Walls (Gradient for 3D effect)
+        // Indices for front-facing hex sides: 5, 0, 1
+        const indices = [5, 0, 1]; 
+        
+        for (const i of indices) {
+            const j = (i + 1) % 6;
+            
+            const x1 = x + radius * HEX_COS[i];
+            const y1 = y + radius * HEX_SIN[i] * ISO_SCALE_Y;
+            
+            const x2 = x + radius * HEX_COS[j];
+            const y2 = y + radius * HEX_SIN[j] * ISO_SCALE_Y;
+            
+            // Side Quad
+            const grad = ctx.createLinearGradient(0, topY, 0, y);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, 'transparent'); // Fade to bottom
+            
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = opacity * 0.5; // Semi-transparent walls
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineTo(x2, y2 - height);
+            ctx.lineTo(x1, y1 - height);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Vertical Edge Pillars
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = opacity;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1, y1 - height);
+            ctx.stroke();
+            
+            // Close the loop for last edge (vertex j)
+            if (i === 1) {
+                 ctx.beginPath(); ctx.moveTo(x2, y2); ctx.lineTo(x2, y2 - height); ctx.stroke();
+            }
+        }
+
+        // 2. Top Face (Solid Cap)
+        ctx.fillStyle = color;
+        ctx.globalAlpha = opacity * 0.3;
+        this.traceHex(ctx, x, topY, radius);
+        ctx.fill();
+        
+        // 3. Style Specific Overlays
+        if (style === 'HATCHED_WARNING') {
+            this.drawHatch(ctx, x, topY, radius, '#ffffff', opacity);
+        } else if (style === 'SOLID') {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = opacity * 0.2;
+            this.traceHex(ctx, x, topY, radius);
+            ctx.fill();
+        }
+        
+        // 4. Top Rim (Bright Outline)
+        ctx.strokeStyle = color;
+        ctx.lineWidth = style === 'HATCHED_WARNING' ? 2 : 1.5;
+        ctx.globalAlpha = Math.min(1.0, opacity * 3.0 + 0.4); // Rim stays relatively visible but fades if opacity is super low
+        this.traceHex(ctx, x, topY, radius);
+        ctx.stroke();
+
+        // 5. Inner Glow / Detail
+        if (radius > 20) {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = opacity * 0.5;
+            this.traceHex(ctx, x, topY, radius * 0.8);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+    },
+
+    /**
+     * Alias specifically for AOE Warnings (Legacy support + semantic naming)
+     */
+    drawWarningBlock(
+        ctx: CanvasRenderingContext2D,
+        x: number, y: number,
+        radius: number,
+        color: string,
+        pulse: number
+    ) {
+        // Height reduced by ~2/3 (original 40 -> 14)
+        const height = 14; 
+        // Opacity reduced to ~20% (Transparency 80%)
+        // Pulse oscillates 0.5 to 1.0. Result: 0.15 to 0.25
+        const opacity = 0.1 + pulse * 0.15;
+        this.draw3DPrism(ctx, x, y, radius, height, color, opacity, 'HATCHED_WARNING');
     },
 
     /**

@@ -96,13 +96,8 @@ export function drawDomainExpansion(ctx: CanvasRenderingContext2D, agent: Agent,
     // Large Ground Ripple
     const texture = VFXFactory.getTexture('SHOCKWAVE', color); 
     ctx.save();
-    // Move to feet (ctx is currently at body center usually, depends on caller. 
-    // Usually caller sets context to unit logical pos + physics. 
-    // We want feet level. Logic: -BodyOffset?)
-    // Actually drawAssembly translates to unit center.
-    // Let's assume 0,0 is unit anchor.
-    
-    ctx.translate(0, UNIT_BODY_OFFSET); // Move down to feet level roughly
+    // Move to feet
+    ctx.translate(0, UNIT_BODY_OFFSET); 
     ctx.scale(1, ISO_SCALE_Y); 
     
     // Scale up massively
@@ -142,23 +137,13 @@ export function drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent
     ctx.drawImage(glow, -40, -40 - (progress * 50), 80, 80);
     ctx.restore();
 
-    // 3. RESTORED: Domain Expansion (Ground Aura)
-    // Moves to feet and expands a huge volumetric hex
+    // 3. 3D Domain Expansion (Volumetric)
     ctx.save();
-    ctx.translate(0, 40); // Move to ground relative to center
+    ctx.translate(0, 40); // Move to ground
     
-    // Pulse expansion
     const domainSize = 200 * progress;
-    SurfaceAssets.drawVolumetricHex(ctx, 0, 0, domainSize, color, 0.3 * progress);
-    
-    // Sharp Ring
-    ctx.scale(1, ISO_SCALE_Y);
-    ctx.beginPath();
-    ctx.arc(0, 0, domainSize * 1.5, 0, Math.PI * 2);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-    ctx.globalAlpha = 0.2 * progress;
-    ctx.stroke();
+    // Use the new 3D prism for casting
+    SurfaceAssets.draw3DPrism(ctx, 0, 0, domainSize, 20, color, 0.3 * progress, 'SOLID');
     
     ctx.restore();
 }
@@ -177,6 +162,7 @@ export function drawSkillGroundIndicator(
     const currentRadius = pixelRadius * progress;
     const opacity = 0.3 + Math.sin(t * 5) * 0.1;
 
+    // Use volumetric for local skill indicator too
     SurfaceAssets.drawVolumetricHex(ctx, 0, 0, currentRadius, color, opacity);
     
     const ringSize = currentRadius * 2.5; 
@@ -206,13 +192,15 @@ export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: 
 }
 
 function draw3DHexPrism(ctx: CanvasRenderingContext2D, t: number, color: string, height: number, radius: number) {
+    // Legacy helper kept for Status Effects (Banish/Stasis) 
+    // Ideally this should also use SurfaceAssets but status effects handle their own transforms peculiarly
+    // So we keep this local for now or refactor later.
     const startAngle = Math.PI / 6 + Math.PI / 4;
     const r = radius;
     
     ctx.save();
     ctx.globalCompositeOperation = 'screen';
     
-    // Animate width
     const pulse = 2 + Math.sin(t * 5) * 1.0;
     ctx.lineWidth = pulse;
     ctx.strokeStyle = color;
@@ -256,7 +244,7 @@ function draw3DHexPrism(ctx: CanvasRenderingContext2D, t: number, color: string,
     grad.addColorStop(0, 'rgba(0,0,0,0)');
     grad.addColorStop(0.5, color);
     grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = 0.2; // Increased visibility
+    ctx.globalAlpha = 0.2; 
     ctx.fillStyle = grad;
     ctx.fill();
     
