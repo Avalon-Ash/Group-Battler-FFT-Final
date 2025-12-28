@@ -2,6 +2,7 @@
 import { Agent } from "../../../../game";
 import { Team } from "../../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
+import { UNIT_BODY_OFFSET } from "../../../../../constants";
 
 export const ShieldPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
@@ -15,14 +16,21 @@ export const ShieldPainter = {
         const pulse = 0.2 + (pct * 0.3) + Math.sin(t * 3) * 0.1;
         
         ctx.save();
-        ctx.translate(x, y - z); // Ground level anchor
         
-        // Volumetric Prism Shell
-        // Height 90 covers most standard units
-        VolumePainter.draw3DPrism(ctx, 0, 0, 35, 90, color, pulse, 'SOLID');
+        // ALIGNMENT FIX:
+        // x, y are Ground coordinates.
+        // z is total height.
+        // We want shield centered on the body.
+        const bodyCenterY = y - z - UNIT_BODY_OFFSET;
+        
+        ctx.translate(x, bodyCenterY); 
+        
+        // Volumetric Prism Shell around body
+        // Height 90 covers most standard units. Prism draws downwards from current Y.
+        // To center it, we draw from (y - half_height)
+        VolumePainter.draw3DPrism(ctx, 0, 45, 35, 90, color, pulse, 'SOLID'); // y=45 relative to center creates bottom at +45, top at -45
         
         // Inner Core Ripple (Tech Ring)
-        ctx.translate(0, -45); // Center mass
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = 0.4;
         

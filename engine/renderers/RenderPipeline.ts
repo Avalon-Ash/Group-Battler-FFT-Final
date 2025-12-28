@@ -90,7 +90,6 @@ export class RenderPipeline {
         // 5. MAIN PASS: Collect and Sort Renderables
         this.renderList.reset();
         
-        // Cache terrain lookup function for this frame
         const terrainHeightFunc = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
 
         // Collect Grid
@@ -102,7 +101,7 @@ export class RenderPipeline {
             globalTime
         );
         
-        // Collect VFX (with culling)
+        // Collect VFX
         this.renderer.vfxRenderer.submitRenderables(
             this.renderList,
             engine,
@@ -114,7 +113,7 @@ export class RenderPipeline {
             { width: logicalWidth, height: logicalHeight, camera } 
         );
         
-        // Collect Units (Optimized Pre-calculation)
+        // Collect Units
         this.renderer.unit.submitRenderables(
             this.renderList,
             engine.agents, 
@@ -124,25 +123,30 @@ export class RenderPipeline {
             engine.mapConfig
         );
 
-        // Sort In-Place (Strictly logical Y for stability)
+        // Sort In-Place
         this.renderList.sort();
         
         // Execute Draws
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i];
             
-            // PIXEL SNAPPING: Strictly align all translation anchors to integer coordinates to avoid sub-pixel blur
             const snapX = Math.round(op.tx);
             const snapY = Math.round(op.ty);
 
             switch (op.type) {
                 case RenderOpType.TERRAIN:
-                    TerrainRenderer.drawBlockGeometry(
+                    // Draw Solid Block
+                    TerrainRenderer.drawBlock(
                         ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime
                     );
-                    TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY - op.th, op.tq, op.tr, op.ttype, op.tdetail);
+                    
+                    // Draw Details on Top Face (Y - Height)
+                    const visualTopY = snapY - op.th;
+                    TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr);
+                    
+                    // Draw Overlays on Top Face
                     GridOverlays.drawOverlays(
-                        ctx, snapX, snapY - op.th, op.tsize,
+                        ctx, snapX, visualTopY, op.tsize,
                         op.oStatus, op.oDanger,
                         op.oLightCol, op.oLightInt,
                         op.oRange, op.oRangeCol, op.oHover, op.oHasUnit,
@@ -153,7 +157,8 @@ export class RenderPipeline {
                     
                 case RenderOpType.OBSTACLE:
                     const sprite = SpriteManager.getObstacleSprite(op.ttype);
-                    ctx.drawImage(sprite, snapX - OBSTACLE_HALF_WIDTH, snapY);
+                    // Obstacles anchor bottom-center to ty
+                    ctx.drawImage(sprite, snapX - OBSTACLE_HALF_WIDTH, snapY - 100); // 100 is approx height of obstacle asset
                     break;
                     
                 case RenderOpType.UNIT:
@@ -177,19 +182,7 @@ export class RenderPipeline {
                         const p = op.particle;
                         ctx.save();
                         ctx.translate(snapX, snapY);
-                        
-                        if (p.targetX !== undefined && p.targetY !== undefined) {
-                            // Relativize target
-                            const origTx = p.targetX;
-                            const origTy = p.targetY;
-                            p.targetX = origTx - snapX;
-                            p.targetY = (origTy - (p.targetZ || 0)) - snapY;
-                            ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
-                            p.targetX = origTx;
-                            p.targetY = origTy;
-                        } else {
-                            ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
-                        }
+                        ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, op.vProgress, op.vChaos);
                         ctx.restore();
                     }
                     break;
@@ -200,25 +193,17 @@ export class RenderPipeline {
             }
         }
 
-        // 6. Occlusion Pass (Silhouettes)
+        // 6. Occlusion & Status Layers
         const occludedAgents = this.renderer.grid.getOccludedAgents(engine);
         if (occludedAgents.length > 0) {
             ctx.save();
             occludedAgents.forEach(agent => {
-                this.renderer.unit.drawSilhouette(
-                    ctx, agent, 
-                    terrainHeightFunc, 
-                    globalTime,
-                    engine.mapConfig
-                );
+                this.renderer.unit.drawSilhouette(ctx, agent, terrainHeightFunc, globalTime, engine.mapConfig);
             });
             ctx.restore();
         }
 
-        // 7. STATUS LAYER PASS
         this.renderer.statusOrchestrator.draw(ctx, engine.agents, globalTime);
-
-        // 8. Top VFX (Particles above everything)
         this.renderer.vfxRenderer.drawTopLayerParticles(ctx, this.renderer.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
         ctx.restore(); 
@@ -231,12 +216,11 @@ export class RenderPipeline {
 
         this.postProcessor.apply(ctx, physicalWidth, physicalHeight, this.renderer.camera.getTrauma(), transitionAberration);
         
-        // 10. HUD Layer (Screen Space)
+        // 10. HUD Layer
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, logicalWidth, logicalHeight);
         
         this.tacticalRenderer.drawOverlay(ctx, engine, highlight, this.renderer.grid, globalTime);
-        
         this.hudRenderer.draw(ctx, this.renderer.hud, engine.agents, terrainHeightFunc, engine.mapConfig, highlight, globalTime);
         
         ctx.restore(); 

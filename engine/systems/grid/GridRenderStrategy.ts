@@ -1,6 +1,6 @@
 
 import { GameEngine, Agent } from "../../game";
-import { GridCache } from "./GridCache";
+import { GridCache } from "./GridCache"; 
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
@@ -8,17 +8,16 @@ import { HexUtils, getTransitionOffset } from "../../utils";
 import { HexMath } from "../../math/HexMath";
 
 const OBSTACLE_Z_INDEX = 10;
-const OBSTACLE_ANCHOR_Y = 95; 
+const OBSTACLE_ANCHOR_Y = 0; 
 const PROJ_LIGHT_RADIUS_SQ = 1600;
 
 export class GridRenderStrategy {
     
-    // Transient Sets for faster lookup during render loop
-    private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
+    private _unitPresence = new Set<string>();
 
     public submit(
-        cache: GridCache,
+        cache: GridCache, // Kept for interface compatibility but we bypass the list
         renderList: RenderList,
         engine: GameEngine, 
         hoveredHex: Hex | null, 
@@ -29,130 +28,109 @@ export class GridRenderStrategy {
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
         globalTime: number
     ) {
-        // Cull if map is effectively gone
+        // Cull global transition
         if (transitionPhase === 'OUT' && transitionT > 0.95) return;
 
-        cache.ensure(engine);
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
 
-        // 1. Pre-calc Unit Presence
-        this._unitPresence.clear();
+        // 1. Pre-calc Unit Status (Optimized Lookup)
         this._unitVisualStatus.clear();
+        this._unitPresence.clear();
         for (const a of engine.agents) {
             if (a.hp > 0) {
-                const key = `${a.q},${a.r}`;
+                const key = HexUtils.key(a);
+                this._unitVisualStatus.set(key, a.visualStatus);
                 this._unitPresence.add(key);
-                if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
             }
         }
 
-        // 2. Iterate Tiles
-        const len = cache.tileList.length;
-        for (let i = 0; i < len; i++) {
-            const tile = cache.tileList[i];
-            const { q, r, px, py, h, key } = tile;
+        // 2. ITERATE MAP KEYS DIRECTLY (Source of Truth)
+        // Convert Set iterator to array for loop
+        const mapKeys = Array.from(engine.map.mapKeys);
+        
+        for (const key of mapKeys) {
+            const [q, r] = key.split(',').map(Number);
             
+            // MATH: Single source of truth for Position
+            const pos = HexMath.hexToPixel(q, r, engine.mapConfig.offsetX, engine.mapConfig.offsetY);
+            const px = pos.x;
+            const py = pos.y;
+            const h = engine.map.getTerrainHeight(q, r);
+
+            // Transition Offset (Visual Only)
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
-            // Visual Ground Top Y = (BaseY - Height + Transition)
-            const visualTopY = py - h + offset;
-            const visualBaseY = py + offset;
+            if (Math.abs(offset) > 1200) continue; // Cull far off-screen
 
-            // Cull off-screen transition elements
-            if (Math.abs(offset) > 800) continue;
-
-            const sortY = py; // Stable sort key based on logic ground position
+            // SORT KEY: Use the Base Y (py) + Offset
+            // This ensures objects on the same "row" sort correctly regardless of height.
+            // Objects "behind" (smaller Y) draw first.
+            const sortY = py + offset;
 
             // A. Obstacles
+            // Obstacles sit ON TOP of the terrain block.
+            // Visual Y = BaseY - Height - ObstacleAnchor
             const obstacleType = engine.obstacles.get(key);
             if (obstacleType) {
                 const op = renderList.next();
                 op.type = RenderOpType.OBSTACLE;
-                op.y = sortY; 
-                op.z = OBSTACLE_Z_INDEX;
+                op.y = sortY; // Sorts with the tile
+                op.z = OBSTACLE_Z_INDEX; 
                 op.tx = px; 
-                // Obstacles anchor to the visual top of the block
-                op.ty = visualTopY - OBSTACLE_ANCHOR_Y; 
+                op.ty = py + offset - h; // Anchor to top of block
                 op.ttype = obstacleType;
             }
 
-            // B. Zones (Delegated to ZoneSystem)
-            let zoneInfo = undefined;
-            const zResult = engine.zones.getZoneAt(q, r);
-            if (zResult) {
-                const { zone, dist } = zResult;
-                zoneInfo = { 
-                    type: zone.type, 
-                    color: zone.color, 
-                    visual: zone.visual, 
-                    progress: zone.progress, 
-                    centerQ: zone.q, centerR: zone.r, 
-                    radius: zone.radius, dist 
-                };
-            }
-
-            // C. Interactive Highlights
-            let isRange = false;
-            let rangeColor = '';
-            // Only show range if hovering a skill OR holding a skill hotkey (future)
-            // Currently logic depends on hoveredSkill from UI
-            if (hoveredSkill && highlightAgent) {
-                // Check Range Logic
-                // Note: TargetingSystem.getEffectiveRange logic duplicated here slightly for speed?
-                // Better to use engine.movement.getEffectiveRange if accessible, but we are inside renderer.
-                // Re-implement simple height check:
-                const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
-                const deltaH = agentH - h;
-                // Height bonus logic must match TargetingSystem
-                const bonus = Math.max(0, Math.floor(deltaH / 24)); // 24 = BLOCK_HEIGHT
-                const dist = HexMath.distance({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
-                
-                if (dist <= hoveredSkill.range + bonus) { 
-                    isRange = true; 
-                    rangeColor = hoveredSkill.color; 
-                }
-            }
-            
-            const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            const hazard = engine.hazards.getHazardAt(q, r);
-
-            // D. Projectile Lights (Dynamic Lighting)
-            let lightColor = null;
-            let lightIntensity = 0;
-            for (const p of projectiles) {
-                const distSq = (p.x - px)**2 + (p.y - py)**2;
-                if (distSq < PROJ_LIGHT_RADIUS_SQ) {
-                    lightColor = p.skill.color;
-                    // Simple linear falloff
-                    lightIntensity += (1 - Math.sqrt(distSq) / 40);
-                }
-            }
-
-            // E. Create Terrain Op
+            // B. Terrain Block
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
             op.y = sortY; 
-            op.z = 0; // Terrain is layer 0
+            op.z = 0; // Base layer
             
-            op.tx = px; 
-            // Important: We pass the Visual Base Y. The renderer will draw up to -h.
-            op.ty = visualBaseY; 
-            op.th = h;
+            op.tx = px;
+            op.ty = sortY; // The base of the column
+            op.th = h;     // The height to extrude up
             
             op.tsize = HEX_SIZE;
             op.ttheme = theme;
             op.ttype = scene.textureType;
             op.tdetail = theme.detail;
             op.tq = q; op.tr = r;
-            
-            // Overlays
+
+            // C. Overlays (Zones, Hazards)
+            // Passed as data, renderer handles drawing them on the Top Face
             op.oStatus = this._unitVisualStatus.get(key);
-            op.oDanger = zoneInfo; 
-            op.oHazard = hazard;
-            op.oLightCol = lightColor; op.oLightInt = Math.min(1, lightIntensity);
-            op.oRange = isRange; op.oRangeCol = rangeColor;
-            op.oHover = isHover; op.oHasUnit = hasUnit;
+            op.oDanger = engine.zones.getZoneAt(q, r);
+            op.oHazard = engine.hazards.getHazardAt(q, r);
+            op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
+            op.oHasUnit = this._unitPresence.has(key);
+
+            // D. Lighting / Range (Logic)
+            let lightColor = null;
+            let lightIntensity = 0;
+            for (const p of projectiles) {
+                const distSq = (p.x - px)**2 + (p.y - py)**2;
+                if (distSq < PROJ_LIGHT_RADIUS_SQ) {
+                    lightColor = p.skill.color;
+                    lightIntensity += (1 - Math.sqrt(distSq) / 40);
+                }
+            }
+            op.oLightCol = lightColor;
+            op.oLightInt = Math.min(1, lightIntensity);
+
+            // Interactive Range
+            if (hoveredSkill && highlightAgent) {
+                const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
+                const deltaH = agentH - h;
+                const bonus = Math.max(0, Math.floor(deltaH / 24)); 
+                const dist = HexMath.distance({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
+                
+                if (dist <= hoveredSkill.range + bonus) { 
+                    op.oRange = true; 
+                    op.oRangeCol = hoveredSkill.color; 
+                }
+            }
+            
             op.time = globalTime;
         }
     }

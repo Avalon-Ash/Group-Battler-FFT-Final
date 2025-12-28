@@ -1,105 +1,90 @@
 
-import { VolumePainter } from "../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
-import { CAST_VISUALS } from "../../../data/vfx/cast_visuals";
-import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y } from "../../../constants";
 
 export const ZoneRenderer = {
     
     /**
-     * Optimized Zone Drawer using Sprites
+     * Renders zone effects on a SPECIFIC TILE.
+     * Calculated based on distance from the Zone Center.
      */
-    drawZone(
+    drawTileZoneEffect(
         ctx: CanvasRenderingContext2D,
-        x: number, y: number,
+        x: number, y: number, // Tile center
         size: number,
+        distToCenter: number, // Distance from this tile to zone origin (in hex units)
+        zoneRadius: number,
         color: string,
-        visualTag: string, 
-        progress: number, // 0.0 (Start) -> 1.0 (Ready)
-        globalTime: number,
-        dist: number,     // Distance from center of zone (in tiles)
-        maxRadius: number // Radius of zone (in tiles)
+        progress: number, // 0.0 to 1.0 (Cast progress)
+        isEnemy: boolean
     ) {
-        const isWarning = visualTag === 'AOE_WARNING';
-        const isUlt = visualTag === 'ULT';
-        
-        const styleKey = isWarning ? 'AOE_WARNING' : (visualTag === 'ULT' ? 'ULT' : (visualTag === 'ACTIVE' ? 'ACTIVE' : 'BASIC'));
-        const def = CAST_VISUALS[styleKey] || CAST_VISUALS['BASIC'];
-
         ctx.save();
+        ctx.translate(x, y);
+
+        // --- PHYSICS OF THE WAVE ---
+        // Wave expands from 0 to Radius
+        const currentWaveRadius = progress * (zoneRadius + 0.5);
         
-        // --- 1. DYNAMIC EXPANSION ---
-        const currentExpansion = progress * (maxRadius + 0.5); 
-        const normDist = dist; 
+        // Calculate "Wave Presence" on this specific tile
+        // 1.0 = Right on the wave edge, 0.0 = Far away
+        const distDiff = Math.abs(distToCenter - currentWaveRadius);
+        const waveWidth = 1.5; // Width of the ripple band in hex units
         
-        const isInsideWave = normDist <= currentExpansion;
-        const isWaveEdge = Math.abs(normDist - currentExpansion) < 0.8;
-
-        // --- 2. PULSE ---
-        const pulse = isWarning 
-            ? (0.5 + Math.abs(Math.sin(globalTime * 15)) * 0.5) 
-            : (1.0 + Math.sin(globalTime * def.pulseSpeed) * 0.1);
-
-        if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
-
-        // A. INNER FILL (Using Sprites)
-        if (isInsideWave || isWarning) {
-            
-            if (isWarning) {
-                // Danger: Hatched Prism - Cached in VolumePainter
-                VolumePainter.drawWarningBlock(ctx, x, y, size, color, pulse);
-            } 
-            else if (isUlt) {
-                // Friendly Ult: Smooth Prism
-                const height = 14;
-                VolumePainter.draw3DPrism(ctx, x, y, size, height, color, 0.25 * pulse, 'SOLID');
-            }
-            else {
-                // Basic/Active: Sprite Base
-                const opacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
-                const texture = VFXFactory.getTexture('ZONE_BASE', color);
-                const drawSize = size * 2.8;
-                
-                ctx.translate(x, y);
-                ctx.scale(1, ISO_SCALE_Y);
-                ctx.globalAlpha = opacity;
-                ctx.drawImage(texture, -drawSize/2, -drawSize/2, drawSize, drawSize);
-                // Undo transform for next layers
-                ctx.scale(1, 1/ISO_SCALE_Y);
-                ctx.translate(-x, -y);
-            }
+        let waveIntensity = 0;
+        if (distDiff < waveWidth) {
+            // Cosine curve for smooth ripple peak
+            waveIntensity = (Math.cos((distDiff / waveWidth) * Math.PI) + 1) * 0.5;
         }
 
-        // B. EXPANDING EDGE (Using Ripple Sprite)
-        if (isWaveEdge) {
-            const edgeOpacity = def.fillOpacityMax * pulse;
-            const texture = VFXFactory.getTexture('ZONE_RIPPLE', color);
-            const drawSize = size * 2.5;
+        // Fill Logic: Are we "Inside" the expanded zone?
+        const isInside = distToCenter < currentWaveRadius;
 
-            ctx.translate(x, y);
-            ctx.scale(1, ISO_SCALE_Y);
-            ctx.globalAlpha = edgeOpacity;
-            ctx.drawImage(texture, -drawSize/2, -drawSize/2, drawSize, drawSize);
-            // Undo
-            ctx.scale(1, 1/ISO_SCALE_Y);
-            ctx.translate(-x, -y);
+        // --- DRAWING ---
+        const drawColor = isEnemy ? '#ef4444' : color;
+
+        // 1. Base Fill (If inside or Enemy Warning)
+        // Enemy zones always show full area faintly so you know where NOT to stand
+        let baseAlpha = 0;
+        if (isEnemy) baseAlpha = 0.2; // Constant warning
+        if (isInside && !isEnemy) baseAlpha = 0.15; // Friendly fill
+
+        if (baseAlpha > 0) {
+            ctx.fillStyle = drawColor;
+            ctx.globalAlpha = baseAlpha;
+            HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true);
+            ctx.fill();
         }
 
-        // C. PERIMETER MARKER (Always Visible for Warning)
-        // Optimized: Only trace path if strictly necessary (border logic)
-        // Reduced frequency: only draw solid border, no dashed logic for standard tiles
-        const showBorder = (!isWarning && !isUlt) && (dist >= maxRadius - 0.5);
-        if (showBorder) {
-            const borderAlpha = Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
+        // 2. The Ripple (Wavefront)
+        if (waveIntensity > 0.05) {
+            ctx.strokeStyle = drawColor;
+            ctx.lineWidth = 2 + waveIntensity * 2; // Thicker at peak
+            ctx.globalAlpha = waveIntensity;
             
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1; 
-            ctx.globalAlpha = borderAlpha;
+            // Pulse size slightly for visual pop
+            const pulseSize = size * (0.9 + waveIntensity * 0.1);
             
-            // Only use HexGeometry pathing here as it is efficient enough for single outline
-            HexGeometry.traceHex(ctx, x, y, size);
+            HexGeometry.traceHex(ctx, 0, 0, pulseSize, true);
             ctx.stroke();
+            
+            // Add a second inner line for "High Tech" feel
+            ctx.lineWidth = 1;
+            HexGeometry.traceHex(ctx, 0, 0, pulseSize * 0.7, true);
+            ctx.stroke();
+        }
+
+        // 3. Border (Static perimeter)
+        if (isEnemy || isInside) {
+            const isBorder = Math.abs(distToCenter - zoneRadius) < 0.5;
+            if (isBorder) {
+                ctx.strokeStyle = drawColor;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.5;
+                if (isEnemy) ctx.setLineDash([4, 4]);
+                HexGeometry.traceHex(ctx, 0, 0, size, true);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
         }
 
         ctx.restore();

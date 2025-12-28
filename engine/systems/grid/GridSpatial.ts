@@ -8,6 +8,22 @@ import { GridCache } from "./GridCache";
 
 export class GridSpatial {
     
+    /**
+     * Get valid map tiles within a certain radius of a center point.
+     * Used for game logic (e.g. finding targets) to ensure we don't pick void tiles.
+     */
+    public static getValidHexesInRange(centerQ: number, centerR: number, radius: number, engine: GameEngine): Hex[] {
+        const candidates = HexMath.range({q: centerQ, r: centerR}, radius);
+        const valid: Hex[] = [];
+        
+        for (const hex of candidates) {
+            if (engine.map.isValid(hex.q, hex.r)) {
+                valid.push(hex);
+            }
+        }
+        return valid;
+    }
+
     public static getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine, cache: GridCache): Hex | null {
         cache.ensure(engine);
         const maxHeight = 200; 
@@ -37,11 +53,7 @@ export class GridSpatial {
                 
                 // Tighter hit box for better precision
                 if (dx < HEX_SIZE * 0.9 && dy < HEX_SIZE * 0.6) {
-                    // We found a candidate. Since we iterate from h=0 (Visual Top) downwards?
-                    // Actually, we are testing logic planes.
-                    // The tile with the highest visual Z (closest to camera) should win.
-                    // Visual Z corresponds to (py + px) in ISO, or simply tile.h for stacking.
-                    
+                    // We found a candidate. The tile with the highest visual Z (closest to camera) should win.
                     if (tile.h >= bestH) {
                         bestHex = rounded;
                         bestH = tile.h;
@@ -61,8 +73,7 @@ export class GridSpatial {
             const uPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             // Visual Y of agent feet = uPx.y - terrainH
             const uTerrainH = engine.map.getTerrainHeight(a.q, a.r);
-            const uVisualY = uPx.y - uTerrainH;
-
+            
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
             
             for (const n of neighbors) {
@@ -70,16 +81,10 @@ export class GridSpatial {
                 if (engine.mapKeys.has(k)) {
                     const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
                     const nTerrainH = engine.map.getTerrainHeight(n.q, n.r);
-                    const nVisualY = nPx.y - nTerrainH;
-
-                    // Occlusion Check:
-                    // If neighbor is visually "below" (higher Y) on screen? No, objects in front have higher Y in ISO.
-                    // Wait, standard 2D canvas: Y increases downwards.
-                    // So "Front" is Higher Y.
-                    // If neighbor Y > Agent Y, neighbor is in front.
                     
-                    if (nPx.y > uPx.y) { // Neighbor is "South" of agent
-                         // Check Height: If neighbor is TALLER than agent's feet level?
+                    // Occlusion Check:
+                    // If neighbor is "South" (Higher Y) and TALLER than agent's standing level
+                    if (nPx.y > uPx.y) { 
                          if (nTerrainH > uTerrainH) {
                              occluded.push(a);
                              break;

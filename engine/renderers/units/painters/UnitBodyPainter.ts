@@ -20,17 +20,21 @@ export const UnitBodyPainter = {
     ) {
         ctx.save(); 
         
-        // 1. Transform to Body Center
-        // py is Ground Y. We subtract pz (height) and UNIT_BODY_OFFSET (chest height)
-        ctx.translate(px, py - pz); 
+        // 1. Transform to Body Center (Standard Anchor)
+        // px, py are Ground Coordinates.
+        // pz is Height from terrain.
+        // UNIT_BODY_OFFSET shifts from feet to center of mass.
+        const bodyY = py - pz - UNIT_BODY_OFFSET;
+        
+        ctx.translate(px, bodyY); 
         ctx.rotate(agent.physics.angle); 
 
         // 2. Animation Bobbing / Floating
-        let bodyFloat = -UNIT_BODY_OFFSET; 
+        let bodyFloat = 0; 
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             bodyFloat -= Math.sin(t * 2) * 3; 
+             bodyFloat = Math.sin(t * 2) * 3; 
         } else if (agent.movementType === MovementType.FLYING) {
-             bodyFloat -= Math.sin(t * 4) * 2;
+             bodyFloat = Math.sin(t * 4) * 2;
         }
         ctx.translate(0, bodyFloat);
 
@@ -67,9 +71,12 @@ export const UnitBodyPainter = {
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(t * 5) * 5);
+            // Sheep sprite is 64x64. Center is 32,32. 
+            // We are at body center. Draw centered.
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
             // Faction Specific Renderers
+            // Renderers assume (0,0) is Body Center
             if (agent.team === Team.BLUE) {
                 ImperialRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
@@ -91,7 +98,9 @@ export const UnitBodyPainter = {
                 const ice = SpriteManager.getSpecialModel('ICE');
                 ctx.save();
                 ctx.globalCompositeOperation = 'hard-light';
-                ctx.drawImage(ice, -48, -75, 96, 128);
+                // Ice sprite is 96x128. Anchor center bottom?
+                // Draw centered on body
+                ctx.drawImage(ice, -48, -64, 96, 128);
                 ctx.restore();
             }
         }

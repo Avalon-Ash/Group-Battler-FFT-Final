@@ -5,13 +5,12 @@ import { HexUtils } from "../utils";
 import { HexMath } from "../math/HexMath";
 
 export interface ActiveZone {
-    type: 'CAST';
     q: number;
     r: number;
     radius: number;
     color: string;
-    visual: string;
     progress: number;
+    isEnemy: boolean;
 }
 
 export class ZoneSystem {
@@ -34,31 +33,27 @@ export class ZoneSystem {
                     const progress = 1 - (a.castTimer / s.cast);
                     const radius = (s.aoeRadius || 1);
                     
-                    // Visual Tag Logic
-                    let visualTag = s.tag as string;
-                    if (a.team === Team.RED) {
-                        visualTag = 'AOE_WARNING';
-                    }
+                    // Unified Logic: Just track if it's an enemy
+                    const isEnemy = a.team === Team.RED; // Assuming player perspective is Blue
 
                     this.activeZones.push({ 
-                        type: 'CAST', 
                         q: tq, r: tr, 
                         radius, 
                         color: s.color, 
-                        visual: visualTag, 
-                        progress 
+                        progress,
+                        isEnemy
                     });
                 }
             }
         }
     }
 
-    public getZoneAt(q: number, r: number): { zone: ActiveZone, dist: number } | null {
+    public getZoneAt(q: number, r: number): ActiveZone | null {
         // Linear scan is fine for < 20 zones usually
         for (const zone of this.activeZones) {
             const dist = HexMath.distance({q, r}, {q: zone.q, r: zone.r});
             if (dist <= zone.radius) {
-                return { zone, dist };
+                return zone;
             }
         }
         return null;

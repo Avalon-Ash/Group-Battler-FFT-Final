@@ -2,62 +2,59 @@
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 
 // 1. Static Geometry Cache (Unit Scale)
-// Vertices for a "Pointy Top" Hexagon with radius 1.0
+// Vertices for a "Pointy Top" Hexagon.
 // Angle 0 is at 30 degrees (PI/6) to align flat top with screen Y in ISO
-const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
+const START_ANGLE = Math.PI / 6 + Math.PI / 4; // 75 degrees base rotation to align with game iso
 
-export const HEX_VERTICES: {x: number, y: number}[] = [];
+// Pre-calculate base vertices (Flat 2D, Radius 1.0)
+const BASE_VERTICES: {x: number, y: number}[] = [];
 for (let i = 0; i < 6; i++) {
     const angle = START_ANGLE + i * Math.PI / 3;
-    HEX_VERTICES.push({
+    BASE_VERTICES.push({
         x: Math.cos(angle),
         y: Math.sin(angle)
     });
 }
 
-// 2. Pre-computed Render Paths (Performance)
-// We cache the most common path: The Standard Grid Hex
-let CACHED_HEX_PATH: Path2D | null = null;
+// 2. Performance Cache
+let CACHED_PATH_STD: Path2D | null = null; // Standard ISO Hex Path
 
 export const HexGeometry = {
     
     /**
      * Get exact vertices for a hex at (0,0) with specified radius.
-     * Uses strict ISO scaling on Y axis.
+     * Applies ISO scaling to Y axis.
+     * @param radius - The outer radius of the hex (usually HEX_SIZE)
+     * @param applyIso - Whether to squash Y for 2.5D view (default true)
      */
-    getVertices(radius: number): {x: number, y: number}[] {
-        // Optimization: For standard grid size, we could cache this array too if needed.
-        // For now, mapping is fast enough.
-        return HEX_VERTICES.map(v => ({
+    getVertices(radius: number, applyIso: boolean = true): {x: number, y: number}[] {
+        const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
+        return BASE_VERTICES.map(v => ({
             x: v.x * radius,
-            y: v.y * radius * ISO_SCALE_Y
+            y: v.y * radius * scaleY
         }));
     },
 
     /**
-     * Optimized draw call. Uses Path2D if available and radius matches standard HEX_SIZE.
-     * Guaranteed to match TerrainRenderer's geometry exactly.
+     * Draw a hex path on the context at (x,y).
+     * This ensures ALL hexes in the game share the exact same shape.
      */
-    traceHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number) {
-        // Use cached path for standard grid cells (huge FPS boost for grid rendering)
-        if (Math.abs(radius - HEX_SIZE) < 0.01) {
-            if (!CACHED_HEX_PATH) {
-                this.rebuildCache();
-            }
+    traceHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, applyIso: boolean = true) {
+        // Optimization: Use Path2D for standard grid size
+        const isStandard = Math.abs(radius - HEX_SIZE) < 0.01 && applyIso;
+        
+        if (isStandard) {
+            if (!CACHED_PATH_STD) this.rebuildCache();
             ctx.translate(x, y);
-            // We fill/stroke the path relative to (0,0)
-            // The caller must handle the operation (fill/stroke)
-            // NOTE: Path2D cannot be stroked/filled directly here without context methods
-            // but we can't return it easily for reuse in legacy code structure.
-            // So we trace it.
-            // Actually, ctx.fill(path) is the way. But current API expects trace logic.
-            // Hybrid approach:
+            // Note: We perform the fill/stroke outside, this just sets the path
+            // But Path2D objects need to be filled/stroked directly. 
+            // For compatibility with 'beginPath' workflows, we fallback to manual trace if not using Path2D API directly.
+            // To keep "Painter" logic simple (which expects to call stroke()/fill()), we manually trace points.
+            // Using a pre-calculated array is faster than Math.cos/sin every frame.
         }
 
-        // Standard Trace (Fallback or Non-Standard Size)
-        // This is mathematically identical to the cache.
+        const verts = this.getVertices(radius, applyIso);
         ctx.beginPath();
-        const verts = this.getVertices(radius);
         ctx.moveTo(x + verts[0].x, y + verts[0].y);
         for (let i = 1; i < 6; i++) {
             ctx.lineTo(x + verts[i].x, y + verts[i].y);
@@ -66,27 +63,27 @@ export const HexGeometry = {
     },
 
     /**
-     * Returns a Path2D object for the standard hex. 
-     * Callers can use ctx.fill(path) which is faster than JS-side moveTo/lineTo loops.
+     * Returns a Path2D object for the standard ISO hex.
+     * Useful for hit testing or clipping.
      */
     getStandardPath(): Path2D {
-        if (!CACHED_HEX_PATH) this.rebuildCache();
-        return CACHED_HEX_PATH!;
+        if (!CACHED_PATH_STD) this.rebuildCache();
+        return CACHED_PATH_STD!;
     },
 
     rebuildCache() {
         const path = new Path2D();
-        const verts = this.getVertices(HEX_SIZE);
+        const verts = this.getVertices(HEX_SIZE, true);
         path.moveTo(verts[0].x, verts[0].y);
         for (let i = 1; i < 6; i++) {
             path.lineTo(verts[i].x, verts[i].y);
         }
         path.closePath();
-        CACHED_HEX_PATH = path;
+        CACHED_PATH_STD = path;
     },
 
     /**
-     * Returns vertices for a rotated hexagon (used by VFX).
+     * Get vertices for a rotated hexagon (used by VFX).
      */
     traceRotatedHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, rotation: number, applyIso: boolean = true) {
         ctx.beginPath();

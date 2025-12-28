@@ -13,9 +13,10 @@ export const UnitShadowPainter = {
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
         
         ctx.save();
-        ctx.translate(px, py); // Ground Level
+        ctx.translate(px, py); // Exactly at Ground Center of Tile
         
         // 1. Drop Shadow (Optimized: Use Cached Blob)
+        // Shadow shrinks as unit jumps high
         const shadowScale = Math.max(0.6, 1.0 - (pz / 400));
         const shadowAlpha = Math.max(0.2, 1.0 - (pz / 200));
         
@@ -25,13 +26,13 @@ export const UnitShadowPainter = {
         ctx.save();
         ctx.scale(shadowScale, shadowScale);
         ctx.globalAlpha = shadowAlpha;
-        // Shadow Blob is 64x64, unit base is 128x128 approx visual weight
-        // Scale it up
-        ctx.drawImage(shadowBlob, -48, -24, 96, 48); 
+        // Shadow Blob is 64x64. Draw centered.
+        // Scale width to match unit base feel (1.5x)
+        ctx.drawImage(shadowBlob, -32 * 1.5, -32 * 0.75, 64 * 1.5, 64 * 0.75); 
         ctx.restore();
 
-        // 2. Base Token (Falls backward if flying? No, base usually stays on ground or fades)
-        // Design Choice: Base stays on ground, unit floats above it.
+        // 2. Base Token (Stays on ground)
+        // Asset base is 128x128. Draw centered.
         ctx.save();
         ctx.scale(shadowScale, shadowScale);
         ctx.globalAlpha = shadowAlpha;
@@ -41,7 +42,7 @@ export const UnitShadowPainter = {
         // 3. Class Icon (Anchored to ground, breathing effect)
         if (agent.hp > 0) {
             ctx.save();
-            const iconBaseY = -24; 
+            const iconBaseY = -20; // Slightly above center to not overlap base ring too much
             ctx.translate(0, iconBaseY);
             const breath = Math.sin(t * 2) * 1.5;
             ctx.translate(0, breath);
@@ -52,6 +53,7 @@ export const UnitShadowPainter = {
 
             ctx.globalAlpha = 1.0; 
             ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 5;
+            // Icon is 64x64. Draw centered.
             ctx.drawImage(assets.icon, -32, -32, 64, 64);
             ctx.restore();
         }
