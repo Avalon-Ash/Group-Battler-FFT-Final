@@ -1,7 +1,7 @@
 
 import { Agent } from "../../../game";
 import { Team } from "../../../../types";
-import { ISO_SCALE_Y } from "../../../../constants";
+import { ISO_SCALE_Y, UNIT_SCALE } from "../../../../constants";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 
@@ -23,11 +23,26 @@ export const UnitFlightPainter = {
         ctx.globalCompositeOperation = 'screen';
         ctx.fillStyle = grad;
         
-        const w = 3;
-        ctx.fillRect(-w/2, 0, w, physZ); // Draws from 0 (surface) UP to physZ (body)
+        ctx.translate(physX, physY); // Anchor at ground point
+        ctx.scale(UNIT_SCALE, UNIT_SCALE); // Scale everything
+
+        // Draws from 0 (surface) UP to physZ (body)
+        // Since we scaled context, we must unscale the height (physZ) if we want it to reach the actual body height?
+        // Wait, physZ is World Units. If we ctx.scale(0.7), drawing a rect of height physZ will be 0.7 * physZ.
+        // But the body is drawn at world Y - physZ. 
+        // So the visual gap IS physZ.
+        // If we want the line to connect, we must draw it at length physZ / UNIT_SCALE.
+        // OR easier: Don't scale the height, just the width and anchor graphic.
+        
+        ctx.save();
+        ctx.scale(1 / UNIT_SCALE, 1 / UNIT_SCALE); // Reset scale for the line height calculation
+        
+        const w = 3 * UNIT_SCALE; // Scale width manually
+        ctx.fillRect(-w/2, 0, w, -physZ); // Draw upwards (negative Y in canvas space relative to ground)
+        ctx.restore();
         
         // 2. Ground Anchor Reticle (Where the unit effectively "is")
-        ctx.translate(0, 0); // At Surface
+        // Context is already scaled by UNIT_SCALE
         ctx.scale(1, ISO_SCALE_Y); 
         
         const glow = VFXFactory.getTexture('GLOW', color);
@@ -57,6 +72,7 @@ export const UnitFlightPainter = {
         const glow = VFXFactory.getTexture('GLOW', color);
 
         ctx.save();
+        // Context here is already scaled by UnitBodyPainter
         ctx.translate(0, 10); // Offset to engines/feet
         
         for(let i = -1; i <= 1; i += 2) {

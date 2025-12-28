@@ -5,6 +5,7 @@ import { UnitIndicatorPainter } from "./UnitIndicatorPainter";
 import { MovementType } from "../../../../../types";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { VFXFactory } from "../../../graphics/VFXFactory";
+import { UNIT_SCALE } from "../../../../../constants";
 
 // Lift the physical token slightly to avoid z-fighting with the floor
 const HOVER_LIFT = 6; 
@@ -16,8 +17,6 @@ export const UnitShadowPainter = {
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
         
         // Calculate Surface Y (Where the shadow falls)
-        // UnitRenderSystem passes (px, py, pz) where py is BASE ground Y.
-        // We calculate terrainH to find the visual surface top.
         const terrainH = Math.max(0, pz - agent.physics.z);
         const surfaceY = py - terrainH;
 
@@ -36,6 +35,7 @@ export const UnitShadowPainter = {
         
         ctx.save();
         ctx.translate(px, surfaceY); 
+        ctx.scale(UNIT_SCALE, UNIT_SCALE); // Apply global scale
         ctx.scale(shadowScale, shadowScale);
         ctx.globalAlpha = shadowAlpha;
         ctx.drawImage(shadowBlob, -48, -24, 96, 48); 
@@ -44,8 +44,7 @@ export const UnitShadowPainter = {
         // 2. Base Token (Lifted)
         ctx.save();
         ctx.translate(px, tokenY);
-        // Only scale token if it's actually jumping significantly, otherwise it looks stable
-        // We don't scale the token with jump height usually to keep it readable as a game piece
+        ctx.scale(UNIT_SCALE, UNIT_SCALE); // Apply global scale
         ctx.drawImage(assets.base, -64, -64); 
         ctx.restore();
 
@@ -53,6 +52,7 @@ export const UnitShadowPainter = {
         if (agent.hp > 0) {
             ctx.save();
             ctx.translate(px, tokenY);
+            ctx.scale(UNIT_SCALE, UNIT_SCALE); // Apply global scale
             
             const iconBaseY = -20; 
             ctx.translate(0, iconBaseY);
@@ -69,6 +69,7 @@ export const UnitShadowPainter = {
         }
         
         // 4. Casting Indicators (Projected on Surface)
+        // Note: Ground indicators (rings) should probably match unit scale too
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
@@ -77,9 +78,15 @@ export const UnitShadowPainter = {
                 const isAOE = skill.type === 'AOE';
                 const visualRadius = isAOE ? 0.8 : radius;
                 
-                // Indicators sit on the surface, not lifted
                 ctx.save();
                 ctx.translate(px, surfaceY);
+                // We keep indicators generally larger for readability, 
+                // but scaling them slightly makes them fit the new unit size better.
+                // Or we can leave them 1.0 to show true tile range. 
+                // Let's scale slightly so they don't look massive under small feet.
+                // Actually, tile range is absolute. Let's NOT scale indicators too much 
+                // unless they are 'personal' (self-cast rings).
+                // UnitIndicatorPainter handles radius * HEX_SIZE.
                 UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, visualRadius, skill.tag, isAOE);
                 ctx.restore();
             }
@@ -87,7 +94,6 @@ export const UnitShadowPainter = {
 
         // 5. Flying Anchor Line (Draws from Surface UP to Body)
         if (agent.movementType === MovementType.FLYING && jumpHeight > 5) {
-            // Draw relative to Surface
             UnitFlightPainter.drawFlyingAnchor(ctx, agent, t, px, surfaceY, jumpHeight);
         }
         

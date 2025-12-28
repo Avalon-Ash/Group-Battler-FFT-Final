@@ -4,13 +4,14 @@ import { Team } from './types';
 // --- GEOMETRY SCALE ---
 export const HEX_SIZE = 44; 
 export const BLOCK_HEIGHT = 24; 
-export const MAX_TERRAIN_TIER = 6; // Reduced from 8 to fit smaller map scale better
+export const MAX_TERRAIN_TIER = 6; 
 export const ISO_SCALE_Y = 0.58; 
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
 export const UNIT_VISUAL_HEIGHT = 100; 
 export const UNIT_BODY_OFFSET = 40;    
-export const UNIT_HOVER_OFFSET = 6; // Standard lift for unit base/shadow separation
+export const UNIT_HOVER_OFFSET = 6; 
+export const UNIT_SCALE = 0.7; // NEW: Global visual scale factor (70% size)
 
 export const HUD_PADDING = 10;         
 
@@ -23,10 +24,10 @@ export const KILL_STREAK_WINDOW = 12.0;
 
 // --- PHYSICS & FALL DAMAGE ---
 export const PHYSICS = {
-    GRAVITY: 2500, // Heavier gravity for snappier falls
+    GRAVITY: 2500, 
     SAFE_FALL_VELOCITY: 800, 
     FATAL_FALL_VELOCITY: 2400, 
-    FALL_DAMAGE_MIN: 100, // Higher penalty
+    FALL_DAMAGE_MIN: 100, 
 };
 
 // --- ASSET PALETTES ---
@@ -90,7 +91,7 @@ export const PALETTE = {
 };
 
 export const COMBAT_PARAM = {
-    HIT_IMPULSE_MAX: 600, // Massive physics kick
+    HIT_IMPULSE_MAX: 600, 
     HIT_IMPULSE_MIN: 150, 
     DR_RESET_TIME: 10.0,
     EXECUTE_THRESHOLD: 0.3, 
