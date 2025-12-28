@@ -118,13 +118,37 @@ export class UnitRenderSystem {
         }
 
         // 4. LAYER: UNIT BODY ROOT
+        ctx.save(); // Push body transform state
         ctx.translate(physX, physY - physZ); 
         ctx.rotate(agent.physics.angle); 
 
         // 6. LAYER: ANIMATED BODY
         this.drawBodyElements(ctx, agent, globalTime, isSilhouette, isSelected, scaleFactor);
+        
+        ctx.restore(); // Pop body transform (reset rotation/facing)
 
-        ctx.restore();
+        // 7. LAYER: STATUS EFFECTS (Un-flipped, World Aligned)
+        // We are still at (drawX, drawY) scaled by scaleFactor.
+        // We need to translate to the unit's visual top center (physX, physY - physZ)
+        if (!isSilhouette && agent.hp > 0) {
+            ctx.save();
+            ctx.translate(physX, physY - physZ);
+            
+            // Adjust for body float (UnitVisuals usually expects 0,0 to be feet)
+            let bodyFloat = -UNIT_BODY_OFFSET;
+            if (agent.movementType !== MovementType.FLYING) bodyFloat -= Math.sin(globalTime * 2) * 3;
+            else bodyFloat -= Math.sin(globalTime * 4) * 2;
+            
+            ctx.translate(0, bodyFloat);
+
+            // Draw Status overheads (Not mirrored)
+            drawStatusIcons(ctx, agent, globalTime, 0, 0, scaleFactor);
+            drawStatusEffects(ctx, agent, globalTime);
+            
+            ctx.restore();
+        }
+
+        ctx.restore(); // Pop global scale/translate
     }
 
     private drawGroundElements(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number) {
@@ -235,24 +259,7 @@ export class UnitRenderSystem {
                 ctx.restore();
             }
             
-            if (agent.visualStatus === 'STASIS') {
-                ctx.save();
-                ctx.fillStyle = '#facc15';
-                ctx.globalAlpha = 0.4;
-                ctx.globalCompositeOperation = 'lighter';
-                ctx.beginPath();
-                ctx.ellipse(0, -15, 25, 50, 0, 0, Math.PI*2);
-                ctx.fill();
-                ctx.strokeStyle = '#fff';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-                ctx.restore();
-            }
-        }
-
-        if (!isSilhouette) {
-            drawStatusIcons(ctx, agent, t, 0, 0, scaleFactor);
-            drawStatusEffects(ctx, agent, t);
+            // Note: Stasis/StatusEffects moved outside
         }
     }
 }

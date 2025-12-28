@@ -85,21 +85,21 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         ]
     },
     
-    // Status Loops
+    // Status Loops - INCREASED SIZES
     'FX_STATUS_POISON_LOOP': {
         id: 'FX_STATUS_POISON_LOOP',
-        emitters: [{ particleType: 'RUBBLE', count: 1, lifetime: [1.0, 1.5], size: [10, 20], speed: [10, 20], gravity: -20, colors: ['#a3e635'], shape: 'CIRCLE', shapeRadius: 10, blendMode: 'source-over', delay: 0 }]
+        emitters: [{ particleType: 'RUBBLE', count: 1, lifetime: [1.0, 1.5], size: [15, 25], speed: [10, 30], gravity: -30, colors: ['#a3e635'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'source-over', delay: 0 }]
     },
     'FX_STATUS_BURN_LOOP': {
         id: 'FX_STATUS_BURN_LOOP',
-        emitters: [{ particleType: 'SPARK', count: [1, 2], lifetime: [0.5, 0.8], size: [2, 4], speed: [20, 40], gravity: -50, colors: ['#fca5a5', '#ef4444'], shape: 'CIRCLE', shapeRadius: 10, blendMode: 'lighter', delay: 0 }]
+        emitters: [{ particleType: 'SPARK', count: [2, 3], lifetime: [0.5, 0.8], size: [4, 8], speed: [30, 50], gravity: -60, colors: ['#fca5a5', '#ef4444'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'lighter', delay: 0 }]
     },
     'FX_STATUS_REGEN_LOOP': {
         id: 'FX_STATUS_REGEN_LOOP',
-        emitters: [{ particleType: 'SPARK', count: 1, lifetime: [1.0, 1.5], size: [3, 5], speed: [10, 20], gravity: -30, colors: ['#86efac'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }]
+        emitters: [{ particleType: 'SPARK', count: 1, lifetime: [1.0, 1.5], size: [5, 8], speed: [10, 20], gravity: -40, colors: ['#86efac'], shape: 'CIRCLE', shapeRadius: 20, blendMode: 'screen', delay: 0 }]
     },
     'FX_STATUS_BANISH_LOOP': {
         id: 'FX_STATUS_BANISH_LOOP',
-        emitters: [{ particleType: 'SPIKE', count: 1, lifetime: [0.5, 0.8], size: [10, 20], speed: [0, 0], colors: ['#7c3aed'], shape: 'POINT', blendMode: 'screen', delay: 0 }]
+        emitters: [{ particleType: 'SPIKE', count: 1, lifetime: [0.5, 0.8], size: [15, 30], speed: [0, 0], colors: ['#7c3aed'], shape: 'POINT', blendMode: 'screen', delay: 0 }]
     }
 };

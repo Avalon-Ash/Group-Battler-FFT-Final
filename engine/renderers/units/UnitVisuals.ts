@@ -191,66 +191,6 @@ export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: 
     }
 }
 
-function draw3DHexPrism(ctx: CanvasRenderingContext2D, t: number, color: string, height: number, radius: number) {
-    // Legacy helper kept for Status Effects (Banish/Stasis) 
-    // Ideally this should also use SurfaceAssets but status effects handle their own transforms peculiarly
-    // So we keep this local for now or refactor later.
-    const startAngle = Math.PI / 6 + Math.PI / 4;
-    const r = radius;
-    
-    ctx.save();
-    ctx.globalCompositeOperation = 'screen';
-    
-    const pulse = 2 + Math.sin(t * 5) * 1.0;
-    ctx.lineWidth = pulse;
-    ctx.strokeStyle = color;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    
-    const topVerts: {x: number, y: number}[] = [];
-    const botVerts: {x: number, y: number}[] = [];
-    
-    for(let i=0; i<6; i++) {
-        const angle = startAngle + i * Math.PI / 3 + t * 0.5; 
-        const x = Math.cos(angle) * r;
-        const y = Math.sin(angle) * r * ISO_SCALE_Y;
-        
-        topVerts.push({x: x, y: y - height});
-        botVerts.push({x: x, y: y});
-    }
-    
-    ctx.globalAlpha = 0.4;
-    ctx.beginPath();
-    for(let i=0; i<6; i++) {
-        ctx.moveTo(topVerts[i].x, topVerts[i].y);
-        ctx.lineTo(botVerts[i].x, botVerts[i].y);
-    }
-    ctx.stroke();
-    
-    ctx.globalAlpha = 0.8;
-    ctx.beginPath();
-    ctx.moveTo(topVerts[0].x, topVerts[0].y);
-    for(let i=1; i<6; i++) ctx.lineTo(topVerts[i].x, topVerts[i].y);
-    ctx.closePath();
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(botVerts[0].x, botVerts[0].y);
-    for(let i=1; i<6; i++) ctx.lineTo(botVerts[i].x, botVerts[i].y);
-    ctx.closePath();
-    ctx.stroke();
-    
-    const grad = ctx.createLinearGradient(0, -height, 0, 0);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(0.5, color);
-    grad.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.globalAlpha = 0.2; 
-    ctx.fillStyle = grad;
-    ctx.fill();
-    
-    ctx.restore();
-}
-
 export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     if (agent.hp <= 0) return;
     
@@ -264,9 +204,19 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
 
     if (statusId === 'BANISH' || statusId === 'STASIS') {
         const color = statusId === 'STASIS' ? '#facc15' : '#c084fc';
+        const pulse = 0.8 + Math.sin(t * 3) * 0.2;
+        
         ctx.save();
-        ctx.translate(0, 0); 
-        draw3DHexPrism(ctx, t, color, 120, 45); 
+        // Since we are inside UnitRenderSystem's transform stack, we are at (physX, physY - physZ).
+        // draw3DPrism draws upwards from Y.
+        // We move down to the "feet" of the visual representation to draw the prism base.
+        ctx.translate(0, 40); 
+        
+        // Use standard Prism for consistent look
+        // Height 100 covers the unit comfortably
+        // Opacity 0.4 for semi-transparent crystal look
+        SurfaceAssets.draw3DPrism(ctx, 0, 0, 40, 100, color, 0.4 * pulse, 'SOLID');
+        
         ctx.restore();
         return;
     }
@@ -275,7 +225,7 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         const color = '#facc15';
         const halo = VFXFactory.getTexture('HEX_HALO', color);
         ctx.save();
-        ctx.translate(0, -90); 
+        ctx.translate(0, -90); // Head height
         const float = Math.sin(t * 8) * 5;
         ctx.translate(0, float);
         ctx.globalCompositeOperation = 'screen';
@@ -301,7 +251,7 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         const color = '#94a3b8';
         const lock = VFXFactory.getTexture('HEX_LOCK', color);
         ctx.save();
-        ctx.translate(0, -100); 
+        ctx.translate(0, -90); // Head height
         const float = Math.sin(t * 3) * 3;
         ctx.translate(0, float);
         ctx.globalCompositeOperation = 'source-over';
@@ -314,13 +264,5 @@ export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t
         return;
     }
     
-    if (statusId === 'FROZEN') {
-        const glow = VFXFactory.getTexture('GLOW', '#bae6fd');
-        ctx.save();
-        ctx.translate(0, -40);
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.6;
-        ctx.drawImage(glow, -50, -50, 100, 100);
-        ctx.restore();
-    }
+    // Note: Frozen and Polymorph are handled as model swaps/overlays in drawBodyElements
 }
