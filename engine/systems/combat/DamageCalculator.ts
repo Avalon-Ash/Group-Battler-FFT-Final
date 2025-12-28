@@ -5,9 +5,11 @@ import { COMBAT_PARAM } from "../../../constants";
 
 export interface DamageResult {
     finalValue: number;     // Final HP delta (negative for damage, positive for heal)
+    shieldAbsorb: number;   // Amount absorbed by shield
     isCrit: boolean;        // Critical hit?
     isExecute: boolean;     // Execute trigger?
     isBlock: boolean;       // Tank block?
+    isMiss: boolean;        // Blind miss?
     vampAmount: number;     // Lifesteal value
     manaBurn: number;       // MP burned
     manaRestore: number;    // MP restored
@@ -18,7 +20,7 @@ export class DamageCalculator {
 
     /**
      * The Core Damage Pipeline:
-     * Base -> Multipliers (Role/Buffs) -> Crit/Execute -> Mitigation (Def/Block) -> Final
+     * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
     public static calculate(source: Agent, target: Agent, skill: Skill): DamageResult {
         const isHeal = skill.power < 0;
@@ -26,14 +28,25 @@ export class DamageCalculator {
         
         const result: DamageResult = {
             finalValue: 0,
+            shieldAbsorb: 0,
             isCrit: false,
             isExecute: false,
             isBlock: false,
+            isMiss: false,
             vampAmount: 0,
             manaBurn: 0,
             manaRestore: 0,
             overkill: 0
         };
+
+        // 0. Miss Logic (Blind)
+        if (!isHeal && source.blindTimer > 0) {
+            // 50% Chance to miss if blinded
+            if (Math.random() < 0.5) {
+                result.isMiss = true;
+                return result; // Early exit on miss
+            }
+        }
 
         // 1. Role Multipliers & Base Logic
         if (!isHeal) {
@@ -54,8 +67,7 @@ export class DamageCalculator {
             }
         }
 
-        // 3. Crit Logic (Simplified: Random 10% chance for non-DoT/Structures)
-        // Future: Read from Agent stats
+        // 3. Crit Logic
         if (!isHeal && Math.random() < 0.1) {
             base *= 1.5;
             result.isCrit = true;
@@ -63,21 +75,27 @@ export class DamageCalculator {
 
         // 4. Mitigation (Tank Block Logic)
         if (!isHeal && target.role === Role.TANK && target.hp > 0) {
-            // Chance to block based on facing? 
-            // If facing attacker: 20% reduction
-            // Simplified: Flat small reduction for Tanks
             base *= 0.85; 
             result.isBlock = true;
         }
 
-        // 5. Final Calculation
+        // 5. Shield Absorption (NEW)
+        let absorbed = 0;
+        if (!isHeal && target.shield > 0) {
+            absorbed = Math.min(target.shield, base);
+            base -= absorbed;
+            result.shieldAbsorb = absorbed;
+        }
+
+        // 6. Final Calculation
         let final = Math.floor(base);
         
-        // 6. Secondary Effects (Vamp, Mana)
+        // 7. Secondary Effects (Vamp, Mana)
         const isVamp1 = skill.effectType === 'VAMP';
         const isVamp2 = skill.effectType2 === 'VAMP';
         if (!isHeal && (isVamp1 || isVamp2)) {
             const vampPct = (isVamp1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_VAMP_PCT;
+            // Vamp based on unmitigated damage or actual HP damage? Usually actual.
             result.vampAmount = Math.floor(final * vampPct);
         }
 
@@ -93,10 +111,10 @@ export class DamageCalculator {
         if (skill.effectType2 === 'MANA_RESTORE') mr += (skill.effectVal2 || COMBAT_PARAM.MANA_RESTORE_DEFAULT);
         result.manaRestore = mr;
 
-        // 7. Apply Direction (Damage is negative)
+        // 8. Apply Direction (Damage is negative)
         result.finalValue = isHeal ? final : -final;
         
-        // 8. Overkill Calc
+        // 9. Overkill Calc
         if (!isHeal && final > target.hp) {
             result.overkill = final - target.hp;
         }

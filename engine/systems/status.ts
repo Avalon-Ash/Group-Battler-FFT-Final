@@ -3,6 +3,7 @@ import { Agent, GameEngine } from "../game";
 import { AnimState } from "../../types";
 import { COMBAT_PARAM, UNIT_BODY_OFFSET } from "../../constants";
 import { STATUS_VISUALS } from "../../data/vfx/status_visuals";
+import { HexUtils } from "../utils";
 
 export class StatusSystem {
     
@@ -47,16 +48,46 @@ export class StatusSystem {
         // 5. Timers
         if (agent.stunTimer > 0) agent.stunTimer -= dt;
         if (agent.silenceTimer > 0) agent.silenceTimer -= dt;
+        if (agent.rootTimer > 0) agent.rootTimer -= dt;
+        if (agent.blindTimer > 0) agent.blindTimer -= dt;
+        if (agent.tauntTimer > 0) {
+            agent.tauntTimer -= dt;
+            if (agent.tauntTimer <= 0) agent.tauntTargetId = null;
+        }
         
-        // 6. Visual State Reset
+        // 6. FEAR LOGIC (Random Movement)
+        if (agent.fearTimer > 0) {
+            agent.fearTimer -= dt;
+            // Fear Override Movement
+            if (!agent.isMoving && agent.hp > 0 && agent.stunTimer <= 0 && agent.rootTimer <= 0) {
+                const neighbors = HexUtils.neighbors(agent);
+                // Filter valid
+                const valid = neighbors.filter(n => engine.map.isValid(n.q, n.r) && !engine.map.isBlocked(n.q, n.r, engine, agent.id));
+                if (valid.length > 0) {
+                    const next = valid[Math.floor(Math.random() * valid.length)];
+                    // Use moveAgentToHex with high speed (panic run)
+                    engine.movement.moveAgentToHex(agent, next, 0, engine, 1.5);
+                }
+            }
+        }
+
+        // 7. Visual State Reset
         if (agent.visualStatus === 'FROZEN' && agent.stunTimer <= 0) agent.visualStatus = 'NONE';
         if (agent.visualStatus === 'POLYMORPH' && !agent.banished) agent.visualStatus = 'NONE';
         if (agent.visualStatus === 'STASIS' && !agent.banished) agent.visualStatus = 'NONE';
 
-        // 7. DoT
+        // 8. DoT
         if (agent.dotTimer > 0) {
             agent.dotTimer -= dt;
-            agent.hp -= agent.dotDmg * dt;
+            // Shield absorbs DoT too
+            let dmg = agent.dotDmg * dt;
+            if (agent.shield > 0) {
+                const absorbed = Math.min(agent.shield, dmg);
+                agent.shield -= absorbed;
+                dmg -= absorbed;
+            }
+            
+            agent.hp -= dmg;
             if (Math.random() < 0.05) { 
                 engine.events.push({ 
                     type: 'DAMAGE', 
@@ -69,7 +100,7 @@ export class StatusSystem {
             }
         }
 
-        // 8. HoT
+        // 9. HoT
         if (agent.hotTimer > 0) {
             agent.hotTimer -= dt;
             agent.hp = Math.min(agent.maxHp, agent.hp + agent.hotVal * dt);
@@ -83,7 +114,7 @@ export class StatusSystem {
             }
         }
 
-        // 9. Anim Reset
+        // 10. Anim Reset
         if (agent.stunTimer <= 0 && agent.banishTimer <= 0 && !agent.isMoving && agent.castingSkillIdx === -1 && agent.hitFlashTimer <= 0) {
             if (agent.target) agent.setAnim(AnimState.COMBAT_IDLE);
             else agent.setAnim(AnimState.IDLE);
@@ -117,5 +148,6 @@ export class StatusSystem {
         checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0);
         checkVFX('REGEN', agent.hotTimer > 0);
         checkVFX('BANISH', agent.banished);
+        checkVFX('FEAR', agent.fearTimer > 0);
     }
 }

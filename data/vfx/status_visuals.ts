@@ -1,5 +1,5 @@
 
-export type StatusIconShape = 'HEX_HALO' | 'HEX_LOCK' | 'HEX_PRISM' | 'HEX_RUNE' | 'NONE';
+export type StatusIconShape = 'HEX_HALO' | 'HEX_LOCK' | 'HEX_PRISM' | 'HEX_RUNE' | 'HEX_SHIELD' | 'HEX_SKULL' | 'HEX_ANGRY' | 'HEX_EYE' | 'NONE';
 export type OverheadEffect = 'ICON' | 'NONE' | 'BUBBLE_POP' | 'GHOST_FLOAT'; 
 
 export interface StatusVisualDef {
@@ -22,20 +22,47 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
     'STUN': {
         id: 'STUN', label: '暈眩',
         primaryColor: '#facc15', secondaryColor: '#ca8a04',
-        iconShape: 'HEX_HALO', overheadType: 'NONE', // Handled custom in UnitVisuals
+        iconShape: 'HEX_HALO', overheadType: 'NONE', 
         particleEffect: 'FX_STATUS_REGEN_LOOP', 
         particleInterval: 0.2
     },
     'SILENCE': {
         id: 'SILENCE', label: '沉默',
         primaryColor: '#94a3b8', secondaryColor: '#475569',
-        iconShape: 'HEX_LOCK', overheadType: 'NONE' // Handled custom in UnitVisuals
+        iconShape: 'HEX_LOCK', overheadType: 'NONE'
     },
     'BANISH': {
         id: 'BANISH', label: '放逐',
         primaryColor: '#c084fc', secondaryColor: '#7e22ce',
-        iconShape: 'HEX_PRISM', overheadType: 'NONE', // Handled custom in UnitVisuals
+        iconShape: 'HEX_PRISM', overheadType: 'NONE',
         particleEffect: 'FX_STATUS_BANISH_LOOP', particleInterval: 0.5
+    },
+    'ROOT': {
+        id: 'ROOT', label: '禁錮',
+        primaryColor: '#fbbf24', secondaryColor: '#d97706',
+        iconShape: 'HEX_LOCK', overheadType: 'NONE',
+        floorColor: '#fbbf24', floorOpacity: 0.3
+    },
+    'FEAR': {
+        id: 'FEAR', label: '恐懼',
+        primaryColor: '#a855f7', secondaryColor: '#581c87',
+        iconShape: 'HEX_SKULL', overheadType: 'NONE',
+        particleEffect: 'FX_STATUS_BANISH_LOOP', particleInterval: 0.3
+    },
+    'TAUNT': {
+        id: 'TAUNT', label: '嘲諷',
+        primaryColor: '#ef4444', secondaryColor: '#991b1b',
+        iconShape: 'HEX_ANGRY', overheadType: 'NONE'
+    },
+    'BLIND': {
+        id: 'BLIND', label: '致盲',
+        primaryColor: '#cbd5e1', secondaryColor: '#475569',
+        iconShape: 'HEX_EYE', overheadType: 'NONE'
+    },
+    'SHIELD': {
+        id: 'SHIELD', label: '護盾',
+        primaryColor: '#bae6fd', secondaryColor: '#3b82f6',
+        iconShape: 'HEX_SHIELD', overheadType: 'NONE'
     },
     'POISON': {
         id: 'POISON', label: '中毒',

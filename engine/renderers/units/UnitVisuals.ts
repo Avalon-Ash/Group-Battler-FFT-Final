@@ -194,75 +194,101 @@ export function drawStatusIcons(ctx: CanvasRenderingContext2D, agent: Agent, t: 
 export function drawStatusEffects(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
     if (agent.hp <= 0) return;
     
-    let statusId = 'NONE';
-    if (agent.banished) statusId = 'BANISH';
-    else if (agent.stunTimer > 0) statusId = 'STUN';
-    else if (agent.silenceTimer > 0) statusId = 'SILENCE';
-    else if (agent.visualStatus !== 'NONE') statusId = agent.visualStatus;
+    // Priority Status Drawing
+    // We check specific conditions and draw the corresponding VFX
+    
+    // 1. ROOT (Chains at feet)
+    if (agent.rootTimer > 0) {
+        const color = '#fbbf24'; // Amber chains
+        ctx.save();
+        ctx.translate(0, 40); // Ground level
+        // Draw 3 Spikes
+        for(let i=0; i<3; i++) {
+            const angle = i * (Math.PI*2/3) + t;
+            const r = 15;
+            const px = Math.cos(angle) * r;
+            const py = Math.sin(angle) * r * ISO_SCALE_Y;
+            ctx.beginPath();
+            ctx.moveTo(px, py);
+            ctx.lineTo(px, py - 30); // Spike Up
+            ctx.lineTo(px + 5, py);
+            ctx.fillStyle = color;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.fill();
+        }
+        
+        // Ring
+        SurfaceAssets.drawHexRipple(ctx, 0, 0, 20, color, 0.8, 2);
+        ctx.restore();
+    }
 
-    if (statusId === 'NONE') return;
-
-    if (statusId === 'BANISH' || statusId === 'STASIS') {
-        const color = statusId === 'STASIS' ? '#facc15' : '#c084fc';
-        const pulse = 0.8 + Math.sin(t * 3) * 0.2;
+    // 2. SHIELD (Rotating Prism Shell)
+    if (agent.shield > 0) {
+        // Shield color depends on team or generic
+        const color = agent.team === Team.BLUE ? '#bae6fd' : '#f87171';
+        const pulse = 0.3 + Math.sin(t * 2) * 0.1;
         
         ctx.save();
-        // Since we are inside UnitRenderSystem's transform stack, we are at (physX, physY - physZ).
-        // draw3DPrism draws upwards from Y.
-        // We move down to the "feet" of the visual representation to draw the prism base.
-        ctx.translate(0, 40); 
+        ctx.translate(0, 40); // Ground level anchor for Prism
+        ctx.globalCompositeOperation = 'screen';
         
+        // Rotating shell
+        ctx.save();
+        // Since Prism drawing is static, we can't rotate it easily without 3D math.
+        // Instead, we just draw the prism with pulsing opacity to simulate field.
+        SurfaceAssets.draw3DPrism(ctx, 0, 0, 35, 90, color, pulse, 'SOLID');
+        ctx.restore();
+        
+        // Inner brighter rim
+        SurfaceAssets.drawHexRipple(ctx, 0, -45, 30, color, 0.5, 2);
+        
+        ctx.restore();
+    }
+
+    // 3. BANISH / STASIS (Full Encapsulation)
+    if (agent.banished) {
+        const color = agent.visualStatus === 'STASIS' ? '#facc15' : '#c084fc';
+        const pulse = 0.5 + Math.sin(t * 3) * 0.2;
+        
+        ctx.save();
+        ctx.translate(0, 40); 
         // Use standard Prism for consistent look
         // Height 100 covers the unit comfortably
-        // Opacity 0.4 for semi-transparent crystal look
-        SurfaceAssets.draw3DPrism(ctx, 0, 0, 40, 100, color, 0.4 * pulse, 'SOLID');
+        SurfaceAssets.draw3DPrism(ctx, 0, 0, 40, 100, color, pulse, 'SOLID');
+        ctx.restore();
+        return; // Banish hides other effects
+    }
+
+    // 4. OVERHEAD ICONS (Stun, Silence, Fear, Taunt, Blind)
+    let iconType = '';
+    let iconColor = '#fff';
+    
+    if (agent.stunTimer > 0) { iconType = 'STUN'; iconColor = '#facc15'; }
+    else if (agent.fearTimer > 0) { iconType = 'FEAR'; iconColor = '#a855f7'; }
+    else if (agent.tauntTimer > 0) { iconType = 'TAUNT'; iconColor = '#ef4444'; }
+    else if (agent.silenceTimer > 0) { iconType = 'SILENCE'; iconColor = '#94a3b8'; }
+    else if (agent.blindTimer > 0) { iconType = 'BLIND'; iconColor = '#cbd5e1'; }
+
+    if (iconType) {
+        const def = STATUS_VISUALS[iconType];
+        const shape = def.iconShape;
+        const color = def.primaryColor;
+        
+        ctx.save();
+        ctx.translate(0, -95); // Head height + padding
+        
+        // Float animation
+        const float = Math.sin(t * 5) * 4;
+        ctx.translate(0, float);
+        
+        // Draw the specific icon from AssetManager/UIFactory logic
+        // Since UnitVisuals usually calls factories, we can do manual drawing here or helper
+        // Let's use the Factory texture for consistency
+        const icon = AssetManager.getStatusIcon(iconType);
+        
+        ctx.scale(0.8, 0.8); // Scale down slightly for overhead
+        ctx.drawImage(icon, -24, -24, 48, 48);
         
         ctx.restore();
-        return;
     }
-
-    if (statusId === 'STUN') {
-        const color = '#facc15';
-        const halo = VFXFactory.getTexture('HEX_HALO', color);
-        ctx.save();
-        ctx.translate(0, -90); // Head height
-        const float = Math.sin(t * 8) * 5;
-        ctx.translate(0, float);
-        ctx.globalCompositeOperation = 'screen';
-        ctx.save();
-        ctx.scale(1, 0.4); 
-        ctx.rotate(t * 6); 
-        const size1 = 60; 
-        ctx.globalAlpha = 1.0; 
-        ctx.drawImage(halo, -size1/2, -size1/2, size1, size1);
-        ctx.restore();
-        ctx.save();
-        ctx.scale(1, 0.4);
-        ctx.rotate(-t * 2); 
-        const size2 = 90; 
-        ctx.globalAlpha = 0.7;
-        ctx.drawImage(halo, -size2/2, -size2/2, size2, size2);
-        ctx.restore();
-        ctx.restore();
-        return;
-    }
-
-    if (statusId === 'SILENCE') {
-        const color = '#94a3b8';
-        const lock = VFXFactory.getTexture('HEX_LOCK', color);
-        ctx.save();
-        ctx.translate(0, -90); // Head height
-        const float = Math.sin(t * 3) * 3;
-        ctx.translate(0, float);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
-        const pulse = 1 + Math.sin(t * 5) * 0.1;
-        const size = 48 * pulse; 
-        ctx.drawImage(lock, -size/2, -size/2, size, size);
-        ctx.restore();
-        return;
-    }
-    
-    // Note: Frozen and Polymorph are handled as model swaps/overlays in drawBodyElements
 }

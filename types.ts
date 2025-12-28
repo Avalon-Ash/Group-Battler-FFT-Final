@@ -81,12 +81,12 @@ export interface Skill {
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
 
     // Control Effects (Slot 1)
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur?: number;
     ccForce?: number;
 
     // Control Effects (Slot 2) - NEW: Allows composite effects like Knockback + Stun
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE';
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur2?: number;
     ccForce2?: number;
     

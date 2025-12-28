@@ -18,6 +18,8 @@ export class Agent {
     // Stats
     public hp: number = 100;
     public maxHp: number = 100;
+    public shield: number = 0; // NEW: Absorb damage
+    public maxShield: number = 0; // For UI scaling
     public mp: number = 0;
     public maxMp: number = 100;
     public moveSpeed: number = 1.0; 
@@ -47,15 +49,22 @@ export class Agent {
     
     // Status Effects
     public stunTimer: number = 0;
-    public stunMax: number = 0; // For UI Progress
+    public stunMax: number = 0; 
     
     public banishTimer: number = 0;
-    public banishMax: number = 0; // For UI Progress
+    public banishMax: number = 0; 
     
     public silenceTimer: number = 0;
-    public silenceMax: number = 0; // For UI Progress
+    public silenceMax: number = 0; 
     
     public banished: boolean = false;
+    
+    // NEW STATUSES
+    public rootTimer: number = 0;
+    public fearTimer: number = 0;
+    public tauntTimer: number = 0;
+    public blindTimer: number = 0;
+    public tauntTargetId: string | null = null; // Who taunted me?
     
     public dotTimer: number = 0;
     public dotDmg: number = 0;
@@ -63,9 +72,7 @@ export class Agent {
     public hotVal: number = 0;
 
     // Diminishing Returns (DR) System
-    // Tracks current stack count per CC type (STUN, SILENCE, etc.)
     public drStacks: Record<string, number> = {}; 
-    // Tracks time until DR resets for that type
     public drTimers: Record<string, number> = {}; 
     
     // Visual State
@@ -127,6 +134,8 @@ export class Agent {
         
         this.maxHp = this.initialState.maxHp;
         this.hp = this.maxHp;
+        this.shield = 0;
+        this.maxShield = 0;
         this.mp = 0;
         
         this.skillIds = [...this.initialState.skillIds];
@@ -157,6 +166,12 @@ export class Agent {
         this.banishMax = 0;
         this.silenceTimer = 0;
         this.silenceMax = 0;
+        this.rootTimer = 0;
+        this.fearTimer = 0;
+        this.tauntTimer = 0;
+        this.blindTimer = 0;
+        this.tauntTargetId = null;
+        
         this.banished = false;
         this.dotTimer = 0;
         this.hotTimer = 0;

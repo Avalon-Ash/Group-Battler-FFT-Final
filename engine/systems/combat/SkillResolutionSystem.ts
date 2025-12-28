@@ -11,17 +11,19 @@ export class SkillResolutionSystem {
     // ... (Previous logic unchanged, omitting for brevity until spawnHazards) ...
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine) {
-        if (a.stunTimer > 0 || a.banished || a.hp <= 0) {
-            this.handleInterruption(a, engine);
-            return;
-        }
-        if (a.silenceTimer > 0 && a.castingSkillIdx !== -1) {
-            const currentSkill = a.skills[a.castingSkillIdx];
-            if (currentSkill && currentSkill.tag !== 'BASIC') {
+        if (a.stunTimer > 0 || a.banished || a.hp <= 0 || a.fearTimer > 0 || a.silenceTimer > 0) {
+            // Fear also interrupts casting
+            // Silence interrupts Non-Basic
+            const currentSkill = a.castingSkillIdx !== -1 ? a.skills[a.castingSkillIdx] : null;
+            const isSilencedInterrupt = a.silenceTimer > 0 && currentSkill && currentSkill.tag !== 'BASIC';
+            const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
+
+            if (isHardCC || isSilencedInterrupt) {
                 this.handleInterruption(a, engine);
                 return;
             }
         }
+        
         a.castTimer -= dt;
         if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt; 
         if (a.castTimer <= 0) {
@@ -87,6 +89,11 @@ export class SkillResolutionSystem {
             }
         }
         
+        // Self-Target for buffs (Shields etc) if target list empty and skill is beneficial
+        if (targets.length === 0 && skill.power <= 0 && skill.type === 'SINGLE') {
+            targets.push(source);
+        }
+        
         targets.forEach(t => {
             const dist = HexMath.distance(source, t);
             if (dist > 1) engine.events.push({ type: 'VISUAL_BEAM', pos: { x: t.px, y: t.py }, sourceId: source.id, targetId: t.id, skill, color: skill.color });
@@ -125,7 +132,21 @@ export class SkillResolutionSystem {
 
     public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine) {
         const result = DamageCalculator.calculate(source, target, skill);
+        
+        // Handle MISS
+        if (result.isMiss) {
+            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "MISS", color: "#94a3b8" });
+            return;
+        }
+
         const oldHp = Math.ceil(target.hp);
+        
+        // Absorb feedback
+        if (result.shieldAbsorb > 0) {
+            target.shield -= result.shieldAbsorb;
+            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "ABSORB", color: "#bae6fd" });
+        }
+
         target.hp = Math.min(target.maxHp, target.hp + result.finalValue);
         
         if (result.vampAmount > 0 && source.hp > 0) {
@@ -166,6 +187,10 @@ export class SkillResolutionSystem {
             color: skill.color
         });
 
+        // SHIELD APPLICATION Logic (Negative damage + HOT type usually)
+        // But better to use explicit CC Type for Shield
+        // If skill power is negative (heal) and ccType is SHIELD, apply shield hp
+        
         this.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
         this.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
 
@@ -231,6 +256,37 @@ export class SkillResolutionSystem {
                 statusText = "放逐"; statusColor = "#c084fc";
                 if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
                 break;
+            
+            // --- NEW EFFECTS ---
+            case 'ROOT':
+                if (effectiveDuration > target.rootTimer) target.rootTimer = effectiveDuration;
+                target.isMoving = false;
+                statusText = "禁錮"; statusColor = "#fbbf24";
+                break;
+            case 'FEAR':
+                if (effectiveDuration > target.fearTimer) target.fearTimer = effectiveDuration;
+                statusText = "恐懼"; statusColor = "#a855f7";
+                break;
+            case 'TAUNT':
+                if (effectiveDuration > target.tauntTimer) {
+                    target.tauntTimer = effectiveDuration;
+                    target.tauntTargetId = source.id; // Target the caster
+                }
+                statusText = "嘲諷"; statusColor = "#ef4444";
+                break;
+            case 'BLIND':
+                if (effectiveDuration > target.blindTimer) target.blindTimer = effectiveDuration;
+                statusText = "致盲"; statusColor = "#cbd5e1";
+                break;
+            case 'SHIELD':
+                // Shield amount passed via ccForce or just power
+                // If it's a heal/buff skill, use negative power? Or just use ccForce
+                const amount = force || 50;
+                target.shield += amount;
+                target.maxShield = Math.max(target.maxShield, target.shield);
+                statusText = "護盾"; statusColor = "#bae6fd";
+                break;
+
             case 'KNOCKBACK':
             case 'PULL':
                 const result = this.calculateKnockback(target, force || 0, source, origin, type, engine);
@@ -258,7 +314,7 @@ export class SkillResolutionSystem {
     }
 
     private checkDR(target: Agent, type: string, baseDuration: number) {
-        const isHardCC = ['STUN', 'SILENCE', 'BANISH'].includes(type);
+        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false };
         const stacks = target.drStacks[type] || 0;
         const multiplier = Math.pow(0.5, stacks);

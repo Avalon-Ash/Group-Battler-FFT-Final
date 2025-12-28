@@ -112,7 +112,7 @@ export const UIFactory = {
                 }
                 ctx.stroke();
                 break;
-            case 'HEX_LOCK': // Silence
+            case 'HEX_LOCK': // Silence / Root
                 ctx.strokeRect(-12, -10, 24, 16);
                 ctx.beginPath();
                 ctx.moveTo(-6, -2); ctx.lineTo(-6, -2);
@@ -146,7 +146,7 @@ export const UIFactory = {
                     ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
                     ctx.stroke();
                 } else {
-                    // Generic Rune / Ghost
+                    // Generic Rune
                     ctx.beginPath();
                     ctx.arc(0, -5, 10, Math.PI, 0);
                     ctx.lineTo(10, 10);
@@ -156,9 +156,50 @@ export const UIFactory = {
                     ctx.stroke();
                 }
                 break;
+            case 'HEX_SKULL': // Fear
+                ctx.beginPath();
+                ctx.arc(0, -4, 8, 0, Math.PI*2); // Head
+                ctx.rect(-6, 2, 12, 8); // Jaw
+                ctx.fill();
+                // Eyes (Clear rect)
+                ctx.globalCompositeOperation = 'destination-out';
+                ctx.beginPath(); ctx.arc(-3, -4, 2, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(3, -4, 2, 0, Math.PI*2); ctx.fill();
+                ctx.globalCompositeOperation = 'source-over';
+                break;
+            case 'HEX_ANGRY': // Taunt
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                // Jagged lines
+                ctx.moveTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10);
+                ctx.moveTo(0, -12); ctx.lineTo(0, 12);
+                ctx.moveTo(10, -10); ctx.lineTo(5, 0); ctx.lineTo(10, 10);
+                ctx.stroke();
+                break;
+            case 'HEX_EYE': // Blind
+                ctx.lineWidth = 2;
+                // Eye
+                ctx.beginPath(); ctx.ellipse(0, 0, 12, 6, 0, 0, Math.PI*2); ctx.stroke();
+                ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+                // Slash
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ef4444';
+                ctx.beginPath(); ctx.moveTo(-12, -12); ctx.lineTo(12, 12); ctx.stroke();
+                break;
+            case 'HEX_SHIELD': // Shield
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(0, -12); 
+                ctx.quadraticCurveTo(12, -12, 12, 0);
+                ctx.quadraticCurveTo(12, 12, 0, 16);
+                ctx.quadraticCurveTo(-12, 12, -12, 0);
+                ctx.quadraticCurveTo(-12, -12, 0, -12);
+                ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 10); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-8, 0); ctx.lineTo(8, 0); ctx.stroke();
+                break;
             case 'NONE':
             default:
-                // Handle overrides
                 if (statusId === 'POLYMORPH') {
                     // Sheep
                     ctx.beginPath();
