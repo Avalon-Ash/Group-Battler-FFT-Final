@@ -6,6 +6,7 @@ import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
+import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 
 // Sub-Handlers
 import { CombatVFXHandler } from "./handlers/CombatVFXHandler";
@@ -29,11 +30,14 @@ export class EventVFXMapper {
         let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine, grid);
         
         // Resolve Pure Ground Z for effects that must sit on the floor
+        // Use HexUtils.fromPx which uses the new SLOT
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const groundZ = grid.getTerrainHeight(groundHex.q, groundHex.r, engine);
 
         // Fallback for non-unit targets (ground click actions)
-        if (!event.targetId) target.z = groundZ + 20;
+        if (!event.targetId) {
+            target.z = groundZ + 20;
+        }
 
         // 2. Route to Specialized Handlers
         switch (event.type) {

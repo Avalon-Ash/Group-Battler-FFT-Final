@@ -3,7 +3,7 @@
 // 🎨 VFX ASSET SCHEMA (Data-Driven)
 // ==========================================
 
-export type ParticleType = 'SPARK' | 'SMOKE' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE';
+export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG';
 export type EmitterShape = 'POINT' | 'CIRCLE' | 'CONE' | 'BURST_DIR';
 export type BlendMode = 'source-over' | 'lighter' | 'screen' | 'overlay' | 'multiply';
 

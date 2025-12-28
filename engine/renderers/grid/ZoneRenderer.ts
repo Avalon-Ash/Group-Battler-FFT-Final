@@ -7,6 +7,7 @@ export const ZoneRenderer = {
     /**
      * Renders zone effects on a SPECIFIC TILE.
      * x, y should be the VISUAL SURFACE coordinates (Top of the block).
+     * This ensures the zone effect sits ON the terrain, not inside it.
      */
     drawTileZoneEffect(
         ctx: CanvasRenderingContext2D,
@@ -33,7 +34,7 @@ export const ZoneRenderer = {
         const isInside = distToCenter < currentWaveRadius;
         const drawColor = isEnemy ? '#ef4444' : color;
 
-        // 1. Base Fill
+        // 1. Base Fill (Flat Top, ISO Scaled)
         let baseAlpha = 0;
         if (isEnemy) baseAlpha = 0.2; 
         if (isInside && !isEnemy) baseAlpha = 0.15; 
@@ -41,6 +42,7 @@ export const ZoneRenderer = {
         if (baseAlpha > 0) {
             ctx.fillStyle = drawColor;
             ctx.globalAlpha = baseAlpha;
+            // Using true for applyIso ensures correct perspective
             HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true);
             ctx.fill();
         }

@@ -36,9 +36,6 @@ export class CinematicVFXHandler {
             vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
         } else {
             vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
-            // Pass origin.z - UNIT_BODY_OFFSET as approximate groundZ if needed
-            // But generic hit is handled by CombatHandler usually. 
-            // This is just the BEAM part.
         }
     }
 }

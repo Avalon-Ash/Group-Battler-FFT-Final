@@ -3,12 +3,6 @@ import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 
 // 1. Static Geometry Cache (Flat Top Hexagon)
 // Angles: 0, 60, 120, 180, 240, 300 degrees.
-// Vertex 0: Right
-// Vertex 1: Bottom-Right
-// Vertex 2: Bottom-Left
-// Vertex 3: Left
-// Vertex 4: Top-Left
-// Vertex 5: Top-Right
 const START_ANGLE = 0; 
 
 // Pre-calculate base vertices (Flat 2D, Radius 1.0)
@@ -27,10 +21,27 @@ let CACHED_PATH_STD: Path2D | null = null;
 export const HexGeometry = {
     
     /**
+     * [CORE SLOT] Converts Hex(q, r) to Screen Pixel(x, y).
+     * @returns The CENTER POINT of the hexagon's GROUND BASE (Z=0).
+     * This is the ONLY place where q/r to x/y conversion logic should exist for rendering.
+     */
+    hexToPixel(q: number, r: number, offsetX: number, offsetY: number): {x: number, y: number} {
+        // Flat Top Hex to Pixel formula
+        // x = size * 3/2 * q
+        // y = size * sqrt(3) * (r + q/2)
+        const x = (1.5 * q) * HEX_SIZE;
+        const y = (Math.sqrt(3) * (r + q / 2)) * HEX_SIZE;
+
+        // Apply ISO Squash (2.5D Projection)
+        return {
+            x: x + offsetX,
+            y: (y * ISO_SCALE_Y) + offsetY
+        };
+    },
+
+    /**
      * Get exact vertices for a hex at (0,0) with specified radius.
      * Applies ISO scaling to Y axis.
-     * @param radius - The outer radius of the hex (usually HEX_SIZE)
-     * @param applyIso - Whether to squash Y for 2.5D view (default true)
      */
     getVertices(radius: number, applyIso: boolean = true): {x: number, y: number}[] {
         const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
@@ -42,21 +53,14 @@ export const HexGeometry = {
 
     /**
      * Draw a hex path on the context at (x,y).
-     * @param x - Center Screen X
-     * @param y - Center Screen Y
-     * @param radius - Size
-     * @param applyIso - Use ISO projection
      */
     traceHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, applyIso: boolean = true) {
-        // Optimization: Use Path2D for standard grid size
         const isStandard = Math.abs(radius - HEX_SIZE) < 0.01 && applyIso;
         
         if (isStandard) {
             if (!CACHED_PATH_STD) this.rebuildCache();
             ctx.translate(x, y);
-            // Path2D must be filled/stroked by caller using the path object, 
-            // but to support generic context drawing we manually trace here if not using explicit path API.
-            // Using the pre-calc cache is still faster.
+            // Caller must stroke/fill
         }
 
         const verts = this.getVertices(radius, applyIso);

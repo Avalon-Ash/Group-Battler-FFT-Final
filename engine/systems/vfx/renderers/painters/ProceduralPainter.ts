@@ -11,18 +11,14 @@ export const ProceduralPainter = {
         // NOTE: We assume context is already translated to (drawX, drawY) by the caller
         
         if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
-             // Beams usually handle their own transform because they connect two points
-             // But if we are here, we might be in a generic context. 
-             // Actually, `VFXRenderer` logic for Beams often relies on `p.targetX/Y`.
-             // We'll skip drawing here if it's handled by specific logic, or draw simple beam.
-             if (p.targetX !== undefined && p.targetY !== undefined) {
-                // Relativize target coordinates if context is translated
-                // But normally beams are world-space. Caller should handle.
-                // Assuming caller did NOT translate for BEAM type if using world coords.
-             }
+             // Beams usually handle their own transform because they connect two points.
+             // Skipped here as ProjectileRenderer or VFXSystem handles beams explicitly.
         }
         else if (p.type === 'HEX_BEAM' || p.type === 'GIANT_HEX') {
             const rot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
+            
+            // KEY FIX: Use traceRotatedHex with applyIso=true to ensure
+            // the spinning hexagon matches the floor perspective perfectly.
             
             if (p.type === 'GIANT_HEX') {
                 ctx.globalCompositeOperation = 'source-over';
@@ -39,18 +35,21 @@ export const ProceduralPainter = {
                 HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
                 ctx.stroke();
 
-                // Inner Detail
+                // Inner Detail (Counter-rotating)
                 ctx.fillStyle = 'rgba(255,255,255,0.2)';
                 HexGeometry.traceRotatedHex(ctx, 0, 0, p.size * 0.6, -rot * 1.5, true);
                 ctx.fill();
                 
-                // Black Hole Center
+                // Black Hole Center (Optional style)
                 if (p.color === '#000' || p.color === '#000000' || p.color === '#0f172a') {
                     ctx.save();
+                    // Keep center circular as it's a singularity
+                    ctx.scale(1, ISO_SCALE_Y); // Match ISO for the hole too
                     ctx.fillStyle = '#000';
                     ctx.shadowColor = '#8b5cf6'; 
                     ctx.shadowBlur = 20;
                     ctx.beginPath(); ctx.arc(0, 0, p.size * 0.4, 0, Math.PI * 2); ctx.fill();
+                    
                     ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 2;
                     ctx.shadowBlur = 0;
@@ -59,13 +58,20 @@ export const ProceduralPainter = {
                 }
 
             } else {
-                // HEX_BEAM (Energy)
+                // HEX_BEAM (Energy / Wireframe style)
                 ctx.globalCompositeOperation = 'screen';
+                
+                // Gradient for the "beam" look
+                // Note: Radial gradient in 2D doesn't look ISO unless we scale it.
+                ctx.save();
+                ctx.scale(1, ISO_SCALE_Y);
                 const grad = ctx.createRadialGradient(0,0,0,0,0,p.size);
                 grad.addColorStop(0, p.color); 
                 grad.addColorStop(0.8, p.color);
                 grad.addColorStop(1, 'transparent');
                 ctx.fillStyle = grad;
+                ctx.restore();
+
                 ctx.globalAlpha = (1 - progress) * 0.8;
                 HexGeometry.traceRotatedHex(ctx, 0, 0, p.size, rot, true);
                 ctx.fill();
@@ -85,6 +91,7 @@ export const ProceduralPainter = {
             
             if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
             
+            // Pillar Body (Vertical Rectangle)
             const cylinderGrad = ctx.createLinearGradient(-width/2, 0, width/2, 0);
             cylinderGrad.addColorStop(0, p.color); 
             cylinderGrad.addColorStop(0.5, '#ffffff'); 
@@ -93,10 +100,13 @@ export const ProceduralPainter = {
             ctx.fillStyle = cylinderGrad;
             ctx.globalAlpha = (1 - progress) * 0.8;
             
+            // Draw from base (0) upwards (-h)
             ctx.fillRect(-width/2, -h, width, h);
             
+            // Base Ring (On Floor)
             if (def.hasBaseRing) {
                 ctx.save();
+                // Ensure ring is ISO
                 ctx.scale(1, ISO_SCALE_Y);
                 const ringGrad = ctx.createRadialGradient(0,0, width*0.5, 0,0, width*1.2);
                 ringGrad.addColorStop(0, 'transparent');
@@ -108,8 +118,8 @@ export const ProceduralPainter = {
             }
         }
         else if (p.type === 'DOMAIN') {
+            // Domain is a 3D prism/cylinder area
             const r = p.size * (progress < 0.1 ? progress/0.1 : 1.0); 
-            const height = 40;
             const isShield = p.style === 'DOMAIN_SHIELD';
             const h = isShield ? 120 : 40;
             const opacity = 0.4 * (1 - progress);

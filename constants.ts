@@ -2,20 +2,18 @@
 import { Team } from './types';
 
 // --- GEOMETRY SCALE ---
-export const HEX_SIZE = 44; // Increased from 36 to 44 for better unit spacing
+export const HEX_SIZE = 44; 
 export const BLOCK_HEIGHT = 24; 
-export const MAX_TERRAIN_TIER = 6; 
+export const MAX_TERRAIN_TIER = 8; // Increased height limit for dramatic falls
 export const ISO_SCALE_Y = 0.58; 
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
-// Tweak heights to separate HUD from Status Icons
-export const UNIT_VISUAL_HEIGHT = 100; // Head position relative to feet
-export const UNIT_BODY_OFFSET = 40;    // Center of mass relative to feet
+export const UNIT_VISUAL_HEIGHT = 100; 
+export const UNIT_BODY_OFFSET = 40;    
 export const HUD_PADDING = 10;         
 
-// Anchor adjustments
-export const STATUS_ICON_OFFSET = 120; // Height for Status Icons (Stun stars etc)
-export const HUD_BAR_OFFSET = 150;     // Height for HP Bar (Above Status)
+export const STATUS_ICON_OFFSET = 120; 
+export const HUD_BAR_OFFSET = 150;     
 
 // --- HUD & FEEDBACK CONFIG ---
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
@@ -23,84 +21,77 @@ export const KILL_STREAK_WINDOW = 12.0;
 
 // --- PHYSICS & FALL DAMAGE ---
 export const PHYSICS = {
-    GRAVITY: 2000,
-    SAFE_FALL_VELOCITY: 700, 
-    FATAL_FALL_VELOCITY: 2200, 
-    FALL_DAMAGE_MIN: 50, 
+    GRAVITY: 2500, // Heavier gravity for snappier falls
+    SAFE_FALL_VELOCITY: 800, 
+    FATAL_FALL_VELOCITY: 2400, 
+    FALL_DAMAGE_MIN: 100, // Higher penalty
 };
 
 // --- ASSET PALETTES ---
-
-// 1. FACTION THEMES (Used by Renderers)
 export const THEME_IMPERIAL = {
-    primary: '#3b82f6',    // Blue-500 (Brighter)
-    secondary: '#fde047',  // Yellow-300 (Energy)
-    armorLight: '#f1f5f9', // Slate-100
-    armorDark: '#1e3a8a',  // Blue-900
-    energy: '#60a5fa',     // Blue-400
-    cape: 'rgba(30, 58, 138, 0.9)' // Blue-900 alpha
+    primary: '#3b82f6',    
+    secondary: '#fde047',  
+    armorLight: '#f1f5f9', 
+    armorDark: '#1e3a8a',  
+    energy: '#60a5fa',     
+    cape: 'rgba(30, 58, 138, 0.9)' 
 };
 
 export const THEME_COVENANT = {
-    primary: '#ef4444',    // Red-500
-    secondary: '#f87171',  // Red-400 (Glow)
-    armorDark: '#09090b',  // Zinc-950
-    armorBase: '#27272a',  // Zinc-800
-    accent: '#7f1d1d',     // Red-900
-    spike: '#18181b'       // Zinc-900
+    primary: '#ef4444',    
+    secondary: '#f87171',  
+    armorDark: '#09090b',  
+    armorBase: '#27272a',  
+    accent: '#7f1d1d',     
+    spike: '#18181b'       
 };
 
-// 2. LOG & UI COLORS (Used by GameEngine & Logs)
+// 2. LOG & UI COLORS
 export const LOG_COLORS = {
-    MOVE: '#38bdf8',     // Sky-400
-    CAST: '#fbbf24',     // Amber-400
-    HIT: '#f87171',      // Red-400
-    HEAL: '#4ade80',     // Green-400
-    DECISION: '#c084fc', // Purple-400
-    DEATH: '#94a3b8',    // Slate-400
-    CC: '#facc15',       // Yellow-400
-    SYSTEM: '#64748b',   // Slate-500
-    HAZARD: '#fb923c'    // Orange-400 (New for Ground Effects)
+    MOVE: '#38bdf8',     
+    CAST: '#fbbf24',     
+    HIT: '#f87171',      
+    HEAL: '#4ade80',     
+    DECISION: '#c084fc', 
+    DEATH: '#94a3b8',    
+    CC: '#facc15',       
+    SYSTEM: '#64748b',   
+    HAZARD: '#fb923c'    
 };
 
 export const PALETTE = {
-    UI_BG: '#020617', // Slate 950
-    UI_BORDER: '#1e293b', // Slate 800
+    UI_BG: '#020617', 
+    UI_BORDER: '#1e293b', 
     SHADOW: 'rgba(0, 0, 0, 0.6)',
     
-    // FACTION THEMES (WoW Style)
     TEAMS: {
         [Team.BLUE]: { 
-            // ALLIANCE: Royal Blue, Gold, Marble
             main: '#2563eb', 
             dark: '#1e3a8a', 
-            light: '#fbbf24', // Gold trim
+            light: '#fbbf24', 
             glow: 'rgba(59, 130, 246, 0.8)',
-            accent: '#f8fafc' // Marble White
+            accent: '#f8fafc' 
         }, 
         [Team.RED]: { 
-            // HORDE: Crimson, Iron Grey, Bone
             main: '#dc2626', 
             dark: '#450a0a', 
-            light: '#a1a1aa', // Iron Grey
+            light: '#a1a1aa', 
             glow: 'rgba(220, 38, 38, 0.8)',
-            accent: '#1c1917' // Warpaint Black
+            accent: '#1c1917' 
         }
     },
     
-    // Skill Types (High Contrast)
     DAMAGE: '#ffffff',
     HEAL: '#10b981', 
-    CRIT: '#ef4444', // Critical red
+    CRIT: '#ef4444', 
     MAGIC: '#8b5cf6' 
 };
 
-// --- GAMEPLAY PARAMETERS (Separated from Logic) ---
 export const COMBAT_PARAM = {
-    HIT_IMPULSE_MAX: 400, // Significantly increased from 20 for visible physics kick
-    HIT_IMPULSE_MIN: 100, // Significantly increased from 5
+    HIT_IMPULSE_MAX: 600, // Massive physics kick
+    HIT_IMPULSE_MIN: 150, 
     DR_RESET_TIME: 10.0,
-    EXECUTE_THRESHOLD: 0.3, // 30% HP
+    EXECUTE_THRESHOLD: 0.3, 
     BASE_EXECUTE_MULTIPLIER: 1.5,
     BASE_VAMP_PCT: 0.5,
     MANA_BURN_DEFAULT: 30,
@@ -110,39 +101,39 @@ export const COMBAT_PARAM = {
 // --- MATERIAL 2.0 DEFINITIONS ---
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID': { 
-        top: '#1e293b',        // Slate-800
-        sideLight: '#0f172a',  // Slate-900
-        sideDark: '#020617',   // Slate-950
-        detail: '#334155',     // Slate-700 (Circuit lines)
-        rim: '#64748b'         // Slate-500 (Edge Highlight)
+        top: '#1e293b',        
+        sideLight: '#0f172a',  
+        sideDark: '#020617',   
+        detail: '#334155',     
+        rim: '#64748b'         
     },
     'FOREST': { 
-        top: '#15803d',        // Green-700
-        sideLight: '#14532d',  // Green-900
-        sideDark: '#052e16',   // Darker Green
-        detail: '#4ade80',     // Green-400 (Grass blades)
-        rim: '#86efac'         // Green-300 (Sunlight edge)
+        top: '#15803d',        
+        sideLight: '#14532d',  
+        sideDark: '#052e16',   
+        detail: '#4ade80',     
+        rim: '#86efac'         
     }, 
     'ICE': { 
-        top: '#60a5fa',        // Blue-400 (Glacier top)
-        sideLight: '#2563eb',  // Blue-600
-        sideDark: '#1e40af',   // Blue-800
-        detail: '#dbeafe',     // Blue-100 (Frost)
-        rim: '#ffffff'         // Pure White (Specular)
+        top: '#60a5fa',        
+        sideLight: '#2563eb',  
+        sideDark: '#1e40af',   
+        detail: '#dbeafe',     
+        rim: '#ffffff'         
     }, 
     'MAGMA': { 
-        top: '#450a0a',        // Red-950 (Cooling rock)
-        sideLight: '#27272a',  // Zinc-800 (Charred)
-        sideDark: '#18181b',   // Zinc-900
-        detail: '#ef4444',     // Red-500 (Lava veins)
-        rim: '#f87171'         // Red-400 (Glow edge)
+        top: '#450a0a',        
+        sideLight: '#27272a',  
+        sideDark: '#18181b',   
+        detail: '#ef4444',     
+        rim: '#f87171'         
     }, 
     'DESERT': { 
-        top: '#d97706',        // Amber-600
-        sideLight: '#b45309',  // Amber-700
-        sideDark: '#78350f',   // Amber-900
-        detail: '#fbbf24',     // Amber-400 (Sand ripples)
-        rim: '#fcd34d'         // Amber-300 (Bright sand)
+        top: '#d97706',        
+        sideLight: '#b45309',  
+        sideDark: '#78350f',   
+        detail: '#fbbf24',     
+        rim: '#fcd34d'         
     } 
 };
 

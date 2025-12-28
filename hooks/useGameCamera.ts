@@ -26,8 +26,9 @@ export const useGameCamera = (engine: GameEngine) => {
             if (p.x - halfW < minX) minX = p.x - halfW;
             if (p.x + halfW > maxX) maxX = p.x + halfW;
             
+            // Critical: Include the Height of the block in the bounding box
             const visualTop = p.y - h - BLOCK_HEIGHT; 
-            const visualBottom = p.y + BLOCK_HEIGHT/2;
+            const visualBottom = p.y + BLOCK_HEIGHT;
 
             if (visualTop < minY) minY = visualTop;
             if (visualBottom > maxY) maxY = visualBottom;
@@ -35,22 +36,20 @@ export const useGameCamera = (engine: GameEngine) => {
             count++;
         });
 
-        // 2. Unit Bounds (Important if units are flying or high up)
+        // 2. Unit Bounds
         engine.agents.forEach(a => {
             if (a.hp <= 0 && a.fullyDead) return;
-            // Rough unit bounds
             if (a.px < minX) minX = a.px;
             if (a.px > maxX) maxX = a.px;
             
-            // Account for height
             const h = engine.map.getTerrainHeight(a.q, a.r);
-            const topY = a.py - h - 100; // Approx unit height
+            // Include jump height + unit visual height
+            const topY = a.py - h - a.physics.z - 120; 
             if (topY < minY) minY = topY;
             if (a.py > maxY) maxY = a.py;
             count++;
         });
 
-        // Fallback if map is empty
         if (count === 0) {
             const centerHex = { q: Math.floor(engine.mapConfig.w / 2), r: Math.floor(engine.mapConfig.h / 2) };
             const p = HexUtils.toPx(centerHex.q, centerHex.r, engine.mapConfig);
@@ -60,30 +59,31 @@ export const useGameCamera = (engine: GameEngine) => {
 
         const mapCenterX = (minX + maxX) / 2;
         const mapCenterY = (minY + maxY) / 2;
+        const mapW = maxX - minX + 200; // Padding
+        const mapH = maxY - minY + 200;
 
-        // Visual Correction:
-        // Center the calculated bounding box on screen.
+        // Auto Zoom Fit
+        const zoomX = width / mapW;
+        const zoomY = height / mapH;
+        const bestZoom = Math.min(zoomX, zoomY, 1.2); // Cap zoom at 1.2
+
         camera.current.x = mapCenterX;
         camera.current.y = mapCenterY;
+        camera.current.zoom = Math.max(0.5, bestZoom); // Min zoom 0.5
         
-        // SNAP LOGIC
         engine.renderer?.camera.snapTo(camera.current.x, camera.current.y, camera.current.zoom);
 
-    }, [engine.mapConfig, engine.mapKeys, engine.agents]); // Added agents to dependency to frame them if map is small
+    }, [engine.mapConfig, engine.mapKeys, engine.agents]);
 
     const pan = useCallback((dx: number, dy: number) => {
         if (isNaN(dx) || isNaN(dy)) return;
-        if (dx === 0 && dy === 0) return;
-        
-        // Inverted Pan: Dragging right (dx > 0) should move map right.
-        // To move map right, camera must move left (decrease X).
         camera.current.x -= dx / camera.current.zoom;
         camera.current.y -= dy / camera.current.zoom;
     }, []);
 
     const zoom = useCallback((delta: number) => {
         if (isNaN(delta)) return;
-        const newZoom = Math.max(0.5, Math.min(3.0, camera.current.zoom + delta));
+        const newZoom = Math.max(0.4, Math.min(3.0, camera.current.zoom + delta));
         camera.current.zoom = newZoom;
     }, []);
 

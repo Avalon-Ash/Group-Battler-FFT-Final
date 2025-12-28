@@ -2,9 +2,6 @@
 import { UltScriptFn } from "../ultimates/UltTypes";
 import { UltSequencer } from "../ultimates/UltSequencer";
 
-// Reusing UltScriptFn type as the signature is identical (Context -> Void)
-// Using UltSequencer as "VisualSequencer"
-
 export const SKILL_SCRIPTS: Record<string, UltScriptFn> = {
     // ================= BLUE SKILLS =================
     
@@ -38,6 +35,7 @@ export const SKILL_SCRIPTS: Record<string, UltScriptFn> = {
         ctx.vfx.state.particles.push(p);
         
         seq.effect('FX_HIT_BLUE_ARCANE', ctx.target, '#8b5cf6', 0);
+        seq.shake(0.1);
     },
 
     // ================= RED SKILLS =================

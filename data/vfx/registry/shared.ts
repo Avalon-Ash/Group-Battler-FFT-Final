@@ -25,48 +25,59 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     },
     
     // --- BASIC HIT EFFECTS (PHYSICAL REMASTER) ---
-    // Concept: Hardcore Kinetic Impact.
-    // 1. Shockwave (Flattened Ground Ring)
-    // 2. Debris (Solid physics chunks with Gravity)
-    // 3. Spike (Instant Flash)
     
+    // Default Heavy Impact (Stone/Dust)
     'FX_HIT_GENERIC': {
         id: 'FX_HIT_GENERIC',
-        description: 'Physical Ground Impact (Hardcore)',
+        description: 'Heavy physical impact with rubble',
         emitters: [
-            // 1. Ground Shockwave (Flattens to floor)
+            // 1. Shockwave Ring (Flattened)
             {
                 particleType: 'SHOCKWAVE', 
                 count: 1,
-                lifetime: [0.2, 0.2],
-                size: [30, 50],
+                lifetime: [0.2, 0.3],
+                size: [40, 60],
                 colors: ['#ffffff'],
                 speed: [0, 0],
                 shape: 'POINT',
                 blendMode: 'screen',
                 delay: 0
             },
-            // 2. Physical Debris (Gravity & Bounce)
+            // 2. Heavy Rubble (Dark Grey/Brown)
             {
                 particleType: 'RUBBLE',
-                count: [4, 6],
-                lifetime: [0.3, 0.5],
-                size: [4, 8],
-                speed: [150, 350],
-                gravity: 1200,      // Heavy gravity
-                drag: 0.92,         // Air resistance
-                colors: ['#78716c', '#44403c'], // Stone colors
-                blendMode: 'source-over',       // SOLID, not glowing
+                count: [5, 8],
+                lifetime: [0.4, 0.7],
+                size: [6, 12],
+                speed: [200, 450], // Fast ejection
+                gravity: 2000,      // Heavy gravity
+                drag: 0.9,         
+                colors: ['#57534e', '#292524', '#78716c'], // Stone colors
+                blendMode: 'source-over',       
                 shape: 'BURST_DIR',
-                vRotation: [10, 30],
+                vRotation: [20, 60],
                 delay: 0
             },
-            // 3. Impact Spike (Instant Flash, 3 frames only)
+            // 3. Shards (Sharp, Lighter)
             {
-                particleType: 'SPIKE',
+                particleType: 'SHARD',
+                count: [3, 5],
+                lifetime: [0.3, 0.5],
+                size: [4, 8],
+                speed: [300, 600],
+                gravity: 1500,
+                colors: ['#d6d3d1'],
+                shape: 'BURST_DIR',
+                blendMode: 'source-over',
+                vRotation: [40, 90],
+                delay: 0
+            },
+            // 4. Flash
+            {
+                particleType: 'GLOW',
                 count: 1,
-                lifetime: [0.05, 0.05], 
-                size: [60, 90],
+                lifetime: [0.1, 0.15], 
+                size: [80, 120],
                 colors: ['#fff'],
                 speed: [0, 0],
                 shape: 'POINT',
@@ -80,12 +91,11 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         id: 'FX_HIT_FIRE',
         emitters: [
             { particleType: 'RUBBLE', count: [4, 6], lifetime: [0.5, 0.8], size: [20, 40], speed: [50, 100], colors: ['#f97316', '#7c2d12'], shape: 'CIRCLE', blendMode: 'source-over', delay: 0 },
-            { particleType: 'SPIKE', count: 1, lifetime: [0.1, 0.2], size: [50, 80], speed: [0, 0], colors: ['#fbbf24'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [8, 12], lifetime: [0.3, 0.6], size: [3, 5], speed: [300, 500], colors: ['#fcd34d', '#fbbf24'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
+            { particleType: 'SPARK', count: [10, 15], lifetime: [0.3, 0.6], size: [3, 5], speed: [300, 600], colors: ['#fcd34d', '#fbbf24'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
         ]
     },
     
-    // Status Loops - INCREASED SIZES
+    // Status Loops
     'FX_STATUS_POISON_LOOP': {
         id: 'FX_STATUS_POISON_LOOP',
         emitters: [{ particleType: 'RUBBLE', count: 1, lifetime: [1.0, 1.5], size: [15, 25], speed: [10, 30], gravity: -30, colors: ['#a3e635'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'source-over', delay: 0 }]

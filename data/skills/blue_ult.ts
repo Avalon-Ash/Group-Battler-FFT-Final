@@ -1,247 +1,253 @@
 
 import { Role, Skill, Team } from '../../types';
 
-// NOTE: 'visual' field kept for fallback or UI icons.
-// Logic is handled by UltArchitect -> UltRegistry (ImperialTankUlts, etc).
-
 export const BLUE_ULT: Skill[] = [
-    // 🛡️ TANK: Global Defense / Lockdown
+    // =================================================================
+    // 🛡️ TANK (Imperial Defender)
+    // Concept: Global Mitigation, Mass CC, Invulnerability
+    // =================================================================
     { 
         id: 'tb_u1', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '神聖領域', desc: '召喚巨石陣暈眩敵人', 
+        name: '絕對領域 (Sanctuary)', desc: '創造光之領域，暈眩範圍敵人', 
         range: 0, cast: 1.0, cd: 40.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: 250, color: '#f59e0b', 
+        type: 'AOE', aoeRadius: 4, power: 300, color: '#f59e0b', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 3.5, 
         visualHitEffect: 'FX_ULT_BLUE_SANCTUARY_IMPACT' 
     },
     { 
         id: 'tb_u2', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '王者祝福', desc: '自身無敵+持續回血', 
+        name: '泰坦協議 (Titan)', desc: '巨大化並嘲諷全場', 
         range: 0, cast: 0.5, cd: 45.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 0, color: '#fbbf24', 
-        visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 5.0, ccType2: 'HOT', ccForce2: 150, ccDur2: 5.0, 
-        visualHitEffect: 'FX_HIT_BLUE_HOLY', specialVisualStatus: 'STASIS'
+        type: 'AOE', aoeRadius: 8, power: 0, color: '#fbbf24', 
+        visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'TAUNT', ccDur: 6.0, ccType2: 'SHIELD', ccForce2: 800, 
+        visualHitEffect: 'FX_HIT_BLUE_TECH'
     },
     { 
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '神盾降臨', desc: '全體擊退並給予護盾', 
+        name: '神盾空降 (Aegis)', desc: '擊退周圍並給予友軍護盾', 
         range: 0, cast: 0.8, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: 150, color: '#3b82f6', 
+        type: 'AOE', aoeRadius: 5, power: 200, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 8, 
-        ccType2: 'SHIELD', ccForce2: 400, // NEW: Mass Shield
+        ccType: 'KNOCKBACK', ccForce: 6, ccType2: 'SHIELD', ccForce2: 400,
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
         id: 'tb_u4', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '泰坦重擊', desc: '單體超長暈眩', 
-        range: 1, cast: 1.2, cd: 30.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 450, color: '#fcd34d', 
-        visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 5.0, 
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL' 
+        name: '靜滯力場 (Stasis)', desc: '單體長時間放逐', 
+        range: 4, cast: 1.2, cd: 50.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 50, color: '#fcd34d', 
+        visual: 'BEAM', projectileSpeed: 0, 
+        ccType: 'BANISH', ccDur: 8.0, 
+        visualHitEffect: 'FX_HIT_BLUE_HOLY', specialVisualStatus: 'STASIS'
     },
     { 
         id: 'tb_u5', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '最終防線', desc: '群體嘲諷與回血', 
-        range: 0, cast: 0.5, cd: 40.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: -100, color: '#60a5fa', 
+        name: '最終防線 (Final Stand)', desc: '範圍持續回血與減傷', 
+        range: 0, cast: 0.5, cd: 60.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 6, power: -100, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'HOT', ccForce: 100, ccDur: 8, 
-        ccType2: 'TAUNT', ccDur2: 6.0, // NEW: Mass Taunt
+        ccType: 'HOT', ccForce: 150, ccDur: 10.0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
 
-    // ⚔️ WARRIOR: Shockwave / Disruption
+    // =================================================================
+    // ⚔️ WARRIOR (Imperial Knight)
+    // Concept: Mobility Burst, Shockwaves, Execution
+    // =================================================================
     { 
         id: 'wb_u1', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '雷霆跳斬', desc: '突進並釋放電漿衝擊', 
-        range: 6, cast: 1.5, cd: 30.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 400, color: '#3b82f6', 
-        visual: 'SMASH', projectileSpeed: 900, 
-        ccType: 'STUN', ccDur: 2.0, 
+        name: '雷霆墜落 (Thunderfall)', desc: '遠程跳躍轟炸', 
+        range: 8, cast: 1.5, cd: 30.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 3, power: 500, color: '#3b82f6', 
+        visual: 'SMASH', projectileSpeed: 1200, 
+        ccType: 'STUN', ccDur: 2.5, 
         visualHitEffect: 'FX_ULT_BLUE_THUNDER_SLAM' 
     },
     { 
         id: 'wb_u2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '破曉', desc: '太陽耀斑致盲全場', 
-        range: 0, cast: 1.2, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 6, power: 350, color: '#fffbeb', 
+        name: '破曉 (Daybreak)', desc: '全場致盲閃光', 
+        range: 0, cast: 1.2, cd: 40.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 10, power: 300, color: '#fffbeb', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 1.5, 
-        ccType2: 'BLIND', ccDur2: 6.0, // NEW: Mass Blind
+        ccType: 'BLIND', ccDur: 8.0, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
     },
     { 
         id: 'wb_u3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '王者之劍', desc: '斬殺虛弱目標', 
-        range: 2, cast: 0.8, cd: 25.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 700, color: '#facc15', 
+        name: '王者之劍 (Excalibur)', desc: '直線超高傷斬擊', 
+        range: 2, cast: 1.0, cd: 25.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 900, color: '#facc15', 
         visual: 'SLASH', projectileSpeed: 0, 
-        effectType: 'EXECUTE', effectVal: 2.5, 
+        effectType: 'EXECUTE', effectVal: 3.0, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
     },
     { 
         id: 'wb_u4', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '劍刃風暴', desc: '持續範圍高傷', 
-        range: 0, cast: 0.2, cd: 30.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 120, color: '#60a5fa', 
+        name: '極限超載 (Overclock)', desc: '短時間爆發攻速(模擬為DoT輸出)', 
+        range: 1, cast: 0.2, cd: 30.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 150, color: '#60a5fa', 
         visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 80, ccDur: 4, 
+        ccType: 'DOT', ccForce: 150, ccDur: 5.0, 
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL' 
     },
     { 
         id: 'wb_u5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '光速衝擊', desc: '全圖突進暈眩', 
-        range: 10, cast: 1.0, cd: 30.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 350, color: '#e0f2fe', 
-        visual: 'BEAM', projectileSpeed: 2500, 
+        name: '光速衝擊 (Lightspeed)', desc: '全圖衝鋒暈眩', 
+        range: 12, cast: 0.8, cd: 35.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 400, color: '#e0f2fe', 
+        visual: 'BEAM', projectileSpeed: 3000, 
         ccType: 'STUN', ccDur: 3.0, 
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', 
+        visualHitEffect: 'FX_HIT_BLUE_TECH', 
         visualProjectileEffect: 'PROJ_BLUE_SNIPER' 
     },
 
-    // 🏹 RANGER: Precision / Global
+    // =================================================================
+    // 🏹 RANGER (Imperial Sniper)
+    // Concept: Global Snipes, Orbital Strikes, Ice Age
+    // =================================================================
     { 
         id: 'rb_u1', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '水晶巨箭', desc: '全圖凍結暈眩', 
-        range: 12, cast: 2.0, cd: 40.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 500, color: '#60a5fa', 
+        name: '冰河世紀 (Ice Age)', desc: '全圖凍結', 
+        range: 12, cast: 2.0, cd: 60.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 300, color: '#60a5fa', 
         visual: 'ARROW', projectileSpeed: 1500, 
-        ccType: 'STUN', ccDur: 4.0, element: 'ICE',
+        ccType: 'STUN', ccDur: 4.5, element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST', 
         visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW' 
     },
     { 
         id: 'rb_u2', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '星隕箭雨', desc: '召喚流星雨轟炸', 
+        name: '星隕 (Starfall)', desc: '範圍隨機轟炸', 
         range: 8, cast: 1.5, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 350, color: '#fcd34d', 
+        type: 'AOE', aoeRadius: 5, power: 450, color: '#fcd34d', 
         visual: 'ARROW', projectileSpeed: 600, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
     },
     { 
         id: 'rb_u3', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '軌道轟炸', desc: '科技光束打擊', 
-        range: 10, cast: 2.5, cd: 45.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1000, color: '#22d3ee', 
-        visual: 'BEAM', projectileSpeed: 3000, 
+        name: '離子砲 (Ion Cannon)', desc: '單體毀滅打擊', 
+        range: 15, cast: 3.0, cd: 50.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 1500, color: '#22d3ee', 
+        visual: 'BEAM', projectileSpeed: 3500, 
         visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM' 
     },
     { 
         id: 'rb_u4', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '絕對封鎖', desc: '沉默並禁錮敵人', 
-        range: 8, cast: 1.0, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: 150, color: '#8b5cf6', 
+        name: '電磁脈衝 (EMP)', desc: '大範圍沉默與燒魔', 
+        range: 8, cast: 1.0, cd: 40.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 5, power: 200, color: '#8b5cf6', 
         visual: 'BOMB', projectileSpeed: 800, 
-        ccType: 'SILENCE', ccDur: 6.0, 
-        ccType2: 'ROOT', ccDur2: 4.0, // NEW: Mass Root
+        ccType: 'SILENCE', ccDur: 8.0, effectType: 'MANA_BURN', effectVal: 100,
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
         id: 'rb_u5', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '超載連射', desc: '極速單體爆發', 
-        range: 6, cast: 3.0, cd: 30.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 250, color: '#fff', 
-        visual: 'ARROW', projectileSpeed: 1500, 
-        ccType: 'DOT', ccForce: 100, ccDur: 3.0, 
+        name: '飽和射擊 (Barrage)', desc: '對單體極速連射', 
+        range: 7, cast: 2.5, cd: 30.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 150, color: '#fff', 
+        visual: 'ARROW', projectileSpeed: 1800, 
+        ccType: 'DOT', ccForce: 150, ccDur: 3.0, 
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', 
         visualProjectileEffect: 'PROJ_BLUE_SNIPER' 
     },
 
-    // 🔮 MAGE: Black Hole / Time Stop
+    // =================================================================
+    // 🔮 MAGE (Imperial Arcanist)
+    // Concept: Black Holes, Time manipulation, Arcane Torrents
+    // =================================================================
     { 
         id: 'mb_u1', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '事件視界', desc: '黑洞牽引+重力場', 
-        range: 7, cast: 2.0, cd: 45.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 300, color: '#0f172a', 
+        name: '奇異點 (Singularity)', desc: '強力黑洞牽引', 
+        range: 7, cast: 2.0, cd: 50.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 6, power: 400, color: '#0f172a', 
         visual: 'SMASH', projectileSpeed: 200, 
-        ccType: 'PULL', ccForce: 5, ccDur: 5.0, 
+        ccType: 'PULL', ccForce: 10, ccDur: 5.0, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
     { 
         id: 'mb_u2', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '絕對零度', desc: '冰河世紀凍結', 
+        name: '絕對零度 (Zero)', desc: '範圍冰封', 
         range: 6, cast: 1.5, cd: 40.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 200, color: '#e0f2fe', 
+        type: 'AOE', aoeRadius: 5, power: 250, color: '#e0f2fe', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 4.5, element: 'ICE',
+        ccType: 'STUN', ccDur: 5.0, element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST' 
     },
     { 
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '時間停止', desc: '大範圍凝滯', 
-        range: 0, cast: 1.0, cd: 50.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 10, power: 50, color: '#fcd34d', 
+        name: '時空裂隙 (Rift)', desc: '全場凝滯 (除了自己)', 
+        range: 0, cast: 1.0, cd: 60.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 15, power: 100, color: '#fcd34d', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 4.0, 
+        ccType: 'BANISH', ccDur: 5.0, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', specialVisualStatus: 'STASIS'
     },
     { 
         id: 'mb_u4', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '奧術洪流', desc: '全體沉默與燒魔', 
-        range: 0, cast: 1.2, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 6, power: 150, color: '#a855f7', 
+        name: '奧術洪流 (Torrent)', desc: '全場沉默', 
+        range: 0, cast: 1.0, cd: 35.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 8, power: 300, color: '#a855f7', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SILENCE', ccDur: 6.0, effectType: 'MANA_BURN', effectVal: 150, 
+        ccType: 'SILENCE', ccDur: 8.0, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
     { 
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '聚能光束', desc: '持續性雷射傷害', 
+        name: '稜鏡雷射 (Prism)', desc: '單體持續毀滅光束', 
         range: 8, cast: 3.0, cd: 30.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 700, color: '#60a5fa', 
+        type: 'SINGLE', power: 1200, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 150, ccDur: 3.0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
 
-    // ⚕️ SUPPORT: Miracle
+    // =================================================================
+    // ⚕️ SUPPORT (Imperial Medic)
+    // Concept: Mass Resurrect, Invulnerability, Global Mana
+    // =================================================================
     { 
         id: 'sb_u1', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '神聖干涉', desc: '無敵並賦予護盾', 
-        range: 5, cast: 0.5, cd: 50.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: -250, color: '#fef08a', 
+        name: '神聖干涉 (Intervention)', desc: '單體無敵並治療', 
+        range: 6, cast: 0.2, cd: 50.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 3, power: -500, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 4.0, // Stasis
-        ccType2: 'SHIELD', ccForce2: 300, // NEW: Shield after stasis
+        ccType: 'BANISH', ccDur: 4.0, ccType2: 'HOT', ccDur2: 6.0, ccForce2: 100,
         visualHitEffect: 'FX_HIT_BLUE_HOLY', specialVisualStatus: 'STASIS'
     },
     { 
         id: 'sb_u2', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '復活之光', desc: '單體完全治癒', 
-        range: 8, cast: 2.0, cd: 45.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: -2000, color: '#4ade80', 
+        name: '瓦爾基里 (Valkyrie)', desc: '復活陣亡隊友(模擬為大補)', 
+        range: 8, cast: 3.0, cd: 60.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: -2500, color: '#4ade80', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_RESURRECTION' 
     },
     { 
         id: 'sb_u3', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '英勇讚美詩', desc: '全體極速回魔', 
-        range: 0, cast: 3.0, cd: 40.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 12, power: 0, color: '#3b82f6', 
+        name: '智慧之光 (Wisdom)', desc: '全體大量回魔', 
+        range: 0, cast: 2.0, cd: 40.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 15, power: 0, color: '#3b82f6', 
         visual: 'BEAM', projectileSpeed: 0, 
-        effectType: 'MANA_RESTORE', effectVal: 200, 
+        effectType: 'MANA_RESTORE', effectVal: 300, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE' 
     },
     { 
         id: 'sb_u4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '神之怒', desc: '擊退並暈眩敵人', 
-        range: 0, cast: 1.0, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 200, color: '#fcd34d', 
+        name: '天譴 (Wrath)', desc: '神聖閃電轟炸', 
+        range: 0, cast: 1.0, cd: 40.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 6, power: 400, color: '#fcd34d', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 8, ccType2: 'STUN', ccDur2: 2.0, 
+        ccType: 'STUN', ccDur: 2.0, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
     },
     { 
         id: 'sb_u5', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '寧靜之雨', desc: '全場持續治療', 
-        range: 0, cast: 2.0, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 20, power: -50, color: '#86efac', 
+        name: '寧靜 (Tranquility)', desc: '全場持續治療雨', 
+        range: 0, cast: 2.0, cd: 45.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 20, power: -200, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'HOT', ccForce: 40, ccDur: 8.0, 
+        ccType: 'HOT', ccForce: 80, ccDur: 10.0, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
-    },
+    }
 ];
