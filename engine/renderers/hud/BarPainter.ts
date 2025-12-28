@@ -52,6 +52,10 @@ export const BarPainter = {
 
         // HP Bar - Faction Colored
         const hpPct = Math.max(0, agent.hp / agent.maxHp);
+        
+        // Calculate Shield Pct (Relative to Max HP)
+        const shieldPct = Math.max(0, agent.shield / agent.maxHp);
+        
         let hpTop, hpBot, hpGlow;
 
         if (agent.team === Team.BLUE) {
@@ -66,7 +70,46 @@ export const BarPainter = {
             hpGlow = 'rgba(220, 38, 38, 0.5)';
         }
 
+        // Draw Base HP
         this.drawFluidBar(ctx, barX, barY, contentW, hpHeight, hpPct, hpTop, hpBot, hpGlow);
+
+        // Draw Shield Overlay
+        if (shieldPct > 0) {
+            // Shield starts where HP ends
+            const shieldStartX = barX + (contentW * hpPct);
+            // Cap visual shield width so it doesn't overflow container absurdly (max 100% of bar width total)
+            const remainingSpace = 1.0 - hpPct;
+            const visualShieldPct = Math.min(shieldPct, remainingSpace + 0.2); // Allow slight overflow visual
+            const shieldW = contentW * visualShieldPct;
+            
+            // Shield Colors (White/Grey/Blue-ish)
+            const shieldTop = '#e2e8f0';
+            const shieldBot = '#94a3b8';
+            
+            ctx.save();
+            ctx.beginPath();
+            if (ctx.roundRect) ctx.roundRect(shieldStartX, barY, shieldW, hpHeight, 0);
+            else ctx.rect(shieldStartX, barY, shieldW, hpHeight);
+            
+            const grad = ctx.createLinearGradient(shieldStartX, barY, shieldStartX, barY + hpHeight);
+            grad.addColorStop(0, shieldTop);
+            grad.addColorStop(1, shieldBot);
+            ctx.fillStyle = grad;
+            ctx.fill();
+            
+            // Shield Border to separate from HP
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Over-shield indicator (if shield exceeds max HP visual)
+            if (hpPct + shieldPct > 1.0) {
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.strokeRect(barX, barY, contentW, hpHeight);
+            }
+            ctx.restore();
+        }
 
         // MP Bar - Always Blue/Purple
         if (hasMp) {

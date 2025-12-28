@@ -4,7 +4,6 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
-import { LOG_COLORS } from "../constants";
 
 // Core Entities
 import { Agent, SpecialVisualStatus } from "./core/Agent";
@@ -17,7 +16,8 @@ import { MapSystem } from "./systems/map";
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
 import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
-import { DirectorSystem } from "./systems/DirectorSystem"; // New Import
+import { DirectorSystem } from "./systems/DirectorSystem"; 
+import { BattleLogger } from "./systems/BattleLogger"; // New Import
 import { EventBus } from "./events/EventBus";
 import type { GameRenderer } from "./renderer";
 
@@ -32,6 +32,9 @@ export class GameEngine {
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
     get projectiles() { return this.combat.projectiles; }
+    
+    // Proxy for Logger Access
+    get logs() { return this.logger.logs; }
 
     public events: GameEvent[] = [];
     public bus: EventBus = new EventBus();
@@ -54,7 +57,6 @@ export class GameEngine {
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0 };
     public currentScene: SceneTheme = SCENE_DB[0];
     
-    public logs: LogEntry[] = [];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
     public agentMap: Map<number, Agent> = new Map();
@@ -67,7 +69,8 @@ export class GameEngine {
     public ai: AISystem;
     public agentManager: AgentManager;
     public announcer: AnnouncerSystem; 
-    public director: DirectorSystem; // New System
+    public director: DirectorSystem;
+    public logger: BattleLogger; // New System
 
     // Proxy for Renderer Access
     get directorTargetId() { return this.director.targetId; }
@@ -81,6 +84,7 @@ export class GameEngine {
         this.agentManager = new AgentManager();
         this.announcer = new AnnouncerSystem(); 
         this.director = new DirectorSystem();
+        this.logger = new BattleLogger();
         this.map.randomizeEnvironment(this);
     }
 
@@ -128,7 +132,7 @@ export class GameEngine {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
             this.battleTime = 0;
-            this.logs = [];
+            this.logger.clear();
             this.isFinishing = false;
             this.winningTeam = null;
             this.targetTimeScale = 1.0;
@@ -207,7 +211,7 @@ export class GameEngine {
             this.renderer.vfx.reset();
         }
         
-        this.logs = [];
+        this.logger.clear();
         
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 
@@ -312,39 +316,6 @@ export class GameEngine {
     }
     
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {
-        const time = this.battleTime.toFixed(1);
-        let color = LOG_COLORS.SYSTEM;
-
-        switch(type) {
-            case 'MOVE': color = LOG_COLORS.MOVE; break;
-            case 'CAST': color = LOG_COLORS.CAST; break;
-            case 'HIT': color = LOG_COLORS.HIT; break;
-            case 'HEAL': color = LOG_COLORS.HEAL; break;
-            case 'DECISION': color = LOG_COLORS.DECISION; break;
-            case 'DEATH': color = LOG_COLORS.DEATH; break;
-            case 'CC': color = LOG_COLORS.CC; break;
-            case 'HAZARD': color = LOG_COLORS.HAZARD; break;
-            default: color = LOG_COLORS.SYSTEM; break;
-        }
-
-        const entry: LogEntry = {
-            id: Math.random().toString(36),
-            time,
-            turn: Math.floor(this.battleTime * 10),
-            agentId: agent?.id || 'SYSTEM',
-            team: agent?.team,
-            location: agent ? `(${agent.q},${agent.r})` : 'global',
-            actionType: type,
-            actionName: actionName,
-            targetInfo: targetInfo || '',
-            detail: detail,
-            visualColor: color,
-            action: actionName,
-            target: targetInfo || '',
-            loc: agent ? `@(${agent.q},${agent.r})` : ''
-        };
-
-        this.logs.push(entry);
-        if (this.logs.length > 5000) this.logs.shift(); 
+        this.logger.log(this.battleTime, this.battleTime * 10, agent, type, actionName, targetInfo, detail);
     }
 }

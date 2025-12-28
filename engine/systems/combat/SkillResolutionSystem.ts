@@ -127,7 +127,7 @@ export class SkillResolutionSystem {
         const result = DamageCalculator.calculate(source, target, skill);
         
         if (result.isMiss) {
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "MISS", color: "#94a3b8" });
+            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "未命中", color: "#94a3b8" });
             return;
         }
 
@@ -136,7 +136,7 @@ export class SkillResolutionSystem {
         if (result.shieldAbsorb > 0) {
             target.shield -= result.shieldAbsorb;
             if (result.shieldAbsorb > 20) {
-                engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "ABSORB", color: "#bae6fd" });
+                engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "吸收", color: "#bae6fd" });
             }
         }
 
@@ -168,8 +168,8 @@ export class SkillResolutionSystem {
         }
 
         if (result.isExecute) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "斬殺!", color: "#dc2626" });
-        if (result.isCrit) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "CRIT!", color: "#ef4444" });
-        if (result.isBlock) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "BLOCK", color: "#9ca3af" });
+        if (result.isCrit) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "暴擊!", color: "#ef4444" });
+        if (result.isBlock) engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "格擋", color: "#9ca3af" });
 
         engine.events.push({
             type: result.finalValue < 0 ? 'DAMAGE' : 'HEAL',
