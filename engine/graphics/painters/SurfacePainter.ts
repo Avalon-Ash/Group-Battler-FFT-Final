@@ -18,7 +18,7 @@ export const SurfacePainter = {
         const r = HEX_SIZE * 0.9;
         
         // 1. Base Liquid Shape (Wobbly)
-        // OPTIMIZED: Reduced segments from 12 to 8. Pre-calculated constants where possible.
+        // Optimized: Reduced segments
         ctx.beginPath();
         const segments = 8; 
         const twoPi = Math.PI * 2;
@@ -41,17 +41,15 @@ export const SurfacePainter = {
         // 3. Surface Ripples (Darker)
         ctx.globalCompositeOperation = 'multiply';
         ctx.beginPath();
-        // Optimized ripple math
         const rippleX = Math.sin(time) * 4;
         const rippleY = Math.cos(time * 0.7) * 4;
         ctx.ellipse(rippleX, rippleY, r * 0.6, r * 0.5, time * 0.1, 0, twoPi);
         ctx.fill();
 
-        // 4. Specular Highlights (Bubbles/Reflection)
+        // 4. Specular Highlights
         ctx.globalCompositeOperation = 'overlay';
         ctx.fillStyle = '#fff';
         ctx.globalAlpha = 0.5;
-        
         const bX = Math.cos(time * 1.5) * r * 0.4;
         const bY = Math.sin(time * 1.5) * r * 0.4;
         ctx.beginPath(); ctx.ellipse(bX, bY, 6, 3, 0, 0, twoPi); ctx.fill();
@@ -119,6 +117,9 @@ export const SurfacePainter = {
         ctx.restore();
     },
 
+    /**
+     * Optimized: Uses Cached Textures from VFXFactory instead of drawing paths every frame.
+     */
     drawDetailTexture(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
@@ -126,64 +127,11 @@ export const SurfacePainter = {
         color: string,
         seed: number
     ) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(1, ISO_SCALE_Y);
-        
-        ctx.fillStyle = color;
-        ctx.globalAlpha = type === 'VOID' ? 0.1 : 0.3;
+        // Derive a stable variant index (0-3) from the seed or coords
+        const variant = Math.abs(Math.floor(seed * 100));
+        const texture = VFXFactory.getTerrainDetail(type, color, variant);
+        const size = texture.width; // Should be HEX_SIZE * 2
 
-        const rnd = (offset: number) => {
-            const v = Math.sin(seed + offset) * 1000;
-            return v - Math.floor(v);
-        };
-
-        if (type === 'FOREST') {
-            for(let i=0; i<8; i++) {
-                const px = (rnd(i) - 0.5) * HEX_SIZE * 1.4;
-                const py = (rnd(i+10) - 0.5) * HEX_SIZE * 1.4;
-                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
-                
-                ctx.beginPath();
-                ctx.moveTo(px, py);
-                ctx.lineTo(px - 1.5, py - 5);
-                ctx.lineTo(px + 1.5, py - 5);
-                ctx.fill();
-            }
-        } else if (type === 'DESERT') {
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1.5;
-            ctx.lineCap = 'round';
-            for(let i=0; i<3; i++) {
-                const py = (rnd(i) - 0.5) * HEX_SIZE;
-                ctx.beginPath();
-                ctx.moveTo(-10, py);
-                ctx.quadraticCurveTo(0, py + 4, 10, py);
-                ctx.stroke();
-            }
-        } else if (type === 'VOID') {
-             ctx.strokeStyle = color;
-             ctx.lineWidth = 1;
-             ctx.beginPath();
-             const px = (rnd(1) - 0.5) * HEX_SIZE;
-             const py = (rnd(2) - 0.5) * HEX_SIZE;
-             ctx.moveTo(px, py);
-             ctx.lineTo(px + 10, py);
-             ctx.lineTo(px + 15, py + 5);
-             ctx.stroke();
-             ctx.fillStyle = color;
-             ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
-        } else {
-            for(let i=0; i<5; i++) {
-                const px = (rnd(i*2) - 0.5) * HEX_SIZE * 1.2;
-                const py = (rnd(i*2+1) - 0.5) * HEX_SIZE * 1.2;
-                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
-                ctx.beginPath();
-                ctx.arc(px, py, 1.5 + rnd(i*3), 0, Math.PI*2);
-                ctx.fill();
-            }
-        }
-        
-        ctx.restore();
+        ctx.drawImage(texture, x - size/2, y - size/2);
     }
 };

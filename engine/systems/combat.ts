@@ -24,8 +24,6 @@ export class CombatSystem {
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
         // --- LOOP BUG FIX: Strict State Check ---
-        // Prevents AI from spamming initiateCast when unit is disabled,
-        // which causes infinite CastStart -> CastBreak loops.
         const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
         if (isHardCC) return NodeState.FAILURE;
 
@@ -72,67 +70,8 @@ export class CombatSystem {
         // 2. Projectile Physics & Impacts
         this.projectileSystem.update(dt, engine, this.skillResolution);
 
-        // 3. Update Hazards (Visuals + Logic)
-        engine.map.tickHazards(dt, engine);
-        this.resolveHazardEffects(dt, engine);
-        
-        // 4. Update Field Physics (Gravity/Suction) from Hazards
-        this.updateHazardPhysics(dt, engine);
-    }
-
-    private resolveHazardEffects(dt: number, engine: GameEngine) {
-        // Iterate Hazards directly to trigger the Pulse logic
-        for (const h of engine.map.hazards.values()) {
-            if (h.timer <= 0) {
-                h.timer = h.interval; // Reset tick
-                
-                // Find units in this tile
-                const occupants = engine.agents.filter(a => 
-                    a.hp > 0 && !a.banished && a.q === h.q && a.r === h.r && a.team !== h.team
-                );
-                
-                occupants.forEach(agent => {
-                    if (agent.movementType === 1 && (h.type === 'FIRE')) return; // Flyers avoid fire
-
-                    const dmg = h.power;
-                    agent.hp = Math.max(0, agent.hp - dmg);
-                    
-                    // Visual Feedback
-                    engine.events.push({ 
-                        type: 'DAMAGE', 
-                        pos: {x: agent.px, y: agent.py}, 
-                        value: -Math.floor(dmg), 
-                        color: h.color,
-                        // Mock skill for color consistency in renderer
-                        skill: { color: h.color, ccType: 'DOT' } as any 
-                    });
-
-                    engine.log(agent, 'HAZARD', h.type, `(${h.q},${h.r})`, `受到地形傷害 ${Math.floor(dmg)}`);
-                });
-            }
-        }
-    }
-
-    private updateHazardPhysics(dt: number, engine: GameEngine) {
-        engine.agents.forEach(agent => {
-            if (agent.hp <= 0 || agent.banished) return;
-            const hazard = engine.map.getHazardAt(agent.q, agent.r);
-            
-            if (hazard && hazard.type === 'GRAVITY' && hazard.team !== agent.team) {
-                // Pull towards center of hazard
-                const center = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
-                const dx = center.x - agent.px;
-                const dy = center.y - agent.py;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist > 5) {
-                    const pull = 300 * dt;
-                    agent.physics.vx += (dx/dist) * pull;
-                    agent.physics.vy += (dy/dist) * pull;
-                    agent.moveSpeedMult = 0.3; // Slow down
-                }
-            }
-        });
+        // 3. Update Hazards (Logic & Physics)
+        engine.hazards.update(dt, engine);
     }
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {

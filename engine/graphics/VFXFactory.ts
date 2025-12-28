@@ -4,6 +4,7 @@ import { GeometryPainter } from "./painters/GeometryPainter";
 import { ParticlePainter } from "./painters/ParticlePainter";
 import { ProjectilePainter } from "./painters/ProjectilePainter";
 import { IconPainter } from "./painters/IconPainter";
+import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
 const TEXTURE_SIZE = 64; 
 const CENTER = TEXTURE_SIZE / 2;
@@ -68,7 +69,6 @@ export class VFXTextureCache {
                 GeometryPainter.drawHex(ctx, 0, 0, r * 0.9, 'STROKE');
                 ctx.beginPath(); ctx.arc(0, 0, r*0.7, 0, Math.PI*2); ctx.stroke();
                 break;
-            // NEW: Pre-rendered Hatch Pattern for AOE Warnings
             case 'WARNING_HATCH':
                 this.drawWarningHatch(ctx, r, color);
                 break;
@@ -83,16 +83,89 @@ export class VFXTextureCache {
         return canvas;
     }
 
+    // --- TERRAIN DETAIL CACHING (FPS OPTIMIZATION) ---
+    // Generates 4 variations of terrain detail (Grass, Sand, etc.) to avoid real-time drawing.
+    public getTerrainDetail(type: string, color: string, variant: number): HTMLCanvasElement {
+        const vIdx = variant % 4;
+        const key = `TERRAIN_${type}_${color}_${vIdx}`;
+        if (this.cache.has(key)) return this.cache.get(key)!;
+
+        // Texture size should match HEX_SIZE roughly but buffered
+        const size = HEX_SIZE * 2; 
+        const { canvas, ctx } = createCanvas(size, size);
+        const cx = size / 2;
+        const cy = size / 2;
+        
+        ctx.translate(cx, cy);
+        ctx.scale(1, ISO_SCALE_Y); // Pre-scale for ISO
+
+        // Use a consistent pseudo-random seed based on variant
+        const rnd = (offset: number) => {
+            const v = Math.sin(vIdx * 999 + offset) * 1000;
+            return v - Math.floor(v);
+        };
+
+        ctx.fillStyle = color;
+        ctx.globalAlpha = type === 'VOID' ? 0.1 : 0.3;
+
+        if (type === 'FOREST') {
+            for(let i=0; i<8; i++) {
+                const px = (rnd(i) - 0.5) * HEX_SIZE * 1.4;
+                const py = (rnd(i+10) - 0.5) * HEX_SIZE * 1.4;
+                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
+                
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(px - 1.5, py - 5);
+                ctx.lineTo(px + 1.5, py - 5);
+                ctx.fill();
+            }
+        } else if (type === 'DESERT') {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1.5;
+            ctx.lineCap = 'round';
+            for(let i=0; i<3; i++) {
+                const py = (rnd(i) - 0.5) * HEX_SIZE;
+                ctx.beginPath();
+                ctx.moveTo(-10, py);
+                ctx.quadraticCurveTo(0, py + 4, 10, py);
+                ctx.stroke();
+            }
+        } else if (type === 'VOID') {
+             ctx.strokeStyle = color;
+             ctx.lineWidth = 1;
+             ctx.beginPath();
+             const px = (rnd(1) - 0.5) * HEX_SIZE;
+             const py = (rnd(2) - 0.5) * HEX_SIZE;
+             ctx.moveTo(px, py);
+             ctx.lineTo(px + 10, py);
+             ctx.lineTo(px + 15, py + 5);
+             ctx.stroke();
+             ctx.fillStyle = color;
+             ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
+        } else {
+            // Default Stones/Dots
+            for(let i=0; i<5; i++) {
+                const px = (rnd(i*2) - 0.5) * HEX_SIZE * 1.2;
+                const py = (rnd(i*2+1) - 0.5) * HEX_SIZE * 1.2;
+                if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
+                ctx.beginPath();
+                ctx.arc(px, py, 1.5 + rnd(i*3), 0, Math.PI*2);
+                ctx.fill();
+            }
+        }
+
+        this.cache.set(key, canvas);
+        return canvas;
+    }
+
     private drawWarningHatch(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        // Draw Hex Mask
         ctx.save();
         GeometryPainter.drawHex(ctx, 0, 0, r, 'FILL');
         ctx.globalCompositeOperation = 'source-in';
-        
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
         
-        // Draw Stripes
         const size = r * 2;
         const spacing = 10;
         ctx.beginPath();
@@ -102,63 +175,36 @@ export class VFXTextureCache {
         }
         ctx.stroke();
         
-        // Border
         ctx.globalCompositeOperation = 'source-over';
         ctx.lineWidth = 2;
         GeometryPainter.drawHex(ctx, 0, 0, r, 'STROKE');
-        
         ctx.restore();
     }
 
-    /**
-     * Entry point for Projectile Sprites (High detail, directional)
-     */
     public generateProjectileSprite(visual: string, color: string): HTMLCanvasElement {
         const key = `PROJ_${visual}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
-        // Projectiles need wider canvas for trails/speed
         const { canvas, ctx } = createCanvas(128, 64);
         const cx = 64, cy = 32;
         ctx.translate(cx, cy);
 
-        // --- DISPATCHER ---
         switch (visual) {
             case 'HEX_DART':
-            case 'ARROW':
-                ProjectilePainter.drawImperialSniper(ctx, color);
-                break;
-            case 'CRYSTAL':
-                ProjectilePainter.drawImperialCrystal(ctx, color);
-                break;
-            case 'ORB':
-                ProjectilePainter.drawImperialOrb(ctx, color);
-                break;
-            case 'BOLT':
-                ProjectilePainter.drawCovenantBolt(ctx, color);
-                break;
-            case 'AXE':
-                ProjectilePainter.drawCovenantAxe(ctx, color);
-                break;
-            case 'FIREBALL':
-                ProjectilePainter.drawCovenantFireball(ctx, color);
-                break;
-            case 'BOMB':
-                ProjectilePainter.drawBomb(ctx, color);
-                break;
-            default:
-                // Fallback Bolt
-                ProjectilePainter.drawCovenantBolt(ctx, color);
-                break;
+            case 'ARROW': ProjectilePainter.drawImperialSniper(ctx, color); break;
+            case 'CRYSTAL': ProjectilePainter.drawImperialCrystal(ctx, color); break;
+            case 'ORB': ProjectilePainter.drawImperialOrb(ctx, color); break;
+            case 'BOLT': ProjectilePainter.drawCovenantBolt(ctx, color); break;
+            case 'AXE': ProjectilePainter.drawCovenantAxe(ctx, color); break;
+            case 'FIREBALL': ProjectilePainter.drawCovenantFireball(ctx, color); break;
+            case 'BOMB': ProjectilePainter.drawBomb(ctx, color); break;
+            default: ProjectilePainter.drawCovenantBolt(ctx, color); break;
         }
 
         this.cache.set(key, canvas);
         return canvas;
     }
 
-    /**
-     * Helpers for other systems
-     */
     public generateGlowOrb(color: string): HTMLCanvasElement { return this.getTexture('ATMOSPHERE', color); }
     public generateCracks(color: string): HTMLCanvasElement { return this.getTexture('CRACKS', color); }
     
@@ -171,7 +217,6 @@ export class VFXTextureCache {
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
         ctx.beginPath();
-        // Cloud shape
         ctx.arc(64, 32, 30, 0, Math.PI*2);
         ctx.arc(44, 32, 20, 0, Math.PI*2);
         ctx.arc(84, 32, 20, 0, Math.PI*2);
@@ -183,7 +228,7 @@ export class VFXTextureCache {
     public generateBlastZone(color: string): HTMLCanvasElement {
         const key = `BLAST_ZONE_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
-        return this.getTexture('SHOCKWAVE', color); // Simplified reuse
+        return this.getTexture('SHOCKWAVE', color); 
     }
 }
 

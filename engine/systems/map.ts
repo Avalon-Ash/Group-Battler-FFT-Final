@@ -4,7 +4,6 @@ import { HexUtils } from "../utils";
 import { MovementType, GroundHazard, Team } from "../../types";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { MapGenerator } from "./map/MapGenerator";
-import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
 
 export class MapSystem {
     public mapKeys: Set<string> = new Set();
@@ -14,11 +13,9 @@ export class MapSystem {
     public obstaclesHash: Set<number> = new Set();
     
     public heightMap: Map<string, number> = new Map();
-    public hazards: Map<string, GroundHazard> = new Map();
 
     constructor() {}
 
-    // ... (Existing accessors and basic mutators) ...
     public getTerrainHeight(q: number, r: number): number { return this.heightMap.get(HexUtils.key({q, r})) || 0; }
     public getHeightByKey(key: string): number { return this.heightMap.get(key) || 0; }
     public getMapKeys(): Set<string> { return this.mapKeys; }
@@ -28,7 +25,6 @@ export class MapSystem {
     public hasObstacleHash(h: number) { return this.obstaclesHash.has(h); }
 
     public resetData() {
-        this.hazards.clear(); 
         this.mapKeys.clear();
         this.validHashes.clear();
         this.obstacles.clear();
@@ -116,51 +112,9 @@ export class MapSystem {
             return dest.q === q && dest.r === r;
         });
     }
-
-    public addHazard(
-        q: number, r: number, 
-        type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC', 
-        duration: number, 
-        sourceId: string, 
-        team: Team, 
-        color: string,
-        power: number,
-        interval: number,
-        engine?: GameEngine // Passed optionally for VFX
-    ) {
-        if (!this.isValid(q, r)) return;
-        const key = HexUtils.key({q, r});
-        
-        // Don't overwrite if stronger hazard exists? For now, overwrite.
-        const hazard: GroundHazard = {
-            id: Math.random().toString(36).substr(2, 6),
-            q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
-        };
-        
-        this.hazards.set(key, hazard);
-
-        // --- NEW: Trigger VFX ---
-        if (engine && engine.renderer) {
-            const def = HAZARD_VISUALS[type];
-            if (def && def.spawnVfx) {
-                const px = HexUtils.toPx(q, r, engine.mapConfig);
-                const h = this.getTerrainHeight(q, r);
-                engine.renderer.vfx.playEffect(def.spawnVfx, px.x, px.y, h);
-            }
-        }
-    }
-
-    public getHazardAt(q: number, r: number): GroundHazard | undefined {
-        return this.hazards.get(HexUtils.key({q, r}));
-    }
-
-    public tickHazards(dt: number, engine: GameEngine) {
-        const toRemove: string[] = [];
-        for (const [key, h] of this.hazards.entries()) {
-            h.duration -= dt;
-            h.timer -= dt;
-            if (h.duration <= 0) toRemove.push(key);
-        }
-        toRemove.forEach(k => this.hazards.delete(k));
+    
+    // Hazards moved to HazardSystem
+    public getHazardAt(q: number, r: number, engine: GameEngine): GroundHazard | undefined {
+        return engine.hazards.getHazardAt(q, r);
     }
 }

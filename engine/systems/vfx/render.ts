@@ -41,7 +41,6 @@ export class VFXRenderer {
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
             // Only Physical types that should be occluded by units
-            // Added ROCK to the list
             if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) {
                 
                 const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
@@ -55,17 +54,21 @@ export class VFXRenderer {
                 
                 // V6.1 FIX: Use correct sorting by Ground Y, but draw at Visual Y
                 // Visual Y = GroundY - Height(z)
-                // We do NOT need to look up terrain height again if `p.z` contains it (which it does now from EventVFXMapper)
-                
                 op.y = p.y + offset; // Sort Key (Ground Level)
                 op.z = 5;
-                op.sortBias = p.sortBias || 0; // Pass the bias
+                op.sortBias = p.sortBias || 0; 
                 
+                // Z-FIGHTING FIX: Lift giant flat effects slightly
+                let visualLift = 0;
+                if (p.type === 'GIANT_HEX' || p.type === 'GRID_FIELD' || p.type === 'DOMAIN') {
+                    visualLift = 5; 
+                }
+
                 op.particle = p;
                 op.vProgress = progress;
                 op.vChaos = isChaos;
                 op.tx = p.x;
-                op.ty = p.y + offset - p.z; // Drawing Y: Lifted by Z (Height)
+                op.ty = p.y + offset - p.z - visualLift; // Drawing Y
                 op.th = p.z; // Height used for shadow calc
             }
         });

@@ -16,7 +16,7 @@ export const HazardManager = {
 
         if (hType) {
             cells.forEach(tile => {
-                engine.map.addHazard(
+                engine.hazards.addHazard(
                     tile.q, tile.r, 
                     hType, 
                     dur, 

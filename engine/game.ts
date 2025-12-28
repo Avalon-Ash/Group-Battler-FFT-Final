@@ -10,10 +10,11 @@ import { Agent, SpecialVisualStatus } from "./core/Agent";
 
 // Systems
 import { MovementSystem } from "./systems/movement";
-import { PhysicsSystem } from "./systems/PhysicsSystem"; // New
+import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { StatusSystem } from "./systems/status";
 import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
+import { HazardSystem } from "./systems/HazardSystem"; // New
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
 import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
@@ -67,10 +68,11 @@ export class GameEngine {
 
     // Systems
     public movement: MovementSystem;
-    public physics: PhysicsSystem; // New
+    public physics: PhysicsSystem; 
     public status: StatusSystem;
     public combat: CombatSystem;
     public map: MapSystem;
+    public hazards: HazardSystem; // New
     public ai: AISystem;
     public agentManager: AgentManager;
     public announcer: AnnouncerSystem; 
@@ -88,6 +90,7 @@ export class GameEngine {
         this.status = new StatusSystem();
         this.combat = new CombatSystem();
         this.map = new MapSystem();
+        this.hazards = new HazardSystem();
         this.ai = new AISystem();
         this.agentManager = new AgentManager();
         this.announcer = new AnnouncerSystem(); 
@@ -170,6 +173,7 @@ export class GameEngine {
         this.victory.reset();
         this.time.reset();
         this.agentMap.clear();
+        this.hazards.reset();
         this.announcer.reset(); 
         this.director.reset();
         
@@ -199,6 +203,7 @@ export class GameEngine {
         this.stop();
         this.agents = [];
         this.agentMap.clear();
+        this.hazards.reset();
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.announcer.reset();

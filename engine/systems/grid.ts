@@ -196,7 +196,8 @@ export class GridSystem {
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            const hazard = engine.map.getHazardAt(q, r);
+            // Updated to use engine.hazards
+            const hazard = engine.hazards.getHazardAt(q, r);
 
             // Projectile Lights
             let lightColor = null;

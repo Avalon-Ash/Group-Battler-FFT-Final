@@ -64,7 +64,7 @@ export class ProjectileSystem {
                             if (p.skill.name.includes('冰') || p.skill.name.includes('Frost')) hType = 'ICE';
                             
                             affectedTiles.forEach(tile => {
-                                engine.map.addHazard(
+                                engine.hazards.addHazard(
                                     tile.q, tile.r, 
                                     hType, 
                                     dur, 
@@ -72,7 +72,8 @@ export class ProjectileSystem {
                                     source.team, 
                                     p.skill.color,
                                     (p.skill.power * 0.2) || 10, 
-                                    0.5 
+                                    0.5,
+                                    engine 
                                 );
                             });
                         }
