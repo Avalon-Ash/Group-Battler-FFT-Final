@@ -2,11 +2,13 @@
 import { VolumePainter } from "../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { CAST_VISUALS } from "../../../data/vfx/cast_visuals";
+import { VFXFactory } from "../../graphics/VFXFactory";
+import { ISO_SCALE_Y } from "../../../constants";
 
 export const ZoneRenderer = {
     
     /**
-     * Volumetric Hex Expansion with Warning Support
+     * Optimized Zone Drawer using Sprites
      */
     drawZone(
         ctx: CanvasRenderingContext2D,
@@ -41,36 +43,52 @@ export const ZoneRenderer = {
 
         if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;
 
-        // A. INNER FILL
-        // For WARNINGS & ULTS, we draw volumetric fill
+        // A. INNER FILL (Using Sprites)
         if (isInsideWave || isWarning) {
             
             if (isWarning) {
-                // Danger: Hatched Prism (Height 14, Opacity ~0.2)
+                // Danger: Hatched Prism - Cached in VolumePainter
                 VolumePainter.drawWarningBlock(ctx, x, y, size, color, pulse);
             } 
             else if (isUlt) {
                 // Friendly Ult: Smooth Prism
-                // Balance intensity with warning (Height 30 -> 14, Opacity 0.4 -> 0.25)
                 const height = 14;
                 VolumePainter.draw3DPrism(ctx, x, y, size, height, color, 0.25 * pulse, 'SOLID');
             }
             else {
-                // Basic/Active: Fog
-                let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
-                VolumePainter.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
+                // Basic/Active: Sprite Base
+                const opacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
+                const texture = VFXFactory.getTexture('ZONE_BASE', color);
+                const drawSize = size * 2.8;
+                
+                ctx.translate(x, y);
+                ctx.scale(1, ISO_SCALE_Y);
+                ctx.globalAlpha = opacity;
+                ctx.drawImage(texture, -drawSize/2, -drawSize/2, drawSize, drawSize);
+                // Undo transform for next layers
+                ctx.scale(1, 1/ISO_SCALE_Y);
+                ctx.translate(-x, -y);
             }
         }
 
-        // B. EXPANDING EDGE (Ripple)
+        // B. EXPANDING EDGE (Using Ripple Sprite)
         if (isWaveEdge) {
             const edgeOpacity = def.fillOpacityMax * pulse;
-            const edgeWidth = (def.baseRingWidth || 3);
-            VolumePainter.drawHexRipple(ctx, x, y, size, color, edgeOpacity, edgeWidth);
+            const texture = VFXFactory.getTexture('ZONE_RIPPLE', color);
+            const drawSize = size * 2.5;
+
+            ctx.translate(x, y);
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.globalAlpha = edgeOpacity;
+            ctx.drawImage(texture, -drawSize/2, -drawSize/2, drawSize, drawSize);
+            // Undo
+            ctx.scale(1, 1/ISO_SCALE_Y);
+            ctx.translate(-x, -y);
         }
 
         // C. PERIMETER MARKER (Always Visible for Warning)
-        // If it's a warning or ult, the block already handles the rim
+        // Optimized: Only trace path if strictly necessary (border logic)
+        // Reduced frequency: only draw solid border, no dashed logic for standard tiles
         const showBorder = (!isWarning && !isUlt) && (dist >= maxRadius - 0.5);
         if (showBorder) {
             const borderAlpha = Math.max(0, Math.min(1, (progress * 3) - 0.5)) * 0.4;
@@ -79,11 +97,9 @@ export const ZoneRenderer = {
             ctx.lineWidth = 1; 
             ctx.globalAlpha = borderAlpha;
             
-            if (def.dashed) ctx.setLineDash([5, 5]);
-            
+            // Only use HexGeometry pathing here as it is efficient enough for single outline
             HexGeometry.traceHex(ctx, x, y, size);
             ctx.stroke();
-            ctx.setLineDash([]);
         }
 
         ctx.restore();

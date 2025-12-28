@@ -2,17 +2,19 @@
 import { Agent, GameEngine } from "../game";
 import { Projectile, Skill, NodeState, AnimState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
-import { SkillResolutionSystem } from "./combat/SkillResolutionSystem";
-import { HexUtils, Vector } from "../utils";
-import { HEX_SIZE } from "../../constants";
+import { CastingEngine } from "./combat/CastingEngine";
+import { SkillExecutor } from "./combat/SkillExecutor";
+import { HexUtils } from "../utils";
 
 export class CombatSystem {
     public projectileSystem: ProjectileSystem;
-    public skillResolution: SkillResolutionSystem;
+    public castingEngine: CastingEngine;
+    public skillExecutor: SkillExecutor;
 
     constructor() {
         this.projectileSystem = new ProjectileSystem();
-        this.skillResolution = new SkillResolutionSystem();
+        this.castingEngine = new CastingEngine();
+        this.skillExecutor = new SkillExecutor();
     }
 
     get projectiles(): Projectile[] { return this.projectileSystem.projectiles; }
@@ -63,14 +65,29 @@ export class CombatSystem {
         engine.agents.forEach(a => {
             if (a.hp <= 0) return;
             if (a.castingSkillIdx !== -1) {
-                this.skillResolution.updateCasting(a, dt, engine);
+                this.castingEngine.updateCasting(a, dt, engine, (agent) => {
+                    this.completeCast(agent, engine);
+                });
             }
         });
 
-        // 2. Projectile Physics & Impacts
-        this.projectileSystem.update(dt, engine, this.skillResolution);
+        // 2. Projectile Physics & Impacts (Pass SkillExecutor for impacts)
+        this.projectileSystem.update(dt, engine, this.skillExecutor);
+    }
+
+    private completeCast(a: Agent, engine: GameEngine) {
+        const s = a.skills[a.castingSkillIdx]!;
         
-        // Hazard update moved to GameEngine to avoid God Component responsibility
+        // Resource Management
+        a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
+        a.curCDs[a.castingSkillIdx] = s.cd; 
+        
+        // Execution Fork
+        if (s.projectileSpeed && s.projectileSpeed > 0) {
+             this.spawnProjectile(a, s, engine);
+        } else {
+            this.skillExecutor.executeInstantSkill(a, s, engine);
+        }
     }
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {

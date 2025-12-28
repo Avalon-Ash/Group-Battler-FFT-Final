@@ -158,7 +158,7 @@ export class RenderPipeline {
                     
                 case RenderOpType.UNIT:
                     if (op.agent) {
-                        this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette);
+                        this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.th, op.time, op.uSelected, op.uSilhouette);
                     }
                     break;
                     

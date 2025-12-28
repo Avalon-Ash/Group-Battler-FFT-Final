@@ -37,7 +37,7 @@ export class VFXTextureCache {
             case 'GLOW':
                 ParticlePainter.drawAtmosphere(ctx, r, color);
                 break;
-            case 'CLOUD': // NEW: Dense volumetric cloud for poison/fog
+            case 'CLOUD': 
                 this.drawCloudTexture(ctx, r, color);
                 break;
             case 'SMOKE':
@@ -75,8 +75,17 @@ export class VFXTextureCache {
             case 'WARNING_HATCH':
                 this.drawWarningHatch(ctx, r, color);
                 break;
+            case 'ZONE_RIPPLE':
+                this.drawZoneRipple(ctx, r, color);
+                break;
+            case 'ZONE_BASE':
+                this.drawZoneBase(ctx, r, color);
+                break;
+            // NEW: Pre-baked Shadow Blob (FPS Saver)
+            case 'SHADOW_BLOB':
+                this.drawShadowBlob(ctx, r, color);
+                break;
             default:
-                // Fallback debug shape
                 ctx.fillStyle = color;
                 ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
                 break;
@@ -86,17 +95,25 @@ export class VFXTextureCache {
         return canvas;
     }
 
+    private drawShadowBlob(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        // High quality blurred ellipse
+        ctx.fillStyle = color;
+        ctx.filter = 'blur(8px)'; // Bake the blur
+        ctx.beginPath();
+        // Scale for ISO perspective
+        ctx.ellipse(0, 0, r * 0.8, r * 0.4, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.filter = 'none';
+    }
+
     // New: Dense Cloud Texture Generation
     private drawCloudTexture(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        // Base Blob
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
         grad.addColorStop(0, color);
         grad.addColorStop(0.7, color);
         grad.addColorStop(1, 'transparent');
         
         ctx.fillStyle = grad;
-        
-        // Draw multiple overlapping circles to create irregular cloud shape
         const count = 5;
         for(let i=0; i<count; i++) {
             const angle = (i / count) * Math.PI * 2;
@@ -104,16 +121,33 @@ export class VFXTextureCache {
             const size = r * 0.6;
             const x = Math.cos(angle) * dist;
             const y = Math.sin(angle) * dist;
-            
-            ctx.beginPath();
-            ctx.arc(x, y, size, 0, Math.PI*2);
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
         }
+        ctx.beginPath(); ctx.arc(0, 0, r * 0.5, 0, Math.PI*2); ctx.fill();
+    }
+
+    // New: Optimized Zone Ripple (Replaces expensive stroking)
+    private drawZoneRipple(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 8;
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.9, 'STROKE');
         
-        // Center fill
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.5, 0, Math.PI*2);
-        ctx.fill();
+        // Inner thin line
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.7, 'STROKE');
+    }
+
+    // New: Optimized Zone Base (Replaces volumetric fills)
+    private drawZoneBase(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        // Soft Hex Glow
+        const grad = ctx.createRadialGradient(0, 0, r*0.2, 0, 0, r);
+        grad.addColorStop(0, color);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.9, 'FILL');
     }
 
     // --- TERRAIN DETAIL CACHING (FPS OPTIMIZATION) ---
@@ -143,7 +177,6 @@ export class VFXTextureCache {
                 const px = (rnd(i) - 0.5) * HEX_SIZE * 1.4;
                 const py = (rnd(i+10) - 0.5) * HEX_SIZE * 1.4;
                 if (px*px + py*py > (HEX_SIZE*0.7)**2) continue;
-                
                 ctx.beginPath();
                 ctx.moveTo(px, py);
                 ctx.lineTo(px - 1.5, py - 5);
@@ -194,7 +227,6 @@ export class VFXTextureCache {
         ctx.globalCompositeOperation = 'source-in';
         ctx.strokeStyle = color;
         ctx.lineWidth = 4;
-        
         const size = r * 2;
         const spacing = 10;
         ctx.beginPath();
@@ -203,7 +235,6 @@ export class VFXTextureCache {
             ctx.lineTo(i + size, size);
         }
         ctx.stroke();
-        
         ctx.globalCompositeOperation = 'source-over';
         ctx.lineWidth = 2;
         GeometryPainter.drawHex(ctx, 0, 0, r, 'STROKE');
@@ -213,11 +244,9 @@ export class VFXTextureCache {
     public generateProjectileSprite(visual: string, color: string): HTMLCanvasElement {
         const key = `PROJ_${visual}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
-
         const { canvas, ctx } = createCanvas(128, 64);
         const cx = 64, cy = 32;
         ctx.translate(cx, cy);
-
         switch (visual) {
             case 'HEX_DART':
             case 'ARROW': ProjectilePainter.drawImperialSniper(ctx, color); break;
@@ -229,7 +258,6 @@ export class VFXTextureCache {
             case 'BOMB': ProjectilePainter.drawBomb(ctx, color); break;
             default: ProjectilePainter.drawCovenantBolt(ctx, color); break;
         }
-
         this.cache.set(key, canvas);
         return canvas;
     }

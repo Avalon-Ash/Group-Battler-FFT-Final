@@ -11,7 +11,6 @@ import { Agent, SpecialVisualStatus } from "./core/Agent";
 // Systems
 import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
-import { StatusSystem } from "./systems/status";
 import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
 import { HazardSystem } from "./systems/HazardSystem"; 
@@ -25,6 +24,12 @@ import { VictorySystem } from "./systems/VictorySystem";
 import { ZoneSystem } from "./systems/ZoneSystem"; 
 import { EventBus } from "./events/EventBus";
 import { EventPool } from "./events/GameEventPool"; 
+
+// Split Status Systems
+import { CooldownSystem } from "./systems/status/CooldownSystem";
+import { EffectSystem } from "./systems/status/EffectSystem";
+import { ControlSystem } from "./systems/status/ControlSystem";
+
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -71,7 +76,6 @@ export class GameEngine {
     // Systems
     public movement: MovementSystem;
     public physics: PhysicsSystem; 
-    public status: StatusSystem;
     public combat: CombatSystem;
     public map: MapSystem;
     public hazards: HazardSystem;
@@ -83,13 +87,17 @@ export class GameEngine {
     public time: TimeSystem; 
     public victory: VictorySystem; 
     public zones: ZoneSystem; 
+    
+    // New Split Status Systems
+    public cooldowns: CooldownSystem;
+    public effects: EffectSystem;
+    public controls: ControlSystem;
 
     get directorTargetId() { return this.director.targetId; }
 
     constructor() {
         this.movement = new MovementSystem();
         this.physics = new PhysicsSystem();
-        this.status = new StatusSystem();
         this.combat = new CombatSystem();
         this.map = new MapSystem();
         this.hazards = new HazardSystem();
@@ -101,6 +109,12 @@ export class GameEngine {
         this.time = new TimeSystem();
         this.victory = new VictorySystem();
         this.zones = new ZoneSystem();
+        
+        // Initialize New Systems
+        this.cooldowns = new CooldownSystem();
+        this.effects = new EffectSystem();
+        this.controls = new ControlSystem();
+
         this.map.randomizeEnvironment(this);
     }
 
@@ -116,8 +130,8 @@ export class GameEngine {
     hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
     
     randomizeEnvironment() { 
-        this.hazards.reset(); // Crucial: Wipe floor hazards
-        if (this.renderer) this.renderer.vfx.reset(); // Crucial: Wipe decals
+        this.hazards.reset(); 
+        if (this.renderer) this.renderer.vfx.reset(); 
         this.map.randomizeEnvironment(this); 
     }
     
@@ -194,7 +208,7 @@ export class GameEngine {
         this.victory.reset();
         this.time.reset();
         this.agentMap.clear();
-        this.hazards.reset(); // Crucial: Reset hazards on restart
+        this.hazards.reset(); 
         this.announcer.reset(); 
         this.director.reset();
         
@@ -224,7 +238,7 @@ export class GameEngine {
         this.stop();
         this.agents = [];
         this.agentMap.clear();
-        this.hazards.reset(); // Crucial
+        this.hazards.reset(); 
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.announcer.reset();
@@ -251,7 +265,6 @@ export class GameEngine {
     }
 
     private flushEvents() {
-        // Recycle all pending events
         for(const e of this.events) EventPool.release(e);
         this.events.length = 0;
     }
@@ -260,7 +273,7 @@ export class GameEngine {
         if (!this.isRunning) return;
         
         this.time.update(dt);
-        this.flushEvents(); // Clear previous frame events
+        this.flushEvents(); 
         this.director.update(dt, this);
         this.zones.update(this); 
 
@@ -287,7 +300,10 @@ export class GameEngine {
                 continue;
             }
             
-            this.status.update(a, dt, this);
+            // Execute Split Status Logic
+            this.cooldowns.update(a, dt);
+            this.effects.update(a, dt, this);
+            this.controls.update(a, dt, this);
             
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
@@ -305,7 +321,7 @@ export class GameEngine {
         
         // 3. Combat & Environment
         this.combat.update(dt, this);
-        this.hazards.update(dt, this); // DIRECT HAZARD UPDATE
+        this.hazards.update(dt, this); 
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);
     }

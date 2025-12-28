@@ -1,17 +1,10 @@
 
 import { Agent, GameEngine } from "../game";
-import { Role, Team } from "../../types";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
-import { HEX_SIZE } from "../../constants";
-import { HexUtils, MapConfig } from "../utils";
-
-// Painters
-import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
+import { MapConfig } from "../utils";
+import { UnitVisualProcessor } from "./unit/UnitVisualProcessor";
 import { UnitBodyPainter } from "../renderers/units/painters/UnitBodyPainter";
-
-// Visual Constants
-const MAX_UNIT_SIZE_RATIO = 0.85; 
-const UNIT_REFERENCE_HEIGHT = 100; 
+import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
 
 export class UnitRenderSystem {
     
@@ -26,46 +19,33 @@ export class UnitRenderSystem {
         agents.forEach(agent => {
             if (agent.hp <= 0 && agent.fullyDead) return;
 
-            // --- VISUAL INTERPOLATION (Optimized) ---
-            // We calculate this once per frame here, instead of recalculating in shadow/body/silhouette passes.
-            // In a more advanced system, this would be stored on the Agent struct during a Pre-Render Tick.
-            
-            let terrainH = 0;
-            if (agent.isMoving && agent.path.length > 0) {
-                const h1 = getTerrainHeight(agent.q, agent.r);
-                const nextHex = agent.path[0];
-                const h2 = getTerrainHeight(nextHex.q, nextHex.r);
-                terrainH = HexUtils.lerp(h1, h2, agent.moveProgress);
-            } else {
-                // Smoothing for micro-movements (knockback slide)
-                // If sliding significantly, sample the pixel position.
-                // Otherwise, stick to grid height for stability.
-                const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
-                const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
-                
-                if (distSq > 400) { // 20px tolerance
-                    const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
-                    terrainH = getTerrainHeight(visualHex.q, visualHex.r);
-                } else {
-                    terrainH = getTerrainHeight(agent.q, agent.r);
-                }
-            }
+            // 1. Process Logic -> State
+            const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
 
-            const visualGroundY = agent.py - terrainH;
-            
             const op = renderList.next();
             op.type = RenderOpType.UNIT;
             
-            // Sort by ground Y for correct occlusion
-            op.y = agent.py + 1; 
+            // Sort by ground Y for correct occlusion (Painter's Algorithm)
+            // Add +1 to draw slightly in front of center-aligned terrain elements
+            op.y = state.y + 1; 
             op.z = 10;
             
             op.agent = agent;
-            op.tx = agent.px; 
-            op.ty = visualGroundY;  
-            op.th = terrainH; // Passed to draw calls
+            
+            // ALIGNMENT FIX:
+            // state.x / state.y = Physical Ground Coordinates (Base of block)
+            // state.terrainHeight = Height of block
+            // visualGroundTop = state.y - state.terrainHeight
+            
+            op.tx = state.x; 
+            op.ty = state.y - state.terrainHeight; // Anchor Visuals to TOP of block
+            
+            // Pass LOCAL Physics Z to painter, NOT Total Z.
+            // Painter will translate(0, -pz).
+            op.th = agent.physics.z; 
+            
             op.time = globalTime;
-            op.uSelected = (highlightAgent === agent);
+            op.uSelected = state.isSelected;
             op.uSilhouette = false;
         });
     }
@@ -77,21 +57,13 @@ export class UnitRenderSystem {
         globalTime: number, 
         mapConfig: MapConfig
     ) {
-        // Recalculate height needed for silhouette pass (redundant calc, but robust)
-        // Optimization: In RenderList based silhouette pass, we could store 'th' in a map?
-        // For now, re-calc is cheap enough for just occluded units.
-        let terrainH = 0;
-        if (agent.isMoving && agent.path.length > 0) {
-            const h1 = getTerrainHeight(agent.q, agent.r);
-            const nextHex = agent.path[0];
-            const h2 = getTerrainHeight(nextHex.q, nextHex.r);
-            terrainH = HexUtils.lerp(h1, h2, agent.moveProgress);
-        } else {
-            terrainH = getTerrainHeight(agent.q, agent.r);
-        }
+        // Recalculate state just for the silhouette pass
+        const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
         
-        const visualGroundY = agent.py - terrainH;
-        this.drawAssembly(ctx, agent, agent.px, visualGroundY, globalTime, false, true);
+        // Use consistent alignment
+        const visualGroundY = state.y - state.terrainHeight;
+        
+        this.drawAssembly(ctx, agent, state.x, visualGroundY, agent.physics.z, globalTime, false, true);
     }
 
     public drawAssembly(
@@ -99,42 +71,28 @@ export class UnitRenderSystem {
         agent: Agent, 
         drawX: number, 
         drawY: number, 
+        localZ: number,
         globalTime: number, 
         isSelected: boolean,
         isSilhouette: boolean
     ) {
-        // 1. Calculate Scale based on Role
-        const maxDimension = HEX_SIZE * 2 * MAX_UNIT_SIZE_RATIO;
-        let roleScaleMod = 1.0;
-        switch(agent.role) {
-            case Role.TANK: roleScaleMod = 1.25; break; 
-            case Role.WARRIOR: roleScaleMod = 1.1; break; 
-            case Role.RANGER: roleScaleMod = 0.9; break; 
-            case Role.MAGE: roleScaleMod = 0.9; break; 
-            case Role.SUPPORT: roleScaleMod = 0.95; break;
-        }
-        const scaleFactor = (maxDimension / UNIT_REFERENCE_HEIGHT) * roleScaleMod;
+        const scaleFactor = 1.0; 
 
-        // 2. Global Transform for this Unit
+        // Global Transform for this Unit
         ctx.save();
+        
+        // Move to Visual Ground Top (drawX, drawY)
         ctx.translate(drawX, drawY); 
-        ctx.scale(scaleFactor, scaleFactor);
 
-        // We work in local coordinates now (0,0 is ground anchor)
-        // Physics coordinates are relative to the unit's logical position, 
-        // but here we are already at the interpolated pixel position (drawX, drawY).
-        // The agent.physics x/y are spring offsets (jitter), z is height.
-        const physX = agent.physics.x / scaleFactor;
-        const physY = agent.physics.y / scaleFactor;
-        const physZ = agent.physics.z / scaleFactor; 
-
-        // 3. Draw Shadow & Base (Ground Layer)
+        // 1. Draw Shadow & Base (At Ground Level)
+        // Passes localZ so shadow can scale based on jump height
         if (!isSilhouette && agent.hp > 0) {
-            UnitShadowPainter.draw(ctx, agent, physX, physY, physZ, globalTime, isSilhouette);
+            UnitShadowPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette);
         }
 
-        // 4. Draw Body (Elevated Layer)
-        UnitBodyPainter.draw(ctx, agent, physX, physY, physZ, globalTime, isSilhouette, isSelected, scaleFactor);
+        // 2. Draw Body (Elevated Layer)
+        // UnitBodyPainter handles the `translate(0, -localZ)` internally
+        UnitBodyPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette, isSelected, scaleFactor);
 
         ctx.restore(); 
     }

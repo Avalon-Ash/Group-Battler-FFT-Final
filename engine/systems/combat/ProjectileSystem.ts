@@ -2,14 +2,14 @@
 import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
-import { SkillResolutionSystem } from "./SkillResolutionSystem";
+import { SkillExecutor } from "./SkillExecutor";
 import { PROJECTILE_VISUALS } from "../../../data/vfx/projectile_visuals";
 import { UNIT_BODY_OFFSET } from "../../../constants";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
 
-    public update(dt: number, engine: GameEngine, skillResolver: SkillResolutionSystem) {
+    public update(dt: number, engine: GameEngine, skillExecutor: SkillExecutor) {
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
             
@@ -49,9 +49,13 @@ export class ProjectileSystem {
                     const targets = engine.agents.filter(e => e.team !== p.team && e.hp > 0 && !e.banished && HexUtils.dist(hitHex, e) <= radius);
                     
                     targets.forEach(t => { 
-                        if (source) skillResolver.resolveHit(source, t, p.skill, hitPos, engine); 
+                        if (source) skillExecutor.resolveHit(source, t, p.skill, hitPos, engine); 
                     });
                     
+                    // DoT Logic handled by SkillExecutor or Impact? 
+                    // Keeping simple DoT logic here for now but ideally moved to Executor
+                    // For now, spawn hazards directly via Manager if needed, but ImpactAOE usually handles instantaneous.
+                    // If projectile has persistent effects, handle here:
                     if (p.skill.ccType === 'DOT' || p.skill.name.includes("霧") || p.skill.name.includes("雨")) {
                         if (source) {
                             const centerHex = HexUtils.fromPx(hitPos.x, hitPos.y, engine.mapConfig);
@@ -81,7 +85,7 @@ export class ProjectileSystem {
                     engine.events.push({ type: 'IMPACT_AOE', pos: hitPos, skill: p.skill, color: p.skill.color });
                 } else {
                     if (target && target.hp > 0 && !target.banished) {
-                        if (source) skillResolver.resolveHit(source, target, p.skill, undefined, engine);
+                        if (source) skillExecutor.resolveHit(source, target, p.skill, undefined, engine);
                     }
                 }
                 engine.events.push({ type: 'PROJECTILE_HIT', pos: p.targetPos, skill: p.skill });

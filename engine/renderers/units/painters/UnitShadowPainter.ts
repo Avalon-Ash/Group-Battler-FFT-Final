@@ -4,6 +4,7 @@ import { SpriteManager } from "../../../sprites";
 import { UnitIndicatorPainter } from "./UnitIndicatorPainter";
 import { MovementType } from "../../../../../types";
 import { UnitFlightPainter } from "./UnitFlightPainter";
+import { VFXFactory } from "../../../graphics/VFXFactory";
 
 export const UnitShadowPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number, isSilhouette: boolean) {
@@ -14,17 +15,30 @@ export const UnitShadowPainter = {
         ctx.save();
         ctx.translate(px, py); // Ground Level
         
-        // 1. Drop Shadow (Scales with height to simulate diffusion)
+        // 1. Drop Shadow (Optimized: Use Cached Blob)
         const shadowScale = Math.max(0.6, 1.0 - (pz / 400));
         const shadowAlpha = Math.max(0.2, 1.0 - (pz / 200));
         
+        // Reuse VFXFactory for generic shadow blob
+        const shadowBlob = VFXFactory.getTexture('SHADOW_BLOB', 'rgba(0,0,0,0.5)'); 
+        
+        ctx.save();
+        ctx.scale(shadowScale, shadowScale);
+        ctx.globalAlpha = shadowAlpha;
+        // Shadow Blob is 64x64, unit base is 128x128 approx visual weight
+        // Scale it up
+        ctx.drawImage(shadowBlob, -48, -24, 96, 48); 
+        ctx.restore();
+
+        // 2. Base Token (Falls backward if flying? No, base usually stays on ground or fades)
+        // Design Choice: Base stays on ground, unit floats above it.
         ctx.save();
         ctx.scale(shadowScale, shadowScale);
         ctx.globalAlpha = shadowAlpha;
         ctx.drawImage(assets.base, -64, -64); 
         ctx.restore();
 
-        // 2. Class Icon (Anchored to ground, breathing effect)
+        // 3. Class Icon (Anchored to ground, breathing effect)
         if (agent.hp > 0) {
             ctx.save();
             const iconBaseY = -24; 
@@ -42,7 +56,7 @@ export const UnitShadowPainter = {
             ctx.restore();
         }
         
-        // 3. Casting Indicators (Ground Level)
+        // 4. Casting Indicators (Ground Level)
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
@@ -56,7 +70,7 @@ export const UnitShadowPainter = {
 
         ctx.restore();
 
-        // 4. Flying Anchor Line (If high up)
+        // 5. Flying Anchor Line (If high up)
         if (agent.movementType === MovementType.FLYING && pz > 5) {
             UnitFlightPainter.drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }

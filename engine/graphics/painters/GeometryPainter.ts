@@ -4,7 +4,7 @@ import { HexGeometry } from "../utils/HexGeometry";
 export const GeometryPainter = {
     drawHex(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, style: 'FILL' | 'STROKE' | 'BOTH' = 'FILL') {
         // By default, GeometryPainter is used for VFX which are usually flat on ground, so applyIso = true
-        HexGeometry.traceHex(ctx, x, y, r, true);
+        HexGeometry.traceHex(ctx, x, y, r);
         
         if (style === 'FILL' || style === 'BOTH') ctx.fill();
         if (style === 'STROKE' || style === 'BOTH') ctx.stroke();
