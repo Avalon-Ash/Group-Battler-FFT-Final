@@ -4,6 +4,7 @@ import { HEX_SIZE } from "../../constants";
 import { AssetManager } from "../assets";
 import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";
+import { VFXFactory } from "../graphics/VFXFactory";
 
 export class BackgroundRenderer {
     private staticCache: HTMLCanvasElement | null = null;
@@ -119,26 +120,28 @@ export class BackgroundRenderer {
     private drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number) {
         ctx.save();
 
-        // 1. God Rays (Simplified)
+        // 1. God Rays (Optimized using Sprite Cache)
         if (scene.id === 'FOREST' || scene.id === 'DESERT') {
-            ctx.globalCompositeOperation = 'overlay';
+            const raySprite = VFXFactory.getTexture('BEAM', 'rgba(255,255,255,0.1)'); // Reuse existing beam texture or specific ray
             const sourceX = w * 0.8 + Math.sin(t * 0.1) * 100;
             const sourceY = -100;
             
-            const grad = ctx.createRadialGradient(sourceX, sourceY, 50, sourceX, sourceY, w);
-            grad.addColorStop(0, 'rgba(255, 255, 255, 0.1)'); 
-            grad.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad;
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.globalAlpha = 0.3; // Lower alpha for subtlety
             
-            // Just one big fan instead of multiple rays
-            ctx.beginPath();
-            ctx.moveTo(sourceX, sourceY);
-            const angle = Math.PI / 2 + 0.3;
-            const width = 0.3;
-            const len = w * 1.5;
-            ctx.lineTo(sourceX + Math.cos(angle - width) * len, sourceY + Math.sin(angle - width) * len);
-            ctx.lineTo(sourceX + Math.cos(angle + width) * len, sourceY + Math.sin(angle + width) * len);
-            ctx.fill();
+            // Draw a few large rotated beams instead of complex paths
+            ctx.translate(sourceX, sourceY);
+            ctx.rotate(Math.PI * 0.6); // Angle down-left
+            
+            // Stretch the beam texture to look like a ray
+            const rayLen = w * 1.5;
+            const rayWidth = 200;
+            
+            ctx.drawImage(raySprite, 0, -rayWidth/2, rayLen, rayWidth);
+            
+            // Secondary Ray
+            ctx.rotate(0.2);
+            ctx.drawImage(raySprite, 0, -rayWidth/3, rayLen, rayWidth*0.8);
         }
 
         // 2. Atmospheric Fog (Screen Space) - Optimized using Cached Sprite
@@ -149,6 +152,8 @@ export class BackgroundRenderer {
         const fogColor = scene.fogColor || '#fff';
         const fogSprite = AssetManager.getFogCloud(fogColor); 
         const numClouds = 4; // Reduced from 6
+        
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform for screen space absolute positioning
         
         for (let i = 0; i < numClouds; i++) {
             const speed = 20;

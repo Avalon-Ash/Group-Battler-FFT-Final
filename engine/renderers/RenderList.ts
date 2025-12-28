@@ -90,31 +90,18 @@ export class RenderList {
     
     public sort() {
         if (this.count > 1) {
-            this.quickSort(0, this.count - 1);
-        }
-    }
-    
-    private quickSort(left: number, right: number) {
-        if (left >= right) return;
-        const pivot = this.ops[(left + right) >>> 1]; 
-        const index = this.partition(left, right, pivot);
-        this.quickSort(left, index - 1);
-        this.quickSort(index, right);
-    }
-    
-    private partition(left: number, right: number, pivot: RenderOp): number {
-        while (left <= right) {
-            while (this.compare(this.ops[left], pivot) < 0) left++;
-            while (this.compare(this.ops[right], pivot) > 0) right--;
-            if (left <= right) {
-                const temp = this.ops[left];
-                this.ops[left] = this.ops[right];
-                this.ops[right] = temp;
-                left++;
-                right--;
+            // Use native sort on the subarray
+            // Modern JS engines (Chrome/V8) use Timsort which is extremely fast for partially sorted data
+            const activeOps = this.ops.slice(0, this.count);
+            activeOps.sort(this.compare);
+            
+            // Copy back (Native sort is in-place, but we sliced to avoid sorting empty tail)
+            // Ideally we'd sort in place but .sort() on the whole array scans the whole array.
+            // A subarray view or copy is needed. Copying pointers is cheap.
+            for (let i = 0; i < this.count; i++) {
+                this.ops[i] = activeOps[i];
             }
         }
-        return left;
     }
     
     private compare(a: RenderOp, b: RenderOp): number {

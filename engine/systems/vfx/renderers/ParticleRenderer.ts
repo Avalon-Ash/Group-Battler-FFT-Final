@@ -9,10 +9,64 @@ import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 export const ParticleRenderer = {
     
     drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, isChaos: boolean) {
+        const now = Date.now() / 1000;
+
+        // --- OPTIMIZATION: BATCHABLE SPRITES ---
+        // For simple particles (Smoke, Sparks) that just need scaling/alpha, we avoid ctx.save/restore overhead.
+        const isComplex = ['BEAM', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'GRID_FIELD', 'DOMAIN', 'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'MAGIC_CIRCLE'].includes(p.type) || p.rotation !== 0 || p.blendMode;
+
+        if (!isComplex) {
+            // Fast Path: Direct Draw
+            // Logic derived from drawTexture but flattened
+            if (!p.image && !p.texture) {
+                // Just in case texture isn't ready
+                ctx.fillStyle = p.color;
+                const s = p.size * (1 - progress);
+                ctx.beginPath(); ctx.arc(drawX, drawY, s, 0, Math.PI*2); ctx.fill();
+                return;
+            }
+
+            const img = p.image || p.texture!;
+            let scale = 1.0;
+            let alpha = 1.0 - progress;
+
+            if (p.type === 'ROCK' && p.size > 30) {
+                scale = 1.0; alpha = 1.0; 
+            } else if (p.type === 'SMOKE' || p.type === 'SMOKE_PUFF' || p.type === 'ATMOSPHERE') {
+                scale = 0.8 + progress * 1.2;
+                alpha = (1.0 - progress) * 0.5; 
+            } else {
+                scale = 1.0 - Math.pow(progress, 2);
+            }
+
+            // Alpha check
+            if (alpha <= 0.01) return;
+            
+            // Apply Alpha directly (it persists until changed, so we must reset it later if we don't save)
+            // BUT: Since we are in a loop managed by GameRenderer, we should rely on global reset or local save/restore if we change state.
+            // Safety: We MUST save/restore if we change globalAlpha/Composite.
+            // Optimization: Only use save/restore if we *actually* change state.
+            
+            ctx.save(); // Still needed for alpha/composite
+            ctx.globalAlpha = Math.min(1, alpha);
+            
+            // Standard Blend is screen for most particles in this engine
+            // If we want to optimize further, we group particles by blend mode.
+            if (['SMOKE', 'SMOKE_PUFF', 'ATMOSPHERE', 'SPARK', 'GLOW'].includes(p.type)) {
+                ctx.globalCompositeOperation = 'screen';
+            }
+
+            const drawSize = p.size * scale;
+            // Draw centered at drawX, drawY
+            ctx.drawImage(img, drawX - drawSize, drawY - drawSize, drawSize * 2, drawSize * 2);
+            
+            ctx.restore();
+            return;
+        }
+
+        // --- SLOW PATH: Complex Transforms ---
         ctx.save();
         ctx.translate(drawX, drawY);
-
-        const now = Date.now() / 1000;
 
         // --- 1. PERSPECTIVE CORRECTION (THE 2.5D RULE) ---
         const isGroundEffect = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type);
@@ -22,7 +76,7 @@ export const ParticleRenderer = {
 
         // Standard 2D Sprite Rotation (Billboard)
         if (!['GIANT_HEX', 'HEX_BEAM', 'DOMAIN', 'PILLAR'].includes(p.type)) {
-            ctx.rotate(p.rotation);
+            if (p.rotation !== 0) ctx.rotate(p.rotation);
         }
 
         // --- 2. BLEND MODES ---
@@ -86,6 +140,7 @@ export const ParticleRenderer = {
         ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
         
         if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD'].includes(type)) {
+            // Shadow for physical objects
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
             ctx.globalAlpha = 0.5 * alpha;

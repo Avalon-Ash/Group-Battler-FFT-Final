@@ -122,6 +122,10 @@ export class GridSystem {
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
         globalTime: number
     ) {
+        // CRITICAL FIX: If map is effectively gone, do not submit any grid geometry
+        // This prevents the "Visual Residue" where overlays are drawn at default positions
+        if (transitionPhase === 'OUT' && transitionT > 0.95) return;
+
         this.ensureCache(engine);
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
@@ -147,9 +151,10 @@ export class GridSystem {
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualY = py + offset;
 
+            // Cull off-screen transition elements
             if (offset > 800) continue;
 
-            const sortY = py; 
+            const sortY = py; // Stable sort key based on logic position
 
             // Obstacles
             const obstacleType = engine.obstacles.get(key);
@@ -196,7 +201,6 @@ export class GridSystem {
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            // Updated to use engine.hazards
             const hazard = engine.hazards.getHazardAt(q, r);
 
             // Projectile Lights
@@ -216,7 +220,7 @@ export class GridSystem {
             op.y = sortY; 
             op.z = 0;
             op.tx = px; 
-            op.ty = visualY; 
+            op.ty = visualY; // Use the visual Y (with offset)
             op.th = h;
             op.tsize = HEX_SIZE;
             op.ttheme = theme;

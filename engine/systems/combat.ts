@@ -69,9 +69,8 @@ export class CombatSystem {
 
         // 2. Projectile Physics & Impacts
         this.projectileSystem.update(dt, engine, this.skillResolution);
-
-        // 3. Update Hazards (Logic & Physics)
-        engine.hazards.update(dt, engine);
+        
+        // Hazard update moved to GameEngine to avoid God Component responsibility
     }
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {

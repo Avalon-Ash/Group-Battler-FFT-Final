@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 
@@ -14,7 +14,7 @@ import { PhysicsSystem } from "./systems/PhysicsSystem";
 import { StatusSystem } from "./systems/status";
 import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
-import { HazardSystem } from "./systems/HazardSystem"; // New
+import { HazardSystem } from "./systems/HazardSystem"; 
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
 import { AnnouncerSystem } from "./systems/AnnouncerSystem"; 
@@ -24,6 +24,7 @@ import { TimeSystem } from "./systems/TimeSystem";
 import { VictorySystem } from "./systems/VictorySystem"; 
 import { ZoneSystem } from "./systems/ZoneSystem"; 
 import { EventBus } from "./events/EventBus";
+import { EventPool } from "./events/GameEventPool"; 
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -41,6 +42,7 @@ export class GameEngine {
     get logs() { return this.logger.logs; }
 
     public events: GameEvent[] = [];
+    
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer;
     
@@ -72,7 +74,7 @@ export class GameEngine {
     public status: StatusSystem;
     public combat: CombatSystem;
     public map: MapSystem;
-    public hazards: HazardSystem; // New
+    public hazards: HazardSystem;
     public ai: AISystem;
     public agentManager: AgentManager;
     public announcer: AnnouncerSystem; 
@@ -142,7 +144,17 @@ export class GameEngine {
         this.agentMap.set(HexUtils.hash(agent.q, agent.r), agent);
     }
 
-    play() {
+    // Helper to push event via Pool
+    public pushEvent(
+        type: GameEventType, 
+        pos: {x: number, y: number}, 
+        opts: { value?: number, text?: string, color?: string, skill?: Skill, sourceId?: string, targetId?: string, team?: Team } = {}
+    ) {
+        const evt = EventPool.get(type, pos, opts);
+        this.events.push(evt);
+    }
+
+    public play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
             this.time.reset();
@@ -166,9 +178,9 @@ export class GameEngine {
         this.isRunning = true;
     }
 
-    stop() { this.isRunning = false; }
+    public stop() { this.isRunning = false; }
 
-    restart() {
+    public restart() {
         this.stop();
         this.victory.reset();
         this.time.reset();
@@ -186,7 +198,7 @@ export class GameEngine {
             this.agentMap.set(HexUtils.hash(a.q, a.r), a);
         });
         
-        this.events = []; 
+        this.flushEvents();
         this.combat.reset(); 
         
         if (this.renderer) {
@@ -199,7 +211,7 @@ export class GameEngine {
         this.bus.emit('GAME_RESET', {});
     }
 
-    clear(keepScene: boolean = false) {
+    public clear(keepScene: boolean = false) {
         this.stop();
         this.agents = [];
         this.agentMap.clear();
@@ -210,7 +222,7 @@ export class GameEngine {
         this.director.reset();
         
         this.combat.reset(); 
-        this.events = [];
+        this.flushEvents();
         
         if (this.renderer) {
             this.renderer.reset();
@@ -226,11 +238,17 @@ export class GameEngine {
         this.bus.emit('GAME_CLEAR', {});
     }
 
-    tick(dt: number) {
+    private flushEvents() {
+        // Recycle all pending events
+        for(const e of this.events) EventPool.release(e);
+        this.events.length = 0;
+    }
+
+    public tick(dt: number) {
         if (!this.isRunning) return;
         
         this.time.update(dt);
-        this.events.length = 0;
+        this.flushEvents(); // Clear previous frame events
         this.director.update(dt, this);
         this.zones.update(this); 
 
@@ -273,8 +291,9 @@ export class GameEngine {
             }
         }
         
-        // 3. Combat
+        // 3. Combat & Environment
         this.combat.update(dt, this);
+        this.hazards.update(dt, this); // DIRECT HAZARD UPDATE
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);
     }
