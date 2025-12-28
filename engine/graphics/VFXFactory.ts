@@ -37,6 +37,9 @@ export class VFXTextureCache {
             case 'GLOW':
                 ParticlePainter.drawAtmosphere(ctx, r, color);
                 break;
+            case 'CLOUD': // NEW: Dense volumetric cloud for poison/fog
+                this.drawCloudTexture(ctx, r, color);
+                break;
             case 'SMOKE':
             case 'SMOKE_PUFF':
                 ParticlePainter.drawSmoke(ctx, r, color);
@@ -83,23 +86,50 @@ export class VFXTextureCache {
         return canvas;
     }
 
+    // New: Dense Cloud Texture Generation
+    private drawCloudTexture(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        // Base Blob
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        grad.addColorStop(0, color);
+        grad.addColorStop(0.7, color);
+        grad.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = grad;
+        
+        // Draw multiple overlapping circles to create irregular cloud shape
+        const count = 5;
+        for(let i=0; i<count; i++) {
+            const angle = (i / count) * Math.PI * 2;
+            const dist = r * 0.3;
+            const size = r * 0.6;
+            const x = Math.cos(angle) * dist;
+            const y = Math.sin(angle) * dist;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI*2);
+            ctx.fill();
+        }
+        
+        // Center fill
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI*2);
+        ctx.fill();
+    }
+
     // --- TERRAIN DETAIL CACHING (FPS OPTIMIZATION) ---
-    // Generates 4 variations of terrain detail (Grass, Sand, etc.) to avoid real-time drawing.
     public getTerrainDetail(type: string, color: string, variant: number): HTMLCanvasElement {
         const vIdx = variant % 4;
         const key = `TERRAIN_${type}_${color}_${vIdx}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
-        // Texture size should match HEX_SIZE roughly but buffered
         const size = HEX_SIZE * 2; 
         const { canvas, ctx } = createCanvas(size, size);
         const cx = size / 2;
         const cy = size / 2;
         
         ctx.translate(cx, cy);
-        ctx.scale(1, ISO_SCALE_Y); // Pre-scale for ISO
+        ctx.scale(1, ISO_SCALE_Y); 
 
-        // Use a consistent pseudo-random seed based on variant
         const rnd = (offset: number) => {
             const v = Math.sin(vIdx * 999 + offset) * 1000;
             return v - Math.floor(v);
@@ -144,7 +174,6 @@ export class VFXTextureCache {
              ctx.fillStyle = color;
              ctx.beginPath(); ctx.arc(px, py, 1.5, 0, Math.PI*2); ctx.fill();
         } else {
-            // Default Stones/Dots
             for(let i=0; i<5; i++) {
                 const px = (rnd(i*2) - 0.5) * HEX_SIZE * 1.2;
                 const py = (rnd(i*2+1) - 0.5) * HEX_SIZE * 1.2;

@@ -93,7 +93,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         {/* Header Badge */}
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-[10px] text-cyan-400 font-mono tracking-widest mb-4 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse box-shadow-[0_0_5px_cyan]"></span>
-                            <span>SYSTEM_READY // V7.0.0</span>
+                            <span>SYSTEM_READY // V6.5.0</span>
                         </div>
 
                         <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-500 font-mono tracking-tighter drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>

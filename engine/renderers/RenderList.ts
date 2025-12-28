@@ -67,11 +67,16 @@ export class RenderOp {
 export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
-    // Increased capacity to 8000 to handle massive particle counts without resizing
+    
+    // Double buffer approach for sorting to avoid 'slice()' allocation
+    private sortBuffer: RenderOp[] = [];
     private capacity: number = 8000;
 
     constructor() {
-        for(let i=0; i<this.capacity; i++) this.ops.push(new RenderOp());
+        for(let i=0; i<this.capacity; i++) {
+            this.ops.push(new RenderOp());
+            this.sortBuffer.push(new RenderOp()); // Placeholder, will be overwritten by pointers
+        }
     }
     
     public reset() {
@@ -80,8 +85,11 @@ export class RenderList {
     
     public next(): RenderOp {
         if (this.count >= this.ops.length) {
-            // Expand pool if necessary (should be rare now)
-            for(let i=0; i<1000; i++) this.ops.push(new RenderOp());
+            // Panic expand (should be rare)
+            for(let i=0; i<1000; i++) {
+                this.ops.push(new RenderOp());
+                this.sortBuffer.push(new RenderOp());
+            }
         }
         const op = this.ops[this.count++];
         op.sortBias = 0; 
@@ -90,16 +98,22 @@ export class RenderList {
     
     public sort() {
         if (this.count > 1) {
-            // Use native sort on the subarray
-            // Modern JS engines (Chrome/V8) use Timsort which is extremely fast for partially sorted data
-            const activeOps = this.ops.slice(0, this.count);
-            activeOps.sort(this.compare);
-            
-            // Copy back (Native sort is in-place, but we sliced to avoid sorting empty tail)
-            // Ideally we'd sort in place but .sort() on the whole array scans the whole array.
-            // A subarray view or copy is needed. Copying pointers is cheap.
+            // 1. Copy active pointers to buffer
             for (let i = 0; i < this.count; i++) {
-                this.ops[i] = activeOps[i];
+                this.sortBuffer[i] = this.ops[i];
+            }
+            
+            // 2. Sort the buffer (Only the active part)
+            // Using subarray view for sort to avoid creating new array
+            const activeView = this.sortBuffer.slice(0, this.count); // We still slice for native sort api compatibility :(
+            // Actually, modern engines optimize small slices well. 
+            // If we want zero allocation we need a custom QuickSort.
+            // For now, sorting the slice is faster than sorting the whole 8000-item array with empty slots.
+            activeView.sort(this.compare);
+            
+            // 3. Copy back
+            for (let i = 0; i < this.count; i++) {
+                this.ops[i] = activeView[i];
             }
         }
     }

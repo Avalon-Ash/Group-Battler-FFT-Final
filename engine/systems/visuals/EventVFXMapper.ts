@@ -24,60 +24,62 @@ export class EventVFXMapper {
         grid: GridSystem, 
         camera: CameraSystem
     ) {
+        // Calculate Origin & Target in 3D Space
         const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine, grid);
         let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine, grid);
         
+        // Calculate pure Ground Z for the target location (for floor-snapping effects)
         const groundZ = grid.getTerrainHeight(
             HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig).q,
             HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig).r,
             engine
         );
 
+        // Fallback for non-unit targets (ground click)
         if (!event.targetId) target.z = groundZ + 20;
 
         switch (event.type) {
             case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
-                // Visual Events trigger full cinematic scripts (Shakes, Beams, etc.)
+                // Visual Events trigger full cinematic scripts
                 this.playCinematicEffect(event, engine, vfx, grid, camera, origin, target);
                 break;
 
             case 'DAMAGE': 
-                // CRITICAL FIX: Damage events NEVER trigger scripts. Only Hit VFX.
-                // This prevents DoT/AOE ticks from causing repeated screen shakes ("10.0 Earthquake").
+                // Damage only triggers Hit VFX, never scripts (prevent shake spam)
                 if (!event.skill?.projectileSpeed) {
-                    this.playHitVFX(event, vfx, target);
+                    this.playHitVFX(event, vfx, target, groundZ);
                 }
                 break;
 
             case 'PROJECTILE_HIT': 
-                // Projectiles trigger impact. If it's AOE, we let IMPACT_AOE handle the main visual.
+                // Projectiles trigger impact.
                 if (event.skill?.type !== 'AOE') {
-                    // Single target hits can trigger small shakes via HitVFX or Script?
-                    // Safe approach: HitVFX only + manual small trauma.
-                    this.playHitVFX(event, vfx, target);
+                    this.playHitVFX(event, vfx, target, groundZ);
                     camera.addTrauma(0.05); 
                 } else {
-                    // Direct hit for AOE (the projectile touching target) - just a small spark
-                    vfx.playEffect('FX_HIT_GENERIC', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color);
+                    // Direct hit for AOE projectile contact (spark only)
+                    vfx.playEffect('FX_HIT_GENERIC', event.pos.x, event.pos.y, groundZ + 5, event.skill?.color, groundZ);
                 }
                 break;
 
             case 'IMPACT_AOE':
-                // AOE Centers trigger scripts (Big Boom)
+                // AOE Centers trigger scripts
                 this.handleAOE(event, engine, vfx, grid, camera, groundZ);
                 break;
 
             case 'DEATH':
                 const dAgent = engine.agents.find(a => a.id === event.sourceId);
                 if (dAgent) {
+                    // Death occurs at body center
                     UnitShatter.spawn(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
                 }
                 camera.addTrauma(0.1); 
                 break;
 
             case 'SPAWN':
-                vfx.playEffect('FX_TELEPORT', origin.x, origin.y, origin.z, event.color);
+                // Teleport is a floor-to-sky effect, verify groundZ
+                vfx.playEffect('FX_TELEPORT', origin.x, origin.y, groundZ, event.color, groundZ);
                 break;
                 
             case 'CAST_BREAK':
@@ -94,6 +96,7 @@ export class EventVFXMapper {
     private resolvePoint(defaultX: number, defaultY: number, agentId: string | undefined, engine: GameEngine, grid: GridSystem): Point3D {
         let agent = agentId ? engine.agents.find(a => a.id === agentId) : null;
 
+        // If ID not found, check if there is an agent at that location spatially
         if (!agent && !agentId) {
             const hex = HexUtils.fromPx(defaultX, defaultY, engine.mapConfig);
             agent = engine.getAgentAt(hex.q, hex.r);
@@ -104,6 +107,7 @@ export class EventVFXMapper {
             return {
                 x: agent.px,
                 y: agent.py,
+                // Critical: Target is Chest Height, not feet
                 z: terrainH + agent.physics.z + UNIT_BODY_OFFSET
             };
         }
@@ -130,34 +134,37 @@ export class EventVFXMapper {
             vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
         } else {
             vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
-            this.playHitVFX(event, vfx, target);
+            // Pass origin.z - UNIT_BODY_OFFSET as approximate groundZ if needed, but hit effect resolves its own ground
+            const groundZ = Math.max(0, target.z - UNIT_BODY_OFFSET);
+            this.playHitVFX(event, vfx, target, groundZ);
         }
     }
 
-    private playHitVFX(event: GameEvent, vfx: VFXSystem, target: Point3D) {
+    private playHitVFX(event: GameEvent, vfx: VFXSystem, target: Point3D, groundZ: number) {
         const skill = event.skill;
         const color = event.color || '#fff';
         
-        // 1. Data-Driven Override (From Skill DB)
+        let effectId = 'FX_HIT_GENERIC';
         if (skill && skill.visualHitEffect && VFX_REGISTRY[skill.visualHitEffect]) {
-            vfx.playEffect(skill.visualHitEffect, target.x, target.y, target.z, color);
-            return;
+            effectId = skill.visualHitEffect;
         }
 
-        // 2. Fallback
-        vfx.playEffect('FX_HIT_GENERIC', target.x, target.y, target.z, color);
+        // Pass groundZ separately so the player knows where the floor is for shockwaves
+        vfx.playEffect(effectId, target.x, target.y, target.z, color, groundZ);
     }
 
     private handleAOE(event: GameEvent, engine: GameEngine, vfx: VFXSystem, grid: GridSystem, camera: CameraSystem, groundZ: number) {
         if (!event.skill) return;
+        
+        // AOE Center is usually slightly above ground
         const centerPt = { x: event.pos.x, y: event.pos.y, z: groundZ + 5 };
         
-        // AOE Centers usually trigger scripts (Sanctuary, Meteor, etc.)
+        // Scripts
         if (UltArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) return;
         if (SkillArchitect.play(event.skill.id, centerPt, engine, vfx, grid, camera, event.sourceId)) return;
 
-        // Default Fallback
-        this.playHitVFX(event, vfx, centerPt);
+        // Fallback
+        this.playHitVFX(event, vfx, centerPt, groundZ);
         camera.addTrauma(0.2);
     }
 }

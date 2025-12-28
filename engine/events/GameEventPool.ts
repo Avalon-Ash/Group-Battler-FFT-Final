@@ -41,9 +41,9 @@ export class GameEventPool {
 
         // Hydrate
         event.type = type;
-        event.pos = pos; // Note: Ensure pos is not a reference to a mutable object that changes later, or copy it.
-        // We assume callers pass a transient point or we should clone. 
-        // For safety/perf trade-off, we assign directly but callers usually create new {x,y}.
+        
+        // Critical: Clone position to avoid reference drift if 'pos' is reused/mutated elsewhere
+        event.pos = { x: pos.x, y: pos.y };
         
         event.value = opts.value;
         event.text = opts.text;

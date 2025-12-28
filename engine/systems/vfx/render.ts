@@ -46,8 +46,10 @@ export class VFXRenderer {
             if (d.x < cullMinX || d.x > cullMaxX || d.y < cullMinY || d.y > cullMaxY) return;
 
             const offsetY = getTransitionOffset(d.x, d.y, mapConfig, transitionT, transitionPhase);
+            // Cull if completely off screen due to transition
+            if (Math.abs(offsetY) > 800) return;
+
             const drawY = d.y + offsetY;
-            if (drawY > d.y + 800) return;
 
             const op = renderList.next();
             op.type = RenderOpType.DECAL;
@@ -66,10 +68,10 @@ export class VFXRenderer {
             if (p.x < cullMinX || p.x > cullMaxX || p.y < cullMinY || p.y > cullMaxY) return;
 
             // Only Physical types that should be occluded by units
-            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) {
+            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'SHOCKWAVE', 'BLAST', 'RING', 'CRACKS', 'MAGIC_CIRCLE'].includes(p.type)) {
                 
                 const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
-                if (offset > 800) return;
+                if (Math.abs(offset) > 800) return;
 
                 const progress = 1 - (p.life / p.maxLife);
                 const isChaos = isChaosStyle(p.color);
@@ -77,13 +79,12 @@ export class VFXRenderer {
                 const op = renderList.next();
                 op.type = RenderOpType.VFX;
                 
-                // V6.1 FIX: Use correct sorting by Ground Y, but draw at Visual Y
-                // Visual Y = GroundY - Height(z)
-                op.y = p.y + offset; // Sort Key (Ground Level)
+                // Sort Key (Ground Level with Offset)
+                op.y = p.y + offset; 
                 op.z = 5;
                 op.sortBias = p.sortBias || 0; 
                 
-                // Z-FIGHTING FIX: Lift giant flat effects slightly
+                // Visual Lift
                 let visualLift = 0;
                 if (p.type === 'GIANT_HEX' || p.type === 'GRID_FIELD' || p.type === 'DOMAIN') {
                     visualLift = 5; 
@@ -93,8 +94,25 @@ export class VFXRenderer {
                 op.vProgress = progress;
                 op.vChaos = isChaos;
                 op.tx = p.x;
-                op.ty = p.y + offset - p.z - visualLift; // Drawing Y
-                op.th = p.z; // Height used for shadow calc
+                
+                // COORDINATE CALCULATION FIX:
+                // Ground effects (Shockwave) are drawn at ground Y (p.y + offset).
+                // Air effects (Debris) are drawn at visual Y (p.y + offset - p.z).
+                // ParticleRenderer checks p.type to decide, so we pass the *Ground* coordinates
+                // and let the painter handle Z-offset logic if needed, OR we pass the calculated Visual Y?
+                
+                // Decision: We pass the Visual Anchor Point.
+                // For Air Particles: VisualY = GroundY - Z
+                // For Ground Particles: VisualY = GroundY. (They will apply ISO scale to flat geometry)
+                
+                const isFlatGround = ['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type);
+                if (isFlatGround) {
+                    op.ty = p.y + offset - visualLift; // Draw at floor
+                } else {
+                    op.ty = p.y + offset - p.z - visualLift; // Draw in air
+                }
+                
+                op.th = p.z; 
             }
         });
 
@@ -115,10 +133,10 @@ export class VFXRenderer {
             if (p.delay && p.delay > 0) return;
             
             // Filter out physicals already drawn
-            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) return;
+            if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'SHOCKWAVE', 'BLAST', 'RING', 'CRACKS', 'MAGIC_CIRCLE'].includes(p.type)) return;
 
             const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
-            if (offset > 800) return; 
+            if (Math.abs(offset) > 800) return; 
 
             const progress = 1 - (p.life / p.maxLife);
             const drawY = p.y + offset - p.z;

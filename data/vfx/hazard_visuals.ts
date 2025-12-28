@@ -22,9 +22,9 @@ export const HAZARD_VISUALS: Record<string, HazardVisualDef> = {
     },
     'POISON': {
         type: 'FOG',
-        primaryColor: '#65a30d', 
-        secondaryColor: '#bef264',
-        intensity: 0.8, speed: 1.0,
+        primaryColor: '#65a30d', // Green-600
+        secondaryColor: '#d9f99d', // Green-200 (Highlight)
+        intensity: 0.9, speed: 0.8,
         spawnVfx: 'FX_HIT_RED_FEL'
     },
     'ICE': {

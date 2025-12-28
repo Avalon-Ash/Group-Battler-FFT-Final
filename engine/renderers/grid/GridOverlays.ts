@@ -1,5 +1,6 @@
 
 import { ZoneRenderer } from "./ZoneRenderer";
+import { HazardPainter } from "./painters/HazardPainter"; // New Import
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { GroundHazard } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
@@ -41,9 +42,9 @@ export const GridOverlays = {
         globalTime: number,
         hazard: GroundHazard | undefined
     ) {
-        // --- LAYER 1: HAZARDS ---
+        // --- LAYER 1: HAZARDS (Decoupled) ---
         if (hazard) {
-            ZoneRenderer.drawHazard(ctx, x, y, hazard, globalTime);
+            HazardPainter.draw(ctx, x, y, hazard, globalTime);
         }
 
         // --- LAYER 2: UNIT STATUS FLOOR TINT ---

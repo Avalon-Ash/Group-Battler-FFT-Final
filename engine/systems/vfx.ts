@@ -1,4 +1,3 @@
-
 import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
 import { VFXPhysics } from "./vfx/VFXPhysics";
@@ -20,8 +19,8 @@ export class VFXSystem {
     /**
      * Play a particle effect from the registry
      */
-    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string) {
-        VFXPlayer.play(this, effectId, x, y, z, colorOverride);
+    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
+        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ);
     }
 
     /**

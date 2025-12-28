@@ -16,30 +16,41 @@ const pickColor = (colors: string[]): string => {
     return colors[Math.floor(Math.random() * colors.length)];
 };
 
+// List of particles that MUST snap to ground Z
+const GROUND_PARTICLES = new Set([
+    'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE', 
+    'HEX_GLOW', 'PILLAR', 'DOMAIN'
+]);
+
 export class VFXPlayer {
 
-    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string) {
+    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
         const asset = VFX_REGISTRY[effectId];
         
         if (!asset) {
-            // console.warn(`VFXPlayer: Asset '${effectId}' not found.`);
             return;
         }
 
         for (const emitter of asset.emitters) {
-            this.processEmitter(system, emitter, x, y, z, colorOverride);
+            this.processEmitter(system, emitter, x, y, z, colorOverride, groundZ);
         }
     }
 
-    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string) {
+    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number) {
         const count = Math.floor(rnd(config.count));
         
+        // Determine effective Z for this emitter
+        // If the particle type is a ground effect and we know where the ground is, snap it.
+        // Otherwise use the target Z (which might be body height).
+        const isGroundType = GROUND_PARTICLES.has(config.particleType);
+        const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
+
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();
             
             // 1. Position & Velocity Calculation based on Shape
             let vx = 0, vy = 0, vz = 0;
-            let px = cx, py = cy, pz = cz;
+            let px = cx, py = cy, pz = effectiveZ;
             const speed = rnd(config.speed);
 
             if (config.shape === 'POINT') {
@@ -95,7 +106,6 @@ export class VFXPlayer {
 
             // --- CRITICAL FIX: HYDRATE TEXTURE ---
             // Force load the high-quality Hexagon texture immediately.
-            // This prevents the renderer from using the fallback "White Square" vector.
             if (!p.image && !['PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN'].includes(p.type)) {
                 // We cast p.type to any because the Factory accepts specific string literals
                 p.image = VFXFactory.getTexture(p.type as any, p.color);
