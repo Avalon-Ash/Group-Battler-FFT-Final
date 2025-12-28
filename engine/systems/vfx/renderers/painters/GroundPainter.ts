@@ -29,29 +29,14 @@ export const GroundPainter = {
         
         // --- PROJECTION MATRIX ---
         // 1. Scale Y to project regular textures onto isometric floor
-        // This makes circles look like ellipses matching the grid
         ctx.scale(1, ISO_SCALE_Y);
         
-        // 2. Rotation applied in ground-plane (Visualized as spinning on floor)
-        // Since we scaled Y *before* rotating, we need to be careful.
-        // Actually, for ground effects, we want them to spin "flat".
-        // Rotating in screen space AFTER scale stretches the rotation.
-        // Correct order for "spinning disc on floor":
-        //   Scale(1, ISO) -> Rotate(angle) -> Draw(Circle) is WRONG.
-        //   Rotate(angle) -> Scale(1, ISO) -> Draw(Circle) is also tricky because order matters.
-        //   Best approach for flat textures:
-        //   We rotate the texture drawing itself?
-        //   If we do ctx.rotate() here, it rotates the whole coordinate system.
-        //   If we are scaled, rotation distorts.
+        // 2. Rotation applied in ground-plane
+        // CAUTION: Rotating in screen space AFTER scale creates "Wobble" artifact for square textures.
+        // We only allow rotation for radially symmetric textures (Rings) or organic ones (Cracks).
+        // Geometric grids MUST NOT rotate in screen space.
         
-        // CORRECTION: Reset scale, rotate, then re-apply scale? No.
-        // Simple solution: Rotate screen Z? No.
-        // If we want a spinning flat disc:
-        // Texture is square. We want to draw it as a diamond/ellipse.
-        
-        // For simple sprites (Shockwave, Ring), rotation is usually 0.
-        // For GRID_FIELD, it might be relevant.
-        if (p.rotation) {
+        if (p.rotation && p.type !== 'GRID_FIELD') {
              ctx.rotate(p.rotation);
         }
 

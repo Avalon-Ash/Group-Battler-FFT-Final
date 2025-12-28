@@ -1,9 +1,9 @@
 
 import { Role, Skill, Team } from '../../types';
 
-// 🔴 RED BASIC: 鮮血/混沌風格 (Blood/Chaos)
+// 🔴 RED BASIC: 25 VARIATIONS
 export const RED_BASIC: Skill[] = [
-    // --- TANK (Melee) ---
+    // --- TANK ---
     { 
         id: 'tr_b1', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '碎骨重擊', desc: '吸血打擊', 
@@ -45,7 +45,7 @@ export const RED_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
 
-    // --- WARRIOR (Melee/Thrown) ---
+    // --- WARRIOR ---
     { 
         id: 'wr_b1', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '裂傷斬擊', desc: '流血效果', 
@@ -58,7 +58,7 @@ export const RED_BASIC: Skill[] = [
         id: 'wr_b2', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '飛斧投擲', desc: '中程攻擊', 
         range: 3, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 55, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 900, // Slower for ARC 
+        type: 'SINGLE', power: 55, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 900, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'PROJ_RED_AXE', element: 'PHYSICAL'
     },
     { 
@@ -85,7 +85,7 @@ export const RED_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
 
-    // --- RANGER (Ranged) ---
+    // --- RANGER ---
     { 
         id: 'rr_b1', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '破城重弩', desc: '重型射擊', 
@@ -126,12 +126,12 @@ export const RED_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'BOMB', element: 'PHYSICAL'
     },
 
-    // --- MAGE (Ranged) ---
+    // --- MAGE ---
     { 
         id: 'mr_b1', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '混沌之球', desc: '隨機傷害', 
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 65, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, // Slow wobble
+        type: 'SINGLE', power: 65, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, 
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
     },
     { 
@@ -165,7 +165,7 @@ export const RED_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
 
-    // --- SUPPORT (Ranged) ---
+    // --- SUPPORT ---
     { 
         id: 'sr_b1', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '血之祭儀', desc: '吸血光束', 

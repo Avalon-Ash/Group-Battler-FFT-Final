@@ -60,7 +60,7 @@ export class VFXTextureCache {
             case 'ROCK':
             case 'CHIP':
                 ctx.fillStyle = color;
-                // Physical debris is small enough to not care about exact projection
+                // Physical debris is small enough to not care about exact projection, but consistency is key
                 HexGeometry.traceHex(ctx, 0, 0, r * 0.5, false);
                 ctx.fill();
                 break;
@@ -72,9 +72,7 @@ export class VFXTextureCache {
             case 'HEX_RUNE':
                 IconPainter.drawHexLock(ctx, r, color);
                 break;
-            case 'MAGIC_CIRCLE':
-                this.drawMagicCircle(ctx, r, color);
-                break;
+            // MAGIC_CIRCLE removed: Handled by ProceduralPainter for correct 3D rotation
             case 'SHADOW_BLOB':
                 this.drawShadowBlob(ctx, r, color);
                 break;
@@ -145,17 +143,6 @@ export class VFXTextureCache {
         ctx.lineWidth = 1;
         ctx.shadowBlur = 0;
         HexGeometry.traceHex(ctx, 0, 0, r * 0.6, false);
-        ctx.stroke();
-    }
-
-    private drawMagicCircle(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        HexGeometry.traceHex(ctx, 0, 0, r * 0.9, false);
-        ctx.stroke();
-        // Inner circle
-        ctx.beginPath(); 
-        ctx.arc(0, 0, r*0.7, 0, Math.PI*2);
         ctx.stroke();
     }
 

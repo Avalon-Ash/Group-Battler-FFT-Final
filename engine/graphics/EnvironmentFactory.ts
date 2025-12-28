@@ -1,21 +1,13 @@
 
-import { OBSTACLE_STYLES, HEX_SIZE, ISO_SCALE_Y } from "../../constants";
+import { OBSTACLE_STYLES, HEX_SIZE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
+import { HexGeometry } from "./utils/HexGeometry";
 
 // --- STRICT ALIGNMENT CONSTANTS ---
 export const ENV_CANVAS_W = 128;
 export const ENV_CANVAS_H = 160;
 export const ENV_ANCHOR_X = 64;  
 export const ENV_ANCHOR_Y = 140; 
-
-// Helper: Hexagon Vertices for Flat-Top alignment
-function getHexVertex(index: number, radius: number): {x: number, y: number} {
-    const angle = index * Math.PI / 3;
-    return {
-        x: Math.cos(angle) * radius,
-        y: Math.sin(angle) * radius * ISO_SCALE_Y
-    };
-}
 
 export const EnvironmentFactory = {
     
@@ -61,14 +53,11 @@ export const EnvironmentFactory = {
         ctx.save();
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.filter = 'blur(4px)';
-        ctx.beginPath();
         const r = HEX_SIZE * 0.9;
-        for (let i = 0; i < 6; i++) {
-            const v = getHexVertex(i, r);
-            if(i===0) ctx.moveTo(v.x, v.y);
-            else ctx.lineTo(v.x, v.y);
-        }
-        ctx.closePath();
+        
+        // Use Unified Math (applyIso=true for floor shadow)
+        HexGeometry.traceHex(ctx, 0, 0, r, true);
+        
         ctx.fill();
         ctx.restore();
     },
@@ -77,11 +66,16 @@ export const EnvironmentFactory = {
         const height = 55;
         const r = HEX_SIZE * 0.9; // Slightly smaller than tile
         
-        // Vertices
-        const v3 = getHexVertex(3, r); // Left
-        const v2 = getHexVertex(2, r); // Bottom Left
-        const v1 = getHexVertex(1, r); // Bottom Right
-        const v0 = getHexVertex(0, r); // Right
+        // Vertices (Unified Source of Truth)
+        // Note: HexGeometry vertices are relative to (0,0).
+        const verts = HexGeometry.getVertices(r, true);
+        
+        // Indices for Flat Top Hex (0 deg start):
+        // 3: Left, 2: Bottom-Left, 1: Bottom-Right, 0: Right
+        const v3 = verts[3];
+        const v2 = verts[2];
+        const v1 = verts[1];
+        const v0 = verts[0];
 
         // Draw Sides (Extrude Up)
         const topY = -height;
@@ -124,12 +118,7 @@ export const EnvironmentFactory = {
         ctx.translate(0, topY);
         ctx.fillStyle = style.light;
         ctx.globalAlpha = 0.9;
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const v = getHexVertex(i, r);
-            if(i===0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y);
-        }
-        ctx.closePath();
+        HexGeometry.traceHex(ctx, 0, 0, r, true);
         ctx.fill();
         
         // Inner Detail
@@ -143,10 +132,12 @@ export const EnvironmentFactory = {
         const height = 90;
         const r = HEX_SIZE * 0.7; // Thinner than wall
         
-        const v3 = getHexVertex(3, r); 
-        const v2 = getHexVertex(2, r); 
-        const v1 = getHexVertex(1, r); 
-        const v0 = getHexVertex(0, r); 
+        const verts = HexGeometry.getVertices(r, true);
+        const v3 = verts[3];
+        const v2 = verts[2];
+        const v1 = verts[1];
+        const v0 = verts[0];
+        
         const topY = -height;
 
         // Left Face
@@ -185,11 +176,7 @@ export const EnvironmentFactory = {
         ctx.save();
         ctx.translate(0, topY);
         ctx.fillStyle = '#000';
-        ctx.beginPath();
-        for (let i = 0; i < 6; i++) {
-            const v = getHexVertex(i, r);
-            if(i===0) ctx.moveTo(v.x, v.y); else ctx.lineTo(v.x, v.y);
-        }
+        HexGeometry.traceHex(ctx, 0, 0, r, true);
         ctx.fill();
         ctx.restore();
     },

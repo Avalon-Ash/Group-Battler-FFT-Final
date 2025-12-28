@@ -22,6 +22,11 @@ const GROUND_PARTICLES = new Set([
     'HEX_GLOW', 'PILLAR', 'DOMAIN'
 ]);
 
+// Particles that should NEVER rotate randomly (Geometry-sensitive)
+const FIXED_ORIENTATION_PARTICLES = new Set([
+    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX'
+]);
+
 export class VFXPlayer {
 
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
@@ -100,8 +105,19 @@ export class VFXPlayer {
             // Optional Physics Overrides
             if (config.drag !== undefined) p.drag = config.drag;
             if (config.locked) p.locked = true;
-            if (config.vRotation) p.vRotation = rnd(config.vRotation);
-            else p.vRotation = (Math.random() - 0.5) * 10; // Default gentle rotation
+            
+            // Rotation Logic (Fixed for Perspective Correctness)
+            if (config.vRotation) {
+                p.vRotation = rnd(config.vRotation);
+            } else {
+                // Only apply random spin to sprites/debris.
+                // Geometry-aligned effects (Grids, Pillars) must NOT spin randomly or they wobble.
+                if (FIXED_ORIENTATION_PARTICLES.has(config.particleType)) {
+                    p.vRotation = 0;
+                } else {
+                    p.vRotation = (Math.random() - 0.5) * 10; 
+                }
+            }
 
             if (config.blendMode) p.blendMode = config.blendMode;
 

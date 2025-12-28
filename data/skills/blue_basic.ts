@@ -1,12 +1,12 @@
 
 import { Role, Skill, Team } from '../../types';
 
-// 🔵 BLUE BASIC: 秩序/科技風格 (Tech/Holy)
+// 🔵 BLUE BASIC: 25 VARIATIONS
 export const BLUE_BASIC: Skill[] = [
-    // --- TANK (Melee) ---
+    // --- TANK ---
     { 
         id: 'tb_b1', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '鎮壓打擊', desc: '基礎回魔, 微量擊退', 
+        name: '鎮壓打擊', desc: '盾擊擊退', 
         range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 25,
         type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 1,
@@ -14,7 +14,7 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'tb_b2', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '充能警棍', desc: '機率微暈', 
+        name: '電擊警棍', desc: '機率微暈', 
         range: 1, cast: 0.4, cd: 1.2, cost: 0, gain: 20,
         type: 'SINGLE', power: 45, color: '#93c5fd', visual: 'SMASH', projectileSpeed: 0,
         ccType: 'STUN', ccDur: 0.1, 
@@ -22,15 +22,14 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '方陣衝擊', desc: '防禦姿態回魔', 
+        name: '能量衝擊', desc: '回魔打擊', 
         range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 30,
         type: 'SINGLE', power: 40, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 20,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
     },
     { 
         id: 'tb_b4', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '制裁盾擊', desc: '打斷詠唱', 
+        name: '沉默盾擊', desc: '打斷詠唱', 
         range: 1, cast: 0.3, cd: 1.5, cost: 0, gain: 25,
         type: 'SINGLE', power: 55, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 0.5,
@@ -38,26 +37,26 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'tb_b5', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '動能釋放', desc: '充能打擊', 
-        range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 35,
-        type: 'SINGLE', power: 60, color: '#3b82f6', visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'LIGHTNING'
+        name: '震地猛擊', desc: 'AOE普攻', 
+        range: 1, cast: 0.8, cd: 1.5, cost: 0, gain: 35,
+        type: 'AOE', aoeRadius: 1, power: 30, color: '#3b82f6', visual: 'SMASH', projectileSpeed: 0, 
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
     },
 
-    // --- WARRIOR (Melee/Short) ---
+    // --- WARRIOR ---
     { 
         id: 'wb_b1', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
         name: '光子劍刃', desc: '快速連擊', 
         range: 1, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
         type: 'SINGLE', power: 65, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
     },
     { 
         id: 'wb_b2', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
         name: '弱點刺擊', desc: '穿透攻擊', 
         range: 2, cast: 0.4, cd: 1.0, cost: 0, gain: 25, 
         type: 'SINGLE', power: 60, color: '#bae6fd', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
     },
     { 
         id: 'wb_b3', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
@@ -83,7 +82,7 @@ export const BLUE_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },
 
-    // --- RANGER (Ranged) ---
+    // --- RANGER ---
     { 
         id: 'rb_b1', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '精準射擊', desc: '標準遠程', 
@@ -95,14 +94,14 @@ export const BLUE_BASIC: Skill[] = [
         id: 'rb_b2', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '寒冰箭', desc: '微量緩速', 
         range: 5, cast: 0.7, cd: 1.2, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 55, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 800, // Reduced speed for ARC
+        type: 'SINGLE', power: 55, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 800, 
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE'
     },
     { 
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
-        name: '雷射標記', desc: '增加爆擊', 
+        name: '雷射標記', desc: '必中', 
         range: 7, cast: 0.4, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 40, color: '#ef4444', visual: 'BOLT', projectileSpeed: 2000, 
+        type: 'SINGLE', power: 40, color: '#ef4444', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },
     { 
@@ -122,12 +121,12 @@ export const BLUE_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'VOID'
     },
 
-    // --- MAGE (Ranged) ---
+    // --- MAGE ---
     { 
         id: 'mb_b1', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '追蹤導彈', desc: '追蹤魔法', 
         range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 70, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 600, // Slow homing
+        type: 'SINGLE', power: 70, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 600, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 
@@ -146,9 +145,9 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'mb_b4', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
-        name: '奧術奔流', desc: '彈跳傷害', 
-        range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 55, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900, 
+        name: '奧術彈射', desc: '小範圍彈跳', 
+        range: 4, cast: 0.5, cd: 1.2, cost: 0, gain: 30, 
+        type: 'AOE', aoeRadius: 1, power: 45, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 
@@ -160,7 +159,7 @@ export const BLUE_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', element: 'ARCANE'
     },
 
-    // --- SUPPORT (Ranged) ---
+    // --- SUPPORT ---
     { 
         id: 'sb_b1', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '神聖懲戒', desc: '神聖傷害', 
