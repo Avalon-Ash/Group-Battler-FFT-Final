@@ -114,8 +114,17 @@ export class GameEngine {
     isValidHash(h: number) { return this.map.isValidHash(h); }
     hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
-    randomizeEnvironment() { this.map.randomizeEnvironment(this); }
-    rebuildMap() { this.map.rebuildMap(this); }
+    
+    randomizeEnvironment() { 
+        this.hazards.reset(); // Crucial: Wipe floor hazards
+        if (this.renderer) this.renderer.vfx.reset(); // Crucial: Wipe decals
+        this.map.randomizeEnvironment(this); 
+    }
+    
+    rebuildMap() { 
+        this.hazards.reset();
+        this.map.rebuildMap(this); 
+    }
 
     removeAgent(q: number, r: number) {
         const hash = HexUtils.hash(q, r);
@@ -185,7 +194,7 @@ export class GameEngine {
         this.victory.reset();
         this.time.reset();
         this.agentMap.clear();
-        this.hazards.reset();
+        this.hazards.reset(); // Crucial: Reset hazards on restart
         this.announcer.reset(); 
         this.director.reset();
         
@@ -215,7 +224,7 @@ export class GameEngine {
         this.stop();
         this.agents = [];
         this.agentMap.clear();
-        this.hazards.reset();
+        this.hazards.reset(); // Crucial
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.announcer.reset();
@@ -232,8 +241,11 @@ export class GameEngine {
         
         this.logger.clear();
         
-        if (!keepScene) this.map.randomizeEnvironment(this); 
-        else this.map.rebuildMap(this); 
+        if (!keepScene) {
+            this.map.randomizeEnvironment(this); 
+        } else {
+            this.map.rebuildMap(this); 
+        }
         
         this.bus.emit('GAME_CLEAR', {});
     }

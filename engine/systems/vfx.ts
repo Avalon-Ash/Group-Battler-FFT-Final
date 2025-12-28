@@ -1,3 +1,4 @@
+
 import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
 import { VFXPhysics } from "./vfx/VFXPhysics";
@@ -11,9 +12,8 @@ export class VFXSystem {
     private ambience: VFXAmbience = new VFXAmbience();
 
     public reset() {
-        this.state.reset();
-        // ambience reset implied by zeroing timer locally in next update if needed, 
-        // but ambience class state is transient anyway.
+        this.state.reset(); // Clears particles and decals
+        // Ambience reset is stateless usually, but good practice if we add state later
     }
 
     /**

@@ -14,6 +14,10 @@ export enum RenderOpType {
 
 export class RenderOp {
     type: RenderOpType = RenderOpType.TERRAIN;
+    
+    // Sort Key (Calculated once)
+    sortKey: number = 0;
+    
     y: number = 0; 
     z: number = 0; 
     sortBias: number = 0; 
@@ -68,14 +72,14 @@ export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
     
-    // Double buffer approach for sorting to avoid 'slice()' allocation
+    // Double buffer approach for sorting
     private sortBuffer: RenderOp[] = [];
     private capacity: number = 8000;
 
     constructor() {
         for(let i=0; i<this.capacity; i++) {
             this.ops.push(new RenderOp());
-            this.sortBuffer.push(new RenderOp()); // Placeholder, will be overwritten by pointers
+            this.sortBuffer.push(new RenderOp()); 
         }
     }
     
@@ -85,7 +89,7 @@ export class RenderList {
     
     public next(): RenderOp {
         if (this.count >= this.ops.length) {
-            // Panic expand (should be rare)
+            // Panic expand
             for(let i=0; i<1000; i++) {
                 this.ops.push(new RenderOp());
                 this.sortBuffer.push(new RenderOp());
@@ -98,35 +102,44 @@ export class RenderList {
     
     public sort() {
         if (this.count > 1) {
-            // 1. Copy active pointers to buffer
+            // 1. Calculate Sort Keys for Active Ops (Batch Processing)
+            // Concept: (Layer * 10,000,000) + (Y * 1000) + Z
+            // Layer 0: Ground/Low
+            // Layer 1: High/Air (Z > 50)
+            // Using integer math avoids slow float comparisons in the sort function
+            
+            for (let i = 0; i < this.count; i++) {
+                const op = this.ops[i];
+                // Bias high-Z items (Projectiles, Flying Units, UI FX) to draw last in same-y situations
+                // Shift by 10,000,000 to segregate "Air Layer"
+                const layerScore = (op.z > 50) ? 10000000 : 0;
+                
+                // Y-Sorting (Primary Depth)
+                // Multiply Y by 1000 to preserve sub-pixel order if integers, 
+                // but rounding usually fine. Using Math.floor ensures stable int key.
+                // Add sortBias for manual tweaking (e.g. Decals below Units)
+                const yScore = Math.floor(op.y + op.sortBias) * 1000;
+                
+                // Z-Sorting (Secondary Depth)
+                // Within same Y line, higher Z draws on top
+                const zScore = Math.floor(op.z);
+                
+                op.sortKey = layerScore + yScore + zScore;
+            }
+
+            // 2. Copy active pointers to buffer
             for (let i = 0; i < this.count; i++) {
                 this.sortBuffer[i] = this.ops[i];
             }
             
-            // 2. Sort the buffer (Only the active part)
-            // Using subarray view for sort to avoid creating new array
-            const activeView = this.sortBuffer.slice(0, this.count); // We still slice for native sort api compatibility :(
-            // Actually, modern engines optimize small slices well. 
-            // If we want zero allocation we need a custom QuickSort.
-            // For now, sorting the slice is faster than sorting the whole 8000-item array with empty slots.
-            activeView.sort(this.compare);
+            // 3. Sort buffer (Fast Integer Compare)
+            const activeView = this.sortBuffer.slice(0, this.count);
+            activeView.sort((a, b) => a.sortKey - b.sortKey);
             
-            // 3. Copy back
+            // 4. Copy back
             for (let i = 0; i < this.count; i++) {
                 this.ops[i] = activeView[i];
             }
         }
-    }
-    
-    private compare(a: RenderOp, b: RenderOp): number {
-        // High Z items (Floating UI/Effects) always on top
-        if (a.z > 50 && b.z <= 50) return 1;
-        if (b.z > 50 && a.z <= 50) return -1;
-        
-        const scoreA = a.y + a.sortBias;
-        const scoreB = b.y + b.sortBias;
-
-        if (Math.abs(scoreA - scoreB) < 2) return a.z - b.z;
-        return scoreA - scoreB;
     }
 }
