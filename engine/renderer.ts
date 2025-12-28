@@ -16,7 +16,7 @@ import { VisualEventListener } from "./systems/VisualEventListener";
 import { BackgroundRenderer } from "./renderers/background";
 import { TacticalRenderer } from "./renderers/tactical";
 import { HUDRenderer } from "./renderers/HUDRenderer";
-import { StatusRenderLayer } from "./renderers/layers/StatusRenderLayer"; 
+import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; // Updated
 import { RenderList, RenderOpType, RenderOp } from "./renderers/RenderList";
 import { SpriteManager } from "./sprites";
 import { TerrainRenderer } from "./renderers/grid/TerrainRenderer";
@@ -38,7 +38,7 @@ export class GameRenderer {
     public vfx: VFXSystem;
     private vfxRenderer: VFXRenderer;
     public unit: UnitRenderSystem;
-    public statusLayer: StatusRenderLayer; 
+    public statusOrchestrator: StatusOrchestrator; // Updated
     public hud: HUDSystem;
     private hudRenderer: HUDRenderer;
     public camera: CameraSystem;
@@ -59,7 +59,7 @@ export class GameRenderer {
         this.vfx = new VFXSystem();
         this.vfxRenderer = new VFXRenderer();
         this.unit = new UnitRenderSystem();
-        this.statusLayer = new StatusRenderLayer(); 
+        this.statusOrchestrator = new StatusOrchestrator(); // Updated
         this.hud = new HUDSystem();
         this.hudRenderer = new HUDRenderer(); 
         this.camera = new CameraSystem();
@@ -176,6 +176,7 @@ export class GameRenderer {
             this.globalTime
         );
         
+        // Pass viewport info for Culling
         this.vfxRenderer.submitRenderables(
             this.renderList,
             engine,
@@ -183,7 +184,8 @@ export class GameRenderer {
             terrainHeightFunc,
             engine.mapConfig,
             this.transitionT,
-            this.transitionPhase
+            this.transitionPhase,
+            { width: logicalWidth, height: logicalHeight, camera } // Viewport for culling
         );
         
         this.unit.submitRenderables(
@@ -285,9 +287,8 @@ export class GameRenderer {
             ctx.restore();
         }
 
-        // 7. STATUS LAYER PASS (NEW: Dedicated Channel)
-        // Draws persistent effects (Shields, CC) on top of units but below UI overlay
-        this.statusLayer.draw(ctx, engine.agents, this.globalTime);
+        // 7. STATUS LAYER PASS (Updated to Orchestrator)
+        this.statusOrchestrator.draw(ctx, engine.agents, this.globalTime);
 
         // 8. Top VFX (Particles above everything)
         this.vfxRenderer.drawTopLayerParticles(ctx, this.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);

@@ -5,6 +5,7 @@ import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { SceneTheme } from "../../../types";
 import { VFXSystem } from "../vfx";
 import { MapConfig } from "../../utils";
+import { Camera } from "../../systems/CameraSystem";
 
 // Modules
 import { getTransitionOffset, isChaosStyle } from "./utils";
@@ -20,10 +21,30 @@ export class VFXRenderer {
         getTerrainHeight: (q: number, r: number) => number,
         mapConfig: MapConfig,
         transitionT: number,
-        transitionPhase: 'IN' | 'OUT' | 'IDLE'
+        transitionPhase: 'IN' | 'OUT' | 'IDLE',
+        viewport?: { width: number, height: number, camera: Camera } // Optional for culling
     ) {
+        // CULLING SETUP
+        let cullMinX = -Infinity, cullMaxX = Infinity, cullMinY = -Infinity, cullMaxY = Infinity;
+        
+        if (viewport) {
+            const { width, height, camera } = viewport;
+            // Visible Window in World Coordinates
+            // Pad by 200px to account for particle size
+            const pad = 200;
+            const viewW = width / camera.zoom;
+            const viewH = height / camera.zoom;
+            
+            cullMinX = camera.x - (viewW / 2) - pad;
+            cullMaxX = camera.x + (viewW / 2) + pad;
+            cullMinY = camera.y - (viewH / 2) - pad;
+            cullMaxY = camera.y + (viewH / 2) + pad;
+        }
+
         // 1. Decals (Ground Level)
         vfx.state.decals.forEach(d => {
+            if (d.x < cullMinX || d.x > cullMaxX || d.y < cullMinY || d.y > cullMaxY) return;
+
             const offsetY = getTransitionOffset(d.x, d.y, mapConfig, transitionT, transitionPhase);
             const drawY = d.y + offsetY;
             if (drawY > d.y + 800) return;
@@ -40,6 +61,10 @@ export class VFXRenderer {
         // 2. Physical Particles (Sorted with World)
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
+            
+            // FRUSTUM CULLING
+            if (p.x < cullMinX || p.x > cullMaxX || p.y < cullMinY || p.y > cullMaxY) return;
+
             // Only Physical types that should be occluded by units
             if (['SPRITE', 'SHARD', 'DEBRIS', 'CHIP', 'SMOKE', 'GRID_FIELD', 'ROCK', 'PILLAR', 'HEX_BEAM', 'GIANT_HEX'].includes(p.type)) {
                 
