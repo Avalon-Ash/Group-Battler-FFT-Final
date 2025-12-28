@@ -11,7 +11,7 @@ export const ISO_SCALE_Y = 0.58;
 export const UNIT_VISUAL_HEIGHT = 100; 
 export const UNIT_BODY_OFFSET = 40;    
 export const UNIT_HOVER_OFFSET = 6; 
-export const UNIT_SCALE = 0.7; // NEW: Global visual scale factor (70% size)
+export const UNIT_SCALE = 0.7; 
 
 export const HUD_PADDING = 10;         
 
@@ -20,14 +20,14 @@ export const HUD_BAR_OFFSET = 150;
 
 // --- HUD & FEEDBACK CONFIG ---
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
-export const KILL_STREAK_WINDOW = 12.0; 
+export const KILL_STREAK_WINDOW = 5.0; // Reduced for faster pacing
 
 // --- PHYSICS & FALL DAMAGE ---
 export const PHYSICS = {
-    GRAVITY: 2500, 
-    SAFE_FALL_VELOCITY: 800, 
-    FATAL_FALL_VELOCITY: 2400, 
-    FALL_DAMAGE_MIN: 100, 
+    GRAVITY: 3000, // Snappier gravity
+    SAFE_FALL_VELOCITY: 900, 
+    FATAL_FALL_VELOCITY: 2500, 
+    FALL_DAMAGE_MIN: 150, 
 };
 
 // --- ASSET PALETTES ---
@@ -93,12 +93,12 @@ export const PALETTE = {
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600, 
     HIT_IMPULSE_MIN: 150, 
-    DR_RESET_TIME: 10.0,
-    EXECUTE_THRESHOLD: 0.3, 
-    BASE_EXECUTE_MULTIPLIER: 1.5,
-    BASE_VAMP_PCT: 0.5,
-    MANA_BURN_DEFAULT: 30,
-    MANA_RESTORE_DEFAULT: 30,
+    DR_RESET_TIME: 5.0, // Aggressive DR Reset for frequent CC
+    EXECUTE_THRESHOLD: 0.25, // 25% HP
+    BASE_EXECUTE_MULTIPLIER: 2.0,
+    BASE_VAMP_PCT: 0.35,
+    MANA_BURN_DEFAULT: 25,
+    MANA_RESTORE_DEFAULT: 25,
 };
 
 // --- MATERIAL 2.0 DEFINITIONS ---
