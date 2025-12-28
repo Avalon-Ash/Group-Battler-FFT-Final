@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT_Final",
-  "description": "A tactical auto-battler simulation with customizable units, hexagonal grid combat, and real-time behavior tree visualization.",
+  "name": "Group Battler FFT v6.4",
+  "description": "Tactical Auto-Battler v6.4.0 - Featuring Advanced Status Effects (Shield, Root, Fear, Taunt), Physics-based Projectiles 2.0, and High-Fidelity VFX.",
   "requestFramePermissions": []
 }

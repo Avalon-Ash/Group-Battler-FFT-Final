@@ -17,11 +17,12 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'tr_u2', role: Role.TANK, team: Team.RED, tag: 'ULT', 
-        name: '亡靈大軍', desc: '召喚墓碑腐化大地', 
+        name: '亡靈大軍', desc: '召喚墓碑腐化並恐懼', 
         range: 0, cast: 1.0, cd: 35.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 200, color: '#a3e635', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'DOT', ccForce: 100, ccDur: 10, 
+        ccType2: 'FEAR', ccDur2: 2.0, // NEW: Fear
         visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
@@ -71,11 +72,11 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'wr_u3', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
-        name: '惡魔變身', desc: '範圍恐懼(放逐)', 
+        name: '惡魔變身', desc: '恐懼周圍敵人', 
         range: 0, cast: 0.5, cd: 40.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: 150, color: '#7f1d1d', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 4.0, 
+        ccType: 'FEAR', ccDur: 4.0, // UPDATED: Fear instead of Banish
         visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
     { 
@@ -162,11 +163,12 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
-        name: '混亂之雨', desc: '綠色魔能轟炸', 
+        name: '混亂之雨', desc: '魔能轟炸致盲', 
         range: 0, cast: 1.5, cd: 35.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 8, power: 500, color: '#22c55e', 
         visual: 'BOMB', projectileSpeed: 300, 
         ccType: 'STUN', ccDur: 1.0, 
+        ccType2: 'BLIND', ccDur2: 5.0, // NEW: Blind
         visualHitEffect: 'FX_HIT_RED_FEL' 
     },
     { 
@@ -191,11 +193,12 @@ export const RED_ULT: Skill[] = [
     // ⚕️ SUPPORT: Mass Curse / Revive
     { 
         id: 'sr_u1', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
-        name: '靈魂連結', desc: '虛空鎖鏈沉默', 
+        name: '靈魂連結', desc: '虛空鎖鏈禁錮', 
         range: 0, cast: 1.5, cd: 45.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 15, power: 200, color: '#581c87', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 7.0, 
+        ccType2: 'ROOT', ccDur2: 4.0, // NEW: Mass Root
         visualHitEffect: 'FX_ULT_RED_SOUL_WEB' 
     },
     { 
@@ -228,7 +231,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 50.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 25, power: 150, color: '#4c1d95', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 4.0, 
+        ccType: 'FEAR', ccDur: 5.0, // UPDATED: Fear instead of Banish
         visualHitEffect: 'FX_HIT_RED_SHADOW' 
     },
 ];

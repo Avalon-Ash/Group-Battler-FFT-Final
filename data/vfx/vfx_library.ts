@@ -92,15 +92,19 @@ export const VFX_LIBRARY = {
     ] as VFXEntry[],
 
     STATUS: [
-        { key: 'STUN', name: '暈眩 (Stun)', desc: '控制', visuals: ['頭頂旋轉金色星星光環'] },
-        { key: 'SILENCE', name: '沉默 (Silence)', desc: '控制', visuals: ['頭頂紫色封印符文/氣泡'] },
-        { key: 'BANISH', name: '放逐 (Banish)', desc: '控制', visuals: ['紫色幽靈籠子', '透明化'] },
+        { key: 'STUN', name: '暈眩 (Stun)', desc: '硬控場', visuals: ['頭頂旋轉金色星星光環', '角色動作停止'] },
+        { key: 'SILENCE', name: '沉默 (Silence)', desc: '軟控場', visuals: ['頭頂紫色封印鎖', '無法施法'] },
+        { key: 'BANISH', name: '放逐 (Banish)', desc: '硬控場', visuals: ['紫色半透明水晶籠', '無敵且無法行動'] },
+        { key: 'ROOT', name: '禁錮 (Root)', desc: '軟控場', visuals: ['腳下出現鎖鏈/尖刺', '無法移動'] },
+        { key: 'FEAR', name: '恐懼 (Fear)', desc: '硬控場', visuals: ['頭頂紫色骷髏頭', '隨機亂跑'] },
+        { key: 'TAUNT', name: '嘲諷 (Taunt)', desc: '硬控場', visuals: ['頭頂紅色激怒符號', '強制攻擊目標'] },
+        { key: 'BLIND', name: '致盲 (Blind)', desc: '軟控場', visuals: ['頭頂劃掉的眼睛', '攻擊未命中'] },
+        { key: 'SHIELD', name: '護盾 (Shield)', desc: '增益', visuals: ['幾何能量旋轉護罩', '吸收傷害'] },
         { key: 'POLYMORPH', name: '變形 (Polymorph)', desc: '特殊', visuals: ['模型替換為白色綿羊'] },
         { key: 'FROZEN', name: '凍結 (Frozen)', desc: '特殊', visuals: ['被包覆在半透明冰塊中'] },
         { key: 'STASIS', name: '凝滯/金身 (Stasis)', desc: '特殊', visuals: ['金色無敵護盾', '時間停止'] },
         { key: 'DOT', name: '持續傷 (DoT)', desc: '狀態', visuals: ['身上冒出綠色/紫色氣泡或煙霧'] },
         { key: 'HOT', name: '回春 (HoT)', desc: '狀態', visuals: ['身上飄出綠色「+」號'] },
-        { key: 'CASTING', name: '詠唱 (Casting)', desc: '動作', visuals: ['腳下魔法陣(八芒星/方陣)', '聚氣光效'] }
     ] as VFXEntry[],
 
     // GENERIC PROJECTILES

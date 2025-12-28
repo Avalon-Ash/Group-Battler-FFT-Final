@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.3.0 (Projectile 2.0 & High-Fidelity Assets)
+Version: 6.4.0 (Tactical Status Update)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
@@ -47,7 +47,7 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 * 飛行機制 (Flight Mechanics):
   - 懸浮高度 (Hover Height): 55 px (動態正弦波浮動).
   - 阻擋規避: 飛行單位無視一般障礙物與地形落差，僅受 "BlocksFlying" 屬性建築阻擋。
-  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH] 狀態時，升力消失，強制切換至重力物理運算。
+  - 墜毀判定: 處於 [暈眩 STUN / 冰凍 FROZEN / 變形 POLYMORPH / 恐懼 FEAR] 狀態時，升力消失，強制切換至重力物理運算。
 
 [3. 投射物彈道學 (Projectile Ballistics 2.0)]
 --------------------------------------------------------------------------------
@@ -61,21 +61,22 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   - Wobble: 正弦波側向擾動 (如: 火球, 混沌法球).
   - Spin: 獨立於移動方向的自旋角速度 (如: 飛斧 15 rad/s).
 
-* 視覺渲染 (Visual Rendering):
-  - 獨立繪圖器 (ProjectilePainter): 支援高精度 Canvas 繪圖 (Hex Dart, Crystal, Axe).
-  - 拖尾系統 (Trail History): 記錄最近 N 幀位置以繪製平滑拖尾。
-  - 速度調整: 彈速下調至 800-1500 px/s 以適應肉眼動態捕捉。
-
-[4. 戰鬥邏輯與判定 (Combat Logic & Calculations)]
+[4. 異常狀態體系 (Control Status System)]
 --------------------------------------------------------------------------------
-* 高地優勢 (Elevation Advantage):
-  - 公式: Effective_Range = Skill_Range + max(0, floor(Attacker_H - Target_H) / ${BLOCK_HEIGHT}).
-  - 描述: 垂直高度每領先一階，遠程射程提升 1 格。
+* 硬控場 (Hard CC):
+  - 暈眩 (Stun): 無法移動、無法施法、無法迴避。
+  - 恐懼 (Fear): 強制隨機移動，打斷施法。
+  - 嘲諷 (Taunt): 強制攻擊施法者，無法切換目標。
+  - 放逐 (Banish/Stasis): 移出戰場，無敵且無法行動。
 
-* 傷害模型 (Damage Modeling):
-  - 斬殺判定 (Execute): 目標 HP < 30% 時，觸發 ${COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER}x 傷害係數。
-  - 吸血機制 (Vampirism): 預設轉化 50% 傷害為生命回復。
-  - 擊退衝擊 (Impulse): 基於傷害量計算向量位移，最大限制 ${COMBAT_PARAM.HIT_IMPULSE_MAX} 向量單位。
+* 軟控場 (Soft CC):
+  - 禁錮 (Root): 無法移動，但可施法/攻擊。
+  - 沉默 (Silence): 無法施放技能，僅能普攻。
+  - 致盲 (Blind): 普攻與指向性技能高機率 MISS。
+
+* 防禦機制 (Defense):
+  - 護盾 (Shield): 優先扣除護盾值，吸收 DoT 與直傷。
+  - 抗性遞減 (DR): 同一類型 CC 在 ${COMBAT_PARAM.DR_RESET_TIME} 秒內重複施加效果減半。
 
 [5. 渲染管線技術 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
@@ -85,32 +86,6 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   3. 渲染隊列構建 (RenderList Collection): 遍歷 Tile, Unit, VFX, Projectile.
   4. 深度排序 (Painters Algorithm): 以 Ground_Y 為 Key，配合 SortBias 修正 Z-Fighting.
   5. 像素對齊 (Pixel Snapping): 所有 tx/ty 進行 Math.round()，消除 sub-pixel 模糊。
-
-* 後處理 (Post-Processing):
-  - 震動 (Trauma): 基於平方衰減的相機位移。
-  - 色差 (Chromatic Aberration): 戰鬥高潮與轉場時的 RGB 頻道分離特效。
-  - 高斯模糊 (Finish Blur): 模擬毛玻璃質感的轉場與勝利介面。
-
-[6. 系統架構解耦 (Decoupled Architecture)]
---------------------------------------------------------------------------------
-* 核心原則 (Core Principles):
-  - 數學純粹性 (Pure Math): 所有軌跡運算 (拋物線、螺旋、正弦波) 獨立於 \`engine/math/TrajectoryMath.ts\`。
-  - 資產配置化 (Data-Driven Assets): 視覺定義 (Cast, Projectile, Hazard) 完全移至 \`data/vfx/*.ts\`，渲染器僅負責讀取與繪製。
-  - 系統專責化 (Single Responsibility): 
-    - \`VFXSystem\`: 粒子生命週期與物理。
-    - \`GridSystem\`: 地形緩存與圖層計算。
-    - \`ProjectileRenderer\`: 僅負責將邏輯位置轉換為視覺像素。
-
-[7. 陣營視覺語義 (Faction Visual Semantics)]
---------------------------------------------------------------------------------
-* 藍軍 (Imperial):
-  - 色彩: 鈷藍 (Cobalt), 黃金 (Gold), 能量青 (Cyan).
-  - 形狀: 圓形、六角、規整對稱。
-  - 投射物: 科技飛鏢 (Hex Dart), 水晶 (Crystal), 能量球 (Orb).
-* 紅軍 (Covenant):
-  - 色彩: 深紅 (Crimson), 黃銅 (Brass), 邪能綠 (Fel Green).
-  - 形狀: 尖銳、不規則鋸齒、混沌發散。
-  - 投射物: 飛斧 (Axe), 混沌火球 (Chaos Orb), 重型弩箭 (Heavy Bolt).
 
 ================================================================================
 END OF SPECIFICATION

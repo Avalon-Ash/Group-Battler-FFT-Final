@@ -32,9 +32,7 @@ export class TacticalRenderer {
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number) {
         ctx.save();
         
-        // A. Selection Bracket (REMOVED: Replaced by HUD Highlight)
-
-        // B. Selected Agent Details (Path & Targets)
+        // Selected Agent Details (Path & Targets)
         if (highlight && highlight.hp > 0) {
             const hH = grid.getTerrainHeight(highlight.q, highlight.r, engine);
             const startPx = highlight.px;

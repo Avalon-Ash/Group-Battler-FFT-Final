@@ -26,11 +26,12 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '神盾降臨', desc: '全體擊退+護盾', 
+        name: '神盾降臨', desc: '全體擊退並給予護盾', 
         range: 0, cast: 0.8, cd: 35.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 150, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 8, 
+        ccType2: 'SHIELD', ccForce2: 400, // NEW: Mass Shield
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
@@ -44,11 +45,12 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'tb_u5', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
-        name: '最終防線', desc: '持續回血與燃魔', 
+        name: '最終防線', desc: '群體嘲諷與回血', 
         range: 0, cast: 0.5, cd: 40.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: -80, color: '#60a5fa', 
+        type: 'AOE', aoeRadius: 5, power: -100, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'HOT', ccForce: 80, ccDur: 8, effectType: 'MANA_BURN', effectVal: 30, 
+        ccType: 'HOT', ccForce: 100, ccDur: 8, 
+        ccType2: 'TAUNT', ccDur2: 6.0, // NEW: Mass Taunt
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
 
@@ -64,11 +66,12 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'wb_u2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
-        name: '破曉', desc: '太陽耀斑爆發', 
+        name: '破曉', desc: '太陽耀斑致盲全場', 
         range: 0, cast: 1.2, cd: 35.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 450, color: '#fffbeb', 
+        type: 'AOE', aoeRadius: 6, power: 350, color: '#fffbeb', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 2.5, 
+        ccType: 'STUN', ccDur: 1.5, 
+        ccType2: 'BLIND', ccDur2: 6.0, // NEW: Mass Blind
         visualHitEffect: 'FX_HIT_BLUE_HOLY' 
     },
     { 
@@ -129,11 +132,12 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'rb_u4', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '絕對封鎖', desc: '範圍長時間沉默', 
+        name: '絕對封鎖', desc: '沉默並禁錮敵人', 
         range: 8, cast: 1.0, cd: 35.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 150, color: '#8b5cf6', 
         visual: 'BOMB', projectileSpeed: 800, 
-        ccType: 'SILENCE', ccDur: 7.0, 
+        ccType: 'SILENCE', ccDur: 6.0, 
+        ccType2: 'ROOT', ccDur2: 4.0, // NEW: Mass Root
         visualHitEffect: 'FX_HIT_BLUE_TECH' 
     },
     { 
@@ -197,11 +201,12 @@ export const BLUE_ULT: Skill[] = [
     // ⚕️ SUPPORT: Miracle
     { 
         id: 'sb_u1', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '神聖干涉', desc: '光之翼守護(無敵)', 
+        name: '神聖干涉', desc: '無敵並賦予護盾', 
         range: 5, cast: 0.5, cd: 50.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: -250, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 4.0, ccType2: 'HOT', ccDur2: 4.0, ccForce2: 50, 
+        ccType: 'BANISH', ccDur: 4.0, // Stasis
+        ccType2: 'SHIELD', ccForce2: 300, // NEW: Shield after stasis
         visualHitEffect: 'FX_HIT_BLUE_HOLY', specialVisualStatus: 'STASIS'
     },
     { 

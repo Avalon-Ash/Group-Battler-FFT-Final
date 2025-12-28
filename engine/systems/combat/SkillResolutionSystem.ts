@@ -310,6 +310,8 @@ export class SkillResolutionSystem {
 
         if (statusText) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: statusText, color: statusColor });
+            // Added explicit LOG for CC application
+            engine.log(source, 'CC', type, target.id, `施加 ${statusText} (${effectiveDuration.toFixed(1)}s)`);
         }
     }
 
