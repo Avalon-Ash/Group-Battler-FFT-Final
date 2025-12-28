@@ -4,11 +4,6 @@ import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 
 // =========================================================================================
 // [SYSTEM DEPENDENCIES & CONSTANTS]
-// This file acts as the central registry for UI definitions and their mappings to Game Engine systems.
-// =========================================================================================
-
-// =========================================================================================
-// 1. CORE ENUM MAPPINGS (Visual & Labels)
 // =========================================================================================
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
@@ -41,7 +36,7 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
 };
 
 // =========================================================================================
-// 2. SKILL & COMBAT CONSTANTS (Effects & Visuals)
+// 2. SKILL & COMBAT CONSTANTS
 // =========================================================================================
 
 export const VISUAL_TYPES = [
@@ -51,32 +46,33 @@ export const VISUAL_TYPES = [
     { value: 'SLASH', label: '斬擊 (Slash)', icon: '⚔️' },
     { value: 'SMASH', label: '重擊 (Smash)', icon: '🔨' },
     { value: 'BEAM', label: '光束 (Beam)', icon: '✨' },
-    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' }
+    { value: 'BOMB', label: '爆彈 (Bomb)', icon: '💣' },
+    // NEW VISUALS V7.0
+    { value: 'CRYSTAL', label: '冰晶 (Crystal)', icon: '❄️' },
+    { value: 'HEX_DART', label: '科技鏢 (Hex Dart)', icon: '💠' },
+    { value: 'AXE', label: '飛斧 (Axe)', icon: '🪓' },
+    { value: 'ORB', label: '奧術球 (Orb)', icon: '🔮' }
 ];
 
 export const VFX_HIT_EFFECTS = Object.keys(VFX_REGISTRY).map(key => ({
     value: key,
-    label: `${key} (${VFX_REGISTRY[key].description || 'Custom'})`
+    label: `${key}`
 }));
 
 export const CC_TYPES = [
     { value: 'NONE', label: '無', color: '#94a3b8' },
-    
     // Hard CC
     { value: 'STUN', label: '暈眩 (Stun)', color: '#facc15' },
     { value: 'BANISH', label: '放逐 (Banish)', color: '#c084fc' },
     { value: 'FEAR', label: '恐懼 (Fear)', color: '#a855f7' },
     { value: 'TAUNT', label: '嘲諷 (Taunt)', color: '#ef4444' },
-    
     // Soft CC
     { value: 'ROOT', label: '禁錮 (Root)', color: '#fbbf24' },
     { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' },
     { value: 'BLIND', label: '致盲 (Blind)', color: '#cbd5e1' },
-    
     // Physics
     { value: 'KNOCKBACK', label: '擊退 (Knockback)', color: '#fff' },
     { value: 'PULL', label: '牽引 (Pull)', color: '#fff' },
-    
     // Buffs/Debuffs
     { value: 'SHIELD', label: '護盾 (Shield)', color: '#bae6fd' },
     { value: 'DOT', label: '持續傷 (DoT)', color: '#10b981' },
@@ -108,32 +104,6 @@ export const SPECIAL_STATUS_TYPES = [
     { value: 'POLYMORPH', label: '變形 (Polymorph/Sheep)' },
     { value: 'STASIS', label: '凝滯 (Stasis/Golden)' },
     { value: 'FROZEN', label: '凍結 (Frozen)' }
-];
-
-// =========================================================================================
-// 3. AI & BEHAVIOR TREE CONSTANTS
-// =========================================================================================
-
-export const AI_CONDITION_OPTIONS = [
-    { value: 'IsDead', label: '死亡狀態 (IsDead)' },
-    { value: 'IsAlive', label: '存活狀態 (IsAlive)' },
-    { value: 'IsStunned', label: '被暈眩 (IsStunned)' },
-    { value: 'IsBanished', label: '被放逐 (IsBanished)' },
-    { value: 'IsSilenced', label: '被沉默 (IsSilenced)' },
-    { value: 'HasTarget', label: '有目標 (HasTarget)' },
-    { value: 'HpBelow', label: 'HP 低於 (HpBelow)', args: ['threshold'] },
-    { value: 'MpAbove', label: 'MP 高於 (MpAbove)', args: ['amount'] },
-    { value: 'SkillReady', label: '技能就緒 (SkillReady)', args: ['slot'] },
-    { value: 'FindOptimalTarget', label: '尋找最佳目標 (FindOptimalTarget)', args: ['slot'] },
-    { value: 'IsTargetInRange', label: '目標在射程內 (IsTargetInRange)', args: ['slot'] }
-];
-
-export const AI_ACTION_OPTIONS = [
-    { value: 'Wait', label: '等待 (Wait)', args: ['status'] },
-    { value: 'Idle', label: '閒置 (Idle)' },
-    { value: 'CastSkill', label: '施放技能 (CastSkill)', args: ['slot'] },
-    { value: 'MoveToOptimal', label: '戰術移動 (MoveToOptimal)', args: ['slot'] },
-    { value: 'ChaseTarget', label: '追擊目標 (ChaseTarget)', args: ['slot'] }
 ];
 
 // =========================================================================================
@@ -249,21 +219,12 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
     }
 ];
 
-// =========================================================================================
-// 5. HELPER FUNCTIONS
-// =========================================================================================
-
 export const Helpers = {
     getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, color: 'text-slate-400', border: 'border-slate-500' },
-    
     getTeamConfig: (team: Team) => TEAM_MAP[team] || { label: 'Unknown', color: 'text-slate-400', bg: 'bg-slate-800' },
-    
     getTagLabel: (tag: string) => TAG_MAP[tag]?.label || tag,
-    
     getCCColor: (type?: string) => CC_TYPES.find(c => c.value === type)?.color || '#fff',
-    
     getEffectLabel: (type?: string) => EFFECT_TYPES.find(e => e.value === type)?.label || type,
-
     getStatusLabel: (status: string) => {
         if(status === '待機') return 'IDLE';
         if(status === '移動') return 'MOVING';
