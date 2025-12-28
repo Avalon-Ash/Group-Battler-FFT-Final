@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.4.0 (Tactical Status Update)
+Version: 6.5.0 (Pipeline Architecture Update)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================

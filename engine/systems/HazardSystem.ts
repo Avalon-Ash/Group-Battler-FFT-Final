@@ -36,7 +36,7 @@ export class HazardSystem {
                 existing.duration = Math.max(existing.duration, duration);
                 existing.power = Math.max(existing.power, power); // Update power if stronger
                 existing.sourceId = sourceId; // Update credit
-                // Do NOT reset existing.timer or existing.id
+                // Do NOT reset existing.timer or existing.id to maintain visual continuity
                 return;
             }
         }
@@ -106,8 +106,6 @@ export class HazardSystem {
         }
 
         // 3. Physics (Gravity/Suction)
-        // Optimization: Gravity logic should be in PhysicsSystem or centralized, but keeping here for cohesion for now.
-        // To optimize FPS, ensure this loop is tight.
         engine.agents.forEach(agent => {
             if (agent.hp <= 0 || agent.banished) return;
             const hazard = this.getHazardAt(agent.q, agent.r);

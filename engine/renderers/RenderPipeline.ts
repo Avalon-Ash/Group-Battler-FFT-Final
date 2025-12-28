@@ -91,7 +91,6 @@ export class RenderPipeline {
         this.renderList.reset();
         
         // Cache terrain lookup function for this frame
-        // OPTIMIZATION: We could cache heights in a FlatArray if map doesn't change
         const terrainHeightFunc = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
 
         // Collect Grid
@@ -115,7 +114,7 @@ export class RenderPipeline {
             { width: logicalWidth, height: logicalHeight, camera } 
         );
         
-        // Collect Units
+        // Collect Units (Optimized Pre-calculation)
         this.renderer.unit.submitRenderables(
             this.renderList,
             engine.agents, 
@@ -132,7 +131,7 @@ export class RenderPipeline {
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i];
             
-            // PIXEL SNAPPING: Strictly align all translation anchors to integer coordinates
+            // PIXEL SNAPPING: Strictly align all translation anchors to integer coordinates to avoid sub-pixel blur
             const snapX = Math.round(op.tx);
             const snapY = Math.round(op.ty);
 
@@ -180,6 +179,7 @@ export class RenderPipeline {
                         ctx.translate(snapX, snapY);
                         
                         if (p.targetX !== undefined && p.targetY !== undefined) {
+                            // Relativize target
                             const origTx = p.targetX;
                             const origTy = p.targetY;
                             p.targetX = origTx - snapX;
