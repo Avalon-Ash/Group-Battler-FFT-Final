@@ -8,9 +8,10 @@ import { BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
 export class MapGenerator {
 
     public static randomize(system: MapSystem, engine: GameEngine) {
-        // Larger Map Bounds
-        engine.mapConfig.w = Math.floor(14 + Math.random() * 4); // 14-18
-        engine.mapConfig.h = Math.floor(10 + Math.random() * 4); // 10-14
+        // Reverted: Standard Arena Bounds
+        // Max 10x10 to ensure 60fps on mid-tier devices and clean composition
+        engine.mapConfig.w = Math.floor(8 + Math.random() * 3); // 8, 9, 10
+        engine.mapConfig.h = Math.floor(8 + Math.random() * 3); // 8, 9, 10
         engine.currentScene = SCENE_DB[Math.floor(Math.random() * SCENE_DB.length)];
         this.rebuild(system, engine);
     }
@@ -27,7 +28,7 @@ export class MapGenerator {
         const cy = (H - 1) / 2;
         const maxDist = Math.sqrt(cx * cx + cy * cy);
 
-        // 1. Terrain Shape Generation (Terraces)
+        // 1. Terrain Shape Generation (Compact Terraces)
         for (let q = 0; q < W; q++) {
             for (let r = 0; r < H; r++) {
                 const hex = HexUtils.offsetToAxial(q, r, engine.mapConfig);
@@ -38,32 +39,30 @@ export class MapGenerator {
                 // Distance from center (0 to 1)
                 const dist = Math.sqrt((q - cx) ** 2 + (r - cy) ** 2) / maxDist;
                 
-                // Base Noise
-                const noise1 = Math.sin(q * 0.5) * Math.cos(r * 0.5);
-                const noise2 = Math.sin(q * 1.2 + r * 0.8) * 0.5;
+                // Base Noise (Higher frequency for smaller maps)
+                const noise1 = Math.sin(q * 0.8) * Math.cos(r * 0.8);
+                const noise2 = Math.sin(q * 1.5 + r * 1.2) * 0.5;
                 
-                // Arena bias: Higher at edges, lower at center, but with random spikes
-                let height = (dist * 3.0) + noise1 + noise2;
+                // Arena bias: Higher at edges, lower at center
+                let height = (dist * 2.5) + noise1 + noise2;
                 
-                // Add a "High Ground" plateau randomly
-                if (Math.random() > 0.8) height += 2.0;
+                // High Ground Plateau chance
+                if (Math.random() > 0.85) height += 1.5;
 
                 // Clamp and Scale
-                // We want tiers 0 to MAX
                 height = Math.max(0, height);
                 
-                // Quantize to steps to create flat playable areas (Terraces)
-                // e.g. 0.0-0.9 -> 0, 1.0-1.9 -> 1
+                // Quantize to steps
                 let tier = Math.floor(height);
                 
                 // Random variation on edges
-                if (Math.random() > 0.7) tier += 1;
+                if (Math.random() > 0.75) tier += 1;
 
                 tempHeights.set(k, tier);
             }
         }
 
-        // 2. Smoothing (Cellular Automata style) to merge small pillars
+        // 2. Smoothing
         const smoothedHeights = new Map<string, number>();
         tempHeights.forEach((h, key) => {
             const [q, r] = key.split(',').map(Number);
@@ -77,18 +76,16 @@ export class MapGenerator {
                     count++;
                 }
             });
-            // Round to nearest integer to keep terrace effect
             smoothedHeights.set(key, Math.round(sum / count));
         });
 
-        // 3. Commit Heights & Safety Check
-        // Ensure no tile is too high that it clips HUD (Safety cap)
+        // 3. Commit Heights & Safety
         smoothedHeights.forEach((tier, key) => {
             let finalTier = Math.max(0, Math.min(MAX_TERRAIN_TIER, tier));
             
-            // "Framing Safety": Reduce height of top-most rows to avoid clipping
+            // "Framing Safety": Reduce height of top-most rows
             const [q, r] = key.split(',').map(Number);
-            if (r < 2) finalTier = Math.min(finalTier, 2); 
+            if (r < 2) finalTier = Math.min(finalTier, 1); 
 
             system.setHeight(key, finalTier * BLOCK_HEIGHT);
         });
@@ -113,27 +110,25 @@ export class MapGenerator {
             
             const myTier = hPx / BLOCK_HEIGHT;
             const neighbors = HexUtils.neighbors({q, r});
-            let validNeighbors = 0;
             let maxNeighborDiff = 0;
             
             neighbors.forEach(n => {
                 if (!system.isValid(n.q, n.r)) return;
-                validNeighbors++;
                 const nH = system.getTerrainHeight(n.q, n.r);
                 const diff = Math.abs(nH - hPx) / BLOCK_HEIGHT;
                 if (diff > maxNeighborDiff) maxNeighborDiff = diff;
             });
 
-            // Rule 1: Edge of Cliffs (Safety Railings / Walls)
+            // Rule 1: Safety Walls on cliffs
             if (maxNeighborDiff >= 2) {
-                if (Math.random() < 0.4) {
+                if (Math.random() < 0.5) {
                     system.setObstacle(q, r, obstacleType);
                     return;
                 }
             }
 
-            // Rule 2: Random Clusters on flat ground
-            if (Math.random() < 0.08) {
+            // Rule 2: Random Clusters
+            if (Math.random() < 0.1) {
                 const type = engine.currentScene.textureType === 'FOREST' ? 'TREE' : obstacleType;
                 system.setObstacle(q, r, type);
             }
@@ -141,7 +136,6 @@ export class MapGenerator {
     }
 
     private static pruneDisconnected(system: MapSystem, engine: GameEngine) {
-        // Seed finding: Center of map
         const centerQ = Math.floor(engine.mapConfig.w / 2);
         const centerR = Math.floor(engine.mapConfig.h / 2);
         const centerHex = HexUtils.offsetToAxial(centerQ, centerR, engine.mapConfig);
@@ -168,9 +162,8 @@ export class MapGenerator {
             for (const n of neighbors) {
                 const nHash = HexUtils.hash(n.q, n.r);
                 if (system.isValidHash(nHash) && !reachable.has(nHash)) {
-                    // Height connectivity check
                     const nH = system.getTerrainHeight(n.q, n.r);
-                    if (Math.abs(nH - curH) <= BLOCK_HEIGHT * 2) { // Allow 2-step climb for connectivity check
+                    if (Math.abs(nH - curH) <= BLOCK_HEIGHT * 2) {
                         reachable.add(nHash);
                         queue.push(nHash);
                     }

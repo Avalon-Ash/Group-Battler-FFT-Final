@@ -4,7 +4,7 @@ import { Projectile, Skill } from "../../../types";
 import { HexUtils, Vector } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { PROJECTILE_VISUALS } from "../../../data/vfx/projectile_visuals";
-import { UNIT_BODY_OFFSET } from "../../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../constants";
 
 export class ProjectileSystem {
     public projectiles: Projectile[] = [];
@@ -52,10 +52,6 @@ export class ProjectileSystem {
                         if (source) skillExecutor.resolveHit(source, t, p.skill, hitPos, engine); 
                     });
                     
-                    // DoT Logic handled by SkillExecutor or Impact? 
-                    // Keeping simple DoT logic here for now but ideally moved to Executor
-                    // For now, spawn hazards directly via Manager if needed, but ImpactAOE usually handles instantaneous.
-                    // If projectile has persistent effects, handle here:
                     if (p.skill.ccType === 'DOT' || p.skill.name.includes("霧") || p.skill.name.includes("雨")) {
                         if (source) {
                             const centerHex = HexUtils.fromPx(hitPos.x, hitPos.y, engine.mapConfig);
@@ -128,12 +124,16 @@ export class ProjectileSystem {
     }
 
     private createProjectile(source: Agent, skill: Skill, targetPos: {x: number, y: number}, targetId: string) {
+        // FIXED: Start Z must equal the visual body center relative to ground.
+        // Stack: Physics Z (Jump) + Body Offset + Hover Lift.
+        // This ensures the projectile aligns with the chest, not the feet.
+        const launchHeight = source.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
+
         this.projectiles.push({
             id: Math.random().toString(36).substr(2, 6),
             x: source.px, y: source.py, 
             startX: source.px, startY: source.py, 
-            // FIXED: Start Z includes Body Offset to launch from chest, not feet
-            startZ: source.physics.z + UNIT_BODY_OFFSET, 
+            startZ: launchHeight,
             targetId, targetPos,
             speed: skill.projectileSpeed || 600, skill, sourceId: source.id, team: source.team, trail: []
         });

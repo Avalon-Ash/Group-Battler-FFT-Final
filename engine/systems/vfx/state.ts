@@ -5,7 +5,7 @@ export interface Particle {
     // Position (World Space - Ground Plane)
     x: number;
     y: number;
-    z: number; // Current visual Z (height offset)
+    z: number; // Current visual Z (Absolute Altitude)
     
     // Physics
     vx: number;
@@ -41,6 +41,9 @@ export interface Particle {
     texture?: HTMLCanvasElement; 
     blendMode?: GlobalCompositeOperation; 
     sortBias?: number; 
+
+    // Physics State Memory
+    lastGroundHeight?: number; // Fix for gap clipping
 }
 
 export interface Decal {
@@ -89,6 +92,8 @@ export class VFXStateManager {
             p.gravity = undefined;
             p.killAtTarget = undefined; 
             
+            p.lastGroundHeight = undefined;
+
             return p;
         }
         return { 

@@ -4,12 +4,14 @@ import { Team } from './types';
 // --- GEOMETRY SCALE ---
 export const HEX_SIZE = 44; 
 export const BLOCK_HEIGHT = 24; 
-export const MAX_TERRAIN_TIER = 8; // Increased height limit for dramatic falls
+export const MAX_TERRAIN_TIER = 6; // Reduced from 8 to fit smaller map scale better
 export const ISO_SCALE_Y = 0.58; 
 
 // --- VISUAL STANDARDS (UNIT ANCHORS) ---
 export const UNIT_VISUAL_HEIGHT = 100; 
 export const UNIT_BODY_OFFSET = 40;    
+export const UNIT_HOVER_OFFSET = 6; // Standard lift for unit base/shadow separation
+
 export const HUD_PADDING = 10;         
 
 export const STATUS_ICON_OFFSET = 120; 

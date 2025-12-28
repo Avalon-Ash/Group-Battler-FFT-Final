@@ -1,10 +1,14 @@
 
 import { Agent } from "../../../../game";
-import { STATUS_ICON_OFFSET } from "../../../../../constants";
+import { STATUS_ICON_OFFSET, UNIT_BODY_OFFSET } from "../../../../../constants";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../../data/vfx/status_visuals";
 
+const HOVER_LIFT = 6; 
+
 export const OverheadPainter = {
+    // x, y = Visual Surface Coordinates (Top of Block)
+    // z = Jump Height
     draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
         // Priority System: Only show most severe CC
         let type = '';
@@ -22,8 +26,17 @@ export const OverheadPainter = {
         // Bobbing Animation
         const bob = Math.sin(t * 6) * 5;
         
-        // Anchored closer to head, below HP bar
-        const anchorY = y - z - STATUS_ICON_OFFSET + bob; 
+        // --- ANCHOR LOGIC FIX ---
+        // y is Visual Surface Top.
+        // We move UP (-) by Jump Height (z).
+        // We move UP (-) by Body Height (UNIT_BODY_OFFSET + HOVER_LIFT).
+        // We move UP (-) by Status Offset.
+        
+        // Previously used 'y - z - offset'. 
+        // Now 'y' is TopFace, so it implicitly accounts for terrain height.
+        
+        const unitHeadY = y - z - UNIT_BODY_OFFSET - HOVER_LIFT;
+        const anchorY = unitHeadY - 50 + bob; // 50px above center mass
 
         ctx.save();
         ctx.translate(x, anchorY);

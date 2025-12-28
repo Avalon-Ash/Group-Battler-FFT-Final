@@ -204,7 +204,10 @@ export class RenderPipeline {
             ctx.restore();
         }
 
-        this.renderer.statusOrchestrator.draw(ctx, engine.agents, globalTime);
+        // --- STATUS ORCHESTRATOR FIX ---
+        // Pass terrainHeightFunc to ensure status icons render at Visual Top
+        this.renderer.statusOrchestrator.draw(ctx, engine.agents, globalTime, terrainHeightFunc);
+        
         this.renderer.vfxRenderer.drawTopLayerParticles(ctx, this.renderer.vfx, scene, engine.mapConfig, this.transitionT, this.transitionPhase);
 
         ctx.restore(); 

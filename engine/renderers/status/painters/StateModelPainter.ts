@@ -3,7 +3,10 @@ import { Agent } from "../../../../game";
 import { AssetManager } from "../../../assets";
 import { UNIT_BODY_OFFSET } from "../../../../../constants";
 
+const HOVER_LIFT = 6;
+
 export const StateModelPainter = {
+    // x, y = Visual Surface Coordinates (Top of Block)
     drawBanishment(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
         if (!agent.banished) return;
 
@@ -12,7 +15,7 @@ export const StateModelPainter = {
         const secondaryColor = isStasis ? '#fef08a' : '#e9d5ff';
         
         // Calculate Body Center
-        const centerY = y - z - UNIT_BODY_OFFSET - 6; // Apply HOVER_LIFT matching body
+        const centerY = y - z - UNIT_BODY_OFFSET - HOVER_LIFT;
         
         ctx.save();
         ctx.translate(x, centerY);

@@ -4,12 +4,16 @@ import { ISO_SCALE_Y } from "../../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 
 export const GroundEffectPainter = {
+    // x, y = Visual Surface Coordinates (Top of Block)
     draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
         // ROOT (Chain/Vines)
         if (agent.rootTimer > 0) {
             const color = '#fbbf24'; // Amber
             ctx.save();
-            ctx.translate(x, y - z); // Anchor to feet position visually
+            // Draw AT surface. 'y' is already the top of the block.
+            // z is jump height. If rooted, we assume they are grounded or effect stretches.
+            // We draw at feet: y - z.
+            ctx.translate(x, y - z); 
             
             // Dynamic pulsing ring
             const pulse = 0.8 + Math.sin(t * 10) * 0.2;
