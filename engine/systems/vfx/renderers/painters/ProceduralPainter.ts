@@ -86,7 +86,7 @@ export const ProceduralPainter = {
         else if (p.type === 'PILLAR') {
             const rawDef = PROCEDURAL_VISUALS[p.style || ''] || {};
             const def = rawDef as PillarVisualDef;
-            const h = def.height || 1200; 
+            const h = p.height || def.height || 1200; 
             const width = p.size * (1 - progress * 0.5) * (def.widthScale || 1.0);
             
             if (def.blendMode) ctx.globalCompositeOperation = def.blendMode;

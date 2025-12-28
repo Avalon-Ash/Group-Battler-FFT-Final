@@ -4,8 +4,7 @@ import { VFXAsset } from "../../../types/VFXSchema";
 export const COVENANT_VFX: Record<string, VFXAsset> = {
 
     // --- ULTIMATES (RED / CHAOS / FIRE) ---
-
-    // 1. TANK
+    // ... (Keep existing Ultimates) ...
     'FX_ULT_RED_GUILLOTINE_IMPACT': {
         id: 'FX_ULT_RED_GUILLOTINE_IMPACT',
         description: 'Massive execution slash',
@@ -40,8 +39,6 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
             { particleType: 'DOMAIN', count: 1, lifetime: [2.0, 3.0], size: [250, 250], colors: ['#991b1b'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
-
-    // 2. WARRIOR
     'FX_ULT_RED_RAGNAROK_ERUPTION': {
         id: 'FX_ULT_RED_RAGNAROK_ERUPTION',
         description: 'Magma eruption',
@@ -67,8 +64,6 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_DEVASTATE',
         emitters: [{ particleType: 'SHOCKWAVE', count: 1, lifetime: [0.3, 0.6], size: [150, 250], colors: ['#450a0a'], speed: [0, 0], shape: 'POINT', blendMode: 'overlay', delay: 0 }]
     },
-
-    // 3. RANGER
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         description: 'Initial blinding flash',
@@ -102,8 +97,6 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_DOOM',
         emitters: [{ particleType: 'SHOCKWAVE', count: 1, lifetime: [0.5, 1.0], size: [200, 300], colors: ['#581c87'], speed: [0, 0], shape: 'POINT', blendMode: 'multiply', delay: 0 }]
     },
-
-    // 4. MAGE
     'FX_ULT_RED_METEOR_IMPACT': {
         id: 'FX_ULT_RED_METEOR_IMPACT',
         description: 'Meteor crash',
@@ -129,8 +122,6 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_SOUL_BURN',
         emitters: [{ particleType: 'SPARK', count: [20, 30], lifetime: [0.5, 1.0], size: [4, 8], speed: [200, 400], colors: ['#dc2626'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0 }]
     },
-
-    // 5. SUPPORT
     'FX_ULT_RED_SOUL_WEB': {
         id: 'FX_ULT_RED_SOUL_WEB',
         description: 'Dark magic web',
@@ -154,6 +145,44 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     'FX_ULT_RED_POSSESSION': {
         id: 'FX_ULT_RED_POSSESSION',
         emitters: [{ particleType: 'GLOW', count: 1, lifetime: [1.0, 1.5], size: [100, 100], colors: ['#7f1d1d'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }]
+    },
+
+    // --- MID-TIER ACTIVE SKILLS (NEW) ---
+    
+    'FX_ACTIVE_RED_BLOOD_RAGE': {
+        id: 'FX_ACTIVE_RED_BLOOD_RAGE',
+        emitters: [
+            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.4, 0.6], size: [80, 120], colors: ['#dc2626'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'RUBBLE', count: [8, 12], lifetime: [0.5, 0.8], size: [5, 10], speed: [200, 400], gravity: 1000, colors: ['#991b1b', '#ef4444'], shape: 'BURST_DIR', blendMode: 'source-over', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_RED_SHADOW_SCREAM': {
+        id: 'FX_ACTIVE_RED_SHADOW_SCREAM',
+        emitters: [
+            { particleType: 'RING', count: 2, lifetime: [0.5, 0.8], size: [150, 200], colors: ['#581c87'], speed: [0, 0], shape: 'POINT', blendMode: 'multiply', delay: 0 },
+            { particleType: 'SMOKE', count: [5, 8], lifetime: [0.8, 1.2], size: [30, 50], speed: [50, 100], colors: ['#4c1d95'], shape: 'CIRCLE', shapeRadius: 80, blendMode: 'multiply', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_RED_MAGMA_ERUPTION': {
+        id: 'FX_ACTIVE_RED_MAGMA_ERUPTION',
+        emitters: [
+            { particleType: 'CRACKS', count: 1, lifetime: [1.5, 2.0], size: [100, 150], colors: ['#ea580c'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'SPARK', count: [15, 20], lifetime: [0.5, 0.8], size: [3, 6], speed: [300, 600], gravity: 800, colors: ['#f97316', '#fbbf24'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_RED_FEL_SPLASH': {
+        id: 'FX_ACTIVE_RED_FEL_SPLASH',
+        emitters: [
+            { particleType: 'RUBBLE', count: [10, 15], lifetime: [0.6, 1.0], size: [10, 20], speed: [100, 300], gravity: 500, colors: ['#a3e635', '#3f6212'], shape: 'CIRCLE', blendMode: 'source-over', delay: 0 },
+            { particleType: 'SMOKE', count: [5, 8], lifetime: [1.0, 1.5], size: [20, 40], speed: [20, 50], colors: ['#bef264'], shape: 'CIRCLE', blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_RED_WAR_STOMP': {
+        id: 'FX_ACTIVE_RED_WAR_STOMP',
+        emitters: [
+            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.3, 0.5], size: [100, 150], colors: ['#450a0a'], speed: [0, 0], shape: 'POINT', blendMode: 'overlay', delay: 0 },
+            { particleType: 'ROCK', count: [5, 8], lifetime: [0.5, 0.8], size: [10, 20], speed: [200, 400], gravity: 1500, colors: ['#292524'], shape: 'CIRCLE', blendMode: 'source-over', delay: 0 }
+        ]
     },
 
     // --- FACTION HITS ---

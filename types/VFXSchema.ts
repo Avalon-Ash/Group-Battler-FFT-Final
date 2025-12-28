@@ -32,6 +32,7 @@ export interface EmitterConfig {
     
     // Visuals
     size: Range;
+    height?: number | Range; // Optional height override (e.g. for Pillars)
     colors: string[];      // Randomly picked from array
     blendMode?: BlendMode;
     

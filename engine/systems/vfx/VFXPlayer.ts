@@ -86,6 +86,7 @@ export class VFXPlayer {
             p.delay = rnd(config.delay);
             
             p.size = rnd(config.size);
+            if (config.height !== undefined) p.height = rnd(config.height);
             
             // Color priority: Override > Config
             p.color = colorOverride || pickColor(config.colors);

@@ -19,6 +19,7 @@ export interface Particle {
     maxLife: number;
     color: string;
     size: number;
+    height?: number; // Optional visual height override
     
     // Added RUBBLE, SPIKE, DUST, ATMOSPHERE, GENERIC_DEBUG, MAGIC_CIRCLE
     type: 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG';
@@ -71,6 +72,7 @@ export class VFXStateManager {
             p.rotation = 0; p.vRotation = 0;
             p.life = 0; p.maxLife = 0;
             p.color = '#ff00ff'; p.size = 0;
+            p.height = undefined;
             p.type = 'GENERIC_DEBUG'; // Distinctive default
             
             p.sx = undefined; p.sy = undefined; p.sz = undefined;
@@ -100,7 +102,7 @@ export class VFXStateManager {
             active: true,
             x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, 
             rotation: 0, vRotation: 0,
-            life: 0, maxLife: 0, color: '#ff00ff', size: 0, type: 'GENERIC_DEBUG',
+            life: 0, maxLife: 0, color: '#ff00ff', size: 0, height: undefined, type: 'GENERIC_DEBUG',
             delay: 0,
             locked: false,
             sortBias: 0

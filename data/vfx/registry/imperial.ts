@@ -4,8 +4,7 @@ import { VFXAsset } from "../../../types/VFXSchema";
 export const IMPERIAL_VFX: Record<string, VFXAsset> = {
     
     // --- ULTIMATES (BLUE / ORDER / HOLY) ---
-
-    // 1. TANK
+    // ... (Keep existing Ultimates as they are, assume previous content here) ...
     'FX_ULT_BLUE_SANCTUARY_IMPACT': {
         id: 'FX_ULT_BLUE_SANCTUARY_IMPACT',
         description: 'Holy ground impact',
@@ -42,8 +41,6 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'DOMAIN', visualStyle: 'DOMAIN_SHIELD', count: 1, lifetime: [2.0, 3.0], size: [300, 300], colors: ['#60a5fa'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
-
-    // 2. WARRIOR
     'FX_ULT_BLUE_THUNDER_SLAM': {
         id: 'FX_ULT_BLUE_THUNDER_SLAM',
         emitters: [
@@ -78,8 +75,6 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'STREAK', count: [5, 8], lifetime: [0.2, 0.4], size: [50, 100], speed: [0, 0], colors: ['#e0f2fe'], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
-
-    // 3. RANGER
     'FX_ULT_BLUE_GLACIAL_BURST': {
         id: 'FX_ULT_BLUE_GLACIAL_BURST',
         emitters: [
@@ -108,8 +103,6 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
         id: 'FX_ULT_BLUE_OVERLOAD',
         emitters: [{ particleType: 'SPARK', count: [20, 30], lifetime: [0.2, 0.5], size: [2, 4], speed: [500, 800], colors: ['#fff'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0 }]
     },
-
-    // 4. MAGE
     'FX_ULT_BLUE_BLACKHOLE': {
         id: 'FX_ULT_BLUE_BLACKHOLE',
         emitters: [
@@ -133,8 +126,6 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'GLOW', count: 2, lifetime: [0.5, 1.0], size: [100, 200], colors: ['#60a5fa'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
-
-    // 5. SUPPORT
     'FX_ULT_BLUE_RESURRECTION': {
         id: 'FX_ULT_BLUE_RESURRECTION',
         emitters: [
@@ -157,6 +148,43 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
     'FX_ULT_BLUE_RAIN': {
         id: 'FX_ULT_BLUE_RAIN',
         emitters: [{ particleType: 'SPARK', count: [20, 30], lifetime: [1.0, 2.0], size: [2, 4], speed: [50, 100], gravity: 200, colors: ['#86efac'], shape: 'CIRCLE', shapeRadius: 200, blendMode: 'screen', delay: 0 }]
+    },
+
+    // --- MID-TIER ACTIVE SKILLS (NEW) ---
+    
+    'FX_ACTIVE_BLUE_TECH_BURST': {
+        id: 'FX_ACTIVE_BLUE_TECH_BURST',
+        emitters: [
+            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.4, 0.6], size: [80, 120], colors: ['#60a5fa'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'SPARK', count: [10, 15], lifetime: [0.3, 0.5], size: [3, 6], speed: [300, 600], colors: ['#fff', '#bae6fd'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_BLUE_HOLY_SMITE': {
+        id: 'FX_ACTIVE_BLUE_HOLY_SMITE',
+        emitters: [
+            { particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.3, 0.5], size: [20, 30], height: 600, speed: [0, 0], colors: ['#facc15'], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.4], size: [100, 150], colors: ['#fef3c7'], speed: [0, 0], shape: 'POINT', blendMode: 'lighter', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_BLUE_FROST_SNAP': {
+        id: 'FX_ACTIVE_BLUE_FROST_SNAP',
+        emitters: [
+            { particleType: 'SHARD', count: [10, 15], lifetime: [0.5, 0.8], size: [10, 20], speed: [200, 400], gravity: 800, colors: ['#e0f2fe', '#fff'], shape: 'BURST_DIR', delay: 0 },
+            { particleType: 'RING', count: 1, lifetime: [0.4, 0.6], size: [100, 150], colors: ['#bae6fd'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_BLUE_ARCANE_RIPPLE': {
+        id: 'FX_ACTIVE_BLUE_ARCANE_RIPPLE',
+        emitters: [
+            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.5, 0.8], size: [150, 200], colors: ['#8b5cf6'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'GLOW', count: [5, 8], lifetime: [0.5, 1.0], size: [10, 20], speed: [50, 100], colors: ['#d8b4fe'], shape: 'BURST_DIR', delay: 0 }
+        ]
+    },
+    'FX_ACTIVE_BLUE_TECH_SHIELD': {
+        id: 'FX_ACTIVE_BLUE_TECH_SHIELD',
+        emitters: [
+            { particleType: 'DOMAIN', visualStyle: 'DOMAIN_SHIELD', count: 1, lifetime: [1.0, 1.5], size: [120, 120], colors: ['#60a5fa'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
+        ]
     },
 
     // --- FACTION HITS ---
