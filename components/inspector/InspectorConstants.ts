@@ -5,21 +5,10 @@ import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
 // =========================================================================================
 // [SYSTEM DEPENDENCIES & CONSTANTS]
 // This file acts as the central registry for UI definitions and their mappings to Game Engine systems.
-// 
-// CORE PURPOSE:
-// 1. Visual Translation: Maps internal Enums (Role, Team) to UI Colors/Labels.
-// 2. Form Schema: Defines the structure of the Skill Database Editor.
-// 3. Dropdown Options: Provides valid values for Effects, CCs, and Visuals.
-//
-// DEPENDENCIES:
-// - UnitInspectorHUD
-// - SkillDbTab
-// - UnitStatusTab
 // =========================================================================================
 
 // =========================================================================================
 // 1. CORE ENUM MAPPINGS (Visual & Labels)
-// Purpose: Provide UI-friendly labels and colors for internal Enums.
 // =========================================================================================
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
@@ -53,8 +42,6 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
 
 // =========================================================================================
 // 2. SKILL & COMBAT CONSTANTS (Effects & Visuals)
-// Purpose: Dropdown options for Skill Editor.
-// Dependency: Must match string literals in `types.ts` Skill interface.
 // =========================================================================================
 
 export const VISUAL_TYPES = [
@@ -104,10 +91,27 @@ export const EFFECT_TYPES = [
     { value: 'MANA_RESTORE', label: '回魔 (Mana Restore)', color: '#60a5fa' }
 ];
 
+export const ELEMENT_TYPES = [
+    { value: 'PHYSICAL', label: '物理 (Physical)' },
+    { value: 'FIRE', label: '火焰 (Fire)' },
+    { value: 'ICE', label: '冰霜 (Ice)' },
+    { value: 'LIGHTNING', label: '雷電 (Lightning)' },
+    { value: 'HOLY', label: '神聖 (Holy)' },
+    { value: 'VOID', label: '虛空 (Void)' },
+    { value: 'POISON', label: '毒素 (Poison)' },
+    { value: 'ARCANE', label: '奧術 (Arcane)' },
+    { value: 'BLOOD', label: '鮮血 (Blood)' }
+];
+
+export const SPECIAL_STATUS_TYPES = [
+    { value: 'NONE', label: '無' },
+    { value: 'POLYMORPH', label: '變形 (Polymorph/Sheep)' },
+    { value: 'STASIS', label: '凝滯 (Stasis/Golden)' },
+    { value: 'FROZEN', label: '凍結 (Frozen)' }
+];
+
 // =========================================================================================
-// 3. AI & BEHAVIOR TREE CONSTANTS (Registry Mappings)
-// Purpose: Definitions for future AI Editor features.
-// Dependency: Syncs with `engine/ai/BTRegistry.ts` keys.
+// 3. AI & BEHAVIOR TREE CONSTANTS
 // =========================================================================================
 
 export const AI_CONDITION_OPTIONS = [
@@ -133,8 +137,7 @@ export const AI_ACTION_OPTIONS = [
 ];
 
 // =========================================================================================
-// 4. FIELD DEFINITIONS (For Inspector Forms)
-// Purpose: Metadata for generating the Skill DB Edit Form.
+// 4. FIELD DEFINITIONS
 // =========================================================================================
 
 export type FieldType = 'text' | 'number' | 'select' | 'textarea' | 'color';
@@ -190,6 +193,12 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
             },
             { key: 'color', label: '主色調 (Hex/RGBA)', type: 'color' }, 
             { key: 'projectileSpeed', label: '彈速 (0=即時)', type: 'number', step: 50 },
+            { 
+                key: 'element', 
+                label: '屬性 (Element)', 
+                type: 'select', 
+                options: ELEMENT_TYPES 
+            }
         ]
     },
     {
@@ -210,6 +219,12 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
                 options: EFFECT_TYPES.map(e => ({ value: e.value, label: e.label })) 
             },
             { key: 'effectVal', label: '係數/數值', type: 'number', step: 0.1 },
+            {
+                key: 'specialVisualStatus',
+                label: '特殊狀態模型',
+                type: 'select',
+                options: SPECIAL_STATUS_TYPES
+            }
         ]
     },
     {
@@ -235,8 +250,7 @@ export const SKILL_FIELD_GROUPS: { name: string; fields: FieldDef[] }[] = [
 ];
 
 // =========================================================================================
-// 5. HELPER FUNCTIONS (Safe Accessors)
-// Purpose: Utility functions used by React components to render labels/colors safely.
+// 5. HELPER FUNCTIONS
 // =========================================================================================
 
 export const Helpers = {
@@ -251,7 +265,6 @@ export const Helpers = {
     getEffectLabel: (type?: string) => EFFECT_TYPES.find(e => e.value === type)?.label || type,
 
     getStatusLabel: (status: string) => {
-        // Mapping raw strings from game engine to friendly UI labels
         if(status === '待機') return 'IDLE';
         if(status === '移動') return 'MOVING';
         if(status === '暈眩') return 'STUNNED';
