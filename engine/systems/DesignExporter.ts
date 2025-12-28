@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.5.0 (Pipeline Architecture Update)
+Version: 6.6.0 (Visual Polish & Hazard Refactor)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
 ================================================================================
@@ -86,6 +86,7 @@ Engine: Hybrid 2.5D Isometric / Phys-Logical 3D
   3. 渲染隊列構建 (RenderList Collection): 遍歷 Tile, Unit, VFX, Projectile.
   4. 深度排序 (Painters Algorithm): 以 Ground_Y 為 Key，配合 SortBias 修正 Z-Fighting.
   5. 像素對齊 (Pixel Snapping): 所有 tx/ty 進行 Math.round()，消除 sub-pixel 模糊。
+  6. 災害層 (Hazard Layer): 獨立的 HazardPainter，支援 Volumetric Fog (毒) 與 Liquid Surface (熔岩)。
 
 ================================================================================
 END OF SPECIFICATION

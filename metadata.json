@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT v6.5",
-  "description": "Tactical Auto-Battler v6.5.0 - Architecture Refine Update. Featuring: Hazard Persistence Fix, Render Pipeline Decoupling, and Visual Interpolation Optimization.",
+  "name": "Group Battler FFT v6.6",
+  "description": "Tactical Auto-Battler v6.6.0 - Visual Polish Update. Featuring: Volumetric Poison Clouds, Decoupled Hazard Rendering, Ground-Snap VFX Fixes, and Performance Texture Caching.",
   "requestFramePermissions": []
 }
