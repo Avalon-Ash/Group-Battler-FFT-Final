@@ -114,7 +114,7 @@ export class TacticalRenderer {
 
         ctx.save();
         
-        // Glitch logic (Keep existing if any)
+        // Glitch logic
         let gx = 0, gy = 0;
         if (this.holoGlitchTimer > 0) {
              gx = (Math.random() - 0.5) * 5;

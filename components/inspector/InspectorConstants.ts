@@ -74,13 +74,26 @@ export const VFX_HIT_EFFECTS = Object.keys(VFX_REGISTRY).map(key => ({
 
 export const CC_TYPES = [
     { value: 'NONE', label: '無', color: '#94a3b8' },
+    
+    // Hard CC
     { value: 'STUN', label: '暈眩 (Stun)', color: '#facc15' },
     { value: 'BANISH', label: '放逐 (Banish)', color: '#c084fc' },
+    { value: 'FEAR', label: '恐懼 (Fear)', color: '#a855f7' },
+    { value: 'TAUNT', label: '嘲諷 (Taunt)', color: '#ef4444' },
+    
+    // Soft CC
+    { value: 'ROOT', label: '禁錮 (Root)', color: '#fbbf24' },
+    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' },
+    { value: 'BLIND', label: '致盲 (Blind)', color: '#cbd5e1' },
+    
+    // Physics
     { value: 'KNOCKBACK', label: '擊退 (Knockback)', color: '#fff' },
     { value: 'PULL', label: '牽引 (Pull)', color: '#fff' },
+    
+    // Buffs/Debuffs
+    { value: 'SHIELD', label: '護盾 (Shield)', color: '#bae6fd' },
     { value: 'DOT', label: '持續傷 (DoT)', color: '#10b981' },
-    { value: 'HOT', label: '再生 (HoT)', color: '#86efac' },
-    { value: 'SILENCE', label: '沉默 (Silence)', color: '#94a3b8' }
+    { value: 'HOT', label: '再生 (HoT)', color: '#86efac' }
 ];
 
 export const EFFECT_TYPES = [
