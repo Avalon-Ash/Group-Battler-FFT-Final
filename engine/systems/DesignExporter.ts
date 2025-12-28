@@ -18,7 +18,7 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 6.7.0 (Theater Mode & Atmospheric Update)
+Version: 7.0.0 (Architecture Remaster)
 Generated: ${new Date().toLocaleString()}
 Engine: Hybrid 2.5D Isometric (Flat-Top) / Phys-Logical 3D
 ================================================================================

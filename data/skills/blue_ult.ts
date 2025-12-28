@@ -2,7 +2,7 @@
 import { Role, Skill, Team } from '../../types';
 
 // NOTE: 'visual' field kept for fallback or UI icons.
-// Logic is handled by ImperialUltDirector based on 'id'.
+// Logic is handled by UltArchitect -> UltRegistry (ImperialTankUlts, etc).
 
 export const BLUE_ULT: Skill[] = [
     // 🛡️ TANK: Global Defense / Lockdown

@@ -2,7 +2,7 @@
 import { Role, Skill, Team } from '../../types';
 
 // NOTE: 'visual' field is kept for projectile fallback or icon generation.
-// The new system relies on 'id' matching inside CovenantUltDirector.
+// The new system relies on 'id' matching inside UltRegistry (CovenantTankUlts, etc).
 
 export const RED_ULT: Skill[] = [
     // 🛡️ TANK: Execute / Chaos

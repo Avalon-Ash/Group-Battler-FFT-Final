@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT v6.7",
-  "description": "Tactical Auto-Battler v6.7.0 - Theater Mode Update. Featuring: Flat-Top Hex Geometry, Atmospheric Rendering, 3-Face Obstacle Perspective, and Tactical Flight Anchors.",
+  "name": "Group Battler FFT v7.0",
+  "description": "Tactical Auto-Battler v7.0.0 - Architecture Remaster. Featuring: ECS-lite rendering pipeline, Modular Ult Registry, and Advanced Physics.",
   "requestFramePermissions": []
 }
