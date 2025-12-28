@@ -25,6 +25,23 @@ export class HazardSystem {
         if (!engine || !engine.map.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
         
+        // --- PERSISTENCE FIX ---
+        // Check if a compatible hazard already exists
+        const existing = this.hazards.get(key);
+        
+        if (existing) {
+            // If same type and team, EXTEND it instead of replacing it.
+            // This prevents visual flickering (spawn/despawn loop) on continuous application.
+            if (existing.type === type && existing.team === team) {
+                existing.duration = Math.max(existing.duration, duration);
+                existing.power = Math.max(existing.power, power); // Update power if stronger
+                existing.sourceId = sourceId; // Update credit
+                // Do NOT reset existing.timer or existing.id
+                return;
+            }
+        }
+
+        // Create New
         const hazard: GroundHazard = {
             id: Math.random().toString(36).substr(2, 6),
             q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
@@ -32,7 +49,7 @@ export class HazardSystem {
         
         this.hazards.set(key, hazard);
 
-        // Trigger VFX
+        // Trigger Spawn VFX only on NEW creation
         if (engine.renderer) {
             const def = HAZARD_VISUALS[type];
             if (def && def.spawnVfx) {
@@ -59,8 +76,6 @@ export class HazardSystem {
         toRemove.forEach(k => this.hazards.delete(k));
 
         // 2. Resolve Effects (Damage/CC)
-        // Optimization: Instead of iterating all hazards, iterate agents?
-        // Actually, hazard count is usually lower than agents*tiles.
         for (const h of this.hazards.values()) {
             if (h.timer <= 0) {
                 h.timer = h.interval; // Reset tick
@@ -71,7 +86,7 @@ export class HazardSystem {
                 );
                 
                 occupants.forEach(agent => {
-                    if (agent.movementType === 1 && (h.type === 'FIRE')) return; // Flyers avoid fire
+                    if (agent.movementType === 1 && (h.type === 'FIRE' || h.type === 'POISON')) return; // Flyers avoid ground hazards
 
                     const dmg = h.power;
                     agent.hp = Math.max(0, agent.hp - dmg);
@@ -91,6 +106,8 @@ export class HazardSystem {
         }
 
         // 3. Physics (Gravity/Suction)
+        // Optimization: Gravity logic should be in PhysicsSystem or centralized, but keeping here for cohesion for now.
+        // To optimize FPS, ensure this loop is tight.
         engine.agents.forEach(agent => {
             if (agent.hp <= 0 || agent.banished) return;
             const hazard = this.getHazardAt(agent.q, agent.r);

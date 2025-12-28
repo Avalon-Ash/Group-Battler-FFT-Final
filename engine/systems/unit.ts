@@ -26,7 +26,10 @@ export class UnitRenderSystem {
         agents.forEach(agent => {
             if (agent.hp <= 0 && agent.fullyDead) return;
 
-            // Calculate Visual Ground Height (Interpolated while moving)
+            // --- VISUAL INTERPOLATION (Optimized) ---
+            // We calculate this once per frame here, instead of recalculating in shadow/body/silhouette passes.
+            // In a more advanced system, this would be stored on the Agent struct during a Pre-Render Tick.
+            
             let terrainH = 0;
             if (agent.isMoving && agent.path.length > 0) {
                 const h1 = getTerrainHeight(agent.q, agent.r);
@@ -34,10 +37,13 @@ export class UnitRenderSystem {
                 const h2 = getTerrainHeight(nextHex.q, nextHex.r);
                 terrainH = HexUtils.lerp(h1, h2, agent.moveProgress);
             } else {
-                // Smoothing for micro-movements
+                // Smoothing for micro-movements (knockback slide)
+                // If sliding significantly, sample the pixel position.
+                // Otherwise, stick to grid height for stability.
                 const logicalPos = HexUtils.toPx(agent.q, agent.r, mapConfig);
                 const distSq = (agent.px - logicalPos.x)**2 + (agent.py - logicalPos.y)**2;
-                if (distSq > 100) {
+                
+                if (distSq > 400) { // 20px tolerance
                     const visualHex = HexUtils.fromPx(agent.px, agent.py, mapConfig);
                     terrainH = getTerrainHeight(visualHex.q, visualHex.r);
                 } else {
@@ -57,7 +63,7 @@ export class UnitRenderSystem {
             op.agent = agent;
             op.tx = agent.px; 
             op.ty = visualGroundY;  
-            op.th = terrainH; 
+            op.th = terrainH; // Passed to draw calls
             op.time = globalTime;
             op.uSelected = (highlightAgent === agent);
             op.uSilhouette = false;
@@ -71,7 +77,9 @@ export class UnitRenderSystem {
         globalTime: number, 
         mapConfig: MapConfig
     ) {
-        // Recalculate height needed for silhouette pass (same logic as submit)
+        // Recalculate height needed for silhouette pass (redundant calc, but robust)
+        // Optimization: In RenderList based silhouette pass, we could store 'th' in a map?
+        // For now, re-calc is cheap enough for just occluded units.
         let terrainH = 0;
         if (agent.isMoving && agent.path.length > 0) {
             const h1 = getTerrainHeight(agent.q, agent.r);
