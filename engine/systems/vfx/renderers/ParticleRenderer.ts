@@ -3,7 +3,7 @@ import { Particle } from "../state";
 import { ISO_SCALE_Y } from "../../../../constants";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { PROCEDURAL_VISUALS, PillarVisualDef } from "../../../../data/vfx/procedural_visuals";
-import { SurfaceAssets } from "../../../graphics/SurfaceAssets";
+import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 
 // Helper for hex tracing (used by procedural beams)
 const START_ANGLE = Math.PI / 6 + Math.PI / 4; 
@@ -274,7 +274,7 @@ export const ParticleRenderer = {
             const h = isShield ? 120 : 40;
             const opacity = 0.4 * (1 - progress);
             
-            SurfaceAssets.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE');
+            VolumePainter.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE');
         }
         else if (p.type === 'GRID_FIELD') {
             ctx.save();

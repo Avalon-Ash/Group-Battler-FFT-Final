@@ -1,6 +1,7 @@
 
 import { HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../../constants";
-import { SurfaceAssets, GEOMETRY } from "../../graphics/SurfaceAssets";
+import { GEOMETRY, HexGeometry } from "../../graphics/utils/HexGeometry";
+import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { GridOverlays } from "./GridOverlays";
 
 export const TerrainRenderer = {
@@ -18,13 +19,11 @@ export const TerrainRenderer = {
         const faceY = y - heightOffset;
 
         // 1. Draw Side Faces
-        // We use the shared GEOMETRY from SurfaceAssets to ensure vertices match perfectly
         const visibleIndices = [5, 0, 1];
 
         for (const i of visibleIndices) {
             const j = (i + 1) % 6;
             
-            // Pre-calculated Cos/Sin from SurfaceAssets (Radius = 1.0)
             const c1x = size * GEOMETRY.HEX_COS[i];
             const c1y = size * GEOMETRY.HEX_SIN[i] * ISO_SCALE_Y;
             
@@ -32,11 +31,11 @@ export const TerrainRenderer = {
             const c2y = size * GEOMETRY.HEX_SIN[j] * ISO_SCALE_Y;
             
             const x1 = x + c1x;
-            const y1_top = faceY + c1y;     // Top vertex relative to faceY
+            const y1_top = faceY + c1y;     
             const x2 = x + c2x;
-            const y2_top = faceY + c2y;     // Top vertex relative to faceY
+            const y2_top = faceY + c2y;     
 
-            const y1_bottom = y + c1y + BASE_THICKNESS; // Bottom relative to base Y
+            const y1_bottom = y + c1y + BASE_THICKNESS; 
             const y2_bottom = y + c2y + BASE_THICKNESS;
             
             const grad = ctx.createLinearGradient(0, faceY, 0, y + BASE_THICKNESS);
@@ -72,28 +71,27 @@ export const TerrainRenderer = {
         }
 
         // 2. Draw Top Face
-        // Direct call to SurfaceAssets ensures strict alignment with GridOverlays
-        ctx.fillStyle = '#000'; // Fallback
+        ctx.fillStyle = '#000'; 
         const topGrad = ctx.createLinearGradient(x - size, faceY - size, x + size, faceY + size);
         topGrad.addColorStop(0, theme.rim); 
         topGrad.addColorStop(0.3, theme.top);
         topGrad.addColorStop(1, theme.sideDark); 
         ctx.fillStyle = topGrad;
         
-        SurfaceAssets.traceHex(ctx, x, faceY, size);
+        HexGeometry.traceHex(ctx, x, faceY, size);
         ctx.fill();
 
         // 3. Surface Assets
         if (type === 'MAGMA') {
-            SurfaceAssets.drawLiquid(ctx, x, faceY, '#ef4444', globalTime, 1.0);
+            SurfacePainter.drawLiquid(ctx, x, faceY, '#ef4444', globalTime, 1.0);
             const crackInt = 0.5 + Math.sin(globalTime) * 0.2;
-            SurfaceAssets.drawCracks(ctx, x, faceY, '#fca5a5', crackInt);
+            SurfacePainter.drawCracks(ctx, x, faceY, '#fca5a5', crackInt);
         } else if (type === 'VOID') {
-            SurfaceAssets.drawFog(ctx, x, faceY, theme.fogColor || '#6366f1', globalTime);
+            SurfacePainter.drawFog(ctx, x, faceY, theme.fogColor || '#6366f1', globalTime);
         } else if (type === 'ICE') {
             const bandPos = (globalTime * 50 + x + y) % (size * 4) - size * 2;
             ctx.save();
-            SurfaceAssets.traceHex(ctx, x, faceY, size);
+            HexGeometry.traceHex(ctx, x, faceY, size);
             ctx.clip(); 
             const specGrad = ctx.createLinearGradient(x - size, faceY - size, x + size, faceY + size);
             specGrad.addColorStop(0, 'transparent');
@@ -112,7 +110,6 @@ export const TerrainRenderer = {
         ctx.globalAlpha = 0.6;
         
         ctx.beginPath();
-        // Use SurfaceAssets Geometry
         const c4 = {x: size*GEOMETRY.HEX_COS[4], y: size*GEOMETRY.HEX_SIN[4]*ISO_SCALE_Y};
         const c3 = {x: size*GEOMETRY.HEX_COS[3], y: size*GEOMETRY.HEX_SIN[3]*ISO_SCALE_Y};
         const c2 = {x: size*GEOMETRY.HEX_COS[2], y: size*GEOMETRY.HEX_SIN[2]*ISO_SCALE_Y};
@@ -125,7 +122,7 @@ export const TerrainRenderer = {
         
         ctx.lineWidth = 1;
         ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-        SurfaceAssets.traceHex(ctx, x, faceY, size);
+        HexGeometry.traceHex(ctx, x, faceY, size);
         ctx.stroke();
     },
 
@@ -137,6 +134,6 @@ export const TerrainRenderer = {
         detailColor: string
     ) {
         const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
-        SurfaceAssets.drawDetailTexture(ctx, cx, cy, type, detailColor, seed);
+        SurfacePainter.drawDetailTexture(ctx, cx, cy, type, detailColor, seed);
     }
 };

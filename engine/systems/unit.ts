@@ -5,12 +5,13 @@ import { Role, Team, MovementType } from "../../types";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
 import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
-import { STATUS_VISUALS } from "../../data/vfx/status_visuals";
 
 // Modules
 import { ImperialRenderer } from "../renderers/units/factions/ImperialRenderer";
 import { CovenantRenderer } from "../renderers/units/factions/CovenantRenderer";
-import { drawFlyingAnchor, drawFlightVFX, drawCastingVFX, drawSkillGroundIndicator, drawUltimateChantVFX } from "../renderers/units/UnitVisuals";
+import { UnitFlightPainter } from "../renderers/units/painters/UnitFlightPainter";
+import { UnitAuraPainter } from "../renderers/units/painters/UnitAuraPainter";
+import { UnitIndicatorPainter } from "../renderers/units/painters/UnitIndicatorPainter";
 
 // Visual Constants
 const MAX_UNIT_SIZE_RATIO = 0.85; 
@@ -126,9 +127,6 @@ export class UnitRenderSystem {
         
         ctx.restore(); 
 
-        // NOTE: Layer 7 (Status Effects) removed from here. 
-        // It is now handled by StatusRenderLayer in the main Render Loop.
-
         ctx.restore(); 
     }
 
@@ -165,14 +163,14 @@ export class UnitRenderSystem {
                 const radius = skill.aoeRadius || 1;
                 const isAOE = skill.type === 'AOE';
                 const visualRadius = isAOE ? 0.8 : radius;
-                drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, visualRadius, skill.tag, isAOE);
+                UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, visualRadius, skill.tag, isAOE);
             }
         }
 
         ctx.restore();
 
         if (agent.movementType === MovementType.FLYING && pz > 5) {
-            drawFlyingAnchor(ctx, agent, t, px, py, pz);
+            UnitFlightPainter.drawFlyingAnchor(ctx, agent, t, px, py, pz);
         }
     }
 
@@ -202,7 +200,7 @@ export class UnitRenderSystem {
         }
 
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
-            drawFlightVFX(ctx, agent, t);
+            UnitFlightPainter.drawFlightVFX(ctx, agent, t);
         }
 
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
@@ -226,9 +224,9 @@ export class UnitRenderSystem {
             if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
                 const skill = agent.skills[agent.castingSkillIdx];
                 if (skill && skill.tag === 'ULT') {
-                    drawUltimateChantVFX(ctx, agent, t);
+                    UnitAuraPainter.drawUltimateChantVFX(ctx, agent, t);
                 } else {
-                    drawCastingVFX(ctx, agent, t);
+                    UnitAuraPainter.drawCastingVFX(ctx, agent, t);
                 }
             }
             

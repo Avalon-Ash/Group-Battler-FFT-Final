@@ -1,5 +1,7 @@
 
-import { SurfaceAssets } from "../../graphics/SurfaceAssets";
+import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
+import { VolumePainter } from "../../graphics/painters/VolumePainter";
+import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { GroundHazard } from "../../../types";
 import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
@@ -19,15 +21,15 @@ export const ZoneRenderer = {
         if (def.type === 'LIQUID') {
             const speed = globalTime * def.speed;
             const intensity = def.intensity * (0.85 + Math.sin(speed) * 0.15);
-            SurfaceAssets.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
-            if (def.cracks) SurfaceAssets.drawCracks(ctx, x, y, def.secondaryColor, intensity);
+            SurfacePainter.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
+            if (def.cracks) SurfacePainter.drawCracks(ctx, x, y, def.secondaryColor, intensity);
         }
         else if (def.type === 'FOG') {
             // Uses new Volumetric Smoke Puff texture internally
-            SurfaceAssets.drawFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
+            SurfacePainter.drawFog(ctx, x, y, def.primaryColor, globalTime * def.speed);
         }
         else if (def.type === 'CRYSTAL') {
-            if (def.extrude) SurfaceAssets.drawExtrusion(ctx, x, y, 8, def.primaryColor, 0.5);
+            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, y, HEX_SIZE, 8, def.primaryColor, 0.5);
             
             // Ground Crystal Glow
             ctx.save();
@@ -122,18 +124,18 @@ export const ZoneRenderer = {
             
             if (isWarning) {
                 // Danger: Hatched Prism (Height 14, Opacity ~0.2)
-                SurfaceAssets.drawWarningBlock(ctx, x, y, size, color, pulse);
+                VolumePainter.drawWarningBlock(ctx, x, y, size, color, pulse);
             } 
             else if (isUlt) {
                 // Friendly Ult: Smooth Prism
                 // Balance intensity with warning (Height 30 -> 14, Opacity 0.4 -> 0.25)
                 const height = 14;
-                SurfaceAssets.draw3DPrism(ctx, x, y, size, height, color, 0.25 * pulse, 'SOLID');
+                VolumePainter.draw3DPrism(ctx, x, y, size, height, color, 0.25 * pulse, 'SOLID');
             }
             else {
                 // Basic/Active: Fog
                 let fogOpacity = def.fillOpacityBase * pulse * (0.5 + progress * 0.5);
-                SurfaceAssets.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
+                VolumePainter.drawVolumetricHex(ctx, x, y, size * 0.9, color, fogOpacity);
             }
         }
 
@@ -141,7 +143,7 @@ export const ZoneRenderer = {
         if (isWaveEdge) {
             const edgeOpacity = def.fillOpacityMax * pulse;
             const edgeWidth = (def.baseRingWidth || 3);
-            SurfaceAssets.drawHexRipple(ctx, x, y, size, color, edgeOpacity, edgeWidth);
+            VolumePainter.drawHexRipple(ctx, x, y, size, color, edgeOpacity, edgeWidth);
         }
 
         // C. PERIMETER MARKER (Always Visible for Warning)
@@ -156,7 +158,7 @@ export const ZoneRenderer = {
             
             if (def.dashed) ctx.setLineDash([5, 5]);
             
-            SurfaceAssets.traceHex(ctx, x, y, size);
+            HexGeometry.traceHex(ctx, x, y, size);
             ctx.stroke();
             ctx.setLineDash([]);
         }

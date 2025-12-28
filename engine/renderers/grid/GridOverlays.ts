@@ -1,6 +1,6 @@
 
 import { ZoneRenderer } from "./ZoneRenderer";
-import { SurfaceAssets } from "../../graphics/SurfaceAssets";
+import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { GroundHazard } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
@@ -55,7 +55,7 @@ export const GridOverlays = {
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.fillStyle = def.floorColor;
                 ctx.globalAlpha = def.floorOpacity || 0.5;
-                SurfaceAssets.traceHex(ctx, x, y, size);
+                HexGeometry.traceHex(ctx, x, y, size);
                 ctx.fill();
                 ctx.restore();
             }
@@ -81,7 +81,7 @@ export const GridOverlays = {
             ctx.globalCompositeOperation = 'screen'; // Screen is safer than lighter
             ctx.globalAlpha = Math.min(0.5, lightIntensity * 0.4); 
             ctx.fillStyle = lightColor;
-            SurfaceAssets.traceHex(ctx, x, y, size);
+            HexGeometry.traceHex(ctx, x, y, size);
             ctx.fill();
             ctx.restore();
         }
@@ -97,13 +97,13 @@ export const GridOverlays = {
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
                 ctx.globalAlpha = 0.2; 
-                SurfaceAssets.traceHex(ctx, x, y, size);
+                HexGeometry.traceHex(ctx, x, y, size);
                 ctx.fill();
                 
                 ctx.strokeStyle = rangeColor; 
                 ctx.lineWidth = 2; 
                 ctx.globalAlpha = 0.5; 
-                SurfaceAssets.traceHex(ctx, x, y, size);
+                HexGeometry.traceHex(ctx, x, y, size);
                 ctx.stroke();
             }
             
@@ -111,13 +111,13 @@ export const GridOverlays = {
             if (isHover) { 
                 ctx.fillStyle = '#ffffff'; 
                 ctx.globalAlpha = 0.2;
-                SurfaceAssets.traceHex(ctx, x, y, size);
+                HexGeometry.traceHex(ctx, x, y, size);
                 ctx.fill(); 
                 
                 ctx.strokeStyle = '#fff'; 
                 ctx.lineWidth = 2; 
                 ctx.globalAlpha = 0.8;
-                SurfaceAssets.traceHex(ctx, x, y, size);
+                HexGeometry.traceHex(ctx, x, y, size);
                 ctx.stroke(); 
             }
             
@@ -126,7 +126,7 @@ export const GridOverlays = {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1.5;
                 ctx.globalAlpha = 0.3;
-                SurfaceAssets.traceHex(ctx, x, y, size * 0.9);
+                HexGeometry.traceHex(ctx, x, y, size * 0.9);
                 ctx.stroke();
             }
             
