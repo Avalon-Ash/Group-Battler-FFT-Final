@@ -23,31 +23,37 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         id: 'STUN', label: '暈眩',
         primaryColor: '#facc15', secondaryColor: '#ca8a04',
         iconShape: 'HEX_HALO', overheadType: 'NONE', 
-        particleEffect: 'FX_STATUS_REGEN_LOOP', 
-        particleInterval: 0.2
+        particleEffect: 'FX_STATUS_STUN_LOOP', 
+        particleInterval: 0.15
     },
     'SILENCE': {
         id: 'SILENCE', label: '沉默',
         primaryColor: '#94a3b8', secondaryColor: '#475569',
-        iconShape: 'HEX_LOCK', overheadType: 'NONE'
+        iconShape: 'HEX_LOCK', overheadType: 'NONE',
+        particleEffect: 'FX_STATUS_SILENCE_LOOP',
+        particleInterval: 0.25
     },
     'BANISH': {
         id: 'BANISH', label: '放逐',
         primaryColor: '#c084fc', secondaryColor: '#7e22ce',
         iconShape: 'HEX_PRISM', overheadType: 'NONE',
-        particleEffect: 'FX_STATUS_BANISH_LOOP', particleInterval: 0.5
+        particleEffect: 'FX_STATUS_BANISH_LOOP', 
+        particleInterval: 0.4
     },
     'ROOT': {
         id: 'ROOT', label: '禁錮',
         primaryColor: '#fbbf24', secondaryColor: '#d97706',
         iconShape: 'HEX_LOCK', overheadType: 'NONE',
-        floorColor: '#fbbf24', floorOpacity: 0.3
+        floorColor: '#fbbf24', floorOpacity: 0.3,
+        particleEffect: 'FX_STATUS_ROOT_LOOP',
+        particleInterval: 0.3
     },
     'FEAR': {
         id: 'FEAR', label: '恐懼',
         primaryColor: '#a855f7', secondaryColor: '#581c87',
         iconShape: 'HEX_SKULL', overheadType: 'NONE',
-        particleEffect: 'FX_STATUS_BANISH_LOOP', particleInterval: 0.3
+        particleEffect: 'FX_STATUS_FEAR_LOOP', 
+        particleInterval: 0.2
     },
     'TAUNT': {
         id: 'TAUNT', label: '嘲諷',
@@ -68,19 +74,22 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         id: 'POISON', label: '中毒',
         primaryColor: '#a3e635', secondaryColor: '#4d7c0f',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
-        particleEffect: 'FX_STATUS_POISON_LOOP', particleInterval: 0.3
+        particleEffect: 'FX_STATUS_POISON_LOOP', 
+        particleInterval: 0.25
     },
     'BURN': {
         id: 'BURN', label: '燃燒',
         primaryColor: '#f87171', secondaryColor: '#b91c1c',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
-        particleEffect: 'FX_STATUS_BURN_LOOP', particleInterval: 0.2
+        particleEffect: 'FX_STATUS_BURN_LOOP', 
+        particleInterval: 0.15
     },
     'REGEN': {
         id: 'REGEN', label: '再生',
         primaryColor: '#86efac', secondaryColor: '#15803d',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
-        particleEffect: 'FX_STATUS_REGEN_LOOP', particleInterval: 0.5
+        particleEffect: 'FX_STATUS_REGEN_LOOP', 
+        particleInterval: 0.4
     },
     'POLYMORPH': {
         id: 'POLYMORPH', label: '變形',

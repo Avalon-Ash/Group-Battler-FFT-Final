@@ -1,7 +1,7 @@
+
 import { Agent, GameEngine } from "../game";
 import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
-import { COMBAT_PARAM } from "../../constants";
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
@@ -13,7 +13,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
     "HasTarget": (a, engine) => {
-        engine.updateTarget(a);
+        // RTS 頻率：每 0.5 秒強制掃描一次威脅最高目標，或在沒有目標時掃描
+        if (engine.battleTime % 0.5 < 0.02 || !a.target) {
+            engine.updateTarget(a);
+        }
         return a.target !== null;
     },
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
@@ -22,41 +25,35 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot; 
         const s = a.skills[idx];
         if (!s) return false;
-        const isOnCD = a.curCDs[idx] > COMBAT_PARAM.AI_CD_TOLERANCE; 
-        if (isOnCD || a.mp < s.cost) return false;
-        if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
-        if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
-        return true;
+        // 數學容差 CD 檢查
+        return a.curCDs[idx] <= 0.01 && a.mp >= s.cost && a.stunTimer <= 0 && !a.banished;
     },
     "FindOptimalTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
-        const perceptionBonus = (skill.tag === 'ULT') ? COMBAT_PARAM.AI_PERCEPTION_BONUS_ULT : COMBAT_PARAM.AI_PERCEPTION_BONUS_NORMAL;
-        const result = engine.calculateOptimalTarget(a, skill);
-        if (result.targetAgent) {
-            a.target = result.targetAgent;
+        
+        // 執行數學權重搜索
+        const res = engine.calculateOptimalTarget(a, skill);
+        if (res.targetAgent) {
+            a.target = res.targetAgent;
             a.targetHex = null;
-            const dist = HexUtils.dist(a, result.targetAgent);
-            return dist <= skill.range + perceptionBonus;
-        } else if (result.targetHex) {
+        } else if (res.targetHex) {
             a.target = null;
-            a.targetHex = result.targetHex;
-            return true;
+            a.targetHex = res.targetHex;
         }
-        return false;
+        return (a.target !== null || a.targetHex !== null);
     },
     "IsTargetInRange": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
-        let tQ = 0, tR = 0;
-        if (a.targetHex) { tQ = a.targetHex.q; tR = a.targetHex.r; }
-        else if (a.target) { tQ = a.target.q; tR = a.target.r; }
-        else return false;
-        const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
-        const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
-        return dist <= effRange;
+        const targetPos = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
+        if (!targetPos) return false;
+        
+        // 使用動態射程判定 (考慮地勢)
+        const effRange = engine.getEffectiveRange(a, targetPos.q, targetPos.r, skill.range);
+        return HexUtils.dist(a, targetPos) <= effRange;
     }
 };
 
@@ -76,20 +73,29 @@ export const BTActions: Record<string, BTActionFn> = {
     "MoveToOptimal": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
-        if (!skill) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? COMBAT_PARAM.MOVE_SPEED_ULT : COMBAT_PARAM.MOVE_SPEED_NORMAL;
-        if (a.targetHex) return engine.moveAgentToHex(a, a.targetHex, skill.range, speedMult);
-        if (a.target) return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
-        return NodeState.FAILURE;
+        const targetPos = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
+        if (!skill || !targetPos) return NodeState.FAILURE;
+        
+        const speedMult = (skill.tag === 'ULT') ? 1.3 : 1.0;
+        return engine.moveAgentToHex(a, targetPos, skill.range, speedMult);
     },
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
-        if (!skill) return NodeState.FAILURE;
-        if (!a.target) engine.updateTarget(a); 
-        if (!a.target) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? COMBAT_PARAM.CHASE_SPEED_ULT : COMBAT_PARAM.CHASE_SPEED_NORMAL;
-        a.btStatus = `鎖定 ${a.target.id}`;
-        return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+        if (!skill || !a.target) return NodeState.FAILURE;
+
+        // RTS 優化：攔截預判
+        // 只有當目標距離我「預定路徑終點」超過容差時才重新計算 A*
+        const currentGoal = a.path.length > 0 ? a.path[a.path.length - 1] : null;
+        const tolerance = (a.target.isMoving) ? 1.5 : 0.5;
+        const needsNewPath = !currentGoal || HexUtils.dist(currentGoal, a.target) > tolerance;
+
+        if (needsNewPath) {
+            const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
+            a.btStatus = `截擊 ${a.target.id}`;
+            return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+        }
+        
+        return NodeState.RUNNING;
     }
 };

@@ -1,3 +1,4 @@
+
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout } from '../types';
@@ -85,12 +86,16 @@ export const useGameApp = () => {
         }
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
+        const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+        
         const spawnTeam = (team: Team) => {
             let count = 0;
             while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
                 const h = validHexes[spawnIndex++];
                 const hp = 500 + Math.floor(Math.random() * 400); 
-                const agent = engine.addAgent(team, h.q, h.r, hp);
+                // 依序分配職業，確保 5 個單位包含完整職業種類
+                const role = roles[count % roles.length];
+                const agent = engine.addAgent(team, h.q, h.r, hp, role);
                 if (agent) count++;
             }
         };
@@ -177,12 +182,15 @@ export const useGameApp = () => {
         }
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
+        const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+
         const spawnTeam = (team: Team) => {
             let count = 0;
             while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
                 const h = validHexes[spawnIndex++];
                 const hp = 500 + Math.floor(Math.random() * 400); 
-                const agent = engine.addAgent(team, h.q, h.r, hp);
+                const role = roles[count % roles.length];
+                const agent = engine.addAgent(team, h.q, h.r, hp, role);
                 if (agent) count++;
             }
         };

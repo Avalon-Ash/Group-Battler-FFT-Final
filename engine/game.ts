@@ -1,3 +1,4 @@
+
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState } from "../types";
@@ -94,7 +95,9 @@ export class GameEngine {
         this.map.randomizeEnvironment(this);
     }
 
-    public addAgent(team: Team, q: number, r: number, hpOverride?: number) { return this.agentManager.addAgent(this, team, q, r, hpOverride); }
+    public addAgent(team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role) { 
+        return this.agentManager.addAgent(this, team, q, r, hpOverride, roleOverride); 
+    }
     public isValid(q: number, r: number) { return this.map.isValid(q, r); }
     public isBlocked(q: number, r: number, ignoreId?: string, movementType: MovementType = MovementType.GROUND) { return this.map.isBlocked(q, r, this, ignoreId, movementType); }
     public isValidHash(h: number) { return this.map.isValidHash(h); }

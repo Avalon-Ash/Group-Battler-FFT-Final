@@ -1,3 +1,4 @@
+
 import { Team, HexLayout } from './types';
 
 export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
@@ -16,7 +17,6 @@ export const VISUAL_ANCHORS = {
     HEAD_OFFSET_Y: 50,
     ENGINE_OFFSET_Y: 15,
     HITBOX_RADIUS: 18,
-    // [Added] Projectile Targeting Anchors
     HEAD_OFFSET: 60,
     CENTER_OFFSET: 30
 };
@@ -34,7 +34,7 @@ export const PHYSICS = {
     FALL_DAMAGE_MIN: 200,
     STIFFNESS_ALIVE: 150,
     DAMPING_ALIVE: 25,
-    DRIFT_SPEED: 12.0,
+    DRIFT_SPEED: 25.0, // 從 12.0 提高到 25.0，大幅提升位置修正的響應速度
     TERMINAL_VELOCITY_IMPULSE: 400,
 };
 
@@ -83,7 +83,6 @@ export const PALETTE = {
 };
 
 export const COMBAT_PARAM = {
-    // Existing Params
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
     DR_RESET_TIME: 10.0,
@@ -92,20 +91,14 @@ export const COMBAT_PARAM = {
     BASE_VAMP_PCT: 0.35,
     MANA_BURN_DEFAULT: 25,
     MANA_RESTORE_DEFAULT: 25,
-    
-    // [Updated] Hazard Physics
-    GRAVITY_PULL_FORCE: 150, // Updated from 300 for stability
-    GRAVITY_MIN_DIST: 5,     // [New] Prevent singularity jitter
+    GRAVITY_PULL_FORCE: 150,
+    GRAVITY_MIN_DIST: 5,
     GRAVITY_SPEED_REDUCTION: 0.3,
     ICE_SPEED_REDUCTION: 0.5,
-    HIT_FLASH_DURATION: 0.1, // [New] For hazard hit feedback
-
-    // [New] AI Behaviors (Critical for BTRegistry)
+    HIT_FLASH_DURATION: 0.1,
     AI_CD_TOLERANCE: 0.01,
     AI_PERCEPTION_BONUS_ULT: 5,
     AI_PERCEPTION_BONUS_NORMAL: 2,
-    
-    // [New] AI Movement Multipliers
     MOVE_SPEED_ULT: 1.3,
     MOVE_SPEED_NORMAL: 1.0,
     CHASE_SPEED_ULT: 1.4,

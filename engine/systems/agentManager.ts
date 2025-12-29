@@ -5,13 +5,19 @@ import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 
 export class AgentManager {
-    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number): Agent | null {
+    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
         // Prevent spawning on blocked tiles or other units
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
         const a = new Agent(team, q, r, engine.mapConfig);
-        const allRoles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-        a.role = allRoles[Math.floor(Math.random() * allRoles.length)];
+        
+        // 如果傳入了 roleOverride，則使用指定的職業，否則隨機分配
+        if (roleOverride) {
+            a.role = roleOverride;
+        } else {
+            const allRoles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
+            a.role = allRoles[Math.floor(Math.random() * allRoles.length)];
+        }
         
         const suffix = Math.random().toString(36).substr(2, 4).toUpperCase();
         a.id = `${a.role}-${suffix}`;

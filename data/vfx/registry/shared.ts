@@ -27,11 +27,8 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         id: 'FX_HIT_GENERIC',
         description: 'Precise physical impact with airborne debris',
         emitters: [
-            // 地面震波
             { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.15, 0.25], size: [30, 45], colors: ['#ffffff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            // 空間噴濺碎塊 (關鍵：添加 vz)
             { particleType: 'RUBBLE', count: [4, 6], lifetime: [0.4, 0.6], size: [4, 8], speed: [150, 300], vz: [200, 500], gravity: 3000, colors: ['#57534e', '#292524', '#78716c'], shape: 'BURST_DIR', vRotation: [20, 60], delay: 0 },
-            // 中心閃光
             { particleType: 'GLOW', count: 1, lifetime: [0.08, 0.12], size: [50, 70], colors: ['#fff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
@@ -44,6 +41,18 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     },
     
     // --- STATUS LOOPS (Continuous Effects) ---
+    'FX_STATUS_STUN_LOOP': {
+        id: 'FX_STATUS_STUN_LOOP',
+        emitters: [
+            { particleType: 'SPARK', count: 1, lifetime: [0.6, 0.9], size: [4, 6], speed: [30, 60], vz: [20, 40], colors: ['#fbbf24', '#ffffff'], shape: 'CIRCLE', shapeRadius: 20, blendMode: 'lighter', delay: 0 }
+        ]
+    },
+    'FX_STATUS_SILENCE_LOOP': {
+        id: 'FX_STATUS_SILENCE_LOOP',
+        emitters: [
+            { particleType: 'CHIP', count: 1, lifetime: [0.5, 0.8], size: [5, 8], speed: [10, 20], vz: [40, 70], colors: ['#94a3b8', '#cbd5e1'], shape: 'CIRCLE', shapeRadius: 15, delay: 0 }
+        ]
+    },
     'FX_STATUS_POISON_LOOP': {
         id: 'FX_STATUS_POISON_LOOP',
         emitters: [
@@ -66,7 +75,19 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     'FX_STATUS_BANISH_LOOP': {
         id: 'FX_STATUS_BANISH_LOOP',
         emitters: [
-            { particleType: 'GLOW', count: 1, lifetime: [1.0, 1.5], size: [10, 20], speed: [0, 5], vz: [10, 20], colors: ['#c084fc', '#a855f7'], shape: 'CIRCLE', shapeRadius: 12, blendMode: 'screen', delay: 0 }
+            { particleType: 'SHARD', count: 1, lifetime: [1.2, 1.8], size: [6, 12], speed: [5, 15], vz: [10, 30], colors: ['#c084fc', '#a855f7'], shape: 'CIRCLE', shapeRadius: 25, blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_STATUS_FEAR_LOOP': {
+        id: 'FX_STATUS_FEAR_LOOP',
+        emitters: [
+            { particleType: 'SMOKE_PUFF', count: 1, lifetime: [0.4, 0.6], size: [20, 35], speed: [40, 80], vz: [100, 150], colors: ['#581c87', '#7c3aed'], shape: 'CIRCLE', shapeRadius: 5, blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_STATUS_ROOT_LOOP': {
+        id: 'FX_STATUS_ROOT_LOOP',
+        emitters: [
+            { particleType: 'DUST', count: [2, 3], lifetime: [0.5, 0.8], size: [4, 8], speed: [10, 30], vz: [10, 20], colors: ['#d97706', '#78350f'], shape: 'CIRCLE', shapeRadius: 20, delay: 0 }
         ]
     }
 };
