@@ -50,6 +50,10 @@ export const HexMath = {
         const w = layout === 'FLAT' ? 2 * HEX_SIZE : SQRT3 * HEX_SIZE;
         const h = layout === 'FLAT' ? SQRT3 * HEX_SIZE : 2 * HEX_SIZE;
 
+        // Standard Flat: width = 2*size, spacing = 3/2 * size
+        // Standard Pointy: width = sqrt(3)*size, spacing = sqrt(3) * size
+        
+        // This custom Diamond Projection logic rotates the axis to fit a square-ish screen space
         const stepX = layout === 'FLAT' ? w * 0.75 : w * 0.5;
         const stepY = layout === 'FLAT' ? h * 0.5 : h * 0.75;
 

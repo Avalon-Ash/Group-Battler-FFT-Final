@@ -11,7 +11,7 @@ import { ProjectileDrawer } from "./ProjectileDrawer";
 import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { GridOverlays } from "./grid/GridOverlays";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
-import { HazardPainter } from "./grid/painters/HazardPainter"; // 引用
+import { HazardPainter } from "./grid/painters/HazardPainter"; 
 import { SpriteManager } from "../sprites";
 import { AssetManager } from "../assets";
 import { ENV_ANCHOR_X, ENV_ANCHOR_Y } from "../graphics/EnvironmentFactory";
@@ -52,17 +52,18 @@ export class RenderPipeline {
             switch (op.type) {
                 case RenderOpType.TERRAIN:
                     TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout);
-                    GridOverlays.drawOverlays(ctx, snapX, snapY - op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit, op.tq, op.tr, op.time, undefined, layout);
+                    // [FIXED ORDER] Draw Details BEFORE Overlays to prevent detail texture from covering the glow
                     TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr);
+                    GridOverlays.drawOverlays(ctx, snapX, snapY - op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit, op.tq, op.tr, op.time, undefined, layout);
                     break;
-                case RenderOpType.HAZARD: // 新增：處理地面持續效果
+                case RenderOpType.HAZARD: 
                     if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.time);
                     break;
                 case RenderOpType.OBSTACLE:
                     ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
                     break;
                 case RenderOpType.UNIT:
-                    if (op.agent) this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.th, op.time, op.uSelected, op.uSilhouette);
+                    if (op.agent) this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.th, op.time, op.uSelected, op.uSilhouette, layout);
                     break;
                 case RenderOpType.DECAL:
                     ctx.save(); ctx.translate(snapX, snapY); ctx.scale(op.dScale, op.dScale); ctx.globalAlpha = Math.min(1, op.dLife);

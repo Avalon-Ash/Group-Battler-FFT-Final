@@ -46,20 +46,22 @@ export const ProjectileRenderer = {
             };
 
             const pos3D = getPosAt(t);
-            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, t, ISO_SCALE_Y);
+            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, t, 1.0);
 
             // 2. 計算視覺座標 (等角投影)
             const transOffset = getTransitionOffset(pos3D.x, pos3D.y, engine.mapConfig, transitionT, transitionPhase);
             const visX = pos3D.x;
-            const visY = pos3D.y * ISO_SCALE_Y - pos3D.z + transOffset;
+            const visY = pos3D.y - pos3D.z + transOffset;
 
             // 3. 提交渲染指令
             const op = renderList.next();
             op.type = RenderOpType.PROJECTILE;
             
-            // 核心優化：飛行物 Y 排序偏置。讓高速飛行物看起來在地形「之上」
-            op.y = pos3D.y + 10; 
-            op.z = pos3D.z + 500; // 給予極高的層級分數以防 Z-fighting
+            // 核心優化：飛行物 Y 排序偏置。
+            // 使用 Visual Y + 一個巨大的 Base Z 確保它在 Unit Layer 之上
+            // 同時保持與其他飛行物相對正確
+            op.y = pos3D.y; 
+            op.z = 5000 + pos3D.z; 
             
             op.pVisX = visX;
             op.pVisY = visY;
@@ -68,6 +70,7 @@ export const ProjectileRenderer = {
             op.pColor = p.skill.color;
             op.pIsUlt = p.skill.tag === 'ULT';
             op.pSpin = def.spinSpeed ? (age * def.spinSpeed) : 0;
+            op.pScale = def.scale || 1.0; 
             
             // 4. 解析尾跡採樣 (Analytic Trail Sampling)
             op.pTrail = [];
@@ -77,7 +80,7 @@ export const ProjectileRenderer = {
                 for (let i = 1; i <= trailSamples; i++) {
                     const tPast = Math.max(0, t - i * step);
                     const past3D = getPosAt(tPast);
-                    const pastY = past3D.y * ISO_SCALE_Y - past3D.z + transOffset;
+                    const pastY = past3D.y - past3D.z + transOffset;
                     op.pTrail.push({ x: past3D.x, y: pastY });
                     if (tPast <= 0) break;
                 }

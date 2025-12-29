@@ -5,6 +5,7 @@ import { MapConfig } from "../utils";
 import { UnitVisualProcessor } from "./unit/UnitVisualProcessor";
 import { UnitBodyPainter } from "../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
+import { HexLayout } from "../../types";
 
 export class UnitRenderSystem {
     public submitRenderables(
@@ -45,7 +46,7 @@ export class UnitRenderSystem {
     ) {
         const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
         const visualGroundY = state.y - state.terrainHeight;
-        this.drawAssembly(ctx, agent, state.x, visualGroundY, agent.physics.z, globalTime, false, true);
+        this.drawAssembly(ctx, agent, state.x, visualGroundY, agent.physics.z, globalTime, false, true, mapConfig.layout);
     }
 
     public drawAssembly(
@@ -56,12 +57,13 @@ export class UnitRenderSystem {
         localZ: number,
         globalTime: number, 
         isSelected: boolean,
-        isSilhouette: boolean
+        isSilhouette: boolean,
+        layout: HexLayout // Added Layout Argument
     ) {
         ctx.save();
         ctx.translate(drawX, drawY); 
         if (!isSilhouette && agent.hp > 0) {
-            UnitShadowPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette);
+            UnitShadowPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette, layout);
         }
         UnitBodyPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette, isSelected, 1.0);
         ctx.restore(); 

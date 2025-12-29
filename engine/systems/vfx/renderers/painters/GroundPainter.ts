@@ -8,7 +8,7 @@ import { HexLayout } from "../../../../../types";
 const GROUND_Z_BIAS = -2; // 向上偏移 2px 解決穿插
 
 export const GroundPainter = {
-    draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout = 'FLAT') {
+    draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
         // 1. 向量幾何處理
         if (['SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type)) {
             this.drawVectorGeometry(ctx, p, progress, drawX, drawY + GROUND_Z_BIAS, layout);

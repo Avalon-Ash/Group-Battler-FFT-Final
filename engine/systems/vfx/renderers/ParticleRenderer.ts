@@ -14,7 +14,7 @@ const GROUND_PLANE_SET = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_
  */
 export const ParticleRenderer = {
     
-    drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, isChaos: boolean, layout: HexLayout = 'FLAT') {
+    drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, isChaos: boolean, layout: HexLayout) {
         const now = Date.now() / 1000;
 
         // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)

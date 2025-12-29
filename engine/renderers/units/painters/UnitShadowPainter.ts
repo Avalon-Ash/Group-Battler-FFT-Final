@@ -1,14 +1,16 @@
+
 import { Agent } from "../../../../game";
 import { SpriteManager } from "../../../sprites";
 import { UnitIndicatorPainter } from "./UnitIndicatorPainter";
 import { UnitAuraPainter } from "./UnitAuraPainter";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { UNIT_SCALE, ISO_SCALE_Y } from "../../../../../constants";
+import { HexLayout } from "../../../../../types";
 
 const HOVER_LIFT = 6; 
 
 export const UnitShadowPainter = {
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number, isSilhouette: boolean) {
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number, isSilhouette: boolean, layout: HexLayout) {
         if (isSilhouette || agent.visualStatus === 'POLYMORPH') return;
 
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
@@ -38,9 +40,9 @@ export const UnitShadowPainter = {
         if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill && skill.tag === 'ULT') {
-                UnitAuraPainter.drawUltimateChantVFX(ctx, agent, px, surfaceY, t);
+                UnitAuraPainter.drawUltimateChantVFX(ctx, agent, px, surfaceY, t, layout);
             } else {
-                UnitAuraPainter.drawCastingVFX(ctx, agent, px, surfaceY, t);
+                UnitAuraPainter.drawCastingVFX(ctx, agent, px, surfaceY, t, layout);
             }
         }
 
@@ -75,10 +77,13 @@ export const UnitShadowPainter = {
                 const progress = 1 - (agent.castTimer / skill.cast);
                 const radius = skill.aoeRadius || 1;
                 const isAOE = skill.type === 'AOE';
-                if (isAOE) {
+                // Only draw self-centered indicator here if needed. 
+                // Remote AOE targeting is handled by GridRenderStrategy -> ZoneRenderer.
+                // We assume BASIC/ACTIVE skills might be self-centered AOE.
+                if (isAOE && radius > 0) {
                     ctx.save();
                     ctx.translate(px, surfaceY);
-                    UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, radius, skill.tag, isAOE);
+                    UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, radius, skill.tag, isAOE, layout);
                     ctx.restore();
                 }
             }

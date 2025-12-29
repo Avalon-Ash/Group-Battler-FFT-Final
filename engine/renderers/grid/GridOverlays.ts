@@ -6,7 +6,7 @@ import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { ActiveZone } from "../../systems/ZoneSystem";
 import { HexUtils } from "../../utils";
 
-const OVERLAY_LIFT = -3;
+const OVERLAY_LIFT = -12; // Increased lift to sit above terrain details
 
 export const GridOverlays = {
     drawOverlays(
@@ -23,7 +23,7 @@ export const GridOverlays = {
         hasUnit: boolean,
         q: number, r: number,
         globalTime: number,
-        hazard: GroundHazard | undefined, // 已棄用繪製
+        hazard: GroundHazard | undefined, 
         layout: HexLayout
     ) {
         const drawY = y + OVERLAY_LIFT;

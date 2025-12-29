@@ -21,7 +21,7 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', delay: 0, vRotation: [20, 50] 
             },
             {
-                particleType: 'SMOKE_PUFF', count: [4, 6], lifetime: [0.4, 0.6],
+                particleType: 'SMOKE_PUFF', count: [4, 6], lifetime: [0.3, 0.5],
                 size: [20, 35], speed: [50, 100], vz: [50, 150],
                 colors: ['#64748b'], shape: 'CIRCLE', shapeRadius: 10,
                 blendMode: 'screen', delay: 0
@@ -41,14 +41,14 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         description: 'Precise physical impact with airborne debris',
         emitters: [
             { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.15, 0.25], size: [30, 45], colors: ['#ffffff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'RUBBLE', count: [4, 6], lifetime: [0.4, 0.6], size: [4, 8], speed: [150, 300], vz: [200, 500], gravity: 3000, colors: ['#57534e', '#292524', '#78716c'], shape: 'BURST_DIR', vRotation: [20, 60], delay: 0 },
+            { particleType: 'RUBBLE', count: [4, 6], lifetime: [0.3, 0.5], size: [4, 8], speed: [150, 300], vz: [200, 500], gravity: 3000, colors: ['#57534e', '#292524', '#78716c'], shape: 'BURST_DIR', vRotation: [20, 60], delay: 0 },
             { particleType: 'GLOW', count: 1, lifetime: [0.08, 0.12], size: [50, 70], colors: ['#fff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
     'FX_HIT_FIRE': {
         id: 'FX_HIT_FIRE',
         emitters: [
-            { particleType: 'RUBBLE', count: [3, 5], lifetime: [0.4, 0.6], size: [6, 12], speed: [100, 200], vz: [150, 400], colors: ['#f97316', '#7c2d12'], shape: 'BURST_DIR', delay: 0 },
+            { particleType: 'RUBBLE', count: [3, 5], lifetime: [0.3, 0.5], size: [6, 12], speed: [100, 200], vz: [150, 400], colors: ['#f97316', '#7c2d12'], shape: 'BURST_DIR', delay: 0 },
             { particleType: 'SPARK', count: [8, 12], lifetime: [0.3, 0.5], size: [2, 4], speed: [200, 500], vz: [100, 600], colors: ['#fcd34d', '#fbbf24', '#fff'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
         ]
     },
@@ -100,7 +100,7 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     'FX_STATUS_ROOT_LOOP': {
         id: 'FX_STATUS_ROOT_LOOP',
         emitters: [
-            { particleType: 'DUST', count: [2, 3], lifetime: [0.5, 0.8], size: [4, 8], speed: [10, 30], vz: [10, 20], colors: ['#d97706', '#78350f'], shape: 'CIRCLE', shapeRadius: 20, delay: 0 }
+            { particleType: 'DUST', count: [2, 3], lifetime: [0.3, 0.6], size: [4, 8], speed: [10, 30], vz: [10, 20], colors: ['#d97706', '#78350f'], shape: 'CIRCLE', shapeRadius: 20, delay: 0 }
         ]
     }
 };

@@ -24,9 +24,10 @@ export const ProjectileDrawer = {
             trailGrad.addColorStop(0, color);
             trailGrad.addColorStop(1, 'transparent');
 
+            // Ult trails are thicker
             ctx.strokeStyle = trailGrad;
-            ctx.lineWidth = op.pIsUlt ? 8 : 3;
-            ctx.globalAlpha = 0.6;
+            ctx.lineWidth = (op.pIsUlt ? 12 : 6) * op.pScale;
+            ctx.globalAlpha = 0.8;
             ctx.lineCap = 'round';
             ctx.stroke();
             ctx.restore();
@@ -36,43 +37,50 @@ export const ProjectileDrawer = {
         ctx.save();
         ctx.translate(x, y);
         
-        // 運動模糊模擬：根據速度向量進行視覺拉伸 (SSOT: 此處假設速度影響拉伸)
-        const stretch = op.pIsUlt ? 1.5 : 1.15;
+        // 運動模糊模擬
+        const stretch = op.pIsUlt ? 1.2 : 1.05; 
+        
         if (op.pSpin !== 0) {
             ctx.rotate(op.pSpin);
         } else {
             ctx.rotate(angle);
-            ctx.scale(stretch, 1.0 / stretch); // 體積守恆拉伸
+            ctx.scale(stretch, 1.0 / stretch); 
         }
 
         const img = AssetManager.getProjectile(op.pSkillVis, color);
+        
+        // Force minimum visibility scale
+        const baseScale = Math.max(1.3, op.pScale || 1.2);
+        const finalScale = (op.pIsUlt ? 1.5 : 1.0) * baseScale;
+
         if (img) {
-            const scale = op.pIsUlt ? 1.8 : 1.2;
-            
             // 底層：基礎色
             ctx.globalAlpha = 1.0;
-            ctx.drawImage(img, -32 * scale, -32 * scale, 64 * scale, 64 * scale);
+            ctx.drawImage(img, -32 * finalScale, -32 * finalScale, 64 * finalScale, 64 * finalScale);
             
             // 頂層：動態發光 (Additive Pulse)
             ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.4 + Math.sin(globalTime * 20) * 0.2;
-            ctx.drawImage(img, -36 * scale, -36 * scale, 72 * scale, 72 * scale);
+            ctx.globalAlpha = 0.6 + Math.sin(globalTime * 20) * 0.2;
+            ctx.drawImage(img, -36 * finalScale, -36 * finalScale, 72 * finalScale, 72 * finalScale);
+        } else {
+            // Fallback rendering
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0,0, 15 * finalScale, 0, Math.PI*2); ctx.fill();
         }
         
         ctx.restore();
 
-        // 3. 亮點補償 (奧義專用)
-        if (op.pIsUlt) {
-            ctx.save();
-            ctx.translate(x, y);
-            ctx.globalCompositeOperation = 'screen';
-            const flare = ctx.createRadialGradient(0,0,0, 0,0, 40);
-            flare.addColorStop(0, '#fff');
-            flare.addColorStop(0.3, color);
-            flare.addColorStop(1, 'transparent');
-            ctx.fillStyle = flare;
-            ctx.beginPath(); ctx.arc(0,0, 40, 0, Math.PI*2); ctx.fill();
-            ctx.restore();
-        }
+        // 3. 亮點補償 (所有子彈都有核心高光)
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.globalCompositeOperation = 'screen';
+        const flare = ctx.createRadialGradient(0,0,0, 0,0, 40 * op.pScale);
+        flare.addColorStop(0, '#fff');
+        flare.addColorStop(0.3, color);
+        flare.addColorStop(1, 'transparent');
+        ctx.fillStyle = flare;
+        ctx.globalAlpha = 0.8;
+        ctx.beginPath(); ctx.arc(0,0, 20 * op.pScale, 0, Math.PI*2); ctx.fill();
+        ctx.restore();
     }
 };

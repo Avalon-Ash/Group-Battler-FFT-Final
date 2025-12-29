@@ -5,7 +5,7 @@ import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 
 // 幾何常數
-const PEDESTAL_DEPTH = 120; // 基座向下延伸深度，確保無穿幫
+const PEDESTAL_DEPTH = 30; // Reduced from 120 to 30 to fix "too high" look
 const EXPANSION_BIAS = 0.6; // 數學膨脹量 (px)，解決縫隙
 
 export const TerrainRenderer = {
@@ -35,10 +35,6 @@ export const TerrainRenderer = {
         // 1. 繪製基座與側牆 (Pedestal & Walls)
         // 側牆從 visualTopY 延伸至 PEDESTAL_DEPTH
         // 確保無論地形多高，下方都有支撐
-        
-        // 判斷可見面：根據佈局繪製前向面
-        // Flat: Bottom(1,2), BottomRight(0,1), BottomLeft(2,3) -> Indices 0,1,2,3 relevant
-        // Pointy: BottomRight(0,1), BottomLeft(1,2) -> Indices 0,1,2 relevant
         
         const drawFace = (idx1: number, idx2: number, color: string) => {
             const v1 = vertices[idx1];

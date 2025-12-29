@@ -2,6 +2,7 @@
 import { Agent } from "../../../game";
 import { HEX_SIZE } from "../../../../constants";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
+import { HexLayout } from "../../../../../types";
 
 // 唯一數學常數：詠唱法陣標準抬升量，徹底解決 Z-fighting
 const AURA_FLOOR_LIFT = -1.5; 
@@ -11,7 +12,7 @@ export const UnitAuraPainter = {
     /**
      * 繪製標準技能詠唱特效 (Vector Geometry)
      */
-    drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
+    drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number, layout: HexLayout) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (!skill) return;
         
@@ -34,14 +35,14 @@ export const UnitAuraPainter = {
         const rotA = t * 3;
         ctx.lineWidth = 2;
         ctx.globalAlpha = 0.6;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize, rotA, true);
+        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize, rotA, true, layout);
         ctx.stroke();
         
         // 2. 幾何核心 (內環：逆時針，高頻旋轉)
         const rotB = -t * 6;
         ctx.lineWidth = 1;
         ctx.globalAlpha = 0.4;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize * 0.7, rotB, true);
+        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize * 0.7, rotB, true, layout);
         ctx.stroke();
 
         // 3. 能量溢出點 (Procedural)
@@ -51,14 +52,14 @@ export const UnitAuraPainter = {
 
         // 4. 若為 AOE，繪製精確的邊界指示器
         if (skill.type === 'AOE') {
-            this.drawAoeExpansion(ctx, x, y, color, progress, skill.aoeRadius || 1);
+            this.drawAoeExpansion(ctx, x, y, color, progress, skill.aoeRadius || 1, layout);
         }
     },
 
     /**
      * 繪製奧義詠唱聖域 (Epic Geometry)
      */
-    drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
+    drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number, layout: HexLayout) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (!skill) return;
         
@@ -79,7 +80,7 @@ export const UnitAuraPainter = {
         // Layer 1: 外部神聖格線
         ctx.lineWidth = 3;
         ctx.globalAlpha = 0.8;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize, rot, true);
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize, rot, true, layout);
         ctx.stroke();
 
         // Layer 2: 內部符文環 (虛線幾何)
@@ -87,21 +88,21 @@ export const UnitAuraPainter = {
         ctx.lineWidth = 1;
         ctx.setLineDash([12, 8]);
         ctx.globalAlpha = 0.5;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize * 0.85, -rot * 0.8, true);
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize * 0.85, -rot * 0.8, true, layout);
         ctx.stroke();
         ctx.restore();
 
         // Layer 3: 中心匯聚點
         ctx.globalAlpha = 0.3 + Math.sin(t * 15) * 0.2;
         ctx.fillStyle = color;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize * 0.4, rot * 4, true);
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize * 0.4, rot * 4, true, layout);
         ctx.fill();
 
         // 4. 垂直能量柱投影
         const pillarH = 150 * progress;
         if (pillarH > 5) {
             ctx.fillStyle = color;
-            const points = HexGeometry.getVertices(ultSize * 0.7, true);
+            const points = HexGeometry.getVertices(ultSize * 0.7, true, layout);
             points.forEach((p, i) => {
                 if (i % 2 === 0) {
                     const alpha = (0.2 + 0.3 * Math.sin(t * 8 + i)) * progress;
@@ -117,7 +118,7 @@ export const UnitAuraPainter = {
     /**
      * 繪製 AOE 擴張波紋 (Vector Ripple)
      */
-    drawAoeExpansion(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, progress: number, rangeInTiles: number) {
+    drawAoeExpansion(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, progress: number, rangeInTiles: number, layout: HexLayout) {
         ctx.save();
         ctx.translate(x, y + AURA_FLOOR_LIFT - 0.5); // 稍微再高一點避免與法陣重疊
         
@@ -132,7 +133,7 @@ export const UnitAuraPainter = {
         ctx.beginPath();
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = (1 - progress) * 0.7;
-        HexGeometry.traceHex(ctx, 0, 0, easedRadius, true);
+        HexGeometry.traceHex(ctx, 0, 0, easedRadius, true, layout);
         ctx.stroke();
         
         // 2. 內部漫反射

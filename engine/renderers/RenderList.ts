@@ -40,6 +40,7 @@ export class RenderOp {
     pVisX: number = 0; pVisY: number = 0; pVisShadowY: number = 0;
     pSkillVis: string = ''; pColor: string = '';
     pIsUlt: boolean = false; pAngle: number = 0; pSpin: number = 0;
+    pScale: number = 1.0; // New: Data-driven scale factor
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
     dColor: string = ''; dScale: number = 1; dLife: number = 0;
@@ -55,6 +56,7 @@ export class RenderOp {
         this.particle = null;
         this.proj = null;
         this.pIsUlt = false; 
+        this.pScale = 1.0;
         this.oRange = false;
         this.oHover = false;
         this.oStatus = undefined;

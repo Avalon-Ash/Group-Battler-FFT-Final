@@ -56,7 +56,10 @@ export class MapGenerator {
                 // 我們對前景區域施加高度懲罰，形成類似羅馬競技場的單向開口結構
                 const visualDepth = (q + r) - centerSum;
                 if (visualDepth > 0) {
-                    rawVal -= (visualDepth * 0.8); 
+                    // [UPDATED] 加強懲罰係數，確保前景不會生成高地 (從 0.8 提升至 1.5)
+                    rawVal -= (visualDepth * 1.5); 
+                    // 額外抑制遠端距離加成，避免邊角過高
+                    if (dist > 2) rawVal -= (dist * 0.2);
                 }
 
                 // 離散化為 Tier 層級
