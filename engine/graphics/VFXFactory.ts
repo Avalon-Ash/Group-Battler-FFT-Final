@@ -1,4 +1,3 @@
-
 import { createCanvas } from "./CanvasUtils";
 import { ParticlePainter } from "./painters/ParticlePainter";
 import { ProjectilePainter } from "./painters/ProjectilePainter";
@@ -9,11 +8,6 @@ import { HEX_SIZE } from "../../constants";
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
 
-/**
- * VFX Texture Component v9.1
- * PURE DATA STORE. No drawing logic inside this class.
- * Delegated all drawing to specialized static Painters.
- */
 export class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
@@ -43,9 +37,13 @@ export class VFXTextureCache {
                 break;
             case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
             case 'SHADOW_BLOB':
-                ctx.fillStyle = color;
-                ctx.filter = 'blur(8px)';
-                ctx.beginPath(); ctx.arc(0, 0, r * 0.8, 0, Math.PI*2); ctx.fill();
+                // 升級：使用層次漸變取代單色圓，解決黑色色塊問題
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+                grad.addColorStop(0, color); // 中心較深
+                grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
+                grad.addColorStop(1, 'transparent'); // 邊緣完全透明
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
                 break;
             case 'CRACKS': ParticlePainter.drawCracks(ctx, r, color); break;
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
