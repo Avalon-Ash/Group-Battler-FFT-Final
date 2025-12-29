@@ -16,7 +16,7 @@ export const VISUAL_ANCHORS = {
     HEAD_OFFSET_Y: 50,
     ENGINE_OFFSET_Y: 15,
     HITBOX_RADIUS: 18,
-    // [Added] For Projectile Logic
+    // [Added] Projectile Targeting Anchors
     HEAD_OFFSET: 60,
     CENTER_OFFSET: 30
 };
@@ -82,8 +82,8 @@ export const PALETTE = {
     MAGIC: '#8b5cf6'
 };
 
-// [Refactored] Consolidated Logic Parameters
 export const COMBAT_PARAM = {
+    // Existing Params
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
     DR_RESET_TIME: 10.0,
@@ -93,19 +93,19 @@ export const COMBAT_PARAM = {
     MANA_BURN_DEFAULT: 25,
     MANA_RESTORE_DEFAULT: 25,
     
-    // Hazard Physics
-    GRAVITY_PULL_FORCE: 150,
-    GRAVITY_MIN_DIST: 5,
+    // [Updated] Hazard Physics
+    GRAVITY_PULL_FORCE: 150, // Updated from 300 for stability
+    GRAVITY_MIN_DIST: 5,     // [New] Prevent singularity jitter
     GRAVITY_SPEED_REDUCTION: 0.3,
     ICE_SPEED_REDUCTION: 0.5,
-    HIT_FLASH_DURATION: 0.1,
+    HIT_FLASH_DURATION: 0.1, // [New] For hazard hit feedback
 
-    // AI Behaviors (Used by BTRegistry)
+    // [New] AI Behaviors (Critical for BTRegistry)
     AI_CD_TOLERANCE: 0.01,
     AI_PERCEPTION_BONUS_ULT: 5,
     AI_PERCEPTION_BONUS_NORMAL: 2,
     
-    // AI Movement Multipliers (Used by BTRegistry)
+    // [New] AI Movement Multipliers
     MOVE_SPEED_ULT: 1.3,
     MOVE_SPEED_NORMAL: 1.0,
     CHASE_SPEED_ULT: 1.4,
