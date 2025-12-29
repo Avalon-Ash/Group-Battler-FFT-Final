@@ -1,3 +1,4 @@
+
 export enum Team {
     BLUE = 0,
     RED = 1
@@ -189,6 +190,19 @@ export interface GameEvent {
     sourceId?: string;
     targetId?: string;
     team?: Team;
+}
+
+export interface KillStreakInfo {
+    count: number;
+    lastTime: number;
+}
+
+export interface GlobalSessionState {
+    killStreaks: Map<string, KillStreakInfo>;
+    firstBloodTriggered: boolean;
+    directorTargetId: string | null;
+    directorTimer: number;
+    directorPriorityTimer: number;
 }
 
 export enum ToolType {

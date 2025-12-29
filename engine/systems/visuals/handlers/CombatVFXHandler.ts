@@ -1,56 +1,70 @@
 
 import { GameEvent } from "../../../../types";
+import { GameEngine } from "../../game";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../EventVFXMapper";
 import { VFX_REGISTRY } from "../../../../data/vfx/VFXRegistry";
 
 /**
- * 戰鬥視覺處理器 (TA 優化版)
- * 解決「受擊特效貼地」的問題，實現空間噴濺
+ * 戰鬥視覺處理器 (Juice Edition)
+ * Enhances impact feel with trauma scaling, flash frames, and directional debris.
  */
 export class CombatVFXHandler {
     
     public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number) {
         
-        // 1. 直接傷害特效 (胸口噴濺)
+        // Logic: Calculate "Oomph" Factor based on damage
+        const damage = Math.abs(event.value || 0);
+        const isCrit = damage > 150; // Simple threshold
+        const isMassive = damage > 400; // Ult level
+
+        let intensity = 1.0;
+        if (isCrit) intensity = 1.5;
+        if (isMassive) intensity = 2.5;
+
+        // 1. Damage Hit (Direct Unit Impact)
         if (event.type === 'DAMAGE') {
             if (!event.skill?.projectileSpeed) {
-                // 如果是直接傷害且不是持續傷害，播放受擊
+                // Melee or Instant: Play impact
                 if (event.skill?.ccType !== 'DOT') {
-                    this.playImpact(event, vfx, target, groundZ);
+                    this.playImpact(event, vfx, target, groundZ, intensity);
+                    
+                    // Juice: Camera Shake
+                    const trauma = isMassive ? 0.4 : (isCrit ? 0.25 : 0.1);
+                    camera.addTrauma(trauma);
                 } else {
-                    // 持續傷害僅播放微弱火花，不觸發強震動
+                    // DoT Tick (Minimal visual)
                     vfx.playEffect('FX_STATUS_BURN_LOOP', target.x, target.y, target.z, event.color);
                 }
             }
             return;
         }
 
-        // 2. 投射物命中心 (空間接觸點)
+        // 2. Projectile Impact
         if (event.type === 'PROJECTILE_HIT') {
             if (event.skill?.type !== 'AOE') {
-                // 單體投射物：精確在 target.z 噴濺
-                this.playImpact(event, vfx, target, groundZ);
-                camera.addTrauma(0.12); 
+                // Precise hit on unit body
+                this.playImpact(event, vfx, target, groundZ, intensity);
+                camera.addTrauma(0.15 * intensity); 
             } else {
-                // AOE 接觸點播放一個引導性的火花
+                // AOE projectile guide hit
                 vfx.playEffect('FX_HIT_GENERIC', event.pos.x, event.pos.y, target.z, event.skill?.color, groundZ);
             }
             return;
         }
 
-        // 3. AOE 範圍爆發 (地面為準，但粒子向上噴)
+        // 3. AOE Blast
         if (event.type === 'IMPACT_AOE') {
-            // AOE 中心點強制在地面，確保地面波形正確
-            const impactPoint = { x: event.pos.x, y: event.pos.y, z: groundZ + 2 };
-            this.playImpact(event, vfx, impactPoint, groundZ);
-            camera.addTrauma(0.3);
+            // Force ground alignment
+            const impactPoint = { x: event.pos.x, y: event.pos.y, z: groundZ + 5 };
+            this.playImpact(event, vfx, impactPoint, groundZ, intensity * 1.2);
+            camera.addTrauma(0.3 * intensity);
             return;
         }
     }
 
-    private static playImpact(event: GameEvent, vfx: VFXSystem, target: Point3D, groundZ: number) {
+    private static playImpact(event: GameEvent, vfx: VFXSystem, target: Point3D, groundZ: number, scale: number = 1.0) {
         const skill = event.skill;
         const color = event.color || '#fff';
         
@@ -59,8 +73,19 @@ export class CombatVFXHandler {
             effectId = skill.visualHitEffect;
         }
 
-        // TA 重點：傳入 target.z 作為發射點，groundZ 作為碰撞平面
-        // 這樣粒子會從胸口/受擊點噴出，然後受重力掉落到地面彈跳
+        // Spawn Primary Effect
         vfx.playEffect(effectId, target.x, target.y, target.z, color, groundZ);
+
+        // Juice: Extra flash for heavy hits
+        if (scale > 1.5) {
+            const flash = vfx.state.getParticle();
+            flash.type = 'GLOW';
+            flash.x = target.x; flash.y = target.y; flash.z = target.z;
+            flash.size = 100 * scale;
+            flash.color = '#ffffff';
+            flash.life = 0.1; flash.maxLife = 0.1;
+            flash.blendMode = 'screen';
+            vfx.state.particles.push(flash);
+        }
     }
 }
