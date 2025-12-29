@@ -2,125 +2,124 @@
 import { ZoneRenderer } from "./ZoneRenderer";
 import { HazardPainter } from "./painters/HazardPainter"; 
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
-import { GroundHazard } from "../../../types";
+import { GroundHazard, HexLayout } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { HEX_SIZE } from "../../../constants";
 import { ActiveZone } from "../../systems/ZoneSystem";
-import { HexMath } from "../../math/HexMath";
+import { HexUtils } from "../../utils";
+
+// Lift overlays slightly off the terrain mesh (Top Face) to avoid Z-fighting
+const OVERLAY_LIFT = -4;
+const HAZARD_LIFT = -12; // Hazards like fog need more lift
 
 export const GridOverlays = {
     
     drawOverlays(
         ctx: CanvasRenderingContext2D,
-        x: number, y: number, // Visual Top Face Y
+        x: number, y: number, 
         size: number,
         
-        // State Props
         specialStatus: string | undefined, 
         zoneInfo: ActiveZone | undefined,    
         
-        // Lighting
         lightColor: string | null,
         lightIntensity: number,
         
-        // Interactive
         isRange: boolean,
         rangeColor: string,
         isHover: boolean,
         hasUnit: boolean,
         
-        // Metadata
         q: number, r: number,
         globalTime: number,
-        hazard: GroundHazard | undefined
+        hazard: GroundHazard | undefined,
+        layout: HexLayout
     ) {
-        // --- LAYER 1: HAZARDS ---
+        // Apply global lift to all floor overlays
+        const drawY = y + OVERLAY_LIFT;
+
         if (hazard) {
-            HazardPainter.draw(ctx, x, y, hazard, globalTime);
+            // Draw hazard with extra lift for volume fog
+            HazardPainter.draw(ctx, x, y + HAZARD_LIFT, hazard, globalTime);
         }
 
-        // --- LAYER 2: UNIT STATUS FLOOR (e.g. Rooted, Frozen) ---
+        // 1. Status Floor Color (e.g. Frozen/Poison tile tint)
         if (specialStatus && specialStatus !== 'NONE') {
             const def = STATUS_VISUALS[specialStatus];
             if (def && def.floorColor) {
                 ctx.save();
-                ctx.translate(x, y);
+                ctx.translate(x, drawY);
                 ctx.fillStyle = def.floorColor;
                 ctx.globalAlpha = def.floorOpacity || 0.5;
-                HexGeometry.traceHex(ctx, 0, 0, size, true);
+                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.fill();
                 ctx.restore();
             }
         }
 
-        // --- LAYER 3: UNIFIED ZONE RIPPLE ---
+        // 2. Active Zones (AOE Warnings)
         if (zoneInfo) {
-            // Calculate distance from this tile to the zone center
-            const dist = HexMath.distance({q, r}, {q: zoneInfo.q, r: zoneInfo.r});
-            
-            // Render PER TILE effect
+            const dist = HexUtils.dist({q, r}, {q: zoneInfo.q, r: zoneInfo.r});
             ZoneRenderer.drawTileZoneEffect(
-                ctx, x, y, size,
+                ctx, x, drawY, size,
                 dist,
                 zoneInfo.radius,
                 zoneInfo.color,
                 zoneInfo.progress,
-                zoneInfo.isEnemy
+                zoneInfo.isEnemy,
+                layout
             );
         }
 
-        // --- LAYER 4: DYNAMIC LIGHTING ---
+        // 3. Dynamic Lighting (Projectile Pass-over)
         if (lightColor && lightIntensity > 0) {
             ctx.save();
-            ctx.translate(x, y);
+            ctx.translate(x, drawY);
             ctx.globalCompositeOperation = 'screen'; 
             ctx.fillStyle = lightColor;
             ctx.globalAlpha = Math.min(0.6, lightIntensity * 0.5);
-            HexGeometry.traceHex(ctx, 0, 0, size, true);
+            HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
             ctx.fill();
             ctx.restore();
         }
 
-        // --- LAYER 5: INTERACTIVE HIGHLIGHTS ---
+        // 4. Interaction Highlights (Range/Hover)
         if (isRange || isHover || hasUnit) {
             ctx.save();
-            ctx.translate(x, y);
+            ctx.translate(x, drawY);
             ctx.globalCompositeOperation = 'screen';
 
-            // Valid Move Range
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
                 ctx.globalAlpha = 0.15;
-                HexGeometry.traceHex(ctx, 0, 0, size * 0.9, true);
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true, layout);
                 ctx.fill();
                 
                 ctx.strokeStyle = rangeColor;
                 ctx.lineWidth = 2;
                 ctx.globalAlpha = 0.4;
-                HexGeometry.traceHex(ctx, 0, 0, size * 0.9, true);
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.9, true, layout);
                 ctx.stroke();
             }
             
-            // Hover Cursor
             if (isHover) { 
                 ctx.fillStyle = '#ffffff';
                 ctx.globalAlpha = 0.2;
-                HexGeometry.traceHex(ctx, 0, 0, size, true);
+                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.fill();
                 
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
                 ctx.globalAlpha = 0.9;
-                HexGeometry.traceHex(ctx, 0, 0, size, true);
+                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.stroke();
             }
             
-            // Unit Position Ring
             if (hasUnit && !isHover && !zoneInfo) {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 1.5;
                 ctx.globalAlpha = 0.3;
-                HexGeometry.traceHex(ctx, 0, 0, size * 0.9, true);
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.9, true, layout);
                 ctx.stroke();
             }
             

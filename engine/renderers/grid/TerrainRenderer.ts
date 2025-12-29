@@ -1,70 +1,76 @@
 
-import { ISO_SCALE_Y } from "../../../constants";
+import { ISO_SCALE_Y, BASE_HEIGHT } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
+import { HexLayout } from "../../../types";
 
-const SLAB_THICKNESS = 12; // Visual thickness of the base floor plate
+const WALL_SLOP_EPSILON = 1.0; 
 
 export const TerrainRenderer = {
     
-    /**
-     * Renders a solid 2.5D hexagonal prism (The Block).
-     * @param x Screen X of the base center
-     * @param y Screen Y of the base center (Ground Level)
-     * @param size Hex radius
-     * @param height Vertical extrusion amount (Positive value)
-     */
     drawBlock(
         ctx: CanvasRenderingContext2D, 
         x: number, y: number, 
         size: number, height: number, 
         theme: any,
         type: string,
-        globalTime: number
+        globalTime: number,
+        layout: HexLayout
     ) {
-        // Pre-calc visual coordinates
-        // Top Surface is at y - height
-        // Bottom Surface is at y + SLAB_THICKNESS
-        const topOffset = -height;
-        const bottomOffset = SLAB_THICKNESS;
+        // visualTopY = Vertical displacement (negative)
+        const visualTopY = -height;
         
-        // Vertices relative to (0,0) center.
-        // Indices for Flat Top (0 deg start):
-        // 0: Right (0)
-        // 1: Bottom-Right (60)
-        // 2: Bottom-Left (120)
-        // 3: Left (180)
-        // 4: Top-Left (240)
-        // 5: Top-Right (300)
-        const vertices = HexGeometry.getVertices(size, true); 
+        const vertices = HexGeometry.getVertices(size, true, layout); 
 
         ctx.save();
         ctx.translate(x, y);
 
-        // --- 1. DRAW SIDE WALLS (The Pedestal) ---
-        // For Flat Top Hex viewed from South, we see 3 Faces:
-        // Face A: Vertex 3 -> Vertex 2 (Front-Left) - Lit
-        // Face B: Vertex 2 -> Vertex 1 (Front-Center) - Medium
-        // Face C: Vertex 1 -> Vertex 0 (Front-Right) - Dark
-        
-        // Always draw walls if there is height OR slab thickness (which is always true now)
-        // Left-Front (Lit)
-        this.drawSideFace(ctx, vertices, 3, 2, topOffset, bottomOffset, theme.sideLight);
-        
-        // Front-Center (Medium/Dark)
-        this.drawSideFace(ctx, vertices, 2, 1, topOffset, bottomOffset, theme.sideDark);
-        
-        // Right-Front (Shadow)
-        this.drawSideFace(ctx, vertices, 1, 0, topOffset, bottomOffset, theme.sideDark);
+        // --- WALL RENDERING (GEOMETRY AWARE) ---
+        if (layout === 'FLAT') {
+            // Flat Top Hexagon (0 deg start)
+            // Visible faces from standard isometric angle: 
+            // Bottom-Right (1-0), Bottom (2-1), Bottom-Left (3-2)
+            // Indices: 0=Right, 1=BotRight, 2=BotLeft, 3=Left...
+            
+            // Draw order: Side to Front to Side (Back-to-Front painter's algo is handled by GridRenderStrategy sorting tiles)
+            // Within a single tile, we just draw the visible faces.
+            
+            // South-East Face (1 -> 0)
+            this.drawVerticalWall(ctx, vertices[1], vertices[0], visualTopY, theme.sideDark);
+            
+            // South Face (2 -> 1)
+            this.drawVerticalWall(ctx, vertices[2], vertices[1], visualTopY, theme.sideLight);
+            
+            // South-West Face (3 -> 2)
+            this.drawVerticalWall(ctx, vertices[3], vertices[2], visualTopY, theme.sideDark);
 
-        // --- 2. DRAW TOP FACE (The Platform) ---
-        ctx.translate(0, topOffset);
+        } else {
+            // Pointy Top Hexagon (30 deg start)
+            // Visible faces: Bottom-Right (1-0), Bottom-Left (2-1)
+            // Indices: 0=BotRight, 1=BotTip, 2=BotLeft, 3=TopLeft...
+            
+            // Right-Front Face (1 -> 0)
+            this.drawVerticalWall(ctx, vertices[1], vertices[0], visualTopY, theme.sideDark);
+            
+            // Left-Front Face (2 -> 1)
+            this.drawVerticalWall(ctx, vertices[2], vertices[1], visualTopY, theme.sideLight);
+            
+            // Front Corner Highlight (The "V" tip)
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(vertices[1].x, vertices[1].y);
+            ctx.lineTo(vertices[1].x, vertices[1].y + visualTopY);
+            ctx.stroke();
+        }
+
+        // --- TOP FACE RENDERING ---
+        ctx.translate(0, visualTopY);
         
-        // Gradient Top
         const topGrad = ctx.createLinearGradient(-size, -size, size, size);
-        topGrad.addColorStop(0, theme.rim); // Light source top-left
+        topGrad.addColorStop(0, theme.rim); 
         topGrad.addColorStop(0.5, theme.top);
-        topGrad.addColorStop(1, theme.sideDark); // Shadow bottom-right
+        topGrad.addColorStop(1, theme.sideDark); 
 
         ctx.fillStyle = topGrad;
         
@@ -76,69 +82,64 @@ export const TerrainRenderer = {
         ctx.closePath();
         ctx.fill();
 
-        // --- 3. EDGE HIGHLIGHT (The Bevel) ---
-        // Highlight the top-front edges for distinctness
         ctx.strokeStyle = theme.rim;
-        ctx.lineWidth = 1.5;
-        
-        // Draw just the front rim: 3 -> 2 -> 1 -> 0
-        ctx.beginPath();
-        ctx.moveTo(vertices[3].x, vertices[3].y);
-        ctx.lineTo(vertices[2].x, vertices[2].y);
-        ctx.lineTo(vertices[1].x, vertices[1].y);
-        ctx.lineTo(vertices[0].x, vertices[0].y);
+        ctx.lineWidth = 1.2;
+        ctx.globalAlpha = 0.8;
         ctx.stroke();
 
-        // --- 4. SURFACE DETAILS ---
         if (type === 'MAGMA') {
             SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0);
-        } else if (type === 'VOID') {
-            ctx.strokeStyle = '#334155';
-            ctx.lineWidth = 1;
-            ctx.beginPath();
-            ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-            ctx.moveTo(0, -10); ctx.lineTo(0, 10);
-            ctx.stroke();
         }
 
         ctx.restore();
     },
 
-    drawSideFace(ctx: CanvasRenderingContext2D, verts: {x:number, y:number}[], i1: number, i2: number, topOffset: number, bottomOffset: number, color: string) {
+    /**
+     * Draws a vertical wall segment connecting a bottom edge to the top face.
+     */
+    drawVerticalWall(ctx: CanvasRenderingContext2D, vBottom1: {x:number, y:number}, vBottom2: {x:number, y:number}, topY: number, color: string) {
         ctx.fillStyle = color;
         ctx.beginPath();
-        // Start at Bottom-Left of the face (at Slab Base)
-        ctx.moveTo(verts[i1].x, verts[i1].y + bottomOffset);
-        // Draw to Bottom-Right of the face (at Slab Base)
-        ctx.lineTo(verts[i2].x, verts[i2].y + bottomOffset);
-        // Draw Up to Top-Right (at Platform Top)
-        ctx.lineTo(verts[i2].x, verts[i2].y + topOffset);
-        // Draw to Top-Left (at Platform Top)
-        ctx.lineTo(verts[i1].x, verts[i1].y + topOffset);
+        
+        // Start at bottom edge
+        ctx.moveTo(vBottom1.x, vBottom1.y);
+        ctx.lineTo(vBottom2.x, vBottom2.y);
+        
+        // Go UP to top edge
+        ctx.lineTo(vBottom2.x, vBottom2.y + topY);
+        ctx.lineTo(vBottom1.x, vBottom1.y + topY);
+        
+        // Base extension (The "Pedestal" depth below z=0)
+        // We actually draw *down* from the "Base Y" (which is y) into the "Base Height"
+        // But the arguments passed are (x, y) = Logic Ground.
+        // topY is negative. 
+        // We need to fill the BASE_HEIGHT area below the logical ground to prevent gaps.
+        ctx.lineTo(vBottom1.x, vBottom1.y + BASE_HEIGHT + WALL_SLOP_EPSILON);
+        ctx.lineTo(vBottom2.x, vBottom2.y + BASE_HEIGHT + WALL_SLOP_EPSILON);
+        ctx.lineTo(vBottom2.x, vBottom2.y); // Close loop back to start
+        
         ctx.closePath();
         ctx.fill();
         
-        // Vertical Seam line
-        ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+        // Edge Definition
+        ctx.strokeStyle = 'rgba(0,0,0,0.15)';
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(verts[i1].x, verts[i1].y + bottomOffset);
-        ctx.lineTo(verts[i1].x, verts[i1].y + topOffset);
+        ctx.moveTo(vBottom1.x, vBottom1.y + topY); // Top corner
+        ctx.lineTo(vBottom1.x, vBottom1.y + BASE_HEIGHT); // Bottom corner
         ctx.stroke();
     },
 
     drawTerrainDetail(
         ctx: CanvasRenderingContext2D, 
-        baseX: number, baseY: number, // Base coords
+        baseX: number, baseY: number, 
         height: number,
         type: string, 
         detailColor: string,
         q: number, r: number
     ) {
-        // Details sit on top face
         const visualY = baseY - height;
-        
-        if (type === 'FOREST') {
+        if (type === 'FOREST' || type === 'VOID') {
             const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
             if (seed > 0.6) {
                 SurfacePainter.drawDetailTexture(ctx, baseX, visualY, type, detailColor, seed);

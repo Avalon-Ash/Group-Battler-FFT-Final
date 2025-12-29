@@ -4,6 +4,7 @@ import { ShieldPainter } from "./painters/ShieldPainter";
 import { OverheadPainter } from "./painters/OverheadPainter";
 import { GroundEffectPainter } from "./painters/GroundEffectPainter";
 import { StateModelPainter } from "./painters/StateModelPainter";
+import { VisualMath } from "../../math/VisualMath";
 
 export class StatusOrchestrator {
 
@@ -17,31 +18,25 @@ export class StatusOrchestrator {
             if (agent.hp <= 0 && agent.fullyDead) continue;
             
             const px = agent.px;
-            const py = agent.py; // Ground Base Y
-            const pz = agent.physics.z; // Jump Height
+            const py = agent.py;
+            const pz = agent.physics.z;
             
-            // Critical Fix: Calculate Terrain Height to anchor visuals to the Top Face
             const terrainH = getTerrainHeight(agent.q, agent.r);
-            const visualFloorY = py - terrainH; // Top of the block
+            const visualFloorY = py - terrainH; 
             
-            // Banish hides everything else, render it and skip the rest
+            // 優先處理放逐/凝滯
             if (agent.banished) {
-                // Pass terrainH explicitly or let the painter infer? 
-                // Painters expect (x, y) as the visual anchor.
-                // We standardise on passing VisualFloorY as 'y'.
                 StateModelPainter.drawBanishment(ctx, agent, px, visualFloorY, pz, globalTime);
                 continue;
             }
 
-            // Standard Layers
-            // Ground effects stay on the floor (ignore Jump Z for root usually? Or should root follow jump?)
-            // Usually Root locks feet, so if jumping, it might look weird. But units usually don't jump when rooted.
+            // 1. 地面鎖定效果 (Root/Burning)
             GroundEffectPainter.draw(ctx, agent, px, visualFloorY, pz, globalTime);
             
-            // Shield wraps body
+            // 2. 護盾 (貼合身體 Center)
             ShieldPainter.draw(ctx, agent, px, visualFloorY, pz, globalTime);
             
-            // Overhead icons float above head
+            // 3. 頭頂圖標 (浮動 Anchor)
             OverheadPainter.draw(ctx, agent, px, visualFloorY, pz, globalTime);
         }
     }

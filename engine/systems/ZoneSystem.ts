@@ -2,7 +2,6 @@
 import { GameEngine } from "../game";
 import { Team } from "../../types";
 import { HexUtils } from "../utils";
-import { HexMath } from "../math/HexMath";
 
 export interface ActiveZone {
     q: number;
@@ -51,7 +50,7 @@ export class ZoneSystem {
     public getZoneAt(q: number, r: number): ActiveZone | null {
         // Linear scan is fine for < 20 zones usually
         for (const zone of this.activeZones) {
-            const dist = HexMath.distance({q, r}, {q: zone.q, r: zone.r});
+            const dist = HexUtils.dist({q, r}, {q: zone.q, r: zone.r});
             if (dist <= zone.radius) {
                 return zone;
             }

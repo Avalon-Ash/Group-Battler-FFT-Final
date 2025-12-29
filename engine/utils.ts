@@ -1,6 +1,6 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../constants";
-import { Hex, Point } from "../types";
+import { Hex, Point, HexLayout } from "../types";
 import { HexMath } from "./math/HexMath";
 
 export interface MapConfig {
@@ -8,41 +8,30 @@ export interface MapConfig {
     h: number;
     offsetX: number;
     offsetY: number;
+    layout: HexLayout;
 }
 
-// --- Integer Hashing Constants ---
-const Q_STEP = 1 << 16;
-const R_STEP = 1;
+// Low-level optimizations for pathfinding (must match standard hash algorithm)
+const Q_BIT_SHIFT = 16;
+const Q_OFFSET = 128;
+const R_OFFSET = 128;
 
 export const NEIGHBOR_HASH_OFFSETS = [
-    Q_STEP,             // (1, 0)
-    Q_STEP - R_STEP,    // (1, -1)
-    -R_STEP,            // (0, -1)
-    -Q_STEP,            // (-1, 0)
-    -Q_STEP + R_STEP,   // (-1, 1)
-    R_STEP              // (0, 1)
+    (1 << Q_BIT_SHIFT),                 // (1, 0)
+    (1 << Q_BIT_SHIFT) - 1,             // (1, -1)
+    -1,                                 // (0, -1)
+    -(1 << Q_BIT_SHIFT),                // (-1, 0)
+    -(1 << Q_BIT_SHIFT) + 1,            // (-1, 1)
+    1                                   // (0, 1)
 ];
 
-// --- VISUAL UTILS ---
-
-/**
- * Calculates the vertical visual offset for map transitions (Phase Jump).
- */
 export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
     if (phase === 'IDLE') return 0;
-    
-    // Normalize distance from center (0 to 1)
-    const centerQ = Math.floor(mapConfig.w / 2);
-    const centerR = Math.floor(mapConfig.h / 2);
-    
-    // Use Pixel Distance estimation for smoothness
     const cx = mapConfig.offsetX;
     const cy = mapConfig.offsetY;
     const dist = Math.sqrt((x - cx)**2 + (y - cy)**2);
     const maxDist = 1000;
     const d = Math.min(1, dist / maxDist);
-    
-    // Base travel distance (Pixels)
     const BASE_OFFSET = 1500; 
 
     if (phase === 'OUT') {
@@ -53,7 +42,6 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
         const s = 0.5; 
         const eased = localT * localT * ((s + 1) * localT - s);
         return eased * BASE_OFFSET;
-
     } else if (phase === 'IN') {
         const startT = d * 0.2;
         if (t < startT) return BASE_OFFSET; 
@@ -67,25 +55,23 @@ export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, 
 
 export const HexUtils = {
     offsetToAxial: (col: number, row: number, config: MapConfig): Hex => {
-        const q = col - (row - (row & 1)) / 2;
-        const r = row;
-        return { q: Math.floor(q), r };
+        if (config.layout === 'FLAT') {
+            const q = col;
+            const r = row - (col - (col & 1)) / 2;
+            return { q, r };
+        } else {
+            const q = col - (row - (row & 1)) / 2;
+            const r = row;
+            return { q, r };
+        }
     },
 
-    /**
-     * Converts Hex coordinates to Screen Pixels.
-     * DELEGATES TO HexMath.hexToPixel for consistent geometry.
-     */
     toPx: (q: number, r: number, config: MapConfig): Point => {
-        return HexMath.hexToPixel(q, r, config.offsetX, config.offsetY);
+        return HexMath.hexToPixel(q, r, config.offsetX, config.offsetY, config.layout);
     },
 
-    /**
-     * Converts Screen Pixels to Hex coordinates.
-     * DELEGATES TO HexMath.pixelToHex for consistent picking.
-     */
     fromPx: (x: number, y: number, config: MapConfig): Hex => {
-        const frac = HexMath.pixelToHex(x, y, config.offsetX, config.offsetY);
+        const frac = HexMath.pixelToHex(x, y, config.offsetX, config.offsetY, config.layout);
         return HexMath.cubeToAxial(HexMath.cubeRound(HexMath.axialToCube(frac)));
     },
 
@@ -100,25 +86,28 @@ export const HexUtils = {
 
     lerp: (a: number, b: number, t: number): number => a + (b - a) * t,
 
-    key: (h: Hex): string => `${h.q},${h.r}`,
+    key: (h: Hex): string => `${Math.round(h.q)},${Math.round(h.r)}`,
 
     hash: (q: number, r: number): number => {
-        return (q + 128) << 16 | (r + 128);
+        return (Math.round(q) + Q_OFFSET) << Q_BIT_SHIFT | (Math.round(r) + R_OFFSET);
     },
 
     unhash: (h: number): Hex => {
-        const r = (h & 0xFFFF) - 128;
-        const q = (h >> 16) - 128;
+        const r = (h & 0xFFFF) - R_OFFSET;
+        const q = (h >> Q_BIT_SHIFT) - Q_OFFSET;
         return { q, r };
     },
 
     neighbors: (h: Hex): Hex[] => {
-        const dirs = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
-        return dirs.map(d => ({ q: h.q + d[0], r: h.r + d[1] }));
+        return HexMath.neighbors(h);
     },
 
     range: (center: Hex, n: number): Hex[] => {
         return HexMath.range(center, n);
+    },
+
+    line: (a: Hex, b: Hex): Hex[] => {
+        return HexMath.line(a, b);
     }
 };
 

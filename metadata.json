@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT v8.0",
-  "description": "Tactical Auto-Battler v8.0 - Localization & VFX Consistency Patch. Featuring: Complete Ult Visuals Mapping, Chinese Skill Names, and Data Cleanup.",
+  "name": "Group Battler FFT v9.1",
+  "description": "Release Candidate. Hybrid ECS Architecture finalized. SSOT Physics/Render synchronization enforced. Data-driven VFX Sequence Engine active.",
   "requestFramePermissions": []
 }

@@ -1,5 +1,5 @@
 
-import { Role, Team } from "../types";
+import { Role, Team, HexLayout } from "../types";
 import { PALETTE } from "../constants";
 import { UnitFactory } from "./graphics/UnitFactory";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
@@ -39,11 +39,12 @@ export const SpriteManager = {
         };
     },
     
-    getObstacleSprite(styleKey: string = 'WALL'): HTMLCanvasElement {
-        const key = `OBSTACLE_${styleKey}`;
+    getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
+        // Cache Key now includes Layout to support switching modes
+        const key = `OBSTACLE_${styleKey}_${layout}`;
         if (cache.has(key)) return cache.get(key)!;
         
-        const canvas = EnvironmentFactory.generateObstacle(styleKey);
+        const canvas = EnvironmentFactory.generateObstacle(styleKey, layout);
         cache.set(key, canvas);
         return canvas;
     },
@@ -56,7 +57,9 @@ export const SpriteManager = {
         if (type === 'SHEEP') {
             canvas = UnitFactory.generateSheep();
         } else {
-            canvas = EnvironmentFactory.generateIceBlock();
+            // Ice block assumes default layout for simplicity, or we could update this too
+            // For special models, we default to FLAT as they are organic shapes usually
+            canvas = EnvironmentFactory.generateIceBlock('FLAT');
         }
         
         cache.set(key, canvas);

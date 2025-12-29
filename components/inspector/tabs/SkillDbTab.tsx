@@ -134,7 +134,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                 <textarea 
                                                                     className="liquid-input w-full p-3 h-24 resize-none !rounded-xl leading-relaxed !bg-black/50"
                                                                     value={displayVal}
-                                                                    onChange={e => updateSkill(field.key, e.target.value)}
+                                                                    // Fix: Cast key to keyof Skill
+                                                                    onChange={e => updateSkill(field.key as keyof Skill, e.target.value)}
                                                                 />
                                                             ) : field.type === 'select' ? (
                                                                 <div className="relative">
@@ -143,13 +144,15 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                         value={displayVal}
                                                                         onChange={e => {
                                                                             const v = e.target.value;
-                                                                            if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key, undefined);
-                                                                            else updateSkill(field.key, v); 
+                                                                            // Fix: Cast key to keyof Skill
+                                                                            if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key as keyof Skill, undefined);
+                                                                            else updateSkill(field.key as keyof Skill, v); 
                                                                         }}
                                                                     >
-                                                                        {field.options ? 
-                                                                            field.options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>) :
-                                                                            field.simpleOptions?.map(opt => <option key={opt} value={opt}>{opt}</option>)
+                                                                        {/* Fix: Use any cast for flexible field options access */}
+                                                                        {(field as any).options ? 
+                                                                            (field as any).options.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>) :
+                                                                            (field as any).simpleOptions?.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)
                                                                         }
                                                                     </select>
                                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[10px]">▼</div>
@@ -161,7 +164,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                             type="text" 
                                                                             className="liquid-input w-full h-9 text-xs font-mono !bg-black/50 !rounded-xl" 
                                                                             value={displayVal} 
-                                                                            onChange={e => updateSkill(field.key, e.target.value)} 
+                                                                            // Fix: Cast key to keyof Skill
+                                                                            onChange={e => updateSkill(field.key as keyof Skill, e.target.value)} 
                                                                         />
                                                                     </div>
                                                                     <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/20 shadow-inner shrink-0">
@@ -169,7 +173,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                             type="color" 
                                                                             className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 border-0" 
                                                                             value={displayVal.startsWith('#') ? displayVal : '#ffffff'} 
-                                                                            onChange={e => updateSkill(field.key, e.target.value)} 
+                                                                            // Fix: Cast key to keyof Skill
+                                                                            onChange={e => updateSkill(field.key as keyof Skill, e.target.value)} 
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -179,7 +184,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                     className="liquid-input w-full h-9 text-xs font-mono !bg-black/50 !rounded-xl"
                                                                     value={displayVal}
                                                                     step={field.step || 1}
-                                                                    onChange={e => updateSkill(field.key, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                                                                    // Fix: Cast key to keyof Skill
+                                                                    onChange={e => updateSkill(field.key as keyof Skill, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
                                                                 />
                                                             )}
                                                         </div>

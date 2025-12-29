@@ -18,14 +18,14 @@ export class Agent {
     // Stats
     public hp: number = 100;
     public maxHp: number = 100;
-    public shield: number = 0; // NEW: Absorb damage
-    public maxShield: number = 0; // For UI scaling
+    public shield: number = 0; 
+    public maxShield: number = 0; 
     public mp: number = 0;
     public maxMp: number = 100;
     public moveSpeed: number = 1.0; 
     public moveSpeedMult: number = 1.0; 
-    public jump: number = 1; // Vertical mobility tier
-    public weight: number = 1; // Knockback resistance
+    public jump: number = 1; 
+    public weight: number = 1; 
     public movementType: MovementType = MovementType.GROUND;
     
     // Skills
@@ -47,6 +47,10 @@ export class Agent {
     public btStatus: string = "待機";
     public bt: BTNode | null = null;
     
+    // Visual History (For Flight Trails)
+    // Stores {x, y, z} tuples of the last N frames
+    public trailHistory: {x: number, y: number, z: number}[] = [];
+    
     // Status Effects
     public stunTimer: number = 0;
     public stunMax: number = 0; 
@@ -64,7 +68,7 @@ export class Agent {
     public fearTimer: number = 0;
     public tauntTimer: number = 0;
     public blindTimer: number = 0;
-    public tauntTargetId: string | null = null; // Who taunted me?
+    public tauntTargetId: string | null = null; 
     
     public dotTimer: number = 0;
     public dotDmg: number = 0;
@@ -190,5 +194,6 @@ export class Agent {
         this.target = null;
         this.targetHex = null;
         this.physics = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, angle: 0, vAngle: 0 };
+        this.trailHistory = [];
     }
 }

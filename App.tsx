@@ -20,7 +20,6 @@ function App() {
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
 
-  // UX Fix: Allow modals to appear even if HUD is hidden (e.g. viewing logs during Game Over)
   const showModals = !hideHUD || state.showLogs || state.showDB || state.showVFXMap;
 
   return (
@@ -50,7 +49,6 @@ function App() {
 
       {/* --- HUD LAYERS --- */}
       
-      {/* 1. Playback Controls */}
       <PlaybackHUD 
           hidden={hideHUD}
           isPlaying={state.isPlaying}
@@ -63,7 +61,6 @@ function App() {
           onShowcase={() => { setters.setIsShowcaseMode(true); actions.startShowcaseMatch(); }}
       />
 
-      {/* 2. System Menu */}
       {!hideHUD && (
           <SystemMenu 
               onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
@@ -73,7 +70,6 @@ function App() {
           />
       )}
 
-      {/* 3. Unit Inspector (Now receives Engine for direct BT rendering) */}
       {!hideHUD && state.selectedAgent && (
           <UnitInspectorHUD 
               agent={state.selectedAgent} 
@@ -82,8 +78,6 @@ function App() {
           />
       )}
 
-      {/* 4. Modals (Logs / DB / VFX Map) */}
-      {/* Logic Update: Can now show on Victory Screen */}
       {showModals && (
           <ModalManager 
               showLogs={state.showLogs}
@@ -132,6 +126,7 @@ function App() {
               draftRole={state.draftRole} setDraftRole={setters.setDraftRole}
               hpInput={state.hpInput} setHpInput={setters.setHpInput}
               selectedObstacle={state.selectedObstacle} setSelectedObstacle={setters.setSelectedObstacle}
+              hexLayout={state.hexLayout} onSetLayout={actions.handleUpdateLayout}
           />
       )}
     </div>

@@ -4,6 +4,8 @@ export enum Team {
     RED = 1
 }
 
+export type HexLayout = 'FLAT' | 'POINTY';
+
 export enum Role {
     TANK = 'TANK',
     WARRIOR = 'WARRIOR',
@@ -47,9 +49,9 @@ export interface Point {
 export interface SceneTheme {
     id: string;
     name: string;
-    background: string; // Sky Top Color
-    horizon: string;    // Sky Bottom/Horizon Color (New)
-    fogColor: string;   // Low-lying fog color (New)
+    background: string; 
+    horizon: string;    
+    fogColor: string;   
     textureType: 'VOID' | 'FOREST' | 'ICE' | 'MAGMA' | 'DESERT';
     obstacleStyle: string; 
     hexStroke: string; 
@@ -63,56 +65,50 @@ export interface Skill {
     id: string;
     tag: 'BASIC' | 'ACTIVE' | 'ULT';
     role: Role;
-    team?: Team; // Optional: If specified, only this team can learn it
+    team?: Team; 
     name: string;
-    desc?: string; // For Tooltips
+    desc?: string; 
     range: number;
     cast: number;
     cd: number;
     cost: number;
     gain: number;
     type: 'SINGLE' | 'AOE';
-    aoeRadius?: number; // Default 1 if not specified
+    aoeRadius?: number; 
     power: number;
     color: string;
     
-    // Semantic Visual Tags (NEW: Fully Decoupled)
     element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
 
-    // Control Effects (Slot 1)
     ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur?: number;
     ccForce?: number;
 
-    // Control Effects (Slot 2) - NEW: Allows composite effects like Knockback + Stun
     ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur2?: number;
     ccForce2?: number;
     
-    // Special Combat Effects (Slot 1)
     effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE';
-    effectVal?: number; // e.g. 0.5 for 50% Vamp, 1.5 for 50% bonus Execute dmg
+    effectVal?: number; 
 
-    // Special Combat Effects (Slot 2)
     effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE';
     effectVal2?: number;
 
-    projectileSpeed?: number; // 0 = Instant
+    projectileSpeed?: number; 
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
 
-    // --- PHASE 2: DATA DRIVEN VFX LINKS ---
-    visualHitEffect?: string;  // ID in VFXRegistry (Impact)
-    visualCastEffect?: string; // ID in VFXRegistry (Muzzle flash / Cast finish)
-    visualProjectileEffect?: string; // ID for Projectile Visuals (Future)
+    visualHitEffect?: string;  
+    visualCastEffect?: string; 
+    visualProjectileEffect?: string; 
 }
 
 export interface UnitStats {
     role: Role;
     maxHp: number;
     maxMp: number;
-    moveSpeed: number; // Tiles per second. 1.0 = 1 tile/sec
-    movementType: MovementType; // Ground or Flying
+    moveSpeed: number; 
+    movementType: MovementType; 
 }
 
 export interface ObstacleDef {
@@ -120,10 +116,9 @@ export interface ObstacleDef {
     name: string;
     blocksVision: boolean;
     blocksMovement: boolean;
-    blocksFlying?: boolean; // New: If true, blocks even flying units (High Towers/Pillars)
+    blocksFlying?: boolean; 
 }
 
-// Logic State Types
 export enum NodeState {
     SUCCESS = 'S',
     FAILURE = 'F',
@@ -135,17 +130,16 @@ export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SY
 export interface LogEntry {
     id: string;
     time: string;
-    turn: number; // Battle tick or frame count
-    agentId: string; // "Who"
+    turn: number; 
+    agentId: string; 
     team: Team | undefined;
-    location: string; // "Where" (e.g., "(10, 5)")
+    location: string; 
     actionType: LogActionType;
-    actionName: string; // "What" (e.g., "Fireball", "MoveTo")
-    targetInfo?: string; // "To Whom" (e.g., "Tank-A @ (12,5)")
-    detail: string; // Narrative details
-    visualColor?: string; // For UI highlighting
+    actionName: string; 
+    targetInfo?: string; 
+    detail: string; 
+    visualColor?: string; 
     
-    // Legacy support fields (optional)
     action?: string;
     target?: string;
     loc?: string;
@@ -155,9 +149,9 @@ export interface Projectile {
     id: string;
     x: number;
     y: number;
-    startX: number; // New: For Height Interpolation
-    startY: number; // New: For Height Interpolation
-    startZ?: number; // New: Initial height offset (for flying units)
+    startX: number; 
+    startY: number; 
+    startZ?: number; 
     targetId: string;
     targetPos: Point;
     speed: number;
@@ -167,30 +161,28 @@ export interface Projectile {
     trail: Point[];
 }
 
-// NEW: Per-Tile Hazard
 export interface GroundHazard {
     id: string;
     q: number;
     r: number;
     type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
-    duration: number; // Seconds remaining
+    duration: number; 
     sourceId: string;
     team: Team;
     color: string;
-    power: number; // Damage per tick
-    interval: number; // Tick rate
-    timer: number; // Current tick timer
-    vfxId?: string; // NEW: Phase 3 ready
+    power: number; 
+    interval: number; 
+    timer: number; 
+    vfxId?: string; 
 }
 
-// Event System (Bridge between Logic and Visuals)
 export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK';
 
 export interface GameEvent {
     type: GameEventType;
     pos: Point;
-    value?: number; // Damage amount, heal amount, etc.
-    text?: string; // For specialized text
+    value?: number; 
+    text?: string; 
     color?: string;
     skill?: Skill;
     sourceId?: string;
@@ -198,7 +190,6 @@ export interface GameEvent {
     team?: Team;
 }
 
-// Tooling
 export enum ToolType {
     SELECT = 'SELECT',
     ADD_BLUE = 'ADD_BLUE',

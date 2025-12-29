@@ -5,14 +5,29 @@ import { SCENE_DB } from "../../../data/scenes";
 import { HexUtils } from "../../utils";
 import { BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
 
+/**
+ * 🗺️ TACTICAL MAP GENERATOR v3.6
+ * Final Update: Standardized coordinate passing to maintain perfect hexagonal symmetry.
+ */
 export class MapGenerator {
 
     public static randomize(system: MapSystem, engine: GameEngine) {
-        // Reverted: Standard Arena Bounds
-        // Max 10x10 to ensure 60fps on mid-tier devices and clean composition
-        engine.mapConfig.w = Math.floor(8 + Math.random() * 3); // 8, 9, 10
-        engine.mapConfig.h = Math.floor(8 + Math.random() * 3); // 8, 9, 10
+        const layout = engine.mapConfig.layout;
+        let cols, rows;
+
+        if (layout === 'FLAT') {
+            cols = 7 + Math.floor(Math.random() * 3); 
+            rows = Math.ceil(cols * 1.3) + Math.floor(Math.random() * 3); 
+        } else {
+            cols = 6 + Math.floor(Math.random() * 3); 
+            rows = Math.ceil(cols * 1.8) + Math.floor(Math.random() * 3); 
+        }
+
+        engine.mapConfig.w = cols; 
+        engine.mapConfig.h = rows; 
+        
         engine.currentScene = SCENE_DB[Math.floor(Math.random() * SCENE_DB.length)];
+        
         this.rebuild(system, engine);
     }
 
@@ -21,166 +36,128 @@ export class MapGenerator {
         
         const W = engine.mapConfig.w;
         const H = engine.mapConfig.h;
-        const tempHeights = new Map<string, number>();
+        const tiers = new Map<string, number>();
 
-        // Center Point for "Arena" logic
-        const cx = (W - 1) / 2;
-        const cy = (H - 1) / 2;
-        const maxDist = Math.sqrt(cx * cx + cy * cy);
+        // ENSURE ROUNDED CENTER: Passing floats to HexUtils.dist causes cubeRound jitter.
+        const centerQ = Math.floor((W - 1) / 2);
+        const centerR = Math.floor((H - 1) / 2);
+        const centerHex = { q: centerQ, r: centerR };
 
-        // 1. Terrain Shape Generation (Compact Terraces)
+        const noisePhaseA = Math.random() * 100;
+        const noisePhaseB = Math.random() * 100;
+        const bowlShapeIntensity = 0.8 + Math.random() * 0.5; 
+
+        const maxVisualY = (W - 1) + (H - 1);
+
         for (let q = 0; q < W; q++) {
             for (let r = 0; r < H; r++) {
-                const hex = HexUtils.offsetToAxial(q, r, engine.mapConfig);
-                const k = HexUtils.key(hex);
-                
-                system.registerTile(hex.q, hex.r);
+                const k = HexUtils.key({q, r});
+                system.registerTile(q, r);
 
-                // Distance from center (0 to 1)
-                const dist = Math.sqrt((q - cx) ** 2 + (r - cy) ** 2) / maxDist;
-                
-                // Base Noise (Higher frequency for smaller maps)
-                const noise1 = Math.sin(q * 0.8) * Math.cos(r * 0.8);
-                const noise2 = Math.sin(q * 1.5 + r * 1.2) * 0.5;
-                
-                // Arena bias: Higher at edges, lower at center
-                let height = (dist * 2.5) + noise1 + noise2;
-                
-                // High Ground Plateau chance
-                if (Math.random() > 0.85) height += 1.5;
+                const visualRowIndex = q + r; 
+                const screenY = Math.min(1.0, Math.max(0.0, visualRowIndex / maxVisualY));
 
-                // Clamp and Scale
-                height = Math.max(0, height);
-                
-                // Quantize to steps
-                let tier = Math.floor(height);
-                
-                // Random variation on edges
-                if (Math.random() > 0.75) tier += 1;
+                // Standardized Hex Distance Pass
+                const dist = HexUtils.dist({q, r}, centerHex);
+                let rawHeight = dist * bowlShapeIntensity;
 
-                tempHeights.set(k, tier);
+                let visibilityMask = 1.0;
+                if (screenY > 0.7) { 
+                    const t = (screenY - 0.7) / 0.3;
+                    visibilityMask = Math.max(0, 1.0 - (t * 2.5));
+                }
+
+                let tier = rawHeight * visibilityMask;
+
+                const noise = (Math.sin((q + noisePhaseA) * 0.6) + Math.cos((r + noisePhaseB) * 0.5)) * 1.5;
+                tier += noise * visibilityMask; 
+
+                let finalTier = Math.floor(tier);
+                finalTier = Math.max(0, Math.min(MAX_TERRAIN_TIER, finalTier));
+                
+                if (dist < 2.0) finalTier = Math.max(0, finalTier - 1); 
+                if (screenY > 0.85) finalTier = 0;
+
+                tiers.set(k, finalTier);
             }
         }
 
-        // 2. Smoothing
-        const smoothedHeights = new Map<string, number>();
-        tempHeights.forEach((h, key) => {
+        const smoothedTiers = new Map<string, number>();
+        tiers.forEach((tier, key) => {
             const [q, r] = key.split(',').map(Number);
             const neighbors = HexUtils.neighbors({q, r});
-            let sum = h;
+            let sum = tier;
             let count = 1;
+            
             neighbors.forEach(n => {
                 const nk = HexUtils.key(n);
-                if (tempHeights.has(nk)) {
-                    sum += tempHeights.get(nk)!;
+                if (tiers.has(nk)) {
+                    sum += tiers.get(nk)!;
                     count++;
                 }
             });
-            smoothedHeights.set(key, Math.round(sum / count));
-        });
-
-        // 3. Commit Heights & Safety
-        smoothedHeights.forEach((tier, key) => {
-            let finalTier = Math.max(0, Math.min(MAX_TERRAIN_TIER, tier));
             
-            // "Framing Safety": Reduce height of top-most rows
-            const [q, r] = key.split(',').map(Number);
-            if (r < 2) finalTier = Math.min(finalTier, 1); 
-
-            system.setHeight(key, finalTier * BLOCK_HEIGHT);
+            const avg = Math.round(sum / count);
+            smoothedTiers.set(key, avg);
         });
 
-        this.pruneDisconnected(system, engine);
-        this.generateDecorations(system, engine);
+        smoothedTiers.forEach((tier, key) => {
+            system.setHeight(key, tier * BLOCK_HEIGHT);
+        });
+
+        this.generateDecorations(system, engine, W, H);
 
         engine.mapVersion++;
-        if (engine.renderer) {
-            engine.renderer.grid.reset();
-        }
+        if (engine.renderer) engine.renderer.grid.reset();
     }
 
-    private static generateDecorations(system: MapSystem, engine: GameEngine) {
+    private static generateDecorations(system: MapSystem, engine: GameEngine, W: number, H: number) {
         const obstacleType = engine.currentScene.obstacleStyle || 'WALL';
+        const centerQ = Math.floor((W - 1) / 2);
+        const centerR = Math.floor((H - 1) / 2);
+        const centerHex = { q: centerQ, r: centerR };
+        const clusterPhaseX = Math.random() * 50;
+        const clusterPhaseY = Math.random() * 50;
+        const maxVisualY = (W - 1) + (H - 1);
+
+        const keys = Array.from(system.getMapKeys());
+        for (let i = keys.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [keys[i], keys[j]] = [keys[j], keys[i]];
+        }
         
-        system.getMapKeys().forEach((key) => {
-            const hPx = system.getHeightByKey(key);
+        keys.forEach((key) => {
             const [q, r] = key.split(',').map(Number);
+            const hPx = system.getHeightByKey(key);
+            const tier = hPx / BLOCK_HEIGHT;
             
             if (engine.getAgentAt(q, r)) return;
-            
-            const myTier = hPx / BLOCK_HEIGHT;
+
+            const dist = HexUtils.dist({q, r}, centerHex);
+            if (dist < 2.5) return; 
+
+            const visualRowIndex = q + r;
+            const screenY = visualRowIndex / maxVisualY;
+            if (screenY > 0.7) return;
+
+            const noise = Math.sin((q + clusterPhaseX) * 0.8) * Math.cos((r + clusterPhaseY) * 0.8); 
+            let baseChance = 0.05; 
+
+            if (noise > 0.3) baseChance = 0.35;
+            if (tier >= 3) baseChance += 0.1;
+
+            let obstacleNeighbors = 0;
             const neighbors = HexUtils.neighbors({q, r});
-            let maxNeighborDiff = 0;
-            
-            neighbors.forEach(n => {
-                if (!system.isValid(n.q, n.r)) return;
-                const nH = system.getTerrainHeight(n.q, n.r);
-                const diff = Math.abs(nH - hPx) / BLOCK_HEIGHT;
-                if (diff > maxNeighborDiff) maxNeighborDiff = diff;
-            });
-
-            // Rule 1: Safety Walls on cliffs
-            if (maxNeighborDiff >= 2) {
-                if (Math.random() < 0.5) {
-                    system.setObstacle(q, r, obstacleType);
-                    return;
-                }
+            for(const n of neighbors) {
+                if (system.hasObstacle(n.q, n.r)) obstacleNeighbors++;
             }
 
-            // Rule 2: Random Clusters
-            if (Math.random() < 0.1) {
-                const type = engine.currentScene.textureType === 'FOREST' ? 'TREE' : obstacleType;
-                system.setObstacle(q, r, type);
+            if (obstacleNeighbors >= 1) baseChance *= 0.3; 
+            if (obstacleNeighbors >= 2) baseChance = 0; 
+
+            if (Math.random() < baseChance) {
+                system.setObstacle(q, r, obstacleType);
             }
-        });
-    }
-
-    private static pruneDisconnected(system: MapSystem, engine: GameEngine) {
-        const centerQ = Math.floor(engine.mapConfig.w / 2);
-        const centerR = Math.floor(engine.mapConfig.h / 2);
-        const centerHex = HexUtils.offsetToAxial(centerQ, centerR, engine.mapConfig);
-        let seed = HexUtils.hash(centerHex.q, centerHex.r);
-        
-        if (!system.isValidHash(seed)) {
-            const firstKey = system.getMapKeys().values().next().value;
-            if (!firstKey) return;
-            const [q, r] = firstKey.split(',').map(Number);
-            seed = HexUtils.hash(q, r);
-        }
-
-        const reachable = new Set<number>();
-        const queue: number[] = [seed];
-        reachable.add(seed);
-        let head = 0;
-        
-        while(head < queue.length) {
-            const currentHash = queue[head++];
-            const current = HexUtils.unhash(currentHash);
-            const neighbors = HexUtils.neighbors(current);
-            const curH = system.getTerrainHeight(current.q, current.r);
-
-            for (const n of neighbors) {
-                const nHash = HexUtils.hash(n.q, n.r);
-                if (system.isValidHash(nHash) && !reachable.has(nHash)) {
-                    const nH = system.getTerrainHeight(n.q, n.r);
-                    if (Math.abs(nH - curH) <= BLOCK_HEIGHT * 2) {
-                        reachable.add(nHash);
-                        queue.push(nHash);
-                    }
-                }
-            }
-        }
-
-        const toRemove: number[] = [];
-        system.getMapKeys().forEach(k => {
-            const [q, r] = k.split(',').map(Number);
-            const h = HexUtils.hash(q, r);
-            if (!reachable.has(h)) toRemove.push(h);
-        });
-
-        toRemove.forEach(h => {
-            const hex = HexUtils.unhash(h);
-            system.removeTile(hex.q, hex.r);
         });
     }
 }

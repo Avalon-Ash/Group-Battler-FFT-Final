@@ -1,7 +1,6 @@
 
 import { GameEngine, Agent } from "../../game";
 import { HexUtils } from "../../utils";
-import { HexMath } from "../../math/HexMath";
 import { Hex } from "../../../types";
 import { BLOCK_HEIGHT, HEX_SIZE } from "../../../constants";
 import { GridCache } from "./GridCache";
@@ -13,7 +12,8 @@ export class GridSpatial {
      * Used for game logic (e.g. finding targets) to ensure we don't pick void tiles.
      */
     public static getValidHexesInRange(centerQ: number, centerR: number, radius: number, engine: GameEngine): Hex[] {
-        const candidates = HexMath.range({q: centerQ, r: centerR}, radius);
+        // Use HexUtils instead of direct HexMath
+        const candidates = HexUtils.range({q: centerQ, r: centerR}, radius);
         const valid: Hex[] = [];
         
         for (const hex of candidates) {
@@ -36,8 +36,8 @@ export class GridSpatial {
             // "Unproject" the Y coordinate by adding height (since visual Y = ground Y - height)
             const testY = wy + h; 
             
-            const frac = HexMath.pixelToHex(wx, testY, engine.mapConfig.offsetX, engine.mapConfig.offsetY);
-            const rounded = HexMath.cubeToAxial(HexMath.cubeRound(HexMath.axialToCube(frac)));
+            // Simplified: Delegate projection math to HexUtils
+            const rounded = HexUtils.fromPx(wx, testY, engine.mapConfig);
             const key = HexUtils.key(rounded);
             
             const tile = cache.tileMap.get(key);

@@ -1,5 +1,5 @@
 
-import { Hex, Point, Cube } from "../../types";
+import { Hex, Point, Cube, HexLayout } from "../../types";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
 export { Cube };
@@ -8,7 +8,12 @@ const SQRT3 = Math.sqrt(3);
 
 export const HexMath = {
     
-    // --- COORDINATE SYSTEMS ---
+    // Axial directions in (q, r)
+    // Used for neighbor finding and pathfinding
+    directions: [
+        { q: 1, r: 0 }, { q: 1, r: -1 }, { q: 0, r: -1 },
+        { q: -1, r: 0 }, { q: -1, r: 1 }, { q: 0, r: 1 }
+    ],
 
     axialToCube(h: Hex): Cube {
         return { x: h.q, z: h.r, y: -h.q - h.r };
@@ -37,77 +42,52 @@ export const HexMath = {
         return { x: q, y: s, z: r };
     },
 
-    // --- PROJECTION CORE (FLAT-TOP SOURCE OF TRUTH) ---
-
     /**
-     * Converts Hex(q, r) to Screen Pixel(x, y).
-     * @returns The CENTER POINT of the hexagon's GROUND BASE (Z=0).
-     * Updated for FLAT TOP orientation.
+     * Diamond Hex Mapping (SRPG Standard) - V2
+     * Implementation of Duality for Flat and Pointy layouts.
      */
-    hexToPixel(q: number, r: number, offsetX: number, offsetY: number): Point {
-        // Flat Top Hex to Pixel
-        // x = size * 3/2 * q
-        // y = size * sqrt(3) * (r + q/2)
-        const x = (3 / 2 * q) * HEX_SIZE;
-        const y = (SQRT3 * (r + q / 2)) * HEX_SIZE;
+    hexToPixel(q: number, r: number, offsetX: number, offsetY: number, layout: HexLayout): Point {
+        const w = layout === 'FLAT' ? 2 * HEX_SIZE : SQRT3 * HEX_SIZE;
+        const h = layout === 'FLAT' ? SQRT3 * HEX_SIZE : 2 * HEX_SIZE;
 
-        // Apply ISO Squash (2.5D Projection)
-        // Only scale Y.
+        const stepX = layout === 'FLAT' ? w * 0.75 : w * 0.5;
+        const stepY = layout === 'FLAT' ? h * 0.5 : h * 0.75;
+
+        const x = (q - r) * stepX;
+        const y = (q + r) * stepY;
+
         return {
             x: x + offsetX,
-            y: (y * ISO_SCALE_Y) + offsetY
+            y: y * ISO_SCALE_Y + offsetY
         };
     },
 
     /**
-     * Converts Screen Pixel(x, y) to Fractional Hex.
-     * Inverse of hexToPixel (Flat Top). Assumes Z=0 input.
+     * Inverse mapping for Diamond Grid
      */
-    pixelToHex(x: number, y: number, offsetX: number, offsetY: number): Hex {
+    pixelToHex(x: number, y: number, offsetX: number, offsetY: number, layout: HexLayout): Hex {
         const dx = x - offsetX;
-        const dy = (y - offsetY) / ISO_SCALE_Y; // Un-squash
+        const dy = (y - offsetY) / ISO_SCALE_Y;
+        
+        const w = layout === 'FLAT' ? 2 * HEX_SIZE : SQRT3 * HEX_SIZE;
+        const h = layout === 'FLAT' ? SQRT3 * HEX_SIZE : 2 * HEX_SIZE;
 
-        // Inverse Flat Top Matrix
-        const q = (2 / 3 * dx) / HEX_SIZE;
-        const r = (-1 / 3 * dx + SQRT3 / 3 * dy) / HEX_SIZE;
+        const stepX = layout === 'FLAT' ? w * 0.75 : w * 0.5;
+        const stepY = layout === 'FLAT' ? h * 0.5 : h * 0.75;
+
+        const q_minus_r = dx / stepX;
+        const q_plus_r = dy / stepY;
+
+        const q = (q_minus_r + q_plus_r) / 2;
+        const r = (q_plus_r - q_minus_r) / 2;
 
         return { q, r };
     },
 
-    // --- GEOMETRY UTILS ---
-
     distance(a: Hex, b: Hex): number {
-        const ac = HexMath.axialToCube(a);
-        const bc = HexMath.axialToCube(b);
+        const ac = this.axialToCube(a);
+        const bc = this.axialToCube(b);
         return Math.max(Math.abs(ac.x - bc.x), Math.abs(ac.y - bc.y), Math.abs(ac.z - bc.z));
-    },
-
-    lerp(a: Hex, b: Hex, t: number): Hex {
-        const ac = HexMath.axialToCube(a);
-        const bc = HexMath.axialToCube(b);
-        const cubeLerp = {
-            x: ac.x + (bc.x - ac.x) * t,
-            y: ac.y + (bc.y - ac.y) * t,
-            z: ac.z + (bc.z - ac.z) * t
-        };
-        return HexMath.cubeToAxial(HexMath.cubeRound(cubeLerp));
-    },
-
-    line(a: Hex, b: Hex): Hex[] {
-        const N = HexMath.distance(a, b);
-        const results: Hex[] = [];
-        const ac = { x: a.q + 1e-6, z: a.r + 1e-6, y: -a.q - a.r - 2e-6 };
-        const bc = { x: b.q + 1e-6, z: b.r + 1e-6, y: -b.q - b.r - 2e-6 };
-        for (let i = 0; i <= N; i++) {
-            const t = N === 0 ? 0.0 : i / N;
-            const cubeLerp = {
-                x: ac.x + (bc.x - ac.x) * t,
-                y: ac.y + (bc.y - ac.y) * t,
-                z: ac.z + (bc.z - ac.z) * t
-            };
-            results.push(HexMath.cubeToAxial(HexMath.cubeRound(cubeLerp)));
-        }
-        return results;
     },
 
     range(center: Hex, n: number): Hex[] {
@@ -118,5 +98,26 @@ export const HexMath = {
             }
         }
         return results;
+    },
+
+    line(a: Hex, b: Hex): Hex[] {
+        const N = this.distance(a, b);
+        const results: Hex[] = [];
+        const ac = { x: a.q + 1e-6, z: a.r + 1e-6, y: -a.q - a.r - 2e-6 };
+        const bc = { x: b.q + 1e-6, z: b.r + 1e-6, y: -b.q - b.r - 2e-6 };
+        for (let i = 0; i <= N; i++) {
+            const t = N === 0 ? 0.0 : i / N;
+            const cubeLerp = {
+                x: ac.x + (bc.x - ac.x) * t,
+                y: ac.y + (bc.y - ac.y) * t,
+                z: ac.z + (bc.z - ac.z) * t
+            };
+            results.push(this.cubeToAxial(this.cubeRound(cubeLerp)));
+        }
+        return results;
+    },
+
+    neighbors(h: Hex): Hex[] {
+        return this.directions.map(d => ({ q: h.q + d.q, r: h.r + d.r }));
     }
 };

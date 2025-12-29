@@ -2,12 +2,9 @@
 import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
-import { GridSystem } from "../../grid";
-import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../EventVFXMapper";
-import { UltArchitect } from "../UltArchitect";
-import { SkillArchitect } from "../SkillArchitect";
-import { UNIT_BODY_OFFSET } from "../../../../constants";
+import { SequenceSystem } from "../SequenceSystem";
+import { SKILL_SEQUENCES } from "../../../../data/vfx/SkillSequences";
 
 export class CinematicVFXHandler {
 
@@ -15,23 +12,21 @@ export class CinematicVFXHandler {
         event: GameEvent, 
         engine: GameEngine, 
         vfx: VFXSystem, 
-        grid: GridSystem, 
-        camera: CameraSystem, 
         origin: Point3D, 
         target: Point3D
     ) {
         const skill = event.skill;
         if (!skill) return;
 
-        // 1. Try Ult Script
-        if (skill.tag === 'ULT') {
-             if (UltArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
-        }
+        // 1. DATA-DRIVEN ECS LOOKUP
+        const sequence = SKILL_SEQUENCES[skill.id];
         
-        // 2. Try Skill Script
-        if (SkillArchitect.play(skill.id, target, engine, vfx, grid, camera, event.sourceId)) return;
+        if (sequence) {
+            SequenceSystem.run(sequence, target, engine, vfx, event.sourceId);
+            return;
+        }
 
-        // 3. Fallback (If no script found)
+        // 2. MINIMAL FALLBACK (Prevents breaking if data entry is missing)
         if (event.type === 'VISUAL_SLASH') {
             vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
         } else {

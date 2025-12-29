@@ -1,9 +1,10 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout } from '../types';
 import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
+import { DEFAULT_HEX_LAYOUT } from '../constants';
 
 export const useGameApp = () => {
     const engineRef = useRef(new GameEngine());
@@ -24,51 +25,40 @@ export const useGameApp = () => {
     const [currentSceneId, setCurrentSceneId] = useState('VOID');
     const [spawnMode, setSpawnMode] = useState<'RANDOM' | 'DRAFT'>('RANDOM');
     const [draftRole, setDraftRole] = useState<Role>(Role.WARRIOR);
+    const [hexLayout, setHexLayout] = useState<HexLayout>(DEFAULT_HEX_LAYOUT);
     
     // UI State
     const [showLogs, setShowLogs] = useState(false);
     const [showDB, setShowDB] = useState(false);
-    const [showVFXMap, setShowVFXMap] = useState(false); // NEW
+    const [showVFXMap, setShowVFXMap] = useState(false); 
     const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
     const [showFactionWarning, setShowFactionWarning] = useState(false);
 
     // --- EVENT LISTENER SETUP ---
-    // This allows the engine to drive state changes without prop drilling
     useEffect(() => {
         const engine = engineRef.current;
-        
         const handleGameOver = (data: { winner: Team }) => {
             setWinner(data.winner);
             if (engine.isRunning) engine.stop(); 
             setIsPlaying(false);
         };
-
         engine.bus.on('GAME_OVER', handleGameOver);
-        
         return () => {
             engine.bus.off('GAME_OVER', handleGameOver);
         };
     }, []);
 
-    // Showcase Auto-Loop Logic (Reactive to winner state)
+    // Showcase Auto-Loop Logic
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
-            // STEP 1: Battle Ends.
             const timer = setTimeout(() => {
-                
-                // STEP 2: Trigger OUT (Blur Ramps Up + Map Falls Down)
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
                 engineRef.current.combat.projectiles = [];
                 
-                // Wait 1.2s for OUT animation to complete fully (Cinematic feel)
                 setTimeout(() => {
                     setupShowcaseMap(); 
-                    
-                    // STEP 3: Trigger IN (Map Rises Up + Blur Fades Out)
                     setTransitionPhase('IN'); 
-                    
-                    // Wait 1.2s for IN animation to assemble
                     setTimeout(() => {
                         setTransitionPhase('IDLE');
                         spawnShowcaseUnits(); 
@@ -86,45 +76,44 @@ export const useGameApp = () => {
         engine.stop();
         setWinner(null);
         setSelectedAgent(null);
+        
+        // 1. Randomize Map Size
         engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
         engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
+        
+        // 2. Randomize Layout (FLAT or POINTY) - TRUTH: Vectorization Protocol
+        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
+        engine.mapConfig.layout = newLayout;
+        setHexLayout(newLayout);
+
         engine.randomizeEnvironment(); 
         setCurrentSceneId(engine.currentScene.id);
     }, []);
 
     const spawnShowcaseUnits = useCallback(() => {
         const engine = engineRef.current;
-        
-        // 1. Get Valid Hexes (Filter out Obstacles immediately)
         let validHexes = (Array.from(engine.mapKeys) as string[])
             .map(k => {
                 const [q, r] = k.split(',').map(Number);
                 return {q, r};
             })
-            .filter(h => !engine.map.hasObstacle(h.q, h.r)); // Critical: Exclude obstacles
+            .filter(h => !engine.map.hasObstacle(h.q, h.r));
 
-        // 2. Fisher-Yates shuffle
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
         
-        // 3. Balanced Spawning
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
         
         const spawnTeam = (team: Team) => {
             let count = 0;
-            // Keep trying until we hit target count or run out of map space
             while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
                 const h = validHexes[spawnIndex++];
                 const hp = 500 + Math.floor(Math.random() * 400); 
-                
-                // Attempt add (returns null if failed logic, e.g. blocked)
                 const agent = engine.addAgent(team, h.q, h.r, hp);
-                if (agent) {
-                    count++;
-                }
+                if (agent) count++;
             }
         };
 
@@ -140,12 +129,10 @@ export const useGameApp = () => {
         spawnShowcaseUnits();
     }, [setupShowcaseMap, spawnShowcaseUnits]);
 
-    // Initial Start
     useEffect(() => {
         startShowcaseMatch();
     }, [startShowcaseMatch]);
 
-    // Stats Loop
     useEffect(() => {
         const interval = setInterval(() => {
             setUnitCount(engineRef.current.agents.length);
@@ -153,7 +140,6 @@ export const useGameApp = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // Time Scale Sync
     useEffect(() => {
         engineRef.current.timeScale = timeScale;
     }, [timeScale]);
@@ -170,6 +156,7 @@ export const useGameApp = () => {
         setUnitCount(0);
         setMapW(engineRef.current.mapConfig.w);
         setMapH(engineRef.current.mapConfig.h);
+        setHexLayout(engineRef.current.mapConfig.layout);
         setCurrentSceneId(engineRef.current.currentScene.id);
     };
 
@@ -179,6 +166,15 @@ export const useGameApp = () => {
         engineRef.current.mapConfig.w = w;
         engineRef.current.mapConfig.h = h;
         engineRef.current.clear(false); 
+        setSelectedAgent(null);
+        setWinner(null);
+    }, []);
+
+    const handleUpdateLayout = useCallback((l: HexLayout) => {
+        setHexLayout(l);
+        engineRef.current.mapConfig.layout = l;
+        // Rebuild is necessary because coordinate calculation changes fundamentally
+        engineRef.current.clear(true); 
         setSelectedAgent(null);
         setWinner(null);
     }, []);
@@ -199,12 +195,16 @@ export const useGameApp = () => {
         setSelectedAgent(null);
         engine.clear(false); 
         
+        // Randomize layout for user randomness too
+        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
+        engine.mapConfig.layout = newLayout;
+        setHexLayout(newLayout);
+
         engine.randomizeEnvironment();
         setMapW(engine.mapConfig.w);
         setMapH(engine.mapConfig.h);
         setCurrentSceneId(engine.currentScene.id);
 
-        // 1. Get Valid Hexes (Filter out Obstacles)
         let validHexes = (Array.from(engine.mapKeys) as string[])
             .map(k => {
                 const [q, r] = k.split(',').map(Number);
@@ -212,13 +212,11 @@ export const useGameApp = () => {
             })
             .filter(h => !engine.map.hasObstacle(h.q, h.r));
 
-        // 2. Shuffle
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
 
-        // 3. Balanced Spawning
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
 
@@ -254,20 +252,17 @@ export const useGameApp = () => {
 
     const togglePlay = useCallback(() => {
         if (winner !== null) return;
-        
         if (isPlaying) {
             engineRef.current.stop();
             setIsPlaying(false);
         } else {
             const hasBlue = engineRef.current.agents.some(a => a.team === Team.BLUE);
             const hasRed = engineRef.current.agents.some(a => a.team === Team.RED);
-            
             if (!hasBlue || !hasRed) {
                 setShowFactionWarning(true);
                 setTimeout(() => setShowFactionWarning(false), 2500);
                 return;
             }
-
             engineRef.current.play();
             setIsPlaying(true);
             setTool(ToolType.SELECT);
@@ -278,14 +273,13 @@ export const useGameApp = () => {
         setSelectedAgent(a);
     };
 
-    // --- RETURN ---
     return {
         engineRef,
         state: {
             isShowcaseMode, isPlaying, unitCount, tool, selectedObstacle,
             selectedAgent, hoveredSkill, hpInput, mapW, mapH, timeScale,
             winner, currentSceneId, spawnMode, draftRole, showLogs, showDB, showVFXMap,
-            transitionPhase, showFactionWarning
+            transitionPhase, showFactionWarning, hexLayout
         },
         setters: {
             setTool, setSelectedObstacle, setHpInput, setTimeScale, 
@@ -295,6 +289,7 @@ export const useGameApp = () => {
         actions: {
             enterManualMode,
             handleUpdateMapSize,
+            handleUpdateLayout,
             handleSetScene,
             handleRandomBattlefield,
             handleNextLevel,

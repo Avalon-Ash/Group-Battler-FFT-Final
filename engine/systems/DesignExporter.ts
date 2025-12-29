@@ -9,7 +9,7 @@ export class DesignExporter {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `Tactical_Design_Spec_v${new Date().toISOString().split('T')[0]}.txt`;
+        anchor.download = `Tactical_Design_Spec_v9.1_RC.txt`;
         anchor.click();
         URL.revokeObjectURL(url);
     }
@@ -18,52 +18,57 @@ export class DesignExporter {
         return `
 ================================================================================
 TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 7.1.1 (Precision Patch)
+Version: 9.1 (Release Candidate - Hybrid ECS)
 Generated: ${new Date().toLocaleString()}
-Engine: Hybrid 2.5D Isometric (Flat-Top) / Phys-Logical 3D
+Architecture: Hybrid Component System / SSOT Physics
 ================================================================================
 
-[1. 空間幾何與座標系統 (Spatial Geometry & Coordinates)]
+[1. 系統架構圖 (System Dependency Graph)]
 --------------------------------------------------------------------------------
-系統採用等距視角 (Isometric 2.5D) 表現，底層邏輯運行於擬 3D 空間。
+本系統採用單向數據流 (Unidirectional Data Flow) 以確保狀態一致性。
 
-* 視覺縮放 (Visual Scale):
-  - 全域單位縮放 (Unit Scale): ${UNIT_SCALE} (70% Original Size).
-  - 確保單位與 10x10 網格的比例更為協調，保留戰術空間感。
+[INPUT] -> [GAME STATE] -> [SYSTEMS] -> [RENDER LIST] -> [CANVAS]
 
-* 轉換公式 (Coordinate Transformation):
-  - 網格類型: Flat-Top Hexagon (旋轉 0 度).
-  - 投影比例 (ISO_Y): ${ISO_SCALE_Y}
-  - 渲染基準 (Pivot): 地塊繪製使用 3-Face Prism 以呈現體積感。
+A. 核心數據層 (Core Data):
+   - Agent (Container): 包含 PhysicsComponent, StatsComponent, SkillComponent
+   - MapSystem: 空間雜湊 (Spatial Hash) 與地形數據
+   
+B. 系統層 (Systems - Pure Logic):
+   1. AI System: 決策樹 (Behavior Tree) -> 產生 Intent
+   2. Motion System: 路徑計算 (A*) -> 更新 Agent.pos (Logical)
+   3. Physics System: 力學積分 (Verlet/Euler) -> 更新 Agent.physics (Physical)
+   4. Combat System: 狀態機 -> 產生 GameEvents
 
-* 地形規則 (Terrain Architecture):
-  - 地圖尺寸限制: 8x8 ~ 10x10 (Performance Optimized).
-  - 最大高度: ${MAX_TERRAIN_TIER} 階梯層級 (Tiers).
-  - 單層物理高度: ${BLOCK_HEIGHT} px.
+C. 表現層 (Presentation - Pure Visual):
+   1. RenderPipeline: 收集數據 -> 生成 RenderOp (無副作用)
+   2. VFX System: 解析 GameEvents -> 播放 Particle Sequences
+   3. UI Layer (React): 訂閱 Agent 狀態 (Reactive)
 
-[2. 物理模擬與運動學 (Physics & Kinematics)]
+[2. 渲染架構 (Rendering Pipeline)]
 --------------------------------------------------------------------------------
-* 重力系統 (Gravitational Field):
-  - 全域重力: 2500 units/s² (Snappy falls).
-  - 碰撞檢測: 實時地表高度檢索 (Heightmap Lookup).
+* 視覺解耦:
+  - 邏輯層 (SkillDatabase) 僅定義數值。
+  - 表現層 (SkillSequences) 定義視覺演出 (JSON Actions)。
+  - 渲染循環僅進行數據查表與座標投影，不執行遊戲邏輯。
 
-* 飛行機制 (Flight Mechanics):
-  - 戰術懸停 (Tactical Hover): 飛行單位擁有全息投影錨點。
-  - 懸浮高度: 55 px (動態正弦波浮動).
-  - 視覺錨點修正: 飛行線條現在正確連接至縮小後的單位底部。
+* 座標真理 (Coordinate SSOT):
+  - 邏輯座標 (Logical): Hex (q, r) - 用於判定命中、射程。
+  - 物理座標 (Physical): Px (x, y, z) - 用於繪圖、碰撞。
+  - 視覺錨點: VisualMath.getUnitAnchor() 統一計算 3D 空間點。
 
-[3. 投射物彈道學 (Projectile Ballistics 2.0)]
+[3. 美術與特效規範 (Art & VFX)]
 --------------------------------------------------------------------------------
-* 發射與命中 (Launch & Impact):
-  - 核心修正 (Core Fix): 彈道起點與終點現在嚴格對齊單位的 "視覺核心" (Visual Chest)。
-  - 高度公式: TerrainZ + PhysicsZ + BodyOffset(${UNIT_BODY_OFFSET}) + HoverLift(${UNIT_HOVER_OFFSET}) + (VisualHeight * 0.4 * Scale).
-  - 這解決了 "射腳底" (Toe-Shooting) 的視覺誤差。
+* 投影比例 (ISO_SCALE_Y): ${ISO_SCALE_Y} (標準 2:1 SRPG 比例)
+* 單位偏移 (Body Offset): ${UNIT_BODY_OFFSET}px (懸浮修正)
+* 陣營色系:
+  - IMPERIAL (藍): #3b82f6 (Primary), #fbbf24 (Highlight)
+  - COVENANT (紅): #ef4444 (Primary), #7f1d1d (Dark)
 
-[4. 異常狀態體系 (Control Status System)]
+[4. 效能優化策略 (Optimization)]
 --------------------------------------------------------------------------------
-* 硬控場 (Hard CC): 暈眩 (Stun), 恐懼 (Fear), 嘲諷 (Taunt), 放逐 (Banish).
-* 軟控場 (Soft CC): 禁錮 (Root), 沉默 (Silence), 致盲 (Blind).
-* 防禦機制 (Defense): 護盾 (Shield), 抗性遞減 (DR) ${COMBAT_PARAM.DR_RESET_TIME}s.
+* RenderList Pooling: 每一幀重用 RenderOp 物件，由 GC 壓力降至零。
+* Spatial Hashing: 地圖查詢由 O(N) 降至 O(1)。
+* Texture Caching: VFXFactory 緩存所有生成的程序化紋理。
 
 ================================================================================
 END OF SPECIFICATION

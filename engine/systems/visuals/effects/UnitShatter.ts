@@ -3,8 +3,12 @@ import { Team, Role } from "../../../../types";
 import { VFXSystem } from "../../vfx";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { SpriteManager } from "../../../sprites";
+import { UNIT_SCALE } from "../../../../../constants";
 
 export const UnitShatter = {
+    /**
+     * 高階解體系統：將單位模型拆解為多個物理碎片
+     */
     spawn(
         system: VFXSystem, 
         x: number, y: number, z: number, 
@@ -14,83 +18,78 @@ export const UnitShatter = {
     ) {
         const faction = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         const assets = SpriteManager.getUnitImages(role, team);
-
-        // 1. SHOCKWAVE (The Burst)
-        const shock = system.state.getParticle();
-        shock.x = x; shock.y = y; shock.z = z;
-        shock.life = 0.4; shock.maxLife = 0.4;
-        shock.size = 100; shock.color = faction.primaryColor;
-        shock.type = 'SHOCKWAVE';
-        shock.blendMode = 'screen';
-        system.state.particles.push(shock);
-
-        // 2. SOUL ASCENSION (The "Ghost" rising)
-        const soul = system.state.getParticle();
-        soul.x = x; soul.y = y; soul.z = z + 30;
-        soul.life = 2.0; soul.maxLife = 2.0;
-        soul.size = 64; 
-        soul.color = faction.deathSpiritColor;
-        soul.type = 'GLOW'; // Simple glow, slowly rising
-        soul.vz = 50;
-        soul.image = assets.icon; // Reuse icon for soul
-        soul.blendMode = 'screen';
-        system.state.particles.push(soul);
-
-        // 3. RAGDOLL PARTS (Base & Icon as Physical Objects)
         
-        // A. The Base (Heavy, falls fast)
+        // 核心參數：爆炸強度 (隨機化讓死亡不重複)
+        const explodeForce = 250 + Math.random() * 200;
+        const groundLevel = z - 45; // 估算地面位置
+
+        // 1. 核心衝擊波 (地面)
+        system.playEffect('FX_HIT_GENERIC', x, y, groundLevel, faction.primaryColor, groundLevel);
+
+        // 2. 底座破碎 (Heavy Ragdoll Part)
         const pBase = system.state.getParticle();
-        pBase.x = x; pBase.y = y; pBase.z = z + 10;
+        pBase.x = x; pBase.y = y; pBase.z = groundLevel + 5;
         pBase.image = assets.base;
         pBase.type = 'SPRITE';
-        pBase.size = 64; // Visual radius roughly
+        pBase.size = 64 * UNIT_SCALE;
         pBase.color = '#fff';
-        
-        // Physics for Base
-        pBase.vx = impulseX * 0.5 + (Math.random()-0.5)*100;
-        pBase.vy = impulseY * 0.5 + (Math.random()-0.5)*100;
-        pBase.vz = 200 + Math.random() * 100; // Hop up
-        pBase.gravity = 2500; // Heavy
-        pBase.drag = 0.5; // Slide a bit
-        pBase.life = 4.0; pBase.maxLife = 4.0; // Persist on ground
-        pBase.rotation = 0;
-        pBase.vRotation = (Math.random()-0.5) * 5; // Spin slowly
+        pBase.vx = (Math.random() - 0.5) * 100 + (impulseX * 0.2);
+        pBase.vy = (Math.random() - 0.5) * 100 + (impulseY * 0.2);
+        pBase.vz = 150 + Math.random() * 100; // 低彈跳
+        pBase.gravity = 3500; // 沉重感
+        pBase.drag = 0.6;     // 地面摩擦大
+        pBase.vRotation = (Math.random() - 0.5) * 2;
+        pBase.life = 5.0; pBase.maxLife = 5.0;
         system.state.particles.push(pBase);
 
-        // B. The Icon (Lighter, flies further)
+        // 3. 職業標誌彈飛 (Light Ragdoll Part)
         const pIcon = system.state.getParticle();
-        pIcon.x = x; pIcon.y = y; pIcon.z = z + 40;
+        pIcon.x = x; pIcon.y = y; pIcon.z = z; // 從胸口彈出
         pIcon.image = assets.icon;
         pIcon.type = 'SPRITE';
-        pIcon.size = 48;
+        pIcon.size = 48 * UNIT_SCALE;
         pIcon.color = '#fff';
-        
-        // Physics for Icon
-        pIcon.vx = impulseX * 0.8 + (Math.random()-0.5)*200;
-        pIcon.vy = impulseY * 0.8 + (Math.random()-0.5)*200;
-        pIcon.vz = 400 + Math.random() * 200; // Fly high
-        pIcon.gravity = 1800;
-        pIcon.drag = 0.1; // Fly far
-        pIcon.life = 3.0; pIcon.maxLife = 3.0;
-        pIcon.rotation = 0;
-        pIcon.vRotation = (Math.random()-0.5) * 15; // Spin fast
+        pIcon.vx = (Math.random() - 0.5) * 300 + (impulseX * 0.5);
+        pIcon.vy = (Math.random() - 0.5) * 300 + (impulseY * 0.5);
+        pIcon.vz = 400 + Math.random() * 300; // 飛得高
+        pIcon.gravity = 2000; // 輕盈
+        pIcon.drag = 0.1;
+        pIcon.vRotation = (Math.random() - 0.5) * 20; // 劇烈旋轉
+        pIcon.life = 4.0; pIcon.maxLife = 4.0;
+        pIcon.blendMode = 'screen';
         system.state.particles.push(pIcon);
 
-        // 4. Physical Debris (Sparks/Chunks)
-        const count = 8;
-        for(let i=0; i<count; i++) {
+        // 4. 護甲崩裂碎片 (The Splatter)
+        const shardCount = 12;
+        for (let i = 0; i < shardCount; i++) {
             const p = system.state.getParticle();
-            p.x = x; p.y = y; p.z = z + 20;
-            p.vx = (Math.random()-0.5) * 400 + impulseX * 0.3;
-            p.vy = (Math.random()-0.5) * 400 + impulseY * 0.3;
-            p.vz = 200 + Math.random() * 300;
-            p.life = 0.6 + Math.random() * 0.4; p.maxLife = p.life;
-            p.type = 'RUBBLE'; // Solid chunks
-            p.color = i % 2 === 0 ? faction.primaryColor : '#333';
-            p.size = 5 + Math.random() * 8;
-            p.gravity = 2000;
-            p.blendMode = 'source-over';
+            const ang = (i / shardCount) * Math.PI * 2 + (Math.random() * 0.5);
+            const speed = 200 + Math.random() * 400;
+            
+            p.x = x; p.y = y; p.z = z + (Math.random() - 0.5) * 20;
+            p.vx = Math.cos(ang) * speed + (impulseX * 0.3);
+            p.vy = Math.sin(ang) * speed + (impulseY * 0.3);
+            p.vz = 300 + Math.random() * 500;
+            p.type = i % 3 === 0 ? 'SHARD' : 'RUBBLE';
+            p.color = i % 2 === 0 ? faction.primaryColor : faction.darkColor;
+            p.size = 4 + Math.random() * 10;
+            p.gravity = 2500;
+            p.life = 0.8 + Math.random() * 1.5;
+            p.maxLife = p.life;
+            p.vRotation = (Math.random() - 0.5) * 30;
             system.state.particles.push(p);
         }
+
+        // 5. 靈魂飛升 (Ghostly Aura)
+        const soul = system.state.getParticle();
+        soul.x = x; soul.y = y; soul.z = z;
+        soul.type = 'ATMOSPHERE';
+        soul.size = 80;
+        soul.color = faction.deathSpiritColor;
+        soul.vx = 0; soul.vy = 0; soul.vz = 80; // 緩緩上升
+        soul.drag = 0.05;
+        soul.life = 2.5; soul.maxLife = 2.5;
+        soul.blendMode = 'screen';
+        system.state.particles.push(soul);
     }
 };

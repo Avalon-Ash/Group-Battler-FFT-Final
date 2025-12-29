@@ -1,7 +1,8 @@
 
-import { OBSTACLE_STYLES, HEX_SIZE } from "../../constants";
+import { OBSTACLE_STYLES, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
-import { HexGeometry } from "./utils/HexGeometry";
+import { HexGeometry } from "./utils/HexGeometry"; 
+import { HexLayout } from "../../types";
 
 // --- STRICT ALIGNMENT CONSTANTS ---
 export const ENV_CANVAS_W = 128;
@@ -11,192 +12,174 @@ export const ENV_ANCHOR_Y = 140;
 
 export const EnvironmentFactory = {
     
-    generateObstacle(styleKey: string): HTMLCanvasElement {
+    generateObstacle(styleKey: string, layout: HexLayout): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(ENV_CANVAS_W, ENV_CANVAS_H);
         
-        // Setup Anchor: (0,0) is now the CENTER of the hexagonal SURFACE on the ground
+        // Setup Anchor: (0,0) is the CENTER of the hexagonal SURFACE on the ground
         ctx.translate(ENV_ANCHOR_X, ENV_ANCHOR_Y);
         
         const style = OBSTACLE_STYLES[styleKey] || OBSTACLE_STYLES['WALL'];
 
         // 1. Draw Base Shadow (Strict Hexagon Footprint)
-        this.drawHexShadow(ctx);
+        this.drawHexShadow(ctx, layout);
 
         // 2. Draw Object based on Type (Growing Upwards y < 0)
         if (styleKey === 'TREE') {
-            this.drawIsoTree(ctx, style);
+            this.drawIsoTree(ctx, style, layout);
         } else if (styleKey === 'ICE_CRYSTAL') {
-            this.drawIsoCrystal(ctx, style);
+            this.drawIsoCrystal(ctx, style, layout);
         } else if (styleKey === 'OBSIDIAN_PILLAR') {
-            this.drawIsoPillar(ctx, style);
+            this.drawIsoPillar(ctx, style, layout);
         } else {
-            this.drawIsoWall(ctx, style); // Default Wall/Sandstone
+            this.drawIsoWall(ctx, style, layout); // Default Wall/Sandstone
         }
 
         return canvas;
     },
 
-    generateIceBlock(): HTMLCanvasElement {
-        // Special case for Frozen Status Model
+    generateIceBlock(layout: HexLayout): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(ENV_CANVAS_W, ENV_CANVAS_H);
         ctx.translate(ENV_ANCHOR_X, ENV_ANCHOR_Y);
         const style = OBSTACLE_STYLES['ICE_CRYSTAL'];
-        
-        // Draw a translucent block enclosing the unit
-        this.drawIsoCrystal(ctx, style, 0.7);
+        this.drawIsoCrystal(ctx, style, layout, 0.7);
         return canvas;
     },
 
-    // --- GEOMETRY PRIMITIVES ---
+    // =========================================================================================
+    // 🏗️ GEOMETRY BUILDERS (Layout Aware)
+    // =========================================================================================
 
-    drawHexShadow(ctx: CanvasRenderingContext2D) {
+    drawHexShadow(ctx: CanvasRenderingContext2D, layout: HexLayout) {
         ctx.save();
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.filter = 'blur(4px)';
         const r = HEX_SIZE * 0.9;
-        
-        // Use Unified Math (applyIso=true for floor shadow)
-        HexGeometry.traceHex(ctx, 0, 0, r, true);
-        
+        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         ctx.restore();
     },
 
-    drawIsoWall(ctx: CanvasRenderingContext2D, style: any) {
-        const height = 55;
-        const r = HEX_SIZE * 0.9; // Slightly smaller than tile
-        
-        // Vertices (Unified Source of Truth)
-        // Note: HexGeometry vertices are relative to (0,0).
-        const verts = HexGeometry.getVertices(r, true);
-        
-        // Indices for Flat Top Hex (0 deg start):
-        // 3: Left, 2: Bottom-Left, 1: Bottom-Right, 0: Right
-        const v3 = verts[3];
-        const v2 = verts[2];
-        const v1 = verts[1];
-        const v0 = verts[0];
-
-        // Draw Sides (Extrude Up)
+    drawIsoWall(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+        // Dynamic Height: Multiplier increased to 3.0 to keep walls feeling tall with small blocks
+        const height = BLOCK_HEIGHT * 3.0; 
+        const r = HEX_SIZE * 0.9; 
         const topY = -height;
+        
+        const verts = HexGeometry.getVertices(r, true, layout);
+        
+        // --- WALL FACES ---
+        if (layout === 'FLAT') {
+            // Left Face (v3 -> v2)
+            this.drawQuad(ctx, verts[3], verts[2], topY, style.dark);
+            this.drawEdge(ctx, verts[3], verts[2], topY, style.highlight);
 
-        // Left Face (v3 -> v2)
-        ctx.fillStyle = style.dark;
-        ctx.beginPath();
-        ctx.moveTo(v3.x, v3.y);
-        ctx.lineTo(v2.x, v2.y);
-        ctx.lineTo(v2.x, v2.y + topY);
-        ctx.lineTo(v3.x, v3.y + topY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = style.highlight; ctx.lineWidth = 1; ctx.stroke();
+            // Front Face (v2 -> v1)
+            this.drawQuad(ctx, verts[2], verts[1], topY, style.main);
+            
+            // Right Face (v1 -> v0)
+            this.drawQuad(ctx, verts[1], verts[0], topY, style.light);
+            this.drawEdge(ctx, verts[1], verts[0], topY, style.highlight);
 
-        // Front Face (v2 -> v1)
-        ctx.fillStyle = style.main;
-        ctx.beginPath();
-        ctx.moveTo(v2.x, v2.y);
-        ctx.lineTo(v1.x, v1.y);
-        ctx.lineTo(v1.x, v1.y + topY);
-        ctx.lineTo(v2.x, v2.y + topY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        } else {
+            // Left Face (v2 -> v1)
+            this.drawQuad(ctx, verts[2], verts[1], topY, style.sideDark || style.dark); 
+            this.drawEdge(ctx, verts[2], verts[1], topY, style.highlight);
 
-        // Right Face (v1 -> v0)
-        ctx.fillStyle = style.light;
-        ctx.beginPath();
-        ctx.moveTo(v1.x, v1.y);
-        ctx.lineTo(v0.x, v0.y);
-        ctx.lineTo(v0.x, v0.y + topY);
-        ctx.lineTo(v1.x, v1.y + topY);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+            // Right Face (v1 -> v0)
+            this.drawQuad(ctx, verts[1], verts[0], topY, style.sideLight || style.main);
+            this.drawEdge(ctx, verts[1], verts[0], topY, style.highlight);
+            
+            // Center Seam Highlight
+            ctx.beginPath();
+            ctx.moveTo(verts[1].x, verts[1].y);
+            ctx.lineTo(verts[1].x, verts[1].y + topY);
+            ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+            ctx.stroke();
+        }
 
-        // Top Face (Full Hex)
+        // --- TOP CAP ---
         ctx.save();
         ctx.translate(0, topY);
+        
         ctx.fillStyle = style.light;
         ctx.globalAlpha = 0.9;
-        HexGeometry.traceHex(ctx, 0, 0, r, true);
+        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         
         // Inner Detail
         ctx.fillStyle = style.detail;
         ctx.beginPath(); ctx.arc(0, 0, r*0.4, 0, Math.PI*2); ctx.fill();
         
+        // Rim
+        ctx.strokeStyle = style.highlight;
+        ctx.lineWidth = 1;
+        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
+        ctx.stroke();
+        
         ctx.restore();
     },
 
-    drawIsoPillar(ctx: CanvasRenderingContext2D, style: any) {
-        const height = 90;
-        const r = HEX_SIZE * 0.7; // Thinner than wall
-        
-        const verts = HexGeometry.getVertices(r, true);
-        const v3 = verts[3];
-        const v2 = verts[2];
-        const v1 = verts[1];
-        const v0 = verts[0];
-        
+    drawIsoPillar(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+        // Dynamic Height: Increased to 4.5 to be imposing
+        const height = BLOCK_HEIGHT * 4.5;
+        const r = HEX_SIZE * 0.7; // Thinner than tile
         const topY = -height;
-
-        // Left Face
-        ctx.fillStyle = style.dark;
-        ctx.beginPath();
-        ctx.moveTo(v3.x, v3.y); ctx.lineTo(v2.x, v2.y); 
-        ctx.lineTo(v2.x, v2.y + topY); ctx.lineTo(v3.x, v3.y + topY);
-        ctx.fill();
-
-        // Front Face
-        ctx.fillStyle = style.main;
-        ctx.beginPath();
-        ctx.moveTo(v2.x, v2.y); ctx.lineTo(v1.x, v1.y);
-        ctx.lineTo(v1.x, v1.y + topY); ctx.lineTo(v2.x, v2.y + topY);
-        ctx.fill();
         
-        // Rune on Front
+        const verts = HexGeometry.getVertices(r, true, layout);
+
+        if (layout === 'FLAT') {
+            this.drawQuad(ctx, verts[3], verts[2], topY, style.dark);  // Left
+            this.drawQuad(ctx, verts[2], verts[1], topY, style.main);  // Front
+            this.drawQuad(ctx, verts[1], verts[0], topY, style.light); // Right
+        } else {
+            // Pointy Pillar (Diamond facing front)
+            this.drawQuad(ctx, verts[2], verts[1], topY, style.dark); // Left Face
+            this.drawQuad(ctx, verts[1], verts[0], topY, style.main); // Right Face
+        }
+
+        // Rune / Sigil
+        ctx.save();
+        ctx.translate(0, topY / 2); // Center of pillar height
         ctx.strokeStyle = style.detail;
         ctx.lineWidth = 2;
         ctx.shadowColor = style.detail;
         ctx.shadowBlur = 5;
-        ctx.beginPath();
-        ctx.moveTo(0, -30); ctx.lineTo(0, -60);
-        ctx.moveTo(-5, -45); ctx.lineTo(5, -45);
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+        
+        if (layout === 'FLAT') {
+            ctx.beginPath();
+            ctx.moveTo(0, -15); ctx.lineTo(0, 15);
+            ctx.moveTo(-5, 0); ctx.lineTo(5, 0);
+            ctx.stroke();
+        } else {
+            ctx.beginPath();
+            ctx.moveTo(0, -20); ctx.lineTo(0, 20);
+            ctx.moveTo(0, -10); ctx.lineTo(verts[0].x * 0.3, -5); 
+            ctx.stroke();
+        }
+        ctx.restore();
 
-        // Right Face
-        ctx.fillStyle = style.light;
-        ctx.beginPath();
-        ctx.moveTo(v1.x, v1.y); ctx.lineTo(v0.x, v0.y);
-        ctx.lineTo(v0.x, v0.y + topY); ctx.lineTo(v1.x, v1.y + topY);
-        ctx.fill();
-
-        // Top
+        // Top Cap
         ctx.save();
         ctx.translate(0, topY);
         ctx.fillStyle = '#000';
-        HexGeometry.traceHex(ctx, 0, 0, r, true);
+        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         ctx.restore();
     },
 
-    drawIsoTree(ctx: CanvasRenderingContext2D, style: any) {
-        // --- Redesigned: Stylized Pine Tree ---
-        
-        // 1. Trunk
+    drawIsoTree(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
         const trunkW = 14;
-        const trunkH = 20;
+        const trunkH = BLOCK_HEIGHT * 1.0;
         
-        ctx.fillStyle = '#3f2e1e'; // Darker Wood
+        ctx.fillStyle = '#3f2e1e';
         ctx.beginPath();
+        // Simple trunk
         ctx.fillRect(-trunkW/2, -trunkH, trunkW, trunkH + 5); 
         
-        // 2. Foliage Stack (Cones)
         const layers = 3;
-        const baseWidth = 48;
-        const layerHeight = 35;
-        const overlap = 15;
+        const baseWidth = layout === 'FLAT' ? HEX_SIZE : HEX_SIZE * 0.9;
+        // Layers scale boosted to 2.0 to avoid stubby trees
+        const layerHeight = BLOCK_HEIGHT * 2.0; 
         let currentY = -trunkH + 5;
         
         for (let i = 0; i < layers; i++) {
@@ -204,15 +187,22 @@ export const EnvironmentFactory = {
             const width = baseWidth * (0.6 + ratio * 0.4);
             const height = layerHeight;
             
-            // Draw Cone Triangle
             ctx.beginPath();
-            ctx.moveTo(0, currentY - height); // Top
-            ctx.lineTo(width/2, currentY);    // Right
-            // Curved bottom for volume
-            ctx.quadraticCurveTo(0, currentY + 10, -width/2, currentY); // Bottom Curve
+            ctx.moveTo(0, currentY - height); // Top tip
+            
+            if (layout === 'FLAT') {
+                // Wide Triangle
+                ctx.lineTo(width/2, currentY);
+                ctx.quadraticCurveTo(0, currentY + 8, -width/2, currentY);
+            } else {
+                // Sharper Triangle
+                ctx.lineTo(width/2, currentY);
+                ctx.lineTo(0, currentY + 5); // Pointy dip
+                ctx.lineTo(-width/2, currentY);
+            }
+            
             ctx.closePath();
             
-            // Gradient Fill
             const grad = ctx.createLinearGradient(0, currentY - height, 0, currentY);
             grad.addColorStop(0, style.highlight);
             grad.addColorStop(0.5, style.main);
@@ -220,17 +210,18 @@ export const EnvironmentFactory = {
             ctx.fillStyle = grad;
             ctx.fill();
             
-            // Outline/Shadow
             ctx.strokeStyle = style.dark;
             ctx.lineWidth = 1;
             ctx.stroke();
             
-            // Move up for next layer
-            currentY -= (height - overlap);
+            currentY -= (height * 0.7); // Overlap
         }
     },
 
-    drawIsoCrystal(ctx: CanvasRenderingContext2D, style: any, alpha: number = 1.0) {
+    drawIsoCrystal(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout, alpha: number = 1.0) {
+        // Boosted base height for crystals
+        const baseH = BLOCK_HEIGHT * 2.5;
+        
         const drawShard = (x: number, y: number, w: number, h: number, tilt: number) => {
             ctx.save();
             ctx.translate(x, y);
@@ -264,8 +255,35 @@ export const EnvironmentFactory = {
             ctx.restore();
         };
 
-        drawShard(-10, 5, 10, 50, -0.2);
-        drawShard(10, 2, 12, 40, 0.2);
-        drawShard(0, 8, 18, 70, 0); 
+        if (layout === 'FLAT') {
+            drawShard(-10, 5, 10, baseH * 0.8, -0.2);
+            drawShard(10, 2, 12, baseH * 0.6, 0.2);
+            drawShard(0, 8, 18, baseH * 1.1, 0); 
+        } else {
+            drawShard(0, 5, 15, baseH * 1.0, 0); 
+            drawShard(-8, 0, 8, baseH * 0.6, -0.15);
+            drawShard(8, 0, 8, baseH * 0.6, 0.15);
+        }
+    },
+
+    // --- Helpers ---
+    drawQuad(ctx: CanvasRenderingContext2D, vBottom: {x:number, y:number}, vNextBottom: {x:number, y:number}, topY: number, color: string) {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(vBottom.x, vBottom.y);
+        ctx.lineTo(vNextBottom.x, vNextBottom.y);
+        ctx.lineTo(vNextBottom.x, vNextBottom.y + topY);
+        ctx.lineTo(vBottom.x, vBottom.y + topY);
+        ctx.closePath();
+        ctx.fill();
+    },
+
+    drawEdge(ctx: CanvasRenderingContext2D, vBottom: {x:number, y:number}, vNextBottom: {x:number, y:number}, topY: number, color: string) {
+        ctx.strokeStyle = 'rgba(255,255,255,0.1)'; // Subtle edge
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(vBottom.x, vBottom.y);
+        ctx.lineTo(vBottom.x, vBottom.y + topY);
+        ctx.stroke();
     }
 };

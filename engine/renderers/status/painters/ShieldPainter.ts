@@ -2,9 +2,7 @@
 import { Agent } from "../../../../game";
 import { Team } from "../../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
-import { UNIT_BODY_OFFSET } from "../../../../../constants";
-
-const HOVER_LIFT = 6; 
+import { VisualMath } from "../../../math/VisualMath";
 
 export const ShieldPainter = {
     // x, y = Visual Surface Coordinates (Top of Block)
@@ -20,9 +18,8 @@ export const ShieldPainter = {
         
         ctx.save();
         
-        // ALIGNMENT FIX:
-        // Center shield on Body Center
-        const bodyCenterY = y - z - UNIT_BODY_OFFSET - HOVER_LIFT;
+        // ALIGNMENT FIX (SSOT)
+        const bodyCenterY = VisualMath.getVisualBodyCenterY(y, z);
         
         ctx.translate(x, bodyCenterY); 
         

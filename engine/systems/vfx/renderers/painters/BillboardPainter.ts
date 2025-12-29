@@ -4,77 +4,73 @@ import { VFXFactory } from "../../../../graphics/VFXFactory";
 
 export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
-        // Logic for simple sprites that face the screen
+        let img = p.image || p.texture;
         
-        let img = p.image;
-        
-        // Fallback texture generation if image is missing but type expects one from factory
-        if (!img && !p.texture) {
-            // Note: SPRITE type assumes p.image is already set by spawner (e.g. UnitShatter)
-            if (p.type !== 'SPRITE') {
-                p.image = VFXFactory.getTexture(p.type as any, p.color);
-                img = p.image;
-            }
+        if (!img && p.type !== 'SPRITE' && p.type !== 'GENERIC_DEBUG') {
+            p.image = VFXFactory.getTexture(p.type as any, p.color);
+            img = p.image;
         }
         
         let scale = 1.0;
-        let alpha = 1.0 - progress;
+        let alpha = 1.0; 
+        const type = p.type;
 
-        // Specialized Animation Curves
-        if (p.type === 'SMOKE' || p.type === 'SMOKE_PUFF' || p.type === 'ATMOSPHERE') {
-            scale = 0.5 + progress * 1.5; // Expand
-            alpha = (1.0 - progress) * 0.6; 
-        } else if (p.type === 'SPARK' || p.type === 'GLOW') {
-            scale = 1.0 - progress; // Shrink
-        } else if (p.type === 'ROCK' && p.size > 30) {
-            scale = 1.0; alpha = 1.0; 
-        } else if (p.type === 'SPRITE') {
-            // "Ragdoll" Tokens: Stay full size, fade out at very end
+        // SOLID MASS ENHANCEMENT
+        if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
+            const blastEase = 1 - Math.pow(1 - progress, 4);
+            scale = 0.8 + blastEase * 0.6; 
+            
+            // Stay nearly opaque for 80% of life to maintain density
+            if (progress < 0.8) {
+                alpha = 0.95;
+            } else {
+                alpha = (1.0 - progress) * 5.0; 
+            }
+        } else if (type === 'SPARK' || type === 'GLOW') {
+            scale = 1.0 - (progress * 0.5); 
+            alpha = Math.min(1.0, (1.0 - progress) * 3.0); 
+        } else if (['RUBBLE', 'ROCK', 'DEBRIS', 'SHARD', 'SPRITE'].includes(type)) {
             scale = 1.0;
-            alpha = progress > 0.8 ? (1 - progress) / 0.2 : 1.0;
+            alpha = progress > 0.9 ? (1.0 - progress) * 10 : 1.0; // Solid until last 10%
         } else {
-            scale = 1.0 - Math.pow(progress, 2);
+            scale = 1.0 - (progress * progress);
+            alpha = 1.0 - progress;
         }
 
         if (alpha <= 0.01) return;
 
         ctx.save();
         ctx.translate(drawX, drawY);
-
-        // 1. Rotation (Screenspace spin for debris/sparks/sprites)
         if (p.rotation) ctx.rotate(p.rotation);
 
-        // 2. Blend Mode
-        if (p.blendMode) ctx.globalCompositeOperation = p.blendMode;
-        else if (['SMOKE', 'SMOKE_PUFF', 'ATMOSPHERE', 'SPARK', 'GLOW'].includes(p.type)) {
-            ctx.globalCompositeOperation = 'screen';
+        // Dense Blending Strategy
+        if (p.blendMode) {
+            ctx.globalCompositeOperation = p.blendMode;
         } else {
-            ctx.globalCompositeOperation = 'source-over'; // Solid for debris/sprites
+            // Non-energy particles now use source-over for 'thickness'
+            const isEnergy = (type === 'SPARK' || type === 'GLOW' || type === 'ATMOSPHERE');
+            ctx.globalCompositeOperation = isEnergy ? 'screen' : 'source-over';
         }
 
-        ctx.globalAlpha = Math.min(1, alpha);
-
+        ctx.globalAlpha = alpha;
         const drawSize = p.size * scale;
 
-        // Shadow for physical debris (Fake 3D depth)
-        if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'SPRITE'].includes(p.type)) {
+        // PHYSICAL SHADOW (Restored for solid presence)
+        if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'SPRITE'].includes(type)) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
-            ctx.globalAlpha = 0.5 * alpha;
-            ctx.fillStyle = 'rgba(0,0,0,0.5)';
-            // Draw a small shadow offset
-            ctx.beginPath(); ctx.arc(2, 2, drawSize * 0.8, 0, Math.PI*2); ctx.fill();
+            ctx.globalAlpha = 0.6 * alpha;
+            ctx.fillStyle = 'rgba(0,0,0,1)';
+            ctx.beginPath(); ctx.arc(2, 4, drawSize * 0.8, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
         if (img) {
-            // Draw centered
             ctx.drawImage(img, -drawSize, -drawSize, drawSize * 2, drawSize * 2);
         } else {
             ctx.fillStyle = p.color;
             ctx.beginPath(); ctx.arc(0, 0, drawSize, 0, Math.PI*2); ctx.fill();
         }
-
         ctx.restore();
     }
 };

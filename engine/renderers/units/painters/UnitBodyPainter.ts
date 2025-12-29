@@ -1,14 +1,12 @@
 
 import { Agent } from "../../../../game";
 import { Team, AnimState, MovementType } from "../../../../../types";
-import { UNIT_BODY_OFFSET, UNIT_SCALE } from "../../../../../constants";
+import { UNIT_SCALE } from "../../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
-import { UnitAuraPainter } from "./UnitAuraPainter";
 import { SpriteManager } from "../../../sprites";
-
-const HOVER_LIFT = 6; // Must match UnitShadowPainter
+import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitBodyPainter = {
     draw(
@@ -22,8 +20,9 @@ export const UnitBodyPainter = {
     ) {
         ctx.save(); 
         
-        // 1. Transform to Body Center (Standard Anchor)
-        const bodyY = py - pz - UNIT_BODY_OFFSET - HOVER_LIFT;
+        // 1. Transform to Body Center (Standard Anchor via VisualMath)
+        // Note: py here is Surface Y (Top of block)
+        const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
         
         ctx.translate(px, bodyY); 
         
@@ -84,15 +83,7 @@ export const UnitBodyPainter = {
                 CovenantRenderer.draw(ctx, agent, t, isSilhouette);
             }
             
-            // Casting Effects (Not in silhouette)
-            if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
-                const skill = agent.skills[agent.castingSkillIdx];
-                if (skill && skill.tag === 'ULT') {
-                    UnitAuraPainter.drawUltimateChantVFX(ctx, agent, t);
-                } else {
-                    UnitAuraPainter.drawCastingVFX(ctx, agent, t);
-                }
-            }
+            // Note: Casting VFX removed from here. Now handled in UnitShadowPainter (Ground Layer).
             
             // Frozen State Overlay
             if (agent.visualStatus === 'FROZEN') {

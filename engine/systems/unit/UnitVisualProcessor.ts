@@ -3,7 +3,6 @@ import { Agent } from "../../game";
 import { MovementType } from "../../../types";
 import { HexUtils, MapConfig } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
-import { HexMath } from "../../math/HexMath";
 
 export interface UnitVisualState {
     agent: Agent;
@@ -18,7 +17,7 @@ export interface UnitVisualState {
     scale: number;
     isSilhouette: boolean;
     isSelected: boolean;
-    sortY: number; // New: Explicit sort key
+    sortY: number; // Explicit sort key
     
     // Flags
     isDead: boolean;
@@ -36,49 +35,58 @@ export class UnitVisualProcessor {
         
         const isDead = agent.hp <= 0;
         
-        // 1. Interpolate Ground Position (Lerp if moving)
-        let logicalX = 0;
-        let logicalY = 0;
-        let terrainH = 0;
-        let sortY = 0;
+        // --- 1. COORDINATE SOURCE OF TRUTH (SSOT) ---
+        // We MUST use agent.px / agent.py directly.
+        // These are the FINAL world coordinates updated by MotionEngine (Logic) AND PhysicsEngine (Forces/Drift).
+        // Any recalculation via logical Lerp here would violate SSOT and ignore physics (e.g. knockbacks).
+        
+        const visualX = agent.px + agent.physics.x; // Physics local offset usually 0 unless wobbling
+        const visualY = agent.py + agent.physics.y;
+        
+        // --- 2. TERRAIN HEIGHT RESOLUTION ---
+        let terrainH = getTerrainHeight(agent.q, agent.r);
+        
+        // Default Sort Key: The actual visual ground contact point (Y)
+        // This ensures that if physics pushes us South (higher Y), we render IN FRONT of Northern objects.
+        let sortY = visualY;
 
         if (agent.isMoving && agent.path.length > 0) {
-            const startPx = HexMath.hexToPixel(agent.q, agent.r, mapConfig.offsetX, mapConfig.offsetY);
             const nextHex = agent.path[0];
-            const endPx = HexMath.hexToPixel(nextHex.q, nextHex.r, mapConfig.offsetX, mapConfig.offsetY);
             
-            // Re-calculate lerp to ensure it matches motion engine visual exactly
-            logicalX = startPx.x + (endPx.x - startPx.x) * agent.moveProgress;
-            logicalY = startPx.y + (endPx.y - startPx.y) * agent.moveProgress;
+            // SMOOTH STEP LOGIC:
+            // Snap visual terrain height at midpoint of movement to simulate "stepping" up/down tiers.
+            if (agent.moveProgress >= 0.5) {
+                terrainH = getTerrainHeight(nextHex.q, nextHex.r);
+            }
             
-            const startH = getTerrainHeight(agent.q, agent.r);
-            const endH = getTerrainHeight(nextHex.q, nextHex.r);
+            // SORTING STABILITY:
+            // When moving between tiles, we want to avoid Z-fighting or popping behind the destination wall.
+            // However, we must respect Physics displacement. 
+            // If strictly following path, use Max Y of tiles.
+            // If physically displaced (e.g. knocked back significantly), rely on actual Visual Y.
             
-            // STEP LOGIC: Snap height at midpoint to assume "stepping up/down" the block
-            // This prevents the unit from clipping through the wall of a higher block or floating diagonally.
-            terrainH = agent.moveProgress < 0.5 ? startH : endH;
+            const startPx = HexUtils.toPx(agent.q, agent.r, mapConfig);
+            const endPx = HexUtils.toPx(nextHex.q, nextHex.r, mapConfig);
             
-            // SORT LOGIC: When moving, always sort in front of BOTH the start and end tiles.
-            // In isometric, larger Y = Front.
-            // We set the sort key to the 'most front' tile involved in the move.
-            sortY = Math.max(startPx.y, endPx.y);
+            // Calculate deviation from the "Rail" (Logical Path)
+            // If deviation is high (Knockback), we trust visualY (Physics).
+            // If deviation is low (Walking), we use the Max Y trick to prevent clipping into the destination slope.
+            const railX = HexUtils.lerp(startPx.x, endPx.x, agent.moveProgress);
+            const railY = HexUtils.lerp(startPx.y, endPx.y, agent.moveProgress);
+            const deviationSq = (visualX - railX)**2 + (visualY - railY)**2;
 
-        } else {
-            const pos = HexMath.hexToPixel(agent.q, agent.r, mapConfig.offsetX, mapConfig.offsetY);
-            logicalX = pos.x;
-            logicalY = pos.y;
-            terrainH = getTerrainHeight(agent.q, agent.r);
-            sortY = logicalY;
+            if (deviationSq < 100) {
+                // We are on rails -> Apply Anti-Clip Sorting (Sort by lowest/frontmost tile Y)
+                sortY = Math.max(startPx.y, endPx.y) + agent.physics.y;
+            } else {
+                // We are knocked off rails -> Trust Physics Y completely
+                sortY = visualY;
+            }
         }
 
-        // Apply visual physics offsets
-        const visualX = logicalX + agent.physics.x;
-        // visualY corresponds to the Ground Base Y
-        const visualY = logicalY + agent.physics.y; 
+        // --- 3. FINAL COMPOSITION ---
+        // Visual Z includes Terrain Height + Physics Jump Height
         const visualZ = terrainH + agent.physics.z; 
-
-        // Apply physics to sort key too (e.g. knocked forward)
-        sortY += agent.physics.y;
 
         const isSelected = (agent === highlightAgent);
 

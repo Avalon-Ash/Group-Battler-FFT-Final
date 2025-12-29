@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { ToolType, Role } from '../../types';
+import { ToolType, Role, HexLayout } from '../../types';
 import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
@@ -29,6 +29,10 @@ interface MapEditorToolbarProps {
     // Obstacle Settings
     selectedObstacle: string;
     setSelectedObstacle: (v: string) => void;
+
+    // Layout Settings
+    hexLayout: HexLayout;
+    onSetLayout: (l: HexLayout) => void;
 }
 
 export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
@@ -36,7 +40,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
         tool, setTool, 
         currentSceneId, onSetScene,
         spawnMode, setSpawnMode, draftRole, setDraftRole, hpInput, setHpInput,
-        selectedObstacle, setSelectedObstacle
+        selectedObstacle, setSelectedObstacle,
+        hexLayout, onSetLayout
     } = props;
 
     // Draggable Hook
@@ -124,7 +129,6 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
             {/* SUB MENU: UNIT SETTINGS */}
             {isUnitTool && (
                 <div className="liquid-card !rounded-2xl p-2 flex items-center gap-3 animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
-                    {/* HP Input */}
                     <div className="flex items-center gap-1 bg-black/40 rounded-lg px-2 py-1 border border-white/5">
                         <span className="text-[11px] font-bold text-green-500">HP</span>
                         <input 
@@ -134,14 +138,10 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                             className="w-12 bg-transparent text-white text-xs font-mono text-center outline-none"
                         />
                     </div>
-
-                    {/* Mode Toggle */}
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
                         <button onClick={() => setSpawnMode('RANDOM')} className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>RND</button>
                         <button onClick={() => setSpawnMode('DRAFT')} className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>FIX</button>
                     </div>
-
-                    {/* Role Select (Only in Draft) */}
                     {spawnMode === 'DRAFT' && (
                         <select 
                             value={draftRole} 
@@ -154,9 +154,29 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                 </div>
             )}
 
-            {/* SUB MENU: OBSTACLE SETTINGS */}
+            {/* SUB MENU: OBSTACLE & LAYOUT SETTINGS */}
             {isObstacleTool && (
                 <div className="liquid-card !rounded-2xl p-2 flex items-center gap-3 animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
+                    {/* Layout Toggle */}
+                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shadow-inner">
+                        <button 
+                            onClick={() => onSetLayout('FLAT')} 
+                            className={`px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            title="平頂佈局 (Flat Top)"
+                        >
+                            FLAT
+                        </button>
+                        <button 
+                            onClick={() => onSetLayout('POINTY')} 
+                            className={`px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            title="尖頂佈局 (Pointy Top)"
+                        >
+                            POINTY
+                        </button>
+                    </div>
+
+                    <div className="h-6 w-px bg-white/10"></div>
+
                     <select 
                         value={selectedObstacle} 
                         onChange={(e) => setSelectedObstacle(e.target.value)} 
@@ -165,7 +185,6 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                         {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                     
-                    {/* Scene Select Shortcut */}
                     <select value={currentSceneId} onChange={(e) => onSetScene(e.target.value)} className="bg-black/40 text-xs text-slate-400 rounded-lg px-2 py-1.5 border border-white/5 outline-none cursor-pointer hover:text-white w-24">
                         {SCENE_DB.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>

@@ -3,7 +3,6 @@ import { Agent, GameEngine } from "../game";
 import { NodeState, Skill } from "../../types";
 import { HexUtils } from "../utils";
 
-// Types needed for the Builder
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
 
@@ -20,30 +19,15 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
     "MpAbove": (a, _, args) => a.mp >= args.amount,
     
-    // Skill Checks
     "SkillReady": (a, _, args) => {
-        const idx = args.slot; // 0=Ult, 1=Active, 2=Basic
+        const idx = args.slot; 
         const s = a.skills[idx];
-        
-        // 1. Basic Validity
-        if (!s || a.curCDs[idx] > 0 || a.mp < s.cost || a.castingSkillIdx !== -1) {
-            return false;
-        }
-
-        // 2. Hard CC Check (Fix infinite cast/break loop)
-        if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) {
-            return false;
-        }
-
-        // 3. Silence Logic
-        if (a.silenceTimer > 0 && s.tag !== 'BASIC') {
-            return false;
-        }
-
+        if (!s || a.curCDs[idx] > 0 || a.mp < s.cost || a.castingSkillIdx !== -1) return false;
+        if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
+        if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
         return true;
     },
     
-    // Tactical Checks
     "FindOptimalTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
@@ -70,7 +54,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const skill = a.skills[idx];
         if (!skill) return false;
 
-        // Re-verify target existence
         let tQ = 0, tR = 0;
         if (a.targetHex) { tQ = a.targetHex.q; tR = a.targetHex.r; }
         else if (a.target) { tQ = a.target.q; tR = a.target.r; }
@@ -78,7 +61,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
         const effRange = engine.movement.getEffectiveRange(a, tQ, tR, skill.range, engine);
         const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
-        
         return dist <= effRange;
     }
 };
@@ -89,13 +71,13 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.RUNNING;
     },
     "Idle": (a) => {
-        a.btStatus = a.silenceTimer > 0 ? "沉默" : "待機";
+        // If we reached here, AI failed all offensive checks
+        a.btStatus = a.silenceTimer > 0 ? "沉默" : "掃描中...";
         return NodeState.SUCCESS;
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
         if (!a.skills[idx]) return NodeState.FAILURE;
-        engine.log(a, 'DECISION', 'AI決策', '施放技能', `決定使用 ${a.skills[idx]!.name}`);
         return engine.combat.initiateCast(a, idx, engine);
     },
     "MoveToOptimal": (a, engine, args) => {
@@ -103,15 +85,12 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
 
-        // Charge logic
-        const speedMult = skill.range <= 2 ? 2.5 : 1.0;
+        const speedMult = skill.range <= 2 ? 2.0 : 1.0;
 
         if (a.targetHex) {
-            if (!a.isMoving) engine.log(a, 'DECISION', 'AI決策', '戰術移動', `前往最佳施法位置`);
             return engine.movement.moveAgentToHex(a, a.targetHex, skill.range, engine, speedMult);
         }
         if (a.target) {
-             if (!a.isMoving) engine.log(a, 'DECISION', 'AI決策', '戰術移動', `接近目標 ${a.target.id}`);
              return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
         }
         return NodeState.FAILURE;
@@ -121,12 +100,17 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
 
-        engine.movement.updateTarget(a, engine); 
+        // Ensure we actually have a logical target before moving
+        if (!a.target) engine.movement.updateTarget(a, engine); 
         if (!a.target) return NodeState.FAILURE;
         
-        const speedMult = skill.range <= 2 ? 2.5 : 1.0;
-        if (!a.isMoving) engine.log(a, 'DECISION', 'AI決策', '追擊', `追擊最近目標 ${a.target.id}`);
+        const speedMult = skill.range <= 2 ? 2.0 : 1.0;
+        a.btStatus = `追擊 ${a.target.id}`;
         
-        return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
+        const result = engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
+        // If pathfinding says Failure, unit stays still - this is where "Idle" used to happen.
+        // We log it so user knows why.
+        if (result === NodeState.FAILURE) a.btStatus = "無法抵達";
+        return result;
     }
 };

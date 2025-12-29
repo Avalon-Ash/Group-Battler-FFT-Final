@@ -1,10 +1,9 @@
 
 import { Agent } from "../../../../game";
-import { STATUS_ICON_OFFSET, UNIT_BODY_OFFSET } from "../../../../../constants";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../../data/vfx/status_visuals";
-
-const HOVER_LIFT = 6; 
+import { VisualMath } from "../../../math/VisualMath";
+import { VISUAL_ANCHORS } from "../../../../../constants";
 
 export const OverheadPainter = {
     // x, y = Visual Surface Coordinates (Top of Block)
@@ -26,17 +25,9 @@ export const OverheadPainter = {
         // Bobbing Animation
         const bob = Math.sin(t * 6) * 5;
         
-        // --- ANCHOR LOGIC FIX ---
-        // y is Visual Surface Top.
-        // We move UP (-) by Jump Height (z).
-        // We move UP (-) by Body Height (UNIT_BODY_OFFSET + HOVER_LIFT).
-        // We move UP (-) by Status Offset.
-        
-        // Previously used 'y - z - offset'. 
-        // Now 'y' is TopFace, so it implicitly accounts for terrain height.
-        
-        const unitHeadY = y - z - UNIT_BODY_OFFSET - HOVER_LIFT;
-        const anchorY = unitHeadY - 50 + bob; // 50px above center mass
+        // --- ANCHOR LOGIC FIX (SSOT) ---
+        const unitHeadY = VisualMath.getVisualBodyCenterY(y, z);
+        const anchorY = unitHeadY - VISUAL_ANCHORS.HEAD_OFFSET_Y + bob; 
 
         ctx.save();
         ctx.translate(x, anchorY);

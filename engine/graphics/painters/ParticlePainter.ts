@@ -8,8 +8,8 @@ export const ParticlePainter = {
         grad.addColorStop(0.2, color);
         grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
-        // Soft Hex shape instead of circle for stylistic consistency
-        GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'FILL');
+        // Soft Hex shape: Use Regular (applyIso=false) because this is a texture generator.
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'FILL', false);
     },
 
     drawSmoke(ctx: CanvasRenderingContext2D, r: number, color: string) {
@@ -18,7 +18,7 @@ export const ParticlePainter = {
         grad.addColorStop(0.6, 'transparent');
         ctx.fillStyle = grad;
         
-        // Draw clusters
+        // Draw clusters (Organic shapes don't strictly need ISO logic)
         ctx.beginPath();
         ctx.arc(-r*0.3, -r*0.2, r*0.5, 0, Math.PI*2);
         ctx.arc(r*0.3, r*0.2, r*0.4, 0, Math.PI*2);
@@ -31,12 +31,13 @@ export const ParticlePainter = {
         ctx.lineWidth = 4;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
-        GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'STROKE');
+        // Shockwave texture MUST be Regular Hex. GroundPainter scales it.
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'STROKE', false);
         
         ctx.strokeStyle = 'rgba(255,255,255,0.8)';
         ctx.lineWidth = 1;
         ctx.shadowBlur = 0;
-        GeometryPainter.drawHex(ctx, 0, 0, r * 0.6, 'STROKE');
+        GeometryPainter.drawHex(ctx, 0, 0, r * 0.6, 'STROKE', false);
     },
 
     drawSpike(ctx: CanvasRenderingContext2D, r: number, color: string) {
@@ -45,7 +46,7 @@ export const ParticlePainter = {
         ctx.shadowBlur = 15;
         
         ctx.beginPath();
-        // Star shape
+        // Star shape (Regular geometry)
         for(let i=0; i<4; i++) {
             const angle = (i * Math.PI) / 2;
             ctx.moveTo(0,0);
@@ -56,5 +57,36 @@ export const ParticlePainter = {
         
         ctx.fillStyle = '#fff';
         ctx.beginPath(); ctx.arc(0, 0, r*0.3, 0, Math.PI*2); ctx.fill();
+    },
+
+    drawCracks(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            let cx = 0, cy = 0;
+            for (let j = 0; j < 3; j++) {
+                cx += Math.cos(angle + (Math.random() - 0.5)) * (r / 3);
+                cy += Math.sin(angle + (Math.random() - 0.5)) * (r / 3);
+                ctx.lineTo(cx, cy);
+            }
+            ctx.stroke();
+        }
+    },
+
+    drawSlash(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        // Simple arc slash texture
+        ctx.arc(0, 0, r * 0.7, 0, Math.PI * 1.5);
+        ctx.stroke();
     }
 };

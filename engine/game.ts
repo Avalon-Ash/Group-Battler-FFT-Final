@@ -1,14 +1,12 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
+import { DEFAULT_HEX_LAYOUT } from "../constants";
 
-// Core Entities
 import { Agent, SpecialVisualStatus } from "./core/Agent";
-
-// Systems
 import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { CombatSystem } from "./systems/combat";
@@ -25,7 +23,6 @@ import { ZoneSystem } from "./systems/ZoneSystem";
 import { EventBus } from "./events/EventBus";
 import { EventPool } from "./events/GameEventPool"; 
 
-// Split Status Systems
 import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
@@ -34,7 +31,6 @@ import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
 
-// Constants
 export const VICTORY_PHASE_DURATION = 0.5; 
 
 export class GameEngine {
@@ -43,18 +39,15 @@ export class GameEngine {
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
     get projectiles() { return this.combat.projectiles; }
-    
+    get agentMap() { return this.map.agentMap; }
     get logs() { return this.logger.logs; }
 
     public events: GameEvent[] = [];
-    
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer;
-    
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
-    // Time & Victory Proxies
     get timeScale() { return this.time.timeScale; }
     set timeScale(v: number) { this.time.timeScale = v; }
     get targetTimeScale() { return this.time.targetTimeScale; }
@@ -66,14 +59,10 @@ export class GameEngine {
     get victoryTimer() { return this.victory.victoryTimer; }
     get winningTeam() { return this.victory.winningTeam; }
 
-    public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0 };
+    public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public currentScene: SceneTheme = SCENE_DB[0];
-    
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
-    public agentMap: Map<number, Agent> = new Map();
-
-    // Systems
     public movement: MovementSystem;
     public physics: PhysicsSystem; 
     public combat: CombatSystem;
@@ -87,8 +76,6 @@ export class GameEngine {
     public time: TimeSystem; 
     public victory: VictorySystem; 
     public zones: ZoneSystem; 
-    
-    // New Split Status Systems
     public cooldowns: CooldownSystem;
     public effects: EffectSystem;
     public controls: ControlSystem;
@@ -109,8 +96,6 @@ export class GameEngine {
         this.time = new TimeSystem();
         this.victory = new VictorySystem();
         this.zones = new ZoneSystem();
-        
-        // Initialize New Systems
         this.cooldowns = new CooldownSystem();
         this.effects = new EffectSystem();
         this.controls = new ControlSystem();
@@ -121,7 +106,7 @@ export class GameEngine {
     addAgent(team: Team, q: number, r: number, hpOverride?: number) { return this.agentManager.addAgent(this, team, q, r, hpOverride); }
     setObstacle(q: number, r: number, type: string) { this.map.setObstacle(q, r, type); }
     removeObstacle(q: number, r: number) { this.map.removeObstacle(q, r); }
-    toggleObstacle(q: number, r: number, type: string = 'WALL') { this.map.toggleObstacle(q, r, this, type); }
+    toggleObstacle(q: number, r: number, engine: GameEngine, type: string = 'WALL') { this.map.toggleObstacle(q, r, this, type); }
     
     isValid(q: number, r: number) { return this.map.isValid(q, r); }
     isBlocked(q: number, r: number, ignoreId?: string, movementType: MovementType = MovementType.GROUND) { return this.map.isBlocked(q, r, this, ignoreId, movementType); }
@@ -141,39 +126,35 @@ export class GameEngine {
     }
 
     removeAgent(q: number, r: number) {
-        const hash = HexUtils.hash(q, r);
-        const agent = this.agentMap.get(hash);
+        const agent = this.map.getAgentAt(q, r);
         if (agent) {
             this.agents = this.agents.filter(a => a !== agent);
-            this.agentMap.delete(hash);
+            this.map.unregisterAgent(agent);
         }
     }
 
     getAgentAt(q: number, r: number): Agent | undefined {
-        const agent = this.agentMap.get(HexUtils.hash(q, r));
-        return (agent && agent.hp > 0) ? agent : undefined;
+        return this.map.getAgentAt(q, r);
     }
 
     updateAgentPosition(agent: Agent, newQ: number, newR: number) {
-        const oldH = this.map.getTerrainHeight(agent.q, agent.r);
-        const newH = this.map.getTerrainHeight(newQ, newR);
-        const deltaH = oldH - newH;
-        
-        agent.physics.z += deltaH;
-
-        this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
-        agent.q = newQ;
-        agent.r = newR;
-        this.agentMap.set(HexUtils.hash(agent.q, agent.r), agent);
+        this.map.updateAgentPosition(agent, newQ, newR);
     }
 
-    // Helper to push event via Pool
     public pushEvent(
         type: GameEventType, 
         pos: {x: number, y: number}, 
         opts: { value?: number, text?: string, color?: string, skill?: Skill, sourceId?: string, targetId?: string, team?: Team } = {}
     ) {
         const evt = EventPool.get(type, pos, opts);
+        
+        // --- CINEMATIC DIRECTOR HOOK ---
+        if (type === 'KILL' && opts.sourceId) {
+            this.director.forceFocus(opts.sourceId, 2.5);
+        } else if (type === 'CAST_START' && opts.skill?.tag === 'ULT' && opts.sourceId) {
+            this.director.forceFocus(opts.sourceId, 3.0);
+        }
+
         this.events.push(evt);
     }
 
@@ -186,7 +167,8 @@ export class GameEngine {
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', {});
         }
-        this.agentMap.clear();
+        
+        this.map.clearAgents();
         this.agents.forEach(a => {
             a.skills = a.skillIds.map(id => {
                 if (!id) return null;
@@ -195,7 +177,7 @@ export class GameEngine {
             a.bt = this.ai.buildAI(a, this); 
             a.animState = AnimState.IDLE;
             if (a.hp > 0) {
-                this.agentMap.set(HexUtils.hash(a.q, a.r), a);
+                this.map.registerAgent(a);
             }
         });
         this.isRunning = true;
@@ -207,7 +189,7 @@ export class GameEngine {
         this.stop();
         this.victory.reset();
         this.time.reset();
-        this.agentMap.clear();
+        this.map.clearAgents();
         this.hazards.reset(); 
         this.announcer.reset(); 
         this.director.reset();
@@ -218,7 +200,7 @@ export class GameEngine {
                 if (!id) return null;
                 return this.skillDB.find(s => s.id === id) || null;
             });
-            this.agentMap.set(HexUtils.hash(a.q, a.r), a);
+            this.map.registerAgent(a);
         });
         
         this.flushEvents();
@@ -237,13 +219,12 @@ export class GameEngine {
     public clear(keepScene: boolean = false) {
         this.stop();
         this.agents = [];
-        this.agentMap.clear();
+        this.map.clearAgents();
         this.hazards.reset(); 
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.announcer.reset();
         this.director.reset();
-        
         this.combat.reset(); 
         this.flushEvents();
         
@@ -252,15 +233,9 @@ export class GameEngine {
             this.renderer.grid.reset();
             this.renderer.vfx.reset();
         }
-        
         this.logger.clear();
-        
-        if (!keepScene) {
-            this.map.randomizeEnvironment(this); 
-        } else {
-            this.map.rebuildMap(this); 
-        }
-        
+        if (!keepScene) this.map.randomizeEnvironment(this); 
+        else this.map.rebuildMap(this); 
         this.bus.emit('GAME_CLEAR', {});
     }
 
@@ -277,7 +252,6 @@ export class GameEngine {
         this.director.update(dt, this);
         this.zones.update(this); 
 
-        // Check Victory
         if (this.victory.check(this)) {
             this.victory.updateFinishing(dt, this);
             this.updateEntities(dt);
@@ -288,19 +262,14 @@ export class GameEngine {
     }
 
     private updateEntities(dt: number) {
-        // 1. Physics (Global)
         this.physics.update(dt, this);
 
-        // 2. Logic
         for (const a of this.agents) {
             if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
-            
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
                 continue;
             }
-            
-            // Execute Split Status Logic
             this.cooldowns.update(a, dt);
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
@@ -319,7 +288,6 @@ export class GameEngine {
             }
         }
         
-        // 3. Combat & Environment
         this.combat.update(dt, this);
         this.hazards.update(dt, this); 
         this.movement.resolveStacking(this);

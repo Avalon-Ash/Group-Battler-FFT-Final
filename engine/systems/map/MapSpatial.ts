@@ -7,9 +7,6 @@ import { MapSystem } from "../map";
 
 export class MapSpatial {
 
-    /**
-     * Checks if a tile acts as a blocker for a specific movement type.
-     */
     public static isBlocked(
         system: MapSystem,
         q: number, 
@@ -23,34 +20,23 @@ export class MapSpatial {
         // 1. Static Obstacles
         if (system.obstaclesHash.has(h)) {
             const obsId = system.obstacles.get(HexUtils.key({q, r}));
-            if (obsId) {
-                const def = OBSTACLE_DB[obsId];
-                if (def) {
-                    if (movementType === MovementType.FLYING) {
-                        if (def.blocksFlying) return true;
-                    } else {
-                        if (def.blocksMovement) return true;
-                    }
-                } else return true; // Unknown obstacle blocks all
-            } else return true;
+            const def = obsId ? OBSTACLE_DB[obsId] : null;
+            if (movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) return true;
         }
 
-        // 2. Dynamic Units (Agents)
+        // 2. Dynamic Units (Already Standing There)
         const occupant = engine.agentMap.get(h);
-        if (occupant) {
-            if (occupant.id === ignoreId) return false; // Can't block self
-            if (occupant.hp <= 0 || occupant.banished) return false; // Dead/Banished don't block
-            return true;
+        if (occupant && occupant.id !== ignoreId && occupant.hp > 0 && !occupant.banished) return true;
+
+        // 3. Movement Intent (Strict Reservation)
+        // Check if any other agent is moving TO this cell
+        for (const a of engine.agents) {
+            if (a.id === ignoreId || a.hp <= 0 || !a.isMoving || a.path.length === 0) continue;
+            const dest = a.path[0];
+            if (dest.q === q && dest.r === r) return true;
         }
 
-        // 3. Reserved Tiles (Units currently moving TO this tile)
-        // This prevents two units from walking into the same square simultaneously
-        return engine.agents.some(a => {
-            if (a.id === ignoreId) return false;
-            if (!a.isMoving || a.path.length === 0) return false;
-            const dest = a.path[0];
-            return dest.q === q && dest.r === r;
-        });
+        return false;
     }
 
     public static hasObstacle(system: MapSystem, q: number, r: number): boolean {

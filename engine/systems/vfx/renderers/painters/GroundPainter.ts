@@ -1,59 +1,93 @@
 
 import { Particle } from "../../state";
 import { ISO_SCALE_Y } from "../../../../../constants";
+import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
+import { HexLayout } from "../../../../../types";
+
+const GROUND_Z_BIAS = -2; // 向上偏移 2px 解決穿插
 
 export const GroundPainter = {
-    draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number) {
-        if (!p.image && !p.texture) {
-            p.image = VFXFactory.getTexture(p.type as any, p.color);
+    draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout = 'FLAT') {
+        // 1. 向量幾何處理
+        if (['SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type)) {
+            this.drawVectorGeometry(ctx, p, progress, drawX, drawY + GROUND_Z_BIAS, layout);
+            return;
         }
-        const img = p.image || p.texture;
-        
-        let scale = 1.0;
-        let alpha = 1.0 - progress;
 
-        // Scale Logic
-        if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'BLAST') {
-            scale = 0.5 + progress * 2.5; 
-            alpha = 1.0 - Math.pow(progress, 3);
-        } else if (p.type === 'CRACKS' || p.type === 'GRID_FIELD' || p.type === 'MAGIC_CIRCLE' || p.type === 'HEX_GLOW') {
-            scale = 1.0;
-            alpha = 1.0 - Math.pow(progress, 4); 
-        }
+        const img = p.image || p.texture;
+        if (!img) return;
+
+        let alpha = 1.0 - progress;
+        if (p.type === 'CRACKS') alpha = 1.0 - Math.pow(progress, 4);
 
         if (alpha <= 0.01) return;
 
         ctx.save();
-        ctx.translate(drawX, drawY);
+        ctx.translate(drawX, drawY + GROUND_Z_BIAS);
+        ctx.scale(1, ISO_SCALE_Y); 
         
-        // --- PROJECTION MATRIX ---
-        // 1. Scale Y to project regular textures onto isometric floor
-        ctx.scale(1, ISO_SCALE_Y);
+        if (p.rotation) ctx.rotate(p.rotation);
         
-        // 2. Rotation applied in ground-plane
-        // CAUTION: Rotating in screen space AFTER scale creates "Wobble" artifact for square textures.
-        // We only allow rotation for radially symmetric textures (Rings) or organic ones (Cracks).
-        // Geometric grids MUST NOT rotate in screen space.
-        
-        if (p.rotation && p.type !== 'GRID_FIELD') {
-             ctx.rotate(p.rotation);
-        }
-
-        if (p.blendMode) ctx.globalCompositeOperation = p.blendMode;
-        else if (p.type === 'CRACKS') ctx.globalCompositeOperation = 'source-over'; 
-        else ctx.globalCompositeOperation = 'screen'; 
-
+        ctx.globalCompositeOperation = p.blendMode || 'screen';
         ctx.globalAlpha = Math.min(1, alpha);
 
-        if (img) {
-            const size = p.size * scale;
-            // Draw centered
-            ctx.drawImage(img, -size, -size, size * 2, size * 2);
-        } else {
-            // Fallback shape
+        const size = p.size;
+        ctx.drawImage(img, -size, -size, size * 2, size * 2);
+        
+        ctx.restore();
+    },
+
+    drawVectorGeometry(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
+        ctx.save();
+        ctx.translate(drawX, drawY);
+        
+        ctx.globalCompositeOperation = p.blendMode || 'screen';
+
+        if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'BLAST') {
+            const alpha = 1.0 - Math.pow(progress, 2);
+            if (alpha <= 0.01) { ctx.restore(); return; }
+
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = p.color;
+            ctx.shadowColor = p.color;
+            ctx.shadowBlur = 15;
+            
+            const currentRadius = p.size * (0.3 + progress * 0.7);
+            const lineWidth = Math.max(1, (1 - progress) * (p.type === 'SHOCKWAVE' ? 12 : 4));
+            
+            ctx.lineWidth = lineWidth;
+            HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
+            ctx.stroke();
+            
+            // 內圈回饋
+            if (p.type === 'SHOCKWAVE') {
+                ctx.lineWidth = lineWidth * 0.3;
+                ctx.globalAlpha = alpha * 0.5;
+                HexGeometry.traceHex(ctx, 0, 0, currentRadius * 0.8, true, layout);
+                ctx.stroke();
+            }
+        }
+        else if (p.type === 'GRID_FIELD') {
+            const alpha = 1.0 - Math.pow(progress, 4);
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = p.color;
             ctx.fillStyle = p.color;
-            ctx.beginPath(); ctx.arc(0, 0, p.size * scale, 0, Math.PI*2); ctx.fill();
+            
+            const r = p.size;
+            ctx.lineWidth = 2;
+            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
+            ctx.stroke();
+            
+            ctx.globalAlpha = alpha * 0.15;
+            ctx.fill();
+        }
+        else if (p.type === 'HEX_GLOW') {
+            const alpha = 1.0 - Math.pow(progress, 2);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = alpha * 0.3;
+            HexGeometry.traceHex(ctx, 0, 0, p.size, true, layout);
+            ctx.fill();
         }
 
         ctx.restore();

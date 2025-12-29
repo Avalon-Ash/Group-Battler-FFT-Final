@@ -1,82 +1,94 @@
 
 import { Agent, GameEngine } from "../../game";
-import { HexUtils } from "../../utils";
+import { HexUtils, Vector } from "../../utils";
 import { MovementType } from "../../../types";
 import { BLOCK_HEIGHT } from "../../../constants";
 
+/**
+ * Robust Anti-Stacking System
+ * Resolves accidental overlaps (from skills/physics) by expelling units to valid neighbors.
+ */
 export class StackingResolver {
-    // Optimization: Reuse Stacking Map to reduce GC
-    private _stackingMap = new Map<number, Agent[]>();
 
     public resolve(engine: GameEngine) {
-        this._stackingMap.clear();
-        const map = this._stackingMap;
+        const cellMap = new Map<number, Agent[]>();
         
-        // 1. Group agents by Hex Hash
-        engine.agents.forEach(a => {
-            if (a.hp <= 0 || a.banished) return;
+        // 1. Group by logical coordinates
+        for (const a of engine.agents) {
+            if (a.hp <= 0 || a.banished) continue;
             const h = HexUtils.hash(a.q, a.r);
-            if (!map.has(h)) map.set(h, []);
-            map.get(h)!.push(a);
-        });
+            if (!cellMap.has(h)) cellMap.set(h, []);
+            cellMap.get(h)!.push(a);
+        }
 
-        // 2. Resolve Overlaps
-        map.forEach((list, hash) => {
-            if (list.length > 1) {
-                this.displaceUnits(list, hash, engine);
+        // 2. Resolve multi-unit cells
+        cellMap.forEach((occupants, hash) => {
+            if (occupants.length > 1) {
+                this.expelExcess(occupants, hash, engine);
             }
         });
     }
 
-    private displaceUnits(list: Agent[], hash: number, engine: GameEngine) {
-        const coords = HexUtils.unhash(hash);
-        const currentHeight = engine.map.getTerrainHeight(coords.q, coords.r);
+    private expelExcess(list: Agent[], hash: number, engine: GameEngine) {
+        // Sort: Stationary units are "owners", moving units are "guests"
+        list.sort((a, b) => (a.isMoving ? 1 : 0) - (b.isMoving ? 0 : 1));
         
-        // Prioritize keeping the stationary unit, or the first one found
-        const stationary = list.filter(a => !a.isMoving);
-        const keep = stationary.length > 0 ? stationary[0] : list[0];
-        const toDisplace = list.filter(a => a !== keep);
+        const owner = list[0];
+        const currentH = engine.map.getTerrainHeight(owner.q, owner.r);
+
+        for (let i = 1; i < list.length; i++) {
+            const guest = list[i];
+            const found = this.findExpulsionSpot(guest, currentH, engine);
+            
+            if (found) {
+                // Perform Logical Displacement
+                engine.updateAgentPosition(guest, found.q, found.r);
+                
+                // Clear active move to prevent pathing glitches
+                if (guest.isMoving) {
+                    guest.isMoving = false;
+                    guest.path = [];
+                }
+
+                // Add small physical impulse to separate visually
+                const dir = Vector.normalize(Vector.sub(
+                    HexUtils.toPx(found.q, found.r, engine.mapConfig), 
+                    HexUtils.toPx(owner.q, owner.r, engine.mapConfig)
+                ));
+                guest.physics.vx += dir.x * 200;
+                guest.physics.vy += dir.y * 200;
+                
+                engine.log(guest, 'SYSTEM', '擠出', `從 (${owner.q},${owner.r})`, '解決重疊狀態');
+            }
+        }
+    }
+
+    private findExpulsionSpot(agent: Agent, sourceH: number, engine: GameEngine) {
+        // Spiral-like search: Check nearest neighbors first
+        const neighbors = HexUtils.neighbors(agent);
         
-        toDisplace.forEach(agent => {
-            const neighbors = HexUtils.neighbors(coords);
-            // Shuffle neighbors to avoid directional bias (everyone pushed East)
-            for (let i = neighbors.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
-            }
+        // Shuffle to avoid directional bias
+        for (let i = neighbors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
+        }
+
+        for (const n of neighbors) {
+            // Check basic validity
+            if (!engine.map.isValid(n.q, n.r)) continue;
             
-            // Find valid push target
-            let target = neighbors.find(n => {
-                // A. Basic Validity
-                if (!engine.map.isValid(n.q, n.r)) return false;
-                
-                // B. Obstacle Check
-                if (engine.isBlocked(n.q, n.r, agent.id, agent.movementType)) return false;
-                
-                // C. Height Check (Safety)
-                // Don't push ground units off cliffs or into walls unintentionally
-                if (agent.movementType === MovementType.GROUND) {
-                    const nHeight = engine.map.getTerrainHeight(n.q, n.r);
-                    const deltaH = Math.abs(nHeight - currentHeight);
-                    const maxSafeStep = Math.max(1, agent.jump) * BLOCK_HEIGHT;
-                    if (deltaH > maxSafeStep) return false;
-                }
-                
-                // D. Occupancy Check (Don't push into another stack)
-                // Allow pushing into empty tile only
-                if (engine.getAgentAt(n.q, n.r)) return false;
-                
-                return true;
-            });
-            
-            if (target) {
-                engine.updateAgentPosition(agent, target.q, target.r);
-                // Cancel current move to allow physics drift to slide unit visually
-                if (agent.isMoving) {
-                    agent.isMoving = false;
-                    agent.path = [];
-                }
+            // Check if already blocked by static or dynamic
+            if (engine.map.isBlocked(n.q, n.r, engine, agent.id)) continue;
+
+            // Height Safety Check (Expulsion shouldn't throw units off un-jumpable cliffs)
+            if (agent.movementType === MovementType.GROUND) {
+                const nH = engine.map.getTerrainHeight(n.q, n.r);
+                const jumpLimit = Math.max(1, agent.jump) * BLOCK_HEIGHT;
+                if (Math.abs(nH - sourceH) > jumpLimit) continue;
             }
-        });
+
+            return n;
+        }
+        return null;
     }
 }

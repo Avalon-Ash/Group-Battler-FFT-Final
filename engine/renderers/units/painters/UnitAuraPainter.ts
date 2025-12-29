@@ -1,16 +1,18 @@
 
 import { Agent } from "../../../game";
-import { ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../../../constants";
-import { VFXFactory } from "../../../graphics/VFXFactory";
+import { HEX_SIZE } from "../../../../constants";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 
-// Lift the aura slightly above the floor slab to avoid Z-fighting with terrain details
-const AURA_FLOOR_LIFT = -4; 
-const HOVER_LIFT = 6; // Must match BodyPainter for reverse calc
+// Ground overlay lift to avoid Z-fighting with terrain texture
+const AURA_FLOOR_LIFT = -2; 
 
 export const UnitAuraPainter = {
     
-    drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
+    /**
+     * Draws the casting channel animation (Standard Skills).
+     * Uses pure geometry for crisp lines at any zoom level.
+     */
+    drawCastingVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (!skill) return;
         
@@ -18,128 +20,150 @@ export const UnitAuraPainter = {
         const color = skill.color;
         
         ctx.save();
-        
-        // --- 1. COORDINATE RESET ---
-        // Context is currently at Body Center (Chest).
-        // We need to move DOWN to the feet/floor level.
-        // BodyY = FloorY - Z - BodyOffset - HoverLift
-        // Therefore: FloorY = CurrentY + Z + BodyOffset + HoverLift
-        // Note: Casting usually grounds the unit logic-wise, but visuals might bob.
-        // We anchor to the UNIT'S FEET (phys.z), not the absolute terrain floor, 
-        // so if they are flying, the aura floats with them.
-        
-        const footOffset = UNIT_BODY_OFFSET + HOVER_LIFT;
-        ctx.translate(0, footOffset); 
-        
-        // Move slightly up (visually) to sit ON TOP of the floor block
-        ctx.translate(0, AURA_FLOOR_LIFT);
+        ctx.translate(x, y + AURA_FLOOR_LIFT); 
 
-        // --- 2. RUNE RING (Geometrically Correct) ---
-        ctx.globalCompositeOperation = 'screen';
-        const ringSize = 50 * (0.8 + progress * 0.2);
+        // Dynamic Pulse Size (Standard cast is approx 1 tile wide max)
+        const baseSize = HEX_SIZE * 0.9;
+        const currentSize = baseSize * (0.8 + Math.sin(t * 10) * 0.05);
         
-        ctx.lineWidth = 3;
         ctx.strokeStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
         
-        // Inner Spinning Ring
-        const rot = t * 3;
-        HexGeometry.traceRotatedHex(ctx, 0, 0, ringSize * 0.6, rot, true);
+        // A. Rotating Inner Hex (The Channel)
+        const rot = t * 4;
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 0.8;
+        
+        // TRUTH: traceRotatedHex with applyIso=true guarantees perspective correctness
+        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize * 0.7, rot, true);
         ctx.stroke();
         
-        // Outer Static Pulse
-        ctx.globalAlpha = 0.4 + (Math.sin(t * 10) * 0.2);
+        // B. Counter-Rotating Outer Ring
         ctx.lineWidth = 1;
-        HexGeometry.traceHex(ctx, 0, 0, ringSize, true);
+        ctx.globalAlpha = 0.4;
+        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize, -rot * 0.5, true);
         ctx.stroke();
 
-        // --- 3. RISING ENERGY (Billboard) ---
-        // Draw this slightly above the ring
-        ctx.translate(0, -10);
-        const glow = VFXFactory.getTexture('GLOW', color);
-        const coreSize = 64 * progress;
-        
-        // Reset scale for billboard effect (Circle look)
-        ctx.scale(1, 1); 
-        ctx.globalAlpha = 0.6 * progress;
-        ctx.drawImage(glow, -coreSize/2, -coreSize/2, coreSize, coreSize);
+        // C. Rising Particles (Procedural Dots)
+        this.drawRisingParticles(ctx, color, progress, t);
 
         ctx.restore();
 
-        // --- 4. AOE WARNING (Ground Projector) ---
+        // 3. AOE Ripple (If applicable)
         if (skill.type === 'AOE') {
-            this.drawDomainExpansion(ctx, agent, t, color, progress);
+            this.drawAoeExpansion(ctx, x, y, color, progress, skill.aoeRadius || 1);
         }
     },
 
-    drawDomainExpansion(ctx: CanvasRenderingContext2D, agent: Agent, t: number, color: string, progress: number) {
-        // This is drawn relative to the Body Painter context, so we need to reset to floor again
-        const footOffset = UNIT_BODY_OFFSET + HOVER_LIFT;
-        
-        ctx.save();
-        // Go to absolute ground level (ignoring jump height for AOE indicator)
-        // Physics Z puts us at feet. 
-        ctx.translate(0, footOffset + agent.physics.z); 
-        
-        // Scale logic
-        const scale = (0.5 + progress * 2.5) * 4.0; 
-        const size = 64 * scale;
-        
-        // Use standard texture but apply ISO scale manually since we are in a reset context
-        ctx.scale(1, ISO_SCALE_Y);
-        
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = (1 - progress) * 0.2; 
-        
-        const texture = VFXFactory.getTexture('SHOCKWAVE', color); 
-        ctx.drawImage(texture, -size/2, -size/2, size, size);
-        
-        ctx.restore();
-    },
-
-    drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
+    /**
+     * Draws the Ultimate Chanting Circle.
+     * More complex geometry, larger scale, strict alignment.
+     */
+    drawUltimateChantVFX(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
         const skill = agent.skills[agent.castingSkillIdx];
         if (!skill) return;
+        
         const progress = 1 - (agent.castTimer / skill.cast);
         const color = skill.color;
         
-        // Reset to Floor
-        const footOffset = UNIT_BODY_OFFSET + HOVER_LIFT;
-        
         ctx.save();
-        ctx.translate(0, footOffset);
-        ctx.translate(0, AURA_FLOOR_LIFT);
+        ctx.translate(x, y + AURA_FLOOR_LIFT);
 
-        // 1. Complex Magic Circle (Using Texture)
-        const texture = VFXFactory.getTexture('MAGIC_CIRCLE', color);
-        const rot = t * (2 + progress * 5);
-        
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.6 + progress * 0.4;
-        
-        ctx.save();
-        ctx.scale(1, ISO_SCALE_Y); // Correct Perspective
-        ctx.rotate(rot);
-        const size = 140; // Larger for Ult
-        ctx.drawImage(texture, -size/2, -size/2, size, size);
-        ctx.restore();
-        
-        // 2. Vertical Light Pillars (Procedural)
-        const pillarH = 120 * progress;
-        const pillarW = 10;
-        ctx.fillStyle = color;
+        // Ult Radius is visual only, slightly larger than tile to look epic
+        const ultSize = HEX_SIZE * 2.2; 
+        const rot = t * 2;
+
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 15;
+        ctx.strokeStyle = color;
+
+        // Layer 1: Main Magic Circle (Rotating)
+        ctx.lineWidth = 3;
+        ctx.globalAlpha = 1.0;
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize, rot, true);
+        ctx.stroke();
+
+        // Layer 2: Inner Geometry (Counter-Rotating)
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.6;
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize * 0.6, -rot * 2, true);
+        ctx.stroke();
+
+        // Layer 3: Static Ground Seal (Fixed orientation)
+        ctx.lineWidth = 1;
         ctx.globalAlpha = 0.3;
-        
-        for(let i=0; i<3; i++) {
-            const angle = (t * 2) + (i * Math.PI * 2 / 3);
-            const r = 40;
-            const px = Math.cos(angle) * r;
-            const py = Math.sin(angle) * r * ISO_SCALE_Y;
-            
-            ctx.fillRect(px - pillarW/2, py - pillarH, pillarW, pillarH);
+        HexGeometry.traceHex(ctx, 0, 0, ultSize * 1.2, true);
+        ctx.stroke();
+
+        // Layer 4: Vertical Light Pillars (Energy gathering)
+        const pillarH = 100 * progress;
+        if (pillarH > 1) {
+            ctx.fillStyle = color;
+            ctx.globalAlpha = 0.4;
+            const points = HexGeometry.getVertices(ultSize * 0.8, true);
+            points.forEach((p, i) => {
+                if (i % 2 === 0) { 
+                    ctx.fillRect(p.x - 2, p.y - pillarH, 4, pillarH);
+                }
+            });
         }
 
         ctx.restore();
+    },
+
+    /**
+     * Replaces the old texture-based expansion with a precise vector ripple.
+     * The ripple expands exactly to the skill's radius.
+     */
+    drawAoeExpansion(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, progress: number, rangeInTiles: number) {
+        ctx.save();
+        ctx.translate(x, y + AURA_FLOOR_LIFT);
+        
+        // Calculate EXACT pixel radius based on map grid size
+        const maxPixelRadius = rangeInTiles * HEX_SIZE;
+        // Use exponential ease-out for visual impact
+        const easedRadius = maxPixelRadius * (1 - Math.pow(1 - progress, 3));
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        
+        // 1. The Wave Front
+        ctx.beginPath();
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = (1 - progress) * 0.8;
+        HexGeometry.traceHex(ctx, 0, 0, easedRadius, true);
+        ctx.stroke();
+        
+        // 2. Inner Fill (Faint)
+        ctx.globalAlpha = (1 - progress) * 0.1;
+        ctx.fill();
+
+        ctx.restore();
+    },
+
+    // Helper for particles
+    drawRisingParticles(ctx: CanvasRenderingContext2D, color: string, progress: number, t: number) {
+        ctx.fillStyle = color;
+        const count = 3;
+        for(let i=0; i<count; i++) {
+            const offset = i * (Math.PI * 2 / count);
+            const cycle = (t * 2 + offset) % 1; // 0 to 1
+            
+            // Spiral up
+            const h = cycle * 60;
+            const r = (1 - cycle) * 30;
+            const angle = t * 3 + offset;
+            
+            const px = Math.cos(angle) * r;
+            const py = (Math.sin(angle) * r * 0.58) - h; // ISO Y + Vertical Rise
+            
+            const alpha = Math.sin(cycle * Math.PI); // Fade in/out
+            ctx.globalAlpha = alpha * 0.8;
+            
+            ctx.beginPath(); 
+            ctx.arc(px, py, 2, 0, Math.PI*2); 
+            ctx.fill();
+        }
     }
 };

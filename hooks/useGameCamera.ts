@@ -2,7 +2,7 @@
 import { useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 import { HexUtils } from '../engine/utils';
-import { BLOCK_HEIGHT } from '../constants';
+import { BLOCK_HEIGHT, HEX_SIZE } from '../constants';
 
 export const useGameCamera = (engine: GameEngine) => {
     // Default safe values
@@ -11,69 +11,79 @@ export const useGameCamera = (engine: GameEngine) => {
     const centerCamera = useCallback((width: number, height: number) => {
         if (!width || !height || width <= 0 || height <= 0) return;
 
-        // --- BOUNDING BOX CALCULATION ---
+        const mapConfig = engine.mapConfig;
+        
+        // 1. Calculate the Centroid of the PLAYABLE SURFACE
+        // We iterate through all tiles to find the average X and Y of the *Top Face*.
+        // This ignores the massive "pedestal" depth below the tile.
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
-        let count = 0;
+        let validTiles = 0;
 
-        // 1. Terrain Bounds
-        engine.mapKeys.forEach(k => {
+        engine.map.getMapKeys().forEach(k => {
             const [q, r] = k.split(',').map(Number);
-            const p = HexUtils.toPx(q, r, engine.mapConfig);
+            const p = HexUtils.toPx(q, r, mapConfig);
             const h = engine.map.getTerrainHeight(q, r);
             
-            const halfW = 20;
-            if (p.x - halfW < minX) minX = p.x - halfW;
-            if (p.x + halfW > maxX) maxX = p.x + halfW;
-            
-            // Critical: Include the Height of the block in the bounding box
-            const visualTop = p.y - h - BLOCK_HEIGHT; 
-            const visualBottom = p.y + BLOCK_HEIGHT;
+            // Visual Y of the top face is (GroundY - Height)
+            const topY = p.y - h;
 
-            if (visualTop < minY) minY = visualTop;
-            if (visualBottom > maxY) maxY = visualBottom;
-            
-            count++;
-        });
-
-        // 2. Unit Bounds
-        engine.agents.forEach(a => {
-            if (a.hp <= 0 && a.fullyDead) return;
-            if (a.px < minX) minX = a.px;
-            if (a.px > maxX) maxX = a.px;
-            
-            const h = engine.map.getTerrainHeight(a.q, a.r);
-            // Include jump height + unit visual height
-            const topY = a.py - h - a.physics.z - 120; 
+            if (p.x < minX) minX = p.x;
+            if (p.x > maxX) maxX = p.x;
             if (topY < minY) minY = topY;
-            if (a.py > maxY) maxY = a.py;
-            count++;
+            if (topY > maxY) maxY = topY;
+            
+            validTiles++;
         });
 
-        if (count === 0) {
-            const centerHex = { q: Math.floor(engine.mapConfig.w / 2), r: Math.floor(engine.mapConfig.h / 2) };
-            const p = HexUtils.toPx(centerHex.q, centerHex.r, engine.mapConfig);
-            minX = maxX = p.x;
-            minY = maxY = p.y;
+        if (validTiles === 0) return;
+
+        // Visual Center of the bounding box
+        const visualCenterX = (minX + maxX) / 2;
+        const visualCenterY = (minY + maxY) / 2;
+
+        // 2. Layout Specific Adjustments
+        // FLAT layout tends to have very tall pedestals at the bottom.
+        // We shift the camera center DOWN (positive Y) to push the world UP on screen,
+        // effectively cropping the bottom "void" space.
+        let offsetY = 0;
+        
+        if (mapConfig.layout === 'FLAT') {
+            // Shift target down by ~1.5 blocks to hide the base pillars
+            offsetY = BLOCK_HEIGHT * 1.5; 
+        } else {
+            // Pointy layout is usually more centered, slight adjustment
+            offsetY = BLOCK_HEIGHT * 0.5;
         }
 
-        const mapCenterX = (minX + maxX) / 2;
-        const mapCenterY = (minY + maxY) / 2;
-        const mapW = maxX - minX + 200; // Padding
-        const mapH = maxY - minY + 200;
+        // 3. Cinematic Zoom Calculation
+        // Fit the width of the content with some padding
+        const mapWidth = maxX - minX;
+        const mapHeight = maxY - minY; // Use visual top-face height
+        
+        // Add padding (approx 1 hex on sides)
+        const paddedW = mapWidth + HEX_SIZE * 3;
+        const paddedH = mapHeight + HEX_SIZE * 3;
 
-        // Auto Zoom Fit
-        const zoomX = width / mapW;
-        const zoomY = height / mapH;
-        const bestZoom = Math.min(zoomX, zoomY, 1.2); // Cap zoom at 1.2
+        const zoomX = width / paddedW;
+        const zoomY = height / paddedH;
+        
+        // Choose the tighter zoom, but clamp for sanity
+        let targetZoom = Math.min(zoomX, zoomY);
+        
+        // Zoom Limits:
+        // Min 0.7: Don't show too much void on huge maps
+        // Max 1.3: Don't get too pixelated on small maps
+        targetZoom = Math.max(0.7, Math.min(1.3, targetZoom));
 
-        camera.current.x = mapCenterX;
-        camera.current.y = mapCenterY;
-        camera.current.zoom = Math.max(0.5, bestZoom); // Min zoom 0.5
+        // 4. Apply
+        camera.current.x = visualCenterX;
+        camera.current.y = visualCenterY + offsetY;
+        camera.current.zoom = targetZoom;
         
         engine.renderer?.camera.snapTo(camera.current.x, camera.current.y, camera.current.zoom);
 
-    }, [engine.mapConfig, engine.mapKeys, engine.agents]);
+    }, [engine.mapConfig, engine.mapVersion]);
 
     const pan = useCallback((dx: number, dy: number) => {
         if (isNaN(dx) || isNaN(dy)) return;

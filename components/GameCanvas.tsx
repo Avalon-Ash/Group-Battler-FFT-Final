@@ -9,6 +9,7 @@ import { Team, ToolType, Skill, Role } from '../types';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
+import { useCameraControl } from '../hooks/useCameraControl';
 import { Icons } from './ui/icons';
 
 interface GameCanvasProps {
@@ -22,12 +23,11 @@ interface GameCanvasProps {
     spawnMode: 'RANDOM' | 'DRAFT';
     draftRole: Role; 
     onSelect: (a: Agent | null) => void;
-    // onWin removed - handled by EventBus in parent
     winner: Team | null;
     rematch: () => void;
-    nextLevel: () => void; // New Prop
+    nextLevel: () => void;
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
-    onOpenLogs: () => void; // New Prop
+    onOpenLogs: () => void;
 }
 
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
@@ -39,26 +39,34 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     
-    // Animation State ref (Mutable to avoid re-renders during loop)
+    // Animation State ref
     const transitionProgress = useRef(0);
     const lastPhase = useRef(transitionPhase);
 
-    // Lifecycle: Instantiate Renderer ONCE using Lazy Initialization.
+    // Lifecycle: Instantiate Renderer ONCE
     const rendererRef = useRef<GameRenderer | null>(null);
     if (rendererRef.current === null) {
         rendererRef.current = new GameRenderer();
-        // Link renderer to engine for camera control
         engine.renderer = rendererRef.current;
     }
 
     // 1. Camera System
     const { camera, centerCamera, pan, zoom } = useGameCamera(engine);
 
-    // 2. Input System
+    // 2. Camera Controls (New Hook)
+    useCameraControl({
+        canvasRef, 
+        cameraRef: camera,
+        onPan: pan,
+        onZoom: zoom
+    });
+
+    // 3. Input System (Game Logic Only)
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
-        onSelect, onCameraPan: pan, onCameraZoom: zoom
+        onSelect,
+        onPan: pan // Wire up pan for 1-finger mobile dragging
     });
 
     // Reset progress when phase changes
@@ -69,16 +77,12 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         }
     }, [transitionPhase]);
 
-    // 3. Render Handler (Memoized)
+    // 4. Render Handler
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {
         if (!rendererRef.current) return;
 
-        // --- ANIMATION LOGIC FIX ---
-        // Increment progress if we are in a transition
         if (transitionPhase !== 'IDLE') {
-            const dt = 1 / 60; // Assume 60fps delta for smoothness or use real dt
-            // SPEED ADJUSTED: 0.8 multiplier = ~1.25s duration.
-            // Very slow, deliberate movement to allow the Blur to sync perfectly.
+            const dt = 1 / 60; 
             transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.8);
         } else {
             transitionProgress.current = 0;
@@ -86,8 +90,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
 
         rendererRef.current.setTransition(transitionProgress.current, transitionPhase); 
         const highlight = pressedAgent || selectedAgent || null;
-        
-        // Access fresh hover state directly from ref during render loop
         const currentHoverHex = hoveredHexRef.current;
 
         rendererRef.current.draw(
@@ -100,24 +102,23 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             hoveredSkill
         );
 
-        // Draw Ghost Obstacle (Drag Visual Overlay)
+        // Draw Ghost Obstacle
         if (draggedObstacle && canvasRef.current) {
             const { type, px, py } = draggedObstacle;
             const { x, y, zoom: camZoom } = camera.current;
             const dpr = window.devicePixelRatio || 1;
             
             ctx.save();
-            ctx.scale(dpr, dpr); // Apply High-DPI scale
+            ctx.scale(dpr, dpr);
             
-            // Camera Transform
             const logicalW = canvasRef.current.width / dpr;
             const logicalH = canvasRef.current.height / dpr;
             
             ctx.translate(logicalW / 2, logicalH / 2);
             ctx.scale(camZoom, camZoom);
-            ctx.translate(-x, -y); // Use simpler translation matching CameraSystem
+            ctx.translate(-x, -y); 
             
-            const sprite = SpriteManager.getObstacleSprite(type);
+            const sprite = SpriteManager.getObstacleSprite(type, engine.mapConfig.layout);
             const liftOffset = 40; 
             
             ctx.shadowColor = 'rgba(0,0,0,0.5)';
@@ -130,14 +131,13 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         }
     }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
 
-    // Resize Logic
     const handleResize = useCallback((w: number, h: number) => {
         if (w > 0 && h > 0) {
             centerCamera(w, h);
         }
     }, [centerCamera]);
 
-    // 4. Game Loop Hook
+    // 5. Game Loop Hook
     const { fpsRef } = useGameLoop(
         engine, 
         canvasRef, 
@@ -171,12 +171,9 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             
-            {/* VICTORY SCREEN - God View Style */}
             {winner !== null && !isShowcaseMode && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
                     <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                        
-                        {/* Winner Label */}
                         <div className="mb-6">
                             <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">Simulation Complete</span>
                             <h2 className={`text-5xl md:text-6xl font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
@@ -186,10 +183,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                                 VICTORY
                             </h2>
                         </div>
-
                         <div className="h-px w-24 mx-auto bg-white/20 rounded-full mb-8"></div>
-                        
-                        {/* Actions */}
                         <div className="flex flex-col gap-3">
                             <button 
                                 onClick={nextLevel} 
@@ -198,7 +192,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                                 <Icons.Dice className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                 <span>前進下一關 (Next Level)</span>
                             </button>
-
                             <button 
                                 onClick={onOpenLogs} 
                                 className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-slate-800/50 hover:bg-slate-700/50 border-white/10 text-cyan-400 shadow-md w-full flex items-center justify-center gap-2 group"
@@ -206,7 +199,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                                 <Icons.Log className="w-4 h-4 opacity-80 group-hover:scale-110 transition-transform" />
                                 <span>戰鬥記錄 (Battle Logs)</span>
                             </button>
-
                             <button 
                                 onClick={rematch} 
                                 className="liquid-btn px-8 py-3 rounded-xl text-sm font-bold bg-white/5 hover:bg-white/10 border-white/10 text-slate-300 shadow-lg w-full flex items-center justify-center gap-2 group"

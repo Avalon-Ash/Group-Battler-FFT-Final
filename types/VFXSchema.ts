@@ -1,53 +1,64 @@
 
-// ==========================================
-// 🎨 VFX ASSET SCHEMA (Data-Driven)
-// ==========================================
 
-export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG';
-export type EmitterShape = 'POINT' | 'CIRCLE' | 'CONE' | 'BURST_DIR';
-export type BlendMode = 'source-over' | 'lighter' | 'screen' | 'overlay' | 'multiply' | 'difference';
+export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH';
 
-// Range Helper [min, max] or number
-export type Range = [number, number]; 
+// Define the "Verbs" of our visual language
+export type VFXActionType = 
+    | 'PARTICLE'    // Spawn an emitter
+    | 'BEAM'        // Draw a line/laser
+    | 'SHAKE'       // Camera trauma
+    | 'GRID_PULSE'  // Floor ripple
+    | 'HEAVEN_FALL' // High-altitude impact object
+    | 'WAIT';       // Delay next action
 
-export interface EmitterConfig {
-    // Identity
-    id?: string;
-    particleType: ParticleType;
-    textureId?: string; // Optional: If specific texture needed from VFXFactory
-    
-    // Visual Style Reference (New)
-    // Points to entries in BEAM_VISUALS or PROCEDURAL_VISUALS
-    visualStyle?: string; 
-    
-    // Spawning Logic
-    count: number | Range; // How many particles
-    delay: number | Range; // Start delay
-    lifetime: Range;       // How long particles live
-    
-    // Physics
-    speed: Range;
-    gravity?: number;      // Override default gravity
-    drag?: number;         // Air resistance (0-1)
-    
-    // Visuals
-    size: Range;
-    height?: number | Range; // Optional height override (e.g. for Pillars)
-    colors: string[];      // Randomly picked from array
-    blendMode?: BlendMode;
-    
-    // Transform
-    shape: EmitterShape;
-    shapeRadius?: number;  // For Circle/Cylinder
-    
-    // Advanced
-    locked?: boolean;      // If true, moves with parent/source
-    vRotation?: Range;     // Angular velocity
+export interface VFXAction {
+    type: VFXActionType;
+    delay?: number;        // Start time relative to sequence start
+    id?: string;           // Asset/VFX Registry ID
+    style?: string;        // Procedural Style Key
+    color?: string;        // Optional override
+    scale?: number;        
+    duration?: number;
+    height?: number;       // For HeavenFall or Pillars
+    shakeIntensity?: number;
 }
 
+/**
+ * The core ECS Component for Skill Visuals
+ */
+export interface VFXSequence {
+    id: string;
+    actions: VFXAction[];
+}
+
+// Add Range type
+export type Range = [number, number];
+
+// Add EmitterConfig type
+export interface EmitterConfig {
+    particleType: ParticleType;
+    count: Range | number;
+    speed: Range | number;
+    lifetime: Range | number;
+    delay: Range | number;
+    size: Range | number;
+    height?: Range | number;
+    colors: string[];
+    shape: 'POINT' | 'BURST_DIR' | 'CIRCLE';
+    shapeRadius?: number;
+    visualStyle?: string;
+    drag?: number;
+    locked?: boolean;
+    gravity?: number;
+    vRotation?: Range | number;
+    // Added vz property to support explicit vertical velocity in registry definitions
+    vz?: Range | number;
+    blendMode?: GlobalCompositeOperation;
+}
+
+// Add VFXAsset type
 export interface VFXAsset {
     id: string;
     description?: string;
     emitters: EmitterConfig[];
-    soundRef?: string;
 }

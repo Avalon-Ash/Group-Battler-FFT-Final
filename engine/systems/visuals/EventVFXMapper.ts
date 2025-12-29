@@ -5,15 +5,13 @@ import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { UNIT_BODY_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, UNIT_HOVER_OFFSET } from "../../../constants";
-import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
+import { VisualMath } from "../../math/VisualMath";
 
 // Sub-Handlers
 import { CombatVFXHandler } from "./handlers/CombatVFXHandler";
 import { UnitVFXHandler } from "./handlers/UnitVFXHandler";
 import { CinematicVFXHandler } from "./handlers/CinematicVFXHandler";
 
-// Types
 export interface Point3D { x: number; y: number; z: number; }
 
 export class EventVFXMapper {
@@ -25,23 +23,17 @@ export class EventVFXMapper {
         grid: GridSystem, 
         camera: CameraSystem
     ) {
-        // 1. Resolve Spatial Context with Full 3D Logic
-        const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine, grid);
-        let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine, grid);
+        // 1. Resolve Spatial Context
+        const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine);
+        let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine);
         
-        // Resolve Pure Ground Z for effects that must sit on the floor
-        // Use HexUtils.fromPx which uses the new SLOT
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const groundZ = grid.getTerrainHeight(groundHex.q, groundHex.r, engine);
 
-        // Fallback for non-unit targets (ground click actions)
-        if (!event.targetId) {
-            target.z = groundZ + 20;
-        }
+        if (!event.targetId) target.z = groundZ + 20;
 
-        // 2. Route to Specialized Handlers
+        // 2. Route to specialized atomic handlers
         switch (event.type) {
-            
             case 'DAMAGE': 
             case 'PROJECTILE_HIT': 
             case 'IMPACT_AOE':
@@ -56,30 +48,18 @@ export class EventVFXMapper {
 
             case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
-                CinematicVFXHandler.handle(event, engine, vfx, grid, camera, origin, target);
+                CinematicVFXHandler.handle(event, engine, vfx, origin, target);
                 break;
         }
     }
 
-    private resolvePoint(defaultX: number, defaultY: number, agentId: string | undefined, engine: GameEngine, grid: GridSystem): Point3D {
-        let agent = agentId ? engine.agents.find(a => a.id === agentId) : null;
-
-        // If ID matches, snap to that unit's physical center
-        if (agent) {
-            const terrainH = grid.getTerrainHeight(agent.q, agent.r, engine);
-            const chestOffset = (UNIT_VISUAL_HEIGHT * 0.4) * UNIT_SCALE;
-            return {
-                x: agent.px,
-                y: agent.py,
-                // Critical: Target is Chest Height (Terrain + PhysZ + BaseOffset + Hover + ChestOffset)
-                z: terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestOffset
-            };
+    private resolvePoint(defaultX: number, defaultY: number, agentId: string | undefined, engine: GameEngine): Point3D {
+        if (agentId) {
+            const agent = engine.agents.find(a => a.id === agentId);
+            if (agent) return VisualMath.getUnitAnchor(agent, engine);
         }
-
-        // Otherwise, resolve terrain height at the event coordinates
         const hex = HexUtils.fromPx(defaultX, defaultY, engine.mapConfig);
-        const terrainH = grid.getTerrainHeight(hex.q, hex.r, engine);
-        
+        const terrainH = engine.map.getTerrainHeight(hex.q, hex.r);
         return { x: defaultX, y: defaultY, z: terrainH };
     }
 }

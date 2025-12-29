@@ -1,6 +1,6 @@
 
 import { Role, Team } from "../../../types";
-import { THEME_COVENANT } from "../../../constants";
+import { THEME_COVENANT, ISO_SCALE_Y } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
 
 const BASE_SIZE = 128;
@@ -15,7 +15,7 @@ export const CovenantTokenFactory = {
         const radius = 36;
         
         ctx.translate(cx, cy);
-        ctx.scale(1, 0.58); // Isometric projection
+        ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth
         
         // 1. Drop Shadow
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
@@ -137,5 +137,5 @@ export const CovenantTokenFactory = {
         }
         
         return canvas;
-    }
+    },
 };

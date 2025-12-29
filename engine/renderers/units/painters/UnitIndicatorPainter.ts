@@ -1,7 +1,7 @@
 
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../../constants";
-import { VFXFactory } from "../../../graphics/VFXFactory";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
+import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 
 export const UnitIndicatorPainter = {
     
@@ -15,21 +15,37 @@ export const UnitIndicatorPainter = {
         type: string, 
         isAOE: boolean
     ) {
-        const pixelRadius = Math.max(1, skillRadius) * HEX_SIZE;
-        const currentRadius = pixelRadius * progress;
-        const opacity = 0.3 + Math.sin(t * 5) * 0.1;
+        // Strict Mathematical Radius
+        const maxPixelRadius = Math.max(1, skillRadius) * HEX_SIZE;
+        const currentRadius = maxPixelRadius * progress;
+        
+        // Alpha pulse
+        const opacity = 0.3 + Math.sin(t * 8) * 0.1;
 
-        // Use volumetric for local skill indicator too
-        VolumePainter.drawVolumetricHex(ctx, 0, 0, currentRadius, color, opacity);
+        // 1. Volumetric Glow (Floor lighting)
+        VolumePainter.drawVolumetricHex(ctx, x, y, currentRadius, color, opacity);
         
-        const ringSize = currentRadius * 2.5; 
-        const ring = VFXFactory.getTexture('RING', color);
-        
+        // 2. Vector Ring (Precision geometry)
         ctx.save();
-        ctx.scale(1, ISO_SCALE_Y); 
+        ctx.translate(x, y);
+        
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 10;
         ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = opacity * 1.2;
-        ctx.drawImage(ring, -ringSize/2, -ringSize/2, ringSize, ringSize);
+        ctx.globalAlpha = opacity * 1.5;
+        
+        // Draw expanding hex
+        HexGeometry.traceHex(ctx, 0, 0, currentRadius, true);
+        ctx.stroke();
+        
+        // Inner Echo
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = opacity * 0.8;
+        HexGeometry.traceHex(ctx, 0, 0, currentRadius * 0.8, true);
+        ctx.stroke();
+
         ctx.restore();
     }
 };

@@ -1,12 +1,15 @@
 
-import { GameEngine } from "../game";
+import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
 import { MovementType, GroundHazard } from "../../types";
 import { MapGenerator } from "./map/MapGenerator";
 import { MapSpatial } from "./map/MapSpatial";
 
 export class MapSystem {
-    // Core Data Storage
+    // Spatial Data
+    public agentMap: Map<number, Agent> = new Map();
+    
+    // Core Map Data
     public mapKeys: Set<string> = new Set();
     private validHashes: Set<number> = new Set();
     
@@ -16,6 +19,49 @@ export class MapSystem {
     public heightMap: Map<string, number> = new Map();
 
     constructor() {}
+
+    // --- AGENT SPATIAL MANAGEMENT (Truth Source) ---
+    
+    public registerAgent(agent: Agent) {
+        const hash = HexUtils.hash(agent.q, agent.r);
+        this.agentMap.set(hash, agent);
+    }
+
+    public unregisterAgent(agent: Agent) {
+        const hash = HexUtils.hash(agent.q, agent.r);
+        // Only delete if it matches (prevent race conditions with movement)
+        if (this.agentMap.get(hash) === agent) {
+            this.agentMap.delete(hash);
+        }
+    }
+    
+    public removeAgentAt(q: number, r: number) {
+        const hash = HexUtils.hash(q, r);
+        this.agentMap.delete(hash);
+    }
+
+    public getAgentAt(q: number, r: number): Agent | undefined {
+        const agent = this.agentMap.get(HexUtils.hash(q, r));
+        return (agent && agent.hp > 0) ? agent : undefined;
+    }
+
+    public updateAgentPosition(agent: Agent, newQ: number, newR: number) {
+        // 1. Calculate terrain delta for physics
+        const oldH = this.getTerrainHeight(agent.q, agent.r);
+        const newH = this.getTerrainHeight(newQ, newR);
+        const deltaH = oldH - newH;
+        agent.physics.z += deltaH;
+
+        // 2. Update Map Hash
+        this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
+        agent.q = newQ;
+        agent.r = newR;
+        this.agentMap.set(HexUtils.hash(agent.q, agent.r), agent);
+    }
+    
+    public clearAgents() {
+        this.agentMap.clear();
+    }
 
     // --- Data Accessors ---
     public getTerrainHeight(q: number, r: number): number { return this.heightMap.get(HexUtils.key({q, r})) || 0; }
@@ -32,6 +78,7 @@ export class MapSystem {
         this.obstacles.clear();
         this.obstaclesHash.clear();
         this.heightMap.clear();
+        // Don't clear agents here, AgentManager handles list, we handle map linkage
     }
 
     public registerTile(q: number, r: number) {
@@ -76,7 +123,7 @@ export class MapSystem {
             this.obstacles.delete(k);
             this.obstaclesHash.delete(h);
         } else {
-            if (!engine.getAgentAt(q, r)) {
+            if (!this.getAgentAt(q, r)) {
                 this.obstacles.set(k, type);
                 this.obstaclesHash.add(h);
             }
@@ -100,7 +147,6 @@ export class MapSystem {
         return this.obstaclesHash.has(h);
     }
     
-    // Proxy to Hazard System
     public getHazardAt(q: number, r: number, engine: GameEngine): GroundHazard | undefined {
         return engine.hazards.getHazardAt(q, r);
     }

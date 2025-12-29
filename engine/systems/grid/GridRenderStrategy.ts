@@ -5,7 +5,7 @@ import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
 import { HexUtils, getTransitionOffset } from "../../utils";
-import { HexMath } from "../../math/HexMath";
+import { SpriteManager } from "../../sprites";
 
 const OBSTACLE_Z_INDEX = 10;
 const PROJ_LIGHT_RADIUS_SQ = 1600;
@@ -34,6 +34,7 @@ export class GridRenderStrategy {
         cache.ensure(engine);
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
+        const layout = engine.mapConfig.layout;
 
         // 1. Pre-calc Unit Presence
         this._unitPresence.clear();
@@ -58,7 +59,6 @@ export class GridRenderStrategy {
             const visualBaseY = py + offset;
             
             // Visual Surface Y: The top face of the prism (Base - Height)
-            // This is where Units, Obstacles, and Decals should anchor.
             const visualSurfaceY = visualBaseY - h;
 
             // Cull off-screen transition elements
@@ -74,8 +74,6 @@ export class GridRenderStrategy {
                 op.y = sortY; 
                 op.z = OBSTACLE_Z_INDEX;
                 op.tx = px; 
-                // Obstacles anchor to the visual SURFACE center.
-                // The EnvironmentFactory sprite anchor will handle the offset from there.
                 op.ty = visualSurfaceY; 
                 op.ttype = obstacleType;
             }
@@ -90,7 +88,9 @@ export class GridRenderStrategy {
                 const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
                 const deltaH = agentH - h;
                 const bonus = Math.max(0, Math.floor(deltaH / 24)); 
-                const dist = HexMath.distance({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
+                
+                // FIXED: Use HexUtils instead of HexMath
+                const dist = HexUtils.dist({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
                 
                 if (dist <= hoveredSkill.range + bonus) { 
                     isRange = true; 

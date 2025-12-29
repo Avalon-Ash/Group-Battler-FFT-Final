@@ -25,7 +25,8 @@ export const AssetManager = {
         if (!cache.has(key)) {
             // Fallback to BOLT if unknown
             const v = ['ARROW', 'FIREBALL', 'BOLT', 'BOMB'].includes(visual) ? visual : 'BOLT';
-            cache.set(key, VFXFactory.generateProjectileSprite(v, color));
+            // Fix: Replaced non-existent generateProjectileSprite with getTexture
+            cache.set(key, VFXFactory.getTexture(v, color));
         }
         return cache.get(key)!;
     },
@@ -47,7 +48,8 @@ export const AssetManager = {
     // VFX: Ground Decals
     getBlastZone(color: string): HTMLCanvasElement {
         const key = `BLAST_${color}_V2`; // V2 for updated style
-        if (!cache.has(key)) cache.set(key, VFXFactory.generateBlastZone(color));
+        // Fix: Replaced non-existent generateBlastZone with getTexture
+        if (!cache.has(key)) cache.set(key, VFXFactory.getTexture('BLAST', color));
         return cache.get(key)!;
     }
 };
