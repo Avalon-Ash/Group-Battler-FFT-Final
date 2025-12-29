@@ -1,5 +1,5 @@
 import { Agent, GameEngine } from "../game";
-import { NodeState, Skill } from "../../types";
+import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;

@@ -2,6 +2,7 @@ import { GameEngine } from "../game";
 import { GroundHazard, Team } from "../../types";
 import { HexUtils } from "../utils";
 import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
+import { COMBAT_PARAM } from "../../constants";
 
 export class HazardSystem {
     public addHazard(
@@ -84,13 +85,12 @@ export class HazardSystem {
                     const dx = center.x - agent.px, dy = center.y - agent.py;
                     const dist = Math.sqrt(dx*dx + dy*dy);
                     if (dist > 5) {
-                        const pullForce = 300; 
-                        agent.physics.vx += (dx/dist) * pullForce * dt;
-                        agent.physics.vy += (dy/dist) * pullForce * dt;
-                        agent.moveSpeedMult = 0.3; 
+                        agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
+                        agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
+                        agent.moveSpeedMult = COMBAT_PARAM.GRAVITY_SPEED_REDUCTION; 
                     }
                 } else if (hazard.type === 'ICE') {
-                    agent.moveSpeedMult = 0.6;
+                    agent.moveSpeedMult = COMBAT_PARAM.ICE_SPEED_REDUCTION;
                 }
             }
         });

@@ -1,15 +1,14 @@
 import { Agent, GameEngine } from "../game";
 import { MovementType, AnimState } from "../../types";
-import { HexUtils, Vector } from "../utils";
+import { HexUtils } from "../utils";
 import { PHYSICS } from "../../constants";
-const PHYSICS_STIFFNESS_ALIVE = 150;
-const PHYSICS_DAMPING_ALIVE = 25; 
+
 export class PhysicsEngine {
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
         const dx = target.px - origin.x;
         const dy = target.py - origin.y;
         const len = Math.sqrt(dx * dx + dy * dy);
-        const effectiveForce = Math.min(400, Math.max(50, force));
+        const effectiveForce = Math.min(PHYSICS.TERMINAL_VELOCITY_IMPULSE, Math.max(50, force));
         let vx = 0, vy = 0;
         if (len <= 0.1) {
             const ang = Math.random() * Math.PI * 2;
@@ -26,8 +25,8 @@ export class PhysicsEngine {
     public update(a: Agent, dt: number, engine: GameEngine) {
         if (a.fullyDead) return;
         const isDead = a.hp <= 0;
-        const stiffness = isDead ? 0 : PHYSICS_STIFFNESS_ALIVE;
-        const damping = PHYSICS_DAMPING_ALIVE; 
+        const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE;
+        const damping = PHYSICS.DAMPING_ALIVE; 
         const fx = -stiffness * a.physics.x;
         const fy = -stiffness * a.physics.y;
         const fRot = -stiffness * a.physics.angle * 0.1; 
@@ -80,7 +79,7 @@ export class PhysicsEngine {
             const dx = targetPos.x - a.px, dy = targetPos.y - a.py;
             const distSq = dx*dx + dy*dy;
             if (distSq > 0.5) {
-                const driftSpeed = 12.0 * dt; 
+                const driftSpeed = PHYSICS.DRIFT_SPEED * dt; 
                 a.px += dx * driftSpeed; a.py += dy * driftSpeed;
                 if (distSq < 2) { a.px = targetPos.x; a.py = targetPos.y; }
             } else {

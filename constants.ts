@@ -25,6 +25,10 @@ export const PHYSICS = {
     SAFE_FALL_VELOCITY: 1000,
     FATAL_FALL_VELOCITY: 3000,
     FALL_DAMAGE_MIN: 200,
+    STIFFNESS_ALIVE: 150,
+    DAMPING_ALIVE: 25,
+    DRIFT_SPEED: 12.0,
+    TERMINAL_VELOCITY_IMPULSE: 400,
 };
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
@@ -69,12 +73,15 @@ export const PALETTE = {
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
-    DR_RESET_TIME: 5.0,
+    DR_RESET_TIME: 10.0,
     EXECUTE_THRESHOLD: 0.25,
     BASE_EXECUTE_MULTIPLIER: 2.0,
     BASE_VAMP_PCT: 0.35,
     MANA_BURN_DEFAULT: 25,
     MANA_RESTORE_DEFAULT: 25,
+    GRAVITY_PULL_FORCE: 300,
+    ICE_SPEED_REDUCTION: 0.6,
+    GRAVITY_SPEED_REDUCTION: 0.3,
 };
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID': { top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155', rim: '#64748b' },

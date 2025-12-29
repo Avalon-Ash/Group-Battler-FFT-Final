@@ -36,7 +36,8 @@ export class GameEngine {
     public state = {
         director: { focusTimer: 0, priorityTimer: 0, targetId: null as string | null },
         hazards: new Map<string, GroundHazard>(),
-        time: { battleDuration: 0 }
+        victory: { victoryTimer: 0, winningTeam: null as Team | null, isFinishing: false },
+        time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 }
     };
 
     public sessionState: GlobalSessionState = {
@@ -48,10 +49,15 @@ export class GameEngine {
     };
 
     get hazards() { return this.state.hazards; }
-    get battleTime() { return this.state.time.battleDuration; }
-    set battleTime(v: number) { this.state.time.battleDuration = v; }
+    get battleTime() { return this.state.time.battleTime; }
+    set battleTime(v: number) { this.state.time.battleTime = v; }
+    get timeScale() { return this.state.time.timeScale; }
+    set timeScale(v: number) { this.state.time.timeScale = v; }
+    get targetTimeScale() { return this.state.time.targetTimeScale; }
+    set targetTimeScale(v: number) { this.state.time.targetTimeScale = v; }
+    get victory() { return this.state.victory; }
+    
     get directorTargetId() { return this.state.director.targetId; }
-
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
     get agentMap() { return this.map.agentMap; }
@@ -62,9 +68,6 @@ export class GameEngine {
     public renderer?: GameRenderer;
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
-    
-    public timeScale: number = 1.0;
-    public targetTimeScale: number = 1.0;
     
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public currentScene: SceneTheme = SCENE_DB[0];
@@ -80,12 +83,12 @@ export class GameEngine {
     public announcer: AnnouncerSystem = new AnnouncerSystem(); 
     public director: DirectorSystem = new DirectorSystem();
     public logger: BattleLogger = new BattleLogger(); 
-    public victory: VictorySystem = new VictorySystem(); 
+    public victorySystem: VictorySystem = new VictorySystem(); 
     public zones: ZoneSystem = new ZoneSystem(); 
     public cooldowns: CooldownSystem = new CooldownSystem();
     public effects: EffectSystem = new EffectSystem();
     public controls: ControlSystem = new ControlSystem();
-    public time: TimeSystem = new TimeSystem();
+    public timeSystem: TimeSystem = new TimeSystem();
 
     constructor() {
         this.map.randomizeEnvironment(this);
@@ -139,9 +142,9 @@ export class GameEngine {
     public play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
-            this.battleTime = 0;
+            this.state.time.battleTime = 0;
             this.logger.clear();
-            this.victory.reset();
+            this.victorySystem.reset(this);
             this.sessionState.killStreaks.clear();
             this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
@@ -161,8 +164,8 @@ export class GameEngine {
 
     public restart() {
         this.stop();
-        this.victory.reset();
-        this.battleTime = 0;
+        this.victorySystem.reset(this);
+        this.state.time.battleTime = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
         this.director.reset(this);
@@ -205,16 +208,12 @@ export class GameEngine {
 
     public tick(dt: number) {
         if (!this.isRunning) return;
-        if (Math.abs(this.targetTimeScale - this.timeScale) > 0.01) {
-            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; 
-        } else {
-            this.timeScale = this.targetTimeScale;
-        }
+        this.timeSystem.update(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);
         this.zones.update(this); 
-        if (this.victory.check(this)) {
-            this.victory.updateFinishing(dt, this);
+        if (this.victorySystem.check(this)) {
+            this.victorySystem.updateFinishing(dt, this);
             this.updateEntities(dt);
             return;
         }

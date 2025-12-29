@@ -1,8 +1,10 @@
 import { Agent, GameEngine } from "../game";
-import { NodeState, Skill } from "../../types";
+import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
+
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
+
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -10,7 +12,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
     "HasTarget": (a, engine) => {
-        engine.movement.updateTarget(a, engine);
+        engine.updateTarget(a);
         return a.target !== null;
     },
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
@@ -30,13 +32,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const skill = a.skills[idx];
         if (!skill) return false;
         const perceptionBonus = (skill.tag === 'ULT') ? 5 : 2;
-        const visionRange = skill.range + perceptionBonus;
-        const result = engine.movement.calculateOptimalTarget(a, skill, engine);
+        const result = engine.calculateOptimalTarget(a, skill);
         if (result.targetAgent) {
             a.target = result.targetAgent;
             a.targetHex = null;
             const dist = HexUtils.dist(a, result.targetAgent);
-            return dist <= visionRange;
+            return dist <= skill.range + perceptionBonus;
         } else if (result.targetHex) {
             a.target = null;
             a.targetHex = result.targetHex;
@@ -52,11 +53,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.targetHex) { tQ = a.targetHex.q; tR = a.targetHex.r; }
         else if (a.target) { tQ = a.target.q; tR = a.target.r; }
         else return false;
-        const effRange = engine.movement.getEffectiveRange(a, tQ, tR, skill.range, engine);
+        const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
         const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         return dist <= effRange;
     }
 };
+
 export const BTActions: Record<string, BTActionFn> = {
     "Wait": (a, engine, args) => {
         a.btStatus = args.status || "等待";
@@ -68,25 +70,25 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
-        return engine.combat.initiateCast(a, idx, engine);
+        return engine.initiateCast(a, idx);
     },
     "MoveToOptimal": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
         const speedMult = (skill.tag === 'ULT') ? 1.3 : 1.0;
-        if (a.targetHex) return engine.movement.moveAgentToHex(a, a.targetHex, skill.range, engine, speedMult);
-        if (a.target) return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
+        if (a.targetHex) return engine.moveAgentToHex(a, a.targetHex, skill.range, speedMult);
+        if (a.target) return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
         return NodeState.FAILURE;
     },
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
-        if (!a.target) engine.movement.updateTarget(a, engine); 
+        if (!a.target) engine.updateTarget(a); 
         if (!a.target) return NodeState.FAILURE;
         const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
         a.btStatus = `鎖定 ${a.target.id}`;
-        return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
+        return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     }
 };
