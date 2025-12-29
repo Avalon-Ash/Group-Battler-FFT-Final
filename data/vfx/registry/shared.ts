@@ -11,8 +11,21 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     },
     'FX_CAST_BREAK': {
         id: 'FX_CAST_BREAK',
+        description: '能量崩解粒子：具備物理重力感的碎裂',
         emitters: [
-            { particleType: 'SHARD', count: [8, 12], lifetime: [0.4, 0.7], size: [5, 10], speed: [200, 400], vz: [300, 600], gravity: 2000, colors: ['#94a3b8', '#cbd5e1', '#fff'], shape: 'BURST_DIR', delay: 0, vRotation: [15, 30] }
+            { 
+                particleType: 'SHARD', count: [15, 20], lifetime: [0.5, 0.9], 
+                size: [4, 10], speed: [150, 450], vz: [400, 800], 
+                gravity: 4500, // 極高重力，產生沉重的崩裂感
+                colors: ['#ffffff', '#cbd5e1'], // 基本色會被 Skill Color 覆蓋
+                shape: 'BURST_DIR', delay: 0, vRotation: [20, 50] 
+            },
+            {
+                particleType: 'SMOKE_PUFF', count: [4, 6], lifetime: [0.4, 0.6],
+                size: [20, 35], speed: [50, 100], vz: [50, 150],
+                colors: ['#64748b'], shape: 'CIRCLE', shapeRadius: 10,
+                blendMode: 'screen', delay: 0
+            }
         ]
     },
     'FX_GRID_IMPACT_BLUE': {

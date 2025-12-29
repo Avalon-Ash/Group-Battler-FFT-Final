@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../game";
 import { MovementType, AnimState } from "../../types";
 import { HexUtils } from "../utils";
@@ -22,23 +23,31 @@ export class PhysicsEngine {
         target.physics.vy += vy;
         if (randomness > 0) target.physics.vAngle += (Math.random() - 0.5) * randomness;
     }
+
     public update(a: Agent, dt: number, engine: GameEngine) {
         if (a.fullyDead) return;
         const isDead = a.hp <= 0;
-        const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE;
-        const damping = PHYSICS.DAMPING_ALIVE; 
+        
+        // TA 優化：增加 Stiffness 使受擊後恢復更迅速
+        const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * 1.2;
+        const damping = PHYSICS.DAMPING_ALIVE * 1.1; 
+        
         const fx = -stiffness * a.physics.x;
         const fy = -stiffness * a.physics.y;
         const fRot = -stiffness * a.physics.angle * 0.1; 
+
         const ax = fx - damping * a.physics.vx;
         const ay = fy - damping * a.physics.vy;
         const aRot = fRot - damping * a.physics.vAngle;
+
         a.physics.vx += ax * dt;
         a.physics.vy += ay * dt;
         a.physics.vAngle += aRot * dt;
+
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
         const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
+
         if (isFlying && !isDisabled) {
             const hoverHeight = 55, hoverFreq = 2.5; 
             const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
@@ -48,10 +57,12 @@ export class PhysicsEngine {
         } else if (isAirborne || a.physics.z > 0.1) {
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         }
+
         a.physics.x += a.physics.vx * dt;
         a.physics.y += a.physics.vy * dt;
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
+
         if (a.physics.z < 0) {
             a.physics.z = 0;
             if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
@@ -74,6 +85,7 @@ export class PhysicsEngine {
                 a.physics.vz = 0;
             }
         }
+
         if (!isDead && !a.isMoving) {
             const targetPos = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const dx = targetPos.x - a.px, dy = targetPos.y - a.py;

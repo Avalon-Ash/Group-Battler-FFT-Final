@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine, VICTORY_PHASE_DURATION } from "../game";
 import { Camera, GameRenderer } from "../renderer"; 
 import { Hex, Skill } from "../../types";
@@ -10,9 +11,11 @@ import { ProjectileDrawer } from "./ProjectileDrawer";
 import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { GridOverlays } from "./grid/GridOverlays";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
+import { HazardPainter } from "./grid/painters/HazardPainter"; // 引用
 import { SpriteManager } from "../sprites";
 import { AssetManager } from "../assets";
 import { ENV_ANCHOR_X, ENV_ANCHOR_Y } from "../graphics/EnvironmentFactory";
+
 export class RenderPipeline {
     private renderer: GameRenderer;
     private backgroundRenderer = new BackgroundRenderer();
@@ -49,8 +52,11 @@ export class RenderPipeline {
             switch (op.type) {
                 case RenderOpType.TERRAIN:
                     TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout);
-                    GridOverlays.drawOverlays(ctx, snapX, snapY - op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit, op.tq, op.tr, op.time, op.oHazard, layout);
+                    GridOverlays.drawOverlays(ctx, snapX, snapY - op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit, op.tq, op.tr, op.time, undefined, layout);
                     TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr);
+                    break;
+                case RenderOpType.HAZARD: // 新增：處理地面持續效果
+                    if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.time);
                     break;
                 case RenderOpType.OBSTACLE:
                     ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
@@ -84,7 +90,6 @@ export class RenderPipeline {
         ctx.restore(); 
         if (engine.directorTargetId) this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, globalTime);
         this.tacticalRenderer.drawDebug(ctx, fps);
-        // Fix: isFinishing, victoryTimer, winningTeam exist on engine.victory
         let blurAmount = engine.victory.isFinishing ? 1.0 - (engine.victory.victoryTimer / VICTORY_PHASE_DURATION) : (engine.victory.winningTeam !== null ? 1.0 : 0);
         if (this.transitionPhase === 'OUT') blurAmount = 1.0; 
         else if (this.transitionPhase === 'IN') blurAmount = 1.0 - this.transitionT;

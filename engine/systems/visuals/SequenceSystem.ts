@@ -3,12 +3,11 @@ import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { Point3D } from "./EventVFXMapper";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
-import { UNIT_BODY_OFFSET } from "../../../constants";
 import { VisualMath } from "../../math/VisualMath";
 
 /**
- * ECS VFX Sequence Runner v10.0
- * Unified cinematic performance layer.
+ * ECS VFX Sequence Runner v10.5
+ * 強化奧義演出之座標精確度與物理模擬
  */
 export class SequenceSystem {
     
@@ -21,24 +20,17 @@ export class SequenceSystem {
     ) {
         let sourcePos: Point3D | undefined;
         
-        // Resolve Source for Beams
         if (sourceId) {
             const agent = engine.agents.find(a => a.id === sourceId);
-            if (agent) {
-                sourcePos = VisualMath.getUnitAnchor(agent, engine);
-            }
+            if (agent) sourcePos = VisualMath.getUnitAnchor(agent, engine);
         }
-
-        const startTime = Date.now();
 
         sequence.actions.forEach(action => {
             const execute = () => {
-                // Ensure target is still relatively valid (or use static snapshot)
                 this.dispatch(action, target, sourcePos, vfx, engine);
             };
 
             if (action.delay && action.delay > 0) {
-                // For sequences, we use standard timeout but we could use a frame-based queue
                 setTimeout(execute, action.delay * 1000);
             } else {
                 execute();
@@ -49,11 +41,12 @@ export class SequenceSystem {
     private static dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine) {
         const effectId = action.id || 'FX_HIT_GENERIC';
         
-        // Ground Z Ref (Source of Truth for collisions)
+        // 數學修正：獲取精確地面高度，並套用微小 Bias 解決穿插
         const groundZ = target.z - 2; 
 
         switch (action.type) {
             case 'PARTICLE':
+                // 奧義粒子強制帶入 pIsUlt 標記（透過 ID 判定或 action 配置）
                 vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ);
                 break;
             
@@ -64,28 +57,31 @@ export class SequenceSystem {
                 break;
 
             case 'SHAKE':
-                if (engine.renderer) engine.renderer.camera.addTrauma(action.shakeIntensity || 0.2);
+                if (engine.renderer) engine.renderer.camera.addTrauma(action.shakeIntensity || 0.3);
                 break;
 
             case 'GRID_PULSE':
-                // Dynamic selection of pulse type based on color/faction
-                const pulseId = action.color?.includes('#3b') || action.color?.includes('#60') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED';
-                vfx.playEffect(pulseId, target.x, target.y, groundZ + 2, action.color, groundZ);
+                // 強制網格中心對齊
+                vfx.playEffect(
+                    action.color?.includes('#3b') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', 
+                    target.x, target.y, groundZ + 4, 
+                    action.color, groundZ
+                );
                 break;
 
             case 'HEAVEN_FALL':
-                const h = action.height || 1000;
+                const h = action.height || 1200;
                 const p = vfx.state.getParticle();
                 p.x = target.x; p.y = target.y; p.z = target.z + h;
-                p.vz = -2500; // Increased fall speed for impact
-                p.life = (h / 2500) + 0.1; 
+                p.vz = -3500; // 奧義掉落物應有更高初速
+                p.life = (h / 3500) + 0.1; 
                 p.maxLife = p.life;
                 p.color = action.color || '#fff';
-                p.size = (action.scale || 1.5) * 80;
+                p.size = (action.scale || 1.8) * 80;
                 p.type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
-                p.targetX = target.x; p.targetY = target.y;
-                p.gravity = 5000; // Hard gravity
                 p.locked = false;
+                // 標記為奧義組件，影響渲染排序
+                (p as any).pIsUlt = true; 
                 vfx.state.particles.push(p);
                 break;
         }

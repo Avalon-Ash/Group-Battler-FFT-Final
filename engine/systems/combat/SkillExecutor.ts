@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../../game";
 import { Skill, AnimState } from "../../../types";
 import { HexUtils } from "../../utils";
@@ -5,6 +6,7 @@ import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
+import { COMBAT_PARAM } from "../../../constants";
 
 export class SkillExecutor {
 
@@ -75,10 +77,12 @@ export class SkillExecutor {
 
         if (result.finalValue < 0) { 
             target.setAnim(AnimState.HIT);
-            target.hitFlashTimer = 0.2;
+            target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION; // 使用常量統一管理
+            
+            // 物理衝量計算：基於傷害量的對數擴展，防止數值過大導致單位飛出地圖
             const originPx = origin ? origin : {x: source.px, y: source.py};
-            const damageForce = Math.min(800, Math.abs(result.finalValue) * 3.5);
-            PhysicsEngine.applyImpulse(target, originPx, damageForce, 0.6);
+            const damageForce = Math.min(600, 100 + Math.abs(result.finalValue) * 1.5);
+            PhysicsEngine.applyImpulse(target, originPx, damageForce, 0.4);
         }
 
         engine.events.push({

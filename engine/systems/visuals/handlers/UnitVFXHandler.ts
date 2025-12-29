@@ -13,7 +13,6 @@ export class UnitVFXHandler {
         if (event.type === 'DEATH') {
             const dAgent = engine.agents.find(a => a.id === event.sourceId);
             if (dAgent) {
-                // Death occurs at body center
                 UnitShatter.spawn(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy);
             }
             camera.addTrauma(0.1);
@@ -21,17 +20,25 @@ export class UnitVFXHandler {
         }
 
         if (event.type === 'SPAWN') {
-            // Teleport is a floor-to-sky effect, verify groundZ
             vfx.playEffect('FX_TELEPORT', origin.x, origin.y, groundZ, event.color, groundZ);
             return;
         }
 
         if (event.type === 'CAST_BREAK') {
+            // 進度加成：詠唱越接近完成，爆炸效果越大 (0.5 ~ 1.5 倍)
+            const progress = event.value || 0.1;
+            const powerScale = 0.5 + progress;
+
+            // 播放中斷碎裂特效
             vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
+            
+            // 奧義被斷的懲罰性視覺反饋
             if (event.skill && event.skill.tag === 'ULT') {
-                camera.addTrauma(0.4);
+                camera.addTrauma(0.5 * powerScale);
+                // 額外的全場閃光 (White Wash)
+                vfx.playEffect('FX_HIT_GENERIC', origin.x, origin.y, origin.z, '#ffffff');
             } else {
-                camera.addTrauma(0.15); 
+                camera.addTrauma(0.2 * powerScale); 
             }
             return;
         }

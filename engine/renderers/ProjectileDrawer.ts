@@ -1,81 +1,78 @@
+
 import { RenderOp } from "./RenderList";
 import { AssetManager } from "../assets";
 
+/**
+ * 飛行物視覺呈現器 v14.0 - TA Visual Polish
+ */
 export const ProjectileDrawer = {
     draw(ctx: CanvasRenderingContext2D, op: RenderOp, globalTime: number) {
-        const isRay = op.pSkillVis === 'BEAM'; 
-        
-        // 1. 光束類渲染 (Beams)
-        if (isRay && op.pTrail && op.pTrail.length > 0) {
-            ctx.save();
-            ctx.globalCompositeOperation = 'screen'; 
-            
-            const start = op.pTrail[op.pTrail.length - 1]; 
-            const end = { x: op.pVisX, y: op.pVisY };
-            
-            // 外層光暈
-            ctx.shadowColor = op.pColor;
-            ctx.shadowBlur = op.pIsUlt ? 30 : 15;
-            ctx.strokeStyle = op.pColor;
-            ctx.lineWidth = op.pIsUlt ? 16 : 8;
-            ctx.globalAlpha = 0.4;
-            ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
+        const { pVisX: x, pVisY: y, pColor: color, pAngle: angle, pTrail: trail } = op;
 
-            // 內層核心 (純白)
-            ctx.strokeStyle = '#ffffff';
-            ctx.lineWidth = op.pIsUlt ? 6 : 3;
-            ctx.globalAlpha = 1.0;
-            ctx.beginPath(); ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); ctx.stroke();
-
-            // 頭部閃光
-            ctx.translate(end.x, end.y);
-            const pulse = 1.0 + Math.sin(globalTime * 30) * 0.2;
-            ctx.fillStyle = '#fff';
-            ctx.shadowBlur = 20;
-            ctx.beginPath(); ctx.arc(0, 0, (op.pIsUlt ? 12 : 6) * pulse, 0, Math.PI*2); ctx.fill();
-            
-            ctx.restore();
-            return;
-        }
-
-        // 2. 一般飛行物渲染 (Sprites + Trails)
-        if (op.pTrail && op.pTrail.length > 1) {
+        // 1. 渲染能量尾跡 (Analytic Gradient Trail)
+        if (trail && trail.length > 1) {
             ctx.save();
             ctx.globalCompositeOperation = 'screen';
             ctx.beginPath();
-            const trail = op.pTrail;
-            ctx.moveTo(trail[0].x, trail[0].y);
-            for(let i=1; i<trail.length; i++) {
-                const alpha = (i / trail.length) * 0.5;
-                ctx.globalAlpha = alpha;
+            ctx.moveTo(x, y);
+            
+            for (let i = 0; i < trail.length; i++) {
                 ctx.lineTo(trail[i].x, trail[i].y);
             }
-            ctx.strokeStyle = op.pColor;
-            ctx.lineWidth = 4;
-            ctx.lineJoin = 'round';
+
+            const trailGrad = ctx.createLinearGradient(x, y, trail[trail.length-1].x, trail[trail.length-1].y);
+            trailGrad.addColorStop(0, color);
+            trailGrad.addColorStop(1, 'transparent');
+
+            ctx.strokeStyle = trailGrad;
+            ctx.lineWidth = op.pIsUlt ? 8 : 3;
+            ctx.globalAlpha = 0.6;
+            ctx.lineCap = 'round';
             ctx.stroke();
             ctx.restore();
         }
 
-        // 飛行物本體
+        // 2. 主體精靈渲染
         ctx.save();
-        ctx.translate(Math.round(op.pVisX), Math.round(op.pVisY));
-        if (op.pSpin !== 0) ctx.rotate(op.pSpin); 
-        else ctx.rotate(op.pAngle);
+        ctx.translate(x, y);
         
-        const img = AssetManager.getProjectile(op.pSkillVis, op.pColor);
-        if (img && img.width > 0) {
-            const scale = op.pIsUlt ? 1.8 : 1.2;
-            ctx.scale(scale, scale);
-            
-            // 渲染兩次：一次色彩混合，一次發光
-            ctx.globalAlpha = 1.0;
-            ctx.drawImage(img, -48, -32, 96, 64);
-            
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.globalAlpha = 0.7;
-            ctx.drawImage(img, -48, -32, 96, 64);
+        // 運動模糊模擬：根據速度向量進行視覺拉伸 (SSOT: 此處假設速度影響拉伸)
+        const stretch = op.pIsUlt ? 1.5 : 1.15;
+        if (op.pSpin !== 0) {
+            ctx.rotate(op.pSpin);
+        } else {
+            ctx.rotate(angle);
+            ctx.scale(stretch, 1.0 / stretch); // 體積守恆拉伸
         }
+
+        const img = AssetManager.getProjectile(op.pSkillVis, color);
+        if (img) {
+            const scale = op.pIsUlt ? 1.8 : 1.2;
+            
+            // 底層：基礎色
+            ctx.globalAlpha = 1.0;
+            ctx.drawImage(img, -32 * scale, -32 * scale, 64 * scale, 64 * scale);
+            
+            // 頂層：動態發光 (Additive Pulse)
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.globalAlpha = 0.4 + Math.sin(globalTime * 20) * 0.2;
+            ctx.drawImage(img, -36 * scale, -36 * scale, 72 * scale, 72 * scale);
+        }
+        
         ctx.restore();
+
+        // 3. 亮點補償 (奧義專用)
+        if (op.pIsUlt) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.globalCompositeOperation = 'screen';
+            const flare = ctx.createRadialGradient(0,0,0, 0,0, 40);
+            flare.addColorStop(0, '#fff');
+            flare.addColorStop(0.3, color);
+            flare.addColorStop(1, 'transparent');
+            ctx.fillStyle = flare;
+            ctx.beginPath(); ctx.arc(0,0, 40, 0, Math.PI*2); ctx.fill();
+            ctx.restore();
+        }
     }
 };

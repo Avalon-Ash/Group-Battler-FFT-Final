@@ -1,36 +1,39 @@
 
 import { Agent } from "../../../../game";
 import { AssetManager } from "../../../assets";
-import { VisualMath } from "../../../math/VisualMath";
 
 export const StateModelPainter = {
-    drawBanishment(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
+    /**
+     * 繪製包裹單位的放逐/凝滯幾何體
+     * @param centerY 單位視覺中心 Y 軸
+     */
+    drawBanishment(ctx: CanvasRenderingContext2D, agent: Agent, x: number, centerY: number, t: number) {
         if (!agent.banished) return;
 
         const isStasis = agent.visualStatus === 'STASIS';
         const color = isStasis ? '#facc15' : '#c084fc'; 
-        const secondaryColor = isStasis ? '#fef08a' : '#e9d5ff';
-        
-        // ALIGNMENT FIX (SSOT)
-        const centerY = VisualMath.getVisualBodyCenterY(y, z);
+        const shadowColor = isStasis ? '#eab308' : '#7e22ce';
         
         ctx.save();
         ctx.translate(x, centerY);
         
-        const size = 55; // Slightly larger
-        const height = 75;
-        const rotation = t * 0.8;
+        // 核心幾何參數
+        const size = 50;
+        const halfH = 70;
+        const rot = t * 1.2;
         
-        const points = [];
+        // 解算 4 個旋轉頂點 (ISO 平面)
+        const pts = [];
         for(let i=0; i<4; i++) {
-            const angle = rotation + (i * Math.PI / 2);
-            points.push({
+            const angle = rot + (i * Math.PI / 2);
+            pts.push({
                 x: Math.cos(angle) * size,
-                y: Math.sin(angle) * size * 0.35 
+                y: Math.sin(angle) * size * 0.4 // ISO 透視壓縮
             });
         }
 
-        const drawFace = (p1: {x:number, y:number}, p2: {x:number, y:number}, tipY: number, alpha: number) => {
+        // 幾何繪製函數
+        const drawShard = (p1: any, p2: any, tipY: number, alpha: number) => {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
@@ -38,39 +41,32 @@ export const StateModelPainter = {
             ctx.closePath();
             
             ctx.fillStyle = color;
-            ctx.globalAlpha = alpha; // Increased from 0.15 to 0.3 for more "mass"
+            ctx.globalAlpha = alpha;
             ctx.fill();
             
-            ctx.strokeStyle = secondaryColor;
-            ctx.globalAlpha = 0.9;
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = 0.5;
             ctx.stroke();
         };
 
-        const bob = Math.sin(t * 2) * 5;
+        // 浮動動畫
+        const bob = Math.sin(t * 3) * 6;
         ctx.translate(0, bob);
 
+        // 繪製稜鏡面
         for(let i=0; i<4; i++) {
-            const p1 = points[i];
-            const p2 = points[(i+1)%4];
-            drawFace(p1, p2, -height, 0.3); // Upper
-        }
-        for(let i=0; i<4; i++) {
-            const p1 = points[i];
-            const p2 = points[(i+1)%4];
-            drawFace(p1, p2, height, 0.2); // Lower
+            const next = (i+1)%4;
+            drawShard(pts[i], pts[next], -halfH, 0.3); // 上半部
+            drawShard(pts[i], pts[next], halfH, 0.15); // 下半部
         }
         
+        // 核心狀態圖標
         ctx.globalCompositeOperation = 'screen';
-        const pulse = 1.0 + Math.sin(t * 5) * 0.2;
-        
+        const pulse = 0.8 + Math.sin(t * 6) * 0.2;
+        ctx.globalAlpha = pulse;
         const icon = AssetManager.getStatusIcon(isStasis ? 'STASIS' : 'BANISH');
-        if (icon) {
-            ctx.save();
-            ctx.scale(pulse, pulse);
-            ctx.globalAlpha = 1.0; // Solid icon
-            ctx.drawImage(icon, -24, -24, 48, 48);
-            ctx.restore();
-        }
+        if (icon) ctx.drawImage(icon, -24, -24, 48, 48);
 
         ctx.restore();
     }

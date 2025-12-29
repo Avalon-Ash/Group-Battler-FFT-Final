@@ -7,6 +7,7 @@ import { Projectile } from "../../../../types";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath, Point3D } from "../../../math/TrajectoryMath";
 import { VisualMath } from "../../../math/VisualMath";
+import { ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -15,121 +16,72 @@ export const ProjectileRenderer = {
         transitionT: number,
         transitionPhase: 'IN' | 'OUT' | 'IDLE'
     ) {
-        const sorted = engine.projectiles.slice().sort((a, b) => {
-            const keyA = a.skill.visualProjectileEffect || a.skill.visual || 'BOLT';
-            const keyB = b.skill.visualProjectileEffect || b.skill.visual || 'BOLT';
-            return keyA.localeCompare(keyB);
-        });
-
         const now = engine.battleTime;
 
-        for (const p of sorted) {
-             const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
-             const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
+        for (const p of engine.projectiles) {
+            if (!p.active) continue;
 
-             // 1. Resolve Start & End Points (3D)
-             const startPoint: Point3D = { x: p.startX, y: p.startY, z: p.startZ || 0 };
-             const targetPoint = VisualMath.resolveTargetPoint(p.targetId, engine);
-             
-             // Fallback if target invalid (use projectile's last known target pos + map height)
-             let endPoint: Point3D = targetPoint;
-             if (endPoint.z < -9000) {
-                 const h = engine.map.getTerrainHeight(0, 0); // Approx
-                 endPoint = { x: p.targetPos.x, y: p.targetPos.y, z: h + 20 };
-             }
+            const def: ProjectileVisualDef = PROJECTILE_VISUALS[p.skill.visualProjectileEffect || p.skill.visual || 'BOLT'] || DEFAULT_PROJECTILE;
 
-             // 2. Calculate Analytic Progress (Time-based for smoothness)
-             const totalDist = Vector.dist({x: startPoint.x, y: startPoint.y}, {x: endPoint.x, y: endPoint.y});
-             const speed = Math.max(100, p.speed);
-             const duration = totalDist / speed;
-             const age = now - p.createdAt;
-             
-             // Clamp progress 0..1, but allow slight overshoot for impact frame
-             const progress = Math.min(1.0, Math.max(0.0, age / duration));
+            // 1. 建立解析座標函數
+            const startP: Point3D = { x: p.startX, y: p.startY, z: p.startZ || 30 };
+            const targetP = VisualMath.resolveTargetPoint(p.targetId, engine);
+            
+            // 安全邊界處理
+            let endP: Point3D = targetP;
+            if (endP.z < -9000) {
+                 const h = engine.map.getTerrainHeight(HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig).q, HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig).r);
+                 endP = { x: p.targetPos.x, y: p.targetPos.y, z: h + 25 };
+            }
 
-             // 3. Trajectory Function
-             const getPosAt = (t: number): Point3D => {
-                 let pos: Point3D;
-                 if (def.trajectory === 'ARC') {
-                     const arcH = def.arcHeight || 120;
-                     pos = TrajectoryMath.parabolic(startPoint, endPoint, t, arcH);
-                 } else if (def.trajectory === 'WOBBLE') {
-                     pos = TrajectoryMath.wobble(startPoint, endPoint, t, def.wobbleAmp || 10, def.wobbleFreq || 2);
-                 } else if (def.renderType === 'BEAM') { // Beam trajectory implies 'INSTANT' usually
-                     pos = TrajectoryMath.linear(startPoint, endPoint, t);
-                 } else {
-                     // Default Linear
-                     pos = TrajectoryMath.linear(startPoint, endPoint, t);
-                 }
-                 return pos;
-             };
+            const totalDist = Math.sqrt((endP.x - startP.x)**2 + (endP.y - startP.y)**2);
+            const duration = totalDist / Math.max(200, p.speed);
+            const age = now - p.createdAt;
+            const t = Math.min(1.0, age / duration);
 
-             // 4. Calculate Current Position & Rotation
-             const currentPos3D = getPosAt(progress);
-             
-             // Look ahead slightly for rotation tangent
-             const lookAheadT = Math.min(1.0, progress + 0.05);
-             const nextPos3D = getPosAt(lookAheadT);
-             
-             // Calculate visual Y (projected 3D -> 2D screen space)
-             // We apply transition offset here
-             const transOffset = getTransitionOffset(currentPos3D.x, currentPos3D.y, engine.mapConfig, transitionT, transitionPhase);
-             
-             // VISUAL Y = GroundY - HeightZ
-             // Project both current and next to get 2D angle
-             const visX = currentPos3D.x;
-             const visY = currentPos3D.y - currentPos3D.z + transOffset;
-             
-             const nextVisX = nextPos3D.x;
-             const nextVisY = nextPos3D.y - nextPos3D.z + transOffset; // Height affects angle!
+            const getPosAt = (progress: number) => {
+                if (def.trajectory === 'ARC') return TrajectoryMath.parabolic(startP, endP, progress, def.arcHeight || 120);
+                if (def.trajectory === 'WOBBLE') return TrajectoryMath.wobble(startP, endP, progress, def.wobbleAmp || 15, def.wobbleFreq || 2);
+                return TrajectoryMath.linear(startP, endP, progress);
+            };
 
-             const angle = Math.atan2(nextVisY - visY, nextVisX - visX);
+            const pos3D = getPosAt(t);
+            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, t, ISO_SCALE_Y);
 
-             // Cull off-screen
-             if (Math.abs(transOffset) > 800) continue;
+            // 2. 計算視覺座標 (等角投影)
+            const transOffset = getTransitionOffset(pos3D.x, pos3D.y, engine.mapConfig, transitionT, transitionPhase);
+            const visX = pos3D.x;
+            const visY = pos3D.y * ISO_SCALE_Y - pos3D.z + transOffset;
 
-             // 5. Submit Render Op
-             const op = renderList.next();
-             op.type = RenderOpType.PROJECTILE;
-             
-             // Sorting: Use ground Y for sort, but modify by Z height logic in RenderList
-             op.y = currentPos3D.y + transOffset; 
-             op.z = currentPos3D.z;
-             
-             op.proj = p;
-             op.pVisX = visX;
-             op.pVisY = visY;
-             // Store shadow Y (Ground level)
-             op.pVisShadowY = currentPos3D.y - engine.map.getTerrainHeight(
-                 HexUtils.fromPx(visX, currentPos3D.y, engine.mapConfig).q,
-                 HexUtils.fromPx(visX, currentPos3D.y, engine.mapConfig).r
-             ) + transOffset;
-
-             op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
-             op.pColor = def.colorOverride || p.skill.color;
-             op.pIsUlt = p.skill.tag === 'ULT';
-             op.pAngle = angle;
-             op.pSpin = def.spinSpeed ? (age * def.spinSpeed) : 0;
-             
-             // 6. Generate Trail
-             // Analytic sampling for smooth curves
-             op.pTrail = [];
-             if ((def.trailLength || 0) > 0) {
-                 const trailSamples = def.trailLength || 5;
-                 const step = 0.02 * (1000 / speed); // Adjust step size based on speed
-                 
-                 for(let i = 1; i <= trailSamples; i++) {
-                     const tSample = Math.max(0, progress - (i * step));
-                     const sample3D = getPosAt(tSample);
-                     const sTrans = getTransitionOffset(sample3D.x, sample3D.y, engine.mapConfig, transitionT, transitionPhase);
-                     const sVisY = sample3D.y - sample3D.z + sTrans;
-                     
-                     op.pTrail.push({x: sample3D.x, y: sVisY});
-                     
-                     // Optimization: Stop if we hit start
-                     if (tSample <= 0) break;
-                 }
-             }
+            // 3. 提交渲染指令
+            const op = renderList.next();
+            op.type = RenderOpType.PROJECTILE;
+            
+            // 核心優化：飛行物 Y 排序偏置。讓高速飛行物看起來在地形「之上」
+            op.y = pos3D.y + 10; 
+            op.z = pos3D.z + 500; // 給予極高的層級分數以防 Z-fighting
+            
+            op.pVisX = visX;
+            op.pVisY = visY;
+            op.pAngle = visAngle;
+            op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
+            op.pColor = p.skill.color;
+            op.pIsUlt = p.skill.tag === 'ULT';
+            op.pSpin = def.spinSpeed ? (age * def.spinSpeed) : 0;
+            
+            // 4. 解析尾跡採樣 (Analytic Trail Sampling)
+            op.pTrail = [];
+            const trailSamples = def.trailLength || 0;
+            if (trailSamples > 0) {
+                const step = 0.02; // 時間步長
+                for (let i = 1; i <= trailSamples; i++) {
+                    const tPast = Math.max(0, t - i * step);
+                    const past3D = getPosAt(tPast);
+                    const pastY = past3D.y * ISO_SCALE_Y - past3D.z + transOffset;
+                    op.pTrail.push({ x: past3D.x, y: pastY });
+                    if (tPast <= 0) break;
+                }
+            }
         }
     }
 };

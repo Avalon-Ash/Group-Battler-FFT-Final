@@ -20,19 +20,28 @@ export const UnitBodyPainter = {
     ) {
         ctx.save(); 
         
-        // 1. Transform to Body Center (Standard Anchor via VisualMath)
-        // Note: py here is Surface Y (Top of block)
+        // 1. 獲取身體中心視覺 Y 軸 (SSOT)
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-        
         ctx.translate(px, bodyY); 
         
-        // --- SCALE ADJUSTMENT ---
-        // Apply global scale factor here to shrink the entire unit body composition
-        ctx.scale(UNIT_SCALE, UNIT_SCALE);
+        // 2. 核心受擊幾何處理 (Juice Math)
+        let hitBrightness = 0;
+        let squashX = 1.0;
+        let squashY = 1.0;
 
+        if (agent.hitFlashTimer > 0 && !isSilhouette) {
+            const trauma = agent.hitFlashTimer / 0.2; // 歸一化進度
+            // 數學擠壓：受擊時垂直縮短，水平伸長
+            squashY = 1.0 - (trauma * 0.25);
+            squashX = 1.0 + (trauma * 0.15);
+            // 亮度震盪函數 (高頻率 40Hz)
+            hitBrightness = 100 + Math.sin(t * 40) * 50;
+        }
+
+        ctx.scale(UNIT_SCALE * squashX, UNIT_SCALE * squashY);
         ctx.rotate(agent.physics.angle); 
 
-        // 2. Animation Bobbing / Floating
+        // 3. 基礎呼吸與浮動
         let bodyFloat = 0; 
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
              bodyFloat = Math.sin(t * 2) * 3; 
@@ -41,7 +50,7 @@ export const UnitBodyPainter = {
         }
         ctx.translate(0, bodyFloat);
 
-        // 3. Spawn Animation
+        // 4. 進場縮放動畫
         if (agent.spawnTimer > 0) {
             const SPAWN_DURATION = 0.5; 
             const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 
@@ -50,42 +59,31 @@ export const UnitBodyPainter = {
             ctx.globalAlpha *= eased;
         }
 
-        // 4. Status Filters
+        // 5. 狀態濾鏡應用
         if (agent.hp <= 0 && !isSilhouette) {
-            ctx.filter = 'grayscale(100%) opacity(80%)'; 
-        } else if (!isSilhouette && agent.hitFlashTimer > 0) {
-             ctx.filter = 'brightness(200%)';
+            ctx.filter = 'grayscale(100%) opacity(70%)'; 
+        } else if (hitBrightness > 0) {
+             ctx.filter = `brightness(${hitBrightness}%) contrast(120%)`;
         }
 
-        // 5. Flight VFX
+        // 6. 飛行與特殊模型渲染
         if (agent.movementType === MovementType.FLYING && agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             UnitFlightPainter.drawFlightVFX(ctx, agent, t);
         }
 
-        // 6. Facing Flip
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-
-        // 7. Render Strategy
-        if (isSilhouette) {
-            ctx.globalCompositeOperation = 'source-over'; 
-            ctx.globalAlpha = 0.8; 
-        }
 
         if (agent.visualStatus === 'POLYMORPH') {
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(t * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
-            // Faction Specific Renderers
             if (agent.team === Team.BLUE) {
                 ImperialRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
                 CovenantRenderer.draw(ctx, agent, t, isSilhouette);
             }
             
-            // Note: Casting VFX removed from here. Now handled in UnitShadowPainter (Ground Layer).
-            
-            // Frozen State Overlay
             if (agent.visualStatus === 'FROZEN') {
                 const ice = SpriteManager.getSpecialModel('ICE');
                 ctx.save();

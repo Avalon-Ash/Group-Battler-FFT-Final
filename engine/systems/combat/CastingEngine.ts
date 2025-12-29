@@ -5,7 +5,7 @@ import { AnimState } from "../../../types";
 export class CastingEngine {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine, onComplete: (a: Agent) => void) {
-        // 1. HARD CC INTERRUPT CHECK
+        // 1. 硬控場檢查 (Interrupt Priority)
         const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
         
         if (isHardCC) {
@@ -21,7 +21,7 @@ export class CastingEngine {
             }
         }
         
-        // 2. CAST PROGRESS
+        // 2. 詠唱進度積分
         a.castTimer -= dt;
         if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt; 
         
@@ -36,9 +36,19 @@ export class CastingEngine {
         if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
             const s = a.skills[skillIdx]!;
             if (s.tag !== 'BASIC') {
-                engine.log(a, 'CC', '中斷', s.name, '詠唱被打斷');
-                let centerPos = { x: a.px, y: a.py };
-                engine.events.push({ type: 'CAST_BREAK', pos: centerPos, value: 0, color: s.color, skill: s });
+                // 計算進度比：進度越高，中斷爆炸越強
+                const progressPct = 1 - (a.castTimer / s.cast);
+                
+                engine.log(a, 'CC', '中斷', s.name, `詠唱被打斷 (進度: ${Math.floor(progressPct * 100)}%)`);
+                
+                // 傳遞精確的 3D 位置與進度參數
+                engine.events.push({ 
+                    type: 'CAST_BREAK', 
+                    pos: { x: a.px, y: a.py }, 
+                    value: progressPct, // 這裡重用 value 傳遞進度
+                    color: s.color, 
+                    skill: s 
+                });
             }
         }
         this.resetCaster(a);

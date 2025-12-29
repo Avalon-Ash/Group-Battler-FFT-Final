@@ -2,14 +2,15 @@
 import { Agent } from "../../../../game";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../../data/vfx/status_visuals";
-import { VisualMath } from "../../../math/VisualMath";
 import { VISUAL_ANCHORS } from "../../../../../constants";
 
 export const OverheadPainter = {
-    // x, y = Visual Surface Coordinates (Top of Block)
-    // z = Jump Height
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, z: number, t: number) {
-        // Priority System: Only show most severe CC
+    /**
+     * 繪製頭頂狀態圖標
+     * @param y 單位視覺中心 Y 軸
+     */
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
+        // 優先權檢查
         let type = '';
         if (agent.stunTimer > 0) type = 'STUN';
         else if (agent.fearTimer > 0) type = 'FEAR';
@@ -22,35 +23,35 @@ export const OverheadPainter = {
         const icon = AssetManager.getStatusIcon(type);
         if (!icon) return;
 
-        // Bobbing Animation
-        const bob = Math.sin(t * 6) * 5;
+        // 數學波形：平滑垂直震盪
+        const bob = Math.sin(t * 8) * 4;
         
-        // --- ANCHOR LOGIC FIX (SSOT) ---
-        const unitHeadY = VisualMath.getVisualBodyCenterY(y, z);
-        const anchorY = unitHeadY - VISUAL_ANCHORS.HEAD_OFFSET_Y + bob; 
+        // 錨點：從身體中心向上偏移固定量
+        const anchorY = y - VISUAL_ANCHORS.HEAD_OFFSET_Y - 15 + bob; 
 
         ctx.save();
         ctx.translate(x, anchorY);
         
-        // Glow Backing
         const def = STATUS_VISUALS[type];
         const color = def?.primaryColor || '#fff';
         
+        // 渲染發光層
         ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
+        ctx.shadowBlur = 12;
+        ctx.globalAlpha = 0.9;
         
-        // Draw Icon
-        ctx.drawImage(icon, -24, -24, 48, 48);
+        ctx.drawImage(icon, -20, -20, 40, 40);
         
-        // Extra "Dizzy" stars for Stun
+        // 暈眩星光特效
         if (type === 'STUN') {
-            ctx.rotate(t * 2);
+            ctx.rotate(t * 4);
             ctx.fillStyle = '#fff';
             for(let i=0; i<3; i++) {
                 const a = i * (Math.PI*2/3);
-                const sx = Math.cos(a) * 20;
-                const sy = Math.sin(a) * 20;
-                ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI*2); ctx.fill();
+                const starDist = 22;
+                ctx.beginPath(); 
+                ctx.arc(Math.cos(a)*starDist, Math.sin(a)*starDist, 2.5, 0, Math.PI*2); 
+                ctx.fill();
             }
         }
 

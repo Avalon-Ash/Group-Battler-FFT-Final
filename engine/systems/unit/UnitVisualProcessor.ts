@@ -1,7 +1,9 @@
+
 import { Agent } from "../../game";
 import { MovementType } from "../../../types";
 import { HexUtils, MapConfig } from "../../utils";
 import { UNIT_BODY_OFFSET } from "../../../constants";
+
 export interface UnitVisualState {
     agent: Agent;
     x: number;
@@ -15,6 +17,7 @@ export interface UnitVisualState {
     isDead: boolean;
     isVisible: boolean;
 }
+
 export class UnitVisualProcessor {
     public static process(
         agent: Agent, 
@@ -25,36 +28,26 @@ export class UnitVisualProcessor {
         const isDead = agent.hp <= 0;
         const visualX = agent.px + agent.physics.x;
         const visualY = agent.py + agent.physics.y;
+        
         let terrainH = getTerrainHeight(agent.q, agent.r);
-        let sortY = visualY;
-        if (agent.isMoving && agent.path.length > 0) {
-            const nextHex = agent.path[0];
-            if (agent.moveProgress >= 0.5) {
-                terrainH = getTerrainHeight(nextHex.q, nextHex.r);
-            }
-            const startPx = HexUtils.toPx(agent.q, agent.r, mapConfig);
-            const endPx = HexUtils.toPx(nextHex.q, nextHex.r, mapConfig);
-            const railX = HexUtils.lerp(startPx.x, endPx.x, agent.moveProgress);
-            const railY = HexUtils.lerp(startPx.y, endPx.y, agent.moveProgress);
-            const deviationSq = (visualX - railX)**2 + (visualY - railY)**2;
-            if (deviationSq < 100) {
-                sortY = Math.max(startPx.y, endPx.y) + agent.physics.y;
-            } else {
-                sortY = visualY;
-            }
+        
+        // 預測插值：若正在跨越邊界，取目標格高度以防閃爍
+        if (agent.isMoving && agent.path.length > 0 && agent.moveProgress > 0.5) {
+            terrainH = getTerrainHeight(agent.path[0].q, agent.path[0].r);
         }
-        const visualZ = terrainH + agent.physics.z; 
+
         const isSelected = (agent === highlightAgent);
+        
         return {
             agent,
             x: visualX,
             y: visualY,
-            z: visualZ,
+            z: agent.physics.z,
             terrainHeight: terrainH,
             scale: 1.0, 
             isSilhouette: false,
             isSelected,
-            sortY,
+            sortY: agent.py, // 使用穩定邏輯座標排序
             isDead,
             isVisible: !agent.fullyDead
         };

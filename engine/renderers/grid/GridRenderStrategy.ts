@@ -1,3 +1,4 @@
+
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
@@ -7,9 +8,11 @@ import { HexUtils, getTransitionOffset } from "../../utils";
 import { SpriteManager } from "../../sprites";
 
 const OBSTACLE_Z_INDEX = 10;
-const OBSTACLE_ANCHOR_Y = 0; 
 const PROJ_LIGHT_RADIUS_SQ = 1600;
 
+/**
+ * 網格渲染提交策略 - v11.0 (高階美術校正版)
+ */
 export class GridRenderStrategy {
     
     private _unitPresence = new Set<string>();
@@ -50,26 +53,38 @@ export class GridRenderStrategy {
             const { q, r, px, py, h, key } = tile;
             
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
-            const visualTopY = py - h + offset;
             const visualBaseY = py + offset;
+            const visualSurfaceY = visualBaseY - h;
 
             if (Math.abs(offset) > 800) continue;
 
-            const sortY = py;
-
+            // 1. 提交障礙物
             const obstacleType = engine.obstacles.get(key);
             if (obstacleType) {
                 const op = renderList.next();
                 op.type = RenderOpType.OBSTACLE;
-                op.y = sortY; 
+                op.y = py; 
                 op.z = OBSTACLE_Z_INDEX;
                 op.tx = px; 
-                op.ty = visualTopY - OBSTACLE_ANCHOR_Y; 
+                op.ty = visualSurfaceY; 
                 op.ttype = obstacleType;
             }
 
-            const zoneInfo = engine.zones.getZoneAt(q, r);
+            // 2. 提交地面效果 (Hazards) -> 從 Terrain 解耦，建立獨立 Op
+            const hazard = engine.map.getHazardAt(q, r, engine);
+            if (hazard) {
+                const hOp = renderList.next();
+                hOp.type = RenderOpType.HAZARD;
+                hOp.y = py; 
+                hOp.z = 5; // 低於單位，高於地板
+                hOp.tx = px; 
+                hOp.ty = visualSurfaceY; 
+                hOp.oHazard = hazard;
+                hOp.time = globalTime;
+            }
 
+            // 3. 提交地形與基礎 Overlays
+            const zoneInfo = engine.zones.getZoneAt(q, r);
             let isRange = false;
             let rangeColor = '';
             if (hoveredSkill && highlightAgent) {
@@ -77,18 +92,13 @@ export class GridRenderStrategy {
                 const deltaH = agentH - h;
                 const bonus = Math.max(0, Math.floor(deltaH / 24)); 
                 const dist = HexUtils.dist({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
-                
-                if (dist <= hoveredSkill.range + bonus) { 
-                    isRange = true; 
-                    rangeColor = hoveredSkill.color; 
-                }
+                if (dist <= hoveredSkill.range + bonus) { isRange = true; rangeColor = hoveredSkill.color; }
             }
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            // Corrected: Route through map system hazard lookup
-            const hazard = engine.map.getHazardAt(q, r, engine);
 
+            // 投射物光照計算
             let lightColor = null;
             let lightIntensity = 0;
             for (const p of projectiles) {
@@ -101,22 +111,18 @@ export class GridRenderStrategy {
 
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
-            op.y = sortY; 
+            op.y = py; 
             op.z = 0; 
-            
             op.tx = px; 
             op.ty = visualBaseY; 
             op.th = h;
-            
             op.tsize = HEX_SIZE;
             op.ttheme = theme;
             op.ttype = scene.textureType;
             op.tdetail = theme.detail;
             op.tq = q; op.tr = r;
-            
             op.oStatus = this._unitVisualStatus.get(key);
             op.oDanger = zoneInfo; 
-            op.oHazard = hazard;
             op.oLightCol = lightColor; op.oLightInt = Math.min(1, lightIntensity);
             op.oRange = isRange; op.oRangeCol = rangeColor;
             op.oHover = isHover; op.oHasUnit = hasUnit;
