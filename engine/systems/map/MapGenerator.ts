@@ -34,6 +34,9 @@ export class MapGenerator {
         const centerR = Math.floor((H - 1) / 2);
         const centerHex = { q: centerQ, r: centerR };
         
+        // 用於計算前景深度的參考值
+        const centerSum = centerQ + centerR;
+        
         const noisePhaseA = Math.random() * 1000;
         const noisePhaseB = Math.random() * 1000;
 
@@ -45,11 +48,18 @@ export class MapGenerator {
                 const dist = HexUtils.dist({q, r}, centerHex);
                 
                 // 核心數學：階梯狀高度函數 (Stepped Height Field)
-                // 使用 noise 生成基礎趨勢，但最終結果強制離散化
                 let rawVal = (Math.sin((q + noisePhaseA) * 0.4) + Math.cos((r + noisePhaseB) * 0.4)) * 2.0;
                 rawVal += (dist * 0.5); // 基礎碗狀趨勢
 
-                // 離散化為 Tier 層級 (0, 1, 2, 3...)
+                // 視覺修正：前景壓低 (防止遮擋戰場視線)
+                // 根據 Diamond Grid 投影邏輯，(q+r) 越大表示越靠近螢幕下方 (前景)
+                // 我們對前景區域施加高度懲罰，形成類似羅馬競技場的單向開口結構
+                const visualDepth = (q + r) - centerSum;
+                if (visualDepth > 0) {
+                    rawVal -= (visualDepth * 0.8); 
+                }
+
+                // 離散化為 Tier 層級
                 let tier = Math.round(rawVal);
                 tier = Math.max(0, Math.min(MAX_TERRAIN_TIER, tier));
                 
@@ -60,7 +70,7 @@ export class MapGenerator {
             }
         }
 
-        // 高度場平滑：僅對 Tier 進行平滑，確保鄰接高度差不超過 1
+        // 高度場平滑
         const smoothedTiers = new Map<string, number>();
         tiers.forEach((tier, key) => {
             const [q, r] = key.split(',').map(Number);
@@ -74,7 +84,6 @@ export class MapGenerator {
         });
 
         smoothedTiers.forEach((tier, key) => {
-            // 物理高度 SSOT：嚴格對齊 BLOCK_HEIGHT
             system.setHeight(key, tier * BLOCK_HEIGHT);
         });
 
@@ -90,13 +99,11 @@ export class MapGenerator {
 
         keys.forEach((key) => {
             const [q, r] = key.split(',').map(Number);
-            const hPx = system.getHeightByKey(key);
             const dist = HexUtils.dist({q, r}, centerHex);
 
             if (dist < 2.5) return; 
             if (engine.getAgentAt(q, r)) return;
 
-            // 隨機障礙物生成邏輯
             const noise = Math.sin(q * 0.8) * Math.cos(r * 0.8);
             if (noise > 0.4 && Math.random() < 0.3) {
                 system.setObstacle(q, r, obstacleType);
