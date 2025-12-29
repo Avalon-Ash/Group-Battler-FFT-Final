@@ -5,7 +5,7 @@ import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 
 // 幾何常數
-const PEDESTAL_DEPTH = 30; // Reduced from 120 to 30 to fix "too high" look
+const PEDESTAL_DEPTH = 30; // Reduced from 120 to 30 to fix "too high" look and prevent UI obstruction
 const EXPANSION_BIAS = 0.6; // 數學膨脹量 (px)，解決縫隙
 
 export const TerrainRenderer = {

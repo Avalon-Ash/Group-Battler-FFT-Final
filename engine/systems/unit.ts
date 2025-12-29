@@ -30,7 +30,12 @@ export class UnitRenderSystem {
             
             op.agent = agent;
             op.tx = state.x; 
-            op.ty = state.y - state.terrainHeight;
+            
+            // Fix: Set op.y to Ground Y for correct depth sorting (Back to Front)
+            // If we don't set this, units sort by Z only, causing flying units in back to overlap front units
+            op.y = state.y; 
+            
+            op.ty = state.y - state.terrainHeight; // Visual rendering Y (Top of terrain)
             op.z = agent.physics.z; 
             op.time = globalTime;
             op.uSelected = state.isSelected;

@@ -34,13 +34,21 @@ export const ProjectileRenderer = {
                  endP = { x: p.targetPos.x, y: p.targetPos.y, z: h + 25 };
             }
 
-            const totalDist = Math.sqrt((endP.x - startP.x)**2 + (endP.y - startP.y)**2);
-            const duration = totalDist / Math.max(200, p.speed);
+            const dx = endP.x - startP.x;
+            const dy = endP.y - startP.y;
+            const totalDist = Math.sqrt(dx*dx + dy*dy);
+            
+            const duration = totalDist / Math.max(50, p.speed); // Prevent divide by zero
             const age = now - p.createdAt;
             const t = Math.min(1.0, age / duration);
 
             const getPosAt = (progress: number) => {
-                if (def.trajectory === 'ARC') return TrajectoryMath.parabolic(startP, endP, progress, def.arcHeight || 120);
+                if (def.trajectory === 'ARC') {
+                    // [UPDATED] Dynamic Arc Height: Scale with distance, clamped between min and max
+                    // Short throws are low, long throws are high.
+                    const dynamicHeight = Math.min(def.arcHeight || 150, Math.max(30, totalDist * 0.35));
+                    return TrajectoryMath.parabolic(startP, endP, progress, dynamicHeight);
+                }
                 if (def.trajectory === 'WOBBLE') return TrajectoryMath.wobble(startP, endP, progress, def.wobbleAmp || 15, def.wobbleFreq || 2);
                 return TrajectoryMath.linear(startP, endP, progress);
             };
@@ -58,8 +66,6 @@ export const ProjectileRenderer = {
             op.type = RenderOpType.PROJECTILE;
             
             // 核心優化：飛行物 Y 排序偏置。
-            // 使用 Visual Y + 一個巨大的 Base Z 確保它在 Unit Layer 之上
-            // 同時保持與其他飛行物相對正確
             op.y = pos3D.y; 
             op.z = 5000 + pos3D.z; 
             
@@ -76,7 +82,8 @@ export const ProjectileRenderer = {
             op.pTrail = [];
             const trailSamples = def.trailLength || 0;
             if (trailSamples > 0) {
-                const step = 0.02; // 時間步長
+                // [UPDATED] Trail sampling relative to speed for smoother curves
+                const step = 0.015; 
                 for (let i = 1; i <= trailSamples; i++) {
                     const tPast = Math.max(0, t - i * step);
                     const past3D = getPosAt(tPast);

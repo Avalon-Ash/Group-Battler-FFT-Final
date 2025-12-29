@@ -63,7 +63,9 @@ export class RenderPipeline {
                     ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
                     break;
                 case RenderOpType.UNIT:
-                    if (op.agent) this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.th, op.time, op.uSelected, op.uSilhouette, layout);
+                    // Fix: Pass op.z (Physics Z) instead of op.th (Terrain Height)
+                    // op.ty is already adjusted by terrain height (py - th), so passing th again as z caused double height offset
+                    if (op.agent) this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.z, op.time, op.uSelected, op.uSilhouette, layout);
                     break;
                 case RenderOpType.DECAL:
                     ctx.save(); ctx.translate(snapX, snapY); ctx.scale(op.dScale, op.dScale); ctx.globalAlpha = Math.min(1, op.dLife);

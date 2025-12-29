@@ -22,26 +22,32 @@ export const HazardPainter = {
 
         if (def.type === 'FOG') {
             const texture = VFXFactory.getTexture('SMOKE', def.primaryColor);
-            const size = HEX_SIZE * 1.5;
+            // Increased scale for visibility
+            const size = HEX_SIZE * 3.0; 
             const speed = globalTime * def.speed;
 
             ctx.save();
-            ctx.translate(x, y + FOG_PLANE_LIFT); // 高度偏置
+            ctx.translate(x, y + FOG_PLANE_LIFT); 
             ctx.scale(1, ISO_SCALE_Y);
             
+            // 1. Base Body (Darker, Opaque-ish) for Volume
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = def.intensity * 0.3;
+            ctx.drawImage(texture, -size * 0.3, -size * 0.3, size * 0.6, size * 0.6);
+
+            // 2. Swirling Light Layers
             ctx.globalCompositeOperation = (hazard.type === 'POISON') ? 'screen' : 'lighter';
             
-            // 多層旋轉噪波模擬煙霧流動
             ctx.save();
             ctx.rotate(speed * 0.12);
-            ctx.globalAlpha = def.intensity * 0.8;
+            ctx.globalAlpha = def.intensity * 0.6;
             ctx.drawImage(texture, -size/2, -size/2, size, size);
             ctx.restore();
 
             ctx.save();
-            ctx.rotate(-speed * 0.08 + 1);
-            ctx.scale(0.85, 0.85);
-            ctx.globalAlpha = def.intensity * 0.5;
+            ctx.rotate(-speed * 0.08 + 2.0);
+            ctx.scale(0.9, 0.9);
+            ctx.globalAlpha = def.intensity * 0.4;
             ctx.drawImage(texture, -size/2, -size/2, size, size);
             ctx.restore();
 
@@ -49,17 +55,34 @@ export const HazardPainter = {
         }
         else if (def.type === 'LIQUID') {
             const speed = globalTime * def.speed;
-            // 諧波震盪：使邊緣產生律動感
             const intensity = def.intensity * (0.85 + Math.sin(speed * 0.8) * 0.15);
             
             ctx.save();
-            ctx.translate(0, HAZARD_PLANE_LIFT); // 物理微抬升
+            ctx.translate(0, HAZARD_PLANE_LIFT);
+            
+            // Base Puddle
             SurfacePainter.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
             if (def.cracks) SurfacePainter.drawCracks(ctx, x, y, def.secondaryColor, intensity * 0.8);
+            
+            // Rising Heat/Flames (Visual Boost)
+            if (hazard.type === 'FIRE') {
+                const flameTex = VFXFactory.getTexture('SMOKE', '#fca5a5'); // Bright core color
+                const flameH = 60;
+                const flameW = 40;
+                const rise = (globalTime * 50) % 30;
+                
+                ctx.translate(x, y - 10 - rise);
+                ctx.globalCompositeOperation = 'screen';
+                ctx.globalAlpha = (1 - rise/30) * intensity;
+                
+                // Draw 2 flame tongues
+                ctx.drawImage(flameTex, -flameW/2, -flameH, flameW, flameH);
+                ctx.drawImage(flameTex, -flameW * 0.3, -flameH * 0.8, flameW * 0.6, flameH * 0.8);
+            }
+
             ctx.restore();
         }
         else if (def.type === 'CRYSTAL') {
-            // 晶體類具備體積感
             if (def.extrude) VolumePainter.drawExtrusion(ctx, x, y + HAZARD_PLANE_LIFT, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7);
             
             ctx.save();
@@ -76,24 +99,41 @@ export const HazardPainter = {
             ctx.translate(x, y + HAZARD_PLANE_LIFT);
             ctx.scale(1, ISO_SCALE_Y);
             
-            const r = HEX_SIZE * 0.8;
-            // 事件視界漸變
-            const grad = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
-            grad.addColorStop(0, '#000');
-            grad.addColorStop(0.5, 'rgba(0,0,0,0.8)');
-            grad.addColorStop(0.8, def.secondaryColor);
-            grad.addColorStop(1, 'transparent');
+            // Massive Radius
+            const r = HEX_SIZE * 1.6;
             
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = 0.8 * def.intensity;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            
-            // 吸入感動態環
+            // 1. The Void (Pitch Black Core) - Source Over to eat pixels
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI*2); ctx.fill();
+
+            // 2. Event Horizon (Purple Ring)
+            ctx.globalCompositeOperation = 'lighter';
+            ctx.lineWidth = 4;
             ctx.strokeStyle = def.secondaryColor;
-            ctx.lineWidth = 2;
-            const cycle = (globalTime * 2) % 1;
-            ctx.globalAlpha = 0.4 * (1 - cycle);
-            ctx.beginPath(); ctx.arc(0, 0, r * (1 - cycle), 0, Math.PI*2); ctx.stroke();
+            ctx.shadowColor = def.secondaryColor;
+            ctx.shadowBlur = 20;
+            
+            const rot = globalTime * 3;
+            ctx.save();
+            ctx.rotate(rot);
+            // Spiral draw
+            ctx.beginPath();
+            for(let i=0; i<3; i++) {
+                const ang = i * (Math.PI*2/3);
+                ctx.moveTo(0,0);
+                ctx.quadraticCurveTo(Math.cos(ang)*r, Math.sin(ang)*r, Math.cos(ang+1)*r, Math.sin(ang+1)*r);
+            }
+            ctx.stroke();
+            ctx.restore();
+
+            // 3. Accretion Disk Gradient
+            const grad = ctx.createRadialGradient(0, 0, r * 0.5, 0, 0, r);
+            grad.addColorStop(0, def.secondaryColor);
+            grad.addColorStop(0.5, 'transparent');
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = 0.6;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
             
             ctx.restore();
         }
