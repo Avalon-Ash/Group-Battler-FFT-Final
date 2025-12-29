@@ -19,14 +19,13 @@ interface GameInputProps {
     winner: Team | null;
     
     onSelect: (a: Agent | null) => void;
-    onPan: (dx: number, dy: number) => void;
 }
 
 type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 
 /**
- * 跨平台輸入系統 v28.0 (ECS 兼容)
- * 統一處理 PC 滑鼠與移動端觸控，移除所有幽靈同步代碼
+ * 跨平台輸入控制器 v29.0 (ECS 物理同步版)
+ * 絕對遵守約束：完全移除幽靈同步邏輯，統一 PC 與 Mobile 交互曲線
  */
 export const useGameInput = (props: GameInputProps) => {
     const { 
@@ -35,9 +34,11 @@ export const useGameInput = (props: GameInputProps) => {
         onSelect
     } = props;
 
+    // React 狀態僅用於渲染「幽靈物件」或 UI 反饋
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<any>(null);
 
+    // 核心交互狀態 (Ref 以保持物理頻率一致)
     const interactionMode = useRef<InteractionMode>('IDLE');
     const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
@@ -46,26 +47,34 @@ export const useGameInput = (props: GameInputProps) => {
     const pressedAgentRef = useRef<Agent | null>(null);
     const draggedObstacleRef = useRef<any>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
+    
+    // 多指跟蹤（解決移動端縮放衝突關鍵）
     const activePointers = useRef<Set<number>>(new Set());
 
+    // 實時讀取 UI 配置
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
-    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
+    useEffect(() => { 
+        configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; 
+    }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
 
     const getHexFromCoords = (sx: number, sy: number) => {
         if (!canvasRef.current || !rendererRef.current) return null;
         const rect = canvasRef.current.getBoundingClientRect();
+        // 絕對遵守唯一的座標轉換路徑
         return rendererRef.current.getHexAtScreenPoint(sx, sy, rect.width, rect.height, cameraRef.current, engine);
     };
 
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
-        // 如果是多指觸控，且正在平移，則放棄平移交給縮放系統
+        
+        // 1. 移動端多指熔斷：如果是多指觸控，立即停止所有平移，交給縮放系統
         if (activePointers.current.size > 1) {
-            if (interactionMode.current === 'PAN') interactionMode.current = 'IDLE';
+            interactionMode.current = 'IDLE';
             return;
         }
 
-        if (e.button !== 0 && e.pointerType === 'mouse') return;
+        // 2. PC 端按鍵過濾：僅響應左鍵 (Button 0)
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
         
         const cvs = canvasRef.current;
         if (!cvs) return;
@@ -78,26 +87,18 @@ export const useGameInput = (props: GameInputProps) => {
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         
-        const hitAgent = rendererRef.current.hud.damageNumbers.length > 0 ? null : null; // Placeholder to avoid HUD interference
-        const agent = engine.agents.find(a => {
-            if (a.hp <= 0 && a.fullyDead) return false;
-            const dist = Vector.dist({x: a.px, y: a.py}, rendererRef.current.grid.getHexAtWorldPoint(sx, sy, engine) ? HexUtils.toPx(a.q, a.r, engine.mapConfig) : {x:-999, y:-999});
-            return dist < 30; // 簡化的點擊判定，具體由 getHitAgent 執行
-        });
+        // 使用 Renderer 的 HitTest 判斷是否擊中單位
+        const h = getHexFromCoords(sx, sy);
+        const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
 
-        // 這裡調用 Renderer 提供的精確判定
-        const realHit = (rendererRef.current as any).getHexAtScreenPoint ? null : null; 
-
-        pressedAgentRef.current = agent || null;
-        setPressedAgent(agent || null);
-
-        if (!agent) {
-            const h = getHexFromCoords(sx, sy);
-            if (!engine.isRunning && h && engine.isValid(h.q, h.r) && tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
-                const obj = { type: engine.map.obstacles.get(HexUtils.key(h)), originQ: h.q, originR: h.r, px: 0, py: 0 };
-                draggedObstacleRef.current = obj;
-                setDraggedObstacle(obj);
-            }
+        if (agent && !engine.isRunning) {
+            pressedAgentRef.current = agent;
+            setPressedAgent(agent);
+        } else if (h && !engine.isRunning && configRef.current.tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
+            const obsType = engine.map.obstacles.get(HexUtils.key(h));
+            const obj = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
+            draggedObstacleRef.current = obj;
+            setDraggedObstacle(obj);
         }
 
         interactionMode.current = 'DOWN';
@@ -107,7 +108,10 @@ export const useGameInput = (props: GameInputProps) => {
     const handlePointerMove = (e: PointerEvent) => {
         if (!lastPointerPos.current || activePointers.current.size > 1) return;
 
-        const rect = canvasRef.current!.getBoundingClientRect();
+        const cvs = canvasRef.current;
+        if (!cvs) return;
+
+        const rect = cvs.getBoundingClientRect();
         const sx = e.clientX - rect.left;
         const sy = e.clientY - rect.top;
         
@@ -117,16 +121,17 @@ export const useGameInput = (props: GameInputProps) => {
         const h = getHexFromCoords(sx, sy);
         hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
 
+        // 狀態轉移邏輯 (閾值判定)
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            if (dist > 5) {
+            if (dist > 8) { // 稍微提高閾值防止點擊抖動
                 if (!engine.isRunning && configRef.current.tool === ToolType.SELECT) {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) {
                         interactionMode.current = 'DRAG_OBS';
                         engine.removeObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR);
                     } else interactionMode.current = 'PAN';
-                } else if (configRef.current.tool !== ToolType.SELECT && !engine.isRunning) {
+                } else if (!engine.isRunning && configRef.current.tool !== ToolType.SELECT) {
                     interactionMode.current = 'PAINT';
                 } else {
                     interactionMode.current = 'PAN';
@@ -134,28 +139,26 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
 
-        // --- 執行邏輯 ---
+        // --- 執行分發 (ECS 行為) ---
         if (interactionMode.current === 'PAN') {
+            // 重要：不再直接修改 Ref，僅推送動量偏移。平滑與同步由渲染循環處理。
             if (engine.renderer?.camera) {
-                // 絕對遵守數學引用：傳遞像素增量 dx, dy
                 engine.renderer.camera.applyPanOffset(dx, dy);
             }
-            canvasRef.current!.style.cursor = 'move';
-        } else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
+            cvs.style.cursor = 'move';
+        } 
+        else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const { x: camX, y: camY, zoom } = cameraRef.current;
             const cx = rect.width / 2;
             const cy = rect.height / 2;
+            const terrainH = h ? rendererRef.current.getTerrainHeight(h.q, h.r, engine) : 0;
+            // 物理投射更新
             pressedAgentRef.current.px = (sx - cx) / zoom + camX;
-            pressedAgentRef.current.py = (sy - cy) / zoom + camY;
-        } else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
-            const { x: camX, y: camY, zoom } = cameraRef.current;
-            const cx = rect.width / 2;
-            const cy = rect.height / 2;
-            draggedObstacleRef.current.px = (sx - cx) / zoom + camX;
-            draggedObstacleRef.current.py = (sy - cy) / zoom + camY;
-            setDraggedObstacle({ ...draggedObstacleRef.current });
-        } else if (interactionMode.current === 'PAINT' && h) {
-            // Paint logic here
+            pressedAgentRef.current.py = (sy - cy) / zoom + camY + terrainH;
+            cvs.style.cursor = 'grabbing';
+        }
+        else if (interactionMode.current === 'PAINT' && h) {
+            executePaintAction(h);
         }
 
         lastPointerPos.current = { x: sx, y: sy };
@@ -166,10 +169,11 @@ export const useGameInput = (props: GameInputProps) => {
         const cvs = canvasRef.current;
         if (!cvs) return;
 
-        if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
+        if (interactionMode.current === 'DOWN') {
+            onSelect(pressedAgentRef.current);
+        } else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const a = pressedAgentRef.current;
-            const rect = cvs.getBoundingClientRect();
-            const h = getHexFromCoords(e.clientX - rect.left, e.clientY - rect.top);
+            const h = getHexFromCoords(e.clientX - cvs.getBoundingClientRect().left, e.clientY - cvs.getBoundingClientRect().top);
             if (h && engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, a.id)) {
                 engine.updateAgentPosition(a, h.q, h.r);
                 const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
@@ -177,6 +181,13 @@ export const useGameInput = (props: GameInputProps) => {
             } else {
                 const p = HexUtils.toPx(a.q, a.r, engine.mapConfig);
                 a.px = p.x; a.py = p.y;
+            }
+        } else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
+            const h = getHexFromCoords(e.clientX - cvs.getBoundingClientRect().left, e.clientY - cvs.getBoundingClientRect().top);
+            if (h && engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r)) {
+                engine.setObstacle(h.q, h.r, draggedObstacleRef.current.type);
+            } else {
+                engine.setObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR, draggedObstacleRef.current.type);
             }
         }
 
@@ -187,6 +198,32 @@ export const useGameInput = (props: GameInputProps) => {
         setDraggedObstacle(null);
         cvs.style.cursor = 'default';
         cvs.releasePointerCapture(e.pointerId);
+    };
+
+    const executePaintAction = (h: Hex) => {
+        const { tool, winner, selectedObstacle, spawnMode, draftRole, hpInput } = configRef.current;
+        if (engine.isRunning || winner !== null) return;
+        const k = HexUtils.key(h);
+        if (lastPaintHex.current === k) return; 
+        lastPaintHex.current = k;
+
+        if (tool === ToolType.DELETE) {
+            engine.removeObstacle(h.q, h.r);
+            engine.removeAgent(h.q, h.r);
+        } else if (tool === ToolType.OBSTACLE) {
+            engine.removeAgent(h.q, h.r);
+            engine.setObstacle(h.q, h.r, selectedObstacle);
+        } else if (tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED) {
+            const existing = engine.getAgentAt(h.q, h.r);
+            if (!existing && !engine.hasObstacle(h.q, h.r)) {
+                let agent = engine.addAgent(tool === ToolType.ADD_BLUE ? Team.BLUE : Team.RED, h.q, h.r, hpInput);
+                if (agent && spawnMode === 'DRAFT') {
+                    agent.role = draftRole;
+                    agent.saveState();
+                    agent.reset(engine.mapConfig);
+                }
+            }
+        }
     };
 
     useEffect(() => {

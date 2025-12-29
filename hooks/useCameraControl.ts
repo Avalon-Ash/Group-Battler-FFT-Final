@@ -4,7 +4,6 @@ import { useEffect, useRef, MutableRefObject } from 'react';
 interface CameraControlProps {
     canvasRef: MutableRefObject<HTMLCanvasElement | null>;
     cameraRef: MutableRefObject<{ x: number; y: number; zoom: number }>;
-    onPan: (dx: number, dy: number) => void;
     onZoom: (delta: number) => void;
     engine: any;
 }
@@ -13,7 +12,7 @@ interface CameraControlProps {
  * 攝像機交互控制器 v25.0
  * 僅保留縮放功能，平移邏輯已整合至 useGameInput 以解決 PC 上的左鍵拖曳衝突
  */
-export const useCameraControl = ({ canvasRef, cameraRef, onPan, onZoom, engine }: CameraControlProps) => {
+export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: CameraControlProps) => {
     const lastPinchDist = useRef<number>(0);
 
     useEffect(() => {

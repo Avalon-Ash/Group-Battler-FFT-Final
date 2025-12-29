@@ -7,8 +7,8 @@ export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => bo
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
 
 /**
- * 行為樹註冊表 v28.0 (ECS 邏輯核心)
- * 解決奧義滿 MP 發呆：主動掃描感應與積極追擊
+ * 行為樹註冊表 v29.0
+ * 核心升級：主動式奧義感應與追擊
  */
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
@@ -28,12 +28,13 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[idx];
         if (!s) return false;
         
-        // 絕對遵守數學引用：處理冷卻時間的微量浮點誤差
-        const isOnCD = a.curCDs[idx] > 0.005; 
+        // 絕對遵守數學引用：處理 CD 的極限精度問題 (Epsilon = 0.01)
+        const isOnCD = a.curCDs[idx] > 0.01; 
         if (isOnCD || a.mp < s.cost) return false;
         
-        // 控制狀態判定
+        // 硬控判定
         if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
+        // 沉默僅封鎖非基礎攻擊
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
         
         return true;
@@ -44,17 +45,18 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const skill = a.skills[idx];
         if (!skill) return false;
 
-        // 核心修復：奧義積極感應
-        // 如果是奧義(ULT)，感知範圍擴大，防止因為敵人稍遠就判定為「無目標可打」導致發呆
-        const visionRange = (skill.tag === 'ULT') ? skill.range + 5 : skill.range + 2;
+        // 核心邏輯優化：奧義積極感知
+        // 當 MP 滿且奧義準備好時，感應範圍擴大 5 格，讓單位「預知」目標並主動前進
+        const perceptionBonus = (skill.tag === 'ULT') ? 5 : 2;
+        const visionRange = skill.range + perceptionBonus;
         
         const result = engine.movement.calculateOptimalTarget(a, skill, engine);
         
         if (result.targetAgent) {
             a.target = result.targetAgent;
             a.targetHex = null;
-            // 只要目標在感應半徑內，就回傳 Success 讓後續 Chase 節點執行
             const dist = HexUtils.dist(a, result.targetAgent);
+            // 只要在感知視野內，就視為 FindTarget 成功，引導至後續的 Chase 或 Move 節點
             return dist <= visionRange;
         } 
         else if (result.targetHex) {
@@ -98,7 +100,8 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? 1.5 : 1.0;
+        // 奧義追擊時，給予 1.3x 的物理推進加速
+        const speedMult = (skill.tag === 'ULT') ? 1.3 : 1.0;
         if (a.targetHex) return engine.movement.moveAgentToHex(a, a.targetHex, skill.range, engine, speedMult);
         if (a.target) return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
         return NodeState.FAILURE;
@@ -106,11 +109,13 @@ export const BTActions: Record<string, BTActionFn> = {
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
-        if (!skill || !a.target) return NodeState.FAILURE;
+        if (!skill) return NodeState.FAILURE;
+        if (!a.target) engine.movement.updateTarget(a, engine); 
+        if (!a.target) return NodeState.FAILURE;
         
-        // 積極追擊：奧義準備好時稍微提速
+        // 奧義鎖定追擊
         const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
-        a.btStatus = `追擊 ${a.target.id}`;
+        a.btStatus = `鎖定 ${a.target.id}`;
         return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
     }
 };

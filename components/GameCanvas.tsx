@@ -51,25 +51,24 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     }
 
     // 1. Camera System
-    const { camera, centerCamera, pan, zoom } = useGameCamera(engine);
+    // Fix: Remove 'pan' as it is no longer returned by useGameCamera v29.0
+    const { camera, centerCamera, zoom } = useGameCamera(engine);
 
     // 2. Camera Controls
+    // Fix: Remove 'onPan' as it is no longer accepted by useCameraControl v25.0
     useCameraControl({
         canvasRef, 
         cameraRef: camera,
-        onPan: pan,
         onZoom: zoom,
         engine 
     });
 
     // 3. Input System (Unified Left-Click Pan)
+    // Fix: Remove 'onPan' as it is handled internally via CameraSystem in v29.0 and is not a member of GameInputProps
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
-        onSelect,
-        onPan: (dx, dy) => {
-            if(engine.renderer?.camera) engine.renderer.camera.applyPanOffset(dx, dy);
-        }
+        onSelect
     });
 
     // Reset progress when phase changes
