@@ -1,4 +1,5 @@
 import { Team, HexLayout } from './types';
+
 export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
 export const HEX_SIZE = 48;
 export const BLOCK_HEIGHT = 24;
@@ -10,16 +11,22 @@ export const UNIT_VISUAL_HEIGHT = 100;
 export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;
 export const UNIT_SCALE = 0.65;
+
 export const VISUAL_ANCHORS = {
     HEAD_OFFSET_Y: 50,
     ENGINE_OFFSET_Y: 15,
     HITBOX_RADIUS: 18,
+    // [Added] For Projectile Logic
+    HEAD_OFFSET: 60,
+    CENTER_OFFSET: 30
 };
+
 export const HUD_PADDING = 10;
 export const STATUS_ICON_OFFSET = 120;
 export const HUD_BAR_OFFSET = 150;
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
 export const KILL_STREAK_WINDOW = 5.0;
+
 export const PHYSICS = {
     GRAVITY: 3500,
     SAFE_FALL_VELOCITY: 1000,
@@ -30,6 +37,7 @@ export const PHYSICS = {
     DRIFT_SPEED: 12.0,
     TERMINAL_VELOCITY_IMPULSE: 400,
 };
+
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
     secondary: '#fde047',
@@ -38,6 +46,7 @@ export const THEME_IMPERIAL = {
     energy: '#60a5fa',
     cape: 'rgba(30, 58, 138, 0.9)'
 };
+
 export const THEME_COVENANT = {
     primary: '#ef4444',
     secondary: '#f87171',
@@ -46,6 +55,7 @@ export const THEME_COVENANT = {
     accent: '#7f1d1d',
     spike: '#18181b'
 };
+
 export const LOG_COLORS = {
     MOVE: '#38bdf8',
     CAST: '#fbbf24',
@@ -57,6 +67,7 @@ export const LOG_COLORS = {
     SYSTEM: '#64748b',
     HAZARD: '#fb923c'
 };
+
 export const PALETTE = {
     UI_BG: '#020617',
     UI_BORDER: '#1e293b',
@@ -70,6 +81,8 @@ export const PALETTE = {
     CRIT: '#ef4444',
     MAGIC: '#8b5cf6'
 };
+
+// [Refactored] Consolidated Logic Parameters
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
@@ -79,10 +92,26 @@ export const COMBAT_PARAM = {
     BASE_VAMP_PCT: 0.35,
     MANA_BURN_DEFAULT: 25,
     MANA_RESTORE_DEFAULT: 25,
-    GRAVITY_PULL_FORCE: 300,
-    ICE_SPEED_REDUCTION: 0.6,
+    
+    // Hazard Physics
+    GRAVITY_PULL_FORCE: 150,
+    GRAVITY_MIN_DIST: 5,
     GRAVITY_SPEED_REDUCTION: 0.3,
+    ICE_SPEED_REDUCTION: 0.5,
+    HIT_FLASH_DURATION: 0.1,
+
+    // AI Behaviors (Used by BTRegistry)
+    AI_CD_TOLERANCE: 0.01,
+    AI_PERCEPTION_BONUS_ULT: 5,
+    AI_PERCEPTION_BONUS_NORMAL: 2,
+    
+    // AI Movement Multipliers (Used by BTRegistry)
+    MOVE_SPEED_ULT: 1.3,
+    MOVE_SPEED_NORMAL: 1.0,
+    CHASE_SPEED_ULT: 1.4,
+    CHASE_SPEED_NORMAL: 1.1
 };
+
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID': { top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155', rim: '#64748b' },
     'FOREST': { top: '#15803d', sideLight: '#14532d', sideDark: '#052e16', detail: '#4ade80', rim: '#86efac' },
@@ -90,6 +119,7 @@ export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, si
     'MAGMA': { top: '#450a0a', sideLight: '#27272a', sideDark: '#18181b', detail: '#ef4444', rim: '#f87171' },
     'DESERT': { top: '#d97706', sideLight: '#b45309', sideDark: '#78350f', detail: '#fbbf24', rim: '#fcd34d' }
 };
+
 export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string, highlight: string }> = {
     'WALL': { main: '#475569', light: '#64748b', dark: '#334155', detail: '#94a3b8', highlight: '#cbd5e1' },
     'TREE': { main: '#3f6212', light: '#4d7c0f', dark: '#1a2e05', detail: '#84cc16', highlight: '#bef264' },

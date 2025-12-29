@@ -1,6 +1,7 @@
 import { Agent, GameEngine } from "../game";
 import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
+import { COMBAT_PARAM } from "../../constants";
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
@@ -21,7 +22,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot; 
         const s = a.skills[idx];
         if (!s) return false;
-        const isOnCD = a.curCDs[idx] > 0.01; 
+        const isOnCD = a.curCDs[idx] > COMBAT_PARAM.AI_CD_TOLERANCE; 
         if (isOnCD || a.mp < s.cost) return false;
         if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
@@ -31,7 +32,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
-        const perceptionBonus = (skill.tag === 'ULT') ? 5 : 2;
+        const perceptionBonus = (skill.tag === 'ULT') ? COMBAT_PARAM.AI_PERCEPTION_BONUS_ULT : COMBAT_PARAM.AI_PERCEPTION_BONUS_NORMAL;
         const result = engine.calculateOptimalTarget(a, skill);
         if (result.targetAgent) {
             a.target = result.targetAgent;
@@ -76,7 +77,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? 1.3 : 1.0;
+        const speedMult = (skill.tag === 'ULT') ? COMBAT_PARAM.MOVE_SPEED_ULT : COMBAT_PARAM.MOVE_SPEED_NORMAL;
         if (a.targetHex) return engine.moveAgentToHex(a, a.targetHex, skill.range, speedMult);
         if (a.target) return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
         return NodeState.FAILURE;
@@ -87,7 +88,7 @@ export const BTActions: Record<string, BTActionFn> = {
         if (!skill) return NodeState.FAILURE;
         if (!a.target) engine.updateTarget(a); 
         if (!a.target) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
+        const speedMult = (skill.tag === 'ULT') ? COMBAT_PARAM.CHASE_SPEED_ULT : COMBAT_PARAM.CHASE_SPEED_NORMAL;
         a.btStatus = `鎖定 ${a.target.id}`;
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     }

@@ -77,14 +77,14 @@ export class HazardSystem {
                         color: hazard.color,
                         skill: { color: hazard.color, ccType: 'DOT' } as any 
                     });
-                    agent.hitFlashTimer = 0.1;
+                    agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
                 }
 
                 if (hazard.type === 'GRAVITY') {
                     const center = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
                     const dx = center.x - agent.px, dy = center.y - agent.py;
                     const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > 5) {
+                    if (dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
                         agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                         agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                         agent.moveSpeedMult = COMBAT_PARAM.GRAVITY_SPEED_REDUCTION; 
