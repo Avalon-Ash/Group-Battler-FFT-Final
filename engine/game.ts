@@ -23,8 +23,10 @@ import { EventPool } from "./events/GameEventPool";
 import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
+
 export { Agent, SpecialVisualStatus };
 export const VICTORY_PHASE_DURATION = 0.5;
+
 export class GameEngine {
     public agents: Agent[] = [];
     public events: GameEvent[] = [];
@@ -51,6 +53,7 @@ export class GameEngine {
     public cooldowns = new CooldownSystem();
     public effects = new EffectSystem();
     public controls = new ControlSystem();
+
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
     get projectiles() { return this.combat.projectiles; }
@@ -66,7 +69,9 @@ export class GameEngine {
     get victoryTimer() { return this.victory.victoryTimer; }
     get winningTeam() { return this.victory.winningTeam; }
     get directorTargetId() { return this.director.targetId; }
+
     constructor() { this.map.randomizeEnvironment(this); }
+
     addAgent(team: Team, q: number, r: number, hpOverride?: number) { return this.agentManager.addAgent(this, team, q, r, hpOverride); }
     setObstacle(q: number, r: number, type: string) { this.map.setObstacle(q, r, type); }
     removeObstacle(q: number, r: number) { this.map.removeObstacle(q, r); }
@@ -76,15 +81,18 @@ export class GameEngine {
     isValidHash(h: number) { return this.map.isValidHash(h); }
     hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
+
     randomizeEnvironment() {
         this.hazards.reset();
         if (this.renderer) this.renderer.vfx.reset();
         this.map.randomizeEnvironment(this);
     }
+
     rebuildMap() {
         this.hazards.reset();
         this.map.rebuildMap(this);
     }
+
     removeAgent(q: number, r: number) {
         const agent = this.map.getAgentAt(q, r);
         if (agent) {
@@ -92,14 +100,17 @@ export class GameEngine {
             this.map.unregisterAgent(agent);
         }
     }
+
     getAgentAt(q: number, r: number): Agent | undefined { return this.map.getAgentAt(q, r); }
     updateAgentPosition(agent: Agent, newQ: number, newR: number) { this.map.updateAgentPosition(agent, newQ, newR); }
+
     public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: any = {}) {
         const evt = EventPool.get(type, pos, opts);
         if (type === 'KILL' && opts.sourceId) this.director.forceFocus(opts.sourceId, 2.5);
         else if (type === 'CAST_START' && opts.skill?.tag === 'ULT' && opts.sourceId) this.director.forceFocus(opts.sourceId, 3.0);
         this.events.push(evt);
     }
+
     public play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
@@ -118,7 +129,9 @@ export class GameEngine {
         });
         this.isRunning = true;
     }
+
     public stop() { this.isRunning = false; }
+
     public restart() {
         this.stop();
         this.victory.reset();
@@ -142,6 +155,7 @@ export class GameEngine {
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_RESET', {});
     }
+
     public clear(keepScene: boolean = false) {
         this.stop();
         this.agents = [];
@@ -163,10 +177,12 @@ export class GameEngine {
         else this.map.rebuildMap(this);
         this.bus.emit('GAME_CLEAR', {});
     }
+
     private flushEvents() {
         for(const e of this.events) EventPool.release(e);
         this.events.length = 0;
     }
+
     public tick(dt: number) {
         if (!this.isRunning) return;
         this.time.update(dt);
@@ -180,6 +196,7 @@ export class GameEngine {
         }
         this.updateEntities(dt);
     }
+
     private updateEntities(dt: number) {
         this.physics.update(dt, this);
         for (const a of this.agents) {
@@ -206,6 +223,7 @@ export class GameEngine {
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);
     }
+
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {
         this.logger.log(this.battleTime, this.battleTime * 10, agent, type, actionName, targetInfo, detail);
     }
