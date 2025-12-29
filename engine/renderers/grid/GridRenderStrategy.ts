@@ -1,4 +1,3 @@
-
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
@@ -77,7 +76,6 @@ export class GridRenderStrategy {
                 const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
                 const deltaH = agentH - h;
                 const bonus = Math.max(0, Math.floor(deltaH / 24)); 
-                // Use HexUtils.dist instead of direct HexMath
                 const dist = HexUtils.dist({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
                 
                 if (dist <= hoveredSkill.range + bonus) { 
@@ -88,7 +86,8 @@ export class GridRenderStrategy {
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            const hazard = engine.hazards.getHazardAt(q, r);
+            // Corrected: Route through map system hazard lookup
+            const hazard = engine.map.getHazardAt(q, r, engine);
 
             let lightColor = null;
             let lightIntensity = 0;

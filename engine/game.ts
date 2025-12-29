@@ -1,6 +1,6 @@
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig, Vector } from "./utils";
 import { DEFAULT_HEX_LAYOUT } from "../constants";
@@ -20,6 +20,7 @@ import { TimeSystem } from "./systems/TimeSystem";
 import { VictorySystem } from "./systems/VictorySystem"; 
 import { ZoneSystem } from "./systems/ZoneSystem"; 
 import { EventBus } from "./events/EventBus";
+import { EventBus as EventBusType } from "./events/EventBus";
 import { EventPool } from "./events/GameEventPool"; 
 
 import { CooldownSystem } from "./systems/status/CooldownSystem";
@@ -34,25 +35,30 @@ export const VICTORY_PHASE_DURATION = 0.5;
 
 export class GameEngine {
     public agents: Agent[] = [];
-    
+    public projectiles: Projectile[] = [];
+    public hazards: Map<string, GroundHazard> = new Map();
+    public sessionState: GlobalSessionState = {
+        killStreaks: new Map(),
+        firstBloodTriggered: false,
+        directorTargetId: null,
+        directorTimer: 0,
+        directorPriorityTimer: 0
+    };
+
     get mapKeys() { return this.map.mapKeys; }
     get obstacles() { return this.map.obstacles; }
-    get projectiles() { return this.combat.projectiles; }
     get agentMap() { return this.map.agentMap; }
     get logs() { return this.logger.logs; }
 
     public events: GameEvent[] = [];
-    public bus: EventBus = new EventBus();
+    public bus: EventBusType = new EventBus();
     public renderer?: GameRenderer;
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
-    get timeScale() { return this.time.timeScale; }
-    set timeScale(v: number) { this.time.timeScale = v; }
-    get targetTimeScale() { return this.time.targetTimeScale; }
-    set targetTimeScale(v: number) { this.time.targetTimeScale = v; }
-    get battleTime() { return this.time.battleTime; }
-    set battleTime(v: number) { this.time.battleTime = v; }
+    public timeScale: number = 1.0;
+    public targetTimeScale: number = 1.0;
+    public battleTime: number = 0;
     
     get isFinishing() { return this.victory.isFinishing; }
     get victoryTimer() { return this.victory.victoryTimer; }
@@ -62,43 +68,27 @@ export class GameEngine {
     public currentScene: SceneTheme = SCENE_DB[0];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
-    public movement: MovementSystem;
-    public physics: PhysicsSystem; 
-    public combat: CombatSystem;
-    public map: MapSystem;
-    public hazards: HazardSystem;
-    public ai: AISystem;
-    public agentManager: AgentManager;
-    public announcer: AnnouncerSystem; 
-    public director: DirectorSystem;
-    public logger: BattleLogger; 
-    public time: TimeSystem; 
-    public victory: VictorySystem; 
-    public zones: ZoneSystem; 
-    public cooldowns: CooldownSystem;
-    public effects: EffectSystem;
-    public controls: ControlSystem;
+    // Core systems exposed to allow interaction between decoupled modules
+    public movement: MovementSystem = new MovementSystem();
+    public physics: PhysicsSystem = new PhysicsSystem(); 
+    public combat: CombatSystem = new CombatSystem();
+    public map: MapSystem = new MapSystem();
+    public hazardSystem: HazardSystem = new HazardSystem();
+    public ai: AISystem = new AISystem();
+    public agentManager: AgentManager = new AgentManager();
+    public announcer: AnnouncerSystem = new AnnouncerSystem(); 
+    public director: DirectorSystem = new DirectorSystem();
+    public logger: BattleLogger = new BattleLogger(); 
+    public victory: VictorySystem = new VictorySystem(); 
+    public zones: ZoneSystem = new ZoneSystem(); 
+    public cooldowns: CooldownSystem = new CooldownSystem();
+    public effects: EffectSystem = new EffectSystem();
+    public controls: ControlSystem = new ControlSystem();
+    public time: TimeSystem = new TimeSystem();
 
-    get directorTargetId() { return this.director.targetId; }
+    get directorTargetId() { return this.sessionState.directorTargetId; }
 
     constructor() {
-        this.movement = new MovementSystem();
-        this.physics = new PhysicsSystem();
-        this.combat = new CombatSystem();
-        this.map = new MapSystem();
-        this.hazards = new HazardSystem();
-        this.ai = new AISystem();
-        this.agentManager = new AgentManager();
-        this.announcer = new AnnouncerSystem(); 
-        this.director = new DirectorSystem();
-        this.logger = new BattleLogger();
-        this.time = new TimeSystem();
-        this.victory = new VictorySystem();
-        this.zones = new ZoneSystem();
-        this.cooldowns = new CooldownSystem();
-        this.effects = new EffectSystem();
-        this.controls = new ControlSystem();
-
         this.map.randomizeEnvironment(this);
     }
 
@@ -113,14 +103,16 @@ export class GameEngine {
     hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
     
+    getTerrainHeight(q: number, r: number) { return this.map.getTerrainHeight(q, r); }
+
     randomizeEnvironment() { 
-        this.hazards.reset(); 
+        this.hazards.clear(); 
         if (this.renderer) this.renderer.vfx.reset(); 
         this.map.randomizeEnvironment(this); 
     }
     
     rebuildMap() { 
-        this.hazards.reset();
+        this.hazards.clear();
         this.map.rebuildMap(this); 
     }
 
@@ -146,37 +138,32 @@ export class GameEngine {
         opts: { value?: number, text?: string, color?: string, skill?: Skill, sourceId?: string, targetId?: string, team?: Team } = {}
     ) {
         const evt = EventPool.get(type, pos, opts);
-        
         if (type === 'KILL' && opts.sourceId) {
-            this.director.forceFocus(opts.sourceId, 2.5);
+            this.director.forceFocus(this, opts.sourceId, 2.5);
         } else if (type === 'CAST_START' && opts.skill?.tag === 'ULT' && opts.sourceId) {
-            this.director.forceFocus(opts.sourceId, 3.0);
+            this.director.forceFocus(this, opts.sourceId, 3.0);
         }
-
         this.events.push(evt);
     }
 
     public play() {
         if (!this.isRunning) {
             this.agents.forEach(a => a.saveState());
-            this.time.reset();
+            this.battleTime = 0;
             this.logger.clear();
             this.victory.reset();
+            this.sessionState.killStreaks.clear();
+            this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
             this.bus.emit('GAME_START', {});
         }
         
         this.map.clearAgents();
         this.agents.forEach(a => {
-            a.skills = a.skillIds.map(id => {
-                if (!id) return null;
-                return this.skillDB.find(s => s.id === id) || null;
-            });
+            a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
             a.bt = this.ai.buildAI(a, this); 
             a.animState = AnimState.IDLE;
-            if (a.hp > 0) {
-                this.map.registerAgent(a);
-            }
+            if (a.hp > 0) this.map.registerAgent(a);
         });
         this.isRunning = true;
     }
@@ -186,23 +173,21 @@ export class GameEngine {
     public restart() {
         this.stop();
         this.victory.reset();
-        this.time.reset();
+        this.battleTime = 0;
         this.map.clearAgents();
-        this.hazards.reset(); 
-        this.announcer.reset(); 
-        this.director.reset();
+        this.hazards.clear(); 
+        this.director.reset(this);
+        this.sessionState.killStreaks.clear();
+        this.sessionState.firstBloodTriggered = false;
         
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
-            a.skills = a.skillIds.map(id => {
-                if (!id) return null;
-                return this.skillDB.find(s => s.id === id) || null;
-            });
+            a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
             this.map.registerAgent(a);
         });
         
         this.flushEvents();
-        this.combat.reset(); 
+        this.projectiles = [];
         
         if (this.renderer) {
             this.renderer.reset();
@@ -217,13 +202,12 @@ export class GameEngine {
     public clear(keepScene: boolean = false) {
         this.stop();
         this.agents = [];
+        this.projectiles = [];
         this.map.clearAgents();
-        this.hazards.reset(); 
+        this.hazards.clear(); 
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
-        this.announcer.reset();
-        this.director.reset();
-        this.combat.reset(); 
+        this.director.reset(this);
         this.flushEvents();
         
         if (this.renderer) {
@@ -245,9 +229,14 @@ export class GameEngine {
     public tick(dt: number) {
         if (!this.isRunning) return;
         
-        this.time.update(dt);
+        if (Math.abs(this.targetTimeScale - this.timeScale) > 0.01) {
+            this.timeScale += (this.targetTimeScale - this.timeScale) * 5.0 * dt; 
+        } else {
+            this.timeScale = this.targetTimeScale;
+        }
+
         this.flushEvents(); 
-        this.director.update(dt, this);
+        this.director.update(this, dt);
         this.zones.update(this); 
 
         if (this.victory.check(this)) {
@@ -287,12 +276,32 @@ export class GameEngine {
         }
         
         this.combat.update(dt, this);
-        this.hazards.update(dt, this); 
+        this.hazardSystem.update(dt, this); 
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);
     }
     
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {
         this.logger.log(this.battleTime, this.battleTime * 10, agent, type, actionName, targetInfo, detail);
+    }
+
+    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number): number {
+        return this.movement.getEffectiveRange(a, targetQ, targetR, baseRange, this);
+    }
+
+    public calculateOptimalTarget(source: Agent, skill: Skill) {
+        return this.movement.calculateOptimalTarget(source, skill, this);
+    }
+
+    public moveAgentToHex(a: Agent, targetHex: Hex, r: number, speedMult: number = 1.0): NodeState {
+        return this.movement.moveAgentToHex(a, targetHex, r, this, speedMult);
+    }
+
+    public initiateCast(a: Agent, skillIdx: number): NodeState {
+        return this.combat.initiateCast(a, skillIdx, this);
+    }
+
+    public updateTarget(a: Agent) {
+        this.movement.updateTarget(a, this);
     }
 }

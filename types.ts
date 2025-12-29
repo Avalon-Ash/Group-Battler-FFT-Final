@@ -75,6 +75,7 @@ export interface LogEntry {
 }
 export interface Projectile {
     id: string;
+    active: boolean;
     x: number;
     y: number;
     startX: number;
@@ -87,6 +88,9 @@ export interface Projectile {
     sourceId: string;
     team: Team;
     trail: Point[];
+    trailIndex: number;
+    trailCount: number;
+    createdAt: number;
 }
 export interface GroundHazard {
     id: string;
@@ -101,6 +105,13 @@ export interface GroundHazard {
     interval: number;
     timer: number;
     vfxId?: string;
+}
+export interface GlobalSessionState {
+    killStreaks: Map<string, { count: number; lastTime: number }>;
+    firstBloodTriggered: boolean;
+    directorTargetId: string | null;
+    directorTimer: number;
+    directorPriorityTimer: number;
 }
 export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK';
 export interface GameEvent {

@@ -1,95 +1,80 @@
-
 import { GameEngine } from "../../../game";
 import { Vector, HexUtils } from "../../../utils";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { getTransitionOffset } from "../utils";
-import { Point } from "../../../../types";
-import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
+import { ProjectileVisualDef, PROJECTILE_VISUALS, DEFAULT_PROJECTILE } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath } from "../../../math/VisualMath";
 
+/**
+ * Projectile Trail Buffer Capacity
+ */
+const TRAIL_MAX = 20;
+
 export const ProjectileRenderer = {
-    submit(
-        renderList: RenderList,
-        engine: GameEngine,
-        transitionT: number,
-        transitionPhase: 'IN' | 'OUT' | 'IDLE'
-    ) {
-        engine.projectiles.forEach(p => {
-             const offsetP = getTransitionOffset(p.x, p.y, engine.mapConfig, transitionT, transitionPhase);
-             if (offsetP > 800) return;
+    submit(renderList: RenderList, engine: GameEngine, transitionT: number, transitionPhase: 'IN' | 'OUT' | 'IDLE') {
+        const config = engine.mapConfig;
+        for (const p of engine.projectiles) {
+            const offsetP = getTransitionOffset(p.x, p.y, config, transitionT, transitionPhase);
+            if (offsetP > 800) continue;
 
-             const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
-             const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
+            const def: ProjectileVisualDef = PROJECTILE_VISUALS[p.skill.visualProjectileEffect || p.skill.visual || 'BOLT'] || DEFAULT_PROJECTILE;
+            const hStart = p.startZ || 0;
+            const target3D = VisualMath.resolveTargetPoint(p.targetId, engine);
+            const hEnd = target3D.z > -9000 ? target3D.z : hStart;
 
-             // 1. 高度解析 (Z-Axis Logic)
-             const hStart = p.startZ || 0;
-             const targetPoint3D = VisualMath.resolveTargetPoint(p.targetId, engine);
-             const hEnd = targetPoint3D.z > -9000 ? targetPoint3D.z : hStart;
+            const dxS = p.targetPos.x - p.startX;
+            const dyS = p.targetPos.y - p.startY;
+            const totalDistSq = dxS * dxS + dyS * dyS;
+            if (totalDistSq < 1) continue;
 
-             let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
-             if (totalDist < 1) totalDist = 1;
+            const dxC = p.x - p.startX;
+            const dyC = p.y - p.startY;
+            const progress = Math.min(1, Math.sqrt((dxC * dxC + dyC * dyC) / totalDistSq));
 
-             // 2. 位置插值 (物理精確版)
-             const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y});
-             const progress = Math.min(1, Math.max(0, currentDist / totalDist));
+            const getPos = (lx: number, ly: number, t: number) => {
+                const baseZ = hStart + (hEnd - hStart) * t;
+                let hz = 0;
+                if (def.trajectory === 'ARC') {
+                    hz = TrajectoryMath.arcOffset(t, def.arcHeight || 120) * (1 - Math.abs(hEnd - hStart) / 500);
+                } else if (def.trajectory === 'WOBBLE') {
+                    lx += TrajectoryMath.wobbleOffset(lx, ly, def.wobbleFreq || 0.2, def.wobbleAmp || 10);
+                }
+                const trans = getTransitionOffset(lx, ly, config, transitionT, transitionPhase);
+                return { x: lx, y: ly - (baseZ + hz) + trans, z: baseZ + hz };
+            };
 
-             const getVisualPos = (lx: number, ly: number, flightProgress: number) => {
-                 const t = flightProgress;
-                 const baseH = hStart + (hEnd - hStart) * t;
-                 
-                 let heightOffset = 0;
-                 if (def.trajectory === 'ARC') {
-                     // 拋物線優化：根據目標高度差動態調整弧度峰值
-                     const heightDelta = hEnd - hStart;
-                     const arcBase = (def.arcHeight || 120);
-                     // 如果是向高處射擊，降低弧度
-                     const arcReduction = Math.max(0.2, 1 - Math.abs(heightDelta) / 400);
-                     heightOffset = TrajectoryMath.arcOffset(t, arcBase * arcReduction);
-                 } else if (def.trajectory === 'WOBBLE') {
-                     const lateral = TrajectoryMath.wobbleOffset(lx, ly, def.wobbleFreq || 0.2, def.wobbleAmp || 10);
-                     lx += lateral;
-                 }
+            const head = getPos(p.x, p.y, progress);
+            const next = getPos(p.x + (p.targetPos.x - p.startX) * 0.05, p.y + (p.targetPos.y - p.startY) * 0.05, progress + 0.05);
 
-                 const trans = getTransitionOffset(lx, ly, engine.mapConfig, transitionT, transitionPhase);
-                 return { x: lx, y: ly - (baseH + heightOffset) + trans, z: baseH + heightOffset };
-             };
+            const op = renderList.next();
+            op.type = RenderOpType.PROJECTILE;
+            op.y = p.y + offsetP;
+            op.z = head.z;
+            op.proj = p;
+            op.pVisX = head.x;
+            op.pVisY = head.y;
+            // Define shadow vertical anchor
+            op.pVisShadowY = p.y + offsetP;
+            op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
+            op.pColor = def.colorOverride || p.skill.color;
+            op.pIsUlt = p.skill.tag === 'ULT';
+            op.pAngle = Math.atan2(next.y - head.y, next.x - head.x);
+            op.pSpin = def.spinSpeed ? progress * def.spinSpeed * 10 : 0;
 
-             const headVis = getVisualPos(p.x, p.y, progress);
-             
-             // 3. 旋轉預判 (Lookahead)
-             const lookAheadDist = 30; 
-             const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
-             const nextVis = getVisualPos(p.x + rawDir.x * lookAheadDist, p.y + rawDir.y * lookAheadDist, progress + (lookAheadDist/totalDist));
-             const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
-
-             // 4. 提交渲染
-             const op = renderList.next();
-             op.type = RenderOpType.PROJECTILE;
-             op.y = p.y + offsetP; 
-             op.z = headVis.z; 
-             
-             op.proj = p;
-             op.pVisX = headVis.x;
-             op.pVisY = headVis.y;
-             op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
-             op.pColor = def.colorOverride || p.skill.color;
-             op.pIsUlt = p.skill.tag === 'ULT';
-             op.pAngle = angle;
-             op.pSpin = def.spinSpeed ? (progress * def.spinSpeed * 10) : 0;
-             
-             // 強化拖尾
-             op.pTrail = [];
-             if ((def.trailLength || 0) > 0 && p.trail.length > 1) {
-                 const step = Math.max(1, Math.floor(p.trail.length / (def.trailLength || 5)));
-                 for(let i = p.trail.length-1; i >= 0; i -= step) {
-                     const tp = p.trail[i];
-                     const tDist = Vector.dist({x: p.startX, y: p.startY}, tp);
-                     const tv = getVisualPos(tp.x, tp.y, tDist / totalDist);
-                     op.pTrail.push({x: tv.x, y: tv.y});
-                     if (op.pTrail.length > (def.trailLength || 5)) break;
-                 }
-             }
-        });
+            op.pTrail = [];
+            if ((def.trailLength || 0) > 0 && p.trailCount > 1) {
+                const max = Math.min(p.trailCount, def.trailLength || 5);
+                for (let j = 0; j < max; j++) {
+                    const idx = (p.trailIndex - 1 - j + TRAIL_MAX) % TRAIL_MAX;
+                    const pt = p.trail[idx];
+                    const dxt = pt.x - p.startX;
+                    const dyt = pt.y - p.startY;
+                    const t = Math.sqrt((dxt * dxt + dyt * dyt) / totalDistSq);
+                    const tv = getPos(pt.x, pt.y, t);
+                    op.pTrail.push({ x: tv.x, y: tv.y });
+                }
+            }
+        }
     }
 };

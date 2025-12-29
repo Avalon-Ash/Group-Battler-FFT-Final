@@ -13,10 +13,8 @@ export class CombatSystem {
         this.castingEngine = new CastingEngine();
         this.skillExecutor = new SkillExecutor();
     }
-    get projectiles(): Projectile[] { return this.projectileSystem.projectiles; }
-    set projectiles(v: Projectile[]) { this.projectileSystem.projectiles = v; }
     public reset() {
-        this.projectileSystem.projectiles = [];
+        // Projectiles are cleared by the GameEngine root container
     }
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
         const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;

@@ -1,4 +1,3 @@
-
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
 
@@ -16,7 +15,8 @@ export const HazardManager = {
 
         if (hType) {
             cells.forEach(tile => {
-                engine.hazards.addHazard(
+                // Corrected: Route through hazardSystem
+                engine.hazardSystem.addHazard(
                     tile.q, tile.r, 
                     hType, 
                     dur, 

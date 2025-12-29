@@ -108,7 +108,8 @@ export class MapSystem {
     public hasObstacleHash(h: number): boolean {
         return this.obstaclesHash.has(h);
     }
+    // Corrected to use Map.get with generated key
     public getHazardAt(q: number, r: number, engine: GameEngine): GroundHazard | undefined {
-        return engine.hazards.getHazardAt(q, r);
+        return engine.hazards.get(HexUtils.key({ q, r }));
     }
 }
