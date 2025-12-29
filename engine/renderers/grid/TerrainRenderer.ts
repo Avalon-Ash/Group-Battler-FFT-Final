@@ -4,10 +4,9 @@ import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 
-// 唯一幾何補償常數
-const WALL_SKIRT_PX = 1.5;   // 解決下層裂縫
-const TOP_SHRINK_PX = 0.2;   // 防止相鄰頂面重疊產生的閃爍
-const Z_FIGHTING_LIFT = -0.1; // 極微量抬升
+// 幾何常數
+const PEDESTAL_DEPTH = 120; // 基座向下延伸深度，確保無穿幫
+const EXPANSION_BIAS = 0.6; // 數學膨脹量 (px)，解決縫隙
 
 export const TerrainRenderer = {
     drawBlock(
@@ -19,52 +18,82 @@ export const TerrainRenderer = {
         globalTime: number,
         layout: HexLayout
     ) {
-        // 物理座標捨入對齊：確保所有瓦片在物理像素邊界上對齊
+        // 物理座標取整
         const drawX = Math.floor(x);
         const drawY = Math.floor(y);
+        
+        // 視覺頂面 Y 軸 (相對於 drawY)
         const visualTopY = -Math.floor(height);
         
-        const vertices = HexGeometry.getVertices(size, true, layout); 
+        // 膨脹幾何半徑
+        const r = size + EXPANSION_BIAS;
+        const vertices = HexGeometry.getVertices(r, true, layout); 
         
         ctx.save();
         ctx.translate(drawX, drawY);
 
-        // 1. 繪製側牆 (由下而上，增加重疊補償)
+        // 1. 繪製基座與側牆 (Pedestal & Walls)
+        // 側牆從 visualTopY 延伸至 PEDESTAL_DEPTH
+        // 確保無論地形多高，下方都有支撐
+        
+        // 判斷可見面：根據佈局繪製前向面
+        // Flat: Bottom(1,2), BottomRight(0,1), BottomLeft(2,3) -> Indices 0,1,2,3 relevant
+        // Pointy: BottomRight(0,1), BottomLeft(1,2) -> Indices 0,1,2 relevant
+        
+        const drawFace = (idx1: number, idx2: number, color: string) => {
+            const v1 = vertices[idx1];
+            const v2 = vertices[idx2];
+            
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y + visualTopY); // Top-Left
+            ctx.lineTo(v2.x, v2.y + visualTopY); // Top-Right
+            ctx.lineTo(v2.x, v2.y + PEDESTAL_DEPTH); // Bottom-Right (Deep)
+            ctx.lineTo(v1.x, v1.y + PEDESTAL_DEPTH); // Bottom-Left (Deep)
+            ctx.closePath();
+            ctx.fill();
+            
+            // 側邊高光稜線
+            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y + visualTopY);
+            ctx.lineTo(v1.x, v1.y + PEDESTAL_DEPTH);
+            ctx.stroke();
+        };
+
         if (layout === 'FLAT') {
-            this.drawVerticalWall(ctx, vertices[1], vertices[0], visualTopY - WALL_SKIRT_PX, theme.sideDark);
-            this.drawVerticalWall(ctx, vertices[2], vertices[1], visualTopY - WALL_SKIRT_PX, theme.sideLight);
-            this.drawVerticalWall(ctx, vertices[3], vertices[2], visualTopY - WALL_SKIRT_PX, theme.sideDark);
+            drawFace(1, 0, theme.sideDark);  // Right-Bottom
+            drawFace(2, 1, theme.sideLight); // Bottom
+            drawFace(3, 2, theme.sideDark);  // Left-Bottom
         } else {
-            // Pointy 佈局：繪製前方可見的兩個面
-            this.drawVerticalWall(ctx, vertices[1], vertices[0], visualTopY - WALL_SKIRT_PX, theme.sideDark);
-            this.drawVerticalWall(ctx, vertices[2], vertices[1], visualTopY - WALL_SKIRT_PX, theme.sideLight);
+            // Pointy Layout Indices: 0(Right), 1(BottomRight), 2(BottomLeft), 3(Left)...
+            // Forward facing are usually 0->1 and 1->2
+            drawFace(1, 0, theme.sideDark);  // Right Side
+            drawFace(2, 1, theme.sideLight); // Left Side
         }
 
-        // 2. 繪製頂部六邊形面 (Top Surface)
-        ctx.translate(0, visualTopY + Z_FIGHTING_LIFT);
+        // 2. 繪製頂部 (Top Cap)
+        ctx.translate(0, visualTopY);
         
-        // 頂面渲染：微縮幾何 (收縮 0.2px) 杜絕邊緣爭奪
-        const topSize = size - TOP_SHRINK_PX;
-        const topVerts = HexGeometry.getVertices(topSize, true, layout);
-        
-        const topGrad = ctx.createLinearGradient(-size, -size, size, size);
+        const topGrad = ctx.createLinearGradient(-r, -r, r, r);
         topGrad.addColorStop(0, theme.rim); 
         topGrad.addColorStop(0.5, theme.top);
         topGrad.addColorStop(1, theme.sideDark); 
         
         ctx.fillStyle = topGrad;
         ctx.beginPath();
-        ctx.moveTo(topVerts[0].x, topVerts[0].y);
+        ctx.moveTo(vertices[0].x, vertices[0].y);
         for (let i = 1; i < 6; i++) {
-            ctx.lineTo(topVerts[i].x, topVerts[i].y);
+            ctx.lineTo(vertices[i].x, vertices[i].y);
         }
         ctx.closePath();
         ctx.fill();
 
-        // 強力外框 (Outline)：數學上強化塊體輪廓，視覺上遮蓋微小拼貼誤差
-        ctx.strokeStyle = theme.sideDark;
-        ctx.lineWidth = 0.5;
-        ctx.globalAlpha = 0.3;
+        // 頂部描邊 (Rim)
+        ctx.strokeStyle = theme.rim;
+        ctx.lineWidth = 1.0;
+        ctx.globalAlpha = 0.5;
         ctx.stroke();
 
         if (type === 'MAGMA') {
@@ -72,29 +101,6 @@ export const TerrainRenderer = {
         }
         
         ctx.restore();
-    },
-
-    drawVerticalWall(ctx: CanvasRenderingContext2D, v1: {x:number, y:number}, v2: {x:number, y:number}, topY: number, color: string) {
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        // 矩形四點座標
-        ctx.moveTo(v1.x, v1.y);
-        ctx.lineTo(v2.x, v2.y);
-        ctx.lineTo(v2.x, v2.y + topY);
-        ctx.lineTo(v1.x, v1.y + topY);
-        
-        // 底座補強：確保牆面深入地平線
-        ctx.lineTo(v1.x, v1.y + BASE_HEIGHT + 2.0); 
-        ctx.closePath();
-        ctx.fill();
-        
-        // 側稜線 (Bevel): 強化塊體感，防止相鄰面融為一體
-        ctx.strokeStyle = 'rgba(255,255,255,0.05)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(v1.x, v1.y);
-        ctx.lineTo(v1.x, v1.y + topY);
-        ctx.stroke();
     },
 
     drawTerrainDetail(
@@ -105,8 +111,8 @@ export const TerrainRenderer = {
         detailColor: string,
         q: number, r: number
     ) {
-        // 裝飾物 Y 座標必須嚴格繼承捨入後的瓦片頂面高度
-        const visualY = Math.floor(baseY) - Math.floor(height) + Z_FIGHTING_LIFT;
+        // 裝飾物跟隨頂面高度
+        const visualY = Math.floor(baseY) - Math.floor(height);
         if (type === 'FOREST' || type === 'VOID') {
             const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
             if (seed > 0.6) {

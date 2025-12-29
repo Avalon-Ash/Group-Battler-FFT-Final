@@ -105,29 +105,54 @@ export class RenderList {
             const op = this.ops[i];
             
             /**
-             * 唯一數學排序規範 v16.0 (Diamond Depth Sorting)
+             * 唯一數學排序規範 v17.0 (Topological Ground Sort)
              * 
-             * 1. 基底深度 (Base Depth): q + r 決定了在六邊形網格中的「排隊順序」。
-             * 2. 高度偏置 (Height Bias): 瓦片本身的 Tier (th / BLOCK_HEIGHT)。
-             * 3. 類別優先權 (Layer): 確保單位在瓦片頂面之上。
+             * 1. 瓦片排序 (Terrain): 僅依賴 (q + r) 進行拓撲排序。
+             *    - 高度 (th) 不參與排序，僅參與繪製幾何延伸。
+             *    - 這保證了後方瓦片的地基永遠在前方瓦片的地基之前繪製。
+             * 
+             * 2. 物件排序 (Unit/Prop):
+             *    - 物件依賴其 Screen Y (op.y) 進行排序。
+             *    - op.y = py + offset (物理腳底位置)。
              */
             
-            // 基礎座標權重：等角空間中的掃描線位置
-            const coordDepth = (op.tq + op.tr) * 10000;
-            
-            // 高度權重：瓦片越高，視覺位置越靠前
-            const heightTier = (op.th / 24) * 100;
-            
-            // 類別權重
-            let layerScore = 0;
-            if (op.type === RenderOpType.UNIT || op.type === RenderOpType.OBSTACLE) layerScore = 500;
-            else if (op.type === RenderOpType.HAZARD) layerScore = 100;
-            else if (op.type === RenderOpType.DECAL) layerScore = 50;
+            let sortKey = 0;
 
-            // 針對奧義與飛行物的特殊處理 (絕對置頂)
-            if (op.pIsUlt || op.z > 400) layerScore = 10000000;
+            if (op.type === RenderOpType.TERRAIN) {
+                // 地形層：基礎權重 0 ~ 20,000,000
+                // (q + r) 決定了 Isometric 的掃描線順序
+                // 加上 2000 偏移量確保正數
+                sortKey = (op.tq + op.tr + 2000) * 1000;
+            } 
+            else {
+                // 物件層：基礎權重 20,000,000 +
+                // 物件需要與地形混合，因此使用 Screen Y 映射到類似的量級
+                // 但為了簡單起見，目前架構將物件層置於地形層之上 (Layered approach)
+                // 若要實現單位被前方高牆遮擋，單位與地形需混合排序。
+                
+                // 混合排序策略：
+                // 使用 (ScreenY * Scale) 作為統一標準
+                // 但 RenderOp.TERRAIN 的 ScreenY 是指 BaseY。
+                
+                // 為了修復 "地板穿插"，我們採用分層策略：
+                // 地形永遠先畫 (Layer 0)
+                // 地面裝飾 (Layer 1)
+                // 單位/障礙物 (Layer 2) - 依 Y 軸排序
+                // 飛行物/特效 (Layer 3)
+                
+                let layerBase = 0;
+                if (op.type === RenderOpType.HAZARD || op.type === RenderOpType.DECAL) layerBase = 20000000;
+                else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) layerBase = 40000000;
+                else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) layerBase = 60000000;
+                
+                // 同層內依 Screen Y 排序 (由後至前 -> Y 值由小到大)
+                sortKey = layerBase + Math.floor(op.y * 100) + Math.floor(op.z);
+            }
 
-            op.sortKey = coordDepth + heightTier + layerScore;
+            // 特殊：奧義/高空特效絕對置頂
+            if (op.pIsUlt || op.z > 600) sortKey += 100000000;
+
+            op.sortKey = sortKey;
             this.sortView[i] = op;
         }
 
