@@ -1,78 +1,93 @@
 import { GameEngine } from "../../../game";
+import { Vector, HexUtils } from "../../../utils";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { getTransitionOffset } from "../utils";
-import { ProjectileVisualDef, PROJECTILE_VISUALS, DEFAULT_PROJECTILE } from "../../../../data/vfx/projectile_visuals";
+import { Point, Projectile } from "../../../../types";
+import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath } from "../../../math/VisualMath";
 
-const TRAIL_MAX = 20;
-
 export const ProjectileRenderer = {
-    submit(renderList: RenderList, engine: GameEngine, tIn: number, phase: 'IN' | 'OUT' | 'IDLE') {
-        const cfg = engine.mapConfig;
-        const projs = engine.projectiles;
+    submit(
+        renderList: RenderList,
+        engine: GameEngine,
+        transitionT: number,
+        transitionPhase: 'IN' | 'OUT' | 'IDLE'
+    ) {
+        const sorted = engine.projectiles.slice().sort((a, b) => {
+            const keyA = a.skill.visualProjectileEffect || a.skill.visual || 'BOLT';
+            const keyB = b.skill.visualProjectileEffect || b.skill.visual || 'BOLT';
+            return keyA.localeCompare(keyB);
+        });
 
-        for (let i = 0; i < projs.length; i++) {
-            const p = projs[i];
-            const offset = getTransitionOffset(p.x, p.y, cfg, tIn, phase);
-            if (offset > 800) continue;
+        for (const p of sorted) {
+             const offsetP = getTransitionOffset(p.x, p.y, engine.mapConfig, transitionT, transitionPhase);
+             if (offsetP > 800) continue;
 
-            const visId = p.skill.visualProjectileEffect || p.skill.visual || 'BOLT';
-            const def: ProjectileVisualDef = PROJECTILE_VISUALS[visId] || DEFAULT_PROJECTILE;
-            
-            const hStart = p.startZ || 0;
-            const target3D = VisualMath.resolveTargetPoint(p.targetId, engine);
-            const hEnd = target3D.z > -9000 ? target3D.z : hStart;
+             const lookupKey = p.skill.visualProjectileEffect || p.skill.id || p.skill.visual || 'BOLT';
+             const def: ProjectileVisualDef = PROJECTILE_VISUALS[lookupKey] || DEFAULT_PROJECTILE;
 
-            const dx = p.targetPos.x - p.startX;
-            const dy = p.targetPos.y - p.startY;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < 1) continue;
+             const hStart = p.startZ || 0;
+             const targetPoint3D = VisualMath.resolveTargetPoint(p.targetId, engine);
+             const hEnd = targetPoint3D.z > -9000 ? targetPoint3D.z : hStart;
 
-            const curDx = p.x - p.startX;
-            const curDy = p.y - p.startY;
-            const progress = Math.min(1, Math.sqrt((curDx * curDx + curDy * curDy) / d2));
+             let totalDist = Vector.dist({x: p.startX, y: p.startY}, p.targetPos);
+             if (totalDist < 1) totalDist = 1;
 
-            const calc = (lx: number, ly: number, prg: number) => {
-                const bZ = hStart + (hEnd - hStart) * prg;
-                let hZ = 0;
-                if (def.trajectory === 'ARC') {
-                    hZ = TrajectoryMath.arcOffset(prg, def.arcHeight || 120) * (1 - Math.abs(hEnd - hStart) / 500);
-                } else if (def.trajectory === 'WOBBLE') {
-                    lx += TrajectoryMath.wobbleOffset(lx, ly, def.wobbleFreq || 0.2, def.wobbleAmp || 10);
-                }
-                const tr = getTransitionOffset(lx, ly, cfg, tIn, phase);
-                return { x: lx, y: ly - (bZ + hZ) + tr, z: bZ + hZ };
-            };
+             const currentDist = Vector.dist({x: p.startX, y: p.startY}, {x: p.x, y: p.y});
+             const progress = Math.min(1, Math.max(0, currentDist / totalDist));
 
-            const head = calc(p.x, p.y, progress);
-            const look = calc(p.x + dx * 0.05, p.y + dy * 0.05, progress + 0.05);
+             const getVisualPos = (lx: number, ly: number, flightProgress: number) => {
+                 const t = flightProgress;
+                 const baseH = hStart + (hEnd - hStart) * t;
+                 
+                 let heightOffset = 0;
+                 if (def.trajectory === 'ARC') {
+                     const heightDelta = hEnd - hStart;
+                     const arcBase = (def.arcHeight || 120);
+                     const arcReduction = Math.max(0.2, 1 - Math.abs(heightDelta) / 400);
+                     heightOffset = TrajectoryMath.arcOffset(t, arcBase * arcReduction);
+                 } else if (def.trajectory === 'WOBBLE') {
+                     const lateral = TrajectoryMath.wobbleOffset(lx, ly, def.wobbleFreq || 0.2, def.wobbleAmp || 10);
+                     lx += lateral;
+                 }
 
-            const op = renderList.next();
-            op.type = RenderOpType.PROJECTILE;
-            op.y = p.y + offset;
-            op.z = head.z;
-            op.proj = p;
-            op.pVisX = head.x;
-            op.pVisY = head.y;
-            op.pVisShadowY = p.y + offset;
-            op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
-            op.pColor = def.colorOverride || p.skill.color;
-            op.pIsUlt = p.skill.tag === 'ULT';
-            op.pAngle = Math.atan2(look.y - head.y, look.x - head.x);
-            op.pSpin = def.spinSpeed ? progress * def.spinSpeed * 10 : 0;
+                 const trans = getTransitionOffset(lx, ly, engine.mapConfig, transitionT, transitionPhase);
+                 return { x: lx, y: ly - (baseH + heightOffset) + trans, z: baseH + heightOffset };
+             };
 
-            if ((def.trailLength || 0) > 0 && p.trailCount > 1) {
-                const max = Math.min(p.trailCount, def.trailLength || 5);
-                for (let j = 0; j < max; j++) {
-                    const idx = (p.trailIndex - 1 - j + TRAIL_MAX) % TRAIL_MAX;
-                    const pt = p.trail[idx];
-                    const distToPointSq = (pt.x - p.startX)**2 + (pt.y - p.startY)**2;
-                    const tp = Math.sqrt(distToPointSq / d2);
-                    const v = calc(pt.x, pt.y, tp);
-                    op.pTrail.push({ x: v.x, y: v.y });
-                }
-            }
+             const headVis = getVisualPos(p.x, p.y, progress);
+             
+             const lookAheadDist = 30; 
+             const rawDir = Vector.normalize(Vector.sub(p.targetPos, {x: p.startX, y: p.startY}));
+             const nextVis = getVisualPos(p.x + rawDir.x * lookAheadDist, p.y + rawDir.y * lookAheadDist, progress + (lookAheadDist/totalDist));
+             const angle = Math.atan2(nextVis.y - headVis.y, nextVis.x - headVis.x);
+
+             const op = renderList.next();
+             op.type = RenderOpType.PROJECTILE;
+             op.y = p.y + offsetP; 
+             op.z = headVis.z; 
+             
+             op.proj = p;
+             op.pVisX = headVis.x;
+             op.pVisY = headVis.y;
+             op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
+             op.pColor = def.colorOverride || p.skill.color;
+             op.pIsUlt = p.skill.tag === 'ULT';
+             op.pAngle = angle;
+             op.pSpin = def.spinSpeed ? (progress * def.spinSpeed * 10) : 0;
+             
+             op.pTrail = [];
+             if ((def.trailLength || 0) > 0 && p.trail.length > 1) {
+                 const step = Math.max(1, Math.floor(p.trail.length / (def.trailLength || 5)));
+                 for(let i = p.trail.length-1; i >= 0; i -= step) {
+                     const tp = p.trail[i];
+                     const tDist = Vector.dist({x: p.startX, y: p.startY}, tp);
+                     const tv = getVisualPos(tp.x, tp.y, tDist / totalDist);
+                     op.pTrail.push({x: tv.x, y: tv.y});
+                     if (op.pTrail.length > (def.trailLength || 5)) break;
+                 }
+             }
         }
     }
 };
