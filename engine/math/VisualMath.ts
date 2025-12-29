@@ -13,12 +13,42 @@ export interface Point3D {
 export class VisualMath {
 
     /**
+     * SSOT: Rendering Layer Bias (Negative Y moves UP on screen)
+     * Used to prevent Z-fighting on the flat ground plane.
+     * Higher "Lift" means it draws "Above" the layer below it.
+     */
+    public static readonly Z_LAYERS = {
+        TERRAIN: 0,
+        HAZARD: 3,        // Slightly above terrain
+        OVERLAY: 5,       // Above hazards (Grids, Ranges)
+        SHADOW: 8,        // Shadows overlay everything on ground
+        UNIT_FEET: 0      // Logical reference point
+    };
+
+    /**
+     * SSOT: Calculate standard isometric visual Y.
+     * Subtracts Z (height) from Y (ground) to project into 2D screen space.
+     */
+    public static getIsoVisualY(y: number, z: number): number {
+        return y - z;
+    }
+
+    /**
+     * SSOT: Apply a specific layer bias to a Visual Y coordinate.
+     * Effectively "Lifts" the sprite up by N pixels to sort above the ground.
+     */
+    public static applyLayerBias(visualY: number, layer: keyof typeof VisualMath.Z_LAYERS): number {
+        // In screen space, UP is negative Y. So we subtract the bias.
+        return visualY - this.Z_LAYERS[layer];
+    }
+
+    /**
      * SSOT: Calculate the visual Y coordinate of the unit's body center.
      * Takes into account surface Y, physics Z (jump), and model offsets.
      */
     public static getVisualBodyCenterY(surfaceY: number, z: number): number {
-        // HOVER_LIFT is historically 6, we can keep it hardcoded here or move to constant if needed
-        // For now, let's align it with UNIT_HOVER_OFFSET
+        // surfaceY is typically (WorldY - TerrainHeight)
+        // We further subtract physics Z and offsets
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
     }
 

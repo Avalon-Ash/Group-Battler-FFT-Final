@@ -6,20 +6,23 @@ import { UnitAuraPainter } from "./UnitAuraPainter";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { UNIT_SCALE, ISO_SCALE_Y } from "../../../../../constants";
 import { HexLayout } from "../../../../../types";
-
-const HOVER_LIFT = 6; 
+import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitShadowPainter = {
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, pz: number, t: number, isSilhouette: boolean, layout: HexLayout) {
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, t: number, isSilhouette: boolean, layout: HexLayout) {
         if (isSilhouette || agent.visualStatus === 'POLYMORPH') return;
 
         const assets = SpriteManager.getUnitImages(agent.role, agent.team);
         const surfaceY = py;
-        const tokenY = surfaceY - HOVER_LIFT;
+        
+        // SSOT: Use centralized shadow bias
+        const tokenY = VisualMath.applyLayerBias(surfaceY, 'SHADOW');
 
         ctx.save();
         
+        // Uses agent.physics.z directly (SSOT)
         const jumpHeight = agent.physics.z;
+        
         // 調低基礎透明度從 1.0 降至 0.35，避免呈現全黑塊
         const shadowScale = Math.max(0.4, 1.0 - (jumpHeight / 500));
         const shadowAlpha = Math.max(0.05, 0.35 - (jumpHeight / 300));
@@ -77,9 +80,7 @@ export const UnitShadowPainter = {
                 const progress = 1 - (agent.castTimer / skill.cast);
                 const radius = skill.aoeRadius || 1;
                 const isAOE = skill.type === 'AOE';
-                // Only draw self-centered indicator here if needed. 
-                // Remote AOE targeting is handled by GridRenderStrategy -> ZoneRenderer.
-                // We assume BASIC/ACTIVE skills might be self-centered AOE.
+                
                 if (isAOE && radius > 0) {
                     ctx.save();
                     ctx.translate(px, surfaceY);

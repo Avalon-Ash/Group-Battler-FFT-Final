@@ -12,7 +12,7 @@ export const UnitBodyPainter = {
     draw(
         ctx: CanvasRenderingContext2D, 
         agent: Agent, 
-        px: number, py: number, pz: number, 
+        px: number, py: number, 
         t: number, 
         isSilhouette: boolean, 
         isSelected: boolean,
@@ -21,6 +21,8 @@ export const UnitBodyPainter = {
         ctx.save(); 
         
         // 1. 獲取身體中心視覺 Y 軸 (SSOT)
+        // 直接讀取 Agent 物理狀態，避免外部傳遞錯誤
+        const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
         ctx.translate(px, bodyY); 
         

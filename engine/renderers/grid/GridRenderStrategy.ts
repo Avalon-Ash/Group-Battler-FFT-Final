@@ -6,12 +6,13 @@ import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
 import { HexUtils, getTransitionOffset } from "../../utils";
 import { SpriteManager } from "../../sprites";
+import { VisualMath } from "../../math/VisualMath";
 
 const OBSTACLE_Z_INDEX = 10;
 const PROJ_LIGHT_RADIUS_SQ = 1600;
 
 /**
- * 網格渲染提交策略 - v11.0 (高階美術校正版)
+ * 網格渲染提交策略 - v11.1 (SSOT Strict Compliance)
  */
 export class GridRenderStrategy {
     
@@ -54,7 +55,9 @@ export class GridRenderStrategy {
             
             const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualBaseY = py + offset;
-            const visualSurfaceY = visualBaseY - h;
+            
+            // SSOT: Use standard projection
+            const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
 
             if (Math.abs(offset) > 800) continue;
 
@@ -78,6 +81,7 @@ export class GridRenderStrategy {
                 hOp.y = py; 
                 hOp.z = 5; // 低於單位，高於地板
                 hOp.tx = px; 
+                // Note: HazardPainter will apply its own Z_LAYER bias internally
                 hOp.ty = visualSurfaceY; 
                 hOp.oHazard = hazard;
                 hOp.time = globalTime;

@@ -5,8 +5,7 @@ import { GroundHazard, HexLayout } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { ActiveZone } from "../../systems/ZoneSystem";
 import { HexUtils } from "../../utils";
-
-const OVERLAY_LIFT = -12; // Increased lift to sit above terrain details
+import { VisualMath } from "../../math/VisualMath";
 
 export const GridOverlays = {
     drawOverlays(
@@ -26,7 +25,8 @@ export const GridOverlays = {
         hazard: GroundHazard | undefined, 
         layout: HexLayout
     ) {
-        const drawY = y + OVERLAY_LIFT;
+        // SSOT: Use centralized Z-Layer bias for overlays
+        const drawY = VisualMath.applyLayerBias(y, 'OVERLAY');
 
         // 1. 狀態地效
         if (specialStatus && specialStatus !== 'NONE') {

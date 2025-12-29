@@ -5,10 +5,7 @@ import { HAZARD_VISUALS } from "../../../../../data/vfx/hazard_visuals";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { SurfacePainter } from "../../../graphics/painters/SurfacePainter";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
-
-// 唯一數學常數：地面效果提升高度，杜絕穿插
-const HAZARD_PLANE_LIFT = -3; 
-const FOG_PLANE_LIFT = -15;
+import { VisualMath } from "../../../math/VisualMath";
 
 export const HazardPainter = {
     draw(ctx: CanvasRenderingContext2D, x: number, y: number, hazard: GroundHazard, globalTime: number) {
@@ -20,6 +17,9 @@ export const HazardPainter = {
         ctx.save();
         ctx.globalAlpha = fade;
 
+        // SSOT: Use centralized Z-Layer bias
+        const drawY = VisualMath.applyLayerBias(y, 'HAZARD');
+
         if (def.type === 'FOG') {
             const texture = VFXFactory.getTexture('SMOKE', def.primaryColor);
             // Increased scale for visibility
@@ -27,7 +27,7 @@ export const HazardPainter = {
             const speed = globalTime * def.speed;
 
             ctx.save();
-            ctx.translate(x, y + FOG_PLANE_LIFT); 
+            ctx.translate(x, drawY - 15); // Fog floats a bit higher naturally
             ctx.scale(1, ISO_SCALE_Y);
             
             // 1. Base Body (Darker, Opaque-ish) for Volume
@@ -58,11 +58,11 @@ export const HazardPainter = {
             const intensity = def.intensity * (0.85 + Math.sin(speed * 0.8) * 0.15);
             
             ctx.save();
-            ctx.translate(0, HAZARD_PLANE_LIFT);
+            ctx.translate(0, 0); // No extra translate, drawY is passed
             
             // Base Puddle
-            SurfacePainter.drawLiquid(ctx, x, y, def.primaryColor, speed, intensity);
-            if (def.cracks) SurfacePainter.drawCracks(ctx, x, y, def.secondaryColor, intensity * 0.8);
+            SurfacePainter.drawLiquid(ctx, x, drawY, def.primaryColor, speed, intensity);
+            if (def.cracks) SurfacePainter.drawCracks(ctx, x, drawY, def.secondaryColor, intensity * 0.8);
             
             // Rising Heat/Flames (Visual Boost)
             if (hazard.type === 'FIRE') {
@@ -71,7 +71,7 @@ export const HazardPainter = {
                 const flameW = 40;
                 const rise = (globalTime * 50) % 30;
                 
-                ctx.translate(x, y - 10 - rise);
+                ctx.translate(x, drawY - 10 - rise);
                 ctx.globalCompositeOperation = 'screen';
                 ctx.globalAlpha = (1 - rise/30) * intensity;
                 
@@ -83,10 +83,10 @@ export const HazardPainter = {
             ctx.restore();
         }
         else if (def.type === 'CRYSTAL') {
-            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, y + HAZARD_PLANE_LIFT, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7);
+            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, drawY, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7);
             
             ctx.save();
-            ctx.translate(x, y + HAZARD_PLANE_LIFT - 5); 
+            ctx.translate(x, drawY - 5); 
             ctx.scale(1, ISO_SCALE_Y);
             const texture = VFXFactory.getTexture('ROCK', def.secondaryColor);
             ctx.globalCompositeOperation = 'screen';
@@ -96,7 +96,7 @@ export const HazardPainter = {
         }
         else if (def.type === 'VOID_HOLE') {
             ctx.save();
-            ctx.translate(x, y + HAZARD_PLANE_LIFT);
+            ctx.translate(x, drawY);
             ctx.scale(1, ISO_SCALE_Y);
             
             // Massive Radius

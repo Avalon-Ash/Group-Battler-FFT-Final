@@ -6,6 +6,7 @@ import { UnitVisualProcessor } from "./unit/UnitVisualProcessor";
 import { UnitBodyPainter } from "../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
 import { HexLayout } from "../../types";
+import { VisualMath } from "../math/VisualMath";
 
 export class UnitRenderSystem {
     public submitRenderables(
@@ -31,11 +32,12 @@ export class UnitRenderSystem {
             op.agent = agent;
             op.tx = state.x; 
             
-            // Fix: Set op.y to Ground Y for correct depth sorting (Back to Front)
-            // If we don't set this, units sort by Z only, causing flying units in back to overlap front units
+            // Sort Y: Ground position for depth sorting
             op.y = state.y; 
             
-            op.ty = state.y - state.terrainHeight; // Visual rendering Y (Top of terrain)
+            // Visual Y: Top of terrain (using SSOT Math)
+            op.ty = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
+            
             op.z = agent.physics.z; 
             op.time = globalTime;
             op.uSelected = state.isSelected;
@@ -50,8 +52,8 @@ export class UnitRenderSystem {
         mapConfig: MapConfig
     ) {
         const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
-        const visualGroundY = state.y - state.terrainHeight;
-        this.drawAssembly(ctx, agent, state.x, visualGroundY, agent.physics.z, globalTime, false, true, mapConfig.layout);
+        const visualGroundY = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
+        this.drawAssembly(ctx, agent, state.x, visualGroundY, globalTime, false, true, mapConfig.layout);
     }
 
     public drawAssembly(
@@ -59,18 +61,22 @@ export class UnitRenderSystem {
         agent: Agent, 
         drawX: number, 
         drawY: number, 
-        localZ: number,
         globalTime: number, 
         isSelected: boolean,
         isSilhouette: boolean,
-        layout: HexLayout // Added Layout Argument
+        layout: HexLayout
     ) {
         ctx.save();
         ctx.translate(drawX, drawY); 
+        
+        // drawY is expected to be the Surface Visual Y.
+        // Painters will internally read agent.physics.z via VisualMath to calculate offsets.
+        
         if (!isSilhouette && agent.hp > 0) {
-            UnitShadowPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette, layout);
+            UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
         }
-        UnitBodyPainter.draw(ctx, agent, 0, 0, localZ, globalTime, isSilhouette, isSelected, 1.0);
+        UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0);
+        
         ctx.restore(); 
     }
 }

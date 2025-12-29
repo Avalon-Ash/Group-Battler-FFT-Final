@@ -59,7 +59,9 @@ export const ProjectileRenderer = {
             // 2. 計算視覺座標 (等角投影)
             const transOffset = getTransitionOffset(pos3D.x, pos3D.y, engine.mapConfig, transitionT, transitionPhase);
             const visX = pos3D.x;
-            const visY = pos3D.y - pos3D.z + transOffset;
+            
+            // SSOT Enforcement: Use VisualMath for projection
+            const visY = VisualMath.getIsoVisualY(pos3D.y, pos3D.z) + transOffset;
 
             // 3. 提交渲染指令
             const op = renderList.next();
@@ -87,7 +89,10 @@ export const ProjectileRenderer = {
                 for (let i = 1; i <= trailSamples; i++) {
                     const tPast = Math.max(0, t - i * step);
                     const past3D = getPosAt(tPast);
-                    const pastY = past3D.y - past3D.z + transOffset;
+                    
+                    // SSOT Enforcement here too
+                    const pastY = VisualMath.getIsoVisualY(past3D.y, past3D.z) + transOffset;
+                    
                     op.pTrail.push({ x: past3D.x, y: pastY });
                     if (tPast <= 0) break;
                 }
