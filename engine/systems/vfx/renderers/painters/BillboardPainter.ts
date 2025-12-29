@@ -1,11 +1,6 @@
-
 import { Particle } from "../../state";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 
-/**
- * 告示板粒子繪製器 v28.0 - 視覺豐富版
- * 絕對遵守視覺約束：還原被錯誤削減的煙霧特效
- */
 export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
         let img = p.image || p.texture;
@@ -19,17 +14,13 @@ export const BillboardPainter = {
         let alpha = 1.0; 
         const type = p.type;
 
-        // --- 煙霧特效還原 (Visibility Restoration v28) ---
         if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
             const blastEase = 1 - Math.pow(1 - progress, 5);
-            scale = 0.9 + blastEase * 0.6; // 稍微放大的體積感
+            scale = 0.9 + blastEase * 0.6; 
             
-            // 還原透明度至 0.88 (符合減少 10% 的適中感)
-            // 延後淡出觸發點，保留煙霧存在感
             if (progress < 0.7) {
                 alpha = 0.88; 
             } else {
-                // 平滑淡出 (1.0 - 0.7) = 0.3
                 alpha = (1.0 - progress) * 3.33; 
             }
         } 
@@ -62,7 +53,6 @@ export const BillboardPainter = {
         ctx.globalAlpha = alpha;
         const drawSize = p.size * scale;
 
-        // 影子隨透明度同步消散
         if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'SPRITE'].includes(type)) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';

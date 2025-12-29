@@ -1,4 +1,3 @@
-
 import { useRef, useEffect, MutableRefObject, useState } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role } from '../types';
@@ -23,10 +22,6 @@ interface GameInputProps {
 
 type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 
-/**
- * 跨平台輸入控制器 v29.0 (ECS 物理同步版)
- * 絕對遵守約束：完全移除幽靈同步邏輯，統一 PC 與 Mobile 交互曲線
- */
 export const useGameInput = (props: GameInputProps) => {
     const { 
         canvasRef, engine, rendererRef, cameraRef, 
@@ -34,11 +29,9 @@ export const useGameInput = (props: GameInputProps) => {
         onSelect
     } = props;
 
-    // React 狀態僅用於渲染「幽靈物件」或 UI 反饋
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<any>(null);
 
-    // 核心交互狀態 (Ref 以保持物理頻率一致)
     const interactionMode = useRef<InteractionMode>('IDLE');
     const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
@@ -48,10 +41,8 @@ export const useGameInput = (props: GameInputProps) => {
     const draggedObstacleRef = useRef<any>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
     
-    // 多指跟蹤（解決移動端縮放衝突關鍵）
     const activePointers = useRef<Set<number>>(new Set());
 
-    // 實時讀取 UI 配置
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
     useEffect(() => { 
         configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; 
@@ -60,20 +51,17 @@ export const useGameInput = (props: GameInputProps) => {
     const getHexFromCoords = (sx: number, sy: number) => {
         if (!canvasRef.current || !rendererRef.current) return null;
         const rect = canvasRef.current.getBoundingClientRect();
-        // 絕對遵守唯一的座標轉換路徑
         return rendererRef.current.getHexAtScreenPoint(sx, sy, rect.width, rect.height, cameraRef.current, engine);
     };
 
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
         
-        // 1. 移動端多指熔斷：如果是多指觸控，立即停止所有平移，交給縮放系統
         if (activePointers.current.size > 1) {
             interactionMode.current = 'IDLE';
             return;
         }
 
-        // 2. PC 端按鍵過濾：僅響應左鍵 (Button 0)
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         
         const cvs = canvasRef.current;
@@ -87,7 +75,6 @@ export const useGameInput = (props: GameInputProps) => {
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         
-        // 使用 Renderer 的 HitTest 判斷是否擊中單位
         const h = getHexFromCoords(sx, sy);
         const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
 
@@ -121,10 +108,9 @@ export const useGameInput = (props: GameInputProps) => {
         const h = getHexFromCoords(sx, sy);
         hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
 
-        // 狀態轉移邏輯 (閾值判定)
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            if (dist > 8) { // 稍微提高閾值防止點擊抖動
+            if (dist > 8) {
                 if (!engine.isRunning && configRef.current.tool === ToolType.SELECT) {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) {
@@ -139,9 +125,7 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
 
-        // --- 執行分發 (ECS 行為) ---
         if (interactionMode.current === 'PAN') {
-            // 重要：不再直接修改 Ref，僅推送動量偏移。平滑與同步由渲染循環處理。
             if (engine.renderer?.camera) {
                 engine.renderer.camera.applyPanOffset(dx, dy);
             }
@@ -152,7 +136,6 @@ export const useGameInput = (props: GameInputProps) => {
             const cx = rect.width / 2;
             const cy = rect.height / 2;
             const terrainH = h ? rendererRef.current.getTerrainHeight(h.q, h.r, engine) : 0;
-            // 物理投射更新
             pressedAgentRef.current.px = (sx - cx) / zoom + camX;
             pressedAgentRef.current.py = (sy - cy) / zoom + camY + terrainH;
             cvs.style.cursor = 'grabbing';

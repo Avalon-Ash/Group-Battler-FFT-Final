@@ -1,8 +1,5 @@
-
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill } from "../types";
-
-// Sub-systems
 import { GridSystem } from "./systems/grid";
 import { VFXSystem } from "./systems/vfx";
 import { VFXRenderer } from "./systems/vfx/render";
@@ -10,8 +7,6 @@ import { UnitRenderSystem } from "./systems/unit";
 import { HUDSystem } from "./systems/hud";
 import { CameraSystem, Camera } from "./systems/CameraSystem";
 import { VisualEventListener } from "./systems/VisualEventListener";
-
-// Renderers & Pipeline
 import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
 
@@ -20,7 +15,6 @@ export { Camera };
 export class GameRenderer {
     public globalTime: number = 0;
     
-    // Sub-systems (Context Holders)
     public grid: GridSystem;
     public vfx: VFXSystem;
     public vfxRenderer: VFXRenderer;
@@ -29,7 +23,6 @@ export class GameRenderer {
     public hud: HUDSystem;
     public camera: CameraSystem;
     
-    // Logic
     private eventListener: VisualEventListener;
     private pipeline: RenderPipeline;
 
@@ -42,8 +35,6 @@ export class GameRenderer {
         this.hud = new HUDSystem();
         this.camera = new CameraSystem();
         this.eventListener = new VisualEventListener();
-        
-        // Initialize Pipeline (The Draw Loop Logic)
         this.pipeline = new RenderPipeline(this);
     }
 
@@ -58,8 +49,6 @@ export class GameRenderer {
         this.pipeline.setTransition(t, phase);
     }
 
-    // --- Core Accessors (Delegated) ---
-
     public getTerrainHeight(q: number, r: number, engine: GameEngine): number {
         return this.grid.getTerrainHeight(q, r, engine);
     }
@@ -72,13 +61,10 @@ export class GameRenderer {
         return this.grid.getHexAtWorldPoint(wx, wy, engine);
     }
 
-    // --- Update Loop (Logic) ---
-
     public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {
         this.globalTime += dt;
         this.camera.update(dt);
         
-        // 重要修復：將物理系統計算出的精確位置同步回 React 的 Ref，解決操作衝突
         if (externalCameraRef && externalCameraRef.current) {
             externalCameraRef.current.x = this.camera.x;
             externalCameraRef.current.y = this.camera.y;
@@ -106,8 +92,6 @@ export class GameRenderer {
             this.camera
         );
     }
-
-    // --- Main Rendering Loop (Delegated) ---
 
     public draw(
         ctx: CanvasRenderingContext2D, 
