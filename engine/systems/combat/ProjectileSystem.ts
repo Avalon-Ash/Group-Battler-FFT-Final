@@ -4,9 +4,8 @@ import { HexUtils, Vector } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { VisualMath } from "../../math/VisualMath";
 import { HazardManager } from "./HazardManager";
-import { VISUAL_ANCHORS } from "../../../constants";
 
-const POOL_SIZE = 100;
+const POOL_SIZE = 256;
 const TRAIL_MAX = 20;
 
 export class ProjectileSystem {
@@ -40,34 +39,43 @@ export class ProjectileSystem {
 
     private release(p: Projectile) {
         p.active = false;
+        p.id = "";
+        p.targetId = "";
+        p.sourceId = "";
+        p.skill = null as any;
         this.pool.push(p);
     }
 
     public update(dt: number, engine: GameEngine, skillExecutor: SkillExecutor) {
-        for (let i = engine.projectiles.length - 1; i >= 0; i--) {
-            const p = engine.projectiles[i];
-            const age = engine.battleTime - p.createdAt;
+        const projs = engine.projectiles;
+        const time = engine.battleTime;
+        
+        for (let i = projs.length - 1; i >= 0; i--) {
+            const p = projs[i];
+            const age = time - p.createdAt;
 
             if (age >= p.lifespan) {
                 this.handleImpact(p, engine, skillExecutor);
+                projs.splice(i, 1);
                 this.release(p);
-                engine.projectiles.splice(i, 1);
                 continue;
             }
 
-            const currentTargetPos = VisualMath.resolveTargetPoint(p.targetId, engine);
-            if (currentTargetPos.z > -9000) {
-                p.targetPos.x = currentTargetPos.x;
-                p.targetPos.y = currentTargetPos.y;
+            const target3D = VisualMath.resolveTargetPoint(p.targetId, engine);
+            if (target3D.z > -9000) {
+                p.targetPos.x = target3D.x;
+                p.targetPos.y = target3D.y;
             }
 
-            const progress = age / p.lifespan;
-            p.x = HexUtils.lerp(p.startX, p.targetPos.x, progress);
-            p.y = HexUtils.lerp(p.startY, p.targetPos.y, progress);
+            const t = age / p.lifespan;
+            p.x = p.startX + (p.targetPos.x - p.startX) * t;
+            p.y = p.startY + (p.targetPos.y - p.startY) * t;
 
-            const lastPoint = p.trail[p.trailIndex === 0 ? TRAIL_MAX - 1 : p.trailIndex - 1];
-            const tdx = p.x - lastPoint.x, tdy = p.y - lastPoint.y;
-            if (p.trailCount === 0 || (tdx * tdx + tdy * tdy) > 225) {
+            const prevIdx = (p.trailIndex - 1 + TRAIL_MAX) % TRAIL_MAX;
+            const last = p.trail[prevIdx];
+            const dx = p.x - last.x, dy = p.y - last.y;
+            
+            if (p.trailCount === 0 || (dx * dx + dy * dy) > 225) {
                 const pt = p.trail[p.trailIndex];
                 pt.x = p.x; pt.y = p.y;
                 p.trailIndex = (p.trailIndex + 1) % TRAIL_MAX;
@@ -80,13 +88,13 @@ export class ProjectileSystem {
         const source = engine.agents.find(a => a.id === p.sourceId);
         if (p.skill.type === 'AOE') {
             const radius = p.skill.aoeRadius || 1;
-            const hitHex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
+            const hex = HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig);
             for (const e of engine.agents) {
-                if (e.team !== p.team && e.hp > 0 && !e.banished && HexUtils.dist(hitHex, e) <= radius) {
+                if (e.team !== p.team && e.hp > 0 && !e.banished && HexUtils.dist(hex, e) <= radius) {
                     if (source) skillExecutor.resolveHit(source, e, p.skill, p.targetPos, engine);
                 }
             }
-            if (source) HazardManager.spawnHazards(source, HexUtils.range(hitHex, radius), p.skill, engine);
+            if (source) HazardManager.spawnHazards(source, HexUtils.range(hex, radius), p.skill, engine);
             engine.events.push({ type: 'IMPACT_AOE', pos: p.targetPos, skill: p.skill, color: p.skill.color });
         } else {
             const target = engine.agents.find(a => a.id === p.targetId);
@@ -98,37 +106,43 @@ export class ProjectileSystem {
     }
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
-        let targetId = "";
+        let tid = "";
         let tx = 0, ty = 0;
+        
         if (skill.type === 'AOE') {
             if (source.targetHex) {
                 const p = HexUtils.toPx(source.targetHex.q, source.targetHex.r, engine.mapConfig);
                 tx = p.x; ty = p.y;
-                targetId = `ground-${source.targetHex.q},${source.targetHex.r}`;
+                tid = `ground-${source.targetHex.q},${source.targetHex.r}`;
             } else if (source.target) {
                 tx = source.target.px; ty = source.target.py;
-                targetId = source.target.id;
+                tid = source.target.id;
             } else return;
         } else {
             if (source.target && !source.target.banished && source.target.hp > 0) {
                 tx = source.target.px; ty = source.target.py;
-                targetId = source.target.id;
+                tid = source.target.id;
             } else return;
         }
 
         const p = this.acquire(engine);
         const anchor = VisualMath.getUnitAnchor(source, engine);
+        
         p.id = `PX-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-        p.x = source.px; p.y = source.py;
-        p.startX = source.px; p.startY = source.py; p.startZ = anchor.z;
-        p.targetId = targetId; p.targetPos.x = tx; p.targetPos.y = ty;
+        p.x = p.startX = source.px;
+        p.y = p.startY = source.py;
+        p.startZ = anchor.z;
+        p.targetId = tid;
+        p.targetPos.x = tx; p.targetPos.y = ty;
         p.speed = skill.projectileSpeed || 600;
-        p.skill = skill; p.sourceId = source.id; p.team = source.team;
+        p.skill = skill;
+        p.sourceId = source.id;
+        p.team = source.team;
 
-        const dist = Vector.dist({ x: p.startX, y: p.startY }, p.targetPos);
+        const dist = Math.sqrt((p.startX - tx)**2 + (p.startY - ty)**2);
         p.lifespan = Math.max(0.01, dist / p.speed);
 
-        engine.events.push({ type: 'PROJECTILE_SPAWN', pos: { x: source.px, y: source.py }, skill: skill, targetId });
+        engine.events.push({ type: 'PROJECTILE_SPAWN', pos: { x: source.px, y: source.py }, skill, targetId: tid });
         engine.projectiles.push(p);
     }
 }
