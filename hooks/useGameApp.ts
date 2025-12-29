@@ -1,15 +1,11 @@
-
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout } from '../types';
 import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
-
 export const useGameApp = () => {
     const engineRef = useRef(new GameEngine());
-    
-    // --- STATE ---
     const [isShowcaseMode, setIsShowcaseMode] = useState(true);
     const [isPlaying, setIsPlaying] = useState(false);
     const [unitCount, setUnitCount] = useState(0); 
@@ -26,15 +22,11 @@ export const useGameApp = () => {
     const [spawnMode, setSpawnMode] = useState<'RANDOM' | 'DRAFT'>('RANDOM');
     const [draftRole, setDraftRole] = useState<Role>(Role.WARRIOR);
     const [hexLayout, setHexLayout] = useState<HexLayout>(DEFAULT_HEX_LAYOUT);
-    
-    // UI State
     const [showLogs, setShowLogs] = useState(false);
     const [showDB, setShowDB] = useState(false);
     const [showVFXMap, setShowVFXMap] = useState(false); 
     const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
     const [showFactionWarning, setShowFactionWarning] = useState(false);
-
-    // --- EVENT LISTENER SETUP ---
     useEffect(() => {
         const engine = engineRef.current;
         const handleGameOver = (data: { winner: Team }) => {
@@ -47,15 +39,12 @@ export const useGameApp = () => {
             engine.bus.off('GAME_OVER', handleGameOver);
         };
     }, []);
-
-    // Showcase Auto-Loop Logic
     useEffect(() => {
         if (isShowcaseMode && winner !== null) {
             const timer = setTimeout(() => {
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
                 engineRef.current.combat.projectiles = [];
-                
                 setTimeout(() => {
                     setupShowcaseMap(); 
                     setTransitionPhase('IN'); 
@@ -68,28 +57,19 @@ export const useGameApp = () => {
             return () => clearTimeout(timer);
         }
     }, [winner, isShowcaseMode]);
-
-    // --- LOGIC ---
-
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
         engine.stop();
         setWinner(null);
         setSelectedAgent(null);
-        
-        // 1. Randomize Map Size
         engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
         engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
-        
-        // 2. Randomize Layout (FLAT or POINTY) - TRUTH: Vectorization Protocol
         const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
         engine.mapConfig.layout = newLayout;
         setHexLayout(newLayout);
-
         engine.randomizeEnvironment(); 
         setCurrentSceneId(engine.currentScene.id);
     }, []);
-
     const spawnShowcaseUnits = useCallback(() => {
         const engine = engineRef.current;
         let validHexes = (Array.from(engine.mapKeys) as string[])
@@ -98,15 +78,12 @@ export const useGameApp = () => {
                 return {q, r};
             })
             .filter(h => !engine.map.hasObstacle(h.q, h.r));
-
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
-        
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
-        
         const spawnTeam = (team: Team) => {
             let count = 0;
             while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
@@ -116,36 +93,27 @@ export const useGameApp = () => {
                 if (agent) count++;
             }
         };
-
         spawnTeam(Team.BLUE);
         spawnTeam(Team.RED);
-        
         engine.play();
         setIsPlaying(true);
     }, []);
-
     const startShowcaseMatch = useCallback(() => {
         setupShowcaseMap();
         spawnShowcaseUnits();
     }, [setupShowcaseMap, spawnShowcaseUnits]);
-
     useEffect(() => {
         startShowcaseMatch();
     }, [startShowcaseMatch]);
-
     useEffect(() => {
         const interval = setInterval(() => {
             setUnitCount(engineRef.current.agents.length);
         }, 500); 
         return () => clearInterval(interval);
     }, []);
-
     useEffect(() => {
         engineRef.current.timeScale = timeScale;
     }, [timeScale]);
-
-    // --- HANDLERS ---
-
     const enterManualMode = () => {
         setIsShowcaseMode(false);
         engineRef.current.stop();
@@ -159,7 +127,6 @@ export const useGameApp = () => {
         setHexLayout(engineRef.current.mapConfig.layout);
         setCurrentSceneId(engineRef.current.currentScene.id);
     };
-
     const handleUpdateMapSize = useCallback((w: number, h: number) => {
         setMapW(w);
         setMapH(h);
@@ -169,16 +136,13 @@ export const useGameApp = () => {
         setSelectedAgent(null);
         setWinner(null);
     }, []);
-
     const handleUpdateLayout = useCallback((l: HexLayout) => {
         setHexLayout(l);
         engineRef.current.mapConfig.layout = l;
-        // Rebuild is necessary because coordinate calculation changes fundamentally
         engineRef.current.clear(true); 
         setSelectedAgent(null);
         setWinner(null);
     }, []);
-
     const handleSetScene = useCallback((id: string) => {
         const scene = SCENE_DB.find(s => s.id === id);
         if (scene) {
@@ -187,39 +151,31 @@ export const useGameApp = () => {
             setCurrentSceneId(id);
         }
     }, []);
-
     const handleRandomBattlefield = useCallback(() => {
         const engine = engineRef.current;
         engine.stop();
         setWinner(null);
         setSelectedAgent(null);
         engine.clear(false); 
-        
-        // Randomize layout for user randomness too
         const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
         engine.mapConfig.layout = newLayout;
         setHexLayout(newLayout);
-
         engine.randomizeEnvironment();
         setMapW(engine.mapConfig.w);
         setMapH(engine.mapConfig.h);
         setCurrentSceneId(engine.currentScene.id);
-
         let validHexes = (Array.from(engine.mapKeys) as string[])
             .map(k => {
                 const [q, r] = k.split(',').map(Number);
                 return {q, r};
             })
             .filter(h => !engine.map.hasObstacle(h.q, h.r));
-
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
-
         let spawnIndex = 0;
         const TARGET_PER_TEAM = 5;
-
         const spawnTeam = (team: Team) => {
             let count = 0;
             while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
@@ -229,13 +185,10 @@ export const useGameApp = () => {
                 if (agent) count++;
             }
         };
-
         spawnTeam(Team.BLUE);
         spawnTeam(Team.RED);
-        
         setIsPlaying(false); 
     }, []);
-
     const handleNextLevel = useCallback(() => {
         handleRandomBattlefield();
         const engine = engineRef.current;
@@ -243,13 +196,11 @@ export const useGameApp = () => {
         setIsPlaying(true);
         setTool(ToolType.SELECT);
     }, [handleRandomBattlefield]);
-
     const handleReset = useCallback(() => {
         engineRef.current.restart();
         setIsPlaying(false); 
         setWinner(null);
     }, []);
-
     const togglePlay = useCallback(() => {
         if (winner !== null) return;
         if (isPlaying) {
@@ -268,11 +219,9 @@ export const useGameApp = () => {
             setTool(ToolType.SELECT);
         }
     }, [isPlaying, winner]);
-
     const handleSelectAgent = (a: Agent | null) => {
         setSelectedAgent(a);
     };
-
     return {
         engineRef,
         state: {

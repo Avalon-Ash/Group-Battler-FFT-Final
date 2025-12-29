@@ -1,17 +1,13 @@
-
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { Team, ToolType, Skill, Role } from '../types';
-
-// Hooks
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { Icons } from './ui/icons';
-
 interface GameCanvasProps {
     engine: GameEngine;
     tool: ToolType;
@@ -29,71 +25,49 @@ interface GameCanvasProps {
     transitionPhase: 'IDLE' | 'IN' | 'OUT';
     onOpenLogs: () => void;
 }
-
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
         isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, nextLevel, transitionPhase, onOpenLogs 
     } = props;
-
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    
-    // Animation State ref
     const transitionProgress = useRef(0);
     const lastPhase = useRef(transitionPhase);
-
-    // Lifecycle: Instantiate Renderer ONCE
     const rendererRef = useRef<GameRenderer | null>(null);
     if (rendererRef.current === null) {
         rendererRef.current = new GameRenderer();
         engine.renderer = rendererRef.current;
     }
-
-    // 1. Camera System
-    // Fix: Remove 'pan' as it is no longer returned by useGameCamera v29.0
     const { camera, centerCamera, zoom } = useGameCamera(engine);
-
-    // 2. Camera Controls
-    // Fix: Remove 'onPan' as it is no longer accepted by useCameraControl v25.0
     useCameraControl({
         canvasRef, 
         cameraRef: camera,
         onZoom: zoom,
         engine 
     });
-
-    // 3. Input System (Unified Left-Click Pan)
-    // Fix: Remove 'onPan' as it is handled internally via CameraSystem in v29.0 and is not a member of GameInputProps
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
         onSelect
     });
-
-    // Reset progress when phase changes
     useEffect(() => {
         if (transitionPhase !== lastPhase.current) {
             transitionProgress.current = 0;
             lastPhase.current = transitionPhase;
         }
     }, [transitionPhase]);
-
-    // 4. Render Handler
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {
         if (!rendererRef.current) return;
-
         if (transitionPhase !== 'IDLE') {
             const dt = 1 / 60; 
             transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.8);
         } else {
             transitionProgress.current = 0;
         }
-
         rendererRef.current.setTransition(transitionProgress.current, transitionPhase); 
         const highlight = pressedAgent || selectedAgent || null;
         const currentHoverHex = hoveredHexRef.current;
-
         rendererRef.current.draw(
             ctx, 
             engine, 
@@ -103,43 +77,32 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             currentHoverHex, 
             hoveredSkill
         );
-
-        // Draw Ghost Obstacle
         if (draggedObstacle && canvasRef.current) {
             const { type, px, py } = draggedObstacle;
             const { x, y, zoom: camZoom } = camera.current;
             const dpr = window.devicePixelRatio || 1;
-            
             ctx.save();
             ctx.scale(dpr, dpr);
-            
             const logicalW = canvasRef.current.width / dpr;
             const logicalH = canvasRef.current.height / dpr;
-            
             ctx.translate(logicalW / 2, logicalH / 2);
             ctx.scale(camZoom, camZoom);
             ctx.translate(-x, -y); 
-            
             const sprite = SpriteManager.getObstacleSprite(type, engine.mapConfig.layout);
             const liftOffset = 40; 
-            
             ctx.shadowColor = 'rgba(0,0,0,0.5)';
             ctx.shadowBlur = 30;
             ctx.shadowOffsetY = 30;
             ctx.globalAlpha = 0.9;
-            
             ctx.drawImage(sprite, px - 32, py - 80 - liftOffset);
             ctx.restore();
         }
     }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
-
     const handleResize = useCallback((w: number, h: number) => {
         if (w > 0 && h > 0) {
             centerCamera(w, h);
         }
     }, [centerCamera]);
-
-    // 5. Game Loop Hook (Pass camera for syncing)
     const { fpsRef } = useGameLoop(
         engine, 
         canvasRef, 
@@ -149,8 +112,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         handleResize,
         camera
     );
-
-    // Initial Camera Center
     useEffect(() => {
         if (wrapperRef.current) {
             const t = setTimeout(() => {
@@ -161,7 +122,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             return () => clearTimeout(t);
         }
     }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
-
     return (
         <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">
             <canvas 
@@ -173,7 +133,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 }} 
                 onContextMenu={(e) => e.preventDefault()}
             />
-            
             {winner !== null && !isShowcaseMode && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
                     <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
@@ -216,5 +175,4 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         </div>
     );
 };
-
 export default GameCanvas;

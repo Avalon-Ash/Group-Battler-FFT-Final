@@ -1,25 +1,16 @@
-
 import { GameEngine } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { SceneTheme, HexLayout } from "../../../types";
 import { VFXSystem } from "../vfx";
 import { MapConfig } from "../../utils";
 import { Camera } from "../../systems/CameraSystem";
-
-// Modules
 import { getTransitionOffset, isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
-
 const GROUND_PROJECTION_TYPES = new Set([
     'GIANT_HEX', 'MAGIC_CIRCLE', 'RING', 'SHOCKWAVE', 
     'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'CRACKS', 'DOMAIN'
 ]);
-
-/**
- * ECS VFX System Renderer v11.1
- */
 export class VFXRenderer {
-
     public submitRenderables(
         renderList: RenderList,
         engine: GameEngine,
@@ -31,7 +22,6 @@ export class VFXRenderer {
         viewport?: { width: number, height: number, camera: Camera } 
     ) {
         let cullMinX = -Infinity, cullMaxX = Infinity, cullMinY = -Infinity, cullMaxY = Infinity;
-        
         if (viewport) {
             const { width, height, camera } = viewport;
             const pad = 1000; 
@@ -42,24 +32,17 @@ export class VFXRenderer {
             cullMinY = camera.y - (viewH / 2) - pad;
             cullMaxY = camera.y + (viewH / 2) + pad;
         }
-
         vfx.state.particles.forEach(p => {
             if (p.delay && p.delay > 0) return;
             if (p.x < cullMinX || p.x > cullMaxX || p.y < cullMinY || p.y > cullMaxY) return;
-
             const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
             if (Math.abs(offset) > 1200) return;
-            
             const op = renderList.next();
             op.type = RenderOpType.VFX;
-            
             const isGroundLocked = GROUND_PROJECTION_TYPES.has(p.type);
             op.y = p.y + offset + (isGroundLocked ? 2 : 0); 
-            
-            // Explicitly set cinematic metadata
             op.pIsUlt = p.z > 300 || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
             op.z = isGroundLocked ? (p.z + 5) : p.z; 
-            
             op.particle = p;
             op.vProgress = 1 - (p.life / p.maxLife);
             op.vChaos = isChaosStyle(p.color);
@@ -67,11 +50,9 @@ export class VFXRenderer {
             op.ty = p.y + offset - p.z; 
             op.th = p.z; 
         });
-
         this.submitDecalLayer(renderList, vfx, mapConfig, transitionT, transitionPhase, cullMinX, cullMaxX, cullMinY, cullMaxY);
         ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase);
     }
-
     private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: any, minX: number, maxX: number, minY: number, maxY: number) {
         vfx.state.decals.forEach(d => {
             if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) return;
@@ -86,8 +67,5 @@ export class VFXRenderer {
             op.dLife = d.life;
         });
     }
-
-    public drawTopLayerParticles(ctx: CanvasRenderingContext2D, vfx: VFXSystem, scene: SceneTheme, mapConfig: MapConfig, t: number, phase: any, layout: HexLayout) {
-        // Overlay HUD logic removed for brevity
-    }
+    public drawTopLayerParticles(ctx: CanvasRenderingContext2D, vfx: VFXSystem, scene: SceneTheme, mapConfig: MapConfig, t: number, phase: any, layout: HexLayout) {}
 }

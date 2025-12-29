@@ -1,19 +1,10 @@
-
 import { Role, UnitStats, MovementType } from "../types";
-
-/**
- * Global Unit Balance Patch v8.3 - Flight Physics Update
- * 
- * Philosophy:
- * - Flyers are now SLOWER (0.9) but ignore terrain. This makes them feel like heavy floating destroyers.
- * - Rangers speed boost slightly to emphasize kiting.
- */
 export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }> = {
     [Role.TANK]: {
         role: Role.TANK,
         maxHp: 1200, 
         maxMp: 100,
-        moveSpeed: 0.8, // Heavy
+        moveSpeed: 0.8,
         jump: 1,
         weight: 5, 
         movementType: MovementType.GROUND
@@ -31,7 +22,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         role: Role.RANGER,
         maxHp: 600, 
         maxMp: 100,
-        moveSpeed: 1.4, // Buffed for kiting
+        moveSpeed: 1.4,
         jump: 3, 
         weight: 1,
         movementType: MovementType.GROUND
@@ -40,7 +31,7 @@ export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }>
         role: Role.MAGE,
         maxHp: 550, 
         maxMp: 100,
-        moveSpeed: 0.9, // NERFED: Slower, deliberate flight
+        moveSpeed: 0.9,
         jump: 1,
         weight: 1,
         movementType: MovementType.FLYING 
