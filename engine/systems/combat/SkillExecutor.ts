@@ -7,10 +7,12 @@ import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 
 export class SkillExecutor {
+
     public executeInstantSkill(source: Agent, skill: Skill, engine: GameEngine) {
         let targets: Agent[] = [];
-        let origin = { x: source.px, y: source.py };
-        let targetHex = source.targetHex || (source.target ? { q: source.target.q, r: source.target.r } : { q: source.q, r: source.r });
+        let origin = {x: source.px, y: source.py}; 
+        let targetHex = source.targetHex || (source.target ? {q: source.target.q, r: source.target.r} : {q: source.q, r: source.r});
+
         const impactCells = engine.movement.targeting.getImpactArea(source, targetHex, skill, engine);
 
         if (skill.type === 'AOE' || impactCells.length > 1) {
@@ -21,6 +23,7 @@ export class SkillExecutor {
                     else if (skill.power < 0 && u.team === source.team) targets.push(u);
                 }
             });
+            
             const p = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
             origin = { x: p.x, y: p.y };
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color });
@@ -33,7 +36,11 @@ export class SkillExecutor {
                 }
             }
         }
-
+        
+        if (targets.length === 0 && skill.power <= 0 && skill.type === 'SINGLE') {
+            targets.push(source);
+        }
+        
         targets.forEach(t => {
             const dist = HexUtils.dist(source, t);
             if (dist > 1) {
@@ -45,30 +52,31 @@ export class SkillExecutor {
         });
 
         if (skill.tag !== 'BASIC') {
-            engine.events.push({ type: 'CAST_FINISH', pos: { x: source.px, y: source.py }, skill: skill });
+            engine.events.push({ type: 'CAST_FINISH', pos: {x: source.px, y: source.py}, skill: skill });
         }
     }
 
-    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: { x: number, y: number } | undefined, engine: GameEngine) {
+    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine) {
         const result = DamageCalculator.calculate(source, target, skill);
         if (result.isMiss) {
-            engine.events.push({ type: 'CC_APPLIED', pos: { x: target.px, y: target.py }, text: "MISS", color: "#94a3b8" });
+            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "MISS", color: "#94a3b8" });
             return;
         }
 
         const oldHp = Math.ceil(target.hp);
         if (result.shieldAbsorb > 0) target.shield -= result.shieldAbsorb;
-        target.hp = Math.min(target.maxHp, target.hp + result.finalValue);
 
+        target.hp = Math.min(target.maxHp, target.hp + result.finalValue);
+        
         if (result.vampAmount > 0 && source.hp > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
-            engine.events.push({ type: 'HEAL', pos: { x: source.px, y: source.py }, value: result.vampAmount, color: '#86efac' });
+            engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#86efac' });
         }
 
-        if (result.finalValue < 0) {
+        if (result.finalValue < 0) { 
             target.setAnim(AnimState.HIT);
             target.hitFlashTimer = 0.2;
-            const originPx = origin ? origin : { x: source.px, y: source.py };
+            const originPx = origin ? origin : {x: source.px, y: source.py};
             const damageForce = Math.min(800, Math.abs(result.finalValue) * 3.5);
             PhysicsEngine.applyImpulse(target, originPx, damageForce, 0.6);
         }
