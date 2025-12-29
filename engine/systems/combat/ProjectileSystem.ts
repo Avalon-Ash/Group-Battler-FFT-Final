@@ -8,7 +8,7 @@ import { HazardManager } from "./HazardManager";
 import { VISUAL_ANCHORS } from "../../../constants";
 
 export class ProjectileSystem {
-    public projectiles: Projectile[] = [];
+    // 移除 public projectiles = []; 讓它只管理 Pool
     private pool: Projectile[] = [];
 
     constructor() {
@@ -17,24 +17,28 @@ export class ProjectileSystem {
         }
     }
 
-    public reset() {
-        this.projectiles.forEach(p => this.release(p));
-        this.projectiles = [];
+    public reset(engine: GameEngine) {
+        // 重置時，把 engine 裡的飛行物全部回收進 Pool
+        if (engine.projectiles) {
+            engine.projectiles.forEach(p => this.release(p));
+            engine.projectiles = []; // 清空全域陣列
+        }
     }
 
     public update(dt: number, engine: GameEngine, skillExecutor: SkillExecutor) {
-        for (let i = this.projectiles.length - 1; i >= 0; i--) {
-            const p = this.projectiles[i];
+        // 直接遍歷 engine.projectiles (這是 Renderer 讀取的地方)
+        for (let i = engine.projectiles.length - 1; i >= 0; i--) {
+            const p = engine.projectiles[i];
             
             if (!p.active) {
-                this.removeProjectile(i);
+                this.removeProjectile(i, engine);
                 continue;
             }
 
             const age = engine.battleTime - p.createdAt;
             if (age > p.lifespan) {
                 this.release(p);
-                this.removeProjectile(i);
+                this.removeProjectile(i, engine);
                 continue;
             }
 
@@ -59,7 +63,7 @@ export class ProjectileSystem {
             if (dist <= moveDist || dist < VISUAL_ANCHORS.HITBOX_RADIUS) {
                 this.handleImpact(p, engine, skillExecutor);
                 this.release(p);
-                this.removeProjectile(i);
+                this.removeProjectile(i, engine);
             } else {
                 const dir = Vector.normalize(Vector.sub(p.targetPos, {x: p.x, y: p.y}));
                 p.x += dir.x * moveDist;
@@ -99,10 +103,11 @@ export class ProjectileSystem {
         engine.events.push({ type: 'PROJECTILE_HIT', pos: p.targetPos, skill: p.skill });
     }
 
-    private removeProjectile(idx: number) {
-        const lastIdx = this.projectiles.length - 1;
-        if (idx !== lastIdx) this.projectiles[idx] = this.projectiles[lastIdx];
-        this.projectiles.pop();
+    private removeProjectile(idx: number, engine: GameEngine) {
+        const list = engine.projectiles;
+        const lastIdx = list.length - 1;
+        if (idx !== lastIdx) list[idx] = list[lastIdx];
+        list.pop();
     }
 
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
@@ -145,7 +150,8 @@ export class ProjectileSystem {
         p.team = source.team;
         p.trail = [];
 
-        this.projectiles.push(p);
+        // 關鍵修正：推送到 engine.projectiles
+        engine.projectiles.push(p);
         engine.events.push({ type: 'PROJECTILE_SPAWN', pos: {x: source.px, y: source.py}, skill: skill, targetId: targetId });
     }
 
