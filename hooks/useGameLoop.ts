@@ -10,14 +10,14 @@ export const useGameLoop = (
     wrapperRef: MutableRefObject<HTMLDivElement | null>,
     rendererRef: MutableRefObject<GameRenderer | null>,
     onDraw: (ctx: CanvasRenderingContext2D, fps: number) => void,
-    onResize: (logicalWidth: number, logicalHeight: number) => void
+    onResize: (logicalWidth: number, logicalHeight: number) => void,
+    cameraRef?: any // 新增攝像機引用傳遞
 ) => {
     const fpsRef = useRef(60);
     const frameRef = useRef<number>(0);
     const isMountedRef = useRef(true);
     const resizeTimerRef = useRef<number | null>(null);
     
-    // Store callbacks to prevent effect re-triggering
     const drawCallbackRef = useRef(onDraw);
     const resizeCallbackRef = useRef(onResize);
 
@@ -26,7 +26,6 @@ export const useGameLoop = (
         resizeCallbackRef.current = onResize;
     }, [onDraw, onResize]);
 
-    // 1. LIFECYCLE & RESIZE OBSERVER (High-DPI Support)
     useEffect(() => {
         isMountedRef.current = true;
         if (!wrapperRef.current || !canvasRef.current) return;
@@ -38,33 +37,23 @@ export const useGameLoop = (
                 if (!isMountedRef.current || !canvasRef.current || !entries[0]) return;
 
                 const { width, height } = entries[0].contentRect;
-                
-                // High-DPI Logic
                 const dpr = window.devicePixelRatio || 1;
                 const logicalW = Math.floor(width);
                 const logicalH = Math.floor(height);
-                
-                // Physical pixels (Buffer size)
                 const physicalW = Math.floor(width * dpr);
                 const physicalH = Math.floor(height * dpr);
 
                 if (logicalW === 0 || logicalH === 0) return;
 
-                // Only update if dimensions actually changed to avoid flicker
                 if (canvasRef.current.width !== physicalW || canvasRef.current.height !== physicalH) {
-                    // 1. Set Physical Buffer Size (High Res)
                     canvasRef.current.width = physicalW;
                     canvasRef.current.height = physicalH;
-
-                    // 2. Set CSS Display Size (Logical Res)
                     canvasRef.current.style.width = `${logicalW}px`;
                     canvasRef.current.style.height = `${logicalH}px`;
 
-                    // 3. Debounce Logical Resize (Camera Recenter)
                     if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
                     resizeTimerRef.current = window.setTimeout(() => {
                         if (isMountedRef.current) {
-                            // Pass LOGICAL dimensions to avoiding reading DOM again
                             resizeCallbackRef.current(logicalW, logicalH);
                         }
                     }, 50);
@@ -82,7 +71,6 @@ export const useGameLoop = (
         };
     }, [wrapperRef, canvasRef]);
 
-    // 2. MAIN GAME LOOP
     useEffect(() => {
         let lastTime = 0;
         let acc = 0;
@@ -108,7 +96,6 @@ export const useGameLoop = (
             const dt = t - lastTime;
             lastTime = t;
 
-            // FPS Counter
             frameCount++;
             if (t - lastFpsTime >= 1000) {
                 fpsRef.current = frameCount;
@@ -116,7 +103,6 @@ export const useGameLoop = (
                 lastFpsTime = t;
             }
 
-            // Logic Update
             if (engine.isRunning) {
                 acc += dt;
                 if (acc > 250) acc = 250; 
@@ -135,8 +121,8 @@ export const useGameLoop = (
                 }
             }
             
-            // Render Update
-            rendererRef.current.update(dt / 1000, engine);
+            // 傳入 cameraRef 進行座標同步，防止「強制拉回」
+            rendererRef.current.update(dt / 1000, engine, cameraRef);
             drawCallbackRef.current(ctx, fpsRef.current);
 
             frameRef.current = requestAnimationFrame(loop);
@@ -147,7 +133,7 @@ export const useGameLoop = (
         return () => {
             cancelAnimationFrame(frameRef.current);
         };
-    }, [engine, canvasRef, rendererRef]);
+    }, [engine, canvasRef, rendererRef, cameraRef]);
 
     return { fpsRef };
 };

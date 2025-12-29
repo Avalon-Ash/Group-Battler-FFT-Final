@@ -6,6 +6,10 @@ import { HexUtils } from "../utils";
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
 
+/**
+ * 行為樹註冊表 v28.0 (ECS 邏輯核心)
+ * 解決奧義滿 MP 發呆：主動掃描感應與積極追擊
+ */
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
@@ -22,9 +26,16 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "SkillReady": (a, _, args) => {
         const idx = args.slot; 
         const s = a.skills[idx];
-        if (!s || a.curCDs[idx] > 0 || a.mp < s.cost || a.castingSkillIdx !== -1) return false;
+        if (!s) return false;
+        
+        // 絕對遵守數學引用：處理冷卻時間的微量浮點誤差
+        const isOnCD = a.curCDs[idx] > 0.005; 
+        if (isOnCD || a.mp < s.cost) return false;
+        
+        // 控制狀態判定
         if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
+        
         return true;
     },
     
@@ -33,13 +44,18 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const skill = a.skills[idx];
         if (!skill) return false;
 
+        // 核心修復：奧義積極感應
+        // 如果是奧義(ULT)，感知範圍擴大，防止因為敵人稍遠就判定為「無目標可打」導致發呆
+        const visionRange = (skill.tag === 'ULT') ? skill.range + 5 : skill.range + 2;
+        
         const result = engine.movement.calculateOptimalTarget(a, skill, engine);
         
         if (result.targetAgent) {
             a.target = result.targetAgent;
             a.targetHex = null;
-            const effRange = engine.movement.getEffectiveRange(a, a.target.q, a.target.r, skill.range, engine);
-            return HexUtils.dist(a, result.targetAgent) <= effRange;
+            // 只要目標在感應半徑內，就回傳 Success 讓後續 Chase 節點執行
+            const dist = HexUtils.dist(a, result.targetAgent);
+            return dist <= visionRange;
         } 
         else if (result.targetHex) {
             a.target = null;
@@ -71,46 +87,30 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.RUNNING;
     },
     "Idle": (a) => {
-        // If we reached here, AI failed all offensive checks
-        a.btStatus = a.silenceTimer > 0 ? "沉默" : "掃描中...";
+        a.btStatus = "待機中";
         return NodeState.SUCCESS;
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
-        if (!a.skills[idx]) return NodeState.FAILURE;
         return engine.combat.initiateCast(a, idx, engine);
     },
     "MoveToOptimal": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
-
-        const speedMult = skill.range <= 2 ? 2.0 : 1.0;
-
-        if (a.targetHex) {
-            return engine.movement.moveAgentToHex(a, a.targetHex, skill.range, engine, speedMult);
-        }
-        if (a.target) {
-             return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
-        }
+        const speedMult = (skill.tag === 'ULT') ? 1.5 : 1.0;
+        if (a.targetHex) return engine.movement.moveAgentToHex(a, a.targetHex, skill.range, engine, speedMult);
+        if (a.target) return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
         return NodeState.FAILURE;
     },
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
         const skill = a.skills[idx];
-        if (!skill) return NodeState.FAILURE;
-
-        // Ensure we actually have a logical target before moving
-        if (!a.target) engine.movement.updateTarget(a, engine); 
-        if (!a.target) return NodeState.FAILURE;
+        if (!skill || !a.target) return NodeState.FAILURE;
         
-        const speedMult = skill.range <= 2 ? 2.0 : 1.0;
+        // 積極追擊：奧義準備好時稍微提速
+        const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
         a.btStatus = `追擊 ${a.target.id}`;
-        
-        const result = engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
-        // If pathfinding says Failure, unit stays still - this is where "Idle" used to happen.
-        // We log it so user knows why.
-        if (result === NodeState.FAILURE) a.btStatus = "無法抵達";
-        return result;
+        return engine.movement.moveAgent(a, a.target, skill.range, engine, speedMult);
     }
 };

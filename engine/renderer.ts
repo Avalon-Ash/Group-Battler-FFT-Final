@@ -74,12 +74,18 @@ export class GameRenderer {
 
     // --- Update Loop (Logic) ---
 
-    public update(dt: number, engine: GameEngine): void {
+    public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {
         this.globalTime += dt;
         this.camera.update(dt);
+        
+        // 重要修復：將物理系統計算出的精確位置同步回 React 的 Ref，解決操作衝突
+        if (externalCameraRef && externalCameraRef.current) {
+            externalCameraRef.current.x = this.camera.x;
+            externalCameraRef.current.y = this.camera.y;
+        }
+
         this.pipeline.update(dt, engine); 
         
-        // Update VFX with a terrain lookup closure
         this.vfx.update(dt, this.globalTime, engine.currentScene.ambientType, 
             (x, y) => this.grid.getTerrainHeight(
                 this.grid.getHexAtWorldPoint(x, y, engine)?.q || 0,

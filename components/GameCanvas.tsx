@@ -53,20 +53,23 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     // 1. Camera System
     const { camera, centerCamera, pan, zoom } = useGameCamera(engine);
 
-    // 2. Camera Controls (New Hook)
+    // 2. Camera Controls
     useCameraControl({
         canvasRef, 
         cameraRef: camera,
         onPan: pan,
-        onZoom: zoom
+        onZoom: zoom,
+        engine 
     });
 
-    // 3. Input System (Game Logic Only)
+    // 3. Input System (Unified Left-Click Pan)
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
         onSelect,
-        onPan: pan // Wire up pan for 1-finger mobile dragging
+        onPan: (dx, dy) => {
+            if(engine.renderer?.camera) engine.renderer.camera.applyPanOffset(dx, dy);
+        }
     });
 
     // Reset progress when phase changes
@@ -137,14 +140,15 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         }
     }, [centerCamera]);
 
-    // 5. Game Loop Hook
+    // 5. Game Loop Hook (Pass camera for syncing)
     const { fpsRef } = useGameLoop(
         engine, 
         canvasRef, 
         wrapperRef, 
         rendererRef, 
         handleDraw, 
-        handleResize
+        handleResize,
+        camera
     );
 
     // Initial Camera Center

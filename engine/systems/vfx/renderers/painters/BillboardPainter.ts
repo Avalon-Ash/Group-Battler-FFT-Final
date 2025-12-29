@@ -2,6 +2,10 @@
 import { Particle } from "../../state";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 
+/**
+ * 告示板粒子繪製器 v28.0 - 視覺豐富版
+ * 絕對遵守視覺約束：還原被錯誤削減的煙霧特效
+ */
 export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
         let img = p.image || p.texture;
@@ -15,24 +19,29 @@ export const BillboardPainter = {
         let alpha = 1.0; 
         const type = p.type;
 
-        // SOLID MASS ENHANCEMENT
+        // --- 煙霧特效還原 (Visibility Restoration v28) ---
         if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
-            const blastEase = 1 - Math.pow(1 - progress, 4);
-            scale = 0.8 + blastEase * 0.6; 
+            const blastEase = 1 - Math.pow(1 - progress, 5);
+            scale = 0.9 + blastEase * 0.6; // 稍微放大的體積感
             
-            // Stay nearly opaque for 80% of life to maintain density
-            if (progress < 0.8) {
-                alpha = 0.95;
+            // 還原透明度至 0.88 (符合減少 10% 的適中感)
+            // 延後淡出觸發點，保留煙霧存在感
+            if (progress < 0.7) {
+                alpha = 0.88; 
             } else {
-                alpha = (1.0 - progress) * 5.0; 
+                // 平滑淡出 (1.0 - 0.7) = 0.3
+                alpha = (1.0 - progress) * 3.33; 
             }
-        } else if (type === 'SPARK' || type === 'GLOW') {
-            scale = 1.0 - (progress * 0.5); 
-            alpha = Math.min(1.0, (1.0 - progress) * 3.0); 
-        } else if (['RUBBLE', 'ROCK', 'DEBRIS', 'SHARD', 'SPRITE'].includes(type)) {
+        } 
+        else if (type === 'SPARK' || type === 'GLOW') {
+            scale = 1.0 - (progress * 0.4); 
+            alpha = Math.min(0.95, (1.0 - progress) * 3.5); 
+        } 
+        else if (['RUBBLE', 'ROCK', 'DEBRIS', 'SHARD', 'SPRITE'].includes(type)) {
             scale = 1.0;
-            alpha = progress > 0.9 ? (1.0 - progress) * 10 : 1.0; // Solid until last 10%
-        } else {
+            alpha = progress > 0.85 ? (1.0 - progress) * 6.6 : 1.0;
+        } 
+        else {
             scale = 1.0 - (progress * progress);
             alpha = 1.0 - progress;
         }
@@ -43,11 +52,9 @@ export const BillboardPainter = {
         ctx.translate(drawX, drawY);
         if (p.rotation) ctx.rotate(p.rotation);
 
-        // Dense Blending Strategy
         if (p.blendMode) {
             ctx.globalCompositeOperation = p.blendMode;
         } else {
-            // Non-energy particles now use source-over for 'thickness'
             const isEnergy = (type === 'SPARK' || type === 'GLOW' || type === 'ATMOSPHERE');
             ctx.globalCompositeOperation = isEnergy ? 'screen' : 'source-over';
         }
@@ -55,13 +62,13 @@ export const BillboardPainter = {
         ctx.globalAlpha = alpha;
         const drawSize = p.size * scale;
 
-        // PHYSICAL SHADOW (Restored for solid presence)
+        // 影子隨透明度同步消散
         if (['RUBBLE', 'DEBRIS', 'ROCK', 'SHARD', 'SPRITE'].includes(type)) {
             ctx.save();
             ctx.globalCompositeOperation = 'multiply';
-            ctx.globalAlpha = 0.6 * alpha;
+            ctx.globalAlpha = 0.4 * alpha;
             ctx.fillStyle = 'rgba(0,0,0,1)';
-            ctx.beginPath(); ctx.arc(2, 4, drawSize * 0.8, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(2, 4, drawSize * 0.75, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 
