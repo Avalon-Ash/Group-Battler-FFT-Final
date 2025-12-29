@@ -8,8 +8,6 @@ import { VISUAL_ANCHORS } from "../../../constants";
 
 const POOL_SIZE = 100;
 const TRAIL_MAX = 20;
-const HIT_RADIUS_SQ = VISUAL_ANCHORS.HITBOX_RADIUS * VISUAL_ANCHORS.HITBOX_RADIUS;
-const LIFETIME_LIMIT = 5.0;
 
 export class ProjectileSystem {
     private pool: Projectile[] = [];
@@ -27,7 +25,7 @@ export class ProjectileSystem {
             id: "", active: false, x: 0, y: 0, startX: 0, startY: 0, startZ: 0,
             targetId: "", targetPos: { x: 0, y: 0 }, speed: 0,
             skill: null as any, sourceId: "", team: 0,
-            trail, trailIndex: 0, trailCount: 0, createdAt: 0
+            trail, trailIndex: 0, trailCount: 0, createdAt: 0, lifespan: 0
         };
     }
 
@@ -46,11 +44,12 @@ export class ProjectileSystem {
     }
 
     public update(dt: number, engine: GameEngine, skillExecutor: SkillExecutor) {
-        const now = engine.battleTime;
         for (let i = engine.projectiles.length - 1; i >= 0; i--) {
             const p = engine.projectiles[i];
-            
-            if (now - p.createdAt > LIFETIME_LIMIT) {
+            const age = engine.battleTime - p.createdAt;
+
+            if (age >= p.lifespan) {
+                this.handleImpact(p, engine, skillExecutor);
                 this.release(p);
                 engine.projectiles.splice(i, 1);
                 continue;
@@ -62,10 +61,9 @@ export class ProjectileSystem {
                 p.targetPos.y = currentTargetPos.y;
             }
 
-            const dx = p.targetPos.x - p.x;
-            const dy = p.targetPos.y - p.y;
-            const distSq = dx * dx + dy * dy;
-            const moveDist = p.speed * dt;
+            const progress = age / p.lifespan;
+            p.x = HexUtils.lerp(p.startX, p.targetPos.x, progress);
+            p.y = HexUtils.lerp(p.startY, p.targetPos.y, progress);
 
             const lastPoint = p.trail[p.trailIndex === 0 ? TRAIL_MAX - 1 : p.trailIndex - 1];
             const tdx = p.x - lastPoint.x, tdy = p.y - lastPoint.y;
@@ -74,16 +72,6 @@ export class ProjectileSystem {
                 pt.x = p.x; pt.y = p.y;
                 p.trailIndex = (p.trailIndex + 1) % TRAIL_MAX;
                 if (p.trailCount < TRAIL_MAX) p.trailCount++;
-            }
-
-            if (distSq <= (moveDist * moveDist) || distSq < HIT_RADIUS_SQ) {
-                this.handleImpact(p, engine, skillExecutor);
-                this.release(p);
-                engine.projectiles.splice(i, 1);
-            } else {
-                const dist = Math.sqrt(distSq);
-                p.x += (dx / dist) * moveDist;
-                p.y += (dy / dist) * moveDist;
             }
         }
     }
@@ -130,12 +118,15 @@ export class ProjectileSystem {
 
         const p = this.acquire(engine);
         const anchor = VisualMath.getUnitAnchor(source, engine);
-        p.id = `${Math.random().toString(36).substr(2, 4)}`;
+        p.id = `PX-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
         p.x = source.px; p.y = source.py;
         p.startX = source.px; p.startY = source.py; p.startZ = anchor.z;
         p.targetId = targetId; p.targetPos.x = tx; p.targetPos.y = ty;
         p.speed = skill.projectileSpeed || 600;
         p.skill = skill; p.sourceId = source.id; p.team = source.team;
+
+        const dist = Vector.dist({ x: p.startX, y: p.startY }, p.targetPos);
+        p.lifespan = Math.max(0.01, dist / p.speed);
 
         engine.events.push({ type: 'PROJECTILE_SPAWN', pos: { x: source.px, y: source.py }, skill: skill, targetId });
         engine.projectiles.push(p);

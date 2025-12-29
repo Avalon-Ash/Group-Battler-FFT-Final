@@ -91,6 +91,7 @@ export interface Projectile {
     trailIndex: number;
     trailCount: number;
     createdAt: number;
+    lifespan: number;
 }
 export interface GroundHazard {
     id: string;

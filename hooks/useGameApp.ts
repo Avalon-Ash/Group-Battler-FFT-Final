@@ -44,7 +44,8 @@ export const useGameApp = () => {
             const timer = setTimeout(() => {
                 setTransitionPhase('OUT');
                 engineRef.current.agents = [];
-                engineRef.current.combat.projectiles = [];
+                // Fix: projectiles exists directly on GameEngine, not on the combat system.
+                engineRef.current.projectiles = [];
                 setTimeout(() => {
                     setupShowcaseMap(); 
                     setTransitionPhase('IN'); 

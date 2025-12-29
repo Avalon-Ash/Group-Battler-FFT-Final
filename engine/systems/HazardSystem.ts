@@ -17,7 +17,8 @@ export class HazardSystem {
     ) {
         if (!engine.map.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
-        const existing = engine.hazards.get(key);
+        const hazards = engine.state.hazards;
+        const existing = hazards.get(key);
         
         if (existing) {
             if (existing.type === type && existing.team === team) {
@@ -33,7 +34,7 @@ export class HazardSystem {
             q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
         };
         
-        engine.hazards.set(key, hazard);
+        hazards.set(key, hazard);
 
         if (engine.renderer) {
             const def = HAZARD_VISUALS[type];
@@ -46,19 +47,20 @@ export class HazardSystem {
     }
 
     public update(dt: number, engine: GameEngine) {
+        const hazards = engine.state.hazards;
         const toRemove: string[] = [];
         
-        for (const [key, h] of engine.hazards.entries()) {
+        for (const [key, h] of hazards.entries()) {
             h.duration -= dt;
             h.timer -= dt; 
             if (h.duration <= 0) toRemove.push(key);
         }
-        toRemove.forEach(k => engine.hazards.delete(k));
+        toRemove.forEach(k => hazards.delete(k));
 
         engine.agents.forEach(agent => {
             if (agent.hp <= 0 || agent.banished) return;
             
-            const hazard = engine.hazards.get(HexUtils.key({q: agent.q, r: agent.r}));
+            const hazard = hazards.get(HexUtils.key({q: agent.q, r: agent.r}));
             if (!hazard) return;
 
             if (hazard.team !== agent.team) {
@@ -93,7 +95,7 @@ export class HazardSystem {
             }
         });
 
-        for (const h of engine.hazards.values()) {
+        for (const h of hazards.values()) {
             if (h.timer <= 0) h.timer = h.interval;
         }
     }

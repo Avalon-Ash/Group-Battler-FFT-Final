@@ -84,7 +84,8 @@ export class RenderPipeline {
         ctx.restore(); 
         if (engine.directorTargetId) this.tacticalRenderer.drawHUD(ctx, engine, logicalWidth, logicalHeight, camera, globalTime);
         this.tacticalRenderer.drawDebug(ctx, fps);
-        let blurAmount = engine.isFinishing ? 1.0 - (engine.victoryTimer / VICTORY_PHASE_DURATION) : (engine.winningTeam !== null ? 1.0 : 0);
+        // Fix: isFinishing, victoryTimer, winningTeam exist on engine.victory
+        let blurAmount = engine.victory.isFinishing ? 1.0 - (engine.victory.victoryTimer / VICTORY_PHASE_DURATION) : (engine.victory.winningTeam !== null ? 1.0 : 0);
         if (this.transitionPhase === 'OUT') blurAmount = 1.0; 
         else if (this.transitionPhase === 'IN') blurAmount = 1.0 - this.transitionT;
         if (blurAmount > 0) this.postProcessor.applyFinishBlur(ctx, physicalWidth, physicalHeight, Math.max(0, Math.min(1, blurAmount)));
