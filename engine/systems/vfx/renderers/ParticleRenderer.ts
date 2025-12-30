@@ -6,7 +6,7 @@ import { ProceduralPainter } from "./painters/ProceduralPainter";
 import { HexLayout } from "../../../../types";
 
 // Static categorization for faster dispatch
-const PROCEDURAL_SET = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE']);
+const PROCEDURAL_SET = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE', 'BLACK_HOLE']);
 const GROUND_PLANE_SET = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW']);
 
 /**

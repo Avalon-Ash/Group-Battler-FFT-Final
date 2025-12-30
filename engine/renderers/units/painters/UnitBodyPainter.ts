@@ -43,7 +43,8 @@ export const UnitBodyPainter = {
         ctx.scale(UNIT_SCALE * squashX, UNIT_SCALE * squashY);
         ctx.rotate(agent.physics.angle); 
 
-        // 3. 基礎呼吸與浮動
+        // 3. 基礎呼吸與浮動 (Silhouette needs float but not breath scale usually, 
+        //    but keeping sync is safer for outline matching)
         let bodyFloat = 0; 
         if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
              bodyFloat = Math.sin(t * 2) * 3; 
@@ -75,7 +76,9 @@ export const UnitBodyPainter = {
 
         ctx.scale(agent.facing > 0 ? 1 : -1, 1);
 
-        if (agent.visualStatus === 'POLYMORPH') {
+        if (agent.visualStatus === 'POLYMORPH' && !isSilhouette) {
+            // Polymorph usually doesn't have an x-ray outline since it's a joke state, 
+            // but we skip it here for simplicity or could add simple circle.
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(t * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
@@ -86,7 +89,7 @@ export const UnitBodyPainter = {
                 CovenantRenderer.draw(ctx, agent, t, isSilhouette);
             }
             
-            if (agent.visualStatus === 'FROZEN') {
+            if (agent.visualStatus === 'FROZEN' && !isSilhouette) {
                 const ice = SpriteManager.getSpecialModel('ICE');
                 ctx.save();
                 ctx.globalCompositeOperation = 'hard-light';

@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
@@ -61,7 +62,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         if (!rendererRef.current) return;
         if (transitionPhase !== 'IDLE') {
             const dt = 1 / 60; 
-            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.8);
+            // FIX: Slower transition speed (0.8 -> 0.5) for weightier feel
+            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.5);
         } else {
             transitionProgress.current = 0;
         }

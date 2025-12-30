@@ -4,67 +4,67 @@ import { SceneTheme } from "../types";
 export const SCENE_DB: SceneTheme[] = [
     {
         id: 'VOID',
-        name: '虛空深淵',
-        background: '#020617', // Deepest Slate
-        horizon: '#312e81',    // Indigo Glow
-        fogColor: '#4338ca',   // Indigo Haze
+        name: '虛空星河',
+        background: '#020617', // Slate 950
+        horizon: '#4f46e5',    // Indigo 600
+        fogColor: '#312e81',   // Indigo 900
         textureType: 'VOID',
         obstacleStyle: 'WALL',
-        hexStroke: '#1e293b', 
-        ambientType: 'SPORES', 
-        ambientColor: '#a855f7', 
+        hexStroke: '#1e293b',
+        ambientType: 'SPORES',
+        ambientColor: '#a5b4fc', // Indigo 200
         bgFeature: 'SKY_RIVER'
     },
     {
         id: 'FOREST',
-        name: '迷霧森林',
-        background: '#022c22', // Deep Jungle
-        horizon: '#065f46',    // Emerald Light
-        fogColor: '#047857',   // Green Mist
+        name: '秘境古樹',
+        background: '#022c22', // Emerald 950
+        horizon: '#059669',    // Emerald 600
+        fogColor: '#064e3b',   // Emerald 900
         textureType: 'FOREST',
         obstacleStyle: 'TREE',
-        hexStroke: '#14532d', 
+        hexStroke: '#14532d',
         ambientType: 'SPORES',
-        ambientColor: '#bef264',
+        ambientColor: '#fcd34d', // Amber (Fireflies)
         bgFeature: 'CANOPY'
     },
     {
         id: 'ICE',
-        name: '極地凍原',
-        background: '#082f49', // Sky Dark
-        horizon: '#0ea5e9',    // Cyan Glow
-        fogColor: '#38bdf8',   // Light Blue Mist
+        name: '極光凍土',
+        background: '#082f49', // Sky 950
+        horizon: '#0ea5e9',    // Sky 500
+        fogColor: '#0c4a6e',   // Sky 900
         textureType: 'ICE',
         obstacleStyle: 'ICE_CRYSTAL',
-        hexStroke: '#0c4a6e', 
+        hexStroke: '#075985',
         ambientType: 'SNOW',
-        ambientColor: '#e0f2fe', 
+        ambientColor: '#e0f2fe',
         bgFeature: 'AURORA'
     },
     {
         id: 'MAGMA',
-        name: '熔岩煉獄',
-        background: '#2a0a0a', // Almost Black Red
-        horizon: '#dc2626',    // Burning Red
-        fogColor: '#991b1b',   // Dark Red Haze
+        name: '地核熔爐',
+        background: '#2a0a0a', // Custom Dark Red
+        horizon: '#dc2626',    // Red 600
+        fogColor: '#7f1d1d',   // Red 900
         textureType: 'MAGMA',
         obstacleStyle: 'OBSIDIAN_PILLAR',
-        hexStroke: '#7f1d1d', 
+        hexStroke: '#450a0a',
         ambientType: 'EMBER',
-        ambientColor: '#fca5a5', 
+        ambientColor: '#fdba74', // Orange 300
         bgFeature: 'HEAT_WAVE'
     },
     {
         id: 'DESERT',
-        name: '失落遺跡',
-        background: '#271a0c', // Dark Sepia
-        horizon: '#d97706',    // Golden Sunset
-        fogColor: '#b45309',   // Dust Storm
+        name: '風蝕遺跡',
+        background: '#1c1917', // Stone 900
+        horizon: '#d97706',    // Amber 600
+        fogColor: '#78350f',   // Amber 900
         textureType: 'DESERT',
         obstacleStyle: 'SANDSTONE',
-        hexStroke: '#78350f', 
-        ambientType: 'EMBER',
-        ambientColor: '#fde047', 
+        hexStroke: '#451a03',
+        ambientType: 'SAND', // Changed from EMBER to SAND
+        ambientColor: '#fde68a', // Amber 200
         bgFeature: 'DUNES'
     }
 ];

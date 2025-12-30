@@ -1,5 +1,5 @@
 {
-  "name": "Group Battler FFT v9.1",
-  "description": "Release Candidate. Hybrid ECS Architecture finalized. SSOT Physics/Render synchronization enforced. Data-driven VFX Sequence Engine active.",
+  "name": "Group Battler FFT v9.2",
+  "description": "Visual SSOT Standard Enforced. Unified Coordinate Projection via VisualMath. Z-Layering Architecture finalized.",
   "requestFramePermissions": []
 }

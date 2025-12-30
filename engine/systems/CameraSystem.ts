@@ -1,3 +1,4 @@
+
 export interface Camera {
     x: number;
     y: number;
@@ -47,11 +48,18 @@ export class CameraSystem {
         const worldDx = dx * factor;
         const worldDy = dy * factor;
 
+        // 更新目標位置
         this.targetX -= worldDx;
         this.targetY -= worldDy;
         
-        this.vx = -worldDx * 0.8;
-        this.vy = -worldDy * 0.8;
+        // UX 優化：手動拖曳時採用「直接操縱」(Direct Manipulation)
+        // 強制將當前位置同步為目標位置，消除 Lerp 帶來的阻尼感與延遲
+        this.x = this.targetX;
+        this.y = this.targetY;
+
+        // 歸零慣性，防止拖曳停止後發生意外漂移
+        this.vx = 0;
+        this.vy = 0;
     }
 
     public addTrauma(amount: number) {
@@ -67,6 +75,7 @@ export class CameraSystem {
             this.trauma = Math.max(0, this.trauma - dt * this.DECAY_RATE);
         }
 
+        // 僅在非手動拖曳時應用慣性物理 (例如後續新增的拋擲效果)
         if (Math.abs(this.vx) > 0.01 || Math.abs(this.vy) > 0.01) {
             this.targetX += this.vx;
             this.targetY += this.vy;
@@ -77,6 +86,8 @@ export class CameraSystem {
         const panT = 1 - Math.exp(-this.PAN_DAMPING * dt);
         const zoomT = 1 - Math.exp(-this.ZOOM_DAMPING * dt);
         
+        // 平滑插值：主要用於程式化鏡頭移動 (Focus) 或 Zoom
+        // 對於 applyPanOffset 觸發的操作，因 x 已等於 targetX，此行無影響
         this.x += (this.targetX - this.x) * panT;
         this.y += (this.targetY - this.y) * panT;
         this.zoom += (this.targetZoom - this.zoom) * zoomT;

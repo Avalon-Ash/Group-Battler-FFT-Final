@@ -1,11 +1,11 @@
 
-import { ISO_SCALE_Y, BASE_HEIGHT, BLOCK_HEIGHT } from "../../../constants";
+import { ISO_SCALE_Y, BASE_HEIGHT, BLOCK_HEIGHT, HEX_SIZE } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 
 // 幾何常數
-const PEDESTAL_DEPTH = 30; // Reduced from 120 to 30 to fix "too high" look and prevent UI obstruction
+const PEDESTAL_DEPTH = 30; 
 const EXPANSION_BIAS = 0.6; // 數學膨脹量 (px)，解決縫隙
 
 export const TerrainRenderer = {
@@ -18,12 +18,20 @@ export const TerrainRenderer = {
         globalTime: number,
         layout: HexLayout
     ) {
-        // 物理座標取整
+        // 1. 物理座標取整
         const drawX = Math.floor(x);
-        const drawY = Math.floor(y);
         
-        // 視覺頂面 Y 軸 (相對於 drawY)
-        const visualTopY = -Math.floor(height);
+        // 2. 呼吸戰場算法 (Biome Selective)
+        const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
+        
+        let floatOffset = 0;
+        if (isFloatingBiome) {
+            floatOffset = Math.sin(globalTime * 1.5 + (x * 0.01) + (y * 0.01)) * 4;
+        }
+        
+        // 3. 視覺頂面 Y 軸 (相對於 drawY)
+        const visualTopY = -Math.floor(height) + floatOffset;
+        const drawY = Math.floor(y);
         
         // 膨脹幾何半徑
         const r = size + EXPANSION_BIAS;
@@ -32,15 +40,17 @@ export const TerrainRenderer = {
         ctx.save();
         ctx.translate(drawX, drawY);
 
-        // 1. 繪製基座與側牆 (Pedestal & Walls)
-        // 側牆從 visualTopY 延伸至 PEDESTAL_DEPTH
-        // 確保無論地形多高，下方都有支撐
-        
-        const drawFace = (idx1: number, idx2: number, color: string) => {
+        // 4. 繪製基座與側牆 (Pedestal & Walls)
+        const drawFace = (idx1: number, idx2: number, color: string, isLightSide: boolean) => {
             const v1 = vertices[idx1];
             const v2 = vertices[idx2];
             
-            ctx.fillStyle = color;
+            // 漸層側牆 (增加立體感)
+            const grad = ctx.createLinearGradient(0, visualTopY, 0, PEDESTAL_DEPTH);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617'); // 底部漸黑，融入背景
+
+            ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y + visualTopY); // Top-Left
             ctx.lineTo(v2.x, v2.y + visualTopY); // Top-Right
@@ -49,32 +59,38 @@ export const TerrainRenderer = {
             ctx.closePath();
             ctx.fill();
             
-            // 側邊高光稜線
-            ctx.strokeStyle = 'rgba(255,255,255,0.05)';
+            // 側邊高光稜線 (Rim Light)
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
             ctx.lineWidth = 1;
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y + visualTopY);
             ctx.lineTo(v1.x, v1.y + PEDESTAL_DEPTH);
             ctx.stroke();
+            
+            // 頂部接縫高光
+            ctx.beginPath();
+            ctx.moveTo(v1.x, v1.y + visualTopY);
+            ctx.lineTo(v2.x, v2.y + visualTopY);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.stroke();
         };
 
         if (layout === 'FLAT') {
-            drawFace(1, 0, theme.sideDark);  // Right-Bottom
-            drawFace(2, 1, theme.sideLight); // Bottom
-            drawFace(3, 2, theme.sideDark);  // Left-Bottom
+            drawFace(1, 0, theme.sideDark, false);  // Right-Bottom
+            drawFace(2, 1, theme.sideLight, true); // Bottom (Lightest)
+            drawFace(3, 2, theme.sideDark, false);  // Left-Bottom
         } else {
-            // Pointy Layout Indices: 0(Right), 1(BottomRight), 2(BottomLeft), 3(Left)...
-            // Forward facing are usually 0->1 and 1->2
-            drawFace(1, 0, theme.sideDark);  // Right Side
-            drawFace(2, 1, theme.sideLight); // Left Side
+            drawFace(1, 0, theme.sideDark, false);  // Right Side
+            drawFace(2, 1, theme.sideLight, true); // Left Side
         }
 
-        // 2. 繪製頂部 (Top Cap)
+        // 5. 繪製頂部 (Top Cap)
         ctx.translate(0, visualTopY);
         
+        // 頂面材質光澤
         const topGrad = ctx.createLinearGradient(-r, -r, r, r);
         topGrad.addColorStop(0, theme.rim); 
-        topGrad.addColorStop(0.5, theme.top);
+        topGrad.addColorStop(0.3, theme.top);
         topGrad.addColorStop(1, theme.sideDark); 
         
         ctx.fillStyle = topGrad;
@@ -88,12 +104,13 @@ export const TerrainRenderer = {
 
         // 頂部描邊 (Rim)
         ctx.strokeStyle = theme.rim;
-        ctx.lineWidth = 1.0;
-        ctx.globalAlpha = 0.5;
+        ctx.lineWidth = 1.5; // 加粗一點
+        ctx.globalAlpha = 0.6;
         ctx.stroke();
 
+        // 6. 特殊地表 (岩漿流動)
         if (type === 'MAGMA') {
-            SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0);
+            SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0, layout);
         }
         
         ctx.restore();
@@ -104,12 +121,34 @@ export const TerrainRenderer = {
         baseX: number, baseY: number, 
         height: number,
         type: string, 
-        detailColor: string,
-        q: number, r: number
+        detailColor: string, // Usually theme.detail
+        q: number, r: number,
+        globalTime: number = 0,
+        layout: HexLayout = 'FLAT',
+        theme: any // Pass full theme for access to sideDark/rim if needed
     ) {
-        // 裝飾物跟隨頂面高度
-        const visualY = Math.floor(baseY) - Math.floor(height);
-        if (type === 'FOREST' || type === 'VOID') {
+        // Biome Check for details too
+        const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
+        
+        let floatOffset = 0;
+        if (isFloatingBiome) {
+            floatOffset = Math.sin(globalTime * 1.5 + (baseX * 0.01) + (baseY * 0.01)) * 4;
+        }
+        
+        const visualY = Math.floor(baseY) - Math.floor(height) + floatOffset;
+        
+        if (type === 'FOREST') {
+            // Procedural Grass
+            // [VISUAL UPDATE] Use theme.top to blend seamlessly with the block face.
+            // SurfacePainter handles the shadowing/variation to make it visible.
+            SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || '#14532d', 5, globalTime);
+        } else if (type === 'ICE') {
+            // Specular Ice
+            SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
+        } else if (type === 'DESERT') {
+            // Sand Ripples
+            SurfacePainter.drawSandRipples(ctx, baseX, visualY, HEX_SIZE, theme.sideDark || '#92400e');
+        } else if (type === 'VOID') {
             const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
             if (seed > 0.6) {
                 SurfacePainter.drawDetailTexture(ctx, baseX, visualY, type, detailColor, seed);

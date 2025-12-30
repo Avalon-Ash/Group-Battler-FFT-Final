@@ -116,6 +116,16 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
     },
 
     // --- 🔵 ULTIMATE IMPACTS ---
+    'FX_ULT_BLUE_BLACKHOLE': {
+        id: 'FX_ULT_BLUE_BLACKHOLE',
+        description: 'Mage Event Horizon: Singular Accretion Disk',
+        emitters: [
+            { particleType: 'BLACK_HOLE', count: 1, lifetime: [2.0, 2.5], size: [150, 180], speed: [0,0], colors: ['#8b5cf6'], shape: 'POINT', blendMode: 'source-over', delay: 0 },
+            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.5, 0.8], size: [200, 300], colors: ['#c084fc'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0.1 },
+            // Reduce Smoke density for visibility
+            { particleType: 'SMOKE', count: [8, 12], lifetime: [1.0, 1.5], size: [15, 30], speed: [50, 100], colors: ['#000', '#4c1d95'], shape: 'CIRCLE', shapeRadius: 80, delay: 0.2 }
+        ]
+    },
     'FX_ULT_BLUE_SANCTUARY_IMPACT': {
         id: 'FX_ULT_BLUE_SANCTUARY_IMPACT',
         emitters: [
@@ -173,8 +183,9 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
     'FX_ULT_BLUE_GLACIAL_BURST': {
         id: 'FX_ULT_BLUE_GLACIAL_BURST',
         emitters: [
-            { particleType: 'SHARD', count: [40, 60], lifetime: [1.0, 1.5], size: [8, 15], speed: [300, 600], vz: [400, 800], gravity: 1500, colors: ['#bae6fd', '#fff'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0 },
-            { particleType: 'SMOKE', count: [30, 40], lifetime: [2.0, 3.0], size: [100, 150], speed: [100, 200], colors: ['#e0f2fe', '#fff'], shape: 'CIRCLE', shapeRadius: 80, blendMode: 'screen', delay: 0.1 },
+            { particleType: 'SHARD', count: [30, 50], lifetime: [1.0, 1.5], size: [8, 15], speed: [300, 600], vz: [400, 800], gravity: 1500, colors: ['#bae6fd', '#fff'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0 },
+            // Reduce Smoke Count (40 -> 15) and Size (150 -> 100) to prevent white screen
+            { particleType: 'SMOKE', count: [15, 20], lifetime: [1.5, 2.5], size: [60, 100], speed: [100, 200], colors: ['#e0f2fe', '#fff'], shape: 'CIRCLE', shapeRadius: 80, blendMode: 'screen', delay: 0.1 },
             { particleType: 'RING', count: 2, lifetime: [0.5, 1.0], size: [100, 300], colors: ['#60a5fa'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     }

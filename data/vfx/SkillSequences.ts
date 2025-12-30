@@ -96,6 +96,14 @@ const sequences: Record<string, VFXSequence> = {
             { type: 'GRID_PULSE', color: '#e0f2fe', scale: 2.0, delay: 0.5 }
         ]
     },
+    'mb_u1': { // 事件視界 (Event Horizon / Black Hole)
+        id: 'mb_u1',
+        actions: [
+            { type: 'PARTICLE', id: 'FX_ULT_BLUE_BLACKHOLE', scale: 1.5 },
+            { type: 'SHAKE', shakeIntensity: 0.5, delay: 0.2 },
+            { type: 'GRID_PULSE', color: '#000000', scale: 1.8, delay: 0.2 }
+        ]
+    },
     'mb_u2': { // 絕對零度
         id: 'mb_u2',
         actions: [

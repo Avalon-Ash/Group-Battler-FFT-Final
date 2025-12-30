@@ -9,6 +9,11 @@ export class ControlSystem {
     private vfxTimers = new Map<string, number>();
 
     public update(agent: Agent, dt: number, engine: GameEngine) {
+        // 0. AI Tick Update (System-wide clock for the agent)
+        if (agent.aiUpdateTimer > 0) {
+            agent.aiUpdateTimer -= dt;
+        }
+
         // 1. Diminishing Returns (DR) Decay
         for (const type in agent.drTimers) {
             if (Object.prototype.hasOwnProperty.call(agent.drTimers, type)) {
@@ -56,16 +61,31 @@ export class ControlSystem {
         }
 
         if (agent.fearTimer > 0) {
-            if (!agent.isMoving && agent.rootTimer <= 0) {
-                const neighbors = HexUtils.neighbors(agent);
-                const valid = neighbors.filter(n => 
-                    engine.map.isValid(n.q, n.r) && 
-                    !engine.map.isBlocked(n.q, n.r, engine, agent.id)
-                );
-                if (valid.length > 0) {
-                    const next = valid[Math.floor(Math.random() * valid.length)];
-                    engine.movement.moveAgentToHex(agent, next, 0, engine, 1.5);
+            // FIX: Fear Logic Jitter
+            // 只有在完全停止時 (Idle) 才尋找新路徑，且強制執行完整移動
+            if (agent.rootTimer <= 0) {
+                // 如果正在移動，不要打斷，讓它跑完
+                if (!agent.isMoving) {
+                    // 擴大搜索半徑至 3-4 格，模擬長距離驚慌亂跑
+                    const range = 4;
+                    const center = { q: agent.q, r: agent.r };
+                    const candidates = HexUtils.range(center, range).filter(h => {
+                        // 排除近身 (Range < 2)，強迫跑遠
+                        if (HexUtils.dist(center, h) < 2) return false;
+                        return engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id);
+                    });
+
+                    if (candidates.length > 0) {
+                        // 隨機選一個
+                        const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
+                        // 強制走到該點，速度 1.5x
+                        engine.moveAgentToHex(agent, targetHex, 0, 1.5); 
+                    }
                 }
+            } else {
+                // 如果被定身，停止移動
+                agent.isMoving = false;
+                agent.path = [];
             }
         }
 

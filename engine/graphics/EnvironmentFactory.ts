@@ -30,8 +30,11 @@ export const EnvironmentFactory = {
             this.drawIsoCrystal(ctx, style, layout);
         } else if (styleKey === 'OBSIDIAN_PILLAR') {
             this.drawIsoPillar(ctx, style, layout);
+        } else if (styleKey === 'SANDSTONE') {
+            // New Organic Rock Cluster for Desert
+            this.drawIsoRockCluster(ctx, style, layout);
         } else {
-            this.drawIsoWall(ctx, style, layout); // Default Wall/Sandstone
+            this.drawIsoWall(ctx, style, layout); // Default Wall
         }
 
         return canvas;
@@ -117,6 +120,93 @@ export const EnvironmentFactory = {
         ctx.stroke();
         
         ctx.restore();
+    },
+
+    // New: Organic Rock Cluster
+    drawIsoRockCluster(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+        
+        const drawRock = (x: number, y: number, r: number, h: number, seed: number) => {
+            ctx.save();
+            ctx.translate(x, y);
+            
+            // Generate jagged polygon
+            const points = [];
+            const segments = 7;
+            for(let i=0; i<segments; i++) {
+                const angle = (i / segments) * Math.PI * 2 + seed;
+                const dist = r * (0.8 + Math.sin(angle * 3 + seed) * 0.2);
+                points.push({
+                    x: Math.cos(angle) * dist,
+                    y: Math.sin(angle) * dist * ISO_SCALE_Y
+                });
+            }
+
+            // Draw Side Faces (Simulated by drawing simplified quads down)
+            const topY = -h;
+            ctx.fillStyle = style.dark;
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.closePath();
+            ctx.fill(); // Base
+
+            // Extrude sides
+            points.forEach((p, i) => {
+                const next = points[(i + 1) % segments];
+                // Simple lighting based on angle
+                const midAngle = (i / segments) * Math.PI * 2;
+                const isLit = midAngle > Math.PI && midAngle < Math.PI * 2; // Right/Bottom lit? No, usually Top/Left lit.
+                
+                // Let's use a simpler heuristic: Front faces are lit, Back are dark
+                // But here we draw all because of Painter's algo order issues inside the shape.
+                // Actually, just drawing a solid block with a top cap is easier.
+                
+                ctx.fillStyle = isLit ? style.main : style.dark;
+                if (p.y > 0 || next.y > 0) { // Only draw front-ish faces
+                    ctx.beginPath();
+                    ctx.moveTo(p.x, p.y);
+                    ctx.lineTo(next.x, next.y);
+                    ctx.lineTo(next.x, next.y + topY);
+                    ctx.lineTo(p.x, p.y + topY);
+                    ctx.fill();
+                }
+            });
+
+            // Draw Top Cap (Irregular)
+            ctx.translate(0, topY);
+            ctx.fillStyle = style.light;
+            ctx.beginPath();
+            points.forEach((p, i) => {
+                if (i === 0) ctx.moveTo(p.x, p.y);
+                else ctx.lineTo(p.x, p.y);
+            });
+            ctx.closePath();
+            ctx.fill();
+            
+            // Highlight Edge
+            ctx.strokeStyle = style.highlight;
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Detail cracks
+            ctx.beginPath();
+            ctx.moveTo(0,0);
+            ctx.lineTo(r*0.5, r*0.2);
+            ctx.strokeStyle = style.dark;
+            ctx.stroke();
+
+            ctx.restore();
+        };
+
+        // Draw 3 Rocks clustered
+        // Big one
+        drawRock(5, 5, 22, 25, 0.5);
+        // Medium
+        drawRock(-15, 0, 16, 18, 2.1);
+        // Small
+        drawRock(10, 15, 12, 12, 4.3);
     },
 
     drawIsoPillar(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {

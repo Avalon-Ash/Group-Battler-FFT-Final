@@ -1,3 +1,4 @@
+
 import { createCanvas } from "./CanvasUtils";
 import { ParticlePainter } from "./painters/ParticlePainter";
 import { ProjectilePainter } from "./painters/ProjectilePainter";
@@ -18,7 +19,7 @@ export class VFXTextureCache {
         if (['CLOUD', 'SMOKE_PUFF', 'MUSHROOM'].includes(type)) type = 'SMOKE';
         if (['GLOW', 'FLARE', 'CORE', 'ATMOSPHERE'].includes(type)) type = 'GLOW_SPRITE';
 
-        const key = `T91_${type}_${color}`;
+        const key = `T92_${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
         const { canvas, ctx } = createCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
@@ -37,17 +38,26 @@ export class VFXTextureCache {
                 break;
             case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
             case 'SHADOW_BLOB':
-                // 升級：使用層次漸變取代單色圓，解決黑色色塊問題
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-                grad.addColorStop(0, color); // 中心較深
+                grad.addColorStop(0, color); 
                 grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
-                grad.addColorStop(1, 'transparent'); // 邊緣完全透明
+                grad.addColorStop(1, 'transparent'); 
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
                 break;
             case 'CRACKS': ParticlePainter.drawCracks(ctx, r, color); break;
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
+            case 'BEAM':
+                const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
+                beamGrad.addColorStop(0, 'transparent');
+                beamGrad.addColorStop(0.2, color);
+                beamGrad.addColorStop(0.8, color);
+                beamGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = beamGrad;
+                ctx.fillRect(-10, -60, 20, 120);
+                break;
             default:
+                // Fallback for missing textures (Magenta Square for debug)
                 ctx.fillStyle = '#ff00ff';
                 ctx.fillRect(-5,-5,10,10);
                 break;

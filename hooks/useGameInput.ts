@@ -1,3 +1,4 @@
+
 import { useRef, useEffect, MutableRefObject, useState } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role } from '../types';
@@ -49,7 +50,12 @@ export const useGameInput = (props: GameInputProps) => {
         lastPaintHex.current = "";
         const h = getHexFromCoords(sx, sy);
         const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
-        if (agent && !engine.isRunning) { pressedAgentRef.current = agent; setPressedAgent(agent); }
+        
+        // FIX: Removed !engine.isRunning check to allow unit selection/inspection during combat
+        if (agent) { 
+            pressedAgentRef.current = agent; 
+            setPressedAgent(agent); 
+        }
         else if (h && !engine.isRunning && configRef.current.tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
             const obsType = engine.map.obstacles.get(HexUtils.key(h));
             const obj = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
@@ -75,7 +81,6 @@ export const useGameInput = (props: GameInputProps) => {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) { 
                         interactionMode.current = 'DRAG_OBS'; 
-                        // Fix: removeObstacle exists on engine.map
                         engine.map.removeObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR); 
                     }
                     else interactionMode.current = 'PAN';
@@ -107,7 +112,6 @@ export const useGameInput = (props: GameInputProps) => {
             else { const p = HexUtils.toPx(a.q, a.r, engine.mapConfig); a.px = p.x; a.py = p.y; }
         } else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
             const h = getHexFromCoords(e.clientX - cvs.getBoundingClientRect().left, e.clientY - cvs.getBoundingClientRect().top);
-            // Fix: setObstacle exists on engine.map
             if (h && engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r)) engine.map.setObstacle(h.q, h.r, draggedObstacleRef.current.type);
             else engine.map.setObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR, draggedObstacleRef.current.type);
         }
@@ -123,7 +127,6 @@ export const useGameInput = (props: GameInputProps) => {
         const k = HexUtils.key(h);
         if (lastPaintHex.current === k) return; 
         lastPaintHex.current = k;
-        // Fix: removeObstacle and setObstacle exist on engine.map
         if (tool === ToolType.DELETE) { engine.map.removeObstacle(h.q, h.r); engine.removeAgent(h.q, h.r); }
         else if (tool === ToolType.OBSTACLE) { engine.removeAgent(h.q, h.r); engine.map.setObstacle(h.q, h.r, selectedObstacle); }
         else if (tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED) {

@@ -34,7 +34,7 @@ export const PHYSICS = {
     FALL_DAMAGE_MIN: 200,
     STIFFNESS_ALIVE: 150,
     DAMPING_ALIVE: 25,
-    DRIFT_SPEED: 25.0, // 從 12.0 提高到 25.0，大幅提升位置修正的響應速度
+    DRIFT_SPEED: 25.0, 
     TERMINAL_VELOCITY_IMPULSE: 400,
 };
 
@@ -106,11 +106,11 @@ export const COMBAT_PARAM = {
 };
 
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
-    'VOID': { top: '#1e293b', sideLight: '#0f172a', sideDark: '#020617', detail: '#334155', rim: '#64748b' },
-    'FOREST': { top: '#15803d', sideLight: '#14532d', sideDark: '#052e16', detail: '#4ade80', rim: '#86efac' },
-    'ICE': { top: '#60a5fa', sideLight: '#2563eb', sideDark: '#1e40af', detail: '#dbeafe', rim: '#ffffff' },
-    'MAGMA': { top: '#450a0a', sideLight: '#27272a', sideDark: '#18181b', detail: '#ef4444', rim: '#f87171' },
-    'DESERT': { top: '#d97706', sideLight: '#b45309', sideDark: '#78350f', detail: '#fbbf24', rim: '#fcd34d' }
+    'VOID':   { top: '#1e293b', sideLight: '#334155', sideDark: '#0f172a', detail: '#6366f1', rim: '#818cf8' }, // Indigo tints
+    'FOREST': { top: '#14532d', sideLight: '#166534', sideDark: '#052e16', detail: '#4ade80', rim: '#86efac' }, // Deep Jungle
+    'ICE':    { top: '#3b82f6', sideLight: '#2563eb', sideDark: '#1e3a8a', detail: '#bae6fd', rim: '#e0f2fe' }, // Glacial
+    'MAGMA':  { top: '#7f1d1d', sideLight: '#991b1b', sideDark: '#450a0a', detail: '#fca5a5', rim: '#f87171' }, // Obsidian/Lava
+    'DESERT': { top: '#b45309', sideLight: '#d97706', sideDark: '#78350f', detail: '#fde047', rim: '#fcd34d' }  // Sandstone
 };
 
 export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string, highlight: string }> = {

@@ -101,7 +101,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         </h1>
                         
                         <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
-                            Neural Battle Simulation
+                            v9.2 | SSOT Kernel Active
                         </div>
                     </div>
 

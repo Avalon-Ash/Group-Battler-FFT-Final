@@ -48,18 +48,16 @@ export class MapGenerator {
                 const dist = HexUtils.dist({q, r}, centerHex);
                 
                 // 核心數學：階梯狀高度函數 (Stepped Height Field)
-                let rawVal = (Math.sin((q + noisePhaseA) * 0.4) + Math.cos((r + noisePhaseB) * 0.4)) * 2.0;
-                rawVal += (dist * 0.5); // 基礎碗狀趨勢
+                let rawVal = (Math.sin((q + noisePhaseA) * 0.45) + Math.cos((r + noisePhaseB) * 0.45)) * 3.5;
+                
+                // Steeper bowl edges
+                rawVal += (dist * 0.8); 
 
                 // 視覺修正：前景壓低 (防止遮擋戰場視線)
-                // 根據 Diamond Grid 投影邏輯，(q+r) 越大表示越靠近螢幕下方 (前景)
-                // 我們對前景區域施加高度懲罰，形成類似羅馬競技場的單向開口結構
                 const visualDepth = (q + r) - centerSum;
                 if (visualDepth > 0) {
-                    // [UPDATED] 加強懲罰係數，確保前景不會生成高地 (從 0.8 提升至 1.5)
-                    rawVal -= (visualDepth * 1.5); 
-                    // 額外抑制遠端距離加成，避免邊角過高
-                    if (dist > 2) rawVal -= (dist * 0.2);
+                    rawVal -= (visualDepth * 0.8); 
+                    if (dist > 3) rawVal -= (dist * 0.3);
                 }
 
                 // 離散化為 Tier 層級
@@ -99,16 +97,30 @@ export class MapGenerator {
         const obstacleType = engine.currentScene.obstacleStyle || 'WALL';
         const centerHex = { q: Math.floor(W/2), r: Math.floor(H/2) };
         const keys = Array.from(system.getMapKeys());
+        
+        // Tuned Density per Biome
+        let density = 0.3;
+        let noiseThreshold = 0.4;
+        
+        if (engine.currentScene.textureType === 'FOREST') {
+            density = 0.45; // Denser Forest
+            noiseThreshold = 0.2; // Clumpier
+        } else if (engine.currentScene.textureType === 'DESERT') {
+            density = 0.4; // Scattered Rocks
+            noiseThreshold = 0.3;
+        }
 
         keys.forEach((key) => {
             const [q, r] = key.split(',').map(Number);
             const dist = HexUtils.dist({q, r}, centerHex);
 
+            // Leave center clear for fighting
             if (dist < 2.5) return; 
+            
             if (engine.getAgentAt(q, r)) return;
 
             const noise = Math.sin(q * 0.8) * Math.cos(r * 0.8);
-            if (noise > 0.4 && Math.random() < 0.3) {
+            if (noise > noiseThreshold && Math.random() < density) {
                 system.setObstacle(q, r, obstacleType);
             }
         });

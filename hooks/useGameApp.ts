@@ -47,15 +47,17 @@ export const useGameApp = () => {
                 engineRef.current.agents = [];
                 // Fix: projectiles exists directly on GameEngine, not on the combat system.
                 engineRef.current.projectiles = [];
+                // Adjusted timers to match slower transition speed (0.5 factor)
+                // 2.0s duration approx for transition 0->1
                 setTimeout(() => {
                     setupShowcaseMap(); 
                     setTransitionPhase('IN'); 
                     setTimeout(() => {
                         setTransitionPhase('IDLE');
                         spawnShowcaseUnits(); 
-                    }, 1200); 
-                }, 1200); 
-            }, 800); 
+                    }, 1800); // Increased from 1200
+                }, 1800); // Increased from 1200
+            }, 1000); 
             return () => clearTimeout(timer);
         }
     }, [winner, isShowcaseMode]);

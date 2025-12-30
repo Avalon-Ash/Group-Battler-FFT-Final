@@ -36,8 +36,17 @@ export class RenderPipeline {
         if (physicalWidth === 0 || physicalHeight === 0) return;
         const dpr = window.devicePixelRatio || 1, logicalWidth = physicalWidth / dpr, logicalHeight = physicalHeight / dpr;
         const scene = engine.currentScene, layout = engine.mapConfig.layout;
-        ctx.resetTransform(); ctx.clearRect(0, 0, physicalWidth, physicalHeight); ctx.scale(dpr, dpr);
+        
+        ctx.resetTransform(); 
+        
+        // Fallback Fill: If background renderer fails, at least show a dark void, not transparency
+        ctx.fillStyle = '#020617'; 
+        ctx.fillRect(0, 0, physicalWidth, physicalHeight);
+        
+        ctx.scale(dpr, dpr);
+        
         this.backgroundRenderer.draw(ctx, logicalWidth, logicalHeight, scene, engine.mapConfig, globalTime);
+        
         ctx.save();
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, logicalWidth, logicalHeight);
@@ -47,13 +56,14 @@ export class RenderPipeline {
         this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainHeightFunc, engine.mapConfig, this.transitionT, this.transitionPhase, { width: logicalWidth, height: logicalHeight, camera });
         this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainHeightFunc, globalTime, highlight, engine.mapConfig);
         this.renderList.sort();
+        
+        // 1. Main Geometry Pass
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i], snapX = Math.round(op.tx), snapY = Math.round(op.ty);
             switch (op.type) {
                 case RenderOpType.TERRAIN:
                     TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout);
-                    // [FIXED ORDER] Draw Details BEFORE Overlays to prevent detail texture from covering the glow
-                    TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr);
+                    TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme);
                     GridOverlays.drawOverlays(ctx, snapX, snapY - op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oHasUnit, op.tq, op.tr, op.time, undefined, layout);
                     break;
                 case RenderOpType.HAZARD: 
@@ -63,8 +73,6 @@ export class RenderPipeline {
                     ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
                     break;
                 case RenderOpType.UNIT:
-                    // Fix: Removed op.z (and mistaken op.th) passing. 
-                    // DrawAssembly now relies on VisualMath SSOT to project unit height internally.
                     if (op.agent) this.renderer.unit.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout);
                     break;
                 case RenderOpType.DECAL:
@@ -79,8 +87,24 @@ export class RenderPipeline {
                     break;
             }
         }
+
+        // 2. Occlusion Silhouette Pass (X-Ray)
+        // This must happen AFTER all terrain/obstacles are drawn to appear "on top"
         const occludedAgents = this.renderer.grid.getOccludedAgents(engine);
-        if (occludedAgents.length > 0) occludedAgents.forEach(agent => this.renderer.unit.drawSilhouette(ctx, agent, terrainHeightFunc, globalTime, engine.mapConfig));
+        if (occludedAgents.length > 0) {
+            // Setup X-Ray Context
+            ctx.save();
+            ctx.globalCompositeOperation = 'source-over'; // Normal blending on top
+            
+            occludedAgents.forEach(agent => {
+                // Determine logic for this agent
+                // We re-use UnitRenderSystem but with a special flag
+                this.renderer.unit.drawSilhouette(ctx, agent, terrainHeightFunc, globalTime, engine.mapConfig);
+            });
+            
+            ctx.restore();
+        }
+
         this.renderer.statusOrchestrator.draw(ctx, engine.agents, globalTime, terrainHeightFunc);
         ctx.restore(); 
         let transitionAberration = 0;

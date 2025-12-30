@@ -1,3 +1,4 @@
+
 import { Agent } from "../../../game";
 import { AnimState, Role } from "../../../../types";
 import { getCastProgress } from "../utils";
@@ -16,7 +17,7 @@ function easeAttack(t: number): number {
 }
 export const ImperialRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
-        const silhouetteColor = THEME_IMPERIAL.energy; 
+        const silhouetteColor = THEME_IMPERIAL.energy; // Cyan for Imperial
         const breathePhase = t * 2.0;
         const floatY = (agent.hp > 0) ? Math.sin(breathePhase) * 2.5 : 0;
         const breatheScale = (agent.hp > 0) ? 1.0 + Math.sin(breathePhase) * 0.02 : 1.0;
@@ -53,14 +54,46 @@ export const ImperialRenderer = {
             }
         }
         ctx.save();
+        
+        // --- SILHOUETTE PASS (X-RAY) ---
         if (isSilhouette) {
+            ctx.translate(bodyRecoilX, floatY);
+            
+            // Draw simplified shape for outline
+            ctx.shadowColor = silhouetteColor;
+            ctx.shadowBlur = 10;
             ctx.strokeStyle = silhouetteColor;
             ctx.lineWidth = 2;
-            ctx.translate(bodyRecoilX, floatY);
-            ctx.strokeRect(-15, -60, 30, 60);
+            
+            // X-Ray Fill
+            ctx.fillStyle = silhouetteColor;
+            ctx.globalAlpha = 0.2; // Transparent body
+            
+            ctx.beginPath();
+            // Simplified "Pawn" shape
+            if (agent.role === Role.TANK) {
+                ctx.moveTo(-15, -50); ctx.lineTo(15, -50);
+                ctx.lineTo(10, 0); ctx.lineTo(-10, 0);
+            } else {
+                ctx.moveTo(-10, -50); ctx.lineTo(10, -50);
+                ctx.lineTo(5, 0); ctx.lineTo(-5, 0);
+            }
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalAlpha = 0.8; // Solid outline
+            ctx.stroke();
+            
+            // Role Icon Hint above head
+            ctx.beginPath();
+            ctx.arc(0, -60, 4, 0, Math.PI*2);
+            ctx.fill();
+            
             ctx.restore();
             return;
         }
+
+        // --- NORMAL RENDER ---
         ctx.translate(bodyRecoilX, floatY + bodyRecoilY);
         ctx.translate(0, -40); 
         ctx.rotate(hitShakeRot);

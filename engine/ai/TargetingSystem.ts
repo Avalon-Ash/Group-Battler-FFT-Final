@@ -17,38 +17,55 @@ export class TargetingSystem {
     }
 
     /**
-     * RTS 等級目標選取評分
-     * 考慮距離、殘血程度、以及最重要的「威脅度」（是否正在詠唱奧義）
+     * RTS 等級目標選取評分 - V2.0 修正版
+     * 解決「近身不打、跑去打遠處法師」的問題
      */
     public updateTarget(a: Agent, engine: GameEngine) {
+        // 如果當前目標已經死亡或無效，先清除
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
         
         let maxScore = -Infinity;
         let bestTarget: Agent | null = null;
 
+        // 如果被嘲諷，強制鎖定嘲諷來源
+        if (a.tauntTimer > 0 && a.tauntTargetId) {
+            const taunter = engine.agents.find(ag => ag.id === a.tauntTargetId);
+            if (taunter && taunter.hp > 0 && !taunter.banished) {
+                a.target = taunter;
+                return;
+            }
+        }
+
+        const isSilenced = a.silenceTimer > 0;
+
         for (const o of engine.agents) {
             if (o.team !== a.team && o.hp > 0 && !o.banished) {
-                const dist = Math.max(1, HexUtils.dist(a, o));
+                const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
-                // 1. 基礎距離權重 (反比平方，極度優先近處)
-                const distScore = 50 / (dist * dist);
+                // 1. 距離權重 (Exponential Falloff)
+                // 修正：極大幅度提高近距離權重
+                const distScore = 2000 / (dist + 0.5); 
                 
-                // 2. 血量權重 (優先擊殺殘血)
-                const hpScore = (1 - o.hp / o.maxHp) * 15;
+                // 2. 血量權重 (殘血優先)
+                const hpScore = (1 - o.hp / o.maxHp) * 50;
                 
-                // 3. 威脅權重 (重點修復：優先沉默/打斷奧義)
+                // 3. 威脅權重 (Threat)
                 let threatScore = 0;
-                if (o.castingSkillIdx !== -1) {
+                if (!isSilenced && o.castingSkillIdx !== -1) {
                     const castingSkill = o.skills[o.castingSkillIdx];
                     if (castingSkill?.tag === 'ULT') {
-                        threatScore = 100; // 絕對優先級：正在放大的敵人
+                        threatScore = 200; 
                     } else if (castingSkill?.tag === 'ACTIVE') {
-                        threatScore = 30;  // 高優先級：正在放技能的敵人
+                        threatScore = 50; 
                     }
                 }
 
+                // 4. 黏著加分 (Hysteresis)
+                // 如果是當前目標，給予加分以避免頻繁切換 (防抖)
+                const stickyBonus = (a.target === o) ? 300 : 0;
+
                 // 總分計算
-                const score = distScore + hpScore + threatScore;
+                const score = distScore + hpScore + threatScore + stickyBonus;
 
                 if (score > maxScore) {
                     maxScore = score;
@@ -60,10 +77,22 @@ export class TargetingSystem {
     }
 
     public calculateOptimalTarget(source: Agent, skill: Skill, engine: GameEngine): { targetAgent: Agent | null, targetHex: Hex | null } {
+        // AOE 邏輯保持不變
         if (skill.type === 'AOE') {
             return this.findBestAOELocation(source, skill, engine);
         }
-        if (!source.target) this.updateTarget(source, engine);
+        
+        // 單體技能優化：黏著邏輯
+        // 如果當前目標有效且在射程內，直接鎖定，不要嘗試移動尋找「更好」的位置
+        if (source.target && source.target.hp > 0 && !source.target.banished) {
+            const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
+            if (HexUtils.dist(source, source.target) <= effRange) {
+                return { targetAgent: source.target, targetHex: null };
+            }
+        }
+
+        // 如果沒有目標，或目標無效，或目標超出射程，才刷新
+        this.updateTarget(source, engine);
         return { targetAgent: source.target, targetHex: null };
     }
 
@@ -88,19 +117,21 @@ export class TargetingSystem {
         const candidates = new Set<string>();
         enemies.forEach(e => {
             candidates.add(HexUtils.key(e));
-            HexUtils.neighbors(e).forEach(n => candidates.add(HexUtils.key(n)));
+            if (radius > 1) {
+                HexUtils.neighbors(e).forEach(n => candidates.add(HexUtils.key(n)));
+            }
         });
 
         candidates.forEach(key => {
             const [q, r] = key.split(',').map(Number);
             const targetHex = { q, r };
             if (!engine.map.isValid(q, r)) return;
+            
             if (HexUtils.dist(source, targetHex) > this.getEffectiveRange(source, q, r, range, engine)) return;
 
             let impact = 0;
             enemies.forEach(e => {
                 if (HexUtils.dist(targetHex, e) <= radius) {
-                    // AOE 權重同樣計入正在詠唱的目標
                     const weight = (e.castingSkillIdx !== -1 && e.skills[e.castingSkillIdx]?.tag === 'ULT') ? 5.0 : 1.0;
                     impact += weight * (1.0 + (1 - e.hp/e.maxHp));
                 }

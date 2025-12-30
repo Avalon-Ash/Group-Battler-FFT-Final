@@ -80,11 +80,16 @@ export class StackingResolver {
             // Check if already blocked by static or dynamic
             if (engine.map.isBlocked(n.q, n.r, engine, agent.id)) continue;
 
-            // Height Safety Check (Expulsion shouldn't throw units off un-jumpable cliffs)
+            // Height Safety Check - Modified for "Jump Down"
             if (agent.movementType === MovementType.GROUND) {
                 const nH = engine.map.getTerrainHeight(n.q, n.r);
+                const deltaH = nH - sourceH;
                 const jumpLimit = Math.max(1, agent.jump) * BLOCK_HEIGHT;
-                if (Math.abs(nH - sourceH) > jumpLimit) continue;
+                
+                // Block if trying to climb UP too high
+                if (deltaH > jumpLimit) continue;
+                
+                // Allow falling down regardless of height (pushed off cliff)
             }
 
             return n;

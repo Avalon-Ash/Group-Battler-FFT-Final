@@ -1,3 +1,4 @@
+
 import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
@@ -12,14 +13,14 @@ const pickColor = (colors: string[]): string => {
 };
 const GROUND_PARTICLES = new Set([
     'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE', 
-    'HEX_GLOW', 'PILLAR', 'DOMAIN'
+    'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE'
 ]);
 const FIXED_ORIENTATION_PARTICLES = new Set([
-    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX'
+    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE'
 ]);
 const PROCEDURAL_TYPES = new Set([
     'PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE', 
-    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW'
+    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE'
 ]);
 export class VFXPlayer {
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {

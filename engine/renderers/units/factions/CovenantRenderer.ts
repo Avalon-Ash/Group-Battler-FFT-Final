@@ -1,3 +1,4 @@
+
 import { Agent } from "../../../game";
 import { AnimState, Role } from "../../../../types";
 import { getCastProgress } from "../utils";
@@ -16,7 +17,7 @@ function easeAttack(t: number): number {
 }
 export const CovenantRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
-        const silhouetteColor = THEME_COVENANT.secondary; 
+        const silhouetteColor = THEME_COVENANT.secondary; // Red for Covenant
         const noise = Math.sin(t * 7.0) * 0.5 + Math.sin(t * 3.0);
         const floatY = (agent.hp > 0) ? noise * 1.5 : 0;
         const breatheScaleX = (agent.hp > 0) ? 1.0 + Math.sin(t * 4.0) * 0.03 : 1.0;
@@ -60,17 +61,43 @@ export const CovenantRenderer = {
             }
         }
         ctx.save();
+        
+        // --- SILHOUETTE PASS (X-RAY) ---
         if (isSilhouette) {
+            ctx.translate(bodyRecoilX, floatY);
+            
+            // Red Outline
+            ctx.shadowColor = silhouetteColor;
+            ctx.shadowBlur = 10;
             ctx.strokeStyle = silhouetteColor;
             ctx.lineWidth = 2;
-            ctx.translate(bodyRecoilX, floatY);
+            
+            // X-Ray Fill
+            ctx.fillStyle = silhouetteColor;
+            ctx.globalAlpha = 0.2;
+            
             ctx.beginPath();
+            // Simplified "Spikey" shape
             ctx.moveTo(-15, -60); ctx.lineTo(0, -70); ctx.lineTo(15, -60);
-            ctx.lineTo(10, 0); ctx.lineTo(-10, 0); ctx.closePath();
+            ctx.lineTo(10, 0); ctx.lineTo(-10, 0); 
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalAlpha = 0.8;
             ctx.stroke();
+            
+            // Spikes hint
+            ctx.beginPath();
+            ctx.moveTo(-20, -40); ctx.lineTo(-5, -45);
+            ctx.moveTo(20, -40); ctx.lineTo(5, -45);
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
             ctx.restore();
             return;
         }
+
+        // --- NORMAL RENDER ---
         ctx.translate(bodyRecoilX + hitShakeX, floatY + bodyRecoilY);
         ctx.translate(0, -40); 
         ctx.rotate(hitShakeRot + bodyRot);

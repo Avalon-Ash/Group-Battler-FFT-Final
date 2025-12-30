@@ -1,3 +1,4 @@
+
 import { Particle } from "../../state";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 
@@ -15,13 +16,15 @@ export const BillboardPainter = {
         const type = p.type;
 
         if (type === 'SMOKE' || type === 'SMOKE_PUFF' || type === 'ATMOSPHERE') {
-            const blastEase = 1 - Math.pow(1 - progress, 5);
+            // Optimization: Adjusted ease curve for better visibility
+            const blastEase = 1 - Math.pow(1 - progress, 3); // Softer easing
             scale = 0.9 + blastEase * 0.6; 
             
-            if (progress < 0.7) {
-                alpha = 0.88; 
+            // FIX: Lowered max opacity from 0.88 to 0.45 to prevent "White Wall" effect
+            if (progress < 0.6) {
+                alpha = 0.45; 
             } else {
-                alpha = (1.0 - progress) * 3.33; 
+                alpha = (1.0 - progress) * 1.1; 
             }
         } 
         else if (type === 'SPARK' || type === 'GLOW') {

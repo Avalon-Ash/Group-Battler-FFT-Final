@@ -62,15 +62,32 @@ export class Pathfinder {
                     if (occ && occ.hp > 0 && occ !== startAgent) continue;
                 }
 
-                // 數學地勢成本計算
+                // 數學地勢成本計算 (Asymmetric Verticality)
                 const nHex = HexUtils.unhash(neighborH);
                 let moveCost = 1.0;
+                
                 if (startAgent.movementType !== MovementType.FLYING) {
                     const h1 = engine.map.getTerrainHeight(currentHex.q, currentHex.r);
                     const h2 = engine.map.getTerrainHeight(nHex.q, nHex.r);
-                    const diff = Math.abs(h1 - h2);
-                    if (diff > Math.max(1, startAgent.jump) * BLOCK_HEIGHT) continue; 
-                    moveCost += diff / BLOCK_HEIGHT * 0.4; 
+                    
+                    const deltaH = h2 - h1; // Target - Current
+                    const jumpLimit = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
+
+                    // 1. 向上攀爬 (Climbing Up)：嚴格檢定
+                    if (deltaH > jumpLimit) continue; 
+                    
+                    // 2. 向下跳躍 (Jumping Down)：允許任何高度 (物理引擎會處理傷害)
+                    // 無需檢查 deltaH < -jumpLimit
+
+                    // Cost Calculation
+                    if (deltaH > 0) {
+                        // 上坡成本：隨高度增加
+                        moveCost += deltaH / BLOCK_HEIGHT * 0.5; 
+                    } else {
+                        // 下坡/跳崖成本：固定小額成本 (不隨深度增加，否則 AI 會不敢跳崖)
+                        // 給予微小懲罰讓 AI 優先選擇平地，但非阻斷性
+                        moveCost += 0.2;
+                    }
                 }
 
                 const tentativeG = (this._gScore.get(current.hash) || 0) + moveCost;

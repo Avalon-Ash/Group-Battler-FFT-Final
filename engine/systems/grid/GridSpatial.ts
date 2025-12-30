@@ -64,31 +64,57 @@ export class GridSpatial {
         return bestHex;
     }
 
+    /**
+     * Detection for "X-Ray" Silhouette Rendering.
+     * Identifies agents that are hidden behind taller terrain relative to the camera.
+     */
     public static getOccludedAgents(engine: GameEngine): Agent[] {
         const occluded: Agent[] = [];
+        const layout = engine.mapConfig.layout;
         
         for (const a of engine.agents) {
             if (a.hp <= 0 && a.fullyDead) continue;
             
-            const uPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
-            // Visual Y of agent feet = uPx.y - terrainH
             const uTerrainH = engine.map.getTerrainHeight(a.q, a.r);
+            // Height of the unit's head (approx)
+            const unitHeadH = uTerrainH + 60; 
+
+            // Check neighbors that are "closer" to the camera (High Y in screen space).
+            // In Hex grid, these are usually:
+            // FLAT: (q, r+1), (q+1, r)
+            // POINTY: (q, r+1), (q+1, r), (q-1, r+1) etc.
             
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
             
+            // We define "South" as neighbors that would be drawn AFTER the current tile.
+            // In the render sort (q+r), larger values are drawn later (in front).
+            const currentSort = a.q + a.r;
+
             for (const n of neighbors) {
-                const k = HexUtils.key(n);
-                if (engine.mapKeys.has(k)) {
-                    const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
-                    const nTerrainH = engine.map.getTerrainHeight(n.q, n.r);
+                const nSort = n.q + n.r;
+                
+                // Only check tiles that are strictly "in front" (rendering wise)
+                if (nSort > currentSort) {
+                    const k = HexUtils.key(n);
                     
-                    // Occlusion Check:
-                    // If neighbor is "South" (Higher Y) and TALLER than agent's standing level
-                    if (nPx.y > uPx.y) { 
-                         if (nTerrainH > uTerrainH) {
-                             occluded.push(a);
-                             break;
-                         }
+                    // Check if map tile exists
+                    if (engine.mapKeys.has(k)) {
+                        const nTerrainH = engine.map.getTerrainHeight(n.q, n.r);
+                        
+                        // Condition: The terrain in front is taller than the unit's current ground level
+                        // Threshold: Must be at least BLOCK_HEIGHT taller to cause occlusion
+                        if (nTerrainH > uTerrainH + 10) {
+                            
+                            // Specific check: Is it taller than the unit's HEAD?
+                            // If taller than head -> Full occlusion
+                            // If taller than feet but lower than head -> Partial (we can still enable silhouette for clarity)
+                            
+                            // Visual tweak: If terrain is significantly higher, trigger silhouette
+                            if (nTerrainH > uTerrainH + 20) {
+                                occluded.push(a);
+                                break; // Found one occluder, that's enough
+                            }
+                        }
                     }
                 }
             }

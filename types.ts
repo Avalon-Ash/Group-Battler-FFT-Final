@@ -54,7 +54,7 @@ export interface SceneTheme {
     textureType: 'VOID' | 'FOREST' | 'ICE' | 'MAGMA' | 'DESERT';
     obstacleStyle: string; 
     hexStroke: string; 
-    ambientType: 'NONE' | 'SNOW' | 'ASH' | 'SPORES' | 'RAIN' | 'EMBER';
+    ambientType: 'NONE' | 'SNOW' | 'ASH' | 'SPORES' | 'RAIN' | 'EMBER' | 'SAND';
     ambientColor: string;
     bgFeature: 'NONE' | 'SKY_RIVER' | 'AURORA' | 'CANOPY' | 'HEAT_WAVE' | 'DUNES';
 }

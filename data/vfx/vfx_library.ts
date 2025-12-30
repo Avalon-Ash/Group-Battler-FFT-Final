@@ -11,16 +11,16 @@ export interface VFXEntry {
 
 export const VFX_LIBRARY = {
     CORE_SEQUENCES: [
-        { key: 'DATA_DRIVEN', name: 'v9.0 Sequence Engine', desc: 'New JSON-based visual pipeline. Maps logic IDs to tiered visual actions.', visuals: ['Multi-Action', 'Delayed Emitters', 'Camera Shake'] },
+        { key: 'DATA_DRIVEN', name: 'v9.2 Sequence Engine', desc: 'SSOT Compliant JSON visual pipeline. Maps logic IDs to tiered visual actions with precise Z-depth.', visuals: ['VisualMath', 'Delayed Emitters', 'Camera Shake'] },
         { key: 'AUTO_FLAVOR', name: 'Procedural Flavoring', desc: '150+ generated sequences with class-specific logic (Tanks use Heavy, Rangers use Beams).', visuals: ['Role Aware', 'Faction Shaders'] }
     ] as VFXEntry[],
 
     ACTION_VERBS: [
-        { key: 'PARTICLE', name: 'Particle Action', desc: 'Trigger complex emitters from Registry.', visuals: ['Emitters'] },
-        { key: 'BEAM', name: 'Beam Action', desc: 'Connect source and target with procedural lasers.', visuals: ['Vector Beams'] },
-        { key: 'SHAKE', name: 'Shake Action', desc: 'Direct camera trauma application.', visuals: ['Screen Shake'] },
-        { key: 'GRID_PULSE', name: 'Grid Pulse', desc: 'Floor-plane hexagonal expansion.', visuals: ['Floor Vector'] },
-        { key: 'HEAVEN_FALL', name: 'Heaven Fall', desc: 'Sky-to-ground high altitude impact.', visuals: ['Vertical Physics'] }
+        { key: 'PARTICLE', name: 'Particle Action', desc: 'Trigger complex emitters from Registry. Auto-resolves ground height.', visuals: ['Emitters'] },
+        { key: 'BEAM', name: 'Beam Action', desc: 'Connect source and target with procedural lasers using 3D anchors.', visuals: ['Vector Beams'] },
+        { key: 'SHAKE', name: 'Shake Action', desc: 'Direct camera trauma application via CameraSystem.', visuals: ['Screen Shake'] },
+        { key: 'GRID_PULSE', name: 'Grid Pulse', desc: 'Floor-plane hexagonal expansion. Uses Z_LAYERS.OVERLAY bias.', visuals: ['Floor Vector'] },
+        { key: 'HEAVEN_FALL', name: 'Heaven Fall', desc: 'Sky-to-ground high altitude impact physics.', visuals: ['Vertical Physics'] }
     ] as VFXEntry[],
 
     GENERIC_HITS: [
