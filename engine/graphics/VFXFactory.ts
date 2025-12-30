@@ -57,11 +57,52 @@ export class VFXTextureCache {
                 ctx.fillRect(-10, -60, 20, 120);
                 break;
             default:
-                // Fallback for missing textures (Magenta Square for debug)
                 ctx.fillStyle = '#ff00ff';
                 ctx.fillRect(-5,-5,10,10);
                 break;
         }
+
+        this.cache.set(key, canvas);
+        return canvas;
+    }
+
+    /**
+     * 優化方案：預渲染草叢精靈，避免每幀重複建立漸層與計算路徑
+     */
+    public getGrassSprite(color: string, variant: number): HTMLCanvasElement {
+        const key = `GRASS_${color}_${variant}`;
+        if (this.cache.has(key)) return this.cache.get(key)!;
+
+        const { canvas, ctx } = createCanvas(64, 64);
+        ctx.translate(32, 48); // 底部中心對齊
+        
+        const scale = 0.8 + (variant % 5) * 0.1;
+        const h = 22 * scale;
+        const w = 6 * scale;
+        
+        // 1. 預渲染陰影 (不使用 shadowBlur，改用漸層圓)
+        const shadowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 2);
+        shadowGrad.addColorStop(0, 'rgba(0,0,0,0.35)');
+        shadowGrad.addColorStop(1, 'transparent');
+        ctx.fillStyle = shadowGrad;
+        ctx.save();
+        ctx.scale(1, 0.5);
+        ctx.beginPath(); ctx.arc(0, 0, w * 2, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+
+        // 2. 預渲染葉片主體
+        const grassGrad = ctx.createLinearGradient(0, 0, 0, -h);
+        grassGrad.addColorStop(0, 'rgba(0,0,0,0.4)'); // 根部深色
+        grassGrad.addColorStop(0.5, color);           // 中段主色
+        grassGrad.addColorStop(1, '#ffffff');         // 葉尖高亮
+
+        ctx.fillStyle = grassGrad;
+        ctx.beginPath();
+        ctx.moveTo(-w, 0);
+        ctx.quadraticCurveTo(-w * 0.5, -h * 0.5, 0, -h);
+        ctx.quadraticCurveTo(w * 0.5, -h * 0.5, w, 0);
+        ctx.closePath();
+        ctx.fill();
 
         this.cache.set(key, canvas);
         return canvas;
