@@ -44,12 +44,14 @@ export const ImperialRenderer = {
                 if (p > 0.3 && p < 0.6) bodyRecoilX = -4 * kick;
                 if (p < 0.3) armRot = -0.3 * (p/0.3); 
             } else {
+                // MELEE LUNGE LOGIC (Fixing "Hitting Air")
                 armRot = curve * (Math.PI / 1.6); 
                 if (curve > 0.5) {
                     armX = 18 * curve;
-                    bodyRecoilX = 5 * curve; 
+                    // 大幅增加身體前衝距離 (5 -> 35)，填補六角格之間的視覺空隙
+                    bodyRecoilX = 35 * curve; 
                 } else if (curve < 0) {
-                    bodyRecoilX = -2;
+                    bodyRecoilX = -5; // 蓄力後仰
                 }
             }
         }

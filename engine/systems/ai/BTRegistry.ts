@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../game";
 import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
+import { HEX_SIZE } from "../../constants";
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
@@ -15,10 +16,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     
     "HasTarget": (a, engine) => {
         // Sticky Targeting V2:
-        // 如果當前有有效目標，且未被放逐/死亡，直接返回 True。
-        // 不再受 aiUpdateTimer 限制，防止在攻擊間隙丟失目標。
         if (a.target && a.target.hp > 0 && !a.target.banished) {
-            // 只有在真的需要切換目標（例如嘲諷）時才強制檢查
             if (a.tauntTimer > 0 && a.tauntTargetId !== a.target.id) {
                 // Let fall through to update logic
             } else {
@@ -26,10 +24,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
             }
         }
 
-        // 只有當「沒有目標」或者「Timer 歸零」時才掃描
         if (a.aiUpdateTimer <= 0 || !a.target || a.target.hp <= 0) {
             engine.updateTarget(a);
-            a.aiUpdateTimer = a.aiUpdateInterval; // Reset timer
+            a.aiUpdateTimer = a.aiUpdateInterval; 
         }
         
         return a.target !== null;
@@ -43,10 +40,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[idx];
         if (!s) return false;
         
-        // CD Tolerance Optimization:
-        // 普攻 (BASIC) 允許 0.2s 的預熱時間。
-        // 這意味著如果 CD 還剩 0.15s，我們也視為 Ready，開始進入 Cast 流程 (播放動畫)。
-        // 當動畫播放到判定點時，CD 已經轉好了。這能完美填充垃圾時間。
         const tolerance = (s.tag === 'BASIC') ? 0.2 : 0.01;
         const isOnCD = a.curCDs[idx] > tolerance; 
         
@@ -92,10 +85,29 @@ export const BTConditions: Record<string, BTConditionFn> = {
         else return false;
         
         const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
-        const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
+        const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
-        // 寬鬆判定：允許 0.1 的誤差，避免因為浮點數距離導致的「在邊緣不攻擊」
-        return dist <= (effRange + 0.1);
+        // 1. Grid Check
+        if (gridDist > effRange + 0.1) return false;
+
+        // 2. Physical Pixel Check (For melee stability)
+        // 如果是近戰技能 (Range <= 1)，我們強制檢查物理距離，防止因為網格漂移導致的「隔山打牛」
+        if (effRange <= 1.0) {
+            const startPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
+            let endPx;
+            
+            if (a.targetHex) endPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
+            else endPx = { x: a.target!.px, y: a.target!.py }; // 這裡使用目標的實時坐標
+            
+            const dx = startPx.x - endPx.x;
+            const dy = startPx.y - endPx.y;
+            const pxDist = Math.sqrt(dx*dx + dy*dy);
+            
+            // 允許誤差：HEX_SIZE * 2 (確保相鄰)，如果過遠則視為還在移動中
+            if (pxDist > HEX_SIZE * 2.2) return false;
+        }
+        
+        return true;
     }
 };
 
@@ -137,7 +149,6 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
         
-        // 容錯：Chase 時強制獲取目標，不依賴 Timer
         if (!a.target) engine.updateTarget(a); 
         if (!a.target) return NodeState.FAILURE;
         

@@ -21,7 +21,15 @@ export class CastingEngine {
             }
         }
         
-        // 2. 詠唱進度積分
+        // 2. 動態轉向 (Sticky Targeting)：確保攻擊動作始終朝向目標
+        if (a.target) {
+            const dx = a.target.px - a.px;
+            if (Math.abs(dx) > 2) { // 避免高頻抖動
+                a.facing = dx > 0 ? 1 : -1;
+            }
+        }
+
+        // 3. 詠唱進度積分
         a.castTimer -= dt;
         if (a.castingAnimationTimer > 0) a.castingAnimationTimer -= dt; 
         

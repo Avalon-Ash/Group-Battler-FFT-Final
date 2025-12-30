@@ -48,11 +48,13 @@ export const CovenantRenderer = {
                     bodyRecoilY = (Math.random() - 0.5) * 4;
                 }
             } else {
+                // MELEE LUNGE BOOST
                 armRot = curve * (Math.PI / 1.3);
                 if (curve > 0) {
                     armX = 25 * curve;
                     armY = 15 * curve; 
-                    bodyRecoilX = 10 * curve; 
+                    // 大幅增加突進位移 (10 -> 40)
+                    bodyRecoilX = 40 * curve; 
                     bodyRot = 0.1 * curve; 
                 } else {
                     bodyRecoilX = -5; 
