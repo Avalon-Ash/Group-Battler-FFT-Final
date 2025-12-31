@@ -1,3 +1,4 @@
+
 import React from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
@@ -31,6 +32,7 @@ function App() {
             onEnter={actions.enterManualMode} 
             timeScale={state.timeScale} 
             setTimeScale={setters.setTimeScale} 
+            engine={engineRef.current} // Pass engine for camera settings
         />
       )}
       <PlaybackHUD 
@@ -50,6 +52,7 @@ function App() {
               onToggleDB={() => setters.setShowDB(!state.showDB)}
               onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
               onDownloadSpec={actions.downloadSpec}
+              engine={engineRef.current} // Pass engine for camera settings
           />
       )}
       {!hideHUD && state.selectedAgent && (

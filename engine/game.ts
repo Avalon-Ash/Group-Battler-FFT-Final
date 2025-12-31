@@ -137,7 +137,7 @@ export class GameEngine {
         if (type === 'KILL' && opts.sourceId) {
             this.director.forceFocus(this, opts.sourceId, 2.5);
         } else if (type === 'CAST_START' && opts.skill?.tag === 'ULT' && opts.sourceId) {
-            this.director.forceFocus(this, opts.sourceId, 3.0);
+            this.director.forceFocus(this, opts.sourceId, 3.5); // Extend Ult focus time
         }
         this.events.push(evt);
     }
@@ -213,7 +213,10 @@ export class GameEngine {
         if (!this.isRunning) return;
         this.timeSystem.update(dt, this);
         this.events.length = 0; 
+        
+        // Director runs BEFORE entities to set up the camera target for this frame
         this.director.update(this, dt);
+        
         this.zones.update(this); 
         if (this.victorySystem.check(this)) {
             this.victorySystem.updateFinishing(dt, this);

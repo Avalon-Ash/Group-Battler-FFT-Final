@@ -51,7 +51,6 @@ export const useGameInput = (props: GameInputProps) => {
         const h = getHexFromCoords(sx, sy);
         const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
         
-        // FIX: Removed !engine.isRunning check to allow unit selection/inspection during combat
         if (agent) { 
             pressedAgentRef.current = agent; 
             setPressedAgent(agent); 
@@ -88,7 +87,18 @@ export const useGameInput = (props: GameInputProps) => {
                 else interactionMode.current = 'PAN';
             }
         }
-        if (interactionMode.current === 'PAN') { if (engine.renderer?.camera) engine.renderer.camera.applyPanOffset(dx, dy); cvs.style.cursor = 'move'; }
+        if (interactionMode.current === 'PAN') { 
+            // 如果玩家手動拖曳，通知 CameraSystem 暫停自動導播
+            if (rendererRef.current?.camera) {
+                rendererRef.current.camera.applyPanOffset(dx, dy);
+            }
+            // 同時更新 React 的 ref 狀態供其他組件讀取 (HUD等)
+            if (cameraRef.current) {
+                // 注意：這裡其實是把「期望位置」反饋給 React 狀態
+                // 但真正的渲染位置由 CameraSystem 物理計算決定
+            }
+            cvs.style.cursor = 'move'; 
+        }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const { x: camX, y: camY, zoom } = cameraRef.current;
             const cx = rect.width / 2, cy = rect.height / 2;

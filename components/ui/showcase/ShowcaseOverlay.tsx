@@ -5,14 +5,16 @@ import { DEFAULT_MATRIX_CONFIG } from './defaults';
 import { useMatrixRain } from './useMatrixRain';
 import { ShowcaseSettings } from './ShowcaseSettings';
 import { Icons } from '../icons';
+import { GameEngine } from '../../../engine/game';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
     timeScale: number;
     setTimeScale: (v: number) => void;
+    engine?: GameEngine; // Add engine prop
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeScale, setTimeScale }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeScale, setTimeScale, engine }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [config, setConfig] = useState<MatrixConfig>(DEFAULT_MATRIX_CONFIG);
     const [layout, setLayout] = useState<LayoutPreset>('BOTTOM_CENTER');
@@ -140,6 +142,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 setTimeScale={setTimeScale}
                 layout={layout}
                 setLayout={setLayout}
+                engine={engine}
             />
         </div>
     );

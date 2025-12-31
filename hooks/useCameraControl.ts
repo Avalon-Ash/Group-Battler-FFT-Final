@@ -9,8 +9,8 @@ interface CameraControlProps {
 }
 
 /**
- * 攝像機交互控制器 v25.0
- * 僅保留縮放功能，平移邏輯已整合至 useGameInput 以解決 PC 上的左鍵拖曳衝突
+ * 攝像機交互控制器 v26.0
+ * 縮放操作也會暫時覆蓋自動運鏡
  */
 export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: CameraControlProps) => {
     const lastPinchDist = useRef<number>(0);
@@ -19,11 +19,18 @@ export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: Camer
         const cvs = canvasRef.current;
         if (!cvs) return;
 
+        const notifyEngine = (newZoom: number) => {
+            if (engine.renderer && engine.renderer.camera) {
+                engine.renderer.camera.applyZoom(newZoom);
+            }
+        };
+
         const onWheel = (e: WheelEvent) => {
             e.preventDefault();
-            // 縮放不受平移衝突影響
             const delta = e.deltaY > 0 ? -0.15 : 0.15;
             onZoom(delta);
+            // Notify physics system
+            notifyEngine(cameraRef.current.zoom);
         };
 
         const onTouchStart = (e: TouchEvent) => {
@@ -44,6 +51,8 @@ export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: Camer
                 if (lastPinchDist.current > 0) {
                     const delta = (dist - lastPinchDist.current) * 0.008;
                     onZoom(delta);
+                    // Notify physics system
+                    notifyEngine(cameraRef.current.zoom);
                 }
                 lastPinchDist.current = dist;
             }
@@ -58,5 +67,5 @@ export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: Camer
             cvs.removeEventListener('touchstart', onTouchStart);
             cvs.removeEventListener('touchmove', onTouchMove);
         };
-    }, [canvasRef, onZoom]);
+    }, [canvasRef, onZoom, engine]);
 };

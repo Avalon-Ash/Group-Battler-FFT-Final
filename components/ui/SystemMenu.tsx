@@ -1,79 +1,189 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icons } from './icons';
+import { GameEngine } from '../../engine/game';
 
 interface SystemMenuProps {
     onToggleLogs: () => void;
     onToggleDB: () => void;
     onToggleVFXMap?: () => void;
     onDownloadSpec: () => void;
+    engine?: GameEngine;
 }
 
-export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onToggleVFXMap, onDownloadSpec }) => {
+export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onToggleVFXMap, onDownloadSpec, engine }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [showDirectorModal, setShowDirectorModal] = useState(false);
+    
+    // Director State
+    const [cameraStiffness, setCameraStiffness] = useState(0.8);
+    const [zoomStiffness, setZoomStiffness] = useState(1.5);
+    const [directorEnabled, setDirectorEnabled] = useState(true);
+
+    // Sync on open or engine change
+    useEffect(() => {
+        if (engine) {
+            if (engine.renderer) {
+                setCameraStiffness(engine.renderer.camera.followStiffness);
+                setZoomStiffness(engine.renderer.camera.zoomStiffness);
+            }
+            setDirectorEnabled(engine.director.enabled);
+        }
+    }, [engine, isOpen, showDirectorModal]);
+
+    const updateStiffness = (val: number) => {
+        setCameraStiffness(val);
+        if (engine && engine.renderer) {
+            engine.renderer.camera.followStiffness = val;
+        }
+    };
+
+    const updateZoomStiffness = (val: number) => {
+        setZoomStiffness(val);
+        if (engine && engine.renderer) {
+            engine.renderer.camera.zoomStiffness = val;
+        }
+    };
+
+    const toggleDirector = (val: boolean) => {
+        setDirectorEnabled(val);
+        if (engine) engine.director.enabled = val;
+    };
 
     return (
-        <div className="absolute top-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-auto">
-            
-            {/* Trigger Button */}
-            <button 
-                onClick={() => setIsOpen(!isOpen)}
-                className={`w-12 h-12 rounded-full liquid-card flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isOpen ? 'bg-white/10 text-white border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}`}
-                title="系統選單"
-            >
-                {isOpen ? <Icons.Close className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
-            </button>
-
-            {/* Dropdown Panel */}
-            {isOpen && (
-                <div className="flex flex-col gap-2 animate-slide-down origin-top-right">
-                    <button 
-                        onClick={() => { onToggleLogs(); setIsOpen(false); }}
-                        className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]"
-                    >
-                        <Icons.Log className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                        <div className="flex flex-col items-start">
-                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-cyan-300">BATTLE LOGS</span>
-                            <span className="text-[11px] text-slate-500 uppercase">View History</span>
+        <>
+            {/* Director Settings Modal (Floating) */}
+            {showDirectorModal && engine && (
+                <div className="absolute top-24 right-24 z-[70] w-64 liquid-card p-4 rounded-2xl border border-white/10 bg-black/80 animate-slide-left shadow-2xl backdrop-blur-xl">
+                    <div className="flex justify-between items-center mb-4 border-b border-white/10 pb-2">
+                        <div className="flex items-center gap-2">
+                            <Icons.TV className="w-4 h-4 text-cyan-400" />
+                            <span className="text-xs font-bold text-white tracking-widest">DIRECTOR AI</span>
                         </div>
-                    </button>
-
-                    <button 
-                        onClick={() => { onToggleDB(); setIsOpen(false); }}
-                        className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-amber-400 hover:bg-black/60 hover:border-amber-500/30 transition-all group min-w-[180px]"
-                    >
-                        <Icons.Database className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                        <div className="flex flex-col items-start">
-                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-amber-300">DATABASE</span>
-                            <span className="text-[11px] text-slate-500 uppercase">Skill Reference</span>
-                        </div>
-                    </button>
-
-                    {onToggleVFXMap && (
-                        <button 
-                            onClick={() => { onToggleVFXMap(); setIsOpen(false); }}
-                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-purple-400 hover:bg-black/60 hover:border-purple-500/30 transition-all group min-w-[180px]"
-                        >
-                            <Icons.VFX className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                            <div className="flex flex-col items-start">
-                                <span className="text-sm font-bold tracking-widest text-white group-hover:text-purple-300">VFX MAP</span>
-                                <span className="text-[11px] text-slate-500 uppercase">Visual Reference</span>
-                            </div>
+                        <button onClick={() => setShowDirectorModal(false)} className="text-slate-500 hover:text-white transition-colors">
+                            <Icons.Close className="w-4 h-4" />
                         </button>
-                    )}
+                    </div>
 
-                    <button 
-                        onClick={() => { onDownloadSpec(); setIsOpen(false); }}
-                        className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-emerald-400 hover:bg-black/60 hover:border-emerald-500/30 transition-all group min-w-[180px]"
-                    >
-                        <Icons.Save className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                        <div className="flex flex-col items-start">
-                            <span className="text-sm font-bold tracking-widest text-white group-hover:text-emerald-300">EXPORT SPEC</span>
-                            <span className="text-[11px] text-slate-500 uppercase">Download .txt</span>
+                    <div className="space-y-4">
+                        {/* Toggle */}
+                        <div className="flex justify-between items-center bg-white/5 p-2 rounded-lg border border-white/5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">自動運鏡開關</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer"
+                                    checked={directorEnabled}
+                                    onChange={(e) => toggleDirector(e.target.checked)}
+                                />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500"></div>
+                            </label>
                         </div>
-                    </button>
+
+                        {/* Sliders */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase">
+                                <span>運鏡力度 (Pan Damping)</span>
+                                <span className="text-cyan-400 font-mono">{cameraStiffness.toFixed(1)}</span>
+                            </div>
+                            <input 
+                                type="range" min="0.1" max="5.0" step="0.1"
+                                value={cameraStiffness}
+                                onChange={(e) => updateStiffness(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <div className="flex justify-between text-[10px] text-slate-500 font-bold uppercase">
+                                <span>縮放平滑 (Zoom Damping)</span>
+                                <span className="text-cyan-400 font-mono">{zoomStiffness.toFixed(1)}</span>
+                            </div>
+                            <input 
+                                type="range" min="0.1" max="5.0" step="0.1"
+                                value={zoomStiffness}
+                                onChange={(e) => updateZoomStiffness(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                            />
+                        </div>
+                    </div>
                 </div>
             )}
-        </div>
+
+            <div className="absolute top-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-auto">
+                
+                {/* Trigger Button */}
+                <button 
+                    onClick={() => setIsOpen(!isOpen)}
+                    className={`w-12 h-12 rounded-full liquid-card flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isOpen ? 'bg-white/10 text-white border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}`}
+                    title="系統選單"
+                >
+                    {isOpen ? <Icons.Close className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
+                </button>
+
+                {/* Dropdown Panel */}
+                {isOpen && (
+                    <div className="flex flex-col gap-2 animate-slide-down origin-top-right">
+                        
+                        {/* New Auto Director Button */}
+                        <button 
+                            onClick={() => { setShowDirectorModal(!showDirectorModal); setIsOpen(false); }}
+                            className={`liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 transition-all group min-w-[180px] ${showDirectorModal ? 'bg-cyan-900/40 border-cyan-500/50' : 'text-slate-300 hover:bg-black/60 hover:text-cyan-400 hover:border-cyan-500/30'}`}
+                        >
+                            <Icons.TV className={`w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md ${showDirectorModal ? 'text-cyan-400' : ''}`} />
+                            <div className="flex flex-col items-start">
+                                <span className={`text-sm font-bold tracking-widest ${showDirectorModal ? 'text-cyan-300' : 'text-white group-hover:text-cyan-300'}`}>AUTO DIRECTOR</span>
+                                <span className="text-[11px] text-slate-500 uppercase">自動導播設定</span>
+                            </div>
+                        </button>
+
+                        <button 
+                            onClick={() => { onToggleLogs(); setIsOpen(false); }}
+                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]"
+                        >
+                            <Icons.Log className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                            <div className="flex flex-col items-start">
+                                <span className="text-sm font-bold tracking-widest text-white group-hover:text-cyan-300">BATTLE LOGS</span>
+                                <span className="text-[11px] text-slate-500 uppercase">戰鬥記錄</span>
+                            </div>
+                        </button>
+
+                        <button 
+                            onClick={() => { onToggleDB(); setIsOpen(false); }}
+                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-amber-400 hover:bg-black/60 hover:border-amber-500/30 transition-all group min-w-[180px]"
+                        >
+                            <Icons.Database className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                            <div className="flex flex-col items-start">
+                                <span className="text-sm font-bold tracking-widest text-white group-hover:text-amber-300">DATABASE</span>
+                                <span className="text-[11px] text-slate-500 uppercase">技能圖鑑</span>
+                            </div>
+                        </button>
+
+                        {onToggleVFXMap && (
+                            <button 
+                                onClick={() => { onToggleVFXMap(); setIsOpen(false); }}
+                                className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-purple-400 hover:bg-black/60 hover:border-purple-500/30 transition-all group min-w-[180px]"
+                            >
+                                <Icons.VFX className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                                <div className="flex flex-col items-start">
+                                    <span className="text-sm font-bold tracking-widest text-white group-hover:text-purple-300">VFX MAP</span>
+                                    <span className="text-[11px] text-slate-500 uppercase">特效檢視器</span>
+                                </div>
+                            </button>
+                        )}
+
+                        <button 
+                            onClick={() => { onDownloadSpec(); setIsOpen(false); }}
+                            className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-emerald-400 hover:bg-black/60 hover:border-emerald-500/30 transition-all group min-w-[180px]"
+                        >
+                            <Icons.Save className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                            <div className="flex flex-col items-start">
+                                <span className="text-sm font-bold tracking-widest text-white group-hover:text-emerald-300">EXPORT SPEC</span>
+                                <span className="text-[11px] text-slate-500 uppercase">下載設計規格</span>
+                            </div>
+                        </button>
+                    </div>
+                )}
+            </div>
+        </>
     );
 };
