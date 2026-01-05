@@ -1,4 +1,3 @@
-
 import { Agent, GameEngine } from "../../game";
 import { Skill, AnimState } from "../../../types";
 import { HexUtils } from "../../utils";
@@ -62,6 +61,7 @@ export class SkillExecutor {
         const result = DamageCalculator.calculate(source, target, skill);
         if (result.isMiss) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "MISS", color: "#94a3b8" });
+            engine.log(source, 'HIT', '未命中', target.id, `${skill.name} 被閃避`);
             return;
         }
 
@@ -73,20 +73,26 @@ export class SkillExecutor {
         if (result.vampAmount > 0 && source.hp > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#86efac' });
+            engine.log(source, 'HEAL', '吸血', '自身', `獲得治療 ${result.vampAmount}`);
         }
 
-        if (result.finalValue < 0) { 
+        const isDamage = result.finalValue < 0;
+        const absVal = Math.abs(result.finalValue);
+
+        if (isDamage) { 
             target.setAnim(AnimState.HIT);
-            target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION; // 使用常量統一管理
-            
-            // 物理衝量計算：基於傷害量的對數擴展，防止數值過大導致單位飛出地圖
+            target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
             const originPx = origin ? origin : {x: source.px, y: source.py};
-            const damageForce = Math.min(600, 100 + Math.abs(result.finalValue) * 1.5);
+            const damageForce = Math.min(600, 100 + absVal * 1.5);
             PhysicsEngine.applyImpulse(target, originPx, damageForce, 0.4);
+            
+            engine.log(source, 'HIT', '命中', target.id, `${skill.name} 造成 ${absVal} 傷害${result.isCrit ? ' (暴擊!)' : ''}`);
+        } else {
+            engine.log(source, 'HEAL', '治療', target.id, `${skill.name} 恢復 ${absVal} 生命`);
         }
 
         engine.events.push({
-            type: result.finalValue < 0 ? 'DAMAGE' : 'HEAL',
+            type: isDamage ? 'DAMAGE' : 'HEAL',
             pos: { x: target.px, y: target.py },
             value: result.finalValue,
             sourceId: source.id,

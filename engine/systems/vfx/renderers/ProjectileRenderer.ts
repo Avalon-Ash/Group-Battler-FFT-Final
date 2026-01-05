@@ -3,6 +3,7 @@ import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath, Point3D } from "../../../math/TrajectoryMath";
 import { VisualMath } from "../../../math/VisualMath";
+import { ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -16,7 +17,6 @@ export const ProjectileRenderer = {
 
             const def: ProjectileVisualDef = PROJECTILE_VISUALS[p.skill.visualProjectileEffect || p.skill.visual || 'BOLT'] || DEFAULT_PROJECTILE;
 
-            // 起點與終點來自 Projectile SSOT
             const startP: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
             const endP: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
 
@@ -30,9 +30,9 @@ export const ProjectileRenderer = {
             };
 
             const current3D = getPosAt(p.t);
-            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, p.t, 1.0);
+            // 核心修正：傳入正確的 ISO 縮放比例以修正旋轉角度
+            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, p.t, ISO_SCALE_Y);
 
-            // 轉場偏置統合至 VisualMath
             const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y, engine.mapConfig, transitionT, transitionPhase);
             const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
 
