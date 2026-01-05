@@ -8,7 +8,6 @@ import { DEFAULT_HEX_LAYOUT } from '../constants';
 export const useGameApp = () => {
     const engineRef = useRef(new GameEngine());
     
-    // 1. Session State (運行實例狀態)
     const [session, setSession] = useState({
         isPlaying: false,
         winner: null as Team | null,
@@ -18,7 +17,6 @@ export const useGameApp = () => {
         unitCount: 0
     });
 
-    // 2. Editor State (地圖與編輯器配置)
     const [editor, setEditor] = useState({
         tool: ToolType.SELECT,
         selectedObstacle: 'WALL',
@@ -31,7 +29,6 @@ export const useGameApp = () => {
         currentSceneId: 'VOID'
     });
 
-    // 3. HUD State (視窗與覆蓋層狀態)
     const [hud, setHud] = useState({
         selectedAgent: null as Agent | null,
         hoveredSkill: null as Skill | null,
@@ -50,25 +47,6 @@ export const useGameApp = () => {
         engine.bus.on('GAME_OVER', handleGameOver);
         return () => engine.bus.off('GAME_OVER', handleGameOver);
     }, []);
-
-    useEffect(() => {
-        if (session.isShowcaseMode && session.winner !== null) {
-            const timer = setTimeout(() => {
-                setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
-                engineRef.current.agents = [];
-                engineRef.current.projectiles = [];
-                setTimeout(() => {
-                    setupShowcaseMap(); 
-                    setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
-                    setTimeout(() => {
-                        setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
-                        spawnShowcaseUnits(); 
-                    }, 1800);
-                }, 1800);
-            }, 1000); 
-            return () => clearTimeout(timer);
-        }
-    }, [session.winner, session.isShowcaseMode]);
 
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
@@ -108,6 +86,25 @@ export const useGameApp = () => {
         engine.play();
         setSession(prev => ({ ...prev, isPlaying: true }));
     }, []);
+
+    useEffect(() => {
+        if (session.isShowcaseMode && session.winner !== null) {
+            const timer = setTimeout(() => {
+                setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
+                setTimeout(() => {
+                    engineRef.current.agents = [];
+                    engineRef.current.projectiles = [];
+                    setupShowcaseMap(); 
+                    setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
+                    setTimeout(() => {
+                        setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
+                        spawnShowcaseUnits(); 
+                    }, 1500);
+                }, 1200);
+            }, 1000); 
+            return () => clearTimeout(timer);
+        }
+    }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits]);
 
     useEffect(() => { setupShowcaseMap(); spawnShowcaseUnits(); }, []);
 

@@ -1,9 +1,7 @@
-
 import { VFXSequence, VFXAction } from "../../types/VFXSchema";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
 
 const sequences: Record<string, VFXSequence> = {
-    // --- 🔵 IMPERIAL ACTIVE SKILLS ---
     'wb_a1': { 
         id: 'wb_a1',
         actions: [
@@ -33,8 +31,6 @@ const sequences: Record<string, VFXSequence> = {
             { type: 'PARTICLE', id: 'FX_HIT_BLUE_MAGE', scale: 1.5, delay: 0.1 }
         ]
     },
-
-    // --- 🔴 COVENANT ACTIVE SKILLS ---
     'wr_a1': { 
         id: 'wr_a1',
         actions: [
@@ -63,8 +59,6 @@ const sequences: Record<string, VFXSequence> = {
             { type: 'GRID_PULSE', color: '#ea580c', scale: 1.2, delay: 0.1 }
         ]
     },
-
-    // --- 🔵 BLUE IMPERIAL ULTIMATES ---
     'tb_u1': { 
         id: 'tb_u1',
         actions: [
@@ -87,16 +81,16 @@ const sequences: Record<string, VFXSequence> = {
             { type: 'GRID_PULSE', color: '#3b82f6', scale: 1.3, delay: 0.4 }
         ]
     },
-    'mb_u1': { 
-        id: 'mb_u1',
+    'rr_u2': { 
+        id: 'rr_u2',
         actions: [
-            { type: 'PARTICLE', id: 'FX_ULT_BLUE_BLACKHOLE', scale: 1.5 },
-            { type: 'SHAKE', shakeIntensity: 0.5, delay: 0.2 },
-            { type: 'GRID_PULSE', color: '#000000', scale: 1.8, delay: 0.2 }
+            { type: 'HEAVEN_FALL', style: 'METEOR', color: '#ef4444', height: 1200, scale: 2.0 },
+            { type: 'PARTICLE', id: 'FX_ULT_RED_NUKE_FLASH', delay: 0.35, scale: 1.5 }, 
+            { type: 'PARTICLE', id: 'FX_ULT_RED_NUKE_CLOUD', delay: 0.45, scale: 1.2 }, 
+            { type: 'SHAKE', shakeIntensity: 0.8, delay: 0.35 },
+            { type: 'GRID_PULSE', color: '#ea580c', scale: 3.0, delay: 0.4 }
         ]
     },
-
-    // --- 🔴 COVENANT RED ULTIMATES ---
     'tr_u1': { 
         id: 'tr_u1',
         actions: [
@@ -127,40 +121,19 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
     const hitFx = `FX_HIT_${isRed ? 'RED' : 'BLUE'}_${role}`;
 
     for (let i = 1; i <= 5; i++) {
-        // --- 1. BASIC ATTACK AUTO-GENERATION ---
         const basicId = `${prefix}_b${i}`;
         const skillDef = DEFAULT_SKILL_DB.find(s => s.id === basicId);
-        
         if (skillDef && !sequences[basicId]) {
             const basicActions: VFXAction[] = [];
-            
-            // 如果是瞬發（近戰或無彈道遠程），序列需要負責繪製連線
             if (!skillDef.projectileSpeed || skillDef.projectileSpeed <= 0) {
                 const beamStyle = (role === 'WARRIOR' || role === 'TANK') ? 'SLASH_CONNECT' : 'GENERIC_BEAM';
-                basicActions.push({ 
-                    type: 'BEAM', 
-                    style: beamStyle, 
-                    color: skillDef.color, 
-                    duration: 0.15 
-                });
+                basicActions.push({ type: 'BEAM', style: beamStyle, color: skillDef.color, duration: 0.15 });
             }
-
-            // 核心命中粒子 (延遲與動作同步)
-            basicActions.push({ 
-                type: 'PARTICLE', 
-                id: hitFx, 
-                color: secondary, 
-                scale: 0.6, 
-                delay: 0.05 
-            });
-
-            // 微量鏡頭衝擊感
+            basicActions.push({ type: 'PARTICLE', id: hitFx, color: secondary, scale: 0.6, delay: 0.05 });
             basicActions.push({ type: 'SHAKE', shakeIntensity: 0.05, delay: 0.05 });
-
             sequences[basicId] = { id: basicId, actions: basicActions };
         }
 
-        // --- 2. ACTIVE SKILL DEFAULTS ---
         const activeId = `${prefix}_a${i}`;
         if (!sequences[activeId]) {
             sequences[activeId] = {
@@ -173,7 +146,6 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             };
         }
 
-        // --- 3. ULTIMATE DEFAULTS ---
         const ultId = `${prefix}_u${i}`;
         if (!sequences[ultId]) {
             sequences[ultId] = {
