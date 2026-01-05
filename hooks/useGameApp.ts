@@ -38,30 +38,7 @@ export const useGameApp = () => {
         showFactionWarning: false
     });
 
-    useEffect(() => {
-        const engine = engineRef.current;
-        const handleGameOver = (data: { winner: Team }) => {
-            setSession(prev => ({ ...prev, winner: data.winner, isPlaying: false }));
-            if (engine.isRunning) engine.stop(); 
-        };
-        engine.bus.on('GAME_OVER', handleGameOver);
-        return () => engine.bus.off('GAME_OVER', handleGameOver);
-    }, []);
-
-    const setupShowcaseMap = useCallback(() => {
-        const engine = engineRef.current;
-        engine.stop();
-        setSession(prev => ({ ...prev, winner: null }));
-        setHud(prev => ({ ...prev, selectedAgent: null }));
-        engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
-        engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
-        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
-        engine.mapConfig.layout = newLayout;
-        engine.randomizeEnvironment(); 
-        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
-    }, []);
-
-    const spawnShowcaseUnits = useCallback(() => {
+    const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
         let validHexes = Array.from(engine.mapKeys).map(k => {
             const [q, r] = k.split(',').map(Number);
@@ -75,16 +52,48 @@ export const useGameApp = () => {
 
         const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
         let spawnIdx = 0;
+        
         const spawn = (team: Team) => {
             for(let i=0; i<5; i++) {
                 if (spawnIdx >= validHexes.length) break;
                 const h = validHexes[spawnIdx++];
-                engine.addAgent(team, h.q, h.r, 500 + Math.random()*400, roles[i % roles.length]);
+                engine.addAgent(team, h.q, h.r, 600 + Math.random()*400, roles[i % roles.length]);
             }
         };
-        spawn(Team.BLUE); spawn(Team.RED);
+
+        spawn(Team.BLUE); 
+        spawn(Team.RED);
+        setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
+    }, []);
+
+    useEffect(() => {
+        const engine = engineRef.current;
+        const handleGameOver = (data: { winner: Team }) => {
+            setSession(prev => ({ ...prev, winner: data.winner, isPlaying: false }));
+            if (engine.isRunning) engine.stop(); 
+        };
+        engine.bus.on('GAME_OVER', handleGameOver);
+        return () => engine.bus.off('GAME_OVER', handleGameOver);
+    }, []);
+
+    const spawnShowcaseUnits = useCallback(() => {
+        const engine = engineRef.current;
+        engine.clear(true); 
+        internalSpawnTeams();
         engine.play();
-        setSession(prev => ({ ...prev, isPlaying: true }));
+        setSession(prev => ({ ...prev, isPlaying: true, winner: null }));
+    }, [internalSpawnTeams]);
+
+    const setupShowcaseMap = useCallback(() => {
+        const engine = engineRef.current;
+        engine.stop();
+        setHud(prev => ({ ...prev, selectedAgent: null }));
+        engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
+        engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
+        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
+        engine.mapConfig.layout = newLayout;
+        engine.randomizeEnvironment(); 
+        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
     }, []);
 
     useEffect(() => {
@@ -92,8 +101,6 @@ export const useGameApp = () => {
             const timer = setTimeout(() => {
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
-                    engineRef.current.agents = [];
-                    engineRef.current.projectiles = [];
                     setupShowcaseMap(); 
                     setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
                     setTimeout(() => {
@@ -101,25 +108,37 @@ export const useGameApp = () => {
                         spawnShowcaseUnits(); 
                     }, 1500);
                 }, 1200);
-            }, 1000); 
+            }, 2000);
             return () => clearTimeout(timer);
         }
     }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits]);
 
-    useEffect(() => { setupShowcaseMap(); spawnShowcaseUnits(); }, []);
+    useEffect(() => { 
+        setupShowcaseMap(); 
+        spawnShowcaseUnits(); 
+    }, []);
 
     useEffect(() => {
         const interval = setInterval(() => setSession(prev => ({ ...prev, unitCount: engineRef.current.agents.length })), 500);
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => { engineRef.current.timeScale = session.timeScale; }, [session.timeScale]);
+    // 關鍵修復：UI 狀態同步至引擎目標值，由 TimeSystem 負責平滑過渡
+    useEffect(() => { 
+        engineRef.current.targetTimeScale = session.timeScale; 
+    }, [session.timeScale]);
 
     const enterManualMode = () => {
         engineRef.current.stop();
         engineRef.current.clear(true);
         setSession(prev => ({ ...prev, isShowcaseMode: false, isPlaying: false, winner: null, unitCount: 0 }));
-        setEditor(prev => ({ ...prev, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, hexLayout: engineRef.current.mapConfig.layout, currentSceneId: engineRef.current.currentScene.id }));
+        setEditor(prev => ({ 
+            ...prev, 
+            mapW: engineRef.current.mapConfig.w, 
+            mapH: engineRef.current.mapConfig.h, 
+            hexLayout: engineRef.current.mapConfig.layout, 
+            currentSceneId: engineRef.current.currentScene.id 
+        }));
     };
 
     return {
@@ -145,10 +164,17 @@ export const useGameApp = () => {
         },
         actions: {
             enterManualMode,
-            handleUpdateMapSize: (w: number, h: number) => { setEditor(p => ({...p, mapW: w, mapH: h})); engineRef.current.mapConfig.w = w; engineRef.current.mapConfig.h = h; engineRef.current.clear(false); },
+            handleUpdateMapSize: (w: number, h: number) => { setEditor(p => ({...p, mapW: w, mapH: h})); engineRef.current.mapConfig.w = w; engineRef.current.mapConfig.h = h; engineRef.current.clear(true); },
             handleUpdateLayout: (l: HexLayout) => { setEditor(p => ({...p, hexLayout: l})); engineRef.current.mapConfig.layout = l; engineRef.current.clear(true); },
             handleSetScene: (id: string) => { const s = SCENE_DB.find(x => x.id === id); if(s) { engineRef.current.currentScene = s; engineRef.current.map.rebuildMap(engineRef.current); setEditor(p => ({...p, currentSceneId: id})); } },
-            handleRandomBattlefield: () => { engineRef.current.stop(); engineRef.current.randomizeEnvironment(); setSession(p => ({...p, winner: null})); setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); },
+            handleRandomBattlefield: () => { 
+                engineRef.current.stop(); 
+                engineRef.current.clear(true);
+                engineRef.current.randomizeEnvironment(); 
+                internalSpawnTeams();
+                setSession(p => ({...p, winner: null, isPlaying: false})); 
+                setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); 
+            },
             handleReset: () => { engineRef.current.restart(); setSession(p => ({...p, isPlaying: false, winner: null})); },
             togglePlay: () => { 
                 if(session.winner) return;
@@ -159,7 +185,13 @@ export const useGameApp = () => {
                     } else { setHud(p => ({...p, showFactionWarning: true})); setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), 2500); }
                 }
             },
-            handleNextLevel: () => { engineRef.current.stop(); engineRef.current.randomizeEnvironment(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null})); },
+            handleNextLevel: () => { 
+                engineRef.current.stop(); 
+                engineRef.current.clear(true); // 徹底重置，包含模糊狀態
+                engineRef.current.randomizeEnvironment(); 
+                internalSpawnTeams(); 
+                setSession(p => ({...p, isPlaying: false, winner: null})); 
+            },
             rematch: () => { engineRef.current.restart(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null})); },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadSpec,

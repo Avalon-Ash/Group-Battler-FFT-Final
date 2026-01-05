@@ -14,6 +14,10 @@ interface QueuedAction {
 export class SequenceSystem {
     private static actionQueue: QueuedAction[] = [];
 
+    public static clear() {
+        this.actionQueue = [];
+    }
+
     public static run(
         sequence: VFXSequence,
         target: Point3D,

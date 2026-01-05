@@ -1,4 +1,3 @@
-
 import { Agent } from "../core/Agent";
 import { LogEntry, LogActionType, Team } from "../../types";
 import { LOG_COLORS } from "../../constants";
@@ -35,15 +34,15 @@ export class BattleLogger {
         }
 
         const entry: LogEntry = {
-            id: Math.random().toString(36),
-            time: time.toFixed(1),
+            id: Math.random().toString(36).substr(2, 8),
+            time: time.toFixed(2),
             turn: Math.floor(turn),
-            agentId: agent?.id || 'SYSTEM',
+            agentId: agent?.id || 'SYSTEM_KERNEL',
             team: agent?.team,
-            location: agent ? `(${agent.q},${agent.r})` : 'global',
+            location: agent ? `Q${agent.q}R${agent.r}` : '0,0,0',
             actionType: type,
             actionName: actionName,
-            targetInfo: targetInfo || '',
+            targetInfo: targetInfo || 'GLOBAL',
             detail: detail,
             visualColor: color,
             action: actionName,
