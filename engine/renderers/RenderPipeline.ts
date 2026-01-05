@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine, VICTORY_PHASE_DURATION } from "../game";
 import { Camera, GameRenderer } from "../renderer"; 
 import { Hex, Skill } from "../../types";
@@ -15,6 +16,8 @@ export class RenderPipeline {
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
+    
+    // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
 
@@ -22,16 +25,30 @@ export class RenderPipeline {
         this.renderer = renderer; 
     }
 
-    public setTransition(t: number, phase: 'IN' | 'OUT' | 'IDLE') {
-        this.transitionT = t;
-        this.transitionPhase = phase;
+    public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') {
+        if (this.transitionPhase !== phase) {
+            this.transitionPhase = phase;
+            // Reset progress when phase changes, unless going to IDLE
+            if (phase !== 'IDLE') {
+                this.transitionT = 0;
+            }
+        }
     }
 
     public update(dt: number, engine: GameEngine) { 
         this.tactical.update(dt, engine); 
+
+        // Animation Logic moved from GameCanvas to here
+        if (this.transitionPhase !== 'IDLE') {
+            // Slower, weightier transition speed
+            const speed = 0.5; 
+            this.transitionT = Math.min(1.0, this.transitionT + dt * speed);
+        } else {
+            this.transitionT = 0;
+        }
     }
 
-    public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, globalTime: number): void {
+    public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
         const { width: pW, height: pH } = ctx.canvas;
         if (pW === 0 || pH === 0) return;
 
@@ -44,13 +61,15 @@ export class RenderPipeline {
         ctx.fillStyle = '#020617'; 
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
-        this.background.draw(ctx, lW, lH, sc, cfg, globalTime);
+        // Background uses RealTime for ambient effects (stars, fog) even when game paused
+        this.background.draw(ctx, lW, lH, sc, cfg, realTime);
         
         // 2. Main Scene (World Space)
         ctx.save();
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
-        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, globalTime);
+        // World objects use BattleTime to sync with logic
+        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime);
         ctx.restore(); 
 
         // 3. Post Processing
@@ -60,11 +79,11 @@ export class RenderPipeline {
         // 4. Overlays (Screen/World Hybrid)
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
-        this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, globalTime);
-        this.hud.draw(ctx, this.renderer.hud, engine.agents, (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine), cfg, highlight, globalTime);
+        this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
+        this.hud.draw(ctx, this.renderer.hud, engine.agents, (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine), cfg, highlight, battleTime);
         ctx.restore(); 
 
-        if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, globalTime);
+        if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
         this.tactical.drawDebug(ctx, fps);
         
         // 5. Global Transition/Finish Blur

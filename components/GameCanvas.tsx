@@ -33,16 +33,13 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     } = props;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
-    const transitionProgress = useRef(0);
-    const lastPhase = useRef(transitionPhase);
     const rendererRef = useRef<GameRenderer | null>(null);
     
+    // Lazy init renderer
     if (rendererRef.current === null) {
         rendererRef.current = new GameRenderer();
-        // Bind the renderer to the engine events for decoupling
         rendererRef.current.bind(engine);
-        // We still keep the ref for React hook usage, but engine logic won't call renderer directly.
-        engine.renderer = rendererRef.current; // Keep for legacy externalCameraRef compatibility if needed, but logic is moved to events.
+        engine.renderer = rendererRef.current;
     }
 
     const { camera, centerCamera, zoom } = useGameCamera(engine);
@@ -52,29 +49,41 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         onZoom: zoom,
         engine 
     });
+    
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
         tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
         onSelect
     });
+
+    // Update transition state in renderer (Logic moved out of View)
     useEffect(() => {
-        if (transitionPhase !== lastPhase.current) {
-            transitionProgress.current = 0;
-            lastPhase.current = transitionPhase;
+        if (rendererRef.current) {
+            rendererRef.current.setTransitionPhase(transitionPhase);
         }
     }, [transitionPhase]);
+
     const handleDraw = useCallback((ctx: CanvasRenderingContext2D, fps: number) => {
         if (!rendererRef.current) return;
-        if (transitionPhase !== 'IDLE') {
-            const dt = 1 / 60; 
-            // FIX: Slower transition speed (0.8 -> 0.5) for weightier feel
-            transitionProgress.current = Math.min(1.0, transitionProgress.current + dt * 0.5);
-        } else {
-            transitionProgress.current = 0;
-        }
-        rendererRef.current.setTransition(transitionProgress.current, transitionPhase); 
+        
         const highlight = pressedAgent || selectedAgent || null;
         const currentHoverHex = hoveredHexRef.current;
+        
+        // Pass Engine.battleTime for combat visuals, but we could also pass a realTime if needed
+        // For now, we assume the hook passes relevant times to the renderer.update(), and draw uses state.
+        // We actually need to pass time to draw() now.
+        // Since useGameLoop now tracks RealTime, we don't strictly need to pass it here if we stored it,
+        // but passing it cleanly is better SSOT.
+        // However, useGameLoop calls this callback. We need to update useGameLoop to pass time or just use engine time.
+        // For simplicity, we use the engine's battleTime for world and let renderer handle ambient via internal realTime (passed in update).
+        // Wait, draw() signature was updated in Renderer to accept (battleTime, realTime). 
+        // But useGameLoop calls onDraw(ctx, fps). We need to fix the chain or rely on internal state.
+        // **Strategy**: Let's grab the times from the engine/renderer state or assume the renderer updated them.
+        // Actually, the best way is to let useGameLoop invoke draw with time, but that requires changing the hook signature.
+        // COMPROMISE: We will pass `engine.battleTime` and `performance.now() / 1000` here.
+        
+        const realTime = performance.now() / 1000;
+        
         rendererRef.current.draw(
             ctx, 
             engine, 
@@ -82,8 +91,12 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             highlight, 
             fps, 
             currentHoverHex, 
-            hoveredSkill
+            hoveredSkill,
+            engine.battleTime,
+            realTime
         );
+
+        // Editor Drag Overlay
         if (draggedObstacle && canvasRef.current) {
             const { type, px, py } = draggedObstacle;
             const { x, y, zoom: camZoom } = camera.current;
@@ -104,12 +117,14 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.drawImage(sprite, px - 32, py - 80 - liftOffset);
             ctx.restore();
         }
-    }, [engine, transitionPhase, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
+    }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
+
     const handleResize = useCallback((w: number, h: number) => {
         if (w > 0 && h > 0) {
             centerCamera(w, h);
         }
     }, [centerCamera]);
+
     const { fpsRef } = useGameLoop(
         engine, 
         canvasRef, 
@@ -119,6 +134,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         handleResize,
         camera
     );
+
     useEffect(() => {
         if (wrapperRef.current) {
             const t = setTimeout(() => {
@@ -129,6 +145,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             return () => clearTimeout(t);
         }
     }, [engine.mapConfig.w, engine.mapConfig.h, isShowcaseMode, transitionPhase, centerCamera]);
+
     return (
         <div ref={wrapperRef} className="w-full h-full overflow-hidden relative bg-slate-950">
             <canvas 

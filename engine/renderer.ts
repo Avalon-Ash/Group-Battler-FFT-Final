@@ -15,7 +15,6 @@ import { SequenceSystem } from "./systems/visuals/SequenceSystem";
 export { Camera };
 
 export class GameRenderer {
-    public globalTime: number = 0;
     public grid: GridSystem = new GridSystem();
     public vfx: VFXSystem = new VFXSystem();
     public vfxRenderer: VFXRenderer = new VFXRenderer();
@@ -71,7 +70,10 @@ export class GameRenderer {
         this.grid.reset(); 
     }
 
-    public setTransition(t: number, phase: 'IN' | 'OUT' | 'IDLE') { this.pipeline.setTransition(t, phase); }
+    public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') { 
+        this.pipeline.setTransitionPhase(phase); 
+    }
+    
     public getTerrainHeight(q: number, r: number, engine: GameEngine): number { return this.grid.getTerrainHeight(q, r, engine); }
     
     public getHexAtScreenPoint(mouseX: number, mouseY: number, width: number, height: number, camera: Camera, engine: GameEngine): Hex | null {
@@ -81,8 +83,7 @@ export class GameRenderer {
         return this.grid.getHexAtWorldPoint(wx, wy, engine);
     }
 
-    public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {
-        this.globalTime += dt;
+    public update(dt: number, engine: GameEngine, externalCameraRef?: any, realTime: number = 0): void {
         this.camera.update(dt);
         
         if (externalCameraRef?.current) {
@@ -94,7 +95,9 @@ export class GameRenderer {
         SequenceSystem.update(engine, this.vfx);
 
         this.pipeline.update(dt, engine); 
-        this.vfx.update(dt, this.globalTime, engine.currentScene.ambientType, 
+        
+        // VFX Update uses RealTime for ambient, BattleTime for logic usually, but here we pass realTime for smoothness
+        this.vfx.update(dt, realTime, engine.currentScene.ambientType, 
             (x, y) => this.grid.getTerrainHeight(
                 this.grid.getHexAtWorldPoint(x, y, engine)?.q || 0,
                 this.grid.getHexAtWorldPoint(x, y, engine)?.r || 0,
@@ -106,7 +109,7 @@ export class GameRenderer {
 
     public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void { this.eventListener.process(events, engine, this.vfx, this.hud, this.grid, this.camera); }
     
-    public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null): void {
-        this.pipeline.draw(ctx, engine, camera, highlight, fps, hoveredHex, hoveredSkill, this.globalTime);
+    public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
+        this.pipeline.draw(ctx, engine, camera, highlight, fps, hoveredHex, hoveredSkill, battleTime, realTime);
     }
 }

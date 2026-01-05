@@ -17,6 +17,7 @@ export const useGameLoop = (
     const frameRef = useRef<number>(0);
     const isMountedRef = useRef(true);
     const resizeTimerRef = useRef<number | null>(null);
+    const realTimeRef = useRef(0); // Add strict monotonic real time tracking
     
     const drawCallbackRef = useRef(onDraw);
     const resizeCallbackRef = useRef(onResize);
@@ -99,6 +100,9 @@ export const useGameLoop = (
             const dt = t - lastTime;
             lastTime = t;
 
+            // Increment Real Time strictly by dt
+            realTimeRef.current += dt / 1000;
+
             frameCount++;
             if (t - lastFpsTime >= 1000) {
                 fpsRef.current = frameCount;
@@ -124,8 +128,8 @@ export const useGameLoop = (
                 }
             }
             
-            // 傳入 cameraRef 進行座標同步，防止「強制拉回」
-            rendererRef.current.update(dt / 1000, engine, cameraRef);
+            // Pass realTime for Ambience/UI, and Engine contains battleTime for Simulation
+            rendererRef.current.update(dt / 1000, engine, cameraRef, realTimeRef.current);
             drawCallbackRef.current(ctx, fpsRef.current);
 
             frameRef.current = requestAnimationFrame(loop);
