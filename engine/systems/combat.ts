@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../game";
 import { Projectile, Skill, NodeState, AnimState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
@@ -31,6 +32,7 @@ export class CombatSystem {
             if (a.target) targetName = a.target.id;
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
+            // sourceId 必須傳遞，供 HUD 綁定文字
             engine.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: skill });
             a.setAnim(AnimState.ATTACK);
             if (a.target) {
@@ -44,7 +46,9 @@ export class CombatSystem {
     }
     public update(dt: number, engine: GameEngine) {
         engine.agents.forEach(a => {
-            if (a.hp <= 0) return;
+            // 修正：如果單位已死但仍在詠唱，允許進入 updateCasting 進行中斷處理
+            if (a.hp <= 0 && a.castingSkillIdx === -1) return;
+            
             if (a.castingSkillIdx !== -1) {
                 this.castingEngine.updateCasting(a, dt, engine, (agent) => {
                     this.completeCast(agent, engine);

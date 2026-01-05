@@ -34,15 +34,20 @@ export class EventHUDMapper {
             case 'CAST_START':
                 this.handleCastText(event, visualGroundY, hud);
                 break;
+            case 'CAST_BREAK':
+                // 核心：觸發文字崩解
+                if (event.sourceId) {
+                    hud.breakCastText(event.sourceId);
+                    // 同時彈出 "中斷" 提示
+                    const baseY = visualGroundY - HUD_TEXT_OFFSET;
+                    hud.addFloatingText(event.pos.x, baseY, "INTERRUPTED", "#ef4444", 16, 'CC');
+                }
+                break;
             case 'KILL_STREAK':
-                // Now we just handle the visual text spawning, logic is upstream
                 if (event.text && event.color) {
-                    // Larger text, positioned higher
                     const textY = visualGroundY - HUD_TEXT_OFFSET - 40;
-                    const size = 32 + ((event.value || 1) * 4); // Scale by rank
+                    const size = 32 + ((event.value || 1) * 4); 
                     hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
-                    
-                    // Camera trauma from the event
                     camera.addTrauma(0.2 + (event.value || 0) * 0.1);
                 }
                 break;
@@ -61,17 +66,14 @@ export class EventHUDMapper {
             const val = Math.abs(event.value || 0);
             text = val.toString();
             const isCrit = val > 100;
-            
-            // 2. TEXT COLORING LOGIC
             const isDot = event.skill?.ccType === 'DOT';
             
             if (isDot) {
-                // Use registered poison color if available, or lime
                 color = STATUS_VISUALS['POISON']?.primaryColor || '#a3e635';
             } else if (isCrit) {
-                color = '#ef4444'; // Red for Crit
+                color = '#ef4444'; 
             } else {
-                color = '#fff';    // White for normal
+                color = '#fff';
             }
             
             size = isCrit ? 24 : 16;
@@ -99,7 +101,18 @@ export class EventHUDMapper {
             const isUlt = event.skill.tag === 'ULT';
             const baseY = visualY - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
             const xOffset = 55; 
-            hud.addFloatingText(event.pos.x + xOffset, baseY, event.skill.name, event.skill.color, 14, 'SHOUT', isUlt);
+            // 綁定 sourceId 以便後續中斷，並傳入詠唱時間
+            hud.addFloatingText(
+                event.pos.x + xOffset, 
+                baseY, 
+                event.skill.name, 
+                event.skill.color, 
+                14, 
+                'SHOUT', 
+                isUlt,
+                event.sourceId,
+                event.skill.cast // 傳入詠唱時間
+            );
         }
     }
 }

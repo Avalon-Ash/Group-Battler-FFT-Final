@@ -49,13 +49,14 @@ export class CastingEngine {
                 
                 engine.log(a, 'CC', '中斷', s.name, `詠唱被打斷 (進度: ${Math.floor(progressPct * 100)}%)`);
                 
-                // 傳遞精確的 3D 位置與進度參數
+                // 傳遞精確的 3D 位置與進度參數，並補上 sourceId
                 engine.events.push({ 
                     type: 'CAST_BREAK', 
                     pos: { x: a.px, y: a.py }, 
                     value: progressPct, // 這裡重用 value 傳遞進度
                     color: s.color, 
-                    skill: s 
+                    skill: s,
+                    sourceId: a.id 
                 });
             }
         }
