@@ -1,6 +1,4 @@
-
-import { Role, Skill, Team, AnimState } from '../../types';
-import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
+import { Role, Team, AnimState } from '../../types';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: '坦克 (Tank)',    color: 'text-amber-400', border: 'border-amber-500' },
@@ -31,31 +29,33 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
     [AnimState.DEAD]: 'TERMINATED'
 };
 
-export const VISUAL_TYPES = [
-    { value: 'SEQUENCE', label: '動作序列 (v9.0)', icon: '🎬' },
-    { value: 'BEAM', label: '光束投影', icon: '✨' },
-    { value: 'BOMB', label: '重型爆彈', icon: '💣' },
-    { value: 'SLASH', label: '近身斬擊', icon: '⚔️' }
-];
-
 export const SKILL_FIELD_GROUPS = [
     {
         name: '數據序列定義 (VFX Sequence)',
         fields: [
             { key: 'name', label: '序列名稱', type: 'text' },
-            { key: 'id', label: '序列 ID (對應 SKILL_SEQUENCES)', type: 'text' },
+            { key: 'id', label: '序列 ID', type: 'text' },
             { key: 'tag', label: '執行權重', type: 'select', simpleOptions: Object.keys(TAG_MAP) },
-            { key: 'desc', label: '演出描述', type: 'textarea' },
+            { key: 'visual', label: '基礎外觀', type: 'select', simpleOptions: ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'] },
+            { key: 'color', label: '核心色標', type: 'color' },
+        ]
+    },
+    {
+        name: '彈道與範圍 (Ballistics / AOE)',
+        fields: [
+            { key: 'projectileSpeed', label: '彈道速度 (0=瞬發)', type: 'number', step: 100 },
+            { key: 'range', label: '極限射程', type: 'number', step: 1 },
+            { key: 'type', label: '影響模式', type: 'select', simpleOptions: ['SINGLE', 'AOE'] },
+            { key: 'aoeRadius', label: '爆炸半徑 (Hex)', type: 'number', step: 0.5 },
         ]
     },
     {
         name: '邏輯參數 (Combat Logic)',
         fields: [
-            { key: 'power', label: '威力/補量', type: 'number' },
+            { key: 'power', label: '威力 (負值為治療)', type: 'number' },
             { key: 'cost', label: '魔力消耗', type: 'number' },
-            { key: 'cd', label: '冷卻 (秒)', type: 'number', step: 0.1 },
-            { key: 'range', label: '射程', type: 'number' },
-            { key: 'type', label: '影響目標', type: 'select', simpleOptions: ['SINGLE', 'AOE'] },
+            { key: 'cd', label: '冷卻時間 (s)', type: 'number', step: 0.1 },
+            { key: 'element', label: '元素屬性', type: 'select', simpleOptions: ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'] },
         ]
     }
 ];

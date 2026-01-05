@@ -1,5 +1,4 @@
-
-import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, UNIT_VISUAL_HEIGHT, COMBAT_PARAM, ISO_SCALE_Y, UNIT_SCALE, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../constants";
+import { MAX_TERRAIN_TIER, BLOCK_HEIGHT, ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../constants";
 import { VisualMath } from "../math/VisualMath";
 
 export class DesignExporter {
@@ -10,7 +9,7 @@ export class DesignExporter {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `Tactical_Design_Spec_v9.2_SSOT.txt`;
+        anchor.download = `Tactical_OS_v9.3_Final_Spec.txt`;
         anchor.click();
         URL.revokeObjectURL(url);
     }
@@ -18,69 +17,46 @@ export class DesignExporter {
     private static generateSpec(): string {
         return `
 ================================================================================
-TACTICAL BATTLE SYSTEM - TECHNICAL DESIGN SPECIFICATION
-Version: 9.2 (Visual SSOT Standard)
+TACTICAL.OS - 核心技術規格文檔 (Kernel v9.3)
 Generated: ${new Date().toLocaleString()}
-Architecture: Hybrid ECS / VisualMath Projection / Data-Driven VFX
+Status: RELEASE_READY
 ================================================================================
 
-[1. 系統架構圖 (System Dependency Graph)]
+[1. 視覺投影 SSOT 規範]
 --------------------------------------------------------------------------------
-本系統採用單向數據流 (Unidirectional Data Flow) 以確保狀態一致性。
+系統強制執行「單一座標真理來源」，所有 2D 渲染必須遵循下列公式：
+V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
 
-[INPUT] -> [GAME STATE] -> [SYSTEMS] -> [RENDER LIST] -> [CANVAS]
+* ISO_SCALE_Y: ${ISO_SCALE_Y}
+* BLOCK_HEIGHT: ${BLOCK_HEIGHT}
+* UNIT_BODY_OFFSET: ${UNIT_BODY_OFFSET}
 
-A. 核心數據層 (Core Data):
-   - Agent (Container): 包含 PhysicsComponent, StatsComponent, SkillComponent
-   - MapSystem: 空間雜湊 (Spatial Hash) 與地形數據
-   
-B. 系統層 (Systems - Pure Logic):
-   1. AI System: 決策樹 (Behavior Tree) -> 產生 Intent
-   2. Motion System: 路徑計算 (A*) -> 更新 Agent.pos (Logical)
-   3. Physics System: 力學積分 (Verlet/Euler) -> 更新 Agent.physics (Physical)
-   4. Combat System: 狀態機 -> 產生 GameEvents
-
-C. 表現層 (Presentation - Pure Visual):
-   1. RenderPipeline: 收集數據 -> 生成 RenderOp (無副作用)
-   2. VFX System: 解析 GameEvents -> 播放 Particle Sequences
-   3. UI Layer (React): 訂閱 Agent 狀態 (Reactive)
-
-[2. 渲染架構 (Rendering Pipeline)]
+[2. 彈道幾何 (Projectile Ballistics)]
 --------------------------------------------------------------------------------
-* 視覺解耦:
-  - 邏輯層 (SkillDatabase) 僅定義數值。
-  - 表現層 (SkillSequences) 定義視覺演出 (JSON Actions)。
-  - 渲染循環僅進行數據查表與座標投影，不執行遊戲邏輯。
+為防止渲染偏差，Projectile 對象在 Spawn 時即進行「真理鎖定」：
+- startPos{x,y,z}, endPos{x,y,z} 在飛行生命週期內為 Immutable 常數。
+- 渲染層僅讀取進度 T (0.0~1.0) 並調用 TrajectoryMath 進行解析解運算。
 
-[3. 視覺座標規範 (Visual Coordinate SSOT)]
+[3. 特效序列引擎 (VFX Sequence Engine)]
 --------------------------------------------------------------------------------
-* 核心原則: 嚴禁在 Renderer/Painter 層手動計算 (y - z) 或任何投影偏移。
-* 唯一真理入口: VisualMath.getIsoVisualY(y, z)
+採用非同步序列隊列 (SequenceSystem)：
+- 動態解析 VFXAction JSON，支持延遲觸發與連鎖演出。
+- 支持類別：PARTICLE, BEAM, SHAKE, GRID_PULSE, HEAVEN_FALL。
+- 時間軸與 GameEngine.battleTime 嚴格同步。
 
-* Z-Layer Bias (圖層深度偏移表):
-  - TERRAIN:   ${VisualMath.Z_LAYERS.TERRAIN} (基準層)
-  - HAZARD:    ${VisualMath.Z_LAYERS.HAZARD} (貼地特效)
-  - OVERLAY:   ${VisualMath.Z_LAYERS.OVERLAY} (網格指示器)
-  - SHADOW:    ${VisualMath.Z_LAYERS.SHADOW} (單位陰影)
-  
-  此表用於解決 2D Canvas 繪製時的 Z-fighting 問題，確保各層級正確覆蓋。
-
-[4. 美術與特效規範 (Art & VFX)]
+[4. 性能優化策略]
 --------------------------------------------------------------------------------
-* 投影比例 (ISO_SCALE_Y): ${ISO_SCALE_Y} (標準 2:1 SRPG 比例)
-* 單位偏移 (Body Offset): ${UNIT_BODY_OFFSET}px (懸浮修正)
-* 陣營色系:
-  - IMPERIAL (藍): #3b82f6 (Primary), #fbbf24 (Highlight)
-  - COVENANT (紅): #ef4444 (Primary), #7f1d1d (Dark)
+- RenderList 物件池：消除每幀生成數千個 RenderOp 的內存開銷。
+- 空間雜湊網格：地圖點選與碰撞查詢複雜度為 O(1)。
+- 預渲染精靈 (Grass/Terrain)：地表裝飾不參與幾何積分，直接使用緩存位圖。
 
-[5. 效能優化策略 (Optimization)]
+[5. 運鏡邏輯 (Auto Director)]
 --------------------------------------------------------------------------------
-* RenderList Pooling: 每一幀重用 RenderOp 物件，由 GC 壓力降至零。
-* Spatial Hashing: 地圖查詢由 O(N) 降至 O(1)。
-* Texture Caching: VFXFactory 緩存所有生成的程序化紋理。
+- 基於權重評分的鏡頭系統：(奧義 50pt, 受擊 15pt, 移動 5pt)。
+- 指數緩動 (Exponential Smoothing) 消除幀率依賴的鏡頭抖動。
 
 ================================================================================
-END OF SPECIFICATION
+END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
 `;
     }
 }
