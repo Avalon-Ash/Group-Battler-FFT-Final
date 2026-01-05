@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { MatrixConfig, LayoutPreset, StreamDirection } from './types';
 import { PRESET_PALETTES } from './defaults';
@@ -14,12 +13,14 @@ interface ShowcaseSettingsProps {
     layout: LayoutPreset;
     setLayout: (l: LayoutPreset) => void;
     engine?: GameEngine;
+    monitorEnabled?: boolean; // 新增
+    onToggleMonitor?: (v: boolean) => void; // 新增
 }
 
 type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX';
 
 export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
-    show, onClose, config, setConfig, timeScale, setTimeScale, layout, setLayout, engine
+    show, onClose, config, setConfig, timeScale, setTimeScale, layout, setLayout, engine, monitorEnabled, onToggleMonitor
 }) => {
     const [activeTab, setActiveTab] = useState<TabKey>('SYSTEM');
     const [cameraStiffness, setCameraStiffness] = useState(0.8);
@@ -107,6 +108,17 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                 <span className="font-mono text-cyan-300">{timeScale.toFixed(1)}x</span>
                             </div>
                             <input type="range" min="0.1" max="4.0" step="0.1" value={timeScale} onChange={(e) => setTimeScale(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                        </div>
+
+                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex justify-between items-center">
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-xs font-bold text-white uppercase tracking-wider">導播監測面板</span>
+                                <span className="text-[9px] text-slate-500 font-mono">DIRECTOR MONITOR HUD</span>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={monitorEnabled} onChange={(e) => onToggleMonitor?.(e.target.checked)}/>
+                                <div className="w-10 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                            </label>
                         </div>
                         
                         <div className="space-y-3">

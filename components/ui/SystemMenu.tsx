@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Icons } from './icons';
 import { GameEngine } from '../../engine/game';
@@ -7,11 +6,13 @@ interface SystemMenuProps {
     onToggleLogs: () => void;
     onToggleDB: () => void;
     onToggleVFXMap?: () => void;
+    onToggleMonitor?: () => void; // 新增
     onDownloadSpec: () => void;
     engine?: GameEngine;
+    monitorEnabled?: boolean; // 新增
 }
 
-export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onToggleVFXMap, onDownloadSpec, engine }) => {
+export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB, onToggleVFXMap, onToggleMonitor, onDownloadSpec, engine, monitorEnabled }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [showDirectorModal, setShowDirectorModal] = useState(false);
     
@@ -101,6 +102,16 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                             </div>
                         </button>
 
+                        {onToggleMonitor && (
+                            <button onClick={() => { onToggleMonitor(); setIsOpen(false); }} className={`liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 transition-all group min-w-[180px] ${monitorEnabled ? 'text-cyan-400 border-cyan-500/30' : 'text-slate-300'}`}>
+                                <Icons.Expand className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
+                                <div className="flex flex-col items-start">
+                                    <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">MONITOR HUD</span>
+                                    <span className="text-[10px] text-slate-500 uppercase">{monitorEnabled ? '關閉監測面板' : '開啟監測面板'}</span>
+                                </div>
+                            </button>
+                        )}
+
                         <button onClick={() => { onToggleLogs(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]">
                             <Icons.Log className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
@@ -116,16 +127,6 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                                 <span className="text-[10px] text-slate-500 uppercase">技能數據圖鑑</span>
                             </div>
                         </button>
-
-                        {onToggleVFXMap && (
-                            <button onClick={() => { onToggleVFXMap(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-purple-400 hover:bg-black/60 hover:border-purple-500/30 transition-all group min-w-[180px]">
-                                <Icons.VFX className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
-                                <div className="flex flex-col items-start">
-                                    <span className="text-xs font-bold tracking-widest text-white group-hover:text-purple-300">VFX MAP</span>
-                                    <span className="text-[10px] text-slate-500 uppercase">特效矩陣檢視器</span>
-                                </div>
-                            </button>
-                        )}
 
                         <button onClick={() => { onDownloadSpec(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-emerald-400 hover:bg-black/60 hover:border-emerald-500/30 transition-all group min-w-[180px]">
                             <Icons.Save className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />

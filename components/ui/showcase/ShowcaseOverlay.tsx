@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { MatrixConfig, LayoutPreset } from './types';
 import { DEFAULT_MATRIX_CONFIG } from './defaults';
@@ -11,16 +10,17 @@ interface ShowcaseOverlayProps {
     onEnter: () => void;
     timeScale: number;
     setTimeScale: (v: number) => void;
-    engine?: GameEngine; // Add engine prop
+    engine?: GameEngine; 
+    showDirectorMonitor?: boolean;
+    setShowDirectorMonitor?: (v: boolean) => void;
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeScale, setTimeScale, engine }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeScale, setTimeScale, engine, showDirectorMonitor, setShowDirectorMonitor }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [config, setConfig] = useState<MatrixConfig>(DEFAULT_MATRIX_CONFIG);
     const [layout, setLayout] = useState<LayoutPreset>('BOTTOM_CENTER');
     const [showSettings, setShowSettings] = useState(false);
     
-    // Track window size for canvas init
     const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });
 
     useEffect(() => {
@@ -29,10 +29,8 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Hook: Handles the Matrix Rain rendering on the transparent canvas
     useMatrixRain(canvasRef, config, viewport.w, viewport.h);
 
-    // Helper: Determine UI Layout classes
     const getLayoutClasses = () => {
         switch (layout) {
             case 'CENTER': 
@@ -63,19 +61,16 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
     return (
         <div className="absolute inset-0 z-50 overflow-hidden pointer-events-none">
             
-            {/* LAYER 1: Background Color Overlay */}
             <div 
                 className="absolute inset-0 transition-colors duration-300"
                 style={{ backgroundColor: getRgbaBg(config.bgColor, config.enabled ? config.bgOpacity : 0) }}
             ></div>
 
-            {/* LAYER 2: Matrix Rain Canvas */}
             <canvas 
                 ref={canvasRef} 
                 className="absolute inset-0 block w-full h-full pointer-events-none mix-blend-screen"
             />
 
-            {/* LAYER 3: CRT Scanline / Vignette Effects */}
             {config.enabled && config.bgOpacity > 0.1 && (
                 <>
                     <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjMDAwIiAvPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSIxIiBmaWxsPSJyZ2JhKDI1NSwgMjU1LDI1NSwgMC4wNSkiIC8+Cjwvc3ZnPg==')] opacity-30 pointer-events-none"></div>
@@ -83,16 +78,12 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </>
             )}
 
-            {/* LAYER 4: UI Content */}
             <div className={`absolute z-[55] flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`}>
                 
-                {/* Main Liquid Card */}
                 <div className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     
-                    {/* Content Text */}
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
                         
-                        {/* Header Badge */}
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-[10px] text-cyan-400 font-mono tracking-widest mb-4 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse box-shadow-[0_0_5px_cyan]"></span>
                             <span>SYSTEM_READY</span>
@@ -103,11 +94,10 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         </h1>
                         
                         <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
-                            v9.2 | SSOT Kernel Active
+                            v9.3 | SSOT Kernel Active
                         </div>
                     </div>
 
-                    {/* Start Button */}
                     <div className={`relative shrink-0 ${isCompact && !isWideBar ? 'w-full' : ''}`}>
                         <button 
                             onClick={onEnter}
@@ -122,7 +112,6 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </div>
             </div>
 
-            {/* LAYER 5: Controls */}
             <div className="absolute top-6 left-6 z-[60] pointer-events-auto">
                 <button 
                     onClick={() => setShowSettings(!showSettings)}
@@ -143,6 +132,8 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 layout={layout}
                 setLayout={setLayout}
                 engine={engine}
+                monitorEnabled={showDirectorMonitor}
+                onToggleMonitor={setShowDirectorMonitor}
             />
         </div>
     );

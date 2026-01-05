@@ -49,20 +49,20 @@ export class GameEngine {
         directorPriorityTimer: 0
     };
 
-    get hazards() { return this.state.hazards; }
-    get battleTime() { return this.state.time.battleTime; }
+    get hazards(): Map<string, GroundHazard> { return this.state.hazards; }
+    get battleTime(): number { return this.state.time.battleTime; }
     set battleTime(v: number) { this.state.time.battleTime = v; }
-    get timeScale() { return this.state.time.timeScale; }
+    get timeScale(): number { return this.state.time.timeScale; }
     set timeScale(v: number) { this.state.time.timeScale = v; }
-    get targetTimeScale() { return this.state.time.targetTimeScale; }
+    get targetTimeScale(): number { return this.state.time.targetTimeScale; }
     set targetTimeScale(v: number) { this.state.time.targetTimeScale = v; }
     get victory() { return this.state.victory; }
     
-    get directorTargetId() { return this.state.director.targetId; }
-    get mapKeys() { return this.map.mapKeys; }
-    get obstacles() { return this.map.obstacles; }
-    get agentMap() { return this.map.agentMap; }
-    get logs() { return this.logger.logs; }
+    get directorTargetId(): string | null { return this.state.director.targetId; }
+    get mapKeys(): Set<string> { return this.map.mapKeys; }
+    get obstacles(): Map<string, string> { return this.map.obstacles; }
+    get agentMap(): Map<number, Agent> { return this.map.agentMap; }
+    get logs(): LogEntry[] { return this.logger.logs; }
 
     public events: GameEvent[] = [];
     public bus: EventBus = new EventBus();

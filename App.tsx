@@ -1,19 +1,21 @@
-
 import React from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
 import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
+import { DirectorMonitorHUD } from './components/ui/DirectorMonitorHUD'; // 新增
 import { SystemMenu } from './components/ui/SystemMenu';
 import { ModalManager } from './components/ui/ModalManager';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
+
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
   const showModals = !hideHUD || state.showLogs || state.showDB || state.showVFXMap;
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       {state.showFactionWarning && (
@@ -27,14 +29,26 @@ function App() {
                 </div>
             </div>
       )}
+      
       {state.isShowcaseMode && (
         <ShowcaseOverlay 
             onEnter={actions.enterManualMode} 
             timeScale={state.timeScale} 
             setTimeScale={setters.setTimeScale} 
-            engine={engineRef.current} // Pass engine for camera settings
+            engine={engineRef.current} 
+            showDirectorMonitor={state.showDirectorMonitor}
+            setShowDirectorMonitor={setters.setShowDirectorMonitor}
         />
       )}
+
+      {/* Director Monitor - Draggable & Togglable */}
+      {!isGameOver && state.showDirectorMonitor && (
+          <DirectorMonitorHUD 
+            engine={engineRef.current}
+            onClose={() => setters.setShowDirectorMonitor(false)}
+          />
+      )}
+
       <PlaybackHUD 
           hidden={hideHUD}
           isPlaying={state.isPlaying}
@@ -51,8 +65,10 @@ function App() {
               onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
               onToggleDB={() => setters.setShowDB(!state.showDB)}
               onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
+              onToggleMonitor={() => setters.setShowDirectorMonitor(!state.showDirectorMonitor)} // 新增
               onDownloadSpec={actions.downloadSpec}
-              engine={engineRef.current} // Pass engine for camera settings
+              engine={engineRef.current} 
+              monitorEnabled={state.showDirectorMonitor} // 新增
           />
       )}
       {!hideHUD && state.selectedAgent && (
@@ -112,4 +128,5 @@ function App() {
     </div>
   );
 }
+
 export default App;

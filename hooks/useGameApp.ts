@@ -12,7 +12,7 @@ export const useGameApp = () => {
         isPlaying: false,
         winner: null as Team | null,
         timeScale: 1.0,
-        isShowcaseMode: true,
+        isShowcaseMode: true, 
         transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
         unitCount: 0
     });
@@ -35,12 +35,14 @@ export const useGameApp = () => {
         showLogs: false,
         showDB: false,
         showVFXMap: false,
-        showFactionWarning: false
+        showFactionWarning: false,
+        showDirectorMonitor: false 
     });
 
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
-        let validHexes = Array.from(engine.mapKeys).map(k => {
+        // Resolve coordinate string to axial numeric components
+        let validHexes = Array.from(engine.mapKeys).map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return {q, r};
         }).filter(h => !engine.map.hasObstacle(h.q, h.r));
@@ -66,6 +68,19 @@ export const useGameApp = () => {
         setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
     }, []);
 
+    const setupShowcaseMap = useCallback(() => {
+        const engine = engineRef.current;
+        engine.stop();
+        engine.clear(true); 
+        setHud(prev => ({ ...prev, selectedAgent: null }));
+        engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
+        engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
+        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
+        engine.mapConfig.layout = newLayout;
+        engine.randomizeEnvironment(); 
+        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
+    }, []);
+
     useEffect(() => {
         const engine = engineRef.current;
         const handleGameOver = (data: { winner: Team }) => {
@@ -78,27 +93,17 @@ export const useGameApp = () => {
 
     const spawnShowcaseUnits = useCallback(() => {
         const engine = engineRef.current;
-        engine.clear(true); 
         internalSpawnTeams();
         engine.play();
         setSession(prev => ({ ...prev, isPlaying: true, winner: null }));
     }, [internalSpawnTeams]);
 
-    const setupShowcaseMap = useCallback(() => {
-        const engine = engineRef.current;
-        engine.stop();
-        setHud(prev => ({ ...prev, selectedAgent: null }));
-        engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
-        engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
-        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
-        engine.mapConfig.layout = newLayout;
-        engine.randomizeEnvironment(); 
-        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
-    }, []);
-
     useEffect(() => {
         if (session.isShowcaseMode && session.winner !== null) {
             const timer = setTimeout(() => {
+                const engine = engineRef.current;
+                engine.stop();
+                engine.clear(true); 
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
                     setupShowcaseMap(); 
@@ -114,8 +119,10 @@ export const useGameApp = () => {
     }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits]);
 
     useEffect(() => { 
-        setupShowcaseMap(); 
-        spawnShowcaseUnits(); 
+        if (session.isShowcaseMode) {
+            setupShowcaseMap(); 
+            spawnShowcaseUnits(); 
+        }
     }, []);
 
     useEffect(() => {
@@ -123,7 +130,6 @@ export const useGameApp = () => {
         return () => clearInterval(interval);
     }, []);
 
-    // 關鍵修復：UI 狀態同步至引擎目標值，由 TimeSystem 負責平滑過渡
     useEffect(() => { 
         engineRef.current.targetTimeScale = session.timeScale; 
     }, [session.timeScale]);
@@ -146,7 +152,8 @@ export const useGameApp = () => {
         state: { 
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
-            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning
+            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning,
+            showDirectorMonitor: hud.showDirectorMonitor
         },
         setters: {
             setTool: (tool: ToolType) => setEditor(p => ({...p, tool})),
@@ -160,7 +167,8 @@ export const useGameApp = () => {
             setShowVFXMap: (showVFXMap: boolean) => setHud(p => ({...p, showVFXMap})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
             setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
-            setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill}))
+            setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),
+            setShowDirectorMonitor: (v: boolean) => setHud(p => ({...p, showDirectorMonitor: v}))
         },
         actions: {
             enterManualMode,
@@ -187,7 +195,7 @@ export const useGameApp = () => {
             },
             handleNextLevel: () => { 
                 engineRef.current.stop(); 
-                engineRef.current.clear(true); // 徹底重置，包含模糊狀態
+                engineRef.current.clear(true); 
                 engineRef.current.randomizeEnvironment(); 
                 internalSpawnTeams(); 
                 setSession(p => ({...p, isPlaying: false, winner: null})); 

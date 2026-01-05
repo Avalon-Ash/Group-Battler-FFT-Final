@@ -1,17 +1,17 @@
 import { Agent, GameEngine } from "../game";
-import { Camera } from "../renderer"; 
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
-import { Team, Role } from "../../types";
-import { HEX_SIZE, UNIT_BODY_OFFSET } from "../../constants";
+
 export interface RenderCamera {
     x: number;
     y: number;
     zoom: number;
 }
+
 export class TacticalRenderer {
     private holoGlitchTimer = 0;
     private lastDirectorTarget = "";
+
     public update(dt: number, engine: GameEngine) {
         if (engine.directorTargetId !== this.lastDirectorTarget) {
             this.lastDirectorTarget = engine.directorTargetId || "";
@@ -19,6 +19,7 @@ export class TacticalRenderer {
         }
         if (this.holoGlitchTimer > 0) this.holoGlitchTimer -= dt;
     }
+
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number) {
         ctx.save();
         if (highlight && highlight.hp > 0) {
@@ -74,99 +75,69 @@ export class TacticalRenderer {
         }
         ctx.restore();
     }
-    public drawHUD(ctx: CanvasRenderingContext2D, engine: GameEngine, w: number, h: number, cam: RenderCamera, globalTime: number) {
+
+    /**
+     * Draws cinematic HUD elements when director target is active
+     */
+    public drawHUD(ctx: CanvasRenderingContext2D, engine: GameEngine, width: number, height: number, camera: RenderCamera, globalTime: number): void {
         if (!engine.directorTargetId) return;
-        const agent = engine.agents.find(a => a.id === engine.directorTargetId);
-        if (!agent) return;
-        const width = 260;
-        const height = 140;
-        const hudX = w - width - 20;
-        const hudY = 20;
+
         ctx.save();
-        let gx = 0, gy = 0;
-        if (this.holoGlitchTimer > 0) {
-             gx = (Math.random() - 0.5) * 5;
-             gy = (Math.random() - 0.5) * 5;
-        }
-        ctx.translate(hudX + gx, hudY + gy);
-        const teamColor = agent.team === Team.BLUE ? '#06b6d4' : '#ef4444'; 
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(0, 0, width, height, 16);
-        else ctx.rect(0, 0, width, height);
-        const bgGrad = ctx.createLinearGradient(0, 0, 0, height);
-        bgGrad.addColorStop(0, 'rgba(15, 23, 42, 0.8)'); 
-        bgGrad.addColorStop(1, 'rgba(15, 23, 42, 0.5)');
-        ctx.fillStyle = bgGrad;
-        ctx.fill();
-        ctx.shadowColor = teamColor;
-        ctx.shadowBlur = 10;
-        ctx.strokeStyle = teamColor;
+        ctx.resetTransform();
+
+        const pad = 40;
+        const cornerSize = 25;
+        
+        ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
         ctx.lineWidth = 1.5;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
+
+        // Top Left
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(1, 1, width-2, height-2, 16);
-        else ctx.rect(1, 1, width-2, height-2);
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
-        ctx.lineWidth = 1;
+        ctx.moveTo(pad + cornerSize, pad);
+        ctx.lineTo(pad, pad);
+        ctx.lineTo(pad, pad + cornerSize);
         ctx.stroke();
-        ctx.fillStyle = teamColor;
-        ctx.font = 'bold 13px "JetBrains Mono", monospace';
-        ctx.textAlign = 'left';
-        ctx.fillText(`TARGET: ${agent.id}`, 20, 30);
-        ctx.fillStyle = '#94a3b8'; 
-        ctx.font = '11px "JetBrains Mono", monospace';
-        ctx.fillText(`STATUS:`, 20, 50);
-        ctx.fillStyle = '#f8fafc'; 
-        ctx.fillText(agent.btStatus || 'IDLE', 70, 50);
-        const startX = 50;
-        const startY = 90;
-        const gap = 80;
-        const nodes = [
-            { label: 'SCAN', active: true },
-            { label: 'THINK', active: agent.btStatus !== '待機' && agent.btStatus !== 'IDLE' },
-            { label: 'ACT', active: agent.isMoving || agent.castingSkillIdx !== -1 }
-        ];
+
+        // Top Right
         ctx.beginPath();
-        ctx.moveTo(startX, startY);
-        ctx.lineTo(startX + gap * 2, startY);
-        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 2;
+        ctx.moveTo(width - pad - cornerSize, pad);
+        ctx.lineTo(width - pad, pad);
+        ctx.lineTo(width - pad, pad + cornerSize);
         ctx.stroke();
-        if (nodes[1].active) {
-            const t = (globalTime * 2) % 1;
-            const flowX = startX + t * (gap * 2);
+
+        // Bottom Left
+        ctx.beginPath();
+        ctx.moveTo(pad + cornerSize, height - pad);
+        ctx.lineTo(pad, height - pad);
+        ctx.lineTo(pad, height - pad - cornerSize);
+        ctx.stroke();
+
+        // Bottom Right
+        ctx.beginPath();
+        ctx.moveTo(width - pad - cornerSize, height - pad);
+        ctx.lineTo(width - pad, height - pad);
+        ctx.lineTo(width - pad, height - pad - cornerSize);
+        ctx.stroke();
+
+        const blink = Math.floor(globalTime * 2) % 2 === 0;
+        if (blink) {
+            ctx.fillStyle = '#ef4444';
             ctx.beginPath();
-            ctx.arc(flowX, startY, 2, 0, Math.PI*2);
-            ctx.fillStyle = '#fff';
+            ctx.arc(pad + 15, pad + 15, 5, 0, Math.PI * 2);
             ctx.fill();
         }
-        nodes.forEach((n, i) => {
-            const x = startX + i * gap;
-            ctx.beginPath();
-            ctx.arc(x, startY, 8, 0, Math.PI*2);
-            if (n.active) {
-                ctx.fillStyle = teamColor;
-                ctx.shadowColor = teamColor;
-                ctx.shadowBlur = 10;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = '#fff';
-                ctx.beginPath(); ctx.arc(x, startY, 3, 0, Math.PI*2); ctx.fill();
-            } else {
-                ctx.fillStyle = '#1e293b'; 
-                ctx.strokeStyle = '#475569';
-                ctx.lineWidth = 2;
-                ctx.fill();
-                ctx.stroke();
-            }
-            ctx.font = 'bold 10px "JetBrains Mono", monospace';
-            ctx.textAlign = 'center';
-            ctx.fillStyle = n.active ? '#fff' : '#64748b';
-            ctx.fillText(n.label, x, startY + 20);
-        });
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'left';
+        ctx.fillText('DIRECTOR_CAM_FEED', pad + 25, pad + 18);
+        
+        ctx.textAlign = 'right';
+        ctx.fillText(`TRK_ID: ${engine.directorTargetId}`, width - pad - 5, height - pad - 10);
+
         ctx.restore();
     }
+
     public drawDebug(ctx: CanvasRenderingContext2D, fps: number): void {
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; 
         ctx.font = '10px monospace';
