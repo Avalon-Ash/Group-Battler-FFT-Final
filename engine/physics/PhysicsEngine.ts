@@ -75,7 +75,10 @@ export class PhysicsEngine {
                     a.hp = Math.max(0, a.hp - rawDmg);
                     engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: -rawDmg, color: '#ef4444', text: "墜落" });
                     engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
-                    if (engine.renderer) engine.renderer.camera.addTrauma(pct * 0.5);
+                    
+                    // Decoupled: Emit CAMERA_SHAKE event instead of direct renderer call
+                    engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
+
                     if (a.hp <= 0) engine.agentManager.handleDeadState(a, engine);
                     else a.setAnim(AnimState.HIT);
                 }

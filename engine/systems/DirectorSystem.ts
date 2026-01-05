@@ -76,9 +76,9 @@ export class DirectorSystem {
         // 3. Calculate Cinematic Frame (Computation)
         const frame = this.calculateFrame(engine, ds.targetId);
 
-        // 4. Push to Camera System (Action)
-        if (engine.renderer && frame) {
-            engine.renderer.camera.setDirectorTarget(frame.x, frame.y, frame.zoom);
+        // 4. Push to Camera System (Decoupled Action via Event Bus)
+        if (frame) {
+            engine.bus.emit('CAMERA_MOVE', frame);
         }
     }
 

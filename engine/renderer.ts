@@ -37,6 +37,8 @@ export class GameRenderer {
             this.boundEngine.bus.off('GAME_RESET', this.handleReset);
             this.boundEngine.bus.off('GAME_CLEAR', this.handleReset);
             this.boundEngine.bus.off('ENV_UPDATE', this.handleReset);
+            this.boundEngine.bus.off('CAMERA_SHAKE', this.handleShake);
+            this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
         }
 
         this.boundEngine = engine;
@@ -45,10 +47,20 @@ export class GameRenderer {
         this.boundEngine.bus.on('GAME_RESET', this.handleReset);
         this.boundEngine.bus.on('GAME_CLEAR', this.handleReset);
         this.boundEngine.bus.on('ENV_UPDATE', this.handleReset);
+        this.boundEngine.bus.on('CAMERA_SHAKE', this.handleShake);
+        this.boundEngine.bus.on('CAMERA_MOVE', this.handleCameraMove);
     }
 
     private handleReset = () => {
         this.reset();
+    }
+
+    private handleShake = (data: { intensity: number }) => {
+        this.camera.addTrauma(data.intensity);
+    }
+
+    private handleCameraMove = (data: { x: number, y: number, zoom: number }) => {
+        this.camera.setDirectorTarget(data.x, data.y, data.zoom);
     }
 
     public reset() {

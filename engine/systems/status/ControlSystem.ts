@@ -61,12 +61,11 @@ export class ControlSystem {
         }
 
         if (agent.fearTimer > 0) {
-            // FIX: Fear Logic Jitter
-            // 只有在完全停止時 (Idle) 才尋找新路徑，且強制執行完整移動
+            // FIX: Fear Logic Jitter & Twitching
+            // 使用 aiUpdateTimer 進行決策限流，防止每幀重新尋路導致的原地抽搐
             if (agent.rootTimer <= 0) {
-                // 如果正在移動，不要打斷，讓它跑完
-                if (!agent.isMoving) {
-                    // 擴大搜索半徑至 3-4 格，模擬長距離驚慌亂跑
+                if (!agent.isMoving && agent.aiUpdateTimer <= 0) {
+                    // 擴大搜索半徑至 4 格，模擬驚慌亂跑
                     const range = 4;
                     const center = { q: agent.q, r: agent.r };
                     const candidates = HexUtils.range(center, range).filter(h => {
@@ -76,14 +75,19 @@ export class ControlSystem {
                     });
 
                     if (candidates.length > 0) {
-                        // 隨機選一個
                         const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
                         // 強制走到該點，速度 1.5x
-                        engine.moveAgentToHex(agent, targetHex, 0, 1.5); 
+                        const result = engine.moveAgentToHex(agent, targetHex, 0, 1.5);
+                        if (result === 'R') { // RUNNING (Success)
+                            agent.aiUpdateTimer = 0.5; // 決策冷卻：給予時間執行移動
+                        } else {
+                            agent.aiUpdateTimer = 0.8; // 失敗冷卻：避免高頻重試
+                        }
+                    } else {
+                        agent.aiUpdateTimer = 0.8; // 無路可逃，等待
                     }
                 }
             } else {
-                // 如果被定身，停止移動
                 agent.isMoving = false;
                 agent.path = [];
             }

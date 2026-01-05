@@ -109,33 +109,24 @@ export class RenderList {
             /**
              * 唯一數學排序規範 v17.0 (Topological Ground Sort)
              * 
-             * 1. 瓦片排序 (Terrain): 僅依賴 (q + r) 進行拓撲排序。
-             *    - 高度 (th) 不參與排序，僅參與繪製幾何延伸。
-             *    - 這保證了後方瓦片的地基永遠在前方瓦片的地基之前繪製。
+             * 1. 瓦片排序 (Terrain): 依賴 Screen Y (op.ty) 進行物理排序。
+             *    - 原始的 (q+r) 邏輯排序在 Pointy Layout 下可能導致邊緣疊加錯誤。
+             *    - 使用 ty (Visual Base Y) 可確保較低的圖塊永遠覆蓋較高的圖塊。
              * 
              * 2. 物件排序 (Unit/Prop):
              *    - 物件依賴其 Screen Y (op.y) 進行排序。
-             *    - op.y = py + offset (物理腳底位置)。
              */
             
             let sortKey = 0;
 
             if (op.type === RenderOpType.TERRAIN) {
                 // 地形層：基礎權重 0 ~ 20,000,000
-                // (q + r) 決定了 Isometric 的掃描線順序
-                // 加上 2000 偏移量確保正數
-                sortKey = (op.tq + op.tr + 2000) * 1000;
+                // 改用 ty (Visual Screen Y) 排序
+                // 加 5000 偏移確保正數，乘 100 保留精度
+                sortKey = Math.floor((op.ty + 5000) * 100);
             } 
             else {
                 // 物件層：基礎權重 20,000,000 +
-                // 物件需要與地形混合，因此使用 Screen Y 映射到類似的量級
-                // 但為了簡單起見，目前架構將物件層置於地形層之上 (Layered approach)
-                // 若要實現單位被前方高牆遮擋，單位與地形需混合排序。
-                
-                // 混合排序策略：
-                // 使用 (ScreenY * Scale) 作為統一標準
-                // 但 RenderOp.TERRAIN 的 ScreenY 是指 BaseY。
-                
                 // 為了修復 "地板穿插"，我們採用分層策略：
                 // 地形永遠先畫 (Layer 0)
                 // 地面裝飾 (Layer 1)
