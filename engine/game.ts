@@ -1,3 +1,4 @@
+
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState } from "../types";
@@ -70,6 +71,9 @@ export class GameEngine {
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
+    // Dynamic Layout Info
+    public screenAspect: number = 1.77;
+
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public currentScene: SceneTheme = SCENE_DB[0];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];

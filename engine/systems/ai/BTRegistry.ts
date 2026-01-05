@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../game";
 import { NodeState } from "../../types";
 import { HexUtils } from "../utils";
@@ -12,6 +13,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsStunned": (a) => a.stunTimer > 0,
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
+    "IsFeared": (a) => a.fearTimer > 0, // Added Fear Check
     
     "HasTarget": (a, engine) => {
         if (a.target && a.target.hp > 0 && !a.target.banished) {

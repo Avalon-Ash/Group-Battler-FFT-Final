@@ -1,162 +1,170 @@
+
 import { VFXSequence, VFXAction } from "../../types/VFXSchema";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
+import { ULT_VISUALS } from "./ult_visuals";
+import { ACTIVE_VISUALS } from "./active_visuals";
+import { BASIC_VISUALS } from "./basic_visuals";
 
-const sequences: Record<string, VFXSequence> = {
-    'wb_a1': { 
-        id: 'wb_a1',
-        actions: [
-            { type: 'PARTICLE', id: 'FX_HIT_BLUE_WARRIOR', scale: 1.5 },
-            { type: 'GRID_PULSE', color: '#60a5fa', scale: 1.0, delay: 0.1 }
-        ]
-    },
-    'tb_a2': { 
-        id: 'tb_a2',
-        actions: [
-            { type: 'BEAM', style: 'TELEPORT_PILLAR', color: '#fcd34d', duration: 0.3 },
-            { type: 'PARTICLE', id: 'FX_HIT_BLUE_TANK', delay: 0.1 },
-            { type: 'SHAKE', shakeIntensity: 0.2, delay: 0.1 }
-        ]
-    },
-    'rb_a2': { 
-        id: 'rb_a2',
-        actions: [
-            { type: 'BEAM', style: 'DEATH_RAY', color: '#38bdf8', duration: 0.2 },
-            { type: 'PARTICLE', id: 'FX_HIT_BLUE_RANGER', scale: 1.2 }
-        ]
-    },
-    'mb_a1': { 
-        id: 'mb_a1',
-        actions: [
-            { type: 'GRID_PULSE', color: '#a855f7', scale: 1.2 },
-            { type: 'PARTICLE', id: 'FX_HIT_BLUE_MAGE', scale: 1.5, delay: 0.1 }
-        ]
-    },
-    'wr_a1': { 
-        id: 'wr_a1',
-        actions: [
-            { type: 'PARTICLE', id: 'FX_HIT_RED_WARRIOR', scale: 1.5 },
-            { type: 'GRID_PULSE', color: '#ef4444', scale: 1.0, delay: 0.1 }
-        ]
-    },
-    'tr_a1': { 
-        id: 'tr_a1',
-        actions: [
-            { type: 'BEAM', style: 'SLASH_CONNECT', color: '#7f1d1d', duration: 0.3 },
-            { type: 'PARTICLE', id: 'FX_HIT_RED_TANK', delay: 0.1 }
-        ]
-    },
-    'rr_a1': { 
-        id: 'rr_a1',
-        actions: [
-            { type: 'PARTICLE', id: 'FX_HIT_FIRE', scale: 1.2 },
-            { type: 'SHAKE', shakeIntensity: 0.15 }
-        ]
-    },
-    'mr_a3': { 
-        id: 'mr_a3',
-        actions: [
-            { type: 'PARTICLE', id: 'FX_HIT_FIRE', scale: 1.5 },
-            { type: 'GRID_PULSE', color: '#ea580c', scale: 1.2, delay: 0.1 }
-        ]
-    },
-    'tb_u1': { 
-        id: 'tb_u1',
-        actions: [
-            { type: 'PARTICLE', id: 'FX_ULT_BLUE_SANCTUARY_IMPACT', scale: 1.0 },
-            { type: 'GRID_PULSE', color: '#fbbf24', scale: 1.5 }
-        ]
-    },
-    'tb_u3': { 
-        id: 'tb_u3',
-        actions: [
-            { type: 'HEAVEN_FALL', style: 'GIANT_HEX', color: '#3b82f6', height: 1000, scale: 1.2 },
-            { type: 'PARTICLE', id: 'FX_ULT_BLUE_AEGIS_IMPACT', delay: 0.4 }
-        ]
-    },
-    'wb_u1': { 
-        id: 'wb_u1',
-        actions: [
-            { type: 'HEAVEN_FALL', style: 'METEOR', color: '#60a5fa', height: 1000, scale: 0.8 },
-            { type: 'PARTICLE', id: 'FX_ULT_BLUE_THUNDER_SLAM', delay: 0.4 },
-            { type: 'GRID_PULSE', color: '#3b82f6', scale: 1.3, delay: 0.4 }
-        ]
-    },
-    'rr_u2': { 
-        id: 'rr_u2',
-        actions: [
-            { type: 'HEAVEN_FALL', style: 'METEOR', color: '#ef4444', height: 1200, scale: 2.0 },
-            { type: 'PARTICLE', id: 'FX_ULT_RED_NUKE_FLASH', delay: 0.35, scale: 1.5 }, 
-            { type: 'PARTICLE', id: 'FX_ULT_RED_NUKE_CLOUD', delay: 0.45, scale: 1.2 }, 
-            { type: 'SHAKE', shakeIntensity: 0.8, delay: 0.35 },
-            { type: 'GRID_PULSE', color: '#ea580c', scale: 3.0, delay: 0.4 }
-        ]
-    },
-    'tr_u1': { 
-        id: 'tr_u1',
-        actions: [
-            { type: 'HEAVEN_FALL', style: 'METEOR', color: '#7f1d1d', height: 1000, scale: 0.8 },
-            { type: 'PARTICLE', id: 'FX_ULT_RED_GUILLOTINE_IMPACT', delay: 0.4 },
-            { type: 'GRID_PULSE', color: '#ef4444', scale: 1.1, delay: 0.45 }
-        ]
-    },
-    'wr_u1': { 
-        id: 'wr_u1',
-        actions: [
-            { type: 'GRID_PULSE', color: '#ea580c', scale: 1.2 }, 
-            { type: 'PARTICLE', id: 'FX_ULT_RED_RAGNAROK_ERUPTION', scale: 1.0 }
-        ]
-    },
-    'mr_u1': { 
-        id: 'mr_u1',
-        actions: [
-            { type: 'HEAVEN_FALL', style: 'METEOR', color: '#ea580c', height: 1500, scale: 1.5 },
-            { type: 'PARTICLE', id: 'FX_ULT_RED_METEOR_IMPACT', delay: 0.6 },
-            { type: 'GRID_PULSE', color: '#7c2d12', scale: 2.5, delay: 0.6 }
-        ]
-    }
-};
+const sequences: Record<string, VFXSequence> = {};
 
 function fillFactionDefaults(prefix: string, primary: string, secondary: string, role: string) {
     const isRed = prefix.includes('r');
     const hitFx = `FX_HIT_${isRed ? 'RED' : 'BLUE'}_${role}`;
 
     for (let i = 1; i <= 5; i++) {
+        // --- 1. BASIC SKILLS (Enhanced) ---
         const basicId = `${prefix}_b${i}`;
-        const skillDef = DEFAULT_SKILL_DB.find(s => s.id === basicId);
-        if (skillDef && !sequences[basicId]) {
-            const basicActions: VFXAction[] = [];
-            if (!skillDef.projectileSpeed || skillDef.projectileSpeed <= 0) {
-                const beamStyle = (role === 'WARRIOR' || role === 'TANK') ? 'SLASH_CONNECT' : 'GENERIC_BEAM';
-                basicActions.push({ type: 'BEAM', style: beamStyle, color: skillDef.color, duration: 0.15 });
+        const basicSkill = DEFAULT_SKILL_DB.find(s => s.id === basicId);
+        const basicConfig = BASIC_VISUALS[basicId];
+
+        if (basicSkill) {
+            const actions: VFXAction[] = [];
+            const specificHit = basicSkill.visualHitEffect || hitFx;
+            
+            if (basicConfig) {
+                // Config-Driven Basic Sequence
+                switch(basicConfig.archetype) {
+                    case 'MELEE_SLASH':
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                        actions.push({ type: 'SHAKE', shakeIntensity: 0.1, delay: 0.1 });
+                        break;
+                    case 'MELEE_SMASH':
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.color, scale: (basicConfig.scale || 1.0) * 1.2 });
+                        actions.push({ type: 'SHAKE', shakeIntensity: 0.15, delay: 0.05 });
+                        actions.push({ type: 'GRID_PULSE', color: basicConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                        break;
+                    case 'MELEE_PIERCE':
+                        actions.push({ type: 'BEAM', style: 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
+                        actions.push({ type: 'PARTICLE', id: 'SPARK', color: basicConfig.secondaryColor, scale: 0.6, delay: 0.05 });
+                        break;
+                    case 'DUAL_STRIKE':
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.1, scale: 0.8 });
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.1, scale: 0.8, delay: 0.1 });
+                        actions.push({ type: 'PARTICLE', id: specificHit, scale: 0.7, delay: 0.15 });
+                        break;
+                    case 'RANGED_BOLT':
+                    case 'MAGIC_ORB':
+                        // Muzzle Flash
+                        actions.push({ type: 'PARTICLE', id: 'GLOW', color: basicConfig.color, scale: 0.6, duration: 0.1 });
+                        break;
+                    case 'RANGED_BEAM':
+                        actions.push({ type: 'BEAM', style: 'GENERIC_BEAM', color: basicConfig.color, duration: 0.3, scale: 1.0 });
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.secondaryColor, scale: 0.7, delay: 0.05 });
+                        break;
+                }
+            } else {
+                // Fallback Legacy Logic
+                if (!basicSkill.projectileSpeed || basicSkill.projectileSpeed <= 0) {
+                    const beamStyle = (role === 'WARRIOR' || role === 'TANK') ? 'SLASH_CONNECT' : 'GENERIC_BEAM';
+                    actions.push({ type: 'BEAM', style: beamStyle, color: basicSkill.color, duration: 0.15 });
+                }
+                actions.push({ type: 'PARTICLE', id: specificHit, color: secondary, scale: 0.6, delay: 0.05 });
+                actions.push({ type: 'SHAKE', shakeIntensity: 0.05, delay: 0.05 });
             }
-            basicActions.push({ type: 'PARTICLE', id: hitFx, color: secondary, scale: 0.6, delay: 0.05 });
-            basicActions.push({ type: 'SHAKE', shakeIntensity: 0.05, delay: 0.05 });
-            sequences[basicId] = { id: basicId, actions: basicActions };
+            sequences[basicId] = { id: basicId, actions };
         }
 
+        // --- 2. ACTIVE SKILLS (Expanded) ---
         const activeId = `${prefix}_a${i}`;
-        if (!sequences[activeId]) {
-            sequences[activeId] = {
-                id: activeId,
-                actions: [
-                    { type: 'PARTICLE', id: hitFx, color: secondary, scale: 0.8 },
-                    { type: 'GRID_PULSE', color: primary, scale: 0.8, delay: 0.05 },
-                    { type: 'SHAKE', shakeIntensity: 0.15 }
-                ]
-            };
+        const activeConfig = ACTIVE_VISUALS[activeId];
+        
+        if (activeConfig) {
+            const actions: VFXAction[] = [];
+            const specificHit = activeConfig.vfxOverride || hitFx;
+            
+            switch (activeConfig.archetype) {
+                case 'BURST_AOE':
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.25 });
+                    actions.push({ type: 'GRID_PULSE', color: activeConfig.color, scale: 1.2, delay: 0.1 });
+                    break;
+                case 'DASH_ASSAULT':
+                    actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: activeConfig.color, duration: 0.2, scale: 1.5 });
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: 1.2, delay: 0.1 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.3 });
+                    break;
+                case 'BUFF_AURA':
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: activeConfig.scale || 1.0, duration: 1.0 });
+                    actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 0.8, delay: 0.0 });
+                    break;
+                case 'DEBUFF_RAY':
+                    actions.push({ type: 'BEAM', style: 'GENERIC_BEAM', color: activeConfig.color, duration: 0.5 });
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                    break;
+                case 'GROUND_SLAM':
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: 1.3 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.4 });
+                    actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 1.5, delay: 0.05 });
+                    break;
+                case 'PROJECTILE_SALVO':
+                    const count = activeConfig.count || 3;
+                    for(let k=0; k<count; k++) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: 0.7, delay: k * 0.1 });
+                    }
+                    break;
+                default: // SIMPLE_IMPACT
+                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 0.8 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.15 });
+                    break;
+            }
+            sequences[activeId] = { id: activeId, actions };
+        } else {
+            // Fallback for missing configs
+            const activeSkill = DEFAULT_SKILL_DB.find(s => s.id === activeId);
+            if (activeSkill) {
+                sequences[activeId] = {
+                    id: activeId,
+                    actions: [
+                        { type: 'PARTICLE', id: activeSkill.visualHitEffect || hitFx, color: secondary, scale: 0.8 },
+                        { type: 'GRID_PULSE', color: primary, scale: 0.8, delay: 0.05 },
+                        { type: 'SHAKE', shakeIntensity: 0.15 }
+                    ]
+                };
+            }
         }
 
+        // --- 3. ULTIMATE SKILLS (High Definition) ---
         const ultId = `${prefix}_u${i}`;
-        if (!sequences[ultId]) {
-            sequences[ultId] = {
-                id: ultId,
-                actions: [
-                    { type: 'BEAM', style: 'TELEPORT_PILLAR', color: secondary, duration: 0.5 },
-                    { type: 'GRID_PULSE', color: primary, scale: 1.1, delay: 0.15 }, 
-                    { type: 'PARTICLE', id: `FX_ULT_${isRed ? 'RED' : 'BLUE'}_IMPACT`, delay: 0.15, scale: 0.8 },
-                    { type: 'SHAKE', shakeIntensity: 0.4, delay: 0.15 }
-                ]
-            };
+        const ultConfig = ULT_VISUALS[ultId];
+        
+        if (ultConfig) {
+            const actions: VFXAction[] = [];
+            
+            switch (ultConfig.archetype) {
+                case 'HEAVEN_FALL':
+                    actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height: ultConfig.height || 1000, scale: ultConfig.scale });
+                    actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || `FX_ULT_${isRed?'RED':'BLUE'}_IMPACT`, scale: ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.8 * ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2, delay: (ultConfig.timing || 0) + 0.45 });
+                    break;
+                case 'SANCTUARY':
+                    actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || 'PILLAR_HOLY', scale: ultConfig.scale, color: ultConfig.primaryColor });
+                    for(let k=0; k<(ultConfig.count || 6); k++) { actions.push({ type: 'PARTICLE', id: 'GLOW', scale: 0.5, color: ultConfig.secondaryColor, delay: k * 0.05 }); }
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.5, delay: 0.2 });
+                    break;
+                case 'DOMAIN':
+                    actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || 'DOMAIN_STANDARD', scale: ultConfig.scale, color: ultConfig.primaryColor, duration: 3.0 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 1.5, delay: 0.1 });
+                    break;
+                case 'BEAM_SNIPE':
+                    actions.push({ type: 'BEAM', style: ultConfig.vfxOverride || 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.4, delay: 0.1 });
+                    actions.push({ type: 'PARTICLE', id: 'SHOCKWAVE', color: ultConfig.secondaryColor, scale: 1.2 });
+                    break;
+                case 'STORM':
+                    const count = ultConfig.count || 10;
+                    const interval = ultConfig.timing || 0.1;
+                    const fx = ultConfig.vfxOverride || 'SPARK';
+                    for(let k=0; k<count; k++) { actions.push({ type: 'PARTICLE', id: fx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor, scale: ultConfig.scale * (0.8 + Math.random()*0.4), delay: k * interval }); }
+                    break;
+                case 'INSTANT_IMPACT':
+                    actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || `FX_HIT_${isRed?'RED':'BLUE'}_HEAVY`, scale: ultConfig.scale, color: ultConfig.primaryColor });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.5 * ultConfig.scale, delay: 0.05 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale, delay: 0.1 });
+                    break;
+            }
+            sequences[ultId] = { id: ultId, actions };
         }
     }
 }

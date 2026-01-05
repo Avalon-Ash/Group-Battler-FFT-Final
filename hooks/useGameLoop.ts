@@ -45,6 +45,9 @@ export const useGameLoop = (
 
                 if (logicalW === 0 || logicalH === 0) return;
 
+                // Sync Aspect Ratio to Engine
+                engine.screenAspect = logicalW / logicalH;
+
                 if (canvasRef.current.width !== physicalW || canvasRef.current.height !== physicalH) {
                     canvasRef.current.width = physicalW;
                     canvasRef.current.height = physicalH;
@@ -69,7 +72,7 @@ export const useGameLoop = (
             if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
             cancelAnimationFrame(frameRef.current);
         };
-    }, [wrapperRef, canvasRef]);
+    }, [wrapperRef, canvasRef, engine]);
 
     useEffect(() => {
         let lastTime = 0;

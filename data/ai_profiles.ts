@@ -29,7 +29,8 @@ export const STANDARD_AI_PROFILE: BTDef = {
                     type: 'SELECTOR', name: 'Any CC?',
                     children: [
                         { type: 'CONDITION', name: 'Stunned?', key: 'IsStunned' },
-                        { type: 'CONDITION', name: 'Banished?', key: 'IsBanished' }
+                        { type: 'CONDITION', name: 'Banished?', key: 'IsBanished' },
+                        { type: 'CONDITION', name: 'Feared?', key: 'IsFeared' }
                     ]
                 },
                 { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { status: '被控' } }
