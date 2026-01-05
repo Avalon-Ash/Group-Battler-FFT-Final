@@ -12,6 +12,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsStunned": (a) => a.stunTimer > 0,
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
+    "IsFeared": (a) => a.fearTimer > 0, 
     "HasTarget": (a, engine) => {
         // RTS 頻率：每 0.5 秒強制掃描一次威脅最高目標，或在沒有目標時掃描
         if (engine.battleTime % 0.5 < 0.02 || !a.target) {
