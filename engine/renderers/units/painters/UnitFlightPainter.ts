@@ -1,6 +1,6 @@
 
 import { Agent } from "../../../game";
-import { Team } from "../../../../types";
+import { Team, MovementType } from "../../../../types";
 import { UNIT_SCALE, VISUAL_ANCHORS } from "../../../../constants";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { VisualMath } from "../../../math/VisualMath";
@@ -36,24 +36,25 @@ export const UnitFlightPainter = {
     },
 
     /**
-     * Called from UnitShadowPainter or a dedicated pass to draw World Space trails.
-     * Uses the agent's trailHistory.
+     * 通用軌跡繪製：支持飛行緞帶 (Ribbon) 與地面滑痕 (Skid Marks)
      */
     drawRibbonTrail(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
         if (agent.trailHistory.length < 2) return;
 
         const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
         const color = faction.flightTrailColor;
+        const isFlying = agent.movementType === MovementType.FLYING;
 
         ctx.save();
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         
         const currentPx = agent.px;
-        const currentPy = agent.py; // Ground Y
+        const currentPy = agent.py; // Ground Y (Logical)
         
         const points: {x: number, y: number}[] = [];
         
+        // 轉換軌跡點到視覺座標系
         for (const p of agent.trailHistory) {
             // Reconstruct visual Y using SSOT Math
             const vy = VisualMath.getVisualBodyCenterY(p.y, p.z) + VISUAL_ANCHORS.ENGINE_OFFSET_Y;
@@ -70,16 +71,6 @@ export const UnitFlightPainter = {
         
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
-            // Render relative to current position (assuming ctx is translated to current Visual Y by caller logic, OR calculate absolute if cleaner)
-            // Note: UnitShadowPainter calls this but its context is translated to SurfaceY.
-            // But we calculated absolute visual Ys in points[].
-            // To draw correctly relative to UnitBodyPainter's context, we need deviations.
-            // Actually, `UnitShadowPainter` doesn't call this anymore? 
-            // If it did, it would be weird. 
-            // Assuming this is called via `UnitBodyPainter` which is centered on Body.
-            // If centered on Body, current pos is (0, ENGINE_OFFSET).
-            // We need to inverse project history points.
-            
             const dx = p.x - currentPx;
             const dy = p.y - currVy;
             
@@ -90,19 +81,37 @@ export const UnitFlightPainter = {
             else ctx.lineTo(dx, engineY + dy);
         }
         
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 4 * UNIT_SCALE;
-        ctx.globalAlpha = 0.4;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
-        ctx.stroke();
-        
-        // Inner Core
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 1 * UNIT_SCALE;
-        ctx.globalAlpha = 0.8;
-        ctx.shadowBlur = 0;
-        ctx.stroke();
+        if (isFlying) {
+            // 飛行模式：柔和的光帶
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 4 * UNIT_SCALE;
+            ctx.globalAlpha = 0.4;
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 10;
+            ctx.stroke();
+            
+            // Inner Core
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1 * UNIT_SCALE;
+            ctx.globalAlpha = 0.8;
+            ctx.shadowBlur = 0;
+            ctx.stroke();
+        } else {
+            // 地面模式：銳利的滑行痕跡 (Skid Marks)
+            // 模擬摩擦生熱的火光或塵土軌跡
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3 * UNIT_SCALE;
+            ctx.globalAlpha = 0.3; // 較淡
+            ctx.globalCompositeOperation = 'screen';
+            ctx.stroke();
+
+            // 如果速度極快，加一點白色核心代表火花
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([5, 5]); // 斷續的刮痕感
+            ctx.globalAlpha = 0.5;
+            ctx.stroke();
+        }
 
         ctx.restore();
     }

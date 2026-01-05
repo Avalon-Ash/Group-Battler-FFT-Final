@@ -148,17 +148,14 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
+            // Original Flash Emitters (Impact)
             { particleType: 'SHOCKWAVE', count: 4, lifetime: [0.8, 1.2], size: [100, 600], colors: ['#f97316', '#ea580c'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'RING', count: 3, lifetime: [1.2, 1.8], size: [50, 750], colors: ['#ea580c'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0.1 }
-        ]
-    },
-    'FX_ULT_RED_NUKE_CLOUD': {
-        id: 'FX_ULT_RED_NUKE_CLOUD',
-        emitters: [
-            // Reduce Smoke Count (90 -> 40) and Size (200 -> 120) to prevent black wall
-            { particleType: 'SMOKE', count: [30, 50], lifetime: [1.5, 2.5], size: [80, 120], speed: [80, 150], vz: [300, 500], colors: ['#18181b', '#000'], shape: 'CIRCLE', shapeRadius: 60, delay: 0 },
-            { particleType: 'GLOW', count: [40, 60], lifetime: [1.0, 1.8], size: [80, 150], speed: [200, 400], colors: ['#ea580c', '#b91c1c'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0.1 },
-            { particleType: 'RUBBLE', count: [80, 120], lifetime: [1.5, 2.5], size: [8, 20], speed: [500, 1000], vz: [600, 1200], gravity: 3000, colors: ['#450a0a', '#000'], shape: 'BURST_DIR', delay: 0.2 }
+            { particleType: 'RING', count: 3, lifetime: [1.2, 1.8], size: [50, 750], colors: ['#ea580c'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0.1 },
+            
+            // Merged Mushroom Cloud Emitters (Smoke & Debris)
+            { particleType: 'SMOKE', count: [30, 50], lifetime: [1.5, 2.5], size: [80, 120], speed: [80, 150], vz: [300, 500], colors: ['#18181b', '#000'], shape: 'CIRCLE', shapeRadius: 60, delay: 0.2 },
+            { particleType: 'GLOW', count: [40, 60], lifetime: [1.0, 1.8], size: [80, 150], speed: [200, 400], colors: ['#ea580c', '#b91c1c'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0.3 },
+            { particleType: 'RUBBLE', count: [80, 120], lifetime: [1.5, 2.5], size: [8, 20], speed: [500, 1000], vz: [600, 1200], gravity: 3000, colors: ['#450a0a', '#000'], shape: 'BURST_DIR', delay: 0.4 }
         ]
     },
     'FX_ULT_RED_METEOR_IMPACT': {

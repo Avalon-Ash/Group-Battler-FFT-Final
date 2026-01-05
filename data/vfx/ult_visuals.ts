@@ -120,7 +120,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rr_u1: 終極爆破 (Exec) - Railgun
     'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#000', secondaryColor: '#ef4444', scale: 3.0, vfxOverride: 'DEATH_RAY' },
     // rr_u2: 戰術核彈 (Nuke) - Mushroom Cloud
-    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.5, height: 2500, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
+    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.5, height: 2500, timing: 0.4, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 (Fire) - Firestorm
     'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#fff', scale: 1.0, count: 40, timing: 0.05, vfxOverride: 'PROJ_RED_CHAOS_ORB' },
     // rr_u4: 血腥獵殺 (Snipe) - Headhunter
