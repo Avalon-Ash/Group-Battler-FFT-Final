@@ -17,7 +17,7 @@ export interface FloatingText {
     type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK';
     isUlt: boolean; 
     
-    // New Props for Breakable Text
+    // New Props for Breakable Text & Progress
     ownerId?: string;      // 用於綁定單位
     isShattered?: boolean; // 標記是否已被打斷
     rotation: number;      // 物理旋轉角度
@@ -119,17 +119,21 @@ export class HUDSystem {
         this.damageNumbers.push(ft);
     }
 
+    /**
+     * 強制中斷文字：給予極高的向上速度與旋轉，並縮短壽命
+     * 創造出 "文字被打飛/震碎" 的視覺效果
+     */
     public breakCastText(ownerId: string) {
         const text = this.damageNumbers.find(t => t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered);
         
         if (text) {
             text.isShattered = true;
-            text.color = '#94a3b8'; 
-            text.vy = -180; 
-            text.vx = (Math.random() - 0.5) * 250; 
-            text.vRot = (Math.random() - 0.5) * 20; 
-            text.life = 0.5; 
-            text.maxLife = 0.5;
+            text.color = '#94a3b8'; // 變成灰色廢墟感
+            text.vy = -250; // 用力向上炸飛
+            text.vx = (Math.random() - 0.5) * 400; // 隨機左右噴飛
+            text.vRot = (Math.random() - 0.5) * 30; // 劇烈旋轉
+            text.life = 0.4; // 快速消失
+            text.maxLife = 0.4;
         }
     }
 
@@ -150,7 +154,7 @@ export class HUDSystem {
             d.rotation += d.vRot * dt; 
 
             if (d.type === 'DAMAGE' || d.type === 'HEAL' || d.isShattered) {
-                const g = d.isShattered ? GRAVITY * 3.0 : GRAVITY;
+                const g = d.isShattered ? GRAVITY * 4.0 : GRAVITY; // 碎片重力更強
                 d.vy += g * dt;
             }
             else if (d.type === 'SHOUT' || d.type === 'CC') d.vy *= 0.95; 

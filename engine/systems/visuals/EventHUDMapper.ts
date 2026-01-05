@@ -35,7 +35,7 @@ export class EventHUDMapper {
                 this.handleCastText(event, visualGroundY, hud);
                 break;
             case 'CAST_BREAK':
-                // 核心：觸發文字崩解
+                // 核心：觸發文字崩解，瞬間移除詠唱條
                 if (event.sourceId) {
                     hud.breakCastText(event.sourceId);
                     // 同時彈出 "中斷" 提示

@@ -30,6 +30,7 @@ export const TextPainter = {
                 const shatterProgress = 1 - lifePct;
                 const scale = 1.0 + shatterProgress * 0.6;
                 ctx.scale(scale, scale);
+                // 模擬爆炸後的亂流位移
                 ctx.translate((Math.random()-0.5)*4, (Math.random()-0.5)*4);
             } else if (d.type === 'SHOUT') {
                 const floatY = Math.sin(d.time * 6) * 3;
@@ -58,7 +59,8 @@ export const TextPainter = {
                 }
 
                 // 視覺參數：虛像化設計 (Holographic Design)
-                const w = d.cachedWidth! + 20;
+                // 寬度稍微加寬以容納括號
+                const w = d.cachedWidth! + 24; 
                 const h = d.size + (d.isUlt ? 16 : 10);
                 const halfW = w / 2;
                 const halfH = h / 2;
@@ -71,7 +73,7 @@ export const TextPainter = {
                 }
 
                 if (d.isShattered) {
-                    // 破碎狀態：灰色空殼
+                    // 破碎狀態：灰色空殼，無光效
                     ctx.fillStyle = 'rgba(30, 30, 30, 0.6)'; 
                     ctx.fillRect(-halfW, -halfH, w, h);
                     ctx.strokeStyle = 'rgba(255,50,50,0.3)';
@@ -83,8 +85,8 @@ export const TextPainter = {
                     // --- 1. 繪製科技括號 (Tech Brackets) ---
                     // 不再繪製笨重的實心黑底，改用輕量級邊框
                     ctx.strokeStyle = d.color;
-                    ctx.lineWidth = 1;
-                    ctx.globalAlpha = 0.6;
+                    ctx.lineWidth = 1.5;
+                    ctx.globalAlpha = 0.8;
                     
                     const bracketSize = 6;
                     ctx.beginPath();
@@ -101,41 +103,45 @@ export const TextPainter = {
                     ctx.stroke();
 
                     // --- 2. 繪製幽靈底字 (The Ghost) ---
-                    // 代表未充能的部分，半透明
+                    // 代表未充能的部分，半透明，顯示結構
                     ctx.fillStyle = d.color;
-                    ctx.globalAlpha = 0.2; // Dim
+                    ctx.globalAlpha = 0.2; // Dim Ghost
                     ctx.fillText(d.text, 0, 0);
 
                     // --- 3. 繪製實像填充 (The Fill) ---
-                    // 使用 Clip Mask 模擬「文字被填滿」的效果，而非改變文字顏色
+                    // 使用 Clip Mask 模擬「文字被填滿」的效果
                     const progress = Math.min(1.0, d.time / d.totalDuration);
                     
                     if (progress > 0.01) {
                         ctx.save();
                         
-                        // 定義裁切區域 (從左至右)
+                        // 定義裁切區域 (從左至右掃描)
                         const revealW = w * progress;
                         ctx.beginPath();
+                        // 裁切區需稍微寬一點覆蓋文字邊緣
                         ctx.rect(-halfW, -halfH, revealW, h);
                         ctx.clip();
 
                         // 繪製亮色文字 (Fully Opaque)
                         ctx.globalAlpha = 1.0;
                         ctx.fillStyle = '#ffffff'; // 核心亮白
-                        // Ult 加光暈
-                        if (d.isUlt) {
-                            ctx.shadowColor = d.color;
-                            ctx.shadowBlur = 8;
-                        }
+                        
+                        // 讓實像文字帶有技能顏色的光暈 (取代漸層)
+                        ctx.shadowColor = d.color;
+                        ctx.shadowBlur = d.isUlt ? 15 : 8;
+                        
                         ctx.fillText(d.text, 0, 0);
                         
                         // --- 4. 掃描線 (Scanner Line) ---
                         // 在裁切邊緣繪製一條高亮線，增加數據傳輸感
                         const scanX = -halfW + revealW;
-                        ctx.shadowBlur = 5;
-                        ctx.shadowColor = '#fff';
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(scanX - 1, -halfH, 2, h);
+                        // 只有當進度未完成時才畫掃描線
+                        if (progress < 0.98) {
+                            ctx.shadowBlur = 5;
+                            ctx.shadowColor = '#fff';
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(scanX - 1, -halfH + 2, 2, h - 4);
+                        }
                         
                         ctx.restore();
                     }
