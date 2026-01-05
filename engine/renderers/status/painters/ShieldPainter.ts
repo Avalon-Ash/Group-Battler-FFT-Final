@@ -17,9 +17,8 @@ export const ShieldPainter = {
         // 護盾強度視覺映射
         const pct = Math.min(1, agent.shield / (agent.maxShield || 100));
         
-        // [VISUAL FIX] Reduced opacity significantly to avoid "Solid Block" look.
-        // Now it looks like a holographic field.
-        const pulse = 0.1 + (pct * 0.3) + Math.sin(t * 5) * 0.05;
+        // Increased visibility: Base pulse 0.3 -> 0.5
+        const pulse = 0.3 + (pct * 0.4) + Math.sin(t * 5) * 0.1;
         
         ctx.save();
         ctx.translate(x, y); 
@@ -30,14 +29,15 @@ export const ShieldPainter = {
         const shieldR = 38;
         
         ctx.globalCompositeOperation = 'screen';
+        // 'SOLID' style for better visibility, with adjusted opacity inside painter
         VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, color, pulse, 'GRADIENT_FADE');
         
         // 邊緣掃描線 (TA 效果) - Enhanced with double scanlines
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2; // Thicker lines
         
         // Primary Scanline
-        ctx.globalAlpha = pulse * 0.8;
+        ctx.globalAlpha = Math.min(1, pulse * 1.2);
         const scanLineY1 = (t * 120) % shieldH - shieldH/2;
         ctx.beginPath();
         ctx.moveTo(-shieldR * 0.9, scanLineY1);
@@ -45,13 +45,24 @@ export const ShieldPainter = {
         ctx.stroke();
 
         // Secondary Scanline (Offset, fainter)
-        ctx.globalAlpha = pulse * 0.4;
+        ctx.globalAlpha = Math.min(1, pulse * 0.6);
         const scanLineY2 = ((t * 120 + shieldH * 0.5) % shieldH) - shieldH/2;
         ctx.beginPath();
         ctx.moveTo(-shieldR * 0.7, scanLineY2);
         ctx.lineTo(shieldR * 0.7, scanLineY2);
         ctx.stroke();
         
+        // Shield Top/Bottom Caps for definition
+        ctx.globalAlpha = 0.4;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.ellipse(0, -shieldH/2, shieldR, shieldR*0.5, 0, 0, Math.PI*2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(0, shieldH/2, shieldR, shieldR*0.5, 0, 0, Math.PI*2);
+        ctx.stroke();
+
         ctx.restore();
     }
 };

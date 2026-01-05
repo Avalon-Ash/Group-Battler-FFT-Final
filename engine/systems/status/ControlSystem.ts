@@ -118,8 +118,12 @@ export class ControlSystem {
             if (t <= 0) {
                 t = def.particleInterval || 0.5;
                 const h = engine.map.getTerrainHeight(agent.q, agent.r);
-                // Standard Body Center height offset
+                
+                // Lift particles up to chest/head height so they aren't hidden by the body
+                // Agent Z is bottom of feet relative to terrain.
+                // 45 is roughly center mass.
                 const pz = agent.physics.z + 45;
+                
                 engine.renderer.vfx.playEffect(
                     def.particleEffect, 
                     agent.px, agent.py, 
@@ -130,6 +134,7 @@ export class ControlSystem {
         };
 
         checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0);
+        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0); // Explicitly check BURN
         checkVFX('REGEN', agent.hotTimer > 0);
         checkVFX('BANISH', agent.banished);
         checkVFX('STUN', agent.stunTimer > 0);
