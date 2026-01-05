@@ -1,3 +1,4 @@
+
 import { GameEngine } from "../game";
 import { GroundHazard, Team } from "../../types";
 import { HexUtils } from "../utils";
@@ -37,13 +38,15 @@ export class HazardSystem {
         
         hazards.set(key, hazard);
 
-        if (engine.renderer) {
-            const def = HAZARD_VISUALS[type];
-            if (def && def.spawnVfx) {
-                const px = HexUtils.toPx(q, r, engine.mapConfig);
-                const h = engine.map.getTerrainHeight(q, r);
-                engine.renderer.vfx.playEffect(def.spawnVfx, px.x, px.y, h);
-            }
+        const def = HAZARD_VISUALS[type];
+        if (def && def.spawnVfx) {
+            const px = HexUtils.toPx(q, r, engine.mapConfig);
+            // Decoupled: Emit event instead of calling renderer directly
+            engine.events.push({ 
+                type: 'HAZARD_SPAWN', 
+                pos: { x: px.x, y: px.y }, 
+                text: def.spawnVfx // Use text field to pass VFX ID
+            });
         }
     }
 

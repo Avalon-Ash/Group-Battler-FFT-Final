@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill } from "../types";
 import { GridSystem } from "./systems/grid";
@@ -24,12 +25,38 @@ export class GameRenderer {
     public camera: CameraSystem = new CameraSystem();
     private eventListener: VisualEventListener = new VisualEventListener();
     private pipeline: RenderPipeline = new RenderPipeline(this);
+    
+    private boundEngine: GameEngine | null = null;
+
+    // Decoupling: Explicit binding allows us to subscribe to events
+    public bind(engine: GameEngine) {
+        if (this.boundEngine === engine) return;
+        
+        // Unbind previous if exists
+        if (this.boundEngine) {
+            this.boundEngine.bus.off('GAME_RESET', this.handleReset);
+            this.boundEngine.bus.off('GAME_CLEAR', this.handleReset);
+            this.boundEngine.bus.off('ENV_UPDATE', this.handleReset);
+        }
+
+        this.boundEngine = engine;
+        
+        // Bind new
+        this.boundEngine.bus.on('GAME_RESET', this.handleReset);
+        this.boundEngine.bus.on('GAME_CLEAR', this.handleReset);
+        this.boundEngine.bus.on('ENV_UPDATE', this.handleReset);
+    }
+
+    private handleReset = () => {
+        this.reset();
+    }
 
     public reset() {
         this.vfx.reset();
         this.hud.reset();
         this.camera.reset();
         this.eventListener.reset();
+        this.grid.reset(); 
     }
 
     public setTransition(t: number, phase: 'IN' | 'OUT' | 'IDLE') { this.pipeline.setTransition(t, phase); }

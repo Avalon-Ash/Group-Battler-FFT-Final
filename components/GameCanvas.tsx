@@ -36,10 +36,15 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const transitionProgress = useRef(0);
     const lastPhase = useRef(transitionPhase);
     const rendererRef = useRef<GameRenderer | null>(null);
+    
     if (rendererRef.current === null) {
         rendererRef.current = new GameRenderer();
-        engine.renderer = rendererRef.current;
+        // Bind the renderer to the engine events for decoupling
+        rendererRef.current.bind(engine);
+        // We still keep the ref for React hook usage, but engine logic won't call renderer directly.
+        engine.renderer = rendererRef.current; // Keep for legacy externalCameraRef compatibility if needed, but logic is moved to events.
     }
+
     const { camera, centerCamera, zoom } = useGameCamera(engine);
     useCameraControl({
         canvasRef, 

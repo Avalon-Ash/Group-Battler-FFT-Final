@@ -67,7 +67,9 @@ export class GameEngine {
 
     public events: GameEvent[] = [];
     public bus: EventBus = new EventBus();
-    public renderer?: GameRenderer;
+    // Decoupled: Removed public renderer property. Logic should utilize the Event Bus.
+    public renderer?: GameRenderer; // KEPT ONLY FOR TYPE COMPATIBILITY IN REACT REFS TEMPORARILY, BUT LOGIC SHOULD NOT USE IT.
+    
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
@@ -111,12 +113,14 @@ export class GameEngine {
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 
-        if (this.renderer) this.renderer.vfx.reset(); 
+        // Removed direct renderer call. Use Event instead.
+        this.bus.emit('ENV_UPDATE', {});
         this.map.randomizeEnvironment(this); 
     }
     
     public rebuildMap() { 
         this.state.hazards.clear();
+        this.bus.emit('ENV_UPDATE', {});
         this.map.rebuildMap(this); 
     }
 
@@ -184,11 +188,9 @@ export class GameEngine {
             this.map.registerAgent(a);
         });
         this.projectiles = [];
-        if (this.renderer) {
-            this.renderer.reset();
-            this.renderer.grid.reset(); 
-            this.renderer.vfx.reset(); 
-        }
+        
+        // Removed direct renderer calls. Rely on GAME_RESET event.
+        
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_RESET', {});
     }
@@ -211,11 +213,6 @@ export class GameEngine {
         
         SequenceSystem.clear(); 
 
-        if (this.renderer) {
-            this.renderer.reset();
-            this.renderer.grid.reset();
-            this.renderer.vfx.reset();
-        }
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 
         this.bus.emit('GAME_CLEAR', {});

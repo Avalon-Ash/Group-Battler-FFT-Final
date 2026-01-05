@@ -1,7 +1,7 @@
 
 import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
-import { VFXSystem } from "../vfx";
+import { VFXSystem } from "../../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
@@ -49,6 +49,12 @@ export class EventVFXMapper {
             case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
                 CinematicVFXHandler.handle(event, engine, vfx, origin, target);
+                break;
+                
+            case 'HAZARD_SPAWN':
+                if (event.text) { // We stored VFX ID in 'text' field
+                    vfx.playEffect(event.text, event.pos.x, event.pos.y, groundZ);
+                }
                 break;
         }
     }

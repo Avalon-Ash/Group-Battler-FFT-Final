@@ -1,3 +1,4 @@
+
 import { Agent } from "../game";
 import { HUD_BAR_OFFSET } from "../../constants";
 import { HexUtils, MapConfig } from "../utils";
@@ -18,8 +19,9 @@ export class HUDRenderer {
                 const endH = getTerrainHeight(a.path[0].q, a.path[0].r);
                 h = HexUtils.lerp(startH, endH, a.moveProgress);
             } else {
-                const vHex = HexUtils.fromPx(a.px, a.py, mapConfig);
-                h = getTerrainHeight(vHex.q, vHex.r);
+                // FIXED: Use logical coordinates (q, r) for stable height.
+                // Using pixel coordinates (fromPx) causes jitter due to physics drift crossing tile boundaries.
+                h = getTerrainHeight(a.q, a.r);
             }
 
             // SSOT: Use Unified Projection Formula
