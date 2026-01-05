@@ -1,270 +1,172 @@
-
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout } from '../types';
 import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
+
 export const useGameApp = () => {
     const engineRef = useRef(new GameEngine());
-    const [isShowcaseMode, setIsShowcaseMode] = useState(true);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [unitCount, setUnitCount] = useState(0); 
-    const [tool, setTool] = useState<ToolType>(ToolType.SELECT);
-    const [selectedObstacle, setSelectedObstacle] = useState<string>('WALL'); 
-    const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-    const [hoveredSkill, setHoveredSkill] = useState<Skill | null>(null);
-    const [hpInput, setHpInput] = useState(600); 
-    const [mapW, setMapW] = useState(12);
-    const [mapH, setMapH] = useState(8);
-    const [timeScale, setTimeScale] = useState(1.0);
-    const [winner, setWinner] = useState<Team | null>(null);
-    const [currentSceneId, setCurrentSceneId] = useState('VOID');
-    const [spawnMode, setSpawnMode] = useState<'RANDOM' | 'DRAFT'>('RANDOM');
-    const [draftRole, setDraftRole] = useState<Role>(Role.WARRIOR);
-    const [hexLayout, setHexLayout] = useState<HexLayout>(DEFAULT_HEX_LAYOUT);
-    const [showLogs, setShowLogs] = useState(false);
-    const [showDB, setShowDB] = useState(false);
-    const [showVFXMap, setShowVFXMap] = useState(false); 
-    const [transitionPhase, setTransitionPhase] = useState<'IDLE' | 'IN' | 'OUT'>('IDLE');
-    const [showFactionWarning, setShowFactionWarning] = useState(false);
+    
+    // 1. Session State (運行實例狀態)
+    const [session, setSession] = useState({
+        isPlaying: false,
+        winner: null as Team | null,
+        timeScale: 1.0,
+        isShowcaseMode: true,
+        transitionPhase: 'IDLE' as 'IDLE' | 'IN' | 'OUT',
+        unitCount: 0
+    });
+
+    // 2. Editor State (地圖與編輯器配置)
+    const [editor, setEditor] = useState({
+        tool: ToolType.SELECT,
+        selectedObstacle: 'WALL',
+        hpInput: 600,
+        spawnMode: 'RANDOM' as 'RANDOM' | 'DRAFT',
+        draftRole: Role.WARRIOR,
+        hexLayout: DEFAULT_HEX_LAYOUT,
+        mapW: 12,
+        mapH: 8,
+        currentSceneId: 'VOID'
+    });
+
+    // 3. HUD State (視窗與覆蓋層狀態)
+    const [hud, setHud] = useState({
+        selectedAgent: null as Agent | null,
+        hoveredSkill: null as Skill | null,
+        showLogs: false,
+        showDB: false,
+        showVFXMap: false,
+        showFactionWarning: false
+    });
+
     useEffect(() => {
         const engine = engineRef.current;
         const handleGameOver = (data: { winner: Team }) => {
-            setWinner(data.winner);
+            setSession(prev => ({ ...prev, winner: data.winner, isPlaying: false }));
             if (engine.isRunning) engine.stop(); 
-            setIsPlaying(false);
         };
         engine.bus.on('GAME_OVER', handleGameOver);
-        return () => {
-            engine.bus.off('GAME_OVER', handleGameOver);
-        };
+        return () => engine.bus.off('GAME_OVER', handleGameOver);
     }, []);
+
     useEffect(() => {
-        if (isShowcaseMode && winner !== null) {
+        if (session.isShowcaseMode && session.winner !== null) {
             const timer = setTimeout(() => {
-                setTransitionPhase('OUT');
+                setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 engineRef.current.agents = [];
-                // Fix: projectiles exists directly on GameEngine, not on the combat system.
                 engineRef.current.projectiles = [];
-                // Adjusted timers to match slower transition speed (0.5 factor)
-                // 2.0s duration approx for transition 0->1
                 setTimeout(() => {
                     setupShowcaseMap(); 
-                    setTransitionPhase('IN'); 
+                    setSession(prev => ({ ...prev, transitionPhase: 'IN' })); 
                     setTimeout(() => {
-                        setTransitionPhase('IDLE');
+                        setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
                         spawnShowcaseUnits(); 
-                    }, 1800); // Increased from 1200
-                }, 1800); // Increased from 1200
+                    }, 1800);
+                }, 1800);
             }, 1000); 
             return () => clearTimeout(timer);
         }
-    }, [winner, isShowcaseMode]);
+    }, [session.winner, session.isShowcaseMode]);
+
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
         engine.stop();
-        setWinner(null);
-        setSelectedAgent(null);
+        setSession(prev => ({ ...prev, winner: null }));
+        setHud(prev => ({ ...prev, selectedAgent: null }));
         engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
         engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
         const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
         engine.mapConfig.layout = newLayout;
-        setHexLayout(newLayout);
         engine.randomizeEnvironment(); 
-        setCurrentSceneId(engine.currentScene.id);
+        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
     }, []);
+
     const spawnShowcaseUnits = useCallback(() => {
         const engine = engineRef.current;
-        let validHexes = (Array.from(engine.mapKeys) as string[])
-            .map(k => {
-                const [q, r] = k.split(',').map(Number);
-                return {q, r};
-            })
-            .filter(h => !engine.map.hasObstacle(h.q, h.r));
+        let validHexes = Array.from(engine.mapKeys).map(k => {
+            const [q, r] = k.split(',').map(Number);
+            return {q, r};
+        }).filter(h => !engine.map.hasObstacle(h.q, h.r));
+        
         for (let i = validHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
         }
-        let spawnIndex = 0;
-        const TARGET_PER_TEAM = 5;
+
         const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-        
-        const spawnTeam = (team: Team) => {
-            let count = 0;
-            while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
-                const h = validHexes[spawnIndex++];
-                const hp = 500 + Math.floor(Math.random() * 400); 
-                // 依序分配職業，確保 5 個單位包含完整職業種類
-                const role = roles[count % roles.length];
-                const agent = engine.addAgent(team, h.q, h.r, hp, role);
-                if (agent) count++;
+        let spawnIdx = 0;
+        const spawn = (team: Team) => {
+            for(let i=0; i<5; i++) {
+                if (spawnIdx >= validHexes.length) break;
+                const h = validHexes[spawnIdx++];
+                engine.addAgent(team, h.q, h.r, 500 + Math.random()*400, roles[i % roles.length]);
             }
         };
-        spawnTeam(Team.BLUE);
-        spawnTeam(Team.RED);
+        spawn(Team.BLUE); spawn(Team.RED);
         engine.play();
-        setIsPlaying(true);
+        setSession(prev => ({ ...prev, isPlaying: true }));
     }, []);
-    const startShowcaseMatch = useCallback(() => {
-        setupShowcaseMap();
-        spawnShowcaseUnits();
-    }, [setupShowcaseMap, spawnShowcaseUnits]);
+
+    useEffect(() => { setupShowcaseMap(); spawnShowcaseUnits(); }, []);
+
     useEffect(() => {
-        startShowcaseMatch();
-    }, [startShowcaseMatch]);
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setUnitCount(engineRef.current.agents.length);
-        }, 500); 
+        const interval = setInterval(() => setSession(prev => ({ ...prev, unitCount: engineRef.current.agents.length })), 500);
         return () => clearInterval(interval);
     }, []);
-    useEffect(() => {
-        engineRef.current.timeScale = timeScale;
-    }, [timeScale]);
-    const enterManualMode = () => {
-        setIsShowcaseMode(false);
-        engineRef.current.stop();
-        setIsPlaying(false);
-        setWinner(null);
-        engineRef.current.clear(true); 
-        engineRef.current.agents = [];
-        setUnitCount(0);
-        setMapW(engineRef.current.mapConfig.w);
-        setMapH(engineRef.current.mapConfig.h);
-        setHexLayout(engineRef.current.mapConfig.layout);
-        setCurrentSceneId(engineRef.current.currentScene.id);
-    };
-    const handleUpdateMapSize = useCallback((w: number, h: number) => {
-        setMapW(w);
-        setMapH(h);
-        engineRef.current.mapConfig.w = w;
-        engineRef.current.mapConfig.h = h;
-        engineRef.current.clear(false); 
-        setSelectedAgent(null);
-        setWinner(null);
-    }, []);
-    const handleUpdateLayout = useCallback((l: HexLayout) => {
-        setHexLayout(l);
-        engineRef.current.mapConfig.layout = l;
-        engineRef.current.clear(true); 
-        setSelectedAgent(null);
-        setWinner(null);
-    }, []);
-    const handleSetScene = useCallback((id: string) => {
-        const scene = SCENE_DB.find(s => s.id === id);
-        if (scene) {
-            engineRef.current.currentScene = scene;
-            engineRef.current.map.rebuildMap(engineRef.current);
-            setCurrentSceneId(id);
-        }
-    }, []);
-    const handleRandomBattlefield = useCallback(() => {
-        const engine = engineRef.current;
-        engine.stop();
-        setWinner(null);
-        setSelectedAgent(null);
-        engine.clear(false); 
-        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
-        engine.mapConfig.layout = newLayout;
-        setHexLayout(newLayout);
-        engine.randomizeEnvironment();
-        setMapW(engine.mapConfig.w);
-        setMapH(engine.mapConfig.h);
-        setCurrentSceneId(engine.currentScene.id);
-        let validHexes = (Array.from(engine.mapKeys) as string[])
-            .map(k => {
-                const [q, r] = k.split(',').map(Number);
-                return {q, r};
-            })
-            .filter(h => !engine.map.hasObstacle(h.q, h.r));
-        for (let i = validHexes.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
-        }
-        let spawnIndex = 0;
-        const TARGET_PER_TEAM = 5;
-        const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
 
-        const spawnTeam = (team: Team) => {
-            let count = 0;
-            while (count < TARGET_PER_TEAM && spawnIndex < validHexes.length) {
-                const h = validHexes[spawnIndex++];
-                const hp = 500 + Math.floor(Math.random() * 400); 
-                const role = roles[count % roles.length];
-                const agent = engine.addAgent(team, h.q, h.r, hp, role);
-                if (agent) count++;
-            }
-        };
-        spawnTeam(Team.BLUE);
-        spawnTeam(Team.RED);
-        setIsPlaying(false); 
-    }, []);
-    const handleNextLevel = useCallback(() => {
-        handleRandomBattlefield();
-        const engine = engineRef.current;
-        engine.play();
-        setIsPlaying(true);
-        setTool(ToolType.SELECT);
-    }, [handleRandomBattlefield]);
-    const handleReset = useCallback(() => {
-        engineRef.current.restart();
-        setIsPlaying(false); 
-        setWinner(null);
-    }, []);
-    const togglePlay = useCallback(() => {
-        if (winner !== null) return;
-        if (isPlaying) {
-            engineRef.current.stop();
-            setIsPlaying(false);
-        } else {
-            const hasBlue = engineRef.current.agents.some(a => a.team === Team.BLUE);
-            const hasRed = engineRef.current.agents.some(a => a.team === Team.RED);
-            if (!hasBlue || !hasRed) {
-                setShowFactionWarning(true);
-                setTimeout(() => setShowFactionWarning(false), 2500);
-                return;
-            }
-            engineRef.current.play();
-            setIsPlaying(true);
-            setTool(ToolType.SELECT);
-        }
-    }, [isPlaying, winner]);
-    const handleSelectAgent = (a: Agent | null) => {
-        setSelectedAgent(a);
+    useEffect(() => { engineRef.current.timeScale = session.timeScale; }, [session.timeScale]);
+
+    const enterManualMode = () => {
+        engineRef.current.stop();
+        engineRef.current.clear(true);
+        setSession(prev => ({ ...prev, isShowcaseMode: false, isPlaying: false, winner: null, unitCount: 0 }));
+        setEditor(prev => ({ ...prev, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, hexLayout: engineRef.current.mapConfig.layout, currentSceneId: engineRef.current.currentScene.id }));
     };
+
     return {
         engineRef,
-        state: {
-            isShowcaseMode, isPlaying, unitCount, tool, selectedObstacle,
-            selectedAgent, hoveredSkill, hpInput, mapW, mapH, timeScale,
-            winner, currentSceneId, spawnMode, draftRole, showLogs, showDB, showVFXMap,
-            transitionPhase, showFactionWarning, hexLayout
+        state: { 
+            isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
+            tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
+            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning
         },
         setters: {
-            setTool, setSelectedObstacle, setHpInput, setTimeScale, 
-            setSpawnMode, setDraftRole, setShowLogs, setShowDB, setShowVFXMap,
-            setIsShowcaseMode, setSelectedAgent, setHoveredSkill
+            setTool: (tool: ToolType) => setEditor(p => ({...p, tool})),
+            setSelectedObstacle: (selectedObstacle: string) => setEditor(p => ({...p, selectedObstacle})),
+            setHpInput: (hpInput: number) => setEditor(p => ({...p, hpInput})),
+            setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
+            setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
+            setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
+            setShowLogs: (showLogs: boolean) => setHud(p => ({...p, showLogs})),
+            setShowDB: (showDB: boolean) => setHud(p => ({...p, showDB})),
+            setShowVFXMap: (showVFXMap: boolean) => setHud(p => ({...p, showVFXMap})),
+            setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
+            setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
+            setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill}))
         },
         actions: {
             enterManualMode,
-            handleUpdateMapSize,
-            handleUpdateLayout,
-            handleSetScene,
-            handleRandomBattlefield,
-            handleNextLevel,
-            handleReset,
-            togglePlay,
-            onWin: (team: Team) => { engineRef.current.bus.emit('GAME_OVER', {winner: team}) },
-            handleSelectAgent,
-            startShowcaseMatch,
+            handleUpdateMapSize: (w: number, h: number) => { setEditor(p => ({...p, mapW: w, mapH: h})); engineRef.current.mapConfig.w = w; engineRef.current.mapConfig.h = h; engineRef.current.clear(false); },
+            handleUpdateLayout: (l: HexLayout) => { setEditor(p => ({...p, hexLayout: l})); engineRef.current.mapConfig.layout = l; engineRef.current.clear(true); },
+            handleSetScene: (id: string) => { const s = SCENE_DB.find(x => x.id === id); if(s) { engineRef.current.currentScene = s; engineRef.current.map.rebuildMap(engineRef.current); setEditor(p => ({...p, currentSceneId: id})); } },
+            handleRandomBattlefield: () => { engineRef.current.stop(); engineRef.current.randomizeEnvironment(); setSession(p => ({...p, winner: null})); setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); },
+            handleReset: () => { engineRef.current.restart(); setSession(p => ({...p, isPlaying: false, winner: null})); },
+            togglePlay: () => { 
+                if(session.winner) return;
+                if(session.isPlaying) { engineRef.current.stop(); setSession(p => ({...p, isPlaying: false})); }
+                else {
+                    if(engineRef.current.agents.some(a => a.team === Team.BLUE) && engineRef.current.agents.some(a => a.team === Team.RED)) {
+                        engineRef.current.play(); setSession(p => ({...p, isPlaying: true}));
+                    } else { setHud(p => ({...p, showFactionWarning: true})); setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), 2500); }
+                }
+            },
+            handleNextLevel: () => { engineRef.current.stop(); engineRef.current.randomizeEnvironment(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null})); },
+            rematch: () => { engineRef.current.restart(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null})); },
+            startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadSpec,
-            rematch: () => { 
-                setWinner(null); 
-                engineRef.current.restart(); 
-                engineRef.current.play(); 
-                setIsPlaying(true); 
-            }
+            handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))
         }
     };
 };

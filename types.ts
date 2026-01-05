@@ -1,3 +1,64 @@
+export interface Projectile {
+    id: string;
+    active: boolean; 
+    createdAt: number; 
+    lifespan: number; 
+
+    // SSOT: 3D Logic Position
+    x: number;
+    y: number;
+    z: number;
+    
+    // SSOT: Path Progress
+    t: number; 
+    totalDuration: number;
+
+    // SSOT: Path Constants (Locked at spawn)
+    startX: number; 
+    startY: number; 
+    startZ: number; 
+    endX: number;
+    endY: number;
+    endZ: number;
+    totalDist: number;
+    
+    targetId: string;
+    targetPos: Point; 
+    speed: number;
+    skill: Skill;
+    sourceId: string;
+    team: Team;
+    trail: Point[];
+}
+
+export interface GroundHazard {
+    id: string;
+    q: number;
+    r: number;
+    type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
+    duration: number; 
+    sourceId: string;
+    team: Team;
+    color: string;
+    power: number; 
+    interval: number; 
+    timer: number; 
+    vfxId?: string; 
+}
+
+export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK';
+
+export interface GameEvent {
+    type: GameEventType;
+    pos: Point;
+    value?: number; 
+    text?: string; 
+    color?: string;
+    skill?: Skill;
+    sourceId?: string;
+    targetId?: string;
+    team?: Team;
+}
 
 export enum Team {
     BLUE = 0,
@@ -75,30 +136,22 @@ export interface Skill {
     aoeRadius?: number; 
     power: number;
     color: string;
-    
     element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
     specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
-
     ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur?: number;
     ccForce?: number;
-
     ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
     ccDur2?: number;
     ccForce2?: number;
-    
     effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE';
     effectVal?: number; 
-
     effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE';
     effectVal2?: number;
-
     projectileSpeed?: number; 
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
-
-    visualHitEffect?: string;  
-    visualCastEffect?: string; 
-    visualProjectileEffect?: string; 
+    visualHitEffect?: string;
+    visualProjectileEffect?: string;
 }
 
 export interface UnitStats {
@@ -123,8 +176,6 @@ export enum NodeState {
     RUNNING = 'R'
 }
 
-export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC' | 'HAZARD';
-
 export interface LogEntry {
     id: string;
     time: string;
@@ -137,60 +188,12 @@ export interface LogEntry {
     targetInfo?: string; 
     detail: string; 
     visualColor?: string; 
-    
     action?: string;
     target?: string;
     loc?: string;
 }
 
-export interface Projectile {
-    id: string;
-    active: boolean; 
-    createdAt: number; 
-    lifespan: number; 
-
-    x: number;
-    y: number;
-    startX: number; 
-    startY: number; 
-    startZ?: number; 
-    targetId: string;
-    targetPos: Point;
-    speed: number;
-    skill: Skill;
-    sourceId: string;
-    team: Team;
-    trail: Point[];
-}
-
-export interface GroundHazard {
-    id: string;
-    q: number;
-    r: number;
-    type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
-    duration: number; 
-    sourceId: string;
-    team: Team;
-    color: string;
-    power: number; 
-    interval: number; 
-    timer: number; 
-    vfxId?: string; 
-}
-
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK';
-
-export interface GameEvent {
-    type: GameEventType;
-    pos: Point;
-    value?: number; 
-    text?: string; 
-    color?: string;
-    skill?: Skill;
-    sourceId?: string;
-    targetId?: string;
-    team?: Team;
-}
+export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC' | 'HAZARD';
 
 export interface KillStreakInfo {
     count: number;

@@ -1,8 +1,5 @@
-
 import { Agent } from "../../game";
-import { MovementType } from "../../../types";
-import { HexUtils, MapConfig } from "../../utils";
-import { UNIT_BODY_OFFSET } from "../../../constants";
+import { MapConfig } from "../../utils";
 
 export interface UnitVisualState {
     agent: Agent;
@@ -29,13 +26,8 @@ export class UnitVisualProcessor {
         const visualX = agent.px + agent.physics.x;
         const visualY = agent.py + agent.physics.y;
         
-        let terrainH = getTerrainHeight(agent.q, agent.r);
-        
-        // 預測插值：若正在跨越邊界，取目標格高度以防閃爍
-        if (agent.isMoving && agent.path.length > 0 && agent.moveProgress > 0.5) {
-            terrainH = getTerrainHeight(agent.path[0].q, agent.path[0].r);
-        }
-
+        // 核心：使用邏輯網格位置作為高度真理
+        const terrainH = getTerrainHeight(agent.q, agent.r);
         const isSelected = (agent === highlightAgent);
         
         return {
@@ -47,7 +39,7 @@ export class UnitVisualProcessor {
             scale: 1.0, 
             isSilhouette: false,
             isSelected,
-            sortY: agent.py, // 使用穩定邏輯座標排序
+            sortY: agent.py, 
             isDead,
             isVisible: !agent.fullyDead
         };

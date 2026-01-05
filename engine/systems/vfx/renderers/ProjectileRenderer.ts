@@ -1,13 +1,8 @@
-
 import { GameEngine } from "../../../game";
-import { Vector, HexUtils } from "../../../utils";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
-import { getTransitionOffset } from "../utils";
-import { Projectile } from "../../../../types";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
 import { TrajectoryMath, Point3D } from "../../../math/TrajectoryMath";
 import { VisualMath } from "../../../math/VisualMath";
-import { ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -16,83 +11,54 @@ export const ProjectileRenderer = {
         transitionT: number,
         transitionPhase: 'IN' | 'OUT' | 'IDLE'
     ) {
-        const now = engine.battleTime;
-
         for (const p of engine.projectiles) {
             if (!p.active) continue;
 
             const def: ProjectileVisualDef = PROJECTILE_VISUALS[p.skill.visualProjectileEffect || p.skill.visual || 'BOLT'] || DEFAULT_PROJECTILE;
 
-            // 1. 建立解析座標函數
-            const startP: Point3D = { x: p.startX, y: p.startY, z: p.startZ || 30 };
-            const targetP = VisualMath.resolveTargetPoint(p.targetId, engine);
-            
-            // 安全邊界處理
-            let endP: Point3D = targetP;
-            if (endP.z < -9000) {
-                 const h = engine.map.getTerrainHeight(HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig).q, HexUtils.fromPx(p.targetPos.x, p.targetPos.y, engine.mapConfig).r);
-                 endP = { x: p.targetPos.x, y: p.targetPos.y, z: h + 25 };
-            }
-
-            const dx = endP.x - startP.x;
-            const dy = endP.y - startP.y;
-            const totalDist = Math.sqrt(dx*dx + dy*dy);
-            
-            const duration = totalDist / Math.max(50, p.speed); // Prevent divide by zero
-            const age = now - p.createdAt;
-            const t = Math.min(1.0, age / duration);
+            // 起點與終點來自 Projectile SSOT
+            const startP: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
+            const endP: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
 
             const getPosAt = (progress: number) => {
                 if (def.trajectory === 'ARC') {
-                    // [UPDATED] Dynamic Arc Height: Scale with distance, clamped between min and max
-                    // Short throws are low, long throws are high.
-                    const dynamicHeight = Math.min(def.arcHeight || 150, Math.max(30, totalDist * 0.35));
-                    return TrajectoryMath.parabolic(startP, endP, progress, dynamicHeight);
+                    const arcH = Math.min(def.arcHeight || 150, Math.max(30, p.totalDist * 0.35));
+                    return TrajectoryMath.parabolic(startP, endP, progress, arcH);
                 }
                 if (def.trajectory === 'WOBBLE') return TrajectoryMath.wobble(startP, endP, progress, def.wobbleAmp || 15, def.wobbleFreq || 2);
                 return TrajectoryMath.linear(startP, endP, progress);
             };
 
-            const pos3D = getPosAt(t);
-            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, t, 1.0);
+            const current3D = getPosAt(p.t);
+            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, p.t, 1.0);
 
-            // 2. 計算視覺座標 (等角投影)
-            const transOffset = getTransitionOffset(pos3D.x, pos3D.y, engine.mapConfig, transitionT, transitionPhase);
-            const visX = pos3D.x;
-            
-            // SSOT Enforcement: Use VisualMath for projection
-            const visY = VisualMath.getIsoVisualY(pos3D.y, pos3D.z) + transOffset;
+            // 轉場偏置統合至 VisualMath
+            const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y, engine.mapConfig, transitionT, transitionPhase);
+            const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
 
-            // 3. 提交渲染指令
             const op = renderList.next();
             op.type = RenderOpType.PROJECTILE;
+            op.y = current3D.y; 
+            op.z = 5000 + current3D.z; 
             
-            // 核心優化：飛行物 Y 排序偏置。
-            op.y = pos3D.y; 
-            op.z = 5000 + pos3D.z; 
-            
-            op.pVisX = visX;
+            op.pVisX = current3D.x;
             op.pVisY = visY;
             op.pAngle = visAngle;
             op.pSkillVis = def.spriteKey || p.skill.visual || 'BOLT';
             op.pColor = p.skill.color;
             op.pIsUlt = p.skill.tag === 'ULT';
-            op.pSpin = def.spinSpeed ? (age * def.spinSpeed) : 0;
+            op.pSpin = def.spinSpeed ? (p.t * p.totalDuration * def.spinSpeed) : 0;
             op.pScale = def.scale || 1.0; 
             
-            // 4. 解析尾跡採樣 (Analytic Trail Sampling)
             op.pTrail = [];
             const trailSamples = def.trailLength || 0;
             if (trailSamples > 0) {
-                // [UPDATED] Trail sampling relative to speed for smoother curves
                 const step = 0.015; 
-                for (let i = 1; i <= trailSamples; i++) {
-                    const tPast = Math.max(0, t - i * step);
+                for (let j = 1; j <= trailSamples; j++) {
+                    const tPast = Math.max(0, p.t - j * step);
                     const past3D = getPosAt(tPast);
-                    
-                    // SSOT Enforcement here too
-                    const pastY = VisualMath.getIsoVisualY(past3D.y, past3D.z) + transOffset;
-                    
+                    const pOffset = VisualMath.getTransitionOffset(past3D.x, past3D.y, engine.mapConfig, transitionT, transitionPhase);
+                    const pastY = VisualMath.getIsoVisualY(past3D.y, past3D.z) + pOffset;
                     op.pTrail.push({ x: past3D.x, y: pastY });
                     if (tPast <= 0) break;
                 }

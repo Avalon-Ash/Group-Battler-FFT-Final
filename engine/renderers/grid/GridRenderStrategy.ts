@@ -1,19 +1,14 @@
-
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
-import { HexUtils, getTransitionOffset } from "../../utils";
-import { SpriteManager } from "../../sprites";
+import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
 const OBSTACLE_Z_INDEX = 10;
 const PROJ_LIGHT_RADIUS_SQ = 1600;
 
-/**
- * 網格渲染提交策略 - v11.1 (SSOT Strict Compliance)
- */
 export class GridRenderStrategy {
     
     private _unitPresence = new Set<string>();
@@ -53,41 +48,31 @@ export class GridRenderStrategy {
             const tile = cache.tileList[i];
             const { q, r, px, py, h, key } = tile;
             
-            const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
+            const offset = VisualMath.getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualBaseY = py + offset;
-            
-            // SSOT: Use standard projection
             const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
 
             if (Math.abs(offset) > 800) continue;
 
-            // 1. 提交障礙物
             const obstacleType = engine.obstacles.get(key);
             if (obstacleType) {
                 const op = renderList.next();
                 op.type = RenderOpType.OBSTACLE;
-                op.y = py; 
-                op.z = OBSTACLE_Z_INDEX;
-                op.tx = px; 
-                op.ty = visualSurfaceY; 
+                op.tq = q; op.tr = r; op.th = h; 
+                op.tx = px; op.ty = visualSurfaceY; 
                 op.ttype = obstacleType;
             }
 
-            // 2. 提交地面效果 (Hazards) -> 從 Terrain 解耦，建立獨立 Op
             const hazard = engine.map.getHazardAt(q, r, engine);
             if (hazard) {
                 const hOp = renderList.next();
                 hOp.type = RenderOpType.HAZARD;
-                hOp.y = py; 
-                hOp.z = 5; // 低於單位，高於地板
-                hOp.tx = px; 
-                // Note: HazardPainter will apply its own Z_LAYER bias internally
-                hOp.ty = visualSurfaceY; 
+                hOp.tq = q; hOp.tr = r; hOp.th = h;
+                hOp.tx = px; hOp.ty = visualSurfaceY; 
                 hOp.oHazard = hazard;
                 hOp.time = globalTime;
             }
 
-            // 3. 提交地形與基礎 Overlays
             const zoneInfo = engine.zones.getZoneAt(q, r);
             let isRange = false;
             let rangeColor = '';
@@ -102,32 +87,13 @@ export class GridRenderStrategy {
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
 
-            // 投射物光照計算
-            let lightColor = null;
-            let lightIntensity = 0;
-            for (const p of projectiles) {
-                const distSq = (p.x - px)**2 + (p.y - py)**2;
-                if (distSq < PROJ_LIGHT_RADIUS_SQ) {
-                    lightColor = p.skill.color;
-                    lightIntensity += (1 - Math.sqrt(distSq) / 40);
-                }
-            }
-
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
-            op.y = py; 
-            op.z = 0; 
-            op.tx = px; 
-            op.ty = visualBaseY; 
-            op.th = h;
-            op.tsize = HEX_SIZE;
-            op.ttheme = theme;
-            op.ttype = scene.textureType;
-            op.tdetail = theme.detail;
-            op.tq = q; op.tr = r;
+            op.tq = q; op.tr = r; op.th = h;
+            op.tx = px; op.ty = visualBaseY; 
+            op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
             op.oDanger = zoneInfo; 
-            op.oLightCol = lightColor; op.oLightInt = Math.min(1, lightIntensity);
             op.oRange = isRange; op.oRangeCol = rangeColor;
             op.oHover = isHover; op.oHasUnit = hasUnit;
             op.time = globalTime;

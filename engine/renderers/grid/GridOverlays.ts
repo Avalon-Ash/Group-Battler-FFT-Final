@@ -1,4 +1,3 @@
-
 import { ZoneRenderer } from "./ZoneRenderer";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { GroundHazard, HexLayout } from "../../../types";
@@ -10,7 +9,8 @@ import { VisualMath } from "../../math/VisualMath";
 export const GridOverlays = {
     drawOverlays(
         ctx: CanvasRenderingContext2D,
-        x: number, y: number, 
+        x: number, baseY: number, 
+        height: number,
         size: number,
         specialStatus: string | undefined, 
         zoneInfo: ActiveZone | undefined,    
@@ -22,13 +22,12 @@ export const GridOverlays = {
         hasUnit: boolean,
         q: number, r: number,
         globalTime: number,
-        hazard: GroundHazard | undefined, 
         layout: HexLayout
     ) {
-        // SSOT: Use centralized Z-Layer bias for overlays
-        const drawY = VisualMath.applyLayerBias(y, 'OVERLAY');
+        // SSOT: Calculate surface Y via projection formula
+        const visualSurfaceY = VisualMath.getIsoVisualY(baseY, height);
+        const drawY = VisualMath.applyLayerBias(visualSurfaceY, 'OVERLAY');
 
-        // 1. 狀態地效
         if (specialStatus && specialStatus !== 'NONE') {
             const def = STATUS_VISUALS[specialStatus];
             if (def && def.floorColor) {
@@ -42,7 +41,6 @@ export const GridOverlays = {
             }
         }
 
-        // 2. 戰術區域 (奧義預警/AOE 範圍)
         if (zoneInfo) {
             const dist = HexUtils.dist({q, r}, {q: zoneInfo.q, r: zoneInfo.r});
             ZoneRenderer.drawTileZoneEffect(
@@ -56,7 +54,6 @@ export const GridOverlays = {
             );
         }
 
-        // 3. 點光源投影
         if (lightColor && lightIntensity > 0) {
             ctx.save();
             ctx.translate(x, drawY);
@@ -68,7 +65,6 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        // 4. 交互高亮
         if (isRange || isHover || hasUnit) {
             ctx.save();
             ctx.translate(x, drawY + 1); 
