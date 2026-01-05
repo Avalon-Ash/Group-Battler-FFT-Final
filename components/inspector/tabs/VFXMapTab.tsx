@@ -4,7 +4,7 @@ import { VFX_LIBRARY, VFXEntry } from '../../../data/vfx/vfx_library';
 import { Icons } from '../../ui/icons';
 
 export const VFXMapTab: React.FC = () => {
-    const [activeCategory, setActiveCategory] = useState<keyof typeof VFX_LIBRARY>('GENERIC_HITS');
+    const [activeCategory, setActiveCategory] = useState<keyof typeof VFX_LIBRARY>('PROCEDURAL_GEOMETRY');
 
     const renderList = (list: VFXEntry[], themeColor: string) => (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -44,7 +44,7 @@ export const VFXMapTab: React.FC = () => {
                 <div className="flex justify-between items-end">
                     <div className="flex flex-col">
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Visual Effects Matrix</div>
-                        <div className="text-[10px] text-slate-600 font-mono mt-1">Registry v9.1 Compatible</div>
+                        <div className="text-[10px] text-slate-600 font-mono mt-1">Registry v9.3 Compatible</div>
                     </div>
                     <div className="text-[10px] font-mono text-purple-400/80 bg-purple-950/30 px-2 py-1 rounded-md border border-purple-500/20">
                         SYSTEM REFERENCE
@@ -53,9 +53,9 @@ export const VFXMapTab: React.FC = () => {
 
                 {/* Tabs */}
                 <div className="flex flex-wrap bg-black/40 p-1 gap-1 rounded-xl border border-white/5">
+                    <button onClick={() => setActiveCategory('PROCEDURAL_GEOMETRY')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'PROCEDURAL_GEOMETRY' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>Geometry</button>
                     <button onClick={() => setActiveCategory('CORE_SEQUENCES')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'CORE_SEQUENCES' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>Sequences</button>
                     <button onClick={() => setActiveCategory('ACTION_VERBS')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'ACTION_VERBS' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>Verbs</button>
-                    <button onClick={() => setActiveCategory('GENERIC_HITS')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'GENERIC_HITS' ? 'bg-slate-700 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>Generic</button>
                     <button onClick={() => setActiveCategory('IMPERIAL_FLAVOR')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'IMPERIAL_FLAVOR' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30' : 'text-slate-500 hover:text-blue-400'}`}>Imperial</button>
                     <button onClick={() => setActiveCategory('COVENANT_FLAVOR')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'COVENANT_FLAVOR' ? 'bg-red-600/30 text-red-300 border border-red-500/30' : 'text-slate-500 hover:text-red-400'}`}>Covenant</button>
                 </div>
@@ -65,7 +65,8 @@ export const VFXMapTab: React.FC = () => {
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                 {renderList(VFX_LIBRARY[activeCategory], 
                     activeCategory.includes('IMPERIAL') ? 'text-blue-400' : 
-                    activeCategory.includes('COVENANT') ? 'text-red-400' : 'text-slate-200'
+                    activeCategory.includes('COVENANT') ? 'text-red-400' : 
+                    activeCategory === 'PROCEDURAL_GEOMETRY' ? 'text-emerald-400' : 'text-slate-200'
                 )}
             </div>
         </div>

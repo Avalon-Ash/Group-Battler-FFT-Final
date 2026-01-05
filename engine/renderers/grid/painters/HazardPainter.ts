@@ -68,20 +68,48 @@ export const HazardPainter = {
             const intensity = def.intensity * (0.85 + Math.sin(speed * 0.8) * 0.15);
             const liquidY = drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET;
 
-            // Draw liquid with high opacity
+            // Draw base liquid
             SurfacePainter.drawLiquid(ctx, x, liquidY, def.primaryColor, speed, Math.min(1.0, intensity * 1.2));
             if (def.cracks) SurfacePainter.drawCracks(ctx, x, liquidY, def.secondaryColor, intensity);
             
+            // Enhanced Fire Visuals
             if (hazard.type === 'FIRE') {
                 const flameTex = VFXFactory.getTexture('SMOKE', '#fca5a5');
-                const rise = (globalTime * 50) % 30;
+                const glowTex = VFXFactory.getTexture('GLOW', '#f97316');
+                
+                // 1. Core Glow (Ground)
                 ctx.save();
-                ctx.translate(x, liquidY - 10 - rise);
-                ctx.globalCompositeOperation = 'screen'; 
-                ctx.globalAlpha = (1 - rise/30) * intensity;
-                ctx.scale(0.8, 1.2); // Elongate flames
-                ctx.drawImage(flameTex, -20, -60, 40, 60);
+                ctx.translate(x, liquidY);
+                ctx.scale(1, ISO_SCALE_Y);
+                ctx.globalCompositeOperation = 'screen';
+                ctx.globalAlpha = 0.6 * fade;
+                const glowSize = HEX_SIZE * 2.5 + Math.sin(globalTime * 10) * 10;
+                ctx.drawImage(glowTex, -glowSize/2, -glowSize/2, glowSize, glowSize);
                 ctx.restore();
+
+                // 2. Rising Flame Tongues (Volumetric)
+                const flameCount = 3;
+                for(let i=0; i<flameCount; i++) {
+                    const offset = i * (Math.PI * 2 / flameCount);
+                    const cycle = (globalTime * 1.5 + offset) % 1; // 0 to 1 loop
+                    
+                    const riseH = cycle * 80; // Height
+                    const wiggle = Math.sin(globalTime * 5 + i) * 15;
+                    
+                    const scaleBase = 1.0 - cycle; // Shrink as rising
+                    const scaleY = 1.5 + Math.sin(globalTime * 10) * 0.5; // Flicker stretch
+                    
+                    ctx.save();
+                    ctx.translate(x + wiggle, liquidY - riseH);
+                    ctx.scale(scaleBase, scaleBase * scaleY);
+                    
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.globalAlpha = (1.0 - cycle) * intensity * fade;
+                    
+                    const fSize = 60;
+                    ctx.drawImage(flameTex, -fSize/2, -fSize/2, fSize, fSize);
+                    ctx.restore();
+                }
             }
         }
         else if (def.type === 'CRYSTAL') {
