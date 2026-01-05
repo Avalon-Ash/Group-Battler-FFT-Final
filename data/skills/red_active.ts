@@ -45,7 +45,7 @@ export const RED_ACTIVE: Skill[] = [
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     },
 
-    // --- WARRIOR ---
+    // --- WARRIOR (Enhanced Gap Closers) ---
     { 
         id: 'wr_a1', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
         name: '旋風斬', desc: '吸血AOE', 
@@ -65,7 +65,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'wr_a3', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
         name: '毀滅跳斬', desc: '突進範圍傷', 
-        range: 4, cast: 0.6, cd: 10.0, cost: 40, gain: 0, 
+        range: 6, cast: 0.6, cd: 9.0, cost: 40, gain: 0, // Buff Range 4->6, CD 10->9
         type: 'AOE', aoeRadius: 1, power: 150, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_ACTIVE_RED_WAR_STOMP', element: 'PHYSICAL'
     },

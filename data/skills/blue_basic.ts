@@ -23,7 +23,7 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
         name: '能量衝擊', desc: '回魔打擊', 
-        range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 30,
+        range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 35, // Buff gain
         type: 'SINGLE', power: 40, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
     },
@@ -47,7 +47,7 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'wb_b1', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
         name: '光子劍刃', desc: '快速連擊', 
-        range: 1, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
+        range: 1, cast: 0.3, cd: 0.7, cost: 0, gain: 25, // Buff CD/Gain
         type: 'SINGLE', power: 65, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
     },
@@ -78,36 +78,36 @@ export const BLUE_BASIC: Skill[] = [
         name: '絕對招架', desc: '防禦反擊', 
         range: 1, cast: 0.4, cd: 1.0, cost: 0, gain: 30, 
         type: 'SINGLE', power: 55, color: '#fbbf24', visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 15,
+        ccType: 'SHIELD', ccForce: 20, // Buff Shield
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },
 
-    // --- RANGER ---
+    // --- RANGER (Buffed Ranges) ---
     { 
         id: 'rb_b1', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '精準射擊', desc: '標準遠程', 
-        range: 6, cast: 0.6, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 60, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 1500, 
+        range: 7, cast: 0.6, cd: 1.0, cost: 0, gain: 25, // Buff Range 6->7
+        type: 'SINGLE', power: 60, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 1800, // Faster Proj
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b2', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '寒冰箭', desc: '微量緩速', 
-        range: 5, cast: 0.7, cd: 1.2, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 55, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 800, 
+        range: 6, cast: 0.7, cd: 1.2, cost: 0, gain: 30, // Buff Range 5->6
+        type: 'SINGLE', power: 55, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 900, 
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE'
     },
     { 
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '雷射標記', desc: '必中', 
-        range: 7, cast: 0.4, cd: 0.8, cost: 0, gain: 20, 
+        range: 8, cast: 0.4, cd: 0.8, cost: 0, gain: 20, // Buff Range 7->8
         type: 'SINGLE', power: 40, color: '#ef4444', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '震盪彈', desc: '擊退射擊', 
-        range: 4, cast: 0.8, cd: 1.5, cost: 0, gain: 35, 
+        range: 5, cast: 0.8, cd: 1.5, cost: 0, gain: 35, // Buff Range 4->5
         type: 'SINGLE', power: 50, color: '#fbbf24', visual: 'BOLT', projectileSpeed: 1200, 
         ccType: 'KNOCKBACK', ccForce: 1,
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'LIGHTNING'
@@ -115,39 +115,39 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'rb_b5', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '虛無射擊', desc: '燃魔射擊', 
-        range: 6, cast: 0.6, cd: 1.0, cost: 0, gain: 25, 
+        range: 7, cast: 0.6, cd: 1.0, cost: 0, gain: 25, // Buff Range 6->7
         type: 'SINGLE', power: 45, color: '#8b5cf6', visual: 'ARROW', projectileSpeed: 1500, 
         effectType: 'MANA_BURN', effectVal: 10,
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'VOID'
     },
 
-    // --- MAGE ---
+    // --- MAGE (Nerfed Damage slightly) ---
     { 
         id: 'mb_b1', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '追蹤導彈', desc: '追蹤魔法', 
         range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 70, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 600, 
+        type: 'SINGLE', power: 65, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 600, // Nerf Power 70->65
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 
         id: 'mb_b2', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '閃電束', desc: '瞬發光束', 
         range: 4, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 45, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, // Nerf Power 50->45
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'LIGHTNING'
     },
     { 
         id: 'mb_b3', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '霜噬術', desc: '減速傷害', 
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 60, color: '#bae6fd', visual: 'BOLT', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 55, color: '#bae6fd', visual: 'BOLT', projectileSpeed: 1000, // Nerf Power 60->55
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_FROST_BOLT', element: 'ICE'
     },
     { 
         id: 'mb_b4', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '奧術彈射', desc: '小範圍彈跳', 
         range: 4, cast: 0.5, cd: 1.2, cost: 0, gain: 30, 
-        type: 'AOE', aoeRadius: 1, power: 45, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900, 
+        type: 'AOE', aoeRadius: 1, power: 40, color: '#d8b4fe', visual: 'BOLT', projectileSpeed: 900, // Nerf Power 45->40
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 
