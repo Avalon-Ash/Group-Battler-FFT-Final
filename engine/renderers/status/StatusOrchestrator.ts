@@ -5,9 +5,10 @@ import { OverheadPainter } from "./painters/OverheadPainter";
 import { GroundEffectPainter } from "./painters/GroundEffectPainter";
 import { StateModelPainter } from "./painters/StateModelPainter";
 import { VisualMath } from "../../math/VisualMath";
+import { HexLayout } from "../../../types";
 
 /**
- * ECS Status Orchestrator v11.5
+ * ECS Status Orchestrator v11.6
  * 負責所有單位狀態特效的座標解算與渲染分發
  */
 export class StatusOrchestrator {
@@ -16,7 +17,8 @@ export class StatusOrchestrator {
         ctx: CanvasRenderingContext2D, 
         agents: Agent[], 
         globalTime: number,
-        getTerrainHeight: (q: number, r: number) => number
+        getTerrainHeight: (q: number, r: number) => number,
+        layout: HexLayout = 'FLAT'
     ) {
         for (const agent of agents) {
             // 跳過已徹底消失的單位
@@ -41,11 +43,11 @@ export class StatusOrchestrator {
 
             // 2. 地面鎖定效果 (Root/Burning)
             // 強制腳底偏置：-5px 確保在地板之上且在 Token 之下
-            GroundEffectPainter.draw(ctx, agent, px, visualFloorY - pz, globalTime);
+            GroundEffectPainter.draw(ctx, agent, px, visualFloorY - pz, globalTime, layout);
             
             // 3. 護盾 (Volumetric Shell)
             // 護盾必須跟隨 bodyCenterY
-            ShieldPainter.draw(ctx, agent, px, bodyCenterY, globalTime);
+            ShieldPainter.draw(ctx, agent, px, bodyCenterY, globalTime, layout);
             
             // 4. 頭頂狀態圖標 (Floating HUD)
             // 圖標高度 = 中心點 - 模型高度偏移

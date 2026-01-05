@@ -1,9 +1,11 @@
+
 import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill, Team } from "../../../types";
-import { HexUtils } from "../../utils";
+import { HexUtils, Vector } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { VisualMath } from "../../math/VisualMath";
 import { HazardManager } from "./HazardManager";
+import { HEX_SIZE } from "../../../constants";
 
 export class ProjectileSystem {
     private pool: Projectile[] = [];
@@ -39,16 +41,33 @@ export class ProjectileSystem {
         const hitPos = { x: p.endX, y: p.endY };
 
         if (p.skill.type === 'AOE') {
-            const radius = p.skill.aoeRadius || 1;
+            const radiusGrid = p.skill.aoeRadius || 1;
+            // 轉換為像素半徑，並給予微量寬容度 (+10px) 以補償視覺邊緣
+            const radiusPx = radiusGrid * HEX_SIZE + 10;
+            const radiusSq = radiusPx * radiusPx;
+
             const hitHex = HexUtils.fromPx(hitPos.x, hitPos.y, engine.mapConfig);
+            
             engine.agents.forEach(t => {
                 if (t.team !== p.team && t.hp > 0 && !t.banished) {
-                    if (HexUtils.dist(hitHex, t) <= radius) {
+                    // [FIX] 使用像素距離判定而非網格距離，解決視覺覆蓋但邏輯判失誤的問題
+                    // 特別是對於核彈這種超大範圍、低速落點的技能
+                    const targetPx = HexUtils.toPx(t.q, t.r, engine.mapConfig);
+                    const dx = targetPx.x - hitPos.x;
+                    const dy = targetPx.y - hitPos.y;
+                    const distSq = dx*dx + dy*dy;
+
+                    if (distSq <= radiusSq) {
+                        // 即使施法者已死，只要 projectile 存在就應該造成傷害
+                        // 如果 source 消失 (極端情況)，則無法計算屬性加成，暫時跳過
                         if (source) skillExecutor.resolveHit(source, t, p.skill, hitPos, engine);
                     }
                 }
             });
-            if (source) HazardManager.spawnHazards(source, HexUtils.range(hitHex, radius), p.skill, engine);
+            
+            // 仍然生成危險區域 (Hazards 依賴網格)
+            if (source) HazardManager.spawnHazards(source, HexUtils.range(hitHex, radiusGrid), p.skill, engine);
+            
             engine.events.push({ type: 'IMPACT_AOE', pos: hitPos, skill: p.skill, color: p.skill.color });
         } else {
             const target = engine.agents.find(a => a.id === p.targetId);

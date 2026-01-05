@@ -1,5 +1,5 @@
 
-import { GroundHazard } from "../../../../../types";
+import { GroundHazard, HexLayout } from "../../../../../types";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../../../constants";
 import { HAZARD_VISUALS } from "../../../../../data/vfx/hazard_visuals";
 import { VFXFactory } from "../../../graphics/VFXFactory";
@@ -8,7 +8,7 @@ import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { VisualMath } from "../../../math/VisualMath";
 
 export const HazardPainter = {
-    draw(ctx: CanvasRenderingContext2D, x: number, y: number, hazard: GroundHazard, globalTime: number) {
+    draw(ctx: CanvasRenderingContext2D, x: number, y: number, hazard: GroundHazard, globalTime: number, layout: HexLayout) {
         const def = HAZARD_VISUALS[hazard.type] || HAZARD_VISUALS['GENERIC'];
         // Smooth fade out at end of duration
         let fade = hazard.duration < 0.8 ? hazard.duration / 0.8 : 1.0;
@@ -68,8 +68,9 @@ export const HazardPainter = {
             const intensity = def.intensity * (0.85 + Math.sin(speed * 0.8) * 0.15);
             const liquidY = drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET;
 
-            // Draw base liquid
-            SurfacePainter.drawLiquid(ctx, x, liquidY, def.primaryColor, speed, Math.min(1.0, intensity * 1.2));
+            // Draw base liquid with correct layout
+            SurfacePainter.drawLiquid(ctx, x, liquidY, def.primaryColor, speed, Math.min(1.0, intensity * 1.2), layout);
+            
             if (def.cracks) SurfacePainter.drawCracks(ctx, x, liquidY, def.secondaryColor, intensity);
             
             // Enhanced Fire Visuals
@@ -113,7 +114,7 @@ export const HazardPainter = {
             }
         }
         else if (def.type === 'CRYSTAL') {
-            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, drawY, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7);
+            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, drawY, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7, layout);
             ctx.save();
             ctx.translate(x, drawY - 5); ctx.scale(1, ISO_SCALE_Y);
             ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.6;

@@ -1,6 +1,6 @@
 
 import { Agent } from "../../../../game";
-import { Team } from "../../../../../types";
+import { Team, HexLayout } from "../../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 
 export const ShieldPainter = {
@@ -8,7 +8,7 @@ export const ShieldPainter = {
      * 繪製包裹單位的能量護盾
      * @param y 單位視覺中心 Y 軸
      */
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number, layout: HexLayout) {
         if (agent.shield <= 0) return;
 
         const isBlue = agent.team === Team.BLUE;
@@ -29,8 +29,8 @@ export const ShieldPainter = {
         const shieldR = 38;
         
         ctx.globalCompositeOperation = 'screen';
-        // 'SOLID' style for better visibility, with adjusted opacity inside painter
-        VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, color, pulse, 'GRADIENT_FADE');
+        // [FIX] Pass layout to VolumePainter
+        VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, color, pulse, 'GRADIENT_FADE', layout);
         
         // 邊緣掃描線 (TA 效果) - Enhanced with double scanlines
         ctx.strokeStyle = '#ffffff';

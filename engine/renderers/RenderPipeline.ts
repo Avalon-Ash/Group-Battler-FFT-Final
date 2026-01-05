@@ -114,6 +114,8 @@ export class RenderPipeline {
             occluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
             ctx.restore();
         }
-        this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH);
+        
+        // [FIX] Pass layout to StatusOrchestrator
+        this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout);
     }
 }

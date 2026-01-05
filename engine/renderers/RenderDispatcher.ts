@@ -1,3 +1,4 @@
+
 import { RenderOp, RenderOpType } from "./RenderList";
 import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { GridOverlays } from "./grid/GridOverlays";
@@ -30,7 +31,8 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.HAZARD: 
-                if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.time);
+                // [FIX] Pass layout to HazardPainter
+                if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.time, layout);
                 break;
 
             case RenderOpType.OBSTACLE:

@@ -3,6 +3,7 @@ import { Agent } from "../../../../game";
 import { ISO_SCALE_Y } from "../../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
+import { HexLayout } from "../../../../../types";
 
 // 數學規範：CC 地面層偏置量
 const CC_GROUND_BIAS = -5;
@@ -12,7 +13,7 @@ export const GroundEffectPainter = {
      * 繪製單位身上的持續性 CC 特效 (地面 -> 身體)
      * @param y 單位目前的視覺腳底高度 (含物理 Z)
      */
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number) {
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number, layout: HexLayout) {
         const groundY = y + CC_GROUND_BIAS;
 
         // 1. 禁錮效果 (Root / Vines)
@@ -30,7 +31,8 @@ export const GroundEffectPainter = {
             ctx.globalAlpha = 0.8;
             ctx.shadowColor = color;
             ctx.shadowBlur = 10;
-            HexGeometry.traceHex(ctx, 0, 0, r, true);
+            // [FIX] Use layout
+            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
             ctx.stroke();
 
             // B. 3D 突刺 (幾何模擬)
@@ -54,9 +56,6 @@ export const GroundEffectPainter = {
         // 2. 持續傷害 (DoT) - 顯眼的上升氣流
         if (agent.dotTimer > 0 && agent.dotDmg > 0) {
             // Determine color based on hazard guessing (Green for generic/poison, Red for fire)
-            // Since we don't store damage type on agent perfectly, we guess:
-            // But we can default to a sickly green/purple for poison, or red for burn.
-            // Let's make it distinct based on team? No, Poison is Green.
             const color = '#a3e635'; // Lime Green default
             const secondary = '#4d7c0f';
 

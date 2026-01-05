@@ -1,7 +1,7 @@
 
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
-const MAX_ACTIVE_TEXTS = 100;
+const MAX_ACTIVE_TEXTS = 60; // Reduced for performance safety
 
 export interface FloatingText {
     active: boolean;
@@ -26,6 +26,7 @@ export interface FloatingText {
     // Animation Timer
     time: number;          // 存活時間 (累加)
     totalDuration: number; // 預計總詠唱時間 (用於進度條計算)
+    cachedWidth?: number;  // Cached width for text measurement optimization
 }
 
 export class HUDSystem {
@@ -48,7 +49,7 @@ export class HUDSystem {
             text: '', color: '#fff', life: 0, maxLife: 0, size: 0,
             type: 'DAMAGE', isUlt: false,
             ownerId: undefined, isShattered: false, rotation: 0, vRot: 0,
-            time: 0, totalDuration: 0
+            time: 0, totalDuration: 0, cachedWidth: undefined
         };
     }
 
@@ -57,9 +58,9 @@ export class HUDSystem {
         type: 'DAMAGE' | 'HEAL' | 'SHOUT' | 'CC' | 'KILL_STREAK' = 'DAMAGE', 
         isUlt: boolean = false,
         ownerId?: string,
-        duration: number = 0 // 新增參數
+        duration: number = 0
     ) {
-        if (this.damageNumbers.length > MAX_ACTIVE_TEXTS) {
+        if (this.damageNumbers.length >= MAX_ACTIVE_TEXTS) {
             const old = this.damageNumbers.shift();
             if (old) this.release(old);
         }
@@ -79,17 +80,17 @@ export class HUDSystem {
             for (let i = this.damageNumbers.length - 1; i >= 0; i--) {
                 const t = this.damageNumbers[i];
                 if (t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered) {
-                    // 如果是舊的喊招，直接淡出或移除
-                    t.life = 0; 
+                    this.release(t);
+                    this.damageNumbers.splice(i, 1);
                 }
             }
         }
 
         let vx = 0, vy = 0, life = TEXT_LIFESPAN;
         if (type === 'SHOUT') {
-            // SHOUT 的生命週期現在由詠唱時間決定，但至少保留 1秒以免太快消失
-            // 我們給予一點緩衝時間讓它在詠唱完後還能稍微顯示一下 (fadeOut)
-            life = Math.max(duration, 1.0) + 0.3;
+            // SHOUT 的生命週期現在由詠唱時間決定
+            const safeDuration = Math.min(5.0, duration > 0 ? duration : 1.0);
+            life = safeDuration + 0.5;
             if (isUlt) { vy = -5; size = 24; }
             else { vy = -20; size = 14; }
         } else if (type === 'CC') {
@@ -112,34 +113,29 @@ export class HUDSystem {
         ft.rotation = 0;
         ft.vRot = 0;
         ft.time = 0;
-        ft.totalDuration = duration > 0 ? duration : 1.0; // 防止除以零
+        ft.totalDuration = duration > 0 ? duration : 1.0; 
+        ft.cachedWidth = undefined; 
 
         this.damageNumbers.push(ft);
     }
 
-    /**
-     * 核心功能：擊碎指定單位的詠唱文字
-     */
     public breakCastText(ownerId: string) {
-        // 尋找該單位目前正在活躍的 SHOUT
         const text = this.damageNumbers.find(t => t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered);
         
         if (text) {
             text.isShattered = true;
-            
-            // 視覺崩壞物理效果
-            text.color = '#94a3b8'; // 變成失效的灰色
-            text.vy = -180; // 向上彈飛力度增加
-            text.vx = (Math.random() - 0.5) * 250; // 增加水平飛散速度
-            text.vRot = (Math.random() - 0.5) * 20; // 增加旋轉速度
-            text.life = 0.5; // 壽命大幅縮短 (快速消失)
+            text.color = '#94a3b8'; 
+            text.vy = -180; 
+            text.vx = (Math.random() - 0.5) * 250; 
+            text.vRot = (Math.random() - 0.5) * 20; 
+            text.life = 0.5; 
             text.maxLife = 0.5;
         }
     }
 
     private release(ft: FloatingText) {
         ft.active = false;
-        ft.ownerId = undefined; // Clear Ref
+        ft.ownerId = undefined;
         this.pool.push(ft);
     }
 
@@ -151,11 +147,9 @@ export class HUDSystem {
             
             d.x += d.vx * dt;
             d.y += d.vy * dt; 
-            d.rotation += d.vRot * dt; // Apply Rotation
+            d.rotation += d.vRot * dt; 
 
-            // Gravity Logic
             if (d.type === 'DAMAGE' || d.type === 'HEAL' || d.isShattered) {
-                // Shattered text falls faster
                 const g = d.isShattered ? GRAVITY * 3.0 : GRAVITY;
                 d.vy += g * dt;
             }
