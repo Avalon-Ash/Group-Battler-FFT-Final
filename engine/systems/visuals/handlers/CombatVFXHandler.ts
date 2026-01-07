@@ -3,9 +3,8 @@ import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
-import { Point3D } from "../EventVFXMapper";
+import { Point3D } from "../../../math/VisualMath";
 import { VFX_REGISTRY } from "../../../../data/vfx/VFXRegistry";
-import { Vector } from "../../../utils";
 
 export class CombatVFXHandler {
     

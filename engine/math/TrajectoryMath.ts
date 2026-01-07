@@ -1,7 +1,8 @@
 
 import { Point } from "../../types";
+import { Point3D } from "./VisualMath";
 
-export interface Point3D { x: number; y: number; z: number; }
+export { Point3D };
 
 /**
  * 飛行幾何真理庫 v14.0 - Analytic Ballistics

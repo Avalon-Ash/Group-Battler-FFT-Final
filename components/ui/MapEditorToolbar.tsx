@@ -5,6 +5,7 @@ import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
+import { HexUtils } from '../../engine/utils';
 
 interface MapEditorToolbarProps {
     tool: ToolType;

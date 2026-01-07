@@ -1,8 +1,10 @@
+
 import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
 import { VFXPhysics } from "./vfx/VFXPhysics";
 import { VFXAmbience } from "./vfx/VFXAmbience";
-interface Point3D { x: number; y: number; z: number; }
+import { Point3D } from "../math/VisualMath";
+
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
     private ambience: VFXAmbience = new VFXAmbience();

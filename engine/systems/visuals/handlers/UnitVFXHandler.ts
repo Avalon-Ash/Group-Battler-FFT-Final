@@ -3,7 +3,7 @@ import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
-import { Point3D } from "../EventVFXMapper";
+import { Point3D } from "../../../math/VisualMath";
 import { UnitShatter } from "../effects/UnitShatter";
 
 export class UnitVFXHandler {

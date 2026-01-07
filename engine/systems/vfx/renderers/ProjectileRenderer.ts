@@ -1,8 +1,9 @@
+
 import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE, ProjectileVisualDef } from "../../../../data/vfx/projectile_visuals";
-import { TrajectoryMath, Point3D } from "../../../math/TrajectoryMath";
-import { VisualMath } from "../../../math/VisualMath";
+import { TrajectoryMath } from "../../../math/TrajectoryMath";
+import { VisualMath, Point3D } from "../../../math/VisualMath";
 import { ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {

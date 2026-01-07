@@ -1,5 +1,6 @@
+
 import { Agent, GameEngine } from "../game";
-import { GridSystem } from "../systems/grid";
+import type { GridSystem } from "../systems/grid";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS } from "../../constants";
 

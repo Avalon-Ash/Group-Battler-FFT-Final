@@ -2,7 +2,7 @@
 import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
-import { Point3D } from "../EventVFXMapper";
+import { Point3D } from "../../../math/VisualMath";
 import { SequenceSystem } from "../SequenceSystem";
 import { SKILL_SEQUENCES } from "../../../../data/vfx/SkillSequences";
 

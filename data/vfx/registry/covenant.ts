@@ -3,7 +3,7 @@ import { VFXAsset } from "../../../types/VFXSchema";
 
 export const COVENANT_VFX: Record<string, VFXAsset> = {
     
-    // --- 🔴 BASIC ATTACK FLAVORS (Restored) ---
+    // --- 🔴 BASIC ATTACK FLAVORS ---
     'FX_HIT_RED_PHYSICAL': {
         id: 'FX_HIT_RED_PHYSICAL',
         emitters: [
@@ -47,10 +47,12 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
         ]
     },
 
-    // --- 🔴 CLASS HITS (Legacy support) ---
+    // --- 🔴 CLASS HITS (Consolidated Mappings) ---
+    // SSOT: Legacy keys now use the optimized main emitters
     'FX_HIT_RED_TANK': {
         id: 'FX_HIT_RED_TANK',
         emitters: [
+            // Matches Red Heavy
             { particleType: 'RUBBLE', count: [3, 5], lifetime: [0.4, 0.6], size: [5, 10], speed: [100, 300], gravity: 3000, colors: ['#7f1d1d', '#000'], shape: 'BURST_DIR', delay: 0 },
             { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.1, 0.2], size: [30, 50], colors: ['#991b1b'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
@@ -65,6 +67,7 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     'FX_HIT_RED_RANGER': {
         id: 'FX_HIT_RED_RANGER',
         emitters: [
+            // Matches Magma/Blast
             { particleType: 'BLAST', count: 1, lifetime: [0.1, 0.2], size: [20, 30], colors: ['#ea580c'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
             { particleType: 'SMOKE', count: [2, 3], lifetime: [0.3, 0.5], size: [10, 20], speed: [50, 100], colors: ['#450a0a'], shape: 'CIRCLE', delay: 0 }
         ]
@@ -72,6 +75,7 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     'FX_HIT_RED_MAGE': {
         id: 'FX_HIT_RED_MAGE',
         emitters: [
+            // Matches Shadow
             { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.4], size: [30, 50], colors: ['#581c87'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
             { particleType: 'SPARK', count: [3, 5], lifetime: [0.4, 0.6], size: [4, 8], speed: [100, 200], colors: ['#a855f7'], shape: 'CIRCLE', delay: 0 }
         ]
@@ -84,7 +88,7 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
         ]
     },
 
-    // --- 🔴 ACTIVE SKILLS (Restored) ---
+    // --- 🔴 ACTIVE SKILLS ---
     'FX_ACTIVE_RED_SHADOW_SCREAM': {
         id: 'FX_ACTIVE_RED_SHADOW_SCREAM',
         emitters: [

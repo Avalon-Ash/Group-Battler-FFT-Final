@@ -5,14 +5,12 @@ import { VFXSystem } from "../../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { VisualMath } from "../../math/VisualMath";
+import { VisualMath, Point3D } from "../../math/VisualMath";
 
 // Sub-Handlers
 import { CombatVFXHandler } from "./handlers/CombatVFXHandler";
 import { UnitVFXHandler } from "./handlers/UnitVFXHandler";
 import { CinematicVFXHandler } from "./handlers/CinematicVFXHandler";
-
-export interface Point3D { x: number; y: number; z: number; }
 
 export class EventVFXMapper {
 

@@ -24,15 +24,20 @@ export class VFXRenderer {
         viewport?: { width: number, height: number, camera: Camera } 
     ) {
         let cullMinX = -Infinity, cullMaxX = Infinity, cullMinY = -Infinity, cullMaxY = Infinity;
+        
+        // Culling Padding needs to be huge vertically to account for Z-axis (Heaven Fall)
+        const PAD_X = 1200;
+        const PAD_Y_TOP = 2500; // Look way up for meteors
+        const PAD_Y_BOT = 1200;
+
         if (viewport) {
             const { width, height, camera } = viewport;
-            const pad = 1200; 
             const viewW = width / camera.zoom;
             const viewH = height / camera.zoom;
-            cullMinX = camera.x - (viewW / 2) - pad;
-            cullMaxX = camera.x + (viewW / 2) + pad;
-            cullMinY = camera.y - (viewH / 2) - pad;
-            cullMaxY = camera.y + (viewH / 2) + pad;
+            cullMinX = camera.x - (viewW / 2) - PAD_X;
+            cullMaxX = camera.x + (viewW / 2) + PAD_X;
+            cullMinY = camera.y - (viewH / 2) - PAD_Y_TOP;
+            cullMaxY = camera.y + (viewH / 2) + PAD_Y_BOT;
         }
 
         vfx.state.particles.forEach(p => {

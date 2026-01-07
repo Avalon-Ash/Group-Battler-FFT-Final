@@ -1,3 +1,4 @@
+
 import { Particle } from "./state";
 import { PHYSICS } from "../../../constants";
 
@@ -9,7 +10,8 @@ export class VFXPhysics {
         p.y += p.vy * dt;
         p.rotation += p.vRotation * dt;
 
-        const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE'].includes(p.type);
+        // FIX: Add GIANT_HEX to physical types so it collides with ground (Heaven Fall logic)
+        const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE', 'GIANT_HEX'].includes(p.type);
         const currentGroundH = getTerrainHeight ? getTerrainHeight(p.x, p.y) : 0;
 
         if (isPhysical) {

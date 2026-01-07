@@ -1,6 +1,7 @@
+
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
-import { Point3D } from "./EventVFXMapper";
+import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
 
