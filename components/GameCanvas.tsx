@@ -69,19 +69,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         const highlight = pressedAgent || selectedAgent || null;
         const currentHoverHex = hoveredHexRef.current;
         
-        // Pass Engine.battleTime for combat visuals, but we could also pass a realTime if needed
-        // For now, we assume the hook passes relevant times to the renderer.update(), and draw uses state.
-        // We actually need to pass time to draw() now.
-        // Since useGameLoop now tracks RealTime, we don't strictly need to pass it here if we stored it,
-        // but passing it cleanly is better SSOT.
-        // However, useGameLoop calls this callback. We need to update useGameLoop to pass time or just use engine time.
-        // For simplicity, we use the engine's battleTime for world and let renderer handle ambient via internal realTime (passed in update).
-        // Wait, draw() signature was updated in Renderer to accept (battleTime, realTime). 
-        // But useGameLoop calls onDraw(ctx, fps). We need to fix the chain or rely on internal state.
-        // **Strategy**: Let's grab the times from the engine/renderer state or assume the renderer updated them.
-        // Actually, the best way is to let useGameLoop invoke draw with time, but that requires changing the hook signature.
-        // COMPROMISE: We will pass `engine.battleTime` and `performance.now() / 1000` here.
-        
         const realTime = performance.now() / 1000;
         
         rendererRef.current.draw(

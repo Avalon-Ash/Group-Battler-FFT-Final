@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill } from "../types";
 import { GridSystem } from "./systems/grid";
@@ -104,6 +105,7 @@ export class GameRenderer {
         
         // 5. VFX System (Time Dilation Applied)
         // Ambience and Particles now move in sync with game speed (Bullet Time ready)
+        // NEW: Pass 'engine' so VFXSystem can read Agent states for dust/status effects
         this.vfx.update(
             simDt, 
             battleTime, 
@@ -112,7 +114,8 @@ export class GameRenderer {
                 this.grid.getHexAtWorldPoint(x, y, engine)?.q || 0,
                 this.grid.getHexAtWorldPoint(x, y, engine)?.r || 0,
                 engine
-            )
+            ),
+            engine 
         );
 
         // 6. HUD System (Always RealTime, UI should not freeze)

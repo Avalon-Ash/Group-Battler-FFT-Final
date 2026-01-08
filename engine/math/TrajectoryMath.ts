@@ -4,14 +4,19 @@ import { Point3D } from "./VisualMath";
 
 export { Point3D };
 
+export interface TrajectoryConfig {
+    type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT';
+    arcHeight?: number;
+    wobbleFreq?: number;
+    wobbleAmp?: number;
+}
+
 /**
- * 飛行幾何真理庫 v14.0 - Analytic Ballistics
+ * 飛行幾何真理庫 v15.0 - Pure 3D Trajectory Logic
+ * 只負責計算 3D 空間中的點，不處理視覺投影。
  */
 export const TrajectoryMath = {
     
-    /**
-     * 線性插值座標 (解析解)
-     */
     linear: (start: Point3D, end: Point3D, t: number): Point3D => {
         return {
             x: start.x + (end.x - start.x) * t,
@@ -20,22 +25,14 @@ export const TrajectoryMath = {
         };
     },
 
-    /**
-     * 解析拋物線 (Parabolic Arc)
-     * 計算在進度 t 時的 3D 座標，h 為頂點拱高
-     */
     parabolic: (start: Point3D, end: Point3D, t: number, h: number): Point3D => {
         const x = start.x + (end.x - start.x) * t;
         const y = start.y + (end.y - start.y) * t;
         const linearZ = start.z * (1 - t) + end.z * t;
-        // 拋物線高度公式: 4h * t * (1-t)
         const arcZ = 4 * h * t * (1 - t);
         return { x, y, z: linearZ + arcZ };
     },
 
-    /**
-     * 螺旋擺動軌跡 (Wobble Path)
-     */
     wobble: (start: Point3D, end: Point3D, t: number, amp: number, freq: number): Point3D => {
         const base = TrajectoryMath.linear(start, end, t);
         const dx = end.x - start.x;
@@ -43,7 +40,6 @@ export const TrajectoryMath = {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 1) return base;
 
-        // 計算垂直於運動方向的法線向量
         const nx = -dy / dist;
         const ny = dx / dist;
         const wave = Math.sin(t * Math.PI * 2 * freq) * amp;
@@ -56,20 +52,15 @@ export const TrajectoryMath = {
     },
 
     /**
-     * 計算解析解在一階導數下的切向角
-     * 會考慮 Z 軸變化對等角投影 (Y 軸壓縮) 的視覺影響
+     * SSOT 軌跡計算入口
      */
-    getProjectedAngle: (func: (t: number) => Point3D, t: number, isoScaleY: number): number => {
-        const eps = 0.01;
-        const p1 = func(t);
-        const p2 = func(Math.min(1.0, t + eps));
-        
-        const dx = p2.x - p1.x;
-        const dy = p2.y - p1.y;
-        const dz = p2.z - p1.z;
-
-        // 視覺 Y 變化量 = (物理 Y * ISO 壓縮) - 高度變化 Z
-        const vy = dy * isoScaleY - dz;
-        return Math.atan2(vy, dx);
+    evaluate: (config: TrajectoryConfig, start: Point3D, end: Point3D, t: number): Point3D => {
+        if (config.type === 'ARC') {
+            return TrajectoryMath.parabolic(start, end, t, config.arcHeight || 150);
+        }
+        if (config.type === 'WOBBLE') {
+            return TrajectoryMath.wobble(start, end, t, config.wobbleAmp || 15, config.wobbleFreq || 2);
+        }
+        return TrajectoryMath.linear(start, end, t);
     }
 };

@@ -40,7 +40,7 @@ export class RenderOp {
     pVisX: number = 0; pVisY: number = 0; pVisShadowY: number = 0;
     pSkillVis: string = ''; pColor: string = '';
     pIsUlt: boolean = false; pAngle: number = 0; pSpin: number = 0;
-    pScale: number = 1.0; // New: Data-driven scale factor
+    pScale: number = 1.0; 
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
     dColor: string = ''; dScale: number = 1; dLife: number = 0;
@@ -107,39 +107,30 @@ export class RenderList {
             const op = this.ops[i];
             
             /**
-             * 唯一數學排序規範 v17.0 (Topological Ground Sort)
+             * 唯一數學排序規範 v17.1 (Topological Ground Sort - Z Fix)
              * 
-             * 1. 瓦片排序 (Terrain): 依賴 Screen Y (op.ty) 進行物理排序。
-             *    - 原始的 (q+r) 邏輯排序在 Pointy Layout 下可能導致邊緣疊加錯誤。
-             *    - 使用 ty (Visual Base Y) 可確保較低的圖塊永遠覆蓋較高的圖塊。
-             * 
-             * 2. 物件排序 (Unit/Prop):
-             *    - 物件依賴其 Screen Y (op.y) 進行排序。
+             * 1. 地形層 (Terrain): 使用 Visual Base Y (ty) 排序。
+             * 2. 物件層 (Unit/Prop): 使用 Footprint Y (y) 排序。
+             *    [CRITICAL] 不將 Z 軸高度計入排序鍵值。
+             *    在 2.5D 投影中，深度完全由 Y 軸決定。將 Z 計入會導致跳躍單位錯誤地覆蓋前方單位。
              */
             
             let sortKey = 0;
 
             if (op.type === RenderOpType.TERRAIN) {
                 // 地形層：基礎權重 0 ~ 20,000,000
-                // 改用 ty (Visual Screen Y) 排序
-                // 加 5000 偏移確保正數，乘 100 保留精度
                 sortKey = Math.floor((op.ty + 5000) * 100);
             } 
             else {
                 // 物件層：基礎權重 20,000,000 +
-                // 為了修復 "地板穿插"，我們採用分層策略：
-                // 地形永遠先畫 (Layer 0)
-                // 地面裝飾 (Layer 1)
-                // 單位/障礙物 (Layer 2) - 依 Y 軸排序
-                // 飛行物/特效 (Layer 3)
-                
                 let layerBase = 0;
                 if (op.type === RenderOpType.HAZARD || op.type === RenderOpType.DECAL) layerBase = 20000000;
                 else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) layerBase = 40000000;
                 else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) layerBase = 60000000;
                 
                 // 同層內依 Screen Y 排序 (由後至前 -> Y 值由小到大)
-                sortKey = layerBase + Math.floor(op.y * 100) + Math.floor(op.z);
+                // 只使用 op.y (Footprint)，忽略 op.z (Altitude)
+                sortKey = layerBase + Math.floor(op.y * 100);
             }
 
             // 特殊：奧義/高空特效絕對置頂

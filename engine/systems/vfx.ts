@@ -3,11 +3,14 @@ import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
 import { VFXPhysics } from "./vfx/VFXPhysics";
 import { VFXAmbience } from "./vfx/VFXAmbience";
+import { AgentVFXSystem } from "./vfx/AgentVFXSystem";
 import { Point3D } from "../math/VisualMath";
+import { GameEngine } from "../game";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
     private ambience: VFXAmbience = new VFXAmbience();
+    private agentVFX: AgentVFXSystem = new AgentVFXSystem();
     
     public reset() { this.state.reset(); }
     
@@ -30,8 +33,15 @@ export class VFXSystem {
      * SSOT Update:
      * @param dt - Scaled Simulation Delta Time (0 if paused)
      * @param battleTime - Current Battle Time (for procedural shaders)
+     * @param engine - Reference to game engine for reading Agent state
      */
-    update(dt: number, battleTime: number, ambientType: string, getTerrainHeight?: (x: number, y: number) => number) {
+    update(
+        dt: number, 
+        battleTime: number, 
+        ambientType: string, 
+        getTerrainHeight: (x: number, y: number) => number,
+        engine?: GameEngine 
+    ) {
         const particles = this.state.particles;
         let count = particles.length;
         
@@ -72,5 +82,11 @@ export class VFXSystem {
         }
         
         this.ambience.update(dt, ambientType, this.state);
+
+        // Update Agent-based Continuous VFX (Dust, Status)
+        // Only if engine is provided (it is provided by GameRenderer)
+        if (engine) {
+            this.agentVFX.update(dt, engine, this);
+        }
     }
 }

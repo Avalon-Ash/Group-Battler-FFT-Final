@@ -26,7 +26,7 @@ export class ProjectileSystem {
             p.t = Math.min(1.0, p.t + dtStep);
 
             // 2. Calculate True 3D Position (SSOT)
-            // Logic now knows exactly where the projectile is, including height (Arc) and wobble.
+            // Logic now uses the centralized math function
             this.updatePosition(p);
 
             // 3. Impact Check
@@ -41,20 +41,9 @@ export class ProjectileSystem {
     private updatePosition(p: Projectile) {
         const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
         const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
-        const traj = p.trajectoryInfo;
-
-        let pos: Point3D;
-
-        if (traj.type === 'ARC') {
-            const arcH = Math.min(traj.arcHeight || 150, Math.max(30, p.totalDist * 0.35));
-            pos = TrajectoryMath.parabolic(start, end, p.t, arcH);
-        } 
-        else if (traj.type === 'WOBBLE') {
-            pos = TrajectoryMath.wobble(start, end, p.t, traj.wobbleAmp || 15, traj.wobbleFreq || 2);
-        } 
-        else {
-            pos = TrajectoryMath.linear(start, end, p.t);
-        }
+        
+        // Use SSOT evaluate function
+        const pos = TrajectoryMath.evaluate(p.trajectoryInfo, start, end, p.t);
 
         p.x = pos.x;
         p.y = pos.y;
@@ -70,8 +59,6 @@ export class ProjectileSystem {
             const radiusPx = radiusGrid * HEX_SIZE + 10;
             const radiusSq = radiusPx * radiusPx;
 
-            const hitHex = VisualMath.resolveTargetPoint(p.targetId, engine); // Approximate
-            
             engine.agents.forEach(t => {
                 if (t.team !== p.team && t.hp > 0 && !t.banished) {
                     const targetPx = VisualMath.getUnitAnchor(t, engine);
@@ -84,17 +71,6 @@ export class ProjectileSystem {
                     }
                 }
             });
-            
-            // Note: spawnHazards requires Hexes, we need to convert hitPos to Hex
-            // This is slightly expensive but accurate
-            if (source) {
-                // TODO: Optimize getting hexes in range
-                // For now, reuse the existing logic in HazardManager which takes center hex
-                // We need to pass the target hex from the original skill context if possible
-                // But p.targetId might be generic.
-                // Fallback:
-                // HazardManager.spawnHazards(source, [HexUtils.fromPx(...)], ...);
-            }
             
             engine.events.push({ type: 'IMPACT_AOE', pos: hitPos, skill: p.skill, color: p.skill.color });
         } else {
@@ -138,8 +114,6 @@ export class ProjectileSystem {
         p.targetId = targetId;
         p.trail = [];
 
-        // SSOT: Embed Trajectory Configuration at Spawn Time
-        // This ensures Physics and Rendering use the exact same definition
         const visualKey = skill.visualProjectileEffect || skill.visual || 'BOLT';
         const def = PROJECTILE_VISUALS[visualKey] || DEFAULT_PROJECTILE;
         
@@ -153,7 +127,6 @@ export class ProjectileSystem {
             scale: def.scale
         };
 
-        // Initialize Position immediately
         this.updatePosition(p);
 
         engine.projectiles.push(p);

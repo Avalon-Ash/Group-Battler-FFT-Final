@@ -1,6 +1,6 @@
 
 import { GameEngine } from "../game";
-import { GroundHazard, Team } from "../../types";
+import { GroundHazard, Team, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
 import { COMBAT_PARAM } from "../../constants";
@@ -67,7 +67,8 @@ export class HazardSystem {
             if (!hazard) return;
 
             if (hazard.team !== agent.team) {
-                if (agent.movementType === 1 && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return;
+                // Flying units are immune to ground hazards like Fire/Poison
+                if (agent.movementType === MovementType.FLYING && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return;
 
                 if (hazard.timer <= 0) {
                     const dmg = hazard.power;

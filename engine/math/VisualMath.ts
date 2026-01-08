@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS } from "../../constants";
@@ -47,6 +48,19 @@ export class VisualMath {
 
     public static getIsoVisualY(y: number, z: number, extraOffset: number = 0): number {
         return y - z + extraOffset;
+    }
+
+    /**
+     * 計算兩個 3D 點在 2D 投影平面上的視覺角度
+     * SSOT: 使用 getIsoVisualY 公式進行投影，確保角度與視覺一致
+     */
+    public static calculateProjectedAngle(p1: Point3D, p2: Point3D): number {
+        const dx = p2.x - p1.x;
+        // 視覺 Y 差值 = (y2 - z2) - (y1 - z1)
+        const vy1 = this.getIsoVisualY(p1.y, p1.z);
+        const vy2 = this.getIsoVisualY(p2.y, p2.z);
+        const dy = vy2 - vy1;
+        return Math.atan2(dy, dx);
     }
 
     /**

@@ -3,7 +3,6 @@ import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath, Point3D } from "../../../math/VisualMath";
-import { ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -16,25 +15,38 @@ export const ProjectileRenderer = {
             if (!p.active) continue;
 
             const traj = p.trajectoryInfo;
+            const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
+            const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
 
-            // 1. Use Logic Position (SSOT)
-            // No more TrajectoryMath.calculate here. Logic has already done it.
+            // 1. Get Logic Position (Already calculated by ProjectileSystem)
             const current3D = { x: p.x, y: p.y, z: p.z };
 
             // 2. Calculate Visual Angle (Derivative)
-            // We still need the formula to calculate the angle tangent
-            const getPosAt = (t: number) => {
-                const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
-                const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
-                if (traj.type === 'ARC') return TrajectoryMath.parabolic(start, end, t, traj.arcHeight || 150);
-                if (traj.type === 'WOBBLE') return TrajectoryMath.wobble(start, end, t, traj.wobbleAmp || 15, traj.wobbleFreq || 2);
-                return TrajectoryMath.linear(start, end, t);
-            };
+            // Use TrajectoryMath to predict slightly future position
+            // Then use VisualMath to project both points and get the 2D angle
             
-            const visAngle = TrajectoryMath.getProjectedAngle(getPosAt, p.t, ISO_SCALE_Y);
+            // Sample a bit ahead to get the tangent
+            let tNext = p.t + 0.01;
+            // Handle end-of-flight boundary (use backward diff if at end)
+            if (tNext > 1.0) tNext = p.t - 0.01; 
+            
+            const next3D = TrajectoryMath.evaluate(traj, start, end, tNext);
+            
+            // If at end, vector is p -> prev, so angle needs flip? 
+            // calculateProjectedAngle(p1, p2) gives angle from p1 to p2.
+            // If p.t < 1.0, we want angle(current, next).
+            // If p.t >= 1.0, we used backward diff (next is actually prev), so we want angle(prev, current).
+            
+            let visAngle;
+            if (p.t >= 1.0) {
+                visAngle = VisualMath.calculateProjectedAngle(next3D, current3D);
+            } else {
+                visAngle = VisualMath.calculateProjectedAngle(current3D, next3D);
+            }
 
             // 3. Project to Screen
             const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y, engine.mapConfig, transitionT, transitionPhase);
+            // Use SSOT Projection
             const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
 
             const op = renderList.next();
@@ -53,16 +65,15 @@ export const ProjectileRenderer = {
             
             // 4. Trails (Calculated purely visually backwards from SSOT position)
             op.pTrail = [];
-            // Use visuals DB or default for trail length, as it's purely cosmetic and not in SSOT Logic state
-            // Optimization: Just use a standard length or infer from type
             const trailSamples = p.skill.tag === 'ULT' ? 20 : 10;
             
             if (trailSamples > 0) {
                 const step = 0.015; 
                 for (let j = 1; j <= trailSamples; j++) {
                     const tPast = Math.max(0, p.t - j * step);
-                    // We must recalculate past positions as we don't store history in Logic
-                    const past3D = getPosAt(tPast);
+                    // Use SSOT Evaluate for past points
+                    const past3D = TrajectoryMath.evaluate(traj, start, end, tPast);
+                    
                     const pOffset = VisualMath.getTransitionOffset(past3D.x, past3D.y, engine.mapConfig, transitionT, transitionPhase);
                     const pastY = VisualMath.getIsoVisualY(past3D.y, past3D.z) + pOffset;
                     op.pTrail.push({ x: past3D.x, y: pastY });
