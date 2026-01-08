@@ -1,6 +1,4 @@
-
 import { Agent, GameEngine } from "../game";
-import type { GridSystem } from "../systems/grid";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS } from "../../constants";
 
@@ -24,9 +22,6 @@ export class VisualMath {
         LIQUID_OFFSET: 1
     };
 
-    /**
-     * 計算場景轉場導致的垂直偏置 (SSOT Logic)
-     */
     public static getTransitionOffset(x: number, y: number, config: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
         if (phase === 'IDLE') return 0;
         const cx = config.offsetX;
@@ -55,31 +50,32 @@ export class VisualMath {
     }
 
     /**
-     * Helper for entity-based HUD/VFX positioning.
-     * Combines logical Y, terrain height, and physical offsets.
+     * 套用渲染層級偏置以解決 Z-fighting
      */
-    public static getEntityVisualY(logicalY: number, terrainH: number, physY: number, physZ: number, extraOffset: number = 0): number {
-        const surfaceY = (logicalY + physY) - terrainH;
-        return this.getIsoVisualY(surfaceY, physZ, extraOffset);
+    public static applyLayerBias(surfaceY: number, layer: keyof typeof VisualMath.Z_LAYERS): number {
+        return surfaceY - this.Z_LAYERS[layer];
     }
 
-    public static getOverheadVisualY(surfaceY: number, z: number, bob: number = 0): number {
-        const bodyCenterY = this.getVisualBodyCenterY(surfaceY, z);
-        return bodyCenterY - VISUAL_ANCHORS.HEAD_OFFSET_Y - 10 + bob;
-    }
-
-    public static applyLayerBias(visualY: number, layer: keyof typeof VisualMath.Z_LAYERS): number {
-        return visualY - this.Z_LAYERS[layer];
+    /**
+     * 計算實體（如 HUD）的視覺 Y 軸錨點
+     */
+    public static getEntityVisualY(py: number, terrainH: number, physicsY: number, physicsZ: number, offset: number): number {
+        return (py + physicsY) - terrainH - physicsZ + offset;
     }
 
     public static getVisualBodyCenterY(surfaceY: number, z: number): number {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
     }
 
-    public static getUnitAnchor(agent: Agent, engine: GameEngine, grid: GridSystem | null = null): Point3D {
-        const terrainH = grid 
-            ? grid.getTerrainHeight(agent.q, agent.r, engine) 
-            : engine.map.getTerrainHeight(agent.q, agent.r);
+    /**
+     * 計算頭頂特效（如狀態圖標）的視覺 Y 軸位置
+     */
+    public static getOverheadVisualY(surfaceY: number, z: number, bob: number): number {
+        return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET - VISUAL_ANCHORS.HEAD_OFFSET + bob;
+    }
+
+    public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
+        const terrainH = engine.map.getTerrainHeight(agent.q, agent.r);
         const chestHeight = (UNIT_VISUAL_HEIGHT * 0.45) * UNIT_SCALE;
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestHeight;
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
@@ -87,18 +83,15 @@ export class VisualMath {
 
     public static resolveTargetPoint(targetId: string, engine: GameEngine): Point3D {
         if (!targetId) return { x: 0, y: 0, z: -9999 };
-        // Corrected variable reference from agentId to targetId
         const agent = engine.agents.find(a => a.id === targetId);
         if (agent) return this.getUnitAnchor(agent, engine);
         if (targetId.startsWith("ground-")) {
             const parts = targetId.split("-")[1].split(",");
-            if (parts.length === 2) {
-                const q = parseInt(parts[0]);
-                const r = parseInt(parts[1]);
-                const p = HexUtils.toPx(q, r, engine.mapConfig);
-                const h = engine.map.getTerrainHeight(q, r);
-                return { x: p.x, y: p.y, z: h + 2 };
-            }
+            const q = parseInt(parts[0]);
+            const r = parseInt(parts[1]);
+            const p = HexUtils.toPx(q, r, engine.mapConfig);
+            const h = engine.map.getTerrainHeight(q, r);
+            return { x: p.x, y: p.y, z: h + 2 };
         }
         return { x: 0, y: 0, z: -9999 };
     }

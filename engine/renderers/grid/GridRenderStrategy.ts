@@ -6,11 +6,7 @@ import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
-const OBSTACLE_Z_INDEX = 10;
-const PROJ_LIGHT_RADIUS_SQ = 1600;
-
 export class GridRenderStrategy {
-    
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
 
@@ -43,11 +39,10 @@ export class GridRenderStrategy {
             }
         }
 
-        const len = cache.tileList.length;
-        for (let i = 0; i < len; i++) {
-            const tile = cache.tileList[i];
+        for (const tile of cache.tileList) {
             const { q, r, px, py, h, key } = tile;
             
+            // 使用 VisualMath 進行轉場位移解算
             const offset = VisualMath.getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualBaseY = py + offset;
             const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
@@ -73,30 +68,25 @@ export class GridRenderStrategy {
                 hOp.time = globalTime;
             }
 
-            const zoneInfo = engine.zones.getZoneAt(q, r);
-            let isRange = false;
-            let rangeColor = '';
-            if (hoveredSkill && highlightAgent) {
-                const agentH = engine.map.getTerrainHeight(highlightAgent.q, highlightAgent.r);
-                const deltaH = agentH - h;
-                const bonus = Math.max(0, Math.floor(deltaH / 24)); 
-                const dist = HexUtils.dist({q, r}, {q: highlightAgent.q, r: highlightAgent.r});
-                if (dist <= hoveredSkill.range + bonus) { isRange = true; rangeColor = hoveredSkill.color; }
-            }
-            
-            const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h;
             op.tx = px; op.ty = visualBaseY; 
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
-            op.oDanger = zoneInfo; 
-            op.oRange = isRange; op.oRangeCol = rangeColor;
-            op.oHover = isHover; op.oHasUnit = hasUnit;
+            op.oDanger = engine.zones.getZoneAt(q, r); 
+            op.oRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
+            op.oRangeCol = hoveredSkill?.color || '';
+            op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
+            op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
             op.time = globalTime;
         }
+    }
+
+    private checkIsRange(q: number, r: number, h: number, skill: Skill | null, highlight: Agent | null, engine: GameEngine): boolean {
+        if (!skill || !highlight) return false;
+        const agentH = engine.map.getTerrainHeight(highlight.q, highlight.r);
+        const bonus = Math.max(0, Math.floor((agentH - h) / 24)); 
+        return HexUtils.dist({q, r}, {q: highlight.q, r: highlight.r}) <= skill.range + bonus;
     }
 }
