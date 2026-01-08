@@ -23,7 +23,6 @@ export class ProjectileSystem {
             const dtStep = dt / p.totalDuration;
             p.t = Math.min(1.0, p.t + dtStep);
 
-            // 邏輯坐標插值 (作為物理真理)
             p.x = p.startX + (p.endX - p.startX) * p.t;
             p.y = p.startY + (p.endY - p.startY) * p.t;
             p.z = p.startZ + (p.endZ - p.startZ) * p.t;
@@ -42,7 +41,6 @@ export class ProjectileSystem {
 
         if (p.skill.type === 'AOE') {
             const radiusGrid = p.skill.aoeRadius || 1;
-            // 轉換為像素半徑，並給予微量寬容度 (+10px) 以補償視覺邊緣
             const radiusPx = radiusGrid * HEX_SIZE + 10;
             const radiusSq = radiusPx * radiusPx;
 
@@ -50,22 +48,17 @@ export class ProjectileSystem {
             
             engine.agents.forEach(t => {
                 if (t.team !== p.team && t.hp > 0 && !t.banished) {
-                    // [FIX] 使用像素距離判定而非網格距離，解決視覺覆蓋但邏輯判失誤的問題
-                    // 特別是對於核彈這種超大範圍、低速落點的技能
                     const targetPx = HexUtils.toPx(t.q, t.r, engine.mapConfig);
                     const dx = targetPx.x - hitPos.x;
                     const dy = targetPx.y - hitPos.y;
                     const distSq = dx*dx + dy*dy;
 
                     if (distSq <= radiusSq) {
-                        // 即使施法者已死，只要 projectile 存在就應該造成傷害
-                        // 如果 source 消失 (極端情況)，則無法計算屬性加成，暫時跳過
                         if (source) skillExecutor.resolveHit(source, t, p.skill, hitPos, engine);
                     }
                 }
             });
             
-            // 仍然生成危險區域 (Hazards 依賴網格)
             if (source) HazardManager.spawnHazards(source, HexUtils.range(hitHex, radiusGrid), p.skill, engine);
             
             engine.events.push({ type: 'IMPACT_AOE', pos: hitPos, skill: p.skill, color: p.skill.color });

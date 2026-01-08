@@ -6,14 +6,11 @@ import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 
 export class AgentManager {
     public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
-        // Prevent spawning on blocked tiles or other units
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
-        // Generate Sequential ECS ID
         const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
         const a = new Agent(id, team, q, r, engine.mapConfig);
         
-        // 如果傳入了 roleOverride，則使用指定的職業，否則隨機分配
         if (roleOverride) {
             a.role = roleOverride;
         } else {
@@ -61,10 +58,7 @@ export class AgentManager {
             engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, sourceId: a.id, team: a.team });
             a.deadLogged = true;
             a.setAnim(AnimState.DEAD);
-            
-            // Remove from spatial map so others can walk here
             engine.map.unregisterAgent(a);
-            
             a.fullyDead = true; 
             a.isMoving = false; 
             a.path = [];

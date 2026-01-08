@@ -41,11 +41,10 @@ export class HazardSystem {
         const def = HAZARD_VISUALS[type];
         if (def && def.spawnVfx) {
             const px = HexUtils.toPx(q, r, engine.mapConfig);
-            // Decoupled: Emit event instead of calling renderer directly
             engine.events.push({ 
                 type: 'HAZARD_SPAWN', 
                 pos: { x: px.x, y: px.y }, 
-                text: def.spawnVfx // Use text field to pass VFX ID
+                text: def.spawnVfx 
             });
         }
     }

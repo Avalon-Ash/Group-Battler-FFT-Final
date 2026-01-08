@@ -44,9 +44,8 @@ export class Agent {
     public btStatus: string = "待機";
     public bt: BTNode | null = null;
     
-    // AI Loop Control
     public aiUpdateTimer: number = 0;
-    public aiUpdateInterval: number = 0.3; // Default 300ms tick
+    public aiUpdateInterval: number = 0.3;
 
     public trailHistory: {x: number, y: number, z: number}[] = [];
 
@@ -103,7 +102,6 @@ export class Agent {
         this.py = p.y;
         this.facing = team === Team.BLUE ? 1 : -1;
         
-        // Randomize AI tick to prevent frame spikes
         this.aiUpdateInterval = 0.2 + Math.random() * 0.2; 
 
         this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR };
@@ -189,7 +187,6 @@ export class Agent {
         this.target = null;
         this.targetHex = null;
         
-        // Reset AI
         this.aiUpdateTimer = Math.random() * 0.5;
         this.physics = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, angle: 0, vAngle: 0 };
         this.trailHistory = [];

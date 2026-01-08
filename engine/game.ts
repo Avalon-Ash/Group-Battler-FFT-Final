@@ -35,7 +35,6 @@ export class GameEngine {
     public agents: Agent[] = [];
     public projectiles: Projectile[] = [];
     
-    // ECS ID System
     private _entityCounter: number = 0;
 
     public state = {
@@ -70,13 +69,11 @@ export class GameEngine {
 
     public events: GameEvent[] = [];
     public bus: EventBus = new EventBus();
-    // Decoupled: Removed public renderer property. Logic should utilize the Event Bus.
-    public renderer?: GameRenderer; // KEPT ONLY FOR TYPE COMPATIBILITY IN REACT REFS TEMPORARILY, BUT LOGIC SHOULD NOT USE IT.
+    public renderer?: GameRenderer; 
     
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
-    // Dynamic Layout Info
     public screenAspect: number = 1.77;
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
@@ -104,7 +101,6 @@ export class GameEngine {
         this.map.randomizeEnvironment(this);
     }
 
-    // Centralized ID Generator
     public nextId(prefix: string = 'ENT'): string {
         this._entityCounter++;
         return `${prefix}-${this._entityCounter.toString().padStart(4, '0')}`;
@@ -122,7 +118,6 @@ export class GameEngine {
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 
-        // Removed direct renderer call. Use Event instead.
         this.bus.emit('ENV_UPDATE', {});
         this.map.randomizeEnvironment(this); 
     }
@@ -198,15 +193,13 @@ export class GameEngine {
         });
         this.projectiles = [];
         
-        // Removed direct renderer calls. Rely on GAME_RESET event.
-        
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_RESET', {});
     }
 
     public clear(keepScene: boolean = false) {
         this.stop();
-        this._entityCounter = 0; // Reset ID counter for new session
+        this._entityCounter = 0; 
         this.agents = [];
         this.projectiles = [];
         this.map.clearAgents();
