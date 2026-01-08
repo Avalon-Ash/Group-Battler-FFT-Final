@@ -56,7 +56,8 @@ export class RenderDispatcher {
                 if (op.particle) {
                     ctx.save();
                     ctx.translate(snapX, snapY);
-                    ParticleRenderer.drawSingleParticle(ctx, op.particle, 0, 0, op.vProgress, op.vChaos, layout);
+                    // Pass globalTime (BattleTime) to renderer to sync rotations
+                    ParticleRenderer.drawSingleParticle(ctx, op.particle, 0, 0, op.vProgress, op.vChaos, layout, globalTime);
                     ctx.restore();
                 }
                 break;

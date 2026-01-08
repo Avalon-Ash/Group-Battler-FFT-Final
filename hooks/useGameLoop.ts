@@ -128,8 +128,8 @@ export const useGameLoop = (
                 }
             }
             
-            // Pass realTime for Ambience/UI, and Engine contains battleTime for Simulation
-            rendererRef.current.update(dt / 1000, engine, cameraRef, realTimeRef.current);
+            // Renderer update now handles time splitting internally using Engine state
+            rendererRef.current.update(dt / 1000, engine, cameraRef);
             drawCallbackRef.current(ctx, fpsRef.current);
 
             frameRef.current = requestAnimationFrame(loop);

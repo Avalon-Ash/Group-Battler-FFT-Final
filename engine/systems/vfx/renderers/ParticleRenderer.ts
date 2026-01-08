@@ -10,18 +10,26 @@ const PROCEDURAL_SET = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DE
 const GROUND_PLANE_SET = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW']);
 
 /**
- * Unified Particle Dispatcher v8.6
+ * Unified Particle Dispatcher v9.0 (Time SSOT)
  */
 export const ParticleRenderer = {
     
-    drawSingleParticle(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, isChaos: boolean, layout: HexLayout) {
-        const now = Date.now() / 1000;
-
+    drawSingleParticle(
+        ctx: CanvasRenderingContext2D, 
+        p: Particle, 
+        drawX: number, 
+        drawY: number, 
+        progress: number, 
+        isChaos: boolean, 
+        layout: HexLayout,
+        battleTime: number // SSOT: Received from RenderLoop
+    ) {
         // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)
+        // Uses BattleTime for synchronous rotation/pulsing
         if (PROCEDURAL_SET.has(p.type)) {
             ctx.save();
             ctx.translate(drawX, drawY);
-            ProceduralPainter.draw(ctx, p, progress, now, layout);
+            ProceduralPainter.draw(ctx, p, progress, battleTime, layout);
             ctx.restore();
             return;
         }

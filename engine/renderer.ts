@@ -1,4 +1,3 @@
-
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill } from "../types";
 import { GridSystem } from "./systems/grid";
@@ -10,7 +9,7 @@ import { CameraSystem, Camera } from "./systems/CameraSystem";
 import { VisualEventListener } from "./systems/VisualEventListener";
 import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
-import { SequenceSystem } from "./systems/visuals/SequenceSystem";
+import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
 
 export { Camera };
 
@@ -83,7 +82,8 @@ export class GameRenderer {
         return this.grid.getHexAtWorldPoint(wx, wy, engine);
     }
 
-    public update(dt: number, engine: GameEngine, externalCameraRef?: any, realTime: number = 0): void {
+    public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {
+        // 1. Camera Update (Always RealTime for smoothness)
         this.camera.update(dt);
         
         if (externalCameraRef?.current) {
@@ -91,19 +91,31 @@ export class GameRenderer {
             externalCameraRef.current.y = this.camera.y;
         }
 
-        // 同步特效序列隊列
+        // 2. SSOT Time Calculation
+        // Simulation Time Delta = Real DT * TimeScale (0 if paused)
+        const simDt = engine.isRunning ? dt * engine.timeScale : 0;
+        const battleTime = engine.battleTime; // SSOT from Logic
+
+        // 3. Sequence System (Logic Driven)
         SequenceSystem.update(engine, this.vfx);
 
+        // 4. Render Pipeline (Transitions)
         this.pipeline.update(dt, engine); 
         
-        // VFX Update uses RealTime for ambient, BattleTime for logic usually, but here we pass realTime for smoothness
-        this.vfx.update(dt, realTime, engine.currentScene.ambientType, 
+        // 5. VFX System (Time Dilation Applied)
+        // Ambience and Particles now move in sync with game speed (Bullet Time ready)
+        this.vfx.update(
+            simDt, 
+            battleTime, 
+            engine.currentScene.ambientType, 
             (x, y) => this.grid.getTerrainHeight(
                 this.grid.getHexAtWorldPoint(x, y, engine)?.q || 0,
                 this.grid.getHexAtWorldPoint(x, y, engine)?.r || 0,
                 engine
             )
         );
+
+        // 6. HUD System (Always RealTime, UI should not freeze)
         this.hud.update(dt);
     }
 
