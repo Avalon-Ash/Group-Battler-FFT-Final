@@ -1,5 +1,4 @@
 
-// This mimics a JSON structure that could be loaded from a file
 export interface BTDef {
     type: 'SELECTOR' | 'SEQUENCE' | 'CONDITION' | 'ACTION';
     name: string;
@@ -52,6 +51,15 @@ export const STANDARD_AI_PROFILE: BTDef = {
                         createSkillRoutine(2, "Basic")
                     ]
                 },
+                // [NEW] Gap Close Fallback: If skills are on CD, ensure we stay close to target
+                {
+                    type: 'SEQUENCE',
+                    name: 'Gap Close',
+                    children: [
+                        // Try to chase using Basic Attack range as reference (Slot 2)
+                        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } } 
+                    ]
+                },
                 { type: 'ACTION', name: 'Idle', key: 'Idle' }
             ]
         }
@@ -92,7 +100,7 @@ function createSkillRoutine(slot: number, label: string): BTDef {
                             }
                         ]
                     },
-                    // B. Fallback Chase
+                    // B. Fallback Chase (If optimal spot calculation fails, e.g. blocked)
                     { type: 'ACTION', name: 'Chase', key: 'ChaseTarget', args: { slot } }
                 ]
             }
