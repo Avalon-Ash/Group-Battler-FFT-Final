@@ -3,6 +3,7 @@ import { AnimState, Role, Team } from "../../../../types";
 import { getCastProgress } from "../utils";
 import { THEME_COVENANT } from "../../../../constants";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
+import { UnitCorePainter } from "../painters/UnitCorePainter";
 
 function easeAttack(t: number): number {
     if (t < 0.45) {
@@ -101,6 +102,15 @@ export const CovenantRenderer = {
         ctx.restore();
 
         drawCovenantBody(ctx, agent.role);
+
+        // SSOT Core Attachment: Attached to Chest Bone
+        if (agent.hp > 0 && agent.visualStatus === 'NONE') {
+             ctx.save();
+             // Adjusted to -28 (Chest) from -12 (Crotch)
+             ctx.translate(0, -28); 
+             UnitCorePainter.draw(ctx, agent, t);
+             ctx.restore();
+        }
 
         ctx.save();
         ctx.translate(22, -30);
