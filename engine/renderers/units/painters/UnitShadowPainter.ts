@@ -23,9 +23,8 @@ export const UnitShadowPainter = {
         // Uses agent.physics.z directly (SSOT)
         const jumpHeight = agent.physics.z;
         
-        // 調低基礎透明度從 1.0 降至 0.35，避免呈現全黑塊
-        const shadowScale = Math.max(0.4, 1.0 - (jumpHeight / 500));
-        const shadowAlpha = Math.max(0.05, 0.35 - (jumpHeight / 300));
+        // SSOT: Use centralized shadow formula
+        const { scale: shadowScale, alpha: shadowAlpha } = VisualMath.getShadowProperties(jumpHeight);
         const shadowBlob = VFXFactory.getTexture('SHADOW_BLOB', 'rgba(0,0,0,1)'); 
         
         ctx.save();
@@ -33,9 +32,9 @@ export const UnitShadowPainter = {
         ctx.scale(UNIT_SCALE, UNIT_SCALE); 
         ctx.scale(shadowScale, shadowScale);
         ctx.globalAlpha = shadowAlpha;
-        ctx.globalCompositeOperation = 'multiply'; // 使用色彩增值模式讓陰影與地表融合
+        ctx.globalCompositeOperation = 'multiply'; // Use multiply to blend with ground
         
-        const w = 110; // 稍微放寬陰影範圍增加柔和感
+        const w = 110; 
         const h = w * ISO_SCALE_Y;
         ctx.drawImage(shadowBlob, -w/2, -h/2, w, h); 
         ctx.restore();

@@ -3,9 +3,7 @@ import { Agent } from "../../../game";
 import { HEX_SIZE } from "../../../../constants";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../../types";
-
-// 唯一數學常數：詠唱法陣標準抬升量，徹底解決 Z-fighting
-const AURA_FLOOR_LIFT = -1.5; 
+import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitAuraPainter = {
     
@@ -19,8 +17,11 @@ export const UnitAuraPainter = {
         const progress = 1 - (agent.castTimer / skill.cast);
         const color = skill.color;
         
+        // SSOT: Use centralized AURA bias
+        const drawY = VisualMath.applyLayerBias(y, 'AURA');
+
         ctx.save();
-        ctx.translate(x, y + AURA_FLOOR_LIFT); 
+        ctx.translate(x, drawY); 
 
         // 核心數學：法陣半徑隨律動震盪
         const baseSize = HEX_SIZE * 0.95;
@@ -52,7 +53,7 @@ export const UnitAuraPainter = {
 
         // 4. 若為 AOE，繪製精確的邊界指示器
         if (skill.type === 'AOE') {
-            this.drawAoeExpansion(ctx, x, y, color, progress, skill.aoeRadius || 1, layout);
+            this.drawAoeExpansion(ctx, x, drawY, color, progress, skill.aoeRadius || 1, layout);
         }
     },
 
@@ -66,8 +67,11 @@ export const UnitAuraPainter = {
         const progress = 1 - (agent.castTimer / skill.cast);
         const color = skill.color;
         
+        // SSOT
+        const drawY = VisualMath.applyLayerBias(y, 'AURA');
+
         ctx.save();
-        ctx.translate(x, y + AURA_FLOOR_LIFT);
+        ctx.translate(x, drawY);
 
         // 奧義法陣規模較大
         const ultSize = HEX_SIZE * 2.5; 
@@ -120,7 +124,7 @@ export const UnitAuraPainter = {
      */
     drawAoeExpansion(ctx: CanvasRenderingContext2D, x: number, y: number, color: string, progress: number, rangeInTiles: number, layout: HexLayout) {
         ctx.save();
-        ctx.translate(x, y + AURA_FLOOR_LIFT - 0.5); // 稍微再高一點避免與法陣重疊
+        ctx.translate(x, y - 0.5); // 稍微再高一點避免與法陣重疊 (Local micro-adjustment allowed)
         
         // 數學半徑：根據網格尺寸精確映射
         const maxPixelRadius = rangeInTiles * HEX_SIZE;

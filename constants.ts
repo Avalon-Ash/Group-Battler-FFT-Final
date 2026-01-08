@@ -25,6 +25,16 @@ export const HUD_PADDING = 10;
 export const STATUS_ICON_OFFSET = 120;
 export const HUD_BAR_OFFSET = 150;
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
+
+// SSOT: HUD Layout Constants
+export const HUD_LAYOUT = {
+    CAST_BAR_X_OFFSET: 55,
+    CAST_BAR_Y_OFFSET_NORMAL: 10,
+    CAST_BAR_Y_OFFSET_ULT: 30,
+    DAMAGE_TEXT_SCATTER: 10,
+    STATUS_TEXT_OFFSET_X: -45
+};
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {
@@ -36,6 +46,13 @@ export const PHYSICS = {
     DAMPING_ALIVE: 25,
     DRIFT_SPEED: 25.0, 
     TERMINAL_VELOCITY_IMPULSE: 400,
+};
+
+// SSOT: VFX Thresholds
+export const VFX_PARAM = {
+    SPEED_TRAIL_THRESHOLD_SQ: 1000, // Speed^2 to show trails
+    SPEED_TILT_THRESHOLD: 300,      // Speed to start tilting body
+    SPEED_MAX_TILT_REF: 800         // Speed where tilt hits max
 };
 
 export const THEME_IMPERIAL = {
@@ -80,6 +97,10 @@ export const PALETTE = {
     HEAL: '#10b981',
     CRIT: '#ef4444',
     MAGIC: '#8b5cf6'
+};
+
+export const COMBAT_Param = { // Deprecated alias, keeping for compatibility if needed, but prefer COMBAT_PARAM below
+    HIT_IMPULSE_MAX: 600
 };
 
 export const COMBAT_PARAM = {

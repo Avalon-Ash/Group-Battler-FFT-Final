@@ -26,7 +26,6 @@ export class ProjectileSystem {
             p.t = Math.min(1.0, p.t + dtStep);
 
             // 2. Calculate True 3D Position (SSOT)
-            // Logic now uses the centralized math function
             this.updatePosition(p);
 
             // 3. Impact Check

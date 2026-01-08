@@ -1,6 +1,8 @@
+
 import { HEX_SIZE, ISO_SCALE_Y } from "../constants";
 import { Hex, Point, HexLayout } from "../types";
 import { HexMath } from "./math/HexMath";
+
 export interface MapConfig {
     w: number;
     h: number;
@@ -8,9 +10,12 @@ export interface MapConfig {
     offsetY: number;
     layout: HexLayout;
 }
+
+// Bitwise constants for Hex Hashing
 const Q_BIT_SHIFT = 16;
 const Q_OFFSET = 128;
 const R_OFFSET = 128;
+
 export const NEIGHBOR_HASH_OFFSETS = [
     (1 << Q_BIT_SHIFT),
     (1 << Q_BIT_SHIFT) - 1,
@@ -19,32 +24,7 @@ export const NEIGHBOR_HASH_OFFSETS = [
     -(1 << Q_BIT_SHIFT) + 1,
     1
 ];
-export function getTransitionOffset(x: number, y: number, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE'): number {
-    if (phase === 'IDLE') return 0;
-    const cx = mapConfig.offsetX;
-    const cy = mapConfig.offsetY;
-    const dist = Math.sqrt((x - cx)**2 + (y - cy)**2);
-    const maxDist = 1000;
-    const d = Math.min(1, dist / maxDist);
-    const BASE_OFFSET = 1500;
-    if (phase === 'OUT') {
-        const startT = d * 0.3;
-        if (t < startT) return 0;
-        let localT = (t - startT) * 1.8;
-        localT = Math.max(0, Math.min(1, localT));
-        const s = 0.5;
-        const eased = localT * localT * ((s + 1) * localT - s);
-        return eased * BASE_OFFSET;
-    } else if (phase === 'IN') {
-        const startT = d * 0.2;
-        if (t < startT) return BASE_OFFSET;
-        let localT = (t - startT) * 1.5;
-        localT = Math.max(0, Math.min(1, localT));
-        const eased = 1 - Math.pow(1 - localT, 4);
-        return (1 - eased) * BASE_OFFSET;
-    }
-    return 0;
-}
+
 export const HexUtils = {
     offsetToAxial: (col: number, row: number, config: MapConfig): Hex => {
         if (config.layout === 'FLAT') {
@@ -91,6 +71,7 @@ export const HexUtils = {
         return HexMath.line(a, b);
     }
 };
+
 export const Vector = {
     sub: (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y }),
     add: (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y }),

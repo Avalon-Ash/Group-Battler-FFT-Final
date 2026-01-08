@@ -13,12 +13,16 @@ export class VisualMath {
     public static readonly HORIZON_Y_PCT = 0.62;
     public static readonly PROJECTILE_HIT_TOLERANCE_SQ = 900; 
     
+    // SSOT: Visual Layer Biases (Positive value = Shift Upwards visually)
+    // Used to prevent Z-fighting on the ground plane.
     public static readonly Z_LAYERS = {
         TERRAIN: 0,
-        HAZARD: 3,
-        HAZARD_FOG: -15,
-        OVERLAY: 5,
-        SHADOW: 8,
+        HAZARD: 3,       // Lifted above terrain
+        HAZARD_FOG: -15, // Pushed down/behind
+        OVERLAY: 5,      // UI Overlays
+        SHADOW: 8,       // Shadows on top of overlays
+        DECAL: 2,        // Ground decals (cracks, scorch marks)
+        AURA: 1.5,       // Unit Auras (just below decals to blend?) or slightly above
         UNIT_FEET: 0,
         LIQUID_OFFSET: 1
     };
@@ -50,29 +54,22 @@ export class VisualMath {
         return y - z + extraOffset;
     }
 
-    /**
-     * 計算兩個 3D 點在 2D 投影平面上的視覺角度
-     * SSOT: 使用 getIsoVisualY 公式進行投影，確保角度與視覺一致
-     */
     public static calculateProjectedAngle(p1: Point3D, p2: Point3D): number {
         const dx = p2.x - p1.x;
-        // 視覺 Y 差值 = (y2 - z2) - (y1 - z1)
-        const vy1 = this.getIsoVisualY(p1.y, p1.z);
-        const vy2 = this.getIsoVisualY(p2.y, p2.z);
-        const dy = vy2 - vy1;
+        const screenY1 = this.getIsoVisualY(p1.y, p1.z);
+        const screenY2 = this.getIsoVisualY(p2.y, p2.z);
+        const dy = screenY2 - screenY1;
         return Math.atan2(dy, dx);
     }
 
     /**
-     * 套用渲染層級偏置以解決 Z-fighting
+     * Applies standard layer bias to a surface Y coordinate.
+     * Use this for anything drawn "flat" on the ground to avoid flickering.
      */
     public static applyLayerBias(surfaceY: number, layer: keyof typeof VisualMath.Z_LAYERS): number {
         return surfaceY - this.Z_LAYERS[layer];
     }
 
-    /**
-     * 計算實體（如 HUD）的視覺 Y 軸錨點
-     */
     public static getEntityVisualY(py: number, terrainH: number, physicsY: number, physicsZ: number, offset: number): number {
         return (py + physicsY) - terrainH - physicsZ + offset;
     }
@@ -81,11 +78,14 @@ export class VisualMath {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
     }
 
-    /**
-     * 計算頭頂特效（如狀態圖標）的視覺 Y 軸位置
-     */
     public static getOverheadVisualY(surfaceY: number, z: number, bob: number): number {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET - VISUAL_ANCHORS.HEAD_OFFSET + bob;
+    }
+
+    public static getShadowProperties(z: number): { scale: number, alpha: number } {
+        const scale = Math.max(0.4, 1.0 - (z / 500));
+        const alpha = Math.max(0.05, 0.35 - (z / 300));
+        return { scale, alpha };
     }
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {

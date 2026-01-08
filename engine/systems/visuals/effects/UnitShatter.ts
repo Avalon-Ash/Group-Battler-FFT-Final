@@ -8,27 +8,29 @@ import { UNIT_SCALE } from "../../../../../constants";
 export const UnitShatter = {
     /**
      * 高階解體系統：將單位模型拆解為多個物理碎片
+     * SSOT: Requires explicit groundZ to prevent floor clipping guessing
      */
     spawn(
         system: VFXSystem, 
         x: number, y: number, z: number, 
         team: Team, 
         role: Role, 
-        impulseX: number, impulseY: number
+        impulseX: number, impulseY: number,
+        groundZ: number 
     ) {
         const faction = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         const assets = SpriteManager.getUnitImages(role, team);
         
         // 核心參數：爆炸強度 (隨機化讓死亡不重複)
         const explodeForce = 250 + Math.random() * 200;
-        const groundLevel = z - 45; // 估算地面位置
+        const floorLvl = groundZ - 45; // Logic floor for physics bounds (approx)
 
         // 1. 核心衝擊波 (地面)
-        system.playEffect('FX_HIT_GENERIC', x, y, groundLevel, faction.primaryColor, groundLevel);
+        system.playEffect('FX_HIT_GENERIC', x, y, floorLvl, faction.primaryColor, floorLvl);
 
         // 2. 底座破碎 (Heavy Ragdoll Part)
         const pBase = system.state.getParticle();
-        pBase.x = x; pBase.y = y; pBase.z = groundLevel + 5;
+        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 5;
         pBase.image = assets.base;
         pBase.type = 'SPRITE';
         pBase.size = 64 * UNIT_SCALE;

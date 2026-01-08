@@ -65,13 +65,7 @@ export class PhysicsEngine {
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
 
-        const speedSq = a.physics.vx*a.physics.vx + a.physics.vy*a.physics.vy;
-        if (speedSq > 10000 || (a.movementType === MovementType.FLYING && a.hp > 0)) {
-            a.trailHistory.push({ x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z });
-            if (a.trailHistory.length > 10) a.trailHistory.shift();
-        } else if (a.trailHistory.length > 0) {
-            a.trailHistory.shift();
-        }
+        // Note: Trail Logic moved to PhysicsSystem.ts to centralize history management
 
         if (a.physics.z < 0) {
             a.physics.z = 0;
@@ -106,6 +100,7 @@ export class PhysicsEngine {
             const targetPos = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const dx = targetPos.x - a.px, dy = targetPos.y - a.py;
             const distSq = dx*dx + dy*dy;
+            const speedSq = a.physics.vx * a.physics.vx + a.physics.vy * a.physics.vy;
             
             if (speedSq < 5000) {
                 if (distSq > 0.5) {

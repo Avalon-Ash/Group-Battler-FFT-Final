@@ -4,7 +4,8 @@ import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { VFXSystem } from "../vfx";
 import { MapConfig } from "../../utils";
 import { Camera } from "../../systems/CameraSystem";
-import { getTransitionOffset, isChaosStyle } from "./utils";
+import { VisualMath } from "../../math/VisualMath";
+import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 
 const GROUND_PROJECTION_TYPES = new Set([
@@ -25,9 +26,8 @@ export class VFXRenderer {
     ) {
         let cullMinX = -Infinity, cullMaxX = Infinity, cullMinY = -Infinity, cullMaxY = Infinity;
         
-        // Culling Padding needs to be huge vertically to account for Z-axis (Heaven Fall)
         const PAD_X = 1200;
-        const PAD_Y_TOP = 2500; // Look way up for meteors
+        const PAD_Y_TOP = 2500; 
         const PAD_Y_BOT = 1200;
 
         if (viewport) {
@@ -44,7 +44,8 @@ export class VFXRenderer {
             if (p.delay && p.delay > 0) return;
             if (p.x < cullMinX || p.x > cullMaxX || p.y < cullMinY || p.y > cullMaxY) return;
 
-            const offset = getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
+            // Use SSOT Math
+            const offset = VisualMath.getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
             if (Math.abs(offset) > 1500) return;
 
             const op = renderList.next();
@@ -55,7 +56,7 @@ export class VFXRenderer {
             
             op.y = p.y + offset + (isGroundLocked ? 2 : 0); 
             op.z = isGroundLocked ? (p.z + 5) : p.z; 
-            op.pIsUlt = isUlt; // 核心：傳遞奧義標記至排序器
+            op.pIsUlt = isUlt; 
             
             op.particle = p;
             op.vProgress = 1 - (p.life / p.maxLife);
@@ -72,7 +73,7 @@ export class VFXRenderer {
     private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: any, minX: number, maxX: number, minY: number, maxY: number) {
         vfx.state.decals.forEach(d => {
             if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) return;
-            const offset = getTransitionOffset(d.x, d.y, mapConfig, t, phase);
+            const offset = VisualMath.getTransitionOffset(d.x, d.y, mapConfig, t, phase);
             const op = renderList.next();
             op.type = RenderOpType.DECAL;
             op.y = d.y + offset + 1; 

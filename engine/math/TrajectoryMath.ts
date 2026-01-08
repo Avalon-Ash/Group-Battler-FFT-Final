@@ -1,5 +1,4 @@
 
-import { Point } from "../../types";
 import { Point3D } from "./VisualMath";
 
 export { Point3D };
@@ -12,8 +11,8 @@ export interface TrajectoryConfig {
 }
 
 /**
- * 飛行幾何真理庫 v15.0 - Pure 3D Trajectory Logic
- * 只負責計算 3D 空間中的點，不處理視覺投影。
+ * 飛行幾何真理庫 v16.0 - Pure 3D Kinematics
+ * 只負責計算 3D 空間中的點 (x, y, z)，絕不處理螢幕投影。
  */
 export const TrajectoryMath = {
     
@@ -29,6 +28,7 @@ export const TrajectoryMath = {
         const x = start.x + (end.x - start.x) * t;
         const y = start.y + (end.y - start.y) * t;
         const linearZ = start.z * (1 - t) + end.z * t;
+        // 拋物線高度公式: 4h * t * (1-t)
         const arcZ = 4 * h * t * (1 - t);
         return { x, y, z: linearZ + arcZ };
     },
@@ -40,6 +40,7 @@ export const TrajectoryMath = {
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < 1) return base;
 
+        // 計算垂直於運動方向的法線向量
         const nx = -dy / dist;
         const ny = dx / dist;
         const wave = Math.sin(t * Math.PI * 2 * freq) * amp;
@@ -52,7 +53,7 @@ export const TrajectoryMath = {
     },
 
     /**
-     * SSOT 軌跡計算入口
+     * SSOT: 唯一軌跡計算入口
      */
     evaluate: (config: TrajectoryConfig, start: Point3D, end: Point3D, t: number): Point3D => {
         if (config.type === 'ARC') {

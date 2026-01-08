@@ -4,6 +4,7 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
+import { PHYSICS } from "../../../constants";
 
 interface QueuedAction {
     executeAt: number;
@@ -56,7 +57,9 @@ export class SequenceSystem {
 
     private static dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine) {
         const effectId = action.id || 'FX_HIT_GENERIC';
-        const groundZ = target.z - 2; 
+        
+        // SSOT: Use standardized DECAL offset instead of hardcoded -2
+        const groundZ = target.z - VisualMath.Z_LAYERS.DECAL; 
 
         switch (action.type) {
             case 'PARTICLE':
@@ -69,14 +72,20 @@ export class SequenceSystem {
                 if (engine.renderer) engine.renderer.camera.addTrauma(action.shakeIntensity || 0.3);
                 break;
             case 'GRID_PULSE':
-                vfx.playEffect(action.color?.includes('#3b') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + 4, action.color, groundZ);
+                // Use HAZARD layer for pulse impact
+                vfx.playEffect(action.color?.includes('#3b') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
                 break;
             case 'HEAVEN_FALL':
                 const h = action.height || 1200;
                 const p = vfx.state.getParticle();
                 p.x = target.x; p.y = target.y; p.z = target.z + h;
-                p.vz = -3500;
-                p.life = (h / 3500) + 0.1; 
+                
+                // SSOT Fix: Initial Z-velocity must be 0 for the free-fall time formula to be correct.
+                // Formula: t = sqrt(2h/g). This implies v0 = 0.
+                p.vz = 0; 
+                
+                p.life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1; // Add slight buffer
+                
                 p.maxLife = p.life;
                 p.color = action.color || '#fff';
                 p.size = (action.scale || 1.8) * 80;

@@ -1,11 +1,10 @@
 
-import { HexUtils, MapConfig, getTransitionOffset } from "../../utils";
+import { VisualMath } from "../../math/VisualMath";
 
-// Export the core version to maintain API compatibility for other VFX modules
-export { getTransitionOffset };
+// Re-export from the Single Source of Truth
+export const getTransitionOffset = VisualMath.getTransitionOffset;
 
 // Helper: Determine if a color is "Chaos" (Red/Purple/Dark/Fire) vs "Order" (Blue/Gold/White)
-// Updated to include Orange/Magma tones (#ea, #f9) and deep crimson (#be)
 export function isChaosStyle(color: string): boolean {
     const c = color.toLowerCase();
     return c.includes('#dc') || c.includes('#ef') || c.includes('#b9') || c.includes('#45') || 

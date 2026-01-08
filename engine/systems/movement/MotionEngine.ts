@@ -1,3 +1,4 @@
+
 import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
 import { MovementType } from "../../../types";
@@ -33,7 +34,8 @@ export class MotionEngine {
         a.py = c.y + (n.y - c.y) * t;
         
         if (a.movementType === MovementType.FLYING && a.hp > 0) {
-            a.trailHistory.push({ x: a.px, y: a.py, z: a.physics.z });
+            const h = engine.map.getTerrainHeight(a.q, a.r); // Approximation for current tile
+            a.trailHistory.push({ x: a.px, y: a.py, z: a.physics.z, h });
             if (a.trailHistory.length > TRAIL_HISTORY_LENGTH) a.trailHistory.shift();
         }
 

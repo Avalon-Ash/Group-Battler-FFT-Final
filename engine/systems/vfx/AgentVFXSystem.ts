@@ -71,7 +71,7 @@ export class AgentVFXSystem {
         };
 
         checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0);
-        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0); // Assuming mapped elsewhere or generic
+        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0);
         checkVFX('REGEN', agent.hotTimer > 0);
         checkVFX('BANISH', agent.banished);
         checkVFX('STUN', agent.stunTimer > 0);

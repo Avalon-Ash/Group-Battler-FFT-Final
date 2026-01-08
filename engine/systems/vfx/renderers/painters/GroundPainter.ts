@@ -4,14 +4,17 @@ import { ISO_SCALE_Y } from "../../../../../constants";
 import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 import { HexLayout } from "../../../../../types";
-
-const GROUND_Z_BIAS = -2; // 向上偏移 2px 解決穿插
+import { VisualMath } from "../../../../math/VisualMath";
 
 export const GroundPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
+        
+        // SSOT: Centralized Z-bias for ground decals
+        const drawYBiased = VisualMath.applyLayerBias(drawY, 'DECAL');
+
         // 1. 向量幾何處理
         if (['SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'MAGIC_CIRCLE'].includes(p.type)) {
-            this.drawVectorGeometry(ctx, p, progress, drawX, drawY + GROUND_Z_BIAS, layout);
+            this.drawVectorGeometry(ctx, p, progress, drawX, drawYBiased, layout);
             return;
         }
 
@@ -24,7 +27,7 @@ export const GroundPainter = {
         if (alpha <= 0.01) return;
 
         ctx.save();
-        ctx.translate(drawX, drawY + GROUND_Z_BIAS);
+        ctx.translate(drawX, drawYBiased);
         ctx.scale(1, ISO_SCALE_Y); 
         
         if (p.rotation) ctx.rotate(p.rotation);

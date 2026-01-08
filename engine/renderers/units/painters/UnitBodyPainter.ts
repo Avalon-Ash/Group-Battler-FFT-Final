@@ -1,6 +1,7 @@
+
 import { Agent } from "../../../../game";
 import { Team, AnimState, MovementType } from "../../../../../types";
-import { UNIT_SCALE } from "../../../../../constants";
+import { UNIT_SCALE, VFX_PARAM } from "../../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
@@ -26,13 +27,17 @@ export const UnitBodyPainter = {
         let tiltAngle = 0;
         let isHighSpeed = false;
 
-        if (speedSq > 1000) {
+        // SSOT: Use defined thresholds
+        if (speedSq > VFX_PARAM.SPEED_TRAIL_THRESHOLD_SQ) {
             const speed = Math.sqrt(speedSq);
-            isHighSpeed = speed > 300;
+            isHighSpeed = speed > VFX_PARAM.SPEED_TILT_THRESHOLD;
+            
             const dirX = vx / speed;
             const dot = dirX * agent.facing; 
             const maxTilt = 0.5; 
-            let tiltFactor = Math.min(1.0, speed / 800) * maxTilt;
+            // Calculate tilt based on reference max speed
+            let tiltFactor = Math.min(1.0, speed / VFX_PARAM.SPEED_MAX_TILT_REF) * maxTilt;
+            
             if (dot > 0) tiltAngle = tiltFactor * agent.facing;
             else tiltAngle = -tiltFactor * agent.facing * 1.5; 
         }
@@ -115,6 +120,7 @@ export const UnitBodyPainter = {
 
         // Layer 1: Rear Effects (Ribbons/Engines)
         if (agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
+            // Re-use threshold logic for trails
             if (agent.movementType === MovementType.FLYING || speedSq > 5000) {
                 UnitFlightPainter.drawRibbonTrail(ctx, agent, t);
             }

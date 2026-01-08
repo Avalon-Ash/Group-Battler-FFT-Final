@@ -6,6 +6,7 @@ import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
+import { VISUAL_ANCHORS } from "../../../constants";
 
 // Sub-Handlers
 import { CombatVFXHandler } from "./handlers/CombatVFXHandler";
@@ -28,7 +29,8 @@ export class EventVFXMapper {
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const groundZ = grid.getTerrainHeight(groundHex.q, groundHex.r, engine);
 
-        if (!event.targetId) target.z = groundZ + 20;
+        // SSOT Fix: Use standard center offset for generic targets (approximate chest height)
+        if (!event.targetId) target.z = groundZ + VISUAL_ANCHORS.CENTER_OFFSET;
 
         // 2. Route to specialized atomic handlers
         switch (event.type) {

@@ -1,11 +1,11 @@
 
-import { GameEvent, GameEventType } from "../../../types";
+import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
 import { HUDSystem } from "../hud";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { HUD_TEXT_OFFSET } from "../../../constants";
+import { HUD_TEXT_OFFSET, HUD_LAYOUT } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 export class EventHUDMapper {
@@ -78,19 +78,19 @@ export class EventHUDMapper {
             
             size = isCrit ? 24 : 16;
             type = 'DAMAGE';
-            xOffset = (Math.random() - 0.5) * 10;
+            xOffset = (Math.random() - 0.5) * HUD_LAYOUT.DAMAGE_TEXT_SCATTER;
 
         } else if (event.type === 'HEAL') {
             text = "+" + Math.abs(event.value || 0);
             color = STATUS_VISUALS['REGEN']?.primaryColor || '#4ade80';
             type = 'HEAL';
-            xOffset = (Math.random() - 0.5) * 10;
+            xOffset = (Math.random() - 0.5) * HUD_LAYOUT.DAMAGE_TEXT_SCATTER;
         } else {
             text = event.text || "";
             color = event.color || "#fff";
             type = 'CC';
             size = 14;
-            xOffset = -45;
+            xOffset = HUD_LAYOUT.STATUS_TEXT_OFFSET_X;
         }
 
         if (text) hud.addFloatingText(event.pos.x + xOffset, baseY, text, color, size, type);
@@ -99,9 +99,10 @@ export class EventHUDMapper {
     private handleCastText(event: GameEvent, visualY: number, hud: HUDSystem) {
         if (event.skill && event.skill.tag !== 'BASIC') {
             const isUlt = event.skill.tag === 'ULT';
-            const baseY = visualY - HUD_TEXT_OFFSET - (isUlt ? 30 : 10); 
-            const xOffset = 55; 
-            // 綁定 sourceId 以便後續中斷，並傳入詠唱時間
+            const offsetY = isUlt ? HUD_LAYOUT.CAST_BAR_Y_OFFSET_ULT : HUD_LAYOUT.CAST_BAR_Y_OFFSET_NORMAL;
+            const baseY = visualY - HUD_TEXT_OFFSET - offsetY; 
+            const xOffset = HUD_LAYOUT.CAST_BAR_X_OFFSET; 
+            
             hud.addFloatingText(
                 event.pos.x + xOffset, 
                 baseY, 
@@ -111,7 +112,7 @@ export class EventHUDMapper {
                 'SHOUT', 
                 isUlt,
                 event.sourceId,
-                event.skill.cast // 傳入詠唱時間
+                event.skill.cast 
             );
         }
     }

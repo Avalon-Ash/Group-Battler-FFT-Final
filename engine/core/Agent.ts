@@ -47,7 +47,8 @@ export class Agent {
     public aiUpdateTimer: number = 0;
     public aiUpdateInterval: number = 0.3;
 
-    public trailHistory: {x: number, y: number, z: number}[] = [];
+    // SSOT Update: Store terrain height 'h' to ensure trails respect topography
+    public trailHistory: {x: number, y: number, z: number, h: number}[] = [];
 
     public stunTimer: number = 0;
     public stunMax: number = 0;

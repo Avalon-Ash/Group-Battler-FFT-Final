@@ -1,7 +1,8 @@
+
 import { GameEvent } from "../../../../types";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
-import { Point3D } from "../../../math/VisualMath";
+import { Point3D, VisualMath } from "../../../math/VisualMath";
 import { VFX_REGISTRY } from "../../../../data/vfx/VFXRegistry";
 
 export class CombatVFXHandler {
@@ -21,15 +22,18 @@ export class CombatVFXHandler {
             return;
         }
 
+        // Standardize generic impact height to Hazard/Floor layer
+        const impactZ = groundZ + VisualMath.Z_LAYERS.HAZARD;
+
         if (event.type === 'PROJECTILE_HIT') {
-            const pos = event.skill?.type === 'AOE' ? { x: event.pos.x, y: event.pos.y, z: groundZ + 4 } : target;
+            const pos = event.skill?.type === 'AOE' ? { x: event.pos.x, y: event.pos.y, z: impactZ } : target;
             this.playImpact(event, vfx, pos, groundZ, intensity);
             camera.addTrauma(0.2 * intensity);
             return;
         }
 
         if (event.type === 'IMPACT_AOE') {
-            const impactPoint = { x: event.pos.x, y: event.pos.y, z: groundZ + 4 };
+            const impactPoint = { x: event.pos.x, y: event.pos.y, z: impactZ };
             this.playImpact(event, vfx, impactPoint, groundZ, intensity * 1.2);
             camera.addTrauma(0.35 * intensity);
         }
@@ -39,7 +43,6 @@ export class CombatVFXHandler {
         const skill = event.skill;
         const color = event.color || '#fff';
         
-        // SSOT Fallback: 根據 Element 決定特效，如果 visualHitEffect 為空
         let effectId = skill?.visualHitEffect || this.getFallbackByElement(skill?.element);
 
         vfx.playEffect(effectId, target.x, target.y, target.z, color, groundZ);

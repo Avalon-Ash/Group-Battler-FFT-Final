@@ -4,7 +4,8 @@ import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
-import { HexUtils, getTransitionOffset } from "../../utils";
+import { HexUtils } from "../../utils";
+import { VisualMath } from "../../math/VisualMath";
 
 const OBSTACLE_Z_INDEX = 10;
 const PROJ_LIGHT_RADIUS_SQ = 1600;
@@ -48,9 +49,10 @@ export class GridRenderStrategy {
             const tile = cache.tileList[i];
             const { q, r, px, py, h, key } = tile;
             
-            const offset = getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
+            // Use VisualMath directly for transition calculation
+            const offset = VisualMath.getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualBaseY = py + offset;
-            const visualSurfaceY = visualBaseY - h;
+            const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
 
             if (Math.abs(offset) > 800) continue;
 

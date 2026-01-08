@@ -37,7 +37,6 @@ export class ControlSystem {
             agent.banished = true;
             agent.isMoving = false;
             agent.path = [];
-            // Visuals handled by AgentVFXSystem
             return; 
         } else {
             if (agent.banished) {

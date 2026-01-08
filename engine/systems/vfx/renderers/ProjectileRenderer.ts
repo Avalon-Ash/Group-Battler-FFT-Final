@@ -21,32 +21,28 @@ export const ProjectileRenderer = {
             // 1. Get Logic Position (Already calculated by ProjectileSystem)
             const current3D = { x: p.x, y: p.y, z: p.z };
 
-            // 2. Calculate Visual Angle (Derivative)
-            // Use TrajectoryMath to predict slightly future position
-            // Then use VisualMath to project both points and get the 2D angle
+            // 2. Calculate Visual Angle (Derivative via SSOT Projection)
+            // Use TrajectoryMath to predict a tiny step forward/backward in 3D
+            // Then use VisualMath to project BOTH points to 2D screen space and find the angle.
+            // This guarantees the sprite angle matches the visual parabolic curve exactly.
             
-            // Sample a bit ahead to get the tangent
             let tNext = p.t + 0.01;
-            // Handle end-of-flight boundary (use backward diff if at end)
-            if (tNext > 1.0) tNext = p.t - 0.01; 
-            
-            const next3D = TrajectoryMath.evaluate(traj, start, end, tNext);
-            
-            // If at end, vector is p -> prev, so angle needs flip? 
-            // calculateProjectedAngle(p1, p2) gives angle from p1 to p2.
-            // If p.t < 1.0, we want angle(current, next).
-            // If p.t >= 1.0, we used backward diff (next is actually prev), so we want angle(prev, current).
-            
             let visAngle;
-            if (p.t >= 1.0) {
-                visAngle = VisualMath.calculateProjectedAngle(next3D, current3D);
+
+            if (tNext > 1.0) {
+                // At end of flight: look backwards (Current - Prev)
+                const tPrev = p.t - 0.01;
+                const prev3D = TrajectoryMath.evaluate(traj, start, end, tPrev);
+                visAngle = VisualMath.calculateProjectedAngle(prev3D, current3D);
             } else {
+                // Normal flight: look forwards (Next - Current)
+                const next3D = TrajectoryMath.evaluate(traj, start, end, tNext);
                 visAngle = VisualMath.calculateProjectedAngle(current3D, next3D);
             }
 
             // 3. Project to Screen
             const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y, engine.mapConfig, transitionT, transitionPhase);
-            // Use SSOT Projection
+            // Use SSOT Projection for final Y position
             const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
 
             const op = renderList.next();

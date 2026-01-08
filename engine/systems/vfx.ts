@@ -81,10 +81,10 @@ export class VFXSystem {
             if (this.state.decals[i].life <= 0) this.state.decals.splice(i, 1);
         }
         
-        this.ambience.update(dt, ambientType, this.state);
+        // Pass engine for dynamic map bounds
+        this.ambience.update(dt, ambientType, this.state, engine);
 
         // Update Agent-based Continuous VFX (Dust, Status)
-        // Only if engine is provided (it is provided by GameRenderer)
         if (engine) {
             this.agentVFX.update(dt, engine, this);
         }
