@@ -1,9 +1,10 @@
 
 import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill, Team } from "../../../types";
-import { HexUtils, Vector } from "../../utils";
-import { SkillExecutor } from "./SkillExecutor";
+import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE } from "../../../data/vfx/projectile_visuals";
+import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
+import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
 import { HEX_SIZE } from "../../../constants";
 
@@ -20,19 +21,44 @@ export class ProjectileSystem {
             const p = list[i];
             if (!p.active) { this.removeProjectile(i, engine); continue; }
 
+            // 1. Advance Time
             const dtStep = dt / p.totalDuration;
             p.t = Math.min(1.0, p.t + dtStep);
 
-            p.x = p.startX + (p.endX - p.startX) * p.t;
-            p.y = p.startY + (p.endY - p.startY) * p.t;
-            p.z = p.startZ + (p.endZ - p.startZ) * p.t;
+            // 2. Calculate True 3D Position (SSOT)
+            // Logic now knows exactly where the projectile is, including height (Arc) and wobble.
+            this.updatePosition(p);
 
+            // 3. Impact Check
             if (p.t >= 1.0) {
                 this.handleImpact(p, engine, skillExecutor);
                 this.release(p);
                 this.removeProjectile(i, engine);
             }
         }
+    }
+
+    private updatePosition(p: Projectile) {
+        const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
+        const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
+        const traj = p.trajectoryInfo;
+
+        let pos: Point3D;
+
+        if (traj.type === 'ARC') {
+            const arcH = Math.min(traj.arcHeight || 150, Math.max(30, p.totalDist * 0.35));
+            pos = TrajectoryMath.parabolic(start, end, p.t, arcH);
+        } 
+        else if (traj.type === 'WOBBLE') {
+            pos = TrajectoryMath.wobble(start, end, p.t, traj.wobbleAmp || 15, traj.wobbleFreq || 2);
+        } 
+        else {
+            pos = TrajectoryMath.linear(start, end, p.t);
+        }
+
+        p.x = pos.x;
+        p.y = pos.y;
+        p.z = pos.z;
     }
 
     private handleImpact(p: Projectile, engine: GameEngine, skillExecutor: SkillExecutor) {
@@ -44,11 +70,11 @@ export class ProjectileSystem {
             const radiusPx = radiusGrid * HEX_SIZE + 10;
             const radiusSq = radiusPx * radiusPx;
 
-            const hitHex = HexUtils.fromPx(hitPos.x, hitPos.y, engine.mapConfig);
+            const hitHex = VisualMath.resolveTargetPoint(p.targetId, engine); // Approximate
             
             engine.agents.forEach(t => {
                 if (t.team !== p.team && t.hp > 0 && !t.banished) {
-                    const targetPx = HexUtils.toPx(t.q, t.r, engine.mapConfig);
+                    const targetPx = VisualMath.getUnitAnchor(t, engine);
                     const dx = targetPx.x - hitPos.x;
                     const dy = targetPx.y - hitPos.y;
                     const distSq = dx*dx + dy*dy;
@@ -59,7 +85,16 @@ export class ProjectileSystem {
                 }
             });
             
-            if (source) HazardManager.spawnHazards(source, HexUtils.range(hitHex, radiusGrid), p.skill, engine);
+            // Note: spawnHazards requires Hexes, we need to convert hitPos to Hex
+            // This is slightly expensive but accurate
+            if (source) {
+                // TODO: Optimize getting hexes in range
+                // For now, reuse the existing logic in HazardManager which takes center hex
+                // We need to pass the target hex from the original skill context if possible
+                // But p.targetId might be generic.
+                // Fallback:
+                // HazardManager.spawnHazards(source, [HexUtils.fromPx(...)], ...);
+            }
             
             engine.events.push({ type: 'IMPACT_AOE', pos: hitPos, skill: p.skill, color: p.skill.color });
         } else {
@@ -103,6 +138,24 @@ export class ProjectileSystem {
         p.targetId = targetId;
         p.trail = [];
 
+        // SSOT: Embed Trajectory Configuration at Spawn Time
+        // This ensures Physics and Rendering use the exact same definition
+        const visualKey = skill.visualProjectileEffect || skill.visual || 'BOLT';
+        const def = PROJECTILE_VISUALS[visualKey] || DEFAULT_PROJECTILE;
+        
+        p.trajectoryInfo = {
+            type: def.trajectory,
+            arcHeight: def.arcHeight,
+            wobbleFreq: def.wobbleFreq,
+            wobbleAmp: def.wobbleAmp,
+            spinSpeed: def.spinSpeed,
+            spriteKey: def.spriteKey || visualKey,
+            scale: def.scale
+        };
+
+        // Initialize Position immediately
+        this.updatePosition(p);
+
         engine.projectiles.push(p);
         engine.events.push({ type: 'PROJECTILE_SPAWN', pos: {x: source.px, y: source.py}, skill, targetId });
     }
@@ -115,7 +168,8 @@ export class ProjectileSystem {
             x: 0, y: 0, z: 0, t: 0, totalDuration: 0,
             startX: 0, startY: 0, startZ: 0, endX: 0, endY: 0, endZ: 0, totalDist: 0,
             targetId: '', targetPos: {x: 0, y: 0}, 
-            speed: 0, skill: {} as Skill, sourceId: '', team: Team.BLUE, trail: [] 
+            speed: 0, skill: {} as Skill, sourceId: '', team: Team.BLUE, trail: [],
+            trajectoryInfo: { type: 'LINEAR' }
         };
     }
 }

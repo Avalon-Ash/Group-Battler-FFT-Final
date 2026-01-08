@@ -30,6 +30,17 @@ export interface Projectile {
     sourceId: string;
     team: Team;
     trail: Point[];
+
+    // NEW: Embedded Trajectory Configuration (The "How" of movement)
+    trajectoryInfo: {
+        type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT';
+        arcHeight?: number;
+        wobbleFreq?: number;
+        wobbleAmp?: number;
+        spinSpeed?: number;
+        spriteKey?: string; // Cache visual key
+        scale?: number;
+    };
 }
 
 export interface GroundHazard {
