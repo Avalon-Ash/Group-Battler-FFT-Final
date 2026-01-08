@@ -98,7 +98,7 @@ export class ProjectileSystem {
 
         const p = this.pool.pop() || this.createEmptyProjectile();
         p.active = true;
-        p.id = Math.random().toString(36).substr(2, 6);
+        p.id = engine.nextId('PRJ');
         p.sourceId = source.id;
         p.team = source.team;
         p.skill = skill;

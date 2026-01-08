@@ -1,3 +1,4 @@
+
 import { Agent } from "../core/Agent";
 import { LogEntry, LogActionType, Team } from "../../types";
 import { LOG_COLORS } from "../../constants";
@@ -5,9 +6,11 @@ import { LOG_COLORS } from "../../constants";
 export class BattleLogger {
     public logs: LogEntry[] = [];
     private maxLogs: number = 5000;
+    private logCounter: number = 0;
 
     public clear() {
         this.logs = [];
+        this.logCounter = 0;
     }
 
     public log(
@@ -33,8 +36,9 @@ export class BattleLogger {
             default: color = LOG_COLORS.SYSTEM; break;
         }
 
+        this.logCounter++;
         const entry: LogEntry = {
-            id: Math.random().toString(36).substr(2, 8),
+            id: `LOG-${this.logCounter.toString().padStart(5, '0')}`,
             time: time.toFixed(2),
             turn: Math.floor(turn),
             agentId: agent?.id || 'SYSTEM_KERNEL',

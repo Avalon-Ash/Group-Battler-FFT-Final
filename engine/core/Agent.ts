@@ -91,8 +91,8 @@ export class Agent {
 
     public initialState: { q: number, r: number, maxHp: number, skillIds: (string|null)[], role: Role };
 
-    constructor(team: Team, q: number, r: number, config: MapConfig) {
-        this.id = Math.random().toString(36).substr(2, 5).toUpperCase();
+    constructor(id: string, team: Team, q: number, r: number, config: MapConfig) {
+        this.id = id;
         this.team = team;
         this.role = Role.WARRIOR;
         this.q = q;

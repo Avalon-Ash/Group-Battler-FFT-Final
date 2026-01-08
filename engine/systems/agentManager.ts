@@ -9,7 +9,9 @@ export class AgentManager {
         // Prevent spawning on blocked tiles or other units
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
-        const a = new Agent(team, q, r, engine.mapConfig);
+        // Generate Sequential ECS ID
+        const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
+        const a = new Agent(id, team, q, r, engine.mapConfig);
         
         // 如果傳入了 roleOverride，則使用指定的職業，否則隨機分配
         if (roleOverride) {
@@ -18,9 +20,6 @@ export class AgentManager {
             const allRoles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
             a.role = allRoles[Math.floor(Math.random() * allRoles.length)];
         }
-        
-        const suffix = Math.random().toString(36).substr(2, 4).toUpperCase();
-        a.id = `${a.role}-${suffix}`;
         
         const stats = UNIT_DB[a.role];
         a.maxHp = hpOverride || stats.maxHp;

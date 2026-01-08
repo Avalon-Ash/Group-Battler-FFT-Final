@@ -32,7 +32,7 @@ export class HazardSystem {
         }
 
         const hazard: GroundHazard = {
-            id: Math.random().toString(36).substr(2, 6),
+            id: engine.nextId('HZD'),
             q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
         };
         

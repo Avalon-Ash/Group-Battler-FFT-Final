@@ -35,6 +35,9 @@ export class GameEngine {
     public agents: Agent[] = [];
     public projectiles: Projectile[] = [];
     
+    // ECS ID System
+    private _entityCounter: number = 0;
+
     public state = {
         director: { focusTimer: 0, priorityTimer: 0, targetId: null as string | null },
         hazards: new Map<string, GroundHazard>(),
@@ -99,6 +102,12 @@ export class GameEngine {
 
     constructor() {
         this.map.randomizeEnvironment(this);
+    }
+
+    // Centralized ID Generator
+    public nextId(prefix: string = 'ENT'): string {
+        this._entityCounter++;
+        return `${prefix}-${this._entityCounter.toString().padStart(4, '0')}`;
     }
 
     public addAgent(team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role) { 
@@ -197,6 +206,7 @@ export class GameEngine {
 
     public clear(keepScene: boolean = false) {
         this.stop();
+        this._entityCounter = 0; // Reset ID counter for new session
         this.agents = [];
         this.projectiles = [];
         this.map.clearAgents();
