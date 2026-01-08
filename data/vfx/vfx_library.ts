@@ -14,21 +14,22 @@ export const VFX_LIBRARY = {
     ] as VFXEntry[],
 
     PROCEDURAL_GEOMETRY: [
-        { key: 'MATH_BLACK_HOLE', name: '史瓦西半徑模擬', desc: '基於吸積盤數學模型的動態黑洞渲染 (ProceduralPainter)。', visuals: ['Shader', 'Distortion'] },
         { key: 'MAGIC_CIRCLE', name: '向量魔法陣', desc: '多層旋轉向量幾何，無貼圖依賴，無限解析度。', visuals: ['Vector', 'Runes'] },
         { key: 'VOLUMETRIC_PILLAR', name: '體積光柱', desc: '模擬光線散射的垂直柱狀體，具備掃描線效果。', visuals: ['Gradient', 'Scanline'] },
-        { key: 'DYNAMIC_GRID', name: '戰術網格場', desc: '貼合地形起伏的動態網格掃描效果。', visuals: ['Topology', 'Pulse'] }
+        { key: 'DYNAMIC_GRID', name: '戰術網格場', desc: '貼合地形起伏的動態網格掃描效果，支持液態流動。', visuals: ['Topology', 'Pulse'] },
+        { key: 'HEX_FIELD', name: '六邊形力場', desc: '用於護盾與區域控制的幾何邊界渲染。', visuals: ['Hex', 'Shield'] }
+    ] as VFXEntry[],
+
+    COSMIC_ANOMALY: [
+        { key: 'MATH_BLACK_HOLE', name: '史瓦西黑洞', desc: '基於吸積盤數學模型的動態黑洞，包含事件視界與光子層。', visuals: ['Shader', 'Distortion'] },
+        { key: 'VOID_GATE', name: '虛空傳送門', desc: '負空間渲染技術，模擬空間撕裂效果。', visuals: ['Darkness', 'Rift'] },
+        { key: 'GRAVITY_WELL', name: '重力井', desc: '扭曲周圍粒子的引力場視覺化。', visuals: ['Physics', 'Pull'] }
     ] as VFXEntry[],
 
     ACTION_VERBS: [
         { key: 'HEAVEN_FALL', name: '天降物理件', desc: '模擬從 1200px 高度墜落的物體，支持重力係數與落地衝擊波。', visuals: ['Gravity', 'Impact'] },
-        { key: 'BEAM_PROJ', name: '光束投影', desc: '高精度向量雷射，支持螺旋軌跡與粒子採樣。', visuals: ['Helix', 'Laser'] },
+        { key: 'BEAM_PROJ', name: '光束投影', desc: '高精度向量雷射，支持螺旋軌跡 (Helix) 與粒子採樣。', visuals: ['Helix', 'Laser'] },
         { key: 'GRID_RIFLE', name: '網格脈衝', desc: '直接修改底層網格材質屬性的渲染指令。', visuals: ['Shader', 'Flow'] }
-    ] as VFXEntry[],
-
-    GENERIC_HITS: [
-        { key: 'FX_HIT_GENERIC', name: '物理打擊', desc: '標準受擊效果。', visuals: ['Sparks', 'Rubble'] },
-        { key: 'FX_CAST_BREAK', name: '能量崩解', desc: '詠唱被打斷時發生的魔力反噬碎裂效果。', visuals: ['Shards', 'Puff'] }
     ] as VFXEntry[],
 
     IMPERIAL_FLAVOR: [
