@@ -43,7 +43,7 @@ export class AgentManager {
         if (engine.isRunning) {
             a.skills = a.skillIds.map(id => engine.skillDB.find(s => s.id === id) || null);
             a.bt = engine.ai.buildAI(a, engine);
-            a.animState = AnimState.IDLE;
+            // SSOT: Initial state handled by AnimationSystem
         }
 
         engine.agents.push(a);
@@ -57,7 +57,7 @@ export class AgentManager {
             engine.log(a, 'DEATH', '死亡', null, '陣亡');
             engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, sourceId: a.id, team: a.team });
             a.deadLogged = true;
-            a.setAnim(AnimState.DEAD);
+            // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
             engine.map.unregisterAgent(a);
             a.fullyDead = true; 
             a.isMoving = false; 

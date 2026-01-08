@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { MovementType, AnimState } from "../../types";
+import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { PHYSICS } from "../../constants";
 
@@ -22,7 +22,6 @@ export class PhysicsEngine {
         target.physics.vx += vx;
         target.physics.vy += vy;
         
-        // TA: 擊退時增加隨機旋轉，製造失衡感
         target.physics.vAngle += (Math.random() - 0.5) * 10.0; 
         
         if (randomness > 0) target.physics.vAngle += (Math.random() - 0.5) * randomness;
@@ -32,7 +31,6 @@ export class PhysicsEngine {
         if (a.fullyDead) return;
         const isDead = a.hp <= 0;
         
-        // TA 優化：增加 Stiffness 使受擊後恢復更迅速
         const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * 1.2;
         const damping = PHYSICS.DAMPING_ALIVE * 1.1; 
         
@@ -52,7 +50,6 @@ export class PhysicsEngine {
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
         const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
 
-        // 核心物理更新
         if (isFlying && !isDisabled) {
             const hoverHeight = 55, hoverFreq = 2.5; 
             const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
@@ -68,18 +65,14 @@ export class PhysicsEngine {
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
 
-        // 紀錄高速軌跡 (用於繪製殘影/拖尾)
-        // 速度 > 100 且未完全靜止時記錄
         const speedSq = a.physics.vx*a.physics.vx + a.physics.vy*a.physics.vy;
         if (speedSq > 10000 || (a.movementType === MovementType.FLYING && a.hp > 0)) {
             a.trailHistory.push({ x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z });
             if (a.trailHistory.length > 10) a.trailHistory.shift();
         } else if (a.trailHistory.length > 0) {
-            // 速度慢下來後慢慢清除軌跡
             a.trailHistory.shift();
         }
 
-        // 著地判定
         if (a.physics.z < 0) {
             a.physics.z = 0;
             if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
@@ -95,8 +88,12 @@ export class PhysicsEngine {
                     
                     engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
 
-                    if (a.hp <= 0) engine.agentManager.handleDeadState(a, engine);
-                    else a.setAnim(AnimState.HIT);
+                    if (a.hp <= 0) {
+                        engine.agentManager.handleDeadState(a, engine);
+                    } else {
+                        // SSOT: Set visual timer instead of imperative setAnim
+                        a.hitFlashTimer = 0.2; 
+                    }
                 }
                 a.physics.vz = -a.physics.vz * 0.3;
                 a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
@@ -105,13 +102,11 @@ export class PhysicsEngine {
             }
         }
 
-        // 漂移回歸 (Drift Back to Logical Position)
         if (!isDead && !a.isMoving) {
             const targetPos = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             const dx = targetPos.x - a.px, dy = targetPos.y - a.py;
             const distSq = dx*dx + dy*dy;
             
-            // 只有在受力很小的時候才啟用漂移，避免與擊退力對抗
             if (speedSq < 5000) {
                 if (distSq > 0.5) {
                     const driftSpeed = PHYSICS.DRIFT_SPEED * dt; 

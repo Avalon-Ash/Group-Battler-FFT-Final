@@ -1,6 +1,5 @@
 
 import { Agent, GameEngine } from "../../game";
-import { AnimState } from "../../../types";
 
 export class CastingEngine {
 
@@ -61,13 +60,11 @@ export class CastingEngine {
             }
         }
         this.resetCaster(a);
-        a.setAnim(AnimState.IDLE); 
     }
 
     private resetCaster(a: Agent) {
         a.castingSkillIdx = -1;
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
-        a.setAnim(AnimState.COMBAT_IDLE);
     }
 }

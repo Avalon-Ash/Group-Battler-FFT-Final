@@ -24,6 +24,7 @@ import { EventPool } from "./events/GameEventPool";
 import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
+import { AnimationSystem } from "./systems/AnimationSystem";
 import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
 import type { GameRenderer } from "./renderer";
 
@@ -95,6 +96,7 @@ export class GameEngine {
     public cooldowns: CooldownSystem = new CooldownSystem();
     public effects: EffectSystem = new EffectSystem();
     public controls: ControlSystem = new ControlSystem();
+    public animation: AnimationSystem = new AnimationSystem();
     public timeSystem: TimeSystem = new TimeSystem();
 
     constructor() {
@@ -238,7 +240,6 @@ export class GameEngine {
     private updateEntities(dt: number) {
         this.physics.update(dt, this);
         for (const a of this.agents) {
-            if (a.hitFlashTimer > 0) a.hitFlashTimer -= dt;
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
                 continue;
@@ -262,6 +263,9 @@ export class GameEngine {
         this.hazardSystem.update(dt, this); 
         this.movement.resolveStacking(this);
         this.announcer.update(dt, this);
+        
+        // SSOT Enforcement: Animation state is derived last
+        this.animation.update(dt, this);
     }
     
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {

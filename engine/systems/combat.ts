@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { Projectile, Skill, NodeState, AnimState } from "../../types";
+import { Projectile, Skill, NodeState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { CastingEngine } from "./combat/CastingEngine";
 import { SkillExecutor } from "./combat/SkillExecutor";
@@ -34,7 +34,7 @@ export class CombatSystem {
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
             // sourceId 必須傳遞，供 HUD 綁定文字
             engine.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: skill });
-            a.setAnim(AnimState.ATTACK);
+            
             if (a.target) {
                 a.facing = a.target.px > a.px ? 1 : -1;
             } else if (a.targetHex) {

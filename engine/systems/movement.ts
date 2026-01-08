@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils } from "../utils";
-import { AnimState, Hex, NodeState } from "../../types";
+import { Hex, NodeState } from "../../types";
 import { Pathfinder } from "../ai/Pathfinder";
 import { TargetingSystem } from "../ai/TargetingSystem";
 import { MotionEngine } from "./movement/MotionEngine";
@@ -44,7 +44,6 @@ export class MovementSystem {
                 a.isMoving = false;
                 a.path = [];
             }
-            a.setAnim(AnimState.COMBAT_IDLE);
             return NodeState.SUCCESS;
         }
 
@@ -70,7 +69,6 @@ export class MovementSystem {
             const next = path[0];
             // 檢查下一格是否被地形完全阻擋
             if (engine.isBlocked(next.q, next.r, a.id, a.movementType)) {
-                a.setAnim(AnimState.COMBAT_IDLE);
                 return NodeState.RUNNING;
             }
 
@@ -82,7 +80,6 @@ export class MovementSystem {
                 a.moveProgress = 0;
             }
             a.moveSpeedMult = speedMult;
-            a.setAnim(AnimState.MOVE);
             return NodeState.RUNNING;
         }
 

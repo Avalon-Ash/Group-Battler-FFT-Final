@@ -107,12 +107,6 @@ export class Agent {
         this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR };
     }
 
-    setAnim(state: AnimState) {
-        if (this.animState !== state && this.animState !== AnimState.DEAD) {
-            this.animState = state;
-        }
-    }
-
     saveState() {
         this.initialState = {
             q: this.q,
