@@ -12,7 +12,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
     const hitFx = `FX_HIT_${isRed ? 'RED' : 'BLUE'}_${role}`;
 
     for (let i = 1; i <= 5; i++) {
-        // --- 1. BASIC SKILLS (Enhanced) ---
+        // --- 1. BASIC SKILLS (Enhanced with New Archetypes) ---
         const basicId = `${prefix}_b${i}`;
         const basicSkill = DEFAULT_SKILL_DB.find(s => s.id === basicId);
         const basicConfig = BASIC_VISUALS[basicId];
@@ -27,7 +27,19 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     case 'MELEE_SLASH':
                         actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
                         actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.secondaryColor, scale: 0.8, delay: 0.1 });
-                        actions.push({ type: 'SHAKE', shakeIntensity: 0.1, delay: 0.1 });
+                        break;
+                    case 'CROSS_CUT': // [NEW] Dual X-Slash
+                    case 'DUAL_STRIKE':
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: 0.8 }); // Slash 1
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.15, scale: 0.8, delay: 0.1 }); // Slash 2 (Cross)
+                        actions.push({ type: 'PARTICLE', id: specificHit, scale: 0.7, delay: 0.15 });
+                        actions.push({ type: 'SHAKE', shakeIntensity: 0.1, delay: 0.15 });
+                        break;
+                    case 'HEAVY_CLEAVE': // [NEW] Massive Swing
+                    case 'MELEE_CLEAVE':
+                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.25, scale: (basicConfig.scale || 1.2) * 1.5 });
+                        actions.push({ type: 'GRID_PULSE', color: basicConfig.secondaryColor, scale: 1.0, delay: 0.1 });
+                        actions.push({ type: 'SHAKE', shakeIntensity: 0.2, delay: 0.1 });
                         break;
                     case 'MELEE_SMASH':
                         actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.color, scale: (basicConfig.scale || 1.0) * 1.2 });
@@ -38,15 +50,14 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         actions.push({ type: 'BEAM', style: 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
                         actions.push({ type: 'PARTICLE', id: 'SPARK', color: basicConfig.secondaryColor, scale: 0.6, delay: 0.05 });
                         break;
-                    case 'DUAL_STRIKE':
-                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.color, duration: 0.1, scale: 0.8 });
-                        actions.push({ type: 'BEAM', style: 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.1, scale: 0.8, delay: 0.1 });
-                        actions.push({ type: 'PARTICLE', id: specificHit, scale: 0.7, delay: 0.15 });
-                        break;
                     case 'RANGED_BOLT':
                     case 'MAGIC_ORB':
                         // Muzzle Flash
                         actions.push({ type: 'PARTICLE', id: 'GLOW', color: basicConfig.color, scale: 0.6, duration: 0.1 });
+                        break;
+                    case 'LASER_SHOT': // [NEW] Instant Hit Beam
+                        actions.push({ type: 'BEAM', style: 'DEATH_RAY', color: basicConfig.color, duration: 0.2, scale: 0.6 });
+                        actions.push({ type: 'PARTICLE', id: 'SPARK', color: basicConfig.secondaryColor, scale: 0.8 });
                         break;
                     case 'RANGED_BEAM':
                         actions.push({ type: 'BEAM', style: 'GENERIC_BEAM', color: basicConfig.color, duration: 0.3, scale: 1.0 });

@@ -20,7 +20,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 2, power: 150, color: '#a3e635', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'DOT', ccForce: 100, ccDur: 6, 
-        visualHitEffect: 'FX_ULT_RED_PLAGUE' // Restored
+        visualHitEffect: 'FX_ULT_RED_PLAGUE'
     },
     { 
         id: 'tr_u3', role: Role.TANK, team: Team.RED, tag: 'ULT', 
@@ -29,7 +29,7 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 0, color: '#16a34a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 800,
-        visualHitEffect: 'FX_ULT_RED_UNDYING' // Restored
+        visualHitEffect: 'FX_ULT_RED_UNDYING'
     },
     { 
         id: 'tr_u4', role: Role.TANK, team: Team.RED, tag: 'ULT', 
@@ -38,7 +38,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 8, power: 0, color: '#581c87', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 2.0,
-        visualHitEffect: 'FX_ULT_RED_NIGHTMARE' // Restored
+        visualHitEffect: 'FX_ULT_RED_NIGHTMARE'
     },
     { 
         id: 'tr_u5', role: Role.TANK, team: Team.RED, tag: 'ULT', 
@@ -47,7 +47,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 3, power: 0, color: '#991b1b', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300,
-        visualHitEffect: 'FX_ULT_RED_BLOOD_WALL' // Restored
+        visualHitEffect: 'FX_ULT_RED_BLOOD_WALL'
     },
 
     // --- WARRIOR ---
@@ -66,7 +66,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 2, power: 400, color: '#dc2626', 
         visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 1.0, 
-        visualHitEffect: 'FX_ULT_RED_BLOODSTORM' // Restored
+        visualHitEffect: 'FX_ULT_RED_BLOODSTORM'
     },
     { 
         id: 'wr_u3', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
@@ -75,7 +75,7 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 0, color: '#b91c1c', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HOT', ccForce: 100, ccDur: 5.0, 
-        visualHitEffect: 'FX_ULT_RED_DEMON_FORM' // Restored
+        visualHitEffect: 'FX_ULT_RED_DEMON_FORM'
     },
     { 
         id: 'wr_u4', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
@@ -84,7 +84,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 2, power: 300, color: '#000', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 1.5,
-        visualHitEffect: 'FX_ULT_RED_UNLIMITED_BLADE' // Restored
+        visualHitEffect: 'FX_ULT_RED_UNLIMITED_BLADE'
     },
     { 
         id: 'wr_u5', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
@@ -93,7 +93,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 3, power: 500, color: '#450a0a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 3,
-        visualHitEffect: 'FX_ULT_RED_DEVASTATE' // Restored
+        visualHitEffect: 'FX_ULT_RED_DEVASTATE'
     },
 
     // --- RANGER ---
@@ -104,7 +104,7 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: 800, color: '#000000', 
         visual: 'BOLT', projectileSpeed: 2000, 
         effectType: 'EXECUTE', effectVal: 3.0, 
-        visualHitEffect: 'FX_ULT_RED_RAILGUN' // Restored
+        visualHitEffect: 'FX_ULT_RED_RAILGUN'
     },
     { 
         id: 'rr_u2', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
@@ -122,7 +122,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 8, power: 300, color: '#ea580c', 
         visual: 'ARROW', projectileSpeed: 0, 
         ccType: 'DOT', ccForce: 50, ccDur: 5.0, element: 'FIRE',
-        visualHitEffect: 'FX_ULT_RED_INFERNO' // Restored
+        visualHitEffect: 'FX_ULT_RED_INFERNO'
     },
     { 
         id: 'rr_u4', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
@@ -130,7 +130,7 @@ export const RED_ULT: Skill[] = [
         range: 12, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#7f1d1d', 
         visual: 'BOLT', projectileSpeed: 4000, 
-        visualHitEffect: 'FX_ULT_RED_HEADHUNTER' // Restored
+        visualHitEffect: 'FX_ULT_RED_HEADHUNTER'
     },
     { 
         id: 'rr_u5', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
@@ -139,7 +139,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 2, power: 400, color: '#581c87', 
         visual: 'BOMB', projectileSpeed: 800, 
         ccType: 'FEAR', ccDur: 2.0,
-        visualHitEffect: 'FX_ULT_RED_DOOM' // Restored
+        visualHitEffect: 'FX_ULT_RED_DOOM'
     },
 
     // --- MAGE ---
@@ -158,7 +158,7 @@ export const RED_ULT: Skill[] = [
         range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#be123c', 
         visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_RED_DEATH_FINGER' // Restored
+        visualHitEffect: 'FX_ULT_RED_DEATH_FINGER'
     },
     { 
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
@@ -167,7 +167,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 2, power: 500, color: '#581c87', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 3.0,
-        visualHitEffect: 'FX_ULT_RED_VOID_PORTAL' // Restored
+        visualHitEffect: 'FX_ULT_RED_VOID_PORTAL'
     },
     { 
         id: 'mr_u4', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
@@ -176,7 +176,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 200, color: '#a3e635', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'DOT', ccForce: 30, ccDur: 8.0,
-        visualHitEffect: 'FX_ULT_RED_POISON_RAIN' // Restored
+        visualHitEffect: 'FX_ULT_RED_POISON_RAIN'
     },
     { 
         id: 'mr_u5', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
@@ -184,7 +184,7 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 700, color: '#dc2626', 
         visual: 'FIREBALL', projectileSpeed: 600, 
-        visualHitEffect: 'FX_ULT_RED_SOUL_BURN' // Restored
+        visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
 
     // --- SUPPORT ---
@@ -203,7 +203,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 8, power: -800, color: '#dc2626', 
         visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_RED_BLOOD_PACT' // Restored
+        visualHitEffect: 'FX_ULT_RED_BLOOD_PACT'
     },
     { 
         id: 'sr_u3', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
@@ -212,7 +212,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 100, color: '#4c1d95', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 2.0,
-        visualHitEffect: 'FX_ULT_RED_VOODOO' // Restored
+        visualHitEffect: 'FX_ULT_RED_VOODOO'
     },
     { 
         id: 'sr_u4', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
@@ -221,7 +221,7 @@ export const RED_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 0, color: '#be123c', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HOT', ccForce: 100, ccDur: 6.0, 
-        visualHitEffect: 'FX_ULT_RED_BLOOD_MOON' // Restored
+        visualHitEffect: 'FX_ULT_RED_BLOOD_MOON'
     },
     { 
         id: 'sr_u5', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
@@ -230,6 +230,6 @@ export const RED_ULT: Skill[] = [
         type: 'SINGLE', power: -500, color: '#7f1d1d', 
         visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300,
-        visualHitEffect: 'FX_ULT_RED_POSSESSION' // Restored
+        visualHitEffect: 'FX_ULT_RED_POSSESSION'
     }
 ];

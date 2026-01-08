@@ -1,5 +1,6 @@
 
 
+
 // =========================================================================================
 // ⚡ ACTIVE SKILL VISUAL CONFIGURATION (v1.0)
 // Defines unique visual archetypes for 50 Active Skills (IDs a1-a5)

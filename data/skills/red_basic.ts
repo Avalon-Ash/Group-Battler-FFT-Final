@@ -2,6 +2,7 @@
 import { Role, Skill, Team } from '../../types';
 
 // 🔴 RED BASIC: 25 VARIATIONS
+// Balance Rule: Max Range = 5
 export const RED_BASIC: Skill[] = [
     // --- TANK ---
     { 
@@ -15,7 +16,7 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'tr_b2', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '血腥肉鉤', desc: '微量牽引', 
-        range: 2, cast: 0.5, cd: 1.2, cost: 0, gain: 30,
+        range: 2, cast: 0.5, cd: 1.2, cost: 0, gain: 30, // Reach 2
         type: 'SINGLE', power: 40, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 1, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
@@ -49,7 +50,7 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'wr_b1', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '裂傷斬擊', desc: '流血效果', 
-        range: 1, cast: 0.4, cd: 0.8, cost: 0, gain: 25, // Buff Gain
+        range: 1, cast: 0.4, cd: 0.8, cost: 0, gain: 25, 
         type: 'SINGLE', power: 60, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'DOT', ccDur: 3.0, ccForce: 15, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
@@ -85,26 +86,26 @@ export const RED_BASIC: Skill[] = [
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
 
-    // --- RANGER (Buff Ranges) ---
+    // --- RANGER (Nerfed Ranges) ---
     { 
         id: 'rr_b1', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '破城重弩', desc: '重型射擊', 
-        range: 6, cast: 0.8, cd: 1.2, cost: 0, gain: 35, // Buff Range 5->6
-        type: 'SINGLE', power: 75, color: '#ea580c', visual: 'BOMB', projectileSpeed: 900, 
+        range: 5, cast: 0.8, cd: 1.2, cost: 0, gain: 35, // Range 6->5
+        type: 'SINGLE', power: 75, color: '#ea580c', visual: 'BOMB', projectileSpeed: 1000, 
         ccType: 'KNOCKBACK', ccForce: 1,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT', element: 'FIRE'
     },
     { 
         id: 'rr_b2', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '急速連射', desc: '快速低傷', 
-        range: 6, cast: 0.2, cd: 0.6, cost: 0, gain: 15, // Buff Range 5->6
+        range: 5, cast: 0.2, cd: 0.6, cost: 0, gain: 15, // Range 6->5
         type: 'SINGLE', power: 30, color: '#f87171', visual: 'BOLT', projectileSpeed: 1800, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },
     { 
         id: 'rr_b3', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '劇毒矢', desc: '中毒', 
-        range: 7, cast: 0.5, cd: 1.0, cost: 0, gain: 25, // Buff Range 6->7
+        range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 25, // Range 7->5
         type: 'SINGLE', power: 40, color: '#a3e635', visual: 'ARROW', projectileSpeed: 1200, 
         ccType: 'DOT', ccForce: 8, ccDur: 3.0,
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'ARROW', element: 'POISON'
@@ -112,60 +113,60 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'rr_b4', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '燃燒箭', desc: '燃燒', 
-        range: 7, cast: 0.6, cd: 1.0, cost: 0, gain: 30, // Buff Range 6->7
-        type: 'SINGLE', power: 50, color: '#f97316', visual: 'FIREBALL', projectileSpeed: 1000, 
+        range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30, // Range 7->5
+        type: 'SINGLE', power: 50, color: '#f97316', visual: 'FIREBALL', projectileSpeed: 1100, 
         ccType: 'DOT', ccForce: 10, ccDur: 2.0,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
     },
     { 
         id: 'rr_b5', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '狩獵陷阱', desc: '定身', 
-        range: 6, cast: 0.7, cd: 1.5, cost: 0, gain: 35, // Buff Range 5->6
-        type: 'SINGLE', power: 40, color: '#7c3aed', visual: 'BOMB', projectileSpeed: 800, 
+        range: 4, cast: 0.7, cd: 1.5, cost: 0, gain: 35, // Range 6->4
+        type: 'SINGLE', power: 40, color: '#7c3aed', visual: 'BOMB', projectileSpeed: 900, 
         ccType: 'ROOT', ccDur: 1.0,
         visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'BOMB', element: 'PHYSICAL'
     },
 
-    // --- MAGE (Nerf Dmg) ---
+    // --- MAGE (Nerfed Ranges) ---
     { 
         id: 'mr_b1', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '混沌之球', desc: '隨機傷害', 
-        range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 60, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, // Nerf Power 65->60
+        range: 4, cast: 0.6, cd: 1.0, cost: 0, gain: 30, // Range 5->4
+        type: 'SINGLE', power: 60, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, 
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
     },
     { 
         id: 'mr_b2', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '生命虹吸', desc: '吸血連結', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 45, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, // Nerf Power 50->45
+        type: 'SINGLE', power: 45, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.5, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 
         id: 'mr_b3', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '燃燒餘燼', desc: '燃燒傷害', 
-        range: 5, cast: 0.4, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 40, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 800, // Nerf Power 45->40
+        range: 4, cast: 0.4, cd: 0.8, cost: 0, gain: 20, // Range 5->4
+        type: 'SINGLE', power: 40, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 800, 
         ccType: 'DOT', ccForce: 5, ccDur: 3.0,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
     },
     { 
         id: 'mr_b4', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '虛弱詛咒', desc: '虛弱', 
-        range: 6, cast: 0.6, cd: 1.2, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 25, color: '#581c87', visual: 'BOLT', projectileSpeed: 1000, // Nerf Power 30->25
+        range: 5, cast: 0.6, cd: 1.2, cost: 0, gain: 35, // Range 6->5
+        type: 'SINGLE', power: 25, color: '#581c87', visual: 'BOLT', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
     { 
         id: 'mr_b5', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '暗影箭', desc: '穿透', 
-        range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1000, // Nerf Power 55->50
+        range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 30, // Range 5->4
+        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
 
-    // --- SUPPORT ---
+    // --- SUPPORT (Range 4/5) ---
     { 
         id: 'sr_b1', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '血之祭儀', desc: '吸血光束', 
@@ -177,7 +178,7 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'sr_b2', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '靈魂虛弱', desc: '燃魔普攻', 
-        range: 5, cast: 0.4, cd: 0.9, cost: 0, gain: 25, 
+        range: 4, cast: 0.4, cd: 0.9, cost: 0, gain: 25, // Range 5->4
         type: 'SINGLE', power: 30, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 900, 
         effectType: 'MANA_BURN', effectVal: 15, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
@@ -185,7 +186,7 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'sr_b3', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '痛苦妖術', desc: '隨機負面', 
-        range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 35, 
+        range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 35, // Range 5->4
         type: 'SINGLE', power: 40, color: '#a3e635', visual: 'BOLT', projectileSpeed: 800, 
         ccType: 'DOT', ccForce: 10, ccDur: 2.0,
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'

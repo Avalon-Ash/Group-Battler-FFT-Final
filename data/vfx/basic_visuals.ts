@@ -5,13 +5,17 @@
 // =========================================================================================
 
 export type BasicArchetype = 
-    | 'MELEE_SLASH'     // Standard Sword Swipe
+    | 'MELEE_SLASH'     // Standard Sword Swipe (1 Beam)
     | 'MELEE_SMASH'     // Blunt Impact
     | 'MELEE_PIERCE'    // Spear Thrust
+    | 'MELEE_CLEAVE'    // Wide Swing (New)
+    | 'HEAVY_CLEAVE'    // Heavy Wide Swing
+    | 'CROSS_CUT'       // Dual Strike X (New)
     | 'RANGED_BOLT'     // Standard Projectile
     | 'RANGED_BEAM'     // Instant Laser
+    | 'LASER_SHOT'      // High Velocity Instahit (New)
     | 'MAGIC_ORB'       // Slow Homing
-    | 'DUAL_STRIKE';    // Two hits
+    | 'DUAL_STRIKE';    // Two hits (Legacy, mapped to Cross)
 
 export interface BasicVisualDef {
     archetype: BasicArchetype;
@@ -31,19 +35,19 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
     'tb_b2': { archetype: 'MELEE_SMASH', color: '#93c5fd', secondaryColor: '#fff', vfxOverride: 'SPARK' },
     'tb_b3': { archetype: 'MELEE_SMASH', color: '#1e3a8a', secondaryColor: '#3b82f6', scale: 1.0 },
     'tb_b4': { archetype: 'MELEE_SMASH', color: '#60a5fa', secondaryColor: '#fff', vfxOverride: 'GLOW' },
-    'tb_b5': { archetype: 'MELEE_SMASH', color: '#3b82f6', secondaryColor: '#bae6fd', scale: 1.4 },
+    'tb_b5': { archetype: 'MELEE_CLEAVE', color: '#3b82f6', secondaryColor: '#bae6fd', scale: 1.4 },
 
     // --- WARRIOR ---
-    'wb_b1': { archetype: 'DUAL_STRIKE', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.0 },
+    'wb_b1': { archetype: 'CROSS_CUT', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.0 }, // Dual Swords
     'wb_b2': { archetype: 'MELEE_PIERCE', color: '#bae6fd', secondaryColor: '#3b82f6', scale: 1.2 },
-    'wb_b3': { archetype: 'MELEE_SLASH', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.5, slashStyle: 'SLASH' },
+    'wb_b3': { archetype: 'MELEE_CLEAVE', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.5, slashStyle: 'SLASH' },
     'wb_b4': { archetype: 'MELEE_SMASH', color: '#94a3b8', secondaryColor: '#cbd5e1', scale: 0.8 },
     'wb_b5': { archetype: 'MELEE_SLASH', color: '#fbbf24', secondaryColor: '#fff', vfxOverride: 'SPARK' },
 
-    // --- RANGER (Projectiles handled by ProjectileSystem, these are Cast/Muzzle Flash) ---
+    // --- RANGER ---
     'rb_b1': { archetype: 'RANGED_BOLT', color: '#38bdf8', secondaryColor: '#0ea5e9', scale: 1.0 },
     'rb_b2': { archetype: 'RANGED_BOLT', color: '#e0f2fe', secondaryColor: '#fff', scale: 0.8 },
-    'rb_b3': { archetype: 'RANGED_BEAM', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.2 },
+    'rb_b3': { archetype: 'LASER_SHOT', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.2 }, // Instahit
     'rb_b4': { archetype: 'RANGED_BOLT', color: '#fbbf24', secondaryColor: '#fcd34d', scale: 1.1 },
     'rb_b5': { archetype: 'RANGED_BOLT', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.0 },
 
@@ -65,7 +69,7 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
     // ================= COVENANT (RED) =================
 
     // --- TANK ---
-    'tr_b1': { archetype: 'MELEE_SMASH', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.3 },
+    'tr_b1': { archetype: 'HEAVY_CLEAVE', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.3 },
     'tr_b2': { archetype: 'MELEE_SLASH', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.1 },
     'tr_b3': { archetype: 'MELEE_SMASH', color: '#b91c1c', secondaryColor: '#fca5a5', scale: 1.0 },
     'tr_b4': { archetype: 'MELEE_SMASH', color: '#7f1d1d', secondaryColor: '#000', scale: 1.2 },
@@ -74,9 +78,9 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
     // --- WARRIOR ---
     'wr_b1': { archetype: 'MELEE_SLASH', color: '#dc2626', secondaryColor: '#991b1b', scale: 1.2, slashStyle: 'SLASH' },
     'wr_b2': { archetype: 'RANGED_BOLT', color: '#b91c1c', secondaryColor: '#ef4444', scale: 1.0 },
-    'wr_b3': { archetype: 'MELEE_SLASH', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.4 },
+    'wr_b3': { archetype: 'HEAVY_CLEAVE', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.4 },
     'wr_b4': { archetype: 'MELEE_SMASH', color: '#7f1d1d', secondaryColor: '#000', scale: 1.1 },
-    'wr_b5': { archetype: 'DUAL_STRIKE', color: '#b91c1c', secondaryColor: '#fff', scale: 1.2 },
+    'wr_b5': { archetype: 'CROSS_CUT', color: '#b91c1c', secondaryColor: '#fff', scale: 1.2 },
 
     // --- RANGER ---
     'rr_b1': { archetype: 'RANGED_BOLT', color: '#ea580c', secondaryColor: '#f97316', scale: 1.3 },
