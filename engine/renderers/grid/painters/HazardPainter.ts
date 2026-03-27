@@ -1,7 +1,7 @@
 
-import { GroundHazard, HexLayout } from "../../../../../types";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../../../constants";
-import { HAZARD_VISUALS } from "../../../../../data/vfx/hazard_visuals";
+import { GroundHazard, HexLayout } from "../../../../types";
+import { HEX_SIZE, ISO_SCALE_Y } from "../../../../constants";
+import { HAZARD_VISUALS } from "../../../../data/vfx/hazard_visuals";
 import { VFXFactory } from "../../../graphics/VFXFactory";
 import { SurfacePainter } from "../../../graphics/painters/SurfacePainter";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";

@@ -3,7 +3,7 @@ import { Team, Role } from "../../../../types";
 import { VFXSystem } from "../../vfx";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { SpriteManager } from "../../../sprites";
-import { UNIT_SCALE } from "../../../../../constants";
+import { UNIT_SCALE } from "../../../../constants";
 
 export const UnitShatter = {
     /**

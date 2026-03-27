@@ -2,7 +2,7 @@
 import { Agent } from "../../../game";
 import { HEX_SIZE } from "../../../../constants";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
-import { HexLayout } from "../../../../../types";
+import { HexLayout } from "../../../../types";
 import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitAuraPainter = {

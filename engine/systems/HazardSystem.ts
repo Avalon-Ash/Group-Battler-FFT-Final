@@ -80,6 +80,10 @@ export class HazardSystem {
                         color: hazard.color,
                         skill: { color: hazard.color, ccType: 'DOT' } as any 
                     });
+                    
+                    const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
+                    engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (${hazard.type})`);
+                    
                     agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
                 }
 

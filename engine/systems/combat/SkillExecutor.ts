@@ -65,11 +65,13 @@ export class SkillExecutor {
         
         if (result.isMiss) {
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "MISS", color: '#9ca3af' });
+            engine.log(source, 'HIT', '閃避', target.id, `攻擊未命中`);
             return;
         }
 
         if (result.shieldAbsorb > 0) {
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, value: -Math.floor(result.shieldAbsorb), color: '#bae6fd', text: "ABSORB" });
+            engine.log(source, 'HIT', '吸收', target.id, `護盾吸收 ${Math.floor(result.shieldAbsorb)} 傷害`);
         }
 
         if (result.finalValue !== 0) {
@@ -90,6 +92,10 @@ export class SkillExecutor {
                 sourceId: source.id
             });
 
+            const actionName = isHeal ? '治療' : (result.isCrit ? '爆擊' : '命中');
+            const logType = isHeal ? 'HEAL' : 'HIT';
+            engine.log(source, logType, actionName, target.id, `造成 ${Math.abs(Math.floor(result.finalValue))} ${isHeal ? '治療' : '傷害'}`);
+
             // SSOT: Trigger Animation System
             if (!isHeal) {
                 target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
@@ -105,14 +111,17 @@ export class SkillExecutor {
         if (result.vampAmount > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#be123c', text: "VAMP" });
+            engine.log(source, 'HEAL', '吸血', source.id, `回復 ${Math.floor(result.vampAmount)} HP`);
         }
         if (result.manaBurn > 0) {
             target.mp = Math.max(0, target.mp - result.manaBurn);
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, value: result.manaBurn, color: '#8b5cf6', text: "BURN" });
+            engine.log(source, 'HIT', '燃魔', target.id, `燃燒 ${Math.floor(result.manaBurn)} MP`);
         }
         if (result.manaRestore > 0) {
             target.mp = Math.min(target.maxMp, target.mp + result.manaRestore);
             engine.events.push({ type: 'HEAL', pos: {x: target.px, y: target.py}, value: result.manaRestore, color: '#60a5fa', text: "MP" });
+            engine.log(source, 'HEAL', '回魔', target.id, `回復 ${Math.floor(result.manaRestore)} MP`);
         }
 
         // C. Crowd Control (CC) Application

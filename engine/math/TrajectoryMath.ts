@@ -1,7 +1,7 @@
 
 import { Point3D } from "./VisualMath";
 
-export { Point3D };
+export type { Point3D };
 
 export interface TrajectoryConfig {
     type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT';

@@ -1,6 +1,6 @@
 import { Agent } from "../../../game";
-import { Team } from "../../../../../types";
-import { FACTION_VISUALS } from "../../../../../data/vfx/faction_visuals";
+import { Team } from "../../../../types";
+import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 
 export const UnitCorePainter = {
