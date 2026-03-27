@@ -1,8 +1,12 @@
 
-import { Hex, Point, Cube, HexLayout } from "../../types";
+import { Hex, Point, HexLayout } from "../../types";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
-export { Cube };
+export interface Cube {
+    x: number;
+    y: number;
+    z: number;
+}
 
 const SQRT3 = Math.sqrt(3);
 

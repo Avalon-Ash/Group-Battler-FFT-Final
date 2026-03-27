@@ -1,9 +1,9 @@
 
 import { Agent } from "../../../../game";
-import { ISO_SCALE_Y } from "../../../../../constants";
+import { ISO_SCALE_Y } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
-import { HexLayout } from "../../../../../types";
+import { HexLayout } from "../../../../types";
 
 // 數學規範：CC 地面層偏置量
 const CC_GROUND_BIAS = -5;

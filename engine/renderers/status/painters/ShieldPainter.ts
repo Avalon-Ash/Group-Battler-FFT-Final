@@ -1,6 +1,6 @@
 
 import { Agent } from "../../../../game";
-import { Team, HexLayout } from "../../../../../types";
+import { Team, HexLayout } from "../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 
 export const ShieldPainter = {

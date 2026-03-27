@@ -42,6 +42,7 @@ export class EffectSystem {
                     color: '#10b981', // Poison Green default
                     skill: { ccType: 'DOT' } as any 
                 });
+                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (中毒)`);
                 agent.hitFlashTimer = 0.1;
                 // Don't reset timer yet, wait for HoT check
             }
@@ -64,6 +65,7 @@ export class EffectSystem {
                     value: Math.floor(healPerSec), 
                     color: '#86efac' 
                 });
+                engine.log(null, 'HEAL', '持續治療', agent.id, `回復 ${Math.floor(healPerSec)} HP (再生)`);
                 // Reset timer now
                 this.feedbackTimers.set(feedbackKey, this.FEEDBACK_INTERVAL);
             }

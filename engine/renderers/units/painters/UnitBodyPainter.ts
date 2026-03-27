@@ -1,14 +1,14 @@
 
 import { Agent } from "../../../../game";
-import { Team, AnimState, MovementType } from "../../../../../types";
-import { UNIT_SCALE, VFX_PARAM } from "../../../../../constants";
+import { Team, AnimState, MovementType } from "../../../../types";
+import { UNIT_SCALE, VFX_PARAM } from "../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitCorePainter } from "./UnitCorePainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
-import { FACTION_VISUALS } from "../../../../../data/vfx/faction_visuals";
+import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 
 export const UnitBodyPainter = {
     draw(

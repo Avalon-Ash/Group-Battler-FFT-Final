@@ -61,6 +61,13 @@ export class CombatSystem {
         const s = a.skills[a.castingSkillIdx]!;
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
         a.curCDs[a.castingSkillIdx] = s.cd;
+        
+        let targetName = '地面';
+        if (a.target) targetName = a.target.id;
+        else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
+        
+        engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
+
         if (s.projectileSpeed && s.projectileSpeed > 0) {
              this.spawnProjectile(a, s, engine);
         } else {

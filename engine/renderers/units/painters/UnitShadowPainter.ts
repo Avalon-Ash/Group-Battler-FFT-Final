@@ -4,8 +4,8 @@ import { SpriteManager } from "../../../sprites";
 import { UnitIndicatorPainter } from "./UnitIndicatorPainter";
 import { UnitAuraPainter } from "./UnitAuraPainter";
 import { VFXFactory } from "../../../graphics/VFXFactory";
-import { UNIT_SCALE, ISO_SCALE_Y } from "../../../../../constants";
-import { HexLayout } from "../../../../../types";
+import { UNIT_SCALE, ISO_SCALE_Y } from "../../../../constants";
+import { HexLayout } from "../../../../types";
 import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitShadowPainter = {

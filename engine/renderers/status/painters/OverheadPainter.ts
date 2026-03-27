@@ -1,6 +1,6 @@
 import { Agent } from "../../../../game";
 import { AssetManager } from "../../../assets";
-import { STATUS_VISUALS } from "../../../../../data/vfx/status_visuals";
+import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
 import { VisualMath } from "../../../math/VisualMath";
 
 export const OverheadPainter = {

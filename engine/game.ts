@@ -5,7 +5,8 @@ import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEven
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
 import { DEFAULT_HEX_LAYOUT } from "../constants";
-import { Agent, SpecialVisualStatus } from "./core/Agent";
+import { Agent } from "./core/Agent";
+import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { CombatSystem } from "./systems/combat";
