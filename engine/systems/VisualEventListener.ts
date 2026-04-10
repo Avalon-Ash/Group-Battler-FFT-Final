@@ -36,13 +36,13 @@ export class VisualEventListener {
                     const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
                     
                     // SSOT FIX: If target is ground (no unit ID or generic), ensure correct Z
-                    if (target3D.z < -9000) {
+                    if (!event.targetId || event.targetId.startsWith('ground-')) {
                         target3D.x = event.pos.x;
                         target3D.y = event.pos.y;
                         
                         // Fix: Use event position to find hex and get terrain height
                         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                        target3D.z = grid.getTerrainHeight(hex.q, hex.r, engine) + 20; 
+                        target3D.z = grid.getTerrainHeight(hex.q, hex.r, engine); 
                     }
                     SequenceSystem.run(sequence, target3D, engine, vfx, event.sourceId);
                     return; 
