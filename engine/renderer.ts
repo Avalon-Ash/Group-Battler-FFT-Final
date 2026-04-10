@@ -111,11 +111,14 @@ export class GameRenderer {
             simDt, 
             battleTime, 
             engine.currentScene.ambientType, 
-            (x, y) => this.grid.getTerrainHeight(
-                this.grid.getHexAtWorldPoint(x, y, engine)?.q || 0,
-                this.grid.getHexAtWorldPoint(x, y, engine)?.r || 0,
-                engine
-            ),
+            (x, y) => {
+                const hex = this.grid.getHexAtWorldPoint(x, y, engine);
+                if (!hex) return { height: 0, isValid: false };
+                return {
+                    height: this.grid.getTerrainHeight(hex.q, hex.r, engine),
+                    isValid: engine.map.isValid(hex.q, hex.r)
+                };
+            },
             engine 
         );
 

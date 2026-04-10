@@ -170,12 +170,12 @@ export const CCManager = {
             }
             
             if (bestN) {
-                if (!engine.map.isValid(bestN.q, bestN.r) || engine.map.hasObstacle(bestN.q, bestN.r)) break; 
+                if (engine.map.hasObstacle(bestN.q, bestN.r)) break; 
                 if (engine.getAgentAt(bestN.q, bestN.r)) break; 
                 
                 const curHeight = engine.map.getTerrainHeight(currentH.q, currentH.r);
                 const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);
-                if (nextHeight > curHeight + 24) break; 
+                if (engine.map.isValid(bestN.q, bestN.r) && nextHeight > curHeight + 24) break; 
                 
                 currentH = bestN;
                 finalH = bestN;

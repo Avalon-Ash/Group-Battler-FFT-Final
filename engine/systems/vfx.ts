@@ -1,7 +1,7 @@
 
 import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
-import { VFXPhysics } from "./vfx/VFXPhysics";
+import { VFXPhysics, SpatialInfo } from "./vfx/VFXPhysics";
 import { VFXAmbience } from "./vfx/VFXAmbience";
 import { AgentVFXSystem } from "./vfx/AgentVFXSystem";
 import { Point3D } from "../math/VisualMath";
@@ -39,7 +39,7 @@ export class VFXSystem {
         dt: number, 
         battleTime: number, 
         ambientType: string, 
-        getTerrainHeight: (x: number, y: number) => number,
+        getSpatialInfo: (x: number, y: number) => SpatialInfo,
         engine?: GameEngine 
     ) {
         const particles = this.state.particles;
@@ -72,7 +72,7 @@ export class VFXSystem {
                 if (dx*dx + dy*dy < p.killAtTarget) p.life = 0; 
             }
             
-            VFXPhysics.update(p, dt, getTerrainHeight);
+            VFXPhysics.update(p, dt, getSpatialInfo);
         }
         
         // Decals also respect time scale

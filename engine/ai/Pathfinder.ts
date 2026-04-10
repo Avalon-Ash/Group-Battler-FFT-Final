@@ -65,6 +65,12 @@ export class Pathfinder {
                 // 數學地勢成本計算 (Asymmetric Verticality)
                 const nHex = HexUtils.unhash(neighborH);
                 let moveCost = 1.0;
+
+                // 大逃殺警告區域懲罰 (AI 求生邏輯)
+                const nKey = HexUtils.key(nHex);
+                if (targeting.isWarningTile(nKey, spatial)) {
+                    moveCost += 9000; // 極高懲罰，盡量避開
+                }
                 
                 if (startAgent.movementType !== MovementType.FLYING) {
                     const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);

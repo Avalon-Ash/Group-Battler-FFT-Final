@@ -1,4 +1,11 @@
 
+export interface ZoneConfig {
+    enabled: boolean;
+    initialRadius: number;
+    shrinkInterval: number;
+    minRadius: number;
+}
+
 export interface SpatialProvider {
     isValid(q: number, r: number): boolean;
     isBlocked(q: number, r: number, ignoreId?: string, movementType?: MovementType): boolean;
@@ -11,6 +18,7 @@ export interface SpatialProvider {
     updateAgentPosition(agent: any, q: number, r: number): void;
     getAgents(): any[];
     log(agent: any, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
+    isWarningTile(key: string): boolean;
 }
 
 export interface Projectile {

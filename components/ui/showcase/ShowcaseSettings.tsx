@@ -17,7 +17,7 @@ interface ShowcaseSettingsProps {
     onToggleMonitor?: (v: boolean) => void; // 新增
 }
 
-type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX';
+type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX' | 'GAMEPLAY';
 
 export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
     show, onClose, config, setConfig, timeScale, setTimeScale, layout, setLayout, engine, monitorEnabled, onToggleMonitor
@@ -82,10 +82,11 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                 <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">✕</button>
             </div>
 
-            <div className="flex px-2 border-b border-white/5 bg-black/20">
+            <div className="flex px-2 border-b border-white/5 bg-black/20 overflow-x-auto custom-scrollbar">
                 <TabButton id="SYSTEM" label="系統" icon="🖥️" />
                 <TabButton id="CAMERA" label="鏡頭" icon="🎥" />
                 <TabButton id="MATRIX" label="視覺" icon="🔮" />
+                <TabButton id="GAMEPLAY" label="玩法" icon="🗺️" />
             </div>
 
             <div className="p-5 overflow-y-auto custom-scrollbar flex-1 min-h-0">
@@ -158,6 +159,55 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                     <span className="font-mono text-cyan-300">{zoomStiffness.toFixed(1)}</span>
                                 </div>
                                 <input type="range" min="0.1" max="5.0" step="0.1" value={zoomStiffness} onChange={(e) => updateZoomStiffness(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'GAMEPLAY' && engine && (
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="bg-orange-500/5 p-3 rounded-xl border border-orange-500/20 flex justify-between items-center mb-2">
+                            <span className="text-xs font-bold text-orange-300">大逃殺模式 (Battle Royale)</span>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" className="sr-only peer" checked={engine.zoneConfig.enabled} onChange={(e) => {
+                                    engine.zoneConfig.enabled = e.target.checked;
+                                    // Force re-render
+                                    setConfig({...config});
+                                }}/>
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+                            </label>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
+                                    <span>初始安全半徑</span>
+                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.initialRadius}</span>
+                                </div>
+                                <input type="range" min="3" max="20" step="1" value={engine.zoneConfig.initialRadius} onChange={(e) => {
+                                    engine.zoneConfig.initialRadius = parseInt(e.target.value);
+                                    setConfig({...config});
+                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
+                                    <span>縮圈間隔 (秒)</span>
+                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.shrinkInterval}</span>
+                                </div>
+                                <input type="range" min="1" max="60" step="1" value={engine.zoneConfig.shrinkInterval} onChange={(e) => {
+                                    engine.zoneConfig.shrinkInterval = parseInt(e.target.value);
+                                    setConfig({...config});
+                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
+                                    <span>極限圈半徑</span>
+                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.minRadius}</span>
+                                </div>
+                                <input type="range" min="0" max="10" step="1" value={engine.zoneConfig.minRadius} onChange={(e) => {
+                                    engine.zoneConfig.minRadius = parseInt(e.target.value);
+                                    setConfig({...config});
+                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
                             </div>
                         </div>
                     </div>

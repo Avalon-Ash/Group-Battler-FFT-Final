@@ -4,7 +4,7 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
-import { DEFAULT_HEX_LAYOUT } from "../constants";
+import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG } from "../constants";
 import { Agent } from "./core/Agent";
 import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
@@ -76,6 +76,7 @@ export class GameEngine {
     public screenAspect: number = 1.77;
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
+    public zoneConfig: any = { ...DEFAULT_ZONE_CONFIG };
     public currentScene: SceneTheme = SCENE_DB[0];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     
@@ -119,6 +120,7 @@ export class GameEngine {
     public getAgentHash(h: number): Agent | undefined { return this.map.agentMap.get(h); }
     public getMapConfig(): MapConfig { return this.mapConfig; }
     public getAgents(): Agent[] { return this.agents; }
+    public isWarningTile(key: string): boolean { return this.zones.warningTiles.has(key); }
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 
@@ -184,6 +186,7 @@ export class GameEngine {
     public restart() {
         this.stop();
         this.victorySystem.reset(this);
+        this.zones.reset();
         this.state.time.battleTime = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
@@ -211,6 +214,7 @@ export class GameEngine {
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.director.reset(this);
+        this.zones.reset();
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.state.time.timeScale = 1.0;
@@ -230,7 +234,7 @@ export class GameEngine {
         this.timeSystem.update(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);
-        this.zones.update(this); 
+        this.zones.update(dt, this); 
         if (this.victorySystem.check(this)) {
             this.victorySystem.updateFinishing(dt, this);
             this.updateEntities(dt);

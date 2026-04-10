@@ -2,7 +2,7 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -78,7 +78,34 @@ export class GridRenderStrategy {
             op.oRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
             op.oRangeCol = hoveredSkill?.color || '';
             op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
+            op.oWarning = engine.zones.warningTiles.has(key);
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
+            op.time = globalTime;
+        }
+
+        // Render collapsing tiles
+        for (const [key, tile] of engine.zones.collapsingTiles.entries()) {
+            const { q, r, z, h } = tile;
+            const pos = HexUtils.toPx(q, r, engine.mapConfig);
+            
+            const offset = VisualMath.getTransitionOffset(pos.x, pos.y, engine.mapConfig, transitionT, transitionPhase);
+            // z is negative when falling. In isometric, lower z means higher visual Y.
+            const fallVisualOffset = -z * ISO_SCALE_Y;
+            const visualBaseY = pos.y + offset + fallVisualOffset;
+
+            if (Math.abs(offset) > 800) continue;
+
+            const op = renderList.next();
+            op.type = RenderOpType.TERRAIN;
+            op.tq = q; op.tr = r; op.th = h; // Keep original height for block thickness
+            op.tx = pos.x; op.ty = visualBaseY; 
+            op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
+            op.oStatus = undefined;
+            op.oDanger = undefined; 
+            op.oRange = false;
+            op.oHover = false;
+            op.oWarning = false;
+            op.oHasUnit = false;
             op.time = globalTime;
         }
     }

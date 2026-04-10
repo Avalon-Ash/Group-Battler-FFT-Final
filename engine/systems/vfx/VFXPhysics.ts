@@ -2,14 +2,21 @@
 import { Particle } from "./state";
 import { PHYSICS } from "../../../constants";
 
+export interface SpatialInfo {
+    height: number;
+    isValid: boolean;
+}
+
 export class VFXPhysics {
-    public static update(p: Particle, dt: number, getTerrainHeight?: (x: number, y: number) => number) {
+    public static update(p: Particle, dt: number, getSpatialInfo?: (x: number, y: number) => SpatialInfo) {
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.rotation += p.vRotation * dt;
 
         const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE', 'GIANT_HEX'].includes(p.type);
-        const currentGroundH = getTerrainHeight ? getTerrainHeight(p.x, p.y) : 0;
+        const spatial = getSpatialInfo ? getSpatialInfo(p.x, p.y) : { height: 0, isValid: true };
+        const currentGroundH = spatial.height;
+        const isValid = spatial.isValid;
 
         if (isPhysical) {
             // SSOT: Use defined game gravity if particle doesn't override
@@ -17,21 +24,28 @@ export class VFXPhysics {
             p.vz -= g * dt;
             p.z += p.vz * dt;
 
-            const floorLevel = currentGroundH + 2;
+            if (isValid) {
+                const floorLevel = currentGroundH + 2;
 
-            if (p.z < floorLevel) {
-                p.z = floorLevel;
+                if (p.z < floorLevel) {
+                    p.z = floorLevel;
 
-                if (Math.abs(p.vz) > 120) {
-                    p.vz = -p.vz * 0.45;
-                    p.vx *= 0.7;
-                    p.vy *= 0.7;
-                    p.vRotation *= 0.6;
-                } else {
-                    p.vz = 0;
-                    p.vx *= 0.2;
-                    p.vy *= 0.2;
-                    p.vRotation = 0;
+                    if (Math.abs(p.vz) > 120) {
+                        p.vz = -p.vz * 0.45;
+                        p.vx *= 0.7;
+                        p.vy *= 0.7;
+                        p.vRotation *= 0.6;
+                    } else {
+                        p.vz = 0;
+                        p.vx *= 0.2;
+                        p.vy *= 0.2;
+                        p.vRotation = 0;
+                    }
+                }
+            } else {
+                // Void Penetration: No collision, fall until out of bounds
+                if (p.z < -2000) {
+                    p.life = 0;
                 }
             }
         } else {
@@ -46,8 +60,10 @@ export class VFXPhysics {
                 p.vz *= 0.94;
             }
 
-            if (p.z < currentGroundH) {
+            if (isValid && p.z < currentGroundH) {
                 p.z += (currentGroundH - p.z) * 0.1;
+            } else if (!isValid && p.z < -2000) {
+                p.life = 0;
             }
         }
 

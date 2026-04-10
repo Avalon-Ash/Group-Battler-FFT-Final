@@ -31,6 +31,7 @@ export class RenderOp {
     oRangeCol: string = '';
     oHover: boolean = false;
     oHasUnit: boolean = false;
+    oWarning: boolean = false;
     agent: Agent | null = null;
     uSelected: boolean = false;
     uSilhouette: boolean = false;
@@ -59,6 +60,7 @@ export class RenderOp {
         this.pScale = 1.0;
         this.oRange = false;
         this.oHover = false;
+        this.oWarning = false;
         this.oStatus = undefined;
         this.oHazard = undefined;
         this.oDanger = undefined;

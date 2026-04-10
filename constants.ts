@@ -1,7 +1,13 @@
 
-import { Team, HexLayout } from './types';
+import { Team, HexLayout, ZoneConfig } from './types';
 
 export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
+export const DEFAULT_ZONE_CONFIG: ZoneConfig = {
+    enabled: true,
+    initialRadius: 8,
+    shrinkInterval: 15,
+    minRadius: 1
+};
 export const HEX_SIZE = 48;
 export const BLOCK_HEIGHT = 24;
 export const BASE_HEIGHT = 4;

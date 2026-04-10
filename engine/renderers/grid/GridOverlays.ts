@@ -19,6 +19,7 @@ export const GridOverlays = {
         isRange: boolean,
         rangeColor: string,
         isHover: boolean,
+        isWarning: boolean,
         hasUnit: boolean,
         q: number, r: number,
         globalTime: number,
@@ -65,10 +66,17 @@ export const GridOverlays = {
             ctx.restore();
         }
 
-        if (isRange || isHover || hasUnit) {
+        if (isRange || isHover || hasUnit || isWarning) {
             ctx.save();
             ctx.translate(x, drawY + 1); 
             ctx.globalCompositeOperation = 'screen';
+            if (isWarning) {
+                const pulse = (Math.sin(globalTime * 10) + 1) / 2;
+                ctx.fillStyle = '#ef4444';
+                ctx.globalAlpha = 0.3 + pulse * 0.4;
+                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
+                ctx.fill();
+            }
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
                 ctx.globalAlpha = 0.12;

@@ -50,7 +50,14 @@ export class PhysicsEngine {
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
         const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
 
-        if (isFlying && !isDisabled) {
+        // Check if standing on valid ground
+        const isGroundValid = engine.isValid(a.q, a.r);
+
+        if (!isGroundValid && !isFlying) {
+            // Free fall logic
+            a.stunTimer = Math.max(a.stunTimer, 0.1); // Force out of control
+            a.physics.vz -= PHYSICS.GRAVITY * dt;
+        } else if (isFlying && !isDisabled) {
             const hoverHeight = 55, hoverFreq = 2.5; 
             const targetZ = hoverHeight + Math.sin(engine.battleTime * hoverFreq) * 5;
             const dz = targetZ - a.physics.z;
@@ -67,7 +74,15 @@ export class PhysicsEngine {
 
         // Note: Trail Logic moved to PhysicsSystem.ts to centralize history management
 
-        if (a.physics.z < 0) {
+        if (a.physics.z < -1000) {
+            if (!isDead) {
+                a.hp = 0;
+                engine.log(a, 'DEATH', '墜落', '深淵', '跌落至虛空');
+                engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, text: "RING_OUT" });
+                engine.agentManager.handleDeadState(a, engine);
+                a.banished = true; // Remove from battlefield rendering
+            }
+        } else if (isGroundValid && a.physics.z < 0) {
             a.physics.z = 0;
             if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
                 const impactSpeed = Math.abs(a.physics.vz);

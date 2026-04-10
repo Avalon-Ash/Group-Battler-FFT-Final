@@ -6,6 +6,13 @@ import { BLOCK_HEIGHT } from "../../constants";
 
 export class TargetingSystem {
     /**
+     * 檢查目標地塊是否處於大逃殺警告狀態
+     */
+    public isWarningTile(key: string, spatial: SpatialProvider): boolean {
+        return spatial.isWarningTile(key);
+    }
+
+    /**
      * 計算有效射程（考慮高地加成）
      * High Ground Bonus: 每高一層 Block，射程微量增加
      */
@@ -22,6 +29,47 @@ export class TargetingSystem {
      * RTS 等級目標選取評分
      */
     public updateTarget(a: Agent, spatial: SpatialProvider) {
+        // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
+        const myKey = HexUtils.key(a);
+        if (spatial.isWarningTile(myKey)) {
+            // 中斷當前攻擊或追擊目標
+            a.target = null;
+            
+            // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
+            let bestSafeHex: Hex | null = null;
+            let minSafeDist = Infinity;
+
+            const mapConfig = spatial.getMapConfig();
+            const centerQ = Math.floor(mapConfig.w / 2);
+            const centerR = Math.floor(mapConfig.h / 2);
+
+            // 簡單掃描：向地圖中心方向尋找安全地塊
+            for (let radius = 1; radius <= 5; radius++) {
+                const ring = HexUtils.range(a, radius);
+                for (const hex of ring) {
+                    if (spatial.isValid(hex.q, hex.r)) {
+                        const hexKey = HexUtils.key(hex);
+                        if (!spatial.isWarningTile(hexKey)) {
+                            // 優先選擇靠近中心的安全地塊
+                            const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
+                            if (distToCenter < minSafeDist) {
+                                minSafeDist = distToCenter;
+                                bestSafeHex = hex;
+                            }
+                        }
+                    }
+                }
+                if (bestSafeHex) break; // 找到最近的一圈安全地塊就停止
+            }
+
+            if (bestSafeHex) {
+                a.targetHex = bestSafeHex;
+                // 強制執行 MOVE 行為的標記，這裡我們透過設定 targetHex 讓行為樹或移動系統接管
+                // 為了確保 AI 會移動，我們清空 target，只保留 targetHex
+                return;
+            }
+        }
+
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
         
         let maxScore = -Infinity;
