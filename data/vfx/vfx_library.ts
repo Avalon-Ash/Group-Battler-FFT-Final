@@ -29,7 +29,8 @@ export const VFX_LIBRARY = {
     ACTION_VERBS: [
         { key: 'HEAVEN_FALL', name: '天降物理件', desc: '模擬從 1200px 高度墜落的物體，支持重力係數與落地衝擊波。', visuals: ['Gravity', 'Impact'] },
         { key: 'BEAM_PROJ', name: '光束投影', desc: '高精度向量雷射，支持螺旋軌跡 (Helix) 與粒子採樣。', visuals: ['Helix', 'Laser'] },
-        { key: 'GRID_RIFLE', name: '網格脈衝', desc: '直接修改底層網格材質屬性的渲染指令。', visuals: ['Shader', 'Flow'] }
+        { key: 'GRID_RIFLE', name: '網格脈衝', desc: '直接修改底層網格材質屬性的渲染指令。', visuals: ['Shader', 'Flow'] },
+        { key: 'FX_CAST_BREAK', name: '詠唱崩解', desc: '能量崩解粒子：具備物理重力感的碎裂。', visuals: ['Gravity', 'Shatter'] }
     ] as VFXEntry[],
 
     IMPERIAL_FLAVOR: [
@@ -42,5 +43,12 @@ export const VFX_LIBRARY = {
         { key: 'FX_ULT_RED_NUKE', name: '末日審判', desc: '紅軍毀滅性打擊的極致視覺體現。', visuals: ['Crimson', 'Nuke'] },
         { key: 'FX_HIT_RED_BLOOD', name: '鮮血撕裂', desc: '紅軍特有的有機物質噴濺特效。', visuals: ['Gore', 'Dark'] },
         { key: 'PROJ_RED_CHAOS_ORB', name: '混沌法球', desc: '不穩定的螺旋軌跡與脈衝核心。', visuals: ['Chaos', 'Wobble'] }
+    ] as VFXEntry[],
+
+    STATUS_EFFECTS: [
+        { key: 'FX_STATUS_BURN_LOOP', name: '燃燒狀態', desc: '持續性火焰燃燒粒子效果。', visuals: ['Fire', 'Loop'] },
+        { key: 'FX_STATUS_POISON_LOOP', name: '中毒狀態', desc: '持續性毒液滴落與毒氣粒子。', visuals: ['Poison', 'Loop'] },
+        { key: 'FX_STATUS_STUN_LOOP', name: '暈眩狀態', desc: '頭部環繞的暈眩星芒粒子。', visuals: ['Stars', 'Loop'] },
+        { key: 'FX_STATUS_SILENCE_LOOP', name: '沉默狀態', desc: '封印符文與暗色粒子環繞。', visuals: ['Rune', 'Loop'] }
     ] as VFXEntry[]
 };

@@ -10,7 +10,7 @@ export class DesignExporter {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `Tactical_OS_v9.4_System_Architecture.txt`;
+        anchor.download = `Tactical_OS_v9.5_System_Architecture.txt`;
         anchor.click();
         URL.revokeObjectURL(url);
     }
@@ -18,12 +18,17 @@ export class DesignExporter {
     private static generateSpec(): string {
         return `
 ================================================================================
-TACTICAL.OS - 系統架構白皮書 (Kernel v9.4)
+TACTICAL.OS - 系統架構白皮書 (Kernel v9.5)
 Generated: ${new Date().toLocaleString()}
 Status: PRODUCTION_READY
 ================================================================================
 
-[1. 視覺投影 SSOT 規範 (Spatial Truth)]
+[1. 基礎設施與解耦 (Infrastructure & Decoupling)]
+--------------------------------------------------------------------------------
+* EventBus: 採用 Set<Handler> 儲存結構，從資料結構層面強制防堵重複訂閱，並在註銷時精確釋放記憶體。
+* SpatialProvider: 抽象空間提供者介面。移動系統 (MovementSystem)、尋路 (Pathfinder) 與目標選取 (TargetingSystem) 完全切斷對 MapSystem 的具體依賴，強制透過 SpatialProvider 請求空間障礙與地形狀態。
+
+[2. 視覺投影 SSOT 規範 (Spatial Truth)]
 --------------------------------------------------------------------------------
 系統強制執行「單一座標真理來源」，所有 2D 渲染必須遵循下列公式：
 V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
@@ -32,8 +37,10 @@ V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
 * BLOCK_HEIGHT: ${BLOCK_HEIGHT}
 * UNIT_BODY_OFFSET: ${UNIT_BODY_OFFSET}
 * HORIZON_BIAS: ${VisualMath.HORIZON_Y_PCT} (Screen Height %)
+* 渲染層 Z 軸數值強制動態調用 grid.getTerrainHeight，嚴禁在事件監聽器中硬編碼高度補償。
+* 渲染管線 (RenderPipeline) 的 transitionT 更新強制綁定 dt 運算，確保轉場動畫與真實時間流逝掛鉤。
 
-[2. AI 決策權重矩陣 (Decision Matrix)]
+[3. AI 決策權重矩陣 (Decision Matrix)]
 --------------------------------------------------------------------------------
 目標選取算法 (TargetingSystem V2) 採用加權評分機制：
 
@@ -56,7 +63,7 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus)
    * 當前目標: +300
    * 防止在分數相近的目標間頻繁切換 (防抖)。
 
-[3. 立體機動與尋路 (Topological Pathfinding)]
+[4. 立體機動與尋路 (Topological Pathfinding)]
 --------------------------------------------------------------------------------
 移動邏輯採用非對稱垂直檢定 (Asymmetric Verticality)：
 
@@ -69,7 +76,7 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus)
    * 成本: 固定微量懲罰 (鼓勵平地移動，但允許戰術跳躍)
    * 後果: 落地時觸發 PhysicsEngine.applyFallDamage
 
-[4. 特效渲染管線 (VFX Pipeline Map)]
+[5. 特效渲染管線 (VFX Pipeline Map)]
 --------------------------------------------------------------------------------
 GameEvent (Logic) -> EventVFXMapper (Adapter) -> VFXSystem (State)
                                                       |
@@ -85,7 +92,7 @@ RenderPipeline
         +-- GroundPainter (Projection: Shockwave, Grid)
         +-- VolumePainter (3D Extrusion: Shields, Pillars)
 
-[5. 資源索引 (Asset Registry)]
+[6. 資源索引 (Asset Registry)]
 --------------------------------------------------------------------------------
 * UnitFactory: Base Token, Role Icons
 * EnvironmentFactory: Procedural Obstacles (Tree, Crystal, Rock)

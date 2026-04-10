@@ -41,6 +41,7 @@ export const BT_STATUS_MAP: Record<string, string> = {
     '中斷': 'CORE_FAILURE',
     '放逐結束': 'RE_LINK_INIT',
     '追蹤': 'TARGET_LOCK',
+    '戰鬥鎖定': 'COMBAT_LOCK',
     '擠出': 'PHYS_SYNC'
 };
 
@@ -67,6 +68,8 @@ export const SKILL_FIELD_GROUPS = [
       { key: 'tag', label: '權重標籤', type: 'select', simpleOptions: Object.keys(TAG_MAP) },
       { key: 'visual', label: '基礎外觀 (Mesh)', type: 'select', simpleOptions: VISUAL_OPTIONS },
       { key: 'visualHitEffect', label: '命中效果 (VFX_ID)', type: 'text' },
+      { key: 'visualProjectileEffect', label: '彈道效果 (VFX_ID)', type: 'text' },
+      { key: 'specialVisualStatus', label: '特殊視覺狀態', type: 'select', simpleOptions: ['NONE', 'POLYMORPH', 'STASIS', 'FROZEN'] },
       { key: 'color', label: '核心色標 (Hex)', type: 'color' },
     ]
   },
@@ -84,6 +87,7 @@ export const SKILL_FIELD_GROUPS = [
     fields: [
       { key: 'power', label: '威力指數', type: 'number' },
       { key: 'cost', label: '能量消耗', type: 'number' },
+      { key: 'gain', label: '能量獲取', type: 'number' },
       { key: 'cd', label: '冷卻時長', type: 'number', step: 0.1 },
       { key: 'element', label: '元素屬性', type: 'select', simpleOptions: ELEMENT_OPTIONS },
     ]
@@ -95,6 +99,8 @@ export const SKILL_FIELD_GROUPS = [
       { key: 'ccDur', label: '持續時間', type: 'number', step: 0.1 },
       { key: 'ccForce', label: '力度參數', type: 'number' },
       { key: 'effectType', label: '次要效果', type: 'select', simpleOptions: EFFECT_OPTIONS },
+      { key: 'effectVal', label: '效果數值 1', type: 'number' },
+      { key: 'effectVal2', label: '效果數值 2', type: 'number' },
     ]
   }
 ];
