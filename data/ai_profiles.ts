@@ -20,6 +20,15 @@ export const STANDARD_AI_PROFILE: BTDef = {
                 { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { status: '死亡' } }
             ]
         },
+        // [NEW] Survival: Escape Warning Zone
+        {
+            type: 'SEQUENCE',
+            name: 'Survival',
+            children: [
+                { type: 'CONDITION', name: 'In Danger?', key: 'IsInWarningZone' },
+                { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' }
+            ]
+        },
         {
             type: 'SEQUENCE',
             name: 'CC Check',

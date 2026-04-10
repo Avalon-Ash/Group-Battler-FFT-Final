@@ -30,6 +30,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
     "MpAbove": (a, _, args) => a.mp >= args.amount,
     
+    "IsInWarningZone": (a, engine) => {
+        return engine.isWarningTile(HexUtils.key(a));
+    },
+    
     "SkillReady": (a, _, args) => {
         const idx = args.slot; 
         const s = a.skills[idx];
@@ -110,6 +114,32 @@ export const BTActions: Record<string, BTActionFn> = {
             a.path = [];
         }
         return NodeState.SUCCESS;
+    },
+    "EscapeWarning": (a, engine) => {
+        a.btStatus = "逃離危險";
+        
+        // 1. Interrupt casting if in danger (Zero-Trust)
+        if (a.castingSkillIdx !== -1) {
+            const s = a.skills[a.castingSkillIdx];
+            if (s && s.tag !== 'BASIC') {
+                engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷詠唱");
+                a.castingSkillIdx = -1;
+                a.castTimer = 0;
+                a.castingAnimationTimer = 0;
+            }
+        }
+
+        // 2. Ensure we have a targetHex to move to
+        if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
+            // Re-run targeting logic to find a safe spot
+            engine.updateTarget(a);
+        }
+
+        if (a.targetHex) {
+            return engine.moveAgentToHex(a, a.targetHex, 0, 1.5); // Fast escape
+        }
+        
+        return NodeState.FAILURE;
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;

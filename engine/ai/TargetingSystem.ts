@@ -35,6 +35,11 @@ export class TargetingSystem {
             // 中斷當前攻擊或追擊目標
             a.target = null;
             
+            // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
+            if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
+                return;
+            }
+
             // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
             let bestSafeHex: Hex | null = null;
             let minSafeDist = Infinity;
@@ -44,7 +49,7 @@ export class TargetingSystem {
             const centerR = Math.floor(mapConfig.h / 2);
 
             // 簡單掃描：向地圖中心方向尋找安全地塊
-            for (let radius = 1; radius <= 5; radius++) {
+            for (let radius = 1; radius <= 10; radius++) {
                 const ring = HexUtils.range(a, radius);
                 for (const hex of ring) {
                     if (spatial.isValid(hex.q, hex.r)) {
@@ -67,6 +72,11 @@ export class TargetingSystem {
                 // 強制執行 MOVE 行為的標記，這裡我們透過設定 targetHex 讓行為樹或移動系統接管
                 // 為了確保 AI 會移動，我們清空 target，只保留 targetHex
                 return;
+            }
+        } else {
+            // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
+            if (!a.target && a.targetHex) {
+                a.targetHex = null;
             }
         }
 

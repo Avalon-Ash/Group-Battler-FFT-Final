@@ -36,8 +36,8 @@ export class ZoneSystem {
             if (this.safeRadius > engine.zoneConfig.minRadius) {
                 this.shrinkTimer -= dt;
                 
-                const centerQ = Math.floor(engine.mapConfig.w / 2);
-                const centerR = Math.floor(engine.mapConfig.h / 2);
+                const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
+                const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
 
                 this.warningTiles.clear();
                 if (this.shrinkTimer <= 3) {
@@ -46,7 +46,8 @@ export class ZoneSystem {
                         const q = parseInt(parts[0]);
                         const r = parseInt(parts[1]);
                         const dist = HexUtils.dist({q, r}, {q: centerQ, r: centerR});
-                        if (dist === this.safeRadius) {
+                        // Warn about tiles that will be removed in the next shrink
+                        if (dist >= this.safeRadius - 1) {
                             this.warningTiles.add(key);
                         }
                     }
@@ -62,7 +63,8 @@ export class ZoneSystem {
                         const q = parseInt(parts[0]);
                         const r = parseInt(parts[1]);
                         const dist = HexUtils.dist({q, r}, {q: centerQ, r: centerR});
-                        if (dist === this.safeRadius) {
+                        // Remove tiles that are now outside the new safe radius
+                        if (dist >= this.safeRadius - 1) {
                             keysToRemove.push({q, r, key, h: engine.map.getTerrainHeight(q, r)});
                         }
                     }

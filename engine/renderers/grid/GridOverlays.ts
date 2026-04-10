@@ -69,14 +69,16 @@ export const GridOverlays = {
         if (isRange || isHover || hasUnit || isWarning) {
             ctx.save();
             ctx.translate(x, drawY + 1); 
-            ctx.globalCompositeOperation = 'screen';
+            
             if (isWarning) {
                 const pulse = (Math.sin(globalTime * 10) + 1) / 2;
                 ctx.fillStyle = '#ef4444';
-                ctx.globalAlpha = 0.3 + pulse * 0.4;
+                ctx.globalAlpha = 0.4 + pulse * 0.4;
                 HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.fill();
             }
+
+            ctx.globalCompositeOperation = 'screen';
             if (isRange) { 
                 ctx.fillStyle = rangeColor;
                 ctx.globalAlpha = 0.12;

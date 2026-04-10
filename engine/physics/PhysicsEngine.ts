@@ -53,8 +53,8 @@ export class PhysicsEngine {
         // Check if standing on valid ground
         const isGroundValid = engine.isValid(a.q, a.r);
 
-        if (!isGroundValid && !isFlying) {
-            // Free fall logic
+        if (!isGroundValid) {
+            // Free fall logic for everyone if ground is gone
             a.stunTimer = Math.max(a.stunTimer, 0.1); // Force out of control
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         } else if (isFlying && !isDisabled) {
