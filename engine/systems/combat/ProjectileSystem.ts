@@ -109,7 +109,6 @@ export class ProjectileSystem {
         p.totalDuration = Math.max(0.1, totalDist / speed);
         p.startX = launchPoint.x; p.startY = launchPoint.y; p.startZ = launchPoint.z;
         p.endX = targetPoint.x; p.endY = targetPoint.y; p.endZ = targetPoint.z;
-        p.totalDist = totalDist;
         p.targetId = targetId;
         p.trail = [];
 
@@ -138,7 +137,7 @@ export class ProjectileSystem {
         return { 
             id: '', active: false, createdAt: 0, lifespan: 0, 
             x: 0, y: 0, z: 0, t: 0, totalDuration: 0,
-            startX: 0, startY: 0, startZ: 0, endX: 0, endY: 0, endZ: 0, totalDist: 0,
+            startX: 0, startY: 0, startZ: 0, endX: 0, endY: 0, endZ: 0,
             targetId: '', targetPos: {x: 0, y: 0}, 
             speed: 0, skill: {} as Skill, sourceId: '', team: Team.BLUE, trail: [],
             trajectoryInfo: { type: 'LINEAR' }

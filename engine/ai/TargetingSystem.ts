@@ -1,6 +1,6 @@
 
-import { Agent, GameEngine } from "../game";
-import { Hex, Skill } from "../../types";
+import { Agent } from "../core/Agent";
+import { Hex, Skill, SpatialProvider } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 
@@ -9,9 +9,9 @@ export class TargetingSystem {
      * 計算有效射程（考慮高地加成）
      * High Ground Bonus: 每高一層 Block，射程微量增加
      */
-    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, engine: GameEngine): number {
-        const h1 = engine.map.getTerrainHeight(a.q, a.r);
-        const h2 = engine.map.getTerrainHeight(targetQ, targetR);
+    public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+        const h1 = spatial.getTerrainHeight(a.q, a.r);
+        const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
         // 高打低：每 48px 高度 (約2層) +1 射程
         const heightBonus = deltaH > 0 ? Math.floor(deltaH / (BLOCK_HEIGHT * 2)) : 0;
@@ -21,7 +21,7 @@ export class TargetingSystem {
     /**
      * RTS 等級目標選取評分
      */
-    public updateTarget(a: Agent, engine: GameEngine) {
+    public updateTarget(a: Agent, spatial: SpatialProvider) {
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
         
         let maxScore = -Infinity;
@@ -29,7 +29,7 @@ export class TargetingSystem {
 
         // 嘲諷強制鎖定
         if (a.tauntTimer > 0 && a.tauntTargetId) {
-            const taunter = engine.agents.find(ag => ag.id === a.tauntTargetId);
+            const taunter = spatial.getAgents().find(ag => ag.id === a.tauntTargetId);
             if (taunter && taunter.hp > 0 && !taunter.banished) {
                 a.target = taunter;
                 return;
@@ -38,7 +38,7 @@ export class TargetingSystem {
 
         const isSilenced = a.silenceTimer > 0;
 
-        for (const o of engine.agents) {
+        for (const o of spatial.getAgents()) {
             if (o.team !== a.team && o.hp > 0 && !o.banished) {
                 const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
@@ -73,7 +73,7 @@ export class TargetingSystem {
     /**
      * 核心：計算最佳施法目標 (Smart Cast)
      */
-    public calculateOptimalTarget(source: Agent, skill: Skill, engine: GameEngine): { targetAgent: Agent | null, targetHex: Hex | null } {
+    public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider): { targetAgent: Agent | null, targetHex: Hex | null } {
         // 1. 自身爆發 (PBAOE) - Range 0 強制鎖定腳下
         if (skill.range === 0) {
             return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
@@ -81,26 +81,26 @@ export class TargetingSystem {
 
         // 2. 遠程 AOE - 執行密度掃描
         if (skill.type === 'AOE') {
-            return this.findBestAOELocation(source, skill, engine);
+            return this.findBestAOELocation(source, skill, spatial);
         }
         
         // 3. 單體技能 - 黏著邏輯
         if (source.target && source.target.hp > 0 && !source.target.banished) {
-            const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
+            const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
             if (HexUtils.dist(source, source.target) <= effRange) {
                 return { targetAgent: source.target, targetHex: null };
             }
         }
 
         // 若當前無目標，重新搜尋
-        this.updateTarget(source, engine);
+        this.updateTarget(source, spatial);
         return { targetAgent: source.target, targetHex: null };
     }
 
-    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, engine: GameEngine): Hex[] {
+    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, spatial: SpatialProvider): Hex[] {
         if (skill.type === 'AOE') {
             const radius = skill.aoeRadius || 1;
-            return HexUtils.range(targetHex, radius).filter(h => engine.map.isValid(h.q, h.r));
+            return HexUtils.range(targetHex, radius).filter(h => spatial.isValid(h.q, h.r));
         }
         return [targetHex];
     }
@@ -109,12 +109,12 @@ export class TargetingSystem {
      * 密度掃描算法 (Density Scan Algorithm) v2.0
      * 尋找能覆蓋最多高價值目標的座標
      */
-    private findBestAOELocation(source: Agent, skill: Skill, engine: GameEngine) {
+    private findBestAOELocation(source: Agent, skill: Skill, spatial: SpatialProvider) {
         const range = skill.range;
         const radius = skill.aoeRadius || 1;
         
         // 取得所有有效敵軍
-        const enemies = engine.agents.filter(e => e.team !== source.team && e.hp > 0 && !e.banished);
+        const enemies = spatial.getAgents().filter(e => e.team !== source.team && e.hp > 0 && !e.banished);
         if (enemies.length === 0) return { targetAgent: null, targetHex: null };
 
         let bestHex: Hex | null = null;
@@ -135,10 +135,10 @@ export class TargetingSystem {
             const targetHex = { q, r };
             
             // 1. 地形合法性檢查
-            if (!engine.map.isValid(q, r)) return;
+            if (!spatial.isValid(q, r)) return;
             
             // 2. 射程檢查 (嚴格遵守 Skill.range)
-            const effRange = this.getEffectiveRange(source, q, r, range, engine);
+            const effRange = this.getEffectiveRange(source, q, r, range, spatial);
             if (HexUtils.dist(source, targetHex) > effRange) return;
 
             // 3. 模擬衝擊評分
@@ -175,7 +175,7 @@ export class TargetingSystem {
         // 若找不到完美AOE點，退化為攻擊當前單體目標的位置
         if (!bestHex && source.target) {
             const t = source.target;
-            const effRange = this.getEffectiveRange(source, t.q, t.r, range, engine);
+            const effRange = this.getEffectiveRange(source, t.q, t.r, range, spatial);
             if (HexUtils.dist(source, t) <= effRange) {
                 bestHex = { q: t.q, r: t.r };
             }

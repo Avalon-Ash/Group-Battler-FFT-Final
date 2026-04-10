@@ -48,10 +48,7 @@ export class GameEngine {
 
     public sessionState: GlobalSessionState = {
         killStreaks: new Map(),
-        firstBloodTriggered: false,
-        directorTargetId: null,
-        directorTimer: 0,
-        directorPriorityTimer: 0
+        firstBloodTriggered: false
     };
 
     get hazards(): Map<string, GroundHazard> { return this.state.hazards; }
@@ -118,6 +115,10 @@ export class GameEngine {
     public hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     public hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
     public getTerrainHeight(q: number, r: number) { return this.map.getTerrainHeight(q, r); }
+    public getObstacleTypeHash(h: number): string | undefined { return this.map.obstacles.get(HexUtils.key(HexUtils.unhash(h))); }
+    public getAgentHash(h: number): Agent | undefined { return this.map.agentMap.get(h); }
+    public getMapConfig(): MapConfig { return this.mapConfig; }
+    public getAgents(): Agent[] { return this.agents; }
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 

@@ -1,6 +1,6 @@
 
-import { Agent, GameEngine } from "../game";
-import { Hex, MovementType } from "../../types";
+import { Agent } from "../core/Agent";
+import { Hex, MovementType, SpatialProvider } from "../../types";
 import { HexUtils, NEIGHBOR_HASH_OFFSETS } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { OBSTACLE_DB } from "../../data/obstacles";
@@ -16,12 +16,12 @@ export class Pathfinder {
     private _cameFrom = new Map<number, number>();
     private _pq: PQNode[] = [];
 
-    public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, engine: GameEngine, targeting: TargetingSystem): Hex[] {
+    public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
         const startH = HexUtils.hash(startAgent.q, startAgent.r);
         const goalHex = { q: endQ, r: endR };
         
         // 射程檢查：若已在動態射程內，則無需移動
-        const effRange = targeting.getEffectiveRange(startAgent, endQ, endR, range, engine);
+        const effRange = targeting.getEffectiveRange(startAgent, endQ, endR, range, spatial);
         if (HexUtils.dist(startAgent, goalHex) <= effRange) return [];
 
         this._gScore.clear();
@@ -41,24 +41,24 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
 
             // 成功判定：進入有效射程
-            if (HexUtils.dist(currentHex, goalHex) <= targeting.getEffectiveRange(currentHex, endQ, endR, range, engine)) {
+            if (HexUtils.dist(currentHex, goalHex) <= targeting.getEffectiveRange(currentHex, endQ, endR, range, spatial)) {
                 bestH = current.hash;
                 break;
             }
 
             for (let i = 0; i < 6; i++) {
                 const neighborH = current.hash + NEIGHBOR_HASH_OFFSETS[i];
-                if (!engine.map.isValidHash(neighborH)) continue;
+                if (!spatial.isValidHash(neighborH)) continue;
 
                 // 物理碰撞判定
-                if (engine.map.hasObstacleHash(neighborH)) {
-                    const type = engine.map.obstacles.get(HexUtils.key(HexUtils.unhash(neighborH)));
+                if (spatial.hasObstacleHash(neighborH)) {
+                    const type = spatial.getObstacleTypeHash(neighborH);
                     const def = OBSTACLE_DB[type || 'WALL'];
                     if (startAgent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
                 }
                 
                 if (!ignoreUnits) {
-                    const occ = engine.agentMap.get(neighborH);
+                    const occ = spatial.getAgentHash(neighborH);
                     if (occ && occ.hp > 0 && occ !== startAgent) continue;
                 }
 
@@ -67,8 +67,8 @@ export class Pathfinder {
                 let moveCost = 1.0;
                 
                 if (startAgent.movementType !== MovementType.FLYING) {
-                    const h1 = engine.map.getTerrainHeight(currentHex.q, currentHex.r);
-                    const h2 = engine.map.getTerrainHeight(nHex.q, nHex.r);
+                    const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
+                    const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
                     
                     const deltaH = h2 - h1; // Target - Current
                     const jumpLimit = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;

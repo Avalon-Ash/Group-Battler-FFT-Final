@@ -1,4 +1,18 @@
 
+export interface SpatialProvider {
+    isValid(q: number, r: number): boolean;
+    isBlocked(q: number, r: number, ignoreId?: string, movementType?: MovementType): boolean;
+    getTerrainHeight(q: number, r: number): number;
+    isValidHash(h: number): boolean;
+    hasObstacleHash(h: number): boolean;
+    getObstacleTypeHash(h: number): string | undefined;
+    getAgentHash(h: number): any | undefined;
+    getMapConfig(): any;
+    updateAgentPosition(agent: any, q: number, r: number): void;
+    getAgents(): any[];
+    log(agent: any, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
+}
+
 export interface Projectile {
     id: string;
     active: boolean; 
@@ -21,7 +35,6 @@ export interface Projectile {
     endX: number;
     endY: number;
     endZ: number;
-    totalDist: number;
     
     targetId: string;
     targetPos: Point; 
@@ -215,9 +228,6 @@ export interface KillStreakInfo {
 export interface GlobalSessionState {
     killStreaks: Map<string, KillStreakInfo>;
     firstBloodTriggered: boolean;
-    directorTargetId: string | null;
-    directorTimer: number;
-    directorPriorityTimer: number;
 }
 
 export enum ToolType {
