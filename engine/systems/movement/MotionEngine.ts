@@ -1,5 +1,5 @@
 
-import { Agent } from "../core/Agent";
+import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
 import { MovementType, SpatialProvider } from "../../../types";
 

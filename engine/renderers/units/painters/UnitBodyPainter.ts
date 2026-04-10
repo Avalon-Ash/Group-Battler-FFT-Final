@@ -1,5 +1,5 @@
 
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { Team, AnimState, MovementType } from "../../../../types";
 import { UNIT_SCALE, VFX_PARAM } from "../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";

@@ -1,5 +1,5 @@
 
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { SpriteManager } from "../../../sprites";
 import { UnitIndicatorPainter } from "./UnitIndicatorPainter";
 import { UnitAuraPainter } from "./UnitAuraPainter";

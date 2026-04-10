@@ -116,7 +116,8 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        a.btStatus = "逃離危險";
+        a.btStatus = "危險！逃離中";
+        a.visualStatus = "DANGER"; // Add visual feedback
         
         // 1. Interrupt casting if in danger (Zero-Trust)
         if (a.castingSkillIdx !== -1) {
@@ -136,10 +137,14 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         if (a.targetHex) {
-            return engine.moveAgentToHex(a, a.targetHex, 0, 1.5); // Fast escape
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5); // Fast escape
+            // If pathfinding fails, don't just fail the node (which leads to idling).
+            // Stay in RUNNING to keep trying next tick.
+            if (state === NodeState.FAILURE) return NodeState.RUNNING;
+            return state;
         }
         
-        return NodeState.FAILURE;
+        return NodeState.RUNNING; // Keep trying to find a safe spot
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;

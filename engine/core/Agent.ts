@@ -4,7 +4,7 @@ import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
 
-export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS';
+export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS' | 'DANGER';
 
 export class Agent {
     public id: string;

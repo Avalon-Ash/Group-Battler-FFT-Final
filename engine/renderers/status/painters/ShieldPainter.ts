@@ -1,5 +1,5 @@
 
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { Team, HexLayout } from "../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 

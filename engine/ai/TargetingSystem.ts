@@ -78,6 +78,9 @@ export class TargetingSystem {
             if (!a.target && a.targetHex) {
                 a.targetHex = null;
             }
+            if (a.visualStatus === 'DANGER') {
+                a.visualStatus = 'NONE';
+            }
         }
 
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;

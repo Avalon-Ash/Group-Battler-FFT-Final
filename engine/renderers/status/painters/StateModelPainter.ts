@@ -1,5 +1,5 @@
 
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { AssetManager } from "../../../assets";
 
 export const StateModelPainter = {

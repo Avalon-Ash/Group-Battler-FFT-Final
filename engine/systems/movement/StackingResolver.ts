@@ -1,5 +1,5 @@
 
-import { Agent } from "../core/Agent";
+import { Agent } from "../../core/Agent";
 import { HexUtils, Vector } from "../../utils";
 import { MovementType, SpatialProvider } from "../../../types";
 import { BLOCK_HEIGHT } from "../../../constants";

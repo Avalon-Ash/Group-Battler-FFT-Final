@@ -68,14 +68,23 @@ export const GridOverlays = {
 
         if (isRange || isHover || hasUnit || isWarning) {
             ctx.save();
-            ctx.translate(x, drawY + 1); 
+            // Use a stronger bias for overlays to ensure they are above the terrain
+            const overlayY = VisualMath.applyLayerBias(visualSurfaceY, 'OVERLAY') - 2;
+            ctx.translate(x, overlayY); 
             
             if (isWarning) {
-                const pulse = (Math.sin(globalTime * 10) + 1) / 2;
-                ctx.fillStyle = '#ef4444';
-                ctx.globalAlpha = 0.4 + pulse * 0.4;
-                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
+                const pulse = (Math.sin(globalTime * 12) + 1) / 2; // Faster pulse
+                ctx.fillStyle = '#ff0000'; // Pure red
+                ctx.globalAlpha = 0.6 + pulse * 0.4; // Higher alpha
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true, layout); // Slightly smaller to show edges
                 ctx.fill();
+                
+                // Add a border to the warning
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 2;
+                ctx.globalAlpha = 0.3 + pulse * 0.5;
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.95, false, layout);
+                ctx.stroke();
             }
 
             ctx.globalCompositeOperation = 'screen';

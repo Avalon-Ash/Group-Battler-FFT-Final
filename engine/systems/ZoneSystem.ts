@@ -26,8 +26,17 @@ export class ZoneSystem {
         // Battle Royale Shrink Logic
         if (engine.zoneConfig.enabled) {
             if (!this.initialized) {
-                this.safeRadius = engine.zoneConfig.initialRadius;
-                this.shrinkTimer = engine.zoneConfig.shrinkInterval; // Initial shrink timer
+                // Dynamic initial radius based on map size
+                const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
+                const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
+                let maxDist = 0;
+                for (const key of engine.map.mapKeys) {
+                    const [q, r] = key.split(',').map(Number);
+                    maxDist = Math.max(maxDist, HexUtils.dist({q, r}, {q: centerQ, r: centerR}));
+                }
+                
+                this.safeRadius = Math.min(engine.zoneConfig.initialRadius, Math.ceil(maxDist));
+                this.shrinkTimer = engine.zoneConfig.shrinkInterval; 
                 this.initialized = true;
                 this.warningTiles.clear();
                 this.collapsingTiles.clear();
@@ -40,7 +49,9 @@ export class ZoneSystem {
                 const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
 
                 this.warningTiles.clear();
-                if (this.shrinkTimer <= 3) {
+                // Warn 5 seconds before shrink
+                if (this.shrinkTimer <= 5) {
+                    let count = 0;
                     for (const key of engine.map.mapKeys) {
                         const parts = key.split(',');
                         const q = parseInt(parts[0]);
@@ -49,7 +60,11 @@ export class ZoneSystem {
                         // Warn about tiles that will be removed in the next shrink
                         if (dist >= this.safeRadius - 1) {
                             this.warningTiles.add(key);
+                            count++;
                         }
+                    }
+                    if (count > 0 && Math.floor(this.shrinkTimer * 10) % 10 === 0) {
+                        console.log(`[ZoneSystem] Warning active for ${count} tiles. SafeRadius: ${this.safeRadius}`);
                     }
                 }
 
@@ -58,18 +73,22 @@ export class ZoneSystem {
                     
                     const keysToRemove: {q: number, r: number, key: string, h: number}[] = [];
 
+                    // Proactive Sweep: Remove anything outside the new safe boundary
+                    const nextSafeRadius = this.safeRadius - 1;
+
                     for (const key of engine.map.mapKeys) {
                         const parts = key.split(',');
                         const q = parseInt(parts[0]);
                         const r = parseInt(parts[1]);
                         const dist = HexUtils.dist({q, r}, {q: centerQ, r: centerR});
+                        
                         // Remove tiles that are now outside the new safe radius
-                        if (dist >= this.safeRadius - 1) {
+                        if (dist >= nextSafeRadius) {
                             keysToRemove.push({q, r, key, h: engine.map.getTerrainHeight(q, r)});
                         }
                     }
 
-                    this.safeRadius--;
+                    this.safeRadius = nextSafeRadius;
 
                     for (const hex of keysToRemove) {
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });

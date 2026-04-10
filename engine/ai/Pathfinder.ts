@@ -69,7 +69,9 @@ export class Pathfinder {
                 // 大逃殺警告區域懲罰 (AI 求生邏輯)
                 const nKey = HexUtils.key(nHex);
                 if (targeting.isWarningTile(nKey, spatial)) {
-                    moveCost += 9000; // 極高懲罰，盡量避開
+                    // 降低懲罰值但保持足夠高，確保 AI 能在合理步數內找到路徑
+                    // 如果懲罰太高 (9000)，A* 會優先探索極遠的非警告路徑，導致超時
+                    moveCost += 50; 
                 }
                 
                 if (startAgent.movementType !== MovementType.FLYING) {

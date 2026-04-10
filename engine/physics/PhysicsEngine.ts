@@ -75,12 +75,15 @@ export class PhysicsEngine {
         // Note: Trail Logic moved to PhysicsSystem.ts to centralize history management
 
         if (a.physics.z < -1000) {
-            if (!isDead) {
-                a.hp = 0;
-                engine.log(a, 'DEATH', '墜落', '深淵', '跌落至虛空');
-                engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, text: "RING_OUT" });
-                engine.agentManager.handleDeadState(a, engine);
-                a.banished = true; // Remove from battlefield rendering
+            // Banish anyone (alive or dead) who falls into the abyss
+            if (!a.banished) {
+                if (!isDead) {
+                    a.hp = 0;
+                    engine.log(a, 'DEATH', '墜落', '深淵', '跌落至虛空');
+                    engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, text: "RING_OUT" });
+                    engine.agentManager.handleDeadState(a, engine);
+                }
+                a.banished = true; // Remove from battlefield rendering and logic
             }
         } else if (isGroundValid && a.physics.z < 0) {
             a.physics.z = 0;

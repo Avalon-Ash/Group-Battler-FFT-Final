@@ -1,5 +1,5 @@
 
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { ISO_SCALE_Y } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";

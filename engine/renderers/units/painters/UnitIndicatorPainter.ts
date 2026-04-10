@@ -2,7 +2,7 @@
 import { HEX_SIZE, ISO_SCALE_Y } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
-import { HexLayout } from "../../../../../types";
+import { HexLayout } from "../../../../types";
 
 export const UnitIndicatorPainter = {
     

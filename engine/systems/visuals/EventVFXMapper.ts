@@ -1,7 +1,7 @@
 
 import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
-import { VFXSystem } from "../../vfx";
+import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";

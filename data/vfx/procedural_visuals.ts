@@ -12,7 +12,7 @@ import { GridVisualDef, GRID_DATA, DEFAULT_GRID_CONFIG } from './procedural/grid
 export type ProceduralType = 'PILLAR' | 'DOMAIN' | 'HEX_SHAPE' | 'IMPACT_RING' | 'GRID_FIELD';
 export type ProceduralVisualDef = PillarVisualDef | DomainVisualDef | HexVisualDef | BeamVisualDef | GridVisualDef;
 
-export { PillarVisualDef, DomainVisualDef, HexVisualDef, BeamVisualDef, GridVisualDef };
+export type { PillarVisualDef, DomainVisualDef, HexVisualDef, BeamVisualDef, GridVisualDef };
 export { DEFAULT_PILLAR_CONFIG, DEFAULT_DOMAIN_CONFIG, DEFAULT_HEX_CONFIG, DEFAULT_BEAM_CONFIG, DEFAULT_GRID_CONFIG };
 
 // --- EXTEND BEAM DATA WITH RED STYLES ---

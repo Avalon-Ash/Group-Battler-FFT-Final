@@ -1,4 +1,4 @@
-import { Agent } from "../../../../game";
+import { Agent } from "../../../game";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
 import { VisualMath } from "../../../math/VisualMath";
