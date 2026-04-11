@@ -17,6 +17,7 @@ export class DirectorSystem {
     private hasInitialized: boolean = false;
     private lastCentroidX: number = 0;
     private lastCentroidY: number = 0;
+    private lastZoom: number = 0.9;
     private lastAspectRatio: number = 0;
 
     public reset(engine: GameEngine) {
@@ -25,7 +26,7 @@ export class DirectorSystem {
         ds.focusTimer = 0;
         ds.priorityTimer = 0;
         this.hasInitialized = false;
-        this.enabled = true;
+        // Keep enabled state as is
     }
 
     public forceFocus(engine: GameEngine, id: string, duration: number = 2.0) {
@@ -119,6 +120,9 @@ export class DirectorSystem {
 
         for (const a of engine.agents) {
             if (a.hp <= 0 || a.banished) continue;
+            
+            // [FIX] 忽略正在墜落或腳下無地的單位，避免導播鏡頭被帶走
+            if (a.physics.z < -50 || !engine.isValid(a.q, a.r)) continue;
 
             let score = Math.random() * 10; 
 
@@ -148,7 +152,10 @@ export class DirectorSystem {
 
         const mainActor = targetId ? engine.agents.find(a => a.id === targetId) : null;
 
-        if (mainActor && mainActor.hp > 0) {
+        // [FIX] 如果目標正在墜落或腳下無地，視為失去目標，切換回全景模式
+        const isFalling = mainActor && (mainActor.physics.z < -50 || !engine.isValid(mainActor.q, mainActor.r));
+
+        if (mainActor && mainActor.hp > 0 && !isFalling) {
             targetX = mainActor.px;
             targetY = mainActor.py;
             
@@ -209,12 +216,17 @@ export class DirectorSystem {
         if (!this.hasInitialized) {
             this.lastCentroidX = targetX;
             this.lastCentroidY = targetY;
+            this.lastZoom = targetZoom;
             this.hasInitialized = true;
         }
 
-        this.lastCentroidX += (targetX - this.lastCentroidX) * 0.1;
-        this.lastCentroidY += (targetY - this.lastCentroidY) * 0.1;
+        // [REFACTOR] Use consistent smoothing for both position and zoom
+        // Increased smoothing factor for more stable camera
+        const lerpFactor = 0.08; 
+        this.lastCentroidX += (targetX - this.lastCentroidX) * lerpFactor;
+        this.lastCentroidY += (targetY - this.lastCentroidY) * lerpFactor;
+        this.lastZoom += (targetZoom - this.lastZoom) * lerpFactor;
 
-        return { x: targetX, y: targetY, zoom: targetZoom };
+        return { x: this.lastCentroidX, y: this.lastCentroidY, zoom: this.lastZoom };
     }
 }

@@ -42,7 +42,9 @@ export const BT_STATUS_MAP: Record<string, string> = {
     '放逐結束': 'RE_LINK_INIT',
     '追蹤': 'TARGET_LOCK',
     '戰鬥鎖定': 'COMBAT_LOCK',
-    '擠出': 'PHYS_SYNC'
+    '擠出': 'PHYS_SYNC',
+    '逃生': 'EVADE_ZONE',
+    '危險區': 'IN_DANGER'
 };
 
 export const ANIM_STATUS_MAP: Record<string, string> = {

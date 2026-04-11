@@ -22,7 +22,7 @@ export class ZoneSystem {
 
     public update(dt: number, engine: GameEngine) {
         this.activeZones = [];
-
+        
         // Battle Royale Shrink Logic
         if (engine.zoneConfig.enabled) {
             if (!this.initialized) {
@@ -35,11 +35,13 @@ export class ZoneSystem {
                     maxDist = Math.max(maxDist, HexUtils.dist({q, r}, {q: centerQ, r: centerR}));
                 }
                 
-                this.safeRadius = Math.min(engine.zoneConfig.initialRadius, Math.ceil(maxDist));
+                // SSOT: Start slightly larger than map to ensure first shrink is visible
+                this.safeRadius = Math.max(engine.zoneConfig.initialRadius, Math.ceil(maxDist) + 1);
                 this.shrinkTimer = engine.zoneConfig.shrinkInterval; 
                 this.initialized = true;
                 this.warningTiles.clear();
                 this.collapsingTiles.clear();
+                engine.log(null, 'SYSTEM', '縮圈初始化', null, `地圖: ${engine.mapConfig.w}x${engine.mapConfig.h}, 初始半徑: ${this.safeRadius}, 間隔: ${engine.zoneConfig.shrinkInterval}s`);
             }
 
             if (this.safeRadius > engine.zoneConfig.minRadius) {
@@ -49,8 +51,9 @@ export class ZoneSystem {
                 const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
 
                 this.warningTiles.clear();
-                // Warn 5 seconds before shrink
-                if (this.shrinkTimer <= 5) {
+                // Warn 5 seconds before shrink (or immediate if interval is <= 5)
+                const warnTime = Math.min(5, engine.zoneConfig.shrinkInterval);
+                if (this.shrinkTimer <= warnTime) {
                     let count = 0;
                     for (const key of engine.map.mapKeys) {
                         const parts = key.split(',');
@@ -63,17 +66,15 @@ export class ZoneSystem {
                             count++;
                         }
                     }
-                    if (count > 0 && Math.floor(this.shrinkTimer * 10) % 10 === 0) {
-                        console.log(`[ZoneSystem] Warning active for ${count} tiles. SafeRadius: ${this.safeRadius}`);
+                    if (count > 0 && Math.floor(this.shrinkTimer) !== Math.floor(this.shrinkTimer + dt)) {
+                        engine.log(null, 'SYSTEM', '縮圈警告', null, `${Math.ceil(this.shrinkTimer)}秒後縮小`);
                     }
                 }
 
                 if (this.shrinkTimer <= 0) {
-                    this.shrinkTimer = engine.zoneConfig.shrinkInterval; // Reset timer for next shrink
+                    this.shrinkTimer = engine.zoneConfig.shrinkInterval; 
                     
                     const keysToRemove: {q: number, r: number, key: string, h: number}[] = [];
-
-                    // Proactive Sweep: Remove anything outside the new safe boundary
                     const nextSafeRadius = this.safeRadius - 1;
 
                     for (const key of engine.map.mapKeys) {
@@ -82,7 +83,6 @@ export class ZoneSystem {
                         const r = parseInt(parts[1]);
                         const dist = HexUtils.dist({q, r}, {q: centerQ, r: centerR});
                         
-                        // Remove tiles that are now outside the new safe radius
                         if (dist >= nextSafeRadius) {
                             keysToRemove.push({q, r, key, h: engine.map.getTerrainHeight(q, r)});
                         }
@@ -96,19 +96,25 @@ export class ZoneSystem {
                     }
 
                     if (keysToRemove.length > 0) {
-                        engine.mapVersion++; // Force cache invalidation
+                        engine.mapVersion++; 
                         engine.bus.emit('ZONE_SHRUNK', { radius: this.safeRadius });
                         engine.log(null, 'SYSTEM', '地形潰縮', null, `安全半徑已縮小至 ${this.safeRadius}`);
                     }
                 }
             }
-            
-            for (const [key, tile] of this.collapsingTiles.entries()) {
-                tile.speed -= 3500 * dt; // PHYSICS.GRAVITY
-                tile.z += tile.speed * dt;
-                if (tile.z < -2000) {
-                    this.collapsingTiles.delete(key);
-                }
+        } else {
+            // If disabled, ensure we are not initialized so it can restart later
+            if (this.initialized) {
+                console.log(`[ZoneSystem] Disabled. Resetting state.`);
+                this.reset();
+            }
+        }
+
+        for (const [key, tile] of this.collapsingTiles.entries()) {
+            tile.speed -= 3500 * dt; // PHYSICS.GRAVITY
+            tile.z += tile.speed * dt;
+            if (tile.z < -2000) {
+                this.collapsingTiles.delete(key);
             }
         }
 
@@ -150,7 +156,7 @@ export class ZoneSystem {
         this.collapsingTiles.clear();
     }
 
-    public getZoneAt(q: number, r: number): ActiveZone | null {
+    public getZoneAt(q: number, r: number): ActiveZone | undefined {
         // Linear scan is fine for < 20 zones usually
         for (const zone of this.activeZones) {
             const dist = HexUtils.dist({q, r}, {q: zone.q, r: zone.r});
@@ -158,6 +164,6 @@ export class ZoneSystem {
                 return zone;
             }
         }
-        return null;
+        return undefined;
     }
 }

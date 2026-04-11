@@ -33,6 +33,7 @@ export class RenderOp {
     oHasUnit: boolean = false;
     oWarning: boolean = false;
     agent: Agent | null = null;
+    alpha: number = 1.0;
     uSelected: boolean = false;
     uSilhouette: boolean = false;
     particle: Particle | null = null;
@@ -54,6 +55,7 @@ export class RenderOp {
         this.tx = 0; this.ty = 0; this.th = 0;
         this.tq = 0; this.tr = 0;
         this.agent = null;
+        this.alpha = 1.0;
         this.particle = null;
         this.proj = null;
         this.pIsUlt = false; 
@@ -121,7 +123,9 @@ export class RenderList {
 
             if (op.type === RenderOpType.TERRAIN) {
                 // 地形層：基礎權重 0 ~ 20,000,000
-                sortKey = Math.floor((op.ty + 5000) * 100);
+                // [FIX] 如果有設定 y (Footprint)，則優先使用 y 進行排序，防止掉落過程穿模
+                const sortY = op.y !== 0 ? op.y : op.ty;
+                sortKey = Math.floor((sortY + 5000) * 100);
             } 
             else {
                 // 物件層：基礎權重 20,000,000 +

@@ -95,6 +95,7 @@ export class GridRenderStrategy {
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
+            const isWarning = engine.zones.warningTiles.has(key);
 
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
@@ -108,8 +109,30 @@ export class GridRenderStrategy {
             op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
             op.oDanger = zoneInfo; 
+            op.oWarning = isWarning;
             op.oRange = isRange; op.oRangeCol = rangeColor;
             op.oHover = isHover; op.oHasUnit = hasUnit;
+            op.time = globalTime;
+        }
+
+        // Render collapsing tiles
+        for (const tile of engine.zones.collapsingTiles.values()) {
+            const pos = HexUtils.toPx(tile.q, tile.r, engine.mapConfig);
+            // tile.z is negative as it falls. To make it go down the screen, we subtract tile.z
+            const visualBaseY = pos.y - tile.z;
+            
+            const op = renderList.next();
+            op.type = RenderOpType.TERRAIN;
+            op.tq = tile.q; op.tr = tile.r;
+            op.tx = pos.x; 
+            op.ty = visualBaseY; 
+            op.y = pos.y; // [SSOT FIX] 使用原始 Y 進行排序，防止掉落過程穿模
+            op.z = tile.z; // 傳遞掉落深度用於淡出
+            op.th = tile.h;
+            op.tsize = HEX_SIZE;
+            op.ttheme = theme;
+            op.ttype = scene.textureType;
+            op.tdetail = theme.detail;
             op.time = globalTime;
         }
     }

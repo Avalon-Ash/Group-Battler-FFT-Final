@@ -28,6 +28,10 @@ export class MapGenerator {
         system.resetData();
         const W = engine.mapConfig.w;
         const H = engine.mapConfig.h;
+        
+        // Log map rebuild for debugging
+        engine.log(null, 'SYSTEM', '地圖重建', null, `尺寸: ${W}x${H}, 佈局: ${engine.mapConfig.layout}`);
+
         const tiers = new Map<string, number>();
         
         const centerQ = Math.floor((W - 1) / 2);

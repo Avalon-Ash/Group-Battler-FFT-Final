@@ -26,7 +26,23 @@ export const STANDARD_AI_PROFILE: BTDef = {
             name: 'Survival',
             children: [
                 { type: 'CONDITION', name: 'In Danger?', key: 'IsInWarningZone' },
-                { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' }
+                {
+                    type: 'SELECTOR',
+                    name: 'Survival Tactics',
+                    children: [
+                        // A. Try to run
+                        { type: 'ACTION', name: 'Run!', key: 'EscapeWarning' },
+                        // B. Last Stand: If trapped, try to push enemies away
+                        {
+                            type: 'SEQUENCE',
+                            name: 'Last Stand',
+                            children: [
+                                { type: 'CONDITION', name: 'Has Push/Pull?', key: 'HasPushPullSkill' },
+                                { type: 'ACTION', name: 'Push Away!', key: 'CastPushPull' }
+                            ]
+                        }
+                    ]
+                }
             ]
         },
         {

@@ -23,7 +23,7 @@ export class MovementSystem {
     }
 
     public updateTarget(a: Agent, spatial: SpatialProvider) {
-        this.targeting.updateTarget(a, spatial as any);
+        this.targeting.updateTarget(a, spatial as any, this.pathfinder);
     }
 
     public calculateOptimalTarget(source: Agent, skill: any, spatial: SpatialProvider) {
@@ -52,10 +52,21 @@ export class MovementSystem {
             const currentGoal = a.path[a.path.length - 1];
             // 如果目標點沒變，繼續執行當前移動
             if (currentGoal.q === targetHex.q && currentGoal.r === targetHex.r) {
-                a.moveSpeedMult = speedMult;
-                return NodeState.RUNNING;
+                // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失而斷裂
+                let pathValid = true;
+                for (const hex of a.path) {
+                    if (!spatial.isValid(hex.q, hex.r)) {
+                        pathValid = false;
+                        break;
+                    }
+                }
+                
+                if (pathValid) {
+                    a.moveSpeedMult = speedMult;
+                    return NodeState.RUNNING;
+                }
+                // 如果路徑斷裂，放棄當前路徑，重新計算
             }
-            // 目標點變了，不中斷當前物理位移，但在下一個 Tick 重新計算路徑
         }
 
         // 3. 尋找新路徑
@@ -69,7 +80,10 @@ export class MovementSystem {
             const next = path[0];
             // 檢查下一格是否被地形完全阻擋
             if (spatial.isBlocked(next.q, next.r, a.id, a.movementType)) {
-                return NodeState.RUNNING;
+                // [FIX] 如果下一格被擋住，回傳 FAILURE 讓 AI 觸發其他邏輯 (例如背水一戰)
+                a.isMoving = false;
+                a.path = [];
+                return NodeState.FAILURE;
             }
 
             // 更新路徑，保留移動狀態
@@ -83,6 +97,9 @@ export class MovementSystem {
             return NodeState.RUNNING;
         }
 
+        // [FIX] 如果找不到路徑，必須清除舊路徑，防止 AI 繼續走向已經消失的網格
+        a.isMoving = false;
+        a.path = [];
         return NodeState.FAILURE;
     }
 

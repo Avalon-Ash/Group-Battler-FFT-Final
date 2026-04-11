@@ -24,8 +24,14 @@ export class RenderDispatcher {
 
         switch (op.type) {
             case RenderOpType.TERRAIN:
-                TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout);
-                TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme);
+                // [FIX] 為掉落的地塊計算淡出透明度
+                let finalAlpha = op.alpha;
+                if (op.z < 0) {
+                    // 掉落深度越深，透明度越低 (從 0 到 -1000 掉落)
+                    finalAlpha = Math.max(0, 1.0 - (Math.abs(op.z) / 800));
+                }
+                TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout, finalAlpha);
+                TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme, finalAlpha);
                 // SSOT: Height-based projection inside
                 GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oWarning, op.oHasUnit, op.tq, op.tr, op.time, layout);
                 break;

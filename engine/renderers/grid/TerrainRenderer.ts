@@ -8,7 +8,7 @@ const PEDESTAL_DEPTH = 30;
 const EXPANSION_BIAS = 0.6;
 
 export const TerrainRenderer = {
-    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: any, type: string, globalTime: number, layout: HexLayout) {
+    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: any, type: string, globalTime: number, layout: HexLayout, alpha: number = 1.0) {
         const drawX = Math.floor(x);
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
         let floatOffset = 0;
@@ -21,6 +21,7 @@ export const TerrainRenderer = {
         const vertices = HexGeometry.getVertices(r, true, layout); 
         
         ctx.save();
+        ctx.globalAlpha = alpha;
         ctx.translate(drawX, drawY);
 
         const drawFace = (idx1: number, idx2: number, color: string, isLightSide: boolean) => {
@@ -64,12 +65,14 @@ export const TerrainRenderer = {
         ctx.restore();
     },
 
-    drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: any) {
+    drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: any, alpha: number = 1.0) {
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
         let floatOffset = 0;
         if (isFloatingBiome) floatOffset = Math.sin(globalTime * 1.5 + (baseX * 0.01) + (baseY * 0.01)) * 4;
         
         const visualY = VisualMath.getIsoVisualY(baseY, height, floatOffset);
+        ctx.save();
+        ctx.globalAlpha = alpha;
         if (type === 'FOREST') SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || '#14532d', 5, globalTime);
         else if (type === 'ICE') SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
         else if (type === 'DESERT') SurfacePainter.drawSandRipples(ctx, baseX, visualY, HEX_SIZE, theme.sideDark || '#92400e');
@@ -77,5 +80,6 @@ export const TerrainRenderer = {
             const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
             if (seed > 0.6) SurfacePainter.drawDetailTexture(ctx, baseX, visualY, type, detailColor, seed);
         }
+        ctx.restore();
     }
 };

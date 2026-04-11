@@ -3,6 +3,7 @@ import { Agent } from "../core/Agent";
 import { Hex, Skill, SpatialProvider } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
+import { Pathfinder } from "./Pathfinder";
 
 export class TargetingSystem {
     /**
@@ -28,7 +29,7 @@ export class TargetingSystem {
     /**
      * RTS 等級目標選取評分
      */
-    public updateTarget(a: Agent, spatial: SpatialProvider) {
+    public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
         // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
         const myKey = HexUtils.key(a);
         if (spatial.isWarningTile(myKey)) {
@@ -37,41 +38,56 @@ export class TargetingSystem {
             
             // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
             if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
+                a.visualStatus = 'DANGER';
                 return;
             }
 
             // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
             let bestSafeHex: Hex | null = null;
-            let minSafeDist = Infinity;
 
-            const mapConfig = spatial.getMapConfig();
-            const centerQ = Math.floor(mapConfig.w / 2);
-            const centerR = Math.floor(mapConfig.h / 2);
+            if (pathfinder) {
+                // [OPTIMIZATION] 使用 Pathfinder 尋找保證可到達的安全地塊
+                const path = pathfinder.findPathToSafety(a, spatial, this);
+                if (path.length > 0) {
+                    bestSafeHex = path[path.length - 1];
+                }
+            } else {
+                // Fallback: 舊版環狀掃描 (不保證可到達)
+                let minSafeDist = Infinity;
+                const mapConfig = spatial.getMapConfig();
+                const centerQ = Math.floor((mapConfig.w - 1) / 2);
+                const centerR = Math.floor((mapConfig.h - 1) / 2);
 
-            // 簡單掃描：向地圖中心方向尋找安全地塊
-            for (let radius = 1; radius <= 10; radius++) {
-                const ring = HexUtils.range(a, radius);
-                for (const hex of ring) {
-                    if (spatial.isValid(hex.q, hex.r)) {
-                        const hexKey = HexUtils.key(hex);
-                        if (!spatial.isWarningTile(hexKey)) {
-                            // 優先選擇靠近中心的安全地塊
-                            const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
-                            if (distToCenter < minSafeDist) {
-                                minSafeDist = distToCenter;
-                                bestSafeHex = hex;
+                for (let radius = 1; radius <= 12; radius++) {
+                    const ring = HexUtils.range(a, radius);
+                    for (const hex of ring) {
+                        if (spatial.isValid(hex.q, hex.r)) {
+                            const hexKey = HexUtils.key(hex);
+                            if (!spatial.isWarningTile(hexKey)) {
+                                const h1 = spatial.getTerrainHeight(a.q, a.r);
+                                const h2 = spatial.getTerrainHeight(hex.q, hex.r);
+                                const jumpLimit = 24; 
+                                
+                                if (h2 - h1 > jumpLimit) continue;
+
+                                const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
+                                if (distToCenter < minSafeDist) {
+                                    minSafeDist = distToCenter;
+                                    bestSafeHex = hex;
+                                }
                             }
                         }
                     }
+                    if (bestSafeHex) break; 
                 }
-                if (bestSafeHex) break; // 找到最近的一圈安全地塊就停止
             }
 
             if (bestSafeHex) {
                 a.targetHex = bestSafeHex;
-                // 強制執行 MOVE 行為的標記，這裡我們透過設定 targetHex 讓行為樹或移動系統接管
-                // 為了確保 AI 會移動，我們清空 target，只保留 targetHex
+                a.visualStatus = 'DANGER';
                 return;
+            } else {
+                // No log here to avoid spam, or use engine.log if critical
             }
         } else {
             // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
@@ -85,6 +101,10 @@ export class TargetingSystem {
 
         if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
         
+        // [FIX] 即使在危險區且有逃生目標，也同時鎖定最近的敵人
+        // 這樣當逃生路線被堵死時，AI 才能立刻切換到戰鬥邏輯 (背水一戰)
+        // 移除原本的 early return: if (spatial.isWarningTile(myKey) && a.targetHex) return;
+
         let maxScore = -Infinity;
         let bestTarget: Agent | null = null;
 
@@ -120,7 +140,15 @@ export class TargetingSystem {
                 // 4. 黏著加分: 防止頻繁切換目標 (防抖)
                 const stickyBonus = (a.target === o) ? 300 : 0;
 
-                const score = distScore + hpScore + threatScore + stickyBonus;
+                // 5. [NEW] 背水一戰加分: 如果自己在危險區，優先攻擊也在危險區或邊緣的敵人
+                let survivalBonus = 0;
+                if (spatial.isWarningTile(myKey)) {
+                    survivalBonus += 500;
+                    // 如果對方也在危險區，優先解決他
+                    if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += 200;
+                }
+
+                const score = distScore + hpScore + threatScore + stickyBonus + survivalBonus;
 
                 if (score > maxScore) {
                     maxScore = score;
@@ -135,6 +163,9 @@ export class TargetingSystem {
      * 核心：計算最佳施法目標 (Smart Cast)
      */
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider): { targetAgent: Agent | null, targetHex: Hex | null } {
+        // [NEW] 背水一戰技能優先級：在危險區時，優先使用推拉技能
+        const isInDanger = spatial.isWarningTile(HexUtils.key(source));
+        
         // 1. 自身爆發 (PBAOE) - Range 0 強制鎖定腳下
         if (skill.range === 0) {
             return { targetAgent: null, targetHex: { q: source.q, r: source.r } };

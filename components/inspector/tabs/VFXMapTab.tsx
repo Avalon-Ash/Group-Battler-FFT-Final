@@ -59,6 +59,7 @@ export const VFXMapTab: React.FC = () => {
                     <button onClick={() => setActiveCategory('IMPERIAL_FLAVOR')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'IMPERIAL_FLAVOR' ? 'bg-blue-600/30 text-blue-300 border border-blue-500/30' : 'text-slate-500 hover:text-blue-400'}`}>Imperial</button>
                     <button onClick={() => setActiveCategory('COVENANT_FLAVOR')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'COVENANT_FLAVOR' ? 'bg-red-600/30 text-red-300 border border-red-500/30' : 'text-slate-500 hover:text-red-400'}`}>Covenant</button>
                     <button onClick={() => setActiveCategory('STATUS_EFFECTS')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'STATUS_EFFECTS' ? 'bg-amber-600/30 text-amber-300 border border-amber-500/30' : 'text-slate-500 hover:text-amber-400'}`}>Status</button>
+                    <button onClick={() => setActiveCategory('BATTLE_ROYALE')} className={`flex-1 min-w-[80px] py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${activeCategory === 'BATTLE_ROYALE' ? 'bg-orange-600/30 text-orange-300 border border-orange-500/30' : 'text-slate-500 hover:text-orange-400'}`}>Survival</button>
                 </div>
             </div>
 
@@ -68,6 +69,7 @@ export const VFXMapTab: React.FC = () => {
                     activeCategory.includes('IMPERIAL') ? 'text-blue-400' : 
                     activeCategory.includes('COVENANT') ? 'text-red-400' : 
                     activeCategory === 'STATUS_EFFECTS' ? 'text-amber-400' :
+                    activeCategory === 'BATTLE_ROYALE' ? 'text-orange-400' :
                     activeCategory === 'PROCEDURAL_GEOMETRY' ? 'text-emerald-400' : 'text-slate-200'
                 )}
             </div>

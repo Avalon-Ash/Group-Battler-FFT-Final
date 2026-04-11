@@ -50,5 +50,11 @@ export const VFX_LIBRARY = {
         { key: 'FX_STATUS_POISON_LOOP', name: '中毒狀態', desc: '持續性毒液滴落與毒氣粒子。', visuals: ['Poison', 'Loop'] },
         { key: 'FX_STATUS_STUN_LOOP', name: '暈眩狀態', desc: '頭部環繞的暈眩星芒粒子。', visuals: ['Stars', 'Loop'] },
         { key: 'FX_STATUS_SILENCE_LOOP', name: '沉默狀態', desc: '封印符文與暗色粒子環繞。', visuals: ['Rune', 'Loop'] }
+    ] as VFXEntry[],
+
+    BATTLE_ROYALE: [
+        { key: 'ZONE_WARNING', name: '縮圈預警', desc: '高頻閃爍的紅色六邊形邊界，指示即將塌陷的地形。', visuals: ['HexGeometry', 'Pulse', 'Warning'] },
+        { key: 'TILE_COLLAPSE', name: '地形塌陷', desc: '地塊失去支撐向虛空墜落的物理動畫，遵循重力公式。', visuals: ['Gravity', 'Physics', 'Void'] },
+        { key: 'ZONE_SHRINK', name: '安全區縮小', desc: '全場廣播事件，觸發地圖數據重建與 AI 逃生邏輯。', visuals: ['MapRebuild', 'EventBus'] }
     ] as VFXEntry[]
 };

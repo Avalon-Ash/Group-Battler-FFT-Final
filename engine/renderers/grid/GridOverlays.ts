@@ -83,7 +83,7 @@ export const GridOverlays = {
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = 2;
                 ctx.globalAlpha = 0.3 + pulse * 0.5;
-                HexGeometry.traceHex(ctx, 0, 0, size * 0.95, false, layout);
+                HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true, layout);
                 ctx.stroke();
             }
 

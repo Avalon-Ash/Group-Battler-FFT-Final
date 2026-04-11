@@ -4,8 +4,8 @@ import { Team, HexLayout, ZoneConfig } from './types';
 export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
 export const DEFAULT_ZONE_CONFIG: ZoneConfig = {
     enabled: true,
-    initialRadius: 8,
-    shrinkInterval: 15,
+    initialRadius: 12,
+    shrinkInterval: 5,
     minRadius: 1
 };
 export const HEX_SIZE = 48;

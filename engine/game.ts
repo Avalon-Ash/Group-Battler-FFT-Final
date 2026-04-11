@@ -190,6 +190,7 @@ export class GameEngine {
         this.state.time.battleTime = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
+        this.map.rebuildMap(this); // Restore tiles removed by zone system
         this.director.reset(this);
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
@@ -231,6 +232,7 @@ export class GameEngine {
 
     public tick(dt: number) {
         if (!this.isRunning) return;
+        
         this.timeSystem.update(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);

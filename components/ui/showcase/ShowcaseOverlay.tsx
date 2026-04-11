@@ -94,7 +94,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         </h1>
                         
                         <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
-                            v9.3 | SSOT Kernel Active
+                            SSOT Kernel Active
                         </div>
                     </div>
 

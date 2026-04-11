@@ -99,6 +99,19 @@ export const BTConditions: Record<string, BTConditionFn> = {
         }
         
         return true;
+    },
+    
+    "HasPushPullSkill": (a) => {
+        // 檢查是否有推拉技能可用於背水一戰
+        return a.skills.some((s, idx) => {
+            if (!s) return false;
+            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            if (!isPushPull) return false;
+            
+            let cd = a.curCDs[idx];
+            if (isNaN(cd)) cd = 0;
+            return cd <= 0.1 && a.mp >= s.cost;
+        });
     }
 };
 
@@ -117,7 +130,7 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "EscapeWarning": (a, engine) => {
         a.btStatus = "危險！逃離中";
-        a.visualStatus = "DANGER"; // Add visual feedback
+        a.visualStatus = "DANGER"; 
         
         // 1. Interrupt casting if in danger (Zero-Trust)
         if (a.castingSkillIdx !== -1) {
@@ -131,20 +144,22 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         // 2. Ensure we have a targetHex to move to
+        const myKey = HexUtils.key(a);
         if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
-            // Re-run targeting logic to find a safe spot
             engine.updateTarget(a);
         }
 
         if (a.targetHex) {
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5); // Fast escape
-            // If pathfinding fails, don't just fail the node (which leads to idling).
-            // Stay in RUNNING to keep trying next tick.
-            if (state === NodeState.FAILURE) return NodeState.RUNNING;
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5); 
+            if (state === NodeState.FAILURE) {
+                // [FIX] 如果移動失敗（例如被堵死），返回 FAILURE 讓 Selector 切換到戰鬥邏輯，而不是卡在 RUNNING
+                return NodeState.FAILURE;
+            }
             return state;
         }
         
-        return NodeState.RUNNING; // Keep trying to find a safe spot
+        // [FIX] 無路可逃時返回 FAILURE，觸發戰鬥背水一戰
+        return NodeState.FAILURE; 
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
@@ -170,5 +185,21 @@ export const BTActions: Record<string, BTActionFn> = {
         const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
         a.btStatus = `追蹤 ${a.target.id}`;
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+    },
+    "CastPushPull": (a, engine) => {
+        // 尋找第一個可用的推拉技能並釋放
+        const idx = a.skills.findIndex((s, i) => {
+            if (!s) return false;
+            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            if (!isPushPull) return false;
+            let cd = a.curCDs[i];
+            return (isNaN(cd) || cd <= 0.1) && a.mp >= s.cost;
+        });
+        
+        if (idx !== -1) {
+            a.btStatus = "背水一戰：推拉！";
+            return engine.initiateCast(a, idx);
+        }
+        return NodeState.FAILURE;
     }
 };

@@ -27,6 +27,7 @@ Status: PRODUCTION_READY
 --------------------------------------------------------------------------------
 * EventBus: 採用 Set<Handler> 儲存結構，從資料結構層面強制防堵重複訂閱，並在註銷時精確釋放記憶體。
 * SpatialProvider: 抽象空間提供者介面。移動系統 (MovementSystem)、尋路 (Pathfinder) 與目標選取 (TargetingSystem) 完全切斷對 MapSystem 的具體依賴，強制透過 SpatialProvider 請求空間障礙與地形狀態。
+* ZoneSystem: 獨立於地圖系統的生存空間控制器，負責處理 Battle Royale 模式的縮圈邏輯、警告區域計算與地形動態塌陷 (Collapsing Tiles)。
 
 [2. 視覺投影 SSOT 規範 (Spatial Truth)]
 --------------------------------------------------------------------------------
@@ -37,6 +38,7 @@ V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
 * BLOCK_HEIGHT: ${BLOCK_HEIGHT}
 * UNIT_BODY_OFFSET: ${UNIT_BODY_OFFSET}
 * HORIZON_BIAS: ${VisualMath.HORIZON_Y_PCT} (Screen Height %)
+* HexGeometry V3.6: 採用「先旋轉後投影」算法，確保六邊形特效在旋轉時依然保持正確的等角透視比例。
 * 渲染層 Z 軸數值強制動態調用 grid.getTerrainHeight，嚴禁在事件監聽器中硬編碼高度補償。
 * 渲染管線 (RenderPipeline) 的 transitionT 更新強制綁定 dt 運算，確保轉場動畫與真實時間流逝掛鉤。
 
@@ -44,7 +46,7 @@ V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
 --------------------------------------------------------------------------------
 目標選取算法 (TargetingSystem V2) 採用加權評分機制：
 
-Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus)
+Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWeight)
 
 1. 距離權重 (Exponential Falloff):
    Score += 2000 / (Distance + 0.5)
@@ -59,9 +61,20 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus)
    * 詠唱 ACTIVE: +50
    * 優先打斷高威脅目標。
 
-4. 黏著加分 (Hysteresis):
+4. 生存權重 (Survival Logic):
+   * 處於縮圈警告區: 強制觸發 EVADE_ZONE 行為，尋找最近的安全格子。
+   * 逃生優先級高於戰鬥，除非目標在逃生路徑上。
+
+5. 黏著加分 (Hysteresis):
    * 當前目標: +300
    * 防止在分數相近的目標間頻繁切換 (防抖)。
+
+[4. 導播與監控系統 (Director & Monitor)]
+--------------------------------------------------------------------------------
+* DirectorSystem: 自動化鏡頭語言控制器。
+  - Focus Logic: 優先鎖定正在施放奧義 (ULT) 或發生激烈交戰 (HP 劇烈變動) 的區域。
+  - Dynamic Zoom: 根據戰場單位密度自動調整縮放倍率。
+* Director Monitor HUD: 實時遙測數據面板，提供被鎖定單位的決策矩陣 (BT Status) 與生命體徵 (Vitals) 監控。
 
 [4. 立體機動與尋路 (Topological Pathfinding)]
 --------------------------------------------------------------------------------

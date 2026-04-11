@@ -33,7 +33,7 @@ export class Pathfinder {
 
         let iterations = 0;
         let bestH = -1;
-        const MAX_ITER = 600; 
+        const MAX_ITER = 1000; // Increased from 600 to handle complex escapes
 
         while (this._pq.length > 0 && iterations < MAX_ITER) {
             iterations++;
@@ -107,6 +107,77 @@ export class Pathfinder {
                     // 核心數學：六邊形 Cube 曼哈頓距離啟發函數
                     const hCost = HexUtils.dist(nHex, goalHex);
                     this.pqPush(neighborH, tentativeG + hCost);
+                }
+            }
+        }
+
+        return bestH !== -1 ? this.reconstructPath(bestH, startH) : [];
+    }
+
+    public findPathToSafety(startAgent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
+        const startH = HexUtils.hash(startAgent.q, startAgent.r);
+        
+        this._gScore.clear();
+        this._cameFrom.clear();
+        this._pq = [];
+
+        this._gScore.set(startH, 0);
+        this.pqPush(startH, 0);
+
+        let iterations = 0;
+        let bestH = -1;
+        const MAX_ITER = 1000; 
+
+        while (this._pq.length > 0 && iterations < MAX_ITER) {
+            iterations++;
+            const current = this.pqPop()!;
+            const currentHex = HexUtils.unhash(current.hash);
+            const currentKey = HexUtils.key(currentHex);
+
+            // 成功判定：找到非警告區域的合法地塊
+            if (!targeting.isWarningTile(currentKey, spatial) && spatial.isValidHash(current.hash)) {
+                bestH = current.hash;
+                break;
+            }
+
+            for (let i = 0; i < 6; i++) {
+                const neighborH = current.hash + NEIGHBOR_HASH_OFFSETS[i];
+                if (!spatial.isValidHash(neighborH)) continue;
+
+                // 物理碰撞判定 (忽略單位，因為逃生優先)
+                if (spatial.hasObstacleHash(neighborH)) {
+                    const type = spatial.getObstacleTypeHash(neighborH);
+                    const def = OBSTACLE_DB[type || 'WALL'];
+                    if (startAgent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
+                }
+
+                const nHex = HexUtils.unhash(neighborH);
+                let moveCost = 1.0;
+
+                if (startAgent.movementType !== MovementType.FLYING) {
+                    const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
+                    const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
+                    
+                    const deltaH = h2 - h1;
+                    const jumpLimit = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
+
+                    if (deltaH > jumpLimit) continue; 
+
+                    if (deltaH > 0) {
+                        moveCost += deltaH / BLOCK_HEIGHT * 0.5; 
+                    } else {
+                        moveCost += 0.2;
+                    }
+                }
+
+                const tentativeG = (this._gScore.get(current.hash) || 0) + moveCost;
+
+                if (!this._gScore.has(neighborH) || tentativeG < this._gScore.get(neighborH)!) {
+                    this._cameFrom.set(neighborH, current.hash);
+                    this._gScore.set(neighborH, tentativeG);
+                    
+                    // Dijkstra: hCost is 0 because we don't know the exact goal
+                    this.pqPush(neighborH, tentativeG);
                 }
             }
         }

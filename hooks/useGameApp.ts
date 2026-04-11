@@ -6,6 +6,7 @@ import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 
 export const useGameApp = () => {
+    console.log('[useGameApp] Initializing hook');
     const engineRef = useRef(new GameEngine());
     
     const [session, setSession] = useState({
@@ -153,7 +154,8 @@ export const useGameApp = () => {
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
             selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning,
-            showDirectorMonitor: hud.showDirectorMonitor
+            showDirectorMonitor: hud.showDirectorMonitor,
+            logs: engineRef.current.logs
         },
         setters: {
             setTool: (tool: ToolType) => setEditor(p => ({...p, tool})),
