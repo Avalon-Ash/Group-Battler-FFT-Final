@@ -10,7 +10,8 @@ export const VFX_LIBRARY = {
     CORE_SEQUENCES: [
         { key: 'NUKE_CLUSTER', name: '核彈連鎖序列', desc: '包含天降衝擊、強光閃爍與蘑菇雲升空的複合演出序列。', visuals: ['Flash', 'Cloud', 'Shockwave'] },
         { key: 'SSOT_PROJECTOR', name: 'SSOT 座標投影器', desc: '核心投影矩陣，確保 3D 邏輯座標與 2D 視覺座標 1:1 映射。', visuals: ['VisualMath', 'Z-Layers'] },
-        { key: 'AUTO_FACTION', name: '陣營自動渲染管線', desc: '根據單位陣營屬性自動切換 150+ 個技能的粒子色澤與音效權重。', visuals: ['Theming', 'Registry'] }
+        { key: 'AUTO_FACTION', name: '陣營自動渲染管線', desc: '根據單位陣營屬性自動切換 150+ 個技能的粒子色澤與音效權重。', visuals: ['Theming', 'Registry'] },
+        { key: 'DYNAMIC_HEIGHT_BINDING', name: '動態高度綁定', desc: '攔截塌陷網格的空間資訊，確保粒子與碎石貼合下墜地形，防止穿模。', visuals: ['Z-Axis', 'Intercept'] }
     ] as VFXEntry[],
 
     PROCEDURAL_GEOMETRY: [
@@ -55,6 +56,7 @@ export const VFX_LIBRARY = {
     BATTLE_ROYALE: [
         { key: 'ZONE_WARNING', name: '縮圈預警', desc: '高頻閃爍的紅色六邊形邊界，指示即將塌陷的地形。', visuals: ['HexGeometry', 'Pulse', 'Warning'] },
         { key: 'TILE_COLLAPSE', name: '地形塌陷', desc: '地塊失去支撐向虛空墜落的物理動畫，遵循重力公式。', visuals: ['Gravity', 'Physics', 'Void'] },
-        { key: 'ZONE_SHRINK', name: '安全區縮小', desc: '全場廣播事件，觸發地圖數據重建與 AI 逃生邏輯。', visuals: ['MapRebuild', 'EventBus'] }
+        { key: 'ZONE_SHRINK', name: '安全區縮小', desc: '全場廣播事件，觸發地圖數據重建與 AI 逃生邏輯。', visuals: ['MapRebuild', 'EventBus'] },
+        { key: 'LAST_STAND_AURA', name: '背水一戰光環', desc: '當 AI 無路可逃觸發背水一戰時，腳下顯示的決死戰鬥光環。', visuals: ['Aura', 'Intensity'] }
     ] as VFXEntry[]
 };

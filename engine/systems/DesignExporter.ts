@@ -61,9 +61,10 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWe
    * 詠唱 ACTIVE: +50
    * 優先打斷高威脅目標。
 
-4. 生存權重 (Survival Logic):
-   * 處於縮圈警告區: 強制觸發 EVADE_ZONE 行為，尋找最近的安全格子。
-   * 逃生優先級高於戰鬥，除非目標在逃生路徑上。
+4. 生存權重 (Survival Logic & Last Stand):
+   * 處於縮圈警告區: 強制觸發 EVADE_ZONE 行為，使用 Dijkstra 算法尋找保證可達的安全格子。
+   * 背水一戰 (Last Stand): 若逃生路徑被完全阻擋 (FAILURE)，AI 將放棄逃生，強制切換回戰鬥模式，並優先使用具備推拉 (KNOCKBACK/PULL) 效果的技能將敵人擊入虛空。
+   * 生存加分 (Survival Bonus): 對於同樣處於危險區的敵人，給予額外 +500 權重，優先清除競爭逃生路線的對手。
 
 5. 黏著加分 (Hysteresis):
    * 當前目標: +300
@@ -91,6 +92,8 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWe
 
 [5. 特效渲染管線 (VFX Pipeline Map)]
 --------------------------------------------------------------------------------
+* 動態高度綁定 (Dynamic Height Binding): 特效系統在獲取空間資訊時，會攔截正在塌陷的網格 (Collapsing Tiles)，並回傳其動態下墜高度 (h + z)，確保粒子與碎石完美貼合下墜中的地形，防止穿模。
+
 GameEvent (Logic) -> EventVFXMapper (Adapter) -> VFXSystem (State)
                                                       |
 [Render Loop] ----------------------------------------+

@@ -44,7 +44,10 @@ export const BT_STATUS_MAP: Record<string, string> = {
     '戰鬥鎖定': 'COMBAT_LOCK',
     '擠出': 'PHYS_SYNC',
     '逃生': 'EVADE_ZONE',
-    '危險區': 'IN_DANGER'
+    '危險區': 'IN_DANGER',
+    '危險！逃離中': 'EVADE_ZONE_URGENT',
+    '背水一戰：推拉！': 'LAST_STAND_PUSH',
+    '背水一戰：攻擊！': 'LAST_STAND_ATK'
 };
 
 export const ANIM_STATUS_MAP: Record<string, string> = {
@@ -57,16 +60,17 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
     [AnimState.DEAD]: 'TERMINATED'
 };
 
-export const CC_OPTIONS = ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD', 'STASIS', 'FROZEN'];
+export const CC_OPTIONS = ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD'];
 export const EFFECT_OPTIONS = ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE'];
 export const ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'];
-export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_DART', 'CRYSTAL', 'ORB', 'AXE'];
+export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'];
 
 export const SKILL_FIELD_GROUPS = [
   {
     name: '視覺與資源定義 (Visual SSOT)',
     fields: [
       { key: 'name', label: '序列名稱', type: 'text' },
+      { key: 'desc', label: '技能描述', type: 'text' },
       { key: 'tag', label: '權重標籤', type: 'select', simpleOptions: Object.keys(TAG_MAP) },
       { key: 'visual', label: '基礎外觀 (Mesh)', type: 'select', simpleOptions: VISUAL_OPTIONS },
       { key: 'visualHitEffect', label: '命中效果 (VFX_ID)', type: 'text' },
@@ -88,6 +92,7 @@ export const SKILL_FIELD_GROUPS = [
     name: '戰術參數 (Combat)',
     fields: [
       { key: 'power', label: '威力指數', type: 'number' },
+      { key: 'cast', label: '詠唱時間', type: 'number', step: 0.1 },
       { key: 'cost', label: '能量消耗', type: 'number' },
       { key: 'gain', label: '能量獲取', type: 'number' },
       { key: 'cd', label: '冷卻時長', type: 'number', step: 0.1 },
@@ -100,8 +105,12 @@ export const SKILL_FIELD_GROUPS = [
       { key: 'ccType', label: '主控類型', type: 'select', simpleOptions: CC_OPTIONS },
       { key: 'ccDur', label: '持續時間', type: 'number', step: 0.1 },
       { key: 'ccForce', label: '力度參數', type: 'number' },
+      { key: 'ccType2', label: '次控類型', type: 'select', simpleOptions: CC_OPTIONS },
+      { key: 'ccDur2', label: '次控時間', type: 'number', step: 0.1 },
+      { key: 'ccForce2', label: '次控力度', type: 'number' },
       { key: 'effectType', label: '次要效果', type: 'select', simpleOptions: EFFECT_OPTIONS },
       { key: 'effectVal', label: '效果數值 1', type: 'number' },
+      { key: 'effectType2', label: '次要效果 2', type: 'select', simpleOptions: EFFECT_OPTIONS },
       { key: 'effectVal2', label: '效果數值 2', type: 'number' },
     ]
   }
