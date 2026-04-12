@@ -114,6 +114,19 @@ export class GameRenderer {
             (x, y) => {
                 const hex = this.grid.getHexAtWorldPoint(x, y, engine);
                 if (!hex) return { height: 0, isValid: false };
+                
+                // [FIX] 特效打穿網格掉下去問題：
+                // 如果該地塊正在崩塌，它的 isValid 會是 false，導致特效直接穿透。
+                // 這裡我們攔截崩塌中的地塊，將其視為 valid，並回傳其動態高度 (h + z)
+                const key = `${hex.q},${hex.r}`;
+                const collapsing = engine.zones.collapsingTiles.get(key);
+                if (collapsing) {
+                    return {
+                        height: collapsing.h + collapsing.z,
+                        isValid: true
+                    };
+                }
+
                 return {
                     height: this.grid.getTerrainHeight(hex.q, hex.r, engine),
                     isValid: engine.map.isValid(hex.q, hex.r)

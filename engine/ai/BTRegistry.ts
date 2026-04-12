@@ -132,18 +132,7 @@ export const BTActions: Record<string, BTActionFn> = {
         a.btStatus = "危險！逃離中";
         a.visualStatus = "DANGER"; 
         
-        // 1. Interrupt casting if in danger (Zero-Trust)
-        if (a.castingSkillIdx !== -1) {
-            const s = a.skills[a.castingSkillIdx];
-            if (s && s.tag !== 'BASIC') {
-                engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷詠唱");
-                a.castingSkillIdx = -1;
-                a.castTimer = 0;
-                a.castingAnimationTimer = 0;
-            }
-        }
-
-        // 2. Ensure we have a targetHex to move to
+        // 1. Ensure we have a targetHex to move to
         const myKey = HexUtils.key(a);
         if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
             engine.updateTarget(a);
@@ -152,13 +141,28 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.targetHex) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5); 
             if (state === NodeState.FAILURE) {
-                // [FIX] 如果移動失敗（例如被堵死），返回 FAILURE 讓 Selector 切換到戰鬥邏輯，而不是卡在 RUNNING
+                // [FIX] 如果移動失敗（例如被堵死），必須清除逃生目標，讓後續戰鬥邏輯能正確鎖定敵人
+                a.targetHex = null;
                 return NodeState.FAILURE;
             }
+            
+            // [FIX] 只有在確定可以逃生 (有路徑) 的情況下，才中斷當前的詠唱。
+            // 否則會導致 AI 在絕境中不斷嘗試逃跑 -> 中斷攻擊 -> 逃跑失敗 -> 重新攻擊 的無限迴圈
+            if (a.castingSkillIdx !== -1) {
+                const s = a.skills[a.castingSkillIdx];
+                if (s && s.tag !== 'BASIC') {
+                    engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷詠唱");
+                    a.castingSkillIdx = -1;
+                    a.castTimer = 0;
+                    a.castingAnimationTimer = 0;
+                }
+            }
+
             return state;
         }
         
         // [FIX] 無路可逃時返回 FAILURE，觸發戰鬥背水一戰
+        a.targetHex = null;
         return NodeState.FAILURE; 
     },
     "CastSkill": (a, engine, args) => {
@@ -197,8 +201,30 @@ export const BTActions: Record<string, BTActionFn> = {
         });
         
         if (idx !== -1) {
-            a.btStatus = "背水一戰：推拉！";
-            return engine.initiateCast(a, idx);
+            const skill = a.skills[idx];
+            // [FIX] 使用 calculateOptimalTarget 確保技能瞄準正確的敵人或區域，而不是逃生網格
+            const result = engine.calculateOptimalTarget(a, skill);
+            
+            if (result.targetAgent) {
+                a.target = result.targetAgent;
+                a.targetHex = null;
+            } else if (result.targetHex) {
+                a.target = null;
+                a.targetHex = result.targetHex;
+            } else {
+                return NodeState.FAILURE;
+            }
+
+            // 檢查射程
+            let tQ = a.targetHex ? a.targetHex.q : a.target!.q;
+            let tR = a.targetHex ? a.targetHex.r : a.target!.r;
+            const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
+            const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
+            
+            if (dist <= effRange + 0.5) {
+                a.btStatus = "背水一戰：推拉！";
+                return engine.initiateCast(a, idx);
+            }
         }
         return NodeState.FAILURE;
     }

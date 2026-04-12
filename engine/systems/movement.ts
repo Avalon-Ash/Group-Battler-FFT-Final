@@ -80,7 +80,13 @@ export class MovementSystem {
             const next = path[0];
             // 檢查下一格是否被地形完全阻擋
             if (spatial.isBlocked(next.q, next.r, a.id, a.movementType)) {
-                // [FIX] 如果下一格被擋住，回傳 FAILURE 讓 AI 觸發其他邏輯 (例如背水一戰)
+                const occupant = spatial.getAgentHash(HexUtils.hash(next.q, next.r));
+                if (occupant && occupant.team === a.team) {
+                    // [FIX] 如果被友軍擋住，保持 RUNNING 狀態等待，不要直接 FAILURE 導致發呆
+                    return NodeState.RUNNING;
+                }
+                
+                // [FIX] 如果被敵人或地形擋住，回傳 FAILURE 讓 AI 觸發其他邏輯 (例如背水一戰或攻擊)
                 a.isMoving = false;
                 a.path = [];
                 return NodeState.FAILURE;
