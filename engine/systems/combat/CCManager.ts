@@ -142,7 +142,9 @@ export const CCManager = {
         const rawForce = Math.max(1, force);
         const resistance = target.weight || 1; 
         
-        const tilesToPush = Math.max(0, rawForce - resistance);
+        // [FIX] Normal weight is 1. If force is 1, it should push 1 tile.
+        // So tilesToPush = rawForce - (resistance - 1)
+        const tilesToPush = Math.max(0, rawForce - (resistance - 1));
         if (tilesToPush === 0) return { applied: false };
 
         const originPx = origin ? origin : {x: source.px, y: source.py};

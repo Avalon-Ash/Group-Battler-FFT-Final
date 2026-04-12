@@ -32,7 +32,9 @@ export class TargetingSystem {
     public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
         // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
         const myKey = HexUtils.key(a);
-        if (spatial.isWarningTile(myKey)) {
+        const inDanger = spatial.isWarningTile(myKey);
+        
+        if (inDanger && a.escapeCooldown <= 0) {
             // 中斷當前攻擊或追擊目標
             a.target = null;
             
@@ -85,10 +87,12 @@ export class TargetingSystem {
                     a.targetHex = bestSafeHex;
                     a.visualStatus = 'DANGER';
                 } else {
-                    // No log here to avoid spam, or use engine.log if critical
+                    // [FIX] 如果找不到安全地塊，必須清空 targetHex，讓後續能觸發背水一戰
+                    a.targetHex = null;
+                    a.visualStatus = 'DANGER'; // Keep visual status even if no safe hex
                 }
             }
-        } else {
+        } else if (!inDanger) {
             // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
             if (!a.target && a.targetHex) {
                 a.targetHex = null;

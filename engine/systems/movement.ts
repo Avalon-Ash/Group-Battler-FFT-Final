@@ -79,19 +79,50 @@ export class MovementSystem {
         if (path.length > 0) {
             const next = path[0];
             // 檢查下一格是否被地形完全阻擋
-            if (spatial.isBlocked(next.q, next.r, a.id, a.movementType)) {
+            if (spatial.isBlocked(next.q, next.r, a.id, a.movementType) || !spatial.isValid(next.q, next.r)) {
+                let isBlockedByAlly = false;
+                
+                // 1. 檢查是否被友軍實體擋住
                 const occupant = spatial.getAgentHash(HexUtils.hash(next.q, next.r));
                 if (occupant && occupant.team === a.team) {
-                    // [FIX] 如果被友軍擋住，保持 RUNNING 狀態等待，不要直接 FAILURE 導致發呆
+                    isBlockedByAlly = true;
+                }
+                
+                // 2. 檢查是否被友軍的移動意圖 (Reservation) 擋住
+                if (!isBlockedByAlly) {
+                    const agents = spatial.getAgents();
+                    for (const other of agents) {
+                        if (other.id !== a.id && other.hp > 0 && other.isMoving && other.path.length > 0) {
+                            const dest = other.path[0];
+                            if (dest.q === next.q && dest.r === next.r && other.team === a.team) {
+                                isBlockedByAlly = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (isBlockedByAlly) {
+                    a.stuckTicks++;
+                    if (a.stuckTicks > 15) { // 約 0.5 秒 (假設 30fps)
+                        // [FIX] 卡住太久，放棄當前路徑，讓 AI 重新思考 (可能觸發背水一戰或重新尋路)
+                        a.isMoving = false;
+                        a.path = [];
+                        a.stuckTicks = 0;
+                        return NodeState.FAILURE;
+                    }
+                    // [FIX] 如果被友軍擋住（實體或意圖），保持 RUNNING 狀態等待，不要直接 FAILURE 導致發呆
                     return NodeState.RUNNING;
                 }
                 
+                a.stuckTicks = 0;
                 // [FIX] 如果被敵人或地形擋住，回傳 FAILURE 讓 AI 觸發其他邏輯 (例如背水一戰或攻擊)
                 a.isMoving = false;
                 a.path = [];
                 return NodeState.FAILURE;
             }
 
+            a.stuckTicks = 0;
             // 更新路徑，保留移動狀態
             a.path = path;
             a.trajectory = path;

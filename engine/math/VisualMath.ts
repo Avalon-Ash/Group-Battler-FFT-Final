@@ -89,7 +89,7 @@ export class VisualMath {
     }
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
-        const terrainH = engine.map.getTerrainHeight(agent.q, agent.r);
+        const terrainH = engine.getTerrainHeight(agent.q, agent.r);
         const chestHeight = (UNIT_VISUAL_HEIGHT * 0.45) * UNIT_SCALE;
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestHeight;
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
@@ -104,7 +104,7 @@ export class VisualMath {
             const q = parseInt(parts[0]);
             const r = parseInt(parts[1]);
             const p = HexUtils.toPx(q, r, engine.mapConfig);
-            const h = engine.map.getTerrainHeight(q, r);
+            const h = engine.getTerrainHeight(q, r);
             return { x: p.x, y: p.y, z: h + 2 };
         }
         return { x: 0, y: 0, z: -9999 };

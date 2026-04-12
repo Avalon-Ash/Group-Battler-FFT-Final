@@ -58,7 +58,7 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '光速突襲', desc: '突進並暈眩', 
         range: 6, cast: 0.1, cd: 8.0, cost: 30, gain: 0, // Buff Range 4->6, CD 9->8
         type: 'SINGLE', power: 100, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 0.8, 
+        ccType: 'STUN', ccDur: 0.8, effectType: 'DASH',
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
     },
     { 

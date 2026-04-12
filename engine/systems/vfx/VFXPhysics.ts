@@ -61,9 +61,21 @@ export class VFXPhysics {
             }
 
             if (isValid && p.z < currentGroundH) {
-                p.z += (currentGroundH - p.z) * 0.1;
+                // [FIX] Prevent falling VFX (like negative vz SPARKS) from penetrating the grid
+                if (p.vz < 0) {
+                    p.z = currentGroundH;
+                    p.vz = 0;
+                } else {
+                    p.z += (currentGroundH - p.z) * 0.1;
+                }
             } else if (!isValid && p.z < -2000) {
                 p.life = 0;
+            }
+
+            // [FIX] For ground particles (like SHOCKWAVE, MAGIC_CIRCLE), they should stick to the ground
+            // even if the ground is collapsing.
+            if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'MAGIC_CIRCLE' || p.type === 'CRACKS' || p.type === 'GRID_FIELD' || p.type === 'HEX_GLOW') {
+                p.z = currentGroundH;
             }
         }
 

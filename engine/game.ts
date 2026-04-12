@@ -115,7 +115,14 @@ export class GameEngine {
     public isValidHash(h: number) { return this.map.isValidHash(h); }
     public hasObstacle(q: number, r: number) { return this.map.hasObstacle(q, r); }
     public hasObstacleHash(h: number) { return this.map.hasObstacleHash(h); }
-    public getTerrainHeight(q: number, r: number) { return this.map.getTerrainHeight(q, r); }
+    public getTerrainHeight(q: number, r: number) { 
+        const key = `${q},${r}`;
+        const collapsing = this.zones.collapsingTiles.get(key);
+        if (collapsing) {
+            return collapsing.h + collapsing.z; // Return dynamic height as it falls
+        }
+        return this.map.getTerrainHeight(q, r); 
+    }
     public getObstacleTypeHash(h: number): string | undefined { return this.map.obstacles.get(HexUtils.key(HexUtils.unhash(h))); }
     public getAgentHash(h: number): Agent | undefined { return this.map.agentMap.get(h); }
     public getMapConfig(): MapConfig { return this.mapConfig; }
@@ -147,7 +154,7 @@ export class GameEngine {
     }
 
     public updateAgentPosition(agent: Agent, newQ: number, newR: number) {
-        this.map.updateAgentPosition(agent, newQ, newR);
+        this.map.updateAgentPosition(agent, newQ, newR, this);
     }
 
     public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: any = {}) {
@@ -255,6 +262,7 @@ export class GameEngine {
             this.cooldowns.update(a, dt);
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
+            if (a.escapeCooldown > 0) a.escapeCooldown -= dt;
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }

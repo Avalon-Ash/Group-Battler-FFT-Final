@@ -151,8 +151,16 @@ export class Pathfinder {
                     if (startAgent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
                 }
 
-                const nHex = HexUtils.unhash(neighborH);
                 let moveCost = 1.0;
+
+                // 單位碰撞判定 (逃生時盡量避開單位，避免死鎖)
+                const occ = spatial.getAgentHash(neighborH);
+                if (occ && occ.hp > 0 && occ !== startAgent) {
+                    // 給予極高成本，讓 AI 優先選擇空地逃生 (例如上/下方的空地)
+                    moveCost += 50; 
+                }
+
+                const nHex = HexUtils.unhash(neighborH);
 
                 if (startAgent.movementType !== MovementType.FLYING) {
                     const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);

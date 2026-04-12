@@ -30,9 +30,9 @@ export class MapSystem {
         const agent = this.agentMap.get(HexUtils.hash(q, r));
         return (agent && agent.hp > 0) ? agent : undefined;
     }
-    public updateAgentPosition(agent: Agent, newQ: number, newR: number) {
-        const oldH = this.getTerrainHeight(agent.q, agent.r);
-        const newH = this.getTerrainHeight(newQ, newR);
+    public updateAgentPosition(agent: Agent, newQ: number, newR: number, engine: GameEngine) {
+        const oldH = engine.getTerrainHeight(agent.q, agent.r);
+        const newH = engine.getTerrainHeight(newQ, newR);
         const deltaH = oldH - newH;
         agent.physics.z += deltaH;
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));

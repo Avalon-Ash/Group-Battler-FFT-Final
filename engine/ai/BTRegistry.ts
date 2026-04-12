@@ -143,12 +143,14 @@ export const BTActions: Record<string, BTActionFn> = {
             if (state === NodeState.FAILURE) {
                 // [FIX] 如果移動失敗（例如被堵死），必須清除逃生目標，讓後續戰鬥邏輯能正確鎖定敵人
                 a.targetHex = null;
+                // [FIX] 將冷卻時間從 1.5s 縮短為 0.2s，避免 AI 被友軍卡住後發呆掉下虛空
+                a.escapeCooldown = 0.2; 
                 return NodeState.FAILURE;
             }
             
-            // [FIX] 只有在確定可以逃生 (有路徑) 的情況下，才中斷當前的詠唱。
+            // [FIX] 只有在確定可以逃生 (有路徑) 且沒有卡住的情況下，才中斷當前的詠唱。
             // 否則會導致 AI 在絕境中不斷嘗試逃跑 -> 中斷攻擊 -> 逃跑失敗 -> 重新攻擊 的無限迴圈
-            if (a.castingSkillIdx !== -1) {
+            if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.tag !== 'BASIC') {
                     engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷詠唱");
@@ -163,6 +165,7 @@ export const BTActions: Record<string, BTActionFn> = {
         
         // [FIX] 無路可逃時返回 FAILURE，觸發戰鬥背水一戰
         a.targetHex = null;
+        a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
     },
     "CastSkill": (a, engine, args) => {

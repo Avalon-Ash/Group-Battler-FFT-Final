@@ -25,8 +25,43 @@ export class SkillExecutor {
         const p = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
         const origin = { x: p.x, y: p.y };
 
+        // [NEW] DASH Effect: Move caster towards targetHex
+        if (skill.effectType === 'DASH' || skill.effectType2 === 'DASH') {
+            let bestH = null;
+            let minDist = Infinity;
+            
+            // If targetHex is empty, dash directly there
+            const targetOccupant = engine.getAgentAt(targetHex.q, targetHex.r);
+            if (engine.map.isValid(targetHex.q, targetHex.r) && (!targetOccupant || targetOccupant === source) && !engine.map.hasObstacle(targetHex.q, targetHex.r)) {
+                bestH = targetHex;
+            } else {
+                // Otherwise find an empty neighbor
+                for (const n of HexUtils.neighbors(targetHex)) {
+                    const occupant = engine.getAgentAt(n.q, n.r);
+                    if (engine.map.isValid(n.q, n.r) && (!occupant || occupant === source) && !engine.map.hasObstacle(n.q, n.r)) {
+                        const dist = HexUtils.dist(source, n);
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestH = n;
+                        }
+                    }
+                }
+            }
+            
+            if (bestH) {
+                engine.updateAgentPosition(source, bestH.q, bestH.r);
+                const newPx = HexUtils.toPx(bestH.q, bestH.r, engine.mapConfig);
+                source.px = newPx.x;
+                source.py = newPx.y;
+                source.physics.vz += 150; // Visual jump
+                engine.events.push({ type: 'CC_APPLIED', pos: {x: source.px, y: source.py}, text: "突進", color: "#60a5fa" });
+            }
+        }
+
         // 3. 判定受擊目標
-        if (skill.type === 'AOE' || impactCells.length > 1) {
+        let isAOE = skill.type === 'AOE' || impactCells.length > 1;
+        
+        if (isAOE) {
             impactCells.forEach(cell => {
                 const u = engine.getAgentAt(cell.q, cell.r);
                 if (u && u.hp > 0 && !u.banished) {
@@ -53,7 +88,9 @@ export class SkillExecutor {
 
         // 4. 結算效果
         targets.forEach(target => {
-            this.resolveHit(source, target, skill, origin, engine);
+            // [FIX] For SINGLE target skills, origin should be undefined so CCManager uses the caster's position.
+            // For AOE skills, origin is the center of the AOE.
+            this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine);
         });
     }
 
