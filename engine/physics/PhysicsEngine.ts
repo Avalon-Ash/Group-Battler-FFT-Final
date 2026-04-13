@@ -29,6 +29,19 @@ export class PhysicsEngine {
 
     public update(a: Agent, dt: number, engine: GameEngine) {
         if (a.fullyDead) return;
+        
+        // Sub-step physics to guarantee stability at high time scales
+        const maxStep = 0.016; // ~60fps step
+        let remainingDt = dt;
+        
+        while (remainingDt > 0) {
+            const stepDt = Math.min(remainingDt, maxStep);
+            remainingDt -= stepDt;
+            this.stepPhysics(a, stepDt, engine);
+        }
+    }
+
+    private stepPhysics(a: Agent, dt: number, engine: GameEngine) {
         const isDead = a.hp <= 0;
         
         const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * 1.2;
@@ -38,13 +51,15 @@ export class PhysicsEngine {
         const fy = -stiffness * a.physics.y;
         const fRot = -stiffness * a.physics.angle * 0.1; 
 
-        const ax = fx - damping * a.physics.vx;
-        const ay = fy - damping * a.physics.vy;
-        const aRot = fRot - damping * a.physics.vAngle;
+        // Analytical damping to prevent instability at high dt
+        const dampFactor = Math.exp(-damping * dt);
+        a.physics.vx *= dampFactor;
+        a.physics.vy *= dampFactor;
+        a.physics.vAngle *= dampFactor;
 
-        a.physics.vx += ax * dt;
-        a.physics.vy += ay * dt;
-        a.physics.vAngle += aRot * dt;
+        a.physics.vx += fx * dt;
+        a.physics.vy += fy * dt;
+        a.physics.vAngle += fRot * dt;
 
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
@@ -122,7 +137,7 @@ export class PhysicsEngine {
             
             if (speedSq < 5000) {
                 if (distSq > 0.5) {
-                    const driftSpeed = PHYSICS.DRIFT_SPEED * dt; 
+                    const driftSpeed = Math.min(1.0, PHYSICS.DRIFT_SPEED * dt); 
                     a.px += dx * driftSpeed; a.py += dy * driftSpeed;
                     if (distSq < 2) { a.px = targetPos.x; a.py = targetPos.y; }
                 } else {

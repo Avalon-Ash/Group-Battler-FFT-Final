@@ -34,9 +34,11 @@ export class MapGenerator {
 
         const tiers = new Map<string, number>();
         
-        const centerQ = Math.floor((W - 1) / 2);
-        const centerR = Math.floor((H - 1) / 2);
-        const centerHex = { q: centerQ, r: centerR };
+        const centerCol = Math.floor((W - 1) / 2);
+        const centerRow = Math.floor((H - 1) / 2);
+        const centerHex = HexUtils.offsetToAxial(centerCol, centerRow, engine.mapConfig);
+        const centerQ = centerHex.q;
+        const centerR = centerHex.r;
         
         // 用於計算前景深度的參考值
         const centerSum = centerQ + centerR;
@@ -44,8 +46,11 @@ export class MapGenerator {
         const noisePhaseA = Math.random() * 1000;
         const noisePhaseB = Math.random() * 1000;
 
-        for (let q = 0; q < W; q++) {
-            for (let r = 0; r < H; r++) {
+        for (let col = 0; col < W; col++) {
+            for (let row = 0; row < H; row++) {
+                const hex = HexUtils.offsetToAxial(col, row, engine.mapConfig);
+                const q = hex.q;
+                const r = hex.r;
                 const k = HexUtils.key({q, r});
                 system.registerTile(q, r);
 
@@ -99,7 +104,7 @@ export class MapGenerator {
 
     private static generateDecorations(system: MapSystem, engine: GameEngine, W: number, H: number) {
         const obstacleType = engine.currentScene.obstacleStyle || 'WALL';
-        const centerHex = { q: Math.floor(W/2), r: Math.floor(H/2) };
+        const centerHex = HexUtils.offsetToAxial(Math.floor(W/2), Math.floor(H/2), engine.mapConfig);
         const keys = Array.from(system.getMapKeys());
         
         // Tuned Density per Biome

@@ -94,14 +94,16 @@ export const SurfacePainter = {
         ctx.clip();
         const slide = (time * 0.5) % 2.5 - 0.7; 
         const w = size * 2;
-        const grad = ctx.createLinearGradient(-w, -w, w, w);
-        const start = slide - 0.3;
-        const end = slide + 0.3;
-        grad.addColorStop(Math.max(0, Math.min(1, start)), 'rgba(255,255,255,0)');
-        grad.addColorStop(Math.max(0, Math.min(1, slide)), 'rgba(255,255,255,0.25)'); 
-        grad.addColorStop(Math.max(0, Math.min(1, end)), 'rgba(255,255,255,0)');
-        ctx.fillStyle = grad;
-        ctx.fillRect(-size, -size, size*2, size*2);
+        if (Number.isFinite(w)) {
+            const grad = ctx.createLinearGradient(-w, -w, w, w);
+            const start = slide - 0.3;
+            const end = slide + 0.3;
+            grad.addColorStop(Math.max(0, Math.min(1, start)), 'rgba(255,255,255,0)');
+            grad.addColorStop(Math.max(0, Math.min(1, slide)), 'rgba(255,255,255,0.25)'); 
+            grad.addColorStop(Math.max(0, Math.min(1, end)), 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(-size, -size, size*2, size*2);
+        }
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         ctx.lineWidth = 1;
         ctx.beginPath();

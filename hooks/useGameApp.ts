@@ -4,6 +4,7 @@ import { ToolType, Team, Skill, Role, HexLayout } from '../types';
 import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
+import { HexUtils } from '../engine/utils';
 
 export const useGameApp = () => {
     const engineRef = useRef(new GameEngine());
@@ -41,30 +42,47 @@ export const useGameApp = () => {
 
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
-        // Resolve coordinate string to axial numeric components
+        const w = engine.mapConfig.w;
+        const h = engine.mapConfig.h;
+        
+        // Filter valid hexes and avoid the outermost edges
         let validHexes = Array.from(engine.mapKeys).map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return {q, r};
-        }).filter(h => !engine.map.hasObstacle(h.q, h.r));
+        }).filter(hex => {
+            if (engine.map.hasObstacle(hex.q, hex.r)) return false;
+            const offset = HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig);
+            return offset.col > 0 && offset.col < w - 1 && offset.row > 0 && offset.row < h - 1;
+        });
         
-        for (let i = validHexes.length - 1; i > 0; i--) {
+        // Separate into left (Blue) and right (Red) sides
+        const midCol = Math.floor(w / 2);
+        let leftHexes = validHexes.filter(hex => HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig).col < midCol);
+        let rightHexes = validHexes.filter(hex => HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig).col >= midCol);
+
+        // Shuffle both arrays
+        for (let i = leftHexes.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [validHexes[i], validHexes[j]] = [validHexes[j], validHexes[i]];
+            [leftHexes[i], leftHexes[j]] = [leftHexes[j], leftHexes[i]];
+        }
+        for (let i = rightHexes.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [rightHexes[i], rightHexes[j]] = [rightHexes[j], rightHexes[i]];
         }
 
         const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-        let spawnIdx = 0;
         
-        const spawn = (team: Team) => {
+        const spawn = (team: Team, hexes: {q: number, r: number}[]) => {
+            let spawnIdx = 0;
             for(let i=0; i<5; i++) {
-                if (spawnIdx >= validHexes.length) break;
-                const h = validHexes[spawnIdx++];
-                engine.addAgent(team, h.q, h.r, 600 + Math.random()*400, roles[i % roles.length]);
+                if (spawnIdx >= hexes.length) break;
+                const hex = hexes[spawnIdx++];
+                engine.addAgent(team, hex.q, hex.r, 600 + Math.random()*400, roles[i % roles.length]);
             }
         };
 
-        spawn(Team.BLUE); 
-        spawn(Team.RED);
+        spawn(Team.BLUE, leftHexes); 
+        spawn(Team.RED, rightHexes);
         setSession(prev => ({ ...prev, unitCount: engine.agents.length }));
     }, []);
 

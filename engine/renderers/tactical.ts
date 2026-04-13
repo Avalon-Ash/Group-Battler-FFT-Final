@@ -57,20 +57,23 @@ export class TacticalRenderer {
                 const tH = grid.getTerrainHeight(t.q, t.r, engine);
                 const endPx = t.px;
                 const endPy = t.py - tH - 30;
-                const grad = ctx.createLinearGradient(startPx, startPy, endPx, endPy);
-                const isEnemy = highlight.team !== t.team;
-                const color = isEnemy ? '#ef4444' : '#4ade80';
-                grad.addColorStop(0, 'rgba(0,0,0,0)'); 
-                grad.addColorStop(0.2, color);
-                grad.addColorStop(1, color);
-                ctx.beginPath();
-                ctx.moveTo(startPx, startPy);
-                ctx.lineTo(endPx, endPy);
-                ctx.strokeStyle = grad;
-                ctx.lineWidth = 2;
-                ctx.globalAlpha = 0.8 + Math.sin(globalTime * 10) * 0.2; 
-                ctx.stroke();
-                ctx.globalAlpha = 1.0;
+                
+                if (Number.isFinite(startPx) && Number.isFinite(startPy) && Number.isFinite(endPx) && Number.isFinite(endPy)) {
+                    const grad = ctx.createLinearGradient(startPx, startPy, endPx, endPy);
+                    const isEnemy = highlight.team !== t.team;
+                    const color = isEnemy ? '#ef4444' : '#4ade80';
+                    grad.addColorStop(0, 'rgba(0,0,0,0)'); 
+                    grad.addColorStop(0.2, color);
+                    grad.addColorStop(1, color);
+                    ctx.beginPath();
+                    ctx.moveTo(startPx, startPy);
+                    ctx.lineTo(endPx, endPy);
+                    ctx.strokeStyle = grad;
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = 0.8 + Math.sin(globalTime * 10) * 0.2; 
+                    ctx.stroke();
+                    ctx.globalAlpha = 1.0;
+                }
             }
         }
         ctx.restore();
@@ -83,7 +86,7 @@ export class TacticalRenderer {
         if (!engine.directorTargetId) return;
 
         ctx.save();
-        ctx.resetTransform();
+        // Removed ctx.resetTransform() to respect the DPR scaling from RenderPipeline
 
         const pad = 40;
         const cornerSize = 25;

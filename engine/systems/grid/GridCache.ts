@@ -45,5 +45,9 @@ export class GridCache {
             this.tileList.push(tile);
             this.tileMap.set(k, tile);
         });
+
+        // Painter's Algorithm: Sort by visual depth (Screen Y)
+        // This ensures back tiles are drawn before front tiles.
+        this.tileList.sort((a, b) => a.py - b.py);
     }
 }

@@ -111,33 +111,24 @@ export class RenderList {
             const op = this.ops[i];
             
             /**
-             * 唯一數學排序規範 v17.1 (Topological Ground Sort - Z Fix)
+             * 唯一數學排序規範 v18.0 (Interleaved Depth Sort)
              * 
-             * 1. 地形層 (Terrain): 使用 Visual Base Y (ty) 排序。
-             * 2. 物件層 (Unit/Prop): 使用 Footprint Y (y) 排序。
-             *    [CRITICAL] 不將 Z 軸高度計入排序鍵值。
-             *    在 2.5D 投影中，深度完全由 Y 軸決定。將 Z 計入會導致跳躍單位錯誤地覆蓋前方單位。
+             * 在等角投影中，深度由 Y 軸 (Footprint Y) 決定。
+             * 為了正確處理遮擋，地形與單位必須交錯排序。
              */
             
-            let sortKey = 0;
-
-            if (op.type === RenderOpType.TERRAIN) {
-                // 地形層：基礎權重 0 ~ 20,000,000
-                // [FIX] 如果有設定 y (Footprint)，則優先使用 y 進行排序，防止掉落過程穿模
-                const sortY = op.y !== 0 ? op.y : op.ty;
-                sortKey = Math.floor((sortY + 5000) * 100);
-            } 
-            else {
-                // 物件層：基礎權重 20,000,000 +
-                let layerBase = 0;
-                if (op.type === RenderOpType.HAZARD || op.type === RenderOpType.DECAL) layerBase = 20000000;
-                else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) layerBase = 40000000;
-                else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) layerBase = 60000000;
-                
-                // 同層內依 Screen Y 排序 (由後至前 -> Y 值由小到大)
-                // 只使用 op.y (Footprint)，忽略 op.z (Altitude)
-                sortKey = layerBase + Math.floor(op.y * 100);
-            }
+            const baseSortY = op.y !== 0 ? op.y : op.ty;
+            let sortKey = Math.floor((baseSortY + 10000) * 100);
+            
+            // 同一 Y 軸位置下的子層級排序 (0-99)
+            let subLayer = 0;
+            if (op.type === RenderOpType.TERRAIN) subLayer = 10;
+            else if (op.type === RenderOpType.DECAL) subLayer = 20;
+            else if (op.type === RenderOpType.HAZARD) subLayer = 30;
+            else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) subLayer = 40;
+            else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) subLayer = 50;
+            
+            sortKey += subLayer;
 
             // 特殊：奧義/高空特效絕對置頂
             if (op.pIsUlt || op.z > 600) sortKey += 100000000;

@@ -70,8 +70,8 @@ export class Pathfinder {
                 const nKey = HexUtils.key(nHex);
                 if (targeting.isWarningTile(nKey, spatial)) {
                     // 降低懲罰值但保持足夠高，確保 AI 能在合理步數內找到路徑
-                    // 如果懲罰太高 (9000)，A* 會優先探索極遠的非警告路徑，導致超時
-                    moveCost += 50; 
+                    // 如果懲罰太高 (50)，A* 會優先探索極遠的非警告路徑，導致超時
+                    moveCost += 5; 
                 }
                 
                 if (startAgent.movementType !== MovementType.FLYING) {

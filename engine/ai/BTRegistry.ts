@@ -149,11 +149,14 @@ export const BTActions: Record<string, BTActionFn> = {
             }
             
             // [FIX] 只有在確定可以逃生 (有路徑) 且沒有卡住的情況下，才中斷當前的詠唱。
-            // 否則會導致 AI 在絕境中不斷嘗試逃跑 -> 中斷攻擊 -> 逃跑失敗 -> 重新攻擊 的無限迴圈
+            // 為了避免背水一戰時瘋狂切換，如果正在詠唱非普攻技能，絕對不中斷，讓它把技能放完
             if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.tag !== 'BASIC') {
-                    engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷詠唱");
+                    // 正在放技能，鎖定狀態，不逃跑
+                    return NodeState.FAILURE;
+                } else if (s && s.tag === 'BASIC') {
+                    engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷普攻");
                     a.castingSkillIdx = -1;
                     a.castTimer = 0;
                     a.castingAnimationTimer = 0;

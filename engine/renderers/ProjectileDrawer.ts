@@ -65,18 +65,23 @@ export const ProjectileDrawer = {
                     ctx.lineTo(trail[i].x, trail[i].y);
                 }
 
-                const trailGrad = ctx.createLinearGradient(x, y, trail[trail.length-1].x, trail[trail.length-1].y);
-                trailGrad.addColorStop(0, color);
-                trailGrad.addColorStop(0.2, color); 
-                trailGrad.addColorStop(1, 'transparent');
+                const endX = trail[trail.length-1].x;
+                const endY = trail[trail.length-1].y;
 
-                ctx.strokeStyle = trailGrad;
-                // Constant Width "Laser" look
-                ctx.lineWidth = (op.pIsUlt ? 10 : 5) * op.pScale;
-                ctx.lineCap = 'butt'; // Sharp ends
-                ctx.lineJoin = 'miter';
-                ctx.globalAlpha = 0.8;
-                ctx.stroke();
+                if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(endX) && Number.isFinite(endY)) {
+                    const trailGrad = ctx.createLinearGradient(x, y, endX, endY);
+                    trailGrad.addColorStop(0, color);
+                    trailGrad.addColorStop(0.2, color); 
+                    trailGrad.addColorStop(1, 'transparent');
+
+                    ctx.strokeStyle = trailGrad;
+                    // Constant Width "Laser" look
+                    ctx.lineWidth = (op.pIsUlt ? 10 : 5) * op.pScale;
+                    ctx.lineCap = 'butt'; // Sharp ends
+                    ctx.lineJoin = 'miter';
+                    ctx.globalAlpha = 0.8;
+                    ctx.stroke();
+                }
                 
                 // Core bright line (The "Filament")
                 ctx.strokeStyle = '#ffffff';

@@ -293,11 +293,15 @@ export const EnvironmentFactory = {
             
             ctx.closePath();
             
-            const grad = ctx.createLinearGradient(0, currentY - height, 0, currentY);
-            grad.addColorStop(0, style.highlight);
-            grad.addColorStop(0.5, style.main);
-            grad.addColorStop(1, style.dark);
-            ctx.fillStyle = grad;
+            if (Number.isFinite(currentY) && Number.isFinite(height)) {
+                const grad = ctx.createLinearGradient(0, currentY - height, 0, currentY);
+                grad.addColorStop(0, style.highlight);
+                grad.addColorStop(0.5, style.main);
+                grad.addColorStop(1, style.dark);
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = style.main;
+            }
             ctx.fill();
             
             ctx.strokeStyle = style.dark;

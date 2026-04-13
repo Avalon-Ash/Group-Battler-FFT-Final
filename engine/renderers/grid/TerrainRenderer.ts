@@ -4,7 +4,7 @@ import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 import { VisualMath } from "../../math/VisualMath";
 
-const PEDESTAL_DEPTH = 30; 
+const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
 
 export const TerrainRenderer = {
@@ -24,17 +24,24 @@ export const TerrainRenderer = {
         ctx.globalAlpha = alpha;
         ctx.translate(drawX, drawY);
 
+        // Dynamic pedestal depth based on height to emphasize verticality
+        const currentPedestalDepth = Math.max(PEDESTAL_DEPTH, -visualTopY + 15);
+
         const drawFace = (idx1: number, idx2: number, color: string, isLightSide: boolean) => {
             const v1 = vertices[idx1], v2 = vertices[idx2];
-            const grad = ctx.createLinearGradient(0, visualTopY, 0, PEDESTAL_DEPTH);
-            grad.addColorStop(0, color);
-            grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
-            ctx.fillStyle = grad;
+            if (Number.isFinite(visualTopY)) {
+                const grad = ctx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = color;
+            }
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y + visualTopY);
             ctx.lineTo(v2.x, v2.y + visualTopY);
-            ctx.lineTo(v2.x, v2.y + PEDESTAL_DEPTH);
-            ctx.lineTo(v1.x, v1.y + PEDESTAL_DEPTH);
+            ctx.lineTo(v2.x, v2.y + currentPedestalDepth);
+            ctx.lineTo(v1.x, v1.y + currentPedestalDepth);
             ctx.closePath();
             ctx.fill();
         };
@@ -49,11 +56,15 @@ export const TerrainRenderer = {
         }
 
         ctx.translate(0, visualTopY);
-        const topGrad = ctx.createLinearGradient(-r, -r, r, r);
-        topGrad.addColorStop(0, theme.rim); 
-        topGrad.addColorStop(0.3, theme.top);
-        topGrad.addColorStop(1, theme.sideDark); 
-        ctx.fillStyle = topGrad;
+        if (Number.isFinite(r)) {
+            const topGrad = ctx.createLinearGradient(-r, -r, r, r);
+            topGrad.addColorStop(0, theme.rim); 
+            topGrad.addColorStop(0.3, theme.top);
+            topGrad.addColorStop(1, theme.sideDark); 
+            ctx.fillStyle = topGrad;
+        } else {
+            ctx.fillStyle = theme.top;
+        }
         ctx.beginPath();
         ctx.moveTo(vertices[0].x, vertices[0].y);
         for (let i = 1; i < 6; i++) ctx.lineTo(vertices[i].x, vertices[i].y);

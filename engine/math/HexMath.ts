@@ -47,47 +47,43 @@ export const HexMath = {
     },
 
     /**
-     * Diamond Hex Mapping (SRPG Standard) - V2
-     * Implementation of Duality for Flat and Pointy layouts.
+     * Standard Hex Mapping with Isometric Scaling
      */
     hexToPixel(q: number, r: number, offsetX: number, offsetY: number, layout: HexLayout): Point {
-        const w = layout === 'FLAT' ? 2 * HEX_SIZE : SQRT3 * HEX_SIZE;
-        const h = layout === 'FLAT' ? SQRT3 * HEX_SIZE : 2 * HEX_SIZE;
+        let x = 0;
+        let y = 0;
 
-        // Standard Flat: width = 2*size, spacing = 3/2 * size
-        // Standard Pointy: width = sqrt(3)*size, spacing = sqrt(3) * size
-        
-        // This custom Diamond Projection logic rotates the axis to fit a square-ish screen space
-        const stepX = layout === 'FLAT' ? w * 0.75 : w * 0.5;
-        const stepY = layout === 'FLAT' ? h * 0.5 : h * 0.75;
-
-        const x = (q - r) * stepX;
-        const y = (q + r) * stepY;
+        if (layout === 'FLAT') {
+            x = HEX_SIZE * (3/2 * q);
+            y = HEX_SIZE * (SQRT3 * (r + q / 2));
+        } else {
+            x = HEX_SIZE * (SQRT3 * (q + r / 2));
+            y = HEX_SIZE * (3/2 * r);
+        }
 
         return {
             x: x + offsetX,
-            y: y * ISO_SCALE_Y + offsetY
+            y: (y * ISO_SCALE_Y) + offsetY
         };
     },
 
     /**
-     * Inverse mapping for Diamond Grid
+     * Inverse mapping for standard Hex Grid
      */
     pixelToHex(x: number, y: number, offsetX: number, offsetY: number, layout: HexLayout): Hex {
         const dx = x - offsetX;
         const dy = (y - offsetY) / ISO_SCALE_Y;
         
-        const w = layout === 'FLAT' ? 2 * HEX_SIZE : SQRT3 * HEX_SIZE;
-        const h = layout === 'FLAT' ? SQRT3 * HEX_SIZE : 2 * HEX_SIZE;
+        let q = 0;
+        let r = 0;
 
-        const stepX = layout === 'FLAT' ? w * 0.75 : w * 0.5;
-        const stepY = layout === 'FLAT' ? h * 0.5 : h * 0.75;
-
-        const q_minus_r = dx / stepX;
-        const q_plus_r = dy / stepY;
-
-        const q = (q_minus_r + q_plus_r) / 2;
-        const r = (q_plus_r - q_minus_r) / 2;
+        if (layout === 'FLAT') {
+            q = (2/3 * dx) / HEX_SIZE;
+            r = (-1/3 * dx + SQRT3/3 * dy) / HEX_SIZE;
+        } else {
+            q = (SQRT3/3 * dx - 1/3 * dy) / HEX_SIZE;
+            r = (2/3 * dy) / HEX_SIZE;
+        }
 
         return { q, r };
     },

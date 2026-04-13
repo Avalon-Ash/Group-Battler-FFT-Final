@@ -29,11 +29,15 @@ export const VolumePainter = {
             const v1 = verts[i];
             const v2 = verts[j];
             
-            const grad = ctx.createLinearGradient(0, -height, 0, 0);
-            grad.addColorStop(0, color);
-            grad.addColorStop(1, 'transparent'); 
-            
-            ctx.fillStyle = grad;
+            if (Number.isFinite(height)) {
+                const grad = ctx.createLinearGradient(0, -height, 0, 0);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, 'transparent'); 
+                
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = color;
+            }
             ctx.globalAlpha = opacity * 0.5; 
             
             ctx.beginPath();
@@ -140,11 +144,15 @@ export const VolumePainter = {
             const v1 = verts[i];
             const v2 = verts[j];
 
-            const grad = ctx.createLinearGradient(0, -height, 0, 0);
-            grad.addColorStop(0, color);
-            grad.addColorStop(1, 'transparent');
+            if (Number.isFinite(height)) {
+                const grad = ctx.createLinearGradient(0, -height, 0, 0);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+            } else {
+                ctx.fillStyle = color;
+            }
 
-            ctx.fillStyle = grad;
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y - height);
             ctx.lineTo(v2.x, v2.y - height);

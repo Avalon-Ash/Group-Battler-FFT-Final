@@ -98,10 +98,15 @@ export const BarPainter = {
                 // No rounding on left side to connect with HP
                 ctx.rect(shieldStartX, barY, shieldW, hpHeight);
                 
-                const grad = ctx.createLinearGradient(shieldStartX, barY, shieldStartX, barY + hpHeight);
-                grad.addColorStop(0, shieldTop);
-                grad.addColorStop(1, shieldBot);
-                ctx.fillStyle = grad;
+                if (Number.isFinite(shieldStartX) && Number.isFinite(barY) && Number.isFinite(hpHeight)) {
+                    const grad = ctx.createLinearGradient(shieldStartX, barY, shieldStartX, barY + hpHeight);
+                    grad.addColorStop(0, shieldTop);
+                    grad.addColorStop(1, shieldBot);
+                    ctx.fillStyle = grad;
+                } else {
+                    ctx.fillStyle = shieldTop;
+                }
+                
                 ctx.shadowColor = '#fff';
                 ctx.shadowBlur = 5;
                 ctx.fill();
@@ -147,10 +152,14 @@ export const BarPainter = {
         if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh, 1);
         else ctx.rect(bx, by, fillW, bh);
         
-        const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
-        grad.addColorStop(0, colTop);
-        grad.addColorStop(1, colBot);
-        ctx.fillStyle = grad;
+        if (Number.isFinite(bx) && Number.isFinite(by) && Number.isFinite(bh)) {
+            const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
+            grad.addColorStop(0, colTop);
+            grad.addColorStop(1, colBot);
+            ctx.fillStyle = grad;
+        } else {
+            ctx.fillStyle = colTop;
+        }
         
         ctx.shadowColor = glow;
         ctx.shadowBlur = 6;

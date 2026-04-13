@@ -37,6 +37,17 @@ export const HexUtils = {
             return { q, r };
         }
     },
+    axialToOffset: (q: number, r: number, config: MapConfig): {col: number, row: number} => {
+        if (config.layout === 'FLAT') {
+            const col = q;
+            const row = r + (q - (q & 1)) / 2;
+            return { col, row };
+        } else {
+            const col = q + (r - (r & 1)) / 2;
+            const row = r;
+            return { col, row };
+        }
+    },
     toPx: (q: number, r: number, config: MapConfig): Point => {
         return HexMath.hexToPixel(q, r, config.offsetX, config.offsetY, config.layout);
     },
