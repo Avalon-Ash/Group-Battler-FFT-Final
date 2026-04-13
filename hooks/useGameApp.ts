@@ -6,7 +6,6 @@ import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 
 export const useGameApp = () => {
-    console.log('[useGameApp] Initializing hook');
     const engineRef = useRef(new GameEngine());
     
     const [session, setSession] = useState({
