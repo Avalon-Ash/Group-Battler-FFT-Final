@@ -65,7 +65,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'wr_a3', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
         name: '毀滅跳斬', desc: '突進範圍傷', 
-        range: 6, cast: 0.6, cd: 9.0, cost: 40, gain: 0, // Buff Range 4->6, CD 10->9
+        range: 6, cast: 0.4, cd: 9.0, cost: 40, gain: 0, // Buff Range 4->6, CD 10->9, Cast 0.6->0.4
         type: 'AOE', aoeRadius: 1, power: 150, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 0, 
         effectType: 'DASH',
         visualHitEffect: 'FX_ACTIVE_RED_WAR_STOMP', element: 'PHYSICAL'

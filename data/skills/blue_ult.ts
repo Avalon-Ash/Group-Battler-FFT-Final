@@ -74,7 +74,7 @@ export const BLUE_ULT: Skill[] = [
         range: 2, cast: 0.6, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 900, color: '#facc15', 
         visual: 'SLASH', projectileSpeed: 0, 
-        effectType: 'EXECUTE', effectVal: 3.0, 
+        effectType: 'EXECUTE', effectVal: 2.0, 
         visualHitEffect: 'FX_ULT_BLUE_EXCALIBUR'
     },
     { 
@@ -162,10 +162,10 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '時間停止', desc: '全場靜止', 
-        range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 2.5,
+        ccType: 'STUN', ccDur: 1.8,
         visualHitEffect: 'FX_ULT_BLUE_TIMESTOP'
     },
     { 

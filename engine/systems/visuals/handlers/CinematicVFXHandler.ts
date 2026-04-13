@@ -13,7 +13,8 @@ export class CinematicVFXHandler {
         engine: GameEngine, 
         vfx: VFXSystem, 
         origin: Point3D, 
-        target: Point3D
+        target: Point3D,
+        sequences: SequenceSystem
     ) {
         const skill = event.skill;
         if (!skill) return;
@@ -22,7 +23,7 @@ export class CinematicVFXHandler {
         const sequence = SKILL_SEQUENCES[skill.id];
         
         if (sequence) {
-            SequenceSystem.run(sequence, target, engine, vfx, event.sourceId);
+            sequences.run(sequence, target, engine, vfx, event.sourceId);
             return;
         }
 

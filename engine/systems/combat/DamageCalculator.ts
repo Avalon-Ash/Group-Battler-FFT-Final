@@ -54,15 +54,18 @@ export class DamageCalculator {
             // Mage: Bonus vs High Armor? 
         }
 
-        // 2. Execute Logic (斩杀)
+        // 2. Execute Logic (斩殺)
         const isExec1 = skill.effectType === 'EXECUTE';
         const isExec2 = skill.effectType2 === 'EXECUTE';
         
         if (!isHeal && (isExec1 || isExec2)) {
             const threshold = COMBAT_PARAM.EXECUTE_THRESHOLD;
             if (target.hp < target.maxHp * threshold) {
-                const multiplier = (isExec1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER;
-                base *= multiplier;
+                // [REFACTOR] Instead of flat multiplier, use missing HP scaling
+                // Damage = Base + (MissingHP * ScalingFactor)
+                const scalingFactor = (isExec1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER;
+                const missingHP = target.maxHp - target.hp;
+                base += missingHP * (scalingFactor / 5); // Normalized scaling
                 result.isExecute = true;
             }
         }

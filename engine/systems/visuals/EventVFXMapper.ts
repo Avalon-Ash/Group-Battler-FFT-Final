@@ -4,6 +4,7 @@ import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
+import { SequenceSystem } from "./SequenceSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
 import { VISUAL_ANCHORS } from "../../../constants";
@@ -20,14 +21,15 @@ export class EventVFXMapper {
         engine: GameEngine, 
         vfx: VFXSystem, 
         grid: GridSystem, 
-        camera: CameraSystem
+        camera: CameraSystem,
+        sequences: SequenceSystem
     ) {
         // 1. Resolve Spatial Context
         const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine);
         let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine);
         
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-        const groundZ = grid.getTerrainHeight(groundHex.q, groundHex.r, engine);
+        const groundZ = engine.getTerrainHeight(groundHex.q, groundHex.r);
 
         // SSOT Fix: Use standard center offset for generic targets (approximate chest height)
         if (!event.targetId) target.z = groundZ + VISUAL_ANCHORS.CENTER_OFFSET;
@@ -48,7 +50,7 @@ export class EventVFXMapper {
 
             case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
-                CinematicVFXHandler.handle(event, engine, vfx, origin, target);
+                CinematicVFXHandler.handle(event, engine, vfx, origin, target, sequences);
                 break;
                 
             case 'HAZARD_SPAWN':
@@ -65,7 +67,7 @@ export class EventVFXMapper {
             if (agent) return VisualMath.getUnitAnchor(agent, engine);
         }
         const hex = HexUtils.fromPx(defaultX, defaultY, engine.mapConfig);
-        const terrainH = engine.map.getTerrainHeight(hex.q, hex.r);
+        const terrainH = engine.getTerrainHeight(hex.q, hex.r);
         return { x: defaultX, y: defaultY, z: terrainH };
     }
 }

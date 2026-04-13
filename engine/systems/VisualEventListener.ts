@@ -26,7 +26,8 @@ export class VisualEventListener {
         vfx: VFXSystem, 
         hud: HUDSystem, 
         grid: GridSystem,
-        camera: CameraSystem
+        camera: CameraSystem,
+        sequences: SequenceSystem
     ) {
         events.forEach(event => {
             this.hudMapper.process(event, engine, hud, grid, camera);
@@ -42,13 +43,13 @@ export class VisualEventListener {
                         
                         // Fix: Use event position to find hex and get terrain height
                         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                        target3D.z = grid.getTerrainHeight(hex.q, hex.r, engine); 
+                        target3D.z = engine.getTerrainHeight(hex.q, hex.r); 
                     }
-                    SequenceSystem.run(sequence, target3D, engine, vfx, event.sourceId);
+                    sequences.run(sequence, target3D, engine, vfx, event.sourceId);
                     return; 
                 }
             }
-            this.vfxMapper.process(event, engine, vfx, grid, camera);
+            this.vfxMapper.process(event, engine, vfx, grid, camera, sequences);
         });
     }
 }

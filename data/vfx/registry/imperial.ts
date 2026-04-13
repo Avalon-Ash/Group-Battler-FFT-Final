@@ -250,5 +250,19 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'SPARK', count: [20, 30], lifetime: [1.0, 1.5], size: [2, 4], speed: [50, 100], vz: [-200, -300], colors: ['#86efac', '#dcfce7'], shape: 'CIRCLE', shapeRadius: 200, blendMode: 'screen', delay: 0 },
             { particleType: 'HEX_GLOW', count: [3, 5], lifetime: [0.5, 1.0], size: [10, 20], colors: ['#bbf7d0'], speed: [0,0], shape: 'CIRCLE', shapeRadius: 150, delay: 0.5 }
         ]
+    },
+    'FX_IMPERIAL_SCAN': {
+        id: 'FX_IMPERIAL_SCAN',
+        emitters: [
+            { particleType: 'HEX_GRID', count: 1, lifetime: [0.6, 1.0], size: [100, 150], colors: ['#60a5fa'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'RING', count: 1, lifetime: [0.4, 0.6], size: [20, 180], colors: ['#3b82f6'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_IMPERIAL_HALO': {
+        id: 'FX_IMPERIAL_HALO',
+        emitters: [
+            { particleType: 'MAGIC_CIRCLE', count: 1, lifetime: [1.0, 1.5], size: [60, 80], colors: ['#fbbf24'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
+            { particleType: 'SPARK', count: [5, 10], lifetime: [0.5, 1.0], size: [2, 4], speed: [20, 50], vz: [50, 100], colors: ['#fff'], shape: 'CIRCLE', shapeRadius: 30, delay: 0.1 }
+        ]
     }
 };

@@ -14,13 +14,13 @@ interface QueuedAction {
 }
 
 export class SequenceSystem {
-    private static actionQueue: QueuedAction[] = [];
+    private actionQueue: QueuedAction[] = [];
 
-    public static clear() {
+    public clear() {
         this.actionQueue = [];
     }
 
-    public static run(
+    public run(
         sequence: VFXSequence,
         target: Point3D,
         engine: GameEngine,
@@ -44,7 +44,7 @@ export class SequenceSystem {
         });
     }
 
-    public static update(engine: GameEngine, vfx: VFXSystem) {
+    public update(engine: GameEngine, vfx: VFXSystem) {
         const now = engine.battleTime;
         for (let i = this.actionQueue.length - 1; i >= 0; i--) {
             const item = this.actionQueue[i];
@@ -55,10 +55,9 @@ export class SequenceSystem {
         }
     }
 
-    private static dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine) {
+    private dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine) {
         const effectId = action.id || 'FX_HIT_GENERIC';
         
-        // SSOT: Use standardized DECAL offset instead of hardcoded -2
         const groundZ = target.z - VisualMath.Z_LAYERS.DECAL; 
 
         switch (action.type) {
@@ -69,23 +68,17 @@ export class SequenceSystem {
                 if (source) vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4);
                 break;
             case 'SHAKE':
-                if (engine.renderer) engine.renderer.camera.addTrauma(action.shakeIntensity || 0.3);
+                engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || 0.3 });
                 break;
             case 'GRID_PULSE':
-                // Use HAZARD layer for pulse impact
                 vfx.playEffect(action.color?.includes('#3b') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
                 break;
             case 'HEAVEN_FALL':
                 const h = action.height || 1200;
                 const p = vfx.state.getParticle();
                 p.x = target.x; p.y = target.y; p.z = target.z + h;
-                
-                // SSOT Fix: Initial Z-velocity must be 0 for the free-fall time formula to be correct.
-                // Formula: t = sqrt(2h/g). This implies v0 = 0.
                 p.vz = 0; 
-                
-                p.life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1; // Add slight buffer
-                
+                p.life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1; 
                 p.maxLife = p.life;
                 p.color = action.color || '#fff';
                 p.size = (action.scale || 1.8) * 80;

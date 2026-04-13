@@ -20,8 +20,7 @@ export class GridSystem {
     }
 
     public getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
-        // Proxy to engine map, but this method exists for interface compatibility
-        if(engine) return engine.map.getTerrainHeight(q, r);
+        if(engine) return engine.getTerrainHeight(q, r);
         return 0; 
     }
 

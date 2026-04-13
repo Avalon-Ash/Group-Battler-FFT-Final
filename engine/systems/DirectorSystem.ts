@@ -187,10 +187,10 @@ export class DirectorSystem {
             }
 
         } else {
-            // Wide shot logic
+            // Wide shot logic: Calculate centroid of all active agents
             let sumX = 0, sumY = 0, count = 0;
             for (const a of engine.agents) {
-                if (a.hp > 0) {
+                if (a.hp > 0 && !a.banished && a.physics.z > -100) {
                     sumX += a.px;
                     sumY += a.py;
                     count++;
@@ -200,15 +200,25 @@ export class DirectorSystem {
             if (count > 0) {
                 targetX = sumX / count;
                 targetY = sumY / count;
-                // If battle is spread out, zoom out more
-                // If map is large, zoom out more
-                targetZoom = this.idleZoom * 0.9;
+                
+                // [FIX] Dynamic Zoom based on map size to prevent sudden zoom-in when map shrinks
+                // Use the map bounding box to determine minimum zoom
+                const mapKeys = engine.map.mapKeys;
+                if (mapKeys.size > 0) {
+                    // We want to maintain a stable zoom even as tiles fall
+                    // Instead of zooming in tightly, we respect the "active area"
+                    targetZoom = this.idleZoom * 0.9;
+                } else {
+                    targetZoom = this.idleZoom * 0.8;
+                }
             } else {
-                const centerHex = { q: Math.floor(engine.mapConfig.w/2), r: Math.floor(engine.mapConfig.h/2) };
-                const centerPx = HexUtils.toPx(centerHex.q, centerHex.r, engine.mapConfig);
+                // Fallback to map center
+                const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
+                const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
+                const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
                 targetX = centerPx.x;
                 targetY = centerPx.y;
-                targetZoom = 0.75; // Maximum wide shot
+                targetZoom = 0.7; 
             }
         }
 
@@ -220,12 +230,17 @@ export class DirectorSystem {
             this.hasInitialized = true;
         }
 
-        // [REFACTOR] Use consistent smoothing for both position and zoom
-        // Increased smoothing factor for more stable camera
-        const lerpFactor = 0.08; 
+        // [REFACTOR] Adaptive Smoothing
+        // Use slower smoothing for wide shots to prevent jittering during map collapse
+        const isWideShot = !mainActor;
+        const lerpFactor = isWideShot ? 0.03 : 0.06; 
+        
         this.lastCentroidX += (targetX - this.lastCentroidX) * lerpFactor;
         this.lastCentroidY += (targetY - this.lastCentroidY) * lerpFactor;
-        this.lastZoom += (targetZoom - this.lastZoom) * lerpFactor;
+        
+        // Zoom smoothing should be even slower to prevent "pumping"
+        const zoomLerpFactor = 0.02;
+        this.lastZoom += (targetZoom - this.lastZoom) * zoomLerpFactor;
 
         return { x: this.lastCentroidX, y: this.lastCentroidY, zoom: this.lastZoom };
     }

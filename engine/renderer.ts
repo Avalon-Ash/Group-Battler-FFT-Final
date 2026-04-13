@@ -23,6 +23,7 @@ export class GameRenderer {
     public statusOrchestrator: StatusOrchestrator = new StatusOrchestrator(); 
     public hud: HUDSystem = new HUDSystem();
     public camera: CameraSystem = new CameraSystem();
+    public sequences: SequenceSystem = new SequenceSystem();
     private eventListener: VisualEventListener = new VisualEventListener();
     private pipeline: RenderPipeline = new RenderPipeline(this);
     
@@ -69,6 +70,7 @@ export class GameRenderer {
         this.camera.reset();
         this.eventListener.reset();
         this.grid.reset(); 
+        this.sequences.clear();
     }
 
     public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') { 
@@ -99,7 +101,7 @@ export class GameRenderer {
         const battleTime = engine.battleTime; // SSOT from Logic
 
         // 3. Sequence System (Logic Driven)
-        SequenceSystem.update(engine, this.vfx);
+        this.sequences.update(engine, this.vfx);
 
         // 4. Render Pipeline (Transitions)
         this.pipeline.update(dt, engine); 
@@ -139,7 +141,7 @@ export class GameRenderer {
         this.hud.update(dt);
     }
 
-    public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void { this.eventListener.process(events, engine, this.vfx, this.hud, this.grid, this.camera); }
+    public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void { this.eventListener.process(events, engine, this.vfx, this.hud, this.grid, this.camera, this.sequences); }
     
     public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
         this.pipeline.draw(ctx, engine, camera, highlight, fps, hoveredHex, hoveredSkill, battleTime, realTime);

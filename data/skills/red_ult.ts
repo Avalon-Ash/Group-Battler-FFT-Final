@@ -10,7 +10,7 @@ export const RED_ULT: Skill[] = [
         range: 1, cast: 0.6, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 900, color: '#7f1d1d', 
         visual: 'SLASH', projectileSpeed: 0, 
-        effectType: 'EXECUTE', effectVal: 3.5, 
+        effectType: 'EXECUTE', effectVal: 2.5, 
         visualHitEffect: 'FX_ULT_RED_GUILLOTINE_IMPACT' 
     },
     { 
@@ -103,7 +103,7 @@ export const RED_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 800, color: '#000000', 
         visual: 'BOLT', projectileSpeed: 2000, 
-        effectType: 'EXECUTE', effectVal: 3.0, 
+        effectType: 'EXECUTE', effectVal: 2.0, 
         visualHitEffect: 'FX_ULT_RED_RAILGUN'
     },
     { 

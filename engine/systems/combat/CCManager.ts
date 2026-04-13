@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
+import { COMBAT_PARAM } from "../../../constants";
 
 export const CCManager = {
     
@@ -127,13 +128,20 @@ export const CCManager = {
         const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false };
         
-        const stacks = target.drStacks[type] || 0;
-        const multiplier = Math.pow(0.5, stacks); 
+        // 1. Base Resilience (Future-proofing for items/buffs)
+        const resilience = (target as any).resilience || 0; 
         
+        // 2. Diminishing Returns Stacks
+        const stacks = target.drStacks[type] || 0;
+        
+        // Formula: Duration * (0.5 ^ stacks) * (1 - resilience)
+        let multiplier = Math.pow(0.5, stacks) * (1 - resilience);
+        
+        // Minimum duration floor (20% of base) or immunity
         if (multiplier < 0.2) return { effectiveDuration: 0, isImmune: true };
         
         target.drStacks[type] = stacks + 1;
-        target.drTimers[type] = 10.0; 
+        target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME; 
         
         return { effectiveDuration: baseDuration * multiplier, isImmune: false };
     },

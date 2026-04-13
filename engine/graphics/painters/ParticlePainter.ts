@@ -88,5 +88,46 @@ export const ParticlePainter = {
         // Simple arc slash texture
         ctx.arc(0, 0, r * 0.7, 0, Math.PI * 1.5);
         ctx.stroke();
+    },
+
+    drawHexGrid(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.6;
+        // Draw a small grid of hexagons
+        const size = r * 0.3;
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                const ox = i * size * 1.5;
+                const oy = j * size * 1.732 + (i % 2 === 0 ? 0 : size * 0.866);
+                GeometryPainter.drawHex(ctx, ox, oy, size * 0.8, 'STROKE', false);
+            }
+        }
+        ctx.globalAlpha = 1.0;
+    },
+
+    drawChaosRift(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.fillStyle = color;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        // Irregular jagged rift
+        for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            const dist = r * (0.4 + Math.random() * 0.6);
+            ctx.lineTo(Math.cos(angle) * dist, Math.sin(angle) * dist);
+        }
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.fillStyle = '#000';
+        ctx.beginPath();
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = r * (0.2 + Math.random() * 0.3);
+            ctx.lineTo(Math.cos(angle) * dist, Math.sin(angle) * dist);
+        }
+        ctx.closePath();
+        ctx.fill();
     }
 };

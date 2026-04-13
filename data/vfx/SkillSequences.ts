@@ -84,6 +84,25 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const actions: VFXAction[] = [];
             const specificHit = activeConfig.vfxOverride || hitFx;
             
+            // Faction-Specific Flavor
+            if (isRed) {
+                if (role === 'WARRIOR' || role === 'TANK') {
+                    actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_BLOOD_SPIKE', scale: 0.6, delay: 0 });
+                } else if (role === 'MAGE') {
+                    actions.push({ type: 'PARTICLE', id: 'FX_COVENANT_RIFT', scale: 0.5, delay: 0 });
+                } else {
+                    actions.push({ type: 'PARTICLE', id: 'SMOKE_PUFF', color: '#000', scale: 0.5, delay: 0 });
+                }
+            } else {
+                if (role === 'MAGE' || role === 'RANGER') {
+                    actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_SCAN', scale: 0.7, delay: 0 });
+                } else if (role === 'SUPPORT') {
+                    actions.push({ type: 'PARTICLE', id: 'FX_IMPERIAL_HALO', scale: 0.8, delay: 0 });
+                } else {
+                    actions.push({ type: 'GRID_PULSE', color: primary, scale: 0.6, delay: 0 });
+                }
+            }
+
             switch (activeConfig.archetype) {
                 case 'BURST_AOE':
                     actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
@@ -146,33 +165,37 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                 case 'HEAVEN_FALL':
                     actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height: ultConfig.height || 1000, scale: ultConfig.scale });
                     actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || `FX_ULT_${isRed?'RED':'BLUE'}_IMPACT`, scale: ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.8 * ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2, delay: (ultConfig.timing || 0) + 0.45 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 1.0 * ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 }); // Increased shake
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2.5, delay: (ultConfig.timing || 0) + 0.45 }); // Increased pulse
                     break;
                 case 'SANCTUARY':
                     actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || 'PILLAR_HOLY', scale: ultConfig.scale, color: ultConfig.primaryColor });
                     for(let k=0; k<(ultConfig.count || 6); k++) { actions.push({ type: 'PARTICLE', id: 'GLOW', scale: 0.5, color: ultConfig.secondaryColor, delay: k * 0.05 }); }
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.5, delay: 0.2 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.8, delay: 0.2 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.2, delay: 0.1 }); // Added shake
                     break;
                 case 'DOMAIN':
                     actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || 'DOMAIN_STANDARD', scale: ultConfig.scale, color: ultConfig.primaryColor, duration: 3.0 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 1.5, delay: 0.1 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2.0, delay: 0.1 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.3, delay: 0.05 }); // Added shake
                     break;
                 case 'BEAM_SNIPE':
                     actions.push({ type: 'BEAM', style: ultConfig.vfxOverride || 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.4, delay: 0.1 });
-                    actions.push({ type: 'PARTICLE', id: 'SHOCKWAVE', color: ultConfig.secondaryColor, scale: 1.2 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.5, delay: 0.1 });
+                    actions.push({ type: 'PARTICLE', id: 'SHOCKWAVE', color: ultConfig.secondaryColor, scale: 1.5 }); // Increased scale
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.2, delay: 0.05 }); // Added pulse
                     break;
                 case 'STORM':
                     const count = ultConfig.count || 10;
                     const interval = ultConfig.timing || 0.1;
                     const fx = ultConfig.vfxOverride || 'SPARK';
                     for(let k=0; k<count; k++) { actions.push({ type: 'PARTICLE', id: fx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor, scale: ultConfig.scale * (0.8 + Math.random()*0.4), delay: k * interval }); }
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.15, duration: count * interval }); // Sustained shake
                     break;
                 case 'INSTANT_IMPACT':
                     actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || `FX_HIT_${isRed?'RED':'BLUE'}_HEAVY`, scale: ultConfig.scale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.5 * ultConfig.scale, delay: 0.05 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale, delay: 0.1 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: 0.6 * ultConfig.scale, delay: 0.05 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 1.5, delay: 0.1 });
                     break;
             }
             sequences[ultId] = { id: ultId, actions };

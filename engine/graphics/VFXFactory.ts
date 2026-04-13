@@ -47,6 +47,8 @@ export class VFXTextureCache {
                 break;
             case 'CRACKS': ParticlePainter.drawCracks(ctx, r, color); break;
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
+            case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
+            case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;
             case 'BEAM':
                 const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
                 beamGrad.addColorStop(0, 'transparent');

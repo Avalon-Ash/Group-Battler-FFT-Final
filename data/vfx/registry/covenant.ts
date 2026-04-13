@@ -261,5 +261,19 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
             { particleType: 'SMOKE', count: [5, 8], lifetime: [1.0, 1.5], size: [20, 40], speed: [20, 40], colors: ['#7f1d1d', '#000'], shape: 'CIRCLE', shapeRadius: 20, delay: 0 },
             { particleType: 'HEX_GLOW', count: 1, lifetime: [0.5, 1.0], size: [50, 80], colors: ['#991b1b'], speed: [0,0], shape: 'POINT', blendMode: 'multiply', delay: 0.1 }
         ]
+    },
+    'FX_COVENANT_RIFT': {
+        id: 'FX_COVENANT_RIFT',
+        emitters: [
+            { particleType: 'CHAOS_RIFT', count: 1, lifetime: [0.8, 1.2], size: [80, 120], colors: ['#581c87'], speed: [0,0], shape: 'POINT', blendMode: 'source-over', delay: 0 },
+            { particleType: 'SMOKE_PUFF', count: [5, 10], lifetime: [0.4, 0.8], size: [30, 50], speed: [20, 40], colors: ['#000'], shape: 'CIRCLE', shapeRadius: 40, delay: 0.1 }
+        ]
+    },
+    'FX_COVENANT_BLOOD_SPIKE': {
+        id: 'FX_COVENANT_BLOOD_SPIKE',
+        emitters: [
+            { particleType: 'SPIKE', count: [3, 5], lifetime: [0.4, 0.6], size: [40, 60], colors: ['#7f1d1d'], speed: [100, 200], vz: [200, 400], gravity: 2000, shape: 'BURST_DIR', delay: 0 },
+            { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.4], size: [60, 100], colors: ['#ef4444'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
+        ]
     }
 };

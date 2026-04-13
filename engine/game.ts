@@ -26,7 +26,6 @@ import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
 import { AnimationSystem } from "./systems/AnimationSystem";
-import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -230,7 +229,6 @@ export class GameEngine {
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
         
-        SequenceSystem.clear(); 
 
         if (!keepScene) this.map.randomizeEnvironment(this); 
         else this.map.rebuildMap(this); 

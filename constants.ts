@@ -5,7 +5,7 @@ export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
 export const DEFAULT_ZONE_CONFIG: ZoneConfig = {
     enabled: true,
     initialRadius: 12,
-    shrinkInterval: 5,
+    shrinkInterval: 10,
     minRadius: 1
 };
 export const HEX_SIZE = 48;
