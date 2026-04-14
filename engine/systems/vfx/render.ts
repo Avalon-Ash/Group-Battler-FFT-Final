@@ -10,8 +10,7 @@ import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 
 const GROUND_PROJECTION_TYPES = new Set([
     'GIANT_HEX', 'MAGIC_CIRCLE', 'RING', 'SHOCKWAVE', 
-    'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'CRACKS', 'DOMAIN',
-    'HEX_BEAM', 'BLACK_HOLE'
+    'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'CRACKS', 'BLACK_HOLE'
 ]);
 
 export class VFXRenderer {
