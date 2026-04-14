@@ -84,7 +84,7 @@ export class RenderPipeline {
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
-        this.tactical.drawDebug(ctx, fps);
+        this.tactical.drawDebug(ctx, fps, engine);
         
         // 5. Global Transition/Finish Blur
         let blur = engine.victory.isFinishing ? 1.0 - (engine.victory.victoryTimer / VICTORY_PHASE_DURATION) : (engine.victory.winningTeam !== null ? 1.0 : 0);
@@ -101,7 +101,7 @@ export class RenderPipeline {
 
         this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
         this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, { width: lW, height: lH, camera });
-        this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig);
+        this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase);
         
         this.renderList.sort();
         for (let i = 0; i < this.renderList.count; i++) {

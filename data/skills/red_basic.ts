@@ -196,6 +196,7 @@ export const RED_BASIC: Skill[] = [
         name: '鮮血治癒', desc: '耗血補人', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 20, 
         type: 'SINGLE', power: -60, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'SELF_DAMAGE', effectVal: 30,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 

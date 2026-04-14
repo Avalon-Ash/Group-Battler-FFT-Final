@@ -203,6 +203,7 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 8, power: -800, color: '#dc2626', 
         visual: 'SMASH', projectileSpeed: 0, 
+        effectType: 'SELF_DAMAGE', effectVal: 300,
         visualHitEffect: 'FX_ULT_RED_BLOOD_PACT'
     },
     { 

@@ -1,6 +1,7 @@
 
 import { Particle } from "../../state";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
+import { ISO_SCALE_Y } from "../../../../../constants";
 
 export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
@@ -61,7 +62,8 @@ export const BillboardPainter = {
             ctx.globalCompositeOperation = 'multiply';
             ctx.globalAlpha = 0.4 * alpha;
             ctx.fillStyle = 'rgba(0,0,0,1)';
-            ctx.beginPath(); ctx.arc(2, 4, drawSize * 0.75, 0, Math.PI*2); ctx.fill();
+            ctx.scale(1, ISO_SCALE_Y); // Apply ISO_SCALE_Y to shadow
+            ctx.beginPath(); ctx.arc(2, 4 / ISO_SCALE_Y, drawSize * 0.75, 0, Math.PI*2); ctx.fill();
             ctx.restore();
         }
 

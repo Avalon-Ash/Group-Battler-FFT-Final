@@ -3,6 +3,7 @@ import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
+import { ISO_SCALE_Y } from "../../../constants";
 const rnd = (r: Range | number): number => {
     if (typeof r === 'number') return r;
     return r[0] + Math.random() * (r[1] - r[0]);
@@ -45,16 +46,18 @@ export class VFXPlayer {
                 const phi = (Math.random() - 0.5) * Math.PI; 
                 const cosPhi = Math.cos(phi);
                 vx = Math.cos(theta) * cosPhi * speed;
-                vy = Math.sin(theta) * cosPhi * speed;
+                // [FIX] Scale Y velocity by ISO_SCALE_Y to match projected space
+                vy = Math.sin(theta) * cosPhi * speed * ISO_SCALE_Y; 
                 vz = Math.sin(phi) * speed + (speed * 0.5); 
             }
             else if (config.shape === 'CIRCLE') {
                 const angle = Math.random() * Math.PI * 2;
                 const r = config.shapeRadius || 10;
                 px += Math.cos(angle) * r;
-                py += Math.sin(angle) * r;
+                // [FIX] Scale Y position and velocity by ISO_SCALE_Y
+                py += Math.sin(angle) * r * ISO_SCALE_Y;
                 vx = Math.cos(angle) * speed;
-                vy = Math.sin(angle) * speed;
+                vy = Math.sin(angle) * speed * ISO_SCALE_Y;
             }
             if (config.vz !== undefined) {
                 vz = rnd(config.vz);

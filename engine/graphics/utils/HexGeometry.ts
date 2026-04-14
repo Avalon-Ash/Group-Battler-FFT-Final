@@ -19,6 +19,21 @@ export const HexGeometry = {
         return vertices;
     },
 
+    /**
+     * 取得旋轉並投影後的頂點座標
+     */
+    getRotatedVertices(radius: number, rotation: number, applyIso: boolean = true, layout: HexLayout = 'FLAT'): {x: number, y: number}[] {
+        const baseVerts = this.getVertices(radius, false, layout);
+        const cosR = Math.cos(rotation);
+        const sinR = Math.sin(rotation);
+        const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
+        
+        return baseVerts.map(v => ({
+            x: v.x * cosR - v.y * sinR,
+            y: (v.x * sinR + v.y * cosR) * scaleY
+        }));
+    },
+
     traceHex(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, applyIso: boolean = true, layout: HexLayout = 'FLAT') {
         const verts = this.getVertices(radius, applyIso, layout);
         ctx.beginPath();

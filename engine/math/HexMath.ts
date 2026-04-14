@@ -47,23 +47,18 @@ export const HexMath = {
     },
 
     /**
-     * Standard Hex Mapping with Isometric Scaling
+     * Diamond Hex Mapping (SRPG Standard) - V2
+     * Implementation of Duality for Flat and Pointy layouts.
      */
     hexToPixel(q: number, r: number, offsetX: number, offsetY: number, layout: HexLayout): Point {
-        let x = 0;
-        let y = 0;
-
-        if (layout === 'FLAT') {
-            x = HEX_SIZE * (3/2 * q);
-            y = HEX_SIZE * (SQRT3 * (r + q / 2));
-        } else {
-            x = HEX_SIZE * (SQRT3 * (q + r / 2));
-            y = HEX_SIZE * (3/2 * r);
-        }
+        // Restore Diamond Projection for that "Isometric" look the user missed.
+        // This projection tilts the grid by 45 degrees and provides depth.
+        const x = (q - r) * HEX_SIZE * 0.8;
+        const y = (q + r) * HEX_SIZE * ISO_SCALE_Y;
 
         return {
             x: x + offsetX,
-            y: (y * ISO_SCALE_Y) + offsetY
+            y: y + offsetY
         };
     },
 
@@ -71,19 +66,12 @@ export const HexMath = {
      * Inverse mapping for standard Hex Grid
      */
     pixelToHex(x: number, y: number, offsetX: number, offsetY: number, layout: HexLayout): Hex {
-        const dx = x - offsetX;
-        const dy = (y - offsetY) / ISO_SCALE_Y;
+        const dx = (x - offsetX) / (HEX_SIZE * 0.8);
+        const dy = (y - offsetY) / (HEX_SIZE * ISO_SCALE_Y);
         
-        let q = 0;
-        let r = 0;
-
-        if (layout === 'FLAT') {
-            q = (2/3 * dx) / HEX_SIZE;
-            r = (-1/3 * dx + SQRT3/3 * dy) / HEX_SIZE;
-        } else {
-            q = (SQRT3/3 * dx - 1/3 * dy) / HEX_SIZE;
-            r = (2/3 * dy) / HEX_SIZE;
-        }
+        // Inverse of the Diamond Projection
+        const q = (dx + dy) / 2;
+        const r = (dy - dx) / 2;
 
         return { q, r };
     },

@@ -141,9 +141,24 @@ export class TacticalRenderer {
         ctx.restore();
     }
 
-    public drawDebug(ctx: CanvasRenderingContext2D, fps: number): void {
+    public drawDebug(ctx: CanvasRenderingContext2D, fps: number, engine: GameEngine): void {
         ctx.fillStyle = 'rgba(255,255,255,0.5)'; 
         ctx.font = '10px monospace';
+        ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${fps}`, 10, 20);
+
+        // SUDDEN DEATH WARNING
+        if (engine.battleTime > 60) {
+            const blink = Math.floor(performance.now() / 500) % 2 === 0;
+            if (blink) {
+                ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'; // red-500
+                ctx.font = 'bold 14px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('⚠️ SUDDEN DEATH ⚠️', ctx.canvas.width / 2, 30);
+                ctx.font = '10px monospace';
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillText('DAMAGE UP / HEALING DOWN', ctx.canvas.width / 2, 45);
+            }
+        }
     }
 }

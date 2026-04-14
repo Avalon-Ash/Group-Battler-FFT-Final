@@ -98,7 +98,7 @@ export class SkillExecutor {
         if (!target || target.hp <= 0 || target.banished) return;
 
         // A. Damage Calculation
-        const result = DamageCalculator.calculate(source, target, skill);
+        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime);
         
         if (result.isMiss) {
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "MISS", color: '#9ca3af' });
@@ -144,7 +144,7 @@ export class SkillExecutor {
             }
         }
 
-        // B. Secondary Effects (Vamp, Mana)
+        // B. Secondary Effects (Vamp, Mana, Self Damage)
         if (result.vampAmount > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#be123c', text: "VAMP" });
@@ -159,6 +159,19 @@ export class SkillExecutor {
             target.mp = Math.min(target.maxMp, target.mp + result.manaRestore);
             engine.events.push({ type: 'HEAL', pos: {x: target.px, y: target.py}, value: result.manaRestore, color: '#60a5fa', text: "MP" });
             engine.log(source, 'HEAL', '回魔', target.id, `回復 ${Math.floor(result.manaRestore)} MP`);
+        }
+        
+        const isSelfDmg1 = skill.effectType === 'SELF_DAMAGE';
+        const isSelfDmg2 = skill.effectType2 === 'SELF_DAMAGE';
+        if (isSelfDmg1 || isSelfDmg2) {
+            const dmgVal = (isSelfDmg1 ? skill.effectVal : skill.effectVal2) || 50;
+            source.hp = Math.max(0, source.hp - dmgVal);
+            engine.events.push({ type: 'DAMAGE', pos: {x: source.px, y: source.py}, value: dmgVal, color: '#991b1b', text: "SACRIFICE" });
+            engine.log(source, 'HIT', '自殘', source.id, `消耗 ${dmgVal} HP`);
+            if (source.hp <= 0) {
+                engine.agentManager.handleDeadState(source, engine);
+                engine.pushEvent('KILL', {x: source.px, y: source.py}, { sourceId: source.id, targetId: source.id });
+            }
         }
 
         // C. Crowd Control (CC) Application

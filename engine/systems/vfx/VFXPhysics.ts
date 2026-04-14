@@ -25,7 +25,10 @@ export class VFXPhysics {
             p.z += p.vz * dt;
 
             if (isValid) {
-                const floorLevel = currentGroundH + 2;
+                // [FIX] Account for particle size to prevent sinking. 
+                // Most physical particles are centered, so we need a bias of half size.
+                const sizeBias = (p.size || 10) * 0.5; 
+                const floorLevel = currentGroundH + sizeBias;
 
                 if (p.z < floorLevel) {
                     p.z = floorLevel;
@@ -52,30 +55,30 @@ export class VFXPhysics {
             p.z += p.vz * dt;
             
             if (p.drag !== undefined) {
-                const f = 1 - p.drag;
+                const f = Math.pow(1 - p.drag, dt * 60);
                 p.vx *= f; p.vy *= f; p.vz *= f;
             } else {
-                p.vx *= 0.94;
-                p.vy *= 0.94;
-                p.vz *= 0.94;
+                const f = Math.pow(0.94, dt * 60);
+                p.vx *= f;
+                p.vy *= f;
+                p.vz *= f;
             }
 
             if (isValid && p.z < currentGroundH) {
                 // [FIX] Prevent falling VFX (like negative vz SPARKS) from penetrating the grid
-                if (p.vz < 0) {
-                    p.z = currentGroundH;
-                    p.vz = 0;
-                } else {
-                    p.z += (currentGroundH - p.z) * 0.1;
-                }
+                // For non-physical particles, we use a stricter clamp if they are below ground
+                p.z = currentGroundH;
+                if (p.vz < 0) p.vz = 0;
             } else if (!isValid && p.z < -2000) {
                 p.life = 0;
             }
 
-            // [FIX] For ground particles (like SHOCKWAVE, MAGIC_CIRCLE), they should stick to the ground
-            // even if the ground is collapsing.
-            if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'MAGIC_CIRCLE' || p.type === 'CRACKS' || p.type === 'GRID_FIELD' || p.type === 'HEX_GLOW') {
+            // [FIX] For ground particles, they MUST stick to the ground height exactly.
+            // Expanded list to include all ground-based types.
+            const GROUND_TYPES = ['SHOCKWAVE', 'RING', 'MAGIC_CIRCLE', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW', 'BLAST', 'DOMAIN', 'BLACK_HOLE', 'HEX_BEAM'];
+            if (GROUND_TYPES.includes(p.type)) {
                 p.z = currentGroundH;
+                p.vz = 0;
             }
         }
 

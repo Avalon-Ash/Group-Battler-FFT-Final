@@ -43,7 +43,7 @@ export class VisualEventListener {
                         
                         // Fix: Use event position to find hex and get terrain height
                         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
-                        target3D.z = engine.getTerrainHeight(hex.q, hex.r); 
+                        target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
                     }
                     sequences.run(sequence, target3D, engine, vfx, event.sourceId);
                     return; 

@@ -14,31 +14,36 @@ export const VolumePainter = {
         color: string,
         opacity: number,
         style: 'SOLID' | 'GRADIENT_FADE' | 'HATCHED_WARNING',
-        layout: HexLayout = 'FLAT'
+        layout: HexLayout = 'FLAT',
+        rotation: number = 0
     ) {
-        const topY = y - height;
-
         ctx.save();
         ctx.translate(x, y); 
         
-        const verts = HexGeometry.getVertices(radius, true, layout);
-        const indices = [5, 0, 1]; 
+        const verts = HexGeometry.getRotatedVertices(radius, rotation, true, layout);
+        
+        // 1. 繪製側面 (Sides)
+        // 對於透明/結界類特效，我們繪製所有 6 個面以確保 3D 感
+        const isTransparent = style === 'GRADIENT_FADE';
+        const indices = isTransparent ? [0, 1, 2, 3, 4, 5] : [5, 0, 1]; 
         
         for (const i of indices) {
             const j = (i + 1) % 6;
             const v1 = verts[i];
             const v2 = verts[j];
             
-            if (Number.isFinite(height)) {
-                const grad = ctx.createLinearGradient(0, -height, 0, 0);
+            // 建立垂直漸層，起點與終點應考慮頂點的 Y 座標
+            const grad = ctx.createLinearGradient(0, v1.y - height, 0, v1.y);
+            if (style === 'GRADIENT_FADE') {
                 grad.addColorStop(0, color);
-                grad.addColorStop(1, 'transparent'); 
-                
-                ctx.fillStyle = grad;
+                grad.addColorStop(1, 'transparent');
             } else {
-                ctx.fillStyle = color;
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, color);
             }
-            ctx.globalAlpha = opacity * 0.5; 
+            
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = opacity * (isTransparent ? 0.3 : 0.5); 
             
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y);           
@@ -48,6 +53,7 @@ export const VolumePainter = {
             ctx.closePath();
             ctx.fill();
             
+            // 繪製垂直稜線
             ctx.strokeStyle = color;
             ctx.lineWidth = 1;
             ctx.globalAlpha = opacity;
@@ -56,21 +62,38 @@ export const VolumePainter = {
             ctx.lineTo(v1.x, v1.y - height);
             ctx.stroke();
             
-            if (i === 1) { 
-                 ctx.beginPath(); ctx.moveTo(v2.x, v2.y); ctx.lineTo(v2.x, v2.y - height); ctx.stroke();
+            // 補上最後一條線
+            if (i === indices[indices.length - 1]) {
+                ctx.beginPath(); ctx.moveTo(v2.x, v2.y); ctx.lineTo(v2.x, v2.y - height); ctx.stroke();
             }
         }
 
+        // 2. 繪製頂部蓋子 (Top Cap)
+        ctx.save();
         ctx.translate(0, -height);
         ctx.fillStyle = color;
         ctx.globalAlpha = opacity * 0.3;
-        HexGeometry.traceHex(ctx, 0, 0, radius, true, layout);
+        
+        ctx.beginPath();
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for(let i=1; i<6; i++) ctx.lineTo(verts[i].x, verts[i].y);
+        ctx.closePath();
         ctx.fill();
         
         ctx.strokeStyle = color;
         ctx.lineWidth = 1.5;
         ctx.globalAlpha = 1.0;
-        HexGeometry.traceHex(ctx, 0, 0, radius, true, layout);
+        ctx.stroke();
+        ctx.restore();
+
+        // 3. 繪製底部輪廓 (Bottom Outline) - 增加接地感
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = opacity * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for(let i=1; i<6; i++) ctx.lineTo(verts[i].x, verts[i].y);
+        ctx.closePath();
         ctx.stroke();
 
         ctx.restore();

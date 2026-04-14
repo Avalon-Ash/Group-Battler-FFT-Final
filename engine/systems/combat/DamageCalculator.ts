@@ -22,10 +22,26 @@ export class DamageCalculator {
      * The Core Damage Pipeline:
      * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
-    public static calculate(source: Agent, target: Agent, skill: Skill): DamageResult {
+    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0): DamageResult {
         const isHeal = skill.power < 0;
         let base = Math.abs(skill.power);
         
+        // --- SUDDEN DEATH MECHANIC ---
+        // After 60 seconds, damage ramps up and healing ramps down to prevent stalemates
+        const SUDDEN_DEATH_START = 60;
+        if (battleTime > SUDDEN_DEATH_START) {
+            const overtime = battleTime - SUDDEN_DEATH_START;
+            if (isHeal) {
+                // Healing decays by 5% per second, down to 10%
+                const healMultiplier = Math.max(0.1, 1.0 - (overtime * 0.05));
+                base *= healMultiplier;
+            } else {
+                // Damage increases by 5% per second
+                const dmgMultiplier = 1.0 + (overtime * 0.05);
+                base *= dmgMultiplier;
+            }
+        }
+
         const result: DamageResult = {
             finalValue: 0,
             shieldAbsorb: 0,

@@ -115,14 +115,14 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'rr_a4', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '箭雨覆蓋', desc: '範圍傷害', 
-        range: 7, cast: 1.0, cd: 10.0, cost: 45, gain: 0, 
+        range: 6, cast: 1.0, cd: 10.0, cost: 45, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 100, color: '#f87171', visual: 'ARROW', projectileSpeed: 1500, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'ARROW', element: 'PHYSICAL'
     },
     { 
         id: 'rr_a5', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '遠程狙殺', desc: '超遠傷害', 
-        range: 10, cast: 1.5, cd: 12.0, cost: 50, gain: 0, 
+        range: 8, cast: 1.5, cd: 12.0, cost: 50, gain: 0, 
         type: 'SINGLE', power: 300, color: '#000', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT', element: 'PHYSICAL'
     },
@@ -139,7 +139,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a2', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '暗影之怒', desc: '範圍恐懼', 
-        range: 6, cast: 1.0, cd: 12.0, cost: 50, gain: 0, 
+        range: 5, cast: 1.0, cd: 12.0, cost: 50, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 80, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 1.2,
         visualHitEffect: 'FX_ACTIVE_RED_SHADOW_SCREAM', element: 'VOID'
@@ -147,7 +147,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a3', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '地獄火球', desc: '小範圍火球', 
-        range: 7, cast: 0.8, cd: 8.0, cost: 40, gain: 0, 
+        range: 6, cast: 0.8, cd: 8.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 150, color: '#ea580c', visual: 'FIREBALL', projectileSpeed: 800, 
         visualHitEffect: 'FX_ACTIVE_RED_MAGMA_ERUPTION', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
     },
@@ -173,6 +173,7 @@ export const RED_ACTIVE: Skill[] = [
         name: '生命轉移', desc: '損血補隊友', 
         range: 5, cast: 0.5, cd: 5.0, cost: 0, gain: 30, 
         type: 'SINGLE', power: -250, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'SELF_DAMAGE', effectVal: 100,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 
@@ -204,6 +205,7 @@ export const RED_ACTIVE: Skill[] = [
         name: '黑暗犧牲', desc: '自殘大補', 
         range: 6, cast: 0.5, cd: 10.0, cost: 0, gain: 40, 
         type: 'SINGLE', power: -400, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'SELF_DAMAGE', effectVal: 200,
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     }
 ];

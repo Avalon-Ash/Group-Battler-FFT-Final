@@ -21,7 +21,10 @@ export class UnitVFXHandler {
         }
 
         if (event.type === 'SPAWN') {
-            vfx.playEffect('FX_TELEPORT', origin.x, origin.y, groundZ, event.color, groundZ);
+            const agent = engine.agents.find(a => a.id === event.sourceId);
+            const isRed = agent?.team === 1; // Team.RED is 1
+            const fxId = isRed ? 'FX_SPAWN_RED' : 'FX_SPAWN_BLUE';
+            vfx.playEffect(fxId, origin.x, origin.y, groundZ, event.color, groundZ);
             return;
         }
 

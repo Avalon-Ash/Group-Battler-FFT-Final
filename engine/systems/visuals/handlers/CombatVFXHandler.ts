@@ -12,8 +12,24 @@ export class CombatVFXHandler {
         const isMassive = damage > 400;
         let intensity = isMassive ? 2.5 : (isCrit ? 1.6 : 1.0);
 
+        if (event.type === 'HEAL') {
+            if (event.text === 'VAMP') {
+                vfx.playEffect('FX_VAMP_BURST', target.x, target.y, target.z, event.color || '#be123c');
+            } else if (event.text === 'MP') {
+                vfx.playEffect('FX_MANA_RESTORE', target.x, target.y, target.z, event.color || '#60a5fa');
+            } else {
+                vfx.playEffect('FX_HEAL_BURST', target.x, target.y, target.z, event.color || '#86efac');
+            }
+            return;
+        }
+
         if (event.type === 'DAMAGE') {
-            if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
+            if (event.text === 'SACRIFICE') {
+                vfx.playEffect('FX_SELF_DAMAGE', target.x, target.y, target.z, event.color);
+                camera.addTrauma(0.2);
+            } else if (event.text === 'BURN') {
+                vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || '#8b5cf6');
+            } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
                 this.playImpact(event, vfx, target, groundZ, intensity);
                 camera.addTrauma(isMassive ? 0.45 : (isCrit ? 0.3 : 0.12));
             } else if (event.skill?.ccType === 'DOT') {
@@ -47,7 +63,9 @@ export class CombatVFXHandler {
 
         vfx.playEffect(effectId, target.x, target.y, target.z, color, groundZ);
 
-        if (scale > 1.8) {
+        if (scale > 2.0) {
+            vfx.playEffect('FX_MASSIVE_IMPACT', target.x, target.y, target.z, '#ffffff');
+        } else if (scale > 1.5) {
             vfx.playEffect('FX_HIT_GENERIC', target.x, target.y, target.z, '#ffffff');
         }
     }

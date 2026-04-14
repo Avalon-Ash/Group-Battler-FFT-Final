@@ -15,12 +15,19 @@ export class UnitRenderSystem {
         getTerrainHeight: (q: number, r: number) => number, 
         globalTime: number, 
         highlightAgent: Agent | null,
-        mapConfig: MapConfig
+        mapConfig: MapConfig,
+        transitionT: number = 0,
+        transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE'
     ) {
+        if (transitionPhase === 'OUT' && transitionT > 0.95) return;
+
         agents.forEach(agent => {
             if (agent.hp <= 0 && agent.fullyDead) return;
             const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
             
+            const offset = VisualMath.getTransitionOffset(state.x, state.y, mapConfig, transitionT, transitionPhase);
+            if (Math.abs(offset) > 800) return;
+
             const op = renderList.next();
             op.type = RenderOpType.UNIT;
             
@@ -33,10 +40,10 @@ export class UnitRenderSystem {
             op.tx = state.x; 
             
             // Sort Y: Ground position for depth sorting
-            op.y = state.y; 
+            op.y = state.y + offset; 
             
             // Visual Y: Top of terrain (using SSOT Math)
-            op.ty = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
+            op.ty = VisualMath.getIsoVisualY(op.y, state.terrainHeight);
             
             op.z = agent.physics.z; 
             op.time = globalTime;

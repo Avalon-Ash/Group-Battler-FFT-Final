@@ -36,6 +36,7 @@ export class RenderOp {
     alpha: number = 1.0;
     uSelected: boolean = false;
     uSilhouette: boolean = false;
+    isGround: boolean = false;
     particle: Particle | null = null;
     vProgress: number = 0;
     vChaos: boolean = false;
@@ -68,6 +69,7 @@ export class RenderOp {
         this.oDanger = undefined;
         this.uSelected = false;
         this.uSilhouette = false;
+        this.isGround = false;
         this.vChaos = false;
         this.ttheme = null;
         this.pTrail = [];
@@ -123,7 +125,7 @@ export class RenderList {
             // 同一 Y 軸位置下的子層級排序 (0-99)
             let subLayer = 0;
             if (op.type === RenderOpType.TERRAIN) subLayer = 10;
-            else if (op.type === RenderOpType.DECAL) subLayer = 20;
+            else if (op.type === RenderOpType.DECAL || op.isGround) subLayer = 20;
             else if (op.type === RenderOpType.HAZARD) subLayer = 30;
             else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) subLayer = 40;
             else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) subLayer = 50;

@@ -4,7 +4,7 @@ import { ParticlePainter } from "./painters/ParticlePainter";
 import { ProjectilePainter } from "./painters/ProjectilePainter";
 import { IconPainter } from "./painters/IconPainter";
 import { HexGeometry } from "./utils/HexGeometry";
-import { HEX_SIZE } from "../../constants";
+import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
@@ -88,7 +88,7 @@ export class VFXTextureCache {
         shadowGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = shadowGrad;
         ctx.save();
-        ctx.scale(1, 0.5);
+        ctx.scale(1, ISO_SCALE_Y);
         ctx.beginPath(); ctx.arc(0, 0, w * 2, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 

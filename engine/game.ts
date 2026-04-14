@@ -211,7 +211,7 @@ export class GameEngine {
         this.bus.emit('GAME_RESET', {});
     }
 
-    public clear(keepScene: boolean = false) {
+    public clear(keepScene: boolean = false, skipRebuild: boolean = false) {
         this.stop();
         this._entityCounter = 0; 
         this.agents = [];
@@ -230,8 +230,10 @@ export class GameEngine {
         this.sessionState.firstBloodTriggered = false;
         
 
-        if (!keepScene) this.map.randomizeEnvironment(this); 
-        else this.map.rebuildMap(this); 
+        if (!skipRebuild) {
+            if (!keepScene) this.map.randomizeEnvironment(this); 
+            else this.map.rebuildMap(this); 
+        }
         this.bus.emit('GAME_CLEAR', {});
     }
 

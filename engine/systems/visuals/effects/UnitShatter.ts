@@ -23,14 +23,15 @@ export const UnitShatter = {
         
         // 核心參數：爆炸強度 (隨機化讓死亡不重複)
         const explodeForce = 250 + Math.random() * 200;
-        const floorLvl = groundZ - 45; // Logic floor for physics bounds (approx)
+        const floorLvl = groundZ; // SSOT: Floor is exactly groundZ
 
         // 1. 核心衝擊波 (地面)
         system.playEffect('FX_HIT_GENERIC', x, y, floorLvl, faction.primaryColor, floorLvl);
 
         // 2. 底座破碎 (Heavy Ragdoll Part)
         const pBase = system.state.getParticle();
-        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 5;
+        // [FIX] Set Z to floorLvl + half size (32) to ensure it sits ON the ground, not IN it.
+        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 32;
         pBase.image = assets.base;
         pBase.type = 'SPRITE';
         pBase.size = 64 * UNIT_SCALE;
@@ -93,5 +94,12 @@ export const UnitShatter = {
         soul.life = 2.5; soul.maxLife = 2.5;
         soul.blendMode = 'screen';
         system.state.particles.push(soul);
+
+        // 6. [NEW] Faction Specific Death Burst
+        if (team === 1) { // RED
+            system.playEffect('FX_HIT_RED_BLOOD', x, y, z, faction.primaryColor, groundZ);
+        } else { // BLUE
+            system.playEffect('FX_HIT_BLUE_TECH', x, y, z, faction.primaryColor, groundZ);
+        }
     }
 };

@@ -111,6 +111,13 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         iconShape: 'HEX_PRISM', overheadType: 'NONE',
         floorColor: '#fde047', floorOpacity: 0.5
     },
+    'VULNERABLE': {
+        id: 'VULNERABLE', label: '虛弱',
+        primaryColor: '#ef4444', secondaryColor: '#7f1d1d',
+        iconShape: 'HEX_SKULL', overheadType: 'NONE',
+        particleEffect: 'FX_STATUS_VULNERABLE_LOOP',
+        particleInterval: 0.3
+    },
     'DEFAULT': {
         id: 'DEFAULT', label: '狀態',
         primaryColor: '#fff', secondaryColor: '#000',

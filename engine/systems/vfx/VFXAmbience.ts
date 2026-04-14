@@ -89,6 +89,14 @@ export class VFXAmbience {
                 
                 p.life = 1.8; p.maxLife = 1.8; 
                 p.blendMode = 'source-over';
+            } else if (type === 'VOID') {
+                p.x = x; p.y = y;
+                p.color = Math.random() > 0.5 ? '#581c87' : '#000000';
+                p.size = Math.random() * 4 + 2;
+                p.vx = (Math.random() - 0.5) * 20;
+                p.vy = (Math.random() - 0.5) * 20;
+                p.life = 3.0; p.maxLife = 3.0;
+                p.blendMode = 'screen';
             }
             
             state.particles.push(p);

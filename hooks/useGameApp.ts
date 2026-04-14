@@ -89,7 +89,7 @@ export const useGameApp = () => {
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
         engine.stop();
-        engine.clear(true); 
+        engine.clear(true, true); 
         setHud(prev => ({ ...prev, selectedAgent: null }));
         engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
         engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
@@ -121,7 +121,7 @@ export const useGameApp = () => {
             const timer = setTimeout(() => {
                 const engine = engineRef.current;
                 engine.stop();
-                engine.clear(true); 
+                engine.clear(true, true); 
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
                     setupShowcaseMap(); 
@@ -196,8 +196,7 @@ export const useGameApp = () => {
             handleSetScene: (id: string) => { const s = SCENE_DB.find(x => x.id === id); if(s) { engineRef.current.currentScene = s; engineRef.current.map.rebuildMap(engineRef.current); setEditor(p => ({...p, currentSceneId: id})); } },
             handleRandomBattlefield: () => { 
                 engineRef.current.stop(); 
-                engineRef.current.clear(true);
-                engineRef.current.randomizeEnvironment(); 
+                engineRef.current.clear(false); 
                 internalSpawnTeams();
                 setSession(p => ({...p, winner: null, isPlaying: false})); 
                 setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); 
@@ -214,8 +213,7 @@ export const useGameApp = () => {
             },
             handleNextLevel: () => { 
                 engineRef.current.stop(); 
-                engineRef.current.clear(true); 
-                engineRef.current.randomizeEnvironment(); 
+                engineRef.current.clear(false); 
                 internalSpawnTeams(); 
                 setSession(p => ({...p, isPlaying: false, winner: null})); 
             },

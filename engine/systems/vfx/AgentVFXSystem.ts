@@ -42,7 +42,31 @@ export class AgentVFXSystem {
         for (const a of engine.agents) {
             if (a.hp <= 0 && a.fullyDead) continue;
             this.processStatusVFX(a, dt, engine, vfx);
+            this.processIdleVFX(a, dt, engine, vfx);
         }
+    }
+
+    private processIdleVFX(agent: Agent, dt: number, engine: GameEngine, vfx: VFXSystem) {
+        if (agent.hp <= 0) return;
+        
+        const timerKey = `${agent.id}_IDLE`;
+        let t = this.vfxTimers.get(timerKey) || 0;
+        t -= dt;
+        
+        if (t <= 0) {
+            t = 1.5 + Math.random() * 1.0; // Random interval for idle feel
+            const h = engine.map.getTerrainHeight(agent.q, agent.r);
+            const pz = agent.physics.z + 20; // Lower body height
+            const fxId = agent.team === 1 ? 'FX_IDLE_RED' : 'FX_IDLE_BLUE';
+            
+            vfx.playEffect(
+                fxId, 
+                agent.px + agent.physics.x, 
+                agent.py + agent.physics.y, 
+                h + pz
+            );
+        }
+        this.vfxTimers.set(timerKey, t);
     }
 
     private processStatusVFX(agent: Agent, dt: number, engine: GameEngine, vfx: VFXSystem) {
@@ -78,5 +102,6 @@ export class AgentVFXSystem {
         checkVFX('SILENCE', agent.silenceTimer > 0);
         checkVFX('FEAR', agent.fearTimer > 0);
         checkVFX('ROOT', agent.rootTimer > 0);
+        checkVFX('VULNERABLE', agent.hp / agent.maxHp < 0.25);
     }
 }

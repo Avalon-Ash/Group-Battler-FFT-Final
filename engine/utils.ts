@@ -27,26 +27,11 @@ export const NEIGHBOR_HASH_OFFSETS = [
 
 export const HexUtils = {
     offsetToAxial: (col: number, row: number, config: MapConfig): Hex => {
-        if (config.layout === 'FLAT') {
-            const q = col;
-            const r = row - (col - (col & 1)) / 2;
-            return { q, r };
-        } else {
-            const q = col - (row - (row & 1)) / 2;
-            const r = row;
-            return { q, r };
-        }
+        // To restore the diagonal/diamond shape of the map, we directly map col/row to q/r.
+        return { q: col, r: row };
     },
     axialToOffset: (q: number, r: number, config: MapConfig): {col: number, row: number} => {
-        if (config.layout === 'FLAT') {
-            const col = q;
-            const row = r + (q - (q & 1)) / 2;
-            return { col, row };
-        } else {
-            const col = q + (r - (r & 1)) / 2;
-            const row = r;
-            return { col, row };
-        }
+        return { col: q, row: r };
     },
     toPx: (q: number, r: number, config: MapConfig): Point => {
         return HexMath.hexToPixel(q, r, config.offsetX, config.offsetY, config.layout);

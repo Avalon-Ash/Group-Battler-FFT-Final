@@ -37,9 +37,14 @@ export class EventVFXMapper {
         // 2. Route to specialized atomic handlers
         switch (event.type) {
             case 'DAMAGE': 
+            case 'HEAL':
             case 'PROJECTILE_HIT': 
             case 'IMPACT_AOE':
                 CombatVFXHandler.handle(event, vfx, camera, target, groundZ);
+                break;
+
+            case 'PROJECTILE_SPAWN':
+                vfx.playEffect('FX_MUZZLE_FLASH', origin.x, origin.y, origin.z, event.color, groundZ);
                 break;
 
             case 'DEATH':

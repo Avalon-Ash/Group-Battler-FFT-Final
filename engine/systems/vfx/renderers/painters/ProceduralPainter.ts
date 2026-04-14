@@ -10,7 +10,7 @@ export const ProceduralPainter = {
         ctx.save();
         
         // 1. 處理地面法陣類 (Locked to Ground)
-        if (['HEX_BEAM', 'GIANT_HEX', 'MAGIC_CIRCLE', 'BLACK_HOLE'].includes(p.type)) {
+        if (['GIANT_HEX', 'MAGIC_CIRCLE', 'BLACK_HOLE'].includes(p.type)) {
             // 使用 now * vRotation 確保動畫平滑，不跳幀
             const animRot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
             
@@ -20,16 +20,17 @@ export const ProceduralPainter = {
                 this.drawTechMandala(ctx, p, animRot, layout);
             } else if (p.type === 'BLACK_HOLE') {
                 this.drawBlackHole(ctx, p, progress, now, layout);
-            } else {
-                this.drawStandardHexVfx(ctx, p, animRot, progress, layout);
             }
         }
         // 2. 處理體積投射類 (3D Entities)
-        else if (p.type === 'PILLAR') {
+        else if (p.type === 'PILLAR' || p.type === 'HEX_BEAM') {
             this.drawHexPillar(ctx, p, progress, now, layout);
         }
         else if (p.type === 'DOMAIN') {
-            this.drawHexDomain(ctx, p, progress, layout);
+            this.drawHexDomain(ctx, p, progress, now, layout);
+        }
+        else if (p.type === 'BEAM' || p.type === 'DEATH_RAY') {
+            this.drawBeam(ctx, p, progress, now);
         }
         
         ctx.restore();
@@ -148,21 +149,27 @@ export const ProceduralPainter = {
             
             // 3. 連接線 (角落立柱) - 增加結構感
             if (i === 1) {
-                const vertsBottom = HexGeometry.getVertices(p.size, true, layout);
+                const vertsBottom = HexGeometry.getVertices(p.size, false, layout);
+                const cos = Math.cos(rot);
+                const sin = Math.sin(rot);
+                
                 // 為了效能，只畫 3 條間隔的線
                 for(let k=0; k<6; k+=2) {
                     const v = vertsBottom[k];
-                    // 簡單旋轉變換 (近似)
-                    const cos = Math.cos(rot); const sin = Math.sin(rot);
+                    // 2D 旋轉
                     const rx = v.x * cos - v.y * sin;
                     const ry = v.x * sin + v.y * cos; 
+                    
+                    // 投影
+                    const px = rx;
+                    const py = ry * ISO_SCALE_Y;
                     
                     ctx.save();
                     ctx.strokeStyle = p.color;
                     ctx.globalAlpha = 0.15;
                     ctx.beginPath();
-                    ctx.moveTo(rx, ry); // 地面
-                    ctx.lineTo(rx, ry - (layers * layerDist)); // 頂層
+                    ctx.moveTo(px, py); // 地面
+                    ctx.lineTo(px, py - (layers * layerDist)); // 頂層
                     ctx.stroke();
                     ctx.restore();
                 }
@@ -229,65 +236,36 @@ export const ProceduralPainter = {
      * 取代傳統圓柱，這是 2.5D 的靈魂
      */
     drawHexPillar(ctx: CanvasRenderingContext2D, p: Particle, progress: number, now: number, layout: HexLayout) {
-        const h = p.height || 1000; 
-        const w = p.size * (1 - progress * 0.2); // 稍微收縮
-        const color = p.color;
+        const r = p.size * (0.8 + Math.sin(now * 4) * 0.05);
+        const h = (p.height || 1000) * Math.min(1, progress * 4);
+        const opacity = 0.6 * (1 - progress);
+        const animRot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
         
-        ctx.globalCompositeOperation = 'screen';
+        VolumePainter.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'SOLID', layout, animRot);
         
-        const verts = HexGeometry.getVertices(w, true, layout);
-        
-        // 1. 填充柱體 (Back faces only for transparency simulation)
-        ctx.fillStyle = color;
-        ctx.globalAlpha = (1 - progress) * 0.15;
-        
-        ctx.beginPath();
-        // 投射到底部
-        ctx.moveTo(verts[0].x, -h); 
-        for(let i=1; i<6; i++) ctx.lineTo(verts[i].x, -h); // Top Cap
-        // 這裡簡化處理，直接畫一個半透明矩形覆蓋區域
-        const bottomY = 0;
-        ctx.lineTo(verts[5].x, bottomY);
-        ctx.lineTo(verts[0].x, bottomY);
-        ctx.fill();
-
-        // 2. 掃描線 (Scanline)
+        // 額外繪製掃描線
         const scanY = -( (now * 800) % h );
+        const verts = HexGeometry.getRotatedVertices(r, animRot, true, layout);
+        ctx.save();
         ctx.strokeStyle = '#ffffff';
-        ctx.globalAlpha = (1 - progress) * 0.6;
+        ctx.globalAlpha = opacity * 0.8;
         ctx.lineWidth = 2;
-        
         ctx.beginPath();
-        // 畫一個在 scanY 高度的六邊形環
         ctx.moveTo(verts[0].x, verts[0].y + scanY);
         for(let i=1; i<6; i++) ctx.lineTo(verts[i].x, verts[i].y + scanY);
         ctx.closePath();
         ctx.stroke();
-
-        // 3. 垂直稜線 (Vertical Edges) - 強化立體感
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = (1 - progress) * 0.4;
-        ctx.beginPath();
-        [0, 2, 4].forEach(idx => { // 只畫間隔的線，避免太亂
-            ctx.moveTo(verts[idx].x, 0);
-            ctx.lineTo(verts[idx].x, -h);
-        });
-        ctx.stroke();
-
-        // 4. 底部光環
-        ctx.globalAlpha = (1 - progress) * 0.5;
-        HexGeometry.traceHex(ctx, 0, 0, w * 1.2, true, layout);
-        ctx.stroke();
+        ctx.restore();
     },
 
-    drawHexDomain(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+    drawHexDomain(ctx: CanvasRenderingContext2D, p: Particle, progress: number, now: number, layout: HexLayout) {
         const r = p.size;
         const h = 80; // 結界高度
         const opacity = 0.4 * (1 - progress);
+        const animRot = p.rotation + (p.vRotation ? p.vRotation * now : 0);
         
         // 強制使用六邊形稜鏡
-        VolumePainter.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE', layout);
+        VolumePainter.draw3DPrism(ctx, 0, 0, r, h, p.color, opacity, 'GRADIENT_FADE', layout, animRot);
         
         // 頂部蓋子 (Top Cap) - 六邊形網格
         ctx.save();
@@ -296,12 +274,66 @@ export const ProceduralPainter = {
         ctx.lineWidth = 1;
         ctx.globalAlpha = opacity * 0.5;
         ctx.setLineDash([5, 5]);
-        // 內部網格線
+        
+        // 使用 HexGeometry 繪製內部網格，確保比例正確
+        const verts = HexGeometry.getRotatedVertices(r, animRot, true, layout);
         ctx.beginPath();
-        ctx.moveTo(-r, 0); ctx.lineTo(r, 0);
-        ctx.moveTo(-r/2, -r*ISO_SCALE_Y); ctx.lineTo(r/2, r*ISO_SCALE_Y);
-        ctx.moveTo(r/2, -r*ISO_SCALE_Y); ctx.lineTo(-r/2, r*ISO_SCALE_Y);
+        ctx.moveTo(verts[0].x, verts[0].y); ctx.lineTo(verts[3].x, verts[3].y);
+        ctx.moveTo(verts[1].x, verts[1].y); ctx.lineTo(verts[4].x, verts[4].y);
+        ctx.moveTo(verts[2].x, verts[2].y); ctx.lineTo(verts[5].x, verts[5].y);
         ctx.stroke();
+        ctx.restore();
+    },
+
+    /**
+     * 線性光束 (Linear Beam)
+     * 處理 BEAM 與 DEATH_RAY
+     */
+    drawBeam(ctx: CanvasRenderingContext2D, p: Particle, progress: number, now: number) {
+        if (!p.sx || !p.tx) return;
+        
+        // 1. 計算螢幕空間的相對座標
+        // 由於 ctx 已經 translate 到 (p.x, p.y - p.z)，即起點的螢幕位置
+        const relX = p.tx - p.sx;
+        const relY = (p.ty - p.tz) - (p.sy - p.sz);
+        
+        const dist = Math.sqrt(relX * relX + relY * relY);
+        const angle = Math.atan2(relY, relX);
+        
+        ctx.save();
+        ctx.rotate(angle);
+        
+        const isDeathRay = p.type === 'DEATH_RAY';
+        const width = p.size * (isDeathRay ? (1.5 - progress) : (1.0 - progress));
+        
+        // 2. 繪製核心光束
+        const grad = ctx.createLinearGradient(0, -width, 0, width);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.2, p.color);
+        grad.addColorStop(0.5, '#ffffff');
+        grad.addColorStop(0.8, p.color);
+        grad.addColorStop(1, 'transparent');
+        
+        ctx.fillStyle = grad;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = isDeathRay ? 1.0 : 0.8;
+        
+        // 稍微抖動寬度
+        const jitter = Math.sin(now * 20) * 2;
+        ctx.fillRect(0, -width/2 + jitter, dist, width - jitter);
+        
+        // 3. 繪製邊緣粒子 (模擬能量流動)
+        if (isDeathRay) {
+            ctx.strokeStyle = p.color;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([20, 10]);
+            ctx.lineDashOffset = -now * 500;
+            ctx.beginPath();
+            ctx.moveTo(0, -width); ctx.lineTo(dist, -width);
+            ctx.moveTo(0, width); ctx.lineTo(dist, width);
+            ctx.stroke();
+        }
+        
         ctx.restore();
     }
 };
