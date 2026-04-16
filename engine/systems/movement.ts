@@ -34,7 +34,7 @@ export class MovementSystem {
         MotionEngine.updateMovement(a, dt, spatial as any);
     }
 
-    public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0): NodeState {
+    public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
         const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, spatial as any);
         const distToTarget = HexUtils.dist(a, targetHex);
 
@@ -52,10 +52,10 @@ export class MovementSystem {
             const currentGoal = a.path[a.path.length - 1];
             // 如果目標點沒變，繼續執行當前移動
             if (currentGoal.q === targetHex.q && currentGoal.r === targetHex.r) {
-                // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失而斷裂
+                // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失或變成警告區域而斷裂
                 let pathValid = true;
                 for (const hex of a.path) {
-                    if (!spatial.isValid(hex.q, hex.r)) {
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && spatial.isWarningTile(HexUtils.key(hex)))) {
                         pathValid = false;
                         break;
                     }
@@ -70,10 +70,10 @@ export class MovementSystem {
         }
 
         // 3. 尋找新路徑
-        let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, spatial as any, this.targeting);
+        let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, spatial as any, this.targeting, isEscaping);
         if (path.length === 0 && distToTarget > effRange) {
             // 如果被單位堵住，嘗試無視單位尋路（擠過去）
-            path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, true, spatial as any, this.targeting);
+            path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, true, spatial as any, this.targeting, isEscaping);
         }
 
         if (path.length > 0) {

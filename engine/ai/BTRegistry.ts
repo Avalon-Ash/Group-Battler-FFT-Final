@@ -139,7 +139,7 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         if (a.targetHex) {
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5); 
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
             if (state === NodeState.FAILURE) {
                 // [FIX] 如果移動失敗（例如被堵死），必須清除逃生目標，讓後續戰鬥邏輯能正確鎖定敵人
                 a.targetHex = null;

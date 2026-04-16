@@ -296,8 +296,8 @@ export class GameEngine {
         return this.movement.calculateOptimalTarget(source, skill, this);
     }
 
-    public moveAgentToHex(a: Agent, targetHex: Hex, r: number, speedMult: number = 1.0): NodeState {
-        return this.movement.moveAgentToHex(a, targetHex, r, this, speedMult);
+    public moveAgentToHex(a: Agent, targetHex: Hex, r: number, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
+        return this.movement.moveAgentToHex(a, targetHex, r, this, speedMult, isEscaping);
     }
 
     public initiateCast(a: Agent, skillIdx: number): NodeState {

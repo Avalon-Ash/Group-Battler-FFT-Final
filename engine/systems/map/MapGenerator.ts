@@ -63,7 +63,13 @@ export class MapGenerator {
                 rawVal += (dist * 0.8); 
 
                 // 視覺修正：前景壓低 (防止遮擋戰場視線)
-                const visualDepth = (q + r) - centerSum;
+                let visualDepth = 0;
+                if (engine.mapConfig.layout === 'FLAT') {
+                    visualDepth = (r + q / 2) - (centerR + centerQ / 2);
+                } else {
+                    visualDepth = r - centerR;
+                }
+                
                 if (visualDepth > 0) {
                     rawVal -= (visualDepth * 0.8); 
                     if (dist > 3) rawVal -= (dist * 0.3);

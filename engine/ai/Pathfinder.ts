@@ -16,7 +16,7 @@ export class Pathfinder {
     private _cameFrom = new Map<number, number>();
     private _pq: PQNode[] = [];
 
-    public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
+    public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, spatial: SpatialProvider, targeting: TargetingSystem, isEscaping: boolean = false): Hex[] {
         const startH = HexUtils.hash(startAgent.q, startAgent.r);
         const goalHex = { q: endQ, r: endR };
         
@@ -69,13 +69,12 @@ export class Pathfinder {
                 // 大逃殺警告區域懲罰 (AI 求生邏輯)
                 const nKey = HexUtils.key(nHex);
                 if (targeting.isWarningTile(nKey, spatial)) {
-                    const myKey = HexUtils.key(startAgent);
-                    if (!targeting.isWarningTile(myKey, spatial)) {
-                        // 如果自己不在危險區，給予極高懲罰，強烈避免主動走入危險區
-                        moveCost += 200; 
+                    if (!isEscaping) {
+                        // 嚴格禁止在正常尋路時走入警告區域
+                        continue;
                     } else {
-                        // 如果已經在危險區內，給予較低懲罰，確保能找到逃生路徑
-                        moveCost += 5; 
+                        // 逃生時允許走過警告區域，但給予懲罰以盡快離開
+                        moveCost += 5;
                     }
                 }
                 
@@ -141,12 +140,8 @@ export class Pathfinder {
 
             // 成功判定：找到非警告區域的合法地塊
             if (!targeting.isWarningTile(currentKey, spatial) && spatial.isValidHash(current.hash)) {
-                // 確保終點沒有被佔用，否則走到那邊還是會卡住
-                const occ = spatial.getAgentHash(current.hash);
-                if (!occ || occ.hp <= 0 || occ === startAgent) {
-                    bestH = current.hash;
-                    break;
-                }
+                bestH = current.hash;
+                break;
             }
 
             for (let i = 0; i < 6; i++) {

@@ -51,10 +51,17 @@ export const HexMath = {
      * Implementation of Duality for Flat and Pointy layouts.
      */
     hexToPixel(q: number, r: number, offsetX: number, offsetY: number, layout: HexLayout): Point {
-        // Restore Diamond Projection for that "Isometric" look the user missed.
-        // This projection tilts the grid by 45 degrees and provides depth.
-        const x = (q - r) * HEX_SIZE * 0.8;
-        const y = (q + r) * HEX_SIZE * ISO_SCALE_Y;
+        let x = 0, y = 0;
+        if (layout === 'FLAT') {
+            x = HEX_SIZE * 1.5 * q;
+            y = HEX_SIZE * Math.sqrt(3) * (r + q / 2);
+        } else {
+            x = HEX_SIZE * Math.sqrt(3) * (q + r / 2);
+            y = HEX_SIZE * 1.5 * r;
+        }
+        
+        // Apply isometric scaling
+        y *= ISO_SCALE_Y;
 
         return {
             x: x + offsetX,
@@ -66,12 +73,17 @@ export const HexMath = {
      * Inverse mapping for standard Hex Grid
      */
     pixelToHex(x: number, y: number, offsetX: number, offsetY: number, layout: HexLayout): Hex {
-        const dx = (x - offsetX) / (HEX_SIZE * 0.8);
-        const dy = (y - offsetY) / (HEX_SIZE * ISO_SCALE_Y);
+        const px = x - offsetX;
+        const py = (y - offsetY) / ISO_SCALE_Y;
         
-        // Inverse of the Diamond Projection
-        const q = (dx + dy) / 2;
-        const r = (dy - dx) / 2;
+        let q = 0, r = 0;
+        if (layout === 'FLAT') {
+            q = (2/3) * px / HEX_SIZE;
+            r = (-1/3) * px / HEX_SIZE + (Math.sqrt(3)/3) * py / HEX_SIZE;
+        } else {
+            q = (Math.sqrt(3)/3) * px / HEX_SIZE - (1/3) * py / HEX_SIZE;
+            r = (2/3) * py / HEX_SIZE;
+        }
 
         return { q, r };
     },
