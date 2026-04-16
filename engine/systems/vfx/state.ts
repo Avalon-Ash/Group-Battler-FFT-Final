@@ -20,6 +20,7 @@ export interface Particle {
     targetY?: number; 
     targetZ?: number; 
     style?: string; 
+    visualStyle?: string;
     delay?: number;
     image?: HTMLCanvasElement; 
     locked?: boolean; 
@@ -62,6 +63,7 @@ export class VFXStateManager {
             p.texture = undefined;
             p.blendMode = undefined;
             p.style = undefined; 
+            p.visualStyle = undefined;
             p.delay = 0; 
             p.locked = false; 
             p.sortBias = 0; 

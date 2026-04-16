@@ -69,9 +69,14 @@ export class Pathfinder {
                 // 大逃殺警告區域懲罰 (AI 求生邏輯)
                 const nKey = HexUtils.key(nHex);
                 if (targeting.isWarningTile(nKey, spatial)) {
-                    // 降低懲罰值但保持足夠高，確保 AI 能在合理步數內找到路徑
-                    // 如果懲罰太高 (50)，A* 會優先探索極遠的非警告路徑，導致超時
-                    moveCost += 5; 
+                    const myKey = HexUtils.key(startAgent);
+                    if (!targeting.isWarningTile(myKey, spatial)) {
+                        // 如果自己不在危險區，給予極高懲罰，強烈避免主動走入危險區
+                        moveCost += 200; 
+                    } else {
+                        // 如果已經在危險區內，給予較低懲罰，確保能找到逃生路徑
+                        moveCost += 5; 
+                    }
                 }
                 
                 if (startAgent.movementType !== MovementType.FLYING) {
@@ -136,8 +141,12 @@ export class Pathfinder {
 
             // 成功判定：找到非警告區域的合法地塊
             if (!targeting.isWarningTile(currentKey, spatial) && spatial.isValidHash(current.hash)) {
-                bestH = current.hash;
-                break;
+                // 確保終點沒有被佔用，否則走到那邊還是會卡住
+                const occ = spatial.getAgentHash(current.hash);
+                if (!occ || occ.hp <= 0 || occ === startAgent) {
+                    bestH = current.hash;
+                    break;
+                }
             }
 
             for (let i = 0; i < 6; i++) {

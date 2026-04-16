@@ -149,6 +149,11 @@ export class TargetingSystem {
                     survivalBonus += 500;
                     // 如果對方也在危險區，優先解決他
                     if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += 200;
+                } else {
+                    // 如果自己安全，盡量不要鎖定危險區內的敵人 (避免主動走入危險區)
+                    if (spatial.isWarningTile(HexUtils.key(o))) {
+                        survivalBonus -= 1000;
+                    }
                 }
 
                 const score = distScore + hpScore + threatScore + stickyBonus + survivalBonus;

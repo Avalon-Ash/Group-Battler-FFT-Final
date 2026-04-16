@@ -71,7 +71,10 @@ export class VFXPlayer {
             if (config.height !== undefined) p.height = rnd(config.height);
             p.color = colorOverride || pickColor(config.colors);
             p.type = config.particleType as any;
-            if (config.visualStyle) p.style = config.visualStyle;
+            if (config.visualStyle) {
+                p.style = config.visualStyle;
+                p.visualStyle = config.visualStyle; // Ensure visualStyle is also set
+            }
             if (config.drag !== undefined) p.drag = config.drag;
             if (config.locked) p.locked = true;
             if (config.gravity !== undefined) p.gravity = config.gravity;
