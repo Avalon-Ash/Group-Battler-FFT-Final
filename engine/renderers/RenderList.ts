@@ -119,7 +119,7 @@ export class RenderList {
              * 為了正確處理遮擋，地形與單位必須交錯排序。
              */
             
-            const baseSortY = op.y !== 0 ? op.y : op.ty;
+            const baseSortY = op.y;
             let sortKey = Math.floor((baseSortY + 10000) * 100);
             
             // 同一 Y 軸位置下的子層級排序 (0-99)

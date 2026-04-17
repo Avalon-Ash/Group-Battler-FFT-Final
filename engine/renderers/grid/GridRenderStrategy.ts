@@ -55,6 +55,7 @@ export class GridRenderStrategy {
                 op.type = RenderOpType.OBSTACLE;
                 op.tq = q; op.tr = r; op.th = h; 
                 op.tx = px; op.ty = visualSurfaceY; 
+                op.y = visualBaseY; // Sorting based on footprint
                 op.ttype = obstacleType;
             }
 
@@ -64,6 +65,7 @@ export class GridRenderStrategy {
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = h;
                 hOp.tx = px; hOp.ty = visualSurfaceY; 
+                hOp.y = visualBaseY; // Sorting based on footprint
                 hOp.oHazard = hazard;
                 hOp.time = globalTime;
             }
@@ -72,6 +74,7 @@ export class GridRenderStrategy {
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h;
             op.tx = px; op.ty = visualBaseY; 
+            op.y = visualBaseY; // Sorting based on footprint
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
             op.oDanger = engine.zones.getZoneAt(q, r); 
@@ -99,6 +102,8 @@ export class GridRenderStrategy {
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h; // Keep original height for block thickness
             op.tx = pos.x; op.ty = visualBaseY; 
+            op.y = visualBaseY; // Set footprint Y for sorting
+            op.z = z; // Negative Z indicates falling and used for opacity calculation
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = undefined;
             op.oDanger = undefined; 

@@ -3,7 +3,7 @@ import { GameEngine } from "../../game";
 import { MapSystem } from "../map";
 import { SCENE_DB } from "../../../data/scenes";
 import { HexUtils } from "../../utils";
-import { BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
+import { HEX_SIZE, BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
 
 export class MapGenerator {
     public static randomize(system: MapSystem, engine: GameEngine) {
@@ -26,31 +26,28 @@ export class MapGenerator {
 
     public static rebuild(system: MapSystem, engine: GameEngine) {
         system.resetData();
-        const W = engine.mapConfig.w;
-        const H = engine.mapConfig.h;
+        
+        // Define a map radius instead of strict width/height rows
+        // Note: W/H are kept for some legacy offsets if needed, but generation is radial
+        const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
         
         // Log map rebuild for debugging
-        engine.log(null, 'SYSTEM', '地圖重建', null, `尺寸: ${W}x${H}, 佈局: ${engine.mapConfig.layout}`);
+        engine.log(null, 'SYSTEM', '地圖重建', null, `半徑: ${radius}, 佈局: ${engine.mapConfig.layout}`);
 
         const tiers = new Map<string, number>();
         
-        const centerCol = Math.floor((W - 1) / 2);
-        const centerRow = Math.floor((H - 1) / 2);
-        const centerHex = HexUtils.offsetToAxial(centerCol, centerRow, engine.mapConfig);
-        const centerQ = centerHex.q;
-        const centerR = centerHex.r;
-        
-        // 用於計算前景深度的參考值
-        const centerSum = centerQ + centerR;
-        
+        const centerQ = 0;
+        const centerR = 0;
+        const centerHex = { q: centerQ, r: centerR };
+        const centerPos = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
+
         const noisePhaseA = Math.random() * 1000;
         const noisePhaseB = Math.random() * 1000;
 
-        for (let col = 0; col < W; col++) {
-            for (let row = 0; row < H; row++) {
-                const hex = HexUtils.offsetToAxial(col, row, engine.mapConfig);
-                const q = hex.q;
-                const r = hex.r;
+        // Radial Generation (Giant Hexagon Island)
+        for (let q = -radius; q <= radius; q++) {
+            for (let r = Math.max(-radius, -q - radius); r <= Math.min(radius, -q + radius); r++) {
+                
                 const k = HexUtils.key({q, r});
                 system.registerTile(q, r);
 
@@ -63,12 +60,9 @@ export class MapGenerator {
                 rawVal += (dist * 0.8); 
 
                 // 視覺修正：前景壓低 (防止遮擋戰場視線)
-                let visualDepth = 0;
-                if (engine.mapConfig.layout === 'FLAT') {
-                    visualDepth = (r + q / 2) - (centerR + centerQ / 2);
-                } else {
-                    visualDepth = r - centerR;
-                }
+                // 以畫面實體 Y 軸像素差距來決定是否為前景 (Y 越大越靠畫面下方)
+                const pos = HexUtils.toPx(q, r, engine.mapConfig);
+                const visualDepth = (pos.y - centerPos.y) / (HEX_SIZE * 0.8);
                 
                 if (visualDepth > 0) {
                     rawVal -= (visualDepth * 0.8); 
@@ -103,14 +97,14 @@ export class MapGenerator {
             system.setHeight(key, tier * BLOCK_HEIGHT);
         });
 
-        this.generateDecorations(system, engine, W, H);
+        this.generateDecorations(system, engine, radius);
         engine.mapVersion++;
         if (engine.renderer) engine.renderer.grid.reset();
     }
 
-    private static generateDecorations(system: MapSystem, engine: GameEngine, W: number, H: number) {
+    private static generateDecorations(system: MapSystem, engine: GameEngine, radius: number) {
         const obstacleType = engine.currentScene.obstacleStyle || 'WALL';
-        const centerHex = HexUtils.offsetToAxial(Math.floor(W/2), Math.floor(H/2), engine.mapConfig);
+        const centerHex = { q: 0, r: 0 };
         const keys = Array.from(system.getMapKeys());
         
         // Tuned Density per Biome
