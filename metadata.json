@@ -1,5 +1,6 @@
 {
-  "name": "Tactical Battler: Kernel v9.5",
+  "name": "Tactical Battler: Kernel v9.6",
   "description": "Production Release. Unified Visual SSOT Enforced. Data-Driven VFX Sequence Engine. Optimized Matrix Showcase System.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "majorCapabilities": []
 }

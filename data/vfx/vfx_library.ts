@@ -58,5 +58,11 @@ export const VFX_LIBRARY = {
         { key: 'TILE_COLLAPSE', name: '地形塌陷', desc: '地塊失去支撐向虛空墜落的物理動畫，遵循重力公式。', visuals: ['Gravity', 'Physics', 'Void'] },
         { key: 'ZONE_SHRINK', name: '安全區縮小', desc: '全場廣播事件，觸發地圖數據重建與 AI 逃生邏輯。', visuals: ['MapRebuild', 'EventBus'] },
         { key: 'LAST_STAND_AURA', name: '背水一戰光環', desc: '當 AI 無路可逃觸發背水一戰時，腳下顯示的決死戰鬥光環。', visuals: ['Aura', 'Intensity'] }
+    ] as VFXEntry[],
+
+    MAP_TOPOLOGY: [
+        { key: 'GIANT_HEX_ISLAND', name: '全對稱六面浮島', desc: '利用 Radial 擴張取代方陣的生成演算法，形成結構最完美的戰棋浮島。', visuals: ['Radial', 'Symmetry'] },
+        { key: 'STEPPED_HEIGHT_FIELD', name: '劇院景深地形', desc: '外緣隆起、前排下潛的碗狀高度場，防止相機遮擋並增強立體感。', visuals: ['Depth', 'Elevation'] },
+        { key: 'FOOTPRINT_Z_SORT', name: '占地深度排序', desc: '基於地面點 Y 軸 (Base Y) 進行的渲染覆蓋排序，完全適配套疊透視。', visuals: ['Z-Sort', 'Overlap'] }
     ] as VFXEntry[]
 };

@@ -61,7 +61,7 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
 };
 
 export const CC_OPTIONS = ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD'];
-export const EFFECT_OPTIONS = ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE'];
+export const EFFECT_OPTIONS = ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'];
 export const ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'];
 export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'];
 
