@@ -42,33 +42,34 @@ export const useGameApp = () => {
 
     const internalSpawnTeams = useCallback(() => {
         const engine = engineRef.current;
-        const w = engine.mapConfig.w;
-        const h = engine.mapConfig.h;
+        const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
         
-        // Filter valid hexes and avoid the outermost edges
+        // Find valid spawnable hexes (not blocked, not extreme edge)
         let validHexes = Array.from(engine.mapKeys).map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return {q, r};
         }).filter(hex => {
             if (engine.map.hasObstacle(hex.q, hex.r)) return false;
-            const offset = HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig);
-            return offset.col > 0 && offset.col < w - 1 && offset.row > 0 && offset.row < h - 1;
+            // Don't spawn on the extreme outer edge
+            const dist = HexUtils.dist({q:0, r:0}, hex);
+            return dist < radius;
         });
         
-        // Separate into left (Blue) and right (Red) sides
-        const midCol = Math.floor(w / 2);
-        let leftHexes = validHexes.filter(hex => HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig).col < midCol);
-        let rightHexes = validHexes.filter(hex => HexUtils.axialToOffset(hex.q, hex.r, engine.mapConfig).col >= midCol);
+        // Since it's a giant hexagon centered at (0,0), it's symmetric.
+        // We can split the teams perfectly by `q` (left/right) or another dividing plane.
+        // For axial (q, r), q < 0 is roughly left, q > 0 is roughly right.
+        let leftHexes = validHexes.filter(hex => hex.q < -1);
+        let rightHexes = validHexes.filter(hex => hex.q > 1);
 
-        // Shuffle both arrays
-        for (let i = leftHexes.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [leftHexes[i], leftHexes[j]] = [leftHexes[j], leftHexes[i]];
-        }
-        for (let i = rightHexes.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [rightHexes[i], rightHexes[j]] = [rightHexes[j], rightHexes[i]];
-        }
+        // Shuffle arrays
+        const shuffle = (array: any[]) => {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        };
+        shuffle(leftHexes);
+        shuffle(rightHexes);
 
         const roles: Role[] = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
         
