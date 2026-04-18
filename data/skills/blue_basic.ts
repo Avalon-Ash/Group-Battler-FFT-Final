@@ -87,28 +87,28 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'rb_b1', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '精準射擊', desc: '標準遠程', 
-        range: 6, cast: 0.5, cd: 0.9, cost: 0, gain: 25, // Nerf Range 7->5
+        range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 25, // Nerf Range 6->5
         type: 'SINGLE', power: 80, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 2000, 
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b2', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '寒冰箭', desc: '微量緩速', 
-        range: 6, cast: 0.6, cd: 1.2, cost: 0, gain: 30, // Nerf Range 6->5
+        range: 5, cast: 0.6, cd: 1.2, cost: 0, gain: 30, // Nerf Range 6->5
         type: 'SINGLE', power: 75, color: '#e0f2fe', visual: 'ARROW', projectileSpeed: 1100, 
         visualHitEffect: 'FX_HIT_BLUE_ICE', visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW', element: 'ICE'
     },
     { 
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '雷射標記', desc: '必中', 
-        range: 6, cast: 0.3, cd: 0.8, cost: 0, gain: 20, // Nerf Range 8->5
+        range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, // Nerf Range 6->5
         type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 0, // Instant
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '震盪彈', desc: '擊退射擊', 
-        range: 5, cast: 0.8, cd: 1.5, cost: 0, gain: 35, // Nerf Range 5->4
+        range: 4, cast: 0.8, cd: 1.5, cost: 0, gain: 35, // Nerf Range 5->4
         type: 'SINGLE', power: 70, color: '#fbbf24', visual: 'BOLT', projectileSpeed: 1300, 
         ccType: 'KNOCKBACK', ccForce: 2,
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'LIGHTNING'
@@ -116,7 +116,7 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'rb_b5', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '虛無射擊', desc: '燃魔射擊', 
-        range: 6, cast: 0.6, cd: 1.0, cost: 0, gain: 25, // Nerf Range 7->5
+        range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 25, // Nerf Range 6->5
         type: 'SINGLE', power: 65, color: '#8b5cf6', visual: 'ARROW', projectileSpeed: 1600, 
         effectType: 'MANA_BURN', effectVal: 20,
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'VOID'
@@ -193,7 +193,7 @@ export const BLUE_BASIC: Skill[] = [
     { 
         id: 'sb_b5', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '預言術', desc: '遠程光束', 
-        range: 6, cast: 0.8, cd: 1.0, cost: 0, gain: 35, // Range 6->5
+        range: 5, cast: 0.8, cd: 1.0, cost: 0, gain: 35, // Range 6->5
         type: 'SINGLE', power: 65, color: '#fcd34d', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     }

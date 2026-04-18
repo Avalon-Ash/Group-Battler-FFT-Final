@@ -14,13 +14,27 @@ export class AgentVFXSystem {
     private dustTimer: number = 0;
 
     public update(dt: number, engine: GameEngine, vfx: VFXSystem) {
+        // [VFX Persistence Fix] Periodic cleanup of stale timers for removed agents
+        if (Math.random() < 0.01 && this.vfxTimers.size > 100) {
+            const activeIds = new Set(engine.agents.map(a => a.id));
+            for (const key of this.vfxTimers.keys()) {
+                const id = key.split('_')[0];
+                if (!activeIds.has(id)) this.vfxTimers.delete(key);
+            }
+        }
+
         // 1. Friction Dust / Sparks Logic
         this.dustTimer += dt;
         const canSpawnDust = this.dustTimer > 0.05; // Limit rate (20fps)
 
         if (canSpawnDust) {
             for (const a of engine.agents) {
-                if (a.hp <= 0) continue;
+                // [FIX] Stricter gate: Dead units should never spawn environment particles
+                if (a.hp <= 0) {
+                    // Cleanup timers for this specific dead unit to be safe
+                    this.cleanupAgentTimers(a.id);
+                    continue;
+                }
                 
                 const speedSq = a.physics.vx*a.physics.vx + a.physics.vy*a.physics.vy;
                 const isGrounded = a.physics.z < 5;
@@ -40,9 +54,25 @@ export class AgentVFXSystem {
 
         // 2. Status Effect Particles (Poison bubbles, Stun stars, etc.)
         for (const a of engine.agents) {
-            if (a.hp <= 0 && a.fullyDead) continue;
+            // [FIX] Stricter gate: Prevent status particles from spawning on any dead unit.
+            if (a.hp <= 0) continue;
+            
             this.processStatusVFX(a, dt, engine, vfx);
             this.processIdleVFX(a, dt, engine, vfx);
+        }
+    }
+
+    public reset() {
+        this.vfxTimers.clear();
+        this.dustTimer = 0;
+    }
+
+    private cleanupAgentTimers(agentId: string) {
+        // Find and remove all timers starting with this agent's ID
+        for (const key of this.vfxTimers.keys()) {
+            if (key.startsWith(`${agentId}_`)) {
+                this.vfxTimers.delete(key);
+            }
         }
     }
 

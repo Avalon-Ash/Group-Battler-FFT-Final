@@ -72,7 +72,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'wb_u3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
         name: '誓約勝利', desc: '單體斬殺', 
         range: 3, cast: 0.6, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1100, color: '#facc15', 
+        type: 'SINGLE', power: 600, color: '#facc15', 
         visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 2.5, 
         visualHitEffect: 'FX_ULT_BLUE_EXCALIBUR'
@@ -117,8 +117,8 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'rb_u3', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
         name: '軌道轟炸', desc: '單體毀滅', 
-        range: 20, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1300, color: '#22d3ee', 
+        range: 20, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 1200, color: '#22d3ee', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM' 
     },

@@ -34,17 +34,23 @@ export class VisualEventListener {
             if (event.type === 'CAST_START' && event.skill) {
                 const sequence = SKILL_SEQUENCES[event.skill.id];
                 if (sequence) {
-                    const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
+                    const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine, event.pos);
                     
                     // SSOT FIX: If target is ground (no unit ID or generic), ensure correct Z
                     if (!event.targetId || event.targetId.startsWith('ground-')) {
-                        target3D.x = event.pos.x;
-                        target3D.y = event.pos.y;
+                        const posX = event.pos?.x ?? 0;
+                        const posY = event.pos?.y ?? 0;
+                        target3D.x = posX;
+                        target3D.y = posY;
                         
                         // Fix: Use event position to find hex and get terrain height
-                        const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
+                        const hex = HexUtils.fromPx(posX, posY, engine.mapConfig);
                         target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
                     }
+                    
+                    // Final sanity check: if coordinates are NaN, discard sequence
+                    if (isNaN(target3D.x) || isNaN(target3D.y)) return;
+                    
                     sequences.run(sequence, target3D, engine, vfx, event.sourceId);
                     return; 
                 }

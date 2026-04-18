@@ -60,10 +60,14 @@ export class HazardSystem {
         }
         toRemove.forEach(k => hazards.delete(k));
 
+        // Use a set to track which hazards triggered damage this frame so we only reset timer once
+        const triggeredHazards = new Set<string>();
+
         engine.agents.forEach(agent => {
             if (agent.hp <= 0 || agent.banished) return;
             
-            const hazard = hazards.get(HexUtils.key({q: agent.q, r: agent.r}));
+            const hazardKey = HexUtils.key({q: agent.q, r: agent.r});
+            const hazard = hazards.get(hazardKey);
             if (!hazard) return;
 
             if (hazard.team !== agent.team) {
@@ -71,20 +75,40 @@ export class HazardSystem {
                 if (agent.movementType === MovementType.FLYING && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return;
 
                 if (hazard.timer <= 0) {
-                    const dmg = hazard.power;
-                    agent.hp = Math.max(0, agent.hp - dmg);
-                    engine.events.push({ 
-                        type: 'DAMAGE', 
-                        pos: {x: agent.px, y: agent.py}, 
-                        value: -Math.floor(dmg), 
-                        color: hazard.color,
-                        skill: { color: hazard.color, ccType: 'DOT' } as any 
-                    });
+                    let dmg = hazard.power;
+                    
+                    // Shield Mitigation logic
+                    let absorbed = 0;
+                    if (agent.shield > 0) {
+                        absorbed = Math.min(agent.shield, dmg);
+                        agent.shield -= absorbed;
+                        dmg -= absorbed;
+                    }
+                    
+                    if (dmg > 0) {
+                        agent.hp = Math.max(0, agent.hp - dmg);
+                    }
+
+                    if (absorbed > 0) {
+                        engine.events.push({ type: 'DAMAGE', pos: {x: agent.px, y: agent.py}, value: -Math.floor(absorbed), color: '#bae6fd', text: "ABSORB" });
+                    }
+
+                    if (dmg > 0 || absorbed === 0) {
+                        engine.events.push({ 
+                            type: 'DAMAGE', 
+                            pos: {x: agent.px, y: agent.py}, 
+                            value: -Math.floor(dmg > 0 ? dmg : hazard.power), // Show dmg taken, or hazard power if completely missed/absorbed? No, just dmg
+                            color: hazard.color,
+                            skill: { color: hazard.color, ccType: 'DOT' } as any 
+                        });
+                    }
                     
                     const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
-                    engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (${hazard.type})`);
+                    engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (護盾抵擋 ${Math.floor(absorbed)}) (${hazard.type})`);
                     
                     agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+                    // Mark hazard to be reset at the end of the loop
+                    triggeredHazards.add(hazardKey);
                 }
 
                 if (hazard.type === 'GRAVITY') {
@@ -102,8 +126,14 @@ export class HazardSystem {
             }
         });
 
+        // Reset the timer for all hazards that triggered this frame
+        triggeredHazards.forEach(key => {
+            const h = hazards.get(key);
+            if (h) h.timer = h.interval || 1.0;
+        });
+
         for (const h of hazards.values()) {
-            if (h.timer <= 0) h.timer = h.interval;
+            if (h.timer <= 0) h.timer = h.interval || 1.0;
         }
     }
 }

@@ -127,7 +127,8 @@ export class RenderList {
             if (op.type === RenderOpType.TERRAIN) subLayer = 10;
             else if (op.type === RenderOpType.DECAL || op.isGround) subLayer = 20;
             else if (op.type === RenderOpType.HAZARD) subLayer = 30;
-            else if (op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.UNIT) subLayer = 40;
+            else if (op.type === RenderOpType.OBSTACLE) subLayer = 40;
+            else if (op.type === RenderOpType.UNIT) subLayer = 45;
             else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) subLayer = 50;
             
             sortKey += subLayer;

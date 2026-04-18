@@ -12,7 +12,10 @@ export class VFXSystem {
     private ambience: VFXAmbience = new VFXAmbience();
     private agentVFX: AgentVFXSystem = new AgentVFXSystem();
     
-    public reset() { this.state.reset(); }
+    public reset() { 
+        this.state.reset(); 
+        this.agentVFX.reset();
+    }
     
     public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
         VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ);
@@ -51,12 +54,14 @@ export class VFXSystem {
             // Apply Time Dilation to Delays
             if (p.delay && p.delay > 0) { 
                 p.delay -= dt; 
+                if (isNaN(p.delay)) p.delay = 0;
                 continue; 
             }
             
             p.life -= dt;
             
-            if (p.life <= 0) {
+            // Robustness: Kill particles with NaN life or invalid coordinates often caused by uninitialized data stacking at (0,0)
+            if (p.life <= 0 || isNaN(p.life) || p.life > 1000 || isNaN(p.x) || isNaN(p.y)) {
                 this.state.releaseParticle(p);
                 particles[i] = particles[count - 1];
                 particles.pop(); count--; continue;

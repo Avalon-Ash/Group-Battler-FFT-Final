@@ -65,6 +65,7 @@ export class GridRenderStrategy {
                 op.th = h; 
                 op.tx = px; 
                 op.ty = visualSurfaceY; 
+                op.y = visualBaseY; // Sorting based on footprint
                 op.ttype = obstacleType;
             }
 
@@ -77,6 +78,7 @@ export class GridRenderStrategy {
                 hOp.th = h;
                 hOp.tx = px; 
                 hOp.ty = visualSurfaceY; 
+                hOp.y = visualBaseY; // Sorting based on footprint
                 hOp.oHazard = hazard;
                 hOp.time = globalTime;
             }
@@ -102,6 +104,7 @@ export class GridRenderStrategy {
             op.tq = q; op.tr = r; // 核心：傳入邏輯座標
             op.tx = px; 
             op.ty = visualBaseY; 
+            op.y = visualBaseY; // Sorting based on footprint
             op.th = h;
             op.tsize = HEX_SIZE;
             op.ttheme = theme;

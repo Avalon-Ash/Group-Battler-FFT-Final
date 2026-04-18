@@ -8,7 +8,7 @@ export const RED_ULT: Skill[] = [
         id: 'tr_u1', role: Role.TANK, team: Team.RED, tag: 'ULT', 
         name: '處決斷頭台', desc: '近身斬殺', 
         range: 1, cast: 0.6, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 900, color: '#7f1d1d', 
+        type: 'SINGLE', power: 500, color: '#7f1d1d', 
         visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 2.5, 
         visualHitEffect: 'FX_ULT_RED_GUILLOTINE_IMPACT' 
@@ -155,7 +155,7 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'mr_u2', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '死亡一指', desc: '單體秒殺技', 
-        range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
+        range: 7, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#be123c', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_RED_DEATH_FINGER'

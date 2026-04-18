@@ -134,6 +134,29 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'RUBBLE', count: [15, 25], lifetime: [0.6, 1.0], size: [8, 15], speed: [400, 800], vz: [400, 1000], gravity: 4000, colors: ['#ffffff', '#cbd5e1'], shape: 'BURST_DIR', delay: 0 }
         ]
     },
+    'FX_TILE_COLLAPSE': {
+        id: 'FX_TILE_COLLAPSE',
+        description: 'Visual for map tiles breaking away',
+        emitters: [
+            { 
+                particleType: 'SMOKE', count: [10, 15], lifetime: [0.8, 1.5], 
+                size: [30, 60], colors: ['#44403c', '#1c1917'], 
+                speed: [80, 150], vz: [50, 150], shape: 'CIRCLE', shapeRadius: 40, 
+                blendMode: 'screen', delay: 0 
+            },
+            { 
+                particleType: 'RUBBLE', count: [20, 30], lifetime: [1.0, 2.0], 
+                size: [6, 12], speed: [200, 400], vz: [100, 300], 
+                gravity: 2500, colors: ['#57534e', '#292524'], 
+                shape: 'CIRCLE', shapeRadius: 30, vRotation: [30, 60], delay: 0 
+            },
+            {
+                particleType: 'SHOCKWAVE', count: 1, lifetime: [0.4, 0.6],
+                size: [80, 120], colors: ['#a8a29e'], speed: [0,0],
+                shape: 'POINT', blendMode: 'screen', delay: 0
+            }
+        ]
+    },
     'FX_MUZZLE_FLASH': {
         id: 'FX_MUZZLE_FLASH',
         description: 'Muzzle flash for projectiles',

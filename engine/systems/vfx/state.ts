@@ -44,46 +44,39 @@ export class VFXStateManager {
     public decals: Decal[] = [];
     private particlePool: Particle[] = [];
     public getParticle(): Particle {
+        let p: Particle;
         if (this.particlePool.length > 0) {
-            const p = this.particlePool.pop()!;
-            p.active = true;
-            p.x = 0; p.y = 0; p.z = 0;
-            p.vx = 0; p.vy = 0; p.vz = 0;
-            p.rotation = 0; p.vRotation = 0;
-            p.life = 0; p.maxLife = 0;
-            p.color = '#ff00ff'; p.size = 0;
-            p.height = undefined;
-            p.type = 'GENERIC_DEBUG'; 
-            p.sx = undefined; p.sy = undefined; p.sz = undefined;
-            p.tx = undefined; p.ty = undefined; p.tz = undefined;
-            p.targetX = undefined;
-            p.targetY = undefined;
-            p.targetZ = undefined;
-            p.image = undefined; 
-            p.texture = undefined;
-            p.blendMode = undefined;
-            p.style = undefined; 
-            p.visualStyle = undefined;
-            p.delay = 0; 
-            p.locked = false; 
-            p.sortBias = 0; 
-            p.drag = undefined; 
-            p.gravity = undefined;
-            p.killAtTarget = undefined; 
-            p.lastGroundHeight = undefined;
-            return p;
+            p = this.particlePool.pop()!;
+        } else {
+            p = { 
+                active: true,
+                x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, 
+                rotation: 0, vRotation: 0,
+                life: 0, maxLife: 0, color: '#ff00ff', size: 0, type: 'GENERIC_DEBUG',
+                delay: 0, locked: false, sortBias: 0
+            };
         }
-        return { 
-            active: true,
-            x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, 
-            rotation: 0, vRotation: 0,
-            life: 0, maxLife: 0, color: '#ff00ff', size: 0, height: undefined, type: 'GENERIC_DEBUG',
-            delay: 0,
-            locked: false,
-            sortBias: 0
-        };
+
+        p.active = true;
+        p.x = 0; p.y = 0; p.z = 0;
+        p.vx = 0; p.vy = 0; p.vz = 0;
+        p.rotation = 0; p.vRotation = 0;
+        p.life = 0; p.maxLife = 0;
+        p.color = '#ff00ff'; p.size = 0;
+        p.height = undefined;
+        p.type = 'GENERIC_DEBUG'; 
+        p.sx = undefined; p.sy = undefined; p.sz = undefined;
+        p.tx = undefined; p.ty = undefined; p.tz = undefined;
+        p.targetX = undefined; p.targetY = undefined; p.targetZ = undefined;
+        p.image = undefined; p.texture = undefined;
+        p.blendMode = undefined; p.style = undefined; p.visualStyle = undefined;
+        p.delay = 0; p.locked = false; p.sortBias = 0; p.drag = undefined; 
+        p.gravity = undefined; p.killAtTarget = undefined; p.lastGroundHeight = undefined;
+        
+        return p;
     }
     public releaseParticle(p: Particle) {
+        if (!p.active) return; // Prevent double release
         p.active = false;
         p.image = undefined;
         p.texture = undefined;

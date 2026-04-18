@@ -103,6 +103,10 @@ export class ZoneSystem {
                     for (const hex of keysToRemove) {
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });
                         engine.map.removeTile(hex.q, hex.r);
+                        
+                        // SSOT: Trigger visual for tile collapse
+                        const pos = HexUtils.toPx(hex.q, hex.r, engine.mapConfig);
+                        engine.pushEvent('HAZARD_SPAWN', { x: pos.x, y: pos.y }, { text: 'FX_TILE_COLLAPSE' });
                     }
 
                     if (keysToRemove.length > 0) {

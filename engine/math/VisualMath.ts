@@ -95,18 +95,28 @@ export class VisualMath {
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
     }
 
-    public static resolveTargetPoint(targetId: string, engine: GameEngine): Point3D {
-        if (!targetId) return { x: 0, y: 0, z: -9999 };
-        const agent = engine.agents.find(a => a.id === targetId);
-        if (agent) return this.getUnitAnchor(agent, engine);
-        if (targetId.startsWith("ground-")) {
-            const parts = targetId.split("-")[1].split(",");
-            const q = parseInt(parts[0]);
-            const r = parseInt(parts[1]);
-            const p = HexUtils.toPx(q, r, engine.mapConfig);
-            const h = engine.getTerrainHeight(q, r);
-            return { x: p.x, y: p.y, z: h + 2 };
+    public static resolveTargetPoint(targetId: string, engine: GameEngine, defaultPos?: {x: number, y: number}): Point3D {
+        if (targetId) {
+            const agent = engine.agents.find(a => a.id === targetId);
+            if (agent) return this.getUnitAnchor(agent, engine);
+            if (targetId.startsWith("ground-")) {
+                const parts = targetId.split("-")[1].split(",");
+                const q = parseInt(parts[0]);
+                const r = parseInt(parts[1]);
+                if (!isNaN(q) && !isNaN(r)) {
+                    const p = HexUtils.toPx(q, r, engine.mapConfig);
+                    const h = engine.getTerrainHeight(q, r);
+                    return { x: p.x, y: p.y, z: h + 2 };
+                }
+            }
         }
-        return { x: 0, y: 0, z: -9999 };
+        
+        // Final fallback: Use provided default position or a far off-screen safe sentinel
+        const dx = defaultPos?.x ?? -99999;
+        const dy = defaultPos?.y ?? -99999;
+        const dHex = (dx !== -99999) ? HexUtils.fromPx(dx, dy, engine.mapConfig) : {q:0, r:0};
+        const dz = (dx !== -99999) ? engine.getTerrainHeight(dHex.q, dHex.r) : -99999;
+        
+        return { x: dx, y: dy, z: dz };
     }
 }

@@ -23,8 +23,9 @@ export class EffectSystem {
             let frameDamage = damagePerSec * dt;
             
             // Shield Mitigation logic (Standardized)
+            let absorbed = 0;
             if (agent.shield > 0) {
-                const absorbed = Math.min(agent.shield, frameDamage);
+                absorbed = Math.min(agent.shield, frameDamage);
                 agent.shield -= absorbed;
                 frameDamage -= absorbed;
             }
@@ -35,14 +36,28 @@ export class EffectSystem {
 
             // Periodic Visual Feedback
             if (timer <= 0 && agent.dotDmg > 0) { 
-                engine.events.push({ 
-                    type: 'DAMAGE', 
-                    pos: {x: agent.px, y: agent.py}, 
-                    value: -Math.floor(damagePerSec), 
-                    color: '#10b981', // Poison Green default
-                    skill: { ccType: 'DOT' } as any 
-                });
-                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (中毒)`);
+                // Sum up real damage taken over the feedback interval to display
+                const visualDmg = damagePerSec * this.FEEDBACK_INTERVAL;
+                const visualAbsorb = agent.shield > visualDmg ? visualDmg : 0; // Rough approximation for visual
+                
+                // Instead of approximating, let's just use the instantaneous rate
+                const rateDmg = frameDamage / dt;
+                const rateAbsorb = absorbed / dt;
+                
+                if (rateAbsorb > 0) {
+                    engine.events.push({ type: 'DAMAGE', pos: {x: agent.px, y: agent.py}, value: -Math.floor(rateAbsorb), color: '#bae6fd', text: "ABSORB" });
+                }
+                
+                if (rateDmg > 0 || rateAbsorb === 0) {
+                    engine.events.push({ 
+                        type: 'DAMAGE', 
+                        pos: {x: agent.px, y: agent.py}, 
+                        value: -Math.floor(rateDmg > 0 ? rateDmg : damagePerSec), 
+                        color: '#10b981', // Poison Green default
+                        skill: { ccType: 'DOT' } as any 
+                    });
+                }
+                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(rateDmg)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (中毒)`);
                 agent.hitFlashTimer = 0.1;
                 // Don't reset timer yet, wait for HoT check
             }

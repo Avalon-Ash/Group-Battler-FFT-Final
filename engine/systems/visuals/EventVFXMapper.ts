@@ -24,15 +24,20 @@ export class EventVFXMapper {
         camera: CameraSystem,
         sequences: SequenceSystem
     ) {
+        const posX = event.pos?.x ?? 0;
+        const posY = event.pos?.y ?? 0;
+
         // 1. Resolve Spatial Context
-        const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine);
-        let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine);
+        const origin = this.resolvePoint(posX, posY, event.sourceId, engine);
+        let target = this.resolvePoint(posX, posY, event.targetId, engine);
         
-        const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
+        const groundHex = HexUtils.fromPx(posX, posY, engine.mapConfig);
         const groundZ = engine.getTerrainHeight(groundHex.q, groundHex.r);
 
         // SSOT Fix: Use standard center offset for generic targets (approximate chest height)
-        if (!event.targetId) target.z = groundZ + VISUAL_ANCHORS.CENTER_OFFSET;
+        if (!event.targetId) {
+            target = { x: posX, y: posY, z: groundZ + VISUAL_ANCHORS.CENTER_OFFSET };
+        }
 
         // 2. Route to specialized atomic handlers
         switch (event.type) {

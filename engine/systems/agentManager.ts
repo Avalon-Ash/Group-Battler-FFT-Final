@@ -57,8 +57,21 @@ export class AgentManager {
             engine.log(a, 'DEATH', '死亡', null, '陣亡');
             engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, sourceId: a.id, team: a.team });
             a.deadLogged = true;
-            // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
             engine.map.unregisterAgent(a);
+
+            // Fix [VFX Persistence]: Clear control and status timers on death.
+            // This prevents AgentVFXSystem from spawning looping particles on dead units
+            // whose logic timers would otherwise stay frozen if the engine stops updating them.
+            a.stunTimer = 0;
+            a.silenceTimer = 0;
+            a.banishTimer = 0;
+            a.rootTimer = 0;
+            a.fearTimer = 0;
+            a.tauntTimer = 0;
+            a.dotTimer = 0;
+            a.hotTimer = 0;
+            a.visualStatus = 'NONE';
+            
             a.fullyDead = true; 
             a.isMoving = false; 
             a.path = [];
