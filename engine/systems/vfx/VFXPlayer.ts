@@ -1,16 +1,12 @@
 
 import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
-import { EmitterConfig, Range, PROCEDURAL_TYPES } from "../../../types/VFXSchema";
+import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y } from "../../../constants";
-const rnd = (r: Range | number | undefined): number => {
-    if (r === undefined) return 0;
-    if (typeof r === 'number') return isNaN(r) ? 0 : r;
-    const min = r[0] ?? 0;
-    const max = r[1] ?? min;
-    if (isNaN(min) || isNaN(max)) return 0;
-    return min + Math.random() * (max - min);
+const rnd = (r: Range | number): number => {
+    if (typeof r === 'number') return r;
+    return r[0] + Math.random() * (r[1] - r[0]);
 };
 const pickColor = (colors: string[]): string => {
     if (!colors || colors.length === 0) return '#ffffff';
@@ -23,6 +19,10 @@ const GROUND_PARTICLES = new Set([
 const FIXED_ORIENTATION_PARTICLES = new Set([
     'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE'
 ]);
+const PROCEDURAL_TYPES = new Set([
+    'PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE', 
+    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE'
+]);
 export class VFXPlayer {
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
         const asset = VFX_REGISTRY[effectId];
@@ -32,9 +32,6 @@ export class VFXPlayer {
         }
     }
     private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number) {
-        // Sanity check: if base coordinates are NaN, discard emission to prevent 0,0 stacking
-        if (isNaN(cx) || isNaN(cy) || isNaN(cz)) return;
-
         const count = Math.floor(rnd(config.count));
         const isGroundType = GROUND_PARTICLES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;

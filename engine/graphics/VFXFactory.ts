@@ -38,16 +38,9 @@ export class VFXTextureCache {
                 break;
             case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
             case 'SHADOW_BLOB':
-            case 'BLAST':
-            case 'SHOCKWAVE':
-            case 'RING':
-            case 'HEX_GLOW':
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-                const baseColor = (type === 'SHADOW_BLOB') ? color : 'transparent';
-                const edgeColor = (type === 'SHADOW_BLOB') ? 'rgba(0,0,0,0.3)' : color;
-                
-                grad.addColorStop(0, type === 'SHOCKWAVE' || type === 'RING' ? 'transparent' : color); 
-                grad.addColorStop(0.6, type === 'BLAST' ? color : edgeColor);
+                grad.addColorStop(0, color); 
+                grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
                 grad.addColorStop(1, 'transparent'); 
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
@@ -56,10 +49,6 @@ export class VFXTextureCache {
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
             case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
             case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;
-            case 'ARROW': ProjectilePainter.drawImperialSniper(ctx, color); break;
-            case 'FIREBALL': ProjectilePainter.drawCovenantFireball(ctx, color); break;
-            case 'BOLT': ProjectilePainter.drawCovenantBolt(ctx, color); break;
-            case 'BOMB': ProjectilePainter.drawBomb(ctx, color); break;
             case 'BEAM':
                 const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
                 beamGrad.addColorStop(0, 'transparent');

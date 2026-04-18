@@ -2,13 +2,12 @@
 import { Particle } from "../../state";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 import { ISO_SCALE_Y } from "../../../../../constants";
-import { PROCEDURAL_TYPES } from "../../../../../types/VFXSchema";
 
 export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
         let img = p.image || p.texture;
         
-        if (!img && p.type !== 'SPRITE' && p.type !== 'GENERIC_DEBUG' && !PROCEDURAL_TYPES.has(p.type)) {
+        if (!img && p.type !== 'SPRITE' && p.type !== 'GENERIC_DEBUG') {
             p.image = VFXFactory.getTexture(p.type as any, p.color);
             img = p.image;
         }

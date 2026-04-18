@@ -62,9 +62,7 @@ export class VFXRenderer {
             op.isGround = isGroundLocked;
             
             op.particle = p;
-            let progress = 1 - (p.life / p.maxLife);
-            if (isNaN(progress)) progress = 1; // Fallback to end-of-life if maxLife is 0
-            op.vProgress = Math.max(0, Math.min(1, progress));
+            op.vProgress = 1 - (p.life / p.maxLife);
             op.vChaos = isChaosStyle(p.color);
             op.tx = p.x;
             
