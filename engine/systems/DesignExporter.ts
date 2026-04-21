@@ -94,6 +94,12 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWe
 [6. 特效渲染管線 (VFX Pipeline Map)]
 --------------------------------------------------------------------------------
 * 動態高度綁定 (Dynamic Height Binding): 特效系統在獲取空間資訊時，會攔截正在塌陷的網格 (Collapsing Tiles)，並回傳其動態下墜高度 (h + z)，確保粒子與碎石完美貼合下墜中的地形，防止穿模。
+* 投射物動態視覺軌跡 (Projectile Motion Blur & Adaptive Trails): 
+  - 投射物實體會在繪圖管線中依據物理真實速度 (px/s) 計算出速度拉伸倍率 (Velocity Stretch)，製造出速度越快拉得越長的運動模糊錯覺。
+  - 尾跡採樣策略捨棄了固定的時間步長，改為基於空間的「常數距離推算 (Adaptive Step)」，保證在任何物理速度與低 FPS 環境下，尾跡粒子仍然保持物理與視覺上 100% 的綿密平滑連接。
+* 衝擊波彈性緩動 (Explosive Easing Shockwaves): 
+  - 地面破壞波 (GroundPainter) 採用了四次方彈性爆發曲線 (Ease-Out Quartic)。
+  - 在爆發前 10% 時間就會充滿 80% 的空間體積，產生極強烈的「打擊」與「過曝」效果，以防止在低配環境或跳幀時看不見技能閃光。
 
 GameEvent (Logic) -> EventVFXMapper (Adapter) -> VFXSystem (State)
                                                       |
@@ -104,9 +110,10 @@ RenderPipeline
   +-- RenderList (Sort by Footprint Y)
   +-- RenderDispatcher
         |
+        +-- ProjectileDrawer (Motion Blur, Trail Density)
         +-- ProceduralPainter (Vector Geometry: BlackHole, HexBeam)
         +-- BillboardPainter (Sprite/Texture: Smoke, Spark)
-        +-- GroundPainter (Projection: Shockwave, Grid)
+        +-- GroundPainter (Projection: Cubic Easing Shockwaves, Grid)
         +-- VolumePainter (3D Extrusion: Shields, Pillars)
 
 [7. 資源索引 (Asset Registry)]

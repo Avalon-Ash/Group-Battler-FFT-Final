@@ -11,14 +11,16 @@ export const VFX_LIBRARY = {
         { key: 'NUKE_CLUSTER', name: '核彈連鎖序列', desc: '包含天降衝擊、強光閃爍與蘑菇雲升空的複合演出序列。', visuals: ['Flash', 'Cloud', 'Shockwave'] },
         { key: 'SSOT_PROJECTOR', name: 'SSOT 座標投影器', desc: '核心投影矩陣，確保 3D 邏輯座標與 2D 視覺座標 1:1 映射。', visuals: ['VisualMath', 'Z-Layers'] },
         { key: 'AUTO_FACTION', name: '陣營自動渲染管線', desc: '根據單位陣營屬性自動切換 150+ 個技能的粒子色澤與音效權重。', visuals: ['Theming', 'Registry'] },
-        { key: 'DYNAMIC_HEIGHT_BINDING', name: '動態高度綁定', desc: '攔截塌陷網格的空間資訊，確保粒子與碎石貼合下墜地形，防止穿模。', visuals: ['Z-Axis', 'Intercept'] }
+        { key: 'DYNAMIC_HEIGHT_BINDING', name: '動態高度綁定', desc: '攔截塌陷網格的空間資訊，確保粒子與碎石貼合下墜地形，防止穿模。', visuals: ['Z-Axis', 'Intercept'] },
+        { key: 'MOTION_BLUR_TRAIL', name: '動態模糊與物理尾跡', desc: '根據投射物物理速度自適應拉伸變形 (Stretch/Squish) 以及依據空間距離的精準採樣技術。', visuals: ['Velocity', 'Adaptive Step'] }
     ] as VFXEntry[],
 
     PROCEDURAL_GEOMETRY: [
         { key: 'MAGIC_CIRCLE', name: '向量魔法陣', desc: '多層旋轉向量幾何，無貼圖依賴，無限解析度。', visuals: ['Vector', 'Runes'] },
         { key: 'VOLUMETRIC_PILLAR', name: '體積光柱', desc: '模擬光線散射的垂直柱狀體，具備掃描線效果。', visuals: ['Gradient', 'Scanline'] },
         { key: 'DYNAMIC_GRID', name: '戰術網格場', desc: '貼合地形起伏的動態網格掃描效果，支持液態流動。', visuals: ['Topology', 'Pulse'] },
-        { key: 'HEX_FIELD', name: '六邊形力場', desc: '用於護盾與區域控制的幾何邊界渲染。', visuals: ['Hex', 'Shield'] }
+        { key: 'HEX_FIELD', name: '六邊形力場', desc: '用於護盾與區域控制的幾何邊界渲染。', visuals: ['Hex', 'Shield'] },
+        { key: 'EASING_SHOCKWAVE', name: '彈性緩動衝擊波', desc: '採用四次方曲線 (Quartic) 的幾何爆發，增強低 FPS 下的打擊感與閃光過曝。', visuals: ['Cubic', 'Flash', 'Stroke'] }
     ] as VFXEntry[],
 
     COSMIC_ANOMALY: [
