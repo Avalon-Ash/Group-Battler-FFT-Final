@@ -90,8 +90,8 @@ export class VisualMath {
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
         const terrainH = engine.getTerrainHeight(agent.q, agent.r);
-        const chestHeight = (UNIT_VISUAL_HEIGHT * 0.45) * UNIT_SCALE;
-        const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET + chestHeight;
+        // UNIT_BODY_OFFSET already represents the vertical center/chest of the unit
+        const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
     }
 

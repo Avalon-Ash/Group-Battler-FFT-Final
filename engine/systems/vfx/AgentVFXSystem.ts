@@ -16,7 +16,7 @@ export class AgentVFXSystem {
     public update(dt: number, engine: GameEngine, vfx: VFXSystem) {
         // 1. Friction Dust / Sparks Logic
         this.dustTimer += dt;
-        const canSpawnDust = this.dustTimer > 0.05; // Limit rate (20fps)
+        const canSpawnDust = this.dustTimer > 0.15; // Limit rate (approx 6fps) to prevent excessive stacking
 
         if (canSpawnDust) {
             for (const a of engine.agents) {
@@ -26,13 +26,11 @@ export class AgentVFXSystem {
                 const isGrounded = a.physics.z < 5;
                 const isFlyingUnit = a.movementType === MovementType.FLYING;
 
-                // Threshold: 300px/s
-                if (speedSq > 90000 && isGrounded && !isFlyingUnit) {
-                    const type = speedSq > 250000 ? 'SPARK' : 'DUST';
-                    const effectId = type === 'SPARK' ? 'FX_STATUS_STUN_LOOP' : 'FX_STATUS_ROOT_LOOP';
+                // Threshold: Only trigger on massive impulses (knockbacks > 500px/s)
+                if (speedSq > 250000 && isGrounded && !isFlyingUnit) {
                     const terrainH = engine.map.getTerrainHeight(a.q, a.r);
-                    
-                    vfx.playEffect(effectId, a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
+                    // Use DUST everywhere instead of STUN_LOOP to prevent the "Weird Orb of Light" stacking bug
+                    vfx.playEffect('FX_STATUS_ROOT_LOOP', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
                 }
             }
             this.dustTimer = 0;
@@ -40,7 +38,7 @@ export class AgentVFXSystem {
 
         // 2. Status Effect Particles (Poison bubbles, Stun stars, etc.)
         for (const a of engine.agents) {
-            if (a.hp <= 0 && a.fullyDead) continue;
+            if (a.hp <= 0 || a.fullyDead) continue;
             this.processStatusVFX(a, dt, engine, vfx);
             this.processIdleVFX(a, dt, engine, vfx);
         }

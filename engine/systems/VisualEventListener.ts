@@ -36,8 +36,8 @@ export class VisualEventListener {
                 if (sequence) {
                     const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
                     
-                    // SSOT FIX: If target is ground (no unit ID or generic), ensure correct Z
-                    if (!event.targetId || event.targetId.startsWith('ground-')) {
+                    // SSOT FIX: If target is ground or if resolution failed (e.g. target died), ensure we fall back to the event position
+                    if (target3D.z === -9999 || !event.targetId || event.targetId.startsWith('ground-')) {
                         target3D.x = event.pos.x;
                         target3D.y = event.pos.y;
                         

@@ -97,14 +97,20 @@ export const ProjectileDrawer = {
         ctx.save();
         ctx.translate(x, y);
         
-        // Stretch: Imperial projects are faster/longer visually
-        const stretch = isCovenant ? 1.05 : 1.3; 
+        // Stretch: Imperial projects are physically longer natively.
+        // Dynamic Stretch: Map physical speed to motion blur length.
+        const baseStretch = isCovenant ? 1.05 : 1.3; 
+        const velocityStretch = 1.0 + Math.max(0, (op.pSpeed - 800) / 2500); 
+        const stretch = baseStretch * velocityStretch;
+        
+        // Squish resistance to prevent the projectile from becoming a 0-width line at extreme speeds
+        const squishResist = Math.max(0.4, 1.0 / stretch);
         
         if (op.pSpin !== 0) {
             ctx.rotate(op.pSpin);
         } else {
             ctx.rotate(angle);
-            ctx.scale(stretch, 1.0 / stretch); 
+            ctx.scale(stretch, squishResist); 
         }
 
         const img = AssetManager.getProjectile(op.pSkillVis, color);

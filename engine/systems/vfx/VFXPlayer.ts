@@ -21,7 +21,7 @@ const FIXED_ORIENTATION_PARTICLES = new Set([
 ]);
 const PROCEDURAL_TYPES = new Set([
     'PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE', 
-    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE'
+    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE', 'GIANT_HEX'
 ]);
 export class VFXPlayer {
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {

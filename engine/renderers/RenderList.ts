@@ -44,6 +44,7 @@ export class RenderOp {
     pSkillVis: string = ''; pColor: string = '';
     pIsUlt: boolean = false; pAngle: number = 0; pSpin: number = 0;
     pScale: number = 1.0; 
+    pSpeed: number = 0;
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
     dColor: string = ''; dScale: number = 1; dLife: number = 0;

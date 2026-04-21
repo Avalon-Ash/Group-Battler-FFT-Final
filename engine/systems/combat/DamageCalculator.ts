@@ -103,6 +103,7 @@ export class DamageCalculator {
         if (!isHeal && target.shield > 0) {
             absorbed = Math.min(target.shield, base);
             base -= absorbed;
+            target.shield -= absorbed;
             result.shieldAbsorb = absorbed;
         }
 

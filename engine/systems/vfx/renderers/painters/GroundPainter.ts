@@ -15,7 +15,12 @@ export const GroundPainter = {
             return;
         }
 
-        const img = p.image || p.texture;
+        let img = p.image || p.texture;
+        if (!img && p.type !== 'SPRITE' && p.type !== 'GENERIC_DEBUG') {
+            p.image = VFXFactory.getTexture(p.type as any, p.color);
+            img = p.image;
+        }
+        
         if (!img) return;
 
         let alpha = 1.0 - progress;
@@ -49,23 +54,32 @@ export const GroundPainter = {
             if (alpha <= 0.01) { ctx.restore(); return; }
 
             ctx.globalAlpha = alpha;
-            ctx.strokeStyle = p.color;
             ctx.shadowColor = p.color;
-            ctx.shadowBlur = 15;
+            ctx.shadowBlur = p.type === 'BLAST' ? 30 : 15;
             
-            const currentRadius = p.size * (0.3 + progress * 0.7);
-            const lineWidth = Math.max(1, (1 - progress) * (p.type === 'SHOCKWAVE' ? 12 : 4));
+            // Explosive Easing - pops much faster in the first 20% of life, allowing it to be seen even on low FPS 
+            const easeOut = 1 - Math.pow(1 - progress, 4);
+            const currentRadius = p.size * Math.max(0.2, easeOut);
             
-            ctx.lineWidth = lineWidth;
-            HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
-            ctx.stroke();
-            
-            // 內圈回饋
-            if (p.type === 'SHOCKWAVE') {
-                ctx.lineWidth = lineWidth * 0.3;
-                ctx.globalAlpha = alpha * 0.5;
-                HexGeometry.traceHex(ctx, 0, 0, currentRadius * 0.8, true, layout);
+            if (p.type === 'BLAST') {
+                // Blast is a massive fill flash
+                ctx.fillStyle = p.color;
+                HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
+                ctx.fill();
+            } else {
+                ctx.strokeStyle = p.color;
+                const lineWidth = Math.max(1, (1 - progress) * (p.type === 'SHOCKWAVE' ? 14 : 4));
+                ctx.lineWidth = lineWidth;
+                HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
                 ctx.stroke();
+                
+                // Inner ring feedback for powerful impacts
+                if (p.type === 'SHOCKWAVE') {
+                    ctx.lineWidth = lineWidth * 0.4;
+                    ctx.globalAlpha = alpha * 0.6;
+                    HexGeometry.traceHex(ctx, 0, 0, currentRadius * 0.75, true, layout);
+                    ctx.stroke();
+                }
             }
         }
         else if (p.type === 'GRID_FIELD') {

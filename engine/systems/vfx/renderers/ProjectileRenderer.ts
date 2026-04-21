@@ -45,6 +45,9 @@ export const ProjectileRenderer = {
             // Use SSOT Projection for final Y position
             const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
 
+            const dist = Math.sqrt((end.x - start.x)**2 + (end.y - start.y)**2);
+            const speed = dist / Math.max(0.01, p.totalDuration); 
+            
             const op = renderList.next();
             op.type = RenderOpType.PROJECTILE;
             op.y = current3D.y; 
@@ -58,13 +61,22 @@ export const ProjectileRenderer = {
             op.pIsUlt = p.skill.tag === 'ULT';
             op.pSpin = traj.spinSpeed ? (p.t * p.totalDuration * traj.spinSpeed) : 0;
             op.pScale = traj.scale || 1.0; 
+            op.pSpeed = speed; // Pass speed for motion blur scaling
             
             // 4. Trails (Calculated purely visually backwards from SSOT position)
             op.pTrail = [];
-            const trailSamples = p.skill.tag === 'ULT' ? 20 : 10;
+            const trailSamples = p.skill.tag === 'ULT' ? 24 : 12;
             
             if (trailSamples > 0) {
-                const step = 0.015; 
+                // Determine step size based on actual pixel distance to ensure smooth physical gap 
+                // between trail points. Fast projectiles need smaller 't' steps to not appear choppy.
+                // we want a sample roughly every 15-20 pixels
+                const optimalStepDist = 20;
+                let step = optimalStepDist / Math.max(1, dist);
+                
+                // Clamp step to avoid excessive iterations, but ensure dense enough for fast projectiles
+                step = Math.max(0.005, Math.min(0.05, step));
+
                 for (let j = 1; j <= trailSamples; j++) {
                     const tPast = Math.max(0, p.t - j * step);
                     // Use SSOT Evaluate for past points

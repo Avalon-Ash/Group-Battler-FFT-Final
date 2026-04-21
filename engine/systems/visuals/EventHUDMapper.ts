@@ -65,15 +65,21 @@ export class EventHUDMapper {
         if (event.type === 'DAMAGE') {
             const val = Math.abs(event.value || 0);
             text = val.toString();
+            if (event.text) {
+                text = `${text} ${event.text === 'ABSORB' ? '吸收' : event.text}`;
+            }
+
             const isCrit = val > 100;
             const isDot = event.skill?.ccType === 'DOT';
             
-            if (isDot) {
+            if (event.text === 'ABSORB') {
+                color = '#bae6fd';
+            } else if (isDot) {
                 color = STATUS_VISUALS['POISON']?.primaryColor || '#a3e635';
             } else if (isCrit) {
                 color = '#ef4444'; 
             } else {
-                color = '#fff';
+                color = event.color || '#fff';
             }
             
             size = isCrit ? 24 : 16;

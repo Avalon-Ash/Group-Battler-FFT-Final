@@ -282,6 +282,12 @@ export class GameEngine {
         
         // SSOT Enforcement: Animation state is derived last
         this.animation.update(dt, this);
+
+        // Remove fully dead agents to prevent memory and pipeline leaks
+        const deadCount = this.agents.filter(a => a.fullyDead).length;
+        if (deadCount > 0) {
+            this.agents = this.agents.filter(a => !a.fullyDead);
+        }
     }
     
     public log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string = '') {
