@@ -1,5 +1,5 @@
 
-import { Role, Team, AnimState } from '../../types';
+import { Role, Team, AnimState, AIState } from '../../types';
 import { PALETTE } from '../../constants';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
@@ -29,25 +29,20 @@ export const TAG_MAP: Record<string, { label: string; color: string }> = {
     'BASIC':  { label: 'BASE_PULSE', color: 'text-slate-400' }
 };
 
-export const BT_STATUS_MAP: Record<string, string> = {
-    '待機': 'IDLE_SCAN',
-    '待機中': 'IDLE_SCAN',
-    '等待': 'WAIT_SIGNAL',
-    '被控': 'SIGNAL_INTERRUPTED',
-    '死亡': 'UNIT_TERMINATED',
-    '詠唱 ULT': 'EXEC_ULT_SEQ',
-    '詠唱 ACTIVE': 'EXEC_ACT_MOD',
-    '詠唱 BASIC': 'EXEC_BASE_ATK',
-    '中斷': 'CORE_FAILURE',
-    '放逐結束': 'RE_LINK_INIT',
-    '追蹤': 'TARGET_LOCK',
-    '戰鬥鎖定': 'COMBAT_LOCK',
-    '擠出': 'PHYS_SYNC',
-    '逃生': 'EVADE_ZONE',
-    '危險區': 'IN_DANGER',
-    '危險！逃離中': 'EVADE_ZONE_URGENT',
-    '背水一戰：推拉！': 'LAST_STAND_PUSH',
-    '背水一戰：攻擊！': 'LAST_STAND_ATK'
+export const AI_STATE_NAME_MAP: Record<AIState, string> = {
+    [AIState.IDLE]: 'IDLE_SCAN',
+    [AIState.WAITING]: 'WAIT_SIGNAL',
+    [AIState.CC_INTERRUPTED]: 'SIGNAL_INTERRUPTED',
+    [AIState.DEAD]: 'UNIT_TERMINATED',
+    [AIState.CASTING_ULT]: 'EXEC_ULT_SEQ',
+    [AIState.CASTING_ACTIVE]: 'EXEC_ACT_MOD',
+    [AIState.CASTING_BASIC]: 'EXEC_BASE_ATK',
+    [AIState.TRACKING]: 'TARGET_LOCK',
+    [AIState.EVADING]: 'EVADE_ZONE',
+    [AIState.EVADING_URGENT]: 'EVADE_ZONE_URGENT',
+    [AIState.LAST_STAND_PUSH]: 'LAST_STAND_PUSH',
+    [AIState.LAST_STAND_ATTACK]: 'LAST_STAND_ATK',
+    [AIState.COMBAT_LOCK]: 'COMBAT_LOCK',
 };
 
 export const ANIM_STATUS_MAP: Record<string, string> = {
@@ -120,14 +115,5 @@ export const Helpers = {
     getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, color: 'text-slate-400', border: 'border-slate-500' },
     getTeamConfig: (team: Team) => TEAM_MAP[team] || { label: 'UNKNOWN_SIGNAL', color: 'text-slate-400', bg: 'bg-slate-800' },
     getTagLabel: (tag: string) => TAG_MAP[tag]?.label || 'UNDEFINED_TAG',
-    getStatusLabel: (status: string) => {
-        if (!status) return 'IDLE_SCAN';
-        const base = status.split(' ')[0];
-        if (BT_STATUS_MAP[status]) return BT_STATUS_MAP[status];
-        if (BT_STATUS_MAP[base]) {
-            const sub = status.split(' ')[1] || '';
-            return `${BT_STATUS_MAP[base]}${sub ? '_' + sub.toUpperCase() : ''}`;
-        }
-        return status.replace(/\s+/g, '_').toUpperCase();
-    }
+    getAIStateLabel: (state: AIState) => AI_STATE_NAME_MAP[state] || 'UNKNOWN_STATE'
 };

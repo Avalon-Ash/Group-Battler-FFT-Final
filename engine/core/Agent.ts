@@ -1,5 +1,5 @@
 
-import { Skill, Team, Role, MovementType, AnimState, Hex } from "../../types";
+import { Skill, Team, Role, MovementType, AnimState, Hex, AIState } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
@@ -43,7 +43,7 @@ export class Agent {
     public facing: number = 1;
     public target: Agent | null = null;
     public targetHex: Hex | null = null;
-    public btStatus: string = "待機";
+    public aiState: AIState = AIState.IDLE;
     public bt: BTNode | null = null;
     
     public aiUpdateTimer: number = 0;

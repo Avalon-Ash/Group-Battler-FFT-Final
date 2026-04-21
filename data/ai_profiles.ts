@@ -1,4 +1,6 @@
 
+import { AIState } from "../types";
+
 export interface BTDef {
     type: 'SELECTOR' | 'SEQUENCE' | 'CONDITION' | 'ACTION';
     name: string;
@@ -17,7 +19,7 @@ export const STANDARD_AI_PROFILE: BTDef = {
             name: 'Dead Check',
             children: [
                 { type: 'CONDITION', name: 'Is Dead?', key: 'IsDead' },
-                { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { status: '死亡' } }
+                { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } }
             ]
         },
         // [NEW] Survival: Escape Warning Zone
@@ -57,7 +59,7 @@ export const STANDARD_AI_PROFILE: BTDef = {
                         { type: 'CONDITION', name: 'Feared?', key: 'IsFeared' }
                     ]
                 },
-                { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { status: '被控' } }
+                { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } }
             ]
         },
         // 2. Combat Loop

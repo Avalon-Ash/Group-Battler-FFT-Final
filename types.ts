@@ -123,6 +123,22 @@ export enum AnimState {
     MOVE = 6
 }
 
+export enum AIState {
+    IDLE = 0,
+    WAITING = 1,
+    CC_INTERRUPTED = 2,
+    DEAD = 3,
+    CASTING_ULT = 4,
+    CASTING_ACTIVE = 5,
+    CASTING_BASIC = 6,
+    TRACKING = 7,
+    EVADING = 8,
+    EVADING_URGENT = 9,
+    LAST_STAND_PUSH = 10,
+    LAST_STAND_ATTACK = 11,
+    COMBAT_LOCK = 12,
+}
+
 export interface Hex {
     q: number;
     r: number;

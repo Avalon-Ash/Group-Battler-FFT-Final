@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { Projectile, Skill, NodeState } from "../../types";
+import { Projectile, Skill, NodeState, AIState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";
 import { CastingEngine } from "./combat/CastingEngine";
 import { SkillExecutor } from "./combat/SkillExecutor";
@@ -27,7 +27,11 @@ export class CombatSystem {
             a.castingSkillIdx = skillIdx;
             a.castTimer = skill.cast;
             a.castingAnimationTimer = skill.cast;
-            a.btStatus = `詠唱 ${skill.tag}`;
+            
+            if (skill.tag === 'ULT') a.aiState = AIState.CASTING_ULT;
+            else if (skill.tag === 'ACTIVE') a.aiState = AIState.CASTING_ACTIVE;
+            else a.aiState = AIState.CASTING_BASIC;
+
             let targetName = '地面';
             if (a.target) targetName = a.target.id;
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;

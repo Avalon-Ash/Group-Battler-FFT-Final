@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GameEngine, Agent } from '../../engine/game';
-import { Team } from '../../types';
+import { Team, AIState } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
+import { Helpers } from '../inspector/InspectorConstants';
 
 interface DirectorMonitorHUDProps {
     engine: GameEngine;
@@ -122,7 +123,7 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
                                     <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-lg border border-white/5">
                                         <span className="text-[10px] font-bold text-slate-400 uppercase">Current Task:</span>
                                         <span className="text-[10px] font-mono font-bold text-cyan-300 truncate max-w-[120px]">
-                                            {targetAgent.btStatus || 'IDLE_SCAN'}
+                                            {Helpers.getAIStateLabel(targetAgent.aiState)} {targetAgent.target && targetAgent.aiState === AIState.TRACKING ? `_ ${targetAgent.target.id}` : ''}
                                         </span>
                                     </div>
                                 </div>

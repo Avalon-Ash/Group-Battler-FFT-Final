@@ -1,7 +1,7 @@
 
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState } from "../../types";
+import { NodeState, AIState } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 
@@ -117,11 +117,11 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
 export const BTActions: Record<string, BTActionFn> = {
     "Wait": (a, engine, args) => {
-        a.btStatus = args.status || "等待";
+        a.aiState = args.state || AIState.WAITING;
         return NodeState.RUNNING;
     },
     "Idle": (a) => {
-        a.btStatus = "待機中";
+        a.aiState = AIState.IDLE;
         if (a.isMoving) {
             a.isMoving = false;
             a.path = [];
@@ -129,7 +129,7 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        a.btStatus = "危險！逃離中";
+        a.aiState = AIState.EVADING_URGENT; 
         a.visualStatus = "DANGER"; 
         
         // 1. Ensure we have a targetHex to move to
@@ -193,7 +193,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
         const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
-        a.btStatus = `追蹤 ${a.target.id}`;
+        a.aiState = AIState.TRACKING;
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     },
     "CastPushPull": (a, engine) => {
@@ -228,7 +228,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
             
             if (dist <= effRange + 0.5) {
-                a.btStatus = "背水一戰：推拉！";
+                a.aiState = AIState.LAST_STAND_PUSH;
                 return engine.initiateCast(a, idx);
             }
         }

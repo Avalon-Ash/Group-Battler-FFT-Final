@@ -1,7 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Agent, GameEngine } from '../../engine/game';
-import { Team, Role } from '../../types';
+import { Team, Role, AIState } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
 import { Helpers, ROLE_MAP } from '../inspector/InspectorConstants';
@@ -215,7 +215,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                 <div className="flex flex-col">
                                     <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">CURRENT STATE</span>
                                     <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300'}`}>
-                                        {Helpers.getStatusLabel(agent.btStatus)}
+                                        {Helpers.getAIStateLabel(agent.aiState)} {agent.target && agent.aiState === AIState.TRACKING ? `_ ${agent.target.id}` : ''}
                                     </span>
                                 </div>
                                 <div className="flex gap-1">
