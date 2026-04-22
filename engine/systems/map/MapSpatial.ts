@@ -24,16 +24,21 @@ export class MapSpatial {
             if (movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) return true;
         }
 
-        // 2. Dynamic Units (Already Standing There)
+        // 2. 單位動態阻擋 (地面單位會被擋住，飛行單位可以穿過但不能停在同一格)
         const occupant = engine.agentMap.get(h);
-        if (occupant && occupant.id !== ignoreId && occupant.hp > 0 && !occupant.banished) return true;
+        if (occupant && occupant.id !== ignoreId && occupant.hp > 0 && !occupant.banished) {
+            // [FIX] 飛行單位允許穿過其他單位空間，只有地面單位會被實體阻擋路徑
+            if (movementType !== MovementType.FLYING) return true;
+        }
 
-        // 3. Movement Intent (Strict Reservation)
-        // Check if any other agent is moving TO this cell
-        for (const a of engine.agents) {
-            if (a.id === ignoreId || a.hp <= 0 || !a.isMoving || a.path.length === 0) continue;
-            const dest = a.path[0];
-            if (dest.q === q && dest.r === r) return true;
+        // 3. 移動意圖阻擋 (Strict Reservation)
+        // [FIX] 飛行單位同樣忽略移動意圖造成的阻擋，除非目的地也是同一格 (這由 StackingResolver 處理)
+        if (movementType !== MovementType.FLYING) {
+            for (const a of engine.agents) {
+                if (a.id === ignoreId || a.hp <= 0 || !a.isMoving || a.path.length === 0) continue;
+                const dest = a.path[0];
+                if (dest.q === q && dest.r === r) return true;
+            }
         }
 
         return false;

@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider } from "../../types";
+import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
@@ -44,19 +44,27 @@ export class TargetingSystem {
      * RTS 等級目標選取評分
      */
     public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
-        // [FIX] 如果正在詠唱非目標指向性的技能或大招，不應更新目標，以免打斷技能釋放的準心
-        if (a.castingSkillIdx !== -1) {
+        // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
+        const myKey = HexUtils.key(a);
+        const inDanger = spatial.isWarningTile(myKey);
+
+        // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
+        if (!inDanger && a.castingSkillIdx !== -1) {
             const s = a.skills[a.castingSkillIdx];
-            if (s && s.tag !== 'BASIC') return; // Don't redirect if we are locked in a cast!
+            if (s && s.tag !== 'BASIC') return; 
         }
         
         // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
-        const myKey = HexUtils.key(a);
-        const inDanger = spatial.isWarningTile(myKey);
-        
         if (inDanger && a.escapeCooldown <= 0) {
-            // 中斷當前攻擊或追擊目標
-            a.target = null;
+            // [FIX] 如果正在詠唱非普攻技能，不應隨意清除 target，避免技能失效
+            const isCastingSpecial = a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag !== 'BASIC';
+
+            // 被位移或在危險中時，若未在發動特殊技能，優先清理攻擊目標以轉入逃生狀態
+            if (!isCastingSpecial) {
+                if (!a.targetHex || spatial.isWarningTile(HexUtils.key(a.targetHex))) {
+                    a.target = null;
+                }
+            }
             
             // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
             if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
@@ -85,11 +93,13 @@ export class TargetingSystem {
                             if (spatial.isValid(hex.q, hex.r)) {
                                 const hexKey = HexUtils.key(hex);
                                 if (!spatial.isWarningTile(hexKey)) {
-                                    const h1 = spatial.getTerrainHeight(a.q, a.r);
-                                    const h2 = spatial.getTerrainHeight(hex.q, hex.r);
-                                    const jumpLimit = 24; 
-                                    
-                                    if (h2 - h1 > jumpLimit) continue;
+                                    // [FIX] 飛行單位無視高度限制，地面單位使用動態跳躍高度
+                                    if (a.movementType !== MovementType.FLYING) {
+                                        const h1 = spatial.getTerrainHeight(a.q, a.r);
+                                        const h2 = spatial.getTerrainHeight(hex.q, hex.r);
+                                        const jumpLimit = Math.max(1, a.jump) * BLOCK_HEIGHT; 
+                                        if (h2 - h1 > jumpLimit) continue;
+                                    }
 
                                     const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
                                     if (distToCenter < minSafeDist) {
