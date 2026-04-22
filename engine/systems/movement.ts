@@ -38,8 +38,8 @@ export class MovementSystem {
         const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, spatial as any);
         const distToTarget = HexUtils.dist(a, targetHex);
 
-        // 1. 如果已經在射程內，停止移動並返回成功
-        if (distToTarget <= effRange) {
+        // 1. 如果已經在射程內，停止移動並返回成功 (使用與 AI 相同的容差)
+        if (distToTarget <= effRange + 0.1) {
             if (a.isMoving) {
                 a.isMoving = false;
                 a.path = [];

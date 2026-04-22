@@ -93,9 +93,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
         const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
-        if (gridDist > effRange + 0.5) return false;
+        // [FIX] 使用更嚴格的容差，與 SkillExecutor 保持同步，避免 AI 誤判射程導致空放
+        if (gridDist > effRange + 0.1) return false;
 
-        if (effRange <= 1.0) {
+        if (effRange <= 1.1) {
             const startPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             let endPx;
             if (a.targetHex) endPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
@@ -104,7 +105,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const dy = startPx.y - endPx.y;
             const pxDist = Math.sqrt(dx*dx + dy*dy);
             
-            if (pxDist > HEX_SIZE * 2.8) return false;
+            // 普攻/近戰目標的像素距離檢查
+            if (pxDist > HEX_SIZE * 2.2) return false;
         }
         
         return true;
@@ -263,7 +265,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
             const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
             
-            if (dist <= effRange + 0.5) {
+            if (dist <= effRange + 0.1) {
                 a.aiState = AIState.LAST_STAND_PUSH;
                 return engine.initiateCast(a, idx);
             }

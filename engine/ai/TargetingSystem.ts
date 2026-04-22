@@ -21,9 +21,23 @@ export class TargetingSystem {
         const h1 = spatial.getTerrainHeight(a.q, a.r);
         const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
-        // 高打低：每 48px 高度 (約2層) +1 射程
-        const heightBonus = deltaH > 0 ? Math.floor(deltaH / (BLOCK_HEIGHT * 2)) : 0;
-        return baseRange + heightBonus;
+        
+        // [FIX] 高低差增減機制 (Height Advantage/Penalty)
+        // 每一層 (BLOCK_HEIGHT = 24px) 產生 +/- 1 射程的影響
+        
+        let bonus = 0;
+        let penalty = 0;
+        
+        if (deltaH > 4) { // 有明顯高度優勢 (高打低)
+            // 每 24px +1 射程，上限 +2
+            bonus = Math.min(2, Math.floor(deltaH / BLOCK_HEIGHT));
+        } else if (deltaH < -4) { // 有明顯高度劣勢 (低打高)
+            // 每 24px -1 射程，上限 -2，且確保不影響基本近戰攻擊
+            penalty = Math.min(2, Math.floor(Math.abs(deltaH) / BLOCK_HEIGHT));
+        }
+
+        // 最終射程計算：確保最少仍有 1 的射程，且普攻以外的技能不受過度懲罰
+        return Math.max(1, baseRange + bonus - penalty);
     }
 
     /**

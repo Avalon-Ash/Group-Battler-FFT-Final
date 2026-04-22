@@ -76,7 +76,7 @@ export class SkillExecutor {
         } else {
             if (source.target && source.target.hp > 0 && !source.target.banished) {
                 const effRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
-                if (HexUtils.dist(source, source.target) <= effRange) {
+                if (HexUtils.dist(source, source.target) <= effRange + 0.1) {
                     targets.push(source.target);
                 }
             }
