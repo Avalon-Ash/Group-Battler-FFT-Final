@@ -100,12 +100,17 @@ export class VisualMath {
         const agent = engine.agents.find(a => a.id === targetId);
         if (agent) return this.getUnitAnchor(agent, engine);
         if (targetId.startsWith("ground-")) {
-            const parts = targetId.split("-")[1].split(",");
-            const q = parseInt(parts[0]);
-            const r = parseInt(parts[1]);
-            const p = HexUtils.toPx(q, r, engine.mapConfig);
-            const h = engine.getTerrainHeight(q, r);
-            return { x: p.x, y: p.y, z: h + 2 };
+            const coordsStr = targetId.substring(7); // remove "ground-"
+            const parts = coordsStr.split(",");
+            if (parts.length >= 2) {
+                const q = parseInt(parts[0]);
+                const r = parseInt(parts[1]);
+                const p = HexUtils.toPx(q, r, engine.mapConfig);
+                const h = engine.getTerrainHeight(q, r);
+                if (!isNaN(p.x) && !isNaN(p.y)) {
+                    return { x: p.x, y: p.y, z: h + 2 };
+                }
+            }
         }
         return { x: 0, y: 0, z: -9999 };
     }

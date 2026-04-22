@@ -30,6 +30,12 @@ export class TargetingSystem {
      * RTS 等級目標選取評分
      */
     public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
+        // [FIX] 如果正在詠唱非目標指向性的技能或大招，不應更新目標，以免打斷技能釋放的準心
+        if (a.castingSkillIdx !== -1) {
+            const s = a.skills[a.castingSkillIdx];
+            if (s && s.tag !== 'BASIC') return; // Don't redirect if we are locked in a cast!
+        }
+        
         // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
         const myKey = HexUtils.key(a);
         const inDanger = spatial.isWarningTile(myKey);
@@ -94,7 +100,8 @@ export class TargetingSystem {
             }
         } else if (!inDanger) {
             // 如果不在危險區，且當前目標地塊是為了逃生而設的（沒有 target），則清空它
-            if (!a.target && a.targetHex) {
+            // [FIX] 但如果單位正在詠唱非目標指向性的技能 (以 targetHex 為主)，就絕對不能清空！
+            if (!a.target && a.targetHex && a.castingSkillIdx === -1) {
                 a.targetHex = null;
             }
             if (a.visualStatus === 'DANGER') {

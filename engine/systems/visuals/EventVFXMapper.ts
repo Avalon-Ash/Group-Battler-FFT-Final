@@ -28,6 +28,13 @@ export class EventVFXMapper {
         const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine);
         let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine);
         
+        if (Math.abs(origin.x) < 0.1 && Math.abs(origin.y) < 0.1) {
+            console.warn(`[VFX] Origin is 0,0. EventType: ${event.type}. SourceId: ${event.sourceId}, Pos: ${event.pos.x},${event.pos.y}`);
+        }
+        if (Math.abs(target.x) < 0.1 && Math.abs(target.y) < 0.1) {
+            console.warn(`[VFX] Target is 0,0. EventType: ${event.type}. TargetId: ${event.targetId}, Pos: ${event.pos.x},${event.pos.y}`);
+        }
+
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const groundZ = engine.getTerrainHeight(groundHex.q, groundHex.r);
 

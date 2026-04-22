@@ -39,6 +39,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[idx];
         if (!s) return false;
         
+        // [FIX] 正在詠唱時（包含前搖）不應評估其他技能的施放條件，避免因為高頻 tick 導致其他技能覆蓋當前的 targetHex
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return false;
+        
         let cd = a.curCDs[idx];
         if (isNaN(cd)) cd = 0;
 
@@ -56,6 +59,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
+        
+        // [FIX] 若該技能正在詠唱中，直接保持當前選定的目標，避免詠唱中覆蓋 targetHex 導致朝非預期方向/對象施放
+        if (a.castingSkillIdx === idx) return true;
         
         const result = engine.calculateOptimalTarget(a, skill);
         
@@ -75,6 +81,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
+        
+        // [FIX] 正在詠唱時不重新判定距離，避免極限範圍內目標移動導致動作被取消或目標迷失
+        if (a.castingSkillIdx === idx) return true;
         
         let tQ = 0, tR = 0;
         if (a.targetHex) { tQ = a.targetHex.q; tR = a.targetHex.r; }
@@ -102,6 +111,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
     },
     
     "HasPushPullSkill": (a) => {
+        // [FIX] 不中斷當前正在詠唱的非普攻技能
+        if (a.castingSkillIdx !== -1) {
+            const currentSkill = a.skills[a.castingSkillIdx];
+            if (currentSkill && currentSkill.tag !== 'BASIC') return false;
+        }
+
         // 檢查是否有推拉技能可用於背水一戰
         return a.skills.some((s, idx) => {
             if (!s) return false;
@@ -132,6 +147,16 @@ export const BTActions: Record<string, BTActionFn> = {
         a.aiState = AIState.EVADING_URGENT; 
         a.visualStatus = "DANGER"; 
         
+        // [FIX] 只有在確定可以逃生 (有路徑) 且沒有卡住的情況下，才中斷當前的詠唱。
+        // 為了避免背水一戰時瘋狂切換，如果正在詠唱非普攻技能，絕對不中斷，讓它把技能放完
+        // 在更新 evasive targetHex 之前檢查，避免覆蓋原本技能瞄準的對象
+        if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
+            const s = a.skills[a.castingSkillIdx];
+            if (s && s.tag !== 'BASIC') {
+                return NodeState.FAILURE;
+            }
+        }
+        
         // 1. Ensure we have a targetHex to move to
         const myKey = HexUtils.key(a);
         if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
@@ -148,14 +173,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.FAILURE;
             }
             
-            // [FIX] 只有在確定可以逃生 (有路徑) 且沒有卡住的情況下，才中斷當前的詠唱。
-            // 為了避免背水一戰時瘋狂切換，如果正在詠唱非普攻技能，絕對不中斷，讓它把技能放完
             if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
                 const s = a.skills[a.castingSkillIdx];
-                if (s && s.tag !== 'BASIC') {
-                    // 正在放技能，鎖定狀態，不逃跑
-                    return NodeState.FAILURE;
-                } else if (s && s.tag === 'BASIC') {
+                if (s && s.tag === 'BASIC') {
                     engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷普攻");
                     a.castingSkillIdx = -1;
                     a.castTimer = 0;
@@ -197,6 +217,18 @@ export const BTActions: Record<string, BTActionFn> = {
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     },
     "CastPushPull": (a, engine) => {
+        // [FIX] 如果正在詠唱普攻，取消它
+        if (a.castingSkillIdx !== -1) {
+            const s = a.skills[a.castingSkillIdx];
+            if (s && s.tag === 'BASIC') {
+                a.castingSkillIdx = -1;
+                a.castTimer = 0;
+                a.castingAnimationTimer = 0;
+            } else {
+                return NodeState.FAILURE;
+            }
+        }
+
         // 尋找第一個可用的推拉技能並釋放
         const idx = a.skills.findIndex((s, i) => {
             if (!s) return false;

@@ -36,7 +36,6 @@ export class ProjectileSystem {
       // 3. Impact Check
       if (p.t >= 1.0) {
         this.handleImpact(p, engine, skillExecutor);
-        this.release(p);
         this.removeProjectile(i, engine);
       }
     }
