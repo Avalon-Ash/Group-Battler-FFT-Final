@@ -111,10 +111,15 @@ export const BTConditions: Record<string, BTConditionFn> = {
     },
     
     "HasPushPullSkill": (a) => {
-        // [FIX] 不中斷當前正在詠唱的非普攻技能
+        // [FIX] 如果正在詠唱非普攻技能，先讓它放完，不急著觸發背水一戰判定，避免邏輯抖動
         if (a.castingSkillIdx !== -1) {
             const currentSkill = a.skills[a.castingSkillIdx];
-            if (currentSkill && currentSkill.tag !== 'BASIC') return false;
+            if (currentSkill && currentSkill.tag !== 'BASIC') {
+                // 檢查是否當前正在詠唱的就是推拉技能，如果是，則視為 Ready 以維持 BT 狀態
+                const isPushPull = currentSkill.ccType === 'KNOCKBACK' || currentSkill.ccType === 'PULL' || 
+                                 currentSkill.ccType2 === 'KNOCKBACK' || currentSkill.ccType2 === 'PULL';
+                return isPushPull;
+            }
         }
 
         // 檢查是否有推拉技能可用於背水一戰
@@ -144,35 +149,34 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        a.aiState = AIState.EVADING_URGENT; 
-        a.visualStatus = "DANGER"; 
-        
-        // [FIX] 只有在確定可以逃生 (有路徑) 且沒有卡住的情況下，才中斷當前的詠唱。
-        // 為了避免背水一戰時瘋狂切換，如果正在詠唱非普攻技能，絕對不中斷，讓它把技能放完
-        // 在更新 evasive targetHex 之前檢查，避免覆蓋原本技能瞄準的對象
+        const myKey = HexUtils.key(a);
+        const inDanger = engine.isWarningTile(myKey);
+        if (!inDanger) return NodeState.FAILURE;
+
+        // [FIX] 如果正在詠唱非普攻技能，絕對不中斷，直到釋放完成
         if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
             const s = a.skills[a.castingSkillIdx];
-            if (s && s.tag !== 'BASIC') {
-                return NodeState.FAILURE;
-            }
+            if (s && s.tag !== 'BASIC') return NodeState.FAILURE;
         }
+
+        a.visualStatus = "DANGER"; 
         
-        // 1. Ensure we have a targetHex to move to
-        const myKey = HexUtils.key(a);
+        // 1. 確保有逃生地塊
         if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
             engine.updateTarget(a);
         }
 
-        if (a.targetHex) {
+        if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
             if (state === NodeState.FAILURE) {
-                // [FIX] 如果移動失敗（例如被堵死），必須清除逃生目標，讓後續戰鬥邏輯能正確鎖定敵人
-                a.targetHex = null;
-                // [FIX] 將冷卻時間從 1.5s 縮短為 0.2s，避免 AI 被友軍卡住後發呆掉下虛空
+                if (a.castingSkillIdx === -1) a.targetHex = null;
                 a.escapeCooldown = 0.2; 
                 return NodeState.FAILURE;
             }
             
+            // 只有成功開始逃跑才切換 AI 狀態，避免中斷詠唱動畫的感知
+            a.aiState = AIState.EVADING_URGENT; 
+
             if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.tag === 'BASIC') {
@@ -182,12 +186,10 @@ export const BTActions: Record<string, BTActionFn> = {
                     a.castingAnimationTimer = 0;
                 }
             }
-
             return state;
         }
         
-        // [FIX] 無路可逃時返回 FAILURE，觸發戰鬥背水一戰
-        a.targetHex = null;
+        if (a.castingSkillIdx === -1) a.targetHex = null;
         a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
     },
@@ -217,8 +219,21 @@ export const BTActions: Record<string, BTActionFn> = {
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     },
     "CastPushPull": (a, engine) => {
-        // [FIX] 如果正在詠唱普攻，取消它
+        // 尋找第一個可用的推拉技能
+        const idx = a.skills.findIndex((s, i) => {
+            if (!s) return false;
+            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
+            if (!isPushPull) return false;
+            let cd = a.curCDs[i];
+            return (isNaN(cd) || cd <= 0.1) && a.mp >= s.cost;
+        });
+
+        if (idx === -1) return NodeState.FAILURE;
+
+        // [FIX] 詠唱衝突檢查
         if (a.castingSkillIdx !== -1) {
+            if (a.castingSkillIdx === idx) return NodeState.RUNNING;
+            
             const s = a.skills[a.castingSkillIdx];
             if (s && s.tag === 'BASIC') {
                 a.castingSkillIdx = -1;
@@ -229,29 +244,18 @@ export const BTActions: Record<string, BTActionFn> = {
             }
         }
 
-        // 尋找第一個可用的推拉技能並釋放
-        const idx = a.skills.findIndex((s, i) => {
-            if (!s) return false;
-            const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
-            if (!isPushPull) return false;
-            let cd = a.curCDs[i];
-            return (isNaN(cd) || cd <= 0.1) && a.mp >= s.cost;
-        });
+        const skill = a.skills[idx]!;
+        const result = engine.calculateOptimalTarget(a, skill);
         
-        if (idx !== -1) {
-            const skill = a.skills[idx];
-            // [FIX] 使用 calculateOptimalTarget 確保技能瞄準正確的敵人或區域，而不是逃生網格
-            const result = engine.calculateOptimalTarget(a, skill);
-            
-            if (result.targetAgent) {
-                a.target = result.targetAgent;
-                a.targetHex = null;
-            } else if (result.targetHex) {
-                a.target = null;
-                a.targetHex = result.targetHex;
-            } else {
-                return NodeState.FAILURE;
-            }
+        if (result.targetAgent) {
+            a.target = result.targetAgent;
+            a.targetHex = null;
+        } else if (result.targetHex) {
+            a.target = null;
+            a.targetHex = result.targetHex;
+        } else {
+            return NodeState.FAILURE;
+        }
 
             // 檢查射程
             let tQ = a.targetHex ? a.targetHex.q : a.target!.q;
@@ -263,7 +267,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 a.aiState = AIState.LAST_STAND_PUSH;
                 return engine.initiateCast(a, idx);
             }
-        }
+        
         return NodeState.FAILURE;
     }
 };
