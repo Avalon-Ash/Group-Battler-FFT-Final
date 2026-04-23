@@ -1,9 +1,10 @@
 import { GameEngine } from "../game";
 import { KILL_STREAK_WINDOW } from "../../constants";
+import { GameEvent } from "../../types";
 
 export class AnnouncerSystem {
     public update(dt: number, engine: GameEngine) {
-        const newEvents: any[] = [];
+        const newEvents: GameEvent[] = [];
         engine.events.forEach(event => {
             if (event.type === 'KILL' && event.sourceId) {
                 this.processKill(event.sourceId, event.pos, engine, newEvents);
@@ -14,7 +15,7 @@ export class AnnouncerSystem {
         }
     }
 
-    private processKill(killerId: string, pos: {x: number, y: number}, engine: GameEngine, outEvents: any[]) {
+    private processKill(killerId: string, pos: {x: number, y: number}, engine: GameEngine, outEvents: GameEvent[]) {
         const now = engine.battleTime;
         const state = engine.sessionState;
         

@@ -115,7 +115,7 @@ export class ZoneSystem {
         } else {
             // If disabled, ensure we are not initialized so it can restart later
             if (this.initialized) {
-                console.log(`[ZoneSystem] Disabled. Resetting state.`);
+                engine.log(null, 'SYSTEM', '系統停用', null, '大逃殺機制已關閉，狀態重置');
                 this.reset();
             }
         }

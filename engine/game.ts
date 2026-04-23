@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
 import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG } from "../constants";
@@ -75,7 +75,7 @@ export class GameEngine {
     public screenAspect: number = 1.77;
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
-    public zoneConfig: any = { ...DEFAULT_ZONE_CONFIG };
+    public zoneConfig: ZoneConfig = { ...DEFAULT_ZONE_CONFIG };
     public currentScene: SceneTheme = SCENE_DB[0];
     public skillDB: Skill[] = [...DEFAULT_SKILL_DB];
     

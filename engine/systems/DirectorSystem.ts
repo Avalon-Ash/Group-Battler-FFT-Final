@@ -83,7 +83,7 @@ export class DirectorSystem {
         }
     }
 
-    private decideTarget(engine: GameEngine, ds: any) {
+    private decideTarget(engine: GameEngine, ds: GameEngine['state']['director']) {
         if (ds.priorityTimer > 0) return;
 
         let needNewTarget = false;

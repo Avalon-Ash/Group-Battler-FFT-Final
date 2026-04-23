@@ -18,7 +18,8 @@ export const UnitBodyPainter = {
         t: number, 
         isSilhouette: boolean, 
         isSelected: boolean,
-        scaleFactor: number
+        scaleFactor: number,
+        terrainHeight: number
     ) {
         const vx = agent.physics.vx;
         const vy = agent.physics.vy;
@@ -122,7 +123,7 @@ export const UnitBodyPainter = {
         if (agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
             // Re-use threshold logic for trails
             if (agent.movementType === MovementType.FLYING || speedSq > 5000) {
-                UnitFlightPainter.drawRibbonTrail(ctx, agent, t);
+                UnitFlightPainter.drawRibbonTrail(ctx, agent, t, terrainHeight);
             }
             if (agent.movementType === MovementType.FLYING) {
                 UnitFlightPainter.drawFlightVFX(ctx, agent, t);

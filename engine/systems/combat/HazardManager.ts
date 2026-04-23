@@ -1,11 +1,11 @@
 import { Agent, GameEngine } from "../../game";
-import { Skill } from "../../../types";
+import { Skill, GroundHazard } from "../../../types";
 
 export const HazardManager = {
     
     spawnHazards(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine) {
         const dur = skill.ccDur || 5.0;
-        let hType: any = null;
+        let hType: GroundHazard['type'] | null = null;
 
         // Map Skill Properties to Hazard Types
         if (skill.ccType === 'DOT') hType = 'POISON';

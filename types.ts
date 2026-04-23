@@ -1,4 +1,7 @@
 
+import type { Agent } from './engine/core/Agent';
+import type { MapConfig } from './engine/utils';
+
 export interface ZoneConfig {
     enabled: boolean;
     initialRadius: number;
@@ -13,11 +16,11 @@ export interface SpatialProvider {
     isValidHash(h: number): boolean;
     hasObstacleHash(h: number): boolean;
     getObstacleTypeHash(h: number): string | undefined;
-    getAgentHash(h: number): any | undefined;
-    getMapConfig(): any;
-    updateAgentPosition(agent: any, q: number, r: number): void;
-    getAgents(): any[];
-    log(agent: any, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
+    getAgentHash(h: number): Agent | undefined;
+    getMapConfig(): MapConfig;
+    updateAgentPosition(agent: Agent, q: number, r: number): void;
+    getAgents(): Agent[];
+    log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
     isWarningTile(key: string): boolean;
 }
 

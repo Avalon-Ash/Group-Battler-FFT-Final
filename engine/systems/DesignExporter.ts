@@ -118,6 +118,14 @@ RenderPipeline
 * VFXFactory: Texture Generation (Noise, Gradients)
 * UIFactory: Skill Icons, Status Hexes
 
+[8. AI 戰術評估與邊界機制 (AI & Boundary Mechanics)]
+--------------------------------------------------------------------------------
+* 逃生與環境感知 (Survival & Danger Zone Awareness): AI 的 TargetSelection 及 Pathfinding 取用了與大逃殺環節掛鉤的 SpatialProvider.isWarningTile 介面。當處於危險潰縮區時，會啟動生存權重補償 (Survival Bonus)，極度優先利用位移技能 (Knockback, Pull) 或逃跑路徑；打破原本死戰到底的硬邏輯。
+* 強制位移邊界 (CC Collision Bounds): 在進行 Knockback 或 Pull 等地塊位移結算時，嚴格要求最終落點不得違反 spatial.isValid 與 spatial.hasObstacleHash，阻止了模型被推拉出網格或卡入牆壁內的錯誤行為。
+* 地形射程補償 (Topographical Range Compensation): 所有技能射程基於高度差異會產生浮動（向下增加、向上減少的動態 Range Bonus），消弭在高低落差間的無效施法判斷。
+* 型別絕對防禦 (Strict Type & Protocol Security): 核心服務 (如 SpatialProvider) 的所有傳輸與引數不再使用任何強制轉型 (as any)，而是運用 TypeScript 3.8+ 特定的實體推導與 import type 阻斷型別逃逸。
+* SSOT 真實高度算繪 (Absolute Terrain Projection): 所有飛行軌跡與特效繪製撤銷了基於舊幀紀錄緩存的高度臆測。直接由管線母體同步供應當前時間切片的絕對地形高度 (Absolute Terrain Z)，即便是瞬移與跨幀大距離移動都能完美貼合地表。
+
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
 `;

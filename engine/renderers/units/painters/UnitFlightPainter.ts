@@ -39,7 +39,7 @@ export const UnitFlightPainter = {
      * 通用軌跡繪製：支持飛行緞帶 (Ribbon) 與地面滑痕 (Skid Marks)
      * SSOT: Now uses stored 'h' in trail history to accurately project past positions.
      */
-    drawRibbonTrail(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
+    drawRibbonTrail(ctx: CanvasRenderingContext2D, agent: Agent, t: number, currentH: number) {
         if (agent.trailHistory.length < 2) return;
 
         const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
@@ -53,19 +53,9 @@ export const UnitFlightPainter = {
         // We need to transform from "Unit Body Center" local space back to "Screen Space" relative to current pos
         
         const currentPx = agent.px + agent.physics.x;
-        
-        // HACK/FIX: We must assume the last point in trailHistory is close to current, or use 0 delta if unknown.
-        // Better: We can just draw the trail relative to the *World* position and assume H doesn't change wildly between frames?
-        // No, that causes jitter.
-        
-        // Let's calculate purely relative to the *current* frame of reference.
-        // We need to pass `terrainHeight` to `UnitBodyPainter` and then to here.
-        // Since we cannot change method signatures easily across too many files in one shot,
-        // we will infer `currentH` from the last trail point if available, or 0.
-        // This is a safe approximation for trails.
-        
         const currentWorldY = agent.py + agent.physics.y;
-        const currentH = agent.trailHistory.length > 0 ? agent.trailHistory[agent.trailHistory.length-1].h : 0;
+        
+        // 正確解法：直接從上游算繪管線接收當前幀的精確地形高度 (currentH)，消除從歷史紀錄臆測的 HACK。
         const currVy = VisualMath.getVisualBodyCenterY(currentWorldY - currentH, agent.physics.z);
         
         const points: {x: number, y: number}[] = [];
@@ -82,6 +72,9 @@ export const UnitFlightPainter = {
 
         ctx.beginPath();
         
+        let lastDx = points[0].x - currentPx;
+        let lastDy = points[0].y - currVy;
+
         for (let i = 0; i < points.length; i++) {
             const p = points[i];
             const dx = p.x - currentPx;
@@ -90,8 +83,19 @@ export const UnitFlightPainter = {
             // Add engine offset visual adjust
             const engOffset = VISUAL_ANCHORS.ENGINE_OFFSET_Y;
             
-            if (i === 0) ctx.moveTo(dx, dy + engOffset);
-            else ctx.lineTo(dx, dy + engOffset);
+            if (i === 0) {
+                ctx.moveTo(dx, dy + engOffset);
+            } else {
+                // 正確解法：判定若相鄰兩個渲染點距離過大（如大於 100px），則視為跨幀大距離移動、瞬間傳送，中斷路徑繪製，而非用 clamp 限縮。
+                const distSq = (dx - lastDx) * (dx - lastDx) + (dy - lastDy) * (dy - lastDy);
+                if (distSq > 10000) {
+                    ctx.moveTo(dx, dy + engOffset);
+                } else {
+                    ctx.lineTo(dx, dy + engOffset);
+                }
+            }
+            lastDx = dx;
+            lastDy = dy;
         }
         
         if (isFlying) {

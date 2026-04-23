@@ -60,7 +60,7 @@ export class UnitRenderSystem {
     ) {
         const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
         const visualGroundY = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
-        this.drawAssembly(ctx, agent, state.x, visualGroundY, globalTime, false, true, mapConfig.layout);
+        this.drawAssembly(ctx, agent, state.x, visualGroundY, globalTime, false, true, mapConfig.layout, state.terrainHeight);
     }
 
     public drawAssembly(
@@ -71,7 +71,8 @@ export class UnitRenderSystem {
         globalTime: number, 
         isSelected: boolean,
         isSilhouette: boolean,
-        layout: HexLayout
+        layout: HexLayout,
+        terrainHeight: number
     ) {
         ctx.save();
         ctx.translate(drawX, drawY); 
@@ -82,7 +83,7 @@ export class UnitRenderSystem {
         if (!isSilhouette && agent.hp > 0) {
             UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
         }
-        UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0);
+        UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
         
         ctx.restore(); 
     }

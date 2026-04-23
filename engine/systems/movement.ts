@@ -1,7 +1,7 @@
 
 import { Agent } from "../core/Agent";
 import { HexUtils } from "../utils";
-import { Hex, NodeState, SpatialProvider } from "../../types";
+import { Hex, NodeState, SpatialProvider, Skill } from "../../types";
 import { Pathfinder } from "../ai/Pathfinder";
 import { TargetingSystem } from "../ai/TargetingSystem";
 import { MotionEngine } from "./movement/MotionEngine";
@@ -19,23 +19,23 @@ export class MovementSystem {
     }
 
     public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
-        return this.targeting.getEffectiveRange(a, targetQ, targetR, baseRange, spatial as any);
+        return this.targeting.getEffectiveRange(a, targetQ, targetR, baseRange, spatial);
     }
 
     public updateTarget(a: Agent, spatial: SpatialProvider) {
-        this.targeting.updateTarget(a, spatial as any, this.pathfinder);
+        this.targeting.updateTarget(a, spatial, this.pathfinder);
     }
 
-    public calculateOptimalTarget(source: Agent, skill: any, spatial: SpatialProvider) {
-        return this.targeting.calculateOptimalTarget(source, skill, spatial as any);
+    public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider) {
+        return this.targeting.calculateOptimalTarget(source, skill, spatial);
     }
 
     public updateMovement(a: Agent, dt: number, spatial: SpatialProvider) {
-        MotionEngine.updateMovement(a, dt, spatial as any);
+        MotionEngine.updateMovement(a, dt, spatial);
     }
 
     public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
-        const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, spatial as any);
+        const effRange = this.targeting.getEffectiveRange(a, targetHex.q, targetHex.r, r, spatial);
         const distToTarget = HexUtils.dist(a, targetHex);
 
         // 1. 如果已經在射程內，停止移動並返回成功 (使用與 AI 相同的容差)
@@ -70,10 +70,10 @@ export class MovementSystem {
         }
 
         // 3. 尋找新路徑
-        let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, spatial as any, this.targeting, isEscaping);
+        let path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, false, spatial, this.targeting, isEscaping);
         if (path.length === 0 && distToTarget > effRange) {
             // 如果被單位堵住，嘗試無視單位尋路（擠過去）
-            path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, true, spatial as any, this.targeting, isEscaping);
+            path = this.pathfinder.findPath(a, targetHex.q, targetHex.r, r, true, spatial, this.targeting, isEscaping);
         }
 
         if (path.length > 0) {
@@ -145,6 +145,6 @@ export class MovementSystem {
     }
 
     public resolveStacking(spatial: SpatialProvider) {
-        this.stackingResolver.resolve(spatial as any);
+        this.stackingResolver.resolve(spatial);
     }
 }

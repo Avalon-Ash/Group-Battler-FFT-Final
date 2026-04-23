@@ -46,7 +46,7 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.UNIT:
-                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout);
+                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th);
                 break;
 
             case RenderOpType.DECAL:

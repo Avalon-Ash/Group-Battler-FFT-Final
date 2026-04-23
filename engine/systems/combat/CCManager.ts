@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../../game";
-import { Skill } from "../../../types";
+import { Skill, Hex } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
 import { COMBAT_PARAM } from "../../../constants";
 
@@ -164,7 +164,7 @@ export const CCManager = {
 
         for(let k=0; k<tilesToPush; k++) {
             const neighbors = HexUtils.neighbors(currentH);
-            let bestN: any = null;
+            let bestN: Hex | null = null;
             let bestDot = -2.0; 
             
             for(const n of neighbors) {
