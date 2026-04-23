@@ -18,7 +18,7 @@ export class DesignExporter {
     private static generateSpec(): string {
         return `
 ================================================================================
-TACTICAL.OS - 系統架構白皮書 (Kernel v9.6)
+TACTICAL.OS - 系統架構白皮書 (Kernel v9.7)
 Generated: ${new Date().toLocaleString()}
 Status: PRODUCTION_READY
 ================================================================================
@@ -26,8 +26,9 @@ Status: PRODUCTION_READY
 [1. 基礎設施與解耦 (Infrastructure & Decoupling)]
 --------------------------------------------------------------------------------
 * EventBus: 採用 Set<Handler> 儲存結構，從資料結構層面強制防堵重複訂閱，並在註銷時精確釋放記憶體。
-* SpatialProvider: 抽象空間提供者介面。移動系統 (MovementSystem)、尋路 (Pathfinder) 與目標選取 (TargetingSystem) 完全切斷對 MapSystem 的具體依賴，強制透過 SpatialProvider 請求空間障礙與地形狀態。
-* ZoneSystem: 獨立於地圖系統的生存空間控制器，負責處理 Battle Royale 模式的縮圈邏輯、警告區域計算與地形動態塌陷 (Collapsing Tiles)。
+* SpatialProvider: 抽象空間提供者介面。移動系統 (MovementSystem)、尋路 (Pathfinder) 與目標選取 (TargetingSystem) 完全切斷對 MapSystem 的具體依賴。
+* ZoneSystem & Dynamic Hazard: 獨立於地圖系統的生存空間控制器，負責處理縮圈邏輯與警告區域計算。
+* Flying Unit Physics: 飛行單位在空間屬性上標記為無視「單位碰撞 (Agent Occupancy)」，允許自由穿透隊友與敵人，消滅密集戰鬥下的導航死鎖。
 
 [2. 視覺投影與 SSOT 規範 (Spatial Truth & Topology)]
 --------------------------------------------------------------------------------
@@ -43,31 +44,27 @@ V_Y = (World_Y * ISO_SCALE_Y) - World_Z + Layer_Bias
 * Stepped Height Field (劇院景深地形): 根據離中心點距離與 Y 軸視角深度 (Visual Depth) 下移前景地形並抬高後方邊界，構成無遮擋的戰鬥碗狀地形。
 * Footprint Z-Sorting: 所有實體 (包含地形、警告區、角色與特效) 強制以「視覺落地位址」(Visual Base Y) 作為 RenderOp.y 的優先排序權重，消滅 2.5D 遮擋破圖。
 
-[3. AI 決策權重矩陣 (Decision Matrix)]
+[3. AI 決策權重與射程修正 (Decision Matrix & Range)]
 --------------------------------------------------------------------------------
-目標選取算法 (TargetingSystem V2) 採用加權評分機制：
+目標選取算法 (TargetingSystem V2.5) 採用加權評分與動態射程檢定：
 
 Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWeight)
 
-1. 距離權重 (Exponential Falloff):
+1. 高低差動態射程 (Height Advantage/Penalty):
+   * 高打低加成: 每高出 24px (1 層) 增加 +1 射程，上限 +2。
+   * 低打高懲罰: 每低於 24px (1 層) 減少 -1 射程，上限 -2，且近戰保底射程為 1。
+   * 系統容差 (Unified Tolerance): 統一使用 0.1 容差，消除 AI 判斷與實體結算間的死區 (Deadzone)。
+
+2. 距離權重 (Exponential Falloff):
    Score += 2000 / (Distance + 0.5)
-   * 極大幅度優先攻擊近身單位，防止近戰單位無視眼前敵人跑去追後排。
+   * 極大幅度優先攻擊近身單位。
 
-2. 血量權重 (Execute Priority):
-   Score += (1 - HpPct) * 50
-   * 優先攻擊殘血單位以減少敵方輸出。
+3. 威脅與生存邏輯:
+   * 詠唱 ULT: +200 權重，優先成為集火目標。
+   * 處於危險區 (IsInWarningZone): 強制觸發 Dijkstra 逃生尋路。
+   * 背水一戰 (Last Stand): 若逃生失敗，強制使用推拉 (KNOCKBACK/PULL) 技能將攔路者擊退。
 
-3. 威脅權重 (Threat Assessment):
-   * 詠唱 ULT: +200
-   * 詠唱 ACTIVE: +50
-   * 優先打斷高威脅目標。
-
-4. 生存權重 (Survival Logic & Last Stand):
-   * 處於縮圈警告區: 強制觸發 EVADE_ZONE 行為，使用 Dijkstra 算法尋找保證可達的安全格子。
-   * 背水一戰 (Last Stand): 若逃生路徑被完全阻擋 (FAILURE)，AI 將放棄逃生，強制切換回戰鬥模式，並優先使用具備推拉 (KNOCKBACK/PULL) 效果的技能將敵人擊入虛空。
-   * 生存加分 (Survival Bonus): 對於同樣處於危險區的敵人，給予額外 +500 權重，優先清除競爭逃生路線的對手。
-
-5. 黏著加分 (Hysteresis):
+4. 黏著加分 (Hysteresis):
    * 當前目標: +300
    * 防止在分數相近的目標間頻繁切換 (防抖)。
 
@@ -75,21 +72,19 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWe
 --------------------------------------------------------------------------------
 * DirectorSystem: 自動化鏡頭語言控制器。
   - Focus Logic: 優先鎖定正在施放奧義 (ULT) 或發生激烈交戰 (HP 劇烈變動) 的區域。
-  - Dynamic Zoom: 根據戰場單位密度與邊界自動調整縮放倍率。
-* Director Monitor HUD: 實時遙測數據面板，提供被鎖定單位的決策矩陣 (BT Status) 與生命體徵 (Vitals) 監控。
+* Director Monitor HUD: 實時遙測數據面板，提供被鎖定單位的決策矩陣 (BT Status) 與視覺狀態 (SpecialVisualStatus: DANGER/STASIS/FROZEN)。
 
 [5. 立體機動與尋路 (Topological Pathfinding)]
 --------------------------------------------------------------------------------
 移動邏輯採用非對稱垂直檢定 (Asymmetric Verticality)：
 
 1. 向上攀爬 (Climbing Up):
-   * 限制: Height_Diff <= Jump_Stat * BLOCK_HEIGHT
-   * 成本: Base + (Height_Diff penalty)
+   * 限制: Height_Diff <= Jump_Stat * BLOCK_HEIGHT (飛行單位無視此限制)。
+   * 成本: Base + (Height_Diff penalty)。
 
 2. 向下跳躍 (Jumping Down):
-   * 限制: 無限制 (允許跳崖)
-   * 成本: 固定微量懲罰 (鼓勵平地移動，但允許戰術跳躍)
-   * 後果: 落地時觸發 PhysicsEngine.applyFallDamage
+   * 限制: 無限制 (允許戰術跳崖)。
+   * 成本: 固定微量懲罰 (0.2)，鼓勵平地移動但不禁止跳崖逃生。
 
 [6. 特效渲染管線 (VFX Pipeline Map)]
 --------------------------------------------------------------------------------

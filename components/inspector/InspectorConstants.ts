@@ -70,7 +70,7 @@ export const SKILL_FIELD_GROUPS = [
       { key: 'visual', label: '基礎外觀 (Mesh)', type: 'select', simpleOptions: VISUAL_OPTIONS },
       { key: 'visualHitEffect', label: '命中效果 (VFX_ID)', type: 'text' },
       { key: 'visualProjectileEffect', label: '彈道效果 (VFX_ID)', type: 'text' },
-      { key: 'specialVisualStatus', label: '特殊視覺狀態', type: 'select', simpleOptions: ['NONE', 'POLYMORPH', 'STASIS', 'FROZEN'] },
+      { key: 'specialVisualStatus', label: '特殊視覺狀態', type: 'select', simpleOptions: ['NONE', 'POLYMORPH', 'STASIS', 'FROZEN', 'DANGER'] },
       { key: 'color', label: '核心色標 (Hex)', type: 'color' },
     ]
   },
