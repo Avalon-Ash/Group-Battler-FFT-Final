@@ -126,6 +126,7 @@ RenderPipeline
 * 型別絕對防禦 (Strict Type & Protocol Security): 核心服務 (如 SpatialProvider) 的所有傳輸與引數不再使用任何強制轉型 (as any)，而是運用 TypeScript 3.8+ 特定的實體推導與 import type 阻斷型別逃逸。
 * SSOT 真實高度算繪 (Absolute Terrain Projection): 所有飛行軌跡與特效繪製撤銷了基於舊幀紀錄緩存的高度臆測。直接由管線母體同步供應當前時間切片的絕對地形高度 (Absolute Terrain Z)，即便是瞬移與跨幀大距離移動都能完美貼合地表。
 * 介面隔離原則 (Interface Segregation / IoC): 對核心業務邏輯的相依性進行了精細切分。例如將日誌服務 (LogProvider) 從空間服務 (SpatialProvider) 中徹底剝離，使得諸如 StackingResolver 等子系統只依賴真正需要的行為，斬斷了因 GameEngine 單例膨脹而產生的耦合技術債。
+* 狀態快照與記憶體回收隔離 (State Snapshot & GC Boundary): 將戰鬥中為減少渲染與邏輯運算負擔而實行的「陣亡實體回收 (Garbage Collection)」機制，與「初始編制名冊 (Initial Roster Snapshot)」進行分離。確保戰場重置時 (Restart)，不會因為運行時優化機制而遺失參照，徹底保障重製功能的冪等性與狀態完整度。
 
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
