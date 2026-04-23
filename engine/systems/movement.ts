@@ -1,7 +1,7 @@
 
 import { Agent } from "../core/Agent";
 import { HexUtils } from "../utils";
-import { Hex, NodeState, SpatialProvider, Skill } from "../../types";
+import { Hex, NodeState, SpatialProvider, Skill, LogProvider } from "../../types";
 import { Pathfinder } from "../ai/Pathfinder";
 import { TargetingSystem } from "../ai/TargetingSystem";
 import { MotionEngine } from "./movement/MotionEngine";
@@ -144,7 +144,7 @@ export class MovementSystem {
         return this.moveAgentToHex(a, {q: t.q, r: t.r}, r, spatial, speedMult);
     }
 
-    public resolveStacking(spatial: SpatialProvider) {
-        this.stackingResolver.resolve(spatial);
+    public resolveStacking(spatial: SpatialProvider, logger: LogProvider) {
+        this.stackingResolver.resolve(spatial, logger);
     }
 }

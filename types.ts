@@ -9,6 +9,10 @@ export interface ZoneConfig {
     minRadius: number;
 }
 
+export interface LogProvider {
+    log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
+}
+
 export interface SpatialProvider {
     isValid(q: number, r: number): boolean;
     isBlocked(q: number, r: number, ignoreId?: string, movementType?: MovementType): boolean;
@@ -20,7 +24,6 @@ export interface SpatialProvider {
     getMapConfig(): MapConfig;
     updateAgentPosition(agent: Agent, q: number, r: number): void;
     getAgents(): Agent[];
-    log(agent: Agent | null, type: LogActionType, actionName: string, targetInfo: string | null, detail: string): void;
     isWarningTile(key: string): boolean;
 }
 

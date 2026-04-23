@@ -277,7 +277,7 @@ export class GameEngine {
         }
         this.combat.update(dt, this);
         this.hazardSystem.update(dt, this); 
-        this.movement.resolveStacking(this);
+        this.movement.resolveStacking(this, this);
         this.announcer.update(dt, this);
         
         // SSOT Enforcement: Animation state is derived last

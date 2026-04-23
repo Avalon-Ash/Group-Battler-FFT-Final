@@ -1,7 +1,7 @@
 
 import { Agent } from "../../core/Agent";
 import { HexUtils, Vector } from "../../utils";
-import { MovementType, SpatialProvider } from "../../../types";
+import { MovementType, SpatialProvider, LogProvider } from "../../../types";
 import { BLOCK_HEIGHT } from "../../../constants";
 
 /**
@@ -10,7 +10,7 @@ import { BLOCK_HEIGHT } from "../../../constants";
  */
 export class StackingResolver {
 
-    public resolve(spatial: SpatialProvider) {
+    public resolve(spatial: SpatialProvider, logger: LogProvider) {
         const cellMap = new Map<number, Agent[]>();
         
         // 1. Group by logical coordinates
@@ -24,12 +24,12 @@ export class StackingResolver {
         // 2. Resolve multi-unit cells
         cellMap.forEach((occupants, hash) => {
             if (occupants.length > 1) {
-                this.expelExcess(occupants, hash, spatial);
+                this.expelExcess(occupants, hash, spatial, logger);
             }
         });
     }
 
-    private expelExcess(list: Agent[], hash: number, spatial: SpatialProvider) {
+    private expelExcess(list: Agent[], hash: number, spatial: SpatialProvider, logger: LogProvider) {
         // Sort: Stationary units are "owners", moving units are "guests"
         list.sort((a, b) => (a.isMoving ? 1 : 0) - (b.isMoving ? 0 : 1));
         
@@ -58,7 +58,7 @@ export class StackingResolver {
                 guest.physics.vx += dir.x * 200;
                 guest.physics.vy += dir.y * 200;
                 
-                spatial.log(guest, 'SYSTEM', '擠出', `從 (${owner.q},${owner.r})`, '解決重疊狀態');
+                logger.log(guest, 'SYSTEM', '擠出', `從 (${owner.q},${owner.r})`, '解決重疊狀態');
             }
         }
     }
