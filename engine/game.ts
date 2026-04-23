@@ -34,6 +34,7 @@ export const VICTORY_PHASE_DURATION = 0.5;
 
 export class GameEngine {
     public agents: Agent[] = [];
+    public initialRoster: Agent[] = [];
     public projectiles: Projectile[] = [];
     
     private _entityCounter: number = 0;
@@ -168,6 +169,7 @@ export class GameEngine {
 
     public play() {
         if (!this.isRunning) {
+            this.initialRoster = [...this.agents];
             this.agents.forEach(a => a.saveState());
             this.state.time.battleTime = 0;
             this.logger.clear();
@@ -191,6 +193,7 @@ export class GameEngine {
 
     public restart() {
         this.stop();
+        this.agents = [...this.initialRoster];
         this.victorySystem.reset(this);
         this.zones.reset();
         this.state.time.battleTime = 0;
@@ -203,6 +206,8 @@ export class GameEngine {
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
             a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
+            a.bt = this.ai.buildAI(a, this); 
+            a.animState = AnimState.IDLE;
             this.map.registerAgent(a);
         });
         this.projectiles = [];
@@ -215,6 +220,7 @@ export class GameEngine {
         this.stop();
         this._entityCounter = 0; 
         this.agents = [];
+        this.initialRoster = [];
         this.projectiles = [];
         this.map.clearAgents();
         this.state.hazards.clear(); 
