@@ -44,7 +44,7 @@ export const VFXMapTab: React.FC = () => {
                 <div className="flex justify-between items-end">
                     <div className="flex flex-col">
                         <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Visual Effects Matrix</div>
-                        <div className="text-[10px] text-slate-600 font-mono mt-1">Registry v9.3 Compatible</div>
+                        <div className="text-[10px] text-slate-600 font-mono mt-1">Registry v9.7 Compatible</div>
                     </div>
                     <div className="text-[10px] font-mono text-purple-400/80 bg-purple-950/30 px-2 py-1 rounded-md border border-purple-500/20">
                         SYSTEM REFERENCE

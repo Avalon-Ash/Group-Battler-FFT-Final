@@ -10,7 +10,7 @@ const PROCEDURAL_SET = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DE
 const GROUND_PLANE_SET = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW']);
 
 /**
- * Unified Particle Dispatcher v9.0 (Time SSOT)
+ * Unified Particle Dispatcher v9.7 (Time SSOT)
  */
 export const ParticleRenderer = {
     

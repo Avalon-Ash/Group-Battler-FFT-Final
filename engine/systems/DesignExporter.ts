@@ -10,7 +10,7 @@ export class DesignExporter {
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement("a");
         anchor.href = url;
-        anchor.download = `Tactical_OS_v9.5_System_Architecture.txt`;
+        anchor.download = `Tactical_OS_v9.7_System_Architecture.txt`;
         anchor.click();
         URL.revokeObjectURL(url);
     }
