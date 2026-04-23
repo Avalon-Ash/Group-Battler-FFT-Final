@@ -22,12 +22,19 @@ export const STANDARD_AI_PROFILE: BTDef = {
                 { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } }
             ]
         },
-        // [NEW] Survival: Escape Warning Zone
+        // [NEW] Survival: Escape Warning Zone (Interceptor)
         {
             type: 'SEQUENCE',
             name: 'Survival',
             children: [
-                { type: 'CONDITION', name: 'In Danger?', key: 'IsInWarningZone' },
+                {
+                    type: 'SELECTOR',
+                    name: 'Trigger?',
+                    children: [
+                        { type: 'CONDITION', name: 'In Danger?', key: 'IsInWarningZone' },
+                        { type: 'CONDITION', name: 'Already Evading?', key: 'IsEvading' }
+                    ]
+                },
                 {
                     type: 'SELECTOR',
                     name: 'Survival Tactics',

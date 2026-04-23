@@ -1,7 +1,7 @@
 
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState } from "../../types";
+import { NodeState, AIState, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 
@@ -15,6 +15,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
     "IsFeared": (a) => a.fearTimer > 0, 
+    "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT,
     
     "HasTarget": (a, engine) => {
         if (a.target && a.target.hp > 0 && !a.target.banished) {
@@ -31,7 +32,28 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "MpAbove": (a, _, args) => a.mp >= args.amount,
     
     "IsInWarningZone": (a, engine) => {
-        return engine.isWarningTile(HexUtils.key(a));
+        // [Task 2] SSOT-Separated Dynamic Prediction
+        // 1. Check current position
+        if (engine.isWarningTile(HexUtils.key(a))) return true;
+
+        // 2. Predict based on movement state
+        if (a.isMoving && a.path && a.path.length > 0) {
+            // Autonomous moving: check destination
+            const lastHex = a.path[a.path.length - 1];
+            if (engine.isWarningTile(HexUtils.key(lastHex))) return true;
+        }
+
+        if (a.stuckTicks > 0) {
+            // Controlled displacement: project based on physics velocity
+            // stuckTicks is used as the remaining frame count for the displacement
+            const dt_est = 1 / 30; // Assuming 30fps basis for stuckTicks
+            const predPx = a.px + a.physics.vx * a.stuckTicks * dt_est;
+            const predPy = a.py + a.physics.vy * a.stuckTicks * dt_est;
+            const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
+            if (engine.isWarningTile(HexUtils.key(predHex))) return true;
+        }
+
+        return false;
     },
     
     "SkillReady": (a, _, args) => {
@@ -153,12 +175,49 @@ export const BTActions: Record<string, BTActionFn> = {
     "EscapeWarning": (a, engine) => {
         const myKey = HexUtils.key(a);
         const inDanger = engine.isWarningTile(myKey);
-        if (!inDanger) return NodeState.FAILURE;
+        
+        // [Task 1 Cleanup] If we are safe and no longer predicting danger, exit evasion state
+        if (!inDanger && !engine.state.hazards.has(myKey)) {
+            if (a.aiState === AIState.EVADING_URGENT) {
+                a.aiState = AIState.IDLE;
+                a.visualStatus = "NONE";
+            }
+            return NodeState.FAILURE;
+        }
 
-        // [FIX] 如果正在詠唱非普攻技能，絕對不中斷，直到釋放完成
-        if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
-            const s = a.skills[a.castingSkillIdx];
-            if (s && s.tag !== 'BASIC') return NodeState.FAILURE;
+        // [Task 3] Precise Casting Interruption
+        const hazard = engine.state.hazards.get(myKey);
+
+        if (!inDanger && !hazard) return NodeState.FAILURE;
+
+        // Check for fatal casting
+        if (a.castingSkillIdx !== -1) {
+            const skill = a.skills[a.castingSkillIdx];
+            if (skill) {
+                const remainingCast = a.castTimer;
+                let isFatal = false;
+
+                // SSOT Check: Hazard arrival vs Cast finish
+                if (inDanger && engine.zones.shrinkTimer < remainingCast) {
+                    isFatal = true;
+                }
+                
+                if (!isFatal && hazard && hazard.team !== a.team) {
+                    if (hazard.timer < remainingCast) {
+                        isFatal = true;
+                    }
+                }
+
+                if (isFatal) {
+                    engine.log(a, 'CC', '中斷', skill.name, "判定預測必死，強制中斷詠唱逃生");
+                    a.castingSkillIdx = -1;
+                    a.castTimer = 0;
+                    a.castingAnimationTimer = 0;
+                } else {
+                    // Not fatal: protect non-basic skills to allow DPS
+                    if (skill.tag !== 'BASIC') return NodeState.FAILURE;
+                }
+            }
         }
 
         a.visualStatus = "DANGER"; 
@@ -176,9 +235,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.FAILURE;
             }
             
-            // 只有成功開始逃跑才切換 AI 狀態，避免中斷詠唱動畫的感知
             a.aiState = AIState.EVADING_URGENT; 
 
+            // Casting is already handled by fatal check above, but we clean up leftovers if any
             if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.tag === 'BASIC') {
@@ -221,6 +280,7 @@ export const BTActions: Record<string, BTActionFn> = {
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     },
     "CastPushPull": (a, engine) => {
+        // [Task 5] Decoupled Path-Clearing Targeting
         // 尋找第一個可用的推拉技能
         const idx = a.skills.findIndex((s, i) => {
             if (!s) return false;
@@ -231,6 +291,25 @@ export const BTActions: Record<string, BTActionFn> = {
         });
 
         if (idx === -1) return NodeState.FAILURE;
+        const skill = a.skills[idx]!;
+
+        // 1. Path-Clearing Logic: Only trigger if in danger or evading
+        if (a.aiState === AIState.EVADING_URGENT || engine.isWarningTile(HexUtils.key(a))) {
+            if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
+                // Get line towards safety
+                const line = HexUtils.line(a, a.targetHex);
+                for (const h of line) {
+                    if (h.q === a.q && h.r === a.r) continue;
+                    const occupant = engine.getAgentAt(h.q, h.r);
+                    if (occupant && occupant.team !== a.team) {
+                        a.target = occupant;
+                        a.targetHex = null;
+                        break;
+                    }
+                    if (engine.map.hasObstacle(h.q, h.r)) break; 
+                }
+            }
+        }
 
         // [FIX] 詠唱衝突檢查
         if (a.castingSkillIdx !== -1) {
@@ -246,7 +325,6 @@ export const BTActions: Record<string, BTActionFn> = {
             }
         }
 
-        const skill = a.skills[idx]!;
         const result = engine.calculateOptimalTarget(a, skill);
         
         if (result.targetAgent) {
@@ -259,16 +337,16 @@ export const BTActions: Record<string, BTActionFn> = {
             return NodeState.FAILURE;
         }
 
-            // 檢查射程
-            let tQ = a.targetHex ? a.targetHex.q : a.target!.q;
-            let tR = a.targetHex ? a.targetHex.r : a.target!.r;
-            const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
-            const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
-            
-            if (dist <= effRange + 0.1) {
-                a.aiState = AIState.LAST_STAND_PUSH;
-                return engine.initiateCast(a, idx);
-            }
+        // 檢查射程
+        let tQ = a.targetHex ? a.targetHex.q : a.target!.q;
+        let tR = a.targetHex ? a.targetHex.r : a.target!.r;
+        const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
+        const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
+        
+        if (dist <= effRange + 0.1) {
+            a.aiState = AIState.LAST_STAND_PUSH;
+            return engine.initiateCast(a, idx);
+        }
         
         return NodeState.FAILURE;
     }

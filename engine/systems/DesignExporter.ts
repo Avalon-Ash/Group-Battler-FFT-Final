@@ -118,11 +118,15 @@ RenderPipeline
 * VFXFactory: Texture Generation (Noise, Gradients)
 * UIFactory: Skill Icons, Status Hexes
 
-[8. AI 戰術評估與邊界機制 (AI & Boundary Mechanics)]
+[8. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)]
 --------------------------------------------------------------------------------
-* 逃生與環境感知 (Survival & Danger Zone Awareness): AI 的 TargetSelection 及 Pathfinding 取用了與大逃殺環節掛鉤的 SpatialProvider.isWarningTile 介面。當處於危險潰縮區時，會啟動生存權重補償 (Survival Bonus)，極度優先利用位移技能 (Knockback, Pull) 或逃跑路徑；打破原本死戰到底的硬邏輯。
-* 強制位移邊界 (CC Collision Bounds): 在進行 Knockback 或 Pull 等地塊位移結算時，嚴格要求最終落點不得違反 spatial.isValid 與 spatial.hasObstacleHash，阻止了模型被推拉出網格或卡入牆壁內的錯誤行為。
-* 地形射程補償 (Topographical Range Compensation): 所有技能射程基於高度差異會產生浮動（向下增加、向上減少的動態 Range Bonus），消弭在高低落差間的無效施法判斷。
+* 狀態驅動攔截器 (Survival Interceptor): 採用頂層優先級攔截器模式。一旦偵測到危險，AI 會切入 EVADING_URGENT 狀態，完全掛起下層的掃描、追擊與常規攻擊邏輯，直至抵達安全區或狀態解除，徹底消除決策震盪。
+* 動態危險預測 (Dynamic Danger Prediction): 
+  - 運動投影: 基於 physics.vx/vy 與當前位移剩餘幀數 (stuckTicks) 進行物理投影，預判受力位移後的最終落點。
+  - 路徑終點檢定: 尋路過程中會同步驗證路徑終點 (TargetHex) 的安全性，防止單位主動走入未來的警告區域。
+* 精準對齊的致死詠唱中斷 (SSOT Casting Interruption): 建立基於地形坍塌計時器 (shrinkTimer) 與詠唱進度 (castTimer) 的競爭條件判定。若計算結果顯示無法在傷害生效前完成施法，系統將強制中斷高價值技能以優先保命，反之則維持施法以最大化 DPS。
+* 職責隔離的開路索敵 (Decoupled Path-Clearing): 逃生動作中整合了線型遮蔽掃描 (Line Raycast)。單位能自動識別通往安全路徑上的敵方路障，並將其定位為推拉技能的優先目標，而非依賴全域的 TargetingSystem 進行耦合判定。
+* 拓樸逃生尋路 (Topological Navigation): 尋路算法對高度差進行非對稱加權。向上攀爬依舊受 Jump 屬性嚴格限制，但向下跳躍被視為無成本戰術動作，賦予 AI 在危急時刻執行「戰術跳崖」的求生本能。
 * 型別絕對防禦 (Strict Type & Protocol Security): 核心服務 (如 SpatialProvider) 的所有傳輸與引數不再使用任何強制轉型 (as any)，而是運用 TypeScript 3.8+ 特定的實體推導與 import type 阻斷型別逃逸。
 * SSOT 真實高度算繪 (Absolute Terrain Projection): 所有飛行軌跡與特效繪製撤銷了基於舊幀紀錄緩存的高度臆測。直接由管線母體同步供應當前時間切片的絕對地形高度 (Absolute Terrain Z)，即便是瞬移與跨幀大距離移動都能完美貼合地表。
 * 介面隔離原則 (Interface Segregation / IoC): 對核心業務邏輯的相依性進行了精細切分。例如將日誌服務 (LogProvider) 從空間服務 (SpatialProvider) 中徹底剝離，使得諸如 StackingResolver 等子系統只依賴真正需要的行為，斬斷了因 GameEngine 單例膨脹而產生的耦合技術債。
