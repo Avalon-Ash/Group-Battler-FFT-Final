@@ -131,6 +131,10 @@ RenderPipeline
 * SSOT 真實高度算繪 (Absolute Terrain Projection): 所有飛行軌跡與特效繪製撤銷了基於舊幀紀錄緩存的高度臆測。直接由管線母體同步供應當前時間切片的絕對地形高度 (Absolute Terrain Z)，即便是瞬移與跨幀大距離移動都能完美貼合地表。
 * 介面隔離原則 (Interface Segregation / IoC): 對核心業務邏輯的相依性進行了精細切分。例如將日誌服務 (LogProvider) 從空間服務 (SpatialProvider) 中徹底剝離，使得諸如 StackingResolver 等子系統只依賴真正需要的行為，斬斷了因 GameEngine 單例膨脹而產生的耦合技術債。
 * 狀態快照與記憶體回收隔離 (State Snapshot & GC Boundary): 將戰鬥中為減少渲染與邏輯運算負擔而實行的「陣亡實體回收 (Garbage Collection)」機制，與「初始編制名冊 (Initial Roster Snapshot)」進行分離。確保戰場重置時 (Restart)，不會因為運行時優化機制而遺失參照，徹底保障重製功能的冪等性與狀態完整度。
+* 亞幀記憶體回收安全網 (Sub-Tick Garbage Collection Safety): 將陣亡實體的註銷延遲至當前 Tick 迴圈的最末端集中執行，消滅了因提早釋放參照導致同幀中後續系統 (如 StackingResolver) 讀取懸空指標或引發位移計算異常的邊界隱患。
+* 複合控制狀態競爭排解 (Concurrent CC Resolution): 針對實體同時掛載恐懼 (Fear) 與定身 (Root) 等多重干擾的極端情境，引入絕對層級覆蓋機制 (Strict Hierarchy Override)，徹底根除複數狀態在同一影格內競寫路徑與位移屬性所引發的抖動與死鎖。
+* 偽隨機時間窗鎖定機制 (Buffered RNG Temporal Lock): 獨立緩存大逃殺隨機縮圈階段 (Final Phase) 的目標索引 (finalPhaseTargetKey)。防止在「警告 (Warning)」與「執行 (Execution)」的跨幀等待期間內因種子滾動而發生跳格翻轉，確保時序邊界上的絕對一致性。
+* 獨立數值控制防護層 (Immutable Shield Bypass): 將護盾 (SHIELD) 自控制減免矩陣 (Diminishing Returns) 中剝離，解決了後補增益意外干擾系統時序衰減的問題，維持單元邏輯封裝的純潔性。
 
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED

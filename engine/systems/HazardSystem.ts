@@ -131,9 +131,5 @@ export class HazardSystem {
             const h = hazards.get(key);
             if (h) h.timer = h.interval || 1.0;
         });
-
-        for (const h of hazards.values()) {
-            if (h.timer <= 0) h.timer = h.interval || 1.0;
-        }
     }
 }

@@ -22,6 +22,7 @@ export class ZoneSystem {
     private currentShrinkLevel: number = 0;
     private maxDepth: number = 0;
     private initialized: boolean = false;
+    private finalPhaseTargetKey: string | null = null;
 
     public update(dt: number, engine: GameEngine) {
         this.activeZones = [];
@@ -57,11 +58,13 @@ export class ZoneSystem {
                     }
                 } else if (engine.map.mapKeys.size > engine.zoneConfig.minRadius) {
                     // Final phase: random tile warning if more than minRadius tiles remain
-                    const keys = Array.from(engine.map.mapKeys);
-                    // For consistency, we warn a random tile but keep it stable during the interval
-                    const seed = Math.floor(this.currentShrinkLevel); 
-                    const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
-                    this.warningTiles.add(keys[randomIndex]);
+                    if (!this.finalPhaseTargetKey || !engine.map.mapKeys.has(this.finalPhaseTargetKey)) {
+                        const keys = Array.from(engine.map.mapKeys).sort();
+                        const seed = Math.floor(this.currentShrinkLevel); 
+                        const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
+                        this.finalPhaseTargetKey = keys[randomIndex];
+                    }
+                    this.warningTiles.add(this.finalPhaseTargetKey);
                     count = 1;
                 }
                 
@@ -91,13 +94,20 @@ export class ZoneSystem {
                         this.safeRadius = Math.max(0, this.maxDepth - this.currentShrinkLevel + 1);
                     } else if (engine.map.mapKeys.size > engine.zoneConfig.minRadius) {
                         // Final phase: remove 1 random tile to reach minRadius
-                        const keys = Array.from(engine.map.mapKeys);
-                        const seed = Math.floor(this.currentShrinkLevel);
-                        const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
-                        const key = keys[randomIndex];
+                        let targetKey = this.finalPhaseTargetKey;
+                        if (!targetKey || !engine.map.mapKeys.has(targetKey)) {
+                            const keys = Array.from(engine.map.mapKeys).sort();
+                            const seed = Math.floor(this.currentShrinkLevel);
+                            const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
+                            targetKey = keys[randomIndex];
+                        }
+                        
+                        const key = targetKey;
                         const [q, r] = key.split(',').map(Number);
                         keysToRemove.push({q, r, key, h: engine.map.getTerrainHeight(q, r)});
+                        
                         this.currentShrinkLevel++; // Increment to change random seed next time
+                        this.finalPhaseTargetKey = null; // Reset for next target
                     }
 
                     for (const hex of keysToRemove) {
@@ -167,6 +177,7 @@ export class ZoneSystem {
         this.activeZones = [];
         this.warningTiles.clear();
         this.collapsingTiles.clear();
+        this.finalPhaseTargetKey = null;
     }
 
     private calculateDepths(engine: GameEngine) {

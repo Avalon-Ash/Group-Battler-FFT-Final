@@ -19,6 +19,21 @@ export class MotionEngine {
         const moveDelta = a.moveSpeed * a.moveSpeedMult * dt;
         a.moveProgress += moveDelta;
 
+        while (a.moveProgress >= 1.0 && a.path.length > 0) {
+            const nextHex = a.path[0];
+            spatial.updateAgentPosition(a, nextHex.q, nextHex.r);
+            a.path.shift();
+            a.moveProgress -= 1.0;
+        }
+
+        if (a.path.length === 0) {
+            const c = HexUtils.toPx(a.q, a.r, spatial.getMapConfig());
+            a.px = c.x;
+            a.py = c.y;
+            this.finalizeMove(a);
+            return;
+        }
+
         const startH = { q: a.q, r: a.r };
         const nextHex = a.path[0];
         
@@ -29,7 +44,7 @@ export class MotionEngine {
             a.facing = n.x > a.px ? 1 : -1;
         }
         
-        const t = Math.min(1.0, a.moveProgress);
+        const t = Math.max(0, Math.min(1.0, a.moveProgress));
         a.px = c.x + (n.x - c.x) * t;
         a.py = c.y + (n.y - c.y) * t;
         
@@ -37,18 +52,6 @@ export class MotionEngine {
             const h = spatial.getTerrainHeight(a.q, a.r); // Approximation for current tile
             a.trailHistory.push({ x: a.px, y: a.py, z: a.physics.z, h });
             if (a.trailHistory.length > TRAIL_HISTORY_LENGTH) a.trailHistory.shift();
-        }
-
-        if (a.moveProgress >= 1.0) {
-            spatial.updateAgentPosition(a, nextHex.q, nextHex.r);
-            a.path.shift();
-            
-            if (a.path.length > 0) {
-                a.moveProgress -= 1.0;
-                this.updateMovement(a, 0, spatial);
-            } else {
-                this.finalizeMove(a);
-            }
         }
     }
 

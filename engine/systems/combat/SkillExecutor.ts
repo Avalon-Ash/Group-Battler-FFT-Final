@@ -106,6 +106,11 @@ export class SkillExecutor {
             return;
         }
 
+        if (result.isBlock) {
+            engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "BLOCK", color: '#fb923c' });
+            engine.log(source, 'HIT', '格擋', target.id, `減少15%傷害`);
+        }
+
         if (result.shieldAbsorb > 0) {
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, value: -Math.floor(result.shieldAbsorb), color: '#bae6fd', text: "ABSORB" });
             engine.log(source, 'HIT', '吸收', target.id, `護盾吸收 ${Math.floor(result.shieldAbsorb)} 傷害`);

@@ -59,7 +59,8 @@ export class EffectSystem {
                 }
                 engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(rateDmg)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (中毒)`);
                 agent.hitFlashTimer = 0.1;
-                // Don't reset timer yet, wait for HoT check
+                timer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
+                this.feedbackTimers.set(feedbackKey, timer);
             }
         }
 
@@ -82,12 +83,16 @@ export class EffectSystem {
                 });
                 engine.log(null, 'HEAL', '持續治療', agent.id, `回復 ${Math.floor(healPerSec)} HP (再生)`);
                 // Reset timer now
-                this.feedbackTimers.set(feedbackKey, this.FEEDBACK_INTERVAL);
+                timer = this.FEEDBACK_INTERVAL;
+                this.feedbackTimers.set(feedbackKey, timer);
             }
-        } else {
-            // Update timer if we didn't reset it
-            if (timer <= 0) this.feedbackTimers.set(feedbackKey, this.FEEDBACK_INTERVAL);
-            else this.feedbackTimers.set(feedbackKey, timer);
+        }
+        
+        // Update timer if we didn't reset it in either block
+        if (timer > 0 && timer !== this.FEEDBACK_INTERVAL) {
+            this.feedbackTimers.set(feedbackKey, timer);
+        } else if (timer <= 0) {
+            this.feedbackTimers.set(feedbackKey, this.FEEDBACK_INTERVAL);
         }
     }
 }

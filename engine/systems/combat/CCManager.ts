@@ -18,7 +18,17 @@ export const CCManager = {
     ) {
         if (!type || type === 'NONE') return;
         
-        const { effectiveDuration, isImmune } = this.checkDR(target, type, dur || 0);
+        const amount = force || 50;
+        let isImmune = false;
+        let effectiveDuration = dur || 0;
+
+        // DR only applies to duration-based Hard CCs
+        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
+        if (isHardCC) {
+            const drResult = this.checkDR(target, type, dur || 0);
+            effectiveDuration = drResult.effectiveDuration;
+            isImmune = drResult.isImmune;
+        }
         
         if (isImmune) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "免疫", color: "#9ca3af" });
@@ -27,6 +37,7 @@ export const CCManager = {
 
         let statusText = "";
         let statusColor = "#fff";
+        let noDurationLog = false;
 
         switch (type) {
             case 'STUN':
@@ -88,10 +99,10 @@ export const CCManager = {
                 break;
 
             case 'SHIELD':
-                const amount = force || 50;
                 target.shield += amount;
                 target.maxShield = Math.max(target.maxShield, target.shield);
                 statusText = "護盾"; statusColor = "#bae6fd";
+                noDurationLog = true;
                 break;
 
             case 'KNOCKBACK':
@@ -102,6 +113,7 @@ export const CCManager = {
                     // SSOT: Trigger hit flash to cause reaction
                     if (target.hp > 0) target.hitFlashTimer = 0.2;
                     target.physics.vz += 150; 
+                    noDurationLog = true;
                 }
                 break;
 
@@ -120,7 +132,11 @@ export const CCManager = {
 
         if (statusText) {
             engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: statusText, color: statusColor });
-            engine.log(source, 'CC', type, target.id, `施加 ${statusText} (${effectiveDuration.toFixed(1)}s)`);
+            if (noDurationLog) {
+                engine.log(source, 'CC', type, target.id, `施加 ${statusText}`);
+            } else {
+                engine.log(source, 'CC', type, target.id, `施加 ${statusText} (${effectiveDuration.toFixed(1)}s)`);
+            }
         }
     },
 

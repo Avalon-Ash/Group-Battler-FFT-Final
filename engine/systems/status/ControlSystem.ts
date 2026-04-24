@@ -54,35 +54,28 @@ export class ControlSystem {
             agent.visualStatus = 'NONE';
         }
 
-        // State Logic: Fear (Random Movement)
-        if (agent.fearTimer > 0) {
-            if (agent.rootTimer <= 0) {
-                if (!agent.isMoving && agent.aiUpdateTimer <= 0) {
-                    const range = 4;
-                    const center = { q: agent.q, r: agent.r };
-                    const candidates = HexUtils.range(center, range).filter(h => {
-                        if (HexUtils.dist(center, h) < 2) return false;
-                        return engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id);
-                    });
-
-                    if (candidates.length > 0) {
-                        const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
-                        const result = engine.moveAgentToHex(agent, targetHex, 0, 1.5);
-                        agent.aiUpdateTimer = (result === 'R') ? 0.5 : 0.8;
-                    } else {
-                        agent.aiUpdateTimer = 0.8; 
-                    }
-                }
-            } else {
-                agent.isMoving = false;
-                agent.path = [];
-            }
-        }
-
-        // State Logic: Root
+        // State Logic: Root and Fear combined
         if (agent.rootTimer > 0) {
             agent.isMoving = false;
             agent.path = [];
+        } else if (agent.fearTimer > 0) {
+            // State Logic: Fear (Random Movement)
+            if (!agent.isMoving && agent.aiUpdateTimer <= 0) {
+                const range = 4;
+                const center = { q: agent.q, r: agent.r };
+                const candidates = HexUtils.range(center, range).filter(h => {
+                    if (HexUtils.dist(center, h) < 2) return false;
+                    return engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id);
+                });
+
+                if (candidates.length > 0) {
+                    const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
+                    const result = engine.moveAgentToHex(agent, targetHex, 0, 1.5);
+                    agent.aiUpdateTimer = (result === 'R') ? 0.5 : 0.8;
+                } else {
+                    agent.aiUpdateTimer = 0.8; 
+                }
+            }
         }
     }
 }
