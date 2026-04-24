@@ -197,6 +197,8 @@ export class GameEngine {
         this.victorySystem.reset(this);
         this.zones.reset();
         this.state.time.battleTime = 0;
+        this.state.time.timeScale = 1.0;
+        this.state.time.targetTimeScale = 1.0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
         this.map.rebuildMap(this); // Restore tiles removed by zone system

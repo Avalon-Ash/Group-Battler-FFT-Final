@@ -199,10 +199,10 @@ export const useGameApp = () => {
                 engineRef.current.stop(); 
                 engineRef.current.clear(false); 
                 internalSpawnTeams();
-                setSession(p => ({...p, winner: null, isPlaying: false})); 
+                setSession(p => ({...p, winner: null, isPlaying: false, timeScale: 1.0})); 
                 setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); 
             },
-            handleReset: () => { engineRef.current.restart(); setSession(p => ({...p, isPlaying: false, winner: null})); },
+            handleReset: () => { engineRef.current.restart(); setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0})); },
             togglePlay: () => { 
                 if(session.winner) return;
                 if(session.isPlaying) { engineRef.current.stop(); setSession(p => ({...p, isPlaying: false})); }
@@ -216,9 +216,9 @@ export const useGameApp = () => {
                 engineRef.current.stop(); 
                 engineRef.current.clear(false); 
                 internalSpawnTeams(); 
-                setSession(p => ({...p, isPlaying: false, winner: null})); 
+                setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0})); 
             },
-            rematch: () => { engineRef.current.restart(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null})); },
+            rematch: () => { engineRef.current.restart(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null, timeScale: 1.0})); },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadSpec,
             handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))
