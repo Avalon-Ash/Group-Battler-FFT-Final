@@ -7,7 +7,7 @@ Vite + React + TypeScript｜部署於 Google Cloud Run
 
 [![Deploy](https://img.shields.io/badge/Live%20Demo-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://ai.studio/apps/ef9e48ce-2e94-41d8-98f5-f64bc8502565)
 
-![TACTICAL.OS Gameplay](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+![TACTICAL.OS Gameplay](https://github.com/user-attachments/assets/a38770c9-05c8-4c21-ac86-c1da71650f45)
 
 </div>
 
