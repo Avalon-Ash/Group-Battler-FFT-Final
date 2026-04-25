@@ -7,6 +7,8 @@ Vite + React + TypeScript｜部署於 Google Cloud Run
 
 [![Deploy](https://img.shields.io/badge/Live%20Demo-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://ai.studio/apps/ef9e48ce-2e94-41d8-98f5-f64bc8502565)
 
+![TACTICAL.OS Gameplay](https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6)
+
 </div>
 
 ---
@@ -118,24 +120,17 @@ GameEngine
 ## 本地執行
 
 ```bash
-# 安裝依賴
 npm install
-
-# 設定 Gemini API Key
-cp .env.example .env.local
-# 編輯 .env.local，填入 GEMINI_API_KEY
-
-# 啟動開發伺服器
 npm run dev
 ```
+
+> 需要在 `.env.local` 中設定 `GEMINI_API_KEY`
 
 ---
 
 ## 關於這個專案的開發方式
 
-這個專案由**遊戲企劃主導，以 AI 協作方式建構**。  
-
-設計流程是：先定義資料結構與系統邊界（`types.ts`、架構文件），再以 Gemini 協助實作各子系統，最後在模擬器中直接驗證戰鬥手感是否符合設計意圖。
+這個專案由**遊戲企劃主導，以 AI 協作方式建構**。設計流程是：先定義資料結構與系統邊界，再以 Gemini 協助實作各子系統，最後在模擬器中直接驗證戰鬥手感是否符合設計意圖。
 
 這不是「工程師做了一個遊戲」，而是「企劃用可執行的系統來驗證設計決策」。
 
