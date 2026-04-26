@@ -109,18 +109,19 @@ export class SkillExecutor {
         }
 
         // 4. 結算效果
+        const preRollCrit = skill.power > 0 ? Math.random() < 0.1 : false;
         targets.forEach(target => {
             // [FIX] For SINGLE target skills, origin should be undefined so CCManager uses the caster's position.
             // For AOE skills, origin is the center of the AOE.
-            this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine);
+            this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
         });
     }
 
-    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine) {
+    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | null = null) {
         if (!target || target.hp <= 0 || target.banished) return;
 
         // A. Damage Calculation
-        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime);
+        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit);
         
         if (result.isMiss) {
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "MISS", color: '#9ca3af' });

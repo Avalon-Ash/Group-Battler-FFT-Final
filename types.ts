@@ -52,6 +52,8 @@ export interface Projectile {
     endZ: number;
     
     targetId: string;
+    targetHexQ: number;
+    targetHexR: number;
     targetPos: Point; 
     speed: number;
     skill: Skill;

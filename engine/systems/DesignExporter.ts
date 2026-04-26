@@ -146,6 +146,14 @@ RenderPipeline
 * 狀態渲染的異步反抖技術 (Asynchronous Feedback Decoupling): 將視覺回饋的計時器狀態機以命名空間分離為 _dot 與 _hot。根除了複數週期狀態在同幀競爭單一輸出通道時發生的 UI 靜默與信息遮蓋問題，保證複合狀態結算的視覺保真度。
 * 互斥控制權競爭的絕對防禦 (Mutually Exclusive CC Override): 將基礎硬控場 (Stun) 疊加至最高層級的位移奪取過濾器中，實體上杜杜絕了在暈眩狀態下因底層恐懼 (Fear) 所引發的狀態越權與異常滑行現象。
 
+[10. 投射物與戰鬥屬性精密計算 (Projectile & Combat Math Integrity)]
+--------------------------------------------------------------------------------
+* 邏輯與視覺座標軸的降維打擊 (Hex-Logical AOE & Projectile Alignment): 徹底消滅投射物 AOE 判定的像素魔術數字 (Magic Numbers)。採用目標快取 (TargetHex Q/R) 取代視覺錨點 (UnitAnchor)，將 Projectile 落地判定的坐標系強烈約束於與即時技能完全相同的 HexArea 六角拓樸運算中，一併打通了 Hazard 地圖物件延伸渲染的任督二脈。
+* 死者實體快取追蹤 (Post-Mortem Projectile Caching): 引入拋射初期目標死結算快取機制。當導彈在飛行末期目標實體已被 Memory Clean 拋棄時，依然依靠 targetHex 緩存完成最後視覺爆破點與落點波及，杜絕目標驟死導致的 UI 彈道視覺回歸原點撕裂現象。
+* 戰場疲勞期絕對縮放矩陣 (Sudden Death Scaling Strict Ordering): 重新調整 60 秒驟死機制的乘算順序。將 Execute (斬殺) 追加傷害計算明確前置於全局疲勞係數的乘法放流之前，保證角色血線檢定的純粹比例轉換，化解高時長下固定斬殺額度失真的防線崩潰。
+* 物理格擋之治療白名單 (Healing Bypass for Tank Mitigation): 於角色物理減傷階段 (Tank Block) 加入絕對的 !isHeal 判定。徹底阻止將友方支援或自身再生與護盾當作負能量進行抗性衰減，確保核心單體防禦者能夠足秤吃足醫療回報。
+* 單一爆擊判定 (Unified Sub-Cast Pre-roll): 對 AOE 多目標覆蓋重構單一物理判定 (Pre-roll Crit)。使法術發動的瞬間便決定此輪波次是否爆擊，避免同次火雨部分產生紅字爆擊而其餘為一般傷害的機率剝離，還原了古典戰棋技能結算的實體張力。
+
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
 `;

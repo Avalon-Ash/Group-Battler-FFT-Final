@@ -49,6 +49,8 @@ export class ProjectileSystem {
         p.endX = targetPoint.x;
         p.endY = targetPoint.y;
         p.endZ = targetPoint.z;
+        p.targetHexQ = target.q;
+        p.targetHexR = target.r;
       }
     }
 
@@ -79,27 +81,27 @@ export class ProjectileSystem {
     const hitPos = { x: p.endX, y: p.endY };
 
     if (p.skill.type === "AOE") {
-      const radiusGrid = p.skill.aoeRadius || 1;
-      const radiusPx = radiusGrid * HEX_SIZE + 10;
-      const radiusSq = radiusPx * radiusPx;
+      const targetHex = { q: p.targetHexQ, r: p.targetHexR };
+      const impactCells = engine.map.getArea(targetHex, p.skill.aoeRadius || 1);
+      const preRollCrit = p.skill.power > 0 ? Math.random() < 0.1 : false;
 
-      engine.agents.forEach((t) => {
-        const isValidTarget = (p.skill.power > 0 && t.team !== p.team) || 
-                              (p.skill.power < 0 && t.team === p.team) || 
-                              (p.skill.power === 0);
-        
-        if (isValidTarget && t.hp > 0 && !t.banished) {
-          const targetPx = VisualMath.getUnitAnchor(t, engine);
-          const dx = targetPx.x - hitPos.x;
-          const dy = targetPx.y - hitPos.y;
-          const distSq = dx * dx + dy * dy;
+      impactCells.forEach((cell) => {
+        const t = engine.getAgentAt(cell.q, cell.r);
+        if (t && t.hp > 0 && !t.banished) {
+          const isValidTarget =
+            (p.skill.power > 0 && t.team !== p.team) ||
+            (p.skill.power < 0 && t.team === p.team) ||
+            p.skill.power === 0;
 
-          if (distSq <= radiusSq) {
-            if (source)
-              skillExecutor.resolveHit(source, t, p.skill, hitPos, engine);
+          if (isValidTarget && source) {
+            skillExecutor.resolveHit(source, t, p.skill, hitPos, engine, preRollCrit);
           }
         }
       });
+      
+      if (source) {
+          HazardManager.spawnHazards(source, impactCells, p.skill, engine, targetHex);
+      }
 
       engine.events.push({
         type: "IMPACT_AOE",
@@ -138,14 +140,24 @@ export class ProjectileSystem {
     const targetId =
       (target as any).id || `ground-${(target as any).q},${(target as any).r}`;
     
+    let targetQ = 0;
+    let targetR = 0;
+    
     // [FIX] Directly use target agent position if available instead of fetching by ID.
     // This prevents falling back to 0,0,-9999 if the target agent just died and was removed from engine.agents.
     const launchPoint = VisualMath.getUnitAnchor(source, engine);
     let targetPoint: Point3D;
     if ((target as Agent).id && (target as Agent).px !== undefined) {
       targetPoint = VisualMath.getUnitAnchor(target as Agent, engine);
+      targetQ = (target as Agent).q;
+      targetR = (target as Agent).r;
     } else {
       targetPoint = VisualMath.resolveTargetPoint(targetId, engine);
+      if (targetId.startsWith("ground-")) {
+        const parts = targetId.replace("ground-", "").split(",");
+        targetQ = parseInt(parts[0]);
+        targetR = parseInt(parts[1]);
+      }
     }
 
     const dx = targetPoint.x - launchPoint.x;
@@ -168,6 +180,8 @@ export class ProjectileSystem {
     p.endY = targetPoint.y;
     p.endZ = targetPoint.z;
     p.targetId = targetId;
+    p.targetHexQ = targetQ;
+    p.targetHexR = targetR;
     p.trail = [];
 
     const visualKey = skill.visualProjectileEffect || skill.visual || "BOLT";

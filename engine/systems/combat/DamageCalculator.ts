@@ -22,9 +22,12 @@ export class DamageCalculator {
      * The Core Damage Pipeline:
      * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
-    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0): DamageResult {
+    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | null = null): DamageResult {
         const isHeal = skill.power < 0;
         let base = Math.abs(skill.power);
+        
+        let dmgMultiplier = 1.0;
+        let healMultiplier = 1.0;
         
         // --- SUDDEN DEATH MECHANIC ---
         // After 60 seconds, damage ramps up and healing ramps down to prevent stalemates
@@ -33,12 +36,10 @@ export class DamageCalculator {
             const overtime = battleTime - SUDDEN_DEATH_START;
             if (isHeal) {
                 // Healing decays by 5% per second, down to 10%
-                const healMultiplier = Math.max(0.1, 1.0 - (overtime * 0.05));
-                base *= healMultiplier;
+                healMultiplier = Math.max(0.1, 1.0 - (overtime * 0.05));
             } else {
                 // Damage increases by 5% per second
-                const dmgMultiplier = 1.0 + (overtime * 0.05);
-                base *= dmgMultiplier;
+                dmgMultiplier = 1.0 + (overtime * 0.05);
             }
         }
 
@@ -86,8 +87,16 @@ export class DamageCalculator {
             }
         }
 
+        // Apply Sudden Death Multipliers to the final base (including execute)
+        if (isHeal) {
+            base *= healMultiplier;
+        } else {
+            base *= dmgMultiplier;
+        }
+
         // 3. Crit Logic
-        if (!isHeal && Math.random() < 0.1) {
+        const isCrit = preRollCrit !== null ? preRollCrit : Math.random() < 0.1;
+        if (!isHeal && isCrit) {
             base *= 1.5;
             result.isCrit = true;
         }
