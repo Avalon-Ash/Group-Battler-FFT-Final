@@ -258,7 +258,6 @@ export const BTActions: Record<string, BTActionFn> = {
             return state;
         }
         
-        if (a.castingSkillIdx === -1) a.targetHex = null;
         a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
     },
@@ -303,7 +302,13 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // 1. Path-Clearing Logic: Only trigger if in danger or evading
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
-            if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
+            let isTargetSafe = false;
+            if (a.targetHex) {
+                const targetKey = HexUtils.key(a.targetHex);
+                const hazard = engine.state.hazards.get(targetKey);
+                isTargetSafe = !engine.isWarningTile(targetKey) && (!hazard || hazard.team === a.team);
+            }
+            if (isTargetSafe) {
                 // Get line towards safety
                 const line = HexUtils.line(a, a.targetHex);
                 for (const h of line) {
