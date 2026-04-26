@@ -133,6 +133,8 @@ RenderPipeline
 * 狀態快照與記憶體回收隔離 (State Snapshot & GC Boundary): 將戰鬥中為減少渲染與邏輯運算負擔而實行的「陣亡實體回收 (Garbage Collection)」機制，與「初始編制名冊 (Initial Roster Snapshot)」進行分離。確保戰場重置時 (Restart)，不會因為運行時優化機制而遺失參照，徹底保障重製功能的冪等性與狀態完整度。
 * 亞幀記憶體回收安全網 (Sub-Tick Garbage Collection Safety): 將陣亡實體的註銷延遲至當前 Tick 迴圈的最末端集中執行，消滅了因提早釋放參照導致同幀中後續系統 (如 StackingResolver) 讀取懸空指標或引發位移計算異常的邊界隱患。
 * 複合控制狀態競爭排解 (Concurrent CC Resolution): 針對實體同時掛載恐懼 (Fear) 與定身 (Root) 等多重干擾的極端情境，引入絕對層級覆蓋機制 (Strict Hierarchy Override)，徹底根除複數狀態在同一影格內競寫路徑與位移屬性所引發的抖動與死鎖。
+* 行為樹時序防抖與重入保護 (BT Stateful Debounce & Re-entry Guard): 在 EscapeWarning 等核心逃生行為中引入基於 escapeCooldown 的提早跳出 (Early-Exit) 與 RUNNING 狀態維持。完美解決了資料層防抖與行為樹每幀強制 tick 脫節所引發的「原地反覆決策死鎖 (Stand-and-Die)」現象。
+* 友軍危害排除與 SSOT 統一 (Friendly Hazard Immunity & SSOT Unification): 徹底將大逃殺底層生存判斷、背水一戰路徑淨空 (CastPushPull) 收攏至唯一真相來源 BTConditions["IsInWarningZone"]，並在空間層面嚴格剃除同隊環境干擾 (Friendly Hazards)，確保多重法術堆疊下的 AI 避險動作絕不發生誤判與恐慌亂跑。
 * 偽隨機時間窗鎖定機制 (Buffered RNG Temporal Lock): 獨立緩存大逃殺隨機縮圈階段 (Final Phase) 的目標索引 (finalPhaseTargetKey)。防止在「警告 (Warning)」與「執行 (Execution)」的跨幀等待期間內因種子滾動而發生跳格翻轉，確保時序邊界上的絕對一致性。
 * 獨立數值控制防護層 (Immutable Shield Bypass): 將護盾 (SHIELD) 自控制減免矩陣 (Diminishing Returns) 中剝離，解決了後補增益意外干擾系統時序衰減的問題，維持單元邏輯封裝的純潔性。
 
