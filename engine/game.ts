@@ -128,6 +128,7 @@ export class GameEngine {
     public getMapConfig(): MapConfig { return this.mapConfig; }
     public getAgents(): Agent[] { return this.agents; }
     public isWarningTile(key: string): boolean { return this.zones.warningTiles.has(key); }
+    public getHazard(key: string): GroundHazard | undefined { return this.state.hazards.get(key); }
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 

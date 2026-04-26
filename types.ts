@@ -17,6 +17,7 @@ export interface SpatialProvider {
     isValid(q: number, r: number): boolean;
     isBlocked(q: number, r: number, ignoreId?: string, movementType?: MovementType): boolean;
     getTerrainHeight(q: number, r: number): number;
+    getHazard(key: string): GroundHazard | undefined;
     isValidHash(h: number): boolean;
     hasObstacleHash(h: number): boolean;
     getObstacleTypeHash(h: number): string | undefined;

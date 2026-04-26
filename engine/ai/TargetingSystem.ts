@@ -46,7 +46,8 @@ export class TargetingSystem {
     public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
-        const inDanger = spatial.isWarningTile(myKey);
+        const hazardOnTile = spatial.getHazard(myKey);
+        const inDanger = spatial.isWarningTile(myKey) || (!!hazardOnTile && hazardOnTile.team !== a.team);
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {
@@ -224,7 +225,11 @@ export class TargetingSystem {
         }
 
         // 若當前無目標，重新搜尋
-        this.updateTarget(source, spatial);
+        // calculateOptimalTarget 裡的 fallback 只應更新「攻擊目標」，不觸發逃生邏輯
+        // 做法：傳入 undefined 的 pathfinder，但限定只在非危險狀態才走這條路
+        if (!spatial.isWarningTile(HexUtils.key(source)) && !(spatial.getHazard(HexUtils.key(source))?.team !== source.team)) {
+            this.updateTarget(source, spatial);
+        }
         return { targetAgent: source.target, targetHex: null };
     }
 

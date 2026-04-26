@@ -360,6 +360,15 @@ export const BTActions: Record<string, BTActionFn> = {
             a.aiState = AIState.LAST_STAND_PUSH;
             return engine.initiateCast(a, idx);
         }
+
+        // 射程不夠：嘗試走近，而非直接放棄
+        // 只有在危險狀態下才主動移近（避免安全時因為推拉技能莫名接近敵人）
+        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
+            const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
+            if (dest) {
+                return engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
+            }
+        }
         
         return NodeState.FAILURE;
     }
