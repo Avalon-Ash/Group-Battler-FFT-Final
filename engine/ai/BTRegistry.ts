@@ -35,7 +35,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // [Task 2] SSOT-Separated Dynamic Prediction
         // 1. Check current position (Warning Tiles & Hazards)
         const myKey = HexUtils.key(a);
-        if (engine.isWarningTile(myKey) || engine.state.hazards.has(myKey)) return true;
+        const hazard = engine.state.hazards.get(myKey);
+        if (engine.isWarningTile(myKey) || (hazard && hazard.team !== a.team)) return true;
 
         // 2. Predict based on movement state
         if (a.isMoving && a.path && a.path.length > 0) {
@@ -251,6 +252,11 @@ export const BTActions: Record<string, BTActionFn> = {
             return state;
         }
         
+        if (a.escapeCooldown > 0) {
+            // cooldown 期間維持 RUNNING，等待下次可以重新尋路
+            a.aiState = AIState.EVADING_URGENT;
+            return NodeState.RUNNING;
+        }
         if (a.castingSkillIdx === -1) a.targetHex = null;
         a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
