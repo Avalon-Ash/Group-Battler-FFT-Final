@@ -3,7 +3,7 @@ import { GameEngine } from "../game";
 import { GroundHazard, Team, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
-import { COMBAT_PARAM } from "../../constants";
+import { COMBAT_PARAM, HEX_SIZE } from "../../constants";
 
 export class HazardSystem {
     public addHazard(
@@ -15,7 +15,10 @@ export class HazardSystem {
         color: string,
         power: number,
         interval: number,
-        engine: GameEngine 
+        engine: GameEngine,
+        centerQ?: number,
+        centerR?: number,
+        pullRadius?: number
     ) {
         if (!engine.map.isValid(q, r)) return;
         const key = HexUtils.key({q, r});
@@ -27,13 +30,19 @@ export class HazardSystem {
                 existing.duration = Math.max(existing.duration, duration);
                 existing.power = Math.max(existing.power, power); 
                 existing.sourceId = sourceId; 
+                if (centerQ !== undefined) existing.centerQ = centerQ;
+                if (centerR !== undefined) existing.centerR = centerR;
+                if (pullRadius !== undefined) existing.pullRadius = pullRadius;
                 return;
             }
         }
 
         const hazard: GroundHazard = {
             id: engine.nextId('HZD'),
-            q, r, type, duration, sourceId, team, color, power, interval, timer: 0 
+            q, r, type, duration, sourceId, team, color, power, interval, timer: 0,
+            centerQ: centerQ ?? q,
+            centerR: centerR ?? r,
+            pullRadius
         };
         
         hazards.set(key, hazard);
@@ -112,18 +121,41 @@ export class HazardSystem {
                 }
 
                 if (hazard.type === 'GRAVITY') {
-                    const center = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
-                    const dx = center.x - agent.px, dy = center.y - agent.py;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
-                        agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
-                        agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
-                        agent.moveSpeedMult = COMBAT_PARAM.GRAVITY_SPEED_REDUCTION; 
-                    }
+                    // Pulling is now handled globally, just apply slow if on tile
+                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION); 
                 } else if (hazard.type === 'ICE') {
-                    agent.moveSpeedMult = COMBAT_PARAM.ICE_SPEED_REDUCTION;
+                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
                 }
             }
+        });
+
+        // ==========================================
+        // Global Sweep for GRAVITY Area Pull Effect
+        // ==========================================
+        const gravityCenters = new Map<string, {q: number, r: number, team: Team, radius: number}>();
+        for (const [key, h] of hazards.entries()) {
+            if (h.type === 'GRAVITY' && h.centerQ !== undefined && h.centerR !== undefined) {
+                // If pullRadius is not explicitly set, default to 3 hexes worth of distance
+                const r = h.pullRadius || (HEX_SIZE * 5);
+                gravityCenters.set(`${h.centerQ},${h.centerR},${h.team}`, {q: h.centerQ, r: h.centerR, team: h.team, radius: r});
+            }
+        }
+        
+        gravityCenters.forEach(centerConfig => {
+            const centerPx = HexUtils.toPx(centerConfig.q, centerConfig.r, engine.mapConfig);
+            engine.agents.forEach(agent => {
+                // Ignore dead, banished, or same team
+                if (agent.hp <= 0 || agent.banished || agent.team === centerConfig.team) return;
+                
+                const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                
+                if (dist < centerConfig.radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
+                    agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
+                    agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
+                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
+                }
+            });
         });
 
         // Reset the timer for all hazards that triggered this frame

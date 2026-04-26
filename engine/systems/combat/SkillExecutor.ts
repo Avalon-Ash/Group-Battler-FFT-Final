@@ -72,7 +72,7 @@ export class SkillExecutor {
             });
             
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color });
-            HazardManager.spawnHazards(source, impactCells, skill, engine);
+            HazardManager.spawnHazards(source, impactCells, skill, engine, targetHex);
         } else {
             if (source.target && source.target.hp > 0 && !source.target.banished) {
                 const effRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);

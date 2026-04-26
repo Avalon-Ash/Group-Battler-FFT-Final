@@ -75,6 +75,9 @@ export interface GroundHazard {
     id: string;
     q: number;
     r: number;
+    centerQ?: number;
+    centerR?: number;
+    pullRadius?: number;
     type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
     duration: number; 
     sourceId: string;

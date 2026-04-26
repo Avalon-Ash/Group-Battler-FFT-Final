@@ -1,11 +1,14 @@
 import { Agent, GameEngine } from "../../game";
 import { Skill, GroundHazard } from "../../../types";
 
+import { HEX_SIZE } from "../../../constants";
+
 export const HazardManager = {
     
-    spawnHazards(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine) {
+    spawnHazards(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine, center?: {q: number, r: number}) {
         const dur = skill.ccDur || 5.0;
         let hType: GroundHazard['type'] | null = null;
+        let pullRad = skill.aoeRadius ? skill.aoeRadius * HEX_SIZE * 1.5 : undefined;
 
         // Map Skill Properties to Hazard Types
         if (skill.ccType === 'DOT') hType = 'POISON';
@@ -25,7 +28,10 @@ export const HazardManager = {
                     skill.color,
                     (Math.abs(skill.power) * 0.2) || 10, 
                     0.5,
-                    engine 
+                    engine,
+                    center?.q,
+                    center?.r,
+                    pullRad
                 );
             });
         }
