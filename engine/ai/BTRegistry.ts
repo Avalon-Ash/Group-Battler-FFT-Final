@@ -21,10 +21,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.target && a.target.hp > 0 && !a.target.banished) {
             return true; 
         }
-        if (a.aiUpdateTimer <= 0 || !a.target || a.target.hp <= 0) {
-            engine.updateTarget(a);
-            a.aiUpdateTimer = a.aiUpdateInterval; 
-        }
+        // target 死亡或不存在：立刻重新選目標，不受 timer 保護
+        engine.updateTarget(a);
+        a.aiUpdateTimer = a.aiUpdateInterval; 
         return a.target !== null;
     },
     
@@ -93,7 +92,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             a.targetHex = null;
             return true;
         } else if (result.targetHex) {
-            a.target = null;
+            // 不清除 a.target，保留作為單體目標退化之用 (解決 AOE 跑到空地發呆)
             a.targetHex = result.targetHex;
             return true;
         }
@@ -269,7 +268,8 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? 1.3 : 1.0;
+        const isLowHp = a.target && (a.target.hp / a.target.maxHp < 0.25);
+        const speedMult = isLowHp ? 1.6 : (skill.tag === 'ULT' ? 1.3 : 1.0);
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
@@ -282,7 +282,8 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
-        const speedMult = (skill.tag === 'ULT') ? 1.4 : 1.1;
+        const isLowHp = a.target.hp / a.target.maxHp < 0.25;
+        const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
         a.aiState = AIState.TRACKING;
         return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
     },

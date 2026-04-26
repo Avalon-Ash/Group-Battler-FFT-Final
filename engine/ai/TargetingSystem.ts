@@ -43,7 +43,7 @@ export class TargetingSystem {
     /**
      * RTS 等級目標選取評分
      */
-    public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder) {
+    public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder, skipEscapeLogic: boolean = false) {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
         const hazardOnTile = spatial.getHazard(myKey);
@@ -56,7 +56,7 @@ export class TargetingSystem {
         }
         
         // 0. 大逃殺求生邏輯 (Zero-Trust 介入)
-        if (inDanger && a.escapeCooldown <= 0) {
+        if (!skipEscapeLogic && inDanger && a.escapeCooldown <= 0) {
             // [FIX] 如果正在詠唱非普攻技能，不應隨意清除 target，避免技能失效
             const isCastingSpecial = a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag !== 'BASIC';
 
@@ -175,6 +175,9 @@ export class TargetingSystem {
                 // 4. 黏著加分: 防止頻繁切換目標 (防抖)
                 const stickyBonus = (a.target === o) ? 300 : 0;
 
+                // [NEW] 斬殺優先加分
+                const killShotBonus = (o.hp / o.maxHp < 0.25) ? 400 : 0;
+
                 // 5. [NEW] 背水一戰加分: 如果自己在危險區，優先攻擊也在危險區或邊緣的敵人
                 let survivalBonus = 0;
                 if (spatial.isWarningTile(myKey)) {
@@ -184,11 +187,15 @@ export class TargetingSystem {
                 } else {
                     // 如果自己安全，盡量不要鎖定危險區內的敵人 (避免主動走入危險區)
                     if (spatial.isWarningTile(HexUtils.key(o))) {
-                        survivalBonus -= 1000;
+                        let effRange = 1;
+                        const basicSkill = a.skills.find(s => s && s.tag === 'BASIC');
+                        if (basicSkill) effRange = this.getEffectiveRange(a, o.q, o.r, basicSkill.range, spatial);
+                        const needToEnterZone = HexUtils.dist(a, o) > effRange;
+                        if (needToEnterZone) survivalBonus -= 800;
                     }
                 }
 
-                const score = distScore + hpScore + threatScore + stickyBonus + survivalBonus;
+                const score = distScore + hpScore + threatScore + stickyBonus + killShotBonus + survivalBonus;
 
                 if (score > maxScore) {
                     maxScore = score;
@@ -226,10 +233,9 @@ export class TargetingSystem {
 
         // 若當前無目標，重新搜尋
         // calculateOptimalTarget 裡的 fallback 只應更新「攻擊目標」，不觸發逃生邏輯
-        // 做法：傳入 undefined 的 pathfinder，但限定只在非危險狀態才走這條路
-        if (!spatial.isWarningTile(HexUtils.key(source)) && !(spatial.getHazard(HexUtils.key(source))?.team !== source.team)) {
-            this.updateTarget(source, spatial);
-        }
+        // 做法：傳入 undefined 的 pathfinder 並設定 skipEscapeLogic = true
+        this.updateTarget(source, spatial, undefined, true);
+        
         return { targetAgent: source.target, targetHex: null };
     }
 
@@ -256,13 +262,13 @@ export class TargetingSystem {
         let bestHex: Hex | null = null;
         let maxImpact = -1;
 
-        // 生成候選點：所有敵人的位置 + 敵人的相鄰格 (以覆蓋"兩人間隙")
+        // 生成候選點：所有敵人的位置 + 敵人的擴散格 (以涵蓋多人圓心)
         const candidates = new Set<string>();
         enemies.forEach(e => {
             candidates.add(HexUtils.key(e));
-            // 如果 AOE 半徑夠大，嘗試攻擊相鄰格以覆蓋更多人
+            // 如果 AOE 半徑夠大，擴散候選點至半徑範圍
             if (radius >= 1) {
-                HexUtils.neighbors(e).forEach(n => candidates.add(HexUtils.key(n)));
+                HexUtils.range(e, radius).forEach(n => candidates.add(HexUtils.key(n)));
             }
         });
 
