@@ -61,7 +61,7 @@ Score = (DistWeight) + (HpWeight) + (ThreatWeight) + (StickyBonus) + (SurvivalWe
 
 3. 威脅與生存邏輯:
    * 詠唱 ULT: +200 權重，優先成為集火目標。
-   * 處於危險區 (IsInWarningZone): 強制觸發 Dijkstra 逃生尋路。
+   * 處於危險區 (IsInWarningZone): 系統唯一危險判定閘 (SSOT)，整合縮圈邊界、敵方 hazard 與友軍 hazard 過濾，強制觸發 Dijkstra 逃生尋路。
    * 背水一戰 (Last Stand): 若逃生失敗，強制使用推拉 (KNOCKBACK/PULL) 技能將攔路者擊退。
 
 4. 黏著加分 (Hysteresis):
