@@ -174,6 +174,12 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
+        // [FIX v2] Early exit during cooldown — 必須在任何 updateTarget 或 moveAgentToHex 之前
+        if (a.escapeCooldown > 0) {
+            a.aiState = AIState.EVADING_URGENT;
+            return NodeState.RUNNING;
+        }
+
         // [FIX] Use BTConditions["IsInWarningZone"] for consistent safe-exit logic
         const inDanger = BTConditions["IsInWarningZone"](a, engine);
         const myKey = HexUtils.key(a);
@@ -252,11 +258,6 @@ export const BTActions: Record<string, BTActionFn> = {
             return state;
         }
         
-        if (a.escapeCooldown > 0) {
-            // cooldown 期間維持 RUNNING，等待下次可以重新尋路
-            a.aiState = AIState.EVADING_URGENT;
-            return NodeState.RUNNING;
-        }
         if (a.castingSkillIdx === -1) a.targetHex = null;
         a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
