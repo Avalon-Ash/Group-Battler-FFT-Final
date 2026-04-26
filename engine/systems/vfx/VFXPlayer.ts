@@ -59,6 +59,14 @@ export class VFXPlayer {
                 vx = Math.cos(angle) * speed;
                 vy = Math.sin(angle) * speed * ISO_SCALE_Y;
             }
+            else if (config.shape === 'RING') {
+                const theta = (i / count) * Math.PI * 2; // 均勻分布
+                const r = config.shapeRadius || 10;
+                px += Math.cos(theta) * r;
+                py += Math.sin(theta) * r * ISO_SCALE_Y;
+                vx = Math.cos(theta) * speed;
+                vy = Math.sin(theta) * speed * ISO_SCALE_Y;
+            }
             if (config.vz !== undefined) {
                 vz = rnd(config.vz);
             }

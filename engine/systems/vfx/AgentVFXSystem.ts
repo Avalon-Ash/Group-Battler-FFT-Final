@@ -92,8 +92,8 @@ export class AgentVFXSystem {
             this.vfxTimers.set(timerKey, t);
         };
 
-        checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0);
-        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0);
+        checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0 && agent.dotType === 'POISON');
+        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0 && agent.dotType === 'BURN');
         checkVFX('REGEN', agent.hotTimer > 0);
         checkVFX('BANISH', agent.banished);
         checkVFX('STUN', agent.stunTimer > 0);

@@ -87,7 +87,9 @@ export class VFXAmbience {
                 p.vx = 1200 + Math.random() * 600; 
                 p.vy = 50 + Math.random() * 30; 
                 
-                p.life = 1.8; p.maxLife = 1.8; 
+                // 動態生命週期：確保能飛越整個 boundsW
+                const newLife = boundsW / p.vx; 
+                p.life = newLife; p.maxLife = newLife; 
                 p.blendMode = 'source-over';
             } else if (type === 'VOID') {
                 p.x = x; p.y = y;

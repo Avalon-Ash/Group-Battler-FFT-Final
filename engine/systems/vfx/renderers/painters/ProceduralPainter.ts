@@ -92,8 +92,8 @@ export const ProceduralPainter = {
         
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 0;
         ctx.stroke();
+        ctx.shadowBlur = 0;
         ctx.restore();
     },
 

@@ -71,6 +71,7 @@ export class Agent {
 
     public dotTimer: number = 0;
     public dotDmg: number = 0;
+    public dotType: string = 'POISON';
     public hotTimer: number = 0;
     public hotVal: number = 0;
 
@@ -171,6 +172,7 @@ export class Agent {
 
         this.banished = false;
         this.dotTimer = 0;
+        this.dotType = 'POISON';
         this.hotTimer = 0;
         this.visualStatus = 'NONE';
 

@@ -120,7 +120,13 @@ export const CCManager = {
             case 'DOT':
                 target.dotDmg = force || 10;
                 target.dotTimer = effectiveDuration;
-                statusText = "中毒"; statusColor = "#10b981";
+                if (skill.element === 'FIRE') {
+                    target.dotType = 'BURN';
+                    statusText = "燃燒"; statusColor = "#f97316";
+                } else {
+                    target.dotType = 'POISON';
+                    statusText = "中毒"; statusColor = "#10b981";
+                }
                 break;
 
             case 'HOT':
