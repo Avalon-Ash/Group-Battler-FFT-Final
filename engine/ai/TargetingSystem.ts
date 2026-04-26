@@ -223,17 +223,52 @@ export class TargetingSystem {
             return this.findBestAOELocation(source, skill, spatial);
         }
         
-        // 3. 單體技能 - 黏著邏輯
+        const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
+        const targetIsAlly = skill.power < 0 || (skill.power === 0 && isBuffCC);
+        
+        let validStickyTarget = false;
         if (source.target && source.target.hp > 0 && !source.target.banished) {
-            const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
-            if (HexUtils.dist(source, source.target) <= effRange) {
-                return { targetAgent: source.target, targetHex: null };
+            validStickyTarget = targetIsAlly ? source.target.team === source.team : source.target.team !== source.team;
+        }
+
+        // 3. 單體技能 - 包含盟友智能選取
+        if (targetIsAlly && skill.type === 'SINGLE') {
+            if (validStickyTarget && source.target) {
+                const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
+                if (HexUtils.dist(source, source.target) <= effRange) {
+                    return { targetAgent: source.target, targetHex: null };
+                }
+            }
+            // 尋找最佳隊友 (根據失血量)
+            let bestAlly: Agent | null = null;
+            let maxAllyScore = -Infinity;
+            for (const ally of spatial.getAgents()) {
+                if (ally.team === source.team && ally.hp > 0 && !ally.banished) {
+                    const dist = Math.max(0.5, HexUtils.dist(source, ally));
+                    const missingHpPct = 1 - (ally.hp / ally.maxHp);
+                    let score = missingHpPct * 1000 - dist * 10;
+                    if (ally === source) score -= 100; // 優先救別人
+                    if (score > maxAllyScore) {
+                        maxAllyScore = score;
+                        bestAlly = ally;
+                    }
+                }
+            }
+            if (bestAlly) {
+                return { targetAgent: bestAlly, targetHex: null };
+            }
+        } else if (skill.type === 'SINGLE') {
+            // 普通敵方目標黏著邏輯
+            if (validStickyTarget && source.target) {
+                const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
+                if (HexUtils.dist(source, source.target) <= effRange) {
+                    return { targetAgent: source.target, targetHex: null };
+                }
             }
         }
 
-        // 若當前無目標，重新搜尋
+        // 若當前無合適目標，重新搜尋
         // calculateOptimalTarget 裡的 fallback 只應更新「攻擊目標」，不觸發逃生邏輯
-        // 做法：傳入 undefined 的 pathfinder 並設定 skipEscapeLogic = true
         this.updateTarget(source, spatial, undefined, true);
         
         return { targetAgent: source.target, targetHex: null };

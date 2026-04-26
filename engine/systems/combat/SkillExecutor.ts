@@ -193,10 +193,14 @@ export class SkillExecutor {
         // C. Crowd Control (CC) Application
         // Cast to string to allow 'NONE' check against strictly typed Union
         if (skill.ccType && (skill.ccType as string) !== 'NONE') {
-            CCManager.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
+            const isBuff = skill.ccType === 'SHIELD' || skill.ccType === 'HOT';
+            const ccTarget = (isBuff && target.team !== source.team) ? source : target;
+            CCManager.applyCC(source, ccTarget, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
         }
         if (skill.ccType2 && (skill.ccType2 as string) !== 'NONE') {
-            CCManager.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
+            const isBuff2 = skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT';
+            const ccTarget2 = (isBuff2 && target.team !== source.team) ? source : target;
+            CCManager.applyCC(source, ccTarget2, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
         }
 
         // D. Death Check
