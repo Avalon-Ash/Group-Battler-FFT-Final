@@ -77,6 +77,19 @@ export class CombatSystem {
         } else {
             this.skillExecutor.executeInstantSkill(a, s, engine);
         }
+
+        const isSelfDmg1 = s.effectType === 'SELF_DAMAGE';
+        const isSelfDmg2 = s.effectType2 === 'SELF_DAMAGE';
+        if (isSelfDmg1 || isSelfDmg2) {
+            const dmgVal = (isSelfDmg1 ? s.effectVal : s.effectVal2) || 50;
+            a.hp = Math.max(0, a.hp - dmgVal);
+            engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: dmgVal, color: '#991b1b', text: "SACRIFICE" });
+            engine.log(a, 'HIT', '自殘', a.id, `消耗 ${dmgVal} HP`);
+            if (a.hp <= 0) {
+                engine.agentManager.handleDeadState(a, engine);
+                engine.pushEvent('KILL', {x: a.px, y: a.py}, { sourceId: a.id, targetId: a.id });
+            }
+        }
     }
     public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
         this.projectileSystem.spawnProjectile(source, skill, engine);

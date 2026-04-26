@@ -84,7 +84,11 @@ export class ProjectileSystem {
       const radiusSq = radiusPx * radiusPx;
 
       engine.agents.forEach((t) => {
-        if (t.team !== p.team && t.hp > 0 && !t.banished) {
+        const isValidTarget = (p.skill.power > 0 && t.team !== p.team) || 
+                              (p.skill.power < 0 && t.team === p.team) || 
+                              (p.skill.power === 0);
+        
+        if (isValidTarget && t.hp > 0 && !t.banished) {
           const targetPx = VisualMath.getUnitAnchor(t, engine);
           const dx = targetPx.x - hitPos.x;
           const dy = targetPx.y - hitPos.y;

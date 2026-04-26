@@ -65,9 +65,13 @@ export class SkillExecutor {
             impactCells.forEach(cell => {
                 const u = engine.getAgentAt(cell.q, cell.r);
                 if (u && u.hp > 0 && !u.banished) {
-                    // 敵我識別
-                    if (skill.power >= 0 && u.team !== source.team) targets.push(u);
-                    else if (skill.power < 0 && u.team === source.team) targets.push(u);
+                    const isValidTarget = (skill.power > 0 && u.team !== source.team) || 
+                                          (skill.power < 0 && u.team === source.team) || 
+                                          (skill.power === 0);
+                    
+                    if (isValidTarget) {
+                        targets.push(u);
+                    }
                 }
             });
             
@@ -75,8 +79,26 @@ export class SkillExecutor {
             HazardManager.spawnHazards(source, impactCells, skill, engine, targetHex);
         } else {
             if (source.target && source.target.hp > 0 && !source.target.banished) {
+                const isValidTarget = (skill.power > 0 && source.target.team !== source.team) || 
+                                      (skill.power < 0 && source.target.team === source.team) || 
+                                      (skill.power === 0);
+                
+                // For power === 0 buffs, AI might have targeted an enemy. In this case, CCManager would block it.
+                // We should ideally prevent adding invalid buff targets, forcing the self-fallback below.
+                const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
+               
+                let shouldPush = false;
+                if (isValidTarget) {
+                    if (skill.power === 0 && isBuffCC && source.target.team !== source.team) {
+                        // AI targeted an enemy for a Buff. Don't push, so it falls back to self.
+                        shouldPush = false;
+                    } else {
+                        shouldPush = true;
+                    }
+                }
+
                 const effRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
-                if (HexUtils.dist(source, source.target) <= effRange + 0.1) {
+                if (shouldPush && HexUtils.dist(source, source.target) <= effRange + 0.1) {
                     targets.push(source.target);
                 }
             }
@@ -166,18 +188,7 @@ export class SkillExecutor {
             engine.log(source, 'HEAL', '回魔', target.id, `回復 ${Math.floor(result.manaRestore)} MP`);
         }
         
-        const isSelfDmg1 = skill.effectType === 'SELF_DAMAGE';
-        const isSelfDmg2 = skill.effectType2 === 'SELF_DAMAGE';
-        if (isSelfDmg1 || isSelfDmg2) {
-            const dmgVal = (isSelfDmg1 ? skill.effectVal : skill.effectVal2) || 50;
-            source.hp = Math.max(0, source.hp - dmgVal);
-            engine.events.push({ type: 'DAMAGE', pos: {x: source.px, y: source.py}, value: dmgVal, color: '#991b1b', text: "SACRIFICE" });
-            engine.log(source, 'HIT', '自殘', source.id, `消耗 ${dmgVal} HP`);
-            if (source.hp <= 0) {
-                engine.agentManager.handleDeadState(source, engine);
-                engine.pushEvent('KILL', {x: source.px, y: source.py}, { sourceId: source.id, targetId: source.id });
-            }
-        }
+
 
         // C. Crowd Control (CC) Application
         // Cast to string to allow 'NONE' check against strictly typed Union

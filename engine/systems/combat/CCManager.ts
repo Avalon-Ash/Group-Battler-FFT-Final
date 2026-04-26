@@ -17,6 +17,12 @@ export const CCManager = {
         engine: GameEngine
     ) {
         if (!type || type === 'NONE') return;
+
+        const isBuff = ['SHIELD', 'HOT'].includes(type);
+        const isDebuff = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT', 'KNOCKBACK', 'PULL', 'DOT', 'BLIND'].includes(type);
+
+        if (isBuff && source.team !== target.team) return;
+        if (isDebuff && source.team === target.team) return;
         
         const amount = force || 50;
         let isImmune = false;
