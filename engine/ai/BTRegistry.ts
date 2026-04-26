@@ -33,8 +33,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
     
     "IsInWarningZone": (a, engine) => {
         // [Task 2] SSOT-Separated Dynamic Prediction
-        // 1. Check current position
-        if (engine.isWarningTile(HexUtils.key(a))) return true;
+        // 1. Check current position (Warning Tiles & Hazards)
+        const myKey = HexUtils.key(a);
+        if (engine.isWarningTile(myKey) || engine.state.hazards.has(myKey)) return true;
 
         // 2. Predict based on movement state
         if (a.isMoving && a.path && a.path.length > 0) {
@@ -45,8 +46,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
         if (a.stuckTicks > 0) {
             // Controlled displacement: project based on physics velocity
-            // stuckTicks is used as the remaining frame count for the displacement
-            const dt_est = 1 / 30; // Assuming 30fps basis for stuckTicks
+            const dt_est = 1 / 30; 
             const predPx = a.px + a.physics.vx * a.stuckTicks * dt_est;
             const predPy = a.py + a.physics.vy * a.stuckTicks * dt_est;
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
@@ -173,11 +173,11 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
+        // [FIX] Use BTConditions["IsInWarningZone"] for consistent safe-exit logic
+        const inDanger = BTConditions["IsInWarningZone"](a, engine);
         const myKey = HexUtils.key(a);
-        const inDanger = engine.isWarningTile(myKey);
         
-        // [Task 1 Cleanup] If we are safe and no longer predicting danger, exit evasion state
-        if (!inDanger && !engine.state.hazards.has(myKey)) {
+        if (!inDanger) {
             if (a.aiState === AIState.EVADING_URGENT) {
                 a.aiState = AIState.IDLE;
                 a.visualStatus = "NONE";
@@ -187,8 +187,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // [Task 3] Precise Casting Interruption
         const hazard = engine.state.hazards.get(myKey);
-
-        if (!inDanger && !hazard) return NodeState.FAILURE;
+        const isWarning = engine.isWarningTile(myKey);
 
         // Check for fatal casting
         if (a.castingSkillIdx !== -1) {
@@ -198,7 +197,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 let isFatal = false;
 
                 // SSOT Check: Hazard arrival vs Cast finish
-                if (inDanger && engine.zones.shrinkTimer < remainingCast) {
+                if (isWarning && engine.zones.shrinkTimer < remainingCast) {
                     isFatal = true;
                 }
                 
@@ -230,6 +229,8 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
             if (state === NodeState.FAILURE) {
+                // [FIX] If path is blocked, reset targetHex so we try a different safe spot next time
+                // and give a tiny cooldown to let others move
                 if (a.castingSkillIdx === -1) a.targetHex = null;
                 a.escapeCooldown = 0.2; 
                 return NodeState.FAILURE;

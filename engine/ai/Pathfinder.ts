@@ -198,12 +198,64 @@ export class Pathfinder {
     }
 
     private pqPush(hash: number, priority: number) {
-        this._pq.push({ hash, priority });
-        // 生產環境應使用 Binary Heap，此處使用排序模擬
-        this._pq.sort((a, b) => a.priority - b.priority); 
+        const node = { hash, priority };
+        this._pq.push(node);
+        this.bubbleUp(this._pq.length - 1);
     }
 
-    private pqPop() { return this._pq.shift(); }
+    private pqPop() {
+        if (this._pq.length === 0) return undefined;
+        if (this._pq.length === 1) return this._pq.pop();
+        const top = this._pq[0];
+        this._pq[0] = this._pq.pop()!;
+        this.bubbleDown(0);
+        return top;
+    }
+
+    private bubbleUp(index: number) {
+        const element = this._pq[index];
+        while (index > 0) {
+            const parentIndex = Math.floor((index - 1) / 2);
+            const parent = this._pq[parentIndex];
+            if (element.priority >= parent.priority) break;
+            this._pq[index] = parent;
+            index = parentIndex;
+        }
+        this._pq[index] = element;
+    }
+
+    private bubbleDown(index: number) {
+        const length = this._pq.length;
+        const element = this._pq[index];
+        while (true) {
+            let leftChildIndex = 2 * index + 1;
+            let rightChildIndex = 2 * index + 2;
+            let leftChild, rightChild;
+            let swap = -1;
+
+            if (leftChildIndex < length) {
+                leftChild = this._pq[leftChildIndex];
+                if (leftChild.priority < element.priority) {
+                    swap = leftChildIndex;
+                }
+            }
+
+            if (rightChildIndex < length) {
+                rightChild = this._pq[rightChildIndex];
+                if (
+                    (swap === -1 && rightChild.priority < element.priority) ||
+                    (swap !== -1 && (rightChild.priority < (leftChild as PQNode).priority))
+                ) {
+                    swap = rightChildIndex;
+                }
+            }
+
+            if (swap === -1) break;
+            this._pq[index] = this._pq[swap];
+            index = swap;
+        }
+        this._pq[index] = element;
+    }
 
     private reconstructPath(current: number, startH: number): Hex[] {
         const path: Hex[] = [];
