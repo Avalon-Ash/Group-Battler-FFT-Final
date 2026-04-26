@@ -165,8 +165,8 @@ export const CCManager = {
         // Formula: Duration * (0.5 ^ stacks) * (1 - resilience)
         let multiplier = Math.pow(0.5, stacks) * (1 - resilience);
         
-        // Minimum duration floor (20% of base) or immunity
-        if (multiplier < 0.2) return { effectiveDuration: 0, isImmune: true };
+        // Minimum duration floor or immunity (<= 0.25 means the 3rd application is immune)
+        if (multiplier <= 0.25) return { effectiveDuration: 0, isImmune: true };
         
         target.drStacks[type] = stacks + 1;
         target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME; 

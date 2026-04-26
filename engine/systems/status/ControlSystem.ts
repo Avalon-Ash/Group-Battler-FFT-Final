@@ -55,7 +55,7 @@ export class ControlSystem {
         }
 
         // State Logic: Root and Fear combined
-        if (agent.rootTimer > 0) {
+        if (agent.rootTimer > 0 || agent.stunTimer > 0) {
             agent.isMoving = false;
             agent.path = [];
         } else if (agent.fearTimer > 0) {

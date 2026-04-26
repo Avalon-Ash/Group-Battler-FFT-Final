@@ -10,9 +10,12 @@ export class EffectSystem {
     public update(agent: Agent, dt: number, engine: GameEngine) {
         if (agent.hp <= 0 || agent.banished) return;
 
-        const feedbackKey = agent.id;
-        let timer = this.feedbackTimers.get(feedbackKey) || 0;
-        timer -= dt;
+        const dotKey = agent.id + '_dot';
+        const hotKey = agent.id + '_hot';
+        let dotTimer = this.feedbackTimers.get(dotKey) || 0;
+        let hotTimer = this.feedbackTimers.get(hotKey) || 0;
+        dotTimer -= dt;
+        hotTimer -= dt;
 
         // 1. Damage over Time (DoT)
         // Mathematically apply damage per second
@@ -35,32 +38,26 @@ export class EffectSystem {
             }
 
             // Periodic Visual Feedback
-            if (timer <= 0 && agent.dotDmg > 0) { 
-                // Sum up real damage taken over the feedback interval to display
-                const visualDmg = damagePerSec * this.FEEDBACK_INTERVAL;
-                const visualAbsorb = agent.shield > visualDmg ? visualDmg : 0; // Rough approximation for visual
-                
-                // Instead of approximating, let's just use the instantaneous rate
-                const rateDmg = frameDamage / dt;
+            if (dotTimer <= 0 && agent.dotDmg > 0) { 
                 const rateAbsorb = absorbed / dt;
                 
                 if (rateAbsorb > 0) {
                     engine.events.push({ type: 'DAMAGE', pos: {x: agent.px, y: agent.py}, value: -Math.floor(rateAbsorb), color: '#bae6fd', text: "ABSORB" });
                 }
                 
-                if (rateDmg > 0 || rateAbsorb === 0) {
+                if (frameDamage > 0 || absorbed === 0) {
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: {x: agent.px, y: agent.py}, 
-                        value: -Math.floor(rateDmg > 0 ? rateDmg : damagePerSec), 
+                        value: -Math.floor(damagePerSec), 
                         color: '#10b981', // Poison Green default
                         skill: { ccType: 'DOT' } as any 
                     });
                 }
-                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(rateDmg)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (中毒)`);
+                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (中毒)`);
                 agent.hitFlashTimer = 0.1;
-                timer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
-                this.feedbackTimers.set(feedbackKey, timer);
+                dotTimer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
+                this.feedbackTimers.set(dotKey, dotTimer);
             }
         }
 
@@ -74,7 +71,7 @@ export class EffectSystem {
             agent.hp = Math.min(agent.maxHp, agent.hp + frameHeal);
             
             // Periodic Visual Feedback
-            if (timer <= 0 && agent.hotVal > 0) {
+            if (hotTimer <= 0 && agent.hotVal > 0) {
                 engine.events.push({ 
                     type: 'HEAL', 
                     pos: {x: agent.px, y: agent.py}, 
@@ -83,16 +80,22 @@ export class EffectSystem {
                 });
                 engine.log(null, 'HEAL', '持續治療', agent.id, `回復 ${Math.floor(healPerSec)} HP (再生)`);
                 // Reset timer now
-                timer = this.FEEDBACK_INTERVAL;
-                this.feedbackTimers.set(feedbackKey, timer);
+                hotTimer = this.FEEDBACK_INTERVAL;
+                this.feedbackTimers.set(hotKey, hotTimer);
             }
         }
         
         // Update timer if we didn't reset it in either block
-        if (timer > 0 && timer !== this.FEEDBACK_INTERVAL) {
-            this.feedbackTimers.set(feedbackKey, timer);
-        } else if (timer <= 0) {
-            this.feedbackTimers.set(feedbackKey, this.FEEDBACK_INTERVAL);
+        if (dotTimer > 0 && dotTimer !== this.FEEDBACK_INTERVAL) {
+            this.feedbackTimers.set(dotKey, dotTimer);
+        } else if (dotTimer <= 0) {
+            this.feedbackTimers.set(dotKey, this.FEEDBACK_INTERVAL);
+        }
+
+        if (hotTimer > 0 && hotTimer !== this.FEEDBACK_INTERVAL) {
+            this.feedbackTimers.set(hotKey, hotTimer);
+        } else if (hotTimer <= 0) {
+            this.feedbackTimers.set(hotKey, this.FEEDBACK_INTERVAL);
         }
     }
 }
