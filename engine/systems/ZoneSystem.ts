@@ -60,7 +60,7 @@ export class ZoneSystem {
                     // Final phase: random tile warning if more than minRadius tiles remain
                     if (!this.finalPhaseTargetKey || !engine.map.mapKeys.has(this.finalPhaseTargetKey)) {
                         const keys = Array.from(engine.map.mapKeys).sort();
-                        const seed = Math.floor(this.currentShrinkLevel); 
+                        const seed = Math.floor(this.currentShrinkLevel * 31 + engine.map.mapKeys.size); 
                         const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
                         this.finalPhaseTargetKey = keys[randomIndex];
                     }
@@ -97,7 +97,7 @@ export class ZoneSystem {
                         let targetKey = this.finalPhaseTargetKey;
                         if (!targetKey || !engine.map.mapKeys.has(targetKey)) {
                             const keys = Array.from(engine.map.mapKeys).sort();
-                            const seed = Math.floor(this.currentShrinkLevel);
+                            const seed = Math.floor(this.currentShrinkLevel * 31 + engine.map.mapKeys.size);
                             const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
                             targetKey = keys[randomIndex];
                         }

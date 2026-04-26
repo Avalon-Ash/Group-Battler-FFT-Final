@@ -124,7 +124,9 @@ export class DirectorSystem {
             // [FIX] 忽略正在墜落或腳下無地的單位，避免導播鏡頭被帶走
             if (a.physics.z < -50 || !engine.isValid(a.q, a.r)) continue;
 
-            let score = Math.random() * 10; 
+            // Deterministic tie-breaker based on ID to prevent camera jitter
+            const deterministicRng = a.id.charCodeAt(0) % 10;
+            let score = deterministicRng; 
 
             if (a.castingSkillIdx !== -1) {
                 const skill = a.skills[a.castingSkillIdx];

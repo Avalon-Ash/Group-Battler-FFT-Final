@@ -6,6 +6,7 @@ import {
 } from "../../../data/vfx/projectile_visuals";
 import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
+import { HexUtils } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
 import { HEX_SIZE } from "../../../constants";
@@ -82,7 +83,7 @@ export class ProjectileSystem {
 
     if (p.skill.type === "AOE") {
       const targetHex = { q: p.targetHexQ, r: p.targetHexR };
-      const impactCells = engine.map.getArea(targetHex, p.skill.aoeRadius || 1);
+      const impactCells = HexUtils.range(targetHex, p.skill.aoeRadius || 1);
       const preRollCrit = p.skill.power > 0 ? Math.random() < 0.1 : false;
 
       impactCells.forEach((cell) => {
@@ -232,6 +233,8 @@ export class ProjectileSystem {
       endY: 0,
       endZ: 0,
       targetId: "",
+      targetHexQ: 0,
+      targetHexR: 0,
       targetPos: { x: 0, y: 0 },
       speed: 0,
       skill: {} as Skill,

@@ -83,6 +83,8 @@ export class HazardSystem {
                 // Flying units are immune to ground hazards like Fire/Poison
                 if (agent.movementType === MovementType.FLYING && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return;
 
+                if (triggeredHazards.has(hazardKey)) return;
+
                 if (hazard.timer <= 0) {
                     let dmg = hazard.power;
                     
@@ -150,6 +152,7 @@ export class HazardSystem {
                 const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
+                // Distances are measured in pixels (pullRadius and GRAVITY_MIN_DIST are in px)
                 if (dist < centerConfig.radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
                     agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                     agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
