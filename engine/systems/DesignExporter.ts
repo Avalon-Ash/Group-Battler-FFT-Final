@@ -138,6 +138,14 @@ RenderPipeline
 * 偽隨機時間窗鎖定機制 (Buffered RNG Temporal Lock): 獨立緩存大逃殺隨機縮圈階段 (Final Phase) 的目標索引 (finalPhaseTargetKey)。防止在「警告 (Warning)」與「執行 (Execution)」的跨幀等待期間內因種子滾動而發生跳格翻轉，確保時序邊界上的絕對一致性。
 * 獨立數值控制防護層 (Immutable Shield Bypass): 將護盾 (SHIELD) 自控制減免矩陣 (Diminishing Returns) 中剝離，解決了後補增益意外干擾系統時序衰減的問題，維持單元邏輯封裝的純潔性。
 
+[9. 控制流與戰鬥狀態機隔離 (Control Flow & Combat State Constraints)]
+--------------------------------------------------------------------------------
+* AOE/單體目標智能陣營決別 (Smart Coalition Identification): 徹底重構以 power 與 ccType 聯合驅動的敵我識別防護機制。對於增益性技能 (power < 0 或 power === 0 且 isBuffCC) 與傷害/控場技能進行嚴格分流，阻斷將護盾 (SHIELD) 或持續恢復 (HOT) 施加於敵方標靶的架構性漏洞。
+* 被動與附帶增益的投射轉向 (Secondary CC Redirection): 在命中解析階段，對附帶自身增益的攻擊技能實施智能 ccTarget 重定向。在技能將增益效果派發給敵方目標前，自動反折向施法者，實現無縫的「打擊自防禦」攻防一體聯動。
+* 遞減回報嚴格閾值判定 (Strict DR Immunity Floor): 修正控制遞減矩陣的免疫容差，將乘積比重設定為 <= 0.25，確保「三次疊加後免疫」的數學設計確切發揮。
+* 狀態渲染的異步反抖技術 (Asynchronous Feedback Decoupling): 將視覺回饋的計時器狀態機以命名空間分離為 _dot 與 _hot。根除了複數週期狀態在同幀競爭單一輸出通道時發生的 UI 靜默與信息遮蓋問題，保證複合狀態結算的視覺保真度。
+* 互斥控制權競爭的絕對防禦 (Mutually Exclusive CC Override): 將基礎硬控場 (Stun) 疊加至最高層級的位移奪取過濾器中，實體上杜杜絕了在暈眩狀態下因底層恐懼 (Fear) 所引發的狀態越權與異常滑行現象。
+
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
 `;
