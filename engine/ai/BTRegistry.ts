@@ -302,7 +302,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx]!;
 
         // 1. Path-Clearing Logic: Only trigger if in danger or evading
-        if (a.aiState === AIState.EVADING_URGENT || engine.isWarningTile(HexUtils.key(a))) {
+        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
             if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
                 // Get line towards safety
                 const line = HexUtils.line(a, a.targetHex);
