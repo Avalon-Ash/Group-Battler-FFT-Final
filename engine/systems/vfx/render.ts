@@ -59,7 +59,15 @@ export class VFXRenderer {
             
             // [FIX] Use a more aggressive sorting bias for ground locked VFX to prevent clipping
             // and ensure they are sorted correctly relative to terrain.
-            op.y = p.y + offset + (isGroundLocked ? VFX_RENDER.GROUND_SORT_BIAS : 0); 
+            if (isGroundLocked) {
+                // Sort key is based on the front edge of the effect, which is closer to the camera.
+                // In isometric projection, the vertical visual radius is roughly 0.5 * size.
+                // We add a safety margin (+120) to ensure the effect stays on top.
+                const frontEdgeY = p.y + (p.size ? p.size * 0.5 : 0) + 120;
+                op.y = frontEdgeY + offset;
+            } else {
+                op.y = p.y + offset;
+            }
             op.z = isGroundLocked
                 ? Math.max(p.z + VFX_RENDER.GROUND_Z_BIAS, VFX_RENDER.GROUND_Z_BIAS)
                 : p.z; 

@@ -147,6 +147,10 @@ export class RenderList {
                     // and TERRAIN (10) even when z is not populated.
                     sortKey += 60;
                 }
+                // [FIX] Extra compensation: ground effects must rank higher than all non-VFX types at the same depth
+                if (op.isGround) {
+                    sortKey += 500; 
+                }
             }
             // ─────────────────────────────────────────────────────────────────
 
