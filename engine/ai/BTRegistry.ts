@@ -208,6 +208,16 @@ export const BTActions: Record<string, BTActionFn> = {
     "Wait": (a, engine, args) => {
         a.aiState = args.state || AIState.WAITING;
         a.actionState = ActionState.IDLE;
+
+        // 硬控狀態（CC_INTERRUPTED）強制中斷詠唱
+        if (args.state === AIState.CC_INTERRUPTED && a.castingSkillIdx !== -1) {
+            const s = a.skills[a.castingSkillIdx];
+            if (s) engine.log(a, 'CC', '硬控中斷', s.name, '詠唱被控制技打斷');
+            a.castingSkillIdx = -1;
+            a.castTimer = 0;
+            a.castingAnimationTimer = 0;
+        }
+
         return NodeState.RUNNING;
     },
     "Idle": (a) => {

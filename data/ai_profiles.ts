@@ -13,7 +13,7 @@ export interface BTDef {
 export const STANDARD_AI_PROFILE: BTDef = {
     type: 'SELECTOR',
     name: 'Root',
-    interruptCount: 2,
+    interruptCount: 3,
     children: [
         // 1. High Priority Status Checks
         {
@@ -22,6 +22,21 @@ export const STANDARD_AI_PROFILE: BTDef = {
             children: [
                 { type: 'CONDITION', name: 'Is Dead?', key: 'IsDead' },
                 { type: 'ACTION', name: 'Dead Wait', key: 'Wait', args: { state: AIState.DEAD } }
+            ]
+        },
+        {
+            type: 'SEQUENCE',
+            name: 'CC Check',
+            children: [
+                {
+                    type: 'SELECTOR', name: 'Any CC?',
+                    children: [
+                        { type: 'CONDITION', name: 'Stunned?', key: 'IsStunned' },
+                        { type: 'CONDITION', name: 'Banished?', key: 'IsBanished' },
+                        { type: 'CONDITION', name: 'Feared?', key: 'IsFeared' }
+                    ]
+                },
+                { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } }
             ]
         },
         // [NEW] Survival: Escape Warning Zone (Interceptor)
@@ -54,21 +69,6 @@ export const STANDARD_AI_PROFILE: BTDef = {
                         }
                     ]
                 }
-            ]
-        },
-        {
-            type: 'SEQUENCE',
-            name: 'CC Check',
-            children: [
-                {
-                    type: 'SELECTOR', name: 'Any CC?',
-                    children: [
-                        { type: 'CONDITION', name: 'Stunned?', key: 'IsStunned' },
-                        { type: 'CONDITION', name: 'Banished?', key: 'IsBanished' },
-                        { type: 'CONDITION', name: 'Feared?', key: 'IsFeared' }
-                    ]
-                },
-                { type: 'ACTION', name: 'CC Wait', key: 'Wait', args: { state: AIState.CC_INTERRUPTED } }
             ]
         },
         // 2. Combat Loop
