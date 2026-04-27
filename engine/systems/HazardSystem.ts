@@ -49,14 +49,14 @@ export class HazardSystem {
 
         const def = HAZARD_VISUALS[type];
         if (def && def.spawnVfx) {
-            const px = HexUtils.toPx(q, r, engine.mapConfig);
-            const hz = engine.getTerrainHeight(q, r);
+            const px = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
+            const hz = engine.getTerrainHeight(hazard.q, hazard.r);
             engine.events.push({ 
                 type: 'HAZARD_SPAWN', 
                 pos: { x: px.x, y: px.y, z: hz }, 
                 text: def.spawnVfx,
                 sourceId: hazard.sourceId,
-                targetId: hazard.id // Use hazard ID as targetId for spawn events
+                targetId: hazard.id 
             });
         }
     }

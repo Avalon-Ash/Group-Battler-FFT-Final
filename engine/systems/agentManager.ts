@@ -76,6 +76,14 @@ export class AgentManager {
             a.deadLogged = true;
             a.deathTimer = a.DEATH_ANIM_DURATION; 
             
+            // ── [FIX] Freeze physics on death ──
+            a.physics.vx = 0;
+            a.physics.vy = 0;
+            if (a.physics.z <= 0) a.physics.vz = 0;
+            a.isMoving = false;
+            a.path = [];
+            // ──────────────────────────────────
+
             // Clear status VFX timers
             if (engine.renderer) {
                 engine.renderer.vfx.agentVFX.clearAgent(a.id);

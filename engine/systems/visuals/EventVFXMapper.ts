@@ -28,12 +28,16 @@ export class EventVFXMapper {
         const origin = this.resolvePoint(event.pos, event.sourceId, engine);
         let target = this.resolvePoint(event.pos, event.targetId, engine);
         
-        if (event.sourceId && Math.abs(origin.x) < 0.1 && Math.abs(origin.y) < 0.1) {
+        // ── [FIX C] Safety net for (0,0) origins ──
+        if (event.sourceId && Math.abs(origin.x) < 0.5 && Math.abs(origin.y) < 0.5) {
             console.warn(`[VFX] Origin is 0,0. EventType: ${event.type}. SourceId: ${event.sourceId}, Pos: ${event.pos.x},${event.pos.y}`);
+            if (event.type !== 'HAZARD_SPAWN') return; // Skip VFX for origin 0,0 for most events
         }
-        if (event.targetId && Math.abs(target.x) < 0.1 && Math.abs(target.y) < 0.1) {
+        if (event.targetId && Math.abs(target.x) < 0.5 && Math.abs(target.y) < 0.5) {
             console.warn(`[VFX] Target is 0,0. EventType: ${event.type}. TargetId: ${event.targetId}, Pos: ${event.pos.x},${event.pos.y}`);
+            if (event.type !== 'HAZARD_SPAWN') return;
         }
+        // ──────────────────────────────────────────
 
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const groundZ = engine.getTerrainHeight(groundHex.q, groundHex.r);

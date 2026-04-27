@@ -13,6 +13,7 @@ export class PhysicsSystem {
         // Physics integration only. 
         // Visual side-effects (dust, sparks) are now handled by AgentVFXSystem.
         for (const a of engine.agents) {
+            if (a.hp <= 0) continue; // [FIX] Skip physical updates for dead agents
             this.engine.update(a, dt, engine);
             
             // Handle Trail History Recording (here or in PhysicsEngine, but logic context is better)
