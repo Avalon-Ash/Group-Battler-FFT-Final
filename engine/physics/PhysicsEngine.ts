@@ -28,7 +28,7 @@ export class PhysicsEngine {
     }
 
     public update(a: Agent, dt: number, engine: GameEngine) {
-        if (a.fullyDead) return;
+        if (a.fullyDead || a.banished) return;
         
         // Sub-step physics to guarantee stability at high time scales
         const maxStep = 0.016; // ~60fps step
@@ -117,6 +117,7 @@ export class PhysicsEngine {
                     engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
 
                     if (a.hp <= 0) {
+                        a.deadLogged = true;
                         engine.agentManager.handleDeadState(a, engine);
                     } else {
                         // SSOT: Set visual timer instead of imperative setAnim
