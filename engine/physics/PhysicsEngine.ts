@@ -42,6 +42,8 @@ export class PhysicsEngine {
     }
 
     private stepPhysics(a: Agent, dt: number, engine: GameEngine) {
+        if (a.hp <= 0) return; // [FIX] Dead units: all physics frozen, no damping decay
+        
         const isDead = a.hp <= 0;
         
         const stiffness = isDead ? 0 : PHYSICS.STIFFNESS_ALIVE * 1.2;

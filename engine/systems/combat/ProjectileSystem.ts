@@ -136,6 +136,8 @@ export class ProjectileSystem {
   }
 
   public spawnProjectile(source: Agent, skill: Skill, engine: GameEngine) {
+    if (source.spawnTimer > 0) return; // [FIX] Unit still spawning, px/py might be uninitialized (0,0)
+    
     const target =
       skill.type === "AOE" ? source.targetHex || source.target : source.target;
     if (!target) return;
