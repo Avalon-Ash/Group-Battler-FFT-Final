@@ -99,20 +99,21 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
     "SkillReady": (a, _, args) => {
         const idx = args.slot; 
+        if (idx === undefined || idx < 0 || idx >= a.skills.length) return false;
         const s = a.skills[idx];
         if (!s) return false;
         
         // [FIX] 正在詠唱自己時，直接 return true 跳過所有後續判斷
-        // 讓 BT 繼續往 CastSkill 走，由 initiateCast 的 RUNNING guard 接管
         if (a.castingSkillIdx === idx) return true;
         
         // 正在詠唱其他技能：整條 skill branch 失敗
         if (a.castingSkillIdx !== -1) return false;
         
         let cd = a.curCDs[idx];
-        if (isNaN(cd)) cd = 0;
+        if (isNaN(cd) || cd < 0) cd = 0;
 
-        const tolerance = (s.tag === 'BASIC') ? 0.15 : 0.01;
+        // Increase tolerance slightly for non-basic to avoid frame-edge race conditions
+        const tolerance = (s.tag === 'BASIC') ? 0.15 : 0.05;
         const isOnCD = cd > tolerance; 
         
         if (isOnCD || a.mp < s.cost) return false;
@@ -456,7 +457,8 @@ export const BTActions: Record<string, BTActionFn> = {
             const isPushPull = s.ccType === 'KNOCKBACK' || s.ccType === 'PULL' || s.ccType2 === 'KNOCKBACK' || s.ccType2 === 'PULL';
             if (!isPushPull) return false;
             let cd = a.curCDs[i];
-            return (isNaN(cd) || cd <= 0.1) && a.mp >= s.cost;
+            if (isNaN(cd) || cd < 0) cd = 0;
+            return cd <= 0.1 && a.mp >= s.cost;
         });
 
         if (idx === -1) return NodeState.FAILURE;

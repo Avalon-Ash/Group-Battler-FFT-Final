@@ -75,6 +75,17 @@ export class EventVFXMapper {
 
     private resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
         if (agentId) {
+            // Hazard IDs (HZD-xxx) 不在 agents 裡，直接跳過 agent 查詢
+            if (agentId.startsWith('HZD-') || agentId.startsWith('ground-')) {
+                const hex = HexUtils.fromPx(eventPos.x, eventPos.y, engine.mapConfig);
+                const terrainH = engine.getTerrainHeight(hex.q, hex.r);
+                return {
+                    x: eventPos.x,
+                    y: eventPos.y,
+                    z: eventPos.z !== undefined ? eventPos.z : terrainH
+                };
+            }
+
             const agent = engine.agents.find(a => a.id === agentId);
             if (agent) {
                 // 死亡 agent 的物理狀態已不可靠，直接用事件紀錄的 pos 作為最後位置

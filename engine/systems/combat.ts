@@ -22,7 +22,17 @@ export class CombatSystem {
         if (isHardCC) return NodeState.FAILURE;
         const skill = a.skills[skillIdx];
         if (!skill) return NodeState.FAILURE;
+
+        // [SAFETY] Check CD even if AI/caller should have
+        const cd = a.curCDs[skillIdx] || 0;
+        const tolerance = (skill.tag === 'BASIC') ? 0.15 : 0.05; 
+        if (cd > tolerance && a.castingSkillIdx !== skillIdx) {
+            return NodeState.FAILURE;
+        }
+
         if (a.silenceTimer > 0 && skill.tag !== 'BASIC') return NodeState.FAILURE;
+        if (a.mp < skill.cost) return NodeState.FAILURE;
+
         if (a.castingSkillIdx === -1) {
             a.castingSkillIdx = skillIdx;
             a.castTimer = skill.cast;
@@ -35,6 +45,10 @@ export class CombatSystem {
             let targetName = '地面';
             if (a.target) targetName = a.target.id;
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
+            
+            // Console log for debugging infinite cast
+            // console.log(`[Combat] ${a.id} initiating ${skill.id} (slot ${skillIdx})`);
+            
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (skill.cast > 0 && skill.tag !== 'BASIC') {
@@ -71,9 +85,13 @@ export class CombatSystem {
         this.projectileSystem.update(dt, engine, this.skillExecutor);
     }
     private completeCast(a: Agent, engine: GameEngine) {
+        if (a.castingSkillIdx === -1) return; // Safety guard
         const s = a.skills[a.castingSkillIdx]!;
+        if (!s) return;
+        
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
-        a.curCDs[a.castingSkillIdx] = Math.max(s.cd || 0, 0.3); // Minimum 0.3s CD to prevent infinite instant re-casts
+        // Force minimum 0.3s CD, but also respect skill's inherent CD correctly
+        a.curCDs[a.castingSkillIdx] = Math.max(s.cd || 0, 0.3); 
         
         if (s.tag !== 'BASIC') {
             engine.events.push({ 
