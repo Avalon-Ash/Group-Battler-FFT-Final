@@ -63,4 +63,26 @@ export class GridSpatial {
         }
         return occluded;
     }
+
+    public static getObstacleOccludedAgents(engine: GameEngine): Agent[] {
+        const result: Agent[] = [];
+        for (const agent of engine.agents) {
+            if (agent.hp <= 0) continue;
+            // 取得所有障礙物
+            for (const key of engine.map.obstacles.keys()) {
+                const [q, r] = key.split(',').map(Number);
+                const pos = HexUtils.toPx(q, r, engine.mapConfig);
+                
+                // 障礙物 screenY > 單位 screenY（障礙物在畫面前方）
+                // 且距離中心足夠近（遮擋判斷）
+                if (pos.y > agent.py && 
+                    Math.abs(pos.x - agent.px) < 60 &&
+                    Math.abs(pos.y - agent.py) < 120) {
+                    result.push(agent);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
 }

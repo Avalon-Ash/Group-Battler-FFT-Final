@@ -65,6 +65,7 @@ export class VFXStateManager {
             p.blendMode = undefined;
             p.style = undefined; 
             p.visualStyle = undefined;
+            p.ownerId = undefined;
             p.delay = 0; 
             p.locked = false; 
             p.sortBias = 0; 
@@ -81,7 +82,8 @@ export class VFXStateManager {
             life: 0, maxLife: 0, color: '#ff00ff', size: 0, height: undefined, type: 'GENERIC_DEBUG',
             delay: 0,
             locked: false,
-            sortBias: 0
+            sortBias: 0,
+            ownerId: undefined
         };
     }
     public releaseParticle(p: Particle) {
