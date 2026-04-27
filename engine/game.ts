@@ -298,12 +298,8 @@ export class GameEngine {
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
-            if (a.bt) {
-                if (a.aiUpdateTimer <= 0) {
-                    // BT tick will now see the latest state from combat system (moved down)
-                } else {
-                    a.aiUpdateTimer -= dt;
-                }
+            if (a.bt && a.aiUpdateTimer > 0) {
+                a.aiUpdateTimer -= dt;
             }
         }
         this.combat.update(dt, this);
