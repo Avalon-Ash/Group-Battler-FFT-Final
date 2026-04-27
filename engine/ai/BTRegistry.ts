@@ -61,8 +61,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[idx];
         if (!s) return false;
         
-        // [FIX] 正在詠唱時（包含前搖）不應評估其他技能的施放條件，避免因為高頻 tick 導致其他技能覆蓋當前的 targetHex
-        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return false;
+        // [FIX] 正在詠唱自己時，直接 return true 跳過所有後續判斷
+        // 讓 BT 繼續往 CastSkill 走，由 initiateCast 的 RUNNING guard 接管
+        if (a.castingSkillIdx === idx) return true;
+        
+        // 正在詠唱其他技能：整條 skill branch 失敗
+        if (a.castingSkillIdx !== -1) return false;
         
         let cd = a.curCDs[idx];
         if (isNaN(cd)) cd = 0;
@@ -202,8 +206,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 const remainingCast = a.castTimer;
                 let isFatal = false;
 
-                // SSOT Check: Hazard arrival vs Cast finish
-                if (isWarning && engine.zones.shrinkTimer < remainingCast) {
+                // [FIX] 縮圈警告格：只要腳下是 warning tile，一律視為致命
+                // 不再依賴 shrinkTimer 時間比較（shrinkTimer 是下次縮圈倒計時，不是當前格消失時間）
+                if (isWarning) {
                     isFatal = true;
                 }
                 
@@ -219,8 +224,17 @@ export const BTActions: Record<string, BTActionFn> = {
                     a.castTimer = 0;
                     a.castingAnimationTimer = 0;
                 } else {
-                    // Not fatal: protect non-basic skills to allow DPS
-                    if (skill.tag !== 'BASIC') return NodeState.FAILURE;
+                    // 非致命：BASIC 中斷、非 BASIC 先放完
+                    if (skill.tag !== 'BASIC') {
+                        // [FIX] 不 return FAILURE，改為 RUNNING——維持逃生意圖，讓詠唱繼續
+                        // 但設定 EVADING_URGENT，確保詠唱完後下一幀立刻逃
+                        a.aiState = AIState.EVADING_URGENT;
+                        return NodeState.RUNNING;
+                    }
+                    // BASIC 技能：直接中斷
+                    a.castingSkillIdx = -1;
+                    a.castTimer = 0;
+                    a.castingAnimationTimer = 0;
                 }
             }
         }
@@ -262,6 +276,8 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
+        // 已在詠唱自己：維持 RUNNING，讓 combat.update 自行推進 castTimer
+        if (a.castingSkillIdx === idx) return NodeState.RUNNING;
         return engine.initiateCast(a, idx);
     },
     "MoveToOptimal": (a, engine, args) => {
