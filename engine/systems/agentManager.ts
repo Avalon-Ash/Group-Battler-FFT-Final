@@ -79,7 +79,7 @@ export class AgentManager {
             // ── [FIX] Freeze physics on death ──
             a.physics.vx = 0;
             a.physics.vy = 0;
-            if (a.physics.z <= 0) a.physics.vz = 0;
+            a.physics.vz = 0;
             a.isMoving = false;
             a.path = [];
             // ──────────────────────────────────

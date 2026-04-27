@@ -39,15 +39,6 @@ export const UnitShadowPainter = {
         ctx.drawImage(shadowBlob, -w/2, -h/2, w, h); 
         ctx.restore();
 
-        if (agent.hp > 0 && agent.castingSkillIdx !== -1) {
-            const skill = agent.skills[agent.castingSkillIdx];
-            if (skill && skill.tag === 'ULT') {
-                UnitAuraPainter.drawUltimateChantVFX(ctx, agent, px, surfaceY, t, layout);
-            } else {
-                UnitAuraPainter.drawCastingVFX(ctx, agent, px, surfaceY, t, layout);
-            }
-        }
-
         ctx.save();
         ctx.translate(px, tokenY);
         ctx.scale(UNIT_SCALE, UNIT_SCALE); 
@@ -71,22 +62,6 @@ export const UnitShadowPainter = {
             ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 5;
             ctx.drawImage(assets.icon, -32, -32, 64, 64);
             ctx.restore();
-        }
-        
-        if (agent.castingSkillIdx !== -1) {
-            const skill = agent.skills[agent.castingSkillIdx];
-            if (skill) {
-                const progress = 1 - (agent.castTimer / skill.cast);
-                const radius = skill.aoeRadius || 1;
-                const isAOE = skill.type === 'AOE';
-                
-                if (isAOE && radius > 0) {
-                    ctx.save();
-                    ctx.translate(px, surfaceY);
-                    UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, radius, skill.tag, isAOE, layout);
-                    ctx.restore();
-                }
-            }
         }
         
         ctx.restore();

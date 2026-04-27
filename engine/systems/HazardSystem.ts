@@ -54,9 +54,9 @@ export class HazardSystem {
             engine.events.push({ 
                 type: 'HAZARD_SPAWN', 
                 pos: { x: px.x, y: px.y, z: hz }, 
-                text: def.spawnVfx,
                 sourceId: hazard.sourceId,
-                targetId: hazard.id 
+                targetId: hazard.id,
+                text: def.spawnVfx 
             });
         }
     }

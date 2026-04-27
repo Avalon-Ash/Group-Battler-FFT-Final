@@ -5,6 +5,8 @@ import { MapConfig } from "../utils";
 import { UnitVisualProcessor } from "./unit/UnitVisualProcessor";
 import { UnitBodyPainter } from "../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
+import { UnitIndicatorPainter } from "../renderers/units/painters/UnitIndicatorPainter";
+import { UnitAuraPainter } from "../renderers/units/painters/UnitAuraPainter";
 import { HexLayout } from "../../types";
 import { VisualMath } from "../math/VisualMath";
 
@@ -84,6 +86,31 @@ export class UnitRenderSystem {
             UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
         }
         UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
+
+        // [FIX] Move Aura/Cast rings to render AFTER the unit body (Step 6 in render order)
+        // This prevents them from being covered by terrain tiles further from camera
+        if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
+            const skill = agent.skills[agent.castingSkillIdx];
+            if (skill) {
+              const surfaceY = 0; // Relative to drawAssembly translate
+              
+              // 1. Casting Auras
+              if (skill.tag === 'ULT') {
+                  UnitAuraPainter.drawUltimateChantVFX(ctx, agent, 0, surfaceY, globalTime, layout);
+              } else {
+                  UnitAuraPainter.drawCastingVFX(ctx, agent, 0, surfaceY, globalTime, layout);
+              }
+
+              // 2. AOE Ground Indicators
+              const progress = 1 - (agent.castTimer / skill.cast);
+              const radius = skill.aoeRadius || 1;
+              const isAOE = skill.type === 'AOE';
+              
+              if (isAOE && radius > 0) {
+                  UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, surfaceY, skill.color, globalTime, progress, radius, skill.tag, isAOE, layout);
+              }
+            }
+        }
         
         ctx.restore(); 
     }
