@@ -19,6 +19,14 @@ export class VictorySystem {
             if (a.hp > 0) a.team === Team.BLUE ? blue++ : red++;
         }
 
+        if (blue === 0 && red === 0) {
+            vs.isFinishing = true;
+            vs.winningTeam = null; 
+            vs.victoryTimer = VICTORY_PHASE_DURATION; 
+            engine.state.time.targetTimeScale = 0.4; 
+            return true;
+        }
+
         if ((blue === 0 && red > 0) || (red === 0 && blue > 0)) { 
             vs.isFinishing = true;
             vs.winningTeam = blue === 0 ? Team.RED : Team.BLUE;

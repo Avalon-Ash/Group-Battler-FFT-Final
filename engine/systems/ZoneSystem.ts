@@ -120,12 +120,14 @@ export class ZoneSystem {
 
                             victim.hp = 0;
                             victim.banished = true; // 讓單位跟格子一起視覺下墜
+                            victim.deadLogged = true; // 避免 handleDeadState 重複推播事件
 
                             engine.pushEvent('DEATH', 
                                 { x: snapX, y: snapY },
                                 { 
                                     sourceId: victim.id,
-                                    pos: { x: snapX, y: snapY, z: snapZ }
+                                    pos: { x: snapX, y: snapY, z: snapZ },
+                                    text: "RING_OUT"
                                 }
                             );
                             engine.log(victim, 'SYSTEM', '墜落出局', null, `${victim.id} 隨地板崩落虛空`);

@@ -94,8 +94,9 @@ export class PhysicsEngine {
             if (!a.banished) {
                 if (!isDead) {
                     a.hp = 0;
+                    a.deadLogged = true;
                     engine.log(a, 'DEATH', '墜落', '深淵', '跌落至虛空');
-                    engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, text: "RING_OUT" });
+                    engine.pushEvent('DEATH', {x: a.px, y: a.py}, { sourceId: a.id, text: "RING_OUT" });
                     engine.agentManager.handleDeadState(a, engine);
                 }
                 a.banished = true; // Remove from battlefield rendering and logic
