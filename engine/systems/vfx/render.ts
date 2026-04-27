@@ -60,7 +60,9 @@ export class VFXRenderer {
             // [FIX] Use a more aggressive sorting bias for ground locked VFX to prevent clipping
             // and ensure they are sorted correctly relative to terrain.
             op.y = p.y + offset + (isGroundLocked ? VFX_RENDER.GROUND_SORT_BIAS : 0); 
-            op.z = isGroundLocked ? (p.z + VFX_RENDER.GROUND_Z_BIAS) : p.z; 
+            op.z = isGroundLocked
+                ? Math.max(p.z + VFX_RENDER.GROUND_Z_BIAS, VFX_RENDER.GROUND_Z_BIAS)
+                : p.z; 
             op.pIsUlt = isUlt; 
             op.isGround = isGroundLocked;
             
