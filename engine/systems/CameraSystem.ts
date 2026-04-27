@@ -20,7 +20,7 @@ export class CameraSystem {
     // Lower stiffness = Heavier, slower camera (Cinematic)
     // Higher stiffness = Snappy, responsive camera (Arcade)
     public followStiffness: number = 0.25; // Default lowered from 3.0 for cinematic feel
-    public zoomStiffness: number = 0.6;   // Default lowered from 2.0
+    public zoomStiffness: number = 0.2;   // Default lowered from 2.0
     
     // Mode Control
     private manualOverrideTimer: number = 0; // 手動操作後的冷卻時間
@@ -80,7 +80,11 @@ export class CameraSystem {
             this.isManualControlling = false;
             this.targetX = x;
             this.targetY = y;
-            this.targetZoom = zoom;
+            
+            // Dead zone：±5% 內的 zoom 變化直接忽略，不觸發追蹤
+            if (Math.abs(zoom - this.targetZoom) > this.targetZoom * 0.05) {
+                this.targetZoom = zoom;
+            }
         }
     }
 

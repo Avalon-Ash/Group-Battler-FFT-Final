@@ -4,6 +4,7 @@ import { HexUtils } from "../utils";
 import { Point, AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
 import { HEX_SIZE } from "../../constants";
+import { VisualMath } from "../math/VisualMath";
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
@@ -147,6 +148,13 @@ export class DirectorSystem {
         return best;
     }
 
+    private _agentVisualY(a: Agent): number {
+        return VisualMath.getVisualBodyCenterY(
+            a.py + a.physics.y,
+            a.physics.z
+        );
+    }
+
     private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
         this.targetGroup.clear();
 
@@ -154,7 +162,7 @@ export class DirectorSystem {
         if (engine.state.director.priorityTimer > 0 && priorityId) {
             const focal = engine.agents.find(a => a.id === priorityId && a.hp > 0);
             if (focal) {
-                this.targetGroup.add(focal.px, focal.py, 2.0, 100);
+                this.targetGroup.add(focal.px + focal.physics.x, this._agentVisualY(focal), 2.0, 100);
             }
         }
 
@@ -162,7 +170,7 @@ export class DirectorSystem {
         const ultCasters = engine.agents.filter(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
         if (ultCasters.length > 0) {
             for (const caster of ultCasters) {
-                this.targetGroup.add(caster.px, caster.py, 1.2, 120);
+                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), 1.2, 120);
                 const skill = caster.skills[caster.castingSkillIdx]!;
                 if (skill.type === 'AOE' && caster.targetHex) {
                     const targetPx = HexUtils.toPx(caster.targetHex.q, caster.targetHex.r, engine.mapConfig);
@@ -187,15 +195,15 @@ export class DirectorSystem {
             for (const caster of activeCasters) {
                 const skill = caster.skills[caster.castingSkillIdx];
                 const w = skill?.tag === 'ACTIVE' ? 1.0 : 0.6;
-                this.targetGroup.add(caster.px, caster.py, w, 80);
+                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), w, 80);
                 const target = caster.target;
                 if (target && target.hp > 0) {
-                    this.targetGroup.add(target.px, target.py, w * 0.7, 80);
+                    this.targetGroup.add(target.px + target.physics.x, this._agentVisualY(target), w * 0.7, 80);
                     // 附近的敵人也稍微抓進來
                     engine.agents.forEach(a => {
                         if (a.hp > 0 && a.team !== caster.team && a.id !== target.id) {
                             const d = HexUtils.dist(a, target);
-                            if (d <= 1) this.targetGroup.add(a.px, a.py, 0.3, 60);
+                            if (d <= 1) this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 0.3, 60);
                         }
                     });
                 }
@@ -207,7 +215,7 @@ export class DirectorSystem {
         const evaders = engine.agents.filter(a => a.hp > 0 && (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH));
         if (evaders.length > 0) {
             for (const a of evaders) {
-                this.targetGroup.add(a.px, a.py, 1.0, 80);
+                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 1.0, 80);
                 if (a.targetHex) {
                     const destPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
                     this.targetGroup.add(destPx.x, destPx.y, 0.4, 40);
@@ -222,7 +230,7 @@ export class DirectorSystem {
             if (a.hp > 0 && !a.banished && a.physics.z > -100) {
                 // 滿血=0.5, 快死=1.0 (低血量權重較高)
                 const weight = 1.0 - (a.hp / a.maxHp) * 0.5;
-                this.targetGroup.add(a.px, a.py, weight, 50);
+                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), weight, 50);
                 hasTargets = true;
             }
         }
