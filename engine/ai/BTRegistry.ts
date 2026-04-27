@@ -189,8 +189,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const stillInDanger = BTConditions["IsInWarningZone"](a, engine);
             if (!stillInDanger) {
                 a.actionState = ActionState.IDLE;
-                // Buffer cooldown clearing to prevent jittering return FAILURE
-                a.escapeCooldown = 0.1; 
+                a.escapeCooldown = 0.2; 
                 return NodeState.FAILURE;
             }
             a.actionState = ActionState.EVADING;
@@ -425,6 +424,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         const result = engine.calculateOptimalTarget(a, skill);
         
+        const prevTarget = a.target;
         if (result.targetAgent) {
             a.target = result.targetAgent;
             a.targetHex = null;
@@ -455,10 +455,16 @@ export const BTActions: Record<string, BTActionFn> = {
             if (dest) {
                 const state = engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
                 if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+                if (state === NodeState.FAILURE) {
+                    a.target = prevTarget;
+                    a.targetHex = null;
+                }
                 return state;
             }
         }
         
+        a.target = prevTarget;
+        a.targetHex = null;
         return NodeState.FAILURE;
     }
 };
