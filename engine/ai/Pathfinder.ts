@@ -70,8 +70,8 @@ export class Pathfinder {
                 const nKey = HexUtils.key(nHex);
                 if (targeting.isWarningTile(nKey, spatial)) {
                     if (!isEscaping) {
-                        // 嚴格禁止在正常尋路時走入警告區域
-                        continue;
+                        // [FIX] Allow passing through warning tiles with high penalty instead of blocking
+                        moveCost += 20;
                     } else {
                         // 逃生時允許走過警告區域，但給予懲罰以盡快離開
                         moveCost += 5;
@@ -118,8 +118,8 @@ export class Pathfinder {
         return bestH !== -1 ? this.reconstructPath(bestH, startH) : [];
     }
 
-    public findPathToSafety(startAgent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
-        const startH = HexUtils.hash(startAgent.q, startAgent.r);
+    public findPathToSafety(start: { q: number; r: number }, agent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
+        const startH = HexUtils.hash(start.q, start.r);
         
         this._gScore.clear();
         this._cameFrom.clear();
@@ -143,12 +143,12 @@ export class Pathfinder {
             } else {
                 const hazardAtNode = spatial.getHazard(currentKey);
                 const isSafe = !targeting.isWarningTile(currentKey, spatial) && 
-                            (!hazardAtNode || hazardAtNode.team === startAgent.team);
+                            (!hazardAtNode || hazardAtNode.team === agent.team);
                 
                 // 成功判定：找到非警告區域的合法地塊，且沒有敵方 hazard
                 if (isSafe && spatial.isValidHash(current.hash)) {
                     // 飛行單位：確認目標格沒有地面障礙物阻擋降落（blocksFlying 判定）
-                    if (startAgent.movementType === MovementType.FLYING) {
+                    if (agent.movementType === MovementType.FLYING) {
                         const obsType = spatial.getObstacleTypeHash(current.hash);
                         if (obsType) {
                             const def = OBSTACLE_DB[obsType];
@@ -168,26 +168,26 @@ export class Pathfinder {
                 if (spatial.hasObstacleHash(neighborH)) {
                     const type = spatial.getObstacleTypeHash(neighborH);
                     const def = OBSTACLE_DB[type || 'WALL'];
-                    if (startAgent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
+                    if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
                 }
 
                 let moveCost = 1.0;
 
                 // 單位碰撞判定 (逃生時盡量避開單位，避免死鎖)
                 const occ = spatial.getAgentHash(neighborH);
-                if (occ && occ.hp > 0 && occ !== startAgent) {
+                if (occ && occ.hp > 0 && occ !== agent) {
                     // 給予極高成本，讓 AI 優先選擇空地逃生 (例如上/下方的空地)
                     moveCost += 50; 
                 }
 
                 const nHex = HexUtils.unhash(neighborH);
 
-                if (startAgent.movementType !== MovementType.FLYING) {
+                if (agent.movementType !== MovementType.FLYING) {
                     const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
                     const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
                     
                     const deltaH = h2 - h1;
-                    const jumpLimit = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
+                    const jumpLimit = Math.max(1, agent.jump) * BLOCK_HEIGHT;
 
                     if (deltaH > jumpLimit) continue; 
 
@@ -206,9 +206,9 @@ export class Pathfinder {
                     
                     // 飛行單位缺乏地形導引，補上安全格方向啟發
                     let heuristic = 0;
-                    if (startAgent.movementType === MovementType.FLYING) {
+                    if (agent.movementType === MovementType.FLYING) {
                         // 用距離起點的反向作為啟發（越遠離危險起點越好）
-                        heuristic = -HexUtils.dist(nHex, startAgent) * 0.3;
+                        heuristic = -HexUtils.dist(nHex, start) * 0.3;
                     }
                     this.pqPush(neighborH, tentativeG + heuristic);
                 }

@@ -26,7 +26,6 @@ export abstract class BTNode {
     }
     abstract tick(ctx: any): NodeState;
     reset() {
-        if (this.status === NodeState.RUNNING) return;
         this.status = NodeState.PENDING;
         if (this.c) {
             for (const child of this.c) {
@@ -36,42 +35,23 @@ export abstract class BTNode {
     }
 }
 export class Selector extends BTNode {
-    private _runningIdx: number = -1;
     private _interruptCount: number = 0;
     constructor(n: string, interruptCount: number = 0) {
         super(n, '?');
         this._interruptCount = interruptCount;
     }
     tick(ctx: any): NodeState {
-        for (let i = 0; i < this._interruptCount; i++) {
+        // [FIX] Selectors should always evaluate branches from priority order 
+        // to allow switching when conditions change (e.g. survival vs combat).
+        for (let i = 0; i < this.c.length; i++) {
             const r = this.c[i].tick(ctx);
-            if (r === NodeState.RUNNING) {
-                return this.record(r);
-            }
-            if (r === NodeState.SUCCESS) {
-                this._runningIdx = -1;
+            if (r === NodeState.RUNNING || r === NodeState.SUCCESS) {
                 return this.record(r);
             }
         }
-
-        const start = this._runningIdx >= 0 ? this._runningIdx : this._interruptCount;
-        for (let i = start; i < this.c.length; i++) {
-            const r = this.c[i].tick(ctx);
-            if (r === NodeState.RUNNING) {
-                this._runningIdx = i;
-                return this.record(r);
-            }
-            if (r === NodeState.SUCCESS) {
-                this._runningIdx = -1;
-                return this.record(r);
-            }
-        }
-        this._runningIdx = -1;
         return this.record(NodeState.FAILURE);
     }
     reset() {
-        if (this.status === NodeState.RUNNING) return;
-        this._runningIdx = -1;
         super.reset();
     }
 }

@@ -267,20 +267,10 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         if (targetIsUnsafe) {
-            // Fix: Adjust pathfinder start point to actual pixel position for more accurate safety search
+            // [FIX] Use explicit pixel-based hex for safety path start to avoid logical coord lag
             const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
-            const savedQ = a.q, savedR = a.r;
-            if (realHex.q !== a.q || realHex.r !== a.r) {
-                a.q = realHex.q;
-                a.r = realHex.r;
-            }
+            const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
             
-            const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
-            
-            // Restore actual logical q/r (moving might be in progress)
-            a.q = savedQ;
-            a.r = savedR;
-
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
             } else {
@@ -371,7 +361,8 @@ export const BTActions: Record<string, BTActionFn> = {
             const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
             
             if (isUnsafe) {
-                const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
+                const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
+                const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
                 if (path.length > 0) {
                     dest = path[path.length - 1];
                 } else {
@@ -400,7 +391,8 @@ export const BTActions: Record<string, BTActionFn> = {
         const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
 
         if (isUnsafe) {
-            const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
+            const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
+            const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
             if (path.length > 0) {
                 dest = path[path.length - 1] as any;
             } else {

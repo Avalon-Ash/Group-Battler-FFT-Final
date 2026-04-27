@@ -77,7 +77,7 @@ export class TargetingSystem {
 
                 if (pathfinder) {
                     // [OPTIMIZATION] 使用 Pathfinder 尋找保證可到達的安全地塊
-                    const path = pathfinder.findPathToSafety(a, spatial, this);
+                    const path = pathfinder.findPathToSafety(a, a, spatial, this);
                     if (path.length > 0) {
                         bestSafeHex = path[path.length - 1];
                     }
