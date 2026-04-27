@@ -213,10 +213,16 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                         <div className="px-3 pb-3 cursor-default" onPointerDown={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center bg-black/20 rounded-lg p-2 border border-white/5">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">CURRENT STATE</span>
-                                    <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300'}`}>
-                                        {Helpers.getAIStateLabel(agent.aiState)} {agent.target && agent.aiState === AIState.TRACKING ? `_ ${agent.target.id}` : ''}
-                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">BT_SIG | SSOT_PROC</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-amber-400'}`}>
+                                            {Helpers.getAIStateLabel(agent.aiState)}
+                                        </span>
+                                        <span className="text-slate-700 font-mono text-[10px]">/</span>
+                                        <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-cyan-300'}`}>
+                                            {Helpers.getActionStateLabel(agent.actionState)}
+                                        </span>
+                                    </div>
                                 </div>
                                 <div className="flex gap-1">
                                     {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[10px] px-1.5">STUN</span>}

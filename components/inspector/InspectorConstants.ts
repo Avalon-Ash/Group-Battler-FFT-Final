@@ -1,5 +1,5 @@
 
-import { Role, Team, AnimState, AIState } from '../../types';
+import { Role, Team, AnimState, AIState, ActionState } from '../../types';
 import { PALETTE } from '../../constants';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
@@ -43,6 +43,16 @@ export const AI_STATE_NAME_MAP: Record<AIState, string> = {
     [AIState.LAST_STAND_PUSH]: 'LAST_STAND_PUSH',
     [AIState.LAST_STAND_ATTACK]: 'LAST_STAND_ATK',
     [AIState.COMBAT_LOCK]: 'COMBAT_LOCK',
+};
+
+export const ACTION_STATE_MAP: Record<ActionState, string> = {
+    [ActionState.IDLE]: 'IDLE_SSOT',
+    [ActionState.WALKING]: 'PROC_LOCOMOTION',
+    [ActionState.ATTACKING]: 'PROC_STRIKE',
+    [ActionState.CASTING]: 'PROC_CHANNELLING',
+    [ActionState.EVADING]: 'PROC_EVASION',
+    [ActionState.STUNNED]: 'SIGNAL_LOCK',
+    [ActionState.DYING]: 'ENTITY_FLUSH'
 };
 
 export const ANIM_STATUS_MAP: Record<string, string> = {
@@ -115,5 +125,6 @@ export const Helpers = {
     getRoleConfig: (role: Role) => ROLE_MAP[role] || { label: role, color: 'text-slate-400', border: 'border-slate-500' },
     getTeamConfig: (team: Team) => TEAM_MAP[team] || { label: 'UNKNOWN_SIGNAL', color: 'text-slate-400', bg: 'bg-slate-800' },
     getTagLabel: (tag: string) => TAG_MAP[tag]?.label || 'UNDEFINED_TAG',
-    getAIStateLabel: (state: AIState) => AI_STATE_NAME_MAP[state] || 'UNKNOWN_STATE'
+    getAIStateLabel: (state: AIState) => AI_STATE_NAME_MAP[state] || 'UNKNOWN_STATE',
+    getActionStateLabel: (state: ActionState) => ACTION_STATE_MAP[state] || 'UNKNOWN_PROCESS'
 };

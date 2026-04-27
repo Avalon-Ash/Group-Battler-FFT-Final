@@ -120,6 +120,17 @@ RenderPipeline
 
 [8. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)]
 --------------------------------------------------------------------------------
+* 行為狀態 SSOT 架構 (ActionState SSOT Architecture):
+  - 引入 ActionState 枚舉作為代理人行為的單一真理性來源 (SSOT)。
+  - AnimationSystem 僅根據 ActionState 推導視覺動畫，實現邏輯與表現的徹底解耦。
+  - 關鍵狀態包含: IDLE, WALKING, ATTACKING, EVADING, CASTING, STUNNED, DYING。
+* 視覺系統時序編排 (Visual System Tick Orchestration):
+  - 視覺事件渲染 (flushVisualEvents) 強制在 Tick 循環的最末端執行，確保所有邏輯結算（包含位移與狀態變更）在 VFX 產生前已 100% 同步。
+* AI 更新頻率計量 (AI Update Frequency Metering):
+  - 引入 aiUpdateTimer，支持非同步心跳頻率。
+  - 不同單位可擁有不同的 aiUpdateInterval，在維持戰鬥流暢度的同時大幅優化大規模戰鬥下的 CPU 負載。
+* 恐懼位移解耦 (Fear Motion Decoupling):
+  - 獨立 FearMoveTimer 管理恐懼狀態下的隨機位移頻率，確保在 CC 狀態下即便 BT 被掛起，物理竄逃行為依然保持穩定。
 * 狀態驅動攔截器 (Survival Interceptor): 採用頂層優先級攔截器模式。一旦偵測到危險，AI 會切入 EVADING_URGENT 狀態，完全掛起下層的掃描、追擊與常規攻擊邏輯，直至抵達安全區或狀態解除，徹底消除決策震盪。
 * 動態危險預測 (Dynamic Danger Prediction): 
   - 運動投影: 基於 physics.vx/vy 與當前位移剩餘幀數 (stuckTicks) 進行物理投影，預判受力位移後的最終落點。

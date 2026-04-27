@@ -119,12 +119,18 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
                                 </div>
 
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Decision Matrix</span>
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Decision Matrix (BT / SSOT)</span>
                                     <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-lg border border-white/5">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Current Task:</span>
-                                        <span className="text-[10px] font-mono font-bold text-cyan-300 truncate max-w-[120px]">
-                                            {Helpers.getAIStateLabel(targetAgent.aiState)} {targetAgent.target && targetAgent.aiState === AIState.TRACKING ? `_ ${targetAgent.target.id}` : ''}
-                                        </span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Process:</span>
+                                        <div className="flex items-center gap-1.5 overflow-hidden">
+                                            <span className="text-[10px] font-mono font-bold text-amber-400 truncate max-w-[60px]">
+                                                {Helpers.getAIStateLabel(targetAgent.aiState)}
+                                            </span>
+                                            <span className="text-slate-700 text-[9px]">|</span>
+                                            <span className="text-[10px] font-mono font-bold text-cyan-300 truncate max-w-[80px]">
+                                                {Helpers.getActionStateLabel(targetAgent.actionState)}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
