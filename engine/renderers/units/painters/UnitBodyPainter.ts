@@ -21,6 +21,8 @@ export const UnitBodyPainter = {
         scaleFactor: number,
         terrainHeight: number
     ) {
+        if (agent.hp <= 0) return;
+        
         const vx = agent.physics.vx;
         const vy = agent.physics.vy;
         const speedSq = vx*vx + vy*vy;
@@ -113,11 +115,7 @@ export const UnitBodyPainter = {
         }
         ctx.translate(0, bodyFloat);
 
-        if (agent.hp <= 0 && !isSilhouette) {
-            const fadeProgress = 1 - Math.max(0, agent.deathTimer / agent.DEATH_ANIM_DURATION);
-            const opacity = Math.max(0, 0.7 - fadeProgress * 0.7); 
-            ctx.filter = `grayscale(100%) opacity(${opacity * 100}%)`; 
-        } else if (hitBrightness > 0) {
+        if (hitBrightness > 0) {
              ctx.filter = `brightness(${hitBrightness}%) contrast(120%)`;
         }
 

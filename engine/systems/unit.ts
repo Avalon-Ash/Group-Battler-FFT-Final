@@ -22,7 +22,7 @@ export class UnitRenderSystem {
         if (transitionPhase === 'OUT' && transitionT > 0.95) return;
 
         agents.forEach(agent => {
-            if (agent.hp <= 0 && agent.fullyDead) return;
+            if (agent.hp <= 0) return;
             const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
             
             const offset = VisualMath.getTransitionOffset(state.x, state.y, mapConfig, transitionT, transitionPhase);

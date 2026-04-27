@@ -63,5 +63,6 @@ export class AgentManager {
         engine.map.unregisterAgent(a);
         a.isMoving = false; 
         a.path = [];
+        a.trailHistory = [];
     }
 }

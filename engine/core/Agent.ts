@@ -83,7 +83,7 @@ export class Agent {
 
     public deadLogged: boolean = false;
     public deathTimer: number = 0;
-    public readonly DEATH_ANIM_DURATION = 1.2;
+    public readonly DEATH_ANIM_DURATION = 5.5;
     public fullyDead: boolean = false;
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
