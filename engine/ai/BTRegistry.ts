@@ -355,7 +355,8 @@ export const BTActions: Record<string, BTActionFn> = {
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
-            return NodeState.RUNNING;
+            // [FIX] 改為 FAILURE。找不到路徑時不應卡住 Selector，讓 Combat 有機會執行
+            return NodeState.FAILURE; 
         }
         return NodeState.FAILURE; 
     },

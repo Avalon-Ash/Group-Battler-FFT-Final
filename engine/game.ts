@@ -300,7 +300,6 @@ export class GameEngine {
             }
             if (a.bt) {
                 if (a.aiUpdateTimer <= 0) {
-                    a.bt.reset();
                     a.bt.tick(a);
                     a.aiUpdateTimer = a.aiUpdateInterval;
                 } else {

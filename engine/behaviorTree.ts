@@ -48,9 +48,10 @@ export class Selector extends BTNode {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
                 // [FIX] 保護 Combat 的 _runningIdx：
-                // 若目前有後方節點（Combat）正在 RUNNING，不清除它的位置記憶
-                // _runningIdx 維持不動，下個 tick Combat 還能從 CastSkill 繼續
-                if (this._runningIdx < this._interruptCount) {
+                // 若目前有後方節點（Combat）正在 RUNNING（_runningIdx >= interruptCount），保留它
+                if (this._runningIdx >= this._interruptCount) {
+                    // 保持 _runningIdx 不動，下次 tick Combat 能繼續
+                } else {
                     // 沒有 Combat 在 RUNNING（-1 或指向另一個 interrupt 節點）才清除
                     this._runningIdx = -1;
                 }
