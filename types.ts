@@ -245,7 +245,8 @@ export interface ObstacleDef {
 export enum NodeState {
     SUCCESS = 'S',
     FAILURE = 'F',
-    RUNNING = 'R'
+    RUNNING = 'R',
+    PENDING = 'P'
 }
 
 export interface LogEntry {

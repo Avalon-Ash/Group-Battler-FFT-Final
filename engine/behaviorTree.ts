@@ -4,14 +4,14 @@ export abstract class BTNode {
     n: string;
     type: string;
     c: BTNode[];
-    status: NodeState | null;
+    status: NodeState;
     lastResult: NodeState | null = null;
     lastRunTime: number = 0;
     constructor(n: string, type: string) {
         this.n = n;
         this.type = type;
         this.c = [];
-        this.status = null;
+        this.status = NodeState.PENDING;
         this.id = Math.random().toString(36).substr(2, 6);
     }
     add(child: BTNode): this {
@@ -27,9 +27,13 @@ export abstract class BTNode {
     abstract tick(ctx: any): NodeState;
     reset() {
         if (this.status !== NodeState.RUNNING) {
-            this.status = null;
+            this.status = NodeState.PENDING;
         }
-        if (this.c) this.c.forEach(c => c.reset());
+        if (this.c) {
+            for (const child of this.c) {
+                child.reset();
+            }
+        }
     }
 }
 export class Selector extends BTNode {

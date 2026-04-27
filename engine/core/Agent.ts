@@ -47,7 +47,7 @@ export class Agent {
     public bt: BTNode | null = null;
     
     public aiUpdateTimer: number = 0;
-    public aiUpdateInterval: number = 0.3;
+    public aiUpdateInterval: number = 0.08;
 
     // SSOT Update: Store terrain height 'h' to ensure trails respect topography
     public trailHistory: {x: number, y: number, z: number, h: number}[] = [];
@@ -111,7 +111,18 @@ export class Agent {
         this.py = p.y;
         this.facing = team === Team.BLUE ? 1 : -1;
         
-        this.aiUpdateInterval = 0.2 + Math.random() * 0.2; 
+        const stats = UNIT_DB[this.role];
+        if (stats) {
+            this.moveSpeed = stats.moveSpeed;
+            this.maxMp = stats.maxMp;
+            this.jump = stats.jump;
+            this.weight = stats.weight;
+            this.movementType = stats.movementType;
+        }
+        
+        // Initial AI timing (will be refined by reset() usually, but safe to set here)
+        this.aiUpdateInterval = 0.08;
+        this.aiUpdateTimer = 0;
 
         this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR };
     }
@@ -150,6 +161,18 @@ export class Agent {
             this.weight = stats.weight;
             this.movementType = stats.movementType;
         }
+
+        // Set role-based AI interval with minor jitter to prevent frame-spiking
+        let baseInterval = 0.08;
+        switch (this.role) {
+            case Role.TANK: baseInterval = 0.08; break;
+            case Role.WARRIOR: baseInterval = 0.06; break;
+            case Role.RANGER: baseInterval = 0.07; break;
+            case Role.MAGE: baseInterval = 0.08; break;
+            case Role.SUPPORT: baseInterval = 0.10; break;
+        }
+        this.aiUpdateInterval = baseInterval + Math.random() * 0.02;
+        this.aiUpdateTimer = 0; // First frame execution as requested
 
         this.castingSkillIdx = -1;
         this.castTimer = 0;
