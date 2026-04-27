@@ -55,7 +55,10 @@ export class MovementSystem {
                 // [FIX] 深度檢測：檢查快取的路徑是否因為網格消失或變成警告區域而斷裂
                 let pathValid = true;
                 for (const hex of a.path) {
-                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && spatial.isWarningTile(HexUtils.key(hex)))) {
+                    const hexKey = HexUtils.key(hex);
+                    const hazard = spatial.getHazard(hexKey);
+                    const hasEnemyHazard = hazard && hazard.team !== a.team;
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && spatial.isWarningTile(hexKey)) || hasEnemyHazard) {
                         pathValid = false;
                         break;
                     }

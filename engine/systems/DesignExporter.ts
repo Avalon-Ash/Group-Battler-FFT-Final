@@ -154,6 +154,13 @@ RenderPipeline
 * 物理格擋之治療白名單 (Healing Bypass for Tank Mitigation): 於角色物理減傷階段 (Tank Block) 加入絕對的 !isHeal 判定。徹底阻止將友方支援或自身再生與護盾當作負能量進行抗性衰減，確保核心單體防禦者能夠足秤吃足醫療回報。
 * 單一爆擊判定 (Unified Sub-Cast Pre-roll): 對 AOE 多目標覆蓋重構單一物理判定 (Pre-roll Crit)。使法術發動的瞬間便決定此輪波次是否爆擊，避免同次火雨部分產生紅字爆擊而其餘為一般傷害的機率剝離，還原了古典戰棋技能結算的實體張力。
 
+[11. 生存法則與逃生路由系統 (Survival Protocol & Escape Routing)]
+--------------------------------------------------------------------------------
+* 逃生起點剔除機制 (Escape Origin Elimination): 修復 A* 在危險邊界起步時立刻當前格認證通過而返回原地的判定失誤。要求演算法嚴格跳過起點格子進行「安全審查」，強制展開尋路，切斷了單位立於危險交界「站著等死」的致命發呆行為。
+* 求生獨立決策代理 (Autonomous Escape Proxying): 移除 'EscapeWarning' 高壓生存期內對一般對話層 'updateTarget' 的呼叫依賴，改於行為樹局部直接向 'Pathfinder' 發起緊急空投調度。斬斷了 'Targeting' 在預測態與發作態的落差下產生的目的地重置邏輯矛盾。
+* 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單位遁入純淨板塊但 'escapeCooldown' 未竟之時，允許脫離 EVADING_URGENT 並轉交給戰術核心，釋放 AI 在殘存的 0.2 秒無謂冰凍。
+* 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。
+
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED
 `;

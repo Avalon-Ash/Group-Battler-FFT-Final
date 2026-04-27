@@ -138,10 +138,18 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
             const currentKey = HexUtils.key(currentHex);
 
-            // 成功判定：找到非警告區域的合法地塊
-            if (!targeting.isWarningTile(currentKey, spatial) && spatial.isValidHash(current.hash)) {
-                bestH = current.hash;
-                break;
+            if (current.hash === startH) {
+                // 跳過起點本身，不能作為「安全目的地」
+            } else {
+                const hazardAtNode = spatial.getHazard(currentKey);
+                const isSafe = !targeting.isWarningTile(currentKey, spatial) && 
+                            (!hazardAtNode || hazardAtNode.team === startAgent.team);
+                
+                // 成功判定：找到非警告區域的合法地塊，且沒有敵方 hazard
+                if (isSafe && spatial.isValidHash(current.hash)) {
+                    bestH = current.hash;
+                    break;
+                }
             }
 
             for (let i = 0; i < 6; i++) {
