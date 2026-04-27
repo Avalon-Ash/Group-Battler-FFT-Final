@@ -100,12 +100,23 @@ GameEngine
 │   │   ├── ZoneSystem       ← 大逃殺縮圈：Flood-fill 深度計算、地形崩落、單位出局管線
 │   │   ├── HazardSystem     ← 地面危機區域（毒、火、冰、重力）
 │   │   ├── CombatSystem     ← 戰鬥核心：傷害、施法、彈道
+│   │   │   └── combat/
+│   │   │       ├── SkillExecutor    ← 技能執行主管線
+│   │   │       ├── DamageCalculator ← 傷害公式計算
+│   │   │       ├── ProjectileSystem ← 彈道物理與命中
+│   │   │       ├── CastingEngine    ← 施法前搖與中斷管理
+│   │   │       ├── CCManager        ← 控場效果施加與解除
+│   │   │       └── HazardManager    ← 地面危機區域生成入口
 │   │   ├── MovementSystem   ← Hex 移動、A* 路徑、碰撞排解
+│   │   │   └── movement/
+│   │   │       ├── MotionEngine     ← 逐幀位移積分與插值
+│   │   │       └── StackingResolver ← 同格碰撞排解
 │   │   ├── AISystem         ← 行為樹 AI 決策
 │   │   ├── AgentManager     ← 單位生命週期：生成、死亡收尾、GC
 │   │   ├── MapSystem        ← 地圖管理：網格狀態、warningTiles、地形高度
 │   │   ├── PhysicsSystem    ← 物理積分：impulse、重力、自由落體、trail 歷史
 │   │   ├── AnimationSystem  ← 動畫狀態推導（SSOT 最末層）
+│   │   ├── VisualEventListener ← 監聽 EventBus，驅動 VFX 與視覺回饋管線
 │   │   ├── TimeSystem       ← 時間縮放管理
 │   │   ├── BattleLogger     ← 完整戰鬥紀錄
 │   │   ├── AnnouncerSystem  ← 戰況播報
