@@ -16,7 +16,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'tb_u2', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
         name: '王者之風', desc: '全場嘲諷與護盾', 
-        range: 0, cast: 0.3, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fbbf24', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'TAUNT', ccDur: 3.5, ccType2: 'SHIELD', ccForce2: 800, 
@@ -162,7 +162,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '時間停止', desc: '全場靜止', 
-        range: 0, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5,
@@ -189,7 +189,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'sb_u1', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
         name: '神聖干涉', desc: '單體無敵', 
-        range: 8, cast: 0.1, cd: 5.0, cost: 100, gain: 0, 
+        range: 8, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: -800, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'BANISH', ccDur: 3.5, specialVisualStatus: 'STASIS',
