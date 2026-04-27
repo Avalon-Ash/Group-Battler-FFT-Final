@@ -75,11 +75,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const s = a.skills[idx];
         if (!s) return false;
         
-        // [FIX] 正在詠唱自己時，直接 return true 跳過所有後續判斷
-        if (a.castingSkillIdx === idx) return true;
-        
         // 正在詠唱其他技能：整條 skill branch 失敗
-        if (a.castingSkillIdx !== -1) return false;
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== idx) return false;
         
         let cd = a.curCDs[idx];
         if (isNaN(cd) || cd < 0) cd = 0;
@@ -99,17 +96,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return false;
-        
-        // [FIX] 若該技能正在詠唱中，直接保持當前選定的目標，避免詠唱中覆蓋 targetHex 導致朝非預期方向/對象施放
-        if (a.castingSkillIdx === idx) return true;
-
-        // [New Protection] If casting any non-BASIC skill, also preserve current objective to avoid jitter
-        if (a.castingSkillIdx !== -1) {
-            const currentSkill = a.skills[a.castingSkillIdx];
-            if (currentSkill && currentSkill.tag !== 'BASIC') {
-                return !!(a.target || a.targetHex);
-            }
-        }
         
         const result = engine.calculateOptimalTarget(a, skill);
         
@@ -346,13 +332,6 @@ export const BTActions: Record<string, BTActionFn> = {
             return NodeState.FAILURE;
         }
 
-        // [FIX] Secondary CD check to prevent Sequence._runningIdx from skipping SkillReady
-        const s = a.skills[idx];
-        if (!s) return NodeState.FAILURE;
-        const cd = a.curCDs[idx] || 0;
-        const tolerance = s.tag === 'BASIC' ? 0.15 : 0.05;
-        if (cd > tolerance) return NodeState.FAILURE;
-        
         const state = engine.initiateCast(a, idx);
         if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
         return state;

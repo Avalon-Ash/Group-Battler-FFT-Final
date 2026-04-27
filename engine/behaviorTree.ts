@@ -56,27 +56,20 @@ export class Selector extends BTNode {
     }
 }
 export class Sequence extends BTNode {
-    private _runningIdx: number = -1;
     constructor(n: string) { super(n, '->'); }
     tick(ctx: any): NodeState {
-        const start = this._runningIdx >= 0 ? this._runningIdx : 0;
-        for (let i = start; i < this.c.length; i++) {
+        for (let i = 0; i < this.c.length; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
-                this._runningIdx = i;
                 return this.record(r);
             }
             if (r === NodeState.FAILURE) {
-                this._runningIdx = -1;
                 return this.record(r);
             }
         }
-        this._runningIdx = -1;
         return this.record(NodeState.SUCCESS);
     }
     reset() {
-        // [FIX] Force clear running index on reset to ensure sequence always starts from first node
-        this._runningIdx = -1;
         super.reset();
     }
 }

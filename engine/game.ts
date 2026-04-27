@@ -300,14 +300,23 @@ export class GameEngine {
             }
             if (a.bt) {
                 if (a.aiUpdateTimer <= 0) {
-                    a.bt.tick(a);
-                    a.aiUpdateTimer = a.aiUpdateInterval;
+                    // BT tick will now see the latest state from combat system (moved down)
                 } else {
                     a.aiUpdateTimer -= dt;
                 }
             }
         }
         this.combat.update(dt, this);
+
+        // Run AI tick after combat update so and CD/Cast status is from the current frame
+        for (const a of this.agents) {
+            if (a.hp <= 0) continue;
+            if (a.bt && a.aiUpdateTimer <= 0) {
+                a.bt.tick(a);
+                a.aiUpdateTimer = a.aiUpdateInterval;
+            }
+        }
+
         this.hazardSystem.update(dt, this); 
 
         this.movement.resolveStacking(this, this);
