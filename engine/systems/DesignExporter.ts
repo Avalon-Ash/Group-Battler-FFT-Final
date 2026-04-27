@@ -160,6 +160,7 @@ RenderPipeline
 * 求生獨立決策代理 (Autonomous Escape Proxying): 移除 'EscapeWarning' 高壓生存期內對一般對話層 'updateTarget' 的呼叫依賴，改於行為樹局部直接向 'Pathfinder' 發起緊急空投調度。斬斷了 'Targeting' 在預測態與發作態的落差下產生的目的地重置邏輯矛盾。
 * 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單位遁入純淨板塊但 'escapeCooldown' 未竟之時，允許脫離 EVADING_URGENT 並轉交給戰術核心，釋放 AI 在殘存的 0.2 秒無謂冰凍。
 * 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。
+* 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方 hazard 動態部署，徹底阻止「逃出毒圈卻踏進火場」的決策延遲。
 
 ================================================================================
 END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED

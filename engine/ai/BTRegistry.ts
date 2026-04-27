@@ -250,7 +250,14 @@ export const BTActions: Record<string, BTActionFn> = {
         a.visualStatus = "DANGER"; 
         
         // 1. 確保有逃生地塊
-        if (!a.targetHex || engine.isWarningTile(HexUtils.key(a.targetHex))) {
+        let targetIsUnsafe = true;
+        if (a.targetHex) {
+            const tk = HexUtils.key(a.targetHex);
+            const hazard = engine.state.hazards.get(tk);
+            targetIsUnsafe = engine.isWarningTile(tk) || (!!hazard && hazard.team !== a.team);
+        }
+
+        if (targetIsUnsafe) {
             const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
@@ -259,7 +266,14 @@ export const BTActions: Record<string, BTActionFn> = {
             }
         }
 
-        if (a.targetHex && !engine.isWarningTile(HexUtils.key(a.targetHex))) {
+        let stillUnsafe = true;
+        if (a.targetHex) {
+            const tk = HexUtils.key(a.targetHex);
+            const hazard = engine.state.hazards.get(tk);
+            stillUnsafe = engine.isWarningTile(tk) || (!!hazard && hazard.team !== a.team);
+        }
+
+        if (!stillUnsafe && a.targetHex) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
             if (state === NodeState.FAILURE) {
                 // [FIX] If path is blocked, reset targetHex so we try a different safe spot next time
