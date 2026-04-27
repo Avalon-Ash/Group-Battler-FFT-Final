@@ -194,6 +194,7 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         const inDanger = BTConditions["IsInWarningZone"](a, engine);
+        const myKey = HexUtils.key(a);
         
         if (!inDanger) {
             if (a.actionState === ActionState.EVADING) {
