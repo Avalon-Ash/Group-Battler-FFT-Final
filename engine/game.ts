@@ -67,7 +67,6 @@ export class GameEngine {
     get logs(): LogEntry[] { return this.logger.logs; }
 
     public events: GameEvent[] = [];
-    public pendingVisualEvents: GameEvent[] = [];
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer; 
     
@@ -171,7 +170,6 @@ export class GameEngine {
             this.director.forceFocus(this, opts.sourceId, 3.5); 
         }
         this.events.push(evt);
-        this.pendingVisualEvents.push(evt);
     }
 
     public play() {
@@ -182,7 +180,7 @@ export class GameEngine {
             this.logger.clear();
             this.victorySystem.reset(this);
             this.effects.reset();
-            this.pendingVisualEvents.length = 0;
+
             this.sessionState.killStreaks.clear();
             this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
@@ -210,7 +208,6 @@ export class GameEngine {
         this.state.time.battleTime = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
-        this.pendingVisualEvents.length = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
         this.map.rebuildMap(this); // Restore tiles removed by zone system
@@ -245,7 +242,6 @@ export class GameEngine {
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.effects.reset();
-        this.pendingVisualEvents.length = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
@@ -283,10 +279,9 @@ export class GameEngine {
 
     private flushVisualEvents() {
         // P1: Visual events should be processed at the end of tick
-        if (this.renderer) {
-            this.renderer.processVisualEvents(this.pendingVisualEvents);
+        if (this.renderer && this.events.length > 0) {
+            this.renderer.processVisualEvents(this.events);
         }
-        this.pendingVisualEvents.length = 0;
     }
 
     private updateEntities(dt: number) {

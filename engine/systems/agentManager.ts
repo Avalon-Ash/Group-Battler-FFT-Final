@@ -57,6 +57,11 @@ export class AgentManager {
         if (!a.deadLogged) {
             engine.log(a, 'DEATH', '死亡', null, '陣亡');
             engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py, z: a.physics.z}, sourceId: a.id, team: a.team });
+            
+            if (a.lastHitSourceId) {
+                engine.pushEvent('KILL', {x: a.px, y: a.py}, { sourceId: a.lastHitSourceId, targetId: a.id });
+            }
+            
             a.deadLogged = true;
             a.deathTimer = a.DEATH_ANIM_DURATION; 
             

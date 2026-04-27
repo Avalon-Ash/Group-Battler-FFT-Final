@@ -117,6 +117,10 @@ export class HazardSystem {
                     const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
                     engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (護盾抵擋 ${Math.floor(absorbed)}) (${hazard.type})`);
                     
+                    if (hazard.sourceId) {
+                        agent.lastHitSourceId = hazard.sourceId;
+                    }
+
                     agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
                     // Mark hazard to be reset at the end of the loop
                     triggeredHazards.add(hazardKey);

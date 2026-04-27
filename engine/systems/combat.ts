@@ -75,6 +75,10 @@ export class CombatSystem {
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
         a.curCDs[a.castingSkillIdx] = s.cd;
         
+        if (s.tag !== 'BASIC') {
+            engine.events.push({ type: 'CAST_FINISH', pos: { x: a.px, y: a.py }, skill: s, sourceId: a.id });
+        }
+        
         let targetName = '地面';
         if (a.target) targetName = a.target.id;
         else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
@@ -94,9 +98,9 @@ export class CombatSystem {
             a.hp = Math.max(0, a.hp - dmgVal);
             engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: dmgVal, color: '#991b1b', text: "SACRIFICE" });
             engine.log(a, 'HIT', '自殘', a.id, `消耗 ${dmgVal} HP`);
+            a.lastHitSourceId = a.id;
             if (a.hp <= 0) {
                 engine.agentManager.handleDeadState(a, engine);
-                engine.pushEvent('KILL', {x: a.px, y: a.py}, { sourceId: a.id, targetId: a.id });
             }
         }
     }

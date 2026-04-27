@@ -118,6 +118,34 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         particleEffect: 'FX_STATUS_VULNERABLE_LOOP',
         particleInterval: 0.3
     },
+    'CAST_ULT': {
+        id: 'CAST_ULT', label: '',
+        primaryColor: '#fbbf24', secondaryColor: '#d97706',
+        iconShape: 'NONE', overheadType: 'NONE',
+        particleEffect: 'FX_CASTING_ULT',
+        particleInterval: 0.1
+    },
+    'CAST_ACTIVE': {
+        id: 'CAST_ACTIVE', label: '',
+        primaryColor: '#60a5fa', secondaryColor: '#2563eb',
+        iconShape: 'NONE', overheadType: 'NONE',
+        particleEffect: 'FX_CASTING_ACTIVE',
+        particleInterval: 0.2
+    },
+    'CC_INTERRUPT': {
+        id: 'CC_INTERRUPT', label: '狀態',
+        primaryColor: '#facc15', secondaryColor: '#ca8a04',
+        iconShape: 'NONE', overheadType: 'NONE',
+        particleEffect: 'FX_STATUS_STUN_LOOP',
+        particleInterval: 0.15
+    },
+    'EVADING': {
+        id: 'EVADING', label: '',
+        primaryColor: '#fff', secondaryColor: '#000',
+        iconShape: 'NONE', overheadType: 'NONE',
+        particleEffect: 'FX_STATUS_ROOT_LOOP', // Use dust loop as footprints
+        particleInterval: 0.1
+    },
     'DEFAULT': {
         id: 'DEFAULT', label: '狀態',
         primaryColor: '#fff', secondaryColor: '#000',

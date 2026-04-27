@@ -126,5 +126,11 @@ export class AgentVFXSystem {
         checkVFX('FEAR', agent.fearTimer > 0);
         checkVFX('ROOT', agent.rootTimer > 0);
         checkVFX('VULNERABLE', agent.hp / agent.maxHp < 0.25);
+
+        // check AI states
+        checkVFX('CAST_ULT', agent.aiState === 4); // CASTING_ULT
+        checkVFX('CAST_ACTIVE', agent.aiState === 5); // CASTING_ACTIVE
+        checkVFX('CC_INTERRUPT', agent.aiState === 2); // CC_INTERRUPTED
+        checkVFX('EVADING', agent.aiState === 9); // EVADING_URGENT
     }
 }

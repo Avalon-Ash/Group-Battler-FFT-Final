@@ -41,6 +41,21 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'SPARK', count: 1, lifetime: [0.6, 1.0], size: [2, 4], speed: [10, 20], vz: [20, 40], colors: ['#ef4444', '#f97316'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
         ]
     },
+    'FX_CASTING_ULT': {
+        id: 'FX_CASTING_ULT',
+        description: 'ULT casting aura',
+        emitters: [
+            { particleType: 'GLOW', count: 2, lifetime: [0.8, 1.2], size: [20, 40], speed: [2, 10], vz: [100, 200], colors: ['rgba(251,191,36,0.3)', 'rgba(217,119,6,0)'], shape: 'CIRCLE', shapeRadius: 25, blendMode: 'screen', delay: 0 },
+            { particleType: 'SPARK', count: [4, 8], lifetime: [0.4, 0.8], size: [2, 5], speed: [10, 30], vz: [150, 300], colors: ['#fbbf24', '#fef3c7'], shape: 'CIRCLE', shapeRadius: 30, blendMode: 'screen', delay: 0 }
+        ]
+    },
+    'FX_CASTING_ACTIVE': {
+        id: 'FX_CASTING_ACTIVE',
+        description: 'Active casting aura',
+        emitters: [
+            { particleType: 'SPARK', count: [2, 4], lifetime: [0.5, 0.9], size: [1, 3], speed: [5, 20], vz: [50, 100], colors: ['#60a5fa', '#dbeafe'], shape: 'CIRCLE', shapeRadius: 20, blendMode: 'screen', delay: 0 }
+        ]
+    },
     'FX_CAST_BREAK': {
         id: 'FX_CAST_BREAK',
         description: '能量崩解粒子：具備物理重力感的碎裂',

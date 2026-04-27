@@ -238,8 +238,6 @@ export class SkillExecutor {
             engine.agentManager.handleDeadState(target, engine);
             if (result.isExecute) {
                 engine.log(source, 'HIT', '斬殺', target.id, `造成 ${Math.abs(result.finalValue)} 傷害 (斬殺)`);
-            } else {
-                engine.pushEvent('KILL', {x: target.px, y: target.py}, { sourceId: source.id, targetId: target.id });
             }
         }
     }

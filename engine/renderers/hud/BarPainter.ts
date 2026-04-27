@@ -140,6 +140,26 @@ export const BarPainter = {
             
             this.drawFluidBar(ctx, barX, mpY, contentW, mpHeight, mpPct, '#a78bfa', '#7c3aed', 'rgba(139, 92, 246, 0.4)');
         }
+
+        if (agent.castingSkillIdx !== -1) {
+            const skill = agent.skills[agent.castingSkillIdx];
+            if (skill && skill.cast > 0 && skill.tag !== 'BASIC') {
+                const pct = Math.max(0, agent.castTimer / skill.cast);
+                const castBarY = startY + totalH + 2;
+                const castColor = skill.color || '#ffffff';
+                
+                // 背景
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(startX, castBarY, totalW, 4);
+                // 進度
+                ctx.fillStyle = castColor;
+                ctx.fillRect(startX, castBarY, totalW * pct, 4);
+                // 外框
+                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(startX, castBarY, totalW, 4);
+            }
+        }
     },
 
     drawFluidBar(ctx: CanvasRenderingContext2D, bx: number, by: number, bw: number, bh: number, pct: number, colTop: string, colBot: string, glow: string) {
