@@ -16,6 +16,12 @@ export class AnimationSystem {
             if (agent.hp <= 0) {
                 agent.animState = AnimState.DEAD;
                 agent.visualStatus = 'NONE';
+                
+                if (agent.deathTimer > 0) {
+                    agent.deathTimer -= dt;
+                } else if (!agent.fullyDead && agent.deadLogged) {
+                    agent.fullyDead = true;
+                }
                 continue;
             }
 

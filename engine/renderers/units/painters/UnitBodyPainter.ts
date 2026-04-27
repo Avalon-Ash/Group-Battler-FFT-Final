@@ -114,7 +114,9 @@ export const UnitBodyPainter = {
         ctx.translate(0, bodyFloat);
 
         if (agent.hp <= 0 && !isSilhouette) {
-            ctx.filter = 'grayscale(100%) opacity(70%)'; 
+            const fadeProgress = 1 - Math.max(0, agent.deathTimer / agent.DEATH_ANIM_DURATION);
+            const opacity = Math.max(0, 0.7 - fadeProgress * 0.7); 
+            ctx.filter = `grayscale(100%) opacity(${opacity * 100}%)`; 
         } else if (hitBrightness > 0) {
              ctx.filter = `brightness(${hitBrightness}%) contrast(120%)`;
         }

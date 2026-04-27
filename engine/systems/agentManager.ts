@@ -60,7 +60,7 @@ export class AgentManager {
         }
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);
-        a.fullyDead = true; 
+        a.deathTimer = a.DEATH_ANIM_DURATION; 
         a.isMoving = false; 
         a.path = [];
     }

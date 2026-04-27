@@ -82,6 +82,8 @@ export class Agent {
     public spawnTimer: number = 0;
 
     public deadLogged: boolean = false;
+    public deathTimer: number = 0;
+    public readonly DEATH_ANIM_DURATION = 1.2;
     public fullyDead: boolean = false;
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
@@ -184,6 +186,7 @@ export class Agent {
         this.hitFlashTimer = 0;
         this.actionState = ActionState.IDLE;
         this.fearMoveTimer = 0;
+        this.deathTimer = 0;
         this.deadLogged = false;
         this.fullyDead = false;
         this.animState = AnimState.IDLE;
