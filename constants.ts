@@ -52,6 +52,15 @@ export const PHYSICS = {
     DAMPING_ALIVE: 25,
     DRIFT_SPEED: 25.0, 
     TERMINAL_VELOCITY_IMPULSE: 400,
+    DEFAULT_DRAG: 0.94,
+};
+
+export const VFX_RENDER = {
+    GROUND_SORT_BIAS:   15,  // ground-locked 粒子的 Y 軸排序偏移
+    GROUND_Z_BIAS:       5,  // ground-locked 粒子的 Z 軸偏移
+    GROUND_VISUAL_BIAS:  2,  // 防 Z-fighting 的視覺偏移
+    PARTICLE_SIZE_BIAS: 0.5, // 碰地計算的粒子半徑比例
+    TRAIL_STEP_DIST:    20,  // Trail 採樣的目標點間距（螢幕像素）
 };
 
 // SSOT: VFX Thresholds

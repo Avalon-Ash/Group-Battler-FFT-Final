@@ -1,5 +1,5 @@
 import { Agent, GameEngine } from "../../game";
-import { Skill } from "../../../types";
+import { Skill, Team } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
@@ -140,9 +140,11 @@ export class SkillExecutor {
         }
 
         if (result.finalValue !== 0) {
+            const finalDamage = Math.abs(Math.floor(result.finalValue));
             target.hp = Math.max(0, Math.min(target.maxHp, target.hp + result.finalValue));
             if (result.finalValue < 0) {
                 target.lastHitSourceId = source.id;
+                target.lastHitDamage = finalDamage;
             }
             
             // Visual Event
@@ -153,7 +155,7 @@ export class SkillExecutor {
             engine.events.push({ 
                 type: evtType, 
                 pos: {x: target.px, y: target.py}, 
-                value: Math.abs(Math.floor(result.finalValue)), 
+                value: finalDamage, 
                 color,
                 skill,
                 targetId: target.id,
@@ -162,11 +164,34 @@ export class SkillExecutor {
 
             const actionName = isHeal ? '治療' : (result.isCrit ? '爆擊' : '命中');
             const logType = isHeal ? 'HEAL' : 'HIT';
-            engine.log(source, logType, actionName, target.id, `造成 ${Math.abs(Math.floor(result.finalValue))} ${isHeal ? '治療' : '傷害'}`);
+            engine.log(source, logType, actionName, target.id, `造成 ${finalDamage} ${isHeal ? '治療' : '傷害'}`);
 
             // SSOT: Trigger Animation System
             if (!isHeal) {
                 target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+                
+                // Tiered Hit VFX logic
+                const hitX = target.px;
+                const hitY = target.py;
+                const hitZ = target.physics.z;
+
+                // 選擇陣營受擊特效 key
+                const hitFX = target.team === Team.BLUE
+                    ? 'FX_HIT_BLUE_TECH'
+                    : 'FX_HIT_RED_BLOOD';
+
+                // LIGHT & MEDIUM：播放陣營特效（MEDIUM 呼叫兩次，位移稍微錯開製造量感）
+                if (engine.vfx) {
+                    engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
+                    if (finalDamage >= 150) {
+                        engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                    }
+
+                    // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
+                    if (finalDamage >= 400) {
+                        engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ - 20);
+                    }
+                }
                 
                 // Physics Impulse (Small nudge on hit)
                 if (origin && !skill.ccType) {

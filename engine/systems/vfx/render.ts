@@ -8,6 +8,8 @@ import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 
+import { VFX_RENDER } from "../../../constants";
+
 const GROUND_PROJECTION_TYPES = new Set([
     'GIANT_HEX', 'MAGIC_CIRCLE', 'RING', 'SHOCKWAVE', 
     'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'CRACKS', 'BLACK_HOLE',
@@ -57,8 +59,8 @@ export class VFXRenderer {
             
             // [FIX] Use a more aggressive sorting bias for ground locked VFX to prevent clipping
             // and ensure they are sorted correctly relative to terrain.
-            op.y = p.y + offset + (isGroundLocked ? 15 : 0); 
-            op.z = isGroundLocked ? (p.z + 5) : p.z; 
+            op.y = p.y + offset + (isGroundLocked ? VFX_RENDER.GROUND_SORT_BIAS : 0); 
+            op.z = isGroundLocked ? (p.z + VFX_RENDER.GROUND_Z_BIAS) : p.z; 
             op.pIsUlt = isUlt; 
             op.isGround = isGroundLocked;
             
@@ -68,7 +70,7 @@ export class VFXRenderer {
             op.tx = p.x;
             
             // [FIX] Apply visual bias (Z-Layer) directly to screen Y to avoid Z-fighting
-            const visualBias = isGroundLocked ? 2 : 0;
+            const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
             op.ty = p.y + offset - p.z - visualBias; 
             op.th = p.z; 
         });

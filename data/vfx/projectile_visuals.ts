@@ -23,7 +23,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
         trailLength: 12, speed: 650, scale: 0.7 
     },
     'BOLT': { 
-        trajectory: 'LINEAR', 
+        trajectory: 'HOVER_DIP', dipAmount: 18, 
         renderType: 'SPRITE', spriteKey: 'BOLT', 
         trailLength: 10, speed: 750, scale: 0.7 
     },
@@ -31,7 +31,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     // --- IMPERIAL OVERRIDES (Blue) ---
     // Characteristics: Speed, Precision, "Railgun" look
     'PROJ_BLUE_SNIPER': {
-        trajectory: 'LINEAR',
+        trajectory: 'HOVER_DIP', dipAmount: 10,
         renderType: 'SPRITE', spriteKey: 'HEX_DART', 
         scale: 0.9, 
         colorOverride: '#60a5fa',
@@ -57,7 +57,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
         trailLength: 15
     },
     'PROJ_BLUE_FROST_BOLT': {
-        trajectory: 'LINEAR',
+        trajectory: 'HOVER_DIP', dipAmount: 15,
         renderType: 'SPRITE', spriteKey: 'CRYSTAL',
         scale: 0.8,
         colorOverride: '#e0f2fe',
@@ -68,7 +68,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     // --- COVENANT OVERRIDES (Red) ---
     // Characteristics: Weight, Chaos, "Magma" look
     'PROJ_RED_HEAVY_BOLT': {
-        trajectory: 'LINEAR',
+        trajectory: 'HOVER_DIP', dipAmount: 30,
         renderType: 'SPRITE', spriteKey: 'BOLT',
         scale: 1.2, // Bulky
         colorOverride: '#450a0a', 
@@ -85,7 +85,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
         trailLength: 18
     },
     'PROJ_RED_AXE': {
-        trajectory: 'ARC', arcHeight: 180, // High, lobbed arc
+        trajectory: 'ARC', arcHeight: 120, // High, lobbed arc (adjusted for adaptive logic)
         renderType: 'SPRITE', spriteKey: 'AXE', 
         spinSpeed: 15, 
         scale: 1.1,

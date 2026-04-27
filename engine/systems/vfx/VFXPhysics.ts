@@ -1,6 +1,6 @@
 
 import { Particle } from "./state";
-import { PHYSICS } from "../../../constants";
+import { PHYSICS, VFX_RENDER } from "../../../constants";
 
 export interface SpatialInfo {
     height: number;
@@ -27,7 +27,7 @@ export class VFXPhysics {
             if (isValid) {
                 // [FIX] Account for particle size to prevent sinking. 
                 // Most physical particles are centered, so we need a bias of half size.
-                const sizeBias = (p.size || 10) * 0.5; 
+                const sizeBias = (p.size || 10) * VFX_RENDER.PARTICLE_SIZE_BIAS; 
                 const floorLevel = currentGroundH + sizeBias;
 
                 if (p.z < floorLevel) {
@@ -58,7 +58,7 @@ export class VFXPhysics {
                 const f = Math.pow(1 - p.drag, dt * 60);
                 p.vx *= f; p.vy *= f; p.vz *= f;
             } else {
-                const f = Math.pow(0.94, dt * 60);
+                const f = Math.pow(PHYSICS.DEFAULT_DRAG, dt * 60);
                 p.vx *= f;
                 p.vy *= f;
                 p.vz *= f;

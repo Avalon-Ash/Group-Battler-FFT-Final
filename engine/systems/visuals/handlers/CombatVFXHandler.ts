@@ -30,7 +30,7 @@ export class CombatVFXHandler {
             } else if (event.text === 'BURN') {
                 vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || '#8b5cf6');
             } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
-                this.playImpact(event, vfx, target, groundZ, intensity);
+                // Impact VFX now handled in SkillExecutor.resolveHit
                 camera.addTrauma(isMassive ? 0.45 : (isCrit ? 0.3 : 0.12));
             } else if (event.skill?.ccType === 'DOT') {
                 vfx.playEffect('FX_STATUS_BURN_LOOP', target.x, target.y, target.z, event.color);
@@ -42,15 +42,13 @@ export class CombatVFXHandler {
         const impactZ = groundZ + VisualMath.Z_LAYERS.HAZARD;
 
         if (event.type === 'PROJECTILE_HIT') {
-            const pos = event.skill?.type === 'AOE' ? { x: event.pos.x, y: event.pos.y, z: impactZ } : target;
-            this.playImpact(event, vfx, pos, groundZ, intensity);
+            // Impact VFX now handled in SkillExecutor.resolveHit
             camera.addTrauma(0.2 * intensity);
             return;
         }
 
         if (event.type === 'IMPACT_AOE') {
-            const impactPoint = { x: event.pos.x, y: event.pos.y, z: impactZ };
-            this.playImpact(event, vfx, impactPoint, groundZ, intensity * 1.2);
+            // Impact VFX now handled in SkillExecutor.resolveHit for each target
             camera.addTrauma(0.35 * intensity);
         }
     }

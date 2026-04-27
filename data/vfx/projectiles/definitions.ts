@@ -3,7 +3,7 @@
 // 🏹 PROJECTILE TYPES & DEFAULTS
 // =========================================================================================
 
-export type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT';
+export type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
 export type ProjectileRenderType = 'SPRITE' | 'BEAM' | 'RAY';
 
 export interface ProjectileVisualDef {
@@ -16,6 +16,7 @@ export interface ProjectileVisualDef {
     wobbleFreq?: number;     
     wobbleAmp?: number;      
     spinSpeed?: number;      
+    dipAmount?: number;
 
     // Rendering
     renderType: ProjectileRenderType;

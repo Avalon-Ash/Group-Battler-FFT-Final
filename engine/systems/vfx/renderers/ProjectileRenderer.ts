@@ -3,6 +3,7 @@ import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath, Point3D } from "../../../math/VisualMath";
+import { VFX_RENDER } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -71,7 +72,7 @@ export const ProjectileRenderer = {
                 // Determine step size based on actual pixel distance to ensure smooth physical gap 
                 // between trail points. Fast projectiles need smaller 't' steps to not appear choppy.
                 // we want a sample roughly every 15-20 pixels
-                const optimalStepDist = 20;
+                const optimalStepDist = VFX_RENDER.TRAIL_STEP_DIST;
                 let step = optimalStepDist / Math.max(1, dist);
                 
                 // Clamp step to avoid excessive iterations, but ensure dense enough for fast projectiles

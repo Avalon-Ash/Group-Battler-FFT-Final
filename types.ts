@@ -63,7 +63,7 @@ export interface Projectile {
 
     // NEW: Embedded Trajectory Configuration (The "How" of movement)
     trajectoryInfo: {
-        type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT';
+        type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
         arcHeight?: number;
         wobbleFreq?: number;
         wobbleAmp?: number;

@@ -87,6 +87,7 @@ export class Agent {
     public fullyDead: boolean = false;
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
+    public lastHitDamage: number = 0;
     public lastHitSourceId: string | null = null;
     public actionState: ActionState = ActionState.IDLE;
     public fearMoveTimer: number = 0;
@@ -208,6 +209,7 @@ export class Agent {
         this.drTimers = {};
         this.lastHitSourceId = null;
         this.hitFlashTimer = 0;
+        this.lastHitDamage = 0;
         this.actionState = ActionState.IDLE;
         this.fearMoveTimer = 0;
         this.deathTimer = 0;
