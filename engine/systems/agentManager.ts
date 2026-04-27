@@ -63,27 +63,22 @@ export class AgentManager {
             // Trigger Unit Shatter (Ragdoll Parts)
             const groundZ = engine.getTerrainHeight(a.q, a.r);
             
-            let impactX = 0;
-            let impactY = 0;
+            const IMPACT_STRENGTH = 300;
+            let impactX = 0, impactY = 0;
             if (a.lastHitSourceId) {
-                const killer = engine.agents.find(k => k.id === a.lastHitSourceId);
-                if (killer) {
-                    const dx = a.px - killer.px;
-                    const dy = a.py - killer.py;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist > 0) {
-                        const power = 300 + Math.random() * 200;
-                        impactX = (dx / dist) * power;
-                        impactY = (dy / dist) * power;
-                    }
+                const src = engine.agents.find(x => x.id === a.lastHitSourceId);
+                if (src) {
+                    const dx = a.px - src.px;
+                    const dy = a.py - src.py;
+                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                    impactX = (dx / len) * IMPACT_STRENGTH;
+                    impactY = (dy / len) * IMPACT_STRENGTH;
                 }
             }
-            
             if (impactX === 0 && impactY === 0) {
-                const power = 200 + Math.random() * 200;
                 const angle = Math.random() * Math.PI * 2;
-                impactX = Math.cos(angle) * power;
-                impactY = Math.sin(angle) * power;
+                impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
+                impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
             }
 
             UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);

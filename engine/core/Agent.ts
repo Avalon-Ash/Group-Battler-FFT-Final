@@ -219,7 +219,6 @@ export class Agent {
         this.target = null;
         this.targetHex = null;
         
-        this.aiUpdateTimer = Math.random() * 0.5;
         this.physics = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, angle: 0, vAngle: 0 };
         this.trailHistory = [];
     }
