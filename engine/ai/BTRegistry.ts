@@ -304,6 +304,10 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.targetHex) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true); 
             if (state === NodeState.SUCCESS) {
+                // 已成功抵達安全格，清除 EVADING 狀態，讓下一幀 Combat 能正常接管
+                if (a.aiState === AIState.EVADING_URGENT) {
+                    a.aiState = AIState.IDLE;
+                }
                 return NodeState.FAILURE;
             }
             
@@ -319,12 +323,13 @@ export const BTActions: Record<string, BTActionFn> = {
             }
         }
         
-        // 找不到路徑或移動失敗但也無處可去時的兜底
+        // 找不到路徑：單位仍在危險區，但已無法逃出
+        // 此時讓 aiState 保持 EVADING_URGENT 但改回傳 RUNNING，
+        // 防止 Selector 繼續走 Combat 分支（Combat 會因 IsEvading=true 全部失敗，造成發呆）
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
-            // [FIX] 改為 FAILURE。找不到路徑時不應卡住 Selector，讓 Combat 有機會執行
-            return NodeState.FAILURE; 
+            return NodeState.RUNNING; 
         }
         return NodeState.FAILURE; 
     },
