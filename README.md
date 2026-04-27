@@ -53,6 +53,13 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 戰鬥進行中可即時調整時間流速（支援慢動作至 4× 加速）。慢動作後可仔細觀察單位在關鍵幀的決策行為，找出設計盲點。
 
+### 大逃殺縮圈（`ZoneSystem`）
+
+可在 `SystemMenu` 開啟縮圈模式（預設開啟）並設定每輪倒數秒數。  
+系統以 Flood-fill 從地圖邊界往內計算每格深度，倒數結束後最外層網格依序崩落。  
+站在崩落格上的單位隨地板墜入虛空出局，並觸發完整的死亡特效管線。  
+最終圈進入隨機格子模式，逐格縮減至設定的最小安全格數。
+
 ### AI 行為樹透明化（`BehaviorTreeTab`）
 
 戰鬥進行中點選任意單位，可即時查看該單位當前的行為樹執行狀態：
@@ -90,20 +97,24 @@ GameEngine
 │   ├── systems/
 │   │   ├── DirectorSystem   ← 攝影機導播：自動聚焦高優先事件
 │   │   ├── CameraSystem     ← 鏡頭平滑跟隨與視角控制
-│   │   ├── ZoneSystem       ← 縮圈地形壓縮，強制交戰
+│   │   ├── ZoneSystem       ← 大逃殺縮圈：Flood-fill 深度計算、地形崩落、單位出局管線
 │   │   ├── HazardSystem     ← 地面危機區域（毒、火、冰、重力）
 │   │   ├── CombatSystem     ← 戰鬥核心：傷害、施法、彈道
 │   │   ├── MovementSystem   ← Hex 移動、A* 路徑、碰撞排解
 │   │   ├── AISystem         ← 行為樹 AI 決策
-│   │   ├── VFXSystem        ← 視覺特效生成與生命週期管理
+│   │   ├── AgentManager     ← 單位生命週期：生成、死亡收尾、GC
+│   │   ├── MapSystem        ← 地圖管理：網格狀態、warningTiles、地形高度
+│   │   ├── PhysicsSystem    ← 物理積分：impulse、重力、自由落體、trail 歷史
+│   │   ├── AnimationSystem  ← 動畫狀態推導（SSOT 最末層）
+│   │   ├── TimeSystem       ← 時間縮放管理
+│   │   ├── BattleLogger     ← 完整戰鬥紀錄
+│   │   ├── AnnouncerSystem  ← 戰況播報
+│   │   ├── VictorySystem    ← 勝負判定（含平局收尾）
 │   │   ├── DesignExporter   ← 戰鬥數據結構化輸出（企劃驗證用）
-│   │   ├── BattleLogger     ← 完整戰鬥紀錄（時間軸、事件、位置）
-│   │   ├── AnnouncerSystem  ← 戰況播報（First Blood、Kill Streak）
-│   │   ├── VictorySystem    ← 勝負判定
 │   │   └── status/
 │   │       ├── CooldownSystem
-│   │       ├── EffectSystem  ← 持續效果（DOT / HOT / 狀態疊加）
-│   │       └── ControlSystem ← 控場狀態機（暈眩、沉默、恐懼…）
+│   │       ├── EffectSystem
+│   │       └── ControlSystem
 │   ├── events/
 │   │   ├── EventBus.ts      ← 系統間解耦通訊
 │   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
@@ -139,7 +150,9 @@ GameEngine
 動畫狀態在 `tick()` 最後才由 `AnimationSystem` 統一推導，確保視覺永遠與邏輯一致。
 
 ### 2. Mutation Gate
-所有導致核心屬性變更的操作（HP、位置、狀態）必須通過系統入口函式執行，禁止直接寫入，降低非預期副作用。
+大多數核心屬性變更（HP、位置、狀態）透過系統入口函式執行，降低非預期副作用。  
+特例：地圖系統驅動的死亡（縮圈崩落、深淵墜落）會直接寫入 `hp = 0` 與 `banished`，  
+因為這類死亡屬於「地形判定」而非「戰鬥傷害」，繞過傷害管線是刻意設計。
 
 ### 3. Data Contract
 `types.ts` 是整個系統的資料契約。TypeScript 靜態型別確保 AI 協作擴充時，介面斷層在編譯期就被捕捉。
@@ -158,9 +171,8 @@ GameEngine
 | 框架 | React 18 + TypeScript |
 | 建置 | Vite |
 | 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器） |
-| AI 協作 | Google Gemini API（行為樹生成、架構討論） |
+| AI 協作開發 | AI 驅動的企劃主導式開發（設計決策 → AI 協作實作 → 模擬器驗證） |
 | 部署 | Google Cloud Run |
-| 開發環境 | Google AI Studio |
 
 ---
 
