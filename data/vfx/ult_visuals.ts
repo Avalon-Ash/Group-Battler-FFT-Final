@@ -123,10 +123,16 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 3.0, height: 2500, timing: 0.4, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
     'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#fff', scale: 1.0, count: 20, timing: 0.05, vfxOverride: 'FX_ULT_RED_INFERNO' },
-    // rr_u4: 血腥獵殺 -> 鎖定標記
-    'rr_u4': { archetype: 'STORM', primaryColor: '#ea580c', secondaryColor: '#fcd34d', scale: 1.2, count: 8, vfxOverride: 'FX_ULT_RED_HEADHUNTER' },
-    // rr_u5: 末日審判 -> 末日倒數光束
-    'rr_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.8, vfxOverride: 'FX_ULT_RED_DOOM' },
+    // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)
+    'rr_u4': { 
+        archetype: 'BEAM_SNIPE', 
+        primaryColor: '#ea580c', 
+        secondaryColor: '#fcd34d', 
+        scale: 2.0, 
+        vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
+    },
+    // rr_u5: 末日審判 -> 末日降臨 (STORM)
+    'rr_u5': { archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.8, count: 12, timing: 0.1, vfxOverride: 'FX_ULT_RED_DOOM' },
 
     // --- MAGE (Fel/Void) ---
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)

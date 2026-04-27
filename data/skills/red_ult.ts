@@ -102,7 +102,7 @@ export const RED_ULT: Skill[] = [
         name: '終極爆破', desc: '貫穿斬殺', 
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 800, color: '#000000', 
-        visual: 'BOLT', projectileSpeed: 2000, 
+        visual: 'BOLT', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 2.0, 
         visualHitEffect: 'FX_ULT_RED_RAILGUN'
     },
@@ -129,7 +129,7 @@ export const RED_ULT: Skill[] = [
         name: '血腥獵殺', desc: '鎖定秒殺', 
         range: 12, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#7f1d1d', 
-        visual: 'BOLT', projectileSpeed: 4000, 
+        visual: 'BOLT', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_RED_HEADHUNTER'
     },
     { 
@@ -137,7 +137,7 @@ export const RED_ULT: Skill[] = [
         name: '末日審判', desc: '範圍恐懼', 
         range: 8, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 400, color: '#581c87', 
-        visual: 'BOMB', projectileSpeed: 800, 
+        visual: 'BOMB', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 2.0,
         visualHitEffect: 'FX_ULT_RED_DOOM'
     },
@@ -183,7 +183,7 @@ export const RED_ULT: Skill[] = [
         name: '靈魂爆燃', desc: '連鎖爆炸', 
         range: 8, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 700, color: '#dc2626', 
-        visual: 'FIREBALL', projectileSpeed: 600, 
+        visual: 'FIREBALL', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
 

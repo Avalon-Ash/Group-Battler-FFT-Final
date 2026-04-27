@@ -101,7 +101,7 @@ export const BLUE_ULT: Skill[] = [
         name: '極地冰河', desc: '全場凍結', 
         range: 15, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 450, color: '#60a5fa', 
-        visual: 'ARROW', projectileSpeed: 0, 
+        visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5, element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST', 
         visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW' 
@@ -119,7 +119,7 @@ export const BLUE_ULT: Skill[] = [
         name: '軌道轟炸', desc: '單體毀滅', 
         range: 20, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#22d3ee', 
-        visual: 'BEAM', projectileSpeed: 0, 
+        visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM' 
     },
     { 
@@ -127,7 +127,7 @@ export const BLUE_ULT: Skill[] = [
         name: '絕對封鎖', desc: '區域禁錮', 
         range: 10, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 450, color: '#8b5cf6', 
-        visual: 'BOMB', projectileSpeed: 1000, 
+        visual: 'BOMB', projectileSpeed: 0, 
         ccType: 'ROOT', ccDur: 4.0,
         visualHitEffect: 'FX_ULT_BLUE_LOCKDOWN'
     },
@@ -173,7 +173,7 @@ export const BLUE_ULT: Skill[] = [
         name: '奧術洪流', desc: '奧術彈幕', 
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: 750, color: '#a855f7', 
-        visual: 'BOLT', projectileSpeed: 1000, 
+        visual: 'BOLT', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_TORRENT'
     },
     { 
