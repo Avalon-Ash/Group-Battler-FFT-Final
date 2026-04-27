@@ -155,36 +155,55 @@ export class DirectorSystem {
     private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
         this.targetGroup.clear();
 
+        // 優先度 0: 強制焦點 (priorityId)
+        if (engine.state.director.priorityTimer > 0 && priorityId) {
+            const focal = engine.agents.find(a => a.id === priorityId && a.hp > 0);
+            if (focal) {
+                this.targetGroup.add(focal.px, focal.py, 2.0, 100);
+            }
+        }
+
         // 優先度 1: 有 ULT 施法者
-        const ultCaster = engine.agents.find(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
-        if (ultCaster) {
-            this.targetGroup.add(ultCaster.px, ultCaster.py, 1.0, 120);
-            const skill = ultCaster.skills[ultCaster.castingSkillIdx]!;
-            if (skill.type === 'AOE' && ultCaster.targetHex) {
-                const targetPx = HexUtils.toPx(ultCaster.targetHex.q, ultCaster.targetHex.r, engine.mapConfig);
-                const aoeRadiusPx = (skill.aoeRadius || 1) * HEX_SIZE;
-                this.targetGroup.add(targetPx.x, targetPx.y, 0.5, aoeRadiusPx);
+        const ultCasters = engine.agents.filter(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
+        if (ultCasters.length > 0) {
+            for (const caster of ultCasters) {
+                this.targetGroup.add(caster.px, caster.py, 1.2, 120);
+                const skill = caster.skills[caster.castingSkillIdx]!;
+                if (skill.type === 'AOE' && caster.targetHex) {
+                    const targetPx = HexUtils.toPx(caster.targetHex.q, caster.targetHex.r, engine.mapConfig);
+                    const aoeRadiusPx = (skill.aoeRadius || 1) * HEX_SIZE;
+                    this.targetGroup.add(targetPx.x, targetPx.y, 0.6, aoeRadiusPx);
+                }
             }
             const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
-            // ULT 時鎖定最小 zoom 不低於 ultZoom
             solved.zoom = Math.max(this.ultZoom, solved.zoom);
             return this.smooth(solved);
         }
 
-        // 優先度 2: ACTIVE 技能施法 / 近戰交火
-        const activeCaster = engine.agents.find(a => a.hp > 0 && a.castingSkillIdx !== -1);
-        if (activeCaster) {
-            this.targetGroup.add(activeCaster.px, activeCaster.py, 1.0, 80);
-            const target = activeCaster.target;
-            if (target && target.hp > 0) {
-                this.targetGroup.add(target.px, target.py, 0.7, 80);
-                // 附近敵人
-                engine.agents.forEach(a => {
-                    if (a.hp > 0 && a.team !== activeCaster.team && a.id !== target.id) {
-                        const d = HexUtils.dist(a, target);
-                        if (d <= 1) this.targetGroup.add(a.px, a.py, 0.3, 60);
-                    }
-                });
+        // 優先度 2: ACTIVE 技能施法 / 近戰交火 (多人同時處理)
+        const activeCasters = engine.agents.filter(a => 
+            a.hp > 0 && 
+            a.castingSkillIdx !== -1 && 
+            a.physics.z > -50 && 
+            engine.isValid(a.q, a.r)
+        );
+
+        if (activeCasters.length > 0) {
+            for (const caster of activeCasters) {
+                const skill = caster.skills[caster.castingSkillIdx];
+                const w = skill?.tag === 'ACTIVE' ? 1.0 : 0.6;
+                this.targetGroup.add(caster.px, caster.py, w, 80);
+                const target = caster.target;
+                if (target && target.hp > 0) {
+                    this.targetGroup.add(target.px, target.py, w * 0.7, 80);
+                    // 附近的敵人也稍微抓進來
+                    engine.agents.forEach(a => {
+                        if (a.hp > 0 && a.team !== caster.team && a.id !== target.id) {
+                            const d = HexUtils.dist(a, target);
+                            if (d <= 1) this.targetGroup.add(a.px, a.py, 0.3, 60);
+                        }
+                    });
+                }
             }
             return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
         }
@@ -194,7 +213,6 @@ export class DirectorSystem {
         if (evaders.length > 0) {
             for (const a of evaders) {
                 this.targetGroup.add(a.px, a.py, 1.0, 80);
-                // 尋找最近的非警告地板作為錨點
                 if (a.targetHex) {
                     const destPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
                     this.targetGroup.add(destPx.x, destPx.y, 0.4, 40);
@@ -203,18 +221,18 @@ export class DirectorSystem {
             return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
         }
 
-        // 優先度 4: 全景
+        // 優先度 4: 全景 (修正血量權重)
         let hasTargets = false;
         for (const a of engine.agents) {
             if (a.hp > 0 && !a.banished && a.physics.z > -100) {
-                const weight = 1 - (a.hp / a.maxHp) * 0.5 + 0.5;
+                // 滿血=0.5, 快死=1.0 (低血量權重較高)
+                const weight = 1.0 - (a.hp / a.maxHp) * 0.5;
                 this.targetGroup.add(a.px, a.py, weight, 50);
                 hasTargets = true;
             }
         }
 
         if (!hasTargets) {
-            // 回歸地圖中心
             const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
             const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
             const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
