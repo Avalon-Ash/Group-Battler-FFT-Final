@@ -19,10 +19,6 @@ export class DirectorSystem {
 
     // State
     private targetGroup = new CameraTargetGroup();
-    private hasInitialized: boolean = false;
-    private lastCentroidX: number = 0;
-    private lastCentroidY: number = 0;
-    private lastZoom: number = 0.9;
     private lastAspectRatio: number = 0;
 
     public reset(engine: GameEngine) {
@@ -30,7 +26,6 @@ export class DirectorSystem {
         ds.targetId = null;
         ds.focusTimer = 0;
         ds.priorityTimer = 0;
-        this.hasInitialized = false;
         // Keep enabled state as is
     }
 
@@ -245,21 +240,6 @@ export class DirectorSystem {
     private smooth(solved: { x: number, y: number, zoom: number }): { x: number, y: number, zoom: number } {
         // [MIN/MAX ZOOM 限制]
         solved.zoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, solved.zoom));
-
-        if (!this.hasInitialized) {
-            this.lastCentroidX = solved.x;
-            this.lastCentroidY = solved.y;
-            this.lastZoom = solved.zoom;
-            this.hasInitialized = true;
-        }
-
-        const panLerp = 0.05;
-        const zoomLerp = 0.025;
-
-        this.lastCentroidX += (solved.x - this.lastCentroidX) * panLerp;
-        this.lastCentroidY += (solved.y - this.lastCentroidY) * panLerp;
-        this.lastZoom += (solved.zoom - this.lastZoom) * zoomLerp;
-
-        return { x: this.lastCentroidX, y: this.lastCentroidY, zoom: this.lastZoom };
+        return solved;
     }
 }

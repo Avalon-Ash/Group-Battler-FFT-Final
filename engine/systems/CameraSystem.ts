@@ -19,8 +19,8 @@ export class CameraSystem {
     // Physics Parameters (Exposed for UI)
     // Lower stiffness = Heavier, slower camera (Cinematic)
     // Higher stiffness = Snappy, responsive camera (Arcade)
-    public followStiffness: number = 0.8; // Default lowered from 3.0 for cinematic feel
-    public zoomStiffness: number = 1.5;   // Default lowered from 2.0
+    public followStiffness: number = 0.25; // Default lowered from 3.0 for cinematic feel
+    public zoomStiffness: number = 0.6;   // Default lowered from 2.0
     
     // Mode Control
     private manualOverrideTimer: number = 0; // 手動操作後的冷卻時間
