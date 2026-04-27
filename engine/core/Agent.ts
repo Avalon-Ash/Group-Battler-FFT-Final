@@ -39,7 +39,6 @@ export class Agent {
     public trajectory: Hex[] = [];
     public moveProgress: number = 0;
     public stuckTicks: number = 0;
-    public escapeCooldown: number = 0;
     public facing: number = 1;
     public target: Agent | null = null;
     public targetHex: Hex | null = null;
@@ -186,7 +185,6 @@ export class Agent {
         this.path = [];
         this.moveProgress = 0;
         this.stuckTicks = 0;
-        this.escapeCooldown = 0;
 
         this.stunTimer = 0;
         this.stunMax = 0;

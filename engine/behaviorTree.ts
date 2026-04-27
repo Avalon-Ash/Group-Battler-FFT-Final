@@ -37,27 +37,51 @@ export abstract class BTNode {
     }
 }
 export class Selector extends BTNode {
+    private _runningIdx: number = -1;
     constructor(n: string) { super(n, '?'); }
     tick(ctx: any): NodeState {
-        for (let c of this.c) {
-            const r = c.tick(ctx);
-            if (r !== NodeState.FAILURE) {
+        const start = this._runningIdx >= 0 ? this._runningIdx : 0;
+        for (let i = start; i < this.c.length; i++) {
+            const r = this.c[i].tick(ctx);
+            if (r === NodeState.RUNNING) {
+                this._runningIdx = i;
+                return this.record(r);
+            }
+            if (r === NodeState.SUCCESS) {
+                this._runningIdx = -1;
                 return this.record(r);
             }
         }
+        this._runningIdx = -1;
         return this.record(NodeState.FAILURE);
+    }
+    reset() {
+        this._runningIdx = -1;
+        super.reset();
     }
 }
 export class Sequence extends BTNode {
+    private _runningIdx: number = -1;
     constructor(n: string) { super(n, '->'); }
     tick(ctx: any): NodeState {
-        for (let c of this.c) {
-            const r = c.tick(ctx);
-            if (r !== NodeState.SUCCESS) {
+        const start = this._runningIdx >= 0 ? this._runningIdx : 0;
+        for (let i = start; i < this.c.length; i++) {
+            const r = this.c[i].tick(ctx);
+            if (r === NodeState.RUNNING) {
+                this._runningIdx = i;
+                return this.record(r);
+            }
+            if (r === NodeState.FAILURE) {
+                this._runningIdx = -1;
                 return this.record(r);
             }
         }
+        this._runningIdx = -1;
         return this.record(NodeState.SUCCESS);
+    }
+    reset() {
+        this._runningIdx = -1;
+        super.reset();
     }
 }
 export class Condition extends BTNode {

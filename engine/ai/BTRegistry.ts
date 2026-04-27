@@ -15,7 +15,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
     "IsFeared": (a) => a.fearTimer > 0, 
-    "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT,
+    "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
+                        a.aiState === AIState.LAST_STAND_PUSH,
     
     "HasTarget": (a, engine) => {
         if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0) {
@@ -76,13 +77,25 @@ export const BTConditions: Record<string, BTConditionFn> = {
             }
             return true;
         }
+
+        // 格座標延遲補丁：用像素座標反推當前所在格
+        // （a.q/a.r 在移動啟動後即跳至目的地，px/py 才是真實位置）
+        const pixelHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
+        const pixelKey = HexUtils.key(pixelHex);
+        if (pixelKey !== myKey) { // 避免重複查詢
+            if (engine.isWarningTile(pixelKey)) return true;
+            const pixelHazard = engine.state.hazards.get(pixelKey);
+            if (pixelHazard && pixelHazard.team !== a.team) {
+                if (a.castingSkillIdx !== -1) return a.castTimer > 0.3;
+                return true;
+            }
+        }
         return false;
     },
 
-    "IsInWarningZoneOrEvading": (a, engine) => {
-        return BTConditions["IsEvading"](a, engine) || 
-               BTConditions["IsInUrgentDanger"](a, engine);
-    },
+    "IsInWarningZoneOrEvading": (a, engine) =>
+        BTConditions["IsEvading"](a, engine) ||
+        BTConditions["IsInWarningZone"](a, engine),
 
     "SkillReady": (a, _, args) => {
         const idx = args.slot; 
@@ -207,21 +220,7 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        // [FIX v2] Early exit during cooldown — 必須在任何 updateTarget 或 moveAgentToHex 之前
-        if (a.escapeCooldown > 0) {
-            // [P0] Maintain RUNNING during cooldown to prevent re-entry jitters
-            // Check if still in danger to see if we can transition back to IDLE
-            const stillInDanger = BTConditions["IsInWarningZone"](a, engine);
-            if (!stillInDanger) {
-                a.actionState = ActionState.IDLE;
-                a.escapeCooldown = 0.2; 
-                return NodeState.FAILURE;
-            }
-            a.actionState = ActionState.EVADING;
-            return NodeState.RUNNING;
-        }
-
-        const inDanger = BTConditions["IsInWarningZone"](a, engine);
+        const inDanger = BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine);
         const myKey = HexUtils.key(a);
         
         if (!inDanger) {
@@ -341,9 +340,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
             if (state === NodeState.FAILURE) {
                 // [FIX] If path is blocked, reset targetHex so we try a different safe spot next time
-                // and give a tiny cooldown to let others move
                 if (a.castingSkillIdx === -1) a.targetHex = null;
-                a.escapeCooldown = 0.2; 
                 return NodeState.FAILURE;
             }
             
@@ -363,17 +360,12 @@ export const BTActions: Record<string, BTActionFn> = {
             return state;
         }
         
-        // 找不到安全路徑但仍在危險中：維持 RUNNING 繼續嘗試，
-        // 避免 FAILURE 讓 BT 落回 Combat 觸發新的詠唱
-        if (BTConditions["IsInWarningZone"](a, engine)) {
+        // 找不到安全路徑但仍在危險中：維持 RUNNING
+        if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
-            // 飛行單位若 targetHex 仍為 null（備援也失敗）：
-            // 延長 cooldown 讓其他單位先移開，再嘗試
-            a.escapeCooldown = (a.targetHex === null) ? 0.3 : 0.15;
             return NodeState.RUNNING;
         }
-        a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
     },
     "CastSkill": (a, engine, args) => {
