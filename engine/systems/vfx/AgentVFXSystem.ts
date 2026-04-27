@@ -2,7 +2,7 @@
 import { GameEngine, Agent } from "../../game";
 import { VFXSystem } from "../vfx";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
-import { MovementType } from "../../../types";
+import { MovementType, AIState } from "../../../types";
 
 /**
  * 視覺狀態觀察者 (Visual State Observer)
@@ -128,9 +128,9 @@ export class AgentVFXSystem {
         checkVFX('VULNERABLE', agent.hp / agent.maxHp < 0.25);
 
         // check AI states
-        checkVFX('CAST_ULT', agent.aiState === 4); // CASTING_ULT
-        checkVFX('CAST_ACTIVE', agent.aiState === 5); // CASTING_ACTIVE
-        checkVFX('CC_INTERRUPT', agent.aiState === 2); // CC_INTERRUPTED
-        checkVFX('EVADING', agent.aiState === 9); // EVADING_URGENT
+        checkVFX('CAST_ULT', agent.aiState === AIState.CASTING_ULT);
+        checkVFX('CAST_ACTIVE', agent.aiState === AIState.CASTING_ACTIVE);
+        checkVFX('CC_INTERRUPT', agent.aiState === AIState.CC_INTERRUPTED);
+        checkVFX('EVADING', agent.aiState === AIState.EVADING_URGENT);
     }
 }
