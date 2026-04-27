@@ -75,7 +75,7 @@ export class Sequence extends BTNode {
         return this.record(NodeState.SUCCESS);
     }
     reset() {
-        if (this.status === NodeState.RUNNING) return;
+        // [FIX] Force clear running index on reset to ensure sequence always starts from first node
         this._runningIdx = -1;
         super.reset();
     }

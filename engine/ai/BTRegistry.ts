@@ -346,6 +346,13 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.castingSkillIdx !== -1) {
             return NodeState.FAILURE;
         }
+
+        // [FIX] Secondary CD check to prevent Sequence._runningIdx from skipping SkillReady
+        const s = a.skills[idx];
+        if (!s) return NodeState.FAILURE;
+        const cd = a.curCDs[idx] || 0;
+        const tolerance = s.tag === 'BASIC' ? 0.15 : 0.05;
+        if (cd > tolerance) return NodeState.FAILURE;
         
         const state = engine.initiateCast(a, idx);
         if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;

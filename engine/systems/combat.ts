@@ -35,8 +35,9 @@ export class CombatSystem {
 
         if (a.castingSkillIdx === -1) {
             a.castingSkillIdx = skillIdx;
-            a.castTimer = skill.cast;
-            a.castingAnimationTimer = skill.cast;
+            // [FIX] Ensure at least one frame of duration to prevent immediate completion loop
+            a.castTimer = Math.max(skill.cast, 0.016);
+            a.castingAnimationTimer = Math.max(skill.cast, 0.016);
             
             if (skill.tag === 'ULT') a.aiState = AIState.CASTING_ULT;
             else if (skill.tag === 'ACTIVE') a.aiState = AIState.CASTING_ACTIVE;
