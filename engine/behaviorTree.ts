@@ -26,9 +26,8 @@ export abstract class BTNode {
     }
     abstract tick(ctx: any): NodeState;
     reset() {
-        if (this.status !== NodeState.RUNNING) {
-            this.status = NodeState.PENDING;
-        }
+        if (this.status === NodeState.RUNNING) return;
+        this.status = NodeState.PENDING;
         if (this.c) {
             for (const child of this.c) {
                 child.reset();
@@ -47,15 +46,6 @@ export class Selector extends BTNode {
         for (let i = 0; i < this._interruptCount; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
-                // [FIX] 保護 Combat 的 _runningIdx：
-                // 若目前有後方節點（Combat）正在 RUNNING（_runningIdx >= interruptCount），保留它
-                if (this._runningIdx >= this._interruptCount) {
-                    // 保持 _runningIdx 不動，下次 tick Combat 能繼續
-                } else {
-                    // 沒有 Combat 在 RUNNING（-1 或指向另一個 interrupt 節點）才清除
-                    this._runningIdx = -1;
-                }
-                // 有 Combat RUNNING 時：_runningIdx 保持不動，只讓 Survival 這 tick 執行
                 return this.record(r);
             }
             if (r === NodeState.SUCCESS) {
@@ -80,6 +70,7 @@ export class Selector extends BTNode {
         return this.record(NodeState.FAILURE);
     }
     reset() {
+        if (this.status === NodeState.RUNNING) return;
         this._runningIdx = -1;
         super.reset();
     }
@@ -104,6 +95,7 @@ export class Sequence extends BTNode {
         return this.record(NodeState.SUCCESS);
     }
     reset() {
+        if (this.status === NodeState.RUNNING) return;
         this._runningIdx = -1;
         super.reset();
     }
