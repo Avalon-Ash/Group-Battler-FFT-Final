@@ -14,6 +14,10 @@ export const useGameCamera = (engine: GameEngine) => {
     const centerCamera = useCallback((width: number, height: number) => {
         if (!width || !height || width <= 0 || height <= 0) return;
 
+        engine.screenW = width;
+        engine.screenH = height;
+        engine.screenAspect = width / height;
+
         const mapConfig = engine.mapConfig;
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;

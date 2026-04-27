@@ -1,19 +1,24 @@
 
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
-import { Point } from "../../types";
+import { Point, AIState } from "../../types";
+import { CameraTargetGroup } from "./CameraTargetGroup";
+import { HEX_SIZE } from "../../constants";
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
     private idleZoom = 0.9;
     private combatZoom = 1.15;
     private ultZoom = 1.45;
+
+    private readonly MIN_ZOOM = 0.45;
+    private readonly MAX_ZOOM = 1.6;
     
     // Controls
     public enabled: boolean = true;
 
     // State
-    private currentFocusPoint: Point = { x: 0, y: 0 };
+    private targetGroup = new CameraTargetGroup();
     private hasInitialized: boolean = false;
     private lastCentroidX: number = 0;
     private lastCentroidY: number = 0;
@@ -75,7 +80,7 @@ export class DirectorSystem {
         this.decideTarget(engine, ds);
 
         // 3. Calculate Cinematic Frame (Computation)
-        const frame = this.calculateFrame(engine, ds.targetId);
+        const frame = this._buildTargetGroup(engine, ds.targetId);
 
         // 4. Push to Camera System (Decoupled Action via Event Bus)
         if (frame) {
@@ -147,102 +152,95 @@ export class DirectorSystem {
         return best;
     }
 
-    private calculateFrame(engine: GameEngine, targetId: string | null): { x: number, y: number, zoom: number } | null {
-        let targetX = 0;
-        let targetY = 0;
-        let targetZoom = this.idleZoom;
+    private _buildTargetGroup(engine: GameEngine, priorityId: string | null): { x: number, y: number, zoom: number } | null {
+        this.targetGroup.clear();
 
-        const mainActor = targetId ? engine.agents.find(a => a.id === targetId) : null;
-
-        // [FIX] 如果目標正在墜落或腳下無地，視為失去目標，切換回全景模式
-        const isFalling = mainActor && (mainActor.physics.z < -50 || !engine.isValid(mainActor.q, mainActor.r));
-
-        if (mainActor && mainActor.hp > 0 && !isFalling) {
-            targetX = mainActor.px;
-            targetY = mainActor.py;
-            
-            if (mainActor.target && mainActor.target.hp > 0) {
-                const t = mainActor.target;
-                targetX = mainActor.px * 0.6 + t.px * 0.4;
-                targetY = mainActor.py * 0.6 + t.py * 0.4;
-                
-                const dist = HexUtils.dist(mainActor, t);
-                if (dist < 2) targetZoom = this.combatZoom; 
-                else if (dist < 6) targetZoom = (this.combatZoom + this.idleZoom) / 2;
-                else targetZoom = this.idleZoom;
-                
-            } else if (mainActor.isMoving && mainActor.path.length > 0) {
-                targetX += mainActor.physics.vx * 0.5; 
-                targetY += mainActor.physics.vy * 0.5;
-                targetZoom = this.idleZoom;
-            } else {
-                targetZoom = this.idleZoom * 1.1; 
+        // 優先度 1: 有 ULT 施法者
+        const ultCaster = engine.agents.find(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
+        if (ultCaster) {
+            this.targetGroup.add(ultCaster.px, ultCaster.py, 1.0, 120);
+            const skill = ultCaster.skills[ultCaster.castingSkillIdx]!;
+            if (skill.type === 'AOE' && ultCaster.targetHex) {
+                const targetPx = HexUtils.toPx(ultCaster.targetHex.q, ultCaster.targetHex.r, engine.mapConfig);
+                const aoeRadiusPx = (skill.aoeRadius || 1) * HEX_SIZE;
+                this.targetGroup.add(targetPx.x, targetPx.y, 0.5, aoeRadiusPx);
             }
+            const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
+            // ULT 時鎖定最小 zoom 不低於 ultZoom
+            solved.zoom = Math.max(this.ultZoom, solved.zoom);
+            return this.smooth(solved);
+        }
 
-            if (mainActor.castingSkillIdx !== -1) {
-                const skill = mainActor.skills[mainActor.castingSkillIdx];
-                if (skill?.tag === 'ULT') {
-                    targetX = mainActor.px;
-                    targetY = mainActor.py - 20; 
-                    targetZoom = this.ultZoom;
+        // 優先度 2: ACTIVE 技能施法 / 近戰交火
+        const activeCaster = engine.agents.find(a => a.hp > 0 && a.castingSkillIdx !== -1);
+        if (activeCaster) {
+            this.targetGroup.add(activeCaster.px, activeCaster.py, 1.0, 80);
+            const target = activeCaster.target;
+            if (target && target.hp > 0) {
+                this.targetGroup.add(target.px, target.py, 0.7, 80);
+                // 附近敵人
+                engine.agents.forEach(a => {
+                    if (a.hp > 0 && a.team !== activeCaster.team && a.id !== target.id) {
+                        const d = HexUtils.dist(a, target);
+                        if (d <= 1) this.targetGroup.add(a.px, a.py, 0.3, 60);
+                    }
+                });
+            }
+            return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
+        }
+
+        // 優先度 3: 逃生中
+        const evaders = engine.agents.filter(a => a.hp > 0 && (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH));
+        if (evaders.length > 0) {
+            for (const a of evaders) {
+                this.targetGroup.add(a.px, a.py, 1.0, 80);
+                // 尋找最近的非警告地板作為錨點
+                if (a.targetHex) {
+                    const destPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
+                    this.targetGroup.add(destPx.x, destPx.y, 0.4, 40);
                 }
             }
+            return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
+        }
 
-        } else {
-            // Wide shot logic: Calculate centroid of all active agents
-            let sumX = 0, sumY = 0, count = 0;
-            for (const a of engine.agents) {
-                if (a.hp > 0 && !a.banished && a.physics.z > -100) {
-                    sumX += a.px;
-                    sumY += a.py;
-                    count++;
-                }
-            }
-
-            if (count > 0) {
-                targetX = sumX / count;
-                targetY = sumY / count;
-                
-                // [FIX] Dynamic Zoom based on map size to prevent sudden zoom-in when map shrinks
-                // Use the map bounding box to determine minimum zoom
-                const mapKeys = engine.map.mapKeys;
-                if (mapKeys.size > 0) {
-                    // We want to maintain a stable zoom even as tiles fall
-                    // Instead of zooming in tightly, we respect the "active area"
-                    targetZoom = this.idleZoom * 0.9;
-                } else {
-                    targetZoom = this.idleZoom * 0.8;
-                }
-            } else {
-                // Fallback to map center
-                const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
-                const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
-                const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
-                targetX = centerPx.x;
-                targetY = centerPx.y;
-                targetZoom = 0.7; 
+        // 優先度 4: 全景
+        let hasTargets = false;
+        for (const a of engine.agents) {
+            if (a.hp > 0 && !a.banished && a.physics.z > -100) {
+                const weight = 1 - (a.hp / a.maxHp) * 0.5 + 0.5;
+                this.targetGroup.add(a.px, a.py, weight, 50);
+                hasTargets = true;
             }
         }
 
-        // Smoothing
+        if (!hasTargets) {
+            // 回歸地圖中心
+            const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
+            const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
+            const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
+            return this.smooth({ x: centerPx.x, y: centerPx.y, zoom: 0.7 });
+        }
+
+        return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
+    }
+
+    private smooth(solved: { x: number, y: number, zoom: number }): { x: number, y: number, zoom: number } {
+        // [MIN/MAX ZOOM 限制]
+        solved.zoom = Math.max(this.MIN_ZOOM, Math.min(this.MAX_ZOOM, solved.zoom));
+
         if (!this.hasInitialized) {
-            this.lastCentroidX = targetX;
-            this.lastCentroidY = targetY;
-            this.lastZoom = targetZoom;
+            this.lastCentroidX = solved.x;
+            this.lastCentroidY = solved.y;
+            this.lastZoom = solved.zoom;
             this.hasInitialized = true;
         }
 
-        // [REFACTOR] Adaptive Smoothing
-        // Use slower smoothing for wide shots to prevent jittering during map collapse
-        const isWideShot = !mainActor;
-        const lerpFactor = isWideShot ? 0.03 : 0.06; 
-        
-        this.lastCentroidX += (targetX - this.lastCentroidX) * lerpFactor;
-        this.lastCentroidY += (targetY - this.lastCentroidY) * lerpFactor;
-        
-        // Zoom smoothing should be even slower to prevent "pumping"
-        const zoomLerpFactor = 0.02;
-        this.lastZoom += (targetZoom - this.lastZoom) * zoomLerpFactor;
+        const panLerp = 0.05;
+        const zoomLerp = 0.025;
+
+        this.lastCentroidX += (solved.x - this.lastCentroidX) * panLerp;
+        this.lastCentroidY += (solved.y - this.lastCentroidY) * panLerp;
+        this.lastZoom += (solved.zoom - this.lastZoom) * zoomLerp;
 
         return { x: this.lastCentroidX, y: this.lastCentroidY, zoom: this.lastZoom };
     }

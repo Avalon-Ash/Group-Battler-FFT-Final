@@ -77,6 +77,8 @@ export class GameEngine {
     public mapVersion: number = 0; 
     
     public screenAspect: number = 1.77;
+    public screenW: number = 1200;
+    public screenH: number = 675;
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public zoneConfig: ZoneConfig = { ...DEFAULT_ZONE_CONFIG };
