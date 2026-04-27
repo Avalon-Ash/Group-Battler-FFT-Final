@@ -40,12 +40,6 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
 
-        // Predict based on movement state
-        if (a.isMoving && a.path && a.path.length > 0) {
-            const lastHex = a.path[a.path.length - 1];
-            if (engine.isWarningTile(HexUtils.key(lastHex))) return true;
-        }
-
         // Project based on physics velocity (knockback)
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
         if (isKnockedBack && a.movementType !== MovementType.FLYING) {
