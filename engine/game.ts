@@ -1,4 +1,3 @@
-
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState } from "../types";
@@ -71,6 +70,7 @@ export class GameEngine {
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer; 
     
+    /** VFX getter — proxies to renderer.vfx; safe to call before renderer is bound (returns undefined) */
     public get vfx() { return this.renderer?.vfx; }
 
     public isRunning: boolean = false;
@@ -122,7 +122,7 @@ export class GameEngine {
         const key = `${q},${r}`;
         const collapsing = this.zones.collapsingTiles.get(key);
         if (collapsing) {
-            return collapsing.h + collapsing.z; // Return dynamic height as it falls
+            return collapsing.h + collapsing.z;
         }
         return this.map.getTerrainHeight(q, r); 
     }
@@ -211,7 +211,7 @@ export class GameEngine {
         this.pendingVisualEvents.length = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
-        this.map.rebuildMap(this); // Restore tiles removed by zone system
+        this.map.rebuildMap(this); 
         this.director.reset(this);
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
@@ -248,7 +248,6 @@ export class GameEngine {
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
-        
 
         if (!skipRebuild) {
             if (!keepScene) this.map.randomizeEnvironment(this); 
@@ -280,7 +279,6 @@ export class GameEngine {
     }
 
     private flushVisualEvents() {
-        // P1: Visual events should be processed at the end of tick
         if (this.renderer) {
             this.renderer.processVisualEvents(this.pendingVisualEvents);
         }
@@ -316,8 +314,6 @@ export class GameEngine {
 
         this.movement.resolveStacking(this, this);
         this.announcer.update(dt, this);
-        
-        // SSOT Enforcement: Animation state is derived last
         this.animation.update(dt, this);
     }
     
