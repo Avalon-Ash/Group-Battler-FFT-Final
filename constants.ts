@@ -121,6 +121,8 @@ export const COMBAT_Param = { // Deprecated alias, keeping for compatibility if 
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
+    HIT_MEDIUM_THRESHOLD: 150,
+    HIT_HEAVY_THRESHOLD: 400,
     DR_RESET_TIME: 10.0,
     EXECUTE_THRESHOLD: 0.25,
     BASE_EXECUTE_MULTIPLIER: 2.0,

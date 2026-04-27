@@ -117,13 +117,14 @@ export class SkillExecutor {
         });
     }
 
-    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | null = null) {
+    public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined = undefined) {
         if (!target || target.hp <= 0 || target.banished) return;
 
         // A. Damage Calculation
         const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit);
         
         if (result.isMiss) {
+            target.lastHitDamage = 0;
             engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "MISS", color: '#9ca3af' });
             engine.log(source, 'HIT', '閃避', target.id, `攻擊未命中`);
             return;
@@ -183,12 +184,12 @@ export class SkillExecutor {
                 // LIGHT & MEDIUM：播放陣營特效（MEDIUM 呼叫兩次，位移稍微錯開製造量感）
                 if (engine.vfx) {
                     engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
-                    if (finalDamage >= 150) {
+                    if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
                         engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
                     }
 
                     // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
-                    if (finalDamage >= 400) {
+                    if (finalDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
                         engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ - 20);
                     }
                 }

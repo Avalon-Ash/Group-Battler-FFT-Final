@@ -22,7 +22,7 @@ export class DamageCalculator {
      * The Core Damage Pipeline:
      * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
-    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | null = null): DamageResult {
+    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined): DamageResult {
         const isHeal = skill.power < 0;
         let base = Math.abs(skill.power);
         

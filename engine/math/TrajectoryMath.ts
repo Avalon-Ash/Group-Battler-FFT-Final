@@ -56,7 +56,7 @@ export const TrajectoryMath = {
         const base = TrajectoryMath.linear(start, end, t);
         // 前段下沉曲線：在 t=0.2 時達到最低點
         const dipZ = t < 0.4
-            ? -dip * (t / 0.2) * (1 - t / 0.2) * 4  // 拋物線下沉
+            ? -dip * 4 * (t / 0.4) * (1 - t / 0.4)
             : 0;
         return { x: base.x, y: base.y, z: base.z + dipZ };
     },
