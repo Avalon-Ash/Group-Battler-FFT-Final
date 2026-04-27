@@ -25,6 +25,12 @@ export abstract class BTNode {
         return result;
     }
     abstract tick(ctx: any): NodeState;
+    reset() {
+        if (this.status !== NodeState.RUNNING) {
+            this.status = null;
+        }
+        if (this.c) this.c.forEach(c => c.reset());
+    }
 }
 export class Selector extends BTNode {
     constructor(n: string) { super(n, '?'); }

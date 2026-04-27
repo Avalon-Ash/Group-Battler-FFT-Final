@@ -12,7 +12,7 @@ import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
 import { HexUtils } from "../utils";
 
-export class VisualEventListener {
+export class VisualSystem {
     private hudMapper: EventHUDMapper;
     private vfxMapper: EventVFXMapper;
     constructor() {
@@ -20,7 +20,7 @@ export class VisualEventListener {
         this.vfxMapper = new EventVFXMapper();
     }
     public reset() { this.hudMapper.reset(); }
-    public process(
+    public flush(
         events: GameEvent[], 
         engine: GameEngine, 
         vfx: VFXSystem, 
@@ -29,6 +29,7 @@ export class VisualEventListener {
         camera: CameraSystem,
         sequences: SequenceSystem
     ) {
+        if (events.length === 0) return;
         events.forEach(event => {
             this.hudMapper.process(event, engine, hud, grid, camera);
             if (event.type === 'CAST_START' && event.skill) {

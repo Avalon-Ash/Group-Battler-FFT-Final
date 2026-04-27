@@ -1,7 +1,7 @@
 
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState, MovementType } from "../../types";
+import { NodeState, AIState, MovementType, ActionState } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 
@@ -166,10 +166,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
 export const BTActions: Record<string, BTActionFn> = {
     "Wait": (a, engine, args) => {
         a.aiState = args.state || AIState.WAITING;
+        a.actionState = ActionState.IDLE;
         return NodeState.RUNNING;
     },
     "Idle": (a) => {
         a.aiState = AIState.IDLE;
+        a.actionState = ActionState.IDLE;
         if (a.isMoving) {
             a.isMoving = false;
             a.path = [];
@@ -179,26 +181,23 @@ export const BTActions: Record<string, BTActionFn> = {
     "EscapeWarning": (a, engine) => {
         // [FIX v2] Early exit during cooldown — 必須在任何 updateTarget 或 moveAgentToHex 之前
         if (a.escapeCooldown > 0) {
-            // 即使在 cooldown 期間，如果已經安全，立刻解除逃生狀態
+            // [P0] Maintain RUNNING during cooldown to prevent re-entry jitters
+            // Check if still in danger to see if we can transition back to IDLE
             const stillInDanger = BTConditions["IsInWarningZone"](a, engine);
             if (!stillInDanger) {
-                a.aiState = AIState.IDLE;
-                a.visualStatus = "NONE";
-                a.escapeCooldown = 0;  // 提前清除 cooldown
+                a.actionState = ActionState.IDLE;
+                a.escapeCooldown = 0;  
                 return NodeState.FAILURE;
             }
-            a.aiState = AIState.EVADING_URGENT;
+            a.actionState = ActionState.EVADING;
             return NodeState.RUNNING;
         }
 
-        // [FIX] Use BTConditions["IsInWarningZone"] for consistent safe-exit logic
         const inDanger = BTConditions["IsInWarningZone"](a, engine);
-        const myKey = HexUtils.key(a);
         
         if (!inDanger) {
-            if (a.aiState === AIState.EVADING_URGENT) {
-                a.aiState = AIState.IDLE;
-                a.visualStatus = "NONE";
+            if (a.actionState === ActionState.EVADING) {
+                a.actionState = ActionState.IDLE;
             }
             return NodeState.FAILURE;
         }
@@ -234,9 +233,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 } else {
                     // 非致命：BASIC 中斷、非 BASIC 先放完
                     if (skill.tag !== 'BASIC') {
-                        // [FIX] 不 return FAILURE，改為 RUNNING——維持逃生意圖，讓詠唱繼續
-                        // 但設定 EVADING_URGENT，確保詠唱完後下一幀立刻逃
-                        a.aiState = AIState.EVADING_URGENT;
+                        a.actionState = ActionState.EVADING;
                         return NodeState.RUNNING;
                     }
                     // BASIC 技能：直接中斷
@@ -247,7 +244,7 @@ export const BTActions: Record<string, BTActionFn> = {
             }
         }
 
-        a.visualStatus = "DANGER"; 
+        a.actionState = ActionState.EVADING; 
         
         // 1. 確保有逃生地塊
         let targetIsUnsafe = true;
@@ -283,6 +280,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.FAILURE;
             }
             
+            a.actionState = ActionState.EVADING; 
             a.aiState = AIState.EVADING_URGENT; 
 
             // Casting is already handled by fatal check above, but we clean up leftovers if any
@@ -304,8 +302,13 @@ export const BTActions: Record<string, BTActionFn> = {
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
         // 已在詠唱自己：維持 RUNNING，讓 combat.update 自行推進 castTimer
-        if (a.castingSkillIdx === idx) return NodeState.RUNNING;
-        return engine.initiateCast(a, idx);
+        if (a.castingSkillIdx === idx) {
+            a.actionState = ActionState.CASTING;
+            return NodeState.RUNNING;
+        }
+        const state = engine.initiateCast(a, idx);
+        if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
+        return state;
     },
     "MoveToOptimal": (a, engine, args) => {
         const idx = args.slot;
@@ -317,7 +320,9 @@ export const BTActions: Record<string, BTActionFn> = {
         
         if (dest) {
             if (a.q === dest.q && a.r === dest.r) return NodeState.SUCCESS;
-            return engine.moveAgentToHex(a, dest, skill.range, speedMult);
+            const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
+            if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+            return state;
         }
         return NodeState.FAILURE;
     },
@@ -328,7 +333,9 @@ export const BTActions: Record<string, BTActionFn> = {
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
         a.aiState = AIState.TRACKING;
-        return engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+        const state = engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+        if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+        return state;
     },
     "CastPushPull": (a, engine) => {
         // [Task 5] Decoupled Path-Clearing Targeting
@@ -402,7 +409,9 @@ export const BTActions: Record<string, BTActionFn> = {
         
         if (dist <= effRange + 0.1) {
             a.aiState = AIState.LAST_STAND_PUSH;
-            return engine.initiateCast(a, idx);
+            const state = engine.initiateCast(a, idx);
+            if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
+            return state;
         }
 
         // 射程不夠：嘗試走近，而非直接放棄
@@ -410,7 +419,9 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
             const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
             if (dest) {
-                return engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
+                const state = engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
+                if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+                return state;
             }
         }
         

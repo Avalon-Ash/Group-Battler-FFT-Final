@@ -116,7 +116,7 @@ GameEngine
 │   │   ├── MapSystem        ← 地圖管理：網格狀態、warningTiles、地形高度
 │   │   ├── PhysicsSystem    ← 物理積分：impulse、重力、自由落體、trail 歷史
 │   │   ├── AnimationSystem  ← 動畫狀態推導（SSOT 最末層）
-│   │   ├── VisualEventListener ← 監聽 EventBus，驅動 VFX 與視覺回饋管線
+│   │   ├── VisualSystem     ← 監聽事件佇列，驅動 VFX 與視覺回饋管線
 │   │   ├── TimeSystem       ← 時間縮放管理
 │   │   ├── BattleLogger     ← 完整戰鬥紀錄
 │   │   ├── AnnouncerSystem  ← 戰況播報

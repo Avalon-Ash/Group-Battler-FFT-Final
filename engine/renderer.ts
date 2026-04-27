@@ -8,7 +8,7 @@ import { UnitRenderSystem } from "./systems/unit";
 import { HUDSystem } from "./systems/hud";
 import { CameraSystem } from "./systems/CameraSystem";
 import type { Camera } from "./systems/CameraSystem";
-import { VisualEventListener } from "./systems/VisualEventListener";
+import { VisualSystem } from "./systems/VisualSystem";
 import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
 import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
@@ -24,7 +24,7 @@ export class GameRenderer {
     public hud: HUDSystem = new HUDSystem();
     public camera: CameraSystem = new CameraSystem();
     public sequences: SequenceSystem = new SequenceSystem();
-    private eventListener: VisualEventListener = new VisualEventListener();
+    private visualSystem: VisualSystem = new VisualSystem();
     private pipeline: RenderPipeline = new RenderPipeline(this);
     
     private boundEngine: GameEngine | null = null;
@@ -68,7 +68,7 @@ export class GameRenderer {
         this.vfx.reset();
         this.hud.reset();
         this.camera.reset();
-        this.eventListener.reset();
+        this.visualSystem.reset();
         this.grid.reset(); 
         this.sequences.clear();
     }
@@ -141,7 +141,14 @@ export class GameRenderer {
         this.hud.update(dt);
     }
 
-    public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void { this.eventListener.process(events, engine, this.vfx, this.hud, this.grid, this.camera, this.sequences); }
+    public processVisualEvents(events: GameEvent[]): void {
+        if (!this.boundEngine) return;
+        this.visualSystem.flush(events, this.boundEngine, this.vfx, this.hud, this.grid, this.camera, this.sequences);
+    }
+
+    public processEventsWithEngine(events: GameEvent[], engine: GameEngine): void { 
+        this.visualSystem.flush(events, engine, this.vfx, this.hud, this.grid, this.camera, this.sequences); 
+    }
     
     public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
         this.pipeline.draw(ctx, engine, camera, highlight, fps, hoveredHex, hoveredSkill, battleTime, realTime);

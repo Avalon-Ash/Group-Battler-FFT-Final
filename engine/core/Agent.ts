@@ -1,5 +1,5 @@
 
-import { Skill, Team, Role, MovementType, AnimState, Hex, AIState } from "../../types";
+import { Skill, Team, Role, MovementType, AnimState, Hex, AIState, ActionState } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
@@ -85,6 +85,7 @@ export class Agent {
     public fullyDead: boolean = false;
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
+    public actionState: ActionState = ActionState.IDLE;
 
     public physics = {
         x: 0, y: 0, z: 0,
@@ -180,6 +181,7 @@ export class Agent {
         this.drTimers = {};
 
         this.hitFlashTimer = 0;
+        this.actionState = ActionState.IDLE;
         this.deadLogged = false;
         this.fullyDead = false;
         this.animState = AnimState.IDLE;

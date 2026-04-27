@@ -67,6 +67,7 @@ export class GameEngine {
     get logs(): LogEntry[] { return this.logger.logs; }
 
     public events: GameEvent[] = [];
+    public pendingVisualEvents: GameEvent[] = [];
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer; 
     
@@ -166,6 +167,7 @@ export class GameEngine {
             this.director.forceFocus(this, opts.sourceId, 3.5); 
         }
         this.events.push(evt);
+        this.pendingVisualEvents.push(evt);
     }
 
     public play() {
@@ -249,7 +251,7 @@ export class GameEngine {
     public tick(dt: number) {
         if (!this.isRunning) return;
         
-        // [FIX] Clean up fully dead agents here, so VisualEventListener can find them before renderer cycle ends
+        // [FIX] Clean up fully dead agents here, so VisualSystem can find them before renderer cycle ends
         const deadCount = this.agents.filter(a => a.fullyDead).length;
         if (deadCount > 0) {
             this.agents = this.agents.filter(a => !a.fullyDead);
@@ -265,6 +267,12 @@ export class GameEngine {
             return;
         }
         this.updateEntities(dt);
+        
+        // P1: Visual events should be processed at the end of tick
+        if (this.renderer) {
+            this.renderer.processVisualEvents(this.pendingVisualEvents);
+        }
+        this.pendingVisualEvents.length = 0;
     }
 
     private updateEntities(dt: number) {
@@ -282,12 +290,13 @@ export class GameEngine {
                 this.movement.updateMovement(a, dt, this);
             }
             if (a.bt) {
-                const resetTree = (node: BTNode) => { 
-                    node.status = null; 
-                    if (node.c) node.c.forEach(resetTree); 
-                };
-                resetTree(a.bt);
-                a.bt.tick(a);
+                if (a.aiUpdateTimer <= 0) {
+                    a.bt.reset();
+                    a.bt.tick(a);
+                    a.aiUpdateTimer = a.aiUpdateInterval;
+                } else {
+                    a.aiUpdateTimer -= dt;
+                }
             }
         }
         this.combat.update(dt, this);

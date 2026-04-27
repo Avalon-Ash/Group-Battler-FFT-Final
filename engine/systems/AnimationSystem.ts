@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../game";
-import { AnimState } from "../../types";
+import { AnimState, ActionState } from "../../types";
 
 export class AnimationSystem {
     public update(dt: number, engine: GameEngine) {
@@ -11,15 +11,17 @@ export class AnimationSystem {
             }
 
             // 2. Derive Animation State (Priority Based)
-            // Priority: DEAD > STUN > HIT > ATTACK > MOVE > IDLE
+            // Priority: DEAD > STUN > HIT > ACTION_STATE > IDLE
             
             if (agent.hp <= 0) {
                 agent.animState = AnimState.DEAD;
+                agent.visualStatus = 'NONE';
                 continue;
             }
 
             if (agent.stunTimer > 0 || agent.banished || agent.fearTimer > 0) {
                 agent.animState = AnimState.STUN;
+                agent.visualStatus = agent.banished ? 'STASIS' : 'NONE';
                 continue;
             }
 
@@ -29,18 +31,37 @@ export class AnimationSystem {
                 continue;
             }
 
+            // Derive from ActionState
+            switch (agent.actionState) {
+                case ActionState.EVADING:
+                    agent.animState = AnimState.MOVE;
+                    agent.visualStatus = 'DANGER';
+                    break;
+                case ActionState.WALKING:
+                    agent.animState = AnimState.MOVE;
+                    agent.visualStatus = 'NONE';
+                    break;
+                case ActionState.ATTACKING:
+                case ActionState.CASTING:
+                    agent.animState = AnimState.ATTACK;
+                    agent.visualStatus = 'NONE';
+                    break;
+                case ActionState.IDLE:
+                default:
+                    agent.animState = agent.target ? AnimState.COMBAT_IDLE : AnimState.IDLE;
+                    agent.visualStatus = 'NONE';
+                    break;
+            }
+
+            // Override for casting specific skill types if needed
             if (agent.castingSkillIdx !== -1) {
                 agent.animState = AnimState.ATTACK;
-                continue;
             }
 
+            // Override for movement
             if (agent.isMoving && agent.path.length > 0) {
                 agent.animState = AnimState.MOVE;
-                continue;
             }
-
-            // Default State
-            agent.animState = agent.target ? AnimState.COMBAT_IDLE : AnimState.IDLE;
         }
     }
 }

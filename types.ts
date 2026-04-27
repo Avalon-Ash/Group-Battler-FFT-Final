@@ -125,6 +125,16 @@ export enum MovementType {
     FLYING = 1
 }
 
+export enum ActionState {
+    IDLE = 0,
+    WALKING = 1,
+    ATTACKING = 2,
+    EVADING = 3,
+    CASTING = 4,
+    STUNNED = 5,
+    DYING = 6
+}
+
 export enum AnimState {
     IDLE = 0,
     COMBAT_IDLE = 1,

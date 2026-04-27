@@ -114,17 +114,11 @@ export const useGameLoop = (
                 acc += dt;
                 if (acc > 250) acc = 250; 
                 
-                const frameEvents: GameEvent[] = [];
                 while (acc >= step) {
                     const sdt = (step / 1000) * engine.timeScale;
                     engine.tick(sdt);
                     engine.battleTime += sdt;
                     acc -= step;
-                    frameEvents.push(...engine.events);
-                }
-                
-                if (frameEvents.length > 0) {
-                    rendererRef.current.processEventsWithEngine(frameEvents, engine);
                 }
             }
             
