@@ -19,7 +19,7 @@ export class AISystem {
 
         switch (def.type) {
             case 'SELECTOR':
-                node = new Selector(def.name);
+                node = new Selector(def.name, def.interruptCount ?? 0);
                 if (def.children) {
                     def.children.forEach(childDef => {
                         node.add(this.parseNode(childDef, engine));

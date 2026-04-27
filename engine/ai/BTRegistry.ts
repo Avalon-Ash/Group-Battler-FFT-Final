@@ -347,16 +347,6 @@ export const BTActions: Record<string, BTActionFn> = {
             a.actionState = ActionState.EVADING; 
             a.aiState = AIState.EVADING_URGENT; 
 
-            // Casting is already handled by fatal check above, but we clean up leftovers if any
-            if (a.castingSkillIdx !== -1 && a.stuckTicks === 0) {
-                const s = a.skills[a.castingSkillIdx];
-                if (s && s.tag === 'BASIC') {
-                    engine.log(a, 'CC', '中斷', s.name, "為了逃命而中斷普攻");
-                    a.castingSkillIdx = -1;
-                    a.castTimer = 0;
-                    a.castingAnimationTimer = 0;
-                }
-            }
             return state;
         }
         

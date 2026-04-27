@@ -38,9 +38,26 @@ export abstract class BTNode {
 }
 export class Selector extends BTNode {
     private _runningIdx: number = -1;
-    constructor(n: string) { super(n, '?'); }
+    private _interruptCount: number = 0;
+    constructor(n: string, interruptCount: number = 0) {
+        super(n, '?');
+        this._interruptCount = interruptCount;
+    }
     tick(ctx: any): NodeState {
-        const start = this._runningIdx >= 0 ? this._runningIdx : 0;
+        // Evaluate interruptible prefix nodes first
+        for (let i = 0; i < this._interruptCount; i++) {
+            const r = this.c[i].tick(ctx);
+            if (r === NodeState.RUNNING) {
+                this._runningIdx = -1;
+                return this.record(r);
+            }
+            if (r === NodeState.SUCCESS) {
+                this._runningIdx = -1;
+                return this.record(r);
+            }
+        }
+
+        const start = this._runningIdx >= 0 ? this._runningIdx : this._interruptCount;
         for (let i = start; i < this.c.length; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
