@@ -44,17 +44,17 @@ export class Selector extends BTNode {
         this._interruptCount = interruptCount;
     }
     tick(ctx: any): NodeState {
-        // Evaluate interruptible prefix nodes first
         for (let i = 0; i < this._interruptCount; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
-                // [FIX] Correct interrupt guard: only clear _runningIdx if it does NOT point to a
-                // later (Combat) node. _runningIdx < _interruptCount means either -1 (nothing running)
-                // or pointing at another interrupt node — safe to clear.
-                // If _runningIdx >= _interruptCount, Combat is mid-cast: preserve its position.
+                // [FIX] 保護 Combat 的 _runningIdx：
+                // 若目前有後方節點（Combat）正在 RUNNING，不清除它的位置記憶
+                // _runningIdx 維持不動，下個 tick Combat 還能從 CastSkill 繼續
                 if (this._runningIdx < this._interruptCount) {
+                    // 沒有 Combat 在 RUNNING（-1 或指向另一個 interrupt 節點）才清除
                     this._runningIdx = -1;
                 }
+                // 有 Combat RUNNING 時：_runningIdx 保持不動，只讓 Survival 這 tick 執行
                 return this.record(r);
             }
             if (r === NodeState.SUCCESS) {

@@ -252,21 +252,18 @@ export const BTActions: Record<string, BTActionFn> = {
         const isWarning = engine.isWarningTile(myKey);
 
         // [FIX] Unified cast interruption logic — single clean block, no nested duplicates.
-        // Previous code had a nested duplicate castingSkillIdx check inside the isWarning branch
-        // which caused a second breakCast call for casts in the 0.3~0.8s range (isFatal=false
-        // but the else branch would still call breakCast). Now consolidated into one pass.
+        // BASIC 永遠中斷；非 BASIC 只有剩餘 > 0.8 秒才算致命。
+        // 消除 0.3~0.8s 區間被 else 分支再次中斷的漏洞。
         if (a.castingSkillIdx !== -1) {
             const castSkill = a.skills[a.castingSkillIdx];
             if (castSkill) {
                 let isFatal = false;
 
                 if (isWarning) {
-                    // BASIC always interrupted; non-BASIC only fatal if > 0.8s remaining
                     isFatal = castSkill.tag === 'BASIC' || a.castTimer > 0.8;
                 }
 
                 if (!isFatal && hazard && hazard.team !== a.team) {
-                    // Hazard expires before cast completes: fatal
                     if (hazard.timer < a.castTimer) {
                         isFatal = true;
                     }
@@ -275,7 +272,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 if (isFatal) {
                     engine.combat.breakCast(a, engine);
                 } else {
-                    // Non-fatal: let the cast continue, only perform evasive movement below
+                    // 非致命：讓詠唱繼續，只做移動
                     a.actionState = ActionState.EVADING;
                 }
             }
