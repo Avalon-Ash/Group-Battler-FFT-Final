@@ -19,5 +19,11 @@ export class CooldownSystem {
             agent.spawnTimer -= dt;
             if (agent.spawnTimer < 0) agent.spawnTimer = 0;
         }
+
+        // Interrupt Cooldown
+        if (agent._interruptCooldown > 0) {
+            agent._interruptCooldown -= dt;
+            if (agent._interruptCooldown < 0) agent._interruptCooldown = 0;
+        }
     }
 }

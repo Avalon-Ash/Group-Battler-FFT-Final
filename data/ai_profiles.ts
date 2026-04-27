@@ -13,7 +13,7 @@ export interface BTDef {
 export const STANDARD_AI_PROFILE: BTDef = {
     type: 'SELECTOR',
     name: 'Root',
-    interruptCount: 3,
+    interruptCount: 2,
     children: [
         // 1. High Priority Status Checks
         {

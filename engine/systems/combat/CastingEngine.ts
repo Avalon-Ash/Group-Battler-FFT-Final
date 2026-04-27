@@ -44,6 +44,10 @@ export class CastingEngine {
             return;
         }
 
+        // [FIX] Prevent rapid fire interrupt -> recast loops in the same frame
+        if (a._interruptCooldown > 0) return;
+        a._interruptCooldown = 0.1; // 100ms lockout for interrupts
+
         const skillIdx = a.castingSkillIdx;
         if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
             const s = a.skills[skillIdx]!;

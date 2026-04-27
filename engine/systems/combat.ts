@@ -86,6 +86,10 @@ export class CombatSystem {
     }
     private completeCast(a: Agent, engine: GameEngine) {
         if (a.castingSkillIdx === -1) return; // Safety guard
+        
+        // [FIX] Force immediate decision making on next frame after cast finishes
+        a.aiUpdateTimer = 0;
+
         const s = a.skills[a.castingSkillIdx]!;
         if (!s) return;
         

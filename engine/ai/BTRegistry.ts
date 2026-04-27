@@ -36,25 +36,21 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "MpAbove": (a, _, args) => a.mp >= args.amount,
     
     "IsInWarningZone": (a, engine) => {
-        // [Task 2] SSOT-Separated Dynamic Prediction
-        // 1. Check current position (Warning Tiles & Hazards)
+        // [FIX] Only check warning tiles for survival logic (SSOT)
         const myKey = HexUtils.key(a);
-        const hazard = engine.state.hazards.get(myKey);
-        if (engine.isWarningTile(myKey) || (hazard && hazard.team !== a.team)) return true;
+        if (engine.isWarningTile(myKey)) return true;
 
-        // 2. Predict based on movement state
+        // Predict based on movement state
         if (a.isMoving && a.path && a.path.length > 0) {
-            // Autonomous moving: check destination
             const lastHex = a.path[a.path.length - 1];
             if (engine.isWarningTile(HexUtils.key(lastHex))) return true;
         }
 
-        // Project based on physics velocity (knockback) OR stuckTicks
+        // Project based on physics velocity (knockback)
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
-        if ((a.stuckTicks > 0 || isKnockedBack) && a.movementType !== MovementType.FLYING) {
-            // Controlled displacement: project based on physics velocity
+        if (isKnockedBack && a.movementType !== MovementType.FLYING) {
             const dt_est = 1 / 30; 
-            const ticks = a.stuckTicks > 0 ? a.stuckTicks : 8; // Predict 8 ticks ahead for knockback
+            const ticks = 8; 
             const predPx = a.px + a.physics.vx * ticks * dt_est;
             const predPy = a.py + a.physics.vy * ticks * dt_est;
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
@@ -65,31 +61,13 @@ export const BTConditions: Record<string, BTConditionFn> = {
     },
     
     "IsInUrgentDanger": (a, engine) => {
-        // 縮圈警告格：無論如何都是緊急危險
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
-        // 有危害物：視剩餘詠唱時間決定
-        const hazard = engine.state.hazards.get(myKey);
-        if (hazard && hazard.team !== a.team) {
-            if (a.castingSkillIdx !== -1) {
-                return a.castTimer > 0.3; // 詠唱快好了就先放完
-            }
-            return true;
-        }
 
         // 格座標延遲補丁：用像素座標反推當前所在格
-        // （a.q/a.r 在移動啟動後即跳至目的地，px/py 才是真實位置）
         const pixelHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
         const pixelKey = HexUtils.key(pixelHex);
-        if (pixelKey !== myKey) { // 避免重複查詢
-            if (engine.isWarningTile(pixelKey)) return true;
-            const pixelHazard = engine.state.hazards.get(pixelKey);
-            if (pixelHazard && pixelHazard.team !== a.team) {
-                if (a.castingSkillIdx !== -1) return a.castTimer > 0.3;
-                return true;
-            }
-        }
-        return false;
+        return engine.isWarningTile(pixelKey);
     },
 
     "IsInWarningZoneOrEvading": (a, engine) =>

@@ -81,6 +81,7 @@ export class Agent {
     public visualStatus: SpecialVisualStatus = 'NONE';
     public spawnTimer: number = 0;
     public escapeCooldown: number = 0; // Added missing property
+    public _interruptCooldown: number = 0;
 
     public deadLogged: boolean = false;
     public deathTimer: number = 0;
@@ -217,6 +218,7 @@ export class Agent {
         this.fullyDead = false;
         this.animState = AnimState.IDLE;
         this.spawnTimer = 0.5;
+        this._interruptCooldown = 0;
 
         this.target = null;
         this.targetHex = null;
