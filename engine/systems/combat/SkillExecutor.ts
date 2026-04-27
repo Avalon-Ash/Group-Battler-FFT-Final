@@ -127,7 +127,7 @@ export class SkillExecutor {
             target.lastHitDamage = 0;
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 text: "MISS", 
                 color: '#9ca3af',
                 sourceId: source.id,
@@ -140,7 +140,7 @@ export class SkillExecutor {
         if (result.isBlock) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 text: "BLOCK", 
                 color: '#fb923c',
                 sourceId: source.id,
@@ -152,7 +152,7 @@ export class SkillExecutor {
         if (result.shieldAbsorb > 0) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: -Math.floor(result.shieldAbsorb), 
                 color: '#bae6fd', 
                 text: "ABSORB",
@@ -177,7 +177,7 @@ export class SkillExecutor {
             
             engine.events.push({ 
                 type: evtType, 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: finalDamage, 
                 color,
                 skill,

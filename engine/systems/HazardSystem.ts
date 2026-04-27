@@ -105,7 +105,7 @@ export class HazardSystem {
                     if (absorbed > 0) {
                         engine.events.push({ 
                             type: 'DAMAGE', 
-                            pos: {x: agent.px, y: agent.py}, 
+                            pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                             value: -Math.floor(absorbed), 
                             color: '#bae6fd', 
                             text: "ABSORB",
@@ -117,7 +117,7 @@ export class HazardSystem {
                     if (dmg > 0 || absorbed === 0) {
                         engine.events.push({ 
                             type: 'DAMAGE', 
-                            pos: {x: agent.px, y: agent.py}, 
+                            pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                             value: -Math.floor(dmg > 0 ? dmg : hazard.power),
                             color: hazard.color,
                             skill: { color: hazard.color, ccType: 'DOT' } as any,
