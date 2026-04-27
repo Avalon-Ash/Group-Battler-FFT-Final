@@ -31,7 +31,7 @@ export const STANDARD_AI_PROFILE: BTDef = {
                     type: 'SELECTOR',
                     name: 'Trigger?',
                     children: [
-                        { type: 'CONDITION', name: 'In Danger?', key: 'IsInWarningZone' },
+                        { type: 'CONDITION', name: 'Urgent Danger?', key: 'IsInUrgentDanger' },
                         { type: 'CONDITION', name: 'Already Evading?', key: 'IsEvading' }
                     ]
                 },

@@ -43,6 +43,7 @@ export class Agent {
     public facing: number = 1;
     public target: Agent | null = null;
     public targetHex: Hex | null = null;
+    public _savedCombatTarget?: Agent | null = null;
     public aiState: AIState = AIState.IDLE;
     public bt: BTNode | null = null;
     

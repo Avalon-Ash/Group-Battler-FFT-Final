@@ -18,6 +18,11 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT,
     
     "HasTarget": (a, engine) => {
+        if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0) {
+            a.target = a._savedCombatTarget;
+            a._savedCombatTarget = null;
+        }
+
         if (a.target && a.target.hp > 0 && !a.target.banished) {
             return true; 
         }
@@ -59,6 +64,26 @@ export const BTConditions: Record<string, BTConditionFn> = {
         return false;
     },
     
+    "IsInUrgentDanger": (a, engine) => {
+        // 縮圈警告格：無論如何都是緊急危險
+        const myKey = HexUtils.key(a);
+        if (engine.isWarningTile(myKey)) return true;
+        // 有危害物：視剩餘詠唱時間決定
+        const hazard = engine.state.hazards.get(myKey);
+        if (hazard && hazard.team !== a.team) {
+            if (a.castingSkillIdx !== -1) {
+                return a.castTimer > 0.3; // 詠唱快好了就先放完
+            }
+            return true;
+        }
+        return false;
+    },
+
+    "IsInWarningZoneOrEvading": (a, engine) => {
+        return BTConditions["IsEvading"](a, engine) || 
+               BTConditions["IsInUrgentDanger"](a, engine);
+    },
+
     "SkillReady": (a, _, args) => {
         const idx = args.slot; 
         const s = a.skills[idx];
@@ -235,15 +260,26 @@ export const BTActions: Record<string, BTActionFn> = {
                     a.castTimer = 0;
                     a.castingAnimationTimer = 0;
                 } else {
-                    // 非致命：BASIC 中斷、非 BASIC 先放完
+                    // 非致命：BASIC 中斷、非 BASIC 視情況
                     if (skill.tag !== 'BASIC') {
-                        a.actionState = ActionState.EVADING;
-                        return NodeState.RUNNING;
+                        // 詠唱快結束（剩餘 < 0.3 秒）且非站在 Warning Tile 上：先放完
+                        const almostDone = a.castTimer < 0.3;
+                        if (almostDone && !isWarning) {
+                            a.actionState = ActionState.EVADING;
+                            return NodeState.RUNNING;
+                        }
+                        // 否則：強制中斷，立刻逃
+                        engine.log(a, 'CC', '中斷', skill.name, '危險等級升高，強制中斷詠唱');
+                        a.castingSkillIdx = -1;
+                        a.castTimer = 0;
+                        a.castingAnimationTimer = 0;
+                        // 繼續往下執行移動邏輯
+                    } else {
+                        // BASIC 技能：直接中斷
+                        a.castingSkillIdx = -1;
+                        a.castTimer = 0;
+                        a.castingAnimationTimer = 0;
                     }
-                    // BASIC 技能：直接中斷
-                    a.castingSkillIdx = -1;
-                    a.castTimer = 0;
-                    a.castingAnimationTimer = 0;
                 }
             }
         }
@@ -300,6 +336,14 @@ export const BTActions: Record<string, BTActionFn> = {
             return state;
         }
         
+        // 找不到安全路徑但仍在危險中：維持 RUNNING 繼續嘗試，
+        // 避免 FAILURE 讓 BT 落回 Combat 觸發新的詠唱
+        if (BTConditions["IsInWarningZone"](a, engine)) {
+            a.aiState = AIState.EVADING_URGENT;
+            a.actionState = ActionState.EVADING;
+            a.escapeCooldown = 0.15;
+            return NodeState.RUNNING;
+        }
         a.escapeCooldown = 0.2;
         return NodeState.FAILURE; 
     },
@@ -371,6 +415,9 @@ export const BTActions: Record<string, BTActionFn> = {
         return state;
     },
     "CastPushPull": (a, engine) => {
+        const savedTarget = a.target;
+        const savedTargetHex = a.targetHex;
+
         // [Task 5] Decoupled Path-Clearing Targeting
         // 尋找第一個可用的推拉技能
         const idx = a.skills.findIndex((s, i) => {
@@ -444,7 +491,11 @@ export const BTActions: Record<string, BTActionFn> = {
         if (dist <= effRange + 0.1) {
             a.aiState = AIState.LAST_STAND_PUSH;
             const state = engine.initiateCast(a, idx);
-            if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
+            if (state === NodeState.RUNNING) {
+                a.actionState = ActionState.CASTING;
+                // 以 savedTarget 作為後備，等詠唱結束後 HasTarget 能找回正確作戰目標
+                a._savedCombatTarget = savedTarget;
+            }
             return state;
         }
 
