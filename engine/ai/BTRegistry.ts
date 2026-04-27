@@ -330,7 +330,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
             
             if (isUnsafe) {
-                const path = engine.movement.pathfinder.findPathToSafety(a, engine.state, engine.movement.targeting);
+                const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
                 if (path.length > 0) {
                     dest = path[path.length - 1];
                 } else {
@@ -359,7 +359,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
 
         if (isUnsafe) {
-            const path = engine.movement.pathfinder.findPathToSafety(a, engine.state, engine.movement.targeting);
+            const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
             if (path.length > 0) {
                 dest = path[path.length - 1] as any;
             } else {
