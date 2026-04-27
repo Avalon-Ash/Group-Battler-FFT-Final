@@ -80,6 +80,9 @@ export class AgentManager {
             a.physics.vx = 0;
             a.physics.vy = 0;
             a.physics.vz = 0;
+            a.physics.x = 0;
+            a.physics.y = 0;
+            a.physics.z = 0;
             a.isMoving = false;
             a.path = [];
             // ──────────────────────────────────
