@@ -5,10 +5,6 @@ import { HexUtils } from "../../utils";
 export class ControlSystem {
     
     public update(agent: Agent, dt: number, engine: GameEngine) {
-        if (agent.aiUpdateTimer > 0) {
-            agent.aiUpdateTimer -= dt;
-        }
-
         // Diminishing Returns (DR) decay
         for (const type in agent.drTimers) {
             if (Object.prototype.hasOwnProperty.call(agent.drTimers, type)) {

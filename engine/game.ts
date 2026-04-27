@@ -177,6 +177,7 @@ export class GameEngine {
             this.state.time.battleTime = 0;
             this.logger.clear();
             this.victorySystem.reset(this);
+            this.effects.reset();
             this.sessionState.killStreaks.clear();
             this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
@@ -239,6 +240,7 @@ export class GameEngine {
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.effects.reset();
+        this.pendingVisualEvents.length = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
