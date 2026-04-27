@@ -48,10 +48,11 @@ export class Selector extends BTNode {
         for (let i = 0; i < this._interruptCount; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
-                // [FIX] Survival interrupt: protect _runningIdx if it belongs to Combat (index >= _interruptCount)
-                // This prevents the Combat state from being lost while performing survival maneuvers
-                const wasRunningLaterNode = this._runningIdx >= this._interruptCount;
-                if (!wasRunningLaterNode) {
+                // [FIX] Correct interrupt guard: only clear _runningIdx if it does NOT point to a
+                // later (Combat) node. _runningIdx < _interruptCount means either -1 (nothing running)
+                // or pointing at another interrupt node — safe to clear.
+                // If _runningIdx >= _interruptCount, Combat is mid-cast: preserve its position.
+                if (this._runningIdx < this._interruptCount) {
                     this._runningIdx = -1;
                 }
                 return this.record(r);

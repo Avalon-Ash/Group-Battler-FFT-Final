@@ -1,4 +1,3 @@
-
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState } from "../../types";
@@ -249,36 +248,26 @@ export const BTActions: Record<string, BTActionFn> = {
             return NodeState.FAILURE;
         }
 
-        // [Task 3] Precise Casting Interruption
         const hazard = engine.state.hazards.get(myKey);
         const isWarning = engine.isWarningTile(myKey);
 
-        // Check for fatal casting
+        // [FIX] Unified cast interruption logic — single clean block, no nested duplicates.
+        // Previous code had a nested duplicate castingSkillIdx check inside the isWarning branch
+        // which caused a second breakCast call for casts in the 0.3~0.8s range (isFatal=false
+        // but the else branch would still call breakCast). Now consolidated into one pass.
         if (a.castingSkillIdx !== -1) {
-            const skill = a.skills[a.castingSkillIdx];
-            if (skill) {
-                const remainingCast = a.castTimer;
+            const castSkill = a.skills[a.castingSkillIdx];
+            if (castSkill) {
                 let isFatal = false;
 
-                // [FIX] 縮圈警告格：只要腳下是 warning tile，一律視為致命
-                // 不再依賴 shrinkTimer 時間比較（shrinkTimer 是下次縮圈倒計時，不是當前格消失時間）
                 if (isWarning) {
-                    if (a.castingSkillIdx !== -1) {
-                        const skill = a.skills[a.castingSkillIdx]!;
-                        // BASIC 永遠可以中斷
-                        if (skill.tag === 'BASIC') {
-                            isFatal = true;
-                        } else {
-                            // 非 BASIC：只有剩餘詠唱 > 0.8 秒才算 fatal（太長會被燒死）
-                            isFatal = a.castTimer > 0.8;
-                        }
-                    } else {
-                        isFatal = false; // 沒在詠唱，讓移動邏輯自己處理
-                    }
+                    // BASIC always interrupted; non-BASIC only fatal if > 0.8s remaining
+                    isFatal = castSkill.tag === 'BASIC' || a.castTimer > 0.8;
                 }
-                
+
                 if (!isFatal && hazard && hazard.team !== a.team) {
-                    if (hazard.timer < remainingCast) {
+                    // Hazard expires before cast completes: fatal
+                    if (hazard.timer < a.castTimer) {
                         isFatal = true;
                     }
                 }
@@ -286,21 +275,8 @@ export const BTActions: Record<string, BTActionFn> = {
                 if (isFatal) {
                     engine.combat.breakCast(a, engine);
                 } else {
-                    // 非致命：BASIC 中斷、非 BASIC 視情況
-                    if (skill.tag !== 'BASIC') {
-                        // 詠唱快結束（剩餘 < 0.3 秒）且非站在 Warning Tile 上：先放完
-                        const almostDone = a.castTimer < 0.3;
-                        if (almostDone && !isWarning) {
-                            a.actionState = ActionState.EVADING;
-                            return NodeState.RUNNING;
-                        }
-                        // 否則：強制中斷，立刻逃
-                        engine.combat.breakCast(a, engine);
-                        // 繼續往下執行移動邏輯
-                    } else {
-                        // BASIC 技能：直接中斷
-                        engine.combat.breakCast(a, engine);
-                    }
+                    // Non-fatal: let the cast continue, only perform evasive movement below
+                    a.actionState = ActionState.EVADING;
                 }
             }
         }
@@ -311,8 +287,8 @@ export const BTActions: Record<string, BTActionFn> = {
         let targetIsUnsafe = true;
         if (a.targetHex) {
             const tk = HexUtils.key(a.targetHex);
-            const hazard = engine.state.hazards.get(tk);
-            targetIsUnsafe = engine.isWarningTile(tk) || (!!hazard && hazard.team !== a.team);
+            const hazardAtTarget = engine.state.hazards.get(tk);
+            targetIsUnsafe = engine.isWarningTile(tk) || (!!hazardAtTarget && hazardAtTarget.team !== a.team);
         }
 
         if (targetIsUnsafe) {
@@ -341,13 +317,10 @@ export const BTActions: Record<string, BTActionFn> = {
                 for (const n of neighbors) {
                     const nKey = HexUtils.key(n);
                     if (!engine.map.isValid(n.q, n.r)) continue;
-                    // 飛行單位不需要地形高度判定，直接比較危險度
-                    const hazard = engine.state.hazards.get(nKey);
-                    const isEnemyHazard = hazard && hazard.team !== a.team;
+                    const nHazard = engine.state.hazards.get(nKey);
+                    const isEnemyHazard = nHazard && nHazard.team !== a.team;
                     const isWarn = engine.isWarningTile(nKey);
-                    // 危險評分：敵方 hazard = 100, warning tile = 10, 安全 = 0
                     const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
-                    // 加上佔位懲罰（有友方單位也願意去，有敵方則加分）
                     const occ = engine.getAgentAt(n.q, n.r);
                     const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
                     const totalScore = dangerScore + occPenalty;
@@ -356,10 +329,9 @@ export const BTActions: Record<string, BTActionFn> = {
                         bestNeighbor = n;
                     }
                 }
-                // 即使備援格仍是 warning tile，也比站在原地被燒死強
                 a.targetHex = bestNeighbor;
                 if (bestNeighbor) {
-                    engine.log(a, 'DECISION', '逃生備援', '', `飛行單位路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
+                    engine.log(a, 'DECISION', '逃生備援', '', `路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
                 }
             }
         }
@@ -401,7 +373,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // [FIX] 如果有任何詠唱在進行（但不是自己），拒絕啟動
         // 這防止 interrupt 清掉 _runningIdx 後重新呼叫 initiateCast 的問題
         if (a.castingSkillIdx !== -1) {
-            return NodeState.FAILURE; // 讓另一個 slot 繼續它的詠唱
+            return NodeState.FAILURE;
         }
         
         const state = engine.initiateCast(a, idx);
@@ -549,11 +521,9 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         // 射程不夠：嘗試走近，而非直接放棄
-        // 只有在危險狀態下才主動移近（避免安全時因為推拉技能莫名接近敵人）
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
             const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
             if (dest) {
-                // moveAgentToHex 前，先設定 aiState，讓 EscapeWarning 知道「已進入背水模式」
                 a.aiState = AIState.LAST_STAND_PUSH; 
                 const state = engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
                 if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
