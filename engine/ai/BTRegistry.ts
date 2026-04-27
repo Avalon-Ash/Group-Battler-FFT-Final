@@ -43,6 +43,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // Project based on physics velocity (knockback)
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
         if (isKnockedBack && a.movementType !== MovementType.FLYING) {
+            // Intentional: flying units skip physics prediction because
+            // their knockback landing grid is non-deterministic across terrain.
             const dt_est = 1 / 30; 
             const ticks = 8; 
             const predPx = a.px + a.physics.vx * ticks * dt_est;
@@ -245,7 +247,6 @@ export const BTActions: Record<string, BTActionFn> = {
                     engine.combat.breakCast(a, engine);
                 } else {
                     // 非致命：讓詠唱繼續，只做移動
-                    a.actionState = ActionState.EVADING;
                 }
             }
         }
@@ -299,7 +300,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true); 
             if (state === NodeState.SUCCESS) {
                 // 已成功抵達安全格，清除 EVADING 狀態，讓下一幀 Combat 能正常接管
-                if (a.aiState === AIState.EVADING_URGENT) {
+                if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
                 return NodeState.FAILURE;
@@ -315,7 +316,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 if (a.castingSkillIdx === -1) a.targetHex = null;
                 // 移動失敗時也要清除 EVADING 狀態
                 // 否則 Selector 往下走 Combat 分支時，IsEvading=true 會讓 Combat 全部失敗
-                if (a.aiState === AIState.EVADING_URGENT) {
+                if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
                 return NodeState.FAILURE;

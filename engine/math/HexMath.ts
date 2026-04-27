@@ -108,7 +108,7 @@ export const HexMath = {
         const N = this.distance(a, b);
         const results: Hex[] = [];
         const ac = { x: a.q + 1e-6, z: a.r + 1e-6, y: -a.q - a.r - 2e-6 };
-        const bc = { x: b.q + 1e-6, z: b.r + 1e-6, y: -b.q - b.r - 2e-6 };
+        const bc = { x: b.q - 1e-6, z: b.r - 1e-6, y: -b.q - b.r + 2e-6 };
         for (let i = 0; i <= N; i++) {
             const t = N === 0 ? 0.0 : i / N;
             const cubeLerp = {

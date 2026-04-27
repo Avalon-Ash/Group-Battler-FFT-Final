@@ -78,6 +78,18 @@ export class VisualMath {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
     }
 
+    /**
+     * SSOT: Returns the visual Y coordinate for projectile aim targets.
+     * Represents the approximate chest/center of the unit body in screen space.
+     * Use this for all projectile hit targets, beam endpoints, and hitscan origin.
+     * 
+     * Distinct from getVisualBodyCenterY (which is for UI/status icon placement)
+     * in that it accounts for the full visual body lift including hover offset.
+     */
+    public static getProjectileTargetY(surfaceY: number, z: number): number {
+        return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
+    }
+
     public static getOverheadVisualY(surfaceY: number, z: number, bob: number): number {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET - VISUAL_ANCHORS.HEAD_OFFSET + bob;
     }
@@ -90,7 +102,8 @@ export class VisualMath {
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
         const terrainH = engine.getTerrainHeight(agent.q, agent.r);
-        // UNIT_BODY_OFFSET already represents the vertical center/chest of the unit
+        // UNIT_BODY_OFFSET represents the vertical center/chest in 3D space.
+        // For 2D screen-space projectile endpoints, use getProjectileTargetY() instead.
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
     }
