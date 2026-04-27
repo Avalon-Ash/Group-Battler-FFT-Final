@@ -99,8 +99,9 @@ export class CombatSystem {
         if (!s) return;
         
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
-        // Force minimum 0.3s CD, but also respect skill's inherent CD correctly
-        a.curCDs[a.castingSkillIdx] = Math.max(s.cd || 0, 0.3); 
+        // BASIC attacks do not have a mandatory 0.3s floor CD
+        const minCd = (s.tag === 'BASIC') ? 0 : 0.3;
+        a.curCDs[a.castingSkillIdx] = Math.max(s.cd ?? 0, minCd); 
         
         if (s.tag !== 'BASIC') {
             engine.events.push({ 

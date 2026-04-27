@@ -26,9 +26,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.target && a.target.hp > 0 && !a.target.banished) {
             return true; 
         }
-        // target 死亡或不存在：立刻重新選目標，不受 timer 保護
+        // target 死亡或不存在：立刻重新選目標
         engine.updateTarget(a);
-        a.aiUpdateTimer = a.aiUpdateInterval; 
         return a.target !== null;
     },
     
