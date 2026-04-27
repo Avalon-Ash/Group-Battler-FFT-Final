@@ -109,6 +109,7 @@ export class ProjectileSystem {
         pos: hitPos,
         skill: p.skill,
         color: p.skill.color,
+        sourceId: p.sourceId,
         targetId: p.targetId,
       });
     } else {
@@ -121,6 +122,7 @@ export class ProjectileSystem {
         type: "PROJECTILE_HIT",
         pos: hitPos,
         skill: p.skill,
+        sourceId: p.sourceId,
         targetId: p.targetId,
       });
     }
@@ -205,6 +207,7 @@ export class ProjectileSystem {
       type: "PROJECTILE_SPAWN",
       pos: { x: source.px, y: source.py },
       skill,
+      sourceId: source.id,
       targetId,
     });
   }

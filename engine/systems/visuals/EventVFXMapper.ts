@@ -28,10 +28,10 @@ export class EventVFXMapper {
         const origin = this.resolvePoint(event.pos, event.sourceId, engine);
         let target = this.resolvePoint(event.pos, event.targetId, engine);
         
-        if (Math.abs(origin.x) < 0.1 && Math.abs(origin.y) < 0.1) {
+        if (event.sourceId && Math.abs(origin.x) < 0.1 && Math.abs(origin.y) < 0.1) {
             console.warn(`[VFX] Origin is 0,0. EventType: ${event.type}. SourceId: ${event.sourceId}, Pos: ${event.pos.x},${event.pos.y}`);
         }
-        if (Math.abs(target.x) < 0.1 && Math.abs(target.y) < 0.1) {
+        if (event.targetId && Math.abs(target.x) < 0.1 && Math.abs(target.y) < 0.1) {
             console.warn(`[VFX] Target is 0,0. EventType: ${event.type}. TargetId: ${event.targetId}, Pos: ${event.pos.x},${event.pos.y}`);
         }
 
@@ -76,7 +76,20 @@ export class EventVFXMapper {
     private resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
         if (agentId) {
             const agent = engine.agents.find(a => a.id === agentId);
-            if (agent) return VisualMath.getUnitAnchor(agent, engine);
+            if (agent) {
+                // 死亡 agent 的物理狀態已不可靠，直接用事件紀錄的 pos 作為最後位置
+                // 但 z 軸仍從 anchor 取，因為死亡動畫 z 不衰減
+                if (agent.hp <= 0 || agent.banished) {
+                    const hex = HexUtils.fromPx(eventPos.x, eventPos.y, engine.mapConfig);
+                    const terrainH = engine.getTerrainHeight(hex.q, hex.r);
+                    return {
+                        x: eventPos.x,
+                        y: eventPos.y,
+                        z: eventPos.z !== undefined ? eventPos.z : terrainH + VISUAL_ANCHORS.CENTER_OFFSET
+                    };
+                }
+                return VisualMath.getUnitAnchor(agent, engine);
+            }
         }
         const hex = HexUtils.fromPx(eventPos.x, eventPos.y, engine.mapConfig);
         const terrainH = engine.getTerrainHeight(hex.q, hex.r);
