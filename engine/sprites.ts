@@ -8,10 +8,12 @@ export interface UnitAssets {
     icon: HTMLCanvasElement;
     color: string;
 }
-export interface UnitAssetsFull extends UnitAssets {
-    rim: HTMLCanvasElement;   
-    core: HTMLCanvasElement;  
+export interface UnitLayers {
+    base: HTMLCanvasElement;
+    rim:  HTMLCanvasElement;
+    icon: HTMLCanvasElement;
 }
+const _layerCache = new Map<string, UnitLayers>();
 export const SpriteManager = {
     getUnitImages(role: Role, team: Team): UnitAssets {
         const keyBase = `TOKEN_BASE_${team}_V3`; 
@@ -32,12 +34,26 @@ export const SpriteManager = {
             color: PALETTE.TEAMS[team].glow
         };
     },
-    getUnitLayers(role: Role, team: Team): UnitAssetsFull {
-        const key = `UNIT_LAYERS_${role}_${team}_V1`;
-        if (cache.has(key)) return cache.get(key);
+    getUnitLayers(role: Role, team: Team): UnitLayers {
+        const key = `${role}_${team}`;
+        if (_layerCache.has(key)) return _layerCache.get(key)!;
         
-        const layers = UnitFactory.generateLayers(role, team);
-        cache.set(key, layers);
+        const full = this.getUnitImages(role, team);
+        
+        const base = document.createElement('canvas');
+        base.width = 64; base.height = 64;
+        base.getContext('2d')!.drawImage(full.base, 0, 0, 64, 64);
+        
+        const rim = document.createElement('canvas');
+        rim.width = 64; rim.height = 64;
+        rim.getContext('2d')!.drawImage(full.base, 0, 0, 64, 64);
+        
+        const icon = document.createElement('canvas');
+        icon.width = 48; icon.height = 48;
+        icon.getContext('2d')!.drawImage(full.icon, 0, 0, 48, 48);
+        
+        const layers: UnitLayers = { base, rim, icon };
+        _layerCache.set(key, layers);
         return layers;
     },
     getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
