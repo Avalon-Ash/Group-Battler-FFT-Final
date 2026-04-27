@@ -71,6 +71,8 @@ export class GameEngine {
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer; 
     
+    public get vfx() { return this.renderer?.vfx; }
+
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
