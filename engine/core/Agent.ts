@@ -86,6 +86,7 @@ export class Agent {
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
     public actionState: ActionState = ActionState.IDLE;
+    public fearMoveTimer: number = 0;
 
     public physics = {
         x: 0, y: 0, z: 0,
@@ -182,6 +183,7 @@ export class Agent {
 
         this.hitFlashTimer = 0;
         this.actionState = ActionState.IDLE;
+        this.fearMoveTimer = 0;
         this.deadLogged = false;
         this.fullyDead = false;
         this.animState = AnimState.IDLE;

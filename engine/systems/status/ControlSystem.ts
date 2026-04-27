@@ -54,9 +54,13 @@ export class ControlSystem {
         if (agent.rootTimer > 0 || agent.stunTimer > 0) {
             agent.isMoving = false;
             agent.path = [];
-        } else if (agent.fearTimer > 0) {
-            // State Logic: Fear (Random Movement)
-            if (!agent.isMoving && agent.aiUpdateTimer <= 0) {
+        }
+
+        if (agent.fearMoveTimer > 0) agent.fearMoveTimer = Math.max(0, agent.fearMoveTimer - dt);
+
+        // State Logic: Fear (Random Movement)
+        if (agent.fearTimer > 0) {
+            if (!agent.isMoving && agent.fearMoveTimer <= 0) {
                 const range = 4;
                 const center = { q: agent.q, r: agent.r };
                 const candidates = HexUtils.range(center, range).filter(h => {
@@ -67,9 +71,9 @@ export class ControlSystem {
                 if (candidates.length > 0) {
                     const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
                     const result = engine.moveAgentToHex(agent, targetHex, 0, 1.5);
-                    agent.aiUpdateTimer = (result === 'R') ? 0.5 : 0.8;
+                    agent.fearMoveTimer = (result === 'R') ? 0.5 : 0.8;
                 } else {
-                    agent.aiUpdateTimer = 0.8; 
+                    agent.fearMoveTimer = 0.8; 
                 }
             }
         }
