@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
 import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG } from "../constants";
@@ -187,6 +187,7 @@ export class GameEngine {
             a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
             a.bt = this.ai.buildAI(a, this); 
             a.animState = AnimState.IDLE;
+            a.actionState = ActionState.IDLE;
             if (a.hp > 0) this.map.registerAgent(a);
         });
         this.isRunning = true;
@@ -198,10 +199,12 @@ export class GameEngine {
         this.stop();
         this.agents = [...this.initialRoster];
         this.victorySystem.reset(this);
+        this.effects.reset();
         this.zones.reset(this);
         this.state.time.battleTime = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
+        this.pendingVisualEvents.length = 0;
         this.map.clearAgents();
         this.state.hazards.clear(); 
         this.map.rebuildMap(this); // Restore tiles removed by zone system
@@ -235,6 +238,7 @@ export class GameEngine {
         this.zones.reset(this);
         this.logger.clear();
         this.victorySystem.reset(this); 
+        this.effects.reset();
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
@@ -251,9 +255,8 @@ export class GameEngine {
     public tick(dt: number) {
         if (!this.isRunning) return;
         
-        // [FIX] Clean up fully dead agents here, so VisualSystem can find them before renderer cycle ends
-        const deadCount = this.agents.filter(a => a.fullyDead).length;
-        if (deadCount > 0) {
+        const deadCountBefore = this.agents.length;
+        if (deadCountBefore > 0) {
             this.agents = this.agents.filter(a => !a.fullyDead);
         }
 

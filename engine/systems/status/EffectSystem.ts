@@ -7,6 +7,10 @@ export class EffectSystem {
     private readonly FEEDBACK_INTERVAL = 0.5; 
     private feedbackTimers = new Map<string, number>();
 
+    public reset() {
+        this.feedbackTimers.clear();
+    }
+
     public update(agent: Agent, dt: number, engine: GameEngine) {
         if (agent.hp <= 0 || agent.banished) return;
 
