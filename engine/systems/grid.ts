@@ -32,6 +32,10 @@ export class GridSystem {
         return GridSpatial.getOccludedAgents(engine);
     }
 
+    public getObstacleOccludedAgents(engine: GameEngine): Agent[] {
+        return GridSpatial.getObstacleOccludedAgents(engine);
+    }
+
     public submitRenderables(
         renderList: RenderList,
         engine: GameEngine, 

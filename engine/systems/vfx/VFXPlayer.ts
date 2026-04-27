@@ -24,19 +24,20 @@ const PROCEDURAL_TYPES = new Set([
     'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE', 'GIANT_HEX'
 ]);
 export class VFXPlayer {
-    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
+    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string) {
         const asset = VFX_REGISTRY[effectId];
         if (!asset) return;
         for (const emitter of asset.emitters) {
-            this.processEmitter(system, emitter, x, y, z, colorOverride, groundZ);
+            this.processEmitter(system, emitter, x, y, z, colorOverride, groundZ, ownerId);
         }
     }
-    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number) {
+    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string) {
         const count = Math.floor(rnd(config.count));
         const isGroundType = GROUND_PARTICLES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();
+            p.ownerId = ownerId;
             let vx = 0, vy = 0, vz = 0;
             let px = cx, py = cy, pz = effectiveZ;
             const speed = rnd(config.speed);

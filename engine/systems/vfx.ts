@@ -10,12 +10,12 @@ import { GameEngine } from "../game";
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
     private ambience: VFXAmbience = new VFXAmbience();
-    private agentVFX: AgentVFXSystem = new AgentVFXSystem();
+    public agentVFX: AgentVFXSystem = new AgentVFXSystem();
     
     public reset() { this.state.reset(); }
     
-    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number) {
-        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ);
+    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string) {
+        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId);
     }
     
     public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4) {
@@ -65,6 +65,14 @@ export class VFXSystem {
             if (p.locked) { 
                 p.rotation += p.vRotation * dt; 
                 continue; 
+            }
+
+            if (p.ownerId) {
+                const owner = engine?.agents.find(a => a.id === p.ownerId);
+                if (!owner || owner.hp <= 0) {
+                    p.life = 0;
+                    continue;
+                }
             }
             
             if (p.killAtTarget !== undefined && p.targetX !== undefined && p.targetY !== undefined) {

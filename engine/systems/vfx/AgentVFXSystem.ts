@@ -12,8 +12,22 @@ import { MovementType } from "../../../types";
 export class AgentVFXSystem {
     private vfxTimers = new Map<string, number>();
     private dustTimer: number = 0;
+    private cleanupTimer: number = 0;
 
     public update(dt: number, engine: GameEngine, vfx: VFXSystem) {
+        // 0. Periodic cleanup of timers
+        this.cleanupTimer += dt;
+        if (this.cleanupTimer > 10) {
+            this.cleanupTimer = 0;
+            const activeIds = new Set(engine.agents.map(a => a.id));
+            for (const key of this.vfxTimers.keys()) {
+                const agentId = key.split('_')[0];
+                if (!activeIds.has(agentId)) {
+                    this.vfxTimers.delete(key);
+                }
+            }
+        }
+
         // 1. Friction Dust / Sparks Logic
         this.dustTimer += dt;
         const canSpawnDust = this.dustTimer > 0.15; // Limit rate (approx 6fps) to prevent excessive stacking
@@ -67,6 +81,14 @@ export class AgentVFXSystem {
         this.vfxTimers.set(timerKey, t);
     }
 
+    public clearAgent(agentId: string) {
+        for (const key of this.vfxTimers.keys()) {
+            if (key.startsWith(agentId)) {
+                this.vfxTimers.delete(key);
+            }
+        }
+    }
+
     private processStatusVFX(agent: Agent, dt: number, engine: GameEngine, vfx: VFXSystem) {
         const checkVFX = (key: string, condition: boolean) => {
             if (!condition) return;
@@ -86,7 +108,10 @@ export class AgentVFXSystem {
                     def.particleEffect, 
                     agent.px + agent.physics.x, 
                     agent.py + agent.physics.y, 
-                    h + pz
+                    h + pz,
+                    undefined,
+                    undefined,
+                    agent.id
                 );
             }
             this.vfxTimers.set(timerKey, t);

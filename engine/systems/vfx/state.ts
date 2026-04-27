@@ -20,6 +20,7 @@ export interface Particle {
     targetY?: number; 
     targetZ?: number; 
     style?: string; 
+    ownerId?: string;
     visualStyle?: string;
     delay?: number;
     image?: HTMLCanvasElement; 

@@ -60,6 +60,11 @@ export class AgentManager {
             a.deadLogged = true;
             a.deathTimer = a.DEATH_ANIM_DURATION; 
             
+            // Clear status VFX timers
+            if (engine.renderer) {
+                engine.renderer.vfx.agentVFX.clearAgent(a.id);
+            }
+
             // Trigger Unit Shatter (Ragdoll Parts)
             const groundZ = engine.getTerrainHeight(a.q, a.r);
             

@@ -140,9 +140,12 @@ export class RenderPipeline {
         }
 
         const occluded = this.renderer.grid.getOccludedAgents(engine);
-        if (occluded.length > 0) {
+        const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
+        const allOccluded = [...new Set([...occluded, ...obstacleOccluded])];
+
+        if (allOccluded.length > 0) {
             ctx.save();
-            occluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
+            allOccluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
             ctx.restore();
         }
         
