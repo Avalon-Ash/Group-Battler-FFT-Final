@@ -129,6 +129,14 @@ export const BTConditions: Record<string, BTConditionFn> = {
         
         // [FIX] 若該技能正在詠唱中，直接保持當前選定的目標，避免詠唱中覆蓋 targetHex 導致朝非預期方向/對象施放
         if (a.castingSkillIdx === idx) return true;
+
+        // [New Protection] If casting any non-BASIC skill, also preserve current objective to avoid jitter
+        if (a.castingSkillIdx !== -1) {
+            const currentSkill = a.skills[a.castingSkillIdx];
+            if (currentSkill && currentSkill.tag !== 'BASIC') {
+                return !!(a.target || a.targetHex);
+            }
+        }
         
         const result = engine.calculateOptimalTarget(a, skill);
         
@@ -237,6 +245,10 @@ export const BTActions: Record<string, BTActionFn> = {
             if (a.actionState === ActionState.EVADING) {
                 a.actionState = ActionState.IDLE;
             }
+            // Fix: Sync aiState when danger is cleared to prevent "sticky" IsEvading condition
+            if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
+                a.aiState = AIState.IDLE;
+            }
             return NodeState.FAILURE;
         }
 
@@ -304,7 +316,20 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         if (targetIsUnsafe) {
+            // Fix: Adjust pathfinder start point to actual pixel position for more accurate safety search
+            const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
+            const savedQ = a.q, savedR = a.r;
+            if (realHex.q !== a.q || realHex.r !== a.r) {
+                a.q = realHex.q;
+                a.r = realHex.r;
+            }
+            
             const path = engine.movement.pathfinder.findPathToSafety(a, engine, engine.movement.targeting);
+            
+            // Restore actual logical q/r (moving might be in progress)
+            a.q = savedQ;
+            a.r = savedR;
+
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
             } else {
@@ -334,33 +359,30 @@ export const BTActions: Record<string, BTActionFn> = {
                 // 即使備援格仍是 warning tile，也比站在原地被燒死強
                 a.targetHex = bestNeighbor;
                 if (bestNeighbor) {
-                    engine.log(a, 'AI', '逃生備援', '', `飛行單位路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
+                    engine.log(a, 'DECISION', '逃生備援', '', `飛行單位路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
                 }
             }
         }
 
-        let stillUnsafe = true;
         if (a.targetHex) {
-            const tk = HexUtils.key(a.targetHex);
-            const hazard = engine.state.hazards.get(tk);
-            stillUnsafe = engine.isWarningTile(tk) || (!!hazard && hazard.team !== a.team);
-        }
-
-        if (!stillUnsafe && a.targetHex) {
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.5, true); 
-            if (state === NodeState.FAILURE) {
-                // [FIX] If path is blocked, reset targetHex so we try a different safe spot next time
-                if (a.castingSkillIdx === -1) a.targetHex = null;
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true); 
+            if (state === NodeState.SUCCESS) {
                 return NodeState.FAILURE;
             }
             
-            a.actionState = ActionState.EVADING; 
-            a.aiState = AIState.EVADING_URGENT; 
+            if (state === NodeState.RUNNING) {
+                a.actionState = ActionState.EVADING; 
+                a.aiState = AIState.EVADING_URGENT; 
+                return NodeState.RUNNING;
+            }
 
-            return state;
+            if (state === NodeState.FAILURE) {
+                if (a.castingSkillIdx === -1) a.targetHex = null;
+                return NodeState.FAILURE;
+            }
         }
         
-        // 找不到安全路徑但仍在危險中：維持 RUNNING
+        // 找不到路徑或移動失敗但也無處可去時的兜底
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;

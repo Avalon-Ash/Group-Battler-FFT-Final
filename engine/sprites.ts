@@ -8,6 +8,11 @@ export interface UnitAssets {
     icon: HTMLCanvasElement;
     color: string;
 }
+export interface UnitLayers {
+    base: HTMLCanvasElement;
+    rim: HTMLCanvasElement;
+    icon: HTMLCanvasElement;
+}
 export interface UnitAssetsFull {
     base: HTMLCanvasElement;
     rim: HTMLCanvasElement;

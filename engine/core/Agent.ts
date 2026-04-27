@@ -80,6 +80,7 @@ export class Agent {
 
     public visualStatus: SpecialVisualStatus = 'NONE';
     public spawnTimer: number = 0;
+    public escapeCooldown: number = 0; // Added missing property
 
     public deadLogged: boolean = false;
     public deathTimer: number = 0;
