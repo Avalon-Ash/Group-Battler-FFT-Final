@@ -22,53 +22,60 @@ export const UnitShatter = {
         const assets = SpriteManager.getUnitImages(role, team);
         
         if (!assets || !assets.base || !assets.icon) {
-            console.warn(`[VFX] UnitShatter skipped: Missing assets for ${role} on team ${team}`);
+            console.warn(`[UnitShatter] Asset not ready for ${role}/${team}, skip.`);
             return;
+        }
+
+        if (assets.base.width === 0 || assets.icon.width === 0) {
+             console.warn(`[UnitShatter] Zero-sized canvas for ${role}/${team}`);
+             return;
         }
         
         // 核心參數：爆炸強度 (隨機化讓死亡不重複)
         const explodeForce = 250 + Math.random() * 200;
-        const floorLvl = groundZ; // SSOT: Floor is exactly groundZ
+        const floorLvl = groundZ; 
+
+        // 0. [NEW] Initial Burst Visual Feedback
+        system.playEffect('FX_HIT_GENERIC', x, y, z + 20, faction.primaryColor, floorLvl);
 
         // 1. 核心衝擊波 (地面)
         system.playEffect('FX_HIT_GENERIC', x, y, floorLvl, faction.primaryColor, floorLvl);
 
         // 2. 底座破碎 (Heavy Ragdoll Part)
         const pBase = system.state.getParticle();
-        // [FIX] Set Z to floorLvl + half size (32) to ensure it sits ON the ground, not IN it.
-        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 32;
+        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 24;
         pBase.image = assets.base;
         pBase.type = 'SPRITE';
-        pBase.size = 64 * UNIT_SCALE;
-        pBase.color = '#fff';
-        pBase.vx = (Math.random() - 0.5) * 100 + (impulseX * 0.2);
-        pBase.vy = (Math.random() - 0.5) * 100 + (impulseY * 0.2);
-        pBase.vz = 150 + Math.random() * 100; // 低彈跳
-        pBase.gravity = 3500; // 沉重感
-        pBase.drag = 0.6;     // 地面摩擦大
-        pBase.vRotation = (Math.random() - 0.5) * 2;
+        pBase.size = 48; // Fixed size for visibility
+        pBase.color = faction.primaryColor; // Faction identified shards
+        pBase.vx = (Math.random() - 0.5) * 120 + (impulseX * 0.25);
+        pBase.vy = (Math.random() - 0.5) * 120 + (impulseY * 0.25);
+        pBase.vz = 180 + Math.random() * 120;
+        pBase.gravity = 3500;
+        pBase.drag = 0.6;
+        pBase.vRotation = (Math.random() - 0.5) * 3;
         pBase.life = 5.0; pBase.maxLife = 5.0;
         system.state.particles.push(pBase);
 
         // 3. 職業標誌彈飛 (Light Ragdoll Part)
         const pIcon = system.state.getParticle();
-        pIcon.x = x; pIcon.y = y; pIcon.z = z; // 從胸口彈出
+        pIcon.x = x; pIcon.y = y; pIcon.z = z;
         pIcon.image = assets.icon;
         pIcon.type = 'SPRITE';
-        pIcon.size = 48 * UNIT_SCALE;
+        pIcon.size = 36;
         pIcon.color = '#fff';
-        pIcon.vx = (Math.random() - 0.5) * 300 + (impulseX * 0.5);
-        pIcon.vy = (Math.random() - 0.5) * 300 + (impulseY * 0.5);
-        pIcon.vz = 400 + Math.random() * 300; // 飛得高
-        pIcon.gravity = 2000; // 輕盈
+        pIcon.vx = (Math.random() - 0.5) * 350 + (impulseX * 0.5);
+        pIcon.vy = (Math.random() - 0.5) * 350 + (impulseY * 0.5);
+        pIcon.vz = 450 + Math.random() * 350;
+        pIcon.gravity = 2000;
         pIcon.drag = 0.1;
-        pIcon.vRotation = (Math.random() - 0.5) * 20; // 劇烈旋轉
+        pIcon.vRotation = (Math.random() - 0.5) * 25;
         pIcon.life = 4.0; pIcon.maxLife = 4.0;
-        pIcon.blendMode = 'screen';
+        pIcon.blendMode = 'source-over'; // More visible on light backgrounds
         system.state.particles.push(pIcon);
 
         // 4. 護甲崩裂碎片 (The Splatter)
-        const shardCount = 12;
+        const shardCount = 18; // Increased density
         for (let i = 0; i < shardCount; i++) {
             const p = system.state.getParticle();
             const ang = (i / shardCount) * Math.PI * 2 + (Math.random() * 0.5);
