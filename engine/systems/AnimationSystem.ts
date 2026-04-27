@@ -58,8 +58,10 @@ export class AnimationSystem {
                 agent.animState = AnimState.ATTACK;
             }
 
-            // Override for movement
-            if (agent.isMoving && agent.path.length > 0) {
+            // Override for movement (only if not attacking or casting)
+            if (agent.isMoving && agent.path.length > 0 && 
+                agent.actionState !== ActionState.ATTACKING && 
+                agent.actionState !== ActionState.CASTING) {
                 agent.animState = AnimState.MOVE;
             }
         }

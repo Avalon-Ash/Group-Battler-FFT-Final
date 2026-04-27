@@ -264,10 +264,14 @@ export class GameEngine {
         if (this.victorySystem.check(this)) {
             this.victorySystem.updateFinishing(dt, this);
             this.updateEntities(dt);
+            this.flushVisualEvents();
             return;
         }
         this.updateEntities(dt);
-        
+        this.flushVisualEvents();
+    }
+
+    private flushVisualEvents() {
         // P1: Visual events should be processed at the end of tick
         if (this.renderer) {
             this.renderer.processVisualEvents(this.pendingVisualEvents);
