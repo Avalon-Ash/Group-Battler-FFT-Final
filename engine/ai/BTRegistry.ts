@@ -319,6 +319,11 @@ export const BTActions: Record<string, BTActionFn> = {
 
             if (state === NodeState.FAILURE) {
                 if (a.castingSkillIdx === -1) a.targetHex = null;
+                // 移動失敗時也要清除 EVADING 狀態
+                // 否則 Selector 往下走 Combat 分支時，IsEvading=true 會讓 Combat 全部失敗
+                if (a.aiState === AIState.EVADING_URGENT) {
+                    a.aiState = AIState.IDLE;
+                }
                 return NodeState.FAILURE;
             }
         }
