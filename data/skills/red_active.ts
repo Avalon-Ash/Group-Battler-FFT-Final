@@ -31,7 +31,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'tr_a4', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
         name: '鮮血護盾', desc: '生命護盾', 
-        range: 0, cast: 0.2, cd: 12.0, cost: 35, gain: 0, 
+        range: 0, cast: 0.4, cd: 12.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 250,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
@@ -49,7 +49,7 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'wr_a1', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
         name: '旋風斬', desc: '吸血AOE', 
-        range: 0, cast: 0.2, cd: 6.0, cost: 35, gain: 0, 
+        range: 0, cast: 0.4, cd: 6.0, cost: 35, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 100, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.5,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'

@@ -146,7 +146,7 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '相位轉移', desc: '位置交換', 
-        range: 7, cast: 0.1, cd: 10.0, cost: 40, gain: 0, 
+        range: 7, cast: 0.5, cd: 10.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 0, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 100, 
         visualHitEffect: 'FX_TELEPORT', element: 'ARCANE'
