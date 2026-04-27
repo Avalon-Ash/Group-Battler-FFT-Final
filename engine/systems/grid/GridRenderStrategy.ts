@@ -97,7 +97,7 @@ export class GridRenderStrategy {
             
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const hasUnit = !engine.isRunning && this._unitPresence.has(key);
-            const isWarning = engine.zones.warningTiles.has(key);
+            const isWarning = engine.map.warningTiles.has(key);
 
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;

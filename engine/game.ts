@@ -127,7 +127,7 @@ export class GameEngine {
     public getAgentHash(h: number): Agent | undefined { return this.map.agentMap.get(h); }
     public getMapConfig(): MapConfig { return this.mapConfig; }
     public getAgents(): Agent[] { return this.agents; }
-    public isWarningTile(key: string): boolean { return this.zones.warningTiles.has(key); }
+    public isWarningTile(key: string): boolean { return this.map.warningTiles.has(key); }
     public getHazard(key: string): GroundHazard | undefined { return this.state.hazards.get(key); }
 
     public randomizeEnvironment() { 
@@ -196,7 +196,7 @@ export class GameEngine {
         this.stop();
         this.agents = [...this.initialRoster];
         this.victorySystem.reset(this);
-        this.zones.reset();
+        this.zones.reset(this);
         this.state.time.battleTime = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
@@ -230,7 +230,7 @@ export class GameEngine {
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.director.reset(this);
-        this.zones.reset();
+        this.zones.reset(this);
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.state.time.timeScale = 1.0;

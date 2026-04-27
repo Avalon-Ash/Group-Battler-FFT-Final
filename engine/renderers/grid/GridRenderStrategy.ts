@@ -81,7 +81,7 @@ export class GridRenderStrategy {
             op.oRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
             op.oRangeCol = hoveredSkill?.color || '';
             op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            op.oWarning = engine.zones.warningTiles.has(key);
+            op.oWarning = engine.map.warningTiles.has(key);
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
             op.time = globalTime;
         }

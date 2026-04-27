@@ -7,6 +7,7 @@ import { MapSpatial } from "./map/MapSpatial";
 export class MapSystem {
     public agentMap: Map<number, Agent> = new Map();
     public mapKeys: Set<string> = new Set();
+    public warningTiles: Set<string> = new Set();
     private validHashes: Set<number> = new Set();
     public obstacles: Map<string, string> = new Map();
     public obstaclesHash: Set<number> = new Set();
@@ -50,6 +51,7 @@ export class MapSystem {
     public isValidHash(h: number) { return this.validHashes.has(h); }
     public resetData() {
         this.mapKeys.clear();
+        this.warningTiles.clear();
         this.validHashes.clear();
         this.obstacles.clear();
         this.obstaclesHash.clear();

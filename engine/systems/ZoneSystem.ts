@@ -16,7 +16,6 @@ export class ZoneSystem {
     public activeZones: ActiveZone[] = [];
     public safeRadius: number = 999;
     public shrinkTimer: number = 0;
-    public warningTiles: Set<string> = new Set();
     public collapsingTiles: Map<string, { z: number, speed: number, q: number, r: number, h: number }> = new Map();
     private tileDepths: Map<string, number> = new Map();
     private currentShrinkLevel: number = 0;
@@ -35,7 +34,7 @@ export class ZoneSystem {
                 this.safeRadius = this.maxDepth + 1;
                 this.shrinkTimer = engine.zoneConfig.shrinkInterval; 
                 this.initialized = true;
-                this.warningTiles.clear();
+                engine.map.warningTiles.clear();
                 this.collapsingTiles.clear();
                 engine.log(null, 'SYSTEM', '縮圈初始化', null, `地圖網格深度: ${this.maxDepth}, 初始安全層級: ${this.safeRadius}, 間隔: ${engine.zoneConfig.shrinkInterval}s`);
             }
@@ -43,7 +42,7 @@ export class ZoneSystem {
             if (this.safeRadius > engine.zoneConfig.minRadius || engine.map.mapKeys.size > engine.zoneConfig.minRadius) {
                 this.shrinkTimer -= dt;
                 
-                this.warningTiles.clear();
+                engine.map.warningTiles.clear();
                 
                 // Identify which tiles to warn
                 let count = 0;
@@ -52,7 +51,7 @@ export class ZoneSystem {
                     for (const key of engine.map.mapKeys) {
                         const depth = this.tileDepths.get(key);
                         if (depth !== undefined && depth === this.currentShrinkLevel) {
-                            this.warningTiles.add(key);
+                            engine.map.warningTiles.add(key);
                             count++;
                         }
                     }
@@ -64,7 +63,7 @@ export class ZoneSystem {
                         const randomIndex = (seed * 9301 + 49297) % 233280 % keys.length;
                         this.finalPhaseTargetKey = keys[randomIndex];
                     }
-                    this.warningTiles.add(this.finalPhaseTargetKey);
+                    engine.map.warningTiles.add(this.finalPhaseTargetKey);
                     count = 1;
                 }
                 
@@ -111,6 +110,28 @@ export class ZoneSystem {
                     }
 
                     for (const hex of keysToRemove) {
+                        // 1. 先處理站在格子上的單位，removeTile 前執行，確保座標資料還在
+                        const victim = engine.map.getAgentAt(hex.q, hex.r);
+                        if (victim && victim.hp > 0) {
+                            // 快照座標（SSOT：寫入 event.pos，確保 VFX 管線有正確 z 軸）
+                            const snapX = victim.px + victim.physics.x;
+                            const snapY = victim.py + victim.physics.y;
+                            const snapZ = victim.physics.z;
+
+                            victim.hp = 0;
+                            victim.banished = true; // 讓單位跟格子一起視覺下墜
+
+                            engine.pushEvent('DEATH', 
+                                { x: snapX, y: snapY },
+                                { 
+                                    sourceId: victim.id,
+                                    pos: { x: snapX, y: snapY, z: snapZ }
+                                }
+                            );
+                            engine.log(victim, 'SYSTEM', '墜落出局', null, `${victim.id} 隨地板崩落虛空`);
+                        }
+
+                        // 2. 再移除地圖格，啟動掉落動畫
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });
                         engine.map.removeTile(hex.q, hex.r);
                     }
@@ -126,7 +147,7 @@ export class ZoneSystem {
             // If disabled, ensure we are not initialized so it can restart later
             if (this.initialized) {
                 engine.log(null, 'SYSTEM', '系統停用', null, '大逃殺機制已關閉，狀態重置');
-                this.reset();
+                this.reset(engine);
             }
         }
 
@@ -167,7 +188,7 @@ export class ZoneSystem {
         }
     }
 
-    public reset() {
+    public reset(engine?: GameEngine) {
         this.initialized = false;
         this.safeRadius = 999;
         this.shrinkTimer = 0;
@@ -175,7 +196,7 @@ export class ZoneSystem {
         this.maxDepth = 0;
         this.tileDepths.clear();
         this.activeZones = [];
-        this.warningTiles.clear();
+        if (engine) engine.map.warningTiles.clear();
         this.collapsingTiles.clear();
         this.finalPhaseTargetKey = null;
     }
