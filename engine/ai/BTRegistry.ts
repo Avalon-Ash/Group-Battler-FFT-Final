@@ -194,74 +194,50 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "EscapeWarning": (a, engine) => {
         const inDanger = BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine);
-        const myKey = HexUtils.key(a);
-        
+
         if (!inDanger) {
-            if (a.actionState === ActionState.EVADING) {
-                a.actionState = ActionState.IDLE;
-            }
-            // Fix: Sync aiState when danger is cleared to prevent "sticky" IsEvading condition
+            if (a.actionState === ActionState.EVADING) a.actionState = ActionState.IDLE;
             if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                 a.aiState = AIState.IDLE;
             }
             return NodeState.FAILURE;
         }
 
-        const hazard = engine.state.hazards.get(myKey);
-        const isWarning = engine.isWarningTile(myKey);
-
-        // [FIX] Unified cast interruption logic — single clean block, no nested duplicates.
-        // BASIC 永遠中斷；非 BASIC 只有剩餘 > 0.8 秒才算致命。
-        // 消除 0.3~0.8s 區間被 else 分支再次中斷的漏洞。
-        if (a.castingSkillIdx !== -1) {
-            const castSkill = a.skills[a.castingSkillIdx];
-            if (castSkill) {
-                let isFatal = false;
-
-                if (isWarning) {
-                    isFatal = castSkill.tag === 'BASIC' || a.castTimer > 0.8;
-                }
-
-                if (!isFatal && hazard && hazard.team !== a.team) {
-                    if (hazard.timer < a.castTimer) {
-                        isFatal = true;
-                    }
-                }
-
-                if (isFatal) {
-                    engine.combat.breakCast(a, engine);
-                } else {
-                    // 非致命：讓詠唱繼續，只做移動
-                }
-            }
-        }
-
-        a.actionState = ActionState.EVADING; 
-        
-        // 1. 確保有逃生地塊
-        let targetIsUnsafe = true;
-        if (a.targetHex) {
+        // ★ 核心修正：只有在沒有逃跑目標、或目標本身也淪陷時，才重新尋路
+        const needsNewTarget = !a.targetHex || (() => {
             const tk = HexUtils.key(a.targetHex);
             const hazardAtTarget = engine.state.hazards.get(tk);
-            targetIsUnsafe = engine.isWarningTile(tk) || (!!hazardAtTarget && hazardAtTarget.team !== a.team);
-        }
+            return engine.isWarningTile(tk) || (!!hazardAtTarget && hazardAtTarget.team !== a.team);
+        })();
 
-        if (targetIsUnsafe) {
-            // [FIX] Use explicit pixel-based hex for safety path start to avoid logical coord lag
+        if (needsNewTarget) {
+            // 中斷詠唱邏輯
+            if (a.castingSkillIdx !== -1) {
+                const castSkill = a.skills[a.castingSkillIdx];
+                if (castSkill) {
+                    const myKey = HexUtils.key(a);
+                    const hazard = engine.state.hazards.get(myKey);
+                    const isWarning = engine.isWarningTile(myKey);
+                    let isFatal = false;
+                    if (isWarning) isFatal = castSkill.tag === 'BASIC' || a.castTimer > 0.8;
+                    if (!isFatal && hazard && hazard.team !== a.team && hazard.timer < a.castTimer) isFatal = true;
+                    if (isFatal) engine.combat.breakCast(a, engine);
+                }
+            }
+
             const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
             const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
-            
+
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
             } else {
-                // 路徑完全失敗（通常是飛行單位被四面圍困）
-                // 備援：用 6 個鄰格中最安全的那格作為臨時逃生目標
+                // 備援：鄰格評分
                 const neighbors = HexUtils.neighbors(a);
                 let bestNeighbor: any = null;
                 let lowestDanger = Infinity;
                 for (const n of neighbors) {
-                    const nKey = HexUtils.key(n);
                     if (!engine.map.isValid(n.q, n.r)) continue;
+                    const nKey = HexUtils.key(n);
                     const nHazard = engine.state.hazards.get(nKey);
                     const isEnemyHazard = nHazard && nHazard.team !== a.team;
                     const isWarn = engine.isWarningTile(nKey);
@@ -274,49 +250,43 @@ export const BTActions: Record<string, BTActionFn> = {
                         bestNeighbor = n;
                     }
                 }
-                a.targetHex = bestNeighbor;
                 if (bestNeighbor) {
+                    a.targetHex = bestNeighbor;
                     engine.log(a, 'DECISION', '逃生備援', '', `路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
                 }
             }
         }
 
+        a.actionState = ActionState.EVADING;
+
         if (a.targetHex) {
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true); 
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
-                // 已成功抵達安全格，清除 EVADING 狀態，讓下一幀 Combat 能正常接管
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
                 return NodeState.FAILURE;
             }
-            
             if (state === NodeState.RUNNING) {
-                a.actionState = ActionState.EVADING; 
-                a.aiState = AIState.EVADING_URGENT; 
+                a.aiState = AIState.EVADING_URGENT;
                 return NodeState.RUNNING;
             }
-
             if (state === NodeState.FAILURE) {
-                if (a.castingSkillIdx === -1) a.targetHex = null;
-                // 移動失敗時也要清除 EVADING 狀態
-                // 否則 Selector 往下走 Combat 分支時，IsEvading=true 會讓 Combat 全部失敗
-                if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
-                    a.aiState = AIState.IDLE;
-                }
+                // 移動失敗清掉目標下一幀重找
+                a.targetHex = null;
+                a.aiState = AIState.IDLE;
                 return NodeState.FAILURE;
             }
         }
-        
-        // 找不到路徑：單位仍在危險區，但已無法逃出
-        // 此時讓 aiState 保持 EVADING_URGENT 但改回傳 RUNNING，
-        // 防止 Selector 繼續走 Combat 分支（Combat 會因 IsEvading=true 全部失敗，造成發呆）
+
+        // targetHex 完全為 null（完全被包圍無路可走）
+        // 如果還在危險中，保持 RUNNING 保護，防止走進 Combat 分支發呆
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
-            return NodeState.RUNNING; 
+            return NodeState.RUNNING;
         }
-        return NodeState.FAILURE; 
+        return NodeState.FAILURE;
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
