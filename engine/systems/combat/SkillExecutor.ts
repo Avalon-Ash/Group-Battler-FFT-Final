@@ -54,7 +54,14 @@ export class SkillExecutor {
                 source.px = newPx.x;
                 source.py = newPx.y;
                 source.physics.vz += 150; // Visual jump
-                engine.events.push({ type: 'CC_APPLIED', pos: {x: source.px, y: source.py}, text: "突進", color: "#60a5fa" });
+                engine.events.push({ 
+                    type: 'CC_APPLIED', 
+                    pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
+                    text: "突進", 
+                    color: "#60a5fa",
+                    sourceId: source.id,
+                    targetId: source.id
+                });
             }
         }
 
@@ -228,7 +235,7 @@ export class SkillExecutor {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ 
                 type: 'HEAL', 
-                pos: {x: source.px, y: source.py}, 
+                pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
                 value: result.vampAmount, 
                 color: '#be123c', 
                 text: "VAMP",
@@ -241,7 +248,7 @@ export class SkillExecutor {
             target.mp = Math.max(0, target.mp - result.manaBurn);
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: result.manaBurn, 
                 color: '#8b5cf6', 
                 text: "BURN",
@@ -254,7 +261,7 @@ export class SkillExecutor {
             target.mp = Math.min(target.maxMp, target.mp + result.manaRestore);
             engine.events.push({ 
                 type: 'HEAL', 
-                pos: {x: target.px, y: target.py}, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: result.manaRestore, 
                 color: '#60a5fa', 
                 text: "MP",

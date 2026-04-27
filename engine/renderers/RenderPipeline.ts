@@ -105,38 +105,9 @@ export class RenderPipeline {
         
         this.renderList.sort();
 
-        /**
-         * [LAYERED RENDERING PIPELINE]
-         * 為了徹底解決「貼地特效穿地」問題，我們將渲染管線拆分為三個獨立 Layer。
-         * 1. Terrain Layer: 所有的地形方塊。
-         * 2. Ground Overlay Layer: 貼地的法陣、地裂、危險區域。
-         * 3. Entity Layer: 單位、障礙物、飛行道具、空中特效。
-         */
-        
-        // Pass 1: Terrain
+        // Single pass rendering to respect the interleaved depth sort (Fixes Issue A)
         for (let i = 0; i < this.renderList.count; i++) {
-            const op = this.renderList.ops[i];
-            if (op.type === RenderOpType.TERRAIN) {
-                RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
-            }
-        }
-
-        // Pass 2: Ground Overlays (Decals, Hazards, Ground-locked VFX)
-        for (let i = 0; i < this.renderList.count; i++) {
-            const op = this.renderList.ops[i];
-            const isGroundVFX = op.type === RenderOpType.VFX && op.isGround;
-            if (op.type === RenderOpType.DECAL || op.type === RenderOpType.HAZARD || isGroundVFX) {
-                RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
-            }
-        }
-
-        // Pass 3: Entities (Units, Obstacles, Projectiles, Air VFX)
-        for (let i = 0; i < this.renderList.count; i++) {
-            const op = this.renderList.ops[i];
-            const isAirVFX = op.type === RenderOpType.VFX && !op.isGround;
-            if (op.type === RenderOpType.UNIT || op.type === RenderOpType.OBSTACLE || op.type === RenderOpType.PROJECTILE || isAirVFX) {
-                RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
-            }
+            RenderDispatcher.dispatch(ctx, this.renderList.ops[i], engine.mapConfig.layout, t, this.renderer.unit);
         }
 
         const occluded = this.renderer.grid.getOccludedAgents(engine);

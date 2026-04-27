@@ -37,7 +37,14 @@ export const CCManager = {
         }
         
         if (isImmune) {
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: "免疫", color: "#9ca3af" });
+            engine.events.push({ 
+                type: 'CC_APPLIED', 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                text: "免疫", 
+                color: "#9ca3af",
+                sourceId: source.id,
+                targetId: target.id
+            });
             return;
         }
 
@@ -143,7 +150,14 @@ export const CCManager = {
         }
 
         if (statusText) {
-            engine.events.push({ type: 'CC_APPLIED', pos: {x: target.px, y: target.py}, text: statusText, color: statusColor });
+            engine.events.push({ 
+                type: 'CC_APPLIED', 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                text: statusText, 
+                color: statusColor,
+                sourceId: source.id,
+                targetId: target.id
+            });
             if (noDurationLog) {
                 engine.log(source, 'CC', type, target.id, `施加 ${statusText}`);
             } else {
