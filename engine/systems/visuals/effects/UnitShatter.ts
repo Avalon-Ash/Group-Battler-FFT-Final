@@ -10,7 +10,7 @@ export const UnitShatter = {
      * 高階解體系統：將單位模型拆解為多個物理碎片
      * 使用 SpriteManager.getUnitLayers 獲取分層模型的單獨 Canvas
      */
-    spawn(system: VFXSystem | undefined, agent: Agent, groundZ: number) {
+    spawn(system: VFXSystem | undefined, agent: Agent, groundZ: number, impactX: number = 0, impactY: number = 0) {
         if (!system) return;
         const layers = SpriteManager.getUnitLayersFull(agent.role, agent.team);
         const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
@@ -18,8 +18,6 @@ export const UnitShatter = {
         const ox = agent.px;
         const oy = agent.py;
         const oz = agent.physics.z;
-        const impulseX = agent.physics.vx;
-        const impulseY = agent.physics.vy;
         const floorLvl = groundZ;
 
         // 0. Initial Burst Feedback
@@ -31,13 +29,13 @@ export const UnitShatter = {
             p.type = 'SPRITE';
             p.image = layers.base;
             p.x = ox; p.y = oy; p.z = oz + 10;
-            p.vx = (impulseX * 0.2) + (Math.random() - 0.5) * 50;
-            p.vy = (impulseY * 0.2) + (Math.random() - 0.5) * 50;
-            p.vz = 100 + Math.random() * 150;
-            p.size = 72;
+            p.vx = impactX * 0.4 + (Math.random() - 0.5) * 150;
+            p.vy = impactY * 0.4 + (Math.random() - 0.5) * 150;
+            p.vz = 100 + Math.random() * 100;
+            p.size = 96;
             p.color = '#fff';
-            p.gravity = 4000;
-            p.drag = 1.5;
+            p.gravity = 2500;
+            p.drag = 1.2;
             p.vRotation = (Math.random() - 0.5) * 5;
             p.life = 4.0 + Math.random(); p.maxLife = p.life;
             system.state.particles.push(p);
@@ -49,13 +47,13 @@ export const UnitShatter = {
             p.type = 'SPRITE';
             p.image = layers.rim;
             p.x = ox; p.y = oy; p.z = oz + 15;
-            p.vx = (impulseX * 0.3) + (Math.random() - 0.5) * 100;
-            p.vy = (impulseY * 0.3) + (Math.random() - 0.5) * 100;
-            p.vz = 200 + Math.random() * 200;
-            p.size = 64;
+            p.vx = impactX * 0.6 + (Math.random() - 0.5) * 200;
+            p.vy = impactY * 0.6 + (Math.random() - 0.5) * 200;
+            p.vz = 150 + Math.random() * 150;
+            p.size = 80;
             p.color = '#fff';
-            p.gravity = 3000;
-            p.vRotation = (Math.random() - 0.5) * 20;
+            p.gravity = 2000;
+            p.vRotation = (Math.random() - 0.5) * 25;
             p.life = 3.5 + Math.random(); p.maxLife = p.life;
             system.state.particles.push(p);
         }
@@ -66,14 +64,14 @@ export const UnitShatter = {
             p.type = 'SPRITE';
             p.image = layers.core;
             p.x = ox; p.y = oy; p.z = oz + 20;
-            p.vx = (impulseX * 0.1) + (Math.random() - 0.5) * 80;
-            p.vy = (impulseY * 0.1) + (Math.random() - 0.5) * 80;
-            p.vz = 500 + Math.random() * 200;
-            p.size = 48;
+            p.vx = impactX * 0.3 + (Math.random() - 0.5) * 200;
+            p.vy = impactY * 0.3 + (Math.random() - 0.5) * 200;
+            p.vz = 200 + Math.random() * 200;
+            p.size = 56;
             p.color = '#fff';
-            p.gravity = 1500;
+            p.gravity = 800;
             p.drag = 0.05;
-            p.vRotation = (Math.random() - 0.5) * 10;
+            p.vRotation = (Math.random() - 0.5) * 15;
             p.life = 5.0 + Math.random(); p.maxLife = p.life;
             system.state.particles.push(p);
         }
@@ -84,33 +82,33 @@ export const UnitShatter = {
             p.type = 'SPRITE';
             p.image = layers.icon;
             p.x = ox; p.y = oy; p.z = oz + 25;
-            p.vx = (impulseX * 0.4) + (Math.random() - 0.5) * 150;
-            p.vy = (impulseY * 0.4) + (Math.random() - 0.5) * 150;
-            p.vz = 300 + Math.random() * 300;
-            p.size = 36;
+            p.vx = impactX * 0.8 + (Math.random() - 0.5) * 300;
+            p.vy = impactY * 0.8 + (Math.random() - 0.5) * 300;
+            p.vz = 150 + Math.random() * 200;
+            p.size = 44;
             p.color = '#fff';
-            p.gravity = 2000;
-            p.vRotation = (Math.random() - 0.5) * 30;
+            p.gravity = 1500;
+            p.vRotation = (Math.random() - 0.5) * 35;
             p.life = 4.0 + Math.random(); p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
-        // 5. 金屬碎屑 (Pure Shards) - Reduced size for background fill
-        const shardCount = 10;
+        // 5. 金屬碎屑 (Pure Shards)
+        const shardCount = 12;
         const shardColor = agent.team === Team.BLUE ? '#fcd34d' : '#f87171';
         for (let i = 0; i < shardCount; i++) {
             const p = system.state.getParticle();
             const angle = Math.random() * Math.PI * 2;
-            const speed = 100 + Math.random() * 200;
+            const speed = 200 + Math.random() * 300;
             p.type = 'SHARD';
             p.x = ox; p.y = oy; p.z = oz + 5;
-            p.vx = Math.cos(angle) * speed + (impulseX * 0.3);
-            p.vy = Math.sin(angle) * speed + (impulseY * 0.3);
-            p.vz = 200 + Math.random() * 400;
+            p.vx = Math.cos(angle) * speed + (impactX * 0.5);
+            p.vy = Math.sin(angle) * speed + (impactY * 0.5);
+            p.vz = 150 + Math.random() * 350;
             p.size = 4 + Math.random() * 4;
             p.color = shardColor;
-            p.gravity = 3000;
-            p.vRotation = (Math.random() - 0.5) * 25;
+            p.gravity = 2500;
+            p.vRotation = (Math.random() - 0.5) * 30;
             p.life = 2.0 + Math.random() * 1.5;
             p.maxLife = p.life;
             system.state.particles.push(p);

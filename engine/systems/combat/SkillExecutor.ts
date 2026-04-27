@@ -141,6 +141,9 @@ export class SkillExecutor {
 
         if (result.finalValue !== 0) {
             target.hp = Math.max(0, Math.min(target.maxHp, target.hp + result.finalValue));
+            if (result.finalValue < 0) {
+                target.lastHitSourceId = source.id;
+            }
             
             // Visual Event
             const isHeal = result.finalValue > 0;

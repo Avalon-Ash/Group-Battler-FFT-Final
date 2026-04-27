@@ -11,10 +11,6 @@ export class UnitVFXHandler {
     public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, camera: CameraSystem, origin: Point3D, groundZ: number) {
         
         if (event.type === 'DEATH') {
-            const dAgent = engine.agents.find(a => a.id === event.sourceId);
-            if (dAgent) {
-                UnitShatter.spawn(vfx, dAgent, groundZ);
-            }
             camera.addTrauma(0.1);
             return;
         }

@@ -62,7 +62,31 @@ export class AgentManager {
             
             // Trigger Unit Shatter (Ragdoll Parts)
             const groundZ = engine.getTerrainHeight(a.q, a.r);
-            UnitShatter.spawn(engine.vfx, a, groundZ);
+            
+            let impactX = 0;
+            let impactY = 0;
+            if (a.lastHitSourceId) {
+                const killer = engine.agents.find(k => k.id === a.lastHitSourceId);
+                if (killer) {
+                    const dx = a.px - killer.px;
+                    const dy = a.py - killer.py;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist > 0) {
+                        const power = 300 + Math.random() * 200;
+                        impactX = (dx / dist) * power;
+                        impactY = (dy / dist) * power;
+                    }
+                }
+            }
+            
+            if (impactX === 0 && impactY === 0) {
+                const power = 200 + Math.random() * 200;
+                const angle = Math.random() * Math.PI * 2;
+                impactX = Math.cos(angle) * power;
+                impactY = Math.sin(angle) * power;
+            }
+
+            UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
         }
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);
