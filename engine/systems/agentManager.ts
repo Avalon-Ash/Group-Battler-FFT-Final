@@ -3,6 +3,7 @@ import { GameEngine, Agent } from "../game";
 import { Role, Team, Skill, AnimState } from "../../types";
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
+import { UnitShatter } from "./visuals/effects/UnitShatter";
 
 export class AgentManager {
     public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
@@ -58,6 +59,10 @@ export class AgentManager {
             engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py, z: a.physics.z}, sourceId: a.id, team: a.team });
             a.deadLogged = true;
             a.deathTimer = a.DEATH_ANIM_DURATION; 
+            
+            // Trigger Unit Shatter (Ragdoll Parts)
+            const groundZ = engine.getTerrainHeight(a.q, a.r);
+            UnitShatter.spawn(engine.vfx, a, groundZ);
         }
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);

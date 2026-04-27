@@ -1,7 +1,8 @@
 
 import { Role, Team } from "../../../types";
-import { THEME_COVENANT, ISO_SCALE_Y } from "../../../constants";
+import { THEME_COVENANT, ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
+import { UnitAssetsFull } from "../../sprites";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -62,6 +63,70 @@ export const CovenantTokenFactory = {
         ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
 
         return canvas;
+    },
+
+    generateLayers(role: Role): UnitAssetsFull {
+        const radius = 36;
+        
+        // 1. Base Layer (Jagged Body Only)
+        const baseRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const bCtx = baseRes.ctx;
+        bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        bCtx.scale(1, ISO_SCALE_Y);
+        const grad = bCtx.createLinearGradient(-radius, -radius, radius, radius);
+        grad.addColorStop(0, '#991b1b');
+        grad.addColorStop(1, '#000');
+        bCtx.fillStyle = grad;
+        bCtx.beginPath();
+        const sides = 8;
+        for(let i=0; i<=sides; i++) {
+            const a = (i/sides) * Math.PI*2;
+            const r = radius * (i%2===0 ? 1.0 : 0.85); 
+            const x = Math.cos(a)*r;
+            const y = Math.sin(a)*r;
+            if(i===0) bCtx.moveTo(x,y); else bCtx.lineTo(x,y);
+        }
+        bCtx.fill();
+
+        // 2. Rim Layer (Brass Trim Only)
+        const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const rCtx = rimRes.ctx;
+        rCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        rCtx.scale(1, ISO_SCALE_Y);
+        rCtx.strokeStyle = '#78350f';
+        rCtx.lineWidth = 5;
+        rCtx.beginPath();
+        for(let i=0; i<=sides; i++) {
+            const a = (i/sides) * Math.PI*2;
+            const r = radius * (i%2===0 ? 1.0 : 0.85); 
+            const x = Math.cos(a)*r;
+            const y = Math.sin(a)*r;
+            if(i===0) rCtx.moveTo(x,y); else rCtx.lineTo(x,y);
+        }
+        rCtx.stroke();
+        rCtx.strokeStyle = '#d97706';
+        rCtx.lineWidth = 2;
+        rCtx.stroke();
+
+        // 3. Core Layer (Skull/Runes Hint)
+        const coreRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const cCtx = coreRes.ctx;
+        cCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        cCtx.scale(1, ISO_SCALE_Y);
+        cCtx.fillStyle = '#000';
+        cCtx.beginPath(); cCtx.arc(0, 0, 10, 0, Math.PI*2); cCtx.fill();
+        cCtx.beginPath(); cCtx.arc(0, 0, radius * 0.6, 0, Math.PI*2);
+        cCtx.strokeStyle = '#ef4444';
+        cCtx.lineWidth = 2;
+        cCtx.stroke();
+
+        return {
+            base: baseRes.canvas,
+            rim: rimRes.canvas,
+            core: coreRes.canvas,
+            icon: this.generateIcon(role),
+            color: PALETTE.TEAMS[Team.RED].glow
+        };
     },
 
     generateIcon(role: Role): HTMLCanvasElement {

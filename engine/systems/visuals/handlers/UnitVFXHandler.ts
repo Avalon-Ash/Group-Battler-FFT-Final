@@ -13,8 +13,7 @@ export class UnitVFXHandler {
         if (event.type === 'DEATH') {
             const dAgent = engine.agents.find(a => a.id === event.sourceId);
             if (dAgent) {
-                // Pass groundZ correctly
-                UnitShatter.spawn(vfx, origin.x, origin.y, origin.z, dAgent.team, dAgent.role, dAgent.physics.vx, dAgent.physics.vy, groundZ);
+                UnitShatter.spawn(vfx, dAgent, groundZ);
             }
             camera.addTrauma(0.1);
             return;

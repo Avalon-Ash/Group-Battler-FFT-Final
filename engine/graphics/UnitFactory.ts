@@ -4,6 +4,7 @@ import { PALETTE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { ImperialTokenFactory } from "./units/ImperialTokenFactory";
 import { CovenantTokenFactory } from "./units/CovenantTokenFactory";
+import { UnitAssetsFull } from "../sprites";
 
 export const UnitFactory = {
     
@@ -20,6 +21,14 @@ export const UnitFactory = {
             return ImperialTokenFactory.generateIcon(role);
         } else {
             return CovenantTokenFactory.generateIcon(role);
+        }
+    },
+
+    generateLayers(role: Role, team: Team): UnitAssetsFull {
+        if (team === Team.BLUE) {
+            return ImperialTokenFactory.generateLayers(role);
+        } else {
+            return CovenantTokenFactory.generateLayers(role);
         }
     },
 

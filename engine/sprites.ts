@@ -8,6 +8,10 @@ export interface UnitAssets {
     icon: HTMLCanvasElement;
     color: string;
 }
+export interface UnitAssetsFull extends UnitAssets {
+    rim: HTMLCanvasElement;   
+    core: HTMLCanvasElement;  
+}
 export const SpriteManager = {
     getUnitImages(role: Role, team: Team): UnitAssets {
         const keyBase = `TOKEN_BASE_${team}_V3`; 
@@ -27,6 +31,14 @@ export const SpriteManager = {
             icon: icon,
             color: PALETTE.TEAMS[team].glow
         };
+    },
+    getUnitLayers(role: Role, team: Team): UnitAssetsFull {
+        const key = `UNIT_LAYERS_${role}_${team}_V1`;
+        if (cache.has(key)) return cache.get(key);
+        
+        const layers = UnitFactory.generateLayers(role, team);
+        cache.set(key, layers);
+        return layers;
     },
     getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
         const key = `OBSTACLE_${styleKey}_${layout}`;

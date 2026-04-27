@@ -1,7 +1,8 @@
 
 import { Role, Team } from "../../../types";
-import { THEME_IMPERIAL, ISO_SCALE_Y } from "../../../constants";
+import { THEME_IMPERIAL, ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
+import { UnitAssetsFull } from "../../sprites";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -53,6 +54,52 @@ export const ImperialTokenFactory = {
         ctx.fillText('Ω', 0, 2);
 
         return canvas;
+    },
+
+    generateLayers(role: Role): UnitAssetsFull {
+        const radius = 36;
+        
+        // 1. Base Layer (Body Only)
+        const baseRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const bCtx = baseRes.ctx;
+        bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        bCtx.scale(1, ISO_SCALE_Y);
+        const grad = bCtx.createLinearGradient(-radius, -radius, radius, radius);
+        grad.addColorStop(0, '#2563eb');
+        grad.addColorStop(1, '#172554');
+        bCtx.fillStyle = grad;
+        bCtx.beginPath(); bCtx.arc(0, 0, radius, 0, Math.PI*2); bCtx.fill();
+
+        // 2. Rim Layer (Gold Trim Only)
+        const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const rCtx = rimRes.ctx;
+        rCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        rCtx.scale(1, ISO_SCALE_Y);
+        rCtx.strokeStyle = '#b45309';
+        rCtx.lineWidth = 6;
+        rCtx.beginPath(); rCtx.arc(0, 0, radius, 0, Math.PI*2); rCtx.stroke();
+        rCtx.strokeStyle = '#fcd34d';
+        rCtx.lineWidth = 3;
+        rCtx.stroke();
+
+        // 3. Core Layer (Omega Only)
+        const coreRes = createCanvas(BASE_SIZE, BASE_SIZE);
+        const cCtx = coreRes.ctx;
+        cCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
+        cCtx.scale(1, ISO_SCALE_Y);
+        cCtx.fillStyle = '#fff';
+        cCtx.font = 'bold 24px sans-serif';
+        cCtx.textAlign = 'center';
+        cCtx.textBaseline = 'middle';
+        cCtx.fillText('Ω', 0, 2);
+
+        return {
+            base: baseRes.canvas,
+            rim: rimRes.canvas,
+            core: coreRes.canvas,
+            icon: this.generateIcon(role),
+            color: PALETTE.TEAMS[Team.BLUE].glow
+        };
     },
 
     generateIcon(role: Role): HTMLCanvasElement {

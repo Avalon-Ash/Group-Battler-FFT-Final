@@ -3,115 +3,108 @@ import { Team, Role } from "../../../../types";
 import { VFXSystem } from "../../vfx";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { SpriteManager } from "../../../sprites";
-import { UNIT_SCALE } from "../../../../constants";
+import { Agent } from "../../../core/Agent";
 
 export const UnitShatter = {
     /**
      * 高階解體系統：將單位模型拆解為多個物理碎片
-     * SSOT: Requires explicit groundZ to prevent floor clipping guessing
+     * 使用 SpriteManager.getUnitLayers 獲取分層模型的單獨 Canvas
      */
-    spawn(
-        system: VFXSystem, 
-        x: number, y: number, z: number, 
-        team: Team, 
-        role: Role, 
-        impulseX: number, impulseY: number,
-        groundZ: number 
-    ) {
-        const faction = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
-        const assets = SpriteManager.getUnitImages(role, team);
+    spawn(system: VFXSystem | undefined, agent: Agent, groundZ: number) {
+        if (!system) return;
+        const layers = SpriteManager.getUnitLayers(agent.role, agent.team);
+        const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
         
-        if (!assets || !assets.base || !assets.icon) {
-            console.warn(`[UnitShatter] Asset not ready for ${role}/${team}, skip.`);
-            return;
-        }
+        const ox = agent.px;
+        const oy = agent.py;
+        const oz = agent.physics.z;
+        const impulseX = agent.physics.vx;
+        const impulseY = agent.physics.vy;
+        const floorLvl = groundZ;
 
-        if (assets.base.width === 0 || assets.icon.width === 0) {
-             console.warn(`[UnitShatter] Zero-sized canvas for ${role}/${team}`);
-             return;
-        }
-        
-        // 核心參數：爆炸強度 (隨機化讓死亡不重複)
-        const explodeForce = 250 + Math.random() * 200;
-        const floorLvl = groundZ; 
+        // 0. Initial Burst Feedback
+        system.playEffect('FX_HIT_GENERIC', ox, oy, oz + 20, faction.primaryColor, floorLvl);
 
-        // 0. [NEW] Initial Burst Visual Feedback
-        system.playEffect('FX_HIT_GENERIC', x, y, z + 20, faction.primaryColor, floorLvl);
-
-        // 1. 核心衝擊波 (地面)
-        system.playEffect('FX_HIT_GENERIC', x, y, floorLvl, faction.primaryColor, floorLvl);
-
-        // 2. 底座破碎 (Heavy Ragdoll Part)
-        const pBase = system.state.getParticle();
-        pBase.x = x; pBase.y = y; pBase.z = floorLvl + 24;
-        pBase.image = assets.base;
-        pBase.type = 'SPRITE';
-        pBase.size = 48; // Fixed size for visibility
-        pBase.color = faction.primaryColor; // Faction identified shards
-        pBase.vx = (Math.random() - 0.5) * 120 + (impulseX * 0.25);
-        pBase.vy = (Math.random() - 0.5) * 120 + (impulseY * 0.25);
-        pBase.vz = 180 + Math.random() * 120;
-        pBase.gravity = 3500;
-        pBase.drag = 0.6;
-        pBase.vRotation = (Math.random() - 0.5) * 3;
-        pBase.life = 5.0; pBase.maxLife = 5.0;
-        system.state.particles.push(pBase);
-
-        // 3. 職業標誌彈飛 (Light Ragdoll Part)
-        const pIcon = system.state.getParticle();
-        pIcon.x = x; pIcon.y = y; pIcon.z = z;
-        pIcon.image = assets.icon;
-        pIcon.type = 'SPRITE';
-        pIcon.size = 36;
-        pIcon.color = '#fff';
-        pIcon.vx = (Math.random() - 0.5) * 350 + (impulseX * 0.5);
-        pIcon.vy = (Math.random() - 0.5) * 350 + (impulseY * 0.5);
-        pIcon.vz = 450 + Math.random() * 350;
-        pIcon.gravity = 2000;
-        pIcon.drag = 0.1;
-        pIcon.vRotation = (Math.random() - 0.5) * 25;
-        pIcon.life = 4.0; pIcon.maxLife = 4.0;
-        pIcon.blendMode = 'source-over'; // More visible on light backgrounds
-        system.state.particles.push(pIcon);
-
-        // 4. 護甲崩裂碎片 (The Splatter)
-        const shardCount = 18; // Increased density
-        for (let i = 0; i < shardCount; i++) {
+        // 1. 底座核心零件 (Base Layer) - 裂成三份
+        for (let i = 0; i < 3; i++) {
             const p = system.state.getParticle();
-            const ang = (i / shardCount) * Math.PI * 2 + (Math.random() * 0.5);
-            const speed = 200 + Math.random() * 400;
-            
-            p.x = x; p.y = y; p.z = z + (Math.random() - 0.5) * 20;
-            p.vx = Math.cos(ang) * speed + (impulseX * 0.3);
-            p.vy = Math.sin(ang) * speed + (impulseY * 0.3);
-            p.vz = 300 + Math.random() * 500;
-            p.type = i % 3 === 0 ? 'SHARD' : 'RUBBLE';
-            p.color = i % 2 === 0 ? faction.primaryColor : faction.darkColor;
-            p.size = 4 + Math.random() * 10;
-            p.gravity = 2500;
-            p.life = 0.8 + Math.random() * 1.5;
-            p.maxLife = p.life;
-            p.vRotation = (Math.random() - 0.5) * 30;
+            const angle = (i / 3) * Math.PI * 2 + Math.random() * 0.5;
+            p.type = 'SPRITE';
+            p.image = layers.base;
+            p.x = ox; p.y = oy; p.z = oz + 10;
+            p.vx = Math.cos(angle) * (100 + Math.random() * 150) + (impulseX * 0.2);
+            p.vy = Math.sin(angle) * (100 + Math.random() * 150) * 0.5 + (impulseY * 0.2);
+            p.vz = 200 + Math.random() * 300;
+            p.size = 40;
+            p.color = '#fff';
+            p.gravity = 3000;
+            p.drag = 0.5;
+            p.vRotation = (Math.random() - 0.5) * 10;
+            p.life = 3.0 + Math.random() * 2; p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
-        // 5. 靈魂飛升 (Ghostly Aura)
+        // 2. 標誌碎片 (Icon/Core)
+        const pIcon = system.state.getParticle();
+        pIcon.type = 'SPRITE';
+        pIcon.image = layers.icon;
+        pIcon.x = ox; pIcon.y = oy; pIcon.z = oz + 20;
+        pIcon.vx = (Math.random() - 0.5) * 150 + (impulseX * 0.4);
+        pIcon.vy = (Math.random() - 0.5) * 150 + (impulseY * 0.4);
+        pIcon.vz = 400 + Math.random() * 250;
+        pIcon.size = 32;
+        pIcon.color = '#fff';
+        pIcon.gravity = 2000;
+        pIcon.drag = 0.1;
+        pIcon.vRotation = (Math.random() - 0.5) * 20;
+        pIcon.life = 4.5; pIcon.maxLife = pIcon.life;
+        system.state.particles.push(pIcon);
+        
+        // 3. 金屬飾邊 (Rim Layer)
+        const pRim = system.state.getParticle();
+        pRim.type = 'SPRITE';
+        pRim.image = layers.rim;
+        pRim.x = ox; pRim.y = oy; pRim.z = oz + 15;
+        pRim.vx = (Math.random() - 0.5) * 200 + (impulseX * 0.3);
+        pRim.vy = (Math.random() - 0.5) * 200 + (impulseY * 0.3);
+        pRim.vz = 300 + Math.random() * 300;
+        pRim.size = 48;
+        pRim.color = '#fff';
+        pRim.gravity = 3000;
+        pRim.vRotation = (Math.random() - 0.5) * 15;
+        pRim.life = 3.5; pRim.maxLife = pRim.life;
+        system.state.particles.push(pRim);
+
+        // 4. 金屬碎屑 (Pure Shards)
+        const shardCount = 10;
+        const shardColor = agent.team === Team.BLUE ? '#fcd34d' : '#f87171';
+        for (let i = 0; i < shardCount; i++) {
+            const p = system.state.getParticle();
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 150 + Math.random() * 250;
+            p.type = 'SHARD';
+            p.x = ox; p.y = oy; p.z = oz + 5;
+            p.vx = Math.cos(angle) * speed + (impulseX * 0.3);
+            p.vy = Math.sin(angle) * speed + (impulseY * 0.3);
+            p.vz = 150 + Math.random() * 450;
+            p.size = 6 + Math.random() * 10;
+            p.color = shardColor;
+            p.gravity = 3000;
+            p.vRotation = (Math.random() - 0.5) * 25;
+            p.life = 2.0 + Math.random() * 1.5;
+            p.maxLife = p.life;
+            system.state.particles.push(p);
+        }
+
+        // 5. 靈魂飛升
         const soul = system.state.getParticle();
-        soul.x = x; soul.y = y; soul.z = z;
+        soul.x = ox; soul.y = oy; soul.z = oz;
         soul.type = 'ATMOSPHERE';
         soul.size = 80;
         soul.color = faction.deathSpiritColor;
-        soul.vx = 0; soul.vy = 0; soul.vz = 80; // 緩緩上升
-        soul.drag = 0.05;
+        soul.vx = 0; soul.vy = 0; soul.vz = 100;
         soul.life = 2.5; soul.maxLife = 2.5;
         soul.blendMode = 'screen';
         system.state.particles.push(soul);
-
-        // 6. [NEW] Faction Specific Death Burst
-        if (team === 1) { // RED
-            system.playEffect('FX_HIT_RED_BLOOD', x, y, z, faction.primaryColor, groundZ);
-        } else { // BLUE
-            system.playEffect('FX_HIT_BLUE_TECH', x, y, z, faction.primaryColor, groundZ);
-        }
     }
 };
