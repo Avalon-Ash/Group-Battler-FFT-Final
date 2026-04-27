@@ -1,5 +1,5 @@
 
-import { GameEvent } from "../../../types";
+import { GameEvent, Point } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
@@ -25,8 +25,8 @@ export class EventVFXMapper {
         sequences: SequenceSystem
     ) {
         // 1. Resolve Spatial Context
-        const origin = this.resolvePoint(event.pos.x, event.pos.y, event.sourceId, engine);
-        let target = this.resolvePoint(event.pos.x, event.pos.y, event.targetId, engine);
+        const origin = this.resolvePoint(event.pos, event.sourceId, engine);
+        let target = this.resolvePoint(event.pos, event.targetId, engine);
         
         if (Math.abs(origin.x) < 0.1 && Math.abs(origin.y) < 0.1) {
             console.warn(`[VFX] Origin is 0,0. EventType: ${event.type}. SourceId: ${event.sourceId}, Pos: ${event.pos.x},${event.pos.y}`);
@@ -73,13 +73,13 @@ export class EventVFXMapper {
         }
     }
 
-    private resolvePoint(defaultX: number, defaultY: number, agentId: string | undefined, engine: GameEngine): Point3D {
+    private resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
         if (agentId) {
             const agent = engine.agents.find(a => a.id === agentId);
             if (agent) return VisualMath.getUnitAnchor(agent, engine);
         }
-        const hex = HexUtils.fromPx(defaultX, defaultY, engine.mapConfig);
+        const hex = HexUtils.fromPx(eventPos.x, eventPos.y, engine.mapConfig);
         const terrainH = engine.getTerrainHeight(hex.q, hex.r);
-        return { x: defaultX, y: defaultY, z: terrainH };
+        return { x: eventPos.x, y: eventPos.y, z: eventPos.z !== undefined ? eventPos.z : terrainH };
     }
 }

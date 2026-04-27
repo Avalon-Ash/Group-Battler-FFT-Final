@@ -84,6 +84,11 @@ export class MovementSystem {
             // 檢查下一格是否被地形完全阻擋
             if (spatial.isBlocked(next.q, next.r, a.id, a.movementType) || !spatial.isValid(next.q, next.r)) {
                 let isBlockedByAlly = false;
+                let isBlockedByObstacle = false;
+                
+                if (!spatial.isValid(next.q, next.r) || spatial.hasObstacleHash(HexUtils.hash(next.q, next.r))) {
+                    isBlockedByObstacle = true;
+                }
                 
                 // 1. 檢查是否被友軍實體擋住
                 const occupant = spatial.getAgentHash(HexUtils.hash(next.q, next.r));
@@ -92,7 +97,7 @@ export class MovementSystem {
                 }
                 
                 // 2. 檢查是否被友軍的移動意圖 (Reservation) 擋住
-                if (!isBlockedByAlly) {
+                if (!isBlockedByAlly && !isBlockedByObstacle) {
                     const agents = spatial.getAgents();
                     for (const other of agents) {
                         if (other.id !== a.id && other.hp > 0 && other.isMoving && other.path.length > 0) {
@@ -105,7 +110,10 @@ export class MovementSystem {
                     }
                 }
 
-                if (isBlockedByAlly) {
+                // [FIX] 如果是逃生狀態，不惜撞開敵人也要過去
+                const canTrySqueeze = isBlockedByAlly || (isEscaping && !isBlockedByObstacle && occupant != null);
+
+                if (canTrySqueeze) {
                     a.stuckTicks++;
                     if (a.stuckTicks > 15) { // 約 0.5 秒 (假設 30fps)
                         // [FIX] 卡住太久，放棄當前路徑，讓 AI 重新思考 (可能觸發背水一戰或重新尋路)
@@ -114,7 +122,17 @@ export class MovementSystem {
                         a.stuckTicks = 0;
                         return NodeState.FAILURE;
                     }
-                    // [FIX] 如果被友軍擋住（實體或意圖），保持 RUNNING 狀態等待，不要直接 FAILURE 導致發呆
+                    
+                    // [FIX] Must update path even if squeezing so MotionEngine can advance progress
+                    a.path = path;
+                    a.trajectory = path;
+                    if (!a.isMoving) {
+                        a.isMoving = true;
+                        a.moveProgress = 0;
+                    }
+                    a.moveSpeedMult = speedMult;
+                    
+                    // 保持 RUNNING 狀態，嘗試擠過去
                     return NodeState.RUNNING;
                 }
                 

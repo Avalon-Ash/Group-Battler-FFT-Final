@@ -21,6 +21,11 @@ export const UnitShatter = {
         const faction = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         const assets = SpriteManager.getUnitImages(role, team);
         
+        if (!assets || !assets.base || !assets.icon) {
+            console.warn(`[VFX] UnitShatter skipped: Missing assets for ${role} on team ${team}`);
+            return;
+        }
+        
         // 核心參數：爆炸強度 (隨機化讓死亡不重複)
         const explodeForce = 250 + Math.random() * 200;
         const floorLvl = groundZ; // SSOT: Floor is exactly groundZ

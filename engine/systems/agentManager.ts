@@ -55,7 +55,7 @@ export class AgentManager {
         if (a.fullyDead) return;
         if (!a.deadLogged) {
             engine.log(a, 'DEATH', '死亡', null, '陣亡');
-            engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py}, sourceId: a.id, team: a.team });
+            engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py, z: a.physics.z}, sourceId: a.id, team: a.team });
             a.deadLogged = true;
             // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
             engine.map.unregisterAgent(a);

@@ -158,6 +158,8 @@ RenderPipeline
 --------------------------------------------------------------------------------
 * 逃生起點剔除機制 (Escape Origin Elimination): 修復 A* 在危險邊界起步時立刻當前格認證通過而返回原地的判定失誤。要求演算法嚴格跳過起點格子進行「安全審查」，強制展開尋路，切斷了單位立於危險交界「站著等死」的致命發呆行為。
 * 求生獨立決策代理 (Autonomous Escape Proxying): 移除 'EscapeWarning' 高壓生存期內對一般對話層 'updateTarget' 的呼叫依賴，改於行為樹局部直接向 'Pathfinder' 發起緊急空投調度。斬斷了 'Targeting' 在預測態與發作態的落差下產生的目的地重置邏輯矛盾。
+* 物理碰撞覆蓋 (Escape Squeeze Proxy): 在 'moveAgentToHex' 底側徹底解放 'spatial.isBlocked' 對奔逃路徑的僵化否決，若遭遇友軍甚至敵軍，皆允許轉入 NodeState.RUNNING，透過 'MotionEngine' 推進進度，觸發 'StackingResolver' 的彈性推擠機制，根絕 AI 因為路徑遇敵而卡死原地站立等死的致命死鎖。
+* 管線化陣亡視覺殘留 (Deferred Garbage Collection for VFX): 將 'GameEngine' 清理 fullyDead 單位的過濾器推遲至 Tick 循環最前端執行，確保同一幀產生的 DEATH event 進入 Renderer / 'EventVFXMapper' 解析時不會遭遇實體無法索引之「視覺蒸發」空窗。
 * 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單位遁入純淨板塊但 'escapeCooldown' 未竟之時，允許脫離 EVADING_URGENT 並轉交給戰術核心，釋放 AI 在殘存的 0.2 秒無謂冰凍。
 * 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。
 * 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方 hazard 動態部署，徹底阻止「逃出毒圈卻踏進火場」的決策延遲。

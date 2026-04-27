@@ -249,6 +249,12 @@ export class GameEngine {
     public tick(dt: number) {
         if (!this.isRunning) return;
         
+        // [FIX] Clean up fully dead agents here, so VisualEventListener can find them before renderer cycle ends
+        const deadCount = this.agents.filter(a => a.fullyDead).length;
+        if (deadCount > 0) {
+            this.agents = this.agents.filter(a => !a.fullyDead);
+        }
+
         this.timeSystem.update(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);
@@ -286,12 +292,6 @@ export class GameEngine {
         }
         this.combat.update(dt, this);
         this.hazardSystem.update(dt, this); 
-
-        // [FIX] Clean up fully dead agents before remaining logic to prevent unregister inconsistencies
-        const deadCount = this.agents.filter(a => a.fullyDead).length;
-        if (deadCount > 0) {
-            this.agents = this.agents.filter(a => !a.fullyDead);
-        }
 
         this.movement.resolveStacking(this, this);
         this.announcer.update(dt, this);
