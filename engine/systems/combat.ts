@@ -50,9 +50,13 @@ export class CombatSystem {
             // console.log(`[Combat] ${a.id} initiating ${skill.id} (slot ${skillIdx})`);
             
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
+            
+            // [FIX] Pass targetId to CAST_START so visual sequences hit the target, not the caster
+            const targetId = a.target ? a.target.id : (a.targetHex ? `ground-${a.targetHex.q},${a.targetHex.r}` : undefined);
+
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (skill.cast > 0 && skill.tag !== 'BASIC') {
-                engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id });
+                engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id, targetId });
             }
             
             if (a.target) {

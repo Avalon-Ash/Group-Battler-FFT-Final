@@ -111,7 +111,7 @@ export const RED_ULT: Skill[] = [
         name: '戰術核彈', desc: '大範圍擊退', 
         range: 7, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 600, color: '#ef4444', 
-        visual: 'BOMB', projectileSpeed: 400, 
+        visual: 'BOMB', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 5, 
         visualHitEffect: 'FX_ULT_RED_NUKE_FLASH' 
     },
@@ -148,7 +148,7 @@ export const RED_ULT: Skill[] = [
         name: '毀滅隕石', desc: '延遲高傷', 
         range: 8, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 1000, color: '#f97316', 
-        visual: 'FIREBALL', projectileSpeed: 150, 
+        visual: 'FIREBALL', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5, 
         visualHitEffect: 'FX_ULT_RED_METEOR_IMPACT' 
     },

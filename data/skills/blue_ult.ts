@@ -56,7 +56,7 @@ export const BLUE_ULT: Skill[] = [
         name: '雷霆之怒', desc: '跳躍轟炸', 
         range: 7, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 550, color: '#3b82f6', 
-        visual: 'SMASH', projectileSpeed: 1200, 
+        visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5, 
         visualHitEffect: 'FX_ULT_BLUE_THUNDER_SLAM' 
     },
@@ -101,7 +101,7 @@ export const BLUE_ULT: Skill[] = [
         name: '極地冰河', desc: '全場凍結', 
         range: 15, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 450, color: '#60a5fa', 
-        visual: 'ARROW', projectileSpeed: 1800, 
+        visual: 'ARROW', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5, element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST', 
         visualProjectileEffect: 'PROJ_BLUE_ICE_ARROW' 
