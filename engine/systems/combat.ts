@@ -73,10 +73,16 @@ export class CombatSystem {
     private completeCast(a: Agent, engine: GameEngine) {
         const s = a.skills[a.castingSkillIdx]!;
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
-        a.curCDs[a.castingSkillIdx] = s.cd;
+        a.curCDs[a.castingSkillIdx] = Math.max(s.cd || 0, 0.3); // Minimum 0.3s CD to prevent infinite instant re-casts
         
         if (s.tag !== 'BASIC') {
-            engine.events.push({ type: 'CAST_FINISH', pos: { x: a.px, y: a.py }, skill: s, sourceId: a.id });
+            engine.events.push({ 
+                type: 'CAST_FINISH', 
+                pos: { x: a.px, y: a.py }, 
+                skill: s, 
+                sourceId: a.id,
+                targetId: a.id 
+            });
         }
         
         let targetName = '地面';
@@ -96,7 +102,15 @@ export class CombatSystem {
         if (isSelfDmg1 || isSelfDmg2) {
             const dmgVal = (isSelfDmg1 ? s.effectVal : s.effectVal2) || 50;
             a.hp = Math.max(0, a.hp - dmgVal);
-            engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: dmgVal, color: '#991b1b', text: "SACRIFICE" });
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: {x: a.px, y: a.py}, 
+                value: dmgVal, 
+                color: '#991b1b', 
+                text: "SACRIFICE",
+                sourceId: a.id,
+                targetId: a.id
+            });
             engine.log(a, 'HIT', '自殘', a.id, `消耗 ${dmgVal} HP`);
             a.lastHitSourceId = a.id;
             if (a.hp <= 0) {

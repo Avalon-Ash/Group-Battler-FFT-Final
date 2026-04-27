@@ -75,7 +75,7 @@ export class SkillExecutor {
                 }
             });
             
-            engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color });
+            engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
             HazardManager.spawnHazards(source, impactCells, skill, engine, targetHex);
         } else {
             if (source.target && source.target.hp > 0 && !source.target.banished) {
@@ -125,18 +125,40 @@ export class SkillExecutor {
         
         if (result.isMiss) {
             target.lastHitDamage = 0;
-            engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "MISS", color: '#9ca3af' });
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: {x: target.px, y: target.py}, 
+                text: "MISS", 
+                color: '#9ca3af',
+                sourceId: source.id,
+                targetId: target.id
+            });
             engine.log(source, 'HIT', '閃避', target.id, `攻擊未命中`);
             return;
         }
 
         if (result.isBlock) {
-            engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, text: "BLOCK", color: '#fb923c' });
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: {x: target.px, y: target.py}, 
+                text: "BLOCK", 
+                color: '#fb923c',
+                sourceId: source.id,
+                targetId: target.id
+            });
             engine.log(source, 'HIT', '格擋', target.id, `減少15%傷害`);
         }
 
         if (result.shieldAbsorb > 0) {
-            engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, value: -Math.floor(result.shieldAbsorb), color: '#bae6fd', text: "ABSORB" });
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: {x: target.px, y: target.py}, 
+                value: -Math.floor(result.shieldAbsorb), 
+                color: '#bae6fd', 
+                text: "ABSORB",
+                sourceId: source.id,
+                targetId: target.id
+            });
             engine.log(source, 'HIT', '吸收', target.id, `護盾吸收 ${Math.floor(result.shieldAbsorb)} 傷害`);
         }
 
@@ -204,17 +226,41 @@ export class SkillExecutor {
         // B. Secondary Effects (Vamp, Mana, Self Damage)
         if (result.vampAmount > 0) {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
-            engine.events.push({ type: 'HEAL', pos: {x: source.px, y: source.py}, value: result.vampAmount, color: '#be123c', text: "VAMP" });
+            engine.events.push({ 
+                type: 'HEAL', 
+                pos: {x: source.px, y: source.py}, 
+                value: result.vampAmount, 
+                color: '#be123c', 
+                text: "VAMP",
+                sourceId: source.id,
+                targetId: source.id
+            });
             engine.log(source, 'HEAL', '吸血', source.id, `回復 ${Math.floor(result.vampAmount)} HP`);
         }
         if (result.manaBurn > 0) {
             target.mp = Math.max(0, target.mp - result.manaBurn);
-            engine.events.push({ type: 'DAMAGE', pos: {x: target.px, y: target.py}, value: result.manaBurn, color: '#8b5cf6', text: "BURN" });
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: {x: target.px, y: target.py}, 
+                value: result.manaBurn, 
+                color: '#8b5cf6', 
+                text: "BURN",
+                sourceId: source.id,
+                targetId: target.id
+            });
             engine.log(source, 'HIT', '燃魔', target.id, `燃燒 ${Math.floor(result.manaBurn)} MP`);
         }
         if (result.manaRestore > 0) {
             target.mp = Math.min(target.maxMp, target.mp + result.manaRestore);
-            engine.events.push({ type: 'HEAL', pos: {x: target.px, y: target.py}, value: result.manaRestore, color: '#60a5fa', text: "MP" });
+            engine.events.push({ 
+                type: 'HEAL', 
+                pos: {x: target.px, y: target.py}, 
+                value: result.manaRestore, 
+                color: '#60a5fa', 
+                text: "MP",
+                sourceId: source.id,
+                targetId: target.id
+            });
             engine.log(source, 'HEAL', '回魔', target.id, `回復 ${Math.floor(result.manaRestore)} MP`);
         }
         

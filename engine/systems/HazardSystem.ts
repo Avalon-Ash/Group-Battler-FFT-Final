@@ -53,7 +53,9 @@ export class HazardSystem {
             engine.events.push({ 
                 type: 'HAZARD_SPAWN', 
                 pos: { x: px.x, y: px.y }, 
-                text: def.spawnVfx 
+                text: def.spawnVfx,
+                sourceId: hazard.sourceId,
+                targetId: hazard.id // Use hazard ID as targetId for spawn events
             });
         }
     }
@@ -101,16 +103,26 @@ export class HazardSystem {
                     }
 
                     if (absorbed > 0) {
-                        engine.events.push({ type: 'DAMAGE', pos: {x: agent.px, y: agent.py}, value: -Math.floor(absorbed), color: '#bae6fd', text: "ABSORB" });
+                        engine.events.push({ 
+                            type: 'DAMAGE', 
+                            pos: {x: agent.px, y: agent.py}, 
+                            value: -Math.floor(absorbed), 
+                            color: '#bae6fd', 
+                            text: "ABSORB",
+                            sourceId: hazard.sourceId,
+                            targetId: agent.id
+                        });
                     }
 
                     if (dmg > 0 || absorbed === 0) {
                         engine.events.push({ 
                             type: 'DAMAGE', 
                             pos: {x: agent.px, y: agent.py}, 
-                            value: -Math.floor(dmg > 0 ? dmg : hazard.power), // Show dmg taken, or hazard power if completely missed/absorbed? No, just dmg
+                            value: -Math.floor(dmg > 0 ? dmg : hazard.power),
                             color: hazard.color,
-                            skill: { color: hazard.color, ccType: 'DOT' } as any 
+                            skill: { color: hazard.color, ccType: 'DOT' } as any,
+                            sourceId: hazard.sourceId,
+                            targetId: agent.id
                         });
                     }
                     

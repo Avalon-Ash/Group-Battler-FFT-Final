@@ -56,10 +56,21 @@ export class AgentManager {
         if (a.fullyDead) return;
         if (!a.deadLogged) {
             engine.log(a, 'DEATH', '死亡', null, '陣亡');
-            engine.events.push({ type: 'DEATH', pos: {x: a.px, y: a.py, z: a.physics.z}, sourceId: a.id, team: a.team });
+            engine.events.push({ 
+                type: 'DEATH', 
+                pos: { x: a.px, y: a.py, z: a.physics.z }, 
+                sourceId: a.id, 
+                targetId: a.id,
+                team: a.team 
+            });
             
             if (a.lastHitSourceId) {
-                engine.pushEvent('KILL', {x: a.px, y: a.py}, { sourceId: a.lastHitSourceId, targetId: a.id });
+                engine.events.push({
+                    type: 'KILL',
+                    pos: { x: a.px, y: a.py },
+                    sourceId: a.lastHitSourceId,
+                    targetId: a.id
+                });
             }
             
             a.deadLogged = true;
