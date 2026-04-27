@@ -48,7 +48,12 @@ export class Selector extends BTNode {
         for (let i = 0; i < this._interruptCount; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
-                this._runningIdx = -1;
+                // [FIX] Survival interrupt: protect _runningIdx if it belongs to Combat (index >= _interruptCount)
+                // This prevents the Combat state from being lost while performing survival maneuvers
+                const wasRunningLaterNode = this._runningIdx >= this._interruptCount;
+                if (!wasRunningLaterNode) {
+                    this._runningIdx = -1;
+                }
                 return this.record(r);
             }
             if (r === NodeState.SUCCESS) {

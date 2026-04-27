@@ -263,7 +263,18 @@ export const BTActions: Record<string, BTActionFn> = {
                 // [FIX] 縮圈警告格：只要腳下是 warning tile，一律視為致命
                 // 不再依賴 shrinkTimer 時間比較（shrinkTimer 是下次縮圈倒計時，不是當前格消失時間）
                 if (isWarning) {
-                    isFatal = true;
+                    if (a.castingSkillIdx !== -1) {
+                        const skill = a.skills[a.castingSkillIdx]!;
+                        // BASIC 永遠可以中斷
+                        if (skill.tag === 'BASIC') {
+                            isFatal = true;
+                        } else {
+                            // 非 BASIC：只有剩餘詠唱 > 0.8 秒才算 fatal（太長會被燒死）
+                            isFatal = a.castTimer > 0.8;
+                        }
+                    } else {
+                        isFatal = false; // 沒在詠唱，讓移動邏輯自己處理
+                    }
                 }
                 
                 if (!isFatal && hazard && hazard.team !== a.team) {
@@ -386,6 +397,13 @@ export const BTActions: Record<string, BTActionFn> = {
             a.actionState = ActionState.CASTING;
             return NodeState.RUNNING;
         }
+        
+        // [FIX] 如果有任何詠唱在進行（但不是自己），拒絕啟動
+        // 這防止 interrupt 清掉 _runningIdx 後重新呼叫 initiateCast 的問題
+        if (a.castingSkillIdx !== -1) {
+            return NodeState.FAILURE; // 讓另一個 slot 繼續它的詠唱
+        }
+        
         const state = engine.initiateCast(a, idx);
         if (state === NodeState.RUNNING) a.actionState = ActionState.CASTING;
         return state;
