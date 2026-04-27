@@ -144,6 +144,12 @@ RenderPipeline
 * 狀態快照與記憶體回收隔離 (State Snapshot & GC Boundary): 將戰鬥中為減少渲染與邏輯運算負擔而實行的「陣亡實體回收 (Garbage Collection)」機制，與「初始編制名冊 (Initial Roster Snapshot)」進行分離。確保戰場重置時 (Restart)，不會因為運行時優化機制而遺失參照，徹底保障重製功能的冪等性與狀態完整度。
 * 亞幀記憶體回收安全網 (Sub-Tick Garbage Collection Safety): 將陣亡實體的註銷延遲至當前 Tick 迴圈的最末端集中執行，消滅了因提早釋放參照導致同幀中後續系統 (如 StackingResolver) 讀取懸空指標或引發位移計算異常的邊界隱患。
 * 複合控制狀態競爭排解 (Concurrent CC Resolution): 針對實體同時掛載恐懼 (Fear) 與定身 (Root) 等多重干擾的極端情境，引入絕對層級覆蓋機制 (Strict Hierarchy Override)，徹底根除複數狀態在同一影格內競寫路徑與位移屬性所引發的抖動與死鎖。
+* 行為樹記憶機制與中斷器 (Behavior Tree Memory and Selector Interrupts):
+  - Selector 引入 runningIdx 記憶機制，大幅降低每幀重複評估高權重節點的效能損耗。
+  - 支援 interruptCount 前置攔截：死亡檢測 (Dead Check) 與 硬控檢測 (CC Check) 被設為不可跳過的「攔截哨兵」，確保即便在 RUNNING 逃生期間，被 STUN 或死亡時能立刻切斷逃生動作並執行正確的狀態等待。
+* 硬控詠唱熔斷 (Hard-CC Casting Fuse):
+  - 在 Wait Action 中偵測到 CC_INTERRUPTED 狀態時，強制執行「硬控熔斷」。
+  - 命中 STUN/BANISH/FEAR 的瞬間，castingSkillIdx 會被歸零並重置相關計時器，徹底打斷非法施法，且此中斷邏輯與「戰術逃生中斷」完全隔離。
 * 行為樹時序防抖與重入保護 (BT Stateful Debounce & Re-entry Guard): 在 EscapeWarning 等核心逃生行為中引入基於 escapeCooldown 的提早跳出 (Early-Exit) 與 RUNNING 狀態維持。完美解決了資料層防抖與行為樹每幀強制 tick 脫節所引發的「原地反覆決策死鎖 (Stand-and-Die)」現象。
 * 友軍危害排除與 SSOT 統一 (Friendly Hazard Immunity & SSOT Unification): 徹底將大逃殺底層生存判斷、背水一戰路徑淨空 (CastPushPull) 收攏至唯一真相來源 BTConditions["IsInWarningZone"]，並在空間層面嚴格剃除同隊環境干擾 (Friendly Hazards)，確保多重法術堆疊下的 AI 避險動作絕不發生誤判與恐慌亂跑。
 * 偽隨機時間窗鎖定機制 (Buffered RNG Temporal Lock): 獨立緩存大逃殺隨機縮圈階段 (Final Phase) 的目標索引 (finalPhaseTargetKey)。防止在「警告 (Warning)」與「執行 (Execution)」的跨幀等待期間內因種子滾動而發生跳格翻轉，確保時序邊界上的絕對一致性。
@@ -173,7 +179,8 @@ RenderPipeline
 * 管線化陣亡視覺殘留 (Deferred Garbage Collection for VFX): 將 'GameEngine' 清理 fullyDead 單位的過濾器推遲至 Tick 循環最前端執行，確保同一幀產生的 DEATH event 進入 Renderer / 'EventVFXMapper' 解析時不會遭遇實體無法索引之「視覺蒸發」空窗。
 * 死亡記錄除多工流 (Death Handling Demultiplexer): 引入 'deadLogged' 屏障，將戰場邏輯回收 (unregister / fullyDead) 與視覺日誌脫鉤。阻止同一影格遭受多重致死判定 (縮圈崩塌、物理落傷) 而重複發送死亡 VFX 與日誌。
 * 雙零殭局防護 (Mutual Destruction Intercept): 在 VictorySystem 引入與單邊獲勝均等的雙零 (blue === 0 && red === 0) 平局收口檢定。拔除戰局中最後兩人同歸於盡所引發的無限輪迴假死狀態。
-* 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單位遁入純淨板塊但 'escapeCooldown' 未竟之時，允許脫離 EVADING_URGENT 並轉交給戰術核心，釋放 AI 在殘存的 0.2 秒無謂冰凍。
+* 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單元進入安全區且 escapeCooldown 結束後，系統會自動歸還決策權給戰術核心，避免無謂的狀態鎖定。
+* 背水一戰狀能維續 (Last Stand State Persistence): 在 CastPushPull 執行移動前即標記 LAST_STAND_PUSH 狀態，確保行為樹的記憶恢復邏輯即使在移動中斷後也能穩定找回戰鬥目標。
 * 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。
 * 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方 hazard 動態部署，徹底阻止「逃出毒圈卻踏進火場」的決策延遲。
 

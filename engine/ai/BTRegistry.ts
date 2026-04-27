@@ -525,6 +525,8 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
             const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
             if (dest) {
+                // moveAgentToHex 前，先設定 aiState，讓 EscapeWarning 知道「已進入背水模式」
+                a.aiState = AIState.LAST_STAND_PUSH; 
                 const state = engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
                 if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
                 if (state === NodeState.FAILURE) {
