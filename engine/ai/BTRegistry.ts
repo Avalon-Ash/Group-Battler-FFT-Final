@@ -44,11 +44,14 @@ export const BTConditions: Record<string, BTConditionFn> = {
             if (engine.isWarningTile(HexUtils.key(lastHex))) return true;
         }
 
-        if (a.stuckTicks > 0) {
+        // Project based on physics velocity (knockback) OR stuckTicks
+        const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
+        if (a.stuckTicks > 0 || isKnockedBack) {
             // Controlled displacement: project based on physics velocity
             const dt_est = 1 / 30; 
-            const predPx = a.px + a.physics.vx * a.stuckTicks * dt_est;
-            const predPy = a.py + a.physics.vy * a.stuckTicks * dt_est;
+            const ticks = a.stuckTicks > 0 ? a.stuckTicks : 8; // Predict 8 ticks ahead for knockback
+            const predPx = a.px + a.physics.vx * ticks * dt_est;
+            const predPy = a.py + a.physics.vy * ticks * dt_est;
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
             if (engine.isWarningTile(HexUtils.key(predHex))) return true;
         }
@@ -186,7 +189,8 @@ export const BTActions: Record<string, BTActionFn> = {
             const stillInDanger = BTConditions["IsInWarningZone"](a, engine);
             if (!stillInDanger) {
                 a.actionState = ActionState.IDLE;
-                a.escapeCooldown = 0;  
+                // Buffer cooldown clearing to prevent jittering return FAILURE
+                a.escapeCooldown = 0.1; 
                 return NodeState.FAILURE;
             }
             a.actionState = ActionState.EVADING;
@@ -320,6 +324,20 @@ export const BTActions: Record<string, BTActionFn> = {
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
+            // Destination safety check
+            const destKey = HexUtils.key(dest);
+            const hazard = engine.state.hazards.get(destKey);
+            const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+            
+            if (isUnsafe) {
+                const path = engine.movement.pathfinder.findPathToSafety(a, engine.state, engine.movement.targeting);
+                if (path.length > 0) {
+                    dest = path[path.length - 1];
+                } else {
+                    return NodeState.FAILURE;
+                }
+            }
+
             if (a.q === dest.q && a.r === dest.r) return NodeState.SUCCESS;
             const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
             if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
@@ -334,7 +352,22 @@ export const BTActions: Record<string, BTActionFn> = {
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
         a.aiState = AIState.TRACKING;
-        const state = engine.moveAgentToHex(a, {q: a.target.q, r: a.target.r}, skill.range, speedMult);
+
+        let dest = { q: a.target.q, r: a.target.r };
+        const destKey = HexUtils.key(dest);
+        const hazard = engine.state.hazards.get(destKey);
+        const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+
+        if (isUnsafe) {
+            const path = engine.movement.pathfinder.findPathToSafety(a, engine.state, engine.movement.targeting);
+            if (path.length > 0) {
+                dest = path[path.length - 1] as any;
+            } else {
+                return NodeState.FAILURE;
+            }
+        }
+
+        const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
         if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
         return state;
     },
