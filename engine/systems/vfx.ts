@@ -70,8 +70,7 @@ export class VFXSystem {
             if (p.ownerId) {
                 const owner = engine?.agents.find(a => a.id === p.ownerId);
                 if (!owner || owner.hp <= 0) {
-                    p.life = 0;
-                    continue;
+                    p.life = -1;
                 }
             }
             

@@ -134,9 +134,11 @@ export class RenderList {
             
             sortKey += subLayer;
 
-            // Tiebreaker: 對 UNIT，用 px 的小數部分增加確定性
+            // Tiebreaker: 對 UNIT，用 ID hash 增加確定性
             if (op.type === RenderOpType.UNIT && op.agent) {
-                sortKey += (op.agent.px % 1) * 0.001;
+                // 用 ID 字串的最後四位作為確定性偏移
+                const idHash = parseInt(op.agent.id.slice(-4), 36) % 100;
+                sortKey += idHash * 0.00001;
             }
 
             // 特殊：奧義/高空特效絕對置頂

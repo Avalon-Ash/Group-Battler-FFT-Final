@@ -67,7 +67,7 @@ export class GridSpatial {
     public static getObstacleOccludedAgents(engine: GameEngine): Agent[] {
         const result: Agent[] = [];
         for (const agent of engine.agents) {
-            if (agent.hp <= 0) continue;
+            if (agent.hp <= 0 && agent.fullyDead) continue;
             // 取得所有障礙物
             for (const key of engine.map.obstacles.keys()) {
                 const [q, r] = key.split(',').map(Number);
