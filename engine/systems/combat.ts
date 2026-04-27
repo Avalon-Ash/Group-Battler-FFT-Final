@@ -37,7 +37,9 @@ export class CombatSystem {
             else if (a.targetHex) targetName = `(${a.targetHex.q},${a.targetHex.r})`;
             engine.log(a, 'CAST', '詠唱', targetName, `開始引導 ${skill.name} (需 ${skill.cast} 秒)`);
             // sourceId 必須傳遞，供 HUD 綁定文字
-            engine.events.push({ type: 'CAST_START', pos: {x: a.px, y: a.py}, sourceId: a.id, skill: skill });
+            if (skill.cast > 0 && skill.tag !== 'BASIC') {
+                engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id });
+            }
             
             if (a.target) {
                 a.facing = a.target.px > a.px ? 1 : -1;
@@ -48,6 +50,13 @@ export class CombatSystem {
         }
         return NodeState.RUNNING;
     }
+
+    public breakCast(a: Agent, engine: GameEngine) {
+        if (a.castingSkillIdx !== -1) {
+            this.castingEngine.handleInterruption(a, engine);
+        }
+    }
+
     public update(dt: number, engine: GameEngine) {
         engine.agents.forEach(a => {
             // 修正：如果單位已死但仍在詠唱，允許進入 updateCasting 進行中斷處理

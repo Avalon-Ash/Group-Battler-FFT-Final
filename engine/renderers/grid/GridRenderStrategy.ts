@@ -9,6 +9,8 @@ import { VisualMath } from "../../math/VisualMath";
 export class GridRenderStrategy {
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
+    private _castingAOE = new Set<string>();
+    private _castingColor: string = '';
 
     public submit(
         cache: GridCache,
@@ -31,11 +33,25 @@ export class GridRenderStrategy {
 
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
+        this._castingAOE.clear();
+        this._castingColor = '';
+
         for (const a of engine.agents) {
             if (a.hp > 0) {
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
                 if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
+
+                // Check for casting AOE to highlight
+                if (a.castingSkillIdx !== -1 && (a.target || a.targetHex)) {
+                    const skill = a.skills[a.castingSkillIdx];
+                    if (skill && skill.tag !== 'BASIC' && skill.aoeRadius && skill.aoeRadius > 0) {
+                        const targetPos = a.target ? { q: a.target.q, r: a.target.r } : a.targetHex!;
+                        const cells = HexUtils.range(targetPos, skill.aoeRadius);
+                        cells.forEach(c => this._castingAOE.add(`${c.q},${c.r}`));
+                        if (!this._castingColor) this._castingColor = skill.color;
+                    }
+                }
             }
         }
 
@@ -78,8 +94,14 @@ export class GridRenderStrategy {
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
             op.oDanger = engine.zones.getZoneAt(q, r); 
-            op.oRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
-            op.oRangeCol = hoveredSkill?.color || '';
+            
+            // Mix player hover range and AI casting AOE
+            const isHoverRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
+            const isCastAOE = this._castingAOE.has(key);
+            
+            op.oRange = isHoverRange || isCastAOE;
+            op.oRangeCol = (isHoverRange ? hoveredSkill?.color : this._castingColor) || '';
+            
             op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             op.oWarning = engine.map.warningTiles.has(key);
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);

@@ -219,11 +219,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // 硬控狀態（CC_INTERRUPTED）強制中斷詠唱
         if (args.state === AIState.CC_INTERRUPTED && a.castingSkillIdx !== -1) {
-            const s = a.skills[a.castingSkillIdx];
-            if (s) engine.log(a, 'CC', '硬控中斷', s.name, '詠唱被控制技打斷');
-            a.castingSkillIdx = -1;
-            a.castTimer = 0;
-            a.castingAnimationTimer = 0;
+            engine.combat.breakCast(a, engine);
         }
 
         return NodeState.RUNNING;
@@ -276,10 +272,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
 
                 if (isFatal) {
-                    engine.log(a, 'CC', '中斷', skill.name, "判定預測必死，強制中斷詠唱逃生");
-                    a.castingSkillIdx = -1;
-                    a.castTimer = 0;
-                    a.castingAnimationTimer = 0;
+                    engine.combat.breakCast(a, engine);
                 } else {
                     // 非致命：BASIC 中斷、非 BASIC 視情況
                     if (skill.tag !== 'BASIC') {
@@ -290,16 +283,11 @@ export const BTActions: Record<string, BTActionFn> = {
                             return NodeState.RUNNING;
                         }
                         // 否則：強制中斷，立刻逃
-                        engine.log(a, 'CC', '中斷', skill.name, '危險等級升高，強制中斷詠唱');
-                        a.castingSkillIdx = -1;
-                        a.castTimer = 0;
-                        a.castingAnimationTimer = 0;
+                        engine.combat.breakCast(a, engine);
                         // 繼續往下執行移動邏輯
                     } else {
                         // BASIC 技能：直接中斷
-                        a.castingSkillIdx = -1;
-                        a.castTimer = 0;
-                        a.castingAnimationTimer = 0;
+                        engine.combat.breakCast(a, engine);
                     }
                 }
             }
@@ -504,9 +492,7 @@ export const BTActions: Record<string, BTActionFn> = {
             
             const s = a.skills[a.castingSkillIdx];
             if (s && s.tag === 'BASIC') {
-                a.castingSkillIdx = -1;
-                a.castTimer = 0;
-                a.castingAnimationTimer = 0;
+                engine.combat.breakCast(a, engine);
             } else {
                 return NodeState.FAILURE;
             }

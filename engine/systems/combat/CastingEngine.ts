@@ -38,7 +38,7 @@ export class CastingEngine {
         }
     }
 
-    private handleInterruption(a: Agent, engine: GameEngine) {
+    public handleInterruption(a: Agent, engine: GameEngine) {
         const skillIdx = a.castingSkillIdx;
         if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
             const s = a.skills[skillIdx]!;
