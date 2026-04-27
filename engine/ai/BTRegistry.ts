@@ -51,7 +51,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
 
         // Project based on physics velocity (knockback) OR stuckTicks
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
-        if (a.stuckTicks > 0 || isKnockedBack) {
+        if ((a.stuckTicks > 0 || isKnockedBack) && a.movementType !== MovementType.FLYING) {
             // Controlled displacement: project based on physics velocity
             const dt_est = 1 / 30; 
             const ticks = a.stuckTicks > 0 ? a.stuckTicks : 8; // Predict 8 ticks ahead for knockback
@@ -299,7 +299,34 @@ export const BTActions: Record<string, BTActionFn> = {
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
             } else {
-                a.targetHex = null;
+                // 路徑完全失敗（通常是飛行單位被四面圍困）
+                // 備援：用 6 個鄰格中最安全的那格作為臨時逃生目標
+                const neighbors = HexUtils.neighbors(a);
+                let bestNeighbor: any = null;
+                let lowestDanger = Infinity;
+                for (const n of neighbors) {
+                    const nKey = HexUtils.key(n);
+                    if (!engine.map.isValid(n.q, n.r)) continue;
+                    // 飛行單位不需要地形高度判定，直接比較危險度
+                    const hazard = engine.state.hazards.get(nKey);
+                    const isEnemyHazard = hazard && hazard.team !== a.team;
+                    const isWarn = engine.isWarningTile(nKey);
+                    // 危險評分：敵方 hazard = 100, warning tile = 10, 安全 = 0
+                    const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
+                    // 加上佔位懲罰（有友方單位也願意去，有敵方則加分）
+                    const occ = engine.getAgentAt(n.q, n.r);
+                    const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
+                    const totalScore = dangerScore + occPenalty;
+                    if (totalScore < lowestDanger) {
+                        lowestDanger = totalScore;
+                        bestNeighbor = n;
+                    }
+                }
+                // 即使備援格仍是 warning tile，也比站在原地被燒死強
+                a.targetHex = bestNeighbor;
+                if (bestNeighbor) {
+                    engine.log(a, 'AI', '逃生備援', '', `飛行單位路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
+                }
             }
         }
 
@@ -341,7 +368,9 @@ export const BTActions: Record<string, BTActionFn> = {
         if (BTConditions["IsInWarningZone"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
-            a.escapeCooldown = 0.15;
+            // 飛行單位若 targetHex 仍為 null（備援也失敗）：
+            // 延長 cooldown 讓其他單位先移開，再嘗試
+            a.escapeCooldown = (a.targetHex === null) ? 0.3 : 0.15;
             return NodeState.RUNNING;
         }
         a.escapeCooldown = 0.2;

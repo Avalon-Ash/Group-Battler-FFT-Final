@@ -147,6 +147,14 @@ export class Pathfinder {
                 
                 // 成功判定：找到非警告區域的合法地塊，且沒有敵方 hazard
                 if (isSafe && spatial.isValidHash(current.hash)) {
+                    // 飛行單位：確認目標格沒有地面障礙物阻擋降落（blocksFlying 判定）
+                    if (startAgent.movementType === MovementType.FLYING) {
+                        const obsType = spatial.getObstacleTypeHash(current.hash);
+                        if (obsType) {
+                            const def = OBSTACLE_DB[obsType];
+                            if (def?.blocksFlying) continue; // 這格對飛行仍是障礙，跳過
+                        }
+                    }
                     bestH = current.hash;
                     break;
                 }
@@ -196,8 +204,13 @@ export class Pathfinder {
                     this._cameFrom.set(neighborH, current.hash);
                     this._gScore.set(neighborH, tentativeG);
                     
-                    // Dijkstra: hCost is 0 because we don't know the exact goal
-                    this.pqPush(neighborH, tentativeG);
+                    // 飛行單位缺乏地形導引，補上安全格方向啟發
+                    let heuristic = 0;
+                    if (startAgent.movementType === MovementType.FLYING) {
+                        // 用距離起點的反向作為啟發（越遠離危險起點越好）
+                        heuristic = -HexUtils.dist(nHex, startAgent) * 0.3;
+                    }
+                    this.pqPush(neighborH, tentativeG + heuristic);
                 }
             }
         }
