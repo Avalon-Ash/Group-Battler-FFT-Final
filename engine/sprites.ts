@@ -8,12 +8,15 @@ export interface UnitAssets {
     icon: HTMLCanvasElement;
     color: string;
 }
-export interface UnitLayers {
+export interface UnitAssetsFull {
     base: HTMLCanvasElement;
-    rim:  HTMLCanvasElement;
+    rim: HTMLCanvasElement;
+    core: HTMLCanvasElement;
     icon: HTMLCanvasElement;
+    color: string;
 }
 const _layerCache = new Map<string, UnitLayers>();
+const _fullLayerCache = new Map<string, UnitAssetsFull>();
 export const SpriteManager = {
     getUnitImages(role: Role, team: Team): UnitAssets {
         const keyBase = `TOKEN_BASE_${team}_V3`; 
@@ -54,6 +57,14 @@ export const SpriteManager = {
         
         const layers: UnitLayers = { base, rim, icon };
         _layerCache.set(key, layers);
+        return layers;
+    },
+    getUnitLayersFull(role: Role, team: Team): UnitAssetsFull {
+        const key = `FULL_${role}_${team}`;
+        if (_fullLayerCache.has(key)) return _fullLayerCache.get(key)!;
+        
+        const layers = UnitFactory.generateLayers(role, team);
+        _fullLayerCache.set(key, layers);
         return layers;
     },
     getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
