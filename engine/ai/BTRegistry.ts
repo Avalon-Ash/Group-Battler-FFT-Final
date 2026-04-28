@@ -226,9 +226,28 @@ export const BTActions: Record<string, BTActionFn> = {
                     const hazard = engine.state.hazards.get(myKey);
                     const isWarning = engine.isWarningTile(myKey);
                     let isFatal = false;
-                    if (isWarning) isFatal = castSkill.tag === 'BASIC' || a.castTimer > 0.8;
+
+                    // [REFACTORED] Use dynamic shrink timer from ZoneSystem to decide if we can finish casting
+                    const timeToCollapse = engine.zones.shrinkTimer;
+                    const safetyBuffer = 0.2; // Min time needed to step out after cast
+
+                    if (isWarning) {
+                        // If it's a basic attack, it's rarely worth dying for unless it's the very last hit (too complex to guess)
+                        // So we break basic attacks early to prioritize positioning.
+                        if (castSkill.tag === 'BASIC') {
+                            isFatal = true;
+                        } else {
+                            // Can I finish this skill before the ground disappears?
+                            isFatal = (a.castTimer + safetyBuffer) > timeToCollapse;
+                        }
+                    }
+                    
                     if (!isFatal && hazard && hazard.team !== a.team && hazard.timer < a.castTimer) isFatal = true;
-                    if (isFatal) engine.combat.breakCast(a, engine);
+                    
+                    if (isFatal) {
+                        engine.log(a, 'DECISION', '中斷詠唱', '', `地面即將塌陷 (${timeToCollapse.toFixed(1)}s)，放棄詠唱 ${castSkill.name}`);
+                        engine.combat.breakCast(a, engine);
+                    }
                 }
             }
 
@@ -279,7 +298,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
                 a.targetHex = null;
-                a.escapeCooldown = 0.15; // Buffer to prevent immediate re-trigger
+                a.escapeCooldown = 1.0; // [FIX] Long buffer to ensure unit actually starts a ritual or scans before considering next move
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
@@ -333,6 +352,11 @@ export const BTActions: Record<string, BTActionFn> = {
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
+            // [FIX] Combat movement must respect urgent survival. Check BEFORE state assignment
+            if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInUrgentDanger"](a, engine)) {
+                return NodeState.RUNNING; 
+            }
+
             // Destination safety check
             const destKey = HexUtils.key(dest);
             const hazard = engine.state.hazards.get(destKey);
@@ -349,8 +373,12 @@ export const BTActions: Record<string, BTActionFn> = {
             }
 
             if (a.q === dest.q && a.r === dest.r) return NodeState.SUCCESS;
+
             const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
-            if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+            if (state === NodeState.RUNNING) {
+                a.aiState = AIState.TRACKING; // Now safe to set
+                a.actionState = ActionState.WALKING;
+            }
             return state;
         }
         return NodeState.FAILURE;
@@ -359,10 +387,15 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
+
+        // [FIX] Combat movement must respect urgent survival. Check BEFORE state assignment
+        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInUrgentDanger"](a, engine)) {
+            return NodeState.RUNNING;
+        }
+
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
-        a.aiState = AIState.TRACKING;
-
+        
         let dest = { q: a.target.q, r: a.target.r };
         const destKey = HexUtils.key(dest);
         const hazard = engine.state.hazards.get(destKey);
@@ -379,7 +412,11 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
-        if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
+        
+        if (state === NodeState.RUNNING) {
+            a.aiState = AIState.TRACKING;
+            a.actionState = ActionState.WALKING;
+        }
         return state;
     },
     "CastPushPull": (a, engine) => {

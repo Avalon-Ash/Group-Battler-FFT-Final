@@ -84,21 +84,21 @@ export const TextPainter = {
                         const progress = 1 - lifePct;
                         ctx.globalAlpha = lifePct;
                         
-                        // 1. 文字閃光並縮放
-                        const s = 1.0 + progress * 0.5;
+                        // 1. 文字閃光並輕微縮放 (減少到 1.2x 避免躁訊)
+                        const s = 1.0 + progress * 0.2;
                         ctx.scale(s, s);
                         
                         ctx.fillStyle = '#ffffff';
                         ctx.shadowColor = d.color;
-                        ctx.shadowBlur = 20 * lifePct;
+                        ctx.shadowBlur = 15 * lifePct;
                         ctx.fillText(d.text, 0, 0);
 
-                        // 2. 繪製橫向擴散的高壓線條，代表能量釋放
+                        // 2. 輕量化的橫向擴散線條
                         ctx.strokeStyle = '#ffffff';
-                        ctx.lineWidth = 4 * lifePct;
+                        ctx.lineWidth = 2 * lifePct;
                         ctx.beginPath();
-                        ctx.moveTo(-halfW * (1 + progress), 0);
-                        ctx.lineTo(halfW * (1 + progress), 0);
+                        ctx.moveTo(-halfW * (1 + progress * 0.5), 0);
+                        ctx.lineTo(halfW * (1 + progress * 0.5), 0);
                         ctx.stroke();
 
                     } else {
