@@ -19,7 +19,8 @@ export interface FloatingText {
     
     // New Props for Breakable Text & Progress
     ownerId?: string;      // 用於綁定單位
-    isShattered?: boolean; // 標記是否已被打斷
+    isShattered?: boolean; // 標記是否已被打斷/完成
+    shatterType?: 'SUCCESS' | 'BREAK'; // 新增：決定演出的類型
     rotation: number;      // 物理旋轉角度
     vRot: number;          // 旋轉速度
     
@@ -120,6 +121,21 @@ export class HUDSystem {
     }
 
     /**
+     * 成功釋放：文字向上快速升華並消失，帶有白色閃光感
+     */
+    public completeCastText(ownerId: string) {
+        const text = this.damageNumbers.find(t => t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered);
+        if (text) {
+            text.isShattered = true;
+            text.shatterType = 'SUCCESS';
+            text.vy = -400; // 快速向上升華
+            text.vx = 0;    // 保持中心
+            text.life = 0.3; // 更短的時間，表現俐落感
+            text.maxLife = 0.3;
+        }
+    }
+
+    /**
      * 強制中斷文字：給予極高的向上速度與旋轉，並縮短壽命
      * 創造出 "文字被打飛/震碎" 的視覺效果
      */
@@ -128,6 +144,7 @@ export class HUDSystem {
         
         if (text) {
             text.isShattered = true;
+            text.shatterType = 'BREAK';
             text.color = '#94a3b8'; // 變成灰色廢墟感
             text.vy = -250; // 用力向上炸飛
             text.vx = (Math.random() - 0.5) * 400; // 隨機左右噴飛

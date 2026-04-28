@@ -36,7 +36,7 @@ export class EventHUDMapper {
                 break;
             case 'CAST_FINISH':
                 if (event.sourceId) {
-                    hud.breakCastText(event.sourceId); // Release text gracefully on success
+                    hud.completeCastText(event.sourceId); // 成功釋放演出
                 }
                 break;
             case 'CAST_BREAK':

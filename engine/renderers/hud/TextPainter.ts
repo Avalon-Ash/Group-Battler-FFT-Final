@@ -79,38 +79,62 @@ export const TextPainter = {
                 }
 
                 if (d.isShattered) {
-                    // --- 破棄演出：數位故障 Glitch / RGB Split ---
-                    const glitch = Math.random();
-                    ctx.globalAlpha = lifePct;
-                    
-                    // RGB Split 效果
-                    ctx.save();
-                    ctx.globalCompositeOperation = 'screen';
-                    
-                    // Red Channel
-                    ctx.fillStyle = '#ff0000';
-                    ctx.fillText(d.text, (glitch-0.5)*8, (Math.random()-0.5)*4);
-                    
-                    // Cyan Channel
-                    ctx.fillStyle = '#00ffff';
-                    ctx.fillText(d.text, (Math.random()-0.5)*8, (glitch-0.5)*4);
-                    
-                    // Main Shattered Text (White/Grey)
-                    ctx.restore();
-                    ctx.fillStyle = '#ffffff';
-                    ctx.fillText(d.text, 0, 0);
+                    if (d.shatterType === 'SUCCESS') {
+                        // --- 釋放演出：能量昇華 (Ascension) ---
+                        const progress = 1 - lifePct;
+                        ctx.globalAlpha = lifePct;
+                        
+                        // 1. 文字閃光並縮放
+                        const s = 1.0 + progress * 0.5;
+                        ctx.scale(s, s);
+                        
+                        ctx.fillStyle = '#ffffff';
+                        ctx.shadowColor = d.color;
+                        ctx.shadowBlur = 20 * lifePct;
+                        ctx.fillText(d.text, 0, 0);
 
-                    // 繪製破碎的科技背景框
-                    ctx.strokeStyle = '#ef4444';
-                    ctx.lineWidth = 2;
-                    ctx.globalAlpha = lifePct * 0.5;
-                    ctx.strokeRect(-halfW - glitch*10, -halfH, w + glitch*20, h);
-                    
-                    // 靜態雜訊特效
-                    if (glitch > 0.7) {
-                        ctx.fillStyle = '#fff';
-                        for(let i=0; i<3; i++) {
-                            ctx.fillRect(-halfW, (Math.random()-0.5)*h, w, 1);
+                        // 2. 繪製橫向擴散的高壓線條，代表能量釋放
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 4 * lifePct;
+                        ctx.beginPath();
+                        ctx.moveTo(-halfW * (1 + progress), 0);
+                        ctx.lineTo(halfW * (1 + progress), 0);
+                        ctx.stroke();
+
+                    } else {
+                        // --- 破棄演出：數位故障 Glitch / RGB Split ---
+                        const glitch = Math.random();
+                        ctx.globalAlpha = lifePct;
+                        
+                        // RGB Split 效果
+                        ctx.save();
+                        ctx.globalCompositeOperation = 'screen';
+                        
+                        // Red Channel
+                        ctx.fillStyle = '#ff0000';
+                        ctx.fillText(d.text, (glitch-0.5)*8, (Math.random()-0.5)*4);
+                        
+                        // Cyan Channel
+                        ctx.fillStyle = '#00ffff';
+                        ctx.fillText(d.text, (Math.random()-0.5)*8, (glitch-0.5)*4);
+                        
+                        // Main Shattered Text (White/Grey)
+                        ctx.restore();
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillText(d.text, 0, 0);
+
+                        // 繪製破碎的科技背景框
+                        ctx.strokeStyle = '#ef4444';
+                        ctx.lineWidth = 2;
+                        ctx.globalAlpha = lifePct * 0.5;
+                        ctx.strokeRect(-halfW - glitch*10, -halfH, w + glitch*20, h);
+                        
+                        // 靜態雜訊特效
+                        if (glitch > 0.7) {
+                            ctx.fillStyle = '#fff';
+                            for(let i=0; i<3; i++) {
+                                ctx.fillRect(-halfW, (Math.random()-0.5)*h, w, 1);
+                            }
                         }
                     }
 
