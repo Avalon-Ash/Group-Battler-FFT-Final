@@ -420,7 +420,7 @@ export const BTActions: Record<string, BTActionFn> = {
             if (isUnsafeForMe) {
                 const startHex = { q: a.q, r: a.r };
                 const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
-                if (path.length > 1) {
+                if (path && path.length > 1) {
                     dest = path[path.length - 1];
                 } else if (engine.isWarningTile(HexUtils.key(startHex))) {
                    // If we are currently in danger and can't find safety, abort combat to allow survival logic to rethink
@@ -460,7 +460,7 @@ export const BTActions: Record<string, BTActionFn> = {
         if (isUnsafeForMe) {
             const startHex = { q: a.q, r: a.r };
             const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
-            if (path.length > 1) {
+            if (path && path.length > 1) {
                 dest = path[path.length - 1];
             } else if (engine.isWarningTile(HexUtils.key(startHex))) {
                 // If we are currently in danger and cannot find safety, abort combat to allow survival logic to rethink
