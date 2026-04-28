@@ -1,6 +1,6 @@
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState, MovementType, ActionState } from "../../types";
+import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 
@@ -267,10 +267,20 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
             }
 
-            const path = engine.movement.pathfinder.findPathToSafety(a, a, engine, engine.movement.targeting);
+            const path: Hex[] | null = engine.movement.pathfinder.findPathToSafety(
+                a, a, engine, engine.movement.targeting
+            );
+            
+            if (path === null) {
+                // Fully surrounded — no escape route exists.
+                // Trigger last-stand mode and let BT fall through to CastPushPull.
+                a.aiState = AIState.LAST_STAND_PUSH;
+                a.targetHex = null;
+                engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，進入困獸之鬥模式');
+                return NodeState.FAILURE;
+            }
 
-            if (path.length > 1) {
-                // path[0] is current pos, we want a target that is NOT current pos
+            if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
                 engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.targetHex)}`);
             } else {

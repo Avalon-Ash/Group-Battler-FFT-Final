@@ -118,7 +118,7 @@ export class Pathfinder {
         return bestH !== -1 ? this.reconstructPath(bestH, startH) : [];
     }
 
-    public findPathToSafety(start: { q: number; r: number }, agent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
+    public findPathToSafety(start: { q: number; r: number }, agent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] | null {
         const startH = HexUtils.hash(start.q, start.r);
         
         // [FIX] If starting position is already safe, return it as a 1-step path
@@ -148,7 +148,7 @@ export class Pathfinder {
             const currentKey = HexUtils.key(currentHex);
 
             const hazardAtNode = spatial.getHazard(currentKey);
-            const isSafe = !targeting.isWarningTile(currentKey, spatial) && 
+            const isSafe = !spatial.isWarningTile(currentKey) && 
                         (!hazardAtNode || hazardAtNode.team === agent.team);
             
             if (isSafe && spatial.isValidHash(current.hash)) {
@@ -188,6 +188,16 @@ export class Pathfinder {
                     if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
                 }
 
+                const nHex = HexUtils.unhash(neighborH);
+                const nKey = HexUtils.key(nHex);
+
+                // [ZONE-EXCLUSION] Hard-block warning tiles from escape routing
+                if (spatial.isWarningTile(nKey)) continue;
+
+                // [ZONE-EXCLUSION] Hard-block tiles at or below current shrink level
+                const nDepth = spatial.getTileDepth(nHex.q, nHex.r);
+                if (nDepth !== -1 && nDepth <= spatial.getCurrentShrinkLevel()) continue;
+
                 let moveCost = 1.0;
 
                 // 單位碰撞判定 (逃生時盡量避開單位，避免死鎖)
@@ -196,8 +206,6 @@ export class Pathfinder {
                     // 給予極高成本，讓 AI 優先選擇空地逃生 (例如上/下方的空地)
                     moveCost += 50; 
                 }
-
-                const nHex = HexUtils.unhash(neighborH);
 
                 if (agent.movementType !== MovementType.FLYING) {
                     const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
@@ -223,7 +231,6 @@ export class Pathfinder {
                     
                     // [PROACTIVE ESCAPE] Use global knowledge of safe center and depth
                     // This prevents brute-force BFS that might stray into long paths
-                    const nDepth = spatial.getTileDepth(nHex.q, nHex.r);
                     const distToCenter = HexUtils.dist(nHex, { q: 0, r: 0 });
                     
                     let heuristic = distToCenter * 0.5; // Favor items near center
@@ -241,7 +248,7 @@ export class Pathfinder {
             }
         }
 
-        return bestH !== -1 ? this.reconstructPath(bestH, startH) : [];
+        return bestH !== -1 ? this.reconstructPath(bestH, startH) : null;
     }
 
     private pqPush(hash: number, priority: number) {
