@@ -295,6 +295,7 @@ export class GameEngine {
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
             if (a.escapeCooldown > 0) a.escapeCooldown -= dt;
+            if (a._interruptCooldown > 0) a._interruptCooldown -= dt;
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }

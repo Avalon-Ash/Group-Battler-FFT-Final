@@ -241,6 +241,10 @@ export const BTActions: Record<string, BTActionFn> = {
                     const nHazard = engine.state.hazards.get(nKey);
                     const isEnemyHazard = nHazard && nHazard.team !== a.team;
                     const isWarn = engine.isWarningTile(nKey);
+                    
+                    // If we find a safe tile, don't even consider warning tiles unless forced
+                    if (isWarn && lowestDanger < 10) continue;
+
                     const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
                     const occ = engine.getAgentAt(n.q, n.r);
                     const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
@@ -262,6 +266,7 @@ export const BTActions: Record<string, BTActionFn> = {
         if (a.targetHex) {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
+                a.targetHex = null;
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
