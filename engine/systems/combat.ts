@@ -22,6 +22,12 @@ export class CombatSystem {
         if (isHardCC) return NodeState.FAILURE;
         
         if (a._castCompleteCooldown > 0) return NodeState.FAILURE;
+        if (a._interruptCooldown > 0) return NodeState.FAILURE;
+
+        // [FIX] If already casting something else, this initiation fails
+        if (a.castingSkillIdx !== -1 && a.castingSkillIdx !== skillIdx) {
+            return NodeState.FAILURE;
+        }
 
         const skill = a.skills[skillIdx];
         if (!skill) return NodeState.FAILURE;

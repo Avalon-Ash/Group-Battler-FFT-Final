@@ -39,7 +39,7 @@ export const CCManager = {
         if (isImmune) {
             engine.events.push({ 
                 type: 'CC_APPLIED', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
                 text: "免疫", 
                 color: "#9ca3af",
                 sourceId: source.id,
@@ -152,7 +152,7 @@ export const CCManager = {
         if (statusText) {
             engine.events.push({ 
                 type: 'CC_APPLIED', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
                 text: statusText, 
                 color: statusColor,
                 sourceId: source.id,

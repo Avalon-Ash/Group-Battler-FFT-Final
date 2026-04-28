@@ -44,16 +44,7 @@ export class Selector extends BTNode {
     }
 
     tick(ctx: any): NodeState {
-        // [FIX] Selector memory: only evaluate from start if no node was running,
-        // or check higher priority nodes to allow preemption.
-        const start = 0;
-        
         for (let i = 0; i < this.c.length; i++) {
-            // If i > _runningIdx, it means a higher priority branch is already running
-            // and we shouldn't even evaluate lower ones in a reactive tree unless we reset.
-            // However, this standard implementation allows higher priority nodes to preempt.
-            if (this._runningIdx !== -1 && i > this._runningIdx) break;
-
             const r = this.c[i].tick(ctx);
 
             if (r === NodeState.RUNNING) {
