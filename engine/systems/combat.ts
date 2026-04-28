@@ -20,6 +20,9 @@ export class CombatSystem {
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
         const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
         if (isHardCC) return NodeState.FAILURE;
+        
+        if (a._castCompleteCooldown > 0) return NodeState.FAILURE;
+
         const skill = a.skills[skillIdx];
         if (!skill) return NodeState.FAILURE;
 

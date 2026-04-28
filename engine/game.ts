@@ -289,19 +289,12 @@ export class GameEngine {
         for (const a of this.agents) {
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
-                if (a.deadLogged && a.deathTimer > 0) {
-                    a.deathTimer -= dt;
-                    if (a.deathTimer <= 0) {
-                        a.fullyDead = true;
-                    }
-                }
                 continue;
             }
             this.cooldowns.update(a, dt);
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
             if (a.escapeCooldown > 0) a.escapeCooldown -= dt;
-            if (a._interruptCooldown > 0) a._interruptCooldown -= dt;
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
@@ -313,11 +306,22 @@ export class GameEngine {
 
         // Run AI tick after combat update so and CD/Cast status is from the current frame
         for (const a of this.agents) {
-            if (a.hp <= 0) continue;
+            if (a.hp <= 0) {
+                if (a.deadLogged && a.deathTimer > 0) {
+                    a.deathTimer -= dt;
+                    if (a.deathTimer <= 0) {
+                        a.fullyDead = true;
+                    }
+                }
+                continue;
+            }
             if (a.bt && a.aiUpdateTimer <= 0) {
                 a.bt.tick(a);
                 a.aiUpdateTimer = a.aiUpdateInterval;
             }
+            // [FIX] Decrement lockout timers after BT tick to ensure frame-local protection
+            if (a._interruptCooldown > 0) a._interruptCooldown -= dt;
+            if (a._castCompleteCooldown > 0) a._castCompleteCooldown -= dt;
         }
 
         this.hazardSystem.update(dt, this); 

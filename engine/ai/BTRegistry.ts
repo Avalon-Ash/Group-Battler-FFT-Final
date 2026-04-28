@@ -59,7 +59,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
 
-        // 格座標延遲補丁：用像素座標反推當前所在格
+        if (a.escapeCooldown > 0) return false;
+
+        // [FIX] Priority to grid coord. Only use pixel-fallback during movement
+        // to avoid jitter when the agent has logically reached a safe hex but px/py lag.
+        if (!a.isMoving) return false;
+
         const pixelHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
         const pixelKey = HexUtils.key(pixelHex);
         return engine.isWarningTile(pixelKey);
@@ -231,29 +236,34 @@ export const BTActions: Record<string, BTActionFn> = {
             if (path.length > 0) {
                 a.targetHex = path[path.length - 1];
             } else {
-                // 備援：鄰格評分
+                // 備援：鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
                 let bestNeighbor: any = null;
                 let lowestDanger = Infinity;
-                for (const n of neighbors) {
-                    if (!engine.map.isValid(n.q, n.r)) continue;
-                    const nKey = HexUtils.key(n);
-                    const nHazard = engine.state.hazards.get(nKey);
-                    const isEnemyHazard = nHazard && nHazard.team !== a.team;
-                    const isWarn = engine.isWarningTile(nKey);
-                    
-                    // If we find a safe tile, don't even consider warning tiles unless forced
-                    if (isWarn && lowestDanger < 10) continue;
 
-                    const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
-                    const occ = engine.getAgentAt(n.q, n.r);
-                    const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
-                    const totalScore = dangerScore + occPenalty;
-                    if (totalScore < lowestDanger) {
-                        lowestDanger = totalScore;
-                        bestNeighbor = n;
+                for (let pass = 0; pass < 2; pass++) {
+                    for (const n of neighbors) {
+                        if (!engine.map.isValid(n.q, n.r)) continue;
+                        const nKey = HexUtils.key(n);
+                        const isWarn = engine.isWarningTile(nKey);
+                        
+                        // Pass 0: Only non-warning tiles
+                        if (pass === 0 && isWarn) continue;
+
+                        const nHazard = engine.state.hazards.get(nKey);
+                        const isEnemyHazard = nHazard && nHazard.team !== a.team;
+                        const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
+                        const occ = engine.getAgentAt(n.q, n.r);
+                        const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
+                        const totalScore = dangerScore + occPenalty;
+                        if (totalScore < lowestDanger) {
+                            lowestDanger = totalScore;
+                            bestNeighbor = n;
+                        }
                     }
+                    if (bestNeighbor) break;
                 }
+
                 if (bestNeighbor) {
                     a.targetHex = bestNeighbor;
                     engine.log(a, 'DECISION', '逃生備援', '', `路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
@@ -267,6 +277,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
                 a.targetHex = null;
+                a.escapeCooldown = 0.15; // Buffer to prevent immediate re-trigger
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }

@@ -36,22 +36,41 @@ export abstract class BTNode {
 }
 export class Selector extends BTNode {
     private _interruptCount: number = 0;
+    private _runningIdx: number = -1;
+
     constructor(n: string, interruptCount: number = 0) {
         super(n, '?');
         this._interruptCount = interruptCount;
     }
+
     tick(ctx: any): NodeState {
-        // [FIX] Selectors should always evaluate branches from priority order 
-        // to allow switching when conditions change (e.g. survival vs combat).
+        // [FIX] Selector memory: only evaluate from start if no node was running,
+        // or check higher priority nodes to allow preemption.
+        const start = 0;
+        
         for (let i = 0; i < this.c.length; i++) {
+            // If i > _runningIdx, it means a higher priority branch is already running
+            // and we shouldn't even evaluate lower ones in a reactive tree unless we reset.
+            // However, this standard implementation allows higher priority nodes to preempt.
+            if (this._runningIdx !== -1 && i > this._runningIdx) break;
+
             const r = this.c[i].tick(ctx);
-            if (r === NodeState.RUNNING || r === NodeState.SUCCESS) {
+
+            if (r === NodeState.RUNNING) {
+                this._runningIdx = i;
+                return this.record(r);
+            }
+            if (r === NodeState.SUCCESS) {
+                this._runningIdx = -1;
                 return this.record(r);
             }
         }
+
+        this._runningIdx = -1;
         return this.record(NodeState.FAILURE);
     }
     reset() {
+        this._runningIdx = -1;
         super.reset();
     }
 }

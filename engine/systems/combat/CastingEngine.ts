@@ -76,6 +76,7 @@ export class CastingEngine {
         a.castingSkillIdx = -1;
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
+        a._castCompleteCooldown = 0.05; // [FIX] Lockout to prevent instant re-cast loop
         // [FIX] Ensure aiState doesn't remain in CASTING state
         if (
             a.aiState === AIState.CASTING_ULT ||
