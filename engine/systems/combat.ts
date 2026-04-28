@@ -113,7 +113,7 @@ export class CombatSystem {
         
         a.mp = Math.min(a.maxMp, Math.max(0, a.mp - s.cost + s.gain));
         // BASIC attacks do not have a mandatory 0.3s floor CD
-        const minCd = (s.tag === 'BASIC') ? 0 : 0.3;
+        const minCd = (s.tag === 'BASIC') ? 0.1 : 0.3;
         a.curCDs[a.castingSkillIdx] = Math.max(s.cd ?? 0, minCd); 
         
         if (s.tag !== 'BASIC') {

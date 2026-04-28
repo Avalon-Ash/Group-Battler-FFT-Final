@@ -35,12 +35,10 @@ export abstract class BTNode {
     }
 }
 export class Selector extends BTNode {
-    private _interruptCount: number = 0;
     private _runningIdx: number = -1;
 
-    constructor(n: string, interruptCount: number = 0) {
+    constructor(n: string) {
         super(n, '?');
-        this._interruptCount = interruptCount;
     }
 
     tick(ctx: any): NodeState {

@@ -319,9 +319,8 @@ export class GameEngine {
                 a.bt.tick(a);
                 a.aiUpdateTimer = a.aiUpdateInterval;
             }
-            // [FIX] Decrement lockout timers after BT tick to ensure frame-local protection
-            if (a._interruptCooldown > 0) a._interruptCooldown -= dt;
-            if (a._castCompleteCooldown > 0) a._castCompleteCooldown -= dt;
+            // [FIX] Decrement lockout timers after BT tick if needed, but CooldownSystem already does this.
+            // Removing redundant decrements to avoid double-taxing the timers.
         }
 
         this.hazardSystem.update(dt, this); 

@@ -58,7 +58,7 @@ export class AgentManager {
         engine.log(a, 'DEATH', '死亡', null, '陣亡');
         engine.events.push({ 
             type: 'DEATH', 
-            pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z }, 
+            pos: { x: a.px, y: a.py, z: 0 }, 
             sourceId: a.id, 
             targetId: a.id,
             team: a.team 
@@ -67,7 +67,7 @@ export class AgentManager {
         if (a.lastHitSourceId) {
             engine.events.push({
                 type: 'KILL',
-                pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z },
+                pos: { x: a.px, y: a.py, z: 0 },
                 sourceId: a.lastHitSourceId,
                 targetId: a.id
             });

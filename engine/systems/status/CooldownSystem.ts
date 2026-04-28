@@ -25,5 +25,11 @@ export class CooldownSystem {
             agent._interruptCooldown -= dt;
             if (agent._interruptCooldown < 0) agent._interruptCooldown = 0;
         }
+
+        // [FIX] Cast Completion Cooldown
+        if (agent._castCompleteCooldown > 0) {
+            agent._castCompleteCooldown -= dt;
+            if (agent._castCompleteCooldown < 0) agent._castCompleteCooldown = 0;
+        }
     }
 }

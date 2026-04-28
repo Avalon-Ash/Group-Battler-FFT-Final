@@ -91,6 +91,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const isOnCD = cd > tolerance; 
         
         if (isOnCD || a.mp < s.cost) return false;
+        if (a._castCompleteCooldown > 0) return false;
+        if (a._interruptCooldown > 0) return false;
         if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
         
