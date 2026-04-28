@@ -59,12 +59,15 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
 
-        if (a.escapeCooldown > 0) return false;
+        // [FIX] Danger is objective. Cooldown should not hide it.
+        // But we allow a small grace period for physics-based knockbacks to settle.
 
-        // [FIX] Priority to grid coord. Only use pixel-fallback during movement
-        // to avoid jitter when the agent has logically reached a safe hex but px/py lag.
-        if (!a.isMoving) return false;
+        if (!a.isMoving) {
+            // Check current logical grid
+            if (engine.isWarningTile(myKey)) return true;
+        }
 
+        // Projection check for fluid movement
         const pixelHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
         const pixelKey = HexUtils.key(pixelHex);
         return engine.isWarningTile(pixelKey);
@@ -74,7 +77,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         BTConditions["IsEvading"](a, engine) ||
         BTConditions["IsInWarningZone"](a, engine),
 
-    "SkillReady": (a, _, args) => {
+    "SkillReady": (a, engine, args) => {
         const idx = args.slot; 
         if (idx === undefined || idx < 0 || idx >= a.skills.length) return false;
         const s = a.skills[idx];
@@ -96,6 +99,14 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
         
+        // [FIX] Survival Check: Don't even start a skill if it will likely lead to death via ground collapse
+        if (engine.isWarningTile(HexUtils.key(a))) {
+            const timeToCollapse = engine.zones.shrinkTimer;
+            const safetyBuffer = 0.2;
+            if (s.tag === 'BASIC') return false; // Never stand still for basics in a collapse zone
+            if ((s.cast + safetyBuffer) > timeToCollapse) return false;
+        }
+
         return true;
     },
     
@@ -190,7 +201,10 @@ export const BTActions: Record<string, BTActionFn> = {
 
         return NodeState.RUNNING;
     },
-    "Idle": (a) => {
+    "Idle": (a, engine) => {
+        if (engine && engine.isWarningTile(HexUtils.key(a))) {
+            engine.log(a, 'DECISION', '決策異常', '', '注意：單位在危險區進入 IDLE 狀態！可能是戰鬥邏輯均失敗。');
+        }
         a.aiState = AIState.IDLE;
         a.actionState = ActionState.IDLE;
         if (a.isMoving) {
@@ -218,6 +232,7 @@ export const BTActions: Record<string, BTActionFn> = {
         })();
 
         if (needsNewTarget) {
+            engine.log(a, 'DECISION', '生存：重置目標', '', '需要新的逃生路徑...');
             // 中斷詠唱邏輯
             if (a.castingSkillIdx !== -1) {
                 const castSkill = a.skills[a.castingSkillIdx];
@@ -227,17 +242,15 @@ export const BTActions: Record<string, BTActionFn> = {
                     const isWarning = engine.isWarningTile(myKey);
                     let isFatal = false;
 
-                    // [REFACTORED] Use dynamic shrink timer from ZoneSystem to decide if we can finish casting
+                    // [REFACTORED] Use refined SkillReady check to prevent initiation, 
+                    // but keep the break-logic for skills that became fatal after starting.
                     const timeToCollapse = engine.zones.shrinkTimer;
-                    const safetyBuffer = 0.2; // Min time needed to step out after cast
+                    const safetyBuffer = 0.2; 
 
                     if (isWarning) {
-                        // If it's a basic attack, it's rarely worth dying for unless it's the very last hit (too complex to guess)
-                        // So we break basic attacks early to prioritize positioning.
                         if (castSkill.tag === 'BASIC') {
                             isFatal = true;
                         } else {
-                            // Can I finish this skill before the ground disappears?
                             isFatal = (a.castTimer + safetyBuffer) > timeToCollapse;
                         }
                     }
@@ -247,15 +260,19 @@ export const BTActions: Record<string, BTActionFn> = {
                     if (isFatal) {
                         engine.log(a, 'DECISION', '中斷詠唱', '', `地面即將塌陷 (${timeToCollapse.toFixed(1)}s)，放棄詠唱 ${castSkill.name}`);
                         engine.combat.breakCast(a, engine);
+                        // [FIX] Long lockout for fatal breaks to ensure the unit actually tries to move 
+                        // before the next AI tick potentially re-evaluates SkillReady
+                        a._interruptCooldown = 0.5;
                     }
                 }
             }
 
-            const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
-            const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
+            const path = engine.movement.pathfinder.findPathToSafety(a, a, engine, engine.movement.targeting);
 
-            if (path.length > 0) {
+            if (path.length > 1) {
+                // path[0] is current pos, we want a target that is NOT current pos
                 a.targetHex = path[path.length - 1];
+                engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.targetHex)}`);
             } else {
                 // 備援：鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
@@ -265,6 +282,10 @@ export const BTActions: Record<string, BTActionFn> = {
                 for (let pass = 0; pass < 2; pass++) {
                     for (const n of neighbors) {
                         if (!engine.map.isValid(n.q, n.r)) continue;
+                        
+                        // [FIX] Don't pick neighbors that are physically blocked by terrain
+                        if (engine.isBlocked(n.q, n.r, a.id, a.movementType)) continue;
+
                         const nKey = HexUtils.key(n);
                         const isWarn = engine.isWarningTile(nKey);
                         
@@ -287,7 +308,14 @@ export const BTActions: Record<string, BTActionFn> = {
 
                 if (bestNeighbor) {
                     a.targetHex = bestNeighbor;
-                    engine.log(a, 'DECISION', '逃生備援', '', `路徑失敗，強制移往鄰格(${bestNeighbor.q},${bestNeighbor.r})`);
+                    engine.log(a, 'DECISION', '生存：鄰格備援', '', `無路徑，強制移往鄰格 ${HexUtils.key(bestNeighbor)}`);
+                } else {
+                    engine.log(a, 'DECISION', '生存：絕望', '', `無路徑且無可通行的鄰格！嘗試暴力衝刺至任意鄰位以打破死鎖。`);
+                    // [PANIC] If totally stuck, just pick any logical non-collapsed neighbor even if blocked by unit
+                    const anyNeighbor = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.hasObstacleHash(HexUtils.hash(n.q, n.r)));
+                    if (anyNeighbor) {
+                        a.targetHex = anyNeighbor;
+                    }
                 }
             }
         }
@@ -306,13 +334,14 @@ export const BTActions: Record<string, BTActionFn> = {
 
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
+                engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.targetHex)}`);
                 a.targetHex = null;
-                a.escapeCooldown = 1.0; 
+                // [FIX] Reduce cooldown significantly. 0.2s is enough to prevent jitter 
+                // but 1.0s was making them sit on dangerous tiles far too long.
+                a.escapeCooldown = 0.2; 
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
-                // [FIX] Return SUCCESS to signify survival sequence completion for this frame.
-                // This prevents Combat logic from immediately interrupting the safe state.
                 return NodeState.SUCCESS;
             }
             if (state === NodeState.RUNNING) {
@@ -320,19 +349,26 @@ export const BTActions: Record<string, BTActionFn> = {
                 return NodeState.RUNNING;
             }
             if (state === NodeState.FAILURE) {
-                // 移動失敗清掉目標下一幀重找
+                engine.log(a, 'DECISION', '生存：移動失敗', '', `無法移動至目標格 ${HexUtils.key(a.targetHex)}`);
+                // 移動失敗清掉目標下一幀重找，並回傳 FAILURE 讓 AI 有機會思考其他解法
                 a.targetHex = null;
                 a.aiState = AIState.IDLE;
-                return NodeState.SUCCESS; // [FIX] Returning success prevents falling through to combat while stuck
+                return NodeState.FAILURE; 
             }
         }
 
         // targetHex 完全為 null（完全被包圍無路可走）
-        // 如果還在危險中，保持 RUNNING 保護，防止下行 Combat 分支發呆
+        // 如果還在危險中，我們返回 FAILURE 讓 AI 有機會至少執行 Combat 分支（困獸之鬥）
+        // 而不是停留在此分支返回 RUNNING 導致發呆
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
-            a.aiState = AIState.EVADING_URGENT;
-            a.actionState = ActionState.EVADING;
-            return NodeState.RUNNING;
+            // 如果已經在移動中，則維持 RUNNING
+            if (a.isMoving) {
+                a.aiState = AIState.EVADING_URGENT;
+                a.actionState = ActionState.EVADING;
+                return NodeState.RUNNING;
+            }
+            engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，強制開啟戰鬥決策');
+            return NodeState.FAILURE; 
         }
         return NodeState.SUCCESS;
     },
@@ -363,21 +399,25 @@ export const BTActions: Record<string, BTActionFn> = {
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
-            // [REMOVED] Redundant danger check that caused idle/twitching loops
-            // Combat logic should be allowed to fail so Survival can catch the danger.
-
-            // Destination safety check
+            // [FIX] Attacks should be allowed even if target is in a danger zone.
+            // Only the ATTACKER needs to find a safe destination.
+            
+            // Check if our current destination is safe FOR US
             const destKey = HexUtils.key(dest);
             const hazard = engine.state.hazards.get(destKey);
-            const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+            const isUnsafeForMe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
             
-            if (isUnsafe) {
-                const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
-                const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
-                if (path.length > 0) {
+            if (isUnsafeForMe) {
+                const startHex = { q: a.q, r: a.r };
+                const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
+                if (path.length > 1) {
                     dest = path[path.length - 1];
+                } else if (engine.isWarningTile(HexUtils.key(startHex))) {
+                   // If we are currently in danger and can't find safety, abort combat to allow survival logic to rethink
+                   return NodeState.FAILURE;
                 } else {
-                    return NodeState.FAILURE;
+                   // Cannot reach target safely, try another target if possible
+                   return NodeState.FAILURE;
                 }
             }
 
@@ -397,23 +437,30 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
 
-        // [REMOVED] Redundant danger check that caused idle/twitching loops
-
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
         
         let dest = { q: a.target.q, r: a.target.r };
+
+        // [FIX] Attacker safety check: are we chasing them into a death trap?
         const destKey = HexUtils.key(dest);
         const hazard = engine.state.hazards.get(destKey);
-        const isUnsafe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+        const isUnsafeForMe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
 
-        if (isUnsafe) {
-            const realHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
-            const path = engine.movement.pathfinder.findPathToSafety(realHex, a, engine, engine.movement.targeting);
-            if (path.length > 0) {
-                dest = path[path.length - 1] as any;
+        if (isUnsafeForMe) {
+            const startHex = { q: a.q, r: a.r };
+            const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
+            if (path.length > 1) {
+                dest = path[path.length - 1];
+            } else if (engine.isWarningTile(HexUtils.key(startHex))) {
+                // If we are currently in danger and cannot find safety, abort combat to allow survival logic to rethink
+                return NodeState.FAILURE; 
             } else {
-                return NodeState.FAILURE;
+                // Target is in danger, but we are safe and can't go closer safely.
+                // If we are already in range, this is fine (we'll just stand and attack).
+                // If not in range, we'll return failure so the BT can try another target.
+                const dist = HexUtils.dist(startHex, dest);
+                if (dist > skill.range + 0.1) return NodeState.FAILURE;
             }
         }
 

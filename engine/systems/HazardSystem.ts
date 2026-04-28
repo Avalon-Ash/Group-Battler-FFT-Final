@@ -46,6 +46,12 @@ export class HazardSystem {
         };
         
         hazards.set(key, hazard);
+        
+        // [PROACTIVE PUSH] If an agent is standing in the new hazard, force immediate AI tick
+        const victim = engine.getAgentAt(q, r);
+        if (victim && victim.hp > 0 && victim.team !== team) {
+            victim.forceAiUpdate = true;
+        }
 
         const def = HAZARD_VISUALS[type];
         if (def && def.spawnVfx) {

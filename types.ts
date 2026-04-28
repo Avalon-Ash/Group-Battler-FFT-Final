@@ -26,6 +26,8 @@ export interface SpatialProvider {
     updateAgentPosition(agent: Agent, q: number, r: number): void;
     getAgents(): Agent[];
     isWarningTile(key: string): boolean;
+    getTileDepth(q: number, r: number): number;
+    getCurrentShrinkLevel(): number;
 }
 
 export interface Projectile {

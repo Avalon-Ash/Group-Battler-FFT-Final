@@ -36,8 +36,11 @@ export class TargetingSystem {
             penalty = Math.min(2, Math.floor(Math.abs(deltaH) / BLOCK_HEIGHT));
         }
 
-        // 最終射程計算：確保最少仍有 1 的射程，且普攻以外的技能不受過度懲罰
-        return Math.max(1, baseRange + bonus - penalty);
+        // 最終射程計算：確保普攻以外的技能不受過度懲罰。
+        // [FIX] 如果 baseRange 是 0 (用於精確移動/逃生)，則不應強制 +1，否則會導致提早停止移動。
+        const result = baseRange + bonus - penalty;
+        if (baseRange === 0) return Math.max(0, result);
+        return Math.max(1, result);
     }
 
     /**

@@ -45,30 +45,33 @@ export class CastingEngine {
             return;
         }
 
-        // [FIX] Prevent rapid fire interrupt -> recast loops in the same frame
-        if (a._interruptCooldown > 0) return;
-        a._interruptCooldown = 0.1; // 100ms lockout for interrupts
-
         const skillIdx = a.castingSkillIdx;
-        if (skillIdx !== -1 && a.castTimer > 0 && a.skills[skillIdx]) {
-            const s = a.skills[skillIdx]!;
-            if (s.tag !== 'BASIC') {
-                // 計算進度比：進度越高，中斷爆炸越強
-                const progressPct = 1 - (a.castTimer / s.cast);
+        const currentSkill = skillIdx !== -1 ? a.skills[skillIdx] : null;
+
+        // [FIX] Only log/effect if not in recent interrupt cooldown to prevent spam
+        if (a._interruptCooldown <= 0 && currentSkill) {
+            a._interruptCooldown = 0.1; // 100ms lockout for interrupts
+            
+            if (currentSkill.tag !== 'BASIC') {
+                const progressPct = 1 - (a.castTimer / currentSkill.cast);
+                engine.log(a, 'CC', '中斷', currentSkill.name, `詠唱被打斷 (進度: ${Math.floor(progressPct * 100)}%)`);
                 
-                engine.log(a, 'CC', '中斷', s.name, `詠唱被打斷 (進度: ${Math.floor(progressPct * 100)}%)`);
+                // [FIX] Infinite Casting: Apply a small penalty CD to the skill if interrupted 
+                // prevents immediate re-cast loop when stuttering or under partial CC
+                a.curCDs[skillIdx] = Math.max(a.curCDs[skillIdx] || 0, 0.5);
                 
-                // 傳遞精確的 3D 位置與進度參數，並補上 sourceId
                 engine.events.push({ 
                     type: 'CAST_BREAK', 
                     pos: { x: a.px, y: a.py }, 
-                    value: progressPct, // 這裡重用 value 傳遞進度
-                    color: s.color, 
-                    skill: s,
+                    value: progressPct,
+                    color: currentSkill.color, 
+                    skill: currentSkill,
                     sourceId: a.id 
                 });
             }
         }
+
+        // [CRITICAL] Always reset caster state even if cooldown-throttled
         this.resetCaster(a);
     }
 

@@ -133,6 +133,8 @@ export class GameEngine {
     public getAgents(): Agent[] { return this.agents; }
     public isWarningTile(key: string): boolean { return this.map.warningTiles.has(key); }
     public getHazard(key: string): GroundHazard | undefined { return this.state.hazards.get(key); }
+    public getTileDepth(q: number, r: number): number { return this.zones.getTileDepth(q, r); }
+    public getCurrentShrinkLevel(): number { return this.zones.currentShrinkLevel; }
 
     public randomizeEnvironment() { 
         this.state.hazards.clear(); 
@@ -315,9 +317,14 @@ export class GameEngine {
                 }
                 continue;
             }
-            if (a.bt && a.aiUpdateTimer <= 0) {
+            if (a.bt && (a.aiUpdateTimer <= 0 || a.forceAiUpdate)) {
+                const inDanger = this.isWarningTile(HexUtils.key(a));
+                if (inDanger) {
+                    this.log(a, 'SYSTEM', '危險決策', '', `單位處於塌陷區，啟動行為樹決策...`);
+                }
                 a.bt.tick(a);
                 a.aiUpdateTimer = a.aiUpdateInterval;
+                a.forceAiUpdate = false;
             }
             // [FIX] Decrement lockout timers after BT tick if needed, but CooldownSystem already does this.
             // Removing redundant decrements to avoid double-taxing the timers.

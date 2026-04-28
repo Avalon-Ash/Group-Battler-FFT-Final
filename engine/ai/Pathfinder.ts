@@ -137,6 +137,8 @@ export class Pathfinder {
 
         let iterations = 0;
         let bestH = -1;
+        let bestDepth = -1;
+        const currentShrink = spatial.getCurrentShrinkLevel();
         const MAX_ITER = 1000; 
 
         while (this._pq.length > 0 && iterations < MAX_ITER) {
@@ -145,25 +147,33 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
             const currentKey = HexUtils.key(currentHex);
 
-            if (current.hash === startH) {
-                // 跳過起點本身，不能作為「安全目的地」
-            } else {
-                const hazardAtNode = spatial.getHazard(currentKey);
-                const isSafe = !targeting.isWarningTile(currentKey, spatial) && 
-                            (!hazardAtNode || hazardAtNode.team === agent.team);
-                
-                // 成功判定：找到非警告區域的合法地塊，且沒有敵方 hazard
-                if (isSafe && spatial.isValidHash(current.hash)) {
-                    // 飛行單位：確認目標格沒有地面障礙物阻擋降落（blocksFlying 判定）
-                    if (agent.movementType === MovementType.FLYING) {
-                        const obsType = spatial.getObstacleTypeHash(current.hash);
-                        if (obsType) {
-                            const def = OBSTACLE_DB[obsType];
-                            if (def?.blocksFlying) continue; // 這格對飛行仍是障礙，跳過
-                        }
+            const hazardAtNode = spatial.getHazard(currentKey);
+            const isSafe = !targeting.isWarningTile(currentKey, spatial) && 
+                        (!hazardAtNode || hazardAtNode.team === agent.team);
+            
+            if (isSafe && spatial.isValidHash(current.hash)) {
+                // Confirm landing for flying
+                let canLand = true;
+                if (agent.movementType === MovementType.FLYING) {
+                    const obsType = spatial.getObstacleTypeHash(current.hash);
+                    if (obsType && OBSTACLE_DB[obsType]?.blocksFlying) canLand = false;
+                }
+
+                if (canLand) {
+                    const depth = spatial.getTileDepth(currentHex.q, currentHex.r);
+                    // Goal: Reach at least 2 layers deep into safety if possible
+                    const targetSafetyDepth = currentShrink + 2; 
+
+                    if (depth > bestDepth) {
+                        bestDepth = depth;
+                        bestH = current.hash;
                     }
-                    bestH = current.hash;
-                    break;
+
+                    // If we reached the target safety depth, we are satisfied
+                    if (depth >= targetSafetyDepth) break;
+
+                    // If we found ANY safety and we've searched enough, we can stop
+                    if (bestH !== -1 && iterations > 200) break;
                 }
             }
 
@@ -211,12 +221,21 @@ export class Pathfinder {
                     this._cameFrom.set(neighborH, current.hash);
                     this._gScore.set(neighborH, tentativeG);
                     
-                    // 飛行單位缺乏地形導引，補上安全格方向啟發
-                    let heuristic = 0;
-                    if (agent.movementType === MovementType.FLYING) {
-                        // 用距離起點的反向作為啟發（越遠離危險起點越好）
-                        heuristic = -HexUtils.dist(nHex, start) * 0.3;
+                    // [PROACTIVE ESCAPE] Use global knowledge of safe center and depth
+                    // This prevents brute-force BFS that might stray into long paths
+                    const nDepth = spatial.getTileDepth(nHex.q, nHex.r);
+                    const distToCenter = HexUtils.dist(nHex, { q: 0, r: 0 });
+                    
+                    let heuristic = distToCenter * 0.5; // Favor items near center
+                    if (nDepth !== -1) {
+                        heuristic -= nDepth * 2.0; // Strongly favor moving inward (higher depth)
                     }
+
+                    // Special bias for flying units to keep them moving if they catch a loop
+                    if (agent.movementType === MovementType.FLYING) {
+                        heuristic -= HexUtils.dist(nHex, start) * 0.1;
+                    }
+                    
                     this.pqPush(neighborH, tentativeG + heuristic);
                 }
             }

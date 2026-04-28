@@ -17,11 +17,15 @@ export class ZoneSystem {
     public safeRadius: number = 999;
     public shrinkTimer: number = 0;
     public collapsingTiles: Map<string, { z: number, speed: number, q: number, r: number, h: number }> = new Map();
-    private tileDepths: Map<string, number> = new Map();
-    private currentShrinkLevel: number = 0;
-    private maxDepth: number = 0;
+    public tileDepths: Map<string, number> = new Map();
+    public currentShrinkLevel: number = 0;
+    public maxDepth: number = 0;
     private initialized: boolean = false;
     private finalPhaseTargetKey: string | null = null;
+
+    public getTileDepth(q: number, r: number): number {
+        return this.tileDepths.get(`${q},${r}`) ?? -1;
+    }
 
     public update(dt: number, engine: GameEngine) {
         this.activeZones = [];
@@ -46,17 +50,28 @@ export class ZoneSystem {
                 
                 // Identify which tiles to warn
                 let count = 0;
+                let newlyWarned = false;
+                
+                // Clear and re-add logic. 
+                // [OPTIMIZATION] Only clear when shrinkTimer wraps or at start of warning period
+                const isTickSecond = Math.floor(this.shrinkTimer + 0.001) !== Math.floor(this.shrinkTimer + dt + 0.001);
+                
+                // For simplicity and reactivity, we keep the clear but we'll check if agents are newly caught
+                const oldWarnings = new Set(engine.map.warningTiles);
+                engine.map.warningTiles.clear();
+                
                 if (this.safeRadius > engine.zoneConfig.minRadius) {
                     // Normal layer-based warning
                     for (const key of engine.map.mapKeys) {
                         const depth = this.tileDepths.get(key);
                         if (depth !== undefined && depth === this.currentShrinkLevel) {
                             engine.map.warningTiles.add(key);
+                            if (!oldWarnings.has(key)) newlyWarned = true;
                             count++;
                         }
                     }
                 } else if (engine.map.mapKeys.size > engine.zoneConfig.minRadius) {
-                    // Final phase: random tile warning if more than minRadius tiles remain
+                    // Final phase
                     if (!this.finalPhaseTargetKey || !engine.map.mapKeys.has(this.finalPhaseTargetKey)) {
                         const keys = Array.from(engine.map.mapKeys).sort();
                         const seed = Math.floor(this.currentShrinkLevel * 31 + engine.map.mapKeys.size); 
@@ -64,11 +79,22 @@ export class ZoneSystem {
                         this.finalPhaseTargetKey = keys[randomIndex];
                     }
                     engine.map.warningTiles.add(this.finalPhaseTargetKey);
+                    if (!oldWarnings.has(this.finalPhaseTargetKey)) newlyWarned = true;
                     count = 1;
                 }
                 
+                // [PROACTIVE PUSH] If new tiles were warned, alert agents on them
+                if (newlyWarned) {
+                    for (const a of engine.agents) {
+                        if (a.hp <= 0) continue;
+                        if (engine.isWarningTile(HexUtils.key(a))) {
+                            a.forceAiUpdate = true;
+                        }
+                    }
+                }
+                
                 // Log warning
-                if (count > 0 && Math.floor(this.shrinkTimer + 0.001) !== Math.floor(this.shrinkTimer + dt + 0.001)) {
+                if (count > 0 && isTickSecond) {
                     const remaining = Math.ceil(this.shrinkTimer - 0.001);
                     if (remaining <= 5 || remaining % 5 === 0) {
                         engine.log(null, 'SYSTEM', '縮圈警告', null, `${Math.max(0, remaining)}秒後地形塌陷`);
