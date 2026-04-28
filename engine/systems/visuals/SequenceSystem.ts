@@ -11,6 +11,7 @@ interface QueuedAction {
     action: VFXAction;
     target: Point3D;
     source?: Point3D;
+    sourceId?: string; // Track who started this sequence
 }
 
 export class SequenceSystem {
@@ -18,6 +19,14 @@ export class SequenceSystem {
 
     public clear() {
         this.actionQueue = [];
+    }
+
+    /**
+     * Cancel all pending actions from a specific source (usually because of an interrupt)
+     */
+    public cancel(sourceId: string) {
+        if (!sourceId) return;
+        this.actionQueue = this.actionQueue.filter(item => item.sourceId !== sourceId);
     }
 
     public run(
@@ -39,7 +48,7 @@ export class SequenceSystem {
             if (executeAt <= baseTime) {
                 this.dispatch(action, target, sourcePos, vfx, engine);
             } else {
-                this.actionQueue.push({ executeAt, action, target, source: sourcePos });
+                this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId });
             }
         });
     }

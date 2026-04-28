@@ -40,7 +40,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
         name: '稜鏡反射', desc: '反傷護盾', 
         range: 0, cast: 0.3, cd: 10.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 0, color: '#fff', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 0, color: '#ffffff', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'LIGHTNING'
     },
@@ -179,7 +179,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'sb_a2', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
         name: '光能屏障', desc: '隊友護盾', 
         range: 7, cast: 0.4, cd: 7.0, cost: 30, gain: 0, 
-        type: 'SINGLE', power: 0, color: '#fff', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 0, color: '#ffffff', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, 
         visualHitEffect: 'FX_ACTIVE_BLUE_TECH_SHIELD', element: 'LIGHTNING'
     },

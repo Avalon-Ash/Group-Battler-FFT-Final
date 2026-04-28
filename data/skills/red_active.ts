@@ -123,7 +123,7 @@ export const RED_ACTIVE: Skill[] = [
         id: 'rr_a5', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
         name: '遠程狙殺', desc: '超遠傷害', 
         range: 8, cast: 1.5, cd: 12.0, cost: 50, gain: 0, 
-        type: 'SINGLE', power: 300, color: '#000', visual: 'BOLT', projectileSpeed: 3000, 
+        type: 'SINGLE', power: 300, color: '#000000', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT', element: 'PHYSICAL'
     },
 

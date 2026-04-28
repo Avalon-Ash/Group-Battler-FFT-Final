@@ -25,7 +25,7 @@ export class VFXTextureCache {
         if (this.cache.has(key)) return this.cache.get(key)!;
 
         // [FIX] Warning for unknown types
-        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW']);
+        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'GLITCH']);
         if (!KNOWN_TYPES.has(type)) {
             console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
         }
@@ -89,6 +89,15 @@ export class VFXTextureCache {
                 ctx.globalAlpha = 0.7;
                 ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, -6); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, 6); ctx.stroke();
+                break;
+            }
+            case 'GLITCH': {
+                ctx.fillStyle = color;
+                for (let i = 0; i < 4; i++) {
+                    const h_rect = 2 + Math.random() * 3;
+                    const w_rect = 20 + Math.random() * 40;
+                    ctx.fillRect(-w_rect / 2, (Math.random() - 0.5) * 50, w_rect, h_rect);
+                }
                 break;
             }
             default:

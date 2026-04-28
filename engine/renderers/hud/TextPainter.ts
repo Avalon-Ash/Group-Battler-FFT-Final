@@ -28,11 +28,19 @@ export const TextPainter = {
 
             if (d.isShattered) {
                 const shatterProgress = 1 - lifePct;
-                const scale = 1.0 + shatterProgress * 0.6;
+                const scale = 1.0 + shatterProgress * 0.8;
                 ctx.scale(scale, scale);
                 // 模擬爆炸後的亂流位移
-                ctx.translate((Math.random()-0.5)*4, (Math.random()-0.5)*4);
+                ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
             } else if (d.type === 'SHOUT') {
+                // Entry Pop up animation
+                const entryDuration = 0.25;
+                if (d.time < entryDuration) {
+                    const t = d.time / entryDuration;
+                    const bounce = Math.sin(t * Math.PI) * 0.2;
+                    const s = t * 1.0 + bounce;
+                    ctx.scale(s, s);
+                }
                 const floatY = Math.sin(d.time * 6) * 3;
                 ctx.translate(0, floatY);
             }
@@ -58,8 +66,6 @@ export const TextPainter = {
                     d.cachedWidth = ctx.measureText(d.text).width;
                 }
 
-                // 視覺參數：虛像化設計 (Holographic Design)
-                // 寬度稍微加寬以容納括號
                 const w = d.cachedWidth! + 24; 
                 const h = d.size + (d.isUlt ? 16 : 10);
                 const halfW = w / 2;
@@ -67,28 +73,60 @@ export const TextPainter = {
 
                 ctx.font = d.isUlt ? `900 italic ${d.size}px "Arial Black", sans-serif` : `bold ${d.size}px "Segoe UI", sans-serif`;
 
-                if (d.isUlt) {
-                    const scale = 1 + (1 - lifePct) * 0.1; 
-                    ctx.scale(scale, scale);
+                if (d.isUlt && !d.isShattered) {
+                    const pulse = 1 + Math.sin(d.time * 12) * 0.05; 
+                    ctx.scale(pulse, pulse);
                 }
 
                 if (d.isShattered) {
-                    // 破碎狀態：灰色空殼，無光效
-                    ctx.fillStyle = 'rgba(30, 30, 30, 0.6)'; 
-                    ctx.fillRect(-halfW, -halfH, w, h);
-                    ctx.strokeStyle = 'rgba(255,50,50,0.3)';
-                    ctx.lineWidth = 1;
-                    ctx.strokeRect(-halfW, -halfH, w, h);
-                    ctx.fillStyle = '#94a3b8'; 
-                    ctx.fillText(d.text, 0, 0);
-                } else {
-                    // --- 1. 繪製科技括號 (Tech Brackets) ---
-                    // 不再繪製笨重的實心黑底，改用輕量級邊框
-                    ctx.strokeStyle = d.color;
-                    ctx.lineWidth = 1.5;
-                    ctx.globalAlpha = 0.8;
+                    // --- 破棄演出：數位故障 Glitch / RGB Split ---
+                    const glitch = Math.random();
+                    ctx.globalAlpha = lifePct;
                     
-                    const bracketSize = 6;
+                    // RGB Split 效果
+                    ctx.save();
+                    ctx.globalCompositeOperation = 'screen';
+                    
+                    // Red Channel
+                    ctx.fillStyle = '#ff0000';
+                    ctx.fillText(d.text, (glitch-0.5)*8, (Math.random()-0.5)*4);
+                    
+                    // Cyan Channel
+                    ctx.fillStyle = '#00ffff';
+                    ctx.fillText(d.text, (Math.random()-0.5)*8, (glitch-0.5)*4);
+                    
+                    // Main Shattered Text (White/Grey)
+                    ctx.restore();
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(d.text, 0, 0);
+
+                    // 繪製破碎的科技背景框
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2;
+                    ctx.globalAlpha = lifePct * 0.5;
+                    ctx.strokeRect(-halfW - glitch*10, -halfH, w + glitch*20, h);
+                    
+                    // 靜態雜訊特效
+                    if (glitch > 0.7) {
+                        ctx.fillStyle = '#fff';
+                        for(let i=0; i<3; i++) {
+                            ctx.fillRect(-halfW, (Math.random()-0.5)*h, w, 1);
+                        }
+                    }
+
+                } else {
+                    // --- 詠唱演出：科技掃描與脈動 ---
+                    // 1. 繪製半透明背景底色
+                    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+                    ctx.fillRect(-halfW, -halfH, w, h);
+
+                    // 2. 科技括號 (Tech Brackets)
+                    ctx.strokeStyle = d.color;
+                    ctx.lineWidth = 2;
+                    const glowIntensity = 0.5 + Math.sin(d.time * 8) * 0.3;
+                    ctx.globalAlpha = glowIntensity;
+                    
+                    const bracketSize = 8;
                     ctx.beginPath();
                     // 左括號 [
                     ctx.moveTo(-halfW + bracketSize, -halfH);
@@ -102,47 +140,43 @@ export const TextPainter = {
                     ctx.lineTo(halfW - bracketSize, halfH);
                     ctx.stroke();
 
-                    // --- 2. 繪製幽靈底字 (The Ghost) ---
-                    // 代表未充能的部分，半透明，顯示結構
-                    ctx.fillStyle = d.color;
-                    ctx.globalAlpha = 0.2; // Dim Ghost
-                    ctx.fillText(d.text, 0, 0);
-
-                    // --- 3. 繪製實像填充 (The Fill) ---
-                    // 使用 Clip Mask 模擬「文字被填滿」的效果
+                    // 3. 填滿進度與亮色文字
+                    ctx.globalAlpha = 1.0;
                     const progress = Math.min(1.0, d.time / d.totalDuration);
                     
-                    if (progress > 0.01) {
+                    // 幽靈文字 (底色)
+                    ctx.fillStyle = d.color;
+                    ctx.globalAlpha = 0.15;
+                    ctx.fillText(d.text, 0, 0);
+
+                    if (progress > 0) {
                         ctx.save();
-                        
-                        // 定義裁切區域 (從左至右掃描)
                         const revealW = w * progress;
                         ctx.beginPath();
-                        // 裁切區需稍微寬一點覆蓋文字邊緣
                         ctx.rect(-halfW, -halfH, revealW, h);
                         ctx.clip();
 
-                        // 繪製亮色文字 (Fully Opaque)
+                        // 填充區背景光暈
+                        const grad = ctx.createLinearGradient(-halfW, 0, -halfW + revealW, 0);
+                        grad.addColorStop(0, 'rgba(255,255,255,0)');
+                        grad.addColorStop(1, d.color + '44');
+                        ctx.fillStyle = grad;
+                        ctx.fillRect(-halfW, -halfH, revealW, h);
+
                         ctx.globalAlpha = 1.0;
-                        ctx.fillStyle = '#ffffff'; // 核心亮白
-                        
-                        // 讓實像文字帶有技能顏色的光暈 (取代漸層)
+                        ctx.fillStyle = '#ffffff';
                         ctx.shadowColor = d.color;
-                        ctx.shadowBlur = d.isUlt ? 15 : 8;
-                        
+                        ctx.shadowBlur = d.isUlt ? 20 : 10;
                         ctx.fillText(d.text, 0, 0);
                         
-                        // --- 4. 掃描線 (Scanner Line) ---
-                        // 在裁切邊緣繪製一條高亮線，增加數據傳輸感
-                        const scanX = -halfW + revealW;
-                        // 只有當進度未完成時才畫掃描線
-                        if (progress < 0.98) {
-                            ctx.shadowBlur = 5;
-                            ctx.shadowColor = '#fff';
+                        // Scanner Line
+                        if (progress < 0.99) {
+                            const scanX = -halfW + revealW;
                             ctx.fillStyle = '#fff';
-                            ctx.fillRect(scanX - 1, -halfH + 2, 2, h - 4);
+                            ctx.shadowBlur = 15;
+                            ctx.shadowColor = '#fff';
+                            ctx.fillRect(scanX - 1.5, -halfH + 1, 3, h - 2);
                         }
-                        
                         ctx.restore();
                     }
                 }

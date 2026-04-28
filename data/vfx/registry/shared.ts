@@ -68,6 +68,12 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', delay: 0, vRotation: [20, 50] 
             },
             {
+                particleType: 'GLITCH', count: [4, 6], lifetime: [0.2, 0.4],
+                size: [30, 60], speed: [100, 200], vz: [100, 200],
+                colors: ['#ef4444', '#ffffff', '#00ffff'], shape: 'BURST_DIR',
+                blendMode: 'screen', delay: 0
+            },
+            {
                 particleType: 'SMOKE_PUFF', count: [4, 6], lifetime: [0.3, 0.5],
                 size: [20, 35], speed: [50, 100], vz: [50, 150],
                 colors: ['#64748b'], shape: 'CIRCLE', shapeRadius: 10,

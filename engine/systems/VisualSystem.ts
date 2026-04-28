@@ -50,6 +50,12 @@ export class VisualSystem {
                     return; 
                 }
             }
+            
+            if (event.type === 'CAST_BREAK' && event.sourceId) {
+                sequences.cancel(event.sourceId);
+                // Also let Mapper handle the particles
+            }
+
             this.vfxMapper.process(event, engine, vfx, grid, camera, sequences);
         });
     }

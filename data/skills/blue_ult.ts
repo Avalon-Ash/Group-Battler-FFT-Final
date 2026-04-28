@@ -135,7 +135,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'rb_u5', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
         name: '系統超載', desc: '極速連射', 
         range: 10, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1000, color: '#fff', 
+        type: 'SINGLE', power: 1000, color: '#ffffff', 
         visual: 'BOLT', projectileSpeed: 2500, 
         visualHitEffect: 'FX_ULT_BLUE_OVERLOAD'
     },
