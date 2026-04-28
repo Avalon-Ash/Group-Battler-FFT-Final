@@ -22,6 +22,12 @@ export class VFXTextureCache {
         const key = `T92_${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
+        // [FIX] Warning for unknown types
+        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM']);
+        if (!KNOWN_TYPES.has(type)) {
+            console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
+        }
+
         const { canvas, ctx } = createCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
         ctx.translate(CENTER, CENTER);
         const r = 40; 

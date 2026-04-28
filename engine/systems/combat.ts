@@ -92,6 +92,13 @@ export class CombatSystem {
     private completeCast(a: Agent, engine: GameEngine) {
         if (a.castingSkillIdx === -1) return; // Safety guard
         
+        // [FIX] Cache final position before handleDeadState might zero it out
+        const finalPos = { 
+            x: a.px + a.physics.x, 
+            y: a.py + a.physics.y, 
+            z: a.physics.z 
+        };
+
         const s = a.skills[a.castingSkillIdx]!;
         if (!s) return;
         
@@ -103,7 +110,7 @@ export class CombatSystem {
         if (s.tag !== 'BASIC') {
             engine.events.push({ 
                 type: 'CAST_FINISH', 
-                pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z }, 
+                pos: finalPos, 
                 skill: s, 
                 sourceId: a.id,
                 targetId: a.id 
@@ -129,7 +136,7 @@ export class CombatSystem {
             a.hp = Math.max(0, a.hp - dmgVal);
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z }, 
+                pos: finalPos, 
                 value: dmgVal, 
                 color: '#991b1b', 
                 text: "SACRIFICE",

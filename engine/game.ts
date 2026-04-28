@@ -289,6 +289,12 @@ export class GameEngine {
         for (const a of this.agents) {
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
+                if (a.deadLogged && a.deathTimer > 0) {
+                    a.deathTimer -= dt;
+                    if (a.deathTimer <= 0) {
+                        a.fullyDead = true;
+                    }
+                }
                 continue;
             }
             this.cooldowns.update(a, dt);

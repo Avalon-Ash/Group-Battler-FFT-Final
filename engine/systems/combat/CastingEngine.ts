@@ -1,5 +1,6 @@
 
 import { Agent, GameEngine } from "../../game";
+import { AIState } from "../../../types";
 
 export class CastingEngine {
 
@@ -75,5 +76,13 @@ export class CastingEngine {
         a.castingSkillIdx = -1;
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
+        // [FIX] Ensure aiState doesn't remain in CASTING state
+        if (
+            a.aiState === AIState.CASTING_ULT ||
+            a.aiState === AIState.CASTING_ACTIVE ||
+            a.aiState === AIState.CASTING_BASIC
+        ) {
+            a.aiState = AIState.IDLE;
+        }
     }
 }

@@ -27,7 +27,7 @@ export class StatusOrchestrator {
             // 基礎幾何解算 (SSOT)
             const px = agent.px + agent.physics.x;
             const py = agent.py + agent.physics.y;
-            const pz = agent.physics.z;
+            const pz = isNaN(agent.physics?.z) ? 0 : agent.physics.z;
             
             const terrainH = getTerrainHeight(agent.q, agent.r);
             const visualFloorY = py - terrainH; 
