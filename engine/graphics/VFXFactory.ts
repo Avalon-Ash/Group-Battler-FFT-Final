@@ -18,12 +18,14 @@ export class VFXTextureCache {
         if (['DUST', 'PEBBLE', 'CHIP', 'RUBBLE', 'DEBRIS', 'SHARD'].includes(type)) type = 'ROCK';
         if (['CLOUD', 'SMOKE_PUFF', 'MUSHROOM'].includes(type)) type = 'SMOKE';
         if (['GLOW', 'FLARE', 'CORE', 'ATMOSPHERE'].includes(type)) type = 'GLOW_SPRITE';
+        if (['LIGHTNING', 'THUNDER'].includes(type)) type = 'BOLT';
+        if (['FLAME', 'EMBER'].includes(type)) type = 'FIREBALL';
 
         const key = `T92_${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
         // [FIX] Warning for unknown types
-        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM']);
+        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW']);
         if (!KNOWN_TYPES.has(type)) {
             console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
         }
@@ -43,7 +45,7 @@ export class VFXTextureCache {
                 ctx.fill();
                 break;
             case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
-            case 'SHADOW_BLOB':
+            case 'SHADOW_BLOB': {
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
                 grad.addColorStop(0, color); 
                 grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
@@ -51,11 +53,12 @@ export class VFXTextureCache {
                 ctx.fillStyle = grad;
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
                 break;
+            }
             case 'CRACKS': ParticlePainter.drawCracks(ctx, r, color); break;
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
             case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
             case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;
-            case 'BEAM':
+            case 'BEAM': {
                 const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
                 beamGrad.addColorStop(0, 'transparent');
                 beamGrad.addColorStop(0.2, color);
@@ -64,6 +67,30 @@ export class VFXTextureCache {
                 ctx.fillStyle = beamGrad;
                 ctx.fillRect(-10, -60, 20, 120);
                 break;
+            }
+            case 'BOLT':
+                ProjectilePainter.drawCovenantBolt(ctx, color);
+                break;
+            case 'FIREBALL':
+                ProjectilePainter.drawCovenantFireball(ctx, color);
+                break;
+            case 'BOMB':
+                ProjectilePainter.drawBomb(ctx, color);
+                break;
+            case 'ARROW': {
+                // Slim arrow: shaft + triangular head
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(16, 0); ctx.stroke();
+                ctx.fillStyle = color;
+                ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(12, -6); ctx.lineTo(12, 6); ctx.fill();
+                // Fletching
+                ctx.lineWidth = 1.5;
+                ctx.globalAlpha = 0.7;
+                ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, -6); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, 6); ctx.stroke();
+                break;
+            }
             default:
                 ctx.fillStyle = '#ff00ff';
                 ctx.fillRect(-5,-5,10,10);
