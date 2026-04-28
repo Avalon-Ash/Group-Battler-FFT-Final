@@ -295,14 +295,25 @@ export const BTActions: Record<string, BTActionFn> = {
         a.actionState = ActionState.EVADING;
 
         if (a.targetHex) {
+            // [FIX] If casting a non-fatal skill, wait for it to finish before moving.
+            // This prevents "twitching" (gliding while casting) and respects casting priority.
+            if (a.castingSkillIdx !== -1) {
+                const currentSkill = a.skills[a.castingSkillIdx];
+                if (currentSkill && currentSkill.tag !== 'BASIC') {
+                    return NodeState.RUNNING;
+                }
+            }
+
             const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
             if (state === NodeState.SUCCESS) {
                 a.targetHex = null;
-                a.escapeCooldown = 1.0; // [FIX] Long buffer to ensure unit actually starts a ritual or scans before considering next move
+                a.escapeCooldown = 1.0; 
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
-                return NodeState.FAILURE;
+                // [FIX] Return SUCCESS to signify survival sequence completion for this frame.
+                // This prevents Combat logic from immediately interrupting the safe state.
+                return NodeState.SUCCESS;
             }
             if (state === NodeState.RUNNING) {
                 a.aiState = AIState.EVADING_URGENT;
@@ -312,18 +323,18 @@ export const BTActions: Record<string, BTActionFn> = {
                 // 移動失敗清掉目標下一幀重找
                 a.targetHex = null;
                 a.aiState = AIState.IDLE;
-                return NodeState.FAILURE;
+                return NodeState.SUCCESS; // [FIX] Returning success prevents falling through to combat while stuck
             }
         }
 
         // targetHex 完全為 null（完全被包圍無路可走）
-        // 如果還在危險中，保持 RUNNING 保護，防止走進 Combat 分支發呆
+        // 如果還在危險中，保持 RUNNING 保護，防止下行 Combat 分支發呆
         if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
             a.aiState = AIState.EVADING_URGENT;
             a.actionState = ActionState.EVADING;
             return NodeState.RUNNING;
         }
-        return NodeState.FAILURE;
+        return NodeState.SUCCESS;
     },
     "CastSkill": (a, engine, args) => {
         const idx = args.slot;
@@ -352,10 +363,8 @@ export const BTActions: Record<string, BTActionFn> = {
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
-            // [FIX] Combat movement must respect urgent survival. Check BEFORE state assignment
-            if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInUrgentDanger"](a, engine)) {
-                return NodeState.RUNNING; 
-            }
+            // [REMOVED] Redundant danger check that caused idle/twitching loops
+            // Combat logic should be allowed to fail so Survival can catch the danger.
 
             // Destination safety check
             const destKey = HexUtils.key(dest);
@@ -388,10 +397,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
 
-        // [FIX] Combat movement must respect urgent survival. Check BEFORE state assignment
-        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInUrgentDanger"](a, engine)) {
-            return NodeState.RUNNING;
-        }
+        // [REMOVED] Redundant danger check that caused idle/twitching loops
 
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);

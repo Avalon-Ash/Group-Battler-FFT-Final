@@ -121,6 +121,13 @@ export class Pathfinder {
     public findPathToSafety(start: { q: number; r: number }, agent: Agent, spatial: SpatialProvider, targeting: TargetingSystem): Hex[] {
         const startH = HexUtils.hash(start.q, start.r);
         
+        // [FIX] If starting position is already safe, return it as a 1-step path
+        const startKey = HexUtils.key(start);
+        const hazardAtStart = spatial.getHazard(startKey);
+        if (!targeting.isWarningTile(startKey, spatial) && (!hazardAtStart || hazardAtStart.team === agent.team)) {
+            return [{ q: start.q, r: start.r }];
+        }
+        
         this._gScore.clear();
         this._cameFrom.clear();
         this._pq = [];
