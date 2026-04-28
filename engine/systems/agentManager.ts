@@ -53,68 +53,67 @@ export class AgentManager {
     }
 
     public handleDeadState(a: Agent, engine: GameEngine) {
-        if (a.fullyDead) return;
-        if (!a.deadLogged) {
-            engine.log(a, 'DEATH', '死亡', null, '陣亡');
-            engine.events.push({ 
-                type: 'DEATH', 
-                pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z }, 
-                sourceId: a.id, 
-                targetId: a.id,
-                team: a.team 
+        if (a.fullyDead || a.deadLogged) return;
+        
+        engine.log(a, 'DEATH', '死亡', null, '陣亡');
+        engine.events.push({ 
+            type: 'DEATH', 
+            pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z }, 
+            sourceId: a.id, 
+            targetId: a.id,
+            team: a.team 
+        });
+        
+        if (a.lastHitSourceId) {
+            engine.events.push({
+                type: 'KILL',
+                pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z },
+                sourceId: a.lastHitSourceId,
+                targetId: a.id
             });
-            
-            if (a.lastHitSourceId) {
-                engine.events.push({
-                    type: 'KILL',
-                    pos: { x: a.px + a.physics.x, y: a.py + a.physics.y, z: a.physics.z },
-                    sourceId: a.lastHitSourceId,
-                    targetId: a.id
-                });
-            }
-            
-            a.deadLogged = true;
-            a.deathTimer = a.DEATH_ANIM_DURATION; 
-            
-            // ── [FIX] Freeze physics on death ──
-            a.physics.vx = 0;
-            a.physics.vy = 0;
-            a.physics.vz = 0;
-            a.physics.x = 0;
-            a.physics.y = 0;
-            a.physics.z = 0;
-            a.isMoving = false;
-            a.path = [];
-            // ──────────────────────────────────
-
-            // Clear status VFX timers
-            if (engine.renderer) {
-                engine.renderer.vfx.agentVFX.clearAgent(a.id);
-            }
-
-            // Trigger Unit Shatter (Ragdoll Parts)
-            const groundZ = engine.getTerrainHeight(a.q, a.r);
-            
-            const IMPACT_STRENGTH = 300;
-            let impactX = 0, impactY = 0;
-            if (a.lastHitSourceId) {
-                const src = engine.agents.find(x => x.id === a.lastHitSourceId);
-                if (src) {
-                    const dx = a.px - src.px;
-                    const dy = a.py - src.py;
-                    const len = Math.sqrt(dx * dx + dy * dy) || 1;
-                    impactX = (dx / len) * IMPACT_STRENGTH;
-                    impactY = (dy / len) * IMPACT_STRENGTH;
-                }
-            }
-            if (impactX === 0 && impactY === 0) {
-                const angle = Math.random() * Math.PI * 2;
-                impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
-                impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
-            }
-
-            UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
         }
+            
+        a.deadLogged = true;
+        a.deathTimer = a.DEATH_ANIM_DURATION; 
+        
+        // ── [FIX] Freeze physics on death ──
+        a.physics.vx = 0;
+        a.physics.vy = 0;
+        a.physics.vz = 0;
+        a.physics.x = 0;
+        a.physics.y = 0;
+        a.physics.z = 0;
+        a.isMoving = false;
+        a.path = [];
+        // ──────────────────────────────────
+
+        // Clear status VFX timers
+        if (engine.renderer) {
+            engine.renderer.vfx.agentVFX.clearAgent(a.id);
+        }
+
+        // Trigger Unit Shatter (Ragdoll Parts)
+        const groundZ = engine.getTerrainHeight(a.q, a.r);
+        
+        const IMPACT_STRENGTH = 300;
+        let impactX = 0, impactY = 0;
+        if (a.lastHitSourceId) {
+            const src = engine.agents.find(x => x.id === a.lastHitSourceId);
+            if (src) {
+                const dx = a.px - src.px;
+                const dy = a.py - src.py;
+                const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                impactX = (dx / len) * IMPACT_STRENGTH;
+                impactY = (dy / len) * IMPACT_STRENGTH;
+            }
+        }
+        if (impactX === 0 && impactY === 0) {
+            const angle = Math.random() * Math.PI * 2;
+            impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
+            impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
+        }
+
+        UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);
         a.isMoving = false; 

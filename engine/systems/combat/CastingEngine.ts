@@ -35,7 +35,7 @@ export class CastingEngine {
         
         if (a.castTimer <= 0) {
             onComplete(a);
-            this.resetCaster(a);
+            this.resetCaster(a, true);
         }
     }
 
@@ -72,11 +72,13 @@ export class CastingEngine {
         this.resetCaster(a);
     }
 
-    private resetCaster(a: Agent) {
+    private resetCaster(a: Agent, fromCompletion: boolean = false) {
         a.castingSkillIdx = -1;
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
-        a._castCompleteCooldown = 0.05; // [FIX] Lockout to prevent instant re-cast loop
+        if (fromCompletion) {
+            a._castCompleteCooldown = 0.05; // [FIX] Lockout to prevent instant re-cast loop
+        }
         // [FIX] Ensure aiState doesn't remain in CASTING state
         if (
             a.aiState === AIState.CASTING_ULT ||
