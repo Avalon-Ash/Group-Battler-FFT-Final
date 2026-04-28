@@ -7,13 +7,11 @@ export interface BTDef {
     children?: BTDef[];
     key?: string; // Maps to Registry Key
     args?: any;
-    interruptCount?: number;
 }
 
 export const STANDARD_AI_PROFILE: BTDef = {
     type: 'SELECTOR',
     name: 'Root',
-    interruptCount: 2,
     children: [
         // 1. High Priority Status Checks
         {
