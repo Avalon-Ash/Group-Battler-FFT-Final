@@ -3,7 +3,7 @@ import { GameEngine, Agent } from "../../game";
 import { VFXSystem } from "../vfx";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { MovementType, AIState } from "../../../types";
-import { AGENT_MODEL_CENTER_Z } from "../../../constants";
+import { AGENT_MODEL_CENTER_Z, VFX_PARAM } from "../../../constants";
 
 /**
  * 視覺狀態觀察者 (Visual State Observer)
@@ -42,7 +42,7 @@ export class AgentVFXSystem {
                 const isFlyingUnit = a.movementType === MovementType.FLYING;
 
                 // Threshold: Only trigger on massive impulses (knockbacks / dashes)
-                if (speedSq > 80000 && isGrounded && !isFlyingUnit) {
+                if (speedSq > VFX_PARAM.FX_KNOCKBACK_DUST_THRESHOLD_SQ && isGrounded && !isFlyingUnit) {
                     const terrainH = engine.map.getTerrainHeight(a.q, a.r);
                     // Use DUST everywhere instead of STUN_LOOP to prevent the "Weird Orb of Light" stacking bug
                     vfx.playEffect('FX_STATUS_ROOT_LOOP', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);

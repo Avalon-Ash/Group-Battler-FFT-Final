@@ -4,7 +4,7 @@ import { Hex, Skill, Projectile } from "../../types";
 import { RenderList } from "../renderers/RenderList";
 import { GridCache } from "./grid/GridCache";
 import { GridSpatial } from "./grid/GridSpatial";
-import { GridRenderStrategy } from "./grid/GridRenderStrategy";
+import { GridRenderStrategy } from "../renderers/grid/GridRenderStrategy";
 
 export class GridSystem {
     private cache: GridCache;

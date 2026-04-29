@@ -2,7 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { Skill, Hex } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
-import { COMBAT_PARAM } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
 
 export const CCManager = {
     
@@ -151,9 +151,9 @@ export const CCManager = {
                     statusText = type === 'PULL' ? "牽引" : "擊退";
                     // SSOT: Trigger hit flash to cause reaction
                     if (target.hp > 0) target.hitFlashTimer = 0.2;
-                    target.physics.vz += 200; 
+                    target.physics.vz += PHYSICS.VISUAL_JUMP_KNOCKBACK; 
                     noDurationLog = true;
-                    engine.bus.emit('CAMERA_SHAKE', { intensity: 0.35 });
+                    engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK });
                 }
                 break;
 

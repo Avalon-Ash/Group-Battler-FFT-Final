@@ -5,7 +5,7 @@ import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
-import { COMBAT_PARAM } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
 
 export class SkillExecutor {
 
@@ -60,9 +60,9 @@ export class SkillExecutor {
                 // capturing the dash cleanly with speed trails.
                 source.physics.x += originPx.x - newPx.x;
                 source.physics.y += originPx.y - newPx.y;
-                source.physics.vz += 250; // Visual jump
+                source.physics.vz += PHYSICS.VISUAL_JUMP_DASH; // Visual jump
                 
-                engine.bus.emit('CAMERA_SHAKE', { intensity: 0.4 });
+                engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_DASH });
                 
                 engine.events.push({ 
                     type: 'CC_APPLIED', 

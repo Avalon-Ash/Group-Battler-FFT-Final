@@ -69,6 +69,8 @@ export const PHYSICS = {
     DRIFT_SPEED: 25.0, 
     TERMINAL_VELOCITY_IMPULSE: 400,
     DEFAULT_DRAG: 0.94,
+    VISUAL_JUMP_DASH: 250,
+    VISUAL_JUMP_KNOCKBACK: 200,
 };
 
 export const VFX_RENDER = {
@@ -83,7 +85,10 @@ export const VFX_RENDER = {
 export const VFX_PARAM = {
     SPEED_TRAIL_THRESHOLD_SQ: 1000, // Speed^2 to show trails
     SPEED_TILT_THRESHOLD: 300,      // Speed to start tilting body
-    SPEED_MAX_TILT_REF: 800         // Speed where tilt hits max
+    SPEED_MAX_TILT_REF: 800,         // Speed where tilt hits max
+    SHAKE_INTENSITY_DASH: 0.4,
+    SHAKE_INTENSITY_KNOCKBACK: 0.35,
+    FX_KNOCKBACK_DUST_THRESHOLD_SQ: 80000,
 };
 
 export const THEME_IMPERIAL = {

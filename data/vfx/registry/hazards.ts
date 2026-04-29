@@ -14,7 +14,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             locked: true,
             blendMode: 'lighter'
         }, {
-            count: 3, particleType: 'VFX', 
+            count: 3, particleType: 'SMOKE', 
             shape: 'CIRCULAR_BURST',
             shapeRadius: 20,
             lifetime: [1, 2],
