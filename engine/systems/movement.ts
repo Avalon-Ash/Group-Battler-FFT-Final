@@ -1,7 +1,7 @@
 
 import { Agent } from "../core/Agent";
 import { HexUtils } from "../utils";
-import { Hex, NodeState, SpatialProvider, Skill, LogProvider } from "../../types";
+import { Hex, NodeState, SpatialProvider, Skill, LogProvider, SpatialHazard } from "../../types";
 import { Pathfinder } from "../ai/Pathfinder";
 import { TargetingSystem } from "../ai/TargetingSystem";
 import { MotionEngine } from "./movement/MotionEngine";
@@ -56,8 +56,8 @@ export class MovementSystem {
                 let pathValid = true;
                 for (const hex of a.path) {
                     const hexKey = HexUtils.key(hex);
-                    const hazard = spatial.getHazard(hexKey);
-                    const hasEnemyHazard = hazard && hazard.team !== a.team;
+                    const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => h.team !== a.team);
+                    const hasEnemyHazard = enemyHazards.length > 0;
                     if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && spatial.isWarningTile(hexKey)) || hasEnemyHazard) {
                         pathValid = false;
                         break;

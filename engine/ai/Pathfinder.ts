@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, MovementType, SpatialProvider } from "../../types";
+import { Hex, MovementType, SpatialProvider, SpatialHazard } from "../../types";
 import { HexUtils, NEIGHBOR_HASH_OFFSETS } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { OBSTACLE_DB } from "../../data/obstacles";
@@ -123,8 +123,8 @@ export class Pathfinder {
         
         // [FIX] If starting position is already safe, return it as a 1-step path
         const startKey = HexUtils.key(start);
-        const hazardAtStart = spatial.getHazard(startKey);
-        if (!targeting.isWarningTile(startKey, spatial) && (!hazardAtStart || hazardAtStart.team === agent.team)) {
+        const hazardAtStart = spatial.getSpatialHazardsAt(start.q, start.r).find(h => h.team !== agent.team);
+        if (!targeting.isWarningTile(startKey, spatial) && !hazardAtStart) {
             return [{ q: start.q, r: start.r }];
         }
         
@@ -147,9 +147,8 @@ export class Pathfinder {
             const currentHex = HexUtils.unhash(current.hash);
             const currentKey = HexUtils.key(currentHex);
 
-            const hazardAtNode = spatial.getHazard(currentKey);
-            const isSafe = !spatial.isWarningTile(currentKey) && 
-                        (!hazardAtNode || hazardAtNode.team === agent.team);
+            const hazardAtNode = spatial.getSpatialHazardsAt(currentHex.q, currentHex.r).find(h => h.team !== agent.team);
+            const isSafe = !spatial.isWarningTile(currentKey) && !hazardAtNode;
             
             if (isSafe && spatial.isValidHash(current.hash)) {
                 // Confirm landing for flying

@@ -43,6 +43,94 @@ export const GroundPainter = {
         ctx.restore();
     },
 
+    drawGenericGrid(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+        const alpha = 1.0 - Math.pow(progress, 4);
+        let color = p.color;
+        if (p.visualStyle === 'GRID_TECH_BLUE') color = '#3b82f6';
+        if (p.visualStyle === 'GRID_CORRUPT_RED') color = '#ef4444';
+        
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        const hexRadius = HEX_SIZE;
+        ctx.beginPath();
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.95, true, layout);
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.globalAlpha = alpha * 0.15;
+        ctx.fill();
+    },
+
+    drawFireField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+        const hexRadius = HEX_SIZE;
+        // Lava pool effect
+        ctx.fillStyle = p.color;
+        ctx.shadowColor = '#ea580c';
+        ctx.shadowBlur = 15;
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.9, true, layout);
+        ctx.fill();
+
+        // Cracks
+        ctx.strokeStyle = '#fdba74';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for(let i=0; i<3; i++) {
+            const ang = Math.random() * Math.PI * 2;
+            const len = hexRadius * 0.8;
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(ang) * len, Math.sin(ang) * len * ISO_SCALE_Y);
+        }
+        ctx.stroke();
+    },
+
+    drawIceField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+        const hexRadius = HEX_SIZE;
+        ctx.fillStyle = 'rgba(186, 230, 253, 0.4)'; // Light blue
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.95, true, layout);
+        ctx.fill();
+        
+        ctx.strokeStyle = '#7dd3fc';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Shine highlights
+        ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.ellipse(-10, -10 * ISO_SCALE_Y, 15, 5 * ISO_SCALE_Y, Math.PI/4, 0, Math.PI*2);
+        ctx.fill();
+    },
+
+    drawPoisonField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+        const hexRadius = HEX_SIZE;
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha *= 0.6;
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.9, true, layout);
+        ctx.fill();
+
+        // Bubbles
+        ctx.fillStyle = '#bef264';
+        for(let i=0; i<3; i++) {
+            const ox = (Math.random()-0.5) * hexRadius * 1.2;
+            const oy = (Math.random()-0.5) * hexRadius * 1.2;
+            const r = 2 + Math.random() * 4;
+            ctx.beginPath(); ctx.arc(ox, oy * ISO_SCALE_Y, r, 0, Math.PI*2); ctx.fill();
+        }
+    },
+
+    drawVoidField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
+        const hexRadius = HEX_SIZE;
+        ctx.fillStyle = '#000';
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.8, true, layout);
+        ctx.fill();
+
+        ctx.strokeStyle = p.color; // purple
+        ctx.lineWidth = 4;
+        ctx.shadowColor = p.color;
+        ctx.shadowBlur = 20;
+        HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.82, true, layout);
+        ctx.stroke();
+    },
+
     drawVectorGeometry(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
         ctx.save();
         ctx.translate(drawX, drawY);
@@ -86,71 +174,17 @@ export const GroundPainter = {
             const alpha = 1.0 - Math.pow(progress, 4);
             ctx.globalAlpha = alpha;
             
-            // If visualStyle is provided, we can use it to fetch specific grid config
-            // For now, we just use the color provided by the particle system
-            let color = p.color;
-            if (p.visualStyle === 'GRID_TECH_BLUE') color = '#3b82f6';
-            if (p.visualStyle === 'GRID_CORRUPT_RED') color = '#ef4444';
-            
-            ctx.strokeStyle = color;
-            ctx.fillStyle = color;
-            
-            const r = p.size;
-            ctx.lineWidth = 2;
-            
-            // Draw a grid of hexes
-            const hexRadius = HEX_SIZE;
-            let horizSpacing = 0;
-            let vertSpacing = 0;
-            
-            if (layout === 'FLAT') {
-                horizSpacing = hexRadius * 1.5;
-                vertSpacing = hexRadius * Math.sqrt(3);
+            // Handle specialized visual styles for hazards
+            if (p.visualStyle === 'FIRE') {
+                this.drawFireField(ctx, p, progress, layout);
+            } else if (p.visualStyle === 'ICE') {
+                this.drawIceField(ctx, p, progress, layout);
+            } else if (p.visualStyle === 'POISON') {
+                this.drawPoisonField(ctx, p, progress, layout);
+            } else if (p.visualStyle === 'VOID') {
+                this.drawVoidField(ctx, p, progress, layout);
             } else {
-                horizSpacing = hexRadius * Math.sqrt(3);
-                vertSpacing = hexRadius * 1.5;
-            }
-            
-            // Approximate number of rings based on size
-            const rings = Math.ceil(r / Math.max(horizSpacing, vertSpacing));
-            
-            ctx.scale(1, ISO_SCALE_Y);
-            
-            for (let q = -rings; q <= rings; q++) {
-                for (let r_coord = Math.max(-rings, -q - rings); r_coord <= Math.min(rings, -q + rings); r_coord++) {
-                    let x = 0;
-                    let y = 0;
-                    
-                    if (layout === 'FLAT') {
-                        x = horizSpacing * q;
-                        y = vertSpacing * (r_coord + q / 2);
-                    } else {
-                        x = horizSpacing * (q + r_coord / 2);
-                        y = vertSpacing * r_coord;
-                    }
-                    
-                    // Only draw if within radius
-                    if (x*x + y*y <= r*r) {
-                        ctx.beginPath();
-                        const baseStartAngle = layout === 'FLAT' ? 0 : Math.PI / 6;
-                        for (let i = 0; i < 6; i++) {
-                            const angle_rad = baseStartAngle + i * Math.PI / 3;
-                            const px = x + hexRadius * 0.9 * Math.cos(angle_rad);
-                            const py = y + hexRadius * 0.9 * Math.sin(angle_rad);
-                            if (i === 0) {
-                                ctx.moveTo(px, py);
-                            } else {
-                                ctx.lineTo(px, py);
-                            }
-                        }
-                        ctx.closePath();
-                        ctx.stroke();
-                        
-                        ctx.globalAlpha = alpha * 0.15;
-                        ctx.fill();
-                        ctx.globalAlpha = alpha; // reset for next stroke
-                    }
-                }
+                this.drawGenericGrid(ctx, p, progress, layout);
             }
         }
         else if (p.type === 'HEX_GLOW') {

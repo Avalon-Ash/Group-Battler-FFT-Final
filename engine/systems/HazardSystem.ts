@@ -1,193 +1,163 @@
 
 import { GameEngine } from "../game";
-import { GroundHazard, Team, MovementType } from "../../types";
+import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
 import { HexUtils } from "../utils";
-import { HAZARD_VISUALS } from "../../data/vfx/hazard_visuals";
 import { COMBAT_PARAM, HEX_SIZE } from "../../constants";
 
 export class HazardSystem {
-    public addHazard(
-        q: number, r: number, 
-        type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC', 
-        duration: number, 
-        sourceId: string, 
-        team: Team, 
-        color: string,
-        power: number,
-        interval: number,
-        engine: GameEngine,
-        centerQ?: number,
-        centerR?: number,
-        pullRadius?: number
-    ) {
-        if (!engine.map.isValid(q, r)) return;
-        const key = HexUtils.key({q, r});
-        const hazards = engine.state.hazards;
-        const existing = hazards.get(key);
+    
+    public registerHazard(hazard: SpatialHazard, engine: GameEngine) {
+        engine.state.spatialHazards.push(hazard);
         
-        if (existing) {
-            if (existing.type === type && existing.team === team) {
-                existing.duration = Math.max(existing.duration, duration);
-                existing.power = Math.max(existing.power, power); 
-                existing.sourceId = sourceId; 
-                if (centerQ !== undefined) existing.centerQ = centerQ;
-                if (centerR !== undefined) existing.centerR = centerR;
-                if (pullRadius !== undefined) existing.pullRadius = pullRadius;
-                return;
-            }
-        }
-
-        const hazard: GroundHazard = {
-            id: engine.nextId('HZD'),
-            q, r, type, duration, sourceId, team, color, power, interval, timer: 0,
-            centerQ: centerQ ?? q,
-            centerR: centerR ?? r,
-            pullRadius
-        };
-        
-        hazards.set(key, hazard);
-        
-        // [PROACTIVE PUSH] If an agent is standing in the new hazard, force immediate AI tick
-        const victim = engine.getAgentAt(q, r);
-        if (victim && victim.hp > 0 && victim.team !== team) {
-            victim.forceAiUpdate = true;
-        }
-
-        const def = HAZARD_VISUALS[type];
-        if (def && def.spawnVfx) {
-            const px = HexUtils.toPx(hazard.q, hazard.r, engine.mapConfig);
-            const hz = engine.getTerrainHeight(hazard.q, hazard.r);
-            engine.events.push({ 
-                type: 'HAZARD_SPAWN', 
-                pos: { x: px.x, y: px.y, z: hz }, 
-                sourceId: hazard.sourceId,
-                targetId: hazard.id,
-                text: def.spawnVfx 
-            });
-        }
-    }
-
-    public update(dt: number, engine: GameEngine) {
-        const hazards = engine.state.hazards;
-        const toRemove: string[] = [];
-        
-        for (const [key, h] of hazards.entries()) {
-            h.duration -= dt;
-            h.timer -= dt; 
-            if (h.duration <= 0) toRemove.push(key);
-        }
-        toRemove.forEach(k => hazards.delete(k));
-
-        // Use a set to track which hazards triggered damage this frame so we only reset timer once
-        const triggeredHazards = new Set<string>();
-
-        engine.agents.forEach(agent => {
-            if (agent.hp <= 0 || agent.banished) return;
-            
-            const hazardKey = HexUtils.key({q: agent.q, r: agent.r});
-            const hazard = hazards.get(hazardKey);
-            if (!hazard) return;
-
-            if (hazard.team !== agent.team) {
-                // Flying units are immune to ground hazards like Fire/Poison
-                if (agent.movementType === MovementType.FLYING && (hazard.type === 'FIRE' || hazard.type === 'POISON')) return;
-
-                if (triggeredHazards.has(hazardKey)) return;
-
-                if (hazard.timer <= 0) {
-                    let dmg = hazard.power;
-                    
-                    // Shield Mitigation logic
-                    let absorbed = 0;
-                    if (agent.shield > 0) {
-                        absorbed = Math.min(agent.shield, dmg);
-                        agent.shield -= absorbed;
-                        dmg -= absorbed;
-                    }
-                    
-                    if (dmg > 0) {
-                        agent.hp = Math.max(0, agent.hp - dmg);
-                    }
-
-                    if (absorbed > 0) {
-                        engine.events.push({ 
-                            type: 'DAMAGE', 
-                            pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
-                            value: -Math.floor(absorbed), 
-                            color: '#bae6fd', 
-                            text: "ABSORB",
-                            sourceId: hazard.sourceId,
-                            targetId: agent.id
-                        });
-                    }
-
-                    if (dmg > 0 || absorbed === 0) {
-                        engine.events.push({ 
-                            type: 'DAMAGE', 
-                            pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
-                            value: -Math.floor(dmg > 0 ? dmg : hazard.power),
-                            color: hazard.color,
-                            skill: { color: hazard.color, ccType: 'DOT' } as any,
-                            sourceId: hazard.sourceId,
-                            targetId: agent.id
-                        });
-                    }
-                    
-                    const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
-                    engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (護盾抵擋 ${Math.floor(absorbed)}) (${hazard.type})`);
-                    
-                    if (hazard.sourceId) {
-                        agent.lastHitSourceId = hazard.sourceId;
-                    }
-
-                    agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
-                    // Mark hazard to be reset at the end of the loop
-                    triggeredHazards.add(hazardKey);
-                }
-
-                if (hazard.type === 'GRAVITY') {
-                    // Pulling is now handled globally, just apply slow if on tile
-                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION); 
-                } else if (hazard.type === 'ICE') {
-                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
-                }
+        // [PROACTIVE PUSH] If an agent is standing in any of the new tiles, force immediate AI tick
+        hazard.cells.forEach(tile => {
+            const victim = engine.getAgentAt(tile.q, tile.r);
+            if (victim && victim.hp > 0 && victim.team !== hazard.team) {
+                victim.forceAiUpdate = true;
             }
         });
 
-        // ==========================================
-        // Global Sweep for GRAVITY Area Pull Effect
-        // ==========================================
-        const gravityCenters = new Map<string, {q: number, r: number, team: Team, radius: number}>();
-        for (const [key, h] of hazards.entries()) {
-            if (h.type === 'GRAVITY' && h.centerQ !== undefined && h.centerR !== undefined) {
-                // If pullRadius is not explicitly set, default to 3 hexes worth of distance
-                const r = h.pullRadius || (HEX_SIZE * 5);
-                gravityCenters.set(`${h.centerQ},${h.centerR},${h.team}`, {q: h.centerQ, r: h.centerR, team: h.team, radius: r});
+        // Trigger decoupled visual spawn event
+        hazard.cells.forEach(tile => {
+            const px = HexUtils.toPx(tile.q, tile.r, engine.mapConfig);
+            const hz = engine.getTerrainHeight(tile.q, tile.r);
+            engine.events.push({
+                type: 'HAZARD_SPAWN',
+                pos: { x: px.x, y: px.y, z: hz },
+                sourceId: hazard.sourceId,
+                targetId: hazard.id,
+                text: `FX_HAZARD_FIELD_${hazard.type}`,
+                color: hazard.color
+            });
+        });
+    }
+
+    public update(dt: number, engine: GameEngine) {
+        const spatialHazards = engine.state.spatialHazards;
+        
+        // 1. Lifecycle management
+        for (let i = spatialHazards.length - 1; i >= 0; i--) {
+            const h = spatialHazards[i];
+            h.duration -= dt;
+            if (h.duration <= 0) {
+                spatialHazards.splice(i, 1);
             }
         }
+
+        // 2. Logic Tick (AOE Damage & CC)
+        engine.agents.forEach(agent => {
+            if (agent.hp <= 0 || agent.banished) return;
+            
+            spatialHazards.forEach(h => {
+                // Ignore friendly hazards
+                if (h.team === agent.team) return;
+
+                // Check if agent is inside this spatial hazard
+                const isInside = h.cells.some(c => c.q === agent.q && c.r === agent.r);
+                if (!isInside) return;
+
+                // Flying units are immune to ground hazards like FIRE/POISON
+                if (agent.movementType === MovementType.FLYING && (h.type === 'FIRE' || h.type === 'POISON')) return;
+
+                // Damage Tick
+                if (engine.battleTime >= h.lastTickTime + h.tickInterval) {
+                     this.applyHazardEffect(agent, h, engine);
+                }
+
+                // Constant CC (Slows)
+                if (h.type === 'GRAVITY') {
+                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION); 
+                } else if (h.type === 'ICE') {
+                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
+                }
+            });
+        });
+
+        // 3. Update tick timestamps for all hazards if applicable
+        spatialHazards.forEach(h => {
+            if (engine.battleTime >= h.lastTickTime + h.tickInterval) {
+                h.lastTickTime += h.tickInterval;
+            }
+        });
+
+        // 4. Global Pulling (GRAVITY)
+        this.updateGravityPull(dt, engine);
+    }
+
+    private applyHazardEffect(agent: any, hazard: SpatialHazard, engine: GameEngine) {
+        let dmg = hazard.power;
         
-        gravityCenters.forEach(centerConfig => {
-            const centerPx = HexUtils.toPx(centerConfig.q, centerConfig.r, engine.mapConfig);
+        // Shield Mitigation
+        let absorbed = 0;
+        if (agent.shield > 0) {
+            absorbed = Math.min(agent.shield, dmg);
+            agent.shield -= absorbed;
+            dmg -= absorbed;
+        }
+        
+        if (dmg > 0) {
+            agent.hp = Math.max(0, agent.hp - dmg);
+        }
+
+        if (absorbed > 0) {
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                value: -Math.floor(absorbed), 
+                color: '#bae6fd', 
+                text: "ABSORB",
+                sourceId: hazard.sourceId,
+                targetId: agent.id
+            });
+        }
+
+        if (dmg > 0 || absorbed === 0) {
+            engine.events.push({ 
+                type: 'DAMAGE', 
+                pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                value: -Math.floor(dmg > 0 ? dmg : hazard.power),
+                color: hazard.color,
+                skill: { color: hazard.color, ccType: 'DOT' } as any,
+                sourceId: hazard.sourceId,
+                targetId: agent.id
+            });
+        }
+        
+        const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
+        engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (${hazard.type})`);
+        
+        if (hazard.sourceId) {
+            agent.lastHitSourceId = hazard.sourceId;
+        }
+
+        if (agent.hp <= 0) {
+            engine.agentManager.handleDeadState(agent, engine);
+        }
+
+        agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+    }
+
+    private updateGravityPull(dt: number, engine: GameEngine) {
+        const spatialHazards = engine.state.spatialHazards;
+        
+        spatialHazards.forEach(h => {
+            if (h.type !== 'GRAVITY' || h.centerQ === undefined || h.centerR === undefined) return;
+            
+            const radius = h.pullRadius || (HEX_SIZE * 5);
+            const centerPx = HexUtils.toPx(h.centerQ, h.centerR, engine.mapConfig);
+
             engine.agents.forEach(agent => {
-                // Ignore dead, banished, or same team
-                if (agent.hp <= 0 || agent.banished || agent.team === centerConfig.team) return;
+                if (agent.hp <= 0 || agent.banished || agent.team === h.team) return;
                 
                 const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 
-                // Distances are measured in pixels (pullRadius and GRAVITY_MIN_DIST are in px)
-                if (dist < centerConfig.radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
+                if (dist < radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
                     agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                     agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                     agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
                 }
             });
-        });
-
-        // Reset the timer for all hazards that triggered this frame
-        triggeredHazards.forEach(key => {
-            const h = hazards.get(key);
-            if (h) h.timer = h.interval || 1.0;
         });
     }
 }

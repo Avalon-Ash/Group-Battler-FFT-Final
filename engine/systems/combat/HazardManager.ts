@@ -1,13 +1,12 @@
 import { Agent, GameEngine } from "../../game";
-import { Skill, GroundHazard } from "../../../types";
-
+import { Skill, SpatialHazard } from "../../../types";
 import { HEX_SIZE } from "../../../constants";
 
 export const HazardManager = {
     
     spawnHazards(source: Agent, cells: {q: number, r: number}[], skill: Skill, engine: GameEngine, center?: {q: number, r: number}) {
         const dur = skill.ccDur || 5.0;
-        let hType: GroundHazard['type'] | null = null;
+        let hType: SpatialHazard['type'] | null = null;
         let pullRad = skill.aoeRadius ? skill.aoeRadius * HEX_SIZE * 1.5 : undefined;
 
         // Map Skill Properties to Hazard Types
@@ -17,23 +16,24 @@ export const HazardManager = {
         if (skill.element === 'VOID' || skill.ccType === 'PULL') hType = 'GRAVITY';
 
         if (hType) {
-            cells.forEach(tile => {
-                // Corrected: Route through hazardSystem
-                engine.hazardSystem.addHazard(
-                    tile.q, tile.r, 
-                    hType, 
-                    dur, 
-                    source.id, 
-                    source.team, 
-                    skill.color,
-                    (Math.abs(skill.power) * 0.2) || 10, 
-                    0.5,
-                    engine,
-                    center?.q,
-                    center?.r,
-                    pullRad
-                );
-            });
+            // [FIX] Spatial Entity Pattern: One hazard covers multiple cells, logic decoupled from grid
+            const hazard: SpatialHazard = {
+                id: engine.nextId('HZD'),
+                type: hType,
+                cells: [...cells],
+                duration: dur,
+                sourceId: source.id,
+                team: source.team,
+                color: skill.color,
+                power: (Math.abs(skill.power) * 0.2) || 10,
+                tickInterval: 0.5,
+                lastTickTime: engine.battleTime,
+                centerQ: center?.q,
+                centerR: center?.r,
+                pullRadius: pullRad
+            };
+
+            engine.hazardSystem.registerHazard(hazard, engine);
         }
     }
 };

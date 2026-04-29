@@ -1,7 +1,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
 import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG } from "../constants";
@@ -32,7 +32,7 @@ export { Agent, SpecialVisualStatus };
 
 export const VICTORY_PHASE_DURATION = 0.5; 
 
-export class GameEngine {
+export class GameEngine implements SpatialProvider {
     public agents: Agent[] = [];
     public initialRoster: Agent[] = [];
     public projectiles: Projectile[] = [];
@@ -41,7 +41,7 @@ export class GameEngine {
 
     public state = {
         director: { focusTimer: 0, priorityTimer: 0, targetId: null as string | null },
-        hazards: new Map<string, GroundHazard>(),
+        spatialHazards: [] as SpatialHazard[],
         victory: { victoryTimer: 0, winningTeam: null as Team | null, isFinishing: false },
         time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 },
         isLastStand: false,
@@ -53,7 +53,7 @@ export class GameEngine {
         firstBloodTriggered: false
     };
 
-    get hazards(): Map<string, GroundHazard> { return this.state.hazards; }
+    get spatialHazards(): SpatialHazard[] { return this.state.spatialHazards; }
     get battleTime(): number { return this.state.time.battleTime; }
     set battleTime(v: number) { this.state.time.battleTime = v; }
     get timeScale(): number { return this.state.time.timeScale; }
@@ -135,18 +135,21 @@ export class GameEngine {
     public getMapConfig(): MapConfig { return this.mapConfig; }
     public getAgents(): Agent[] { return this.agents; }
     public isWarningTile(key: string): boolean { return this.map.warningTiles.has(key); }
-    public getHazard(key: string): GroundHazard | undefined { return this.state.hazards.get(key); }
+    public getSpatialHazardsAt(q: number, r: number): SpatialHazard[] {
+        return this.state.spatialHazards.filter(h => h.cells.some(c => c.q === q && c.r === r));
+    }
+
     public getTileDepth(q: number, r: number): number { return this.zones.getTileDepth(q, r); }
     public getCurrentShrinkLevel(): number { return this.zones.currentShrinkLevel; }
 
     public randomizeEnvironment() { 
-        this.state.hazards.clear(); 
+        this.state.spatialHazards = []; 
         this.bus.emit('ENV_UPDATE', {});
         this.map.randomizeEnvironment(this); 
     }
     
     public rebuildMap() { 
-        this.state.hazards.clear();
+        this.state.spatialHazards = [];
         this.bus.emit('ENV_UPDATE', {});
         this.map.rebuildMap(this); 
     }
@@ -216,7 +219,7 @@ export class GameEngine {
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.map.clearAgents();
-        this.state.hazards.clear(); 
+        this.state.spatialHazards = []; 
         this.map.rebuildMap(this); // Restore tiles removed by zone system
         this.director.reset(this);
         this.sessionState.killStreaks.clear();
@@ -231,7 +234,7 @@ export class GameEngine {
         this.projectiles = [];
         
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
-        this.bus.emit('GAME_RESET', {});
+        this.bus.emit('GAME_START', {}); // Use Game Start on restart
     }
 
     public clear(keepScene: boolean = false, skipRebuild: boolean = false) {
@@ -241,7 +244,7 @@ export class GameEngine {
         this.initialRoster = [];
         this.projectiles = [];
         this.map.clearAgents();
-        this.state.hazards.clear(); 
+        this.state.spatialHazards = []; 
         this.map.obstacles.clear();
         this.map.obstaclesHash.clear();
         this.director.reset(this);
@@ -255,7 +258,6 @@ export class GameEngine {
         this.sessionState.killStreaks.clear();
         this.sessionState.firstBloodTriggered = false;
         
-
         if (!skipRebuild) {
             if (!keepScene) this.map.randomizeEnvironment(this); 
             else this.map.rebuildMap(this); 

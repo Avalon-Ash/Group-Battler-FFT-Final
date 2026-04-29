@@ -5,7 +5,8 @@ import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y } from "../../../constants";
 
-const rnd = (r: Range | number): number => {
+const rnd = (r: Range | number | undefined): number => {
+    if (r === undefined) return 0;
     if (typeof r === 'number') return r;
     return r[0] + Math.random() * (r[1] - r[0]);
 };

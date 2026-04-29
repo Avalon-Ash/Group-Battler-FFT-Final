@@ -1,6 +1,6 @@
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
+import { NodeState, AIState, MovementType, ActionState, Hex, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 
@@ -227,8 +227,8 @@ export const BTActions: Record<string, BTActionFn> = {
         // ★ 核心修正：只有在沒有逃跑目標、或目標本身也淪陷時，才重新尋路
         const needsNewTarget = !a.targetHex || (() => {
             const tk = HexUtils.key(a.targetHex);
-            const hazardAtTarget = engine.state.hazards.get(tk);
-            return engine.isWarningTile(tk) || (!!hazardAtTarget && hazardAtTarget.team !== a.team);
+            const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => h.team !== a.team);
+            return engine.isWarningTile(tk) || (!!hazardAtTarget);
         })();
 
         if (needsNewTarget) {
@@ -238,7 +238,7 @@ export const BTActions: Record<string, BTActionFn> = {
                 const castSkill = a.skills[a.castingSkillIdx];
                 if (castSkill) {
                     const myKey = HexUtils.key(a);
-                    const hazard = engine.state.hazards.get(myKey);
+                    const hazard = engine.getSpatialHazardsAt(a.q, a.r).find(h => h.team !== a.team);
                     const isWarning = engine.isWarningTile(myKey);
                     let isFatal = false;
 
@@ -302,9 +302,8 @@ export const BTActions: Record<string, BTActionFn> = {
                         // Pass 0: Only non-warning tiles
                         if (pass === 0 && isWarn) continue;
 
-                        const nHazard = engine.state.hazards.get(nKey);
-                        const isEnemyHazard = nHazard && nHazard.team !== a.team;
-                        const dangerScore = isEnemyHazard ? 100 : (isWarn ? 10 : 0);
+                        const hazardAtN = engine.getSpatialHazardsAt(n.q, n.r).find(h => h.team !== a.team);
+                        const dangerScore = hazardAtN ? 100 : (isWarn ? 10 : 0);
                         const occ = engine.getAgentAt(n.q, n.r);
                         const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
                         const totalScore = dangerScore + occPenalty;
@@ -414,8 +413,8 @@ export const BTActions: Record<string, BTActionFn> = {
             
             // Check if our current destination is safe FOR US
             const destKey = HexUtils.key(dest);
-            const hazard = engine.state.hazards.get(destKey);
-            const isUnsafeForMe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+            const enemyHazards = engine.getSpatialHazardsAt(dest.q, dest.r).filter(h => h.team !== a.team);
+            const isUnsafeForMe = engine.isWarningTile(destKey) || enemyHazards.length > 0;
             
             if (isUnsafeForMe) {
                 const startHex = { q: a.q, r: a.r };
@@ -454,8 +453,8 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // [FIX] Attacker safety check: are we chasing them into a death trap?
         const destKey = HexUtils.key(dest);
-        const hazard = engine.state.hazards.get(destKey);
-        const isUnsafeForMe = engine.isWarningTile(destKey) || (hazard && hazard.team !== a.team);
+        const enemyHazards = engine.getSpatialHazardsAt(dest.q, dest.r).filter(h => h.team !== a.team);
+        const isUnsafeForMe = engine.isWarningTile(destKey) || enemyHazards.length > 0;
 
         if (isUnsafeForMe) {
             const startHex = { q: a.q, r: a.r };
@@ -505,8 +504,8 @@ export const BTActions: Record<string, BTActionFn> = {
             let isTargetSafe = false;
             if (a.targetHex) {
                 const targetKey = HexUtils.key(a.targetHex);
-                const hazard = engine.state.hazards.get(targetKey);
-                isTargetSafe = !engine.isWarningTile(targetKey) && (!hazard || hazard.team === a.team);
+                const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => h.team !== a.team);
+                isTargetSafe = !engine.isWarningTile(targetKey) && !hazardAtTarget;
             }
             if (isTargetSafe) {
                 // Get line towards safety

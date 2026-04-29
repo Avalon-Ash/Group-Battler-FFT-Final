@@ -23,6 +23,7 @@ export class DesignExporter {
         s += "- EventBus: 採用 Set<Handler> 儲存結構，從資料結構層面強制防堵重複訂閱，並在註銷時精確釋放記憶體。\n";
         s += "- SpatialProvider: 抽象空間提供者介面。移動系統 (MovementSystem)、尋路 (Pathfinder) 與目標選取 (TargetingSystem) 完全切斷對 MapSystem 的具體依賴。\n";
         s += "- ZoneSystem & Dynamic Hazard: 獨立於地圖系統的生存空間控制器，負責處理縮圈邏輯與警告區域計算。\n";
+        s += "- Spatial Hazard Entity Pattern (空間危害實體化): 徹底將持續性 AOE 效果（如熔岩、毒霧）從網格節點 (GridNode) 的狀態屬性中剝離，轉化為具備獨立生命週期與空間坐標集的「空間實體」。此舉確保了地形靜態拓撲的純潔性，大幅降低因地形狀態頻繁切換導致的尋路緩存失效與效能抖動。\n";
         s += "- Flying Unit Physics: 飛行單位在空間屬性上標記為無視「單位碰撞 (Agent Occupancy)」，允許自由穿透隊友與敵人，消滅密集戰鬥下的導航死鎖。\n";
         s += "- Stable Z-Sorting Tiebreaker: 在 RenderList 中引入基於 Agent ID Hash 的確定性偏移量（10^-5 級別），徹底消滅 2.5D 環境中兩個單位在同一 Y 坐標時產生的每幀前後閃爍（Z-fighting）現象。\n\n";
 
@@ -79,6 +80,7 @@ export class DesignExporter {
         s += "## 6. 特效渲染管線與主權回收 (VFX Pipeline & Ownership)\n\n";
         s += "- 主權绑定與即時過期 (OwnerID Lifecycle Binding): VFX 系統擴展了生命週期協議。CC 類特效（如 Stun, Root）在生成時會與綁定單位的 ID 關聯。一旦該單位死亡（unregister），系統會在當前 Tick 立即將關聯粒子標記為 expired (life = -1) 並從記憶體池中回收，徹底根除「浮空殘留特效」問題。\n";
         s += "- AgentVFX 記憶體隔離 (Timer Sanitization): 針對 Agent 狀態特效計時器 (vfxTimers) 引入 10 秒周期性垃圾清理機制。主動剔除已離開戰場的單位殘留 Key，防止長時間戰鬥下引發的 Map 物件累積與洩漏。\n";
+        s += "- Strict Footprint AURA Sorting (貼地光環精確排序): 針對光環與施法圈等 Ground-VFX，實施與單位渲染 op 分離的獨立提交機制。其 Z-Sorting 權重絕對鎖死在目標網格的 Visual Base Y，而非隨角色跳躍高度動態偏移。這徹底解決了在等角透視 (2.5D) 下，大型光環會「刺穿」後方高地地形或覆蓋前景障礙物的深度衝突瑕疵。\n";
         s += "- 動態高度綁定 (Dynamic Height Binding): 特效系統在獲取空間資訊時，會攔截正在塌陷的網格 (Collapsing Tiles)，並回傳其動態下墜高度 (h + z)，確保粒子與碎石完美貼合下墜中的地形。\n";
         s += "- Zero-Latency Optical Sync (零延遲打擊同步): 基礎打擊火花從非同步事件總線中剝離，改為與 `hitFlashTimer` 在同一幀同步發射，確保模型閃白、受擊抖動與粒子爆發在渲染管線中絕對對齊。\n";
         s += "- Shield Hit Branching (護盾斷言分支): `DAMAGE` 事件新增 `absorbed` 欄位。當結算偵測到護盾吸收時，視覺管線自動轉向 `FX_HIT_SHIELD_SPARK` 專屬資產（包含 `HEX_SHARD` 與 `RIPPLE` 紋理），阻斷常規血花與金屬火花。\n";
@@ -167,8 +169,8 @@ export class DesignExporter {
         s += "- 雙零殭局防護 (Mutual Destruction Intercept): 在 VictorySystem 引入與單邊獲勝均等的雙零 (blue === 0 && red === 0) 平局收口檢定。拔除戰局中最後兩人同歸於盡所引發的無限輪迴假死狀態。\n";
         s += "- 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單元進入安全區且 escapeCooldown 結束後，系統會自動歸還決策權給戰術核心，避免無謂的狀態鎖定。\n";
         s += "- 背水一戰狀能維續 (Last Stand State Persistence): 在 CastPushPull 執行移動前即標記 LAST_STAND_PUSH 狀態，確保行為樹的記憶恢復邏輯即使在移動中斷後也能穩定找回戰鬥目標。\n";
-        s += "- 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。\n";
-        s += "- 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方 hazard 動態部署，徹底阻止「逃出毒圈卻踏進火場」的決策延遲。\n\n";
+        s += "- 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getSpatialHazardsAt' 的敵意矩陣審查。徹底支援單一網格內的多重疊加危害 (Multiple Hazards on single Hex)，實體上掐滅了避開縮圈落入複合火坑的連續判定真空。\n";
+        s += "- 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方所有 hazards 動態部署，徹底阻止「逃出毒圈卻踏進複合火場」的決策延遲。\n\n";
 
         s += "## 12. 背水一戰：終局決算機制 (Last Stand: Final Resolution)\n\n";
         s += "當戰場縮減至僅剩唯一安全網格（Last Stand Trigger）時，系統會切入極端決算模式，以強制結束僵局：\n\n";

@@ -17,7 +17,7 @@ export interface SpatialProvider {
     isValid(q: number, r: number): boolean;
     isBlocked(q: number, r: number, ignoreId?: string, movementType?: MovementType): boolean;
     getTerrainHeight(q: number, r: number): number;
-    getHazard(key: string): GroundHazard | undefined;
+    getSpatialHazardsAt(q: number, r: number): SpatialHazard[];
     isValidHash(h: number): boolean;
     hasObstacleHash(h: number): boolean;
     getObstacleTypeHash(h: number): string | undefined;
@@ -73,6 +73,22 @@ export interface Projectile {
         spriteKey?: string; // Cache visual key
         scale?: number;
     };
+}
+
+export interface SpatialHazard {
+    id: string;
+    type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
+    cells: {q: number, r: number}[];
+    duration: number;
+    sourceId: string;
+    team: Team;
+    color: string;
+    power: number;
+    tickInterval: number;
+    lastTickTime: number;
+    centerQ?: number;
+    centerR?: number;
+    pullRadius?: number;
 }
 
 export interface GroundHazard {

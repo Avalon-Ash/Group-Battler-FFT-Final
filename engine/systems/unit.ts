@@ -50,6 +50,18 @@ export class UnitRenderSystem {
             op.z = agent.physics.z; 
             op.time = globalTime;
             op.uSelected = state.isSelected;
+
+            // [FIX] Submit separate Aura/Indicator op locked to ground if casting
+            if (agent.castingSkillIdx !== -1) {
+                const auraOp = renderList.next();
+                auraOp.type = RenderOpType.AURA;
+                auraOp.agent = agent;
+                auraOp.tx = state.x;
+                auraOp.y = state.y + offset; // Same sorting Y as unit (locked to tile base)
+                auraOp.ty = VisualMath.getIsoVisualY(auraOp.y, state.terrainHeight);
+                auraOp.time = globalTime;
+                auraOp.th = state.terrainHeight;
+            }
         });
     }
 
@@ -79,39 +91,47 @@ export class UnitRenderSystem {
         ctx.save();
         ctx.translate(drawX, drawY); 
         
-        // drawY is expected to be the Surface Visual Y.
-        // Painters will internally read agent.physics.z via VisualMath to calculate offsets.
-        
         if (!isSilhouette && agent.hp > 0) {
             UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
         }
         UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
 
-        // [FIX] Move Aura/Cast rings to render AFTER the unit body (Step 6 in render order)
-        // This prevents them from being covered by terrain tiles further from camera
-        if (!isSilhouette && agent.hp > 0 && agent.castingSkillIdx !== -1) {
-            const skill = agent.skills[agent.castingSkillIdx];
-            if (skill) {
-              const surfaceY = 0; // Relative to drawAssembly translate
-              
-              // 1. Casting Auras
-              if (skill.tag === 'ULT') {
-                  UnitAuraPainter.drawUltimateChantVFX(ctx, agent, 0, surfaceY, globalTime, layout);
-              } else {
-                  UnitAuraPainter.drawCastingVFX(ctx, agent, 0, surfaceY, globalTime, layout);
-              }
-
-              // 2. AOE Ground Indicators
-              const progress = 1 - (agent.castTimer / skill.cast);
-              const radius = skill.aoeRadius || 1;
-              const isAOE = skill.type === 'AOE';
-              
-              if (isAOE && radius > 0) {
-                  UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, surfaceY, skill.color, globalTime, progress, radius, skill.tag, isAOE, layout);
-              }
-            }
-        }
-        
         ctx.restore(); 
+    }
+
+    public drawAura(
+        ctx: CanvasRenderingContext2D,
+        agent: Agent,
+        drawX: number,
+        drawY: number,
+        globalTime: number,
+        layout: HexLayout
+    ) {
+        if (agent.hp <= 0 || agent.castingSkillIdx === -1) return;
+        const skill = agent.skills[agent.castingSkillIdx];
+        if (!skill) return;
+
+        ctx.save();
+        ctx.translate(drawX, drawY);
+
+        const surfaceY = 0; 
+              
+        // 1. Casting Auras
+        if (skill.tag === 'ULT') {
+            UnitAuraPainter.drawUltimateChantVFX(ctx, agent, 0, surfaceY, globalTime, layout);
+        } else {
+            UnitAuraPainter.drawCastingVFX(ctx, agent, 0, surfaceY, globalTime, layout);
+        }
+
+        // 2. AOE Ground Indicators
+        const progress = 1 - (agent.castTimer / skill.cast);
+        const radius = skill.aoeRadius || 1;
+        const isAOE = skill.type === 'AOE';
+              
+        if (isAOE && radius > 0) {
+            UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, surfaceY, skill.color, globalTime, progress, radius, skill.tag, isAOE, layout);
+        }
+
+        ctx.restore();
     }
 }

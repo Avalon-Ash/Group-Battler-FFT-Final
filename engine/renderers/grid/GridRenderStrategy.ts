@@ -1,7 +1,7 @@
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { Hex, Skill, Projectile } from "../../../types";
+import { Hex, Skill, Projectile, SpatialHazard, GroundHazard } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
@@ -77,14 +77,19 @@ export class GridRenderStrategy {
                 op.ttype = obstacleType;
             }
 
-            const hazard = engine.map.getHazardAt(q, r, engine);
-            if (hazard) {
+            const hazardsAtTile = engine.getSpatialHazardsAt(q, r);
+            for (const h of hazardsAtTile) {
                 const hOp = renderList.next();
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = h;
                 hOp.tx = px; hOp.ty = visualSurfaceY; 
                 hOp.y = visualBaseY; // Sorting based on footprint
-                hOp.oHazard = hazard;
+                hOp.oHazard = {
+                    type: h.type,
+                    team: h.team,
+                    duration: h.duration,
+                    power: h.power
+                } as GroundHazard;
                 hOp.time = globalTime;
             }
 

@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
+import { Hex, Skill, SpatialProvider, MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
@@ -59,8 +59,8 @@ export class TargetingSystem {
     public updateTarget(a: Agent, spatial: SpatialProvider, pathfinder?: Pathfinder, skipEscapeLogic: boolean = false) {
         // [FIX] 即使正在詠唱，也應該允許判定危險並尋找逃生路徑 (只是不一定會立即執行行動)
         const myKey = HexUtils.key(a);
-        const hazardOnTile = spatial.getHazard(myKey);
-        const inDanger = spatial.isWarningTile(myKey) || (!!hazardOnTile && hazardOnTile.team !== a.team);
+        const hazardsOnTile = spatial.getSpatialHazardsAt(a.q, a.r);
+        const inDanger = spatial.isWarningTile(myKey) || hazardsOnTile.some(h => h.team !== a.team);
 
         // 如果不在危險中，且正在詠唱非普攻技能，則鎖定目標不更新
         if (!inDanger && a.castingSkillIdx !== -1) {

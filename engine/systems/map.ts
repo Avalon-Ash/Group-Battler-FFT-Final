@@ -111,7 +111,4 @@ export class MapSystem {
     public hasObstacleHash(h: number): boolean {
         return this.obstaclesHash.has(h);
     }
-    public getHazardAt(q: number, r: number, engine: GameEngine): GroundHazard | undefined {
-        return engine.hazards.get(HexUtils.key({ q, r }));
-    }
 }

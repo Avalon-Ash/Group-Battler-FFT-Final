@@ -147,7 +147,7 @@ export const BLUE_ULT: Skill[] = [
         range: 8, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 550, color: '#0f172a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'PULL', ccForce: 4, ccDur: 2.0, 
+        ccType: 'PULL', ccForce: 4, ccDur: 2.0, element: 'VOID',
         visualHitEffect: 'FX_ULT_BLUE_BLACKHOLE'
     },
     { 

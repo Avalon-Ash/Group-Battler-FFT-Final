@@ -49,6 +49,10 @@ export class RenderDispatcher {
                 if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th);
                 break;
 
+            case RenderOpType.AURA:
+                if (op.agent) unitRenderer.drawAura(ctx, op.agent, snapX, snapY, op.time, layout);
+                break;
+
             case RenderOpType.DECAL:
                 ctx.save();
                 ctx.translate(snapX, snapY);
