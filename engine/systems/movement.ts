@@ -181,8 +181,26 @@ export class MovementSystem {
         for (const a of engine.agents) {
             if (a.hp <= 0 || a.banished) continue;
             
-            // If already on the target hex, don't pull (or pull slightly to center)
-            if (a.q === targetHex.q && a.r === targetHex.r) {
+            const distSq = (a.px - targetPx.x) ** 2 + (a.py - targetPx.y) ** 2;
+            const arrivalThreshold = 15; // Within 15px is "landed"
+
+            // If already on the target hex or extremely close
+            if ((a.q === targetHex.q && a.r === targetHex.r) || distSq < arrivalThreshold ** 2) {
+                 // 1. One-time Ground EMP Shockwave on arrival
+                 if (!a.hasLandedLastStand) {
+                     a.hasLandedLastStand = true;
+                     const finalH = engine.map.getTerrainHeight(targetHex.q, targetHex.r);
+                     engine.vfx.playEffect('FX_LAST_STAND_LOCKED', targetPx.x, targetPx.y, 0, '#c084fc', finalH);
+                     
+                     engine.events.push({
+                         type: 'GROUND_IMPACT',
+                         pos: { x: targetPx.x, y: targetPx.y, z: 0 },
+                         text: 'LOCKED',
+                         color: '#c084fc', // Purple EMP
+                         style: 'CRIT'
+                     });
+                 }
+
                  // Soft center pull to prevent units from hanging on the edges of the final hex
                  const dx = targetPx.x - a.px;
                  const dy = targetPx.y - a.py;
@@ -191,7 +209,7 @@ export class MovementSystem {
                  continue;
             }
 
-            // Calculate pull vector
+            // Calculate pull vector (only pull if not landed)
             const dx = targetPx.x - a.px;
             const dy = targetPx.y - a.py;
             const dist = Math.sqrt(dx * dx + dy * dy);
@@ -200,6 +218,7 @@ export class MovementSystem {
                 const force = 400; // Strong pull
                 a.physics.vx += (dx / dist) * force * dt;
                 a.physics.vy += (dy / dist) * force * dt;
+                a.hasLandedLastStand = false; // Reset if somehow forced out (though map prevents it)
             }
         }
     }

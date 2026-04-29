@@ -3,6 +3,7 @@ import { VFXAsset } from "../../types/VFXSchema";
 import { SHARED_VFX } from "./registry/shared";
 import { IMPERIAL_VFX } from "./registry/imperial";
 import { COVENANT_VFX } from "./registry/covenant";
+import { LAST_STAND_VFX } from "./registry/last_stand";
 
 // ==========================================
 // 📚 VFX ASSET REGISTRY (AGGREGATOR)
@@ -14,5 +15,6 @@ import { COVENANT_VFX } from "./registry/covenant";
 export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...SHARED_VFX,
     ...IMPERIAL_VFX,
-    ...COVENANT_VFX
+    ...COVENANT_VFX,
+    ...LAST_STAND_VFX
 };
