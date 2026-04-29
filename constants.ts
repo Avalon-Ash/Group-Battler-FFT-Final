@@ -19,6 +19,10 @@ export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;
 export const UNIT_SCALE = 0.65;
 
+/** 單位模型視覺中心距地板的 Z 偏移（像素）。
+ *  對應 Sprite 高度的約 50%。依美術 Sprite 尺寸調整。 */
+export const AGENT_MODEL_CENTER_Z = 64;
+
 export const VISUAL_ANCHORS = {
     HEAD_OFFSET_Y: 50,
     ENGINE_OFFSET_Y: 15,

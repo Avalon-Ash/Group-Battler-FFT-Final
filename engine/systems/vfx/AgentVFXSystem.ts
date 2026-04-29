@@ -3,6 +3,7 @@ import { GameEngine, Agent } from "../../game";
 import { VFXSystem } from "../vfx";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { MovementType, AIState } from "../../../types";
+import { AGENT_MODEL_CENTER_Z } from "../../../constants";
 
 /**
  * 視覺狀態觀察者 (Visual State Observer)
@@ -67,15 +68,15 @@ export class AgentVFXSystem {
         
         if (t <= 0) {
             t = 1.5 + Math.random() * 1.0; // Random interval for idle feel
-            const h = engine.map.getTerrainHeight(agent.q, agent.r);
-            const pz = agent.physics.z + 20; // Lower body height
+            const terrainZ = engine.map.getTerrainHeight(agent.q, agent.r);
+            const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z * 0.5; // Idle 置於腰部
             const fxId = agent.team === 1 ? 'FX_IDLE_RED' : 'FX_IDLE_BLUE';
             
             vfx.playEffect(
                 fxId, 
                 agent.px + agent.physics.x, 
                 agent.py + agent.physics.y, 
-                h + pz
+                modelCenterZ
             );
         }
         this.vfxTimers.set(timerKey, t);
@@ -101,14 +102,14 @@ export class AgentVFXSystem {
             
             if (t <= 0) {
                 t = def.particleInterval || 0.5;
-                const h = engine.map.getTerrainHeight(agent.q, agent.r);
-                const pz = agent.physics.z + 45; // Chest height
+                const terrainZ = engine.map.getTerrainHeight(agent.q, agent.r);
+                const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z;
                 
                 vfx.playEffect(
                     def.particleEffect, 
                     agent.px + agent.physics.x, 
                     agent.py + agent.physics.y, 
-                    h + pz,
+                    modelCenterZ,
                     undefined,
                     undefined,
                     agent.id
