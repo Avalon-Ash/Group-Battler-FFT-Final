@@ -149,7 +149,7 @@ export const RED_ULT: Skill[] = [
         range: 8, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 1000, color: '#f97316', 
         visual: 'FIREBALL', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 1.5, 
+        ccType: 'STUN', ccDur: 1.5, element: 'FIRE', 
         visualHitEffect: 'FX_ULT_RED_METEOR_IMPACT' 
     },
     { 
@@ -183,7 +183,7 @@ export const RED_ULT: Skill[] = [
         name: '靈魂爆燃', desc: '連鎖爆炸', 
         range: 8, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 700, color: '#dc2626', 
-        visual: 'FIREBALL', projectileSpeed: 0, 
+        visual: 'FIREBALL', projectileSpeed: 0, element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
 

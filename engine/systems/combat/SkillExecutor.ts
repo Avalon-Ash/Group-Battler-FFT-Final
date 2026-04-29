@@ -83,7 +83,6 @@ export class SkillExecutor {
             });
             
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
-            HazardManager.spawnHazards(source, impactCells, skill, engine, targetHex);
         } else {
             if (source.target && source.target.hp > 0 && !source.target.banished) {
                 const isValidTarget = (skill.power > 0 && source.target.team !== source.team) || 
@@ -110,6 +109,9 @@ export class SkillExecutor {
                 }
             }
         }
+
+        // [FIX] Global Hazard Injected - Allow both AOE and Single target skills to spawn hazards (e.g., Lava/Ice)
+        HazardManager.spawnHazards(source, impactCells, skill, engine, targetHex);
         
         // Final target selection fallback
         if (targets.length === 0 && skill.power <= 0 && skill.type === 'SINGLE') {
