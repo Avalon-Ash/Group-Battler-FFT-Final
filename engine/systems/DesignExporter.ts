@@ -80,6 +80,8 @@ export class DesignExporter {
         s += "- 主權绑定與即時過期 (OwnerID Lifecycle Binding): VFX 系統擴展了生命週期協議。CC 類特效（如 Stun, Root）在生成時會與綁定單位的 ID 關聯。一旦該單位死亡（unregister），系統會在當前 Tick 立即將關聯粒子標記為 expired (life = -1) 並從記憶體池中回收，徹底根除「浮空殘留特效」問題。\n";
         s += "- AgentVFX 記憶體隔離 (Timer Sanitization): 針對 Agent 狀態特效計時器 (vfxTimers) 引入 10 秒周期性垃圾清理機制。主動剔除已離開戰場的單位殘留 Key，防止長時間戰鬥下引發的 Map 物件累積與洩漏。\n";
         s += "- 動態高度綁定 (Dynamic Height Binding): 特效系統在獲取空間資訊時，會攔截正在塌陷的網格 (Collapsing Tiles)，並回傳其動態下墜高度 (h + z)，確保粒子與碎石完美貼合下墜中的地形。\n";
+        s += "- Zero-Latency Optical Sync (零延遲打擊同步): 基礎打擊火花從非同步事件總線中剝離，改為與 `hitFlashTimer` 在同一幀同步發射，確保模型閃白、受擊抖動與粒子爆發在渲染管線中絕對對齊。\n";
+        s += "- Shield Hit Branching (護盾斷言分支): `DAMAGE` 事件新增 `absorbed` 欄位。當結算偵測到護盾吸收時，視覺管線自動轉向 `FX_HIT_SHIELD_SPARK` 專屬資產（包含 `HEX_SHARD` 與 `RIPPLE` 紋理），阻斷常規血花與金屬火花。\n";
         s += "- 投射物動態視覺軌跡 (Projectile Motion Blur & Adaptive Trails): \n";
         s += "  - 投射物實體會在繪圖管線中依據速度計算倍率 (Velocity Stretch)，製造出運動模糊錯覺。\n";
         s += "  - 尾跡採樣採用基於空間的「常數距離推算 (Adaptive Step)」，保證在任何環境下尾跡粒子仍然保持 100% 的綿密連接。\n\n";
