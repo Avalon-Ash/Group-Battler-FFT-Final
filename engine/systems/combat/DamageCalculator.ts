@@ -22,7 +22,7 @@ export class DamageCalculator {
      * The Core Damage Pipeline:
      * Hit Check (Blind) -> Base -> Multipliers -> Crit/Execute -> Mitigation (Shield/Def/Block) -> Final
      */
-    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined): DamageResult {
+    public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined, isLastStand: boolean = false): DamageResult {
         const isHeal = skill.power < 0;
         const isAlly = source.team === target.team;
         
@@ -48,6 +48,11 @@ export class DamageCalculator {
             return result;
         }
 
+        // --- LAST STAND: HEAL EMBARGO ---
+        if (isLastStand && isHeal) {
+            return result; // Explicitly return empty result (0 heal)
+        }
+
         let base = Math.abs(skill.power);
         
         let dmgMultiplier = 1.0;
@@ -67,8 +72,9 @@ export class DamageCalculator {
             }
         }
 
+        // --- LAST STAND: ABSOLUTE PENETRATION (SKIP MISS) ---
         // 0. Miss Logic (Blind)
-        if (!isSupport && source.blindTimer > 0) {
+        if (!isSupport && source.blindTimer > 0 && !isLastStand) {
             // 50% Chance to miss if blinded 
             if (Math.random() < 0.5) {
                 result.isMiss = true;
@@ -103,6 +109,10 @@ export class DamageCalculator {
             base *= healMultiplier;
         } else {
             base *= dmgMultiplier;
+            // --- LAST STAND: 3X DAMAGE ---
+            if (isLastStand) {
+                base *= 3.0;
+            }
         }
 
         // 3. Crit Logic
@@ -113,14 +123,14 @@ export class DamageCalculator {
         }
 
         // 4. Mitigation (Tank Block Logic)
-        if (!isHeal && target.role === Role.TANK && target.hp > 0) {
+        if (!isHeal && target.role === Role.TANK && target.hp > 0 && !isLastStand) {
             base *= 0.85; 
             result.isBlock = true;
         }
 
-        // 5. Shield Absorption (NEW)
+        // 5. Shield Absorption (SKIP IF LAST STAND)
         let absorbed = 0;
-        if (!isSupport && target.shield > 0) {
+        if (!isSupport && target.shield > 0 && !isLastStand) {
             absorbed = Math.min(target.shield, base);
             base -= absorbed;
             target.shield -= absorbed;

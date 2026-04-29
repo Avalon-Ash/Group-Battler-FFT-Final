@@ -80,7 +80,7 @@ export class RenderPipeline {
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
-        this.hud.draw(ctx, this.renderer.hud, engine.agents, (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine), cfg, highlight, battleTime);
+        this.hud.draw(ctx, this.renderer.hud, engine.agents, (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine), cfg, highlight, battleTime, engine.state.isLastStand);
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);

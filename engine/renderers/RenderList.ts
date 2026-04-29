@@ -32,6 +32,7 @@ export class RenderOp {
     oHover: boolean = false;
     oHasUnit: boolean = false;
     oWarning: boolean = false;
+    oLastStand: boolean = false;
     agent: Agent | null = null;
     alpha: number = 1.0;
     uSelected: boolean = false;
@@ -65,6 +66,7 @@ export class RenderOp {
         this.oRange = false;
         this.oHover = false;
         this.oWarning = false;
+        this.oLastStand = false;
         this.oStatus = undefined;
         this.oHazard = undefined;
         this.oDanger = undefined;

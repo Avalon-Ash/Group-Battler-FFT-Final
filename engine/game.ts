@@ -43,7 +43,9 @@ export class GameEngine {
         director: { focusTimer: 0, priorityTimer: 0, targetId: null as string | null },
         hazards: new Map<string, GroundHazard>(),
         victory: { victoryTimer: 0, winningTeam: null as Team | null, isFinishing: false },
-        time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 }
+        time: { battleTime: 0, timeScale: 1.0, targetTimeScale: 1.0 },
+        isLastStand: false,
+        finalHex: null as Hex | null
     };
 
     public sessionState: GlobalSessionState = {
@@ -59,6 +61,7 @@ export class GameEngine {
     get targetTimeScale(): number { return this.state.time.targetTimeScale; }
     set targetTimeScale(v: number) { this.state.time.targetTimeScale = v; }
     get victory() { return this.state.victory; }
+    get isLastStand(): boolean { return this.state.isLastStand; }
     
     get directorTargetId(): string | null { return this.state.director.targetId; }
     get mapKeys(): Set<string> { return this.map.mapKeys; }
@@ -207,6 +210,8 @@ export class GameEngine {
         this.victorySystem.reset(this);
         this.effects.reset();
         this.zones.reset(this);
+        this.state.isLastStand = false;
+        this.state.finalHex = null;
         this.state.time.battleTime = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
@@ -241,6 +246,7 @@ export class GameEngine {
         this.map.obstaclesHash.clear();
         this.director.reset(this);
         this.zones.reset(this);
+        this.state.isLastStand = false;
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.effects.reset();
@@ -305,6 +311,7 @@ export class GameEngine {
             }
         }
         this.combat.update(dt, this);
+        this.movement.applyLastStandPull(dt, this);
 
         // Run AI tick after combat update so and CD/Cast status is from the current frame
         for (const a of this.agents) {

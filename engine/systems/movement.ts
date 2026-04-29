@@ -168,4 +168,39 @@ export class MovementSystem {
     public resolveStacking(spatial: SpatialProvider, logger: LogProvider) {
         this.stackingResolver.resolve(spatial, logger);
     }
+
+    /**
+     * [PROMPT] 向心牽引：施加瞬時向心脈衝，將外圍實體強制拖拽入中心網格
+     */
+    public applyLastStandPull(dt: number, engine: any) {
+        if (!engine.state.isLastStand || !engine.state.finalHex) return;
+
+        const targetHex = engine.state.finalHex;
+        const targetPx = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
+
+        for (const a of engine.agents) {
+            if (a.hp <= 0 || a.banished) continue;
+            
+            // If already on the target hex, don't pull (or pull slightly to center)
+            if (a.q === targetHex.q && a.r === targetHex.r) {
+                 // Soft center pull to prevent units from hanging on the edges of the final hex
+                 const dx = targetPx.x - a.px;
+                 const dy = targetPx.y - a.py;
+                 a.physics.vx += dx * dt * 5;
+                 a.physics.vy += dy * dt * 5;
+                 continue;
+            }
+
+            // Calculate pull vector
+            const dx = targetPx.x - a.px;
+            const dy = targetPx.y - a.py;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 10) {
+                const force = 400; // Strong pull
+                a.physics.vx += (dx / dist) * force * dt;
+                a.physics.vy += (dy / dist) * force * dt;
+            }
+        }
+    }
 }

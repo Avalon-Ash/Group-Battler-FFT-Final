@@ -126,7 +126,7 @@ export class SkillExecutor {
         if (!target || target.hp <= 0 || target.banished) return;
 
         // A. Damage Calculation
-        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit);
+        const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit, engine.isLastStand);
         
         if (result.isMiss) {
             target.lastHitDamage = 0;

@@ -168,6 +168,16 @@ export class ZoneSystem {
                         engine.mapVersion++; 
                         engine.bus.emit('ZONE_SHRUNK', { radius: this.safeRadius });
                         engine.log(null, 'SYSTEM', '地形潰縮', null, `剩餘安全網格: ${engine.map.mapKeys.size}`);
+
+                        // --- LAST STAND TRIGGER ---
+                        if (engine.map.mapKeys.size === 1 && !engine.state.isLastStand) {
+                            engine.state.isLastStand = true;
+                            const finalHexKey = Array.from(engine.map.mapKeys)[0];
+                            const [fq, fr] = finalHexKey.split(',').map(Number);
+                            engine.state.finalHex = { q: fq, r: fr };
+                            engine.bus.emit('LAST_STAND_TRIGGERED', { q: fq, r: fr });
+                            engine.log(null, 'SYSTEM', '背水一戰', null, '最後安全區域確立：全防禦瓦解，治癒禁絕，絕對穿透開啟！');
+                        }
                     }
                 }
             }

@@ -20,6 +20,7 @@ export const GridOverlays = {
         rangeColor: string,
         isHover: boolean,
         isWarning: boolean,
+        isLastStand: boolean,
         hasUnit: boolean,
         q: number, r: number,
         globalTime: number,
@@ -28,6 +29,23 @@ export const GridOverlays = {
         // SSOT: Calculate surface Y via projection formula
         const visualSurfaceY = VisualMath.getIsoVisualY(baseY, height);
         const drawY = VisualMath.applyLayerBias(visualSurfaceY, 'OVERLAY');
+
+        if (isLastStand) {
+            ctx.save();
+            ctx.translate(x, drawY - 2);
+            const pulse = (Math.sin(globalTime * 15) + 1) / 2; // High frequency
+            ctx.fillStyle = '#c084fc'; // Purple/Magenta pulse
+            ctx.globalAlpha = 0.2 + pulse * 0.3;
+            HexGeometry.traceHex(ctx, 0, 0, size * 0.98, true, layout);
+            ctx.fill();
+            
+            ctx.strokeStyle = '#f0abfc';
+            ctx.lineWidth = 1.5 + pulse * 1.5;
+            ctx.globalAlpha = 0.4 + pulse * 0.4;
+            HexGeometry.traceHex(ctx, 0, 0, size * 0.98, true, layout);
+            ctx.stroke();
+            ctx.restore();
+        }
 
         if (specialStatus && specialStatus !== 'NONE') {
             const def = STATUS_VISUALS[specialStatus];

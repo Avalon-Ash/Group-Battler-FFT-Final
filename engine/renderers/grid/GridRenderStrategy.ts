@@ -106,6 +106,7 @@ export class GridRenderStrategy {
             
             op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             op.oWarning = engine.map.warningTiles.has(key);
+            op.oLastStand = engine.state.isLastStand && engine.state.finalHex?.q === q && engine.state.finalHex?.r === r;
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
             op.time = globalTime;
         }
