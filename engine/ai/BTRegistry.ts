@@ -38,6 +38,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // [FIX] Only check warning tiles for survival logic (SSOT)
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
+        
+        // [NEW] Check for enemy spatial hazards
+        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => h.team !== a.team);
+        if (enemyHazards.length > 0) return true;
 
         // Project based on physics velocity (knockback)
         const isKnockedBack = Math.abs(a.physics.vx) > 100 || Math.abs(a.physics.vy) > 100;
@@ -50,6 +54,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const predPy = a.py + a.physics.vy * ticks * dt_est;
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
             if (engine.isWarningTile(HexUtils.key(predHex))) return true;
+
+            const enemyHazardsAtPred = engine.getSpatialHazardsAt(predHex.q, predHex.r).filter(h => h.team !== a.team);
+            if (enemyHazardsAtPred.length > 0) return true;
         }
 
         return false;
@@ -58,6 +65,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsInUrgentDanger": (a, engine) => {
         const myKey = HexUtils.key(a);
         if (engine.isWarningTile(myKey)) return true;
+        
+        // [NEW] Check for enemy hazards
+        const enemyHazards = engine.getSpatialHazardsAt(a.q, a.r).filter(h => h.team !== a.team);
+        if (enemyHazards.length > 0) return true;
 
         // [FIX] Danger is objective. Cooldown should not hide it.
         // But we allow a small grace period for physics-based knockbacks to settle.
@@ -70,7 +81,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // Projection check for fluid movement
         const pixelHex = HexUtils.fromPx(a.px, a.py, engine.mapConfig);
         const pixelKey = HexUtils.key(pixelHex);
-        return engine.isWarningTile(pixelKey);
+        if (engine.isWarningTile(pixelKey)) return true;
+        
+        const enemyHazardsAtPixel = engine.getSpatialHazardsAt(pixelHex.q, pixelHex.r).filter(h => h.team !== a.team);
+        if (enemyHazardsAtPixel.length > 0) return true;
+
+        return false;
     },
 
     "IsInWarningZoneOrEvading": (a, engine) =>
@@ -271,20 +287,11 @@ export const BTActions: Record<string, BTActionFn> = {
                 a, a, engine, engine.movement.targeting
             );
             
-            if (path === null) {
-                // Fully surrounded — no escape route exists.
-                // Trigger last-stand mode and let BT fall through to CastPushPull.
-                a.aiState = AIState.LAST_STAND_PUSH;
-                a.targetHex = null;
-                engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，進入困獸之鬥模式');
-                return NodeState.FAILURE;
-            }
-
-            if (path.length > 0) {
+            if (path && path.length > 0) {
                 a.targetHex = path[path.length - 1];
                 engine.log(a, 'DECISION', '生存：啟動路徑逃離', '', `找到安全路徑，目標：${HexUtils.key(a.targetHex)}`);
             } else {
-                // 備援：鄰格評分 (Two-pass to prioritize safety)
+                // 備援：無路徑時的鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
                 let bestNeighbor: any = null;
                 let lowestDanger = Infinity;
@@ -324,6 +331,13 @@ export const BTActions: Record<string, BTActionFn> = {
                     const anyNeighbor = neighbors.find(n => engine.map.isValid(n.q, n.r) && !engine.hasObstacleHash(HexUtils.hash(n.q, n.r)));
                     if (anyNeighbor) {
                         a.targetHex = anyNeighbor;
+                    } else {
+                        // Fully surrounded by walls or map edge — no escape route exists.
+                        // Trigger last-stand mode and let BT fall through to CastPushPull.
+                        a.aiState = AIState.LAST_STAND_PUSH;
+                        a.targetHex = null;
+                        engine.log(a, 'DECISION', '生存：無路可退', '', '處於死亡網格且無處可躲，進入困獸之鬥模式');
+                        return NodeState.FAILURE;
                     }
                 }
             }

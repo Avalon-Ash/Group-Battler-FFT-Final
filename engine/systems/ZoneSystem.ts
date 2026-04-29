@@ -1,6 +1,6 @@
 
 import { GameEngine } from "../game";
-import { Team } from "../../types";
+import { Team, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 
 export interface ActiveZone {
@@ -159,7 +159,21 @@ export class ZoneSystem {
                             engine.log(victim, 'SYSTEM', '墜落出局', null, `${victim.id} 隨地板崩落虛空`);
                         }
 
-                        // 2. 再移除地圖格，啟動掉落動畫
+                        // 2. 清除陷落網格上的 Hazard 資料（避免特效懸浮在虛空）
+                        for (let i = engine.state.spatialHazards.length - 1; i >= 0; i--) {
+                            const h = engine.state.spatialHazards[i];
+                            const prevCount = h.cells.length;
+                            h.cells = h.cells.filter(c => c.q !== hex.q || c.r !== hex.r);
+                            
+                            // [PROACTIVE PUSH] 如果該 Hazard 的 cells 發生變動且歸零，則徹底移除
+                            if (h.cells.length === 0) {
+                                engine.state.spatialHazards.splice(i, 1);
+                            } else if (h.cells.length !== prevCount) {
+                                // 強制地圖版本更新，讓渲染器同步變更（雖然 Zone 縮減已經會更新 mapVersion）
+                            }
+                        }
+
+                        // 3. 再移除地圖格，啟動掉落動畫
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });
                         engine.map.removeTile(hex.q, hex.r);
                     }

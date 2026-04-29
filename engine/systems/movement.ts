@@ -58,7 +58,7 @@ export class MovementSystem {
                     const hexKey = HexUtils.key(hex);
                     const enemyHazards = spatial.getSpatialHazardsAt(hex.q, hex.r).filter(h => h.team !== a.team);
                     const hasEnemyHazard = enemyHazards.length > 0;
-                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && spatial.isWarningTile(hexKey)) || hasEnemyHazard) {
+                    if (!spatial.isValid(hex.q, hex.r) || (!isEscaping && (spatial.isWarningTile(hexKey) || hasEnemyHazard))) {
                         pathValid = false;
                         break;
                     }

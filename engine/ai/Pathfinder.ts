@@ -78,6 +78,17 @@ export class Pathfinder {
                     }
                 }
                 
+                const enemyHazards = spatial.getSpatialHazardsAt(nHex.q, nHex.r).filter(h => h.team !== startAgent.team);
+                if (enemyHazards.length > 0) {
+                    if (!isEscaping) {
+                        // 嘗試完全避開危險塗層
+                        moveCost += 15;
+                    } else {
+                        // 逃生優先，但稍微避開危險塗層
+                        moveCost += 3;
+                    }
+                }
+                
                 if (startAgent.movementType !== MovementType.FLYING) {
                     const h1 = spatial.getTerrainHeight(currentHex.q, currentHex.r);
                     const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
@@ -202,7 +213,7 @@ export class Pathfinder {
                 // 單位碰撞判定 (逃生時盡量避開單位，避免死鎖)
                 const occ = spatial.getAgentHash(neighborH);
                 if (occ && occ.hp > 0 && occ !== agent) {
-                    // 給予極高成本，讓 AI 優先選擇空地逃生 (例如上/下方的空地)
+                    // 給予極高成本，讓 AI 優先選擇空地逃生
                     moveCost += 50; 
                 }
 
