@@ -24,6 +24,12 @@ export class DamageCalculator {
      */
     public static calculate(source: Agent, target: Agent, skill: Skill, battleTime: number = 0, preRollCrit: boolean | undefined = undefined): DamageResult {
         const isHeal = skill.power < 0;
+        const isAlly = source.team === target.team;
+        
+        // Support skills (Heals or Buffs cast on allies) should bypass evasion and shields
+        const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
+        const isSupport = isHeal || (isAlly && (skill.power === 0 || isBuffCC));
+
         let base = Math.abs(skill.power);
         
         let dmgMultiplier = 1.0;
@@ -57,8 +63,8 @@ export class DamageCalculator {
         };
 
         // 0. Miss Logic (Blind)
-        if (!isHeal && source.blindTimer > 0) {
-            // 50% Chance to miss if blinded
+        if (!isSupport && source.blindTimer > 0) {
+            // 50% Chance to miss if blinded 
             if (Math.random() < 0.5) {
                 result.isMiss = true;
                 return result; // Early exit on miss
@@ -109,7 +115,7 @@ export class DamageCalculator {
 
         // 5. Shield Absorption (NEW)
         let absorbed = 0;
-        if (!isHeal && target.shield > 0) {
+        if (!isSupport && target.shield > 0) {
             absorbed = Math.min(target.shield, base);
             base -= absorbed;
             target.shield -= absorbed;

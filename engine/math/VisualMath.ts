@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS, ISO_SCALE_Y } from "../../constants";
 
 export interface Point3D {
     x: number;
@@ -56,8 +56,9 @@ export class VisualMath {
 
     public static calculateProjectedAngle(p1: Point3D, p2: Point3D): number {
         const dx = p2.x - p1.x;
-        const screenY1 = this.getIsoVisualY(p1.y, p1.z);
-        const screenY2 = this.getIsoVisualY(p2.y, p2.z);
+        // Apply ISO_SCALE_Y to Y before computing visual angle to match screen projection
+        const screenY1 = p1.y * ISO_SCALE_Y - p1.z;
+        const screenY2 = p2.y * ISO_SCALE_Y - p2.z;
         const dy = screenY2 - screenY1;
         return Math.atan2(dy, dx);
     }

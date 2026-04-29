@@ -178,9 +178,9 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '聚能光束', desc: '單體光束', 
-        range: 12, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1200, color: '#60a5fa', 
+        name: '聚能光束', desc: '巨型高能光束', 
+        range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 1, power: 1200, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM'
     },

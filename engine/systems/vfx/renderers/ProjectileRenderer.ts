@@ -3,7 +3,7 @@ import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath, Point3D } from "../../../math/VisualMath";
-import { VFX_RENDER } from "../../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -16,42 +16,43 @@ export const ProjectileRenderer = {
             if (!p.active) continue;
 
             const traj = p.trajectoryInfo;
-            const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
-            const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
+            // Un-scale Y back to pure 3D for correct trajectory math and angle calculation
+            const start3D: Point3D = { x: p.startX, y: p.startY / ISO_SCALE_Y, z: p.startZ };
+            const end3D: Point3D = { x: p.endX, y: p.endY / ISO_SCALE_Y, z: p.endZ };
 
-            // 1. Get Logic Position (Already calculated by ProjectileSystem)
-            const current3D = { x: p.x, y: p.y, z: p.z };
+            // 1. Get Pure 3D Position (SSOT)
+            const current3D = TrajectoryMath.evaluate(traj, start3D, end3D, p.t);
 
             // 2. Calculate Visual Angle (Derivative via SSOT Projection)
             // Use TrajectoryMath to predict a tiny step forward/backward in 3D
             // Then use VisualMath to project BOTH points to 2D screen space and find the angle.
             // This guarantees the sprite angle matches the visual parabolic curve exactly.
             
-            let tNext = p.t + 0.01;
+            let tNext = Math.min(1.0, p.t + 0.01);
             let visAngle;
 
-            if (tNext > 1.0) {
+            if (p.t >= 0.99) {
                 // At end of flight: look backwards (Current - Prev)
                 const tPrev = p.t - 0.01;
-                const prev3D = TrajectoryMath.evaluate(traj, start, end, tPrev);
+                const prev3D = TrajectoryMath.evaluate(traj, start3D, end3D, tPrev);
                 visAngle = VisualMath.calculateProjectedAngle(prev3D, current3D);
             } else {
                 // Normal flight: look forwards (Next - Current)
-                const next3D = TrajectoryMath.evaluate(traj, start, end, tNext);
+                const next3D = TrajectoryMath.evaluate(traj, start3D, end3D, tNext);
                 visAngle = VisualMath.calculateProjectedAngle(current3D, next3D);
             }
 
             // 3. Project to Screen
-            const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y, engine.mapConfig, transitionT, transitionPhase);
+            const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y * ISO_SCALE_Y, engine.mapConfig, transitionT, transitionPhase);
             // Use SSOT Projection for final Y position
-            const visY = VisualMath.getIsoVisualY(current3D.y, current3D.z) + transOffset;
+            const visY = VisualMath.getIsoVisualY(current3D.y * ISO_SCALE_Y, current3D.z) + transOffset;
 
-            const dist = Math.sqrt((end.x - start.x)**2 + (end.y - start.y)**2);
+            const dist = Math.sqrt((end3D.x - start3D.x)**2 + (end3D.y - start3D.y)**2);
             const speed = dist / Math.max(0.01, p.totalDuration); 
             
             const op = renderList.next();
             op.type = RenderOpType.PROJECTILE;
-            op.y = current3D.y; 
+            op.y = current3D.y * ISO_SCALE_Y; 
             op.z = 5000 + current3D.z; 
             
             op.pVisX = current3D.x;
@@ -80,11 +81,11 @@ export const ProjectileRenderer = {
 
                 for (let j = 1; j <= trailSamples; j++) {
                     const tPast = Math.max(0, p.t - j * step);
-                    // Use SSOT Evaluate for past points
-                    const past3D = TrajectoryMath.evaluate(traj, start, end, tPast);
+                    // Use SSOT Evaluate for past points in 3D
+                    const past3D = TrajectoryMath.evaluate(traj, start3D, end3D, tPast);
                     
-                    const pOffset = VisualMath.getTransitionOffset(past3D.x, past3D.y, engine.mapConfig, transitionT, transitionPhase);
-                    const pastY = VisualMath.getIsoVisualY(past3D.y, past3D.z) + pOffset;
+                    const pOffset = VisualMath.getTransitionOffset(past3D.x, past3D.y * ISO_SCALE_Y, engine.mapConfig, transitionT, transitionPhase);
+                    const pastY = VisualMath.getIsoVisualY(past3D.y * ISO_SCALE_Y, past3D.z) + pOffset;
                     op.pTrail.push({ x: past3D.x, y: pastY });
                     if (tPast <= 0) break;
                 }
