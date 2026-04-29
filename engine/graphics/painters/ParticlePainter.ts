@@ -129,5 +129,34 @@ export const ParticlePainter = {
         }
         ctx.closePath();
         ctx.fill();
+    },
+
+    drawHexShard(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.fillStyle = color;
+        // Draw sharp irregular shard
+        ctx.beginPath();
+        const verts = 3 + Math.floor(Math.random() * 3);
+        for (let i = 0; i < verts; i++) {
+            const angle = (i / verts) * Math.PI * 2;
+            const dist = r * (0.3 + Math.random() * 0.7);
+            ctx.lineTo(Math.cos(angle) * dist, Math.sin(angle) * dist);
+        }
+        ctx.closePath();
+        ctx.fill();
+    },
+
+    drawRipple(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.8, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.globalAlpha = 1.0;
     }
 };

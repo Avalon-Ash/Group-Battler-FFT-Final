@@ -10,6 +10,14 @@ export class AnimationSystem {
                 agent.hitFlashTimer -= dt;
             }
 
+            // 1.1 Decay Visual Offset (Damping)
+            if (agent.visualOffset.x !== 0 || agent.visualOffset.y !== 0) {
+                agent.visualOffset.x *= (1 - 15 * dt);
+                agent.visualOffset.y *= (1 - 15 * dt);
+                if (Math.abs(agent.visualOffset.x) < 0.1) agent.visualOffset.x = 0;
+                if (Math.abs(agent.visualOffset.y) < 0.1) agent.visualOffset.y = 0;
+            }
+
             // 2. Derive Animation State (Priority Based)
             // Priority: DEAD > STUN > HIT > ACTION_STATE > IDLE
             

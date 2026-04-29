@@ -98,6 +98,24 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'GLOW', count: 1, lifetime: [0.08, 0.12], size: [50, 70], colors: ['#fff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
         ]
     },
+    'FX_HIT_SHIELD_SPARK': {
+        id: 'FX_HIT_SHIELD_SPARK',
+        description: '能量護盾受擊：產生藍色碎晶與擴散漣漪',
+        emitters: [
+            { 
+                particleType: 'HEX_SHARD', count: [8, 12], lifetime: [0.2, 0.3], 
+                size: [4, 10], speed: [150, 250], vz: [100, 300], 
+                colors: ['#bae6fd', '#3b82f6', '#ffffff'], 
+                shape: 'BURST_DIR', blendMode: 'screen', delay: 0 
+            },
+            { 
+                particleType: 'RIPPLE', count: 1, lifetime: [0.3, 0.4], 
+                size: [40, 60], speed: [0, 0], 
+                colors: ['#3b82f6'], 
+                shape: 'POINT', blendMode: 'screen', delay: 0 
+            }
+        ]
+    },
     'FX_HIT_FIRE': {
         id: 'FX_HIT_FIRE',
         emitters: [

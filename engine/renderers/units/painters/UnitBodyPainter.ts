@@ -77,7 +77,8 @@ export const UnitBodyPainter = {
         ctx.save(); 
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-        ctx.translate(px, bodyY); 
+        // Apply visual offset for hit shake without polluting physics position
+        ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y); 
         
         let hitBrightness = 0;
         let squashX = 1.0;

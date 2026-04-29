@@ -186,6 +186,7 @@ export class SkillExecutor {
                 type: evtType, 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: finalDamage, 
+                absorbed: result.shieldAbsorb > 0 ? Math.floor(result.shieldAbsorb) : undefined,
                 color,
                 skill,
                 targetId: target.id,
@@ -200,24 +201,30 @@ export class SkillExecutor {
                 if (!isHeal) {
                     target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
                     
+                    // [NEW] Optical Shake Sync: Decoupled visual jitter
+                    const shakePower = Math.min(12, finalDamage / 8 + 3);
+                    target.visualOffset.x = (Math.random() - 0.5) * shakePower;
+                    target.visualOffset.y = (Math.random() - 0.5) * shakePower;
+
                     // [FIX] SSOT Grid Anchor Locking for Hit VFX
-                    // Instead of target.px/py (which might be displaced by physics), 
-                    // use hex center to ensure VFX stays locked to the grid cell.
                     const hexCenter = HexUtils.toPx(target.q, target.r, engine.mapConfig);
                     const hitX = hexCenter.x;
                     const hitY = hexCenter.y;
-                    const hitZ = engine.getTerrainHeight(target.q, target.r); // Use ground height
+                    const hitZ = engine.getTerrainHeight(target.q, target.r);
 
-                    // 選擇陣營受擊特效 key
-                    const hitFX = target.team === Team.BLUE
-                        ? 'FX_HIT_BLUE_TECH'
-                        : 'FX_HIT_RED_BLOOD';
+                    // 選擇基礎打擊特效
+                    const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_TECH' : 'FX_HIT_RED_BLOOD';
 
-                    // LIGHT & MEDIUM：播放陣營特效（MEDIUM 呼叫兩次，位移稍微錯開製造量感）
+                    // [FIX] Synchronous VFX: Immediate burst aligned with hitFlashFrame
                     if (engine.vfx) {
-                        engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
-                        if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                            engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                        // Check for shield hit - play shield spark if absorbed
+                        if (result.shieldAbsorb > 0) {
+                            engine.vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ);
+                        } else {
+                            engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
+                            if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
+                                engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                            }
                         }
 
                         // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
@@ -226,7 +233,6 @@ export class SkillExecutor {
                         }
                     }
                     
-                    // Physics Impulse (Small nudge on hit)
                     if (origin && !skill.ccType) {
                         PhysicsEngine.applyImpulse(target, origin, COMBAT_PARAM.HIT_IMPULSE_MIN);
                     }

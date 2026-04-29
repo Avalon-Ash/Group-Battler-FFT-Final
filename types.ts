@@ -105,6 +105,7 @@ export interface GameEvent {
     sourceId?: string;
     targetId?: string;
     team?: Team;
+    absorbed?: number;
 }
 
 export enum Team {

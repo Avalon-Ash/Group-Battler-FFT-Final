@@ -96,6 +96,7 @@ export class Agent {
     public lastHitSourceId: string | null = null;
     public actionState: ActionState = ActionState.IDLE;
     public fearMoveTimer: number = 0;
+    public visualOffset = { x: 0, y: 0 };
 
     public physics = {
         x: 0, y: 0, z: 0,
@@ -215,6 +216,7 @@ export class Agent {
         this.lastHitSourceId = null;
         this.hitFlashTimer = 0;
         this.lastHitDamage = 0;
+        this.visualOffset = { x: 0, y: 0 };
         this.actionState = ActionState.IDLE;
         this.fearMoveTimer = 0;
         this.deathTimer = 0;

@@ -25,7 +25,7 @@ export class VFXTextureCache {
         if (this.cache.has(key)) return this.cache.get(key)!;
 
         // [FIX] Warning for unknown types
-        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'GLITCH']);
+        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'GLITCH', 'HEX_SHARD', 'RIPPLE']);
         if (!KNOWN_TYPES.has(type)) {
             console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
         }
@@ -36,6 +36,8 @@ export class VFXTextureCache {
 
         switch (type) {
             case 'SMOKE': ParticlePainter.drawSmoke(ctx, r, color); break;
+            case 'HEX_SHARD': ParticlePainter.drawHexShard(ctx, r, color); break;
+            case 'RIPPLE': ParticlePainter.drawRipple(ctx, r, color); break;
             case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
             case 'SPIKE':
             case 'SPARK': ParticlePainter.drawSpike(ctx, r * (type === 'SPARK' ? 0.3 : 0.8), color); break;
