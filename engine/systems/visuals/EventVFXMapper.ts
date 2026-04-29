@@ -37,11 +37,6 @@ export class EventVFXMapper {
         // 2. Route to specialized atomic handlers
         switch (event.type) {
             case 'DAMAGE': 
-                if (event.absorbed && event.absorbed > 0) {
-                    // Shield Hit: Play special ripple/spark and skip regular hit VFX
-                    vfx.playEffect('FX_HIT_SHIELD_SPARK', target.x, target.y, target.z, undefined, groundZ);
-                    break;
-                }
                 CombatVFXHandler.handle(event, vfx, camera, target, groundZ);
                 break;
             case 'HEAL':

@@ -52,29 +52,4 @@ export class CombatVFXHandler {
             camera.addTrauma(0.35 * intensity);
         }
     }
-
-    private static playImpact(event: GameEvent, vfx: VFXSystem, target: Point3D, groundZ: number, scale: number = 1.0) {
-        const skill = event.skill;
-        const color = event.color || '#fff';
-        
-        let effectId = skill?.visualHitEffect || this.getFallbackByElement(skill?.element);
-
-        vfx.playEffect(effectId, target.x, target.y, target.z, color, groundZ);
-
-        if (scale > 2.0) {
-            vfx.playEffect('FX_MASSIVE_IMPACT', target.x, target.y, target.z, '#ffffff');
-        } else if (scale > 1.5) {
-            vfx.playEffect('FX_HIT_GENERIC', target.x, target.y, target.z, '#ffffff');
-        }
-    }
-
-    private static getFallbackByElement(element?: string): string {
-        switch(element) {
-            case 'FIRE': return 'FX_HIT_FIRE';
-            case 'ICE': return 'FX_HIT_BLUE_ICE';
-            case 'LIGHTNING': return 'FX_HIT_BLUE_TECH';
-            case 'BLOOD': return 'FX_HIT_RED_BLOOD';
-            default: return 'FX_HIT_GENERIC';
-        }
-    }
 }

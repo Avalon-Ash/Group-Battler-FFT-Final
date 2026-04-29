@@ -111,15 +111,13 @@ export class SkillExecutor {
             }
         }
         
+        // Final target selection fallback
         if (targets.length === 0 && skill.power <= 0 && skill.type === 'SINGLE') {
             targets.push(source);
         }
 
-        // 4. 結算效果
         const preRollCrit = skill.power > 0 ? Math.random() < 0.1 : false;
         targets.forEach(target => {
-            // [FIX] For SINGLE target skills, origin should be undefined so CCManager uses the caster's position.
-            // For AOE skills, origin is the center of the AOE.
             this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
         });
     }
