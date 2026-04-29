@@ -138,7 +138,7 @@ export class GameRenderer {
         );
 
         // 6. HUD System (Always RealTime, UI should not freeze)
-        this.hud.update(dt);
+        this.hud.update(dt, engine);
     }
 
     public processVisualEvents(events: GameEvent[]): void {

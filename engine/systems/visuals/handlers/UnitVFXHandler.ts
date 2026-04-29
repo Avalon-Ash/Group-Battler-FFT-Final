@@ -27,7 +27,7 @@ export class UnitVFXHandler {
             const progress = event.value || 0.1;
             const powerScale = 0.5 + progress;
 
-            vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color);
+            vfx.playEffect('FX_CAST_SHATTER', origin.x, origin.y, origin.z, event.color);
             
             if (event.skill && event.skill.tag === 'ULT') {
                 camera.addTrauma(0.5 * powerScale);

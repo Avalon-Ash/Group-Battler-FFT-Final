@@ -43,12 +43,14 @@ export class GridRenderStrategy {
                 if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
 
                 // Check for casting AOE to highlight
-                if (a.castingSkillIdx !== -1 && (a.target || a.targetHex)) {
+                if (a.castingSkillIdx !== -1 && a.currentTelegraph) {
                     const skill = a.skills[a.castingSkillIdx];
-                    if (skill && skill.tag !== 'BASIC' && skill.aoeRadius && skill.aoeRadius > 0) {
-                        const targetPos = a.target ? { q: a.target.q, r: a.target.r } : a.targetHex!;
-                        const cells = HexUtils.range(targetPos, skill.aoeRadius);
-                        cells.forEach(c => this._castingAOE.add(`${c.q},${c.r}`));
+                    if (skill) {
+                        const telegraph = a.currentTelegraph;
+                        for (let i = 0; i < telegraph.length; i++) {
+                            const c = telegraph[i];
+                            this._castingAOE.add(`${c.q},${c.r}`);
+                        }
                         if (!this._castingColor) this._castingColor = skill.color;
                     }
                 }

@@ -66,6 +66,10 @@ export class CombatSystem {
 
             // sourceId 必須傳遞，供 HUD 綁定文字
             if (skill.cast > 0 && skill.tag !== 'BASIC') {
+                // [FIX] Caching impact area for performance optimization in telegraph rendering
+                const targetHex = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : {q: a.q, r: a.r});
+                a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
+                
                 engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id, targetId });
             }
             

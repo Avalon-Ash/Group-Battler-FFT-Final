@@ -1,4 +1,6 @@
 
+import { GameEngine } from "../game";
+
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
 const MAX_ACTIVE_TEXTS = 60; // Reduced for performance safety
@@ -160,12 +162,29 @@ export class HUDSystem {
         this.pool.push(ft);
     }
 
-    public update(dt: number) {
+    public update(dt: number, engine: GameEngine) {
         for (let i = this.damageNumbers.length - 1; i >= 0; i--) { 
             const d = this.damageNumbers[i]; 
             d.life -= dt; 
             d.time += dt;
             
+            // [FIX] Dynamic HUD Coordinate Binding
+            // If the text has an ownerId and is a SHOUT, follow the owner's current position
+            if (d.ownerId && d.type === 'SHOUT' && !d.isShattered) {
+                const agent = engine.agents.find(a => a.id === d.ownerId);
+                if (agent && agent.hp > 0) {
+                    // Update baseline position to match moving unit's HUD anchor
+                    // We need terrain height at agent position for correct visual Y
+                    const h = engine.map.getTerrainHeight(agent.q, agent.r);
+                    d.x = agent.px + agent.physics.x;
+                    // Reference HUDRenderer.ts: anchorY = VisualMath.getEntityVisualY(a.py, h, a.physics.y, a.physics.z, -HUD_BAR_OFFSET);
+                    // But we don't want the -HUD_BAR_OFFSET here as SHOUT has its own vy 
+                    // which handled the initial offset and floating.
+                    // Instead, we just want to follow the "base" py - z - h.
+                    d.y = agent.py + agent.physics.y - agent.physics.z - h;
+                }
+            }
+
             d.x += d.vx * dt;
             d.y += d.vy * dt; 
             d.rotation += d.vRot * dt; 

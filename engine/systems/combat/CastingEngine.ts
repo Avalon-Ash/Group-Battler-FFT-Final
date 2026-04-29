@@ -79,6 +79,7 @@ export class CastingEngine {
         a.castingSkillIdx = -1;
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
+        a.currentTelegraph = null;
         if (fromCompletion) {
             a._castCompleteCooldown = 0.15; // [FIX] Lockout to prevent instant re-cast loop
         }

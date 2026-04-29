@@ -25,7 +25,7 @@ export class VFXTextureCache {
         if (this.cache.has(key)) return this.cache.get(key)!;
 
         // [FIX] Warning for unknown types
-        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'GLITCH']);
+        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'GLITCH']);
         if (!KNOWN_TYPES.has(type)) {
             console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
         }
@@ -45,6 +45,13 @@ export class VFXTextureCache {
                 ctx.fill();
                 break;
             case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
+            case 'HEX_HALO': IconPainter.drawHexHalo(ctx, r, color); break;
+            case 'HEX_PRISM': IconPainter.drawHexPrism(ctx, r, color); break;
+            case 'HEX_RUNE': IconPainter.drawHexRune(ctx, r, color); break;
+            case 'HEX_SHIELD': IconPainter.drawHexShield(ctx, r, color); break;
+            case 'HEX_SKULL': IconPainter.drawHexSkull(ctx, r, color); break;
+            case 'HEX_ANGRY': IconPainter.drawHexAngry(ctx, r, color); break;
+            case 'HEX_EYE': IconPainter.drawHexEye(ctx, r, color); break;
             case 'SHADOW_BLOB': {
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
                 grad.addColorStop(0, color); 

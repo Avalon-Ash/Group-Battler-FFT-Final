@@ -33,6 +33,7 @@ export class Agent {
     public castTimer: number = 0;
     public castingAnimationTimer: number = 0;
     public curCDs: number[] = [0, 0, 0];
+    public currentTelegraph: {q: number, r: number}[] | null = null;
 
     public isMoving: boolean = false;
     public path: Hex[] = [];
@@ -183,6 +184,7 @@ export class Agent {
         this.castTimer = 0;
         this.castingAnimationTimer = 0;
         this.curCDs = [0, 0, 0];
+        this.currentTelegraph = null;
 
         this.isMoving = false;
         this.moveSpeedMult = 1.0;
