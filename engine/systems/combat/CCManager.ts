@@ -28,12 +28,27 @@ export const CCManager = {
         let isImmune = false;
         let effectiveDuration = dur || 0;
 
+        // --- 1. Exclusion Table Logic ---
+        if (type === 'BANISH') {
+            // BANISH clears mobility-restricting CCs
+            target.rootTimer = 0;
+            target.fearTimer = 0;
+            target.isMoving = false;
+            target.path = [];
+            // Optional: clear DOTs? (The prompt says maintain "state purity")
+            engine.log(target, 'CC', '狀態清洗', null, '進入放逐狀態，禁錮與恐懼已清除');
+        }
+
         // DR only applies to duration-based Hard CCs
         const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
+        let drMultiplier = 1.0;
         if (isHardCC) {
             const drResult = this.checkDR(target, type, dur || 0);
             effectiveDuration = drResult.effectiveDuration;
             isImmune = drResult.isImmune;
+            
+            // Calculate DR multiplier for display (dur might be 0, so guard)
+            if (dur && dur > 0) drMultiplier = effectiveDuration / dur;
         }
         
         if (isImmune) {
@@ -102,6 +117,17 @@ export const CCManager = {
                 if (effectiveDuration > target.tauntTimer) {
                     target.tauntTimer = effectiveDuration;
                     target.tauntTargetId = source.id; 
+                    
+                    // --- 2. State Machine Overrides ---
+                    // Force target to taunter immediately
+                    target.target = source;
+                    target.targetHex = null;
+                    
+                    // Interrupt current action
+                    engine.combat.breakCast(target, engine);
+                    
+                    // Force AI Decision next tick
+                    target.forceAiUpdate = true;
                 }
                 statusText = "嘲諷"; statusColor = "#ef4444";
                 break;
@@ -150,10 +176,17 @@ export const CCManager = {
         }
 
         if (statusText) {
+            // Append DR info if applicable
+            let displayEffectText = statusText;
+            if (drMultiplier < 0.95 && drMultiplier > 0.05) {
+                const pct = Math.round(drMultiplier * 100);
+                displayEffectText = `${statusText} (${pct}% DR)`;
+            }
+
             engine.events.push({ 
                 type: 'CC_APPLIED', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
-                text: statusText, 
+                text: displayEffectText, 
                 color: statusColor,
                 sourceId: source.id,
                 targetId: target.id

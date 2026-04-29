@@ -81,6 +81,7 @@ export class Agent {
     public drTimers: Record<string, number> = {};
 
     public visualStatus: SpecialVisualStatus = 'NONE';
+    public activeCCVFX: string[] = [];
     public spawnTimer: number = 0;
     public escapeCooldown: number = 0; // Added missing property
     public _interruptCooldown: number = 0;
@@ -210,6 +211,7 @@ export class Agent {
         this.dotType = 'POISON';
         this.hotTimer = 0;
         this.visualStatus = 'NONE';
+        this.activeCCVFX = [];
 
         this.drStacks = {};
         this.drTimers = {};

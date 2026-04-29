@@ -7,6 +7,16 @@ import { Pathfinder } from "./Pathfinder";
 
 export class TargetingSystem {
     /**
+     * 檢查目標是否為合法選取對象
+     */
+    public isValidTarget(target: Agent): boolean {
+        if (!target) return false;
+        if (target.hp <= 0) return false;
+        if (target.banished) return false;
+        return true;
+    }
+
+    /**
      * 檢查目標地塊是否處於大逃殺警告狀態
      */
     public isWarningTile(key: string, spatial: SpatialProvider): boolean {
@@ -137,7 +147,7 @@ export class TargetingSystem {
             }
         }
 
-        if (a.target && (a.target.hp <= 0 || a.target.banished)) a.target = null;
+        if (a.target && !this.isValidTarget(a.target)) a.target = null;
         
         // [FIX] 即使在危險區且有逃生目標，也同時鎖定最近的敵人
         // 這樣當逃生路線被堵死時，AI 才能立刻切換到戰鬥邏輯 (背水一戰)
@@ -158,7 +168,7 @@ export class TargetingSystem {
         const isSilenced = a.silenceTimer > 0;
 
         for (const o of spatial.getAgents()) {
-            if (o.team !== a.team && o.hp > 0 && !o.banished) {
+            if (o.team !== a.team && this.isValidTarget(o)) {
                 const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
                 // 1. 距離權重: 極大幅度優先攻擊近身單位
@@ -294,7 +304,7 @@ export class TargetingSystem {
         const radius = skill.aoeRadius || 1;
         
         // 取得所有有效敵軍
-        const enemies = spatial.getAgents().filter(e => e.team !== source.team && e.hp > 0 && !e.banished);
+        const enemies = spatial.getAgents().filter(e => e.team !== source.team && this.isValidTarget(e));
         if (enemies.length === 0) return { targetAgent: null, targetHex: null };
 
         let bestHex: Hex | null = null;

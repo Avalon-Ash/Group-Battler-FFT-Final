@@ -87,10 +87,20 @@ export class AgentManager {
         a.path = [];
         // ──────────────────────────────────
 
-        // Clear status VFX timers
-        if (engine.renderer) {
+        // [PROMPT] 強制遍歷 activeCCVFX 並清理及回收長效粒子
+        if (engine.renderer && engine.renderer.vfx) {
+            // Cleanup timers in tracking system
             engine.renderer.vfx.agentVFX.clearAgent(a.id);
+            
+            // Manually force owned particles life to -1 if they aren't caught by the general ownerId loop
+            const particles = engine.renderer.vfx.state.particles;
+            for (let i = particles.length - 1; i >= 0; i--) {
+                if (particles[i].ownerId === a.id) {
+                    particles[i].life = -1;
+                }
+            }
         }
+        a.activeCCVFX = [];
 
         // Trigger Unit Shatter (Ragdoll Parts)
         const groundZ = engine.getTerrainHeight(a.q, a.r);

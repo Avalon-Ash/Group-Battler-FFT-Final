@@ -58,21 +58,49 @@ export class ControlSystem {
 
         if (agent.fearMoveTimer > 0) agent.fearMoveTimer = Math.max(0, agent.fearMoveTimer - dt);
 
-        // State Logic: Fear (Random Movement)
+        // State Logic: Fear (Fleeing Movement)
         if (agent.fearTimer > 0) {
             if (!agent.isMoving && agent.fearMoveTimer <= 0) {
-                const range = 4;
+                // Determine Flee Target: Source position or center if no source
+                let sourcePos = { q: agent.q, r: agent.r };
+                // Attempt to find the source of fear from combat logs or current target (approximate)
+                const taunter = engine.agents.find(a => a.id === agent.tauntTargetId);
+                if (taunter) {
+                    sourcePos = { q: taunter.q, r: taunter.r };
+                } else if (agent.lastHitSourceId) {
+                    const attacker = engine.agents.find(a => a.id === agent.lastHitSourceId);
+                    if (attacker) sourcePos = { q: attacker.q, r: attacker.r };
+                }
+
+                const range = 5;
                 const center = { q: agent.q, r: agent.r };
+                
+                // Calculate Flee Vector: Away from source
                 const candidates = HexUtils.range(center, range).filter(h => {
-                    if (HexUtils.dist(center, h) < 2) return false;
-                    return engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id);
+                    if (HexUtils.dist(center, h) < 3) return false;
+                    if (!engine.map.isValid(h.q, h.r) || engine.map.isBlocked(h.q, h.r, engine, agent.id)) return false;
+                    
+                    // Flee check: Destination should be further from source than current pos
+                    const currentDist = HexUtils.dist(center, sourcePos);
+                    const newDist = HexUtils.dist(h, sourcePos);
+                    return newDist > currentDist;
                 });
 
                 if (candidates.length > 0) {
-                    const targetHex = candidates[Math.floor(Math.random() * candidates.length)];
-                    const result = engine.moveAgentToHex(agent, targetHex, 0, 1.5);
+                    // Pick the furthest candidate
+                    candidates.sort((a_hex, b_hex) => HexUtils.dist(b_hex, sourcePos) - HexUtils.dist(a_hex, sourcePos));
+                    const targetHex = candidates[0];
+                    const result = engine.moveAgentToHex(agent, targetHex, 0, 1.4);
                     agent.fearMoveTimer = (result === 'R') ? 0.5 : 0.8;
                 } else {
+                    // Fallback to random move if fleeing blocked
+                    const fallbackCandidates = HexUtils.range(center, range).filter(h => 
+                        HexUtils.dist(center, h) >= 2 && engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id)
+                    );
+                    if (fallbackCandidates.length > 0) {
+                        const targetHex = fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)];
+                        engine.moveAgentToHex(agent, targetHex, 0, 1.2);
+                    }
                     agent.fearMoveTimer = 0.8; 
                 }
             }

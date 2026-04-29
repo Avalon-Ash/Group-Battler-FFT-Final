@@ -30,6 +30,24 @@ export class DamageCalculator {
         const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
         const isSupport = isHeal || (isAlly && (skill.power === 0 || isBuffCC));
 
+        const result: DamageResult = {
+            finalValue: 0,
+            shieldAbsorb: 0,
+            isCrit: false,
+            isExecute: false,
+            isBlock: false,
+            isMiss: false,
+            vampAmount: 0,
+            manaBurn: 0,
+            manaRestore: 0,
+            overkill: 0
+        };
+
+        // Banishment Immunity: Banished targets cannot take damage or be healed
+        if (target.banished) {
+            return result;
+        }
+
         let base = Math.abs(skill.power);
         
         let dmgMultiplier = 1.0;
@@ -48,19 +66,6 @@ export class DamageCalculator {
                 dmgMultiplier = 1.0 + (overtime * 0.05);
             }
         }
-
-        const result: DamageResult = {
-            finalValue: 0,
-            shieldAbsorb: 0,
-            isCrit: false,
-            isExecute: false,
-            isBlock: false,
-            isMiss: false,
-            vampAmount: 0,
-            manaBurn: 0,
-            manaRestore: 0,
-            overkill: 0
-        };
 
         // 0. Miss Logic (Blind)
         if (!isSupport && source.blindTimer > 0) {

@@ -160,6 +160,57 @@ export const BarPainter = {
                 ctx.strokeRect(startX, castBarY, totalW, 4);
             }
         }
+
+        // --- CC ProgressBar with Priority ---
+        const cc = this.getHighestPriorityCC(agent);
+        if (cc) {
+            const ccY = startY - 12;
+            const pct = Math.max(0, cc.time / cc.maxTime);
+            
+            // Container
+            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillRect(startX, ccY, totalW, 6);
+            
+            // Bar
+            ctx.fillStyle = cc.color;
+            ctx.fillRect(startX, ccY, totalW * pct, 6);
+            
+            // Text Label
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 9px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(cc.name, startX + totalW / 2, ccY - 2);
+            
+            // Border
+            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.strokeRect(startX, ccY, totalW, 6);
+        }
+    },
+
+    getHighestPriorityCC(agent: Agent) {
+        const CC_PRIORITY = [
+            { key: 'banishTimer', name: '放逐', priority: 99, color: '#c084fc', max: 'banishMax' },
+            { key: 'stunTimer', name: '暈眩', priority: 80, color: '#facc15', max: 'stunMax' },
+            { key: 'fearTimer', name: '恐懼', priority: 70, color: '#a855f7', max: 5 }, // Fear doesn't have a max recorded, assume 5s or just full bar
+            { key: 'tauntTimer', name: '嘲諷', priority: 65, color: '#ef4444', max: 5 },
+            { key: 'silenceTimer', name: '沉默', priority: 60, color: '#94a3b8', max: 'silenceMax' },
+            { key: 'rootTimer', name: '禁錮', priority: 50, color: '#fbbf24', max: 5 },
+            { key: 'blindTimer', name: '致盲', priority: 40, color: '#cbd5e1', max: 5 },
+        ];
+
+        let best = null;
+        let maxP = -1;
+
+        for (const cc of CC_PRIORITY) {
+            const time = (agent as any)[cc.key] || 0;
+            if (time > 0 && cc.priority > maxP) {
+                maxP = cc.priority;
+                const mKey = cc.max;
+                const maxTime = typeof mKey === 'string' ? ((agent as any)[mKey] || time) : mKey;
+                best = { ...cc, time, maxTime };
+            }
+        }
+        return best;
     },
 
     drawFluidBar(ctx: CanvasRenderingContext2D, bx: number, by: number, bw: number, bh: number, pct: number, colTop: string, colBot: string, glow: string) {
