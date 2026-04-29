@@ -41,8 +41,8 @@ export class AgentVFXSystem {
                 const isGrounded = a.physics.z < 5;
                 const isFlyingUnit = a.movementType === MovementType.FLYING;
 
-                // Threshold: Only trigger on massive impulses (knockbacks > 500px/s)
-                if (speedSq > 250000 && isGrounded && !isFlyingUnit) {
+                // Threshold: Only trigger on massive impulses (knockbacks / dashes)
+                if (speedSq > 80000 && isGrounded && !isFlyingUnit) {
                     const terrainH = engine.map.getTerrainHeight(a.q, a.r);
                     // Use DUST everywhere instead of STUN_LOOP to prevent the "Weird Orb of Light" stacking bug
                     vfx.playEffect('FX_STATUS_ROOT_LOOP', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);

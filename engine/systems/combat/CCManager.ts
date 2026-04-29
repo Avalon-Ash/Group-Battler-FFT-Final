@@ -151,8 +151,9 @@ export const CCManager = {
                     statusText = type === 'PULL' ? "牽引" : "擊退";
                     // SSOT: Trigger hit flash to cause reaction
                     if (target.hp > 0) target.hitFlashTimer = 0.2;
-                    target.physics.vz += 150; 
+                    target.physics.vz += 200; 
                     noDurationLog = true;
+                    engine.bus.emit('CAMERA_SHAKE', { intensity: 0.35 });
                 }
                 break;
 
@@ -270,7 +271,14 @@ export const CCManager = {
         }
         
         if (finalH.q !== target.q || finalH.r !== target.r) {
+            const originPx = {x: target.px, y: target.py};
             engine.updateAgentPosition(target, finalH.q, finalH.r);
+            const newPx = HexUtils.toPx(finalH.q, finalH.r, engine.mapConfig);
+            target.px = newPx.x;
+            target.py = newPx.y;
+            target.physics.x += originPx.x - newPx.x;
+            target.physics.y += originPx.y - newPx.y;
+            
             if (target.isMoving) {
                 target.isMoving = false;
                 target.path = [];

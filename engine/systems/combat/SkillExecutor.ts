@@ -49,11 +49,21 @@ export class SkillExecutor {
             }
             
             if (bestH) {
+                const originPx = {x: source.px, y: source.py};
                 engine.updateAgentPosition(source, bestH.q, bestH.r);
                 const newPx = HexUtils.toPx(bestH.q, bestH.r, engine.mapConfig);
                 source.px = newPx.x;
                 source.py = newPx.y;
-                source.physics.vz += 150; // Visual jump
+                
+                // [FIX] Store the teleport distance into physics offset.
+                // This causes PhysicsEngine to naturally spring to the new location,
+                // capturing the dash cleanly with speed trails.
+                source.physics.x += originPx.x - newPx.x;
+                source.physics.y += originPx.y - newPx.y;
+                source.physics.vz += 250; // Visual jump
+                
+                engine.bus.emit('CAMERA_SHAKE', { intensity: 0.4 });
+                
                 engine.events.push({ 
                     type: 'CC_APPLIED', 
                     pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
