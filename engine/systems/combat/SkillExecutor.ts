@@ -196,38 +196,41 @@ export class SkillExecutor {
             const logType = isHeal ? 'HEAL' : 'HIT';
             engine.log(source, logType, actionName, target.id, `造成 ${finalDamage} ${isHeal ? '治療' : '傷害'}`);
 
-            // SSOT: Trigger Animation System
-            if (!isHeal) {
-                target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
-                
-                // Tiered Hit VFX logic
-                const hitX = target.px;
-                const hitY = target.py;
-                const hitZ = target.physics.z;
+                // SSOT: Trigger Animation System
+                if (!isHeal) {
+                    target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+                    
+                    // [FIX] SSOT Grid Anchor Locking for Hit VFX
+                    // Instead of target.px/py (which might be displaced by physics), 
+                    // use hex center to ensure VFX stays locked to the grid cell.
+                    const hexCenter = HexUtils.toPx(target.q, target.r, engine.mapConfig);
+                    const hitX = hexCenter.x;
+                    const hitY = hexCenter.y;
+                    const hitZ = engine.getTerrainHeight(target.q, target.r); // Use ground height
 
-                // 選擇陣營受擊特效 key
-                const hitFX = target.team === Team.BLUE
-                    ? 'FX_HIT_BLUE_TECH'
-                    : 'FX_HIT_RED_BLOOD';
+                    // 選擇陣營受擊特效 key
+                    const hitFX = target.team === Team.BLUE
+                        ? 'FX_HIT_BLUE_TECH'
+                        : 'FX_HIT_RED_BLOOD';
 
-                // LIGHT & MEDIUM：播放陣營特效（MEDIUM 呼叫兩次，位移稍微錯開製造量感）
-                if (engine.vfx) {
-                    engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
-                    if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                        engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                    // LIGHT & MEDIUM：播放陣營特效（MEDIUM 呼叫兩次，位移稍微錯開製造量感）
+                    if (engine.vfx) {
+                        engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
+                        if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
+                            engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                        }
+
+                        // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
+                        if (finalDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
+                            engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ);
+                        }
                     }
-
-                    // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
-                    if (finalDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
-                        engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ - 20);
+                    
+                    // Physics Impulse (Small nudge on hit)
+                    if (origin && !skill.ccType) {
+                        PhysicsEngine.applyImpulse(target, origin, COMBAT_PARAM.HIT_IMPULSE_MIN);
                     }
                 }
-                
-                // Physics Impulse (Small nudge on hit)
-                if (origin && !skill.ccType) {
-                    PhysicsEngine.applyImpulse(target, origin, COMBAT_PARAM.HIT_IMPULSE_MIN);
-                }
-            }
         }
 
         // B. Secondary Effects (Vamp, Mana, Self Damage)
@@ -270,9 +273,29 @@ export class SkillExecutor {
             });
             engine.log(source, 'HEAL', '回魔', target.id, `回復 ${Math.floor(result.manaRestore)} MP`);
         }
+
+        // [NEW] SELF_DAMAGE implementation: bypassing shield/evade
+        if (skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE') {
+            const selfDmgValue = skill.effectType === 'SELF_DAMAGE' ? (skill.effectVal || 0) : (skill.effectVal2 || 0);
+            if (selfDmgValue > 0) {
+                source.hp = Math.max(0, source.hp - selfDmgValue);
+                engine.events.push({
+                    type: 'DAMAGE',
+                    pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z },
+                    value: selfDmgValue,
+                    color: '#ef4444',
+                    text: "RECOIL",
+                    sourceId: source.id,
+                    targetId: source.id
+                });
+                engine.log(source, 'HIT', '反噬', source.id, `受到 ${selfDmgValue} 反噬傷害`);
+                // Check if source dies from self damage
+                if (source.hp <= 0) {
+                    engine.agentManager.handleDeadState(source, engine);
+                }
+            }
+        }
         
-
-
         // C. Crowd Control (CC) Application
         // Cast to string to allow 'NONE' check against strictly typed Union
         if (skill.ccType && (skill.ccType as string) !== 'NONE') {
@@ -286,12 +309,13 @@ export class SkillExecutor {
             CCManager.applyCC(source, ccTarget2, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
         }
 
-        // D. Death Check
-        if (target.hp <= 0) {
-            engine.agentManager.handleDeadState(target, engine);
+        // D. Death Check & Absolute EXECUTE enforcement
+        if (result.isExecute || target.hp <= 0) {
             if (result.isExecute) {
-                engine.log(source, 'HIT', '斬殺', target.id, `造成 ${Math.abs(result.finalValue)} 傷害 (斬殺)`);
+                target.hp = 0; // Forced death logic
+                engine.log(source, 'HIT', '斬殺', target.id, `造成 ${Math.abs(result.finalValue)} 傷害 (絕對執行)`);
             }
+            engine.agentManager.handleDeadState(target, engine);
         }
     }
 }

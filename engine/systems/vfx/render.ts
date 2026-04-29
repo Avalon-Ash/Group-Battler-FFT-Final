@@ -8,7 +8,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 
-import { VFX_RENDER } from "../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y } from "../../../constants";
 
 const GROUND_PROJECTION_TYPES = new Set([
     'GIANT_HEX', 'MAGIC_CIRCLE', 'RING', 'SHOCKWAVE', 
@@ -59,14 +59,15 @@ export class VFXRenderer {
             
             // [FIX] Use a more aggressive sorting bias for ground locked VFX to prevent clipping
             // and ensure they are sorted correctly relative to terrain.
+            const projectedY = p.y * ISO_SCALE_Y;
             if (isGroundLocked) {
                 // Sort key is based on the front edge of the effect, which is closer to the camera.
                 // In isometric projection, the vertical visual radius is roughly 0.5 * size.
                 // We add a safety margin (+120) to ensure the effect stays on top.
-                const frontEdgeY = p.y + (p.size ? p.size * 0.5 : 0) + 120;
+                const frontEdgeY = projectedY + (p.size ? p.size * 0.5 : 0) + 120;
                 op.y = frontEdgeY + offset;
             } else {
-                op.y = p.y + offset;
+                op.y = projectedY + offset;
             }
             op.z = isGroundLocked
                 ? Math.max(p.z + VFX_RENDER.GROUND_Z_BIAS, VFX_RENDER.GROUND_Z_BIAS)
@@ -81,7 +82,7 @@ export class VFXRenderer {
             
             // [FIX] Apply visual bias (Z-Layer) directly to screen Y to avoid Z-fighting
             const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
-            op.ty = p.y + offset - p.z - visualBias; 
+            op.ty = projectedY + offset - p.z - visualBias; 
             op.th = p.z; 
         });
 

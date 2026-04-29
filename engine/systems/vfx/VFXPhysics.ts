@@ -1,6 +1,6 @@
 
 import { Particle } from "./state";
-import { PHYSICS, VFX_RENDER } from "../../../constants";
+import { PHYSICS, VFX_RENDER, ISO_SCALE_Y } from "../../../constants";
 
 export interface SpatialInfo {
     height: number;
@@ -14,7 +14,7 @@ export class VFXPhysics {
         p.rotation += p.vRotation * dt;
 
         const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE', 'GIANT_HEX'].includes(p.type);
-        const spatial = getSpatialInfo ? getSpatialInfo(p.x, p.y) : { height: 0, isValid: true };
+        const spatial = getSpatialInfo ? getSpatialInfo(p.x, p.y * ISO_SCALE_Y) : { height: 0, isValid: true };
         const currentGroundH = spatial.height;
         const isValid = spatial.isValid;
 

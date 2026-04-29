@@ -9,7 +9,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
-import { HEX_SIZE } from "../../../constants";
+import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 
 export class ProjectileSystem {
   private pool: Projectile[] = [];
@@ -55,21 +55,22 @@ export class ProjectileSystem {
       }
     }
 
-    const start: Point3D = { x: p.startX, y: p.startY, z: p.startZ };
-    const end: Point3D = { x: p.endX, y: p.endY, z: p.endZ };
+    const start: Point3D = { x: p.startX, y: p.startY / ISO_SCALE_Y, z: p.startZ };
+    const end: Point3D = { x: p.endX, y: p.endY  / ISO_SCALE_Y, z: p.endZ };
 
-    // Use SSOT evaluate function
+    // Use SSOT evaluate function in Pure 3D space
     const pos = TrajectoryMath.evaluate(p.trajectoryInfo, start, end, p.t);
 
     // Save history for trail rendering BEFORE updating the current position
     // We only want the last ~10 positions for a fast projectile trail
     if (p.x !== 0 && p.y !== 0) {
+        // Trail expects projected screen Y for simplicity in existing trail renderers
         p.trail.unshift({ x: p.x, y: p.y - p.z });
         if (p.trail.length > 12) p.trail.pop();
     }
 
     p.x = pos.x;
-    p.y = pos.y;
+    p.y = pos.y * ISO_SCALE_Y; // Scale back to isometric space for rendering compatibility
     p.z = pos.z;
   }
 

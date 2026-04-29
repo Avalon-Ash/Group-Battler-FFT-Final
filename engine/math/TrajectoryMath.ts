@@ -1,5 +1,6 @@
 
 import { Point3D } from "./VisualMath";
+import { MAX_ARC_HEIGHT } from "../../constants";
 
 export type { Point3D };
 
@@ -35,7 +36,7 @@ export const TrajectoryMath = {
         const dy = end.y - start.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         const bonus = (dist / 100) * baseH * 0.4;
-        return Math.min(baseH + bonus, baseH * 3);
+        return Math.min(baseH + bonus, MAX_ARC_HEIGHT);
     },
 
     parabolic: (start: Point3D, end: Point3D, t: number, h: number): Point3D => {

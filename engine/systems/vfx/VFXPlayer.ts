@@ -4,6 +4,7 @@ import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y } from "../../../constants";
+
 const rnd = (r: Range | number): number => {
     if (typeof r === 'number') return r;
     return r[0] + Math.random() * (r[1] - r[0]);
@@ -35,11 +36,16 @@ export class VFXPlayer {
         const count = Math.floor(rnd(config.count));
         const isGroundType = GROUND_PARTICLES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
+
+        // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation
+        const rawCY = cy / ISO_SCALE_Y;
+        const rawGroundZ = groundZ !== undefined ? groundZ / ISO_SCALE_Y : undefined; 
+
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();
             p.ownerId = ownerId;
             let vx = 0, vy = 0, vz = 0;
-            let px = cx, py = cy, pz = effectiveZ;
+            let px = cx, py = rawCY, pz = effectiveZ;
             const speed = rnd(config.speed);
             if (config.shape === 'POINT') {} 
             else if (config.shape === 'BURST_DIR') {
@@ -47,26 +53,24 @@ export class VFXPlayer {
                 const phi = (Math.random() - 0.5) * Math.PI; 
                 const cosPhi = Math.cos(phi);
                 vx = Math.cos(theta) * cosPhi * speed;
-                // [FIX] Scale Y velocity by ISO_SCALE_Y to match projected space
-                vy = Math.sin(theta) * cosPhi * speed * ISO_SCALE_Y; 
+                vy = Math.sin(theta) * cosPhi * speed; 
                 vz = Math.sin(phi) * speed + (speed * 0.5); 
             }
             else if (config.shape === 'CIRCLE') {
                 const angle = Math.random() * Math.PI * 2;
                 const r = config.shapeRadius || 10;
                 px += Math.cos(angle) * r;
-                // [FIX] Scale Y position and velocity by ISO_SCALE_Y
-                py += Math.sin(angle) * r * ISO_SCALE_Y;
+                py += Math.sin(angle) * r;
                 vx = Math.cos(angle) * speed;
-                vy = Math.sin(angle) * speed * ISO_SCALE_Y;
+                vy = Math.sin(angle) * speed;
             }
             else if (config.shape === 'RING') {
                 const theta = (i / count) * Math.PI * 2; // 均勻分布
                 const r = config.shapeRadius || 10;
                 px += Math.cos(theta) * r;
-                py += Math.sin(theta) * r * ISO_SCALE_Y;
+                py += Math.sin(theta) * r;
                 vx = Math.cos(theta) * speed;
-                vy = Math.sin(theta) * speed * ISO_SCALE_Y;
+                vy = Math.sin(theta) * speed;
             }
             if (config.vz !== undefined) {
                 vz = rnd(config.vz);

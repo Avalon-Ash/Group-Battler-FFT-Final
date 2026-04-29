@@ -1,5 +1,6 @@
 
 import { Agent, GameEngine } from "../../game";
+import { DOT_COLORS } from "../../../constants";
 
 export class EffectSystem {
     
@@ -57,16 +58,17 @@ export class EffectSystem {
                 }
                 
                 if (frameDamage > 0 || absorbed === 0) {
+                    const dotColor = (DOT_COLORS as any)[agent.dotType] || '#10b981';
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                         value: -Math.floor(damagePerSec), 
-                        color: '#10b981', // Poison Green default
-                        skill: { ccType: 'DOT' } as any,
+                        color: dotColor, 
+                        skill: { ccType: 'DOT', dotType: agent.dotType } as any,
                         targetId: agent.id
                     });
                 }
-                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (中毒)`);
+                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (${agent.dotType})`);
                 agent.hitFlashTimer = 0.1;
                 dotTimer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
                 this.feedbackTimers.set(dotKey, dotTimer);
