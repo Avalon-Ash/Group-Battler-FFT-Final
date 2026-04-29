@@ -170,6 +170,18 @@ export class DesignExporter {
         s += "- 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getHazard' 的敵意審查，從實體上掐滅了避開縮圈落入火坑的連續判定真空。\n";
         s += "- 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方 hazard 動態部署，徹底阻止「逃出毒圈卻踏進火場」的決策延遲。\n\n";
 
+        s += "## 12. 背水一戰：終局決算機制 (Last Stand: Final Resolution)\n\n";
+        s += "當戰場縮減至僅剩唯一安全網格（Last Stand Trigger）時，系統會切入極端決算模式，以強制結束僵局：\n\n";
+        s += "1. 數值管線熔斷 (Combat Pipeline Override):\n";
+        s += "   - 防禦與治癒禁絕: 關閉所有護盾 (Shield) 吸收、格擋 (Block) 減傷。治癒類技能 (Heal) 的有效輸出強制歸零。\n";
+        s += "   - 絕對穿透 (Absolute Penetration): 攻擊行為無視致盲 (Blind) 導致的 Miss 判定。攻擊者獲得 100% 命中率。\n";
+        s += "   - 斬殺倍率 (Execute Multiplier): 所有有效傷害疊加 3.0x 全局乘數，使戰鬥迅速轉化為「一擊必中，中者即死」的終局態勢。\n\n";
+        s += "2. 空間與尋路死鎖解鎖 (Spatial & Pathing Overrides):\n";
+        s += "   - 碰撞體積覆寫 (Collision Override): 在最後安全格內，系統自動解除 StackingResolver 的位移排斥檢定，允許所有存活單位座標完全重疊，防堵物理體積導致的尋路死鎖。\n";
+        s += "   - 向心脈衝牽引 (Centripetal Pull): MotionEngine 會對外圍尚未入陣的單位施加瞬時向心向量（Pull Vector），強制將其拖拽入中心格，阻斷任何形式的消極拖延。\n\n";
+        s += "3. 視覺與渲染優先權 (Visual & Rendering Pipeline):\n";
+        s += "   - 螢幕淨空 (Visual Continuity): 廢除干擾性的大型光柱或震動。採用貼地的高頻呼吸脈衝 (HEX_WARNING_PULSE) 與全螢幕邊緣血紅暗角 (Red Vignette) 進行狀態暗示，將螢幕中心的核心視野 100% 留給戰鬥結算。\n";
+        s += "   - 地向衝擊回饋 (Ground EMP Shockwave): 單位入陣瞬間觸發一次性貼地衝擊波 (FX_LAST_STAND_LOCKED)，提供強烈的物理回饋感。\n\n";
         s += "---\n";
         s += "> END OF SPECIFICATION - SYSTEM ARCHITECT SIGNED\n";
         return s;
