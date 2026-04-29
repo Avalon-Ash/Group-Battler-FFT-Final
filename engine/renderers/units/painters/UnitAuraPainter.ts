@@ -1,6 +1,6 @@
 
 import { Agent } from "../../../game";
-import { HEX_SIZE } from "../../../../constants";
+import { HEX_SIZE, AGENT_MODEL_CENTER_Z, ISO_SCALE_Y } from "../../../../constants";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../types";
 import { VisualMath } from "../../../math/VisualMath";
@@ -18,7 +18,7 @@ export const UnitAuraPainter = {
         const color = skill.color;
         
         // SSOT: Use centralized AURA bias
-        const drawY = VisualMath.applyLayerBias(y, 'AURA');
+        const drawY = VisualMath.applyLayerBias(y, 'AURA') - AGENT_MODEL_CENTER_Z * ISO_SCALE_Y;
 
         ctx.save();
         ctx.translate(x, drawY); 
@@ -68,7 +68,7 @@ export const UnitAuraPainter = {
         const color = skill.color;
         
         // SSOT
-        const drawY = VisualMath.applyLayerBias(y, 'AURA');
+        const drawY = VisualMath.applyLayerBias(y, 'AURA') - AGENT_MODEL_CENTER_Z * ISO_SCALE_Y;
 
         ctx.save();
         ctx.translate(x, drawY);
