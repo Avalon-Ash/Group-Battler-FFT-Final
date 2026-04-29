@@ -27,16 +27,21 @@ export const TrajectoryMath = {
     },
 
     /**
-     * 根據水平距離自動計算合適的弧高，避免近距離過誇張、遠距離過平
-     * baseH = 技能設定的 arcHeight（作為最小弧高）
-     * 距離每增加 100px，額外增加 0.4 * baseH 的弧高，上限 3 倍 baseH
+     * 根據水平距離自動計算合適的弧高：越近飛越低
+     * 以 300 像素(約 3 格) 為基準距離達到 baseH
      */
     adaptiveArcHeight(start: Point3D, end: Point3D, baseH: number): number {
         const dx = end.x - start.x;
         const dy = end.y - start.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const bonus = (dist / 100) * baseH * 0.4;
-        return Math.min(baseH + bonus, MAX_ARC_HEIGHT);
+        
+        // 確保最近距離也有一點點弧度 (例如 baseH * 0.15)
+        const minH = baseH * 0.15;
+        // 每個距離單位等比例放大弧高
+        const ratio = dist / 300;
+        const targetH = minH + baseH * ratio;
+        
+        return Math.min(targetH, MAX_ARC_HEIGHT);
     },
 
     parabolic: (start: Point3D, end: Point3D, t: number, h: number): Point3D => {
