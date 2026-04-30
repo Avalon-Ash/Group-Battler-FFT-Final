@@ -105,15 +105,29 @@ export class GridRenderStrategy {
             // Mix player hover range and AI casting AOE
             const isHoverRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
             const isCastAOE = this._castingAOE.has(key);
-            
-            op.oRange = isHoverRange || isCastAOE;
-            op.oRangeCol = (isHoverRange ? hoveredSkill?.color : this._castingColor) || '';
-            
-            op.oHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
-            op.oWarning = engine.map.warningTiles.has(key);
-            op.oLastStand = engine.state.isLastStand && engine.state.finalHex?.q === q && engine.state.finalHex?.r === r;
+            const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
+            const isWarning = engine.map.warningTiles.has(key);
+            const isLastStand = engine.state.isLastStand && engine.state.finalHex?.q === q && engine.state.finalHex?.r === r;
+
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
             op.time = globalTime;
+
+            // Submit a separate OVERLAY op for range/hover/warning/laststand
+            if (isHoverRange || isCastAOE || isHover || isWarning || isLastStand) {
+                const overlayOp = renderList.next();
+                overlayOp.type = RenderOpType.OVERLAY;
+                overlayOp.tq = q; overlayOp.tr = r; overlayOp.th = h;
+                overlayOp.tx = px; overlayOp.ty = visualBaseY; 
+                overlayOp.y = visualBaseY; 
+                overlayOp.sortBias = HEX_SIZE * 0.5;
+                overlayOp.tsize = HEX_SIZE;
+                overlayOp.oRange = isHoverRange || isCastAOE;
+                overlayOp.oRangeCol = (isHoverRange ? hoveredSkill?.color : this._castingColor) || '';
+                overlayOp.oHover = isHover;
+                overlayOp.oWarning = isWarning;
+                overlayOp.oLastStand = isLastStand;
+                overlayOp.time = globalTime;
+            }
         }
 
         // Render collapsing tiles

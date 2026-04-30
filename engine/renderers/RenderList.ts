@@ -11,7 +11,8 @@ export enum RenderOpType {
     PROJECTILE,
     DECAL,
     HAZARD,
-    AURA
+    AURA,
+    OVERLAY = 8
 }
 
 export class RenderOp {
@@ -126,6 +127,7 @@ export class RenderList {
             let subLayer = 0;
             if (op.type === RenderOpType.TERRAIN) subLayer = 10;
             else if (op.type === RenderOpType.DECAL) subLayer = 20;
+            else if (op.type === RenderOpType.OVERLAY) subLayer = 25;
             else if (op.type === RenderOpType.HAZARD) subLayer = 30;
             else if (op.type === RenderOpType.AURA) subLayer = 35;
             else if (op.type === RenderOpType.OBSTACLE) subLayer = 40;

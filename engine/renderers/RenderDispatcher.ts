@@ -32,8 +32,13 @@ export class RenderDispatcher {
                 }
                 TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout, finalAlpha);
                 TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme, finalAlpha);
-                // SSOT: Height-based projection inside
-                GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, op.oRange, op.oRangeCol, op.oHover, op.oWarning, op.oLastStand, op.oHasUnit, op.tq, op.tr, op.time, layout);
+                // Draw base overlays (status, zones, lights, presence)
+                GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, false, '', false, false, false, op.oHasUnit, op.tq, op.tr, op.time, layout);
+                break;
+
+            case RenderOpType.OVERLAY:
+                // Draw indicators (range, hover, warning, last stand)
+                GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, undefined, undefined, null, 0, op.oRange, op.oRangeCol, op.oHover, op.oWarning, op.oLastStand, false, op.tq, op.tr, op.time, layout);
                 break;
 
             case RenderOpType.HAZARD: 
