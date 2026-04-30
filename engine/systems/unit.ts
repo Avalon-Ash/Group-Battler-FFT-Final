@@ -1,4 +1,12 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] UnitSystem — 單位系統對外統一入口              ║
+// ║  本檔負責：單位狀態更新統一入口、HP/MP 管理觸發         ║
+// ║                                                          ║
+// ║  子系統實作位置：                                        ║
+// ║  → 詳見 unit/ 目錄下各子系統                            ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "../game";
 import { RenderList, RenderOpType } from "../renderers/RenderList";
 import { MapConfig } from "../utils";

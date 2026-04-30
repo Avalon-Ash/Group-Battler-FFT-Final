@@ -1,4 +1,17 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] VFXSystem — 視覺特效系統對外統一入口           ║
+// ║  本檔負責：EventBus 訂閱(TILE_COLLAPSED)、               ║
+// ║            粒子生命週期 update、環境特效 tick            ║
+// ║                                                          ║
+// ║  子系統實作位置：                                        ║
+// ║  → 粒子池 / 貼花狀態    : vfx/state.ts                  ║
+// ║  → 特效配方播放         : vfx/VFXPlayer.ts              ║
+// ║  → 粒子物理 / 碰地      : vfx/VFXPhysics.ts             ║
+// ║  → 環境粒子（雪/灰燼）  : vfx/VFXAmbience.ts            ║
+// ║  → 單位持續特效（灰塵） : vfx/AgentVFXSystem.ts         ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { VFXStateManager } from "./vfx/state";
 import { VFXPlayer } from "./vfx/VFXPlayer";
 import { VFXPhysics, SpatialInfo } from "./vfx/VFXPhysics";

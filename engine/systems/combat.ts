@@ -1,4 +1,14 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] CombatSystem — 戰鬥系統對外統一入口            ║
+// ║  本檔負責：詠唱生命週期管理、技能施放觸發、投射物生成   ║
+// ║                                                          ║
+// ║  子系統實作位置（勿直接繞過此 Facade 修改）：            ║
+// ║  → 技能效果 / 傷害計算  : combat/SkillExecutor.ts       ║
+// ║  → 詠唱狀態機 / 中斷    : combat/CastingEngine.ts       ║
+// ║  → 投射物物理 / 命中    : combat/ProjectileSystem.ts    ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "../game";
 import { Projectile, Skill, NodeState, AIState } from "../../types";
 import { ProjectileSystem } from "./combat/ProjectileSystem";

@@ -1,4 +1,12 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] GridSystem — 網格系統對外統一入口              ║
+// ║  本檔負責：網格查詢統一 API、地形高度讀取               ║
+// ║                                                          ║
+// ║  子系統實作位置：                                        ║
+// ║  → 詳見 grid/ 目錄下各子系統                            ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine, Agent } from "../game";
 import { Hex, Skill, Projectile } from "../../types";
 import { RenderList } from "../renderers/RenderList";

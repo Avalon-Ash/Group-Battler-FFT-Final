@@ -1,4 +1,15 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] MovementSystem — 移動系統對外統一入口          ║
+// ║  本檔負責：移動指令派發、路徑決策、堆疊解算、牽引邏輯   ║
+// ║                                                          ║
+// ║  子系統實作位置：                                        ║
+// ║  → 逐幀移動插值 / 速度  : movement/MotionEngine.ts      ║
+// ║  → 單位堆疊解算         : movement/StackingResolver.ts  ║
+// ║  → 尋路演算法           : ai/Pathfinder.ts              ║
+// ║  → 目標選取 / 射程計算  : ai/TargetingSystem.ts         ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent } from "../core/Agent";
 import { HexUtils } from "../utils";
 import { Hex, NodeState, SpatialProvider, Skill, LogProvider, SpatialHazard } from "../../types";

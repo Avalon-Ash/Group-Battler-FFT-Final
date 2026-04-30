@@ -1,4 +1,12 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [FACADE] MapSystem — 地圖系統對外統一入口               ║
+// ║  本檔負責：地圖生成觸發、地形資料讀寫、版本控制         ║
+// ║                                                          ║
+// ║  子系統實作位置：                                        ║
+// ║  → 詳見 map/ 目錄下各子系統                             ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
 import { MovementType, GroundHazard } from "../../types";
