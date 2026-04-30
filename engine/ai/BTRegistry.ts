@@ -37,6 +37,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsInWarningZone": (a, engine) => {
         // [FIX] Only check warning tiles for survival logic (SSOT)
         const myKey = HexUtils.key(a);
+        if (!engine.map.isValid(a.q, a.r)) return true;
         if (engine.isWarningTile(myKey)) return true;
         
         // [NEW] Check for enemy spatial hazards
@@ -64,6 +65,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     
     "IsInUrgentDanger": (a, engine) => {
         const myKey = HexUtils.key(a);
+        if (!engine.map.isValid(a.q, a.r)) return true;
         if (engine.isWarningTile(myKey)) return true;
         
         // [NEW] Check for enemy hazards
@@ -242,8 +244,10 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // ★ 核心修正：只有在沒有逃跑目標、或目標本身也淪陷時，才重新尋路
         const needsNewTarget = !a.targetHex || (() => {
-            const tk = HexUtils.key(a.targetHex);
-            const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex.q, a.targetHex.r).find(h => h.team !== a.team);
+            if (!engine.map.isValid(a.targetHex!.q, a.targetHex!.r)) return true;
+            const tk = HexUtils.key(a.targetHex!);
+            const hazardAtTarget = engine.getSpatialHazardsAt(a.targetHex!.q, a.targetHex!.r)
+                .find(h => h.team !== a.team);
             return engine.isWarningTile(tk) || (!!hazardAtTarget);
         })();
 
