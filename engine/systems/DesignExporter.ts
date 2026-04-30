@@ -1,9 +1,10 @@
 import { BLOCK_HEIGHT, ISO_SCALE_Y, UNIT_BODY_OFFSET } from "../../constants";
 import { VisualMath } from "../math/VisualMath";
+import { RenderSpec } from '../renderers/RenderSpec';
 
 export class DesignExporter {
 
-    static downloadSpec() {
+    static downloadArchitectureSpec() {
         const text = DesignExporter.generateSpec();
         const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -12,6 +13,18 @@ export class DesignExporter {
         anchor.download = "Tactical_OS_v9.7_System_Architecture.md";
         anchor.click();
         URL.revokeObjectURL(url);
+    }
+
+    static downloadAll() {
+        DesignExporter.downloadArchitectureSpec();
+        // 加入短暫延遲，避免瀏覽器攔截兩次同步 click
+        setTimeout(() => {
+            RenderSpec.downloadSpec();
+        }, 300);
+    }
+
+    static downloadSpec() {
+        DesignExporter.downloadArchitectureSpec();
     }
 
     private static generateSpec(): string {
@@ -25,7 +38,8 @@ export class DesignExporter {
         s += "- ZoneSystem & Dynamic Hazard: 獨立於地圖系統的生存空間控制器，負責處理縮圈邏輯與警告區域計算。\n";
         s += "- Spatial Hazard Entity Pattern (空間危害實體化): 徹底將持續性 AOE 效果（如熔岩、毒霧）從網格節點 (GridNode) 的狀態屬性中剝離，轉化為具備獨立生命週期與空間坐標集的「空間實體」。此舉確保了地形靜態拓撲的純潔性，大幅降低因地形狀態頻繁切換導致的尋路緩存失效與效能抖動。\n";
         s += "- Flying Unit Physics: 飛行單位在空間屬性上標記為無視「單位碰撞 (Agent Occupancy)」，允許自由穿透隊友與敵人，消滅密集戰鬥下的導航死鎖。\n";
-        s += "- Stable Z-Sorting Tiebreaker: 在 RenderList 中引入基於 Agent ID Hash 的確定性偏移量（10^-5 級別），徹底消滅 2.5D 環境中兩個單位在同一 Y 坐標時產生的每幀前後閃爍（Z-fighting）現象。\n\n";
+        s += "- Stable Z-Sorting Tiebreaker: 在 RenderList 中引入基於 Agent ID Hash 的確定性偏移量（10^-5 級別），徹底消滅 2.5D 環境中兩個單位在同一 Y 坐標時產生的每幀前後閃爍（Z-fighting）現象。\n";
+        s += "- Layered Overlay Architecture: 將射程指示器 (Range Overlay) 與懸停高亮從地形渲染器中抽離，獨立為 `OVERLAY` 渲染子層 (SubLayer 25)。此架構確保指示器層級穩定高於地面貼圖 (DECAL, 20) 但低於動態危害 (HAZARD, 30)，在大範圍戰場縮減時提供更穩定的視覺回饋。\n\n";
 
         s += "## 2. 視覺投影與 SSOT 規範 (Spatial Truth & Topology)\n\n";
         s += "- 視覺中心鎖定 (Visual Center Tracking): 非同步導播系統 (DirectorSystem) 拋棄傳統的「地板根節點」追蹤，全面改採 VisualMath.getVisualBodyCenterY 計算。鏡頭重心主動對齊單位的「胸口高度」，即便是被擊飛至空中的單位，鏡頭也能精確跟隨其視覺質心，而非留在地面。\n";
@@ -170,7 +184,8 @@ export class DesignExporter {
         s += "- 狀態復原之無干涉防護 (Cooldown-Safe Fast Exit): 當單元進入安全區且 escapeCooldown 結束後，系統會自動歸還決策權給戰術核心，避免無謂的狀態鎖定。\n";
         s += "- 背水一戰狀能維續 (Last Stand State Persistence): 在 CastPushPull 執行移動前即標記 LAST_STAND_PUSH 狀態，確保行為樹的記憶恢復邏輯即使在移動中斷後也能穩定找回戰鬥目標。\n";
         s += "- 全鏈路危險塗層感知 (End-to-End Hazard Awareness): 在尋路終點鑑定及舊路還魂的複檢迴路 (moveAgentToHex Validation) 雙向置入 'spatial.getSpatialHazardsAt' 的敵意矩陣審查。徹底支援單一網格內的多重疊加危害 (Multiple Hazards on single Hex)，實體上掐滅了避開縮圈落入複合火坑的連續判定真空。\n";
-        s += "- 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方所有 hazards 動態部署，徹底阻止「逃出毒圈卻踏進複合火場」的決策延遲。\n\n";
+        s += "- 目標板塊安全雙重驗證 (Target Hex Secondary Verification): 強化行為樹逃生目標判斷，除了靜態地形塌陷外，執行移動前嚴格檢查敵方所有 hazards 動態部署，徹底阻止「逃出毒圈卻踏進複合火場」的決策延遲。\n";
+        s += "- 移除板塊失效斷言 (Tile Invalidation Assertion): 行為樹 Condition 與 Action 現具備物理邊界檢查，若單位因位移慣性暫留在已移除 (isRemoved) 的板塊上，系統會強制拋出危險信號並刷新路徑，終止單位在虛無空間發呆。同時，逃生目標檢定新增 `engine.map.isValid` 驗證，從源頭切斷對不存在座標的移動請求及相關邏輯死鎖。\n\n";
 
         s += "## 12. 背水一戰：終局決算機制 (Last Stand: Final Resolution)\n\n";
         s += "當戰場縮減至僅剩唯一安全網格（Last Stand Trigger）時，系統會切入極端決算模式，以強制結束僵局：\n\n";
