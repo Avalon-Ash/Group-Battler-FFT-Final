@@ -6,7 +6,7 @@ import { Point3D, VisualMath } from "../../../math/VisualMath";
 import { VFX_REGISTRY } from "../../../../data/vfx/VFXRegistry";
 
 export class CombatVFXHandler {
-    public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number) {
+    public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number, hexKey?: string) {
         const damage = Math.abs(event.value || 0);
         const isCrit = damage > 150;
         const isMassive = damage > 400;
@@ -14,26 +14,26 @@ export class CombatVFXHandler {
 
         if (event.type === 'HEAL') {
             if (event.text === 'VAMP') {
-                vfx.playEffect('FX_VAMP_BURST', target.x, target.y, target.z, event.color || '#be123c');
+                vfx.playEffect('FX_VAMP_BURST', target.x, target.y, target.z, event.color || '#be123c', undefined, undefined, hexKey);
             } else if (event.text === 'MP') {
-                vfx.playEffect('FX_MANA_RESTORE', target.x, target.y, target.z, event.color || '#60a5fa');
+                vfx.playEffect('FX_MANA_RESTORE', target.x, target.y, target.z, event.color || '#60a5fa', undefined, undefined, hexKey);
             } else {
-                vfx.playEffect('FX_HEAL_BURST', target.x, target.y, target.z, event.color || '#86efac');
+                vfx.playEffect('FX_HEAL_BURST', target.x, target.y, target.z, event.color || '#86efac', undefined, undefined, hexKey);
             }
             return;
         }
 
         if (event.type === 'DAMAGE') {
             if (event.text === 'SACRIFICE') {
-                vfx.playEffect('FX_SELF_DAMAGE', target.x, target.y, target.z, event.color);
+                vfx.playEffect('FX_SELF_DAMAGE', target.x, target.y, target.z, event.color, undefined, undefined, hexKey);
                 camera.addTrauma(0.2);
             } else if (event.text === 'BURN') {
-                vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || '#8b5cf6');
+                vfx.playEffect('FX_MANA_BURN', target.x, target.y, target.z, event.color || '#8b5cf6', undefined, undefined, hexKey);
             } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
                 // Impact VFX now handled in SkillExecutor.resolveHit
                 camera.addTrauma(isMassive ? 0.45 : (isCrit ? 0.3 : 0.12));
             } else if (event.skill?.ccType === 'DOT') {
-                vfx.playEffect('FX_STATUS_BURN_LOOP', target.x, target.y, target.z, event.color);
+                vfx.playEffect('FX_STATUS_BURN_LOOP', target.x, target.y, target.z, event.color, undefined, undefined, hexKey);
             }
             return;
         }

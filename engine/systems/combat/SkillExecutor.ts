@@ -221,6 +221,7 @@ export class SkillExecutor {
                     const hitX = hexCenter.x;
                     const hitY = hexCenter.y;
                     const hitZ = engine.getTerrainHeight(target.q, target.r);
+                    const targetHexKey = HexUtils.key(target);
 
                     // 選擇基礎打擊特效
                     const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_TECH' : 'FX_HIT_RED_BLOOD';
@@ -229,17 +230,17 @@ export class SkillExecutor {
                     if (engine.vfx) {
                         // Check for shield hit - play shield spark if absorbed
                         if (result.shieldAbsorb > 0) {
-                            engine.vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ);
+                            engine.vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
                         } else {
-                            engine.vfx.playEffect(hitFX, hitX, hitY, hitZ);
+                            engine.vfx.playEffect(hitFX, hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
                             if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                                engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ);
+                                engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ, undefined, undefined, undefined, targetHexKey);
                             }
                         }
 
                         // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
                         if (finalDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
-                            engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ);
+                            engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
                         }
                     }
                     

@@ -29,6 +29,7 @@ export class EventVFXMapper {
         let target = this.resolvePoint(event.pos, event.targetId, engine);
         
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
+        const hexKey = HexUtils.key(groundHex);
         const groundZ = engine.getTerrainHeight(groundHex.q, groundHex.r);
 
         // SSOT Fix: Use standard center offset for generic targets (approximate chest height)
@@ -37,22 +38,22 @@ export class EventVFXMapper {
         // 2. Route to specialized atomic handlers
         switch (event.type) {
             case 'DAMAGE': 
-                CombatVFXHandler.handle(event, vfx, camera, target, groundZ);
+                CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
                 break;
             case 'HEAL':
             case 'PROJECTILE_HIT': 
             case 'IMPACT_AOE':
-                CombatVFXHandler.handle(event, vfx, camera, target, groundZ);
+                CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
                 break;
 
             case 'PROJECTILE_SPAWN':
-                vfx.playEffect('FX_MUZZLE_FLASH', origin.x, origin.y, origin.z, event.color, groundZ);
+                vfx.playEffect('FX_MUZZLE_FLASH', origin.x, origin.y, origin.z, event.color, groundZ, undefined, hexKey);
                 break;
 
             case 'DEATH':
             case 'SPAWN':
             case 'CAST_BREAK':
-                UnitVFXHandler.handle(event, engine, vfx, camera, origin, groundZ);
+                UnitVFXHandler.handle(event, engine, vfx, camera, origin, groundZ, hexKey);
                 break;
 
             case 'VISUAL_SLASH':
@@ -62,7 +63,7 @@ export class EventVFXMapper {
                 
             case 'HAZARD_SPAWN':
                 if (event.text) { // We stored VFX ID in 'text' field
-                    vfx.playEffect(event.text, event.pos.x, event.pos.y, groundZ);
+                    vfx.playEffect(event.text, event.pos.x, event.pos.y, groundZ, undefined, undefined, undefined, hexKey);
                 }
                 break;
         }

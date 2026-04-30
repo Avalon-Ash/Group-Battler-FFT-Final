@@ -14,8 +14,12 @@ export class VFXSystem {
     private ambience: VFXAmbience = new VFXAmbience();
     public agentVFX: AgentVFXSystem = new AgentVFXSystem();
     private boundEngine: GameEngine | null = null;
+    private collapsedHexKeys: Set<string> = new Set();
     
-    public reset() { this.state.reset(); }
+    public reset() { 
+        this.state.reset(); 
+        this.collapsedHexKeys.clear();
+    }
 
     public bind(engine: GameEngine) {
         this.boundEngine = engine;
@@ -46,7 +50,6 @@ export class VFXSystem {
         const particles = this.state.particles;
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
-            if (p.locked) continue; // Skip persistent bridge/structure effects
             
             const dx = p.x - targetX;
             const dy = p.y - targetRawY;
@@ -64,10 +67,13 @@ export class VFXSystem {
             const ny = dy / HEX_R_PROJ_Y;
             return (nx * nx + ny * ny) >= 1.0;
         });
+
+        // 3. Mark for same-frame/next-frame blacklist
+        this.collapsedHexKeys.add(`${data.q},${data.r}`);
     };
     
-    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string) {
-        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId);
+    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
+        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId, hexKey);
     }
     
     public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4) {
@@ -94,6 +100,15 @@ export class VFXSystem {
         getSpatialInfo: (x: number, y: number) => SpatialInfo,
         engine?: GameEngine 
     ) {
+        // [RACE CONDITION GUARD] Clear newly spawned particles on collapsed tiles
+        if (this.collapsedHexKeys.size > 0) {
+            for (const p of this.state.particles) {
+                if (p.life >= p.maxLife * 0.9 && p.hexKey && this.collapsedHexKeys.has(p.hexKey)) {
+                    p.life = -1;
+                }
+            }
+        }
+
         const particles = this.state.particles;
         let count = particles.length;
         
@@ -147,5 +162,8 @@ export class VFXSystem {
         if (engine) {
             this.agentVFX.update(dt, engine, this);
         }
+
+        // Clear blacklist for next turn
+        this.collapsedHexKeys.clear();
     }
 }

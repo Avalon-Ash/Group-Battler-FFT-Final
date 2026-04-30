@@ -32,6 +32,7 @@ export interface Particle {
     blendMode?: GlobalCompositeOperation; 
     sortBias?: number; 
     lastGroundHeight?: number; 
+    hexKey?: string; 
 }
 export interface Decal {
     x: number;
@@ -73,6 +74,7 @@ export class VFXStateManager {
             p.gravity = undefined;
             p.killAtTarget = undefined; 
             p.lastGroundHeight = undefined;
+            p.hexKey = undefined;
             return p;
         }
         return { 
@@ -83,7 +85,8 @@ export class VFXStateManager {
             delay: 0,
             locked: false,
             sortBias: 0,
-            ownerId: undefined
+            ownerId: undefined,
+            hexKey: undefined
         };
     }
     public releaseParticle(p: Particle) {
