@@ -1,4 +1,20 @@
 
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  [FACADE] GameRenderer — 渲染系統對外統一入口                ║
+// ║  本檔負責：所有渲染子系統的生命週期管理（bind/reset/update） ║
+// ║            EventBus 訂閱（GAME_RESET / CAMERA_SHAKE 等）    ║
+// ║            SSOT 時間計算（simDt / battleTime）              ║
+// ║                                                              ║
+// ║  子系統實作位置（勿直接繞過此 Facade 修改）：                ║
+// ║  → 渲染管線 / Z-sort / 圖層順序 : renderers/RenderPipeline.ts ║
+// ║  → 狀態欄 / BUFF 圖示          : renderers/status/StatusOrchestrator.ts ║
+// ║  → 網格繪製                    : systems/grid.ts (Facade)   ║
+// ║  → VFX 粒子 / 特效              : systems/vfx.ts (Facade)   ║
+// ║  → 單位外觀 / 動畫              : systems/unit.ts (Facade)  ║
+// ║  → HUD / 血條                  : systems/HUDSystem.ts       ║
+// ║  → 視覺序列 / 演出              : systems/visuals/SequenceSystem.ts ║
+// ╚══════════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill } from "../types";
 import { GridSystem } from "./systems/grid";

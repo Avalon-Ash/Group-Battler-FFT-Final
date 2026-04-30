@@ -1,4 +1,16 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  [CONTRACT] 全域型別主契約 — 所有系統的型別定義從這裡找 ║
+// ║                                                          ║
+// ║  補充型別位置：                                          ║
+// ║  → VFX 粒子 Schema（Particle、Decal 詳細欄位）          ║
+// ║    → types/VFXSchema.ts                                 ║
+// ║                                                          ║
+// ║  新增型別規則：                                          ║
+// ║  → 引擎核心型別（Agent、Skill、Hex、GameEvent）→ 本檔   ║
+// ║  → 特定子系統的複雜型別 → types/ 目錄下獨立檔案         ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import type { Agent } from './engine/core/Agent';
 import type { MapConfig } from './engine/utils';
 
