@@ -168,10 +168,11 @@ export class ZoneSystem {
                             // [PROACTIVE PUSH] 如果該 Hazard 的 cells 發生變動且歸零，則徹底移除
                             if (h.cells.length === 0) {
                                 engine.state.spatialHazards.splice(i, 1);
-                            } else if (h.cells.length !== prevCount) {
-                                // 強制地圖版本更新，讓渲染器同步變更（雖然 Zone 縮減已經會更新 mapVersion）
                             }
                         }
+
+                        // 發送事件通知 VFX 系統清除該區域的殘留特效
+                        engine.bus.emit('TILE_COLLAPSED', { q: hex.q, r: hex.r });
 
                         // 3. 再移除地圖格，啟動掉落動畫
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });

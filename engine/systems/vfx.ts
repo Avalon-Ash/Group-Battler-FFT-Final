@@ -6,13 +6,61 @@ import { VFXAmbience } from "./vfx/VFXAmbience";
 import { AgentVFXSystem } from "./vfx/AgentVFXSystem";
 import { Point3D } from "../math/VisualMath";
 import { GameEngine } from "../game";
+import { HexMath } from "../math/HexMath";
+import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
     private ambience: VFXAmbience = new VFXAmbience();
     public agentVFX: AgentVFXSystem = new AgentVFXSystem();
+    private boundEngine: GameEngine | null = null;
     
     public reset() { this.state.reset(); }
+
+    public bind(engine: GameEngine) {
+        this.boundEngine = engine;
+        engine.bus.on('TILE_COLLAPSED', this.handleTileCollapsed);
+    }
+
+    public unbind(engine: GameEngine) {
+        if (this.boundEngine) {
+            this.boundEngine.bus.off('TILE_COLLAPSED', this.handleTileCollapsed);
+        }
+        this.boundEngine = null;
+    }
+
+    private handleTileCollapsed = (data: { q: number, r: number }) => {
+        if (!this.boundEngine) return;
+
+        // SSOT: Calculate RAW world center (before ISO scale) to match particle.x/y
+        const config = this.boundEngine.mapConfig;
+        const pos = HexMath.hexToPixel(data.q, data.r, config.offsetX, config.offsetY, config.layout);
+        const targetX = pos.x;
+        const targetY = pos.y / ISO_SCALE_Y;
+        
+        const HEX_R = HEX_SIZE * 1.25; // Area buffer to catch drifting particles
+        const rSq = HEX_R * HEX_R;
+        
+        // 1. Kill Particles in the zone
+        const particles = this.state.particles;
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            if (p.locked) continue; // Skip bridge effects
+            
+            const dx = p.x - targetX;
+            const dy = p.y - targetY;
+            if (dx*dx + dy*dy < rSq) {
+                p.life = -1; 
+            }
+        }
+
+        // 2. Clear Decals in the zone
+        this.state.decals = this.state.decals.filter(d => {
+            const dx = d.x - targetX;
+            const dy = d.y - (targetY * ISO_SCALE_Y); // Decals are in projected space
+            return dx*dx + dy*dy >= rSq;
+        });
+    };
     
     public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string) {
         VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId);
