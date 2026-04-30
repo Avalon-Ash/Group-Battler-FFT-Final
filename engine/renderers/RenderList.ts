@@ -128,6 +128,8 @@ export class RenderList {
             else if (op.type === RenderOpType.OBSTACLE) subLayer = 40;
             else if (op.type === RenderOpType.UNIT) subLayer = 45;
             else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
+                // Ground VFX sits at 32 - above HAZARD(30)/AURA(35) but below OBSTACLE(40)
+                // so that nearby obstacles correctly occlude ground effects.
                 subLayer = op.isGround ? 32 : 50;
             }
 
@@ -140,18 +142,16 @@ export class RenderList {
             // on top of effects. We inject op.z as a sort boost so effects with any
             // elevation always sort in front of terrain at the same footprint.
             //
-            // For ground effects: op.z = GROUND_Z_BIAS = 5, boost = 5 * 20 = 100.
-            // For mid-air effects: op.z = particle.z (can be 50–400), boost is larger.
-            // This is always safe because the pIsUlt / z > 600 path already handles
-            // sky-high effects with a 100,000,000 absolute override below.
+            // Case A: isGround — no boost applied. subLayer 32 is enough.
+            // Case B: air effect (z > 0) — add op.z * 20 boost.
+            // Case C: zero-height non-ground — add flat +60 boost.
             if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
-                if (op.z > 0) {
-                    sortKey += op.z * 20;
-                } else {
-                    // Ground-locked effect with z=0: still needs to clear terrain subLayer.
-                    // Add a flat +60 to guarantee VFX (subLayer 50) beats OBSTACLE (40)
-                    // and TERRAIN (10) even when z is not populated.
-                    sortKey += 60;
+                if (!op.isGround) {
+                    if (op.z > 0) {
+                        sortKey += op.z * 20;   // Case B
+                    } else {
+                        sortKey += 60;          // Case C
+                    }
                 }
             }
             // ─────────────────────────────────────────────────────────────────

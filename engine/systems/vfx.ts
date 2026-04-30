@@ -22,11 +22,11 @@ export class VFXSystem {
         engine.bus.on('TILE_COLLAPSED', this.handleTileCollapsed);
     }
 
-    public unbind(engine: GameEngine) {
+    public unbind() {
         if (this.boundEngine) {
             this.boundEngine.bus.off('TILE_COLLAPSED', this.handleTileCollapsed);
+            this.boundEngine = null;
         }
-        this.boundEngine = null;
     }
 
     private handleTileCollapsed = (data: { q: number, r: number }) => {

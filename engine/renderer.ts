@@ -40,7 +40,7 @@ export class GameRenderer {
             this.boundEngine.bus.off('ENV_UPDATE', this.handleReset);
             this.boundEngine.bus.off('CAMERA_SHAKE', this.handleShake);
             this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
-            this.vfx.unbind(this.boundEngine);
+            this.vfx.unbind();
         }
 
         this.boundEngine = engine;
