@@ -39,6 +39,7 @@ export class RenderOp {
     uSelected: boolean = false;
     uSilhouette: boolean = false;
     isGround: boolean = false;
+    sortBias: number = 0; // NEW: SSOT depth sorting adjustment (mostly for ground decals)
     particle: Particle | null = null;
     vProgress: number = 0;
     vChaos: boolean = false;
@@ -74,6 +75,7 @@ export class RenderOp {
         this.uSelected = false;
         this.uSilhouette = false;
         this.isGround = false;
+        this.sortBias = 0;
         this.vChaos = false;
         this.ttheme = null;
         this.pTrail = [];
@@ -116,7 +118,8 @@ export class RenderList {
         for (let i = 0; i < this.count; i++) {
             const op = this.ops[i];
 
-            const baseSortY = op.y;
+            // SSOT: Use base world Y plus a conceptual "sort bias" (e.g. front edge of a decal)
+            const baseSortY = op.y + (op.sortBias || 0);
             let sortKey = Math.floor((baseSortY + 10000) * 100);
 
             // Sub-layer within same Y bucket (unchanged)

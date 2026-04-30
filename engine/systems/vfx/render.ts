@@ -8,13 +8,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 
-import { VFX_RENDER, ISO_SCALE_Y } from "../../../constants";
-
-const GROUND_PROJECTION_TYPES = new Set([
-    'GIANT_HEX', 'MAGIC_CIRCLE', 'RING', 'SHOCKWAVE', 
-    'BLAST', 'HEX_GLOW', 'GRID_FIELD', 'CRACKS', 'BLACK_HOLE',
-    'PILLAR', 'DOMAIN'
-]);
+import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
 
 export class VFXRenderer {
     public submitRenderables(
@@ -54,21 +48,20 @@ export class VFXRenderer {
             const op = renderList.next();
             op.type = RenderOpType.VFX;
             
-            const isGroundLocked = GROUND_PROJECTION_TYPES.has(p.type);
+            const isGroundLocked = VFX_GROUND_TYPES.has(p.type);
             const isUlt = (p as any).pIsUlt || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
             
-            // [FIX] Use a more aggressive sorting bias for ground locked VFX to prevent clipping
-            // and ensure they are sorted correctly relative to terrain.
+            // [SSOT FIX] 1. Y calculation: op.y must be the footprint Y (raw world projected).
+            // We use op.sortBias to handle the "front edge" depth sorting for large ground effects.
             const projectedY = p.y * ISO_SCALE_Y;
+            op.y = projectedY + offset; 
+            
             if (isGroundLocked) {
-                // Sort key is based on the front edge of the effect, which is closer to the camera.
-                // In isometric projection, the vertical visual radius is roughly 0.5 * size.
-                // We add a safety margin (+120) to ensure the effect stays on top.
-                const frontEdgeY = projectedY + (p.size ? p.size * 0.5 : 0) + 120;
-                op.y = frontEdgeY + offset;
-            } else {
-                op.y = projectedY + offset;
+                // Ground decals sort by their front edge to handle occlusion correctly.
+                // In iso view, front edge is approx projectedY + 0.5 * visual_height.
+                op.sortBias = (p.size ? p.size * 0.5 : 0) + VFX_RENDER.GROUND_SORT_BIAS;
             }
+
             op.z = isGroundLocked
                 ? Math.max(p.z + VFX_RENDER.GROUND_Z_BIAS, VFX_RENDER.GROUND_Z_BIAS)
                 : p.z; 
@@ -80,7 +73,9 @@ export class VFXRenderer {
             op.vChaos = isChaosStyle(p.color);
             op.tx = p.x;
             
-            // [FIX] Apply visual bias (Z-Layer) directly to screen Y to avoid Z-fighting
+            // [SSOT FIX] 2. Screen Y (繪製位置) calculation:
+            // Apply visual bias (Z-Fighting prevention) directly to ty, NOT to sorting y.
+            // visualBias is a pixel-space compensation to ensure ground effects hover slightly above terrain.
             const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
             op.ty = projectedY + offset - p.z - visualBias; 
             op.th = p.z; 

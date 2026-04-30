@@ -1,6 +1,6 @@
 
 import { Particle } from "./state";
-import { PHYSICS, VFX_RENDER, ISO_SCALE_Y } from "../../../constants";
+import { PHYSICS, VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
 
 export interface SpatialInfo {
     height: number;
@@ -74,9 +74,8 @@ export class VFXPhysics {
             }
 
             // [FIX] For ground particles, they MUST stick to the ground height exactly.
-            // Expanded list to include all ground-based types.
-            const GROUND_TYPES = ['SHOCKWAVE', 'RING', 'MAGIC_CIRCLE', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW', 'BLAST', 'DOMAIN', 'BLACK_HOLE', 'HEX_BEAM'];
-            if (GROUND_TYPES.includes(p.type)) {
+            // SSOT: Use centralized VFX_GROUND_TYPES
+            if (VFX_GROUND_TYPES.has(p.type)) {
                 p.z = currentGroundH;
                 p.vz = 0;
             }

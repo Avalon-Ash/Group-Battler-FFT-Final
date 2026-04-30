@@ -3,7 +3,7 @@ import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
-import { ISO_SCALE_Y } from "../../../constants";
+import { ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
 
 const rnd = (r: Range | number | undefined): number => {
     if (r === undefined) return 0;
@@ -14,10 +14,7 @@ const pickColor = (colors: string[]): string => {
     if (!colors || colors.length === 0) return '#ffffff';
     return colors[Math.floor(Math.random() * colors.length)];
 };
-const GROUND_PARTICLES = new Set([
-    'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'MAGIC_CIRCLE', 
-    'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE'
-]);
+
 const FIXED_ORIENTATION_PARTICLES = new Set([
     'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE'
 ]);
@@ -35,7 +32,7 @@ export class VFXPlayer {
     }
     private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
         const count = Math.floor(rnd(config.count));
-        const isGroundType = GROUND_PARTICLES.has(config.particleType);
+        const isGroundType = VFX_GROUND_TYPES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
 
         // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation

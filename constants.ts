@@ -179,3 +179,9 @@ export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark
     'OBSIDIAN_PILLAR': { main: '#18181b', light: '#27272a', dark: '#09090b', detail: '#ef4444', highlight: '#fca5a5' },
     'SANDSTONE': { main: '#b45309', light: '#d97706', dark: '#92400e', detail: '#f59e0b', highlight: '#fde047' }
 };
+
+export const VFX_GROUND_TYPES = new Set([
+    'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD',
+    'MAGIC_CIRCLE', 'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE',
+    'GIANT_HEX', 'HEX_BEAM'
+]);
