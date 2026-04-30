@@ -165,11 +165,14 @@ export const ProceduralPainter = {
                     const py = ry * ISO_SCALE_Y;
                     
                     ctx.save();
+                    // [SSOT FIX] Pillar base must start exactly at ground center (op.ty)
+                    // to avoid visual insertion into high-terrain walls.
+                    // Start at (px, 0) relative to ground center, not (px, py).
                     ctx.strokeStyle = p.color;
                     ctx.globalAlpha = 0.15;
                     ctx.beginPath();
-                    ctx.moveTo(px, py); // 地面
-                    ctx.lineTo(px, py - (layers * layerDist)); // 頂層
+                    ctx.moveTo(px, 0); // 地面中心基準線
+                    ctx.lineTo(px, -(layers * layerDist)); // 頂層
                     ctx.stroke();
                     ctx.restore();
                 }
