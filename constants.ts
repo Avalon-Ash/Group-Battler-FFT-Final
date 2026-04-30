@@ -14,6 +14,7 @@ export const BASE_HEIGHT = 4;
 export const MAX_TERRAIN_TIER = 6;
 export const ISO_SCALE_Y = 0.5;
 export const ISO_ANGLE = 0;
+export const TERRAIN_SORT_SCALE = 0.7;
 export const UNIT_VISUAL_HEIGHT = 100;
 export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;

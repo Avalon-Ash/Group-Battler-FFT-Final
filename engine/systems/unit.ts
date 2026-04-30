@@ -9,6 +9,7 @@ import { UnitIndicatorPainter } from "../renderers/units/painters/UnitIndicatorP
 import { UnitAuraPainter } from "../renderers/units/painters/UnitAuraPainter";
 import { HexLayout } from "../../types";
 import { VisualMath } from "../math/VisualMath";
+import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../constants";
 
 export class UnitRenderSystem {
     public submitRenderables(
@@ -57,8 +58,12 @@ export class UnitRenderSystem {
                 auraOp.type = RenderOpType.AURA;
                 auraOp.agent = agent;
                 auraOp.tx = state.x;
-                auraOp.y = state.y + offset; // Same sorting Y as unit (locked to tile base)
-                auraOp.ty = VisualMath.getIsoVisualY(auraOp.y, state.terrainHeight);
+                
+                // [SSOT FIX] AURA sorting: incorporate terrain height to prevent being hidden by grid
+                auraOp.y = state.y + offset + (state.terrainHeight * TERRAIN_SORT_SCALE);
+                auraOp.sortBias = HEX_SIZE * 0.5; // Front-edge compensation
+
+                auraOp.ty = VisualMath.getIsoVisualY(state.y + offset, state.terrainHeight);
                 auraOp.time = globalTime;
                 auraOp.th = state.terrainHeight;
             }

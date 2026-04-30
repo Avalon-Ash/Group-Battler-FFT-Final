@@ -2,7 +2,7 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile, SpatialHazard, GroundHazard } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, TERRAIN_SORT_SCALE } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -73,7 +73,7 @@ export class GridRenderStrategy {
                 op.type = RenderOpType.OBSTACLE;
                 op.tq = q; op.tr = r; op.th = h; 
                 op.tx = px; op.ty = visualSurfaceY; 
-                op.y = visualBaseY; // Sorting based on footprint
+                op.y = visualBaseY + (h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
                 op.ttype = obstacleType;
             }
 
@@ -83,7 +83,7 @@ export class GridRenderStrategy {
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
                 hOp.tx = px; hOp.ty = visualSurfaceY; 
-                hOp.y = visualBaseY; // Sorting based on footprint
+                hOp.y = visualBaseY + (tile.h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
                 hOp.oHazard = {
                     type: h.type,
                     team: h.team,
