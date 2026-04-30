@@ -32,33 +32,37 @@ export class VFXSystem {
     private handleTileCollapsed = (data: { q: number, r: number }) => {
         if (!this.boundEngine) return;
 
-        // SSOT: Calculate RAW world center (before ISO scale) to match particle.x/y
+        // SSOT: Calculate raw world center vs projected screen center
         const config = this.boundEngine.mapConfig;
         const pos = HexMath.hexToPixel(data.q, data.r, config.offsetX, config.offsetY, config.layout);
         const targetX = pos.x;
-        const targetY = pos.y / ISO_SCALE_Y;
+        const targetRawY = pos.y / ISO_SCALE_Y;
         
-        const HEX_R = HEX_SIZE * 1.25; // Area buffer to catch drifting particles
+        const HEX_R = HEX_SIZE * 1.2; // Raw space radius
         const rSq = HEX_R * HEX_R;
+        const HEX_R_PROJ_Y = HEX_R * ISO_SCALE_Y; // Radius in projected Y (usually half)
         
-        // 1. Kill Particles in the zone
+        // 1. Kill Particles (Simulation space)
         const particles = this.state.particles;
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
-            if (p.locked) continue; // Skip bridge effects
+            if (p.locked) continue; // Skip persistent bridge/structure effects
             
             const dx = p.x - targetX;
-            const dy = p.y - targetY;
+            const dy = p.y - targetRawY;
             if (dx*dx + dy*dy < rSq) {
                 p.life = -1; 
             }
         }
 
-        // 2. Clear Decals in the zone
+        // 2. Clear Decals (Projected screen space)
         this.state.decals = this.state.decals.filter(d => {
             const dx = d.x - targetX;
-            const dy = d.y - (targetY * ISO_SCALE_Y); // Decals are in projected space
-            return dx*dx + dy*dy >= rSq;
+            const dy = d.y - pos.y;
+            // Elliptical check to match raw circle cleanup area
+            const nx = dx / HEX_R;
+            const ny = dy / HEX_R_PROJ_Y;
+            return (nx * nx + ny * ny) >= 1.0;
         });
     };
     

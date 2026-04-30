@@ -10,16 +10,20 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             lifetime: 4.0, // Fixed long duration, HazardSystem handles the actual lifetime by spawning more if needed or we can loop it
             colors: ['#ea580c'], // Lava orange
             size: 1.0, 
+            speed: 0,
+            delay: 0,
             visualStyle: 'FIRE',
             locked: true,
             blendMode: 'lighter'
         }, {
             count: 3, particleType: 'SMOKE', 
-            shape: 'CIRCULAR_BURST',
+            shape: 'CIRCLE',
             shapeRadius: 20,
             lifetime: [1, 2],
             colors: ['#fbbf24', '#f59e0b'],
             size: [10, 20],
+            speed: [10, 30],
+            delay: 0,
             vz: [30, 80],
             visualStyle: 'FLAME'
         }]
@@ -32,6 +36,8 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             lifetime: 4.0,
             colors: ['#65a30d'],
             size: 1.0,
+            speed: 0,
+            delay: 0,
             visualStyle: 'POISON',
             locked: true,
             blendMode: 'screen'
@@ -45,6 +51,8 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             lifetime: 4.0,
             colors: ['#38bdf8'],
             size: 1.0,
+            speed: 0,
+            delay: 0,
             visualStyle: 'ICE',
             locked: true,
             blendMode: 'screen'
@@ -58,6 +66,8 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             lifetime: 4.0,
             colors: ['#7c3aed'],
             size: 1.0,
+            speed: 0,
+            delay: 0,
             visualStyle: 'VOID',
             locked: true,
             blendMode: 'multiply'
@@ -71,6 +81,8 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             lifetime: 4.0,
             colors: ['#94a3b8'],
             size: 1.0,
+            speed: 0,
+            delay: 0,
             visualStyle: 'FOG',
             locked: true,
             blendMode: 'screen'

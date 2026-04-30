@@ -271,7 +271,7 @@ export const BTActions: Record<string, BTActionFn> = {
                         }
                     }
                     
-                    if (!isFatal && hazard && hazard.team !== a.team && hazard.timer < a.castTimer) isFatal = true;
+                    if (!isFatal && hazard && hazard.team !== a.team && hazard.duration < a.castTimer) isFatal = true;
                     
                     if (isFatal) {
                         engine.log(a, 'DECISION', '中斷詠唱', '', `地面即將塌陷 (${timeToCollapse.toFixed(1)}s)，放棄詠唱 ${castSkill.name}`);

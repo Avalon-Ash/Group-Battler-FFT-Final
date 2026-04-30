@@ -122,12 +122,14 @@ export class RenderList {
             // Sub-layer within same Y bucket (unchanged)
             let subLayer = 0;
             if (op.type === RenderOpType.TERRAIN) subLayer = 10;
-            else if (op.type === RenderOpType.DECAL || op.isGround) subLayer = 20;
+            else if (op.type === RenderOpType.DECAL) subLayer = 20;
             else if (op.type === RenderOpType.HAZARD) subLayer = 30;
             else if (op.type === RenderOpType.AURA) subLayer = 35;
             else if (op.type === RenderOpType.OBSTACLE) subLayer = 40;
             else if (op.type === RenderOpType.UNIT) subLayer = 45;
-            else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) subLayer = 50;
+            else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
+                subLayer = op.isGround ? 32 : 50;
+            }
 
             sortKey += subLayer;
 
@@ -150,10 +152,6 @@ export class RenderList {
                     // Add a flat +60 to guarantee VFX (subLayer 50) beats OBSTACLE (40)
                     // and TERRAIN (10) even when z is not populated.
                     sortKey += 60;
-                }
-                // [FIX] Extra compensation: ground effects must rank higher than all non-VFX types at the same depth
-                if (op.isGround) {
-                    sortKey += 500; 
                 }
             }
             // ─────────────────────────────────────────────────────────────────

@@ -81,7 +81,7 @@ export class GridRenderStrategy {
             for (const h of hazardsAtTile) {
                 const hOp = renderList.next();
                 hOp.type = RenderOpType.HAZARD;
-                hOp.tq = q; hOp.tr = r; hOp.th = h;
+                hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
                 hOp.tx = px; hOp.ty = visualSurfaceY; 
                 hOp.y = visualBaseY; // Sorting based on footprint
                 hOp.oHazard = {
@@ -132,7 +132,7 @@ export class GridRenderStrategy {
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h; // Keep original height for block thickness
             op.tx = pos.x; op.ty = visualBaseY; 
-            op.y = visualBaseY; // Set footprint Y for sorting
+            op.y = pos.y + offset; // Sorting based on initial footprint, ignore falling Z
             op.z = z; // Negative Z indicates falling and used for opacity calculation
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = undefined;
