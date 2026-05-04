@@ -101,6 +101,11 @@ const SUB_LAYER = {
     PROJECTILE:     50,
 } as const;
 
+// [ARCH] Tiebreak 偏移：僅解決同格深度平局，不影響跨格遮蔽邏輯
+// 值必須遠小於相鄰格 screenY 差距（約 24px），建議不超過 2.0
+const CORPSE_TIEBREAK = 0.5;
+const VFX_TIEBREAK = 1.0;
+
 export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
@@ -138,8 +143,17 @@ export class RenderList {
             const op = this.ops[i];
 
             // SSOT: Use base world Y plus a conceptual "sort bias" (e.g. front edge of a decal)
-            const baseSortY = op.y + (op.sortBias || 0);
-            let sortKey = Math.floor((baseSortY + 10000) * 100);
+            let finalSortY = op.y + (op.sortBias || 0);
+
+            // [ARCH] Tiebreak: 確保在同一個 Y 坐標（同格）時，渲染順序符合預期
+            // 屍體高於單位，VFX 高於屍體
+            if (op.type === RenderOpType.CORPSE) {
+                finalSortY += CORPSE_TIEBREAK;
+            } else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
+                finalSortY += VFX_TIEBREAK;
+            }
+
+            let sortKey = Math.floor((finalSortY + 10000) * 100);
 
             // Sub-layer within same Y bucket (unchanged)
             let subLayer = 0;
@@ -159,19 +173,6 @@ export class RenderList {
 
             sortKey += subLayer;
             
-            // [ARCH] 渲染層級隔離：確保特定類型走獨立層，不與單位 Y 軸混排
-            // Layer 0: World (Terrain/Obstacle/Unit) - Default
-            // Layer 1: CORPSE (Independent Layer) - 固定在 UNIT 之上
-            // Layer 2: VFX / Projectile (Air Layer) - 在屍體之上
-            // [FIX] 避免與既存 boost (op.z * 20) 衝突，採用大步進分層
-            if (op.type === RenderOpType.CORPSE) {
-                sortKey += 10000000; 
-            } else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
-                if (!op.isGround) {
-                    sortKey += 20000000;
-                }
-            }
-
             // ── FIX: VFX z-height sort compensation ──────────────────────────
             // Ground-locked VFX (BLAST, SHOCKWAVE, RING, etc.) have op.z set by
             // VFXRenderer but the sort algo never uses it. As a result, terrain tiles
