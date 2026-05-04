@@ -129,8 +129,12 @@ GameEngine
 │   ├── events/
 │   │   ├── EventBus.ts      ← 系統間解耦通訊
 │   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
-│   ├── math/                ← Hex 座標數學、向量工具
-│   └── physics/             ← 彈體物理、碰撞
+│   ├── math/
+│   │   ├── VisualMath.ts        ← ISO 視覺座標轉換 SSOT（getIsoVisualY）
+│   │   └── PointerProjector.ts  ← 所有指標座標逆投影的唯一入口（含 DPR 校正）
+│   ├── physics/             ← 彈體物理、碰撞
+│   ├── graphics/
+│   │   └── EnvironmentFactory.ts ← 障礙物 Sprite 生成（尺寸參數由 ENV_SPRITE 管控）
 ├── components/
 │   ├── ui/
 │   │   ├── MapEditorToolbar     ← 戰場編輯工具列
@@ -147,7 +151,13 @@ GameEngine
 │   │   │   └── VFXMapTab        ← VFX 區格分佈與生命週期監控
 │   │   └── GameCanvas.tsx   ← 主渲染畫布
 ├── data/
-│   └── scenes.ts            ← 場景主題資料（森林、冰原、熔岩…）
+│   ├── scenes.ts            ← 場景主題資料（森林、冰原、熔岩…）
+│   └── units/
+│       └── appearance/      ← 單位外觀 SSOT（ECS Component 等價層）
+│           ├── types.ts     ← RoleAppearance、FactionAppearanceProfile 介面定義
+│           ├── imperial.ts  ← Imperial 陣營外觀 Profile
+│           ├── covenant.ts  ← Covenant 陣營外觀 Profile
+│           └── index.ts     ← UNIT_APPEARANCE SSOT export
 ├── types.ts                 ← 全域型別定義（SSOT 資料結構）
 └── constants.ts             ← 遊戲常數
 ```
