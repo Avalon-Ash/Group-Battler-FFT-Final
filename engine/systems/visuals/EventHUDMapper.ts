@@ -1,4 +1,23 @@
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  EventHUDMapper — 戰鬥事件 → HUD 浮字映射器                     ║
+// ║                                                                  ║
+// ║  職責：將 GameEvent 轉換為 HUDSystem.addFloatingText() 呼叫      ║
+// ║  上游：VisualSystem.flush() → EventHUDMapper.process()           ║
+// ║  下游：HUDSystem（addFloatingText / completeCastText / break）   ║
+// ║                                                                  ║
+// ║  顏色來源分類 (SSOT 邊界)：                                      ║
+// ║    STATUS_VISUALS['POISON'].primaryColor → data/vfx/status_visuals  ║
+// ║    STATUS_VISUALS['REGEN'].primaryColor  → data/vfx/status_visuals  ║
+// ║    event.skill.color                     → data/skills/ (Skill 定義)║
+// ║    event.color                           → GameEvent 欄位（來自 combat 結算）║
+// ║    '#ef4444' (crit red)                  → inline 業務規則，暫未抽取   ║
+// ║    '#bae6fd' (absorb blue)               → inline 業務規則，暫未抽取   ║
+// ║                                                                  ║
+// ║  HUD 佈局常數來源：                                              ║
+// ║    HUD_TEXT_OFFSET / HUD_LAYOUT → constants.ts (SSOT)           ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
 import { HUDSystem } from "../hud";
@@ -74,6 +93,8 @@ export class EventHUDMapper {
                 text = `${text} ${event.text === 'ABSORB' ? '吸收' : event.text}`;
             }
 
+            // [業務規則] 傷害顯示優先級：ABSORB > DOT (毒) > CRIT (暴擊) > 預設
+            // 顏色依賴：STATUS_VISUALS（SSOT）、inline crit/absorb 色（見檔頭說明）
             const isCrit = val > 100;
             const isDot = event.skill?.ccType === 'DOT';
             
@@ -107,6 +128,8 @@ export class EventHUDMapper {
         if (text) hud.addFloatingText(event.pos.x + xOffset, baseY, text, color, size, type);
     }
 
+    // [SSOT] 技能名稱與顏色來自 event.skill（Skill 定義層）
+    // 詠唱時間 (cast) 決定 SHOUT 的 life 週期，來自 event.skill.cast
     private handleCastText(event: GameEvent, visualY: number, hud: HUDSystem) {
         if (event.skill && event.skill.tag !== 'BASIC') {
             const isUlt = event.skill.tag === 'ULT';

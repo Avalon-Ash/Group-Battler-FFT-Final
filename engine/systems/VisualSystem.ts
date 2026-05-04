@@ -1,4 +1,25 @@
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  VisualSystem — 視覺事件路由器 (Visual Event Facade)             ║
+// ║                                                                  ║
+// ║  職責：                                                          ║
+// ║    接收每幀的 GameEvent[]，依事件類型路由至正確的子系統           ║
+// ║    本類不持有任何外觀資料，只做分發，不做決策                     ║
+// ║                                                                  ║
+// ║  子系統分工 (SSOT 邊界)：                                        ║
+// ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
+// ║    EventVFXMapper  → 粒子特效事件 → VFXSystem                    ║
+// ║    SequenceSystem  → CAST_START 技能序列排程                      ║
+// ║                                                                  ║
+// ║  上游：GameEngine.tick → renderer.ts → VisualSystem.flush()      ║
+// ║  下游：HUDSystem (浮字物件池) / VFXSystem (粒子) / SequenceSystem ║
+// ║                                                                  ║
+// ║  [不在此管理的項目]                                              ║
+// ║    單位本體外觀 → data/units/appearance/                         ║
+// ║    動畫狀態機   → engine/systems/AnimationSystem.ts              ║
+// ║    HUD 浮字物理 → engine/systems/hud.ts                          ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { GameEngine } from "../game";
 import { GameEvent } from "../../types";
 import { VFXSystem } from "./vfx";
