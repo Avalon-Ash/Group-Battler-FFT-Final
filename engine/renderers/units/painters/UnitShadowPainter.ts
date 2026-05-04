@@ -52,8 +52,7 @@ export const UnitShadowPainter = {
             
             const iconBaseY = -20; 
             ctx.translate(0, iconBaseY);
-            const breath = Math.sin(t * 2) * 1.5;
-            ctx.translate(0, breath);
+            // [FIX] 移除獨立浮動：icon 跟隨棋座靜止，身體浮動由 Faction Renderer 統一負責
 
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath(); ctx.ellipse(0, 28, 14, 6, 0, 0, Math.PI*2); ctx.fill();

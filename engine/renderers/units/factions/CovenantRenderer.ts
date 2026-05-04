@@ -26,8 +26,9 @@ export const CovenantRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
         const profile = UNIT_APPEARANCE[Team.RED].roles[agent.role];
         const silhouetteColor = profile.secondaryColor;
-        const noise = Math.sin(t * 7.0) * 0.5 + Math.sin(t * 3.0);
-        const floatY = (agent.hp > 0) ? noise * 1.5 : 0;
+        const breathePhase = t * 2.0;
+        // [SSOT] 浮動振幅統一為 2.0px，與 ImperialRenderer 保持一致
+        const floatY = (agent.hp > 0) ? Math.sin(breathePhase) * 2.0 : 0;
         const breatheScaleX = (agent.hp > 0) ? 1.0 + Math.sin(t * 4.0) * 0.03 : 1.0;
         const breatheScaleY = (agent.hp > 0) ? 1.0 - Math.sin(t * 4.0) * 0.02 : 1.0;
         

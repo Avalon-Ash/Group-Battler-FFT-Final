@@ -28,7 +28,8 @@ export const ImperialRenderer = {
         const profile = UNIT_APPEARANCE[Team.BLUE].roles[agent.role];
         const silhouetteColor = profile.secondaryColor; 
         const breathePhase = t * 2.0;
-        const floatY = (agent.hp > 0) ? Math.sin(breathePhase) * 2.5 : 0;
+        // [SSOT] 浮動振幅統一為 2.0px，與 CovenantRenderer 保持一致
+        const floatY = (agent.hp > 0) ? Math.sin(breathePhase) * 2.0 : 0;
         const breatheScale = (agent.hp > 0) ? 1.0 + Math.sin(breathePhase) * 0.02 : 1.0;
         
         let hitShakeRot = 0;
