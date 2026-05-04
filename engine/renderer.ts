@@ -2,6 +2,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  Renderer — 渲染器根節點（Facade）                       ║
 // ║  職責：持有 VFXSystem、RenderPipeline、HUD 的實例        ║
+// ║  [ARCH] 視覺主體 SSOT：data/units/appearance/ (Profile)  ║
 // ║  [ARCH] engine.vfx getter 指向此處的 this.vfx            ║
 // ║  下游：RenderPipeline / VFXSystem / HUD                  ║
 // ║  實作位置：renderers/ + systems/ (HUD, Sequence)          ║

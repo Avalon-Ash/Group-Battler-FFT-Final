@@ -1,9 +1,9 @@
 // ╔══════════════════════════════════════════════════════════╗
-// ║  UnitSystem — 單位系統對外統一入口                      ║
-// ║  本檔負責：單位狀態更新統一入口、HP/MP 管理觸發         ║
+// ║  UnitRenderSystem — 單位渲染對外統一入口                ║
+// ║  本檔負責：提交 RenderOp、座標轉換、層級調度            ║
 // ║                                                          ║
-// ║  子系統實作位置：                                        ║
-// ║  → 詳見 unit/ 目錄下各子系統                            ║
+// ║  繪圖實作位置：                                          ║
+// ║  → engine/renderers/units/painters/                     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
@@ -111,7 +111,7 @@ export class UnitRenderSystem {
             if (agent.hp > 0) {
                 UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
             } else {
-                // Dead units use ragdoll drawing
+                // [ARCH] 死亡單位使用 UnitDeathPainter 進行布娃娃物理繪製
                 UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout } as any, terrainHeight, simDt);
             }
         }

@@ -18,6 +18,11 @@ function easeAttack(t: number): number {
     }
 }
 
+/**
+ * ImperialRenderer — 帝國陣營渲染器
+ * [ARCH] 資料驅動：依據 UNIT_APPEARANCE[BLUE] 的 Profile 進行繪製
+ * 不在此處硬編碼顏色與尺寸，確保美術資產與邏輯分離。
+ */
 export const ImperialRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
         const profile = UNIT_APPEARANCE[Team.BLUE].roles[agent.role];

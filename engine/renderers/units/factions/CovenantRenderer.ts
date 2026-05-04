@@ -18,6 +18,10 @@ function easeAttack(t: number): number {
     }
 }
 
+/**
+ * CovenantRenderer — 盟約陣營渲染器
+ * [ARCH] 資料驅動：依據 UNIT_APPEARANCE[RED] 的 Profile 進行繪製
+ */
 export const CovenantRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
         const profile = UNIT_APPEARANCE[Team.RED].roles[agent.role];

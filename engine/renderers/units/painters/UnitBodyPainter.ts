@@ -1,8 +1,9 @@
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitBodyPainter — 存活單位的主體繪製                    ║
-// ║  職責：hp > 0 單位的 Sprite / 血條 / 狀態圖示繪製        ║
-// ║  [ARCH] hp <= 0 時 early return，死亡演出交給 DeathPainter║
+// ║  職責：hp > 0 單位的外觀渲染、血條、狀態圖示繪製         ║
+// ║  [ARCH] 外觀資料來源：UNIT_APPEARANCE (SSOT)             ║
+// ║  [ARCH] hp <= 0 時 early return，死亡演出由 DeathPainter 負責 ║
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -28,9 +29,8 @@ export const UnitBodyPainter = {
         scaleFactor: number,
         terrainHeight: number
     ) {
-        // [ARCH] 死亡 alpha 計算目前在此處。
-        // 當布娃娃系統實作後，請將此段移至 UnitDeathPainter.draw()
-        // 並在這裡改為呼叫 UnitDeathPainter.draw()
+        // [ARCH] 存活檢查：UnitBodyPainter 僅負責 hp > 0 的視覺表現
+        // 死亡演出已遷移至 UnitDeathPainter.draw() 並由 UnitRenderSystem 統一調度
         if (agent.hp <= 0) return;
         
         const vx = agent.physics.vx;

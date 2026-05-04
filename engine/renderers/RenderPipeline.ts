@@ -119,7 +119,7 @@ export class RenderPipeline {
         
         this.renderList.sort();
 
-        // Single pass rendering to respect the interleaved depth sort (Fixes Issue A)
+        // 單一渲染 pass：依據深度排序後的順序進行繪製（包含存活單位與死亡布娃娃）
         for (let i = 0; i < this.renderList.count; i++) {
             RenderDispatcher.dispatch(ctx, this.renderList.ops[i], engine.mapConfig.layout, t, this.renderer.unit);
         }
