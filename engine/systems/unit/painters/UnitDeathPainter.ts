@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitDeathPainter — 死亡演出渲染插槽                    ║
 // ║                                                          ║
-// ║  目前實作：簡單的 alpha fade-out（從 UnitBodyPainter 移出）║
+// ║  目前實作：空插槽（hp <= 0 的演出目前由 UnitBodyPainter early return 處理）║
 // ║                                                          ║
 // ║  架構缺口預留：                                          ║
 // ║  [TODO: RAGDOLL] 未來在此插入布娃娃骨架動畫              ║
@@ -10,14 +10,14 @@
 // ║  → fullyDead=true 時停止更新並從 agents 陣列移除          ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { Agent } from "../../../core/Agent";
-import { MapConfig } from "../../../../types";
+import { Agent } from "../../../game";
+import { MapConfig } from "../../../utils";
 
 export class UnitDeathPainter {
 
     /**
      * 繪製死亡中的單位（hp <= 0 且尚未 fullyDead）
-     * 目前行為：alpha fade-out
+     * 目前行為：空插槽，死亡單位由 UnitBodyPainter early return 不渲染
      * [TODO: RAGDOLL] 未來替換為物理驅動的布娃娃分解動畫
      */
     public static draw(

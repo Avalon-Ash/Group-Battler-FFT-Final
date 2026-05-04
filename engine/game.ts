@@ -302,6 +302,7 @@ export class GameEngine implements SpatialProvider {
         for (const a of this.agents) {
             if (a.hp <= 0) {
                 this.agentManager.handleDeadState(a, this);
+                this.agentManager.updateDeathState(a, dt);
                 continue;
             }
             this.cooldowns.update(a, dt);
@@ -321,12 +322,6 @@ export class GameEngine implements SpatialProvider {
         // Run AI tick after combat update so and CD/Cast status is from the current frame
         for (const a of this.agents) {
             if (a.hp <= 0) {
-                if (a.deadLogged && a.deathTimer > 0) {
-                    a.deathTimer -= dt;
-                    if (a.deathTimer <= 0) {
-                        a.fullyDead = true;
-                    }
-                }
                 continue;
             }
             if (a.bt && (a.aiUpdateTimer <= 0 || a.forceAiUpdate)) {

@@ -74,7 +74,7 @@ export class AgentManager {
         }
             
         a.deadLogged = true;
-        a.deathTimer = a.DEATH_ANIM_DURATION; 
+        a.deathTimer = 0; // [FIX] Start accumulator at 0 for UnitDeathPainter
         
         // ── [FIX] Freeze physics on death ──
         a.physics.vx = 0;
@@ -130,5 +130,22 @@ export class AgentManager {
         a.isMoving = false; 
         a.path = [];
         a.trailHistory = [];
+    }
+
+    /**
+     * [ARCH] 累計死亡計時器，為 UnitDeathPainter 提供資料基礎
+     * 當累計時間超過 DEATH_ANIM_DURATION 後將單位標記為 fullyDead
+     */
+    public updateDeathState(agent: Agent, dt: number) {
+        if (agent.hp <= 0 && !agent.fullyDead) {
+            // [ARCH] deathTimer 為 UnitDeathPainter 提供死亡進度資料
+            // [TODO: RAGDOLL] 當布娃娃系統實作後，此數值將驅動物理分解動畫的時間軸
+            agent.deathTimer += dt;
+
+            if (agent.deathTimer >= agent.DEATH_ANIM_DURATION) {
+                // fullyDead 設為 true 後，deathTimer 停止累計（見外部 tick 判斷或此處 if 條件）
+                agent.fullyDead = true;
+            }
+        }
     }
 }
