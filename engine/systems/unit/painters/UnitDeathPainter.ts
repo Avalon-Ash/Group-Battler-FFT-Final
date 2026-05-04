@@ -10,8 +10,7 @@
 // ║  → fullyDead=true 時停止更新並從 agents 陣列移除          ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { Agent } from "../../../game";
-import { MapConfig } from "../../../utils";
+import { Agent, MapConfig } from "../../../../types";
 
 export class UnitDeathPainter {
 
@@ -43,8 +42,8 @@ export class UnitDeathPainter {
      */
     public static getDeathProgress(agent: Agent): number {
         if (!agent.deathTimer || agent.deathTimer <= 0) return 0;
-        // Sync with Agent.ts animation duration
-        const DEATH_DURATION = 0.8; 
-        return Math.min(1.0, agent.deathTimer / DEATH_DURATION);
+        // [ARCH] SSOT: 與 AgentManager.updateDeathState 使用同一個 DEATH_ANIM_DURATION
+        const duration = agent.DEATH_ANIM_DURATION; 
+        return Math.min(1.0, agent.deathTimer / duration);
     }
 }

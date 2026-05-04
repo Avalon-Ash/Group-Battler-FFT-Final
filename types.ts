@@ -14,6 +14,8 @@
 import type { Agent } from './engine/core/Agent';
 import type { MapConfig } from './engine/utils';
 
+export type { Agent, MapConfig };
+
 export interface ZoneConfig {
     enabled: boolean;
     initialRadius: number;

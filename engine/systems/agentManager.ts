@@ -85,6 +85,7 @@ export class AgentManager {
         a.physics.z = 0;
         a.isMoving = false;
         a.path = [];
+        a.trailHistory = [];
         // ──────────────────────────────────
 
         // [PROMPT] 強制遍歷 activeCCVFX 並清理及回收長效粒子
@@ -127,9 +128,6 @@ export class AgentManager {
         UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);
-        a.isMoving = false; 
-        a.path = [];
-        a.trailHistory = [];
     }
 
     /**
