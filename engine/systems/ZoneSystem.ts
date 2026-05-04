@@ -180,6 +180,7 @@ export class ZoneSystem {
                             q: hex.q, 
                             r: hex.r,
                             worldX: worldPos.x,
+                            // [ARCH] worldY / ISO_SCALE_Y 得到原始 3D 空間的 Y (對齊粒子系統物理座標)
                             worldY: worldPos.y / ISO_SCALE_Y 
                         });
 

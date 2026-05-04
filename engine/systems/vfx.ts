@@ -66,20 +66,27 @@ export class VFXSystem {
             screenY = pos.y;
         }
         
-        const HEX_R = HEX_SIZE * 1.2; // Raw space radius
+        // [FIX] 根據常數 HEX_SIZE (48) 確定清除半徑。
+        // 使用 1.25 倍半徑確保覆蓋邊角 (48 * 1.25 = 60)，HEX_SIZE^2 = 2304, 60^2 = 3600
+        const HEX_R = HEX_SIZE * 1.25; 
         const rSq = HEX_R * HEX_R;
-        const HEX_R_PROJ_Y = HEX_R * ISO_SCALE_Y; // Radius in projected Y (usually half)
+        const HEX_R_PROJ_Y = HEX_R * ISO_SCALE_Y; 
         
         // 1. Kill Particles (Simulation space)
         const particles = this.state.particles;
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
+            
+            // [ARCH] BEAM 類不納入清除範圍，其餘 (含 locked Pillars) 若在區域內則清除
             if (p.locked && p.lockReason === 'BEAM') continue; 
             
             const dx = p.x - targetX;
             const dy = p.y - targetRawY;
-            if (dx*dx + dy*dy < rSq) {
-                p.life = -1; 
+            
+            // 優先檢查 hexKey 匹配，其次檢查 2D 圓形區域
+            const hexMatch = p.hexKey && p.hexKey === `${data.q},${data.r}`;
+            if (hexMatch || (dx*dx + dy*dy < rSq)) {
+                p.life = -1; // 標記為死亡，下個 update 迴圈回收
             }
         }
 
@@ -87,7 +94,7 @@ export class VFXSystem {
         this.state.decals = this.state.decals.filter(d => {
             const dx = d.x - targetX;
             const dy = d.y - screenY;
-            // Elliptical check to match raw circle cleanup area
+            // 使用橢圓檢查 (nx^2 + ny^2 < 1) 以匹配等角投影下的六角格
             const nx = dx / HEX_R;
             const ny = dy / HEX_R_PROJ_Y;
             return (nx * nx + ny * ny) >= 1.0;
