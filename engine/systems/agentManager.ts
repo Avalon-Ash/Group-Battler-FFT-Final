@@ -4,6 +4,7 @@ import { Role, Team, Skill, AnimState } from "../../types";
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { UnitShatter } from "./visuals/effects/UnitShatter";
+import { RagdollFactory } from "./unit/RagdollFactory";
 
 export class AgentManager {
     public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
@@ -124,6 +125,10 @@ export class AgentManager {
             impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
             impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
         }
+        
+        // [ARCH] 建立 Ragdoll 初始骨骼快照，供 UnitDeathPainter 使用
+        // [TODO: RAGDOLL] 這裡只是靜態快照，物理演算在 UnitDeathPainter.draw() 階段加入
+        a.ragdoll = RagdollFactory.createFromAgent(a, impactX, impactY);
 
         UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD

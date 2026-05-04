@@ -3,6 +3,7 @@
 // 禁止在此新增業務邏輯，任何計算請移至對應 System。
 
 import { Skill, Team, Role, MovementType, AnimState, Hex, AIState, ActionState } from "../../types";
+import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
@@ -95,6 +96,7 @@ export class Agent {
     public deathTimer: number = 0;
     public readonly DEATH_ANIM_DURATION = 5.5;
     public fullyDead: boolean = false;
+    public ragdoll: RagdollBone[] | null = null; // [ARCH] null = 未啟動，死亡時由 AgentManager 初始化
     public animState: AnimState = AnimState.IDLE;
     public hitFlashTimer: number = 0;
     public lastHitDamage: number = 0;
@@ -147,6 +149,7 @@ export class Agent {
             skillIds: [...this.skillIds],
             role: this.role
         };
+        this.ragdoll = null;
     }
 
     reset(config: MapConfig) {
@@ -228,6 +231,7 @@ export class Agent {
         this.deathTimer = 0;
         this.deadLogged = false;
         this.fullyDead = false;
+        this.ragdoll = null;
         this.animState = AnimState.IDLE;
         this.spawnTimer = 0.5;
         this._interruptCooldown = 0;
