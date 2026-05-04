@@ -1,4 +1,6 @@
 // data/units/appearance/types.ts
+import { Team } from '../../../types';
+
 export interface RoleAppearance {
   bodyWidth: number;      // 身體最大寬度（canvas unit）
   bodyHeight: number;     // 身體高度（canvas unit）
@@ -17,6 +19,6 @@ export interface RoleAppearance {
 }
 
 export interface FactionAppearanceProfile {
-  factionId: string;
+  factionId: Team | string;
   roles: Record<string, RoleAppearance>; // key = Role enum string
 }

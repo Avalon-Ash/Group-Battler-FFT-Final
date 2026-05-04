@@ -84,12 +84,22 @@ export const VFX_RENDER = {
 
 // SSOT: VFX Thresholds
 export const VFX_PARAM = {
-    SPEED_TRAIL_THRESHOLD_SQ: 1000, // Speed^2 to show trails
-    SPEED_TILT_THRESHOLD: 300,      // Speed to start tilting body
-    SPEED_MAX_TILT_REF: 800,         // Speed where tilt hits max
+    SPEED_TRAIL_THRESHOLD_SQ: 1000,
+    SPEED_TILT_THRESHOLD: 300,
+    SPEED_MAX_TILT_REF: 800,
     SHAKE_INTENSITY_DASH: 0.4,
     SHAKE_INTENSITY_KNOCKBACK: 0.35,
     FX_KNOCKBACK_DUST_THRESHOLD_SQ: 80000,
+
+    // ── Particle Budget ──────────────────────────────────────────
+    /** 全域粒子硬上限。超過時 VFXPlayer 直接 skip spawn。*/
+    MAX_PARTICLES: 450,
+    /** Pool 回收上限。超過直接丟棄，避免 pool 無限膨脹。*/
+    MAX_POOL_SIZE: 350,
+    /** 每格 Hazard Field 最多存活的 locked 粒子數量。*/
+    HAZARD_FIELD_MAX_PER_CELL: 2,
+    /** Idle VFX cull 距離平方（300px²）。超出不生成 idle 粒子。*/
+    IDLE_VFX_CULL_DIST_SQ: 90000,
 };
 
 export const THEME_IMPERIAL = {
