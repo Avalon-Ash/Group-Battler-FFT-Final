@@ -74,7 +74,7 @@ export class VFXSystem {
         const particles = this.state.particles;
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
-            if (p.locked) continue; // Keep locked particles (e.g. cinematic beams) if needed, or kill them all?
+            if (p.locked && p.lockReason === 'BEAM') continue; 
             
             const dx = p.x - targetX;
             const dy = p.y - targetRawY;
@@ -108,7 +108,7 @@ export class VFXSystem {
         p.x = start.x; p.y = start.y; p.z = start.z;
         p.life = duration; p.maxLife = duration; 
         p.color = colorOverride || '#fff'; 
-        p.type = 'BEAM'; p.style = styleId; p.locked = true;
+        p.type = 'BEAM'; p.style = styleId; p.locked = true; p.lockReason = 'BEAM';
         this.state.particles.push(p);
     }
 

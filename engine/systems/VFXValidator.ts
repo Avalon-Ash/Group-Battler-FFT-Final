@@ -15,6 +15,8 @@ export function validateAllVFXBindings(skills: Skill[]) {
     for (const skill of skills) {
         const hit = skill.visualHitEffect;
         const proj = skill.visualProjectileEffect;
+        const aoe = skill.visualAoeEffect;
+        const cast = skill.visualCastEffect;
 
         if (hit && !REGISTRY_KEYS.has(hit)) {
             errors.push(`❌ [${skill.id}] visualHitEffect 未登錄 in VFX_REGISTRY: "${hit}"`);
@@ -22,6 +24,14 @@ export function validateAllVFXBindings(skills: Skill[]) {
 
         if (proj && !PROJ_KEYS.has(proj)) {
             errors.push(`❌ [${skill.id}] visualProjectileEffect 未登錄 in PROJECTILE_VISUALS: "${proj}"`);
+        }
+
+        if (aoe && !REGISTRY_KEYS.has(aoe)) {
+            errors.push(`❌ [${skill.id}] visualAoeEffect 未登錄 in VFX_REGISTRY: "${aoe}"`);
+        }
+
+        if (cast && !REGISTRY_KEYS.has(cast)) {
+            errors.push(`❌ [${skill.id}] visualCastEffect 未登錄 in VFX_REGISTRY: "${cast}"`);
         }
     }
 

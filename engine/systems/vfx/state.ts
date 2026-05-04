@@ -25,6 +25,7 @@ export interface Particle {
     delay?: number;
     image?: HTMLCanvasElement; 
     locked?: boolean; 
+    lockReason?: 'BEAM' | 'HAZARD_FIELD';
     drag?: number;
     gravity?: number;   
     killAtTarget?: number; 
@@ -69,6 +70,7 @@ export class VFXStateManager {
             p.ownerId = undefined;
             p.delay = 0; 
             p.locked = false; 
+            p.lockReason = undefined;
             p.sortBias = 0; 
             p.drag = undefined; 
             p.gravity = undefined;
@@ -84,6 +86,7 @@ export class VFXStateManager {
             life: 0, maxLife: 0, color: '#ff00ff', size: 0, height: undefined, type: 'GENERIC_DEBUG',
             delay: 0,
             locked: false,
+            lockReason: undefined,
             sortBias: 0,
             ownerId: undefined,
             hexKey: undefined

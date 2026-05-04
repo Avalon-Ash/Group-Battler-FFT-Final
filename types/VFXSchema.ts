@@ -48,6 +48,7 @@ export interface EmitterConfig {
     visualStyle?: string;
     drag?: number;
     locked?: boolean;
+    lockReason?: 'BEAM' | 'HAZARD_FIELD';
     gravity?: number;
     vRotation?: Range | number;
     // Added vz property to support explicit vertical velocity in registry definitions

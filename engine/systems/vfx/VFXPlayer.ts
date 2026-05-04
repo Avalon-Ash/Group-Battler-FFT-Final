@@ -89,6 +89,7 @@ export class VFXPlayer {
             }
             if (config.drag !== undefined) p.drag = config.drag;
             if (config.locked) p.locked = true;
+            if (config.lockReason) p.lockReason = config.lockReason;
             if (config.gravity !== undefined) p.gravity = config.gravity;
             if (config.vRotation) {
                 p.vRotation = rnd(config.vRotation);

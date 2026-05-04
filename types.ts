@@ -255,6 +255,8 @@ export interface Skill {
     visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
     visualHitEffect?: string;
     visualProjectileEffect?: string;
+    visualAoeEffect?: string;
+    visualCastEffect?: string;
 }
 
 export interface UnitStats {

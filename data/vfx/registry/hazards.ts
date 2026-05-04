@@ -14,6 +14,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             delay: 0,
             visualStyle: 'FIRE',
             locked: true,
+            lockReason: 'HAZARD_FIELD',
             blendMode: 'lighter'
         }, {
             count: 3, particleType: 'SMOKE', 
@@ -40,6 +41,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             delay: 0,
             visualStyle: 'POISON',
             locked: true,
+            lockReason: 'HAZARD_FIELD',
             blendMode: 'screen'
         }]
     },
@@ -55,6 +57,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             delay: 0,
             visualStyle: 'ICE',
             locked: true,
+            lockReason: 'HAZARD_FIELD',
             blendMode: 'screen'
         }]
     },
@@ -70,6 +73,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             delay: 0,
             visualStyle: 'VOID',
             locked: true,
+            lockReason: 'HAZARD_FIELD',
             blendMode: 'multiply'
         }]
     },
@@ -85,6 +89,7 @@ export const HAZARD_VFX: Record<string, VFXAsset> = {
             delay: 0,
             visualStyle: 'FOG',
             locked: true,
+            lockReason: 'HAZARD_FIELD',
             blendMode: 'screen'
         }]
     }
