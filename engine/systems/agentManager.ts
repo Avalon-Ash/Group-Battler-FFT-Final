@@ -102,7 +102,8 @@ export class AgentManager {
         }
         a.activeCCVFX = [];
 
-        // Trigger Unit Shatter (Ragdoll Parts)
+        // [FIX] Trigger Unit Shatter (Ragdoll Parts)
+        // NOTE: engine.vfx points to engine.renderer.vfx via getter, ensuring SSOT VFX system.
         const groundZ = engine.getTerrainHeight(a.q, a.r);
         
         const IMPACT_STRENGTH = 300;

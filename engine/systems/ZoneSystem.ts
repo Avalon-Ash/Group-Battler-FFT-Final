@@ -160,7 +160,7 @@ export class ZoneSystem {
                             engine.log(victim, 'SYSTEM', '墜落出局', null, `${victim.id} 隨地板崩落虛空`);
                         }
 
-                        // 2. 清除陷落網格上的 Hazard 資料（避免特效懸浮在虛空）
+                        // 2. [FIX] 清除陷落網格上的 Hazard 資料（避免特效懸浮在虛空）
                         for (let i = engine.state.spatialHazards.length - 1; i >= 0; i--) {
                             const h = engine.state.spatialHazards[i];
                             const prevCount = h.cells.length;
@@ -174,7 +174,7 @@ export class ZoneSystem {
                             }
                         }
 
-                        // 發送事件通知 VFX 系統清除該區域的殘留特效
+                        // [FIX] 發送事件通知 VFX 系統清除該區域的殘留特效
                         const worldPos = HexUtils.toPx(hex.q, hex.r, engine.mapConfig);
                         engine.bus.emit('TILE_COLLAPSED', { 
                             q: hex.q, 
