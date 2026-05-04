@@ -46,14 +46,25 @@ export class VFXSystem {
         }
     }
 
-    private handleTileCollapsed = (data: { q: number, r: number }) => {
+    private handleTileCollapsed = (data: { q: number, r: number, worldX?: number, worldY?: number }) => {
         if (!this.boundEngine) return;
 
-        // SSOT: Calculate raw world center vs projected screen center
-        const config = this.boundEngine.mapConfig;
-        const pos = HexMath.hexToPixel(data.q, data.r, config.offsetX, config.offsetY, config.layout);
-        const targetX = pos.x;
-        const targetRawY = pos.y / ISO_SCALE_Y;
+        // Use pre-calculated world coordinates if available, otherwise fallback
+        let targetX: number;
+        let targetRawY: number;
+        let screenY: number;
+
+        if (data.worldX !== undefined && data.worldY !== undefined) {
+            targetX = data.worldX;
+            targetRawY = data.worldY;
+            screenY = data.worldY * ISO_SCALE_Y;
+        } else {
+            const config = this.boundEngine.mapConfig;
+            const pos = HexMath.hexToPixel(data.q, data.r, config.offsetX, config.offsetY, config.layout);
+            targetX = pos.x;
+            targetRawY = pos.y / ISO_SCALE_Y;
+            screenY = pos.y;
+        }
         
         const HEX_R = HEX_SIZE * 1.2; // Raw space radius
         const rSq = HEX_R * HEX_R;
@@ -63,6 +74,7 @@ export class VFXSystem {
         const particles = this.state.particles;
         for (let i = particles.length - 1; i >= 0; i--) {
             const p = particles[i];
+            if (p.locked) continue; // Keep locked particles (e.g. cinematic beams) if needed, or kill them all?
             
             const dx = p.x - targetX;
             const dy = p.y - targetRawY;
@@ -74,7 +86,7 @@ export class VFXSystem {
         // 2. Clear Decals (Projected screen space)
         this.state.decals = this.state.decals.filter(d => {
             const dx = d.x - targetX;
-            const dy = d.y - pos.y;
+            const dy = d.y - screenY;
             // Elliptical check to match raw circle cleanup area
             const nx = dx / HEX_R;
             const ny = dy / HEX_R_PROJ_Y;
@@ -125,6 +137,9 @@ export class VFXSystem {
         const particles = this.state.particles;
         let count = particles.length;
         
+        // Optimization: Pre-cache agents for owner lookup
+        const agentMap = engine ? new Map(engine.agents.map(a => [a.id, a])) : null;
+
         for (let i = count - 1; i >= 0; i--) {
             const p = particles[i];
             
@@ -147,8 +162,8 @@ export class VFXSystem {
                 continue; 
             }
 
-            if (p.ownerId) {
-                const owner = engine?.agents.find(a => a.id === p.ownerId);
+            if (p.ownerId && agentMap) {
+                const owner = agentMap.get(p.ownerId);
                 if (!owner || owner.hp <= 0) {
                     p.life = -1;
                 }

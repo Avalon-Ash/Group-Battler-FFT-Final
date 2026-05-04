@@ -2,6 +2,7 @@
 import { GameEngine } from "../game";
 import { Team, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
+import { ISO_SCALE_Y } from "../../constants";
 
 export interface ActiveZone {
     q: number;
@@ -168,11 +169,19 @@ export class ZoneSystem {
                             // [PROACTIVE PUSH] 如果該 Hazard 的 cells 發生變動且歸零，則徹底移除
                             if (h.cells.length === 0) {
                                 engine.state.spatialHazards.splice(i, 1);
+                            } else if (h.cells.length !== prevCount) {
+                                engine.mapVersion++; // 通知地圖觀察者此 hazard 的 cell 範圍已縮小
                             }
                         }
 
                         // 發送事件通知 VFX 系統清除該區域的殘留特效
-                        engine.bus.emit('TILE_COLLAPSED', { q: hex.q, r: hex.r });
+                        const worldPos = HexUtils.toPx(hex.q, hex.r, engine.mapConfig);
+                        engine.bus.emit('TILE_COLLAPSED', { 
+                            q: hex.q, 
+                            r: hex.r,
+                            worldX: worldPos.x,
+                            worldY: worldPos.y / ISO_SCALE_Y 
+                        });
 
                         // 3. 再移除地圖格，啟動掉落動畫
                         this.collapsingTiles.set(hex.key, { z: 0, speed: 0, q: hex.q, r: hex.r, h: hex.h });

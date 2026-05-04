@@ -20,3 +20,5 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...LAST_STAND_VFX,
     ...HAZARD_VFX
 };
+
+export { PROJECTILE_VISUALS } from "./projectile_visuals";

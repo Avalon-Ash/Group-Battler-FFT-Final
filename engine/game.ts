@@ -26,6 +26,7 @@ import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
 import { AnimationSystem } from "./systems/AnimationSystem";
+import { validateAllVFXBindings } from "./systems/VFXValidator";
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -106,6 +107,7 @@ export class GameEngine implements SpatialProvider {
     public timeSystem: TimeSystem = new TimeSystem();
 
     constructor() {
+        validateAllVFXBindings(this.skillDB);
         this.map.randomizeEnvironment(this);
     }
 

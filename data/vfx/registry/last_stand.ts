@@ -2,6 +2,7 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 
 export const LAST_STAND_VFX: Record<string, VFXAsset> = {
+    // Stage 1: The Lockdown (Current)
     'FX_LAST_STAND_LOCKED': {
         id: 'FX_LAST_STAND_LOCKED',
         description: 'Ground EMP for Last Stand entry',
@@ -40,5 +41,10 @@ export const LAST_STAND_VFX: Record<string, VFXAsset> = {
                 delay: 0
             }
         ]
-    }
+    },
+    
+    // Future Expansion Slots:
+    // TODO: FX_LAST_STAND_REVIVAL - Dramatic vertical beam when a unit avoids death inside final hex
+    // TODO: FX_LAST_STAND_LOOP    - Subtle continuous aura on the final surviving hex
+    // TODO: FX_LAST_STAND_CLIMAX - Screen shake and pulse when timers reach critical threshold
 };
