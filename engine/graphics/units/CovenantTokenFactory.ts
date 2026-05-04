@@ -10,11 +10,12 @@ const ICON_SIZE = 64;
 
 export const CovenantTokenFactory = {
     
-    generateBase(): HTMLCanvasElement {
+    generateBase(role: Role = Role.WARRIOR): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(BASE_SIZE, BASE_SIZE);
         const cx = BASE_SIZE / 2;
         const cy = BASE_SIZE / 2;
-        const radius = 36;
+        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
+        const radius = ap.tokenRadius;
         
         ctx.translate(cx, cy);
         ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth
@@ -25,8 +26,8 @@ export const CovenantTokenFactory = {
 
         // 2. Blood-stained Brass & Iron
         const grad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-        grad.addColorStop(0, '#991b1b'); // Dried Blood
-        grad.addColorStop(0.5, '#450a0a'); // Dark Clot
+        grad.addColorStop(0, ap.primaryColor); // Dried Blood
+        grad.addColorStop(0.5, ap.deepColor); // Dark Clot
         grad.addColorStop(1, '#000'); 
         ctx.fillStyle = grad;
         
@@ -44,10 +45,10 @@ export const CovenantTokenFactory = {
         ctx.fill();
         
         // 4. Brass Trim (Tarnished)
-        ctx.strokeStyle = '#78350f'; // Dark Bronze
+        ctx.strokeStyle = ap.rimShadowColor; // Dark Bronze
         ctx.lineWidth = 5;
         ctx.stroke();
-        ctx.strokeStyle = '#d97706'; // Highlight Brass
+        ctx.strokeStyle = ap.rimColor; // Highlight Brass
         ctx.lineWidth = 2;
         ctx.stroke();
 
@@ -76,7 +77,7 @@ export const CovenantTokenFactory = {
         bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         bCtx.scale(1, ISO_SCALE_Y);
         const grad = bCtx.createLinearGradient(-R, -R, R, R);
-        grad.addColorStop(0, '#991b1b');
+        grad.addColorStop(0, ap.primaryColor);
         grad.addColorStop(1, '#000');
         bCtx.fillStyle = grad;
         bCtx.beginPath();
@@ -117,7 +118,7 @@ export const CovenantTokenFactory = {
         cCtx.scale(1, ISO_SCALE_Y);
         cCtx.fillStyle = '#000';
         cCtx.beginPath(); cCtx.arc(0, 0, 10, 0, Math.PI*2); cCtx.fill();
-        cCtx.beginPath(); cCtx.arc(0, 0, radius * 0.6, 0, Math.PI*2);
+        cCtx.beginPath(); cCtx.arc(0, 0, R * 0.6, 0, Math.PI*2);
         cCtx.strokeStyle = '#ef4444';
         cCtx.lineWidth = 2;
         cCtx.stroke();

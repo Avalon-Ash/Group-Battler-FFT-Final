@@ -10,11 +10,12 @@ const ICON_SIZE = 64;
 
 export const ImperialTokenFactory = {
     
-    generateBase(): HTMLCanvasElement {
+    generateBase(role: Role = Role.WARRIOR): HTMLCanvasElement {
         const { canvas, ctx } = createCanvas(BASE_SIZE, BASE_SIZE);
         const cx = BASE_SIZE / 2;
         const cy = BASE_SIZE / 2;
-        const radius = 36;
+        const ap = UNIT_APPEARANCE[Team.BLUE].roles[role] ?? UNIT_APPEARANCE[Team.BLUE].roles[Role.WARRIOR];
+        const radius = ap.tokenRadius;
         
         ctx.translate(cx, cy);
         ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth for perspective
@@ -25,16 +26,16 @@ export const ImperialTokenFactory = {
 
         // 2. Ceramite Blue Body
         const grad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-        grad.addColorStop(0, '#2563eb'); // Bright Cobalt
-        grad.addColorStop(1, '#172554'); // Deep Navy
+        grad.addColorStop(0, ap.primaryColor); // Bright Cobalt
+        grad.addColorStop(1, ap.deepColor); // Deep Navy
         ctx.fillStyle = grad;
         ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI*2); ctx.fill();
         
         // 3. Gold Trim (Aquila Style)
-        ctx.strokeStyle = '#b45309'; // Dark Gold shadow
+        ctx.strokeStyle = ap.rimShadowColor; // Dark Gold shadow
         ctx.lineWidth = 6;
         ctx.stroke();
-        ctx.strokeStyle = '#fcd34d'; // Bright Gold highlight
+        ctx.strokeStyle = ap.rimColor; // Bright Gold highlight
         ctx.lineWidth = 3;
         ctx.stroke();
 
