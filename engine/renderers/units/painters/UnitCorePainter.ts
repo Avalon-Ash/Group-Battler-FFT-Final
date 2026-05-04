@@ -21,10 +21,10 @@ export const UnitCorePainter = {
             ctx.scale(1 + hitTrauma * 0.4, 1 + hitTrauma * 0.4);
         }
 
-        ctx.globalCompositeOperation = 'screen';
+        ctx.globalCompositeOperation = hitTrauma > 0.05 ? 'screen' : 'source-over';
         ctx.strokeStyle = color;
         ctx.shadowColor = color;
-        ctx.shadowBlur = 8 + hitTrauma * 20;
+        ctx.shadowBlur = hitTrauma > 0.05 ? 8 + hitTrauma * 20 : 4;
 
         if (agent.team === Team.BLUE) {
             this.drawImperialCore(ctx, t, hitTrauma);
@@ -57,6 +57,7 @@ export const UnitCorePainter = {
             ctx.lineWidth = 1;
             HexGeometry.traceHex(ctx, 0, 0, size * 1.6, false);
             ctx.stroke();
+            ctx.globalAlpha = 1.0;  // ← 新增：立即歸一
         }
 
         // Center Dot
