@@ -126,6 +126,20 @@ GameEngine
 │   │       ├── CooldownSystem
 │   │       ├── EffectSystem
 │   │       └── ControlSystem
+│   ├── renderers/               ← 渲染管線（renderer.ts Facade 的實作層）
+│   │   ├── RenderSpec.ts        ← 所有渲染物件的資料結構定義（視覺 SSOT）
+│   │   ├── RenderPipeline.ts    ← 渲染主管線：Z 排序、分層提交
+│   │   ├── RenderList.ts        ← RenderOp 佇列管理
+│   │   ├── RenderDispatcher.ts  ← 依 RenderOpType 分發至對應 Renderer
+│   │   ├── HUDRenderer.ts       ← HUD 元素繪製
+│   │   ├── PostProcessor.ts     ← 後處理通道（silhouette 等）
+│   │   ├── ProjectileDrawer.ts  ← 彈道視覺繪製
+│   │   ├── background.ts        ← 背景層繪製
+│   │   ├── tactical.ts          ← 戰術層覆蓋繪製
+│   │   ├── grid/                ← 地形、格子、Hazard 繪製
+│   │   ├── units/               ← 單位視覺管線（Faction Renderers + Painters）
+│   │   ├── hud/                 ← HUD 子元件
+│   │   └── status/              ← 狀態效果視覺
 │   ├── events/
 │   │   ├── EventBus.ts      ← 系統間解耦通訊
 │   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
@@ -133,6 +147,7 @@ GameEngine
 │   │   ├── VisualMath.ts        ← ISO 視覺座標轉換 SSOT（getIsoVisualY）
 │   │   └── PointerProjector.ts  ← 所有指標座標逆投影的唯一入口（含 DPR 校正）
 │   ├── physics/             ← 彈體物理、碰撞
+│   ├── sprites.ts           ← SpriteManager：障礙物 Sprite 快取與查詢
 │   ├── graphics/
 │   │   └── EnvironmentFactory.ts ← 障礙物 Sprite 生成（尺寸參數由 ENV_SPRITE 管控）
 ├── components/
@@ -159,6 +174,8 @@ GameEngine
 │           ├── covenant.ts  ← Covenant 陣營外觀 Profile
 │           └── index.ts     ← UNIT_APPEARANCE SSOT export
 ├── types.ts                 ← 全域型別定義（SSOT 資料結構）
+├── types/
+│   └── VFXSchema.ts         ← VFX 粒子與貼花的資料 schema（types.ts 的 VFX 擴充）
 └── constants.ts             ← 遊戲常數
 ```
 
@@ -231,6 +248,7 @@ GameEngine
 ### 1. SSOT（Single Source of Truth）
 所有單位狀態集中在 `Agent` 實體，渲染層與 UI 層**只讀取，不寫入**。  
 動畫狀態在 `tick()` 最後才由 `AnimationSystem` 統一推導，確保視覺永遠與邏輯一致。
+單位外觀的顏色、尺寸、武器類型集中於 `UNIT_APPEARANCE`（`data/units/appearance/index.ts`），視覺 SSOT 延伸至渲染層。
 
 ### 2. Mutation Gate
 大多數核心屬性變更（HP、位置、狀態）透過系統入口函式執行，降低非預期副作用。  
