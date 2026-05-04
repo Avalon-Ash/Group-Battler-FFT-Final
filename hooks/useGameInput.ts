@@ -100,11 +100,16 @@ export const useGameInput = (props: GameInputProps) => {
             cvs.style.cursor = 'move'; 
         }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
-            const { x: camX, y: camY, zoom } = cameraRef.current;
-            const cx = rect.width / 2, cy = rect.height / 2;
-            const terrainH = h ? rendererRef.current.getTerrainHeight(h.q, h.r, engine) : 0;
-            pressedAgentRef.current.px = (sx - cx) / zoom + camX;
-            pressedAgentRef.current.py = (sy - cy) / zoom + camY + terrainH;
+            // [FIX] 不使用滑鼠螢幕座標反投影，而是直接對齊 hover 格子的世界像素中心。
+            // 這樣棋座永遠貼合當前 hover 格，不會懸空或埋入地形。
+            // 若滑鼠不在任何有效格子上，則保留上一個有效格的位置不動（不閃爍）。
+            if (h && engine.isValid(h.q, h.r)) {
+                const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
+                pressedAgentRef.current.px = p.x;
+                pressedAgentRef.current.py = p.y;
+                // physics.z 不動：視覺高度由 UnitVisualProcessor 從 getTerrainHeight(q,r) 計算，
+                // 這裡只需要更新世界格子中心的 px/py，渲染器會自動疊加地形高度偏移。
+            }
             cvs.style.cursor = 'grabbing';
         }
         else if (interactionMode.current === 'PAINT' && h) executePaintAction(h);
