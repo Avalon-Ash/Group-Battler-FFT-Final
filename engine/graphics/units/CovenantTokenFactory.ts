@@ -28,7 +28,7 @@ export const CovenantTokenFactory = {
         const grad = ctx.createLinearGradient(-radius, -radius, radius, radius);
         grad.addColorStop(0, ap.primaryColor); // Dried Blood
         grad.addColorStop(0.5, ap.deepColor); // Dark Clot
-        grad.addColorStop(1, '#000'); 
+        grad.addColorStop(1, '#000000'); 
         ctx.fillStyle = grad;
         
         // 3. Jagged Gear Shape (Chaos Star hint)
@@ -78,7 +78,7 @@ export const CovenantTokenFactory = {
         bCtx.scale(1, ISO_SCALE_Y);
         const grad = bCtx.createLinearGradient(-R, -R, R, R);
         grad.addColorStop(0, ap.primaryColor);
-        grad.addColorStop(1, '#000');
+        grad.addColorStop(1, '#000000');
         bCtx.fillStyle = grad;
         bCtx.beginPath();
         const sides = 8;
