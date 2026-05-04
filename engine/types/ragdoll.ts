@@ -1,3 +1,9 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ragdoll.ts — Ragdoll 型別定義                           ║
+// ║  [ARCH] RagdollBone 為佈娃娃系統的唯一資料契約            ║
+// ║  消費者：RagdollFactory（建立） / UnitDeathPainter（讀取）║
+// ╚══════════════════════════════════════════════════════════╝
+
 /** 單一骨骼節點，代表布娃娃的一個部位 */
 export interface RagdollBone {
     id: string;           // 'torso' | 'head' | 'arm_l' | 'arm_r' | 'leg_l' | 'leg_r'

@@ -1,4 +1,12 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  AnimationSystem — 單位動畫狀態機                        ║
+// ║  職責：根據 Agent 狀態設定 AnimState（IDLE/MOVE/DEAD）   ║
+// ║  上游：GameEngine.tick（hp/移動狀態讀取）                 ║
+// ║  下游：UnitBodyPainter 消費 AnimState 決定繪製幀          ║
+// ║  [ARCH] SSOT：AnimState 的設定只在此系統，不得在外部直改 ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "../game";
 import { AnimState, ActionState } from "../../types";
 

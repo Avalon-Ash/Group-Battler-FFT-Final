@@ -1,4 +1,11 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  UnitBodyPainter — 存活單位的主體繪製                    ║
+// ║  職責：hp > 0 單位的 Sprite / 血條 / 狀態圖示繪製        ║
+// ║  [ARCH] hp <= 0 時 early return，死亡演出交給 DeathPainter║
+// ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent } from "../../../game";
 import { Team, AnimState, MovementType } from "../../../../types";
 import { UNIT_SCALE, VFX_PARAM } from "../../../../constants";

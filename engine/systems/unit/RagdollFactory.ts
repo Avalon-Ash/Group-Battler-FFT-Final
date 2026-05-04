@@ -1,3 +1,11 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  RagdollFactory — Ragdoll 骨骼快照產生器                 ║
+// ║  職責：依 Agent 死亡瞬間狀態建立 RagdollBone[] 初始快照  ║
+// ║  上游：AgentManager.handleDeadState（死亡瞬間呼叫一次）  ║
+// ║  下游：UnitDeathPainter.draw() 消費骨骼資料              ║
+// ║  [TODO: RAGDOLL] 目前僅建靜態快照，物理演算尚未實作      ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent } from "../../game";
 import { RagdollBone } from "../../types/ragdoll";
 

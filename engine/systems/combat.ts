@@ -1,12 +1,11 @@
 
 // ╔══════════════════════════════════════════════════════════╗
-// ║  [FACADE] CombatSystem — 戰鬥系統對外統一入口            ║
-// ║  本檔負責：詠唱生命週期管理、技能施放觸發、投射物生成   ║
-// ║                                                          ║
-// ║  子系統實作位置（勿直接繞過此 Facade 修改）：            ║
-// ║  → 技能效果 / 傷害計算  : combat/SkillExecutor.ts       ║
-// ║  → 詠唱狀態機 / 中斷    : combat/CastingEngine.ts       ║
-// ║  → 投射物物理 / 命中    : combat/ProjectileSystem.ts    ║
+// ║  [FACADE] CombatSystem — 傷害運算與技能施放              ║
+// ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
+// ║  上游：ai.ts BehaviorTree（ATTACK 節點觸發）              ║
+// ║  下游：AgentManager.handleDeadState / VFX events         ║
+// ║  [ARCH] lastHitSourceId 由此寫入，Ragdoll 方向由此決定   ║
+// ║  實作位置：combat/ (SkillExecutor, ProjectileSystem)     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../game";

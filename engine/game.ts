@@ -1,4 +1,13 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  GameEngine — 引擎主控制器（核心入口）                   ║
+// ║  職責：tick 主迴圈、系統初始化、Agent 生命週期派發       ║
+// ║  上游：main.ts / UI 層呼叫                               ║
+// ║  下游：AgentManager / VFXSystem / ZoneSystem / Renderer  ║
+// ║  tick 順序：ZoneSystem → AgentManager → VFX → Renderer   ║
+// ║  [ARCH] engine.vfx 為 getter，指向 engine.renderer.vfx   ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";

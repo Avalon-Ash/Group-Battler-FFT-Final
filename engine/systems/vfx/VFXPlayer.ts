@@ -1,4 +1,11 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  VFXPlayer — 特效配方播放器                              ║
+// ║  職責：依 effectId 查表，產生對應 Particle 批次          ║
+// ║  [ARCH] hexKey 在此寫入 particle，供 TILE_COLLAPSED 清除 ║
+// ║  上游：VFXSystem.playEffect() / HazardSystem / combat    ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";

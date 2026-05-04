@@ -1,4 +1,13 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ZoneSystem — 地形事件與空間陷阱管理                     ║
+// ║  職責：tile collapse / spatialHazard 生命週期             ║
+// ║  上游：GameEngine.tick                                    ║
+// ║  下游：engine.bus('TILE_COLLAPSED') → VFXSystem 清粒子   ║
+// ║        engine.events('TILE_DAMAGE') → combat 系統        ║
+// ║  [FIX] 清除格子後發送 TILE_COLLAPSED 事件（AOE VFX 同步）║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine } from "../game";
 import { Team, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";

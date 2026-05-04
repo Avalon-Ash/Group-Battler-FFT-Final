@@ -1,4 +1,11 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  HazardSystem — 地形危害（毒地/火場/冰面）管理           ║
+// ║  職責：spatialHazard tick / 傷害觸發 / VFX 播放          ║
+// ║  [ARCH] spatialHazard 的 VFX hexKey 由此寫入             ║
+// ║  關聯：ZoneSystem（格子陷落時清除此系統資料）             ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine } from "../game";
 import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
 import { HexUtils } from "../utils";

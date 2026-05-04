@@ -1,4 +1,13 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  AgentManager — 單位生命週期管理                         ║
+// ║  職責：addAgent / handleDeadState / updateDeathState      ║
+// ║  上游：GameEngine.tick（每幀呼叫 updateDeathState）       ║
+// ║  下游：RagdollFactory / UnitShatter / VFXSystem(clearAgent)║
+// ║  [ARCH] deathTimer 由此累計，UnitDeathPainter 消費        ║
+// ║  [TODO: RAGDOLL] ragdoll 快照由此建立，物理由 Painter 實作║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine, Agent } from "../game";
 import { Role, Team, Skill, AnimState } from "../../types";
 import { UNIT_DB } from "../../data/units";
