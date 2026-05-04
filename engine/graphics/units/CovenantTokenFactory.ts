@@ -24,11 +24,15 @@ export const CovenantTokenFactory = {
         ctx.fillStyle = 'rgba(0,0,0,0.6)';
         ctx.beginPath(); ctx.arc(0, 8, radius + 4, 0, Math.PI*2); ctx.fill();
 
-        // 2. Blood-stained Brass & Iron
-        const grad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-        grad.addColorStop(0, ap.primaryColor); // Dried Blood
-        grad.addColorStop(0.5, ap.deepColor); // Dark Clot
-        grad.addColorStop(1, '#000000'); 
+        // 2. Blood-stained Brass & Iron (Radial Gradient for Sphere effect)
+        const grad = ctx.createRadialGradient(
+            -radius * 0.28, -radius * 0.35, radius * 0.05,
+             0,              0,              radius
+        );
+        grad.addColorStop(0,    '#c0392b');   // ← 高光頂點（待納入 SSOT: highlightColor）
+        grad.addColorStop(0.45, ap.primaryColor); // Dried Blood
+        grad.addColorStop(0.8,  ap.deepColor);    // Dark Clot
+        grad.addColorStop(1,    '#000000');
         ctx.fillStyle = grad;
         
         // 3. Jagged Gear Shape (Chaos Star hint)
@@ -43,6 +47,11 @@ export const CovenantTokenFactory = {
         }
         ctx.closePath();
         ctx.fill();
+
+        // 3.1 Tooth-tip Metallic Highlights (New)
+        ctx.strokeStyle = 'rgba(255, 160, 50, 0.30)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
         
         // 4. Brass Trim (Tarnished)
         ctx.strokeStyle = ap.rimShadowColor; // Dark Bronze
@@ -76,9 +85,14 @@ export const CovenantTokenFactory = {
         const bCtx = baseRes.ctx;
         bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         bCtx.scale(1, ISO_SCALE_Y);
-        const grad = bCtx.createLinearGradient(-R, -R, R, R);
-        grad.addColorStop(0, ap.primaryColor);
-        grad.addColorStop(1, '#000000');
+        const grad = bCtx.createRadialGradient(
+            -R * 0.28, -R * 0.35, R * 0.05,
+             0,         0,         R
+        );
+        grad.addColorStop(0,    '#c0392b');
+        grad.addColorStop(0.45, ap.primaryColor);
+        grad.addColorStop(0.8,  ap.deepColor);
+        grad.addColorStop(1,    '#000000');
         bCtx.fillStyle = grad;
         bCtx.beginPath();
         const sides = 8;
@@ -116,12 +130,34 @@ export const CovenantTokenFactory = {
         const cCtx = coreRes.ctx;
         cCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         cCtx.scale(1, ISO_SCALE_Y);
-        cCtx.fillStyle = '#000';
+
+        // 1. 底光暈（血紅）
+        const glowGrad = cCtx.createRadialGradient(0, 2, 0, 0, 2, R * 0.52);
+        glowGrad.addColorStop(0,   'rgba(239, 68, 68, 0.35)');
+        glowGrad.addColorStop(0.6, 'rgba(239, 68, 68, 0.10)');
+        glowGrad.addColorStop(1,   'rgba(239, 68, 68, 0)');
+        cCtx.fillStyle = glowGrad;
+        cCtx.beginPath(); cCtx.arc(0, 2, R * 0.52, 0, Math.PI*2); cCtx.fill();
+
+        // 2. 投影陰影
+        cCtx.fillStyle = 'rgba(0, 0, 0, 0.50)';
+        cCtx.beginPath(); cCtx.ellipse(0, 6, R * 0.28, R * 0.10, 0, 0, Math.PI*2); cCtx.fill();
+
+        // 3. 中心黑核
+        cCtx.fillStyle = '#000000';
         cCtx.beginPath(); cCtx.arc(0, 0, 10, 0, Math.PI*2); cCtx.fill();
+
+        // 4. 魔紋環（燃燒效果）
+        cCtx.shadowColor = '#ef4444';
+        cCtx.shadowBlur  = 10;
         cCtx.beginPath(); cCtx.arc(0, 0, R * 0.6, 0, Math.PI*2);
         cCtx.strokeStyle = '#ef4444';
-        cCtx.lineWidth = 2;
+        cCtx.lineWidth   = 2;
+        cCtx.setLineDash([10, 5]);
         cCtx.stroke();
+        cCtx.setLineDash([]);
+        cCtx.shadowBlur  = 0;
+        cCtx.globalAlpha = 1; // Explicit reset as per protocol
 
         return {
             base: baseRes.canvas,
@@ -151,6 +187,7 @@ export const CovenantTokenFactory = {
         ctx.lineCap = 'round';
 
         ctx.translate(cx, cy);
+        ctx.translate(0, -4);   // ← 上移 4px，製造懸浮高度
         const scale = 1.1;
         ctx.scale(scale, scale);
 
