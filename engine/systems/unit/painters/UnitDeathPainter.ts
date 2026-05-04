@@ -11,7 +11,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, MapConfig } from "../../../../types";
-import { RagdollPhysics } from "../RagdollPhysics";
+import { RagdollPhysics, getDeathPhase } from "../RagdollPhysics";
 import { ISO_SCALE_Y, BLOCK_HEIGHT } from "../../../../constants";
 
 export class UnitDeathPainter {
@@ -38,7 +38,8 @@ export class UnitDeathPainter {
         const groundZ = terrainHeight * BLOCK_HEIGHT;
 
         // [ARCH] 物理更新就地發生在 Draw 階段
-        RagdollPhysics.update(agent.ragdoll, simDt, groundZ);
+        const phase = getDeathPhase(progress);
+        RagdollPhysics.update(agent.ragdoll, simDt, groundZ, phase);
         RagdollPhysics.applyFade(agent.ragdoll, progress);
 
         // 繪製骨骼

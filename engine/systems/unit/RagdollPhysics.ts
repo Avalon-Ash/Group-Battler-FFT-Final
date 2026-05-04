@@ -9,13 +9,29 @@ import { RagdollBone } from "../../types/ragdoll";
 const GRAVITY = -1200;      // world-space px/s²（向下為負 z）
 const FLOOR_BOUNCE = 0.35;  // 彈跳係數
 const FRICTION  = 0.82;     // 落地後 xy 摩擦
-const FADE_START = 0.65;    // deathProgress 超過此值開始 alpha fade
+const FADE_START = 0.6;    // [ARCH] FADE_START 對應 DeathPhase.SETTLE 起點，兩者須保持一致
 const ANGULAR_DAMP = 0.94;  // 每幀角速度衰減
 
+export enum DeathPhase {
+    COLLAPSE = 'COLLAPSE',  // 0.0 → 0.6：高能量飛散
+    SETTLE   = 'SETTLE',    // 0.6 → 1.0：減速著地 + fade
+}
+
+export function getDeathPhase(progress: number): DeathPhase {
+    return progress < 0.6 ? DeathPhase.COLLAPSE : DeathPhase.SETTLE;
+}
+
 export class RagdollPhysics {
-    static update(bones: RagdollBone[], dt: number, groundZ: number): void {
+    static update(bones: RagdollBone[], dt: number, groundZ: number, phase: DeathPhase = DeathPhase.COLLAPSE): void {
         for (const b of bones) {
             if (b.alpha <= 0) continue;
+
+            // SETTLE phase 額外阻尼
+            if (phase === DeathPhase.SETTLE) {
+                b.vx *= 0.92;
+                b.vy *= 0.92;
+                b.vz *= 0.92;
+            }
 
             // 重力
             b.vz += GRAVITY * dt;
@@ -47,6 +63,7 @@ export class RagdollPhysics {
         }
     }
 
+    // [ARCH] FADE_START 對應 DeathPhase.SETTLE 起點，兩者須保持一致
     static applyFade(bones: RagdollBone[], deathProgress: number): void {
         if (deathProgress < FADE_START) return;
         const fadeT = (deathProgress - FADE_START) / (1.0 - FADE_START);
