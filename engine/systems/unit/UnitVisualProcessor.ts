@@ -27,7 +27,9 @@ export class UnitVisualProcessor {
         const visualY = agent.py + agent.physics.y;
         
         // 核心：使用邏輯網格位置作為高度真理
-        const terrainH = getTerrainHeight(agent.q, agent.r);
+        const tq = agent.dragOverQ ?? agent.q;
+        const tr = agent.dragOverR ?? agent.r;
+        const terrainH = getTerrainHeight(tq, tr);
         const isSelected = (agent === highlightAgent);
         
         return {

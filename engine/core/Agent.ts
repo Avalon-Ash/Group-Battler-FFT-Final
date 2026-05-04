@@ -85,6 +85,8 @@ export class Agent {
     public drStacks: Record<string, number> = {};
     public drTimers: Record<string, number> = {};
 
+    public dragOverQ: number | null = null;
+    public dragOverR: number | null = null;
     public visualStatus: SpecialVisualStatus = 'NONE';
     public activeCCVFX: string[] = [];
     public hasLandedLastStand: boolean = false; // Track one-time EMP hit
