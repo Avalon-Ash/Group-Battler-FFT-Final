@@ -177,7 +177,27 @@ export class DesignExporter {
         s += "  調整佈局偏移常數     → constants.ts (HUD_LAYOUT)\n";
         s += "  調整毒/回復顯示色    → data/vfx/status_visuals.ts\n\n";
 
-        s += "## 8. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)\n\n";
+        s += "## 9. 資產快取層 (Asset Cache Layer)\n\n";
+        s += "入口：engine/sprites.ts → SpriteManager\n\n";
+        s += "職責：包裹 UnitFactory / EnvironmentFactory，提供 key-based HTMLCanvasElement 快取\n";
+        s += "不持有繪製邏輯，只做快取存取。\n\n";
+        s += "快取 Key 格式：\n";
+        s += "  TOKEN_BASE_{team}_V3        → UnitFactory.generateTokenBase\n";
+        s += "  ROLE_ICON_{role}_{team}_V3  → UnitFactory.generateRoleIcon\n";
+        s += "  FULL_{role}_{team}          → UnitFactory.generateLayers\n";
+        s += "  OBSTACLE_{styleKey}_{layout}→ EnvironmentFactory.generateObstacle\n";
+        s += "  MODEL_SHEEP / MODEL_ICE     → UnitFactory.generateSheep / EnvironmentFactory.generateIceBlock\n\n";
+        s += "修改流程：\n";
+        s += "  調整單位外觀繪製邏輯 → engine/graphics/units/ImperialTokenFactory\n";
+        s += "                          engine/graphics/units/CovenantTokenFactory\n";
+        s += "  調整快取策略         → engine/sprites.ts (SpriteManager)\n";
+        s += "  換新模型後需清除快取 → SpriteManager 內三個 Map 清空\n\n";
+        s += "⚠️  美術優化注意事項：\n";
+        s += "  修改 ImperialTokenFactory / CovenantTokenFactory 後，\n";
+        s += "  必須確認 SpriteManager 的快取 Key 版本號（如 _V3）已更新，\n";
+        s += "  否則舊快取會覆蓋新美術，不會反映修改結果。\n\n";
+
+        s += "## 10. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)\n\n";
         s += "- 行為狀態 SSOT 架構 (ActionState SSOT Architecture):\n";
         s += "  - 引入 ActionState 枚舉作為代理人行為的單一真理性來源 (SSOT)。\n";
         s += "  - AnimationSystem 僅根據 ActionState 推導視覺動畫，實現邏輯與表現的徹底解耦。\n";

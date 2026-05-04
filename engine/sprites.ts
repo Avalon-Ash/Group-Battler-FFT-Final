@@ -1,6 +1,25 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SpriteManager — Canvas 資產快取層 (Asset Cache Layer)          ║
+// ║                                                                  ║
+// ║  職責：                                                          ║
+// ║    對 UnitFactory / EnvironmentFactory 產生的 HTMLCanvasElement  ║
+// ║    做 key-based 快取，避免每幀重複繪製相同資產                   ║
+// ║    本層不持有任何繪製邏輯，只做快取存取                          ║
+// ║                                                                  ║
+// ║  呼叫端 (現役)：                                                 ║
+// ║    UnitBodyPainter   → getSpecialModel('SHEEP' / 'ICE')         ║
+// ║    UnitShadowPainter → getUnitImages                            ║
+// ║    RenderDispatcher  → getObstacleSprite                        ║
+// ║    UnitShatter       → getUnitLayersFull                        ║
+// ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
+// ║                                                                  ║
+// ║  [注意] UnitAssets / UnitLayers interface 已無使用端，           ║
+// ║         保留僅為向後相容，下次大重構時可移除                     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { Role, Team, HexLayout } from "../types";
 import { PALETTE } from "../constants";
-import { UnitFactory } from "./graphics/UnitFactory";
+import { UnitFactory, UnitAssetsFull } from "./graphics/UnitFactory";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
 const cache: Map<string, any> = new Map();
 export interface UnitAssets {
@@ -13,13 +32,7 @@ export interface UnitLayers {
     rim: HTMLCanvasElement;
     icon: HTMLCanvasElement;
 }
-export interface UnitAssetsFull {
-    base: HTMLCanvasElement;
-    rim: HTMLCanvasElement;
-    core: HTMLCanvasElement;
-    icon: HTMLCanvasElement;
-    color: string;
-}
+export type { UnitAssetsFull };
 const _layerCache = new Map<string, UnitLayers>();
 const _fullLayerCache = new Map<string, UnitAssetsFull>();
 export const SpriteManager = {

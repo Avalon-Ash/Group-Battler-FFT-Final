@@ -4,7 +4,14 @@ import { PALETTE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { ImperialTokenFactory } from "./units/ImperialTokenFactory";
 import { CovenantTokenFactory } from "./units/CovenantTokenFactory";
-import { UnitAssetsFull } from "../sprites";
+
+export interface UnitAssetsFull {
+    base: HTMLCanvasElement;
+    rim: HTMLCanvasElement;
+    core: HTMLCanvasElement;
+    icon: HTMLCanvasElement;
+    color: string;
+}
 
 export const UnitFactory = {
     

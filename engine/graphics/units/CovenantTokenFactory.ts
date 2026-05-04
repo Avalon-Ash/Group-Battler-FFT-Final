@@ -2,7 +2,7 @@
 import { Role, Team } from "../../../types";
 import { THEME_COVENANT, ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
-import { UnitAssetsFull } from "../../sprites";
+import { UnitAssetsFull } from "../UnitFactory";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
