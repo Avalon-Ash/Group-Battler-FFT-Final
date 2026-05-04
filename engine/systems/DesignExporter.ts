@@ -125,7 +125,7 @@ export class DesignExporter {
         s += "- UIFactory: Skill Icons, Status Hexes\n\n";
         
         s += "## 7-A. 單位外觀 SSOT (Unit Appearance Registry)\n\n";
-        s += "說明：自 v10.0 起，所有單位外觀資料由 `data/units/appearance/` 統一管理，\n";
+        s += "說明：所有單位外觀資料由 `data/units/appearance/` 統一管理，\n";
         s += "Faction Renderer 不再持有任何 hardcoded 顏色或尺寸。\n\n";
         s += "SSOT 入口: `data/units/appearance/index.ts` → `UNIT_APPEARANCE`\n\n";
         s += "| 欄位           | 型別                              | 用途                         |\n";
