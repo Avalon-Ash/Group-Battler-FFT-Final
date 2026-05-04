@@ -7,8 +7,8 @@
 // ║    → types/VFXSchema.ts                                 ║
 // ║                                                          ║
 // ║  新增型別規則：                                          ║
-// ║  → 引擎核心型別（Agent、Skill、Hex、GameEvent）→ 本檔   ║
-// ║  → 特定子系統的複雜型別 → types/ 目錄下獨立檔案         ║
+// ║  → Agent 型別 → engine/core/Agent.ts（此處為 type-only re-export）║
+// ║  → Enum（Role、Team、AnimState 等）→ engine/types/Enums.ts         ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Team, Role, MovementType, ActionState, AnimState, AIState } from './engine/types/Enums';

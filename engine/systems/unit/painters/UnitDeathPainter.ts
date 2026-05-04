@@ -55,8 +55,10 @@ export class UnitDeathPainter {
             const dy = bone.y - agent.py;
 
             // 等角投影轉換
+            // [FIX BUG-2] dy (bone.y - agent.py) 已經是螢幕座標系（由 RagdollFactory 初始化時取得已 squashed 的 py）
+            // 因此不應再乘以 ISO_SCALE_Y，否則會發生 double-squashing。
             const screenBoneX = dx; 
-            const screenBoneY = dy * ISO_SCALE_Y - (bone.z - groundZ) * ISO_SCALE_Y;
+            const screenBoneY = dy - (bone.z - groundZ) * ISO_SCALE_Y;
 
             ctx.save();
             ctx.globalAlpha = bone.alpha * alpha;
@@ -64,9 +66,13 @@ export class UnitDeathPainter {
             ctx.rotate(bone.angle);
             
             // 影子 (簡單圓形)
+            // [FIX BUG-1] 由於 ctx 已 translate 到骨骼視覺中心，且 screenBoneY 已扣除高度，
+            // 此處 shadowOffsetY 應為「補回高度後的地面位置」
+            const shadowOffsetY = (bone.z - groundZ) * ISO_SCALE_Y;
+
             ctx.fillStyle = 'rgba(0,0,0,0.2)';
             ctx.beginPath();
-            ctx.ellipse(0, (bone.z - groundZ) * ISO_SCALE_Y, bone.radius, bone.radius * 0.5, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, shadowOffsetY, bone.radius, bone.radius * 0.5, 0, 0, Math.PI * 2);
             ctx.fill();
 
             // 主體
