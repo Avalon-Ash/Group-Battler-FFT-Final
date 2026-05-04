@@ -51,7 +51,7 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.UNIT:
-                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th);
+                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th, op.simDt);
                 break;
 
             case RenderOpType.AURA:

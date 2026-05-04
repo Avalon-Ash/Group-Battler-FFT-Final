@@ -53,6 +53,7 @@ export class RenderOp {
     proj: Projectile | null = null;
     dColor: string = ''; dScale: number = 1; dLife: number = 0;
     time: number = 0;
+    simDt: number = 0.016;
 
     public clear() {
         this.type = RenderOpType.TERRAIN;

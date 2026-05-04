@@ -1,5 +1,6 @@
 
-import { Role, Skill, Team } from '../../types';
+import { Skill } from '../../types';
+import { Role, Team } from '../../engine/types/Enums';
 
 // 🔵 BLUE BASIC: 25 VARIATIONS
 // Balance Rule: Max Range = 5 to prevent High Ground OP

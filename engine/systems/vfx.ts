@@ -139,6 +139,8 @@ export class VFXSystem {
                     p.life = -1;
                 }
             }
+            // [ARCH] 用完立即清，避免 ZoneSystem/VFX 執行順序改變時 guard 失效
+            this.collapsedHexKeys.clear();
         }
 
         const particles = this.state.particles;
@@ -197,8 +199,5 @@ export class VFXSystem {
         if (engine) {
             this.agentVFX.update(dt, engine, this);
         }
-
-        // Clear blacklist for next turn
-        this.collapsedHexKeys.clear();
     }
 }

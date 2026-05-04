@@ -1,5 +1,6 @@
 
-import { Role, UnitStats, MovementType } from "../types";
+import { UnitStats } from "../types";
+import { Role, MovementType } from "../engine/types/Enums";
 export const UNIT_DB: Record<Role, UnitStats & { jump: number, weight: number }> = {
     [Role.TANK]: {
         role: Role.TANK,

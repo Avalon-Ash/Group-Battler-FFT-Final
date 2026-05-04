@@ -2,7 +2,8 @@
 // [ENTITY] 純資料容器。saveState/reset 為例外保留（生命週期管理）。
 // 禁止在此新增業務邏輯，任何計算請移至對應 System。
 
-import { Skill, Team, Role, MovementType, AnimState, Hex, AIState, ActionState } from "../../types";
+import { Skill, Hex } from "../../types";
+import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";

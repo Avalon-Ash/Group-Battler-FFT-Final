@@ -15,6 +15,7 @@ import { UnitBodyPainter } from "../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../renderers/units/painters/UnitShadowPainter";
 import { UnitIndicatorPainter } from "../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../renderers/units/painters/UnitAuraPainter";
+import { UnitDeathPainter } from "./unit/painters/UnitDeathPainter";
 import { HexLayout } from "../../types";
 import { VisualMath } from "../math/VisualMath";
 import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../constants";
@@ -28,12 +29,13 @@ export class UnitRenderSystem {
         highlightAgent: Agent | null,
         mapConfig: MapConfig,
         transitionT: number = 0,
-        transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE'
+        transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE',
+        simDt: number = 0.016
     ) {
         if (transitionPhase === 'OUT' && transitionT > 0.95) return;
 
         agents.forEach(agent => {
-            if (agent.hp <= 0) return;
+            if (agent.fullyDead) return;
             const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
             
             const offset = VisualMath.getTransitionOffset(state.x, state.y, mapConfig, transitionT, transitionPhase);
@@ -41,6 +43,7 @@ export class UnitRenderSystem {
 
             const op = renderList.next();
             op.type = RenderOpType.UNIT;
+            op.simDt = simDt;
             
             // 關鍵：將單位的當前邏輯網格位置傳入
             op.tq = agent.q; 
@@ -99,13 +102,19 @@ export class UnitRenderSystem {
         isSelected: boolean,
         isSilhouette: boolean,
         layout: HexLayout,
-        terrainHeight: number
+        terrainHeight: number,
+        simDt: number = 0.016
     ) {
         ctx.save();
         ctx.translate(drawX, drawY); 
         
-        if (!isSilhouette && agent.hp > 0) {
-            UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
+        if (!isSilhouette) {
+            if (agent.hp > 0) {
+                UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
+            } else {
+                // Dead units use ragdoll drawing
+                UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout } as any, terrainHeight, simDt);
+            }
         }
         UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
 

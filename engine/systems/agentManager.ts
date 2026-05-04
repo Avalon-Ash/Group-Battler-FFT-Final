@@ -8,8 +8,9 @@
 // ║  [TODO: RAGDOLL] ragdoll 快照由此建立，物理由 Painter 實作║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { GameEngine, Agent } from "../game";
-import { Role, Team, Skill, AnimState } from "../../types";
+import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
+import { Agent } from "../core/Agent";
+import { Role, Team, Skill, AnimState } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { UnitShatter } from "./visuals/effects/UnitShatter";

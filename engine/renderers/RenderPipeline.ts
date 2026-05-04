@@ -24,6 +24,7 @@ export class RenderPipeline {
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
+    private lastDt: number = 0.016;
 
     constructor(renderer: GameRenderer) { 
         this.renderer = renderer; 
@@ -41,6 +42,7 @@ export class RenderPipeline {
 
     public update(dt: number, engine: GameEngine) { 
         this.tactical.update(dt, engine); 
+        this.lastDt = dt;
 
         // Animation Logic moved from GameCanvas to here
         if (this.transitionPhase !== 'IDLE') {
@@ -73,7 +75,7 @@ export class RenderPipeline {
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         // World objects use BattleTime to sync with logic
-        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime);
+        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt);
         ctx.restore(); 
 
         // 3. Post Processing
@@ -99,7 +101,7 @@ export class RenderPipeline {
         if (blur > 0) this.post.applyFinishBlur(ctx, pW, pH, Math.max(0, Math.min(1, blur)));
     }
 
-    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number) {
+    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number) {
         this.renderList.reset();
 
         if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
@@ -113,7 +115,7 @@ export class RenderPipeline {
 
         this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
         this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, { width: lW, height: lH, camera });
-        this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase);
+        this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
         
         this.renderList.sort();
 

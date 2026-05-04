@@ -11,29 +11,78 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, MapConfig } from "../../../../types";
+import { RagdollPhysics } from "../RagdollPhysics";
+import { ISO_SCALE_Y, BLOCK_HEIGHT } from "../../../../constants";
 
 export class UnitDeathPainter {
 
     /**
      * 繪製死亡中的單位（hp <= 0 且尚未 fullyDead）
-     * 目前行為：空插槽，死亡單位由 UnitBodyPainter early return 不渲染
-     * [TODO: RAGDOLL] 未來替換為物理驅動的布娃娃分解動畫
      */
     public static draw(
         ctx: CanvasRenderingContext2D,
         agent: Agent,
-        visX: number,
-        visY: number,
+        visX: number,  // 這裡傳入的是平移後的中心 X (0)
+        visY: number,  // 這裡傳入的是平移後的中心 Y (0)
         alpha: number,
-        t: number,
-        cfg: MapConfig
+        t: number,     // 這裡傳入的是 battleTime
+        cfg: MapConfig,
+        terrainHeight: number,
+        simDt: number = 0.016 // 預設 60fps，若外部能傳更好
     ): void {
         if (agent.fullyDead) return;
+        if (!agent.ragdoll || agent.ragdoll.length === 0) return;
 
-        // [TODO: RAGDOLL] 在此判斷 agent.deathTimer，切換到布娃娃模式
-        // 目前直接回傳，讓 UnitBodyPainter 的 alpha 機制處理 fade-out
-        // 本插槽存在的意義是確保未來擴充有明確的落點
-        return;
+        const progress = UnitDeathPainter.getDeathProgress(agent);
+        // 使用傳入的地形高度計算地面 Z
+        const groundZ = terrainHeight * BLOCK_HEIGHT;
+
+        // [ARCH] 物理更新就地發生在 Draw 階段
+        RagdollPhysics.update(agent.ragdoll, simDt, groundZ);
+        RagdollPhysics.applyFade(agent.ragdoll, progress);
+
+        // 繪製骨骼
+        for (const bone of agent.ragdoll) {
+            if (bone.alpha <= 0) continue;
+
+            // 骨骼座標是世界空間，但 px/py 已經平移到 agent 位置
+            // 由於 drawAssembly 已經 ctx.translate(drawX, drawY)
+            // 而 drawX, drawY 是 agent 的螢幕座標。
+            // 骨骼的 x, y 是相對於大地原點。
+            // 所以我們需要計算骨骼相對於 agent 的偏移。
+            
+            const dx = bone.x - agent.px;
+            const dy = bone.y - agent.py;
+
+            // 等角投影轉換
+            const screenBoneX = dx; 
+            const screenBoneY = dy * ISO_SCALE_Y - (bone.z - groundZ) * ISO_SCALE_Y;
+
+            ctx.save();
+            ctx.globalAlpha = bone.alpha * alpha;
+            ctx.translate(screenBoneX, screenBoneY);
+            ctx.rotate(bone.angle);
+            
+            // 影子 (簡單圓形)
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.beginPath();
+            ctx.ellipse(0, (bone.z - groundZ) * ISO_SCALE_Y, bone.radius, bone.radius * 0.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 主體
+            ctx.fillStyle = bone.color;
+            ctx.beginPath();
+            ctx.arc(0, 0, bone.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 高光
+            ctx.fillStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath();
+            ctx.arc(-bone.radius * 0.3, -bone.radius * 0.3, bone.radius * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
     }
 
     /**

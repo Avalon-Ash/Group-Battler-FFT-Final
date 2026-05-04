@@ -11,10 +11,68 @@
 // ║  → 特定子系統的複雜型別 → types/ 目錄下獨立檔案         ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { Agent } from './engine/core/Agent';
-import type { MapConfig } from './engine/utils';
+import { Team, Role, MovementType, ActionState, AnimState, AIState } from './engine/types/Enums';
+export { Team, Role, MovementType, ActionState, AnimState, AIState };
 
-export type { Agent, MapConfig };
+export type HexLayout = 'FLAT' | 'POINTY';
+
+export interface Hex {
+    q: number;
+    r: number;
+}
+
+export interface Cube {
+    x: number;
+    y: number;
+    z: number;
+}
+
+export interface Point {
+    x: number;
+    y: number;
+    z?: number;
+}
+
+export interface Skill {
+    id: string;
+    tag: 'BASIC' | 'ACTIVE' | 'ULT';
+    role: Role;
+    team?: Team; 
+    name: string;
+    desc?: string; 
+    range: number;
+    cast: number;
+    cd: number;
+    cost: number;
+    gain: number;
+    type: 'SINGLE' | 'AOE';
+    aoeRadius?: number; 
+    power: number;
+    color: string;
+    element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
+    specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
+    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
+    ccDur?: number;
+    ccForce?: number;
+    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
+    ccDur2?: number;
+    ccForce2?: number;
+    effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
+    effectVal?: number; 
+    effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
+    effectVal2?: number;
+    projectileSpeed?: number; 
+    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
+    visualHitEffect?: string;
+    visualProjectileEffect?: string;
+    visualAoeEffect?: string;
+    visualCastEffect?: string;
+}
+
+import type { Agent } from './engine/core/Agent';
+import { MapConfig } from './engine/utils';
+export type { Agent };
+export type { MapConfig };
 
 export interface ZoneConfig {
     enabled: boolean;
@@ -138,78 +196,6 @@ export interface GameEvent {
     absorbed?: number;
 }
 
-export enum Team {
-    BLUE = 0,
-    RED = 1
-}
-
-export type HexLayout = 'FLAT' | 'POINTY';
-
-export enum Role {
-    TANK = 'TANK',
-    WARRIOR = 'WARRIOR',
-    RANGER = 'RANGER',
-    MAGE = 'MAGE',
-    SUPPORT = 'SUPPORT'
-}
-
-export enum MovementType {
-    GROUND = 0,
-    FLYING = 1
-}
-
-export enum ActionState {
-    IDLE = 0,
-    WALKING = 1,
-    ATTACKING = 2,
-    EVADING = 3,
-    CASTING = 4,
-    STUNNED = 5,
-    DYING = 6
-}
-
-export enum AnimState {
-    IDLE = 0,
-    COMBAT_IDLE = 1,
-    ATTACK = 2,
-    HIT = 3,
-    DEAD = 4,
-    STUN = 5,
-    MOVE = 6
-}
-
-export enum AIState {
-    IDLE = 0,
-    WAITING = 1,
-    CC_INTERRUPTED = 2,
-    DEAD = 3,
-    CASTING_ULT = 4,
-    CASTING_ACTIVE = 5,
-    CASTING_BASIC = 6,
-    TRACKING = 7,
-    EVADING = 8,
-    EVADING_URGENT = 9,
-    LAST_STAND_PUSH = 10,
-    LAST_STAND_ATTACK = 11,
-    COMBAT_LOCK = 12,
-}
-
-export interface Hex {
-    q: number;
-    r: number;
-}
-
-export interface Cube {
-    x: number;
-    y: number;
-    z: number;
-}
-
-export interface Point {
-    x: number;
-    y: number;
-    z?: number;
-}
 
 export interface SceneTheme {
     id: string;
@@ -225,41 +211,6 @@ export interface SceneTheme {
     bgFeature: 'NONE' | 'SKY_RIVER' | 'AURORA' | 'CANOPY' | 'HEAT_WAVE' | 'DUNES';
 }
 
-export interface Skill {
-    id: string;
-    tag: 'BASIC' | 'ACTIVE' | 'ULT';
-    role: Role;
-    team?: Team; 
-    name: string;
-    desc?: string; 
-    range: number;
-    cast: number;
-    cd: number;
-    cost: number;
-    gain: number;
-    type: 'SINGLE' | 'AOE';
-    aoeRadius?: number; 
-    power: number;
-    color: string;
-    element?: 'PHYSICAL' | 'FIRE' | 'ICE' | 'LIGHTNING' | 'HOLY' | 'VOID' | 'POISON' | 'ARCANE' | 'BLOOD';
-    specialVisualStatus?: 'POLYMORPH' | 'STASIS' | 'FROZEN'; 
-    ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
-    ccDur?: number;
-    ccForce?: number;
-    ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD';
-    ccDur2?: number;
-    ccForce2?: number;
-    effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal?: number; 
-    effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
-    effectVal2?: number;
-    projectileSpeed?: number; 
-    visual?: 'ARROW' | 'FIREBALL' | 'BOLT' | 'SLASH' | 'SMASH' | 'BEAM' | 'BOMB';
-    visualHitEffect?: string;
-    visualProjectileEffect?: string;
-    visualAoeEffect?: string;
-    visualCastEffect?: string;
-}
 
 export interface UnitStats {
     role: Role;
