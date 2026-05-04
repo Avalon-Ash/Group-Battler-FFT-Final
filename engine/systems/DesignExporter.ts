@@ -43,7 +43,21 @@ export class DesignExporter {
 
         s += "## 2. 視覺投影與 SSOT 規範 (Spatial Truth & Topology)\n\n";
         s += "- 視覺中心鎖定 (Visual Center Tracking): 非同步導播系統 (DirectorSystem) 拋棄傳統的「地板根節點」追蹤，全面改採 VisualMath.getVisualBodyCenterY 計算。鏡頭重心主動對齊單位的「胸口高度」，即便是被擊飛至空中的單位，鏡頭也能精確跟隨其視覺質心，而非留在地面。\n";
-        s += "- 障礙物遮擋輪廓 (Obstacle Occlusion Silhouette): 擴展 Occlusion 系統越過地形高度差，系統會實時檢測單位是否位於 Obstacle（如樹木、石頭）後方。若發生空間遮擋，單位自動切換為 Silhouette (藍色輪廓) 渲染模式，保證戰場資訊在複雜地形下的絕對可視化。\n\n";
+        s += "- 障礙物遮擋輪廓 (Obstacle Occlusion Silhouette): 擴展 Occlusion 系統越過地形高度差，系統會實時檢測單位是否位於 Obstacle（如樹木、石頭）後方。若發生空間遮擋，單位自動切換為 Silhouette (藍色輪廓) 渲染模式，保證戰場資訊在複雜地形下的絕對可視化。\n";
+        s += "- 障礙物拖動 Ghost 高度修正 (Obstacle Ghost ISO Y Alignment):\n";
+        s += "  GameCanvas.tsx 的 draggedObstacle ghost 繪製，現在在 drawImage 前透過\n";
+        s += "  VisualMath.getIsoVisualY 計算含地形高度的視覺 Y 座標，確保障礙物預覽在\n";
+        s += "  不同高度地形上精準對齊，不再僅使用網格中心的 px/py。\n\n";
+        s += "- Core 光點拖動高度即時同步 (Core Dot Drag Height Sync):\n";
+        s += "  UnitVisualProcessor.ts 的 terrainHeight 計算現在優先檢查 agent.dragOverQ/R，\n";
+        s += "  確保單位在跨高度地形拖動時，Core 光點（Blue 模式）即時跟隨棋座浮動，\n";
+        s += "  不再發生高度落後或超前。\n\n";
+        s += "- PointerProjector SSOT 職責邊界 (PointerProjector Responsibility Contract):\n";
+        s += "  engine/math/PointerProjector.ts 是所有指標座標轉換的唯一真相來源（SSOT）。\n";
+        s += "  負責處理 DPR 縮放、canvas offset 校正與 ISO 視覺座標投影。\n";
+        s += "  與 VisualMath 的職責邊界：VisualMath 處理遊戲邏輯座標→視覺座標的轉換，\n";
+        s += "  PointerProjector 處理瀏覽器輸入座標→遊戲邏輯座標的逆投影。\n";
+        s += "  任何指標相關計算必須通過 PointerProjector，禁止在 UI 層直接計算 offsetX/Y。\n\n";
         s += "- `ISO_SCALE_Y`: " + ISO_SCALE_Y + "\n";
         s += "- `BLOCK_HEIGHT`: " + BLOCK_HEIGHT + "\n";
         s += "- `UNIT_BODY_OFFSET`: " + UNIT_BODY_OFFSET + "\n";

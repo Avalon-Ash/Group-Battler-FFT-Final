@@ -1,22 +1,16 @@
 
-import { OBSTACLE_STYLES, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y } from "../../constants";
+import { OBSTACLE_STYLES, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { HexGeometry } from "./utils/HexGeometry"; 
 import { HexLayout } from "../../types";
 
-// --- STRICT ALIGNMENT CONSTANTS ---
-export const ENV_CANVAS_W = 128;
-export const ENV_CANVAS_H = 160;
-export const ENV_ANCHOR_X = 64;  
-export const ENV_ANCHOR_Y = 140; 
-
 export const EnvironmentFactory = {
     
     generateObstacle(styleKey: string, layout: HexLayout): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(ENV_CANVAS_W, ENV_CANVAS_H);
+        const { canvas, ctx } = createCanvas(ENV_SPRITE.CANVAS_W, ENV_SPRITE.CANVAS_H);
         
         // Setup Anchor: (0,0) is the CENTER of the hexagonal SURFACE on the ground
-        ctx.translate(ENV_ANCHOR_X, ENV_ANCHOR_Y);
+        ctx.translate(ENV_SPRITE.ANCHOR_X, ENV_SPRITE.ANCHOR_Y);
         
         const style = OBSTACLE_STYLES[styleKey] || OBSTACLE_STYLES['WALL'];
 
@@ -41,8 +35,8 @@ export const EnvironmentFactory = {
     },
 
     generateIceBlock(layout: HexLayout): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(ENV_CANVAS_W, ENV_CANVAS_H);
-        ctx.translate(ENV_ANCHOR_X, ENV_ANCHOR_Y);
+        const { canvas, ctx } = createCanvas(ENV_SPRITE.CANVAS_W, ENV_SPRITE.CANVAS_H);
+        ctx.translate(ENV_SPRITE.ANCHOR_X, ENV_SPRITE.ANCHOR_Y);
         const style = OBSTACLE_STYLES['ICE_CRYSTAL'];
         this.drawIsoCrystal(ctx, style, layout, 0.7);
         return canvas;
@@ -56,7 +50,7 @@ export const EnvironmentFactory = {
         ctx.save();
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.filter = 'blur(4px)';
-        const r = HEX_SIZE * 0.9;
+        const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_FULL;
         HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
         ctx.fill();
         ctx.restore();
@@ -64,8 +58,8 @@ export const EnvironmentFactory = {
 
     drawIsoWall(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
         // Dynamic Height: Multiplier increased to 3.0 to keep walls feeling tall with small blocks
-        const height = BLOCK_HEIGHT * 3.0; 
-        const r = HEX_SIZE * 0.9; 
+        const height = BLOCK_HEIGHT * ENV_SPRITE.WALL_HEIGHT_MULT; 
+        const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_FULL; 
         const topY = -height;
         
         const verts = HexGeometry.getVertices(r, true, layout);
@@ -211,8 +205,8 @@ export const EnvironmentFactory = {
 
     drawIsoPillar(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
         // Dynamic Height: Increased to 4.5 to be imposing
-        const height = BLOCK_HEIGHT * 4.5;
-        const r = HEX_SIZE * 0.7; // Thinner than tile
+        const height = BLOCK_HEIGHT * ENV_SPRITE.PILLAR_HEIGHT_MULT;
+        const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_PILLAR; // Thinner than tile
         const topY = -height;
         
         const verts = HexGeometry.getVertices(r, true, layout);
@@ -269,12 +263,12 @@ export const EnvironmentFactory = {
         const layers = 3;
         const baseWidth = layout === 'FLAT' ? HEX_SIZE : HEX_SIZE * 0.9;
         // Layers scale boosted to 2.0 to avoid stubby trees
-        const layerHeight = BLOCK_HEIGHT * 2.0; 
+        const layerHeight = BLOCK_HEIGHT * ENV_SPRITE.TREE_LAYER_HEIGHT_MULT; 
         let currentY = -trunkH + 5;
         
         for (let i = 0; i < layers; i++) {
             const ratio = 1 - (i / layers);
-            const width = baseWidth * (0.6 + ratio * 0.4);
+            const width = baseWidth * (ENV_SPRITE.TREE_BASE_RATIO + ratio * ENV_SPRITE.TREE_RATIO_RANGE);
             const height = layerHeight;
             
             ctx.beginPath();
@@ -308,13 +302,13 @@ export const EnvironmentFactory = {
             ctx.lineWidth = 1;
             ctx.stroke();
             
-            currentY -= (height * 0.7); // Overlap
+            currentY -= (height * ENV_SPRITE.TREE_LAYER_OVERLAP); // Overlap
         }
     },
 
     drawIsoCrystal(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout, alpha: number = 1.0) {
         // Boosted base height for crystals
-        const baseH = BLOCK_HEIGHT * 2.5;
+        const baseH = BLOCK_HEIGHT * ENV_SPRITE.CRYSTAL_HEIGHT_MULT;
         
         const drawShard = (x: number, y: number, w: number, h: number, tilt: number) => {
             ctx.save();

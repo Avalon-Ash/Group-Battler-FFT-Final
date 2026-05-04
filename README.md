@@ -154,6 +154,68 @@ GameEngine
 
 ---
 
+## AI 協作規範
+
+> 本節為代理人操作契約。每次開始任何修改前，代理人必須先閱讀本節全文。
+
+### 無條件優先讀取（無例外）
+
+| 檔案 | 職責 |
+|------|------|
+| `types.ts` | 所有引擎核心型別（Agent, Skill, Hex, GameEvent）的主契約。VFX 粒子／貼花 schema 另見 `types/VFXSchema.ts`，搜尋型別前必須確認兩者 |
+| `constants.ts` | 所有數值調參的唯一來源（PHYSICS, VFX_RENDER, VFX_PARAM, COMBAT_PARAM, PALETTE, TERRAIN_THEMES, ENV_SPRITE）。禁止 hardcode 魔法數字，禁止在未明確指示的情況下修改現有數值 |
+
+### 依工作區域讀取
+
+| 工作區域 | 必讀檔案 |
+|----------|----------|
+| Renderer / VFX / 視覺分層 / Z-sorting | `engine/renderers/RenderSpec.ts` |
+| 單位外觀 / 陣營顏色 / 身體尺寸 / 武器類型 | `data/units/appearance/types.ts`、`data/units/appearance/imperial.ts`、`data/units/appearance/covenant.ts`、`data/units/appearance/index.ts` |
+| AI 行為樹 / 生存 / 閃避 / 危害邏輯 | `engine/systems/DesignExporter.ts`（第 8、11、12 節） |
+| 技能欄位 / Inspector UI / Visual ID 選項 | `components/inspector/InspectorConstants.ts` |
+
+**單位外觀修改規則：**
+- 調整顏色、尺寸、武器類型 → 只改 profile 檔（imperial.ts / covenant.ts）
+- 調整繪製方式、動畫 → 改 Faction Renderer 或 Painter
+- 禁止在任何 Renderer 或 Painter 中 hardcode hex 顏色 or 身體尺寸
+
+### Facade 架構（關鍵）
+
+下列 flat 檔案是 **Facade**，公開 API 層。實作在對應子目錄。  
+**永遠編輯子目錄，不動 Facade**（除非更改公開介面或生命週期編排）。
+
+| Facade | 實作子目錄 |
+|--------|-----------|
+| `engine/renderer.ts` | `renderers/` + `systems/*`（RenderPipeline, StatusOrchestrator, GridSystem, VFXSystem, UnitRenderSystem, HUDSystem, SequenceSystem） |
+| `combat.ts` | `combat/`（SkillExecutor, CastingEngine, ProjectileSystem） |
+| `movement.ts` | `movement/`（MotionEngine, StackingResolver） |
+| `vfx.ts` | `vfx/`（VFXPlayer, VFXPhysics, VFXAmbience, AgentVFXSystem） |
+| `grid.ts` | `grid/` |
+| `map.ts` | `map/` |
+| `unit.ts` | `unit/` |
+
+每個 Facade 頂部有 `[FACADE]` 註解，列出完整子目錄映射，修改前必須讀取。
+
+### ECS-in-Spirit 架構原則
+
+- **Agent 是純資料容器（Entity）**，禁止在 Agent 上新增邏輯方法
+- **所有遊戲邏輯在 System 類別**，透過讀寫 Agent 欄位運作
+- **跨系統溝通透過 `engine.bus`（EventBus）**，禁止 System 直接呼叫另一個 System 的方法
+- **Agent 子物件（physics 等）視為邏輯 Component**，相關欄位保持聚合，禁止散落
+- **`UNIT_APPEARANCE` 是所有陣營視覺的 SSOT**，Faction Renderer 消費資料，不定義資料
+- **`UnitDeathPainter` 位於 `engine/renderers/units/painters/`**，不得移回 `engine/systems/`
+
+### 通用規範
+
+- **先理解再修改**。不確定某段邏輯的原因，先追蹤程式碼或詢問，禁止猜測後 patch
+- **精準修改優先**。若一個修正需要動超過 3 個檔案，先說明計畫再動手
+- **禁止引入新抽象**，除非明確要求
+- **引擎核心檔案禁止使用 `as any`**
+- **禁止新增 `console.log`**，除非明確要求
+- **VFX 驗證 log 每 session 最多觸發一次**（首次成功 bind 時），禁止放在 update 迴圈或 render 路徑中
+
+---
+
 ## 核心設計原則
 
 ### 1. SSOT（Single Source of Truth）

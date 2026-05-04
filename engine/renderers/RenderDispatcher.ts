@@ -7,7 +7,7 @@ import { SpriteManager } from "../sprites";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { ProjectileDrawer } from "./ProjectileDrawer";
 import { AssetManager } from "../assets";
-import { ENV_ANCHOR_X, ENV_ANCHOR_Y } from "../graphics/EnvironmentFactory";
+import { ENV_SPRITE } from "../../constants";
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../systems/unit";
 
@@ -47,7 +47,7 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.OBSTACLE:
-                ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_ANCHOR_X, snapY - ENV_ANCHOR_Y);
+                ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_SPRITE.ANCHOR_X, snapY - ENV_SPRITE.ANCHOR_Y);
                 break;
 
             case RenderOpType.UNIT:

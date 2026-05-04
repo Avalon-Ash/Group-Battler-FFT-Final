@@ -165,6 +165,22 @@ export const COMBAT_PARAM = {
     CHASE_SPEED_NORMAL: 1.1
 };
 
+export const ENV_SPRITE = {
+  CANVAS_W: 128,          // 障礙物 Sprite canvas 寬度（px）
+  CANVAS_H: 160,          // 障礙物 Sprite canvas 高度（px）
+  ANCHOR_X: 64,           // 繪圖錨點 X（= CANVAS_W / 2）
+  ANCHOR_Y: 140,          // 繪圖錨點 Y（視覺對齊手調值，不等於 CANVAS_H / 2）
+  WALL_HEIGHT_MULT: 3.0,  // 牆（WALL）的 BLOCK_HEIGHT 乘數
+  PILLAR_HEIGHT_MULT: 4.5,// 柱（OBSIDIAN_PILLAR）的 BLOCK_HEIGHT 乘數
+  CRYSTAL_HEIGHT_MULT: 2.5,// 晶體（ICE_CRYSTAL）的 BLOCK_HEIGHT 乘数
+  TREE_LAYER_HEIGHT_MULT: 2.0, // 樹葉層高度乘數
+  HEX_RADIUS_FULL: 0.9,   // 一般物件使用的 HEX_SIZE 比例
+  HEX_RADIUS_PILLAR: 0.7, // 柱體使用的 HEX_SIZE 比例（更細）
+  TREE_BASE_RATIO: 0.6,   // 樹冠底部寬度佔 baseWidth 比例
+  TREE_RATIO_RANGE: 0.4,  // 樹冠寬度動態範圍
+  TREE_LAYER_OVERLAP: 0.7, // 樹葉層縱向疊壓比例
+} as const;
+
 export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
     'VOID':   { top: '#1e293b', sideLight: '#334155', sideDark: '#0f172a', detail: '#6366f1', rim: '#818cf8' }, // Indigo tints
     'FOREST': { top: '#14532d', sideLight: '#166534', sideDark: '#052e16', detail: '#4ade80', rim: '#86efac' }, // Deep Jungle
