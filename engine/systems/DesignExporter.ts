@@ -193,9 +193,9 @@ export class DesignExporter {
         s += "  調整快取策略         → engine/sprites.ts (SpriteManager)\n";
         s += "  換新模型後需清除快取 → SpriteManager 內三個 Map 清空\n\n";
         s += "⚠️  美術優化注意事項：\n";
-        s += "  修改 ImperialTokenFactory / CovenantTokenFactory 後，\n";
-        s += "  必須確認 SpriteManager 的快取 Key 版本號（如 _V3）已更新，\n";
-        s += "  否則舊快取會覆蓋新美術，不會反映修改結果。\n\n";
+        s += "  SpriteManager 快取為純 session 記憶體（Map），\n";
+        s += "  瀏覽器刷新即全部清空，無持久化機制。\n";
+        s += "  修改 Factory 後直接重跑即可，不需要手動清除快取或更新版號。\n\n";
 
         s += "## 10. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)\n\n";
         s += "- 行為狀態 SSOT 架構 (ActionState SSOT Architecture):\n";
