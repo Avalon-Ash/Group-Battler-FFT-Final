@@ -75,11 +75,11 @@ export const CovenantRenderer = {
         if (isSilhouette) {
             ctx.translate(bodyRecoilX, floatY);
             ctx.shadowColor = silhouetteColor;
-            ctx.shadowBlur = 10;
+            ctx.shadowBlur = 4;          // 降低：10 -> 4
             ctx.strokeStyle = silhouetteColor;
-            ctx.lineWidth = 2;
+            ctx.lineWidth = 1.5;         // 降低：2 -> 1.5
             ctx.fillStyle = silhouetteColor;
-            ctx.globalAlpha = 0.2;
+            ctx.globalAlpha = 0.08;      // 降低：0.2 -> 0.08
             ctx.beginPath();
             
             const hw = profile.bodyWidth / 2;
@@ -88,7 +88,7 @@ export const CovenantRenderer = {
             
             ctx.closePath();
             ctx.fill();
-            ctx.globalAlpha = 0.8;
+            ctx.globalAlpha = 0.35;      // 降低：0.8 -> 0.35
             ctx.stroke();
             ctx.restore();
             return;

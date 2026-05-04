@@ -124,14 +124,19 @@ export class RenderPipeline {
             RenderDispatcher.dispatch(ctx, this.renderList.ops[i], engine.mapConfig.layout, t, this.renderer.unit);
         }
 
-        const occluded = this.renderer.grid.getOccludedAgents(engine);
-        const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
-        const allOccluded = [...new Set([...occluded, ...obstacleOccluded])];
+        // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：
+        // 地形高度被拖拉改變時，遮擋偵測會誤判，產生幽靈梯形。
+        // Silhouette 只在戰鬥進行中有意義。
+        if (engine.isRunning) {
+            const occluded = this.renderer.grid.getOccludedAgents(engine);
+            const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
+            const allOccluded = [...new Set([...occluded, ...obstacleOccluded])];
 
-        if (allOccluded.length > 0) {
-            ctx.save();
-            allOccluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
-            ctx.restore();
+            if (allOccluded.length > 0) {
+                ctx.save();
+                allOccluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
+                ctx.restore();
+            }
         }
         
         // [FIX] Pass layout to StatusOrchestrator
