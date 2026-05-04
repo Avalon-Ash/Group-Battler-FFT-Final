@@ -1,6 +1,6 @@
 import { RoleAppearance, FactionAppearanceProfile } from './types';
-import { THEME_COVENANT } from '../../constants';
-import { Role, Team } from '../../types';
+import { THEME_COVENANT } from '../../../constants';
+import { Role, Team } from '../../../types';
 
 const COMMON_COVENANT = {
   primaryColor: THEME_COVENANT.primary,    // #ef4444

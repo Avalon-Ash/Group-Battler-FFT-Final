@@ -1,9 +1,9 @@
 import { Agent } from "../../../game";
 import { AnimState, Role, Team } from "../../../../types";
 import { getCastProgress } from "../utils";
-import { THEME_COVENANT } from "../../../../constants";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { UnitCorePainter } from "../painters/UnitCorePainter";
+import { UNIT_APPEARANCE, RoleAppearance } from "../../../../data/units/appearance";
 
 function easeAttack(t: number): number {
     if (t < 0.45) {
@@ -20,8 +20,8 @@ function easeAttack(t: number): number {
 
 export const CovenantRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
-        const faction = FACTION_VISUALS[Team.RED];
-        const silhouetteColor = faction.secondaryColor;
+        const profile = UNIT_APPEARANCE[Team.RED].roles[agent.role];
+        const silhouetteColor = profile.secondaryColor;
         const noise = Math.sin(t * 7.0) * 0.5 + Math.sin(t * 3.0);
         const floatY = (agent.hp > 0) ? noise * 1.5 : 0;
         const breatheScaleX = (agent.hp > 0) ? 1.0 + Math.sin(t * 4.0) * 0.03 : 1.0;
@@ -76,8 +76,11 @@ export const CovenantRenderer = {
             ctx.fillStyle = silhouetteColor;
             ctx.globalAlpha = 0.2;
             ctx.beginPath();
-            ctx.moveTo(-15, -60); ctx.lineTo(0, -70); ctx.lineTo(15, -60);
-            ctx.lineTo(10, 0); ctx.lineTo(-10, 0); 
+            
+            const hw = profile.bodyWidth / 2;
+            ctx.moveTo(-hw * 0.8, -60); ctx.lineTo(0, -70); ctx.lineTo(hw * 0.8, -60);
+            ctx.lineTo(hw * 0.5, 0); ctx.lineTo(-hw * 0.5, 0); 
+            
             ctx.closePath();
             ctx.fill();
             ctx.globalAlpha = 0.8;
@@ -92,16 +95,16 @@ export const CovenantRenderer = {
         ctx.scale(breatheScaleX, breatheScaleY * hitSquashY);
         ctx.translate(0, 40);
 
-        drawSpikes(ctx, t);
+        drawSpikes(ctx, t, profile);
         
         ctx.save();
         ctx.translate(-22, -30);
         ctx.translate(0, Math.sin(t * 3) * 2);
-        if (agent.role === Role.TANK) drawCovenantShield(ctx);
-        else if (agent.role === Role.SUPPORT || agent.role === Role.MAGE) drawCovenantTotem(ctx, t);
+        if (agent.role === Role.TANK) drawCovenantShield(ctx, profile);
+        else if (agent.role === Role.SUPPORT || agent.role === Role.MAGE) drawCovenantTotem(ctx, t, profile);
         ctx.restore();
 
-        drawCovenantBody(ctx, agent.role);
+        drawCovenantBody(ctx, agent.role, profile);
 
         // SSOT Core Attachment: Attached to Chest Bone
         if (agent.hp > 0 && agent.visualStatus === 'NONE') {
@@ -116,54 +119,57 @@ export const CovenantRenderer = {
         ctx.translate(22, -30);
         ctx.rotate(armRot);
         ctx.translate(armX, armY);
-        drawCovenantWeapon(ctx, agent.role, t);
+        drawCovenantWeapon(ctx, agent.role, t, profile);
         ctx.restore();
         
         ctx.restore();
     }
 };
 
-function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role) {
-    const faction = FACTION_VISUALS[Team.RED];
-    const { primaryColor, darkColor } = faction;
+function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
+    const { primaryColor, secondaryColor, accentColor, bodyWidth, bodyHeight, headRadius } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 10);
     grad.addColorStop(0, primaryColor);
-    grad.addColorStop(0.6, darkColor);
-    grad.addColorStop(1, '#000');
+    grad.addColorStop(0.6, accentColor);
+    grad.addColorStop(1, accentColor);
     
     ctx.fillStyle = grad;
-    ctx.strokeStyle = THEME_COVENANT.accent;
+    ctx.strokeStyle = accentColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
+    
+    const hw = bodyWidth / 2;
+    const bodyBottom = bodyHeight - 45; // Baseline adjustment
+
     if (role === Role.TANK) {
-        ctx.moveTo(-25, -40); ctx.lineTo(25, -40); 
-        ctx.lineTo(15, 10); ctx.lineTo(-15, 10);
-        ctx.lineTo(-25, -40);
+        ctx.moveTo(-hw, -40); ctx.lineTo(hw, -40); 
+        ctx.lineTo(hw * 0.6, bodyBottom + 10); ctx.lineTo(-hw * 0.6, bodyBottom + 10);
+        ctx.lineTo(-hw, -40);
     } else {
-        ctx.moveTo(-18, -45); ctx.lineTo(18, -45);
-        ctx.lineTo(8, 15); ctx.lineTo(-8, 15);
-        ctx.lineTo(-18, -45);
+        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+        ctx.lineTo(hw * 0.45, bodyBottom + 15); ctx.lineTo(-hw * 0.45, bodyBottom + 15);
+        ctx.lineTo(-hw, -45);
     }
     ctx.fill();
     ctx.stroke();
 
     ctx.save();
     ctx.translate(0, -48);
-    ctx.fillStyle = darkColor;
+    ctx.fillStyle = accentColor;
     ctx.beginPath();
     ctx.moveTo(-10, 5); ctx.lineTo(-12, -15); ctx.lineTo(-5, -5); 
     ctx.lineTo(5, -5); ctx.lineTo(12, -15); ctx.lineTo(10, 5);
     ctx.fill();
-    ctx.fillStyle = '#fca5a5';
+    ctx.fillStyle = secondaryColor;
     ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
     ctx.restore();
 }
 
-function drawSpikes(ctx: CanvasRenderingContext2D, t: number) {
+function drawSpikes(ctx: CanvasRenderingContext2D, t: number, profile: RoleAppearance) {
     ctx.save();
     ctx.translate(0, -40);
-    ctx.fillStyle = THEME_COVENANT.spike;
+    ctx.fillStyle = profile.accentColor;
     ctx.beginPath();
     ctx.moveTo(-10, 0); ctx.lineTo(-25, -30 + Math.sin(t*5)*2); ctx.lineTo(-15, 0);
     ctx.moveTo(10, 0); ctx.lineTo(20, -25 + Math.cos(t*4)*2); ctx.lineTo(15, 0);
@@ -171,20 +177,18 @@ function drawSpikes(ctx: CanvasRenderingContext2D, t: number) {
     ctx.restore();
 }
 
-function drawCovenantHand(ctx: CanvasRenderingContext2D) {
-    const faction = FACTION_VISUALS[Team.RED];
-    ctx.fillStyle = faction.darkColor;
+function drawCovenantHand(ctx: CanvasRenderingContext2D, profile: RoleAppearance) {
+    ctx.fillStyle = profile.accentColor;
     ctx.beginPath(); 
     ctx.moveTo(-6, -6); ctx.lineTo(6, -6); ctx.lineTo(4, 8); ctx.lineTo(-4, 8);
     ctx.fill();
 }
 
-function drawCovenantShield(ctx: CanvasRenderingContext2D) {
-    const faction = FACTION_VISUALS[Team.RED];
-    drawCovenantHand(ctx);
+function drawCovenantShield(ctx: CanvasRenderingContext2D, profile: RoleAppearance) {
+    drawCovenantHand(ctx, profile);
     ctx.translate(-5, 10);
-    ctx.fillStyle = THEME_COVENANT.armorBase;
-    ctx.strokeStyle = faction.secondaryColor;
+    ctx.fillStyle = profile.primaryColor;
+    ctx.strokeStyle = profile.secondaryColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(-15, -25); ctx.lineTo(15, -20);
@@ -195,29 +199,27 @@ function drawCovenantShield(ctx: CanvasRenderingContext2D) {
     ctx.stroke();
 }
 
-function drawCovenantTotem(ctx: CanvasRenderingContext2D, t: number) {
-    const faction = FACTION_VISUALS[Team.RED];
-    drawCovenantHand(ctx);
+function drawCovenantTotem(ctx: CanvasRenderingContext2D, t: number, profile: RoleAppearance) {
+    drawCovenantHand(ctx, profile);
     ctx.translate(0, 10);
-    ctx.fillStyle = '#3f3f46';
+    ctx.fillStyle = profile.accentColor;
     ctx.fillRect(-4, -40, 8, 50);
     ctx.translate(0, -45);
-    ctx.fillStyle = faction.secondaryColor;
+    ctx.fillStyle = profile.secondaryColor;
     ctx.beginPath();
     ctx.moveTo(-8, 0); ctx.lineTo(0, -10); ctx.lineTo(8, 0); ctx.lineTo(0, 10);
     ctx.fill();
 }
 
-function drawCovenantWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number) {
-    const faction = FACTION_VISUALS[Team.RED];
-    drawCovenantHand(ctx);
+function drawCovenantWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number, profile: RoleAppearance) {
+    drawCovenantHand(ctx, profile);
     if (role === Role.WARRIOR) {
         ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = THEME_COVENANT.armorBase;
+        ctx.fillStyle = profile.primaryColor;
         ctx.fillRect(-3, -10, 6, 60);
         ctx.translate(0, -60);
-        ctx.fillStyle = '#52525b';
-        ctx.strokeStyle = faction.secondaryColor;
+        ctx.fillStyle = profile.accentColor;
+        ctx.strokeStyle = profile.secondaryColor;
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.moveTo(0, 0); ctx.lineTo(-25, -10);
@@ -226,26 +228,26 @@ function drawCovenantWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number
         ctx.fill(); ctx.stroke();
     } else if (role === Role.TANK) {
         ctx.rotate(Math.PI / 3);
-        ctx.fillStyle = THEME_COVENANT.armorBase;
+        ctx.fillStyle = profile.primaryColor;
         ctx.fillRect(-4, -5, 8, 20);
-        ctx.fillStyle = THEME_COVENANT.accent;
+        ctx.fillStyle = profile.accentColor;
         ctx.beginPath();
         ctx.moveTo(-10, -10); ctx.lineTo(-10, -60);
         ctx.lineTo(20, -60); ctx.lineTo(20, -10); ctx.lineTo(0, 0);
         ctx.fill();
-        ctx.strokeStyle = faction.secondaryColor; ctx.lineWidth = 2;
+        ctx.strokeStyle = profile.secondaryColor; ctx.lineWidth = 2;
         ctx.beginPath(); ctx.moveTo(20, -60); ctx.lineTo(20, -10); ctx.stroke();
     } else if (role === Role.RANGER) {
         ctx.rotate(-Math.PI / 2);
-        ctx.fillStyle = faction.darkColor;
+        ctx.fillStyle = profile.accentColor;
         ctx.fillRect(-5, -30, 10, 40);
-        ctx.strokeStyle = THEME_COVENANT.accent; ctx.lineWidth = 3;
+        ctx.strokeStyle = profile.accentColor; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(-25, -25); ctx.lineTo(0, -30); ctx.lineTo(25, -25); ctx.stroke();
     } else if (role === Role.MAGE || role === Role.SUPPORT) {
         ctx.rotate(Math.PI / 6);
-        ctx.fillStyle = faction.darkColor;
+        ctx.fillStyle = profile.accentColor;
         ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(-5, -30); ctx.lineTo(0, -50); ctx.lineTo(5, -30); ctx.fill();
-        ctx.fillStyle = faction.secondaryColor;
+        ctx.fillStyle = profile.secondaryColor;
         ctx.beginPath(); ctx.arc(0, -50, 3, 0, Math.PI*2); ctx.fill();
     }
 }

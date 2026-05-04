@@ -1,6 +1,6 @@
 import { RoleAppearance, FactionAppearanceProfile } from './types';
-import { THEME_IMPERIAL } from '../../constants';
-import { Role, Team } from '../../types';
+import { THEME_IMPERIAL } from '../../../constants';
+import { Role, Team } from '../../../types';
 
 const COMMON_IMPERIAL = {
   primaryColor: THEME_IMPERIAL.primary,    // #3b82f6

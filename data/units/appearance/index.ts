@@ -1,4 +1,4 @@
-import { Team } from '../../types';
+import { Team } from '../../../types';
 import { FactionAppearanceProfile } from './types';
 import { IMPERIAL_APPEARANCE } from './imperial';
 import { COVENANT_APPEARANCE } from './covenant';

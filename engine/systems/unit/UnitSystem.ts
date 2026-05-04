@@ -14,7 +14,7 @@ import { UnitBodyPainter } from "../../renderers/units/painters/UnitBodyPainter"
 import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPainter";
 import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
-import { UnitDeathPainter } from "./painters/UnitDeathPainter";
+import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
 import { HexLayout } from "../../../types";
 import { VisualMath } from "../../math/VisualMath";
 import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../../constants";

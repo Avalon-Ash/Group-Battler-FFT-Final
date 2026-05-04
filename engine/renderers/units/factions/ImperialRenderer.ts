@@ -1,9 +1,9 @@
 import { Agent } from "../../../game";
 import { AnimState, Role, Team } from "../../../../types";
 import { getCastProgress } from "../utils";
-import { THEME_IMPERIAL } from "../../../../constants";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { UnitCorePainter } from "../painters/UnitCorePainter";
+import { UNIT_APPEARANCE, RoleAppearance } from "../../../../data/units/appearance";
 
 function easeAttack(t: number): number {
     if (t < 0.3) {
@@ -20,8 +20,8 @@ function easeAttack(t: number): number {
 
 export const ImperialRenderer = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean) {
-        const faction = FACTION_VISUALS[Team.BLUE];
-        const silhouetteColor = faction.secondaryColor; 
+        const profile = UNIT_APPEARANCE[Team.BLUE].roles[agent.role];
+        const silhouetteColor = profile.secondaryColor; 
         const breathePhase = t * 2.0;
         const floatY = (agent.hp > 0) ? Math.sin(breathePhase) * 2.5 : 0;
         const breatheScale = (agent.hp > 0) ? 1.0 + Math.sin(breathePhase) * 0.02 : 1.0;
@@ -72,13 +72,11 @@ export const ImperialRenderer = {
             ctx.fillStyle = silhouetteColor;
             ctx.globalAlpha = 0.2;
             ctx.beginPath();
-            if (agent.role === Role.TANK) {
-                ctx.moveTo(-15, -50); ctx.lineTo(15, -50);
-                ctx.lineTo(10, 0); ctx.lineTo(-10, 0);
-            } else {
-                ctx.moveTo(-10, -50); ctx.lineTo(10, -50);
-                ctx.lineTo(5, 0); ctx.lineTo(-5, 0);
-            }
+            
+            const hw = profile.bodyWidth / 2;
+            ctx.moveTo(-hw * 0.8, -50); ctx.lineTo(hw * 0.8, -50);
+            ctx.lineTo(hw * 0.5, 0); ctx.lineTo(-hw * 0.5, 0);
+            
             ctx.closePath();
             ctx.fill();
             ctx.globalAlpha = 0.8; 
@@ -93,16 +91,18 @@ export const ImperialRenderer = {
         ctx.scale(breatheScale * hitSquashX, breatheScale * hitSquashY);
         ctx.translate(0, 40);
 
-        drawCape(ctx, t, THEME_IMPERIAL.cape, bodyRecoilX);
+        if (profile.capeColor) {
+            drawCape(ctx, t, profile.capeColor, bodyRecoilX);
+        }
         
         ctx.save();
         ctx.translate(-20, -35);
         ctx.translate(0, Math.sin(t * 2.5 + Math.PI) * 2); 
-        if (agent.role === Role.TANK) drawImperialShield(ctx);
-        else if (agent.role === Role.SUPPORT || agent.role === Role.MAGE) drawImperialTome(ctx, t);
+        if (agent.role === Role.TANK) drawImperialShield(ctx, profile);
+        else if (agent.role === Role.SUPPORT || agent.role === Role.MAGE) drawImperialTome(ctx, t, profile);
         ctx.restore();
 
-        drawImperialBody(ctx, agent.role);
+        drawImperialBody(ctx, agent.role, profile);
 
         // SSOT Core Attachment: Attached to Chest Bone
         if (agent.hp > 0 && agent.visualStatus === 'NONE') {
@@ -117,49 +117,52 @@ export const ImperialRenderer = {
         ctx.translate(20, -35);
         ctx.rotate(armRot);
         ctx.translate(armX, armY);
-        drawImperialWeapon(ctx, agent.role, t);
+        drawImperialWeapon(ctx, agent.role, t, profile);
         ctx.restore();
         
         ctx.restore();
     }
 };
 
-function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role) {
-    const faction = FACTION_VISUALS[Team.BLUE];
-    const { primaryColor, secondaryColor, darkColor } = faction;
+function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
+    const { primaryColor, secondaryColor, accentColor, bodyWidth, bodyHeight, headRadius } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 0);
-    grad.addColorStop(0, THEME_IMPERIAL.armorLight);
-    grad.addColorStop(0.5, darkColor);
+    grad.addColorStop(0, secondaryColor); // Use secondary for highlights
+    grad.addColorStop(0.5, primaryColor);
     grad.addColorStop(1, primaryColor);
     
     ctx.fillStyle = grad;
-    ctx.strokeStyle = THEME_IMPERIAL.secondary;
+    ctx.strokeStyle = accentColor;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
+    
+    const hw = bodyWidth / 2;
+    const bodyBottom = bodyHeight - 45; // Relativize to -45 baseline
+    
     if (role === Role.TANK) {
-        ctx.moveTo(-22, -45); ctx.lineTo(22, -45);
-        ctx.lineTo(15, 0); ctx.lineTo(-15, 0);
-        ctx.lineTo(-22, -45);
+        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+        ctx.lineTo(hw * 0.7, bodyBottom); ctx.lineTo(-hw * 0.7, bodyBottom);
+        ctx.lineTo(-hw, -45);
     } else if (role === Role.MAGE || role === Role.SUPPORT) {
-        ctx.moveTo(-12, -45); ctx.lineTo(12, -45);
-        ctx.lineTo(18, 10); ctx.lineTo(-18, 10);
-        ctx.lineTo(-12, -45);
+        ctx.moveTo(-hw * 0.7, -45); ctx.lineTo(hw * 0.7, -45);
+        ctx.lineTo(hw * 1.5, bodyBottom + 10); ctx.lineTo(-hw * 1.5, bodyBottom + 10);
+        ctx.lineTo(-hw * 0.7, -45);
     } else {
-        ctx.moveTo(-18, -45); ctx.lineTo(18, -45);
-        ctx.lineTo(12, 5); ctx.lineTo(-12, 5);
-        ctx.lineTo(-18, -45);
+        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+        ctx.lineTo(hw * 0.7, bodyBottom + 5); ctx.lineTo(-hw * 0.7, bodyBottom + 5);
+        ctx.lineTo(-hw, -45);
     }
     ctx.fill();
     ctx.stroke();
 
     ctx.save();
     ctx.translate(0, -50);
-    ctx.fillStyle = THEME_IMPERIAL.armorLight;
-    ctx.strokeStyle = THEME_IMPERIAL.secondary;
+    ctx.fillStyle = secondaryColor;
+    ctx.strokeStyle = accentColor;
     ctx.beginPath();
     if (role === Role.TANK) ctx.rect(-10, -12, 20, 18); 
-    else ctx.ellipse(0, -2, 9, 11, 0, 0, Math.PI*2);
+    else ctx.ellipse(0, -2, headRadius, headRadius * 1.2, 0, 0, Math.PI*2);
     ctx.fill(); ctx.stroke();
     
     // Visor glow sync
@@ -183,24 +186,22 @@ function drawCape(ctx: CanvasRenderingContext2D, t: number, color: string, speed
     ctx.restore();
 }
 
-function drawImperialHand(ctx: CanvasRenderingContext2D) {
-    const faction = FACTION_VISUALS[Team.BLUE];
-    ctx.fillStyle = faction.darkColor;
+function drawImperialHand(ctx: CanvasRenderingContext2D, profile: RoleAppearance) {
+    ctx.fillStyle = profile.primaryColor;
     ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = THEME_IMPERIAL.secondary;
+    ctx.fillStyle = profile.accentColor;
     ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
 }
 
-function drawImperialShield(ctx: CanvasRenderingContext2D) {
-    const faction = FACTION_VISUALS[Team.BLUE];
-    drawImperialHand(ctx);
+function drawImperialShield(ctx: CanvasRenderingContext2D, profile: RoleAppearance) {
+    drawImperialHand(ctx, profile);
     ctx.translate(-5, 10);
     ctx.rotate(-Math.PI/12);
     const grad = ctx.createLinearGradient(0, -30, 0, 30);
-    grad.addColorStop(0, THEME_IMPERIAL.armorLight);
-    grad.addColorStop(1, faction.primaryColor);
+    grad.addColorStop(0, profile.secondaryColor);
+    grad.addColorStop(1, profile.primaryColor);
     ctx.fillStyle = grad;
-    ctx.strokeStyle = THEME_IMPERIAL.secondary;
+    ctx.strokeStyle = profile.accentColor;
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(-15, -30); ctx.lineTo(15, -30);
@@ -208,32 +209,31 @@ function drawImperialShield(ctx: CanvasRenderingContext2D) {
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = faction.secondaryColor;
+    ctx.fillStyle = profile.secondaryColor;
     ctx.fillRect(-5, -20, 10, 40);
 }
 
-function drawImperialTome(ctx: CanvasRenderingContext2D, t: number) {
-    drawImperialHand(ctx);
+function drawImperialTome(ctx: CanvasRenderingContext2D, t: number, profile: RoleAppearance) {
+    drawImperialHand(ctx, profile);
     ctx.translate(0, -10);
-    ctx.fillStyle = '#fff';
+    ctx.fillStyle = profile.secondaryColor;
     ctx.fillRect(-10, -12, 20, 24); 
-    ctx.fillStyle = THEME_IMPERIAL.primary;
+    ctx.fillStyle = profile.primaryColor;
     ctx.fillRect(-12, -12, 4, 24); 
     if (Math.sin(t*5) > 0) {
-        ctx.fillStyle = THEME_IMPERIAL.secondary;
+        ctx.fillStyle = profile.accentColor;
         ctx.fillRect(5, -20, 2, 2);
     }
 }
 
-function drawImperialWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number) {
-    const faction = FACTION_VISUALS[Team.BLUE];
-    drawImperialHand(ctx);
+function drawImperialWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number, profile: RoleAppearance) {
+    drawImperialHand(ctx, profile);
     if (role === Role.WARRIOR) {
         ctx.rotate(Math.PI / 4);
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = profile.primaryColor;
         ctx.fillRect(-4, -10, 8, 20); 
-        ctx.fillStyle = 'rgba(147, 197, 253, 0.8)';
-        ctx.strokeStyle = faction.primaryColor;
+        ctx.fillStyle = profile.secondaryColor;
+        ctx.strokeStyle = profile.primaryColor;
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.moveTo(-6, -10); ctx.lineTo(-4, -70); ctx.lineTo(0, -80);
@@ -241,34 +241,34 @@ function drawImperialWeapon(ctx: CanvasRenderingContext2D, role: Role, t: number
         ctx.fill(); ctx.stroke();
     } else if (role === Role.TANK) {
         ctx.rotate(Math.PI / 3);
-        ctx.fillStyle = '#475569';
+        ctx.fillStyle = profile.primaryColor;
         ctx.fillRect(-3, -10, 6, 50);
         ctx.translate(0, -50);
-        ctx.fillStyle = THEME_IMPERIAL.armorLight;
-        ctx.strokeStyle = THEME_IMPERIAL.secondary;
+        ctx.fillStyle = profile.secondaryColor;
+        ctx.strokeStyle = profile.accentColor;
         ctx.lineWidth = 2;
         ctx.fillRect(-12, -15, 24, 30);
         ctx.strokeRect(-12, -15, 24, 30);
-        ctx.fillStyle = faction.primaryColor;
+        ctx.fillStyle = profile.primaryColor;
         ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(-20, 0); ctx.lineTo(0, 15); ctx.fill();
         ctx.beginPath(); ctx.moveTo(0, -15); ctx.lineTo(20, 0); ctx.lineTo(0, 15); ctx.fill();
     } else if (role === Role.RANGER) {
         ctx.translate(10, 0);
-        ctx.strokeStyle = THEME_IMPERIAL.armorLight;
+        ctx.strokeStyle = profile.secondaryColor;
         ctx.lineWidth = 3;
         ctx.beginPath(); ctx.arc(0, 0, 30, -Math.PI/2 - 0.5, Math.PI/2 + 0.5); ctx.stroke();
-        ctx.strokeStyle = faction.secondaryColor; ctx.lineWidth = 1;
+        ctx.strokeStyle = profile.secondaryColor; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.moveTo(0, -30); ctx.lineTo(0, 30); ctx.stroke();
     } else if (role === Role.MAGE || role === Role.SUPPORT) {
         ctx.rotate(-Math.PI / 6);
-        ctx.fillStyle = '#b45309';
+        ctx.fillStyle = profile.primaryColor;
         ctx.fillRect(-3, -40, 6, 80);
         ctx.translate(0, -45);
         const float = Math.sin(t * 4) * 3;
         ctx.translate(0, float);
-        ctx.fillStyle = role === Role.MAGE ? faction.secondaryColor : THEME_IMPERIAL.secondary;
+        ctx.fillStyle = profile.accentColor;
         ctx.beginPath(); ctx.moveTo(0, -10); ctx.lineTo(8, 0); ctx.lineTo(0, 10); ctx.lineTo(-8, 0); ctx.fill();
-        ctx.strokeStyle = '#fff'; ctx.lineWidth = 1;
+        ctx.strokeStyle = profile.secondaryColor; ctx.lineWidth = 1;
         ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2); ctx.stroke();
     }
 }
