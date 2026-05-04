@@ -48,6 +48,17 @@ export class MapSystem {
         agent.q = newQ;
         agent.r = newR;
         this.agentMap.set(HexUtils.hash(agent.q, agent.r), agent);
+
+        // [FIX] 編輯模式下 tick() 不執行，px/py 不會被 MovementSystem 插值。
+        // 手動將 px/py 貼合至新格子的像素中心，
+        // 使棋座視覺座標與 q/r 邏輯座標保持一致（SSOT）。
+        if (!engine.isRunning) {
+            const p = HexUtils.toPx(newQ, newR, engine.mapConfig);
+            agent.px = p.x;
+            agent.py = p.y;
+            // physics.z 已由上方 deltaH 補正，代表跨高度的高差
+            // 視覺高度由 UnitVisualProcessor 讀取 getTerrainHeight(q,r) 計算，不需額外設定
+        }
     }
     public clearAgents() {
         this.agentMap.clear();
