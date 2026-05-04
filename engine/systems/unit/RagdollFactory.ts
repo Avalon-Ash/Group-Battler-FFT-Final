@@ -3,10 +3,10 @@
 // ║  職責：依 Agent 死亡瞬間狀態建立 RagdollBone[] 初始快照  ║
 // ║  上游：AgentManager.handleDeadState（死亡瞬間呼叫一次）  ║
 // ║  下游：UnitDeathPainter.draw() 消費骨骼資料              ║
-// ║  [TODO: RAGDOLL] 目前僅建靜態快照，物理演算尚未實作      ║
+// ║  [ARCH] 初始速度由 impactX/Y 決定，物理由 RagdollPhysics 接管║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { Agent } from "../../game";
+import { Agent } from "../../core/Agent";
 import { RagdollBone } from "../../types/ragdoll";
 
 export class RagdollFactory {

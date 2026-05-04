@@ -1,10 +1,10 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitDeathPainter — 死亡演出渲染插槽                    ║
 // ║                                                          ║
-// ║  目前實作：空插槽（hp <= 0 的演出目前由 UnitBodyPainter early return 處理）║
+// ║  目前實作：Ragdoll 骨骼物理散落 + alpha fade（v1 完成）         ║
 // ║                                                          ║
 // ║  架構缺口預留：                                          ║
-// ║  [TODO: RAGDOLL] 未來在此插入布娃娃骨架動畫              ║
+// ║  [NEXT] 未來可拆分 collapse phase / settle phase 兩段動畫 ║
 // ║  → 建議走獨立 RenderOpType.CORPSE，subLayer 在 UNIT 之後  ║
 // ║  → deathTimer 由 AgentManager 在 hp<=0 時開始計時         ║
 // ║  → fullyDead=true 時停止更新並從 agents 陣列移除          ║
@@ -93,7 +93,7 @@ export class UnitDeathPainter {
 
     /**
      * 計算死亡進度（0.0 = 剛死，1.0 = 完全消失）
-     * [TODO: RAGDOLL] 未來可拆分為 collapse phase / settle phase
+     * [NEXT] 未來可拆分為 collapse phase / settle phase 兩段動畫
      */
     public static getDeathProgress(agent: Agent): number {
         if (!agent.deathTimer || agent.deathTimer <= 0) return 0;
