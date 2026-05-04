@@ -22,6 +22,16 @@ export function getDeathPhase(progress: number): DeathPhase {
 }
 
 export class RagdollPhysics {
+    private static readonly CONSTRAINTS: Array<{
+        a: string; b: string; restLength: number;
+    }> = [
+        { a: 'torso', b: 'head',  restLength: 18 },
+        { a: 'torso', b: 'arm_l', restLength: 14 },
+        { a: 'torso', b: 'arm_r', restLength: 14 },
+        { a: 'torso', b: 'leg_l', restLength: 16 },
+        { a: 'torso', b: 'leg_r', restLength: 16 },
+    ];
+
     static update(bones: RagdollBone[], dt: number, groundZ: number, phase: DeathPhase = DeathPhase.COLLAPSE): void {
         for (const b of bones) {
             if (b.alpha <= 0) continue;
@@ -60,6 +70,31 @@ export class RagdollPhysics {
             // 角速度
             b.angle += b.angularVel * dt;
             b.angularVel *= ANGULAR_DAMP;
+        }
+
+        // [ARCH] 關節約束：Position-Based Dynamics，維持骨骼相對距離
+        RagdollPhysics.applyConstraints(bones);
+    }
+
+    static applyConstraints(bones: RagdollBone[]): void {
+        const boneMap = new Map(bones.map(b => [b.id, b]));
+        for (const c of RagdollPhysics.CONSTRAINTS) {
+            const a = boneMap.get(c.a);
+            const b = boneMap.get(c.b);
+            if (!a || !b) continue;
+            
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+            const diff = (dist - c.restLength) / dist * 0.3; // stiffness 0.3
+            
+            const offsetX = dx * diff * 0.5;
+            const offsetY = dy * diff * 0.5;
+            
+            a.x += offsetX;
+            a.y += offsetY;
+            b.x -= offsetX;
+            b.y -= offsetY;
         }
     }
 

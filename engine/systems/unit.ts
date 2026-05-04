@@ -42,7 +42,7 @@ export class UnitRenderSystem {
             if (Math.abs(offset) > 800) return;
 
             const op = renderList.next();
-            op.type = RenderOpType.UNIT;
+            op.type = agent.hp <= 0 ? RenderOpType.CORPSE : RenderOpType.UNIT;
             op.simDt = simDt;
             
             // 關鍵：將單位的當前邏輯網格位置傳入

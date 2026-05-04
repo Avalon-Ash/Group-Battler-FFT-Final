@@ -12,7 +12,8 @@ export enum RenderOpType {
     DECAL,
     HAZARD,
     AURA,
-    OVERLAY = 8
+    OVERLAY,
+    CORPSE
 }
 
 export class RenderOp {
@@ -95,6 +96,7 @@ const SUB_LAYER = {
     OVERLAY:        42,   // [FIX] 從 25 改到 42，確保互動指示圈壓在障礙物之上但在 UNIT 之後
     OBSTACLE:       44,
     UNIT:           46,
+    CORPSE:         48,   // [ARCH] 死亡單位 Ragdoll，subLayer 在 UNIT 之後，EFFECT 之下
     AIR_VFX:        50,   // isGround=false 的 VFX
     PROJECTILE:     50,
 } as const;
@@ -148,6 +150,7 @@ export class RenderList {
             else if (op.type === RenderOpType.AURA) subLayer = SUB_LAYER.AURA;
             else if (op.type === RenderOpType.OBSTACLE) subLayer = SUB_LAYER.OBSTACLE;
             else if (op.type === RenderOpType.UNIT) subLayer = SUB_LAYER.UNIT;
+            else if (op.type === RenderOpType.CORPSE) subLayer = SUB_LAYER.CORPSE;
             else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
                 // Ground VFX sits at 32 - above HAZARD(30)/AURA(35) but below OBSTACLE(40)
                 // so that nearby obstacles correctly occlude ground effects.
