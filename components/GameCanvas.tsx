@@ -3,6 +3,7 @@ import React, { useRef, useEffect, useCallback } from 'react';
 import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
+import { VisualMath } from '../engine/math/VisualMath';
 import { Team, ToolType, Skill, Role } from '../types';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
@@ -101,7 +102,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.shadowBlur = 30;
             ctx.shadowOffsetY = 30;
             ctx.globalAlpha = 0.9;
-            ctx.drawImage(sprite, px - 32, py - 80 - liftOffset);
+            const visualY = VisualMath.getIsoVisualY(py, draggedObstacle.terrainHeight);
+            ctx.drawImage(sprite, px - 32, visualY - 80 - liftOffset);
             ctx.restore();
         }
     }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);

@@ -1,3 +1,28 @@
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  PointerProjector — 指標座標轉換 SSOT                           ║
+// ║                                                                  ║
+// ║  職責：所有 CSS 滑鼠座標 ↔ Canvas 繪圖座標 ↔ 世界座標           ║
+// ║        ↔ Hex 格子 的轉換邏輯，集中於此，不得分散到其他模組。    ║
+// ║                                                                  ║
+// ║  呼叫方：                                                        ║
+// ║    hooks/useGameInput.ts  → cssToHex / hexToWorldSnap           ║
+// ║    engine/renderer.ts     → canvasToWorld（thin delegate）      ║
+// ║                                                                  ║
+// ║  依賴的 SSOT 節點：                                              ║
+// ║    engine/systems/grid/GridSpatial.getHexAtWorldPoint()         ║
+// ║    engine/math/VisualMath（注意：視覺 Y 偏移不在此處計算，      ║
+// ║      視覺投影請使用 VisualMath.getIsoVisualY / applyLayerBias） ║
+// ║                                                                  ║
+// ║  DPR 處理規則：                                                  ║
+// ║    cssToCanvas() 負責補正 devicePixelRatio。                    ║
+// ║    下游所有方法接收的都是「已補正的 canvas 座標」，              ║
+// ║    不得在 cssToCanvas 以外的地方再次處理 DPR。                  ║
+// ║                                                                  ║
+// ║  禁止事項：                                                      ║
+// ║    × 不得在 useGameInput / renderer 內自行計算 screen→world     ║
+// ║    × 不得在此處呼叫 VisualMath.getIsoVisualY（視覺層責任分離）  ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { Hex, Point } from "../../types";
 import { Camera } from "../systems/CameraSystem";
 import { HexUtils, MapConfig } from "../utils";
