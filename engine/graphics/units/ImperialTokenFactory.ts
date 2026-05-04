@@ -1,8 +1,9 @@
 
 import { Role, Team } from "../../../types";
-import { THEME_IMPERIAL, ISO_SCALE_Y, PALETTE } from "../../../constants";
+import { ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
 import { UnitAssetsFull } from "../UnitFactory";
+import { UNIT_APPEARANCE } from "../../../data/units/appearance";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -57,28 +58,29 @@ export const ImperialTokenFactory = {
     },
 
     generateLayers(role: Role): UnitAssetsFull {
-        const radius = 36;
+        const ap = UNIT_APPEARANCE[Team.BLUE].roles[role] ?? UNIT_APPEARANCE[Team.BLUE].roles[Role.WARRIOR];
+        const R  = ap.tokenRadius;
         
         // 1. Base Layer (Body Only)
         const baseRes = createCanvas(BASE_SIZE, BASE_SIZE);
         const bCtx = baseRes.ctx;
         bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         bCtx.scale(1, ISO_SCALE_Y);
-        const grad = bCtx.createLinearGradient(-radius, -radius, radius, radius);
-        grad.addColorStop(0, '#2563eb');
-        grad.addColorStop(1, '#172554');
+        const grad = bCtx.createLinearGradient(-R, -R, R, R);
+        grad.addColorStop(0, ap.primaryColor);
+        grad.addColorStop(1, ap.deepColor);
         bCtx.fillStyle = grad;
-        bCtx.beginPath(); bCtx.arc(0, 0, radius, 0, Math.PI*2); bCtx.fill();
+        bCtx.beginPath(); bCtx.arc(0, 0, R, 0, Math.PI*2); bCtx.fill();
 
         // 2. Rim Layer (Gold Trim Only)
         const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);
         const rCtx = rimRes.ctx;
         rCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         rCtx.scale(1, ISO_SCALE_Y);
-        rCtx.strokeStyle = '#b45309';
+        rCtx.strokeStyle = ap.rimShadowColor;
         rCtx.lineWidth = 6;
-        rCtx.beginPath(); rCtx.arc(0, 0, radius, 0, Math.PI*2); rCtx.stroke();
-        rCtx.strokeStyle = '#fcd34d';
+        rCtx.beginPath(); rCtx.arc(0, 0, R, 0, Math.PI*2); rCtx.stroke();
+        rCtx.strokeStyle = ap.rimColor;
         rCtx.lineWidth = 3;
         rCtx.stroke();
 
@@ -103,13 +105,14 @@ export const ImperialTokenFactory = {
     },
 
     generateIcon(role: Role): HTMLCanvasElement {
+        const ap = UNIT_APPEARANCE[Team.BLUE].roles[role] ?? UNIT_APPEARANCE[Team.BLUE].roles[Role.WARRIOR];
         const { canvas, ctx } = createCanvas(ICON_SIZE, ICON_SIZE);
         const cx = ICON_SIZE / 2;
         const cy = ICON_SIZE / 2;
         
         // Blue: Pale Cyan (Tactical Display)
-        const color = '#cffafe';
-        const shadowColor = '#0ea5e9';
+        const color = ap.iconColor;
+        const shadowColor = ap.iconGlow;
 
         ctx.strokeStyle = color;
         ctx.fillStyle = color;

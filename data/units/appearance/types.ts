@@ -8,6 +8,12 @@ export interface RoleAppearance {
   accentColor: string;    // 強調色（眼睛/發光）
   weaponType: 'sword' | 'spear' | 'bow' | 'staff' | 'shield_mace' | 'tome';
   capeColor: string | null; // null = 無披風
+  tokenRadius:    number;       // Token 圓形半徑（canvas unit）
+  deepColor:      string;       // 深色調：陰影面/內層
+  rimColor:       string;       // 外框高光色
+  rimShadowColor: string;       // 外框陰影色
+  iconColor:      string;       // Role Icon 主色
+  iconGlow:       string;       // Role Icon 發光色
 }
 
 export interface FactionAppearanceProfile {

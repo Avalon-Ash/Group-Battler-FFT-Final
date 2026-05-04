@@ -1,8 +1,9 @@
 
 import { Role, Team } from "../../../types";
-import { THEME_COVENANT, ISO_SCALE_Y, PALETTE } from "../../../constants";
+import { ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
 import { UnitAssetsFull } from "../UnitFactory";
+import { UNIT_APPEARANCE } from "../../../data/units/appearance";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -66,14 +67,15 @@ export const CovenantTokenFactory = {
     },
 
     generateLayers(role: Role): UnitAssetsFull {
-        const radius = 36;
+        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
+        const R  = ap.tokenRadius;
         
         // 1. Base Layer (Jagged Body Only)
         const baseRes = createCanvas(BASE_SIZE, BASE_SIZE);
         const bCtx = baseRes.ctx;
         bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         bCtx.scale(1, ISO_SCALE_Y);
-        const grad = bCtx.createLinearGradient(-radius, -radius, radius, radius);
+        const grad = bCtx.createLinearGradient(-R, -R, R, R);
         grad.addColorStop(0, '#991b1b');
         grad.addColorStop(1, '#000');
         bCtx.fillStyle = grad;
@@ -81,7 +83,7 @@ export const CovenantTokenFactory = {
         const sides = 8;
         for(let i=0; i<=sides; i++) {
             const a = (i/sides) * Math.PI*2;
-            const r = radius * (i%2===0 ? 1.0 : 0.85); 
+            const r = R * (i%2===0 ? 1.0 : 0.85); 
             const x = Math.cos(a)*r;
             const y = Math.sin(a)*r;
             if(i===0) bCtx.moveTo(x,y); else bCtx.lineTo(x,y);
@@ -93,18 +95,18 @@ export const CovenantTokenFactory = {
         const rCtx = rimRes.ctx;
         rCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
         rCtx.scale(1, ISO_SCALE_Y);
-        rCtx.strokeStyle = '#78350f';
+        rCtx.strokeStyle = ap.rimShadowColor;
         rCtx.lineWidth = 5;
         rCtx.beginPath();
         for(let i=0; i<=sides; i++) {
             const a = (i/sides) * Math.PI*2;
-            const r = radius * (i%2===0 ? 1.0 : 0.85); 
+            const r = R * (i%2===0 ? 1.0 : 0.85); 
             const x = Math.cos(a)*r;
             const y = Math.sin(a)*r;
             if(i===0) rCtx.moveTo(x,y); else rCtx.lineTo(x,y);
         }
         rCtx.stroke();
-        rCtx.strokeStyle = '#d97706';
+        rCtx.strokeStyle = ap.rimColor;
         rCtx.lineWidth = 2;
         rCtx.stroke();
 
@@ -130,13 +132,14 @@ export const CovenantTokenFactory = {
     },
 
     generateIcon(role: Role): HTMLCanvasElement {
+        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
         const { canvas, ctx } = createCanvas(ICON_SIZE, ICON_SIZE);
         const cx = ICON_SIZE / 2;
         const cy = ICON_SIZE / 2;
         
         // Red: Burning Orange (Warp Energy)
-        const color = '#fdba74';
-        const shadowColor = '#ea580c';
+        const color = ap.iconColor;
+        const shadowColor = ap.iconGlow;
 
         ctx.strokeStyle = color;
         ctx.fillStyle = color;

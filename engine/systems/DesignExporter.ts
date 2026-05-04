@@ -137,7 +137,13 @@ export class DesignExporter {
         s += "| secondaryColor | string (hex)                      | 次色：武器/邊框              |\n";
         s += "| accentColor    | string (hex)                      | 強調色：眼睛/發光            |\n";
         s += "| weaponType     | 'sword'|'spear'|'bow'|'staff'|... | 武器形狀路由                 |\n";
-        s += "| capeColor      | string (hex) | null              | 披風色；null = 無披風        |\n\n";
+        s += "| capeColor      | string (hex) | null              | 披風色；null = 無披風        |\n";
+        s += "| tokenRadius    | number         | Token 圓形半徑                        |\n";
+        s += "| deepColor      | string (hex)   | 深色調：陰影面 / 內層                 |\n";
+        s += "| rimColor       | string (hex)   | 外框高光色                            |\n";
+        s += "| rimShadowColor | string (hex)   | 外框陰影色                            | \n";
+        s += "| iconColor      | string (hex)   | Role Icon 主色                        |\n";
+        s += "| iconGlow       | string (hex)   | Role Icon 發光色                      | \n\n";
         s += "映射方式: UNIT_APPEARANCE[Team.BLUE | Team.RED].roles[Role.*]\n\n";
         s += "修改流程:\n";
         s += "  調整顏色/尺寸/風格  → data/units/appearance/imperial.ts 或 covenant.ts\n";
