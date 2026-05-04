@@ -83,6 +83,21 @@ export class RenderOp {
     }
 }
 
+// [ARCH] RenderList — 所有 subLayer 的唯一定義點
+// 數值之間保留足夠間距供未來插入新層級
+const SUB_LAYER = {
+    TERRAIN:        10,
+    DECAL:          20,
+    HAZARD:         30,
+    GROUND_VFX:     32,   // isGround VFX，高於危險區但低於單位
+    AURA:           38,   // [FIX] 從 35 改到 38，緊貼 UNIT 下方，確保光環在 OBSTACLE 後渲染
+    OVERLAY:        42,   // [FIX] 從 25 改到 42，確保互動指示圈壓在障礙物之上但在 UNIT 之後
+    OBSTACLE:       44,
+    UNIT:           46,
+    AIR_VFX:        50,   // isGround=false 的 VFX
+    PROJECTILE:     50,
+} as const;
+
 export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
@@ -125,17 +140,17 @@ export class RenderList {
 
             // Sub-layer within same Y bucket (unchanged)
             let subLayer = 0;
-            if (op.type === RenderOpType.TERRAIN) subLayer = 10;
-            else if (op.type === RenderOpType.DECAL) subLayer = 20;
-            else if (op.type === RenderOpType.OVERLAY) subLayer = 25;
-            else if (op.type === RenderOpType.HAZARD) subLayer = 30;
-            else if (op.type === RenderOpType.AURA) subLayer = 35;
-            else if (op.type === RenderOpType.OBSTACLE) subLayer = 40;
-            else if (op.type === RenderOpType.UNIT) subLayer = 45;
+            if (op.type === RenderOpType.TERRAIN) subLayer = SUB_LAYER.TERRAIN;
+            else if (op.type === RenderOpType.DECAL) subLayer = SUB_LAYER.DECAL;
+            else if (op.type === RenderOpType.OVERLAY) subLayer = SUB_LAYER.OVERLAY;
+            else if (op.type === RenderOpType.HAZARD) subLayer = SUB_LAYER.HAZARD;
+            else if (op.type === RenderOpType.AURA) subLayer = SUB_LAYER.AURA;
+            else if (op.type === RenderOpType.OBSTACLE) subLayer = SUB_LAYER.OBSTACLE;
+            else if (op.type === RenderOpType.UNIT) subLayer = SUB_LAYER.UNIT;
             else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
                 // Ground VFX sits at 32 - above HAZARD(30)/AURA(35) but below OBSTACLE(40)
                 // so that nearby obstacles correctly occlude ground effects.
-                subLayer = op.isGround ? 32 : 50;
+                subLayer = op.isGround ? SUB_LAYER.GROUND_VFX : SUB_LAYER.AIR_VFX;
             }
 
             sortKey += subLayer;

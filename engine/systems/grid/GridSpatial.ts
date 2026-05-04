@@ -52,7 +52,11 @@ export class GridSpatial {
             for (const n of neighbors) {
                 // Topological occlusion check
                 if ((n.q + n.r) > currentSort) {
-                    if (engine.mapKeys.has(HexUtils.key(n))) {
+                    const nKey = HexUtils.key(n);
+                    if (engine.mapKeys.has(nKey)) {
+                        // [FIX] 跳過正在下墜的地塊，避免已崩塌的格子繼續觸發矽影
+                        if (engine.zones.collapsingTiles.has(nKey)) continue;
+
                         if (engine.map.getTerrainHeight(n.q, n.r) > uTerrainH + 20) {
                             occluded.push(a);
                             break;

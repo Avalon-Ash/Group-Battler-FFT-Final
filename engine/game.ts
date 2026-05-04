@@ -74,6 +74,7 @@ export class GameEngine implements SpatialProvider {
     public bus: EventBus = new EventBus();
     public renderer?: GameRenderer; 
     
+    // SSOT: engine.vfx is engine.renderer.vfx (確認同一實例)
     public get vfx() { return this.renderer?.vfx; }
 
     public isRunning: boolean = false;

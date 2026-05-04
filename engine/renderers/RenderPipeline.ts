@@ -16,6 +16,10 @@ export class RenderPipeline {
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
+
+    // [FIX] 避免每幀重建 closure，只在 engine 實例變更時重建
+    private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
+    private _terrainHEngine: GameEngine | null = null;
     
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
@@ -80,7 +84,14 @@ export class RenderPipeline {
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
-        this.hud.draw(ctx, this.renderer.hud, engine.agents, (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine), cfg, highlight, battleTime, engine.state.isLastStand);
+        
+        // Ensure terrainH handler exists
+        if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
+            this._terrainHEngine = engine;
+            this._cachedTerrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
+        }
+        
+        this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH, cfg, highlight, battleTime, engine.state.isLastStand);
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
@@ -95,7 +106,13 @@ export class RenderPipeline {
 
     private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number) {
         this.renderList.reset();
-        const terrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
+
+        if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
+            this._terrainHEngine = engine;
+            this._cachedTerrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
+        }
+        const terrainH = this._cachedTerrainH;
+
         const lW = ctx.canvas.width / (window.devicePixelRatio || 1);
         const lH = ctx.canvas.height / (window.devicePixelRatio || 1);
 
