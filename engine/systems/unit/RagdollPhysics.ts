@@ -72,29 +72,34 @@ export class RagdollPhysics {
             b.angularVel *= ANGULAR_DAMP;
         }
 
-        // [ARCH] 關節約束：Position-Based Dynamics，維持骨骼相對距離
-        RagdollPhysics.applyConstraints(bones);
+        // [ARCH] 關節約束迭代次數依 phase 調整：SETTLE 需更強約束以呈現靜止感
+        const constraintIter = phase === DeathPhase.SETTLE ? 4 : 2;
+        RagdollPhysics.applyConstraints(bones, constraintIter);
     }
 
-    static applyConstraints(bones: RagdollBone[]): void {
+    // iterations: 迭代次數。越高約束越強但計算越重。
+    // COLLAPSE=2（骨骼可大幅飛散），SETTLE=4（骨骼趨於靜止）
+    static applyConstraints(bones: RagdollBone[], iterations: number = 3): void {
         const boneMap = new Map(bones.map(b => [b.id, b]));
-        for (const c of RagdollPhysics.CONSTRAINTS) {
-            const a = boneMap.get(c.a);
-            const b = boneMap.get(c.b);
-            if (!a || !b) continue;
-            
-            const dx = b.x - a.x;
-            const dy = b.y - a.y;
-            const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
-            const diff = (dist - c.restLength) / dist * 0.3; // stiffness 0.3
-            
-            const offsetX = dx * diff * 0.5;
-            const offsetY = dy * diff * 0.5;
-            
-            a.x += offsetX;
-            a.y += offsetY;
-            b.x -= offsetX;
-            b.y -= offsetY;
+        for (let iter = 0; iter < iterations; iter++) {
+            for (const c of RagdollPhysics.CONSTRAINTS) {
+                const a = boneMap.get(c.a);
+                const b = boneMap.get(c.b);
+                if (!a || !b) continue;
+                
+                const dx = b.x - a.x;
+                const dy = b.y - a.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 0.001;
+                const diff = (dist - c.restLength) / dist * 0.3; // stiffness 0.3
+                
+                const offsetX = dx * diff * 0.5;
+                const offsetY = dy * diff * 0.5;
+                
+                a.x += offsetX;
+                a.y += offsetY;
+                b.x -= offsetX;
+                b.y -= offsetY;
+            }
         }
     }
 

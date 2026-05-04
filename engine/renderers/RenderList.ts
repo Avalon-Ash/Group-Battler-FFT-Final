@@ -158,6 +158,19 @@ export class RenderList {
             }
 
             sortKey += subLayer;
+            
+            // [ARCH] 渲染層級隔離：確保特定類型走獨立層，不與單位 Y 軸混排
+            // Layer 0: World (Terrain/Obstacle/Unit) - Default
+            // Layer 1: CORPSE (Independent Layer) - 固定在 UNIT 之上
+            // Layer 2: VFX / Projectile (Air Layer) - 在屍體之上
+            // [FIX] 避免與既存 boost (op.z * 20) 衝突，採用大步進分層
+            if (op.type === RenderOpType.CORPSE) {
+                sortKey += 10000000; 
+            } else if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
+                if (!op.isGround) {
+                    sortKey += 20000000;
+                }
+            }
 
             // ── FIX: VFX z-height sort compensation ──────────────────────────
             // Ground-locked VFX (BLAST, SHOCKWAVE, RING, etc.) have op.z set by
