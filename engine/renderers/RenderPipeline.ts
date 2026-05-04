@@ -85,13 +85,8 @@ export class RenderPipeline {
         this.renderer.camera.applyTransform(ctx, lW, lH);
         this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
         
-        // Ensure terrainH handler exists
-        if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
-            this._terrainHEngine = engine;
-            this._cachedTerrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
-        }
-        
-        this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH, cfg, highlight, battleTime, engine.state.isLastStand);
+        // _cachedTerrainH guaranteed non-null: drawWorld() runs before this point
+        this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH!, cfg, highlight, battleTime, engine.state.isLastStand);
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);

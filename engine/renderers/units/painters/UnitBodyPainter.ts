@@ -21,6 +21,9 @@ export const UnitBodyPainter = {
         scaleFactor: number,
         terrainHeight: number
     ) {
+        // [ARCH] 死亡 alpha 計算目前在此處。
+        // 當布娃娃系統實作後，請將此段移至 UnitDeathPainter.draw()
+        // 並在這裡改為呼叫 UnitDeathPainter.draw()
         if (agent.hp <= 0) return;
         
         const vx = agent.physics.vx;
