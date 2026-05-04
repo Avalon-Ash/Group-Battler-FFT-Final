@@ -196,7 +196,7 @@ GameEngine
 
 | 工作區域 | 必讀檔案 |
 |----------|----------|
-| Renderer / VFX / 視覺分層 / Z-sorting | `engine/renderers/RenderSpec.ts` |
+| Renderer / VFX / 視覺分層 / Z-sorting | `engine/renderers/RenderSpec.ts`、`VFX_PARAM`（`constants.ts`）管控 `MAX_PARTICLES` / `MAX_POOL_SIZE` / `HAZARD_FIELD_MAX_PER_CELL` / `IDLE_VFX_CULL_DIST_SQ` 四個預算常數 |
 | 單位外觀 / 陣營顏色 / 身體尺寸 / 武器類型 | `data/units/appearance/types.ts`、`data/units/appearance/imperial.ts`、`data/units/appearance/covenant.ts`、`data/units/appearance/index.ts` |
 | AI 行為樹 / 生存 / 閃避 / 危害邏輯 | `engine/systems/DesignExporter.ts`（第 8、11、12 節） |
 | 技能欄位 / Inspector UI / Visual ID 選項 | `components/inspector/InspectorConstants.ts` |

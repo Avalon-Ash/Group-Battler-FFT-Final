@@ -1,3 +1,5 @@
+import { VFX_PARAM } from '../../../constants';
+
 export interface Particle {
     active: boolean; 
     x: number;
@@ -96,6 +98,7 @@ export class VFXStateManager {
         p.active = false;
         p.image = undefined;
         p.texture = undefined;
+        if (this.particlePool.length >= VFX_PARAM.MAX_POOL_SIZE) return;
         this.particlePool.push(p);
     }
     public reset() {

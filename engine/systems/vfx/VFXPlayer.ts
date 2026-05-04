@@ -10,7 +10,7 @@ import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
-import { ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
+import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM } from "../../../constants";
 
 const rnd = (r: Range | number | undefined): number => {
     if (r === undefined) return 0;
@@ -38,6 +38,17 @@ export class VFXPlayer {
         }
     }
     private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
+        // ── [PERF] 全域粒子上限 guard ────────────────────────────────────
+        if (system.state.particles.length >= VFX_PARAM.MAX_PARTICLES) return;
+
+        // ── [PERF] Hazard Field locked 粒子：每格上限 HAZARD_FIELD_MAX_PER_CELL ──
+        if (config.locked && config.lockReason === 'HAZARD_FIELD' && hexKey) {
+            const existing = system.state.particles.filter(
+                p => p.locked && p.lockReason === 'HAZARD_FIELD' && p.hexKey === hexKey
+            ).length;
+            if (existing >= VFX_PARAM.HAZARD_FIELD_MAX_PER_CELL) return;
+        }
+
         const count = Math.floor(rnd(config.count));
         const isGroundType = VFX_GROUND_TYPES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;

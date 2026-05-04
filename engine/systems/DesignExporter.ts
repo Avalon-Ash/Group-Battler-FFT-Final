@@ -114,7 +114,13 @@ export class DesignExporter {
         s += "- Shield Hit Branching (護盾斷言分支): `DAMAGE` 事件新增 `absorbed` 欄位。當結算偵測到護盾吸收時，視覺管線自動轉向 `FX_HIT_SHIELD_SPARK` 專屬資產（包含 `HEX_SHARD` 與 `RIPPLE` 紋理），阻斷常規血花與金屬火花。\n";
         s += "- 投射物動態視覺軌跡 (Projectile Motion Blur & Adaptive Trails): \n";
         s += "  - 投射物實體會在繪圖管線中依據速度計算倍率 (Velocity Stretch)，製造出運動模糊錯覺。\n";
-        s += "  - 尾跡採樣採用基於空間的「常數距離推算 (Adaptive Step)」，保證在任何環境下尾跡粒子仍然保持 100% 的綿密連接。\n\n";
+        s += "  - 尾跡採樣採用基於空間的「常數距離推算 (Adaptive Step)」，保證在任何環境下尾跡粒子仍然保持 100% 的綿密連接。\n";
+        s += "- § VFX 粒子預算 (Particle Budget):\n";
+        s += "  - MAX_PARTICLES: 全域粒子硬上限，VFXPlayer spawn 前檢查，防止極端情況下的渲染崩潰。\n";
+        s += "  - MAX_POOL_SIZE: pool 回收上限，releaseParticle 檢查，避免物件池無限制擴張導致記憶體占用。\n";
+        s += "  - HAZARD_FIELD_MAX_PER_CELL: 每格 locked Hazard Field 粒子上限，確保 Hazard 視覺清晰且不造成局部過度渲染。\n";
+        s += "  - IDLE_VFX_CULL_DIST_SQ: AgentVFXSystem idle 粒子的距離剔除閾值。超出攝影機焦點（導演目標）半徑的單位不生成背景粒子。\n";
+        s += "  - 所有數值集中於 constants.ts VFX_PARAM，為唯一修改入口。\n\n";
         s += "```\n";
         s += "GameEvent (Logic) -> EventVFXMapper (Adapter) -> VFXSystem (State)\n";
         s += "                                                       |\n";
