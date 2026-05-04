@@ -1,6 +1,30 @@
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  InspectorConstants — Inspector UI 顯示常數與欄位定義             ║
+// ║                                                                  ║
+// ║  [VISUAL SSOT 分工]                                              ║
+// ║  技能特效 (Skill VFX) ─────────────── VISUAL_OPTIONS (本檔)      ║
+// ║  單位外觀 (Unit Appearance) ────────── data/units/appearance/    ║
+// ║                                        └ UNIT_APPEARANCE (SSOT) ║
+// ║                                          RoleAppearance 欄位：   ║
+// ║                                          bodyWidth, bodyHeight,  ║
+// ║                                          headRadius, primaryColor║
+// ║                                          secondaryColor,         ║
+// ║                                          accentColor, capeColor, ║
+// ║                                          weaponType              ║
+// ║                                                                  ║
+// ║  修改流程：                                                       ║
+// ║    調整顏色/尺寸/武器類型 → data/units/appearance/*.ts            ║
+// ║    調整技能特效類型      → VISUAL_OPTIONS (本檔)                  ║
+// ║    調整繪製方式/動畫     → engine/renderers/units/factions/       ║
+// ║                           engine/renderers/units/painters/       ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { Role, Team, AnimState, AIState, ActionState } from '../../types';
 import { PALETTE } from '../../constants';
+
+// [APPEARANCE SSOT] 單位外觀唯一資料源路徑，供 Inspector UI 說明文字使用
+export const UNIT_APPEARANCE_SOURCE = 'data/units/appearance/index.ts';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: 'T-01 (TANK)',    color: 'text-amber-400', border: 'border-amber-500' },
@@ -68,6 +92,9 @@ export const ANIM_STATUS_MAP: Record<string, string> = {
 export const CC_OPTIONS = ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'GRAVITY', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD'];
 export const EFFECT_OPTIONS = ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'];
 export const ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'];
+
+// [VISUAL SSOT] 此清單僅管理「技能特效 VFX ID」，不管理單位外觀。
+// 單位外觀（身體顏色/尺寸/武器）請至 data/units/appearance/ 修改。
 export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'HEX_LOCK'];
 
 export const SKILL_FIELD_GROUPS = [

@@ -3,11 +3,17 @@ import { Skill } from "../../types";
 import { VFX_REGISTRY } from "../../data/vfx/VFXRegistry";
 import { PROJECTILE_VISUALS } from "../../data/vfx/projectile_visuals";
 
+let lastFingerprint = "";
+
 /**
  * Validates that all skills have correct VFX/Projectile bindings at startup.
  * Prevents silent failures where a skill spawns but shows nothing.
  */
 export function validateAllVFXBindings(skills: Skill[]) {
+    // [ARCH] Use a simple fingerprint to prevent log spam if this is called repeatedly in hot paths
+    const currentFingerprint = skills.map(s => s.id).sort().join('|');
+    const isNewSet = currentFingerprint !== lastFingerprint;
+
     const errors: string[] = [];
     const REGISTRY_KEYS = new Set(Object.keys(VFX_REGISTRY));
     const PROJ_KEYS = new Set(Object.keys(PROJECTILE_VISUALS));
@@ -36,10 +42,17 @@ export function validateAllVFXBindings(skills: Skill[]) {
     }
 
     if (errors.length > 0) {
+        // [ARCH] Errors should always be logged to ensure visibility of broken bindings
         console.error('=== 🚨 VFX BINDING VALIDATION FAILED ===\n' + errors.join('\n'));
+        lastFingerprint = currentFingerprint; // Still update to avoid spamming the same error if it doesn't change? 
+        // No, maybe errors SHOULD repeat if they are fatal. 
+        // But the user specifically asked about the success log.
         return false;
     } else {
-        console.log('✅ VFX Binding: All skills successfully validated.');
+        if (isNewSet) {
+            console.log('✅ VFX Binding: All skills successfully validated.');
+            lastFingerprint = currentFingerprint;
+        }
         return true;
     }
 }

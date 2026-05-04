@@ -123,6 +123,26 @@ export class DesignExporter {
         s += "- EnvironmentFactory: Procedural Obstacles (Tree, Crystal, Rock)\n";
         s += "- VFXFactory: Texture Generation (Noise, Gradients)\n";
         s += "- UIFactory: Skill Icons, Status Hexes\n\n";
+        
+        s += "## 7-A. 單位外觀 SSOT (Unit Appearance Registry)\n\n";
+        s += "說明：自 v10.0 起，所有單位外觀資料由 `data/units/appearance/` 統一管理，\n";
+        s += "Faction Renderer 不再持有任何 hardcoded 顏色或尺寸。\n\n";
+        s += "SSOT 入口: `data/units/appearance/index.ts` → `UNIT_APPEARANCE`\n\n";
+        s += "| 欄位           | 型別                              | 用途                         |\n";
+        s += "|----------------|-----------------------------------|------------------------------|\n";
+        s += "| bodyWidth      | number                            | 身體最大寬度（canvas unit）  |\n";
+        s += "| bodyHeight     | number                            | 身體高度（canvas unit）      |\n";
+        s += "| headRadius     | number                            | 頭部半徑                     |\n";
+        s += "| primaryColor   | string (hex)                      | 主色：裝甲/主體              |\n";
+        s += "| secondaryColor | string (hex)                      | 次色：武器/邊框              |\n";
+        s += "| accentColor    | string (hex)                      | 強調色：眼睛/發光            |\n";
+        s += "| weaponType     | 'sword'|'spear'|'bow'|'staff'|... | 武器形狀路由                 |\n";
+        s += "| capeColor      | string (hex) | null              | 披風色；null = 無披風        |\n\n";
+        s += "映射方式: UNIT_APPEARANCE[Team.BLUE | Team.RED].roles[Role.*]\n\n";
+        s += "修改流程:\n";
+        s += "  調整顏色/尺寸/風格  → data/units/appearance/imperial.ts 或 covenant.ts\n";
+        s += "  調整繪製方式/動畫   → engine/renderers/units/factions/\n";
+        s += "                        engine/renderers/units/painters/\n\n";
 
         s += "## 8. AI 戰術評估與大逃殺規避邏輯 (AI Evasion & Survival System)\n\n";
         s += "- 行為狀態 SSOT 架構 (ActionState SSOT Architecture):\n";

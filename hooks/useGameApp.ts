@@ -7,7 +7,11 @@ import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 
 export const useGameApp = () => {
-    const engineRef = useRef(new GameEngine());
+    // [ARCH] Use a lazy initializer for the ref to avoid 'new GameEngine()' on every render
+    const engineRef = useRef<GameEngine>(null as any);
+    if (!engineRef.current) {
+        engineRef.current = new GameEngine();
+    }
     
     const [session, setSession] = useState({
         isPlaying: false,

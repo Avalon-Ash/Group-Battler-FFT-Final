@@ -54,6 +54,21 @@ export class RenderSpec {
         s += "說明：InspectorConstants.ts 中的 VISUAL_OPTIONS 是設計師填入技能視覺的入口。\n";
         s += "每個 ID 在 VFX 管線中對應固定的 Painter 路徑，填錯 ID 不會報錯但會靜默失效。\n\n";
 
+        s += "[SSOT 邊界說明]\n";
+        s += "本表管理「技能特效 VFX」的 Painter 路由，屬於 Skill-level 視覺。\n";
+        s += "「單位本體外觀」（顏色/尺寸/武器形狀/披風）不在此範疇，\n";
+        s += "請至 data/units/appearance/ 查閱與修改：\n\n";
+        s += "  SSOT 入口 : data/units/appearance/index.ts → UNIT_APPEARANCE\n";
+        s += "  介面定義  : data/units/appearance/types.ts → RoleAppearance\n";
+        s += "  欄位      : bodyWidth, bodyHeight, headRadius,\n";
+        s += "              primaryColor, secondaryColor, accentColor,\n";
+        s += "              weaponType, capeColor\n";
+        s += "  映射方式  : UNIT_APPEARANCE[Team.*].roles[Role.*]\n\n";
+        s += "修改流程：\n";
+        s += "  調整外觀顏色/尺寸  → data/units/appearance/imperial.ts 或 covenant.ts\n";
+        s += "  調整 Painter 繪法  → engine/renderers/units/factions/\n";
+        s += "                       engine/renderers/units/painters/\n\n";
+
         s += "| Visual ID      | Painter 路徑         | 渲染分類     | 備註 |\n";
         s += "|----------------|----------------------|--------------|------|\n";
         s += "| SLASH          | BillboardPainter     | isGround     | 揮砍弧光 |\n";
@@ -96,6 +111,8 @@ export class RenderSpec {
         s += "4. 提交端（Strategy/System）：調用 renderList.next()，設定 op.type 與所有必要欄位\n";
         s += "5. RenderDispatcher.ts：新增對應的 case，呼叫正確的 Painter/Renderer\n";
         s += "6. RenderSpec.ts（本文件）：更新章節 1 的層序總表\n";
+        s += "※ 若新增類型涉及單位外觀（非 VFX），請改至 data/units/appearance/ 建立新的\n";
+        s += "  RoleAppearance 欄位，而非在此新增 RenderOpType。\n";
 
         return s;
     }
