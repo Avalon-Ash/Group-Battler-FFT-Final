@@ -4,6 +4,7 @@ import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
+import { PointerProjector } from '../engine/math/PointerProjector';
 interface GameInputProps {
     canvasRef: MutableRefObject<HTMLCanvasElement | null>;
     engine: GameEngine;
@@ -32,23 +33,22 @@ export const useGameInput = (props: GameInputProps) => {
     const activePointers = useRef<Set<number>>(new Set());
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
     useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
-    const getHexFromCoords = (sx: number, sy: number) => {
+    
+    const getHexFromEvent = (clientX: number, clientY: number) => {
         const cvs = canvasRef.current;
         const renderer = rendererRef.current;
         if (!cvs || !renderer) return null;
         
-        const dpr = window.devicePixelRatio || 1;
-        // sx/sy are CSS coordinates. We pass the canvas resolution for proper mapping.
-        // GameRenderer.getHexAtScreenPoint handles the coordinate transformation.
-        return renderer.getHexAtScreenPoint(
-            sx * dpr,
-            sy * dpr,
-            cvs.width,   // drawing resolution (device pixels)
-            cvs.height,  // drawing resolution (device pixels)
+        return PointerProjector.cssToHex(
+            clientX,
+            clientY,
+            cvs,
             cameraRef.current,
-            engine
+            engine,
+            renderer.grid.spatialCache
         );
     };
+
     const handlePointerDown = (e: PointerEvent) => {
         activePointers.current.add(e.pointerId);
         if (activePointers.current.size > 1) { interactionMode.current = 'IDLE'; return; }
@@ -60,7 +60,7 @@ export const useGameInput = (props: GameInputProps) => {
         pressStartPos.current = { x: sx, y: sy };
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
-        const h = getHexFromCoords(sx, sy);
+        const h = getHexFromEvent(e.clientX, e.clientY);
         const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
         
         if (agent) { 
@@ -83,7 +83,7 @@ export const useGameInput = (props: GameInputProps) => {
         const rect = cvs.getBoundingClientRect();
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         const dx = sx - lastPointerPos.current.x, dy = sy - lastPointerPos.current.y;
-        const h = getHexFromCoords(sx, sy);
+        const h = getHexFromEvent(e.clientX, e.clientY);
         hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
@@ -112,28 +112,31 @@ export const useGameInput = (props: GameInputProps) => {
             cvs.style.cursor = 'move'; 
         }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
-            // [FIX] 不使用滑鼠螢幕座標反投影，而是直接對齊 hover 格子的世界像素中心。
-            // 這樣棋座永遠貼合當前 hover 格，不會懸空或埋入地形。
-            // 若滑鼠不在任何有效格子上，則保留上一個有效格的位置不動（不閃爍）。
             if (h && engine.isValid(h.q, h.r)) {
-                const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
-                pressedAgentRef.current.px = p.x;
-                pressedAgentRef.current.py = p.y;
-                pressedAgentRef.current.dragOverQ = h.q; // [FIX] Store drag hover for elevation
-                pressedAgentRef.current.dragOverR = h.r; // [FIX]
+                const snap = PointerProjector.hexToWorldSnap(
+                    h.q, h.r, engine.mapConfig,
+                    (q, r) => engine.getTerrainHeight(q, r)
+                );
+                const a = pressedAgentRef.current;
+                a.px = snap.worldX;
+                a.py = snap.worldY;
+                a.dragOverQ = h.q;   
+                a.dragOverR = h.r;
             }
             cvs.style.cursor = 'grabbing';
         }
         else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
-            // [FIX] Bug B: Obstacle dragging position
             if (h && engine.isValid(h.q, h.r)) {
-                const p = HexUtils.toPx(h.q, h.r, engine.mapConfig);
-                draggedObstacleRef.current.px = p.x;
-                draggedObstacleRef.current.py = p.y;
+                const snap = PointerProjector.hexToWorldSnap(
+                    h.q, h.r, engine.mapConfig,
+                    (q, r) => engine.getTerrainHeight(q, r)
+                );
+                draggedObstacleRef.current.px = snap.worldX;
+                draggedObstacleRef.current.py = snap.worldY;
+                draggedObstacleRef.current.terrainHeight = snap.terrainHeight;
                 draggedObstacleRef.current.hoverQ = h.q;
                 draggedObstacleRef.current.hoverR = h.r;
             }
-            // Sync state for re-render
             setDraggedObstacle({ ...draggedObstacleRef.current });
             cvs.style.cursor = 'grabbing';
         }
@@ -147,9 +150,7 @@ export const useGameInput = (props: GameInputProps) => {
         if (interactionMode.current === 'DOWN') onSelect(pressedAgentRef.current);
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const a = pressedAgentRef.current;
-            const cvs = canvasRef.current!;
-            const rect = cvs.getBoundingClientRect();
-            const h = getHexFromCoords(e.clientX - rect.left, e.clientY - rect.top);
+            const h = getHexFromEvent(e.clientX, e.clientY);
 
             if (h && engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, a.id)) { 
                 engine.updateAgentPosition(a, h.q, h.r); 
@@ -165,7 +166,7 @@ export const useGameInput = (props: GameInputProps) => {
             a.dragOverQ = null;
             a.dragOverR = null;
         } else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
-            const h = getHexFromCoords(e.clientX - cvs.getBoundingClientRect().left, e.clientY - cvs.getBoundingClientRect().top);
+            const h = getHexFromEvent(e.clientX, e.clientY);
             if (h && engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r)) engine.map.setObstacle(h.q, h.r, draggedObstacleRef.current.type);
             else engine.map.setObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR, draggedObstacleRef.current.type);
         }

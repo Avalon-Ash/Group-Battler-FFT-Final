@@ -22,6 +22,8 @@ import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
 import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
 
+import { PointerProjector } from "./math/PointerProjector";
+
 export { Camera };
 
 export class GameRenderer {
@@ -90,11 +92,18 @@ export class GameRenderer {
     
     public getTerrainHeight(q: number, r: number, engine: GameEngine): number { return this.grid.getTerrainHeight(q, r, engine); }
     
-    public getHexAtScreenPoint(mouseX: number, mouseY: number, width: number, height: number, camera: Camera, engine: GameEngine): Hex | null {
-        const cx = width / 2, cy = height / 2;
-        const wx = (mouseX - cx) / camera.zoom + camera.x;
-        const wy = (mouseY - cy) / camera.zoom + camera.y;
-        return this.grid.getHexAtWorldPoint(wx, wy, engine);
+    public getHexAtScreenPoint(
+        canvasX: number, 
+        canvasY: number, 
+        canvasWidth: number, 
+        canvasHeight: number, 
+        camera: Camera, 
+        engine: GameEngine
+    ): Hex | null {
+        const worldPt = PointerProjector.canvasToWorld(
+            canvasX, canvasY, canvasWidth, canvasHeight, camera
+        );
+        return this.grid.getHexAtWorldPoint(worldPt.x, worldPt.y, engine);
     }
 
     public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {

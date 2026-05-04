@@ -27,6 +27,10 @@ export class GridSystem {
         this.cache.reset();
     }
 
+    public get spatialCache(): GridCache {
+        return this.cache;
+    }
+
     public getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
         if(engine) return engine.getTerrainHeight(q, r);
         return 0; 
