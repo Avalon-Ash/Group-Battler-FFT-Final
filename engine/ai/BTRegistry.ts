@@ -91,6 +91,12 @@ export const BTConditions: Record<string, BTConditionFn> = {
         return false;
     },
 
+    "HasEscapeRoute": (a, engine) => {
+        // [ARCH] 前置檢查：避免 EscapeWarning 在無路況下無限循環
+        // 委託給 Pathfinder.canEscape 做 O(1) 鄰格掃描
+        return engine.movement.pathfinder.canEscape(a, engine);
+    },
+
     "IsInWarningZoneOrEvading": (a, engine) =>
         BTConditions["IsEvading"](a, engine) ||
         BTConditions["IsInWarningZone"](a, engine),
@@ -239,6 +245,22 @@ export const BTActions: Record<string, BTActionFn> = {
             if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                 a.aiState = AIState.IDLE;
             }
+            return NodeState.FAILURE;
+        }
+
+        // [FIX] 前置：若無任何安全鄰格可逃，直接放棄逃生分支，讓戰鬥分支接管
+        // 避免「被 AOE 包圍 → findPathToSafety 永遠 null → 無限逃生迴圈」
+        if (inDanger && !BTConditions["HasEscapeRoute"](a, engine)) {
+            // 若已在移動中（慣性），維持 RUNNING 讓它跑完
+            if (a.isMoving) {
+                a.aiState = AIState.EVADING_URGENT;
+                a.actionState = ActionState.EVADING;
+                return NodeState.RUNNING;
+            }
+            // 靜止時：直接宣告無路可退，觸發困獸之鬥
+            a.aiState = AIState.LAST_STAND_PUSH;
+            engine.log(a, 'DECISION', '生存：無路可逃', '', 
+                '所有鄰格均為危險格或不可通行，放棄逃生，轉入困獸之鬥');
             return NodeState.FAILURE;
         }
 

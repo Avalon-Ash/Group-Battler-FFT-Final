@@ -201,14 +201,17 @@ export class Pathfinder {
                 const nHex = HexUtils.unhash(neighborH);
                 const nKey = HexUtils.key(nHex);
 
-                // [ZONE-EXCLUSION] Hard-block warning tiles from escape routing
-                if (spatial.isWarningTile(nKey)) continue;
+                let moveCost = 1.0;
+
+                // [ARCH] 允許路徑穿越警告格（高成本），但目標格的安全判定仍在外層 isSafe 守門
+                // 解決單位被危險格完全包圍時搜索空間歸零的問題
+                if (spatial.isWarningTile(nKey)) {
+                    moveCost += 30; // 極高懲罰，迫使路徑優先選非警告格，但不硬封鎖
+                }
 
                 // [ZONE-EXCLUSION] Hard-block tiles at or below current shrink level
                 const nDepth = spatial.getTileDepth(nHex.q, nHex.r);
                 if (nDepth !== -1 && nDepth <= spatial.getCurrentShrinkLevel()) continue;
-
-                let moveCost = 1.0;
 
                 // 單位碰撞判定 (逃生時盡量避開單位，避免死鎖)
                 const occ = spatial.getAgentHash(neighborH);
@@ -329,5 +332,37 @@ export class Pathfinder {
             curr = this._cameFrom.get(curr) || -1;
         }
         return path.reverse();
+    }
+
+    /**
+     * [ARCH] canEscape：O(1) 前置判斷，避免 findPathToSafety 在無路況下做無用的完整搜索
+     * 快速判斷單位當前位置是否有任何一格可通行的安全鄰格。
+     * 不做完整 A*，只掃描 6 個鄰格，O(1) 複雜度。
+     * 用於 BTCondition HasEscapeRoute 的前置判斷。
+     */
+    public canEscape(agent: Agent, spatial: SpatialProvider): boolean {
+        for (let i = 0; i < 6; i++) {
+            const neighborH = HexUtils.hash(agent.q, agent.r) + NEIGHBOR_HASH_OFFSETS[i];
+            if (!spatial.isValidHash(neighborH)) continue;
+
+            // 障礙物檢查
+            if (spatial.hasObstacleHash(neighborH)) {
+                const type = spatial.getObstacleTypeHash(neighborH);
+                const def = OBSTACLE_DB[type || 'WALL'];
+                if (agent.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement) continue;
+            }
+
+            // 單位佔用檢查（逃生不能走有人的格）
+            const occ = spatial.getAgentHash(neighborH);
+            if (occ && occ.hp > 0 && occ !== agent) continue;
+
+            const nHex = HexUtils.unhash(neighborH);
+            const nKey = HexUtils.key(nHex);
+
+            // 安全格定義：非警告格 + 無敵方 Hazard
+            const hazard = spatial.getSpatialHazardsAt(nHex.q, nHex.r).find(h => h.team !== agent.team);
+            if (!spatial.isWarningTile(nKey) && !hazard) return true;
+        }
+        return false;
     }
 }
