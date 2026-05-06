@@ -1,9 +1,10 @@
 
 import { Agent } from "../../../game";
-import { ISO_SCALE_Y } from "../../../../constants";
+import { ISO_SCALE_Y, DOT_COLORS } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../types";
+import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
 
 // 數學規範：CC 地面層偏置量
 const CC_GROUND_BIAS = -5;
@@ -56,8 +57,8 @@ export const GroundEffectPainter = {
         // 2. 持續傷害 (DoT) - 顯眼的上升氣流
         if (agent.dotTimer > 0 && agent.dotDmg > 0) {
             // Determine color based on hazard guessing (Green for generic/poison, Red for fire)
-            const color = '#a3e635'; // Lime Green default
-            const secondary = '#4d7c0f';
+            const color = (DOT_COLORS as any)[agent.dotType] || '#a3e635'; 
+            const secondary = agent.dotType === 'BURN' ? '#991b1b' : '#4d7c0f';
 
             ctx.save();
             ctx.translate(x, groundY);
@@ -138,6 +139,22 @@ export const GroundEffectPainter = {
                 ctx.restore();
             }
             ctx.restore();
+        }
+
+        // 4. POLYMORPH / FROZEN 地板光暈
+        if (agent.visualStatus === 'POLYMORPH' || agent.visualStatus === 'FROZEN') {
+            const def = STATUS_VISUALS[agent.visualStatus];
+            if (def && def.floorColor) {
+                ctx.save();
+                ctx.translate(x, groundY);
+                ctx.globalCompositeOperation = 'screen';
+                ctx.globalAlpha = 0.5;
+                ctx.fillStyle = def.floorColor;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, 24, 12, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         }
     }
 };

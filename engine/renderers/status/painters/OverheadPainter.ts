@@ -11,6 +11,9 @@ export const OverheadPainter = {
         else if (agent.tauntTimer > 0) type = 'TAUNT';
         else if (agent.silenceTimer > 0) type = 'SILENCE';
         else if (agent.blindTimer > 0) type = 'BLIND';
+        else if (agent.visualStatus === 'INVINCIBLE') type = 'INVINCIBLE';
+        else if (agent.visualStatus === 'POLYMORPH') type = 'POLYMORPH';
+        else if (agent.visualStatus === 'STASIS') type = 'INVINCIBLE';
 
         if (!type) return;
 

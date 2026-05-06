@@ -38,7 +38,9 @@ export class StatusOrchestrator {
             // 1. 放逐/凝滯 (最高級狀態覆蓋)
             if (agent.banished) {
                 StateModelPainter.drawBanishment(ctx, agent, px, bodyCenterY, globalTime);
-                continue; // 處於放逐狀態時通常不顯示其他 UI 特效
+                // 放逐狀態下仍允許地面 CC 效果（Root/DoT）繼續渲染，僅跳過 Shield 和 Overhead
+                GroundEffectPainter.draw(ctx, agent, px, visualFloorY - pz, globalTime, layout);
+                continue; 
             }
 
             // 2. 地面鎖定效果 (Root/Burning)

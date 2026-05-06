@@ -146,6 +146,17 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         particleEffect: 'FX_STATUS_ROOT_LOOP', // Use dust loop as footprints
         particleInterval: 0.1
     },
+    'INVINCIBLE': {
+        id: 'INVINCIBLE', label: '無敵',
+        primaryColor: '#fde68a',
+        secondaryColor: '#f59e0b',
+        iconShape: 'HEX_HALO',
+        overheadType: 'NONE',
+        floorColor: '#fde68a',
+        floorOpacity: 0.4,
+        particleEffect: 'FX_STATUS_STUN_LOOP',
+        particleInterval: 0.2
+    },
     'DEFAULT': {
         id: 'DEFAULT', label: '狀態',
         primaryColor: '#fff', secondaryColor: '#000',
