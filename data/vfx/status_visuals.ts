@@ -88,6 +88,7 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         id: 'REGEN', label: '再生',
         primaryColor: '#86efac', secondaryColor: '#15803d',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
+        floorColor: 'rgba(134, 239, 172, 0.35)',
         particleEffect: 'FX_STATUS_REGEN_LOOP', 
         particleInterval: 0.4
     },
@@ -107,9 +108,10 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
     },
     'STASIS': {
         id: 'STASIS', label: '凝滯',
-        primaryColor: '#fef08a', secondaryColor: '#eab308',
-        iconShape: 'HEX_PRISM', overheadType: 'NONE',
-        floorColor: '#fde047', floorOpacity: 0.5
+        primaryColor: '#fef08a', secondaryColor: '#fde047',
+        iconShape: 'HEX_HALO', overheadType: 'NONE',
+        floorColor: 'rgba(254, 240, 138, 0.35)', floorOpacity: 0.5,
+        particleEffect: 'FREEZE_LOOP'
     },
     'VULNERABLE': {
         id: 'VULNERABLE', label: '虛弱',

@@ -30,6 +30,8 @@ export class ControlSystem {
             if (agent.polymorphTimer <= 0) {
                 agent.polymorphTimer = 0;
                 if (agent.visualStatus === 'POLYMORPH') agent.visualStatus = 'NONE';
+            } else {
+                agent.visualStatus = 'POLYMORPH';
             }
         }
 
@@ -39,6 +41,8 @@ export class ControlSystem {
             if (agent.invincibleTimer <= 0) {
                 agent.invincibleTimer = 0;
                 if (agent.visualStatus === 'INVINCIBLE') agent.visualStatus = 'NONE';
+            } else {
+                agent.visualStatus = 'INVINCIBLE';
             }
         }
         if (agent.tauntTimer > 0) {

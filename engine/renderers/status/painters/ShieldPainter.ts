@@ -15,10 +15,9 @@ export const ShieldPainter = {
         const isBlue = agent.team === Team.BLUE;
         const shieldDef = STATUS_VISUALS['SHIELD'];
         
-        // 保留 team 差異：藍隊用 primary，紅隊用 secondary（維持視覺區分）
-        const color = isBlue
-            ? (shieldDef?.primaryColor || '#60a5fa')
-            : (shieldDef?.secondaryColor || '#ef4444');
+        // Task C1: 主色讀 STATUS_VISUALS，team 色用於描邊
+        const baseColor = shieldDef?.primaryColor || '#bae6fd';
+        const teamColor = isBlue ? '#60a5fa' : '#ef4444';
         
         // 護盾強度視覺映射
         const pct = Math.min(1, agent.shield / (agent.maxShield || 100));
@@ -36,10 +35,10 @@ export const ShieldPainter = {
         
         ctx.globalCompositeOperation = 'screen';
         // [FIX] Pass layout to VolumePainter
-        VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, color, pulse, 'GRADIENT_FADE', layout);
+        VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, baseColor, pulse, 'GRADIENT_FADE', layout);
         
         // 邊緣掃描線 (TA 效果) - Enhanced with double scanlines
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = teamColor;
         ctx.lineWidth = 2; // Thicker lines
         
         // Primary Scanline
@@ -61,7 +60,7 @@ export const ShieldPainter = {
         // Shield Top/Bottom Caps for definition
         ctx.globalAlpha = 0.4;
         ctx.lineWidth = 1;
-        ctx.strokeStyle = color;
+        ctx.strokeStyle = teamColor;
         ctx.beginPath();
         ctx.ellipse(0, -shieldH/2, shieldR, shieldR*0.5, 0, 0, Math.PI*2);
         ctx.stroke();

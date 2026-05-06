@@ -12,11 +12,12 @@ export const OverheadPainter = {
         else if (agent.silenceTimer > 0) type = 'SILENCE';
         else if (agent.blindTimer > 0) type = 'BLIND';
         else if (agent.visualStatus === 'INVINCIBLE') type = 'INVINCIBLE';
-        else if (agent.visualStatus === 'POLYMORPH') type = 'POLYMORPH';
         else if (agent.visualStatus === 'STASIS') type = 'STASIS';
+        else if (agent.visualStatus === 'POLYMORPH') type = 'POLYMORPH';
 
         if (!type) return;
 
+        const def = STATUS_VISUALS[type] || STATUS_VISUALS['DEFAULT'];
         const icon = AssetManager.getStatusIcon(type);
         if (!icon) return;
 
@@ -26,8 +27,7 @@ export const OverheadPainter = {
         ctx.save();
         ctx.translate(x, drawY);
         
-        const def = STATUS_VISUALS[type];
-        const color = def?.primaryColor || '#fff';
+        const color = def.primaryColor || '#fff';
         
         ctx.shadowColor = color;
         ctx.shadowBlur = 12;
