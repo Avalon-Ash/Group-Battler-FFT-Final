@@ -131,15 +131,15 @@ export const ImperialRenderer = {
 };
 
 function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
-    const { primaryColor, secondaryColor, accentColor, bodyWidth, bodyHeight, headRadius } = profile;
+    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 0);
     grad.addColorStop(0, secondaryColor); // Use secondary for highlights
     grad.addColorStop(0.5, primaryColor);
-    grad.addColorStop(1, primaryColor);
+    grad.addColorStop(1, deepColor || primaryColor);
     
     ctx.fillStyle = grad;
-    ctx.strokeStyle = accentColor;
+    ctx.strokeStyle = rimColor || accentColor;
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     
@@ -165,7 +165,7 @@ function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.save();
     ctx.translate(0, -50);
     ctx.fillStyle = secondaryColor;
-    ctx.strokeStyle = accentColor;
+    ctx.strokeStyle = rimColor || accentColor;
     ctx.beginPath();
     if (role === Role.TANK) ctx.rect(-10, -12, 20, 18); 
     else ctx.ellipse(0, -2, headRadius, headRadius * 1.2, 0, 0, Math.PI*2);

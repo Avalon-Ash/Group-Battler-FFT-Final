@@ -100,6 +100,9 @@ export const CovenantRenderer = {
         ctx.scale(breatheScaleX, breatheScaleY * hitSquashY);
         ctx.translate(0, 40);
 
+        if (!isSilhouette) {
+            drawCovenantMantle(ctx, t, profile);
+        }
         drawSpikes(ctx, t, profile);
         
         ctx.save();
@@ -132,15 +135,15 @@ export const CovenantRenderer = {
 };
 
 function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
-    const { primaryColor, secondaryColor, accentColor, bodyWidth, bodyHeight, headRadius } = profile;
+    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 10);
     grad.addColorStop(0, primaryColor);
     grad.addColorStop(0.6, accentColor);
-    grad.addColorStop(1, accentColor);
+    grad.addColorStop(1, deepColor || accentColor);
     
     ctx.fillStyle = grad;
-    ctx.strokeStyle = accentColor;
+    ctx.strokeStyle = rimColor || accentColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
     
@@ -162,6 +165,7 @@ function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.save();
     ctx.translate(0, -48);
     ctx.fillStyle = accentColor;
+    ctx.strokeStyle = rimColor || accentColor;
     ctx.beginPath();
     ctx.moveTo(-10, 5); ctx.lineTo(-12, -15); ctx.lineTo(-5, -5); 
     ctx.lineTo(5, -5); ctx.lineTo(12, -15); ctx.lineTo(10, 5);
@@ -178,6 +182,33 @@ function drawSpikes(ctx: CanvasRenderingContext2D, t: number, profile: RoleAppea
     ctx.beginPath();
     ctx.moveTo(-10, 0); ctx.lineTo(-25, -30 + Math.sin(t*5)*2); ctx.lineTo(-15, 0);
     ctx.moveTo(10, 0); ctx.lineTo(20, -25 + Math.cos(t*4)*2); ctx.lineTo(15, 0);
+    ctx.fill();
+    ctx.restore();
+}
+
+/**
+ * drawCovenantMantle — 骨翼肩甲
+ * 替代 Imperial 的流動披風，展現公約的尖銳、骸骨風格。
+ */
+function drawCovenantMantle(ctx: CanvasRenderingContext2D, t: number, profile: RoleAppearance) {
+    ctx.save();
+    ctx.translate(0, -45);
+    ctx.globalAlpha = 0.7;
+    ctx.fillStyle = profile.accentColor;
+    
+    ctx.beginPath();
+    // Left Wing
+    ctx.moveTo(-8, 0);
+    ctx.lineTo(-30, -25);
+    ctx.lineTo(-20, 5);
+    ctx.closePath();
+    
+    // Right Wing
+    ctx.moveTo(8, 0);
+    ctx.lineTo(30, -25);
+    ctx.lineTo(20, 5);
+    ctx.closePath();
+    
     ctx.fill();
     ctx.restore();
 }
