@@ -48,6 +48,11 @@ export class DamageCalculator {
             return result;
         }
 
+        // --- INVINCIBLE: NO DAMAGE ---
+        if (target.invincibleTimer > 0 && !isHeal && !isSupport) {
+            return result;
+        }
+
         // --- LAST STAND: HEAL EMBARGO ---
         if (isLastStand && isHeal) {
             return result; // Explicitly return empty result (0 heal)
@@ -84,8 +89,10 @@ export class DamageCalculator {
 
         // 1. Role Multipliers & Base Logic
         if (!isHeal) {
-            // Ranger: Bonus dmg at max range? (Placeholder logic)
-            // Mage: Bonus vs High Armor? 
+            // Vulnerable check
+            if (target.vulnerableTimer > 0) {
+                base *= 1.35; // 35% bonus damage
+            }
         }
 
         // 2. Execute Logic (斩殺)

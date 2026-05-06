@@ -14,11 +14,12 @@ export const RED_ACTIVE: Skill[] = [
     },
     { 
         id: 'tr_a2', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
-        name: '恐懼怒吼', desc: '範圍恐懼', 
-        range: 0, cast: 0.3, cd: 10.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 40, color: '#7c3aed', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'FEAR', ccDur: 1.5, 
-        visualHitEffect: 'FX_ACTIVE_RED_SHADOW_SCREAM', element: 'VOID'
+        name: '血腥挑釁', desc: '強迫周圍敵人攻擊自己',
+        range: 0, cast: 0.2, cd: 8.0, cost: 35, gain: 0,
+        type: 'AOE', aoeRadius: 2, power: 50, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0,
+        ccType: 'TAUNT', ccDur: 2.5,
+        ccType2: 'SHIELD', ccForce2: 150,
+        visualHitEffect: 'FX_ACTIVE_RED_WAR_STOMP', element: 'PHYSICAL'
     },
     { 
         id: 'tr_a3', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
@@ -114,10 +115,11 @@ export const RED_ACTIVE: Skill[] = [
     },
     { 
         id: 'rr_a4', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
-        name: '箭雨覆蓋', desc: '範圍傷害', 
-        range: 6, cast: 1.0, cd: 10.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 100, color: '#f87171', visual: 'ARROW', projectileSpeed: 1500, 
-        visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'ARROW', element: 'PHYSICAL'
+        name: '毒煙暗箭', desc: '致盲目標', 
+        range: 6, cast: 0.5, cd: 9.0, cost: 35, gain: 0, 
+        type: 'SINGLE', power: 80, color: '#a3e635', visual: 'ARROW', projectileSpeed: 1200, 
+        ccType: 'BLIND', ccDur: 3.0,
+        visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'ARROW', element: 'POISON'
     },
     { 
         id: 'rr_a5', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
@@ -146,17 +148,19 @@ export const RED_ACTIVE: Skill[] = [
     },
     { 
         id: 'mr_a3', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '地獄火球', desc: '小範圍火球', 
-        range: 6, cast: 0.8, cd: 8.0, cost: 40, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 150, color: '#ea580c', visual: 'FIREBALL', projectileSpeed: 800, 
-        visualHitEffect: 'FX_ACTIVE_RED_MAGMA_ERUPTION', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
+        name: '邪能變形', desc: '將目標變為羊形，無法行動',
+        range: 5, cast: 0.8, cd: 14.0, cost: 50, gain: 0,
+        type: 'SINGLE', power: 30, color: '#fbcfe8', visual: 'BEAM', projectileSpeed: 0,
+        ccType: 'POLYMORPH', ccDur: 3.0,
+        specialVisualStatus: 'POLYMORPH',
+        visualHitEffect: 'FX_HIT_RED_SHADOW', element: 'VOID'
     },
     { 
         id: 'mr_a4', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
-        name: '夢魘纏繞', desc: '單體恐懼', 
-        range: 5, cast: 0.5, cd: 10.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 60, color: '#7c3aed', visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'FEAR', ccDur: 1.5,
+        name: '裂甲詛咒', desc: '使目標進入虛弱狀態',
+        range: 5, cast: 0.6, cd: 10.0, cost: 35, gain: 0,
+        type: 'SINGLE', power: 40, color: '#ef4444', visual: 'BOLT', projectileSpeed: 800,
+        ccType: 'VULNERABLE', ccDur: 4.0,
         visualHitEffect: 'FX_HIT_RED_SHADOW', element: 'VOID'
     },
     { 

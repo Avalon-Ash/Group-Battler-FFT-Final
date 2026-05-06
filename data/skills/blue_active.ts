@@ -160,11 +160,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'mb_a5', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '阻絕光牆', desc: '阻擋力場', 
-        range: 0, cast: 0.5, cd: 12.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 80, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 4,
-        visualHitEffect: 'FX_GRID_IMPACT_BLUE', element: 'LIGHTNING'
+        name: '心靈恐懼', desc: '令目標陷入恐懼逃跑',
+        range: 6, cast: 0.5, cd: 11.0, cost: 45, gain: 0,
+        type: 'SINGLE', power: 60, color: '#a855f7', visual: 'BEAM', projectileSpeed: 0,
+        ccType: 'FEAR', ccDur: 2.0,
+        visualHitEffect: 'FX_HIT_BLUE_ARCANE', element: 'ARCANE'
     },
 
     // --- SUPPORT ---
@@ -193,9 +193,11 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'sb_a4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '群體淨化', desc: '群體解除', 
-        range: 0, cast: 0.5, cd: 10.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: -80, color: '#a7f3d0', visual: 'SMASH', projectileSpeed: 0, 
+        name: '量子護盾', desc: '賦予目標短暫無敵',
+        range: 6, cast: 0.4, cd: 16.0, cost: 50, gain: 0,
+        type: 'SINGLE', power: 0, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
+        ccType: 'INVINCIBLE', ccDur: 1.5,
+        specialVisualStatus: 'INVINCIBLE',
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },
     { 

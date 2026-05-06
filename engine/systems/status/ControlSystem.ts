@@ -23,6 +23,7 @@ export class ControlSystem {
         if (agent.rootTimer > 0) agent.rootTimer = Math.max(0, agent.rootTimer - dt);
         if (agent.fearTimer > 0) agent.fearTimer = Math.max(0, agent.fearTimer - dt);
         if (agent.blindTimer > 0) agent.blindTimer = Math.max(0, agent.blindTimer - dt);
+        if (agent.vulnerableTimer > 0) agent.vulnerableTimer = Math.max(0, agent.vulnerableTimer - dt);
         // POLYMORPH timer 清除
         if (agent.polymorphTimer !== undefined && agent.polymorphTimer > 0) {
             agent.polymorphTimer -= dt;

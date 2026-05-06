@@ -70,6 +70,7 @@ export class Agent {
 
     public polymorphTimer: number = 0;
     public invincibleTimer: number = 0;
+    public vulnerableTimer: number = 0;
 
     public banished: boolean = false;
 
@@ -215,6 +216,7 @@ export class Agent {
         this.silenceMax = 0;
         this.polymorphTimer = 0;
         this.invincibleTimer = 0;
+        this.vulnerableTimer = 0;
         this.rootTimer = 0;
         this.fearTimer = 0;
         this.tauntTimer = 0;

@@ -18,8 +18,8 @@ export const CCManager = {
     ) {
         if (!type || type === 'NONE') return;
 
-        const isBuff = ['SHIELD', 'HOT'].includes(type);
-        const isDebuff = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT', 'KNOCKBACK', 'PULL', 'DOT', 'BLIND'].includes(type);
+        const isBuff = ['SHIELD', 'HOT', 'INVINCIBLE'].includes(type);
+        const isDebuff = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT', 'KNOCKBACK', 'PULL', 'DOT', 'BLIND', 'POLYMORPH', 'VULNERABLE'].includes(type);
 
         if (isBuff && source.team !== target.team) return;
         if (isDebuff && source.team === target.team) return;
@@ -135,6 +135,24 @@ export const CCManager = {
             case 'BLIND':
                 if (effectiveDuration > target.blindTimer) target.blindTimer = effectiveDuration;
                 statusText = "致盲"; statusColor = "#cbd5e1";
+                break;
+
+            case 'POLYMORPH':
+                if (effectiveDuration > target.polymorphTimer) target.polymorphTimer = effectiveDuration;
+                target.isMoving = false;
+                statusText = "變羊"; statusColor = "#fbcfe8";
+                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                break;
+
+            case 'INVINCIBLE':
+                if (effectiveDuration > target.invincibleTimer) target.invincibleTimer = effectiveDuration;
+                statusText = "無敵"; statusColor = "#fde68a";
+                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                break;
+
+            case 'VULNERABLE':
+                if (effectiveDuration > target.vulnerableTimer) target.vulnerableTimer = effectiveDuration;
+                statusText = "虛弱"; statusColor = "#ef4444";
                 break;
 
             case 'SHIELD':

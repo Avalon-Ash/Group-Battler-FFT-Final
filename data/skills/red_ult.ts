@@ -162,12 +162,12 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
-        name: '虛空降臨', desc: '召喚傳送門', 
-        range: 6, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 500, color: '#581c87', 
-        visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SILENCE', ccDur: 3.0,
-        visualHitEffect: 'FX_ULT_RED_VOID_PORTAL'
+        name: '時間凝結', desc: '將目標凝滯於時間中',
+        range: 6, cast: 1.0, cd: 5.0, cost: 100, gain: 0,
+        type: 'SINGLE', power: 200, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
+        ccType: 'BANISH', ccDur: 3.0,
+        specialVisualStatus: 'STASIS',
+        visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'
     },
     { 
         id: 'mr_u4', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
@@ -208,12 +208,11 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'sr_u3', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
-        name: '群體恐慌', desc: '全場群控', 
-        range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 10, power: 100, color: '#4c1d95', 
-        visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'FEAR', ccDur: 2.0,
-        visualHitEffect: 'FX_ULT_RED_VOODOO'
+        name: '靈魂放逐', desc: '將目標逐出戰場短暫消失',
+        range: 7, cast: 1.0, cd: 5.0, cost: 100, gain: 0,
+        type: 'SINGLE', power: 0, color: '#c084fc', visual: 'BEAM', projectileSpeed: 0,
+        ccType: 'BANISH', ccDur: 4.0,
+        visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'
     },
     { 
         id: 'sr_u4', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
