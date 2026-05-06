@@ -23,8 +23,23 @@ export class ControlSystem {
         if (agent.rootTimer > 0) agent.rootTimer = Math.max(0, agent.rootTimer - dt);
         if (agent.fearTimer > 0) agent.fearTimer = Math.max(0, agent.fearTimer - dt);
         if (agent.blindTimer > 0) agent.blindTimer = Math.max(0, agent.blindTimer - dt);
-        if (agent.polymorphTimer > 0) agent.polymorphTimer = Math.max(0, agent.polymorphTimer - dt);
-        if (agent.invincibleTimer > 0) agent.invincibleTimer = Math.max(0, agent.invincibleTimer - dt);
+        // POLYMORPH timer 清除
+        if (agent.polymorphTimer !== undefined && agent.polymorphTimer > 0) {
+            agent.polymorphTimer -= dt;
+            if (agent.polymorphTimer <= 0) {
+                agent.polymorphTimer = 0;
+                if (agent.visualStatus === 'POLYMORPH') agent.visualStatus = 'NONE';
+            }
+        }
+
+        // INVINCIBLE timer 清除
+        if (agent.invincibleTimer !== undefined && agent.invincibleTimer > 0) {
+            agent.invincibleTimer -= dt;
+            if (agent.invincibleTimer <= 0) {
+                agent.invincibleTimer = 0;
+                if (agent.visualStatus === 'INVINCIBLE') agent.visualStatus = 'NONE';
+            }
+        }
         if (agent.tauntTimer > 0) {
             agent.tauntTimer = Math.max(0, agent.tauntTimer - dt);
             if (agent.tauntTimer <= 0) agent.tauntTargetId = null;
@@ -60,16 +75,6 @@ export class ControlSystem {
 
         if (agent.fearMoveTimer > 0) agent.fearMoveTimer = Math.max(0, agent.fearMoveTimer - dt);
         
-        // State Logic: Polymorph
-        if (agent.polymorphTimer <= 0 && agent.visualStatus === 'POLYMORPH') {
-            agent.visualStatus = 'NONE';
-        }
-
-        // State Logic: Invincible
-        if (agent.invincibleTimer <= 0 && agent.visualStatus === 'INVINCIBLE') {
-            agent.visualStatus = 'NONE';
-        }
-
         // State Logic: Fear (Fleeing Movement)
         if (agent.fearTimer > 0) {
             if (!agent.isMoving && agent.fearMoveTimer <= 0) {
