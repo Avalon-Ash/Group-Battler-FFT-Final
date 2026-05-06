@@ -99,7 +99,14 @@ export const CCManager = {
                 
                 statusText = "放逐"; statusColor = "#c084fc";
                 
-                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                if (skill.specialVisualStatus === 'STASIS') {
+                    // STASIS 使用獨立 timer，不共用 banishTimer 語意
+                    target.stasisTimer = effectiveDuration;
+                    target.stasisMax = effectiveDuration;
+                    target.visualStatus = 'STASIS';
+                } else if (skill.specialVisualStatus) {
+                    target.visualStatus = skill.specialVisualStatus;
+                }
                 break;
 
             case 'ROOT':

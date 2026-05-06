@@ -65,6 +65,9 @@ export class Agent {
     public banishTimer: number = 0;
     public banishMax: number = 0;
 
+    public stasisTimer: number = 0;
+    public stasisMax: number = 0;
+
     public silenceTimer: number = 0;
     public silenceMax: number = 0;
 
@@ -213,6 +216,8 @@ export class Agent {
         this.stunMax = 0;
         this.banishTimer = 0;
         this.banishMax = 0;
+        this.stasisTimer = 0;
+        this.stasisMax = 0;
         this.silenceTimer = 0;
         this.silenceMax = 0;
         this.polymorphTimer = 0;

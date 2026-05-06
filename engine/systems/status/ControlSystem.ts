@@ -18,6 +18,12 @@ export class ControlSystem {
 
         // Timer Decrements
         if (agent.banishTimer > 0) agent.banishTimer = Math.max(0, agent.banishTimer - dt);
+        if (agent.stasisTimer > 0) {
+            agent.stasisTimer = Math.max(0, agent.stasisTimer - dt);
+            if (agent.stasisTimer <= 0) {
+                if (agent.visualStatus === 'STASIS') agent.visualStatus = 'NONE';
+            }
+        }
         if (agent.stunTimer > 0) agent.stunTimer = Math.max(0, agent.stunTimer - dt);
         if (agent.silenceTimer > 0) agent.silenceTimer = Math.max(0, agent.silenceTimer - dt);
         if (agent.rootTimer > 0) agent.rootTimer = Math.max(0, agent.rootTimer - dt);
@@ -59,7 +65,10 @@ export class ControlSystem {
         } else {
             if (agent.banished) {
                 agent.banished = false;
-                agent.visualStatus = 'NONE';
+                // 只有在 STASIS 未持續時才清除 visualStatus
+                if (agent.visualStatus !== 'STASIS' || agent.stasisTimer <= 0) {
+                    agent.visualStatus = 'NONE';
+                }
                 engine.log(agent, 'CC', '放逐結束', null, '重返戰場');
             }
         }

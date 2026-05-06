@@ -96,6 +96,10 @@ export class AgentManager {
         a.physics.z = 0;
         a.isMoving = false;
         a.outOfBounds = false;
+        a.banishTimer = 0;
+        a.banishMax = 0;
+        a.stasisTimer = 0;
+        a.stasisMax = 0;
         a.path = [];
         a.trailHistory = [];
         // ──────────────────────────────────

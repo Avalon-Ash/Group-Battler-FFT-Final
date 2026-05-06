@@ -9,7 +9,7 @@ export const StateModelPainter = {
      */
     drawBanishment(ctx: CanvasRenderingContext2D, agent: Agent, x: number, centerY: number, t: number) {
         const isBanishActive = agent.banished && agent.banishTimer > 0;
-        const isStasisActive = agent.visualStatus === 'STASIS';
+        const isStasisActive = agent.stasisTimer > 0;
         if (!isBanishActive && !isStasisActive) return;
 
         const isStasis = isStasisActive;

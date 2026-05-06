@@ -41,9 +41,9 @@ export class AnimationSystem {
                 continue;
             }
 
-            if (agent.stunTimer > 0 || agent.banished || agent.fearTimer > 0) {
+            if (agent.stunTimer > 0 || agent.banished || agent.fearTimer > 0 || agent.stasisTimer > 0) {
                 agent.animState = AnimState.STUN;
-                agent.visualStatus = agent.banished ? 'STASIS' : 'NONE';
+                agent.visualStatus = agent.stasisTimer > 0 ? 'STASIS' : 'NONE';
                 continue;
             }
 
