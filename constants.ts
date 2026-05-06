@@ -113,7 +113,7 @@ export const THEME_IMPERIAL = {
 
 export const THEME_COVENANT = {
     primary: '#ef4444',
-    secondary: '#f87171',
+    secondary: '#fb923c',
     armorDark: '#09090b',
     armorBase: '#27272a',
     accent: '#7f1d1d',
@@ -138,7 +138,7 @@ export const PALETTE = {
     SHADOW: 'rgba(0, 0, 0, 0.6)',
     TEAMS: {
         [Team.BLUE]: { main: '#2563eb', dark: '#1e3a8a', light: '#fbbf24', glow: 'rgba(59, 130, 246, 0.8)', accent: '#f8fafc' },
-        [Team.RED]: { main: '#dc2626', dark: '#450a0a', light: '#a1a1aa', glow: 'rgba(220, 38, 38, 0.8)', accent: '#1c1917' }
+        [Team.RED]: { main: '#dc2626', dark: '#450a0a', light: '#fca5a5', glow: 'rgba(220, 38, 38, 0.8)', accent: '#2d0a0a' }
     },
     DAMAGE: '#ffffff',
     HEAL: '#10b981',
