@@ -63,7 +63,7 @@ export const RED_ULT: Skill[] = [
         id: 'wr_u2', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
         name: '血腥旋風', desc: '移動吸血AOE', 
         range: 0, cast: 0.4, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 400, color: '#dc2626', 
+        type: 'AOE', aoeRadius: 2, power: 360, color: '#dc2626', 
         visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 1.0, 
         visualHitEffect: 'FX_ULT_RED_BLOODSTORM'
@@ -81,7 +81,7 @@ export const RED_ULT: Skill[] = [
         id: 'wr_u4', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
         name: '無限劍制', desc: '變身恐懼', 
         range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 300, color: '#000000', 
+        type: 'AOE', aoeRadius: 2, power: 400, color: '#000000', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 1.5,
         visualHitEffect: 'FX_ULT_RED_UNLIMITED_BLADE'

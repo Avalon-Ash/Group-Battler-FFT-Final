@@ -80,8 +80,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'wr_b5', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '狂怒連斬', desc: '低血高傷', 
-        range: 1, cast: 0.4, cd: 0.8, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 70, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
+        range: 1, cast: 0.4, cd: 0.7, cost: 0, gain: 35, 
+        type: 'SINGLE', power: 75, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 1.2,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -132,14 +132,14 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b1', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '混沌之球', desc: '隨機傷害', 
         range: 4, cast: 0.6, cd: 1.0, cost: 0, gain: 30, // Range 5->4
-        type: 'SINGLE', power: 60, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, 
+        type: 'SINGLE', power: 70, color: '#16a34a', visual: 'BOLT', projectileSpeed: 600, 
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
     },
     { 
         id: 'mr_b2', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '生命虹吸', desc: '吸血連結', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 45, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 55, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.5, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -147,7 +147,7 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b3', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '燃燒餘燼', desc: '燃燒傷害', 
         range: 4, cast: 0.4, cd: 0.8, cost: 0, gain: 20, // Range 5->4
-        type: 'SINGLE', power: 40, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 800, 
+        type: 'SINGLE', power: 50, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 800, 
         ccType: 'DOT', ccForce: 5, ccDur: 3.0,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
     },
@@ -155,14 +155,14 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b4', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '虛弱詛咒', desc: '虛弱', 
         range: 5, cast: 0.6, cd: 1.2, cost: 0, gain: 35, // Range 6->5
-        type: 'SINGLE', power: 25, color: '#581c87', visual: 'BOLT', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 35, color: '#581c87', visual: 'BOLT', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
     { 
         id: 'mr_b5', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '暗影箭', desc: '穿透', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 30, // Range 5->4
-        type: 'SINGLE', power: 50, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 60, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
 
@@ -195,8 +195,7 @@ export const RED_BASIC: Skill[] = [
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '鮮血治癒', desc: '耗血補人', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 20, 
-        type: 'SINGLE', power: -60, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
-        effectType: 'SELF_DAMAGE', effectVal: 30,
+        type: 'SINGLE', power: -40, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 

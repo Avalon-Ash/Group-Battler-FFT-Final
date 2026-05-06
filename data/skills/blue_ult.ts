@@ -25,7 +25,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
         name: '絕對防禦', desc: '天降神盾', 
-        range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 500, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 4,
@@ -35,7 +35,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'tb_u4', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
         name: '泰坦降臨', desc: '巨型重擊', 
         range: 1, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1000, color: '#fcd34d', 
+        type: 'SINGLE', power: 120, color: '#fcd34d', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5,
         visualHitEffect: 'FX_ULT_BLUE_TITAN_SMASH'

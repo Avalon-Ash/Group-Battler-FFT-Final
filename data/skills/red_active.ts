@@ -185,7 +185,7 @@ export const RED_ACTIVE: Skill[] = [
         name: '邪能護盾', desc: '單體護盾', 
         range: 5, cast: 0.6, cd: 8.0, cost: 30, gain: 0, 
         type: 'SINGLE', power: 0, color: '#a3e635', visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 180, 
+        ccType: 'SHIELD', ccForce: 180, ccDur: 3.0,
         visualHitEffect: 'FX_ACTIVE_RED_FEL_SPLASH', element: 'POISON'
     },
     { 
@@ -210,6 +210,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 6, cast: 0.5, cd: 10.0, cost: 0, gain: 40, 
         type: 'SINGLE', power: -400, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'SELF_DAMAGE', effectVal: 200,
+        ccForce: 10, ccDur: 2.5,
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     }
 ];
