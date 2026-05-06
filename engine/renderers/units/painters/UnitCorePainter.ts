@@ -8,7 +8,8 @@ export const UnitCorePainter = {
         if (agent.hp <= 0 || agent.banished) return;
 
         const faction = FACTION_VISUALS[agent.team];
-        const color = faction.secondaryColor;
+        const rotColor = '#84cc16'; // Nurgle rot/corrosion
+        const color = agent.team === Team.RED ? rotColor : faction.secondaryColor;
         const hitTrauma = agent.hitFlashTimer > 0 ? (agent.hitFlashTimer / 0.1) : 0;
         const hpPct = Math.max(0, Math.min(1, agent.hp / agent.maxHp));
 

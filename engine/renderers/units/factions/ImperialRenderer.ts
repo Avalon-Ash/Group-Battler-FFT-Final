@@ -166,14 +166,31 @@ function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.translate(0, -50);
     ctx.fillStyle = secondaryColor;
     ctx.strokeStyle = rimColor || accentColor;
-    ctx.beginPath();
-    if (role === Role.TANK) ctx.rect(-10, -12, 20, 18); 
-    else ctx.ellipse(0, -2, headRadius, headRadius * 1.2, 0, 0, Math.PI*2);
-    ctx.fill(); ctx.stroke();
+    if (role === Role.TANK) {
+        ctx.beginPath();
+        ctx.rect(-10, -12, 20, 18); 
+        ctx.fill(); ctx.stroke();
+    } else {
+        ctx.beginPath();
+        const hr = headRadius;
+        // 方形基底 + 切角：製造頭盔感
+        ctx.moveTo(-hr * 0.8, -hr * 1.2);
+        ctx.lineTo( hr * 0.8, -hr * 1.2);
+        ctx.lineTo( hr * 1.0,  hr * 0.2);
+        ctx.lineTo( hr * 0.6,  hr * 0.8);
+        ctx.lineTo(-hr * 0.6,  hr * 0.8);
+        ctx.lineTo(-hr * 1.0,  hr * 0.2);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+
+        // Visor 縫線
+        ctx.fillStyle = secondaryColor;
+        ctx.fillRect(-hr * 0.6, -hr * 0.1, hr * 1.2, hr * 0.3);
+    }
     
-    // Visor glow sync
-    ctx.fillStyle = secondaryColor;
-    ctx.fillRect(-8, -4, 16, 3);
+    // Visor glow sync (Legacy override check)
+    // ctx.fillStyle = secondaryColor;
+    // ctx.fillRect(-8, -4, 16, 3);
     ctx.restore();
 }
 

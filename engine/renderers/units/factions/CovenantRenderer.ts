@@ -166,12 +166,16 @@ function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.translate(0, -48);
     ctx.fillStyle = accentColor;
     ctx.strokeStyle = rimColor || accentColor;
+    
     ctx.beginPath();
-    ctx.moveTo(-10, 5); ctx.lineTo(-12, -15); ctx.lineTo(-5, -5); 
-    ctx.lineTo(5, -5); ctx.lineTo(12, -15); ctx.lineTo(10, 5);
-    ctx.fill();
+    const hr = profile.headRadius;
+    // 橫向拉寬：x = hr*1.3, y = hr*0.9，製造腫脹壓扁感
+    ctx.ellipse(0, 0, hr * 1.3, hr * 0.9, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    // 保留原有 secondaryColor 點綴
     ctx.fillStyle = secondaryColor;
-    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
 }
 
