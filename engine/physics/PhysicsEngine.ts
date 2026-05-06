@@ -28,7 +28,7 @@ export class PhysicsEngine {
     }
 
     public update(a: Agent, dt: number, engine: GameEngine) {
-        if (a.fullyDead || a.banished) return;
+        if (a.fullyDead || a.banished || a.outOfBounds) return;
         
         // Sub-step physics to guarantee stability at high time scales
         const maxStep = 0.016; // ~60fps step
@@ -92,8 +92,8 @@ export class PhysicsEngine {
         // Note: Trail Logic moved to PhysicsSystem.ts to centralize history management
 
         if (a.physics.z < -1000) {
-            // Banish anyone (alive or dead) who falls into the abyss
-            if (!a.banished) {
+            // Out of bounds anyone (alive or dead) who falls into the abyss
+            if (!a.outOfBounds) {
                 if (!isDead) {
                     a.hp = 0;
                     a.deadLogged = true;
@@ -101,7 +101,7 @@ export class PhysicsEngine {
                     engine.pushEvent('DEATH', {x: a.px, y: a.py}, { sourceId: a.id, text: "RING_OUT" });
                     engine.agentManager.handleDeadState(a, engine);
                 }
-                a.banished = true; // Remove from battlefield rendering and logic
+                a.outOfBounds = true; // Remove from battlefield rendering and logic
             }
         } else if (isGroundValid && a.physics.z < 0) {
             a.physics.z = 0;

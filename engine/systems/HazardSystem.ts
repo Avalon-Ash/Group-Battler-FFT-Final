@@ -53,7 +53,7 @@ export class HazardSystem {
 
         // 2. Logic Tick (AOE Damage & CC)
         engine.agents.forEach(agent => {
-            if (agent.hp <= 0 || agent.banished) return;
+            if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
             
             spatialHazards.forEach(h => {
                 // Ignore friendly hazards
@@ -154,7 +154,7 @@ export class HazardSystem {
             const centerPx = HexUtils.toPx(h.centerQ, h.centerR, engine.mapConfig);
 
             engine.agents.forEach(agent => {
-                if (agent.hp <= 0 || agent.banished || agent.team === h.team) return;
+                if (agent.hp <= 0 || agent.banished || agent.outOfBounds || agent.team === h.team) return;
                 
                 const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
                 const dist = Math.sqrt(dx*dx + dy*dy);

@@ -81,7 +81,7 @@ export class SkillExecutor {
         if (isAOE) {
             impactCells.forEach(cell => {
                 const u = engine.getAgentAt(cell.q, cell.r);
-                if (u && u.hp > 0 && !u.banished) {
+                if (u && u.hp > 0 && !u.banished && !u.outOfBounds) {
                     const isValidTarget = (skill.power > 0 && u.team !== source.team) || 
                                           (skill.power < 0 && u.team === source.team) || 
                                           (skill.power === 0);
@@ -94,7 +94,7 @@ export class SkillExecutor {
             
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
         } else {
-            if (source.target && source.target.hp > 0 && !source.target.banished) {
+            if (source.target && source.target.hp > 0 && !source.target.banished && !source.target.outOfBounds) {
                 const isValidTarget = (skill.power > 0 && source.target.team !== source.team) || 
                                       (skill.power < 0 && source.target.team === source.team) || 
                                       (skill.power === 0);
@@ -135,7 +135,7 @@ export class SkillExecutor {
     }
 
     public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined = undefined) {
-        if (!target || target.hp <= 0 || target.banished) return;
+        if (!target || target.hp <= 0 || target.banished || target.outOfBounds) return;
 
         // A. Damage Calculation
         const result = DamageCalculator.calculate(source, target, skill, engine.battleTime, preRollCrit, engine.isLastStand);

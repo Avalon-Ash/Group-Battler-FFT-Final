@@ -13,7 +13,7 @@ export class EffectSystem {
     }
 
     public update(agent: Agent, dt: number, engine: GameEngine) {
-        if (agent.hp <= 0 || agent.banished) return;
+        if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
 
         const dotKey = agent.id + '_dot';
         const hotKey = agent.id + '_hot';

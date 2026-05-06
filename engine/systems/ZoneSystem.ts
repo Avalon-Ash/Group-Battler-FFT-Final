@@ -11,7 +11,7 @@
 import { GameEngine } from "../game";
 import { Team, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
-import { ISO_SCALE_Y } from "../../constants";
+import { ISO_SCALE_Y, PHYSICS } from "../../constants";
 
 export interface ActiveZone {
     q: number;
@@ -155,7 +155,9 @@ export class ZoneSystem {
                             const snapZ = victim.physics.z;
 
                             victim.hp = 0;
-                            victim.banished = true; // 讓單位跟格子一起視覺下墜
+                            // 視覺下墜：用物理偏移模擬墜落，不觸發放逐旗標
+                            victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
+                            victim.physics.z = 80; // 起始高度，讓下墜有行程
                             victim.deadLogged = true; // 避免 handleDeadState 重複推播事件
 
                             engine.pushEvent('DEATH', 

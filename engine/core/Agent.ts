@@ -73,6 +73,7 @@ export class Agent {
     public vulnerableTimer: number = 0;
 
     public banished: boolean = false;
+    public outOfBounds: boolean = false;
 
     public rootTimer: number = 0;
     public fearTimer: number = 0;
@@ -224,6 +225,7 @@ export class Agent {
         this.tauntTargetId = null;
 
         this.banished = false;
+        this.outOfBounds = false;
         this.dotTimer = 0;
         this.dotType = 'POISON';
         this.hotTimer = 0;

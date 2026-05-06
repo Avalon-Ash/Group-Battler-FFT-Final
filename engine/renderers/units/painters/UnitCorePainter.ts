@@ -5,7 +5,7 @@ import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 
 export const UnitCorePainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
-        if (agent.hp <= 0 || agent.banished) return;
+        if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
 
         const faction = FACTION_VISUALS[agent.team];
         const color = agent.team === Team.RED 

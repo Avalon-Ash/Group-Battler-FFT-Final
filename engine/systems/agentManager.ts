@@ -95,6 +95,7 @@ export class AgentManager {
         a.physics.y = 0;
         a.physics.z = 0;
         a.isMoving = false;
+        a.outOfBounds = false;
         a.path = [];
         a.trailHistory = [];
         // ──────────────────────────────────

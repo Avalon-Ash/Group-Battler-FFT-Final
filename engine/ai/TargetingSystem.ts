@@ -12,7 +12,7 @@ export class TargetingSystem {
     public isValidTarget(target: Agent): boolean {
         if (!target) return false;
         if (target.hp <= 0) return false;
-        if (target.banished) return false;
+        if (target.banished || target.outOfBounds) return false;
         return true;
     }
 
@@ -159,7 +159,7 @@ export class TargetingSystem {
         // 嘲諷強制鎖定
         if (a.tauntTimer > 0 && a.tauntTargetId) {
             const taunter = spatial.getAgents().find(ag => ag.id === a.tauntTargetId);
-            if (taunter && taunter.hp > 0 && !taunter.banished) {
+            if (taunter && taunter.hp > 0 && !taunter.banished && !taunter.outOfBounds) {
                 a.target = taunter;
                 return;
             }
@@ -256,7 +256,7 @@ export class TargetingSystem {
             let bestAlly: Agent | null = null;
             let maxAllyScore = -Infinity;
             for (const ally of spatial.getAgents()) {
-                if (ally.team === source.team && ally.hp > 0 && !ally.banished) {
+                if (ally.team === source.team && ally.hp > 0 && !ally.banished && !ally.outOfBounds) {
                     const dist = Math.max(0.5, HexUtils.dist(source, ally));
                     const missingHpPct = 1 - (ally.hp / ally.maxHp);
                     let score = missingHpPct * 1000 - dist * 10;

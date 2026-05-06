@@ -22,7 +22,7 @@ export class StatusOrchestrator {
     ) {
         for (const agent of agents) {
             // 跳過已徹底消失的單位
-            if (agent.hp <= 0 && agent.fullyDead) continue;
+            if ((agent.hp <= 0 && agent.fullyDead) || agent.outOfBounds) continue;
             
             // 基礎幾何解算 (SSOT)
             const px = agent.px + agent.physics.x;

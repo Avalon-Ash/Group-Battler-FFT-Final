@@ -8,9 +8,11 @@ export const StateModelPainter = {
      * @param centerY 單位視覺中心 Y 軸
      */
     drawBanishment(ctx: CanvasRenderingContext2D, agent: Agent, x: number, centerY: number, t: number) {
-        if (!agent.banished) return;
+        const isBanishActive = agent.banished && agent.banishTimer > 0;
+        const isStasisActive = agent.visualStatus === 'STASIS';
+        if (!isBanishActive && !isStasisActive) return;
 
-        const isStasis = agent.visualStatus === 'STASIS';
+        const isStasis = isStasisActive;
         const color = isStasis ? '#facc15' : '#c084fc'; 
         const shadowColor = isStasis ? '#eab308' : '#7e22ce';
         

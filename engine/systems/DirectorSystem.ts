@@ -98,7 +98,7 @@ export class DirectorSystem {
         
         if (ds.targetId) {
             const current = engine.agents.find(a => a.id === ds.targetId);
-            if (!current || current.hp <= 0 || current.banished) {
+            if (!current || current.hp <= 0 || current.banished || current.outOfBounds) {
                 needNewTarget = true;
             } else if (ds.focusTimer <= 0) {
                 needNewTarget = true; 
@@ -127,7 +127,7 @@ export class DirectorSystem {
         let best: Agent | null = null;
 
         for (const a of engine.agents) {
-            if (a.hp <= 0 || a.banished) continue;
+            if (a.hp <= 0 || a.banished || a.outOfBounds) continue;
             
             // [FIX] 忽略正在墜落或腳下無地的單位，避免導播鏡頭被帶走
             if (a.physics.z < -50 || !engine.isValid(a.q, a.r)) continue;
@@ -234,7 +234,7 @@ export class DirectorSystem {
         // 優先度 4: 全景 (修正血量權重)
         let hasTargets = false;
         for (const a of engine.agents) {
-            if (a.hp > 0 && !a.banished && a.physics.z > -100) {
+            if (a.hp > 0 && !a.banished && !a.outOfBounds && a.physics.z > -100) {
                 // 滿血=0.5, 快死=1.0 (低血量權重較高)
                 const weight = 1.0 - (a.hp / a.maxHp) * 0.5;
                 this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), weight, 50);

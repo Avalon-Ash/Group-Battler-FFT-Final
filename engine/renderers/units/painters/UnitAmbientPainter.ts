@@ -11,7 +11,7 @@ export const UnitAmbientPainter = {
      * @param t 全局時間
      */
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
-        if (agent.hp <= 0 || agent.banished) return;
+        if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
         if (agent.visualStatus !== 'NONE') return; // CC 狀態不疊加常駐 VFX
 
         const faction = FACTION_VISUALS[agent.team];

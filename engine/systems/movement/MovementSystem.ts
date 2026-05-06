@@ -186,7 +186,7 @@ export class MovementSystem {
         const targetPx = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
 
         for (const a of engine.agents) {
-            if (a.hp <= 0 || a.banished) continue;
+            if (a.hp <= 0 || a.banished || a.outOfBounds) continue;
             
             const distSq = (a.px - targetPx.x) ** 2 + (a.py - targetPx.y) ** 2;
             const arrivalThreshold = 15; // Within 15px is "landed"
