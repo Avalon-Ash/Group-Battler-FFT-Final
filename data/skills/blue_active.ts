@@ -147,8 +147,8 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '相位轉移', desc: '位置交換', 
         range: 7, cast: 0.5, cd: 10.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 0, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 100, 
+        type: 'SINGLE', power: 60, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
+        effectType: 'DASH', 
         visualHitEffect: 'FX_TELEPORT', element: 'ARCANE'
     },
     { 
@@ -202,7 +202,8 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'sb_a5', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
         name: '戰術加速', desc: '群體加速', 
         range: 0, cast: 0.5, cd: 12.0, cost: 50, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 0, color: '#bae6fd', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'AOE', aoeRadius: 5, power: -60, color: '#bae6fd', visual: 'SMASH', projectileSpeed: 0, 
+        ccType: 'SHIELD', ccForce: 80,
         visualHitEffect: 'FX_ACTIVE_BLUE_TECH_BURST', element: 'LIGHTNING'
     }
 ];

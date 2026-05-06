@@ -34,7 +34,7 @@ export const RED_BASIC: Skill[] = [
         name: '野蠻頭槌', desc: '微暈', 
         range: 1, cast: 0.3, cd: 1.5, cost: 0, gain: 25,
         type: 'SINGLE', power: 50, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 0.1,
+        ccType: 'STUN', ccDur: 0.4,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
     { 
@@ -98,7 +98,7 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'rr_b2', role: Role.RANGER, team: Team.RED, tag: 'BASIC', 
         name: '急速連射', desc: '快速低傷', 
-        range: 5, cast: 0.2, cd: 0.6, cost: 0, gain: 15, // Range 6->5
+        range: 5, cast: 0.2, cd: 0.6, cost: 0, gain: 10, // Range 6->5
         type: 'SINGLE', power: 30, color: '#f87171', visual: 'BOLT', projectileSpeed: 1800, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },

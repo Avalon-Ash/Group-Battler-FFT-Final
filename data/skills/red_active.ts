@@ -83,7 +83,7 @@ export const RED_ACTIVE: Skill[] = [
         name: '嗜血狂熱', desc: '攻速吸血', 
         range: 0, cast: 0.2, cd: 12.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'HOT', ccForce: 30, ccDur: 5.0,
+        effectType: 'VAMP', effectVal: 0.8,
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     },
 
@@ -190,7 +190,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 0, cast: 0.8, cd: 10.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: -100, color: '#84cc16', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HOT', ccForce: 30, ccDur: 5.0,
-        visualHitEffect: 'FX_ACTIVE_RED_FEL_SPLASH', element: 'POISON'
+        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 
         id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
