@@ -68,6 +68,9 @@ export class Agent {
     public silenceTimer: number = 0;
     public silenceMax: number = 0;
 
+    public polymorphTimer: number = 0;
+    public invincibleTimer: number = 0;
+
     public banished: boolean = false;
 
     public rootTimer: number = 0;
@@ -210,6 +213,8 @@ export class Agent {
         this.banishMax = 0;
         this.silenceTimer = 0;
         this.silenceMax = 0;
+        this.polymorphTimer = 0;
+        this.invincibleTimer = 0;
         this.rootTimer = 0;
         this.fearTimer = 0;
         this.tauntTimer = 0;

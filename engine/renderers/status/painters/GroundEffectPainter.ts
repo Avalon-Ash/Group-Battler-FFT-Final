@@ -101,13 +101,15 @@ export const GroundEffectPainter = {
 
         // 3. 持續恢復 (HoT) - 上升十字/光點
         if (agent.hotTimer > 0) {
-            const color = '#86efac'; // Bright Green/Mint
+            const regenDef = STATUS_VISUALS['REGEN'];
+            const color = regenDef?.primaryColor || '#86efac';
+            const floorColor = regenDef?.floorColor || regenDef?.primaryColor || '#86efac';
             
             ctx.save();
             ctx.translate(x, groundY);
             
             // Floor Glow
-            ctx.fillStyle = color;
+            ctx.fillStyle = floorColor;
             ctx.globalAlpha = 0.3;
             ctx.globalCompositeOperation = 'screen';
             ctx.beginPath(); ctx.ellipse(0, 0, 20, 10, 0, 0, Math.PI*2); ctx.fill();

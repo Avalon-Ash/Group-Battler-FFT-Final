@@ -2,6 +2,7 @@
 import { Agent } from "../../../game";
 import { Team, HexLayout } from "../../../../types";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
+import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
 
 export const ShieldPainter = {
     /**
@@ -12,7 +13,12 @@ export const ShieldPainter = {
         if (agent.shield <= 0) return;
 
         const isBlue = agent.team === Team.BLUE;
-        const color = isBlue ? '#60a5fa' : '#ef4444';
+        const shieldDef = STATUS_VISUALS['SHIELD'];
+        
+        // 保留 team 差異：藍隊用 primary，紅隊用 secondary（維持視覺區分）
+        const color = isBlue
+            ? (shieldDef?.primaryColor || '#60a5fa')
+            : (shieldDef?.secondaryColor || '#ef4444');
         
         // 護盾強度視覺映射
         const pct = Math.min(1, agent.shield / (agent.maxShield || 100));
