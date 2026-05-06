@@ -139,7 +139,13 @@ GameEngine
 │   │   ├── grid/                ← 地形、格子、Hazard 繪製
 │   │   ├── units/               ← 單位視覺管線（Faction Renderers + Painters）
 │   │   ├── hud/                 ← HUD 子元件
-│   │   └── status/              ← 狀態效果視覺
+│   │   └── status/              ← 狀態效果視覺管線
+│   │       ├── StatusOrchestrator.ts    ← 狀態視覺主協調器（路由 + 放逐守門）
+│   │       └── painters/
+│   │           ├── GroundEffectPainter.ts  ← 地板 CC 光暈（DoT 動態色、POLYMORPH/FROZEN 地板）
+│   │           ├── OverheadPainter.ts      ← 頭頂圖標（STUN/SILENCE/INVINCIBLE/STASIS 等）
+│   │           ├── ShieldPainter.ts        ← 護盾視覺
+│   │           └── StateModelPainter.ts    ← 模型替換（SHEEP/ICE_BLOCK/BANISH 透明）
 │   ├── events/
 │   │   ├── EventBus.ts      ← 系統間解耦通訊
 │   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
@@ -167,12 +173,14 @@ GameEngine
 │   │   └── GameCanvas.tsx   ← 主渲染畫布
 ├── data/
 │   ├── scenes.ts            ← 場景主題資料（森林、冰原、熔岩…）
-│   └── units/
-│       └── appearance/      ← 單位外觀 SSOT（ECS Component 等價層）
-│           ├── types.ts     ← RoleAppearance、FactionAppearanceProfile 介面定義
-│           ├── imperial.ts  ← Imperial 陣營外觀 Profile
-│           ├── covenant.ts  ← Covenant 陣營外觀 Profile
-│           └── index.ts     ← UNIT_APPEARANCE SSOT export
+│   ├── units/
+│   │   └── appearance/      ← 單位外觀 SSOT（ECS Component 等價層）
+│   │       ├── types.ts     ← RoleAppearance、FactionAppearanceProfile 介面定義
+│   │       ├── imperial.ts  ← Imperial 陣營外觀 Profile
+│   │       ├── covenant.ts  ← Covenant 陣營外觀 Profile
+│   │       └── index.ts     ← UNIT_APPEARANCE SSOT export
+│   └── vfx/
+│       └── status_visuals.ts    ← 狀態效果視覺定義 SSOT（CC、DoT、Buff、地板光暈）
 ├── types.ts                 ← 全域型別定義（SSOT 資料結構）
 ├── types/
 │   └── VFXSchema.ts         ← VFX 粒子與貼花的資料 schema（types.ts 的 VFX 擴充）

@@ -94,7 +94,7 @@ export class DesignExporter {
         s += "  - Focus Logic: 優先鎖定正在施放奧義 (ULT, Weight=1.2) 或發生激烈交戰 (HP 劇烈變動, Weight=0.5~1.0) 的區域。\n";
         s += "  - Cinematic Inertia: 採用極低 stiffness (0.2~0.25) 的物理緩動算法，確保大範圍戰場位移時鏡頭平滑過渡。\n";
         s += "  - Zoom Deadzone (縮放死區): 引入 ±5% zoom 容差過濾器。微幅的單位位移將不再觸發鏡頭縮放震盪，從而消滅鏡頭「呼吸感」過重引發的視覺疲勞。\n";
-        s += "- Director Monitor HUD: 實時遙測數據面板，提供被鎖定單位的決策矩陣 (BT Status) 與視覺狀態 (SpecialVisualStatus: DANGER/STASIS/FROZEN)。\n\n";
+        s += "- Director Monitor HUD: 實時遙測數據面板，提供被鎖定單位的決策矩陣 (BT Status) 與視覺狀態 (SpecialVisualStatus: DANGER/STASIS/FROZEN/INVINCIBLE/POLYMORPH)。\n\n";
 
         s += "## 5. 立體機動與尋路 (Topological Pathfinding)\n\n";
         s += "移動邏輯採用非對稱垂直檢定 (Asymmetric Verticality)：\n\n";
@@ -195,6 +195,24 @@ export class DesignExporter {
         s += "| 一般傷害         | event.color (combat 結算層)             |\n";
         s += "| 暴擊 (#ef4444)   | inline 業務規則 (val > 100)             |\n";
         s += "| 吸收 (#bae6fd)   | inline 業務規則 (text === 'ABSORB')     |\n\n";
+        s += "### 8-5. 狀態效果視覺管線 (Status VFX Pipeline SSOT)\n\n";
+        s += "SSOT 入口: `data/vfx/status_visuals.ts` → `STATUS_VISUALS`\n\n";
+        s += "```\n";
+        s += "StatusOrchestrator (路由器，負責放逐守門)\n";
+        s += "  ├── GroundEffectPainter  ← floorColor / floorOpacity 動態讀自 STATUS_VISUALS\n";
+        s += "  │     ├── DoT 地板色: DOT_COLORS[agent.dotType] (POISON/BURN/REGEN)\n";
+        s += "  │     └── CC 地板光暈: POLYMORPH / FROZEN / INVINCIBLE\n";
+        s += "  ├── OverheadPainter     ← iconShape 動態讀自 STATUS_VISUALS\n";
+        s += "  │     └── 支援: STUN/SILENCE/ROOT/FEAR/TAUNT/BLIND/VULNERABLE/STASIS/INVINCIBLE/POLYMORPH\n";
+        s += "  ├── ShieldPainter       ← SHIELD 護盾光環（⚠ 顏色目前仍由 agent.team 決定，SSOT 待補）\n";
+        s += "  └── StateModelPainter   ← POLYMORPH(SHEEP) / FROZEN(ICE_BLOCK) / BANISH(透明)\n";
+        s += "```\n\n";
+        s += "修改流程：\n";
+        s += "  調整任何 CC / DoT / Buff 的顏色、圖標、地板光暈  → data/vfx/status_visuals.ts\n";
+        s += "  調整地板渲染行為（形狀、動畫）                    → GroundEffectPainter.ts\n";
+        s += "  調整頭頂圖標渲染行為                              → OverheadPainter.ts\n";
+        s += "  調整模型替換邏輯                                  → StateModelPainter.ts\n\n";
+
         s += "### 8-4. 佈局常數 (SSOT)\n\n";
         s += "HUD_TEXT_OFFSET / HUD_LAYOUT → constants.ts\n\n";
         s += "修改流程：\n";
