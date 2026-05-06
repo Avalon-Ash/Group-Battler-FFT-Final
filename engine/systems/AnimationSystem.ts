@@ -77,7 +77,10 @@ export class AnimationSystem {
 
             // Override for casting specific skill types if needed
             if (agent.castingSkillIdx !== -1) {
-                agent.animState = AnimState.ATTACK;
+                const castSkill = agent.skills[agent.castingSkillIdx];
+                agent.animState = castSkill?.tag === 'ULT'
+                    ? AnimState.CAST_ULT
+                    : AnimState.ATTACK;
             }
 
             // Override for movement (only if not attacking or casting)

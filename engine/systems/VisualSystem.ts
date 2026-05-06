@@ -73,7 +73,7 @@ export class VisualSystem {
             }
             
             if (event.type === 'CAST_BREAK' && event.sourceId) {
-                sequences.cancel(event.sourceId);
+                sequences.cancel(event.sourceId, vfx);
                 // Also let Mapper handle the particles
             }
 

@@ -49,7 +49,7 @@ export const CovenantRenderer = {
         let bodyRecoilX = 0;
         let bodyRot = 0;
 
-        if (agent.animState === AnimState.ATTACK && agent.hp > 0) {
+        if ((agent.animState === AnimState.ATTACK || agent.animState === AnimState.CAST_ULT) && agent.hp > 0) {
             const p = getCastProgress(agent);
             const curve = easeAttack(p);
             if (agent.role === Role.RANGER || agent.role === Role.MAGE) {

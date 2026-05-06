@@ -90,6 +90,13 @@ export const UnitBodyPainter = {
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
         // Apply visual offset for hit shake without polluting physics position
         ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y); 
+
+        // Task 5: CAST_ULT Pulsing
+        if (agent.animState === AnimState.CAST_ULT) {
+            const progress = 1 - (agent.castTimer / (agent.castingAnimationTimer || 1));
+            const ultPulse = 1 + 0.15 * Math.abs(Math.sin(progress * Math.PI * 3));
+            ctx.scale(ultPulse, ultPulse);
+        }
         
         let hitBrightness = 0;
         let squashX = 1.0;

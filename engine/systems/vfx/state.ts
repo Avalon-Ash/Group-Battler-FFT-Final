@@ -101,6 +101,16 @@ export class VFXStateManager {
         if (this.particlePool.length >= VFX_PARAM.MAX_POOL_SIZE) return;
         this.particlePool.push(p);
     }
+    public cancelUltBySource(sourceId: string) {
+        this.particles = this.particles.filter(p => {
+            if ((p as any).ultSourceId === sourceId) {
+                this.releaseParticle(p);
+                return false;
+            }
+            return true;
+        });
+    }
+
     public reset() {
         while (this.particles.length > 0) {
             const p = this.particles.pop();

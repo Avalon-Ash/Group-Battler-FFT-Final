@@ -34,7 +34,8 @@ export enum AnimState {
     HIT = 3,
     DEAD = 4,
     STUN = 5,
-    MOVE = 6
+    MOVE = 6,
+    CAST_ULT = 'CAST_ULT'
 }
 
 export enum AIState {

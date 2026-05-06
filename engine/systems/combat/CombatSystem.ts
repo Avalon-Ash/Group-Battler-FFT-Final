@@ -12,11 +12,20 @@ import { ProjectileSystem } from "./ProjectileSystem";
 import { CastingEngine } from "./CastingEngine";
 import { SkillExecutor } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
+import { ULT_VISUALS } from '../../../data/vfx/ult_visuals';
+import { PHYSICS } from '../../../constants';
 
 export class CombatSystem {
     public projectileSystem: ProjectileSystem;
     public castingEngine: CastingEngine;
     public skillExecutor: SkillExecutor;
+
+    private _deferredCasts: Array<{
+        executeAt: number;
+        agent: Agent;
+        skill: Skill;
+        engine: GameEngine;
+    }> = [];
 
     constructor() {
         this.projectileSystem = new ProjectileSystem();
@@ -26,6 +35,7 @@ export class CombatSystem {
 
     public reset() {
         // Projectiles are cleared by the GameEngine root container
+        this._deferredCasts = [];
     }
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
@@ -95,6 +105,7 @@ export class CombatSystem {
         if (a.castingSkillIdx !== -1) {
             this.castingEngine.handleInterruption(a, engine);
         }
+        this._deferredCasts = this._deferredCasts.filter(dc => dc.agent !== a);
     }
 
     public update(dt: number, engine: GameEngine) {
@@ -108,6 +119,18 @@ export class CombatSystem {
                 });
             }
         });
+
+        // Process deferred casts
+        for (let i = this._deferredCasts.length - 1; i >= 0; i--) {
+            const dc = this._deferredCasts[i];
+            if (dc.engine.battleTime >= dc.executeAt) {
+                if (dc.agent.hp > 0) {
+                    this.skillExecutor.executeInstantSkill(dc.agent, dc.skill, dc.engine);
+                }
+                this._deferredCasts.splice(i, 1);
+            }
+        }
+
         this.projectileSystem.update(dt, engine, this.skillExecutor);
     }
 
@@ -145,31 +168,25 @@ export class CombatSystem {
         
         engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
 
+        const isHeavenFall = ULT_VISUALS[s.id]?.archetype === 'HEAVEN_FALL';
+        if (isHeavenFall) {
+            const cfg = ULT_VISUALS[s.id];
+            const fallHeight = cfg.height || 1000;
+            const fallTime = Math.sqrt((2 * fallHeight) / PHYSICS.GRAVITY);
+            const delay = (cfg.timing || 0) + fallTime;
+            this._deferredCasts.push({
+                executeAt: engine.battleTime + delay,
+                agent: a,
+                skill: s,
+                engine
+            });
+            return;
+        }
+
         if (s.projectileSpeed && s.projectileSpeed > 0) {
              this.spawnProjectile(a, s, engine);
         } else {
             this.skillExecutor.executeInstantSkill(a, s, engine);
-        }
-
-        const isSelfDmg1 = s.effectType === 'SELF_DAMAGE';
-        const isSelfDmg2 = s.effectType2 === 'SELF_DAMAGE';
-        if (isSelfDmg1 || isSelfDmg2) {
-            const dmgVal = (isSelfDmg1 ? s.effectVal : s.effectVal2) || 50;
-            a.hp = Math.max(0, a.hp - dmgVal);
-            engine.events.push({ 
-                type: 'DAMAGE', 
-                pos: finalPos, 
-                value: dmgVal, 
-                color: '#991b1b', 
-                text: "SACRIFICE",
-                sourceId: a.id,
-                targetId: a.id
-            });
-            engine.log(a, 'HIT', '自殘', a.id, `消耗 ${dmgVal} HP`);
-            a.lastHitSourceId = a.id;
-            if (a.hp <= 0) {
-                engine.agentManager.handleDeadState(a, engine);
-            }
         }
     }
 

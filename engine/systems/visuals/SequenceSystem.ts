@@ -24,9 +24,12 @@ export class SequenceSystem {
     /**
      * Cancel all pending actions from a specific source (usually because of an interrupt)
      */
-    public cancel(sourceId: string) {
+    public cancel(sourceId: string, vfx?: VFXSystem) {
         if (!sourceId) return;
         this.actionQueue = this.actionQueue.filter(item => item.sourceId !== sourceId);
+        if (vfx) {
+            vfx.state.cancelUltBySource(sourceId);
+        }
     }
 
     public run(
@@ -46,7 +49,7 @@ export class SequenceSystem {
         sequence.actions.forEach(action => {
             const executeAt = baseTime + (action.delay || 0);
             if (executeAt <= baseTime) {
-                this.dispatch(action, target, sourcePos, vfx, engine);
+                this.dispatch(action, target, sourcePos, vfx, engine, sourceId);
             } else {
                 this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId });
             }
@@ -58,13 +61,20 @@ export class SequenceSystem {
         for (let i = this.actionQueue.length - 1; i >= 0; i--) {
             const item = this.actionQueue[i];
             if (now >= item.executeAt) {
-                this.dispatch(item.action, item.target, item.source, vfx, engine);
+                let liveSource = item.source;
+                if (item.sourceId) {
+                    const agent = engine.agents.find(a => a.id === item.sourceId);
+                    if (agent && agent.hp > 0) {
+                        liveSource = VisualMath.getUnitAnchor(agent, engine);
+                    }
+                }
+                this.dispatch(item.action, item.target, liveSource, vfx, engine, item.sourceId);
                 this.actionQueue.splice(i, 1);
             }
         }
     }
 
-    private dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine) {
+    private dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine, sourceId?: string) {
         const effectId = action.id || 'FX_HIT_GENERIC';
         
         const groundZ = target.z - VisualMath.Z_LAYERS.DECAL; 
@@ -94,6 +104,7 @@ export class SequenceSystem {
                 p.type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
                 p.locked = false;
                 (p as any).pIsUlt = true; 
+                (p as any).ultSourceId = sourceId;
                 vfx.state.particles.push(p);
                 break;
         }
