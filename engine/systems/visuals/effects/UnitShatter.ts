@@ -115,15 +115,39 @@ export const UnitShatter = {
             system.state.particles.push(p);
         }
 
-        // 6. 靈魂飛升 (Atmosphere)
-        const soul = system.state.getParticle();
-        soul.x = ox; soul.y = oy; soul.z = oz;
-        soul.type = 'ATMOSPHERE';
-        soul.size = 80;
-        soul.color = faction.deathSpiritColor;
-        soul.vx = 0; soul.vy = 0; soul.vz = 100;
-        soul.life = 2.5; soul.maxLife = 2.5;
-        soul.blendMode = 'screen';
-        system.state.particles.push(soul);
+        // 6. 靈魂飛升 / 血噴 (Atmosphere/Spray)
+        if (agent.team === Team.BLUE) {
+            const soul = system.state.getParticle();
+            soul.x = ox; soul.y = oy; soul.z = oz;
+            soul.type = 'ATMOSPHERE';
+            soul.size = 80;
+            soul.color = faction.deathSpiritColor;
+            soul.vx = 0; soul.vy = 0; soul.vz = 100;
+            soul.life = 2.5; soul.maxLife = 2.5;
+            soul.blendMode = 'screen';
+            system.state.particles.push(soul);
+        } else {
+            // 公約 (RED): 血噴放射粒子 (替代上升靈魂)
+            const bloodCount = 18; // 12 shards * 1.5 = 18 particles approx, or just 1.5x the "implied" original count
+            const bloodColor = faction.ambientGlowColor || faction.deathSpiritColor;
+            
+            for (let i = 0; i < bloodCount; i++) {
+                const p = system.state.getParticle();
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 300 + Math.random() * 400; // 較快速度
+                p.type = 'SHARD'; // 使用碎塊表現血滴
+                p.x = ox; p.y = oy; p.z = oz + 10;
+                p.vx = Math.cos(angle) * speed + (impactX * 0.3);
+                p.vy = Math.sin(angle) * speed + (impactY * 0.3);
+                p.vz = 100 + Math.random() * 200;
+                p.size = 3 + Math.random() * 5;
+                p.color = bloodColor;
+                p.gravity = 2500;
+                p.vRotation = (Math.random() - 0.5) * 50;
+                p.life = 1.0 + Math.random() * 1.0;
+                p.maxLife = p.life;
+                system.state.particles.push(p);
+            }
+        }
     }
 };

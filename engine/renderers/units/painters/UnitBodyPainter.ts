@@ -14,6 +14,7 @@ import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitCorePainter } from "./UnitCorePainter";
+import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
@@ -153,6 +154,11 @@ export const UnitBodyPainter = {
                 ImperialRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
                 CovenantRenderer.draw(ctx, agent, t, isSilhouette);
+            }
+
+            // Layer 3: Ambient Faction VFX
+            if (!isSilhouette && agent.hp > 0) {
+                UnitAmbientPainter.draw(ctx, agent, t);
             }
             
             // Layer 4: Overlay Status (Ice Block)
