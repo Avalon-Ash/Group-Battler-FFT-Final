@@ -37,10 +37,10 @@ export const UnitAmbientPainter = {
         ctx.strokeStyle = faction.ambientGlowColor || '#60a5fa';
         ctx.lineWidth = 1.5;
         
-        // 護甲橫縫線
+        // 護甲橫縫線 (座標根據 UNIT_SCALE=0.65 調整，對齊胸甲與腰部)
         ctx.beginPath();
-        ctx.moveTo(-14, -35); ctx.lineTo(14, -35);
-        ctx.moveTo(-10, -20); ctx.lineTo(10, -20);
+        ctx.moveTo(-9, -23); ctx.lineTo(9, -23);
+        ctx.moveTo(-7, -13); ctx.lineTo(7, -13);
         ctx.stroke();
         ctx.restore();
     },
@@ -53,15 +53,15 @@ export const UnitAmbientPainter = {
         ctx.save();
         ctx.scale(inv, inv);
 
-        // 1. 血光暈
-        ctx.globalAlpha = intensity * 0.5;
+        // 1. 血腥環境暈：只靠 shadowBlur，不畫實體形狀，移除「護盾泡泡」感
         ctx.shadowColor = faction.ambientGlowColor || '#dc2626';
         ctx.shadowBlur = (faction.ambientGlowRadius || 10) * intensity * 2;
-        ctx.fillStyle = faction.ambientGlowColor || '#dc2626';
-        
+        ctx.globalAlpha = 0; // 隱形觸發點
         ctx.beginPath();
-        ctx.ellipse(0, -20, 30, 50, 0, 0, Math.PI * 2);
+        ctx.arc(0, -20, 1, 0, Math.PI * 2);
         ctx.fill();
+        ctx.globalAlpha = 1;
+        ctx.shadowBlur = 0; // 重置避免污染
 
         // 2. 血滴粒子（從肩部與身體各處滴落/噴濺）
         const dropCount = 6;
@@ -72,7 +72,8 @@ export const UnitAmbientPainter = {
             const cycle = ((t * 0.8 + offset) % 1);
             if (cycle < 0.05) continue; 
             
-            const intensityAlpha = intensity * 0.7;
+            // 加入上限保護，最高 50% 不透明度
+            const intensityAlpha = Math.min(0.5, intensity * 0.7);
             
             ctx.globalAlpha = Math.sin(cycle * Math.PI) * intensityAlpha;
             ctx.fillStyle = particleColor;

@@ -32,7 +32,7 @@ export const UnitBodyPainter = {
     ) {
         // [ARCH] 存活檢查：UnitBodyPainter 僅負責 hp > 0 的視覺表現
         // 死亡演出已遷移至 UnitDeathPainter.draw() 並由 UnitRenderSystem 統一調度
-        if (agent.hp <= 0) return;
+        if (agent.hp <= 0 || agent.banished) return;
         
         const vx = agent.physics.vx;
         const vy = agent.physics.vy;
