@@ -14,9 +14,8 @@
 // ║      視覺投影請使用 VisualMath.getIsoVisualY / applyLayerBias） ║
 // ║                                                                  ║
 // ║  DPR 處理規則：                                                  ║
-// ║    cssToCanvas() 負責補正 devicePixelRatio。                    ║
-// ║    下游所有方法接收的都是「已補正的 canvas 座標」，              ║
-// ║    不得在 cssToCanvas 以外的地方再次處理 DPR。                  ║
+// ║    引擎內部座標與 Camera 均運作於 CSS 邏輯像素，                 ║
+// ║    此處全面採用 CSS 邏輯尺寸，不再進行 DPR 補正以避免座標系混亂。║
 // ║                                                                  ║
 // ║  禁止事項：                                                      ║
 // ║    × 不得在 useGameInput / renderer 內自行計算 screen→world     ║
@@ -33,8 +32,8 @@ import { GridCache } from "../systems/grid/GridCache";
 export class PointerProjector {
 
     /**
-     * SSOT: CSS 滑鼠座標 → Canvas 繪圖座標（補正 DPR）
-     * 所有座標轉換的第一步，必須先過這裡。
+     * SSOT: CSS 滑鼠座標 → Canvas 繪圖座標（CSS 邏輯像素）
+     * 引擎的 Camera 和 World 運作在 CSS 像素，這裡不再縮放 DPR
      */
     public static cssToCanvas(
         cssX: number,
@@ -43,18 +42,15 @@ export class PointerProjector {
         cachedRect?: DOMRect
     ): Point {
         const rect = cachedRect ?? canvas.getBoundingClientRect();
-        // canvas.width 是繪圖解析度（含 DPR）
-        // rect.width 是 CSS 顯示尺寸
-        const scaleX = canvas.width / rect.width;
-        const scaleY = canvas.height / rect.height;
         return {
-            x: (cssX - rect.left) * scaleX,
-            y: (cssY - rect.top) * scaleY
+            x: cssX - rect.left,
+            y: cssY - rect.top
         };
     }
 
     /**
      * SSOT: Canvas 繪圖座標 → 世界座標（camera 反投影）
+     * 參數 canvasWidth/Height 必須是 CSS 邏輯尺寸。
      */
     public static canvasToWorld(
         canvasX: number,
@@ -74,6 +70,7 @@ export class PointerProjector {
     /**
      * SSOT: 世界座標 → Canvas 繪圖座標（camera 正向投影）
      * 供障礙物 ghost 繪製、cursor snap 等使用。
+     * 參數 canvasWidth/Height 必須是 CSS 邏輯尺寸。
      */
     public static worldToCanvas(
         worldX: number,
@@ -103,10 +100,13 @@ export class PointerProjector {
         cache: GridCache,
         cachedRect?: DOMRect
     ): Hex | null {
-        const canvasPt = this.cssToCanvas(cssX, cssY, canvas, cachedRect);
+        const rect = cachedRect ?? canvas.getBoundingClientRect();
+        const canvasPt = this.cssToCanvas(cssX, cssY, canvas, rect);
+        
+        // 傳遞 CSS 邏輯尺寸 (rect.width/height) 給投影，避免混入 DPR 導致的偏移
         const worldPt = this.canvasToWorld(
             canvasPt.x, canvasPt.y,
-            canvas.width, canvas.height,
+            rect.width, rect.height,
             camera
         );
         return GridSpatial.getHexAtWorldPoint(worldPt.x, worldPt.y, engine, cache);
