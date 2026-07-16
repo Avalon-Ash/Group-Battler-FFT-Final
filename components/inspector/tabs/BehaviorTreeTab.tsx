@@ -1,7 +1,9 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { Agent, GameEngine } from '../../../engine/game';
 import { TreeNode } from '../parts/TreeNode';
+import { useDraggable } from '../../../hooks/useDraggable';
 
 interface BehaviorTreeTabProps {
     agent: Agent;
@@ -12,9 +14,20 @@ interface BehaviorTreeTabProps {
 export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version, engine }) => {
     // BT Interaction State
     const [btScale, setBtScale] = useState(0.9); // Increased default scale for readability
-    const [btPos, setBtPos] = useState({x: 0, y: 30});
+    const [btPos, setBtPos] = useState({x: 0, y: 16});
     const btContainerRef = useRef<HTMLDivElement>(null);
+    const btContentRef = useRef<HTMLDivElement>(null);
     const [btFps, setBtFps] = useState(20); 
+    
+    // Popup state
+    const [isPopped, setIsPopped] = useState(false);
+    
+    // Popup drag
+    const popupRef = useRef<HTMLDivElement>(null);
+    const { dragHandlers, style: popupStyle } = useDraggable(popupRef, {
+        initialX: 60,
+        initialY: 60,
+    });
     
     // Local state to force re-render when we lazy-build the AI
     const [, forceUpdate] = useState(0);
@@ -31,11 +44,24 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
         }
     }, [agent, engine]);
 
+    const fitToView = useCallback(() => {
+        if (!btContainerRef.current || !btContentRef.current) return;
+        const cw = btContainerRef.current.clientWidth;
+        const ch = btContainerRef.current.clientHeight;
+        const iw = btContentRef.current.offsetWidth;
+        const ih = btContentRef.current.offsetHeight;
+        if (iw === 0 || ih === 0) return;
+        const newScale = Math.min((cw * 0.92) / iw, (ch * 0.88) / ih, 1.2);
+        setBtScale(newScale);
+        setBtPos({ x: 0, y: 16 });
+    }, []);
+
     // Reset view on agent change
     useEffect(() => {
-        setBtPos({x: 0, y: 30});
+        setBtPos({ x: 0, y: 16 });
         setBtScale(0.9);
-    }, [agent.id]);
+        requestAnimationFrame(() => fitToView());
+    }, [agent.id, fitToView]);
 
     const handleBtWheel = (e: React.WheelEvent) => {
         e.stopPropagation();
@@ -82,6 +108,81 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
         }
     };
     
+    const treeContent = (
+        <div 
+            className="absolute inset-0 w-full h-full flex justify-center items-start origin-top will-change-transform pointer-events-none"
+            style={{
+                transform: `translate(${btPos.x}px, ${btPos.y}px) scale(${btScale})`, 
+            }}
+        >
+            <div ref={btContentRef} className="inline-block min-w-max pt-4 pb-20">
+                {agent.bt ? (
+                    <TreeNode node={agent.bt} version={version} now={Date.now()} />
+                ) : (
+                    <div className="flex flex-col items-center justify-center pt-10 opacity-50">
+                        <span className="text-slate-400 font-mono text-xs">NO SIGNAL...</span>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
+    if (isPopped) {
+        return createPortal(
+            <div 
+                ref={popupRef}
+                className="fixed z-[9999] flex flex-col bg-black/90 border border-white/10 rounded overflow-hidden shadow-2xl"
+                style={{ ...popupStyle, width: 680, height: 520, zIndex: 9999 }}
+            >
+                {/* Header Bar */}
+                <div 
+                    className="h-[32px] shrink-0 bg-white/5 border-b border-white/10 flex items-center justify-between px-3 cursor-move select-none"
+                    {...dragHandlers}
+                >
+                    <div className="text-xs font-mono text-slate-300 pointer-events-none">
+                        {agent.id} - Behavior Tree
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <button
+                            onPointerDown={e => { e.stopPropagation(); fitToView(); }}
+                            className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white bg-black/40 rounded border border-white/10 hover:border-white/30 transition-colors pointer-events-auto"
+                            title="Fit to View"
+                        >
+                            ⊡
+                        </button>
+                        <div className="px-2 py-0.5 text-[9px] font-mono text-slate-500 bg-black/40 rounded border border-white/5 pointer-events-none mx-1">
+                            {Math.round(btScale * 100)}%
+                        </div>
+                        <button
+                            onPointerDown={e => {
+                                e.stopPropagation();
+                                setIsPopped(false);
+                                requestAnimationFrame(() => fitToView());
+                            }}
+                            className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors pointer-events-auto"
+                            title="Close Popup"
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+                {/* Container */}
+                <div 
+                    className="flex-1 relative overflow-hidden flex flex-col min-h-0 w-full h-full cursor-grab active:cursor-grabbing select-none" 
+                    ref={btContainerRef} 
+                    onWheel={handleBtWheel} 
+                    onPointerDown={handlePointerDown} 
+                    onPointerMove={handlePointerMove} 
+                    onPointerUp={handlePointerUp}
+                    style={{ touchAction: 'none' }}
+                >
+                    {treeContent}
+                </div>
+            </div>,
+            document.body
+        );
+    }
+
     return (
         <div 
             className="flex-1 relative overflow-hidden flex flex-col min-h-0 w-full h-full cursor-grab active:cursor-grabbing select-none" 
@@ -90,32 +191,38 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
             onPointerDown={handlePointerDown} 
             onPointerMove={handlePointerMove} 
             onPointerUp={handlePointerUp}
-            // onPointerLeave is not needed because we use setPointerCapture
             style={{ touchAction: 'none' }}
         >
-            {/* UI Overlay - Minimal for embedded view */}
-            <div className="absolute top-2 right-2 z-20 px-2 py-1 text-[9px] font-mono text-slate-500 bg-black/40 rounded border border-white/5 pointer-events-none">
-                {Math.round(btScale * 100)}%
-            </div>
-
-            {/* Content Layer */}
-            <div 
-                className="absolute inset-0 w-full h-full flex justify-center items-start origin-top will-change-transform pointer-events-none"
-                style={{
-                    transform: `translate(${btPos.x}px, ${btPos.y}px) scale(${btScale})`, 
-                    // No background color here to allow game to show through
-                }}
-            >
-                <div className="inline-block min-w-max pt-4 pb-20">
-                    {agent.bt ? (
-                        <TreeNode node={agent.bt} version={version} now={Date.now()} />
-                    ) : (
-                        <div className="flex flex-col items-center justify-center pt-10 opacity-50">
-                            <span className="text-slate-400 font-mono text-xs">NO SIGNAL...</span>
-                        </div>
-                    )}
+            <div className="absolute top-2 right-2 z-20 flex items-center pointer-events-auto">
+                <button
+                    onPointerDown={e => { e.stopPropagation(); fitToView(); }}
+                    className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white 
+                               bg-black/40 rounded border border-white/10 hover:border-white/30 
+                               transition-colors pointer-events-auto mr-1"
+                    title="Fit to View"
+                >
+                    ⊡
+                </button>
+                <button
+                    onPointerDown={e => {
+                        e.stopPropagation();
+                        setIsPopped(true);
+                        requestAnimationFrame(() => fitToView());
+                    }}
+                    className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white 
+                               bg-black/40 rounded border border-white/10 hover:border-white/30 
+                               transition-colors pointer-events-auto mr-1"
+                    title="Pop out"
+                >
+                    ⤢
+                </button>
+                <div className="px-2 py-1 text-[9px] font-mono text-slate-500 bg-black/40 rounded border border-white/5">
+                    {Math.round(btScale * 100)}%
                 </div>
             </div>
+
+            {treeContent}
         </div>
     );
 };
+
