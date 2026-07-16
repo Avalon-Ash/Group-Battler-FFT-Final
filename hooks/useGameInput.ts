@@ -31,6 +31,7 @@ export const useGameInput = (props: GameInputProps) => {
     const draggedObstacleRef = useRef<any>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
     const activePointers = useRef<Set<number>>(new Set());
+    const cachedRectRef = useRef<DOMRect | null>(null);
     const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
     useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
     
@@ -45,7 +46,8 @@ export const useGameInput = (props: GameInputProps) => {
             cvs,
             cameraRef.current,
             engine,
-            renderer.grid.spatialCache
+            renderer.grid.spatialCache,
+            cachedRectRef.current ?? undefined
         );
     };
 
@@ -55,7 +57,8 @@ export const useGameInput = (props: GameInputProps) => {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
         const cvs = canvasRef.current;
         if (!cvs) return;
-        const rect = cvs.getBoundingClientRect();
+        cachedRectRef.current = cvs.getBoundingClientRect();
+        const rect = cachedRectRef.current;
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         pressStartPos.current = { x: sx, y: sy };
         lastPointerPos.current = { x: sx, y: sy };

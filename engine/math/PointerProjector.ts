@@ -39,9 +39,10 @@ export class PointerProjector {
     public static cssToCanvas(
         cssX: number,
         cssY: number,
-        canvas: HTMLCanvasElement
+        canvas: HTMLCanvasElement,
+        cachedRect?: DOMRect
     ): Point {
-        const rect = canvas.getBoundingClientRect();
+        const rect = cachedRect ?? canvas.getBoundingClientRect();
         // canvas.width 是繪圖解析度（含 DPR）
         // rect.width 是 CSS 顯示尺寸
         const scaleX = canvas.width / rect.width;
@@ -99,9 +100,10 @@ export class PointerProjector {
         canvas: HTMLCanvasElement,
         camera: Camera,
         engine: GameEngine,
-        cache: GridCache
+        cache: GridCache,
+        cachedRect?: DOMRect
     ): Hex | null {
-        const canvasPt = this.cssToCanvas(cssX, cssY, canvas);
+        const canvasPt = this.cssToCanvas(cssX, cssY, canvas, cachedRect);
         const worldPt = this.canvasToWorld(
             canvasPt.x, canvasPt.y,
             canvas.width, canvas.height,
