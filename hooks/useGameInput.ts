@@ -87,7 +87,8 @@ export const useGameInput = (props: GameInputProps) => {
         hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
-            if (dist > 8) {
+            const driftThreshold = e.pointerType === 'touch' ? 18 : 8;
+            if (dist > driftThreshold) {
                 if (!engine.isRunning && configRef.current.tool === ToolType.SELECT) {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) { 
@@ -147,7 +148,15 @@ export const useGameInput = (props: GameInputProps) => {
         activePointers.current.delete(e.pointerId);
         const cvs = canvasRef.current;
         if (!cvs) return;
-        if (interactionMode.current === 'DOWN') onSelect(pressedAgentRef.current);
+        if (interactionMode.current === 'DOWN') {
+            const currentTool = configRef.current.tool;
+            if (currentTool !== ToolType.SELECT) {
+                const h = getHexFromEvent(e.clientX, e.clientY);
+                if (h) executePaintAction(h);
+            } else {
+                onSelect(pressedAgentRef.current);
+            }
+        }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const a = pressedAgentRef.current;
             const h = getHexFromEvent(e.clientX, e.clientY);

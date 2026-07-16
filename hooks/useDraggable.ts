@@ -71,7 +71,6 @@ export const useDraggable = (ref: React.RefObject<HTMLElement>, options: Draggab
     const handlePointerDown = (e: React.PointerEvent) => {
         const target = e.target as HTMLElement;
         if (['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)) return;
-        e.preventDefault(); 
         setIsDragging(true);
         dragStartMouseRef.current = { x: e.clientX, y: e.clientY };
         dragStartElemRef.current = currentPosRef.current;
