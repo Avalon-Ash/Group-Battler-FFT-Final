@@ -44,7 +44,7 @@ export const useGameInput = (props: GameInputProps) => {
             clientX,
             clientY,
             cvs,
-            cameraRef.current,
+            renderer.camera,
             engine,
             renderer.grid.spatialCache,
             cachedRectRef.current ?? undefined

@@ -113,6 +113,7 @@ export class GameRenderer {
         if (externalCameraRef?.current) {
             externalCameraRef.current.x = this.camera.x;
             externalCameraRef.current.y = this.camera.y;
+            externalCameraRef.current.zoom = this.camera.zoom;
         }
 
         // 2. SSOT Time Calculation
