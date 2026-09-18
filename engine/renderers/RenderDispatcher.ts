@@ -30,7 +30,7 @@ export class RenderDispatcher {
                     // 掉落深度越深，透明度越低 (從 0 到 -1000 掉落)
                     finalAlpha = Math.max(0, 1.0 - (Math.abs(op.z) / 800));
                 }
-                TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout, finalAlpha);
+                TerrainRenderer.drawBlock(ctx, snapX, snapY, op.tsize, op.th, op.ttheme, op.ttype, globalTime, layout, finalAlpha, op.tq, op.tr);
                 TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme, finalAlpha);
                 // Draw base overlays (status, zones, lights, presence)
                 GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, false, '', false, false, false, op.oHasUnit, op.tq, op.tr, op.time, layout);

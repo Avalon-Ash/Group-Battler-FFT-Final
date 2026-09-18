@@ -15,9 +15,10 @@
  */
 
 import { createCanvas } from '../CanvasUtils';
-import { applyNoiseMask } from './NoiseLib';
+import { applyNoiseMask, getGrainTile, variantFor } from './NoiseLib';
 import { MATERIAL_CONFIG } from '../../../data/vfx/materialConfig';
 import { HexGeometry } from '../utils/HexGeometry';
+import type { HexLayout } from '../../../types';
 
 const bakeCache = new Map<string, HTMLCanvasElement>();
 
@@ -47,6 +48,94 @@ function rng(seed: number) {
 }
 
 export const MaterialPainter = {
+
+    /**
+     * 地形頂面顆粒層。
+     * 呼叫前 ctx 的原點必須已經在該格頂面中心（TerrainRenderer 已 translate 好）。
+     * 只做一次 clip + drawImage：clip 保證顆粒不溢出六邊形，overlay 保留 theme 色相。
+     *
+     * @param r      六邊形半徑（含 EXPANSION_BIAS）
+     * @param layout hex 排列方向
+     * @param q,r2   格座標，用來選變體（確定性）
+     */
+    paintTerrainGrain(
+        ctx: CanvasRenderingContext2D,
+        r: number,
+        layout: HexLayout,
+        q: number,
+        r2: number,
+    ) {
+        const cfg = MATERIAL_CONFIG.terrain.grain;
+        if (!MATERIAL_CONFIG.enabled || !cfg.enabled || !Number.isFinite(r) || r <= 0) return;
+
+        const variant = variantFor(q, r2, cfg.variants);
+        const tile = getGrainTile(cfg, variant, MATERIAL_CONFIG.maskResolution);
+
+        ctx.save();
+        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
+        ctx.clip();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha *= cfg.strength;
+        ctx.drawImage(tile, -r, -r, r * 2, r * 2);
+        ctx.restore();
+    },
+
+    /**
+     * 側面垂直岩紋：用同一張顆粒貼圖沿 Y 軸拉長，模擬地層堆疊方向。
+     * 呼叫前請先把目標面的路徑 clip 好。
+     */
+    paintSideGrain(
+        ctx: CanvasRenderingContext2D,
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        variant: number,
+    ) {
+        const strength = MATERIAL_CONFIG.terrain.sideGrain;
+        const cfg = MATERIAL_CONFIG.terrain.grain;
+        if (!MATERIAL_CONFIG.enabled || !cfg.enabled || strength <= 0) return;
+        if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
+
+        const tile = getGrainTile(cfg, variant, MATERIAL_CONFIG.maskResolution);
+        ctx.save();
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha *= strength;
+        // 橫向壓縮、縱向拉伸 → 顆粒呈垂直流向，讀起來像岩層
+        ctx.drawImage(tile, x, y, w, h * 1.6);
+        ctx.restore();
+    },
+
+    /**
+     * 障礙物 sprite 風化。
+     * 在 sprite 烘焙階段呼叫一次，執行期零成本。
+     * source-atop 只在既有像素上作畫，不會破壞 sprite 的透明輪廓。
+     */
+    weatherSprite(canvas: HTMLCanvasElement, seedVariant = 0) {
+        const cfg = MATERIAL_CONFIG.environment.grain;
+        if (!MATERIAL_CONFIG.enabled || !cfg.enabled) return canvas;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return canvas;
+
+        const tile = getGrainTile(cfg, seedVariant, MATERIAL_CONFIG.maskResolution);
+
+        // 兩段式：先把顆粒裁成 sprite 的 alpha 形狀（離屏），再以 overlay 疊回。
+        // 直接 source-atop 會把中灰「混」進暗部（黑曜石變灰、樹葉變淡），
+        // overlay 才是保留原色相、只調明暗的正確混合模式。
+        const layer = createCanvas(canvas.width, canvas.height);
+        layer.ctx.drawImage(tile, 0, 0, canvas.width, canvas.height);
+        layer.ctx.globalCompositeOperation = 'destination-in';
+        layer.ctx.drawImage(canvas, 0, 0);
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalCompositeOperation = 'overlay';
+        ctx.globalAlpha = cfg.strength;
+        ctx.drawImage(layer.canvas, 0, 0);
+        ctx.restore();
+        return canvas;
+    },
+
     /** 色調分級：直接接在最終合成前 */
     gradeFilter(): string {
         const g = MATERIAL_CONFIG.grade;

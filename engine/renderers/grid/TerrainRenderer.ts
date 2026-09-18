@@ -3,12 +3,15 @@ import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 import { VisualMath } from "../../math/VisualMath";
+import { MaterialPainter } from "../../graphics/materials/MaterialPainter";
+import { variantFor } from "../../graphics/materials/NoiseLib";
+import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
 
 const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
 
 export const TerrainRenderer = {
-    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: any, type: string, globalTime: number, layout: HexLayout, alpha: number = 1.0) {
+    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: any, type: string, globalTime: number, layout: HexLayout, alpha: number = 1.0, q: number = 0, r2: number = 0) {
         const drawX = Math.floor(x);
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
         let floatOffset = 0;
@@ -44,6 +47,15 @@ export const TerrainRenderer = {
             ctx.lineTo(v1.x, v1.y + currentPedestalDepth);
             ctx.closePath();
             ctx.fill();
+            if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.terrain.sideGrain > 0) {
+                // clip 到剛才這片側面，再疊垂直岩紋
+                ctx.save();
+                ctx.clip();
+                const minX = Math.min(v1.x, v2.x), maxX = Math.max(v1.x, v2.x);
+                const topY = Math.min(v1.y, v2.y) + visualTopY;
+                MaterialPainter.paintSideGrain(ctx, minX, topY, maxX - minX, currentPedestalDepth - topY, variantFor(q, r2, MATERIAL_CONFIG.terrain.grain.variants));
+                ctx.restore();
+            }
         };
 
         if (layout === 'FLAT') {
@@ -72,6 +84,8 @@ export const TerrainRenderer = {
         ctx.fill();
         ctx.strokeStyle = theme.rim;
         ctx.lineWidth = 1.5; ctx.globalAlpha = 0.6; ctx.stroke();
+        ctx.globalAlpha = alpha;
+        MaterialPainter.paintTerrainGrain(ctx, r, layout, q, r2);
         if (type === 'MAGMA') SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0, layout);
         ctx.restore();
     },

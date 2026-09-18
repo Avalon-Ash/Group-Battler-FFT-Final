@@ -1,7 +1,8 @@
 
 import { OBSTACLE_STYLES, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
-import { HexGeometry } from "./utils/HexGeometry"; 
+import { HexGeometry } from "./utils/HexGeometry";
+import { MaterialPainter } from "./materials/MaterialPainter";
 import { HexLayout } from "../../types";
 
 export const EnvironmentFactory = {
@@ -31,6 +32,9 @@ export const EnvironmentFactory = {
             this.drawIsoWall(ctx, style, layout); // Default Wall
         }
 
+        // 風化層：烘焙期一次性套用，執行期零成本
+        MaterialPainter.weatherSprite(canvas);
+
         return canvas;
     },
 
@@ -39,6 +43,7 @@ export const EnvironmentFactory = {
         ctx.translate(ENV_SPRITE.ANCHOR_X, ENV_SPRITE.ANCHOR_Y);
         const style = OBSTACLE_STYLES['ICE_CRYSTAL'];
         this.drawIsoCrystal(ctx, style, layout, 0.7);
+        MaterialPainter.weatherSprite(canvas);
         return canvas;
     },
 

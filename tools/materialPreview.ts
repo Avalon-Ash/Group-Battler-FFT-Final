@@ -2,6 +2,9 @@ import { MaterialPainter } from '../engine/graphics/materials/MaterialPainter';
 import { MATERIAL_CONFIG } from '../data/vfx/materialConfig';
 import { GroundPainter } from '../engine/systems/vfx/renderers/painters/GroundPainter';
 import type { Particle } from '../engine/systems/vfx/state';
+import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
+import { EnvironmentFactory } from '../engine/graphics/EnvironmentFactory';
+import { TERRAIN_THEMES } from '../constants';
 
 const c = document.getElementById('c') as HTMLCanvasElement;
 const ctx = c.getContext('2d')!;
@@ -35,6 +38,31 @@ function render(now: number) {
     cell(140, 400, 'LAYERED beam', () => MaterialPainter.drawLayeredBeam(ctx, 300, 14, '#f0abfc', now));
     cell(620, 250, 'RIBBON thin', () => MaterialPainter.drawRibbon(ctx, 300, -30, '#7dd3fc', 4242, 0.6));
     cell(620, 400, 'LAYERED beam narrow', () => MaterialPainter.drawLayeredBeam(ctx, 300, 6, '#fde047', now + 0.3));
+
+    // ---- 地形頂面 / 側面材質 A-B ----
+    const themes: Array<[string, string]> = [['FOREST', 'FOREST'], ['ICE', 'ICE'], ['DESERT', 'DESERT'], ['MAGMA', 'MAGMA']];
+    themes.forEach(([key, type], i) => {
+        const theme = (TERRAIN_THEMES as any)[key] || (TERRAIN_THEMES as any)['VOID'];
+        const x = 110 + i * 190;
+        MATERIAL_CONFIG.enabled = true;
+        cell(x, 580, `${key} (new)`, () => TerrainRenderer.drawBlock(ctx, 0, 0, 46, 24, theme, type, now, 'FLAT', 1, i * 3 + 1, i + 2));
+        MATERIAL_CONFIG.enabled = false;
+        cell(x, 720, `${key} (legacy)`, () => TerrainRenderer.drawBlock(ctx, 0, 0, 46, 24, theme, type, now, 'FLAT', 1, 0, 0));
+        MATERIAL_CONFIG.enabled = true;
+    });
+
+    // ---- 障礙物 sprite A-B（sprite 有 cache，用旗標切換後重建） ----
+    const obstacles = ['TREE', 'ICE_CRYSTAL', 'OBSIDIAN_PILLAR', 'SANDSTONE'];
+    obstacles.forEach((key, i) => {
+        const x = 110 + i * 190;
+        MATERIAL_CONFIG.enabled = true;
+        const withGrain = EnvironmentFactory.generateObstacle(key, 'FLAT');
+        MATERIAL_CONFIG.enabled = false;
+        const plain = EnvironmentFactory.generateObstacle(key, 'FLAT');
+        MATERIAL_CONFIG.enabled = true;
+        cell(x, 960, `${key} (new)`, () => ctx.drawImage(withGrain, -70, -110, 140, 190));
+        cell(x, 1150, `${key} (legacy)`, () => ctx.drawImage(plain, -70, -110, 140, 190));
+    });
 }
 render(0);
 let t = 0;
