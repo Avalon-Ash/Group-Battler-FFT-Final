@@ -1,5 +1,7 @@
 
 import { createCanvas } from "../graphics/CanvasUtils";
+import { MaterialPainter } from "../graphics/materials/MaterialPainter";
+import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
 
 export class PostProcessor {
     private tempCanvas: HTMLCanvasElement;
@@ -38,6 +40,36 @@ export class PostProcessor {
             ctx.drawImage(this.tempCanvas, offset, 0);
             ctx.restore();
         }
+        ctx.restore();
+    }
+
+    /**
+     * [MATERIAL UPGRADE] 色調分級 pass
+     * 對應 LinearAbilityCastingThreeJS 的 tone grading post-process（曝光/對比/飽和）。
+     * 故意放在世界層結束、HUD 之前，避免 UI 文字跟著變色。
+     * 參數一律讀 MATERIAL_CONFIG.grade，可在暫停狀態下即時調整。
+     */
+    public applyToneGrade(ctx: CanvasRenderingContext2D, width: number, height: number) {
+        if (!MATERIAL_CONFIG.enabled || !MATERIAL_CONFIG.grade.enabled) return;
+        const filter = MaterialPainter.gradeFilter();
+        if (filter === 'none') return;
+
+        const w = Math.floor(width);
+        const h = Math.floor(height);
+        if (w <= 0 || h <= 0) return;
+        if (this.tempCanvas.width !== w || this.tempCanvas.height !== h) {
+            this.tempCanvas.width = w;
+            this.tempCanvas.height = h;
+        }
+
+        ctx.save();
+        ctx.resetTransform();
+        this.tempCtx.clearRect(0, 0, w, h);
+        this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
+        ctx.clearRect(0, 0, w, h);
+        ctx.filter = filter;
+        ctx.drawImage(this.tempCanvas, 0, 0, w, h);
+        ctx.filter = 'none';
         ctx.restore();
     }
 

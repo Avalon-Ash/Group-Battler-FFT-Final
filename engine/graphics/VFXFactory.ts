@@ -5,6 +5,8 @@ import { ProjectilePainter } from "./painters/ProjectilePainter";
 import { IconPainter } from "./painters/IconPainter";
 import { HexGeometry } from "./utils/HexGeometry";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
+import { applyNoiseMask } from "./materials/NoiseLib";
+import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
 
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
@@ -35,7 +37,13 @@ export class VFXTextureCache {
         const r = 40; 
 
         switch (type) {
-            case 'SMOKE': ParticlePainter.drawSmoke(ctx, r, color); break;
+            case 'SMOKE':
+                ParticlePainter.drawSmoke(ctx, r, color);
+                // [MATERIAL UPGRADE] 以 fbm 遮罩打散煙霧邊緣，取代單純的徑向漸層球
+                if (MATERIAL_CONFIG.enabled) {
+                    applyNoiseMask(ctx, 'smoke', MATERIAL_CONFIG.ice.noise, r, true, 41);
+                }
+                break;
             case 'HEX_SHARD': ParticlePainter.drawHexShard(ctx, r, color); break;
             case 'RIPPLE': ParticlePainter.drawRipple(ctx, r, color); break;
             case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
@@ -63,7 +71,13 @@ export class VFXTextureCache {
                 ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
                 break;
             }
-            case 'CRACKS': ParticlePainter.drawCracks(ctx, r, color); break;
+            case 'CRACKS':
+                ParticlePainter.drawCracks(ctx, r, color);
+                // [MATERIAL UPGRADE] 噪聲裁切：裂痕不再是等長放射線，末端自然斷裂消散
+                if (MATERIAL_CONFIG.enabled) {
+                    applyNoiseMask(ctx, 'crack', MATERIAL_CONFIG.scorch.noise, r, true, 23);
+                }
+                break;
             case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
             case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
             case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;

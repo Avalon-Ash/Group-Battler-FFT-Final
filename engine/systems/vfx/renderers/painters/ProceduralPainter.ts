@@ -4,6 +4,8 @@ import { ISO_SCALE_Y } from "../../../../../constants";
 import { VolumePainter } from "../../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../../types";
+import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
+import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
 
 export const ProceduralPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, now: number, layout: HexLayout = 'FLAT') {
@@ -308,8 +310,34 @@ export const ProceduralPainter = {
         
         const isDeathRay = p.type === 'DEATH_RAY';
         const width = p.size * (isDeathRay ? (1.5 - progress) : (1.0 - progress));
-        
-        // 2. 繪製核心光束
+
+        // [MATERIAL UPGRADE] 程序化材質路徑
+        if (MATERIAL_CONFIG.enabled) {
+            if (p.visualStyle === 'LIGHTNING') {
+                // Ribbon strip：中點位移路徑；seed 取自起點座標，確保同一發技能路徑穩定不閃爍
+                const seed = Math.floor((p.sx || 0) * 31 + (p.sy || 0) * 17 + p.maxLife * 7) | 0;
+                MaterialPainter.drawRibbon(ctx, dist, 0, p.color, seed, 1 - progress * 0.5);
+                ctx.restore();
+                return;
+            }
+            MaterialPainter.drawLayeredBeam(ctx, dist, Math.max(1, width), p.color, now);
+            if (isDeathRay) {
+                ctx.strokeStyle = p.color;
+                ctx.lineWidth = 1;
+                ctx.globalAlpha = 0.8;
+                ctx.setLineDash([20, 10]);
+                ctx.lineDashOffset = -now * 500;
+                ctx.beginPath();
+                ctx.moveTo(0, -width); ctx.lineTo(dist, -width);
+                ctx.moveTo(0, width); ctx.lineTo(dist, width);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+            ctx.restore();
+            return;
+        }
+
+        // 2. 繪製核心光束（legacy 回退路徑，MATERIAL_CONFIG.enabled=false 時使用）
         const grad = ctx.createLinearGradient(0, -width, 0, width);
         grad.addColorStop(0, 'transparent');
         grad.addColorStop(0.2, p.color);

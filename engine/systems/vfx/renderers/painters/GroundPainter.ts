@@ -5,6 +5,8 @@ import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 import { HexLayout } from "../../../../../types";
 import { VisualMath } from "../../../../math/VisualMath";
+import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
+import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
 
 export const GroundPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
@@ -62,6 +64,19 @@ export const GroundPainter = {
 
     drawFireField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
         const hexRadius = HEX_SIZE;
+
+        // [MATERIAL UPGRADE] 隨機裂紋 + shadowBlur 改為離屏烘焙的灼痕貼圖（噪聲裁切邊緣）
+        if (MATERIAL_CONFIG.enabled) {
+            const tex = MaterialPainter.bakeScorch(MATERIAL_CONFIG.maskResolution, 11);
+            ctx.save();
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.globalCompositeOperation = 'source-over';
+            const r = hexRadius * 0.95;
+            ctx.drawImage(tex, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
         // Lava pool effect
         ctx.fillStyle = p.color;
         ctx.shadowColor = '#ea580c';
@@ -84,6 +99,19 @@ export const GroundPainter = {
 
     drawIceField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
         const hexRadius = HEX_SIZE;
+
+        // [MATERIAL UPGRADE] 以 fbm 遮罩裁切的霜面，取代純色六邊形 + 兩條白橢圓
+        if (MATERIAL_CONFIG.enabled) {
+            const tex = MaterialPainter.bakeIceCrust(MATERIAL_CONFIG.maskResolution, 7);
+            ctx.save();
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.globalCompositeOperation = 'source-over';
+            const r = hexRadius * 0.95;
+            ctx.drawImage(tex, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
         ctx.fillStyle = 'rgba(186, 230, 253, 0.4)'; // Light blue
         HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.95, true, layout);
         ctx.fill();

@@ -81,6 +81,8 @@ export class RenderPipeline {
         // 3. Post Processing
         let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
         this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
+        // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
+        this.post.applyToneGrade(ctx, pW, pH);
         
         // 4. Overlays (Screen/World Hybrid)
         ctx.save(); 

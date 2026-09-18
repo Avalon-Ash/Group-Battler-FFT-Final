@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# npm lockfile is intentionally untracked in this repo
+package-lock.json
