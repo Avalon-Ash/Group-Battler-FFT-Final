@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TACTICAL.OS · Unit Lab</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+TC:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <div class="brand"><svg aria-label="Tactical OS" viewBox="0 0 28 28" width="28" height="28"><path d="M14 2 25 8v12l-11 6L3 20V8Z M3 8l11 6 11-6M14 14v12" fill="none" stroke="currentColor" stroke-width="1.5"/></svg><span>TACTICAL.OS <small>CHARACTER WORKSHOP</small></span></div>
+    <span class="branch">experiment / unit-rig-skin-poc</span><span class="badge">ISOLATED POC</span>
+  </header>
+  <main>
+    <div class="heading"><div><p class="eyebrow">ART & ENGINEERING / STUDY 001</p><h1>角色試驗場 <span>Unit Lab</span></h1></div><p>骨架定義動作，SKIN 定義外觀。<br>原創像素小樣 · 尚未接入戰鬥引擎</p></div>
+    <div id="error" role="alert" hidden></div>
+    <div class="workspace">
+      <aside class="panel settings">
+        <div class="paneltitle"><h2>角色組裝</h2><span>01</span></div>
+        <label for="rig">骨架 / RIG</label><select id="rig"><option value="male">男骨架 · M01</option><option value="female">女骨架 · F01</option></select>
+        <label for="skin">衣裝 / SKIN</label><select id="skin"><option value="scout">旅裝 · 靛藍布料</option><option value="guard">輕甲 · 銀灰鋼片</option></select>
+        <label for="hair">髮型 / HAIR</label><select id="hair"><option value="crop">短髮</option><option value="tied">束髮</option></select>
+        <label for="direction">視角 / VIEW</label><select id="direction"><option value="front">前側 · FRONT</option><option value="back">後側 · BACK</option></select>
+        <div class="toggles"><label><input id="weapon" type="checkbox" checked>裝備短劍 <span>hand socket</span></label><label><input id="cape" type="checkbox" checked>裝備披風 <span>chest socket</span></label></div>
+        <div class="divider"></div>
+        <p class="eyebrow">INSPECTION</p>
+        <div class="toggles"><label><input id="joints" type="checkbox">骨架與掛點</label><label><input id="exploded" type="checkbox">分件展開</label></div>
+        <label for="zoom">倍率上限 · 視窗自適應 <output id="zoomLabel">6×</output></label><input id="zoom" type="range" min="2" max="8" step="1" value="6">
+        <button id="reset" class="quiet">重設試驗</button>
+        <p class="note">男女共用插槽契約；衣裝各有適配圖。造型與動作不依賴職業或陣營。</p>
+      </aside>
+      <section class="viewer panel">
+        <div class="viewhead"><span><i></i> LIVE ASSEMBLY</span><span id="poseName">載入貼圖…</span></div>
+        <div class="stage"><canvas id="stage" aria-label="角色組裝預覽"></canvas><span class="stagecorner">INTEGER PIXEL GRID<br>NEAREST / NO ROTATION</span><span class="stagebottom" id="stageMeta"></span></div>
+        <div class="transport">
+          <button id="play" class="accent" aria-label="播放或暫停">暫停</button><button id="step" aria-label="下一幀">下一幀 →</button>
+          <label for="clip" class="sr-only">動作</label><select id="clip"><option value="idle">待機</option><option value="walk">行走</option><option value="attack">揮劍</option><option value="hit">受擊</option></select>
+          <label for="speed" class="sr-only">播放速度</label><select id="speed"><option value="0.5">0.5× 速度</option><option value="1" selected>1× 速度</option><option value="2">2× 速度</option></select>
+        </div>
+        <div class="timelinehead"><span>POSE TIMELINE</span><span id="frameCount"></span></div><div id="frames" class="frames"></div>
+      </section>
+      <aside class="panel inspector">
+        <div class="paneltitle"><h2>資產檢視</h2><span>02</span></div>
+        <p class="eyebrow">SOURCE PIXELS / 1× & 2×</p><canvas id="native" width="220" height="124" aria-label="原始像素大小對照"></canvas>
+        <div class="metrics"><div><span id="assetCount">—</span><small>PNG 分件</small></div><div><span>2</span><small>相容骨架</small></div><div><span>0</span><small>職業分支</small></div></div>
+        <div class="divider"></div><p class="eyebrow">DRAW ORDER / BACK → FRONT</p><ol id="layers"></ol>
+        <details><summary>本次驗證的邊界</summary><p>兩個獨立視角，不是完整四／八方向。行走採有限姿態位移；未製作完整腳掌翻轉、死亡或技能動畫。非原作素材，非美術定稿。</p></details>
+        <button id="export" class="quiet">匯出角色配置 JSON</button><p id="status" role="status" class="note">正在載入原創像素圖集。</p>
+      </aside>
+    </div>
+    <footer><span>RIG → POSE → SKIN → DRAW COMMANDS</span><span>BASE 48b2968 / 不修改現有單位渲染管線</span></footer>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
