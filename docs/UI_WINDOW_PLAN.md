@@ -203,7 +203,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U2 | ☑ | 2026-10-10 完成：useWindowInteraction（Pointer 拖曳/8向縮放/雙擊最大化）、ToolWindow 視窗殼、WindowLayer 穿透層 |
 | U3 | ☐ | 試點；桌機+手機實測 |
 | U4 | ☐ | |
-| E1 | ☐ | |
+| E1 | ☑ | 2026-10-10 完成：UICommand 聯集、EventMap['UI_COMMAND']、types/UIViewModel.ts（Agent/Director/Zone/Camera/Log View） |
 | E2 / E2b | ☐ | |
 | E3 / E3b | ☐ | |
 | E9 | ☐ | 棘輪守門，越早越好 |

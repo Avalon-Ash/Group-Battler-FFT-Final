@@ -213,7 +213,22 @@ export interface EventMap {
     AGENT_DIED: { agent: Agent; groundZ: number; impactX: number; impactY: number };
     KILL: { killerId: string; victimId: string };
     CAST_START: { sourceId: string; skill: Skill };
+    /** UI 唯一寫入事件閘門，由 UICommandSystem 處理 */
+    UI_COMMAND: UICommand;
 }
+
+export type UICommand =
+    | { type: 'SET_DIRECTOR_ENABLED'; enabled: boolean }
+    | { type: 'SET_CAMERA_TUNING'; followStiffness?: number; zoomStiffness?: number }
+    | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
+    | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number }
+    | { type: 'REBUILD_AGENT_AI'; agentId: string }
+    | { type: 'RESET_GAME' }
+    | { type: 'PAUSE_GAME' }
+    | { type: 'RESUME_GAME' }
+    | { type: 'SET_TIME_SCALE'; timeScale: number };
+
+export * from './types/UIViewModel';
 
 
 export interface SceneTheme {
