@@ -5,7 +5,7 @@ import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
 
 export class SkillExecutor {
 
@@ -68,7 +68,7 @@ export class SkillExecutor {
                     type: 'CC_APPLIED', 
                     pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
                     text: "突進", 
-                    color: "#60a5fa",
+                    color: DAMAGE_TEXT_COLORS.DASH,
                     sourceId: source.id,
                     targetId: source.id
                 });
@@ -146,7 +146,7 @@ export class SkillExecutor {
                 type: 'DAMAGE', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 text: "MISS", 
-                color: '#9ca3af',
+                color: DAMAGE_TEXT_COLORS.MISS,
                 sourceId: source.id,
                 targetId: target.id
             });
@@ -159,7 +159,7 @@ export class SkillExecutor {
                 type: 'DAMAGE', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 text: "BLOCK", 
-                color: '#fb923c',
+                color: DAMAGE_TEXT_COLORS.BLOCK,
                 sourceId: source.id,
                 targetId: target.id
             });
@@ -171,7 +171,7 @@ export class SkillExecutor {
                 type: 'DAMAGE', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: -Math.floor(result.shieldAbsorb), 
-                color: '#bae6fd', 
+                color: DAMAGE_TEXT_COLORS.ABSORB, 
                 text: "ABSORB",
                 sourceId: source.id,
                 targetId: target.id
@@ -190,7 +190,7 @@ export class SkillExecutor {
             // Visual Event
             const isHeal = result.finalValue > 0;
             const evtType = isHeal ? 'HEAL' : 'DAMAGE';
-            const color = isHeal ? '#86efac' : (result.isCrit ? '#ef4444' : skill.color);
+            const color = isHeal ? DAMAGE_TEXT_COLORS.HEAL : (result.isCrit ? DAMAGE_TEXT_COLORS.CRIT : skill.color);
             
             engine.events.push({ 
                 type: evtType, 
@@ -257,7 +257,7 @@ export class SkillExecutor {
                 type: 'HEAL', 
                 pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
                 value: result.vampAmount, 
-                color: '#be123c', 
+                color: DAMAGE_TEXT_COLORS.VAMP, 
                 text: "VAMP",
                 sourceId: source.id,
                 targetId: source.id
@@ -270,7 +270,7 @@ export class SkillExecutor {
                 type: 'DAMAGE', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: result.manaBurn, 
-                color: '#8b5cf6', 
+                color: DAMAGE_TEXT_COLORS.MANA_BURN, 
                 text: "BURN",
                 sourceId: source.id,
                 targetId: target.id
@@ -283,7 +283,7 @@ export class SkillExecutor {
                 type: 'HEAL', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
                 value: result.manaRestore, 
-                color: '#60a5fa', 
+                color: DAMAGE_TEXT_COLORS.MANA_RESTORE, 
                 text: "MP",
                 sourceId: source.id,
                 targetId: target.id
@@ -300,7 +300,7 @@ export class SkillExecutor {
                     type: 'DAMAGE',
                     pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z },
                     value: selfDmgValue,
-                    color: '#ef4444',
+                    color: DAMAGE_TEXT_COLORS.RECOIL,
                     text: "RECOIL",
                     sourceId: source.id,
                     targetId: source.id

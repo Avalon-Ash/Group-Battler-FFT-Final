@@ -49,6 +49,20 @@ export const DOT_COLORS: Record<string, string> = {
     IMPERIAL: '#3b82f6'
 };
 
+// SSOT: Floating Combat Text Colors
+export const DAMAGE_TEXT_COLORS = {
+    DASH: '#60a5fa',
+    MISS: '#9ca3af',
+    BLOCK: '#fb923c',
+    ABSORB: '#bae6fd',
+    HEAL: '#86efac',
+    CRIT: '#ef4444',
+    VAMP: '#be123c',
+    MANA_BURN: '#8b5cf6',
+    MANA_RESTORE: '#60a5fa',
+    RECOIL: '#ef4444'
+};
+
 // SSOT: HUD Layout Constants
 export const HUD_LAYOUT = {
     CAST_BAR_X_OFFSET: 55,
