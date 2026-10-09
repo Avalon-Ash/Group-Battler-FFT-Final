@@ -40,7 +40,7 @@ export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
 export const MAX_ARC_HEIGHT = 150;
 
 // SSOT: Element Colors for DoT and Effects
-export const DOT_COLORS = {
+export const DOT_COLORS: Record<string, string> = {
     FIRE: '#f97316',
     POISON: '#10b981',
     VOID: '#a855f7',

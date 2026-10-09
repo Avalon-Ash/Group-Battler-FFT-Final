@@ -58,7 +58,7 @@ export class EffectSystem {
                 }
                 
                 if (frameDamage > 0 || absorbed === 0) {
-                    const dotColor = (DOT_COLORS as any)[agent.dotType] || '#10b981';
+                    const dotColor = DOT_COLORS[agent.dotType] || '#10b981';
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 

@@ -57,7 +57,7 @@ export const GroundEffectPainter = {
         // 2. 持續傷害 (DoT) - 顯眼的上升氣流
         if (agent.dotTimer > 0 && agent.dotDmg > 0) {
             // Determine color based on hazard guessing (Green for generic/poison, Red for fire)
-            const color = (DOT_COLORS as any)[agent.dotType] || '#a3e635'; 
+            const color = DOT_COLORS[agent.dotType] || '#a3e635'; 
             const secondary = agent.dotType === 'BURN' ? '#991b1b' : '#4d7c0f';
 
             ctx.save();
