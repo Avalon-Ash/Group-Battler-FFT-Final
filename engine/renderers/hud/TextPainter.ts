@@ -1,5 +1,6 @@
 
 import { HUDSystem } from "../../systems/hud";
+import { TEXT_PAINTER_COLORS } from "../../../constants";
 
 export const TextPainter = {
     
@@ -54,7 +55,7 @@ export const TextPainter = {
                 
                 ctx.lineWidth = 4;
                 ctx.lineJoin = 'round';
-                ctx.strokeStyle = '#000';
+                ctx.strokeStyle = TEXT_PAINTER_COLORS.KILL_STREAK_STROKE;
                 ctx.strokeText(d.text, 0, 0);
                 ctx.fillStyle = d.color;
                 ctx.fillText(d.text, 0, 0);
@@ -88,13 +89,13 @@ export const TextPainter = {
                         const s = 1.0 + progress * 0.2;
                         ctx.scale(s, s);
                         
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                         ctx.shadowColor = d.color;
                         ctx.shadowBlur = 15 * lifePct;
                         ctx.fillText(d.text, 0, 0);
 
                         // 2. 輕量化的橫向擴散線條
-                        ctx.strokeStyle = '#ffffff';
+                        ctx.strokeStyle = TEXT_PAINTER_COLORS.WHITE;
                         ctx.lineWidth = 2 * lifePct;
                         ctx.beginPath();
                         ctx.moveTo(-halfW * (1 + progress * 0.5), 0);
@@ -111,27 +112,27 @@ export const TextPainter = {
                         ctx.globalCompositeOperation = 'screen';
                         
                         // Red Channel
-                        ctx.fillStyle = '#ff0000';
+                        ctx.fillStyle = TEXT_PAINTER_COLORS.GLITCH_RED;
                         ctx.fillText(d.text, (glitch-0.5)*8, (Math.random()-0.5)*4);
                         
                         // Cyan Channel
-                        ctx.fillStyle = '#00ffff';
+                        ctx.fillStyle = TEXT_PAINTER_COLORS.GLITCH_CYAN;
                         ctx.fillText(d.text, (Math.random()-0.5)*8, (glitch-0.5)*4);
                         
                         // Main Shattered Text (White/Grey)
                         ctx.restore();
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                         ctx.fillText(d.text, 0, 0);
 
                         // 繪製破碎的科技背景框
-                        ctx.strokeStyle = '#ef4444';
+                        ctx.strokeStyle = TEXT_PAINTER_COLORS.GLITCH_FRAME;
                         ctx.lineWidth = 2;
                         ctx.globalAlpha = lifePct * 0.5;
                         ctx.strokeRect(-halfW - glitch*10, -halfH, w + glitch*20, h);
                         
                         // 靜態雜訊特效
                         if (glitch > 0.7) {
-                            ctx.fillStyle = '#fff';
+                            ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                             for(let i=0; i<3; i++) {
                                 ctx.fillRect(-halfW, (Math.random()-0.5)*h, w, 1);
                             }
@@ -141,7 +142,7 @@ export const TextPainter = {
                 } else {
                     // --- 詠唱演出：科技掃描與脈動 ---
                     // 1. 繪製半透明背景底色
-                    ctx.fillStyle = 'rgba(15, 23, 42, 0.4)';
+                    ctx.fillStyle = TEXT_PAINTER_COLORS.TECH_BG;
                     ctx.fillRect(-halfW, -halfH, w, h);
 
                     // 2. 科技括號 (Tech Brackets)
@@ -182,13 +183,13 @@ export const TextPainter = {
 
                         // 填充區背景光暈
                         const grad = ctx.createLinearGradient(-halfW, 0, -halfW + revealW, 0);
-                        grad.addColorStop(0, 'rgba(255,255,255,0)');
+                        grad.addColorStop(0, TEXT_PAINTER_COLORS.GRAD_TRANSPARENT);
                         grad.addColorStop(1, d.color + '44');
                         ctx.fillStyle = grad;
                         ctx.fillRect(-halfW, -halfH, revealW, h);
 
                         ctx.globalAlpha = 1.0;
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                         ctx.shadowColor = d.color;
                         ctx.shadowBlur = d.isUlt ? 20 : 10;
                         ctx.fillText(d.text, 0, 0);
@@ -196,9 +197,9 @@ export const TextPainter = {
                         // Scanner Line
                         if (progress < 0.99) {
                             const scanX = -halfW + revealW;
-                            ctx.fillStyle = '#fff';
+                            ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                             ctx.shadowBlur = 15;
-                            ctx.shadowColor = '#fff';
+                            ctx.shadowColor = TEXT_PAINTER_COLORS.WHITE;
                             ctx.fillRect(scanX - 1.5, -halfH + 1, 3, h - 2);
                         }
                         ctx.restore();
@@ -208,7 +209,7 @@ export const TextPainter = {
             } else {
                 ctx.font = `900 ${d.size}px "Segoe UI", sans-serif`;
                 ctx.lineWidth = 3;
-                ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+                ctx.strokeStyle = TEXT_PAINTER_COLORS.STROKE_SHADOW;
                 ctx.strokeText(d.text, 0, 0);
                 ctx.fillStyle = d.color; 
                 ctx.fillText(d.text, 0, 0);

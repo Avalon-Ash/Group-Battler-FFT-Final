@@ -116,6 +116,18 @@ export const HUD_COLORS = {
     GLOSS_HIGHLIGHT: 'rgba(255, 255, 255, 0.3)'
 };
 
+// SSOT: Floating Text Effect Colors
+export const TEXT_PAINTER_COLORS = {
+    STROKE_SHADOW: 'rgba(0, 0, 0, 0.8)',
+    KILL_STREAK_STROKE: '#000000',
+    WHITE: '#ffffff',
+    GLITCH_RED: '#ff0000',
+    GLITCH_CYAN: '#00ffff',
+    GLITCH_FRAME: '#ef4444',
+    TECH_BG: 'rgba(15, 23, 42, 0.4)',
+    GRAD_TRANSPARENT: 'rgba(255, 255, 255, 0)'
+};
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {
