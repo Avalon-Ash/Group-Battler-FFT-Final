@@ -112,7 +112,7 @@ export class UnitRenderSystem {
                 UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
             } else {
                 // [ARCH] 死亡單位使用 UnitDeathPainter 進行布娃娃物理繪製
-                UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout } as any, terrainHeight, simDt);
+                UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout }, terrainHeight, simDt);
             }
         }
         UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);

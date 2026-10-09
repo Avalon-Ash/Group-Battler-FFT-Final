@@ -16,7 +16,7 @@ export class UnitDeathPainter {
         visY: number,  // 這裡傳入的是平移後的中心 Y (0)
         alpha: number,
         t: number,     // 這裡傳入的是 battleTime
-        cfg: MapConfig,
+        cfg: Partial<MapConfig> = {},
         terrainHeight: number,
         simDt: number = 0.016 // 預設 60fps，若外部能傳更好
     ): void {
