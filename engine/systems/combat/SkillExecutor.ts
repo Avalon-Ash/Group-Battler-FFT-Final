@@ -234,7 +234,7 @@ export class SkillExecutor {
                         } else {
                             engine.vfx.playEffect(hitFX, hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
                             if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                                engine.vfx.playEffect(hitFX, hitX + 8, hitY - 8, hitZ, undefined, undefined, undefined, targetHexKey);
+                                engine.vfx.playEffect(hitFX, hitX + COMBAT_PARAM.HIT_FX_OFFSET, hitY - COMBAT_PARAM.HIT_FX_OFFSET, hitZ, undefined, undefined, undefined, targetHexKey);
                             }
                         }
 

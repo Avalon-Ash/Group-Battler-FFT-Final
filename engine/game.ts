@@ -13,7 +13,7 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
-import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG } from "../constants";
+import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
 import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
@@ -89,9 +89,9 @@ export class GameEngine implements SpatialProvider {
     public isRunning: boolean = false;
     public mapVersion: number = 0; 
     
-    public screenAspect: number = 1.77;
-    public screenW: number = 1200;
-    public screenH: number = 675;
+    public screenAspect: number = SCREEN_CONSTANTS.DEFAULT_ASPECT;
+    public screenW: number = SCREEN_CONSTANTS.DEFAULT_WIDTH;
+    public screenH: number = SCREEN_CONSTANTS.DEFAULT_HEIGHT;
 
     public mapConfig: MapConfig = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
     public zoneConfig: ZoneConfig = { ...DEFAULT_ZONE_CONFIG };
