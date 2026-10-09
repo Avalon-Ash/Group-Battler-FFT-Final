@@ -174,7 +174,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | ID | 狀態 | 日期 | 備註 / 回報問題 |
 | :--- | :--- | :--- | :--- |
 | T1.1 | ☑ | 2026-10-09 | 完成 EventMap 與 EventBus 泛型化，0 lint errors |
-| T1.2 | ☐ | | |
+| T1.2 | ☑ | 2026-10-09 | 完成清除簡單 any（BTRegistry、StackingResolver+SpatialProvider、MovementSystem、DOT_COLORS），分 4 次 commit，0 lint errors |
 | T1.3 | ☐ | | |
 | T1.4 | ☐ | | |
 | T1.5 | ☐ | | |
