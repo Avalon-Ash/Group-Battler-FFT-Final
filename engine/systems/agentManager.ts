@@ -16,6 +16,8 @@ import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { UnitShatter } from "./visuals/effects/UnitShatter";
 import { RagdollFactory } from "./unit/RagdollFactory";
 
+export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'vfx' | 'map'>;
+
 export class AgentManager {
     public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
@@ -63,7 +65,7 @@ export class AgentManager {
         return a;
     }
 
-    public handleDeadState(a: Agent, engine: GameEngine) {
+    public handleDeadState(a: Agent, engine: DeadStateContext) {
         if (a.fullyDead || a.deadLogged) return;
         
         engine.log(a, 'DEATH', '死亡', null, '陣亡');
