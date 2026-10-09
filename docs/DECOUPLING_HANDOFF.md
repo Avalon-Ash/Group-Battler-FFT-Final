@@ -179,7 +179,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T1.4 | ☑ | 2026-10-09 | 完成 blue_basic.ts 依賴收斂至 types.ts，消除反向依賴，0 lint errors |
 | T1.5 | ☑ | 2026-10-09 | 完成 Agent / game / SkillExecutor 魔術數字抽取至 constants.ts，0 lint errors |
 | T2.1 | ☑ | 2026-10-09 | 完成 CCManager 狀態文字與顏色對齊 STATUS_VISUALS 查表，CCManager 內硬編碼色碼歸零，0 lint errors |
-| T2.2 | ☐ | | |
+| T2.2 | ☑ | 2026-10-09 | 完成 SkillExecutor 浮動文字顏色提取至 DAMAGE_TEXT_COLORS，SkillExecutor 內硬編碼色碼歸零，0 lint errors |
 | T2.3 | ☐ | | |
 | T2.4 | ☐ | | |
 | T3.1 | ☐ | | |
