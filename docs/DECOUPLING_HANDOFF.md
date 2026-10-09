@@ -183,7 +183,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T2.3 | ☑ | 2026-10-09 | 完成 Imperial / Covenant TokenFactory 硬編碼色碼提取至 data/units/appearance/*，分 2 次 commit（T2.3-1, T2.3-2），0 lint errors |
 | T2.4 | ☑ | 2026-10-09 | 完成 BarPainter, TextPainter, tactical, background 硬編碼色碼提取至 constants.ts (HUD/TEXT_PAINTER/TACTICAL/BACKGROUND_COLORS)，分 4 次 commit，0 lint errors |
 | T3.1 | ☑ | 2026-10-09 | 完成 MovementSystem (GROUND_IMPACT) 與 SkillExecutor (HIT_FX) 的 VFX 呼叫改走事件通道，移除直接 engine.vfx.playEffect 呼叫，分 2 次 commit，0 lint errors |
-| T3.2 | ☐ | | |
+| T3.2 | ☑ | 2026-10-09 | 完成 agentManager.ts:108-119 透過 AGENT_RESET 匯流排事件清理長效粒子，以及 MapGenerator.ts 移除 grid.reset() 改走 ENV_UPDATE 訂閱，分 2 次 commit，0 lint errors |
 | T3.3 | ☐ | | ✅ 使用者已於 2026-10-09 同意：視覺事件留 `events[]`、系統間通知走 `bus` |
 | T4.1 | ☐ | | |
 | T4.2 | ☐ | | ✅ 使用者已於 2026-10-09 同意執行；但仍須先寫 sequence 分析，且**不得改變同 tick 執行順序**，無法保證時退回 T4.1 的窄介面做法並記錄 |
