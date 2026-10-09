@@ -200,7 +200,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U0a | ☑ | 2026-10-10 tailwindcss@^3.4+postcss+autoprefixer 安裝完成，dist 不再殘留 @apply/@tailwind，CDN 仍保留 |
 | U0b | ☐ | 需回報視覺差異並等使用者確認 |
 | U1 / U1b / U1c | ☑ | 2026-10-10 完成：WindowDef/State SSOT、WindowStore 完整單元測試全綠、data/ui/windows.ts 與 useWindowStore hooks |
-| U2 | ☐ | |
+| U2 | ☑ | 2026-10-10 完成：useWindowInteraction（Pointer 拖曳/8向縮放/雙擊最大化）、ToolWindow 視窗殼、WindowLayer 穿透層 |
 | U3 | ☐ | 試點；桌機+手機實測 |
 | U4 | ☐ | |
 | E1 | ☐ | |
