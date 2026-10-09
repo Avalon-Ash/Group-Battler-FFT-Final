@@ -220,29 +220,19 @@ export class SkillExecutor {
                     const hexCenter = HexUtils.toPx(target.q, target.r, engine.mapConfig);
                     const hitX = hexCenter.x;
                     const hitY = hexCenter.y;
-                    const hitZ = engine.getTerrainHeight(target.q, target.r);
-                    const targetHexKey = HexUtils.key(target);
 
                     // 選擇基礎打擊特效
                     const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_TECH' : 'FX_HIT_RED_BLOOD';
 
-                    // [FIX] Synchronous VFX: Immediate burst aligned with hitFlashFrame
-                    if (engine.vfx) {
-                        // Check for shield hit - play shield spark if absorbed
-                        if (result.shieldAbsorb > 0) {
-                            engine.vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
-                        } else {
-                            engine.vfx.playEffect(hitFX, hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
-                            if (finalDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                                engine.vfx.playEffect(hitFX, hitX + COMBAT_PARAM.HIT_FX_OFFSET, hitY - COMBAT_PARAM.HIT_FX_OFFSET, hitZ, undefined, undefined, undefined, targetHexKey);
-                            }
-                        }
-
-                        // HEAVY：額外疊加地面衝擊波（複用現有 EASING_SHOCKWAVE）
-                        if (finalDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
-                            engine.vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ, undefined, undefined, undefined, targetHexKey);
-                        }
-                    }
+                    // Decoupled Event: Emit HIT_FX for visual pipeline
+                    engine.pushEvent('HIT_FX', { x: hitX, y: hitY }, {
+                        value: finalDamage,
+                        absorbed: result.shieldAbsorb,
+                        text: hitFX,
+                        targetId: target.id,
+                        sourceId: source.id,
+                        skill
+                    });
                     
                     if (origin && !skill.ccType) {
                         PhysicsEngine.applyImpulse(target, origin, COMBAT_PARAM.HIT_IMPULSE_MIN);
