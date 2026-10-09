@@ -24,7 +24,7 @@ export const CovenantTokenFactory = {
         ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth
         
         // 1. Drop Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillStyle = PALETTE.SHADOW;
         ctx.beginPath(); ctx.arc(0, 8, radius + 4, 0, Math.PI*2); ctx.fill();
 
         // 2. Blood-stained Brass & Iron (Radial Gradient for Sphere effect)
@@ -35,7 +35,7 @@ export const CovenantTokenFactory = {
         grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor); // Dried Blood
         grad.addColorStop(0.8,  ap.deepColor);    // Dark Clot
-        grad.addColorStop(1,    '#000000');
+        grad.addColorStop(1,    ap.centerCoreColor ?? '#000000');
         ctx.fillStyle = grad;
         
         // 3. Jagged Gear Shape (Chaos Star hint)
@@ -52,7 +52,7 @@ export const CovenantTokenFactory = {
         ctx.fill();
 
         // 3.1 Tooth-tip Metallic Highlights (New)
-        ctx.strokeStyle = 'rgba(255, 160, 50, 0.30)';
+        ctx.strokeStyle = ap.innerRimColor ?? 'rgba(255, 160, 50, 0.30)';
         ctx.lineWidth = 1;
         ctx.stroke();
         
@@ -66,13 +66,13 @@ export const CovenantTokenFactory = {
 
         // 5. Inner Runes (Burning)
         ctx.beginPath(); ctx.arc(0, 0, radius * 0.6, 0, Math.PI*2);
-        ctx.strokeStyle = '#ef4444'; // Glowing Red
+        ctx.strokeStyle = ap.runeGlowColor ?? '#ef4444'; // Glowing Red
         ctx.lineWidth = 2;
         ctx.setLineDash([10, 5]);
         ctx.stroke();
         
         // 6. Skull/Khorne Mark Hint
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = ap.centerCoreColor ?? '#000';
         ctx.globalAlpha = 0.4;
         ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
 
@@ -100,7 +100,7 @@ export const CovenantTokenFactory = {
         grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor);
         grad.addColorStop(0.8,  ap.deepColor);
-        grad.addColorStop(1,    '#000000');
+        grad.addColorStop(1,    ap.centerCoreColor ?? '#000000');
         bCtx.fillStyle = grad;
         bCtx.beginPath();
         const sides = 8;
@@ -145,25 +145,25 @@ export const CovenantTokenFactory = {
 
         // 1. 底光暈（血紅）
         const glowGrad = cCtx.createRadialGradient(0, 2, 0, 0, 2, R * 0.52);
-        glowGrad.addColorStop(0,   'rgba(239, 68, 68, 0.35)');
-        glowGrad.addColorStop(0.6, 'rgba(239, 68, 68, 0.10)');
-        glowGrad.addColorStop(1,   'rgba(239, 68, 68, 0)');
+        glowGrad.addColorStop(0,   ap.coreGlowColor ?? 'rgba(239, 68, 68, 0.35)');
+        glowGrad.addColorStop(0.6, ap.coreGlowMidColor ?? 'rgba(239, 68, 68, 0.10)');
+        glowGrad.addColorStop(1,   ap.coreGlowFadeColor ?? 'rgba(239, 68, 68, 0)');
         cCtx.fillStyle = glowGrad;
         cCtx.beginPath(); cCtx.arc(0, 2, R * 0.52, 0, Math.PI*2); cCtx.fill();
 
         // 2. 投影陰影
-        cCtx.fillStyle = 'rgba(0, 0, 0, 0.50)';
+        cCtx.fillStyle = ap.coreShadowColor ?? 'rgba(0, 0, 0, 0.50)';
         cCtx.beginPath(); cCtx.ellipse(0, 6, R * 0.28, R * 0.10, 0, 0, Math.PI*2); cCtx.fill();
 
         // 3. 中心黑核
-        cCtx.fillStyle = '#000000';
+        cCtx.fillStyle = ap.centerCoreColor ?? '#000000';
         cCtx.beginPath(); cCtx.arc(0, 0, 10, 0, Math.PI*2); cCtx.fill();
 
         // 4. 魔紋環（燃燒效果）
-        cCtx.shadowColor = '#ef4444';
+        cCtx.shadowColor = ap.runeGlowColor ?? '#ef4444';
         cCtx.shadowBlur  = 10;
         cCtx.beginPath(); cCtx.arc(0, 0, R * 0.6, 0, Math.PI*2);
-        cCtx.strokeStyle = '#ef4444';
+        cCtx.strokeStyle = ap.runeGlowColor ?? '#ef4444';
         cCtx.lineWidth   = 2;
         cCtx.setLineDash([10, 5]);
         cCtx.stroke();

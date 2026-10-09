@@ -8,6 +8,13 @@ const COMMON_COVENANT = {
   accentColor: THEME_COVENANT.accent,
   capeColor: null,
   highlightColor: '#c0392b',  // Crimson Specular Highlight
+  innerRimColor: 'rgba(255, 160, 50, 0.30)',
+  runeGlowColor: '#ef4444',
+  centerCoreColor: '#000000',
+  coreGlowColor: 'rgba(239, 68, 68, 0.35)',
+  coreGlowMidColor: 'rgba(239, 68, 68, 0.10)',
+  coreGlowFadeColor: 'rgba(239, 68, 68, 0)',
+  coreShadowColor: 'rgba(0, 0, 0, 0.50)',
 };
 
 export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
