@@ -208,6 +208,7 @@ export interface EventMap {
     TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };
+    AGENT_RESET: { agentId: string };
 }
 
 

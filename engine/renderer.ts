@@ -51,6 +51,7 @@ export class GameRenderer {
             this.boundEngine.bus.off('ENV_UPDATE', this.handleReset);
             this.boundEngine.bus.off('CAMERA_SHAKE', this.handleShake);
             this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
+            this.boundEngine.bus.off('AGENT_RESET', this.handleAgentReset);
             this.vfx.unbind();
         }
 
@@ -62,6 +63,7 @@ export class GameRenderer {
         this.boundEngine.bus.on('ENV_UPDATE', this.handleReset);
         this.boundEngine.bus.on('CAMERA_SHAKE', this.handleShake);
         this.boundEngine.bus.on('CAMERA_MOVE', this.handleCameraMove);
+        this.boundEngine.bus.on('AGENT_RESET', this.handleAgentReset);
         this.vfx.bind(this.boundEngine);
     }
 
@@ -75,6 +77,18 @@ export class GameRenderer {
 
     private handleCameraMove = (data: { x: number, y: number, zoom: number }) => {
         this.camera.setDirectorTarget(data.x, data.y, data.zoom);
+    }
+
+    private handleAgentReset = (data: { agentId: string }) => {
+        if (this.vfx) {
+            this.vfx.agentVFX.clearAgent(data.agentId);
+            const particles = this.vfx.state.particles;
+            for (let i = particles.length - 1; i >= 0; i--) {
+                if (particles[i].ownerId === data.agentId) {
+                    particles[i].life = -1;
+                }
+            }
+        }
     }
 
     public reset() {
