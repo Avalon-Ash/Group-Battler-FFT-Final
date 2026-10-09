@@ -290,3 +290,58 @@ export enum ToolType {
     OBSTACLE = 'OBSTACLE',
     DELETE = 'DELETE'
 }
+
+// ══════════════════════════════════════════════════════════════
+// UI Window System Types (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export type WindowId =
+    | 'logs'
+    | 'db'
+    | 'skillDb'
+    | 'vfxmap'
+    | 'vfxMap'
+    | 'inspector'
+    | 'monitor'
+    | 'directorSettings'
+    | 'zoneSettings'
+    | 'showcaseSettings';
+
+export interface WindowRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+export interface WindowDef {
+    id: WindowId;
+    title: string;
+    icon?: string;
+    defaultRect: WindowRect;
+    minSize: { width: number; height: number };
+    kind?: 'window' | 'toolbar';
+    visibleInShowcase?: boolean;
+}
+
+export interface WindowState {
+    id: WindowId;
+    isOpen: boolean;
+    isCollapsed: boolean;
+    isMaximized: boolean;
+    rect: WindowRect;
+    prevRect?: WindowRect;
+    zIndex: number;
+}
+
+export interface SerializedWindowState {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    max?: boolean;
+    open?: boolean;
+    collapsed?: boolean;
+}
+
+export type SerializedWindowMap = Record<string, SerializedWindowState>;

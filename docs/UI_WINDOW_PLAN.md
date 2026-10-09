@@ -199,7 +199,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | :-- | :-- | :-- |
 | U0a | ☑ | 2026-10-10 tailwindcss@^3.4+postcss+autoprefixer 安裝完成，dist 不再殘留 @apply/@tailwind，CDN 仍保留 |
 | U0b | ☐ | 需回報視覺差異並等使用者確認 |
-| U1 / U1b / U1c | ☐ | |
+| U1 / U1b / U1c | ⋯ | 2026-10-10 U1 完成（UI_WINDOW/UI_Z、WindowDef/State 型別、純函式 WindowStore） |
 | U2 | ☐ | |
 | U3 | ☐ | 試點；桌機+手機實測 |
 | U4 | ☐ | |

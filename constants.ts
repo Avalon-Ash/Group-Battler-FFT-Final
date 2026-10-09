@@ -339,3 +339,27 @@ export const VFX_GROUND_TYPES = new Set([
     'MAGIC_CIRCLE', 'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE',
     'GIANT_HEX', 'HEX_BEAM'
 ]);
+
+// ══════════════════════════════════════════════════════════════
+// UI Window & Layout Constants (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export const UI_WINDOW = {
+    STORAGE_KEY: 'tacticalWindowsV1',
+    SAVE_DEBOUNCE_MS: 300,
+    HANDLE_PX: 8,
+    HANDLE_PX_COARSE: 24,
+    KEEP_VISIBLE_X: 60,
+    KEEP_VISIBLE_Y: 30,
+    MAXIMIZE_MARGIN: 12,
+    MIN_WIDTH: 260,
+    MIN_HEIGHT: 160,
+    BOTTOM_SHEET_MAX_HEIGHT_VH: 72,
+    MOBILE_BREAKPOINT: 900,
+} as const;
+
+export const UI_Z = {
+    WINDOW_BASE: 40,
+    WINDOW_MAX: 80,
+    TOP_OVERLAY: 90,
+} as const;
