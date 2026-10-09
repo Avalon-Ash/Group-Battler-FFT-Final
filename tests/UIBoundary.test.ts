@@ -1,0 +1,116 @@
+import { describe, it, expect } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+
+interface BoundaryMetrics {
+    directEngineMutation: number;
+    directAgentMutation: number;
+    directRendererAccess: number;
+    asAny: number;
+    setIntervalCount: number;
+    tailwindPaletteClasses: number;
+}
+
+function getFiles(dir: string): string[] {
+    let results: string[] = [];
+    if (!fs.existsSync(dir)) return results;
+    const list = fs.readdirSync(dir);
+    for (const file of list) {
+        const full = path.join(dir, file);
+        const stat = fs.statSync(full);
+        if (stat.isDirectory()) {
+            results = results.concat(getFiles(full));
+        } else if (file.endsWith('.ts') || file.endsWith('.tsx')) {
+            results.push(full);
+        }
+    }
+    return results;
+}
+
+function scanBoundaryMetrics(): BoundaryMetrics {
+    const rootDir = path.resolve(__dirname, '..');
+    const files = [
+        ...getFiles(path.join(rootDir, 'components')),
+        ...getFiles(path.join(rootDir, 'hooks')),
+    ];
+
+    const counts: BoundaryMetrics = {
+        directEngineMutation: 0,
+        directAgentMutation: 0,
+        directRendererAccess: 0,
+        asAny: 0,
+        setIntervalCount: 0,
+        tailwindPaletteClasses: 0,
+    };
+
+    const patterns: Record<keyof BoundaryMetrics, RegExp> = {
+        directEngineMutation: /engine\.\w+(\.\w+)*\s*=[^=]/g,
+        directAgentMutation: /agent\.\w+\s*=[^=]/g,
+        directRendererAccess: /\.renderer\b/g,
+        asAny: /as\s+any\b/g,
+        setIntervalCount: /\bsetInterval\s*\(/g,
+        tailwindPaletteClasses:
+            /\b(?:bg|text|border|ring|shadow|from|to|via)-(?:cyan|slate|red|blue|amber|emerald|purple|orange|rose|indigo|yellow|green|violet|sky)-(?:50|100|200|300|400|500|600|700|800|900|950)\b/g,
+    };
+
+    for (const f of files) {
+        const content = fs.readFileSync(f, 'utf8');
+        for (const [key, regex] of Object.entries(patterns) as [keyof BoundaryMetrics, RegExp][]) {
+            const matches = content.match(regex);
+            if (matches) {
+                counts[key] += matches.length;
+            }
+        }
+    }
+
+    return counts;
+}
+
+describe('UI Boundary Ratchet Guard (E9)', () => {
+    const baselinePath = path.resolve(__dirname, 'ui-boundary.baseline.json');
+    const baselineRaw = fs.readFileSync(baselinePath, 'utf8');
+    const baseline: BoundaryMetrics = JSON.parse(baselineRaw);
+    const current = scanBoundaryMetrics();
+
+    it('enforces direct engine mutations do not increase (ratchet)', () => {
+        expect(
+            current.directEngineMutation,
+            `Direct engine mutations (${current.directEngineMutation}) exceeded baseline (${baseline.directEngineMutation}). Mutations must use UICommandSystem!`
+        ).toBeLessThanOrEqual(baseline.directEngineMutation);
+    });
+
+    it('enforces direct agent mutations do not increase (ratchet)', () => {
+        expect(
+            current.directAgentMutation,
+            `Direct agent mutations (${current.directAgentMutation}) exceeded baseline (${baseline.directAgentMutation}). Mutations must use EDIT_AGENT command!`
+        ).toBeLessThanOrEqual(baseline.directAgentMutation);
+    });
+
+    it('enforces direct renderer access does not increase (ratchet)', () => {
+        expect(
+            current.directRendererAccess,
+            `Direct renderer accesses (${current.directRendererAccess}) exceeded baseline (${baseline.directRendererAccess}). UI must not touch renderer directly!`
+        ).toBeLessThanOrEqual(baseline.directRendererAccess);
+    });
+
+    it('enforces zero as any in UI layers', () => {
+        expect(
+            current.asAny,
+            `"as any" count (${current.asAny}) exceeded baseline (${baseline.asAny}). Strict type safety is mandatory!`
+        ).toBeLessThanOrEqual(baseline.asAny);
+    });
+
+    it('enforces setInterval count does not increase (ratchet)', () => {
+        expect(
+            current.setIntervalCount,
+            `setInterval count (${current.setIntervalCount}) exceeded baseline (${baseline.setIntervalCount}). Use useEngineView shared ticker instead!`
+        ).toBeLessThanOrEqual(baseline.setIntervalCount);
+    });
+
+    it('enforces hardcoded Tailwind palette classes do not increase (ratchet)', () => {
+        expect(
+            current.tailwindPaletteClasses,
+            `Tailwind palette class count (${current.tailwindPaletteClasses}) exceeded baseline (${baseline.tailwindPaletteClasses}). Palette classes should be migrated to semantic tokens!`
+        ).toBeLessThanOrEqual(baseline.tailwindPaletteClasses);
+    });
+});
