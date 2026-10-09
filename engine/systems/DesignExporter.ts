@@ -39,7 +39,11 @@ export class DesignExporter {
         s += "- Spatial Hazard Entity Pattern (空間危害實體化): 徹底將持續性 AOE 效果（如熔岩、毒霧）從網格節點 (GridNode) 的狀態屬性中剝離，轉化為具備獨立生命週期與空間坐標集的「空間實體」。此舉確保了地形靜態拓撲的純潔性，大幅降低因地形狀態頻繁切換導致的尋路緩存失效與效能抖動。\n";
         s += "- Flying Unit Physics: 飛行單位在空間屬性上標記為無視「單位碰撞 (Agent Occupancy)」，允許自由穿透隊友與敵人，消滅密集戰鬥下的導航死鎖。\n";
         s += "- Stable Z-Sorting Tiebreaker: 在 RenderList 中引入基於 Agent ID Hash 的確定性偏移量（10^-5 級別），徹底消滅 2.5D 環境中兩個單位在同一 Y 坐標時產生的每幀前後閃爍（Z-fighting）現象。\n";
-        s += "- Layered Overlay Architecture: 將射程指示器 (Range Overlay) 與懸停高亮從地形渲染器中抽離，獨立為 `OVERLAY` 渲染子層 (SubLayer 25)。此架構確保指示器層級穩定高於地面貼圖 (DECAL, 20) 但低於動態危害 (HAZARD, 30)，在大範圍戰場縮減時提供更穩定的視覺回饋。\n\n";
+        s += "- Layered Overlay Architecture: 將射程指示器 (Range Overlay) 與懸停高亮從地形渲染器中抽離，獨立為 `OVERLAY` 渲染子層 (SubLayer 25)。此架構確保指示器層級穩定高於地面貼圖 (DECAL, 20) 但低於動態危害 (HAZARD, 30)，在大範圍戰場縮減時提供更穩定的視覺回饋。\n";
+        s += "- 單一環境傷害防禦入口 (DirectDamage Gateway): 抽象出 `applyDirectDamage` 作為環境墜落 (Fall Damage)、地面危害 (Spatial Hazard) 與週期性傷害 (DoT) 的唯一 HP 變更入口。落實護盾優先抵消、下限截斷（HP >= 0）與真實傷害 (bypassShield) 的標準管線。\n";
+        s += "- 陣亡視覺事件化解耦 (Decoupled AGENT_DIED Event): 單位陣亡碎裂效果從邏輯層的 `AgentManager` 抽離，改由 `EventBus` 同步發送 `AGENT_DIED` 事件，由 `GameRenderer` 訂閱並觸發 `UnitShatter`，邏輯層對 `engine.vfx` 與 `renderer` 的交叉引用完全歸零。\n";
+        s += "- 可注入確定性隨機源 (Injectable Deterministic RNG): 導入 `engine/math/rng.ts`，抽象出 `random()`、`setRandomSource()` 與 `resetRandomSource()`。將傷害浮動、暴擊檢定與 AI 初始 Jitter 轉為可注入的確定性隨機源，支援重播模擬與單元測試。\n";
+        s += "- 自動化測試基線 (Automated Vitest Regression Suite): 建立 4 套、29 項單元測試，全面覆蓋傷害公式計算、環境傷害防禦、Hex 拓撲坐標、事件物件池、行為樹決策、DoT/HoT 週期結算與確定性隨機源。\n\n";
 
         s += "## 2. 視覺投影與 SSOT 規範 (Spatial Truth & Topology)\n\n";
         s += "- 視覺中心鎖定 (Visual Center Tracking): 非同步導播系統 (DirectorSystem) 拋棄傳統的「地板根節點」追蹤，全面改採 VisualMath.getVisualBodyCenterY 計算。鏡頭重心主動對齊單位的「胸口高度」，即便是被擊飛至空中的單位，鏡頭也能精確跟隨其視覺質心，而非留在地面。\n";

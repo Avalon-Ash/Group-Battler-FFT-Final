@@ -3,8 +3,9 @@
 # TACTICAL.OS — Group Battler FFT
 
 **一套以企劃為主導的自驅動戰術模擬引擎**  
-Vite + React + TypeScript｜部署於 Google Cloud Run
+Vite 6 + React 19 + TypeScript｜GitHub Pages 全球即時部署
 
+[![Play Online](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-2ea44f?logo=github&logoColor=white)](https://avalon-ash.github.io/Group-Battler-FFT-Final/)
 [![Deploy](https://img.shields.io/badge/Live%20Demo-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://ai.studio/apps/ef9e48ce-2e94-41d8-98f5-f64bc8502565)
 
 ![TACTICAL.OS Gameplay](https://github.com/user-attachments/assets/a38770c9-05c8-4c21-ac86-c1da71650f45)
@@ -102,7 +103,8 @@ GameEngine
 │   │   ├── CombatSystem     ← 戰鬥核心：傷害、施法、彈道
 │   │   │   └── combat/
 │   │   │       ├── SkillExecutor    ← 技能執行主管線
-│   │   │       ├── DamageCalculator ← 傷害公式計算
+│   │   │       ├── DamageCalculator ← 傷害公式計算（支援確定性 RNG 注入）
+│   │   │       ├── DirectDamage     ← 環境/墜落/DoT 統一傷害入口（護盾吸收與下限收斂）
 │   │   │       ├── ProjectileSystem ← 彈道物理與命中
 │   │   │       ├── CastingEngine    ← 施法前搖與中斷管理
 │   │   │       ├── CCManager        ← 控場效果施加與解除
@@ -151,11 +153,17 @@ GameEngine
 │   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
 │   ├── math/
 │   │   ├── VisualMath.ts        ← ISO 視覺座標轉換 SSOT（getIsoVisualY）
-│   │   └── PointerProjector.ts  ← 所有指標座標逆投影的唯一入口（含 DPR 校正）
+│   │   ├── PointerProjector.ts  ← 所有指標座標逆投影的唯一入口（含 DPR 校正）
+│   │   └── rng.ts               ← 可注入確定性隨機源（支援單元測試與重播）
 │   ├── physics/             ← 彈體物理、碰撞
 │   ├── sprites.ts           ← SpriteManager：障礙物 Sprite 快取與查詢
 │   ├── graphics/
 │   │   └── EnvironmentFactory.ts ← 障礙物 Sprite 生成（尺寸參數由 ENV_SPRITE 管控）
+├── tests/                   ← Vitest 確定性單元測試套件（29 項測試）
+│   ├── DamageCalculator.test.ts ← 傷害公式、暴擊、格擋、易傷、護盾吸收、斬殺
+│   ├── DirectDamage.test.ts     ← 環境/墜落/DoT 單一入口防禦性檢定
+│   ├── Core.test.ts             ← HexUtils、EventPool、EventBus、行為樹、DoT/HoT
+│   └── Rng.test.ts              ← 隨機源注入與 AI Jitter 確定性消耗
 ├── components/
 │   ├── ui/
 │   │   ├── MapEditorToolbar     ← 戰場編輯工具列
@@ -181,6 +189,9 @@ GameEngine
 │   │       └── index.ts     ← UNIT_APPEARANCE SSOT export
 │   └── vfx/
 │       └── status_visuals.ts    ← 狀態效果視覺定義 SSOT（CC、DoT、Buff、地板光暈）
+├── .github/workflows/       ← GitHub Actions 自動部署工作流 (deploy.yml)
+├── server.js                ← 零依賴極簡生產環境伺服器 (Cloud Run / 容器支援)
+├── Dockerfile               ← 多階段容器構建設定
 ├── types.ts                 ← 全域型別定義（SSOT 資料結構）
 ├── types/
 │   └── VFXSchema.ts         ← VFX 粒子與貼花的資料 schema（types.ts 的 VFX 擴充）
@@ -277,11 +288,12 @@ GameEngine
 
 | 層級 | 技術 |
 |------|------|
-| 框架 | React 18 + TypeScript |
-| 建置 | Vite |
-| 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器） |
+| 框架 | React 19 + TypeScript 5.8 |
+| 建置 | Vite 6 |
+| 測試 | Vitest（29 項確定性單元測試全數通過） |
+| 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器，零外部圖形依賴） |
 | AI 協作開發 | AI 驅動的企劃主導式開發（設計決策 → AI 協作實作 → 模擬器驗證） |
-| 部署 | Google Cloud Run |
+| 部署 | GitHub Pages (CI/CD 自動化) / Google Cloud Run / Docker |
 
 ---
 
@@ -301,14 +313,31 @@ GameEngine
 
 ---
 
-## 本地執行
+## 本地執行與測試
 
+### 安裝依賴
 ```bash
 npm install
+```
+
+### 啟動本地開發伺服器
+```bash
 npm run dev
 ```
 
-> 需要在 `.env.local` 中設定 `GEMINI_API_KEY`
+### 執行單元測試
+```bash
+npm test
+```
+
+### 嚴格型別檢查與生產打包
+```bash
+npm run lint    # TypeScript 靜態檢查（0 errors）
+npm run build   # 產出生產環境最佳化包
+npm run start   # 以本機生產伺服器 (server.js) 啟動測試
+```
+
+> **注意**：本專案為 100% 純前端客戶端應用，**不需**在本地設定任何 API Key 或後端服務。
 
 ---
 
