@@ -24,7 +24,7 @@ export const ImperialTokenFactory = {
         ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth for perspective
         
         // 1. Drop Shadow
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillStyle = PALETTE.SHADOW;
         ctx.beginPath(); ctx.arc(0, 8, radius + 4, 0, Math.PI*2); ctx.fill();
 
         // 2. Ceramite Blue Body (Radial Gradient for Sphere effect)
@@ -48,20 +48,20 @@ export const ImperialTokenFactory = {
 
         // 3.1 Inner Light Rim (New)
         ctx.beginPath(); ctx.arc(0, 0, radius - 5, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.strokeStyle = ap.innerRimColor ?? 'rgba(255, 255, 255, 0.12)';
         ctx.lineWidth = 1.5;
         ctx.stroke();
 
         // 4. Inner Tech/Auspex Ring
         ctx.beginPath(); ctx.arc(0, 0, radius * 0.7, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)'; 
+        ctx.strokeStyle = ap.techRingColor ?? 'rgba(255, 255, 255, 0.3)'; 
         ctx.lineWidth = 1;
         ctx.setLineDash([4, 2]);
         ctx.stroke();
         ctx.setLineDash([]);
 
         // 5. Omega / Tactical Symbol Hint
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = ap.symbolColor ?? '#fff';
         ctx.globalAlpha = 0.2;
         ctx.font = 'bold 24px sans-serif';
         ctx.textAlign = 'center';
@@ -113,7 +113,7 @@ export const ImperialTokenFactory = {
 
         // New: Inner rim highlight
         rCtx.beginPath(); rCtx.arc(0, 0, R - 5, 0, Math.PI*2);
-        rCtx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+        rCtx.strokeStyle = ap.innerRimColor ?? 'rgba(255, 255, 255, 0.12)';
         rCtx.lineWidth = 1.5;
         rCtx.stroke();
 
@@ -125,20 +125,20 @@ export const ImperialTokenFactory = {
 
         // 1. 底光暈（圖示投射在棋座上的光圈）
         const glowGrad = cCtx.createRadialGradient(0, 2, 0, 0, 2, R * 0.52);
-        glowGrad.addColorStop(0,   'rgba(147, 210, 255, 0.40)');
-        glowGrad.addColorStop(0.6, 'rgba(147, 210, 255, 0.12)');
-        glowGrad.addColorStop(1,   'rgba(147, 210, 255, 0)');
+        glowGrad.addColorStop(0,   ap.coreGlowColor ?? 'rgba(147, 210, 255, 0.40)');
+        glowGrad.addColorStop(0.6, ap.coreGlowMidColor ?? 'rgba(147, 210, 255, 0.12)');
+        glowGrad.addColorStop(1,   ap.coreGlowFadeColor ?? 'rgba(147, 210, 255, 0)');
         cCtx.fillStyle = glowGrad;
         cCtx.beginPath(); cCtx.arc(0, 2, R * 0.52, 0, Math.PI*2); cCtx.fill();
 
         // 2. 圖示投影陰影（懸浮高度感）
-        cCtx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+        cCtx.fillStyle = ap.coreShadowColor ?? 'rgba(0, 0, 0, 0.35)';
         cCtx.beginPath(); cCtx.ellipse(0, 6, R * 0.28, R * 0.10, 0, 0, Math.PI*2); cCtx.fill();
 
         // 3. Ω 本體（上移 4px）
-        cCtx.shadowColor = '#93c5fd';
+        cCtx.shadowColor = ap.runeGlowColor ?? '#93c5fd';
         cCtx.shadowBlur  = 10;
-        cCtx.fillStyle   = 'rgba(255, 255, 255, 0.85)';
+        cCtx.fillStyle   = ap.runeColor ?? 'rgba(255, 255, 255, 0.85)';
         cCtx.globalAlpha = 1;
         cCtx.font        = 'bold 22px sans-serif';
         cCtx.textAlign   = 'center';

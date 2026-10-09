@@ -8,6 +8,15 @@ const COMMON_IMPERIAL = {
   accentColor: THEME_IMPERIAL.secondary,   // #fde047
   capeColor: THEME_IMPERIAL.cape,          // rgba(30, 58, 138, 0.9)
   highlightColor: '#6b9fff',               // Cerulean Specular Highlight
+  innerRimColor: 'rgba(255, 255, 255, 0.12)',
+  techRingColor: 'rgba(255, 255, 255, 0.3)',
+  symbolColor: '#ffffff',
+  coreGlowColor: 'rgba(147, 210, 255, 0.40)',
+  coreGlowMidColor: 'rgba(147, 210, 255, 0.12)',
+  coreGlowFadeColor: 'rgba(147, 210, 255, 0)',
+  coreShadowColor: 'rgba(0, 0, 0, 0.35)',
+  runeGlowColor: '#93c5fd',
+  runeColor: 'rgba(255, 255, 255, 0.85)',
 };
 
 export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
