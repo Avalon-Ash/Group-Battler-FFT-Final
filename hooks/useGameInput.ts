@@ -200,7 +200,7 @@ export const useGameInput = (props: GameInputProps) => {
             const existing = engine.getAgentAt(h.q, h.r);
             if (!existing && !engine.hasObstacle(h.q, h.r)) {
                 let agent = engine.addAgent(tool === ToolType.ADD_BLUE ? Team.BLUE : Team.RED, h.q, h.r, hpInput);
-                if (agent && spawnMode === 'DRAFT') { agent.role = draftRole; agent.saveState(); agent.reset(engine.mapConfig); }
+                if (agent && spawnMode === 'DRAFT') { agent.role = draftRole; agent.saveState(); engine.resetAgent(agent); }
             }
         }
     };
