@@ -156,14 +156,14 @@ export class GameEngine implements SpatialProvider {
 
     public randomizeEnvironment() { 
         this.state.spatialHazards = []; 
-        this.bus.emit('ENV_UPDATE', {});
         this.map.randomizeEnvironment(this); 
+        this.bus.emit('ENV_UPDATE', {});
     }
     
     public rebuildMap() { 
         this.state.spatialHazards = [];
-        this.bus.emit('ENV_UPDATE', {});
         this.map.rebuildMap(this); 
+        this.bus.emit('ENV_UPDATE', {});
     }
 
     public removeAgent(q: number, r: number) {
