@@ -6,7 +6,6 @@ import { Skill, Hex } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
 import { AGENT_CONSTANTS } from "../../constants";
 
@@ -137,16 +136,6 @@ export class Agent {
         this.py = p.y;
         this.facing = team === Team.BLUE ? 1 : -1;
         
-        const stats = UNIT_DB[this.role];
-        if (stats) {
-            this.moveSpeed = stats.moveSpeed;
-            this.maxMp = stats.maxMp;
-            this.jump = stats.jump;
-            this.weight = stats.weight;
-            this.movementType = stats.movementType;
-        }
-        
-        // Initial AI timing (will be refined by reset() usually, but safe to set here)
         this.aiUpdateInterval = AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
         this.aiUpdateTimer = 0;
 
@@ -179,20 +168,6 @@ export class Agent {
 
         this.skillIds = [...this.initialState.skillIds];
         this.role = this.initialState.role;
-
-        const stats = UNIT_DB[this.role];
-        if (stats) {
-            this.moveSpeed = stats.moveSpeed;
-            this.maxMp = stats.maxMp;
-            this.jump = stats.jump;
-            this.weight = stats.weight;
-            this.movementType = stats.movementType;
-        }
-
-        // Set role-based AI interval with minor jitter to prevent frame-spiking
-        const baseInterval = AGENT_CONSTANTS.AI_UPDATE_INTERVAL_BY_ROLE[this.role] ?? AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
-        this.aiUpdateInterval = baseInterval + Math.random() * AGENT_CONSTANTS.AI_UPDATE_INTERVAL_JITTER;
-        this.aiUpdateTimer = 0; // First frame execution as requested
 
         this.castingSkillIdx = -1;
         this.castTimer = 0;

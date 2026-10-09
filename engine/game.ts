@@ -248,6 +248,7 @@ export class GameEngine implements SpatialProvider {
         this.sessionState.firstBloodTriggered = false;
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
+            AgentManager.applyRoleStats(a, undefined, true);
             a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
             a.bt = this.ai.buildAI(a, this); 
             a.animState = AnimState.IDLE;
@@ -257,6 +258,11 @@ export class GameEngine implements SpatialProvider {
         
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
         this.bus.emit('GAME_START', {}); // Use Game Start on restart
+    }
+
+    public resetAgent(a: Agent) {
+        a.reset(this.mapConfig);
+        AgentManager.applyRoleStats(a, undefined, true);
     }
 
     public clear(keepScene: boolean = false, skipRebuild: boolean = false) {

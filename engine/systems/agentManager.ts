@@ -15,10 +15,30 @@ import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { UnitShatter } from "./visuals/effects/UnitShatter";
 import { RagdollFactory } from "./unit/RagdollFactory";
+import { AGENT_CONSTANTS } from "../../constants";
 
 export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'vfx' | 'map'>;
 
 export class AgentManager {
+    public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
+        const stats = UNIT_DB[agent.role];
+        if (stats) {
+            agent.maxHp = hpOverride || stats.maxHp;
+            agent.hp = agent.maxHp;
+            agent.maxMp = stats.maxMp;
+            agent.moveSpeed = stats.moveSpeed; 
+            agent.movementType = stats.movementType;
+            agent.jump = stats.jump;
+            agent.weight = stats.weight;
+        }
+
+        if (applyJitter) {
+            const baseInterval = AGENT_CONSTANTS.AI_UPDATE_INTERVAL_BY_ROLE[agent.role] ?? AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
+            agent.aiUpdateInterval = baseInterval + Math.random() * AGENT_CONSTANTS.AI_UPDATE_INTERVAL_JITTER;
+            agent.aiUpdateTimer = 0;
+        }
+    }
+
     public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
@@ -32,14 +52,7 @@ export class AgentManager {
             a.role = allRoles[Math.floor(Math.random() * allRoles.length)];
         }
         
-        const stats = UNIT_DB[a.role];
-        a.maxHp = hpOverride || stats.maxHp;
-        a.hp = a.maxHp;
-        a.maxMp = stats.maxMp;
-        a.moveSpeed = stats.moveSpeed; 
-        a.movementType = stats.movementType;
-        a.jump = stats.jump;
-        a.weight = stats.weight;
+        AgentManager.applyRoleStats(a, hpOverride, false);
 
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));
         const rndS = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(Math.random() * ar.length)].id : null;
