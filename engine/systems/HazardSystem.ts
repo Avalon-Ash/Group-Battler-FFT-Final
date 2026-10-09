@@ -11,9 +11,11 @@ import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
 import { HexUtils } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE } from "../../constants";
 
+export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
+
 export class HazardSystem {
     
-    public registerHazard(hazard: SpatialHazard, engine: GameEngine) {
+    public registerHazard(hazard: SpatialHazard, engine: HazardRegisterContext) {
         engine.state.spatialHazards.push(hazard);
         
         // [PROACTIVE PUSH] If an agent is standing in any of the new tiles, force immediate AI tick
