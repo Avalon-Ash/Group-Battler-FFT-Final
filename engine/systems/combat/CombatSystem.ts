@@ -89,6 +89,7 @@ export class CombatSystem {
                 a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
                 
                 engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id, targetId });
+                engine.bus.emit('CAST_START', { sourceId: a.id, skill });
             }
             
             if (a.target) {

@@ -82,6 +82,7 @@ export class AgentManager {
                 sourceId: a.lastHitSourceId,
                 targetId: a.id
             });
+            engine.bus.emit('KILL', { killerId: a.lastHitSourceId, victimId: a.id });
         }
             
         a.deadLogged = true;
