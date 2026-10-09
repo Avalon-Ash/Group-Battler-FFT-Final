@@ -5,6 +5,8 @@ import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 
+export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
+
 export class TargetingSystem {
     /**
      * 檢查目標是否為合法選取對象
@@ -287,7 +289,7 @@ export class TargetingSystem {
         return { targetAgent: source.target, targetHex: null };
     }
 
-    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, spatial: SpatialProvider): Hex[] {
+    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {
         if (skill.type === 'AOE') {
             const radius = skill.aoeRadius || 1;
             return HexUtils.range(targetHex, radius).filter(h => spatial.isValid(h.q, h.r));
