@@ -9,7 +9,7 @@
 import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill, NodeState, AIState } from "../../../types";
 import { ProjectileSystem } from "./ProjectileSystem";
-import { CastingEngine } from "./CastingEngine";
+import { CastingEngine, BreakCastContext } from "./CastingEngine";
 import { SkillExecutor } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
 import { ULT_VISUALS } from '../../../data/vfx/ult_visuals';
@@ -102,7 +102,7 @@ export class CombatSystem {
         return NodeState.RUNNING;
     }
 
-    public breakCast(a: Agent, engine: GameEngine) {
+    public breakCast(a: Agent, engine: BreakCastContext) {
         if (a.castingSkillIdx !== -1) {
             this.castingEngine.handleInterruption(a, engine);
         }

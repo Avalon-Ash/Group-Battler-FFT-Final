@@ -2,6 +2,8 @@
 import { Agent, GameEngine } from "../../game";
 import { AIState } from "../../../types";
 
+export type BreakCastContext = Pick<GameEngine, 'log' | 'events'>;
+
 export class CastingEngine {
 
     public updateCasting(a: Agent, dt: number, engine: GameEngine, onComplete: (a: Agent) => void) {
@@ -39,7 +41,7 @@ export class CastingEngine {
         }
     }
 
-    public handleInterruption(a: Agent, engine: GameEngine) {
+    public handleInterruption(a: Agent, engine: BreakCastContext) {
         if (a.hp <= 0) {
             this.resetCaster(a);
             return;
