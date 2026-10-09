@@ -13,6 +13,7 @@ import { Pathfinder } from "../../ai/Pathfinder";
 import { TargetingSystem } from "../../ai/TargetingSystem";
 import { MotionEngine } from "./MotionEngine";
 import { StackingResolver } from "./StackingResolver";
+import type { GameEngine } from "../../game";
 
 export class MovementSystem {
     public pathfinder: Pathfinder;
@@ -179,7 +180,7 @@ export class MovementSystem {
     /**
      * [PROMPT] 向心牽引：施加瞬時向心脈衝，將外圍實體強制拖拽入中心網格
      */
-    public applyLastStandPull(dt: number, engine: any) {
+    public applyLastStandPull(dt: number, engine: GameEngine) {
         if (!engine.state.isLastStand || !engine.state.finalHex) return;
 
         const targetHex = engine.state.finalHex;
@@ -204,7 +205,6 @@ export class MovementSystem {
                          pos: { x: targetPx.x, y: targetPx.y, z: 0 },
                          text: 'LOCKED',
                          color: '#c084fc', // Purple EMP
-                         style: 'CRIT'
                      });
                  }
 
