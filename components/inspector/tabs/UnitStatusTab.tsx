@@ -118,7 +118,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
             >
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2 mb-3 sticky top-0 bg-slate-900/95 backdrop-blur z-10 py-2 border-b border-white/5 pointer-events-none">
                     <Icons.Database className="w-3 h-3" />
-                    NEURAL LINKAGE
+                    技能神經連結 (SKILL LINKAGE)
                 </div>
 
                 <div className="space-y-3 pb-24">
@@ -141,7 +141,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-center mb-1">
                                             <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 rounded border ${tag === 'ULT' ? 'text-purple-300 border-purple-500/30 bg-purple-500/10' : (tag === 'ACTIVE' ? 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10' : 'text-slate-300 border-slate-500/30 bg-slate-500/10')}`}>
-                                                {TAG_MAP[tag].label} SLOT
+                                                {TAG_MAP[tag].label} 槽位
                                             </span>
                                             {currentSkill && <span className="text-[10px] text-slate-500 font-mono">{currentSkill.id}</span>}
                                         </div>
@@ -152,7 +152,7 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                                 onChange={(e) => setSkill(i, e.target.value)}
                                                 onPointerDown={(e) => e.stopPropagation()} 
                                             >
-                                                <option value="" className="bg-slate-900 text-slate-500">-- NO LINKAGE --</option>
+                                                <option value="" className="bg-slate-900 text-slate-500">-- 未配置技能 --</option>
                                                 {roleOrder.map(role => {
                                                     const skills = skillsByRole[role];
                                                     if (!skills || skills.length === 0) return null;
@@ -178,10 +178,10 @@ export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHover
                                             {currentSkill.desc}
                                         </div>
                                         <div className="grid grid-cols-4 gap-2 text-[10px] font-mono text-slate-400">
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">PWR</span> <span className="text-slate-200">{currentSkill.power}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">CD</span> <span className="text-slate-200">{currentSkill.cd}s</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">MP</span> <span className="text-blue-300">{currentSkill.cost}</span></div>
-                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">RNG</span> <span className="text-slate-200">{currentSkill.range}</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">威力</span> <span className="text-slate-200">{currentSkill.power}</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">冷卻</span> <span className="text-slate-200">{currentSkill.cd}s</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">消耗</span> <span className="text-blue-300">{currentSkill.cost}</span></div>
+                                            <div className="bg-black/30 rounded px-1 py-0.5 text-center border border-white/5"><span className="text-slate-500 block text-[9px] uppercase">射程</span> <span className="text-slate-200">{currentSkill.range}</span></div>
                                         </div>
                                     </div>
                                 )}

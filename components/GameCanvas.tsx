@@ -150,12 +150,12 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
                     <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
                         <div className="mb-6">
-                            <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">Simulation Complete</span>
+                            <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">戰鬥模擬演算結束</span>
                             <h2 className={`text-5xl md:text-6xl font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
-                                {winner === Team.BLUE ? 'IMPERIAL' : 'COVENANT'}
+                                {winner === Team.BLUE ? '帝國軍 (IMPERIAL)' : '誓約軍團 (COVENANT)'}
                             </h2>
                             <h2 className="text-4xl md:text-5xl font-black text-white tracking-widest mt-1 opacity-90">
-                                VICTORY
+                                獲得勝利 (VICTORY)
                             </h2>
                         </div>
                         <div className="h-px w-24 mx-auto bg-white/20 rounded-full mb-8"></div>

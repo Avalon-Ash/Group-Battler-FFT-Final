@@ -140,13 +140,13 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
                     {...dragHandlers}
                 >
                     <div className="text-xs font-mono text-slate-300 pointer-events-none">
-                        {agent.id} - Behavior Tree
+                        {agent.id} - 行為樹監控 (Behavior Tree)
                     </div>
                     <div className="flex items-center space-x-1">
                         <button
                             onPointerDown={e => { e.stopPropagation(); fitToView(); }}
                             className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white bg-black/40 rounded border border-white/10 hover:border-white/30 transition-colors pointer-events-auto"
-                            title="Fit to View"
+                            title="最適比例縮放 (Fit to View)"
                         >
                             ⊡
                         </button>
@@ -160,7 +160,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
                                 requestAnimationFrame(() => fitToView());
                             }}
                             className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded transition-colors pointer-events-auto"
-                            title="Close Popup"
+                            title="關閉視窗"
                         >
                             ×
                         </button>
@@ -199,7 +199,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
                     className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white 
                                bg-black/40 rounded border border-white/10 hover:border-white/30 
                                transition-colors pointer-events-auto mr-1"
-                    title="Fit to View"
+                    title="最適比例縮放 (Fit to View)"
                 >
                     ⊡
                 </button>
@@ -212,7 +212,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
                     className="px-1.5 py-0.5 text-[9px] font-mono text-slate-400 hover:text-white 
                                bg-black/40 rounded border border-white/10 hover:border-white/30 
                                transition-colors pointer-events-auto mr-1"
-                    title="Pop out"
+                    title="彈出獨立視窗 (Pop out)"
                 >
                     ⤢
                 </button>

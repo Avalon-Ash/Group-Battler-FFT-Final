@@ -66,3 +66,23 @@
 ### 可調參數
 
 `MATERIAL_CONFIG.terrain.grain.strength` 控制顆粒強度，`contrast` 控制亮暗擺幅，`tintSpread` 控制格間色差，`environment.grain.strength` 控制障礙物風化深度。改完呼叫 `resetNoiseCache()` + `resetMaterialCache()`，或直接靠 Vite HMR 重載。
+
+---
+
+## Pass 3 — 角色甲胄材質、地面危機收斂與動態拖尾
+
+第三批針對角色本體、單位徽章（Token）、殘存地面危機（毒/虛空）與高動態殘影進行全面程序化升級與收斂。
+
+| 部位 / 特效 | 手法 | 檔案 |
+|---|---|---|
+| 角色甲胄表面 | `clip` 限制在軀幹/盾牌路徑內，以 `overlay` 混合 fbm 顆粒 + 陣營高光反射帶（帝國定向陶鋼滑光、盟約混沌灼燒） | `MaterialPainter.paintArmorSurface` / `ImperialRenderer` / `CovenantRenderer` |
+| 單位 Token 徽章 | 離屏烘焙期風化：微顆粒 `destination-in` + `overlay` 裁切，並在頂部疊加金屬鑄幣高光 | `MaterialPainter.weatherToken` / `ImperialTokenFactory` / `CovenantTokenFactory` |
+| 毒液池 (Poison) | 酸液池徑向漸層 + 腐蝕邊緣內環 + 確定性種子泡泡（徹底消除每幀 `Math.random()` 跳動）+ fbm 邊緣侵蝕 | `MaterialPainter.bakePoisonPool` / `GroundPainter.drawPoisonField` |
+| 虛空深淵 (Void) | 事件視界暗核 + 雙層吸積漸層 + 確定性暗絲撕裂，全面替代耗能的 `shadowBlur = 20` | `MaterialPainter.bakeVoidField` / `GroundPainter.drawVoidField` |
+| 刀光/火球/碎片 | 離屏烘焙時套用 `applyNoiseMask`，打散生硬向量邊緣（`SLASH`、`FIREBALL`、`HEX_SHARD`） | `VFXFactory.ts` |
+| 動態拖尾 (Trail) | 單位高速位移（`isHighSpeed`）或突進衝刺（`isDashing`）時，沿投影速度反方向疊繪遞減 alpha 殘影 | `MaterialPainter.drawMotionTrail` / `UnitBodyPainter.ts` |
+
+### 預覽與 A/B 驗證
+
+所有升級皆受 `MATERIAL_CONFIG.enabled` 總開關守護，保留 100% legacy 回退機制。
+可於本地執行 `npx vite` 並開啟 `tools/material-preview.html` 檢視完整的 10 列新舊並排比對畫面。

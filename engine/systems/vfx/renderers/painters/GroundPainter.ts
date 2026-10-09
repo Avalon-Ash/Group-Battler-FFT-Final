@@ -130,6 +130,19 @@ export const GroundPainter = {
 
     drawPoisonField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
         const hexRadius = HEX_SIZE;
+
+        // [MATERIAL UPGRADE] 離屏烘焙酸液池（fbm 遮罩腐蝕邊緣 + 確定性種子泡泡，消除每幀隨機跳動）
+        if (MATERIAL_CONFIG.enabled) {
+            const tex = MaterialPainter.bakePoisonPool(MATERIAL_CONFIG.maskResolution, 19);
+            ctx.save();
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.globalCompositeOperation = 'source-over';
+            const r = hexRadius * 0.95;
+            ctx.drawImage(tex, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
         ctx.fillStyle = p.color;
         ctx.globalAlpha *= 0.6;
         HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.9, true, layout);
@@ -147,6 +160,19 @@ export const GroundPainter = {
 
     drawVoidField(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
         const hexRadius = HEX_SIZE;
+
+        // [MATERIAL UPGRADE] 離屏烘焙虛空黑洞（扭曲紫暗雙層漸層 + 柔和能量邊界，取代 shadowBlur）
+        if (MATERIAL_CONFIG.enabled) {
+            const tex = MaterialPainter.bakeVoidField(MATERIAL_CONFIG.maskResolution, 23);
+            ctx.save();
+            ctx.scale(1, ISO_SCALE_Y);
+            ctx.globalCompositeOperation = 'source-over';
+            const r = hexRadius * 0.95;
+            ctx.drawImage(tex, -r, -r, r * 2, r * 2);
+            ctx.restore();
+            return;
+        }
+
         ctx.fillStyle = '#000';
         HexGeometry.traceHex(ctx, 0, 0, hexRadius * 0.8, true, layout);
         ctx.fill();

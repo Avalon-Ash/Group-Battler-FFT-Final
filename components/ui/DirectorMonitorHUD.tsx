@@ -63,15 +63,16 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
                             <div className="flex items-center gap-2">
                                 <div className={`w-2 h-2 rounded-full ${targetAgent ? (targetAgent.team === Team.BLUE ? 'bg-cyan-400' : 'bg-red-500') : 'bg-slate-600'} animate-pulse`}></div>
                                 <span className={`text-[11px] font-black tracking-widest ${targetAgent ? accentColor : 'text-slate-500'}`}>
-                                    {targetAgent ? `TRK_LIVE: ${targetAgent.id}` : 'TRK_SEARCHING...'}
+                                    {targetAgent ? `即時追蹤: ${targetAgent.id}` : '搜尋鎖定中...'}
                                 </span>
                             </div>
                             <span className="text-[9px] font-bold text-slate-500 uppercase mt-1">
-                                {targetAgent ? 'Telemetry active // Signal strength: 98%' : 'Scanning for cinematic focus...'}
+                                {targetAgent ? '遙測信號連線 // 信號強度: 98%' : '正在搜尋鏡頭焦點單位...'}
                             </span>
                         </div>
                         <button 
                             onClick={onClose}
+                            title="關閉監測面板"
                             className="text-slate-500 hover:text-white transition-colors"
                         >
                             <Icons.Close className="w-3 h-3" />
@@ -81,14 +82,14 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
                     {!targetAgent ? (
                         <div className="py-12 flex flex-col items-center justify-center gap-4">
                             <div className="w-12 h-12 rounded-full border-2 border-slate-800 border-t-cyan-500 animate-spin"></div>
-                            <span className="text-[10px] font-mono text-slate-600 animate-pulse">NO_LOCK_ACQUIRED</span>
+                            <span className="text-[10px] font-mono text-slate-600 animate-pulse">尚未鎖定目標 (NO TARGET)</span>
                         </div>
                     ) : (
                         <>
                             <div className="space-y-4 mb-6">
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between text-[9px] font-black text-slate-400">
-                                        <span>VITALITY (HP)</span>
+                                        <span>生命值 (HP)</span>
                                         <span className="font-mono">{Math.ceil(targetAgent.hp)} / {Math.ceil(targetAgent.maxHp)}</span>
                                     </div>
                                     <div className="h-2 w-full bg-black/40 rounded-full border border-white/5 overflow-hidden">
@@ -98,7 +99,7 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
 
                                 <div className="space-y-1.5">
                                     <div className="flex justify-between text-[9px] font-black text-slate-400">
-                                        <span>ENERGY (MP)</span>
+                                        <span>能量值 (MP)</span>
                                         <span className="font-mono text-blue-300">{Math.ceil(targetAgent.mp)} / {Math.ceil(targetAgent.maxMp)}</span>
                                     </div>
                                     <div className="h-1.5 w-full bg-black/40 rounded-full border border-white/5 overflow-hidden">
@@ -109,19 +110,19 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine, 
 
                             <div className="grid grid-cols-1 gap-3 pt-4 border-t border-white/10">
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Active Engagement</span>
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">交戰鎖定狀態</span>
                                     <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-lg border border-white/5">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Tracking Target:</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">目標單位:</span>
                                         <span className={`text-[10px] font-mono font-bold ${targetAgent.target ? 'text-white' : 'text-slate-600'}`}>
-                                            {targetAgent.target?.id || 'NO_LOCK'}
+                                            {targetAgent.target?.id || '無鎖定目標'}
                                         </span>
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col gap-1">
-                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Decision Matrix (BT / SSOT)</span>
+                                    <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest">決策矩陣 (BT / SSOT)</span>
                                     <div className="flex items-center justify-between bg-black/40 px-3 py-2 rounded-lg border border-white/5">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase">Process:</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">執行流程:</span>
                                         <div className="flex items-center gap-1.5 overflow-hidden">
                                             <span className="text-[10px] font-mono font-bold text-amber-400 truncate max-w-[60px]">
                                                 {Helpers.getAIStateLabel(targetAgent.aiState)}

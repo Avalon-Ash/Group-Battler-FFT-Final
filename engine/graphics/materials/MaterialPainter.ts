@@ -235,6 +235,125 @@ export const MaterialPainter = {
     },
 
     /**
+     * 酸液池：深綠腐蝕底層 + 確定性氣泡 + 離屏 fbm 遮罩腐蝕邊緣。
+     * 取代原本每幀 Math.random() 亂跳的氣泡與硬邊六邊形。
+     */
+    bakePoisonPool(size: number, seed = 19): HTMLCanvasElement {
+        const c = MATERIAL_CONFIG.poison;
+        return bake(`POISON_${size}_${seed}_${c.noise.threshold}_${c.bubbleCount}`, size, (ctx, r) => {
+            const rand = rng(seed);
+
+            // 1. 酸液池底層漸層（中心微亮、邊緣深毒綠）
+            const grad = ctx.createRadialGradient(0, 0, r * 0.15, 0, 0, r);
+            grad.addColorStop(0, c.baseColor);
+            grad.addColorStop(0.6, c.edgeColor);
+            grad.addColorStop(1, c.deepColor);
+            ctx.fillStyle = grad;
+            HexGeometry.traceHex(ctx, 0, 0, r * 0.95, false);
+            ctx.fill();
+
+            // 2. 腐蝕邊緣內環
+            ctx.strokeStyle = c.edgeColor;
+            ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 0.5;
+            HexGeometry.traceHex(ctx, 0, 0, r * 0.88, false);
+            ctx.stroke();
+
+            // 3. 確定性種子泡泡（固定位置與半徑，消除每幀隨機跳動）
+            for (let i = 0; i < c.bubbleCount; i++) {
+                const ox = (rand() - 0.5) * r * 1.2;
+                const oy = (rand() - 0.5) * r * 1.2;
+                const br = r * (0.05 + rand() * 0.08);
+
+                // 泡泡本體
+                ctx.globalAlpha = 0.75 + rand() * 0.25;
+                ctx.fillStyle = c.bubbleColor;
+                ctx.beginPath();
+                ctx.arc(ox, oy, br, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 泡泡高光點
+                ctx.globalAlpha = 0.9;
+                ctx.fillStyle = c.bubbleGlowColor;
+                ctx.beginPath();
+                ctx.arc(ox - br * 0.3, oy - br * 0.3, Math.max(1, br * 0.35), 0, Math.PI * 2);
+                ctx.fill();
+
+                // 破裂薄膜環
+                if (rand() > 0.4) {
+                    ctx.strokeStyle = c.bubbleGlowColor;
+                    ctx.lineWidth = 1;
+                    ctx.globalAlpha = 0.4;
+                    ctx.beginPath();
+                    ctx.arc(ox, oy, br * 1.35, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            // 4. 離屏 fbm 遮罩腐蝕邊緣
+            ctx.globalAlpha = 1;
+            applyNoiseMask(ctx, 'poison', c.noise, r, true, seed);
+        });
+    },
+
+    /**
+     * 虛空黑洞：事件視界中心 + 扭曲紫暗雙層漸層 + 柔和能量邊界（取代消耗性能的 shadowBlur）。
+     */
+    bakeVoidField(size: number, seed = 23): HTMLCanvasElement {
+        const c = MATERIAL_CONFIG.void;
+        return bake(`VOID_${size}_${seed}_${c.noise.threshold}_${c.ringCount}`, size, (ctx, r) => {
+            const rand = rng(seed);
+
+            // 1. 扭曲紫暗雙層漸層（中心純黑吸收、外圍吸積能量紫）
+            const grad = ctx.createRadialGradient(0, 0, r * 0.1, 0, 0, r);
+            grad.addColorStop(0, c.coreColor);
+            grad.addColorStop(0.35, c.innerColor);
+            grad.addColorStop(0.7, c.accretionColor);
+            grad.addColorStop(0.92, c.edgeGlowColor);
+            grad.addColorStop(1, 'transparent');
+            ctx.fillStyle = grad;
+            HexGeometry.traceHex(ctx, 0, 0, r * 0.95, false);
+            ctx.fill();
+
+            // 2. 事件視界黑洞中心（絕對吸收暗核）
+            ctx.fillStyle = c.coreColor;
+            ctx.beginPath();
+            ctx.arc(0, 0, r * 0.38, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 3. 吸積能量光環（多層柔和邊界，取代 shadowBlur）
+            for (let i = 0; i < c.ringCount; i++) {
+                const ringR = r * (0.48 + (i / c.ringCount) * 0.42);
+                ctx.strokeStyle = (i === c.ringCount - 1) ? c.edgeGlowColor : c.accretionColor;
+                ctx.lineWidth = 2.5 - i * 0.5;
+                ctx.globalAlpha = 0.65 - i * 0.15;
+                HexGeometry.traceHex(ctx, 0, 0, ringR, false);
+                ctx.stroke();
+            }
+
+            // 4. 吸積扭曲暗絲（確定性種子偏移）
+            ctx.strokeStyle = c.coreColor;
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 4; i++) {
+                const ang = (i / 4) * Math.PI * 2 + rand() * 0.5;
+                ctx.globalAlpha = 0.4;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(ang) * r * 0.35, Math.sin(ang) * r * 0.35);
+                const midAng = ang + 0.3;
+                ctx.quadraticCurveTo(
+                    Math.cos(midAng) * r * 0.6, Math.sin(midAng) * r * 0.6,
+                    Math.cos(ang + 0.6) * r * 0.85, Math.sin(ang + 0.6) * r * 0.85
+                );
+                ctx.stroke();
+            }
+
+            // 5. 離屏 fbm 遮罩裁切邊緣
+            ctx.globalAlpha = 1;
+            applyNoiseMask(ctx, 'void', c.noise, r, true, seed);
+        });
+    },
+
+    /**
      * Ribbon：中點位移遞迴產生閃電／束縛鎖鏈路徑。
      * 直接畫在傳入的 ctx（相對座標，起點為原點），不需要遮罩。
      * @param seed 建議用 particle id 雜湊，保證同一發技能路徑穩定
@@ -396,5 +515,144 @@ export const MaterialPainter = {
             a *= cfg.falloff;
         }
         ctx.restore();
+    },
+
+    /**
+     * 角色甲胄材質處理（金屬微顆粒 + 邊緣鏡面高光）
+     * @param ctx            目標 canvas context（座標系位於單位原點）
+     * @param pathTrace      路徑定義回呼函數（用於精確 clip 至部位輪廓）
+     * @param highlightColor 高光色（讀自 RoleAppearance.highlightColor）
+     * @param isImperial     是否為帝國陣營（決定高光傾斜角度與合成風格）
+     */
+    paintArmorSurface(
+        ctx: CanvasRenderingContext2D,
+        pathTrace: () => void,
+        highlightColor: string,
+        isImperial: boolean,
+    ) {
+        const cfg = MATERIAL_CONFIG.unit?.armor;
+        if (!MATERIAL_CONFIG.enabled || !cfg || !cfg.enabled) return;
+
+        ctx.save();
+        pathTrace();
+        ctx.clip();
+
+        // 1. 金屬微顆粒 (Armor Grain Overlay)
+        if (cfg.strength > 0) {
+            const variant = isImperial ? 0 : 1;
+            const tile = getGrainTile({
+                enabled: true,
+                octaves: 4,
+                frequency: 10.0,
+                persistence: 0.5,
+                lacunarity: 2.0,
+                strength: cfg.strength,
+                contrast: cfg.contrast,
+                variants: 2,
+                tintSpread: 0.04,
+                edgeAO: 0,
+                edgeBand: 0,
+            }, variant, MATERIAL_CONFIG.maskResolution);
+
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.globalAlpha = cfg.strength;
+            ctx.drawImage(tile, -80, -80, 160, 160);
+        }
+
+        // 2. 邊緣與鏡面高光 (Specular Highlight)
+        if (cfg.specular > 0 && highlightColor) {
+            ctx.globalCompositeOperation = isImperial ? 'screen' : 'lighter';
+            ctx.globalAlpha = cfg.specular;
+
+            if (isImperial) {
+                // 帝國陶鋼：左上往右下傾斜的高光帶
+                const specGrad = ctx.createLinearGradient(-30, -50, 10, -20);
+                specGrad.addColorStop(0, highlightColor);
+                specGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.35)');
+                specGrad.addColorStop(0.7, 'transparent');
+                specGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = specGrad;
+                ctx.fillRect(-80, -80, 160, 160);
+            } else {
+                // 盟約混沌金屬：銳利反向對角燃燒高光
+                const specGrad = ctx.createLinearGradient(20, -50, -20, 10);
+                specGrad.addColorStop(0, highlightColor);
+                specGrad.addColorStop(0.4, 'rgba(255, 120, 80, 0.35)');
+                specGrad.addColorStop(0.8, 'transparent');
+                specGrad.addColorStop(1, 'transparent');
+                ctx.fillStyle = specGrad;
+                ctx.fillRect(-80, -80, 160, 160);
+            }
+        }
+
+        ctx.restore();
+    },
+
+    /**
+     * Token 棋座烘焙期風化處理（微顆粒 + 鑄造徽章邊緣高光）
+     * 執行於 Token Factory 烘焙階段，執行期零開銷。
+     */
+    weatherToken(canvas: HTMLCanvasElement, highlightColor: string): HTMLCanvasElement {
+        const cfg = MATERIAL_CONFIG.unit?.token;
+        if (!MATERIAL_CONFIG.enabled || !cfg || !cfg.enabled) return canvas;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return canvas;
+
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // 1. 微顆粒 (Overlay Grain)
+        if (cfg.grainStrength > 0) {
+            const tile = getGrainTile({
+                enabled: true,
+                octaves: 3,
+                frequency: 10.0,
+                persistence: 0.5,
+                lacunarity: 2.0,
+                strength: cfg.grainStrength,
+                contrast: 0.28,
+                variants: 1,
+                tintSpread: 0,
+                edgeAO: 0,
+                edgeBand: 0,
+            }, 0, MATERIAL_CONFIG.maskResolution);
+
+            // 離屏遮罩：將顆粒裁切至 Token 像素輪廓
+            const layer = createCanvas(w, h);
+            layer.ctx.drawImage(tile, 0, 0, w, h);
+            layer.ctx.globalCompositeOperation = 'destination-in';
+            layer.ctx.drawImage(canvas, 0, 0);
+
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalCompositeOperation = 'overlay';
+            ctx.globalAlpha = cfg.grainStrength;
+            ctx.drawImage(layer.canvas, 0, 0);
+            ctx.restore();
+        }
+
+        // 2. 鑄造徽章高光 (Specular / Edge Glow)
+        if (cfg.edgeGlow > 0 && highlightColor) {
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalCompositeOperation = 'source-atop';
+
+            const cx = w / 2;
+            const cy = h / 2;
+            const r = Math.min(cx, cy);
+            const grad = ctx.createRadialGradient(
+                cx - r * 0.35, cy - r * 0.4, r * 0.05,
+                cx, cy, r
+            );
+            grad.addColorStop(0, highlightColor);
+            grad.addColorStop(0.5, 'transparent');
+
+            ctx.fillStyle = grad;
+            ctx.globalAlpha = cfg.edgeGlow;
+            ctx.fillRect(0, 0, w, h);
+            ctx.restore();
+        }
+
+        return canvas;
     },
 };

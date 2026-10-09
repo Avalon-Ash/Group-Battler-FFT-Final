@@ -4,6 +4,8 @@ import { getCastProgress } from "../utils";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { UnitCorePainter } from "../painters/UnitCorePainter";
 import { UNIT_APPEARANCE, RoleAppearance } from "../../../../data/units/appearance";
+import { MATERIAL_CONFIG } from "../../../../data/vfx/materialConfig";
+import { MaterialPainter } from "../../../graphics/materials/MaterialPainter";
 
 function easeAttack(t: number): number {
     if (t < 0.3) {
@@ -131,7 +133,7 @@ export const ImperialRenderer = {
 };
 
 function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
-    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius } = profile;
+    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius, highlightColor } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 0);
     grad.addColorStop(0, secondaryColor); // Use secondary for highlights
@@ -141,25 +143,35 @@ function drawImperialBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.fillStyle = grad;
     ctx.strokeStyle = rimColor || accentColor;
     ctx.lineWidth = 1.5;
-    ctx.beginPath();
     
     const hw = bodyWidth / 2;
     const bodyBottom = bodyHeight - 45; // Relativize to -45 baseline
     
-    if (role === Role.TANK) {
-        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
-        ctx.lineTo(hw * 0.7, bodyBottom); ctx.lineTo(-hw * 0.7, bodyBottom);
-        ctx.lineTo(-hw, -45);
-    } else if (role === Role.MAGE || role === Role.SUPPORT) {
-        ctx.moveTo(-hw * 0.7, -45); ctx.lineTo(hw * 0.7, -45);
-        ctx.lineTo(hw * 1.5, bodyBottom + 10); ctx.lineTo(-hw * 1.5, bodyBottom + 10);
-        ctx.lineTo(-hw * 0.7, -45);
-    } else {
-        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
-        ctx.lineTo(hw * 0.7, bodyBottom + 5); ctx.lineTo(-hw * 0.7, bodyBottom + 5);
-        ctx.lineTo(-hw, -45);
-    }
+    const traceBody = () => {
+        ctx.beginPath();
+        if (role === Role.TANK) {
+            ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+            ctx.lineTo(hw * 0.7, bodyBottom); ctx.lineTo(-hw * 0.7, bodyBottom);
+            ctx.lineTo(-hw, -45);
+        } else if (role === Role.MAGE || role === Role.SUPPORT) {
+            ctx.moveTo(-hw * 0.7, -45); ctx.lineTo(hw * 0.7, -45);
+            ctx.lineTo(hw * 1.5, bodyBottom + 10); ctx.lineTo(-hw * 1.5, bodyBottom + 10);
+            ctx.lineTo(-hw * 0.7, -45);
+        } else {
+            ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+            ctx.lineTo(hw * 0.7, bodyBottom + 5); ctx.lineTo(-hw * 0.7, bodyBottom + 5);
+            ctx.lineTo(-hw, -45);
+        }
+    };
+
+    traceBody();
     ctx.fill();
+
+    if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.armor?.enabled) {
+        MaterialPainter.paintArmorSurface(ctx, traceBody, highlightColor ?? '#6b9fff', true);
+    }
+
+    traceBody();
     ctx.stroke();
 
     ctx.save();
@@ -226,12 +238,24 @@ function drawImperialShield(ctx: CanvasRenderingContext2D, profile: RoleAppearan
     ctx.fillStyle = grad;
     ctx.strokeStyle = profile.accentColor;
     ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(-15, -30); ctx.lineTo(15, -30);
-    ctx.lineTo(15, 10); ctx.lineTo(0, 40); ctx.lineTo(-15, 10);
-    ctx.closePath();
+
+    const traceShield = () => {
+        ctx.beginPath();
+        ctx.moveTo(-15, -30); ctx.lineTo(15, -30);
+        ctx.lineTo(15, 10); ctx.lineTo(0, 40); ctx.lineTo(-15, 10);
+        ctx.closePath();
+    };
+
+    traceShield();
     ctx.fill();
+
+    if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.armor?.enabled) {
+        MaterialPainter.paintArmorSurface(ctx, traceShield, profile.highlightColor ?? '#6b9fff', true);
+    }
+
+    traceShield();
     ctx.stroke();
+
     ctx.fillStyle = profile.secondaryColor;
     ctx.fillRect(-5, -20, 10, 40);
 }

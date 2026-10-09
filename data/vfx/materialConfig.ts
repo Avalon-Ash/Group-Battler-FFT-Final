@@ -76,6 +76,60 @@ export interface SurfaceGrainConfig {
     edgeBand: number;
 }
 
+export interface UnitArmorConfig {
+    enabled: boolean;
+    strength: number;      // 顆粒疊加強度
+    contrast: number;      // 明暗對比
+    specular: number;      // 邊緣高光強度
+}
+
+export interface UnitTokenConfig {
+    enabled: boolean;
+    grainStrength: number;
+    edgeGlow: number;
+}
+
+export interface UnitMaterialConfig {
+    armor: UnitArmorConfig;
+    token: UnitTokenConfig;
+}
+
+export interface PoisonConfig {
+    noise: NoiseFieldConfig;
+    /** 酸液底色 */
+    baseColor: string;
+    /** 酸液池暗部漸層色 */
+    deepColor: string;
+    /** 氣泡主色 */
+    bubbleColor: string;
+    /** 氣泡高光/破裂邊緣 */
+    bubbleGlowColor: string;
+    /** 腐蝕邊緣強調色 */
+    edgeColor: string;
+    /** 確定性泡泡數量 */
+    bubbleCount: number;
+}
+
+export interface VoidConfig {
+    noise: NoiseFieldConfig;
+    /** 事件視界中心（黑洞中心） */
+    coreColor: string;
+    /** 吸積深紫底層 */
+    innerColor: string;
+    /** 吸積盤強能量漸層色 */
+    accretionColor: string;
+    /** 外緣柔和能量光暈（替代 shadowBlur） */
+    edgeGlowColor: string;
+    /** 能量吸積環層數 */
+    ringCount: number;
+}
+
+export interface ParticleNoiseConfig {
+    slash: NoiseFieldConfig;
+    fireball: NoiseFieldConfig;
+    hexShard: NoiseFieldConfig;
+}
+
 export const MATERIAL_CONFIG = {
     /** 全域開關：false 時所有新材質回退到舊繪法，方便 A/B 比對 */
     enabled: true,
@@ -163,6 +217,77 @@ export const MATERIAL_CONFIG = {
         crackCount: 4,
     },
 
+    poison: {
+        noise: {
+            octaves: 4,
+            frequency: 6.0,
+            persistence: 0.52,
+            lacunarity: 2.0,
+            threshold: 0.28,
+            softness: 0.30,
+        } as NoiseFieldConfig,
+        /** 酸液底色 */
+        baseColor: 'rgba(16, 185, 129, 0.55)',
+        /** 酸液池暗部漸層色 */
+        deepColor: 'rgba(5, 46, 22, 0.85)',
+        /** 氣泡主色（亮黃綠） */
+        bubbleColor: '#bef264',
+        /** 氣泡高光/破裂邊緣 */
+        bubbleGlowColor: '#d9f99d',
+        /** 腐蝕邊緣強調色 */
+        edgeColor: '#22c55e',
+        /** 確定性泡泡數量 */
+        bubbleCount: 5,
+    } as PoisonConfig,
+
+    void: {
+        noise: {
+            octaves: 5,
+            frequency: 5.5,
+            persistence: 0.55,
+            lacunarity: 2.1,
+            threshold: 0.26,
+            softness: 0.32,
+        } as NoiseFieldConfig,
+        /** 事件視界中心（黑洞中心純黑） */
+        coreColor: '#05020a',
+        /** 吸積深紫底層 */
+        innerColor: 'rgba(26, 10, 46, 0.92)',
+        /** 吸積盤強能量漸層色 */
+        accretionColor: '#a855f7',
+        /** 外緣柔和能量光暈（替代 shadowBlur） */
+        edgeGlowColor: 'rgba(192, 132, 252, 0.75)',
+        /** 能量吸積環層數 */
+        ringCount: 3,
+    } as VoidConfig,
+
+    particles: {
+        slash: {
+            octaves: 4,
+            frequency: 6.0,
+            persistence: 0.5,
+            lacunarity: 2.0,
+            threshold: 0.25,
+            softness: 0.35,
+        } as NoiseFieldConfig,
+        fireball: {
+            octaves: 5,
+            frequency: 6.5,
+            persistence: 0.55,
+            lacunarity: 2.1,
+            threshold: 0.28,
+            softness: 0.30,
+        } as NoiseFieldConfig,
+        hexShard: {
+            octaves: 4,
+            frequency: 5.0,
+            persistence: 0.5,
+            lacunarity: 2.0,
+            threshold: 0.30,
+            softness: 0.25,
+        } as NoiseFieldConfig,
+    } as ParticleNoiseConfig,
+
     lightning: {
         ribbon: {
             subdivisions: 5,
@@ -193,6 +318,23 @@ export const MATERIAL_CONFIG = {
         stride: 0.35,
         /** 每層 alpha 衰減 */
         falloff: 0.45,
+    },
+
+    /**
+     * 角色與棋座材質管線（Pass 3）
+     */
+    unit: {
+        armor: {
+            enabled: true,
+            strength: 0.35,      // 顆粒疊加強度
+            contrast: 0.30,      // 明暗對比
+            specular: 0.25,      // 邊緣高光強度
+        } as UnitArmorConfig,
+        token: {
+            enabled: true,
+            grainStrength: 0.28,
+            edgeGlow: 0.20,
+        } as UnitTokenConfig,
     },
 
     /** 最終合成色調分級（對應對方的 post-processing tone pass） */

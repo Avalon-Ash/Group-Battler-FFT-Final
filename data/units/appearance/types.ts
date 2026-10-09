@@ -8,6 +8,7 @@ export interface RoleAppearance {
   primaryColor: string;   // 主色（裝甲/主體）
   secondaryColor: string; // 次色（武器/邊框）
   accentColor: string;    // 強調色（眼睛/發光）
+  highlightColor?: string; // 程序化甲胄邊緣高光 / Token 頂點高光
   weaponType: 'sword' | 'spear' | 'bow' | 'staff' | 'shield_mace' | 'tome';
   capeColor: string | null; // null = 無披風
   tokenRadius:    number;       // Token 圓形半徑（canvas unit）

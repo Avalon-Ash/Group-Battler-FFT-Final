@@ -44,7 +44,13 @@ export class VFXTextureCache {
                     applyNoiseMask(ctx, 'smoke', MATERIAL_CONFIG.ice.noise, r, true, 41);
                 }
                 break;
-            case 'HEX_SHARD': ParticlePainter.drawHexShard(ctx, r, color); break;
+            case 'HEX_SHARD':
+                ParticlePainter.drawHexShard(ctx, r, color);
+                // [MATERIAL UPGRADE] 噪聲遮罩：六邊形碎片晶格碎裂邊緣侵蝕
+                if (MATERIAL_CONFIG.enabled) {
+                    applyNoiseMask(ctx, 'hex_shard', MATERIAL_CONFIG.particles.hexShard, r, true, 31);
+                }
+                break;
             case 'RIPPLE': ParticlePainter.drawRipple(ctx, r, color); break;
             case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
             case 'SPIKE':
@@ -78,7 +84,13 @@ export class VFXTextureCache {
                     applyNoiseMask(ctx, 'crack', MATERIAL_CONFIG.scorch.noise, r, true, 23);
                 }
                 break;
-            case 'SLASH': ParticlePainter.drawSlash(ctx, r, color); break;
+            case 'SLASH':
+                ParticlePainter.drawSlash(ctx, r, color);
+                // [MATERIAL UPGRADE] 噪聲遮罩：破壞死板弧線幾何邊緣，提升劍氣刀光能量有機感
+                if (MATERIAL_CONFIG.enabled) {
+                    applyNoiseMask(ctx, 'slash', MATERIAL_CONFIG.particles.slash, r, false, 71);
+                }
+                break;
             case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
             case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;
             case 'BEAM': {
@@ -96,6 +108,10 @@ export class VFXTextureCache {
                 break;
             case 'FIREBALL':
                 ProjectilePainter.drawCovenantFireball(ctx, color);
+                // [MATERIAL UPGRADE] 噪聲遮罩：火球外輪廓有機擾動，打破生硬幾何輪廓
+                if (MATERIAL_CONFIG.enabled) {
+                    applyNoiseMask(ctx, 'fireball', MATERIAL_CONFIG.particles.fireball, r, true, 53);
+                }
                 break;
             case 'BOMB':
                 ProjectilePainter.drawBomb(ctx, color);

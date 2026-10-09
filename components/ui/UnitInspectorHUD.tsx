@@ -109,13 +109,13 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                 <div className="flex flex-col min-w-0">
                                     <div className={`font-mono font-bold text-sm ${themeColor} leading-none tracking-tight truncate`}>{agent.id}</div>
                                     <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{agent.role}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{ROLE_MAP[agent.role]?.label || agent.role}</span>
                                         {/* Config Button (Larger & clearer) */}
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setIsConfigExpanded(!isConfigExpanded); }}
                                             onPointerDown={e => e.stopPropagation()}
                                             className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${isConfigExpanded ? 'bg-cyan-500 text-white shadow-md' : 'bg-white/10 text-slate-400 hover:text-white hover:bg-white/20'}`}
-                                            title="Edit Unit Stats"
+                                            title="編輯單位屬性"
                                         >
                                             <Icons.Settings className={`w-4 h-4 ${isConfigExpanded ? 'animate-spin-slow' : ''}`} />
                                         </button>
@@ -130,14 +130,14 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'AI' ? 'NONE' : 'AI')} 
                                         className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${viewMode === 'AI' ? 'bg-amber-500/20 text-amber-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title="AI Monitor"
+                                        title="行為樹監控 (AI)"
                                     >
                                         AI
                                     </button>
                                     <button 
                                         onClick={() => setViewMode(viewMode === 'SKILLS' ? 'NONE' : 'SKILLS')} 
                                         className={`px-3 py-1.5 rounded-md text-[11px] font-bold transition-all ${viewMode === 'SKILLS' ? 'bg-cyan-500/20 text-cyan-300 shadow-inner' : 'text-slate-500 hover:text-slate-300'}`}
-                                        title="Linkage"
+                                        title="技能配置 (LINK)"
                                     >
                                         LINK
                                     </button>
@@ -145,12 +145,14 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
 
                                 <button 
                                     onClick={() => setIsMinimized(true)} 
+                                    title="最小化"
                                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/20 text-slate-400 hover:text-white border border-transparent transition-all active:scale-95"
                                 >
                                     <Icons.Minimize className="w-3 h-3" />
                                 </button>
                                 <button 
                                     onClick={onClose} 
+                                    title="關閉"
                                     className="w-8 h-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/30 text-red-400 border border-transparent transition-all active:scale-95"
                                 >
                                     <Icons.Close className="w-3 h-3" />
@@ -165,7 +167,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                         >
                             <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block text-center">Class</label>
+                                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block text-center">職業</label>
                                     <select 
                                         className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 focus:border-cyan-500/50 p-0 pl-2 text-white"
                                         value={agent.role} 
@@ -175,7 +177,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     </select>
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-green-500/70 uppercase tracking-widest block text-center">HP</label>
+                                    <label className="text-[10px] font-bold text-green-500/70 uppercase tracking-widest block text-center">生命值</label>
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-green-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-green-500/50 p-0"
@@ -184,7 +186,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     />
                                 </div>
                                 <div className="space-y-1">
-                                    <label className="text-[10px] font-bold text-blue-500/70 uppercase tracking-widest block text-center">MP</label>
+                                    <label className="text-[10px] font-bold text-blue-500/70 uppercase tracking-widest block text-center">能量值</label>
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-blue-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-blue-500/50 p-0"
@@ -213,7 +215,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                         <div className="px-3 pb-3 cursor-default" onPointerDown={e => e.stopPropagation()}>
                             <div className="flex justify-between items-center bg-black/20 rounded-lg p-2 border border-white/5">
                                 <div className="flex flex-col">
-                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">BT_SIG | SSOT_PROC</span>
+                                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">行為樹狀態 | 執行流程</span>
                                     <div className="flex items-center gap-2">
                                         <span className={`text-xs font-mono font-bold ${agent.hp <= 0 ? 'text-slate-600' : 'text-amber-400'}`}>
                                             {Helpers.getAIStateLabel(agent.aiState)}
@@ -225,9 +227,9 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     </div>
                                 </div>
                                 <div className="flex gap-1">
-                                    {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[10px] px-1.5">STUN</span>}
-                                    {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300 text-[10px] px-1.5">MUTE</span>}
-                                    {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 text-[10px] px-1.5">BANISH</span>}
+                                    {agent.stunTimer > 0 && <span className="liquid-tag bg-amber-500/20 border-amber-500/50 text-amber-300 text-[10px] px-1.5">暈眩</span>}
+                                    {agent.silenceTimer > 0 && <span className="liquid-tag bg-slate-700/50 border-slate-500 text-slate-300 text-[10px] px-1.5">沉默</span>}
+                                    {agent.banished && <span className="liquid-tag bg-purple-500/20 border-purple-500/50 text-purple-300 text-[10px] px-1.5">放逐</span>}
                                 </div>
                             </div>
                         </div>
@@ -244,7 +246,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                 <div className="w-full h-full relative">
                                     <BehaviorTreeTab agent={agent} version={version} engine={engine} />
                                     <div className="absolute bottom-2 right-2 text-[10px] text-white/20 font-mono pointer-events-none">
-                                        LIVE MONITORING
+                                        即時運算中 (LIVE)
                                     </div>
                                 </div>
                             ) : (

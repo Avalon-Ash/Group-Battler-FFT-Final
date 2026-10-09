@@ -35,6 +35,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
                         onPointerDown={(e) => e.stopPropagation()} 
                         disabled={winner !== null}
+                        title={isPlaying ? "暫停戰鬥" : "開始戰鬥"}
                         className={`relative w-14 h-14 rounded-full flex items-center justify-center text-2xl transition-all duration-200 border shadow-lg
                             ${isPlaying 
                                 ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/30 hover:scale-105' 
@@ -48,6 +49,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     <button 
                         onClick={(e) => { e.stopPropagation(); onRestart(); }}
                         onPointerDown={(e) => e.stopPropagation()}
+                        title="重新開始"
                         className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 hover:border-white/20 flex items-center justify-center transition-all active:scale-95 group"
                     >
                         <Icons.Restart className="w-4 h-4 group-hover:-rotate-180 transition-transform duration-500" />
@@ -55,6 +57,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                     <button 
                         onClick={(e) => { e.stopPropagation(); onRandom(); }}
                         onPointerDown={(e) => e.stopPropagation()}
+                        title="隨機生成戰場與陣容"
                         className="w-8 h-8 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
                     >
                         <Icons.Dice className="w-4 h-4" />
@@ -63,7 +66,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                 <div className="h-8 w-px bg-white/10 mx-1"></div>
                 <div className="flex flex-col w-32 gap-1.5" onPointerDown={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-center px-1">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Sim Speed</span>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">模擬速度</span>
                         <span className={`text-xs font-mono font-bold ${timeScale > 1.0 ? 'text-cyan-400 text-glow-cyan' : 'text-slate-300'}`}>
                             {timeScale.toFixed(1)}x
                         </span>
@@ -85,6 +88,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                 <button 
                     onClick={(e) => { e.stopPropagation(); onShowcase(); }}
                     onPointerDown={(e) => e.stopPropagation()}
+                    title="進入展示模式 (Showcase)"
                     className="w-10 h-10 rounded-full hover:bg-cyan-950/30 text-slate-500 hover:text-cyan-400 transition-all flex items-center justify-center group"
                 >
                     <Icons.TV className="w-5 h-5 group-hover:scale-110 transition-transform filter drop-shadow-md" />

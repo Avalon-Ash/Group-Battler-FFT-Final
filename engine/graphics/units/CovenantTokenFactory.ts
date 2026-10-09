@@ -4,6 +4,8 @@ import { ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
 import { UnitAssetsFull } from "../UnitFactory";
 import { UNIT_APPEARANCE } from "../../../data/units/appearance";
+import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
+import { MaterialPainter } from "../materials/MaterialPainter";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -15,6 +17,7 @@ export const CovenantTokenFactory = {
         const cx = BASE_SIZE / 2;
         const cy = BASE_SIZE / 2;
         const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
+        const highlightColor = ap.highlightColor ?? '#c0392b';
         const radius = ap.tokenRadius;
         
         ctx.translate(cx, cy);
@@ -29,7 +32,7 @@ export const CovenantTokenFactory = {
             -radius * 0.28, -radius * 0.35, radius * 0.05,
              0,              0,              radius
         );
-        grad.addColorStop(0,    '#c0392b');   // ← 高光頂點（待納入 SSOT: highlightColor）
+        grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor); // Dried Blood
         grad.addColorStop(0.8,  ap.deepColor);    // Dark Clot
         grad.addColorStop(1,    '#000000');
@@ -73,11 +76,16 @@ export const CovenantTokenFactory = {
         ctx.globalAlpha = 0.4;
         ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
 
+        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
+            MaterialPainter.weatherToken(canvas, highlightColor);
+        }
+
         return canvas;
     },
 
     generateLayers(role: Role): UnitAssetsFull {
         const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
+        const highlightColor = ap.highlightColor ?? '#c0392b';
         const R  = ap.tokenRadius;
         
         // 1. Base Layer (Jagged Body Only)
@@ -89,7 +97,7 @@ export const CovenantTokenFactory = {
             -R * 0.28, -R * 0.35, R * 0.05,
              0,         0,         R
         );
-        grad.addColorStop(0,    '#c0392b');
+        grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor);
         grad.addColorStop(0.8,  ap.deepColor);
         grad.addColorStop(1,    '#000000');
@@ -104,6 +112,10 @@ export const CovenantTokenFactory = {
             if(i===0) bCtx.moveTo(x,y); else bCtx.lineTo(x,y);
         }
         bCtx.fill();
+
+        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
+            MaterialPainter.weatherToken(baseRes.canvas, highlightColor);
+        }
 
         // 2. Rim Layer (Brass Trim Only)
         const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);

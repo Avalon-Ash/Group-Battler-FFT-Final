@@ -8,8 +8,8 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
-import { Team, AnimState, MovementType } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM } from "../../../../constants";
+import { Team, AnimState, MovementType, ActionState } from "../../../../types";
+import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y } from "../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
@@ -18,6 +18,8 @@ import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
+import { MaterialPainter } from "../../../graphics/materials/MaterialPainter";
+import { MATERIAL_CONFIG } from "../../../../data/vfx/materialConfig";
 
 export const UnitBodyPainter = {
     draw(
@@ -58,30 +60,46 @@ export const UnitBodyPainter = {
 
         const finalRotation = agent.physics.angle + tiltAngle;
 
+        const isDashing = agent.actionState === ActionState.EVADING;
+
         // Draw High Speed Ghosts / Trails (Behind Body)
-        if (isHighSpeed && !isSilhouette && agent.hp > 0) {
-            const history = agent.trailHistory;
-            const step = 2;
-            const maxGhosts = 2;
-            const faction = FACTION_VISUALS[agent.team];
-            
-            for (let i = Math.max(0, history.length - 1 - (maxGhosts*step)); i < history.length - 1; i += step) {
-                const pos = history[i];
-                const opacity = (i / history.length) * 0.3; 
+        if ((isHighSpeed || isDashing) && !isSilhouette && agent.hp > 0) {
+            if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.motionTrail.enabled) {
+                // [MATERIAL UPGRADE] 動態拖尾：以遞減 alpha 疊繪單位貼圖殘影
+                const assets = SpriteManager.getUnitImages(agent.role, agent.team);
+                const pz = agent.physics.z;
+                const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
                 ctx.save();
-                const ghostY = VisualMath.getVisualBodyCenterY(pos.y, pos.z);
-                ctx.translate(pos.x, ghostY);
+                ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y);
                 ctx.scale(UNIT_SCALE, UNIT_SCALE);
-                ctx.rotate(finalRotation * 0.5);
-                ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-                ctx.globalAlpha = opacity;
-                ctx.globalCompositeOperation = 'screen'; 
-                ctx.fillStyle = faction.flightTrailColor; 
-                ctx.beginPath();
-                ctx.moveTo(-10, -40); ctx.lineTo(10, -40);
-                ctx.lineTo(5, 10); ctx.lineTo(-5, 10);
-                ctx.fill();
+                const screenVy = vy * ISO_SCALE_Y;
+                MaterialPainter.drawMotionTrail(ctx, assets.base, 64, vx, screenVy, 0.45);
                 ctx.restore();
+            } else {
+                // 原本的 screen 幾何 ghost 作為 fallback
+                const history = agent.trailHistory;
+                const step = 2;
+                const maxGhosts = 2;
+                const faction = FACTION_VISUALS[agent.team];
+                
+                for (let i = Math.max(0, history.length - 1 - (maxGhosts*step)); i < history.length - 1; i += step) {
+                    const pos = history[i];
+                    const opacity = (i / history.length) * 0.3; 
+                    ctx.save();
+                    const ghostY = VisualMath.getVisualBodyCenterY(pos.y, pos.z);
+                    ctx.translate(pos.x, ghostY);
+                    ctx.scale(UNIT_SCALE, UNIT_SCALE);
+                    ctx.rotate(finalRotation * 0.5);
+                    ctx.scale(agent.facing > 0 ? 1 : -1, 1);
+                    ctx.globalAlpha = opacity;
+                    ctx.globalCompositeOperation = 'screen'; 
+                    ctx.fillStyle = faction.flightTrailColor; 
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -40); ctx.lineTo(10, -40);
+                    ctx.lineTo(5, 10); ctx.lineTo(-5, 10);
+                    ctx.fill();
+                    ctx.restore();
+                }
             }
         }
 

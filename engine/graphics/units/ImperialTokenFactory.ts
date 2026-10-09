@@ -4,6 +4,8 @@ import { ISO_SCALE_Y, PALETTE } from "../../../constants";
 import { createCanvas } from "../CanvasUtils";
 import { UnitAssetsFull } from "../UnitFactory";
 import { UNIT_APPEARANCE } from "../../../data/units/appearance";
+import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
+import { MaterialPainter } from "../materials/MaterialPainter";
 
 const BASE_SIZE = 128;
 const ICON_SIZE = 64;
@@ -15,6 +17,7 @@ export const ImperialTokenFactory = {
         const cx = BASE_SIZE / 2;
         const cy = BASE_SIZE / 2;
         const ap = UNIT_APPEARANCE[Team.BLUE].roles[role] ?? UNIT_APPEARANCE[Team.BLUE].roles[Role.WARRIOR];
+        const highlightColor = ap.highlightColor ?? '#6b9fff';
         const radius = ap.tokenRadius;
         
         ctx.translate(cx, cy);
@@ -29,7 +32,7 @@ export const ImperialTokenFactory = {
             -radius * 0.28, -radius * 0.35, radius * 0.05,
              0,              0,              radius
         );
-        grad.addColorStop(0,    '#6b9fff');   // ← 高光頂點（待納入 SSOT: highlightColor）
+        grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor); // Bright Cobalt
         grad.addColorStop(1,    ap.deepColor); // Deep Navy
         ctx.fillStyle = grad;
@@ -65,11 +68,16 @@ export const ImperialTokenFactory = {
         ctx.textBaseline = 'middle';
         ctx.fillText('Ω', 0, 2);
 
+        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
+            MaterialPainter.weatherToken(canvas, highlightColor);
+        }
+
         return canvas;
     },
 
     generateLayers(role: Role): UnitAssetsFull {
         const ap = UNIT_APPEARANCE[Team.BLUE].roles[role] ?? UNIT_APPEARANCE[Team.BLUE].roles[Role.WARRIOR];
+        const highlightColor = ap.highlightColor ?? '#6b9fff';
         const R  = ap.tokenRadius;
         
         // 1. Base Layer (Body Only)
@@ -81,11 +89,15 @@ export const ImperialTokenFactory = {
             -R * 0.28, -R * 0.35, R * 0.05,
              0,         0,         R
         );
-        grad.addColorStop(0,    '#6b9fff');
+        grad.addColorStop(0,    highlightColor);
         grad.addColorStop(0.45, ap.primaryColor);
         grad.addColorStop(1,    ap.deepColor);
         bCtx.fillStyle = grad;
         bCtx.beginPath(); bCtx.arc(0, 0, R, 0, Math.PI*2); bCtx.fill();
+
+        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
+            MaterialPainter.weatherToken(baseRes.canvas, highlightColor);
+        }
 
         // 2. Rim Layer (Gold Trim Only)
         const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);

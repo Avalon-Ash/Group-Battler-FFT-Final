@@ -202,7 +202,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                             <span className="w-2 h-2 rounded-full bg-emerald-500 absolute animate-ping opacity-75"></span>
                             <span className="w-2 h-2 rounded-full bg-emerald-500 relative block shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Data Stream</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">戰鬥事件串流</span>
                         <span className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
                             {filteredLogs.length} / {localLogs.length}
                         </span>
@@ -210,8 +210,9 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                     <button 
                         onClick={downloadLogs} 
                         className="liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
+                        title="匯出戰鬥日誌 JSON"
                     >
-                        <Icons.Save className="w-3 h-3 mr-1.5" /> EXPORT
+                        <Icons.Save className="w-3 h-3 mr-1.5" /> 匯出記錄
                     </button>
                 </div>
 
@@ -224,18 +225,18 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                                 onClick={() => setFilterType(t)} 
                                 className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterType === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
-                                {t}
+                                {t === 'ALL' ? '全部' : t === 'BATTLE' ? '戰鬥' : t === 'SKILL' ? '技能' : '其他'}
                             </button>
                         ))}
                     </div>
-                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 w-[120px]">
+                    <div className="flex bg-black/40 p-0.5 rounded-lg border border-white/5 w-[140px]">
                         {(['ALL', 'BLUE', 'RED'] as SourceCategory[]).map(s => (
                             <button 
                                 key={s}
                                 onClick={() => setFilterSource(s)} 
                                 className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterSource === s ? (s === 'BLUE' ? 'bg-blue-500/20 text-blue-400' : (s==='RED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')) : 'text-slate-500 hover:text-slate-300'}`}
                             >
-                                {s === 'ALL' ? 'ANY' : s}
+                                {s === 'ALL' ? '全軍' : s === 'BLUE' ? '藍軍' : '紅軍'}
                             </button>
                         ))}
                     </div>
@@ -255,7 +256,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                 {filteredLogs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-40 opacity-30 gap-4 mt-10 pointer-events-none">
                         <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-600 animate-spin-slow"></div>
-                        <span className="text-xs font-mono tracking-widest text-slate-500">NO RECORDS FOUND</span>
+                        <span className="text-xs font-mono tracking-widest text-slate-500">暫無戰鬥記錄 (NO RECORDS)</span>
                     </div>
                 ) : (
                     // Reverse map to show newest at bottom, but render order is preserved by array order

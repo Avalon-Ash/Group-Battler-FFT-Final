@@ -7,6 +7,7 @@ const COMMON_IMPERIAL = {
   secondaryColor: THEME_IMPERIAL.energy,   // #60a5fa
   accentColor: THEME_IMPERIAL.secondary,   // #fde047
   capeColor: THEME_IMPERIAL.cape,          // rgba(30, 58, 138, 0.9)
+  highlightColor: '#6b9fff',               // Cerulean Specular Highlight
 };
 
 export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
@@ -14,6 +15,7 @@ export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
   roles: {
     [Role.WARRIOR]: {
       ...COMMON_IMPERIAL,
+      highlightColor: '#6b9fff',
       bodyWidth: 38,
       bodyHeight: 46,
       headRadius: 9,
@@ -27,6 +29,7 @@ export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
     },
     [Role.TANK]: {
       ...COMMON_IMPERIAL,
+      highlightColor: '#93c5fd',
       bodyWidth: 46,
       bodyHeight: 44,
       headRadius: 11,
@@ -40,6 +43,7 @@ export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
     },
     [Role.RANGER]: {
       ...COMMON_IMPERIAL,
+      highlightColor: '#60a5fa',
       bodyWidth: 32,
       bodyHeight: 50,
       headRadius: 8,
@@ -53,6 +57,7 @@ export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
     },
     [Role.MAGE]: {
       ...COMMON_IMPERIAL,
+      highlightColor: '#93c5fd',
       bodyWidth: 26,
       bodyHeight: 52,
       headRadius: 8,
@@ -66,6 +71,7 @@ export const IMPERIAL_APPEARANCE: FactionAppearanceProfile = {
     },
     [Role.SUPPORT]: {
       ...COMMON_IMPERIAL,
+      highlightColor: '#bae6fd',
       bodyWidth: 28,
       bodyHeight: 50,
       headRadius: 9,

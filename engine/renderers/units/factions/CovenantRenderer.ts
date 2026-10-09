@@ -4,6 +4,8 @@ import { getCastProgress } from "../utils";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { UnitCorePainter } from "../painters/UnitCorePainter";
 import { UNIT_APPEARANCE, RoleAppearance } from "../../../../data/units/appearance";
+import { MATERIAL_CONFIG } from "../../../../data/vfx/materialConfig";
+import { MaterialPainter } from "../../../graphics/materials/MaterialPainter";
 
 function easeAttack(t: number): number {
     if (t < 0.45) {
@@ -135,7 +137,7 @@ export const CovenantRenderer = {
 };
 
 function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: RoleAppearance) {
-    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius } = profile;
+    const { primaryColor, secondaryColor, accentColor, deepColor, rimColor, bodyWidth, bodyHeight, headRadius, highlightColor } = profile;
     
     const grad = ctx.createLinearGradient(-15, -50, 15, 10);
     grad.addColorStop(0, primaryColor);
@@ -145,21 +147,31 @@ function drawCovenantBody(ctx: CanvasRenderingContext2D, role: Role, profile: Ro
     ctx.fillStyle = grad;
     ctx.strokeStyle = rimColor || accentColor;
     ctx.lineWidth = 1;
-    ctx.beginPath();
     
     const hw = bodyWidth / 2;
     const bodyBottom = bodyHeight - 45; // Baseline adjustment
 
-    if (role === Role.TANK) {
-        ctx.moveTo(-hw, -40); ctx.lineTo(hw, -40); 
-        ctx.lineTo(hw * 0.6, bodyBottom + 10); ctx.lineTo(-hw * 0.6, bodyBottom + 10);
-        ctx.lineTo(-hw, -40);
-    } else {
-        ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
-        ctx.lineTo(hw * 0.45, bodyBottom + 15); ctx.lineTo(-hw * 0.45, bodyBottom + 15);
-        ctx.lineTo(-hw, -45);
-    }
+    const traceBody = () => {
+        ctx.beginPath();
+        if (role === Role.TANK) {
+            ctx.moveTo(-hw, -40); ctx.lineTo(hw, -40); 
+            ctx.lineTo(hw * 0.6, bodyBottom + 10); ctx.lineTo(-hw * 0.6, bodyBottom + 10);
+            ctx.lineTo(-hw, -40);
+        } else {
+            ctx.moveTo(-hw, -45); ctx.lineTo(hw, -45);
+            ctx.lineTo(hw * 0.45, bodyBottom + 15); ctx.lineTo(-hw * 0.45, bodyBottom + 15);
+            ctx.lineTo(-hw, -45);
+        }
+    };
+
+    traceBody();
     ctx.fill();
+
+    if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.armor?.enabled) {
+        MaterialPainter.paintArmorSurface(ctx, traceBody, highlightColor ?? '#c0392b', false);
+    }
+
+    traceBody();
     ctx.stroke();
 
     ctx.save();
@@ -230,12 +242,23 @@ function drawCovenantShield(ctx: CanvasRenderingContext2D, profile: RoleAppearan
     ctx.fillStyle = profile.primaryColor;
     ctx.strokeStyle = profile.secondaryColor;
     ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(-15, -25); ctx.lineTo(15, -20);
-    ctx.lineTo(20, 0); ctx.lineTo(10, 25);
-    ctx.lineTo(-15, 20); ctx.lineTo(-20, 0);
-    ctx.closePath();
+
+    const traceShield = () => {
+        ctx.beginPath();
+        ctx.moveTo(-15, -25); ctx.lineTo(15, -20);
+        ctx.lineTo(20, 0); ctx.lineTo(10, 25);
+        ctx.lineTo(-15, 20); ctx.lineTo(-20, 0);
+        ctx.closePath();
+    };
+
+    traceShield();
     ctx.fill();
+
+    if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.armor?.enabled) {
+        MaterialPainter.paintArmorSurface(ctx, traceShield, profile.highlightColor ?? '#c0392b', false);
+    }
+
+    traceShield();
     ctx.stroke();
 }
 

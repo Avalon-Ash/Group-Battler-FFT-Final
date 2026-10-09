@@ -9,6 +9,47 @@ interface TreeNodeProps {
     now: number;
 }
 
+const BT_LABEL_MAP: Record<string, string> = {
+    'Root': '根節點 (Root)',
+    'Dead Check': '陣亡判定',
+    'Is Dead?': '已陣亡？',
+    'Dead Wait': '陣亡待機',
+    'CC Check': '控制判定',
+    'Any CC?': '任何受控？',
+    'Stunned?': '暈眩？',
+    'Banished?': '放逐？',
+    'Feared?': '恐懼？',
+    'CC Wait': '受控硬直等待',
+    'Survival': '求生策略',
+    'Trigger?': '觸發避險？',
+    'Urgent Danger?': '急迫危險？',
+    'Already Evading?': '正在閃避？',
+    'Survival Tactics': '求生手段',
+    'Run!': '逃離危險！',
+    'Last Stand': '背水一戰',
+    'Has Push/Pull?': '有擊退技？',
+    'Push Away!': '擊退敵方！',
+    'Combat': '戰鬥主迴圈',
+    'Scan Target': '鎖定目標',
+    'Skill Priority': '技能優先級',
+    'Try Ultimate': '嘗試奧義大絕',
+    'Try Active': '嘗試戰術技能',
+    'Try Basic': '嘗試基礎普攻',
+    'Ready?': '冷卻就緒？',
+    'Tactics': '戰術決策',
+    'Smart Cast': '智慧施法',
+    'Find Spot': '尋找落點',
+    'Execute': '執行動作',
+    'Cast Now': '立即釋放',
+    'In Range?': '在射程內？',
+    'Cast': '施放技能',
+    'Move To Spot': '移至落點',
+    'Chase': '追擊目標',
+    'Gap Close': '縮短距離',
+    'Stick To Target': '保持接敵',
+    'Idle': '原地待命'
+};
+
 export const TreeNode: React.FC<TreeNodeProps> = ({ node, version, now }) => {
     // Logic for Visual Persistence
     const timeDiff = now - node.lastRunTime;
@@ -42,6 +83,8 @@ export const TreeNode: React.FC<TreeNodeProps> = ({ node, version, now }) => {
         return null;
     }
 
+    const displayName = BT_LABEL_MAP[node.n] || node.n;
+
     return (
         <div className="flex flex-col items-center">
             <div 
@@ -49,7 +92,7 @@ export const TreeNode: React.FC<TreeNodeProps> = ({ node, version, now }) => {
                 style={{ opacity: opacity }}
             >
                 {typeSymbol(node.type)}
-                <span className="whitespace-nowrap truncate max-w-[200px] font-bold text-sm tracking-wider font-mono">{node.n}</span>
+                <span className="whitespace-nowrap truncate max-w-[200px] font-bold text-sm tracking-wider font-mono">{displayName}</span>
             </div>
             {node.c && node.c.length > 0 && (
                 <div className="flex flex-col items-center">

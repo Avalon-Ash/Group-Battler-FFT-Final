@@ -74,9 +74,9 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                     <div className="flex justify-between items-center mb-5 border-b border-white/10 pb-2">
                         <div className="flex items-center gap-2">
                             <Icons.TV className="w-4 h-4 text-cyan-400" />
-                            <span className="text-[10px] font-black text-white tracking-[0.2em] uppercase">Director AI</span>
+                            <span className="text-[10px] font-black text-white tracking-[0.2em] uppercase">自動導播系統 (DIRECTOR AI)</span>
                         </div>
-                        <button onClick={() => setShowDirectorModal(false)} className="text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setShowDirectorModal(false)} title="關閉" className="text-slate-500 hover:text-white transition-colors">
                             <Icons.Close className="w-4 h-4" />
                         </button>
                     </div>
@@ -114,16 +114,16 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                     <div className="flex justify-between items-center mb-5 border-b border-white/10 pb-2">
                         <div className="flex items-center gap-2">
                             <span className="text-lg">🗺️</span>
-                            <span className="text-[10px] font-black text-white tracking-[0.2em] uppercase">Battle Royale</span>
+                            <span className="text-[10px] font-black text-white tracking-[0.2em] uppercase">大逃殺模式 (BATTLE ROYALE)</span>
                         </div>
-                        <button onClick={() => setShowZoneModal(false)} className="text-slate-500 hover:text-white transition-colors">
+                        <button onClick={() => setShowZoneModal(false)} title="關閉" className="text-slate-500 hover:text-white transition-colors">
                             <Icons.Close className="w-4 h-4" />
                         </button>
                     </div>
 
                     <div className="space-y-5">
                         <div className="flex justify-between items-center bg-orange-500/5 p-3 rounded-xl border border-orange-500/20">
-                            <span className="text-[10px] font-bold text-orange-300 uppercase">大逃殺模式</span>
+                            <span className="text-[10px] font-bold text-orange-300 uppercase">大逃殺模式開關</span>
                             <label className="relative inline-flex items-center cursor-pointer">
                                 <input type="checkbox" className="sr-only peer" checked={zoneEnabled} onChange={(e) => updateZoneConfig('enabled', e.target.checked)}/>
                                 <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
@@ -158,7 +158,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
             )}
 
             <div className="absolute top-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-auto">
-                <button onClick={() => setIsOpen(!isOpen)} className={`w-12 h-12 rounded-full liquid-card flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isOpen ? 'bg-white/10 text-white border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}`}>
+                <button onClick={() => setIsOpen(!isOpen)} title={isOpen ? "關閉選單" : "開啟系統選單"} className={`w-12 h-12 rounded-full liquid-card flex items-center justify-center text-xl transition-all duration-300 hover:scale-110 active:scale-95 ${isOpen ? 'bg-white/10 text-white border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'text-slate-400 hover:text-white'}`}>
                     {isOpen ? <Icons.Close className="w-6 h-6" /> : <Icons.Menu className="w-6 h-6" />}
                 </button>
 
@@ -167,16 +167,16 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                         <button onClick={() => { setShowDirectorModal(true); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]">
                             <Icons.TV className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">AUTO DIRECTOR</span>
-                                <span className="text-[10px] text-slate-500 uppercase">自動導播設定</span>
+                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">自動導播 (DIRECTOR)</span>
+                                <span className="text-[10px] text-slate-500 uppercase">鏡頭跟隨與運鏡</span>
                             </div>
                         </button>
 
                         <button onClick={() => { setShowZoneModal(true); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-orange-400 hover:bg-black/60 hover:border-orange-500/30 transition-all group min-w-[180px]">
                             <span className="text-2xl group-hover:scale-110 transition-transform filter drop-shadow-md">🗺️</span>
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-orange-300">BATTLE ROYALE</span>
-                                <span className="text-[10px] text-slate-500 uppercase">大逃殺模式設定</span>
+                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-orange-300">大逃殺模式 (ROYALE)</span>
+                                <span className="text-[10px] text-slate-500 uppercase">安全區與塌陷設定</span>
                             </div>
                         </button>
 
@@ -184,8 +184,8 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                             <button onClick={() => { onToggleMonitor(); setIsOpen(false); }} className={`liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 transition-all group min-w-[180px] ${monitorEnabled ? 'text-cyan-400 border-cyan-500/30' : 'text-slate-300'}`}>
                                 <Icons.Expand className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                                 <div className="flex flex-col items-start">
-                                    <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">MONITOR HUD</span>
-                                    <span className="text-[10px] text-slate-500 uppercase">{monitorEnabled ? '關閉監測面板' : '開啟監測面板'}</span>
+                                    <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">導播監測儀 (MONITOR)</span>
+                                    <span className="text-[10px] text-slate-500 uppercase">{monitorEnabled ? '關閉戰況監測儀' : '開啟戰況監測儀'}</span>
                                 </div>
                             </button>
                         )}
@@ -193,24 +193,24 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
                         <button onClick={() => { onToggleLogs(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-cyan-400 hover:bg-black/60 hover:border-cyan-500/30 transition-all group min-w-[180px]">
                             <Icons.Log className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">BATTLE LOGS</span>
-                                <span className="text-[10px] text-slate-500 uppercase">戰鬥記錄數據</span>
+                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-cyan-300">戰鬥日誌 (LOGS)</span>
+                                <span className="text-[10px] text-slate-500 uppercase">事件與傷害明細</span>
                             </div>
                         </button>
 
                         <button onClick={() => { onToggleDB(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-amber-400 hover:bg-black/60 hover:border-amber-500/30 transition-all group min-w-[180px]">
                             <Icons.Database className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-amber-300">DATABASE</span>
-                                <span className="text-[10px] text-slate-500 uppercase">技能數據圖鑑</span>
+                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-amber-300">技能資料庫 (DATABASE)</span>
+                                <span className="text-[10px] text-slate-500 uppercase">全技能參數圖鑑</span>
                             </div>
                         </button>
 
                         <button onClick={() => { onDownloadSpec(); setIsOpen(false); }} className="liquid-card px-5 py-3 !rounded-2xl flex items-center gap-4 text-slate-300 hover:text-emerald-400 hover:bg-black/60 hover:border-emerald-500/30 transition-all group min-w-[180px]">
                             <Icons.Save className="w-6 h-6 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
-                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-emerald-300">EXPORT SPEC</span>
-                                <span className="text-[10px] text-slate-500 uppercase">導出設計規格文檔</span>
+                                <span className="text-xs font-bold tracking-widest text-white group-hover:text-emerald-300">匯出設計規格 (SPEC)</span>
+                                <span className="text-[10px] text-slate-500 uppercase">下載 Markdown 規格書</span>
                             </div>
                         </button>
                     </div>

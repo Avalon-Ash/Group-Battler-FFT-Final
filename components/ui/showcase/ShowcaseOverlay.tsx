@@ -86,7 +86,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-[10px] text-cyan-400 font-mono tracking-widest mb-4 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse box-shadow-[0_0_5px_cyan]"></span>
-                            <span>SYSTEM_READY</span>
+                            <span>系統就緒 (READY)</span>
                         </div>
 
                         <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-500 font-mono tracking-tighter drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>
@@ -94,7 +94,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                         </h1>
                         
                         <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
-                            SSOT Kernel Active
+                            SSOT 運算核心已啟動
                         </div>
                     </div>
 
@@ -104,7 +104,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                             className={`group liquid-btn-primary rounded-2xl overflow-hidden transition-all duration-300 ${isWideBar ? 'px-16 py-6 w-full md:w-auto text-xl' : 'w-full px-12 py-5 text-lg'} shadow-[0_0_30px_rgba(6,182,212,0.2)]`}
                         >
                             <span className="relative flex items-center justify-center gap-4 z-10">
-                                <span>INITIALIZE</span>
+                                <span>啟動戰術模擬</span>
                                 <Icons.Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
                             </span>
                         </button>
@@ -116,7 +116,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 <button 
                     onClick={() => setShowSettings(!showSettings)}
                     className={`liquid-icon-btn hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-white/10 ${showSettings ? 'text-cyan-400 border-cyan-500/50 bg-white/10' : 'text-slate-400'}`}
-                    title="特效設定"
+                    title="展示與特效設定"
                 >
                     <Icons.Settings className={`w-5 h-5 ${showSettings ? 'animate-spin-slow' : ''}`} />
                 </button>

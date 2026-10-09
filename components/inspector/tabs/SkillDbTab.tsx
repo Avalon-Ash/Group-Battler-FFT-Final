@@ -39,9 +39,9 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
             {/* Header / Controls */}
             <div className="p-5 border-b border-white/5 shrink-0 space-y-4">
                 <div className="flex justify-between items-end">
-                    <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">Neural Archive</div>
+                    <div className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em]">技能資料庫 (ARCHIVE)</div>
                     <div className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-1 rounded-md border border-cyan-500/20">
-                        {filteredSkills.length} ENTRIES
+                        {filteredSkills.length} 項技能
                     </div>
                 </div>
 
@@ -54,7 +54,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                 onClick={() => setDbTypeTab(t as any)} 
                                 className={`flex-1 py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
-                                {t === 'ALL' ? 'ALL' : TAG_MAP[t].label}
+                                {t === 'ALL' ? '全部' : TAG_MAP[t].label}
                             </button>
                         ))}
                     </div>
@@ -66,8 +66,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                             value={dbRoleFilter}
                             onChange={(e) => setDbRoleFilter(e.target.value as any)}
                         >
-                            <option value="ALL">FILTER CLASS: ALL</option>
-                            {Object.values(Role).map(r => <option key={r} value={r}>FILTER: {ROLE_MAP[r].label}</option>)}
+                            <option value="ALL">職業篩選: 全部職業</option>
+                            {Object.values(Role).map(r => <option key={r} value={r}>職業: {ROLE_MAP[r].label}</option>)}
                         </select>
                         <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[10px]">▼</div>
                     </div>
