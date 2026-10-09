@@ -128,6 +128,20 @@ export const TEXT_PAINTER_COLORS = {
     GRAD_TRANSPARENT: 'rgba(255, 255, 255, 0)'
 };
 
+// SSOT: Tactical and Debug Overlay Colors
+export const TACTICAL_COLORS = {
+    TRAJECTORY: '#ffffff',
+    TARGET_ENEMY: '#ef4444',
+    TARGET_ALLY: '#4ade80',
+    TARGET_FADE: 'rgba(0, 0, 0, 0)',
+    DIRECTOR_FRAME: 'rgba(6, 182, 212, 0.4)',
+    DIRECTOR_REC: '#ef4444',
+    DIRECTOR_TEXT: 'rgba(255, 255, 255, 0.8)',
+    DEBUG_FPS: 'rgba(255, 255, 255, 0.5)',
+    SUDDEN_DEATH_ALERT: 'rgba(239, 68, 68, 0.8)',
+    SUDDEN_DEATH_SUB: 'rgba(255, 255, 255, 0.6)'
+};
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {

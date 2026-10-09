@@ -1,6 +1,7 @@
 import { Agent, GameEngine } from "../game";
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
+import { TACTICAL_COLORS } from "../../constants";
 
 export interface RenderCamera {
     x: number;
@@ -34,7 +35,7 @@ export class TacticalRenderer {
                     const h = grid.getTerrainHeight(hex.q, hex.r, engine);
                     ctx.lineTo(p.x, p.y - h - 30);
                 });
-                ctx.strokeStyle = '#fff';
+                ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY;
                 ctx.lineWidth = 2;
                 ctx.setLineDash([5, 5]); 
                 ctx.globalAlpha = 0.6;
@@ -48,8 +49,8 @@ export class TacticalRenderer {
                 ctx.translate(dP.x, dP.y - dH);
                 ctx.scale(1, 0.6);
                 ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); 
-                ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.3; ctx.fill();
-                ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.8; ctx.lineWidth=2; ctx.stroke();
+                ctx.fillStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = 0.3; ctx.fill();
+                ctx.strokeStyle = TACTICAL_COLORS.TRAJECTORY; ctx.globalAlpha = 0.8; ctx.lineWidth=2; ctx.stroke();
                 ctx.restore();
             }
             if (highlight.target && highlight.target.hp > 0) {
@@ -61,8 +62,8 @@ export class TacticalRenderer {
                 if (Number.isFinite(startPx) && Number.isFinite(startPy) && Number.isFinite(endPx) && Number.isFinite(endPy)) {
                     const grad = ctx.createLinearGradient(startPx, startPy, endPx, endPy);
                     const isEnemy = highlight.team !== t.team;
-                    const color = isEnemy ? '#ef4444' : '#4ade80';
-                    grad.addColorStop(0, 'rgba(0,0,0,0)'); 
+                    const color = isEnemy ? TACTICAL_COLORS.TARGET_ENEMY : TACTICAL_COLORS.TARGET_ALLY;
+                    grad.addColorStop(0, TACTICAL_COLORS.TARGET_FADE); 
                     grad.addColorStop(0.2, color);
                     grad.addColorStop(1, color);
                     ctx.beginPath();
@@ -91,7 +92,7 @@ export class TacticalRenderer {
         const pad = 40;
         const cornerSize = 25;
         
-        ctx.strokeStyle = 'rgba(6, 182, 212, 0.4)';
+        ctx.strokeStyle = TACTICAL_COLORS.DIRECTOR_FRAME;
         ctx.lineWidth = 1.5;
 
         // Top Left
@@ -124,13 +125,13 @@ export class TacticalRenderer {
 
         const blink = Math.floor(globalTime * 2) % 2 === 0;
         if (blink) {
-            ctx.fillStyle = '#ef4444';
+            ctx.fillStyle = TACTICAL_COLORS.DIRECTOR_REC;
             ctx.beginPath();
             ctx.arc(pad + 15, pad + 15, 5, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.fillStyle = TACTICAL_COLORS.DIRECTOR_TEXT;
         ctx.font = 'bold 10px monospace';
         ctx.textAlign = 'left';
         ctx.fillText('DIRECTOR_CAM_FEED', pad + 25, pad + 18);
@@ -142,7 +143,7 @@ export class TacticalRenderer {
     }
 
     public drawDebug(ctx: CanvasRenderingContext2D, fps: number, engine: GameEngine): void {
-        ctx.fillStyle = 'rgba(255,255,255,0.5)'; 
+        ctx.fillStyle = TACTICAL_COLORS.DEBUG_FPS; 
         ctx.font = '10px monospace';
         ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${fps}`, 10, 20);
@@ -151,12 +152,12 @@ export class TacticalRenderer {
         if (engine.battleTime > 60) {
             const blink = Math.floor(performance.now() / 500) % 2 === 0;
             if (blink) {
-                ctx.fillStyle = 'rgba(239, 68, 68, 0.8)'; // red-500
+                ctx.fillStyle = TACTICAL_COLORS.SUDDEN_DEATH_ALERT; // red-500
                 ctx.font = 'bold 14px monospace';
                 ctx.textAlign = 'center';
                 ctx.fillText('⚠️ SUDDEN DEATH ⚠️', ctx.canvas.width / 2, 30);
                 ctx.font = '10px monospace';
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fillStyle = TACTICAL_COLORS.SUDDEN_DEATH_SUB;
                 ctx.fillText('DAMAGE UP / HEALING DOWN', ctx.canvas.width / 2, 45);
             }
         }
