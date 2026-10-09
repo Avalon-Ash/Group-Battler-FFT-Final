@@ -188,7 +188,17 @@ export const BarPainter = {
     },
 
     getHighestPriorityCC(agent: Agent) {
-        const CC_PRIORITY = [
+        type CCTimerKey = 'banishTimer' | 'stunTimer' | 'fearTimer' | 'tauntTimer' | 'silenceTimer' | 'rootTimer' | 'blindTimer';
+        type CCMaxKey = 'banishMax' | 'stunMax' | 'silenceMax';
+        interface CCPriorityItem {
+            key: CCTimerKey;
+            name: string;
+            priority: number;
+            color: string;
+            max: CCMaxKey | number;
+        }
+
+        const CC_PRIORITY: CCPriorityItem[] = [
             { key: 'banishTimer', name: '放逐', priority: 99, color: '#c084fc', max: 'banishMax' },
             { key: 'stunTimer', name: '暈眩', priority: 80, color: '#facc15', max: 'stunMax' },
             { key: 'fearTimer', name: '恐懼', priority: 70, color: '#a855f7', max: 5 }, // Fear doesn't have a max recorded, assume 5s or just full bar
@@ -198,15 +208,15 @@ export const BarPainter = {
             { key: 'blindTimer', name: '致盲', priority: 40, color: '#cbd5e1', max: 5 },
         ];
 
-        let best = null;
+        let best: (CCPriorityItem & { time: number; maxTime: number }) | null = null;
         let maxP = -1;
 
         for (const cc of CC_PRIORITY) {
-            const time = (agent as any)[cc.key] || 0;
+            const time = agent[cc.key] || 0;
             if (time > 0 && cc.priority > maxP) {
                 maxP = cc.priority;
                 const mKey = cc.max;
-                const maxTime = typeof mKey === 'string' ? ((agent as any)[mKey] || time) : mKey;
+                const maxTime = typeof mKey === 'string' ? (agent[mKey] || time) : mKey;
                 best = { ...cc, time, maxTime };
             }
         }
