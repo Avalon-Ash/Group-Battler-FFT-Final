@@ -319,7 +319,7 @@ export const BTActions: Record<string, BTActionFn> = {
             } else {
                 // 備援：無路徑時的鄰格評分 (Two-pass to prioritize safety)
                 const neighbors = HexUtils.neighbors(a);
-                let bestNeighbor: any = null;
+                let bestNeighbor: Hex | null = null;
                 let lowestDanger = Infinity;
 
                 for (let pass = 0; pass < 2; pass++) {
