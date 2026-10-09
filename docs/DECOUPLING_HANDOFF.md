@@ -185,7 +185,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T3.1 | ☑ | 2026-10-09 | 完成 MovementSystem (GROUND_IMPACT) 與 SkillExecutor (HIT_FX) 的 VFX 呼叫改走事件通道，移除直接 engine.vfx.playEffect 呼叫，分 2 次 commit，0 lint errors |
 | T3.2 | ☑ | 2026-10-09 | 完成 agentManager.ts:108-119 透過 AGENT_RESET 匯流排事件清理長效粒子，以及 MapGenerator.ts 移除 grid.reset() 改走 ENV_UPDATE 訂閱，分 2 次 commit，0 lint errors |
 | T3.3 | ☑ | 2026-10-09 | 完成 pushEvent 移除 forceFocus 副作用、DirectorSystem 改為自主訂閱 bus 的 KILL/CAST_START 事件、game.ts 頂部建立雙通道規範，分 2 次 commit，0 lint errors |
-| T4.1 | ☐ | | |
+| T4.1 | ☑ | 2026-10-09 | 完成 breakCast, handleDeadState, registerHazard, getImpactArea 窄介面型別 (Pick<...>) 收斂，分 4 次 commit (T4.1-1 ~ T4.1-4)，0 lint errors |
 | T4.2 | ☐ | | ✅ 使用者已於 2026-10-09 同意執行；但仍須先寫 sequence 分析，且**不得改變同 tick 執行順序**，無法保證時退回 T4.1 的窄介面做法並記錄 |
 | T4.3 | ☐ | | |
 | T5.1 | ☐ | | |
