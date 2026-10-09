@@ -196,6 +196,19 @@ export interface GameEvent {
     absorbed?: number;
 }
 
+export interface EventMap {
+    GAME_RESET: Record<string, never> | void;
+    GAME_CLEAR: Record<string, never> | void;
+    ENV_UPDATE: Record<string, never> | void;
+    GAME_START: Record<string, never> | void;
+    CAMERA_SHAKE: { intensity: number };
+    CAMERA_MOVE: { x: number; y: number; zoom: number };
+    GAME_OVER: { winner: Team | null };
+    TILE_COLLAPSED: { q: number; r: number; worldX?: number; worldY?: number };
+    ZONE_SHRUNK: { radius: number };
+    LAST_STAND_TRIGGERED: { q: number; r: number };
+}
+
 
 export interface SceneTheme {
     id: string;
