@@ -72,6 +72,50 @@ export const HUD_LAYOUT = {
     STATUS_TEXT_OFFSET_X: -45
 };
 
+// SSOT: HUD and Bar Visual Colors
+export const HUD_COLORS = {
+    CONTAINER_BG: 'rgba(2, 6, 23, 0.85)',
+    CONTAINER_BORDER: 'rgba(255, 255, 255, 0.2)',
+    SLOT_BG: '#1e293b',
+    HP: {
+        [Team.BLUE]: {
+            top: '#22d3ee',
+            bottom: '#0284c7',
+            glow: 'rgba(6, 182, 212, 0.5)',
+            border: '#3b82f6'
+        },
+        [Team.RED]: {
+            top: '#f87171',
+            bottom: '#dc2626',
+            glow: 'rgba(220, 38, 38, 0.5)',
+            border: '#ef4444'
+        }
+    },
+    SHIELD: {
+        top: '#ffffff',
+        bottom: '#cbd5e1',
+        glow: '#ffffff',
+        seam: 'rgba(0, 0, 0, 0.5)',
+        outline: '#ffffff'
+    },
+    MP: {
+        top: '#a78bfa',
+        bottom: '#7c3aed',
+        glow: 'rgba(139, 92, 246, 0.4)'
+    },
+    CAST: {
+        bg: 'rgba(0, 0, 0, 0.5)',
+        border: 'rgba(255, 255, 255, 0.3)',
+        defaultColor: '#ffffff'
+    },
+    CC_BAR: {
+        bg: 'rgba(0, 0, 0, 0.6)',
+        border: 'rgba(255, 255, 255, 0.2)',
+        text: '#ffffff'
+    },
+    GLOSS_HIGHLIGHT: 'rgba(255, 255, 255, 0.3)'
+};
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {

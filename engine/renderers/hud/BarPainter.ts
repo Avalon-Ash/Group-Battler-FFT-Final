@@ -1,6 +1,8 @@
 
 import { Agent } from "../../game";
 import { Team } from "../../../types";
+import { HUD_COLORS } from "../../../constants";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 const BAR_WIDTH = 44;
 const BAR_HEIGHT = 6;
@@ -30,13 +32,13 @@ export const BarPainter = {
         else ctx.rect(startX, startY, totalW, totalH);
         
         // Dark Glass BG
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.85)'; 
+        ctx.fillStyle = HUD_COLORS.CONTAINER_BG; 
         ctx.fill();
         
         // Team-colored Border Highlight
-        const teamBorder = agent.team === Team.BLUE ? '#3b82f6' : '#ef4444';
+        const teamBorder = HUD_COLORS.HP[agent.team].border;
         ctx.lineWidth = 1;
-        ctx.strokeStyle = isSelected ? teamBorder : 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeStyle = isSelected ? teamBorder : HUD_COLORS.CONTAINER_BORDER;
         ctx.stroke();
 
         if (isSelected) {
@@ -58,20 +60,13 @@ export const BarPainter = {
         
         let hpTop, hpBot, hpGlow;
 
-        if (agent.team === Team.BLUE) {
-            // IMPERIAL CYAN/BLUE
-            hpTop = '#22d3ee';
-            hpBot = '#0284c7';
-            hpGlow = 'rgba(6, 182, 212, 0.5)';
-        } else {
-            // COVENANT RED/ORANGE
-            hpTop = '#f87171';
-            hpBot = '#dc2626';
-            hpGlow = 'rgba(220, 38, 38, 0.5)';
-        }
+        const teamHp = HUD_COLORS.HP[agent.team];
+        hpTop = teamHp.top;
+        hpBot = teamHp.bottom;
+        hpGlow = teamHp.glow;
 
         // 1. Draw Empty Slot Background (Dark Grey)
-        ctx.fillStyle = '#1e293b';
+        ctx.fillStyle = HUD_COLORS.SLOT_BG;
         ctx.fillRect(barX, barY, contentW, hpHeight);
 
         // 2. Draw Base HP
@@ -90,8 +85,8 @@ export const BarPainter = {
             
             if (shieldW > 0.5) {
                 // Shield Colors (White/Silver/Energy) - High Contrast
-                const shieldTop = '#ffffff';
-                const shieldBot = '#cbd5e1';
+                const shieldTop = HUD_COLORS.SHIELD.top;
+                const shieldBot = HUD_COLORS.SHIELD.bottom;
                 
                 ctx.save();
                 ctx.beginPath();
@@ -107,7 +102,7 @@ export const BarPainter = {
                     ctx.fillStyle = shieldTop;
                 }
                 
-                ctx.shadowColor = '#fff';
+                ctx.shadowColor = HUD_COLORS.SHIELD.glow;
                 ctx.shadowBlur = 5;
                 ctx.fill();
                 ctx.shadowBlur = 0;
@@ -116,13 +111,13 @@ export const BarPainter = {
                 ctx.beginPath();
                 ctx.moveTo(shieldStartX, barY);
                 ctx.lineTo(shieldStartX, barY + hpHeight);
-                ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+                ctx.strokeStyle = HUD_COLORS.SHIELD.seam;
                 ctx.lineWidth = 1;
                 ctx.stroke();
                 
                 // Over-shield indicator (White outline if shield is huge)
                 if (agent.shield > agent.maxHp * 0.5) {
-                    ctx.strokeStyle = '#fff';
+                    ctx.strokeStyle = HUD_COLORS.SHIELD.outline;
                     ctx.lineWidth = 1;
                     ctx.strokeRect(barX - 1, barY - 1, contentW + 2, hpHeight + 2);
                 }
@@ -135,10 +130,10 @@ export const BarPainter = {
             const mpPct = Math.max(0, agent.mp / agent.maxMp);
             const mpY = barY + hpHeight + gap;
             // Draw empty MP background
-            ctx.fillStyle = '#1e293b';
+            ctx.fillStyle = HUD_COLORS.SLOT_BG;
             ctx.fillRect(barX, mpY, contentW, mpHeight);
             
-            this.drawFluidBar(ctx, barX, mpY, contentW, mpHeight, mpPct, '#a78bfa', '#7c3aed', 'rgba(139, 92, 246, 0.4)');
+            this.drawFluidBar(ctx, barX, mpY, contentW, mpHeight, mpPct, HUD_COLORS.MP.top, HUD_COLORS.MP.bottom, HUD_COLORS.MP.glow);
         }
 
         if (agent.castingSkillIdx !== -1) {
@@ -146,16 +141,16 @@ export const BarPainter = {
             if (skill && skill.cast > 0 && skill.tag !== 'BASIC') {
                 const pct = Math.max(0, agent.castTimer / skill.cast);
                 const castBarY = startY + totalH + 2;
-                const castColor = skill.color || '#ffffff';
+                const castColor = skill.color || HUD_COLORS.CAST.defaultColor;
                 
                 // 背景
-                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillStyle = HUD_COLORS.CAST.bg;
                 ctx.fillRect(startX, castBarY, totalW, 4);
                 // 進度
                 ctx.fillStyle = castColor;
                 ctx.fillRect(startX, castBarY, totalW * pct, 4);
                 // 外框
-                ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                ctx.strokeStyle = HUD_COLORS.CAST.border;
                 ctx.lineWidth = 1;
                 ctx.strokeRect(startX, castBarY, totalW, 4);
             }
@@ -168,7 +163,7 @@ export const BarPainter = {
             const pct = Math.max(0, cc.time / cc.maxTime);
             
             // Container
-            ctx.fillStyle = 'rgba(0,0,0,0.6)';
+            ctx.fillStyle = HUD_COLORS.CC_BAR.bg;
             ctx.fillRect(startX, ccY, totalW, 6);
             
             // Bar
@@ -176,13 +171,13 @@ export const BarPainter = {
             ctx.fillRect(startX, ccY, totalW * pct, 6);
             
             // Text Label
-            ctx.fillStyle = '#fff';
+            ctx.fillStyle = HUD_COLORS.CC_BAR.text;
             ctx.font = 'bold 9px Arial';
             ctx.textAlign = 'center';
             ctx.fillText(cc.name, startX + totalW / 2, ccY - 2);
             
             // Border
-            ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+            ctx.strokeStyle = HUD_COLORS.CC_BAR.border;
             ctx.strokeRect(startX, ccY, totalW, 6);
         }
     },
@@ -199,13 +194,13 @@ export const BarPainter = {
         }
 
         const CC_PRIORITY: CCPriorityItem[] = [
-            { key: 'banishTimer', name: '放逐', priority: 99, color: '#c084fc', max: 'banishMax' },
-            { key: 'stunTimer', name: '暈眩', priority: 80, color: '#facc15', max: 'stunMax' },
-            { key: 'fearTimer', name: '恐懼', priority: 70, color: '#a855f7', max: 5 }, // Fear doesn't have a max recorded, assume 5s or just full bar
-            { key: 'tauntTimer', name: '嘲諷', priority: 65, color: '#ef4444', max: 5 },
-            { key: 'silenceTimer', name: '沉默', priority: 60, color: '#94a3b8', max: 'silenceMax' },
-            { key: 'rootTimer', name: '禁錮', priority: 50, color: '#fbbf24', max: 5 },
-            { key: 'blindTimer', name: '致盲', priority: 40, color: '#cbd5e1', max: 5 },
+            { key: 'banishTimer', name: STATUS_VISUALS.BANISH.label, priority: 99, color: STATUS_VISUALS.BANISH.primaryColor, max: 'banishMax' },
+            { key: 'stunTimer', name: STATUS_VISUALS.STUN.label, priority: 80, color: STATUS_VISUALS.STUN.primaryColor, max: 'stunMax' },
+            { key: 'fearTimer', name: STATUS_VISUALS.FEAR.label, priority: 70, color: STATUS_VISUALS.FEAR.primaryColor, max: 5 }, // Fear doesn't have a max recorded, assume 5s or just full bar
+            { key: 'tauntTimer', name: STATUS_VISUALS.TAUNT.label, priority: 65, color: STATUS_VISUALS.TAUNT.primaryColor, max: 5 },
+            { key: 'silenceTimer', name: STATUS_VISUALS.SILENCE.label, priority: 60, color: STATUS_VISUALS.SILENCE.primaryColor, max: 'silenceMax' },
+            { key: 'rootTimer', name: STATUS_VISUALS.ROOT.label, priority: 50, color: STATUS_VISUALS.ROOT.primaryColor, max: 5 },
+            { key: 'blindTimer', name: STATUS_VISUALS.BLIND.label, priority: 40, color: STATUS_VISUALS.BLIND.primaryColor, max: 5 },
         ];
 
         let best: (CCPriorityItem & { time: number; maxTime: number }) | null = null;
@@ -248,7 +243,7 @@ export const BarPainter = {
         ctx.shadowBlur = 0;
 
         // Gloss highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+        ctx.fillStyle = HUD_COLORS.GLOSS_HIGHLIGHT;
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh * 0.4, 1);
         else ctx.rect(bx, by, fillW, bh * 0.4);
