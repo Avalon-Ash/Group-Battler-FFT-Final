@@ -209,6 +209,8 @@ export interface EventMap {
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };
     AGENT_RESET: { agentId: string };
+    KILL: { killerId: string; victimId: string };
+    CAST_START: { sourceId: string; skill: Skill };
 }
 
 

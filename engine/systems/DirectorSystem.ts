@@ -37,6 +37,19 @@ export class DirectorSystem {
         // Keep enabled state as is
     }
 
+    public bind(engine: GameEngine) {
+        engine.bus.on('KILL', (data) => {
+            if (data.killerId) {
+                this.forceFocus(engine, data.killerId, 2.5);
+            }
+        });
+        engine.bus.on('CAST_START', (data) => {
+            if (data.skill?.tag === 'ULT' && data.sourceId) {
+                this.forceFocus(engine, data.sourceId, 3.5);
+            }
+        });
+    }
+
     public forceFocus(engine: GameEngine, id: string, duration: number = 2.0) {
         const ds = engine.state.director;
         ds.targetId = id;

@@ -1,12 +1,22 @@
 
-// ╔══════════════════════════════════════════════════════════╗
-// ║  GameEngine — 引擎主控制器（核心入口）                   ║
-// ║  職責：tick 主迴圈、系統初始化、Agent 生命週期派發       ║
-// ║  上游：main.ts / UI 層呼叫                               ║
-// ║  下游：AgentManager / VFXSystem / ZoneSystem / Renderer  ║
-// ║  tick 順序：ZoneSystem → AgentManager → VFX → Renderer   ║
-// ║  [ARCH] engine.vfx 為 getter，指向 engine.renderer.vfx   ║
-// ╚══════════════════════════════════════════════════════════╝
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  GameEngine — 引擎主控制器（核心入口）                           ║
+// ║  職責：tick 主迴圈、系統初始化、Agent 生命週期派發               ║
+// ║  上游：main.ts / UI 層呼叫                                       ║
+// ║  下游：AgentManager / VFXSystem / ZoneSystem / Renderer          ║
+// ║  tick 順序：ZoneSystem → AgentManager → VFX → Renderer           ║
+// ║  [ARCH] engine.vfx 為 getter，指向 engine.renderer.vfx           ║
+// ║                                                                  ║
+// ║  [事件通道規範 SSOT Architecture Contract]                        ║
+// ║  1. 視覺事件 (Visual Events) → engine.events[] / pushEvent:      ║
+// ║     - 池化生命週期管理 (GameEventPool)，降低 GC 壓力             ║
+// ║     - 在 tick 結尾批次發送給 VisualSystem (HUD, VFX, Sequence)   ║
+// ║     - 嚴禁包含任何邏輯/系統間副作用                              ║
+// ║  2. 系統間通知 (System-to-System) → engine.bus (EventBus):        ║
+// ║     - 完全型別安全 (EventMap master contract)                     ║
+// ║     - 系統間解藕通訊 (Director, Announcer, Renderer, Zones)       ║
+// ║     - 發布/訂閱模型，嚴禁系統間直接跨越 facade 呼叫私有方法       ║
+// ╚══════════════════════════════════════════════════════════════════╝
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
@@ -118,6 +128,7 @@ export class GameEngine implements SpatialProvider {
 
     constructor() {
         validateAllVFXBindings(this.skillDB);
+        this.director.bind(this);
         this.map.randomizeEnvironment(this);
     }
 
@@ -182,13 +193,12 @@ export class GameEngine implements SpatialProvider {
         this.map.updateAgentPosition(agent, newQ, newR, this);
     }
 
+    /**
+     * 視覺事件管線：將事件放入池化佇列，於 tick 結尾批次發送給 VisualSystem。
+     * 系統間通知請走 this.bus.emit()。
+     */
     public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: any = {}) {
         const evt = EventPool.get(type, pos, opts);
-        if (type === 'KILL' && opts.sourceId) {
-            this.director.forceFocus(this, opts.sourceId, 2.5);
-        } else if (type === 'CAST_START' && opts.skill?.tag === 'ULT' && opts.sourceId) {
-            this.director.forceFocus(this, opts.sourceId, 3.5); 
-        }
         this.events.push(evt);
     }
 
