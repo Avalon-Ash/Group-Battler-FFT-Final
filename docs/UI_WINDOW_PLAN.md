@@ -205,7 +205,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U4 | ☐ | |
 | E1 | ☑ | 2026-10-10 完成：UICommand 聯集、EventMap['UI_COMMAND']、types/UIViewModel.ts（Agent/Director/Zone/Camera/Log View） |
 | E2 / E2b | ☑ | 2026-10-10 完成：UICommandSystem 單元測試 11/11 全綠（越界 clamp、忽略無效、非現有 agent 防護、未知命令安全） |
-| E3 / E3b | ⋯ | 2026-10-10 E3 完成：selectors（純唯讀 ViewModel、參考穩定性）、useEngineView（共用 ticker、訂閱為0即停）、useEngineCommands |
+| E3 / E3b | ☑ | 2026-10-10 完成：selectors 與 EngineViewTicker 單元測試 11/11 全綠（參考穩定性、訂閱計數與自動啟停） |
 | E9 | ☐ | 棘輪守門，越早越好 |
 | E4 | ☐ | |
 | U5 | ☐ | |
