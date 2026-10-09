@@ -144,7 +144,7 @@ export class ProjectileSystem {
     if (!target) return;
 
     const targetId =
-      (target as any).id || `ground-${(target as any).q},${(target as any).r}`;
+      target instanceof Agent ? target.id : `ground-${target.q},${target.r}`;
     
     let targetQ = 0;
     let targetR = 0;
