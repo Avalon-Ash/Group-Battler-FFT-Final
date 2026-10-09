@@ -188,7 +188,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T4.1 | ☑ | 2026-10-09 | 完成 breakCast, handleDeadState, registerHazard, getImpactArea 窄介面型別 (Pick<...>) 收斂，分 4 次 commit (T4.1-1 ~ T4.1-4)，0 lint errors |
 | T4.2 | ☑ | 2026-10-09 | 完成同 tick sequence 分析：handleDeadState 須於致命傷當下立即凍結物理與死亡標記，轉非同步 bus 會破壞同 tick 攻擊與物理判斷；採用 T4.1 DeadStateContext 窄介面維持同 tick 嚴格順序與零副作用 |
 | T4.3 | ☑ | 2026-10-09 | 完成 HP 寫入點行為差異報告與收斂：確立地形深淵 (hp=0) 之例外條款、環境墜落傷害/地圖危害/DoT-HoT 之傷害公式隔離與顏色 SSOT，移除 HazardSystem as any，0 lint errors |
-| T5.1 | ☐ | | |
+| T5.1 | ☑ | 2026-10-09 | 完成 Agent 實體瘦身：移除 UNIT_DB 依賴，數值套用與 AI 間隔 jitter 收斂至 AgentManager.applyRoleStats()，維持隨機序列嚴格等同，分 2 次 commit (T5.1-1, T5.1-2)，0 lint errors |
 
 ---
 
