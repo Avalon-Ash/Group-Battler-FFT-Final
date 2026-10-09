@@ -197,7 +197,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 
 | 任務 | 狀態 | 備註 |
 | :-- | :-- | :-- |
-| U0a | ☐ | CDN 仍在 |
+| U0a | ☑ | 2026-10-10 tailwindcss@^3.4+postcss+autoprefixer 安裝完成，dist 不再殘留 @apply/@tailwind，CDN 仍保留 |
 | U0b | ☐ | 需回報視覺差異並等使用者確認 |
 | U1 / U1b / U1c | ☐ | |
 | U2 | ☐ | |
