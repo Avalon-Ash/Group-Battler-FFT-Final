@@ -197,9 +197,6 @@ export class MovementSystem {
                  // 1. One-time Ground EMP Shockwave on arrival
                  if (!a.hasLandedLastStand) {
                      a.hasLandedLastStand = true;
-                     const finalH = engine.map.getTerrainHeight(targetHex.q, targetHex.r);
-                     engine.vfx.playEffect('FX_LAST_STAND_LOCKED', targetPx.x, targetPx.y, 0, '#c084fc', finalH);
-                     
                      engine.events.push({
                          type: 'GROUND_IMPACT',
                          pos: { x: targetPx.x, y: targetPx.y, z: 0 },

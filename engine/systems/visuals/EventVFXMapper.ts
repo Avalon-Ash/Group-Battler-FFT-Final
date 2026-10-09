@@ -43,6 +43,7 @@ export class EventVFXMapper {
             case 'HEAL':
             case 'PROJECTILE_HIT': 
             case 'IMPACT_AOE':
+            case 'HIT_FX':
                 CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
                 break;
 
@@ -64,6 +65,12 @@ export class EventVFXMapper {
             case 'HAZARD_SPAWN':
                 if (event.text) { // We stored VFX ID in 'text' field
                     vfx.playEffect(event.text, event.pos.x, event.pos.y, groundZ, undefined, undefined, undefined, hexKey);
+                }
+                break;
+
+            case 'GROUND_IMPACT':
+                if (event.text === 'LOCKED') {
+                    vfx.playEffect('FX_LAST_STAND_LOCKED', event.pos.x, event.pos.y, 0, event.color || '#c084fc', groundZ);
                 }
                 break;
         }
