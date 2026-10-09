@@ -47,6 +47,7 @@ import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
 import { AnimationSystem } from "./systems/AnimationSystem";
 import { validateAllVFXBindings } from "./systems/VFXValidator";
+import { UICommandSystem } from "./systems/ui/UICommandSystem";
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -126,6 +127,7 @@ export class GameEngine implements SpatialProvider {
     public controls: ControlSystem = new ControlSystem();
     public animation: AnimationSystem = new AnimationSystem();
     public timeSystem: TimeSystem = new TimeSystem();
+    public uiCommands: UICommandSystem = new UICommandSystem(this);
 
     constructor() {
         validateAllVFXBindings(this.skillDB);

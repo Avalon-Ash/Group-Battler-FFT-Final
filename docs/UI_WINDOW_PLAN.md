@@ -204,7 +204,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U3 | ☐ | 試點；桌機+手機實測 |
 | U4 | ☐ | |
 | E1 | ☑ | 2026-10-10 完成：UICommand 聯集、EventMap['UI_COMMAND']、types/UIViewModel.ts（Agent/Director/Zone/Camera/Log View） |
-| E2 / E2b | ☐ | |
+| E2 / E2b | ⋯ | 2026-10-10 E2 完成：UICommandSystem 落地、game.ts 註冊、renderer 訂閱 camera 命令、AGENTS.md 說明已補 |
 | E3 / E3b | ☐ | |
 | E9 | ☐ | 棘輪守門，越早越好 |
 | E4 | ☐ | |

@@ -34,6 +34,7 @@
 5. **Mutation Gate**:
    - Combat and status state changes must pass through designated System pipelines.
    - *Deliberate exception*: Map ring-out / void fall (shrink collapse) writes directly to `hp = 0` and `banished` as a terrain outcome.
+   - UI 對引擎的唯一寫入閘門為 `UICommandSystem`（透過 `UI_COMMAND` 事件）。
 
 ---
 
