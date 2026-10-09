@@ -3,6 +3,7 @@ import { Agent, GameEngine } from "../../game";
 import { Skill, Hex } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 export const CCManager = {
     
@@ -55,8 +56,8 @@ export const CCManager = {
             engine.events.push({ 
                 type: 'CC_APPLIED', 
                 pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
-                text: "免疫", 
-                color: "#9ca3af",
+                text: STATUS_VISUALS.IMMUNE.label, 
+                color: STATUS_VISUALS.IMMUNE.primaryColor,
                 sourceId: source.id,
                 targetId: target.id
             });
@@ -64,7 +65,7 @@ export const CCManager = {
         }
 
         let statusText = "";
-        let statusColor = "#fff";
+        let statusColor = STATUS_VISUALS.DEFAULT.primaryColor;
         let noDurationLog = false;
 
         switch (type) {
@@ -75,7 +76,8 @@ export const CCManager = {
                 }
                 target.isMoving = false;
                 // SSOT: AnimState.STUN is derived from stunTimer
-                statusText = "暈眩"; statusColor = "#facc15";
+                statusText = STATUS_VISUALS.STUN.label;
+                statusColor = STATUS_VISUALS.STUN.primaryColor;
                 
                 if (skill.element === 'ICE') target.visualStatus = 'FROZEN';
                 break;
@@ -85,7 +87,8 @@ export const CCManager = {
                     target.silenceTimer = effectiveDuration;
                     target.silenceMax = effectiveDuration;
                 }
-                statusText = "沉默"; statusColor = "#94a3b8";
+                statusText = STATUS_VISUALS.SILENCE.label;
+                statusColor = STATUS_VISUALS.SILENCE.primaryColor;
                 break;
 
             case 'BANISH':
@@ -97,7 +100,8 @@ export const CCManager = {
                 target.isMoving = false;
                 // SSOT: AnimState.STUN is derived from banished state
                 
-                statusText = "放逐"; statusColor = "#c084fc";
+                statusText = STATUS_VISUALS.BANISH.label;
+                statusColor = STATUS_VISUALS.BANISH.primaryColor;
                 
                 if (skill.specialVisualStatus === 'STASIS') {
                     // STASIS 使用獨立 timer，不共用 banishTimer 語意
@@ -112,12 +116,14 @@ export const CCManager = {
             case 'ROOT':
                 if (effectiveDuration > target.rootTimer) target.rootTimer = effectiveDuration;
                 target.isMoving = false;
-                statusText = "禁錮"; statusColor = "#fbbf24";
+                statusText = STATUS_VISUALS.ROOT.label;
+                statusColor = STATUS_VISUALS.ROOT.primaryColor;
                 break;
 
             case 'FEAR':
                 if (effectiveDuration > target.fearTimer) target.fearTimer = effectiveDuration;
-                statusText = "恐懼"; statusColor = "#a855f7";
+                statusText = STATUS_VISUALS.FEAR.label;
+                statusColor = STATUS_VISUALS.FEAR.primaryColor;
                 break;
 
             case 'TAUNT':
@@ -136,36 +142,42 @@ export const CCManager = {
                     // Force AI Decision next tick
                     target.forceAiUpdate = true;
                 }
-                statusText = "嘲諷"; statusColor = "#ef4444";
+                statusText = STATUS_VISUALS.TAUNT.label;
+                statusColor = STATUS_VISUALS.TAUNT.primaryColor;
                 break;
 
             case 'BLIND':
                 if (effectiveDuration > target.blindTimer) target.blindTimer = effectiveDuration;
-                statusText = "致盲"; statusColor = "#cbd5e1";
+                statusText = STATUS_VISUALS.BLIND.label;
+                statusColor = STATUS_VISUALS.BLIND.primaryColor;
                 break;
 
             case 'POLYMORPH':
                 if (effectiveDuration > target.polymorphTimer) target.polymorphTimer = effectiveDuration;
                 target.isMoving = false;
-                statusText = "變羊"; statusColor = "#fbcfe8";
+                statusText = STATUS_VISUALS.POLYMORPH.label;
+                statusColor = STATUS_VISUALS.POLYMORPH.primaryColor;
                 if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
                 break;
 
             case 'INVINCIBLE':
                 if (effectiveDuration > target.invincibleTimer) target.invincibleTimer = effectiveDuration;
-                statusText = "無敵"; statusColor = "#fde68a";
+                statusText = STATUS_VISUALS.INVINCIBLE.label;
+                statusColor = STATUS_VISUALS.INVINCIBLE.primaryColor;
                 if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
                 break;
 
             case 'VULNERABLE':
                 if (effectiveDuration > target.vulnerableTimer) target.vulnerableTimer = effectiveDuration;
-                statusText = "虛弱"; statusColor = "#ef4444";
+                statusText = STATUS_VISUALS.VULNERABLE.label;
+                statusColor = STATUS_VISUALS.VULNERABLE.primaryColor;
                 break;
 
             case 'SHIELD':
                 target.shield += amount;
                 target.maxShield = Math.max(target.maxShield, target.shield);
-                statusText = "護盾"; statusColor = "#bae6fd";
+                statusText = STATUS_VISUALS.SHIELD.label;
+                statusColor = STATUS_VISUALS.SHIELD.primaryColor;
                 noDurationLog = true;
                 break;
 
@@ -173,7 +185,9 @@ export const CCManager = {
             case 'PULL':
                 const result = this.calculateKnockback(target, force || 0, source, origin, type, engine);
                 if (result.applied) {
-                    statusText = type === 'PULL' ? "牽引" : "擊退";
+                    const visual = type === 'PULL' ? STATUS_VISUALS.PULL : STATUS_VISUALS.KNOCKBACK;
+                    statusText = visual.label;
+                    statusColor = visual.primaryColor;
                     // SSOT: Trigger hit flash to cause reaction
                     if (target.hp > 0) target.hitFlashTimer = 0.2;
                     target.physics.vz += PHYSICS.VISUAL_JUMP_KNOCKBACK; 
@@ -187,17 +201,20 @@ export const CCManager = {
                 target.dotTimer = effectiveDuration;
                 if (skill.element === 'FIRE') {
                     target.dotType = 'BURN';
-                    statusText = "燃燒"; statusColor = "#f97316";
+                    statusText = STATUS_VISUALS.BURN.label;
+                    statusColor = STATUS_VISUALS.BURN.primaryColor;
                 } else {
                     target.dotType = 'POISON';
-                    statusText = "中毒"; statusColor = "#10b981";
+                    statusText = STATUS_VISUALS.POISON.label;
+                    statusColor = STATUS_VISUALS.POISON.primaryColor;
                 }
                 break;
 
             case 'HOT':
                 target.hotVal = force || 10;
                 target.hotTimer = effectiveDuration;
-                statusText = "再生"; statusColor = "#86efac";
+                statusText = STATUS_VISUALS.REGEN.label;
+                statusColor = STATUS_VISUALS.REGEN.primaryColor;
                 break;
         }
 

@@ -72,17 +72,32 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
     },
     'POISON': {
         id: 'POISON', label: '中毒',
-        primaryColor: '#a3e635', secondaryColor: '#4d7c0f',
+        primaryColor: '#10b981', secondaryColor: '#4d7c0f',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
         particleEffect: 'FX_STATUS_POISON_LOOP', 
         particleInterval: 0.25
     },
     'BURN': {
         id: 'BURN', label: '燃燒',
-        primaryColor: '#f87171', secondaryColor: '#b91c1c',
+        primaryColor: '#f97316', secondaryColor: '#b91c1c',
         iconShape: 'HEX_RUNE', overheadType: 'NONE',
         particleEffect: 'FX_STATUS_BURN_LOOP', 
         particleInterval: 0.15
+    },
+    'IMMUNE': {
+        id: 'IMMUNE', label: '免疫',
+        primaryColor: '#9ca3af', secondaryColor: '#6b7280',
+        iconShape: 'HEX_SHIELD', overheadType: 'NONE'
+    },
+    'KNOCKBACK': {
+        id: 'KNOCKBACK', label: '擊退',
+        primaryColor: '#60a5fa', secondaryColor: '#2563eb',
+        iconShape: 'NONE', overheadType: 'NONE'
+    },
+    'PULL': {
+        id: 'PULL', label: '牽引',
+        primaryColor: '#c084fc', secondaryColor: '#7e22ce',
+        iconShape: 'NONE', overheadType: 'NONE'
     },
     'REGEN': {
         id: 'REGEN', label: '再生',
@@ -93,7 +108,7 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         particleInterval: 0.4
     },
     'POLYMORPH': {
-        id: 'POLYMORPH', label: '變形',
+        id: 'POLYMORPH', label: '變羊',
         primaryColor: '#fbcfe8', secondaryColor: '#ec4899',
         iconShape: 'NONE', overheadType: 'NONE',
         floorColor: '#d8b4fe', floorOpacity: 0.5,
