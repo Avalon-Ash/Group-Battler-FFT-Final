@@ -64,7 +64,7 @@ export class EffectSystem {
                         pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                         value: -Math.floor(damagePerSec), 
                         color: dotColor, 
-                        skill: { ccType: 'DOT', dotType: agent.dotType } as any,
+                        skill: { ccType: 'DOT', dotType: agent.dotType },
                         targetId: agent.id
                     });
                 }

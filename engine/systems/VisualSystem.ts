@@ -54,7 +54,7 @@ export class VisualSystem {
         events.forEach(event => {
             this.hudMapper.process(event, engine, hud, grid, camera);
             if (event.type === 'CAST_START' && event.skill) {
-                const sequence = SKILL_SEQUENCES[event.skill.id];
+                const sequence = event.skill.id ? SKILL_SEQUENCES[event.skill.id] : undefined;
                 if (sequence) {
                     const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
                     

@@ -190,7 +190,7 @@ export interface GameEvent {
     value?: number; 
     text?: string; 
     color?: string;
-    skill?: Skill;
+    skill?: Skill | (Partial<Skill> & { ccType: string; dotType?: string });
     sourceId?: string;
     targetId?: string;
     team?: Team;
