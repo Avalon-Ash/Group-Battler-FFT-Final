@@ -103,8 +103,8 @@ export class SequenceSystem {
                 p.size = (action.scale || 1.8) * 80;
                 p.type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
                 p.locked = false;
-                (p as any).pIsUlt = true; 
-                (p as any).ultSourceId = sourceId;
+                p.pIsUlt = true; 
+                p.ultSourceId = sourceId;
                 vfx.state.particles.push(p);
                 break;
         }

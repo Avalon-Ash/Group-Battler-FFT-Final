@@ -2,6 +2,7 @@
 import { Agent } from "../../game";
 import { Skill, Role } from "../../../types";
 import { COMBAT_PARAM } from "../../../constants";
+import { random } from "../../math/rng";
 
 export interface DamageResult {
     finalValue: number;     // Final HP delta (negative for damage, positive for heal)
@@ -81,7 +82,7 @@ export class DamageCalculator {
         // 0. Miss Logic (Blind)
         if (!isSupport && source.blindTimer > 0 && !isLastStand) {
             // 50% Chance to miss if blinded 
-            if (Math.random() < 0.5) {
+            if (random() < 0.5) {
                 result.isMiss = true;
                 return result; // Early exit on miss
             }
@@ -123,7 +124,7 @@ export class DamageCalculator {
         }
 
         // 3. Crit Logic
-        const isCrit = preRollCrit !== null ? preRollCrit : Math.random() < 0.1;
+        const isCrit = preRollCrit !== undefined ? preRollCrit : random() < 0.1;
         if (!isHeal && isCrit) {
             base *= 1.5;
             result.isCrit = true;

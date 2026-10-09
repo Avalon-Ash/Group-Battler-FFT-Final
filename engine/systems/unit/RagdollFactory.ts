@@ -8,13 +8,14 @@
 
 import { Agent } from "../../core/Agent";
 import { RagdollBone } from "../../types/ragdoll";
+import { AGENT_CONSTANTS } from "../../../constants";
 
 export class RagdollFactory {
     static createFromAgent(agent: Agent, impactX: number, impactY: number): RagdollBone[] {
         // 以 agent.px / agent.py / groundZ 為中心，建立 6 個骨骼的初始位置
         // 速度初始值：全部帶一個 impactX/Y 的縮放分量
         // 物理演算由 RagdollPhysics.update() 接管，此處僅建立初始快照
-        const baseColor = (agent as any).factionColor || '#ffffff';
+        const baseColor = AGENT_CONSTANTS.RAGDOLL_BONE_PLACEHOLDER_COLOR;
         const bones: RagdollBone[] = [
             { id: 'torso',  x: agent.px,       y: agent.py,       z: agent.physics.z + 20, vx: impactX * 0.5, vy: impactY * 0.5, vz: 150, angle: 0, angularVel: 0, color: baseColor, alpha: 1, radius: 10 },
             { id: 'head',   x: agent.px,       y: agent.py - 10,  z: agent.physics.z + 35, vx: impactX * 0.4, vy: impactY * 0.4, vz: 200, angle: 0, angularVel: 0, color: baseColor, alpha: 1, radius: 7  },

@@ -1,5 +1,5 @@
 
-import { OBSTACLE_STYLES, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
+import { OBSTACLE_STYLES, ObstacleStyle, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { HexGeometry } from "./utils/HexGeometry";
 import { MaterialPainter } from "./materials/MaterialPainter";
@@ -61,7 +61,7 @@ export const EnvironmentFactory = {
         ctx.restore();
     },
 
-    drawIsoWall(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+    drawIsoWall(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
         // Dynamic Height: Multiplier increased to 3.0 to keep walls feeling tall with small blocks
         const height = BLOCK_HEIGHT * ENV_SPRITE.WALL_HEIGHT_MULT; 
         const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_FULL; 
@@ -122,7 +122,7 @@ export const EnvironmentFactory = {
     },
 
     // New: Organic Rock Cluster
-    drawIsoRockCluster(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+    drawIsoRockCluster(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
         
         const drawRock = (x: number, y: number, r: number, h: number, seed: number) => {
             ctx.save();
@@ -208,7 +208,7 @@ export const EnvironmentFactory = {
         drawRock(10, 15, 12, 12, 4.3);
     },
 
-    drawIsoPillar(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+    drawIsoPillar(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
         // Dynamic Height: Increased to 4.5 to be imposing
         const height = BLOCK_HEIGHT * ENV_SPRITE.PILLAR_HEIGHT_MULT;
         const r = HEX_SIZE * ENV_SPRITE.HEX_RADIUS_PILLAR; // Thinner than tile
@@ -256,7 +256,7 @@ export const EnvironmentFactory = {
         ctx.restore();
     },
 
-    drawIsoTree(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout) {
+    drawIsoTree(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout) {
         const trunkW = 14;
         const trunkH = BLOCK_HEIGHT * 1.0;
         
@@ -311,7 +311,7 @@ export const EnvironmentFactory = {
         }
     },
 
-    drawIsoCrystal(ctx: CanvasRenderingContext2D, style: any, layout: HexLayout, alpha: number = 1.0) {
+    drawIsoCrystal(ctx: CanvasRenderingContext2D, style: ObstacleStyle, layout: HexLayout, alpha: number = 1.0) {
         // Boosted base height for crystals
         const baseH = BLOCK_HEIGHT * ENV_SPRITE.CRYSTAL_HEIGHT_MULT;
         

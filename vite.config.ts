@@ -8,13 +8,10 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 3000,
         host: '0.0.0.0',
-        allowedHosts: true,
+        // 僅在需要（如 AI Studio 預覽）時以 ALLOW_ALL_HOSTS=true 關閉 host 檢查，避免 DNS rebinding 風險
+        ...(env.ALLOW_ALL_HOSTS === 'true' ? { allowedHosts: true as const } : {}),
       },
       plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),

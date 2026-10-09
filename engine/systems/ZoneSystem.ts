@@ -164,7 +164,6 @@ export class ZoneSystem {
                                 { x: snapX, y: snapY },
                                 { 
                                     sourceId: victim.id,
-                                    pos: { x: snapX, y: snapY, z: snapZ },
                                     text: "RING_OUT"
                                 }
                             );

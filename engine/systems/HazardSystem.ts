@@ -6,10 +6,11 @@
 // ║  關聯：ZoneSystem（格子陷落時清除此系統資料）             ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { GameEngine } from "../game";
+import { GameEngine, Agent } from "../game";
 import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
 import { HexUtils } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
+import { applyDirectDamage } from "./combat/DirectDamage";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
 
@@ -93,20 +94,8 @@ export class HazardSystem {
         this.updateGravityPull(dt, engine);
     }
 
-    private applyHazardEffect(agent: any, hazard: SpatialHazard, engine: GameEngine) {
-        let dmg = hazard.power;
-        
-        // Shield Mitigation
-        let absorbed = 0;
-        if (agent.shield > 0) {
-            absorbed = Math.min(agent.shield, dmg);
-            agent.shield -= absorbed;
-            dmg -= absorbed;
-        }
-        
-        if (dmg > 0) {
-            agent.hp = Math.max(0, agent.hp - dmg);
-        }
+    private applyHazardEffect(agent: Agent, hazard: SpatialHazard, engine: GameEngine) {
+        const { absorbed, dealt: dmg } = applyDirectDamage(agent, hazard.power);
 
         if (absorbed > 0) {
             engine.events.push({ 

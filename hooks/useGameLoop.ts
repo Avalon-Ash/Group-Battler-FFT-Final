@@ -11,7 +11,7 @@ export const useGameLoop = (
     rendererRef: MutableRefObject<GameRenderer | null>,
     onDraw: (ctx: CanvasRenderingContext2D, fps: number) => void,
     onResize: (logicalWidth: number, logicalHeight: number) => void,
-    cameraRef?: any // 新增攝像機引用傳遞
+    cameraRef?: MutableRefObject<{ x: number; y: number; zoom: number }> // 新增攝像機引用傳遞
 ) => {
     const fpsRef = useRef(60);
     const frameRef = useRef<number>(0);

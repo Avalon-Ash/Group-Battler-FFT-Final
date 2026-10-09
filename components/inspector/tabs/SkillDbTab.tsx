@@ -4,13 +4,15 @@ import { Role, Skill, Team } from '../../../types';
 import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 
+type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT';
+
 interface SkillDbTabProps {
     db: Skill[];
     onUpdate: () => void;
 }
 
 export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
-    const [dbTypeTab, setDbTypeTab] = useState<'ALL' | 'BASIC' | 'ACTIVE' | 'ULT'>('ALL');
+    const [dbTypeTab, setDbTypeTab] = useState<DbTypeTab>('ALL');
     const [dbRoleFilter, setDbRoleFilter] = useState<Role | 'ALL'>('ALL');
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
 
@@ -20,15 +22,15 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
         return true;
     });
 
-    const updateSkill = (field: keyof Skill, value: any) => {
+    const updateSkill = (field: keyof Skill, value: string | number | undefined) => {
         const skill = db.find(s => s.id === selectedSkillId);
         if (skill) { 
             if (field === 'team') {
-                if (value === 'ANY') (skill as any)[field] = undefined;
-                else if (value === 'BLUE') (skill as any)[field] = Team.BLUE;
-                else if (value === 'RED') (skill as any)[field] = Team.RED;
+                if (value === 'ANY') Object.assign(skill, { team: undefined });
+                else if (value === 'BLUE') Object.assign(skill, { team: Team.BLUE });
+                else if (value === 'RED') Object.assign(skill, { team: Team.RED });
             } else {
-                (skill as any)[field] = value; 
+                Object.assign(skill, { [field]: value }); 
             }
             onUpdate(); 
         }
@@ -51,7 +53,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                         {['ALL', 'BASIC', 'ACTIVE', 'ULT'].map(t => (
                             <button 
                                 key={t}
-                                onClick={() => setDbTypeTab(t as any)} 
+                                onClick={() => setDbTypeTab(t as DbTypeTab)} 
                                 className={`flex-1 py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
                                 {t === 'ALL' ? '全部' : TAG_MAP[t].label}
@@ -64,7 +66,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                         <select 
                             className="liquid-input w-full h-10 text-xs appearance-none cursor-pointer uppercase font-bold tracking-wider !bg-black/40 hover:!border-white/20 transition-colors"
                             value={dbRoleFilter}
-                            onChange={(e) => setDbRoleFilter(e.target.value as any)}
+                            onChange={(e) => setDbRoleFilter(e.target.value as Role | 'ALL')}
                         >
                             <option value="ALL">職業篩選: 全部職業</option>
                             {Object.values(Role).map(r => <option key={r} value={r}>職業: {ROLE_MAP[r].label}</option>)}
@@ -113,8 +115,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                             
                                             <div className="grid grid-cols-2 gap-4">
                                                 {group.fields.map((field) => {
-                                                    const val = (skill as any)[field.key];
-                                                    let displayVal = val;
+                                                    const val: unknown = skill[field.key];
+                                                    let displayVal: string | number = typeof val === 'string' || typeof val === 'number' ? val : '';
                                                     
                                                     if (field.key === 'team') {
                                                         if (val === undefined) displayVal = 'ANY';
@@ -135,7 +137,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                     className="liquid-input w-full p-3 h-24 resize-none !rounded-xl leading-relaxed !bg-black/50"
                                                                     value={displayVal}
                                                                     // Fix: Cast key to keyof Skill
-                                                                    onChange={e => updateSkill(field.key as keyof Skill, e.target.value)}
+                                                                    onChange={e => updateSkill(field.key, e.target.value)}
                                                                 />
                                                             ) : field.type === 'select' ? (
                                                                 <div className="relative">
@@ -145,14 +147,14 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                         onChange={e => {
                                                                             const v = e.target.value;
                                                                             // Fix: Cast key to keyof Skill
-                                                                            if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key as keyof Skill, undefined);
-                                                                            else updateSkill(field.key as keyof Skill, v); 
+                                                                            if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key, undefined);
+                                                                            else updateSkill(field.key, v); 
                                                                         }}
                                                                     >
                                                                         {/* Fix: Use any cast for flexible field options access */}
-                                                                        {(field as any).options ? 
-                                                                            (field as any).options.map((opt: any) => <option key={opt.value} value={opt.value}>{opt.label}</option>) :
-                                                                            (field as any).simpleOptions?.map((opt: any) => <option key={opt} value={opt}>{opt}</option>)
+                                                                        {field.options ? 
+                                                                            field.options.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>) :
+                                                                            field.simpleOptions?.map(opt => <option key={opt} value={opt}>{opt}</option>)
                                                                         }
                                                                     </select>
                                                                     <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none text-[10px]">▼</div>
@@ -165,16 +167,16 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                             className="liquid-input w-full h-9 text-xs font-mono !bg-black/50 !rounded-xl" 
                                                                             value={displayVal} 
                                                                             // Fix: Cast key to keyof Skill
-                                                                            onChange={e => updateSkill(field.key as keyof Skill, e.target.value)} 
+                                                                            onChange={e => updateSkill(field.key, e.target.value)} 
                                                                         />
                                                                     </div>
                                                                     <div className="relative w-9 h-9 rounded-xl overflow-hidden border border-white/20 shadow-inner shrink-0">
                                                                         <input 
                                                                             type="color" 
                                                                             className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 border-0" 
-                                                                            value={displayVal.startsWith('#') ? displayVal : '#ffffff'} 
+                                                                            value={String(displayVal).startsWith('#') ? String(displayVal) : '#ffffff'} 
                                                                             // Fix: Cast key to keyof Skill
-                                                                            onChange={e => updateSkill(field.key as keyof Skill, e.target.value)} 
+                                                                            onChange={e => updateSkill(field.key, e.target.value)} 
                                                                         />
                                                                     </div>
                                                                 </div>
@@ -185,7 +187,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                                     value={displayVal}
                                                                     step={field.step || 1}
                                                                     // Fix: Cast key to keyof Skill
-                                                                    onChange={e => updateSkill(field.key as keyof Skill, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                                                                    onChange={e => updateSkill(field.key, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
                                                                 />
                                                             )}
                                                         </div>

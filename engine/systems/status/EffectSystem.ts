@@ -1,6 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
+import { applyDirectDamage } from "../combat/DirectDamage";
 
 export class EffectSystem {
     
@@ -28,19 +29,7 @@ export class EffectSystem {
             agent.dotTimer = Math.max(0, agent.dotTimer - dt);
             
             const damagePerSec = agent.dotDmg;
-            let frameDamage = damagePerSec * dt;
-            
-            // Shield Mitigation logic (Standardized)
-            let absorbed = 0;
-            if (agent.shield > 0) {
-                absorbed = Math.min(agent.shield, frameDamage);
-                agent.shield -= absorbed;
-                frameDamage -= absorbed;
-            }
-            
-            if (frameDamage > 0) {
-                agent.hp -= frameDamage;
-            }
+            const { absorbed, dealt: frameDamage } = applyDirectDamage(agent, damagePerSec * dt);
 
             // Periodic Visual Feedback
             if (dotTimer <= 0 && agent.dotDmg > 0) { 

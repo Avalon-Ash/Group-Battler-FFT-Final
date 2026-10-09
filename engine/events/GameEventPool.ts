@@ -1,6 +1,9 @@
 
 import { GameEvent, GameEventType, Skill, Team, Point } from "../../types";
 
+/** pushEvent / EventPool.get 可攜帶的選填欄位（GameEvent 去除 type/pos）。 */
+export type GameEventOpts = Omit<GameEvent, 'type' | 'pos'>;
+
 export class GameEventPool {
     private pool: GameEvent[] = [];
     private _index = 0;
@@ -21,15 +24,7 @@ export class GameEventPool {
     public get(
         type: GameEventType, 
         pos: Point, 
-        opts: { 
-            value?: number, 
-            text?: string, 
-            color?: string, 
-            skill?: Skill, 
-            sourceId?: string, 
-            targetId?: string, 
-            team?: Team 
-        } = {}
+        opts: GameEventOpts = {}
     ): GameEvent {
         let event: GameEvent;
         
@@ -52,6 +47,7 @@ export class GameEventPool {
         event.sourceId = opts.sourceId;
         event.targetId = opts.targetId;
         event.team = opts.team;
+        event.absorbed = opts.absorbed;
 
         return event;
     }
@@ -62,6 +58,7 @@ export class GameEventPool {
         event.sourceId = undefined;
         event.targetId = undefined;
         event.team = undefined;
+        event.absorbed = undefined;
         this.pool.push(event);
     }
 }

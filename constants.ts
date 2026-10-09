@@ -196,6 +196,8 @@ export const VFX_PARAM = {
     HAZARD_FIELD_MAX_PER_CELL: 2,
     /** Idle VFX cull 距離平方（300px²）。超出不生成 idle 粒子。*/
     IDLE_VFX_CULL_DIST_SQ: 90000,
+    /** Idle VFX 剔除中心 = 地圖寬/高（格數）× 此值。原程式讀取不存在的 engine.camera，恆走此 fallback；刻意保留以維持行為。*/
+    IDLE_VFX_CULL_CENTER_PER_TILE: 40,
 };
 
 export const THEME_IMPERIAL = {
@@ -252,6 +254,8 @@ export const COMBAT_PARAM = {
     HIT_MEDIUM_THRESHOLD: 150,
     HIT_HEAVY_THRESHOLD: 400,
     DR_RESET_TIME: 10.0,
+    /** 硬控基礎韌性（0 = 無減免）。尚無資料來源（單位/裝備皆未定義），日後接 UNIT_DB 時由此擴充。*/
+    BASE_CC_RESILIENCE: 0,
     EXECUTE_THRESHOLD: 0.25,
     BASE_EXECUTE_MULTIPLIER: 2.0,
     BASE_VAMP_PCT: 0.35,
@@ -282,6 +286,8 @@ export const AGENT_CONSTANTS = {
     DEFAULT_AI_UPDATE_INTERVAL: 0.08,
     AI_UPDATE_INTERVAL_JITTER: 0.02,
     DEATH_ANIM_DURATION: 5.5,
+    /** RagdollBone.color 佔位色。UnitDeathPainter 渲染時以 appearance profile.primaryColor 覆蓋（SSOT），此值僅滿足型別。*/
+    RAGDOLL_BONE_PLACEHOLDER_COLOR: '#ffffff',
     AI_UPDATE_INTERVAL_BY_ROLE: {
         TANK: 0.08,
         WARRIOR: 0.06,
@@ -308,7 +314,9 @@ export const ENV_SPRITE = {
   TREE_LAYER_OVERLAP: 0.7, // 樹葉層縱向疊壓比例
 } as const;
 
-export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, sideDark: string, detail: string, rim: string }> = {
+export interface TerrainTheme { top: string; sideLight: string; sideDark: string; detail: string; rim: string }
+
+export const TERRAIN_THEMES: Record<string, TerrainTheme> = {
     'VOID':   { top: '#1e293b', sideLight: '#334155', sideDark: '#0f172a', detail: '#6366f1', rim: '#818cf8' }, // Indigo tints
     'FOREST': { top: '#14532d', sideLight: '#166534', sideDark: '#052e16', detail: '#4ade80', rim: '#86efac' }, // Deep Jungle
     'ICE':    { top: '#3b82f6', sideLight: '#2563eb', sideDark: '#1e3a8a', detail: '#bae6fd', rim: '#e0f2fe' }, // Glacial
@@ -316,7 +324,9 @@ export const TERRAIN_THEMES: Record<string, { top: string, sideLight: string, si
     'DESERT': { top: '#b45309', sideLight: '#d97706', sideDark: '#78350f', detail: '#fde047', rim: '#fcd34d' }  // Sandstone
 };
 
-export const OBSTACLE_STYLES: Record<string, { main: string, light: string, dark: string, detail: string, highlight: string }> = {
+export interface ObstacleStyle { main: string; light: string; dark: string; detail: string; highlight: string; sideLight?: string; sideDark?: string }
+
+export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
     'WALL': { main: '#475569', light: '#64748b', dark: '#334155', detail: '#94a3b8', highlight: '#cbd5e1' },
     'TREE': { main: '#3f6212', light: '#4d7c0f', dark: '#1a2e05', detail: '#84cc16', highlight: '#bef264' },
     'ICE_CRYSTAL': { main: '#7dd3fc', light: '#bae6fd', dark: '#0ea5e9', detail: '#e0f2fe', highlight: '#ffffff' },

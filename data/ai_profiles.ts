@@ -1,12 +1,20 @@
 
 import { AIState } from "../types";
 
+/** 行為樹節點參數。鍵集合由 BTRegistry 實際使用者決定，新增鍵請同步擴充此型別。 */
+export interface BTArgs {
+    slot?: number;
+    state?: AIState;
+    threshold?: number;
+    amount?: number;
+}
+
 export interface BTDef {
     type: 'SELECTOR' | 'SEQUENCE' | 'CONDITION' | 'ACTION';
     name: string;
     children?: BTDef[];
     key?: string; // Maps to Registry Key
-    args?: any;
+    args?: BTArgs;
 }
 
 export const STANDARD_AI_PROFILE: BTDef = {

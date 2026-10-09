@@ -1,4 +1,4 @@
-import { ISO_SCALE_Y, HEX_SIZE } from "../../../constants";
+import { ISO_SCALE_Y, HEX_SIZE, TerrainTheme } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
@@ -11,7 +11,7 @@ const PEDESTAL_DEPTH = 45;
 const EXPANSION_BIAS = 0.6;
 
 export const TerrainRenderer = {
-    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: any, type: string, globalTime: number, layout: HexLayout, alpha: number = 1.0, q: number = 0, r2: number = 0) {
+    drawBlock(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, height: number, theme: TerrainTheme, type: string, globalTime: number, layout: HexLayout, alpha: number = 1.0, q: number = 0, r2: number = 0) {
         const drawX = Math.floor(x);
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
         let floatOffset = 0;
@@ -90,7 +90,7 @@ export const TerrainRenderer = {
         ctx.restore();
     },
 
-    drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: any, alpha: number = 1.0) {
+    drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: TerrainTheme, alpha: number = 1.0) {
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
         let floatOffset = 0;
         if (isFloatingBiome) floatOffset = Math.sin(globalTime * 1.5 + (baseX * 0.01) + (baseY * 0.01)) * 4;

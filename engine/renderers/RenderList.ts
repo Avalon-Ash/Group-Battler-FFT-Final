@@ -2,6 +2,8 @@
 import { Agent } from "../game";
 import { Particle } from "../systems/vfx/state";
 import { Projectile, Point, GroundHazard } from "../../types";
+import type { TerrainTheme } from "../../constants";
+import type { ActiveZone } from "../systems/ZoneSystem";
 
 export enum RenderOpType {
     TERRAIN,
@@ -22,11 +24,11 @@ export class RenderOp {
     y: number = 0; 
     z: number = 0; 
     tx: number = 0; ty: number = 0; th: number = 0; 
-    tsize: number = 0; ttheme: any = null;
+    tsize: number = 0; ttheme: TerrainTheme | null = null;
     tq: number = 0; tr: number = 0;
     ttype: string = ''; tdetail: string = '';
     oStatus: string | undefined;
-    oDanger: any;
+    oDanger: ActiveZone | undefined;
     oHazard: GroundHazard | undefined;
     oLightCol: string | null = null;
     oLightInt: number = 0;

@@ -5,6 +5,19 @@ import { ToolType, Hex, Team, Role } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
 import { PointerProjector } from '../engine/math/PointerProjector';
+
+/** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
+export interface DraggedObstacle {
+    type: string | undefined;
+    originQ: number;
+    originR: number;
+    px: number;
+    py: number;
+    terrainHeight?: number;
+    hoverQ?: number;
+    hoverR?: number;
+}
+
 interface GameInputProps {
     canvasRef: MutableRefObject<HTMLCanvasElement | null>;
     engine: GameEngine;
@@ -22,13 +35,13 @@ type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'P
 export const useGameInput = (props: GameInputProps) => {
     const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, winner, onSelect } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
-    const [draggedObstacle, setDraggedObstacle] = useState<any>(null);
+    const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
     const lastPointerPos = useRef<{x: number, y: number} | null>(null);
     const pressStartPos = useRef<{x: number, y: number} | null>(null);
     const lastPaintHex = useRef<string>("");
     const pressedAgentRef = useRef<Agent | null>(null);
-    const draggedObstacleRef = useRef<any>(null);
+    const draggedObstacleRef = useRef<DraggedObstacle | null>(null);
     const hoveredHexRef = useRef<Hex | null>(null);
     const activePointers = useRef<Set<number>>(new Set());
     const cachedRectRef = useRef<DOMRect | null>(null);

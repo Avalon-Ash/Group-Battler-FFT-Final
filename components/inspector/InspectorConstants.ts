@@ -20,7 +20,7 @@
 // ║                           engine/renderers/units/painters/       ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { Role, Team, AnimState, AIState, ActionState } from '../../types';
+import { Role, Team, AnimState, AIState, ActionState, Skill } from '../../types';
 import { PALETTE } from '../../constants';
 
 // [APPEARANCE SSOT] 單位外觀唯一資料源路徑，供 Inspector UI 說明文字使用
@@ -149,7 +149,22 @@ export const TARGET_TYPE_MAP = [
 // 單位外觀（身體顏色/尺寸/武器）請至 data/units/appearance/ 修改。
 export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'HEX_LOCK'];
 
-export const SKILL_FIELD_GROUPS = [
+/** 技能編輯欄位定義（SkillDbTab 依此動態產生表單）。key 必須是 Skill 的欄位。 */
+export interface SkillFieldDef {
+  key: keyof Skill;
+  label: string;
+  type: 'text' | 'number' | 'select' | 'color' | 'textarea';
+  step?: number;
+  options?: { value: string; label: string }[];
+  simpleOptions?: string[];
+}
+
+export interface SkillFieldGroup {
+  name: string;
+  fields: SkillFieldDef[];
+}
+
+export const SKILL_FIELD_GROUPS: SkillFieldGroup[] = [
   {
     name: '視覺與資源定義 (Visual SSOT)',
     fields: [

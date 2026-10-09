@@ -100,7 +100,7 @@ export class VFXPlayer {
             p.size = rnd(config.size);
             if (config.height !== undefined) p.height = rnd(config.height);
             p.color = colorOverride || pickColor(config.colors);
-            p.type = config.particleType as any;
+            p.type = config.particleType;
             if (config.visualStyle) {
                 p.style = config.visualStyle;
                 p.visualStyle = config.visualStyle; // Ensure visualStyle is also set
@@ -116,7 +116,7 @@ export class VFXPlayer {
             }
             if (config.blendMode) p.blendMode = config.blendMode;
             if (!p.image && !PROCEDURAL_TYPES.has(p.type)) {
-                p.image = VFXFactory.getTexture(p.type as any, p.color);
+                p.image = VFXFactory.getTexture(p.type, p.color);
             }
             system.state.particles.push(p);
         }

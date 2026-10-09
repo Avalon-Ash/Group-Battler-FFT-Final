@@ -37,7 +37,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
     if (!show) return null;
 
-    const updateConfig = (key: keyof MatrixConfig, value: any) => {
+    const updateConfig = <K extends keyof MatrixConfig>(key: K, value: MatrixConfig[K]) => {
         setConfig({ ...config, [key]: value });
     };
 

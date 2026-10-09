@@ -214,3 +214,107 @@ npm run lint; npm run build
 - 改動會改變 tick 內執行順序、隨機數呼叫順序、或任何數值結果。
 - 發現「欄位不存在但被 `as any` 讀取」（可能是隱性 bug，修復=行為改變）。
 - lint/build 失敗且 2 次嘗試未解。
+
+
+---
+
+## 8. 第二輪審查（2026-10-09，Claude 驗收）& 後續任務
+
+### 8.1 驗收結果
+- `npm run lint` 0 errors、`npm run build` 通過（僅 chunk > 500kB 警告，773 kB）。
+- 任務 T1.1–T5.1 全部有對應 commit，粒度符合「≤3 檔」。
+- 事件雙通道規範已落地（`game.ts` 頂部註解）；`EventMap` 共 13 種事件；`EventBus` 已無裸字串。
+- `DirectorSystem.bind()` 訂閱 `KILL` / `CAST_START`；`pushEvent` 已無副作用；`agentManager` / `MapGenerator` 不再碰 renderer。
+- T4.2 以窄介面取代 bus（`handleDeadState` 仍同步），理由成立（同 tick 順序），接受。
+
+| 指標 | 第一輪 | 現在 | 目標 |
+| :--- | :--- | :--- | :--- |
+| `any` 相關（engine+components+hooks） | ~35（engine/components） | **57**（範圍多含 hooks，見下） | ≤ 5 |
+| engine 內硬編碼色碼（前幾名） | BarPainter 28 / CCManager 15 / Token 14+12 | Token 13+11、ProjectilePainter 9、ProceduralPainter 8、GaugePainter 7… | 邏輯層 0 |
+| 邏輯層 → renderer/vfx | 6+ 處 | 僅剩 `agentManager.ts:153 UnitShatter.spawn(engine.vfx…)` | 0 |
+| 跨系統 `engine.X.method` | ~55 | BTRegistry 10、SkillExecutor 4（`getImpactArea`/`getEffectiveRange`/`handleDeadState`）、其餘各 1 | 見 T6.x |
+
+### 8.2 ⚠️ 需要先處理的問題（依嚴重度）
+
+**P0-1 API Key 會被打包進前端**：`vite.config.ts` 的 `define` 把 `GEMINI_API_KEY` 注入 `process.env.API_KEY`，任何 `import.meta`/`process.env` 引用都會把金鑰**明文寫進 `dist/*.js`**。目前 `.env` 為空且程式未使用，所以尚未外洩；但只要填入金鑰並 build 就會洩漏。
+→ 若實際用不到 Gemini：移除 `define` 兩行（與 `loadEnv`）。若要用：必須經後端代理，前端不得持有金鑰。另 `allowedHosts: true` 會關閉 Vite 的 host 檢查（DNS rebinding 防護），僅限需要的 AI Studio 環境，建議以環境變數開關。（此為上一個非解藕 commit `19a28ee` 帶入，**需使用者決定**，代理不要自行改。）
+
+**P0-2 `any` 反彈（57）**：第一輪範圍外的 `hooks/`、`components/`（`SkillDbTab` 約 10 處、`useGameInput`、`useGameApp: null as any`、`LogTab/useCameraControl engine: any`）+ engine 殘餘。大部分在 §2-D 清單中尚未完成：
+`EnvironmentFactory`/`TerrainRenderer`（style/theme: any）、`RenderList`、`StateModelPainter`、`vfx/render.ts`（`pIsUlt`）、`vfx/state.ts:106`（`ultSourceId`）、`SequenceSystem.ts:106-107`（寫入 `pIsUlt`/`ultSourceId`）、`VFXPlayer.ts:103,119`、`HazardSystem.ts:96 agent: any`、`ai.ts:62`、`behaviorTree.ts`（9）、`game.ts pushEvent opts: any`、`renderer.ts:123 externalCameraRef: any`、`EventBus.ts` 的 `as unknown as`（可接受，加註解即可）。
+**T1.3 只做了一部分，但進度表標為 ☑；請以量測為準重新打開。**
+
+**P1 三個「欄位不存在」隱性 bug 仍未處理**（代理已回報，等你決定）：
+- `CCManager.ts:250` `(target as any).resilience`：恆為 0，等於 CC 韌性機制從未生效。
+- `RagdollFactory.ts:17` `(agent as any).factionColor`：恆為 `#ffffff`，死亡碎片永遠白色。
+- `AgentVFXSystem.ts:66-67` `(engine as any).camera`：恆走 fallback（地圖中心）。
+→ 修復 = 行為變更，請你逐項決定「刪除死碼」或「接上正確資料」。
+
+**P1 hp 寫入仍分散**：`PhysicsEngine.ts:98,115`、`HazardSystem.ts:108`、`EffectSystem.ts:42,85`、`SkillExecutor.ts:184,245,288,322`。T4.3 只做了顏色/文字常數與公式隔離，沒有建立單一「套用傷害」入口；`DamageCalculator` 沒被 Physics/Hazard/Effect 使用。
+
+**P2 `agentManager.ts:153`** 仍直接 `UnitShatter.spawn(engine.vfx, …)`（死亡碎片）。與 T3.2 同類，應改為事件（`AGENT_DIED`）由 renderer/VFX 訂閱。
+
+**P2 色碼殘餘**：`TokenFactory`（13/11）、`ProjectilePainter`、`ProceduralPainter`、`GaugePainter`、`GroundPainter`、`EventHUDMapper`、`HUDRenderer`、`GridOverlays`、`AnnouncerSystem`（邏輯層，應只送語意 key）。
+
+**P2 隨機性**：`engine/systems|ai|physics` 內 `Math.random` 共約 102 處（含 AI/傷害浮動/暴擊）→ 無法重播、無法寫確定性測試。
+
+**P2 其他**：
+- 專案**沒有任何測試**（0 個 `*.test.ts`，`package.json` 無 test script）。這輪重構全靠 lint + 人工，風險最大的缺口。
+- `BTRegistry.ts` 578 行、10 處 `engine.movement/combat/zones`；`MaterialPainter.ts` 590 行。
+- bundle 773 kB 單檔，可 `manualChunks` / 動態 import（編輯器、Inspector、Showcase 可延遲載入）。
+- `game.ts` 仍有約 15 個純轉發方法（`isValid`、`hasObstacle`…），與 `SpatialProvider` 重複。
+- `EventMap` 中 `GAME_RESET/CLEAR/ENV_UPDATE/GAME_START` 的 payload 寫成 `Record<string, never> | void`，建議統一為 `void`。
+- 雙通道下 `KILL` 同時 `events.push` 與 `bus.emit`，需在註解註明「同源雙發」避免日後只改一邊。
+- `docs/` 與根目錄的 `tmp`（空檔，已不在 git 內，確認 `.gitignore`）。
+
+### 8.3 第二輪任務（依序；規則同 §0）
+
+| ID | 任務 | 檔案上限 | 備註 |
+| :--- | :--- | :--- | :--- |
+| T6.0 | **建立測試基線**：加 `vitest`，寫 3 組確定性測試（`DamageCalculator`、`CooldownSystem/EffectSystem` DoT tick、`HexUtils`/Pathfinder）。`Math.random` 以 `vi.spyOn` 固定。 | package.json + 2–3 測試檔 | 之後所有任務需跑 `npm test` |
+| T6.1 | 重開 T1.3：清空 §8.2 P0-2 列出的 engine `any`（分批，每批 ≤3 檔）。`VFXSchema.ts` 補 `pIsUlt?`、`ultSourceId?`、particle type 聯集。 | 逐批 | 欄位不存在者仍回報 |
+| T6.2 | `hooks/`、`components/` 的 `any`：`engine: any` → `GameEngine`、`SkillDbTab` 以欄位 schema 型別化、`useGameApp` 改 `useRef<GameEngine \| null>`。 | ≤3/批 | |
+| T6.3 | P1 欄位 bug：**等使用者決策後**再做。 | | 暫停 |
+| T6.4 | 建立 `applyDamage`（單一入口，位於 `systems/combat/`），先**只改 PhysicsEngine + HazardSystem**，保持原公式與護盾行為（先寫差異測試）。EffectSystem 與 SkillExecutor 之後再分批。 | ≤3 | 需 T6.0 完成 |
+| T6.5 | `UnitShatter` 改走 `AGENT_DIED` 事件。 | agentManager + renderer + EventMap | 順序不得變（同 tick 內 `handleDeadState` 之後） |
+| T6.6 | `AnnouncerSystem`、`EventHUDMapper` 色碼 → 語意 key + `data/vfx`；`TokenFactory` 殘餘色碼 → appearance profile。 | ≤3/批 | 以 material-preview 目視比對 |
+| T6.7 | 隨機源：新增 `engine/utils/rng.ts`（可注入種子，預設 `Math.random`），**先只替換 `DamageCalculator` 與 `agentManager`**，呼叫順序不變。 | ≤3 | 為重播/測試鋪路 |
+| T6.8 | `game.ts` 純轉發方法：UI/系統逐步改吃 `SpatialProvider`，轉發方法標 `@deprecated`（不刪）。 | ≤3 | Facade，簽名不可動 |
+| T6.9 | 打包優化：`vite.config.ts` `manualChunks`（react / editor / inspector）、`MapEditor`/`Inspector`/`Showcase` 以 `React.lazy` 載入。 | ≤3 | **P0-1 由使用者決定後一併處理 vite.config** |
+
+### 8.4 第二輪進度紀錄
+
+| ID | 狀態 | 日期 | 備註 |
+| :--- | :--- | :--- | :--- |
+| T6.0 | ☑ | 2026-10-10 | vitest 5 + tests/ 4 檔 29 測試（DamageCalculator、DirectDamage、HexUtils、EventPool 回歸、EventBus、BT、DoT/HoT、RNG）；`npm test` |
+| T6.1 | ☑ | 2026-10-10 | engine `any` 清零（BTArgs、ObstacleStyle/TerrainTheme、Particle.pIsUlt/ultSourceId、GameEventOpts…）；並修正粒子池未重置 pIsUlt/ultSourceId 的洩漏 |
+| T6.2 | ☑ | 2026-10-10 | hooks/components `any` 清零（SkillFieldDef schema、DraggedObstacle、ZoneConfig…）；全專案僅剩 1 筆（DesignExporter 字串內文） |
+| T6.3 | ☑ | 2026-10-10 | 決策：resilience→`COMBAT_PARAM.BASE_CC_RESILIENCE=0`；factionColor→佔位常數（UnitDeathPainter 本就以 profile.primaryColor 覆蓋）；camera→`VFX_PARAM.IDLE_VFX_CULL_CENTER_PER_TILE`（維持原有「以地圖中心剔除」行為）。皆零行為變更 |
+| T6.4 | ☑ | 2026-10-10 | `systems/combat/DirectDamage.ts: applyDirectDamage`，PhysicsEngine（真實傷害）/HazardSystem/EffectSystem(DoT) 改走；DoT 的 hp 由可為負值改為下限 0（唯一差異） |
+| T6.5 | ☑ | 2026-10-10 | `AGENT_DIED` bus 事件（同步，順序同原呼叫），Renderer 訂閱後呼叫 UnitShatter；邏輯層對 engine.vfx/renderer 引用為 0 |
+| T6.6 | ☐ | | 未做：AnnouncerSystem（5 處）、EventHUDMapper、TokenFactory 殘餘、ProjectilePainter/ProceduralPainter/GaugePainter 等需目視比對（material-preview），建議在可看畫面時進行 |
+| T6.7 | ☑ | 2026-10-10 | `engine/math/rng.ts`（random/setRandomSource/resetRandomSource）；DamageCalculator 與 AgentManager 已替換，呼叫順序不變 |
+| T6.8 | ☐ | | 未做 |
+| T6.9 | ☐ | | 已試 manualChunks：僅切出 12 kB（React 走 importmap），無實益已還原；bundle 主體是 engine（761 kB），需 lazy 載入 Inspector/MapEditor 才有感，待 UI 驗證後再做 |
+
+---
+
+## 9. 第三輪執行結果（2026-10-10）
+
+### 9.1 驗證
+- `npm run lint` 0 errors、`npm test` 29/29、`npm run build` 通過。
+- 指標：any 57 → 1；邏輯層→engine.vfx/renderer 0；combat 目錄硬編碼色碼 0；Particle.type 與 ParticleType 統一。
+
+### 9.2 本輪發現並修正的隱性問題
+| 問題 | 來源 | 處置 |
+| :--- | :--- | :--- |
+| HIT_FX 事件的 absorbed 被 GameEventPool.get 丟棄 → 護盾火花特效永遠不播 | T3.1 引入的回歸 | 事件池補 absorbed（含 release 清除）＋回歸測試 |
+| 粒子池重用時 pIsUlt/ultSourceId 未重置 → cancelUltBySource 可能誤殺無關粒子 | 既有 | getParticle 重置 |
+| DamageCalculator 以 preRollCrit !== null 判斷，undefined 時恆不暴擊 | 既有（現有呼叫端皆傳布林，屬潛在） | 改 !== undefined＋測試 |
+| ZoneSystem 傳 pos 進 pushEvent opts（被忽略） | 既有 | 移除死參數 |
+| vite.config.ts 把 GEMINI_API_KEY define 進前端 bundle | 非解藕 commit | 移除；allowedHosts 改 ALLOW_ALL_HOSTS=true 開關 |
+
+### 9.3 仍待處理
+- T6.6 色碼（需目視）、T6.8 轉發方法標 deprecated、T6.9 lazy 載入。
+- BTRegistry 仍有 10 處 engine.movement/combat/zones 直接呼叫、SkillExecutor 4 處（T4.1 已窄介面化，T4.2 因順序風險保留同步）。
+- Math.random 仍散落於 AI、VFX、HUD、CameraSystem、ProjectileSystem/SkillExecutor（暴擊預擲），可續行 T6.7 擴大替換。
+- 剩餘 hp 直接寫入皆屬有意：SkillExecutor（技能管線）、ZoneSystem/PhysicsEngine 深淵落（地形例外）、HoT 治療、初始化/重置。

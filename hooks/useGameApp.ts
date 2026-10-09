@@ -8,10 +8,8 @@ import { HexUtils } from '../engine/utils';
 
 export const useGameApp = () => {
     // [ARCH] Use a lazy initializer for the ref to avoid 'new GameEngine()' on every render
-    const engineRef = useRef<GameEngine>(null as any);
-    if (!engineRef.current) {
-        engineRef.current = new GameEngine();
-    }
+    const [initialEngine] = useState(() => new GameEngine());
+    const engineRef = useRef<GameEngine>(initialEngine);
     
     const [session, setSession] = useState({
         isPlaying: false,
@@ -66,7 +64,7 @@ export const useGameApp = () => {
         let rightHexes = validHexes.filter(hex => hex.q > 1);
 
         // Shuffle arrays
-        const shuffle = (array: any[]) => {
+        const shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];

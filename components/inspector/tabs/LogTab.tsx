@@ -2,9 +2,10 @@
 import React, { useEffect, useState, memo, useRef } from 'react';
 import { LogEntry, Team, LogActionType } from '../../../types';
 import { Icons } from '../../ui/icons';
+import type { GameEngine } from '../../../engine/game';
 
 interface LogTabProps {
-    engine: any;
+    engine: GameEngine;
 }
 
 const LogItem = memo(({ log }: { log: LogEntry }) => (

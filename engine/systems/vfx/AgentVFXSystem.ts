@@ -63,8 +63,8 @@ export class AgentVFXSystem {
         if (agent.hp <= 0) return;
         
         // ── [PERF] 距離剔除：超出攝影機焦點半徑的單位不生成 idle 粒子 ──
-        const camX = (engine as any).camera?.targetX ?? engine.mapConfig.w * 40;
-        const camY = (engine as any).camera?.targetY ?? engine.mapConfig.h * 40;
+        const camX = engine.mapConfig.w * VFX_PARAM.IDLE_VFX_CULL_CENTER_PER_TILE;
+        const camY = engine.mapConfig.h * VFX_PARAM.IDLE_VFX_CULL_CENTER_PER_TILE;
         const _dx = agent.px - camX;
         const _dy = agent.py - camY;
         if (_dx * _dx + _dy * _dy > VFX_PARAM.IDLE_VFX_CULL_DIST_SQ) return;

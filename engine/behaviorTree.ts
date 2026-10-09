@@ -1,4 +1,5 @@
 import { NodeState } from "../types";
+import type { Agent } from "./core/Agent";
 export abstract class BTNode {
     id: string;
     n: string;
@@ -24,7 +25,7 @@ export abstract class BTNode {
         this.lastRunTime = Date.now();
         return result;
     }
-    abstract tick(ctx: any): NodeState;
+    abstract tick(ctx: Agent): NodeState;
     reset() {
         this.status = NodeState.PENDING;
         if (this.c) {
@@ -41,7 +42,7 @@ export class Selector extends BTNode {
         super(n, '?');
     }
 
-    tick(ctx: any): NodeState {
+    tick(ctx: Agent): NodeState {
         for (let i = 0; i < this.c.length; i++) {
             const r = this.c[i].tick(ctx);
 
@@ -65,7 +66,7 @@ export class Selector extends BTNode {
 }
 export class Sequence extends BTNode {
     constructor(n: string) { super(n, '->'); }
-    tick(ctx: any): NodeState {
+    tick(ctx: Agent): NodeState {
         for (let i = 0; i < this.c.length; i++) {
             const r = this.c[i].tick(ctx);
             if (r === NodeState.RUNNING) {
@@ -82,23 +83,23 @@ export class Sequence extends BTNode {
     }
 }
 export class Condition extends BTNode {
-    fn: (ctx: any) => boolean;
-    constructor(n: string, fn: (ctx: any) => boolean) {
+    fn: (ctx: Agent) => boolean;
+    constructor(n: string, fn: (ctx: Agent) => boolean) {
         super(n, 'COND');
         this.fn = fn;
     }
-    tick(ctx: any): NodeState {
+    tick(ctx: Agent): NodeState {
         const r = this.fn(ctx) ? NodeState.SUCCESS : NodeState.FAILURE;
         return this.record(r);
     }
 }
 export class Action extends BTNode {
-    fn: (ctx: any) => NodeState;
-    constructor(n: string, fn: (ctx: any) => NodeState) {
+    fn: (ctx: Agent) => NodeState;
+    constructor(n: string, fn: (ctx: Agent) => NodeState) {
         super(n, 'ACT');
         this.fn = fn;
     }
-    tick(ctx: any): NodeState {
+    tick(ctx: Agent): NodeState {
         const r = this.fn(ctx);
         return this.record(r);
     }

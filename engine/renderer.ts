@@ -9,7 +9,8 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "./game";
-import { Hex, GameEvent, Skill } from "../types";
+import { Hex, GameEvent, Skill, EventMap } from "../types";
+import { UnitShatter } from "./systems/visuals/effects/UnitShatter";
 import { GridSystem } from "./systems/grid";
 import { VFXSystem } from "./systems/vfx";
 import { VFXRenderer } from "./systems/vfx/render";
@@ -52,6 +53,7 @@ export class GameRenderer {
             this.boundEngine.bus.off('CAMERA_SHAKE', this.handleShake);
             this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
             this.boundEngine.bus.off('AGENT_RESET', this.handleAgentReset);
+            this.boundEngine.bus.off('AGENT_DIED', this.handleAgentDied);
             this.vfx.unbind();
         }
 
@@ -64,6 +66,7 @@ export class GameRenderer {
         this.boundEngine.bus.on('CAMERA_SHAKE', this.handleShake);
         this.boundEngine.bus.on('CAMERA_MOVE', this.handleCameraMove);
         this.boundEngine.bus.on('AGENT_RESET', this.handleAgentReset);
+        this.boundEngine.bus.on('AGENT_DIED', this.handleAgentDied);
         this.vfx.bind(this.boundEngine);
     }
 
@@ -77,6 +80,10 @@ export class GameRenderer {
 
     private handleCameraMove = (data: { x: number, y: number, zoom: number }) => {
         this.camera.setDirectorTarget(data.x, data.y, data.zoom);
+    }
+
+    private handleAgentDied = (data: EventMap['AGENT_DIED']) => {
+        UnitShatter.spawn(this.vfx, data.agent, data.groundZ, data.impactX, data.impactY);
     }
 
     private handleAgentReset = (data: { agentId: string }) => {
@@ -120,7 +127,7 @@ export class GameRenderer {
         return this.grid.getHexAtWorldPoint(worldPt.x, worldPt.y, engine);
     }
 
-    public update(dt: number, engine: GameEngine, externalCameraRef?: any): void {
+    public update(dt: number, engine: GameEngine, externalCameraRef?: { current: { x: number; y: number; zoom: number } | null }): void {
         // 1. Camera Update (Always RealTime for smoothness)
         this.camera.update(dt);
         

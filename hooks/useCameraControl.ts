@@ -1,11 +1,12 @@
 
 import { useEffect, useRef, MutableRefObject } from 'react';
+import type { GameEngine } from '../engine/game';
 
 interface CameraControlProps {
     canvasRef: MutableRefObject<HTMLCanvasElement | null>;
     cameraRef: MutableRefObject<{ x: number; y: number; zoom: number }>;
     onZoom: (delta: number) => void;
-    engine: any;
+    engine: GameEngine;
 }
 
 /**

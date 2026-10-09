@@ -209,6 +209,8 @@ export interface EventMap {
     ZONE_SHRUNK: { radius: number };
     LAST_STAND_TRIGGERED: { q: number; r: number };
     AGENT_RESET: { agentId: string };
+    /** 單位死亡瞬間（同步發送，順序同原直接呼叫）。Renderer 訂閱後播放碎裂特效。 */
+    AGENT_DIED: { agent: Agent; groundZ: number; impactX: number; impactY: number };
     KILL: { killerId: string; victimId: string };
     CAST_START: { sourceId: string; skill: Skill };
 }

@@ -49,7 +49,7 @@ export class VFXRenderer {
             op.type = RenderOpType.VFX;
             
             const isGroundLocked = VFX_GROUND_TYPES.has(p.type);
-            const isUlt = (p as any).pIsUlt || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
+            const isUlt = p.pIsUlt || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
             
             // [SSOT FIX] 1. Y calculation: op.y must be the footprint Y (raw world projected).
             // We use op.sortBias to handle the "front edge" depth sorting for large ground effects.
@@ -85,7 +85,7 @@ export class VFXRenderer {
         ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase);
     }
 
-    private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: any, minX: number, maxX: number, minY: number, maxY: number) {
+    private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE', minX: number, maxX: number, minY: number, maxY: number) {
         vfx.state.decals.forEach(d => {
             if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) return;
             const offset = VisualMath.getTransitionOffset(d.x, d.y, mapConfig, t, phase);

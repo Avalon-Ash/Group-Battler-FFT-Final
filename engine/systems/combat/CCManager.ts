@@ -247,7 +247,7 @@ export const CCManager = {
         if (!isHardCC) return { effectiveDuration: baseDuration, isImmune: false };
         
         // 1. Base Resilience (Future-proofing for items/buffs)
-        const resilience = (target as any).resilience || 0; 
+        const resilience = COMBAT_PARAM.BASE_CC_RESILIENCE; 
         
         // 2. Diminishing Returns Stacks
         const stacks = target.drStacks[type] || 0;

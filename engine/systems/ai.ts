@@ -43,7 +43,7 @@ export class AISystem {
                     // Fallback to avoid crash
                     node = new Condition(def.name, () => false); 
                 } else {
-                    node = new Condition(def.name, (agent: Agent) => condFn(agent, engine, def.args));
+                    node = new Condition(def.name, (agent: Agent) => condFn(agent, engine, def.args ?? {}));
                 }
                 break;
 
@@ -54,12 +54,14 @@ export class AISystem {
                     // Fallback
                     node = new Action(def.name, () => NodeState.FAILURE); // Failure
                 } else {
-                    node = new Action(def.name, (agent: Agent) => actFn(agent, engine, def.args));
+                    node = new Action(def.name, (agent: Agent) => actFn(agent, engine, def.args ?? {}));
                 }
                 break;
                 
-            default:
-                throw new Error(`Unknown BT Node Type: ${(def as any).type}`);
+            default: {
+                const unknownDef: never = def.type;
+                throw new Error(`Unknown BT Node Type: ${String(unknownDef)}`);
+            }
         }
 
         return node;

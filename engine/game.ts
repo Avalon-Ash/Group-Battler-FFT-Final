@@ -40,7 +40,8 @@ import { TimeSystem } from "./systems/TimeSystem";
 import { VictorySystem } from "./systems/VictorySystem"; 
 import { ZoneSystem } from "./systems/ZoneSystem"; 
 import { EventBus } from "./events/EventBus";
-import { EventPool } from "./events/GameEventPool"; 
+import { EventPool } from "./events/GameEventPool";
+import type { GameEventOpts } from "./events/GameEventPool"; 
 import { CooldownSystem } from "./systems/status/CooldownSystem";
 import { EffectSystem } from "./systems/status/EffectSystem";
 import { ControlSystem } from "./systems/status/ControlSystem";
@@ -197,7 +198,7 @@ export class GameEngine implements SpatialProvider {
      * 視覺事件管線：將事件放入池化佇列，於 tick 結尾批次發送給 VisualSystem。
      * 系統間通知請走 this.bus.emit()。
      */
-    public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: any = {}) {
+    public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: GameEventOpts = {}) {
         const evt = EventPool.get(type, pos, opts);
         this.events.push(evt);
     }

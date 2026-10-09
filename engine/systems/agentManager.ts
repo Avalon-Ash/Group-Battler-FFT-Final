@@ -3,7 +3,7 @@
 // ║  AgentManager — 單位生命週期管理                         ║
 // ║  職責：addAgent / handleDeadState / updateDeathState      ║
 // ║  上游：GameEngine.tick（每幀呼叫 updateDeathState）       ║
-// ║  下游：RagdollFactory / UnitShatter / VFXSystem(clearAgent)║
+// ║  下游：RagdollFactory / EventBus(AGENT_DIED, AGENT_RESET)  ║
 // ║  [ARCH] deathTimer 由此累計，UnitDeathPainter 消費        ║
 // ║  [TODO: RAGDOLL] ragdoll 快照由此建立，物理由 Painter 實作║
 // ╚══════════════════════════════════════════════════════════╝
@@ -13,11 +13,11 @@ import { Agent } from "../core/Agent";
 import { Role, Team, Skill, AnimState } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
-import { UnitShatter } from "./visuals/effects/UnitShatter";
 import { RagdollFactory } from "./unit/RagdollFactory";
 import { AGENT_CONSTANTS } from "../../constants";
+import { random } from "../math/rng";
 
-export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'vfx' | 'map'>;
+export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'map'>;
 
 export class AgentManager {
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
@@ -34,7 +34,7 @@ export class AgentManager {
 
         if (applyJitter) {
             const baseInterval = AGENT_CONSTANTS.AI_UPDATE_INTERVAL_BY_ROLE[agent.role] ?? AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
-            agent.aiUpdateInterval = baseInterval + Math.random() * AGENT_CONSTANTS.AI_UPDATE_INTERVAL_JITTER;
+            agent.aiUpdateInterval = baseInterval + random() * AGENT_CONSTANTS.AI_UPDATE_INTERVAL_JITTER;
             agent.aiUpdateTimer = 0;
         }
     }
@@ -49,13 +49,13 @@ export class AgentManager {
             a.role = roleOverride;
         } else {
             const allRoles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
-            a.role = allRoles[Math.floor(Math.random() * allRoles.length)];
+            a.role = allRoles[Math.floor(random() * allRoles.length)];
         }
         
         AgentManager.applyRoleStats(a, hpOverride, false);
 
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));
-        const rndS = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(Math.random() * ar.length)].id : null;
+        const rndS = (ar: Skill[]) => ar.length > 0 ? ar[Math.floor(random() * ar.length)].id : null;
         
         a.skillIds = [
             rndS(validSkills.filter(s => s.tag === 'ULT')),
@@ -125,7 +125,7 @@ export class AgentManager {
         a.activeCCVFX = [];
 
         // [FIX] Trigger Unit Shatter (Ragdoll Parts)
-        // NOTE: engine.vfx points to engine.renderer.vfx via getter, ensuring SSOT VFX system.
+        // 碎裂特效由 Renderer 訂閱 AGENT_DIED 播放（邏輯層不碰 VFX）。
         const groundZ = engine.getTerrainHeight(a.q, a.r);
         
         const IMPACT_STRENGTH = 300;
@@ -141,7 +141,7 @@ export class AgentManager {
             }
         }
         if (impactX === 0 && impactY === 0) {
-            const angle = Math.random() * Math.PI * 2;
+            const angle = random() * Math.PI * 2;
             impactX = Math.cos(angle) * IMPACT_STRENGTH * 0.6;
             impactY = Math.sin(angle) * IMPACT_STRENGTH * 0.6;
         }
@@ -150,7 +150,7 @@ export class AgentManager {
         // [TODO: RAGDOLL] 這裡只是靜態快照，物理演算在 UnitDeathPainter.draw() 階段加入
         a.ragdoll = RagdollFactory.createFromAgent(a, impactX, impactY);
 
-        UnitShatter.spawn(engine.vfx, a, groundZ, impactX, impactY);
+        engine.bus.emit('AGENT_DIED', { agent: a, groundZ, impactX, impactY });
         // SSOT: AnimationSystem will see hp <= 0 and set AnimState.DEAD
         engine.map.unregisterAgent(a);
     }

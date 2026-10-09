@@ -3,9 +3,10 @@ import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
+import type { BTArgs } from "../../data/ai_profiles";
 
-export type BTConditionFn = (agent: Agent, engine: GameEngine, args?: any) => boolean;
-export type BTActionFn = (agent: Agent, engine: GameEngine, args?: any) => NodeState;
+export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
+export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
 
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
@@ -98,8 +99,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
     },
 
     "IsInWarningZoneOrEvading": (a, engine) =>
-        BTConditions["IsEvading"](a, engine) ||
-        BTConditions["IsInWarningZone"](a, engine),
+        BTConditions["IsEvading"](a, engine, {}) ||
+        BTConditions["IsInWarningZone"](a, engine, {}),
 
     "SkillReady": (a, engine, args) => {
         const idx = args.slot; 
@@ -238,7 +239,7 @@ export const BTActions: Record<string, BTActionFn> = {
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
-        const inDanger = BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine);
+        const inDanger = BTConditions["IsInWarningZone"](a, engine, {}) || BTConditions["IsInUrgentDanger"](a, engine, {});
 
         if (!inDanger) {
             if (a.actionState === ActionState.EVADING) a.actionState = ActionState.IDLE;
@@ -250,7 +251,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
         // [FIX] 前置：若無任何安全鄰格可逃，直接放棄逃生分支，讓戰鬥分支接管
         // 避免「被 AOE 包圍 → findPathToSafety 永遠 null → 無限逃生迴圈」
-        if (inDanger && !BTConditions["HasEscapeRoute"](a, engine)) {
+        if (inDanger && !BTConditions["HasEscapeRoute"](a, engine, {})) {
             // 若已在移動中（慣性），維持 RUNNING 讓它跑完
             if (a.isMoving) {
                 a.aiState = AIState.EVADING_URGENT;
@@ -409,7 +410,7 @@ export const BTActions: Record<string, BTActionFn> = {
         // targetHex 完全為 null（完全被包圍無路可走）
         // 如果還在危險中，我們返回 FAILURE 讓 AI 有機會至少執行 Combat 分支（困獸之鬥）
         // 而不是停留在此分支返回 RUNNING 導致發呆
-        if (BTConditions["IsInWarningZone"](a, engine) || BTConditions["IsInUrgentDanger"](a, engine)) {
+        if (BTConditions["IsInWarningZone"](a, engine, {}) || BTConditions["IsInUrgentDanger"](a, engine, {})) {
             // 如果已經在移動中，則維持 RUNNING
             if (a.isMoving) {
                 a.aiState = AIState.EVADING_URGENT;
@@ -540,7 +541,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx]!;
 
         // 1. Path-Clearing Logic: Only trigger if in danger or evading
-        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
+        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine, {})) {
             let isTargetSafe = false;
             if (a.targetHex) {
                 const targetKey = HexUtils.key(a.targetHex);
@@ -606,7 +607,7 @@ export const BTActions: Record<string, BTActionFn> = {
         }
 
         // 射程不夠：嘗試走近，而非直接放棄
-        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine)) {
+        if (a.aiState === AIState.EVADING_URGENT || BTConditions["IsInWarningZone"](a, engine, {})) {
             const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
             if (dest) {
                 a.aiState = AIState.LAST_STAND_PUSH; 

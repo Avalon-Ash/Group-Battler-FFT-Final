@@ -1,4 +1,5 @@
 import { VFX_PARAM } from '../../../constants';
+import type { ParticleType } from '../../../types/VFXSchema';
 
 export interface Particle {
     active: boolean; 
@@ -15,7 +16,7 @@ export interface Particle {
     color: string;
     size: number;
     height?: number; 
-    type: 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'PILLAR' | 'DOMAIN' | 'SPRITE' | 'BLAST' | 'CHIP' | 'GRID_FIELD' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'HEX_GLOW' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE';
+    type: ParticleType;
     sx?: number; sy?: number; sz?: number; 
     tx?: number; ty?: number; tz?: number; 
     targetX?: number; 
@@ -23,6 +24,10 @@ export interface Particle {
     targetZ?: number; 
     style?: string; 
     ownerId?: string;
+    /** 終極技粒子標記（SequenceSystem 寫入，vfx/render.ts 讀取以決定繪製排序）。 */
+    pIsUlt?: boolean;
+    /** 終極技施放者 ID，供 cancelUltBySource 取消。 */
+    ultSourceId?: string;
     visualStyle?: string;
     delay?: number;
     image?: HTMLCanvasElement; 
@@ -70,6 +75,8 @@ export class VFXStateManager {
             p.style = undefined; 
             p.visualStyle = undefined;
             p.ownerId = undefined;
+            p.pIsUlt = undefined;
+            p.ultSourceId = undefined;
             p.delay = 0; 
             p.locked = false; 
             p.lockReason = undefined;
@@ -103,7 +110,7 @@ export class VFXStateManager {
     }
     public cancelUltBySource(sourceId: string) {
         this.particles = this.particles.filter(p => {
-            if ((p as any).ultSourceId === sourceId) {
+            if (p.ultSourceId === sourceId) {
                 this.releaseParticle(p);
                 return false;
             }

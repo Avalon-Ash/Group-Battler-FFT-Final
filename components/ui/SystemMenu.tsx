@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Icons } from './icons';
 import { GameEngine } from '../../engine/game';
+import type { ZoneConfig } from '../../types';
 
 interface SystemMenuProps {
     onToggleLogs: () => void;
@@ -58,13 +59,13 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onToggleLogs, onToggleDB
         if (engine) engine.director.enabled = val;
     };
 
-    const updateZoneConfig = (key: string, val: any) => {
+    const updateZoneConfig = <K extends keyof ZoneConfig>(key: K, val: ZoneConfig[K]) => {
         if (!engine) return;
         engine.zoneConfig[key] = val;
-        if (key === 'enabled') setZoneEnabled(val);
-        if (key === 'initialRadius') setZoneInitialRadius(val);
-        if (key === 'shrinkInterval') setZoneShrinkInterval(val);
-        if (key === 'minRadius') setZoneMinRadius(val);
+        if (key === 'enabled') setZoneEnabled(val as boolean);
+        if (key === 'initialRadius') setZoneInitialRadius(val as number);
+        if (key === 'shrinkInterval') setZoneShrinkInterval(val as number);
+        if (key === 'minRadius') setZoneMinRadius(val as number);
     };
 
     return (

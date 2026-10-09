@@ -70,7 +70,7 @@ function render(now: number) {
     // ---- Row 3 & 4: 地形頂面 / 側面材質 A-B ----
     const themes: Array<[string, string]> = [['FOREST', 'FOREST'], ['ICE', 'ICE'], ['DESERT', 'DESERT'], ['MAGMA', 'MAGMA']];
     themes.forEach(([key, type], i) => {
-        const theme = (TERRAIN_THEMES as any)[key] || (TERRAIN_THEMES as any)['VOID'];
+        const theme = TERRAIN_THEMES[key] || TERRAIN_THEMES['VOID'];
         const x = 110 + i * 190;
         MATERIAL_CONFIG.enabled = true;
         cell(x, 580, `${key} (new)`, () => TerrainRenderer.drawBlock(ctx, 0, 0, 46, 24, theme, type, now, 'FLAT', 1, i * 3 + 1, i + 2));

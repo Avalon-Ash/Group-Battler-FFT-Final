@@ -1,5 +1,6 @@
 
 import { Agent } from "../../../game";
+import type { Point } from "../../../../types";
 import { AssetManager } from "../../../assets";
 
 export const StateModelPainter = {
@@ -35,7 +36,7 @@ export const StateModelPainter = {
         }
 
         // 幾何繪製函數
-        const drawShard = (p1: any, p2: any, tipY: number, alpha: number) => {
+        const drawShard = (p1: Point, p2: Point, tipY: number, alpha: number) => {
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
