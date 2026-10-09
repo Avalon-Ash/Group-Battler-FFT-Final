@@ -19,7 +19,7 @@ export const GroundPainter = {
 
         let img = p.image || p.texture;
         if (!img && p.type !== 'SPRITE' && p.type !== 'GENERIC_DEBUG') {
-            p.image = VFXFactory.getTexture(p.type as any, p.color);
+            p.image = VFXFactory.getTexture(p.type, p.color);
             img = p.image;
         }
         
