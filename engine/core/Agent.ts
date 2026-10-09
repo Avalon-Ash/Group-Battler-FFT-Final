@@ -8,6 +8,7 @@ import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { UNIT_DB } from "../../data/units";
 import { BTNode } from "../behaviorTree";
+import { AGENT_CONSTANTS } from "../../constants";
 
 export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS' | 'DANGER' | 'INVINCIBLE';
 
@@ -53,7 +54,7 @@ export class Agent {
     public bt: BTNode | null = null;
     
     public aiUpdateTimer: number = 0;
-    public aiUpdateInterval: number = 0.08;
+    public aiUpdateInterval: number = AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
     public forceAiUpdate: boolean = false;
 
     // SSOT Update: Store terrain height 'h' to ensure trails respect topography
@@ -105,7 +106,7 @@ export class Agent {
 
     public deadLogged: boolean = false;
     public deathTimer: number = 0;
-    public readonly DEATH_ANIM_DURATION = 5.5;
+    public readonly DEATH_ANIM_DURATION = AGENT_CONSTANTS.DEATH_ANIM_DURATION;
     public fullyDead: boolean = false;
     public ragdoll: RagdollBone[] | null = null; // [ARCH] null = 未啟動，死亡時由 AgentManager 初始化
     public animState: AnimState = AnimState.IDLE;
@@ -146,7 +147,7 @@ export class Agent {
         }
         
         // Initial AI timing (will be refined by reset() usually, but safe to set here)
-        this.aiUpdateInterval = 0.08;
+        this.aiUpdateInterval = AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
         this.aiUpdateTimer = 0;
 
         this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR };
@@ -189,15 +190,8 @@ export class Agent {
         }
 
         // Set role-based AI interval with minor jitter to prevent frame-spiking
-        let baseInterval = 0.08;
-        switch (this.role) {
-            case Role.TANK: baseInterval = 0.08; break;
-            case Role.WARRIOR: baseInterval = 0.06; break;
-            case Role.RANGER: baseInterval = 0.07; break;
-            case Role.MAGE: baseInterval = 0.08; break;
-            case Role.SUPPORT: baseInterval = 0.10; break;
-        }
-        this.aiUpdateInterval = baseInterval + Math.random() * 0.02;
+        const baseInterval = AGENT_CONSTANTS.AI_UPDATE_INTERVAL_BY_ROLE[this.role] ?? AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
+        this.aiUpdateInterval = baseInterval + Math.random() * AGENT_CONSTANTS.AI_UPDATE_INTERVAL_JITTER;
         this.aiUpdateTimer = 0; // First frame execution as requested
 
         this.castingSkillIdx = -1;

@@ -172,8 +172,29 @@ export const COMBAT_PARAM = {
     MOVE_SPEED_ULT: 1.3,
     MOVE_SPEED_NORMAL: 1.0,
     CHASE_SPEED_ULT: 1.4,
-    CHASE_SPEED_NORMAL: 1.1
+    CHASE_SPEED_NORMAL: 1.1,
+    HIT_FX_OFFSET: 8
 };
+
+export const SCREEN_CONSTANTS = {
+    DEFAULT_WIDTH: 1200,
+    DEFAULT_HEIGHT: 675,
+    DEFAULT_ASPECT: 1.77
+};
+
+export const AGENT_CONSTANTS = {
+    DEFAULT_AI_UPDATE_INTERVAL: 0.08,
+    AI_UPDATE_INTERVAL_JITTER: 0.02,
+    DEATH_ANIM_DURATION: 5.5,
+    AI_UPDATE_INTERVAL_BY_ROLE: {
+        TANK: 0.08,
+        WARRIOR: 0.06,
+        RANGER: 0.07,
+        MAGE: 0.08,
+        SUPPORT: 0.10
+    }
+};
+
 
 export const ENV_SPRITE = {
   CANVAS_W: 128,          // 障礙物 Sprite canvas 寬度（px）
