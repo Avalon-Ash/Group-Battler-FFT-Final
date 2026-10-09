@@ -177,7 +177,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T1.2 | ☑ | 2026-10-09 | 完成清除簡單 any（BTRegistry、StackingResolver+SpatialProvider、MovementSystem、DOT_COLORS），分 4 次 commit，0 lint errors |
 | T1.3 | ☑ | 2026-10-09 | 完成 BarPainter CC key、EffectSystem DoT skill、ProjectileSystem target 鑑別、Billboard/Ground/UnitDeathPainter 型別；回報不存在欄位：resilience（CCManager 未定義）、factionColor（RagdollFactory 恆走 fallback）、camera（AgentVFXSystem 恆走 fallback） |
 | T1.4 | ☑ | 2026-10-09 | 完成 blue_basic.ts 依賴收斂至 types.ts，消除反向依賴，0 lint errors |
-| T1.5 | ☐ | | |
+| T1.5 | ☑ | 2026-10-09 | 完成 Agent / game / SkillExecutor 魔術數字抽取至 constants.ts，0 lint errors |
 | T2.1 | ☐ | | |
 | T2.2 | ☐ | | |
 | T2.3 | ☐ | | |
