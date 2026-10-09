@@ -180,7 +180,7 @@ Agent (data)  ←讀寫—  Systems（只依賴窄介面 + bus）
 | T1.5 | ☑ | 2026-10-09 | 完成 Agent / game / SkillExecutor 魔術數字抽取至 constants.ts，0 lint errors |
 | T2.1 | ☑ | 2026-10-09 | 完成 CCManager 狀態文字與顏色對齊 STATUS_VISUALS 查表，CCManager 內硬編碼色碼歸零，0 lint errors |
 | T2.2 | ☑ | 2026-10-09 | 完成 SkillExecutor 浮動文字顏色提取至 DAMAGE_TEXT_COLORS，SkillExecutor 內硬編碼色碼歸零，0 lint errors |
-| T2.3 | ☐ | | |
+| T2.3 | ☑ | 2026-10-09 | 完成 Imperial / Covenant TokenFactory 硬編碼色碼提取至 data/units/appearance/*，分 2 次 commit（T2.3-1, T2.3-2），0 lint errors |
 | T2.4 | ☐ | | |
 | T3.1 | ☐ | | |
 | T3.2 | ☐ | | |
