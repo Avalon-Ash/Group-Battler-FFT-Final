@@ -2,5 +2,7 @@
   "name": "Tactical Battler: Kernel v9.7",
   "description": "Production Release. Unified Visual SSOT Enforced. Data-Driven VFX Sequence Engine. Optimized Matrix Showcase System.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }
