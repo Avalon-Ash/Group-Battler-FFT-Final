@@ -142,6 +142,18 @@ export const TACTICAL_COLORS = {
     SUDDEN_DEATH_SUB: 'rgba(255, 255, 255, 0.6)'
 };
 
+// SSOT: Background Renderer Colors
+export const BACKGROUND_COLORS = {
+    VIGNETTE_START: 'rgba(0, 0, 0, 0)',
+    VIGNETTE_END: 'rgba(0, 0, 0, 0.8)',
+    STAR_WHITE: '#ffffff',
+    SKY_RIVER_PRIMARY: 'rgba(124, 58, 237, 0.25)',
+    SKY_RIVER_SECONDARY: 'rgba(79, 70, 229, 0.15)',
+    AURORA_COLOR: 'hsla(170, 80%, 60%, 0.15)',
+    CANOPY_RAY: 'rgba(255, 255, 255, 0.1)',
+    TRANSPARENT: 'rgba(0, 0, 0, 0)'
+};
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {

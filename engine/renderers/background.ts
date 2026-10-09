@@ -1,5 +1,5 @@
 import { SceneTheme } from "../../types";
-import { HEX_SIZE } from "../../constants";
+import { HEX_SIZE, BACKGROUND_COLORS } from "../../constants";
 import { AssetManager } from "../assets";
 import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";
@@ -82,8 +82,8 @@ export class BackgroundRenderer {
 
         const rad = Math.max(w, h);
         const vig = ctx.createRadialGradient(w/2, h/2, rad * 0.4, w/2, h/2, rad * 0.9);
-        vig.addColorStop(0, 'rgba(0,0,0,0)');
-        vig.addColorStop(1, 'rgba(0,0,0,0.8)');
+        vig.addColorStop(0, BACKGROUND_COLORS.VIGNETTE_START);
+        vig.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
         ctx.fillStyle = vig;
         ctx.fillRect(0, 0, w, h);
     }
@@ -117,7 +117,7 @@ export class BackgroundRenderer {
     }
 
     private drawStaticStars(ctx: CanvasRenderingContext2D, w: number, h: number, count: number) {
-        ctx.fillStyle = '#fff';
+        ctx.fillStyle = BACKGROUND_COLORS.STAR_WHITE;
         const seed = 123;
         for(let i=0; i<count; i++) {
             const sx = (Math.sin(i * seed) * 0.5 + 0.5) * w;
@@ -132,11 +132,11 @@ export class BackgroundRenderer {
         ctx.save();
         if (Number.isFinite(w) && Number.isFinite(h)) {
             const grad = ctx.createLinearGradient(0, 0, w, h * 0.8);
-            grad.addColorStop(0, 'rgba(0,0,0,0)');
-            grad.addColorStop(0.3, 'rgba(79, 70, 229, 0.15)');
-            grad.addColorStop(0.5, 'rgba(124, 58, 237, 0.25)');
-            grad.addColorStop(0.7, 'rgba(79, 70, 229, 0.15)');
-            grad.addColorStop(1, 'rgba(0,0,0,0)');
+            grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
+            grad.addColorStop(0.3, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
+            grad.addColorStop(0.5, BACKGROUND_COLORS.SKY_RIVER_PRIMARY);
+            grad.addColorStop(0.7, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
+            grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
             ctx.globalCompositeOperation = 'screen';
             ctx.fillStyle = grad;
             ctx.beginPath();
@@ -208,7 +208,7 @@ export class BackgroundRenderer {
         const pulse = 1.0 + Math.sin(t * 0.5) * 0.1;
         const horizonGrad = ctx.createRadialGradient(w/2, horizonY + 50, w * 0.2, w/2, horizonY + 50, w * 0.8 * pulse);
         horizonGrad.addColorStop(0, scene.horizon);
-        horizonGrad.addColorStop(1, 'rgba(0,0,0,0)');
+        horizonGrad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
         ctx.globalCompositeOperation = 'screen';
         ctx.globalAlpha = 0.3;
         ctx.fillStyle = horizonGrad;
@@ -235,11 +235,11 @@ export class BackgroundRenderer {
             if (Number.isFinite(w)) {
                 const grad = ctx.createLinearGradient(0, 0, w, 0);
                 grad.addColorStop(0, 'transparent');
-                grad.addColorStop(0.5, `hsla(170, 80%, 60%, 0.15)`); 
+                grad.addColorStop(0.5, BACKGROUND_COLORS.AURORA_COLOR); 
                 grad.addColorStop(1, 'transparent');
                 ctx.fillStyle = grad;
             } else {
-                ctx.fillStyle = `hsla(170, 80%, 60%, 0.15)`;
+                ctx.fillStyle = BACKGROUND_COLORS.AURORA_COLOR;
             }
             ctx.fill();
         }
@@ -247,7 +247,7 @@ export class BackgroundRenderer {
 
     private drawCanopyRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
         ctx.globalCompositeOperation = 'overlay';
-        const raySprite = VFXFactory.getTexture('BEAM', 'rgba(255,255,255,0.1)');
+        const raySprite = VFXFactory.getTexture('BEAM', BACKGROUND_COLORS.CANOPY_RAY);
         for (let i = 0; i < 4; i++) {
             const angle = Math.sin(t * 0.2 + i) * 0.1 + 0.6, x = w * (0.2 + i * 0.2) + Math.sin(t * 0.1) * 50;
             ctx.save(); ctx.translate(x, -100); ctx.rotate(angle); ctx.globalAlpha = 0.15 + Math.sin(t * 0.5 + i) * 0.05;
@@ -267,7 +267,7 @@ export class BackgroundRenderer {
         }
         ctx.globalAlpha = 0.2 + Math.sin(t * 2) * 0.05;
         ctx.fillRect(0, horizonY, w, h - horizonY);
-        ctx.globalAlpha = 0.05; ctx.fillStyle = '#fff';
+        ctx.globalAlpha = 0.05; ctx.fillStyle = BACKGROUND_COLORS.STAR_WHITE;
         for(let i=0; i<5; i++) {
             const y = h - ((t * 50 + i * 100) % (h * 0.4));
             ctx.fillRect(0, y, w, 10);
@@ -289,7 +289,7 @@ export class BackgroundRenderer {
         const windSpeed = 300, drift = t * windSpeed;
         if (Number.isFinite(w)) {
             const grad = ctx.createLinearGradient(0, 0, w, 0);
-            grad.addColorStop(0, 'rgba(0,0,0,0)'); grad.addColorStop(0.5, color); grad.addColorStop(1, 'rgba(0,0,0,0)');
+            grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); grad.addColorStop(0.5, color); grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
             ctx.fillStyle = grad;
         } else {
             ctx.fillStyle = color;
@@ -303,13 +303,13 @@ export class BackgroundRenderer {
         const mistH = 200, mistY = h - mistH;
         if (Number.isFinite(mistY) && Number.isFinite(h)) {
             const mistGrad = ctx.createLinearGradient(0, mistY, 0, h);
-            mistGrad.addColorStop(0, 'rgba(0,0,0,0)'); mistGrad.addColorStop(0.4, color); mistGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+            mistGrad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); mistGrad.addColorStop(0.4, color); mistGrad.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
             ctx.fillStyle = mistGrad;
         } else {
             ctx.fillStyle = color;
         }
         ctx.globalAlpha = 0.4 + Math.sin(t*3) * 0.1; ctx.fillRect(0, mistY, w, mistH);
-        ctx.strokeStyle = '#fff'; ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.beginPath();
+        ctx.strokeStyle = BACKGROUND_COLORS.STAR_WHITE; ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.beginPath();
         for (let i = 0; i < 30; i++) {
             const streakX = ((drift * 2.5 + i * 153) % (w + 200)) - 100, streakY = (Math.sin(i * 21) * 0.5 + 0.5) * (h * 0.8) + h * 0.2;
             ctx.moveTo(streakX, streakY); ctx.lineTo(streakX + 150, streakY + 5);
