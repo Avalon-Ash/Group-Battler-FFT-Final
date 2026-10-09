@@ -2,7 +2,7 @@
 import { Agent, GameEngine } from "../game";
 import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
-import { PHYSICS } from "../../constants";
+import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 
 export class PhysicsEngine {
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
@@ -113,7 +113,7 @@ export class PhysicsEngine {
                     const pct = Math.min(1.0, velocityOverhead / scaling);
                     const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
                     a.hp = Math.max(0, a.hp - rawDmg);
-                    engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: -rawDmg, color: '#ef4444', text: "墜落" });
+                    engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
                     engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
                     
                     engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });

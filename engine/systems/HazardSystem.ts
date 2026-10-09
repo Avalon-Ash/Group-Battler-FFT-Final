@@ -9,7 +9,7 @@
 import { GameEngine } from "../game";
 import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
 import { HexUtils } from "../utils";
-import { COMBAT_PARAM, HEX_SIZE } from "../../constants";
+import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
 
@@ -113,7 +113,7 @@ export class HazardSystem {
                 type: 'DAMAGE', 
                 pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                 value: -Math.floor(absorbed), 
-                color: '#bae6fd', 
+                color: DAMAGE_TEXT_COLORS.ABSORB, 
                 text: "ABSORB",
                 sourceId: hazard.sourceId,
                 targetId: agent.id
@@ -126,7 +126,7 @@ export class HazardSystem {
                 pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                 value: -Math.floor(dmg > 0 ? dmg : hazard.power),
                 color: hazard.color,
-                skill: { color: hazard.color, ccType: 'DOT' } as any,
+                skill: { color: hazard.color, ccType: 'DOT' },
                 sourceId: hazard.sourceId,
                 targetId: agent.id
             });

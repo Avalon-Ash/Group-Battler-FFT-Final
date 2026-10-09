@@ -1,6 +1,6 @@
 
 import { Agent, GameEngine } from "../../game";
-import { DOT_COLORS } from "../../../constants";
+import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
 
 export class EffectSystem {
     
@@ -51,7 +51,7 @@ export class EffectSystem {
                         type: 'DAMAGE', 
                         pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                         value: -Math.floor(rateAbsorb), 
-                        color: '#bae6fd', 
+                        color: DAMAGE_TEXT_COLORS.ABSORB, 
                         text: "ABSORB",
                         targetId: agent.id
                     });
@@ -90,7 +90,7 @@ export class EffectSystem {
                     type: 'HEAL', 
                     pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
                     value: Math.floor(healPerSec), 
-                    color: '#86efac',
+                    color: DAMAGE_TEXT_COLORS.HEAL,
                     targetId: agent.id
                 });
                 engine.log(null, 'HEAL', '持續治療', agent.id, `回復 ${Math.floor(healPerSec)} HP (再生)`);
