@@ -100,6 +100,7 @@ export interface SpatialProvider {
     isWarningTile(key: string): boolean;
     getTileDepth(q: number, r: number): number;
     getCurrentShrinkLevel(): number;
+    readonly isLastStand: boolean;
 }
 
 export interface Projectile {

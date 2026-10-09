@@ -12,7 +12,7 @@ export class StackingResolver {
 
     public resolve(spatial: SpatialProvider, logger: LogProvider) {
         // [PROMPT] 若處於背水一戰狀態，允許座標重疊（Stacking），規避尋路死鎖
-        if ((spatial as any).isLastStand) return; // SpatialProvider might need casting or additional check
+        if (spatial.isLastStand) return;
 
         const cellMap = new Map<number, Agent[]>();
         
