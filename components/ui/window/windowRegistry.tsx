@@ -68,3 +68,22 @@ export const RegisteredWindows: React.FC<WindowRenderContext> = (ctx) => (
         })}
     </>
 );
+
+export interface RegisteredWindowInfo {
+    id: WindowId;
+    title: string;
+    icon: React.ReactNode;
+}
+
+export function isWindowRegistered(id: WindowId): boolean {
+    return Boolean(WINDOW_REGISTRY[id]);
+}
+
+export function getRegisteredWindows(): RegisteredWindowInfo[] {
+    return WINDOW_DEFINITIONS.filter((def) => Boolean(WINDOW_REGISTRY[def.id])).map((def) => ({
+        id: def.id,
+        title: def.title,
+        icon: WINDOW_REGISTRY[def.id]!.icon,
+    }));
+}
+

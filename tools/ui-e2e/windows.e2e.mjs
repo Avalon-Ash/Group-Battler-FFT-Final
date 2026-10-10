@@ -34,12 +34,11 @@ const CLOSE_TITLE = '\u95dc\u9589\u8996\u7a97';
  *  - seed: windows without a menu entry are pre-opened through the persisted layout.
  */
 const SUITES = [
-    { id: 'logs', menuIndex: 3 },
-    { id: 'db', menuIndex: 4 },
-    { id: 'vfxmap', seed: { x: 100, y: 80, w: 720, h: 520 } },
-    { id: 'monitor', menuIndex: 2 },
+    { id: 'logs' },
+    { id: 'db' },
+    { id: 'vfxmap' },
+    { id: 'monitor' },
 ];
-
 
 let failures = 0;
 const ok = (name, cond, extra = '') => {
@@ -93,10 +92,15 @@ const rectOf = (page, id) => page.evaluate((wid) => {
     return { x: r.x, y: r.y, width: r.width, height: r.height, z: Number(e.style.zIndex) };
 }, id);
 
-const openViaMenu = async (page, index) => {
-    await page.locator('button.w-12.h-12').first().click();
+const openViaMenu = async (page, target) => {
+    const menuBtn = page.locator('[data-testid="system-menu-button"]').or(page.locator('button.w-12.h-12').first());
+    await menuBtn.click();
     await page.waitForTimeout(300);
-    await page.locator('button.min-w-\\[180px\\]').nth(index).click();
+    if (typeof target === 'string') {
+        await page.locator(`[data-testid="menu-item-${target}"]`).click();
+    } else {
+        await page.locator('button.min-w-\\[180px\\]').nth(target).click();
+    }
     await page.waitForTimeout(500);
 };
 
@@ -107,7 +111,12 @@ const runSuite = async (suite) => {
     console.log(`\n── window: ${id}`);
     const { ctx, page } = await newPage(suite);
     await enterManualMode(page);
-    if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
+    if (suite.menuIndex !== undefined) {
+        await openViaMenu(page, suite.menuIndex);
+    } else if (!suite.seed) {
+        await openViaMenu(page, suite.id);
+    }
+
 
     const b = await rectOf(page, id);
     ok(`${id}: opens`, !!b, JSON.stringify(b));
@@ -171,7 +180,9 @@ const runSuite = async (suite) => {
 
     // small viewport containment + recovery (reopen first)
     if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
+    else if (!suite.seed) await openViaMenu(page, suite.id);
     else await page.evaluate(([k, wid]) => { const m = JSON.parse(localStorage.getItem(k)); m[wid].open = true; localStorage.setItem(k, JSON.stringify(m)); }, [STORAGE_KEY, id]).then(() => page.reload({ waitUntil: 'networkidle' })).then(() => page.getByText(START_TEXT).click()).then(() => page.waitForTimeout(800));
+
     const full = await rectOf(page, id);
     await page.setViewportSize({ width: 420, height: 400 });
     await page.waitForTimeout(500);
@@ -189,8 +200,9 @@ const runMultiWindow = async () => {
     console.log('\n── multi-window');
     const { ctx, page } = await newPage({ id: 'vfxmap', seed: { x: 100, y: 80, w: 720, h: 520 } });
     await enterManualMode(page);
-    await openViaMenu(page, 3); // logs
-    await openViaMenu(page, 4); // db
+    await openViaMenu(page, 'logs');
+    await openViaMenu(page, 'db');
+
     const [logs, db, vfx] = await Promise.all(['logs', 'db', 'vfxmap'].map((id) => rectOf(page, id)));
     ok('three windows open at the same time', !!logs && !!db && !!vfx);
     if (!logs || !db || !vfx) { await ctx.close(); return; }

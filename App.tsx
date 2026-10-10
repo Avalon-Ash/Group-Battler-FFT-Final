@@ -58,15 +58,11 @@ function App() {
       />
       {!hideHUD && (
           <SystemMenu 
-              onToggleLogs={() => windowActions.toggle('logs')}
-              onToggleDB={() => windowActions.toggle('db')}
-              onToggleVFXMap={() => windowActions.toggle('vfxmap')}
-              onToggleMonitor={() => windowActions.toggle('monitor')}
               onDownloadSpec={actions.downloadSpec}
               engine={engineRef.current} 
-              monitorEnabled={isMonitorOpen}
           />
       )}
+
 
       {!hideHUD && state.selectedAgent && (
           <UnitInspectorHUD 
