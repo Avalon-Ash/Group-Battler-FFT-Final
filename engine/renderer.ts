@@ -93,6 +93,27 @@ export class GameRenderer {
             if (typeof cmd.zoomStiffness === 'number' && Number.isFinite(cmd.zoomStiffness)) {
                 this.camera.zoomStiffness = Math.max(UI_SETTINGS.CAMERA_STIFFNESS.min, Math.min(UI_SETTINGS.CAMERA_STIFFNESS.max, cmd.zoomStiffness));
             }
+        } else if (cmd.type === 'CAMERA_ZOOM') {
+            if (typeof cmd.zoom === 'number' && Number.isFinite(cmd.zoom)) {
+                this.camera.applyZoom(cmd.zoom);
+            }
+        } else if (cmd.type === 'CAMERA_PAN') {
+            if (typeof cmd.dx === 'number' && Number.isFinite(cmd.dx) && typeof cmd.dy === 'number' && Number.isFinite(cmd.dy)) {
+                this.camera.applyPanOffset(cmd.dx, cmd.dy);
+            }
+        } else if (cmd.type === 'CAMERA_SNAP') {
+            if (typeof cmd.x === 'number' && Number.isFinite(cmd.x) && typeof cmd.y === 'number' && Number.isFinite(cmd.y)) {
+                const z = (typeof cmd.zoom === 'number' && Number.isFinite(cmd.zoom)) ? cmd.zoom : this.camera.zoom;
+                this.camera.snapTo(cmd.x, cmd.y, z);
+            }
+        } else if (cmd.type === 'SET_VIEWPORT') {
+            if (typeof cmd.width === 'number' && Number.isFinite(cmd.width) && typeof cmd.height === 'number' && Number.isFinite(cmd.height) && cmd.height > 0) {
+                if (this.boundEngine) {
+                    this.boundEngine.screenW = cmd.width;
+                    this.boundEngine.screenH = cmd.height;
+                    this.boundEngine.screenAspect = cmd.width / cmd.height;
+                }
+            }
         }
     }
 

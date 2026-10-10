@@ -235,7 +235,11 @@ export type UICommand =
     | { type: 'START_GAME' }
     | { type: 'STOP_GAME' }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
-    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean };
+    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean }
+    | { type: 'CAMERA_ZOOM'; zoom: number }
+    | { type: 'CAMERA_PAN'; dx: number; dy: number }
+    | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
+    | { type: 'SET_VIEWPORT'; width: number; height: number };
 
 export * from './types/UIViewModel';
 
