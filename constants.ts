@@ -218,6 +218,23 @@ export const THEME_COVENANT = {
     spike: '#18181b'
 };
 
+export const TEAM_COLORS = {
+    [Team.BLUE]: {
+        primary: THEME_IMPERIAL.primary,
+        secondary: THEME_IMPERIAL.secondary,
+        glow: 'rgba(59, 130, 246, 0.6)',
+        armorLight: THEME_IMPERIAL.armorLight,
+        borderRadius: '1rem',
+    },
+    [Team.RED]: {
+        primary: THEME_COVENANT.primary,
+        secondary: THEME_COVENANT.secondary,
+        glow: 'rgba(239, 68, 68, 0.6)',
+        armorLight: '#fca5a5',
+        borderRadius: '0.25rem',
+    },
+} as const;
+
 export const LOG_COLORS = {
     MOVE: '#38bdf8',
     CAST: '#fbbf24',
