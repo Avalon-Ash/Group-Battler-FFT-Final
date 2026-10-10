@@ -43,6 +43,19 @@ export function clampRect(
 }
 
 /**
+ * Rect a maximized window occupies for the given viewport (single source for the store and ToolWindow).
+ */
+export function getMaximizedRect(viewport: { width: number; height: number }): WindowRect {
+    const margin = UI_WINDOW.MAXIMIZE_MARGIN;
+    return {
+        x: margin,
+        y: margin,
+        width: Math.max(UI_WINDOW.MIN_WIDTH, viewport.width - margin * 2),
+        height: Math.max(UI_WINDOW.MIN_HEIGHT, viewport.height - margin * 2),
+    };
+}
+
+/**
  * Serializes window states to JSON string.
  */
 export function serialize(windows: Record<string, WindowState>): string {
@@ -269,13 +282,7 @@ export class WindowStore {
                 width: typeof window !== 'undefined' ? window.innerWidth : UI_WINDOW.FALLBACK_VIEWPORT.width,
                 height: typeof window !== 'undefined' ? window.innerHeight : UI_WINDOW.FALLBACK_VIEWPORT.height,
             };
-            const margin = UI_WINDOW.MAXIMIZE_MARGIN;
-            win.rect = {
-                x: margin,
-                y: margin,
-                width: Math.max(UI_WINDOW.MIN_WIDTH, vp.width - margin * 2),
-                height: Math.max(UI_WINDOW.MIN_HEIGHT, vp.height - margin * 2),
-            };
+            win.rect = getMaximizedRect(vp);
             win.isMaximized = true;
             win.isCollapsed = false;
         } else {

@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
-import { WindowId } from '../../../types';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { WindowId, WindowRect } from '../../../types';
 import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
 import { useWindowState, useWindowActions } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
+import { clampRect, getMaximizedRect } from './windowStore';
 import { Icons } from '../icons';
 
 export interface ToolWindowProps {
@@ -13,6 +14,24 @@ export interface ToolWindowProps {
     children: React.ReactNode;
     headerActions?: React.ReactNode;
     className?: string;
+    /** Classes for the scrollable content body (defaults to padded). Pass e.g. `p-0` for edge-to-edge content. */
+    contentClassName?: string;
+}
+
+function readViewport(): { width: number; height: number } {
+    return typeof window !== 'undefined'
+        ? { width: window.innerWidth, height: window.innerHeight }
+        : UI_WINDOW.FALLBACK_VIEWPORT;
+}
+
+function useViewportSize(): { width: number; height: number } {
+    const [viewport, setViewport] = useState(readViewport);
+    useEffect(() => {
+        const onResize = () => setViewport(readViewport());
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
+    return viewport;
 }
 
 export const ToolWindow: React.FC<ToolWindowProps> = ({
@@ -22,6 +41,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     children,
     headerActions,
     className = '',
+    contentClassName = 'p-3',
 }) => {
     const windowRef = useRef<HTMLDivElement | null>(null);
     const state = useWindowState(id);
@@ -35,6 +55,16 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     const def = WINDOW_DEF_MAP[id];
     const displayTitle = title ?? def?.title ?? id;
     const minSize = def?.minSize;
+    const viewport = useViewportSize();
+
+    // Display rect is derived, never written back to the store: a saved layout survives a small
+    // viewport and comes back once the viewport grows again. Maximized always follows the viewport.
+    const storedRect = state?.rect ?? def?.defaultRect ?? UI_WINDOW.FALLBACK_RECT;
+    const isMaximizedState = state?.isMaximized ?? false;
+    const displayRect: WindowRect = useMemo(
+        () => (isMaximizedState ? getMaximizedRect(viewport) : clampRect(storedRect, viewport, minSize)),
+        [isMaximizedState, storedRect, viewport, minSize]
+    );
 
     const {
         handleTitlePointerDown,
@@ -46,7 +76,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         handleResizePointerUp,
     } = useWindowInteraction({
         windowRef,
-        rect: state?.rect ?? def?.defaultRect ?? UI_WINDOW.FALLBACK_RECT,
+        rect: displayRect,
         minSize,
         isMaximized: state?.isMaximized ?? false,
         isCollapsed: state?.isCollapsed ?? false,
@@ -70,10 +100,10 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             onPointerDown={(e) => e.stopPropagation()}
             style={{
                 position: 'fixed',
-                left: `${state.rect.x}px`,
-                top: `${state.rect.y}px`,
-                width: `${state.rect.width}px`,
-                height: isCollapsed ? 'auto' : `${state.rect.height}px`,
+                left: `${displayRect.x}px`,
+                top: `${displayRect.y}px`,
+                width: `${displayRect.width}px`,
+                height: isCollapsed ? 'auto' : `${displayRect.height}px`,
                 zIndex: state.zIndex,
                 pointerEvents: 'auto',
             }}
@@ -135,7 +165,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             {/* ── Content Body ─────────────────────────────────────── */}
             {!isCollapsed && (
                 <div
-                    className="flex-1 overflow-auto relative p-3 text-slate-200"
+                    className={`flex-1 overflow-auto relative text-slate-200 ${contentClassName}`}
                     style={{ touchAction: 'pan-y pan-x' }}
                 >
                     {children}
