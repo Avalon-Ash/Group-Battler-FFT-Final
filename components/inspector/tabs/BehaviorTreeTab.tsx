@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Agent, GameEngine } from '../../../engine/game';
 import { TreeNode } from '../parts/TreeNode';
 import { useDraggable } from '../../../hooks/useDraggable';
+import { useEngineCommands } from '../../../hooks/useEngineCommands';
 
 interface BehaviorTreeTabProps {
     agent: Agent;
@@ -12,6 +13,8 @@ interface BehaviorTreeTabProps {
 }
 
 export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version, engine }) => {
+    const { rebuildAgentAI } = useEngineCommands(engine);
+
     // BT Interaction State
     const [btScale, setBtScale] = useState(0.9); // Increased default scale for readability
     const [btPos, setBtPos] = useState({x: 0, y: 16});
@@ -36,13 +39,27 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
     const isDraggingBT = useRef(false);
     const lastMousePos = useRef<{x: number, y: number} | null>(null);
 
-    // Auto-Build AI if missing
+    // Auto-Build AI if missing via command
     useEffect(() => {
         if (!agent.bt && engine) {
-            agent.bt = engine.ai.buildAI(agent, engine);
+            rebuildAgentAI(agent.id);
             forceUpdate(n => n + 1);
         }
-    }, [agent, engine]);
+    }, [agent.id, agent.bt, engine, rebuildAgentAI]);
+
+    // Re-render when agent AI is reset
+    useEffect(() => {
+        if (!engine) return;
+        const onReset = (data: { agentId?: string }) => {
+            if (data.agentId === agent.id) {
+                forceUpdate(n => n + 1);
+            }
+        };
+        engine.bus.on('AGENT_RESET', onReset);
+        return () => {
+            engine.bus.off('AGENT_RESET', onReset);
+        };
+    }, [engine, agent.id]);
 
     const fitToView = useCallback(() => {
         if (!btContainerRef.current || !btContentRef.current) return;

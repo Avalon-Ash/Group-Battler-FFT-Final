@@ -217,7 +217,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 
 | U8 | ☑ | 2026-10-10 完成：ShowcaseSettings 視窗化（id: showcaseSettings，visibleInShowcase: true），刪除重複 Camera/Zone JSX 改用 SchemaForm，所有寫入改走 UICommand，E9 baseline 大幅下調（directEngineMutation 8, directRendererAccess 5, palette 427），e2e 7/7 全數 PASS |
 
-| E6 | ☐ | |
+| E6 | ☑ | 2026-10-10 完成：UnitInspectorHUD 與 BehaviorTreeTab 寫入全面改為 EDIT_AGENT / REBUILD_AGENT_AI 命令，唯讀屬性改走 selectAgentView，E9 baseline 下調（directAgentMutation 6 → 1），單元測試全綠，不做視窗化（U6 保留） |
 | U6 | ☐ | 先回報分段方案 |
 | E7 | ☐ | |
 | U9 | ☐ | |

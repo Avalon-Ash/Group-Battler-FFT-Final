@@ -7,6 +7,8 @@ import { Icons } from './icons';
 import { Helpers, ROLE_MAP } from '../inspector/InspectorConstants';
 import { BehaviorTreeTab } from '../inspector/tabs/BehaviorTreeTab';
 import { UnitStatusTab } from '../inspector/tabs/UnitStatusTab';
+import { selectAgentView } from '../../engine/systems/ui/selectors';
+import { useEngineCommands } from '../../hooks/useEngineCommands';
 
 interface UnitInspectorHUDProps {
     agent: Agent | null;
@@ -21,6 +23,9 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
     const [isMinimized, setIsMinimized] = useState(false);
     const [isConfigExpanded, setIsConfigExpanded] = useState(false); // Config Drawer State
     const [version, setVersion] = useState(0); // For forcing UI refresh
+
+    const { editAgent } = useEngineCommands(engine);
+    const agentView = selectAgentView(engine, agent?.id);
 
     // The ref moves the outer container
     const ref = useRef<HTMLDivElement>(null);
@@ -39,13 +44,20 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
 
     if (!agent) return null;
 
-    const isBlue = agent.team === Team.BLUE;
+    const currentRole = agentView?.role ?? agent.role;
+    const currentMaxHp = agentView?.maxHp ?? agent.maxHp;
+    const currentHp = agentView?.hp ?? agent.hp;
+    const currentMaxMp = agentView?.maxMp ?? agent.maxMp;
+    const currentMp = agentView?.mp ?? agent.mp;
+    const currentTeam = agentView?.team ?? agent.team;
+
+    const isBlue = currentTeam === Team.BLUE;
     const themeColor = isBlue ? 'text-blue-400' : 'text-red-400';
     const borderColor = isBlue ? 'border-blue-500/30' : 'border-red-500/30';
     const glowClass = isBlue ? 'shadow-[0_8px_32px_rgba(59,130,246,0.15)]' : 'shadow-[0_8px_32px_rgba(239,68,68,0.15)]';
 
-    const hpPct = (agent.hp / agent.maxHp) * 100;
-    const mpPct = (agent.mp / agent.maxMp) * 100;
+    const hpPct = currentMaxHp > 0 ? (currentHp / currentMaxHp) * 100 : 0;
+    const mpPct = currentMaxMp > 0 ? (currentMp / currentMaxMp) * 100 : 0;
 
     const renderRoleIcon = (role: Role) => {
         switch (role) {
@@ -60,7 +72,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
 
     const setRole = (r: string) => { 
         if (agent) {
-            agent.role = r as Role; 
+            editAgent(agent.id, { role: r as Role }); 
             setVersion(v => v + 1);
         }
     };
@@ -104,12 +116,12 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                             {/* Identity & Config Toggle */}
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                                 <div className={`w-10 h-10 flex items-center justify-center rounded-xl bg-black/40 border ${borderColor} ${themeColor} shadow-inner shrink-0`}>
-                                    {renderRoleIcon(agent.role)}
+                                    {renderRoleIcon(currentRole)}
                                 </div>
                                 <div className="flex flex-col min-w-0">
                                     <div className={`font-mono font-bold text-sm ${themeColor} leading-none tracking-tight truncate`}>{agent.id}</div>
                                     <div className="flex items-center gap-2 mt-1.5">
-                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{ROLE_MAP[agent.role]?.label || agent.role}</span>
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate">{ROLE_MAP[currentRole]?.label || currentRole}</span>
                                         {/* Config Button (Larger & clearer) */}
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setIsConfigExpanded(!isConfigExpanded); }}
@@ -170,7 +182,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block text-center">職業</label>
                                     <select 
                                         className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 focus:border-cyan-500/50 p-0 pl-2 text-white"
-                                        value={agent.role} 
+                                        value={currentRole} 
                                         onChange={(e) => setRole(e.target.value)}
                                     >
                                         {Object.values(Role).map(r => <option key={r} value={r} className="bg-slate-900">{ROLE_MAP[r].label.split(' ')[0]}</option>)}
@@ -181,8 +193,14 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-green-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-green-500/50 p-0"
-                                        value={Math.round(agent.maxHp)} 
-                                        onChange={(e) => { const v = parseInt(e.target.value); agent.maxHp = v; agent.hp = v; setVersion(n=>n+1); }} 
+                                        value={Math.round(currentMaxHp)} 
+                                        onChange={(e) => {
+                                            const v = parseInt(e.target.value, 10);
+                                            if (!Number.isNaN(v) && v > 0) {
+                                                editAgent(agent.id, { maxHp: v, hp: v });
+                                                setVersion(n => n + 1);
+                                            }
+                                        }} 
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -190,8 +208,14 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-blue-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-blue-500/50 p-0"
-                                        value={Math.round(agent.maxMp)} 
-                                        onChange={(e) => { agent.maxMp = parseInt(e.target.value); setVersion(n=>n+1); }} 
+                                        value={Math.round(currentMaxMp)} 
+                                        onChange={(e) => {
+                                            const v = parseInt(e.target.value, 10);
+                                            if (!Number.isNaN(v) && v >= 0) {
+                                                editAgent(agent.id, { maxMp: v });
+                                                setVersion(n => n + 1);
+                                            }
+                                        }} 
                                     />
                                 </div>
                             </div>
@@ -202,7 +226,7 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                             <div className="h-1.5 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                                 <div className="h-full bg-emerald-500 transition-all duration-300" style={{width: `${Math.max(0, hpPct)}%`}}></div>
                             </div>
-                            {agent.maxMp > 0 && (
+                            {currentMaxMp > 0 && (
                                 <div className="h-1 bg-black/50 rounded-full overflow-hidden w-full flex border border-white/5">
                                     <div className="h-full bg-cyan-500 transition-all duration-300" style={{width: `${mpPct}%`}}></div>
                                 </div>

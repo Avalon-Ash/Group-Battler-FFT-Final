@@ -1,6 +1,6 @@
 {
   "directEngineMutation": 8,
-  "directAgentMutation": 6,
+  "directAgentMutation": 1,
   "directRendererAccess": 5,
   "asAny": 0,
   "setIntervalCount": 4,
