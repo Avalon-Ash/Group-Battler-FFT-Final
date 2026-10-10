@@ -6,7 +6,6 @@ import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
 import { DirectorMonitorHUD } from './components/ui/DirectorMonitorHUD'; // 新增
 import { SystemMenu } from './components/ui/SystemMenu';
-import { ModalManager } from './components/ui/ModalManager';
 import { WindowLayer } from './components/ui/window/WindowLayer';
 import { RegisteredWindows } from './components/ui/window/windowRegistry';
 import { useWindowActions } from './hooks/useWindowStore';
@@ -18,7 +17,6 @@ function App() {
   const windowActions = useWindowActions();
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
-  const showModals = state.showDB || state.showVFXMap;
 
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
@@ -67,8 +65,8 @@ function App() {
       {!hideHUD && (
           <SystemMenu 
               onToggleLogs={() => windowActions.toggle('logs')}
-              onToggleDB={() => setters.setShowDB(!state.showDB)}
-              onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
+              onToggleDB={() => windowActions.toggle('db')}
+              onToggleVFXMap={() => windowActions.toggle('vfxmap')}
               onToggleMonitor={() => setters.setShowDirectorMonitor(!state.showDirectorMonitor)} // 新增
               onDownloadSpec={actions.downloadSpec}
               engine={engineRef.current} 
@@ -82,18 +80,7 @@ function App() {
               onClose={() => actions.handleSelectAgent(null)} 
           />
       )}
-      {showModals && (
-          <ModalManager 
-              showDB={state.showDB}
-              showVFXMap={state.showVFXMap}
-              engine={engineRef.current}
-              onClose={() => {
-                  setters.setShowDB(false);
-                  setters.setShowVFXMap(false);
-              }}
-          />
-      )}
-      {/* Floating tool windows (U3: Logs pilot). Hidden while the showcase overlay is active. */}
+      {/* Floating tool windows. Hidden while the showcase overlay is active. */}
       <WindowLayer showcaseMode={state.isShowcaseMode}>
           <RegisteredWindows engine={engineRef.current} />
       </WindowLayer>

@@ -3,6 +3,8 @@ import type { GameEngine } from '../../../engine/game';
 import { WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { LogTab } from '../../inspector/tabs/LogTab';
+import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
+import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 
@@ -27,6 +29,16 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         icon: <Icons.Log className="w-4 h-4" />,
         flush: true,
         render: ({ engine }) => <LogTab engine={engine} />,
+    },
+    db: {
+        icon: <Icons.Database className="w-4 h-4" />,
+        flush: true,
+        render: ({ engine }) => <SkillDbTab db={engine.skillDB} onUpdate={() => {}} />,
+    },
+    vfxmap: {
+        icon: <Icons.VFX className="w-4 h-4" />,
+        flush: true,
+        render: () => <VFXMapTab />,
     },
 };
 

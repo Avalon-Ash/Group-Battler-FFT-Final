@@ -35,9 +35,6 @@ export const useGameApp = () => {
     const [hud, setHud] = useState({
         selectedAgent: null as Agent | null,
         hoveredSkill: null as Skill | null,
-        showLogs: false,
-        showDB: false,
-        showVFXMap: false,
         showFactionWarning: false,
         showDirectorMonitor: false 
     });
@@ -173,7 +170,7 @@ export const useGameApp = () => {
         state: { 
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
-            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning,
+            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
             logs: engineRef.current.logs
         },
@@ -184,9 +181,6 @@ export const useGameApp = () => {
             setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
             setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
-            setShowLogs: (showLogs: boolean) => setHud(p => ({...p, showLogs})),
-            setShowDB: (showDB: boolean) => setHud(p => ({...p, showDB})),
-            setShowVFXMap: (showVFXMap: boolean) => setHud(p => ({...p, showVFXMap})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
             setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
             setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),
