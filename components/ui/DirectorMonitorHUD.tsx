@@ -1,83 +1,17 @@
 import React from 'react';
 import { GameEngine } from '../../engine/game';
-import { Team, AIState, ActionState } from '../../types';
+import { Team } from '../../types';
 import { useEngineView } from '../../hooks/useEngineView';
+import { selectDirectorTargetView } from '../../engine/systems/ui/selectors';
 import { Helpers } from '../inspector/InspectorConstants';
 
 interface DirectorMonitorHUDProps {
     engine?: GameEngine;
-    onClose?: () => void;
-}
-
-interface DirectorTargetSnapshot {
-    id: string;
-    team: Team;
-    hp: number;
-    maxHp: number;
-    mp: number;
-    maxMp: number;
-    targetId: string | null;
-    aiState: AIState;
-    actionState: ActionState;
-}
-
-let prevTargetSnapshot: DirectorTargetSnapshot | null = null;
-
-function selectDirectorTarget(engine: GameEngine): DirectorTargetSnapshot | null {
-    const ds = engine.state.director;
-    if (!ds.targetId) {
-        prevTargetSnapshot = null;
-        return null;
-    }
-    const agent = engine.agents.find((a) => a.id === ds.targetId);
-    if (!agent) {
-        prevTargetSnapshot = null;
-        return null;
-    }
-
-    const id = agent.id;
-    const team = agent.team;
-    const hp = agent.hp;
-    const maxHp = agent.maxHp;
-    const mp = agent.mp;
-    const maxMp = agent.maxMp;
-    const targetId = agent.target?.id ?? null;
-    const aiState = agent.aiState;
-    const actionState = agent.actionState;
-
-    if (
-        prevTargetSnapshot &&
-        prevTargetSnapshot.id === id &&
-        prevTargetSnapshot.team === team &&
-        prevTargetSnapshot.hp === hp &&
-        prevTargetSnapshot.maxHp === maxHp &&
-        prevTargetSnapshot.mp === mp &&
-        prevTargetSnapshot.maxMp === maxMp &&
-        prevTargetSnapshot.targetId === targetId &&
-        prevTargetSnapshot.aiState === aiState &&
-        prevTargetSnapshot.actionState === actionState
-    ) {
-        return prevTargetSnapshot;
-    }
-
-    prevTargetSnapshot = {
-        id,
-        team,
-        hp,
-        maxHp,
-        mp,
-        maxMp,
-        targetId,
-        aiState,
-        actionState,
-    };
-    return prevTargetSnapshot;
 }
 
 export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine }) => {
-    const targetAgent = useEngineView(engine, selectDirectorTarget);
+    const targetAgent = useEngineView(engine, selectDirectorTargetView);
 
-    const teamColor = targetAgent?.team === Team.BLUE ? 'cyan' : 'red';
     const accentColor = targetAgent?.team === Team.BLUE ? 'text-cyan-400' : 'text-red-500';
     const barColor = targetAgent?.team === Team.BLUE ? 'bg-cyan-500' : 'bg-red-500';
     const borderColor = targetAgent?.team === Team.BLUE ? 'border-cyan-500/50' : 'border-red-500/50';

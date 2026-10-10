@@ -12,6 +12,7 @@ import {
     selectLogView,
     selectLogs,
     selectGamePlaybackView,
+    selectDirectorTargetView,
 } from '../engine/systems/ui/selectors';
 import { EngineViewTicker } from '../hooks/useEngineView';
 
@@ -164,6 +165,83 @@ describe('UISelectors & EngineViewTicker', () => {
             unsub2();
             expect(ticker.activeSubscriberCount).toBe(0);
             expect(ticker.isRunning).toBe(false);
+        });
+    });
+
+    describe('selectDirectorTargetView & per-engine cache isolation', () => {
+        it('returns null when director has no target or target agent does not exist', () => {
+            engine.state.director.targetId = null;
+            expect(selectDirectorTargetView(engine)).toBeNull();
+
+            engine.state.director.targetId = 'non_existent_id';
+            expect(selectDirectorTargetView(engine)).toBeNull();
+        });
+
+        it('returns stable reference when director target properties do not change', () => {
+            const agent = new Agent('dir_agent_1', Team.BLUE, 0, 0, engine.mapConfig);
+            agent.hp = 500;
+            agent.maxHp = 1000;
+            engine.agents = [agent];
+            engine.state.director.targetId = agent.id;
+
+            const view1 = selectDirectorTargetView(engine);
+            expect(view1).not.toBeNull();
+            expect(view1?.id).toBe(agent.id);
+            expect(view1?.hp).toBe(500);
+
+            const view2 = selectDirectorTargetView(engine);
+            expect(view1).toBe(view2);
+        });
+
+        it('per-engine cache isolation: changing engines does not share or collide cached views', () => {
+            const engine1 = new GameEngine();
+            const engine2 = new GameEngine();
+            const agentA = new Agent('agent_A', Team.BLUE, 0, 0, engine1.mapConfig);
+            agentA.hp = 300;
+            const agentB = new Agent('agent_B', Team.RED, 1, 1, engine2.mapConfig);
+            agentB.hp = 700;
+
+            engine1.agents = [agentA];
+            engine2.agents = [agentB];
+            engine1.state.director.targetId = agentA.id;
+            engine2.state.director.targetId = agentB.id;
+
+            const viewA1 = selectDirectorTargetView(engine1);
+            const viewB1 = selectDirectorTargetView(engine2);
+
+            expect(viewA1?.id).toBe('agent_A');
+            expect(viewA1?.hp).toBe(300);
+            expect(viewB1?.id).toBe('agent_B');
+            expect(viewB1?.hp).toBe(700);
+
+            // Repeated calls per engine return stable reference for that engine
+            const viewA2 = selectDirectorTargetView(engine1);
+            expect(viewA2).toBe(viewA1);
+
+            const viewB2 = selectDirectorTargetView(engine2);
+            expect(viewB2).toBe(viewB1);
+        });
+
+        it('per-engine cache isolation for selectAgentView', () => {
+            const engine1 = new GameEngine();
+            const engine2 = new GameEngine();
+            const agent1 = new Agent('shared_agent', Team.BLUE, 0, 0, engine1.mapConfig);
+            agent1.hp = 100;
+            const agent2 = new Agent('shared_agent', Team.RED, 2, 2, engine2.mapConfig);
+            agent2.hp = 200;
+
+            engine1.agents = [agent1];
+            engine2.agents = [agent2];
+
+            const av1 = selectAgentView(engine1, 'shared_agent');
+            const av2 = selectAgentView(engine2, 'shared_agent');
+
+            expect(av1?.hp).toBe(100);
+            expect(av2?.hp).toBe(200);
+            expect(av1).not.toBe(av2);
+
+            const av1Repeat = selectAgentView(engine1, 'shared_agent');
+            expect(av1Repeat).toBe(av1);
         });
     });
 });

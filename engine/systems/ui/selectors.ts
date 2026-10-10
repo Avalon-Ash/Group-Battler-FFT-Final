@@ -7,11 +7,23 @@ import {
     LogView,
     GamePlaybackView,
 } from '../../../types/UIViewModel';
-import { Skill } from '../../../types';
+import { Skill, Team, AIState, ActionState } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 
+export interface DirectorTargetView {
+    readonly id: string;
+    readonly team: Team;
+    readonly hp: number;
+    readonly maxHp: number;
+    readonly mp: number;
+    readonly maxMp: number;
+    readonly targetId: string | null;
+    readonly aiState: AIState;
+    readonly actionState: ActionState;
+}
 
-const agentViewCache = new Map<string, AgentView>();
+let agentViewCaches = new WeakMap<GameEngine, Map<string, AgentView>>();
+let directorTargetViewCaches = new WeakMap<GameEngine, DirectorTargetView | null>();
 let prevDirectorView: DirectorView | null = null;
 let prevZoneView: ZoneView | null = null;
 let prevCameraTuningView: CameraTuningView | null = null;
@@ -22,7 +34,8 @@ let prevPlaybackView: GamePlaybackView | null = null;
  * Resets selector memoization caches. Primarily used in unit tests.
  */
 export function clearSelectorCache(): void {
-    agentViewCache.clear();
+    agentViewCaches = new WeakMap();
+    directorTargetViewCaches = new WeakMap();
     prevDirectorView = null;
     prevZoneView = null;
     prevCameraTuningView = null;
@@ -42,7 +55,13 @@ export function selectAgentView(
     const agent = engine.agents.find((a) => a.id === agentId);
     if (!agent) return null;
 
-    const prev = agentViewCache.get(agentId);
+    let cache = agentViewCaches.get(engine);
+    if (!cache) {
+        cache = new Map<string, AgentView>();
+        agentViewCaches.set(engine, cache);
+    }
+
+    const prev = cache.get(agentId);
 
     const isDead = agent.hp <= 0 || agent.banished || agent.fullyDead;
     const targetId = agent.target ? agent.target.id : (agent.tauntTargetId ?? undefined);
@@ -97,7 +116,7 @@ export function selectAgentView(
         skills,
     };
 
-    agentViewCache.set(agentId, next);
+    cache.set(agentId, next);
     return next;
 }
 
@@ -250,3 +269,63 @@ export function selectGamePlaybackView(engine: GameEngine): GamePlaybackView {
     prevPlaybackView = next;
     return next;
 }
+
+/**
+ * Returns a stable read-only DirectorTargetView snapshot for the current director target.
+ * Returns null if no target is locked or the agent is not found.
+ */
+export function selectDirectorTargetView(engine: GameEngine): DirectorTargetView | null {
+    const ds = engine.state?.director;
+    if (!ds?.targetId) {
+        directorTargetViewCaches.set(engine, null);
+        return null;
+    }
+    const agent = engine.agents.find((a) => a.id === ds.targetId);
+    if (!agent) {
+        directorTargetViewCaches.set(engine, null);
+        return null;
+    }
+
+    const prev = directorTargetViewCaches.get(engine);
+
+    const id = agent.id;
+    const team = agent.team;
+    const hp = agent.hp;
+    const maxHp = agent.maxHp;
+    const mp = agent.mp;
+    const maxMp = agent.maxMp;
+    const targetId = agent.target?.id ?? null;
+    const aiState = agent.aiState;
+    const actionState = agent.actionState;
+
+    if (
+        prev &&
+        prev.id === id &&
+        prev.team === team &&
+        prev.hp === hp &&
+        prev.maxHp === maxHp &&
+        prev.mp === mp &&
+        prev.maxMp === maxMp &&
+        prev.targetId === targetId &&
+        prev.aiState === aiState &&
+        prev.actionState === actionState
+    ) {
+        return prev;
+    }
+
+    const next: DirectorTargetView = {
+        id,
+        team,
+        hp,
+        maxHp,
+        mp,
+        maxMp,
+        targetId,
+        aiState,
+        actionState,
+    };
+
+    directorTargetViewCaches.set(engine, next);
+    return next;
+}
+
