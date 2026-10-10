@@ -212,7 +212,8 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U5 | ☑ | 2026-10-10 完成：DirectorMonitorHUD 視窗化（id: monitor）、改用 useEngineView 消除私有 setInterval（E9 baseline 下調至 4）、e2e 測試 12/12 PASS |
 
 | U7a | ☑ | 2026-10-10 完成：SystemMenu 轉型 ToolMenu，列出 registry 已註冊視窗、開啟狀態點、重設版面動作、點擊外部關閉、穩定 data-testid、e2e 全數 PASS |
-| U7b | ☐ | |
+| U7b | ☑ | 2026-10-10 完成：Director AI / Zone 設定視窗化（directorSettings / zoneSettings），改用 SchemaForm + useEngineCommands 派發 UICommand，徹底消除 SystemMenu 內直接寫入引擎與私有 modal 狀態，E9 baseline 下調（directEngineMutation 15, directRendererAccess 12, palette 461），e2e 6/6 全數 PASS |
+
 
 | U8 | ☐ | |
 | E6 | ☐ | |

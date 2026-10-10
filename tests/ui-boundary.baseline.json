@@ -1,8 +1,8 @@
 {
-  "directEngineMutation": 18,
+  "directEngineMutation": 15,
   "directAgentMutation": 6,
-  "directRendererAccess": 19,
+  "directRendererAccess": 12,
   "asAny": 0,
   "setIntervalCount": 4,
-  "tailwindPaletteClasses": 505
+  "tailwindPaletteClasses": 461
 }

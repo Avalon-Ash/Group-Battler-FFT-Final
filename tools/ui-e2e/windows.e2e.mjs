@@ -38,7 +38,10 @@ const SUITES = [
     { id: 'db' },
     { id: 'vfxmap' },
     { id: 'monitor' },
+    { id: 'directorSettings' },
+    { id: 'zoneSettings' },
 ];
+
 
 let failures = 0;
 const ok = (name, cond, extra = '') => {

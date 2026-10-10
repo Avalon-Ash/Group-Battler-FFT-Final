@@ -6,6 +6,7 @@ import { LogTab } from '../../inspector/tabs/LogTab';
 import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
 import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
+import { DirectorSettingsWindow, ZoneSettingsWindow } from '../settings/SettingsWindows';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 
@@ -46,7 +47,18 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         flush: true,
         render: ({ engine }) => <DirectorMonitorHUD engine={engine} />,
     },
+    directorSettings: {
+        icon: <Icons.TV className="w-4 h-4" />,
+        flush: true,
+        render: ({ engine }) => <DirectorSettingsWindow engine={engine} />,
+    },
+    zoneSettings: {
+        icon: <span className="text-sm">🗺️</span>,
+        flush: true,
+        render: ({ engine }) => <ZoneSettingsWindow engine={engine} />,
+    },
 };
+
 
 
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
