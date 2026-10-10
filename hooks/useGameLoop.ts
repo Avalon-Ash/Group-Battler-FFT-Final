@@ -3,7 +3,7 @@ import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine } from '../engine/game';
 import { GameEvent } from '../types';
 import { GameRenderer } from '../engine/renderer';
-import { getRenderDpr } from '../engine/renderers/RenderQuality';
+import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 
 export const useGameLoop = (
     engine: GameEngine,
@@ -101,6 +101,10 @@ export const useGameLoop = (
             if (!lastTime) lastTime = t;
             const dt = t - lastTime;
             lastTime = t;
+
+            if (dt > 0 && (typeof document === 'undefined' || !document.hidden)) {
+                getDefaultQualityGovernor().feedFrame(dt);
+            }
 
             // Increment Real Time strictly by dt
             realTimeRef.current += dt / 1000;

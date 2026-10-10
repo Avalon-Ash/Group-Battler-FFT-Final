@@ -2,6 +2,7 @@
 import { createCanvas } from "../graphics/CanvasUtils";
 import { MaterialPainter } from "../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
+import { isToneGradeEnabled } from "./RenderQuality";
 
 export class PostProcessor {
     private tempCanvas: HTMLCanvasElement;
@@ -50,6 +51,7 @@ export class PostProcessor {
      * 參數一律讀 MATERIAL_CONFIG.grade，可在暫停狀態下即時調整。
      */
     public applyToneGrade(ctx: CanvasRenderingContext2D, width: number, height: number) {
+        if (!isToneGradeEnabled()) return;
         if (!MATERIAL_CONFIG.enabled || !MATERIAL_CONFIG.grade.enabled) return;
         const filter = MaterialPainter.gradeFilter();
         if (filter === 'none') return;

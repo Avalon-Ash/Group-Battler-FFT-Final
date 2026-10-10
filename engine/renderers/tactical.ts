@@ -3,6 +3,7 @@ import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
 import { TACTICAL_COLORS } from "../../constants";
 import { RenderStats } from "./RenderStats";
+import { getQualityTier } from "./RenderQuality";
 
 export interface RenderCamera {
     x: number;
@@ -150,7 +151,9 @@ export class TacticalRenderer {
         ctx.fillText(`FPS: ${fps}`, 10, 20);
 
         if (RenderStats.enabled) {
-            ctx.fillText(RenderStats.formatSummary(), 10, 32);
+            const summary = RenderStats.formatSummary();
+            const text = summary ? `${summary} | tier:${getQualityTier()}` : `tier:${getQualityTier()}`;
+            ctx.fillText(text, 10, 32);
         }
 
         // SUDDEN DEATH WARNING
