@@ -1,0 +1,50 @@
+# 外出執行指令 #4（貼給 IDE 代理）
+
+> 用法：在 IDE 代理對話輸入 `/goal docs/UI_AGENT_PROMPT_4.md`（或貼上「指令本文」）。
+> 前情：`UI_AGENT_PROMPT_3` 做到 T1d 時中斷；主代理已補完 **T1e 並 commit（`6a3b27f`）**，且全量驗證通過（lint 0、test 101/101、build OK、`e2e:ui` ALL PASSED）。
+> 本輪：收尾 R7/R8 → 建立「**computed-style 視覺回歸護欄**」→ U11 Token SSOT（外觀必須逐像素等價）→ U12 響應式/觸控（以 e2e 幾何斷言驗證）。
+> **不做**：`U6`（子計畫待使用者核准，見 `docs/UI_U6_SUBPLAN.md`）、`E8`、`U13`、任何 push。
+
+---
+
+## 指令本文
+
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、已知陷阱、停下條件**完全沿用 `docs/UI_AGENT_PROMPT_2.md` 第 4–7 點與 `docs/UI_AGENT_PROMPT_3.md` 的額外規則**（≤3 檔、lint/test/build、接 React 的任務跑 `npm run e2e:ui` 並連跑兩次確認穩定、E9 baseline 只減不增、更新 `docs/UI_WINDOW_PLAN.md` 進度、一任務一 commit、**不 push、不動 `main`**、同題失敗 3 次就停）。
+
+先閱讀：`AGENTS.md`、`docs/UI_WINDOW_PLAN.md`（§2、§8、§10–§13）、`docs/UI_NIGHT_REPORT_2.md`、`docs/UI_AGENT_PROMPT_3.md`（R7/R8 的原始規格在其中）、`tailwind.config.js`、`index.css`、`constants.ts` 的 `TEAM_COLORS`/`UI_*`。確認在 `feat/ui-window`，且 `git status` 乾淨、`npm run e2e:ui` 現況為 ALL PASSED。
+
+### 任務（依序）
+
+`R7` → `R8` → `REPORT3` → `S1` → `U11a` → `U11b` → `U11c` → `U11d` → `U11e-1…n`（至多 10 批）→ `U12a` → `U12b` → `U12c` → `REPORT4`
+
+| 任務 | 內容 | 檔案（≤3；測試/docs/e2e/baseline 不計） | 驗證 |
+| :-- | :-- | :-- | :-- |
+| **R7** | 規格見 `UI_AGENT_PROMPT_3.md` 的 R7（`showcaseConfigStore` 取代模組級 `sharedConfig/sharedLayout`+listener+`show`-bridge；開窗改走 `useWindowActions`；Showcase 外觀與行為完全不變）。 | 新增 `showcaseConfigStore.ts`、`ShowcaseSettings.tsx`、`ShowcaseOverlay.tsx` | store 單元測試 + lint/test/build/e2e（Showcase 套件仍過） |
+| **R8** | 規格見 `UI_AGENT_PROMPT_3.md` 的 R8（Inspector 數字欄位「本地草稿 + blur/Enter 提交」）。**T1e 套件目前用 `fill('123')` 驗 maxHp，需同步改成 `fill` 後 `press('Enter')` 或 blur**，不得放寬斷言。 | `UnitInspectorHUD.tsx`（+ e2e） | lint/test/build/e2e |
+| **REPORT3** | 補寫 `docs/UI_NIGHT_REPORT_3.md`（R1a–R8、T1a–T1e 結果、行為差異：Showcase 時間倍率上限 3.0→5.0、相機剛度預設顯示改正；E9 baseline 前後；未驗證項）。 | docs | — |
+| **S1** | **視覺回歸護欄（先於任何 Token 工作）**：在 e2e 新增 `style-snapshot` 套件：對固定場景（手動模式；開啟全部 7 個視窗；Showcase 模式；選取一個單位的 Inspector）逐一以 `getComputedStyle` 擷取**關鍵元素**（視窗殼、標題列、按鈕、滑桿軌道/拇指、tab、liquid-card、HUD 藥丸、工具列、選單項目）的 `color / backgroundColor / borderTopColor / boxShadow / backdropFilter / opacity / borderRadius / fontSize`，寫入 `tools/ui-e2e/style-baseline.json`；比對時**逐欄位完全相等**，差異列出元素與欄位。環境變數 `E2E_UPDATE_STYLE=1` 才允許覆寫 baseline。為這些元素補穩定的 `data-testid`（只加屬性，不改樣式）。**必須先在目前未改動的樹上產生並 commit baseline**（這就是「改前」基準）。動畫中的值要先等待穩定或暫停動畫（`animation-play-state`/`page.emulateMedia({ reducedMotion: 'reduce' })`），不穩定的欄位排除並在報告列出。 | `tools/ui-e2e/windows.e2e.mjs`、`tools/ui-e2e/style-baseline.json`、（`data-testid` 最多 2 個元件檔） | 連跑兩次一致；故意改一個色值確認會抓到差異（再還原） |
+| **U11a** | `data/ui/tokens.ts`：語意 token SSOT。team 色**直接引用** `constants.ts` 的 `TEAM_COLORS`（不得複製色值）；定義 `surface`/`line`/`text`/`accent`/`danger`/`warn`/`team`…，色值**必須等於目前實際使用的 Tailwind 調色盤值**（例如 `cyan-400 = #22d3ee`；以 `tailwindcss/colors` 為準，寫成 `r g b` 通道字串以支援 `/20` 透明度）。 | 新增 `data/ui/tokens.ts`、`tests/UITokens.test.ts`（測：team 色等於 `TEAM_COLORS`、每個 token 值格式合法） | lint/test/build |
+| **U11b** | `tools/gen-ui-tokens.ts`（用 `tsx`/`vite-node` 其中**專案已有**者執行；不得新增依賴）→ 產生 `styles/tokens.css`（`:root{--…}`）；`package.json` 加 `gen:tokens`；測試：產物與 SSOT 一致（已 commit 的 css 重新產生後 diff 為空）。 | 新增 `tools/gen-ui-tokens.ts`、`styles/tokens.css`、`package.json` | lint/test/build |
+| **U11c** | `tailwind.config.js` 的 `theme.extend.colors` 以 `rgb(var(--token) / <alpha-value>)` 映射語意名；`index.css` 引入 `tokens.css`，並把 `liquid-*` 與 `--neon-*`、`--glass-*` 改引用 token；**`[data-team]` 區塊內的重複色值刪除，改由 token（來源 `TEAM_COLORS`）提供**。 | `tailwind.config.js`、`index.css`、`styles/tokens.css`（若需補變數） | lint/test/build/e2e + **style-snapshot 必須 0 差異** |
+| **U11d** | `ToolWindow.tsx`（§10 F8）內寫死的 Tailwind 調色盤換成語意 token class。 | `ToolWindow.tsx`（+ 必要時 `WindowLayer.tsx`） | e2e + **style-snapshot 0 差異**；E9 `tailwindPaletteClasses` 下調 |
+| **U11e-n** | 依 E9 統計，每批挑調色盤用量最多的 ≤3 個元件，把 `text/bg/border/ring/shadow/from/to/via-(cyan\|slate\|red\|blue\|amber\|emerald\|purple\|orange\|rose\|indigo\|yellow\|green\|violet\|sky)-NNN(/α)?` 換成語意 token class（**純改名，色值必須逐一對應**；沒有對應 token 的色先補進 `tokens.ts` 並重新 `gen:tokens`，不要用近似色）。每批後下調 `tailwindPaletteClasses` baseline。**至多 10 批**，其餘留待下輪，寫進報告。動態類名（模板字串拼接）不可拆，改成完整類名查表（`Record<Team, string>`）。 | 每批 ≤3 檔 | 每批：lint/test/build/e2e + **style-snapshot 0 差異** |
+| **U12a** | **≤900px bottom sheet**：新增 `UI_WINDOW.SHEET_BREAKPOINT=900`、`SHEET_MAX_VH=72`（常數）。`ToolWindow` 在窄螢幕以底部面板呈現：寬度 100%、貼底、`max-height: min(72vh, …)`、**禁用拖曳/縮放/最大化把手**、一次只顯示最上層一個（其餘保持 open 狀態但不渲染為可見，切換回寬螢幕恢復）。**不改寫已存 rect**（顯示時推導，與 F1 同原則）。 | `ToolWindow.tsx`、`constants.ts`、（`WindowLayer.tsx`） | e2e：以 390×844 viewport 開 3 個視窗，斷言：只有一個可見、寬=viewport、底邊貼齊、高 ≤72vh、無把手元素；放大回 1440 恢復原 rect。**style-snapshot 寬螢幕場景仍 0 差異** |
+| **U12b** | **觸控命中區**：`@media (pointer: coarse)` 下標題列按鈕與把手命中區 ≥44px（`UI_WINDOW` 常數；視覺大小可不變，用 padding/偽元素擴大命中區）。`prefers-reduced-motion`：關閉 `animate-*` 與 `transition-all` 大動畫。 | `ToolWindow.tsx`、`index.css`、`constants.ts` | e2e：以 `hasTouch:true,isMobile:true` context，量測標題列按鈕/把手 bounding box ≥44px；`emulateMedia({reducedMotion:'reduce'})` 下動畫元素 `animationName==='none'` |
+| **U12c** | **觸控捲動**：根節點 `touch-none` 收斂到 Canvas 區，面板（視窗內容）可捲動（`touch-action: pan-y pan-x`）；視窗標題與把手仍 `touch-action:none`。 | `App.tsx`、`ToolWindow.tsx`（`index.css` 如需） | e2e：用 CDP `Input.synthesizeScrollGesture` 在 Logs/SkillDB 視窗內容上垂直捲動，斷言 `scrollTop` 改變且視窗 rect 不變、Canvas 相機不動（讀 `__TACTICAL_ENGINE__.renderer.camera`）。若 CDP 手勢在 headless 不可靠，標「未驗證」並寫入報告，**不要硬寫不穩定測試** |
+| **REPORT4** | `docs/UI_NIGHT_REPORT_4.md`：逐任務結果、style-snapshot 欄位清單與排除項、E9 baseline 前後（含 `tailwindPaletteClasses`）、U11e 完成批數與剩餘量、U12 的 e2e 斷言清單、未驗證項、**建議使用者手動看的畫面清單**（寬螢幕外觀對照、手機實機的 bottom sheet、觸控縮放/拖曳）。 | docs | — |
+
+### 本輪額外規則
+
+- **U11 的鐵律是「外觀逐像素等價」**：任何一批 `style-snapshot` 出現差異 → 還原該批、找出沒對上的色值、補 token 或修正對應後重做；**不得更新 baseline 來讓測試通過**（`E2E_UPDATE_STYLE=1` 只允許在 S1 使用一次）。
+- U12 若需要改視窗行為的語意（例如 bottom sheet 內是否允許多開），**停下回報**，不要自行決定。
+- 觸控相關 e2e 若在 headless 不可靠，優先量測幾何與 computed style（可靠），避免模擬複雜手勢。
+- 時間/額度吃緊時的取捨順序：保 `R7→R8→REPORT3→S1→U11a-d→U12a`，其餘可略並在報告列為未完成。**任何時候中斷都要確保工作樹乾淨且最後一個 commit 全綠。**
+
+---
+
+## 回來後使用者要做的事（給人看）
+
+1. `git log feat/ui-window --oneline`，讀 `docs/UI_NIGHT_REPORT_3.md`、`UI_NIGHT_REPORT_4.md`。
+2. 決定 `docs/UI_U6_SUBPLAN.md` 的 5 個問題（建議值都寫在裡面），核准後再讓代理做 U6。
+3. `npm run dev` 目視比對外觀（Token 化應與之前一模一樣）；手機實機看 bottom sheet 與觸控。
+4. 合併進 `main`（= 發佈到 GitHub Pages）前先別 push。
