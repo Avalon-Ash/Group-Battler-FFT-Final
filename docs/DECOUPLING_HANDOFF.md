@@ -318,3 +318,28 @@ npm run lint; npm run build
 - BTRegistry 仍有 10 處 engine.movement/combat/zones 直接呼叫、SkillExecutor 4 處（T4.1 已窄介面化，T4.2 因順序風險保留同步）。
 - Math.random 仍散落於 AI、VFX、HUD、CameraSystem、ProjectileSystem/SkillExecutor（暴擊預擲），可續行 T6.7 擴大替換。
 - 剩餘 hp 直接寫入皆屬有意：SkillExecutor（技能管線）、ZoneSystem/PhysicsEngine 深淵落（地形例外）、HoT 治療、初始化/重置。
+
+---
+
+## 10. UI 管線合併與效能優化分支規則（2026-10-11）
+
+### 10.1 UI 視窗化管線已合併進 `main`
+- 分支 `feat/ui-window`（80+ commits）以 `--no-ff` 合併進 `main`（合併 commit 見 `git log main -1`）。內容：浮動工具視窗系統、Tailwind CDN 移除與建置管線、語意 Token SSOT（`data/ui/tokens.ts` → `styles/tokens.css`）、UICommand 唯一寫入閘門（`engine/systems/ui/UICommandSystem.ts`）、`useEngineView` 共用 ticker、Inspector 視窗化、≤900px bottom sheet、觸控命中區、編輯器/相機命令化（E8）。
+- 驗證（合併後在 `main` 上）：`npm run lint` 0 errors、`npm test` 150/150、`npm run build` 通過、`npm run e2e:ui` ALL PASSED（含 style-snapshot 0 差異）。
+- 合併前主代理審查修正：D13 把 `battleTime` 累加移到 `engine.tick` **開頭**會讓所有系統提早一步看到時間 → 已改為 tick **結尾**累加（`tests/EngineTick.test.ts` 有順序測試）。
+- 報告：`docs/UI_NIGHT_REPORT.md`～`_4.md`、`docs/UI_MERGE_CHECKLIST.md`（含預期外觀差異清單與回退指南）。本地 tag `ui-ckpt-*`（只存在本機，未推送）。
+- **發佈狀態**：合併為本機動作；`git push origin main` 會觸發 GitHub Pages 部署，需使用者確認後才推。
+
+### 10.2 FPS／渲染效能優化：一律在獨立分支 `perf/render-opt` 進行（規則）
+- **分支**：由合併後的 `main` 開出 `perf/render-opt`。**所有效能優化 commit 只進此分支；禁止直接在 `main` 上做渲染效能改動。** 合併回 `main` 前必須：`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui`、`npm run perf:guard`（P8 完成後）全綠，並由使用者審閱 `docs/PERF_REPORT.md`。
+- **執行入口**：`/goal docs/PERF_AGENT_PROMPT.md`（IDE 代理；不 push、不動 `main`）。本地 tag：`perf-ckpt-P0`、`perf-ckpt-P1`、`perf-ckpt-P4`、`perf-ckpt-P5`、`perf-ckpt-final`。
+- **調查結論（`docs/PERF_FINDINGS.md`）**：頭號元兇是 `TerrainRenderer.drawBlock` 每格每幀重畫「clip + overlay 顆粒」，約占渲染時間 40–47%（RTX 4070 實機與 headless 一致：閒置每幀約 10–12 ms，關掉顆粒後約 5–8 ms）。次要：全螢幕色調分級、畫布 DPR 無上限、`shadowBlur`、`backdrop-filter`／矩陣雨（僅量測）。
+- **量測工具**：`npm run perf:profile`（CDP 取樣）、`npm run perf:ab`（逐項關閉特效 A/B，`PERF_HEADED=1` 走真實 GPU）、`npm run perf:fidelity`（決定性截圖比對，P0c 後可用）。URL：`?perf` 顯示各階段 ms、`?quality=0..3` 釘死品質階層（P0b/P5 後可用）。
+- **畫面保真是鐵律**：渲染優化不得改變外觀（門檻：meanAbsDiff ≤ 0.8、badPixelPct ≤ 0.5%）；**不得重錄 baseline 來通過測試**。
+- **長期方向（尚未排程）**：「烘焙化渲染」——程序化材質改為啟動時烘焙成圖集，執行期只貼圖（HD 風格、不旋轉；素材槽可日後替換為手繪/AI 素材）。目標每幀：閒置 ≤5 ms、戰鬥 ≤6 ms（≈165 FPS）、延伸 ≤4.2 ms（240 FPS）。是否改用 WebGL 需使用者先改寫 `AGENTS.md` §1.4（目前禁止；原因文件未載明，推測為零依賴與維持單一 Canvas 2D 心智模型）。提示 6（單位圖集／VFX 預烘焙／`shadowBlur` 預烘焙光暈，後者會小幅改變外觀需使用者核定）待 `PERF_REPORT.md` 的殘餘熱點排名後再寫。
+
+### 10.3 仍待處理
+- 手動目視項（`docs/UI_MERGE_CHECKLIST.md` §3 A–D）尚未由使用者確認；觸控捲動的 CDP 手勢在 headless 回報 `scrollTop 0`（e2e 標 INFO，需實機確認）。
+- `U13`（Tabs／CommandBar／InfoTip／Dialog／頂部狀態列）為選配，使用者未提需求，未排程。
+- `README.md` 仍提到已刪除的 `UnitInspectorHUD`（現為 `inspector` 視窗＋`UnitInspectorBody`）。
+- `tailwindPaletteClasses` baseline 仍有 369 處待 Token 化（U11e 批次未全做完，見 `UI_NIGHT_REPORT_4.md`）。

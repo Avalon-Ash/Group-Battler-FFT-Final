@@ -1,7 +1,7 @@
 # 外出執行指令 #5：渲染效能優化（貼給 IDE 代理）
 
 > 用法：在 IDE 代理對話輸入 `/goal docs/PERF_AGENT_PROMPT.md`（或貼上「指令本文」）。
-> **前置條件（重要）**：必須在 `docs/UI_AGENT_PROMPT_4.md` 那一輪**跑完或已停止後**才啟動，**兩輪絕對不可同時執行**（同一個工作樹、同一條分支）。
+> **前置條件（重要）**：UI 管線（提示 1–4）已合併進 `main`。**本輪必須在獨立分支 `perf/render-opt` 上進行**（由 `main` 開出，見 `docs/DECOUPLING_HANDOFF.md` §10.2）；**不得在 `main` 或 `feat/ui-window` 上工作，不得合併回 `main`（合併由使用者審閱後決定）**。同一時間只能有一個代理在此工作樹執行。
 > 前情：主代理已完成調查（`docs/PERF_FINDINGS.md`，**必讀**）：頭號元兇是 `TerrainRenderer.drawBlock` 每格每幀重畫「clip + overlay 顆粒」（關掉後每幀 8–10 ms → 4–6 ms）。本輪建立保真與量測護欄 → 地形 sprite 快取 → 解析度 SSOT/上限/自適應品質 → 有上限的殘餘熱點修正 → 只量測 UI 的 backdrop-filter / 矩陣雨。
 > **整串一次跑完（無待核定事項）**。**不做**：任何 push / 動 `main` / 合併、任何 CSS/Tailwind 改動（會與 UI 提示 4 的 style-snapshot 基準衝突）、改變單位/VFX/HUD 的外觀。
 
@@ -9,11 +9,11 @@
 
 ## 指令本文
 
-你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、已知陷阱、停下條件**完全沿用 `docs/UI_AGENT_PROMPT_2.md` 第 4–7 點與 `docs/UI_AGENT_PROMPT_3.md` 的額外規則**（≤3 檔、lint/test/build、E9 baseline 只減不增、一任務一 commit、**不 push、不動 `main`**、同題失敗 3 次就停），**唯一差異**：本輪不更新 `docs/UI_WINDOW_PLAN.md`，進度寫在 `docs/PERF_BASELINE.md` 的「任務進度」表。`npm run e2e:ui` 只在標有 **[E2E]** 的任務與 FINAL 跑（每次連跑兩次）。
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、已知陷阱、停下條件**完全沿用 `docs/UI_AGENT_PROMPT_2.md` 第 4–7 點與 `docs/UI_AGENT_PROMPT_3.md` 的額外規則**（≤3 檔、lint/test/build、E9 baseline 只減不增、一任務一 commit、**不 push、不動 `main`**、同題失敗 3 次就停），**差異**：① 本輪不更新 `docs/UI_WINDOW_PLAN.md`，進度寫在 `docs/PERF_BASELINE.md` 的「任務進度」表；② 上述文件中提到 `feat/ui-window` 之處一律改讀為 `perf/render-opt`；③ `REPORT` 完成後，必須把結果摘要（改前改後 ms、各 tag、保真結果、未完成項、建議）補寫進 `docs/DECOUPLING_HANDOFF.md` §10.2 之後（新增 §10.4「效能優化結果」），這是交接文件的一部分。`npm run e2e:ui` 只在標有 **[E2E]** 的任務與 FINAL 跑（每次連跑兩次）。
 
 先閱讀：`AGENTS.md`、`docs/PERF_FINDINGS.md`、`types.ts`、`constants.ts`、`engine/renderers/RenderSpec.ts`、`data/vfx/materialConfig.ts`、`engine/renderers/RenderPipeline.ts`、`engine/renderers/grid/TerrainRenderer.ts`、`engine/graphics/materials/MaterialPainter.ts`（`paintTerrainGrain`/`paintSideGrain`）、`engine/graphics/materials/NoiseLib.ts`（`getGrainTile`/`variantFor`）、`engine/renderers/PostProcessor.ts`、`hooks/useGameLoop.ts`、`tools/ui-e2e/perf-profile.mjs`、`tools/ui-e2e/perf-ab.mjs`。
 
-**開工檢查**：在 `feat/ui-window`；`git status` 乾淨（若有未提交的變更 → **停下回報，那表示 UI 提示 4 仍在執行**）；`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui` 全綠。確認 `docs/PERF_BASELINE.md` 若已存在，從第一個未完成任務接續。
+**開工檢查**：目前分支必須是 `perf/render-opt`（若不是 → 先 `git checkout perf/render-opt`；若該分支不存在 → 停下回報，**不要自行從別的分支開**）；`git status` 乾淨（若有未提交的變更 → **停下回報，可能有其他代理正在執行**）；`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui` 全綠。確認 `docs/PERF_BASELINE.md` 若已存在，從第一個未完成任務接續。
 
 ### 任務（依序）
 
@@ -53,7 +53,7 @@
 
 ## 回來後使用者要做的事（給人看）
 
-1. `git log feat/ui-window --oneline`，讀 `docs/PERF_REPORT.md`。
+1. `git log perf/render-opt --oneline`，讀 `docs/PERF_REPORT.md`。
 2. **用你自己的電腦量**：`npm run dev`，網址後面加 `?perf`（例如 `http://localhost:5173/?perf`），看畫面上的 FPS 與各階段 ms；再試 `?quality=0`（完整）、`?quality=2`、`?quality=3` 比較。把數字回報給主代理（尤其是：哪個階段最高、DPR 是多少、螢幕解析度）。
 3. 目視比對幾個場景（VOID/FOREST/ICE/MAGMA/DESERT）的地形顆粒質感與改前是否一致；縮放到最大/最小看是否模糊。
 4. 不要 push；合併進 `main`（= 發佈到 GitHub Pages）前先等主代理審查。
