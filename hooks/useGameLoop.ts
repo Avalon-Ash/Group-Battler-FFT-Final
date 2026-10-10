@@ -46,8 +46,8 @@ export const useGameLoop = (
 
                 if (logicalW === 0 || logicalH === 0) return;
 
-                // Sync Aspect Ratio to Engine
-                engine.screenAspect = logicalW / logicalH;
+                // Sync Viewport to Engine via UICommand
+                engine.bus.emit('UI_COMMAND', { type: 'SET_VIEWPORT', width: logicalW, height: logicalH });
 
                 if (canvasRef.current.width !== physicalW || canvasRef.current.height !== physicalH) {
                     canvasRef.current.width = physicalW;

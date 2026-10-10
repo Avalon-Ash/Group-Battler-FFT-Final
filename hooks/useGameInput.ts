@@ -128,10 +128,8 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
         if (interactionMode.current === 'PAN') { 
-            // 如果玩家手動拖曳，通知 CameraSystem 暫停自動導播
-            if (rendererRef.current?.camera) {
-                rendererRef.current.camera.applyPanOffset(dx, dy);
-            }
+            // 如果玩家手動拖曳，通知 CameraSystem 暫停自動導播 (D12: 透過 UICommand 派發)
+            engine.bus.emit('UI_COMMAND', { type: 'CAMERA_PAN', dx, dy });
             // 同時更新 React 的 ref 狀態供其他組件讀取 (HUD等)
             if (cameraRef.current) {
                 // 注意：這裡其實是把「期望位置」反饋給 React 狀態
