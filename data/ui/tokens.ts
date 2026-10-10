@@ -72,7 +72,9 @@ export const UI_TOKENS = {
         hover: '248 113 113',   // red-400
         active: '220 38 38',    // red-600
         subtle: '252 165 165',  // red-300
+        faint: '254 202 202',   // red-200
         deep: '127 29 29',      // red-900
+        dark: '69 10 10',       // red-950
     },
     warn: {
         DEFAULT: '245 158 11', // amber-500

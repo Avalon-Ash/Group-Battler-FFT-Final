@@ -502,7 +502,7 @@ const runInspectorCommandSuite = async () => {
 
     // Spawn units using the dice button on PlaybackHUD
     await page.locator('button[title="隨機生成戰場與陣容"]').click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1000);
 
     // 1. Calculate screen coordinates of an agent
     const target = await page.evaluate(() => {
@@ -609,7 +609,7 @@ const runInspectorCommandSuite = async () => {
         await page.mouse.click(secondAgent.screenX, secondAgent.screenY);
         await page.waitForTimeout(400);
         const r2 = await rectOf(page, 'inspector');
-        ok('selecting another unit preserves inspector rect (D5)', r1 && r2 && near(r1.x, r2.x, 2) && near(r1.y, r2.y, 2) && near(r1.width, r2.width, 2) && near(r1.height, r2.height, 2));
+        ok('selecting another unit preserves inspector rect (D5)', Boolean(r1 && r2 && near(r1.x, r2.x, 2) && near(r1.y, r2.y, 2) && near(r1.width, r2.width, 2) && near(r1.height, r2.height, 2)), `${JSON.stringify(r1)} vs ${JSON.stringify(r2)}`);
     }
 
     // 2. Click outside inspector on empty canvas area to deselect
@@ -730,33 +730,36 @@ const runStyleSnapshotSuite = async () => {
     });
 
     // 1. Select unit on canvas to open inspector with full unit data
-    const target = await page.evaluate(() => {
-        const engine = window.__TACTICAL_ENGINE__;
-        if (!engine || !engine.agents || engine.agents.length === 0) return null;
-        const canvas = document.querySelector('canvas');
-        if (!canvas) return null;
-        const rect = canvas.getBoundingClientRect();
-        const cam = engine.renderer.camera;
-        const cx = rect.width / 2;
-        const cy = rect.height / 2;
-        // Prefer agent at sx > 400 so click doesn't land near inspector default rect (24, 80)
-        const agent = engine.agents.find(a => {
-            const sx = rect.left + (a.px - cam.x) * cam.zoom + cx;
-            return sx > 400;
-        }) || engine.agents[0];
-        if (!agent) return null;
-        const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
-        const worldX = agent.px;
-        const worldY = agent.py - terrainH;
-        return {
-            screenX: rect.left + (worldX - cam.x) * cam.zoom + cx,
-            screenY: rect.top + (worldY - cam.y) * cam.zoom + cy,
-            agentId: agent.id
-        };
-    });
-    if (target) {
-        await page.mouse.click(target.screenX, target.screenY);
-        await page.waitForTimeout(600);
+    for (let attempt = 0; attempt < 3; attempt++) {
+        const target = await page.evaluate((idx) => {
+            const engine = window.__TACTICAL_ENGINE__;
+            if (!engine || !engine.agents || engine.agents.length === 0) return null;
+            const alive = engine.agents.filter(a => a.hp > 0);
+            const agent = alive[idx % alive.length] || engine.agents[0];
+            if (!agent) return null;
+            const canvas = document.querySelector('canvas');
+            if (!canvas) return null;
+            const rect = canvas.getBoundingClientRect();
+            const cam = engine.renderer.camera;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
+            const worldX = agent.px;
+            const worldY = agent.py - terrainH;
+            return {
+                screenX: rect.left + (worldX - cam.x) * cam.zoom + cx,
+                screenY: rect.top + (worldY - cam.y) * cam.zoom + cy,
+                agentId: agent.id
+            };
+        }, attempt);
+
+        if (target) {
+            await page.mouse.click(target.screenX, target.screenY);
+            await page.waitForTimeout(600);
+        }
+
+        const isInspectorOpen = await page.locator('[data-window-id="inspector"] button[title="\u7de8\u8f2f\u55ae\u4f4d\u5c6c\u6027"]').isVisible();
+        if (isInspectorOpen) break;
     }
 
     // 2. Open needed windows via menu

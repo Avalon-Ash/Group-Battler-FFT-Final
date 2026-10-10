@@ -31,7 +31,9 @@
   --token-danger-hover: 248 113 113;
   --token-danger-active: 220 38 38;
   --token-danger-subtle: 252 165 165;
+  --token-danger-faint: 254 202 202;
   --token-danger-deep: 127 29 29;
+  --token-danger-dark: 69 10 10;
   --token-warn: 245 158 11;
   --token-warn-hover: 251 191 36;
   --token-warn-active: 217 119 6;
