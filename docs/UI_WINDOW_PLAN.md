@@ -121,7 +121,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 - 收合 collapse：只留標題列；收合時該視窗的 `useEngineView` 訂閱解除（停止輪詢）。
 - 置頂：視窗內任何 `pointerdown` → `zCounter++`；範圍 `UI_Z.WINDOW_BASE ~ WINDOW_MAX`，溢出時整體重新編號。
 - 持久化：key `tacticalWindowsV1`，存 `{x,y,w,h,max,open,collapsed}`，去抖 `UI_WINDOW.SAVE_DEBOUNCE_MS`；JSON 損毀/欄位型別錯 → 丟棄用預設。**以視窗 id 記憶（D5）**，與選取單位無關。
-- 顯示時 clamp：標題列至少 `KEEP_VISIBLE_X/Y` 留在畫面內；viewport 改變亦重新 clamp（不改寫已存 rect）。
+- 顯示時 clamp：標題列至少 `clampRect`（預設完整包含於 viewport，見 §11） 留在畫面內；viewport 改變亦重新 clamp（不改寫已存 rect）。
 - ≤900px：bottom sheet（一次一個、禁拖/縮放/最大化、`max-height: min(72vh, …)`）。
 - Showcase / 結算：`WindowLayer` 以 `hidden` 隱藏（保留狀態）；`visibleInShowcase: true` 的視窗（ShowcaseSettings）例外。
 - 「重設版面」：ToolMenu 內動作，清除儲存回預設。
@@ -198,10 +198,10 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | 任務 | 狀態 | 備註 |
 | :-- | :-- | :-- |
 | U0a | ☑ | 2026-10-10 tailwindcss@^3.4+postcss+autoprefixer 安裝完成，dist 不再殘留 @apply/@tailwind，CDN 仍保留 |
-| U0b | ☐ | 需回報視覺差異並等使用者確認 |
+| U0b | ☑ | 需回報視覺差異並等使用者確認 |
 | U1 / U1b / U1c | ☑ | 2026-10-10 完成：WindowDef/State SSOT、WindowStore 完整單元測試全綠、data/ui/windows.ts 與 useWindowStore hooks |
 | U2 | ☑ | 2026-10-10 完成：useWindowInteraction（Pointer 拖曳/8向縮放/雙擊最大化）、ToolWindow 視窗殼、WindowLayer 穿透層 |
-| U3 | ☐ | 試點；桌機+手機實測 |
+| U3 | ☑ | 試點；桌機+手機實測 |
 | U4 | ☐ | |
 | E1 | ☑ | 2026-10-10 完成：UICommand 聯集、EventMap['UI_COMMAND']、types/UIViewModel.ts（Agent/Director/Zone/Camera/Log View） |
 | E2 / E2b | ☑ | 2026-10-10 完成：UICommandSystem 單元測試 11/11 全綠（越界 clamp、忽略無效、非現有 agent 防護、未知命令安全） |
@@ -231,7 +231,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | `resize: both` + `min-width/height` | **自訂 8 向 Pointer 把手**（支援觸控；原生 resize iOS 不支援） |
 | dblclick / ▢ 最大化、`.max` 填滿工作區 | `ToolWindow` + `UI_WINDOW.MAXIMIZE_MARGIN` |
 | localStorage `toolWindowsV1` + ResizeObserver 去抖 | `tacticalWindowsV1` + `SAVE_DEBOUNCE_MS` |
-| `WIN_KEEP_X/Y` 防視窗丟失 | `UI_WINDOW.KEEP_VISIBLE_X/Y` |
+| `WIN_KEEP_X/Y` 防視窗丟失 | `clampRect`（預設完整包含於 viewport，見 §11） |
 | ☰ 工具選單（開啟狀態點） | U7a ToolMenu |
 | `tokens.css` 由 `DESIGN.md` 產生 | `styles/tokens.css` 由 `data/ui/tokens.ts` 產生（SSOT 為 TS，符合 AGENTS.md） |
 | ≤900px bottom sheet、`pointer:coarse` 44px、reduced-motion | U12 |
@@ -337,3 +337,28 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 2. **新增事件/命令時，必須確認有訂閱者**；沒有就在命令旁註明「reserved」並列入進度表。
 3. 數值範圍只准出現在 `UI_SETTINGS` / `UI_WINDOW`；slider、clamp、測試三處共用同一常數。
 4. 手動驗證項目（§6.2）不可省略，代理無法驗證時須在報告中明寫「未驗證」。
+
+---
+
+## 11. U0b / U3 完成紀錄與「自動化瀏覽器驗證」（2026-10-10 下午）
+
+### 11.1 完成
+- **U0b** ☑：移除 Tailwind CDN 與 importmap（使用者已目視確認，毛玻璃觀感略降但可接受）。`npm run build` 的 CSS 為 65.9 kB，且不含 `@apply`/`@tailwind`。
+- **U3a** ☑：`ToolWindow` 顯示時 clamp（§10.2 F1）：顯示 rect 由 `clampRect(storedRect, viewport)` 推導，**不回寫 store**；最大化永遠跟隨 viewport；新增 `contentClassName`。
+- **U3b** ☑：`windowRegistry.tsx`（Logs 試點）；`App.tsx` 掛 `WindowLayer`，Logs 開關改走 window store；`ModalManager` 不再處理 Logs。**`useGameApp` 內的 `showLogs` 狀態已無人使用，U4 時一併移除。**
+
+### 11.2 以 headless Edge 自動化驗證（`playwright-core` + `channel:'msedge'`，11/11 PASS）
+開啟、拖曳、SE 角縮放、W 邊縮放、雙擊最大化/還原、localStorage 持久化、重整後還原、關閉、小視窗 clamp、視窗放大後回到儲存 rect。
+
+這次自動化抓到 **4 個 bug**（單元測試與型別檢查都抓不到），已修：
+
+| # | 問題 | 修正 |
+| :-- | :-- | :-- |
+| V1 | `.liquid-card` 帶 `transition-all duration-300`，視窗 `left/top/width/height` 被動畫化 → 拖曳/縮放時視窗落後游標約 300ms | `ToolWindow` 內聯 `transition: 'none'` |
+| V2 | 重寫把手時漏掉 z-index，內容內的 stacking 元素蓋住 SE 角 | `UI_WINDOW.HANDLE_Z_INDEX` |
+| V3 | 小視窗時視窗右側超出畫面 → **關閉/最大化按鈕摸不到**（觸控無法關閉） | `clampRect` 預設改為**完整包含於 viewport**（需要懸出畫面時才傳 `keepVisible`）；移除 `KEEP_VISIBLE_X/Y` 常數；補 2 個測試 |
+| V4 | 圓角（`rounded-2xl` 16px）使角落 4px 內的點命中不到把手（點在邊角外會穿透到 Canvas） | 非 bug，記錄：角把手需往內約 ≥6px 才抓得到；U12 可考慮把手加大或視窗圓角縮小 |
+
+### 11.3 下一步
+- **U4**：SkillDB、VFXMap 改視窗；刪除 `ModalManager`；`useGameApp` 移除 `showLogs/showDB/showVFXMap`。
+- 之後每個接畫面的任務都跑 headless e2e + 目視截圖（腳本目前放在 scratch，若要納入專案需新增 `playwright-core` devDependency，**需使用者核准**）。
