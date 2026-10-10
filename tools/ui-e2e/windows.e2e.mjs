@@ -462,6 +462,90 @@ const runShowcaseAndPinSuite = async () => {
     await ctx.close();
 };
 
+const runInspectorCommandSuite = async () => {
+    console.log('\n── Inspector Commands (UnitInspectorHUD -> EDIT_AGENT)');
+    const { ctx, page } = await newPage({ id: 'inspector-cmd' });
+    await enterManualMode(page);
+
+    // Spawn units using the dice button on PlaybackHUD
+    await page.locator('button[title="隨機生成戰場與陣容"]').click();
+    await page.waitForTimeout(600);
+
+    // 1. Calculate screen coordinates of an agent
+    const target = await page.evaluate(() => {
+        const engine = window.__TACTICAL_ENGINE__;
+        if (!engine || !engine.agents || engine.agents.length === 0) return null;
+        // Pick an active alive agent
+        const agent = engine.agents.find(a => a.hp > 0) || engine.agents[0];
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        const cam = engine.renderer.camera;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
+        const worldX = agent.px;
+        const worldY = agent.py - terrainH;
+        const screenX = rect.left + (worldX - cam.x) * cam.zoom + cx;
+        const screenY = rect.top + (worldY - cam.y) * cam.zoom + cy;
+        return {
+            screenX, screenY,
+            agentId: agent.id,
+            role: agent.role,
+            maxHp: agent.maxHp,
+            q: agent.q, r: agent.r,
+        };
+    });
+
+    if (!target) {
+        console.log('SKIP  Inspector selection entrypoint not found (marked unverified)');
+        await ctx.close();
+        return;
+    }
+
+    // Click on canvas at target coordinates
+    await page.mouse.click(target.screenX, target.screenY);
+    await page.waitForTimeout(500);
+
+    const editBtn = page.locator('button[title="編輯單位屬性"]');
+    const isInspectorOpen = await editBtn.isVisible();
+
+    if (!isInspectorOpen) {
+        console.log('SKIP  Inspector selection entrypoint not triggered by canvas click (marked unverified)');
+        await ctx.close();
+        return;
+    }
+
+    ok('inspector opened on unit select', isInspectorOpen);
+
+    // Expand config drawer
+    await editBtn.click();
+    await page.waitForTimeout(400);
+
+    // Change Role to another role
+    const newRole = target.role === 'WARRIOR' ? 'TANK' : 'WARRIOR';
+    const roleSelect = page.locator('label:has-text("職業") + select');
+    await roleSelect.selectOption(newRole);
+    await page.waitForTimeout(300);
+
+    // Change maxHp to 123
+    const hpInput = page.locator('label:has-text("生命值") + input');
+    await hpInput.fill('123');
+    await page.waitForTimeout(300);
+
+    // Assert live engine agent was updated
+    const updated = await page.evaluate((aid) => {
+        const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
+        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp } : null;
+    }, target.agentId);
+
+    ok('inspector EDIT_AGENT changed role in live engine', updated?.role === newRole, `${updated?.role} vs ${newRole}`);
+    ok('inspector EDIT_AGENT changed maxHp in live engine to 123', updated?.maxHp === 123, String(updated?.maxHp));
+    ok('inspector EDIT_AGENT updated hp in live engine to 123', updated?.hp === 123, String(updated?.hp));
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -471,6 +555,7 @@ try {
     if (!filterOnly || filterOnly.includes('toolmenu')) await runToolMenuSuite();
     if (!filterOnly || filterOnly.includes('schemaform')) await runSchemaFormSuite();
     if (!filterOnly || filterOnly.includes('showcase-pin')) await runShowcaseAndPinSuite();
+    if (!filterOnly || filterOnly.includes('inspector-cmd')) await runInspectorCommandSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

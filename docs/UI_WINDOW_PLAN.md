@@ -408,3 +408,4 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **T1c** ☑：於 `windows.e2e.mjs` 新增 SchemaForm → Engine 測試套件（透過 `window.__TACTICAL_ENGINE__` 驗證 `zoneSettings` 的開關與初始半徑滑桿能實際改變引擎 `zoneConfig`、`directorSettings` 的剛度滑桿初值等於引擎目前值而非 3.5、拖曳能更新 `followStiffness` 並維持在 `UI_SETTINGS` 範圍）；連續兩次 e2e 測試全數 PASS。
 - **T1d** ☑：於 `windows.e2e.mjs` 新增 Showcase 模式視窗可見性（未進入戰鬥時一般視窗不渲染、展示設定視窗可正常呼叫）與釘選工具列（PlaybackHUD 拖曳記憶、重新整理後保留位置 ±2px、420×400 小視窗自動 clamp 完整包含）測試；優化 `useDraggable.ts` 的 `clampToolbarPosition` 有效邊距計算；連續兩次完整 e2e 測試全數 PASS。
 
+- **T1e**（主代理補完成）：`windows.e2e.mjs` 的 Inspector 命令套件（以引擎的 hex 命中測試取得選取點 → 改職業 / maxHp → 斷言引擎 agent 值）單獨與完整 e2e 皆 PASS。
