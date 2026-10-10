@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
+import { UI_PIN } from '../constants';
 
 export interface DraggableOptions {
     initialX?: number;
@@ -6,6 +7,64 @@ export interface DraggableOptions {
     anchor?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
     margin?: number;
     storageKey?: string;
+}
+
+export interface StorageLike {
+    getItem(key: string): string | null;
+    setItem(key: string, value: string): void;
+}
+
+export function loadStoredPosition(
+    storageKey: string | undefined,
+    storage?: StorageLike
+): { x: number; y: number } | null {
+    if (!storageKey) return null;
+    try {
+        const s = storage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
+        if (!s) return null;
+        const raw = s.getItem(storageKey);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+                return { x: parsed.x, y: parsed.y };
+            }
+        }
+    } catch {
+        // Ignore storage error or corrupted JSON
+    }
+    return null;
+}
+
+export function saveStoredPosition(
+    storageKey: string | undefined,
+    pos: { x: number; y: number },
+    storage?: StorageLike
+): void {
+    if (!storageKey) return;
+    try {
+        const s = storage ?? (typeof localStorage !== 'undefined' ? localStorage : undefined);
+        if (!s) return;
+        s.setItem(storageKey, JSON.stringify(pos));
+    } catch {
+        // Ignore storage error
+    }
+}
+
+export function clampToolbarPosition(
+    pos: { x: number; y: number },
+    size: { width: number; height: number },
+    viewport: { vw: number; vh: number },
+    margin: number
+): { x: number; y: number } {
+    const maxX = Math.max(margin, viewport.vw - size.width - margin);
+    const maxY = Math.max(margin, viewport.vh - size.height - margin);
+    const minX = margin;
+    const minY = margin;
+
+    const clampedX = Math.min(Math.max(pos.x, minX), maxX);
+    const clampedY = Math.min(Math.max(pos.y, minY), maxY);
+
+    return { x: clampedX, y: clampedY };
 }
 
 export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: DraggableOptions = {}) => {
@@ -31,30 +90,22 @@ export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: 
         const rect = el.getBoundingClientRect();
         if (rect.width === 0 && rect.height === 0) return;
 
-        const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
-        const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+        const vw = typeof window !== 'undefined' ? window.innerWidth : UI_PIN.FALLBACK_VIEWPORT.w;
+        const vh = typeof window !== 'undefined' ? window.innerHeight : UI_PIN.FALLBACK_VIEWPORT.h;
         const newX = currentPosRef.current.x;
         const newY = currentPosRef.current.y;
 
-        const maxX = Math.max(margin, vw - rect.width - margin);
-        const maxY = Math.max(margin, vh - rect.height - margin);
-        const minX = margin;
-        const minY = margin;
+        const clamped = clampToolbarPosition(
+            { x: newX, y: newY },
+            { width: rect.width, height: rect.height },
+            { vw, vh },
+            margin
+        );
 
-        const clampedX = Math.min(Math.max(newX, minX), maxX);
-        const clampedY = Math.min(Math.max(newY, minY), maxY);
-
-        if (clampedX !== newX || clampedY !== newY) {
-            const p = { x: clampedX, y: clampedY };
-            currentPosRef.current = p;
-            setPosition(p);
-            if (storageKey) {
-                try {
-                    localStorage.setItem(storageKey, JSON.stringify(p));
-                } catch {
-                    // Ignore storage errors
-                }
-            }
+        if (clamped.x !== newX || clamped.y !== newY) {
+            currentPosRef.current = clamped;
+            setPosition(clamped);
+            saveStoredPosition(storageKey, clamped);
         }
     }, [margin, ref, storageKey]);
 
@@ -63,23 +114,13 @@ export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: 
         const el = ref.current;
         requestAnimationFrame(() => {
             const rect = el.getBoundingClientRect();
-            const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
-            const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+            const vw = typeof window !== 'undefined' ? window.innerWidth : UI_PIN.FALLBACK_VIEWPORT.w;
+            const vh = typeof window !== 'undefined' ? window.innerHeight : UI_PIN.FALLBACK_VIEWPORT.h;
 
-            let loadedPos: { x: number; y: number } | null = null;
-            if (storageKey) {
-                try {
-                    const raw = localStorage.getItem(storageKey);
-                    if (raw) {
-                        const parsed = JSON.parse(raw);
-                        if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
-                            loadedPos = { x: parsed.x, y: parsed.y };
-                        }
-                    }
-                } catch {
-                    // Ignore localStorage error
-                }
-            }
+            const loadedPos = loadStoredPosition(storageKey);
+
+            const elementW = rect.width || UI_PIN.FALLBACK_SIZE.w;
+            const elementH = rect.height || UI_PIN.FALLBACK_SIZE.h;
 
             let x = margin;
             let y = margin;
@@ -87,21 +128,22 @@ export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: 
                 x = loadedPos.x;
                 y = loadedPos.y;
             } else {
-                if (anchor.includes('center')) x = (vw / 2) - ((rect.width || 200) / 2);
-                if (anchor.includes('right')) x = vw - (rect.width || 200) - margin;
-                if (anchor.includes('bottom')) y = vh - (rect.height || 60) - (margin * 2); 
+                if (anchor.includes('center')) x = (vw / 2) - (elementW / 2);
+                if (anchor.includes('right')) x = vw - elementW - margin;
+                if (anchor.includes('bottom')) y = vh - elementH - (margin * 2); 
                 if (options.initialX !== undefined) x = options.initialX;
                 if (options.initialY !== undefined) y = options.initialY;
             }
 
-            const maxX = Math.max(margin, vw - (rect.width || 200) - margin);
-            const maxY = Math.max(margin, vh - (rect.height || 60) - margin);
-            const clampedX = Math.min(Math.max(x, margin), maxX);
-            const clampedY = Math.min(Math.max(y, margin), maxY);
+            const clamped = clampToolbarPosition(
+                { x, y },
+                { width: elementW, height: elementH },
+                { vw, vh },
+                margin
+            );
 
-            const p = { x: clampedX, y: clampedY };
-            setPosition(p);
-            currentPosRef.current = p;
+            setPosition(clamped);
+            currentPosRef.current = clamped;
             hasInitialized.current = true;
         });
     }, [anchor, margin, options.initialX, options.initialY, storageKey]);
@@ -173,13 +215,7 @@ export const useDraggable = (ref: React.RefObject<HTMLElement | null>, options: 
             setPosition(currentPosRef.current);
             clampToScreen();
 
-            if (storageKey) {
-                try {
-                    localStorage.setItem(storageKey, JSON.stringify(currentPosRef.current));
-                } catch {
-                    // Ignore storage failure
-                }
-            }
+            saveStoredPosition(storageKey, currentPosRef.current);
         }
     };
 

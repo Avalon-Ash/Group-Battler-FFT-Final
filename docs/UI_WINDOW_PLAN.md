@@ -226,6 +226,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | R1b | ☑ | 2026-10-10 完成：SettingsWindows 匯出 useDirectorSettingsValues / useZoneSettingsValues hooks（零字面數字，引用 UI_SETTINGS），ShowcaseSettings 複用 hook 刪除重複與寫死數字，e2e 全數 PASS |
 | R2 | ☑ | 2026-10-10 完成：搬移導演目標 selector 到 selectors.ts（selectDirectorTargetView），快取升級為 per-engine WeakMap，agentViewCache 同步升級 WeakMap，DirectorMonitorHUD 移除未用變數，單元測試與 e2e 全數 PASS |
 | R3 | ☑ | 2026-10-10 完成：Showcase 滑桿範圍納入 UI_SETTINGS（TIME_SCALE 上限變 5.0，新增 MATRIX_SPEED 與 MATRIX_GAP），消除寫死數字，e2e 全數 PASS |
+| R4 | ☑ | 2026-10-10 完成：新增 UI_PIN 常數 SSOT，useDraggable 消除魔術數字（1920/1080/200/60），抽取 clampToolbarPosition 與 load/save 容錯輔助函式，補全邊界與 storage 異常單元測試 |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -389,4 +390,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **R1b** ☑：`SettingsWindows` 匯出 `useDirectorSettingsValues` 與 `useZoneSettingsValues`（零字面數字，全面引用 `UI_SETTINGS`），`ShowcaseSettings` 消除重複與寫死數字，e2e 7 視窗全數通過。
 - **R2** ☑：搬移導演目標 selector 至 `selectors.ts`（`selectDirectorTargetView`），以 per-engine `WeakMap` 取代全域模組快取，`agentViewCache` 亦升級為 per-engine `WeakMap`，`DirectorMonitorHUD` 精簡未用變數與 props，單元測試與 e2e 全數通過。
 - **R3** ☑：Showcase 動畫速度與代碼雨滑桿範圍收斂至 `UI_SETTINGS`（動畫速度改用 `UI_SETTINGS.TIME_SCALE`，上限由 3.0 變 5.0；新增 `UI_SETTINGS.MATRIX_SPEED` 與 `MATRIX_GAP`），e2e 7 視窗全數通過。
+- **R4** ☑：新增 `UI_PIN` 常數（`FALLBACK_VIEWPORT`、`FALLBACK_SIZE`、`STORAGE_KEYS`），`useDraggable` 全面移除魔術數字，單元測試覆蓋邊界 clamp、損毀 JSON 回退與 storage 例外安全。
 

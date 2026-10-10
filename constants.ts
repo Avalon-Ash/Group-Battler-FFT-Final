@@ -385,3 +385,15 @@ export const UI_SETTINGS = {
     MATRIX_GAP: { min: 0, max: 1.0, step: 0.05 },
 } as const;
 
+/**
+ * Pinned toolbar parameters and storage keys (SSOT).
+ */
+export const UI_PIN = {
+    FALLBACK_VIEWPORT: { w: 1920, h: 1080 },
+    FALLBACK_SIZE: { w: 200, h: 60 },
+    STORAGE_KEYS: {
+        mapEditor: 'tactical_toolbar_map_editor',
+        playback: 'tactical_toolbar_playback',
+    },
+} as const;
+
