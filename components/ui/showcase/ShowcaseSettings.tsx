@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState } from 'react';
 import { MatrixConfig, LayoutPreset, StreamDirection } from './types';
-import { DEFAULT_MATRIX_CONFIG, PRESET_PALETTES } from './defaults';
 import { GameEngine } from '../../../engine/game';
 import { SchemaForm } from '../settings/SchemaForm';
 import {
@@ -16,104 +15,39 @@ import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import {
     selectGamePlaybackView,
 } from '../../../engine/systems/ui/selectors';
-import { windowStore } from '../window/windowStore';
 import { UI_SETTINGS } from '../../../constants';
+import {
+    showcaseConfigStore,
+    useShowcaseConfig,
+    useShowcaseLayout,
+} from './showcaseConfigStore';
 
-interface ShowcaseSettingsProps {
-    show?: boolean;
-    onClose?: () => void;
-    config?: MatrixConfig;
-    setConfig?: (c: MatrixConfig) => void;
-    timeScale?: number;
-    setTimeScale?: (v: number) => void;
-    layout?: LayoutPreset;
-    setLayout?: (l: LayoutPreset) => void;
+export interface ShowcaseSettingsProps {
     engine?: GameEngine;
-    monitorEnabled?: boolean;
-    onToggleMonitor?: (v: boolean) => void;
 }
 
 type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX' | 'GAMEPLAY';
 
-// Shared state for Matrix config & layout so both the ToolWindow and ShowcaseOverlay stay in sync
-let sharedConfig: MatrixConfig = DEFAULT_MATRIX_CONFIG;
-let sharedLayout: LayoutPreset = 'BOTTOM_CENTER';
-const configListeners: Set<(c: MatrixConfig) => void> = new Set();
-const layoutListeners: Set<(l: LayoutPreset) => void> = new Set();
-
-function updateSharedConfig(newConfig: MatrixConfig) {
-    sharedConfig = newConfig;
-    for (const listener of configListeners) listener(newConfig);
-}
-
-function updateSharedLayout(newLayout: LayoutPreset) {
-    sharedLayout = newLayout;
-    for (const listener of layoutListeners) listener(newLayout);
-}
-
 export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
-    show,
-    onClose,
-    config: propConfig,
-    setConfig: propSetConfig,
-    timeScale: propTimeScale,
-    setTimeScale: propSetTimeScale,
-    layout: propLayout,
-    setLayout: propSetLayout,
     engine,
 }) => {
-    // If rendered as a bridge component from ShowcaseOverlay (which passes `show`):
-    const isBridge = show !== undefined;
-
-    useEffect(() => {
-        if (isBridge && propSetConfig) {
-            configListeners.add(propSetConfig);
-            return () => {
-                configListeners.delete(propSetConfig);
-            };
-        }
-    }, [isBridge, propSetConfig]);
-
-    useEffect(() => {
-        if (isBridge && propSetLayout) {
-            layoutListeners.add(propSetLayout);
-            return () => {
-                layoutListeners.delete(propSetLayout);
-            };
-        }
-    }, [isBridge, propSetLayout]);
-
-    useEffect(() => {
-        if (isBridge && show) {
-            windowStore.open('showcaseSettings');
-        }
-    }, [isBridge, show]);
-
     const [activeTab, setActiveTab] = useState<TabKey>('SYSTEM');
-    const [localConfig, setLocalConfig] = useState<MatrixConfig>(propConfig ?? sharedConfig);
-    const [localLayout, setLocalLayout] = useState<LayoutPreset>(propLayout ?? sharedLayout);
-
-    const activeConfig = propConfig ?? localConfig;
-    const activeLayout = propLayout ?? localLayout;
+    const activeConfig = useShowcaseConfig();
+    const activeLayout = useShowcaseLayout();
 
     const directorSettingsValues = useDirectorSettingsValues(engine);
     const zoneSettingsValues = useZoneSettingsValues(engine);
     const playbackView = useEngineView(engine, selectGamePlaybackView);
     const { send } = useEngineCommands(engine);
 
-    const currentTimeScale = propTimeScale ?? playbackView?.timeScale ?? 1.0;
+    const currentTimeScale = playbackView?.timeScale ?? 1.0;
 
     const updateConfig = <K extends keyof MatrixConfig>(key: K, value: MatrixConfig[K]) => {
-        const next = { ...activeConfig, [key]: value };
-        setLocalConfig(next);
-        updateSharedConfig(next);
-        propSetConfig?.(next);
+        showcaseConfigStore.updateConfig(key, value);
     };
 
     const handleLayoutChange = (l: LayoutPreset) => {
-        setLocalLayout(l);
-        updateSharedLayout(l);
-        propSetLayout?.(l);
+        showcaseConfigStore.setLayout(l);
     };
 
     const isMasterOn = activeConfig.enabled && directorSettingsValues.directorEnabled;
@@ -124,13 +58,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
 
     const handleTimeScaleChange = (val: number) => {
         send({ type: 'SET_TIME_SCALE', timeScale: val });
-        propSetTimeScale?.(val);
     };
-
-    // If rendered as bridge from ShowcaseOverlay, UI is inside the ToolWindow, return null here
-    if (isBridge) {
-        return null;
-    }
 
     const TabButton = ({ id, label, icon }: { id: TabKey; label: string; icon: string }) => (
         <button

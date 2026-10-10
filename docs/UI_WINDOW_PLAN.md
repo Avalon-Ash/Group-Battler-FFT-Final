@@ -236,6 +236,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | T1c | ☑ | 2026-10-10 完成：windows.e2e.mjs 新增 SchemaForm→Engine 驗證（zoneEnabled 切換、initialRadius 滑桿更新、followStiffness 初始等於 0.25 非 3.5 且拖曳更新），連跑兩次全數 PASS |
 | T1d | ☑ | 2026-10-10 完成：windows.e2e.mjs 新增 Showcase 視窗可見性與釘選工具列持久化/邊界 clamp 測試，useDraggable 優化 tight viewport clamp，連跑兩次全數 PASS |
 | T1e | ☑ | 2026-10-10 完成：windows.e2e.mjs 新增 Inspector 命令測試（推算 agent 螢幕座標點擊選取、打開 Inspector 修改職業與 maxHp=123、驗證 live engine 狀態變更），連跑兩次全數 PASS |
+| R7 | ☑ | 2026-10-10 完成：新增 showcaseConfigStore.ts（不可變快照 + useSyncExternalStore），徹底消除 ShowcaseSettings 模組級變數與 listener Set，ShowcaseOverlay 透過 useWindowActions 打開視窗並移除 bridge 元件，單元測試、build、e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -409,3 +410,4 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **T1c** ☑：於 `windows.e2e.mjs` 新增 SchemaForm → Engine 測試套件（透過 `window.__TACTICAL_ENGINE__` 驗證 `zoneSettings` 的開關與初始半徑滑桿能實際改變引擎 `zoneConfig`、`directorSettings` 的剛度滑桿初值等於引擎目前值而非 3.5、拖曳能更新 `followStiffness` 並維持在 `UI_SETTINGS` 範圍）；連續兩次 e2e 測試全數 PASS。
 - **T1d** ☑：於 `windows.e2e.mjs` 新增 Showcase 模式視窗可見性（未進入戰鬥時一般視窗不渲染、展示設定視窗可正常呼叫）與釘選工具列（PlaybackHUD 拖曳記憶、重新整理後保留位置 ±2px、420×400 小視窗自動 clamp 完整包含）測試；優化 `useDraggable.ts` 的 `clampToolbarPosition` 有效邊距計算；連續兩次完整 e2e 測試全數 PASS。
 - **T1e** ☑：於 `windows.e2e.mjs` 新增 Inspector 命令測試套件（透過 `window.__TACTICAL_ENGINE__` 取得活體 agent 的世界/地形座標推算 Canvas 點擊位置並選取單位、展開抽屜切換職業、修改 maxHp 為 123 並斷言引擎 `agent.role`、`agent.maxHp`、`agent.hp` 確實即時更新）；連續兩次完整 e2e 測試全數 PASS。
+- **R7** ☑：新增 `showcaseConfigStore.ts`（純 TS，不可變快照 + `subscribe` + `useSyncExternalStore` hook），徹底取代 `ShowcaseSettings` 的 `sharedConfig/sharedLayout/configListeners` 模組級變數與 listener Set；`ShowcaseOverlay` 透過 `useWindowActions` 呼叫 `showcaseSettings` 視窗並刪除 bridge 元件（不再於 effect 內 import 單例）；Showcase 視覺與行為完全不變；單元測試、build、e2e 全數 PASS。
