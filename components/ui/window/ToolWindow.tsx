@@ -111,7 +111,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 // .liquid-card ships `transition-all duration-300`; geometry must follow the pointer 1:1.
                 transition: 'none',
             }}
-            className={`liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-white/10 select-none bg-slate-900/90 backdrop-blur-xl ${className}`}
+            className={`liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-line-subtle/10 select-none bg-surface-panel/90 backdrop-blur-xl ${className}`}
         >
             {/* ── Title Bar ────────────────────────────────────────── */}
             <div
@@ -119,14 +119,14 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 onPointerMove={handleTitlePointerMove}
                 onPointerUp={handleTitlePointerUp}
                 onDoubleClick={handleTitleDoubleClick}
-                className={`h-10 px-3 bg-gradient-to-b from-white/10 to-transparent flex items-center justify-between border-b border-white/10 shrink-0 ${
+                className={`h-10 px-3 bg-gradient-to-b from-line-subtle/10 to-transparent flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
                     isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
                 }`}
                 style={{ touchAction: 'none' }}
             >
                 <div className="flex items-center gap-2 overflow-hidden pointer-events-none">
-                    {icon && <span className="text-cyan-400 shrink-0">{icon}</span>}
-                    <span className="font-mono font-bold text-xs text-slate-200 truncate tracking-tight">
+                    {icon && <span className="text-accent-hover shrink-0">{icon}</span>}
+                    <span className="font-mono font-bold text-xs text-text-base truncate tracking-tight">
                         {displayTitle}
                     </span>
                 </div>
@@ -139,7 +139,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                         type="button"
                         onClick={() => actions.collapse(id)}
                         title={isCollapsed ? '展開視窗' : '收合視窗'}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
                     >
                         <Icons.Minimize className="w-3 h-3" />
                     </button>
@@ -149,7 +149,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                         type="button"
                         onClick={() => actions.maximize(id)}
                         title={isMaximized ? '還原視窗' : '最大化'}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
                     >
                         <Icons.Expand className="w-3 h-3" />
                     </button>
@@ -162,7 +162,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                             actions.close(id);
                         }}
                         title="關閉視窗"
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-danger-hover hover:bg-danger/10 transition-colors"
                     >
                         <Icons.Close className="w-3 h-3" />
                     </button>
@@ -172,7 +172,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             {/* ── Content Body ─────────────────────────────────────── */}
             {!isCollapsed && (
                 <div
-                    className={`flex-1 overflow-auto relative text-slate-200 ${contentClassName}`}
+                    className={`flex-1 overflow-auto relative text-text-base ${contentClassName}`}
                     style={{ touchAction: 'pan-y pan-x' }}
                 >
                     {children}
