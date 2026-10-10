@@ -2,6 +2,7 @@ import { GameEngine } from '../../game';
 import { UICommand, Role, Team } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
+import { SCENE_DB } from '../../../data/scenes';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -106,8 +107,7 @@ export class UICommandSystem {
             }
 
             case 'RESET_GAME': {
-                // NOTE: no system subscribes to GAME_RESET yet; session reset is still driven by
-                // useGameApp. This command is reserved and gets wired up together with E8.
+                this.engine.restart();
                 this.engine.bus.emit('GAME_RESET', {});
                 break;
             }
@@ -261,7 +261,15 @@ export class UICommandSystem {
                 if (cmd.layout === 'FLAT' || cmd.layout === 'POINTY') {
                     this.engine.mapConfig.layout = cmd.layout;
                 }
-                this.engine.randomizeEnvironment();
+                if (typeof cmd.sceneId === 'string') {
+                    const scene = SCENE_DB.find((s) => s.id === cmd.sceneId);
+                    if (scene) {
+                        this.engine.currentScene = scene;
+                    }
+                }
+                if (cmd.randomizeScene !== false) {
+                    this.engine.randomizeEnvironment();
+                }
                 let dimensionsChanged = false;
                 if (isFiniteNumber(cmd.w)) {
                     this.engine.mapConfig.w = clampToRange(Math.round(cmd.w), UI_SETTINGS.MAP_WIDTH);
@@ -271,7 +279,7 @@ export class UICommandSystem {
                     this.engine.mapConfig.h = clampToRange(Math.round(cmd.h), UI_SETTINGS.MAP_HEIGHT);
                     dimensionsChanged = true;
                 }
-                if (dimensionsChanged) {
+                if (dimensionsChanged || cmd.sceneId || cmd.randomizeScene === false) {
                     this.engine.map.rebuildMap(this.engine);
                 }
                 break;

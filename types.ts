@@ -235,7 +235,7 @@ export type UICommand =
     | { type: 'START_GAME' }
     | { type: 'STOP_GAME' }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
-    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout };
+    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean };
 
 export * from './types/UIViewModel';
 
