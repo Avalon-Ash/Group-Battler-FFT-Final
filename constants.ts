@@ -445,5 +445,22 @@ export const RENDER_CACHE = {
     SPRITE_PADDING: 4,
 } as const;
 
+/**
+ * 渲染解析度與自適應品質調度參數 SSOT。
+ */
+export const RENDER_QUALITY = {
+    MAX_DPR: 2,
+    DEFAULT_DPR: 1,
+    IGNORE_FRAME_MS: 250,
+    DOWN_MS: 19,
+    DOWN_HOLD_S: 2,
+    UP_MS: 13,
+    UP_HOLD_S: 12,
+    COOLDOWN_S: 15,
+    WINDOW_FRAMES: 60,
+    TIER_SCALES: [1.0, 1.0, 0.75, 0.5] as const,
+    QUERY_KEY: 'quality',
+} as const;
+
 
 

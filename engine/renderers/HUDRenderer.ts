@@ -7,6 +7,7 @@ import { VisualMath } from "../math/VisualMath";
 import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";
 import { TextPainter } from "./hud/TextPainter";
+import { getRenderDpr } from "./RenderQuality";
 
 export class HUDRenderer {
     public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, agents: Agent[], getTerrainHeight: (q: number, r: number) => number, mapConfig: MapConfig, highlight: Agent | null, time: number, isLastStand: boolean = false) {
@@ -38,7 +39,7 @@ export class HUDRenderer {
 
     private drawLastStandBanner(ctx: CanvasRenderingContext2D, time: number) {
         const { width, height } = ctx.canvas;
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getRenderDpr();
         const cw = width / dpr;
         
         ctx.save();

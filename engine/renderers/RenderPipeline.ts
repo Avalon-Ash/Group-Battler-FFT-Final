@@ -9,6 +9,7 @@ import { PostProcessor } from "./PostProcessor";
 import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
 import { RenderStats } from "./RenderStats";
+import { getRenderDpr } from "./RenderQuality";
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -59,7 +60,7 @@ export class RenderPipeline {
         const { width: pW, height: pH } = ctx.canvas;
         if (pW === 0 || pH === 0) return;
 
-        const dpr = window.devicePixelRatio || 1;
+        const dpr = getRenderDpr();
         const [lW, lH] = [pW / dpr, pH / dpr];
         const { mapConfig: cfg, currentScene: sc } = engine;
         
@@ -121,8 +122,9 @@ export class RenderPipeline {
         }
         const terrainH = this._cachedTerrainH;
 
-        const lW = ctx.canvas.width / (window.devicePixelRatio || 1);
-        const lH = ctx.canvas.height / (window.devicePixelRatio || 1);
+        const dpr = getRenderDpr();
+        const lW = ctx.canvas.width / dpr;
+        const lH = ctx.canvas.height / dpr;
 
         this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
         this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, { width: lW, height: lH, camera });
