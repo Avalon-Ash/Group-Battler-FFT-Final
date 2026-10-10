@@ -156,5 +156,26 @@ describe('UI Boundary Ratchet Guard (E9)', () => {
             `Direct pose writes (${current.directPoseWrites}) exceeded baseline (${baseline.directPoseWrites}). Pose mutations must be reduced!`
         ).toBeLessThanOrEqual(baseline.directPoseWrites);
     });
+
+    /**
+     * Documented Architectural Exceptions Whitelist (E8-g):
+     * - D11: `hooks/useGameInput.ts` transient drag preview writes (.px, .py, .dragOverQ, .dragOverR).
+     *   These are frame-by-frame visual previews during pointer drag, committed on pointerup via MOVE_AGENT.
+     * - D14: `components/GameCanvas.tsx` composition root binding (engine.renderer = rendererRef.current).
+     * - D12: Camera commands (CAMERA_ZOOM, CAMERA_PAN, CAMERA_SNAP, SET_VIEWPORT) dispatched via UICommandSystem.
+     * - D13: Battle loop time accumulation encapsulated inside engine.tick via TimeSystem.tick.
+     */
+    it('verifies that remaining direct accesses belong strictly to documented exceptions', () => {
+        // Direct engine method calls must be completely zero
+        expect(current.directEngineMethodCalls).toBe(0);
+        // Direct agent property mutations must be completely zero
+        expect(current.directAgentMutation).toBe(0);
+        // The only allowed directEngineMutation and directRendererAccess is D14 in GameCanvas.tsx
+        expect(current.directEngineMutation).toBeLessThanOrEqual(1);
+        expect(current.directRendererAccess).toBeLessThanOrEqual(1);
+        // The only allowed directPoseWrites is D11 in useGameInput.ts (6 transient drag preview writes)
+        expect(current.directPoseWrites).toBeLessThanOrEqual(6);
+    });
 });
+
 

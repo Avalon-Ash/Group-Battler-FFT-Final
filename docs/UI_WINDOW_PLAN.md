@@ -413,3 +413,17 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **T1e** ☑：於 `windows.e2e.mjs` 新增 Inspector 命令測試套件（透過 `window.__TACTICAL_ENGINE__` 取得活體 agent 的世界/地形座標推算 Canvas 點擊位置並選取單位、展開抽屜切換職業、修改 maxHp 為 123 並斷言引擎 `agent.role`、`agent.maxHp`、`agent.hp` 確實即時更新）；連續兩次完整 e2e 測試全數 PASS。
 - **R7** ☑：新增 `showcaseConfigStore.ts`（純 TS，不可變快照 + `subscribe` + `useSyncExternalStore` hook），徹底取代 `ShowcaseSettings` 的 `sharedConfig/sharedLayout/configListeners` 模組級變數與 listener Set；`ShowcaseOverlay` 透過 `useWindowActions` 呼叫 `showcaseSettings` 視窗並刪除 bridge 元件（不再於 effect 內 import 單例）；Showcase 視覺與行為完全不變；單元測試、build、e2e 全數 PASS。
 - **R8** ☑：`UnitInspectorHUD` 數字輸入欄位（生命值 / 能量值）全面改為「本地草稿字串 + blur / Enter 提交」，提交時才驗證並發送 `EDIT_AGENT`，解決受控 input 無法倒退清空、輸入 NaN 立即彈回舊值之缺陷（F17）；非法輸入（空值、負數、NaN）自動還原顯示；`windows.e2e.mjs` 同步更新以 Enter 提交驗證，連續兩次完整 e2e 測試全數 PASS。
+- **U6a-c** ☑：將 Inspector 改為純內容元件 `UnitInspectorBody`，註冊為 `inspector` 浮動視窗，刪除舊 `UnitInspectorHUD`，選取單位時自動開窗並在取消選取時關閉，保留 rect（D5），e2e 通用 12 項與單元測試全過。
+- **S1** ☑：新增 `style-snapshot` 視覺回歸護欄與 `tools/ui-e2e/style-baseline.json`，對關鍵 UI 元素的 computed style 逐欄位嚴格比對。
+- **U11a-d** ☑：語意 Token SSOT（`data/ui/tokens.ts`、`tools/gen-ui-tokens.ts`、`styles/tokens.css`、`tailwind.config.js`、`ToolWindow.tsx`），達成外觀逐像素等價，style-snapshot 0 差異。
+- **U12a-c** ☑：響應式底板（≤900px bottom sheet）、觸控命中區（≥44px）、`prefers-reduced-motion` 護欄、觸控捲動（主畫布以外允許 pan-x pan-y），e2e 幾何斷言全數通過。
+- **E8-0…g** ☑：
+  - **E8-0**：建立 10 項編輯器 E2E 測試防線，擴充 E9 邊界守門指標。
+  - **E8-a**：`types.ts` 與 `UICommandSystem.ts` 擴充 `PLACE_AGENT`、`REMOVE_AGENT_AT`、`SET_OBSTACLE`、`REMOVE_OBSTACLE`、`MOVE_AGENT`、`START_GAME`、`STOP_GAME`、`CLEAR_BOARD`、`RANDOMIZE_MAP`。
+  - **E8-b**：新增純讀取無副作用查詢 `engine/systems/ui/editorQueries.ts`。
+  - **E8-c**：`useGameInput.ts` 低頻塗刷與提交全面改走 `UICommand` 與 `editorQueries`；保留 D11 拖曳預覽暫態座標例外。
+  - **E8-d**：`useGameApp.ts` 生命週期與地圖變更全面改走 `UICommand`，消除 `mapConfig` 直接寫入。
+  - **E8-e/e2**：鏡頭命令 `CAMERA_ZOOM`、`CAMERA_PAN`、`CAMERA_SNAP`、`SET_VIEWPORT`；`useCameraControl`、`useGameCamera`、`useGameInput`、`useGameLoop` 改走命令；拖曳平移 FPS 實測維持 107~136 FPS（D12 守門通過）。
+  - **E8-f**：`battleTime` 累加封裝至 `engine.tick`（D13），`useGameLoop` 移除直接寫入，`engine.clear()` 補齊時間歸零。
+  - **E8-g**：F3 `RESET_GAME` 完備；`AGENTS.md` §1.5 與 `tests/UIBoundary.test.ts` 文件化 D11/D14 例外；E9 指標全面下調（`directEngineMethodCalls` 0、`directAgentMutation` 0、`directEngineMutation` 1、`directRendererAccess` 1、`directPoseWrites` 6）。
+

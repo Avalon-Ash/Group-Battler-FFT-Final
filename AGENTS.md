@@ -35,6 +35,7 @@
    - Combat and status state changes must pass through designated System pipelines.
    - *Deliberate exception*: Map ring-out / void fall (shrink collapse) writes directly to `hp = 0` and `banished` as a terrain outcome.
    - UI 對引擎的唯一寫入閘門為 `UICommandSystem`（透過 `UI_COMMAND` 事件）。
+   - *UI 刻意例外（D11/D14）*：拖曳預覽的暫態座標（`px/py/dragOverQ/dragOverR`）為刻意例外，狀態變更仍須經命令提交（如 `MOVE_AGENT`）；組合根綁定（`engine.renderer = ...`）保留於 `GameCanvas`。
 
 ---
 
