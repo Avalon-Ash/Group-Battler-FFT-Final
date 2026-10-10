@@ -1,0 +1,292 @@
+{
+  "window_logs": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_logs_header": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "0px",
+    "fontSize": "16px"
+  },
+  "window_logs_close_btn": {
+    "color": "rgb(148, 163, 184)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "6px",
+    "fontSize": "16px"
+  },
+  "window_logs_collapse_btn": {
+    "color": "rgb(148, 163, 184)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "6px",
+    "fontSize": "16px"
+  },
+  "window_db": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_vfxmap": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_monitor": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_director_settings": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_zone_settings": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "slider_zone_radius": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgb(51, 65, 85)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "16px"
+  },
+  "toggle_zone_enabled": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(226, 232, 240)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "0px",
+    "fontSize": "16px"
+  },
+  "window_inspector": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "window_inspector_header": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "0px",
+    "fontSize": "16px"
+  },
+  "window_inspector_tab_status": {
+    "color": "rgb(56, 189, 248)",
+    "backgroundColor": "rgba(56, 189, 248, 0.2)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "6px",
+    "fontSize": "11px"
+  },
+  "window_inspector_tab_ai": {
+    "color": "rgb(100, 116, 139)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "6px",
+    "fontSize": "11px"
+  },
+  "window_inspector_tab_skills": {
+    "color": "rgb(100, 116, 139)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "6px",
+    "fontSize": "11px"
+  },
+  "window_inspector_config_btn": {
+    "color": "rgb(148, 163, 184)",
+    "backgroundColor": "rgba(255, 255, 255, 0.1)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "8px",
+    "fontSize": "16px"
+  },
+  "playback_hud": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.6)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.5) 0px 8px 32px 0px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "16px"
+  },
+  "playback_play_btn": {
+    "color": "rgb(251, 191, 36)",
+    "backgroundColor": "rgba(245, 158, 11, 0.2)",
+    "borderTopColor": "rgba(245, 158, 11, 0.3)",
+    "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.1) 0px 4px 6px -4px",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "24px"
+  },
+  "system_menu_btn": {
+    "color": "rgb(255, 255, 255)",
+    "backgroundColor": "rgba(255, 255, 255, 0.1)",
+    "borderTopColor": "rgba(6, 182, 212, 0.5)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(6, 182, 212, 0.3) 0px 0px 20px 0px",
+    "backdropFilter": "blur(40px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "20px"
+  },
+  "system_menu_item_logs": {
+    "color": "rgb(203, 213, 225)",
+    "backgroundColor": "rgba(15, 23, 42, 0.6)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.5) 0px 8px 32px 0px",
+    "backdropFilter": "blur(40px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "system_menu_item_reset": {
+    "color": "rgb(148, 163, 184)",
+    "backgroundColor": "rgba(15, 23, 42, 0.6)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.5) 0px 8px 32px 0px",
+    "backdropFilter": "blur(40px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "showcase_card": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.6)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.5) 0px 8px 32px 0px",
+    "backdropFilter": "blur(40px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "24px",
+    "fontSize": "16px"
+  },
+  "showcase_enter_btn": {
+    "color": "rgb(34, 211, 238)",
+    "backgroundColor": "rgba(6, 182, 212, 0.1)",
+    "borderTopColor": "rgba(6, 182, 212, 0.3)",
+    "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(6, 182, 212, 0.2) 0px 0px 30px 0px",
+    "backdropFilter": "blur(12px)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "20px"
+  },
+  "showcase_settings_btn": {
+    "color": "rgb(34, 211, 238)",
+    "backgroundColor": "rgba(255, 255, 255, 0.1)",
+    "borderTopColor": "rgba(6, 182, 212, 0.5)",
+    "boxShadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(255, 255, 255, 0.1) 0px 0px 15px 0px",
+    "backdropFilter": "blur(12px)",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "18px"
+  },
+  "window_showcase_settings": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgba(15, 23, 42, 0.9)",
+    "borderTopColor": "rgba(255, 255, 255, 0.1)",
+    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.25) 0px 25px 50px -12px",
+    "backdropFilter": "blur(24px) saturate(1.5)",
+    "opacity": "1",
+    "borderRadius": "16px",
+    "fontSize": "16px"
+  },
+  "showcase_settings_tab_system": {
+    "color": "rgb(34, 211, 238)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "0px",
+    "fontSize": "12px"
+  },
+  "showcase_settings_tab_matrix": {
+    "color": "rgb(100, 116, 139)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "0px",
+    "fontSize": "12px"
+  },
+  "showcase_settings_slider_timescale": {
+    "color": "rgb(226, 232, 240)",
+    "backgroundColor": "rgb(51, 65, 85)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
+    "opacity": "1",
+    "borderRadius": "9999px",
+    "fontSize": "16px"
+  }
+}

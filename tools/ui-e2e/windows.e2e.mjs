@@ -15,7 +15,7 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -497,6 +497,7 @@ const runShowcaseAndPinSuite = async () => {
 const runInspectorCommandSuite = async () => {
     console.log('\n── Inspector Commands (UnitInspectorHUD -> EDIT_AGENT)');
     const { ctx, page } = await newPage({ id: 'inspector-cmd' });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
     await enterManualMode(page);
 
     // Spawn units using the dice button on PlaybackHUD
@@ -580,14 +581,20 @@ const runInspectorCommandSuite = async () => {
     const r1 = await rectOf(page, 'inspector');
     const secondAgent = await page.evaluate((currId) => {
         const engine = window.__TACTICAL_ENGINE__;
-        const agent = engine?.agents.find(u => u.id !== currId);
-        if (!agent) return null;
+        if (!engine?.agents) return null;
         const canvas = document.querySelector('canvas');
         if (!canvas) return null;
         const rect = canvas.getBoundingClientRect();
         const cam = engine.renderer.camera;
         const cx = rect.width / 2;
         const cy = rect.height / 2;
+        const agent = engine.agents.find(u => {
+            if (u.id === currId) return false;
+            const th = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(u.q, u.r) : 0;
+            const sx = rect.left + (u.px - cam.x) * cam.zoom + cx;
+            return sx > 400;
+        }) || engine.agents.find(u => u.id !== currId);
+        if (!agent) return null;
         const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
         const worldX = agent.px;
         const worldY = agent.py - terrainH;
@@ -644,6 +651,213 @@ const runInspectorCommandSuite = async () => {
     await ctx.close();
 };
 
+const STYLE_BASELINE_PATH = join(here, 'style-baseline.json');
+const UPDATE_STYLE = process.env.E2E_UPDATE_STYLE === '1';
+
+const SNAPSHOT_PROPS = [
+    'color',
+    'backgroundColor',
+    'borderTopColor',
+    'boxShadow',
+    'backdropFilter',
+    'opacity',
+    'borderRadius',
+    'fontSize',
+];
+
+const TARGET_ELEMENTS_MANUAL = [
+    { id: 'window_logs', selector: '[data-window-id="logs"]' },
+    { id: 'window_logs_header', selector: '[data-window-id="logs"] > div:first-child' },
+    { id: 'window_logs_close_btn', selector: '[data-window-id="logs"] button[title="\u95dc\u9589\u8996\u7a97"]' },
+    { id: 'window_logs_collapse_btn', selector: '[data-window-id="logs"] button[title="\u6536\u5408\u8996\u7a97"]' },
+    { id: 'window_db', selector: '[data-window-id="db"]' },
+    { id: 'window_vfxmap', selector: '[data-window-id="vfxmap"]' },
+    { id: 'window_monitor', selector: '[data-window-id="monitor"]' },
+    { id: 'window_director_settings', selector: '[data-window-id="directorSettings"]' },
+    { id: 'window_zone_settings', selector: '[data-window-id="zoneSettings"]' },
+    { id: 'slider_zone_radius', selector: '[data-testid="setting-slider-initialRadius"]' },
+    { id: 'toggle_zone_enabled', selector: '[data-testid="setting-toggle-zoneEnabled"]' },
+    { id: 'window_inspector', selector: '[data-window-id="inspector"]' },
+    { id: 'window_inspector_header', selector: '[data-window-id="inspector"] > div:first-child' },
+    { id: 'window_inspector_tab_status', selector: '[data-window-id="inspector"] button[title="\u72c0\u614b\u76e3\u63a7"]' },
+    { id: 'window_inspector_tab_ai', selector: '[data-window-id="inspector"] button[title="\u884c\u70ba\u6a39\u76e3\u63a7 (AI)"]' },
+    { id: 'window_inspector_tab_skills', selector: '[data-window-id="inspector"] button[title="\u6280\u80fd\u914d\u7f6e (LINK)"]' },
+    { id: 'window_inspector_config_btn', selector: '[data-window-id="inspector"] button[title="\u7de8\u8f2f\u55ae\u4f4d\u5c6c\u6027"]' },
+    { id: 'playback_hud', selector: '[data-testid="playback-hud"]' },
+    { id: 'playback_play_btn', selector: '[data-testid="playback-play-btn"]' },
+    { id: 'system_menu_btn', selector: '[data-testid="system-menu-button"]' },
+    { id: 'system_menu_item_logs', selector: '[data-testid="menu-item-logs"]' },
+    { id: 'system_menu_item_reset', selector: '[data-testid="menu-item-reset-layout"]' },
+];
+
+const TARGET_ELEMENTS_SHOWCASE = [
+    { id: 'showcase_card', selector: '[data-testid="showcase-card"]' },
+    { id: 'showcase_enter_btn', selector: '[data-testid="showcase-enter-btn"]' },
+    { id: 'showcase_settings_btn', selector: 'button[title="\u5c55\u793a\u8207\u7279\u6548\u8a2d\u5b9a"]' },
+    { id: 'window_showcase_settings', selector: '[data-window-id="showcaseSettings"]' },
+    { id: 'showcase_settings_tab_system', selector: '[data-testid="showcase-tab-system"]' },
+    { id: 'showcase_settings_tab_matrix', selector: '[data-testid="showcase-tab-matrix"]' },
+    { id: 'showcase_settings_slider_timescale', selector: '[data-testid="showcase-slider-timescale"]' },
+];
+
+const runStyleSnapshotSuite = async () => {
+    console.log('\n── Style Snapshot Visual Guardrail (S1)');
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
+    const page = await ctx.newPage();
+    page.setDefaultTimeout(8000);
+    page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+    });
+
+    await enterManualMode(page);
+    await page.waitForTimeout(400);
+
+    // Spawn units using the dice button on PlaybackHUD
+    await page.locator('button[title="\u96a8\u6a5f\u751f\u6210\u6230\u5834\u8207\u9663\u5bb9"]').click();
+    await page.waitForTimeout(1000);
+
+    // Reduced motion & freeze animations
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.addStyleTag({
+        content: `*, *::before, *::after {
+            animation-duration: 0s !important;
+            animation-delay: 0s !important;
+            transition-duration: 0s !important;
+            transition-delay: 0s !important;
+        }`
+    });
+
+    // 1. Select unit on canvas to open inspector with full unit data
+    const target = await page.evaluate(() => {
+        const engine = window.__TACTICAL_ENGINE__;
+        if (!engine || !engine.agents || engine.agents.length === 0) return null;
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        const cam = engine.renderer.camera;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        // Prefer agent at sx > 400 so click doesn't land near inspector default rect (24, 80)
+        const agent = engine.agents.find(a => {
+            const sx = rect.left + (a.px - cam.x) * cam.zoom + cx;
+            return sx > 400;
+        }) || engine.agents[0];
+        if (!agent) return null;
+        const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
+        const worldX = agent.px;
+        const worldY = agent.py - terrainH;
+        return {
+            screenX: rect.left + (worldX - cam.x) * cam.zoom + cx,
+            screenY: rect.top + (worldY - cam.y) * cam.zoom + cy,
+            agentId: agent.id
+        };
+    });
+    if (target) {
+        await page.mouse.click(target.screenX, target.screenY);
+        await page.waitForTimeout(600);
+    }
+
+    // 2. Open needed windows via menu
+    await openViaMenu(page, 'logs');
+    await openViaMenu(page, 'db');
+    await openViaMenu(page, 'vfxmap');
+    await openViaMenu(page, 'monitor');
+    await openViaMenu(page, 'directorSettings');
+    await openViaMenu(page, 'zoneSettings');
+
+    // 3. Keep SystemMenu open so menu items are in DOM
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+
+    const collectStyles = async (elements) => {
+        return await page.evaluate(({ elements, props }) => {
+            const out = {};
+            for (const item of elements) {
+                const el = document.querySelector(item.selector);
+                if (!el) {
+                    out[item.id] = { __missing: true, selector: item.selector };
+                    continue;
+                }
+                const cs = window.getComputedStyle(el);
+                const s = {};
+                for (const p of props) {
+                    if (p === 'backdropFilter') {
+                        s[p] = cs.backdropFilter || cs.webkitBackdropFilter || 'none';
+                    } else {
+                        s[p] = cs[p] || '';
+                    }
+                }
+                out[item.id] = s;
+            }
+            return out;
+        }, { elements, props: SNAPSHOT_PROPS });
+    };
+
+    const manualStyles = await collectStyles(TARGET_ELEMENTS_MANUAL);
+
+    // Close SystemMenu before entering showcase
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(200);
+
+    // Enter showcase mode via playback hud button
+    const showcaseBtn = page.locator('button[title*="\u5c55\u793a"]');
+    if (await showcaseBtn.count() > 0) {
+        await showcaseBtn.click();
+        await page.waitForTimeout(600);
+    }
+
+    // Open showcaseSettings in showcase mode
+    const showcaseSettingsBtn = page.locator('button[title="\u5c55\u793a\u8207\u7279\u6548\u8a2d\u5b9a"]');
+    if (await showcaseSettingsBtn.count() > 0) {
+        await showcaseSettingsBtn.click();
+        await page.waitForTimeout(400);
+    }
+
+    const showcaseStyles = await collectStyles(TARGET_ELEMENTS_SHOWCASE);
+
+    const currentSnapshot = {
+        ...manualStyles,
+        ...showcaseStyles,
+    };
+
+    // Assert all target elements found
+    const missing = Object.entries(currentSnapshot).filter(([_, v]) => v.__missing);
+    ok('all target elements found in DOM for style-snapshot', missing.length === 0, missing.map(([k, v]) => `${k} (${v.selector})`).join(', '));
+
+    if (UPDATE_STYLE || !existsSync(STYLE_BASELINE_PATH)) {
+        writeFileSync(STYLE_BASELINE_PATH, JSON.stringify(currentSnapshot, null, 2) + '\n', 'utf8');
+        console.log(`PASS  [style-snapshot] baseline written (${Object.keys(currentSnapshot).length} elements)`);
+        ok('style baseline generated/updated', true);
+    } else {
+        const baselineRaw = readFileSync(STYLE_BASELINE_PATH, 'utf8');
+        const baseline = JSON.parse(baselineRaw);
+
+        const diffs = [];
+        for (const [elemId, styles] of Object.entries(currentSnapshot)) {
+            if (!baseline[elemId]) {
+                diffs.push({ element: elemId, diff: 'missing from baseline' });
+                continue;
+            }
+            for (const prop of SNAPSHOT_PROPS) {
+                const expected = baseline[elemId][prop];
+                const actual = styles[prop];
+                if (expected !== actual) {
+                    diffs.push({ element: elemId, prop, expected, actual });
+                }
+            }
+        }
+
+        const diffMsg = diffs.length > 0 
+            ? diffs.map(d => `${d.element}.${d.prop}: expected "${d.expected}" !== actual "${d.actual}"`).join('; ')
+            : '';
+        ok('style-snapshot: 0 diffs against baseline', diffs.length === 0, diffMsg);
+    }
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -654,6 +868,7 @@ try {
     if (!filterOnly || filterOnly.includes('schemaform')) await runSchemaFormSuite();
     if (!filterOnly || filterOnly.includes('showcase-pin')) await runShowcaseAndPinSuite();
     if (!filterOnly || filterOnly.includes('inspector-cmd')) await runInspectorCommandSuite();
+    if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

@@ -33,10 +33,11 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
             style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
             {...dragHandlers}
         >
-            <div className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
+            <div data-testid="playback-hud" className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
                 <div className="relative group">
                     <div className={`absolute inset-0 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity ${isPlaying ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                     <button 
+                        data-testid="playback-play-btn"
                         onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
                         onPointerDown={(e) => e.stopPropagation()} 
                         disabled={winner !== null}

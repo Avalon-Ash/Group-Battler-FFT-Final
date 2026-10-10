@@ -82,7 +82,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
 
             <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.MENU_BACKDROP }}>
                 
-                <div className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
+                <div data-testid="showcase-card" className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
                         
@@ -102,6 +102,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
 
                     <div className={`relative shrink-0 ${isCompact && !isWideBar ? 'w-full' : ''}`}>
                         <button 
+                            data-testid="showcase-enter-btn"
                             onClick={onEnter}
                             className={`group liquid-btn-primary rounded-2xl overflow-hidden transition-all duration-300 ${isWideBar ? 'px-16 py-6 w-full md:w-auto text-xl' : 'w-full px-12 py-5 text-lg'} shadow-[0_0_30px_rgba(6,182,212,0.2)]`}
                         >
