@@ -9,15 +9,18 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
 mkdirSync(OUT, { recursive: true });
 
-const SECONDS = Number(process.env.PERF_SECONDS || (process.env.PERF_MODE === 'showcase' ? 4 : 6));
+const isAssert = process.env.PERF_ASSERT === '1' || process.argv.includes('--assert');
+const isRecord = process.env.PERF_RECORD === '1' || process.argv.includes('--record');
+const SECONDS = Number(process.env.PERF_SECONDS || (isAssert ? 3 : (process.env.PERF_MODE === 'showcase' ? 4 : 6)));
 const DSF = Number(process.env.PERF_DSF || 1);
 const THROTTLE = Number(process.env.PERF_CPU_THROTTLE || 1);
 
@@ -157,23 +160,69 @@ try {
         await setCfg({}); await setCss('');
         writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
     }
-    if (process.env.PERF_ASSERT === '1') {
-        let assertFailed = false;
-        console.log('\n[PERF_ASSERT] Evaluating performance guardrails (threshold: baseline / no_terrain_grain <= 1.15)...');
+    if (isRecord) {
+        const baselinePath = join(here, 'perf-baseline.json');
+        const baselines = {};
         for (const [sid, data] of Object.entries(results)) {
+            if (data.baseline && data.baseline.length > 0) {
+                const avg = data.baseline.reduce((a, b) => a + b, 0) / data.baseline.length;
+                baselines[sid] = +avg.toFixed(2);
+            }
+        }
+        const recordData = {
+            _comment: "Absolute ms baseline per scene recorded on this host machine. Values are for regression reference on the same machine only.",
+            machine: {
+                cpu: os.cpus()[0]?.model || 'unknown',
+                totalMem: os.totalmem(),
+            },
+            recordedAt: new Date().toISOString(),
+            baselines,
+        };
+        writeFileSync(baselinePath, JSON.stringify(recordData, null, 2));
+        console.log(`\n[PERF_RECORD] Recorded baseline successfully written to ${baselinePath}`);
+    }
+
+    if (isAssert) {
+        let assertFailed = false;
+        console.log('\n[PERF_ASSERT] Evaluating performance guardrails...');
+        const baselinePath = join(here, 'perf-baseline.json');
+        let recordedMap = null;
+        if (existsSync(baselinePath)) {
+            try {
+                const parsed = JSON.parse(readFileSync(baselinePath, 'utf8'));
+                recordedMap = parsed.baselines;
+            } catch (e) {
+                console.warn('[PERF_ASSERT] Warning: could not parse perf-baseline.json:', e.message);
+            }
+        }
+
+        for (const [sid, data] of Object.entries(results)) {
+            if (!data.baseline || !data.no_terrain_grain) continue;
             const baseAvg = data.baseline.reduce((a, b) => a + b, 0) / data.baseline.length;
             const noGrainAvg = data.no_terrain_grain.reduce((a, b) => a + b, 0) / data.no_terrain_grain.length;
             const ratio = baseAvg / Math.max(0.01, noGrainAvg);
-            console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: baseline=${baseAvg.toFixed(2)}ms, no_grain=${noGrainAvg.toFixed(2)}ms, ratio=${ratio.toFixed(2)}`);
+
+            console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: baseline=${baseAvg.toFixed(2)}ms, no_grain=${noGrainAvg.toFixed(2)}ms, ratio=${ratio.toFixed(2)} (threshold <= 1.15)`);
             if (ratio > 1.15) {
-                console.error(`[PERF_ASSERT] FAILED: ${sid} ratio ${ratio.toFixed(2)} exceeds 1.15!`);
+                console.error(`[PERF_ASSERT] FAILED: ${sid} ratio ${ratio.toFixed(2)} exceeds 1.15! (Terrain sprite caching regression)`);
                 assertFailed = true;
             }
+
+            if (recordedMap && typeof recordedMap[sid] === 'number') {
+                const threshold = +(recordedMap[sid] * 1.5).toFixed(2);
+                console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: recorded=${recordedMap[sid]}ms, threshold (x1.5)=${threshold}ms, current=${baseAvg.toFixed(2)}ms`);
+                if (baseAvg > threshold) {
+                    console.error(`[PERF_ASSERT] FAILED: ${sid} baseline=${baseAvg.toFixed(2)}ms exceeds recorded threshold=${threshold}ms!`);
+                    assertFailed = true;
+                }
+            }
         }
+
         if (assertFailed) {
+            console.error('\n[PERF_ASSERT] ONE OR MORE PERFORMANCE GUARDRAILS FAILED.\n');
             process.exitCode = 1;
         } else {
-            console.log('[PERF_ASSERT] All scenes passed relative ratio check (<= 1.15).\n');
+            console.log('\n[PERF_ASSERT] ALL performance guardrails PASSED.\n');
         }
     }
 } finally {

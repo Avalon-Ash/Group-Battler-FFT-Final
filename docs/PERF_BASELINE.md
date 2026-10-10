@@ -30,7 +30,7 @@
 | **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☑ | `a98e8b3` | useGameLoop/PostProcessor/tactical 接入、?quality=0 釘死測試套件、quality=2/3 冒煙全過、e2e 連過兩次 (tag: perf-ckpt-P5) |
 | **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☑ | `8a20a92` | drawWorld 遮擋 Set/Array 與 viewportScratch 重用，零每幀垃圾配置，GC 穩定 |
 | **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☑ | `e0b4837` | 完成 DSF=1, DSF=2, THROTTLE=4 三維度交錯 3 輪實測，不改 CSS/TSX |
-| **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☐ |  | 自動防回歸守門 |
+| **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☑ | `0b0ebac` | 双重護欄 (ratio≤1.15 與 baseline×1.5)、AGENTS.md 協議整合、故意關閉快取報警驗證通過 |
 | **REPORT** | 完成報告 (`docs/PERF_REPORT.md` + `DECOUPLING_HANDOFF.md` §10.4) | ☐ |  | 完整驗證數據與建議 |
 | **FINAL** | 全量驗證 (lint/test/build/e2e/guard) + 本地 tags | ☐ |  | clean repo |
 
@@ -332,4 +332,32 @@
 - 若在您的機器上使用 `?perf` 顯示 `post` 與 `overlay+hud` 階段耗時正常（<3ms）而整體 FPS 依然偏低：
   1. 建議在 Showcase 畫面的視覺設定 (`ShowcaseSettings` 🔮 頁籤) 中，將矩陣雨開關關閉（`toggle matrix`）。
   2. 若在低階或高 DPR 裝置（如 4K 縮放或無獨顯筆電），可考慮提供「低效果模式」CSS 開關，停用 `backdrop-filter` 與降低矩陣雨密度。
+
+---
+
+## 10. P8 效能棘輪與守門機制驗證 (Perf Guardrail Ratchet)
+
+### 10.1 雙重護欄設計
+1. **相對比值守門 (Machine-Independent)**：
+   - 檢查指標：`baseline / no_terrain_grain <= 1.15`。
+   - 意圖：驗證地形 Sprite 快取是否正常工作。若地形快取失效，有顆粒與無顆粒差距將立即拉大到 1.35 ~ 1.50x，直接觸發紅燈。
+2. **絕對基準閾值守門 (Host Machine Regression Reference)**：
+   - 記錄檔：`tools/ui-e2e/perf-baseline.json`（由 `--record` 或 `PERF_RECORD=1` 寫入主機實測基準）。
+   - 檢查指標：`baseline <= recorded_baseline * 1.5`。
+   - 意圖：防範非地形因素造成的重大效能滑坡（如全域渲染迴圈額外開銷或主執行緒卡頓）。
+
+### 10.2 自動化指令
+- `npm run perf:guard`：自動依序執行 `perf:fidelity`（全 5 場景像素保真 0 差異比對）與 `perf-ab.mjs --assert`（雙重效能棘輪驗證）。
+- 整合進 `AGENTS.md` §4 規範，未來所有渲染管線變更必須強制全綠。
+
+### 10.3 故意關閉快取之報警驗證 (Negative Test)
+- **破壞操作**：在 `TerrainBlockCache.get` 第一行插入 `clear()`，強制每次塊渲染均 miss 快取。
+- **守門反應**：
+  - `VOID`: baseline 從 17.58ms 飆升至 35.83ms，ratio=1.41（> 1.15 報警），超過閾值 26.38ms（報警）。
+  - `FOREST`: baseline 37.34ms，ratio=1.46（報警），超過閾值 26.43ms（報警）。
+  - `ICE`: baseline 38.35ms，ratio=1.46（報警），超過閾值 26.38ms（報警）。
+  - `MAGMA`: baseline 43.31ms，ratio=1.25（報警），超過閾值 26.37ms（報警）。
+  - `DESERT`: baseline 37.62ms，ratio=1.47（報警），超過閾值 26.46ms（報警）。
+  - 守門腳本以退出碼 `1` 攔截失敗，成功報警。
+- **還原後驗證**：還原 `TerrainBlockCache.ts` 後重新執行 `npm run perf:guard`，全 5 場景 ratio 均為 1.00，全部 PASS。
 

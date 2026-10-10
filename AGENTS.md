@@ -73,6 +73,9 @@ npm run lint
 
 # 2. Production Build Verification (Must build cleanly)
 npm run build
+
+# 3. 渲染效能與保真護欄 (若改動涉及 renderers / materials / VFX 渲染管線)
+npm run perf:guard
 ```
 
 *Note: For procedural visual changes, preview with `tools/material-preview.html` via `npx vite`.*
@@ -87,6 +90,7 @@ npm run build
 | `npm run lint` | Runs `tsc --noEmit` across the entire project |
 | `npm run build` | Builds production bundle into `dist/` |
 | `npm run preview` | Previews production build |
+| `npm run perf:guard` | Runs render fidelity verification and performance regression assertion |
 
 ---
 
