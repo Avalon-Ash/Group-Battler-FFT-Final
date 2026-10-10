@@ -371,6 +371,8 @@ export const UI_WINDOW = {
     MIN_HEIGHT: 160,
     BOTTOM_SHEET_MAX_HEIGHT_VH: 72,
     MOBILE_BREAKPOINT: 900,
+    SHEET_BREAKPOINT: 900,
+    SHEET_MAX_VH: 72,
     /** Corner handle edge length = edge thickness * this factor. */
     HANDLE_CORNER_FACTOR: 2,
     /** Resize handles sit above window content (z-order inside the window's own stacking context). */

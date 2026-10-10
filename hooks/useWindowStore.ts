@@ -38,3 +38,20 @@ export function useWindowActions() {
         resetLayout: () => windowStore.resetLayout(),
     };
 }
+
+/**
+ * Hook to retrieve the ID of the open window with the highest z-index.
+ */
+export function useTopmostOpenWindowId(): WindowId | null {
+    const allWindows = useWindowStore();
+    let topmostId: WindowId | null = null;
+    let maxZ = -Infinity;
+    for (const [id, win] of Object.entries(allWindows)) {
+        if (win.isOpen && win.zIndex > maxZ) {
+            maxZ = win.zIndex;
+            topmostId = id as WindowId;
+        }
+    }
+    return topmostId;
+}
+

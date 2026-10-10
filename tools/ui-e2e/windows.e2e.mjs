@@ -861,6 +861,80 @@ const runStyleSnapshotSuite = async () => {
     await ctx.close();
 };
 
+const runBottomSheetSuite = async () => {
+    console.log('\n── Narrow Screen Bottom Sheet (U12a)');
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
+    const page = await ctx.newPage();
+    page.setDefaultTimeout(8000);
+    page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+    });
+
+    await enterManualMode(page);
+    await page.waitForTimeout(400);
+
+    // Open 3 windows via SystemMenu: logs, directorSettings, zoneSettings
+    await openViaMenu(page, 'logs');
+    await openViaMenu(page, 'directorSettings');
+    await openViaMenu(page, 'zoneSettings');
+    await page.waitForTimeout(400);
+
+    // 1. Assert only ONE window is visible in DOM
+    const visibleWindows = await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('[data-window-id]'));
+        return els.map(el => {
+            const r = el.getBoundingClientRect();
+            return {
+                id: el.getAttribute('data-window-id'),
+                rect: { x: r.x, y: r.y, width: r.width, height: r.height, bottom: r.bottom },
+            };
+        });
+    });
+
+    ok('narrow screen: exactly one window rendered/visible', visibleWindows.length === 1, `count: ${visibleWindows.length}`);
+    const active = visibleWindows[0];
+    ok('narrow screen: active window is zoneSettings (topmost open)', active?.id === 'zoneSettings', active?.id);
+
+    // 2. Assert width = viewport width (390)
+    ok('narrow screen: width equals viewport width', active && near(active.rect.width, 390, 2), `${active?.rect.width} vs 390`);
+
+    // 3. Assert bottom edge flush with viewport bottom (844)
+    ok('narrow screen: bottom edge flush with viewport bottom', active && near(active.rect.bottom, 844, 2), `${active?.rect.bottom} vs 844`);
+
+    // 4. Assert height <= 72vh (844 * 0.72 = 607.68)
+    const maxAllowedHeight = 844 * 0.72 + 2;
+    ok('narrow screen: height <= 72vh', active && active.rect.height <= maxAllowedHeight, `${active?.rect.height} <= ${maxAllowedHeight}`);
+
+    // 5. Assert no resize handles and no maximize button rendered
+    const handleCount = await page.evaluate(() => {
+        return Array.from(document.querySelectorAll('div')).filter(el => {
+            const cs = window.getComputedStyle(el);
+            return cs.cursor && cs.cursor.includes('resize');
+        }).length;
+    });
+    ok('narrow screen: no resize handles rendered', handleCount === 0, `handle count: ${handleCount}`);
+
+    const maxBtnCount = await page.locator('[data-window-id="zoneSettings"] button[title*="\u6700\u5927\u5316"], [data-window-id="zoneSettings"] button[title*="\u9084\u539f\u8996\u7a97"]').count();
+    ok('narrow screen: maximize button not rendered', maxBtnCount === 0, `count: ${maxBtnCount}`);
+
+    // 6. Resize viewport back to 1440x900 and verify all 3 windows restore their original desktop rects
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.waitForTimeout(500);
+
+    const wideWindows = await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('[data-window-id]'));
+        return els.map(el => el.getAttribute('data-window-id'));
+    });
+
+    ok('wide screen restore: all 3 windows visible', wideWindows.length === 3, `count: ${wideWindows.length}`);
+    const logsRect = await rectOf(page, 'logs');
+    ok('wide screen restore: logs window recovered desktop rect', logsRect && near(logsRect.width, 640, 2) && near(logsRect.height, 420, 2), JSON.stringify(logsRect));
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -871,6 +945,7 @@ try {
     if (!filterOnly || filterOnly.includes('schemaform')) await runSchemaFormSuite();
     if (!filterOnly || filterOnly.includes('showcase-pin')) await runShowcaseAndPinSuite();
     if (!filterOnly || filterOnly.includes('inspector-cmd')) await runInspectorCommandSuite();
+    if (!filterOnly || filterOnly.includes('bottom-sheet')) await runBottomSheetSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
 } catch (e) {
     failures++;

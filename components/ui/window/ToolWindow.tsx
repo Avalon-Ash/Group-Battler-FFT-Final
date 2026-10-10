@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { WindowId, WindowRect } from '../../../types';
 import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
-import { useWindowState, useWindowActions } from '../../../hooks/useWindowStore';
+import { useWindowState, useWindowActions, useTopmostOpenWindowId } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
 import { clampRect, getMaximizedRect } from './windowStore';
 import { Icons } from '../icons';
@@ -48,6 +48,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     const windowRef = useRef<HTMLDivElement | null>(null);
     const state = useWindowState(id);
     const actions = useWindowActions();
+    const topmostOpenId = useTopmostOpenWindowId();
     const [isCoarsePointer] = useState(
         () => typeof window !== 'undefined' &&
             typeof window.matchMedia === 'function' &&
@@ -58,6 +59,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     const displayTitle = title ?? def?.title ?? id;
     const minSize = def?.minSize;
     const viewport = useViewportSize();
+    const isNarrow = viewport.width <= UI_WINDOW.SHEET_BREAKPOINT;
 
     // Display rect is derived, never written back to the store: a saved layout survives a small
     // viewport and comes back once the viewport grows again. Maximized always follows the viewport.
@@ -68,6 +70,9 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         [isMaximizedState, storedRect, viewport, minSize]
     );
 
+    const dummyRef = useRef<HTMLDivElement | null>(null);
+    const interactionRef = isNarrow ? dummyRef : windowRef;
+
     const {
         handleTitlePointerDown,
         handleTitlePointerMove,
@@ -77,7 +82,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         handleResizePointerMove,
         handleResizePointerUp,
     } = useWindowInteraction({
-        windowRef,
+        windowRef: interactionRef,
         rect: displayRect,
         minSize,
         isMaximized: state?.isMaximized ?? false,
@@ -90,8 +95,48 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         return null;
     }
 
+    // Narrow screen (<=900px): only render the topmost open window as a bottom sheet.
+    if (isNarrow && id !== topmostOpenId) {
+        return null;
+    }
+
     const isCollapsed = state.isCollapsed;
     const isMaximized = state.isMaximized;
+
+    const maxSheetHeightPx = Math.round(viewport.height * (UI_WINDOW.SHEET_MAX_VH / 100));
+    const windowStyle: React.CSSProperties = isNarrow
+        ? {
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: 'auto',
+            width: `${viewport.width}px`,
+            maxWidth: '100vw',
+            height: isCollapsed ? 'auto' : `${Math.min(displayRect.height, maxSheetHeightPx)}px`,
+            maxHeight: `${UI_WINDOW.SHEET_MAX_VH}vh`,
+            zIndex: state.zIndex,
+            pointerEvents: 'auto',
+            transition: 'none',
+        }
+        : {
+            position: 'fixed',
+            left: `${displayRect.x}px`,
+            top: `${displayRect.y}px`,
+            right: 'auto',
+            bottom: 'auto',
+            width: `${displayRect.width}px`,
+            maxWidth: 'none',
+            height: isCollapsed ? 'auto' : `${displayRect.height}px`,
+            maxHeight: 'none',
+            zIndex: state.zIndex,
+            pointerEvents: 'auto',
+            transition: 'none',
+        };
+
+    const windowClasses = isNarrow
+        ? `liquid-card !rounded-t-2xl !rounded-b-none flex flex-col overflow-hidden shadow-2xl border-t border-x border-b-0 border-line-subtle/10 select-none bg-surface-panel/95 backdrop-blur-xl ${className}`
+        : `liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-line-subtle/10 select-none bg-surface-panel/90 backdrop-blur-xl ${className}`;
 
     return (
         <div
@@ -100,27 +145,17 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             // Capture phase: title/handle handlers stop propagation, so raising must not rely on bubbling.
             onPointerDownCapture={() => actions.front(id)}
             onPointerDown={(e) => e.stopPropagation()}
-            style={{
-                position: 'fixed',
-                left: `${displayRect.x}px`,
-                top: `${displayRect.y}px`,
-                width: `${displayRect.width}px`,
-                height: isCollapsed ? 'auto' : `${displayRect.height}px`,
-                zIndex: state.zIndex,
-                pointerEvents: 'auto',
-                // .liquid-card ships `transition-all duration-300`; geometry must follow the pointer 1:1.
-                transition: 'none',
-            }}
-            className={`liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-line-subtle/10 select-none bg-surface-panel/90 backdrop-blur-xl ${className}`}
+            style={windowStyle}
+            className={windowClasses}
         >
             {/* ── Title Bar ────────────────────────────────────────── */}
             <div
-                onPointerDown={handleTitlePointerDown}
-                onPointerMove={handleTitlePointerMove}
-                onPointerUp={handleTitlePointerUp}
-                onDoubleClick={handleTitleDoubleClick}
+                onPointerDown={isNarrow ? undefined : handleTitlePointerDown}
+                onPointerMove={isNarrow ? undefined : handleTitlePointerMove}
+                onPointerUp={isNarrow ? undefined : handleTitlePointerUp}
+                onDoubleClick={isNarrow ? undefined : handleTitleDoubleClick}
                 className={`h-10 px-3 bg-gradient-to-b from-line-subtle/10 to-transparent flex items-center justify-between border-b border-line-subtle/10 shrink-0 ${
-                    isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
+                    isNarrow || isMaximized ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
                 }`}
                 style={{ touchAction: 'none' }}
             >
@@ -144,15 +179,17 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                         <Icons.Minimize className="w-3 h-3" />
                     </button>
 
-                    {/* Maximize Button */}
-                    <button
-                        type="button"
-                        onClick={() => actions.maximize(id)}
-                        title={isMaximized ? '還原視窗' : '最大化'}
-                        className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
-                    >
-                        <Icons.Expand className="w-3 h-3" />
-                    </button>
+                    {/* Maximize Button: disabled on narrow bottom sheet */}
+                    {!isNarrow && (
+                        <button
+                            type="button"
+                            onClick={() => actions.maximize(id)}
+                            title={isMaximized ? '還原視窗' : '最大化'}
+                            className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
+                        >
+                            <Icons.Expand className="w-3 h-3" />
+                        </button>
+                    )}
 
                     {/* Close Button */}
                     <button
@@ -179,8 +216,8 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 </div>
             )}
 
-            {/* ── 8 Resize Handles (Hidden if Maximized or Collapsed) ─ */}
-            {!isMaximized && !isCollapsed && RESIZE_DIRECTIONS.map((direction) => (
+            {/* ── 8 Resize Handles (Hidden if Maximized, Collapsed, or on Narrow Bottom Sheet) ─ */}
+            {!isMaximized && !isCollapsed && !isNarrow && RESIZE_DIRECTIONS.map((direction) => (
                 <ResizeHandle
                     key={direction}
                     direction={direction}
