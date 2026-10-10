@@ -528,9 +528,10 @@ const runInspectorCommandSuite = async () => {
     await roleSelect.selectOption(newRole);
     await page.waitForTimeout(300);
 
-    // Change maxHp to 123
+    // Change maxHp to 123 (R8: draft + Enter submission)
     const hpInput = page.locator('label:has-text("生命值") + input');
     await hpInput.fill('123');
+    await hpInput.press('Enter');
     await page.waitForTimeout(300);
 
     // Assert live engine agent was updated

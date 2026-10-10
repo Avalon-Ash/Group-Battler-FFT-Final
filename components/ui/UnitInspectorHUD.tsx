@@ -60,6 +60,45 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
     const hpPct = currentMaxHp > 0 ? (currentHp / currentMaxHp) * 100 : 0;
     const mpPct = currentMaxMp > 0 ? (currentMp / currentMaxMp) * 100 : 0;
 
+    const [hpDraft, setHpDraft] = useState<string>(() => Math.round(currentMaxHp).toString());
+    const [mpDraft, setMpDraft] = useState<string>(() => Math.round(currentMaxMp).toString());
+    const [isHpFocused, setIsHpFocused] = useState(false);
+    const [isMpFocused, setIsMpFocused] = useState(false);
+
+    useEffect(() => {
+        if (!isHpFocused) {
+            setHpDraft(Math.round(currentMaxHp).toString());
+        }
+    }, [agent.id, currentMaxHp, isHpFocused]);
+
+    useEffect(() => {
+        if (!isMpFocused) {
+            setMpDraft(Math.round(currentMaxMp).toString());
+        }
+    }, [agent.id, currentMaxMp, isMpFocused]);
+
+    const submitHp = () => {
+        const v = parseInt(hpDraft.trim(), 10);
+        if (!Number.isNaN(v) && v > 0) {
+            editAgent(agent.id, { maxHp: v, hp: v });
+            setVersion(n => n + 1);
+            setHpDraft(v.toString());
+        } else {
+            setHpDraft(Math.round(currentMaxHp).toString());
+        }
+    };
+
+    const submitMp = () => {
+        const v = parseInt(mpDraft.trim(), 10);
+        if (!Number.isNaN(v) && v >= 0) {
+            editAgent(agent.id, { maxMp: v });
+            setVersion(n => n + 1);
+            setMpDraft(v.toString());
+        } else {
+            setMpDraft(Math.round(currentMaxMp).toString());
+        }
+    };
+
     const renderRoleIcon = (role: Role) => {
         switch (role) {
             case Role.TANK: return <Icons.RoleTank className="w-5 h-5" />;
@@ -195,14 +234,25 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-green-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-green-500/50 p-0"
-                                        value={Math.round(currentMaxHp)} 
-                                        onChange={(e) => {
-                                            const v = parseInt(e.target.value, 10);
-                                            if (!Number.isNaN(v) && v > 0) {
-                                                editAgent(agent.id, { maxHp: v, hp: v });
-                                                setVersion(n => n + 1);
+                                        value={hpDraft} 
+                                        onFocus={() => {
+                                            setIsHpFocused(true);
+                                            setHpDraft(Math.round(currentMaxHp).toString());
+                                        }}
+                                        onChange={(e) => setHpDraft(e.target.value)}
+                                        onBlur={() => {
+                                            setIsHpFocused(false);
+                                            submitHp();
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                submitHp();
+                                                e.currentTarget.blur();
+                                            } else if (e.key === 'Escape') {
+                                                setHpDraft(Math.round(currentMaxHp).toString());
+                                                e.currentTarget.blur();
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </div>
                                 <div className="space-y-1">
@@ -210,14 +260,25 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
                                     <input 
                                         type="number" 
                                         className="liquid-input h-8 w-full text-center text-blue-400 font-mono font-bold text-xs bg-black/50 !rounded-lg border-white/10 focus:border-blue-500/50 p-0"
-                                        value={Math.round(currentMaxMp)} 
-                                        onChange={(e) => {
-                                            const v = parseInt(e.target.value, 10);
-                                            if (!Number.isNaN(v) && v >= 0) {
-                                                editAgent(agent.id, { maxMp: v });
-                                                setVersion(n => n + 1);
+                                        value={mpDraft} 
+                                        onFocus={() => {
+                                            setIsMpFocused(true);
+                                            setMpDraft(Math.round(currentMaxMp).toString());
+                                        }}
+                                        onChange={(e) => setMpDraft(e.target.value)}
+                                        onBlur={() => {
+                                            setIsMpFocused(false);
+                                            submitMp();
+                                        }}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                                submitMp();
+                                                e.currentTarget.blur();
+                                            } else if (e.key === 'Escape') {
+                                                setMpDraft(Math.round(currentMaxMp).toString());
+                                                e.currentTarget.blur();
                                             }
-                                        }} 
+                                        }}
                                     />
                                 </div>
                             </div>
