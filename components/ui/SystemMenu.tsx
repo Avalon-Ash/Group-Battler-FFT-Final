@@ -5,13 +5,6 @@ import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
-    // Retained for backward-compatibility if passed from caller
-    onToggleLogs?: () => void;
-    onToggleDB?: () => void;
-    onToggleVFXMap?: () => void;
-    onToggleMonitor?: () => void;
-    engine?: unknown;
-    monitorEnabled?: boolean;
 }
 
 export const SystemMenu: React.FC<SystemMenuProps> = ({ onDownloadSpec }) => {

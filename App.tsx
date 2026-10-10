@@ -59,7 +59,6 @@ function App() {
       {!hideHUD && (
           <SystemMenu 
               onDownloadSpec={actions.downloadSpec}
-              engine={engineRef.current} 
           />
       )}
 

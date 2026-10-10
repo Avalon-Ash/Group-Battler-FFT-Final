@@ -97,15 +97,10 @@ const rectOf = (page, id) => page.evaluate((wid) => {
     return { x: r.x, y: r.y, width: r.width, height: r.height, z: Number(e.style.zIndex) };
 }, id);
 
-const openViaMenu = async (page, target) => {
-    const menuBtn = page.locator('[data-testid="system-menu-button"]').or(page.locator('button.w-12.h-12').first());
-    await menuBtn.click();
+const openViaMenu = async (page, windowId) => {
+    await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);
-    if (typeof target === 'string') {
-        await page.locator(`[data-testid="menu-item-${target}"]`).click();
-    } else {
-        await page.locator('button.min-w-\\[180px\\]').nth(target).click();
-    }
+    await page.locator(`[data-testid="menu-item-${windowId}"]`).click();
     await page.waitForTimeout(500);
 };
 
@@ -116,9 +111,7 @@ const runSuite = async (suite) => {
     console.log(`\n── window: ${id}`);
     const { ctx, page } = await newPage(suite);
     await enterManualMode(page);
-    if (suite.menuIndex !== undefined) {
-        await openViaMenu(page, suite.menuIndex);
-    } else if (!suite.seed) {
+    if (!suite.seed) {
         await openViaMenu(page, suite.id);
     }
 
