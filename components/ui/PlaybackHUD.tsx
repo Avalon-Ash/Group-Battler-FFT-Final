@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
-import { UI_Z } from '../../constants';
+import { UI_Z, UI_PIN } from '../../constants';
 interface PlaybackHUDProps {
     hidden: boolean;
     isPlaying: boolean;
@@ -21,7 +21,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-center',
         margin: 30,
-        storageKey: 'tactical_toolbar_playback'
+        storageKey: UI_PIN.STORAGE_KEYS.playback,
     });
     const glowClass = winner !== null 
         ? (winner === Team.BLUE ? 'shadow-[0_0_30px_rgba(59,130,246,0.4)] border-blue-500/30' : 'shadow-[0_0_30px_rgba(239,68,68,0.4)] border-red-500/30') 

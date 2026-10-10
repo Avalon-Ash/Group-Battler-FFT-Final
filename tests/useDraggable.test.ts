@@ -16,8 +16,10 @@ describe('useDraggable toolbar configuration (U9)', () => {
         const mapEditorContent = fs.readFileSync(mapEditorPath, 'utf8');
         const playbackContent = fs.readFileSync(playbackPath, 'utf8');
 
-        expect(mapEditorContent).toContain("tactical_toolbar_map_editor");
-        expect(playbackContent).toContain("tactical_toolbar_playback");
+        expect(mapEditorContent).toContain('UI_PIN.STORAGE_KEYS.mapEditor');
+        expect(playbackContent).toContain('UI_PIN.STORAGE_KEYS.playback');
+        expect(UI_PIN.STORAGE_KEYS.mapEditor).toBe('tactical_toolbar_map_editor');
+        expect(UI_PIN.STORAGE_KEYS.playback).toBe('tactical_toolbar_playback');
     });
 
     it('verifies useDraggable supports storageKey, onPointerCancel, and touchAction', () => {
