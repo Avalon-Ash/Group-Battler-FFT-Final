@@ -331,6 +331,65 @@ const runToolMenuSuite = async () => {
     await ctx.close();
 };
 
+const runSchemaFormSuite = async () => {
+    console.log('\n── SchemaForm -> Engine (zoneSettings & directorSettings)');
+    const { ctx, page } = await newPage({ id: 'schemaform' });
+    await enterManualMode(page);
+
+    // 1. zoneSettings: initial values match engine
+    await openViaMenu(page, 'zoneSettings');
+    const engZone = await page.evaluate(() => ({
+        enabled: window.__TACTICAL_ENGINE__.zoneConfig.enabled,
+        initialRadius: window.__TACTICAL_ENGINE__.zoneConfig.initialRadius,
+    }));
+    const uiRadius = await page.locator('[data-testid="setting-slider-initialRadius"]').inputValue();
+    const uiEnabled = await page.locator('[data-testid="setting-toggle-zoneEnabled"]').isChecked();
+    ok('zoneSettings: initial radius matches engine', Number(uiRadius) === engZone.initialRadius, `${uiRadius} vs ${engZone.initialRadius}`);
+    ok('zoneSettings: initial enabled matches engine', uiEnabled === engZone.enabled);
+
+    // Toggle zoneEnabled
+    await page.locator('[data-testid="setting-toggle-zoneEnabled"]').click({ force: true });
+    await page.waitForTimeout(300);
+    const engZoneAfterToggle = await page.evaluate(() => window.__TACTICAL_ENGINE__.zoneConfig.enabled);
+    ok('zoneSettings: toggle updates engine zoneConfig.enabled', engZoneAfterToggle === !engZone.enabled);
+
+    // Drag initialRadius slider
+    const radiusBox = await page.locator('[data-testid="setting-slider-initialRadius"]').boundingBox();
+    await page.mouse.move(radiusBox.x + radiusBox.width * 0.2, radiusBox.y + radiusBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(radiusBox.x + radiusBox.width * 0.85, radiusBox.y + radiusBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    const engRadiusAfter = await page.evaluate(() => window.__TACTICAL_ENGINE__.zoneConfig.initialRadius);
+    ok('zoneSettings: slider updates engine initialRadius', engRadiusAfter > 16 && engRadiusAfter <= 25, String(engRadiusAfter));
+
+    // Close zoneSettings
+    await page.locator(`[data-window-id="zoneSettings"] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+
+    // 2. directorSettings: initial followStiffness matches engine and is NOT 3.5
+    await openViaMenu(page, 'directorSettings');
+    const engFollow = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.followStiffness);
+    const uiFollow = await page.locator('[data-testid="setting-slider-followStiffness"]').inputValue();
+    ok('directorSettings: initial followStiffness matches engine (not 3.5)', Math.abs(Number(uiFollow) - engFollow) < 0.05 && Number(uiFollow) < 1.0, `${uiFollow} vs ${engFollow}`);
+
+    // Drag followStiffness slider
+    const followBox = await page.locator('[data-testid="setting-slider-followStiffness"]').boundingBox();
+    await page.mouse.move(followBox.x + followBox.width * 0.2, followBox.y + followBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(followBox.x + followBox.width * 0.8, followBox.y + followBox.height / 2, { steps: 5 });
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+    const engFollowAfter = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.followStiffness);
+    ok('directorSettings: slider updates engine followStiffness within clamp range', engFollowAfter >= 0.1 && engFollowAfter <= 5.0 && Math.abs(engFollowAfter - engFollow) > 0.5, String(engFollowAfter));
+
+    // Close directorSettings
+    await page.locator(`[data-window-id="directorSettings"] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -338,6 +397,7 @@ try {
     for (const suite of activeSuites) await runSuite(suite);
     if (!filterOnly || filterOnly.includes('multi')) await runMultiWindow();
     if (!filterOnly || filterOnly.includes('toolmenu')) await runToolMenuSuite();
+    if (!filterOnly || filterOnly.includes('schemaform')) await runSchemaFormSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));
