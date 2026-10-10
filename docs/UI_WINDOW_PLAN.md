@@ -202,7 +202,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U1 / U1b / U1c | ☑ | 2026-10-10 完成：WindowDef/State SSOT、WindowStore 完整單元測試全綠、data/ui/windows.ts 與 useWindowStore hooks |
 | U2 | ☑ | 2026-10-10 完成：useWindowInteraction（Pointer 拖曳/8向縮放/雙擊最大化）、ToolWindow 視窗殼、WindowLayer 穿透層 |
 | U3 | ☑ | 試點；桌機+手機實測 |
-| U4 | ☐ | |
+| U4 | ☑ | 9f2b7fa |
 | E1 | ☑ | 2026-10-10 完成：UICommand 聯集、EventMap['UI_COMMAND']、types/UIViewModel.ts（Agent/Director/Zone/Camera/Log View） |
 | E2 / E2b | ☑ | 2026-10-10 完成：UICommandSystem 單元測試 11/11 全綠（越界 clamp、忽略無效、非現有 agent 防護、未知命令安全） |
 | E3 / E3b | ☑ | 2026-10-10 完成：selectors 與 EngineViewTicker 單元測試 11/11 全綠（參考穩定性、訂閱計數與自動啟停） |
@@ -362,3 +362,11 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 ### 11.3 下一步
 - **U4**：SkillDB、VFXMap 改視窗；刪除 `ModalManager`；`useGameApp` 移除 `showLogs/showDB/showVFXMap`。
 - 之後每個接畫面的任務都跑 headless e2e + 目視截圖（腳本目前放在 scratch，若要納入專案需新增 `playwright-core` devDependency，**需使用者核准**）。
+
+
+## 12. U4 完成與 e2e 工具
+
+- **U4** 完成：SkillDB / VFXMap 改為浮動視窗（`windowRegistry.tsx` 的 `db`、`vfxmap`，皆 `flush`）；`ModalManager` 已刪除；`useGameApp` 的 `showLogs/showDB/showVFXMap` 旗標與 setter 已移除。
+- **e2e 工具**：`npm run e2e:ui`（`tools/ui-e2e/windows.e2e.mjs`）。需本機 Edge/Chrome（可用 `E2E_BROWSER_PATH` 覆寫），自起 Vite（port 3199），輸出截圖到 `tools/ui-e2e/out/`。每個新視窗需加入 SUITES。結果：全部 PASS（每視窗 12 項 + 多視窗 4 項）。
+- **注意**：`SystemMenu` 沒有 VFXMap 入口（舊有死功能），在 U7a（ToolMenu）前 UI 無法開啟；e2e 以 localStorage 種子開啟。
+- 多視窗「按標題列置頂」曾失敗，原因為測試點被其他視窗遮住（測試幾何問題，非產品 bug），已改為掃描未被遮蓋的點。
