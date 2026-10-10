@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout } from '../types';
@@ -6,10 +7,30 @@ import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 
+type DevWindow = Window & {
+    __TACTICAL_ENGINE__?: GameEngine;
+};
+
 export const useGameApp = () => {
     // [ARCH] Use a lazy initializer for the ref to avoid 'new GameEngine()' on every render
-    const [initialEngine] = useState(() => new GameEngine());
+    const [initialEngine] = useState(() => {
+        const eng = new GameEngine();
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+            (window as DevWindow).__TACTICAL_ENGINE__ = eng;
+        }
+        return eng;
+    });
     const engineRef = useRef<GameEngine>(initialEngine);
+
+    useEffect(() => {
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+            const devWindow = window as DevWindow;
+            devWindow.__TACTICAL_ENGINE__ = engineRef.current;
+            return () => {
+                delete devWindow.__TACTICAL_ENGINE__;
+            };
+        }
+    }, []);
     
     const [session, setSession] = useState({
         isPlaying: false,
