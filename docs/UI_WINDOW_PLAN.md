@@ -209,7 +209,8 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | E9 | ☑ | 2026-10-10 完成：邊界守門棘輪測試（tests/UIBoundary.test.ts + baseline.json，6/6 通過：變更只准減不准增） |
 | E4 | ☑ | 2026-10-10 完成：UI_SETTINGS 範圍/預設/步長補全、F4（SNAPSHOT_HZ 與相機 fallback）收斂至 UI_SETTINGS、data/ui/settingsSchema.ts SSOT 與 SchemaForm 資料驅動表單元件 |
 
-| U5 | ☐ | |
+| U5 | ☑ | 2026-10-10 完成：DirectorMonitorHUD 視窗化（id: monitor）、改用 useEngineView 消除私有 setInterval（E9 baseline 下調至 4）、e2e 測試 12/12 PASS |
+
 | U7a / U7b | ☐ | |
 | U8 | ☐ | |
 | E6 | ☐ | |

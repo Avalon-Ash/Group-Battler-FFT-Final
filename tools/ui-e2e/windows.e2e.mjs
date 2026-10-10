@@ -37,7 +37,9 @@ const SUITES = [
     { id: 'logs', menuIndex: 3 },
     { id: 'db', menuIndex: 4 },
     { id: 'vfxmap', seed: { x: 100, y: 80, w: 720, h: 520 } },
+    { id: 'monitor', menuIndex: 2 },
 ];
+
 
 let failures = 0;
 const ok = (name, cond, extra = '') => {

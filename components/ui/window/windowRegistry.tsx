@@ -5,6 +5,7 @@ import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { LogTab } from '../../inspector/tabs/LogTab';
 import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
 import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
+import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 
@@ -40,7 +41,13 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         flush: true,
         render: () => <VFXMapTab />,
     },
+    monitor: {
+        icon: <Icons.TV className="w-4 h-4" />,
+        flush: true,
+        render: ({ engine }) => <DirectorMonitorHUD engine={engine} />,
+    },
 };
+
 
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
 export const RegisteredWindows: React.FC<WindowRenderContext> = (ctx) => (

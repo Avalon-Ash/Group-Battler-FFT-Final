@@ -4,17 +4,19 @@ import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
 import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
 import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
-import { DirectorMonitorHUD } from './components/ui/DirectorMonitorHUD'; // 新增
 import { SystemMenu } from './components/ui/SystemMenu';
 import { WindowLayer } from './components/ui/window/WindowLayer';
 import { RegisteredWindows } from './components/ui/window/windowRegistry';
-import { useWindowActions } from './hooks/useWindowStore';
+import { useWindowActions, useWindowState } from './hooks/useWindowStore';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
+
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
   const windowActions = useWindowActions();
+  const monitorState = useWindowState('monitor');
+  const isMonitorOpen = monitorState?.isOpen ?? false;
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
 
@@ -38,17 +40,9 @@ function App() {
             timeScale={state.timeScale} 
             setTimeScale={setters.setTimeScale} 
             engine={engineRef.current} 
-            showDirectorMonitor={state.showDirectorMonitor}
-            setShowDirectorMonitor={setters.setShowDirectorMonitor}
+            showDirectorMonitor={isMonitorOpen}
+            setShowDirectorMonitor={(v: boolean) => (v ? windowActions.open('monitor') : windowActions.close('monitor'))}
         />
-      )}
-
-      {/* Director Monitor - Draggable & Togglable */}
-      {!isGameOver && state.showDirectorMonitor && (
-          <DirectorMonitorHUD 
-            engine={engineRef.current}
-            onClose={() => setters.setShowDirectorMonitor(false)}
-          />
       )}
 
       <PlaybackHUD 
@@ -67,12 +61,13 @@ function App() {
               onToggleLogs={() => windowActions.toggle('logs')}
               onToggleDB={() => windowActions.toggle('db')}
               onToggleVFXMap={() => windowActions.toggle('vfxmap')}
-              onToggleMonitor={() => setters.setShowDirectorMonitor(!state.showDirectorMonitor)} // 新增
+              onToggleMonitor={() => windowActions.toggle('monitor')}
               onDownloadSpec={actions.downloadSpec}
               engine={engineRef.current} 
-              monitorEnabled={state.showDirectorMonitor} // 新增
+              monitorEnabled={isMonitorOpen}
           />
       )}
+
       {!hideHUD && state.selectedAgent && (
           <UnitInspectorHUD 
               agent={state.selectedAgent} 
