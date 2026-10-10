@@ -1,6 +1,7 @@
 import { GameEngine } from '../../game';
-import { UICommand, Role } from '../../../types';
+import { UICommand, Role, Team } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
+import { HexUtils } from '../../utils';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -135,6 +136,144 @@ export class UICommandSystem {
 
             case 'SET_CAMERA_TUNING': {
                 // Handled in GameRenderer via UI_COMMAND event subscription
+                break;
+            }
+
+            case 'PLACE_AGENT': {
+                if (cmd.team !== Team.BLUE && cmd.team !== Team.RED) break;
+                if (!isFiniteNumber(cmd.q) || !isFiniteNumber(cmd.r)) break;
+                const q = Math.round(cmd.q);
+                const r = Math.round(cmd.r);
+                if (!this.engine.isValid(q, r)) break;
+                if (this.engine.hasObstacle(q, r)) break;
+                if (this.engine.getAgentAt(q, r)) break;
+
+                let hpOverride: number | undefined = undefined;
+                if (cmd.hp !== undefined) {
+                    if (!isFiniteNumber(cmd.hp) || cmd.hp <= 0) break;
+                    hpOverride = Math.round(cmd.hp);
+                }
+
+                let roleOverride: Role | undefined = undefined;
+                if (cmd.role !== undefined) {
+                    if (!Object.values(Role).includes(cmd.role)) break;
+                    roleOverride = cmd.role;
+                }
+
+                const agent = this.engine.addAgent(cmd.team, q, r, hpOverride, roleOverride);
+                if (agent) {
+                    if (roleOverride) {
+                        agent.role = roleOverride;
+                    }
+                    agent.saveState();
+                }
+                break;
+            }
+
+            case 'REMOVE_AGENT_AT': {
+                if (!isFiniteNumber(cmd.q) || !isFiniteNumber(cmd.r)) break;
+                const q = Math.round(cmd.q);
+                const r = Math.round(cmd.r);
+                if (!this.engine.isValid(q, r)) break;
+                this.engine.removeAgent(q, r);
+                break;
+            }
+
+            case 'SET_OBSTACLE': {
+                if (!isFiniteNumber(cmd.q) || !isFiniteNumber(cmd.r)) break;
+                const q = Math.round(cmd.q);
+                const r = Math.round(cmd.r);
+                if (!this.engine.isValid(q, r)) break;
+                if (this.engine.getAgentAt(q, r)) break;
+                const obsType = typeof cmd.obstacleType === 'string' && cmd.obstacleType.trim().length > 0
+                    ? cmd.obstacleType
+                    : 'WALL';
+                this.engine.map.setObstacle(q, r, obsType);
+                break;
+            }
+
+            case 'REMOVE_OBSTACLE': {
+                if (!isFiniteNumber(cmd.q) || !isFiniteNumber(cmd.r)) break;
+                const q = Math.round(cmd.q);
+                const r = Math.round(cmd.r);
+                if (!this.engine.isValid(q, r)) break;
+                this.engine.map.removeObstacle(q, r);
+                break;
+            }
+
+            case 'MOVE_AGENT': {
+                if (typeof cmd.agentId !== 'string' || !cmd.agentId) break;
+                const agent = this.engine.agents.find((a) => a.id === cmd.agentId);
+                if (!agent) break;
+
+                if (!isFiniteNumber(cmd.q) || !isFiniteNumber(cmd.r)) {
+                    const p = HexUtils.toPx(agent.q, agent.r, this.engine.mapConfig);
+                    agent.px = p.x;
+                    agent.py = p.y;
+                    agent.dragOverQ = null;
+                    agent.dragOverR = null;
+                    break;
+                }
+
+                const targetQ = Math.round(cmd.q);
+                const targetR = Math.round(cmd.r);
+                const isValid = this.engine.isValid(targetQ, targetR);
+                const isBlocked = isValid ? this.engine.isBlocked(targetQ, targetR, agent.id) : true;
+
+                if (!isValid || isBlocked) {
+                    const p = HexUtils.toPx(agent.q, agent.r, this.engine.mapConfig);
+                    agent.px = p.x;
+                    agent.py = p.y;
+                    agent.dragOverQ = null;
+                    agent.dragOverR = null;
+                    break;
+                }
+
+                this.engine.updateAgentPosition(agent, targetQ, targetR);
+                const p = HexUtils.toPx(targetQ, targetR, this.engine.mapConfig);
+                agent.px = p.x;
+                agent.py = p.y;
+                agent.dragOverQ = null;
+                agent.dragOverR = null;
+                break;
+            }
+
+            case 'START_GAME': {
+                if (!this.engine.isRunning) {
+                    this.engine.play();
+                }
+                break;
+            }
+
+            case 'STOP_GAME': {
+                if (this.engine.isRunning) {
+                    this.engine.stop();
+                }
+                break;
+            }
+
+            case 'CLEAR_BOARD': {
+                this.engine.clear(Boolean(cmd.keepScene), Boolean(cmd.skipRebuild));
+                break;
+            }
+
+            case 'RANDOMIZE_MAP': {
+                if (cmd.layout === 'FLAT' || cmd.layout === 'POINTY') {
+                    this.engine.mapConfig.layout = cmd.layout;
+                }
+                this.engine.randomizeEnvironment();
+                let dimensionsChanged = false;
+                if (isFiniteNumber(cmd.w)) {
+                    this.engine.mapConfig.w = clampToRange(Math.round(cmd.w), UI_SETTINGS.MAP_WIDTH);
+                    dimensionsChanged = true;
+                }
+                if (isFiniteNumber(cmd.h)) {
+                    this.engine.mapConfig.h = clampToRange(Math.round(cmd.h), UI_SETTINGS.MAP_HEIGHT);
+                    dimensionsChanged = true;
+                }
+                if (dimensionsChanged) {
+                    this.engine.map.rebuildMap(this.engine);
+                }
                 break;
             }
 

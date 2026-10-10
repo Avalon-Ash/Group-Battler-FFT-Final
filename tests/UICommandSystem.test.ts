@@ -169,6 +169,286 @@ describe('UICommandSystem', () => {
         });
     });
 
+    describe('PLACE_AGENT and REMOVE_AGENT_AT', () => {
+        it('places agent on valid empty hex and configures stats/role', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+                hp: 850,
+                role: Role.MAGE,
+            });
+
+            const agent = engine.getAgentAt(0, 0);
+            expect(agent).toBeDefined();
+            expect(agent?.team).toBe(Team.BLUE);
+            expect(agent?.role).toBe(Role.MAGE);
+            expect(agent?.hp).toBe(850);
+            expect(agent?.maxHp).toBe(850);
+            expect(agent?.initialState.role).toBe(Role.MAGE);
+            expect(agent?.initialState.maxHp).toBe(850);
+        });
+
+        it('ignores placement if hex is out of bounds or occupied', () => {
+            // Already has agent at (0, 0)
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+            });
+            const firstAgent = engine.getAgentAt(0, 0);
+            expect(firstAgent).toBeDefined();
+
+            // Attempt to place second agent on same hex
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.RED,
+                q: 0,
+                r: 0,
+            });
+            expect(engine.getAgentAt(0, 0)?.id).toBe(firstAgent?.id);
+
+            // Attempt to place on out of bounds hex
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 999,
+                r: 999,
+            });
+            expect(engine.agents.length).toBe(1);
+
+            // Attempt to place on non-finite coordinates
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: NaN,
+                r: 0,
+            });
+            expect(engine.agents.length).toBe(1);
+        });
+
+        it('ignores placement on hex with obstacle', () => {
+            engine.map.setObstacle(1, 0, 'WALL');
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 1,
+                r: 0,
+            });
+            expect(engine.getAgentAt(1, 0)).toBeUndefined();
+        });
+
+        it('removes agent at specified hex', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.RED,
+                q: 0,
+                r: 0,
+            });
+            expect(engine.getAgentAt(0, 0)).toBeDefined();
+
+            engine.bus.emit('UI_COMMAND', {
+                type: 'REMOVE_AGENT_AT',
+                q: 0,
+                r: 0,
+            });
+            expect(engine.getAgentAt(0, 0)).toBeUndefined();
+        });
+
+        it('safely handles REMOVE_AGENT_AT on empty or invalid hex', () => {
+            expect(() => {
+                engine.bus.emit('UI_COMMAND', { type: 'REMOVE_AGENT_AT', q: 0, r: 0 });
+                engine.bus.emit('UI_COMMAND', { type: 'REMOVE_AGENT_AT', q: 999, r: 999 });
+                engine.bus.emit('UI_COMMAND', { type: 'REMOVE_AGENT_AT', q: NaN, r: 0 });
+            }).not.toThrow();
+        });
+    });
+
+    describe('SET_OBSTACLE and REMOVE_OBSTACLE', () => {
+        it('sets and removes obstacles on valid hexes', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'SET_OBSTACLE',
+                q: 1,
+                r: 0,
+                obstacleType: 'PILLAR',
+            });
+            expect(engine.hasObstacle(1, 0)).toBe(true);
+            expect(engine.map.obstacles.get('1,0')).toBe('PILLAR');
+
+            engine.bus.emit('UI_COMMAND', {
+                type: 'REMOVE_OBSTACLE',
+                q: 1,
+                r: 0,
+            });
+            expect(engine.hasObstacle(1, 0)).toBe(false);
+        });
+
+        it('does not place obstacle on a hex occupied by an agent', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+            });
+            expect(engine.getAgentAt(0, 0)).toBeDefined();
+
+            engine.bus.emit('UI_COMMAND', {
+                type: 'SET_OBSTACLE',
+                q: 0,
+                r: 0,
+                obstacleType: 'WALL',
+            });
+            expect(engine.hasObstacle(0, 0)).toBe(false);
+        });
+
+        it('safely handles SET_OBSTACLE/REMOVE_OBSTACLE on invalid hexes', () => {
+            expect(() => {
+                engine.bus.emit('UI_COMMAND', { type: 'SET_OBSTACLE', q: 999, r: 999 });
+                engine.bus.emit('UI_COMMAND', { type: 'REMOVE_OBSTACLE', q: 999, r: 999 });
+                engine.bus.emit('UI_COMMAND', { type: 'SET_OBSTACLE', q: NaN, r: 0 });
+            }).not.toThrow();
+        });
+    });
+
+    describe('MOVE_AGENT', () => {
+        it('moves agent to valid empty hex and updates coordinates and pixels', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+            });
+            const agent = engine.getAgentAt(0, 0)!;
+            expect(agent).toBeDefined();
+
+            // Simulate drag preview having changed px/py and dragOverQ/R
+            agent.px = 999;
+            agent.py = 999;
+            agent.dragOverQ = 1;
+            agent.dragOverR = 0;
+
+            engine.bus.emit('UI_COMMAND', {
+                type: 'MOVE_AGENT',
+                agentId: agent.id,
+                q: 1,
+                r: 0,
+            });
+
+            expect(agent.q).toBe(1);
+            expect(agent.r).toBe(0);
+            expect(agent.dragOverQ).toBeNull();
+            expect(agent.dragOverR).toBeNull();
+            expect(engine.getAgentAt(1, 0)?.id).toBe(agent.id);
+            expect(engine.getAgentAt(0, 0)).toBeUndefined();
+        });
+
+        it('restores preview coordinates to original hex when move target is invalid or blocked', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+            });
+            const agent = engine.getAgentAt(0, 0)!;
+            const originalPx = agent.px;
+            const originalPy = agent.py;
+
+            // Target has obstacle
+            engine.map.setObstacle(1, 0, 'WALL');
+
+            // Simulate drag preview
+            agent.px = 555;
+            agent.py = 666;
+            agent.dragOverQ = 1;
+            agent.dragOverR = 0;
+
+            engine.bus.emit('UI_COMMAND', {
+                type: 'MOVE_AGENT',
+                agentId: agent.id,
+                q: 1,
+                r: 0,
+            });
+
+            // Must NOT have moved, and preview MUST be restored to original px/py
+            expect(agent.q).toBe(0);
+            expect(agent.r).toBe(0);
+            expect(agent.px).toBe(originalPx);
+            expect(agent.py).toBe(originalPy);
+            expect(agent.dragOverQ).toBeNull();
+            expect(agent.dragOverR).toBeNull();
+
+            // Try out of bounds target
+            agent.px = 888;
+            agent.py = 999;
+            engine.bus.emit('UI_COMMAND', {
+                type: 'MOVE_AGENT',
+                agentId: agent.id,
+                q: 999,
+                r: 999,
+            });
+            expect(agent.q).toBe(0);
+            expect(agent.r).toBe(0);
+            expect(agent.px).toBe(originalPx);
+            expect(agent.py).toBe(originalPy);
+            expect(agent.dragOverQ).toBeNull();
+            expect(agent.dragOverR).toBeNull();
+        });
+
+        it('safely ignores unknown agentId', () => {
+            expect(() => {
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'MOVE_AGENT',
+                    agentId: 'non_existent_agent',
+                    q: 0,
+                    r: 0,
+                });
+            }).not.toThrow();
+        });
+    });
+
+    describe('START_GAME, STOP_GAME, CLEAR_BOARD, RANDOMIZE_MAP', () => {
+        it('starts and stops game execution', () => {
+            expect(engine.isRunning).toBe(false);
+
+            engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
+            expect(engine.isRunning).toBe(true);
+
+            engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+            expect(engine.isRunning).toBe(false);
+        });
+
+        it('clears the board via CLEAR_BOARD', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.BLUE,
+                q: 0,
+                r: 0,
+            });
+            engine.map.setObstacle(1, 0, 'WALL');
+            expect(engine.agents.length).toBe(1);
+            expect(engine.hasObstacle(1, 0)).toBe(true);
+
+            engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD' });
+            expect(engine.agents.length).toBe(0);
+            expect(engine.hasObstacle(1, 0)).toBe(false);
+        });
+
+        it('randomizes map with bounded width, height, and layout', () => {
+            engine.bus.emit('UI_COMMAND', {
+                type: 'RANDOMIZE_MAP',
+                w: 999, // Should clamp to UI_SETTINGS.MAP_WIDTH.max
+                h: -10, // Should clamp to UI_SETTINGS.MAP_HEIGHT.min
+                layout: 'POINTY',
+            });
+
+            expect(engine.mapConfig.w).toBe(UI_SETTINGS.MAP_WIDTH.max);
+            expect(engine.mapConfig.h).toBe(UI_SETTINGS.MAP_HEIGHT.min);
+            expect(engine.mapConfig.layout).toBe('POINTY');
+        });
+    });
+
     describe('Unknown and Malformed Commands', () => {
         it('ignores unknown or malformed commands without throwing', () => {
             expect(() => {

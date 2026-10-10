@@ -408,6 +408,8 @@ export const UI_SETTINGS = {
     TIME_SCALE: { min: 0.1, max: 5.0, default: 1.0, step: 0.1 },
     MATRIX_SPEED: { min: 0.1, max: 5.0, step: 0.1 },
     MATRIX_GAP: { min: 0, max: 1.0, step: 0.05 },
+    MAP_WIDTH: { min: 6, max: 24, default: 12, step: 1 },
+    MAP_HEIGHT: { min: 6, max: 24, default: 8, step: 1 },
 } as const;
 
 /**

@@ -226,7 +226,16 @@ export type UICommand =
     | { type: 'RESET_GAME' }
     | { type: 'PAUSE_GAME' }
     | { type: 'RESUME_GAME' }
-    | { type: 'SET_TIME_SCALE'; timeScale: number };
+    | { type: 'SET_TIME_SCALE'; timeScale: number }
+    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role }
+    | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
+    | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
+    | { type: 'REMOVE_OBSTACLE'; q: number; r: number }
+    | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
+    | { type: 'START_GAME' }
+    | { type: 'STOP_GAME' }
+    | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
+    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout };
 
 export * from './types/UIViewModel';
 
