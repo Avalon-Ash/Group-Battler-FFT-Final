@@ -24,8 +24,8 @@
 | **P2** | 重新 Profile (P1 之後殘餘熱點排名) | ☑ | `9ca98e8` | 殘餘熱點分析完成：無 ≥3% JS 渲染函式，P3 依守則豁免 |
 | **P3a** | 有上限的殘餘熱點修正 (1) | ─ |  | 豁免（P2 實測無符合 ≥3% 條件之 JS 渲染熱點） |
 | **P3b** | 有上限的殘餘熱點修正 (2) | ─ |  | 豁免（同上） |
-| **P4a** | 解析度 SSOT (`RenderQuality.ts`, `RENDER_QUALITY.MAX_DPR`) | ☑ |  | 4 檔授權完成：getRenderDpr SSOT 接入 + MAX_DPR=2 |
-| **P4b** | 畫布 DPR 實際接入 + `{ alpha: false }` + [E2E] | ☐ |  | e2e 全過，保真比對通過 |
+| **P4a** | 解析度 SSOT (`RenderQuality.ts`, `RENDER_QUALITY.MAX_DPR`) | ☑ | `78f4175` | 4 檔授權完成：getRenderDpr SSOT 接入 + MAX_DPR=2 |
+| **P4b** | 畫布 DPR 實際接入 + `{ alpha: false }` + [E2E] | ☑ |  | 畫布與 useGameLoop 接入、{alpha:false}、e2e連過兩次 (tag: perf-ckpt-P4) |
 | **P5a** | 自適應品質調度器 (`createQualityGovernor`) | ☐ |  | 降階/升階/釘死單元測試 |
 | **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☐ |  | quality=0/2/3 驗證 |
 | **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☐ |  | GC 占比對照 |

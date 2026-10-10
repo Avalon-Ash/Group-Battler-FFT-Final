@@ -556,8 +556,18 @@ const runInspectorCommandSuite = async () => {
     await editBtn.click();
     await page.waitForTimeout(400);
 
+    const actualAgentId = await page.evaluate(() => {
+        const idEl = document.querySelector('[data-window-id="inspector"] .text-sm.font-bold');
+        return idEl?.textContent?.trim() || null;
+    }) || target.agentId;
+
+    const currentAgent = await page.evaluate((aid) => {
+        const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
+        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp } : null;
+    }, actualAgentId);
+
     // Change Role to another role
-    const newRole = target.role === 'WARRIOR' ? 'TANK' : 'WARRIOR';
+    const newRole = currentAgent?.role === 'WARRIOR' ? 'TANK' : 'WARRIOR';
     const roleSelect = page.locator('label:has-text("職業") + select');
     await roleSelect.selectOption(newRole);
     await page.waitForTimeout(300);
@@ -572,7 +582,7 @@ const runInspectorCommandSuite = async () => {
     const updated = await page.evaluate((aid) => {
         const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
         return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp } : null;
-    }, target.agentId);
+    }, actualAgentId);
 
     ok('inspector EDIT_AGENT changed role in live engine', updated?.role === newRole, `${updated?.role} vs ${newRole}`);
     ok('inspector EDIT_AGENT changed maxHp in live engine to 123', updated?.maxHp === 123, String(updated?.maxHp));
@@ -650,7 +660,7 @@ const runInspectorCommandSuite = async () => {
     await page.evaluate((aid) => {
         const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
         if (a) { a.hp = 0; a.fullyDead = true; }
-    }, target.agentId);
+    }, actualAgentId);
     await page.waitForTimeout(400);
     const emptyStateText = await page.locator('[data-window-id="inspector"]').textContent();
     ok('dead agent shows empty state without throwing', emptyStateText.includes('請先選取單位'));
@@ -1312,10 +1322,10 @@ const runEditorSuite = async () => {
         window.__fpsRaf = requestAnimationFrame(loop);
     });
 
-    await page.mouse.move(1250, 350);
+    await page.mouse.move(100, 400);
     await page.mouse.down();
     for (let i = 0; i < 10; i++) {
-        await page.mouse.move(1250 - i * 15, 350 - i * 15);
+        await page.mouse.move(100 + i * 15, 400 + i * 15);
         await page.waitForTimeout(20);
     }
     await page.mouse.up();
