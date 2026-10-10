@@ -498,7 +498,7 @@ const runInspectorCommandSuite = async () => {
     });
 
     if (!target) {
-        console.log('SKIP  Inspector selection entrypoint not found (marked unverified)');
+        ok('inspector suite: engine and an agent are available (selection entry point)', false);
         await ctx.close();
         return;
     }
@@ -511,7 +511,7 @@ const runInspectorCommandSuite = async () => {
     const isInspectorOpen = await editBtn.isVisible();
 
     if (!isInspectorOpen) {
-        console.log('SKIP  Inspector selection entrypoint not triggered by canvas click (marked unverified)');
+        ok('inspector opened on unit select (canvas click reached the agent)', false, JSON.stringify(target));
         await ctx.close();
         return;
     }
