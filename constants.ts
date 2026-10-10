@@ -356,10 +356,29 @@ export const UI_WINDOW = {
     MIN_HEIGHT: 160,
     BOTTOM_SHEET_MAX_HEIGHT_VH: 72,
     MOBILE_BREAKPOINT: 900,
+    /** Corner handle edge length = edge thickness * this factor. */
+    HANDLE_CORNER_FACTOR: 2,
+    /** Used only when a window has neither saved state nor a registered definition. */
+    FALLBACK_RECT: { x: 100, y: 100, width: 400, height: 300 },
+    /** Used only when `window` is unavailable (SSR / tests). */
+    FALLBACK_VIEWPORT: { width: 1200, height: 800 },
 } as const;
 
 export const UI_Z = {
     WINDOW_BASE: 40,
     WINDOW_MAX: 80,
     TOP_OVERLAY: 90,
+} as const;
+
+/**
+ * UI ??Engine tunable ranges (SSOT). Shared by UICommandSystem (clamping),
+ * the renderer (camera tuning) and the settings schema / sliders.
+ */
+export const UI_SETTINGS = {
+    SNAPSHOT_HZ: 10,
+    ZONE_INITIAL_RADIUS: { min: 3, max: 20 },
+    ZONE_SHRINK_INTERVAL: { min: 1, max: 60 },
+    ZONE_MIN_RADIUS: { min: 0, max: 10 },
+    CAMERA_STIFFNESS: { min: 0.1, max: 20 },
+    TIME_SCALE: { min: 0.1, max: 5.0 },
 } as const;

@@ -1,5 +1,12 @@
 import { GameEngine } from '../../game';
 import { UICommand, Role } from '../../../types';
+import { UI_SETTINGS } from '../../../constants';
+
+type NumericRange = { readonly min: number; readonly max: number };
+
+const isFiniteNumber = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const clampToRange = (v: number, range: NumericRange): number =>
+    Math.max(range.min, Math.min(range.max, v));
 
 /**
  * UICommandSystem — Single Mutation Gate for UI -> Engine writes.
@@ -32,31 +39,22 @@ export class UICommandSystem {
                 if (typeof cmd.config.enabled === 'boolean') {
                     this.engine.zoneConfig.enabled = cmd.config.enabled;
                 }
-                if (
-                    typeof cmd.config.initialRadius === 'number' &&
-                    Number.isFinite(cmd.config.initialRadius)
-                ) {
-                    this.engine.zoneConfig.initialRadius = Math.max(
-                        1,
-                        Math.min(50, Math.round(cmd.config.initialRadius))
+                if (isFiniteNumber(cmd.config.initialRadius)) {
+                    this.engine.zoneConfig.initialRadius = clampToRange(
+                        Math.round(cmd.config.initialRadius),
+                        UI_SETTINGS.ZONE_INITIAL_RADIUS
                     );
                 }
-                if (
-                    typeof cmd.config.shrinkInterval === 'number' &&
-                    Number.isFinite(cmd.config.shrinkInterval)
-                ) {
-                    this.engine.zoneConfig.shrinkInterval = Math.max(
-                        1,
-                        Math.min(120, Math.round(cmd.config.shrinkInterval))
+                if (isFiniteNumber(cmd.config.shrinkInterval)) {
+                    this.engine.zoneConfig.shrinkInterval = clampToRange(
+                        Math.round(cmd.config.shrinkInterval),
+                        UI_SETTINGS.ZONE_SHRINK_INTERVAL
                     );
                 }
-                if (
-                    typeof cmd.config.minRadius === 'number' &&
-                    Number.isFinite(cmd.config.minRadius)
-                ) {
-                    this.engine.zoneConfig.minRadius = Math.max(
-                        0,
-                        Math.min(this.engine.zoneConfig.initialRadius, Math.round(cmd.config.minRadius))
+                if (isFiniteNumber(cmd.config.minRadius)) {
+                    this.engine.zoneConfig.minRadius = clampToRange(
+                        Math.round(cmd.config.minRadius),
+                        { min: UI_SETTINGS.ZONE_MIN_RADIUS.min, max: Math.min(UI_SETTINGS.ZONE_MIN_RADIUS.max, this.engine.zoneConfig.initialRadius) }
                     );
                 }
                 break;
@@ -107,6 +105,8 @@ export class UICommandSystem {
             }
 
             case 'RESET_GAME': {
+                // NOTE: no system subscribes to GAME_RESET yet; session reset is still driven by
+                // useGameApp. This command is reserved and gets wired up together with E8.
                 this.engine.bus.emit('GAME_RESET', {});
                 break;
             }
@@ -122,10 +122,12 @@ export class UICommandSystem {
             }
 
             case 'SET_TIME_SCALE': {
-                if (typeof cmd.timeScale === 'number' && Number.isFinite(cmd.timeScale)) {
-                    this.engine.state.time.timeScale = Math.max(
-                        0.1,
-                        Math.min(5.0, cmd.timeScale)
+                // TimeSystem eases `timeScale` toward `targetTimeScale`; writing the target is the
+                // same contract the existing playback controls use.
+                if (isFiniteNumber(cmd.timeScale)) {
+                    this.engine.state.time.targetTimeScale = clampToRange(
+                        cmd.timeScale,
+                        UI_SETTINGS.TIME_SCALE
                     );
                 }
                 break;

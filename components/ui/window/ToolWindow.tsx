@@ -1,5 +1,6 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { WindowId } from '../../../types';
+import { UI_WINDOW } from '../../../constants';
 import { WINDOW_DEF_MAP } from '../../../data/ui/windows';
 import { useWindowState, useWindowActions } from '../../../hooks/useWindowStore';
 import { useWindowInteraction, ResizeDirection } from '../../../hooks/useWindowInteraction';
@@ -25,6 +26,11 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     const windowRef = useRef<HTMLDivElement | null>(null);
     const state = useWindowState(id);
     const actions = useWindowActions();
+    const [isCoarsePointer] = useState(
+        () => typeof window !== 'undefined' &&
+            typeof window.matchMedia === 'function' &&
+            window.matchMedia('(pointer: coarse)').matches
+    );
 
     const def = WINDOW_DEF_MAP[id];
     const displayTitle = title ?? def?.title ?? id;
@@ -40,7 +46,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         handleResizePointerUp,
     } = useWindowInteraction({
         windowRef,
-        rect: state?.rect ?? def?.defaultRect ?? { x: 100, y: 100, width: 400, height: 300 },
+        rect: state?.rect ?? def?.defaultRect ?? UI_WINDOW.FALLBACK_RECT,
         minSize,
         isMaximized: state?.isMaximized ?? false,
         isCollapsed: state?.isCollapsed ?? false,
@@ -59,10 +65,9 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         <div
             ref={windowRef}
             data-window-id={id}
-            onPointerDown={(e) => {
-                e.stopPropagation();
-                actions.front(id);
-            }}
+            // Capture phase: title/handle handlers stop propagation, so raising must not rely on bubbling.
+            onPointerDownCapture={() => actions.front(id)}
+            onPointerDown={(e) => e.stopPropagation()}
             style={{
                 position: 'fixed',
                 left: `${state.rect.x}px`,
@@ -138,73 +143,50 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             )}
 
             {/* ── 8 Resize Handles (Hidden if Maximized or Collapsed) ─ */}
-            {!isMaximized && !isCollapsed && (
-                <>
-                    <ResizeHandle
-                        direction="n"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="top-0 left-2 right-2 h-2 cursor-n-resize"
-                    />
-                    <ResizeHandle
-                        direction="s"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="bottom-0 left-2 right-2 h-2 cursor-s-resize"
-                    />
-                    <ResizeHandle
-                        direction="w"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="left-0 top-2 bottom-2 w-2 cursor-w-resize"
-                    />
-                    <ResizeHandle
-                        direction="e"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="right-0 top-2 bottom-2 w-2 cursor-e-resize"
-                    />
-                    <ResizeHandle
-                        direction="nw"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="top-0 left-0 w-3 h-3 cursor-nw-resize"
-                    />
-                    <ResizeHandle
-                        direction="ne"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="top-0 right-0 w-3 h-3 cursor-ne-resize"
-                    />
-                    <ResizeHandle
-                        direction="sw"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="bottom-0 left-0 w-3 h-3 cursor-sw-resize"
-                    />
-                    <ResizeHandle
-                        direction="se"
-                        onPointerDown={handleResizePointerDown}
-                        onPointerMove={handleResizePointerMove}
-                        onPointerUp={handleResizePointerUp}
-                        className="bottom-0 right-0 w-3 h-3 cursor-se-resize"
-                    />
-                </>
-            )}
+            {!isMaximized && !isCollapsed && RESIZE_DIRECTIONS.map((direction) => (
+                <ResizeHandle
+                    key={direction}
+                    direction={direction}
+                    style={getHandleStyle(direction, isCoarsePointer)}
+                    onPointerDown={handleResizePointerDown}
+                    onPointerMove={handleResizePointerMove}
+                    onPointerUp={handleResizePointerUp}
+                />
+            ))}
         </div>
     );
 };
 
+/** Edges first, corners last so corners win overlaps in DOM order. */
+const RESIZE_DIRECTIONS: ResizeDirection[] = ['n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se'];
+
+/**
+ * Handle geometry. Top-side handles always use the fine thickness so they never
+ * cover the title-bar buttons, even on touch devices.
+ */
+function getHandleStyle(direction: ResizeDirection, coarse: boolean): React.CSSProperties {
+    const edge = coarse && !direction.includes('n') ? UI_WINDOW.HANDLE_PX_COARSE : UI_WINDOW.HANDLE_PX;
+    const corner = edge * UI_WINDOW.HANDLE_CORNER_FACTOR;
+    const base: React.CSSProperties = {
+        position: 'absolute',
+        touchAction: 'none',
+        cursor: `${direction}-resize`,
+    };
+    switch (direction) {
+        case 'n': return { ...base, top: 0, left: corner, right: corner, height: edge };
+        case 's': return { ...base, bottom: 0, left: corner, right: corner, height: edge };
+        case 'w': return { ...base, left: 0, top: corner, bottom: corner, width: edge };
+        case 'e': return { ...base, right: 0, top: corner, bottom: corner, width: edge };
+        case 'nw': return { ...base, top: 0, left: 0, width: corner, height: corner };
+        case 'ne': return { ...base, top: 0, right: 0, width: corner, height: corner };
+        case 'sw': return { ...base, bottom: 0, left: 0, width: corner, height: corner };
+        case 'se': return { ...base, bottom: 0, right: 0, width: corner, height: corner };
+    }
+}
+
 interface ResizeHandleProps {
     direction: ResizeDirection;
-    className: string;
+    style: React.CSSProperties;
     onPointerDown: (direction: ResizeDirection, e: React.PointerEvent<HTMLDivElement>) => void;
     onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
     onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -212,7 +194,7 @@ interface ResizeHandleProps {
 
 const ResizeHandle: React.FC<ResizeHandleProps> = ({
     direction,
-    className,
+    style,
     onPointerDown,
     onPointerMove,
     onPointerUp,
@@ -222,8 +204,9 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({
             onPointerDown={(e) => onPointerDown(direction, e)}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
-            style={{ touchAction: 'none' }}
-            className={`absolute z-10 ${className}`}
+            onPointerCancel={onPointerUp}
+            style={style}
         />
     );
 };
+

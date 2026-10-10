@@ -48,12 +48,15 @@ export function clampRect(
 export function serialize(windows: Record<string, WindowState>): string {
     const map: SerializedWindowMap = {};
     for (const [id, win] of Object.entries(windows)) {
+        // Never persist the maximized state: persist the normal rect so a reload
+        // (possibly at another viewport size) never restores a stale full-screen rect.
+        const persisted = win.isMaximized && win.prevRect ? win.prevRect : win.rect;
         map[id] = {
-            x: win.rect.x,
-            y: win.rect.y,
-            w: win.rect.width,
-            h: win.rect.height,
-            max: win.isMaximized,
+            x: persisted.x,
+            y: persisted.y,
+            w: persisted.width,
+            h: persisted.height,
+            max: false,
             open: win.isOpen,
             collapsed: win.isCollapsed,
         };
@@ -126,11 +129,32 @@ export function restoreState(
     return result;
 }
 
+function isSameRect(a: WindowRect | undefined, b: WindowRect | undefined): boolean {
+    if (!a || !b) return a === b;
+    return a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+}
+
+function isSameWindowState(a: WindowState, b: WindowState): boolean {
+    return (
+        a.isOpen === b.isOpen &&
+        a.isCollapsed === b.isCollapsed &&
+        a.isMaximized === b.isMaximized &&
+        a.zIndex === b.zIndex &&
+        isSameRect(a.rect, b.rect) &&
+        isSameRect(a.prevRect, b.prevRect)
+    );
+}
+
 /**
  * Pure TypeScript window management store.
+ *
+ * `_windows` is the mutable working copy. Subscribers (useSyncExternalStore) only ever
+ * see `_snapshot`, an immutable copy whose per-window objects keep their identity when
+ * unchanged ??otherwise per-window hooks would never detect in-place mutations.
  */
 export class WindowStore {
     private _windows: Record<string, WindowState> = {};
+    private _snapshot: Record<string, WindowState> = {};
     private _defs: Map<string, WindowDef> = new Map();
     private _listeners: Set<() => void> = new Set();
     private _zCounter: number = UI_Z.WINDOW_BASE;
@@ -178,18 +202,20 @@ export class WindowStore {
     }
 
     public getState(): Record<string, WindowState> {
-        return this._windows;
+        return this._snapshot;
     }
 
     public getWindow(id: WindowId): WindowState | undefined {
-        return this._windows[id];
+        return this._snapshot[id];
     }
 
     public open(id: WindowId): void {
         const win = this._windows[id];
         if (!win) return;
         win.isOpen = true;
-        this.front(id);
+        this._raise(win);
+        this._notify();
+        this._scheduleSave();
     }
 
     public close(id: WindowId): void {
@@ -214,10 +240,10 @@ export class WindowStore {
         const win = this._windows[id];
         if (!win) return;
 
-        if (this._zCounter >= UI_Z.WINDOW_MAX) {
-            this._renumberZIndices();
-        }
-        win.zIndex = ++this._zCounter;
+        // Already topmost: nothing to publish (avoids a re-render + save per pointerdown).
+        if (win.zIndex === this._zCounter) return;
+
+        this._raise(win);
         this._notify();
         this._scheduleSave();
     }
@@ -240,8 +266,8 @@ export class WindowStore {
         if (!win.isMaximized) {
             win.prevRect = { ...win.rect };
             const vp = viewport ?? {
-                width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-                height: typeof window !== 'undefined' ? window.innerHeight : 800,
+                width: typeof window !== 'undefined' ? window.innerWidth : UI_WINDOW.FALLBACK_VIEWPORT.width,
+                height: typeof window !== 'undefined' ? window.innerHeight : UI_WINDOW.FALLBACK_VIEWPORT.height,
             };
             const margin = UI_WINDOW.MAXIMIZE_MARGIN;
             win.rect = {
@@ -260,7 +286,9 @@ export class WindowStore {
             win.isMaximized = false;
         }
 
-        this.front(id);
+        this._raise(win);
+        this._notify();
+        this._scheduleSave();
     }
 
     public collapse(id: WindowId): void {
@@ -331,6 +359,14 @@ export class WindowStore {
         this._listeners.clear();
     }
 
+    private _raise(win: WindowState): void {
+        if (win.zIndex === this._zCounter) return;
+        if (this._zCounter >= UI_Z.WINDOW_MAX) {
+            this._renumberZIndices();
+        }
+        win.zIndex = ++this._zCounter;
+    }
+
     private _renumberZIndices(): void {
         const entries = Object.values(this._windows).sort((a, b) => a.zIndex - b.zIndex);
         let nextZ = UI_Z.WINDOW_BASE;
@@ -351,7 +387,24 @@ export class WindowStore {
     }
 
     private _notify(): void {
-        this._windows = { ...this._windows };
+        const next: Record<string, WindowState> = {};
+        let changed = Object.keys(this._windows).length !== Object.keys(this._snapshot).length;
+        for (const [id, win] of Object.entries(this._windows)) {
+            const prev = this._snapshot[id];
+            if (prev && isSameWindowState(prev, win)) {
+                next[id] = prev;
+            } else {
+                changed = true;
+                next[id] = {
+                    ...win,
+                    rect: { ...win.rect },
+                    prevRect: win.prevRect ? { ...win.prevRect } : undefined,
+                };
+            }
+        }
+        if (changed) {
+            this._snapshot = next;
+        }
         for (const listener of this._listeners) {
             listener();
         }

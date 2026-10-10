@@ -53,8 +53,8 @@ export function useWindowInteraction({
 
     const getViewport = useCallback(() => {
         return {
-            width: typeof window !== 'undefined' ? window.innerWidth : 1200,
-            height: typeof window !== 'undefined' ? window.innerHeight : 800,
+            width: typeof window !== 'undefined' ? window.innerWidth : UI_WINDOW.FALLBACK_VIEWPORT.width,
+            height: typeof window !== 'undefined' ? window.innerHeight : UI_WINDOW.FALLBACK_VIEWPORT.height,
         };
     }, []);
 

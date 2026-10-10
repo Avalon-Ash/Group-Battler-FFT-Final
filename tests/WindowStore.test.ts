@@ -234,5 +234,44 @@ describe('WindowStore & Window Clamping/Restoration', () => {
             store.close('logs');
             expect(notified).toBe(false);
         });
+
+        it('publishes immutable snapshots: changed windows get a new reference, untouched ones keep theirs', () => {
+            const before = store.getWindow('logs')!;
+            const inspectorBefore = store.getWindow('inspector')!;
+
+            store.open('logs');
+
+            const after = store.getWindow('logs')!;
+            expect(after).not.toBe(before);
+            expect(before.isOpen).toBe(false); // old snapshot is never mutated in place
+            expect(after.isOpen).toBe(true);
+            // Windows whose state did not change must keep identity (no useless re-render)
+            expect(store.getWindow('inspector')).toBe(inspectorBefore);
+        });
+
+        it('does not publish or save when front() hits the already-topmost window', () => {
+            store.open('logs');
+            let notifications = 0;
+            store.subscribe(() => { notifications++; });
+            const snapshot = store.getState();
+
+            store.front('logs');
+
+            expect(notifications).toBe(0);
+            expect(store.getState()).toBe(snapshot);
+        });
+
+        it('never persists the maximized state; reload restores the normal rect', () => {
+            const originalRect = { ...store.getWindow('logs')!.rect };
+            store.open('logs');
+            store.maximize('logs', { width: 1200, height: 800 });
+            store.flushSave();
+
+            const reloaded = new WindowStore(sampleDefs, storage);
+            const restored = reloaded.getWindow('logs')!;
+            expect(restored.isMaximized).toBe(false);
+            expect(restored.rect).toEqual(originalRect);
+            expect(restored.isOpen).toBe(true);
+        });
     });
 });

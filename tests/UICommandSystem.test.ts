@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Role, Team } from '../types';
+import { UI_SETTINGS } from '../constants';
 import { Agent } from '../engine/core/Agent';
 
 describe('UICommandSystem', () => {
@@ -41,12 +42,12 @@ describe('UICommandSystem', () => {
             engine.bus.emit('UI_COMMAND', {
                 type: 'SET_ZONE_CONFIG',
                 config: {
-                    initialRadius: 999, // clamp to 50
+                    initialRadius: 999, // clamp to UI_SETTINGS.ZONE_INITIAL_RADIUS.max
                     shrinkInterval: 0,   // clamp to 1
                     minRadius: -5,       // clamp to 0
                 },
             });
-            expect(engine.zoneConfig.initialRadius).toBe(50);
+            expect(engine.zoneConfig.initialRadius).toBe(UI_SETTINGS.ZONE_INITIAL_RADIUS.max);
             expect(engine.zoneConfig.shrinkInterval).toBe(1);
             expect(engine.zoneConfig.minRadius).toBe(0);
         });
@@ -158,13 +159,13 @@ describe('UICommandSystem', () => {
 
         it('clamps and updates timeScale', () => {
             engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 2.5 });
-            expect(engine.state.time.timeScale).toBe(2.5);
+            expect(engine.state.time.targetTimeScale).toBe(2.5);
 
             engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 99 });
-            expect(engine.state.time.timeScale).toBe(5.0);
+            expect(engine.state.time.targetTimeScale).toBe(UI_SETTINGS.TIME_SCALE.max);
 
             engine.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: 0.01 });
-            expect(engine.state.time.timeScale).toBe(0.1);
+            expect(engine.state.time.targetTimeScale).toBe(UI_SETTINGS.TIME_SCALE.min);
         });
     });
 

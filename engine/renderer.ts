@@ -10,6 +10,7 @@
 
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill, EventMap, UICommand } from "../types";
+import { UI_SETTINGS } from "../constants";
 import { UnitShatter } from "./systems/visuals/effects/UnitShatter";
 import { GridSystem } from "./systems/grid";
 import { VFXSystem } from "./systems/vfx";
@@ -87,10 +88,10 @@ export class GameRenderer {
     private handleUICommand = (cmd: UICommand) => {
         if (cmd.type === 'SET_CAMERA_TUNING') {
             if (typeof cmd.followStiffness === 'number' && Number.isFinite(cmd.followStiffness)) {
-                this.camera.followStiffness = Math.max(0.1, Math.min(20, cmd.followStiffness));
+                this.camera.followStiffness = Math.max(UI_SETTINGS.CAMERA_STIFFNESS.min, Math.min(UI_SETTINGS.CAMERA_STIFFNESS.max, cmd.followStiffness));
             }
             if (typeof cmd.zoomStiffness === 'number' && Number.isFinite(cmd.zoomStiffness)) {
-                this.camera.zoomStiffness = Math.max(0.1, Math.min(20, cmd.zoomStiffness));
+                this.camera.zoomStiffness = Math.max(UI_SETTINGS.CAMERA_STIFFNESS.min, Math.min(UI_SETTINGS.CAMERA_STIFFNESS.max, cmd.zoomStiffness));
             }
         }
     }
