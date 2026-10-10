@@ -7,6 +7,7 @@ import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
 import { HexUtils } from '../../engine/utils';
 import { ROLE_MAP } from '../inspector/InspectorConstants';
+import { UI_Z } from '../../constants';
 
 interface MapEditorToolbarProps {
     tool: ToolType;
@@ -60,8 +61,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
     return (
         <div 
             ref={ref}
-            className={`z-40 flex flex-col items-center gap-2`}
-            style={style}
+            className="flex flex-col items-center gap-2"
+            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
             {...dragHandlers}
         >
             {/* MAIN TOOLBAR */}

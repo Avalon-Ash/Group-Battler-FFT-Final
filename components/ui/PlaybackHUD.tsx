@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
+import { UI_Z } from '../../constants';
 interface PlaybackHUDProps {
     hidden: boolean;
     isPlaying: boolean;
@@ -28,8 +29,8 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     return (
         <div 
             ref={ref}
-            className={`z-40 transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-            style={style}
+            className={`transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
             {...dragHandlers}
         >
             <div className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>

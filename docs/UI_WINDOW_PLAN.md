@@ -221,7 +221,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U6 | ☐ | 先回報分段方案 |
 | E7 | ☑ | 2026-10-10 完成：LogTab 遷移至 selectLogView/selectLogs selector 與 useEngineView，徹底移除私有 setInterval 與 engine.logs 直接存取，匯出 JSON 走 selector，E9 baseline 下調（setIntervalCount 4 → 3），單元測試與 e2e 全數 PASS |
 | U9 | ☑ | 2026-10-10 完成：釘選工具列（MapEditorToolbar / PlaybackHUD）useDraggable 支援 storageKey 位置持久化記憶 + 顯示/縮放時自動 clamp + Pointer/觸控事件（onPointerCancel 容錯），單元測試與 e2e 全數 PASS |
-| U10 | ☐ | |
+| U10 | ☑ | 2026-10-10 完成：z-index 1:1 收斂至 UI_Z（PlaybackHUD / MapEditorToolbar z-40 → UI_Z.WINDOW_BASE），其餘無 1:1 對應值（z-30、z-50）跳過並記錄於夜間報告，單元測試與 e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
