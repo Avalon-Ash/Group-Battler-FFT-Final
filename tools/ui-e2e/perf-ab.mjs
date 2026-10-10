@@ -117,6 +117,25 @@ try {
     }
     await setCfg({}); await setCss('');
     writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
+    if (process.env.PERF_ASSERT === '1') {
+        let assertFailed = false;
+        console.log('\n[PERF_ASSERT] Evaluating performance guardrails (threshold: baseline / no_terrain_grain <= 1.15)...');
+        for (const [sid, data] of Object.entries(results)) {
+            const baseAvg = data.baseline.reduce((a, b) => a + b, 0) / data.baseline.length;
+            const noGrainAvg = data.no_terrain_grain.reduce((a, b) => a + b, 0) / data.no_terrain_grain.length;
+            const ratio = baseAvg / Math.max(0.01, noGrainAvg);
+            console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: baseline=${baseAvg.toFixed(2)}ms, no_grain=${noGrainAvg.toFixed(2)}ms, ratio=${ratio.toFixed(2)}`);
+            if (ratio > 1.15) {
+                console.error(`[PERF_ASSERT] FAILED: ${sid} ratio ${ratio.toFixed(2)} exceeds 1.15!`);
+                assertFailed = true;
+            }
+        }
+        if (assertFailed) {
+            process.exitCode = 1;
+        } else {
+            console.log('[PERF_ASSERT] All scenes passed relative ratio check (<= 1.15).\n');
+        }
+    }
 } finally {
     await browser.close();
     await server.close();

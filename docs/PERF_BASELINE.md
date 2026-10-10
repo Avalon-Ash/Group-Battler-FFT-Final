@@ -19,8 +19,8 @@
 | **P0b1** | Perf overlay 基礎 (`RenderStats.ts`, `RENDER_PERF` 常數, 單元測試) | ☑ | `6841853` | enabled=false 零成本 early return |
 | **P0b2** | `RenderPipeline` / `tactical.ts` 階段計時與 debug HUD 輸出 | ☑ | `b1981d4` | 無 ?perf 像素 0 差異 |
 | **P0c** | 畫面保真護欄 (`render-fidelity.mjs`, baseline PNG, `perf:fidelity`) | ☑ | `13ad34c` | 決定性截圖比對 guardrail (tag: perf-ckpt-P0) |
-| **P1a** | 地形 Sprite 快取 (`TerrainBlockCache.ts`, `TerrainRenderer.ts`) | ☑ |  | 核心優化：perf:fidelity 全過，耗時降 ~40% (差距 0%) |
-| **P1b** | 地形快取單元測試 (`TerrainBlockCache.test.ts`) + [E2E] | ☐ |  | 快取邊界/命中率/LRU + e2e:ui |
+| **P1a** | 地形 Sprite 快取 (`TerrainBlockCache.ts`, `TerrainRenderer.ts`) | ☑ | `9d7df40` | 核心優化：perf:fidelity 全過，耗時降 ~40% (差距 0%) |
+| **P1b** | 地形快取單元測試 (`TerrainBlockCache.test.ts`) + [E2E] | ☑ |  | 快取邊界/命中率/LRU + e2e:ui 連兩次全過 (tag: perf-ckpt-P1) |
 | **P2** | 重新 Profile (P1 之後殘餘熱點排名) | ☐ |  | docs only |
 | **P3a** | 有上限的殘餘熱點修正 (1) | ☐ |  | 占比 ≥3% 且純等價 |
 | **P3b** | 有上限的殘餘熱點修正 (2) | ☐ |  | 占比 ≥3% 且純等價 |
