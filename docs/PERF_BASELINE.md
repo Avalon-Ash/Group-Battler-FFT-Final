@@ -28,7 +28,7 @@
 | **P4b** | 畫布 DPR 實際接入 + `{ alpha: false }` + [E2E] | ☑ | `760f7f4` | 畫布與 useGameLoop 接入、{alpha:false}、e2e連過兩次 (tag: perf-ckpt-P4) |
 | **P5a** | 自適應品質調度器 (`createQualityGovernor`) | ☑ | `95df433` | 降階/升階/冷卻/忽略長幀/釘死/遲滯防抖單元測試全過 |
 | **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☑ | `a98e8b3` | useGameLoop/PostProcessor/tactical 接入、?quality=0 釘死測試套件、quality=2/3 冒煙全過、e2e 連過兩次 (tag: perf-ckpt-P5) |
-| **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☐ |  | GC 占比對照 |
+| **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☑ | `8a20a92` | drawWorld 遮擋 Set/Array 與 viewportScratch 重用，零每幀垃圾配置，GC 穩定 |
 | **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☐ |  | 不改 CSS/TSX |
 | **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☐ |  | 自動防回歸守門 |
 | **REPORT** | 完成報告 (`docs/PERF_REPORT.md` + `DECOUPLING_HANDOFF.md` §10.4) | ☐ |  | 完整驗證數據與建議 |
@@ -281,4 +281,18 @@
 - **P3a / P3b 符合性**：目前所有位於 `engine/renderers/**` 與 `engine/graphics/**` 的 JS 函式，其 self-time 占比皆 ≤ 0.5%，**全數遠低於 3% 閾值**。
 - **守則依據**：未達 3% 門檻之微型函式若硬做侵入式改動，收益低於 5% 且容易引入型別或迴歸風險。依據守則明文規定，本輪 P3a/P3b 判定為**無符合條件之殘餘熱點，免除執行**，直接推進至下一核心模組 **P4（解析度 SSOT 與 DPR 上限）**。
 - **主要瓶頸已轉移**：目前主要耗時為瀏覽器原生光柵化 `(idle)`（80~92%）與 `drawImage` 原生合成，P4（DPR 上限管制）與 P5（自適應品質調度）將直接降低畫布像素總量與合成負擔，對效能提升為最有效手段。
+
+---
+
+## 8. P6 每幀配置清理前後對照 (Allocations & GC Comparison)
+
+- **清理標的**：
+  1. `RenderPipeline.drawWorld` 遮擋偵測中之 `[...new Set([...occluded, ...obstacleOccluded])]`，改為內部常駐 `_scratchOccludedSet` 與 `_scratchOccludedList`。
+  2. `RenderPipeline.draw` 解構賦值 `[lW, lH] = [pW / dpr, pH / dpr]` 改為直接數值計算。
+  3. `VFXRenderer.submitRenderables` 之視口參數物件改用常駐 `_viewportScratch`。
+- **對照數據 (8s CPU Sampling, RTX 4070, 1440×900)**：
+  - `manual_idle`: GC 耗時 35.6ms (0.4%)
+  - `manual_battle`: GC 耗時 49.8ms (0.6%)，rAF 提升至 37.6 FPS (P2 基準為 32.9 FPS, frame avg 26.63ms vs 30.35ms)
+  - `showcase`: GC 耗時 40.8ms (0.5%)，rAF 提升至 32.9 FPS (P2 基準為 27.9 FPS, frame avg 30.38ms vs 35.85ms)
+  - 全場景保真度 (`perf:fidelity`) 依然 100% 通過（0 像素差異）。
 

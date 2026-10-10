@@ -23,6 +23,15 @@ export class RenderPipeline {
     private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
     private _terrainHEngine: GameEngine | null = null;
     
+    // Scratch structures to eliminate per-frame allocations
+    private _scratchOccludedSet = new Set<Agent>();
+    private _scratchOccludedList: Agent[] = [];
+    private _viewportScratch: { width: number; height: number; camera: Camera } = {
+        width: 0,
+        height: 0,
+        camera: { x: 0, y: 0, zoom: 1 },
+    };
+
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
@@ -61,7 +70,8 @@ export class RenderPipeline {
         if (pW === 0 || pH === 0) return;
 
         const dpr = getRenderDpr();
-        const [lW, lH] = [pW / dpr, pH / dpr];
+        const lW = pW / dpr;
+        const lH = pH / dpr;
         const { mapConfig: cfg, currentScene: sc } = engine;
         
         // 1. Clear & Background
@@ -127,7 +137,10 @@ export class RenderPipeline {
         const lH = ctx.canvas.height / dpr;
 
         this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
-        this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, { width: lW, height: lH, camera });
+        this._viewportScratch.width = lW;
+        this._viewportScratch.height = lH;
+        this._viewportScratch.camera = camera;
+        this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
         this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
         
         this.renderList.sort();
@@ -143,11 +156,30 @@ export class RenderPipeline {
         if (engine.isRunning) {
             const occluded = this.renderer.grid.getOccludedAgents(engine);
             const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
-            const allOccluded = [...new Set([...occluded, ...obstacleOccluded])];
 
-            if (allOccluded.length > 0) {
+            this._scratchOccludedSet.clear();
+            this._scratchOccludedList.length = 0;
+
+            for (let i = 0; i < occluded.length; i++) {
+                const a = occluded[i];
+                if (!this._scratchOccludedSet.has(a)) {
+                    this._scratchOccludedSet.add(a);
+                    this._scratchOccludedList.push(a);
+                }
+            }
+            for (let i = 0; i < obstacleOccluded.length; i++) {
+                const a = obstacleOccluded[i];
+                if (!this._scratchOccludedSet.has(a)) {
+                    this._scratchOccludedSet.add(a);
+                    this._scratchOccludedList.push(a);
+                }
+            }
+
+            if (this._scratchOccludedList.length > 0) {
                 ctx.save();
-                allOccluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
+                for (let i = 0; i < this._scratchOccludedList.length; i++) {
+                    this.renderer.unit.drawSilhouette(ctx, this._scratchOccludedList[i], terrainH, t, engine.mapConfig);
+                }
                 ctx.restore();
             }
         }
