@@ -15,8 +15,8 @@
 
 | 任務 ID | 說明 | 狀態 | Commit | 備註 |
 | :--- | :--- | :---: | :--- | :--- |
-| **P0a** | 基準量測與腳本整合 (`perf:ab`, `perf:profile`, `PERF_BASELINE.md`) | ☑ |  | 基準確立，地形顆粒占 36–45% 耗時 |
-| **P0b1** | Perf overlay 基礎 (`RenderStats.ts`, `RENDER_PERF` 常數, 單元測試) | ☐ |  | enabled=false 零成本 early return |
+| **P0a** | 基準量測與腳本整合 (`perf:ab`, `perf:profile`, `PERF_BASELINE.md`) | ☑ | `1684a60` | 基準確立，地形顆粒占 36–45% 耗時 |
+| **P0b1** | Perf overlay 基礎 (`RenderStats.ts`, `RENDER_PERF` 常數, 單元測試) | ☑ |  | enabled=false 零成本 early return |
 | **P0b2** | `RenderPipeline` / `tactical.ts` 階段計時與 debug HUD 輸出 | ☐ |  | 無 ?perf 像素 0 差異 |
 | **P0c** | 畫面保真護欄 (`render-fidelity.mjs`, baseline PNG, `perf:fidelity`) | ☐ |  | 決定性截圖比對 guardrail |
 | **P1a** | 地形 Sprite 快取 (`TerrainBlockCache.ts`, `TerrainRenderer.ts`) | ☐ |  | 核心優化：目標每場景降 ≥25% |

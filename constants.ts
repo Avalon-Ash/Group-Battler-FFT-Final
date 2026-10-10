@@ -424,3 +424,14 @@ export const UI_PIN = {
     },
 } as const;
 
+/**
+ * 渲染效能診斷與量測參數 SSOT。
+ */
+export const RENDER_PERF = {
+    QUERY_KEY: 'perf',
+    EMA_ALPHA: 0.1,
+    HISTORY_FRAMES: 60,
+    PHASES: ['background', 'world', 'post', 'overlay'] as const,
+} as const;
+
+
