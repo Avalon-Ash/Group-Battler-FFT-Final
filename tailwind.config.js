@@ -23,8 +23,5 @@ export default {
       },
     },
   },
-  safelist: [
-    { pattern: /(bg|text|border)-(cyan|blue|red|amber|emerald|slate|rose)-(300|400|500|600|700|800|900)(\/\d+)?/ },
-  ],
   plugins: [],
 };
