@@ -1,133 +1,235 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { MatrixConfig, LayoutPreset, StreamDirection } from './types';
-import { PRESET_PALETTES } from './defaults';
+import { DEFAULT_MATRIX_CONFIG, PRESET_PALETTES } from './defaults';
 import { GameEngine } from '../../../engine/game';
+import { SchemaForm } from '../settings/SchemaForm';
+import {
+    DIRECTOR_SETTINGS_SCHEMA,
+    ZONE_SETTINGS_SCHEMA,
+} from '../../../data/ui/settingsSchema';
+import { useEngineView } from '../../../hooks/useEngineView';
+import { useEngineCommands } from '../../../hooks/useEngineCommands';
+import {
+    selectDirectorView,
+    selectCameraTuningView,
+    selectZoneView,
+    selectGamePlaybackView,
+} from '../../../engine/systems/ui/selectors';
+import { windowStore } from '../window/windowStore';
 
 interface ShowcaseSettingsProps {
-    show: boolean;
-    onClose: () => void;
-    config: MatrixConfig;
-    setConfig: (c: MatrixConfig) => void;
-    timeScale: number;
-    setTimeScale: (v: number) => void;
-    layout: LayoutPreset;
-    setLayout: (l: LayoutPreset) => void;
+    show?: boolean;
+    onClose?: () => void;
+    config?: MatrixConfig;
+    setConfig?: (c: MatrixConfig) => void;
+    timeScale?: number;
+    setTimeScale?: (v: number) => void;
+    layout?: LayoutPreset;
+    setLayout?: (l: LayoutPreset) => void;
     engine?: GameEngine;
-    monitorEnabled?: boolean; // 新增
-    onToggleMonitor?: (v: boolean) => void; // 新增
+    monitorEnabled?: boolean;
+    onToggleMonitor?: (v: boolean) => void;
 }
 
 type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX' | 'GAMEPLAY';
 
+// Shared state for Matrix config & layout so both the ToolWindow and ShowcaseOverlay stay in sync
+let sharedConfig: MatrixConfig = DEFAULT_MATRIX_CONFIG;
+let sharedLayout: LayoutPreset = 'BOTTOM_CENTER';
+const configListeners: Set<(c: MatrixConfig) => void> = new Set();
+const layoutListeners: Set<(l: LayoutPreset) => void> = new Set();
+
+function updateSharedConfig(newConfig: MatrixConfig) {
+    sharedConfig = newConfig;
+    for (const listener of configListeners) listener(newConfig);
+}
+
+function updateSharedLayout(newLayout: LayoutPreset) {
+    sharedLayout = newLayout;
+    for (const listener of layoutListeners) listener(newLayout);
+}
+
 export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
-    show, onClose, config, setConfig, timeScale, setTimeScale, layout, setLayout, engine, monitorEnabled, onToggleMonitor
+    show,
+    onClose,
+    config: propConfig,
+    setConfig: propSetConfig,
+    timeScale: propTimeScale,
+    setTimeScale: propSetTimeScale,
+    layout: propLayout,
+    setLayout: propSetLayout,
+    engine,
 }) => {
-    const [activeTab, setActiveTab] = useState<TabKey>('SYSTEM');
-    const [cameraStiffness, setCameraStiffness] = useState(0.8);
-    const [zoomStiffness, setZoomStiffness] = useState(1.5);
-    const [directorEnabled, setDirectorEnabled] = useState(true);
+    // If rendered as a bridge component from ShowcaseOverlay (which passes `show`):
+    const isBridge = show !== undefined;
 
     useEffect(() => {
-        if (engine && engine.renderer) {
-            setCameraStiffness(engine.renderer.camera.followStiffness);
-            setZoomStiffness(engine.renderer.camera.zoomStiffness);
-            setDirectorEnabled(engine.director.enabled);
+        if (isBridge && propSetConfig) {
+            configListeners.add(propSetConfig);
+            return () => {
+                configListeners.delete(propSetConfig);
+            };
         }
-    }, [engine, show]);
+    }, [isBridge, propSetConfig]);
 
-    if (!show) return null;
+    useEffect(() => {
+        if (isBridge && propSetLayout) {
+            layoutListeners.add(propSetLayout);
+            return () => {
+                layoutListeners.delete(propSetLayout);
+            };
+        }
+    }, [isBridge, propSetLayout]);
+
+    useEffect(() => {
+        if (isBridge && show) {
+            windowStore.open('showcaseSettings');
+        }
+    }, [isBridge, show]);
+
+    const [activeTab, setActiveTab] = useState<TabKey>('SYSTEM');
+    const [localConfig, setLocalConfig] = useState<MatrixConfig>(propConfig ?? sharedConfig);
+    const [localLayout, setLocalLayout] = useState<LayoutPreset>(propLayout ?? sharedLayout);
+
+    const activeConfig = propConfig ?? localConfig;
+    const activeLayout = propLayout ?? localLayout;
+
+    const directorView = useEngineView(engine, selectDirectorView);
+    const cameraView = useEngineView(engine, selectCameraTuningView);
+    const zoneView = useEngineView(engine, selectZoneView);
+    const playbackView = useEngineView(engine, selectGamePlaybackView);
+    const { send } = useEngineCommands(engine);
+
+    const currentTimeScale = propTimeScale ?? playbackView?.timeScale ?? 1.0;
 
     const updateConfig = <K extends keyof MatrixConfig>(key: K, value: MatrixConfig[K]) => {
-        setConfig({ ...config, [key]: value });
+        const next = { ...activeConfig, [key]: value };
+        setLocalConfig(next);
+        updateSharedConfig(next);
+        propSetConfig?.(next);
     };
 
-    const updateCameraStiffness = (val: number) => {
-        setCameraStiffness(val);
-        if (engine && engine.renderer) engine.renderer.camera.followStiffness = val;
+    const handleLayoutChange = (l: LayoutPreset) => {
+        setLocalLayout(l);
+        updateSharedLayout(l);
+        propSetLayout?.(l);
     };
 
-    const updateZoomStiffness = (val: number) => {
-        setZoomStiffness(val);
-        if (engine && engine.renderer) engine.renderer.camera.zoomStiffness = val;
-    };
-
-    const toggleDirector = (val: boolean) => {
-        setDirectorEnabled(val);
-        if (engine) engine.director.enabled = val;
-    };
-
-    const isMasterOn = config.enabled && directorEnabled;
+    const isMasterOn = activeConfig.enabled && (directorView?.enabled ?? true);
     const toggleMaster = (val: boolean) => {
         updateConfig('enabled', val);
-        toggleDirector(val);
+        send({ type: 'SET_DIRECTOR_ENABLED', enabled: val });
     };
 
-    const TabButton = ({ id, label, icon }: { id: TabKey, label: string, icon: string }) => (
-        <button 
+    const handleTimeScaleChange = (val: number) => {
+        send({ type: 'SET_TIME_SCALE', timeScale: val });
+        propSetTimeScale?.(val);
+    };
+
+    // If rendered as bridge from ShowcaseOverlay, UI is inside the ToolWindow, return null here
+    if (isBridge) {
+        return null;
+    }
+
+    const TabButton = ({ id, label, icon }: { id: TabKey; label: string; icon: string }) => (
+        <button
             onClick={() => setActiveTab(id)}
-            className={`flex-1 py-3 text-xs font-bold transition-all relative ${activeTab === id ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'}`}
+            data-testid={`showcase-tab-${id.toLowerCase()}`}
+            className={`flex-1 py-2 text-xs font-bold transition-all relative ${
+                activeTab === id ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+            }`}
         >
             <span className="mr-1">{icon}</span> {label}
-            {activeTab === id && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 shadow-[0_0_8px_cyan]"></div>}
+            {activeTab === id && (
+                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 shadow-[0_0_8px_cyan]" />
+            )}
         </button>
     );
 
     return (
-        <div className="absolute top-20 left-4 md:left-6 z-[60] w-[min(22rem,calc(100vw-2rem))] liquid-glass rounded-3xl animate-slide-up pointer-events-auto select-none max-h-[80vh] flex flex-col shadow-[0_10px_40px_rgba(0,0,0,0.5)] bg-black/80 border border-white/10 backdrop-blur-xl">
-            <div className="flex items-center justify-between px-5 pt-4 pb-2 border-b border-white/10 shrink-0">
-                <div className="flex items-center gap-2">
-                    <span className="text-lg">⚙️</span>
-                    <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest">系統主控台</span>
-                </div>
-                <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors">✕</button>
-            </div>
-
-            <div className="flex px-2 border-b border-white/5 bg-black/20 overflow-x-auto custom-scrollbar">
+        <div className="w-full h-full flex flex-col overflow-hidden select-none">
+            {/* Tabs Bar */}
+            <div className="flex px-2 border-b border-white/5 bg-black/20 shrink-0">
                 <TabButton id="SYSTEM" label="系統" icon="🖥️" />
                 <TabButton id="CAMERA" label="鏡頭" icon="🎥" />
                 <TabButton id="MATRIX" label="視覺" icon="🔮" />
                 <TabButton id="GAMEPLAY" label="玩法" icon="🗺️" />
             </div>
 
-            <div className="p-5 overflow-y-auto custom-scrollbar flex-1 min-h-0">
+            {/* Content Body */}
+            <div className="p-4 overflow-y-auto custom-scrollbar flex-1 min-h-0">
                 {activeTab === 'SYSTEM' && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="bg-cyan-500/5 p-4 rounded-2xl border border-cyan-500/20 flex justify-between items-center shadow-inner">
+                    <div className="space-y-5 animate-fade-in">
+                        <div className="bg-cyan-500/5 p-3 rounded-xl border border-cyan-500/20 flex justify-between items-center shadow-inner">
                             <div className="flex flex-col gap-0.5">
-                                <span className="text-sm font-bold text-white tracking-wide">展示模式總開關</span>
-                                <span className="text-[9px] text-cyan-400/70 font-mono">ALL SYSTEMS ONLINE</span>
+                                <span className="text-xs font-bold text-white tracking-wide">
+                                    展示模式總開關
+                                </span>
+                                <span className="text-[9px] text-cyan-400/70 font-mono">
+                                    ALL SYSTEMS ONLINE
+                                </span>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={isMasterOn} onChange={(e) => toggleMaster(e.target.checked)}/>
-                                <div className="w-12 h-7 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={isMasterOn}
+                                    data-testid="showcase-toggle-master"
+                                    onChange={(e) => toggleMaster(e.target.checked)}
+                                />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-cyan-500" />
                             </label>
                         </div>
 
-                        <div className="space-y-3">
-                            <div className="flex justify-between text-[11px] font-bold text-slate-400 uppercase">
-                                <span>模擬時流 (Time Scale)</span>
-                                <span className="font-mono text-cyan-300">{timeScale.toFixed(1)}x</span>
+                        <div className="space-y-1.5">
+                            <div className="flex justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                                <span>動畫速度</span>
+                                <span className="font-mono text-cyan-400">
+                                    {currentTimeScale.toFixed(1)}x
+                                </span>
                             </div>
-                            <input type="range" min="0.1" max="4.0" step="0.1" value={timeScale} onChange={(e) => setTimeScale(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="3.0"
+                                step="0.1"
+                                value={currentTimeScale}
+                                data-testid="showcase-slider-timescale"
+                                onChange={(e) => handleTimeScaleChange(parseFloat(e.target.value))}
+                                className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                            />
                         </div>
 
-                        <div className="bg-white/5 p-4 rounded-2xl border border-white/10 flex justify-between items-center">
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-xs font-bold text-white uppercase tracking-wider">導播監測面板</span>
-                                <span className="text-[9px] text-slate-500 font-mono">DIRECTOR MONITOR HUD</span>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={monitorEnabled} onChange={(e) => onToggleMonitor?.(e.target.checked)}/>
-                                <div className="w-10 h-6 bg-slate-800 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[3px] after:left-[3px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </label>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            <span className="text-[11px] font-bold text-slate-400 uppercase block">介面佈局預設</span>
+                        <div className="space-y-2 pt-1">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                展示排版預設
+                            </span>
                             <div className="grid grid-cols-2 gap-2">
-                                {(['CENTER', 'BOTTOM_CENTER', 'BOTTOM_LEFT', 'BOTTOM_RIGHT'] as LayoutPreset[]).map(l => (
-                                    <button key={l} onClick={() => setLayout(l)} className={`text-[10px] py-2.5 rounded-xl border font-bold transition-all ${layout === l ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm' : 'bg-white/5 border-white/5 text-slate-500 hover:bg-white/10'}`}>
-                                        {l === 'CENTER' ? '中央對齊' : l === 'BOTTOM_CENTER' ? '底部中央' : l === 'BOTTOM_LEFT' ? '左下側' : '右下側'}
+                                {(
+                                    [
+                                        'CENTER',
+                                        'BOTTOM_CENTER',
+                                        'BOTTOM_LEFT',
+                                        'BOTTOM_RIGHT',
+                                    ] as LayoutPreset[]
+                                ).map((l) => (
+                                    <button
+                                        key={l}
+                                        onClick={() => handleLayoutChange(l)}
+                                        data-testid={`showcase-layout-${l.toLowerCase()}`}
+                                        className={`py-2 px-3 rounded-xl border text-[11px] font-bold transition-all ${
+                                            activeLayout === l
+                                                ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
+                                                : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
+                                        }`}
+                                    >
+                                        {l === 'CENTER'
+                                            ? '中央對齊'
+                                            : l === 'BOTTOM_CENTER'
+                                            ? '底部中央'
+                                            : l === 'BOTTOM_LEFT'
+                                            ? '左下側'
+                                            : '右下側'}
                                     </button>
                                 ))}
                             </div>
@@ -135,128 +237,112 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                     </div>
                 )}
 
-                {activeTab === 'CAMERA' && engine && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="bg-white/5 p-3 rounded-xl border border-white/10 flex justify-between items-center">
-                            <span className="text-xs font-bold text-cyan-300">自動導播單獨開關</span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={directorEnabled} onChange={(e) => toggleDirector(e.target.checked)}/>
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                            </label>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                                    <span>追蹤力度 (Stiffness)</span>
-                                    <span className="font-mono text-cyan-300">{cameraStiffness.toFixed(1)}</span>
-                                </div>
-                                <input type="range" min="0.1" max="5.0" step="0.1" value={cameraStiffness} onChange={(e) => updateCameraStiffness(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                                    <span>縮放平滑度 (Zoom)</span>
-                                    <span className="font-mono text-cyan-300">{zoomStiffness.toFixed(1)}</span>
-                                </div>
-                                <input type="range" min="0.1" max="5.0" step="0.1" value={zoomStiffness} onChange={(e) => updateZoomStiffness(parseFloat(e.target.value))} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {activeTab === 'GAMEPLAY' && engine && (
-                    <div className="space-y-6 animate-fade-in">
-                        <div className="bg-orange-500/5 p-3 rounded-xl border border-orange-500/20 flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-orange-300">大逃殺模式 (Battle Royale)</span>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={engine.zoneConfig.enabled} onChange={(e) => {
-                                    engine.zoneConfig.enabled = e.target.checked;
-                                    // Force re-render
-                                    setConfig({...config});
-                                }}/>
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
-                            </label>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                                    <span>初始安全半徑</span>
-                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.initialRadius}</span>
-                                </div>
-                                <input type="range" min="3" max="20" step="1" value={engine.zoneConfig.initialRadius} onChange={(e) => {
-                                    engine.zoneConfig.initialRadius = parseInt(e.target.value);
-                                    setConfig({...config});
-                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                                    <span>縮圈間隔 (秒)</span>
-                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.shrinkInterval}</span>
-                                </div>
-                                <input type="range" min="1" max="60" step="1" value={engine.zoneConfig.shrinkInterval} onChange={(e) => {
-                                    engine.zoneConfig.shrinkInterval = parseInt(e.target.value);
-                                    setConfig({...config});
-                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-[11px] text-slate-400 font-bold">
-                                    <span>極限圈半徑</span>
-                                    <span className="font-mono text-cyan-300">{engine.zoneConfig.minRadius}</span>
-                                </div>
-                                <input type="range" min="0" max="10" step="1" value={engine.zoneConfig.minRadius} onChange={(e) => {
-                                    engine.zoneConfig.minRadius = parseInt(e.target.value);
-                                    setConfig({...config});
-                                }} className="w-full h-1.5 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                        </div>
+                {activeTab === 'CAMERA' && (
+                    <div className="animate-fade-in">
+                        <SchemaForm
+                            fields={DIRECTOR_SETTINGS_SCHEMA}
+                            values={{
+                                directorEnabled: directorView?.enabled ?? true,
+                                followStiffness: cameraView?.followStiffness ?? 3.5,
+                                zoomStiffness: cameraView?.zoomStiffness ?? 3.5,
+                            }}
+                            onChange={send}
+                        />
                     </div>
                 )}
 
                 {activeTab === 'MATRIX' && (
-                    <div className="space-y-5 animate-fade-in">
-                        <div className="bg-purple-500/5 p-3 rounded-xl border border-purple-500/20 flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-purple-300">代碼雨視覺單獨開關</span>
+                    <div className="space-y-4 animate-fade-in">
+                        <div className="bg-purple-500/5 p-3 rounded-xl border border-purple-500/20 flex justify-between items-center">
+                            <span className="text-xs font-bold text-purple-300">代碼雨視覺開關</span>
                             <label className="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" className="sr-only peer" checked={config.enabled} onChange={(e) => updateConfig('enabled', e.target.checked)}/>
-                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500"></div>
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={activeConfig.enabled}
+                                    data-testid="showcase-toggle-matrix"
+                                    onChange={(e) => updateConfig('enabled', e.target.checked)}
+                                />
+                                <div className="w-9 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-500" />
                             </label>
                         </div>
 
-                        <div className="space-y-2">
-                            <span className="text-[11px] font-bold text-slate-400 block">流向設定</span>
+                        <div className="space-y-1.5">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase block">流向設定</span>
                             <div className="flex bg-black/40 rounded-xl p-1 border border-white/5">
-                                {(['DOWN', 'UP', 'LEFT', 'RIGHT'] as StreamDirection[]).map(d => (
-                                    <button key={d} onClick={() => updateConfig('direction', d)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all ${config.direction === d ? 'bg-cyan-600 text-white shadow-md' : 'text-slate-500 hover:text-slate-300'}`}>
+                                {(['DOWN', 'UP', 'LEFT', 'RIGHT'] as StreamDirection[]).map((d) => (
+                                    <button
+                                        key={d}
+                                        onClick={() => updateConfig('direction', d)}
+                                        data-testid={`showcase-direction-${d.toLowerCase()}`}
+                                        className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                            activeConfig.direction === d
+                                                ? 'bg-cyan-600 text-white shadow-md'
+                                                : 'text-slate-500 hover:text-slate-300'
+                                        }`}
+                                    >
                                         {d === 'DOWN' ? '⬇' : d === 'UP' ? '⬆' : d === 'LEFT' ? '⬅' : '➡'}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-4 pt-2">
+                        <div className="grid grid-cols-2 gap-3 pt-1">
                             <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold"><span>下墜速度</span> <span className="text-cyan-400">{config.speed.toFixed(1)}</span></div>
-                                <input type="range" min="0.1" max="5.0" step="0.1" value={config.speed} onChange={(e) => updateConfig('speed', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                                <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                                    <span>下墜速度</span>
+                                    <span className="text-cyan-400">{activeConfig.speed.toFixed(1)}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0.1"
+                                    max="5.0"
+                                    step="0.1"
+                                    value={activeConfig.speed}
+                                    onChange={(e) => updateConfig('speed', parseFloat(e.target.value))}
+                                    className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                />
                             </div>
                             <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold"><span>字流密度</span> <span className="text-cyan-400">{config.streamGap.toFixed(2)}</span></div>
-                                <input type="range" min="0" max="1.0" step="0.05" value={config.streamGap} onChange={(e) => updateConfig('streamGap', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold"><span>3D 深度感</span> <span className="text-cyan-400">{config.depthVariance.toFixed(1)}</span></div>
-                                <input type="range" min="0" max="2.0" step="0.1" value={config.depthVariance} onChange={(e) => updateConfig('depthVariance', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
-                            </div>
-                            <div className="space-y-1">
-                                <div className="flex justify-between text-[9px] text-slate-400 font-bold"><span>故障頻率</span> <span className="text-cyan-400">{config.volatility.toFixed(2)}</span></div>
-                                <input type="range" min="0" max="1.0" step="0.05" value={config.volatility} onChange={(e) => updateConfig('volatility', parseFloat(e.target.value))} className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"/>
+                                <div className="flex justify-between text-[9px] text-slate-400 font-bold">
+                                    <span>字流密度</span>
+                                    <span className="text-cyan-400">{activeConfig.streamGap.toFixed(2)}</span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1.0"
+                                    step="0.05"
+                                    value={activeConfig.streamGap}
+                                    onChange={(e) => updateConfig('streamGap', parseFloat(e.target.value))}
+                                    className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
+                                />
                             </div>
                         </div>
 
-                        <div className="space-y-1 pt-2">
+                        <div className="space-y-1 pt-1">
                             <label className="text-[10px] font-bold text-slate-500 uppercase">自訂矩陣字元集</label>
-                            <textarea className="liquid-input w-full h-16 text-[10px] font-mono leading-tight bg-black/40 !rounded-xl resize-none border-white/10 p-2 text-slate-300" value={config.charSet} onChange={(e) => updateConfig('charSet', e.target.value)}/>
+                            <textarea
+                                className="w-full h-14 text-[10px] font-mono leading-tight bg-black/40 rounded-xl resize-none border border-white/10 p-2 text-slate-300"
+                                value={activeConfig.charSet}
+                                onChange={(e) => updateConfig('charSet', e.target.value)}
+                            />
                         </div>
+                    </div>
+                )}
+
+                {activeTab === 'GAMEPLAY' && (
+                    <div className="animate-fade-in">
+                        <SchemaForm
+                            fields={ZONE_SETTINGS_SCHEMA}
+                            values={{
+                                zoneEnabled: zoneView?.enabled ?? true,
+                                initialRadius: zoneView?.initialRadius ?? 8,
+                                shrinkInterval: zoneView?.shrinkInterval ?? 15,
+                                minRadius: zoneView?.minRadius ?? 1,
+                            }}
+                            onChange={send}
+                        />
                     </div>
                 )}
             </div>

@@ -7,6 +7,7 @@ import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
 import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
 import { DirectorSettingsWindow, ZoneSettingsWindow } from '../settings/SettingsWindows';
+import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 
@@ -57,16 +58,23 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         flush: true,
         render: ({ engine }) => <ZoneSettingsWindow engine={engine} />,
     },
+    showcaseSettings: {
+        icon: <Icons.Settings className="w-4 h-4" />,
+        flush: true,
+        render: ({ engine }) => <ShowcaseSettings engine={engine} />,
+    },
 };
 
-
-
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
-export const RegisteredWindows: React.FC<WindowRenderContext> = (ctx) => (
+export const RegisteredWindows: React.FC<WindowRenderContext & { showcaseMode?: boolean }> = ({
+    engine,
+    showcaseMode = false,
+}) => (
     <>
         {WINDOW_DEFINITIONS.map((def) => {
             const reg = WINDOW_REGISTRY[def.id];
             if (!reg) return null;
+            if (showcaseMode && !def.visibleInShowcase) return null;
             return (
                 <ToolWindow
                     key={def.id}
@@ -74,12 +82,13 @@ export const RegisteredWindows: React.FC<WindowRenderContext> = (ctx) => (
                     icon={reg.icon}
                     contentClassName={reg.flush ? 'p-0' : 'p-3'}
                 >
-                    {reg.render(ctx)}
+                    {reg.render({ engine })}
                 </ToolWindow>
             );
         })}
     </>
 );
+
 
 export interface RegisteredWindowInfo {
     id: WindowId;

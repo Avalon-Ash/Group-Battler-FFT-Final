@@ -215,7 +215,8 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U7b | ☑ | 2026-10-10 完成：Director AI / Zone 設定視窗化（directorSettings / zoneSettings），改用 SchemaForm + useEngineCommands 派發 UICommand，徹底消除 SystemMenu 內直接寫入引擎與私有 modal 狀態，E9 baseline 下調（directEngineMutation 15, directRendererAccess 12, palette 461），e2e 6/6 全數 PASS |
 
 
-| U8 | ☐ | |
+| U8 | ☑ | 2026-10-10 完成：ShowcaseSettings 視窗化（id: showcaseSettings，visibleInShowcase: true），刪除重複 Camera/Zone JSX 改用 SchemaForm，所有寫入改走 UICommand，E9 baseline 大幅下調（directEngineMutation 8, directRendererAccess 5, palette 427），e2e 7/7 全數 PASS |
+
 | E6 | ☐ | |
 | U6 | ☐ | 先回報分段方案 |
 | E7 | ☐ | |

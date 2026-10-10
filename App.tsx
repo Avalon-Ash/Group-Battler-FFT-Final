@@ -71,10 +71,11 @@ function App() {
               onClose={() => actions.handleSelectAgent(null)} 
           />
       )}
-      {/* Floating tool windows. Hidden while the showcase overlay is active. */}
-      <WindowLayer showcaseMode={state.isShowcaseMode}>
-          <RegisteredWindows engine={engineRef.current} />
+      {/* Floating tool windows. RegisteredWindows filters by visibleInShowcase in showcase mode. */}
+      <WindowLayer>
+          <RegisteredWindows engine={engineRef.current} showcaseMode={state.isShowcaseMode} />
       </WindowLayer>
+
       <div className="flex-1 relative z-0 bg-slate-900">
             <GameCanvas 
                 engine={engineRef.current} 

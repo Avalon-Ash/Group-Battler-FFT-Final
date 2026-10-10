@@ -40,7 +40,9 @@ const SUITES = [
     { id: 'monitor' },
     { id: 'directorSettings' },
     { id: 'zoneSettings' },
+    { id: 'showcaseSettings' },
 ];
+
 
 
 let failures = 0;
