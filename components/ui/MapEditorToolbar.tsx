@@ -50,7 +50,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
     const ref = useRef<HTMLDivElement>(null);
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'top-center',
-        margin: 40
+        margin: 40,
+        storageKey: 'tactical_toolbar_map_editor'
     });
 
     const isUnitTool = tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED;

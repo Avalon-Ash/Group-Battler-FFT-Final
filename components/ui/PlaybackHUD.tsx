@@ -17,7 +17,11 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase
 }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const { dragHandlers, style, isDragging } = useDraggable(ref, { anchor: 'bottom-center', margin: 30 });
+    const { dragHandlers, style, isDragging } = useDraggable(ref, {
+        anchor: 'bottom-center',
+        margin: 30,
+        storageKey: 'tactical_toolbar_playback'
+    });
     const glowClass = winner !== null 
         ? (winner === Team.BLUE ? 'shadow-[0_0_30px_rgba(59,130,246,0.4)] border-blue-500/30' : 'shadow-[0_0_30px_rgba(239,68,68,0.4)] border-red-500/30') 
         : (isPlaying ? 'shadow-[0_0_20px_rgba(16,185,129,0.2)] border-white/10' : 'border-white/10');
