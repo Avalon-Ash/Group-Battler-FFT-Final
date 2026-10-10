@@ -218,6 +218,11 @@ export function selectLogView(engine: GameEngine): LogView {
 }
 
 /**
+ * Alias for selectLogView as specified by E7 contract.
+ */
+export const selectLogs = selectLogView;
+
+/**
  * Returns a stable read-only GamePlaybackView snapshot.
  */
 export function selectGamePlaybackView(engine: GameEngine): GamePlaybackView {

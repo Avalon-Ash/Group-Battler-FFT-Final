@@ -3,6 +3,6 @@
   "directAgentMutation": 1,
   "directRendererAccess": 5,
   "asAny": 0,
-  "setIntervalCount": 4,
+  "setIntervalCount": 3,
   "tailwindPaletteClasses": 427
 }

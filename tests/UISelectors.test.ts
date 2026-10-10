@@ -9,6 +9,7 @@ import {
     selectZoneView,
     selectCameraTuningView,
     selectLogView,
+    selectLogs,
     selectGamePlaybackView,
 } from '../engine/systems/ui/selectors';
 import { EngineViewTicker } from '../hooks/useEngineView';
@@ -105,6 +106,12 @@ describe('UISelectors & EngineViewTicker', () => {
             const view3 = selectLogView(engine);
             expect(view3).not.toBe(view1);
             expect(view3.totalCount).toBe(view1.totalCount + 1);
+        });
+
+        it('selectLogs is an exact alias for selectLogView', () => {
+            expect(selectLogs).toBe(selectLogView);
+            const view = selectLogs(engine);
+            expect(view).toBe(selectLogView(engine));
         });
 
         it('returns stable playback view', () => {

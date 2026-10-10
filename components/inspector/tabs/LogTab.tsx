@@ -3,10 +3,14 @@ import React, { useEffect, useState, memo, useRef } from 'react';
 import { LogEntry, Team, LogActionType } from '../../../types';
 import { Icons } from '../../ui/icons';
 import type { GameEngine } from '../../../engine/game';
+import { selectLogView } from '../../../engine/systems/ui/selectors';
+import { useEngineView } from '../../../hooks/useEngineView';
 
 interface LogTabProps {
     engine: GameEngine;
 }
+
+const EMPTY_LOGS: readonly LogEntry[] = [];
 
 const LogItem = memo(({ log }: { log: LogEntry }) => (
     <div className="relative pl-6 py-2 group pointer-events-none"> 
@@ -47,7 +51,8 @@ type FilterCategory = 'ALL' | 'BATTLE' | 'SKILL' | 'OTHER';
 type SourceCategory = 'ALL' | 'BLUE' | 'RED';
 
 export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
-    const [localLogs, setLocalLogs] = useState<LogEntry[]>([]);
+    const logView = useEngineView(engine, selectLogView);
+    const logs = logView?.logs ?? EMPTY_LOGS;
     
     // Filters
     const [filterType, setFilterType] = useState<FilterCategory>('ALL');
@@ -138,20 +143,9 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
 
     useEffect(() => { return () => stopMomentum(); }, []);
 
-    // --- DATA SYNC ---
-    useEffect(() => {
-        const interval = setInterval(() => {
-            // Only update if count changed to avoid re-rendering entire list constantly
-            if (engine.logs.length !== localLogs.length) {
-                setLocalLogs(engine.logs.slice()); 
-            }
-        }, 200);
-        return () => clearInterval(interval);
-    }, [engine, localLogs.length]);
-
     // --- FILTERING ---
     const getFilteredLogs = () => {
-        return localLogs.filter(log => {
+        return logs.filter(log => {
             // 1. Source Filter
             if (filterSource === 'BLUE' && log.team !== Team.BLUE) return false;
             if (filterSource === 'RED' && log.team !== Team.RED) return false;
@@ -183,10 +177,11 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
         if (div.scrollHeight - div.scrollTop - div.clientHeight < 200) {
             div.scrollTop = div.scrollHeight;
         }
-    }, [localLogs.length]); // Trigger on count change, not filtered change
+    }, [logs.length]); // Trigger on count change, not filtered change
 
     const downloadLogs = () => {
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(engine.logs, null, 2));
+        const currentLogs = selectLogView(engine).logs;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentLogs, null, 2));
         const anchor = document.createElement('a');
         anchor.setAttribute("href", dataStr);
         anchor.setAttribute("download", `battle_logs_${Date.now()}.json`);
@@ -205,7 +200,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">戰鬥事件串流</span>
                         <span className="text-[10px] font-mono text-cyan-500/80 bg-cyan-950/30 px-2 py-0.5 rounded-md border border-cyan-500/20">
-                            {filteredLogs.length} / {localLogs.length}
+                            {filteredLogs.length} / {logs.length}
                         </span>
                     </div>
                     <button 

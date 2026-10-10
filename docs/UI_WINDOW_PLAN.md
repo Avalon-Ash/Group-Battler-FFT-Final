@@ -219,7 +219,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 
 | E6 | ☑ | 2026-10-10 完成：UnitInspectorHUD 與 BehaviorTreeTab 寫入全面改為 EDIT_AGENT / REBUILD_AGENT_AI 命令，唯讀屬性改走 selectAgentView，E9 baseline 下調（directAgentMutation 6 → 1），單元測試全綠，不做視窗化（U6 保留） |
 | U6 | ☐ | 先回報分段方案 |
-| E7 | ☐ | |
+| E7 | ☑ | 2026-10-10 完成：LogTab 遷移至 selectLogView/selectLogs selector 與 useEngineView，徹底移除私有 setInterval 與 engine.logs 直接存取，匯出 JSON 走 selector，E9 baseline 下調（setIntervalCount 4 → 3），單元測試與 e2e 全數 PASS |
 | U9 | ☐ | |
 | U10 | ☐ | |
 | U11 / U11b… | ☐ | |
