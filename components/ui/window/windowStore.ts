@@ -15,7 +15,9 @@ export interface StorageLike {
 }
 
 /**
- * Clamps window rect so title bar remains accessible inside viewport.
+ * Clamps a window rect into the viewport. By default the window stays FULLY inside
+ * (touch users must always be able to reach the title-bar buttons); pass `keepVisible`
+ * to allow a window to hang partially off-screen.
  */
 export function clampRect(
     rect: WindowRect,
@@ -25,13 +27,13 @@ export function clampRect(
 ): WindowRect {
     const minW = minSize?.width ?? UI_WINDOW.MIN_WIDTH;
     const minH = minSize?.height ?? UI_WINDOW.MIN_HEIGHT;
-    const keepX = keepVisible?.x ?? UI_WINDOW.KEEP_VISIBLE_X;
-    const keepY = keepVisible?.y ?? UI_WINDOW.KEEP_VISIBLE_Y;
 
     const width = Math.max(minW, Math.min(rect.width, viewport.width));
     const height = Math.max(minH, Math.min(rect.height, viewport.height));
+    const keepX = keepVisible?.x ?? width;
+    const keepY = keepVisible?.y ?? height;
 
-    const minX = -(width - keepX);
+    const minX = keepX - width;
     const maxX = Math.max(0, viewport.width - keepX);
     const minY = 0;
     const maxY = Math.max(0, viewport.height - keepY);

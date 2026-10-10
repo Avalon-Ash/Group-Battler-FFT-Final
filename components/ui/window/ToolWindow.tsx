@@ -106,6 +106,8 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                 height: isCollapsed ? 'auto' : `${displayRect.height}px`,
                 zIndex: state.zIndex,
                 pointerEvents: 'auto',
+                // .liquid-card ships `transition-all duration-300`; geometry must follow the pointer 1:1.
+                transition: 'none',
             }}
             className={`liquid-card !rounded-2xl flex flex-col overflow-hidden shadow-2xl border border-white/10 select-none bg-slate-900/90 backdrop-blur-xl ${className}`}
         >
@@ -199,6 +201,7 @@ function getHandleStyle(direction: ResizeDirection, coarse: boolean): React.CSSP
     const corner = edge * UI_WINDOW.HANDLE_CORNER_FACTOR;
     const base: React.CSSProperties = {
         position: 'absolute',
+        zIndex: UI_WINDOW.HANDLE_Z_INDEX,
         touchAction: 'none',
         cursor: `${direction}-resize`,
     };

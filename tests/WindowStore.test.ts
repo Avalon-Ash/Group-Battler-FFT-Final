@@ -67,11 +67,25 @@ describe('WindowStore & Window Clamping/Restoration', () => {
             expect(clamped.height).toBe(160);
         });
 
-        it('clamps negative x so KEEP_VISIBLE_X remains inside viewport', () => {
+        it('with an explicit keepVisible, a window may hang off the left edge', () => {
             const rect = { x: -500, y: 50, width: 400, height: 300 };
             const clamped = clampRect(rect, viewport, undefined, { x: 60, y: 30 });
             // minX = -(400 - 60) = -340
             expect(clamped.x).toBe(-340);
+        });
+
+        it('by default keeps the whole window inside the viewport (title-bar buttons stay reachable)', () => {
+            const tooFarRight = clampRect({ x: 900, y: 700, width: 400, height: 300 }, viewport);
+            expect(tooFarRight.x).toBe(viewport.width - 400);
+            expect(tooFarRight.y).toBe(viewport.height - 300);
+            const tooFarLeft = clampRect({ x: -300, y: 10, width: 400, height: 300 }, viewport);
+            expect(tooFarLeft.x).toBe(0);
+        });
+
+        it('shrinks an oversized window to the viewport and pins it to the origin', () => {
+            const small = { width: 420, height: 400 };
+            const clamped = clampRect({ x: 220, y: 140, width: 560, height: 420 }, small);
+            expect(clamped).toEqual({ x: 0, y: 0, width: 420, height: 400 });
         });
 
         it('clamps negative y so titlebar does not disappear off top', () => {

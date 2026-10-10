@@ -349,8 +349,6 @@ export const UI_WINDOW = {
     SAVE_DEBOUNCE_MS: 300,
     HANDLE_PX: 8,
     HANDLE_PX_COARSE: 24,
-    KEEP_VISIBLE_X: 60,
-    KEEP_VISIBLE_Y: 30,
     MAXIMIZE_MARGIN: 12,
     MIN_WIDTH: 260,
     MIN_HEIGHT: 160,
@@ -358,6 +356,8 @@ export const UI_WINDOW = {
     MOBILE_BREAKPOINT: 900,
     /** Corner handle edge length = edge thickness * this factor. */
     HANDLE_CORNER_FACTOR: 2,
+    /** Resize handles sit above window content (z-order inside the window's own stacking context). */
+    HANDLE_Z_INDEX: 100,
     /** Used only when a window has neither saved state nor a registered definition. */
     FALLBACK_RECT: { x: 100, y: 100, width: 400, height: 300 },
     /** Used only when `window` is unavailable (SSR / tests). */
