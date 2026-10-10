@@ -17,7 +17,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
 mkdirSync(OUT, { recursive: true });
 
-const SECONDS = Number(process.env.PERF_SECONDS || 6);
+const SECONDS = Number(process.env.PERF_SECONDS || (process.env.PERF_MODE === 'showcase' ? 4 : 6));
 const DSF = Number(process.env.PERF_DSF || 1);
 const THROTTLE = Number(process.env.PERF_CPU_THROTTLE || 1);
 
@@ -76,6 +76,15 @@ const setCss = (css) => page.evaluate((text) => {
     el.textContent = text;
 }, css);
 
+const setMatrixRainVisible = (visible) => page.evaluate((v) => {
+    const canvases = document.querySelectorAll('canvas');
+    for (const c of canvases) {
+        if (c.classList.contains('mix-blend-screen') || (c !== document.querySelector('.bg-slate-950 canvas') && c.getAttribute('id') !== 'tactical-canvas')) {
+            c.style.display = v ? '' : 'none';
+        }
+    }
+}, visible);
+
 const results = {};
 const variants = [
     ['baseline', {}, ''],
@@ -93,30 +102,61 @@ const setScene = (id) => page.evaluate(async (sid) => {
     return mod.SCENE_DB.map((x) => x.id);
 }, id);
 try {
-    // Leave Showcase: manual idle mode keeps the scene fixed (no auto theme cycling).
-    await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
-    await page.waitForTimeout(800);
-    const ids = await page.evaluate(async () => (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id));
-    const only = process.env.PERF_SCENES ? process.env.PERF_SCENES.split(',') : ids;
-    for (const sid of only) {
-        await setScene(sid);
-        await page.waitForTimeout(500);
-        results[sid] = {};
-        // two interleaved rounds to cancel drift
-        for (let round = 0; round < 2; round++) {
-            for (const [name, cfgPatch, css] of variants) {
-                await setCfg(cfgPatch);
+    if (process.env.PERF_MODE === 'showcase') {
+        console.log(`\n== SHOWCASE MODE A/B EXPERIMENT (DSF=${DSF}, THROTTLE=${THROTTLE}, SECONDS=${SECONDS}, ROUNDS=3) ==`);
+        const showcaseVariants = [
+            ['baseline', '', true],
+            ['no_backdrop_filter', '*{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}', true],
+            ['no_matrix_rain', '', false],
+            ['no_both', '*{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}', false],
+        ];
+        results['showcase'] = {};
+        for (let round = 0; round < 3; round++) {
+            console.log(`-- Round ${round + 1}/3 --`);
+            for (const [name, css, matrixVis] of showcaseVariants) {
                 await setCss(css);
-                await page.waitForTimeout(400);
+                await setMatrixRainVisible(matrixVis);
+                await page.waitForTimeout(500);
                 const m = await measure();
-                (results[sid][name] ??= []).push(m.avgMs);
+                (results['showcase'][name] ??= []).push(m.avgMs);
+                console.log(`  ${name.padEnd(20)}: ${m.avgMs}ms (${m.fps} fps)`);
             }
         }
-        const line = Object.entries(results[sid]).map(([k, v]) => `${k}=${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}ms`).join('  ');
-        console.log(sid.padEnd(16), line);
+        await setCss('');
+        await setMatrixRainVisible(true);
+        const summary = {};
+        for (const [k, v] of Object.entries(results['showcase'])) {
+            const avg = v.reduce((a, b) => a + b, 0) / v.length;
+            summary[k] = { avgMs: +avg.toFixed(2), fps: +(1000 / avg).toFixed(1) };
+        }
+        console.log('\nSHOWCASE SUMMARY:', JSON.stringify(summary, null, 2));
+        writeFileSync(join(OUT, `perf_ab_showcase_dsf${DSF}_cpu${THROTTLE}.json`), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, summary, results }, null, 2));
+    } else {
+        // Leave Showcase: manual idle mode keeps the scene fixed (no auto theme cycling).
+        await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
+        await page.waitForTimeout(800);
+        const ids = await page.evaluate(async () => (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id));
+        const only = process.env.PERF_SCENES ? process.env.PERF_SCENES.split(',') : ids;
+        for (const sid of only) {
+            await setScene(sid);
+            await page.waitForTimeout(500);
+            results[sid] = {};
+            // two interleaved rounds to cancel drift
+            for (let round = 0; round < 2; round++) {
+                for (const [name, cfgPatch, css] of variants) {
+                    await setCfg(cfgPatch);
+                    await setCss(css);
+                    await page.waitForTimeout(400);
+                    const m = await measure();
+                    (results[sid][name] ??= []).push(m.avgMs);
+                }
+            }
+            const line = Object.entries(results[sid]).map(([k, v]) => `${k}=${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}ms`).join('  ');
+            console.log(sid.padEnd(16), line);
+        }
+        await setCfg({}); await setCss('');
+        writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
     }
-    await setCfg({}); await setCss('');
-    writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
     if (process.env.PERF_ASSERT === '1') {
         let assertFailed = false;
         console.log('\n[PERF_ASSERT] Evaluating performance guardrails (threshold: baseline / no_terrain_grain <= 1.15)...');

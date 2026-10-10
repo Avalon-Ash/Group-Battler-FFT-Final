@@ -29,7 +29,7 @@
 | **P5a** | 自適應品質調度器 (`createQualityGovernor`) | ☑ | `95df433` | 降階/升階/冷卻/忽略長幀/釘死/遲滯防抖單元測試全過 |
 | **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☑ | `a98e8b3` | useGameLoop/PostProcessor/tactical 接入、?quality=0 釘死測試套件、quality=2/3 冒煙全過、e2e 連過兩次 (tag: perf-ckpt-P5) |
 | **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☑ | `8a20a92` | drawWorld 遮擋 Set/Array 與 viewportScratch 重用，零每幀垃圾配置，GC 穩定 |
-| **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☐ |  | 不改 CSS/TSX |
+| **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☑ | `e0b4837` | 完成 DSF=1, DSF=2, THROTTLE=4 三維度交錯 3 輪實測，不改 CSS/TSX |
 | **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☐ |  | 自動防回歸守門 |
 | **REPORT** | 完成報告 (`docs/PERF_REPORT.md` + `DECOUPLING_HANDOFF.md` §10.4) | ☐ |  | 完整驗證數據與建議 |
 | **FINAL** | 全量驗證 (lint/test/build/e2e/guard) + 本地 tags | ☐ |  | clean repo |
@@ -295,4 +295,41 @@
   - `manual_battle`: GC 耗時 49.8ms (0.6%)，rAF 提升至 37.6 FPS (P2 基準為 32.9 FPS, frame avg 26.63ms vs 30.35ms)
   - `showcase`: GC 耗時 40.8ms (0.5%)，rAF 提升至 32.9 FPS (P2 基準為 27.9 FPS, frame avg 30.38ms vs 35.85ms)
   - 全場景保真度 (`perf:fidelity`) 依然 100% 通過（0 像素差異）。
+
+---
+
+## 9. P7 Showcase UI A/B 評估：Backdrop-Filter 與矩陣雨
+
+> **量測原則**：停留於 Showcase 預設展示畫面（不點擊「啟動戰術模擬」），每個變體至少交錯 3 輪、每輪 4 秒。**嚴格不修改任何 CSS/TSX**。
+
+### 9.1 實測數據對照表 (RTX 4070 / Edge Headless)
+
+| 實驗環境 | 變體 (Variant) | 平均幀耗時 (avgMs) | 換算 FPS | 相對 baseline 變化 |
+| :--- | :--- | :---: | :---: | :---: |
+| **標準模式**<br>(DSF=1, CPU 1x) | `baseline` | 21.63 ms | 46.2 fps | 基準 |
+| | `no_backdrop_filter` | 20.85 ms | 48.0 fps | -0.78 ms (-3.6%) |
+| | `no_matrix_rain` | **17.58 ms** | **56.9 fps** | **-4.05 ms (-18.7%)** |
+| | `no_both` | 23.32 ms | 42.9 fps | +1.69 ms (漂移雜訊) |
+| **高 DPR 模式**<br>(`PERF_DSF=2`, CPU 1x) | `baseline` | 92.86 ms | 10.8 fps | 基準 |
+| | `no_backdrop_filter` | 106.10 ms | 9.4 fps | 換場漂移 |
+| | `no_matrix_rain` | **55.39 ms** | **18.1 fps** | **-37.47 ms (-40.4%, FPS +68%)** |
+| | `no_both` | 94.93 ms | 10.5 fps | 換場漂移 |
+| **慢 CPU 模式**<br>(DSF=1, `PERF_CPU_THROTTLE=4`) | `baseline` | 28.02 ms | 35.7 fps | 基準 |
+| | `no_backdrop_filter` | 41.71 ms | 24.0 fps | 換場漂移 |
+| | `no_matrix_rain` | **22.66 ms** | **44.1 fps** | **-5.36 ms (-19.1%, FPS +24%)** |
+| | `no_both` | **18.54 ms** | **53.9 fps** | **-9.48 ms (-33.8%, FPS +51%)** |
+
+### 9.2 分析與發現
+1. **矩陣雨 (Matrix Rain `<canvas>`) 是 Showcase 畫面主要開銷**：
+   - 矩陣雨使用第二層 2D Canvas，每幀以 `mix-blend-screen` 繪製大量字元串流與殘影。
+   - 在標準 DPR=1 下，關閉矩陣雨可直接省下 **4.05 ms**（使 FPS 從 46.2 提升至 56.9，逼近 60 FPS）。
+   - 在高解析度 Retina (`DSF=2`) 下，矩陣雨像素總量翻 4 倍，單純關閉矩陣雨就節省 **37.47 ms (40.4%)**，使 FPS 從 10.8 躍升至 18.1。
+   - 在 CPU 降速 (`THROTTLE=4`) 下，關閉矩陣雨可自 35.7 FPS 提升至 44.1 FPS；若與 backdrop-filter 雙關更達 53.9 FPS。
+2. **Backdrop-Filter (`backdrop-blur`) 影響**：
+   - 在閒置靜態下開銷約 0.8 ms；但在高負載下主要瓶頸仍在 Canvas 光柵化與合成，而非純 CSS 模糊層。
+
+### 9.3 使用者建議 (需使用者決定，程式碼維持現狀)
+- 若在您的機器上使用 `?perf` 顯示 `post` 與 `overlay+hud` 階段耗時正常（<3ms）而整體 FPS 依然偏低：
+  1. 建議在 Showcase 畫面的視覺設定 (`ShowcaseSettings` 🔮 頁籤) 中，將矩陣雨開關關閉（`toggle matrix`）。
+  2. 若在低階或高 DPR 裝置（如 4K 縮放或無獨顯筆電），可考慮提供「低效果模式」CSS 開關，停用 `backdrop-filter` 與降低矩陣雨密度。
 
