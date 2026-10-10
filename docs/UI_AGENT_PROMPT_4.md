@@ -3,7 +3,7 @@
 > 用法：在 IDE 代理對話輸入 `/goal docs/UI_AGENT_PROMPT_4.md`（或貼上「指令本文」）。
 > 前情：`UI_AGENT_PROMPT_3` 做到 T1d 時中斷；主代理已補完 **T1e 並 commit（`6a3b27f`）**，且全量驗證通過（lint 0、test 101/101、build OK、`e2e:ui` ALL PASSED）。
 > 本輪：收尾 R7/R8 → 建立「**computed-style 視覺回歸護欄**」→ U11 Token SSOT（外觀必須逐像素等價）→ U12 響應式/觸控（以 e2e 幾何斷言驗證）。
-> **U6 已獲使用者核准（D6–D10 全採建議值）**，依 `docs/UI_U6_SUBPLAN.md` 執行，排在 `REPORT3` 之後、`S1` 之前。**不做**：`E8`、`U13`、任何 push。
+> **整串一次跑完（無待核定事項）**：U6 已獲使用者核准（D6–D10 全採建議值，見 `docs/UI_U6_SUBPLAN.md`，排在 `REPORT3` 之後、`S1` 之前）；E8 依 `docs/UI_E8_SUBPLAN.md` 以預設決策 D11–D14 執行（排在 U12 之後）。**不做**：`U13`（選配 chrome，使用者尚未提出需求）、任何 push / 動 `main` / 合併。
 
 ---
 
@@ -15,7 +15,7 @@
 
 ### 任務（依序）
 
-`R7` → `R8` → `REPORT3` → `U6a` → `U6b` → `U6c` → `S1` → `U11a` → `U11b` → `U11c` → `U11d` → `U11e-1…n`（至多 10 批）→ `U12a` → `U12b` → `U12c` → `REPORT4`
+`R7` → `R8` → `REPORT3` → `U6a` → `U6b` → `U6c` → `S1` → `U11a` → `U11b` → `U11c` → `U11d` → `U11e-1…n`（至多 10 批）→ `U12a` → `U12b` → `U12c` → `E8-0` → `E8-a…g` → `REPORT4` → `FINAL`
 
 | 任務 | 內容 | 檔案（≤3；測試/docs/e2e/baseline 不計） | 驗證 |
 | :-- | :-- | :-- | :-- |
@@ -34,15 +34,20 @@
 | **U12a** | **≤900px bottom sheet**：新增 `UI_WINDOW.SHEET_BREAKPOINT=900`、`SHEET_MAX_VH=72`（常數）。`ToolWindow` 在窄螢幕以底部面板呈現：寬度 100%、貼底、`max-height: min(72vh, …)`、**禁用拖曳/縮放/最大化把手**、一次只顯示最上層一個（其餘保持 open 狀態但不渲染為可見，切換回寬螢幕恢復）。**不改寫已存 rect**（顯示時推導，與 F1 同原則）。 | `ToolWindow.tsx`、`constants.ts`、（`WindowLayer.tsx`） | e2e：以 390×844 viewport 開 3 個視窗，斷言：只有一個可見、寬=viewport、底邊貼齊、高 ≤72vh、無把手元素；放大回 1440 恢復原 rect。**style-snapshot 寬螢幕場景仍 0 差異** |
 | **U12b** | **觸控命中區**：`@media (pointer: coarse)` 下標題列按鈕與把手命中區 ≥44px（`UI_WINDOW` 常數；視覺大小可不變，用 padding/偽元素擴大命中區）。`prefers-reduced-motion`：關閉 `animate-*` 與 `transition-all` 大動畫。 | `ToolWindow.tsx`、`index.css`、`constants.ts` | e2e：以 `hasTouch:true,isMobile:true` context，量測標題列按鈕/把手 bounding box ≥44px；`emulateMedia({reducedMotion:'reduce'})` 下動畫元素 `animationName==='none'` |
 | **U12c** | **觸控捲動**：根節點 `touch-none` 收斂到 Canvas 區，面板（視窗內容）可捲動（`touch-action: pan-y pan-x`）；視窗標題與把手仍 `touch-action:none`。 | `App.tsx`、`ToolWindow.tsx`（`index.css` 如需） | e2e：用 CDP `Input.synthesizeScrollGesture` 在 Logs/SkillDB 視窗內容上垂直捲動，斷言 `scrollTop` 改變且視窗 rect 不變、Canvas 相機不動（讀 `__TACTICAL_ENGINE__.renderer.camera`）。若 CDP 手勢在 headless 不可靠，標「未驗證」並寫入報告，**不要硬寫不穩定測試** |
+| **E8-0** | 依 `docs/UI_E8_SUBPLAN.md`（**已預設核准 D11–D14**）的 E8-0：先寫編輯器 e2e（現況必須全綠）並擴充 E9 指標 `directEngineMethodCalls`/`directPoseWrites`（baseline=當下實測）。**任一動作找不到穩定入口 → 該動作標未驗證，且不得遷移，停下回報**。 | `windows.e2e.mjs`、`UIBoundary.test.ts`、baseline | 連跑兩次穩定 |
+| **E8-a…E8-g** | 依子計畫逐段：命令與處理器（a）→ `EditorQuery`（b）→ `useGameInput` 低頻寫入與查詢（c）→ `useGameApp` 生命週期（d）→ 鏡頭命令與 FPS 守門（e/e2）→ 驅動迴圈 D13（f）→ 收尾與白名單、`AGENTS.md` §1.5 補 D11 例外句（g）。**每段一個 commit，並打本地 tag `ui-ckpt-E8<段>`**；E8-0 的 e2e 每段都要全綠。 | 每段 ≤3 檔（見子計畫） | 每段 lint/test/build/e2e |
+| **FINAL** | 全量驗證（lint/test/build/`e2e:ui` 兩次）、確認 `git status` 乾淨且未 push、對每個已完成階段補打本地 tag（`ui-ckpt-U6`、`ui-ckpt-S1`、`ui-ckpt-U11`、`ui-ckpt-U12`、`ui-ckpt-E8`，若尚未存在）；寫 `docs/UI_MERGE_CHECKLIST.md`：①分支與 commit 摘要 ②所有「已核准的預期外觀/行為差異」清單（Showcase 時間倍率上限、相機剛度顯示、Inspector 位置/收合/寬度、bottom sheet…）③需使用者手動目視/實機確認項 ④回退指南（各 tag 與 `git revert` 範例）⑤合併指令範例（**僅供參考，不要執行**；合併 = 發佈到 GitHub Pages）。 | docs | — |
 | **REPORT4** | `docs/UI_NIGHT_REPORT_4.md`：逐任務結果、style-snapshot 欄位清單與排除項、E9 baseline 前後（含 `tailwindPaletteClasses`）、U11e 完成批數與剩餘量、U12 的 e2e 斷言清單、未驗證項、**建議使用者手動看的畫面清單**（寬螢幕外觀對照、手機實機的 bottom sheet、觸控縮放/拖曳）。 | docs | — |
 
 ### 本輪額外規則
 
 - **U11 的鐵律是「外觀逐像素等價」**：任何一批 `style-snapshot` 出現差異 → 還原該批、找出沒對上的色值、補 token 或修正對應後重做；**不得更新 baseline 來讓測試通過**（`E2E_UPDATE_STYLE=1` 只允許在 S1 使用一次）。
 - **U6 若發現與 D6–D10 衝突、需要超過 3 檔、或 e2e 反覆不穩，停下回報**，不要自行改決定；U6 的畫面行為差異（Inspector 預設位置改左上、藥丸改收合、寬度改由使用者拉）是已核准的預期差異，寫進報告即可。**U6 必須在 S1 之前完成**，S1 的 baseline 才會包含新的 Inspector 外觀。
-- U12 若需要改視窗行為的語意（例如 bottom sheet 內是否允許多開），**停下回報**，不要自行決定。
+- **U12 預設決策（不需再問）**：窄螢幕 bottom sheet 一次只顯示最上層一個視窗（其餘維持 open 但不可見）；點選單項目時該視窗成為最上層；關閉最上層後次一層自動顯示。其他語意不明處採「風險最小、可回退」並記錄。
 - 觸控相關 e2e 若在 headless 不可靠，優先量測幾何與 computed style（可靠），避免模擬複雜手勢。
-- 時間/額度吃緊時的取捨順序：保 `R7→R8→REPORT3→U6a-c→S1→U11a-d→U12a`，其餘可略並在報告列為未完成。**任何時候中斷都要確保工作樹乾淨且最後一個 commit 全綠。**
+- 時間/額度吃緊時的取捨順序：保 `R7→R8→REPORT3→U6a-c→S1→U11a-d→U12a`，再依序 `U12b-c→E8-0…→U11e` 批次；其餘可略並在報告列為未完成。**任何時候中斷都要確保工作樹乾淨且最後一個 commit 全綠。** 完成每個階段（U6、S1、U11、U12、E8）都先打本地 tag `ui-ckpt-<階段>` 再繼續。
+- **E8 專屬**：e2e 防線先行（E8-0），之後每段都要全綠；D12 的 FPS 守門、D13 的 grep 判斷是**條件式**步驟，不達條件就依子計畫的備案處理並寫進報告，不要停工。E8 若需要動 `engine/**`（子計畫已列的 `renderer.ts` 訂閱與條件式 `game.ts` 之外）→ 停下回報。
+- **停工原則**：遇到本文件與子計畫都沒涵蓋、且會改變使用者可見行為的情況才停下；其餘自行選擇「風險最小、可回退」的做法並記錄在報告。
 
 ---
 
@@ -51,4 +56,5 @@
 1. `git log feat/ui-window --oneline`，讀 `docs/UI_NIGHT_REPORT_3.md`、`UI_NIGHT_REPORT_4.md`。
 2. 手動確認 Inspector 視窗：點單位開啟、✕ 取消選取、選別的單位位置不變、收合只剩標題列、☰ 選單可開關。
 3. `npm run dev` 目視比對外觀（Token 化應與之前一模一樣）；手機實機看 bottom sheet 與觸控。
-4. 合併進 `main`（= 發佈到 GitHub Pages）前先別 push。
+3. 編輯器手動確認（E8）：新增/刪除單位、放障礙、拖曳單位與障礙到合法/非法格、滾輪縮放、拖曳平移、開始/暫停、Showcase 一場能自動換場。
+4. `docs/UI_MERGE_CHECKLIST.md` 是合併前清單；合併進 `main`（= 發佈到 GitHub Pages）前先別 push。
