@@ -38,7 +38,7 @@ function App() {
   const hideHUD = state.isShowcaseMode || isGameOver;
 
   return (
-    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
+    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
       {state.showFactionWarning && (
             <div className="absolute top-24 left-1/2 -translate-x-1/2 animate-bounce-in pointer-events-none w-[90%] max-w-md" style={{ zIndex: UI_Z.OVERLAY }}>
                 <div className="liquid-glass px-6 py-3 rounded-full border-red-500/50 flex items-center gap-3 shadow-xl text-red-200 bg-red-950/80">
@@ -90,7 +90,7 @@ function App() {
           />
       </WindowLayer>
 
-      <div className="flex-1 relative z-0 bg-slate-900">
+      <div className="flex-1 relative z-0 bg-slate-900 touch-none">
             <GameCanvas 
                 engine={engineRef.current} 
                 tool={state.tool}

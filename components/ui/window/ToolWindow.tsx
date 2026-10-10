@@ -220,6 +220,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
             {/* ── Content Body ─────────────────────────────────────── */}
             {!isCollapsed && (
                 <div
+                    data-window-body="true"
                     className={`flex-1 overflow-auto relative text-text-base ${contentClassName}`}
                     style={{ touchAction: 'pan-y pan-x' }}
                 >
