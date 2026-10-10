@@ -935,6 +935,72 @@ const runBottomSheetSuite = async () => {
     await ctx.close();
 };
 
+const runTouchTargetAndReducedMotionSuite = async () => {
+    console.log('\n── Touch Target & Reduced Motion (U12b)');
+    const ctx = await browser.newContext({
+        viewport: { width: 1024, height: 768 },
+        hasTouch: true,
+        isMobile: true,
+    });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
+    const page = await ctx.newPage();
+    page.setDefaultTimeout(8000);
+    page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+    });
+
+    await enterManualMode(page);
+    await page.waitForTimeout(400);
+
+    await openViaMenu(page, 'logs');
+    await page.waitForTimeout(300);
+
+    // 1. Measure title bar buttons bounding box >= 44px
+    const collapseBtnBox = await page.locator('[data-window-id="logs"] [data-window-btn="collapse"]').boundingBox();
+    ok('touch context: collapse button width >= 44px', collapseBtnBox && collapseBtnBox.width >= 44, `${collapseBtnBox?.width} >= 44`);
+    ok('touch context: collapse button height >= 44px', collapseBtnBox && collapseBtnBox.height >= 44, `${collapseBtnBox?.height} >= 44`);
+
+    const closeBtnBox = await page.locator('[data-window-id="logs"] [data-window-btn="close"]').boundingBox();
+    ok('touch context: close button width >= 44px', closeBtnBox && closeBtnBox.width >= 44, `${closeBtnBox?.width} >= 44`);
+    ok('touch context: close button height >= 44px', closeBtnBox && closeBtnBox.height >= 44, `${closeBtnBox?.height} >= 44`);
+
+    // 2. Measure resize handle bounding boxes >= 44px
+    const seHandleBox = await page.locator('[data-window-id="logs"] [data-handle-direction="se"]').boundingBox();
+    ok('touch context: se handle width >= 44px', seHandleBox && seHandleBox.width >= 44, `${seHandleBox?.width} >= 44`);
+    ok('touch context: se handle height >= 44px', seHandleBox && seHandleBox.height >= 44, `${seHandleBox?.height} >= 44`);
+
+    const sHandleBox = await page.locator('[data-window-id="logs"] [data-handle-direction="s"]').boundingBox();
+    ok('touch context: s handle height >= 44px', sHandleBox && sHandleBox.height >= 44, `${sHandleBox?.height} >= 44`);
+
+    // 3. Measure title bar buttons in narrow bottom sheet context
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(300);
+    const sheetCloseBtnBox = await page.locator('[data-window-id="logs"] [data-window-btn="close"]').boundingBox();
+    ok('bottom sheet touch context: close button width >= 44px', sheetCloseBtnBox && sheetCloseBtnBox.width >= 44, `${sheetCloseBtnBox?.width} >= 44`);
+    ok('bottom sheet touch context: close button height >= 44px', sheetCloseBtnBox && sheetCloseBtnBox.height >= 44, `${sheetCloseBtnBox?.height} >= 44`);
+
+    // 4. prefers-reduced-motion: reduce -> animationName === 'none'
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.waitForTimeout(200);
+
+    const animResult = await page.evaluate(() => {
+        const testEl = document.createElement('div');
+        testEl.className = 'animate-fade-in animate-slide-up transition-all';
+        document.body.appendChild(testEl);
+        const cs = window.getComputedStyle(testEl);
+        const animName = cs.animationName;
+        const transProp = cs.transitionProperty;
+        testEl.remove();
+        return { animName, transProp };
+    });
+
+    ok('reduced motion: animationName is none', animResult.animName === 'none', animResult.animName);
+    ok('reduced motion: transition is none', animResult.transProp === 'none', animResult.transProp);
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -946,6 +1012,7 @@ try {
     if (!filterOnly || filterOnly.includes('showcase-pin')) await runShowcaseAndPinSuite();
     if (!filterOnly || filterOnly.includes('inspector-cmd')) await runInspectorCommandSuite();
     if (!filterOnly || filterOnly.includes('bottom-sheet')) await runBottomSheetSuite();
+    if (!filterOnly || filterOnly.includes('touch-reduced-motion')) await runTouchTargetAndReducedMotionSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
 } catch (e) {
     failures++;

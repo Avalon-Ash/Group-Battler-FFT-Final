@@ -49,11 +49,18 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     const state = useWindowState(id);
     const actions = useWindowActions();
     const topmostOpenId = useTopmostOpenWindowId();
-    const [isCoarsePointer] = useState(
+    const [isCoarsePointer, setIsCoarsePointer] = useState(
         () => typeof window !== 'undefined' &&
             typeof window.matchMedia === 'function' &&
             window.matchMedia('(pointer: coarse)').matches
     );
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+        const mq = window.matchMedia('(pointer: coarse)');
+        const update = () => setIsCoarsePointer(mq.matches);
+        mq.addEventListener?.('change', update);
+        return () => mq.removeEventListener?.('change', update);
+    }, []);
 
     const def = WINDOW_DEF_MAP[id];
     const displayTitle = title ?? def?.title ?? id;
@@ -150,6 +157,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
         >
             {/* ── Title Bar ────────────────────────────────────────── */}
             <div
+                data-window-titlebar="true"
                 onPointerDown={isNarrow ? undefined : handleTitlePointerDown}
                 onPointerMove={isNarrow ? undefined : handleTitlePointerMove}
                 onPointerUp={isNarrow ? undefined : handleTitlePointerUp}
@@ -172,6 +180,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                     {/* Collapse Button */}
                     <button
                         type="button"
+                        data-window-btn="collapse"
                         onClick={() => actions.collapse(id)}
                         title={isCollapsed ? '展開視窗' : '收合視窗'}
                         className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
@@ -183,6 +192,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                     {!isNarrow && (
                         <button
                             type="button"
+                            data-window-btn="maximize"
                             onClick={() => actions.maximize(id)}
                             title={isMaximized ? '還原視窗' : '最大化'}
                             className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-white hover:bg-line-subtle/10 transition-colors"
@@ -194,6 +204,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                     {/* Close Button */}
                     <button
                         type="button"
+                        data-window-btn="close"
                         onClick={() => {
                             onClose?.();
                             actions.close(id);
@@ -240,7 +251,7 @@ const RESIZE_DIRECTIONS: ResizeDirection[] = ['n', 's', 'w', 'e', 'nw', 'ne', 's
  */
 function getHandleStyle(direction: ResizeDirection, coarse: boolean): React.CSSProperties {
     const edge = coarse && !direction.includes('n') ? UI_WINDOW.HANDLE_PX_COARSE : UI_WINDOW.HANDLE_PX;
-    const corner = edge * UI_WINDOW.HANDLE_CORNER_FACTOR;
+    const corner = coarse ? Math.max(edge * UI_WINDOW.HANDLE_CORNER_FACTOR, UI_WINDOW.TOUCH_TARGET_MIN_PX) : edge * UI_WINDOW.HANDLE_CORNER_FACTOR;
     const base: React.CSSProperties = {
         position: 'absolute',
         zIndex: UI_WINDOW.HANDLE_Z_INDEX,
@@ -276,6 +287,7 @@ const ResizeHandle: React.FC<ResizeHandleProps> = ({
 }) => {
     return (
         <div
+            data-handle-direction={direction}
             onPointerDown={(e) => onPointerDown(direction, e)}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
