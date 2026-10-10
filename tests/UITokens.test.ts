@@ -73,4 +73,15 @@ describe('UI Tokens SSOT (U11a)', () => {
         // slate-900 = #0f172a = 15 23 42
         expect(UI_TOKENS.surface.panel).toBe('15 23 42');
     });
+
+    it('verifies generated styles/tokens.css matches generateTokensCss() (U11b: 0 diff against SSOT)', async () => {
+        const { readFileSync } = await import('node:fs');
+        const { resolve } = await import('node:path');
+        const { generateTokensCss } = await import('../tools/gen-ui-tokens');
+        const cssPath = resolve(__dirname, '../styles/tokens.css');
+        const actualCss = readFileSync(cssPath, 'utf8');
+        const expectedCss = generateTokensCss();
+        expect(actualCss.replace(/\r\n/g, '\n')).toBe(expectedCss.replace(/\r\n/g, '\n'));
+    });
 });
+
