@@ -8,6 +8,7 @@ import { HUDRenderer } from "./HUDRenderer";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
+import { RenderStats } from "./RenderStats";
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -63,28 +64,35 @@ export class RenderPipeline {
         const { mapConfig: cfg, currentScene: sc } = engine;
         
         // 1. Clear & Background
+        RenderStats.begin('background');
         ctx.resetTransform(); 
         ctx.fillStyle = '#020617'; 
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
         // Background uses RealTime for ambient effects (stars, fog) even when game paused
         this.background.draw(ctx, lW, lH, sc, cfg, realTime);
+        RenderStats.end('background');
         
         // 2. Main Scene (World Space)
+        RenderStats.begin('world');
         ctx.save();
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         // World objects use BattleTime to sync with logic
         this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt);
         ctx.restore(); 
+        RenderStats.end('world');
 
         // 3. Post Processing
+        RenderStats.begin('post');
         let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
         this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
         // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
         this.post.applyToneGrade(ctx, pW, pH);
+        RenderStats.end('post');
         
         // 4. Overlays (Screen/World Hybrid)
+        RenderStats.begin('overlay+hud');
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
@@ -94,6 +102,7 @@ export class RenderPipeline {
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
+        RenderStats.end('overlay+hud');
         this.tactical.drawDebug(ctx, fps, engine);
         
         // 5. Global Transition/Finish Blur

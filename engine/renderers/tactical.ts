@@ -2,6 +2,7 @@ import { Agent, GameEngine } from "../game";
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
 import { TACTICAL_COLORS } from "../../constants";
+import { RenderStats } from "./RenderStats";
 
 export interface RenderCamera {
     x: number;
@@ -147,6 +148,10 @@ export class TacticalRenderer {
         ctx.font = '10px monospace';
         ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${fps}`, 10, 20);
+
+        if (RenderStats.enabled) {
+            ctx.fillText(RenderStats.formatSummary(), 10, 32);
+        }
 
         // SUDDEN DEATH WARNING
         if (engine.battleTime > 60) {
