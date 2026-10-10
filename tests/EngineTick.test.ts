@@ -41,4 +41,14 @@ describe('GameEngine tick and battleTime encapsulation (E8-f / D13)', () => {
         engine.clear();
         expect(engine.battleTime).toBe(0);
     });
+
+    it('advances battleTime AFTER systems run (systems observe the pre-step time, like the old external increment)', () => {
+        engine.play();
+        let observed = -1;
+        const original = engine.combat.update.bind(engine.combat);
+        engine.combat.update = (dt: number, e: GameEngine) => { observed = e.battleTime; original(dt, e); };
+        engine.tick(0.05);
+        expect(observed).toBe(0);
+        expect(engine.battleTime).toBeCloseTo(0.05);
+    });
 });

@@ -306,7 +306,6 @@ export class GameEngine implements SpatialProvider {
         }
 
         this.timeSystem.update(dt, this);
-        this.timeSystem.tick(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);
         this.zones.update(dt, this); 
@@ -314,10 +313,12 @@ export class GameEngine implements SpatialProvider {
             this.victorySystem.updateFinishing(dt, this);
             this.updateEntities(dt);
             this.flushVisualEvents();
+            this.timeSystem.tick(dt, this); // D13: battleTime advances AFTER all systems (matches the old external `battleTime += sdt`)
             return;
         }
         this.updateEntities(dt);
         this.flushVisualEvents();
+        this.timeSystem.tick(dt, this); // D13: see above
     }
 
     private flushVisualEvents() {
