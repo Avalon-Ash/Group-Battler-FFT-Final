@@ -1,11 +1,14 @@
 import { useSyncExternalStore, useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 
+import { UI_SETTINGS } from '../constants';
+
 /**
  * Frequency of the shared UI view polling ticker (10 Hz / 100ms).
  */
-export const SNAPSHOT_HZ = 10;
+export const SNAPSHOT_HZ = UI_SETTINGS.SNAPSHOT_HZ;
 export const SNAPSHOT_INTERVAL_MS = 1000 / SNAPSHOT_HZ;
+
 
 /**
  * Shared Engine View Ticker singleton.

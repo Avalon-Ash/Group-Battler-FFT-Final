@@ -207,7 +207,8 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | E2 / E2b | ☑ | 2026-10-10 完成：UICommandSystem 單元測試 11/11 全綠（越界 clamp、忽略無效、非現有 agent 防護、未知命令安全） |
 | E3 / E3b | ☑ | 2026-10-10 完成：selectors 與 EngineViewTicker 單元測試 11/11 全綠（參考穩定性、訂閱計數與自動啟停） |
 | E9 | ☑ | 2026-10-10 完成：邊界守門棘輪測試（tests/UIBoundary.test.ts + baseline.json，6/6 通過：變更只准減不准增） |
-| E4 | ☐ | |
+| E4 | ☑ | 2026-10-10 完成：UI_SETTINGS 範圍/預設/步長補全、F4（SNAPSHOT_HZ 與相機 fallback）收斂至 UI_SETTINGS、data/ui/settingsSchema.ts SSOT 與 SchemaForm 資料驅動表單元件 |
+
 | U5 | ☐ | |
 | U7a / U7b | ☐ | |
 | U8 | ☐ | |

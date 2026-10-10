@@ -8,6 +8,8 @@ import {
     GamePlaybackView,
 } from '../../../types/UIViewModel';
 import { Skill } from '../../../types';
+import { UI_SETTINGS } from '../../../constants';
+
 
 const agentViewCache = new Map<string, AgentView>();
 let prevDirectorView: DirectorView | null = null;
@@ -169,8 +171,10 @@ export function selectZoneView(engine: GameEngine): ZoneView {
  * Returns a stable read-only CameraTuningView snapshot.
  */
 export function selectCameraTuningView(engine: GameEngine): CameraTuningView {
-    const followStiffness = engine.renderer?.camera.followStiffness ?? 3.5;
-    const zoomStiffness = engine.renderer?.camera.zoomStiffness ?? 3.5;
+    const defaultStiffness = UI_SETTINGS.CAMERA_STIFFNESS.default;
+    const followStiffness = engine.renderer?.camera.followStiffness ?? defaultStiffness;
+    const zoomStiffness = engine.renderer?.camera.zoomStiffness ?? defaultStiffness;
+
 
     if (
         prevCameraTuningView &&
