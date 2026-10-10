@@ -27,12 +27,12 @@
 | **P4a** | 解析度 SSOT (`RenderQuality.ts`, `RENDER_QUALITY.MAX_DPR`) | ☑ | `78f4175` | 4 檔授權完成：getRenderDpr SSOT 接入 + MAX_DPR=2 |
 | **P4b** | 畫布 DPR 實際接入 + `{ alpha: false }` + [E2E] | ☑ | `760f7f4` | 畫布與 useGameLoop 接入、{alpha:false}、e2e連過兩次 (tag: perf-ckpt-P4) |
 | **P5a** | 自適應品質調度器 (`createQualityGovernor`) | ☑ | `95df433` | 降階/升階/冷卻/忽略長幀/釘死/遲滯防抖單元測試全過 |
-| **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☑ | `a98e8b3` | useGameLoop/PostProcessor/tactical 接入、?quality=0 釘死測試套件、quality=2/3 冒煙全過、e2e 連過兩次 (tag: perf-ckpt-P5) |
-| **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☑ | `8a20a92` | drawWorld 遮擋 Set/Array 與 viewportScratch 重用，零每幀垃圾配置，GC 穩定 |
-| **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☑ | `e0b4837` | 完成 DSF=1, DSF=2, THROTTLE=4 三維度交錯 3 輪實測，不改 CSS/TSX |
-| **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☑ | `0b0ebac` | 双重護欄 (ratio≤1.15 與 baseline×1.5)、AGENTS.md 協議整合、故意關閉快取報警驗證通過 |
-| **REPORT** | 完成報告 (`docs/PERF_REPORT.md` + `DECOUPLING_HANDOFF.md` §10.4) | ☐ |  | 完整驗證數據與建議 |
-| **FINAL** | 全量驗證 (lint/test/build/e2e/guard) + 本地 tags | ☐ |  | clean repo |
+| **P5b** | 調度器接線 (useGameLoop, PostProcessor, debug) + [E2E] | ☑ | `4fb6fb6` | useGameLoop/PostProcessor/tactical 接入、?quality=0 釘死測試套件、quality=2/3 冒煙全過、e2e 連過兩次 (tag: perf-ckpt-P5) |
+| **P6** | 每幀配置清理 (`RenderPipeline` occluded Set 等) | ☑ | `872ca2e` | drawWorld 遮擋 Set/Array 與 viewportScratch 重用，零每幀垃圾配置，GC 穩定 |
+| **P7** | UI `backdrop-filter` 與矩陣雨純量測 (`PERF_MODE=showcase`) | ☑ | `b49dbc3` | 完成 DSF=1, DSF=2, THROTTLE=4 三維度交錯 3 輪實測，不改 CSS/TSX |
+| **P8** | 效能棘輪 (`PERF_ASSERT=1`, `npm run perf:guard`, AGENTS.md) | ☑ | `eb16e15` | 双重護欄 (ratio≤1.15 與 baseline×1.5)、AGENTS.md 協議整合、故意關閉快取報警驗證通過 |
+| **REPORT** | 完成報告 (`docs/PERF_REPORT.md` + `DECOUPLING_HANDOFF.md` §10.4) | ☑ | `aabf531` | 完整對照數據、保真度指標、使用者驗證指南與交接摘要落檔 |
+| **FINAL** | 全量驗證 (lint/test/build/e2e/guard) + 本地 tags | ☑ | `aabf531` | 雙次 E2E + perf:guard 全綠，打上 perf-ckpt-final 標籤 |
 
 ---
 
