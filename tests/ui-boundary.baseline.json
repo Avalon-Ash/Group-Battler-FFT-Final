@@ -4,5 +4,6 @@
   "directRendererAccess": 5,
   "asAny": 0,
   "setIntervalCount": 3,
-  "tailwindPaletteClasses": 427
+  "tailwindPaletteClasses": 427,
+  "zIndexClasses": 9
 }

@@ -230,6 +230,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | R4b | ☑ | 2026-10-10 完成：MapEditorToolbar 與 PlaybackHUD 改引用 UI_PIN.STORAGE_KEYS，維持 storage key 既有值不變，e2e 全數 PASS |
 | R5 | ☑ | 2026-10-10 完成：移除 SystemMenu 未使用 props 與 App.tsx 傳參，windows.e2e.mjs 的 openViaMenu 收斂至純 data-testid 路徑，e2e 全數 PASS |
 | R6a | ☑ | 2026-10-10 完成：UI_Z 新增同值具名層（INSPECTOR: 30, OVERLAY: 50, MENU_BACKDROP: 55, MENU: 60, OVERLAY_CONTROLS: 60），SystemMenu 與 UnitInspectorHUD 替換為 style={{ zIndex: UI_Z.* }}，單元測試與 e2e 全數 PASS |
+| R6b | ☑ | 2026-10-10 完成：ShowcaseOverlay（50/55/60）、GameCanvas（z-50）、App（z-50）換為 UI_Z 內聯樣式；局部層級（z-0/10/20）保留；E9 增加 zIndexClasses 棘輪計數（baseline: 9），單元測試與 e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -397,4 +398,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **R4b** ☑：`MapEditorToolbar` 與 `PlaybackHUD` 改引用 `UI_PIN.STORAGE_KEYS`（保持原字串值避免使用者既有設定失效），e2e 7 視窗全數通過。
 - **R5** ☑：清理 `SystemMenu` 殘留未用 props（`onToggleLogs/DB/VFXMap/Monitor/engine/monitorEnabled`）與 `App.tsx` 傳參，`windows.e2e.mjs` 刪除舊 `nth()`/`.or()` 改為純 `data-testid` 選取，e2e 全數通過。
 - **R6a** ☑：UI_Z 新增同值具名層（`INSPECTOR: 30`, `OVERLAY: 50`, `MENU_BACKDROP: 55`, `MENU: 60`, `OVERLAY_CONTROLS: 60`），替換 `SystemMenu`（`MENU_BACKDROP`/`MENU`）與 `UnitInspectorHUD`（`INSPECTOR`）的 `z-*` class 為 `UI_Z` 內聯樣式，多視窗置頂與選單覆蓋層 e2e 全數通過。
+- **R6b** ☑：換 `ShowcaseOverlay.tsx`（`OVERLAY`/`MENU_BACKDROP`/`OVERLAY_CONTROLS`）、`GameCanvas.tsx`（`OVERLAY`）、`App.tsx`（`OVERLAY`）為 `UI_Z` 樣式；保留局部內部層級（`z-0`/`z-10`/`z-20`）；E9 守門測試新增 `zIndexClasses` 棘輪指標（掃描 `components/**` 與 `App.tsx`，目前基準值為 9，只准減不准增）；單元測試與 e2e 全數通過。
 

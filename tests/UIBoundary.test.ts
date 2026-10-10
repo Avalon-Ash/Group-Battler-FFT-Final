@@ -9,6 +9,7 @@ interface BoundaryMetrics {
     asAny: number;
     setIntervalCount: number;
     tailwindPaletteClasses: number;
+    zIndexClasses: number;
 }
 
 function getFiles(dir: string): string[] {
@@ -33,6 +34,10 @@ function scanBoundaryMetrics(): BoundaryMetrics {
         ...getFiles(path.join(rootDir, 'components')),
         ...getFiles(path.join(rootDir, 'hooks')),
     ];
+    const zIndexFiles = [
+        ...getFiles(path.join(rootDir, 'components')),
+        path.join(rootDir, 'App.tsx'),
+    ];
 
     const counts: BoundaryMetrics = {
         directEngineMutation: 0,
@@ -41,9 +46,10 @@ function scanBoundaryMetrics(): BoundaryMetrics {
         asAny: 0,
         setIntervalCount: 0,
         tailwindPaletteClasses: 0,
+        zIndexClasses: 0,
     };
 
-    const patterns: Record<keyof BoundaryMetrics, RegExp> = {
+    const patterns: Record<Exclude<keyof BoundaryMetrics, 'zIndexClasses'>, RegExp> = {
         directEngineMutation: /engine\.\w+(\.\w+)*\s*=[^=]/g,
         directAgentMutation: /agent\.\w+\s*=[^=]/g,
         directRendererAccess: /\.renderer\b/g,
@@ -55,11 +61,20 @@ function scanBoundaryMetrics(): BoundaryMetrics {
 
     for (const f of files) {
         const content = fs.readFileSync(f, 'utf8');
-        for (const [key, regex] of Object.entries(patterns) as [keyof BoundaryMetrics, RegExp][]) {
+        for (const [key, regex] of Object.entries(patterns) as [Exclude<keyof BoundaryMetrics, 'zIndexClasses'>, RegExp][]) {
             const matches = content.match(regex);
             if (matches) {
                 counts[key] += matches.length;
             }
+        }
+    }
+
+    const zIndexRegex = /\bz-\[?\d+\]?/g;
+    for (const f of zIndexFiles) {
+        const content = fs.readFileSync(f, 'utf8');
+        const matches = content.match(zIndexRegex);
+        if (matches) {
+            counts.zIndexClasses += matches.length;
         }
     }
 
@@ -113,4 +128,12 @@ describe('UI Boundary Ratchet Guard (E9)', () => {
             `Tailwind palette class count (${current.tailwindPaletteClasses}) exceeded baseline (${baseline.tailwindPaletteClasses}). Palette classes should be migrated to semantic tokens!`
         ).toBeLessThanOrEqual(baseline.tailwindPaletteClasses);
     });
+
+    it('enforces zIndexClasses count does not increase (ratchet)', () => {
+        expect(
+            current.zIndexClasses,
+            `zIndexClasses count (${current.zIndexClasses}) exceeded baseline (${baseline.zIndexClasses}). Migrate z-index classes to UI_Z constants!`
+        ).toBeLessThanOrEqual(baseline.zIndexClasses);
+    });
 });
+

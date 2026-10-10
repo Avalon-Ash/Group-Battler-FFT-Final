@@ -5,6 +5,7 @@ import { useMatrixRain } from './useMatrixRain';
 import { ShowcaseSettings } from './ShowcaseSettings';
 import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
+import { UI_Z } from '../../../constants';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
@@ -59,7 +60,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
     };
 
     return (
-        <div className="absolute inset-0 z-50 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.OVERLAY }}>
             
             <div 
                 className="absolute inset-0 transition-colors duration-300"
@@ -78,7 +79,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </>
             )}
 
-            <div className={`absolute z-[55] flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`}>
+            <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.MENU_BACKDROP }}>
                 
                 <div className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     
@@ -112,7 +113,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </div>
             </div>
 
-            <div className="absolute top-6 left-6 z-[60] pointer-events-auto">
+            <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY_CONTROLS }}>
                 <button 
                     onClick={() => setShowSettings(!showSettings)}
                     className={`liquid-icon-btn hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-white/10 ${showSettings ? 'text-cyan-400 border-cyan-500/50 bg-white/10' : 'text-slate-400'}`}

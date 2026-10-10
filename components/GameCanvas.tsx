@@ -10,6 +10,7 @@ import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { Icons } from './ui/icons';
+import { UI_Z } from '../constants';
 interface GameCanvasProps {
     engine: GameEngine;
     tool: ToolType;
@@ -147,7 +148,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             {winner !== null && !isShowcaseMode && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm z-50 pointer-events-auto">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY }}>
                     <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
                         <div className="mb-6">
                             <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">戰鬥模擬演算結束</span>

@@ -10,6 +10,7 @@ import { RegisteredWindows } from './components/ui/window/windowRegistry';
 import { useWindowActions, useWindowState } from './hooks/useWindowStore';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
+import { UI_Z } from './constants';
 
 
 function App() {
@@ -23,7 +24,7 @@ function App() {
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
       {state.showFactionWarning && (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce-in pointer-events-none w-[90%] max-w-md">
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 animate-bounce-in pointer-events-none w-[90%] max-w-md" style={{ zIndex: UI_Z.OVERLAY }}>
                 <div className="liquid-glass px-6 py-3 rounded-full border-red-500/50 flex items-center gap-3 shadow-xl text-red-200 bg-red-950/80">
                     <Icons.Warning className="w-6 h-6 text-red-400" />
                     <div className="flex flex-col">
