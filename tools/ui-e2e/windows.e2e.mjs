@@ -592,10 +592,13 @@ const runInspectorCommandSuite = async () => {
             const cx = rect.width / 2;
             const cy = rect.height / 2;
             const alive = engine.agents.filter(u => u.id !== currId && u.hp > 0);
-            const agent = alive.find(u => {
+            const candidates = alive.filter(u => {
+                const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(u.q, u.r) : 0;
                 const sx = rect.left + (u.px - cam.x) * cam.zoom + cx;
-                return sx > 420;
-            }) || alive[idx % alive.length];
+                const sy = rect.top + (u.py - terrainH - cam.y) * cam.zoom + cy;
+                return sx > 380 && sx < rect.width - 100 && sy > 120 && sy < rect.height - 120;
+            });
+            const agent = (candidates.length > 0 ? candidates[idx % candidates.length] : null) || alive[idx % alive.length];
             if (!agent) return null;
             const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
             const worldX = agent.px;

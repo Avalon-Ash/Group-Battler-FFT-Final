@@ -116,8 +116,8 @@ export const useGameLoop = (
                 
                 while (acc >= step) {
                     const sdt = (step / 1000) * engine.timeScale;
+                    // D13: engine.tick encapsulates battleTime accumulation internally
                     engine.tick(sdt);
-                    engine.battleTime += sdt;
                     acc -= step;
                 }
             }

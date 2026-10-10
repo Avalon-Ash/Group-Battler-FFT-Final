@@ -284,6 +284,7 @@ export class GameEngine implements SpatialProvider {
         this.logger.clear();
         this.victorySystem.reset(this); 
         this.effects.reset();
+        this.state.time.battleTime = 0;
         this.state.time.timeScale = 1.0;
         this.state.time.targetTimeScale = 1.0;
         this.sessionState.killStreaks.clear();
@@ -305,6 +306,7 @@ export class GameEngine implements SpatialProvider {
         }
 
         this.timeSystem.update(dt, this);
+        this.timeSystem.tick(dt, this);
         this.events.length = 0; 
         this.director.update(this, dt);
         this.zones.update(dt, this); 
