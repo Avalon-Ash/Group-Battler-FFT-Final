@@ -60,6 +60,17 @@ describe('useDraggable helpers (R4)', () => {
             expect(clamped.x).toBe(300);
             expect(clamped.y).toBe(400);
         });
+
+        it('clamps properly when viewport is tight/smaller than margin allows', () => {
+            const tightViewport = { vw: 420, vh: 400 };
+            const tightSize = { width: 406, height: 88 };
+            const tightMargin = 30;
+            const clamped = clampToolbarPosition({ x: 300, y: 350 }, tightSize, tightViewport, tightMargin);
+            expect(clamped.x + tightSize.width).toBeLessThanOrEqual(420);
+            expect(clamped.y + tightSize.height).toBeLessThanOrEqual(400);
+            expect(clamped.x).toBeGreaterThanOrEqual(0);
+            expect(clamped.y).toBeGreaterThanOrEqual(0);
+        });
     });
 
     describe('storage persistence & resilience', () => {

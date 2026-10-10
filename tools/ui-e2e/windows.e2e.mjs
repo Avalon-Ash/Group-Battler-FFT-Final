@@ -390,6 +390,78 @@ const runSchemaFormSuite = async () => {
     await ctx.close();
 };
 
+const runShowcaseAndPinSuite = async () => {
+    console.log('\n── Showcase & Pinned Toolbar (PlaybackHUD)');
+    // Seed logs window open in localStorage
+    const { ctx, page } = await newPage({ id: 'logs', seed: { x: 40, y: 80, w: 640, h: 420 } });
+
+    // 1. Enter page in showcase mode (do NOT click START_TEXT)
+    await page.goto(baseUrl, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(600);
+
+    // Assert standard windows (e.g. logs) are NOT visible in showcase mode
+    const logsInShowcase = await rectOf(page, 'logs');
+    ok('showcase mode: standard window (logs) is hidden', logsInShowcase === null);
+
+    // Open showcaseSettings via the gear icon in ShowcaseOverlay
+    await page.locator('button[title="展示與特效設定"]').click();
+    await page.waitForTimeout(500);
+    const scRect = await rectOf(page, 'showcaseSettings');
+    ok('showcase mode: showcaseSettings window visible and interactive', scRect !== null);
+
+    // Enter manual mode
+    await page.getByText(START_TEXT).click();
+    await page.waitForTimeout(800);
+
+    // Assert standard windows are now restored and visible
+    const logsInManual = await rectOf(page, 'logs');
+    ok('manual mode: standard windows restored and visible', logsInManual !== null);
+
+    // 2. Playback toolbar drag, persistence, and clamp
+    const getPlaybackRect = () => page.evaluate(() => {
+        const btn = document.querySelector('button[title="開始戰鬥"], button[title="暫停戰鬥"]');
+        const tb = btn?.closest('[style*="position: fixed"]');
+        if (!tb) return null;
+        const r = tb.getBoundingClientRect();
+        return { x: r.x, y: r.y, width: r.width, height: r.height };
+    });
+
+    const pbInit = await getPlaybackRect();
+    ok('playback toolbar rendered in manual mode', pbInit !== null);
+    if (!pbInit) { await ctx.close(); return; }
+
+    // Drag playback toolbar by its right grab-handle
+    await page.mouse.move(pbInit.x + pbInit.width - 10, pbInit.y + pbInit.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(pbInit.x + pbInit.width - 10 + 60, pbInit.y + pbInit.height / 2 - 40, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(400);
+
+    const pbMoved = await getPlaybackRect();
+    ok('playback toolbar dragged to new position', pbMoved && Math.abs(pbMoved.x - (pbInit.x + 60)) <= 4 && Math.abs(pbMoved.y - (pbInit.y - 40)) <= 4);
+
+    // Reload page and re-enter manual mode
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.getByText(START_TEXT).click();
+    await page.waitForTimeout(800);
+
+    const pbReloaded = await getPlaybackRect();
+    ok('playback toolbar position preserved after reload (±2px)', pbReloaded && pbMoved && near(pbReloaded.x, pbMoved.x, 2) && near(pbReloaded.y, pbMoved.y, 2), JSON.stringify(pbReloaded));
+
+    // Shrink viewport to 420x400
+    await page.setViewportSize({ width: 420, height: 400 });
+    await page.waitForTimeout(500);
+
+    const pbSmall = await getPlaybackRect();
+    ok(
+        'playback toolbar fully contained in small viewport (420x400)',
+        pbSmall && pbSmall.x >= 0 && pbSmall.y >= 0 && pbSmall.x + pbSmall.width <= 420 && pbSmall.y + pbSmall.height <= 400,
+        JSON.stringify(pbSmall)
+    );
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -398,6 +470,7 @@ try {
     if (!filterOnly || filterOnly.includes('multi')) await runMultiWindow();
     if (!filterOnly || filterOnly.includes('toolmenu')) await runToolMenuSuite();
     if (!filterOnly || filterOnly.includes('schemaform')) await runSchemaFormSuite();
+    if (!filterOnly || filterOnly.includes('showcase-pin')) await runShowcaseAndPinSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

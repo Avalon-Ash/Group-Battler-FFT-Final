@@ -56,10 +56,16 @@ export function clampToolbarPosition(
     viewport: { vw: number; vh: number },
     margin: number
 ): { x: number; y: number } {
-    const maxX = Math.max(margin, viewport.vw - size.width - margin);
-    const maxY = Math.max(margin, viewport.vh - size.height - margin);
-    const minX = margin;
-    const minY = margin;
+    const slackX = viewport.vw - size.width;
+    const slackY = viewport.vh - size.height;
+
+    const effMarginX = Math.max(0, Math.min(margin, slackX / 2));
+    const effMarginY = Math.max(0, Math.min(margin, slackY / 2));
+
+    const minX = effMarginX;
+    const minY = effMarginY;
+    const maxX = Math.max(minX, slackX - effMarginX);
+    const maxY = Math.max(minY, slackY - effMarginY);
 
     const clampedX = Math.min(Math.max(pos.x, minX), maxX);
     const clampedY = Math.min(Math.max(pos.y, minY), maxY);
