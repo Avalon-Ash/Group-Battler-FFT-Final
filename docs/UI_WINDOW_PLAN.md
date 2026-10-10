@@ -223,6 +223,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U9 | ☑ | 2026-10-10 完成：釘選工具列（MapEditorToolbar / PlaybackHUD）useDraggable 支援 storageKey 位置持久化記憶 + 顯示/縮放時自動 clamp + Pointer/觸控事件（onPointerCancel 容錯），單元測試與 e2e 全數 PASS |
 | U10 | ☑ | 2026-10-10 完成：z-index 1:1 收斂至 UI_Z（PlaybackHUD / MapEditorToolbar z-40 → UI_Z.WINDOW_BASE），其餘無 1:1 對應值（z-30、z-50）跳過並記錄於夜間報告，單元測試與 e2e 全數 PASS |
 | R1a | ☑ | 2026-10-10 完成：F10 相機剛度常數修正為 followDefault: 0.25 / zoomDefault: 0.2，CameraSystem 初始值引用常數，selectCameraTuningView fallback 與單元測試全綠 |
+| R1b | ☑ | 2026-10-10 完成：SettingsWindows 匯出 useDirectorSettingsValues / useZoneSettingsValues hooks（零字面數字，引用 UI_SETTINGS），ShowcaseSettings 複用 hook 刪除重複與寫死數字，e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -383,4 +384,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 ## 13. 夜間執行 #3 (Review & R/T 系列進度)
 
 - **R1a** ☑：修正相機剛度常數與初始值 (`followDefault: 0.25`, `zoomDefault: 0.2`)，移除 `CAMERA_STIFFNESS.default=3.5`，`CameraSystem` 與 `selectCameraTuningView` 引用常數，單元測試通過。
+- **R1b** ☑：`SettingsWindows` 匯出 `useDirectorSettingsValues` 與 `useZoneSettingsValues`（零字面數字，全面引用 `UI_SETTINGS`），`ShowcaseSettings` 消除重複與寫死數字，e2e 7 視窗全數通過。
 

@@ -7,12 +7,13 @@ import {
     DIRECTOR_SETTINGS_SCHEMA,
     ZONE_SETTINGS_SCHEMA,
 } from '../../../data/ui/settingsSchema';
+import {
+    useDirectorSettingsValues,
+    useZoneSettingsValues,
+} from '../settings/SettingsWindows';
 import { useEngineView } from '../../../hooks/useEngineView';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import {
-    selectDirectorView,
-    selectCameraTuningView,
-    selectZoneView,
     selectGamePlaybackView,
 } from '../../../engine/systems/ui/selectors';
 import { windowStore } from '../window/windowStore';
@@ -94,9 +95,8 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
     const activeConfig = propConfig ?? localConfig;
     const activeLayout = propLayout ?? localLayout;
 
-    const directorView = useEngineView(engine, selectDirectorView);
-    const cameraView = useEngineView(engine, selectCameraTuningView);
-    const zoneView = useEngineView(engine, selectZoneView);
+    const directorSettingsValues = useDirectorSettingsValues(engine);
+    const zoneSettingsValues = useZoneSettingsValues(engine);
     const playbackView = useEngineView(engine, selectGamePlaybackView);
     const { send } = useEngineCommands(engine);
 
@@ -115,7 +115,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
         propSetLayout?.(l);
     };
 
-    const isMasterOn = activeConfig.enabled && (directorView?.enabled ?? true);
+    const isMasterOn = activeConfig.enabled && directorSettingsValues.directorEnabled;
     const toggleMaster = (val: boolean) => {
         updateConfig('enabled', val);
         send({ type: 'SET_DIRECTOR_ENABLED', enabled: val });
@@ -241,11 +241,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                     <div className="animate-fade-in">
                         <SchemaForm
                             fields={DIRECTOR_SETTINGS_SCHEMA}
-                            values={{
-                                directorEnabled: directorView?.enabled ?? true,
-                                followStiffness: cameraView?.followStiffness ?? 3.5,
-                                zoomStiffness: cameraView?.zoomStiffness ?? 3.5,
-                            }}
+                            values={directorSettingsValues}
                             onChange={send}
                         />
                     </div>
@@ -335,12 +331,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                     <div className="animate-fade-in">
                         <SchemaForm
                             fields={ZONE_SETTINGS_SCHEMA}
-                            values={{
-                                zoneEnabled: zoneView?.enabled ?? true,
-                                initialRadius: zoneView?.initialRadius ?? 8,
-                                shrinkInterval: zoneView?.shrinkInterval ?? 15,
-                                minRadius: zoneView?.minRadius ?? 1,
-                            }}
+                            values={zoneSettingsValues}
                             onChange={send}
                         />
                     </div>

@@ -5,6 +5,7 @@ import {
     DIRECTOR_SETTINGS_SCHEMA,
     ZONE_SETTINGS_SCHEMA,
 } from '../../../data/ui/settingsSchema';
+import { UI_SETTINGS } from '../../../constants';
 import { useEngineView } from '../../../hooks/useEngineView';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import {
@@ -17,19 +18,42 @@ export interface SettingsWindowProps {
     engine?: GameEngine;
 }
 
-export const DirectorSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }) => {
+export function useDirectorSettingsValues(engine?: GameEngine) {
     const directorView = useEngineView(engine, selectDirectorView);
     const cameraView = useEngineView(engine, selectCameraTuningView);
-    const { send } = useEngineCommands(engine);
 
-    const values = useMemo(
+    return useMemo(
         () => ({
             directorEnabled: directorView?.enabled ?? true,
-            followStiffness: cameraView?.followStiffness ?? 3.5,
-            zoomStiffness: cameraView?.zoomStiffness ?? 3.5,
+            followStiffness: cameraView?.followStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.followDefault,
+            zoomStiffness: cameraView?.zoomStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault,
         }),
         [directorView?.enabled, cameraView?.followStiffness, cameraView?.zoomStiffness]
     );
+}
+
+export function useZoneSettingsValues(engine?: GameEngine) {
+    const zoneView = useEngineView(engine, selectZoneView);
+
+    return useMemo(
+        () => ({
+            zoneEnabled: zoneView?.enabled ?? true,
+            initialRadius: zoneView?.initialRadius ?? UI_SETTINGS.ZONE_INITIAL_RADIUS.default,
+            shrinkInterval: zoneView?.shrinkInterval ?? UI_SETTINGS.ZONE_SHRINK_INTERVAL.default,
+            minRadius: zoneView?.minRadius ?? UI_SETTINGS.ZONE_MIN_RADIUS.default,
+        }),
+        [
+            zoneView?.enabled,
+            zoneView?.initialRadius,
+            zoneView?.shrinkInterval,
+            zoneView?.minRadius,
+        ]
+    );
+}
+
+export const DirectorSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }) => {
+    const values = useDirectorSettingsValues(engine);
+    const { send } = useEngineCommands(engine);
 
     return (
         <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar select-none">
@@ -43,23 +67,8 @@ export const DirectorSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }
 };
 
 export const ZoneSettingsWindow: React.FC<SettingsWindowProps> = ({ engine }) => {
-    const zoneView = useEngineView(engine, selectZoneView);
+    const values = useZoneSettingsValues(engine);
     const { send } = useEngineCommands(engine);
-
-    const values = useMemo(
-        () => ({
-            zoneEnabled: zoneView?.enabled ?? true,
-            initialRadius: zoneView?.initialRadius ?? 8,
-            shrinkInterval: zoneView?.shrinkInterval ?? 15,
-            minRadius: zoneView?.minRadius ?? 1,
-        }),
-        [
-            zoneView?.enabled,
-            zoneView?.initialRadius,
-            zoneView?.shrinkInterval,
-            zoneView?.minRadius,
-        ]
-    );
 
     return (
         <div className="w-full h-full p-4 overflow-y-auto custom-scrollbar select-none">
