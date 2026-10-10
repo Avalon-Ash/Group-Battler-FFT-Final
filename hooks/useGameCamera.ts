@@ -3,6 +3,7 @@ import { useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 import { HexUtils } from '../engine/utils';
 import { BLOCK_HEIGHT, HEX_SIZE } from '../constants';
+import { queryMapKeys, queryTerrainHeight } from '../engine/systems/ui/editorQueries';
 
 /**
  * 攝像機座標映射鉤子 v29.0
@@ -14,19 +15,17 @@ export const useGameCamera = (engine: GameEngine) => {
     const centerCamera = useCallback((width: number, height: number) => {
         if (!width || !height || width <= 0 || height <= 0) return;
 
-        engine.screenW = width;
-        engine.screenH = height;
-        engine.screenAspect = width / height;
+        engine.bus.emit('UI_COMMAND', { type: 'SET_VIEWPORT', width, height });
 
         const mapConfig = engine.mapConfig;
         let minX = Infinity, maxX = -Infinity;
         let minY = Infinity, maxY = -Infinity;
         let validTiles = 0;
 
-        engine.map.getMapKeys().forEach(k => {
+        queryMapKeys(engine).forEach(k => {
             const [q, r] = k.split(',').map(Number);
             const p = HexUtils.toPx(q, r, mapConfig);
-            const h = engine.map.getTerrainHeight(q, r);
+            const h = queryTerrainHeight(engine, q, r);
             const topY = p.y - h;
 
             if (p.x < minX) minX = p.x;
@@ -56,7 +55,12 @@ export const useGameCamera = (engine: GameEngine) => {
         camera.current.zoom = targetZoom;
         
         // 同步至物理系統
-        engine.renderer?.camera.snapTo(camera.current.x, camera.current.y, camera.current.zoom);
+        engine.bus.emit('UI_COMMAND', {
+            type: 'CAMERA_SNAP',
+            x: camera.current.x,
+            y: camera.current.y,
+            zoom: camera.current.zoom,
+        });
 
     }, [engine.mapConfig, engine.mapVersion]);
 

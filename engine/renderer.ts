@@ -9,7 +9,8 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "./game";
-import { Hex, GameEvent, Skill, EventMap } from "../types";
+import { Hex, GameEvent, Skill, EventMap, UICommand } from "../types";
+import { UI_SETTINGS } from "../constants";
 import { UnitShatter } from "./systems/visuals/effects/UnitShatter";
 import { GridSystem } from "./systems/grid";
 import { VFXSystem } from "./systems/vfx";
@@ -54,6 +55,7 @@ export class GameRenderer {
             this.boundEngine.bus.off('CAMERA_MOVE', this.handleCameraMove);
             this.boundEngine.bus.off('AGENT_RESET', this.handleAgentReset);
             this.boundEngine.bus.off('AGENT_DIED', this.handleAgentDied);
+            this.boundEngine.bus.off('UI_COMMAND', this.handleUICommand);
             this.vfx.unbind();
         }
 
@@ -67,6 +69,7 @@ export class GameRenderer {
         this.boundEngine.bus.on('CAMERA_MOVE', this.handleCameraMove);
         this.boundEngine.bus.on('AGENT_RESET', this.handleAgentReset);
         this.boundEngine.bus.on('AGENT_DIED', this.handleAgentDied);
+        this.boundEngine.bus.on('UI_COMMAND', this.handleUICommand);
         this.vfx.bind(this.boundEngine);
     }
 
@@ -80,6 +83,38 @@ export class GameRenderer {
 
     private handleCameraMove = (data: { x: number, y: number, zoom: number }) => {
         this.camera.setDirectorTarget(data.x, data.y, data.zoom);
+    }
+
+    private handleUICommand = (cmd: UICommand) => {
+        if (cmd.type === 'SET_CAMERA_TUNING') {
+            if (typeof cmd.followStiffness === 'number' && Number.isFinite(cmd.followStiffness)) {
+                this.camera.followStiffness = Math.max(UI_SETTINGS.CAMERA_STIFFNESS.min, Math.min(UI_SETTINGS.CAMERA_STIFFNESS.max, cmd.followStiffness));
+            }
+            if (typeof cmd.zoomStiffness === 'number' && Number.isFinite(cmd.zoomStiffness)) {
+                this.camera.zoomStiffness = Math.max(UI_SETTINGS.CAMERA_STIFFNESS.min, Math.min(UI_SETTINGS.CAMERA_STIFFNESS.max, cmd.zoomStiffness));
+            }
+        } else if (cmd.type === 'CAMERA_ZOOM') {
+            if (typeof cmd.zoom === 'number' && Number.isFinite(cmd.zoom)) {
+                this.camera.applyZoom(cmd.zoom);
+            }
+        } else if (cmd.type === 'CAMERA_PAN') {
+            if (typeof cmd.dx === 'number' && Number.isFinite(cmd.dx) && typeof cmd.dy === 'number' && Number.isFinite(cmd.dy)) {
+                this.camera.applyPanOffset(cmd.dx, cmd.dy);
+            }
+        } else if (cmd.type === 'CAMERA_SNAP') {
+            if (typeof cmd.x === 'number' && Number.isFinite(cmd.x) && typeof cmd.y === 'number' && Number.isFinite(cmd.y)) {
+                const z = (typeof cmd.zoom === 'number' && Number.isFinite(cmd.zoom)) ? cmd.zoom : this.camera.zoom;
+                this.camera.snapTo(cmd.x, cmd.y, z);
+            }
+        } else if (cmd.type === 'SET_VIEWPORT') {
+            if (typeof cmd.width === 'number' && Number.isFinite(cmd.width) && typeof cmd.height === 'number' && Number.isFinite(cmd.height) && cmd.height > 0) {
+                if (this.boundEngine) {
+                    this.boundEngine.screenW = cmd.width;
+                    this.boundEngine.screenH = cmd.height;
+                    this.boundEngine.screenAspect = cmd.width / cmd.height;
+                }
+            }
+        }
     }
 
     private handleAgentDied = (data: EventMap['AGENT_DIED']) => {

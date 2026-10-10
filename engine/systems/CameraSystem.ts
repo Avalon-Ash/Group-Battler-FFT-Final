@@ -6,6 +6,8 @@
 // ║  [TODO: CINEMACHINE] 未來支援多目標混合 / 自動構圖        ║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { UI_SETTINGS } from '../../constants';
+
 export interface Camera {
     x: number;
     y: number;
@@ -26,8 +28,8 @@ export class CameraSystem {
     // Physics Parameters (Exposed for UI)
     // Lower stiffness = Heavier, slower camera (Cinematic)
     // Higher stiffness = Snappy, responsive camera (Arcade)
-    public followStiffness: number = 0.25; // Default lowered from 3.0 for cinematic feel
-    public zoomStiffness: number = 0.2;   // Default lowered from 2.0
+    public followStiffness: number = UI_SETTINGS.CAMERA_STIFFNESS.followDefault;
+    public zoomStiffness: number = UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault;
     
     // Mode Control
     private manualOverrideTimer: number = 0; // 手動操作後的冷卻時間

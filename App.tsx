@@ -1,25 +1,46 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import GameCanvas from './components/GameCanvas';
 import { ShowcaseOverlay } from './components/ui/showcase/ShowcaseOverlay';
 import { PlaybackHUD } from './components/ui/PlaybackHUD';
 import { MapEditorToolbar } from './components/ui/MapEditorToolbar';
-import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
-import { DirectorMonitorHUD } from './components/ui/DirectorMonitorHUD'; // 新增
 import { SystemMenu } from './components/ui/SystemMenu';
-import { ModalManager } from './components/ui/ModalManager';
+import { WindowLayer } from './components/ui/window/WindowLayer';
+import { RegisteredWindows } from './components/ui/window/windowRegistry';
+import { useWindowActions, useWindowState } from './hooks/useWindowStore';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
+import { UI_Z } from './constants';
+
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
+  const windowActions = useWindowActions();
+  const monitorState = useWindowState('monitor');
+  const isMonitorOpen = monitorState?.isOpen ?? false;
+  const inspectorState = useWindowState('inspector');
+  const isInspectorOpen = inspectorState?.isOpen ?? false;
+  const prevSelectedAgentIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const currentId = state.selectedAgent?.id ?? null;
+    const prevId = prevSelectedAgentIdRef.current;
+    if (currentId !== prevId) {
+      prevSelectedAgentIdRef.current = currentId;
+      if (currentId && !isInspectorOpen) {
+        windowActions.open('inspector');
+      } else if (!currentId && isInspectorOpen) {
+        windowActions.close('inspector');
+      }
+    }
+  }, [state.selectedAgent, isInspectorOpen, windowActions]);
+
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
-  const showModals = !hideHUD || state.showLogs || state.showDB || state.showVFXMap;
 
   return (
-    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
+    <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
       {state.showFactionWarning && (
-            <div className="absolute top-24 left-1/2 -translate-x-1/2 z-50 animate-bounce-in pointer-events-none w-[90%] max-w-md">
+            <div className="absolute top-24 left-1/2 -translate-x-1/2 animate-bounce-in pointer-events-none w-[90%] max-w-md" style={{ zIndex: UI_Z.OVERLAY }}>
                 <div className="liquid-glass px-6 py-3 rounded-full border-red-500/50 flex items-center gap-3 shadow-xl text-red-200 bg-red-950/80">
                     <Icons.Warning className="w-6 h-6 text-red-400" />
                     <div className="flex flex-col">
@@ -36,17 +57,9 @@ function App() {
             timeScale={state.timeScale} 
             setTimeScale={setters.setTimeScale} 
             engine={engineRef.current} 
-            showDirectorMonitor={state.showDirectorMonitor}
-            setShowDirectorMonitor={setters.setShowDirectorMonitor}
+            showDirectorMonitor={isMonitorOpen}
+            setShowDirectorMonitor={(v: boolean) => (v ? windowActions.open('monitor') : windowActions.close('monitor'))}
         />
-      )}
-
-      {/* Director Monitor - Draggable & Togglable */}
-      {!isGameOver && state.showDirectorMonitor && (
-          <DirectorMonitorHUD 
-            engine={engineRef.current}
-            onClose={() => setters.setShowDirectorMonitor(false)}
-          />
       )}
 
       <PlaybackHUD 
@@ -62,36 +75,22 @@ function App() {
       />
       {!hideHUD && (
           <SystemMenu 
-              onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
-              onToggleDB={() => setters.setShowDB(!state.showDB)}
-              onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
-              onToggleMonitor={() => setters.setShowDirectorMonitor(!state.showDirectorMonitor)} // 新增
               onDownloadSpec={actions.downloadSpec}
-              engine={engineRef.current} 
-              monitorEnabled={state.showDirectorMonitor} // 新增
           />
       )}
-      {!hideHUD && state.selectedAgent && (
-          <UnitInspectorHUD 
-              agent={state.selectedAgent} 
+
+      {/* Floating tool windows. RegisteredWindows filters by visibleInShowcase in showcase mode. */}
+      <WindowLayer>
+          <RegisteredWindows
               engine={engineRef.current}
-              onClose={() => actions.handleSelectAgent(null)} 
+              selectedAgentId={state.selectedAgent?.id ?? null}
+              onCloseInspector={() => actions.handleSelectAgent(null)}
+              showcaseMode={state.isShowcaseMode}
+              isGameOver={isGameOver}
           />
-      )}
-      {showModals && (
-          <ModalManager 
-              showLogs={state.showLogs}
-              showDB={state.showDB}
-              showVFXMap={state.showVFXMap}
-              engine={engineRef.current}
-              onClose={() => {
-                  setters.setShowLogs(false);
-                  setters.setShowDB(false);
-                  setters.setShowVFXMap(false);
-              }}
-          />
-      )}
-      <div className="flex-1 relative z-0 bg-slate-900">
+      </WindowLayer>
+
+      <div className="flex-1 relative z-0 bg-slate-900 touch-none">
             <GameCanvas 
                 engine={engineRef.current} 
                 tool={state.tool}
@@ -107,7 +106,7 @@ function App() {
                 rematch={actions.rematch}
                 nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}
-                onOpenLogs={() => setters.setShowLogs(true)}
+                onOpenLogs={() => windowActions.open('logs')}
             />
       </div>
       {!hideHUD && (

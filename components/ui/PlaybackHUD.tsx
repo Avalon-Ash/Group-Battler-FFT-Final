@@ -2,6 +2,7 @@ import React, { useRef } from 'react';
 import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
+import { UI_Z, UI_PIN } from '../../constants';
 interface PlaybackHUDProps {
     hidden: boolean;
     isPlaying: boolean;
@@ -17,21 +18,26 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase
 }) => {
     const ref = useRef<HTMLDivElement>(null);
-    const { dragHandlers, style, isDragging } = useDraggable(ref, { anchor: 'bottom-center', margin: 30 });
+    const { dragHandlers, style, isDragging } = useDraggable(ref, {
+        anchor: 'bottom-center',
+        margin: 30,
+        storageKey: UI_PIN.STORAGE_KEYS.playback,
+    });
     const glowClass = winner !== null 
         ? (winner === Team.BLUE ? 'shadow-[0_0_30px_rgba(59,130,246,0.4)] border-blue-500/30' : 'shadow-[0_0_30px_rgba(239,68,68,0.4)] border-red-500/30') 
         : (isPlaying ? 'shadow-[0_0_20px_rgba(16,185,129,0.2)] border-white/10' : 'border-white/10');
     return (
         <div 
             ref={ref}
-            className={`z-40 transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
-            style={style}
+            className={`transition-all duration-500 ${hidden ? 'opacity-0 translate-y-10 pointer-events-none' : 'opacity-100 translate-y-0'}`}
+            style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
             {...dragHandlers}
         >
-            <div className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
+            <div data-testid="playback-hud" className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
                 <div className="relative group">
                     <div className={`absolute inset-0 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity ${isPlaying ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                     <button 
+                        data-testid="playback-play-btn"
                         onClick={(e) => { e.stopPropagation(); onTogglePlay(); }}
                         onPointerDown={(e) => e.stopPropagation()} 
                         disabled={winner !== null}

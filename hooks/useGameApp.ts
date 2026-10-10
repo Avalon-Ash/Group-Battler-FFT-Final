@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout } from '../types';
@@ -5,11 +6,32 @@ import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
+import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueries';
+
+type DevWindow = Window & {
+    __TACTICAL_ENGINE__?: GameEngine;
+};
 
 export const useGameApp = () => {
     // [ARCH] Use a lazy initializer for the ref to avoid 'new GameEngine()' on every render
-    const [initialEngine] = useState(() => new GameEngine());
+    const [initialEngine] = useState(() => {
+        const eng = new GameEngine();
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+            (window as DevWindow).__TACTICAL_ENGINE__ = eng;
+        }
+        return eng;
+    });
     const engineRef = useRef<GameEngine>(initialEngine);
+
+    useEffect(() => {
+        if (import.meta.env.DEV && typeof window !== 'undefined') {
+            const devWindow = window as DevWindow;
+            devWindow.__TACTICAL_ENGINE__ = engineRef.current;
+            return () => {
+                delete devWindow.__TACTICAL_ENGINE__;
+            };
+        }
+    }, []);
     
     const [session, setSession] = useState({
         isPlaying: false,
@@ -35,9 +57,6 @@ export const useGameApp = () => {
     const [hud, setHud] = useState({
         selectedAgent: null as Agent | null,
         hoveredSkill: null as Skill | null,
-        showLogs: false,
-        showDB: false,
-        showVFXMap: false,
         showFactionWarning: false,
         showDirectorMonitor: false 
     });
@@ -47,11 +66,11 @@ export const useGameApp = () => {
         const radius = Math.floor(Math.max(engine.mapConfig.w, engine.mapConfig.h) / 2) + 1;
         
         // Find valid spawnable hexes (not blocked, not extreme edge)
-        let validHexes = Array.from(engine.mapKeys).map((k: string) => {
+        let validHexes = queryMapKeys(engine).map((k: string) => {
             const [q, r] = k.split(',').map(Number);
             return {q, r};
         }).filter(hex => {
-            if (engine.map.hasObstacle(hex.q, hex.r)) return false;
+            if (queryHasObstacle(engine, hex.q, hex.r)) return false;
             // Don't spawn on the extreme outer edge
             const dist = HexUtils.dist({q:0, r:0}, hex);
             return dist < radius;
@@ -80,7 +99,14 @@ export const useGameApp = () => {
             for(let i=0; i<5; i++) {
                 if (spawnIdx >= hexes.length) break;
                 const hex = hexes[spawnIdx++];
-                engine.addAgent(team, hex.q, hex.r, 600 + Math.random()*400, roles[i % roles.length]);
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'PLACE_AGENT',
+                    team,
+                    q: hex.q,
+                    r: hex.r,
+                    hp: 600 + Math.random() * 400,
+                    role: roles[i % roles.length],
+                });
             }
         };
 
@@ -91,31 +117,36 @@ export const useGameApp = () => {
 
     const setupShowcaseMap = useCallback(() => {
         const engine = engineRef.current;
-        engine.stop();
-        engine.clear(true, true); 
+        engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+        engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         setHud(prev => ({ ...prev, selectedAgent: null }));
-        engine.mapConfig.w = Math.floor(10 + Math.random() * 4);
-        engine.mapConfig.h = Math.floor(8 + Math.random() * 4);
+        const newW = Math.floor(10 + Math.random() * 4);
+        const newH = Math.floor(8 + Math.random() * 4);
         const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
-        engine.mapConfig.layout = newLayout;
-        engine.randomizeEnvironment(); 
-        setEditor(prev => ({ ...prev, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
+        engine.bus.emit('UI_COMMAND', {
+            type: 'RANDOMIZE_MAP',
+            w: newW,
+            h: newH,
+            layout: newLayout,
+        });
+        setEditor(prev => ({ ...prev, mapW: newW, mapH: newH, hexLayout: newLayout, currentSceneId: engine.currentScene.id }));
     }, []);
 
     useEffect(() => {
         const engine = engineRef.current;
         const handleGameOver = (data: { winner: Team }) => {
             setSession(prev => ({ ...prev, winner: data.winner, isPlaying: false }));
-            if (engine.isRunning) engine.stop(); 
+            if (engine.isRunning) {
+                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+            }
         };
         engine.bus.on('GAME_OVER', handleGameOver);
         return () => engine.bus.off('GAME_OVER', handleGameOver);
     }, []);
 
     const spawnShowcaseUnits = useCallback(() => {
-        const engine = engineRef.current;
         internalSpawnTeams();
-        engine.play();
+        engineRef.current.bus.emit('UI_COMMAND', { type: 'START_GAME' });
         setSession(prev => ({ ...prev, isPlaying: true, winner: null }));
     }, [internalSpawnTeams]);
 
@@ -123,8 +154,8 @@ export const useGameApp = () => {
         if (session.isShowcaseMode && session.winner !== null) {
             const timer = setTimeout(() => {
                 const engine = engineRef.current;
-                engine.stop();
-                engine.clear(true, true); 
+                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+                engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
                 setSession(prev => ({ ...prev, transitionPhase: 'OUT' }));
                 setTimeout(() => {
                     setupShowcaseMap(); 
@@ -152,19 +183,20 @@ export const useGameApp = () => {
     }, []);
 
     useEffect(() => { 
-        engineRef.current.targetTimeScale = session.timeScale; 
+        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_TIME_SCALE', timeScale: session.timeScale });
     }, [session.timeScale]);
 
     const enterManualMode = () => {
-        engineRef.current.stop();
-        engineRef.current.clear(true);
+        const engine = engineRef.current;
+        engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+        engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true });
         setSession(prev => ({ ...prev, isShowcaseMode: false, isPlaying: false, winner: null, unitCount: 0 }));
         setEditor(prev => ({ 
             ...prev, 
-            mapW: engineRef.current.mapConfig.w, 
-            mapH: engineRef.current.mapConfig.h, 
-            hexLayout: engineRef.current.mapConfig.layout, 
-            currentSceneId: engineRef.current.currentScene.id 
+            mapW: engine.mapConfig.w, 
+            mapH: engine.mapConfig.h, 
+            hexLayout: engine.mapConfig.layout, 
+            currentSceneId: engine.currentScene.id 
         }));
     };
 
@@ -173,7 +205,7 @@ export const useGameApp = () => {
         state: { 
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
             tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
-            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showLogs: hud.showLogs, showDB: hud.showDB, showVFXMap: hud.showVFXMap, showFactionWarning: hud.showFactionWarning,
+            selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
             logs: engineRef.current.logs
         },
@@ -184,9 +216,6 @@ export const useGameApp = () => {
             setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
             setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
-            setShowLogs: (showLogs: boolean) => setHud(p => ({...p, showLogs})),
-            setShowDB: (showDB: boolean) => setHud(p => ({...p, showDB})),
-            setShowVFXMap: (showVFXMap: boolean) => setHud(p => ({...p, showVFXMap})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
             setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
             setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),
@@ -194,33 +223,74 @@ export const useGameApp = () => {
         },
         actions: {
             enterManualMode,
-            handleUpdateMapSize: (w: number, h: number) => { setEditor(p => ({...p, mapW: w, mapH: h})); engineRef.current.mapConfig.w = w; engineRef.current.mapConfig.h = h; engineRef.current.clear(true); },
-            handleUpdateLayout: (l: HexLayout) => { setEditor(p => ({...p, hexLayout: l})); engineRef.current.mapConfig.layout = l; engineRef.current.clear(true); },
-            handleSetScene: (id: string) => { const s = SCENE_DB.find(x => x.id === id); if(s) { engineRef.current.currentScene = s; engineRef.current.map.rebuildMap(engineRef.current); setEditor(p => ({...p, currentSceneId: id})); } },
+            handleUpdateMapSize: (w: number, h: number) => {
+                setEditor(p => ({...p, mapW: w, mapH: h}));
+                engineRef.current.bus.emit('UI_COMMAND', {
+                    type: 'RANDOMIZE_MAP',
+                    w,
+                    h,
+                    randomizeScene: false,
+                });
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true });
+            },
+            handleUpdateLayout: (l: HexLayout) => {
+                setEditor(p => ({...p, hexLayout: l}));
+                engineRef.current.bus.emit('UI_COMMAND', {
+                    type: 'RANDOMIZE_MAP',
+                    layout: l,
+                    randomizeScene: false,
+                });
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true });
+            },
+            handleSetScene: (id: string) => {
+                engineRef.current.bus.emit('UI_COMMAND', {
+                    type: 'RANDOMIZE_MAP',
+                    sceneId: id,
+                    randomizeScene: false,
+                });
+                setEditor(p => ({...p, currentSceneId: id}));
+            },
             handleRandomBattlefield: () => { 
-                engineRef.current.stop(); 
-                engineRef.current.clear(false); 
+                const engine = engineRef.current;
+                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+                engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 internalSpawnTeams();
                 setSession(p => ({...p, winner: null, isPlaying: false, timeScale: 1.0})); 
-                setEditor(p => ({...p, mapW: engineRef.current.mapConfig.w, mapH: engineRef.current.mapConfig.h, currentSceneId: engineRef.current.currentScene.id})); 
+                setEditor(p => ({...p, mapW: engine.mapConfig.w, mapH: engine.mapConfig.h, currentSceneId: engine.currentScene.id})); 
             },
-            handleReset: () => { engineRef.current.restart(); setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0})); },
+            handleReset: () => {
+                engineRef.current.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
+                setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0}));
+            },
             togglePlay: () => { 
                 if(session.winner) return;
-                if(session.isPlaying) { engineRef.current.stop(); setSession(p => ({...p, isPlaying: false})); }
-                else {
-                    if(engineRef.current.agents.some(a => a.team === Team.BLUE) && engineRef.current.agents.some(a => a.team === Team.RED)) {
-                        engineRef.current.play(); setSession(p => ({...p, isPlaying: true}));
-                    } else { setHud(p => ({...p, showFactionWarning: true})); setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), 2500); }
+                const engine = engineRef.current;
+                if(session.isPlaying) {
+                    engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+                    setSession(p => ({...p, isPlaying: false}));
+                } else {
+                    if(engine.agents.some(a => a.team === Team.BLUE) && engine.agents.some(a => a.team === Team.RED)) {
+                        engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
+                        setSession(p => ({...p, isPlaying: true}));
+                    } else {
+                        setHud(p => ({...p, showFactionWarning: true}));
+                        setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), 2500);
+                    }
                 }
             },
             handleNextLevel: () => { 
-                engineRef.current.stop(); 
-                engineRef.current.clear(false); 
+                const engine = engineRef.current;
+                engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
+                engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: false });
                 internalSpawnTeams(); 
                 setSession(p => ({...p, isPlaying: false, winner: null, timeScale: 1.0})); 
             },
-            rematch: () => { engineRef.current.restart(); engineRef.current.play(); setSession(p => ({...p, isPlaying: true, winner: null, timeScale: 1.0})); },
+            rematch: () => {
+                const engine = engineRef.current;
+                engine.bus.emit('UI_COMMAND', { type: 'RESET_GAME' });
+                engine.bus.emit('UI_COMMAND', { type: 'START_GAME' });
+                setSession(p => ({...p, isPlaying: true, winner: null, timeScale: 1.0}));
+            },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
             downloadSpec: DesignExporter.downloadSpec,
             handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))

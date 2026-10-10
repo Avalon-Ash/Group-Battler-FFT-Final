@@ -213,7 +213,35 @@ export interface EventMap {
     AGENT_DIED: { agent: Agent; groundZ: number; impactX: number; impactY: number };
     KILL: { killerId: string; victimId: string };
     CAST_START: { sourceId: string; skill: Skill };
+    /** UI 唯一寫入事件閘門，由 UICommandSystem 處理 */
+    UI_COMMAND: UICommand;
 }
+
+export type UICommand =
+    | { type: 'SET_DIRECTOR_ENABLED'; enabled: boolean }
+    | { type: 'SET_CAMERA_TUNING'; followStiffness?: number; zoomStiffness?: number }
+    | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
+    | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number }
+    | { type: 'REBUILD_AGENT_AI'; agentId: string }
+    | { type: 'RESET_GAME' }
+    | { type: 'PAUSE_GAME' }
+    | { type: 'RESUME_GAME' }
+    | { type: 'SET_TIME_SCALE'; timeScale: number }
+    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role }
+    | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
+    | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
+    | { type: 'REMOVE_OBSTACLE'; q: number; r: number }
+    | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
+    | { type: 'START_GAME' }
+    | { type: 'STOP_GAME' }
+    | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
+    | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean }
+    | { type: 'CAMERA_ZOOM'; zoom: number }
+    | { type: 'CAMERA_PAN'; dx: number; dy: number }
+    | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
+    | { type: 'SET_VIEWPORT'; width: number; height: number };
+
+export * from './types/UIViewModel';
 
 
 export interface SceneTheme {
@@ -290,3 +318,58 @@ export enum ToolType {
     OBSTACLE = 'OBSTACLE',
     DELETE = 'DELETE'
 }
+
+// ══════════════════════════════════════════════════════════════
+// UI Window System Types (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export type WindowId =
+    | 'logs'
+    | 'db'
+    | 'skillDb'
+    | 'vfxmap'
+    | 'vfxMap'
+    | 'inspector'
+    | 'monitor'
+    | 'directorSettings'
+    | 'zoneSettings'
+    | 'showcaseSettings';
+
+export interface WindowRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+export interface WindowDef {
+    id: WindowId;
+    title: string;
+    icon?: string;
+    defaultRect: WindowRect;
+    minSize: { width: number; height: number };
+    kind?: 'window' | 'toolbar';
+    visibleInShowcase?: boolean;
+}
+
+export interface WindowState {
+    id: WindowId;
+    isOpen: boolean;
+    isCollapsed: boolean;
+    isMaximized: boolean;
+    rect: WindowRect;
+    prevRect?: WindowRect;
+    zIndex: number;
+}
+
+export interface SerializedWindowState {
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    max?: boolean;
+    open?: boolean;
+    collapsed?: boolean;
+}
+
+export type SerializedWindowMap = Record<string, SerializedWindowState>;

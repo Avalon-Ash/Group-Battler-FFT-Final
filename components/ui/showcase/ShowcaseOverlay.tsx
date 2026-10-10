@@ -1,25 +1,27 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { MatrixConfig, LayoutPreset } from './types';
-import { DEFAULT_MATRIX_CONFIG } from './defaults';
 import { useMatrixRain } from './useMatrixRain';
-import { ShowcaseSettings } from './ShowcaseSettings';
 import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
+import { UI_Z } from '../../../constants';
+import { useWindowActions, useWindowState } from '../../../hooks/useWindowStore';
+import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
-    timeScale: number;
-    setTimeScale: (v: number) => void;
+    timeScale?: number;
+    setTimeScale?: (v: number) => void;
     engine?: GameEngine; 
     showDirectorMonitor?: boolean;
     setShowDirectorMonitor?: (v: boolean) => void;
 }
 
-export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeScale, setTimeScale, engine, showDirectorMonitor, setShowDirectorMonitor }) => {
+export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [config, setConfig] = useState<MatrixConfig>(DEFAULT_MATRIX_CONFIG);
-    const [layout, setLayout] = useState<LayoutPreset>('BOTTOM_CENTER');
-    const [showSettings, setShowSettings] = useState(false);
+    const config = useShowcaseConfig();
+    const layout = useShowcaseLayout();
+    const windowActions = useWindowActions();
+    const settingsWindowState = useWindowState('showcaseSettings');
+    const isSettingsOpen = !!settingsWindowState?.isOpen;
     
     const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });
 
@@ -59,7 +61,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
     };
 
     return (
-        <div className="absolute inset-0 z-50 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.OVERLAY }}>
             
             <div 
                 className="absolute inset-0 transition-colors duration-300"
@@ -78,9 +80,9 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </>
             )}
 
-            <div className={`absolute z-[55] flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`}>
+            <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.MENU_BACKDROP }}>
                 
-                <div className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
+                <div data-testid="showcase-card" className={`liquid-card p-8 md:p-10 pointer-events-auto flex max-w-full ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
                         
@@ -100,6 +102,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
 
                     <div className={`relative shrink-0 ${isCompact && !isWideBar ? 'w-full' : ''}`}>
                         <button 
+                            data-testid="showcase-enter-btn"
                             onClick={onEnter}
                             className={`group liquid-btn-primary rounded-2xl overflow-hidden transition-all duration-300 ${isWideBar ? 'px-16 py-6 w-full md:w-auto text-xl' : 'w-full px-12 py-5 text-lg'} shadow-[0_0_30px_rgba(6,182,212,0.2)]`}
                         >
@@ -112,29 +115,15 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter, timeS
                 </div>
             </div>
 
-            <div className="absolute top-6 left-6 z-[60] pointer-events-auto">
+            <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY_CONTROLS }}>
                 <button 
-                    onClick={() => setShowSettings(!showSettings)}
-                    className={`liquid-icon-btn hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-white/10 ${showSettings ? 'text-cyan-400 border-cyan-500/50 bg-white/10' : 'text-slate-400'}`}
+                    onClick={() => windowActions.toggle('showcaseSettings')}
+                    className={`liquid-icon-btn hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-white/10 ${isSettingsOpen ? 'text-cyan-400 border-cyan-500/50 bg-white/10' : 'text-slate-400'}`}
                     title="展示與特效設定"
                 >
-                    <Icons.Settings className={`w-5 h-5 ${showSettings ? 'animate-spin-slow' : ''}`} />
+                    <Icons.Settings className={`w-5 h-5 ${isSettingsOpen ? 'animate-spin-slow' : ''}`} />
                 </button>
             </div>
-
-            <ShowcaseSettings 
-                show={showSettings} 
-                onClose={() => setShowSettings(false)}
-                config={config} 
-                setConfig={setConfig} 
-                timeScale={timeScale}
-                setTimeScale={setTimeScale}
-                layout={layout}
-                setLayout={setLayout}
-                engine={engine}
-                monitorEnabled={showDirectorMonitor}
-                onToggleMonitor={setShowDirectorMonitor}
-            />
         </div>
     );
 };

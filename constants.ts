@@ -218,6 +218,23 @@ export const THEME_COVENANT = {
     spike: '#18181b'
 };
 
+export const TEAM_COLORS = {
+    [Team.BLUE]: {
+        primary: THEME_IMPERIAL.primary,
+        secondary: THEME_IMPERIAL.secondary,
+        glow: 'rgba(59, 130, 246, 0.6)',
+        armorLight: THEME_IMPERIAL.armorLight,
+        borderRadius: '1rem',
+    },
+    [Team.RED]: {
+        primary: THEME_COVENANT.primary,
+        secondary: THEME_COVENANT.secondary,
+        glow: 'rgba(239, 68, 68, 0.6)',
+        armorLight: '#fca5a5',
+        borderRadius: '0.25rem',
+    },
+} as const;
+
 export const LOG_COLORS = {
     MOVE: '#38bdf8',
     CAST: '#fbbf24',
@@ -339,3 +356,71 @@ export const VFX_GROUND_TYPES = new Set([
     'MAGIC_CIRCLE', 'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE',
     'GIANT_HEX', 'HEX_BEAM'
 ]);
+
+// ══════════════════════════════════════════════════════════════
+// UI Window & Layout Constants (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export const UI_WINDOW = {
+    STORAGE_KEY: 'tacticalWindowsV1',
+    SAVE_DEBOUNCE_MS: 300,
+    HANDLE_PX: 8,
+    HANDLE_PX_COARSE: 44,
+    TOUCH_TARGET_MIN_PX: 44,
+    MAXIMIZE_MARGIN: 12,
+    MIN_WIDTH: 260,
+    MIN_HEIGHT: 160,
+    BOTTOM_SHEET_MAX_HEIGHT_VH: 72,
+    MOBILE_BREAKPOINT: 900,
+    SHEET_BREAKPOINT: 900,
+    SHEET_MAX_VH: 72,
+    /** Corner handle edge length = edge thickness * this factor. */
+    HANDLE_CORNER_FACTOR: 2,
+    /** Resize handles sit above window content (z-order inside the window's own stacking context). */
+    HANDLE_Z_INDEX: 100,
+    /** Used only when a window has neither saved state nor a registered definition. */
+    FALLBACK_RECT: { x: 100, y: 100, width: 400, height: 300 },
+    /** Used only when `window` is unavailable (SSR / tests). */
+    FALLBACK_VIEWPORT: { width: 1200, height: 800 },
+} as const;
+
+export const UI_Z = {
+    INSPECTOR: 30,
+    WINDOW_BASE: 40,
+    OVERLAY: 50,
+    MENU_BACKDROP: 55,
+    MENU: 60,
+    OVERLAY_CONTROLS: 60,
+    WINDOW_MAX: 80,
+    TOP_OVERLAY: 90,
+} as const;
+
+/**
+ * UI ??Engine tunable ranges (SSOT). Shared by UICommandSystem (clamping),
+ * the renderer (camera tuning) and the settings schema / sliders.
+ */
+export const UI_SETTINGS = {
+    SNAPSHOT_HZ: 10,
+    ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
+    ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
+    ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
+    CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
+    TIME_SCALE: { min: 0.1, max: 5.0, default: 1.0, step: 0.1 },
+    MATRIX_SPEED: { min: 0.1, max: 5.0, step: 0.1 },
+    MATRIX_GAP: { min: 0, max: 1.0, step: 0.05 },
+    MAP_WIDTH: { min: 6, max: 24, default: 12, step: 1 },
+    MAP_HEIGHT: { min: 6, max: 24, default: 8, step: 1 },
+} as const;
+
+/**
+ * Pinned toolbar parameters and storage keys (SSOT).
+ */
+export const UI_PIN = {
+    FALLBACK_VIEWPORT: { w: 1920, h: 1080 },
+    FALLBACK_SIZE: { w: 200, h: 60 },
+    STORAGE_KEYS: {
+        mapEditor: 'tactical_toolbar_map_editor',
+        playback: 'tactical_toolbar_playback',
+    },
+} as const;
+

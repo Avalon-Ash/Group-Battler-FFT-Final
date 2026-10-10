@@ -21,9 +21,7 @@ export const useCameraControl = ({ canvasRef, cameraRef, onZoom, engine }: Camer
         if (!cvs) return;
 
         const notifyEngine = (newZoom: number) => {
-            if (engine.renderer && engine.renderer.camera) {
-                engine.renderer.camera.applyZoom(newZoom);
-            }
+            engine.bus.emit('UI_COMMAND', { type: 'CAMERA_ZOOM', zoom: newZoom });
         };
 
         const onWheel = (e: WheelEvent) => {

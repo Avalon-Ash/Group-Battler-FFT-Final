@@ -1,0 +1,11 @@
+{
+  "directEngineMutation": 1,
+  "directAgentMutation": 0,
+  "directRendererAccess": 1,
+  "asAny": 0,
+  "setIntervalCount": 2,
+  "tailwindPaletteClasses": 369,
+  "zIndexClasses": 8,
+  "directEngineMethodCalls": 0,
+  "directPoseWrites": 6
+}
