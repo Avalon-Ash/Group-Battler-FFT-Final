@@ -149,7 +149,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | **U1b** | 測試：clamp 保留可見區、損毀 JSON 回退、z 重新編號、max/還原、storage 丟例外不崩 | 新增 `tests/WindowStore.test.ts` | 低 |
 | **U1c** | `data/ui/windows.ts`（視窗定義 SSOT：logs/db/vfxmap/inspector/monitor/directorSettings/zoneSettings/showcaseSettings）+ `hooks/useWindowStore.ts` | 新增 `data/ui/windows.ts`、`hooks/useWindowStore.ts` | 低 |
 | **U2** | 視窗殼（先不接畫面）：`useWindowInteraction`（Pointer 拖曳 + 8 向縮放 + 雙擊最大化，含觸控把手）、`ToolWindow`、`WindowLayer` | 新增 `hooks/useWindowInteraction.ts`、`components/ui/window/ToolWindow.tsx`、`WindowLayer.tsx` | 中 |
-| **U3** | **試點：Logs 視窗**。建立 `windowRegistry.tsx`（僅 logs）；App 掛 `WindowLayer`；ModalManager 暫只處理 DB/VFX。**完成後請使用者實測（桌機 + 手機）再繼續** | `windowRegistry.tsx`、`App.tsx`、`ModalManager.tsx` | 中 |
+| **U3** | **試點：Logs 視窗**。建立 `windowRegistry.tsx`（僅 logs）；App 掛 `WindowLayer`；ModalManager 暫只處理 DB/VFX。**必須同時實作 §10.2 F1（顯示時 clamp：以 `clampRect` 推導顯示 rect + 監聽 `resize`，不改寫已存 rect）**；**完成後請使用者實測（桌機 + 手機）再繼續** | `windowRegistry.tsx`、`App.tsx`、`ModalManager.tsx` | 中 |
 | **U4** | SkillDB、VFXMap 改視窗；**刪除 `ModalManager`**（消除標題疊加 bug）；`showLogs/showDB/showVFXMap` 旗標自 `useGameApp` 移除，改由 store | `windowRegistry.tsx`、`App.tsx`、`hooks/useGameApp.ts`（刪 `ModalManager.tsx`） | 中 |
 
 ### 階段 C：UI 命令 / 視圖基礎設施（E#）
@@ -167,7 +167,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 
 | # | 任務 | 檔案 | 風險 |
 | :-- | :-- | :-- | :-- |
-| **E4** | 設定 SSOT：`UI_SETTINGS`（預設/範圍，來自現有 JSX 寫死的 3–20、1–60、0–10 等）；`data/ui/settingsSchema.ts`（Camera/Director/Zone 欄位，command 工廠）；`SchemaForm`（資料驅動：toggle/slider） | `constants.ts`、新增 `data/ui/settingsSchema.ts`、`components/ui/settings/SchemaForm.tsx` | 中 |
+| **E4** | 設定 SSOT：`UI_SETTINGS`（預設/範圍，來自現有 JSX 寫死的 3–20、1–60、0–10 等）；`data/ui/settingsSchema.ts`（Camera/Director/Zone 欄位，command 工廠）；`SchemaForm`（資料驅動：toggle/slider）；**順手處理 §10.2 F4**（`SNAPSHOT_HZ`、相機 fallback 改用 `UI_SETTINGS`） | `constants.ts`、新增 `data/ui/settingsSchema.ts`、`components/ui/settings/SchemaForm.tsx` | 中 |
 | **U5** | `DirectorMonitorHUD` → 視窗 `monitor`；改用 `useEngineView(selectDirectorTarget)`，移除自己的 `setInterval`、整窗拖曳把手、寫死 `300px` | `DirectorMonitorHUD.tsx`、`windowRegistry.tsx`、`App.tsx` | 中 |
 | **U7a** | `SystemMenu` → ToolMenu：列出 `data/ui/windows.ts` 全部視窗 + 開啟狀態點 + 「重設版面」，點外面關閉 | `SystemMenu.tsx`、`windowRegistry.tsx`、`App.tsx` | 中 |
 | **U7b** | Director AI / Zone / Camera 設定改為視窗 `directorSettings`/`zoneSettings`，用 `SchemaForm` + 命令（移除 SystemMenu 內 `engine.*=` 寫入與私有 modal state） | 新增 `components/ui/settings/SettingsWindows.tsx`、`SystemMenu.tsx`、`windowRegistry.tsx` | 中 |
@@ -297,3 +297,43 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - Canvas 內繪製（Announcer/EventHUD/各 Painter）的顏色 SSOT → 見 `DECOUPLING_HANDOFF.md` T6.6。
 - 引擎內 `Math.random`、BTRegistry/SkillExecutor 直接呼叫其他系統 → 見 `DECOUPLING_HANDOFF.md` §9.3。
 - `Agent.saveState()`（AGENTS.md 已標註的例外）維持不動。
+
+---
+
+## 10. 夜間成果審查（2026-10-10 早上，審查者：主代理）
+
+**結論**：結構與分層正確、`lint 0 / test 73→76 全綠 / build OK`，可作為基礎繼續。但抓到 **3 個接上畫面後才會爆的 bug + 數個 SSOT 違規**，已修於 `cef4034` / `ad8c0f8`（同分支）。
+
+### 10.1 已修正（commit `cef4034`、`ad8c0f8`）
+
+| # | 問題 | 影響 | 修正 |
+| :-- | :-- | :-- | :-- |
+| R1 | `windowStore` 就地修改 `WindowState` 物件，`useWindowState(id)` 回傳同一參考 → `useSyncExternalStore` **不會重新渲染**（開/關/移動/最大化全部不更新）。單元測試是純 TS，抓不到 | U3 一接上視窗就「點了沒反應」 | store 改為「可變工作副本 + 不可變快照」；未變更的視窗保持參考不變；補 3 個回歸測試 |
+| R2 | `SET_TIME_SCALE` 寫 `state.time.timeScale`，但 `TimeSystem` 會把它朝 `targetTimeScale` 拉回；現有播放控制寫的是 target | 該命令幾乎無效，測試反而把錯誤行為寫死 | 改寫 `targetTimeScale`，測試同步 |
+| R3 | 標題列 / 把手的 handler 呼叫 `stopPropagation`，根節點 `onPointerDown`（置頂）收不到 → 拖曳視窗不會置頂 | 視窗互相遮擋時無法靠拖曳拉到最上層 | 置頂改用 `onPointerDownCapture` |
+| R4 | 把手固定 8px / 12px，`UI_WINDOW.HANDLE_PX_COARSE` 完全沒用到 → **違反 D3（觸控）** | 手機上幾乎抓不到縮放把手 | 把手資料驅動；`pointer:coarse` 時 24px；頂邊維持細（避免蓋住標題列按鈕）；補 `pointercancel` |
+| R5 | 魔術數字：區域半徑 clamp 50/120、時間 0.1/5.0、相機 0.1/20、fallback rect/viewport | 違反 AGENTS 規則；clamp 範圍與 UI slider 實際範圍（3–20 / 1–60 / 0–10）不一致 | 新增 `UI_SETTINGS`（SSOT），`UICommandSystem`、`renderer.ts`、測試共用；區域範圍改與 slider 一致 |
+| R6 | `serialize` 會存 `max:true` 卻不存 `prevRect` → 重新整理後視窗卡在最大化尺寸且無法還原 | 重整後版面壞掉 | 不持久化最大化狀態，存「正常 rect」 |
+| R7 | `front()` 在已置頂時仍通知 + 排程存檔 | 每次點擊都重渲染 + 寫 localStorage | 已置頂直接 return |
+| R8 | Tailwind `safelist` 正則使 CSS 從 66 kB 膨脹到 201 kB；已 grep 確認專案沒有動態拼接類名（`${borderColor}` 皆為完整類名字串） | 載入變慢 | 移除 safelist（建置驗證 `dist` 無 `@apply`/`@tailwind`，CSS 65.9 kB） |
+
+### 10.2 尚待處理（寫入後續任務，不是 bug）
+
+| # | 項目 | 併入 |
+| :-- | :-- | :-- |
+| F1 | **顯示時 clamp 尚未實作**：`clampRect` 只在拖曳/縮放中使用；還原儲存狀態與 viewport 縮小時沒有 clamp（§3.3 要求） | **U3 必做**（在 `ToolWindow` 以 `clampRect(rect, viewport)` 推導顯示 rect + 監聽 `resize`；不改寫已存 rect） |
+| F2 | 預設 rect 是絕對座標（如 monitor x=840），窄螢幕靠 clamp 救；無 anchor | U3 / U12 |
+| F3 | `RESET_GAME` 發出 `GAME_RESET`，**目前沒有任何訂閱者**（命令是 no-op，已加註解） | E8 |
+| F4 | `useEngineView.ts` 內自己定義 `SNAPSHOT_HZ=10`，未使用 `UI_SETTINGS.SNAPSHOT_HZ`；`selectCameraTuningView` 的 fallback `3.5` 是魔術數字 | E4（順手） |
+| F5 | `selectors.ts` 的 `agentViewCache` 是模組層級 `Map`，換局/換引擎不會清（只有 `clearSelectorCache()` 可手動呼叫） | E3 後續 / E6 |
+| F6 | `data/ui/windows.ts` 反向 import `components/ui/window/windowStore`（資料層依賴元件層，且 import 有副作用 `registerDefs`） | U4 後以小任務把 store 移到 `engine/ui/` 或 `ui/` 並讓註冊顯式化 |
+| F7 | `ToolWindow` 的雙擊最大化在觸控裝置上不可靠（pointerdown 已 `preventDefault`）；▢ 按鈕可用 | U12 |
+| F8 | `ToolWindow` 內仍有寫死顏色（`text-cyan-400`、`bg-slate-900/90` 等） | U11 |
+| F9 | E9 棘輪目前 baseline：`directEngineMutation 18 / directAgentMutation 6 / directRendererAccess 19 / setInterval 5 / tailwindPalette 505`；每完成遷移任務要同步下調 | 每個任務 |
+
+### 10.3 給後續執行者的新規則
+
+1. **任何接上 React 的 store 都要有「快照參考穩定性」測試**（變更 → 新參考；未變 → 同參考）。
+2. **新增事件/命令時，必須確認有訂閱者**；沒有就在命令旁註明「reserved」並列入進度表。
+3. 數值範圍只准出現在 `UI_SETTINGS` / `UI_WINDOW`；slider、clamp、測試三處共用同一常數。
+4. 手動驗證項目（§6.2）不可省略，代理無法驗證時須在報告中明寫「未驗證」。
