@@ -67,19 +67,19 @@ describe('E6: Inspector Command Isolation', () => {
         expect(resetReceived).toBe(agent.id);
     });
 
-    it('verifies UnitInspectorHUD and BehaviorTreeTab contain 0 direct agent assignments', () => {
-        const hudPath = path.resolve(__dirname, '../components/ui/UnitInspectorHUD.tsx');
+    it('verifies UnitInspectorBody and BehaviorTreeTab contain 0 direct agent assignments', () => {
+        const bodyPath = path.resolve(__dirname, '../components/ui/inspector/UnitInspectorBody.tsx');
         const tabPath = path.resolve(__dirname, '../components/inspector/tabs/BehaviorTreeTab.tsx');
 
-        const hudContent = fs.readFileSync(hudPath, 'utf8');
+        const bodyContent = fs.readFileSync(bodyPath, 'utf8');
         const tabContent = fs.readFileSync(tabPath, 'utf8');
 
         const regex = /agent\.\w+\s*=[^=]/g;
 
-        const hudMatches = hudContent.match(regex) || [];
+        const bodyMatches = bodyContent.match(regex) || [];
         const tabMatches = tabContent.match(regex) || [];
 
-        expect(hudMatches, `Found direct agent mutations in UnitInspectorHUD: ${hudMatches.join(', ')}`).toHaveLength(0);
+        expect(bodyMatches, `Found direct agent mutations in UnitInspectorBody: ${bodyMatches.join(', ')}`).toHaveLength(0);
         expect(tabMatches, `Found direct agent mutations in BehaviorTreeTab: ${tabMatches.join(', ')}`).toHaveLength(0);
     });
 });

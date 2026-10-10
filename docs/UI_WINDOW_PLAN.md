@@ -218,7 +218,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | U8 | ☑ | 2026-10-10 完成：ShowcaseSettings 視窗化（id: showcaseSettings，visibleInShowcase: true），刪除重複 Camera/Zone JSX 改用 SchemaForm，所有寫入改走 UICommand，E9 baseline 大幅下調（directEngineMutation 8, directRendererAccess 5, palette 427），e2e 7/7 全數 PASS |
 
 | E6 | ☑ | 2026-10-10 完成：UnitInspectorHUD 與 BehaviorTreeTab 寫入全面改為 EDIT_AGENT / REBUILD_AGENT_AI 命令，唯讀屬性改走 selectAgentView，E9 baseline 下調（directAgentMutation 6 → 1），單元測試全綠，不做視窗化（U6 保留） |
-| U6 | ☐ | 先回報分段方案 |
+| U6 | ☑ | 2026-10-10 完成：U6a/b/c 視窗化全面完成，刪除舊 UnitInspectorHUD，BehaviorTreeTab z-[9999] 改為 UI_Z.WINDOW_BASE，E9 baseline 棘輪下調（setIntervalCount 3 → 2, tailwindPaletteClasses 427 → 378, zIndexClasses 9 → 8），單元測試與 e2e 全數 PASS |
 | E7 | ☑ | 2026-10-10 完成：LogTab 遷移至 selectLogView/selectLogs selector 與 useEngineView，徹底移除私有 setInterval 與 engine.logs 直接存取，匯出 JSON 走 selector，E9 baseline 下調（setIntervalCount 4 → 3），單元測試與 e2e 全數 PASS |
 | U9 | ☑ | 2026-10-10 完成：釘選工具列（MapEditorToolbar / PlaybackHUD）useDraggable 支援 storageKey 位置持久化記憶 + 顯示/縮放時自動 clamp + Pointer/觸控事件（onPointerCancel 容錯），單元測試與 e2e 全數 PASS |
 | U10 | ☑ | 2026-10-10 完成：z-index 1:1 收斂至 UI_Z（PlaybackHUD / MapEditorToolbar z-40 → UI_Z.WINDOW_BASE），其餘無 1:1 對應值（z-30、z-50）跳過並記錄於夜間報告，單元測試與 e2e 全數 PASS |

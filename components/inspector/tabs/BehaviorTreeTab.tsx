@@ -5,6 +5,7 @@ import { Agent, GameEngine } from '../../../engine/game';
 import { TreeNode } from '../parts/TreeNode';
 import { useDraggable } from '../../../hooks/useDraggable';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
+import { UI_Z } from '../../../constants';
 
 interface BehaviorTreeTabProps {
     agent: Agent;
@@ -148,8 +149,8 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
         return createPortal(
             <div 
                 ref={popupRef}
-                className="fixed z-[9999] flex flex-col bg-black/90 border border-white/10 rounded overflow-hidden shadow-2xl"
-                style={{ ...popupStyle, width: 680, height: 520, zIndex: 9999 }}
+                className="fixed flex flex-col bg-black/90 border border-white/10 rounded overflow-hidden shadow-2xl"
+                style={{ ...popupStyle, width: 680, height: 520, zIndex: UI_Z.WINDOW_BASE }}
             >
                 {/* Header Bar */}
                 <div 
