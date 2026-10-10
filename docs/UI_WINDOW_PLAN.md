@@ -225,6 +225,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | R1a | ☑ | 2026-10-10 完成：F10 相機剛度常數修正為 followDefault: 0.25 / zoomDefault: 0.2，CameraSystem 初始值引用常數，selectCameraTuningView fallback 與單元測試全綠 |
 | R1b | ☑ | 2026-10-10 完成：SettingsWindows 匯出 useDirectorSettingsValues / useZoneSettingsValues hooks（零字面數字，引用 UI_SETTINGS），ShowcaseSettings 複用 hook 刪除重複與寫死數字，e2e 全數 PASS |
 | R2 | ☑ | 2026-10-10 完成：搬移導演目標 selector 到 selectors.ts（selectDirectorTargetView），快取升級為 per-engine WeakMap，agentViewCache 同步升級 WeakMap，DirectorMonitorHUD 移除未用變數，單元測試與 e2e 全數 PASS |
+| R3 | ☑ | 2026-10-10 完成：Showcase 滑桿範圍納入 UI_SETTINGS（TIME_SCALE 上限變 5.0，新增 MATRIX_SPEED 與 MATRIX_GAP），消除寫死數字，e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -387,4 +388,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **R1a** ☑：修正相機剛度常數與初始值 (`followDefault: 0.25`, `zoomDefault: 0.2`)，移除 `CAMERA_STIFFNESS.default=3.5`，`CameraSystem` 與 `selectCameraTuningView` 引用常數，單元測試通過。
 - **R1b** ☑：`SettingsWindows` 匯出 `useDirectorSettingsValues` 與 `useZoneSettingsValues`（零字面數字，全面引用 `UI_SETTINGS`），`ShowcaseSettings` 消除重複與寫死數字，e2e 7 視窗全數通過。
 - **R2** ☑：搬移導演目標 selector 至 `selectors.ts`（`selectDirectorTargetView`），以 per-engine `WeakMap` 取代全域模組快取，`agentViewCache` 亦升級為 per-engine `WeakMap`，`DirectorMonitorHUD` 精簡未用變數與 props，單元測試與 e2e 全數通過。
+- **R3** ☑：Showcase 動畫速度與代碼雨滑桿範圍收斂至 `UI_SETTINGS`（動畫速度改用 `UI_SETTINGS.TIME_SCALE`，上限由 3.0 變 5.0；新增 `UI_SETTINGS.MATRIX_SPEED` 與 `MATRIX_GAP`），e2e 7 視窗全數通過。
 

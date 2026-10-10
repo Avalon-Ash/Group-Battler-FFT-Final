@@ -17,6 +17,7 @@ import {
     selectGamePlaybackView,
 } from '../../../engine/systems/ui/selectors';
 import { windowStore } from '../window/windowStore';
+import { UI_SETTINGS } from '../../../constants';
 
 interface ShowcaseSettingsProps {
     show?: boolean;
@@ -190,9 +191,9 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                             </div>
                             <input
                                 type="range"
-                                min="0.1"
-                                max="3.0"
-                                step="0.1"
+                                min={UI_SETTINGS.TIME_SCALE.min}
+                                max={UI_SETTINGS.TIME_SCALE.max}
+                                step={UI_SETTINGS.TIME_SCALE.step}
                                 value={currentTimeScale}
                                 data-testid="showcase-slider-timescale"
                                 onChange={(e) => handleTimeScaleChange(parseFloat(e.target.value))}
@@ -291,9 +292,9 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                 </div>
                                 <input
                                     type="range"
-                                    min="0.1"
-                                    max="5.0"
-                                    step="0.1"
+                                    min={UI_SETTINGS.MATRIX_SPEED.min}
+                                    max={UI_SETTINGS.MATRIX_SPEED.max}
+                                    step={UI_SETTINGS.MATRIX_SPEED.step}
                                     value={activeConfig.speed}
                                     onChange={(e) => updateConfig('speed', parseFloat(e.target.value))}
                                     className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
@@ -306,9 +307,9 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                 </div>
                                 <input
                                     type="range"
-                                    min="0"
-                                    max="1.0"
-                                    step="0.05"
+                                    min={UI_SETTINGS.MATRIX_GAP.min}
+                                    max={UI_SETTINGS.MATRIX_GAP.max}
+                                    step={UI_SETTINGS.MATRIX_GAP.step}
                                     value={activeConfig.streamGap}
                                     onChange={(e) => updateConfig('streamGap', parseFloat(e.target.value))}
                                     className="w-full h-1 bg-slate-700 rounded-full appearance-none cursor-pointer accent-cyan-500"
