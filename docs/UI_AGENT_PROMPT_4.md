@@ -11,7 +11,7 @@
 
 你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、已知陷阱、停下條件**完全沿用 `docs/UI_AGENT_PROMPT_2.md` 第 4–7 點與 `docs/UI_AGENT_PROMPT_3.md` 的額外規則**（≤3 檔、lint/test/build、接 React 的任務跑 `npm run e2e:ui` 並連跑兩次確認穩定、E9 baseline 只減不增、更新 `docs/UI_WINDOW_PLAN.md` 進度、一任務一 commit、**不 push、不動 `main`**、同題失敗 3 次就停）。
 
-先閱讀：`AGENTS.md`、`docs/UI_WINDOW_PLAN.md`（§2、§8、§10–§13）、`docs/UI_NIGHT_REPORT_2.md`、`docs/UI_AGENT_PROMPT_3.md`（R7/R8 的原始規格在其中）、`tailwind.config.js`、`index.css`、`constants.ts` 的 `TEAM_COLORS`/`UI_*`。確認在 `feat/ui-window`，且 `git status` 乾淨、`npm run e2e:ui` 現況為 ALL PASSED。
+先閱讀：`AGENTS.md`、`docs/UI_WINDOW_PLAN.md`（§2、§8、§10–§13）、`docs/UI_NIGHT_REPORT_2.md`、`docs/UI_AGENT_PROMPT_3.md`（R7/R8 的原始規格在其中）、`tailwind.config.js`、`index.css`、`constants.ts` 的 `TEAM_COLORS`/`UI_*`。**若 `R7`/`R8`/`REPORT3` 已在 `docs/UI_WINDOW_PLAN.md` 進度表標 ☑（上一個代理對話可能已做完），直接跳過，從第一個未完成任務開始。** 確認在 `feat/ui-window`，且 `git status` 乾淨、`npm run e2e:ui` 現況為 ALL PASSED。
 
 ### 任務（依序）
 
