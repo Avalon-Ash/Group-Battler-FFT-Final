@@ -431,7 +431,19 @@ export const RENDER_PERF = {
     QUERY_KEY: 'perf',
     EMA_ALPHA: 0.1,
     HISTORY_FRAMES: 60,
-    PHASES: ['background', 'world', 'post', 'overlay'] as const,
+    PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
 } as const;
+
+/**
+ * 地形 Sprite 快取與量化參數 SSOT。
+ */
+export const RENDER_CACHE = {
+    SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
+    MAX_TERRAIN_SPRITES: 512,
+    FLOAT_STEP: 0.5,
+    HEIGHT_KEY_SCALE: 2,
+    SPRITE_PADDING: 4,
+} as const;
+
 
 

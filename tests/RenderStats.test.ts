@@ -74,6 +74,6 @@ describe('RenderStatsCollector', () => {
         expect(RENDER_PERF.PHASES).toContain('background');
         expect(RENDER_PERF.PHASES).toContain('world');
         expect(RENDER_PERF.PHASES).toContain('post');
-        expect(RENDER_PERF.PHASES).toContain('overlay');
+        expect(RENDER_PERF.PHASES).toContain('overlay+hud');
     });
 });

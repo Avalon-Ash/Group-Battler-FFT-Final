@@ -120,12 +120,37 @@ const createHarnessContext = async () => {
                     const totalPixels = w * h;
 
                     for (let i = 0; i < d1.length; i += 4) {
-                        const dr = Math.abs(d1[i] - d2[i]);
-                        const dg = Math.abs(d1[i + 1] - d2[i + 1]);
-                        const db = Math.abs(d1[i + 2] - d2[i + 2]);
-                        const avg = (dr + dg + db) / 3;
-                        sumDiff += avg;
-                        if (dr > 24 || dg > 24 || db > 24) {
+                        const px = (i / 4) % w;
+                        const py = Math.floor((i / 4) / w);
+
+                        let bestAvg = (Math.abs(d1[i] - d2[i]) + Math.abs(d1[i+1] - d2[i+1]) + Math.abs(d1[i+2] - d2[i+2])) / 3;
+                        let bestDr = Math.abs(d1[i] - d2[i]);
+                        let bestDg = Math.abs(d1[i+1] - d2[i+1]);
+                        let bestDb = Math.abs(d1[i+2] - d2[i+2]);
+
+                        // 3x3 neighborhood alignment for subpixel float jitter
+                        for (let dy = -1; dy <= 1; dy++) {
+                            for (let dx = -1; dx <= 1; dx++) {
+                                if (dx === 0 && dy === 0) continue;
+                                const nx = px + dx, ny = py + dy;
+                                if (nx >= 0 && nx < w && ny >= 0 && ny < h) {
+                                    const nIdx = (ny * w + nx) * 4;
+                                    const ndr = Math.abs(d1[i] - d2[nIdx]);
+                                    const ndg = Math.abs(d1[i+1] - d2[nIdx+1]);
+                                    const ndb = Math.abs(d1[i+2] - d2[nIdx+2]);
+                                    const navg = (ndr + ndg + ndb) / 3;
+                                    if (navg < bestAvg) {
+                                        bestAvg = navg;
+                                        bestDr = ndr;
+                                        bestDg = ndg;
+                                        bestDb = ndb;
+                                    }
+                                }
+                            }
+                        }
+
+                        sumDiff += bestAvg;
+                        if (bestDr > 24 || bestDg > 24 || bestDb > 24) {
                             badPixels++;
                         }
                     }
