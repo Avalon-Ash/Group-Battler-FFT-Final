@@ -1101,6 +1101,260 @@ const runTouchScrollSuite = async () => {
     await ctx.close();
 };
 
+const runEditorSuite = async () => {
+    console.log('\n── Editor & Camera Interaction (E8-0)');
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    await ctx.addInitScript(([k]) => { localStorage.removeItem(k); }, [STORAGE_KEY]);
+    const page = await ctx.newPage();
+    page.setDefaultTimeout(8000);
+    page.on('pageerror', (e) => consoleErrors.push('pageerror: ' + e.message.slice(0, 300)));
+    page.on('console', (m) => {
+        if (m.type() === 'error' && !/favicon|404/.test(m.text())) consoleErrors.push('console.error: ' + m.text().slice(0, 200));
+    });
+
+    await enterManualMode(page);
+    await page.waitForTimeout(400);
+
+    // Scan canvas using engine.renderer.getHexAtScreenPoint
+    const scanHexScreenPoints = async () => {
+        return await page.evaluate(() => {
+            const engine = window.__TACTICAL_ENGINE__;
+            const canvas = document.querySelector('canvas');
+            if (!engine || !canvas) return {};
+            const rect = canvas.getBoundingClientRect();
+            const cam = engine.renderer.camera;
+            const map = {};
+            for (let y = 160; y < rect.height - 120; y += 15) {
+                for (let x = 400; x < rect.width - 120; x += 15) {
+                    const h = engine.renderer.getHexAtScreenPoint(x, y, rect.width, rect.height, cam, engine);
+                    if (h && engine.map.isValid(h.q, h.r)) {
+                        const key = `${h.q},${h.r}`;
+                        if (!map[key]) {
+                            map[key] = { screenX: Math.round(rect.left + x), screenY: Math.round(rect.top + y), q: h.q, r: h.r };
+                        }
+                    }
+                }
+            }
+            return map;
+        });
+    };
+
+    const getEmptyHexWithCoord = async () => {
+        const hexMap = await scanHexScreenPoints();
+        const found = await page.evaluate((keys) => {
+            const engine = window.__TACTICAL_ENGINE__;
+            for (const key of keys) {
+                const [qStr, rStr] = key.split(',');
+                const q = parseInt(qStr);
+                const r = parseInt(rStr);
+                const hasAgent = engine.agents.some(a => a.hp > 0 && a.q === q && a.r === r);
+                const hasObs = engine.map.hasObstacle(q, r);
+                if (!hasAgent && !hasObs) return key;
+            }
+            return null;
+        }, Object.keys(hexMap));
+        if (found && hexMap[found]) return hexMap[found];
+        return null;
+    };
+
+    const getHexScreenCoord = async (q, r) => {
+        const hexMap = await scanHexScreenPoints();
+        return hexMap[`${q},${r}`] || null;
+    };
+
+    // ① ADD_BLUE: click tool, click hex, verify agent added
+    const empty1 = await getEmptyHexWithCoord();
+    ok('found empty hex with coordinates', empty1 !== null, JSON.stringify(empty1));
+    await page.locator('button[title="部署藍軍 (帝國)"]').click();
+    await page.waitForTimeout(200);
+    await page.mouse.click(empty1.screenX, empty1.screenY);
+    await page.waitForTimeout(300);
+    const blueAgent = await page.evaluate(({ q, r }) => {
+        const eng = window.__TACTICAL_ENGINE__;
+        return eng.agents.find(a => a.q === q && a.r === r);
+    }, empty1);
+    ok('ADD_BLUE: placed blue agent on empty hex', blueAgent !== undefined && (blueAgent.team === 0 || blueAgent.team === 'blue'), JSON.stringify(blueAgent));
+
+    // ② DELETE: click tool, click blueAgent, verify deleted
+    await page.locator('button[title="移除單位或障礙"]').click();
+    await page.waitForTimeout(200);
+    await page.mouse.click(empty1.screenX, empty1.screenY);
+    await page.waitForTimeout(300);
+    const agentAfterDel = await page.evaluate(({ q, r }) => {
+        return window.__TACTICAL_ENGINE__.agents.find(a => a.q === q && a.r === r);
+    }, empty1);
+    ok('DELETE: removed agent from hex', agentAfterDel === undefined);
+
+    // ③ OBSTACLE: click tool, click hex, verify obstacle placed & deleted
+    const emptyObs = await getEmptyHexWithCoord();
+    await page.locator('button[title="地形編輯"]').click();
+    await page.waitForTimeout(200);
+    await page.mouse.click(emptyObs.screenX, emptyObs.screenY);
+    await page.waitForTimeout(300);
+    const hasObs = await page.evaluate(({ q, r }) => {
+        return window.__TACTICAL_ENGINE__.map.hasObstacle(q, r);
+    }, emptyObs);
+    ok('OBSTACLE: placed obstacle on hex', hasObs === true);
+
+    await page.locator('button[title="移除單位或障礙"]').click();
+    await page.waitForTimeout(200);
+    await page.mouse.click(emptyObs.screenX, emptyObs.screenY);
+    await page.waitForTimeout(300);
+    const hasObsAfterDel = await page.evaluate(({ q, r }) => {
+        return window.__TACTICAL_ENGINE__.map.hasObstacle(q, r);
+    }, emptyObs);
+    ok('DELETE: removed obstacle from hex', hasObsAfterDel === false);
+
+    // ④ SELECT: drag unit to valid and invalid hex
+    await page.locator('button[title="選取 / 移動"]').click();
+    await page.waitForTimeout(200);
+    const agentToDrag = await page.evaluate(() => {
+        const a = window.__TACTICAL_ENGINE__.agents.find(u => u.hp > 0);
+        return a ? { id: a.id, q: a.q, r: a.r } : null;
+    });
+    if (agentToDrag) {
+        const fromCoord = await getHexScreenCoord(agentToDrag.q, agentToDrag.r);
+        const targetEmpty = await getEmptyHexWithCoord();
+
+        if (fromCoord && targetEmpty) {
+            await page.mouse.move(fromCoord.screenX, fromCoord.screenY);
+            await page.mouse.down();
+            await page.mouse.move(targetEmpty.screenX, targetEmpty.screenY, { steps: 5 });
+            await page.mouse.up();
+            await page.waitForTimeout(300);
+
+            const newPos = await page.evaluate((id) => {
+                const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === id);
+                return a ? { q: a.q, r: a.r } : null;
+            }, agentToDrag.id);
+            ok('SELECT drag: moved agent to valid hex', newPos && newPos.q === targetEmpty.q && newPos.r === targetEmpty.r, JSON.stringify(newPos));
+
+            // Drag to invalid off-board location (top toolbar area)
+            await page.mouse.move(targetEmpty.screenX, targetEmpty.screenY);
+            await page.mouse.down();
+            await page.mouse.move(targetEmpty.screenX, 20, { steps: 5 });
+            await page.mouse.up();
+            await page.waitForTimeout(300);
+
+            const revertedPos = await page.evaluate((id) => {
+                const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === id);
+                return a ? { q: a.q, r: a.r } : null;
+            }, agentToDrag.id);
+            ok('SELECT drag: agent position reverted on illegal drop', revertedPos && revertedPos.q === targetEmpty.q && revertedPos.r === targetEmpty.r, JSON.stringify(revertedPos));
+        }
+    }
+
+    // ⑤ Drag obstacle
+    const obsHex = await getEmptyHexWithCoord();
+    await page.locator('button[title="地形編輯"]').click();
+    await page.waitForTimeout(200);
+    await page.mouse.click(obsHex.screenX, obsHex.screenY);
+    await page.waitForTimeout(300);
+
+    await page.locator('button[title="選取 / 移動"]').click();
+    await page.waitForTimeout(200);
+    const destHex = await getEmptyHexWithCoord();
+
+    if (destHex) {
+        await page.mouse.move(obsHex.screenX, obsHex.screenY);
+        await page.mouse.down();
+        await page.mouse.move(destHex.screenX, destHex.screenY, { steps: 5 });
+        await page.mouse.up();
+        await page.waitForTimeout(300);
+
+        const obsAtDest = await page.evaluate(({ q, r }) => {
+            return window.__TACTICAL_ENGINE__.map.hasObstacle(q, r);
+        }, destHex);
+        ok('SELECT drag obstacle: moved obstacle to new hex', obsAtDest === true);
+    }
+
+    // ⑥ DRAFT mode: add unit with specific role
+    await page.locator('button[title="部署藍軍 (帝國)"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('button[title="指定固定職業"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('select').first().selectOption('RANGER');
+    await page.waitForTimeout(200);
+    const draftHex = await getEmptyHexWithCoord();
+    await page.mouse.click(draftHex.screenX, draftHex.screenY);
+    await page.waitForTimeout(300);
+    const draftAgent = await page.evaluate(({ q, r }) => {
+        return window.__TACTICAL_ENGINE__.agents.find(a => a.q === q && a.r === r);
+    }, draftHex);
+    ok('DRAFT mode: placed unit with selected role RANGER', draftAgent !== undefined && draftAgent.role === 'RANGER', draftAgent?.role);
+
+    // ⑦ Wheel zoom: camera.zoom changes
+    const initialZoom = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.zoom);
+    await page.mouse.move(700, 500);
+    await page.mouse.wheel(0, -300);
+    await page.waitForTimeout(300);
+    const zoomedIn = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.zoom);
+    ok('wheel zoom: camera zoom changed', zoomedIn !== initialZoom, `${initialZoom} -> ${zoomedIn}`);
+
+    // ⑧ Empty space drag pan & FPS measurement
+    await page.locator('button[title="選取 / 移動"]').click();
+    await page.waitForTimeout(200);
+    const initialCamPos = await page.evaluate(() => {
+        const cam = window.__TACTICAL_ENGINE__.renderer.camera;
+        return { x: cam.x, y: cam.y };
+    });
+
+    await page.evaluate(() => {
+        window.__fpsFrames = 0;
+        window.__fpsStart = performance.now();
+        function loop() {
+            window.__fpsFrames++;
+            window.__fpsRaf = requestAnimationFrame(loop);
+        }
+        window.__fpsRaf = requestAnimationFrame(loop);
+    });
+
+    await page.mouse.move(1250, 350);
+    await page.mouse.down();
+    for (let i = 0; i < 10; i++) {
+        await page.mouse.move(1250 - i * 15, 350 - i * 15);
+        await page.waitForTimeout(20);
+    }
+    await page.mouse.up();
+    await page.waitForTimeout(300);
+
+    const fpsResult = await page.evaluate(() => {
+        cancelAnimationFrame(window.__fpsRaf);
+        const elapsed = (performance.now() - window.__fpsStart) / 1000;
+        const fps = Math.round(window.__fpsFrames / elapsed);
+        const cam = window.__TACTICAL_ENGINE__.renderer.camera;
+        return { fps, x: cam.x, y: cam.y };
+    });
+
+    ok('drag pan: camera position changed', fpsResult.x !== initialCamPos.x || fpsResult.y !== initialCamPos.y, `${JSON.stringify(initialCamPos)} vs ${JSON.stringify(fpsResult)}`);
+    console.log(`INFO: Baseline Pan FPS: ${fpsResult.fps}`);
+
+    // ⑨ PlaybackHUD Restart & Random buttons
+    await page.locator('button[title="重新開始"]').click();
+    await page.waitForTimeout(400);
+    const battleTimeAfterRestart = await page.evaluate(() => window.__TACTICAL_ENGINE__.battleTime);
+    ok('Restart button: battleTime reset to 0', battleTimeAfterRestart === 0);
+
+    await page.locator('button[title="隨機生成戰場與陣容"]').click();
+    await page.waitForTimeout(600);
+    const agentCountAfterRandom = await page.evaluate(() => window.__TACTICAL_ENGINE__.agents.length);
+    ok('Random battlefield button: generated units', agentCountAfterRandom > 0);
+
+    // ⑩ Play / Pause
+    const playBtn = page.locator('button[data-testid="playback-play-btn"]');
+    await playBtn.click();
+    await page.waitForTimeout(400);
+    const isPlayingAfterStart = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
+    ok('Play button: battle started (isRunning === true)', isPlayingAfterStart === true);
+
+    await playBtn.click();
+    await page.waitForTimeout(400);
+    const isPlayingAfterPause = await page.evaluate(() => window.__TACTICAL_ENGINE__.isRunning);
+    ok('Pause button: battle paused (isRunning === false)', isPlayingAfterPause === false);
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -1114,6 +1368,7 @@ try {
     if (!filterOnly || filterOnly.includes('bottom-sheet')) await runBottomSheetSuite();
     if (!filterOnly || filterOnly.includes('touch-reduced-motion')) await runTouchTargetAndReducedMotionSuite();
     if (!filterOnly || filterOnly.includes('touch-scroll')) await runTouchScrollSuite();
+    if (!filterOnly || filterOnly.includes('editor')) await runEditorSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
 } catch (e) {
     failures++;

@@ -10,6 +10,8 @@ interface BoundaryMetrics {
     setIntervalCount: number;
     tailwindPaletteClasses: number;
     zIndexClasses: number;
+    directEngineMethodCalls: number;
+    directPoseWrites: number;
 }
 
 function getFiles(dir: string): string[] {
@@ -47,6 +49,8 @@ function scanBoundaryMetrics(): BoundaryMetrics {
         setIntervalCount: 0,
         tailwindPaletteClasses: 0,
         zIndexClasses: 0,
+        directEngineMethodCalls: 0,
+        directPoseWrites: 0,
     };
 
     const patterns: Record<Exclude<keyof BoundaryMetrics, 'zIndexClasses'>, RegExp> = {
@@ -57,6 +61,9 @@ function scanBoundaryMetrics(): BoundaryMetrics {
         setIntervalCount: /\bsetInterval\s*\(/g,
         tailwindPaletteClasses:
             /\b(?:bg|text|border|ring|shadow|from|to|via)-(?:cyan|slate|red|blue|amber|emerald|purple|orange|rose|indigo|yellow|green|violet|sky)-(?:50|100|200|300|400|500|600|700|800|900|950)\b/g,
+        directEngineMethodCalls:
+            /(?:engine\.(?:addAgent|removeAgent|resetAgent|updateAgentPosition|stop|play|clear|randomizeEnvironment)\(|engine\.map\.(?:setObstacle|removeObstacle)\()/g,
+        directPoseWrites: /\.(?:px|py|dragOverQ|dragOverR)\s*=[^=]/g,
     };
 
     for (const f of files) {
@@ -134,6 +141,20 @@ describe('UI Boundary Ratchet Guard (E9)', () => {
             current.zIndexClasses,
             `zIndexClasses count (${current.zIndexClasses}) exceeded baseline (${baseline.zIndexClasses}). Migrate z-index classes to UI_Z constants!`
         ).toBeLessThanOrEqual(baseline.zIndexClasses);
+    });
+
+    it('enforces direct engine method calls do not increase (ratchet)', () => {
+        expect(
+            current.directEngineMethodCalls,
+            `Direct engine method calls (${current.directEngineMethodCalls}) exceeded baseline (${baseline.directEngineMethodCalls}). Method calls must use UICommandSystem!`
+        ).toBeLessThanOrEqual(baseline.directEngineMethodCalls);
+    });
+
+    it('enforces direct pose writes do not increase (ratchet)', () => {
+        expect(
+            current.directPoseWrites,
+            `Direct pose writes (${current.directPoseWrites}) exceeded baseline (${baseline.directPoseWrites}). Pose mutations must be reduced!`
+        ).toBeLessThanOrEqual(baseline.directPoseWrites);
     });
 });
 

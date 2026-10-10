@@ -5,5 +5,7 @@
   "asAny": 0,
   "setIntervalCount": 2,
   "tailwindPaletteClasses": 369,
-  "zIndexClasses": 8
+  "zIndexClasses": 8,
+  "directEngineMethodCalls": 18,
+  "directPoseWrites": 12
 }
