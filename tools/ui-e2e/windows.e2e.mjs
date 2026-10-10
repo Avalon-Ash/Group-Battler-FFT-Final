@@ -235,9 +235,109 @@ const runMultiWindow = async () => {
     await ctx.close();
 };
 
+const runToolMenuSuite = async () => {
+    console.log('\n── ToolMenu (SystemMenu)');
+    const { ctx, page } = await newPage({ id: 'toolmenu' });
+    await enterManualMode(page);
+
+    // 1. Open menu and check all 7 window items + reset layout + spec item exist
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+
+    const windowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'showcaseSettings'];
+    for (const wid of windowIds) {
+        const item = page.locator(`[data-testid="menu-item-${wid}"]`);
+        ok(`menu item exists: ${wid}`, await item.isVisible());
+    }
+    ok('menu item exists: reset-layout', await page.locator('[data-testid="menu-item-reset-layout"]').isVisible());
+    ok('menu item exists: spec', await page.locator('[data-testid="menu-item-spec"]').isVisible());
+
+    // 2. Click backdrop outside menu to dismiss
+    await page.mouse.click(100, 100);
+    await page.waitForTimeout(300);
+    const menuHidden = !(await page.locator('[data-testid="menu-item-logs"]').isVisible());
+    ok('clicking backdrop closes menu', menuHidden);
+
+    // 3. Re-open menu, check dot indicator state, click to toggle
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+
+    // Helper to check if indicator dot for a window is active (bg-cyan-400)
+    const isDotActive = (wid) => page.evaluate((id) => {
+        const btn = document.querySelector(`[data-testid="menu-item-${id}"]`);
+        const dot = btn?.querySelector('.rounded-full:last-child');
+        return dot ? dot.classList.contains('bg-cyan-400') : false;
+    }, wid);
+
+    ok('logs dot inactive before open', !(await isDotActive('logs')));
+
+    // Click logs to open window
+    await page.locator('[data-testid="menu-item-logs"]').click();
+    await page.waitForTimeout(500);
+    const logsRect = await rectOf(page, 'logs');
+    ok('clicking menu item opens window', logsRect !== null);
+
+    // Reopen menu: dot should now be active
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+    ok('logs dot active after open', await isDotActive('logs'));
+
+    // Click logs again to close window
+    await page.locator('[data-testid="menu-item-logs"]').click();
+    await page.waitForTimeout(500);
+    const logsClosedRect = await rectOf(page, 'logs');
+    ok('clicking menu item again closes window', logsClosedRect === null);
+
+    // Reopen menu: dot should be inactive again
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+    ok('logs dot inactive after close', !(await isDotActive('logs')));
+
+    // 4. Test "Reset Layout":
+    // Open logs window
+    await page.locator('[data-testid="menu-item-logs"]').click();
+    await page.waitForTimeout(500);
+    const origRect = await rectOf(page, 'logs');
+
+    // Drag logs window so its position changes from default
+    await page.mouse.move(origRect.x + 100, origRect.y + 20);
+    await page.mouse.down();
+    await page.mouse.move(origRect.x + 200, origRect.y + 80, { steps: 6 });
+    await page.mouse.up();
+    await page.waitForTimeout(600); // Wait for debounce save
+
+    const movedRect = await rectOf(page, 'logs');
+    ok('dragged logs away from default', movedRect && movedRect.x > origRect.x + 50);
+
+    // Open menu and click "Reset Layout"
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+    await page.locator('[data-testid="menu-item-reset-layout"]').click();
+    await page.waitForTimeout(500);
+
+    // Verify localStorage key is cleared
+    const savedAfterReset = await page.evaluate((k) => localStorage.getItem(k), STORAGE_KEY);
+    ok('reset layout clears window localStorage', savedAfterReset === null);
+
+    // Re-open logs window and verify its rect is reset to defaultRect
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+    await page.locator('[data-testid="menu-item-logs"]').click();
+    await page.waitForTimeout(500);
+
+    const resetRect = await rectOf(page, 'logs');
+    ok('window rect restored to default after reset layout', resetRect && near(resetRect.x, 40, 4) && near(resetRect.y, 80, 4), JSON.stringify(resetRect));
+
+    await ctx.close();
+};
+
+const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
+const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
+
 try {
-    for (const suite of SUITES) await runSuite(suite);
-    await runMultiWindow();
+    for (const suite of activeSuites) await runSuite(suite);
+    if (!filterOnly || filterOnly.includes('multi')) await runMultiWindow();
+    if (!filterOnly || filterOnly.includes('toolmenu')) await runToolMenuSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

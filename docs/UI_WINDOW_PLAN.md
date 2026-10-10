@@ -232,6 +232,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | R6a | ☑ | 2026-10-10 完成：UI_Z 新增同值具名層（INSPECTOR: 30, OVERLAY: 50, MENU_BACKDROP: 55, MENU: 60, OVERLAY_CONTROLS: 60），SystemMenu 與 UnitInspectorHUD 替換為 style={{ zIndex: UI_Z.* }}，單元測試與 e2e 全數 PASS |
 | R6b | ☑ | 2026-10-10 完成：ShowcaseOverlay（50/55/60）、GameCanvas（z-50）、App（z-50）換為 UI_Z 內聯樣式；局部層級（z-0/10/20）保留；E9 增加 zIndexClasses 棘輪計數（baseline: 9），單元測試與 e2e 全數 PASS |
 | T1a | ☑ | 2026-10-10 完成：hooks/useGameApp.ts 於 import.meta.env.DEV 下暴露 window.__TACTICAL_ENGINE__（嚴格型別化無 as any），npm run build 驗證 dist 0 殘留 |
+| T1b | ☑ | 2026-10-10 完成：windows.e2e.mjs 新增 ToolMenu 套件（7 視窗項目、重設版面、狀態點開關、backdrop 點擊關閉、localStorage 清除還原），連跑兩次全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -401,4 +402,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **R6a** ☑：UI_Z 新增同值具名層（`INSPECTOR: 30`, `OVERLAY: 50`, `MENU_BACKDROP: 55`, `MENU: 60`, `OVERLAY_CONTROLS: 60`），替換 `SystemMenu`（`MENU_BACKDROP`/`MENU`）與 `UnitInspectorHUD`（`INSPECTOR`）的 `z-*` class 為 `UI_Z` 內聯樣式，多視窗置頂與選單覆蓋層 e2e 全數通過。
 - **R6b** ☑：換 `ShowcaseOverlay.tsx`（`OVERLAY`/`MENU_BACKDROP`/`OVERLAY_CONTROLS`）、`GameCanvas.tsx`（`OVERLAY`）、`App.tsx`（`OVERLAY`）為 `UI_Z` 樣式；保留局部內部層級（`z-0`/`z-10`/`z-20`）；E9 守門測試新增 `zIndexClasses` 棘輪指標（掃描 `components/**` 與 `App.tsx`，目前基準值為 9，只准減不准增）；單元測試與 e2e 全數通過。
 - **T1a** ☑：於 `hooks/useGameApp.ts` 內僅在 `import.meta.env.DEV` 下於 `window` 暴露 `__TACTICAL_ENGINE__`（型別以 `Window & { __TACTICAL_ENGINE__?: GameEngine }` 定義，0 `as any`）；執行 `npm run build` 並透過 grep 確認 `dist/` 產物中完全無 `__TACTICAL_ENGINE__` 字串殘留。
+- **T1b** ☑：於 `windows.e2e.mjs` 新增 ToolMenu 測試套件（驗證 7 個視窗入口 + reset-layout + spec 存在、點擊 backdrop 關閉選單、點擊切換視窗開關與指示燈亮暗同步、重設版面清除 localStorage 並還原預設 rect）；連續兩次完整 e2e 測試全數 PASS。
 
