@@ -7,14 +7,18 @@ import { UnitInspectorHUD } from './components/ui/UnitInspectorHUD';
 import { DirectorMonitorHUD } from './components/ui/DirectorMonitorHUD'; // 新增
 import { SystemMenu } from './components/ui/SystemMenu';
 import { ModalManager } from './components/ui/ModalManager';
+import { WindowLayer } from './components/ui/window/WindowLayer';
+import { RegisteredWindows } from './components/ui/window/windowRegistry';
+import { useWindowActions } from './hooks/useWindowStore';
 import { Icons } from './components/ui/icons';
 import { useGameApp } from './hooks/useGameApp';
 
 function App() {
   const { engineRef, state, setters, actions } = useGameApp();
+  const windowActions = useWindowActions();
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
-  const showModals = !hideHUD || state.showLogs || state.showDB || state.showVFXMap;
+  const showModals = state.showDB || state.showVFXMap;
 
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none touch-none">
@@ -62,7 +66,7 @@ function App() {
       />
       {!hideHUD && (
           <SystemMenu 
-              onToggleLogs={() => setters.setShowLogs(!state.showLogs)}
+              onToggleLogs={() => windowActions.toggle('logs')}
               onToggleDB={() => setters.setShowDB(!state.showDB)}
               onToggleVFXMap={() => setters.setShowVFXMap(!state.showVFXMap)}
               onToggleMonitor={() => setters.setShowDirectorMonitor(!state.showDirectorMonitor)} // 新增
@@ -80,17 +84,19 @@ function App() {
       )}
       {showModals && (
           <ModalManager 
-              showLogs={state.showLogs}
               showDB={state.showDB}
               showVFXMap={state.showVFXMap}
               engine={engineRef.current}
               onClose={() => {
-                  setters.setShowLogs(false);
                   setters.setShowDB(false);
                   setters.setShowVFXMap(false);
               }}
           />
       )}
+      {/* Floating tool windows (U3: Logs pilot). Hidden while the showcase overlay is active. */}
+      <WindowLayer showcaseMode={state.isShowcaseMode}>
+          <RegisteredWindows engine={engineRef.current} />
+      </WindowLayer>
       <div className="flex-1 relative z-0 bg-slate-900">
             <GameCanvas 
                 engine={engineRef.current} 
@@ -107,7 +113,7 @@ function App() {
                 rematch={actions.rematch}
                 nextLevel={actions.handleNextLevel} 
                 transitionPhase={state.transitionPhase}
-                onOpenLogs={() => setters.setShowLogs(true)}
+                onOpenLogs={() => windowActions.open('logs')}
             />
       </div>
       {!hideHUD && (
