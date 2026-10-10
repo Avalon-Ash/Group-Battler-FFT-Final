@@ -222,6 +222,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | E7 | ☑ | 2026-10-10 完成：LogTab 遷移至 selectLogView/selectLogs selector 與 useEngineView，徹底移除私有 setInterval 與 engine.logs 直接存取，匯出 JSON 走 selector，E9 baseline 下調（setIntervalCount 4 → 3），單元測試與 e2e 全數 PASS |
 | U9 | ☑ | 2026-10-10 完成：釘選工具列（MapEditorToolbar / PlaybackHUD）useDraggable 支援 storageKey 位置持久化記憶 + 顯示/縮放時自動 clamp + Pointer/觸控事件（onPointerCancel 容錯），單元測試與 e2e 全數 PASS |
 | U10 | ☑ | 2026-10-10 完成：z-index 1:1 收斂至 UI_Z（PlaybackHUD / MapEditorToolbar z-40 → UI_Z.WINDOW_BASE），其餘無 1:1 對應值（z-30、z-50）跳過並記錄於夜間報告，單元測試與 e2e 全數 PASS |
+| R1a | ☑ | 2026-10-10 完成：F10 相機剛度常數修正為 followDefault: 0.25 / zoomDefault: 0.2，CameraSystem 初始值引用常數，selectCameraTuningView fallback 與單元測試全綠 |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -376,3 +377,10 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **e2e 工具**：`npm run e2e:ui`（`tools/ui-e2e/windows.e2e.mjs`）。需本機 Edge/Chrome（可用 `E2E_BROWSER_PATH` 覆寫），自起 Vite（port 3199），輸出截圖到 `tools/ui-e2e/out/`。每個新視窗需加入 SUITES。結果：全部 PASS（每視窗 12 項 + 多視窗 4 項）。
 - **注意**：`SystemMenu` 沒有 VFXMap 入口（舊有死功能），在 U7a（ToolMenu）前 UI 無法開啟；e2e 以 localStorage 種子開啟。
 - 多視窗「按標題列置頂」曾失敗，原因為測試點被其他視窗遮住（測試幾何問題，非產品 bug），已改為掃描未被遮蓋的點。
+
+---
+
+## 13. 夜間執行 #3 (Review & R/T 系列進度)
+
+- **R1a** ☑：修正相機剛度常數與初始值 (`followDefault: 0.25`, `zoomDefault: 0.2`)，移除 `CAMERA_STIFFNESS.default=3.5`，`CameraSystem` 與 `selectCameraTuningView` 引用常數，單元測試通過。
+

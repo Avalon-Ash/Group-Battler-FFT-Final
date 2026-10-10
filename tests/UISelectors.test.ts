@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../engine/game';
-import { Team, Role } from '../types';
+import { Team } from '../types';
 import { Agent } from '../engine/core/Agent';
+import { UI_SETTINGS } from '../constants';
 import {
     clearSelectorCache,
     selectAgentView,
@@ -91,10 +92,18 @@ describe('UISelectors & EngineViewTicker', () => {
     });
 
     describe('selectCameraTuningView & selectLogView & selectGamePlaybackView', () => {
-        it('returns stable camera tuning view', () => {
+        it('returns stable camera tuning view with values and fallbacks equal to constants', () => {
             const view1 = selectCameraTuningView(engine);
             const view2 = selectCameraTuningView(engine);
             expect(view1).toBe(view2);
+            expect(view1.followStiffness).toBe(UI_SETTINGS.CAMERA_STIFFNESS.followDefault);
+            expect(view1.zoomStiffness).toBe(UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault);
+
+            // Fallback when engine has no renderer
+            const engineWithoutRenderer = {} as unknown as GameEngine;
+            const viewFallback = selectCameraTuningView(engineWithoutRenderer);
+            expect(viewFallback.followStiffness).toBe(UI_SETTINGS.CAMERA_STIFFNESS.followDefault);
+            expect(viewFallback.zoomStiffness).toBe(UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault);
         });
 
         it('returns stable log view until a new log is pushed', () => {

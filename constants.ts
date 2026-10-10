@@ -379,7 +379,7 @@ export const UI_SETTINGS = {
     ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
     ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
     ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
-    CAMERA_STIFFNESS: { min: 0.1, max: 20, default: 3.5, step: 0.1, sliderMax: 5.0 },
+    CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
     TIME_SCALE: { min: 0.1, max: 5.0, default: 1.0, step: 0.1 },
 } as const;
 

@@ -171,9 +171,8 @@ export function selectZoneView(engine: GameEngine): ZoneView {
  * Returns a stable read-only CameraTuningView snapshot.
  */
 export function selectCameraTuningView(engine: GameEngine): CameraTuningView {
-    const defaultStiffness = UI_SETTINGS.CAMERA_STIFFNESS.default;
-    const followStiffness = engine.renderer?.camera.followStiffness ?? defaultStiffness;
-    const zoomStiffness = engine.renderer?.camera.zoomStiffness ?? defaultStiffness;
+    const followStiffness = engine.renderer?.camera.followStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.followDefault;
+    const zoomStiffness = engine.renderer?.camera.zoomStiffness ?? UI_SETTINGS.CAMERA_STIFFNESS.zoomDefault;
 
 
     if (
