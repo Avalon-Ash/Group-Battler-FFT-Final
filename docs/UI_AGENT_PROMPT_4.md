@@ -3,7 +3,7 @@
 > 用法：在 IDE 代理對話輸入 `/goal docs/UI_AGENT_PROMPT_4.md`（或貼上「指令本文」）。
 > 前情：`UI_AGENT_PROMPT_3` 做到 T1d 時中斷；主代理已補完 **T1e 並 commit（`6a3b27f`）**，且全量驗證通過（lint 0、test 101/101、build OK、`e2e:ui` ALL PASSED）。
 > 本輪：收尾 R7/R8 → 建立「**computed-style 視覺回歸護欄**」→ U11 Token SSOT（外觀必須逐像素等價）→ U12 響應式/觸控（以 e2e 幾何斷言驗證）。
-> **不做**：`U6`（子計畫待使用者核准，見 `docs/UI_U6_SUBPLAN.md`）、`E8`、`U13`、任何 push。
+> **U6 已獲使用者核准（D6–D10 全採建議值）**，依 `docs/UI_U6_SUBPLAN.md` 執行，排在 `REPORT3` 之後、`S1` 之前。**不做**：`E8`、`U13`、任何 push。
 
 ---
 
@@ -15,13 +15,16 @@
 
 ### 任務（依序）
 
-`R7` → `R8` → `REPORT3` → `S1` → `U11a` → `U11b` → `U11c` → `U11d` → `U11e-1…n`（至多 10 批）→ `U12a` → `U12b` → `U12c` → `REPORT4`
+`R7` → `R8` → `REPORT3` → `U6a` → `U6b` → `U6c` → `S1` → `U11a` → `U11b` → `U11c` → `U11d` → `U11e-1…n`（至多 10 批）→ `U12a` → `U12b` → `U12c` → `REPORT4`
 
 | 任務 | 內容 | 檔案（≤3；測試/docs/e2e/baseline 不計） | 驗證 |
 | :-- | :-- | :-- | :-- |
 | **R7** | 規格見 `UI_AGENT_PROMPT_3.md` 的 R7（`showcaseConfigStore` 取代模組級 `sharedConfig/sharedLayout`+listener+`show`-bridge；開窗改走 `useWindowActions`；Showcase 外觀與行為完全不變）。 | 新增 `showcaseConfigStore.ts`、`ShowcaseSettings.tsx`、`ShowcaseOverlay.tsx` | store 單元測試 + lint/test/build/e2e（Showcase 套件仍過） |
 | **R8** | 規格見 `UI_AGENT_PROMPT_3.md` 的 R8（Inspector 數字欄位「本地草稿 + blur/Enter 提交」）。**T1e 套件目前用 `fill('123')` 驗 maxHp，需同步改成 `fill` 後 `press('Enter')` 或 blur**，不得放寬斷言。 | `UnitInspectorHUD.tsx`（+ e2e） | lint/test/build/e2e |
 | **REPORT3** | 補寫 `docs/UI_NIGHT_REPORT_3.md`（R1a–R8、T1a–T1e 結果、行為差異：Showcase 時間倍率上限 3.0→5.0、相機剛度預設顯示改正；E9 baseline 前後；未驗證項）。 | docs | — |
+| **U6a** | 依 `docs/UI_U6_SUBPLAN.md` 的 U6a：新增 `components/ui/inspector/UnitInspectorBody.tsx`（純內容，props 僅 `engine`、`agentId`；資料用 `useEngineView(engine, (e) => selectAgentView(e, agentId))`；無 `useDraggable`/藥丸/`setInterval`/寫死寬度；無選取單位時顯示「請先選取單位」空狀態；分頁 狀態/AI/技能）。尚未接畫面，舊 HUD 仍運作。 | 新增 `UnitInspectorBody.tsx`（可抽 `InspectorHeader.tsx`） | lint/test/build；舊畫面 e2e 不變 |
+| **U6b** | 依子計畫 U6b：`windowRegistry` 註冊 `inspector`（`flush`）；render ctx 加 `selectedAgentId`；`App.tsx` 的 `selectedAgent` 變動 → `open/close('inspector')`（只在狀態不同時呼叫，避免迴圈；保留 rect，D5）；移除 `<UnitInspectorHUD>` 渲染；視窗 ✕ → `setSelectedAgent(null)`；Showcase/結算時隱藏。 | `windowRegistry.tsx`、`App.tsx`、（必要時 `useGameApp.ts`） | lint/test/build/**e2e**：`inspector` 加進 SUITES（以 canvas 點擊 + `__TACTICAL_ENGINE__` 開啟，通用 12 項全過）；T1e/R8 套件仍過；選另一個單位 rect 不變；視窗外點擊仍可選取/取消選取；☰ 選單蓋在 inspector 之上；單位死亡時顯示空狀態不丟例外 |
+| **U6c** | 依子計畫 U6c：刪除舊 `UnitInspectorHUD.tsx`；`BehaviorTreeTab` 的 `z-[9999]` 改為視窗內局部層（不得高於視窗層以免蓋住選單）；`UnitStatusTab`/`BehaviorTreeTab` 內若有自己的輪詢改 `useEngineView`；E9 `setInterval`、`directEngineMutation` 等計數下調。 | 刪 `UnitInspectorHUD.tsx`、`BehaviorTreeTab.tsx`、baseline | lint/test/build/e2e（含 `zIndexClasses` 下調） |
 | **S1** | **視覺回歸護欄（先於任何 Token 工作）**：在 e2e 新增 `style-snapshot` 套件：對固定場景（手動模式；開啟全部 7 個視窗；Showcase 模式；選取一個單位的 Inspector）逐一以 `getComputedStyle` 擷取**關鍵元素**（視窗殼、標題列、按鈕、滑桿軌道/拇指、tab、liquid-card、HUD 藥丸、工具列、選單項目）的 `color / backgroundColor / borderTopColor / boxShadow / backdropFilter / opacity / borderRadius / fontSize`，寫入 `tools/ui-e2e/style-baseline.json`；比對時**逐欄位完全相等**，差異列出元素與欄位。環境變數 `E2E_UPDATE_STYLE=1` 才允許覆寫 baseline。為這些元素補穩定的 `data-testid`（只加屬性，不改樣式）。**必須先在目前未改動的樹上產生並 commit baseline**（這就是「改前」基準）。動畫中的值要先等待穩定或暫停動畫（`animation-play-state`/`page.emulateMedia({ reducedMotion: 'reduce' })`），不穩定的欄位排除並在報告列出。 | `tools/ui-e2e/windows.e2e.mjs`、`tools/ui-e2e/style-baseline.json`、（`data-testid` 最多 2 個元件檔） | 連跑兩次一致；故意改一個色值確認會抓到差異（再還原） |
 | **U11a** | `data/ui/tokens.ts`：語意 token SSOT。team 色**直接引用** `constants.ts` 的 `TEAM_COLORS`（不得複製色值）；定義 `surface`/`line`/`text`/`accent`/`danger`/`warn`/`team`…，色值**必須等於目前實際使用的 Tailwind 調色盤值**（例如 `cyan-400 = #22d3ee`；以 `tailwindcss/colors` 為準，寫成 `r g b` 通道字串以支援 `/20` 透明度）。 | 新增 `data/ui/tokens.ts`、`tests/UITokens.test.ts`（測：team 色等於 `TEAM_COLORS`、每個 token 值格式合法） | lint/test/build |
 | **U11b** | `tools/gen-ui-tokens.ts`（用 `tsx`/`vite-node` 其中**專案已有**者執行；不得新增依賴）→ 產生 `styles/tokens.css`（`:root{--…}`）；`package.json` 加 `gen:tokens`；測試：產物與 SSOT 一致（已 commit 的 css 重新產生後 diff 為空）。 | 新增 `tools/gen-ui-tokens.ts`、`styles/tokens.css`、`package.json` | lint/test/build |
@@ -36,15 +39,16 @@
 ### 本輪額外規則
 
 - **U11 的鐵律是「外觀逐像素等價」**：任何一批 `style-snapshot` 出現差異 → 還原該批、找出沒對上的色值、補 token 或修正對應後重做；**不得更新 baseline 來讓測試通過**（`E2E_UPDATE_STYLE=1` 只允許在 S1 使用一次）。
+- **U6 若發現與 D6–D10 衝突、需要超過 3 檔、或 e2e 反覆不穩，停下回報**，不要自行改決定；U6 的畫面行為差異（Inspector 預設位置改左上、藥丸改收合、寬度改由使用者拉）是已核准的預期差異，寫進報告即可。**U6 必須在 S1 之前完成**，S1 的 baseline 才會包含新的 Inspector 外觀。
 - U12 若需要改視窗行為的語意（例如 bottom sheet 內是否允許多開），**停下回報**，不要自行決定。
 - 觸控相關 e2e 若在 headless 不可靠，優先量測幾何與 computed style（可靠），避免模擬複雜手勢。
-- 時間/額度吃緊時的取捨順序：保 `R7→R8→REPORT3→S1→U11a-d→U12a`，其餘可略並在報告列為未完成。**任何時候中斷都要確保工作樹乾淨且最後一個 commit 全綠。**
+- 時間/額度吃緊時的取捨順序：保 `R7→R8→REPORT3→U6a-c→S1→U11a-d→U12a`，其餘可略並在報告列為未完成。**任何時候中斷都要確保工作樹乾淨且最後一個 commit 全綠。**
 
 ---
 
 ## 回來後使用者要做的事（給人看）
 
 1. `git log feat/ui-window --oneline`，讀 `docs/UI_NIGHT_REPORT_3.md`、`UI_NIGHT_REPORT_4.md`。
-2. 決定 `docs/UI_U6_SUBPLAN.md` 的 5 個問題（建議值都寫在裡面），核准後再讓代理做 U6。
+2. 手動確認 Inspector 視窗：點單位開啟、✕ 取消選取、選別的單位位置不變、收合只剩標題列、☰ 選單可開關。
 3. `npm run dev` 目視比對外觀（Token 化應與之前一模一樣）；手機實機看 bottom sheet 與觸控。
 4. 合併進 `main`（= 發佈到 GitHub Pages）前先別 push。
