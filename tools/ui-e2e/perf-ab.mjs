@@ -23,9 +23,9 @@ const THROTTLE = Number(process.env.PERF_CPU_THROTTLE || 1);
 
 const launchBrowser = async () => {
     const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
-    if (process.env.E2E_BROWSER_PATH) return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: true, args });
+    if (process.env.E2E_BROWSER_PATH) return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: !process.env.PERF_HEADED, args });
     for (const channel of ['msedge', 'chrome']) {
-        try { return await chromium.launch({ channel, headless: true, args }); } catch { /* next */ }
+        try { return await chromium.launch({ channel, headless: !process.env.PERF_HEADED, args }); } catch { /* next */ }
     }
     throw new Error('No Edge/Chrome found. Install one or set E2E_BROWSER_PATH.');
 };
@@ -42,6 +42,7 @@ if (THROTTLE > 1) {
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
 }
 await page.waitForTimeout(3000);
+console.log('ENV', JSON.stringify(await page.evaluate(() => { const gl = document.createElement('canvas').getContext('webgl'); const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); return { dpr: window.devicePixelRatio, screen: [screen.width, screen.height], gpu: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null, ua: navigator.userAgent.slice(0, 90) }; })));
 
 const measure = async () => {
     await page.evaluate(() => {
