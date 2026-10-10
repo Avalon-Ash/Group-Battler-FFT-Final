@@ -94,8 +94,10 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
         }
     };
 
+    const isDead = !agent || !agentView || agentView.isDead || agent.hp <= 0 || agent.banished || agent.fullyDead;
+
     // 2. Early return for empty state (when no unit selected or unit missing/dead)
-    if (!agentId || !agent || !agentView) {
+    if (!agentId || isDead) {
         return (
             <div className="flex flex-col items-center justify-center h-full min-h-[220px] p-6 text-center select-none" style={{ color: '#64748b' }}>
                 <Icons.Select className="w-8 h-8 mb-2 opacity-30" />

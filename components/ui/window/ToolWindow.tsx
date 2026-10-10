@@ -16,6 +16,7 @@ export interface ToolWindowProps {
     className?: string;
     /** Classes for the scrollable content body (defaults to padded). Pass e.g. `p-0` for edge-to-edge content. */
     contentClassName?: string;
+    onClose?: () => void;
 }
 
 function readViewport(): { width: number; height: number } {
@@ -42,6 +43,7 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
     headerActions,
     className = '',
     contentClassName = 'p-3',
+    onClose,
 }) => {
     const windowRef = useRef<HTMLDivElement | null>(null);
     const state = useWindowState(id);
@@ -155,7 +157,10 @@ export const ToolWindow: React.FC<ToolWindowProps> = ({
                     {/* Close Button */}
                     <button
                         type="button"
-                        onClick={() => actions.close(id)}
+                        onClick={() => {
+                            onClose?.();
+                            actions.close(id);
+                        }}
                         title="關閉視窗"
                         className="w-6 h-6 flex items-center justify-center rounded-md text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
                     >

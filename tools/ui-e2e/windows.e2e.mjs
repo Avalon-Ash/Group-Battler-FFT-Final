@@ -41,6 +41,35 @@ const SUITES = [
     { id: 'directorSettings' },
     { id: 'zoneSettings' },
     { id: 'showcaseSettings' },
+    {
+        id: 'inspector',
+        open: async (page) => {
+            const target = await page.evaluate(() => {
+                const engine = window.__TACTICAL_ENGINE__;
+                const agent = engine?.agents[0];
+                if (!agent) return null;
+                const canvas = document.querySelector('canvas');
+                if (!canvas) return null;
+                const rect = canvas.getBoundingClientRect();
+                const cam = engine.renderer.camera;
+                const cx = rect.width / 2;
+                const cy = rect.height / 2;
+                const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
+                const worldX = agent.px;
+                const worldY = agent.py - terrainH;
+                return {
+                    x: rect.left + (worldX - cam.x) * cam.zoom + cx,
+                    y: rect.top + (worldY - cam.y) * cam.zoom + cy,
+                };
+            });
+            if (target) {
+                await page.mouse.click(target.x, target.y);
+                await page.waitForTimeout(500);
+            } else {
+                await openViaMenu(page, 'inspector');
+            }
+        },
+    },
 ];
 
 
@@ -111,7 +140,9 @@ const runSuite = async (suite) => {
     console.log(`\n── window: ${id}`);
     const { ctx, page } = await newPage(suite);
     await enterManualMode(page);
-    if (!suite.seed) {
+    if (suite.open) {
+        await suite.open(page);
+    } else if (!suite.seed) {
         await openViaMenu(page, suite.id);
     }
 
@@ -177,7 +208,8 @@ const runSuite = async (suite) => {
     ok(`${id}: close button closes (body unmounted)`, (await rectOf(page, id)) === null);
 
     // small viewport containment + recovery (reopen first)
-    if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
+    if (suite.open) await suite.open(page);
+    else if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
     else if (!suite.seed) await openViaMenu(page, suite.id);
     else await page.evaluate(([k, wid]) => { const m = JSON.parse(localStorage.getItem(k)); m[wid].open = true; localStorage.setItem(k, JSON.stringify(m)); }, [STORAGE_KEY, id]).then(() => page.reload({ waitUntil: 'networkidle' })).then(() => page.getByText(START_TEXT).click()).then(() => page.waitForTimeout(800));
 
@@ -244,7 +276,7 @@ const runToolMenuSuite = async () => {
     await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);
 
-    const windowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'showcaseSettings'];
+    const windowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'showcaseSettings', 'inspector'];
     for (const wid of windowIds) {
         const item = page.locator(`[data-testid="menu-item-${wid}"]`);
         ok(`menu item exists: ${wid}`, await item.isVisible());
@@ -543,6 +575,71 @@ const runInspectorCommandSuite = async () => {
     ok('inspector EDIT_AGENT changed role in live engine', updated?.role === newRole, `${updated?.role} vs ${newRole}`);
     ok('inspector EDIT_AGENT changed maxHp in live engine to 123', updated?.maxHp === 123, String(updated?.maxHp));
     ok('inspector EDIT_AGENT updated hp in live engine to 123', updated?.hp === 123, String(updated?.hp));
+
+    // 1. Selecting another unit preserves inspector rect (D5)
+    const r1 = await rectOf(page, 'inspector');
+    const secondAgent = await page.evaluate((currId) => {
+        const engine = window.__TACTICAL_ENGINE__;
+        const agent = engine?.agents.find(u => u.id !== currId);
+        if (!agent) return null;
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        const cam = engine.renderer.camera;
+        const cx = rect.width / 2;
+        const cy = rect.height / 2;
+        const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
+        const worldX = agent.px;
+        const worldY = agent.py - terrainH;
+        return {
+            screenX: rect.left + (worldX - cam.x) * cam.zoom + cx,
+            screenY: rect.top + (worldY - cam.y) * cam.zoom + cy,
+            agentId: agent.id
+        };
+    }, target.agentId);
+
+    if (secondAgent) {
+        await page.mouse.click(secondAgent.screenX, secondAgent.screenY);
+        await page.waitForTimeout(400);
+        const r2 = await rectOf(page, 'inspector');
+        ok('selecting another unit preserves inspector rect (D5)', r1 && r2 && near(r1.x, r2.x, 2) && near(r1.y, r2.y, 2) && near(r1.width, r2.width, 2) && near(r1.height, r2.height, 2));
+    }
+
+    // 2. Click outside inspector on empty canvas area to deselect
+    await page.mouse.click(650, 450);
+    await page.waitForTimeout(400);
+    const closedAfterUnselect = await rectOf(page, 'inspector');
+    ok('clicking outside inspector deselects agent and closes inspector', closedAfterUnselect === null);
+
+    // Re-select unit on canvas
+    await page.mouse.click(target.screenX, target.screenY);
+    await page.waitForTimeout(400);
+    const reopened = await rectOf(page, 'inspector');
+    ok('clicking canvas agent reopens inspector', reopened !== null);
+
+    // 3. SystemMenu is layered above inspector
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+    const menuZ = await page.evaluate(() => {
+        const menu = document.querySelector('[data-testid="system-menu-button"]')?.closest('div[style*="z-index"]');
+        const inspector = document.querySelector('[data-window-id="inspector"]');
+        return {
+            menuZ: menu ? Number(window.getComputedStyle(menu).zIndex) : 0,
+            inspectorZ: inspector ? Number(window.getComputedStyle(inspector).zIndex) : 0,
+        };
+    });
+    ok('SystemMenu is layered above inspector', menuZ.menuZ > menuZ.inspectorZ, `${menuZ.menuZ} vs ${menuZ.inspectorZ}`);
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(300);
+
+    // 4. Dead agent displays empty state without throwing
+    await page.evaluate((aid) => {
+        const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
+        if (a) { a.hp = 0; a.fullyDead = true; }
+    }, target.agentId);
+    await page.waitForTimeout(400);
+    const emptyStateText = await page.locator('[data-window-id="inspector"]').textContent();
+    ok('dead agent shows empty state without throwing', emptyStateText.includes('請先選取單位'));
 
     await ctx.close();
 };

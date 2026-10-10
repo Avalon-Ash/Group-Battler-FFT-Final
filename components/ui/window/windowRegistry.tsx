@@ -8,12 +8,15 @@ import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
 import { DirectorSettingsWindow, ZoneSettingsWindow } from '../settings/SettingsWindows';
 import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
+import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
 
 /** Everything a window body may need from the host app. */
 export interface WindowRenderContext {
     engine: GameEngine;
+    selectedAgentId?: string | null;
+    onCloseInspector?: () => void;
 }
 
 interface WindowRegistration {
@@ -43,6 +46,13 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         flush: true,
         render: () => <VFXMapTab />,
     },
+    inspector: {
+        icon: <Icons.Select className="w-4 h-4" />,
+        flush: true,
+        render: ({ engine, selectedAgentId }) => (
+            <UnitInspectorBody engine={engine} agentId={selectedAgentId} />
+        ),
+    },
     monitor: {
         icon: <Icons.TV className="w-4 h-4" />,
         flush: true,
@@ -66,23 +76,29 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
 };
 
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
-export const RegisteredWindows: React.FC<WindowRenderContext & { showcaseMode?: boolean }> = ({
+export const RegisteredWindows: React.FC<
+    WindowRenderContext & { showcaseMode?: boolean; isGameOver?: boolean }
+> = ({
     engine,
+    selectedAgentId,
+    onCloseInspector,
     showcaseMode = false,
+    isGameOver = false,
 }) => (
     <>
         {WINDOW_DEFINITIONS.map((def) => {
             const reg = WINDOW_REGISTRY[def.id];
             if (!reg) return null;
-            if (showcaseMode && !def.visibleInShowcase) return null;
+            if ((showcaseMode || isGameOver) && !def.visibleInShowcase) return null;
             return (
                 <ToolWindow
                     key={def.id}
                     id={def.id}
                     icon={reg.icon}
                     contentClassName={reg.flush ? 'p-0' : 'p-3'}
+                    onClose={def.id === 'inspector' ? onCloseInspector : undefined}
                 >
-                    {reg.render({ engine })}
+                    {reg.render({ engine, selectedAgentId, onCloseInspector })}
                 </ToolWindow>
             );
         })}
