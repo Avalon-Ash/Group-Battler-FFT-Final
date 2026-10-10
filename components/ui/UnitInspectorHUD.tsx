@@ -9,6 +9,7 @@ import { BehaviorTreeTab } from '../inspector/tabs/BehaviorTreeTab';
 import { UnitStatusTab } from '../inspector/tabs/UnitStatusTab';
 import { selectAgentView } from '../../engine/systems/ui/selectors';
 import { useEngineCommands } from '../../hooks/useEngineCommands';
+import { UI_Z } from '../../constants';
 
 interface UnitInspectorHUDProps {
     agent: Agent | null;
@@ -80,9 +81,10 @@ export const UnitInspectorHUD: React.FC<UnitInspectorHUDProps> = ({ agent, engin
     return (
         <div 
             ref={ref}
-            className={`z-30 pointer-events-auto select-none transition-all duration-300 ease-out`}
+            className={`pointer-events-auto select-none transition-all duration-300 ease-out`}
             style={{ 
                 ...style, 
+                zIndex: UI_Z.INSPECTOR,
                 width: isMinimized ? 'auto' : (viewMode === 'NONE' ? '320px' : '420px'),
                 maxWidth: '95vw'
             }}

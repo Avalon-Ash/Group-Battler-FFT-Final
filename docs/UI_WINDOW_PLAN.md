@@ -229,6 +229,7 @@ tests/                         # WindowStore / UICommandSystem / selectors / UIB
 | R4 | ☑ | 2026-10-10 完成：新增 UI_PIN 常數 SSOT，useDraggable 消除魔術數字（1920/1080/200/60），抽取 clampToolbarPosition 與 load/save 容錯輔助函式，補全邊界與 storage 異常單元測試 |
 | R4b | ☑ | 2026-10-10 完成：MapEditorToolbar 與 PlaybackHUD 改引用 UI_PIN.STORAGE_KEYS，維持 storage key 既有值不變，e2e 全數 PASS |
 | R5 | ☑ | 2026-10-10 完成：移除 SystemMenu 未使用 props 與 App.tsx 傳參，windows.e2e.mjs 的 openViaMenu 收斂至純 data-testid 路徑，e2e 全數 PASS |
+| R6a | ☑ | 2026-10-10 完成：UI_Z 新增同值具名層（INSPECTOR: 30, OVERLAY: 50, MENU_BACKDROP: 55, MENU: 60, OVERLAY_CONTROLS: 60），SystemMenu 與 UnitInspectorHUD 替換為 style={{ zIndex: UI_Z.* }}，單元測試與 e2e 全數 PASS |
 | U11 / U11b… | ☐ | |
 | U12 | ☐ | |
 | E8 | ☐ | 需子計畫與核准 |
@@ -395,4 +396,5 @@ MapEditorToolbar、PlaybackHUD、SystemMenu 及下拉、Director 設定、Zone �
 - **R4** ☑：新增 `UI_PIN` 常數（`FALLBACK_VIEWPORT`、`FALLBACK_SIZE`、`STORAGE_KEYS`），`useDraggable` 全面移除魔術數字，單元測試覆蓋邊界 clamp、損毀 JSON 回退與 storage 例外安全。
 - **R4b** ☑：`MapEditorToolbar` 與 `PlaybackHUD` 改引用 `UI_PIN.STORAGE_KEYS`（保持原字串值避免使用者既有設定失效），e2e 7 視窗全數通過。
 - **R5** ☑：清理 `SystemMenu` 殘留未用 props（`onToggleLogs/DB/VFXMap/Monitor/engine/monitorEnabled`）與 `App.tsx` 傳參，`windows.e2e.mjs` 刪除舊 `nth()`/`.or()` 改為純 `data-testid` 選取，e2e 全數通過。
+- **R6a** ☑：UI_Z 新增同值具名層（`INSPECTOR: 30`, `OVERLAY: 50`, `MENU_BACKDROP: 55`, `MENU: 60`, `OVERLAY_CONTROLS: 60`），替換 `SystemMenu`（`MENU_BACKDROP`/`MENU`）與 `UnitInspectorHUD`（`INSPECTOR`）的 `z-*` class 為 `UI_Z` 內聯樣式，多視窗置頂與選單覆蓋層 e2e 全數通過。
 

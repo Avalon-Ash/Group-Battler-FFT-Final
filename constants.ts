@@ -365,7 +365,12 @@ export const UI_WINDOW = {
 } as const;
 
 export const UI_Z = {
+    INSPECTOR: 30,
     WINDOW_BASE: 40,
+    OVERLAY: 50,
+    MENU_BACKDROP: 55,
+    MENU: 60,
+    OVERLAY_CONTROLS: 60,
     WINDOW_MAX: 80,
     TOP_OVERLAY: 90,
 } as const;

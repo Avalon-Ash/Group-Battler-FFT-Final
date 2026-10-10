@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Icons } from './icons';
 import { getRegisteredWindows } from './window/windowRegistry';
 import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
+import { UI_Z } from '../../constants';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
@@ -19,12 +20,16 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({ onDownloadSpec }) => {
             {/* Backdrop to close dropdown on click outside */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 z-[55] pointer-events-auto"
+                    className="fixed inset-0 pointer-events-auto"
+                    style={{ zIndex: UI_Z.MENU_BACKDROP }}
                     onClick={() => setIsOpen(false)}
                 />
             )}
 
-            <div className="absolute top-6 right-6 z-[60] flex flex-col items-end gap-3 pointer-events-auto">
+            <div
+                className="absolute top-6 right-6 flex flex-col items-end gap-3 pointer-events-auto"
+                style={{ zIndex: UI_Z.MENU }}
+            >
                 <button
                     data-testid="system-menu-button"
                     onClick={() => setIsOpen(!isOpen)}
