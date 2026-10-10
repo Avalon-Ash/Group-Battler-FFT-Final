@@ -4,7 +4,14 @@ import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Hex, Team, Role } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
-import { PointerProjector } from '../engine/math/PointerProjector';
+import {
+    queryAgentAt,
+    queryIsValidHex,
+    queryHasObstacle,
+    queryObstacleTypeAt,
+    queryHexAtScreenPoint,
+    queryHexToWorldSnap,
+} from '../engine/systems/ui/editorQueries';
 
 /** 編輯模式拖曳中的障礙物（pointerdown 建立，pointermove 補齊投影欄位）。 */
 export interface DraggedObstacle {
@@ -53,7 +60,7 @@ export const useGameInput = (props: GameInputProps) => {
         const renderer = rendererRef.current;
         if (!cvs || !renderer) return null;
         
-        return PointerProjector.cssToHex(
+        return queryHexAtScreenPoint(
             clientX,
             clientY,
             cvs,
@@ -77,14 +84,14 @@ export const useGameInput = (props: GameInputProps) => {
         lastPointerPos.current = { x: sx, y: sy };
         lastPaintHex.current = "";
         const h = getHexFromEvent(e.clientX, e.clientY);
-        const agent = h ? engine.getAgentAt(h.q, h.r) : undefined;
+        const agent = h ? queryAgentAt(engine, h.q, h.r) : undefined;
         
         if (agent) { 
             pressedAgentRef.current = agent; 
             setPressedAgent(agent); 
         }
-        else if (h && !engine.isRunning && configRef.current.tool === ToolType.SELECT && engine.hasObstacle(h.q, h.r)) {
-            const obsType = engine.map.obstacles.get(HexUtils.key(h));
+        else if (h && !engine.isRunning && configRef.current.tool === ToolType.SELECT && queryHasObstacle(engine, h.q, h.r)) {
+            const obsType = queryObstacleTypeAt(engine, h.q, h.r);
             const obj = { type: obsType, originQ: h.q, originR: h.r, px: 0, py: 0 };
             draggedObstacleRef.current = obj;
             setDraggedObstacle(obj);
@@ -100,7 +107,7 @@ export const useGameInput = (props: GameInputProps) => {
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         const dx = sx - lastPointerPos.current.x, dy = sy - lastPointerPos.current.y;
         const h = getHexFromEvent(e.clientX, e.clientY);
-        hoveredHexRef.current = (h && engine.isValid(h.q, h.r)) ? h : null;
+        hoveredHexRef.current = (h && queryIsValidHex(engine, h.q, h.r)) ? h : null;
         if (interactionMode.current === 'DOWN' && pressStartPos.current) {
             const dist = Vector.dist(pressStartPos.current, {x: sx, y: sy});
             const driftThreshold = e.pointerType === 'touch' ? 18 : 8;
@@ -109,7 +116,11 @@ export const useGameInput = (props: GameInputProps) => {
                     if (pressedAgentRef.current) interactionMode.current = 'DRAG_UNIT';
                     else if (draggedObstacleRef.current) { 
                         interactionMode.current = 'DRAG_OBS'; 
-                        engine.map.removeObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR); 
+                        engine.bus.emit('UI_COMMAND', {
+                            type: 'REMOVE_OBSTACLE',
+                            q: draggedObstacleRef.current.originQ,
+                            r: draggedObstacleRef.current.originR,
+                        });
                     }
                     else interactionMode.current = 'PAN';
                 } else if (!engine.isRunning && configRef.current.tool !== ToolType.SELECT) interactionMode.current = 'PAINT';
@@ -129,11 +140,9 @@ export const useGameInput = (props: GameInputProps) => {
             cvs.style.cursor = 'move'; 
         }
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
-            if (h && engine.isValid(h.q, h.r)) {
-                const snap = PointerProjector.hexToWorldSnap(
-                    h.q, h.r, engine.mapConfig,
-                    (q, r) => engine.getTerrainHeight(q, r)
-                );
+            if (h && queryIsValidHex(engine, h.q, h.r)) {
+                const snap = queryHexToWorldSnap(engine, h.q, h.r);
+                // D11: Transient drag preview pose write (Documented exception, committed on pointerup)
                 const a = pressedAgentRef.current;
                 a.px = snap.worldX;
                 a.py = snap.worldY;
@@ -143,11 +152,9 @@ export const useGameInput = (props: GameInputProps) => {
             cvs.style.cursor = 'grabbing';
         }
         else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
-            if (h && engine.isValid(h.q, h.r)) {
-                const snap = PointerProjector.hexToWorldSnap(
-                    h.q, h.r, engine.mapConfig,
-                    (q, r) => engine.getTerrainHeight(q, r)
-                );
+            if (h && queryIsValidHex(engine, h.q, h.r)) {
+                const snap = queryHexToWorldSnap(engine, h.q, h.r);
+                // D11: Transient drag obstacle preview pose write (Documented exception, committed on pointerup)
                 draggedObstacleRef.current.px = snap.worldX;
                 draggedObstacleRef.current.py = snap.worldY;
                 draggedObstacleRef.current.terrainHeight = snap.terrainHeight;
@@ -176,24 +183,36 @@ export const useGameInput = (props: GameInputProps) => {
         else if (interactionMode.current === 'DRAG_UNIT' && pressedAgentRef.current) {
             const a = pressedAgentRef.current;
             const h = getHexFromEvent(e.clientX, e.clientY);
-
-            if (h && engine.isValid(h.q, h.r) && !engine.isBlocked(h.q, h.r, a.id)) { 
-                engine.updateAgentPosition(a, h.q, h.r); 
-                const p = HexUtils.toPx(h.q, h.r, engine.mapConfig); 
-                a.px = p.x; 
-                a.py = p.y; 
-            }
-            else { 
-                const p = HexUtils.toPx(a.q, a.r, engine.mapConfig); 
-                a.px = p.x; 
-                a.py = p.y; 
-            }
-            a.dragOverQ = null;
-            a.dragOverR = null;
+            const targetQ = h ? h.q : a.q;
+            const targetR = h ? h.r : a.r;
+            engine.bus.emit('UI_COMMAND', {
+                type: 'MOVE_AGENT',
+                agentId: a.id,
+                q: targetQ,
+                r: targetR,
+            });
         } else if (interactionMode.current === 'DRAG_OBS' && draggedObstacleRef.current) {
             const h = getHexFromEvent(e.clientX, e.clientY);
-            if (h && engine.isValid(h.q, h.r) && !engine.getAgentAt(h.q, h.r) && !engine.hasObstacle(h.q, h.r)) engine.map.setObstacle(h.q, h.r, draggedObstacleRef.current.type);
-            else engine.map.setObstacle(draggedObstacleRef.current.originQ, draggedObstacleRef.current.originR, draggedObstacleRef.current.type);
+            if (
+                h &&
+                queryIsValidHex(engine, h.q, h.r) &&
+                !queryAgentAt(engine, h.q, h.r) &&
+                !queryHasObstacle(engine, h.q, h.r)
+            ) {
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'SET_OBSTACLE',
+                    q: h.q,
+                    r: h.r,
+                    obstacleType: draggedObstacleRef.current.type,
+                });
+            } else {
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'SET_OBSTACLE',
+                    q: draggedObstacleRef.current.originQ,
+                    r: draggedObstacleRef.current.originR,
+                    obstacleType: draggedObstacleRef.current.type,
+                });
+            }
         }
         interactionMode.current = 'IDLE';
         pressedAgentRef.current = null; setPressedAgent(null);
@@ -207,13 +226,28 @@ export const useGameInput = (props: GameInputProps) => {
         const k = HexUtils.key(h);
         if (lastPaintHex.current === k) return; 
         lastPaintHex.current = k;
-        if (tool === ToolType.DELETE) { engine.map.removeObstacle(h.q, h.r); engine.removeAgent(h.q, h.r); }
-        else if (tool === ToolType.OBSTACLE) { engine.removeAgent(h.q, h.r); engine.map.setObstacle(h.q, h.r, selectedObstacle); }
-        else if (tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED) {
-            const existing = engine.getAgentAt(h.q, h.r);
-            if (!existing && !engine.hasObstacle(h.q, h.r)) {
-                let agent = engine.addAgent(tool === ToolType.ADD_BLUE ? Team.BLUE : Team.RED, h.q, h.r, hpInput);
-                if (agent && spawnMode === 'DRAFT') { agent.role = draftRole; agent.saveState(); engine.resetAgent(agent); }
+        if (tool === ToolType.DELETE) {
+            engine.bus.emit('UI_COMMAND', { type: 'REMOVE_OBSTACLE', q: h.q, r: h.r });
+            engine.bus.emit('UI_COMMAND', { type: 'REMOVE_AGENT_AT', q: h.q, r: h.r });
+        } else if (tool === ToolType.OBSTACLE) {
+            engine.bus.emit('UI_COMMAND', { type: 'REMOVE_AGENT_AT', q: h.q, r: h.r });
+            engine.bus.emit('UI_COMMAND', {
+                type: 'SET_OBSTACLE',
+                q: h.q,
+                r: h.r,
+                obstacleType: selectedObstacle,
+            });
+        } else if (tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED) {
+            const existing = queryAgentAt(engine, h.q, h.r);
+            if (!existing && !queryHasObstacle(engine, h.q, h.r)) {
+                engine.bus.emit('UI_COMMAND', {
+                    type: 'PLACE_AGENT',
+                    team: tool === ToolType.ADD_BLUE ? Team.BLUE : Team.RED,
+                    q: h.q,
+                    r: h.r,
+                    hp: hpInput,
+                    role: spawnMode === 'DRAFT' ? draftRole : undefined,
+                });
             }
         }
     };
