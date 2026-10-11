@@ -21,8 +21,8 @@
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ☑ | 本輪 | ?glow=1/?quality=2/?quality=3 冒煙 PASS，e2e:ui 連兩次 ALL PASSED，主 GPU 60 秒常態鎖定 Tier 0 |
 | **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ☑ | 本輪 | 保持 1.0 原生解析度並節流 30Hz，消除雙重縮放與 CSS 重採樣，Tier 1 (7.05ms) 明確快於 Tier 0 (8.37ms) |
 | **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ☑ | 本輪 | 獨立原型 300 幀實測：耗時由 0.60ms 降至 0.40ms (-33.3%)，吞吐提升 +70%，DrawCall -98% |
-| **REPORT** | 完成完整結案報告 `docs/PERF_REPORT_3.md`，更新 `DECOUPLING_HANDOFF.md` §10.6 | ⏳ |  | 彙整歸因、優化、對照圖、治理器曲線 |
-| **FINAL** | 全量驗證與 checkpoint tags 打標 | ⏳ |  | `perf3-ckpt-R0`, `perf3-ckpt-R2`, `perf3-ckpt-R3`, `perf3-ckpt-final` |
+| **REPORT** | 完成完整結案報告 `docs/PERF_REPORT_3.md`，更新 `DECOUPLING_HANDOFF.md` §10.7 | ☑ | 本輪 | PERF_REPORT_3.md 與 §10.7 已建立完備 |
+| **FINAL** | 全量驗證與 checkpoint tags 打標 | ☑ | 本輪 | lint/test/build/e2e/guard 全綠，打標 perf3-ckpt-final |
 
 ---
 
