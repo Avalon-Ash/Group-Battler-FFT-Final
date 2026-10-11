@@ -315,3 +315,25 @@ export function getMatrixRainBudget(tier: QualityTier = getQualityTier()): Matri
     };
 }
 
+let testGlowOverride: boolean | null = null;
+
+export function setGlowSpritesEnabledForTest(val: boolean | null): void {
+    testGlowOverride = val;
+}
+
+/**
+ * 是否啟用光暈預烘焙 Sprite (GLOW_SPRITES)
+ * 預設關閉 (false)。僅在 ?glow=1 或品質階層 >= 2 時為 true。
+ */
+export function isGlowSpritesEnabled(): boolean {
+    if (testGlowOverride !== null) return testGlowOverride;
+    if (typeof location !== 'undefined' && location.search) {
+        try {
+            const val = new URLSearchParams(location.search).get(RENDER_QUALITY.GLOW_QUERY_KEY);
+            if (val === '1' || val === 'true') return true;
+        } catch {}
+    }
+    return getQualityTier() >= 2;
+}
+
+

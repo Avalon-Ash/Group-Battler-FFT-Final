@@ -470,7 +470,22 @@ export const RENDER_QUALITY = {
     MATRIX_RAIN_TIER_1_SCALE: 0.5,
     MATRIX_RAIN_TIER_0_HZ: 60,
     MATRIX_RAIN_TIER_1_HZ: 30,
+    GLOW_SPRITES: false,
+    GLOW_QUERY_KEY: 'glow',
 } as const;
+
+/**
+ * 光暈 Sprite 快取與量化參數 SSOT
+ */
+export const RENDER_GLOW = {
+    QUERY_KEY: 'glow',
+    MAX_GLOW_SPRITES: 256,
+    RADIUS_STEPS: [4, 8, 12, 16, 24, 32, 48, 64] as const,
+    BLUR_STEPS: [2, 4, 8, 12, 16, 24, 32] as const,
+    RECT_WIDTH_STEPS: [16, 32, 48, 64, 96, 128, 180, 240] as const,
+    RECT_HEIGHT_STEPS: [4, 8, 12, 16, 24] as const,
+} as const;
+
 
 
 
