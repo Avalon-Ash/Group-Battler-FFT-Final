@@ -206,9 +206,14 @@ const captureScene = async (page, sid) => {
 };
 
 const captureBattleFrozen = async (page) => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
         window.__resetSeed(42);
+        const mod = await import('/data/scenes.ts');
+        const e = window.__TACTICAL_ENGINE__;
+        e.currentScene = mod.SCENE_DB[0];
+        e.map.rebuildMap(e);
     });
+    await page.evaluate(() => window.__stepFrames(5));
     // Click dice button to generate battlefield and teams
     await page.locator(`button[title="${DICE_TITLE}"]`).click({ force: true });
     await page.waitForTimeout(200);
@@ -235,11 +240,16 @@ try {
     if (isRecord) {
         console.log('== RECORDING FIDELITY BASELINE PNGs ==');
         for (const sid of sceneIds) {
+            const dest = join(BASELINE_DIR, `${sid}.png`);
+            if (existsSync(dest)) {
+                console.log(`Skipping existing scene baseline: ${sid}`);
+                continue;
+            }
             console.log(`Recording scene: ${sid}`);
             const dataUrl = await captureScene(page, sid);
             if (!dataUrl) throw new Error(`Failed to capture canvas for ${sid}`);
             const buf = Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
-            writeFileSync(join(BASELINE_DIR, `${sid}.png`), buf);
+            writeFileSync(dest, buf);
         }
 
         // Test determinism of battle_frozen across two separate context runs

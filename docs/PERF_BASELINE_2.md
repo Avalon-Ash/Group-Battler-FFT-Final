@@ -12,8 +12,8 @@
 | 任務 ID | 說明 | 狀態 | Commit | 備註 |
 | :--- | :--- | :---: | :--- | :--- |
 | **Q0** | 建立 `PERF_BASELINE_2.md` + 改前基準 (profile/ab/showcase/階段耗時拆解) | ☑ | `1359a4b` | 基準確立，battle 與 showcase 瓶頸定位於 native 合成與 Canvas 呼叫 |
-| **Q1** | Canvas 操作計數器 (`CtxOpCounter.ts` 零成本診斷) | ☑ |  | 依 ?perfops 計數主畫布操作：每幀 66 次 shadowBlur (units 56%, hud 36%) |
-| **Q2** | 單位／VFX 保真護欄覆蓋 (`battle_frozen` / 靜態測試場景) | ⏳ |  | 決定性 0 差異驗證 + perf:guard 整合 |
+| **Q1** | Canvas 操作計數器 (`CtxOpCounter.ts` 零成本診斷) | ☑ | `d8e586b` | 依 ?perfops 計數主畫布操作：每幀 66 次 shadowBlur (units 56%, hud 36%) |
+| **Q2** | 單位／VFX 保真護欄覆蓋 (`battle_frozen` / 靜態測試場景) | ☑ |  | 決定性 0 差異驗證 (diff=0/921600)，battle_frozen 納入 perf:guard (tag: perf2-ckpt-Q2) |
 | **Q3a** | 矩陣雨減載 (`useMatrixRain.ts` tier≥1 0.5x/30Hz, tier≥2 停繪) | ⏳ |  | 階層 0 完全等價，Showcase 耗時實測下降 |
 | **Q3b** | 單元測試 + [E2E] 兩次驗證 | ⏳ |  | getMatrixRainBudget 單元測試 + e2e 兩次綠 |
 | **Q4a** | 光暈烘焙器 (`GlowSpriteCache.ts` 旗標預設關) | ⏳ |  | 離屏預烘焙 shadowBlur，單元測試覆蓋 |
