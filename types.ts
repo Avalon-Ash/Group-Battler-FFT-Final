@@ -236,6 +236,7 @@ export type UICommand =
     | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
     | { type: 'START_GAME' }
     | { type: 'STOP_GAME' }
+    | { type: 'SET_SHOWCASE_MODE'; enabled: boolean }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
     | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean }
     | { type: 'CAMERA_ZOOM'; zoom: number }

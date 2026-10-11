@@ -1,5 +1,5 @@
 import { AUDIO, SCREEN_CONSTANTS } from '../../../constants';
-import { GameEvent, Team } from '../../../types';
+import { GameEvent, Team, UICommand } from '../../../types';
 import { AudioEngine, PlayCueOptions } from '../../audio/AudioEngine';
 import { EventBus } from '../../events/EventBus';
 import { WINNER_TO_VICTORY_TRACK } from '../../../data/audio/music';
@@ -21,6 +21,7 @@ export class AudioSystem {
     private remainingAgents: number = 10;
     private isBattleActive: boolean = false;
     private isResultStingActive: boolean = false;
+    private isShowcase: boolean = true;
 
     // 儲存事件取消訂閱用之引用
     private unsubscribers: (() => void)[] = [];
@@ -30,7 +31,8 @@ export class AudioSystem {
         this.audioEngine = options?.audioEngine ?? new AudioEngine();
         this.bindEvents();
 
-        // 預設啟動氛圍曲目
+        // 預設為展示模式（與 UI session 初始狀態一致）：氛圍 BGM + 壓低的 SFX
+        this.audioEngine.setShowcaseMix(true);
         this.audioEngine.playMusic('SHOWCASE_AMBIENT', 0.5);
     }
 
@@ -61,12 +63,17 @@ export class AudioSystem {
             this.isResultStingActive = false;
             this.totalAgentsInBattle = 10;
             this.remainingAgents = 10;
+            if (this.isShowcase) {
+                this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+                return;
+            }
             this.audioEngine.playCue('UI_START');
             this.audioEngine.playMusic('BATTLE_NORMAL', AUDIO.BGM_CROSSFADE_SEC);
         });
 
         this.subscribe('GAME_OVER', (data: { winner: Team | null }) => {
             this.isBattleActive = false;
+            if (this.isShowcase) return;
             this.isResultStingActive = true;
             if (data.winner !== null) {
                 this.audioEngine.playCue('VICTORY');
@@ -115,7 +122,7 @@ export class AudioSystem {
             const pan = this.calculateScreenXRatio(data.impactX);
             this.audioEngine.playCue('DEATH', { x: pan });
 
-            if (this.isBattleActive) {
+            if (this.isBattleActive && !this.isShowcase) {
                 this.remainingAgents = Math.max(0, this.remainingAgents - 1);
                 // 存活單位 <= 4 時切換至緊張音樂層
                 if (this.remainingAgents <= 4) {
@@ -132,14 +139,25 @@ export class AudioSystem {
             this.audioEngine.playCue('SPELL_CAST', { intensity: 0.8 });
         });
 
-        this.subscribe('UI_COMMAND', (cmd: { type: string }) => {
+        this.subscribe('UI_COMMAND', (cmd: UICommand) => {
             if (!cmd) return;
-            if (cmd.type === 'START_GAME') {
-                this.audioEngine.playCue('UI_START');
+            if (cmd.type === 'SET_SHOWCASE_MODE') {
+                this.setShowcaseMode(cmd.enabled);
+            } else if (cmd.type === 'START_GAME') {
+                if (!this.isShowcase) this.audioEngine.playCue('UI_START');
             } else if (cmd.type === 'RESET_GAME' || cmd.type === 'CLEAR_BOARD') {
-                this.audioEngine.playCue('UI_CLICK');
+                if (!this.isShowcase) this.audioEngine.playCue('UI_CLICK');
             }
         });
+    }
+
+    /** 展示模式：僅播放氛圍 BGM、壓低 SFX，不播戰鬥曲與結算曲（展示會不斷循環） */
+    private setShowcaseMode(enabled: boolean): void {
+        this.isShowcase = enabled;
+        this.audioEngine.setShowcaseMix(enabled);
+        if (enabled) {
+            this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+        }
     }
 
     private handleGameEvent(evt: GameEvent): void {

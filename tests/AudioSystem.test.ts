@@ -93,6 +93,8 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
             forceMute: false
         });
         audioSystem = new AudioSystem(bus, { audioEngine });
+        // 既有測試針對手動（非展示）模式
+        bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: false });
     });
 
     it('silently discards cues before user unlock (auto-play policy)', () => {
@@ -199,6 +201,32 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
 
         bus.emit('GAME_CLEAR', {});
         expect(playMusicSpy).toHaveBeenCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+    });
+
+    it('showcase mode: ambient BGM only (no battle/tense/result music), SFX bus ducked, restored on exit', () => {
+        audioEngine.unlock();
+        const setMixSpy = vi.spyOn(audioEngine, 'setShowcaseMix');
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+        const playCueSpy = vi.spyOn(audioEngine, 'playCue');
+
+        bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: true });
+        expect(setMixSpy).toHaveBeenLastCalledWith(true);
+
+        bus.emit('GAME_START', {});
+        for (let i = 0; i < 8; i++) {
+            bus.emit('AGENT_DIED', { agent: {} as any, groundZ: 0, impactX: 600, impactY: 300 });
+        }
+        bus.emit('GAME_OVER', { winner: Team.RED });
+
+        const tracks = playMusicSpy.mock.calls.map(c => c[0]);
+        expect(tracks.every(t => t === 'SHOWCASE_AMBIENT')).toBe(true);
+        const cues = playCueSpy.mock.calls.map(c => c[0]);
+        expect(cues).not.toContain('VICTORY');
+        expect(cues).not.toContain('DEFEAT');
+        expect(cues).not.toContain('UI_START');
+
+        bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: false });
+        expect(setMixSpy).toHaveBeenLastCalledWith(false);
     });
 
     it('GameEngine with ?mute does not instantiate AudioSystem', () => {

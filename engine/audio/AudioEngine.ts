@@ -59,6 +59,7 @@ export class AudioEngine {
     private inflightLoads: Map<string, Promise<AudioBuffer | null>> = new Map();
     private synthCache: Map<string, AudioBuffer> = new Map();
     private hasPreloaded: boolean = false;
+    private isShowcaseMix: boolean = false;
 
     private unlockListenerBound: (() => void) | null = null;
     private visibilityListenerBound: (() => void) | null = null;
@@ -117,6 +118,13 @@ export class AudioEngine {
         const clamped = Math.max(0, Math.min(1, volume));
         this.settings[bus] = clamped;
         this.saveSettings();
+        this.applyBusGains();
+    }
+
+    /** 展示模式混音：壓低 SFX Bus（僅 BGM 為主；不寫入使用者設定） */
+    public setShowcaseMix(enabled: boolean): void {
+        if (this.isShowcaseMix === enabled) return;
+        this.isShowcaseMix = enabled;
         this.applyBusGains();
     }
 
@@ -654,7 +662,8 @@ export class AudioEngine {
             this.musicGain.gain.setValueAtTime(calcGain(this.settings.music), now);
         }
         if (this.sfxGain) {
-            this.sfxGain.gain.setValueAtTime(calcGain(this.settings.sfx), now);
+            const showcaseFactor = this.isShowcaseMix ? AUDIO.SHOWCASE_SFX_GAIN : 1;
+            this.sfxGain.gain.setValueAtTime(calcGain(this.settings.sfx) * showcaseFactor, now);
         }
         if (this.uiGain) {
             this.uiGain.gain.setValueAtTime(calcGain(this.settings.ui), now);

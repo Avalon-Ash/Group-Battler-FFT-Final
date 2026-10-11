@@ -178,6 +178,10 @@ export const useGameApp = () => {
     }, []);
 
     useEffect(() => {
+        engineRef.current.bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: session.isShowcaseMode });
+    }, [session.isShowcaseMode]);
+
+    useEffect(() => {
         const interval = setInterval(() => setSession(prev => ({ ...prev, unitCount: engineRef.current.agents.length })), 500);
         return () => clearInterval(interval);
     }, []);
