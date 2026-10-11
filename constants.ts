@@ -424,3 +424,48 @@ export const UI_PIN = {
     },
 } as const;
 
+/**
+ * 渲染效能診斷與量測參數 SSOT。
+ */
+export const RENDER_PERF = {
+    QUERY_KEY: 'perf',
+    EMA_ALPHA: 0.1,
+    HISTORY_FRAMES: 60,
+    PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
+} as const;
+
+/**
+ * 地形 Sprite 快取與量化參數 SSOT。
+ */
+export const RENDER_CACHE = {
+    SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
+    MAX_TERRAIN_SPRITES: 512,
+    FLOAT_STEP: 0.5,
+    HEIGHT_KEY_SCALE: 2,
+    SPRITE_PADDING: 4,
+} as const;
+
+/**
+ * 渲染解析度與自適應品質調度參數 SSOT。
+ */
+export const RENDER_QUALITY = {
+    MAX_DPR: 2,
+    DEFAULT_DPR: 1,
+    IGNORE_FRAME_MS: 250,
+    DOWN_MS: 19,
+    DOWN_HOLD_S: 2,
+    /** Upgrade threshold on main-thread WORK time (vsync independent); rAF dt can never fall below the refresh interval. */
+    UP_MS: 9,
+    UP_HOLD_S: 12,
+    COOLDOWN_S: 15,
+    /** Frames during the first seconds are ignored (JIT warm-up, sprite baking). */
+    STARTUP_GRACE_S: 5,
+    /** Max exponent of the upgrade-cooldown doubling after an upgrade is immediately undone. */
+    MAX_UP_BACKOFF: 4,
+    WINDOW_FRAMES: 60,
+    TIER_SCALES: [1.0, 1.0, 0.75, 0.5] as const,
+    QUERY_KEY: 'quality',
+} as const;
+
+
+

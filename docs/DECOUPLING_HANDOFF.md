@@ -343,3 +343,20 @@ npm run lint; npm run build
 - `U13`（Tabs／CommandBar／InfoTip／Dialog／頂部狀態列）為選配，使用者未提需求，未排程。
 - `README.md` 仍提到已刪除的 `UnitInspectorHUD`（現為 `inspector` 視窗＋`UnitInspectorBody`）。
 - `tailwindPaletteClasses` baseline 仍有 369 處待 Token 化（U11e 批次未全做完，見 `UI_NIGHT_REPORT_4.md`）。
+
+### 10.4 效能優化結果摘要（2026-10-11，perf/render-opt 執行完成）
+- **核心成效**：
+  - 地形 Sprite 快取（P1a）徹底消除了噪聲顆粒（`clip + overlay`）的每幀計算開銷。五大生態系（VOID / FOREST / ICE / MAGMA / DESERT）平均幀耗時自 7.72ms 大幅下降至 **4.55ms（節省 ~41% 耗時）**，基準與關閉顆粒之差距自 68.6% 降至 **0.0%**。
+  - 解析度 SSOT 與上限（P4）：`getRenderDpr()` 限制於 `MAX_DPR = 2`，畫布 context 啟用 `{ alpha: false }` 消除背景混合開銷。
+  - 自適應品質調度器（P5）：`createQualityGovernor` 提供 0..3 階遲滯調度（13~19ms 緩衝帶，防抖動）與 `?quality=0..3` 釘死支援。
+  - 每幀零配置清理（P6）：消除 `drawWorld` 遮擋 Set/Array 與視口物件之每幀 GC 負擔，GC 維持 ≤0.6%。
+  - 雙重效能棘輪（P8）：`npm run perf:guard` 整合像素保真與相對比例（≤1.15）/基準絕對值（≤1.5x）守門。
+- **保真度驗證**：
+  - 全 5 場景通過 `perf:fidelity`（`meanAbsDiff` 0.42~0.58 ≤ 0.8，`badPixelPct` 0.05%~0.14% ≤ 0.5%），預設 Tier 0 視覺逐像素等價 0 差異。
+- **本地 Checkpoint Tags**：
+  - `perf-ckpt-P0`、`perf-ckpt-P1`、`perf-ckpt-P4`、`perf-ckpt-P5`、`perf-ckpt-final`。
+- **未完成項**：**無**。P0a～P8 所有目標全數如期達成；P3a/b 依守則豁免（P2 Profiling 實測 JS 渲染函式均 ≤0.5%，無 ≥3% 殘餘熱點）。
+- **建議（待使用者決定）**：
+  - Showcase 模式下矩陣雨（Matrix Rain）在高 DPR 下開銷顯著（可省 40% 耗時），建議保留既有視覺開關，低階/Retina 裝置可由使用者手動停用。
+  - 詳細對照數據、Profiling 排名與使用者驗證指南見 `docs/PERF_REPORT.md`。
+

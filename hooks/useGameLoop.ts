@@ -3,6 +3,7 @@ import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine } from '../engine/game';
 import { GameEvent } from '../types';
 import { GameRenderer } from '../engine/renderer';
+import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 
 export const useGameLoop = (
     engine: GameEngine,
@@ -38,7 +39,7 @@ export const useGameLoop = (
                 if (!isMountedRef.current || !canvasRef.current || !entries[0]) return;
 
                 const { width, height } = entries[0].contentRect;
-                const dpr = window.devicePixelRatio || 1;
+                const dpr = getRenderDpr();
                 const logicalW = Math.floor(width);
                 const logicalH = Math.floor(height);
                 const physicalW = Math.floor(width * dpr);
@@ -82,6 +83,7 @@ export const useGameLoop = (
         const step = 1000 / targetFPS;
         let frameCount = 0;
         let lastFpsTime = 0;
+        let lastDpr = getRenderDpr();
 
         const loop = (t: number) => {
             if (!isMountedRef.current) return;
@@ -90,7 +92,7 @@ export const useGameLoop = (
                 frameRef.current = requestAnimationFrame(loop);
                 return;
             }
-            const ctx = canvasRef.current.getContext('2d');
+            const ctx = canvasRef.current.getContext('2d', { alpha: false });
             if (!ctx) {
                 frameRef.current = requestAnimationFrame(loop);
                 return;
@@ -100,6 +102,9 @@ export const useGameLoop = (
             const dt = t - lastTime;
             lastTime = t;
 
+            // Main-thread work time of this frame (vsync independent) feeds the quality governor's upgrade decision.
+            const workStart = performance.now();
+
             // Increment Real Time strictly by dt
             realTimeRef.current += dt / 1000;
 
@@ -108,6 +113,31 @@ export const useGameLoop = (
                 fpsRef.current = frameCount;
                 frameCount = 0;
                 lastFpsTime = t;
+
+                // 每秒檢查一次 getRenderDpr() 是否變動，變動則重設畫布實體尺寸
+                const currentDpr = getRenderDpr();
+                if (currentDpr !== lastDpr && canvasRef.current && wrapperRef.current) {
+                    lastDpr = currentDpr;
+                    const logicalW = Math.floor(wrapperRef.current.clientWidth);
+                    const logicalH = Math.floor(wrapperRef.current.clientHeight);
+                    const physicalW = Math.floor(logicalW * currentDpr);
+                    const physicalH = Math.floor(logicalH * currentDpr);
+
+                    if (logicalW > 0 && logicalH > 0 && (canvasRef.current.width !== physicalW || canvasRef.current.height !== physicalH)) {
+                        canvasRef.current.width = physicalW;
+                        canvasRef.current.height = physicalH;
+                        canvasRef.current.style.width = `${logicalW}px`;
+                        canvasRef.current.style.height = `${logicalH}px`;
+                        engine.bus.emit('UI_COMMAND', { type: 'SET_VIEWPORT', width: logicalW, height: logicalH });
+
+                        if (resizeTimerRef.current) window.clearTimeout(resizeTimerRef.current);
+                        resizeTimerRef.current = window.setTimeout(() => {
+                            if (isMountedRef.current) {
+                                resizeCallbackRef.current(logicalW, logicalH);
+                            }
+                        }, 50);
+                    }
+                }
             }
 
             if (engine.isRunning) {
@@ -125,6 +155,10 @@ export const useGameLoop = (
             // Renderer update now handles time splitting internally using Engine state
             rendererRef.current.update(dt / 1000, engine, cameraRef);
             drawCallbackRef.current(ctx, fpsRef.current);
+
+            if (dt > 0 && (typeof document === 'undefined' || !document.hidden)) {
+                getDefaultQualityGovernor().feedFrame(dt, undefined, performance.now() - workStart);
+            }
 
             frameRef.current = requestAnimationFrame(loop);
         };

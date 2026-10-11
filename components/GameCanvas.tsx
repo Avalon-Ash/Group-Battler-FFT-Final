@@ -11,6 +11,7 @@ import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
 import { Icons } from './ui/icons';
 import { UI_Z } from '../constants';
+import { getRenderDpr } from '../engine/renderers/RenderQuality';
 interface GameCanvasProps {
     engine: GameEngine;
     tool: ToolType;
@@ -89,7 +90,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         if (draggedObstacle && canvasRef.current) {
             const { type, px, py } = draggedObstacle;
             const { x, y, zoom: camZoom } = camera.current;
-            const dpr = window.devicePixelRatio || 1;
+            const dpr = getRenderDpr();
             ctx.save();
             ctx.scale(dpr, dpr);
             const logicalW = canvasRef.current.width / dpr;

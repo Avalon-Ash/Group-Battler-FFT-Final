@@ -8,6 +8,8 @@ import { HUDRenderer } from "./HUDRenderer";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
+import { RenderStats } from "./RenderStats";
+import { getRenderDpr } from "./RenderQuality";
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -21,6 +23,15 @@ export class RenderPipeline {
     private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
     private _terrainHEngine: GameEngine | null = null;
     
+    // Scratch structures to eliminate per-frame allocations
+    private _scratchOccludedSet = new Set<Agent>();
+    private _scratchOccludedList: Agent[] = [];
+    private _viewportScratch: { width: number; height: number; camera: Camera } = {
+        width: 0,
+        height: 0,
+        camera: { x: 0, y: 0, zoom: 1 },
+    };
+
     // Transition State managed internally (SSOT)
     private transitionT: number = 0;
     private transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE';
@@ -58,33 +69,41 @@ export class RenderPipeline {
         const { width: pW, height: pH } = ctx.canvas;
         if (pW === 0 || pH === 0) return;
 
-        const dpr = window.devicePixelRatio || 1;
-        const [lW, lH] = [pW / dpr, pH / dpr];
+        const dpr = getRenderDpr();
+        const lW = pW / dpr;
+        const lH = pH / dpr;
         const { mapConfig: cfg, currentScene: sc } = engine;
         
         // 1. Clear & Background
+        RenderStats.begin('background');
         ctx.resetTransform(); 
         ctx.fillStyle = '#020617'; 
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
         // Background uses RealTime for ambient effects (stars, fog) even when game paused
         this.background.draw(ctx, lW, lH, sc, cfg, realTime);
+        RenderStats.end('background');
         
         // 2. Main Scene (World Space)
+        RenderStats.begin('world');
         ctx.save();
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         // World objects use BattleTime to sync with logic
         this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt);
         ctx.restore(); 
+        RenderStats.end('world');
 
         // 3. Post Processing
+        RenderStats.begin('post');
         let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
         this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
         // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
         this.post.applyToneGrade(ctx, pW, pH);
+        RenderStats.end('post');
         
         // 4. Overlays (Screen/World Hybrid)
+        RenderStats.begin('overlay+hud');
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
@@ -94,6 +113,7 @@ export class RenderPipeline {
         ctx.restore(); 
 
         if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
+        RenderStats.end('overlay+hud');
         this.tactical.drawDebug(ctx, fps, engine);
         
         // 5. Global Transition/Finish Blur
@@ -112,11 +132,15 @@ export class RenderPipeline {
         }
         const terrainH = this._cachedTerrainH;
 
-        const lW = ctx.canvas.width / (window.devicePixelRatio || 1);
-        const lH = ctx.canvas.height / (window.devicePixelRatio || 1);
+        const dpr = getRenderDpr();
+        const lW = ctx.canvas.width / dpr;
+        const lH = ctx.canvas.height / dpr;
 
         this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
-        this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, { width: lW, height: lH, camera });
+        this._viewportScratch.width = lW;
+        this._viewportScratch.height = lH;
+        this._viewportScratch.camera = camera;
+        this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
         this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
         
         this.renderList.sort();
@@ -132,11 +156,30 @@ export class RenderPipeline {
         if (engine.isRunning) {
             const occluded = this.renderer.grid.getOccludedAgents(engine);
             const obstacleOccluded = this.renderer.grid.getObstacleOccludedAgents(engine);
-            const allOccluded = [...new Set([...occluded, ...obstacleOccluded])];
 
-            if (allOccluded.length > 0) {
+            this._scratchOccludedSet.clear();
+            this._scratchOccludedList.length = 0;
+
+            for (let i = 0; i < occluded.length; i++) {
+                const a = occluded[i];
+                if (!this._scratchOccludedSet.has(a)) {
+                    this._scratchOccludedSet.add(a);
+                    this._scratchOccludedList.push(a);
+                }
+            }
+            for (let i = 0; i < obstacleOccluded.length; i++) {
+                const a = obstacleOccluded[i];
+                if (!this._scratchOccludedSet.has(a)) {
+                    this._scratchOccludedSet.add(a);
+                    this._scratchOccludedList.push(a);
+                }
+            }
+
+            if (this._scratchOccludedList.length > 0) {
                 ctx.save();
-                allOccluded.forEach(a => this.renderer.unit.drawSilhouette(ctx, a, terrainH, t, engine.mapConfig));
+                for (let i = 0; i < this._scratchOccludedList.length; i++) {
+                    this.renderer.unit.drawSilhouette(ctx, this._scratchOccludedList[i], terrainH, t, engine.mapConfig);
+                }
                 ctx.restore();
             }
         }

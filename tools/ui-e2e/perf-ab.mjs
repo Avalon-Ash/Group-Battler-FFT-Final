@@ -9,15 +9,18 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import os from 'node:os';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
 mkdirSync(OUT, { recursive: true });
 
-const SECONDS = Number(process.env.PERF_SECONDS || 6);
+const isAssert = process.env.PERF_ASSERT === '1' || process.argv.includes('--assert');
+const isRecord = process.env.PERF_RECORD === '1' || process.argv.includes('--record');
+const SECONDS = Number(process.env.PERF_SECONDS || (isAssert ? 3 : (process.env.PERF_MODE === 'showcase' ? 4 : 6)));
 const DSF = Number(process.env.PERF_DSF || 1);
 const THROTTLE = Number(process.env.PERF_CPU_THROTTLE || 1);
 
@@ -32,7 +35,7 @@ const launchBrowser = async () => {
 
 const server = await createServer({ server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = server.resolvedUrls.local[0];
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
 const browser = await launchBrowser();
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: DSF });
 const page = await ctx.newPage();
@@ -76,6 +79,15 @@ const setCss = (css) => page.evaluate((text) => {
     el.textContent = text;
 }, css);
 
+const setMatrixRainVisible = (visible) => page.evaluate((v) => {
+    const canvases = document.querySelectorAll('canvas');
+    for (const c of canvases) {
+        if (c.classList.contains('mix-blend-screen') || (c !== document.querySelector('.bg-slate-950 canvas') && c.getAttribute('id') !== 'tactical-canvas')) {
+            c.style.display = v ? '' : 'none';
+        }
+    }
+}, visible);
+
 const results = {};
 const variants = [
     ['baseline', {}, ''],
@@ -93,30 +105,126 @@ const setScene = (id) => page.evaluate(async (sid) => {
     return mod.SCENE_DB.map((x) => x.id);
 }, id);
 try {
-    // Leave Showcase: manual idle mode keeps the scene fixed (no auto theme cycling).
-    await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
-    await page.waitForTimeout(800);
-    const ids = await page.evaluate(async () => (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id));
-    const only = process.env.PERF_SCENES ? process.env.PERF_SCENES.split(',') : ids;
-    for (const sid of only) {
-        await setScene(sid);
-        await page.waitForTimeout(500);
-        results[sid] = {};
-        // two interleaved rounds to cancel drift
-        for (let round = 0; round < 2; round++) {
-            for (const [name, cfgPatch, css] of variants) {
-                await setCfg(cfgPatch);
+    if (process.env.PERF_MODE === 'showcase') {
+        console.log(`\n== SHOWCASE MODE A/B EXPERIMENT (DSF=${DSF}, THROTTLE=${THROTTLE}, SECONDS=${SECONDS}, ROUNDS=3) ==`);
+        const showcaseVariants = [
+            ['baseline', '', true],
+            ['no_backdrop_filter', '*{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}', true],
+            ['no_matrix_rain', '', false],
+            ['no_both', '*{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}', false],
+        ];
+        results['showcase'] = {};
+        for (let round = 0; round < 3; round++) {
+            console.log(`-- Round ${round + 1}/3 --`);
+            for (const [name, css, matrixVis] of showcaseVariants) {
                 await setCss(css);
-                await page.waitForTimeout(400);
+                await setMatrixRainVisible(matrixVis);
+                await page.waitForTimeout(500);
                 const m = await measure();
-                (results[sid][name] ??= []).push(m.avgMs);
+                (results['showcase'][name] ??= []).push(m.avgMs);
+                console.log(`  ${name.padEnd(20)}: ${m.avgMs}ms (${m.fps} fps)`);
             }
         }
-        const line = Object.entries(results[sid]).map(([k, v]) => `${k}=${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}ms`).join('  ');
-        console.log(sid.padEnd(16), line);
+        await setCss('');
+        await setMatrixRainVisible(true);
+        const summary = {};
+        for (const [k, v] of Object.entries(results['showcase'])) {
+            const avg = v.reduce((a, b) => a + b, 0) / v.length;
+            summary[k] = { avgMs: +avg.toFixed(2), fps: +(1000 / avg).toFixed(1) };
+        }
+        console.log('\nSHOWCASE SUMMARY:', JSON.stringify(summary, null, 2));
+        writeFileSync(join(OUT, `perf_ab_showcase_dsf${DSF}_cpu${THROTTLE}.json`), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, summary, results }, null, 2));
+    } else {
+        // Leave Showcase: manual idle mode keeps the scene fixed (no auto theme cycling).
+        await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
+        await page.waitForTimeout(800);
+        const ids = await page.evaluate(async () => (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id));
+        const only = process.env.PERF_SCENES ? process.env.PERF_SCENES.split(',') : ids;
+        for (const sid of only) {
+            await setScene(sid);
+            await page.waitForTimeout(500);
+            results[sid] = {};
+            // two interleaved rounds to cancel drift
+            for (let round = 0; round < 2; round++) {
+                for (const [name, cfgPatch, css] of variants) {
+                    await setCfg(cfgPatch);
+                    await setCss(css);
+                    await page.waitForTimeout(400);
+                    const m = await measure();
+                    (results[sid][name] ??= []).push(m.avgMs);
+                }
+            }
+            const line = Object.entries(results[sid]).map(([k, v]) => `${k}=${(v.reduce((a, b) => a + b, 0) / v.length).toFixed(1)}ms`).join('  ');
+            console.log(sid.padEnd(16), line);
+        }
+        await setCfg({}); await setCss('');
+        writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
     }
-    await setCfg({}); await setCss('');
-    writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
+    if (isRecord) {
+        const baselinePath = join(here, 'perf-baseline.json');
+        const baselines = {};
+        for (const [sid, data] of Object.entries(results)) {
+            if (data.baseline && data.baseline.length > 0) {
+                const avg = data.baseline.reduce((a, b) => a + b, 0) / data.baseline.length;
+                baselines[sid] = +avg.toFixed(2);
+            }
+        }
+        const recordData = {
+            _comment: "Absolute ms baseline per scene recorded on this host machine. Values are for regression reference on the same machine only.",
+            machine: {
+                cpu: os.cpus()[0]?.model || 'unknown',
+                totalMem: os.totalmem(),
+            },
+            recordedAt: new Date().toISOString(),
+            baselines,
+        };
+        writeFileSync(baselinePath, JSON.stringify(recordData, null, 2));
+        console.log(`\n[PERF_RECORD] Recorded baseline successfully written to ${baselinePath}`);
+    }
+
+    if (isAssert) {
+        let assertFailed = false;
+        console.log('\n[PERF_ASSERT] Evaluating performance guardrails...');
+        const baselinePath = join(here, 'perf-baseline.json');
+        let recordedMap = null;
+        if (existsSync(baselinePath)) {
+            try {
+                const parsed = JSON.parse(readFileSync(baselinePath, 'utf8'));
+                recordedMap = parsed.baselines;
+            } catch (e) {
+                console.warn('[PERF_ASSERT] Warning: could not parse perf-baseline.json:', e.message);
+            }
+        }
+
+        for (const [sid, data] of Object.entries(results)) {
+            if (!data.baseline || !data.no_terrain_grain) continue;
+            const baseAvg = data.baseline.reduce((a, b) => a + b, 0) / data.baseline.length;
+            const noGrainAvg = data.no_terrain_grain.reduce((a, b) => a + b, 0) / data.no_terrain_grain.length;
+            const ratio = baseAvg / Math.max(0.01, noGrainAvg);
+
+            console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: baseline=${baseAvg.toFixed(2)}ms, no_grain=${noGrainAvg.toFixed(2)}ms, ratio=${ratio.toFixed(2)} (threshold <= 1.15)`);
+            if (ratio > 1.15) {
+                console.error(`[PERF_ASSERT] FAILED: ${sid} ratio ${ratio.toFixed(2)} exceeds 1.15! (Terrain sprite caching regression)`);
+                assertFailed = true;
+            }
+
+            if (recordedMap && typeof recordedMap[sid] === 'number') {
+                const threshold = +(recordedMap[sid] * 1.5).toFixed(2);
+                console.log(`[PERF_ASSERT] ${sid.padEnd(12)}: recorded=${recordedMap[sid]}ms, threshold (x1.5)=${threshold}ms, current=${baseAvg.toFixed(2)}ms`);
+                if (baseAvg > threshold) {
+                    console.error(`[PERF_ASSERT] FAILED: ${sid} baseline=${baseAvg.toFixed(2)}ms exceeds recorded threshold=${threshold}ms!`);
+                    assertFailed = true;
+                }
+            }
+        }
+
+        if (assertFailed) {
+            console.error('\n[PERF_ASSERT] ONE OR MORE PERFORMANCE GUARDRAILS FAILED.\n');
+            process.exitCode = 1;
+        } else {
+            console.log('\n[PERF_ASSERT] ALL performance guardrails PASSED.\n');
+        }
+    }
 } finally {
     await browser.close();
     await server.close();

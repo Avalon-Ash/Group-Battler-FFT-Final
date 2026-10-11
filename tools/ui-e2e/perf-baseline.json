@@ -1,0 +1,15 @@
+{
+  "_comment": "Absolute ms baseline per scene recorded on this host machine. Values are for regression reference on the same machine only.",
+  "machine": {
+    "cpu": "AMD Ryzen 7 7800X3D 8-Core Processor           ",
+    "totalMem": 67820969984
+  },
+  "recordedAt": "2026-10-10T19:52:51.040Z",
+  "baselines": {
+    "VOID": 17.59,
+    "FOREST": 17.62,
+    "ICE": 17.59,
+    "MAGMA": 17.58,
+    "DESERT": 17.64
+  }
+}

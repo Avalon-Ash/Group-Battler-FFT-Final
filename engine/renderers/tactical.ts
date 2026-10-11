@@ -2,6 +2,8 @@ import { Agent, GameEngine } from "../game";
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
 import { TACTICAL_COLORS } from "../../constants";
+import { RenderStats } from "./RenderStats";
+import { getQualityTier } from "./RenderQuality";
 
 export interface RenderCamera {
     x: number;
@@ -147,6 +149,12 @@ export class TacticalRenderer {
         ctx.font = '10px monospace';
         ctx.textAlign = 'left';
         ctx.fillText(`FPS: ${fps}`, 10, 20);
+
+        if (RenderStats.enabled) {
+            const summary = RenderStats.formatSummary();
+            const text = summary ? `${summary} | tier:${getQualityTier()}` : `tier:${getQualityTier()}`;
+            ctx.fillText(text, 10, 32);
+        }
 
         // SUDDEN DEATH WARNING
         if (engine.battleTime > 60) {

@@ -11,6 +11,11 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "e2e:ui": "node tools/ui-e2e/windows.e2e.mjs",
+    "perf:profile": "node tools/ui-e2e/perf-profile.mjs",
+    "perf:ab": "node tools/ui-e2e/perf-ab.mjs",
+    "perf:fidelity": "node tools/ui-e2e/render-fidelity.mjs",
+    "perf:fidelity:record": "node tools/ui-e2e/render-fidelity.mjs --record",
+    "perf:guard": "npm run perf:fidelity && node tools/ui-e2e/perf-ab.mjs --assert",
     "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts"
   },
   "dependencies": {
