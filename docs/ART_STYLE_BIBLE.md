@@ -135,3 +135,34 @@ AI 逐張生成旋轉圖（含單圖多視角）的正背面一致性（持握�
 - **保留**：§7 體型軸（`Team × Role × BodyType`）、§9 的四向資料結構與 `mirrorFrom` 後備、A2e 的隨機派發與編輯器、陣營識別（§2）、地形材質（§4，仍用 `terrain_grid.jpg`）。
 - **降級為風格參考（不入遊戲）**：`art/_superseded/`、`art/turn_*.jpg`、`IMAGE_PROMPT_PACK.md`，以及使用者自備的雙陣營五職業 10 張圖。
 - **待試驗後確認**：低多邊形卡通渲染是否接受；女性體型來源（Quaternius）；動作格清單與格尺寸。
+
+## 11. 3D 預渲染單位精靈管線規格（2026-10-11，取代 §8、§9 的「AI 逐張生圖」製作方式）
+
+**決策**：單位美術＝**CC0 已綁骨架角色（KayKit Adventurers）＋Blender 離線卡通渲染＋圖集打包**，風格「Q 版卡通，先求有再求好」。AI 生圖僅保留給地形材質與日後的圖示類素材。
+
+### 11.1 渲染規格（腳本：`tools/assets/blender/render_unit.py`、`pack_sprites.py`）
+- **相機**：正交，仰角 30°（＝引擎 `ISO_SCALE_Y = 0.5 = sin 30°`），固定；模型以 Z 軸旋轉取得四個**原生**斜向：SE＝+45°、SW＝−45°、NE＝+135°、NW＝−135°（SE＝面向畫面右下，NW＝背向面左上）。**不鏡射**。
+- **著色**：自發光卡通——漫射 → ShaderToRGB → 三階常數色階（0.50／0.80／1.00）× 貼圖色；Freestyle 深褐描邊（`(0.07, 0.04, 0.03)`，約 1.25 px @ 160 px）；無地面陰影（引擎自畫）；透明背景。
+- **格**：256×256 來源像素；世界原點（腳底）固定落在 `(128, 184.32)`；`pxPerWorldUnit = 256 / 3.6`。打包時裁切透明邊並以 shelf 演算法排版（圖集寬 2048、間距 2 px），manifest 記錄每格矩形與相對錨點的偏移。
+- **動畫（所有職業共用格數）**：`idle`6（循環）、`walk`6（循環）、`attack`6、`hit`3、`death`6（停最後一格）；`cast`6 僅 MAGE／SUPPORT。均勻取樣動作片段。
+
+### 11.2 陣營與職業
+| 職業 | KayKit 角色 | 武器／裝備 | 攻擊動作 |
+| :-- | :-- | :-- | :-- |
+| TANK | Knight | 單手劍＋徽章盾 | `1H_Melee_Attack_Slice_Diagonal` |
+| WARRIOR | Barbarian | 雙手斧 | `2H_Melee_Attack_Slice` |
+| RANGER | Rogue_Hooded | 雙手弩 | `2H_Ranged_Shoot` |
+| MAGE | Mage（帽） | 法杖 | `Spellcast_Shoot`；施法 `Spellcasting` |
+| SUPPORT | Mage（無帽，暫代） | 魔杖＋法術書、白金／暗色長袍 | `1H_Ranged_Shoot`；施法 `Spellcast_Raise` |
+
+- **BLUE（獅心）**：布料（披風／帽）＝皇家藍 `(0.06, 0.16, 0.46)`，護甲乘冷色 `(0.92, 0.96, 1.08)`。
+- **RED（灰燼軍團）**：布料＝深紅 `(0.42, 0.04, 0.03)`，護甲乘暗色 `(0.62, 0.54, 0.52)`。
+- 日後要加獅紋／餘燼紋樣：在 `render_unit.py` 以額外網格或貼圖疊加，不改引擎。
+
+### 11.3 體型擴充
+- 新體型（FEMALE、幼童、巨人、動物、神話生物）＝**新增一組角色模型／骨架對應＋同一腳本渲染＋manifest 新鍵 `<TEAM>:<ROLE>:<BODY>`＋把 `BODY_TYPE_PROFILE[...].enabled` 打開**；渲染器不改。
+- FEMALE 預計用 Quaternius Universal Base Characters（寫實比例，須搭配組裝護甲／髮型）；若比例與 KayKit Q 版差距過大，需統一為同一風格再入庫。
+
+### 11.4 授權與紀錄
+- KayKit Adventurers 1.0：CC0（`LICENSE.txt` 隨包附）；作者 Kay Lousberg；登記於 `docs/ASSET_LEDGER.md`，致謝建議列於 `CREDITS.md`。
+- 衍生精靈（算圖、改色）視為衍生自 CC0 的作品，與 AI 生成的地形材質一樣隨專案公開。
