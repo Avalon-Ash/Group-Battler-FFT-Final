@@ -106,6 +106,9 @@
     "VICTORY_STING": [
       "assets/audio/music/victory_sting.ogg"
     ],
+    "VICTORY_RED_STING": [
+      "assets/audio/music/victory_red.ogg"
+    ],
     "DEFEAT_STING": [
       "assets/audio/music/defeat_sting.ogg"
     ]

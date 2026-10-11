@@ -84,6 +84,7 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
     let audioSystem: AudioSystem;
 
     beforeEach(() => {
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
         bus = new EventBus();
         mockCtx = createMockAudioContext();
         audioEngine = new AudioEngine({
@@ -174,6 +175,30 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
         // Victory
         bus.emit('GAME_OVER', { winner: Team.BLUE });
         expect(playMusicSpy).toHaveBeenCalledWith('VICTORY_STING', 0.2);
+    });
+
+    it('plays a distinct victory track for Red, and DEFEAT_STING for a draw', () => {
+        audioEngine.unlock();
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+
+        bus.emit('GAME_OVER', { winner: Team.RED });
+        expect(playMusicSpy).toHaveBeenCalledWith('VICTORY_RED_STING', 0.2);
+        expect(playMusicSpy).not.toHaveBeenCalledWith('VICTORY_STING', 0.2);
+
+        bus.emit('GAME_OVER', { winner: null });
+        expect(playMusicSpy).toHaveBeenCalledWith('DEFEAT_STING', 0.2);
+    });
+
+    it('does not cut the result sting short on ENV_UPDATE, but resumes ambient after GAME_CLEAR', () => {
+        audioEngine.unlock();
+        bus.emit('GAME_OVER', { winner: Team.BLUE });
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+
+        bus.emit('ENV_UPDATE', {});
+        expect(playMusicSpy).not.toHaveBeenCalled();
+
+        bus.emit('GAME_CLEAR', {});
+        expect(playMusicSpy).toHaveBeenCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
     });
 
     it('GameEngine with ?mute does not instantiate AudioSystem', () => {

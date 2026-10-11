@@ -76,5 +76,6 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | `assets/audio/music/battle_normal.ogg` | BATTLE_NORMAL | Battle Music | Alexandr Zhelanov | https://opengameart.org/content/battle-music | CC-BY 3.0 | Yes (soundcloud.com/alexandr-zhelanov) | 2026-10-12 |
 | `assets/audio/music/battle_tense.ogg` | BATTLE_TENSE | Tiny Swords Duel | Alexandr Zhelanov | https://opengameart.org/content/tiny-swords-duel | CC-BY 4.0 | Yes (youtube.com/c/AlexandrZhelanovsMusic) | 2026-10-12 |
 | `assets/audio/music/victory_sting.ogg` | VICTORY_STING | Victory Fanfare Short | cynicmusic | https://opengameart.org/content/victory-fanfare-short | CC0 1.0 | Optional (cynicmusic.com) | 2026-10-12 |
+| `assets/audio/music/victory_red.ogg` | VICTORY_RED_STING | Victory Theme for RPG (derived: pitched down ~4 semitones, lowpass 7 kHz, trimmed to 45 s, fade-out) | cynicmusic | https://opengameart.org/content/victory-theme-for-rpg | CC0 1.0 | Optional (cynicmusic.com) | 2026-10-12 |
 | `assets/audio/music/defeat_sting.ogg` | DEFEAT_STING | Game Over - Repeating Dream | Devlin Bataric | https://opengameart.org/content/69-game-over-jingles-pack | CC-BY 4.0 | Yes (Devlin Bataric) | 2026-10-12 |
 

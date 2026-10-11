@@ -1,8 +1,11 @@
+import { Team } from '../../types';
+
 export type TrackId =
     | 'SHOWCASE_AMBIENT'
     | 'BATTLE_NORMAL'
     | 'BATTLE_TENSE'
     | 'VICTORY_STING'
+    | 'VICTORY_RED_STING'
     | 'DEFEAT_STING';
 
 export interface MusicTrackDef {
@@ -52,6 +55,14 @@ export const MUSIC_TABLE: Record<TrackId, MusicTrackDef> = {
         volume: 0.85,
         synthPadRootFreq: 261.63 // C4
     },
+    VICTORY_RED_STING: {
+        id: 'VICTORY_RED_STING',
+        title: 'Ashen Legion Triumph (Victory Theme, pitched down)',
+        files: ['assets/audio/music/victory_red.ogg'],
+        loop: false,
+        volume: 0.80,
+        synthPadRootFreq: 196.00 // G3
+    },
     DEFEAT_STING: {
         id: 'DEFEAT_STING',
         title: 'Game Over - Repeating Dream',
@@ -60,6 +71,12 @@ export const MUSIC_TABLE: Record<TrackId, MusicTrackDef> = {
         volume: 0.80,
         synthPadRootFreq: 196.00 // G3
     }
+};
+
+/** 勝方陣營至勝利曲目對映（平手 / 無勝方時使用 DEFEAT_STING） */
+export const WINNER_TO_VICTORY_TRACK: Record<Team, TrackId> = {
+    [Team.BLUE]: 'VICTORY_STING',
+    [Team.RED]: 'VICTORY_RED_STING'
 };
 
 /**

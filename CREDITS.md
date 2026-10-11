@@ -52,3 +52,8 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
   - *Source*: [cynicmusic.com](http://cynicmusic.com) / [OpenGameArt.org](https://opengameart.org/content/victory-fanfare-short)
   - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
 
+- **cynicmusic (Alexandr Zhelanov)**
+  - *Track*: "Victory Theme for RPG" (Ashen Legion / Red victory theme; pitched down and trimmed)
+  - *Source*: [OpenGameArt.org](https://opengameart.org/content/victory-theme-for-rpg)
+  - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
+

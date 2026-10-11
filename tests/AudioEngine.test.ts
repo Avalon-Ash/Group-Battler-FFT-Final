@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { AUDIO } from '../constants';
 import { AudioEngine } from '../engine/audio/AudioEngine';
 import { AudioPRNG, createSynthBuffer, clearSynthCache } from '../engine/audio/Synth';
@@ -122,6 +122,11 @@ describe('AudioPRNG (Deterministic Non-Math.random RNG)', () => {
 describe('AudioEngine', () => {
     beforeEach(() => {
         clearSynthCache();
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
+    });
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
     });
 
     it('with forceMute / ?mute, does not create AudioContext or play any sounds', () => {
@@ -202,23 +207,79 @@ describe('AudioEngine', () => {
         expect(engine.isMuted()).toBe(false);
     });
 
-    it('plays and crossfades background music', () => {
-        const { ctx } = createMockAudioContext();
-        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
-        engine.unlock();
+    const flush = async () => {
+        for (let i = 0; i < 10; i++) await Promise.resolve();
+        await new Promise(r => setTimeout(r, 0));
+    };
 
-        engine.playMusic('SHOWCASE_AMBIENT', 1.0);
-        expect(ctx.createBufferSource).toHaveBeenCalled();
+    it('plays and crossfades background music (loads files on demand, real file not synth pad)', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
+        try {
+            const { ctx } = createMockAudioContext();
+            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+            engine.unlock();
 
-        // Same track does not trigger redundant restart
-        const countBefore = (ctx.createBufferSource as any).mock.calls.length;
-        engine.playMusic('SHOWCASE_AMBIENT', 1.0);
-        expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore);
+            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+            await flush();
+            expect(ctx.createBufferSource).toHaveBeenCalled();
 
-        // Switching track triggers crossfade
-        engine.playMusic('BATTLE_NORMAL', 1.0);
-        expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore + 1);
+            // Same track does not trigger redundant restart
+            const countBefore = (ctx.createBufferSource as any).mock.calls.length;
+            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+            await flush();
+            expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore);
 
-        engine.stopMusic(1.0);
+            // Switching track triggers crossfade
+            engine.playMusic('BATTLE_NORMAL', 1.0);
+            await flush();
+            expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore + 1);
+
+            engine.stopMusic(1.0);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('falls back to synth pad only when the music file permanently fails to load', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })));
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const { ctx } = createMockAudioContext();
+            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+            engine.unlock();
+
+            engine.playMusic('BATTLE_NORMAL', 1.0);
+            await flush();
+            // Pad fallback started after load failure
+            expect(ctx.createBufferSource).toHaveBeenCalled();
+            const count = (ctx.createBufferSource as any).mock.calls.length;
+
+            // Same (fallback) track is not restarted
+            engine.playMusic('BATTLE_NORMAL', 1.0);
+            await flush();
+            expect((ctx.createBufferSource as any).mock.calls.length).toBe(count);
+            engine.stopMusic(0.1);
+        } finally {
+            warn.mockRestore();
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('does not start the synth pad while the real file is still loading', async () => {
+        let resolveFetch: ((v: unknown) => void) | null = null;
+        vi.stubGlobal('fetch', vi.fn(() => new Promise(res => { resolveFetch = res; })));
+        try {
+            const { ctx } = createMockAudioContext();
+            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+            engine.unlock();
+            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+            await flush();
+            expect(ctx.createBufferSource).not.toHaveBeenCalled();
+            resolveFetch?.({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+            await flush();
+            expect(ctx.createBufferSource).toHaveBeenCalled();
+        } finally {
+            vi.unstubAllGlobals();
+        }
     });
 });

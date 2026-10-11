@@ -507,6 +507,7 @@ export const AUDIO = {
     VOLUME_JITTER: 0.05,
     PRNG_SEED: 133742,
     BGM_CROSSFADE_SEC: 1.5,
+    PRELOAD_BATCH_SIZE: 8,
     STORAGE_KEY: 'tactical_audio_settings',
     QUERY_MUTE_KEY: 'mute',
     VOLUME_CURVE_EXPONENT: 2,

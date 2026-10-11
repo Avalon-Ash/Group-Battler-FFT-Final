@@ -2,6 +2,7 @@ import { AUDIO, SCREEN_CONSTANTS } from '../../../constants';
 import { GameEvent, Team } from '../../../types';
 import { AudioEngine, PlayCueOptions } from '../../audio/AudioEngine';
 import { EventBus } from '../../events/EventBus';
+import { WINNER_TO_VICTORY_TRACK } from '../../../data/audio/music';
 
 /**
  * AudioSystem — 音訊系統控制器（事件驅動橋接器）
@@ -19,6 +20,7 @@ export class AudioSystem {
     private totalAgentsInBattle: number = 10;
     private remainingAgents: number = 10;
     private isBattleActive: boolean = false;
+    private isResultStingActive: boolean = false;
 
     // 儲存事件取消訂閱用之引用
     private unsubscribers: (() => void)[] = [];
@@ -56,6 +58,7 @@ export class AudioSystem {
         // 2. 系統級事件
         this.subscribe('GAME_START', () => {
             this.isBattleActive = true;
+            this.isResultStingActive = false;
             this.totalAgentsInBattle = 10;
             this.remainingAgents = 10;
             this.audioEngine.playCue('UI_START');
@@ -64,10 +67,12 @@ export class AudioSystem {
 
         this.subscribe('GAME_OVER', (data: { winner: Team | null }) => {
             this.isBattleActive = false;
-            if (data.winner === Team.BLUE) {
+            this.isResultStingActive = true;
+            if (data.winner !== null) {
                 this.audioEngine.playCue('VICTORY');
-                this.audioEngine.playMusic('VICTORY_STING', 0.2);
+                this.audioEngine.playMusic(WINNER_TO_VICTORY_TRACK[data.winner], 0.2);
             } else {
+                // 平手 / 同歸於盡：無勝方
                 this.audioEngine.playCue('DEFEAT');
                 this.audioEngine.playMusic('DEFEAT_STING', 0.2);
             }
@@ -75,11 +80,13 @@ export class AudioSystem {
 
         this.subscribe('GAME_CLEAR', () => {
             this.isBattleActive = false;
+            this.isResultStingActive = false;
             this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
         });
 
         this.subscribe('ENV_UPDATE', () => {
-            if (!this.isBattleActive) {
+            // 結算曲播放中不被地圖重置打斷
+            if (!this.isBattleActive && !this.isResultStingActive) {
                 this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
             }
         });

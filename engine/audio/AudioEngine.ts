@@ -29,6 +29,8 @@ interface CurrentMusicTrack {
     trackId: TrackId;
     source: AudioBufferSourceNode;
     gain: GainNode;
+    /** 是否為合成鋪底後備（真實檔案永久載入失敗時才會出現） */
+    isFallback: boolean;
 }
 
 /**
@@ -52,6 +54,11 @@ export class AudioEngine {
     private lastCuePlayTime: Map<CueId, number> = new Map();
     private activeVoices: ActiveVoice[] = [];
     private currentMusic: CurrentMusicTrack | null = null;
+    private wantedTrackId: TrackId | null = null;
+    private failedAssets: Set<string> = new Set();
+    private inflightLoads: Map<string, Promise<AudioBuffer | null>> = new Map();
+    private synthCache: Map<string, AudioBuffer> = new Map();
+    private hasPreloaded: boolean = false;
 
     private unlockListenerBound: (() => void) | null = null;
     private visibilityListenerBound: (() => void) | null = null;
@@ -251,16 +258,36 @@ export class AudioEngine {
     public playMusic(trackId: TrackId, fadeSec: number = AUDIO.BGM_CROSSFADE_SEC): void {
         if (this.isMutedByUrl || !this.ctx) return;
 
-        // 若正在播放同一首曲目則不重播
-        if (this.currentMusic?.trackId === trackId) {
-            return;
-        }
-
         const trackDef = MUSIC_TABLE[trackId];
         if (!trackDef) return;
 
-        const buffer = this.resolveBufferForMusic(trackId);
-        if (!buffer) return;
+        // 記錄「目前期望的曲目」，用於丟棄過期的非同步載入回呼
+        this.wantedTrackId = trackId;
+
+        // 若正在播放同一首（且為真實檔案）則不重播；合成鋪底允許被真實檔案取代
+        if (this.currentMusic?.trackId === trackId && !this.currentMusic.isFallback) {
+            return;
+        }
+
+        const file = trackDef.files[0];
+        let buffer: AudioBuffer | null = file ? (this.bufferCache.get(file) ?? null) : null;
+        let isFallback = false;
+
+        if (!buffer) {
+            if (!this.isMusicFileUnavailable(trackId)) {
+                // 檔案尚在載入：維持現有曲目，載入完成後若仍被期望再切換
+                void this.loadBuffer(file).then(() => {
+                    if (!this.isDestroyed && this.wantedTrackId === trackId) {
+                        this.playMusic(trackId, fadeSec);
+                    }
+                });
+                return;
+            }
+            // 檔案永久不可用：改用合成鋪底（同一 trackId 已在播放鋪底則不重複建立）
+            if (this.currentMusic?.trackId === trackId) return;
+            buffer = createSynthBuffer(this.ctx, 'BGM_PAD', this.prng);
+            isFallback = true;
+        }
 
         try {
             const now = this.ctx.currentTime;
@@ -303,7 +330,8 @@ export class AudioEngine {
             this.currentMusic = {
                 trackId,
                 source: newSource,
-                gain: newGain
+                gain: newGain,
+                isFallback
             };
 
             // 若為非循環曲目（如勝利 / 敗北 sting），播放完畢後平滑回到氛圍曲目
@@ -322,6 +350,7 @@ export class AudioEngine {
      * 停止背景音樂（淡出）
      */
     public stopMusic(fadeSec: number = AUDIO.BGM_CROSSFADE_SEC): void {
+        this.wantedTrackId = null;
         if (!this.ctx || !this.currentMusic) return;
 
         try {
@@ -343,22 +372,39 @@ export class AudioEngine {
         } catch {}
     }
 
-    /** 載入外部音訊檔案至快取 */
-    public async loadBuffer(url: string): Promise<AudioBuffer | null> {
-        if (this.isMutedByUrl || !this.ctx) return null;
-        if (this.bufferCache.has(url)) return this.bufferCache.get(url)!;
+    /** 載入外部音訊檔案至快取（同一 URL 並行請求共用同一 Promise；失敗者記錄於 failedAssets） */
+    public loadBuffer(url: string): Promise<AudioBuffer | null> {
+        if (this.isMutedByUrl || !this.ctx) return Promise.resolve(null);
+        const cached = this.bufferCache.get(url);
+        if (cached) return Promise.resolve(cached);
+        if (this.failedAssets.has(url)) return Promise.resolve(null);
+        const inflight = this.inflightLoads.get(url);
+        if (inflight) return inflight;
 
+        const task = this.fetchAndDecode(url).finally(() => {
+            this.inflightLoads.delete(url);
+        });
+        this.inflightLoads.set(url, task);
+        return task;
+    }
+
+    private async fetchAndDecode(url: string): Promise<AudioBuffer | null> {
+        const ctx = this.ctx;
+        if (!ctx) return null;
         try {
             const resp = await fetch(url);
             if (!resp.ok) {
+                this.failedAssets.add(url);
                 this.warnAssetOnce(`Failed to fetch audio asset: ${url} (${resp.status})`);
                 return null;
             }
             const arrayBuffer = await resp.arrayBuffer();
-            const decoded = await this.ctx.decodeAudioData(arrayBuffer);
+            const decoded = await ctx.decodeAudioData(arrayBuffer);
+            if (this.isDestroyed) return null;
             this.bufferCache.set(url, decoded);
             return decoded;
-        } catch (err) {
+        } catch {
+            this.failedAssets.add(url);
             this.warnAssetOnce(`Failed to decode audio asset: ${url}`);
             return null;
         }
@@ -388,43 +434,53 @@ export class AudioEngine {
     }
 
     /**
-     * BGM 預載策略（S2b）:
-     * 首屏只載入 SHOWCASE_AMBIENT 氛圍曲，其餘曲目透過 idle 回呼於閒置時預取解碼至記憶體快取。
+     * 音訊資產預載策略:
+     * 1. 首屏優先載入 SHOWCASE_AMBIENT 氛圍曲；
+     * 2. 接著載入全部 SFX 檔案（小檔，批次並行解碼）；
+     * 3. 其餘曲目透過 idle 回呼於閒置時預取解碼至記憶體快取（亦可由 playMusic 即時按需載入）。
      */
     public preloadMusicTracks(): void {
-        if (this.isMutedByUrl || !this.ctx) return;
+        if (this.isMutedByUrl || !this.ctx || this.hasPreloaded) return;
+        this.hasPreloaded = true;
 
-        // 1. 首屏立即載入 SHOWCASE_AMBIENT
-        const ambientFile = MUSIC_TABLE.SHOWCASE_AMBIENT.files[0];
-        if (ambientFile) {
-            this.loadBuffer(ambientFile).then(buf => {
-                if (buf && this.currentMusic?.trackId === 'SHOWCASE_AMBIENT') {
-                    this.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
-                }
-            });
-        }
-
-        // 2. 閒置時分批預取其餘曲目
-        const remainingTracks: TrackId[] = ['BATTLE_NORMAL', 'BATTLE_TENSE', 'VICTORY_STING', 'DEFEAT_STING'];
         const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
             ? (cb: () => void) => (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
             : (cb: () => void) => setTimeout(cb, 1000);
 
-        let trackIdx = 0;
-        const loadNextIdle = () => {
-            if (this.isDestroyed || trackIdx >= remainingTracks.length) return;
-            const tid = remainingTracks[trackIdx++];
-            const file = MUSIC_TABLE[tid]?.files[0];
-            if (file) {
-                this.loadBuffer(file).finally(() => {
+        const remainingTracks: TrackId[] = (Object.keys(MUSIC_TABLE) as TrackId[]).filter(t => t !== 'SHOWCASE_AMBIENT');
+        const sfxFiles: string[] = [];
+        for (const def of Object.values(CUE_TABLE)) {
+            for (const f of def.files) {
+                if (!sfxFiles.includes(f)) sfxFiles.push(f);
+            }
+        }
+
+        const loadRemainingMusicIdle = () => {
+            let trackIdx = 0;
+            const loadNextIdle = () => {
+                if (this.isDestroyed || trackIdx >= remainingTracks.length) return;
+                const file = MUSIC_TABLE[remainingTracks[trackIdx++]]?.files[0];
+                if (file) {
+                    void this.loadBuffer(file).finally(() => scheduleIdle(loadNextIdle));
+                } else {
                     scheduleIdle(loadNextIdle);
-                });
-            } else {
-                scheduleIdle(loadNextIdle);
+                }
+            };
+            scheduleIdle(loadNextIdle);
+        };
+
+        const loadSfxBatched = async () => {
+            for (let i = 0; i < sfxFiles.length; i += AUDIO.PRELOAD_BATCH_SIZE) {
+                if (this.isDestroyed) return;
+                await Promise.all(sfxFiles.slice(i, i + AUDIO.PRELOAD_BATCH_SIZE).map(f => this.loadBuffer(f)));
             }
         };
 
-        scheduleIdle(loadNextIdle);
+        const ambientFile = MUSIC_TABLE.SHOWCASE_AMBIENT.files[0];
+        const ambientLoad = ambientFile ? this.loadBuffer(ambientFile) : Promise.resolve(null);
+        void ambientLoad
+            .then(() => loadSfxBatched())
+            .then(() => loadRemainingMusicIdle());
     }
 
     // =========================================================================
@@ -460,8 +516,9 @@ export class AudioEngine {
 
         if (this.ctx.state === 'running') {
             this.isUnlocked = true;
-            this.preloadMusicTracks();
         }
+        // 檔案抓取與解碼不受自動播放政策限制，提前開始；播放仍需等待手勢解鎖
+        this.preloadMusicTracks();
     }
 
     private bindWindowEvents(): void {
@@ -673,7 +730,7 @@ export class AudioEngine {
         return Math.max(-AUDIO.PAN_RANGE, Math.min(AUDIO.PAN_RANGE, pan));
     }
 
-    /** 解析 Cue 的 AudioBuffer（檔案缺失時回退至合成後備） */
+    /** 解析 Cue 的 AudioBuffer（檔案缺失或尚未載入時回退至合成後備，合成結果依 synth id 快取） */
     private resolveBufferForCue(cueDef: CueDef): AudioBuffer | null {
         if (!this.ctx) return null;
 
@@ -684,26 +741,27 @@ export class AudioEngine {
                 const pickIndex = Math.floor(this.prng.range(0, cachedFiles.length));
                 return this.bufferCache.get(cachedFiles[pickIndex])!;
             }
-        }
-
-        // 缺失時回退程序化合成後備音
-        return createSynthBuffer(this.ctx, cueDef.synth, this.prng);
-    }
-
-    /** 解析音樂曲目的 AudioBuffer（缺失時回退至氛圍合成音） */
-    private resolveBufferForMusic(trackId: TrackId): AudioBuffer | null {
-        if (!this.ctx) return null;
-
-        const trackDef = MUSIC_TABLE[trackId];
-        if (trackDef && trackDef.files.length > 0) {
-            const file = trackDef.files[0];
-            if (this.bufferCache.has(file)) {
-                return this.bufferCache.get(file)!;
+            // 尚未載入：觸發背景載入，本次先用合成後備
+            for (const f of cueDef.files) {
+                if (!this.failedAssets.has(f)) void this.loadBuffer(f);
             }
         }
 
-        // 後備和弦鋪底氛圍音
-        return createSynthBuffer(this.ctx, 'BGM_PAD', this.prng);
+        // 缺失時回退程序化合成後備音（快取避免每次觸發重新配置 buffer）
+        const synthKey = String(cueDef.synth);
+        let synthBuf = this.synthCache.get(synthKey);
+        if (!synthBuf) {
+            synthBuf = createSynthBuffer(this.ctx, cueDef.synth, this.prng);
+            this.synthCache.set(synthKey, synthBuf);
+        }
+        return synthBuf;
+    }
+
+    /** 曲目檔案是否已永久載入失敗（或根本沒有檔案），此時才允許使用合成鋪底 */
+    private isMusicFileUnavailable(trackId: TrackId): boolean {
+        const files = MUSIC_TABLE[trackId]?.files ?? [];
+        if (files.length === 0) return true;
+        return files.every(f => this.failedAssets.has(f));
     }
 
     private warnAssetOnce(msg: string): void {

@@ -1,6 +1,7 @@
 import { CUE_TABLE, CueId, CueDef } from '../../data/audio/cues';
 import { AUDIO } from '../../constants';
 import { createSynthBuffer, AudioPRNG } from '../../engine/audio/Synth';
+import { MUSIC_TABLE, TrackId } from '../../data/audio/music';
 
 interface FileResult {
     file: string;
@@ -123,6 +124,7 @@ class AudioPreviewHarness {
 
     private async init(): Promise<void> {
         this.bindGlobalControls();
+        this.renderMusicUI();
         const ctx = this.ensureContext();
 
         // 收集全部待解碼檔案
@@ -374,6 +376,85 @@ class AudioPreviewHarness {
 
         source.start(0);
         this.log(`Playing procedural synth fallback: ${def.synth}`);
+    }
+
+    private musicSource: AudioBufferSourceNode | null = null;
+
+    private renderMusicUI(): void {
+        const grid = document.getElementById('music-grid');
+        if (!grid) return;
+        grid.innerHTML = '';
+
+        for (const trackId of Object.keys(MUSIC_TABLE) as TrackId[]) {
+            const def = MUSIC_TABLE[trackId];
+            const card = document.createElement('div');
+            card.className = 'cue-card';
+            card.innerHTML = `
+                <div class="cue-header">
+                    <span class="cue-title">${trackId}</span>
+                    <div class="badges">
+                        <span class="badge badge-prio">${def.loop ? 'loop' : 'one-shot'}</span>
+                        <span class="badge badge-prio">vol ${def.volume.toFixed(2)}</span>
+                    </div>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted);">${def.title}</div>
+                <div class="cue-actions">
+                    <button class="btn btn-primary" data-play-music="${trackId}">Play</button>
+                    <button class="btn btn-synth" data-stop-music="1">Stop</button>
+                    <span style="font-size: 11px; color: var(--text-muted); font-family: monospace;">${def.files[0].split('/').pop()}</span>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+
+        grid.querySelectorAll('[data-play-music]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = (e.currentTarget as HTMLElement).getAttribute('data-play-music') as TrackId;
+                void this.playMusicTrack(id);
+            });
+        });
+        grid.querySelectorAll('[data-stop-music]').forEach(btn => {
+            btn.addEventListener('click', () => this.stopMusicTrack());
+        });
+    }
+
+    private stopMusicTrack(): void {
+        if (this.musicSource) {
+            try { this.musicSource.stop(0); } catch { /* already stopped */ }
+            this.musicSource = null;
+        }
+    }
+
+    private async playMusicTrack(trackId: TrackId): Promise<void> {
+        const ctx = this.ensureContext();
+        const def = MUSIC_TABLE[trackId];
+        const file = def.files[0];
+        this.stopMusicTrack();
+
+        let buffer = this.bufferCache.get(file);
+        if (!buffer) {
+            try {
+                this.log(`Decoding music: ${file}...`);
+                const resp = await fetch(file.startsWith('/') ? file : '/' + file);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                buffer = await ctx.decodeAudioData(await resp.arrayBuffer());
+                this.bufferCache.set(file, buffer);
+            } catch (err) {
+                this.log(`Failed to load music ${file}: ${err instanceof Error ? err.message : String(err)}`, 'err');
+                return;
+            }
+        }
+
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = def.loop;
+        const gain = ctx.createGain();
+        gain.gain.value = def.volume;
+        source.connect(gain);
+        gain.connect(this.masterGain ?? ctx.destination);
+        source.start(0);
+        this.musicSource = source;
+        this.log(`Playing music: ${trackId} (${buffer.duration.toFixed(1)}s)`);
     }
 
     private bindGlobalControls(): void {
