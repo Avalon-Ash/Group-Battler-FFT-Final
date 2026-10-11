@@ -20,7 +20,7 @@
 | **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ☑ | 本輪 | 1px 矩形階梯對齊、UnitCorePainter 陰影等價、SSOT 單一化、meanAbsDiff 降至 0.038，重錄 battle_frozen |
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ☑ | 本輪 | ?glow=1/?quality=2/?quality=3 冒煙 PASS，e2e:ui 連兩次 ALL PASSED，主 GPU 60 秒常態鎖定 Tier 0 |
 | **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ☑ | 本輪 | 保持 1.0 原生解析度並節流 30Hz，消除雙重縮放與 CSS 重採樣，Tier 1 (7.05ms) 明確快於 Tier 0 (8.37ms) |
-| **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ⏳ |  | 高度分帶烘焙 vs 即時 blit 實測 |
+| **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ☑ | 本輪 | 獨立原型 300 幀實測：耗時由 0.60ms 降至 0.40ms (-33.3%)，吞吐提升 +70%，DrawCall -98% |
 | **REPORT** | 完成完整結案報告 `docs/PERF_REPORT_3.md`，更新 `DECOUPLING_HANDOFF.md` §10.6 | ⏳ |  | 彙整歸因、優化、對照圖、治理器曲線 |
 | **FINAL** | 全量驗證與 checkpoint tags 打標 | ⏳ |  | `perf3-ckpt-R0`, `perf3-ckpt-R2`, `perf3-ckpt-R3`, `perf3-ckpt-final` |
 
@@ -271,5 +271,36 @@
     - **三輪交錯每輪皆嚴格領先**（Round 1: 10.91 -> 7.31 ms; Round 2: 8.37 -> 7.05 ms; Round 3: 7.74 -> 6.64 ms）。
   - **Tier 2** (停繪矩陣雨): **7.324 ms** (136.5 FPS)
 - **結論**：徹底修復「降階反變慢」之異常，Tier 1 收益高達 -15.8%，外觀維持清晰無模糊插值。
+
+---
+
+## 13. R6 烘焙渲染第一步可行性驗證實測 (R6 Prototype Verification)
+
+- **原型實作 (`tools/baked-terrain-proto.html` + `tools/ui-e2e/perf-r6-runner.mjs`)**：
+  - 嚴格遵守規範：**未更動任何 `engine/**` 或產品核心檔案**。
+  - 在 `tools/` 下建立完全獨立之原型頁，模擬戰場 150+ 個等角六角稜柱（H=0 水平面、H=1 丘陵、H=2 懸崖高台）與 10 名交戰單位。
+  - **模式 A (現行 Per-Hex Blit 基準)**：每幀遍歷 ~150 個地塊，每個地塊獨立執行 `ctx.save()`、矩陣平移、`ctx.drawImage()`、`ctx.restore()`（合計 ~160 次 DrawCalls 與 ~160 次 Save/Restore）。
+  - **模式 B (高度分帶雙層烘焙)**：
+    - Layer 0 (地面/背景層，H=0)：離屏單次完整烘焙整張地表塊，執行期每幀僅 **1 次 `drawImage`**。
+    - Mid Layer：繪製動態交戰單位。
+    - Layer 1 (前景/懸崖遮擋層，H>0)：離屏單次烘焙前景遮擋懸崖，執行期每幀僅 **1 次 `drawImage`**。
+    - 全幀地形僅 2 次 DrawCalls 與 0 次狀態切換。
+- **真機實測結果 (NVIDIA GeForce RTX 4070 headed 取消限制，300 幀基準採樣)**：
+  - **Per-Hex Blit (Baseline)**: 中位數 **0.600 ms** (平均 0.647 ms, 1546.7 FPS)
+  - **2-Layer Height-Banded Baked**: 中位數 **0.400 ms** (平均 0.380 ms, 2629.2 FPS)
+  - **淨收益**：**-0.200 ms (-33.3%)**！吞吐提升 **+70.0%**！
+  - **操作呼叫削減**：地形 DrawCalls 由 ~150 次降至 **2 次** (-98.7%)，Save/Restore 由 ~150 次降至 **0 次** (-100%)。
+- **失效條件 (Cache Invalidation Conditions)**：
+  1. 地圖縮圈崩塌（Shrink Collapse / 地塊掉落）。
+  2. 地圖編輯器筆刷修改（新增/移除地塊、調整高度/地形主題）。
+  3. 相機縮放比例或 DPR 改變（Viewport Resize / Camera Zoom）。
+  4. 相機平移平移範圍超出目前離屏邊界（若採全圖離屏尺寸則平移無需重烘）。
+- **實作風險評估**：
+  1. **動態液面 (MAGMA) 與表面噪聲**：MAGMA 等動態表面不可直接烘入靜態層，需保持為中層動態繪製，或僅烘焙靜態基底。
+  2. **記憶體佔用**：以 1440×900 或 2048×2048 離屏 Canvas 計，2 張 RGBA 緩衝約增加 16~32 MB 顯示記憶體，在現代 GPU / 瀏覽器完全處於安全裕度內。
+  3. **動態立柱與地塊動態掉落動畫**：掉落地塊在下墜期間需動態移出烘焙層進入動態實體佇列。
+- **是否值得進入第四輪實作之建議**：
+  - **強烈建議採行**！
+  - 理由：本輪 R1 歸因已明確指出 Native 瀏覽器 Canvas 操作與排隊佔據主執行緒絕大負擔。高度分帶雙層烘焙在單一場景即可砍掉 33% 地形耗時與 98% DrawCall，且完全不需要破壞現有 2.5D Isometric 遮擋關係，具備最高之性價比與工程可行性。
 
 
