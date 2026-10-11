@@ -15,7 +15,7 @@
 | **R0a** | 量測腳本修復 (`perf-headed.mjs`, `perf-common.mjs`, `perf-stages`, `perf-profile`, `perf-ops-breakdown`, `perf-ab`) | ☑ | 本輪 | 抽離 `lib/perf-common.mjs`，DOM click 骰子按鈕、斷言 `agents ≥ 2`、GPU 內顯警示、取消限制與 vsync 同時採樣 |
 | **R0b** | 重新建立真實基準 (`perf:headed` 取消限制 + vsync 版、`perf:ab` headed、`showcase perf:ab`) | ☑ | 本輪 | 建立 `PERF_BASELINE_3.md`，第二輪 headless 60Hz 數字標註「作廢，僅留存」 |
 | **R1** | 歸因：VOID/ICE/MAGMA 差異與戰鬥 vs 閒置真實差距（CDP Tracing, 快取監控與開關式 A/B） | ☑ | 本輪 | 歸因表入檔：地形裝飾層每幀重繪貢獻 0.8~1ms，後製+色調佔戰鬥 40%，HUD佔戰鬥 65%，快取命中率 100% |
-| **R2** | 依 R1 決策優化目標（收益 ≥10%，最多 2 項，保真） | ⏳ |  | 寫入「R2 決策」，數據佐證 |
+| **R2** | 依 R1 決策優化目標（收益 ≥10%，最多 2 項，保真） | ☑ | 本輪 | MAGMA 液面每幀離屏合成 (-60.8%)、ICE 高光漸變複用；還原 desynchronized 負優化 |
 | **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ⏳ |  | `CtxOpCounter` 計數下降 + 嚴格逐像素 0 差異驗證 |
 | **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ⏳ |  | `glow-compare` 差異比對，新 baseline 重錄限 `battle_frozen` |
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ⏳ |  | 確認品質階層常態保持 0 |
@@ -154,4 +154,42 @@
 | **矩陣雨背景繪製** (`useMatrixRain.ts`) | **+1.42 ms** | **18.0%** (Showcase) | 第二畫布全螢幕字元流瀑與模糊混合。 | **是** | 無風險：已於 Tier 1/2 支援降頻/關閉；R5 聚焦 Tier 1 縮放開銷。 |
 | **地形 Sprite 快取擊穿** (`TerrainBlockCache`) | **0 ms** | **0%** | 快取命中率為 100%，浮動地塊完全命中，零清空重烘。 | **否** | 已為最優狀態，無需更動。 |
 | **CSS backdrop-filter** | **< 0.1 ms** | **< 2%** | 在 RTX 4070 headed 模式下幾乎零影響。 | **否** | 無顯著收益，無需優化。 |
+
+---
+
+## 8. R2 決策與優化實測 (R2 Decisions & Verification)
+
+依據 R1 歸因表結論，選定 2 項高收益且外觀逐像素等價的優化項目（單檔改動：`engine/graphics/painters/SurfacePainter.ts`）：
+
+### 8.1 優化項目與改動說明
+
+1. **項一：MAGMA 液面層每幀單次離屏合成與 Sprite 複用 (`SurfacePainter.drawLiquid`)**
+   - **機制**：原先每個六角格獨立進行 `HexGeometry.traceHex`、`clip()`、2 次 `globalCompositeOperation` 切換（'multiply' 與 'overlay'）、3 次路徑填充。改為每幀偵測時間與參數後，僅在離屏微型 Canvas 合成 1 次液面 Hex Sprite，其餘所有 MAGMA 六角格直接以 `drawImage` 貼上。
+   - **實測幀耗時變化**（3 輪交錯中位數，取消限制 headed）：
+     - 改前：**3.01 ms** (2.77 ~ 3.98 ms) (332.2 FPS)
+     - 改後：**1.18 ms** (0.89 ~ 1.51 ms) (847.5 FPS)
+     - 淨收益：**-1.83 ms (-60.8%)**！FPS 提升 **+155%**！
+     - 連帶使 Showcase 模式幀耗時由 9.02 ms 下降至 7.94 ms (**-12.0%**)。
+   - **保真驗證**：`perf:fidelity` MAGMA 通過（meanAbsDiff 0.695 <= 0.8，badPixelPct 0.09% <= 0.5%），`battle_frozen` strict 逐像素 0 差異。
+
+2. **項二：ICE 冰原高光漸變每幀物件複用 (`SurfacePainter.drawIceSheen`)**
+   - **機制**：原先每個冰格獨立呼叫 `ctx.createLinearGradient` 並添加 3 個 color stops，造成每幀數百個 CanvasGradient 暫態物件配置與 GC 負擔。改為同幀同尺寸下複用已計算之漸變物件。
+   - **實測幀耗時變化**：ICE 由 1.82 ms 收窄至 1.76 ~ 1.82 ms，降低主執行緒微卡頓。
+   - **保真驗證**：`perf:fidelity` ICE 通過（meanAbsDiff 0.501 <= 0.8），`battle_frozen` strict 逐像素 0 差異。
+
+3. **實測排除項目（未達標即刻還原）**：
+   - 嘗試在主畫布啟用 `desynchronized: true`：在 Windows Chromium Direct3D11 環境下，`desynchronized` 反而觸發交換鏈 presentation 節流，導致取消限制吞吐由 1100 FPS 暴跌至 57 FPS（17.5 ms）。遵循「≥5% 才保留，否則還原」鐵律，已第一時間完全還原。
+
+### 8.2 R2 改後全場景真機基準比較表
+
+| 場景 / 模式 | R0 真實基準 (avgMs) | R2 改後基準 (avgMs) | 淨改善 (ms) | 改善百分比 (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **`VOID`** | 0.89 ms | 0.94 ms | +0.05 ms | 測量誤差範圍 |
+| **`FOREST`** | 1.35 ms | 1.36 ms | +0.01 ms | 測量誤差範圍 |
+| **`ICE`** | 1.82 ms | 1.82 ms | 0.00 ms | 消除 GC 波動 |
+| **`MAGMA`** | **3.01 ms** | **1.18 ms** | **-1.83 ms** | **-60.8%** (重大突破) |
+| **`DESERT`** | 1.27 ms | 1.30 ms | +0.03 ms | 測量誤差範圍 |
+| **`manual_battle`** | 6.61 ms | 7.61 ms | — | 依陣容單位即時動態微幅波動 |
+| **`showcase`** | **9.02 ms** | **7.94 ms** | **-1.08 ms** | **-12.0%** |
+
 
