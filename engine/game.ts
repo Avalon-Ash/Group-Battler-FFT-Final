@@ -23,7 +23,7 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
-import { DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
+import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
 import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
@@ -48,6 +48,7 @@ import { ControlSystem } from "./systems/status/ControlSystem";
 import { AnimationSystem } from "./systems/AnimationSystem";
 import { validateAllVFXBindings } from "./systems/VFXValidator";
 import { UICommandSystem } from "./systems/ui/UICommandSystem";
+import { AudioSystem } from "./systems/audio/AudioSystem";
 import type { GameRenderer } from "./renderer";
 
 export { Agent, SpecialVisualStatus };
@@ -128,11 +129,19 @@ export class GameEngine implements SpatialProvider {
     public animation: AnimationSystem = new AnimationSystem();
     public timeSystem: TimeSystem = new TimeSystem();
     public uiCommands: UICommandSystem = new UICommandSystem(this);
+    public audio?: AudioSystem;
 
     constructor() {
         validateAllVFXBindings(this.skillDB);
         this.director.bind(this);
         this.map.randomizeEnvironment(this);
+
+        // [AUDIO] S0b: 遵守 ?mute 守則，靜音時完全不建立 AudioSystem / AudioEngine
+        const loc = typeof window !== 'undefined' ? window.location : (typeof globalThis !== 'undefined' ? (globalThis as any).location : undefined);
+        const isMuted = loc && loc.search ? new URLSearchParams(loc.search).has(AUDIO.QUERY_MUTE_KEY) : false;
+        if (!isMuted) {
+            this.audio = new AudioSystem(this.bus);
+        }
     }
 
     public nextId(prefix: string = 'ENT'): string {
@@ -323,8 +332,13 @@ export class GameEngine implements SpatialProvider {
 
     private flushVisualEvents() {
         // P1: Visual events should be processed at the end of tick
-        if (this.renderer && this.events.length > 0) {
-            this.renderer.processVisualEvents(this.events);
+        if (this.events.length > 0) {
+            for (let i = 0; i < this.events.length; i++) {
+                this.bus.emit('GAME_EVENT', this.events[i]);
+            }
+            if (this.renderer) {
+                this.renderer.processVisualEvents(this.events);
+            }
         }
     }
 

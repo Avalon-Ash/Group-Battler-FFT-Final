@@ -213,6 +213,8 @@ export interface EventMap {
     AGENT_DIED: { agent: Agent; groundZ: number; impactX: number; impactY: number };
     KILL: { killerId: string; victimId: string };
     CAST_START: { sourceId: string; skill: Skill };
+    /** 遊戲核心視覺/音訊事件通道 */
+    GAME_EVENT: GameEvent;
     /** UI 唯一寫入事件閘門，由 UICommandSystem 處理 */
     UI_COMMAND: UICommand;
 }
