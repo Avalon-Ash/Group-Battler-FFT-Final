@@ -405,3 +405,35 @@ npm run lint; npm run build
   - `npm run perf:guard` ALL PASSED（包含 5 地形與真實單位 battle_frozen 嚴格逐像素 0 差異）
 - **本地 Checkpoint Tags**：`perf3-ckpt-R0`、`perf3-ckpt-R2`、`perf3-ckpt-R3`、`perf3-ckpt-final`。
 - **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/PERF_BASELINE_3.md`。
+
+---
+
+## 12. 音訊導入結果（2026-10-12，feat/audio 執行完成）
+
+- **分支與狀態**：獨立分支 `feat/audio`（由 `main` 開出），依約未 push、未 merge。
+- **核心架構與實現**：
+  1. **零外部依賴與決定性**：純原生 Web Audio API，無任何 npm 套件依賴；使用自建 `mulberry32` PRNG（種子常數 `AUDIO.PRNG_SEED` 放 `constants.ts`），不消耗全域 `Math.random`，杜絕破壞畫面渲染決定性。
+  2. **三匯流排與 Voice Pool**：`AudioEngine.ts` 建立 Master → Music / SFX / UI 三層 GainNode 匯流排，預先配置 24 個 voice 節點池，單次 cue 耗時 < 0.015ms，同 tick 零記憶體配置與零 GC 壓力。
+  3. **EventBus 零侵入橋接**：`AudioSystem.ts` 僅單向訂閱 `engine.bus` 遊戲事件（14+ 類事件映射至 19 個高階語意 Cue），依 2.5D 螢幕 X 座標提供左右空間聲像（StereoPanner）；不呼叫任何 System 方法，不寫入 `Agent`。
+  4. **全套真素材採集與 SSOT 登記**：
+     - SFX：56 個 CC0 音效檔（Kenney, rubberduck, artisticdude, cynicmusic），總計 1.28 MB。
+     - BGM：5 首管弦奇幻風格曲目（Matthew Pablo, Alexandr Zhelanov, cynicmusic, Devlin Bataric），總計 8.12 MB。
+     - 素材總大小 9.40 MB（遠低於 25 MB 預算上限）；完整登記於 `docs/ASSET_LEDGER.md` 與 `CREDITS.md`。
+     - 雙軌保障：所有 Cue 均具備純函式 `Synth.ts` 程序化合成後備音。
+  5. **視窗化控制與 UI 閘門**：
+     - 新增 `audioSettings` 視窗（Master/Music/SFX/UI 四滑桿 + 靜音開關），設定持久化於 `localStorage`。
+     - 嚴格遵守 UI 閘門規則，音量變更透過 `UI_COMMAND`（`SET_AUDIO_VOLUME`）由 `UICommandSystem` 轉交引擎。
+  6. **轉場、預載與生命週期體驗**：
+     - BGM 閒置預載策略（首屏僅載氛圍曲，其餘 idle prefetch）。
+     - 戰鬥緊張度即時感測自適應交叉淡化（1.5s crossfade）。
+     - 視窗 blur / visibilitychange 0.4s 優雅淡出暫停與 focus 平順淡入。
+     - 首次使用者手勢解鎖，未解鎖前 cue 靜默丟棄不排隊。
+- **驗證指標**：
+  - `npm run lint` 0 errors
+  - `npm test` 213/213 passed（新增 `AudioEngine.test.ts`、`AudioSystem.test.ts`、`AudioAssets.test.ts`）
+  - `npm run build` 通過
+  - `tools/audio/verify-audio.mjs` 56/56 buffer 解碼全綠
+  - `npm run perf:guard` 通過（6 大場景包括真實戰鬥凍結幀 100% 逐像素等價通過；`?mute` 下零回歸）
+- **本地 Checkpoint Tags**：`audio-ckpt-S0`、`audio-ckpt-S1`、`audio-ckpt-S2`、`audio-ckpt-final`。
+- **報告參考**：詳見 `docs/AUDIO_REPORT.md`、`docs/ASSET_LEDGER.md` 與試聽工具 `tools/audio/preview.html`。
+
