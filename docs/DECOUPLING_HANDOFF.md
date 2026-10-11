@@ -360,3 +360,21 @@ npm run lint; npm run build
   - Showcase 模式下矩陣雨（Matrix Rain）在高 DPR 下開銷顯著（可省 40% 耗時），建議保留既有視覺開關，低階/Retina 裝置可由使用者手動停用。
   - 詳細對照數據、Profiling 排名與使用者驗證指南見 `docs/PERF_REPORT.md`。
 
+### 10.5 效能第二輪摘要（2026-10-11，戰鬥／Showcase 殘餘成本與光暈預烘焙）
+- **核心成效**：
+  - **診斷工具（Q1）**：新增零成本 `CtxOpCounter.ts`（`?perfops` 啟用），量化每幀 968 次 `save/restore` 與 66 次 `shadowBlur`，鎖定 92.4% 的光暈開銷在單位 (`units`, 37 次) 與血條 (`hud`, 24 次)。
+  - **保真護欄全面覆蓋（Q2）**：修復隨機種子重置點，使 `battle_frozen`（實戰第 120 幀）達成 100% 決定性（diff=0/921600），成功納入 `perf:guard` 每日防線。
+  - **矩陣雨分階減載（Q3a/b）**：`useMatrixRain.ts` 整合 `getMatrixRainBudget`。Tier 0（預設）維持 1.0x / 60Hz 逐像素零差異；Tier 1 降為 0.5x / 30Hz；Tier 2 自動停繪清空畫布，使 Showcase 幀耗時自 30.4ms 驟降至 **20.3ms（-33.3%，+50% FPS）**。
+  - **光暈預烘焙快取（Q4a/b/c）**：新增 `GlowSpriteCache.ts`（純衍生快取，LRU 容量上限保護），套用於 `BarPainter`、`UnitAmbientPainter`、`UnitCorePainter`。旗標 `GLOW_SPRITES` 預設為 `false`（`perf:fidelity` 零差異）。開啟 `?glow=1` 時實測戰鬥幀耗時降低 **11.74ms (-33.8%)**，並產出並排比較截圖（`tools/ui-e2e/out/glow_compare_*.png`，壞像素率 0.00%）供使用者目視核定。
+  - **「烘焙渲染」藍圖（Q5）**：產出 `docs/BAKED_RENDERING_DESIGN.md`，詳述高度分帶雙層烘焙方案、圖集 Manifest 資料格式草案、SSOT 外觀槽位對接以及 WebGL 客觀評估判準。
+  - **單鍵真機評測（Q6）**：新增 `npm run perf:headed`（`tools/ui-e2e/perf-headed.mjs`），一鍵測量 7 大場景實機 FPS、DPR、GPU 字串與 `?perf` 各階段 ms。
+- **保真度驗證**：
+  - 全 6 大場景（含 `battle_frozen`）通過 `perf:fidelity`，旗標關閉時位元組等價 0 差異。
+  - 單元測試（191 tests 全綠）、`e2e:ui` 連跑兩次 ALL PASSED、`perf:guard` 全綠。
+- **本地 Checkpoint Tags**：
+  - `perf2-ckpt-Q2`、`perf2-ckpt-Q3`、`perf2-ckpt-Q4`、`perf2-ckpt-final`。
+- **待使用者核定事項**：
+  - 查看 `tools/ui-e2e/out/glow_compare_*.png`，若視覺核定，可將 `constants.ts` 中的 `RENDER_QUALITY.GLOW_SPRITES` 改為 `true`，立即釋放戰鬥 +33.8% 效能。
+  - 詳見 `docs/PERF_REPORT_2.md`、`docs/PERF_BASELINE_2.md` 與 `docs/BAKED_RENDERING_DESIGN.md`。
+
+
