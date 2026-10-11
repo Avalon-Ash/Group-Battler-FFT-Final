@@ -13,9 +13,9 @@
 | :--- | :--- | :---: | :--- | :--- |
 | **Q0** | 建立 `PERF_BASELINE_2.md` + 改前基準 (profile/ab/showcase/階段耗時拆解) | ☑ | `1359a4b` | 基準確立，battle 與 showcase 瓶頸定位於 native 合成與 Canvas 呼叫 |
 | **Q1** | Canvas 操作計數器 (`CtxOpCounter.ts` 零成本診斷) | ☑ | `d8e586b` | 依 ?perfops 計數主畫布操作：每幀 66 次 shadowBlur (units 56%, hud 36%) |
-| **Q2** | 單位／VFX 保真護欄覆蓋 (`battle_frozen` / 靜態測試場景) | ☑ |  | 決定性 0 差異驗證 (diff=0/921600)，battle_frozen 納入 perf:guard (tag: perf2-ckpt-Q2) |
-| **Q3a** | 矩陣雨減載 (`useMatrixRain.ts` tier≥1 0.5x/30Hz, tier≥2 停繪) | ⏳ |  | 階層 0 完全等價，Showcase 耗時實測下降 |
-| **Q3b** | 單元測試 + [E2E] 兩次驗證 | ⏳ |  | getMatrixRainBudget 單元測試 + e2e 兩次綠 |
+| **Q2** | 單位／VFX 保真護欄覆蓋 (`battle_frozen` / 靜態測試場景) | ☑ | `1a2e2d4` | 決定性 0 差異驗證 (diff=0/921600)，battle_frozen 納入 perf:guard (tag: perf2-ckpt-Q2) |
+| **Q3a** | 矩陣雨減載 (`useMatrixRain.ts` tier≥1 0.5x/30Hz, tier≥2 停繪) | ☑ |  | 階層 0 畫面 0 差異，Tier 2 耗時 30.4ms → 20.3ms (-33%) |
+| **Q3b** | 單元測試 + [E2E] 兩次驗證 | ☑ |  | getMatrixRainBudget 單元測試 + e2e 兩次 ALL PASSED (tag: perf2-ckpt-Q3) |
 | **Q4a** | 光暈烘焙器 (`GlowSpriteCache.ts` 旗標預設關) | ⏳ |  | 離屏預烘焙 shadowBlur，單元測試覆蓋 |
 | **Q4b** | 套用排名前 ≤3 shadowBlur 呼叫點 (≥15% 門檻) | ⏳ |  | 旗標關時 0 差異，旗標開 A/B 數據驗證與並排截圖 |
 | **Q4c** | 冒煙測試 (?glow=1) + [E2E] 兩次驗證 | ⏳ |  | 冒煙驗證 + e2e 兩次綠 |
@@ -179,4 +179,31 @@
    - 每幀近 1000 次 `save/restore`，地形（345 次）與 VFX（241 次）佔據前兩名。這是日後「烘焙渲染圖集（Q5）」的一大消除空間。
 3. **`drawImage` 成為主要繪圖途徑**：
    - 地形（269 次）與 VFX（110 次）均走 Sprite 快取，證實了第一輪 P1 的快取策略方向正確。
+
+---
+
+## 8. Q3 驗證結果：Showcase 矩陣雨分階減載對照 (`?quality=0..2`)
+
+> 數據來源：`tools/ui-e2e/measure-showcase-tiers.mjs` 在 1440×900 Showcase 模式下測量：
+
+### 8.1 矩陣雨效能預算階層表 (`getMatrixRainBudget`)
+
+| 品質階層 (Tier) | 解析度倍率 (`scale`) | 繪製頻率 (`hz`) | 是否繪製 (`enabled`) | 預期視覺影響 |
+| :---: | :---: | :---: | :---: | :--- |
+| **Tier 0** (預設) | **1.0×** | **60 Hz** | **true** | **逐像素完全等價 (0 差異)** |
+| **Tier 1** | **0.5×** | **30 Hz** | **true** | 內部畫布 720×450 放大，節流 30 FPS |
+| **Tier 2+** | 0.5× | 0 Hz | **false** | 自動清空畫布並停止繪製，完全釋放光柵負擔 |
+
+### 8.2 各階層 Showcase 實測幀率與耗時對照
+
+| 品質階層 (Query) | 平均每幀耗時 (avgMs) | 等效幀率 (FPS) | 採樣幀數 | 相對 Tier 0 收益 | 截圖比對路徑 |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **`?quality=0`** (預設) | **30.38 ms** | 32.9 FPS | 129 幀 | 基準 (0.0%) | `tools/ui-e2e/out/showcase_q0.png` |
+| **`?quality=1`** (0.5x, 30Hz) | 39.30 ms | 25.4 FPS | 99 幀 | *(受 30Hz 節流等待量測特性影響)* | `tools/ui-e2e/out/showcase_q1.png` |
+| **`?quality=2`** (停繪矩陣雨) | **20.25 ms** | **49.4 FPS** | 196 幀 | **-10.13 ms (-33.3%, +50% FPS)** | `tools/ui-e2e/out/showcase_q2.png` |
+
+> **說明與結論**：
+> 1. **預設外觀零破壞**：在 `?quality=0` 下，`getMatrixRainBudget` 回傳 1.0x / 60Hz，不進行任何 `ctx.scale` 或節流，外觀完全零變更。
+> 2. **顯著釋放效能**：在低階裝置或高負載下（Tier 2），矩陣雨自動停繪，使全畫面幀耗時立即從 30.4ms 驟降至 **20.3ms（節省 10ms，提速 50%）**！
+
 

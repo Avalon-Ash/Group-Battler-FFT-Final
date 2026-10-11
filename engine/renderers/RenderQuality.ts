@@ -280,3 +280,38 @@ export function getDefaultQualityGovernor(): ReturnType<typeof createQualityGove
     }
     return defaultGovernor;
 }
+
+export interface MatrixRainBudget {
+    scale: number;
+    hz: number;
+    enabled: boolean;
+}
+
+/**
+ * 依品質階層取得展示矩陣雨效能預算 SSOT：
+ *  - Tier 0: 完整解析度 (1.0x), 60 Hz
+ *  - Tier 1: 降解析度 (0.5x), 節流 30 Hz
+ *  - Tier 2+: 停止繪製 (enabled: false)
+ */
+export function getMatrixRainBudget(tier: QualityTier = getQualityTier()): MatrixRainBudget {
+    if (tier >= 2) {
+        return {
+            scale: RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE,
+            hz: 0,
+            enabled: false,
+        };
+    }
+    if (tier === 1) {
+        return {
+            scale: RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE,
+            hz: RENDER_QUALITY.MATRIX_RAIN_TIER_1_HZ,
+            enabled: true,
+        };
+    }
+    return {
+        scale: RENDER_QUALITY.MATRIX_RAIN_TIER_0_SCALE,
+        hz: RENDER_QUALITY.MATRIX_RAIN_TIER_0_HZ,
+        enabled: true,
+    };
+}
+
