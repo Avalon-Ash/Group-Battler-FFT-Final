@@ -404,4 +404,4 @@ npm run lint; npm run build
   - `npm run e2e:ui` 連跑兩次 ALL PASSED
   - `npm run perf:guard` ALL PASSED（包含 5 地形與真實單位 battle_frozen 嚴格逐像素 0 差異）
 - **本地 Checkpoint Tags**：`perf3-ckpt-R0`、`perf3-ckpt-R2`、`perf3-ckpt-R3`、`perf3-ckpt-final`。
-- **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/PERF_BASELINE_3.md`。
+- **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/PERF_BASELINE_3.md`。
