@@ -37,6 +37,11 @@ function App() {
   const isGameOver = state.winner !== null;
   const hideHUD = state.isShowcaseMode || isGameOver;
 
+  const handleEnterManualMode = () => {
+    windowActions.close('showcaseSettings');
+    actions.enterManualMode();
+  };
+
   return (
     <div className="h-[100dvh] w-screen bg-slate-950 text-slate-200 overflow-hidden font-sans flex flex-col relative select-none">
       {state.showFactionWarning && (
@@ -53,7 +58,7 @@ function App() {
       
       {state.isShowcaseMode && (
         <ShowcaseOverlay 
-            onEnter={actions.enterManualMode} 
+            onEnter={handleEnterManualMode} 
             timeScale={state.timeScale} 
             setTimeScale={setters.setTimeScale} 
             engine={engineRef.current} 
@@ -73,8 +78,9 @@ function App() {
           onSetTimeScale={setters.setTimeScale}
           onShowcase={() => { setters.setIsShowcaseMode(true); actions.startShowcaseMatch(); }}
       />
-      {!hideHUD && (
+      {!isGameOver && (
           <SystemMenu 
+              mode={state.isShowcaseMode ? 'showcase' : 'manual'}
               onDownloadSpec={actions.downloadSpec}
           />
       )}

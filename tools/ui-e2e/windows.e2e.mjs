@@ -139,7 +139,12 @@ const runSuite = async (suite) => {
     const { id } = suite;
     console.log(`\n── window: ${id}`);
     const { ctx, page } = await newPage(suite);
-    await enterManualMode(page);
+    if (id === 'showcaseSettings') {
+        await page.goto(baseUrl, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(500);
+    } else {
+        await enterManualMode(page);
+    }
     if (suite.open) {
         await suite.open(page);
     } else if (!suite.seed) {
@@ -193,8 +198,12 @@ const runSuite = async (suite) => {
     const saved = await page.evaluate((k) => localStorage.getItem(k), STORAGE_KEY);
     ok(`${id}: layout persisted to localStorage`, !!saved && saved.includes(`"${id}"`));
     await page.reload({ waitUntil: 'networkidle' });
-    await page.getByText(START_TEXT).click();
-    await page.waitForTimeout(800);
+    if (id !== 'showcaseSettings') {
+        await page.getByText(START_TEXT).click();
+        await page.waitForTimeout(800);
+    } else {
+        await page.waitForTimeout(600);
+    }
     const bp = await rectOf(page, id);
     ok(`${id}: rect + open state restored after reload`, !!bp && near(bp.x, br.x, 3) && near(bp.width, br.width, 3), JSON.stringify(bp));
 
@@ -208,7 +217,9 @@ const runSuite = async (suite) => {
     ok(`${id}: close button closes (body unmounted)`, (await rectOf(page, id)) === null);
 
     // small viewport containment + recovery (reopen first)
-    if (suite.open) await suite.open(page);
+    if (id === 'showcaseSettings') {
+        await openViaMenu(page, 'showcaseSettings');
+    } else if (suite.open) await suite.open(page);
     else if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
     else if (!suite.seed) await openViaMenu(page, suite.id);
     else await page.evaluate(([k, wid]) => { const m = JSON.parse(localStorage.getItem(k)); m[wid].open = true; localStorage.setItem(k, JSON.stringify(m)); }, [STORAGE_KEY, id]).then(() => page.reload({ waitUntil: 'networkidle' })).then(() => page.getByText(START_TEXT).click()).then(() => page.waitForTimeout(800));
@@ -276,11 +287,13 @@ const runToolMenuSuite = async () => {
     await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);
 
-    const windowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'showcaseSettings', 'inspector'];
-    for (const wid of windowIds) {
+    const manualWindowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'inspector'];
+    for (const wid of manualWindowIds) {
         const item = page.locator(`[data-testid="menu-item-${wid}"]`);
         ok(`menu item exists: ${wid}`, await item.isVisible());
     }
+    const scItemInManual = page.locator('[data-testid="menu-item-showcaseSettings"]');
+    ok('manual mode: menu-item-showcaseSettings does not exist', (await scItemInManual.count()) === 0 || !(await scItemInManual.isVisible()));
     ok('menu item exists: reset-layout', await page.locator('[data-testid="menu-item-reset-layout"]').isVisible());
     ok('menu item exists: spec', await page.locator('[data-testid="menu-item-spec"]').isVisible());
 
@@ -361,6 +374,23 @@ const runToolMenuSuite = async () => {
     ok('window rect restored to default after reset layout', resetRect && near(resetRect.x, 40, 4) && near(resetRect.y, 80, 4), JSON.stringify(resetRect));
 
     await ctx.close();
+
+    // 5. Verify showcase mode SystemMenu: only showcaseSettings, reset-layout, spec exist
+    const { ctx: scCtx, page: scPage } = await newPage({ id: 'toolmenu_showcase' });
+    await scPage.goto(baseUrl, { waitUntil: 'networkidle' });
+    await scPage.waitForTimeout(500);
+
+    await scPage.locator('[data-testid="system-menu-button"]').click();
+    await scPage.waitForTimeout(300);
+
+    const scItemInShowcase = scPage.locator('[data-testid="menu-item-showcaseSettings"]');
+    ok('showcase mode: menu-item-showcaseSettings exists', await scItemInShowcase.isVisible());
+
+    for (const wid of manualWindowIds) {
+        const item = scPage.locator(`[data-testid="menu-item-${wid}"]`);
+        ok(`showcase mode: menu-item-${wid} does not exist`, (await item.count()) === 0 || !(await item.isVisible()));
+    }
+    await scCtx.close();
 };
 
 const runSchemaFormSuite = async () => {
@@ -444,6 +474,10 @@ const runShowcaseAndPinSuite = async () => {
     // Enter manual mode
     await page.getByText(START_TEXT).click();
     await page.waitForTimeout(800);
+
+    // Assert showcaseSettings was closed when entering manual mode
+    const scInManual = await rectOf(page, 'showcaseSettings');
+    ok('manual mode: showcaseSettings closed after entering manual mode', scInManual === null);
 
     // Assert standard windows are now restored and visible
     const logsInManual = await rectOf(page, 'logs');

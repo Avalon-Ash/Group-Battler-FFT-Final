@@ -73,6 +73,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         minSize: { width: 280, height: 300 },
         kind: 'window',
         visibleInShowcase: true,
+        visibleInManual: false,
     },
 ];
 

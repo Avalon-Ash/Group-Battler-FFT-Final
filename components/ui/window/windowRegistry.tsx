@@ -1,6 +1,6 @@
 import React from 'react';
 import type { GameEngine } from '../../../engine/game';
-import { WindowId } from '../../../types';
+import { WindowDef, WindowId } from '../../../types';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { LogTab } from '../../inspector/tabs/LogTab';
 import { SkillDbTab } from '../../inspector/tabs/SkillDbTab';
@@ -75,6 +75,18 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     },
 };
 
+/** Pure filtering helper by runtime mode. */
+export function filterWindowDefsByMode(
+    defs: WindowDef[],
+    mode: 'showcase' | 'manual'
+): WindowDef[] {
+    return defs.filter((def) => {
+        if (mode === 'showcase') return Boolean(def.visibleInShowcase);
+        if (mode === 'manual') return def.visibleInManual !== false;
+        return true;
+    });
+}
+
 /** Renders every registered window; closed windows render nothing (their body is unmounted). */
 export const RegisteredWindows: React.FC<
     WindowRenderContext & { showcaseMode?: boolean; isGameOver?: boolean }
@@ -84,27 +96,30 @@ export const RegisteredWindows: React.FC<
     onCloseInspector,
     showcaseMode = false,
     isGameOver = false,
-}) => (
-    <>
-        {WINDOW_DEFINITIONS.map((def) => {
-            const reg = WINDOW_REGISTRY[def.id];
-            if (!reg) return null;
-            if ((showcaseMode || isGameOver) && !def.visibleInShowcase) return null;
-            return (
-                <ToolWindow
-                    key={def.id}
-                    id={def.id}
-                    icon={reg.icon}
-                    contentClassName={reg.flush ? 'p-0' : 'p-3'}
-                    onClose={def.id === 'inspector' ? onCloseInspector : undefined}
-                >
-                    {reg.render({ engine, selectedAgentId, onCloseInspector })}
-                </ToolWindow>
-            );
-        })}
-    </>
-);
+}) => {
+    const mode = showcaseMode || isGameOver ? 'showcase' : 'manual';
+    const activeDefs = filterWindowDefsByMode(WINDOW_DEFINITIONS, mode);
 
+    return (
+        <>
+            {activeDefs.map((def) => {
+                const reg = WINDOW_REGISTRY[def.id];
+                if (!reg) return null;
+                return (
+                    <ToolWindow
+                        key={def.id}
+                        id={def.id}
+                        icon={reg.icon}
+                        contentClassName={reg.flush ? 'p-0' : 'p-3'}
+                        onClose={def.id === 'inspector' ? onCloseInspector : undefined}
+                    >
+                        {reg.render({ engine, selectedAgentId, onCloseInspector })}
+                    </ToolWindow>
+                );
+            })}
+        </>
+    );
+};
 
 export interface RegisteredWindowInfo {
     id: WindowId;
@@ -116,11 +131,16 @@ export function isWindowRegistered(id: WindowId): boolean {
     return Boolean(WINDOW_REGISTRY[id]);
 }
 
-export function getRegisteredWindows(): RegisteredWindowInfo[] {
-    return WINDOW_DEFINITIONS.filter((def) => Boolean(WINDOW_REGISTRY[def.id])).map((def) => ({
+export function getRegisteredWindows(mode?: 'showcase' | 'manual'): RegisteredWindowInfo[] {
+    const defs = mode ? filterWindowDefsByMode(WINDOW_DEFINITIONS, mode) : WINDOW_DEFINITIONS;
+    return defs.filter((def) => Boolean(WINDOW_REGISTRY[def.id])).map((def) => ({
         id: def.id,
         title: def.title,
         icon: WINDOW_REGISTRY[def.id]!.icon,
     }));
+}
+
+export function getWindowsForMode(mode: 'showcase' | 'manual'): RegisteredWindowInfo[] {
+    return getRegisteredWindows(mode);
 }
 

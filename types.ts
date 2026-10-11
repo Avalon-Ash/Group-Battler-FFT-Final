@@ -350,6 +350,7 @@ export interface WindowDef {
     minSize: { width: number; height: number };
     kind?: 'window' | 'toolbar';
     visibleInShowcase?: boolean;
+    visibleInManual?: boolean;
 }
 
 export interface WindowState {

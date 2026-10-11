@@ -288,4 +288,55 @@ describe('WindowStore & Window Clamping/Restoration', () => {
             expect(restored.isOpen).toBe(true);
         });
     });
+
+    describe('Window Mode Filtering (U0)', () => {
+        const testDefs: WindowDef[] = [
+            {
+                id: 'logs',
+                title: '戰鬥紀錄',
+                defaultRect: { x: 0, y: 0, width: 100, height: 100 },
+                minSize: { width: 50, height: 50 },
+                visibleInShowcase: false,
+                visibleInManual: true,
+            },
+            {
+                id: 'showcaseSettings',
+                title: '展示設定',
+                defaultRect: { x: 0, y: 0, width: 100, height: 100 },
+                minSize: { width: 50, height: 50 },
+                visibleInShowcase: true,
+                visibleInManual: false,
+            },
+        ];
+
+        it('filterWindowDefsByMode filters properly for showcase and manual modes', async () => {
+            const { filterWindowDefsByMode } = await import('../components/ui/window/windowRegistry');
+            
+            const showcaseDefs = filterWindowDefsByMode(testDefs, 'showcase');
+            expect(showcaseDefs.map(d => d.id)).toEqual(['showcaseSettings']);
+
+            const manualDefs = filterWindowDefsByMode(testDefs, 'manual');
+            expect(manualDefs.map(d => d.id)).toEqual(['logs']);
+        });
+
+        it('getRegisteredWindows returns only showcase windows in showcase mode', async () => {
+            const { getRegisteredWindows } = await import('../components/ui/window/windowRegistry');
+            
+            const showcaseWins = getRegisteredWindows('showcase');
+            const showcaseIds = showcaseWins.map(w => w.id);
+            expect(showcaseIds).toContain('showcaseSettings');
+            expect(showcaseIds).not.toContain('logs');
+            expect(showcaseIds).not.toContain('inspector');
+        });
+
+        it('getRegisteredWindows returns only manual windows in manual mode', async () => {
+            const { getRegisteredWindows } = await import('../components/ui/window/windowRegistry');
+            
+            const manualWins = getRegisteredWindows('manual');
+            const manualIds = manualWins.map(w => w.id);
+            expect(manualIds).toContain('logs');
+            expect(manualIds).toContain('inspector');
+            expect(manualIds).not.toContain('showcaseSettings');
+        });
+    });
 });
