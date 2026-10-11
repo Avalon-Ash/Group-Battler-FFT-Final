@@ -16,8 +16,9 @@
 | **R0b** | 重新建立真實基準 (`perf:headed` 取消限制 + vsync 版、`perf:ab` headed、`showcase perf:ab`) | ☑ | 本輪 | 建立 `PERF_BASELINE_3.md`，第二輪 headless 60Hz 數字標註「作廢，僅留存」 |
 | **R1** | 歸因：VOID/ICE/MAGMA 差異與戰鬥 vs 閒置真實差距（CDP Tracing, 快取監控與開關式 A/B） | ☑ | 本輪 | 歸因表入檔：地形裝飾層每幀重繪貢獻 0.8~1ms，後製+色調佔戰鬥 40%，HUD佔戰鬥 65%，快取命中率 100% |
 | **R2** | 依 R1 決策優化目標（收益 ≥10%，最多 2 項，保真） | ☑ | 本輪 | MAGMA 液面每幀離屏合成 (-60.8%)、ICE 高光漸變複用；還原 desynchronized 負優化 |
+| **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ☑ | 本輪 | 移除 UnitAmbientPainter 隱形觸發點 no-op fill，battle_frozen 嚴格逐像素 0 差異，shadowBlur 呼叫下降 |
 | **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ☑ | 本輪 | 1px 矩形階梯對齊、UnitCorePainter 陰影等價、SSOT 單一化、meanAbsDiff 降至 0.038，重錄 battle_frozen |
-| **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ⏳ |  | 確認品質階層常態保持 0 |
+| **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ☑ | 本輪 | ?glow=1/?quality=2/?quality=3 冒煙 PASS，e2e:ui 連兩次 ALL PASSED，主 GPU 60 秒常態鎖定 Tier 0 |
 | **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ⏳ |  | 排查降階反變慢原因 |
 | **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ⏳ |  | 高度分帶烘焙 vs 即時 blit 實測 |
 | **REPORT** | 完成完整結案報告 `docs/PERF_REPORT_3.md`，更新 `DECOUPLING_HANDOFF.md` §10.6 | ⏳ |  | 彙整歸因、優化、對照圖、治理器曲線 |
@@ -235,5 +236,21 @@
   - 既有 5 個地形 baseline 完全未動。
   - `battle_frozen` 重錄確認 100% 決定性（跨 context 重跑 meanAbsDiff=0, badPixelPct=0%）。
   - `perf:guard` 與 `perf:fidelity` 全量 PASS（battle_frozen 嚴格逐像素 0 差異）。
+
+---
+
+## 11. R4 [E2E] 冒煙測試、完整 E2E 與治理器真機驗證 (R4 Verification)
+
+- **URL 啟動冒煙測試 (`tools/ui-e2e/perf-r4-smoke-governor.mjs`)**：
+  - `?glow=1`：PASS，正常載入、單位生成、點選單位選取、零 pageerror。
+  - `?quality=2`：PASS，正常載入、單位生成、點選單位選取、零 pageerror。
+  - `?quality=3`：PASS，正常載入、單位生成、點選單位選取、零 pageerror。
+- **完整 E2E UI 驗證 (`npm run e2e:ui`)**：
+  - 第 1 次連跑：**ALL PASSED**（所有視窗拖曳、縮放、雙擊最大化、多視窗層級、SchemaForm 綁定、PlaybackHUD、UnitInspectorHUD、Editor 六角格放置與平移縮放全數通過）。
+  - 第 2 次連跑：**ALL PASSED**（100% 穩定無 Flaky 測試）。
+- **治理器主 GPU 60 秒實機停留檢查 (NVIDIA GeForce RTX 4070 headed)**：
+  - 在取消限制 headed 實機交戰狀態下連續執行 60 秒，每秒讀取一次品質階層。
+  - **實測時間序列**：`[1s..60s]` 品質階層**嚴格保持為 0**（`maxTier = 0`, `stayedZero = true`）。
+  - 結論：RTX 4070 主環境下幀率穩定遠高於 60/120/240 FPS，治理器從未觸發誤降階，門檻設計健康。
 
 
