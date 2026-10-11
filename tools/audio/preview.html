@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TACTICAL.OS — Audio Cue Audition & SFX Calibration Harness</title>
+    <style>
+        :root {
+            --bg-main: #070b14;
+            --bg-card: #0d1527;
+            --bg-card-hover: #131f38;
+            --border: #1e293b;
+            --border-highlight: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent-blue: #38bdf8;
+            --accent-green: #34d399;
+            --accent-red: #f87171;
+            --accent-amber: #fbbf24;
+            --accent-purple: #c084fc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.5;
+            padding: 24px;
+        }
+
+        header {
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            font-weight: 600;
+        }
+
+        .controls-bar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .control-group input[type="range"] {
+            width: 100px;
+            accent-color: var(--accent-blue);
+        }
+
+        .control-val {
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            min-width: 32px;
+        }
+
+        .btn {
+            background: #1e293b;
+            color: var(--text-primary);
+            border: 1px solid #334155;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn:hover {
+            background: #334155;
+            border-color: #475569;
+        }
+
+        .btn-primary {
+            background: #0284c7;
+            border-color: #38bdf8;
+        }
+        .btn-primary:hover {
+            background: #0369a1;
+        }
+
+        .btn-synth {
+            background: #4c1d95;
+            border-color: #a855f7;
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+        .btn-synth:hover {
+            background: #5b21b6;
+        }
+
+        .stats-summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+        }
+
+        .stat-card .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .val {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: monospace;
+        }
+
+        .cues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 16px;
+        }
+
+        .cue-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            transition: border-color 0.15s ease;
+        }
+
+        .cue-card:hover {
+            border-color: var(--border-highlight);
+        }
+
+        .cue-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cue-title {
+            font-size: 14px;
+            font-weight: 700;
+            font-family: monospace;
+            color: var(--text-primary);
+        }
+
+        .badges {
+            display: flex;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+
+        .badge-sfx { background: rgba(56, 189, 248, 0.15); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); }
+        .badge-ui { background: rgba(251, 191, 36, 0.15); color: var(--accent-amber); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .badge-prio { background: rgba(148, 163, 184, 0.15); color: var(--text-secondary); }
+
+        .cue-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .files-list {
+            background: #070c17;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .file-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 10px;
+            color: var(--text-muted);
+        }
+
+        .rms-badge {
+            padding: 1px 4px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--accent-green);
+        }
+
+        .play-file-btn {
+            background: transparent;
+            border: none;
+            color: var(--accent-blue);
+            cursor: pointer;
+            font-size: 12px;
+            padding: 2px 4px;
+            border-radius: 4px;
+        }
+        .play-file-btn:hover {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .meter-bar {
+            height: 4px;
+            background: #1e293b;
+            border-radius: 2px;
+            overflow: hidden;
+            margin-top: 4px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-blue);
+            transition: width 0.1s ease;
+        }
+
+        #log-terminal {
+            margin-top: 24px;
+            background: #020617;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            font-family: monospace;
+            font-size: 11px;
+            color: var(--text-secondary);
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-row {
+            margin-bottom: 2px;
+        }
+        .log-ok { color: var(--accent-green); }
+        .log-warn { color: var(--accent-amber); }
+        .log-err { color: var(--accent-red); }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>
+                TACTICAL.OS
+                <span style="font-weight: 400; color: var(--text-muted);">/</span>
+                Audio Preview & SFX Calibration Harness
+            </h1>
+            <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+                Interactive audition, Web Audio decoding verification, and loudness RMS normalization.
+            </p>
+        </div>
+        <div id="status-container">
+            <span id="decode-status" class="status-badge">Decoding Assets...</span>
+        </div>
+    </header>
+
+    <div class="controls-bar">
+        <div class="control-group">
+            <label>Master</label>
+            <input type="range" id="vol-master" min="0" max="1" step="0.05" value="0.8">
+            <span class="control-val" id="val-master">80%</span>
+        </div>
+        <div class="control-group">
+            <label>SFX</label>
+            <input type="range" id="vol-sfx" min="0" max="1" step="0.05" value="0.8">
+            <span class="control-val" id="val-sfx">80%</span>
+        </div>
+        <div class="control-group">
+            <label>UI</label>
+            <input type="range" id="vol-ui" min="0" max="1" step="0.05" value="0.7">
+            <span class="control-val" id="val-ui">70%</span>
+        </div>
+        <button id="btn-mute" class="btn">Mute: OFF</button>
+        <button id="btn-play-all" class="btn btn-primary">Audition All Cues</button>
+        <button id="btn-throttle-test" class="btn">Test Throttle (10x)</button>
+    </div>
+
+    <div class="stats-summary">
+        <div class="stat-card">
+            <div class="label">Total Cues</div>
+            <div class="val" id="stat-cues">19</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total Audio Files</div>
+            <div class="val" id="stat-files">56</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Decoded Buffers</div>
+            <div class="val" id="stat-decoded">0 / 56</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Total Size</div>
+            <div class="val" id="stat-size">1.28 MB</div>
+        </div>
+        <div class="stat-card">
+            <div class="label">Failures</div>
+            <div class="val" id="stat-failures" style="color: var(--accent-green);">0</div>
+        </div>
+    </div>
+
+    <main class="cues-grid" id="cues-grid">
+        <!-- Rendered dynamically by preview.ts -->
+    </main>
+
+    <div id="log-terminal">
+        <div class="log-row">[System] Initializing Web Audio Context...</div>
+    </div>
+
+    <script type="module" src="./preview.ts"></script>
+</body>
+</html>

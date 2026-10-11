@@ -65,7 +65,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/hit_light_4.ogg'
         ],
         bus: 'sfx',
-        gain: 0.7,
+        gain: 0.65,
         throttleMs: AUDIO.CUE_THROTTLE_MS,
         priority: 4,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -79,7 +79,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/hit_heavy_4.ogg'
         ],
         bus: 'sfx',
-        gain: 0.9,
+        gain: 0.85,
         throttleMs: 60,
         priority: 7,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -93,7 +93,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/slash_4.ogg'
         ],
         bus: 'sfx',
-        gain: 0.6,
+        gain: 0.65,
         throttleMs: 70,
         priority: 3,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -106,7 +106,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/bow_3.wav'
         ],
         bus: 'sfx',
-        gain: 0.65,
+        gain: 0.55,
         throttleMs: 80,
         priority: 4,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -132,7 +132,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/magic_fire_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.8,
+        gain: 0.95,
         throttleMs: 90,
         priority: 6,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -145,7 +145,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/magic_ice_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.75,
+        gain: 0.80,
         throttleMs: 90,
         priority: 6,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -158,7 +158,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/magic_heal_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.8,
+        gain: 0.80,
         throttleMs: 120,
         priority: 6,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -171,7 +171,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/death_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.85,
+        gain: 0.80,
         throttleMs: 100,
         priority: 8,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -197,7 +197,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/collapse_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.85,
+        gain: 0.90,
         throttleMs: 150,
         priority: 8,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -210,7 +210,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/rumble_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.7,
+        gain: 0.80,
         throttleMs: 200,
         priority: 6,
         pitchJitter: 0.04,
@@ -223,7 +223,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/impact_ground_3.ogg'
         ],
         bus: 'sfx',
-        gain: 0.8,
+        gain: 0.80,
         throttleMs: 120,
         priority: 7,
         pitchJitter: AUDIO.PITCH_JITTER,
@@ -249,7 +249,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/ui_click_3.ogg'
         ],
         bus: 'ui',
-        gain: 0.6,
+        gain: 0.45,
         throttleMs: 40,
         priority: 5,
         pitchJitter: 0.04,
@@ -262,7 +262,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/ui_hover_3.ogg'
         ],
         bus: 'ui',
-        gain: 0.4,
+        gain: 0.30,
         throttleMs: 50,
         priority: 2,
         pitchJitter: 0.02,
@@ -274,7 +274,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/ui_start_2.ogg'
         ],
         bus: 'ui',
-        gain: 0.85,
+        gain: 0.75,
         throttleMs: 300,
         priority: 9,
         pitchJitter: 0.02,
@@ -285,7 +285,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/victory_1.ogg'
         ],
         bus: 'ui',
-        gain: 0.95,
+        gain: 0.85,
         throttleMs: 500,
         priority: 10,
         pitchJitter: 0.0,
@@ -297,7 +297,7 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
             'assets/audio/sfx/defeat_2.ogg'
         ],
         bus: 'ui',
-        gain: 0.9,
+        gain: 0.80,
         throttleMs: 500,
         priority: 10,
         pitchJitter: 0.0,
