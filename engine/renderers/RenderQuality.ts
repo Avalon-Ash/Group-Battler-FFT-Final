@@ -18,12 +18,22 @@ export type QualityTier = 0 | 1 | 2 | 3;
 
 export interface QualityGovernorConfig {
     ignoreFrameMs?: number;
+    /** Downgrade when the averaged frame INTERVAL (rAF dt) exceeds this. */
     downMs?: number;
     downHoldS?: number;
+    /**
+     * Upgrade when the averaged main-thread WORK time (not the rAF interval) is below this.
+     * The rAF interval is pinned to the display refresh (16.7 ms @ 60 Hz), so it can never show headroom;
+     * work time is vsync-independent and is the only signal that can justify recovering quality.
+     */
     upMs?: number;
     upHoldS?: number;
     cooldownS?: number;
     windowFrames?: number;
+    /** Frames during the first N seconds are ignored (JIT warm-up, sprite baking, first layout). */
+    startupGraceS?: number;
+    /** Max exponent of the upgrade-cooldown backoff (cooldown doubles each time an upgrade is immediately undone). */
+    maxUpBackoff?: number;
     initialTier?: QualityTier;
     pinnedTier?: QualityTier | null;
 }
@@ -132,30 +142,61 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
     forceSetQualityTier(currentTier);
 
     // 零分配環狀緩衝區
+    const startupGraceS = config.startupGraceS ?? RENDER_QUALITY.STARTUP_GRACE_S;
+    const maxUpBackoff = config.maxUpBackoff ?? RENDER_QUALITY.MAX_UP_BACKOFF;
+
+    // Zero-allocation ring buffers: frame interval (rAF dt) and main-thread work time.
     const buffer = new Float64Array(windowFrames);
+    const workBuffer = new Float64Array(windowFrames);
     let head = 0;
     let count = 0;
     let sum = 0;
+    let workSum = 0;
 
+    let elapsedS = 0;
     let downHoldElapsed = 0;
     let upHoldElapsed = 0;
-    let timeSinceLastDowngrade = cooldownS; // 初始允許在符合條件時升階
+    let timeSinceLastDowngrade = cooldownS; // allow an upgrade as soon as the conditions hold
+    let timeSinceLastUpgrade = Infinity;
+    let upBackoff = 0;
 
-    function feedFrame(frameMs: number, dtSeconds?: number): QualityTier {
+    function clearWindow(): void {
+        count = 0;
+        head = 0;
+        sum = 0;
+        workSum = 0;
+        downHoldElapsed = 0;
+        upHoldElapsed = 0;
+    }
+
+    /**
+     * @param frameMs    rAF interval of this frame (pinned to the display refresh when the GPU/CPU keep up)
+     * @param dtSeconds  optional override of the elapsed seconds this frame represents (tests)
+     * @param workMs     main-thread time spent in this frame's update+draw (vsync independent). Defaults to frameMs.
+     */
+    function feedFrame(frameMs: number, dtSeconds?: number, workMs?: number): QualityTier {
         if (frameMs > ignoreFrameMs) {
-            // 忽略大於 250ms 的超長幀（分頁背景或卡頓）
+            // Ignore ultra-long frames (background tab / stalls).
             return currentTier;
         }
 
         const dtSec = dtSeconds ?? (frameMs / 1000);
+        elapsedS += dtSec;
+        // Startup grace: JIT warm-up, sprite baking and first layout must not trigger a downgrade.
+        if (elapsedS < startupGraceS) return currentTier;
 
+        const work = workMs ?? frameMs;
         if (count < windowFrames) {
             buffer[head] = frameMs;
+            workBuffer[head] = work;
             sum += frameMs;
+            workSum += work;
             count++;
         } else {
             sum = sum - buffer[head] + frameMs;
+            workSum = workSum - workBuffer[head] + work;
             buffer[head] = frameMs;
+            workBuffer[head] = work;
         }
         head = (head + 1) % windowFrames;
 
@@ -164,34 +205,41 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
         }
 
         timeSinceLastDowngrade += dtSec;
+        timeSinceLastUpgrade += dtSec;
         const avgMs = sum / count;
+        const avgWorkMs = workSum / count;
 
         if (avgMs > downMs) {
             downHoldElapsed += dtSec;
             upHoldElapsed = 0;
             if (downHoldElapsed >= downHoldS && currentTier < 3) {
+                // An upgrade that is immediately undone means the headroom estimate was wrong: back off.
+                if (timeSinceLastUpgrade < cooldownS * 2) {
+                    upBackoff = Math.min(upBackoff + 1, maxUpBackoff);
+                }
                 currentTier = (currentTier + 1) as QualityTier;
-                downHoldElapsed = 0;
                 timeSinceLastDowngrade = 0;
+                clearWindow();
                 forceSetQualityTier(currentTier);
             }
-        } else if (avgMs < upMs) {
+        } else if (avgWorkMs < upMs) {
             upHoldElapsed += dtSec;
             downHoldElapsed = 0;
-            if (upHoldElapsed >= upHoldS && timeSinceLastDowngrade >= cooldownS && currentTier > 0) {
+            const effectiveCooldown = cooldownS * Math.pow(2, upBackoff);
+            if (upHoldElapsed >= upHoldS && timeSinceLastDowngrade >= effectiveCooldown && currentTier > 0) {
                 currentTier = (currentTier - 1) as QualityTier;
-                upHoldElapsed = 0;
+                timeSinceLastUpgrade = 0;
+                clearWindow();
                 forceSetQualityTier(currentTier);
             }
         } else {
-            // 13ms ~ 19ms 遲滯緩衝帶：清除累計以防抖動
+            // Hysteresis band: clear the accumulated holds to avoid flapping.
             downHoldElapsed = 0;
             upHoldElapsed = 0;
         }
 
         return currentTier;
     }
-
     function getTier(): QualityTier {
         return currentTier;
     }
@@ -206,12 +254,11 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
     }
 
     function reset(): void {
-        count = 0;
-        head = 0;
-        sum = 0;
-        downHoldElapsed = 0;
-        upHoldElapsed = 0;
+        clearWindow();
+        elapsedS = 0;
         timeSinceLastDowngrade = cooldownS;
+        timeSinceLastUpgrade = Infinity;
+        upBackoff = 0;
     }
 
     return {

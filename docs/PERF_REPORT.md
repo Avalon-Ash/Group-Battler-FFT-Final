@@ -166,3 +166,10 @@ npm run dev
 | `perf-ckpt-final` | 全量優化完成，包含配置清理 (P6)、Showcase 量測 (P7)、效能棘輪 (P8) 與全量雙重護欄。 |
 
 ---
+
+
+## 審查修正附記（Review Addendum）
+
+- **Governor 修正**：原版以 rAF 間隔判斷回升（UP_MS=13），在 ≤75Hz 螢幕因 vsync 下限（≥16.7ms）永遠無法回升。現改為：降級看 rAF 平均間隔（DOWN_MS=19，持續 ≥2s）；升級看主執行緒**工作時間**（UP_MS=9，持續 12s）；新增 STARTUP_GRACE_S=5、升級冷卻 COOLDOWN_S×2^backoff（升級被還原則 backoff+1，上限 MAX_UP_BACKOFF=4）。useGameLoop 於 draw 後以 eedFrame(dt, undefined, workMs) 餵入。
+- **e2e**：windows.e2e.mjs 還原為 main 版本，僅加 ?quality=0（原斷言在 perf 分支程式碼上通過，先前對 Inspector 與 pan 座標的修改無必要）。
+- **擬真度比較器揭露**：閘門指標使用 3×3 鄰域對齊容忍；現同時輸出 strict（無對齊）指標：mean 0.58–0.81 /255，bad 0.13–1.05%（僅邊緣像素）。閘門門檻未放寬。

@@ -117,6 +117,8 @@ const createHarnessContext = async () => {
 
                     let sumDiff = 0;
                     let badPixels = 0;
+                    let strictSum = 0;
+                    let strictBad = 0;
                     const totalPixels = w * h;
 
                     for (let i = 0; i < d1.length; i += 4) {
@@ -127,6 +129,9 @@ const createHarnessContext = async () => {
                         let bestDr = Math.abs(d1[i] - d2[i]);
                         let bestDg = Math.abs(d1[i+1] - d2[i+1]);
                         let bestDb = Math.abs(d1[i+2] - d2[i+2]);
+                        // Strict (no neighbourhood alignment) metrics, reported for transparency.
+                        strictSum += bestAvg;
+                        if (bestDr > 24 || bestDg > 24 || bestDb > 24) strictBad++;
 
                         // 3x3 neighborhood alignment for subpixel float jitter
                         for (let dy = -1; dy <= 1; dy++) {
@@ -157,7 +162,11 @@ const createHarnessContext = async () => {
 
                     const meanAbsDiff = +(sumDiff / totalPixels).toFixed(4);
                     const badPixelPct = +((badPixels / totalPixels) * 100).toFixed(4);
-                    resolve({ meanAbsDiff, badPixelPct, totalPixels, w, h });
+                    resolve({
+                        meanAbsDiff, badPixelPct, totalPixels, w, h,
+                        strictMeanAbsDiff: +(strictSum / totalPixels).toFixed(4),
+                        strictBadPixelPct: +((strictBad / totalPixels) * 100).toFixed(4),
+                    });
                 };
                 imgCurr.onload = onLoaded;
                 imgBase.onload = onLoaded;
@@ -288,7 +297,7 @@ try {
 
             const isPass = diff.meanAbsDiff <= MEAN_ABS_DIFF_LIMIT && diff.badPixelPct <= BAD_PIXEL_PCT_LIMIT;
             const status = isPass ? 'PASS' : 'FAIL';
-            console.log(`[fidelity] ${sid.padEnd(16)}: meanAbsDiff=${diff.meanAbsDiff.toFixed(3)} (<= ${MEAN_ABS_DIFF_LIMIT}), badPixelPct=${diff.badPixelPct.toFixed(2)}% (<= ${BAD_PIXEL_PCT_LIMIT}%) -> ${status}`);
+            console.log(`[fidelity] ${sid.padEnd(16)}: meanAbsDiff=${diff.meanAbsDiff.toFixed(3)} (<= ${MEAN_ABS_DIFF_LIMIT}), badPixelPct=${diff.badPixelPct.toFixed(2)}% (<= ${BAD_PIXEL_PCT_LIMIT}%) | strict(no alignment): mean=${diff.strictMeanAbsDiff} bad=${diff.strictBadPixelPct}% -> ${status}`);
 
             if (!isPass) {
                 failed = true;

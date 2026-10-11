@@ -454,9 +454,14 @@ export const RENDER_QUALITY = {
     IGNORE_FRAME_MS: 250,
     DOWN_MS: 19,
     DOWN_HOLD_S: 2,
-    UP_MS: 13,
+    /** Upgrade threshold on main-thread WORK time (vsync independent); rAF dt can never fall below the refresh interval. */
+    UP_MS: 9,
     UP_HOLD_S: 12,
     COOLDOWN_S: 15,
+    /** Frames during the first seconds are ignored (JIT warm-up, sprite baking). */
+    STARTUP_GRACE_S: 5,
+    /** Max exponent of the upgrade-cooldown doubling after an upgrade is immediately undone. */
+    MAX_UP_BACKOFF: 4,
     WINDOW_FRAMES: 60,
     TIER_SCALES: [1.0, 1.0, 0.75, 0.5] as const,
     QUERY_KEY: 'quality',

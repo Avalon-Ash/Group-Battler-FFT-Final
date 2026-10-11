@@ -102,9 +102,8 @@ export const useGameLoop = (
             const dt = t - lastTime;
             lastTime = t;
 
-            if (dt > 0 && (typeof document === 'undefined' || !document.hidden)) {
-                getDefaultQualityGovernor().feedFrame(dt);
-            }
+            // Main-thread work time of this frame (vsync independent) feeds the quality governor's upgrade decision.
+            const workStart = performance.now();
 
             // Increment Real Time strictly by dt
             realTimeRef.current += dt / 1000;
@@ -156,6 +155,10 @@ export const useGameLoop = (
             // Renderer update now handles time splitting internally using Engine state
             rendererRef.current.update(dt / 1000, engine, cameraRef);
             drawCallbackRef.current(ctx, fpsRef.current);
+
+            if (dt > 0 && (typeof document === 'undefined' || !document.hidden)) {
+                getDefaultQualityGovernor().feedFrame(dt, undefined, performance.now() - workStart);
+            }
 
             frameRef.current = requestAnimationFrame(loop);
         };
