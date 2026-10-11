@@ -80,6 +80,9 @@ export function terrainSpriteKey(
 export function createTerrainSpriteStore(createSurface: SurfaceFactory = createCanvas) {
     const themeMap = new Map<TerrainTheme, Map<string, Map<HexLayout, Map<number, TerrainSpriteEntry>>>>();
     let totalSprites = 0;
+    let hits = 0;
+    let misses = 0;
+    let clears = 0;
 
     // 材質簽章追蹤（逐欄數值比較，零字串配置）
     let sigEnabled = MATERIAL_CONFIG.enabled;
@@ -136,6 +139,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     function clear(): void {
         themeMap.clear();
         totalSprites = 0;
+        clears++;
     }
 
     function get(
@@ -151,10 +155,15 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
                 const intMap = layoutMap.get(key.layout);
                 if (intMap) {
                     const hit = intMap.get(key.packedInt);
-                    if (hit) return hit;
+                    if (hit) {
+                        hits++;
+                        return hit;
+                    }
                 }
             }
         }
+
+        misses++;
 
         // 超過上限容量清空重建
         if (totalSprites >= RENDER_CACHE.MAX_TERRAIN_SPRITES) {
@@ -188,6 +197,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         get,
         clear,
         size: () => totalSprites,
+        getStats: () => ({ size: totalSprites, hits, misses, clears }),
         checkMaterialSignature,
     };
 }

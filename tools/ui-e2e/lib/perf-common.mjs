@@ -145,8 +145,11 @@ export async function assertAgents(page, minCount = 2) {
  * Optionally boosts HP to avoid battle prematurely ending during the sample window.
  */
 export async function prepareManualBattle(page, { boostHp = true } = {}) {
-    await page.getByText(START_TEXT).click();
-    await page.waitForTimeout(400);
+    const startBtn = page.getByText(START_TEXT);
+    if (await startBtn.isVisible().catch(() => false)) {
+        await startBtn.click().catch(() => {});
+        await page.waitForTimeout(400);
+    }
     await clickDice(page);
     await page.waitForTimeout(400);
     await assertAgents(page, 2);
