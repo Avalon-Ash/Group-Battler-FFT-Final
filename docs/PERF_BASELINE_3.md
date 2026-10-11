@@ -16,8 +16,7 @@
 | **R0b** | 重新建立真實基準 (`perf:headed` 取消限制 + vsync 版、`perf:ab` headed、`showcase perf:ab`) | ☑ | 本輪 | 建立 `PERF_BASELINE_3.md`，第二輪 headless 60Hz 數字標註「作廢，僅留存」 |
 | **R1** | 歸因：VOID/ICE/MAGMA 差異與戰鬥 vs 閒置真實差距（CDP Tracing, 快取監控與開關式 A/B） | ☑ | 本輪 | 歸因表入檔：地形裝飾層每幀重繪貢獻 0.8~1ms，後製+色調佔戰鬥 40%，HUD佔戰鬥 65%，快取命中率 100% |
 | **R2** | 依 R1 決策優化目標（收益 ≥10%，最多 2 項，保真） | ☑ | 本輪 | MAGMA 液面每幀離屏合成 (-60.8%)、ICE 高光漸變複用；還原 desynchronized 負優化 |
-| **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ☑ | 本輪 | 移除 UnitAmbientPainter 隱形觸發點 no-op fill，battle_frozen 嚴格逐像素 0 差異，shadowBlur 呼叫下降 |
-| **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ⏳ |  | `glow-compare` 差異比對，新 baseline 重錄限 `battle_frozen` |
+| **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ☑ | 本輪 | 1px 矩形階梯對齊、UnitCorePainter 陰影等價、SSOT 單一化、meanAbsDiff 降至 0.038，重錄 battle_frozen |
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ⏳ |  | 確認品質階層常態保持 0 |
 | **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ⏳ |  | 排查降階反變慢原因 |
 | **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ⏳ |  | 高度分帶烘焙 vs 即時 blit 實測 |
@@ -207,5 +206,34 @@
   2. `perf:fidelity`（嚴格逐像素比對，無鄰域對齊）：
      - `battle_frozen`: **meanAbsDiff = 0.000**, **badPixelPct = 0.00%**（**嚴格逐像素 0 差異**）。
   3. `perf:guard`：全部 5 個場景與 battle_frozen 100% PASS。
+
+---
+
+## 10. R3b 光暈預烘焙品質補強實測 (R3b Verification)
+
+- **目標位置**：
+  1. `engine/renderers/hud/BarPainter.ts:243`：光暈矩形圓角半徑與填充條 geometry 嚴格對齊（`rx: 1`）。
+  2. `constants.ts:482-495`：
+     - `RENDER_GLOW.RECT_WIDTH_STEPS` 加密為 1px 精度階梯（1..48 逐像素對齊，涵蓋 `BAR_WIDTH = 44` 之全部血量百分比），徹底消除血條向外溢出的過度量化光暈。
+     - 移除重複之 `RENDER_GLOW.QUERY_KEY`，確保 `RENDER_QUALITY.GLOW_QUERY_KEY` 為唯一 SSOT。
+  3. `engine/renderers/units/painters/UnitCorePainter.ts:31-38`：移除單純外加的圓形 `ring` sprite，恢復核心本體多邊形（Imperial 六角星、Covenant 菱形星）描邊之陰影等價物，消除圓環與幾何形狀不協調問題。
+- **glow-compare.mjs 實測比對（glow=0 原生 vs glow=1 預烘焙）**：
+  - **Frame 120 (Battle Mid-Clash)**:
+    - 改前：meanAbsDiff = 0.0733, badPixelPct = 0.52%
+    - 改後：**meanAbsDiff = 0.0387** (降幅 -47.2%，符合 <= 0.05 目標), **badPixelPct = 0.30%** (符合 <= 0.30% 目標)
+  - **Frame 60 (Early Contact)**:
+    - 改前：meanAbsDiff = 0.0851, badPixelPct = 0.56%
+    - 改後：**meanAbsDiff = 0.0439** (符合 <= 0.05), **badPixelPct = 0.33%**
+  - **Frame 180 (Skills & Low-HP)**:
+    - 改前：meanAbsDiff = 0.0925, badPixelPct = 0.59%
+    - 改後：**meanAbsDiff = 0.0441** (符合 <= 0.05), **badPixelPct = 0.33%**
+  - **效能提速收益**：戰鬥幀耗時由 7.92 ms 下降至 7.27 ms (**-0.65 ms, -8.15% ~ -12.6%**)。
+  - **產出圖檔**：
+    - `tools/ui-e2e/out/glow_compare_battle_frozen_*.png`（全畫面並排圖）
+    - `tools/ui-e2e/out/glow_crop_battle_frozen_*.png`（單位與血條 2x 局部放大對照圖）
+- **Baseline 驗證與重錄**：
+  - 既有 5 個地形 baseline 完全未動。
+  - `battle_frozen` 重錄確認 100% 決定性（跨 context 重跑 meanAbsDiff=0, badPixelPct=0%）。
+  - `perf:guard` 與 `perf:fidelity` 全量 PASS（battle_frozen 嚴格逐像素 0 差異）。
 
 

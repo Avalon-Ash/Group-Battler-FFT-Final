@@ -150,6 +150,39 @@ const createHarnessContext = async (glow = 0) => {
 
             return c.toDataURL('image/png');
         };
+
+        window.__createCropComparison = async (urlLeft, urlRight, labelLeft, labelRight, cx = 490, cy = 250, cw = 300, ch = 220) => {
+            const loadImg = (src) => new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = src;
+            });
+
+            const [imgL, imgR] = await Promise.all([loadImg(urlLeft), loadImg(urlRight)]);
+            const scale = 2;
+            const c = document.createElement('canvas');
+            c.width = cw * scale * 2 + 10;
+            c.height = ch * scale + 40;
+            const ctx = c.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+
+            ctx.fillStyle = '#111827';
+            ctx.fillRect(0, 0, c.width, c.height);
+
+            // Left crop (scaled)
+            ctx.drawImage(imgL, cx, cy, cw, ch, 0, 40, cw * scale, ch * scale);
+            // Right crop (scaled)
+            ctx.drawImage(imgR, cx, cy, cw, ch, cw * scale + 10, 40, cw * scale, ch * scale);
+
+            // Labels
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.fillText(`${labelLeft} [2x Zoom]`, 10, 26);
+            ctx.fillText(`${labelRight} [2x Zoom]`, cw * scale + 20, 26);
+
+            return c.toDataURL('image/png');
+        };
     });
 
     await page.goto(`${baseUrl}?quality=0&glow=${glow}`, { waitUntil: 'networkidle' });
@@ -238,12 +271,23 @@ try {
             ({ left, right, l1, l2 }) => window.__createSideBySide(left, right, l1, l2),
             { left: img0, right: img1, l1: 'glow=0 (Native shadowBlur)', l2: 'glow=1 (GlowSpriteCache Baked)' }
         );
+
+        // Crop side by side
+        const cropUrl = await h1.page.evaluate(
+            ({ left, right, l1, l2 }) => window.__createCropComparison(left, right, l1, l2),
+            { left: img0, right: img1, l1: 'glow=0', l2: 'glow=1' }
+        );
         await h1.ctx.close();
 
         const outPath = join(OUT_DIR, `glow_compare_${sc.id}.png`);
         writeFileSync(outPath, Buffer.from(sideBySideUrl.replace(/^data:image\/png;base64,/, ''), 'base64'));
+
+        const cropPath = join(OUT_DIR, `glow_crop_${sc.id}.png`);
+        writeFileSync(cropPath, Buffer.from(cropUrl.replace(/^data:image\/png;base64,/, ''), 'base64'));
+
         console.log(`  -> meanAbsDiff: ${diff.meanAbsDiff.toFixed(4)}, badPixelPct: ${diff.badPixelPct.toFixed(2)}%`);
-        console.log(`  -> Saved side-by-side: ${outPath}\n`);
+        console.log(`  -> Saved side-by-side: ${outPath}`);
+        console.log(`  -> Saved zoom crop: ${cropPath}\n`);
 
         results.push({
             id: sc.id,
@@ -251,6 +295,7 @@ try {
             meanAbsDiff: diff.meanAbsDiff,
             badPixelPct: diff.badPixelPct,
             file: `tools/ui-e2e/out/glow_compare_${sc.id}.png`,
+            cropFile: `tools/ui-e2e/out/glow_crop_${sc.id}.png`,
         });
     }
 
