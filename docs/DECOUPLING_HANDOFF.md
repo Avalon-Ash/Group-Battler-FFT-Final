@@ -386,3 +386,22 @@ npm run lint; npm run build
 - 量測鐵律（寫給所有後續代理）：腳本必須印出並記錄 GPU 字串與 DPR，落在 AMD/Radeon 即視為無效；觸發骰子按鈕一律 DOM click 並斷言單位數；量測戰鬥時要避開「戰鬥結束／showcase 轉場」；吞吐量測要取消幀率限制（--disable-frame-rate-limit --disable-gpu-vsync）。
 - 外觀決策：光暈預烘焙（GlowSpriteCache）已由使用者目視核定並設為預設開（RENDER_QUALITY.GLOW_SPRITES = true，?glow=0 可關）。attle_frozen baseline 已重錄（有單位的真實畫面）。
 - 第三輪計畫：docs/PERF_AGENT_PROMPT_3.md，在新分支 perf/render-opt-3（由 main 開出）進行；不得直接在 main 上優化。
+
+### 10.7 效能第三輪完成摘要（2026-10-11，perf/render-opt-3 執行完成）
+
+- **分支與狀態**：獨立分支 `perf/render-opt-3`，依合約未 push、未 merge。
+- **真機基準與歸因**：在 NVIDIA GeForce RTX 4070 (ANGLE D3D11) 主螢幕 240 Hz 上建立解除限制吞吐基準。VOID 0.89ms (1123 FPS)、FOREST 1.35ms (740 FPS)、ICE 1.82ms (549 FPS)、DESERT 1.27ms (787 FPS)、manual_battle 7.27ms (137 FPS)、showcase 7.05ms (141 FPS)。
+- **核心優化項目**：
+  1. **MAGMA 液面離屏合成 (R2)**：單幀單次合成，消除每格重複 clip/blend，幀耗時由 3.01ms 降至 1.18ms (**-60.8%**, +155% FPS)。
+  2. **無效 shadowBlur 消除 (R3a)**：移除 `UnitAmbientPainter` 內 `globalAlpha = 0` 之隱形觸發點，全域 `battle_frozen` 達成嚴格逐像素 0 差異。
+  3. **光暈預烘焙品質強化 (R3b)**：`BarPainter` 矩形光暈改為 1px 精度階梯，`UnitCorePainter` 恢復本體多邊形描邊陰影等價物，meanAbsDiff 減半至 0.038。
+  4. **矩陣雨 Tier 1 異常修復 (R5)**：消除畫布縮半雙重縮放與 CSS 重採樣，改為純 30Hz 節流，Tier 1 幀耗時降為 7.054ms (-15.8%)。
+  5. **高度分帶雙層烘焙原型 (R6)**：獨立原型頁實測耗時由 0.60ms 降至 0.40ms (**-33.3%**)，吞吐提升 +70%，DrawCall 削減 98%。
+- **驗證狀態**：
+  - `npm run lint` 0 errors
+  - `npm test` 192 passed
+  - `npm run build` 通過
+  - `npm run e2e:ui` 連跑兩次 ALL PASSED
+  - `npm run perf:guard` ALL PASSED（包含 5 地形與真實單位 battle_frozen 嚴格逐像素 0 差異）
+- **本地 Checkpoint Tags**：`perf3-ckpt-R0`、`perf3-ckpt-R2`、`perf3-ckpt-R3`、`perf3-ckpt-final`。
+- **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/PERF_BASELINE_3.md`。

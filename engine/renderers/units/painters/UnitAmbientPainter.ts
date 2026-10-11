@@ -75,15 +75,10 @@ export const UnitAmbientPainter = {
             const entry = GlowSpriteCache.getGlowSprite('disc', glowColor, 4, blurRadius);
             drawGlowSprite(ctx, entry, 0, -20, 0.6);
         } else {
-            // 1. 血腥環境暈：只靠 shadowBlur，不畫實體形狀，移除「護盾泡泡」感
+            // R3a: 移除無效的 shadowBlur (globalAlpha=0 下 shadow 不可見，此處為 no-op)
             ctx.shadowColor = glowColor;
-            ctx.shadowBlur = blurRadius;
-            ctx.globalAlpha = 0; // 隱形觸發點
-            ctx.beginPath();
-            ctx.arc(0, -20, 1, 0, Math.PI * 2);
-            ctx.fill();
             ctx.globalAlpha = 1;
-            ctx.shadowBlur = 0; // 重置避免污染
+            ctx.shadowBlur = 0;
         }
 
         // 2. 血滴粒子（從肩部與身體各處滴落/噴濺）

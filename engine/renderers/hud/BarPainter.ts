@@ -240,7 +240,7 @@ export const BarPainter = {
         }
         
         if (isGlowSpritesEnabled()) {
-            const entry = GlowSpriteCache.getGlowSprite('rect', glow, fillW, 6, { width: fillW, height: bh, rx: 2 });
+            const entry = GlowSpriteCache.getGlowSprite('rect', glow, fillW, 6, { width: fillW, height: bh, rx: 1 });
             drawGlowSprite(ctx, entry, bx, by, 0.8);
             ctx.fill();
         } else {

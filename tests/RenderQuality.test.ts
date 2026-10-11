@@ -93,9 +93,9 @@ describe('RenderQuality & createQualityGovernor', () => {
             expect(budget.enabled).toBe(true);
         });
 
-        it('returns 0.5x scale and 30Hz enabled for tier 1', () => {
+        it('returns RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE (1.0) and 30Hz enabled for tier 1', () => {
             const budget = getMatrixRainBudget(1);
-            expect(budget.scale).toBe(0.5);
+            expect(budget.scale).toBe(RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE);
             expect(budget.hz).toBe(30);
             expect(budget.enabled).toBe(true);
         });

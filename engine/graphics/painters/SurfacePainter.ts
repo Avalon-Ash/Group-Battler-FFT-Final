@@ -3,8 +3,16 @@ import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { VFXFactory } from "../VFXFactory";
 import { HexGeometry } from "../utils/HexGeometry";
 import { HexLayout } from "../../../types";
+import { createCanvas } from "../CanvasUtils";
 
 export const SurfacePainter = {
+    _liquidCache: null as {
+        canvas: HTMLCanvasElement;
+        ctx: CanvasRenderingContext2D;
+        key: string;
+        center: number;
+    } | null,
+    _iceGrad: null as { grad: CanvasGradient; key: string } | null,
     
     drawLiquid(
         ctx: CanvasRenderingContext2D,
@@ -14,36 +22,54 @@ export const SurfacePainter = {
         intensity: number,
         layout: HexLayout = 'FLAT' 
     ) {
-        ctx.save();
         const r = HEX_SIZE * 0.9;
-        HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
-        ctx.fillStyle = color;
-        ctx.globalAlpha = 0.9 * intensity;
-        ctx.fill();
+        const pad = 2;
+        const totalSize = Math.ceil((r + pad) * 2);
+        const center = totalSize / 2;
+        const key = `${color}:${time}:${intensity}:${layout}`;
 
-        ctx.clip(); 
+        if (!this._liquidCache) {
+            const { canvas, ctx: lCtx } = createCanvas(totalSize, totalSize);
+            this._liquidCache = { canvas, ctx: lCtx, key: '', center };
+        }
 
-        const flowX = Math.sin(time * 0.5) * 8;
-        const flowY = Math.cos(time * 0.4) * 8;
+        if (this._liquidCache.key !== key) {
+            const lCtx = this._liquidCache.ctx;
+            lCtx.clearRect(0, 0, totalSize, totalSize);
+            lCtx.save();
+            lCtx.translate(center, center);
 
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
-        ctx.beginPath();
-        ctx.ellipse(flowX, flowY, r * 0.6, r * 0.4, 0, 0, Math.PI * 2);
-        ctx.fill();
+            HexGeometry.traceHex(lCtx, 0, 0, r, true, layout);
+            lCtx.fillStyle = color;
+            lCtx.globalAlpha = 0.9 * intensity;
+            lCtx.fill();
+            lCtx.clip();
 
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.fillStyle = '#fff';
-        ctx.globalAlpha = 0.3;
-        
-        const bubbleX = Math.cos(time * 0.8) * (r * 0.4);
-        const bubbleY = Math.sin(time * 0.9) * (r * 0.4) * ISO_SCALE_Y;
-        
-        ctx.beginPath(); 
-        ctx.arc(bubbleX, bubbleY, r * 0.3, 0, Math.PI * 2); 
-        ctx.fill();
-        
-        ctx.restore();
+            const flowX = Math.sin(time * 0.5) * 8;
+            const flowY = Math.cos(time * 0.4) * 8;
+
+            lCtx.globalCompositeOperation = 'multiply';
+            lCtx.fillStyle = 'rgba(0,0,0,0.4)';
+            lCtx.beginPath();
+            lCtx.ellipse(flowX, flowY, r * 0.6, r * 0.4, 0, 0, Math.PI * 2);
+            lCtx.fill();
+
+            lCtx.globalCompositeOperation = 'overlay';
+            lCtx.fillStyle = '#fff';
+            lCtx.globalAlpha = 0.3;
+
+            const bubbleX = Math.cos(time * 0.8) * (r * 0.4);
+            const bubbleY = Math.sin(time * 0.9) * (r * 0.4) * ISO_SCALE_Y;
+
+            lCtx.beginPath();
+            lCtx.arc(bubbleX, bubbleY, r * 0.3, 0, Math.PI * 2);
+            lCtx.fill();
+
+            lCtx.restore();
+            this._liquidCache.key = key;
+        }
+
+        ctx.drawImage(this._liquidCache.canvas, x - center, y - center);
     },
 
     /**
@@ -94,13 +120,18 @@ export const SurfacePainter = {
         ctx.clip();
         const slide = (time * 0.5) % 2.5 - 0.7; 
         const w = size * 2;
-        if (Number.isFinite(w)) {
-            const grad = ctx.createLinearGradient(-w, -w, w, w);
+        const key = `${time}:${size}`;
+        let grad = this._iceGrad?.key === key ? this._iceGrad.grad : null;
+        if (!grad && Number.isFinite(w)) {
+            grad = ctx.createLinearGradient(-w, -w, w, w);
             const start = slide - 0.3;
             const end = slide + 0.3;
             grad.addColorStop(Math.max(0, Math.min(1, start)), 'rgba(255,255,255,0)');
             grad.addColorStop(Math.max(0, Math.min(1, slide)), 'rgba(255,255,255,0.25)'); 
             grad.addColorStop(Math.max(0, Math.min(1, end)), 'rgba(255,255,255,0)');
+            this._iceGrad = { grad, key };
+        }
+        if (grad) {
             ctx.fillStyle = grad;
             ctx.fillRect(-size, -size, size*2, size*2);
         }

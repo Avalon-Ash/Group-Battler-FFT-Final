@@ -1,18 +1,23 @@
 /**
- * Render performance A/B experiment (headless Edge/Chrome).
- * Run: `node tools/ui-e2e/perf-ab.mjs`  (env: PERF_SECONDS=6, PERF_DSF=1, PERF_CPU_THROTTLE=4, E2E_BROWSER_PATH=...)
+ * Render performance A/B experiment.
+ * Run: `node tools/ui-e2e/perf-ab.mjs`  (env: PERF_SECONDS=6, PERF_DSF=1, PERF_CPU_THROTTLE=1, PERF_HEADED=1, PERF_UNTHROTTLED=1)
  *
- * Boots the Showcase scene, then toggles individual render features at runtime through the dev-server module
- * instance of MATERIAL_CONFIG / CSS injection and reports rAF frame-time per variant. Used to rank the cost of
+ * Boots the Showcase scene or manual mode, then toggles individual render features at runtime through
+ * MATERIAL_CONFIG / CSS injection and reports rAF frame-time per variant. Used to rank the cost of
  * each feature (tone-grade pass, terrain grain overlay, backdrop-filter glass, matrix rain, ...).
  * Output: tools/ui-e2e/out/perf_ab.json
  */
-import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import os from 'node:os';
+import {
+    launchBrowser,
+    getEnvInfo,
+    assertMainGpu,
+    START_TEXT,
+} from './lib/perf-common.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
@@ -20,23 +25,17 @@ mkdirSync(OUT, { recursive: true });
 
 const isAssert = process.env.PERF_ASSERT === '1' || process.argv.includes('--assert');
 const isRecord = process.env.PERF_RECORD === '1' || process.argv.includes('--record');
-const SECONDS = Number(process.env.PERF_SECONDS || (isAssert ? 3 : (process.env.PERF_MODE === 'showcase' ? 4 : 6)));
+const isShowcaseMode = process.env.PERF_MODE === 'showcase' || process.argv.includes('--showcase');
+const SECONDS = Number(process.env.PERF_SECONDS || (isAssert ? 3 : (isShowcaseMode ? 4 : 6)));
 const DSF = Number(process.env.PERF_DSF || 1);
 const THROTTLE = Number(process.env.PERF_CPU_THROTTLE || 1);
-
-const launchBrowser = async () => {
-    const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
-    if (process.env.E2E_BROWSER_PATH) return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: !process.env.PERF_HEADED, args });
-    for (const channel of ['msedge', 'chrome']) {
-        try { return await chromium.launch({ channel, headless: !process.env.PERF_HEADED, args }); } catch { /* next */ }
-    }
-    throw new Error('No Edge/Chrome found. Install one or set E2E_BROWSER_PATH.');
-};
+const isHeaded = Boolean(process.env.PERF_HEADED) || process.argv.includes('--headed');
+const isUnthrottled = process.env.PERF_UNTHROTTLED === '1' || process.argv.includes('--unthrottled');
 
 const server = await createServer({ server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
 const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
-const browser = await launchBrowser();
+const browser = await launchBrowser({ headed: isHeaded, unthrottled: isUnthrottled });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: DSF });
 const page = await ctx.newPage();
 await page.goto(baseUrl, { waitUntil: 'networkidle' });
@@ -44,8 +43,16 @@ if (THROTTLE > 1) {
     const cdp = await ctx.newCDPSession(page);
     await cdp.send('Emulation.setCPUThrottlingRate', { rate: THROTTLE });
 }
-await page.waitForTimeout(3000);
-console.log('ENV', JSON.stringify(await page.evaluate(() => { const gl = document.createElement('canvas').getContext('webgl'); const ext = gl && gl.getExtension('WEBGL_debug_renderer_info'); return { dpr: window.devicePixelRatio, screen: [screen.width, screen.height], gpu: ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : null, ua: navigator.userAgent.slice(0, 90) }; })));
+await page.waitForTimeout(2000);
+
+const envInfo = await getEnvInfo(page, isUnthrottled);
+assertMainGpu(envInfo);
+console.log('ENV', JSON.stringify({
+    dpr: envInfo.dpr,
+    screen: envInfo.screen,
+    gpu: envInfo.gpu,
+    ua: envInfo.userAgent.slice(0, 90),
+}));
 
 const measure = async () => {
     await page.evaluate(() => {
@@ -59,7 +66,7 @@ const measure = async () => {
     const frames = await page.evaluate(() => { window.__stop = true; return window.__frames.slice(2); });
     const sorted = [...frames].sort((a, b) => a - b);
     const avg = frames.reduce((a, b) => a + b, 0) / Math.max(1, frames.length);
-    return { fps: +(1000 / avg).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +(sorted[Math.floor(sorted.length * 0.95)] ?? 0).toFixed(2) };
+    return { fps: +(1000 / Math.max(0.1, avg)).toFixed(1), avgMs: +avg.toFixed(2), p95Ms: +(sorted[Math.floor(sorted.length * 0.95)] ?? 0).toFixed(2) };
 };
 
 // Each variant is applied cumulatively-independent: we reset to defaults first.
@@ -96,6 +103,7 @@ const variants = [
     ['no_grade_no_grain', { grade: false, grain: false, side: 0 }, ''],
     ['no_backdrop_filter', {}, '*{backdrop-filter:none !important;-webkit-backdrop-filter:none !important}'],
 ];
+
 const setScene = (id) => page.evaluate(async (sid) => {
     const mod = await import('/data/scenes.ts');
     const e = window.__TACTICAL_ENGINE__;
@@ -104,8 +112,9 @@ const setScene = (id) => page.evaluate(async (sid) => {
     e.map.rebuildMap(e);
     return mod.SCENE_DB.map((x) => x.id);
 }, id);
+
 try {
-    if (process.env.PERF_MODE === 'showcase') {
+    if (isShowcaseMode) {
         console.log(`\n== SHOWCASE MODE A/B EXPERIMENT (DSF=${DSF}, THROTTLE=${THROTTLE}, SECONDS=${SECONDS}, ROUNDS=3) ==`);
         const showcaseVariants = [
             ['baseline', '', true],
@@ -136,7 +145,7 @@ try {
         writeFileSync(join(OUT, `perf_ab_showcase_dsf${DSF}_cpu${THROTTLE}.json`), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, summary, results }, null, 2));
     } else {
         // Leave Showcase: manual idle mode keeps the scene fixed (no auto theme cycling).
-        await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
+        await page.getByText(START_TEXT).click();
         await page.waitForTimeout(800);
         const ids = await page.evaluate(async () => (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id));
         const only = process.env.PERF_SCENES ? process.env.PERF_SCENES.split(',') : ids;
@@ -144,8 +153,9 @@ try {
             await setScene(sid);
             await page.waitForTimeout(500);
             results[sid] = {};
-            // two interleaved rounds to cancel drift
-            for (let round = 0; round < 2; round++) {
+            // Interleaved rounds to cancel drift
+            const roundsCount = isAssert ? 1 : 3;
+            for (let round = 0; round < roundsCount; round++) {
                 for (const [name, cfgPatch, css] of variants) {
                     await setCfg(cfgPatch);
                     await setCss(css);
@@ -160,6 +170,7 @@ try {
         await setCfg({}); await setCss('');
         writeFileSync(join(OUT, 'perf_ab.json'), JSON.stringify({ dsf: DSF, cpuThrottle: THROTTLE, seconds: SECONDS, results }, null, 2));
     }
+
     if (isRecord) {
         const baselinePath = join(here, 'perf-baseline.json');
         const baselines = {};
