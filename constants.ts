@@ -429,6 +429,7 @@ export const UI_PIN = {
  */
 export const RENDER_PERF = {
     QUERY_KEY: 'perf',
+    OPS_QUERY_KEY: 'perfops',
     EMA_ALPHA: 0.1,
     HISTORY_FRAMES: 60,
     PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
