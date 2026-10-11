@@ -19,7 +19,7 @@
 | **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ☑ | 本輪 | 移除 UnitAmbientPainter 隱形觸發點 no-op fill，battle_frozen 嚴格逐像素 0 差異，shadowBlur 呼叫下降 |
 | **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ☑ | 本輪 | 1px 矩形階梯對齊、UnitCorePainter 陰影等價、SSOT 單一化、meanAbsDiff 降至 0.038，重錄 battle_frozen |
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ☑ | 本輪 | ?glow=1/?quality=2/?quality=3 冒煙 PASS，e2e:ui 連兩次 ALL PASSED，主 GPU 60 秒常態鎖定 Tier 0 |
-| **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ⏳ |  | 排查降階反變慢原因 |
+| **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ☑ | 本輪 | 保持 1.0 原生解析度並節流 30Hz，消除雙重縮放與 CSS 重採樣，Tier 1 (7.05ms) 明確快於 Tier 0 (8.37ms) |
 | **R6** | 烘焙渲染第一步可行性驗證（`tools/baked-terrain-proto.html` 獨立原型） | ⏳ |  | 高度分帶烘焙 vs 即時 blit 實測 |
 | **REPORT** | 完成完整結案報告 `docs/PERF_REPORT_3.md`，更新 `DECOUPLING_HANDOFF.md` §10.6 | ⏳ |  | 彙整歸因、優化、對照圖、治理器曲線 |
 | **FINAL** | 全量驗證與 checkpoint tags 打標 | ⏳ |  | `perf3-ckpt-R0`, `perf3-ckpt-R2`, `perf3-ckpt-R3`, `perf3-ckpt-final` |
@@ -252,5 +252,24 @@
   - 在取消限制 headed 實機交戰狀態下連續執行 60 秒，每秒讀取一次品質階層。
   - **實測時間序列**：`[1s..60s]` 品質階層**嚴格保持為 0**（`maxTier = 0`, `stayedZero = true`）。
   - 結論：RTX 4070 主環境下幀率穩定遠高於 60/120/240 FPS，治理器從未觸發誤降階，門檻設計健康。
+
+---
+
+## 12. R5 矩陣雨 Tier 1 疑點定位與修正實測 (R5 Verification)
+
+- **第二輪數據異常回顧**：第二輪報告中 Showcase 模式在 Tier 0 為 30.4 ms，降至 Tier 1 卻反向增至 39.3 ms。
+- **根本原因診斷**：
+  1. **第二輪量測環境受副螢幕 AMD 內顯影響**：在 AMD iGPU 架構下，共享 DDR5 記憶體頻寬對全螢幕畫布的 CSS 雙線性放大（upsampling）開銷顯著高於字符光柵化開銷。
+  2. **雙重縮放與每幀狀態切換**：`useMatrixRain.ts` 中設定 `canvas.width = Math.floor(width * 0.5)` 時，畫布實體像素已縮半，但繪製時又在每幀執行 `ctx.save()` + `ctx.scale(0.5, 0.5)`，造成雙重縮放，並迫使瀏覽器在每幀執行全螢幕放大合成與 `ctx.restore()` 狀態恢復。
+- **修正方案**：
+  - 在 `constants.ts` 中將 `RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE` 設為 `1.0`（保持 1.0x 原生像素，完全繞過 `ctx.save()/scale()` 與全螢幕 CSS 重採樣放大），但保留 `MATRIX_RAIN_TIER_1_HZ = 30`（更新頻率精確減半為 30 Hz）。
+  - Tier 0 維持 1.0x / 60 Hz 逐像素不變。
+- **實測真機數據（NVIDIA GeForce RTX 4070 headed 取消限制，3 輪交錯中位數）**：
+  - **Tier 0** (1.0x / 60Hz): **8.374 ms** (119.4 FPS) [min 7.737, max 10.911]
+  - **Tier 1** (1.0x / 30Hz): **7.054 ms** (141.8 FPS) [min 6.640, max 7.312]
+    - **淨提速：-1.320 ms (-15.8%)**，FPS 提升 **+18.7%**！
+    - **三輪交錯每輪皆嚴格領先**（Round 1: 10.91 -> 7.31 ms; Round 2: 8.37 -> 7.05 ms; Round 3: 7.74 -> 6.64 ms）。
+  - **Tier 2** (停繪矩陣雨): **7.324 ms** (136.5 FPS)
+- **結論**：徹底修復「降階反變慢」之異常，Tier 1 收益高達 -15.8%，外觀維持清晰無模糊插值。
 
 

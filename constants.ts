@@ -467,7 +467,7 @@ export const RENDER_QUALITY = {
     TIER_SCALES: [1.0, 1.0, 0.75, 0.5] as const,
     QUERY_KEY: 'quality',
     MATRIX_RAIN_TIER_0_SCALE: 1.0,
-    MATRIX_RAIN_TIER_1_SCALE: 0.5,
+    MATRIX_RAIN_TIER_1_SCALE: 1.0,
     MATRIX_RAIN_TIER_0_HZ: 60,
     MATRIX_RAIN_TIER_1_HZ: 30,
     GLOW_SPRITES: true,
