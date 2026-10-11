@@ -321,19 +321,41 @@ export function setGlowSpritesEnabledForTest(val: boolean | null): void {
     testGlowOverride = val;
 }
 
+let glowQueryCache: string | null | undefined = undefined;
+
+function readGlowQuery(): string | null {
+    if (glowQueryCache !== undefined) return glowQueryCache;
+    let val: string | null = null;
+    if (typeof location !== 'undefined' && location.search) {
+        try {
+            val = new URLSearchParams(location.search).get(RENDER_QUALITY.GLOW_QUERY_KEY);
+        } catch {
+            val = null;
+        }
+    }
+    glowQueryCache = val;
+    return val;
+}
+
+/**
+ * 純函式：光暈旗標的決策順序
+ *  1. 網址 ?glow=1|true → 開；?glow=0|false → 關（明確覆寫，供 A/B 與比較工具使用）
+ *  2. 否則：預設旗標 RENDER_QUALITY.GLOW_SPRITES 為 true，或品質階層 >= 2 → 開
+ */
+export function resolveGlowFlag(query: string | null, defaultOn: boolean, tier: number): boolean {
+    if (query === '1' || query === 'true') return true;
+    if (query === '0' || query === 'false') return false;
+    return defaultOn || tier >= 2;
+}
+
 /**
  * 是否啟用光暈預烘焙 Sprite (GLOW_SPRITES)
- * 預設關閉 (false)。僅在 ?glow=1 或品質階層 >= 2 時為 true。
+ * 預設取 RENDER_QUALITY.GLOW_SPRITES（目前 true，使用者已目視核定外觀差異可接受）。
+ * 查詢參數僅在首次呼叫時解析並快取（此函式位於逐單位／逐血條的熱路徑）。
  */
 export function isGlowSpritesEnabled(): boolean {
     if (testGlowOverride !== null) return testGlowOverride;
-    if (typeof location !== 'undefined' && location.search) {
-        try {
-            const val = new URLSearchParams(location.search).get(RENDER_QUALITY.GLOW_QUERY_KEY);
-            if (val === '1' || val === 'true') return true;
-        } catch {}
-    }
-    return getQualityTier() >= 2;
+    return resolveGlowFlag(readGlowQuery(), RENDER_QUALITY.GLOW_SPRITES, getQualityTier());
 }
 
 

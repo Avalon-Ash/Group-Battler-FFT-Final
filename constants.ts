@@ -470,7 +470,7 @@ export const RENDER_QUALITY = {
     MATRIX_RAIN_TIER_1_SCALE: 0.5,
     MATRIX_RAIN_TIER_0_HZ: 60,
     MATRIX_RAIN_TIER_1_HZ: 30,
-    GLOW_SPRITES: false,
+    GLOW_SPRITES: true,
     GLOW_QUERY_KEY: 'glow',
 } as const;
 

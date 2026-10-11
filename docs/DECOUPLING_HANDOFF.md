@@ -378,3 +378,11 @@ npm run lint; npm run build
   - 詳見 `docs/PERF_REPORT_2.md`、`docs/PERF_BASELINE_2.md` 與 `docs/BAKED_RENDERING_DESIGN.md`。
 
 
+
+
+### 10.6 效能第二輪審查結果與第三輪起點（2026-10-11）
+
+- 第二輪（perf/render-opt，1359a4b…357c901 + 主代理審查修正）已合併進 main。**第二輪報告中的 headless 毫秒數全部作廢**：當時量測落在 AMD 內顯 + 59 Hz 副螢幕；使用者主螢幕為 2560×1440 @ 239 Hz（RTX 4070）。詳見 docs/PERF_REPORT_2.md 末尾「審查更正」。
+- 量測鐵律（寫給所有後續代理）：腳本必須印出並記錄 GPU 字串與 DPR，落在 AMD/Radeon 即視為無效；觸發骰子按鈕一律 DOM click 並斷言單位數；量測戰鬥時要避開「戰鬥結束／showcase 轉場」；吞吐量測要取消幀率限制（--disable-frame-rate-limit --disable-gpu-vsync）。
+- 外觀決策：光暈預烘焙（GlowSpriteCache）已由使用者目視核定並設為預設開（RENDER_QUALITY.GLOW_SPRITES = true，?glow=0 可關）。attle_frozen baseline 已重錄（有單位的真實畫面）。
+- 第三輪計畫：docs/PERF_AGENT_PROMPT_3.md，在新分支 perf/render-opt-3（由 main 開出）進行；不得直接在 main 上優化。

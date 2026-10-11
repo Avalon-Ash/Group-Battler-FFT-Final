@@ -170,7 +170,7 @@ const captureBattleFrozen = async (page) => {
         e.map.rebuildMap(e);
     });
     await page.evaluate(() => window.__stepFrames(5));
-    await page.locator(`button[title="${DICE_TITLE}"]`).click({ force: true });
+    await page.evaluate((title) => { Array.from(document.querySelectorAll('button')).filter((b) => b.title === title).forEach((b) => b.click()); }, DICE_TITLE);
     await page.waitForTimeout(200);
     await page.evaluate(() => window.__stepFrames(5));
     await page.evaluate(() => {
@@ -193,7 +193,7 @@ const captureBattleAtFrame = async (page, frameCount) => {
         e.map.rebuildMap(e);
     });
     await page.evaluate(() => window.__stepFrames(5));
-    await page.locator(`button[title="${DICE_TITLE}"]`).click({ force: true });
+    await page.evaluate((title) => { Array.from(document.querySelectorAll('button')).filter((b) => b.title === title).forEach((b) => b.click()); }, DICE_TITLE);
     await page.waitForTimeout(200);
     await page.evaluate(() => window.__stepFrames(5));
     await page.evaluate(() => {
@@ -264,7 +264,7 @@ try {
         await page.waitForTimeout(500);
         await page.getByText(START_TEXT).click();
         await page.waitForTimeout(500);
-        await page.locator(`button[title="${DICE_TITLE}"]`).click({ force: true });
+        await page.evaluate((title) => { Array.from(document.querySelectorAll('button')).filter((b) => b.title === title).forEach((b) => b.click()); }, DICE_TITLE);
         await page.waitForTimeout(500);
         await page.evaluate(() => {
             const e = window.__TACTICAL_ENGINE__;

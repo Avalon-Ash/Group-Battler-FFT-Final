@@ -119,3 +119,17 @@
 | `perf2-ckpt-Q3` | Q3 完成：矩陣雨分階預算與單元測試、E2E 驗證 | `git reset --hard perf2-ckpt-Q3` |
 | `perf2-ckpt-Q4` | Q4 完成：光暈烘焙快取、Top 3 呼叫點套用、冒煙與 E2E | `git reset --hard perf2-ckpt-Q4` |
 | `perf2-ckpt-final` | 全輪結束：全部測試、設計藍圖、量測腳本到位 | `git reset --hard perf2-ckpt-final` |
+
+
+---
+
+## 審查更正（主代理，2026-10-11 晚）
+
+> 本節優先於上文任何與之衝突的數字與結論。
+
+1. **上文所有 headless / 「headed」毫秒數作廢（僅留存）。** 查明這些量測落在 **AMD Radeon 內顯 + 59 Hz 副螢幕**（使用者機器：主螢幕 2560×1440 @ 239 Hz 由 RTX 4070 驅動；副螢幕 1920×1080 @ 59 Hz 由 AMD iGPU 驅動；Windows 縮放 100%）。「閒置 16.7 ms＝60 FPS」「戰鬥 26–34 ms」量到的是 60 Hz 垂直同步與 iGPU。
+2. **attle_frozen 與光暈比較原本是空場景。** locator.click({ force: true }) 在合成時間框架下靜默無效，畫面是模糊、沒有單位的場景（agents = 0），「0 差異」是假的。已修正：改用 DOM click、新增單位數量斷言（< 2 即丟錯）、attle_frozen 改在乾淨 context 擷取，並重錄 baseline（現為有單位、有 HUD／VFX 的真實戰鬥畫面，連錄兩次逐像素相同）。
+3. **光暈預烘焙（重新比較，這次有單位）**：?glow=0 vs ?glow=1：meanAbsDiff 0.07–0.09、壞像素 0.5–0.6%（門檻 >8），肉眼幾乎無差；戰鬥幀耗時 8.48 → 7.30 ms（−14%，交錯兩輪）。使用者目視核定外觀可接受，**RENDER_QUALITY.GLOW_SPRITES 已改為 	rue**（?glow=0 可明確關閉，?glow=1 明確開啟）。attle_frozen baseline 已以此為新預設重錄（使用者核准的唯一外觀變更）。
+4. **isGlowSpritesEnabled 修正**：原本每次呼叫都重新解析 URLSearchParams（逐單位／逐血條熱路徑）；且報告要使用者改的 GLOW_SPRITES 常數在程式中**完全沒被讀取**。現改為查詢參數只解析一次並快取，決策由純函式 esolveGlowFlag(query, defaultOn, tier) 負責（有單元測試）。
+5. **真機（RTX 4070、DPR 1、1440×900、headed、?perf 含統計開銷）實測**：VOID 9.5、FOREST 6.2、ICE 9.6、MAGMA 9.6、DESERT 6.5、manual_battle 9.1、showcase 12.6 ms（avg）。JS 各階段合計僅約 2.5–3.5 ms；avg 被 240 Hz 垂直同步量化。VOID/ICE/MAGMA 比 FOREST/DESERT 慢約 3 ms 屬 GPU／光柵側差異，待第三輪歸因。
+6. **其他待查**：矩陣雨 Tier 1 數據（39.3 ms）比 Tier 0（30.4 ms）更慢，疑似雜訊或縮放成本；showcase 量測會被「戰鬥結束 → 場景切換（OUT 1.2 s + IN 1.5 s）」污染，第三輪量測腳本須避開。

@@ -8,6 +8,7 @@ import {
 } from '../engine/renderers/GlowSpriteCache';
 import {
     isGlowSpritesEnabled,
+    resolveGlowFlag,
     setGlowSpritesEnabledForTest,
     forceSetQualityTier,
 } from '../engine/renderers/RenderQuality';
@@ -136,20 +137,26 @@ describe('GlowSpriteCache & Quantization', () => {
     });
 
     describe('GLOW_SPRITES Quality Flag', () => {
-        it('is false by default in Tier 0 and Tier 1', () => {
-            forceSetQualityTier(0);
-            expect(isGlowSpritesEnabled()).toBe(false);
-
-            forceSetQualityTier(1);
-            expect(isGlowSpritesEnabled()).toBe(false);
+        it('is on by default (RENDER_QUALITY.GLOW_SPRITES = true) at every tier', () => {
+            for (const tier of [0, 1, 2, 3] as const) {
+                forceSetQualityTier(tier);
+                expect(isGlowSpritesEnabled()).toBe(true);
+            }
         });
 
-        it('is true automatically in Tier 2 and Tier 3', () => {
-            forceSetQualityTier(2);
-            expect(isGlowSpritesEnabled()).toBe(true);
+        it('resolveGlowFlag: explicit query wins over default and tier', () => {
+            expect(resolveGlowFlag('0', true, 3)).toBe(false);
+            expect(resolveGlowFlag('false', true, 0)).toBe(false);
+            expect(resolveGlowFlag('1', false, 0)).toBe(true);
+            expect(resolveGlowFlag('true', false, 0)).toBe(true);
+        });
 
-            forceSetQualityTier(3);
-            expect(isGlowSpritesEnabled()).toBe(true);
+        it('resolveGlowFlag: without query follows default flag, else tier >= 2', () => {
+            expect(resolveGlowFlag(null, true, 0)).toBe(true);
+            expect(resolveGlowFlag(null, false, 0)).toBe(false);
+            expect(resolveGlowFlag(null, false, 1)).toBe(false);
+            expect(resolveGlowFlag(null, false, 2)).toBe(true);
+            expect(resolveGlowFlag(null, false, 3)).toBe(true);
         });
 
         it('can be overridden explicitly for testing', () => {
