@@ -20,7 +20,9 @@ const unthrottled = process.env.PERF_UNTHROTTLED !== '0';
 
 const server = await createServer({ server: { port: 3200, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?perf&perfops&quality=0`;
+const extraParams = process.argv.slice(2).join('&');
+const querySep = extraParams ? `&${extraParams.replace(/^--/, '').replace(/--/g, '&')}` : '';
+const baseUrl = `${server.resolvedUrls.local[0]}?perf&perfops&quality=0${querySep}`;
 const browser = await launchBrowser({ headed: !isHeadless, unthrottled });
 
 try {

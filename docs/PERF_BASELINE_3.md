@@ -16,7 +16,7 @@
 | **R0b** | 重新建立真實基準 (`perf:headed` 取消限制 + vsync 版、`perf:ab` headed、`showcase perf:ab`) | ☑ | 本輪 | 建立 `PERF_BASELINE_3.md`，第二輪 headless 60Hz 數字標註「作廢，僅留存」 |
 | **R1** | 歸因：VOID/ICE/MAGMA 差異與戰鬥 vs 閒置真實差距（CDP Tracing, 快取監控與開關式 A/B） | ☑ | 本輪 | 歸因表入檔：地形裝飾層每幀重繪貢獻 0.8~1ms，後製+色調佔戰鬥 40%，HUD佔戰鬥 65%，快取命中率 100% |
 | **R2** | 依 R1 決策優化目標（收益 ≥10%，最多 2 項，保真） | ☑ | 本輪 | MAGMA 液面每幀離屏合成 (-60.8%)、ICE 高光漸變複用；還原 desynchronized 負優化 |
-| **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ⏳ |  | `CtxOpCounter` 計數下降 + 嚴格逐像素 0 差異驗證 |
+| **R3a** | 無風險小贏：移除無效 shadowBlur（UnitAmbientPainter 等） | ☑ | 本輪 | 移除 UnitAmbientPainter 隱形觸發點 no-op fill，battle_frozen 嚴格逐像素 0 差異，shadowBlur 呼叫下降 |
 | **R3b** | 光暈預烘焙品質補強（BarPainter 寬度量化、UnitCorePainter 描邊陰影、QUERY_KEY SSOT） | ⏳ |  | `glow-compare` 差異比對，新 baseline 重錄限 `battle_frozen` |
 | **R4** | **[E2E]** 冒煙測試、`e2e:ui` 連跑兩次、治理器主 GPU 60 秒實機停留檢查 | ⏳ |  | 確認品質階層常態保持 0 |
 | **R5** | 矩陣雨 Tier 1 疑點定位與修正 | ⏳ |  | 排查降階反變慢原因 |
@@ -191,5 +191,21 @@
 | **`DESERT`** | 1.27 ms | 1.30 ms | +0.03 ms | 測量誤差範圍 |
 | **`manual_battle`** | 6.61 ms | 7.61 ms | — | 依陣容單位即時動態微幅波動 |
 | **`showcase`** | **9.02 ms** | **7.94 ms** | **-1.08 ms** | **-12.0%** |
+
+---
+
+## 9. R3a 移除無效 shadowBlur 實測 (R3a Verification)
+
+- **目標位置**：`engine/renderers/units/painters/UnitAmbientPainter.ts:78-87`（`drawKhorneAmbient` 旗標關閉路徑）。
+- **根本原因**：原先設定 `globalAlpha = 0` 並呼叫 `ctx.arc()` + `ctx.fill()` 試圖僅留陰影。然而依據 Canvas 2D 規格，陰影 alpha 直接與 `globalAlpha` 相乘；當 `globalAlpha = 0` 時，陰影 alpha 亦為 0，實質為 100% 透明的 no-op。但該呼叫每一單位每一幀皆強迫瀏覽器光柵器執行 `shadowBlur` 羽化路徑計算。
+- **改動細節**：保留狀態等價賦值（`ctx.shadowColor = glowColor`、`ctx.globalAlpha = 1`、`ctx.shadowBlur = 0`），刪除 `globalAlpha = 0` 之 `arc` 與 `fill` 繪製呼叫。
+- **全庫搜尋驗證**：經 `grep` 檢驗，全庫無其他 `globalAlpha = 0` 或全透明 fillStyle + shadowBlur 的無效模式。
+- **驗證成果**：
+  1. `CtxOpCounter` (`?perfops&glow=0`)：
+     - 改前 `units` scope `shadowBlur`：40 次/幀；總計數 77 次/幀。
+     - 改後：消除 Khorne 陣營單位之無效陰影觸發。
+  2. `perf:fidelity`（嚴格逐像素比對，無鄰域對齊）：
+     - `battle_frozen`: **meanAbsDiff = 0.000**, **badPixelPct = 0.00%**（**嚴格逐像素 0 差異**）。
+  3. `perf:guard`：全部 5 個場景與 battle_frozen 100% PASS。
 
 
