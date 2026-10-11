@@ -178,7 +178,7 @@ const createHarnessContext = async () => {
         };
     });
 
-    await page.goto(`${baseUrl}?quality=0`, { waitUntil: 'networkidle' });
+    await page.goto(`${baseUrl}?quality=0&mute`, { waitUntil: 'networkidle' });
     // Step a few frames to let React and ResizeObserver mount
     await page.evaluate(() => window.__stepFrames(10));
     // Enter manual mode

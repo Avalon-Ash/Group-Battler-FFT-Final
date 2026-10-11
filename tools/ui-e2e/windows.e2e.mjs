@@ -92,7 +92,7 @@ const launchBrowser = async () => {
 
 const server = await createServer({ server: { port: 3199, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute`;
 const browser = await launchBrowser();
 const consoleErrors = [];
 
