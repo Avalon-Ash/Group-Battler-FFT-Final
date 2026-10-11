@@ -7,11 +7,17 @@
  * by function and by source file (self time). Results are written to tools/ui-e2e/out/perf_<scenario>.json
  * and the top self-time entries are printed.
  */
-import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    launchBrowser,
+    getEnvInfo,
+    assertMainGpu,
+    prepareManualBattle,
+    START_TEXT,
+} from './lib/perf-common.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
@@ -19,23 +25,13 @@ mkdirSync(OUT, { recursive: true });
 
 const SECONDS = Number(process.env.PERF_SECONDS || 8);
 const WARMUP_MS = 3000;
-// "Start tactical simulation" (escaped so the file is encoding-proof)
-const START_TEXT = '\u555f\u52d5\u6230\u8853\u6a21\u64ec';
-const DICE_TITLE = '\u96a8\u6a5f\u751f\u6210\u6230\u5834\u8207\u9663\u5bb9';
-
-const launchBrowser = async () => {
-    const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
-    if (process.env.E2E_BROWSER_PATH) return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: true, args });
-    for (const channel of ['msedge', 'chrome']) {
-        try { return await chromium.launch({ channel, headless: true, args }); } catch { /* next */ }
-    }
-    throw new Error('No Edge/Chrome found. Install one or set E2E_BROWSER_PATH.');
-};
+const isHeadless = process.env.PERF_HEADED !== '1';
+const unthrottled = process.env.PERF_UNTHROTTLED !== '0';
 
 const server = await createServer({ server: { port: 3198, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
 const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
-const browser = await launchBrowser();
+const browser = await launchBrowser({ headed: !isHeadless, unthrottled });
 
 const shortUrl = (u) => (u || '').replace(/^https?:\/\/[^/]+\//, '').replace(/\?.*$/, '');
 
@@ -68,6 +64,10 @@ const measureScenario = async (name, prepare) => {
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message.slice(0, 200)));
     await page.goto(baseUrl, { waitUntil: 'networkidle' });
+
+    const envInfo = await getEnvInfo(page, unthrottled);
+    assertMainGpu(envInfo);
+
     await prepare(page);
     await page.waitForTimeout(WARMUP_MS);
 
@@ -130,13 +130,9 @@ const measureScenario = async (name, prepare) => {
 try {
     // 1) The game boots into Showcase mode (auto battle + matrix rain overlay).
     await measureScenario('showcase', async () => { /* default boot state */ });
-    // 2) Manual mode: random battlefield + running simulation.
+    // 2) Manual mode: random battlefield + running simulation with guaranteed agents.
     await measureScenario('manual_battle', async (page) => {
-        await page.getByText(START_TEXT).click();
-        await page.waitForTimeout(600);
-        await page.locator(`button[title="${DICE_TITLE}"]`).click();
-        await page.waitForTimeout(600);
-        await page.evaluate(() => window.__TACTICAL_ENGINE__?.play());
+        await prepareManualBattle(page, { boostHp: true });
     });
     // 3) Manual mode idle (editor, nothing running) as a baseline of the pure render cost.
     await measureScenario('manual_idle', async (page) => {

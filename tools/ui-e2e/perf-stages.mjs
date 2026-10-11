@@ -5,91 +5,42 @@
  *   2) manual_battle (random battlefield + battle running)
  *   3) manual_idle (manual editor mode, idle)
  */
-import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+    launchBrowser,
+    getEnvInfo,
+    assertMainGpu,
+    prepareManualBattle,
+    START_TEXT,
+} from './lib/perf-common.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, 'out');
 
-const launchBrowser = async () => {
-    const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];
-    if (process.env.E2E_BROWSER_PATH) return chromium.launch({ executablePath: process.env.E2E_BROWSER_PATH, headless: true, args });
-    for (const channel of ['msedge', 'chrome']) {
-        try { return await chromium.launch({ channel, headless: true, args }); } catch { /* next */ }
-    }
-    throw new Error('No Edge/Chrome found.');
-};
+const isHeadless = process.env.PERF_HEADED !== '1';
+const unthrottled = process.env.PERF_UNTHROTTLED !== '0';
 
 const server = await createServer({ server: { port: 3199, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
 const baseUrl = `${server.resolvedUrls.local[0]}?perf&quality=0`;
-const browser = await launchBrowser();
+const browser = await launchBrowser({ headed: !isHeadless, unthrottled });
 
 const measurePhases = async (name, prepare) => {
     console.log(`\n== Measuring render phases: ${name} ==`);
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await ctx.newPage();
     await page.goto(baseUrl, { waitUntil: 'networkidle' });
+
+    const envInfo = await getEnvInfo(page, unthrottled);
+    assertMainGpu(envInfo);
+
     await prepare(page);
     await page.waitForTimeout(2000);
 
     // Instrument drawWorld in page context
-    await page.evaluate(() => {
-        const eng = window.__TACTICAL_ENGINE__;
-        if (!eng || !eng.renderer) return;
-        const pipeline = eng.renderer.pipeline;
-        if (!pipeline) return;
-
-        window.__worldStats = {
-            submit: [],
-            sort: [],
-            dispatch: [],
-            silhouetteAndStatus: [],
-            total: []
-        };
-
-        const origDrawWorld = pipeline.drawWorld.bind(pipeline);
-        pipeline.drawWorld = function(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, t, dt) {
-            const startAll = performance.now();
-            this.renderList.reset();
-
-            if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
-                this._terrainHEngine = engine;
-                this._cachedTerrainH = (q, r) => this.renderer.grid.getTerrainHeight(q, r, engine);
-            }
-            const terrainH = this._cachedTerrainH;
-
-            const dpr = 1; // from RenderQuality in quality=0
-            const lW = ctx.canvas.width / dpr;
-            const lH = ctx.canvas.height / dpr;
-
-            const tSubmit0 = performance.now();
-            this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
-            this._viewportScratch.width = lW;
-            this._viewportScratch.height = lH;
-            this._viewportScratch.camera = camera;
-            this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
-            this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
-            const tSubmit1 = performance.now();
-
-            this.renderList.sort();
-            const tSort1 = performance.now();
-
-            for (let i = 0; i < this.renderList.count; i++) {
-                this.renderer.pipeline ? null : null;
-                // Dispatch directly
-                const op = this.renderList.ops[i];
-                // Using RenderDispatcher via global or this.renderer
-                // RenderDispatcher is exported or we can call original sub-dispatch
-            }
-            // For safety, let's keep original drawWorld logic intact!
-        };
-    });
-
-    // Instead of re-implementing drawWorld, monkey-patch the 3 phases directly on the renderer subsystems!
     await page.evaluate(() => {
         const eng = window.__TACTICAL_ENGINE__;
         const r = eng.renderer;
@@ -158,7 +109,6 @@ const measurePhases = async (name, prepare) => {
             worldSubPhases: {
                 submitMs: avg(sub.submitTimes || []),
                 sortMs: avg(sub.sortTimes || []),
-                // world total - (submit + sort) = dispatch + status
                 dispatchAndOcclusionMs: +Math.max(0, (phases['world'] || 0) - avg(sub.submitTimes || []) - avg(sub.sortTimes || [])).toFixed(3)
             },
             rAFAvgMs: avg(sub.rAFDt?.slice(5) || [])
@@ -171,18 +121,11 @@ const measurePhases = async (name, prepare) => {
     return stats;
 };
 
-const START_TEXT = '\u555f\u52d5\u6230\u8853\u6a21\u64ec';
-const DICE_TITLE = '\u96a8\u6a5f\u751f\u6210\u6230\u5834\u8207\u9663\u5bb9';
-
 const allResults = {};
 try {
     allResults['showcase'] = await measurePhases('showcase', async () => {});
     allResults['manual_battle'] = await measurePhases('manual_battle', async (page) => {
-        await page.getByText(START_TEXT).click();
-        await page.waitForTimeout(600);
-        await page.locator(`button[title="${DICE_TITLE}"]`).click();
-        await page.waitForTimeout(600);
-        await page.evaluate(() => window.__TACTICAL_ENGINE__?.play());
+        await prepareManualBattle(page, { boostHp: true });
     });
     allResults['manual_idle'] = await measurePhases('manual_idle', async (page) => {
         await page.getByText(START_TEXT).click();
