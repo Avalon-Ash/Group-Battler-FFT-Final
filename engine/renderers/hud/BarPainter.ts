@@ -3,6 +3,8 @@ import { Agent } from "../../game";
 import { Team } from "../../../types";
 import { HUD_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
+import { isGlowSpritesEnabled } from "../RenderQuality";
+import { GlowSpriteCache, drawGlowSprite } from "../GlowSpriteCache";
 
 const BAR_WIDTH = 44;
 const BAR_HEIGHT = 6;
@@ -237,10 +239,16 @@ export const BarPainter = {
             ctx.fillStyle = colTop;
         }
         
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 6;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        if (isGlowSpritesEnabled()) {
+            const entry = GlowSpriteCache.getGlowSprite('rect', glow, fillW, 6, { width: fillW, height: bh, rx: 2 });
+            drawGlowSprite(ctx, entry, bx, by, 0.8);
+            ctx.fill();
+        } else {
+            ctx.shadowColor = glow;
+            ctx.shadowBlur = 6;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+        }
 
         // Gloss highlight
         ctx.fillStyle = HUD_COLORS.GLOSS_HIGHLIGHT;

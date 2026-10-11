@@ -2,6 +2,8 @@ import { Agent } from "../../../core/Agent";
 import { Team } from "../../../../types";
 import { FACTION_VISUALS, FactionVisualDef } from "../../../../data/vfx/faction_visuals";
 import { UNIT_SCALE } from "../../../../constants";
+import { isGlowSpritesEnabled } from "../../RenderQuality";
+import { GlowSpriteCache, drawGlowSprite } from "../../GlowSpriteCache";
 
 export const UnitAmbientPainter = {
     /**
@@ -32,16 +34,29 @@ export const UnitAmbientPainter = {
         ctx.save();
         ctx.scale(inv, inv);
         ctx.globalAlpha = pulse;
-        ctx.shadowColor = faction.ambientGlowColor || '#60a5fa';
-        ctx.shadowBlur = 8;
-        ctx.strokeStyle = faction.ambientGlowColor || '#60a5fa';
-        ctx.lineWidth = 1.5;
-        
-        // 護甲橫縫線 (座標根據 UNIT_SCALE=0.65 調整，對齊胸甲與腰部)
-        ctx.beginPath();
-        ctx.moveTo(-9, -23); ctx.lineTo(9, -23);
-        ctx.moveTo(-7, -13); ctx.lineTo(7, -13);
-        ctx.stroke();
+        const glowColor = faction.ambientGlowColor || '#60a5fa';
+
+        if (isGlowSpritesEnabled()) {
+            const entry = GlowSpriteCache.getGlowSprite('rect', glowColor, 18, 8, { width: 18, height: 10, rx: 2 });
+            drawGlowSprite(ctx, entry, -9, -23, 0.7);
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(-9, -23); ctx.lineTo(9, -23);
+            ctx.moveTo(-7, -13); ctx.lineTo(7, -13);
+            ctx.stroke();
+        } else {
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = 8;
+            ctx.strokeStyle = glowColor;
+            ctx.lineWidth = 1.5;
+            
+            // 護甲橫縫線 (座標根據 UNIT_SCALE=0.65 調整，對齊胸甲與腰部)
+            ctx.beginPath();
+            ctx.moveTo(-9, -23); ctx.lineTo(9, -23);
+            ctx.moveTo(-7, -13); ctx.lineTo(7, -13);
+            ctx.stroke();
+        }
         ctx.restore();
     },
 
@@ -53,15 +68,23 @@ export const UnitAmbientPainter = {
         ctx.save();
         ctx.scale(inv, inv);
 
-        // 1. 血腥環境暈：只靠 shadowBlur，不畫實體形狀，移除「護盾泡泡」感
-        ctx.shadowColor = faction.ambientGlowColor || '#dc2626';
-        ctx.shadowBlur = (faction.ambientGlowRadius || 10) * intensity * 2;
-        ctx.globalAlpha = 0; // 隱形觸發點
-        ctx.beginPath();
-        ctx.arc(0, -20, 1, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-        ctx.shadowBlur = 0; // 重置避免污染
+        const glowColor = faction.ambientGlowColor || '#dc2626';
+        const blurRadius = (faction.ambientGlowRadius || 10) * intensity * 2;
+
+        if (isGlowSpritesEnabled()) {
+            const entry = GlowSpriteCache.getGlowSprite('disc', glowColor, 4, blurRadius);
+            drawGlowSprite(ctx, entry, 0, -20, 0.6);
+        } else {
+            // 1. 血腥環境暈：只靠 shadowBlur，不畫實體形狀，移除「護盾泡泡」感
+            ctx.shadowColor = glowColor;
+            ctx.shadowBlur = blurRadius;
+            ctx.globalAlpha = 0; // 隱形觸發點
+            ctx.beginPath();
+            ctx.arc(0, -20, 1, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0; // 重置避免污染
+        }
 
         // 2. 血滴粒子（從肩部與身體各處滴落/噴濺）
         const dropCount = 6;

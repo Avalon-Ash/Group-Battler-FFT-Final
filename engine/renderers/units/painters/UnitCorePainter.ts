@@ -2,6 +2,8 @@ import { Agent } from "../../../game";
 import { Team } from "../../../../types";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
+import { isGlowSpritesEnabled } from "../../RenderQuality";
+import { GlowSpriteCache, drawGlowSprite } from "../../GlowSpriteCache";
 
 export const UnitCorePainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
@@ -25,8 +27,15 @@ export const UnitCorePainter = {
 
         ctx.globalCompositeOperation = hitTrauma > 0.05 ? 'screen' : 'source-over';
         ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = hitTrauma > 0.05 ? 8 + hitTrauma * 20 : 4;
+
+        if (isGlowSpritesEnabled()) {
+            const traumaBlur = hitTrauma > 0.05 ? 8 + hitTrauma * 20 : 4;
+            const entry = GlowSpriteCache.getGlowSprite('ring', color, 8, traumaBlur, { lineWidth: 2 });
+            drawGlowSprite(ctx, entry, 0, 0, 0.7);
+        } else {
+            ctx.shadowColor = color;
+            ctx.shadowBlur = hitTrauma > 0.05 ? 8 + hitTrauma * 20 : 4;
+        }
 
         if (agent.team === Team.BLUE) {
             this.drawImperialCore(ctx, t, hitTrauma);
