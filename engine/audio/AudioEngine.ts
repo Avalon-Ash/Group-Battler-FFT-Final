@@ -55,6 +55,9 @@ export class AudioEngine {
 
     private unlockListenerBound: (() => void) | null = null;
     private visibilityListenerBound: (() => void) | null = null;
+    private blurListenerBound: (() => void) | null = null;
+    private focusListenerBound: (() => void) | null = null;
+    private isDestroyed: boolean = false;
 
     constructor(injected?: {
         audioContext?: AudioContext;
@@ -130,6 +133,7 @@ export class AudioEngine {
                 // 忽略非使用者手勢期間的 resume 失敗
             });
         }
+        this.preloadMusicTracks();
     }
 
     /** 暫停播放（分頁隱藏時） */
@@ -301,6 +305,16 @@ export class AudioEngine {
                 source: newSource,
                 gain: newGain
             };
+
+            // 若為非循環曲目（如勝利 / 敗北 sting），播放完畢後平滑回到氛圍曲目
+            if (!trackDef.loop) {
+                newSource.onended = () => {
+                    if (this.currentMusic?.source === newSource) {
+                        this.currentMusic = null;
+                        this.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+                    }
+                };
+            }
         } catch {}
     }
 
@@ -352,8 +366,10 @@ export class AudioEngine {
 
     /** 釋放所有音訊資源 */
     public destroy(): void {
+        this.isDestroyed = true;
         this.removeUnlockListeners();
         this.removeVisibilityListeners();
+        this.removeFocusListeners();
 
         this.stopMusic(0.1);
         for (const voice of this.activeVoices) {
@@ -369,6 +385,46 @@ export class AudioEngine {
         }
         this.ctx = null;
         this.bufferCache.clear();
+    }
+
+    /**
+     * BGM 預載策略（S2b）:
+     * 首屏只載入 SHOWCASE_AMBIENT 氛圍曲，其餘曲目透過 idle 回呼於閒置時預取解碼至記憶體快取。
+     */
+    public preloadMusicTracks(): void {
+        if (this.isMutedByUrl || !this.ctx) return;
+
+        // 1. 首屏立即載入 SHOWCASE_AMBIENT
+        const ambientFile = MUSIC_TABLE.SHOWCASE_AMBIENT.files[0];
+        if (ambientFile) {
+            this.loadBuffer(ambientFile).then(buf => {
+                if (buf && this.currentMusic?.trackId === 'SHOWCASE_AMBIENT') {
+                    this.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+                }
+            });
+        }
+
+        // 2. 閒置時分批預取其餘曲目
+        const remainingTracks: TrackId[] = ['BATTLE_NORMAL', 'BATTLE_TENSE', 'VICTORY_STING', 'DEFEAT_STING'];
+        const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
+            ? (cb: () => void) => (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
+            : (cb: () => void) => setTimeout(cb, 1000);
+
+        let trackIdx = 0;
+        const loadNextIdle = () => {
+            if (this.isDestroyed || trackIdx >= remainingTracks.length) return;
+            const tid = remainingTracks[trackIdx++];
+            const file = MUSIC_TABLE[tid]?.files[0];
+            if (file) {
+                this.loadBuffer(file).finally(() => {
+                    scheduleIdle(loadNextIdle);
+                });
+            } else {
+                scheduleIdle(loadNextIdle);
+            }
+        };
+
+        scheduleIdle(loadNextIdle);
     }
 
     // =========================================================================
@@ -404,6 +460,7 @@ export class AudioEngine {
 
         if (this.ctx.state === 'running') {
             this.isUnlocked = true;
+            this.preloadMusicTracks();
         }
     }
 
@@ -424,6 +481,26 @@ export class AudioEngine {
             }
         };
         document.addEventListener('visibilitychange', this.visibilityListenerBound);
+
+        this.blurListenerBound = () => {
+            if (this.masterGain && this.ctx) {
+                const now = this.ctx.currentTime;
+                this.masterGain.gain.cancelScheduledValues(now);
+                this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+                this.masterGain.gain.linearRampToValueAtTime(0.0001, now + 0.5);
+            }
+        };
+        this.focusListenerBound = () => {
+            if (this.masterGain && this.ctx && !this.settings.muted) {
+                const now = this.ctx.currentTime;
+                const target = Math.pow(Math.max(0, Math.min(1, this.settings.master)), AUDIO.VOLUME_CURVE_EXPONENT);
+                this.masterGain.gain.cancelScheduledValues(now);
+                this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
+                this.masterGain.gain.linearRampToValueAtTime(target, now + 0.5);
+            }
+        };
+        window.addEventListener('blur', this.blurListenerBound);
+        window.addEventListener('focus', this.focusListenerBound);
     }
 
     private removeUnlockListeners(): void {
@@ -438,6 +515,19 @@ export class AudioEngine {
         if (typeof document !== 'undefined' && this.visibilityListenerBound) {
             document.removeEventListener('visibilitychange', this.visibilityListenerBound);
             this.visibilityListenerBound = null;
+        }
+    }
+
+    private removeFocusListeners(): void {
+        if (typeof window !== 'undefined') {
+            if (this.blurListenerBound) {
+                window.removeEventListener('blur', this.blurListenerBound);
+                this.blurListenerBound = null;
+            }
+            if (this.focusListenerBound) {
+                window.removeEventListener('focus', this.focusListenerBound);
+                this.focusListenerBound = null;
+            }
         }
     }
 
