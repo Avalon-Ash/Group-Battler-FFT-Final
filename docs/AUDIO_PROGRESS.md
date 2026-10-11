@@ -14,7 +14,7 @@
 | **S0a** | 音訊核心骨架 (AudioEngine, Synth, cues, music, constants) | 完成 | `constants.ts`, `AudioEngine.ts`, `Synth.ts` (cues/music data) | lint/test/build 全綠 |
 | **S0b** | AudioSystem (事件 → cue 橋接, 聲像, BGM 交叉淡化) | 完成 | `AudioSystem.ts`, `engine/game.ts`, `types.ts` | lint/test/build 全綠 |
 | **S0c** [E2E] | 音訊設定視窗 (audioSettings, localStorage, UICommand) | 完成 | `types.ts`, `windows.ts`, `UICommandSystem.ts`, `AudioSettingsWindow.tsx`, `windowRegistry.tsx` | lint/test/build/e2e×2 全綠 |
-| **S1a** | SFX 素材採集 (CC0 真素材, ledger, CREDITS) | 待進行 | 素材, docs, `cues.ts` | 測試 (manifest, budget) |
+| **S1a** | SFX 素材採集 (CC0 真素材, ledger, CREDITS) | 完成 | 素材, docs, `cues.ts` | 測試 (manifest, budget) 全綠 |
 | **S1b** | SFX 實裝與校音 (響度正規化, preview.html, 解碼驗證) | 待進行 | data, tools | lint/test/build/decode 全過 |
 | **S2a** | BGM 素材 (管弦/奇幻 CC0/CC-BY 至少 5 首, ledger/CREDITS) | 待進行 | 素材, docs, data | 測試 (manifest, budget) |
 | **S2b** | BGM 整合與體驗 (交叉淡化, 預載, 體驗驗證) | 待進行 | data, `AudioEngine.ts`/`AudioSystem.ts` | lint/test/build/perf:ab |

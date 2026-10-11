@@ -1,0 +1,96 @@
+{
+  "HIT_LIGHT": [
+    "assets/audio/sfx/hit_light_1.ogg",
+    "assets/audio/sfx/hit_light_2.ogg",
+    "assets/audio/sfx/hit_light_3.ogg",
+    "assets/audio/sfx/hit_light_4.ogg"
+  ],
+  "HIT_HEAVY": [
+    "assets/audio/sfx/hit_heavy_1.ogg",
+    "assets/audio/sfx/hit_heavy_2.ogg",
+    "assets/audio/sfx/hit_heavy_3.ogg",
+    "assets/audio/sfx/hit_heavy_4.ogg"
+  ],
+  "SLASH": [
+    "assets/audio/sfx/slash_1.ogg",
+    "assets/audio/sfx/slash_2.ogg",
+    "assets/audio/sfx/slash_3.ogg",
+    "assets/audio/sfx/slash_4.ogg"
+  ],
+  "BOW": [
+    "assets/audio/sfx/bow_1.wav",
+    "assets/audio/sfx/bow_2.wav",
+    "assets/audio/sfx/bow_3.wav"
+  ],
+  "SPELL_CAST": [
+    "assets/audio/sfx/spell_cast_1.ogg",
+    "assets/audio/sfx/spell_cast_2.ogg",
+    "assets/audio/sfx/spell_cast_3.ogg"
+  ],
+  "MAGIC_FIRE": [
+    "assets/audio/sfx/magic_fire_1.ogg",
+    "assets/audio/sfx/magic_fire_2.ogg",
+    "assets/audio/sfx/magic_fire_3.ogg"
+  ],
+  "MAGIC_ICE": [
+    "assets/audio/sfx/magic_ice_1.ogg",
+    "assets/audio/sfx/magic_ice_2.ogg",
+    "assets/audio/sfx/magic_ice_3.ogg"
+  ],
+  "MAGIC_HEAL": [
+    "assets/audio/sfx/magic_heal_1.ogg",
+    "assets/audio/sfx/magic_heal_2.ogg",
+    "assets/audio/sfx/magic_heal_3.ogg"
+  ],
+  "DEATH": [
+    "assets/audio/sfx/death_1.ogg",
+    "assets/audio/sfx/death_2.ogg",
+    "assets/audio/sfx/death_3.ogg"
+  ],
+  "SPAWN": [
+    "assets/audio/sfx/spawn_1.ogg",
+    "assets/audio/sfx/spawn_2.ogg",
+    "assets/audio/sfx/spawn_3.ogg"
+  ],
+  "COLLAPSE": [
+    "assets/audio/sfx/collapse_1.ogg",
+    "assets/audio/sfx/collapse_2.ogg",
+    "assets/audio/sfx/collapse_3.ogg"
+  ],
+  "RUMBLE": [
+    "assets/audio/sfx/rumble_1.ogg",
+    "assets/audio/sfx/rumble_2.ogg",
+    "assets/audio/sfx/rumble_3.ogg"
+  ],
+  "IMPACT_GROUND": [
+    "assets/audio/sfx/impact_ground_1.ogg",
+    "assets/audio/sfx/impact_ground_2.ogg",
+    "assets/audio/sfx/impact_ground_3.ogg"
+  ],
+  "CC_STUN": [
+    "assets/audio/sfx/cc_stun_1.ogg",
+    "assets/audio/sfx/cc_stun_2.ogg",
+    "assets/audio/sfx/cc_stun_3.ogg"
+  ],
+  "UI_CLICK": [
+    "assets/audio/sfx/ui_click_1.ogg",
+    "assets/audio/sfx/ui_click_2.ogg",
+    "assets/audio/sfx/ui_click_3.ogg"
+  ],
+  "UI_HOVER": [
+    "assets/audio/sfx/ui_hover_1.ogg",
+    "assets/audio/sfx/ui_hover_2.ogg",
+    "assets/audio/sfx/ui_hover_3.ogg"
+  ],
+  "UI_START": [
+    "assets/audio/sfx/ui_start_1.ogg",
+    "assets/audio/sfx/ui_start_2.ogg"
+  ],
+  "VICTORY": [
+    "assets/audio/sfx/victory_1.ogg"
+  ],
+  "DEFEAT": [
+    "assets/audio/sfx/defeat_1.ogg",
+    "assets/audio/sfx/defeat_2.ogg"
+  ]
+}

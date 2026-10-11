@@ -58,7 +58,12 @@ export interface CueDef {
  */
 export const CUE_TABLE: Record<CueId, CueDef> = {
     HIT_LIGHT: {
-        files: [],
+        files: [
+            'assets/audio/sfx/hit_light_1.ogg',
+            'assets/audio/sfx/hit_light_2.ogg',
+            'assets/audio/sfx/hit_light_3.ogg',
+            'assets/audio/sfx/hit_light_4.ogg'
+        ],
         bus: 'sfx',
         gain: 0.7,
         throttleMs: AUDIO.CUE_THROTTLE_MS,
@@ -67,7 +72,12 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'HIT_LIGHT'
     },
     HIT_HEAVY: {
-        files: [],
+        files: [
+            'assets/audio/sfx/hit_heavy_1.ogg',
+            'assets/audio/sfx/hit_heavy_2.ogg',
+            'assets/audio/sfx/hit_heavy_3.ogg',
+            'assets/audio/sfx/hit_heavy_4.ogg'
+        ],
         bus: 'sfx',
         gain: 0.9,
         throttleMs: 60,
@@ -76,7 +86,12 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'HIT_HEAVY'
     },
     SLASH: {
-        files: [],
+        files: [
+            'assets/audio/sfx/slash_1.ogg',
+            'assets/audio/sfx/slash_2.ogg',
+            'assets/audio/sfx/slash_3.ogg',
+            'assets/audio/sfx/slash_4.ogg'
+        ],
         bus: 'sfx',
         gain: 0.6,
         throttleMs: 70,
@@ -85,7 +100,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'SLASH'
     },
     BOW: {
-        files: [],
+        files: [
+            'assets/audio/sfx/bow_1.wav',
+            'assets/audio/sfx/bow_2.wav',
+            'assets/audio/sfx/bow_3.wav'
+        ],
         bus: 'sfx',
         gain: 0.65,
         throttleMs: 80,
@@ -94,7 +113,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'BOW'
     },
     SPELL_CAST: {
-        files: [],
+        files: [
+            'assets/audio/sfx/spell_cast_1.ogg',
+            'assets/audio/sfx/spell_cast_2.ogg',
+            'assets/audio/sfx/spell_cast_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.75,
         throttleMs: 100,
@@ -103,7 +126,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'HEAL'
     },
     MAGIC_FIRE: {
-        files: [],
+        files: [
+            'assets/audio/sfx/magic_fire_1.ogg',
+            'assets/audio/sfx/magic_fire_2.ogg',
+            'assets/audio/sfx/magic_fire_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.8,
         throttleMs: 90,
@@ -112,7 +139,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'FIRE'
     },
     MAGIC_ICE: {
-        files: [],
+        files: [
+            'assets/audio/sfx/magic_ice_1.ogg',
+            'assets/audio/sfx/magic_ice_2.ogg',
+            'assets/audio/sfx/magic_ice_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.75,
         throttleMs: 90,
@@ -121,7 +152,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'ICE'
     },
     MAGIC_HEAL: {
-        files: [],
+        files: [
+            'assets/audio/sfx/magic_heal_1.ogg',
+            'assets/audio/sfx/magic_heal_2.ogg',
+            'assets/audio/sfx/magic_heal_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.8,
         throttleMs: 120,
@@ -130,7 +165,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'HEAL'
     },
     DEATH: {
-        files: [],
+        files: [
+            'assets/audio/sfx/death_1.ogg',
+            'assets/audio/sfx/death_2.ogg',
+            'assets/audio/sfx/death_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.85,
         throttleMs: 100,
@@ -139,7 +178,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'DEATH'
     },
     SPAWN: {
-        files: [],
+        files: [
+            'assets/audio/sfx/spawn_1.ogg',
+            'assets/audio/sfx/spawn_2.ogg',
+            'assets/audio/sfx/spawn_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.65,
         throttleMs: 100,
@@ -148,7 +191,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'SPAWN'
     },
     COLLAPSE: {
-        files: [],
+        files: [
+            'assets/audio/sfx/collapse_1.ogg',
+            'assets/audio/sfx/collapse_2.ogg',
+            'assets/audio/sfx/collapse_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.85,
         throttleMs: 150,
@@ -157,7 +204,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'COLLAPSE'
     },
     RUMBLE: {
-        files: [],
+        files: [
+            'assets/audio/sfx/rumble_1.ogg',
+            'assets/audio/sfx/rumble_2.ogg',
+            'assets/audio/sfx/rumble_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.7,
         throttleMs: 200,
@@ -166,7 +217,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'RUMBLE'
     },
     IMPACT_GROUND: {
-        files: [],
+        files: [
+            'assets/audio/sfx/impact_ground_1.ogg',
+            'assets/audio/sfx/impact_ground_2.ogg',
+            'assets/audio/sfx/impact_ground_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.8,
         throttleMs: 120,
@@ -175,7 +230,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'COLLAPSE'
     },
     CC_STUN: {
-        files: [],
+        files: [
+            'assets/audio/sfx/cc_stun_1.ogg',
+            'assets/audio/sfx/cc_stun_2.ogg',
+            'assets/audio/sfx/cc_stun_3.ogg'
+        ],
         bus: 'sfx',
         gain: 0.75,
         throttleMs: 100,
@@ -184,7 +243,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'STUN'
     },
     UI_CLICK: {
-        files: [],
+        files: [
+            'assets/audio/sfx/ui_click_1.ogg',
+            'assets/audio/sfx/ui_click_2.ogg',
+            'assets/audio/sfx/ui_click_3.ogg'
+        ],
         bus: 'ui',
         gain: 0.6,
         throttleMs: 40,
@@ -193,7 +256,11 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'UI_CLICK'
     },
     UI_HOVER: {
-        files: [],
+        files: [
+            'assets/audio/sfx/ui_hover_1.ogg',
+            'assets/audio/sfx/ui_hover_2.ogg',
+            'assets/audio/sfx/ui_hover_3.ogg'
+        ],
         bus: 'ui',
         gain: 0.4,
         throttleMs: 50,
@@ -202,7 +269,10 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'UI_HOVER'
     },
     UI_START: {
-        files: [],
+        files: [
+            'assets/audio/sfx/ui_start_1.ogg',
+            'assets/audio/sfx/ui_start_2.ogg'
+        ],
         bus: 'ui',
         gain: 0.85,
         throttleMs: 300,
@@ -211,7 +281,9 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'UI_START'
     },
     VICTORY: {
-        files: [],
+        files: [
+            'assets/audio/sfx/victory_1.ogg'
+        ],
         bus: 'ui',
         gain: 0.95,
         throttleMs: 500,
@@ -220,7 +292,10 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
         synth: 'VICTORY'
     },
     DEFEAT: {
-        files: [],
+        files: [
+            'assets/audio/sfx/defeat_1.ogg',
+            'assets/audio/sfx/defeat_2.ogg'
+        ],
         bus: 'ui',
         gain: 0.9,
         throttleMs: 500,
