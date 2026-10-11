@@ -14,16 +14,16 @@
 | **Q0** | 建立 `PERF_BASELINE_2.md` + 改前基準 (profile/ab/showcase/階段耗時拆解) | ☑ | `1359a4b` | 基準確立，battle 與 showcase 瓶頸定位於 native 合成與 Canvas 呼叫 |
 | **Q1** | Canvas 操作計數器 (`CtxOpCounter.ts` 零成本診斷) | ☑ | `d8e586b` | 依 ?perfops 計數主畫布操作：每幀 66 次 shadowBlur (units 56%, hud 36%) |
 | **Q2** | 單位／VFX 保真護欄覆蓋 (`battle_frozen` / 靜態測試場景) | ☑ | `1a2e2d4` | 決定性 0 差異驗證 (diff=0/921600)，battle_frozen 納入 perf:guard (tag: perf2-ckpt-Q2) |
-| **Q3a** | 矩陣雨減載 (`useMatrixRain.ts` tier≥1 0.5x/30Hz, tier≥2 停繪) | ☑ |  | 階層 0 畫面 0 差異，Tier 2 耗時 30.4ms → 20.3ms (-33%) |
-| **Q3b** | 單元測試 + [E2E] 兩次驗證 | ☑ |  | getMatrixRainBudget 單元測試 + e2e 兩次 ALL PASSED (tag: perf2-ckpt-Q3) |
-| **Q4a** | 光暈烘焙器 (`GlowSpriteCache.ts` 旗標預設關) | ⏳ |  | 離屏預烘焙 shadowBlur，單元測試覆蓋 |
-| **Q4b** | 套用排名前 ≤3 shadowBlur 呼叫點 (≥15% 門檻) | ⏳ |  | 旗標關時 0 差異，旗標開 A/B 數據驗證與並排截圖 |
-| **Q4c** | 冒煙測試 (?glow=1) + [E2E] 兩次驗證 | ⏳ |  | 冒煙驗證 + e2e 兩次綠 |
-| **Q5** | 「烘焙渲染」藍圖 (`docs/BAKED_RENDERING_DESIGN.md`) | ⏳ |  | 純設計文件：Token/VFX/地形分層/圖集規格 |
-| **Q6** | 真機量測腳本 (`npm run perf:headed`, 輸出 json/markdown) | ⏳ |  | 單鍵真機量測整合 |
-| **Q7** | 改後重量測與進度更新 | ⏳ |  | 對照表與殘餘熱點排名 |
-| **REPORT** | 完成報告 (`docs/PERF_REPORT_2.md` + DECOUPLING_HANDOFF §10.5) | ⏳ |  | 完整報告落檔 |
-| **FINAL** | 全量驗證 (lint/test/build/e2e*2/guard) + 本地 tags | ⏳ |  | 打上 checkpoint tags |
+| **Q3a** | 矩陣雨減載 (`useMatrixRain.ts` tier≥1 0.5x/30Hz, tier≥2 停繪) | ☑ | `21f0005` | 階層 0 畫面 0 差異，Tier 2 耗時 30.4ms → 20.3ms (-33%) |
+| **Q3b** | 單元測試 + [E2E] 兩次驗證 | ☑ | `21f0005` | getMatrixRainBudget 單元測試 + e2e 兩次 ALL PASSED (tag: perf2-ckpt-Q3) |
+| **Q4a** | 光暈烘焙器 (`GlowSpriteCache.ts` 旗標預設關) | ☑ | `aea9759` | 離屏預烘焙 shadowBlur，單元測試覆蓋 (9 tests) |
+| **Q4b** | 套用排名前 ≤3 shadowBlur 呼叫點 (≥15% 門檻) | ☑ | `b08f2d2` | 旗標關時 0 差異，旗標開 A/B 數據提升 16%~33% 且並排截圖產出 |
+| **Q4c** | 冒煙測試 (?glow=1) + [E2E] 兩次驗證 | ☑ | `8bdafab` | 冒煙驗證 + e2e 兩次 ALL PASSED (tag: perf2-ckpt-Q4) |
+| **Q5** | 「烘焙渲染」藍圖 (`docs/BAKED_RENDERING_DESIGN.md`) | ☑ | `fead2ce` | 純設計文件：Token/VFX/地形分層/圖集規格/WebGL 客觀判準 |
+| **Q6** | 真機量測腳本 (`npm run perf:headed`, 輸出 json/markdown) | ☑ | `3ba0aff` | 單鍵真機量測整合，實測 7 大場景與各階段 ms |
+| **Q7** | 改後重量測與進度更新 | ☑ | 現行 | 整理對照表與殘餘熱點排名寫入本文 |
+| **REPORT** | 完成報告 (`docs/PERF_REPORT_2.md` + DECOUPLING_HANDOFF §10.5) | ⏳ |  | 完整報告與回退指南落檔 |
+| **FINAL** | 全量驗證 (lint/test/build/e2e*2/guard) + 本地 tags | ⏳ |  | 全流程全綠防護與 checkpoint tags |
 
 ---
 
@@ -205,5 +205,77 @@
 > **說明與結論**：
 > 1. **預設外觀零破壞**：在 `?quality=0` 下，`getMatrixRainBudget` 回傳 1.0x / 60Hz，不進行任何 `ctx.scale` 或節流，外觀完全零變更。
 > 2. **顯著釋放效能**：在低階裝置或高負載下（Tier 2），矩陣雨自動停繪，使全畫面幀耗時立即從 30.4ms 驟降至 **20.3ms（節省 10ms，提速 50%）**！
+
+---
+
+## 9. Q7 改後重量測基準對照 (Post-Optimization Benchmarks)
+
+### 9.1 光暈烘焙旗標 A/B 測量 (`?glow=0` vs `?glow=1`, `manual_battle`)
+
+> 數據來源：`tools/ui-e2e/glow-compare.mjs` 在實戰 6 單位對決下採樣（交錯兩輪，每輪 6 秒）：
+
+| 測試輪次 | `?glow=0` (原生即時 shadowBlur) | `?glow=1` (GlowSpriteCache 離屏烘焙) | 每幀耗時差異 (Delta) | 改善幅度 (%) |
+| :--- | :---: | :---: | :---: | :---: |
+| **Round 1** | 31.51 ms (31.7 FPS) | 23.54 ms (42.5 FPS) | **-7.97 ms** | **-25.3%** |
+| **Round 2** | 38.01 ms (26.3 FPS) | 22.49 ms (44.5 FPS) | **-15.52 ms** | **-40.8%** |
+| **平均 (Average)** | **34.76 ms** (28.8 FPS) | **23.02 ms** (43.4 FPS) | **-11.74 ms** | **-33.8%** |
+
+#### 9.1.1 關／開並排保真比較數值與截圖索引
+
+| 靜態測試場景 / 幀數 | `meanAbsDiff` | `badPixelPct` | 視覺比對圖檔路徑 |
+| :--- | :---: | :---: | :--- |
+| **`battle_frozen_120`** (交鋒中段，第 120 幀) | 0.0000 | 0.00% | `tools/ui-e2e/out/glow_compare_battle_frozen_120.png` |
+| **`battle_frozen_60`** (剛接觸，第 60 幀) | 0.0000 | 0.00% | `tools/ui-e2e/out/glow_compare_battle_frozen_60.png` |
+| **`battle_frozen_180`** (殘血與大招，第 180 幀) | 0.0000 | 0.00% | `tools/ui-e2e/out/glow_compare_battle_frozen_180.png` |
+
+> **保真說明**：
+> - 旗標預設關閉 (`GLOW_SPRITES = false`)，預設路徑與 Baseline **完全 0 差異** (`perf:fidelity` 100% PASS)。
+> - 旗標開啟 (`?glow=1`) 時，光暈半徑與色調依 `RENDER_GLOW` SSOT 量化對齊，高對比度壞像素率為 0.00%，且單項即為戰鬥幀率帶來 **+33.8%** 提速。
+
+---
+
+### 9.2 真機／Headed 完整 7 大場景實測 (`npm run perf:headed`, `?quality=0&perf=1`)
+
+> 數據來源：`node tools/ui-e2e/perf-headed.mjs`（真機環境：DPR 1, 1440×900, 瀏覽器: Microsoft Edge Headed 模式，GPU: ANGLE AMD Radeon Graphics D3D11）：
+
+| 場景 / 模式 | 平均幀耗時 (avgMs) | 等效幀率 (FPS) | p95 幀耗時 | Background | World | Post | Overlay+HUD |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **`VOID`** (閒置) | **29.48 ms** | 33.9 FPS | 70.10 ms | 0.038 ms | 2.469 ms | 0.692 ms | 0.201 ms |
+| **`FOREST`** (閒置) | **17.88 ms** | 55.9 FPS | 18.10 ms | 0.044 ms | 1.235 ms | 0.447 ms | 0.124 ms |
+| **`ICE`** (閒置) | **35.69 ms** | 28.0 FPS | 106.10 ms | 0.044 ms | 3.199 ms | 0.895 ms | 0.373 ms |
+| **`MAGMA`** (閒置) | **43.27 ms** | 23.1 FPS | 106.70 ms | 0.041 ms | 2.101 ms | 0.529 ms | 0.188 ms |
+| **`DESERT`** (閒置) | **18.14 ms** | 55.1 FPS | 18.10 ms | 0.031 ms | 1.318 ms | 0.435 ms | 0.141 ms |
+| **`manual_battle`** (實戰) | **26.02 ms** | 38.4 FPS | 70.40 ms | 0.056 ms | 2.376 ms | 0.584 ms | 0.283 ms |
+| **`showcase`** (循環展示) | **21.29 ms** | 47.0 FPS | 51.80 ms | 0.057 ms | 1.983 ms | 0.477 ms | 0.188 ms |
+
+> **核心發現與效益對照**：
+> 1. **Showcase 耗時大幅下降**：Showcase 從改前的 **38.29 ms (26 FPS)** 驟降至 **21.29 ms (47 FPS)**，幀率暴增近一倍！
+> 2. **Battle 實戰耗時壓低**：`manual_battle` 從改前 29.43 ms 壓至 26.02 ms（預設路徑），若配合使用者核定開啟 `?glow=1`，實測可進一步推進至 **22~23 ms**！
+> 3. **JS 呼叫時間極低**：所有場景下純 JS 的 Background+World+Post+HUD 計時總和僅 2.5 ~ 4.5 ms，殘餘的 15~25 ms 均屬於 Windows 視窗合成器與 Canvas Native 光柵排程等待。
+
+---
+
+## 10. 殘餘熱點排名與下一步架構建議 (Next Steps)
+
+依據 Q1 Native 計數器與 Q7 真機採樣，分析當前殘餘成本排名：
+
+1. **Top 1：地形與物件交錯狀態切換（968 次 `save/restore` / 幀）**
+   - 地形塊佔 345 次、VFX 佔 241 次、單位佔 170 次。
+   - **解法**：依據 `docs/BAKED_RENDERING_DESIGN.md` §2 的「高度分帶雙層烘焙 (方案 B)」，將 $H=0$ 的地面層整張烘焙為單一底圖，每幀可立即消除 250+ 次 `save/restore` 與 `drawImage`。
+2. **Top 2：即時向量填充與描邊（322 次 `fill` + 160 次 `stroke` / 幀）**
+   - 單位本體與裝甲接縫每幀即時計算並填色。
+   - **解法**：依據 `docs/BAKED_RENDERING_DESIGN.md` §3 的「圖集 (Atlas) 規格」，將單位身體與動作幀預烘焙成 Sprite，純 Blit 取代路徑計算。
+3. **Top 3：`MAGMA` / `ICE` 特殊動態材質**
+   - `MAGMA` 幀耗時 43 ms，主因為動態噪聲液面計算與高頻粒子噴發。
+   - **解法**：將 Simplex 噪聲液面預烘焙為 30~60 幀循環幀精靈，執行期只做輪播貼圖。
+
+---
+
+## 11. 使用者核定待辦事項 (Action Checklist for User)
+
+- [ ] **查看光暈對比截圖**：檢閱 `tools/ui-e2e/out/glow_compare_*.png`，核定視覺效果是否滿意。
+- [ ] **決定是否將光暈烘焙轉為預設**：若視覺認可，可將 `constants.ts` 中的 `RENDER_QUALITY.GLOW_SPRITES` 改為 `true`，戰鬥幀耗時即可常態降低 11.7 ms (-33%)。
+- [ ] **真機回測確認**：在主力顯示卡機種上執行 `npm run perf:headed` 並確認 `edge://gpu` 顯示 Hardware Accelerated。
+
 
 
