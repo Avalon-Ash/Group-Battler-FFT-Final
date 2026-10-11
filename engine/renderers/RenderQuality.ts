@@ -280,3 +280,82 @@ export function getDefaultQualityGovernor(): ReturnType<typeof createQualityGove
     }
     return defaultGovernor;
 }
+
+export interface MatrixRainBudget {
+    scale: number;
+    hz: number;
+    enabled: boolean;
+}
+
+/**
+ * 依品質階層取得展示矩陣雨效能預算 SSOT：
+ *  - Tier 0: 完整解析度 (1.0x), 60 Hz
+ *  - Tier 1: 降解析度 (0.5x), 節流 30 Hz
+ *  - Tier 2+: 停止繪製 (enabled: false)
+ */
+export function getMatrixRainBudget(tier: QualityTier = getQualityTier()): MatrixRainBudget {
+    if (tier >= 2) {
+        return {
+            scale: RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE,
+            hz: 0,
+            enabled: false,
+        };
+    }
+    if (tier === 1) {
+        return {
+            scale: RENDER_QUALITY.MATRIX_RAIN_TIER_1_SCALE,
+            hz: RENDER_QUALITY.MATRIX_RAIN_TIER_1_HZ,
+            enabled: true,
+        };
+    }
+    return {
+        scale: RENDER_QUALITY.MATRIX_RAIN_TIER_0_SCALE,
+        hz: RENDER_QUALITY.MATRIX_RAIN_TIER_0_HZ,
+        enabled: true,
+    };
+}
+
+let testGlowOverride: boolean | null = null;
+
+export function setGlowSpritesEnabledForTest(val: boolean | null): void {
+    testGlowOverride = val;
+}
+
+let glowQueryCache: string | null | undefined = undefined;
+
+function readGlowQuery(): string | null {
+    if (glowQueryCache !== undefined) return glowQueryCache;
+    let val: string | null = null;
+    if (typeof location !== 'undefined' && location.search) {
+        try {
+            val = new URLSearchParams(location.search).get(RENDER_QUALITY.GLOW_QUERY_KEY);
+        } catch {
+            val = null;
+        }
+    }
+    glowQueryCache = val;
+    return val;
+}
+
+/**
+ * 純函式：光暈旗標的決策順序
+ *  1. 網址 ?glow=1|true → 開；?glow=0|false → 關（明確覆寫，供 A/B 與比較工具使用）
+ *  2. 否則：預設旗標 RENDER_QUALITY.GLOW_SPRITES 為 true，或品質階層 >= 2 → 開
+ */
+export function resolveGlowFlag(query: string | null, defaultOn: boolean, tier: number): boolean {
+    if (query === '1' || query === 'true') return true;
+    if (query === '0' || query === 'false') return false;
+    return defaultOn || tier >= 2;
+}
+
+/**
+ * 是否啟用光暈預烘焙 Sprite (GLOW_SPRITES)
+ * 預設取 RENDER_QUALITY.GLOW_SPRITES（目前 true，使用者已目視核定外觀差異可接受）。
+ * 查詢參數僅在首次呼叫時解析並快取（此函式位於逐單位／逐血條的熱路徑）。
+ */
+export function isGlowSpritesEnabled(): boolean {
+    if (testGlowOverride !== null) return testGlowOverride;
+    return resolveGlowFlag(readGlowQuery(), RENDER_QUALITY.GLOW_SPRITES, getQualityTier());
+}
+
+

@@ -360,3 +360,29 @@ npm run lint; npm run build
   - Showcase 模式下矩陣雨（Matrix Rain）在高 DPR 下開銷顯著（可省 40% 耗時），建議保留既有視覺開關，低階/Retina 裝置可由使用者手動停用。
   - 詳細對照數據、Profiling 排名與使用者驗證指南見 `docs/PERF_REPORT.md`。
 
+### 10.5 效能第二輪摘要（2026-10-11，戰鬥／Showcase 殘餘成本與光暈預烘焙）
+- **核心成效**：
+  - **診斷工具（Q1）**：新增零成本 `CtxOpCounter.ts`（`?perfops` 啟用），量化每幀 968 次 `save/restore` 與 66 次 `shadowBlur`，鎖定 92.4% 的光暈開銷在單位 (`units`, 37 次) 與血條 (`hud`, 24 次)。
+  - **保真護欄全面覆蓋（Q2）**：修復隨機種子重置點，使 `battle_frozen`（實戰第 120 幀）達成 100% 決定性（diff=0/921600），成功納入 `perf:guard` 每日防線。
+  - **矩陣雨分階減載（Q3a/b）**：`useMatrixRain.ts` 整合 `getMatrixRainBudget`。Tier 0（預設）維持 1.0x / 60Hz 逐像素零差異；Tier 1 降為 0.5x / 30Hz；Tier 2 自動停繪清空畫布，使 Showcase 幀耗時自 30.4ms 驟降至 **20.3ms（-33.3%，+50% FPS）**。
+  - **光暈預烘焙快取（Q4a/b/c）**：新增 `GlowSpriteCache.ts`（純衍生快取，LRU 容量上限保護），套用於 `BarPainter`、`UnitAmbientPainter`、`UnitCorePainter`。旗標 `GLOW_SPRITES` 預設為 `false`（`perf:fidelity` 零差異）。開啟 `?glow=1` 時實測戰鬥幀耗時降低 **11.74ms (-33.8%)**，並產出並排比較截圖（`tools/ui-e2e/out/glow_compare_*.png`，壞像素率 0.00%）供使用者目視核定。
+  - **「烘焙渲染」藍圖（Q5）**：產出 `docs/BAKED_RENDERING_DESIGN.md`，詳述高度分帶雙層烘焙方案、圖集 Manifest 資料格式草案、SSOT 外觀槽位對接以及 WebGL 客觀評估判準。
+  - **單鍵真機評測（Q6）**：新增 `npm run perf:headed`（`tools/ui-e2e/perf-headed.mjs`），一鍵測量 7 大場景實機 FPS、DPR、GPU 字串與 `?perf` 各階段 ms。
+- **保真度驗證**：
+  - 全 6 大場景（含 `battle_frozen`）通過 `perf:fidelity`，旗標關閉時位元組等價 0 差異。
+  - 單元測試（191 tests 全綠）、`e2e:ui` 連跑兩次 ALL PASSED、`perf:guard` 全綠。
+- **本地 Checkpoint Tags**：
+  - `perf2-ckpt-Q2`、`perf2-ckpt-Q3`、`perf2-ckpt-Q4`、`perf2-ckpt-final`。
+- **待使用者核定事項**：
+  - 查看 `tools/ui-e2e/out/glow_compare_*.png`，若視覺核定，可將 `constants.ts` 中的 `RENDER_QUALITY.GLOW_SPRITES` 改為 `true`，立即釋放戰鬥 +33.8% 效能。
+  - 詳見 `docs/PERF_REPORT_2.md`、`docs/PERF_BASELINE_2.md` 與 `docs/BAKED_RENDERING_DESIGN.md`。
+
+
+
+
+### 10.6 效能第二輪審查結果與第三輪起點（2026-10-11）
+
+- 第二輪（perf/render-opt，1359a4b…357c901 + 主代理審查修正）已合併進 main。**第二輪報告中的 headless 毫秒數全部作廢**：當時量測落在 AMD 內顯 + 59 Hz 副螢幕；使用者主螢幕為 2560×1440 @ 239 Hz（RTX 4070）。詳見 docs/PERF_REPORT_2.md 末尾「審查更正」。
+- 量測鐵律（寫給所有後續代理）：腳本必須印出並記錄 GPU 字串與 DPR，落在 AMD/Radeon 即視為無效；觸發骰子按鈕一律 DOM click 並斷言單位數；量測戰鬥時要避開「戰鬥結束／showcase 轉場」；吞吐量測要取消幀率限制（--disable-frame-rate-limit --disable-gpu-vsync）。
+- 外觀決策：光暈預烘焙（GlowSpriteCache）已由使用者目視核定並設為預設開（RENDER_QUALITY.GLOW_SPRITES = true，?glow=0 可關）。attle_frozen baseline 已重錄（有單位的真實畫面）。
+- 第三輪計畫：docs/PERF_AGENT_PROMPT_3.md，在新分支 perf/render-opt-3（由 main 開出）進行；不得直接在 main 上優化。

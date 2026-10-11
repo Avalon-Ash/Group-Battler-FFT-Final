@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { MatrixConfig } from './types';
+import { getMatrixRainBudget } from '../../../engine/renderers/RenderQuality';
 interface Drop {
     streamIdx: number;
     pos: number;
@@ -24,11 +25,13 @@ export const useMatrixRain = (
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        canvas.width = width;
-        canvas.height = height;
-        if (!config.enabled) {
-            ctx.clearRect(0, 0, width, height);
-            return;
+        const initialBudget = getMatrixRainBudget();
+        let currentScale = initialBudget.scale;
+        canvas.width = Math.max(1, Math.floor(width * currentScale));
+        canvas.height = Math.max(1, Math.floor(height * currentScale));
+        if (!config.enabled || !initialBudget.enabled) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!config.enabled) return;
         }
         const { direction, fontSize, spacing } = configRef.current;
         const isVertical = direction === 'DOWN' || direction === 'UP';
@@ -61,9 +64,44 @@ export const useMatrixRain = (
             const index = Math.abs((laneIdx * 15485863 + cellIdx * 1231 + timeStep * 7919 + Math.floor(seed)) % len);
             return charSet[index];
         };
-        const render = () => {
+        let lastRenderTime = 0;
+        const render = (now: number = performance.now()) => {
+            const budget = getMatrixRainBudget();
+
+            // ≥2: 停止繪製（保持元素存在、清空畫布）
+            if (!budget.enabled) {
+                if (canvas.width > 0 && canvas.height > 0) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+                animationId = requestAnimationFrame(render);
+                return;
+            }
+
+            // 更新頻率節流至 30 Hz
+            if (budget.hz < 60 && budget.hz > 0) {
+                const interval = 1000 / budget.hz;
+                if (now - lastRenderTime < interval - 4) {
+                    animationId = requestAnimationFrame(render);
+                    return;
+                }
+            }
+            lastRenderTime = now;
+
+            // 內部解析度切換
+            if (budget.scale !== currentScale) {
+                currentScale = budget.scale;
+                canvas.width = Math.max(1, Math.floor(width * currentScale));
+                canvas.height = Math.max(1, Math.floor(height * currentScale));
+            }
+
             const cfg = configRef.current;
             timeRef.current++;
+
+            if (currentScale < 1.0) {
+                ctx.save();
+                ctx.scale(currentScale, currentScale);
+            }
+
             ctx.clearRect(0, 0, width, height);
             ctx.textBaseline = 'top';
             let moveDelta = 0, trailDx = 0, trailDy = 0, startBound = 0, endBound = 0;
@@ -135,6 +173,11 @@ export const useMatrixRain = (
             }
             ctx.globalAlpha = 1.0;
             ctx.shadowBlur = 0;
+
+            if (currentScale < 1.0) {
+                ctx.restore();
+            }
+
             animationId = requestAnimationFrame(render);
         };
         render();

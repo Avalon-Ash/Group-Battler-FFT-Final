@@ -10,6 +10,7 @@ import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
 import { RenderStats } from "./RenderStats";
 import { getRenderDpr } from "./RenderQuality";
+import { CtxOpCounter } from "./CtxOpCounter";
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -65,9 +66,12 @@ export class RenderPipeline {
         }
     }
 
-    public draw(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
-        const { width: pW, height: pH } = ctx.canvas;
+    public draw(rawCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
+        const { width: pW, height: pH } = rawCtx.canvas;
         if (pW === 0 || pH === 0) return;
+
+        const ctx = CtxOpCounter.wrapContext(rawCtx);
+        CtxOpCounter.beginFrame();
 
         const dpr = getRenderDpr();
         const lW = pW / dpr;
@@ -81,7 +85,9 @@ export class RenderPipeline {
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
         // Background uses RealTime for ambient effects (stars, fog) even when game paused
-        this.background.draw(ctx, lW, lH, sc, cfg, realTime);
+        CtxOpCounter.track('background', () => {
+            this.background.draw(ctx, lW, lH, sc, cfg, realTime);
+        });
         RenderStats.end('background');
         
         // 2. Main Scene (World Space)
@@ -96,23 +102,33 @@ export class RenderPipeline {
 
         // 3. Post Processing
         RenderStats.begin('post');
-        let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
-        this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
-        // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
-        this.post.applyToneGrade(ctx, pW, pH);
+        CtxOpCounter.track('post', () => {
+            let transAb = (this.transitionPhase !== 'IDLE') ? 4 * this.transitionT * (1 - this.transitionT) * 0.5 : 0;
+            this.post.apply(ctx, pW, pH, this.renderer.camera.getTrauma(), transAb);
+            // [MATERIAL UPGRADE] 色調分級：只作用於世界層，HUD/Overlay 之前
+            this.post.applyToneGrade(ctx, pW, pH);
+        });
         RenderStats.end('post');
         
         // 4. Overlays (Screen/World Hybrid)
         RenderStats.begin('overlay+hud');
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
-        this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
+        CtxOpCounter.track('tactical-overlay', () => {
+            this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
+        });
         
         // _cachedTerrainH guaranteed non-null: drawWorld() runs before this point
-        this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH!, cfg, highlight, battleTime, engine.state.isLastStand);
+        CtxOpCounter.track('hud', () => {
+            this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH!, cfg, highlight, battleTime, engine.state.isLastStand);
+        });
         ctx.restore(); 
 
-        if (engine.directorTargetId) this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
+        if (engine.directorTargetId) {
+            CtxOpCounter.track('director-hud', () => {
+                this.tactical.drawHUD(ctx, engine, lW, lH, camera, realTime);
+            });
+        }
         RenderStats.end('overlay+hud');
         this.tactical.drawDebug(ctx, fps, engine);
         
@@ -121,6 +137,11 @@ export class RenderPipeline {
         if (this.transitionPhase === 'OUT') blur = 1.0; 
         else if (this.transitionPhase === 'IN') blur = 1.0 - this.transitionT;
         if (blur > 0) this.post.applyFinishBlur(ctx, pW, pH, Math.max(0, Math.min(1, blur)));
+
+        if (CtxOpCounter.enabled) {
+            CtxOpCounter.drawDebug(ctx);
+        }
+        CtxOpCounter.endFrame();
     }
 
     private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number) {
@@ -136,18 +157,34 @@ export class RenderPipeline {
         const lW = ctx.canvas.width / dpr;
         const lH = ctx.canvas.height / dpr;
 
-        this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
-        this._viewportScratch.width = lW;
-        this._viewportScratch.height = lH;
-        this._viewportScratch.camera = camera;
-        this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
-        this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
+        CtxOpCounter.track('submit', () => {
+            this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
+            this._viewportScratch.width = lW;
+            this._viewportScratch.height = lH;
+            this._viewportScratch.camera = camera;
+            this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
+            this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
+        });
         
-        this.renderList.sort();
+        CtxOpCounter.track('sort', () => {
+            this.renderList.sort();
+        });
 
         // 單一渲染 pass：依據深度排序後的順序進行繪製（包含存活單位與死亡布娃娃）
         for (let i = 0; i < this.renderList.count; i++) {
-            RenderDispatcher.dispatch(ctx, this.renderList.ops[i], engine.mapConfig.layout, t, this.renderer.unit);
+            const op = this.renderList.ops[i];
+            if (CtxOpCounter.enabled) {
+                const scope = op.type === RenderOpType.TERRAIN ? 'terrain' :
+                              op.type === RenderOpType.UNIT || op.type === RenderOpType.CORPSE || op.type === RenderOpType.AURA ? 'units' :
+                              op.type === RenderOpType.VFX ? 'vfx' :
+                              op.type === RenderOpType.DECAL ? 'decal' :
+                              op.type === RenderOpType.PROJECTILE ? 'projectile' :
+                              op.type === RenderOpType.HAZARD ? 'hazard' :
+                              op.type === RenderOpType.OBSTACLE ? 'obstacle' :
+                              op.type === RenderOpType.OVERLAY ? 'overlay' : 'other';
+                CtxOpCounter.setScope(scope);
+            }
+            RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
         }
 
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：
@@ -176,15 +213,19 @@ export class RenderPipeline {
             }
 
             if (this._scratchOccludedList.length > 0) {
-                ctx.save();
-                for (let i = 0; i < this._scratchOccludedList.length; i++) {
-                    this.renderer.unit.drawSilhouette(ctx, this._scratchOccludedList[i], terrainH, t, engine.mapConfig);
-                }
-                ctx.restore();
+                CtxOpCounter.track('silhouette', () => {
+                    ctx.save();
+                    for (let i = 0; i < this._scratchOccludedList.length; i++) {
+                        this.renderer.unit.drawSilhouette(ctx, this._scratchOccludedList[i], terrainH, t, engine.mapConfig);
+                    }
+                    ctx.restore();
+                });
             }
         }
         
         // [FIX] Pass layout to StatusOrchestrator
-        this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout);
+        CtxOpCounter.track('status', () => {
+            this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout);
+        });
     }
 }

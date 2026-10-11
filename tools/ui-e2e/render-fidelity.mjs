@@ -206,11 +206,23 @@ const captureScene = async (page, sid) => {
 };
 
 const captureBattleFrozen = async (page) => {
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
         window.__resetSeed(42);
+        const mod = await import('/data/scenes.ts');
+        const e = window.__TACTICAL_ENGINE__;
+        e.currentScene = mod.SCENE_DB[0];
+        e.map.rebuildMap(e);
     });
-    // Click dice button to generate battlefield and teams
-    await page.locator(`button[title="${DICE_TITLE}"]`).click({ force: true });
+    await page.evaluate(() => window.__stepFrames(5));
+    // Click dice button to generate battlefield and teams.
+    // NOTE: Playwright's locator.click({ force: true }) silently does nothing under the synthetic
+    // rAF/time harness (agents stayed 0 and the frame was an empty blurred scene), so dispatch a DOM click.
+    const clicked = await page.evaluate((title) => {
+        const btns = Array.from(document.querySelectorAll('button')).filter((b) => b.title === title);
+        btns.forEach((b) => b.click());
+        return btns.length;
+    }, DICE_TITLE);
+    if (clicked !== 1) throw new Error(`battle_frozen: dice button matched ${clicked} elements`);
     await page.waitForTimeout(200);
     await page.evaluate(() => window.__stepFrames(5));
     // Start simulation
@@ -220,6 +232,9 @@ const captureBattleFrozen = async (page) => {
     });
     // Advance 120 frames
     await page.evaluate(() => window.__stepFrames(120));
+    // Guard against a hollow capture: the scene must really contain units.
+    const agentCount = await page.evaluate(() => window.__TACTICAL_ENGINE__.agents.length);
+    if (agentCount < 2) throw new Error(`battle_frozen: expected units on the field, got ${agentCount}`);
     return await page.evaluate(() => {
         const c = document.querySelector('canvas');
         return c ? c.toDataURL('image/png') : null;
@@ -235,11 +250,16 @@ try {
     if (isRecord) {
         console.log('== RECORDING FIDELITY BASELINE PNGs ==');
         for (const sid of sceneIds) {
+            const dest = join(BASELINE_DIR, `${sid}.png`);
+            if (existsSync(dest)) {
+                console.log(`Skipping existing scene baseline: ${sid}`);
+                continue;
+            }
             console.log(`Recording scene: ${sid}`);
             const dataUrl = await captureScene(page, sid);
             if (!dataUrl) throw new Error(`Failed to capture canvas for ${sid}`);
             const buf = Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
-            writeFileSync(join(BASELINE_DIR, `${sid}.png`), buf);
+            writeFileSync(dest, buf);
         }
 
         // Test determinism of battle_frozen across two separate context runs
@@ -285,7 +305,10 @@ try {
 
             let currentDataUrl;
             if (sid === 'battle_frozen') {
-                currentDataUrl = await captureBattleFrozen(page);
+                // Fresh context: battle_frozen must not inherit engine/camera/time state from the scene captures above.
+                const hb = await createHarnessContext();
+                currentDataUrl = await captureBattleFrozen(hb.page);
+                await hb.ctx.close();
             } else {
                 currentDataUrl = await captureScene(page, sid);
             }

@@ -8,6 +8,7 @@ import {
     forceSetQualityTier,
     setPinnedTier,
     createQualityGovernor,
+    getMatrixRainBudget,
 } from '../engine/renderers/RenderQuality';
 import { RENDER_QUALITY } from '../constants';
 
@@ -81,6 +82,43 @@ describe('RenderQuality & createQualityGovernor', () => {
 
             forceSetQualityTier(2);
             expect(getRenderDpr()).toBe(1.5);
+        });
+    });
+
+    describe('getMatrixRainBudget', () => {
+        it('returns 1.0x scale and 60Hz enabled for tier 0', () => {
+            const budget = getMatrixRainBudget(0);
+            expect(budget.scale).toBe(1.0);
+            expect(budget.hz).toBe(60);
+            expect(budget.enabled).toBe(true);
+        });
+
+        it('returns 0.5x scale and 30Hz enabled for tier 1', () => {
+            const budget = getMatrixRainBudget(1);
+            expect(budget.scale).toBe(0.5);
+            expect(budget.hz).toBe(30);
+            expect(budget.enabled).toBe(true);
+        });
+
+        it('disables rendering for tier 2 and tier 3', () => {
+            const b2 = getMatrixRainBudget(2);
+            expect(b2.enabled).toBe(false);
+            expect(b2.hz).toBe(0);
+
+            const b3 = getMatrixRainBudget(3);
+            expect(b3.enabled).toBe(false);
+            expect(b3.hz).toBe(0);
+        });
+
+        it('defaults to current module tier if not passed', () => {
+            forceSetQualityTier(1);
+            expect(getMatrixRainBudget().hz).toBe(30);
+
+            forceSetQualityTier(2);
+            expect(getMatrixRainBudget().enabled).toBe(false);
+
+            forceSetQualityTier(0);
+            expect(getMatrixRainBudget().hz).toBe(60);
         });
     });
 
