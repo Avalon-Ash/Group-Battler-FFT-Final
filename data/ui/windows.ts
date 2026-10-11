@@ -75,6 +75,16 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         visibleInShowcase: true,
         visibleInManual: false,
     },
+    {
+        id: 'audioSettings',
+        title: '音訊設定 (Audio Settings)',
+        icon: 'volume',
+        defaultRect: { x: 740, y: 100, width: 340, height: 420 },
+        minSize: { width: 300, height: 320 },
+        kind: 'window',
+        visibleInShowcase: true,
+        visibleInManual: true,
+    },
 ];
 
 export const WINDOW_DEF_MAP: Record<WindowId, WindowDef> = Object.fromEntries(

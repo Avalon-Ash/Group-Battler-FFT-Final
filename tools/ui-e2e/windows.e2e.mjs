@@ -41,6 +41,7 @@ const SUITES = [
     { id: 'directorSettings' },
     { id: 'zoneSettings' },
     { id: 'showcaseSettings' },
+    { id: 'audioSettings' },
     {
         id: 'inspector',
         open: async (page) => {
@@ -294,6 +295,7 @@ const runToolMenuSuite = async () => {
     }
     const scItemInManual = page.locator('[data-testid="menu-item-showcaseSettings"]');
     ok('manual mode: menu-item-showcaseSettings does not exist', (await scItemInManual.count()) === 0 || !(await scItemInManual.isVisible()));
+    ok('menu item exists: audioSettings', await page.locator('[data-testid="menu-item-audioSettings"]').isVisible());
     ok('menu item exists: reset-layout', await page.locator('[data-testid="menu-item-reset-layout"]').isVisible());
     ok('menu item exists: spec', await page.locator('[data-testid="menu-item-spec"]').isVisible());
 
@@ -385,6 +387,8 @@ const runToolMenuSuite = async () => {
 
     const scItemInShowcase = scPage.locator('[data-testid="menu-item-showcaseSettings"]');
     ok('showcase mode: menu-item-showcaseSettings exists', await scItemInShowcase.isVisible());
+    const audioItemInShowcase = scPage.locator('[data-testid="menu-item-audioSettings"]');
+    ok('showcase mode: menu-item-audioSettings exists', await audioItemInShowcase.isVisible());
 
     for (const wid of manualWindowIds) {
         const item = scPage.locator(`[data-testid="menu-item-${wid}"]`);
@@ -1392,6 +1396,71 @@ const runEditorSuite = async () => {
     await ctx.close();
 };
 
+const runAudioSettingsSuite = async () => {
+    console.log('\n── AudioSettings (S0c E2E)');
+    const { ctx, page } = await newPage({ id: 'audioSettings' });
+
+    // 1. Showcase mode: open via menu and verify
+    await page.goto(baseUrl, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+
+    await openViaMenu(page, 'audioSettings');
+    const audioWinShowcase = await rectOf(page, 'audioSettings');
+    ok('audioSettings: opens in showcase mode', audioWinShowcase !== null);
+
+    // Verify ?mute indicator
+    const mutedIndicator = page.locator('[data-testid="url-muted-indicator"]');
+    ok('audioSettings: ?mute shows URL muted indicator', await mutedIndicator.isVisible());
+
+    // Verify audio system is not created in engine under ?mute
+    const engineAudio = await page.evaluate(() => window.__TACTICAL_ENGINE__?.audio);
+    ok('audioSettings: ?mute does not instantiate audio in engine', engineAudio === undefined);
+
+    // Close in showcase mode
+    await page.locator(`[data-window-id=audioSettings] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+    ok('audioSettings: closes in showcase mode', (await rectOf(page, 'audioSettings')) === null);
+
+    // 2. Manual mode: enter manual mode, open via menu and verify
+    await page.getByText(START_TEXT).click();
+    await page.waitForTimeout(800);
+
+    await openViaMenu(page, 'audioSettings');
+    const audioWinManual = await rectOf(page, 'audioSettings');
+    ok('audioSettings: opens in manual mode', audioWinManual !== null);
+
+    // 3. Slider change updates localStorage
+    const masterSlider = page.locator('[data-testid="slider-master"]');
+    await masterSlider.fill('0.45');
+    await masterSlider.dispatchEvent('input');
+    await masterSlider.dispatchEvent('change');
+    await page.waitForTimeout(400);
+
+    const savedAudio = await page.evaluate((k) => {
+        const raw = localStorage.getItem(k);
+        return raw ? JSON.parse(raw) : null;
+    }, 'tactical_audio_settings');
+    ok('audioSettings: slider updates localStorage', !!savedAudio && Math.abs(savedAudio.master - 0.45) < 0.05, JSON.stringify(savedAudio));
+
+    // 4. Mute toggle updates localStorage
+    const muteToggle = page.locator('[data-testid="btn-mute-toggle"]');
+    await muteToggle.click();
+    await page.waitForTimeout(400);
+
+    const savedAfterMute = await page.evaluate((k) => {
+        const raw = localStorage.getItem(k);
+        return raw ? JSON.parse(raw) : null;
+    }, 'tactical_audio_settings');
+    ok('audioSettings: mute toggle updates localStorage', !!savedAfterMute && savedAfterMute.muted === true, JSON.stringify(savedAfterMute));
+
+    // Close in manual mode
+    await page.locator(`[data-window-id=audioSettings] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+    ok('audioSettings: closes in manual mode', (await rectOf(page, 'audioSettings')) === null);
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -1407,6 +1476,7 @@ try {
     if (!filterOnly || filterOnly.includes('touch-scroll')) await runTouchScrollSuite();
     if (!filterOnly || filterOnly.includes('editor')) await runEditorSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
+    if (!filterOnly || filterOnly.includes('audio-settings')) await runAudioSettingsSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

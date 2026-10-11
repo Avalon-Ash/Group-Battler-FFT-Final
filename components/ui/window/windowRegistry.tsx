@@ -8,6 +8,7 @@ import { VFXMapTab } from '../../inspector/tabs/VFXMapTab';
 import { DirectorMonitorHUD } from '../DirectorMonitorHUD';
 import { DirectorSettingsWindow, ZoneSettingsWindow } from '../settings/SettingsWindows';
 import { ShowcaseSettings } from '../showcase/ShowcaseSettings';
+import { AudioSettingsWindow } from '../settings/AudioSettingsWindow';
 import { UnitInspectorBody } from '../inspector/UnitInspectorBody';
 import { Icons } from '../icons';
 import { ToolWindow } from './ToolWindow';
@@ -72,6 +73,11 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
         icon: <Icons.Settings className="w-4 h-4" />,
         flush: true,
         render: ({ engine }) => <ShowcaseSettings engine={engine} />,
+    },
+    audioSettings: {
+        icon: <span className="text-sm">🔊</span>,
+        flush: true,
+        render: ({ engine }) => <AudioSettingsWindow engine={engine} />,
     },
 };
 
