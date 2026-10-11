@@ -41,6 +41,7 @@ const SUITES = [
     { id: 'directorSettings' },
     { id: 'zoneSettings' },
     { id: 'showcaseSettings' },
+    { id: 'audioSettings' },
     {
         id: 'inspector',
         open: async (page) => {
@@ -92,7 +93,7 @@ const launchBrowser = async () => {
 
 const server = await createServer({ server: { port: 3199, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute`;
 const browser = await launchBrowser();
 const consoleErrors = [];
 
@@ -139,7 +140,12 @@ const runSuite = async (suite) => {
     const { id } = suite;
     console.log(`\n── window: ${id}`);
     const { ctx, page } = await newPage(suite);
-    await enterManualMode(page);
+    if (id === 'showcaseSettings') {
+        await page.goto(baseUrl, { waitUntil: 'networkidle' });
+        await page.waitForTimeout(500);
+    } else {
+        await enterManualMode(page);
+    }
     if (suite.open) {
         await suite.open(page);
     } else if (!suite.seed) {
@@ -193,8 +199,12 @@ const runSuite = async (suite) => {
     const saved = await page.evaluate((k) => localStorage.getItem(k), STORAGE_KEY);
     ok(`${id}: layout persisted to localStorage`, !!saved && saved.includes(`"${id}"`));
     await page.reload({ waitUntil: 'networkidle' });
-    await page.getByText(START_TEXT).click();
-    await page.waitForTimeout(800);
+    if (id !== 'showcaseSettings') {
+        await page.getByText(START_TEXT).click();
+        await page.waitForTimeout(800);
+    } else {
+        await page.waitForTimeout(600);
+    }
     const bp = await rectOf(page, id);
     ok(`${id}: rect + open state restored after reload`, !!bp && near(bp.x, br.x, 3) && near(bp.width, br.width, 3), JSON.stringify(bp));
 
@@ -208,7 +218,9 @@ const runSuite = async (suite) => {
     ok(`${id}: close button closes (body unmounted)`, (await rectOf(page, id)) === null);
 
     // small viewport containment + recovery (reopen first)
-    if (suite.open) await suite.open(page);
+    if (id === 'showcaseSettings') {
+        await openViaMenu(page, 'showcaseSettings');
+    } else if (suite.open) await suite.open(page);
     else if (suite.menuIndex !== undefined) await openViaMenu(page, suite.menuIndex);
     else if (!suite.seed) await openViaMenu(page, suite.id);
     else await page.evaluate(([k, wid]) => { const m = JSON.parse(localStorage.getItem(k)); m[wid].open = true; localStorage.setItem(k, JSON.stringify(m)); }, [STORAGE_KEY, id]).then(() => page.reload({ waitUntil: 'networkidle' })).then(() => page.getByText(START_TEXT).click()).then(() => page.waitForTimeout(800));
@@ -276,11 +288,14 @@ const runToolMenuSuite = async () => {
     await page.locator('[data-testid="system-menu-button"]').click();
     await page.waitForTimeout(300);
 
-    const windowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'showcaseSettings', 'inspector'];
-    for (const wid of windowIds) {
+    const manualWindowIds = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'inspector'];
+    for (const wid of manualWindowIds) {
         const item = page.locator(`[data-testid="menu-item-${wid}"]`);
         ok(`menu item exists: ${wid}`, await item.isVisible());
     }
+    const scItemInManual = page.locator('[data-testid="menu-item-showcaseSettings"]');
+    ok('manual mode: menu-item-showcaseSettings does not exist', (await scItemInManual.count()) === 0 || !(await scItemInManual.isVisible()));
+    ok('menu item exists: audioSettings', await page.locator('[data-testid="menu-item-audioSettings"]').isVisible());
     ok('menu item exists: reset-layout', await page.locator('[data-testid="menu-item-reset-layout"]').isVisible());
     ok('menu item exists: spec', await page.locator('[data-testid="menu-item-spec"]').isVisible());
 
@@ -361,6 +376,25 @@ const runToolMenuSuite = async () => {
     ok('window rect restored to default after reset layout', resetRect && near(resetRect.x, 40, 4) && near(resetRect.y, 80, 4), JSON.stringify(resetRect));
 
     await ctx.close();
+
+    // 5. Verify showcase mode SystemMenu: only showcaseSettings, reset-layout, spec exist
+    const { ctx: scCtx, page: scPage } = await newPage({ id: 'toolmenu_showcase' });
+    await scPage.goto(baseUrl, { waitUntil: 'networkidle' });
+    await scPage.waitForTimeout(500);
+
+    await scPage.locator('[data-testid="system-menu-button"]').click();
+    await scPage.waitForTimeout(300);
+
+    const scItemInShowcase = scPage.locator('[data-testid="menu-item-showcaseSettings"]');
+    ok('showcase mode: menu-item-showcaseSettings exists', await scItemInShowcase.isVisible());
+    const audioItemInShowcase = scPage.locator('[data-testid="menu-item-audioSettings"]');
+    ok('showcase mode: menu-item-audioSettings exists', await audioItemInShowcase.isVisible());
+
+    for (const wid of manualWindowIds) {
+        const item = scPage.locator(`[data-testid="menu-item-${wid}"]`);
+        ok(`showcase mode: menu-item-${wid} does not exist`, (await item.count()) === 0 || !(await item.isVisible()));
+    }
+    await scCtx.close();
 };
 
 const runSchemaFormSuite = async () => {
@@ -444,6 +478,10 @@ const runShowcaseAndPinSuite = async () => {
     // Enter manual mode
     await page.getByText(START_TEXT).click();
     await page.waitForTimeout(800);
+
+    // Assert showcaseSettings was closed when entering manual mode
+    const scInManual = await rectOf(page, 'showcaseSettings');
+    ok('manual mode: showcaseSettings closed after entering manual mode', scInManual === null);
 
     // Assert standard windows are now restored and visible
     const logsInManual = await rectOf(page, 'logs');
@@ -1358,6 +1396,71 @@ const runEditorSuite = async () => {
     await ctx.close();
 };
 
+const runAudioSettingsSuite = async () => {
+    console.log('\n── AudioSettings (S0c E2E)');
+    const { ctx, page } = await newPage({ id: 'audioSettings' });
+
+    // 1. Showcase mode: open via menu and verify
+    await page.goto(baseUrl, { waitUntil: 'networkidle' });
+    await page.waitForTimeout(500);
+
+    await openViaMenu(page, 'audioSettings');
+    const audioWinShowcase = await rectOf(page, 'audioSettings');
+    ok('audioSettings: opens in showcase mode', audioWinShowcase !== null);
+
+    // Verify ?mute indicator
+    const mutedIndicator = page.locator('[data-testid="url-muted-indicator"]');
+    ok('audioSettings: ?mute shows URL muted indicator', await mutedIndicator.isVisible());
+
+    // Verify audio system is not created in engine under ?mute
+    const engineAudio = await page.evaluate(() => window.__TACTICAL_ENGINE__?.audio);
+    ok('audioSettings: ?mute does not instantiate audio in engine', engineAudio === undefined);
+
+    // Close in showcase mode
+    await page.locator(`[data-window-id=audioSettings] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+    ok('audioSettings: closes in showcase mode', (await rectOf(page, 'audioSettings')) === null);
+
+    // 2. Manual mode: enter manual mode, open via menu and verify
+    await page.getByText(START_TEXT).click();
+    await page.waitForTimeout(800);
+
+    await openViaMenu(page, 'audioSettings');
+    const audioWinManual = await rectOf(page, 'audioSettings');
+    ok('audioSettings: opens in manual mode', audioWinManual !== null);
+
+    // 3. Slider change updates localStorage
+    const masterSlider = page.locator('[data-testid="slider-master"]');
+    await masterSlider.fill('0.45');
+    await masterSlider.dispatchEvent('input');
+    await masterSlider.dispatchEvent('change');
+    await page.waitForTimeout(400);
+
+    const savedAudio = await page.evaluate((k) => {
+        const raw = localStorage.getItem(k);
+        return raw ? JSON.parse(raw) : null;
+    }, 'tactical_audio_settings');
+    ok('audioSettings: slider updates localStorage', !!savedAudio && Math.abs(savedAudio.master - 0.45) < 0.05, JSON.stringify(savedAudio));
+
+    // 4. Mute toggle updates localStorage
+    const muteToggle = page.locator('[data-testid="btn-mute-toggle"]');
+    await muteToggle.click();
+    await page.waitForTimeout(400);
+
+    const savedAfterMute = await page.evaluate((k) => {
+        const raw = localStorage.getItem(k);
+        return raw ? JSON.parse(raw) : null;
+    }, 'tactical_audio_settings');
+    ok('audioSettings: mute toggle updates localStorage', !!savedAfterMute && savedAfterMute.muted === true, JSON.stringify(savedAfterMute));
+
+    // Close in manual mode
+    await page.locator(`[data-window-id=audioSettings] button[title="${CLOSE_TITLE}"]`).click();
+    await page.waitForTimeout(300);
+    ok('audioSettings: closes in manual mode', (await rectOf(page, 'audioSettings')) === null);
+
+    await ctx.close();
+};
+
 const filterOnly = process.env.E2E_ONLY ? process.env.E2E_ONLY.split(',').map(s => s.trim()) : null;
 const activeSuites = filterOnly ? SUITES.filter(s => filterOnly.includes(s.id)) : SUITES;
 
@@ -1373,6 +1476,7 @@ try {
     if (!filterOnly || filterOnly.includes('touch-scroll')) await runTouchScrollSuite();
     if (!filterOnly || filterOnly.includes('editor')) await runEditorSuite();
     if (!filterOnly || filterOnly.includes('style-snapshot')) await runStyleSnapshotSuite();
+    if (!filterOnly || filterOnly.includes('audio-settings')) await runAudioSettingsSuite();
 } catch (e) {
     failures++;
     console.log('SCRIPT ERROR: ' + String(e.message).slice(0, 500));

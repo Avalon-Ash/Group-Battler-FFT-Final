@@ -34,7 +34,8 @@ const isUnthrottled = process.env.PERF_UNTHROTTLED === '1' || process.argv.inclu
 
 const server = await createServer({ server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
+const isUnmuted = process.env.PERF_UNMUTED === '1' || process.argv.includes('--unmuted');
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0${isUnmuted ? '' : '&mute'}`;
 const browser = await launchBrowser({ headed: isHeaded, unthrottled: isUnthrottled });
 const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: DSF });
 const page = await ctx.newPage();

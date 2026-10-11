@@ -492,6 +492,29 @@ export const RENDER_GLOW = {
     RECT_HEIGHT_STEPS: [4, 8, 12, 16, 24] as const,
 } as const;
 
+/**
+ * 音訊系統參數 SSOT
+ */
+export const AUDIO = {
+    MAX_VOICES: 24,
+    CUE_THROTTLE_MS: 50,
+    DEFAULT_MASTER_VOLUME: 0.8,
+    DEFAULT_MUSIC_VOLUME: 0.6,
+    DEFAULT_SFX_VOLUME: 0.8,
+    DEFAULT_UI_VOLUME: 0.7,
+    PAN_RANGE: 0.8,
+    PITCH_JITTER: 0.08,
+    VOLUME_JITTER: 0.05,
+    PRNG_SEED: 133742,
+    BGM_CROSSFADE_SEC: 1.5,
+    PRELOAD_BATCH_SIZE: 8,
+    SHOWCASE_SFX_GAIN: 0.2,
+    STORAGE_KEY: 'tactical_audio_settings',
+    QUERY_MUTE_KEY: 'mute',
+    VOLUME_CURVE_EXPONENT: 2,
+    SAMPLE_RATE: 44100
+} as const;
+
 
 
 

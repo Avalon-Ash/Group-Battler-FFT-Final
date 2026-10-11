@@ -213,6 +213,8 @@ export interface EventMap {
     AGENT_DIED: { agent: Agent; groundZ: number; impactX: number; impactY: number };
     KILL: { killerId: string; victimId: string };
     CAST_START: { sourceId: string; skill: Skill };
+    /** 遊戲核心視覺/音訊事件通道 */
+    GAME_EVENT: GameEvent;
     /** UI 唯一寫入事件閘門，由 UICommandSystem 處理 */
     UI_COMMAND: UICommand;
 }
@@ -234,12 +236,15 @@ export type UICommand =
     | { type: 'MOVE_AGENT'; agentId: string; q: number; r: number }
     | { type: 'START_GAME' }
     | { type: 'STOP_GAME' }
+    | { type: 'SET_SHOWCASE_MODE'; enabled: boolean }
     | { type: 'CLEAR_BOARD'; keepScene?: boolean; skipRebuild?: boolean }
     | { type: 'RANDOMIZE_MAP'; w?: number; h?: number; layout?: HexLayout; sceneId?: string; randomizeScene?: boolean }
     | { type: 'CAMERA_ZOOM'; zoom: number }
     | { type: 'CAMERA_PAN'; dx: number; dy: number }
     | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
-    | { type: 'SET_VIEWPORT'; width: number; height: number };
+    | { type: 'SET_VIEWPORT'; width: number; height: number }
+    | { type: 'SET_AUDIO_VOLUME'; bus: 'master' | 'music' | 'sfx' | 'ui'; volume: number }
+    | { type: 'SET_AUDIO_MUTED'; muted: boolean };
 
 export * from './types/UIViewModel';
 
@@ -333,7 +338,8 @@ export type WindowId =
     | 'monitor'
     | 'directorSettings'
     | 'zoneSettings'
-    | 'showcaseSettings';
+    | 'showcaseSettings'
+    | 'audioSettings';
 
 export interface WindowRect {
     x: number;
@@ -350,6 +356,7 @@ export interface WindowDef {
     minSize: { width: number; height: number };
     kind?: 'window' | 'toolbar';
     visibleInShowcase?: boolean;
+    visibleInManual?: boolean;
 }
 
 export interface WindowState {

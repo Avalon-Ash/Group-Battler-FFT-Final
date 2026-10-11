@@ -30,7 +30,7 @@ const unthrottled = process.env.PERF_UNTHROTTLED !== '0';
 
 const server = await createServer({ server: { port: 3198, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0`;
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&mute`;
 const browser = await launchBrowser({ headed: !isHeadless, unthrottled });
 
 const shortUrl = (u) => (u || '').replace(/^https?:\/\/[^/]+\//, '').replace(/\?.*$/, '');

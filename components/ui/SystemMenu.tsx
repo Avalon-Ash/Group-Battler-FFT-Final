@@ -6,14 +6,18 @@ import { UI_Z } from '../../constants';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
+    mode?: 'showcase' | 'manual';
 }
 
-export const SystemMenu: React.FC<SystemMenuProps> = ({ onDownloadSpec }) => {
+export const SystemMenu: React.FC<SystemMenuProps> = ({
+    onDownloadSpec,
+    mode = 'manual',
+}: SystemMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const windowStates = useWindowStore();
     const windowActions = useWindowActions();
-    const registeredWindows = getRegisteredWindows();
+    const registeredWindows = getRegisteredWindows(mode);
 
     return (
         <>

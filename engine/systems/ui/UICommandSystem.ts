@@ -285,6 +285,21 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_AUDIO_VOLUME': {
+                if (isFiniteNumber(cmd.volume) && (cmd.bus === 'master' || cmd.bus === 'music' || cmd.bus === 'sfx' || cmd.bus === 'ui')) {
+                    const clamped = clampToRange(cmd.volume, { min: 0, max: 1 });
+                    this.engine.audio?.getEngine().setVolume(cmd.bus, clamped);
+                }
+                break;
+            }
+
+            case 'SET_AUDIO_MUTED': {
+                if (typeof cmd.muted === 'boolean') {
+                    this.engine.audio?.getEngine().setMuted(cmd.muted);
+                }
+                break;
+            }
+
             default: {
                 // Unknown command: ignore gracefully
                 break;

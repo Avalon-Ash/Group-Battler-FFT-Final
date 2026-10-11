@@ -53,7 +53,7 @@ const server = await createServer({
     logLevel: 'error',
 });
 await server.listen();
-const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&perf=1`;
+const baseUrl = `${server.resolvedUrls.local[0]}?quality=0&perf=1&mute`;
 
 /**
  * Execute measurement session in a browser instance.
