@@ -92,5 +92,22 @@
   "DEFEAT": [
     "assets/audio/sfx/defeat_1.ogg",
     "assets/audio/sfx/defeat_2.ogg"
-  ]
+  ],
+  "music": {
+    "SHOWCASE_AMBIENT": [
+      "assets/audio/music/soliloquy.ogg"
+    ],
+    "BATTLE_NORMAL": [
+      "assets/audio/music/battle_normal.ogg"
+    ],
+    "BATTLE_TENSE": [
+      "assets/audio/music/battle_tense.ogg"
+    ],
+    "VICTORY_STING": [
+      "assets/audio/music/victory_sting.ogg"
+    ],
+    "DEFEAT_STING": [
+      "assets/audio/music/defeat_sting.ogg"
+    ]
+  }
 }

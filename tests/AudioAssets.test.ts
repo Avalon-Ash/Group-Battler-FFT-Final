@@ -31,32 +31,62 @@ describe('Audio Assets & Manifest (S1a)', () => {
         }
     });
 
-    it('all referenced audio files physically exist and are non-empty', () => {
+    it('all referenced SFX and Music audio files physically exist and are non-empty', () => {
         const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
         let totalBytes = 0;
         let totalFiles = 0;
 
-        for (const [cueId, files] of Object.entries(manifest)) {
-            for (const relPath of files as string[]) {
-                // relPath is like 'assets/audio/sfx/foo.ogg', which is relative to public/
-                const fullPath = path.resolve(__dirname, '../public', relPath);
-                expect(fs.existsSync(fullPath), `File must exist: ${relPath} for cue ${cueId}`).toBe(true);
-                const stat = fs.statSync(fullPath);
-                expect(stat.size).toBeGreaterThan(0);
-                totalBytes += stat.size;
-                totalFiles++;
+        for (const [key, value] of Object.entries(manifest)) {
+            if (key === 'music') {
+                for (const [trackId, musicFiles] of Object.entries(value as Record<string, string[]>)) {
+                    for (const relPath of musicFiles) {
+                        const fullPath = path.resolve(__dirname, '../public', relPath);
+                        expect(fs.existsSync(fullPath), `Music file must exist: ${relPath} for track ${trackId}`).toBe(true);
+                        const stat = fs.statSync(fullPath);
+                        expect(stat.size).toBeGreaterThan(0);
+                        totalBytes += stat.size;
+                        totalFiles++;
+                    }
+                }
+            } else {
+                for (const relPath of value as string[]) {
+                    const fullPath = path.resolve(__dirname, '../public', relPath);
+                    expect(fs.existsSync(fullPath), `File must exist: ${relPath} for cue ${key}`).toBe(true);
+                    const stat = fs.statSync(fullPath);
+                    expect(stat.size).toBeGreaterThan(0);
+                    totalBytes += stat.size;
+                    totalFiles++;
 
-                // Allowed extension
-                const ext = path.extname(fullPath).toLowerCase();
-                expect(['.ogg', '.wav', '.mp3']).toContain(ext);
+                    const ext = path.extname(fullPath).toLowerCase();
+                    expect(['.ogg', '.wav', '.mp3']).toContain(ext);
+                }
             }
         }
 
-        expect(totalFiles).toBeGreaterThanOrEqual(50);
+        expect(totalFiles).toBeGreaterThanOrEqual(55);
         expect(totalBytes).toBeLessThanOrEqual(MAX_AUDIO_BUDGET_BYTES);
     });
 
-    it('ASSET_LEDGER.md and CREDITS.md exist and document the assets', () => {
+    it('MUSIC_TABLE references existing files and covers all 5 tracks', async () => {
+        const { MUSIC_TABLE } = await import('../data/audio/music');
+        const trackKeys = Object.keys(MUSIC_TABLE);
+        expect(trackKeys.length).toBeGreaterThanOrEqual(5);
+
+        let totalMusicBytes = 0;
+        for (const [trackId, def] of Object.entries(MUSIC_TABLE)) {
+            expect(def.files.length, `Track ${trackId} must have at least 1 file`).toBeGreaterThanOrEqual(1);
+            for (const f of def.files) {
+                const fullPath = path.resolve(__dirname, '../public', f);
+                expect(fs.existsSync(fullPath), `Track file must exist: ${f}`).toBe(true);
+                const stat = fs.statSync(fullPath);
+                expect(stat.size).toBeLessThanOrEqual(5 * 1024 * 1024); // Single track <= 5 MB
+                totalMusicBytes += stat.size;
+            }
+        }
+        expect(totalMusicBytes).toBeLessThanOrEqual(15 * 1024 * 1024); // BGM total <= 15 MB
+    });
+
+    it('ASSET_LEDGER.md and CREDITS.md exist and document SFX and BGM composers', () => {
         const ledgerPath = path.resolve(__dirname, '../docs/ASSET_LEDGER.md');
         const creditsPath = path.resolve(__dirname, '../CREDITS.md');
 
@@ -66,15 +96,22 @@ describe('Audio Assets & Manifest (S1a)', () => {
         const ledgerContent = fs.readFileSync(ledgerPath, 'utf-8');
         const creditsContent = fs.readFileSync(creditsPath, 'utf-8');
 
-        // Check key creators
+        // SFX creators
         expect(ledgerContent).toContain('Kenney');
         expect(ledgerContent).toContain('rubberduck');
         expect(ledgerContent).toContain('artisticdude');
         expect(ledgerContent).toContain('cynicmusic');
 
+        // BGM creators
+        expect(ledgerContent).toContain('Matthew Pablo');
+        expect(ledgerContent).toContain('Alexandr Zhelanov');
+        expect(ledgerContent).toContain('Devlin Bataric');
+
         expect(creditsContent).toContain('Kenney');
         expect(creditsContent).toContain('rubberduck');
         expect(creditsContent).toContain('artisticdude');
-        expect(creditsContent).toContain('cynicmusic');
+        expect(creditsContent).toContain('Matthew Pablo');
+        expect(creditsContent).toContain('Alexandr Zhelanov');
+        expect(creditsContent).toContain('Devlin Bataric');
     });
 });

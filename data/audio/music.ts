@@ -22,42 +22,42 @@ export interface MusicTrackDef {
 export const MUSIC_TABLE: Record<TrackId, MusicTrackDef> = {
     SHOWCASE_AMBIENT: {
         id: 'SHOWCASE_AMBIENT',
-        title: 'Kingdom Dawn (Ambient)',
-        files: [],
+        title: 'Soliloquy (Ambient Title)',
+        files: ['assets/audio/music/soliloquy.ogg'],
         loop: true,
-        volume: 0.6,
+        volume: 0.65,
         synthPadRootFreq: 220.0 // A3
     },
     BATTLE_NORMAL: {
         id: 'BATTLE_NORMAL',
-        title: 'Tactical Encounter',
-        files: [],
+        title: 'Battle Music (Encounter)',
+        files: ['assets/audio/music/battle_normal.ogg'],
         loop: true,
-        volume: 0.7,
+        volume: 0.70,
         synthPadRootFreq: 174.61 // F3
     },
     BATTLE_TENSE: {
         id: 'BATTLE_TENSE',
-        title: 'Edge of Ruin',
-        files: [],
+        title: 'Tiny Swords Duel (Tense Climax)',
+        files: ['assets/audio/music/battle_tense.ogg'],
         loop: true,
         volume: 0.75,
         synthPadRootFreq: 146.83 // D3
     },
     VICTORY_STING: {
         id: 'VICTORY_STING',
-        title: 'Victory Triumph',
-        files: [],
+        title: 'Victory Fanfare Short',
+        files: ['assets/audio/music/victory_sting.ogg'],
         loop: false,
         volume: 0.85,
         synthPadRootFreq: 261.63 // C4
     },
     DEFEAT_STING: {
         id: 'DEFEAT_STING',
-        title: 'Defeat Elegie',
-        files: [],
+        title: 'Game Over - Repeating Dream',
+        files: ['assets/audio/music/defeat_sting.ogg'],
         loop: false,
-        volume: 0.8,
+        volume: 0.80,
         synthPadRootFreq: 196.00 // G3
     }
 };

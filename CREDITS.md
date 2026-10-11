@@ -28,3 +28,27 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
   - *Track*: Victory Fanfare Short
   - *Source*: [cynicmusic.com](http://cynicmusic.com) / [OpenGameArt.org](https://opengameart.org/content/victory-fanfare-short)
   - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
+
+### Music (BGM)
+
+- **Matthew Pablo**
+  - *Track*: "Soliloquy" (Showcase Ambient Theme)
+  - *Source*: [matthewpablo.com](http://www.matthewpablo.com) / [OpenGameArt.org](https://opengameart.org/content/soliloquy)
+  - *License*: Creative Commons Attribution 3.0 Unported (CC-BY 3.0)
+
+- **Alexandr Zhelanov**
+  - *Tracks*:
+    - "Battle Music" (Normal Battle Theme) — [OpenGameArt.org](https://opengameart.org/content/battle-music) / [SoundCloud](https://soundcloud.com/alexandr-zhelanov) (CC-BY 3.0)
+    - "Tiny Swords Duel" (Tense Battle Theme) — [OpenGameArt.org](https://opengameart.org/content/tiny-swords-duel) / [YouTube](https://www.youtube.com/c/AlexandrZhelanovsMusic) (CC-BY 4.0)
+  - *License*: Creative Commons Attribution 3.0 / 4.0
+
+- **Devlin Bataric (The Muwee Collective)**
+  - *Track*: "01 Game Over - Repeating Dream" (Defeat Theme)
+  - *Source*: [OpenGameArt.org](https://opengameart.org/content/69-game-over-jingles-pack)
+  - *License*: Creative Commons Attribution 4.0 International (CC-BY 4.0)
+
+- **cynicmusic (Alexandr Zhelanov)**
+  - *Track*: "Victory Fanfare Short" (Victory Sting)
+  - *Source*: [cynicmusic.com](http://cynicmusic.com) / [OpenGameArt.org](https://opengameart.org/content/victory-fanfare-short)
+  - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
+
