@@ -19,4 +19,4 @@
 | **S2a** | BGM 素材 (管弦/奇幻 CC0/CC-BY 至少 5 首, ledger/CREDITS) | 完成 | 素材, docs, `music.ts` | 測試 (manifest, budget) 全綠 |
 | **S2b** | BGM 整合與體驗 (交叉淡化, 預載, 體驗驗證) | 完成 | data, `AudioEngine.ts`/`AudioSystem.ts` | lint/test/build/perf:ab/perf:guard 全綠 |
 | **REPORT** | 完成報告與交接文件更新 (`AUDIO_REPORT.md`, `DECOUPLING_HANDOFF.md` §12) | 完成 | docs | — |
-| **FINAL** | 全量驗證與標籤 (tags: `audio-ckpt-S0`, `audio-ckpt-S1`, `audio-ckpt-S2`, `audio-ckpt-final`) | 待進行 | — | 全綠 |
+| **FINAL** | 全量驗證與標籤 (tags: `audio-ckpt-S0`, `audio-ckpt-S1`, `audio-ckpt-S2`, `audio-ckpt-final`) | 完成 | — | 全綠 |
