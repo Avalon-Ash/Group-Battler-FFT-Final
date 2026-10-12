@@ -432,6 +432,7 @@ export const RENDER_PERF = {
     OPS_QUERY_KEY: 'perfops',
     EMA_ALPHA: 0.1,
     HISTORY_FRAMES: 60,
+    HISTORY_WINDOW_MS: 2000,
     PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
 } as const;
 
