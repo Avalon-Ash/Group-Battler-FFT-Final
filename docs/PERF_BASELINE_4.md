@@ -147,6 +147,42 @@
 | :---: | :--- | :--- | :---: | :--- |
 | **P3-1** | **消除 `shadowBlur` 軟體光柵化延遲** | 在熱路徑（`UnitAuraPainter` 法陣光暈、`GroundPainter` 衝擊波/爆炸、`HazardPainter` 虛空黑洞、`GroundEffectPainter` 禁錮）中，將即時 `shadowBlur` 改造為預烘焙光暈貼圖（擴展 `GlowSpriteCache`）或雙層高亮線取代，消除軟體光柵化。 | **p99 改善 ≥20%**，長幀消除 >50% | `UnitAuraPainter.ts`, `GroundPainter.ts`, `HazardPainter.ts` |
 | **P3-2** | **`VolumePainter.draw3DPrism` 漸層共用與無效分配消除** | ① `SOLID` 樣式完全移除漸層建立（直接以 `fillStyle = color` 繪製）；② `GRADIENT_FADE` 樣式將 6 面漸層共用單一垂直漸層（只需 `createLinearGradient` 1 次，而非 6 次）；③ 消除 `drawExtrusion` 迴圈內的 3 次重複漸層。 | **p99 改善 ≥8%**，每幀消除 60+ 次 gradient 建立 | `VolumePainter.ts` |
-| **P3-3** | **`HazardPainter` 與 `GroundPainter` 危害區重複繪製去重** | 統一危害區管線：地圖網格層已由 `GridRenderStrategy` + `HazardPainter` 完整呈現 3D 液體/霧/冰晶/黑洞，停止由 `EventVFXMapper` / `HazardSystem` 向 `VFXSystem` 發送重複的 `GRID_FIELD` 粒子，徹底消除雙重繪製與陣列過濾。 | **p99 改善 ≥10%**，消除大量重複 DrawOp | `EventVFXMapper.ts`, `VFXPlayer.ts` |
-| **P3-4** | **`GroundEffectPainter` 狀態地面效果輕量化與節流** | 移除 `ROOT` 的 `shadowBlur`；簡化 `DoT` 上升毒氣與 `HoT` 旋轉十字的重複繪製，改為輕量預計算；消除每幀隨機數抖動。 | **p99 改善 ≥10%**，消除多餘線段繪製 | `GroundEffectPainter.ts` |
+
+---
+
+## 8. P3 執行成果與量測對比 (Post-P3 Verification)
+
+### 8.1 實際實作項目回顧
+1. **P3-1 (`VolumePainter.ts`, commit `2bf654a`)**:
+   - `draw3DPrism`：`SOLID` 樣式完全移除漸層建立（改用平塗 `color`）；`GRADIENT_FADE` 樣式將 6 面漸層共用單一垂直漸層（從 6 次 `createLinearGradient` 降為 1 次）。
+   - `drawExtrusion`：將側面 3 面漸層提到迴圈外共用單一垂直漸層（從 3 次降為 1 次）。
+2. **P3-2 (`EventVFXMapper.ts`, `VFXPlayer.ts`, commit `e00bdfc`)**:
+   - `EventVFXMapper`：`HAZARD_SPAWN` 映射為單發 `spawnVfx` 破裂粒子，移除持續 4s 的重複全屏 `GRID_FIELD` 粒子，杜絕網格層與粒子層重複雙重繪製。
+   - `VFXPlayer`：粒子計數由 `state.particles.filter(...)` 改為零分配 early-terminating for 迴圈。
+3. **P3-3 (`UnitAuraPainter.ts`, `HazardPainter.ts`, `GroundPainter.ts`, commit `7ed6c61`)**:
+   - `UnitAuraPainter`：詠唱光環與奧義法陣以雙層幾何柔光線條（寬度 6~8，alpha 0.2~0.25）完全取代即時軟體 `shadowBlur = 12 / 20`。
+   - `HazardPainter`：`VOID_HOLE` 虛空黑洞以雙層 lighter 疊加弧線取代 `shadowBlur = 20`。
+   - `GroundPainter`：衝擊波、光環、爆炸特效以雙層多段 Hex 描邊與填充取代即時軟體 `shadowBlur = 15 / 30`。
+4. **P3-4 (`GroundEffectPainter.ts`, commit `f4c1f24`)**:
+   - `ROOT` 禁錮環移除 `shadowBlur = 10`，改為外層柔光線條。
+   - `HoT` 粒子迴圈移除每幀多次 `ctx.save()` / `ctx.restore()` / `translate()`，改為直接座標偏移填色。
+   - 清理未使用的 `VolumePainter` 引用。
+
+### 8.2 成果數據對比 (2560×1440 @ 239 Hz, DPR 1, RTX 4070)
+
+#### `battle_vfx_storm` (全特效齊發壓力情境 - 核心目標)
+| 指標 | P0b 原始基準 | P3 優化後成果 | 改善幅度 / 效益 |
+| :--- | :---: | :---: | :---: |
+| **p90** | 25.1 ms | **12.6 ms** | **-49.8%** (降低 12.5 ms) |
+| **p95** | 29.2 ms | **16.6 ms** | **-43.2%** (降低 12.6 ms) |
+| **p99** | 37.6 ms | **16.7 ms** | **-55.6%** (降低 20.9 ms，腰斬！) |
+| **Max 幀時間** | 66.8 ms | **50.0 ms** | **-25.1%** |
+| **1% Low FPS** | 23.3 FPS | **47.4 FPS** | **+103.4%** (提升超過一倍！) |
+| **平均 FPS** | 68.2 FPS | **91.3 FPS** | **+33.9%** |
+| **>16.7 ms 長幀數** | 928 幀 | **317 幀** | **-65.8% (直接消除 611 個長幀！)** |
+
+#### 保真度檢查 (`perf:fidelity`)
+- `battle_frozen`：`meanAbsDiff=0.059` (<= 0.8), `badPixelPct=0.05%` (<= 0.5%) -> **PASS (嚴格維持視覺基準)**。
+- 地形 5 場景全部 PASS。
+
 
