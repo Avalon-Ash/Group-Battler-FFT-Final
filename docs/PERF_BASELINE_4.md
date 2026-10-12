@@ -14,9 +14,9 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **P0a** | 幀時間分佈量測工具 (`tools/ui-e2e/perf-frames.mjs`, `perf:frames`) | ☑ | `78d40e8` | 2560×1440 headed, 20s × 3 輪交錯, CDP Tracing (GC/Timeline) |
 | **P0b** | 修正 `?perf` HUD 的 FPS 算法、新增 1% low / max1s / total / JS 欄位並建立真實基準 | ☑ | (current) | 修正為 rAF 間隔滑動平均，HUD 與腳本誤差 0.13% (<5%) |
-| **P1** | 特效盤點＋壓力情境產生器 (`docs/VFX_INVENTORY.md`, `lib/vfx-storm.mjs`) | ☐ | 待處理 | 盤點所有 VFX 類別、標註死碼與重複項 |
-| **P2** | 逐項成本歸因（A/B 開關、每幀分配取樣、Canvas 操作排行榜、長幀成因） | ☐ | 待處理 | 依 CDP 與 CtxOpCounter 建立成本排行榜 |
-| **P3a** | 依 P2 排行榜執行優化決策清單 (前項，≤4 項，預期 ≥8%) | ☐ | 待處理 | 烘焙/池化/無效渲染消除，嚴格保真驗證 |
+| **P1** | 特效盤點＋壓力情境產生器 (`docs/VFX_INVENTORY.md`, `lib/vfx-storm.mjs`) | ☑ | `3795942` | 盤點 109 項登記資產 + 11 項直接繪製系統，完成 storm 壓力產生器 |
+| **P2** | 逐項成本歸因（A/B 開關、每幀分配取樣、Canvas 操作排行榜、長幀成因） | ☑ | (current) | 11 項 A/B 歸因，證實 shadowBlur/CC/Hazards/Prism 為長幀元兇 |
+| **P3a** | 依 P2 排行榜執行優化決策清單 (前項，≤4 項，預期 ≥8%) | ☐ | 待處理 | 依數據選定 4 大項目：shadowBlur優化、Prism漸層共用、危害區雙繪去重、GroundCC節流 |
 | **P3b** | 執行優化決策清單剩餘項目 | ☐ | 待處理 | 每完成一項更新基準並驗證收益 |
 | **P4** | 特效預算與自動降級（LOD / `VFX_BUDGET` / `RenderQuality` 整合）[E2E] | ☐ | 待處理 | 超出預算自動降級，e2e:ui 連跑兩次全綠 |
 | **P5** | 治理器對照 239 Hz 真實體感（60秒停留無誤降階、健康門檻調適） | ☐ | 待處理 | 驗證抗抖動與降階後 p99 改善 |
@@ -89,3 +89,64 @@
 ### 基準現象觀察：
 1. **2560×1440 壓力顯著**：相較於第三輪 1440×900，在 2560×1440 解析度下，戰鬥中位數幀時間約 8.4ms（約 120 FPS），但在特效齊發與一般交戰激烈時，1% Low 均跌破 40 FPS（34.5~39.3 FPS），最大長幀高達 **62.5 ms**（相當於 16 FPS 瞬間驟停）。
 2. **長幀成因歸因**：CDP Trace 顯示所有 >16.7ms 之長幀其 GC/Layout/Paint 耗時皆為 0ms，瓶頸 100% 來自 **Canvas 繪製主線程腳本（Submit/Sort/Dispatch/Post/HUD）**，完全符合使用者回報的「全場各種特效齊發時掉幀」。
+
+---
+
+## 5. P1: 特效系統全量盤點總結
+
+完整盤點表請詳見 `docs/VFX_INVENTORY.md`。重點結論如下：
+1. **已登記資產**：`VFX_REGISTRY` 匯聚 109 項資產，主要覆蓋命中受擊、主動技光環、奧義光芒與背水決戰。
+2. **直接繪製系統（未登記但重度繪製）**：包括 `HazardPainter`（危害區）、`ShieldPainter`（3D 護盾稜柱）、`UnitAuraPainter`（法陣光暈）、`TextPainter`（傷害與詠唱浮字）、`ProjectileDrawer`（尾跡）、`GroundEffectPainter`（CC 光暈與煙霧）、`UnitShatter`（死亡碎片解體）。
+3. **死碼與未引用檔案**：`data/vfx/beam_visuals.ts`、`data/vfx/cast_visuals.ts`、`data/vfx/procedural_visuals.ts` 以及 `data/vfx/procedural/` 旗下 5 個檔案全無外部調用。
+4. **雙重重複繪製**：`HAZARD_SPAWN` 同時觸發 `HazardPainter`（網格層）與 `GRID_FIELD` 粒子（VFX 粒子層），造成同一危害格雙倍繪製。
+
+---
+
+## 6. P2: 逐項成本歸因與前 10 名排行榜 (A/B Isolation)
+
+> 測試條件：2560×1440 @ 239 Hz, DPR 1, Headed, Unthrottled, RTX 4070。  
+> 場景：`battle_vfx_storm`（10 單位同時技能詠唱、AOE 預警、危害區、奧義、投射物、死亡碎裂、浮字狂飆）。  
+> 測試資料來源：`tools/ui-e2e/out/perf_attribution.json`。
+
+### 6.1 特效成本排行榜 (Top 10 Cost Ranking by p99 Impact)
+
+| 排名 | 特效子系統 / 特徵模組 | 關閉時 p99 | p99 節省 (貢獻) | Median 節省 | 1% Low 增益 | 長幀 (>16.7ms) 消除數 | 主要手法與耗時成因 |
+| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
+| **#1** | **All ECS Particles (`ParticleRenderer`)** | 7.42 ms | **+27.56 ms** | +1.70 ms | +51.2 fps | **-98 幀** | 400 粒子批次繪製、物理更新與混合模式切換 |
+| **#2** | **Ground CC & Buffs (`GroundEffectPainter`)** | 12.90 ms | **+22.08 ms** | -0.10 ms | +13.4 fps | **-95 幀** | ROOT 帶 shadowBlur=10；DoT/HoT 每幀多段三角/正弦曲線繪製 |
+| **#3** | **All ShadowBlur Calls (Canvas Context)** | 14.20 ms | **+20.78 ms** | +0.40 ms | **+38.7 fps** | **-103 幀** | **全畫布最長幀核心元兇**：軟體光柵羽化導致單幀飆高至 48~74ms |
+| **#4** | **Beams & Slashes (`ProceduralPainter`)** | 22.93 ms | **+12.05 ms** | +0.15 ms | +5.8 fps | **-21 幀** | LayeredBeam / Ribbon 疊層光束與旋轉計算 |
+| **#5** | **Unit Death Shatter (`UnitShatter`)** | 23.18 ms | **+11.80 ms** | +1.00 ms | +15.2 fps | **-45 幀** | 角色 Base/Rim/Core 貼圖拆解 + 12~16 水晶碎屑物理模擬 |
+| **#6** | **Chant & Ult Auras (`UnitAuraPainter`)** | 24.90 ms | **+10.08 ms** | +0.00 ms | +11.3 fps | **-52 幀** | 每詠唱單位每幀 shadowBlur=12~20，旋轉六角線段 |
+| **#7** | **Map Hazard Painter (`HazardPainter`)** | 25.01 ms | **+9.97 ms** | +0.20 ms | +1.4 fps | **-47 幀** | 3-Layer 體積霧 3 次 blit + 熔岩裂紋 + 冰柱 3 次 gradient |
+| **#8** | **Projectiles & Trails (`ProjectileDrawer`)** | 25.12 ms | **+9.86 ms** | +0.20 ms | +7.4 fps | -12 幀 | 每幀投射物尾跡 `createLinearGradient` 與逐段 stroke 迴圈 |
+| **#9** | **Shield 3D Prism (`VolumePainter`)** | 29.82 ms | **+5.16 ms** | +0.00 ms | -2.2 fps | **-18 幀** | 10 單位護盾每幀產生 60+ 次 `createLinearGradient` |
+| **#10**| **Floating Text (`TextPainter`)** | 37.95 ms | -2.97 ms | +0.50 ms | +3.5 fps | -28 幀 | 60 條文字 measureText、SHOUT 漸層、破棄 Glitch 隨機雜訊 |
+
+### 6.2 記憶體分配熱點 (CDP HeapProfiler Sampling)
+1. `BattleLogger.ts:11` (`log`): ~900 KB（戰鬥記錄字串拼接，非戰鬥必要）
+2. `useGameLoop.ts:59` (`loop`): 411 KB（rAF 回呼閉包與時間戳分配）
+3. `BillboardPainter.ts:3` (`draw`): 335 KB（縮放與矩陣計算暫態物件）
+4. `PostProcessor.ts:38` (`applyToneGrade`): 325 KB
+5. `VFXPhysics.ts:2` (`update`): 150 KB
+6. `GlowSpriteCache.ts:141` (`drawGlowSprite`): 111 KB
+7. `RenderList.ts:185`: 104 KB
+
+### 6.3 長幀 (>16.7 ms) 成因歸因
+- CDP Trace 證實：**長幀 100% 發生在主線程 Canvas 繪製階段**，瀏覽器 Layout / DOM 重排均為 0ms。
+- **單一最大殺手**：`shadowBlur`。當攔截並將 `shadowBlur` 歸零時，>16.7ms 幀數直接自 **108 幀暴降至 5 幀（R1）與 0 幀（R2）**，p99 瞬間砍半至 **14.20 ms**。
+- **第二大瓶頸**：重複漸層與狀態幾何。`VolumePainter` 每幀 60+ 次 `createLinearGradient`、`HazardPainter` 雙重管線疊加、以及 `GroundEffectPainter` 每幀的正弦波浪與陰影。
+
+---
+
+## 7. P3: 優化決策清單 (P3 Decisions)
+
+依據 P2 數據證據與投報率，選定以下 **4 大高收益優化目標**（每項預期帶來顯著 p99 與長幀改善，且維持視覺保真度）：
+
+| 決策項 | 優化目標 | 策略與作法 | 預期收益 | 涉及檔案 (≤3) |
+| :---: | :--- | :--- | :---: | :--- |
+| **P3-1** | **消除 `shadowBlur` 軟體光柵化延遲** | 在熱路徑（`UnitAuraPainter` 法陣光暈、`GroundPainter` 衝擊波/爆炸、`HazardPainter` 虛空黑洞、`GroundEffectPainter` 禁錮）中，將即時 `shadowBlur` 改造為預烘焙光暈貼圖（擴展 `GlowSpriteCache`）或雙層高亮線取代，消除軟體光柵化。 | **p99 改善 ≥20%**，長幀消除 >50% | `UnitAuraPainter.ts`, `GroundPainter.ts`, `HazardPainter.ts` |
+| **P3-2** | **`VolumePainter.draw3DPrism` 漸層共用與無效分配消除** | ① `SOLID` 樣式完全移除漸層建立（直接以 `fillStyle = color` 繪製）；② `GRADIENT_FADE` 樣式將 6 面漸層共用單一垂直漸層（只需 `createLinearGradient` 1 次，而非 6 次）；③ 消除 `drawExtrusion` 迴圈內的 3 次重複漸層。 | **p99 改善 ≥8%**，每幀消除 60+ 次 gradient 建立 | `VolumePainter.ts` |
+| **P3-3** | **`HazardPainter` 與 `GroundPainter` 危害區重複繪製去重** | 統一危害區管線：地圖網格層已由 `GridRenderStrategy` + `HazardPainter` 完整呈現 3D 液體/霧/冰晶/黑洞，停止由 `EventVFXMapper` / `HazardSystem` 向 `VFXSystem` 發送重複的 `GRID_FIELD` 粒子，徹底消除雙重繪製與陣列過濾。 | **p99 改善 ≥10%**，消除大量重複 DrawOp | `EventVFXMapper.ts`, `VFXPlayer.ts` |
+| **P3-4** | **`GroundEffectPainter` 狀態地面效果輕量化與節流** | 移除 `ROOT` 的 `shadowBlur`；簡化 `DoT` 上升毒氣與 `HoT` 旋轉十字的重複繪製，改為輕量預計算；消除每幀隨機數抖動。 | **p99 改善 ≥10%**，消除多餘線段繪製 | `GroundEffectPainter.ts` |
+
