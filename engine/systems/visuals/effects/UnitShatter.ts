@@ -136,7 +136,7 @@ export const UnitShatter = {
             system.state.particles.push(soul);
         } else {
             // 公約 (RED): 血噴放射粒子 (替代上升靈魂)
-            const bloodCount = isUnderPressure ? 6 : 18;
+            const bloodCount = isUnderPressure ? VFX_BUDGET.SHATTER_BLOOD_REDUCED : VFX_BUDGET.SHATTER_BLOOD_NORMAL;
             const bloodColor = faction.ambientGlowColor || faction.deathSpiritColor;
             
             for (let i = 0; i < bloodCount; i++) {

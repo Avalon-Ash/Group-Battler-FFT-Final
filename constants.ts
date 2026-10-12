@@ -222,6 +222,9 @@ export const VFX_BUDGET = {
     /** UnitShatter 碎片存活時間秒數（一般戰鬥 4.0~5.0s；高負載或降階時收緊為 2.0s） */
     SHATTER_LIFETIME_NORMAL: 4.5,
     SHATTER_LIFETIME_REDUCED: 2.0,
+    /** 聖約陣營死亡血噴粒子數（一般 / 高負載） */
+    SHATTER_BLOOD_NORMAL: 18,
+    SHATTER_BLOOD_REDUCED: 6,
 } as const;
 
 export const THEME_IMPERIAL = {
@@ -478,11 +481,11 @@ export const RENDER_QUALITY = {
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
     IGNORE_FRAME_MS: 250,
-    /** 239 Hz / 高刷門檻：< 100 FPS (幀間隔 > 10ms) 持續 2 秒即啟動降階 */
-    DOWN_MS: 10,
+    /** 降階門檻：幀間隔平均 > 14ms（約 < 70 FPS）持續 DOWN_HOLD_S 才降階；一般 100+ FPS 遊玩不得降畫質（僅應付真正的瞬間掉幀） */
+    DOWN_MS: 14,
     DOWN_HOLD_S: 2,
-    /** 升階門檻：主執行緒耗時 < 7ms (相當於 ≥ 144 FPS 健康餘裕) */
-    UP_MS: 7,
+    /** 升階門檻：主執行緒耗時 < 9ms（與 vsync 無關的工作時間） */
+    UP_MS: 9,
     UP_HOLD_S: 12,
     COOLDOWN_S: 15,
     /** Frames during the first seconds are ignored (JIT warm-up, sprite baking). */
