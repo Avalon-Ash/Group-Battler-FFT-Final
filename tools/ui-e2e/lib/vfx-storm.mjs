@@ -201,6 +201,24 @@ export const INJECT_VFX_STORM_SCRIPT = `
                     color: '#c084fc'
                 });
             }
+
+            // Multiple death / shatter simulations
+            for (let k = 0; k < 2; k++) {
+                const targetAgent = agents[(k * 3) % agents.length];
+                if (targetAgent) {
+                    e.bus.emit('AGENT_DIED', {
+                        agent: targetAgent,
+                        groundZ: targetAgent.physics ? targetAgent.physics.z : 0,
+                        impactX: (Math.random() - 0.5) * 80,
+                        impactY: (Math.random() - 0.5) * 80
+                    });
+                    e.bus.emit('GAME_EVENT', {
+                        type: 'DEATH',
+                        pos: { x: targetAgent.x, y: targetAgent.y },
+                        sourceId: targetAgent.id
+                    });
+                }
+            }
         };
 
         // Initial burst immediately
