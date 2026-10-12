@@ -148,9 +148,12 @@ export class TacticalRenderer {
         ctx.fillStyle = TACTICAL_COLORS.DEBUG_FPS; 
         ctx.font = '10px monospace';
         ctx.textAlign = 'left';
-        ctx.fillText(`FPS: ${fps}`, 10, 20);
 
-        if (RenderStats.enabled) {
+        if (!RenderStats.enabled) {
+            ctx.fillText(`FPS: ${fps}`, 10, 20);
+        } else {
+            const hud = RenderStats.getHudStats();
+            ctx.fillText(`FPS: ${hud.fps} (1% low: ${hud.onePercentLow} | max1s: ${hud.max1sMs.toFixed(1)}ms | frame total: ${hud.frameTotalMs.toFixed(1)}ms | JS合計: ${hud.jsTotalMs.toFixed(1)}ms)`, 10, 20);
             const summary = RenderStats.formatSummary();
             const text = summary ? `${summary} | tier:${getQualityTier()}` : `tier:${getQualityTier()}`;
             ctx.fillText(text, 10, 32);

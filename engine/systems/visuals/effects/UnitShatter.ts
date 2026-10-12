@@ -4,6 +4,8 @@ import { VFXSystem } from "../../vfx";
 import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
 import { SpriteManager } from "../../../sprites";
 import { Agent } from "../../../core/Agent";
+import { VFX_BUDGET } from "../../../../constants";
+import { getQualityTier } from "../../../renderers/RenderQuality";
 
 export const UnitShatter = {
     /**
@@ -20,6 +22,12 @@ export const UnitShatter = {
         const oy = agent.py;
         const oz = agent.physics.z;
         const floorLvl = groundZ;
+
+        // [VFX_BUDGET] 高壓/降階狀態檢測
+        const isUnderPressure = VFX_BUDGET.enabled && (
+            system.state.particles.length >= VFX_BUDGET.SOFT_PARTICLE_BUDGET || getQualityTier() > 0
+        );
+        const lifeScale = isUnderPressure ? (VFX_BUDGET.SHATTER_LIFETIME_REDUCED / VFX_BUDGET.SHATTER_LIFETIME_NORMAL) : 1.0;
 
         // 0. Initial Burst Feedback
         system.playEffect('FX_HIT_GENERIC', ox, oy, oz + 20, faction.primaryColor, floorLvl);
@@ -38,7 +46,7 @@ export const UnitShatter = {
             p.gravity = 2500;
             p.drag = 1.2;
             p.vRotation = (Math.random() - 0.5) * 5;
-            p.life = 4.0 + Math.random(); p.maxLife = p.life;
+            p.life = (4.0 + Math.random()) * lifeScale; p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
@@ -55,7 +63,7 @@ export const UnitShatter = {
             p.color = '#fff';
             p.gravity = 2000;
             p.vRotation = (Math.random() - 0.5) * 25;
-            p.life = 3.5 + Math.random(); p.maxLife = p.life;
+            p.life = (3.5 + Math.random()) * lifeScale; p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
@@ -73,7 +81,7 @@ export const UnitShatter = {
             p.gravity = 800;
             p.drag = 0.05;
             p.vRotation = (Math.random() - 0.5) * 15;
-            p.life = 5.0 + Math.random(); p.maxLife = p.life;
+            p.life = (5.0 + Math.random()) * lifeScale; p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
@@ -90,12 +98,12 @@ export const UnitShatter = {
             p.color = '#fff';
             p.gravity = 1500;
             p.vRotation = (Math.random() - 0.5) * 35;
-            p.life = 4.0 + Math.random(); p.maxLife = p.life;
+            p.life = (4.0 + Math.random()) * lifeScale; p.maxLife = p.life;
             system.state.particles.push(p);
         }
 
         // 5. 金屬碎屑 (Pure Shards)
-        const shardCount = 12;
+        const shardCount = isUnderPressure ? VFX_BUDGET.SHATTER_SHARDS_REDUCED : VFX_BUDGET.SHATTER_SHARDS_NORMAL;
         const shardColor = agent.team === Team.BLUE ? '#fcd34d' : '#f87171';
         for (let i = 0; i < shardCount; i++) {
             const p = system.state.getParticle();
@@ -110,7 +118,7 @@ export const UnitShatter = {
             p.color = shardColor;
             p.gravity = 2500;
             p.vRotation = (Math.random() - 0.5) * 30;
-            p.life = 2.0 + Math.random() * 1.5;
+            p.life = (2.0 + Math.random() * 1.5) * lifeScale;
             p.maxLife = p.life;
             system.state.particles.push(p);
         }
@@ -123,12 +131,12 @@ export const UnitShatter = {
             soul.size = 80;
             soul.color = faction.deathSpiritColor;
             soul.vx = 0; soul.vy = 0; soul.vz = 100;
-            soul.life = 2.5; soul.maxLife = 2.5;
+            soul.life = 2.5 * lifeScale; soul.maxLife = soul.life;
             soul.blendMode = 'screen';
             system.state.particles.push(soul);
         } else {
             // 公約 (RED): 血噴放射粒子 (替代上升靈魂)
-            const bloodCount = 18; // 12 shards * 1.5 = 18 particles approx, or just 1.5x the "implied" original count
+            const bloodCount = isUnderPressure ? VFX_BUDGET.SHATTER_BLOOD_REDUCED : VFX_BUDGET.SHATTER_BLOOD_NORMAL;
             const bloodColor = faction.ambientGlowColor || faction.deathSpiritColor;
             
             for (let i = 0; i < bloodCount; i++) {
@@ -144,7 +152,7 @@ export const UnitShatter = {
                 p.color = bloodColor;
                 p.gravity = 2500;
                 p.vRotation = (Math.random() - 0.5) * 50;
-                p.life = 1.0 + Math.random() * 1.0;
+                p.life = (1.0 + Math.random() * 1.0) * lifeScale;
                 p.maxLife = p.life;
                 system.state.particles.push(p);
             }

@@ -200,6 +200,33 @@ export const VFX_PARAM = {
     IDLE_VFX_CULL_CENTER_PER_TILE: 40,
 };
 
+/**
+ * 特效預算與自適應 LOD 降級治理器參數 SSOT
+ */
+export const VFX_BUDGET = {
+    /** 總開關：關閉時行為與改動前 100% 逐像素一致 */
+    enabled: true,
+    /** 全域粒子軟預算上限：超過此數量時開始對非關鍵特效啟動降級 */
+    SOFT_PARTICLE_BUDGET: 240,
+    /** 全域粒子硬上限：超過此數量時阻止非關鍵特效生成 */
+    HARD_PARTICLE_BUDGET: 380,
+    /** 各品質階層粒子發射係數 [Tier 0, Tier 1, Tier 2, Tier 3] */
+    TIER_EMISSION_RATIOS: [1.0, 0.75, 0.5, 0.35] as const,
+    /** 次要粒子類型集合（高負載或低階品質時優先縮減/跳過發射） */
+    SECONDARY_TYPES: ['DUST', 'SMOKE', 'SPARK', 'SPEED_LINE', 'GENERIC_DEBUG'] as const,
+    /** 關鍵回饋粒子類型集合（傷害/死亡/終極技能，全額優先保留） */
+    CRITICAL_TYPES: ['BLAST', 'DEATH_RAY', 'BEAM', 'HEX_BEAM', 'PILLAR', 'SHOCKWAVE'] as const,
+    /** UnitShatter 金屬碎屑數量（一般戰鬥 12；高負載或降階時縮減為 4） */
+    SHATTER_SHARDS_NORMAL: 12,
+    SHATTER_SHARDS_REDUCED: 4,
+    /** UnitShatter 碎片存活時間秒數（一般戰鬥 4.0~5.0s；高負載或降階時收緊為 2.0s） */
+    SHATTER_LIFETIME_NORMAL: 4.5,
+    SHATTER_LIFETIME_REDUCED: 2.0,
+    /** 聖約陣營死亡血噴粒子數（一般 / 高負載） */
+    SHATTER_BLOOD_NORMAL: 18,
+    SHATTER_BLOOD_REDUCED: 6,
+} as const;
+
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
     secondary: '#fde047',
@@ -432,6 +459,7 @@ export const RENDER_PERF = {
     OPS_QUERY_KEY: 'perfops',
     EMA_ALPHA: 0.1,
     HISTORY_FRAMES: 60,
+    HISTORY_WINDOW_MS: 2000,
     PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
 } as const;
 
@@ -453,9 +481,10 @@ export const RENDER_QUALITY = {
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
     IGNORE_FRAME_MS: 250,
-    DOWN_MS: 19,
+    /** 降階門檻：幀間隔平均 > 14ms（約 < 70 FPS）持續 DOWN_HOLD_S 才降階；一般 100+ FPS 遊玩不得降畫質（僅應付真正的瞬間掉幀） */
+    DOWN_MS: 14,
     DOWN_HOLD_S: 2,
-    /** Upgrade threshold on main-thread WORK time (vsync independent); rAF dt can never fall below the refresh interval. */
+    /** 升階門檻：主執行緒耗時 < 9ms（與 vsync 無關的工作時間） */
     UP_MS: 9,
     UP_HOLD_S: 12,
     COOLDOWN_S: 15,

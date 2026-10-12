@@ -9,6 +9,8 @@ import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
 import { VISUAL_ANCHORS } from "../../../constants";
 
+import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
+
 // Sub-Handlers
 import { CombatVFXHandler } from "./handlers/CombatVFXHandler";
 import { UnitVFXHandler } from "./handlers/UnitVFXHandler";
@@ -63,8 +65,10 @@ export class EventVFXMapper {
                 break;
                 
             case 'HAZARD_SPAWN':
-                if (event.text) { // We stored VFX ID in 'text' field
-                    vfx.playEffect(event.text, event.pos.x, event.pos.y, groundZ, undefined, undefined, undefined, hexKey);
+                if (event.text) {
+                    const hazardType = event.text.replace('FX_HAZARD_FIELD_', '');
+                    const burstVfx = HAZARD_VISUALS[hazardType]?.spawnVfx || event.text;
+                    vfx.playEffect(burstVfx, event.pos.x, event.pos.y, groundZ, undefined, undefined, undefined, hexKey);
                 }
                 break;
 

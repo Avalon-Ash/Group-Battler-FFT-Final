@@ -28,21 +28,28 @@ export const UnitAuraPainter = {
         const pulse = Math.sin(t * 12) * 0.05;
         const currentSize = baseSize * (1.0 + pulse);
         
-        ctx.strokeStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 12;
-        
-        // 1. 旋轉能量環 (外環：順時針)
+        // 1. 旋轉能量環 (雙層柔光光暈取代軟體 shadowBlur)
         const rotA = t * 3;
+        ctx.strokeStyle = color;
+
+        // 柔和外光暈層
+        ctx.save();
+        ctx.lineWidth = 6;
+        ctx.globalAlpha = 0.2;
+        HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize, rotA, true, layout);
+        ctx.stroke();
+        ctx.restore();
+
+        // 核心外環
         ctx.lineWidth = 2;
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.8;
         HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize, rotA, true, layout);
         ctx.stroke();
         
         // 2. 幾何核心 (內環：逆時針，高頻旋轉)
         const rotB = -t * 6;
         ctx.lineWidth = 1;
-        ctx.globalAlpha = 0.4;
+        ctx.globalAlpha = 0.5;
         HexGeometry.traceRotatedHex(ctx, 0, 0, currentSize * 0.7, rotB, true, layout);
         ctx.stroke();
 
@@ -76,14 +83,19 @@ export const UnitAuraPainter = {
         // 奧義法陣規模較大
         const ultSize = HEX_SIZE * 2.5; 
         const rot = t * 1.5;
-
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 20;
         ctx.strokeStyle = color;
 
-        // Layer 1: 外部神聖格線
+        // Layer 0: 外部柔光光暈 (雙層描邊取代昂貴的 shadowBlur)
+        ctx.save();
+        ctx.lineWidth = 8;
+        ctx.globalAlpha = 0.25;
+        HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize, rot, true, layout);
+        ctx.stroke();
+        ctx.restore();
+
+        // Layer 1: 外部神聖格線 (核心線)
         ctx.lineWidth = 3;
-        ctx.globalAlpha = 0.8;
+        ctx.globalAlpha = 0.85;
         HexGeometry.traceRotatedHex(ctx, 0, 0, ultSize, rot, true, layout);
         ctx.stroke();
 

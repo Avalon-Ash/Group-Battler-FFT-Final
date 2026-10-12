@@ -1,7 +1,6 @@
 
 import { Agent } from "../../../game";
 import { ISO_SCALE_Y, DOT_COLORS } from "../../../../constants";
-import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { HexGeometry } from "../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../types";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
@@ -26,13 +25,16 @@ export const GroundEffectPainter = {
             const pulse = 0.8 + Math.sin(t * 12) * 0.15;
             const r = 24 * pulse;
 
-            // A. 底層能量環
+            // A. 底層能量環 (外層柔光光暈取代軟體 shadowBlur=10)
             ctx.strokeStyle = color;
+            ctx.lineWidth = 5;
+            ctx.globalAlpha = 0.25;
+            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
+            ctx.stroke();
+
+            // 核心能量環
             ctx.lineWidth = 2;
-            ctx.globalAlpha = 0.8;
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 10;
-            // [FIX] Use layout
+            ctx.globalAlpha = 0.85;
             HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
             ctx.stroke();
 
@@ -133,12 +135,11 @@ export const GroundEffectPainter = {
                 ctx.globalAlpha = fade;
                 ctx.fillStyle = color;
                 
-                // Draw Plus Sign or Dot
-                ctx.save();
-                ctx.translate(px, py - curH);
-                ctx.fillRect(-2, -6, 4, 12);
-                ctx.fillRect(-6, -2, 12, 4);
-                ctx.restore();
+                // Draw Plus Sign or Dot (avoid save/restore overhead in particle loop)
+                const tx = px;
+                const ty = py - curH;
+                ctx.fillRect(tx - 2, ty - 6, 4, 12);
+                ctx.fillRect(tx - 6, ty - 2, 4 * 3, 4);
             }
             ctx.restore();
         }

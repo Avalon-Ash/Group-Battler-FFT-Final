@@ -27,23 +27,21 @@ export const VolumePainter = {
         const isTransparent = style === 'GRADIENT_FADE';
         const indices = isTransparent ? [0, 1, 2, 3, 4, 5] : [5, 0, 1]; 
         
+        let sideFill: CanvasGradient | string = color;
+        if (style === 'GRADIENT_FADE') {
+            const grad = ctx.createLinearGradient(0, -height, 0, 0);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, 'transparent');
+            sideFill = grad;
+        }
+
+        ctx.fillStyle = sideFill;
+        ctx.globalAlpha = opacity * (isTransparent ? 0.3 : 0.5); 
+
         for (const i of indices) {
             const j = (i + 1) % 6;
             const v1 = verts[i];
             const v2 = verts[j];
-            
-            // 建立垂直漸層，起點與終點應考慮頂點的 Y 座標
-            const grad = ctx.createLinearGradient(0, v1.y - height, 0, v1.y);
-            if (style === 'GRADIENT_FADE') {
-                grad.addColorStop(0, color);
-                grad.addColorStop(1, 'transparent');
-            } else {
-                grad.addColorStop(0, color);
-                grad.addColorStop(1, color);
-            }
-            
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = opacity * (isTransparent ? 0.3 : 0.5); 
             
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y);           
@@ -162,19 +160,19 @@ export const VolumePainter = {
         ctx.translate(x, y);
         ctx.globalAlpha = opacity;
 
+        let extrudeFill: CanvasGradient | string = color;
+        if (Number.isFinite(height)) {
+            const grad = ctx.createLinearGradient(0, -height, 0, 0);
+            grad.addColorStop(0, color);
+            grad.addColorStop(1, 'transparent');
+            extrudeFill = grad;
+        }
+        ctx.fillStyle = extrudeFill;
+
         for (const i of indices) {
             const j = (i + 1) % 6;
             const v1 = verts[i];
             const v2 = verts[j];
-
-            if (Number.isFinite(height)) {
-                const grad = ctx.createLinearGradient(0, -height, 0, 0);
-                grad.addColorStop(0, color);
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-            } else {
-                ctx.fillStyle = color;
-            }
 
             ctx.beginPath();
             ctx.moveTo(v1.x, v1.y - height);

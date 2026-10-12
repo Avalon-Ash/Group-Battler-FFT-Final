@@ -76,4 +76,41 @@ describe('RenderStatsCollector', () => {
         expect(RENDER_PERF.PHASES).toContain('post');
         expect(RENDER_PERF.PHASES).toContain('overlay+hud');
     });
+
+    it('tracks frame intervals, sliding average FPS, 1% low, and max1s', () => {
+        stats.setEnabled(true);
+        let mockTime = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => mockTime);
+
+        // Frame 1
+        stats.begin('background');
+        mockTime += 8.33;
+        stats.end('background');
+
+        // Frame 2 (8.33ms later)
+        mockTime = 1008.33;
+        stats.begin('background');
+        mockTime += 8.33;
+        stats.end('background');
+
+        expect(stats.getFps()).toBeGreaterThan(110);
+        expect(stats.getFrameTotalMs()).toBeCloseTo(8.33, 1);
+
+        // Add a long frame spike
+        mockTime = 1050;
+        stats.begin('background');
+        mockTime += 8.33;
+        stats.end('background');
+
+        const hud = stats.getHudStats();
+        expect(hud.max1sMs).toBeGreaterThanOrEqual(30);
+        expect(hud.onePercentLow).toBeGreaterThan(0);
+
+        stats.reset();
+        expect(stats.getFps()).toBe(0);
+        expect(stats.getFrameTotalMs()).toBe(0);
+
+        vi.restoreAllMocks();
+    });
 });
+

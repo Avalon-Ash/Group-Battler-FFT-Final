@@ -29,13 +29,13 @@
 
 ## 指令本文
 
-你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程與守則**沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`、保留既有註解），差異：① 進度寫在新檔 `docs/ART_PROGRESS.md`；② 結束後在 `docs/DECOUPLING_HANDOFF.md` 新增 §11「美術導入結果」；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 量測網址一律 `?quality=0`（並依音訊輪的規則帶 `?mute`）。
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程與守則**沿用 `docs/archive/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`、保留既有註解），差異：① 進度寫在新檔 `docs/ART_PROGRESS.md`；② 結束後在 `docs/DECOUPLING_HANDOFF.md` 新增 §11「美術導入結果」；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 量測網址一律 `?quality=0`（並依音訊輪的規則帶 `?mute`）。
 
 **先閱讀**：`AGENTS.md`、`docs/ART_STYLE_BIBLE.md`（尤其 §7、§11）、`docs/BAKED_RENDERING_DESIGN.md`、`docs/PERF_REPORT_3.md`、`types.ts`、`constants.ts`、`data/units/appearance/*`、`engine/renderers/units/**`（尤其 `painters/UnitBodyPainter.ts`、`factions/*Renderer.ts`、`painters/UnitShadowPainter.ts`、`UnitDeathPainter.ts`、`painters/UnitIndicatorPainter.ts`、狀態／光環繪製器）、`engine/graphics/units/*TokenFactory.ts`、`engine/renderers/grid/TerrainRenderer.ts` 與 `TerrainBlockCache.ts`、`engine/graphics/materials/MaterialPainter.ts`、`data/vfx/materialConfig.ts`、`engine/systems/unit/UnitSystem.ts`、`engine/systems/**/AnimationSystem*`（**只讀**，找出 `Agent` 上已衍生的動畫欄位：移動中、攻擊／施法進度、受擊計時、死亡計時、面向）、`engine/core/Agent.ts`（注意 `agent.facing`：BLUE=+1、RED=−1，僅左右）、`tools/ui-e2e/render-fidelity.mjs`。
 
 **開工檢查**：分支必須是 `feat/art-fantasy-hd`；`git status` 乾淨；`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui`、`npm run perf:guard` 全綠。若 `docs/ART_PROGRESS.md` 已存在，從第一個未完成任務接續。
 
-### 本輪「保真鐵律」的特別授權（取代 `PERF_AGENT_PROMPT.md` 的禁止重錄）
+### 本輪「保真鐵律」的特別授權（取代 `docs/archive/PERF_AGENT_PROMPT.md` 的禁止重錄）
 
 本輪是**預期的外觀變更**，因此：
 - 每個美術任務（A1 地形、A2 單位）**完成後各允許重錄一次**對應的 fidelity baseline（A1：5 個地形場景 + `battle_frozen`；A2：`battle_frozen`），但必須同時**存下「改前／改後」並排對照圖**到 `tools/ui-e2e/out/art_before_after_*.png` 並寫進 `docs/ART_PROGRESS.md`。

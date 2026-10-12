@@ -221,12 +221,12 @@
   },
   "showcase_card": {
     "color": "rgb(226, 232, 240)",
-    "backgroundColor": "rgba(15, 23, 42, 0.6)",
-    "borderTopColor": "rgba(255, 255, 255, 0.1)",
-    "boxShadow": "rgb(255, 255, 255) 0px 0px 0px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px, rgba(0, 0, 0, 0.5) 0px 8px 32px 0px",
-    "backdropFilter": "blur(40px) saturate(1.5)",
+    "backgroundColor": "rgba(0, 0, 0, 0)",
+    "borderTopColor": "rgb(229, 231, 235)",
+    "boxShadow": "none",
+    "backdropFilter": "none",
     "opacity": "1",
-    "borderRadius": "24px",
+    "borderRadius": "0px",
     "fontSize": "16px"
   },
   "showcase_enter_btn": {
