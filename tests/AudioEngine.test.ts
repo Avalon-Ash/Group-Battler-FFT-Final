@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { AUDIO } from '../constants';
 import { AudioEngine } from '../engine/audio/AudioEngine';
 import { AudioPRNG, createSynthBuffer, clearSynthCache } from '../engine/audio/Synth';
@@ -123,10 +123,13 @@ describe('AudioEngine', () => {
     beforeEach(() => {
         clearSynthCache();
         vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
+        vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
-    afterEach(() => {
+    // 背景預載鏈會跨測試持續執行，fetch stub 與 console.warn 靜音需維持到整個檔案結束
+    afterAll(() => {
         vi.unstubAllGlobals();
+        vi.restoreAllMocks();
     });
 
     it('with forceMute / ?mute, does not create AudioContext or play any sounds', () => {
@@ -236,7 +239,6 @@ describe('AudioEngine', () => {
 
             engine.stopMusic(1.0);
         } finally {
-            vi.unstubAllGlobals();
         }
     });
 
@@ -260,8 +262,6 @@ describe('AudioEngine', () => {
             expect((ctx.createBufferSource as any).mock.calls.length).toBe(count);
             engine.stopMusic(0.1);
         } finally {
-            warn.mockRestore();
-            vi.unstubAllGlobals();
         }
     });
 
@@ -279,7 +279,6 @@ describe('AudioEngine', () => {
             await flush();
             expect(ctx.createBufferSource).toHaveBeenCalled();
         } finally {
-            vi.unstubAllGlobals();
         }
     });
 });
