@@ -478,10 +478,11 @@ export const RENDER_QUALITY = {
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
     IGNORE_FRAME_MS: 250,
-    DOWN_MS: 19,
+    /** 239 Hz / 高刷門檻：< 100 FPS (幀間隔 > 10ms) 持續 2 秒即啟動降階 */
+    DOWN_MS: 10,
     DOWN_HOLD_S: 2,
-    /** Upgrade threshold on main-thread WORK time (vsync independent); rAF dt can never fall below the refresh interval. */
-    UP_MS: 9,
+    /** 升階門檻：主執行緒耗時 < 7ms (相當於 ≥ 144 FPS 健康餘裕) */
+    UP_MS: 7,
     UP_HOLD_S: 12,
     COOLDOWN_S: 15,
     /** Frames during the first seconds are ignored (JIT warm-up, sprite baking). */
