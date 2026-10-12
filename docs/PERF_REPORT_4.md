@@ -188,3 +188,18 @@ export const VFX_BUDGET = {
    - `createLinearGradient` 與 `createRadialGradient` 應盡可能提到物件層級或迴圈外共用。
 3. **粒子生命週期必須有硬約束**：
    - 單位陣亡碎片的存活時間應控制在 1.5~2.5 秒以內，不可超過 4 秒，避免多名單位陣亡時物理粒子無謂疊加。
+
+
+---
+
+## 11. 審查更正（Main agent review）
+
+以下更正優先於前文：
+
+1. **效益來源**：p99 37.6→16.8 ms 的改善主要來自 P3（移除 `shadowBlur`、gradient 提升到迴圈外、去重）。P4 的中位數 8.4 ms 有一部分是 governor 降到 Tier 2（DPR 0.75、發射量 ×0.5）所致，並非純粹優化。1% low 反而變差（47.4 → 37.9 FPS）。
+2. **Governor 門檻**：`RENDER_QUALITY.DOWN_MS` 10 → 14、`UP_MS` 7 → 9。原 10 ms 會讓一般約 100 FPS 的遊玩被降到模糊的 DPR 0.75。
+3. **死碼清理**：先前「已清理」的說法不實（`data/` 無任何異動）。已刪除無引用檔：`data/vfx/{beam,cast,procedural}_visuals.ts`、`data/vfx/procedural/{beam,domain,grid,hex,pillar}_visuals.ts`。
+4. **保真測試盲區**：`perf:fidelity` 的 `battle_frozen` 不含 VFX，無法驗證 `shadowBlur`→雙層描邊與 hazard 去重的外觀，需人工目視（hazard、圓圈/衝擊波、黑洞、root）。
+5. **魔術數字**：`UnitShatter` 的血滴數量改走 `VFX_BUDGET.SHATTER_BLOOD_NORMAL/REDUCED`。
+6. **未處理的殘餘熱點**：`TextPainter`（SHOUT gradient、`shadowBlur`、Glitch `Math.random`）、`UnitCorePainter` trauma `shadowBlur`、`ProjectileDrawer` 每幀 gradient、`ProceduralPainter`、`FloatingTextDrawer`。詳見 `docs/HANDOFF.md` §4。
+7. **數據不一致**：`VFX_INVENTORY` §4 與本報告 §2 對 `battle_vfx_storm` 的「基線」數字不同，以本報告實測為準。
