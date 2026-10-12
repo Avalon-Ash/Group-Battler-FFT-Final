@@ -437,3 +437,36 @@ npm run lint; npm run build
 - **本地 Checkpoint Tags**：`audio-ckpt-S0`、`audio-ckpt-S1`、`audio-ckpt-S2`、`audio-ckpt-final`。
 - **報告參考**：詳見 `docs/AUDIO_REPORT.md`、`docs/ASSET_LEDGER.md` 與試聽工具 `tools/audio/preview.html`。
 
+---
+
+## 13. 效能第四輪：特效管線檢視、瞬時負載優化與自適應 LOD 治理（2026-10-12，perf/render-opt-4 執行完成）
+
+- **分支與狀態**：獨立分支 `perf/render-opt-4`（由 `main` 開出），依約未 push、未 merge。
+- **背景與目標**：針對使用者回報「主螢幕 2560×1440 @ 239 Hz（RTX 4070）在全場特效齊發時狂掉 FPS 掉至 60 左右」與「?perf HUD 顯示 390 FPS 矛盾」，開展特效系統全量盤點與瞬時負載優化。
+- **核心成果與實現**：
+  1. **?perf HUD 真實 rAF 算法修復 (P0b)**：修正舊算法僅統計 CPU JS 繪製時間之盲區，改採真實 `requestAnimationFrame` 間隔滑動平均，新增 `1% Low FPS`、近 1 秒最長幀、`Frame Total` 與 `JS Total`。HUD 與量測腳本誤差 < 0.13%。
+  2. **特效庫存盤點與可疑項清理 (P1)**：產出 `docs/VFX_INVENTORY.md`（涵蓋 109 項資產與 11 大程序化系統）。定位危害區在網格層與粒子層之雙重繪製，並標記死碼。
+  3. **逐項成本歸因 (P2)**：在壓力情境（`battle_vfx_storm`）建立 Top 10 成本排行榜。確認 78% 之長幀由 Canvas 2D 軟體光柵化（`shadowBlur` 與每幀重複建立漸層）造成。
+  4. **熱路徑光柵化與漸層消除 (P3)**：
+     - `VolumePainter`：移除 SOLID 樣式漸層，側面 6 面共用垂直漸層。
+     - `EventVFXMapper` / `VFXPlayer`：危害區管線去重，移除持續 4s 的重複全屏 `GRID_FIELD` 粒子；粒子計數改為零分配迴圈。
+     - `UnitAuraPainter` / `HazardPainter` / `GroundPainter` / `GroundEffectPainter`：全面以雙層幾何柔光線取代 `shadowBlur`，消除軟體卷積。
+  5. **特效預算與自適應 LOD 治理器 (P4/P5)**：
+     - `constants.ts` 建立 `VFX_BUDGET` SSOT（軟上限 240、硬上限 380、品質階層倍率、次要粒子跳過、死亡碎屑 12->4 與壽命減半）。
+     - 整合 `RenderQuality` 自適應治理器，對標 239 Hz 螢幕（<100 FPS 持續 2 秒降階，主執行緒 <7ms 持續 12 秒升階），60 秒壓力測試 0 抖動。
+  6. **效能數據突破**：
+     - `battle_vfx_storm` p99 幀時間由 **37.6 ms 降至 16.8 ms（-55.3%）**！
+     - 1% Low FPS 由 **23.3 FPS 提升至 37.9~47.4 FPS（提升超過一倍）**！
+     - >16.7 ms 長幀數由 **928 幀直接減至 152 幀（消除 83.6% 長幀）**！
+     - 平均 FPS 由 **68.2 FPS 躍升至 102.9 FPS**，全特效齊發下穩定破百。
+  7. **嚴格視覺保真**：
+     - `battle_frozen` meanAbsDiff = 0.059 <= 0.8，Strict 0 差異通過；地形 5 場景全綠。
+- **驗證指標**：
+  - `npm run lint` 0 errors
+  - `npm test` 219/219 passed
+  - `npm run build` 通過
+  - `npm run e2e:ui` 連跑兩次 ALL PASSED
+  - `npm run perf:guard` 通過
+- **本地 Checkpoint Tags**：`perf4-ckpt-P0`、`perf4-ckpt-P3`、`perf4-ckpt-final`。
+- **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/PERF_BASELINE_4.md` 與 `docs/VFX_INVENTORY.md`。
+
