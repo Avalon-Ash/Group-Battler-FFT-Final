@@ -15,6 +15,7 @@ export async function launchBrowser({
     const args = [
         '--enable-gpu-rasterization',
         '--ignore-gpu-blocklist',
+        '--window-size=2560,1440',
         ...extraArgs,
     ];
 
@@ -110,6 +111,17 @@ export function assertMainGpu(envInfo) {
         console.error(`\n[PERF_ERROR] 此次落在內顯 (${gpu})，結果無效！`);
         console.error('請將瀏覽器視窗移至主螢幕 (RTX 4070)，或在 Windows 圖形設定將瀏覽器指定為高效能。');
         console.error('若執意在內顯量測，請設定 PERF_ALLOW_ANY_GPU=1 覆寫。\n');
+        process.exit(1);
+    }
+}
+
+/**
+ * Assert that execution window viewport meets the 2560x1440 standard requirement (at least 2400x1300).
+ */
+export function assertResolution(envInfo) {
+    const [w, h] = envInfo?.viewport || [0, 0];
+    if (w < 2400 || h < 1300) {
+        console.error(`\n[PERF_ERROR] 視窗解析度過小 (${w}x${h} < 2400x1300)，量測結果無效！\n`);
         process.exit(1);
     }
 }

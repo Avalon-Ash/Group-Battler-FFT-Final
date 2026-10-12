@@ -17,6 +17,7 @@
     "perf:fidelity:record": "node tools/ui-e2e/render-fidelity.mjs --record",
     "perf:guard": "npm run perf:fidelity && node tools/ui-e2e/perf-ab.mjs --assert",
     "perf:headed": "node tools/ui-e2e/perf-headed.mjs",
+    "perf:frames": "node tools/ui-e2e/perf-frames.mjs",
     "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts"
   },
   "dependencies": {
