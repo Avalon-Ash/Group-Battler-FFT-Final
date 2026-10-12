@@ -200,6 +200,30 @@ export const VFX_PARAM = {
     IDLE_VFX_CULL_CENTER_PER_TILE: 40,
 };
 
+/**
+ * 特效預算與自適應 LOD 降級治理器參數 SSOT
+ */
+export const VFX_BUDGET = {
+    /** 總開關：關閉時行為與改動前 100% 逐像素一致 */
+    enabled: true,
+    /** 全域粒子軟預算上限：超過此數量時開始對非關鍵特效啟動降級 */
+    SOFT_PARTICLE_BUDGET: 240,
+    /** 全域粒子硬上限：超過此數量時阻止非關鍵特效生成 */
+    HARD_PARTICLE_BUDGET: 380,
+    /** 各品質階層粒子發射係數 [Tier 0, Tier 1, Tier 2, Tier 3] */
+    TIER_EMISSION_RATIOS: [1.0, 0.75, 0.5, 0.35] as const,
+    /** 次要粒子類型集合（高負載或低階品質時優先縮減/跳過發射） */
+    SECONDARY_TYPES: ['DUST', 'SMOKE', 'SPARK', 'SPEED_LINE', 'GENERIC_DEBUG'] as const,
+    /** 關鍵回饋粒子類型集合（傷害/死亡/終極技能，全額優先保留） */
+    CRITICAL_TYPES: ['BLAST', 'DEATH_RAY', 'BEAM', 'HEX_BEAM', 'PILLAR', 'SHOCKWAVE'] as const,
+    /** UnitShatter 金屬碎屑數量（一般戰鬥 12；高負載或降階時縮減為 4） */
+    SHATTER_SHARDS_NORMAL: 12,
+    SHATTER_SHARDS_REDUCED: 4,
+    /** UnitShatter 碎片存活時間秒數（一般戰鬥 4.0~5.0s；高負載或降階時收緊為 2.0s） */
+    SHATTER_LIFETIME_NORMAL: 4.5,
+    SHATTER_LIFETIME_REDUCED: 2.0,
+} as const;
+
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
     secondary: '#fde047',

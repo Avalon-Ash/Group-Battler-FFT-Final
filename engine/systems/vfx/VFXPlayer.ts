@@ -10,7 +10,8 @@ import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
-import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM } from "../../../constants";
+import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET } from "../../../constants";
+import { getQualityTier } from "../../renderers/RenderQuality";
 
 const rnd = (r: Range | number | undefined): number => {
     if (r === undefined) return 0;
@@ -38,8 +39,19 @@ export class VFXPlayer {
         }
     }
     private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
-        // ── [PERF] 全域粒子上限 guard ────────────────────────────────────
-        if (system.state.particles.length >= VFX_PARAM.MAX_PARTICLES) return;
+        if (VFX_BUDGET.enabled) {
+            const currentTotal = system.state.particles.length;
+            if (currentTotal >= VFX_BUDGET.HARD_PARTICLE_BUDGET) return;
+
+            const isSecondary = (VFX_BUDGET.SECONDARY_TYPES as readonly string[]).includes(config.particleType);
+            // 1. 次要粒子（煙塵、火花、拖尾）在超過軟預算時直接跳過，釋放算力
+            if (isSecondary && currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
+                return;
+            }
+        } else {
+            // ── [PERF] 全域粒子上限 guard (Fallback when budget governor disabled) ──
+            if (system.state.particles.length >= VFX_PARAM.MAX_PARTICLES) return;
+        }
 
         // ── [PERF] Hazard Field locked 粒子：每格上限 HAZARD_FIELD_MAX_PER_CELL ──
         if (config.locked && config.lockReason === 'HAZARD_FIELD' && hexKey) {
@@ -54,7 +66,24 @@ export class VFXPlayer {
             }
         }
 
-        const count = Math.floor(rnd(config.count));
+        let count = Math.floor(rnd(config.count));
+
+        if (VFX_BUDGET.enabled) {
+            const currentTotal = system.state.particles.length;
+            const isCritical = (VFX_BUDGET.CRITICAL_TYPES as readonly string[]).includes(config.particleType);
+
+            // 2. 品質階層與負載自動收緊（關鍵技能與受擊全額保留）
+            if (!isCritical) {
+                const tier = getQualityTier();
+                const tierRatio = VFX_BUDGET.TIER_EMISSION_RATIOS[tier];
+                if (tierRatio < 1.0) {
+                    count = Math.max(1, Math.round(count * tierRatio));
+                }
+                if (currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
+                    count = Math.max(1, Math.floor(count * 0.5));
+                }
+            }
+        }
         const isGroundType = VFX_GROUND_TYPES.has(config.particleType);
         const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
 
