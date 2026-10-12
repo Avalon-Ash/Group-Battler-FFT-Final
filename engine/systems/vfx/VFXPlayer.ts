@@ -43,10 +43,15 @@ export class VFXPlayer {
 
         // ── [PERF] Hazard Field locked 粒子：每格上限 HAZARD_FIELD_MAX_PER_CELL ──
         if (config.locked && config.lockReason === 'HAZARD_FIELD' && hexKey) {
-            const existing = system.state.particles.filter(
-                p => p.locked && p.lockReason === 'HAZARD_FIELD' && p.hexKey === hexKey
-            ).length;
-            if (existing >= VFX_PARAM.HAZARD_FIELD_MAX_PER_CELL) return;
+            let existing = 0;
+            const pts = system.state.particles;
+            for (let i = 0; i < pts.length; i++) {
+                const p = pts[i];
+                if (p.locked && p.lockReason === 'HAZARD_FIELD' && p.hexKey === hexKey) {
+                    existing++;
+                    if (existing >= VFX_PARAM.HAZARD_FIELD_MAX_PER_CELL) return;
+                }
+            }
         }
 
         const count = Math.floor(rnd(config.count));
