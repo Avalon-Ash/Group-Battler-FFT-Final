@@ -194,24 +194,34 @@ export const GroundPainter = {
         if (p.type === 'SHOCKWAVE' || p.type === 'RING' || p.type === 'BLAST') {
             const alpha = 1.0 - Math.pow(progress, 2);
             if (alpha <= 0.01) { ctx.restore(); return; }
-
-            ctx.globalAlpha = alpha;
-            ctx.shadowColor = p.color;
-            ctx.shadowBlur = p.type === 'BLAST' ? 30 : 15;
             
             // Explosive Easing - pops much faster in the first 20% of life, allowing it to be seen even on low FPS 
             const easeOut = 1 - Math.pow(1 - progress, 4);
             const currentRadius = p.size * Math.max(0.2, easeOut);
             
             if (p.type === 'BLAST') {
-                // Blast is a massive fill flash
+                // Blast is a massive fill flash with soft outer edge (replaces shadowBlur=30)
                 ctx.fillStyle = p.color;
+                ctx.globalAlpha = alpha * 0.35;
+                HexGeometry.traceHex(ctx, 0, 0, currentRadius * 1.15, true, layout);
+                ctx.fill();
+
+                ctx.globalAlpha = alpha;
                 HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
                 ctx.fill();
             } else {
                 ctx.strokeStyle = p.color;
                 const lineWidth = Math.max(1, (1 - progress) * (p.type === 'SHOCKWAVE' ? 14 : 4));
+                
+                // Soft outer halo (replaces shadowBlur=15)
+                ctx.lineWidth = lineWidth * 2.0;
+                ctx.globalAlpha = alpha * 0.35;
+                HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
+                ctx.stroke();
+
+                // Core sharp ring
                 ctx.lineWidth = lineWidth;
+                ctx.globalAlpha = alpha;
                 HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
                 ctx.stroke();
                 

@@ -129,12 +129,22 @@ export const HazardPainter = {
             ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI*2); ctx.fill();
             
             ctx.globalCompositeOperation = 'lighter'; 
-            ctx.lineWidth = 4; 
-            ctx.strokeStyle = def.secondaryColor;
-            ctx.shadowColor = def.secondaryColor; 
-            ctx.shadowBlur = 20;
-            
             ctx.rotate(globalTime * 3);
+
+            // Layer 1: 柔光外環 (取代軟體 shadowBlur=20)
+            ctx.lineWidth = 8;
+            ctx.strokeStyle = def.secondaryColor;
+            ctx.globalAlpha = 0.35;
+            ctx.beginPath();
+            for(let i=0; i<3; i++) {
+                const ang = i * (Math.PI*2/3); ctx.moveTo(0,0);
+                ctx.quadraticCurveTo(Math.cos(ang)*r, Math.sin(ang)*r, Math.cos(ang+1)*r, Math.sin(ang+1)*r);
+            }
+            ctx.stroke();
+
+            // Layer 2: 核心能量弧線
+            ctx.lineWidth = 3; 
+            ctx.globalAlpha = 0.9;
             ctx.beginPath();
             for(let i=0; i<3; i++) {
                 const ang = i * (Math.PI*2/3); ctx.moveTo(0,0);
