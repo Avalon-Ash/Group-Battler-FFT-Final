@@ -104,5 +104,16 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | Relative Path | Asset ID | Source Pack | Author / Model | Source URL / Prompt | License | Attribution Required | Added Date |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `art-source/terrain_grid.jpg` | TERRAIN_SOURCE_GRID | AI Synthesis 2x5 Swatch | Google Gemini | ART_STYLE_BIBLE.md §5 | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/void_top.webp` | TERRAIN_VOID_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/void_side.webp` | TERRAIN_VOID_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/forest_top.webp` | TERRAIN_FOREST_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/forest_side.webp` | TERRAIN_FOREST_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/ice_top.webp` | TERRAIN_ICE_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/ice_side.webp` | TERRAIN_ICE_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/magma_top.webp` | TERRAIN_MAGMA_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/magma_side.webp` | TERRAIN_MAGMA_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/desert_top.webp` | TERRAIN_DESERT_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+| `assets/terrain/desert_side.webp` | TERRAIN_DESERT_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+
 
 
