@@ -402,6 +402,34 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
     },
 };
 
+// ══════════════════════════════════════════════════════════════
+// 2.5D Unit Sprite & Fantasy HD Art Configuration (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export type UnitRenderMode = 'sprite' | 'procedural';
+
+export const UNIT_RENDER_MODE: UnitRenderMode = 'sprite';
+
+export const UNIT_SPRITE = {
+    targetHeightCanvasUnits: 52,
+    referenceHeightPx: 158.3,
+    facingHysteresisMs: 120,
+    hitFlashDuration: 0.15,
+    deathFadeDuration: 1.2,
+    deathSinkDistance: 12,
+    mipLevels: [1.0, 0.5, 0.25] as const,
+    silhouetteAlpha: 0.25,
+    shadowScale: 1.0,
+    idleFps: 6,
+    walkFps: 10,
+    attackFps: 12,
+    castFps: 10,
+    hitFps: 12,
+    deathFps: 8,
+    manifestPath: 'assets/units/manifest.json',
+} as const;
+
+
 
 export interface ObstacleStyle { main: string; light: string; dark: string; detail: string; highlight: string; sideLight?: string; sideDark?: string }
 

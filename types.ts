@@ -380,3 +380,26 @@ export interface SerializedWindowState {
 }
 
 export type SerializedWindowMap = Record<string, SerializedWindowState>;
+
+// ══════════════════════════════════════════════════════════════
+// Unit Appearance, Body Types & 2.5D Sprite Types (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export type BodyTypeId = 'MALE' | 'FEMALE';
+
+export interface BodyTypeProfile {
+    label: string;
+    enabled: boolean;
+    heightScale: number;
+    shadowScale: number;
+    anchorYOffset: number;
+    fallback: BodyTypeId | null;
+}
+
+export interface SpriteAppearanceConfig {
+    manifestKey: string;
+    targetHeight: number;
+    shadowRadius: number;
+    flashStrength: number;
+}
+
