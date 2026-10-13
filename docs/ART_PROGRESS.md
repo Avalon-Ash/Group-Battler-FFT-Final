@@ -18,8 +18,8 @@
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
 | **A2c** [E2E] | 死亡與狀態整合 | DONE | `e73126b` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | DONE | `c68bf1e` | Kenney CC0 貼圖、ParticleTextureStore、VFX_SPRITES、ASSET_NEEDS.md |
-| **REPORT** | 成果報告與交付更新 | PENDING | — | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
-| **FINAL** | 全量驗證與 Checkpoint Tags | PENDING | — | lint/test/build/e2e×2/perf:guard、tags 打點 |
+| **REPORT** | 成果報告與交付更新 | DONE | `PENDING` | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
+| **FINAL** | 全量驗證與 Checkpoint Tags | DONE | `PENDING` | lint/test/build/e2e×2/perf:guard、tags 打點 |
 
 ---
 
@@ -131,9 +131,26 @@
   - `npm test`: 29 檔 276 測試全數通過。
   - `npm run lint` 通過 (0 errors)。
   - `npm run build` 通過。
-  - `npm run perf:guard` 通過 (全場景幀時 5.61ms ~ 5.65ms)。
+### Task REPORT: 成果報告與交付更新
+- **成果報告產出**:
+  - 建立 `docs/ART_REPORT.md`，詳列所有 10 個任務 Commit Log、前後對照圖路徑、RTX 4070 實測 A/B 效能前後對比、解碼後圖集記憶體估算 (210 MB)、三層開關即時回退指南、素材合法性 (CC0) 摘要、7 大使用者目視檢查清單與未來女性冒險者/神職擴充建議。
+- **解耦交接更新**:
+  - 於 `docs/DECOUPLING_HANDOFF.md` 新增 §11「美術管線與奇幻 HD 素材導入」，記載分支狀態、架構設計、關鍵決策與驗證指標。
+
+### Task FINAL: 全量驗證與 Checkpoint Tags
+- **全量驗證通過**:
+  - `npm run lint` 通過 (0 errors)。
+  - `npm test` 通過 (29 test files, 276 tests)。
+  - `npm run build` 通過。
+  - `npm run perf:guard` 通過 (所有場景幀時間 <= 5.65ms，遠優於 16.6ms / 26.4ms 守則門檻)。
+  - `npm run e2e:ui` 連跑 2 次全數 ALL PASSED。
+- **本地 Checkpoint 打點**:
+  - `art-ckpt-A1` (地形貼圖化完成)
+  - `art-ckpt-A2` (單位精靈與死亡整合完成)
+  - `art-ckpt-final` (全流程竣工打點)
 
 ---
+
 
 
 
