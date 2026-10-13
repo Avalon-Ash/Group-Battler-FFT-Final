@@ -75,4 +75,13 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
   - *Source*: Offline generated 2x5 biome terrain swatch palette (Void, Forest, Ice, Magma, Desert) based on project artistic style guide (ART_STYLE_BIBLE.md §5).
   - *License*: Public Domain / CC0 Equivalent
 
+### Particle Pack Textures (VFX)
+
+- **Kenney (Kenney.nl)**
+  - *Pack*: Particle Pack (1.1) (80+ sprites)
+  - *Source*: [kenney.nl](https://kenney.nl/assets/particle-pack)
+  - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
+  - *Usage*: High-performance textured sprite overlays for particle effects (sparks, smoke puffs, atmosphere glow, magic circles, stars) pre-tinted in memory and blended via 2.5D billboard painter. Attribution is non-mandatory for CC0 but gratefully acknowledged.
+
+
 

@@ -113,7 +113,14 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | `assets/terrain/magma_top.webp` | TERRAIN_MAGMA_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
 | `assets/terrain/magma_side.webp` | TERRAIN_MAGMA_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
 | `assets/terrain/desert_top.webp` | TERRAIN_DESERT_TOP | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
-| `assets/terrain/desert_side.webp` | TERRAIN_DESERT_SIDE | AI Synthesis Swatch (Derived Seamless) | Google Gemini / process-terrain.mjs | Internal Pipeline | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+---
 
+## 5. Particle Sprites (VFX) — Task A3
 
-
+| Relative Path | Asset ID | Source Pack | Author | Source URL | License | Attribution Required | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `assets/vfx/light_01.png` | VFX_LIGHT | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
+| `assets/vfx/spark_01.png` | VFX_SPARK | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
+| `assets/vfx/smoke_01.png` | VFX_SMOKE | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
+| `assets/vfx/magic_01.png` | VFX_MAGIC | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
+| `assets/vfx/star_01.png` | VFX_STAR | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |

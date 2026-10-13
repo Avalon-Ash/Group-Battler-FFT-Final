@@ -429,6 +429,32 @@ export const UNIT_SPRITE = {
     manifestPath: 'assets/units/manifest.json',
 } as const;
 
+// ══════════════════════════════════════════════════════════════
+// VFX Particle Sprites (SSOT)
+// ══════════════════════════════════════════════════════════════
+
+export interface VfxSpritesConfig {
+    enabled: boolean;
+    textures: {
+        light: string;
+        spark: string;
+        smoke: string;
+        magic: string;
+        star: string;
+    };
+}
+
+export const VFX_SPRITES: VfxSpritesConfig = {
+    enabled: true,
+    textures: {
+        light: 'assets/vfx/light_01.png',
+        spark: 'assets/vfx/spark_01.png',
+        smoke: 'assets/vfx/smoke_01.png',
+        magic: 'assets/vfx/magic_01.png',
+        star: 'assets/vfx/star_01.png',
+    },
+};
+
 
 
 export interface ObstacleStyle { main: string; light: string; dark: string; detail: string; highlight: string; sideLight?: string; sideDark?: string }

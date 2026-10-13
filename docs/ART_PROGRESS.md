@@ -17,7 +17,7 @@
 | **A2b** | SpriteUnitRenderer（逐格動畫） | DONE | `c232474` | `SpriteUnitRenderer.ts`、`selectSpriteFrame.ts`、`UnitBodyPainter` 分派、14 單元測試 |
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
 | **A2c** [E2E] | 死亡與狀態整合 | DONE | `e73126b` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
-| **A3** | 特效粒子材質與障礙物清單 | PENDING | — | ParticleTextureStore (Kenney) 或跳過、`docs/ASSET_NEEDS.md` |
+| **A3** | 特效粒子材質與障礙物清單 | DONE | `PENDING` | Kenney CC0 貼圖、ParticleTextureStore、VFX_SPRITES、ASSET_NEEDS.md |
 | **REPORT** | 成果報告與交付更新 | PENDING | — | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
 | **FINAL** | 全量驗證與 Checkpoint Tags | PENDING | — | lint/test/build/e2e×2/perf:guard、tags 打點 |
 
@@ -108,7 +108,33 @@
   - `npm run perf:guard` 通過 (5.61ms ~ 5.66ms，遠低於 26.4ms 守則門檻)。
   - `npm run e2e:ui` 連跑 2 次皆 ALL PASSED (包含 E2E 點選座標避開周邊介面之穩定性補強)。
 
+### Task A3: 特效粒子材質與障礙物清單
+- **Kenney CC0 粒子素材入庫**:
+  - 取得 Kenney Particle Pack (1.1)（CC0，~384 KB 總計）：
+    - `light_01.png` (光點 / GLOW_SPRITE / ATMOSPHERE)
+    - `spark_01.png` (火花 / SPARK)
+    - `smoke_01.png` (煙霧 / SMOKE)
+    - `magic_01.png` (魔法陣 / MAGIC_CIRCLE)
+    - `star_01.png` (星芒 / SPIKE)
+  - 存放於 `public/assets/vfx/`，並登記於 `docs/ASSET_LEDGER.md` 與 `CREDITS.md`。
+- **純衍生著色快取與管線分派**:
+  - `engine/renderers/ParticleTextureStore.ts`: 實作圖片懶載入、色彩鍵預烘焙著色版本（`source-in` 一次性遮罩填色後快取），支援 `isReady` 與 `readyPromise`。
+  - `constants.ts`: 新增 `VFX_SPRITES = { enabled: true, textures: ... }`。
+  - `engine/graphics/painters/ParticlePainter.ts`: 於 `drawAtmosphere`、`drawSmoke`、`drawSpike` 當 `VFX_SPRITES.enabled` 且貼圖就緒時 blit 貼圖粒子；未就緒或旗標關閉時 100% 逐像素維持既有程序化幾何漸層。
+- **回退驗證與保真守則**:
+  - 驗證 `VFX_SPRITES.enabled = false` 時 `perf:fidelity` 與 baseline 達成 0.000 diff (100% 逐像素一致)。
+  - `VFX_SPRITES.enabled = true` 時 `perf:guard` 亦全數通過 (battle_frozen meanAbsDiff=0.025 <= 0.8, badPixelPct=0.03% <= 0.5%)。
+- **障礙物與場景物件盤點**:
+  - 輸出 `docs/ASSET_NEEDS.md`，詳載目前 5 大障礙物（WALL、TREE、ICE_CRYSTAL、OBSIDIAN_PILLAR、SANDSTONE）、特殊模型（SHEEP、ICE）、女性冒險者（5 職業）、高階 VFX 貼花與 UI/技能圖示之建議規格、尺寸、錨點與 Blender 產出優先級。
+- **單元測試與驗證**:
+  - `tests/ParticleTextureStore.test.ts`: 11 項測試全數通過（路徑解析、就緒檢查、著色回退、旗標切換與程序化幾何 fallback 完整性）。
+  - `npm test`: 29 檔 276 測試全數通過。
+  - `npm run lint` 通過 (0 errors)。
+  - `npm run build` 通過。
+  - `npm run perf:guard` 通過 (全場景幀時 5.61ms ~ 5.65ms)。
+
 ---
+
 
 
 ## 前置檢查 (Pre-flight Checklist)
