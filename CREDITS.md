@@ -57,3 +57,22 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
   - *Source*: [OpenGameArt.org](https://opengameart.org/content/victory-theme-for-rpg)
   - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
 
+---
+
+## Visual & Unit Sprite Art
+
+### 3D Unit Character Models & Animation (Derived Pre-rendered Sprites)
+
+- **Kay Lousberg (KayKit)**
+  - *Pack*: KayKit Adventurers Character Pack 1.0
+  - *Source*: [github.com/KayKit-Game-Assets](https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0)
+  - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
+  - *Usage*: Base 3D character meshes and animations (Knight, Barbarian, Rogue, Mage) offline pre-rendered via Blender with custom cel-shading, elevation matching isometric projection, and faction palette colors (Lionheart Blue / Ashen Red). Attribution is non-mandatory for CC0 but gratefully acknowledged.
+
+### Terrain Concept & Textures
+
+- **Procedural AI Synthesis (Google Gemini)**
+  - *Source*: Offline generated 2x5 biome terrain swatch palette (Void, Forest, Ice, Magma, Desert) based on project artistic style guide (ART_STYLE_BIBLE.md §5).
+  - *License*: Public Domain / CC0 Equivalent
+
+

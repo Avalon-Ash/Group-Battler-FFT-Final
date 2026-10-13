@@ -8,8 +8,8 @@
 
 | 任務 | 名稱 | 狀態 | Commit | 說明 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Pre** | 素材暫存入庫與前置設定 | DONE | Pending | 複製 `art-source/`、`tools/assets/blender/`、docs 前置 |
-| **A0a** | 素材目錄、授權制度、精靈入庫 | PENDING | — | `public/assets/units/`、`ASSET_LEDGER.md`、`CREDITS.md`、blender README |
+| **Pre** | 素材暫存入庫與前置設定 | DONE | `d7a651e` | 複製 `art-source/`、`tools/assets/blender/`、docs 前置 |
+| **A0a** | 素材目錄、授權制度、精靈入庫 | DONE | Pending | `public/assets/units/` (4.27MB)、`ASSET_LEDGER.md`、`CREDITS.md`、blender README |
 | **A0b** | 素材驗證與地形處理工具 | PENDING | — | `verify-sprites.mjs`、`process-terrain.mjs`、預覽圖 |
 | **A1a** | 地形材質貼圖化（TERRAIN_SKIN） | PENDING | — | `TerrainTextureStore.ts`、`materialConfig.ts`、`TerrainRenderer.ts` |
 | **A1b** [E2E] | 地形測試與 Baseline 重錄 | PENDING | — | 縮放目視、5 地形場景 + battle_frozen 重錄、效能守則 |

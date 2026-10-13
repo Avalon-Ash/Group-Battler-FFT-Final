@@ -79,3 +79,30 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | `assets/audio/music/victory_red.ogg` | VICTORY_RED_STING | Victory Theme for RPG (derived: pitched down ~4 semitones, lowpass 7 kHz, trimmed to 45 s, fade-out) | cynicmusic | https://opengameart.org/content/victory-theme-for-rpg | CC0 1.0 | Optional (cynicmusic.com) | 2026-10-12 |
 | `assets/audio/music/defeat_sting.ogg` | DEFEAT_STING | Game Over - Repeating Dream | Devlin Bataric | https://opengameart.org/content/69-game-over-jingles-pack | CC-BY 4.0 | Yes (Devlin Bataric) | 2026-10-12 |
 
+---
+
+## 3. Unit Sprites (3D Pre-rendered Atlas) — Task A0a
+
+| Relative Path | Unit Key | Source Pack | Author | Source URL | License | Attribution Required | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `assets/units/blue_tank_male.webp` | BLUE:TANK:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/blue_warrior_male.webp` | BLUE:WARRIOR:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/blue_ranger_male.webp` | BLUE:RANGER:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/blue_mage_male.webp` | BLUE:MAGE:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/blue_support_male.webp` | BLUE:SUPPORT:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/red_tank_male.webp` | RED:TANK:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/red_warrior_male.webp` | RED:WARRIOR:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/red_ranger_male.webp` | RED:RANGER:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/red_mage_male.webp` | RED:MAGE:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/red_support_male.webp` | RED:SUPPORT:MALE | KayKit Adventurers 1.0 | Kay Lousberg (derived) | https://github.com/KayKit-Game-Assets/KayKit-Character-Pack-Adventures-1.0 | CC0 1.0 (Derived) | Optional (KayKit) | 2026-10-14 |
+| `assets/units/manifest.json` | MANIFEST | Manifest metadata | Principal Systems / Blender Pipeline | Internal | CC0 1.0 (Derived) | No | 2026-10-14 |
+
+---
+
+## 4. Terrain Source & Textures — Task A0a / A0b
+
+| Relative Path | Asset ID | Source Pack | Author / Model | Source URL / Prompt | License | Attribution Required | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `art-source/terrain_grid.jpg` | TERRAIN_SOURCE_GRID | AI Synthesis 2x5 Swatch | Google Gemini | ART_STYLE_BIBLE.md §5 | Public Domain / CC0 Equivalent | No | 2026-10-14 |
+
+
