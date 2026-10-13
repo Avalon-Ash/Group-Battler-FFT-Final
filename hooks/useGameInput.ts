@@ -1,7 +1,7 @@
 
 import { useRef, useEffect, MutableRefObject, useState } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Hex, Team, Role } from '../types';
+import { ToolType, Hex, Team, Role, BodyTypeId } from '../types';
 import { HexUtils, Vector } from '../engine/utils';
 import { GameRenderer } from '../engine/renderer';
 import {
@@ -35,12 +35,13 @@ interface GameInputProps {
     hpInput: number;
     spawnMode: 'RANDOM' | 'DRAFT';
     draftRole: Role;
+    draftBodyType?: BodyTypeId;
     winner: Team | null;
     onSelect: (a: Agent | null) => void;
 }
 type InteractionMode = 'IDLE' | 'DOWN' | 'DRAG_UNIT' | 'DRAG_OBS' | 'PAINT' | 'PAN';
 export const useGameInput = (props: GameInputProps) => {
-    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, winner, onSelect } = props;
+    const { canvasRef, engine, rendererRef, cameraRef, tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner, onSelect } = props;
     const [pressedAgent, setPressedAgent] = useState<Agent | null>(null);
     const [draggedObstacle, setDraggedObstacle] = useState<DraggedObstacle | null>(null);
     const interactionMode = useRef<InteractionMode>('IDLE');
@@ -52,8 +53,8 @@ export const useGameInput = (props: GameInputProps) => {
     const hoveredHexRef = useRef<Hex | null>(null);
     const activePointers = useRef<Set<number>>(new Set());
     const cachedRectRef = useRef<DOMRect | null>(null);
-    const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, winner });
-    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, winner]);
+    const configRef = useRef({ tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner });
+    useEffect(() => { configRef.current = { tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner }; }, [tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner]);
     
     const getHexFromEvent = (clientX: number, clientY: number) => {
         const cvs = canvasRef.current;
@@ -219,7 +220,7 @@ export const useGameInput = (props: GameInputProps) => {
         cvs.releasePointerCapture(e.pointerId);
     };
     const executePaintAction = (h: Hex) => {
-        const { tool, winner, selectedObstacle, spawnMode, draftRole, hpInput } = configRef.current;
+        const { tool, winner, selectedObstacle, spawnMode, draftRole, draftBodyType, hpInput } = configRef.current;
         if (engine.isRunning || winner !== null) return;
         const k = HexUtils.key(h);
         if (lastPaintHex.current === k) return; 
@@ -245,6 +246,7 @@ export const useGameInput = (props: GameInputProps) => {
                     r: h.r,
                     hp: hpInput,
                     role: spawnMode === 'DRAFT' ? draftRole : undefined,
+                    bodyType: draftBodyType,
                 });
             }
         }

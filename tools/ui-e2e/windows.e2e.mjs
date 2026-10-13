@@ -606,15 +606,23 @@ const runInspectorCommandSuite = async () => {
     await hpInput.press('Enter');
     await page.waitForTimeout(300);
 
+    // Change bodyType (Task A2e)
+    const bodyTypeSelect = page.locator('label:has-text("體型") + select');
+    if (await bodyTypeSelect.isVisible()) {
+        await bodyTypeSelect.selectOption('MALE');
+        await page.waitForTimeout(300);
+    }
+
     // Assert live engine agent was updated
     const updated = await page.evaluate((aid) => {
         const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
-        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp } : null;
+        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp, bodyType: a.bodyType } : null;
     }, target.agentId);
 
     ok('inspector EDIT_AGENT changed role in live engine', updated?.role === newRole, `${updated?.role} vs ${newRole}`);
     ok('inspector EDIT_AGENT changed maxHp in live engine to 123', updated?.maxHp === 123, String(updated?.maxHp));
     ok('inspector EDIT_AGENT updated hp in live engine to 123', updated?.hp === 123, String(updated?.hp));
+    ok('inspector EDIT_AGENT verified bodyType in live engine', updated?.bodyType === 'MALE', String(updated?.bodyType));
 
     // 1. Selecting another unit preserves inspector rect (D5)
     const r1 = await rectOf(page, 'inspector');
@@ -1323,6 +1331,7 @@ const runEditorSuite = async () => {
         return window.__TACTICAL_ENGINE__.agents.find(a => a.q === q && a.r === r);
     }, draftHex);
     ok('DRAFT mode: placed unit with selected role RANGER', draftAgent !== undefined && draftAgent.role === 'RANGER', draftAgent?.role);
+    ok('DRAFT mode: placed unit has bodyType assigned', draftAgent !== undefined && draftAgent.bodyType === 'MALE', draftAgent?.bodyType);
 
     // ⑦ Wheel zoom: camera.zoom changes
     const initialZoom = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.zoom);

@@ -223,13 +223,13 @@ export type UICommand =
     | { type: 'SET_DIRECTOR_ENABLED'; enabled: boolean }
     | { type: 'SET_CAMERA_TUNING'; followStiffness?: number; zoomStiffness?: number }
     | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
-    | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number }
+    | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number; bodyType?: BodyTypeId }
     | { type: 'REBUILD_AGENT_AI'; agentId: string }
     | { type: 'RESET_GAME' }
     | { type: 'PAUSE_GAME' }
     | { type: 'RESUME_GAME' }
     | { type: 'SET_TIME_SCALE'; timeScale: number }
-    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role }
+    | { type: 'PLACE_AGENT'; team: Team; q: number; r: number; hp?: number; role?: Role; bodyType?: BodyTypeId }
     | { type: 'REMOVE_AGENT_AT'; q: number; r: number }
     | { type: 'SET_OBSTACLE'; q: number; r: number; obstacleType?: string }
     | { type: 'REMOVE_OBSTACLE'; q: number; r: number }

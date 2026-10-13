@@ -10,16 +10,19 @@
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
 import { Agent } from "../core/Agent";
-import { Role, Team, Skill, AnimState } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
+import { Role, Team, Skill, AnimState, BodyTypeId } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { RagdollFactory } from "./unit/RagdollFactory";
 import { AGENT_CONSTANTS } from "../../constants";
 import { random } from "../math/rng";
+import { pickBodyType } from "../../data/units/appearance/bodyTypes";
 
 export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'map'>;
 
 export class AgentManager {
+    public static matchSalt: number = Date.now();
+
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
         const stats = UNIT_DB[agent.role];
         if (stats) {
@@ -39,7 +42,7 @@ export class AgentManager {
         }
     }
 
-    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role): Agent | null {
+    public addAgent(engine: GameEngine, team: Team, q: number, r: number, hpOverride?: number, roleOverride?: Role, bodyTypeOverride?: BodyTypeId): Agent | null {
         if (!engine.map.isValid(q, r) || engine.map.isBlocked(q, r, engine)) return null;
         
         const id = engine.nextId(team === Team.BLUE ? 'BLU' : 'RED');
@@ -52,6 +55,7 @@ export class AgentManager {
             a.role = allRoles[Math.floor(random() * allRoles.length)];
         }
         
+        a.bodyType = bodyTypeOverride ?? pickBodyType(a.id, AgentManager.matchSalt);
         AgentManager.applyRoleStats(a, hpOverride, false);
 
         const validSkills = engine.skillDB.filter(s => s.role === a.role && (s.team === undefined || s.team === team));

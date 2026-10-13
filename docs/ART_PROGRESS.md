@@ -15,7 +15,7 @@
 | **A1b** [E2E] | 地形測試與 Baseline 重錄 | DONE | `6a2134f` | 縮放目視(0.5x~3x)、5 地形場景 + battle_frozen 重錄、e2e×2 全綠、perf:guard 通過 |
 | **A2a** | 單位外觀資料（SSOT）＋體型軸＋圖集快取 | DONE | `160d125` | `bodyTypes.ts`、`sprite.ts`、`SpriteAtlasStore.ts`、mip、白閃烘焙、14 單元測試 |
 | **A2b** | SpriteUnitRenderer（逐格動畫） | DONE | `c232474` | `SpriteUnitRenderer.ts`、`selectSpriteFrame.ts`、`UnitBodyPainter` 分派、14 單元測試 |
-| **A2e** | 體型隨機派發＋戰場編輯器可改 | PENDING | — | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector |
+| **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE |待 commit | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
 | **A2c** [E2E] | 死亡與狀態整合 | PENDING | — | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | PENDING | — | ParticleTextureStore (Kenney) 或跳過、`docs/ASSET_NEEDS.md` |
 | **REPORT** | 成果報告與交付更新 | PENDING | — | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
@@ -72,6 +72,23 @@
   - `UnitBodyPainter.ts` 依 `UNIT_RENDER_MODE` 與圖集就緒狀態自動分派；當圖集未就緒或模式為 `procedural` 時無縫走舊程序化管線。
 - **單元測試**:
   - `tests/SpriteUnitRenderer.test.ts` 14 項測試全數通過（覆蓋動畫優先序、進度映射、cast 退回、死亡停格、四向判定與滯後防抖）。
+
+### Task A2e: 體型隨機派發＋戰場編輯器可改
+- **產生時確定性派發**:
+  - `AgentManager.matchSalt` 靜態欄位維護開局/重置隨機鹽值，於 `RESET_GAME` 時更新。
+  - `AgentManager.addAgent` 透過 `pickBodyType(a.id, AgentManager.matchSalt)` 確定性計算體型（不消耗模擬 RNG）。
+  - 若指定 `bodyTypeOverride` 則優先尊重。
+- **UICommandSystem 擴充**:
+  - `PLACE_AGENT` 與 `EDIT_AGENT` 支援選填 `bodyType?: BodyTypeId`，寫入 `Agent.bodyType` 並保存狀態。
+- **UI 互動與動態體型清單**:
+  - `MapEditorToolbar`: 單位設置區新增體型選擇群，預設「隨機」，並自 `BODY_TYPE_PROFILE` 動態過濾出 `enabled: true` 的體型項目（現為「男」，FEMALE 等未來啟用時自動出現），以 `draftBodyType` 傳入 `PLACE_AGENT`。
+  - `UnitInspectorBody`: 抽屜面板擴充體型 `<select>` 下拉選單，讀取即時 `resolveBodyType(agent)` 並派發 `EDIT_AGENT` 命令。
+  - 樣式採用內嵌 CSS 物件，維持 0 hardcoded Tailwind palette classes，符合 UIBoundary 護欄要求。
+- **測試與驗證**:
+  - `tests/BodyTypeEditor.test.ts`: 9 項測試全數通過（純函式雜湊決定性、雙體型各 1 權重時 1000 個連號 ID 比例落在 40–60%、fallback 退回、`addAgent` 派發/覆寫、`PLACE_AGENT` 與 `EDIT_AGENT` 命令處理、`RESET_GAME` 更新鹽值）。
+  - `npm test`: 28 檔 263 測試全數通過。
+  - `npm run e2e:ui` 連跑 2 次皆 ALL PASSED（包含 DRAFT 放置體型驗證與 Inspector 體型修改即時反映斷言）。
+  - `perf:fidelity`: 程序化模式驗證與改前逐像素 100% 相同 (0.000 diff)；無更動任何既有 baseline。
 
 ---
 

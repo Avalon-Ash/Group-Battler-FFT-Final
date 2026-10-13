@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { GameEngine } from '../../../engine/game';
-import { Role, Team } from '../../../types';
+import { Role, Team, BodyTypeId } from '../../../types';
+import { BODY_TYPE_PROFILE, resolveBodyType } from '../../../data/units/appearance/bodyTypes';
 import type { AgentView } from '../../../types/UIViewModel';
 import { selectAgentView } from '../../../engine/systems/ui/selectors';
 import { useEngineView } from '../../../hooks/useEngineView';
@@ -23,7 +24,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
     const agentView = useEngineView<AgentView | null>(engine, agentSelector);
     const agent = agentId ? (engine.agents.find(a => a.id === agentId) ?? null) : null;
 
-    const { editAgent } = useEngineCommands(engine);
+    const { editAgent, send } = useEngineCommands(engine);
 
     const [tab, setTab] = useState<TabType>('STATUS');
     const [isConfigExpanded, setIsConfigExpanded] = useState(false);
@@ -90,6 +91,13 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
     const setRole = (r: string) => {
         if (agentId) {
             editAgent(agentId, { role: r as Role });
+            setUpdateCounter(n => n + 1);
+        }
+    };
+
+    const setBodyType = (b: BodyTypeId) => {
+        if (agentId) {
+            send({ type: 'EDIT_AGENT', agentId, bodyType: b });
             setUpdateCounter(n => n + 1);
         }
     };
@@ -216,7 +224,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                         isConfigExpanded ? 'max-h-32 opacity-100 mt-3 pb-1 scale-100' : 'max-h-0 opacity-0 scale-95 origin-top'
                     }`}
                 >
-                    <div className="grid grid-cols-3 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
+                    <div className="grid grid-cols-4 gap-2 bg-black/40 p-2 rounded-xl border border-white/10 shadow-inner">
                         <div className="space-y-1">
                             <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: '#64748b' }}>
                                 職業
@@ -231,6 +239,24 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                                         {ROLE_MAP[r].label.split(' ')[0]}
                                     </option>
                                 ))}
+                            </select>
+                        </div>
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold uppercase tracking-widest block text-center" style={{ color: '#64748b' }}>
+                                體型
+                            </label>
+                            <select
+                                className="liquid-input h-8 w-full text-xs font-bold bg-black/50 !rounded-lg border-white/10 p-0 pl-2 text-white"
+                                value={resolveBodyType(agent)}
+                                onChange={(e) => setBodyType(e.target.value as BodyTypeId)}
+                            >
+                                {(Object.entries(BODY_TYPE_PROFILE) as [BodyTypeId, typeof BODY_TYPE_PROFILE[BodyTypeId]][])
+                                    .filter(([_, profile]) => profile.enabled)
+                                    .map(([typeKey, profile]) => (
+                                        <option key={typeKey} value={typeKey} className="bg-black text-white">
+                                            {profile.label}
+                                        </option>
+                                    ))}
                             </select>
                         </div>
                         <div className="space-y-1">

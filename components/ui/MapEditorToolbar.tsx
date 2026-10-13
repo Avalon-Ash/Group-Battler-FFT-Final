@@ -1,6 +1,6 @@
 
 import React, { useRef } from 'react';
-import { ToolType, Role, HexLayout } from '../../types';
+import { ToolType, Role, HexLayout, BodyTypeId } from '../../types';
 import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
@@ -8,6 +8,7 @@ import { Icons } from './icons';
 import { HexUtils } from '../../engine/utils';
 import { ROLE_MAP } from '../inspector/InspectorConstants';
 import { UI_Z, UI_PIN } from '../../constants';
+import { BODY_TYPE_PROFILE } from '../../data/units/appearance/bodyTypes';
 
 interface MapEditorToolbarProps {
     tool: ToolType;
@@ -26,6 +27,8 @@ interface MapEditorToolbarProps {
     setSpawnMode: (m: 'RANDOM' | 'DRAFT') => void;
     draftRole: Role;
     setDraftRole: (r: Role) => void;
+    draftBodyType?: BodyTypeId;
+    setDraftBodyType: (b?: BodyTypeId) => void;
     hpInput: number;
     setHpInput: (v: number) => void;
     
@@ -42,7 +45,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
     const { 
         tool, setTool, 
         currentSceneId, onSetScene,
-        spawnMode, setSpawnMode, draftRole, setDraftRole, hpInput, setHpInput,
+        spawnMode, setSpawnMode, draftRole, setDraftRole, draftBodyType, setDraftBodyType, hpInput, setHpInput,
         selectedObstacle, setSelectedObstacle,
         hexLayout, onSetLayout
     } = props;
@@ -159,6 +162,29 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                             ))}
                         </select>
                     )}
+                    <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5" title="單位體型">
+                        <button 
+                            onClick={() => setDraftBodyType(undefined)} 
+                            title="隨機體型" 
+                            className="px-2 py-1 rounded text-[11px] font-bold transition-all"
+                            style={draftBodyType === undefined ? { backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9' } : { color: '#64748b' }}
+                        >
+                            隨機
+                        </button>
+                        {(Object.entries(BODY_TYPE_PROFILE) as [BodyTypeId, typeof BODY_TYPE_PROFILE[BodyTypeId]][])
+                            .filter(([_, profile]) => profile.enabled)
+                            .map(([typeKey, profile]) => (
+                                <button 
+                                    key={typeKey}
+                                    onClick={() => setDraftBodyType(typeKey)} 
+                                    title={`指定${profile.label}體型`} 
+                                    className="px-2 py-1 rounded text-[11px] font-bold transition-all"
+                                    style={draftBodyType === typeKey ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' } : { color: '#64748b' }}
+                                >
+                                    {profile.label}
+                                </button>
+                            ))}
+                    </div>
                 </div>
             )}
 
