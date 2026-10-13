@@ -99,24 +99,7 @@ export class SpriteAtlasStore {
      * 載入 manifest.json
      */
     private async loadManifest(): Promise<UnitManifest | null> {
-        if (typeof window === 'undefined') {
-            try {
-                const fs = await import('node:fs');
-                const path = await import('node:path');
-                const localPath = path.join(process.cwd(), 'public', UNIT_SPRITE.manifestPath);
-                if (fs.existsSync(localPath)) {
-                    const data = JSON.parse(fs.readFileSync(localPath, 'utf-8')) as UnitManifest;
-                    this.manifest = data;
-                    this.revision++;
-                    return data;
-                }
-            } catch {
-                // Ignore in non-Node environments
-            }
-            return null;
-        }
-
-        if (typeof fetch === 'undefined') {
+        if (typeof window === 'undefined' || typeof fetch === 'undefined') {
             return null;
         }
         try {

@@ -14,7 +14,7 @@
 | **A1a** | 地形材質貼圖化（TERRAIN_SKIN） | DONE | `ebed9d3` | `TerrainTextureStore.ts`、`TERRAIN_SKIN`、`TerrainRenderer.ts`、回退驗證全綠 |
 | **A1b** [E2E] | 地形測試與 Baseline 重錄 | DONE | `6a2134f` | 縮放目視(0.5x~3x)、5 地形場景 + battle_frozen 重錄、e2e×2 全綠、perf:guard 通過 |
 | **A2a** | 單位外觀資料（SSOT）＋體型軸＋圖集快取 | DONE | `160d125` | `bodyTypes.ts`、`sprite.ts`、`SpriteAtlasStore.ts`、mip、白閃烘焙、14 單元測試 |
-| **A2b** | SpriteUnitRenderer（逐格動畫） | PENDING | — | `SpriteUnitRenderer.ts`、`selectSpriteFrame`、`UnitBodyPainter` 分派 |
+| **A2b** | SpriteUnitRenderer（逐格動畫） | DONE | Pending | `SpriteUnitRenderer.ts`、`selectSpriteFrame.ts`、`UnitBodyPainter` 分派、14 單元測試 |
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | PENDING | — | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector |
 | **A2c** [E2E] | 死亡與狀態整合 | PENDING | — | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | PENDING | — | ParticleTextureStore (Kenney) 或跳過、`docs/ASSET_NEEDS.md` |
@@ -58,6 +58,20 @@
   - `engine/renderers/units/SpriteAtlasStore.ts` 實作懶載入、白閃剪影預烘焙（source-in 填白）、Mip 層級預烘焙（1.0, 0.5, 0.25）與 `selectMipLevel`。
 - **單元測試**:
   - `tests/SpriteAtlas.test.ts` 14 項測試全數通過（涵蓋 manifest 解析、10 組外觀對齊、lookup 回退、體型雜湊分佈、Mip 選擇與 Agent 狀態重設）。
+
+### Task A2b: SpriteUnitRenderer（逐格動畫）
+- **選格純函式**:
+  - `data/units/appearance/selectSpriteFrame.ts` 實作原生四向 (SE/SW/NE/NW) 選擇與滯後防抖（Hysteresis）。
+  - 動畫優先序：死亡 > 受擊 > 施法/攻擊 > 移動(walk) > idle。
+  - cast 缺少時平滑退回 attack；死亡動畫播放完畢後停留於最後一格。
+  - 依 `agent.id` 計算相位偏移錯開呼吸與步頻。
+- **逐格渲染器**:
+  - `engine/renderers/units/factions/SpriteUnitRenderer.ts` 實作原生四向逐格渲染，腳底錨點對齊 (0, 0)，自動匹配 Mip 層級。
+  - 受擊閃白直接 blit 預烘焙剪影，被遮擋輪廓以低 alpha 剪影繪製。
+- **渲染管線分派與回退**:
+  - `UnitBodyPainter.ts` 依 `UNIT_RENDER_MODE` 與圖集就緒狀態自動分派；當圖集未就緒或模式為 `procedural` 時無縫走舊程序化管線。
+- **單元測試**:
+  - `tests/SpriteUnitRenderer.test.ts` 14 項測試全數通過（覆蓋動畫優先序、進度映射、cast 退回、死亡停格、四向判定與滯後防抖）。
 
 ---
 

@@ -9,9 +9,10 @@
 
 import { Agent } from "../../../game";
 import { Team, AnimState, MovementType, ActionState } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y } from "../../../../constants";
+import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, UNIT_RENDER_MODE } from "../../../../constants";
 import { ImperialRenderer } from "../factions/ImperialRenderer";
 import { CovenantRenderer } from "../factions/CovenantRenderer";
+import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitCorePainter } from "./UnitCorePainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
@@ -141,7 +142,11 @@ export const UnitBodyPainter = {
             ctx.globalAlpha *= eased;
         }
 
-        ctx.scale(UNIT_SCALE * squashX, UNIT_SCALE * squashY);
+        const useSprite = UNIT_RENDER_MODE === 'sprite' && SpriteUnitRenderer.canRender(agent);
+        const effSquashX = useSprite ? 1.0 : squashX;
+        const effSquashY = useSprite ? 1.0 : squashY;
+
+        ctx.scale(UNIT_SCALE * effSquashX, UNIT_SCALE * effSquashY);
         ctx.rotate(finalRotation);
 
         let bodyFloat = 0; 
@@ -152,7 +157,7 @@ export const UnitBodyPainter = {
         }
         ctx.translate(0, bodyFloat);
 
-        if (hitBrightness > 0) {
+        if (hitBrightness > 0 && !useSprite) {
              ctx.filter = `brightness(${hitBrightness}%) contrast(120%)`;
         }
 
@@ -167,18 +172,22 @@ export const UnitBodyPainter = {
             }
         }
 
-        ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-
         if (agent.visualStatus === 'POLYMORPH' && !isSilhouette) {
+            ctx.scale(agent.facing > 0 ? 1 : -1, 1);
             const sheep = SpriteManager.getSpecialModel('SHEEP');
             const bounce = Math.abs(Math.sin(t * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
             // Layer 2: Main Body
-            if (agent.team === Team.BLUE) {
-                ImperialRenderer.draw(ctx, agent, t, isSilhouette);
+            if (useSprite) {
+                SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                CovenantRenderer.draw(ctx, agent, t, isSilhouette);
+                ctx.scale(agent.facing > 0 ? 1 : -1, 1);
+                if (agent.team === Team.BLUE) {
+                    ImperialRenderer.draw(ctx, agent, t, isSilhouette);
+                } else {
+                    CovenantRenderer.draw(ctx, agent, t, isSilhouette);
+                }
             }
 
             // Layer 3: Ambient Faction VFX
