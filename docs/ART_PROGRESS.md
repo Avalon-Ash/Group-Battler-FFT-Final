@@ -16,7 +16,7 @@
 | **A2a** | 單位外觀資料（SSOT）＋體型軸＋圖集快取 | DONE | `160d125` | `bodyTypes.ts`、`sprite.ts`、`SpriteAtlasStore.ts`、mip、白閃烘焙、14 單元測試 |
 | **A2b** | SpriteUnitRenderer（逐格動畫） | DONE | `c232474` | `SpriteUnitRenderer.ts`、`selectSpriteFrame.ts`、`UnitBodyPainter` 分派、14 單元測試 |
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
-| **A2c** [E2E] | 死亡與狀態整合 | PENDING | — | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
+| **A2c** [E2E] | 死亡與狀態整合 | DONE | `PENDING` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | PENDING | — | ParticleTextureStore (Kenney) 或跳過、`docs/ASSET_NEEDS.md` |
 | **REPORT** | 成果報告與交付更新 | PENDING | — | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
 | **FINAL** | 全量驗證與 Checkpoint Tags | PENDING | — | lint/test/build/e2e×2/perf:guard、tags 打點 |
@@ -88,9 +88,28 @@
   - `tests/BodyTypeEditor.test.ts`: 9 項測試全數通過（純函式雜湊決定性、雙體型各 1 權重時 1000 個連號 ID 比例落在 40–60%、fallback 退回、`addAgent` 派發/覆寫、`PLACE_AGENT` 與 `EDIT_AGENT` 命令處理、`RESET_GAME` 更新鹽值）。
   - `npm test`: 28 檔 263 測試全數通過。
   - `npm run e2e:ui` 連跑 2 次皆 ALL PASSED（包含 DRAFT 放置體型驗證與 Inspector 體型修改即時反映斷言）。
-  - `perf:fidelity`: 程序化模式驗證與改前逐像素 100% 相同 (0.000 diff)；無更動任何既有 baseline。
+### Task A2c: 死亡與狀態整合與驗證 [E2E]
+- **Sprite 死亡動畫與淡出管線**:
+  - `engine/renderers/units/painters/UnitDeathPainter.ts`:
+    - 當 `UNIT_RENDER_MODE === 'sprite'` 且圖集已載入時，播放 6 格死亡動畫（8 fps，持續 ~0.75 秒），播畢停留在最後一格。
+    - 進入淡出期（`deathFadeDuration = 0.5s`）時，以 smoothstep 衰減 alpha，並同步向下沉降 12px 強化歸於塵土的厚重反饋。
+    - 圖集未載入或處於 procedural 模式時，100% 平滑退回既有倒地散件/骨骼縮放淡出管線。
+- **單元測試**:
+  - `tests/SpriteUnitRenderer.test.ts` 新增死亡格選取（5格上限停留）、淡出進度與沉降運算測試，16 項測試全數通過。
+- **Before / After 比對**:
+  - 建立 `tools/assets/create-battle-comparison.mjs`，產出 `tools/ui-e2e/out/art_before_after_battle_frozen.png` (Procedural vs Sprite HD 戰場定格對比)。
+- **Baseline 重錄授權與執行**:
+  - 依 `docs/ART_AGENT_PROMPT.md` 特殊授權重錄 A2 之 `battle_frozen.png`。
+  - 雙次獨立執行 `perf:fidelity` 達成 100% pixel-identical (meanAbsDiff=0, badPixelPct=0%)。
+- **全量驗證**:
+  - `npm run lint` 通過 (0 errors)。
+  - `npm test` 通過 (28 files, 265 tests)。
+  - `npm run perf:fidelity` 通過 (0.000 diff，6 場景全綠)。
+  - `npm run perf:guard` 通過 (5.61ms ~ 5.66ms，遠低於 26.4ms 守則門檻)。
+  - `npm run e2e:ui` 連跑 2 次皆 ALL PASSED (包含 E2E 點選座標避開周邊介面之穩定性補強)。
 
 ---
+
 
 ## 前置檢查 (Pre-flight Checklist)
 

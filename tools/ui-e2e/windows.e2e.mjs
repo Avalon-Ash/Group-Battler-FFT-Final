@@ -552,14 +552,20 @@ const runInspectorCommandSuite = async () => {
             const engine = window.__TACTICAL_ENGINE__;
             if (!engine || !engine.agents || engine.agents.length === 0) return null;
             const alive = engine.agents.filter(a => a.hp > 0);
-            const agent = alive[idx % alive.length] || engine.agents[0];
-            if (!agent) return null;
             const canvas = document.querySelector('canvas');
             if (!canvas) return null;
             const rect = canvas.getBoundingClientRect();
             const cam = engine.renderer.camera;
             const cx = rect.width / 2;
             const cy = rect.height / 2;
+            const candidates = alive.filter(u => {
+                const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(u.q, u.r) : 0;
+                const sx = rect.left + (u.px - cam.x) * cam.zoom + cx;
+                const sy = rect.top + (u.py - terrainH - cam.y) * cam.zoom + cy;
+                return sx > 380 && sx < rect.width - 100 && sy > 120 && sy < rect.height - 120;
+            });
+            const agent = (candidates.length > 0 ? candidates[idx % candidates.length] : null) || alive[idx % alive.length] || engine.agents[0];
+            if (!agent) return null;
             const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
             const worldX = agent.px;
             const worldY = agent.py - terrainH;
@@ -580,6 +586,12 @@ const runInspectorCommandSuite = async () => {
 
         isInspectorOpen = await editBtn.isVisible();
         if (isInspectorOpen) break;
+    }
+
+    if (!isInspectorOpen) {
+        await openViaMenu(page, 'inspector');
+        await page.waitForTimeout(400);
+        isInspectorOpen = await editBtn.isVisible();
     }
 
     if (!isInspectorOpen) {

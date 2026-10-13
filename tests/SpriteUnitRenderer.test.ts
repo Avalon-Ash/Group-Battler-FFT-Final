@@ -8,6 +8,7 @@ import {
     getAgentPhaseOffset
 } from '../data/units/appearance/selectSpriteFrame';
 import { SpriteUnitRenderer } from '../engine/renderers/units/factions/SpriteUnitRenderer';
+import { UnitDeathPainter } from '../engine/renderers/units/painters/UnitDeathPainter';
 import { spriteAtlasStore, UnitManifest } from '../engine/renderers/units/SpriteAtlasStore';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -208,6 +209,33 @@ describe('Task A2b — SpriteUnitRenderer & selectSpriteFrame Test Suite', () =>
 
             // Without loaded bitmap in Node, canRender checks readiness
             expect(SpriteUnitRenderer.canRender(agent)).toBe(false);
+        });
+    });
+
+    describe('4. UnitDeathPainter Sprite & Fallback Integration (Task A2c)', () => {
+        it('calculates death progress correctly', () => {
+            const agent = new Agent('dead_agent', Team.BLUE, 0, 0, dummyConfig);
+            agent.hp = 0;
+            agent.deathTimer = 2.75;
+            const progress = UnitDeathPainter.getDeathProgress(agent);
+            expect(progress).toBeCloseTo(2.75 / 5.5, 2);
+        });
+
+        it('returns immediately when agent is fullyDead', () => {
+            const agent = new Agent('dead_agent', Team.BLUE, 0, 0, dummyConfig);
+            agent.hp = 0;
+            agent.fullyDead = true;
+
+            const mockCtx = {
+                save: () => {},
+                restore: () => {},
+                drawImage: () => {}
+            } as unknown as CanvasRenderingContext2D;
+
+            // Should not throw or perform operations
+            expect(() => {
+                UnitDeathPainter.draw(mockCtx, agent, 0, 0, 1.0, 0, {}, 0, 0.016);
+            }).not.toThrow();
         });
     });
 });
