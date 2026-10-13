@@ -16,7 +16,7 @@
 | **A2a** | 單位外觀資料（SSOT）＋體型軸＋圖集快取 | DONE | `160d125` | `bodyTypes.ts`、`sprite.ts`、`SpriteAtlasStore.ts`、mip、白閃烘焙、14 單元測試 |
 | **A2b** | SpriteUnitRenderer（逐格動畫） | DONE | `c232474` | `SpriteUnitRenderer.ts`、`selectSpriteFrame.ts`、`UnitBodyPainter` 分派、14 單元測試 |
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
-| **A2c** [E2E] | 死亡與狀態整合 | DONE | `PENDING` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
+| **A2c** [E2E] | 死亡與狀態整合 | DONE | `e73126b` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | PENDING | — | ParticleTextureStore (Kenney) 或跳過、`docs/ASSET_NEEDS.md` |
 | **REPORT** | 成果報告與交付更新 | PENDING | — | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
 | **FINAL** | 全量驗證與 Checkpoint Tags | PENDING | — | lint/test/build/e2e×2/perf:guard、tags 打點 |
