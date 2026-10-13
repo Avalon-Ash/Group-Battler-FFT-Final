@@ -1,4 +1,4 @@
-import { ISO_SCALE_Y, HEX_SIZE, TerrainTheme, RENDER_CACHE } from "../../../constants";
+import { ISO_SCALE_Y, HEX_SIZE, TerrainTheme, RENDER_CACHE, TERRAIN_SKIN } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
@@ -13,6 +13,7 @@ import {
     TerrainSpriteEntry,
     SurfaceFactory,
 } from "./TerrainBlockCache";
+import { terrainTextureStore } from "./TerrainTextureStore";
 
 const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
@@ -29,6 +30,7 @@ function getCoordForVariant(targetVariant: number, variants: number): [number, n
 
 export const TerrainRenderer = {
     store: createTerrainSpriteStore(),
+    lastTextureRev: -1,
 
     drawBlock(
         ctx: CanvasRenderingContext2D,
@@ -44,6 +46,11 @@ export const TerrainRenderer = {
         q: number = 0,
         r2: number = 0
     ) {
+        if (this.lastTextureRev !== terrainTextureStore.getRevision()) {
+            this.lastTextureRev = terrainTextureStore.getRevision();
+            this.store.clear();
+        }
+
         const drawX = Math.floor(x);
         const drawY = Math.floor(y);
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
@@ -131,30 +138,68 @@ export const TerrainRenderer = {
         sCtx.scale(renderScale, renderScale);
         sCtx.translate(anchorX, anchorY);
 
+        const useSkin = TERRAIN_SKIN.enabled && terrainTextureStore.isReady(type);
+        const topImg = useSkin ? terrainTextureStore.getTopImage(type) : null;
+        const sideImg = useSkin ? terrainTextureStore.getSideImage(type) : null;
+
         const drawFace = (idx1: number, idx2: number, color: string, isLightSide: boolean) => {
             const v1 = vertices[idx1], v2 = vertices[idx2];
-            if (Number.isFinite(visualTopY)) {
-                const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
-                grad.addColorStop(0, color);
-                grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
-                sCtx.fillStyle = grad;
-            } else {
-                sCtx.fillStyle = color;
-            }
             sCtx.beginPath();
             sCtx.moveTo(v1.x, v1.y + visualTopY);
             sCtx.lineTo(v2.x, v2.y + visualTopY);
             sCtx.lineTo(v2.x, v2.y + currentPedestalDepth);
             sCtx.lineTo(v1.x, v1.y + currentPedestalDepth);
             sCtx.closePath();
-            sCtx.fill();
-            if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.terrain.sideGrain > 0) {
+
+            if (sideImg) {
                 sCtx.save();
                 sCtx.clip();
                 const minX = Math.min(v1.x, v2.x), maxX = Math.max(v1.x, v2.x);
+                const faceW = maxX - minX;
                 const faceTopY = Math.min(v1.y, v2.y) + visualTopY;
-                MaterialPainter.paintSideGrain(sCtx, minX, faceTopY, maxX - minX, currentPedestalDepth - faceTopY, variant);
+                const faceH = currentPedestalDepth - faceTopY;
+
+                const sidePattern = terrainTextureStore.getSidePattern(sCtx, type);
+                if (sidePattern) {
+                    sCtx.save();
+                    const patMatrix = new DOMMatrix();
+                    const varOffsets = TERRAIN_SKIN.variantOffsets;
+                    const varOffset = varOffsets[variant % varOffsets.length];
+                    patMatrix.translateSelf(minX + varOffset.x, faceTopY);
+                    patMatrix.scaleSelf(TERRAIN_SKIN.sideTexturePxPerUnit * (r / 96), TERRAIN_SKIN.sideTexturePxPerUnit * (r / 96));
+                    sidePattern.setTransform(patMatrix);
+                    sCtx.fillStyle = sidePattern;
+                    sCtx.fillRect(minX, faceTopY, faceW, faceH);
+                    sCtx.restore();
+                }
+
+                if (Number.isFinite(visualTopY)) {
+                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
+                    grad.addColorStop(0, color);
+                    grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
+                    sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
+                    sCtx.fillStyle = grad;
+                    sCtx.fillRect(minX, faceTopY, faceW, faceH);
+                }
                 sCtx.restore();
+            } else {
+                if (Number.isFinite(visualTopY)) {
+                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
+                    grad.addColorStop(0, color);
+                    grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
+                    sCtx.fillStyle = grad;
+                } else {
+                    sCtx.fillStyle = color;
+                }
+                sCtx.fill();
+                if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.terrain.sideGrain > 0) {
+                    sCtx.save();
+                    sCtx.clip();
+                    const minX = Math.min(v1.x, v2.x), maxX = Math.max(v1.x, v2.x);
+                    const faceTopY = Math.min(v1.y, v2.y) + visualTopY;
+                    MaterialPainter.paintSideGrain(sCtx, minX, faceTopY, maxX - minX, currentPedestalDepth - faceTopY, variant);
+                    sCtx.restore();
+                }
             }
         };
 
@@ -168,26 +213,75 @@ export const TerrainRenderer = {
         }
 
         sCtx.translate(0, visualTopY);
-        if (Number.isFinite(r)) {
-            const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
-            topGrad.addColorStop(0, theme.rim); 
-            topGrad.addColorStop(0.3, theme.top);
-            topGrad.addColorStop(1, theme.sideDark); 
-            sCtx.fillStyle = topGrad;
-        } else {
-            sCtx.fillStyle = theme.top;
-        }
-        sCtx.beginPath();
-        sCtx.moveTo(vertices[0].x, vertices[0].y);
-        for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
-        sCtx.closePath();
-        sCtx.fill();
-        sCtx.strokeStyle = theme.rim;
-        sCtx.lineWidth = 1.5; sCtx.globalAlpha = 0.6; sCtx.stroke();
-        sCtx.globalAlpha = 1.0;
+        if (topImg) {
+            sCtx.save();
+            sCtx.beginPath();
+            sCtx.moveTo(vertices[0].x, vertices[0].y);
+            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
+            sCtx.closePath();
+            sCtx.clip();
 
-        const [qCoord, rCoord] = getCoordForVariant(variant, MATERIAL_CONFIG.terrain.grain.variants);
-        MaterialPainter.paintTerrainGrain(sCtx, r, layout, qCoord, rCoord);
+            const topPattern = terrainTextureStore.getTopPattern(sCtx, type);
+            if (topPattern) {
+                const patMatrix = new DOMMatrix();
+                const varOffsets = TERRAIN_SKIN.variantOffsets;
+                const varOffset = varOffsets[variant % varOffsets.length];
+                const scaleX = (r * 2) / TERRAIN_SKIN.texturePxPerHex;
+                const scaleY = scaleX * ISO_SCALE_Y;
+                patMatrix.translateSelf(varOffset.x, varOffset.y);
+                patMatrix.scaleSelf(scaleX, scaleY);
+                topPattern.setTransform(patMatrix);
+                sCtx.fillStyle = topPattern;
+                sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+            }
+
+            if (Number.isFinite(r)) {
+                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
+                topGrad.addColorStop(0, theme.rim);
+                topGrad.addColorStop(0.3, theme.top);
+                topGrad.addColorStop(1, theme.sideDark);
+                sCtx.fillStyle = topGrad;
+                sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
+                sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+            }
+
+            sCtx.globalAlpha = 1.0;
+            const [qCoord, rCoord] = getCoordForVariant(variant, MATERIAL_CONFIG.terrain.grain.variants);
+            MaterialPainter.paintTerrainGrain(sCtx, r, layout, qCoord, rCoord);
+
+            sCtx.restore();
+
+            sCtx.beginPath();
+            sCtx.moveTo(vertices[0].x, vertices[0].y);
+            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
+            sCtx.closePath();
+            sCtx.strokeStyle = theme.rim;
+            sCtx.lineWidth = 1.5;
+            sCtx.globalAlpha = 0.6;
+            sCtx.stroke();
+            sCtx.globalAlpha = 1.0;
+        } else {
+            if (Number.isFinite(r)) {
+                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
+                topGrad.addColorStop(0, theme.rim); 
+                topGrad.addColorStop(0.3, theme.top);
+                topGrad.addColorStop(1, theme.sideDark); 
+                sCtx.fillStyle = topGrad;
+            } else {
+                sCtx.fillStyle = theme.top;
+            }
+            sCtx.beginPath();
+            sCtx.moveTo(vertices[0].x, vertices[0].y);
+            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
+            sCtx.closePath();
+            sCtx.fill();
+            sCtx.strokeStyle = theme.rim;
+            sCtx.lineWidth = 1.5; sCtx.globalAlpha = 0.6; sCtx.stroke();
+            sCtx.globalAlpha = 1.0;
+
+            const [qCoord, rCoord] = getCoordForVariant(variant, MATERIAL_CONFIG.terrain.grain.variants);
+            MaterialPainter.paintTerrainGrain(sCtx, r, layout, qCoord, rCoord);
+        }
 
         sCtx.restore();
 
@@ -199,6 +293,7 @@ export const TerrainRenderer = {
             height: localH,
         };
     },
+
 
     drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: TerrainTheme, alpha: number = 1.0) {
         const isFloatingBiome = type === 'VOID' || type === 'MAGMA';

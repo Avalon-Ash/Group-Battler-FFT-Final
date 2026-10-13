@@ -368,6 +368,41 @@ export const TERRAIN_THEMES: Record<string, TerrainTheme> = {
     'DESERT': { top: '#b45309', sideLight: '#d97706', sideDark: '#78350f', detail: '#fde047', rim: '#fcd34d' }  // Sandstone
 };
 
+export interface TerrainSkinThemePaths {
+    top: string;
+    side: string;
+}
+
+export interface TerrainSkinConfig {
+    enabled: boolean;
+    texturePxPerHex: number;
+    sideTexturePxPerUnit: number;
+    tintStrength: number;
+    variantOffsets: readonly { x: number; y: number }[];
+    themes: Record<string, TerrainSkinThemePaths>;
+}
+
+export const TERRAIN_SKIN: TerrainSkinConfig = {
+    enabled: true,
+    texturePxPerHex: 96,
+    sideTexturePxPerUnit: 1.0,
+    tintStrength: 0.35,
+    variantOffsets: [
+        { x: 0, y: 0 },
+        { x: 128, y: 64 },
+        { x: 256, y: 128 },
+        { x: 384, y: 192 },
+    ] as const,
+    themes: {
+        VOID: { top: 'assets/terrain/void_top.webp', side: 'assets/terrain/void_side.webp' },
+        FOREST: { top: 'assets/terrain/forest_top.webp', side: 'assets/terrain/forest_side.webp' },
+        ICE: { top: 'assets/terrain/ice_top.webp', side: 'assets/terrain/ice_side.webp' },
+        MAGMA: { top: 'assets/terrain/magma_top.webp', side: 'assets/terrain/magma_side.webp' },
+        DESERT: { top: 'assets/terrain/desert_top.webp', side: 'assets/terrain/desert_side.webp' },
+    },
+};
+
+
 export interface ObstacleStyle { main: string; light: string; dark: string; detail: string; highlight: string; sideLight?: string; sideDark?: string }
 
 export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
