@@ -77,8 +77,9 @@ export class TerrainTextureStore {
 
         return Promise.all(loadPromises).then(() => {
             if (typeof window !== 'undefined') {
-                const win = window as unknown as { __TERRAIN_ASSETS_READY__?: boolean };
+                const win = window as unknown as { __TERRAIN_ASSETS_READY__?: boolean; __ASSETS_READY__?: boolean };
                 win.__TERRAIN_ASSETS_READY__ = true;
+                win.__ASSETS_READY__ = true;
             }
         });
     }

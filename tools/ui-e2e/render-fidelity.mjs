@@ -65,9 +65,11 @@ const createHarnessContext = async () => {
             return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
         }
         Math.random = mulberry32;
-        window.__resetSeed = (s = 1337) => { seed = s; };
-
         let syntheticTime = 1000.0;
+        window.__resetSeed = (s = 1337) => {
+            seed = s;
+            syntheticTime = 1000.0;
+        };
         Date.now = () => Math.floor(syntheticTime);
         performance.now = () => syntheticTime;
 
@@ -179,6 +181,7 @@ const createHarnessContext = async () => {
     });
 
     await page.goto(`${baseUrl}?quality=0&mute`, { waitUntil: 'networkidle' });
+    await page.waitForFunction(() => window.__ASSETS_READY__ === true, null, { timeout: 10000 }).catch(() => {});
     // Step a few frames to let React and ResizeObserver mount
     await page.evaluate(() => window.__stepFrames(10));
     // Enter manual mode
@@ -264,8 +267,10 @@ try {
 
         // Test determinism of battle_frozen across two separate context runs
         console.log('Recording and testing determinism of: battle_frozen');
-        const shot1 = await captureBattleFrozen(page);
         await ctx.close();
+        const h1 = await createHarnessContext();
+        const shot1 = await captureBattleFrozen(h1.page);
+        await h1.ctx.close();
 
         // Fresh context for run 2
         const h2 = await createHarnessContext();
