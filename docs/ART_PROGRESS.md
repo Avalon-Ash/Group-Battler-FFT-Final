@@ -18,8 +18,8 @@
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager`、`PLACE/EDIT_AGENT`、MapEditorToolbar、Inspector、9 測試、e2e×2 全綠 |
 | **A2c** [E2E] | 死亡與狀態整合 | DONE | `e73126b` | `UnitDeathPainter`、battle_frozen 重錄、e2e×2、效能守則 |
 | **A3** | 特效粒子材質與障礙物清單 | DONE | `c68bf1e` | Kenney CC0 貼圖、ParticleTextureStore、VFX_SPRITES、ASSET_NEEDS.md |
-| **REPORT** | 成果報告與交付更新 | DONE | `PENDING` | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
-| **FINAL** | 全量驗證與 Checkpoint Tags | DONE | `PENDING` | lint/test/build/e2e×2/perf:guard、tags 打點 |
+| **REPORT** | 成果報告與交付更新 | DONE | `fd9559b` | `docs/ART_REPORT.md`、`docs/DECOUPLING_HANDOFF.md` §11 |
+| **FINAL** | 全量驗證與 Checkpoint Tags | DONE | `art-ckpt-final` | lint/test/build/e2e×2/perf:guard、tags 打點 |
 
 ---
 
