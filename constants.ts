@@ -404,9 +404,11 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
 // 2.5D Unit Sprite & Fantasy HD Art Configuration (SSOT)
 // ══════════════════════════════════════════════════════════════
 
+/** 護盾稜柱：height 為圖集未就緒時的預設高度；實際高度＝角色頭頂高度＋headMargin（見 ShieldPainter） */
 export const SHIELD_VISUAL = {
     height: 80,
     radius: 38,
+    headMargin: 8,
 } as const;
 
 export const UNIT_SPRITE = {

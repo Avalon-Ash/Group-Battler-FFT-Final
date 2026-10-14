@@ -1,8 +1,26 @@
 import { Agent } from "../../../game";
 import { Team, HexLayout } from "../../../../types";
-import { SHIELD_VISUAL } from "../../../../constants";
+import { SHIELD_VISUAL, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
+import { SpriteUnitRenderer } from "../../units/factions/SpriteUnitRenderer";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
+
+export interface ShieldGeometry {
+    /** 稜柱總高度（螢幕單位） */
+    height: number;
+    /** 稜柱中心相對 body center Y 的垂直位移（正值＝往下），使稜柱底部貼齊腳底 */
+    centerOffsetY: number;
+}
+
+/**
+ * 依角色頭頂高度計算護盾稜柱幾何（純函式，便於測試）。
+ * @param headHeight 腳底到頭頂的螢幕高度；null 表示圖集未就緒，退回 SHIELD_VISUAL.height
+ */
+export function computeShieldGeometry(headHeight: number | null): ShieldGeometry {
+    const height = headHeight === null ? SHIELD_VISUAL.height : headHeight + SHIELD_VISUAL.headMargin;
+    const feetDropY = UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
+    return { height, centerOffsetY: feetDropY - height / 2 };
+}
 
 export const ShieldPainter = {
     /**
@@ -26,13 +44,15 @@ export const ShieldPainter = {
         const pulse = 0.3 + (pct * 0.4) + Math.sin(t * 5) * 0.1;
         
         ctx.save();
-        ctx.translate(x, y); 
-        
-        // 使用 3D 稜柱繪製體積感
-        // 向上抬升一半高度以實現垂直居中
-        const shieldH = SHIELD_VISUAL.height;
+
+        // 護盾高度＝角色頭頂高度＋餘裕，底部貼齊腳底；y 為 body center（已含飛行升空），
+        // 所以飛行單位的護盾會自動跟著升空，不需額外處理。
+        const geometry = computeShieldGeometry(SpriteUnitRenderer.getHeadHeight(agent));
+        const shieldH = geometry.height;
         const shieldR = SHIELD_VISUAL.radius;
-        
+        ctx.translate(x, y + geometry.centerOffsetY);
+
+        // 使用 3D 稜柱繪製體積感（以稜柱中心為原點）
         ctx.globalCompositeOperation = 'screen';
         // [FIX] Pass layout to VolumePainter
         VolumePainter.draw3DPrism(ctx, 0, shieldH/2, shieldR, shieldH, baseColor, pulse, 'GRADIENT_FADE', layout);

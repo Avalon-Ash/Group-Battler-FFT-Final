@@ -69,6 +69,26 @@ export function computeSpriteDrawRect(
 
 export const SpriteUnitRenderer = {
     /**
+     * 單位站姿「腳底到頭頂」的螢幕高度（世界座標、不受 UNIT_SCALE 影響）。
+     * 供護盾等外框貼合實際角色高度（含體型縮放；飛行單位的升空位移由呼叫端的 body center Y 負責）。
+     * 圖集未就緒或查無外觀時回傳 null，呼叫端應退回預設尺寸。
+     */
+    getHeadHeight(agent: Agent): number | null {
+        if (!spriteAtlasStore.isReady()) return null;
+        const bodyType = resolveBodyType(agent);
+        const bodyProfile = BODY_TYPE_PROFILE[bodyType];
+        const appearance = lookupSpriteAppearance(agent.team, agent.role, bodyType);
+        if (!appearance) return null;
+        const unitDef = spriteAtlasStore.getUnitDef(appearance.manifestKey);
+        if (!unitDef) return null;
+        const manifest = spriteAtlasStore.getManifest();
+        const refHeight = manifest?.referenceHeightPx ?? UNIT_SPRITE.referenceHeightPx;
+        const screenScale = computeSpriteScreenScale(refHeight, bodyProfile?.heightScale ?? 1.0);
+        return (unitDef.idleHeightPx - (bodyProfile?.anchorYOffset ?? 0)) * screenScale;
+    },
+
+
+    /**
      * 檢查指定單位是否可由精靈圖集繪製
      */
     canRender(agent: Agent): boolean {
