@@ -246,5 +246,5 @@ npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
 ---
 
 <div align="center">
-<sub>Designed & Directed by Avalon-Ash ｜ Built with Gemini AI Studio</sub>
+<sub>Designed & Directed by Avalon-Ash</sub>
 </div>
