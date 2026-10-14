@@ -1,18 +1,43 @@
-
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, RENDER_CACHE } from "../../../constants";
 import { VFXFactory } from "../VFXFactory";
 import { HexGeometry } from "../utils/HexGeometry";
 import { HexLayout } from "../../../types";
 import { createCanvas } from "../CanvasUtils";
+import { RenderStats } from "../../renderers/RenderStats";
+import { CtxOpCounter } from "../../renderers/CtxOpCounter";
+
+export interface LiquidCacheSlot {
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D;
+    color: string;
+    layout: HexLayout;
+    quantizedTime: number;
+    quantizedIntensity: number;
+    center: number;
+    lastUsedTick: number;
+}
 
 export const SurfacePainter = {
-    _liquidCache: null as {
-        canvas: HTMLCanvasElement;
-        ctx: CanvasRenderingContext2D;
-        key: string;
-        center: number;
-    } | null,
+    _liquidSlots: [] as LiquidCacheSlot[],
+    _liquidTick: 0,
+    _liquidBakeCount: 0,
+    _liquidHitCount: 0,
     _iceGrad: null as { grad: CanvasGradient; key: string } | null,
+
+    resetLiquidStats() {
+        this._liquidSlots.length = 0;
+        this._liquidTick = 0;
+        this._liquidBakeCount = 0;
+        this._liquidHitCount = 0;
+    },
+
+    getLiquidStats() {
+        return {
+            slots: this._liquidSlots.length,
+            bakes: this._liquidBakeCount,
+            hits: this._liquidHitCount,
+        };
+    },
     
     drawLiquid(
         ctx: CanvasRenderingContext2D,
@@ -22,31 +47,73 @@ export const SurfacePainter = {
         intensity: number,
         layout: HexLayout = 'FLAT' 
     ) {
+        if (RenderStats.enabled) RenderStats.beginSubPhase('liquid');
+        if (CtxOpCounter.enabled) CtxOpCounter.setScope('liquid');
+
         const r = HEX_SIZE * 0.9;
         const pad = 2;
         const totalSize = Math.ceil((r + pad) * 2);
         const center = totalSize / 2;
-        const key = `${color}:${time}:${intensity}:${layout}`;
+        const step = RENDER_CACHE.LIQUID_TIME_STEP;
+        const quantizedTime = Math.round(time / step) * step;
+        const quantizedIntensity = Math.round(intensity * 100) / 100;
 
-        if (!this._liquidCache) {
-            const { canvas, ctx: lCtx } = createCanvas(totalSize, totalSize);
-            this._liquidCache = { canvas, ctx: lCtx, key: '', center };
+        let slot: LiquidCacheSlot | undefined;
+        for (let i = 0; i < this._liquidSlots.length; i++) {
+            const candidate = this._liquidSlots[i];
+            if (candidate.color === color && candidate.layout === layout) {
+                slot = candidate;
+                break;
+            }
         }
 
-        if (this._liquidCache.key !== key) {
-            const lCtx = this._liquidCache.ctx;
+        if (!slot) {
+            if (this._liquidSlots.length < RENDER_CACHE.LIQUID_CACHE_SLOTS) {
+                const { canvas, ctx: lCtx } = createCanvas(totalSize, totalSize);
+                slot = {
+                    canvas,
+                    ctx: lCtx,
+                    color,
+                    layout,
+                    quantizedTime: Number.NaN,
+                    quantizedIntensity: Number.NaN,
+                    center,
+                    lastUsedTick: ++this._liquidTick,
+                };
+                this._liquidSlots.push(slot);
+            } else {
+                let oldestIdx = 0;
+                for (let i = 1; i < this._liquidSlots.length; i++) {
+                    if (this._liquidSlots[i].lastUsedTick < this._liquidSlots[oldestIdx].lastUsedTick) {
+                        oldestIdx = i;
+                    }
+                }
+                slot = this._liquidSlots[oldestIdx];
+                slot.color = color;
+                slot.layout = layout;
+                slot.quantizedTime = Number.NaN;
+                slot.quantizedIntensity = Number.NaN;
+                slot.lastUsedTick = ++this._liquidTick;
+            }
+        } else {
+            slot.lastUsedTick = ++this._liquidTick;
+        }
+
+        if (slot.quantizedTime !== quantizedTime || slot.quantizedIntensity !== quantizedIntensity) {
+            this._liquidBakeCount++;
+            const lCtx = slot.ctx;
             lCtx.clearRect(0, 0, totalSize, totalSize);
             lCtx.save();
             lCtx.translate(center, center);
 
             HexGeometry.traceHex(lCtx, 0, 0, r, true, layout);
             lCtx.fillStyle = color;
-            lCtx.globalAlpha = 0.9 * intensity;
+            lCtx.globalAlpha = 0.9 * quantizedIntensity;
             lCtx.fill();
             lCtx.clip();
 
-            const flowX = Math.sin(time * 0.5) * 8;
-            const flowY = Math.cos(time * 0.4) * 8;
+            const flowX = Math.sin(quantizedTime * 0.5) * 8;
+            const flowY = Math.cos(quantizedTime * 0.4) * 8;
 
             lCtx.globalCompositeOperation = 'multiply';
             lCtx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -58,18 +125,23 @@ export const SurfacePainter = {
             lCtx.fillStyle = '#fff';
             lCtx.globalAlpha = 0.3;
 
-            const bubbleX = Math.cos(time * 0.8) * (r * 0.4);
-            const bubbleY = Math.sin(time * 0.9) * (r * 0.4) * ISO_SCALE_Y;
+            const bubbleX = Math.cos(quantizedTime * 0.8) * (r * 0.4);
+            const bubbleY = Math.sin(quantizedTime * 0.9) * (r * 0.4) * ISO_SCALE_Y;
 
             lCtx.beginPath();
             lCtx.arc(bubbleX, bubbleY, r * 0.3, 0, Math.PI * 2);
             lCtx.fill();
 
             lCtx.restore();
-            this._liquidCache.key = key;
+            slot.quantizedTime = quantizedTime;
+            slot.quantizedIntensity = quantizedIntensity;
+        } else {
+            this._liquidHitCount++;
         }
 
-        ctx.drawImage(this._liquidCache.canvas, x - center, y - center);
+        ctx.drawImage(slot.canvas, x - center, y - center);
+
+        if (RenderStats.enabled) RenderStats.endSubPhase('liquid');
     },
 
     /**

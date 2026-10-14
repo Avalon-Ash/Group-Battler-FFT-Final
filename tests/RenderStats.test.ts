@@ -112,5 +112,53 @@ describe('RenderStatsCollector', () => {
 
         vi.restoreAllMocks();
     });
+
+    it('records spike snapshots (> 16.7ms) in bounded ring buffer (64) with circular overwrite and zero overhead when disabled', () => {
+        const origWindow = (globalThis as unknown as { window?: unknown }).window;
+        const fakeWin: { __PERF_SPIKES__?: unknown[] } = {};
+        (globalThis as unknown as { window?: unknown }).window = fakeWin;
+
+        try {
+            const collector = new RenderStatsCollector();
+            collector.setEnabled(false);
+
+            // Disabled: zero overhead, no spikes recorded even for 50ms frame
+            collector.recordFrame(100, 50.0);
+            expect(collector.getSpikeCount()).toBe(0);
+            expect(collector.getSpikes()).toEqual([]);
+            expect(collector.formatSpikeSummary()).toBe('');
+
+            // Enable and inject normal + spike frames
+            collector.setEnabled(true);
+            collector.recordTerrainCacheHit();
+            collector.recordTerrainCacheMiss();
+
+            // Below threshold (<= 16.7ms) -> ignored by spike ring
+            collector.recordFrame(200, 16.0);
+            collector.recordFrame(216, 16.7);
+            expect(collector.getSpikeCount()).toBe(0);
+
+            // Inject 70 spike frames (> 16.7ms) to exceed SPIKE_RING_SIZE (64)
+            for (let i = 1; i <= 70; i++) {
+                collector.recordFrame(1000 + i * 25, 20 + i * 0.5);
+            }
+
+            expect(collector.getSpikeCount()).toBe(70);
+            expect(collector.getMaxSpikeMs()).toBeCloseTo(20 + 70 * 0.5, 2);
+            expect(collector.formatSpikeSummary()).toBe('spikes>16.7ms: 70 (max 55.0ms)');
+
+            const spikes = collector.getSpikes();
+            expect(spikes.length).toBe(64);
+            // First 6 spikes (i=1..6) were overwritten; oldest remaining is i=7 (dt = 23.5ms)
+            expect(spikes[0].frameMs).toBeCloseTo(20 + 7 * 0.5, 2);
+            // Newest is i=70 (dt = 55.0ms)
+            expect(spikes[63].frameMs).toBeCloseTo(20 + 70 * 0.5, 2);
+            expect(spikes[63].terrainCache).toEqual({ hits: 1, misses: 1, evictions: 0 });
+            expect(Array.isArray(fakeWin.__PERF_SPIKES__)).toBe(true);
+            expect(fakeWin.__PERF_SPIKES__?.length).toBe(64);
+        } finally {
+            (globalThis as unknown as { window?: unknown }).window = origWindow;
+        }
+    });
 });
 

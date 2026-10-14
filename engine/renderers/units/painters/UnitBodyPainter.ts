@@ -9,12 +9,9 @@
 
 import { Agent } from "../../../game";
 import { Team, AnimState, MovementType, ActionState } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, UNIT_RENDER_MODE } from "../../../../constants";
-import { ImperialRenderer } from "../factions/ImperialRenderer";
-import { CovenantRenderer } from "../factions/CovenantRenderer";
+import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, PALETTE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
-import { UnitCorePainter } from "./UnitCorePainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
@@ -29,12 +26,10 @@ export const UnitBodyPainter = {
         px: number, py: number, 
         t: number, 
         isSilhouette: boolean, 
-        isSelected: boolean,
-        scaleFactor: number,
+        _isSelected: boolean,
+        _scaleFactor: number,
         terrainHeight: number
     ) {
-        // [ARCH] 存活檢查：UnitBodyPainter 僅負責 hp > 0 的視覺表現
-        // 死亡演出已遷移至 UnitDeathPainter.draw() 並由 UnitRenderSystem 統一調度
         if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
         
         const vx = agent.physics.vx;
@@ -44,7 +39,6 @@ export const UnitBodyPainter = {
         let tiltAngle = 0;
         let isHighSpeed = false;
 
-        // SSOT: Use defined thresholds
         if (speedSq > VFX_PARAM.SPEED_TRAIL_THRESHOLD_SQ) {
             const speed = Math.sqrt(speedSq);
             isHighSpeed = speed > VFX_PARAM.SPEED_TILT_THRESHOLD;
@@ -52,21 +46,17 @@ export const UnitBodyPainter = {
             const dirX = vx / speed;
             const dot = dirX * agent.facing; 
             const maxTilt = 0.5; 
-            // Calculate tilt based on reference max speed
-            let tiltFactor = Math.min(1.0, speed / VFX_PARAM.SPEED_MAX_TILT_REF) * maxTilt;
+            const tiltFactor = Math.min(1.0, speed / VFX_PARAM.SPEED_MAX_TILT_REF) * maxTilt;
             
             if (dot > 0) tiltAngle = tiltFactor * agent.facing;
             else tiltAngle = -tiltFactor * agent.facing * 1.5; 
         }
 
         const finalRotation = agent.physics.angle + tiltAngle;
-
         const isDashing = agent.actionState === ActionState.EVADING;
 
-        // Draw High Speed Ghosts / Trails (Behind Body)
         if ((isHighSpeed || isDashing) && !isSilhouette && agent.hp > 0) {
             if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.motionTrail.enabled) {
-                // [MATERIAL UPGRADE] 動態拖尾：以遞減 alpha 疊繪單位貼圖殘影
                 const assets = SpriteManager.getUnitImages(agent.role, agent.team);
                 const pz = agent.physics.z;
                 const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
@@ -77,7 +67,6 @@ export const UnitBodyPainter = {
                 MaterialPainter.drawMotionTrail(ctx, assets.base, 64, vx, screenVy, 0.45);
                 ctx.restore();
             } else {
-                // 原本的 screen 幾何 ghost 作為 fallback
                 const history = agent.trailHistory;
                 const step = 2;
                 const maxGhosts = 2;
@@ -107,46 +96,24 @@ export const UnitBodyPainter = {
         ctx.save(); 
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-        // Apply visual offset for hit shake without polluting physics position
         ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y); 
 
-        // Task 5: CAST_ULT Pulsing
         if (agent.animState === AnimState.CAST_ULT) {
             const progress = 1 - (agent.castTimer / (agent.castingAnimationTimer || 1));
             const ultPulse = 1 + 0.15 * Math.abs(Math.sin(progress * Math.PI * 3));
             ctx.scale(ultPulse, ultPulse);
         }
-        
-        let hitBrightness = 0;
-        let squashX = 1.0;
-        let squashY = 1.0;
 
-        if (agent.hitFlashTimer > 0 && !isSilhouette) {
-            const trauma = agent.hitFlashTimer / 0.1; 
-            squashY = 1.0 - (trauma * 0.3);
-            squashX = 1.0 + (trauma * 0.2);
-            hitBrightness = 100 + Math.sin(t * 50) * 80;
-        }
-
-        // Spawn Animation: Drop-In instead of Stretch
         if (agent.spawnTimer > 0) {
             const SPAWN_DURATION = 0.5; 
             const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 
             const eased = 1 - Math.pow(1 - progress, 3); 
-            
-            // Drop from height (-40px) to 0
             const dropOffset = (1 - eased) * -40;
             ctx.translate(0, dropOffset);
-            
-            // Fade in
             ctx.globalAlpha *= eased;
         }
 
-        const useSprite = UNIT_RENDER_MODE === 'sprite' && SpriteUnitRenderer.canRender(agent);
-        const effSquashX = useSprite ? 1.0 : squashX;
-        const effSquashY = useSprite ? 1.0 : squashY;
-
-        ctx.scale(UNIT_SCALE * effSquashX, UNIT_SCALE * effSquashY);
+        ctx.scale(UNIT_SCALE, UNIT_SCALE);
         ctx.rotate(finalRotation);
 
         let bodyFloat = 0; 
@@ -157,13 +124,8 @@ export const UnitBodyPainter = {
         }
         ctx.translate(0, bodyFloat);
 
-        if (hitBrightness > 0 && !useSprite) {
-             ctx.filter = `brightness(${hitBrightness}%) contrast(120%)`;
-        }
-
         // Layer 1: Rear Effects (Ribbons/Engines)
         if (agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
-            // Re-use threshold logic for trails
             if (agent.movementType === MovementType.FLYING || speedSq > 5000) {
                 UnitFlightPainter.drawRibbonTrail(ctx, agent, t, terrainHeight);
             }
@@ -178,16 +140,15 @@ export const UnitBodyPainter = {
             const bounce = Math.abs(Math.sin(t * 5) * 5);
             ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
         } else {
-            // Layer 2: Main Body
-            if (useSprite) {
+            // Layer 2: Main Body (Sprite Atlas with 5-line team circle fallback on load failure)
+            if (SpriteUnitRenderer.canRender(agent)) {
                 SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-                if (agent.team === Team.BLUE) {
-                    ImperialRenderer.draw(ctx, agent, t, isSilhouette);
-                } else {
-                    CovenantRenderer.draw(ctx, agent, t, isSilhouette);
-                }
+                const palette = PALETTE.TEAMS[agent.team] || PALETTE.TEAMS[Team.BLUE];
+                ctx.fillStyle = isSilhouette ? '#ffffff' : palette.main;
+                ctx.beginPath();
+                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.fill();
             }
 
             // Layer 3: Ambient Faction VFX

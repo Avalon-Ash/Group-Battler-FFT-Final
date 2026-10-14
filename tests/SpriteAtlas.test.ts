@@ -20,7 +20,7 @@ import {
     selectMipLevel,
     UnitManifest
 } from '../engine/renderers/units/SpriteAtlasStore';
-import { UNIT_RENDER_MODE, UNIT_SPRITE } from '../constants';
+import { UNIT_SPRITE } from '../constants';
 
 const dummyConfig: MapConfig = {
     w: 10,
@@ -181,9 +181,8 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
     });
 
     describe('4. Mip Level Pure Function & Constants', () => {
-        it('UNIT_RENDER_MODE and UNIT_SPRITE constants are properly defined', () => {
-            expect(UNIT_RENDER_MODE).toBe('sprite');
-            expect(UNIT_SPRITE.targetHeightCanvasUnits).toBe(52);
+        it('UNIT_SPRITE constants are properly defined', () => {
+            expect(UNIT_SPRITE.targetHeightCanvasUnits).toBe(59);
             expect(UNIT_SPRITE.referenceHeightPx).toBeCloseTo(158.3, 1);
             expect(UNIT_SPRITE.mipLevels).toEqual([1.0, 0.5, 0.25]);
         });

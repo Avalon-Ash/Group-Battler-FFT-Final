@@ -171,5 +171,132 @@ describe('TerrainBlockCache', () => {
                 MATERIAL_CONFIG.terrain.grain.strength = origStrength;
             }
         });
+
+        it('tracks hits, misses, and evictions accurately and reports to RenderStats when enabled', async () => {
+            const { RenderStats } = await import('../engine/renderers/RenderStats');
+            RenderStats.reset();
+            RenderStats.setEnabled(true);
+
+            try {
+                const key = terrainSpriteKey(dummyTheme, dummyLayout, 'magma', 2, 1, 0, 1);
+                store.get(key, () => createDummyEntry());
+                store.get(key, () => createDummyEntry());
+                store.get(key, () => createDummyEntry());
+
+                const stats1 = store.getStats();
+                expect(stats1.misses).toBe(1);
+                expect(stats1.hits).toBe(2);
+                expect(stats1.evictions).toBe(0);
+
+                const rStats1 = RenderStats.getTerrainCacheStats();
+                expect(rStats1.misses).toBe(1);
+                expect(rStats1.hits).toBe(2);
+                expect(rStats1.evictions).toBe(0);
+
+                // Fill up to MAX_TERRAIN_SPRITES and trigger 1 overflow eviction
+                for (let i = 1; i < RENDER_CACHE.MAX_TERRAIN_SPRITES; i++) {
+                    const k = terrainSpriteKey(dummyTheme, dummyLayout, `magma_${i}`, 0, 0, 0, 1);
+                    store.get(k, () => createDummyEntry());
+                }
+                expect(store.size()).toBe(RENDER_CACHE.MAX_TERRAIN_SPRITES);
+
+                const overflowKey = terrainSpriteKey(dummyTheme, dummyLayout, 'magma_overflow', 0, 0, 0, 1);
+                store.get(overflowKey, () => createDummyEntry());
+
+                const stats2 = store.getStats();
+                expect(stats2.evictions).toBe(RENDER_CACHE.MAX_TERRAIN_SPRITES);
+                expect(RenderStats.getTerrainCacheStats().evictions).toBe(RENDER_CACHE.MAX_TERRAIN_SPRITES);
+            } finally {
+                RenderStats.setEnabled(false);
+                RenderStats.reset();
+            }
+        });
+
+        it('holds full MAGMA/VOID floating cycle (10 heights x 4 variants x 17 float steps = 680 sprites) with 0 evictions', () => {
+            let bakeCount = 0;
+            // Simulate 2 full floating cycles across 10 heights, 4 variants, and all 17 quantized float offsets (-4.0 to +4.0 step 0.5)
+            for (let cycle = 0; cycle < 2; cycle++) {
+                for (let h = 0; h < 10; h++) {
+                    for (let v = 0; v < 4; v++) {
+                        for (let f = -4.0; f <= 4.0001; f += RENDER_CACHE.FLOAT_STEP) {
+                            const key = terrainSpriteKey(dummyTheme, dummyLayout, 'MAGMA', h * 10, v, f, 1);
+                            store.get(key, () => {
+                                bakeCount++;
+                                return createDummyEntry();
+                            });
+                        }
+                    }
+                }
+            }
+
+            const stats = store.getStats();
+            expect(stats.evictions).toBe(0);
+            expect(bakeCount).toBe(10 * 4 * 17); // Baked only on cycle 0; cycle 1 is 100% cache hits
+            expect(stats.hits).toBe(10 * 4 * 17);
+        });
+    });
+
+    describe('SurfacePainter.drawLiquid multi-slot cache & quantized time', () => {
+        it('eliminates intra-frame ping-pong thrashing when MAGMA tiles and FIRE hazards interleave', async () => {
+            const { SurfacePainter } = await import('../engine/graphics/painters/SurfacePainter');
+            const { RenderStats } = await import('../engine/renderers/RenderStats');
+            SurfacePainter.resetLiquidStats();
+            RenderStats.reset();
+            RenderStats.setEnabled(true);
+
+            const prevDoc = (globalThis as unknown as { document?: unknown }).document;
+            (globalThis as unknown as { document?: unknown }).document = {
+                createElement: () => ({
+                    width: 0,
+                    height: 0,
+                    getContext: () => ({
+                        imageSmoothingEnabled: true,
+                        clearRect: () => {},
+                        save: () => {},
+                        restore: () => {},
+                        translate: () => {},
+                        beginPath: () => {},
+                        moveTo: () => {},
+                        lineTo: () => {},
+                        closePath: () => {},
+                        fill: () => {},
+                        clip: () => {},
+                        ellipse: () => {},
+                        arc: () => {},
+                        fillStyle: '',
+                        globalAlpha: 1,
+                        globalCompositeOperation: 'source-over',
+                    }),
+                }),
+            };
+
+            const drawImageCalls: number[] = [];
+            const mockMainCtx = {
+                drawImage: () => {
+                    drawImageCalls.push(1);
+                },
+            } as unknown as CanvasRenderingContext2D;
+
+            try {
+                // Simulate 20 interleaved rows of MAGMA terrain (#ef4444) and FIRE hazard (#f97316) within the same frame (t = 1.0)
+                for (let row = 0; row < 20; row++) {
+                    SurfacePainter.drawLiquid(mockMainCtx, 0, 0, '#ef4444', 1.0, 1.0, 'FLAT');
+                    SurfacePainter.drawLiquid(mockMainCtx, 0, 0, '#f97316', 1.5, 0.9, 'FLAT');
+                }
+
+                const lStats = SurfacePainter.getLiquidStats();
+                // Only 2 offscreen bakes total (1 for #ef4444, 1 for #f97316), and 38 hits!
+                expect(lStats.slots).toBe(2);
+                expect(lStats.bakes).toBe(2);
+                expect(lStats.hits).toBe(38);
+                expect(drawImageCalls.length).toBe(40);
+                expect(RenderStats.getSubPhaseLatestMs('liquid')).toBeGreaterThanOrEqual(0);
+            } finally {
+                SurfacePainter.resetLiquidStats();
+                (globalThis as unknown as { document?: unknown }).document = prevDoc;
+                RenderStats.setEnabled(false);
+                RenderStats.reset();
+            }
+        });
     });
 });

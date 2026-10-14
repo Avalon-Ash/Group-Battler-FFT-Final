@@ -374,7 +374,6 @@ export interface TerrainSkinThemePaths {
 }
 
 export interface TerrainSkinConfig {
-    enabled: boolean;
     texturePxPerHex: number;
     sideTexturePxPerUnit: number;
     tintStrength: number;
@@ -383,7 +382,6 @@ export interface TerrainSkinConfig {
 }
 
 export const TERRAIN_SKIN: TerrainSkinConfig = {
-    enabled: true,
     texturePxPerHex: 96,
     sideTexturePxPerUnit: 1.0,
     tintStrength: 0.35,
@@ -406,13 +404,15 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
 // 2.5D Unit Sprite & Fantasy HD Art Configuration (SSOT)
 // ══════════════════════════════════════════════════════════════
 
-export type UnitRenderMode = 'sprite' | 'procedural';
-
-export const UNIT_RENDER_MODE: UnitRenderMode = 'sprite';
+export const SHIELD_VISUAL = {
+    height: 80,
+    radius: 38,
+} as const;
 
 export const UNIT_SPRITE = {
-    targetHeightCanvasUnits: 52,
+    targetHeightCanvasUnits: 59,
     referenceHeightPx: 158.3,
+    footOffsetLocal: (UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET) / UNIT_SCALE,
     facingHysteresisMs: 120,
     hitFlashDuration: 0.15,
     deathFadeDuration: 1.2,
@@ -434,7 +434,9 @@ export const UNIT_SPRITE = {
 // ══════════════════════════════════════════════════════════════
 
 export interface VfxSpritesConfig {
-    enabled: boolean;
+    tintSizes: readonly number[];
+    colorQuantBits: number;
+    maxTintCache: number;
     textures: {
         light: string;
         spark: string;
@@ -445,7 +447,9 @@ export interface VfxSpritesConfig {
 }
 
 export const VFX_SPRITES: VfxSpritesConfig = {
-    enabled: true,
+    tintSizes: [32, 64, 128, 256] as const,
+    colorQuantBits: 4,
+    maxTintCache: 128,
     textures: {
         light: 'assets/vfx/light_01.png',
         spark: 'assets/vfx/spark_01.png',
@@ -549,6 +553,8 @@ export const RENDER_PERF = {
     EMA_ALPHA: 0.1,
     HISTORY_FRAMES: 60,
     HISTORY_WINDOW_MS: 2000,
+    SPIKE_THRESHOLD_MS: 16.7,
+    SPIKE_RING_SIZE: 64,
     PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
 } as const;
 
@@ -557,10 +563,12 @@ export const RENDER_PERF = {
  */
 export const RENDER_CACHE = {
     SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
-    MAX_TERRAIN_SPRITES: 512,
+    MAX_TERRAIN_SPRITES: 2048,
     FLOAT_STEP: 0.5,
     HEIGHT_KEY_SCALE: 2,
     SPRITE_PADDING: 4,
+    LIQUID_TIME_STEP: 0.05,
+    LIQUID_CACHE_SLOTS: 8,
 } as const;
 
 /**

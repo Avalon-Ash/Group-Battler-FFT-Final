@@ -414,4 +414,13 @@ export class GameEngine implements SpatialProvider {
     public updateTarget(a: Agent) {
         this.movement.updateTarget(a, this);
     }
+
+    public destroy(): void {
+        this.stop();
+        this.uiCommands.destroy();
+        if (this.audio) {
+            this.audio.destroy();
+            this.audio = undefined;
+        }
+    }
 }

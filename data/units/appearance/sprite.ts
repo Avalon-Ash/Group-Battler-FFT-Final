@@ -1,4 +1,5 @@
 import { Team, Role, BodyTypeId, SpriteAppearanceConfig } from '../../../types';
+import { UNIT_SPRITE } from '../../../constants';
 import { BODY_TYPE_PROFILE } from './bodyTypes';
 
 /**
@@ -26,7 +27,7 @@ export function formatRoleName(role: Role | string): string {
 }
 
 export const DEFAULT_SPRITE_APPEARANCE: Omit<SpriteAppearanceConfig, 'manifestKey'> = {
-    targetHeight: 52,
+    targetHeight: UNIT_SPRITE.targetHeightCanvasUnits,
     shadowRadius: 20,
     flashStrength: 1.0,
 };

@@ -7,9 +7,16 @@ import {
     selectSpriteDirection,
     getAgentPhaseOffset
 } from '../data/units/appearance/selectSpriteFrame';
-import { SpriteUnitRenderer } from '../engine/renderers/units/factions/SpriteUnitRenderer';
+import {
+    SpriteUnitRenderer,
+    computeSpriteScreenScale,
+    computeSpriteLocalScale,
+    computeSpriteDrawRect
+} from '../engine/renderers/units/factions/SpriteUnitRenderer';
 import { UnitDeathPainter } from '../engine/renderers/units/painters/UnitDeathPainter';
 import { spriteAtlasStore, UnitManifest } from '../engine/renderers/units/SpriteAtlasStore';
+import { SHIELD_VISUAL, UNIT_SPRITE, UNIT_SCALE, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from '../constants';
+import { VisualMath } from '../engine/math/VisualMath';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -36,7 +43,7 @@ const dummySkill: Skill = {
     color: '#ff0000'
 };
 
-describe('Task A2b — SpriteUnitRenderer & selectSpriteFrame Test Suite', () => {
+describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite', () => {
 
     describe('1. selectSpriteFrame Animation Priority', () => {
         let agent: Agent;
@@ -236,6 +243,102 @@ describe('Task A2b — SpriteUnitRenderer & selectSpriteFrame Test Suite', () =>
             expect(() => {
                 UnitDeathPainter.draw(mockCtx, agent, 0, 0, 1.0, 0, {}, 0, 0.016);
             }).not.toThrow();
+        });
+    });
+
+    describe('5. Task T1 — Shield Bounds, Foot Ground Alignment & Death Anchor', () => {
+        const manifestPath = join(process.cwd(), 'public', 'assets', 'units', 'manifest.json');
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as UnitManifest;
+
+        it('all 10 units x all anims x 4 directions satisfy screen width <= 2*SHIELD_VISUAL.radius and height <= SHIELD_VISUAL.height', () => {
+            const refHeight = manifest.referenceHeightPx || UNIT_SPRITE.referenceHeightPx;
+            const screenScale = computeSpriteScreenScale(refHeight, 1.0, UNIT_SPRITE.targetHeightCanvasUnits);
+            const maxAllowedWidth = 2 * SHIELD_VISUAL.radius;
+            const maxAllowedHeight = SHIELD_VISUAL.height;
+
+            let observedMaxW = 0;
+            let observedMaxH = 0;
+
+            for (const unitDef of Object.values(manifest.units)) {
+                for (const animDef of Object.values(unitDef.anims)) {
+                    for (const frames of Object.values(animDef.frames)) {
+                        for (const frame of frames) {
+                            const screenW = frame.w * screenScale;
+                            const screenH = frame.h * screenScale;
+                            if (screenW > observedMaxW) observedMaxW = screenW;
+                            if (screenH > observedMaxH) observedMaxH = screenH;
+                            expect(screenW).toBeLessThanOrEqual(maxAllowedWidth);
+                            expect(screenH).toBeLessThanOrEqual(maxAllowedHeight);
+                        }
+                    }
+                }
+            }
+
+            expect(observedMaxW).toBeGreaterThan(0);
+            expect(observedMaxH).toBeGreaterThan(0);
+        });
+
+        it('compensates UNIT_SCALE so reference sprite height equals targetHeightCanvasUnits on screen', () => {
+            const refHeight = UNIT_SPRITE.referenceHeightPx;
+            const localScale = computeSpriteLocalScale(refHeight, 1.0);
+            const renderedCanvasUnits = refHeight * localScale * UNIT_SCALE;
+            expect(renderedCanvasUnits).toBeCloseTo(UNIT_SPRITE.targetHeightCanvasUnits, 5);
+        });
+
+        it('aligns foot world Y exactly to surfaceY when drawn from getVisualBodyCenterY', () => {
+            const surfaceY = 240;
+            const z = 0;
+            const bodyCenterY = VisualMath.getVisualBodyCenterY(surfaceY, z);
+
+            // A frame whose foot anchor is at (0, 0) in sprite space has oy = -frame.h
+            const dummyFrame = { w: 100, h: 158.3, ox: -50, oy: -158.3 };
+            const rect = computeSpriteDrawRect(dummyFrame, 158.3, 1.0, 0);
+
+            // In UnitBodyPainter: translate(px, bodyCenterY) -> scale(UNIT_SCALE, UNIT_SCALE) -> draw at rect.dy + rect.dh
+            const footLocalY = rect.dy + rect.dh;
+            const footWorldY = bodyCenterY + footLocalY * UNIT_SCALE;
+
+            expect(footWorldY).toBeCloseTo(surfaceY, 5);
+            expect(UNIT_SPRITE.footOffsetLocal * UNIT_SCALE).toBeCloseTo(UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET, 5);
+        });
+
+        it('UnitDeathPainter sprite branch applies identical bodyY + UNIT_SCALE transform as UnitBodyPainter', () => {
+            const agent = new Agent('dead_sprite_agent', Team.BLUE, 0, 0, dummyConfig);
+            agent.role = Role.WARRIOR;
+            agent.hp = 0;
+            agent.deathTimer = 0.2; // before fadeStart, so sinkY = 0
+
+            spriteAtlasStore.setManifestForTesting(manifest);
+            // Mock a ready atlas entry so canRender returns true
+            const fakeCanvas = {} as unknown as CanvasImageSource;
+            (spriteAtlasStore as unknown as { atlases: Map<string, unknown> }).atlases.set('BLUE:WARRIOR:MALE', {
+                normalMips: new Map([[1.0, fakeCanvas], [0.5, fakeCanvas], [0.25, fakeCanvas]]),
+                silhouetteMips: new Map([[1.0, fakeCanvas], [0.5, fakeCanvas], [0.25, fakeCanvas]])
+            });
+
+            const translations: { x: number; y: number }[] = [];
+            const scales: { sx: number; sy: number }[] = [];
+            let drawn = false;
+
+            const mockCtx = {
+                save: () => {},
+                restore: () => {},
+                translate: (x: number, y: number) => translations.push({ x, y }),
+                scale: (sx: number, sy: number) => scales.push({ sx, sy }),
+                drawImage: () => { drawn = true; },
+                globalAlpha: 1
+            } as unknown as CanvasRenderingContext2D;
+
+            const surfaceY = 100;
+            UnitDeathPainter.draw(mockCtx, agent, 0, surfaceY, 1.0, 0, {}, 0, 0.016);
+
+            expect(drawn).toBe(true);
+            const expectedBodyY = VisualMath.getVisualBodyCenterY(surfaceY, agent.physics.z);
+            expect(translations[0]).toEqual({ x: 0, y: expectedBodyY });
+            expect(scales[0]).toEqual({ sx: UNIT_SCALE, sy: UNIT_SCALE });
+
+            // Clean up fake atlas entry
+            (spriteAtlasStore as unknown as { atlases: Map<string, unknown> }).atlases.delete('BLUE:WARRIOR:MALE');
         });
     });
 });

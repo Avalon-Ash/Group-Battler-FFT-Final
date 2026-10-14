@@ -12,6 +12,7 @@ import { RENDER_CACHE, TerrainTheme } from '../../../constants';
 import { HexLayout } from '../../../types';
 import { MATERIAL_CONFIG } from '../../../data/vfx/materialConfig';
 import { createCanvas } from '../../graphics/CanvasUtils';
+import { RenderStats } from '../RenderStats';
 
 export interface TerrainSpriteEntry {
     canvas: HTMLCanvasElement;
@@ -83,6 +84,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     let hits = 0;
     let misses = 0;
     let clears = 0;
+    let evictions = 0;
 
     // 材質簽章追蹤（逐欄數值比較，零字串配置）
     let sigEnabled = MATERIAL_CONFIG.enabled;
@@ -142,6 +144,13 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         clears++;
     }
 
+    function resetStats(): void {
+        hits = 0;
+        misses = 0;
+        clears = 0;
+        evictions = 0;
+    }
+
     function get(
         key: TerrainKeyCompound,
         bake: (factory: SurfaceFactory) => TerrainSpriteEntry
@@ -157,6 +166,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
                     const hit = intMap.get(key.packedInt);
                     if (hit) {
                         hits++;
+                        if (RenderStats.enabled) RenderStats.recordTerrainCacheHit();
                         return hit;
                     }
                 }
@@ -164,9 +174,12 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         }
 
         misses++;
+        if (RenderStats.enabled) RenderStats.recordTerrainCacheMiss();
 
-        // 超過上限容量清空重建
+        // 超過上限容量時記錄驅逐數並清空重建
         if (totalSprites >= RENDER_CACHE.MAX_TERRAIN_SPRITES) {
+            evictions += totalSprites;
+            if (RenderStats.enabled) RenderStats.recordTerrainCacheEviction(totalSprites);
             clear();
             typeMap = undefined;
         }
@@ -196,8 +209,9 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     return {
         get,
         clear,
+        resetStats,
         size: () => totalSprites,
-        getStats: () => ({ size: totalSprites, hits, misses, clears }),
+        getStats: () => ({ size: totalSprites, hits, misses, clears, evictions }),
         checkMaterialSignature,
     };
 }

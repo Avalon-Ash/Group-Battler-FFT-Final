@@ -33,6 +33,57 @@ interface CurrentMusicTrack {
     isFallback: boolean;
 }
 
+let sharedAudioEngineInstance: AudioEngine | null = null;
+const sharedAudioEngineOwners = new Set<symbol>();
+
+/**
+ * 取得共享單例 AudioEngine 並登記擁有者 Token（Reference Counting）。
+ * 只有當所有擁有者皆呼叫 releaseSharedAudioEngine 時，底層 AudioEngine 才會真正 destroy 並關閉 AudioContext。
+ */
+export function acquireSharedAudioEngine(
+    ownerToken: symbol,
+    injected?: {
+        audioContext?: AudioContext;
+        skipUrlCheck?: boolean;
+        forceMute?: boolean;
+    }
+): AudioEngine {
+    if (!sharedAudioEngineInstance || sharedAudioEngineInstance.isEngineDestroyed()) {
+        sharedAudioEngineOwners.clear();
+        sharedAudioEngineInstance = new AudioEngine(injected);
+    }
+    sharedAudioEngineOwners.add(ownerToken);
+    return sharedAudioEngineInstance;
+}
+
+/**
+ * 釋放共享單例 AudioEngine 的擁有者 Token。
+ * 當最後一個擁有者離開（size === 0）時，才真正停止音樂並關閉 AudioContext。
+ */
+export function releaseSharedAudioEngine(ownerToken: symbol): boolean {
+    if (!sharedAudioEngineOwners.has(ownerToken)) {
+        return false;
+    }
+    sharedAudioEngineOwners.delete(ownerToken);
+    if (sharedAudioEngineOwners.size === 0 && sharedAudioEngineInstance) {
+        const inst = sharedAudioEngineInstance;
+        sharedAudioEngineInstance = null;
+        inst.destroy();
+        return true;
+    }
+    return false;
+}
+
+/** 取得目前共享 AudioEngine 的活躍擁有者數量（供測試與診斷使用） */
+export function getSharedAudioEngineOwnerCount(): number {
+    return sharedAudioEngineOwners.size;
+}
+
+/** 取得目前共享 AudioEngine 實例（唯讀診斷用，不增加參考計數） */
+export function peekSharedAudioEngine(): AudioEngine | null {
+    return sharedAudioEngineInstance;
+}
+
 /**
  * Web Audio 核心管理器
  * 負責匯流排管理、Voice pool 限額、節流、手勢解鎖、合成後備與音樂交叉淡化。
@@ -54,7 +105,10 @@ export class AudioEngine {
     private lastCuePlayTime: Map<CueId, number> = new Map();
     private activeVoices: ActiveVoice[] = [];
     private currentMusic: CurrentMusicTrack | null = null;
+    private fadingMusicSources: Set<AudioBufferSourceNode> = new Set();
+    private fadingTimers: Set<ReturnType<typeof setTimeout>> = new Set();
     private wantedTrackId: TrackId | null = null;
+    private musicRequestSeq: number = 0;
     private failedAssets: Set<string> = new Set();
     private inflightLoads: Map<string, Promise<AudioBuffer | null>> = new Map();
     private synthCache: Map<string, AudioBuffer> = new Map();
@@ -86,6 +140,26 @@ export class AudioEngine {
         // 初始化 AudioContext（若環境支援）
         this.initContext(injected?.audioContext);
         this.bindWindowEvents();
+    }
+
+    /** 檢查此 AudioEngine 是否已銷毀 */
+    public isEngineDestroyed(): boolean {
+        return this.isDestroyed;
+    }
+
+    /** 取得目前尚未排程停止之活躍 BGM source 數量（正常應恆 <= 1） */
+    public getActiveMusicSourceCount(): number {
+        return this.currentMusic ? 1 : 0;
+    }
+
+    /** 取得目前正在淡出收尾中的 BGM source 數量（供測試與診斷使用） */
+    public getFadingMusicSourceCount(): number {
+        return this.fadingMusicSources.size;
+    }
+
+    /** 取得目前正在播放的 BGM 曲目 ID */
+    public getCurrentTrackId(): TrackId | null {
+        return this.currentMusic?.trackId ?? null;
     }
 
     /** 檢查目前是否因 URL ?mute 處於絕對靜音狀態 */
@@ -144,8 +218,8 @@ export class AudioEngine {
         this.removeUnlockListeners();
 
         if (this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {
-                // 忽略非使用者手勢期間的 resume 失敗
+            this.ctx.resume().catch((err: unknown) => {
+                this.handleAudioException('ctx.resume on unlock', err);
             });
         }
         this.preloadMusicTracks();
@@ -155,7 +229,9 @@ export class AudioEngine {
     public suspend(): void {
         if (this.isMutedByUrl || !this.ctx) return;
         if (this.ctx.state === 'running') {
-            this.ctx.suspend().catch(() => {});
+            this.ctx.suspend().catch((err: unknown) => {
+                this.handleAudioException('ctx.suspend', err);
+            });
         }
     }
 
@@ -163,7 +239,9 @@ export class AudioEngine {
     public resume(): void {
         if (this.isMutedByUrl || !this.ctx) return;
         if (this.isUnlocked && !this.settings.muted && this.ctx.state === 'suspended') {
-            this.ctx.resume().catch(() => {});
+            this.ctx.resume().catch((err: unknown) => {
+                this.handleAudioException('ctx.resume', err);
+            });
         }
     }
 
@@ -174,7 +252,7 @@ export class AudioEngine {
      * @returns 是否成功觸發播放
      */
     public playCue(cueId: CueId, opts?: PlayCueOptions): boolean {
-        if (this.isMutedByUrl || !this.ctx || !this.isUnlocked) {
+        if (this.isMutedByUrl || !this.ctx || !this.isUnlocked || this.isDestroyed) {
             // 未解鎖前或靜音時直接靜默丟棄，不排隊
             return false;
         }
@@ -253,7 +331,8 @@ export class AudioEngine {
 
             source.start(0);
             return true;
-        } catch {
+        } catch (err: unknown) {
+            this.handleAudioException('playCue', err);
             return false;
         }
     }
@@ -264,13 +343,14 @@ export class AudioEngine {
      * @param fadeSec 交叉淡化秒數（預設 AUDIO.BGM_CROSSFADE_SEC）
      */
     public playMusic(trackId: TrackId, fadeSec: number = AUDIO.BGM_CROSSFADE_SEC): void {
-        if (this.isMutedByUrl || !this.ctx) return;
+        if (this.isMutedByUrl || !this.ctx || this.isDestroyed) return;
 
         const trackDef = MUSIC_TABLE[trackId];
         if (!trackDef) return;
 
-        // 記錄「目前期望的曲目」，用於丟棄過期的非同步載入回呼
+        // 記錄「目前期望的曲目」與遞增請求序號，用於丟棄過期的非同步載入回呼
         this.wantedTrackId = trackId;
+        const reqSeq = ++this.musicRequestSeq;
 
         // 若正在播放同一首（且為真實檔案）則不重播；合成鋪底允許被真實檔案取代
         if (this.currentMusic?.trackId === trackId && !this.currentMusic.isFallback) {
@@ -283,9 +363,9 @@ export class AudioEngine {
 
         if (!buffer) {
             if (!this.isMusicFileUnavailable(trackId)) {
-                // 檔案尚在載入：維持現有曲目，載入完成後若仍被期望再切換
+                // 檔案尚在載入：維持現有曲目，載入完成後若序號與期望曲目仍吻合再切換
                 void this.loadBuffer(file).then(() => {
-                    if (!this.isDestroyed && this.wantedTrackId === trackId) {
+                    if (!this.isDestroyed && this.wantedTrackId === trackId && this.musicRequestSeq === reqSeq) {
                         this.playMusic(trackId, fadeSec);
                     }
                 });
@@ -301,22 +381,8 @@ export class AudioEngine {
             const now = this.ctx.currentTime;
             const targetVolume = trackDef.volume;
 
-            // 淡出並停止既有曲目
-            if (this.currentMusic) {
-                const oldMusic = this.currentMusic;
-                this.currentMusic = null;
-                const oldGain = oldMusic.gain.gain;
-                oldGain.cancelScheduledValues(now);
-                oldGain.setValueAtTime(oldGain.value, now);
-                oldGain.linearRampToValueAtTime(0.0001, now + fadeSec);
-                oldMusic.source.stop(now + fadeSec);
-                setTimeout(() => {
-                    try {
-                        oldMusic.source.disconnect();
-                        oldMusic.gain.disconnect();
-                    } catch {}
-                }, Math.ceil(fadeSec * 1000) + 50);
-            }
+            // 先淡出並排程停止既有曲目（自身獨立 try-catch，確保即使舊節點拋錯也不阻斷新曲建立）
+            this.fadeOutCurrentMusic(fadeSec);
 
             // 建立新音樂節點
             const newSource = this.ctx.createBufferSource();
@@ -326,8 +392,9 @@ export class AudioEngine {
             if (trackDef.loopEnd !== undefined) newSource.loopEnd = trackDef.loopEnd;
 
             const newGain = this.ctx.createGain();
+            const safeFade = Math.max(0.01, fadeSec);
             newGain.gain.setValueAtTime(0.0001, now);
-            newGain.gain.linearRampToValueAtTime(targetVolume, now + fadeSec);
+            newGain.gain.linearRampToValueAtTime(targetVolume, now + safeFade);
 
             if (this.musicGain) {
                 newSource.connect(newGain);
@@ -345,13 +412,15 @@ export class AudioEngine {
             // 若為非循環曲目（如勝利 / 敗北 sting），播放完畢後平滑回到氛圍曲目
             if (!trackDef.loop) {
                 newSource.onended = () => {
-                    if (this.currentMusic?.source === newSource) {
+                    if (!this.isDestroyed && this.currentMusic?.source === newSource) {
                         this.currentMusic = null;
                         this.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
                     }
                 };
             }
-        } catch {}
+        } catch (err: unknown) {
+            this.handleAudioException('playMusic', err);
+        }
     }
 
     /**
@@ -359,30 +428,67 @@ export class AudioEngine {
      */
     public stopMusic(fadeSec: number = AUDIO.BGM_CROSSFADE_SEC): void {
         this.wantedTrackId = null;
+        this.musicRequestSeq++;
         if (!this.ctx || !this.currentMusic) return;
+        this.fadeOutCurrentMusic(fadeSec);
+    }
+
+    private fadeOutCurrentMusic(fadeSec: number): void {
+        if (!this.ctx || !this.currentMusic) return;
+        const oldMusic = this.currentMusic;
+        this.currentMusic = null;
+        // 必須在呼叫 stop() 前清除 onended，防止非循環曲目在被主動停止時反手觸發回退 SHOWCASE_AMBIENT
+        oldMusic.source.onended = null;
+
+        const now = this.ctx.currentTime;
+        const safeFade = Math.max(0, fadeSec);
 
         try {
-            const now = this.ctx.currentTime;
-            const music = this.currentMusic;
-            this.currentMusic = null;
+            const oldGain = oldMusic.gain.gain;
+            oldGain.cancelScheduledValues(now);
+            oldGain.setValueAtTime(oldGain.value, now);
+            if (safeFade > 0) {
+                oldGain.linearRampToValueAtTime(0.0001, now + safeFade);
+            } else {
+                oldGain.setValueAtTime(0.0001, now);
+            }
+        } catch (err: unknown) {
+            this.handleAudioException('fadeOutCurrentMusic.gain', err);
+        }
 
-            music.gain.gain.cancelScheduledValues(now);
-            music.gain.gain.setValueAtTime(music.gain.gain.value, now);
-            music.gain.gain.linearRampToValueAtTime(0.0001, now + fadeSec);
-            music.source.stop(now + fadeSec);
+        try {
+            oldMusic.source.stop(now + safeFade);
+        } catch (err: unknown) {
+            this.handleAudioException('fadeOutCurrentMusic.stop', err);
+        }
 
-            setTimeout(() => {
-                try {
-                    music.source.disconnect();
-                    music.gain.disconnect();
-                } catch {}
-            }, Math.ceil(fadeSec * 1000) + 50);
-        } catch {}
+        if (safeFade <= 0) {
+            try {
+                oldMusic.source.disconnect();
+                oldMusic.gain.disconnect();
+            } catch (err: unknown) {
+                this.handleAudioException('fadeOutCurrentMusic.disconnect', err);
+            }
+            return;
+        }
+
+        this.fadingMusicSources.add(oldMusic.source);
+        const timer = setTimeout(() => {
+            this.fadingTimers.delete(timer);
+            this.fadingMusicSources.delete(oldMusic.source);
+            try {
+                oldMusic.source.disconnect();
+                oldMusic.gain.disconnect();
+            } catch (err: unknown) {
+                this.handleAudioException('fadeOutCurrentMusic.cleanup', err);
+            }
+        }, Math.ceil(safeFade * 1000) + 50);
+        this.fadingTimers.add(timer);
     }
 
     /** 載入外部音訊檔案至快取（同一 URL 並行請求共用同一 Promise；失敗者記錄於 failedAssets） */
     public loadBuffer(url: string): Promise<AudioBuffer | null> {
-        if (this.isMutedByUrl || !this.ctx) return Promise.resolve(null);
+        if (this.isMutedByUrl || !this.ctx || this.isDestroyed) return Promise.resolve(null);
         const cached = this.bufferCache.get(url);
         if (cached) return Promise.resolve(cached);
         if (this.failedAssets.has(url)) return Promise.resolve(null);
@@ -411,31 +517,72 @@ export class AudioEngine {
             if (this.isDestroyed) return null;
             this.bufferCache.set(url, decoded);
             return decoded;
-        } catch {
+        } catch (err: unknown) {
             this.failedAssets.add(url);
-            this.warnAssetOnce(`Failed to decode audio asset: ${url}`);
+            this.warnAssetOnce(`Failed to decode audio asset: ${url} (${err instanceof Error ? err.message : String(err)})`);
             return null;
         }
     }
 
     /** 釋放所有音訊資源 */
     public destroy(): void {
+        if (this.isDestroyed) return;
         this.isDestroyed = true;
+        this.wantedTrackId = null;
+        this.musicRequestSeq++;
+
         this.removeUnlockListeners();
         this.removeVisibilityListeners();
         this.removeFocusListeners();
 
-        this.stopMusic(0.1);
+        for (const timer of this.fadingTimers) {
+            clearTimeout(timer);
+        }
+        this.fadingTimers.clear();
+
+        if (this.currentMusic) {
+            const cur = this.currentMusic;
+            this.currentMusic = null;
+            cur.source.onended = null;
+            try {
+                cur.source.stop(0);
+            } catch (err: unknown) {
+                this.handleAudioException('destroy.currentMusic.stop', err);
+            }
+            try {
+                cur.source.disconnect();
+                cur.gain.disconnect();
+            } catch (err: unknown) {
+                this.handleAudioException('destroy.currentMusic.disconnect', err);
+            }
+        }
+
+        for (const fadingSource of this.fadingMusicSources) {
+            try {
+                fadingSource.onended = null;
+                fadingSource.stop(0);
+                fadingSource.disconnect();
+            } catch (err: unknown) {
+                this.handleAudioException('destroy.fadingSource', err);
+            }
+        }
+        this.fadingMusicSources.clear();
+
         for (const voice of this.activeVoices) {
             try {
+                voice.source.onended = null;
                 voice.source.stop(0);
                 voice.source.disconnect();
-            } catch {}
+            } catch (err: unknown) {
+                this.handleAudioException('destroy.voice', err);
+            }
         }
         this.activeVoices.length = 0;
 
         if (this.ctx && this.ctx.state !== 'closed') {
-            this.ctx.close().catch(() => {});
+            this.ctx.close().catch((err: unknown) => {
+                this.handleAudioException('destroy.ctx.close', err);
+            });
         }
         this.ctx = null;
         this.bufferCache.clear();
@@ -603,7 +750,8 @@ export class AudioEngine {
         try {
             const params = new URLSearchParams(window.location.search);
             return params.has(AUDIO.QUERY_MUTE_KEY);
-        } catch {
+        } catch (err: unknown) {
+            this.handleAudioException('checkMuteFromUrl', err);
             return false;
         }
     }
@@ -632,7 +780,8 @@ export class AudioEngine {
                 ui: typeof parsed.ui === 'number' ? Math.max(0, Math.min(1, parsed.ui)) : defaults.ui,
                 muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted
             };
-        } catch {
+        } catch (err: unknown) {
+            this.handleAudioException('loadSettings', err);
             return defaults;
         }
     }
@@ -641,7 +790,9 @@ export class AudioEngine {
         if (typeof window === 'undefined' || !window.localStorage) return;
         try {
             window.localStorage.setItem(AUDIO.STORAGE_KEY, JSON.stringify(this.settings));
-        } catch {}
+        } catch (err: unknown) {
+            this.handleAudioException('saveSettings', err);
+        }
     }
 
     /** 依 dB 感知曲線套用各 Bus 增益 */
@@ -710,9 +861,12 @@ export class AudioEngine {
         // 搶佔舊 Voice
         const victim = this.activeVoices[lowestIdx];
         try {
+            victim.source.onended = null;
             victim.source.stop(0);
             victim.source.disconnect();
-        } catch {}
+        } catch (err: unknown) {
+            this.handleAudioException('acquireVoiceSlot.preempt', err);
+        }
         this.activeVoices.splice(lowestIdx, 1);
         return true;
     }
@@ -726,7 +880,9 @@ export class AudioEngine {
             voice.source.disconnect();
             voice.gain.disconnect();
             voice.panner?.disconnect();
-        } catch {}
+        } catch (err: unknown) {
+            this.handleAudioException('releaseVoice', err);
+        }
     }
 
     /** 計算聲像平移（限制在 [-PAN_RANGE, PAN_RANGE]） */
@@ -771,6 +927,25 @@ export class AudioEngine {
         const files = MUSIC_TABLE[trackId]?.files ?? [];
         if (files.length === 0) return true;
         return files.every(f => this.failedAssets.has(f));
+    }
+
+    private isExpectedAudioException(err: unknown): boolean {
+        if (!err || typeof err !== 'object') return false;
+        const name = (err as { name?: string }).name;
+        return (
+            name === 'InvalidStateError' ||
+            name === 'NotAllowedError' ||
+            name === 'AbortError' ||
+            name === 'InvalidAccessError' ||
+            name === 'SecurityError' ||
+            name === 'QuotaExceededError'
+        );
+    }
+
+    private handleAudioException(context: string, err: unknown): void {
+        if (this.isExpectedAudioException(err)) return;
+        const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+        this.warnAssetOnce(`Unexpected error in ${context}: ${msg}`);
     }
 
     private warnAssetOnce(msg: string): void {

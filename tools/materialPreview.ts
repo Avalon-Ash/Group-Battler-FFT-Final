@@ -5,10 +5,8 @@ import type { Particle } from '../engine/systems/vfx/state';
 import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
 import { EnvironmentFactory } from '../engine/graphics/EnvironmentFactory';
 import { TERRAIN_THEMES } from '../constants';
-import { ImperialTokenFactory } from '../engine/graphics/units/ImperialTokenFactory';
-import { CovenantTokenFactory } from '../engine/graphics/units/CovenantTokenFactory';
-import { ImperialRenderer } from '../engine/renderers/units/factions/ImperialRenderer';
-import { CovenantRenderer } from '../engine/renderers/units/factions/CovenantRenderer';
+import { UnitFactory } from '../engine/graphics/UnitFactory';
+import { SpriteUnitRenderer } from '../engine/renderers/units/factions/SpriteUnitRenderer';
 import { Role, Team } from '../types';
 import { Agent } from '../engine/core/Agent';
 
@@ -28,16 +26,9 @@ function cell(cx: number, cy: number, name: string, draw: () => void) {
     label(name, cx - 60, cy + 90);
 }
 
-// 預先生成靜態 Token A-B（避免 60fps 迴圈內重複分配 Canvas）
-MATERIAL_CONFIG.enabled = true;
-const impTokenNew = ImperialTokenFactory.generateBase(Role.WARRIOR);
-const covTokenNew = CovenantTokenFactory.generateBase(Role.WARRIOR);
-MATERIAL_CONFIG.enabled = false;
-const impTokenLegacy = ImperialTokenFactory.generateBase(Role.WARRIOR);
-const covTokenLegacy = CovenantTokenFactory.generateBase(Role.WARRIOR);
-MATERIAL_CONFIG.enabled = true;
+const impToken = UnitFactory.generateTokenBase(Team.BLUE);
+const covToken = UnitFactory.generateTokenBase(Team.RED);
 
-// 預先生成展示 Agent 實體
 const mapCfg = { hexRadius: 48, layout: 'FLAT' as const, w: 10, h: 10, offsetX: 0, offsetY: 0 };
 const impWarrior = new Agent('imp-w', Team.BLUE, 0, 0, mapCfg);
 impWarrior.role = Role.WARRIOR;
@@ -101,25 +92,13 @@ function render(now: number) {
     cell(680, 1340, 'VOID (legacy)', () => GroundPainter.drawVoidField(ctx, mkP({ visualStyle: 'VOID', color: '#a855f7' }), 0.2, 'FLAT'));
     MATERIAL_CONFIG.enabled = true;
 
-    // ---- Row 8: 單位 Token 風化與立體高光 A-B ----
-    cell(110, 1520, 'IMP Token (new)', () => ctx.drawImage(impTokenNew, -50, -50, 100, 100));
-    cell(300, 1520, 'COV Token (new)', () => ctx.drawImage(covTokenNew, -50, -50, 100, 100));
-    cell(490, 1520, 'IMP Token (legacy)', () => ctx.drawImage(impTokenLegacy, -50, -50, 100, 100));
-    cell(680, 1520, 'COV Token (legacy)', () => ctx.drawImage(covTokenLegacy, -50, -50, 100, 100));
-
-    // ---- Row 9 & 10: 角色本體甲胄微顆粒與反射光 A-B ----
-    MATERIAL_CONFIG.enabled = true;
-    cell(110, 1720, 'IMP Warrior (new)', () => ImperialRenderer.draw(ctx, impWarrior, now, false));
-    cell(300, 1720, 'IMP Tank (new)', () => ImperialRenderer.draw(ctx, impTank, now, false));
-    cell(490, 1720, 'COV Warrior (new)', () => CovenantRenderer.draw(ctx, covWarrior, now, false));
-    cell(680, 1720, 'COV Mage (new)', () => CovenantRenderer.draw(ctx, covMage, now, false));
-
-    MATERIAL_CONFIG.enabled = false;
-    cell(110, 1900, 'IMP Warrior (legacy)', () => ImperialRenderer.draw(ctx, impWarrior, now, false));
-    cell(300, 1900, 'IMP Tank (legacy)', () => ImperialRenderer.draw(ctx, impTank, now, false));
-    cell(490, 1900, 'COV Warrior (legacy)', () => CovenantRenderer.draw(ctx, covWarrior, now, false));
-    cell(680, 1900, 'COV Mage (legacy)', () => CovenantRenderer.draw(ctx, covMage, now, false));
-    MATERIAL_CONFIG.enabled = true;
+    // ---- Row 8: 單位 Token 保底與 SpriteUnitRenderer ----
+    cell(110, 1520, 'IMP Token', () => ctx.drawImage(impToken, -32, -32, 64, 64));
+    cell(300, 1520, 'COV Token', () => ctx.drawImage(covToken, -32, -32, 64, 64));
+    cell(110, 1720, 'IMP Warrior', () => SpriteUnitRenderer.draw(ctx, impWarrior, now, false));
+    cell(300, 1720, 'IMP Tank', () => SpriteUnitRenderer.draw(ctx, impTank, now, false));
+    cell(490, 1720, 'COV Warrior', () => SpriteUnitRenderer.draw(ctx, covWarrior, now, false));
+    cell(680, 1720, 'COV Mage', () => SpriteUnitRenderer.draw(ctx, covMage, now, false));
 }
 
 render(0);

@@ -107,6 +107,7 @@ export class SpriteAtlasStore {
             const res = await fetch(url);
             if (!res.ok) {
                 this.warnOnce(`Failed to fetch sprite manifest from ${url} (status: ${res.status})`);
+                this.markReady();
                 return null;
             }
             const data = (await res.json()) as UnitManifest;
@@ -114,10 +115,11 @@ export class SpriteAtlasStore {
             this.revision++;
 
             // 預載場上最常用的 10 個核心單位圖集
-            this.preloadCoreUnits();
+            await this.preloadCoreUnits();
             return data;
         } catch (err) {
             this.warnOnce(`Error loading sprite manifest: ${String(err)}`);
+            this.markReady();
             return null;
         }
     }
@@ -126,7 +128,10 @@ export class SpriteAtlasStore {
      * 閒置時或背景預載所有現有單位圖集
      */
     private async preloadCoreUnits(): Promise<void> {
-        if (!this.manifest) return;
+        if (!this.manifest) {
+            this.markReady();
+            return;
+        }
         const keys = Object.keys(this.manifest.units);
         await Promise.all(keys.map(k => this.loadAtlas(k)));
         this.markReady();
@@ -134,9 +139,8 @@ export class SpriteAtlasStore {
 
     private markReady(): void {
         if (typeof window !== 'undefined') {
-            const win = window as unknown as { __UNIT_ASSETS_READY__?: boolean; __ASSETS_READY__?: boolean };
+            const win = window as unknown as { __UNIT_ASSETS_READY__?: boolean };
             win.__UNIT_ASSETS_READY__ = true;
-            win.__ASSETS_READY__ = true;
         }
     }
 

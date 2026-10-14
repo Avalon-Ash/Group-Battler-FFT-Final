@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach, afterAll } from 'vitest';
 import { AUDIO } from '../constants';
-import { AudioEngine } from '../engine/audio/AudioEngine';
+import {
+    AudioEngine,
+    acquireSharedAudioEngine,
+    releaseSharedAudioEngine,
+    getSharedAudioEngineOwnerCount,
+    peekSharedAudioEngine
+} from '../engine/audio/AudioEngine';
 import { AudioPRNG, createSynthBuffer, clearSynthCache } from '../engine/audio/Synth';
 
 // Mock Web Audio Context & Nodes
@@ -141,6 +147,7 @@ describe('AudioEngine', () => {
 
         engine.playMusic('SHOWCASE_AMBIENT');
         expect(engine.isAudioUnlocked()).toBe(false);
+        expect(engine.getActiveMusicSourceCount()).toBe(0);
     });
 
     it('requires unlock() before playing cues (auto-play policy)', () => {
@@ -180,14 +187,10 @@ describe('AudioEngine', () => {
         const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
         engine.unlock();
 
-        // Fill up to MAX_VOICES with unique cues / advances
-        // Note: CUE_TABLE has different cues with varying priorities
         const playedList: boolean[] = [];
         for (let i = 0; i < AUDIO.MAX_VOICES; i++) {
-            // Using UI_CLICK with different virtual times by clearing throttle
             const p = engine.playCue('UI_CLICK');
             playedList.push(p);
-            // Simulate small delay or different cues if throttled
         }
 
         // Even under voice stress, high priority VICTORY cue (priority 10) can preempt low priority
@@ -217,68 +220,154 @@ describe('AudioEngine', () => {
 
     it('plays and crossfades background music (loads files on demand, real file not synth pad)', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) })));
-        try {
-            const { ctx } = createMockAudioContext();
-            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
-            engine.unlock();
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
 
-            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
-            await flush();
-            expect(ctx.createBufferSource).toHaveBeenCalled();
+        engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+        await flush();
+        expect(ctx.createBufferSource).toHaveBeenCalled();
+        expect(engine.getActiveMusicSourceCount()).toBe(1);
+        expect(engine.getCurrentTrackId()).toBe('SHOWCASE_AMBIENT');
 
-            // Same track does not trigger redundant restart
-            const countBefore = (ctx.createBufferSource as any).mock.calls.length;
-            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
-            await flush();
-            expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore);
+        // Same track does not trigger redundant restart
+        const countBefore = (ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.calls.length;
+        engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+        await flush();
+        expect((ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.calls.length).toBe(countBefore);
 
-            // Switching track triggers crossfade
-            engine.playMusic('BATTLE_NORMAL', 1.0);
-            await flush();
-            expect((ctx.createBufferSource as any).mock.calls.length).toBe(countBefore + 1);
+        // Switching track triggers crossfade
+        engine.playMusic('BATTLE_NORMAL', 1.0);
+        await flush();
+        expect((ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.calls.length).toBe(countBefore + 1);
+        expect(engine.getActiveMusicSourceCount()).toBe(1);
+        expect(engine.getCurrentTrackId()).toBe('BATTLE_NORMAL');
 
-            engine.stopMusic(1.0);
-        } finally {
-        }
+        engine.stopMusic(1.0);
+        expect(engine.getActiveMusicSourceCount()).toBe(0);
     });
 
     it('falls back to synth pad only when the music file permanently fails to load', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 404 })));
-        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-        try {
-            const { ctx } = createMockAudioContext();
-            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
-            engine.unlock();
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
 
-            engine.playMusic('BATTLE_NORMAL', 1.0);
-            await flush();
-            // Pad fallback started after load failure
-            expect(ctx.createBufferSource).toHaveBeenCalled();
-            const count = (ctx.createBufferSource as any).mock.calls.length;
+        engine.playMusic('BATTLE_NORMAL', 1.0);
+        await flush();
+        // Pad fallback started after load failure
+        expect(ctx.createBufferSource).toHaveBeenCalled();
+        const count = (ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.calls.length;
 
-            // Same (fallback) track is not restarted
-            engine.playMusic('BATTLE_NORMAL', 1.0);
-            await flush();
-            expect((ctx.createBufferSource as any).mock.calls.length).toBe(count);
-            engine.stopMusic(0.1);
-        } finally {
-        }
+        // Same (fallback) track is not restarted
+        engine.playMusic('BATTLE_NORMAL', 1.0);
+        await flush();
+        expect((ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.calls.length).toBe(count);
+        engine.stopMusic(0.1);
     });
 
     it('does not start the synth pad while the real file is still loading', async () => {
         let resolveFetch: ((v: unknown) => void) | null = null;
         vi.stubGlobal('fetch', vi.fn(() => new Promise(res => { resolveFetch = res; })));
-        try {
-            const { ctx } = createMockAudioContext();
-            const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
-            engine.unlock();
-            engine.playMusic('SHOWCASE_AMBIENT', 1.0);
-            await flush();
-            expect(ctx.createBufferSource).not.toHaveBeenCalled();
-            resolveFetch?.({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
-            await flush();
-            expect(ctx.createBufferSource).toHaveBeenCalled();
-        } finally {
-        }
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
+        engine.playMusic('SHOWCASE_AMBIENT', 1.0);
+        await flush();
+        expect(ctx.createBufferSource).not.toHaveBeenCalled();
+        resolveFetch?.({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+        await flush();
+        expect(ctx.createBufferSource).toHaveBeenCalled();
+    });
+
+    it('Task T2: rapid A -> B -> C switching ensures at most 1 active BGM source and only C plays at the end', async () => {
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
+        await flush();
+
+        // Rapidly switch A -> B -> C
+        engine.playMusic('SHOWCASE_AMBIENT', 0.05);
+        expect(engine.getActiveMusicSourceCount()).toBeLessThanOrEqual(1);
+        engine.playMusic('BATTLE_NORMAL', 0.05);
+        expect(engine.getActiveMusicSourceCount()).toBeLessThanOrEqual(1);
+        engine.playMusic('BATTLE_TENSE', 0.05);
+        expect(engine.getActiveMusicSourceCount()).toBeLessThanOrEqual(1);
+
+        await flush();
+        expect(engine.getActiveMusicSourceCount()).toBe(1);
+        expect(engine.getCurrentTrackId()).toBe('BATTLE_TENSE');
+
+        // Wait for fade cleanup timers to complete
+        await new Promise(r => setTimeout(r, 120));
+        expect(engine.getFadingMusicSourceCount()).toBe(0);
+        expect(engine.getActiveMusicSourceCount()).toBe(1);
+        expect(engine.getCurrentTrackId()).toBe('BATTLE_TENSE');
+    });
+
+    it('Task T2: stopping a non-looping sting (VICTORY_STING) manually does not re-trigger SHOWCASE_AMBIENT via onended', async () => {
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
+        await flush();
+
+        // Preload VICTORY_STING and BATTLE_NORMAL
+        engine.playMusic('VICTORY_STING', 0.05);
+        await flush();
+        expect(engine.getCurrentTrackId()).toBe('VICTORY_STING');
+
+        // Immediately switch to BATTLE_NORMAL (rematch before sting finishes)
+        engine.playMusic('BATTLE_NORMAL', 0.05);
+        await flush();
+
+        expect(engine.getActiveMusicSourceCount()).toBe(1);
+        expect(engine.getCurrentTrackId()).toBe('BATTLE_NORMAL');
+    });
+
+    it('Task T2: shared singleton reference counting handles interleaved "new engine created BEFORE old engine destroyed"', async () => {
+        // Ensure clean state first
+        const existing = peekSharedAudioEngine();
+        if (existing) existing.destroy();
+
+        const { ctx, getMockState } = createMockAudioContext();
+        const tokenA = Symbol('EngineA');
+        const tokenB = Symbol('EngineB');
+
+        // 1. Old engine A acquires shared AudioEngine
+        const sharedA = acquireSharedAudioEngine(tokenA, { audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        sharedA.unlock();
+        await flush();
+        sharedA.playMusic('SHOWCASE_AMBIENT', 0.05);
+        await flush();
+        expect(getSharedAudioEngineOwnerCount()).toBe(1);
+        expect(sharedA.getActiveMusicSourceCount()).toBe(1);
+
+        // 2. New engine B is created BEFORE old engine A is destroyed (React StrictMode / HMR interleaved order)
+        const sharedB = acquireSharedAudioEngine(tokenB);
+        expect(sharedB).toBe(sharedA);
+        expect(getSharedAudioEngineOwnerCount()).toBe(2);
+
+        // Engine B switches music
+        sharedB.playMusic('BATTLE_NORMAL', 0.05);
+        await flush();
+        expect(sharedB.getCurrentTrackId()).toBe('BATTLE_NORMAL');
+        expect(sharedB.getActiveMusicSourceCount()).toBe(1);
+
+        // 3. Old engine A is now destroyed — must NOT close AudioContext or stop Engine B's music!
+        const closedOnA = releaseSharedAudioEngine(tokenA);
+        expect(closedOnA).toBe(false);
+        expect(getSharedAudioEngineOwnerCount()).toBe(1);
+        expect(sharedB.isEngineDestroyed()).toBe(false);
+        expect(getMockState()).not.toBe('closed');
+        expect(sharedB.getActiveMusicSourceCount()).toBe(1);
+        expect(sharedB.getCurrentTrackId()).toBe('BATTLE_NORMAL');
+
+        // 4. Finally, Engine B is destroyed — last owner leaves, so AudioContext closes and sources become 0
+        const closedOnB = releaseSharedAudioEngine(tokenB);
+        expect(closedOnB).toBe(true);
+        expect(getSharedAudioEngineOwnerCount()).toBe(0);
+        expect(sharedB.isEngineDestroyed()).toBe(true);
+        expect(sharedB.getActiveMusicSourceCount()).toBe(0);
+        expect(getMockState()).toBe('closed');
     });
 });

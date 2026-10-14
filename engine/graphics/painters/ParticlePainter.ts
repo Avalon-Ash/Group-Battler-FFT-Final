@@ -1,44 +1,28 @@
-
 import { GeometryPainter } from "./GeometryPainter";
-import { VFX_SPRITES } from "../../../constants";
 import { particleTextureStore } from "../../renderers/ParticleTextureStore";
 
 export const ParticlePainter = {
     drawAtmosphere(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        if (VFX_SPRITES.enabled && particleTextureStore.isReady('light')) {
-            const tinted = particleTextureStore.getTintedTexture('light', color, Math.max(16, r * 2));
-            if (tinted) {
-                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
-                return;
-            }
+        const tinted = particleTextureStore.getTintedTexture('light', color, Math.max(16, r * 2));
+        if (tinted) {
+            ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+            return;
         }
-        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-        grad.addColorStop(0, '#ffffff'); 
-        grad.addColorStop(0.2, color);
-        grad.addColorStop(1, 'transparent');
-        ctx.fillStyle = grad;
-        // Soft Hex shape: Use Regular (applyIso=false) because this is a texture generator.
-        GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'FILL', false);
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
+        ctx.fill();
     },
 
     drawSmoke(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        if (VFX_SPRITES.enabled && particleTextureStore.isReady('smoke')) {
-            const tinted = particleTextureStore.getTintedTexture('smoke', color, Math.max(16, r * 2));
-            if (tinted) {
-                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
-                return;
-            }
+        const tinted = particleTextureStore.getTintedTexture('smoke', color, Math.max(16, r * 2));
+        if (tinted) {
+            ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+            return;
         }
-        const grad = ctx.createRadialGradient(0, 0, r*0.2, 0, 0, r);
-        grad.addColorStop(0, color); 
-        grad.addColorStop(0.6, 'transparent');
-        ctx.fillStyle = grad;
-        
-        // Draw clusters (Organic shapes don't strictly need ISO logic)
+        ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(-r*0.3, -r*0.2, r*0.5, 0, Math.PI*2);
-        ctx.arc(r*0.3, r*0.2, r*0.4, 0, Math.PI*2);
-        ctx.arc(0, 0, r*0.4, 0, Math.PI*2);
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2);
         ctx.fill();
     },
 
@@ -57,29 +41,15 @@ export const ParticlePainter = {
     },
 
     drawSpike(ctx: CanvasRenderingContext2D, r: number, color: string) {
-        if (VFX_SPRITES.enabled && particleTextureStore.isReady('star')) {
-            const tinted = particleTextureStore.getTintedTexture('star', color, Math.max(16, r * 2));
-            if (tinted) {
-                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
-                return;
-            }
+        const tinted = particleTextureStore.getTintedTexture('star', color, Math.max(16, r * 2));
+        if (tinted) {
+            ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+            return;
         }
         ctx.fillStyle = color;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 15;
-        
         ctx.beginPath();
-        // Star shape (Regular geometry)
-        for(let i=0; i<4; i++) {
-            const angle = (i * Math.PI) / 2;
-            ctx.moveTo(0,0);
-            ctx.lineTo(Math.cos(angle)*r, Math.sin(angle)*r);
-            ctx.lineTo(Math.cos(angle+0.2)*r*0.2, Math.sin(angle+0.2)*r*0.2);
-        }
+        ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2);
         ctx.fill();
-        
-        ctx.fillStyle = '#fff';
-        ctx.beginPath(); ctx.arc(0, 0, r*0.3, 0, Math.PI*2); ctx.fill();
     },
 
     drawCracks(ctx: CanvasRenderingContext2D, r: number, color: string) {

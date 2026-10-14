@@ -24,13 +24,20 @@ export const useGameApp = () => {
     const engineRef = useRef<GameEngine>(initialEngine);
 
     useEffect(() => {
+        const currentEngine = engineRef.current;
         if (import.meta.env.DEV && typeof window !== 'undefined') {
             const devWindow = window as DevWindow;
-            devWindow.__TACTICAL_ENGINE__ = engineRef.current;
-            return () => {
-                delete devWindow.__TACTICAL_ENGINE__;
-            };
+            devWindow.__TACTICAL_ENGINE__ = currentEngine;
         }
+        return () => {
+            currentEngine.destroy();
+            if (import.meta.env.DEV && typeof window !== 'undefined') {
+                const devWindow = window as DevWindow;
+                if (devWindow.__TACTICAL_ENGINE__ === currentEngine) {
+                    delete devWindow.__TACTICAL_ENGINE__;
+                }
+            }
+        };
     }, []);
     
     const [session, setSession] = useState({

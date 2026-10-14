@@ -1,6 +1,6 @@
-
 import { Agent } from "../../../game";
 import { Team, HexLayout } from "../../../../types";
+import { SHIELD_VISUAL } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
 
@@ -30,8 +30,8 @@ export const ShieldPainter = {
         
         // 使用 3D 稜柱繪製體積感
         // 向上抬升一半高度以實現垂直居中
-        const shieldH = 80;
-        const shieldR = 38;
+        const shieldH = SHIELD_VISUAL.height;
+        const shieldR = SHIELD_VISUAL.radius;
         
         ctx.globalCompositeOperation = 'screen';
         // [FIX] Pass layout to VolumePainter

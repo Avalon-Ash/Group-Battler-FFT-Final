@@ -18,6 +18,63 @@ export function resolveAssetUrl(relativePath: string): string {
     return base.endsWith('/') ? `${base}${cleanRel}` : `${base}/${cleanRel}`;
 }
 
+/**
+ * 將目標尺寸對齊至 VFX_SPRITES.tintSizes 中第一個 >= targetSize 的分級（最大 256）
+ */
+export function quantizeTintSize(
+    targetSize: number,
+    steps: readonly number[] = VFX_SPRITES.tintSizes
+): number {
+    for (let i = 0; i < steps.length; i++) {
+        if (steps[i] >= targetSize) {
+            return steps[i];
+        }
+    }
+    return steps[steps.length - 1] ?? 256;
+}
+
+/**
+ * 將色彩字串量化至每通道 colorQuantBits 位元，消滅連續色彩插值導致的快取 key 無上限膨脹
+ */
+export function quantizeTintColor(
+    color: string,
+    bits: number = VFX_SPRITES.colorQuantBits
+): string {
+    const trimmed = color.trim().toLowerCase();
+    const shift = Math.max(0, 8 - bits);
+    const step = 1 << shift;
+
+    const qByte = (val: number): string => {
+        const clamped = Math.max(0, Math.min(255, Math.round(val)));
+        const quantized = Math.min(255, Math.round(clamped / step) * step);
+        return quantized.toString(16).padStart(2, '0');
+    };
+
+    // #rrggbb
+    if (/^#[0-9a-f]{6}$/.test(trimmed)) {
+        const r = parseInt(trimmed.slice(1, 3), 16);
+        const g = parseInt(trimmed.slice(3, 5), 16);
+        const b = parseInt(trimmed.slice(5, 7), 16);
+        return `#${qByte(r)}${qByte(g)}${qByte(b)}`;
+    }
+    // #rgb
+    if (/^#[0-9a-f]{3}$/.test(trimmed)) {
+        const r = parseInt(trimmed[1] + trimmed[1], 16);
+        const g = parseInt(trimmed[2] + trimmed[2], 16);
+        const b = parseInt(trimmed[3] + trimmed[3], 16);
+        return `#${qByte(r)}${qByte(g)}${qByte(b)}`;
+    }
+    // rgb(...) or rgba(...)
+    const rgbMatch = trimmed.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)$/);
+    if (rgbMatch) {
+        const r = parseFloat(rgbMatch[1]);
+        const g = parseFloat(rgbMatch[2]);
+        const b = parseFloat(rgbMatch[3]);
+        return `#${qByte(r)}${qByte(g)}${qByte(b)}`;
+    }
+    return trimmed;
+}
+
 export class ParticleTextureStore {
     private baseImages: Map<string, HTMLImageElement> = new Map();
     private tintedCache: Map<string, HTMLCanvasElement> = new Map();
@@ -34,6 +91,10 @@ export class ParticleTextureStore {
 
     public isReady(key: string): boolean {
         return this.baseImages.has(key);
+    }
+
+    public getTintCacheSize(): number {
+        return this.tintedCache.size;
     }
 
     private initLoads(): Promise<void> {
@@ -73,14 +134,15 @@ export class ParticleTextureStore {
 
     /**
      * 取得預烘焙著色粒子貼圖（source-in 填色）。
-     * 若底圖未就緒則回傳 null 由呼叫端退回程序化繪製。
+     * 尺寸對齊至 VFX_SPRITES.tintSizes，色彩量化至 VFX_SPRITES.colorQuantBits，容量上限 VFX_SPRITES.maxTintCache。
      */
     public getTintedTexture(key: string, color: string, targetSize: number): HTMLCanvasElement | null {
         const baseImg = this.baseImages.get(key);
         if (!baseImg) return null;
 
-        const roundedSize = Math.max(8, Math.min(256, Math.round(targetSize)));
-        const cacheKey = `${key}_${color}_${roundedSize}`;
+        const quantizedSize = quantizeTintSize(targetSize);
+        const quantizedColor = quantizeTintColor(color);
+        const cacheKey = `${key}_${quantizedColor}_${quantizedSize}`;
 
         const cached = this.tintedCache.get(cacheKey);
         if (cached) return cached;
@@ -88,19 +150,25 @@ export class ParticleTextureStore {
         if (typeof document === 'undefined') return null;
 
         const canvas = document.createElement('canvas');
-        canvas.width = roundedSize;
-        canvas.height = roundedSize;
+        canvas.width = quantizedSize;
+        canvas.height = quantizedSize;
         const ctx = canvas.getContext('2d');
         if (!ctx) return null;
 
         // 1. 繪製原始灰階/白色粒子
-        ctx.drawImage(baseImg, 0, 0, roundedSize, roundedSize);
+        ctx.drawImage(baseImg, 0, 0, quantizedSize, quantizedSize);
 
-        // 2. source-in 著色遮罩（僅保留粒子不透明度並填滿目標色彩）
+        // 2. source-in 著色遮罩（僅保留粒子不透明度並填滿量化後目標色彩）
         ctx.globalCompositeOperation = 'source-in';
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, roundedSize, roundedSize);
+        ctx.fillStyle = quantizedColor;
+        ctx.fillRect(0, 0, quantizedSize, quantizedSize);
 
+        if (this.tintedCache.size >= VFX_SPRITES.maxTintCache) {
+            const oldestKey = this.tintedCache.keys().next().value;
+            if (oldestKey !== undefined) {
+                this.tintedCache.delete(oldestKey);
+            }
+        }
         this.tintedCache.set(cacheKey, canvas);
         return canvas;
     }

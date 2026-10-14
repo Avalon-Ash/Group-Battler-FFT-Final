@@ -236,8 +236,8 @@ export class DesignExporter {
         s += "  OBSTACLE_{styleKey}_{layout}→ EnvironmentFactory.generateObstacle\n";
         s += "  MODEL_SHEEP / MODEL_ICE     → UnitFactory.generateSheep / EnvironmentFactory.generateIceBlock\n\n";
         s += "修改流程：\n";
-        s += "  調整單位外觀繪製邏輯 → engine/graphics/units/ImperialTokenFactory\n";
-        s += "                          engine/graphics/units/CovenantTokenFactory\n";
+        s += "  調整單位外觀繪製邏輯 → engine/renderers/units/factions/SpriteUnitRenderer.ts\n";
+        s += "                          data/units/appearance/sprite.ts\n";
         s += "  調整快取策略         → engine/sprites.ts (SpriteManager)\n";
         s += "  換新模型後需清除快取 → SpriteManager 內三個 Map 清空\n\n";
         s += "⚠️  美術優化注意事項：\n";

@@ -157,6 +157,7 @@ export class TacticalRenderer {
             const summary = RenderStats.formatSummary();
             const text = summary ? `${summary} | tier:${getQualityTier()}` : `tier:${getQualityTier()}`;
             ctx.fillText(text, 10, 32);
+            ctx.fillText(RenderStats.formatSpikeSummary(), 10, 44);
         }
 
         // SUDDEN DEATH WARNING

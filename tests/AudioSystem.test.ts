@@ -230,18 +230,72 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
     });
 
     it('GameEngine with ?mute does not instantiate AudioSystem', () => {
-        const prevLocation = (globalThis as any).location;
-        (globalThis as any).location = { search: `?${AUDIO.QUERY_MUTE_KEY}` };
+        const prevLocation = (globalThis as unknown as { location?: unknown }).location;
+        (globalThis as unknown as { location?: unknown }).location = { search: `?${AUDIO.QUERY_MUTE_KEY}` };
 
         try {
             const engine = new GameEngine();
             expect(engine.audio).toBeUndefined();
+            engine.destroy();
         } finally {
             if (prevLocation !== undefined) {
-                (globalThis as any).location = prevLocation;
+                (globalThis as unknown as { location?: unknown }).location = prevLocation;
             } else {
-                delete (globalThis as any).location;
+                delete (globalThis as unknown as { location?: unknown }).location;
             }
         }
+    });
+
+    it('Task T2: full event sequence transitions ambient -> battle_normal -> tense -> victory -> ambient without duplicate tense triggers', () => {
+        audioEngine.unlock();
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+
+        // 1. Showcase mode -> SHOWCASE_AMBIENT
+        bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: true });
+        expect(playMusicSpy).toHaveBeenLastCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+
+        // 2. Exit showcase + GAME_START -> BATTLE_NORMAL
+        bus.emit('UI_COMMAND', { type: 'SET_SHOWCASE_MODE', enabled: false });
+        bus.emit('GAME_START', {});
+        expect(playMusicSpy).toHaveBeenLastCalledWith('BATTLE_NORMAL', AUDIO.BGM_CROSSFADE_SEC);
+
+        // 3. 6 AGENT_DIED events (10 -> 4 remaining) -> triggers BATTLE_TENSE on 6th death
+        playMusicSpy.mockClear();
+        for (let i = 0; i < 6; i++) {
+            bus.emit('AGENT_DIED', { agent: {} as never, groundZ: 0, impactX: 600, impactY: 300 });
+        }
+        expect(playMusicSpy).toHaveBeenCalledTimes(1);
+        expect(playMusicSpy).toHaveBeenCalledWith('BATTLE_TENSE', AUDIO.BGM_CROSSFADE_SEC);
+
+        // Additional deaths (remaining = 3, 2) do not re-invoke playMusic('BATTLE_TENSE')
+        bus.emit('AGENT_DIED', { agent: {} as never, groundZ: 0, impactX: 600, impactY: 300 });
+        expect(playMusicSpy).toHaveBeenCalledTimes(1);
+
+        // 4. GAME_OVER -> VICTORY_STING
+        bus.emit('GAME_OVER', { winner: Team.BLUE });
+        expect(playMusicSpy).toHaveBeenLastCalledWith('VICTORY_STING', 0.2);
+
+        // 5. GAME_CLEAR -> back to SHOWCASE_AMBIENT
+        bus.emit('GAME_CLEAR', {});
+        expect(playMusicSpy).toHaveBeenLastCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+    });
+
+    it('Task T2: creating and destroying two GameEngine instances in interleaved order preserves shared AudioEngine until last destroy', () => {
+        const engine1 = new GameEngine();
+        const engine2 = new GameEngine();
+
+        expect(engine1.audio).toBeDefined();
+        expect(engine2.audio).toBeDefined();
+        const shared = engine1.audio!.getEngine();
+        expect(engine2.audio!.getEngine()).toBe(shared);
+
+        // Destroy engine1 first while engine2 is still alive
+        engine1.destroy();
+        expect(shared.isEngineDestroyed()).toBe(false);
+
+        // Destroy engine2 -> last owner released, shared AudioEngine is now destroyed
+        engine2.destroy();
+        expect(shared.isEngineDestroyed()).toBe(true);
+        expect(shared.getActiveMusicSourceCount()).toBe(0);
     });
 });

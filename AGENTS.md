@@ -11,7 +11,7 @@
 1. **Single Source of Truth (SSOT)**:
    - **Type Contract**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Always verify types here before implementing features.
    - **Parameter SSOT**: `constants.ts` governs all physics, combat calculations, colors, and layout constants. Never introduce hardcoded magic numbers.
-   - **Unit Appearance SSOT**: `data/units/appearance/` defines faction aesthetics (Imperial vs Covenant). Renderers only consume profiles; they must never define visual configurations or hardcode colors.
+   - **Unit Appearance SSOT**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines unit sprite atlas mappings, body-type profiles, and frame selection rules consumed by `SpriteUnitRenderer`. Renderers only consume profiles; they must never define visual configurations or hardcode colors.
    - **Procedural VFX SSOT**: `data/vfx/materialConfig.ts` controls all procedural shader-equivalent parameters (noise, ribbon, beam, grading).
    - **Agent Entity**: `Agent` (`engine/core/Agent.ts`) is a pure data entity (ECS-in-spirit). **NEVER add methods to `Agent`**. All state logic resides in Systems.
    - **Animation Derivation**: Visual and animation states are derived at the end of each tick in `AnimationSystem`.
@@ -45,7 +45,7 @@
 | :--- | :--- |
 | **All Tasks (Global)** | `types.ts`, `constants.ts` |
 | **Renderers / VFX / Shaders** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants.ts` |
-| **Faction / Unit Appearance** | `data/units/appearance/types.ts`, `data/units/appearance/imperial.ts`, `data/units/appearance/covenant.ts` |
+| **Faction / Unit Appearance** | `data/units/appearance/sprite.ts`, `data/units/appearance/bodyTypes.ts`, `data/units/appearance/selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
 | **AI / Behavior Trees** | `engine/behaviorTree.ts`, `engine/systems/ai/`, `engine/systems/DesignExporter.ts` |
 | **Combat / Skills / CC** | `engine/systems/combat/`, `data/skills/`, `skillDatabase.ts` |
 | **Movement / Hex Grid** | `engine/systems/movement/`, `engine/systems/grid/`, `engine/math/VisualMath.ts`, `PointerProjector.ts` |

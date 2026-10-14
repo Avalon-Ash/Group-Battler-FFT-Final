@@ -11,6 +11,22 @@ import { RenderDispatcher } from "./RenderDispatcher";
 import { RenderStats } from "./RenderStats";
 import { getRenderDpr } from "./RenderQuality";
 import { CtxOpCounter } from "./CtxOpCounter";
+import { spriteAtlasStore } from "./units/SpriteAtlasStore";
+import { terrainTextureStore } from "./grid/TerrainTextureStore";
+import { particleTextureStore } from "./ParticleTextureStore";
+
+let allAssetsReady = typeof Image === 'undefined';
+
+export const unifiedAssetsReadyPromise: Promise<void> = Promise.all([
+    spriteAtlasStore.readyPromise,
+    terrainTextureStore.readyPromise,
+    particleTextureStore.readyPromise,
+]).then(() => {
+    allAssetsReady = true;
+    if (typeof window !== 'undefined') {
+        (window as unknown as { __ASSETS_READY__?: boolean }).__ASSETS_READY__ = true;
+    }
+});
 
 export class RenderPipeline {
     private renderer: GameRenderer;
@@ -69,6 +85,14 @@ export class RenderPipeline {
     public draw(rawCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
         const { width: pW, height: pH } = rawCtx.canvas;
         if (pW === 0 || pH === 0) return;
+
+        // 資產載入閘門：載入完成前不進戰場主渲染（維持乾淨黑底），避免前幾幀閃過未載入殘影
+        if (!allAssetsReady && !spriteAtlasStore.isReady()) {
+            rawCtx.resetTransform();
+            rawCtx.fillStyle = '#020617';
+            rawCtx.fillRect(0, 0, pW, pH);
+            return;
+        }
 
         const ctx = CtxOpCounter.wrapContext(rawCtx);
         CtxOpCounter.beginFrame();

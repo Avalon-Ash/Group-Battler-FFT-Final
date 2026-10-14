@@ -2,7 +2,7 @@
  * SpriteUnitRenderer — 2.5D 預渲染精靈單位繪製器
  * -----------------------------------------------------------------------------
  * 說明：
- *  - 簽章對齊 ImperialRenderer.draw(ctx, agent, t, isSilhouette)。
+ *  - 簽章為 draw(ctx, agent, t, isSilhouette)。
  *  - 依 ECS 精神，純粹消費 Agent 資料與外觀 SSOT 設定。
  *  - 繪製位置以腳底為錨點 (0, 0)，加上 frame.ox / frame.oy 乘以全域縮放。
  *  - 依縮放自動選用預烘焙 Mip（1.0, 0.5, 0.25），零執行期離屏分配。
@@ -11,11 +11,61 @@
  */
 
 import { Agent } from '../../../core/Agent';
-import { UNIT_SPRITE } from '../../../../constants';
-import { spriteAtlasStore, selectMipLevel } from '../SpriteAtlasStore';
+import { UNIT_SPRITE, UNIT_SCALE } from '../../../../constants';
+import { spriteAtlasStore, selectMipLevel, UnitFrameDef } from '../SpriteAtlasStore';
 import { resolveBodyType, BODY_TYPE_PROFILE } from '../../../../data/units/appearance/bodyTypes';
 import { lookupSpriteAppearance } from '../../../../data/units/appearance/sprite';
 import { selectSpriteFrame } from '../../../../data/units/appearance/selectSpriteFrame';
+
+export interface SpriteDrawRect {
+    dx: number;
+    dy: number;
+    dw: number;
+    dh: number;
+    screenScale: number;
+    localScale: number;
+}
+
+/**
+ * 計算精靈在螢幕（世界座標、未受 UNIT_SCALE 影響）之縮放比例
+ */
+export function computeSpriteScreenScale(
+    refHeight: number = UNIT_SPRITE.referenceHeightPx,
+    heightScale: number = 1.0,
+    targetHeightCanvasUnits: number = UNIT_SPRITE.targetHeightCanvasUnits
+): number {
+    return (targetHeightCanvasUnits / refHeight) * heightScale;
+}
+
+/**
+ * 計算精靈在已套用 ctx.scale(UNIT_SCALE, UNIT_SCALE) 的局部座標系中之補償縮放比例
+ */
+export function computeSpriteLocalScale(
+    refHeight: number = UNIT_SPRITE.referenceHeightPx,
+    heightScale: number = 1.0,
+    targetHeightCanvasUnits: number = UNIT_SPRITE.targetHeightCanvasUnits
+): number {
+    return computeSpriteScreenScale(refHeight, heightScale, targetHeightCanvasUnits) / UNIT_SCALE;
+}
+
+/**
+ * 計算精靈於局部座標系（原點為 VisualBodyCenterY）之繪製矩形，使腳底精確落在 surfaceY
+ */
+export function computeSpriteDrawRect(
+    frame: Pick<UnitFrameDef, 'w' | 'h' | 'ox' | 'oy'>,
+    refHeight: number = UNIT_SPRITE.referenceHeightPx,
+    heightScale: number = 1.0,
+    anchorYOffset: number = 0,
+    targetHeightCanvasUnits: number = UNIT_SPRITE.targetHeightCanvasUnits
+): SpriteDrawRect {
+    const screenScale = computeSpriteScreenScale(refHeight, heightScale, targetHeightCanvasUnits);
+    const localScale = screenScale / UNIT_SCALE;
+    const dx = frame.ox * localScale;
+    const dy = (frame.oy + anchorYOffset) * localScale + UNIT_SPRITE.footOffsetLocal;
+    const dw = frame.w * localScale;
+    const dh = frame.h * localScale;
+    return { dx, dy, dw, dh, screenScale, localScale };
+}
 
 export const SpriteUnitRenderer = {
     /**
@@ -47,9 +97,6 @@ export const SpriteUnitRenderer = {
         const heightScale = bodyProfile?.heightScale ?? 1.0;
         const anchorYOffset = bodyProfile?.anchorYOffset ?? 0;
 
-        // 單一全域縮放比例
-        const globalScale = (UNIT_SPRITE.targetHeightCanvasUnits / refHeight) * heightScale;
-
         // 影格選取
         const hasCastAnim = 'cast' in unitDef.anims;
         const selection = selectSpriteFrame(agent, t, hasCastAnim);
@@ -61,8 +108,15 @@ export const SpriteUnitRenderer = {
         );
         if (!frame) return;
 
-        // Mip 層級選取
-        const mipLevel = selectMipLevel(globalScale);
+        // 目標繪製矩形（補償外層 UNIT_SCALE 並加上 footOffsetLocal 使腳底落在 surfaceY）
+        const rect = computeSpriteDrawRect(frame, refHeight, heightScale, anchorYOffset);
+        let dx = rect.dx;
+        const dy = rect.dy;
+        const dw = rect.dw;
+        const dh = rect.dh;
+
+        // Mip 層級選取（以實際螢幕縮放 screenScale 為準）
+        const mipLevel = selectMipLevel(rect.screenScale);
 
         // 來源圖集選取
         const atlasImage = isSilhouette
@@ -75,12 +129,6 @@ export const SpriteUnitRenderer = {
         const sy = frame.y * mipLevel;
         const sw = frame.w * mipLevel;
         const sh = frame.h * mipLevel;
-
-        // 目標繪製矩形（腳底為 0, 0 基準）
-        let dx = frame.ox * globalScale;
-        let dy = (frame.oy + anchorYOffset) * globalScale;
-        const dw = frame.w * globalScale;
-        const dh = frame.h * globalScale;
 
         // 受擊輕微抖動
         if (agent.hitFlashTimer > 0) {

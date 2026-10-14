@@ -10,12 +10,41 @@
  */
 
 import { RENDER_PERF } from '../../constants';
+import { CtxOpCounter } from './CtxOpCounter';
+
+export interface TerrainCacheRuntimeStats {
+    hits: number;
+    misses: number;
+    evictions: number;
+}
+
+export interface PerfSpikeSnapshot {
+    timestamp: number;
+    frameMs: number;
+    phases: Record<string, number>;
+    subPhases: Record<string, number>;
+    ctxOps: Record<string, number>;
+    terrainCache: TerrainCacheRuntimeStats;
+}
 
 export class RenderStatsCollector {
     public enabled: boolean = false;
     private startTimes = new Map<string, number>();
     private phaseEma = new Map<string, number>();
     private phaseLatest = new Map<string, number>();
+    private subPhaseStartTimes = new Map<string, number>();
+    private subPhaseFrameAccum = new Map<string, number>();
+    private subPhaseLatest = new Map<string, number>();
+    private subPhaseEma = new Map<string, number>();
+    private terrainCacheStats: TerrainCacheRuntimeStats = {
+        hits: 0,
+        misses: 0,
+        evictions: 0,
+    };
+    private spikeRing: Array<PerfSpikeSnapshot | undefined> = new Array(RENDER_PERF.SPIKE_RING_SIZE);
+    private spikeWriteIdx: number = 0;
+    private spikeCount: number = 0;
+    private maxSpikeMs: number = 0;
     private lastFrameStart: number = 0;
     private frameHistory: Array<{ t: number; dt: number }> = [];
     private frameEma: number = 0;
@@ -28,16 +57,26 @@ export class RenderStatsCollector {
                 this.enabled = false;
             }
         }
+        this.syncWindowSpikes();
     }
 
     public setEnabled(val: boolean): void {
         this.enabled = val;
+        this.syncWindowSpikes();
+    }
+
+    private syncWindowSpikes(): void {
+        if (typeof window !== 'undefined') {
+            const win = window as unknown as { __PERF_SPIKES__?: PerfSpikeSnapshot[] };
+            win.__PERF_SPIKES__ = this.enabled ? this.getSpikes() : [];
+        }
     }
 
     public begin(phase: string): void {
         if (!this.enabled) return;
         const now = performance.now();
         if (phase === 'background') {
+            this.flushSubPhases();
             if (this.lastFrameStart > 0) {
                 const dt = Math.max(0.1, now - this.lastFrameStart);
                 this.recordFrame(now, dt);
@@ -45,6 +84,73 @@ export class RenderStatsCollector {
             this.lastFrameStart = now;
         }
         this.startTimes.set(phase, now);
+    }
+
+    private flushSubPhases(): void {
+        for (const [name, sum] of this.subPhaseFrameAccum.entries()) {
+            this.subPhaseLatest.set(name, sum);
+            const prev = this.subPhaseEma.get(name);
+            if (prev === undefined) {
+                this.subPhaseEma.set(name, sum);
+            } else {
+                this.subPhaseEma.set(name, (1 - RENDER_PERF.EMA_ALPHA) * prev + RENDER_PERF.EMA_ALPHA * sum);
+            }
+        }
+        this.subPhaseFrameAccum.clear();
+        this.subPhaseStartTimes.clear();
+    }
+
+    public beginSubPhase(name: string): void {
+        if (!this.enabled) return;
+        this.subPhaseStartTimes.set(name, performance.now());
+    }
+
+    public endSubPhase(name: string): void {
+        if (!this.enabled) return;
+        const start = this.subPhaseStartTimes.get(name);
+        if (start === undefined) return;
+        const duration = Math.max(0, performance.now() - start);
+        this.addSubPhaseMs(name, duration);
+    }
+
+    public addSubPhaseMs(name: string, durationMs: number): void {
+        if (!this.enabled) return;
+        const prev = this.subPhaseFrameAccum.get(name) ?? 0;
+        const next = prev + Math.max(0, durationMs);
+        this.subPhaseFrameAccum.set(name, next);
+        this.subPhaseLatest.set(name, next);
+    }
+
+    public getSubPhaseMs(name: string): number {
+        if (!this.enabled) return 0;
+        return this.subPhaseEma.get(name) ?? this.subPhaseLatest.get(name) ?? 0;
+    }
+
+    public getSubPhaseLatestMs(name: string): number {
+        if (!this.enabled) return 0;
+        return this.subPhaseLatest.get(name) ?? 0;
+    }
+
+    public recordTerrainCacheHit(): void {
+        if (!this.enabled) return;
+        this.terrainCacheStats.hits++;
+    }
+
+    public recordTerrainCacheMiss(): void {
+        if (!this.enabled) return;
+        this.terrainCacheStats.misses++;
+    }
+
+    public recordTerrainCacheEviction(count: number = 1): void {
+        if (!this.enabled) return;
+        this.terrainCacheStats.evictions += Math.max(0, count);
+    }
+
+    public getTerrainCacheStats(): TerrainCacheRuntimeStats {
+        if (!this.enabled) {
+            return { hits: 0, misses: 0, evictions: 0 };
+        }
+        return { ...this.terrainCacheStats };
     }
 
     public recordFrame(now: number, dt: number): void {
@@ -63,6 +169,74 @@ export class RenderStatsCollector {
         } else {
             this.frameEma = (1 - RENDER_PERF.EMA_ALPHA) * this.frameEma + RENDER_PERF.EMA_ALPHA * dt;
         }
+
+        if (dt > RENDER_PERF.SPIKE_THRESHOLD_MS) {
+            this.recordSpikeSnapshot(now, dt);
+        }
+    }
+
+    private recordSpikeSnapshot(now: number, dt: number): void {
+        const phases: Record<string, number> = {};
+        for (const [k, v] of this.phaseLatest.entries()) {
+            phases[k] = +v.toFixed(2);
+        }
+        const subPhases: Record<string, number> = {};
+        for (const [k, v] of this.subPhaseLatest.entries()) {
+            subPhases[k] = +v.toFixed(2);
+        }
+        const ctxOps: Record<string, number> = {};
+        if (CtxOpCounter.enabled) {
+            const totals = CtxOpCounter.getLatestCounts();
+            for (const [k, v] of Object.entries(totals)) {
+                ctxOps[k] = Math.round(v);
+            }
+        }
+
+        const snapshot: PerfSpikeSnapshot = {
+            timestamp: +now.toFixed(2),
+            frameMs: +dt.toFixed(2),
+            phases,
+            subPhases,
+            ctxOps,
+            terrainCache: { ...this.terrainCacheStats },
+        };
+
+        const ringSize = RENDER_PERF.SPIKE_RING_SIZE;
+        this.spikeRing[this.spikeWriteIdx] = snapshot;
+        this.spikeWriteIdx = (this.spikeWriteIdx + 1) % ringSize;
+        this.spikeCount++;
+        if (dt > this.maxSpikeMs) {
+            this.maxSpikeMs = dt;
+        }
+        this.syncWindowSpikes();
+    }
+
+    public getSpikes(): PerfSpikeSnapshot[] {
+        if (!this.enabled || this.spikeCount === 0) return [];
+        const ringSize = RENDER_PERF.SPIKE_RING_SIZE;
+        const count = Math.min(this.spikeCount, ringSize);
+        const startIdx = this.spikeCount >= ringSize ? this.spikeWriteIdx : 0;
+        const result: PerfSpikeSnapshot[] = [];
+        for (let i = 0; i < count; i++) {
+            const item = this.spikeRing[(startIdx + i) % ringSize];
+            if (item) result.push(item);
+        }
+        return result;
+    }
+
+    public getSpikeCount(): number {
+        if (!this.enabled) return 0;
+        return this.spikeCount;
+    }
+
+    public getMaxSpikeMs(): number {
+        if (!this.enabled) return 0;
+        return +this.maxSpikeMs.toFixed(2);
+    }
+
+    public formatSpikeSummary(): string {
+        if (!this.enabled) return '';
+        return `spikes>${RENDER_PERF.SPIKE_THRESHOLD_MS}ms: ${this.spikeCount} (max ${this.maxSpikeMs.toFixed(1)}ms)`;
     }
 
     public end(phase: string): void {
@@ -164,9 +338,21 @@ export class RenderStatsCollector {
         this.startTimes.clear();
         this.phaseEma.clear();
         this.phaseLatest.clear();
+        this.subPhaseStartTimes.clear();
+        this.subPhaseFrameAccum.clear();
+        this.subPhaseLatest.clear();
+        this.subPhaseEma.clear();
+        this.terrainCacheStats.hits = 0;
+        this.terrainCacheStats.misses = 0;
+        this.terrainCacheStats.evictions = 0;
+        this.spikeRing = new Array(RENDER_PERF.SPIKE_RING_SIZE);
+        this.spikeWriteIdx = 0;
+        this.spikeCount = 0;
+        this.maxSpikeMs = 0;
         this.lastFrameStart = 0;
         this.frameHistory = [];
         this.frameEma = 0;
+        this.syncWindowSpikes();
     }
 }
 

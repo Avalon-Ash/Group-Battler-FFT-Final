@@ -1,6 +1,11 @@
 import { AUDIO, SCREEN_CONSTANTS } from '../../../constants';
 import { GameEvent, Team, UICommand } from '../../../types';
-import { AudioEngine, PlayCueOptions } from '../../audio/AudioEngine';
+import {
+    AudioEngine,
+    PlayCueOptions,
+    acquireSharedAudioEngine,
+    releaseSharedAudioEngine
+} from '../../audio/AudioEngine';
 import { EventBus } from '../../events/EventBus';
 import { WINNER_TO_VICTORY_TRACK } from '../../../data/audio/music';
 
@@ -14,21 +19,31 @@ import { WINNER_TO_VICTORY_TRACK } from '../../../data/audio/music';
 export class AudioSystem {
     private bus: EventBus;
     private audioEngine: AudioEngine;
+    private ownerToken: symbol;
+    private usesSharedEngine: boolean;
     private isDestroyed: boolean = false;
 
     // 戰鬥狀態追蹤（僅用於決定音樂張力層切換）
     private totalAgentsInBattle: number = 10;
     private remainingAgents: number = 10;
     private isBattleActive: boolean = false;
+    private isTenseActive: boolean = false;
     private isResultStingActive: boolean = false;
     private isShowcase: boolean = true;
 
     // 儲存事件取消訂閱用之引用
     private unsubscribers: (() => void)[] = [];
 
-    constructor(bus: EventBus, options?: { audioEngine?: AudioEngine }) {
+    constructor(bus: EventBus, options?: { audioEngine?: AudioEngine; ownerToken?: symbol }) {
         this.bus = bus;
-        this.audioEngine = options?.audioEngine ?? new AudioEngine();
+        this.ownerToken = options?.ownerToken ?? Symbol('AudioSystemOwner');
+        if (options?.audioEngine) {
+            this.audioEngine = options.audioEngine;
+            this.usesSharedEngine = false;
+        } else {
+            this.audioEngine = acquireSharedAudioEngine(this.ownerToken);
+            this.usesSharedEngine = true;
+        }
         this.bindEvents();
 
         // 預設為展示模式（與 UI session 初始狀態一致）：氛圍 BGM + 壓低的 SFX
@@ -36,19 +51,30 @@ export class AudioSystem {
         this.audioEngine.playMusic('SHOWCASE_AMBIENT', 0.5);
     }
 
+    /** 取得此 AudioSystem 的擁有者 Token */
+    public getOwnerToken(): symbol {
+        return this.ownerToken;
+    }
+
     /** 取得底層 AudioEngine 實例（供 UI 設定或測試使用） */
     public getEngine(): AudioEngine {
         return this.audioEngine;
     }
 
-    /** 銷毀並清理所有監聽器與音訊資源 */
+    /** 銷毀並清理所有監聽器與音訊資源（共享單例僅在最後一個擁有者離開時才真正 close AudioContext） */
     public destroy(): void {
+        if (this.isDestroyed) return;
         this.isDestroyed = true;
         for (const unsub of this.unsubscribers) {
             unsub();
         }
         this.unsubscribers.length = 0;
-        this.audioEngine.destroy();
+
+        if (this.usesSharedEngine) {
+            releaseSharedAudioEngine(this.ownerToken);
+        } else {
+            this.audioEngine.destroy();
+        }
     }
 
     private bindEvents(): void {
@@ -60,6 +86,7 @@ export class AudioSystem {
         // 2. 系統級事件
         this.subscribe('GAME_START', () => {
             this.isBattleActive = true;
+            this.isTenseActive = false;
             this.isResultStingActive = false;
             this.totalAgentsInBattle = 10;
             this.remainingAgents = 10;
@@ -73,6 +100,7 @@ export class AudioSystem {
 
         this.subscribe('GAME_OVER', (data: { winner: Team | null }) => {
             this.isBattleActive = false;
+            this.isTenseActive = false;
             if (this.isShowcase) return;
             this.isResultStingActive = true;
             if (data.winner !== null) {
@@ -87,6 +115,7 @@ export class AudioSystem {
 
         this.subscribe('GAME_CLEAR', () => {
             this.isBattleActive = false;
+            this.isTenseActive = false;
             this.isResultStingActive = false;
             this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
         });
@@ -124,8 +153,9 @@ export class AudioSystem {
 
             if (this.isBattleActive && !this.isShowcase) {
                 this.remainingAgents = Math.max(0, this.remainingAgents - 1);
-                // 存活單位 <= 4 時切換至緊張音樂層
-                if (this.remainingAgents <= 4) {
+                // 存活單位 <= 4 時切換至緊張音樂層（與 BATTLE_NORMAL 嚴格互斥，僅切換一次）
+                if (this.remainingAgents <= 4 && !this.isTenseActive) {
+                    this.isTenseActive = true;
                     this.audioEngine.playMusic('BATTLE_TENSE', AUDIO.BGM_CROSSFADE_SEC);
                 }
             }
@@ -156,6 +186,9 @@ export class AudioSystem {
         this.isShowcase = enabled;
         this.audioEngine.setShowcaseMix(enabled);
         if (enabled) {
+            this.isBattleActive = false;
+            this.isTenseActive = false;
+            this.isResultStingActive = false;
             this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
         }
     }
