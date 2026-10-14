@@ -54,6 +54,14 @@ export class UnitRenderSystem {
             
             // Sort Y: Ground position for depth sorting
             op.y = state.y + offset; 
+
+            // 擊飛中的屍體：滑行位移併入繪製位置與深度排序鍵，
+            // 否則排序仍以死亡點計算，滑到前方時會被後排地塊／障礙物來回覆蓋而閃爍。
+            if (agent.hp <= 0) {
+                const knock = UnitDeathPainter.getKnockOffset(agent);
+                op.tx += knock.x;
+                op.y += knock.y;
+            }
             
             // Visual Y: Top of terrain (using SSOT Math)
             op.ty = VisualMath.getIsoVisualY(op.y, state.terrainHeight);
