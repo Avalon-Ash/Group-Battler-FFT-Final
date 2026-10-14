@@ -100,7 +100,7 @@
 - 每次合併／push 前的決定由使用者下。
 
 ## 9. 在 Claude Code 使用的注意
-- Claude Code 會自動讀根目錄 `CLAUDE.md`（已指向本檔與 `AGENTS.md`）。工作流不依賴對話記憶。
+- Claude Code 會自動讀根目錄 `CLAUDE.md`（主代理專用的精簡版，會載入本檔；`AGENTS.md` 改為審查時才讀的檢查清單）。子代理定義在 `.claude/agents/`（explorer／worker／reviewer，模型與強度寫在 frontmatter）。工作流不依賴對話記憶。
 - 本機指令用 PowerShell；長時間指令以背景方式執行並等待完成，**不要輪詢**。
 - IDE 代理與你同時存取同一工作樹時，只讀不寫；你的工作在 `C:\Git\Group-Battler-main`。
 - 沒有圖像生成工具時，改用現成素材與指令列（Blender、PIL、ffmpeg 已在本機）。
