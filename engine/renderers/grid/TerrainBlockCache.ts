@@ -36,6 +36,10 @@ export function quantizeRenderScale(scale: number, steps: readonly number[] = RE
     return steps[steps.length - 1];
 }
 
+/** packedInt 內「縮放級距索引」的位元位置與遮罩（與 terrainSpriteKey 的打包方式一致） */
+const SCALE_BIT_SHIFT = 22;
+const SCALE_BIT_MASK = 7;
+
 export interface TerrainKeyCompound {
     theme: TerrainTheme;
     layout: HexLayout;
@@ -68,7 +72,7 @@ export function terrainSpriteKey(
 
     const hOffset = Math.max(0, Math.min(511, hKey + 100));
     const fOffset = Math.max(0, Math.min(511, floatKey + 100));
-    const packedInt = ((scaleIdx & 7) << 22) | ((hOffset & 511) << 13) | ((fOffset & 511) << 4) | (variant & 15);
+    const packedInt = ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT) | ((hOffset & 511) << 13) | ((fOffset & 511) << 4) | (variant & 15);
 
     return {
         theme,
@@ -85,6 +89,9 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     let misses = 0;
     let clears = 0;
     let evictions = 0;
+    let fallbacks = 0;
+    let bakeWindowStart = 0;
+    let bakeSpentMs = 0;
 
     // 材質簽章追蹤（逐欄數值比較，零字串配置）
     let sigEnabled = MATERIAL_CONFIG.enabled;
@@ -149,6 +156,48 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         misses = 0;
         clears = 0;
         evictions = 0;
+        fallbacks = 0;
+    }
+
+    function lookup(key: TerrainKeyCompound, packed: number): TerrainSpriteEntry | undefined {
+        return themeMap.get(key.theme)?.get(key.type)?.get(key.layout)?.get(packed);
+    }
+
+    /** 尚未烘焙時，借用相鄰縮放級距、其他條件完全相同的既有 sprite（以其 width/height 縮放繪製） */
+    function findScaleFallback(key: TerrainKeyCompound): TerrainSpriteEntry | undefined {
+        const own = (key.packedInt >> SCALE_BIT_SHIFT) & SCALE_BIT_MASK;
+        const base = key.packedInt & ~(SCALE_BIT_MASK << SCALE_BIT_SHIFT);
+        const stepCount = RENDER_CACHE.SCALE_STEPS.length;
+        for (let d = 1; d < stepCount; d++) {
+            if (own + d < stepCount) {
+                const up = lookup(key, base | ((own + d) << SCALE_BIT_SHIFT));
+                if (up) return up;
+            }
+            if (own - d >= 0) {
+                const down = lookup(key, base | ((own - d) << SCALE_BIT_SHIFT));
+                if (down) return down;
+            }
+        }
+        return undefined;
+    }
+
+    /** 容量滿時只丟棄「非目前縮放級距」的舊 sprite；回傳丟棄數量 */
+    function evictOtherScales(currentScaleIdx: number): number {
+        let removed = 0;
+        for (const typeMap of themeMap.values()) {
+            for (const layoutMap of typeMap.values()) {
+                for (const intMap of layoutMap.values()) {
+                    for (const packed of intMap.keys()) {
+                        if (((packed >> SCALE_BIT_SHIFT) & SCALE_BIT_MASK) !== currentScaleIdx) {
+                            intMap.delete(packed);
+                            removed++;
+                        }
+                    }
+                }
+            }
+        }
+        totalSprites -= removed;
+        return removed;
     }
 
     function get(
@@ -157,35 +206,48 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     ): TerrainSpriteEntry {
         checkMaterialSignature();
 
-        let typeMap = themeMap.get(key.theme);
-        if (typeMap) {
-            const layoutMap = typeMap.get(key.type);
-            if (layoutMap) {
-                const intMap = layoutMap.get(key.layout);
-                if (intMap) {
-                    const hit = intMap.get(key.packedInt);
-                    if (hit) {
-                        hits++;
-                        if (RenderStats.enabled) RenderStats.recordTerrainCacheHit();
-                        return hit;
-                    }
-                }
+        const hit = lookup(key, key.packedInt);
+        if (hit) {
+            hits++;
+            if (RenderStats.enabled) RenderStats.recordTerrainCacheHit();
+            return hit;
+        }
+
+        // 烘焙預算：同一時間窗內烘焙耗時超標時，先借用相鄰縮放級距的 sprite（縮放繪製），
+        // 避免縮放／換景時一幀內烘焙上百塊造成數百毫秒卡頓；無可借用者才強制烘焙。
+        const now = performance.now();
+        if (now - bakeWindowStart >= RENDER_CACHE.BAKE_WINDOW_MS) {
+            bakeWindowStart = now;
+            bakeSpentMs = 0;
+        }
+        if (bakeSpentMs >= RENDER_CACHE.BAKE_BUDGET_MS) {
+            const fallback = findScaleFallback(key);
+            if (fallback) {
+                fallbacks++;
+                return fallback;
             }
         }
 
         misses++;
         if (RenderStats.enabled) RenderStats.recordTerrainCacheMiss();
 
-        // 超過上限容量時記錄驅逐數並清空重建
+        // 超過上限容量：優先只丟棄舊縮放級距；仍無法釋放才整體清空
         if (totalSprites >= RENDER_CACHE.MAX_TERRAIN_SPRITES) {
-            evictions += totalSprites;
-            if (RenderStats.enabled) RenderStats.recordTerrainCacheEviction(totalSprites);
-            clear();
-            typeMap = undefined;
+            const removed = evictOtherScales((key.packedInt >> SCALE_BIT_SHIFT) & SCALE_BIT_MASK);
+            if (removed > 0) {
+                evictions += removed;
+                if (RenderStats.enabled) RenderStats.recordTerrainCacheEviction(removed);
+            } else {
+                evictions += totalSprites;
+                if (RenderStats.enabled) RenderStats.recordTerrainCacheEviction(totalSprites);
+                clear();
+            }
         }
 
         const entry = bake(createSurface);
+        bakeSpentMs += performance.now() - now;
 
+        let typeMap = themeMap.get(key.theme);
         if (!typeMap) {
             typeMap = new Map();
             themeMap.set(key.theme, typeMap);
@@ -211,7 +273,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         clear,
         resetStats,
         size: () => totalSprites,
-        getStats: () => ({ size: totalSprites, hits, misses, clears, evictions }),
+        getStats: () => ({ size: totalSprites, hits, misses, clears, evictions, fallbacks }),
         checkMaterialSignature,
     };
 }

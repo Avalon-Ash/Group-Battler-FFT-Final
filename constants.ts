@@ -569,6 +569,9 @@ export const RENDER_CACHE = {
     SPRITE_PADDING: 4,
     LIQUID_TIME_STEP: 0.05,
     LIQUID_CACHE_SLOTS: 8,
+    /** 地形 sprite 烘焙預算：每個時間窗內累計烘焙超過此毫秒數，其餘未命中改借用相鄰縮放級距的 sprite */
+    BAKE_BUDGET_MS: 4,
+    BAKE_WINDOW_MS: 16,
 } as const;
 
 /**

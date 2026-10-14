@@ -73,7 +73,7 @@ export const TerrainRenderer = {
         ctx.save();
         ctx.globalAlpha = alpha;
         ctx.translate(drawX, drawY);
-        if (renderScale === 1) {
+        if (renderScale === 1 && sprite.canvas.width === sprite.width) {
             ctx.drawImage(sprite.canvas, -sprite.anchorX, -sprite.anchorY);
         } else {
             ctx.drawImage(sprite.canvas, -sprite.anchorX, -sprite.anchorY, sprite.width, sprite.height);
