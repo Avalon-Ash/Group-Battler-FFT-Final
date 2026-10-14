@@ -3,8 +3,29 @@ import { UNIT_SPRITE, UNIT_SCALE, PALETTE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSpriteFrame";
 import { VisualMath } from "../../../math/VisualMath";
+import { computeDeathOffset, DeathOffset } from "../../../../data/units/appearance/deathMotion";
 
 export class UnitDeathPainter {
+
+    /**
+     * 死亡擊飛位移：以 Ragdoll 軀幹的初速（受擊方向）與死亡經過時間推導（渲染層無狀態）。
+     * x/y 供 UnitRenderSystem 併入繪製位置與深度排序；lift 由本繪製器套用。
+     */
+    public static getKnockOffset(agent: Agent): DeathOffset {
+        let vx = 0, vy = 0, vz = 0;
+        const bones = agent.ragdoll;
+        if (bones) {
+            for (let i = 0; i < bones.length; i++) {
+                if (bones[i].id === 'torso') {
+                    vx = bones[i].vx;
+                    vy = bones[i].vy;
+                    vz = bones[i].vz;
+                    break;
+                }
+            }
+        }
+        return computeDeathOffset(vx, vy, vz, agent.deathTimer);
+    }
 
     /**
      * 繪製死亡中的單位（hp <= 0 且尚未 fullyDead）
@@ -40,9 +61,12 @@ export class UnitDeathPainter {
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(visY, pz);
 
+        // 擊飛的水平位移已在提交繪製時併入位置與深度排序（UnitRenderSystem），這裡只負責彈跳離地高度
+        const knock = UnitDeathPainter.getKnockOffset(agent);
+
         ctx.save();
         ctx.globalAlpha = fadeAlpha * alpha;
-        ctx.translate(visX, bodyY + sinkY);
+        ctx.translate(visX, bodyY + sinkY - knock.lift);
         ctx.scale(UNIT_SCALE, UNIT_SCALE);
         if (SpriteUnitRenderer.canRender(agent)) {
             SpriteUnitRenderer.draw(ctx, agent, t, false);

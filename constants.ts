@@ -216,15 +216,53 @@ export const VFX_BUDGET = {
     SECONDARY_TYPES: ['DUST', 'SMOKE', 'SPARK', 'SPEED_LINE', 'GENERIC_DEBUG'] as const,
     /** 關鍵回饋粒子類型集合（傷害/死亡/終極技能，全額優先保留） */
     CRITICAL_TYPES: ['BLAST', 'DEATH_RAY', 'BEAM', 'HEX_BEAM', 'PILLAR', 'SHOCKWAVE'] as const,
-    /** UnitShatter 金屬碎屑數量（一般戰鬥 12；高負載或降階時縮減為 4） */
-    SHATTER_SHARDS_NORMAL: 12,
-    SHATTER_SHARDS_REDUCED: 4,
-    /** UnitShatter 碎片存活時間秒數（一般戰鬥 4.0~5.0s；高負載或降階時收緊為 2.0s） */
+    /** 單位死亡特效存活時間基準秒數；高負載或降階時以 REDUCED / NORMAL 比例縮短 */
     SHATTER_LIFETIME_NORMAL: 4.5,
     SHATTER_LIFETIME_REDUCED: 2.0,
     /** 聖約陣營死亡血噴粒子數（一般 / 高負載） */
     SHATTER_BLOOD_NORMAL: 18,
     SHATTER_BLOOD_REDUCED: 6,
+} as const;
+
+/** 單位死亡特效（輕量塵煙＋火花；取代舊的 token 碎片噴射）調校常數 */
+export const DEATH_VFX = {
+    /** 塵煙團數量（一般 / 高負載） */
+    PUFF_NORMAL: 4,
+    PUFF_REDUCED: 2,
+    PUFF_LIFE: 1.4,
+    PUFF_SIZE_MIN: 26,
+    PUFF_SIZE_RANGE: 18,
+    /** 塵煙水平擴散速度與上升速度 */
+    PUFF_SPEED: 60,
+    PUFF_RISE: 50,
+    PUFF_DRAG: 1.5,
+    PUFF_COLOR: '#cbd5e1',
+    /** 火花數量（一般 / 高負載） */
+    SPARK_NORMAL: 10,
+    SPARK_REDUCED: 4,
+    SPARK_LIFE: 0.7,
+    SPARK_SPEED_MIN: 180,
+    SPARK_SPEED_RANGE: 220,
+    SPARK_RISE_MIN: 120,
+    SPARK_RISE_RANGE: 160,
+    SPARK_SIZE_MIN: 6,
+    SPARK_SIZE_RANGE: 6,
+    SPARK_GRAVITY: 900,
+} as const;
+
+/** 單位死亡擊飛（渲染層以經過時間推導位移，見 data/units/appearance/deathMotion.ts） */
+export const DEATH_KNOCKBACK = {
+    /** 放大 Ragdoll 軀幹初速（世界座標單位/秒）後作為滑行初速 */
+    SPEED_SCALE: 2.2,
+    /** 水平滑行的指數衰減係數（1/秒） */
+    SLIDE_DECAY: 4,
+    /** 水平總位移上限 */
+    MAX_SLIDE: 110,
+    /** 垂直初速放大倍率、重力與彈跳衰減 */
+    VZ_SCALE: 1.6,
+    GRAVITY: 1050,
+    RESTITUTION: 0.35,
+    BOUNCES: 2,
 } as const;
 
 export const THEME_IMPERIAL = {
