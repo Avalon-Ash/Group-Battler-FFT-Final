@@ -1,6 +1,0 @@
-{
-  "summary": "已依指示修正 5 項關鍵規範：T2 採用擁有者 Token／參考計數保護交錯掛載順序、T3 嚴守 MAGMA/VOID 0 差異基準與保守退路、T1 targetHeightCanvasUnits 定為固定常數、嚴禁修改任何 HUD/UI 樣式、以及納入 main 分支與不加入 package-lock.json 之 Git 鐵律。",
-  "updatedAt": "2026-10-14T14:03:53.474414724Z",
-  "requestFeedback": true,
-  "userFacing": true
-}
