@@ -1,8 +1,9 @@
-// engine/renderers/units/painters/UnitDeathPainter.ts
 import { Agent, MapConfig, Team } from "../../../../types";
 import { RagdollPhysics, getDeathPhase } from "../../../systems/unit/RagdollPhysics";
-import { ISO_SCALE_Y, BLOCK_HEIGHT } from "../../../../constants";
+import { ISO_SCALE_Y, BLOCK_HEIGHT, UNIT_RENDER_MODE, UNIT_SPRITE } from "../../../../constants";
 import { UNIT_APPEARANCE } from "../../../../data/units/appearance";
+import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
+import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSpriteFrame";
 
 export class UnitDeathPainter {
 
@@ -21,6 +22,32 @@ export class UnitDeathPainter {
         simDt: number = 0.016 // 預設 60fps，若外部能傳更好
     ): void {
         if (agent.fullyDead) return;
+
+        // Sprite 模式分派：播放 death 動畫 -> 停格 -> 淡出 + 輕微下沉
+        if (UNIT_RENDER_MODE === 'sprite' && SpriteUnitRenderer.canRender(agent)) {
+            const totalAnimTime = (DEFAULT_FRAME_COUNTS.death ?? 6) / (UNIT_SPRITE.deathFps || 8);
+            const duration = agent.DEATH_ANIM_DURATION || 5.5;
+            const fadeDuration = UNIT_SPRITE.deathFadeDuration || 1.2;
+            const fadeStart = Math.max(totalAnimTime, duration - fadeDuration);
+
+            let fadeAlpha = 1.0;
+            let sinkY = 0;
+            if (agent.deathTimer > fadeStart) {
+                const fadeProg = Math.min(1.0, (agent.deathTimer - fadeStart) / Math.max(0.01, duration - fadeStart));
+                fadeAlpha = 1.0 - fadeProg;
+                sinkY = fadeProg * (UNIT_SPRITE.deathSinkDistance || 12);
+            }
+
+            if (fadeAlpha <= 0) return;
+
+            ctx.save();
+            ctx.globalAlpha = fadeAlpha * alpha;
+            ctx.translate(visX, visY + sinkY);
+            SpriteUnitRenderer.draw(ctx, agent, t, false);
+            ctx.restore();
+            return;
+        }
+
         if (!agent.ragdoll || agent.ragdoll.length === 0) return;
 
         // [ARCH] 讀取外觀 Profile

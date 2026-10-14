@@ -552,14 +552,20 @@ const runInspectorCommandSuite = async () => {
             const engine = window.__TACTICAL_ENGINE__;
             if (!engine || !engine.agents || engine.agents.length === 0) return null;
             const alive = engine.agents.filter(a => a.hp > 0);
-            const agent = alive[idx % alive.length] || engine.agents[0];
-            if (!agent) return null;
             const canvas = document.querySelector('canvas');
             if (!canvas) return null;
             const rect = canvas.getBoundingClientRect();
             const cam = engine.renderer.camera;
             const cx = rect.width / 2;
             const cy = rect.height / 2;
+            const candidates = alive.filter(u => {
+                const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(u.q, u.r) : 0;
+                const sx = rect.left + (u.px - cam.x) * cam.zoom + cx;
+                const sy = rect.top + (u.py - terrainH - cam.y) * cam.zoom + cy;
+                return sx > 380 && sx < rect.width - 100 && sy > 120 && sy < rect.height - 120;
+            });
+            const agent = (candidates.length > 0 ? candidates[idx % candidates.length] : null) || alive[idx % alive.length] || engine.agents[0];
+            if (!agent) return null;
             const terrainH = engine.map?.getTerrainHeight ? engine.map.getTerrainHeight(agent.q, agent.r) : 0;
             const worldX = agent.px;
             const worldY = agent.py - terrainH;
@@ -580,6 +586,12 @@ const runInspectorCommandSuite = async () => {
 
         isInspectorOpen = await editBtn.isVisible();
         if (isInspectorOpen) break;
+    }
+
+    if (!isInspectorOpen) {
+        await openViaMenu(page, 'inspector');
+        await page.waitForTimeout(400);
+        isInspectorOpen = await editBtn.isVisible();
     }
 
     if (!isInspectorOpen) {
@@ -606,15 +618,23 @@ const runInspectorCommandSuite = async () => {
     await hpInput.press('Enter');
     await page.waitForTimeout(300);
 
+    // Change bodyType (Task A2e)
+    const bodyTypeSelect = page.locator('label:has-text("體型") + select');
+    if (await bodyTypeSelect.isVisible()) {
+        await bodyTypeSelect.selectOption('MALE');
+        await page.waitForTimeout(300);
+    }
+
     // Assert live engine agent was updated
     const updated = await page.evaluate((aid) => {
         const a = window.__TACTICAL_ENGINE__.agents.find(u => u.id === aid);
-        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp } : null;
+        return a ? { role: a.role, maxHp: a.maxHp, hp: a.hp, bodyType: a.bodyType } : null;
     }, target.agentId);
 
     ok('inspector EDIT_AGENT changed role in live engine', updated?.role === newRole, `${updated?.role} vs ${newRole}`);
     ok('inspector EDIT_AGENT changed maxHp in live engine to 123', updated?.maxHp === 123, String(updated?.maxHp));
     ok('inspector EDIT_AGENT updated hp in live engine to 123', updated?.hp === 123, String(updated?.hp));
+    ok('inspector EDIT_AGENT verified bodyType in live engine', updated?.bodyType === 'MALE', String(updated?.bodyType));
 
     // 1. Selecting another unit preserves inspector rect (D5)
     const r1 = await rectOf(page, 'inspector');
@@ -1323,6 +1343,7 @@ const runEditorSuite = async () => {
         return window.__TACTICAL_ENGINE__.agents.find(a => a.q === q && a.r === r);
     }, draftHex);
     ok('DRAFT mode: placed unit with selected role RANGER', draftAgent !== undefined && draftAgent.role === 'RANGER', draftAgent?.role);
+    ok('DRAFT mode: placed unit has bodyType assigned', draftAgent !== undefined && draftAgent.bodyType === 'MALE', draftAgent?.bodyType);
 
     // ⑦ Wheel zoom: camera.zoom changes
     const initialZoom = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.zoom);

@@ -1,8 +1,17 @@
 
 import { GeometryPainter } from "./GeometryPainter";
+import { VFX_SPRITES } from "../../../constants";
+import { particleTextureStore } from "../../renderers/ParticleTextureStore";
 
 export const ParticlePainter = {
     drawAtmosphere(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        if (VFX_SPRITES.enabled && particleTextureStore.isReady('light')) {
+            const tinted = particleTextureStore.getTintedTexture('light', color, Math.max(16, r * 2));
+            if (tinted) {
+                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+                return;
+            }
+        }
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
         grad.addColorStop(0, '#ffffff'); 
         grad.addColorStop(0.2, color);
@@ -13,6 +22,13 @@ export const ParticlePainter = {
     },
 
     drawSmoke(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        if (VFX_SPRITES.enabled && particleTextureStore.isReady('smoke')) {
+            const tinted = particleTextureStore.getTintedTexture('smoke', color, Math.max(16, r * 2));
+            if (tinted) {
+                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+                return;
+            }
+        }
         const grad = ctx.createRadialGradient(0, 0, r*0.2, 0, 0, r);
         grad.addColorStop(0, color); 
         grad.addColorStop(0.6, 'transparent');
@@ -41,6 +57,13 @@ export const ParticlePainter = {
     },
 
     drawSpike(ctx: CanvasRenderingContext2D, r: number, color: string) {
+        if (VFX_SPRITES.enabled && particleTextureStore.isReady('star')) {
+            const tinted = particleTextureStore.getTintedTexture('star', color, Math.max(16, r * 2));
+            if (tinted) {
+                ctx.drawImage(tinted, -r, -r, r * 2, r * 2);
+                return;
+            }
+        }
         ctx.fillStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 15;

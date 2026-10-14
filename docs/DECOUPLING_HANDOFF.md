@@ -470,3 +470,46 @@ npm run lint; npm run build
 - **本地 Checkpoint Tags**：`perf4-ckpt-P0`、`perf4-ckpt-P3`、`perf4-ckpt-final`。
 - **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/PERF_BASELINE_4.md` 與 `docs/VFX_INVENTORY.md`。
 
+---
+
+## 11. 美術管線與奇幻 HD 素材導入（2026-10-14，feat/art-fantasy-hd 執行完成）
+
+- **分支與狀態**：獨立分支 `feat/art-fantasy-hd`（由 `main` 開出），依約未 push、未 merge。
+- **背景與目標**：將遊戲純程序化幾何骨骼/方塊外觀全面遷移至 FFT-like 2.5D Isometric 奇幻藝術風格（六角格網、正交仰角 30°、Q 版卡通冒險者 3D 預渲染精靈、無縫生物群系貼圖、粒子素材庫），並保持 ECS 精神（`Agent` 為純資料，外觀由 renderer 與外觀表驅動，不改動戰鬥模擬邏輯）。
+- **核心成果與實現**：
+  1. **素材入庫與授權治理 (A0a/A0b)**：
+     - 入庫 KayKit Adventurers 1.0 CC0 預渲染角色圖集 10 組 (`public/assets/units/`，4.27 MB) 與 Gemini 地形貼圖 10 組 (`public/assets/terrain/`，1.8 MB)。
+     - 建立素材合法性追蹤 (`docs/ASSET_LEDGER.md`、`CREDITS.md`) 與圖集逐格校驗工具 (`verify-sprites.mjs`、`process-terrain.mjs`)。
+  2. **地形材質貼圖化 (A1a/A1b)**：
+     - `TerrainTextureStore.ts` 實作頂/側面貼圖 pattern 烘焙與版本簽章自動無縫切換。
+     - 支援 `TERRAIN_SKIN.enabled` 總開關，關閉時 100% 逐像素等價退回程序化外觀 (0.000 diff)。
+     - 通過 0.5×~3× 縮放檢驗，完成 A1 地形 baseline 授權重錄。
+  3. **單位外觀 SSOT、體型軸與圖集快取 (A2a)**：
+     - `types.ts` 與 `Agent.ts` 擴充純資料欄位 `bodyType?: BodyTypeId`。
+     - 建立 `data/units/appearance/` 下 `bodyTypes.ts`（支援 MALE 啟用、FEMALE 暫退回 MALE）與 `sprite.ts`。
+     - `SpriteAtlasStore.ts` 實作 Mip-map (1.0, 0.5, 0.25) 縮放階層預烘焙、受擊閃白剪影預烘焙與按需懶載入。
+  4. **逐格動畫與四向渲染器 (A2b)**：
+     - `selectSpriteFrame.ts` 實作原生四向 (SE/SW/NE/NW) 判定與滯後防抖，覆蓋 idle/walk/attack/cast/hit/death 動畫優先序。
+     - `SpriteUnitRenderer.ts` 接入 `UnitBodyPainter.ts`，支援 `UNIT_RENDER_MODE: 'sprite' | 'procedural'` 平滑切換。
+  5. **體型隨機派發與編輯器切換 (A2e)**：
+     - `AgentManager` 實作 FNV-1a 確定性雜湊派發（不消耗模擬 RNG）。
+     - `UICommandSystem`、`MapEditorToolbar` 與 `UnitInspectorBody` 支援動態體型選取與修改。
+  6. **死亡與狀態整合 (A2c)**：
+     - `UnitDeathPainter.ts` 實作 6 格死亡動畫播放 -> 停格 -> 12px 沉降淡出。
+     - 依 A2 特殊授權重錄 `battle_frozen.png`，產出改前 vs 改後並排對比圖 (`art_before_after_battle_frozen.png`)。
+  7. **Kenney CC0 粒子貼圖與障礙物評估 (A3)**：
+     - 整合 Kenney Particle Pack (1.1) 貼圖 (`public/assets/vfx/`) 與 `ParticleTextureStore.ts`（source-in 著色快取）。
+     - 產出 `docs/ASSET_NEEDS.md` 盤點 5 大障礙物（WALL、TREE、ICE_CRYSTAL、OBSIDIAN_PILLAR、SANDSTONE）、特殊模型與女性冒險者需求規格。
+  8. **效能表現卓越**：
+     - 戰鬥幀耗時由改前 ~5.93ms 降至 **~5.64ms（提速 ~5%）**，遠低於 16.6ms 門檻（僅佔 34%）。
+     - 總入庫資源 6.45 MB（預算上限 12 MB）。
+- **驗證指標**：
+  - `npm run lint` 0 errors
+  - `npm test` 276/276 passed (29 test files)
+  - `npm run build` 通過
+  - `npm run perf:guard` 通過 (全場景保真與性能防線全綠)
+  - `npm run e2e:ui` 連跑兩次 ALL PASSED
+- **本地 Checkpoint Tags**：`art-ckpt-A1`、`art-ckpt-A2`、`art-ckpt-final`。
+- **報告參考**：詳見 `docs/ART_REPORT.md`、`docs/ART_PROGRESS.md`、`docs/ASSET_NEEDS.md` 與對比圖 `tools/ui-e2e/out/art_before_after_*.png`。
+
+

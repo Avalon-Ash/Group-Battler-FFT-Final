@@ -4,7 +4,7 @@ import { Agent, GameEngine } from '../engine/game';
 import { GameRenderer } from '../engine/renderer';
 import { SpriteManager } from '../engine/sprites';
 import { VisualMath } from '../engine/math/VisualMath';
-import { Team, ToolType, Skill, Role } from '../types';
+import { Team, ToolType, Skill, Role, BodyTypeId } from '../types';
 import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
@@ -22,6 +22,7 @@ interface GameCanvasProps {
     isShowcaseMode: boolean; 
     spawnMode: 'RANDOM' | 'DRAFT';
     draftRole: Role; 
+    draftBodyType?: BodyTypeId;
     onSelect: (a: Agent | null) => void;
     winner: Team | null;
     rematch: () => void;
@@ -32,7 +33,7 @@ interface GameCanvasProps {
 const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { 
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
-        isShowcaseMode, spawnMode, draftRole, onSelect, winner, rematch, nextLevel, transitionPhase, onOpenLogs 
+        isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, rematch, nextLevel, transitionPhase, onOpenLogs 
     } = props;
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -55,7 +56,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     
     const { pressedAgent, draggedObstacle, hoveredHexRef } = useGameInput({
         canvasRef, engine, rendererRef: rendererRef as React.MutableRefObject<GameRenderer>, cameraRef: camera,
-        tool, selectedObstacle, hpInput, spawnMode, draftRole, winner,
+        tool, selectedObstacle, hpInput, spawnMode, draftRole, draftBodyType, winner,
         onSelect
     });
 

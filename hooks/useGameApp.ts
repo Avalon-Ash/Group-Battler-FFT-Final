@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
-import { ToolType, Team, Skill, Role, HexLayout } from '../types';
+import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId } from '../types';
 import { SCENE_DB } from '../data/scenes';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
@@ -48,6 +48,7 @@ export const useGameApp = () => {
         hpInput: 600,
         spawnMode: 'RANDOM' as 'RANDOM' | 'DRAFT',
         draftRole: Role.WARRIOR,
+        draftBodyType: undefined as BodyTypeId | undefined,
         hexLayout: DEFAULT_HEX_LAYOUT,
         mapW: 12,
         mapH: 8,
@@ -208,7 +209,7 @@ export const useGameApp = () => {
         engineRef,
         state: { 
             isShowcaseMode: session.isShowcaseMode, isPlaying: session.isPlaying, unitCount: session.unitCount, winner: session.winner, timeScale: session.timeScale, transitionPhase: session.transitionPhase,
-            tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, hexLayout: editor.hexLayout,
+            tool: editor.tool, selectedObstacle: editor.selectedObstacle, hpInput: editor.hpInput, mapW: editor.mapW, mapH: editor.mapH, currentSceneId: editor.currentSceneId, spawnMode: editor.spawnMode, draftRole: editor.draftRole, draftBodyType: editor.draftBodyType, hexLayout: editor.hexLayout,
             selectedAgent: hud.selectedAgent, hoveredSkill: hud.hoveredSkill, showFactionWarning: hud.showFactionWarning,
             showDirectorMonitor: hud.showDirectorMonitor,
             logs: engineRef.current.logs
@@ -220,6 +221,7 @@ export const useGameApp = () => {
             setTimeScale: (timeScale: number) => setSession(p => ({...p, timeScale})),
             setSpawnMode: (spawnMode: 'RANDOM' | 'DRAFT') => setEditor(p => ({...p, spawnMode})),
             setDraftRole: (draftRole: Role) => setEditor(p => ({...p, draftRole})),
+            setDraftBodyType: (draftBodyType?: BodyTypeId) => setEditor(p => ({...p, draftBodyType})),
             setIsShowcaseMode: (isShowcaseMode: boolean) => setSession(p => ({...p, isShowcaseMode})),
             setSelectedAgent: (selectedAgent: Agent | null) => setHud(p => ({...p, selectedAgent})),
             setHoveredSkill: (hoveredSkill: Skill | null) => setHud(p => ({...p, hoveredSkill})),

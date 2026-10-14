@@ -3,6 +3,7 @@ import { UICommand, Role, Team } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
+import { AgentManager } from '../agentManager';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -93,6 +94,9 @@ export class UICommandSystem {
                         agent.mp = agent.maxMp;
                     }
                 }
+                if (cmd.bodyType) {
+                    agent.bodyType = cmd.bodyType;
+                }
                 break;
             }
 
@@ -107,6 +111,7 @@ export class UICommandSystem {
             }
 
             case 'RESET_GAME': {
+                AgentManager.matchSalt = Date.now();
                 this.engine.restart();
                 this.engine.bus.emit('GAME_RESET', {});
                 break;
@@ -164,6 +169,9 @@ export class UICommandSystem {
                 if (agent) {
                     if (roleOverride) {
                         agent.role = roleOverride;
+                    }
+                    if (cmd.bodyType) {
+                        agent.bodyType = cmd.bodyType;
                     }
                     agent.saveState();
                 }

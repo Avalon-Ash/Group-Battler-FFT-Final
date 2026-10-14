@@ -2,7 +2,7 @@
 // [ENTITY] 純資料容器。saveState/reset 為例外保留（生命週期管理）。
 // 禁止在此新增業務邏輯，任何計算請移至對應 System。
 
-import { Skill, Hex } from "../../types";
+import { Skill, Hex, BodyTypeId } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
@@ -19,6 +19,7 @@ export class Agent {
     public r: number;
     public px: number;
     public py: number;
+    public bodyType?: BodyTypeId;
 
     public hp: number = 100;
     public maxHp: number = 100;
@@ -122,7 +123,7 @@ export class Agent {
         angle: 0, vAngle: 0
     };
 
-    public initialState: { q: number, r: number, maxHp: number, skillIds: (string|null)[], role: Role };
+    public initialState: { q: number, r: number, maxHp: number, skillIds: (string|null)[], role: Role, bodyType?: BodyTypeId };
 
     constructor(id: string, team: Team, q: number, r: number, config: MapConfig) {
         this.id = id;
@@ -139,7 +140,7 @@ export class Agent {
         this.aiUpdateInterval = AGENT_CONSTANTS.DEFAULT_AI_UPDATE_INTERVAL;
         this.aiUpdateTimer = 0;
 
-        this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR };
+        this.initialState = { q, r, maxHp: 100, skillIds: [], role: Role.WARRIOR, bodyType: this.bodyType };
     }
 
     saveState() {
@@ -148,7 +149,8 @@ export class Agent {
             r: this.r,
             maxHp: this.maxHp,
             skillIds: [...this.skillIds],
-            role: this.role
+            role: this.role,
+            bodyType: this.bodyType
         };
         this.ragdoll = null;
     }
@@ -168,6 +170,7 @@ export class Agent {
 
         this.skillIds = [...this.initialState.skillIds];
         this.role = this.initialState.role;
+        this.bodyType = this.initialState.bodyType;
 
         this.castingSkillIdx = -1;
         this.castTimer = 0;

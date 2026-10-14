@@ -107,6 +107,7 @@ function App() {
                 isShowcaseMode={state.isShowcaseMode}
                 spawnMode={state.spawnMode}
                 draftRole={state.draftRole}
+                draftBodyType={state.draftBodyType}
                 onSelect={actions.handleSelectAgent} 
                 winner={state.winner}
                 rematch={actions.rematch}
@@ -125,6 +126,7 @@ function App() {
               onSetScene={actions.handleSetScene}
               spawnMode={state.spawnMode} setSpawnMode={setters.setSpawnMode}
               draftRole={state.draftRole} setDraftRole={setters.setDraftRole}
+              draftBodyType={state.draftBodyType} setDraftBodyType={setters.setDraftBodyType}
               hpInput={state.hpInput} setHpInput={setters.setHpInput}
               selectedObstacle={state.selectedObstacle} setSelectedObstacle={setters.setSelectedObstacle}
               hexLayout={state.hexLayout} onSetLayout={actions.handleUpdateLayout}
