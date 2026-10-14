@@ -147,27 +147,19 @@ export class ZoneSystem {
 
                     for (const hex of keysToRemove) {
                         // 1. 先處理站在格子上的單位，removeTile 前執行，確保座標資料還在
-                        const victim = engine.map.getAgentAt(hex.q, hex.r);
-                        if (victim && victim.hp > 0) {
-                            // 快照座標（SSOT：寫入 event.pos，確保 VFX 管線有正確 z 軸）
-                            const snapX = victim.px + victim.physics.x;
-                            const snapY = victim.py + victim.physics.y;
-                            const snapZ = victim.physics.z;
-
-                            victim.hp = 0;
-                            // 視覺下墜：用物理偏移模擬墜落，不觸發放逐旗標
-                            victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
-                            victim.physics.z = 80; // 起始高度，讓下墜有行程
-                            victim.deadLogged = true; // 避免 handleDeadState 重複推播事件
-
-                            engine.pushEvent('DEATH', 
-                                { x: snapX, y: snapY },
-                                { 
-                                    sourceId: victim.id,
-                                    text: "RING_OUT"
-                                }
-                            );
-                            engine.log(victim, 'SYSTEM', '墜落出局', null, `${victim.id} 隨地板崩落虛空`);
+                        const victims = engine.agents.filter(a => !a.fullyDead && a.q === hex.q && a.r === hex.r);
+                        for (const victim of victims) {
+                            if (victim.hp > 0 || !victim.deadLogged) {
+                                victim.hp = 0;
+                                victim.banished = false;
+                                engine.agentManager.handleDeadState(victim, engine, '墜落出局', 'RING_OUT');
+                                victim.physics.z = 0;
+                                victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
+                            } else {
+                                // 已經在戰鬥中死亡但仍在該地塊上的屍體，隨地塊崩塌垂直落下
+                                victim.physics.z = 0;
+                                victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
+                            }
                         }
 
                         // 2. [FIX] 清除陷落網格上的 Hazard 資料（避免特效懸浮在虛空）

@@ -90,6 +90,7 @@ export class MapSystem {
         this.heightMap.delete(k);
         this.obstacles.delete(k);
         this.obstaclesHash.delete(h);
+        this.removeAgentAt(q, r);
     }
     public setHeight(key: string, height: number) { this.heightMap.set(key, height); }
     public setObstacle(q: number, r: number, type: string) {
