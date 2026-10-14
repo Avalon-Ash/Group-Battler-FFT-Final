@@ -171,7 +171,8 @@ export class AgentManager {
             // [TODO: RAGDOLL] 當布娃娃系統實作後，此數值將驅動物理分解動畫的時間軸
             agent.deathTimer += dt;
 
-            if (agent.deathTimer >= agent.DEATH_ANIM_DURATION) {
+            // 墜入虛空（outOfBounds）的屍體沒有可播的死亡動畫，立即回收
+            if (agent.outOfBounds || agent.deathTimer >= agent.DEATH_ANIM_DURATION) {
                 // fullyDead 設為 true 後，deathTimer 停止累計（見外部 tick 判斷或此處 if 條件）
                 agent.fullyDead = true;
             }

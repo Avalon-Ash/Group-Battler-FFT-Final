@@ -330,7 +330,6 @@ export const AGENT_CONSTANTS = {
     DEFAULT_AI_UPDATE_INTERVAL: 0.08,
     AI_UPDATE_INTERVAL_JITTER: 0.02,
     DEATH_ANIM_DURATION: 5.5,
-    AI_IDLE_WATCHDOG_SEC: 6.0,
     /** RagdollBone.color 佔位色。UnitDeathPainter 渲染時以 appearance profile.primaryColor 覆蓋（SSOT），此值僅滿足型別。*/
     RAGDOLL_BONE_PLACEHOLDER_COLOR: '#ffffff',
     AI_UPDATE_INTERVAL_BY_ROLE: {

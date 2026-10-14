@@ -52,8 +52,7 @@ export class PhysicsEngine {
             a.physics.z += a.physics.vz * dt;
 
             if (a.physics.z < -1000) {
-                a.outOfBounds = true;
-                a.fullyDead = true; // Immediately reclaim fallen corpse
+                a.outOfBounds = true; // agentManager.updateDeathState 會在同一 tick 回收（fullyDead 唯一寫入者）
             }
             return;
         }
@@ -112,8 +111,7 @@ export class PhysicsEngine {
                     a.hp = 0;
                     engine.agentManager.handleDeadState(a, engine, '墜落', 'RING_OUT');
                 }
-                a.outOfBounds = true; // Remove from battlefield rendering and logic
-                a.fullyDead = true;
+                a.outOfBounds = true; // Remove from battlefield rendering and logic; fullyDead 由 updateDeathState 回收
             }
         } else if (isGroundValid && a.physics.z < 0) {
             a.physics.z = 0;

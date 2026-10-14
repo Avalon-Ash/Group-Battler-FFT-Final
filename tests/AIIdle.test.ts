@@ -3,7 +3,6 @@ import { GameEngine } from '../engine/game';
 import { Team, Role, NodeState } from '../types';
 import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
 import { HexUtils } from '../engine/utils';
-import { AGENT_CONSTANTS } from '../constants';
 
 describe('AIIdle (Task B2: Fix Unit Idle and Targeting Deadlocks in BR)', () => {
     let engine: GameEngine;
@@ -94,28 +93,5 @@ describe('AIIdle (Task B2: Fix Unit Idle and Targeting Deadlocks in BR)', () => 
         // Since enemy tile is invalid and no other enemies exist, HasTarget returns false
         expect(hasTargetCondition(attacker, engine, {})).toBe(false);
         expect(attacker.target).toBeNull();
-    });
-
-    it('triggers watchdog to reset target and force AI update after continuous idle', () => {
-        engine.play();
-        // Spawn 1 alive agent per team so match keeps running
-        const agent = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.WARRIOR);
-        engine.agentManager.addAgent(engine, Team.RED, 5, 5, 100, Role.WARRIOR);
-        if (!agent) return;
-
-        agent.isMoving = false;
-        agent.castingSkillIdx = -1;
-        agent.target = engine.agents[1];
-
-        // Advance ticks up to watchdog threshold
-        const threshold = AGENT_CONSTANTS.AI_IDLE_WATCHDOG_SEC;
-        const steps = Math.ceil(threshold / 0.1) + 2;
-
-        for (let i = 0; i < steps; i++) {
-            engine.tick(0.1);
-        }
-
-        // Watchdog should have triggered: forceAiUpdate was set or target was reset
-        expect(agent.idleWatchdogTimer).toBeLessThan(threshold);
     });
 });

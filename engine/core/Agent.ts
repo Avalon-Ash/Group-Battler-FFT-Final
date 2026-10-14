@@ -103,7 +103,6 @@ export class Agent {
     public escapeCooldown: number = 0; // Added missing property
     public _interruptCooldown: number = 0;
     public _castCompleteCooldown: number = 0;
-    public idleWatchdogTimer: number = 0;
 
     public deadLogged: boolean = false;
     public deathTimer: number = 0;
@@ -224,7 +223,6 @@ export class Agent {
         this.ragdoll = null;
         this.animState = AnimState.IDLE;
         this.spawnTimer = 0.5;
-        this.idleWatchdogTimer = 0;
         this._interruptCooldown = 0;
         this._castCompleteCooldown = 0;
 
