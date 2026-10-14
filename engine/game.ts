@@ -23,7 +23,7 @@ import { SCENE_DB } from "../data/scenes";
 import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, HexLayout, GroundHazard, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";
 import { BTNode } from "./behaviorTree";
 import { HexUtils, MapConfig } from "./utils";
-import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
+import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS, AGENT_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
 import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
@@ -356,6 +356,22 @@ export class GameEngine implements SpatialProvider {
             if (a.escapeCooldown > 0) a.escapeCooldown -= dt;
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
+            }
+            // [WATCHDOG] 存活單位若連續無動作超過閾值，清除目標與路徑並強制重新決策
+            if (AGENT_CONSTANTS.AI_IDLE_WATCHDOG_SEC > 0 && !a.banished && !a.outOfBounds && a.stunTimer <= 0 && a.fearTimer <= 0 && a.stasisTimer <= 0) {
+                if (!a.isMoving && a.castingSkillIdx === -1) {
+                    a.idleWatchdogTimer += dt;
+                    if (a.idleWatchdogTimer >= AGENT_CONSTANTS.AI_IDLE_WATCHDOG_SEC) {
+                        this.log(a, 'DECISION', '看門狗介入', '', `單位連續 ${AGENT_CONSTANTS.AI_IDLE_WATCHDOG_SEC} 秒無動作，強制重置目標與行為樹決策`);
+                        a.target = null;
+                        a.targetHex = null;
+                        a.path = [];
+                        a.forceAiUpdate = true;
+                        a.idleWatchdogTimer = 0;
+                    }
+                } else {
+                    a.idleWatchdogTimer = 0;
+                }
             }
             if (a.bt && a.aiUpdateTimer > 0) {
                 a.aiUpdateTimer -= dt;
