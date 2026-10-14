@@ -1,10 +1,10 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ragdoll.ts — Ragdoll 型別定義                           ║
-// ║  [ARCH] RagdollBone 為佈娃娃系統的唯一資料契約            ║
-// ║  消費者：RagdollFactory（建立） / UnitDeathPainter（讀取）║
+// ║  [ARCH] RagdollBone 為骨骼初始快照之資料契約            ║
+// ║  消費者：RagdollFactory / UnitDeathPainter.getKnockOffset ║
 // ╚══════════════════════════════════════════════════════════╝
 
-/** 單一骨骼節點，代表布娃娃的一個部位 */
+/** 骨骼快照節點，提供死亡初速以推導擊飛位移 */
 export interface RagdollBone {
     id: string;           // 'torso' | 'head' | 'arm_l' | 'arm_r' | 'leg_l' | 'leg_r'
     x: number;            // 世界空間 X

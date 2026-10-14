@@ -5,7 +5,7 @@
 // ║  上游：GameEngine.tick（每幀呼叫 updateDeathState）       ║
 // ║  下游：RagdollFactory / EventBus(AGENT_DIED, AGENT_RESET)  ║
 // ║  [ARCH] deathTimer 由此累計，UnitDeathPainter 消費        ║
-// ║  [TODO: RAGDOLL] ragdoll 快照由此建立，物理由 Painter 實作║
+// ║  ragdoll 快照由此建立，供 UnitDeathPainter 取軀幹初速    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
@@ -167,8 +167,7 @@ export class AgentManager {
      */
     public updateDeathState(agent: Agent, dt: number) {
         if (agent.hp <= 0 && !agent.fullyDead) {
-            // [ARCH] deathTimer 為 UnitDeathPainter 提供死亡進度資料
-            // [TODO: RAGDOLL] 當布娃娃系統實作後，此數值將驅動物理分解動畫的時間軸
+            // [ARCH] deathTimer 為 UnitDeathPainter 提供死亡進度資料（逐格動畫、擊飛與淡出）
             agent.deathTimer += dt;
 
             // 墜入虛空（outOfBounds）的屍體沒有可播的死亡動畫，立即回收

@@ -10,11 +10,10 @@
 // ║    UnitBodyPainter   → getSpecialModel('SHEEP' / 'ICE')         ║
 // ║    UnitShadowPainter → getUnitImages                            ║
 // ║    RenderDispatcher  → getObstacleSprite                        ║
-// ║    UnitShatter       → getUnitLayersFull                        ║
 // ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
 // ║                                                                  ║
-// ║  [注意] UnitAssets / UnitLayers interface 已無使用端，           ║
-// ║         保留僅為向後相容，下次大重構時可移除                     ║
+// ║  [注意] UnitLayers / getUnitLayersFull 等已無使用端，           ║
+// ║         保留僅為向後相容                                         ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, HexLayout } from "../types";
