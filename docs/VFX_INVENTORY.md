@@ -41,7 +41,7 @@ TACTICAL.OS 目前擁有兩套並存的視覺/特效管線：
 | **單位 3D 護盾** | `SHIELD` | `engine/renderers/status/painters/ShieldPainter.ts` | `RenderPipeline` 繪製單位時 | `VolumePainter.draw3DPrism` | **否** | 隨護盾值存亡 | 依有護盾單位數 (最多 10) | **高耗點**：每個護盾每幀調用 `createLinearGradient` 6 次（6 個面），雙層掃描線 |
 | **技能詠唱法陣** | 普通詠唱法陣 | `engine/renderers/units/painters/UnitAuraPainter.ts` | 單位 `castingSkillIdx !== -1` | `UnitAuraPainter.drawCastingVFX` | **否** | 詠唱期間 (1~2.5s) | 依詠唱單位數 (最多 10) | **高耗點**：每單位每幀 `shadowBlur = 12`，雙重旋轉六邊形邊界，上升光點粒子 |
 | **奧義詠唱聖域** | 奧義法陣與神聖柱 | `engine/renderers/units/painters/UnitAuraPainter.ts` | 單位施放 ULT 詠唱 | `UnitAuraPainter.drawUltimateChantVFX` | **否** | 奧義詠唱期間 (2~4s) | 同時詠唱單位數 | **高耗點**：每幀 `shadowBlur = 20`，超大六邊形法陣，虛線符文環，垂直光柱填充 |
-| **單位死亡碎裂** | `UnitShatter` | `engine/systems/visuals/effects/UnitShatter.ts` | `AGENT_DIED` 事件 | `UnitShatter.spawn` 派發粒子至 `VFXSystem` | **否** | 3.5s ~ 4.5s | 每名死亡單位 16~20 個粒子 | 拆解角色 Base, Rim, Core, RoleIcon 畫布為 SPRITE 粒子，加 12~16 個水晶碎屑，帶重力彈跳與落地旋轉 |
+| **單位死亡特效** | `UnitShatter` | `engine/systems/visuals/effects/UnitShatter.ts` | `AGENT_DIED` 事件 | `UnitShatter.spawn` 派發粒子至 `VFXSystem` | **否** | 1.0s ~ 2.0s | 每名死亡單位 6~14 個粒子 | 輕量塵煙（SMOKE_PUFF）＋火花（SPARK），外加陣營專屬靈魂飛升／血噴（DEATH_VFX 管控；舊 Token 碎片已移除） |
 | **浮動文字與數字** | 傷害、治療、暴擊、吸收、CC、KILL_STREAK | `engine/renderers/hud/TextPainter.ts` | `DAMAGE`, `HEAL`, `KILL_STREAK` | `TextPainter.drawFloatingText` | **否** | 1.0s ~ 1.5s | `MAX_ACTIVE_TEXTS = 60` | 描邊文字、縮放彈跳、`KILL_STREAK` 特殊粗體字體 |
 | **技能呼喊與破棄** | SHOUT (詠唱名稱、成功昇華、破棄 Glitch) | `engine/renderers/hud/TextPainter.ts` | `CAST_START`, `CAST_BREAK`, 技能完成 | `TextPainter.drawFloatingText` (SHOUT 分支) | **否** | 詠唱時間 + 0.5s | 每單位 1 條 | **高耗點**：`createLinearGradient` 掃描背景，`shadowBlur=10~20`，破棄時 RGB Split 三色分離重繪，`Math.random()` 每幀亂流抖動 |
 | **飛行物與尾跡** | 普通投射物、奧義投射物 | `engine/renderers/ProjectileDrawer.ts` | `RenderList` 收集飛行物 RenderOp | `ProjectileDrawer.draw` | **否** (讀取 `PROJECTILE_VISUALS`) | 飛行時間 (0.3s~1.5s) | 飛行中投射物數 | **高耗點**：帝國尾跡每幀調用 `createLinearGradient`；聖約尾跡逐段 `stroke()` 迴圈 |
@@ -94,9 +94,9 @@ Canvas 2D 的 `shadowBlur` 是極度高昂的 CPU/GPU 軟體模糊光柵化操�
 - `GroundPainter.ts:91, 154`：非 Material 模式下，裂紋方向與毒氣泡泡位置每幀隨機重新採樣。
 
 ### 3.5 確定為死碼的資產與檔案 (Dead Code)
-- `data/vfx/beam_visuals.ts`：定義了 `BEAM_VISUALS`，但全專案無任何檔案引用它。
-- `data/vfx/cast_visuals.ts`：全專案無任何引用。
-- `data/vfx/procedural_visuals.ts` 以及 `data/vfx/procedural/` 目錄下的 5 個檔案（`pillar_visuals.ts`, `domain_visuals.ts`, `hex_visuals.ts`, `beam_visuals.ts`, `grid_visuals.ts`）：定義了大量 procedural 資料物件，但除自身相互匯入外，全專案無任何外部引用。
+- 舊射線視覺模組（曾定義 `BEAM_VISUALS`）：全專案無任何外部引用，已於歷史清理輪移除。
+- 舊詠唱視覺模組：全專案無任何引用，已於歷史清理輪移除。
+- 舊程序化視覺模組（含 `pillar_visuals`、`domain_visuals`、`hex_visuals`、`beam_visuals`、`grid_visuals`）：定義了大量 procedural 資料物件但無外部引用，已於歷史清理輪移除。
 - `data/vfx/vfx_library.ts`：僅供檢視器頁籤 `VFXMapTab.tsx` 讀取，戰鬥主管線未引用。
 
 ---
