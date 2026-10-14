@@ -11,7 +11,7 @@
 
 | 任務 | 項目名稱 | 狀態 | Commit Hash | 核心成果與檔案變更 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Pre** | 素材暫存入庫與前置設定 | DONE | `d7a651e` | 複製 `art-source/`、`tools/assets/blender/`，初始化 `docs/ART_PROGRESS.md`。 |
+| **Pre** | 素材暫存入庫與前置設定 | DONE | `d7a651e` | 複製 `art-source/`、`tools/assets/blender/`，初始化 `docs/archive/ART_PROGRESS.md`。 |
 | **A0a** | 素材目錄、授權制度、精靈入庫 | DONE | `fb61f1d` | 入庫 `public/assets/units/*.webp` (4.27MB) 與 `manifest.json`；建立 `docs/ASSET_LEDGER.md`、`CREDITS.md` 與 Blender 重現指引。 |
 | **A0b** | 素材驗證與地形處理工具 | DONE | `f36e663` | 建立 `verify-sprites.mjs` (精靈格檢驗) 與 `process-terrain.mjs` (去邊無縫化處理)；產出 10 張 512×512 WebP 地形貼圖。 |
 | **A1a** | 地形材質貼圖化（TERRAIN_SKIN） | DONE | `ebed9d3` | 實作 `TerrainTextureStore.ts`、常數 `TERRAIN_SKIN`，升級 `TerrainRenderer.ts` 頂/側面貼圖 pattern 烘焙與程序化回退。 |

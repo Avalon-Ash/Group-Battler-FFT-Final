@@ -277,7 +277,7 @@ npm run lint; npm run build
 | T6.4 | 建立 `applyDamage`（單一入口，位於 `systems/combat/`），先**只改 PhysicsEngine + HazardSystem**，保持原公式與護盾行為（先寫差異測試）。EffectSystem 與 SkillExecutor 之後再分批。 | ≤3 | 需 T6.0 完成 |
 | T6.5 | `UnitShatter` 改走 `AGENT_DIED` 事件。 | agentManager + renderer + EventMap | 順序不得變（同 tick 內 `handleDeadState` 之後） |
 | T6.6 | `AnnouncerSystem`、`EventHUDMapper` 色碼 → 語意 key + `data/vfx`；`TokenFactory` 殘餘色碼 → appearance profile。 | ≤3/批 | 以 material-preview 目視比對 |
-| T6.7 | 隨機源：新增 `engine/math/rng.ts`（原規劃 `engine/utils/rng.ts`）（可注入種子，預設 `Math.random`），**先只替換 `DamageCalculator` 與 `agentManager`**，呼叫順序不變。 | ≤3 | 為重播/測試鋪路 |
+| T6.7 | 隨機源：新增 `engine/math/rng.ts`（可注入種子，預設 `Math.random`），**先只替換 `DamageCalculator` 與 `agentManager`**，呼叫順序不變。 | ≤3 | 為重播/測試鋪路 |
 | T6.8 | `game.ts` 純轉發方法：UI/系統逐步改吃 `SpatialProvider`，轉發方法標 `@deprecated`（不刪）。 | ≤3 | Facade，簽名不可動 |
 | T6.9 | 打包優化：`vite.config.ts` `manualChunks`（react / editor / inspector）、`MapEditor`/`Inspector`/`Showcase` 以 `React.lazy` 載入。 | ≤3 | **P0-1 由使用者決定後一併處理 vite.config** |
 
