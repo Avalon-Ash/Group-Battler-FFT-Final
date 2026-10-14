@@ -5,9 +5,10 @@
 
 ## 0. 分支與 git 規則（本輪與以往不同）
 
-- 起點分支：`feat/art-fantasy-hd`（美術管線已完成、**尚未合併 main**）。**開工第一步：`git switch feat/art-fantasy-hd`，再 `git switch -c feat/art-fix-2`**；若 `feat/art-fantasy-hd` 不存在或工作樹不乾淨 → 停下回報。
-- **本輪允許 push，但只能 `git push origin feat/art-fix-2`**（每個任務 commit 後推一次，確保成果不遺失）。**絕不 push／合併／rebase `main` 與 `feat/art-fantasy-hd`**，不得 force push，不得刪分支。
-- 一任務一 commit（訊息格式 `fix(art2): T<n> ...`）。同一問題連續失敗 3 次 → 在報告記錄、`git stash`／還原到上一個綠色 commit，跳到下一任務。
+- **因 AI Studio 無法切換分支，本輪直接在 `main` 上工作**（美術管線 `feat/art-fantasy-hd` 已由主代理合併進 `main`）。**不得切換／建立／刪除分支**；開工時當前分支必須是 `main` 且工作樹乾淨，否則停下回報。
+- **開工第一步：打安全 tag `pre-art-fix2`（`git tag pre-art-fix2 && git push origin pre-art-fix2`）**，日後可據此整輪回退。
+- **每個任務在 lint／test／build 全綠後才 commit，commit 後 `git push origin main`**（普通 push；**絕不 force push、rebase、amend 已推送的 commit、改寫歷史、刪 tag**）。任何一個 commit 若發現把 `main` 弄壞（lint／test／build 紅），**下一個動作必須是修好它**（`git revert <sha>` 也可），不得帶著紅燈進行下一任務。
+- 一任務一 commit（訊息格式 `fix(art2): T<n> ...`）。同一問題連續失敗 3 次 → 在報告記錄、`git revert` 或還原到上一個綠色 commit，跳到下一任務。
 - 進度寫在 `docs/ART2_PROGRESS.md`（每完成一個任務更新一行：任務、commit、結果、未驗證項）。
 
 ## 1. 專案守則（摘要，全文見 `AGENTS.md`，開工前必讀）
@@ -34,7 +35,8 @@
 2. 繪圖原點是「身體中心」＝`VisualMath.getVisualBodyCenterY` = `surfaceY − z − UNIT_BODY_OFFSET(36) − UNIT_HOVER_OFFSET(6)`。精靈卻把**腳底錨點放在原點 (0,0)** → 腳底離地約 42 px（螢幕）。地面陰影畫在 `surfaceY`，兩者分離。
 
 **要求**：
-- 讓精靈高度以「螢幕上的 canvas unit」為語意：`UNIT_SPRITE.targetHeightCanvasUnits` 改為與舊單位等高（`UNIT_VISUAL_HEIGHT * UNIT_SCALE`，由常數運算式表達，不寫死 65），並在 `SpriteUnitRenderer` 以 `/ UNIT_SCALE` 補償（或等價做法，但**單一處、單一公式**）。
+- 讓精靈高度以「螢幕上的 canvas unit」為語意，並在 `SpriteUnitRenderer` 以 `/ UNIT_SCALE` 補償（或等價做法，但**單一處、單一公式**）。
+- **尺寸上限＝護盾稜柱**（使用者指定：以護盾寬度當參照、**不要超過就好**）。`engine/renderers/status/painters/ShieldPainter.ts` 目前寫死 `shieldH = 80`、`shieldR = 38`（世界座標、不受 `UNIT_SCALE` 影響；稜柱寬約 `2×shieldR = 76`）。請：① 把這兩個值抽到 `constants.ts`（如 `SHIELD_VISUAL = { height: 80, radius: 38 }`，`ShieldPainter` 改讀常數，**畫面不得有任何像素變化**）；② `UNIT_SPRITE.targetHeightCanvasUnits` 設為**不超過 `SHIELD_VISUAL.height`**，預設取與舊程序化單位相當的值 `UNIT_VISUAL_HEIGHT * UNIT_SCALE`（約 65），若它大於護盾上限則取上限；③ **單元測試**：遍歷 manifest 內全部 10 個單位 × 全部動畫 × 4 個方向的每一格，以最終縮放計算「螢幕寬度 `frame.w × scale`」與「螢幕高度 `frame.h × scale`」，斷言**最大寬度 ≤ `2 × SHIELD_VISUAL.radius`、最大高度 ≤ `SHIELD_VISUAL.height`**（包含攻擊／施法格的武器伸展）；若有任何格超過，**降低 `targetHeightCanvasUnits`（唯一調整手段）直到全部通過**，並把最終值與最寬格的資料寫進報告。不得為了通過測試而裁切精靈或放大上限。
 - 腳底錨點下移：在 `UNIT_SPRITE` 新增 `footOffsetLocal`，值由 `(UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET) / UNIT_SCALE` 運算式得到（約 64.6，≈ 既有 `AGENT_MODEL_CENTER_Z`），於 `SpriteUnitRenderer` 繪製時把 `dy` 加上它，使腳底落在 `surfaceY`（與地面陰影同一水平）。
 - `UnitDeathPainter` 的 sprite 分支（`translate(visX, visY + sinkY)`）必須用**同一個錨點定義**（讀碼確認 `visY` 的語意，必要時補同樣的偏移與縮放，不得出現第二套公式）。
 - 檢查血條／頭頂標示／選取圈／狀態圖示的偏移（`VISUAL_ANCHORS.HEAD_OFFSET`、`HUD_BAR_OFFSET`、`UnitIndicatorPainter`、`UnitAuraPainter`）在新尺寸下沒有蓋到頭或與角色重疊；需要時**只調常數**。
@@ -102,12 +104,12 @@
 ### T6 · 報告與收尾
 
 - `docs/ART2_REPORT.md`：每個任務的 commit、做法、風險、**未驗證項（待主代理本機驗證）**、被刻意保留的舊程式與原因、基準重錄紀錄（只應有 T1 的 `battle_frozen`）。
-- 更新 `docs/HANDOFF.md`：§2 Git 狀態（分支 `feat/art-fix-2` 待審）、路線圖、perf 殘餘熱點若有變動。
-- 全量驗證：`lint`／`test`／`build`（可跑則再 `perf:guard`、`e2e:ui` 兩次）。工作樹乾淨，`git push origin feat/art-fix-2`，打本地 tag `art-fix2-final`（可推 tag：`git push origin art-fix2-final`）。
+- 更新 `docs/HANDOFF.md`：§2 Git 狀態（本輪已直接併在 `main`，起點 tag `pre-art-fix2`）、路線圖、perf 殘餘熱點若有變動。
+- 全量驗證：`lint`／`test`／`build`（可跑則再 `perf:guard`、`e2e:ui` 兩次）。工作樹乾淨，`git push origin main`，打 tag `art-fix2-final` 並 `git push origin art-fix2-final`。
 
 ## 4. 本輪不得做的事
 
-- 動 `main`／`feat/art-fantasy-hd`（含 push、合併、rebase、force）。
+- 切換／建立／刪除分支，force push、rebase、amend 已推送的 commit、改寫歷史。
 - 放寬任何 fidelity／perf 門檻、重錄 T1 以外的 baseline、手動編輯 baseline 圖。
 - 改 `engine/systems/**` 的遊戲規則（T2 只動音訊系統與引擎生命週期）。
 - 自行執行 Blender、重新生成或修改精靈／地形圖（發現圖有問題 → 寫進報告）。
