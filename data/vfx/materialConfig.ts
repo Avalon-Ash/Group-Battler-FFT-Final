@@ -76,6 +76,24 @@ export interface SurfaceGrainConfig {
     edgeBand: number;
 }
 
+export interface UnitArmorConfig {
+    enabled: boolean;
+    strength: number;      // 顆粒疊加強度
+    contrast: number;      // 明暗對比
+    specular: number;      // 邊緣高光強度
+}
+
+export interface UnitTokenConfig {
+    enabled: boolean;
+    grainStrength: number;
+    edgeGlow: number;
+}
+
+export interface UnitMaterialConfig {
+    armor: UnitArmorConfig;
+    token: UnitTokenConfig;
+}
+
 export interface PoisonConfig {
     noise: NoiseFieldConfig;
     /** 酸液底色 */
@@ -300,6 +318,23 @@ export const MATERIAL_CONFIG = {
         stride: 0.35,
         /** 每層 alpha 衰減 */
         falloff: 0.45,
+    },
+
+    /**
+     * 角色與棋座材質管線（Pass 3）
+     */
+    unit: {
+        armor: {
+            enabled: true,
+            strength: 0.35,      // 顆粒疊加強度
+            contrast: 0.30,      // 明暗對比
+            specular: 0.25,      // 邊緣高光強度
+        } as UnitArmorConfig,
+        token: {
+            enabled: true,
+            grainStrength: 0.28,
+            edgeGlow: 0.20,
+        } as UnitTokenConfig,
     },
 
     /** 最終合成色調分級（對應對方的 post-processing tone pass） */

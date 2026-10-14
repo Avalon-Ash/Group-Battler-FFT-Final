@@ -22,21 +22,32 @@ export const useGameApp = () => {
         return eng;
     });
     const engineRef = useRef<GameEngine>(initialEngine);
+    // StrictMode（以及 Fast Refresh）會執行「掛載 → 清理 → 重新掛載」並重用同一個 engineRef。
+    // 若清理階段立刻 destroy()，重新掛載後引擎已停止且指令系統已解除，整個畫面會凍結。
+    // 因此銷毀延後一個 tick 執行；若期間發生重新掛載則取消，只有真正卸載時才銷毀。
+    const pendingDestroyRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         const currentEngine = engineRef.current;
+        if (pendingDestroyRef.current !== null) {
+            clearTimeout(pendingDestroyRef.current);
+            pendingDestroyRef.current = null;
+        }
         if (import.meta.env.DEV && typeof window !== 'undefined') {
             const devWindow = window as DevWindow;
             devWindow.__TACTICAL_ENGINE__ = currentEngine;
         }
         return () => {
-            currentEngine.destroy();
-            if (import.meta.env.DEV && typeof window !== 'undefined') {
-                const devWindow = window as DevWindow;
-                if (devWindow.__TACTICAL_ENGINE__ === currentEngine) {
-                    delete devWindow.__TACTICAL_ENGINE__;
+            pendingDestroyRef.current = setTimeout(() => {
+                pendingDestroyRef.current = null;
+                currentEngine.destroy();
+                if (import.meta.env.DEV && typeof window !== 'undefined') {
+                    const devWindow = window as DevWindow;
+                    if (devWindow.__TACTICAL_ENGINE__ === currentEngine) {
+                        delete devWindow.__TACTICAL_ENGINE__;
+                    }
                 }
-            }
+            }, 0);
         };
     }, []);
     
