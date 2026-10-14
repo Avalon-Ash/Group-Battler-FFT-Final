@@ -100,7 +100,7 @@ export class MovementSystem {
                 
                 // 1. 檢查是否被友軍實體擋住
                 const occupant = spatial.getAgentHash(HexUtils.hash(next.q, next.r));
-                if (occupant && occupant.team === a.team) {
+                if (occupant && occupant.hp > 0 && !occupant.banished && !occupant.outOfBounds && occupant.team === a.team) {
                     isBlockedByAlly = true;
                 }
                 

@@ -1,115 +1,130 @@
-# AGENTS.md — TACTICAL.OS AI Agent Operation Contract
-<!-- Compatible with Claude Opus 5.5 / Claude Code / Cursor / AAIF Standard -->
-
-> **System Identity**: TACTICAL.OS (`tactical-battler:-kernel-v9.7`) is a designer-driven 5v5 Hex tactical combat simulation and feel-verification engine built with Vite, React 19, TypeScript, and HTML5 Canvas 2.5D Isometric rendering.
-> **Role & Operating Mode**: You are the principal systems engineer pair-programming on this repository. Follow this contract strictly. Do not deviate without explicit user instruction.
+# AGENTS.md — TACTICAL.OS 實作代理合約
+> **System**: TACTICAL.OS is a designer-driven 5v5 hex tactical combat simulation built with Vite, React 19, TypeScript, and HTML5 Canvas 2.5D isometric rendering.
+> **Your role**: You are an implementation agent. You carry out the task prompt you were given (usually `docs/<NAME>_AGENT_PROMPT.md`). A main agent reviews your diff before anything reaches `main`. Follow this contract strictly. If your task prompt conflicts with this contract, stop and report the conflict instead of choosing.
 
 ---
 
 ## 1. Core Architectural Invariants (Non-Negotiable)
 
 1. **Single Source of Truth (SSOT)**:
-   - **Type Contract**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Always verify types here before implementing features.
-   - **Parameter SSOT**: `constants.ts` governs all physics, combat calculations, colors, and layout constants. Never introduce hardcoded magic numbers.
-   - **Unit Appearance SSOT**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines unit sprite atlas mappings, body-type profiles, and frame selection rules consumed by `SpriteUnitRenderer`. Renderers only consume profiles; they must never define visual configurations or hardcode colors.
-   - **Procedural VFX SSOT**: `data/vfx/materialConfig.ts` controls all procedural shader-equivalent parameters (noise, ribbon, beam, grading).
-   - **Agent Entity**: `Agent` (`engine/core/Agent.ts`) is a pure data entity (ECS-in-spirit). **NEVER add methods to `Agent`**. All state logic resides in Systems.
-   - **Animation Derivation**: Visual and animation states are derived at the end of each tick in `AnimationSystem`.
+   - **Types**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Check types here before implementing.
+   - **Parameters**: `constants.ts` holds all physics, combat, color, and layout constants. Never hardcode numbers or colors in engine/renderer code.
+   - **Unit appearance**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines sprite atlas mappings, body types, and frame selection consumed by `SpriteUnitRenderer`. Renderers only consume these profiles; they never define visual config or colors.
+   - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading).
+   - **Agent entity**: `Agent` (`engine/core/Agent.ts`) is pure data. **Never add methods to `Agent`.** All logic lives in Systems.
+   - **One writer per field**: each state field is written by exactly one system. Before writing a field, `git grep` for other writers. (A timer once had two writers — one adding, one subtracting — so it stayed at 0 and death animations never played.)
+   - **Animation derivation**: visual/animation states are derived at the end of each tick in `AnimationSystem`.
 
-2. **Facade vs Subsystem Rule**:
-   - `engine/renderer.ts`, `engine/game.ts`, `engine/systems/combat/index.ts`, `engine/systems/movement/index.ts` are **Facades** (public API layer).
-   - **Always modify the implementation inside subdirectories** (`engine/renderers/`, `engine/systems/combat/`, etc.).
-   - Do **NOT** modify Facade files unless you are intentionally modifying public signatures or lifecycle orchestration.
-   - Check the `[FACADE]` docblock header before touching any root engine file.
+2. **Facade and barrel files**:
+   - **Facades** (public API / lifecycle orchestration): `engine/renderer.ts`, `engine/game.ts`, `engine/systems/grid.ts`, `engine/systems/map.ts`. Do not modify them unless the task explicitly changes a public signature or the tick order.
+   - **Barrels** (`// [BARREL]` header, e.g. `engine/systems/combat.ts`, `movement.ts`, `unit.ts`, `vfx.ts`): re-exports only. Put code in the matching subdirectory (`engine/systems/combat/`, etc.), never in the barrel.
 
-3. **Decoupled Event-Driven Communication**:
-   - Subsystems communicate exclusively via `engine.bus` (`EventBus`).
-   - Systems must **never directly call another system's methods**.
-   - Use `GameEventPool` for event allocations to eliminate Garbage Collection pressure.
+3. **Event-driven communication**:
+   - Subsystems communicate only through `engine.bus` (`EventBus`). Systems never call another system's methods directly.
+   - Allocate events through `GameEventPool` (`engine/events/GameEventPool.ts`) to avoid GC pressure.
 
-4. **Zero Heavy Graphic Dependencies**:
-   - Rendering is pure HTML5 Canvas 2.5D Isometric with custom procedural material simulation (`NoiseLib`, `MaterialPainter`).
-   - **Do NOT import Three.js, Pixi.js, or WebGL dependencies**.
+4. **No heavy graphics dependencies**:
+   - Rendering is pure HTML5 Canvas 2D with procedural materials (`engine/graphics/materials/NoiseLib.ts`, `MaterialPainter.ts`).
+   - **Do not import Three.js, Pixi.js, or any WebGL library.**
 
-5. **Mutation Gate**:
-   - Combat and status state changes must pass through designated System pipelines.
-   - *Deliberate exception*: Map ring-out / void fall (shrink collapse) writes directly to `hp = 0` and `banished` as a terrain outcome.
-   - UI 對引擎的唯一寫入閘門為 `UICommandSystem`（透過 `UI_COMMAND` 事件）。
-   - *UI 刻意例外（D11/D14）*：拖曳預覽的暫態座標（`px/py/dragOverQ/dragOverR`）為刻意例外，狀態變更仍須經命令提交（如 `MOVE_AGENT`）；組合根綁定（`engine.renderer = ...`）保留於 `GameCanvas`。
+5. **Mutation gate**:
+   - Combat and status changes go through their System pipelines.
+   - *Deliberate exception*: ring-out / void fall (zone shrink) writes `hp = 0` and `banished` directly as a terrain outcome.
+   - UI writes to the engine only through `UICommandSystem` (`engine/systems/ui/UICommandSystem.ts`, via `UI_COMMAND` events).
+   - *Deliberate UI exceptions*: drag-preview transient coordinates (`px/py/dragOverQ/dragOverR`); the state change itself still goes through a command (e.g. `MOVE_AGENT`). The composition-root binding `engine.renderer = ...` stays in `GameCanvas`.
 
 ---
 
-## 2. Reading Priority Checklist (Before Any Task)
+## 2. Pre-Read Checklist
 
-| Target Scope | Mandatory Pre-Read Files |
+| Task scope | Read first |
 | :--- | :--- |
-| **All Tasks (Global)** | `types.ts`, `constants.ts` |
-| **Renderers / VFX / Shaders** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants.ts` |
-| **Faction / Unit Appearance** | `data/units/appearance/sprite.ts`, `data/units/appearance/bodyTypes.ts`, `data/units/appearance/selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
-| **AI / Behavior Trees** | `engine/behaviorTree.ts`, `engine/systems/ai/`, `engine/systems/DesignExporter.ts` |
-| **Combat / Skills / CC** | `engine/systems/combat/`, `data/skills/`, `skillDatabase.ts` |
-| **Movement / Hex Grid** | `engine/systems/movement/`, `engine/systems/grid/`, `engine/math/VisualMath.ts`, `PointerProjector.ts` |
+| **Every task** | `types.ts`, `constants.ts`, your task prompt |
+| **Renderers / VFX** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants.ts` |
+| **Unit appearance** | `data/units/appearance/sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
+| **AI / behavior trees** | `engine/behaviorTree.ts`, `engine/systems/ai.ts`, `engine/ai/`, `data/ai_profiles` |
+| **Combat / skills / CC** | `engine/systems/combat/`, `data/skills/`, `skillDatabase.ts` |
+| **Movement / hex grid** | `engine/systems/movement/`, `engine/systems/grid/`, `engine/math/VisualMath.ts`, `engine/math/PointerProjector.ts` |
 
 ---
 
-## 3. Strict Negative Constraints ("What NOT to do")
+## 3. What NOT to Do
 
-- **NO Speculative Refactoring**: Never refactor working subsystems or introduce new abstractions unless explicitly asked.
-- **NO `as any`**: Strict type safety must be maintained. Bypassing types with `any` in core engine files is strictly prohibited.
-- **NO Hardcoded Magic Numbers or Colors**: All layout dimensions, colors, and tuning coefficients belong in `constants.ts` or corresponding data profiles.
-- **NO Dirty Logs**: Never insert `console.log` into `tick()`, render loops, or particle updates. VFX bind logs are restricted to once per session.
-- **NO State Storage in Renderers**: Renderers are stateless visual consumers of `Agent` state.
-- **NO Large Blast Radii**: If a planned fix requires touching more than 3 files, describe the strategy first before editing.
+- **No speculative refactoring.** Do not restructure working code or add abstractions the task did not ask for.
+- **No `as any`.**
+- **No hardcoded numbers or colors.** They belong in `constants.ts` or a `data/**` profile.
+- **No `console.log`** in `tick()`, render loops, or particle updates.
+- **No state in renderers.** Renderers read `Agent` state; they do not store their own.
+- **No symptom hiding.** Fix the cause. Example of what is forbidden: "if a unit is idle, make it walk randomly."
+- **No deleting "old" code by assumption.** Before deleting a file or export, `git grep` and show it has zero references. New pipelines often still depend on parts of old files.
+- **No large blast radius.** If a step touches more than 3 files and your task prompt does not already list them, write the plan in your report/commit message before editing.
 
 ---
 
-## 4. Verification & Validation Protocol
+## 4. Rules Learned the Hard Way
 
-After making any code changes, **MUST** execute and pass the following checks without errors:
+- **React StrictMode**: component cleanup runs and the component remounts. Never immediately `destroy()` an object that the remount will reuse; defer it.
+- **Depth sorting**: the sort key must include any offset applied at draw time, or the sprite flickers behind tiles.
+- **Asset URLs**: build them with `import.meta.env.BASE_URL`, never a hardcoded `/assets/...` path.
+- **"All green" is not "works"**: lint/test/build can pass while the screen is frozen. If you change rendering or engine lifecycle and your prompt includes a runtime check (Playwright script), run it.
+
+---
+
+## 5. Git and Test Discipline
+
+- Commit only on the branch named in your task prompt. **Never merge into `main`, never `git push`, never rebase or force anything.**
+- **Never re-record test baselines** (`perf:fidelity:record`, `E2E_UPDATE_STYLE=1`, any `*baseline*` file) **and never loosen a threshold**, unless your task prompt explicitly says so for that baseline.
+- Keep each file's existing line endings (most source files are CRLF) and encoding (UTF-8).
+- If a check fails and the cause is outside your task, stop and report it. Do not "fix" unrelated code to make it pass.
+
+---
+
+## 6. Verification (after every code change)
 
 ```bash
-# 1. Typecheck & Lint (Must pass with 0 errors)
-npm run lint
-
-# 2. Production Build Verification (Must build cleanly)
-npm run build
-
-# 3. 渲染效能與保真護欄 (若改動涉及 renderers / materials / VFX 渲染管線)
-npm run perf:guard
+npm run lint        # tsc --noEmit, must be 0 errors
+npm test            # unit tests, must pass
+npm run build       # production build, must succeed
+npm run perf:guard  # only if you changed renderers / materials / VFX
 ```
 
-*Note: For procedural visual changes, preview with `tools/material-preview.html` via `npx vite`.*
+For procedural material changes you can preview `tools/material-preview.html` with `npx vite`.
 
 ---
 
-## 5. Development Commands
+## 7. Commands
 
 | Command | Action |
 | :--- | :--- |
-| `npm run dev` | Starts Vite local development server (`http://localhost:5173`) |
-| `npm run lint` | Runs `tsc --noEmit` across the entire project |
-| `npm run build` | Builds production bundle into `dist/` |
-| `npm run preview` | Previews production build |
-| `npm run perf:guard` | Runs render fidelity verification and performance regression assertion |
+| `npm run dev` | Vite dev server at `http://localhost:3000` |
+| `npm run lint` | `tsc --noEmit` |
+| `npm test` | Unit tests (`tests/`) |
+| `npm run build` | Production bundle into `dist/` |
+| `npm run e2e:ui` | Headless UI tests (`tools/ui-e2e/`) |
+| `npm run perf:guard` | Render fidelity + performance regression check |
 
 ---
 
-## 6. Project Directory Map
+## 8. Directory Map
 
 ```text
-c:\Git\Group-Battler-FFT-Final
-├── components/          # React HUD, MapEditor, Inspector UI & Tabs
-├── data/                # Data profiles (units/appearance, scenes, vfx)
-├── engine/              # Simulation kernel
-│   ├── core/Agent.ts    # Agent entity definition (pure state container)
-│   ├── systems/         # Game logic systems (Combat, Movement, Zone, AI, etc.)
-│   ├── renderers/       # Canvas 2D render pipeline & painters
-│   ├── graphics/        # Procedural materials (NoiseLib, MaterialPainter)
-│   ├── math/            # Coordinate transformation & pointer projection
-│   ├── events/          # EventBus & GameEventPool
-│   ├── game.ts          # GameEngine facade & tick loop
-│   └── renderer.ts      # GameRenderer facade
-├── tools/               # Procedural material preview harness & specs
-├── constants.ts         # Global parameters SSOT
-└── types.ts             # Global type system contract
+├── components/          # React HUD, MapEditor, Inspector UI
+├── data/                # Data profiles (units/appearance, skills, scenes, vfx, audio)
+├── engine/
+│   ├── core/Agent.ts    # Agent entity (pure data)
+│   ├── systems/         # Game logic systems (combat, movement, zone, ui, vfx, audio...)
+│   ├── ai/              # Behavior tree registry, targeting, pathfinding
+│   ├── renderers/       # Canvas 2D render pipeline and painters
+│   ├── graphics/        # Procedural materials (materials/NoiseLib, MaterialPainter), factories
+│   ├── math/            # Coordinate transforms, pointer projection
+│   ├── events/          # EventBus, GameEventPool
+│   ├── audio/           # AudioEngine
+│   ├── game.ts          # GameEngine facade and tick loop
+│   └── renderer.ts      # Renderer facade
+├── public/assets/       # Sprites, terrain textures, particles, audio
+├── tests/               # Unit tests
+├── tools/               # Preview harnesses, e2e and perf scripts
+├── docs/                # Task prompts, reports, handoff
+├── constants.ts         # Parameter SSOT
+└── types.ts             # Type contract
 ```

@@ -85,24 +85,30 @@ export const STANDARD_AI_PROFILE: BTDef = {
                 { type: 'CONDITION', name: 'Scan Target', key: 'HasTarget' },
                 {
                     type: 'SELECTOR',
-                    name: 'Skill Priority',
+                    name: 'Combat Actions',
                     children: [
-                        // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
-                        createSkillRoutine(0, "Ultimate"),
-                        createSkillRoutine(1, "Active"),
-                        createSkillRoutine(2, "Basic")
+                        {
+                            type: 'SELECTOR',
+                            name: 'Skill Priority',
+                            children: [
+                                // Slot 0 (Ult), Slot 1 (Active), Slot 2 (Basic)
+                                createSkillRoutine(0, "Ultimate"),
+                                createSkillRoutine(1, "Active"),
+                                createSkillRoutine(2, "Basic")
+                            ]
+                        },
+                        // [FIX] Gap Close Fallback: If skills are on CD, ensure we stay close to target
+                        {
+                            type: 'SEQUENCE',
+                            name: 'Gap Close',
+                            children: [
+                                // Try to chase using Basic Attack range as reference (Slot 2)
+                                { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } } 
+                            ]
+                        },
+                        { type: 'ACTION', name: 'Idle', key: 'Idle' }
                     ]
-                },
-                // [NEW] Gap Close Fallback: If skills are on CD, ensure we stay close to target
-                {
-                    type: 'SEQUENCE',
-                    name: 'Gap Close',
-                    children: [
-                        // Try to chase using Basic Attack range as reference (Slot 2)
-                        { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } } 
-                    ]
-                },
-                { type: 'ACTION', name: 'Idle', key: 'Idle' }
+                }
             ]
         }
     ]

@@ -24,10 +24,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
             a._savedCombatTarget = null;
         }
 
-        if (a.target && a.target.hp > 0 && !a.target.banished) {
+        if (a.target && a.target.hp > 0 && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
             return true; 
         }
-        // target 死亡或不存在：立刻重新選目標
+        // target 死亡、出界或地塊消失：立刻重新選目標
         engine.updateTarget(a);
         return a.target !== null;
     },
@@ -463,11 +463,15 @@ export const BTActions: Record<string, BTActionFn> = {
                 if (path && path.length > 1) {
                     dest = path[path.length - 1];
                 } else if (engine.isWarningTile(HexUtils.key(startHex))) {
-                   // If we are currently in danger and can't find safety, abort combat to allow survival logic to rethink
-                   return NodeState.FAILURE;
+                    // [FIX] 處於危險且無安全退路時（困獸之鬥），直奔目標進攻到底，避免與 EscapeWarning 互相推託死鎖
+                    if (a.target) {
+                        dest = { q: a.target.q, r: a.target.r };
+                    } else {
+                        return NodeState.FAILURE;
+                    }
                 } else {
-                   // Cannot reach target safely, try another target if possible
-                   return NodeState.FAILURE;
+                    // Cannot reach target safely, try another target if possible
+                    return NodeState.FAILURE;
                 }
             }
 
@@ -503,8 +507,8 @@ export const BTActions: Record<string, BTActionFn> = {
             if (path && path.length > 1) {
                 dest = path[path.length - 1];
             } else if (engine.isWarningTile(HexUtils.key(startHex))) {
-                // If we are currently in danger and cannot find safety, abort combat to allow survival logic to rethink
-                return NodeState.FAILURE; 
+                // [FIX] 處於危險且無安全退路時（困獸之鬥），直奔目標進攻，不放棄追擊
+                dest = { q: a.target.q, r: a.target.r };
             } else {
                 // Target is in danger, but we are safe and can't go closer safely.
                 // If we are already in range, this is fine (we'll just stand and attack).

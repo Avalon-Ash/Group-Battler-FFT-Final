@@ -41,7 +41,7 @@ export class UnitDeathPainter {
         _terrainHeight: number,
         _simDt: number = 0.016
     ): void {
-        if (agent.fullyDead) return;
+        if (agent.fullyDead || agent.outOfBounds) return;
 
         const totalAnimTime = (DEFAULT_FRAME_COUNTS.death ?? 6) / (UNIT_SPRITE.deathFps || 8);
         const duration = agent.DEATH_ANIM_DURATION || 5.5;

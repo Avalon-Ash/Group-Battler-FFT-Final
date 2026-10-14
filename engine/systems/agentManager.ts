@@ -82,16 +82,17 @@ export class AgentManager {
         return a;
     }
 
-    public handleDeadState(a: Agent, engine: DeadStateContext) {
+    public handleDeadState(a: Agent, engine: DeadStateContext, reason: string = '死亡', text?: string) {
         if (a.fullyDead || a.deadLogged) return;
         
-        engine.log(a, 'DEATH', '死亡', null, '陣亡');
+        engine.log(a, 'DEATH', reason, null, reason === '墜落出局' ? `${a.id} 隨地板崩落虛空` : '陣亡');
         engine.events.push({ 
             type: 'DEATH', 
             pos: { x: a.px, y: a.py, z: 0 }, 
             sourceId: a.id, 
             targetId: a.id,
-            team: a.team 
+            team: a.team,
+            ...(text ? { text } : {})
         });
         
         if (a.lastHitSourceId) {
@@ -116,6 +117,7 @@ export class AgentManager {
         a.physics.z = 0;
         a.isMoving = false;
         a.outOfBounds = false;
+        a.banished = false;
         a.banishTimer = 0;
         a.banishMax = 0;
         a.stasisTimer = 0;
@@ -169,7 +171,8 @@ export class AgentManager {
             // [TODO: RAGDOLL] 當布娃娃系統實作後，此數值將驅動物理分解動畫的時間軸
             agent.deathTimer += dt;
 
-            if (agent.deathTimer >= agent.DEATH_ANIM_DURATION) {
+            // 墜入虛空（outOfBounds）的屍體沒有可播的死亡動畫，立即回收
+            if (agent.outOfBounds || agent.deathTimer >= agent.DEATH_ANIM_DURATION) {
                 // fullyDead 設為 true 後，deathTimer 停止累計（見外部 tick 判斷或此處 if 條件）
                 agent.fullyDead = true;
             }

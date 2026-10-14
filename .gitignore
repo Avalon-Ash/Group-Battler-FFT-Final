@@ -28,3 +28,6 @@ package-lock.json
 
 # headless UI e2e screenshots
 tools/ui-e2e/out/
+
+# AI Studio session artifacts (not part of the project)
+.aistudio/

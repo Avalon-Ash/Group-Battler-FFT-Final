@@ -11,10 +11,11 @@ export class TargetingSystem {
     /**
      * 檢查目標是否為合法選取對象
      */
-    public isValidTarget(target: Agent): boolean {
+    public isValidTarget(target: Agent, spatial?: SpatialProvider): boolean {
         if (!target) return false;
         if (target.hp <= 0) return false;
         if (target.banished || target.outOfBounds) return false;
+        if (spatial && !spatial.isValid(target.q, target.r)) return false;
         return true;
     }
 
@@ -149,7 +150,7 @@ export class TargetingSystem {
             }
         }
 
-        if (a.target && !this.isValidTarget(a.target)) a.target = null;
+        if (a.target && !this.isValidTarget(a.target, spatial)) a.target = null;
         
         // [FIX] 即使在危險區且有逃生目標，也同時鎖定最近的敵人
         // 這樣當逃生路線被堵死時，AI 才能立刻切換到戰鬥邏輯 (背水一戰)
@@ -170,7 +171,7 @@ export class TargetingSystem {
         const isSilenced = a.silenceTimer > 0;
 
         for (const o of spatial.getAgents()) {
-            if (o.team !== a.team && this.isValidTarget(o)) {
+            if (o.team !== a.team && this.isValidTarget(o, spatial)) {
                 const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
                 // 1. 距離權重: 極大幅度優先攻擊近身單位
