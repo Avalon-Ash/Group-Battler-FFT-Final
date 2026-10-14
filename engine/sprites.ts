@@ -12,13 +12,12 @@
 // ║    RenderDispatcher  → getObstacleSprite                        ║
 // ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
 // ║                                                                  ║
-// ║  [注意] UnitLayers / getUnitLayersFull 等已無使用端，           ║
-// ║         保留僅為向後相容                                         ║
+// ║  [注意] UnitLayers 等已無外部使用端，保留僅為向後相容           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, HexLayout } from "../types";
 import { PALETTE } from "../constants";
-import { UnitFactory, UnitAssetsFull } from "./graphics/UnitFactory";
+import { UnitFactory } from "./graphics/UnitFactory";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
 const cache: Map<string, any> = new Map();
 export interface UnitAssets {
@@ -31,9 +30,7 @@ export interface UnitLayers {
     rim: HTMLCanvasElement;
     icon: HTMLCanvasElement;
 }
-export type { UnitAssetsFull };
 const _layerCache = new Map<string, UnitLayers>();
-const _fullLayerCache = new Map<string, UnitAssetsFull>();
 export const SpriteManager = {
     getUnitImages(role: Role, team: Team): UnitAssets {
         const keyBase = `TOKEN_BASE_${team}_V3`; 
@@ -74,14 +71,6 @@ export const SpriteManager = {
         
         const layers: UnitLayers = { base, rim, icon };
         _layerCache.set(key, layers);
-        return layers;
-    },
-    getUnitLayersFull(role: Role, team: Team): UnitAssetsFull {
-        const key = `FULL_${role}_${team}`;
-        if (_fullLayerCache.has(key)) return _fullLayerCache.get(key)!;
-        
-        const layers = UnitFactory.generateLayers(role, team);
-        _fullLayerCache.set(key, layers);
         return layers;
     },
     getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
