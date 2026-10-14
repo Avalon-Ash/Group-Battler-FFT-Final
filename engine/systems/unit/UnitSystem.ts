@@ -34,7 +34,7 @@ export class UnitRenderSystem {
         if (transitionPhase === 'OUT' && transitionT > 0.95) return;
 
         agents.forEach(agent => {
-            if (agent.fullyDead) return;
+            if (agent.fullyDead || agent.outOfBounds) return;
             const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
             
             const offset = VisualMath.getTransitionOffset(state.x, state.y, mapConfig, transitionT, transitionPhase);
@@ -87,6 +87,7 @@ export class UnitRenderSystem {
         globalTime: number, 
         mapConfig: MapConfig
     ) {
+        if (agent.hp <= 0 || agent.fullyDead || agent.outOfBounds) return;
         const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
         const visualGroundY = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
         this.drawAssembly(ctx, agent, state.x, visualGroundY, globalTime, false, true, mapConfig.layout, state.terrainHeight);

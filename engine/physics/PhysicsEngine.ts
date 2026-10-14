@@ -29,7 +29,7 @@ export class PhysicsEngine {
     }
 
     public update(a: Agent, dt: number, engine: GameEngine) {
-        if (a.fullyDead || a.banished || a.outOfBounds) return;
+        if (a.fullyDead || a.outOfBounds || (a.banished && engine.isValid(a.q, a.r))) return;
         
         // Sub-step physics to guarantee stability at high time scales
         const maxStep = 0.016; // ~60fps step
@@ -43,7 +43,20 @@ export class PhysicsEngine {
     }
 
     private stepPhysics(a: Agent, dt: number, engine: GameEngine) {
-        if (a.hp <= 0) return; // [FIX] Dead units: all physics frozen, no damping decay
+        if (a.hp <= 0) {
+            const isGroundValid = engine.isValid(a.q, a.r);
+            if (isGroundValid) return; // [SSOT] Dead units on valid ground: all physics frozen
+
+            // [SSOT] Dead units that lost ground: allow vertical falling only
+            a.physics.vz -= PHYSICS.GRAVITY * dt;
+            a.physics.z += a.physics.vz * dt;
+
+            if (a.physics.z < -1000) {
+                a.outOfBounds = true;
+                a.fullyDead = true; // Immediately reclaim fallen corpse
+            }
+            return;
+        }
         
         const isDead = a.hp <= 0;
         
@@ -97,12 +110,10 @@ export class PhysicsEngine {
             if (!a.outOfBounds) {
                 if (!isDead) {
                     a.hp = 0;
-                    a.deadLogged = true;
-                    engine.log(a, 'DEATH', '墜落', '深淵', '跌落至虛空');
-                    engine.pushEvent('DEATH', {x: a.px, y: a.py}, { sourceId: a.id, text: "RING_OUT" });
-                    engine.agentManager.handleDeadState(a, engine);
+                    engine.agentManager.handleDeadState(a, engine, '墜落', 'RING_OUT');
                 }
                 a.outOfBounds = true; // Remove from battlefield rendering and logic
+                a.fullyDead = true;
             }
         } else if (isGroundValid && a.physics.z < 0) {
             a.physics.z = 0;
@@ -120,7 +131,6 @@ export class PhysicsEngine {
                     engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
 
                     if (a.hp <= 0) {
-                        a.deadLogged = true;
                         engine.agentManager.handleDeadState(a, engine);
                     } else {
                         // SSOT: Set visual timer instead of imperative setAnim

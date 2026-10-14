@@ -18,11 +18,15 @@ export class StatusOrchestrator {
         agents: Agent[], 
         globalTime: number,
         getTerrainHeight: (q: number, r: number) => number,
-        layout: HexLayout = 'FLAT'
+        layout: HexLayout = 'FLAT',
+        isTileValid?: (q: number, r: number) => boolean
     ) {
         for (const agent of agents) {
-            // 跳過已徹底消失的單位
-            if ((agent.hp <= 0 && agent.fullyDead) || agent.outOfBounds) continue;
+            // 跳過已徹底消失、已死亡或出界的單位
+            if (agent.hp <= 0 || agent.fullyDead || agent.outOfBounds) continue;
+            
+            // 已被放逐且地塊已消失的單位不繪製狀態
+            if (agent.banished && isTileValid && !isTileValid(agent.q, agent.r)) continue;
             
             // 基礎幾何解算 (SSOT)
             const px = agent.px + agent.physics.x;

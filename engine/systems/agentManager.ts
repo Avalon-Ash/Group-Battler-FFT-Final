@@ -82,16 +82,17 @@ export class AgentManager {
         return a;
     }
 
-    public handleDeadState(a: Agent, engine: DeadStateContext) {
+    public handleDeadState(a: Agent, engine: DeadStateContext, reason: string = '死亡', text?: string) {
         if (a.fullyDead || a.deadLogged) return;
         
-        engine.log(a, 'DEATH', '死亡', null, '陣亡');
+        engine.log(a, 'DEATH', reason, null, reason === '墜落出局' ? `${a.id} 隨地板崩落虛空` : '陣亡');
         engine.events.push({ 
             type: 'DEATH', 
             pos: { x: a.px, y: a.py, z: 0 }, 
             sourceId: a.id, 
             targetId: a.id,
-            team: a.team 
+            team: a.team,
+            ...(text ? { text } : {})
         });
         
         if (a.lastHitSourceId) {
@@ -116,6 +117,7 @@ export class AgentManager {
         a.physics.z = 0;
         a.isMoving = false;
         a.outOfBounds = false;
+        a.banished = false;
         a.banishTimer = 0;
         a.banishMax = 0;
         a.stasisTimer = 0;
