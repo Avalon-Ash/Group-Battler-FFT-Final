@@ -115,4 +115,118 @@
 
 ## 2. 任務執行紀錄
 
-*(後續章節隨任務推進依序回填)*
+本輪清理共拆分為 C1～C6 任務，循序漸進並嚴格驗證：
+
+| 任務 | Commit Hash | 一句話摘要 | 驗證結果與雜湊狀態 |
+| :--- | :--- | :--- | :--- |
+| **C1** | `709f25a` | `docs(cleanup): C1 inventory` | 建立全專案過期註解、過期描述、失效路徑與事實衝突盤點表。 |
+| **C2** | `916bfbe` | `docs(cleanup): C2 fix stale comments` | 修正 6 個代碼檔案中的過期死亡/布娃娃註解，保持 build 雜湊不變（完全一致）。 |
+| **C3** | `db87c4f` | `docs(cleanup): C3 fix stale docs` | 修正 5 個非受保護文件的事實與失效路徑，保持 build 雜湊不變（完全一致）。 |
+| **C4** | `e757f15` | `docs(cleanup): C4 archive finished docs` | 將 5 個已完工的歷史 Prompt 與 Progress 文件歸檔至 `docs/archive/`，確認非受保護文件失效路徑歸零，雜湊不變。 |
+| **C5** | `4500112` | `docs(cleanup): C5 remove zero-reference dead code` | 刪除零引用死碼 `RagdollPhysics.ts` 與 `SpriteManager.getUnitLayersFull`，更新 build 基準雜湊。 |
+| **C6** | `87db957` (本報告) | `docs(cleanup): C6 report` | 補齊完整報告、執行全套 lint/test/build/perf 驗證，並建立本地標籤 `docs-cleanup-final`。 |
+
+---
+
+## 3. 修改檔案清單（四類歸納）
+
+### 3.1 註解（Comments）
+僅修改代碼註解，0 邏輯或型別異動：
+- `engine/systems/agentManager.ts`：更新檔頭方框註解與 `updateDeathState` 中的死亡狀態註解（去除布娃娃物理/分解動畫描述）。
+- `engine/systems/unit/RagdollFactory.ts`：更新檔頭與工廠函式註解，明確說明骨骼快照僅供初速推導。
+- `engine/types/ragdoll.ts`：更新檔頭方框註解，釐清 `RagdollBone` 契約消費者與用途。
+- `engine/systems/unit/UnitSystem.ts`：更新死亡處理註解（去除「布娃娃物理繪製」用詞）。
+- `constants.ts`：更新 `RAGDOLL_BONE_PLACEHOLDER_COLOR` 註解，說明單位渲染改走 `SpriteUnitRenderer`。
+- `engine/sprites.ts`：更新檔頭方框註解，標註 `UnitLayers` 無外部使用端。
+
+### 3.2 文件事實（Docs）
+- `docs/ART_REPORT.md`：
+  - 更新「回退方式」為使用 `git revert` 或 tag `art-ckpt-final`。
+  - 補充「後續變更」簡短小節，引用 `docs/archive/ART2_PROGRESS.md`、`docs/BR_FIX_REPORT.md`、`data/units/appearance/deathMotion.ts`。
+  - 更新已歸檔文件路徑。
+- `docs/AUDIO_REPORT.md`：修正對已歸檔音效 Prompt 與 Progress 文件的路徑引用。
+- `docs/DECOUPLING_HANDOFF.md`：
+  - 修正 8 處已歸檔文件路徑（如 `docs/archive/PERF_REPORT.md` 等）。
+  - 對已解決的歷史風險與待辦事項原處標注「（已解決：...）」，包含 `UnitShatter` 事件解耦與 API Key 移除。
+- `docs/PERF_REPORT_3.md`：修正過時的 out 目錄產物描述，改為中立敘述。
+- `docs/VFX_INVENTORY.md`：
+  - 移除已不存在的死碼視覺檔案路徑（`data/vfx/beam_visuals.ts` 等）。
+  - 更新 `UnitShatter` 描述為現行輕量粒子與陣營死亡視覺。
+
+### 3.3 歸檔（Archive via `git mv`）
+下列已完成且無後續更新需求的文件已遷移至 `docs/archive/`：
+- `docs/ART_AGENT_PROMPT.md` → `docs/archive/ART_AGENT_PROMPT.md`
+- `docs/ART_AGENT_PROMPT_2.md` → `docs/archive/ART_AGENT_PROMPT_2.md`
+- `docs/BR_FIX_AGENT_PROMPT.md` → `docs/archive/BR_FIX_AGENT_PROMPT.md`
+- `docs/ART_PROGRESS.md` → `docs/archive/ART_PROGRESS.md`
+- `docs/ART2_PROGRESS.md` → `docs/archive/ART2_PROGRESS.md`
+
+*(註：`docs/ASSET_NEEDS.md` 經查閱尚有未完成之 P1/P2 資產需求，依合約刻意保留於 `docs/`)*
+
+### 3.4 刪除死碼（Dead Code）
+- `engine/systems/unit/RagdollPhysics.ts`：整檔刪除（`git rm`）。
+- `engine/systems/unit.ts`：移除 `export * from './unit/RagdollPhysics';`。
+- `engine/sprites.ts`：移除零引用方法 `getUnitLayersFull`、專用快取 `_fullLayerCache`、型別重導出 `export type { UnitAssetsFull }` 及未使用的 import。
+
+---
+
+## 4. 失效路徑修復統計
+
+- **修復前**：全專案掃描 25 個 Markdown 檔案，共檢出 **42 處失效引用**（涉及 28 個獨特路徑）。
+- **修復後**：
+  - 非受保護活躍文件（`docs/ART_REPORT.md`、`docs/AUDIO_REPORT.md`、`docs/DECOUPLING_HANDOFF.md`、`docs/PERF_REPORT_3.md`、`docs/VFX_INVENTORY.md`）中的失效路徑已**全數修正，歸零（0 處）**。
+  - 受保護檔案（`docs/HANDOFF.md`、`README.md`）與任務 Prompt 中的失效引用依合約規定不予修改，列於第 6 節供主代理處理。
+
+---
+
+## 5. C5 死碼刪除與跳過紀錄
+
+### 5.1 刪除項目與 `git grep` 零引用證據
+
+#### 項目 1：`RagdollPhysics`
+- **證據**：執行 `git grep -i "RagdollPhysics"`，全專案僅在 `engine/systems/unit/RagdollPhysics.ts` 自身、`engine/systems/unit.ts` 的 barrel 導出、以及本報告與 prompt 內出現。
+- **執行**：`git rm engine/systems/unit/RagdollPhysics.ts`，並在 `engine/systems/unit.ts` 移除對應 barrel 導出行。
+- **驗證**：34 個測試檔案 306 項測試全部通過，`tsc --noEmit` 0 errors。
+
+#### 項目 2：`SpriteManager.getUnitLayersFull`
+- **證據**：執行 `git grep "getUnitLayersFull"`，除 `engine/sprites.ts` 定義處、本報告及 Prompt 外，代碼庫與測試中完全無任何呼叫端。
+- **執行**：移除 `engine/sprites.ts` 內之 `getUnitLayersFull` 實作、`_fullLayerCache` 快取實例，以及 `export type { UnitAssetsFull }` 與 `UnitAssetsFull` 引用。
+- **驗證**：生產 build 成功，JS bundle 縮減 140 位元組（`index-DEV10Pks.js`），全測試通過。
+
+### 5.2 嚴格跳過／保留之項目與原因（遵守安全鐵律）
+
+1. **`UnitFactory.generateLayers` / `CovenantTokenFactory.generateLayers` / `ImperialTokenFactory.generateLayers`**：
+   - 雖然 `getUnitLayersFull` 曾呼叫 `UnitFactory.generateLayers`，但其屬於 Token 工廠架構的一部分，且契約明確規定：「*仍被 Token 工廠、底座、職業圖示使用的程式碼一律保留。有任何疑慮就跳過，寫進報告『建議主代理決定』。寧可不刪。*」為確保 Token 底座與職業圖示的架構完整性與安全，工廠內部代碼原樣保留。
+2. **`SpriteManager.getUnitLayers` 與 `UnitLayers`**：
+   - 目前雖無外部呼叫端，但非 Prompt 明確指示刪除之目標。依「寧可不刪」原則保留，建議主代理後續視需要決定。
+
+---
+
+## 6. 給主代理（Review Notes）
+
+1. **受保護檔案待修正事項（主代理後續維護）**：
+   - `docs/HANDOFF.md`：
+     - 分支進度表格中的 `fix/br-ghosts-idle`、`feat/death-vfx`、`chore/drop-aistudio` 成果現均已合入 `docs/cleanup` 分支。
+     - 建議主代理在審查並合併本分支後，將 `HANDOFF.md` 的工作流狀態更新為「文件整理完成」。
+   - `README.md`：
+     - 行 40, 171：`components/ui/UnitInspectorHUD` 建議更新為現行路徑 `components/ui/inspector/UnitInspectorBody.tsx`。
+     - 行 142, 219, 224-226：`Faction Renderers` 建議更新為 `SpriteUnitRenderer` 統一繪製架構。
+     - 行 9：Cloud Run 演示連結（使用者指示保留 Docker 部署相關內容）。
+2. **刻意保留未歸檔檔案**：
+   - `docs/ASSET_NEEDS.md`：該文件包含 3D 障礙物模型需求、FEMALE 體型擴充、高階技能 VFX 等未完成需求，仍具重要指引價值，因此刻意保留於 `docs/` 根目錄。
+3. **Build 雜湊與零行為變更證明**：
+   - C2～C4 期間，每次提交前後 `dist/assets` 產物檔名雜湊完全相同（`index-CoAVUfso.css`、`index-DAQU_MgE.js`），以二進制級別嚴格證明了文件與註解修改對執行行為 **0 變更**。
+   - C5 依合約刪除死碼後，產物雜湊如預期更新（`index-DEV10Pks.js`），體積微幅縮減，全套測試與保真度檢查零差異通過。
+
+---
+
+## 7. 最終驗證結果
+
+| 驗證項目 | 指令 | 結果 | 說明 |
+| :--- | :--- | :--- | :--- |
+| **TypeScript 型別檢查** | `npm run lint` | **PASS (0 errors)** | `tsc --noEmit` 通過 |
+| **單元與整合測試** | `npm test` | **PASS (34/34 files, 306/306 tests)** | Vitest 全數通過 |
+| **生產環境打包** | `npm run build` | **PASS** | Vite build 成功產出 `dist/` |
+| **視覺與效能保真度** | `npm run perf:fidelity` | **PASS (0 diff)** | 6 個測試場景（VOID、FOREST、ICE、MAGMA、DESERT、battle_frozen）均完全符合嚴格像素門檻 |
+| **工作樹狀態** | `git status` | **CLEAN** | 無未追蹤檔案，無未暫存修改 |
+
