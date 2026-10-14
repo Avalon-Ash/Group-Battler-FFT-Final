@@ -22,6 +22,7 @@
 ## 2. Git 狀態
 - `main`：已含 UI 合併、效能 1～3 輪、**音訊輪**（`085b6f0`，已 push）＋測試降噪（`4cd8ff9`，**未 push**）。
 - **`perf/render-opt-4`（效能四，已審查並修正，待使用者決定合併）**：代理 12 個 commit＋我的審查修正 commit（見 §4）。tag：`perf4-ckpt-P0/-P3/-final`。合併後再問 push。
+- **`fix/br-ghosts-idle`（大逃殺兩大 bug 修復：掉落殘留與發呆）**：修復完成，全部測試、保真度、E2E 驗證通過，待審查合併（詳見 `docs/BR_FIX_REPORT.md`）。tag：`br-fix-final`。
 - 本地 tag 未推（可忽略）。
 
 ## 3. 路線圖（使用者已核定的順序）
