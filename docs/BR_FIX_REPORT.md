@@ -3,6 +3,8 @@
 > **修復分支**：`fix/br-ghosts-idle`  
 > **驗證狀態**：全項通過（`lint` 0 錯誤、`test` 33 套 302 測全綠、`build` 通過、`perf:guard` 0 差異、`e2e:ui` 連續兩次 ALL PASSED、`br-soak` 20 種子 0 異常）  
 > **發行標籤**：`br-fix-final`
+>
+> **主代理審查修正（commit `9871e03`，合併前）**：① 下文的「發呆看門狗」（`AI_IDLE_WATCHDOG_SEC`、`idleWatchdogTimer`、`game.ts` 的監控段）**已整段移除**——B0 的 IDLE 實測為 0、屬掩蓋症狀且改到 facade；發呆的真正根因（`Combat` SEQUENCE 在技能全 CD 時中斷）已由 `ai_profiles.ts` 修正。② `PhysicsEngine` 不再寫 `fullyDead`，只設 `outOfBounds`，由 `agentManager.updateDeathState` 在同一 tick 回收（單一寫入者）。下文提到看門狗之處僅為歷史紀錄。
 
 ---
 
