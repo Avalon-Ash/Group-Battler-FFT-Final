@@ -85,202 +85,89 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 
 ## 系統架構
 
-整個引擎以 `GameEngine` 為核心，採 **單一真相來源（SSOT）** 原則設計，所有系統透過 `EventBus` 溝通，避免直接耦合。
+整個引擎以 `GameEngine` 為核心，採 **單一真相來源（SSOT）** 原則設計，系統之間透過 `EventBus` 溝通，避免直接耦合。UI 只能透過 `UICommandSystem` 寫入引擎。
 
 ```
-GameEngine
 ├── engine/
-│   ├── game.ts              ← 主引擎，系統整合與 tick 迴圈
+│   ├── game.ts              ← [Facade] 主引擎：系統整合與 tick 迴圈
+│   ├── renderer.ts          ← [Facade] 渲染器根節點（持有 RenderPipeline、VFX、HUD）
 │   ├── behaviorTree.ts      ← 行為樹框架（Selector / Sequence / Leaf）
-│   ├── renderer.ts          ← 渲染器介面
 │   ├── core/
-│   │   └── Agent.ts         ← 單位實體（狀態、技能、AI 樹掛載點）
+│   │   └── Agent.ts         ← 單位實體（純資料：狀態、技能、AI 樹掛載點）
+│   ├── ai/
+│   │   ├── BTRegistry.ts        ← 行為樹的條件與動作節點實作
+│   │   ├── TargetingSystem.ts   ← 目標選擇與合法性判定
+│   │   └── Pathfinder.ts        ← A* 路徑搜尋
 │   ├── systems/
-│   │   ├── DirectorSystem   ← 攝影機導播：自動聚焦高優先事件
-│   │   ├── CameraSystem     ← 鏡頭平滑跟隨與視角控制
-│   │   ├── ZoneSystem       ← 大逃殺縮圈：Flood-fill 深度計算、地形崩落、單位出局管線
-│   │   ├── HazardSystem     ← 地面危機區域（毒、火、冰、重力）
-│   │   ├── CombatSystem     ← 戰鬥核心：傷害、施法、彈道
-│   │   │   └── combat/
-│   │   │       ├── SkillExecutor    ← 技能執行主管線
-│   │   │       ├── DamageCalculator ← 傷害公式計算（支援確定性 RNG 注入）
-│   │   │       ├── DirectDamage     ← 環境/墜落/DoT 統一傷害入口（護盾吸收與下限收斂）
-│   │   │       ├── ProjectileSystem ← 彈道物理與命中
-│   │   │       ├── CastingEngine    ← 施法前搖與中斷管理
-│   │   │       ├── CCManager        ← 控場效果施加與解除
-│   │   │       └── HazardManager    ← 地面危機區域生成入口
-│   │   ├── MovementSystem   ← Hex 移動、A* 路徑、碰撞排解
-│   │   │   └── movement/
-│   │   │       ├── MotionEngine     ← 逐幀位移積分與插值
-│   │   │       └── StackingResolver ← 同格碰撞排解
-│   │   ├── AISystem         ← 行為樹 AI 決策
-│   │   ├── AgentManager     ← 單位生命週期：生成、死亡收尾、GC
-│   │   ├── MapSystem        ← 地圖管理：網格狀態、warningTiles、地形高度
-│   │   ├── PhysicsSystem    ← 物理積分：impulse、重力、自由落體、trail 歷史
-│   │   ├── AnimationSystem  ← 動畫狀態推導（SSOT 最末層）
-│   │   ├── VisualSystem     ← 監聽事件佇列，驅動 VFX 與視覺回饋管線
-│   │   ├── TimeSystem       ← 時間縮放管理
-│   │   ├── BattleLogger     ← 完整戰鬥紀錄
-│   │   ├── AnnouncerSystem  ← 戰況播報
-│   │   ├── VictorySystem    ← 勝負判定（含平局收尾）
-│   │   ├── DesignExporter   ← 戰鬥數據結構化輸出（企劃驗證用）
-│   │   └── status/
-│   │       ├── CooldownSystem
-│   │       ├── EffectSystem
-│   │       └── ControlSystem
-│   ├── renderers/               ← 渲染管線（renderer.ts Facade 的實作層）
-│   │   ├── RenderSpec.ts        ← 所有渲染物件的資料結構定義（視覺 SSOT）
+│   │   ├── grid.ts / map.ts     ← [Facade] 網格查詢、地圖資料（實作在 grid/、map/）
+│   │   ├── combat/              ← 戰鬥：技能執行、傷害公式、彈道、施法、控場（combat.ts 為轉發 barrel）
+│   │   ├── movement/            ← Hex 移動、逐幀位移、同格碰撞排解
+│   │   ├── status/              ← 冷卻、持續效果、控場計時
+│   │   ├── unit/                ← 單位渲染提交、Ragdoll 快照
+│   │   ├── vfx/                 ← 特效系統、粒子物理、環境特效
+│   │   ├── audio/AudioSystem.ts ← 遊戲事件 → 音效 Cue、BGM 切換
+│   │   ├── ui/UICommandSystem.ts← UI 寫入引擎的唯一閘門（UI_COMMAND 事件）
+│   │   ├── agentManager.ts      ← 單位生命週期：生成、唯一死亡入口、死亡計時、回收
+│   │   ├── ZoneSystem.ts        ← 大逃殺縮圈：Flood-fill 深度、地形崩落、墜落出局
+│   │   ├── PhysicsSystem.ts     ← 物理積分：衝量、重力、自由落體
+│   │   ├── AnimationSystem.ts   ← 動畫狀態推導（tick 最末層）
+│   │   ├── DirectorSystem.ts / CameraSystem.ts ← 導播決策 / 鏡頭執行
+│   │   ├── HazardSystem.ts      ← 地面危機區域（毒、火、冰、重力）
+│   │   ├── VictorySystem.ts     ← 勝負判定（含平局收尾）
+│   │   ├── BattleLogger.ts / AnnouncerSystem.ts ← 戰鬥紀錄 / 戰況播報
+│   │   └── DesignExporter.ts    ← 戰鬥數據結構化輸出（企劃驗證用）
+│   ├── renderers/
+│   │   ├── RenderSpec.ts        ← 渲染物件資料結構（視覺 SSOT）
 │   │   ├── RenderPipeline.ts    ← 渲染主管線：Z 排序、分層提交
-│   │   ├── RenderList.ts        ← RenderOp 佇列管理
-│   │   ├── RenderDispatcher.ts  ← 依 RenderOpType 分發至對應 Renderer
-│   │   ├── HUDRenderer.ts       ← HUD 元素繪製
-│   │   ├── PostProcessor.ts     ← 後處理通道（silhouette 等）
-│   │   ├── ProjectileDrawer.ts  ← 彈道視覺繪製
-│   │   ├── background.ts        ← 背景層繪製
-│   │   ├── tactical.ts          ← 戰術層覆蓋繪製
-│   │   ├── grid/                ← 地形、格子、Hazard 繪製
-│   │   ├── units/               ← 單位視覺管線（Faction Renderers + Painters）
-│   │   ├── hud/                 ← HUD 子元件
-│   │   └── status/              ← 狀態效果視覺管線
-│   │       ├── StatusOrchestrator.ts    ← 狀態視覺主協調器（路由 + 放逐守門）
-│   │       └── painters/
-│   │           ├── GroundEffectPainter.ts  ← 地板 CC 光暈（DoT 動態色、POLYMORPH/FROZEN 地板）
-│   │           ├── OverheadPainter.ts      ← 頭頂圖標（STUN/SILENCE/INVINCIBLE/STASIS 等）
-│   │           ├── ShieldPainter.ts        ← 護盾視覺
-│   │           └── StateModelPainter.ts    ← 模型替換（SHEEP/ICE_BLOCK/BANISH 透明）
-│   ├── events/
-│   │   ├── EventBus.ts      ← 系統間解耦通訊
-│   │   └── GameEventPool.ts ← 物件池，避免 GC 壓力
-│   ├── math/
-│   │   ├── VisualMath.ts        ← ISO 視覺座標轉換 SSOT（getIsoVisualY）
-│   │   ├── PointerProjector.ts  ← 所有指標座標逆投影的唯一入口（含 DPR 校正）
-│   │   └── rng.ts               ← 可注入確定性隨機源（支援單元測試與重播）
-│   ├── physics/             ← 彈體物理、碰撞
-│   ├── sprites.ts           ← SpriteManager：障礙物 Sprite 快取與查詢
-│   ├── graphics/
-│   │   └── EnvironmentFactory.ts ← 障礙物 Sprite 生成（尺寸參數由 ENV_SPRITE 管控）
-├── tests/                   ← Vitest 確定性單元測試套件（29 項測試）
-│   ├── DamageCalculator.test.ts ← 傷害公式、暴擊、格擋、易傷、護盾吸收、斬殺
-│   ├── DirectDamage.test.ts     ← 環境/墜落/DoT 單一入口防禦性檢定
-│   ├── Core.test.ts             ← HexUtils、EventPool、EventBus、行為樹、DoT/HoT
-│   └── Rng.test.ts              ← 隨機源注入與 AI Jitter 確定性消耗
-├── components/
-│   ├── ui/
-│   │   ├── MapEditorToolbar     ← 戰場編輯工具列
-│   │   ├── PlaybackHUD          ← 時間流速、播放控制
-│   │   ├── UnitInspectorHUD     ← 單位即時檢視與調整
-│   │   ├── DirectorMonitorHUD   ← 導播系統監控面板
-│   │   └── SystemMenu           ← 全局設定與場景切換
-│   ├── inspector/
-│   │   ├── tabs/
-│   │   │   ├── BehaviorTreeTab  ← AI 行為樹即時狀態視覺化
-│   │   │   ├── LogTab           ← 戰鬥紀錄查詢與篩選
-│   │   │   ├── SkillDbTab       ← 全域技能資料庫編輯
-│   │   │   ├── UnitStatusTab    ← 單位完整狀態讀取
-│   │   │   └── VFXMapTab        ← VFX 區格分佈與生命週期監控
-│   │   └── GameCanvas.tsx   ← 主渲染畫布
+│   │   ├── RenderQuality.ts     ← 品質階層與自動降階
+│   │   ├── units/               ← 精靈單位（SpriteUnitRenderer、SpriteAtlasStore）與繪製器（含 UnitDeathPainter）
+│   │   ├── grid/                ← 地形、格子、Hazard 繪製（含地形烘焙快取）
+│   │   ├── status/              ← 狀態視覺（護盾、頭頂圖示、地板光暈、模型替換）
+│   │   └── hud/                 ← HUD 子元件
+│   ├── graphics/            ← 程序化材質（materials/NoiseLib、MaterialPainter）、Token／環境 Sprite 工廠
+│   ├── audio/AudioEngine.ts ← Web Audio 共享引擎（擁有者計數、BGM 請求序號）
+│   ├── events/              ← EventBus、GameEventPool（物件池，避免 GC 壓力）
+│   ├── math/                ← VisualMath（ISO 座標 SSOT）、PointerProjector（指標逆投影）、rng（可注入確定性隨機源）
+│   └── physics/             ← 單位物理、碰撞
+├── components/              ← React UI：GameCanvas、HUD、戰場編輯器、Inspector 分頁、視窗系統、展示頁
+├── hooks/                   ← 引擎與 React 的接合層（useGameApp、useGameLoop、相機與輸入）
 ├── data/
-│   ├── scenes.ts            ← 場景主題資料（森林、冰原、熔岩…）
-│   ├── units/
-│   │   └── appearance/      ← 單位外觀 SSOT（ECS Component 等價層）
-│   │       ├── types.ts     ← RoleAppearance、FactionAppearanceProfile 介面定義
-│   │       ├── imperial.ts  ← Imperial 陣營外觀 Profile
-│   │       ├── covenant.ts  ← Covenant 陣營外觀 Profile
-│   │       └── index.ts     ← UNIT_APPEARANCE SSOT export
-│   └── vfx/
-│       └── status_visuals.ts    ← 狀態效果視覺定義 SSOT（CC、DoT、Buff、地板光暈）
-├── .github/workflows/       ← GitHub Actions 自動部署工作流 (deploy.yml)
-├── server.js                ← 零依賴極簡生產環境伺服器 (Cloud Run / 容器支援)
-├── Dockerfile               ← 多階段容器構建設定
-├── types.ts                 ← 全域型別定義（SSOT 資料結構）
-├── types/
-│   └── VFXSchema.ts         ← VFX 粒子與貼花的資料 schema（types.ts 的 VFX 擴充）
-└── constants.ts             ← 遊戲常數
+│   ├── units/appearance/    ← 單位外觀 SSOT：精靈圖集對應、體型、影格選擇、死亡擊飛（deathMotion）
+│   ├── skills/              ← 各陣營技能資料
+│   ├── ai_profiles.ts       ← 行為樹定義（資料驅動）
+│   ├── audio/               ← 音效 Cue 與 BGM 定義
+│   ├── vfx/                 ← 特效登記、程序化材質參數（materialConfig）、狀態視覺定義
+│   └── scenes.ts            ← 場景主題（森林、冰原、熔岩…）
+├── public/assets/           ← 精靈單位、地形貼圖、粒子貼圖、音訊（授權見 CREDITS.md、docs/ASSET_LEDGER.md）
+├── tests/                   ← Vitest 確定性單元測試
+├── tools/                   ← 材質預覽、UI e2e、效能量測與渲染保真腳本、音訊預覽
+├── types.ts                 ← 全域型別契約（VFX schema 另見 types/VFXSchema.ts）
+├── constants.ts             ← 全域參數 SSOT（物理、戰鬥、顏色、版面、特效預算）
+├── .github/workflows/       ← GitHub Pages 自動部署
+└── server.js / Dockerfile   ← 容器部署（Cloud Run）
 ```
-
----
-
-## AI 協作規範
-
-> 本節為代理人操作契約。每次開始任何修改前，代理人必須先閱讀本節全文。
-
-### 無條件優先讀取（無例外）
-
-| 檔案 | 職責 |
-|------|------|
-| `types.ts` | 所有引擎核心型別（Agent, Skill, Hex, GameEvent）的主契約。VFX 粒子／貼花 schema 另見 `types/VFXSchema.ts`，搜尋型別前必須確認兩者 |
-| `constants.ts` | 所有數值調參的唯一來源（PHYSICS, VFX_RENDER, VFX_PARAM, COMBAT_PARAM, PALETTE, TERRAIN_THEMES, ENV_SPRITE）。禁止 hardcode 魔法數字，禁止在未明確指示的情況下修改現有數值 |
-
-### 依工作區域讀取
-
-| 工作區域 | 必讀檔案 |
-|----------|----------|
-| Renderer / VFX / 視覺分層 / Z-sorting | `engine/renderers/RenderSpec.ts`、`VFX_PARAM`（`constants.ts`）管控 `MAX_PARTICLES` / `MAX_POOL_SIZE` / `HAZARD_FIELD_MAX_PER_CELL` / `IDLE_VFX_CULL_DIST_SQ` 四個預算常數 |
-| 單位外觀 / 陣營顏色 / 身體尺寸 / 武器類型 | `data/units/appearance/types.ts`、`data/units/appearance/imperial.ts`、`data/units/appearance/covenant.ts`、`data/units/appearance/index.ts` |
-| AI 行為樹 / 生存 / 閃避 / 危害邏輯 | `engine/systems/DesignExporter.ts`（第 8、11、12 節） |
-| 技能欄位 / Inspector UI / Visual ID 選項 | `components/inspector/InspectorConstants.ts` |
-
-**單位外觀修改規則：**
-- 調整顏色、尺寸、武器類型 → 只改 profile 檔（imperial.ts / covenant.ts）
-- 調整繪製方式、動畫 → 改 Faction Renderer 或 Painter
-- 禁止在任何 Renderer 或 Painter 中 hardcode hex 顏色 or 身體尺寸
-
-### Facade 架構（關鍵）
-
-下列 flat 檔案是 **Facade**，公開 API 層。實作在對應子目錄。  
-**永遠編輯子目錄，不動 Facade**（除非更改公開介面或生命週期編排）。
-
-| Facade | 實作子目錄 |
-|--------|-----------|
-| `engine/renderer.ts` | `renderers/` + `systems/*`（RenderPipeline, StatusOrchestrator, GridSystem, VFXSystem, UnitRenderSystem, HUDSystem, SequenceSystem） |
-| `combat.ts` | `combat/`（SkillExecutor, CastingEngine, ProjectileSystem） |
-| `movement.ts` | `movement/`（MotionEngine, StackingResolver） |
-| `vfx.ts` | `vfx/`（VFXPlayer, VFXPhysics, VFXAmbience, AgentVFXSystem） |
-| `grid.ts` | `grid/` |
-| `map.ts` | `map/` |
-| `unit.ts` | `unit/` |
-
-每個 Facade 頂部有 `[FACADE]` 註解，列出完整子目錄映射，修改前必須讀取。
-
-### ECS-in-Spirit 架構原則
-
-- **Agent 是純資料容器（Entity）**，禁止在 Agent 上新增邏輯方法
-- **所有遊戲邏輯在 System 類別**，透過讀寫 Agent 欄位運作
-- **跨系統溝通透過 `engine.bus`（EventBus）**，禁止 System 直接呼叫另一個 System 的方法
-- **Agent 子物件（physics 等）視為邏輯 Component**，相關欄位保持聚合，禁止散落
-- **`UNIT_APPEARANCE` 是所有陣營視覺的 SSOT**，Faction Renderer 消費資料，不定義資料
-- **`UnitDeathPainter` 位於 `engine/renderers/units/painters/`**，不得移回 `engine/systems/`
-
-### 通用規範
-
-- **先理解再修改**。不確定某段邏輯的原因，先追蹤程式碼或詢問，禁止猜測後 patch
-- **精準修改優先**。若一個修正需要動超過 3 個檔案，先說明計畫再動手
-- **禁止引入新抽象**，除非明確要求
-- **引擎核心檔案禁止使用 `as any`**
-- **禁止新增 `console.log`**，除非明確要求
-- **VFX 驗證 log 每 session 最多觸發一次**（首次成功 bind 時），禁止放在 update 迴圈或 render 路徑中
 
 ---
 
 ## 核心設計原則
 
 ### 1. SSOT（Single Source of Truth）
-所有單位狀態集中在 `Agent` 實體，渲染層與 UI 層**只讀取，不寫入**。  
-動畫狀態在 `tick()` 最後才由 `AnimationSystem` 統一推導，確保視覺永遠與邏輯一致。
-單位外觀的顏色、尺寸、武器類型集中於 `UNIT_APPEARANCE`（`data/units/appearance/index.ts`），視覺 SSOT 延伸至渲染層。
+單位狀態集中在 `Agent`，渲染層與 UI 層**只讀取，不寫入**（UI 的修改經 `UICommandSystem` 提交）。
+動畫狀態在 `tick()` 最後由 `AnimationSystem` 統一推導，確保視覺與邏輯一致。
+參數與顏色在 `constants.ts`，單位外觀在 `data/units/appearance/`，渲染器只消費資料、不定義資料。
 
-### 2. Mutation Gate
-大多數核心屬性變更（HP、位置、狀態）透過系統入口函式執行，降低非預期副作用。  
-特例：地圖系統驅動的死亡（縮圈崩落、深淵墜落）會直接寫入 `hp = 0` 與 `banished`，  
-因為這類死亡屬於「地形判定」而非「戰鬥傷害」，繞過傷害管線是刻意設計。
+### 2. 單一寫入者
+每個狀態欄位只由一個系統寫入。例如死亡計時 `deathTimer` 與回收旗標 `fullyDead` 只由 `agentManager.updateDeathState` 寫入；曾經有兩個系統同時寫它，結果計時永遠歸零、死亡動畫從不播放。
 
-### 3. Data Contract
-`types.ts` 是整個系統的資料契約。TypeScript 靜態型別確保 AI 協作擴充時，介面斷層在編譯期就被捕捉。
+### 3. Mutation Gate
+核心屬性變更（HP、位置、狀態）透過系統入口執行。
+地形造成的死亡（縮圈崩落、墜入深淵）不走傷害管線（屬於「地形判定」），但仍經過唯一的死亡入口 `agentManager.handleDeadState`，確保事件、地圖佔位、死亡演出都完整收尾。
 
-### 4. Director-Camera 分離
-`DirectorSystem` 負責**決策**（聚焦誰、持續多久）  
-`CameraSystem` 負責**執行**（平滑插值、跟隨邏輯）  
-兩者職責明確分離，各自可獨立調整。
+### 4. Data Contract
+`types.ts` 是整個系統的資料契約。TypeScript 靜態型別確保擴充時，介面斷層在編譯期就被捕捉。
+
+### 5. Director-Camera 分離
+`DirectorSystem` 負責**決策**（聚焦誰、持續多久），`CameraSystem` 負責**執行**（平滑插值、跟隨），兩者可各自調整。
 
 ---
 
@@ -290,10 +177,12 @@ GameEngine
 |------|------|
 | 框架 | React 19 + TypeScript 5.8 |
 | 建置 | Vite 6 |
-| 測試 | Vitest（29 項確定性單元測試全數通過） |
-| 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器，零外部圖形依賴） |
-| AI 協作開發 | AI 驅動的企劃主導式開發（設計決策 → AI 協作實作 → 模擬器驗證） |
-| 部署 | GitHub Pages (CI/CD 自動化) / Google Cloud Run / Docker |
+| 測試 | Vitest 單元測試、Playwright（`playwright-core` + Edge）UI e2e 與渲染保真比對 |
+| 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器，零外部圖形依賴；不使用 WebGL／Three／Pixi） |
+| 美術 | KayKit 3D 模型預渲染的精靈圖集、貼圖地形、粒子貼圖（CC0／CC-BY，見 `CREDITS.md`） |
+| 音訊 | Web Audio（共享 AudioContext，事件驅動音效與 BGM） |
+| AI 協作開發 | 企劃主導：設計決策 → AI 實作 → 模擬器驗證（見下方「開發協作」） |
+| 部署 | GitHub Pages（CI/CD 自動化）／ Google Cloud Run ／ Docker |
 
 ---
 
@@ -315,35 +204,42 @@ GameEngine
 
 ## 本地執行與測試
 
-### 安裝依賴
 ```bash
-npm install
+npm install          # 安裝依賴
+npm run dev          # 開發伺服器 http://localhost:3000
+npm run lint         # TypeScript 靜態檢查（0 errors）
+npm test             # 單元測試
+npm run build        # 生產環境打包（dist/）
+npm run start        # 以 server.js 啟動生產版本（容器部署用）
+npm run e2e:ui       # UI e2e（無頭 Edge）
+npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
 ```
 
-### 啟動本地開發伺服器
-```bash
-npm run dev
-```
-
-### 執行單元測試
-```bash
-npm test
-```
-
-### 嚴格型別檢查與生產打包
-```bash
-npm run lint    # TypeScript 靜態檢查（0 errors）
-npm run build   # 產出生產環境最佳化包
-npm run start   # 以本機生產伺服器 (server.js) 啟動測試
-```
+網址參數：`?perf` 顯示效能 HUD（含尖峰記錄），`?mute` 關閉音訊。
 
 > **注意**：本專案為 100% 純前端客戶端應用，**不需**在本地設定任何 API Key 或後端服務。
 
 ---
 
+## 開發協作（代理合約）
+
+這個專案以 AI 代理協作開發，規則寫成「合約」檔案，**修改程式前請先讀對應的合約**：
+
+| 檔案 | 給誰 | 內容 |
+|------|------|------|
+| `AGENTS.md` | 實作代理（IDE 的 Gemini 等） | 嚴格的架構不變式、禁止事項、Git 與測試紀律、驗證流程 |
+| `CLAUDE.md` | 主代理（Claude Code） | 角色分工、少數鐵律、子代理與模型分級 |
+| `.claude/agents/*.md` | Claude Code 子代理 | 搜尋／執行／審查三種子代理，各自鎖定模型與權限 |
+| `docs/HANDOFF.md` | 主代理 | 目前的分支、進行中的工作、審查教訓、待辦池 |
+| `docs/*_AGENT_PROMPT.md` | 實作代理 | 單輪任務合約（完成後歸檔至 `docs/archive/`） |
+
+分工：主代理負責設計、審查與合併；長時間的機械性實作交給實作代理，在獨立分支完成後由主代理審查 diff 並本機實跑驗證，經使用者同意才合併進 `main`。
+
+---
+
 ## 關於這個專案的開發方式
 
-這個專案由**遊戲企劃主導，以 AI 協作方式建構**。設計流程是：先定義資料結構與系統邊界，再以 Gemini 協助實作各子系統，最後在模擬器中直接驗證戰鬥手感是否符合設計意圖。
+這個專案由**遊戲企劃主導，以 AI 協作方式建構**。設計流程是：先定義資料結構與系統邊界，再由 AI 代理實作各子系統（早期以 Gemini／AI Studio，現在由 Claude Code 主導設計與審查、Gemini 負責實作），最後在模擬器中直接驗證戰鬥手感是否符合設計意圖。
 
 這不是「工程師做了一個遊戲」，而是「企劃用可執行的系統來驗證設計決策」。
 
