@@ -250,6 +250,21 @@ export const DEATH_VFX = {
     SPARK_GRAVITY: 900,
 } as const;
 
+/** 單位死亡擊飛（渲染層以經過時間推導位移，見 data/units/appearance/deathMotion.ts） */
+export const DEATH_KNOCKBACK = {
+    /** 放大 Ragdoll 軀幹初速（世界座標單位/秒）後作為滑行初速 */
+    SPEED_SCALE: 2.2,
+    /** 水平滑行的指數衰減係數（1/秒） */
+    SLIDE_DECAY: 4,
+    /** 水平總位移上限 */
+    MAX_SLIDE: 110,
+    /** 垂直初速放大倍率、重力與彈跳衰減 */
+    VZ_SCALE: 1.6,
+    GRAVITY: 1050,
+    RESTITUTION: 0.35,
+    BOUNCES: 2,
+} as const;
+
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
     secondary: '#fde047',

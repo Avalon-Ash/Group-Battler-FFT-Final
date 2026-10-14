@@ -33,11 +33,8 @@ export class AnimationSystem {
                 agent.animState = AnimState.DEAD;
                 agent.visualStatus = 'NONE';
                 
-                if (agent.deathTimer > 0) {
-                    agent.deathTimer -= dt;
-                } else if (!agent.fullyDead && agent.deadLogged) {
-                    agent.fullyDead = true;
-                }
+                // [ARCH] deathTimer / fullyDead 的唯一寫入者是 AgentManager.updateDeathState（累加制）。
+                // 這裡只衍生動畫狀態；先前在此遞減 deathTimer 會與累加互相抵銷，造成計時永遠停在 0。
                 continue;
             }
 

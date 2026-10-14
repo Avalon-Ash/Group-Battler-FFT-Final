@@ -3,6 +3,7 @@ import { UNIT_SPRITE, UNIT_SCALE, PALETTE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSpriteFrame";
 import { VisualMath } from "../../../math/VisualMath";
+import { computeDeathOffset } from "../../../../data/units/appearance/deathMotion";
 
 export class UnitDeathPainter {
 
@@ -40,9 +41,24 @@ export class UnitDeathPainter {
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(visY, pz);
 
+        // 擊飛：以 Ragdoll 軀幹的初速（impact 方向）與死亡經過時間推導滑行與彈跳（渲染層無狀態）
+        let torsoVx = 0, torsoVy = 0, torsoVz = 0;
+        const bones = agent.ragdoll;
+        if (bones) {
+            for (let i = 0; i < bones.length; i++) {
+                if (bones[i].id === 'torso') {
+                    torsoVx = bones[i].vx;
+                    torsoVy = bones[i].vy;
+                    torsoVz = bones[i].vz;
+                    break;
+                }
+            }
+        }
+        const knock = computeDeathOffset(torsoVx, torsoVy, torsoVz, agent.deathTimer);
+
         ctx.save();
         ctx.globalAlpha = fadeAlpha * alpha;
-        ctx.translate(visX, bodyY + sinkY);
+        ctx.translate(visX + knock.x, bodyY + sinkY + knock.y - knock.lift);
         ctx.scale(UNIT_SCALE, UNIT_SCALE);
         if (SpriteUnitRenderer.canRender(agent)) {
             SpriteUnitRenderer.draw(ctx, agent, t, false);
