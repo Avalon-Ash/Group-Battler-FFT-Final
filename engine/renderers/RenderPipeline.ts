@@ -14,6 +14,10 @@ import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
 import { particleTextureStore } from "./ParticleTextureStore";
+import { PixelLayer, readPixelFactorParam, isModernLayerOp } from "./PixelLayer";
+
+/** all = 單一 pass（預設）；world／modern = 像素原型的兩層拆分（ART_SPEC §12） */
+type WorldPass = 'all' | 'world' | 'modern';
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -35,6 +39,8 @@ export class RenderPipeline {
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
+    private pixelLayer = new PixelLayer();
+    private readonly pixelFactor = readPixelFactorParam();
 
     // [FIX] 避免每幀重建 closure，只在 engine 實例變更時重建
     private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
@@ -102,6 +108,16 @@ export class RenderPipeline {
         const lH = pH / dpr;
         const { mapConfig: cfg, currentScene: sc } = engine;
         
+        if (this.pixelFactor > 1) {
+            const rawLow = this.pixelLayer.begin(pW, pH, this.pixelFactor);
+            if (rawLow) {
+                const lowCtx = CtxOpCounter.wrapContext(rawLow);
+                const m = this.drawPixelWorld(ctx, lowCtx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, realTime, lW, lH, dpr);
+                this.drawPostAndOverlays(ctx, engine, camera, highlight, fps, battleTime, realTime, pW, pH, lW, lH, m);
+                return;
+            }
+        }
+
         // 1. Clear & Background
         RenderStats.begin('background');
         ctx.resetTransform(); 
@@ -120,9 +136,47 @@ export class RenderPipeline {
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         // World objects use BattleTime to sync with logic
-        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt);
+        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt, lW, lH, 'all');
         ctx.restore(); 
         RenderStats.end('world');
+
+        this.drawPostAndOverlays(ctx, engine, camera, highlight, fps, battleTime, realTime, pW, pH, lW, lH, null);
+    }
+
+    /** 像素原型：背景＋世界層畫在低解析度畫布並對齊像素格，放大貼回後再以同一變換畫特效層。 */
+    private drawPixelWorld(ctx: CanvasRenderingContext2D, lowCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number, lW: number, lH: number, dpr: number): DOMMatrix {
+        const k = this.pixelFactor;
+        const { mapConfig: cfg, currentScene: sc } = engine;
+
+        RenderStats.begin('background');
+        lowCtx.scale(dpr / k, dpr / k);
+        CtxOpCounter.track('background', () => {
+            this.background.draw(lowCtx, lW, lH, sc, cfg, realTime);
+        });
+        RenderStats.end('background');
+
+        RenderStats.begin('world');
+        lowCtx.save();
+        this.renderer.camera.sync(camera);
+        this.renderer.camera.applyTransform(lowCtx, lW, lH);
+        const m = PixelLayer.snapTranslation(lowCtx);
+        this.drawWorld(lowCtx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt, lW, lH, 'world');
+        lowCtx.restore();
+
+        ctx.resetTransform();
+        this.pixelLayer.blit(ctx, k);
+        ctx.save();
+        PixelLayer.applyUpscaled(ctx, m, k);
+        this.drawWorld(ctx, engine, camera, highlight, hoveredHex, hoveredSkill, battleTime, this.lastDt, lW, lH, 'modern');
+        ctx.restore();
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        RenderStats.end('world');
+        return m;
+    }
+
+    private drawPostAndOverlays(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, battleTime: number, realTime: number, pW: number, pH: number, lW: number, lH: number, pixelWorldTransform: DOMMatrix | null): void {
+        const cfg = engine.mapConfig;
 
         // 3. Post Processing
         RenderStats.begin('post');
@@ -137,7 +191,9 @@ export class RenderPipeline {
         // 4. Overlays (Screen/World Hybrid)
         RenderStats.begin('overlay+hud');
         ctx.save(); 
-        this.renderer.camera.applyTransform(ctx, lW, lH);
+        // 像素原型：overlay／HUD 沿用世界層對齊後的同一變換，避免與像素格錯位
+        if (pixelWorldTransform) PixelLayer.applyUpscaled(ctx, pixelWorldTransform, this.pixelFactor);
+        else this.renderer.camera.applyTransform(ctx, lW, lH);
         CtxOpCounter.track('tactical-overlay', () => {
             this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
         });
@@ -168,7 +224,12 @@ export class RenderPipeline {
         CtxOpCounter.endFrame();
     }
 
-    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number) {
+    private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number, lW: number, lH: number, pass: WorldPass) {
+        if (pass === 'modern') {
+            this.dispatchOps(ctx, engine, t, pass);
+            this.drawStatus(ctx, engine, t);
+            return;
+        }
         this.renderList.reset();
 
         if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
@@ -176,10 +237,6 @@ export class RenderPipeline {
             this._cachedTerrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
         }
         const terrainH = this._cachedTerrainH;
-
-        const dpr = getRenderDpr();
-        const lW = ctx.canvas.width / dpr;
-        const lH = ctx.canvas.height / dpr;
 
         CtxOpCounter.track('submit', () => {
             this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
@@ -194,9 +251,16 @@ export class RenderPipeline {
             this.renderList.sort();
         });
 
-        // 單一渲染 pass：依據深度排序後的順序進行繪製（包含存活單位與死亡布娃娃）
+        this.dispatchOps(ctx, engine, t, pass);
+        this.drawSilhouettes(ctx, engine, terrainH, t);
+        if (pass === 'all') this.drawStatus(ctx, engine, t);
+    }
+
+    // 單一渲染 pass：依據深度排序後的順序進行繪製（包含存活單位與死亡布娃娃）
+    private dispatchOps(ctx: CanvasRenderingContext2D, engine: GameEngine, t: number, pass: WorldPass) {
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i];
+            if (pass !== 'all' && isModernLayerOp(op) !== (pass === 'modern')) continue;
             if (CtxOpCounter.enabled) {
                 const scope = op.type === RenderOpType.TERRAIN ? 'terrain' :
                               op.type === RenderOpType.UNIT || op.type === RenderOpType.CORPSE || op.type === RenderOpType.AURA ? 'units' :
@@ -210,6 +274,9 @@ export class RenderPipeline {
             }
             RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
         }
+    }
+
+    private drawSilhouettes(ctx: CanvasRenderingContext2D, engine: GameEngine, terrainH: (q: number, r: number) => number, t: number) {
 
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：
         // 地形高度被拖拉改變時，遮擋偵測會誤判，產生幽靈梯形。
@@ -247,6 +314,10 @@ export class RenderPipeline {
             }
         }
         
+    }
+
+    private drawStatus(ctx: CanvasRenderingContext2D, engine: GameEngine, t: number) {
+        const terrainH = this._cachedTerrainH!;
         // [FIX] Pass layout and map validity to StatusOrchestrator
         CtxOpCounter.track('status', () => {
             this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout, (q, r) => engine.map.isValid(q, r));

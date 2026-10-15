@@ -700,6 +700,16 @@ export const RENDER_QUALITY = {
 } as const;
 
 /**
+ * 像素世界原型（ART_SPEC §12，P0a）：?pixel=2|3 把世界層畫到 1/k 解析度離屏畫布再最近鄰放大；
+ * 特效層（VFX／投射物／光環）與 HUD 維持全解析度。未帶參數時渲染路徑與原本完全相同。
+ */
+export const PIXEL_WORLD = {
+    QUERY_KEY: 'pixel',
+    ALLOWED_FACTORS: [2, 3] as const,
+    CLEAR_COLOR: '#020617',
+} as const;
+
+/**
  * 光暈 Sprite 快取與量化參數 SSOT
  */
 export const RENDER_GLOW = {
