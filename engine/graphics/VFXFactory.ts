@@ -7,6 +7,7 @@ import { HexGeometry } from "./utils/HexGeometry";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 import { applyNoiseMask } from "./materials/NoiseLib";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
+import { VOID_RUNES } from "../../data/vfx/terrainAmbience";
 
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
@@ -223,11 +224,14 @@ export class VFXTextureCache {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'VOID') {
+            const runes = VOID_RUNES;
+            ctx.globalAlpha = runes.alpha;
+            ctx.lineWidth = runes.lineWidth;
             ctx.beginPath();
-            for(let i=0; i<4; i++) {
-                const angle = i * Math.PI / 2;
+            for(let i=0; i<runes.arms; i++) {
+                const angle = i * Math.PI * 2 / runes.arms;
                 ctx.moveTo(0,0);
-                ctx.lineTo(Math.cos(angle)*8, Math.sin(angle)*8);
+                ctx.lineTo(Math.cos(angle)*runes.armLength, Math.sin(angle)*runes.armLength);
             }
             ctx.strokeStyle = color;
             ctx.stroke();

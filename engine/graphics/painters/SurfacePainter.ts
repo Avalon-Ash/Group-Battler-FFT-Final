@@ -5,6 +5,7 @@ import { HexLayout } from "../../../types";
 import { createCanvas } from "../CanvasUtils";
 import { RenderStats } from "../../renderers/RenderStats";
 import { CtxOpCounter } from "../../renderers/CtxOpCounter";
+import { SAND_RIPPLES } from "../../../data/vfx/terrainAmbience";
 
 export interface LiquidCacheSlot {
     canvas: HTMLCanvasElement;
@@ -216,26 +217,31 @@ export const SurfacePainter = {
         ctx.restore();
     },
 
+    /**
+     * 沙紋（靜態）：由 TerrainRenderer.bakeBlock 烘進地形 sprite，座標 (x, y) 為頂面中心。
+     * 變化由地形 variant 決定（不再依螢幕座標）。
+     */
     drawSandRipples(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
         size: number,
-        color: string
+        color: string,
+        variant: number = 0
     ) {
+        const c = SAND_RIPPLES;
         ctx.save();
         ctx.translate(x, y);
         ctx.scale(1, ISO_SCALE_Y);
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.globalAlpha = 0.15; 
-        const seed = Math.sin(x * 0.05 + y * 0.05);
-        const offset = seed * 5;
-        for(let i=-1; i<=1; i++) {
-            const ly = i * 8 + offset;
+        ctx.lineWidth = c.lineWidth;
+        ctx.globalAlpha = c.alpha;
+        const offset = c.offsetAmplitude * c.variantPhases[variant % c.variantPhases.length];
+        for (let i = c.rowFrom; i <= c.rowTo; i++) {
+            const ly = i * c.rowSpacing + offset;
             ctx.beginPath();
-            for(let lx=-15; lx<=15; lx+=5) {
-                const wave = Math.sin(lx * 0.3 + offset) * 2;
-                if(lx === -15) ctx.moveTo(lx, ly + wave);
+            for (let lx = c.xFrom; lx <= c.xTo; lx += c.xStep) {
+                const wave = Math.sin(lx * c.waveFrequency + offset) * c.waveAmplitude;
+                if (lx === c.xFrom) ctx.moveTo(lx, ly + wave);
                 else ctx.lineTo(lx, ly + wave);
             }
             ctx.stroke();
@@ -290,14 +296,16 @@ export const SurfacePainter = {
         ctx.restore();
     },
 
+    /**
+     * 地形紋路貼圖（靜態）：由 TerrainRenderer.bakeBlock 烘進地形 sprite，座標 (x, y) 為頂面中心。
+     */
     drawDetailTexture(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
         type: string,
         color: string,
-        seed: number
+        variant: number
     ) {
-        const variant = Math.abs(Math.floor(seed * 100));
         const texture = VFXFactory.getTerrainDetail(type, color, variant);
         const size = texture.width;
         ctx.drawImage(texture, x - size/2, y - size/2);
