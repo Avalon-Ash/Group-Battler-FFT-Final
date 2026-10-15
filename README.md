@@ -37,7 +37,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 - 自定義地圖大小與 Hex 排列方式
 - 隊容確認後點擊一鍵啟動 / 重置戰鬥
 
-### 單位調整（`UnitInspectorHUD` + `UnitStatusTab`）
+### 單位調整（`UnitInspectorBody` + `UnitStatusTab`）
 
 在編輯模式下點選任意單位，可即時調整：
 
