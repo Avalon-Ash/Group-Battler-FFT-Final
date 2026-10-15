@@ -13,6 +13,10 @@
  *   node tools/ui-e2e/terrain-contrast.mjs --grid [--name=foo]   -> also screenshot 5 biomes and place them next to the
  *                                                                   13ad34c baseline: out/terrain_r1_grid[_foo].png
  *   --out=<file>  override the JSON output name (default terrain_contrast.json)
+ *   --base=<git ref>        (R2) with --grid: take the left-hand images from <ref>:tools/ui-e2e/baseline/fidelity/ instead of 13ad34c
+ *   --grid-out=<file.png>   (R2) with --grid: output sheet name (default terrain_r1_grid[_name].png)
+ *   --anim[=<file.png>]     (R2) capture ICE / FOREST / MAGMA at loop phase 0, 1/4, 1/2, 3/4 (battleTime driven) and tile the crops
+ *                           (default out/terrain_r2_anim.png)
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
@@ -34,7 +38,11 @@ const layout = argOf('layout', 'FLAT');
 const skinOverride = argOf('skin') ? JSON.parse(argOf('skin')) : null;
 const gridName = argOf('name');
 const jsonName = argOf('out', 'terrain_contrast.json');
-const OLD_BASELINE_COMMIT = '13ad34c';
+const OLD_BASELINE_COMMIT = argOf('base', '13ad34c');
+const gridOutName = argOf('grid-out');
+const animArg = process.argv.find((a) => a === '--anim' || a.startsWith('--anim='));
+const wantAnim = Boolean(animArg);
+const animOutName = animArg && animArg.includes('=') ? animArg.slice(animArg.indexOf('=') + 1) : 'terrain_r2_anim.png';
 const BIOMES = ['VOID', 'FOREST', 'ICE', 'MAGMA', 'DESERT'];
 const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
 
@@ -219,7 +227,7 @@ try {
             writeFileSync(op, oldBuf);
             oldPaths.push(op);
         }
-        const outPng = join(OUT_DIR, `terrain_r1_grid${tag}.png`);
+        const outPng = join(OUT_DIR, gridOutName ?? `terrain_r1_grid${tag}.png`);
         const py = [
             'import sys',
             'from PIL import Image, ImageDraw',
@@ -232,12 +240,70 @@ try {
             'for i, (o, n) in enumerate(imgs):',
             '    sheet.paste(o.resize((w, h), Image.LANCZOS), (0, i * h))',
             '    sheet.paste(n.resize((w, h), Image.LANCZOS), (w, i * h))',
-            '    d.text((6, i * h + 6), names[i] + " old (13ad34c)", fill=(255, 255, 255))',
+            '    d.text((6, i * h + 6), names[i] + " old (" + sys.argv[5] + ")", fill=(255, 255, 255))',
             '    d.text((w + 6, i * h + 6), names[i] + " new", fill=(255, 255, 255))',
             'sheet.save(out)',
         ].join('\n');
-        execFileSync('python', ['-I', '-c', py, outPng, oldPaths.join('|'), newPaths.join('|'), BIOMES.join('|')]);
+        execFileSync('python', ['-I', '-c', py, outPng, oldPaths.join('|'), newPaths.join('|'), BIOMES.join('|'), OLD_BASELINE_COMMIT]);
         console.log(`wrote ${outPng}`);
+    }
+
+    // ---- optional loop-animation sheet: ICE / FOREST / MAGMA at phase 0, 1/4, 1/2, 3/4 ----
+    if (wantAnim) {
+        if (!wantGrid) {
+            await page.getByText(START_TEXT).click();
+            await page.waitForTimeout(400);
+            await page.evaluate(() => window.__stepFrames(10));
+        }
+        const ANIM_BIOMES = ['ICE', 'FOREST', 'MAGMA'];
+        const PHASES = [0, 0.25, 0.5, 0.75];
+        const animPaths = [];
+        const periods = {};
+        for (const sid of ANIM_BIOMES) {
+            await page.evaluate(async (sceneId) => {
+                window.__resetSeed(1337);
+                const mod = await import('/data/scenes.ts');
+                const { TerrainRenderer } = await import('/engine/renderers/grid/TerrainRenderer.ts');
+                TerrainRenderer.store.clear();
+                const e = window.__TACTICAL_ENGINE__;
+                e.currentScene = mod.SCENE_DB.find((x) => x.id === sceneId);
+                e.map.rebuildMap(e);
+            }, sid);
+            await page.evaluate(() => window.__stepFrames(30));
+            const period = await page.evaluate(async (sceneId) => {
+                const A = await import('/data/vfx/terrainAmbience.ts');
+                return sceneId === 'MAGMA' ? A.TERRAIN_LIQUID.loop.period : A.TERRAIN_AMBIENCE[sceneId].detail.loop.period;
+            }, sid);
+            periods[sid] = period;
+            for (const ph of PHASES) {
+                // Terrain animation is driven by battleTime, which is frozen in manual mode: set it directly.
+                await page.evaluate((t) => { window.__TACTICAL_ENGINE__.state.time.battleTime = t; window.__stepFrames(2); }, ph * period);
+                const dataUrl = await page.evaluate(() => document.querySelector('canvas').toDataURL('image/png'));
+                const ap = join(OUT_DIR, `_anim_${sid}_${ph}.png`);
+                writeFileSync(ap, Buffer.from(dataUrl.replace(/^data:image\/png;base64,/, ''), 'base64'));
+                animPaths.push(ap);
+            }
+        }
+        const animPng = join(OUT_DIR, animOutName);
+        const pyAnim = [
+            'import sys',
+            'from PIL import Image, ImageDraw',
+            'out = sys.argv[1]; paths = sys.argv[2].split("|"); names = sys.argv[3].split("|"); phases = sys.argv[4].split("|"); periods = sys.argv[5].split("|")',
+            'cols = len(phases)',
+            'imgs = [Image.open(p).convert("RGB") for p in paths]',
+            'W, H = imgs[0].size',
+            'cw, ch = 420, 300',
+            'x0, y0 = (W - cw) // 2, (H - ch) // 2',
+            'sheet = Image.new("RGB", (cw * cols, ch * len(names)), (0, 0, 0))',
+            'd = ImageDraw.Draw(sheet)',
+            'for i, im in enumerate(imgs):',
+            '    r, c = divmod(i, cols)',
+            '    sheet.paste(im.crop((x0, y0, x0 + cw, y0 + ch)), (c * cw, r * ch))',
+            '    d.text((c * cw + 6, r * ch + 6), names[r] + " phase " + phases[c] + " (t=" + format(float(phases[c]) * float(periods[r]), ".2f") + "s of " + format(float(periods[r]), ".2f") + "s)", fill=(255, 255, 255))',
+            'sheet.save(out)',
+        ].join('\n');
+        execFileSync('python', ['-I', '-c', pyAnim, animPng, animPaths.join('|'), ANIM_BIOMES.join('|'), PHASES.join('|'), ANIM_BIOMES.map((b) => periods[b]).join('|')]);
+        console.log(`wrote ${animPng}`);
     }
     await ctx.close();
 } finally {
