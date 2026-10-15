@@ -159,9 +159,22 @@ export const TerrainRenderer = {
                 const faceTopY = Math.min(v1.y, v2.y) + visualTopY;
                 const faceH = currentPedestalDepth - faceTopY;
 
+                // 光照決定明暗：先以側面漸層全強度填底色，再疊貼圖細節
+                if (Number.isFinite(visualTopY)) {
+                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
+                    grad.addColorStop(0, color);
+                    grad.addColorStop(1, isLightSide ? theme.sideDark : TERRAIN_SKIN.sideShadeFloor);
+                    sCtx.fillStyle = grad;
+                } else {
+                    sCtx.fillStyle = color;
+                }
+                sCtx.fillRect(minX, faceTopY, faceW, faceH);
+
                 const sidePattern = terrainTextureStore.getSidePattern(sCtx, type);
                 if (sidePattern) {
                     sCtx.save();
+                    sCtx.globalCompositeOperation = TERRAIN_SKIN.sideDetail.blend;
+                    sCtx.globalAlpha = TERRAIN_SKIN.sideDetail.alpha;
                     const patMatrix = new DOMMatrix();
                     const varOffsets = TERRAIN_SKIN.variantOffsets;
                     const varOffset = varOffsets[variant % varOffsets.length];
@@ -171,15 +184,6 @@ export const TerrainRenderer = {
                     sCtx.fillStyle = sidePattern;
                     sCtx.fillRect(minX, faceTopY, faceW, faceH);
                     sCtx.restore();
-                }
-
-                if (Number.isFinite(visualTopY)) {
-                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
-                    grad.addColorStop(0, color);
-                    grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
-                    sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
-                    sCtx.fillStyle = grad;
-                    sCtx.fillRect(minX, faceTopY, faceW, faceH);
                 }
                 sCtx.restore();
             } else {
@@ -206,8 +210,23 @@ export const TerrainRenderer = {
             sCtx.closePath();
             sCtx.clip();
 
+            // 光照決定明暗：先以頂面漸層全強度填底色，再疊貼圖細節
+            if (Number.isFinite(r)) {
+                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
+                topGrad.addColorStop(0, theme.rim);
+                topGrad.addColorStop(0.3, theme.top);
+                topGrad.addColorStop(1, theme.sideDark);
+                sCtx.fillStyle = topGrad;
+            } else {
+                sCtx.fillStyle = theme.top;
+            }
+            sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+
             const topPattern = terrainTextureStore.getTopPattern(sCtx, type);
             if (topPattern) {
+                sCtx.save();
+                sCtx.globalCompositeOperation = TERRAIN_SKIN.topDetail.blend;
+                sCtx.globalAlpha = TERRAIN_SKIN.topDetail.alpha;
                 const patMatrix = new DOMMatrix();
                 const varOffsets = TERRAIN_SKIN.variantOffsets;
                 const varOffset = varOffsets[variant % varOffsets.length];
@@ -218,16 +237,7 @@ export const TerrainRenderer = {
                 topPattern.setTransform(patMatrix);
                 sCtx.fillStyle = topPattern;
                 sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
-            }
-
-            if (Number.isFinite(r)) {
-                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
-                topGrad.addColorStop(0, theme.rim);
-                topGrad.addColorStop(0.3, theme.top);
-                topGrad.addColorStop(1, theme.sideDark);
-                sCtx.fillStyle = topGrad;
-                sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
-                sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+                sCtx.restore();
             }
 
             sCtx.globalAlpha = 1.0;

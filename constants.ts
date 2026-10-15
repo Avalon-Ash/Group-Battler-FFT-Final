@@ -411,10 +411,23 @@ export interface TerrainSkinThemePaths {
     side: string;
 }
 
+/** 貼圖細節疊加層：先以光照漸層全強度填底色，再以 blend 混合貼圖（光照決定明暗，貼圖只提供細節） */
+export interface TerrainDetailLayer {
+    blend: 'soft-light' | 'overlay' | 'multiply';
+    alpha: number;
+}
+
 export interface TerrainSkinConfig {
     texturePxPerHex: number;
     sideTexturePxPerUnit: number;
+    /** @deprecated R1 起不再影響畫面（光照改為全強度、貼圖改為 topDetail／sideDetail 混合）。 */
     tintStrength: number;
+    /** 頂面貼圖細節層 */
+    topDetail: TerrainDetailLayer;
+    /** 側面貼圖細節層 */
+    sideDetail: TerrainDetailLayer;
+    /** 暗側面漸層的底端色（亮側面底端取 theme.sideDark） */
+    sideShadeFloor: string;
     variantOffsets: readonly { x: number; y: number }[];
     themes: Record<string, TerrainSkinThemePaths>;
 }
@@ -423,6 +436,9 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
     texturePxPerHex: 96,
     sideTexturePxPerUnit: 1.0,
     tintStrength: 0.35,
+    topDetail: { blend: 'overlay', alpha: 0.5 },
+    sideDetail: { blend: 'overlay', alpha: 0.5 },
+    sideShadeFloor: '#020617',
     variantOffsets: [
         { x: 0, y: 0 },
         { x: 128, y: 64 },
