@@ -41,8 +41,8 @@
 | M1 | 地形改像素化程序烘焙（取代 AI 貼圖，依 P0 結果與 `ART_SPEC` §12） | 待做 | |
 
 ## 4. 下一步
-1. **零件預烘焙**：`vfxPartStore.get` 在快取未命中時同步烘焙，第一次放某個奧義會在 tick 內烘 ~9 張 sprite（可能一次卡頓）。開戰時（或資產載入後）依 `ULT_PART_VFX` 預先 `get` 一遍。
-2. **V2a 其餘 28 個奧義**：照 `ult_parts.ts` 兩個樣板的三段結構（起手紋章 → 命中主爆發＋衝擊環 → 餘韻），依 `ART_SPEC` §5 元素 × 陣營語彙選零件與色階，每個 ≤ 2 s（測試會擋）。逐個改寫並把舊條目從 `imperial.ts`／`covenant.ts` 移除；每個用 `node tools/vfx/record-skill.mjs --skill=<id> --out=tools/ui-e2e/out/vfx/after` 錄影（改前先錄到 `before/`）。機械性的部分可交 Sonnet 子代理，但每 5 個主代理看一次 `_tiles.png`。
+1. **零件預烘焙**：`vfxPartStore.get` 在快取未命中時同步烘焙，第一次放某個奧義會在 tick 內烘 ~9 張 sprite（可能一次卡頓）。開戰時只預烘「本場陣容實際會用到的奧義」的零件（不要全部 30 個：每個約 9 張，會超過 `VFX_PARTS.MAX_ENTRIES` 192 而互相淘汰）；同時重新估 `MAX_ENTRIES`／`MAX_BYTES`（大火焰 8 影格 ×2 倍烘焙約 5 MB／張）。
+2. **V2a 其餘 28 個奧義**（建議等使用者看過兩個樣板影片、確認方向再批次做，見 §5）：照 `ult_parts.ts` 兩個樣板的三段結構（起手紋章 → 命中主爆發＋衝擊環 → 餘韻），依 `ART_SPEC` §5 元素 × 陣營語彙選零件與色階，每個 ≤ 2 s（測試會擋）。逐個改寫並把舊條目從 `imperial.ts`／`covenant.ts` 移除；每個用 `node tools/vfx/record-skill.mjs --skill=<id> --out=tools/ui-e2e/out/vfx/after` 錄影（改前先錄到 `before/`）。機械性的部分可交 Sonnet 子代理，但每 5 個主代理看一次 `_tiles.png`。
 3. 動到遊戲渲染要跑 `perf:guard`（注意 §5：瀏覽器常落在內顯而判無效）。
 
 ## 5. 待使用者確認（早上看）
