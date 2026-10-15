@@ -154,6 +154,23 @@ export const BACKGROUND_COLORS = {
     TRANSPARENT: 'rgba(0, 0, 0, 0)'
 };
 
+/** 背景動態特效參數 */
+export const BACKGROUND_FX = {
+    AURORA: {
+        /** 極光改在此比例的離屏畫布繪製再放大貼回：全解析度的大面積 screen 填充是 ICE 地圖 p99 尖峰（GPU 端）的來源；極光本身柔和，低解析度看不出差異 */
+        RESOLUTION_SCALE: 0.25,
+        BANDS: 3,
+        /** 極光帶底緣佔畫面高度比例 */
+        BASE_HEIGHT_PCT: 0.4,
+        /** 輪廓取樣間距（px） */
+        SAMPLE_STEP: 50,
+        /** 兩組正弦波：振幅（px）、空間頻率、時間係數 */
+        WAVE_A: { amp: 50, freq: 0.005 },
+        WAVE_B: { amp: 20, freq: 0.02 },
+        TIME_SPEED: 0.2,
+    },
+} as const;
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {

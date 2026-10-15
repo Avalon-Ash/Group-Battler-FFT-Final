@@ -1,5 +1,5 @@
 import { SceneTheme } from "../../types";
-import { HEX_SIZE, BACKGROUND_COLORS } from "../../constants";
+import { HEX_SIZE, BACKGROUND_COLORS, BACKGROUND_FX } from "../../constants";
 import { AssetManager } from "../assets";
 import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";
@@ -11,6 +11,8 @@ export class BackgroundRenderer {
     private lastSceneId: string = "";
     private lastWidth: number = 0;
     private lastHeight: number = 0;
+    private auroraCanvas: HTMLCanvasElement | null = null;
+    private auroraCtx: CanvasRenderingContext2D | null = null;
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneTheme, mapConfig: MapConfig, globalTime: number): void {
         if (!this.staticCache || this.lastSceneId !== scene.id || this.lastWidth !== width || this.lastHeight !== height) {
@@ -221,28 +223,54 @@ export class BackgroundRenderer {
         ctx.restore();
     }
 
+    /** 極光：在低解析度離屏畫布畫好三條帶，再以一次 drawImage 放大、screen 混合貼回（見 BACKGROUND_FX.AURORA） */
     private drawAurora(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
-        ctx.globalCompositeOperation = 'screen';
-        const numBands = 3, baseH = h * 0.4;
-        for (let i = 0; i < numBands; i++) {
-            const speed = t * 0.2 + i;
-            ctx.beginPath(); ctx.moveTo(0, baseH);
-            for (let x = 0; x <= w; x += 50) {
-                const y = baseH + Math.sin(x * 0.005 + speed) * 50 + Math.sin(x * 0.02 - speed) * 20;
-                ctx.lineTo(x, y);
-            }
-            ctx.lineTo(w, 0); ctx.lineTo(0, 0);
-            if (Number.isFinite(w)) {
-                const grad = ctx.createLinearGradient(0, 0, w, 0);
-                grad.addColorStop(0, 'transparent');
-                grad.addColorStop(0.5, BACKGROUND_COLORS.AURORA_COLOR); 
-                grad.addColorStop(1, 'transparent');
-                ctx.fillStyle = grad;
-            } else {
-                ctx.fillStyle = BACKGROUND_COLORS.AURORA_COLOR;
-            }
-            ctx.fill();
+        const A = BACKGROUND_FX.AURORA;
+        const baseH = h * A.BASE_HEIGHT_PCT;
+        const regionH = baseH + A.WAVE_A.amp + A.WAVE_B.amp;
+        if (!Number.isFinite(w) || !Number.isFinite(regionH) || w <= 0 || regionH <= 0) return;
+
+        const s = A.RESOLUTION_SCALE;
+        const cw = Math.max(1, Math.ceil(w * s));
+        const ch = Math.max(1, Math.ceil(regionH * s));
+        if (!this.auroraCanvas || !this.auroraCtx) {
+            const { canvas, ctx: actx } = createCanvas(cw, ch);
+            this.auroraCanvas = canvas;
+            this.auroraCtx = actx;
+        } else if (this.auroraCanvas.width !== cw || this.auroraCanvas.height !== ch) {
+            this.auroraCanvas.width = cw;
+            this.auroraCanvas.height = ch;
         }
+
+        const actx = this.auroraCtx;
+        actx.setTransform(1, 0, 0, 1, 0, 0);
+        actx.globalCompositeOperation = 'source-over';
+        actx.clearRect(0, 0, cw, ch);
+        actx.setTransform(s, 0, 0, s, 0, 0);
+        actx.globalCompositeOperation = 'screen';
+        // 帶與帶之間的疊加沿用呼叫端當下的 alpha，貼回時不再乘一次
+        actx.globalAlpha = ctx.globalAlpha;
+        const grad = actx.createLinearGradient(0, 0, w, 0);
+        grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
+        grad.addColorStop(0.5, BACKGROUND_COLORS.AURORA_COLOR);
+        grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
+        actx.fillStyle = grad;
+        for (let i = 0; i < A.BANDS; i++) {
+            const speed = t * A.TIME_SPEED + i;
+            actx.beginPath(); actx.moveTo(0, baseH);
+            for (let x = 0; x <= w; x += A.SAMPLE_STEP) {
+                const y = baseH + Math.sin(x * A.WAVE_A.freq + speed) * A.WAVE_A.amp + Math.sin(x * A.WAVE_B.freq - speed) * A.WAVE_B.amp;
+                actx.lineTo(x, y);
+            }
+            actx.lineTo(w, 0); actx.lineTo(0, 0);
+            actx.fill();
+        }
+
+        const prevAlpha = ctx.globalAlpha;
+        ctx.globalCompositeOperation = 'screen';
+        ctx.globalAlpha = 1;
+        ctx.drawImage(this.auroraCanvas, 0, 0, w, regionH);
+        ctx.globalAlpha = prevAlpha;
     }
 
     private drawCanopyRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
