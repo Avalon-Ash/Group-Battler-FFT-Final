@@ -3,6 +3,7 @@ import { Particle } from "../state";
 import { BillboardPainter } from "./painters/BillboardPainter";
 import { GroundPainter } from "./painters/GroundPainter";
 import { ProceduralPainter } from "./painters/ProceduralPainter";
+import { PartPainter, PART_PARTICLE_TYPES } from "./painters/PartPainter";
 import { HexLayout } from "../../../../types";
 
 // Static categorization for faster dispatch
@@ -24,6 +25,12 @@ export const ParticleRenderer = {
         layout: HexLayout,
         battleTime: number // SSOT: Received from RenderLoop
     ) {
+        // 0. V1 特效零件（預烘焙 sprite）
+        if (PART_PARTICLE_TYPES.has(p.type)) {
+            PartPainter.draw(ctx, p, drawX, drawY, progress);
+            return;
+        }
+
         // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)
         // Uses BattleTime for synchronous rotation/pulsing
         if (PROCEDURAL_SET.has(p.type)) {

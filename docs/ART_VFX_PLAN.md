@@ -34,15 +34,17 @@
 | P0a | 像素原型（即時）：在引擎內加一個可切換的實驗選項（例如 `?pixel=2`／`?pixel=3`，預設關閉、行為與現在完全相同），把世界層畫到低解析度離屏畫布再最近鄰放大，特效層維持全解析度。5 個地形 × 1/2、1/3 各截一張，附一張戰鬥中的截圖；量 `terrain-cost.mjs` 看成本變化 | 完成（03:50） | `?pixel=2|3`：`engine/renderers/PixelLayer.ts`、`RenderPipeline` 兩層拆分、`PIXEL_WORLD`；工具 `tools/ui-e2e/pixel-proto.mjs`；截圖 `tools/ui-e2e/out/pixel/` |
 | P0b | 3D 轉像素測試：用 Blender 管線把 1 個 KayKit 角色（任一陣營戰士）以 P0a 選定的像素密度渲染 4 方向待機＋攻擊幾格，限色盤＋1px 外框，輸出精靈表與放大檢視圖；只做測試素材，不接進遊戲 | 完成（05:10）：`tools/assets/pixelize_sprite.py`（共用取景、premultiplied 面積縮小、二值 alpha、全影格共用 14 色調色盤、1px 加深外框）；Blender 變體 `C:\Git\_asset_staging\tools\blender_scripts\render_unit_pixel.py`（無 freestyle 外框、只渲 idle＋attack 各 4 格）；原始影格 `C:\Git\_asset_staging\sprites_pixel_raw\BLUE_WARRIOR\` | `tools/ui-e2e/out/pixel_sprites/BLUE_WARRIOR_h{20,30,40}_{sheet,zoom,palette}.png`、`cmp_heights_idle.png` |
 | V1 | 特效零件庫：程序化、預烘焙、可參數化的零件（光暈、衝擊環、斬擊弧、火焰舌、煙團、符文圈、光柱、火花拖尾、獅紋日輪、角骷髏符印），含品質分級與單元測試；做一個預覽頁輸出零件總表截圖。**另做錄影工具 `tools/vfx/record-skill.mjs`**：沿用保真工具的確定性 harness（`addInitScript` 注入 `__resetSeed`／`__stepFrames`），指定技能 → 固定亂數 → 逐幀推進截圖 → 本機 ffmpeg 編成短 MP4（另出一張 GIF 方便手機看）；之後 V2 每個技能都用它產出前後對照影片 | 完成（04:40）：錄影工具＋零件庫 12 種（`engine/renderers/vfxparts/`、參數 `data/vfx/parts/partConfig.ts`、色階 `data/vfx/parts/vfxPalette.ts`）、18 個單元測試、預覽頁 `tools/vfx/parts-preview.html`、總表＋裁切檢查 `node tools/vfx/parts-sheet.mjs [--tier=N]` | `tools/ui-e2e/out/vfx/parts_sheet_t0.png`／`_t0_gray`／`_t3`／`_t3_gray` | |
-| V2a | 奧義技能逐一重做（`data/vfx/ult_visuals.ts`、`SkillSequences.ts`），每個技能存 4 格時間序截圖，並用 `record-skill.mjs` 錄改前／改後影片 | 待做 | |
+| V2a | 奧義技能逐一重做（`data/vfx/ult_visuals.ts`、`SkillSequences.ts`），每個技能存 4 格時間序截圖，並用 `record-skill.mjs` 錄改前／改後影片 | 進行中：零件已接進粒子系統（`PART`／`PART_GROUND`／`PART_DEBRIS`、`EmitterConfig.part`／`partAnim`／`groundAnchored`、`PartPainter`）；樣板 2/30 完成：wb_u3 誓約勝利、wr_u1 諸神黃昏（`data/vfx/registry/ult_parts.ts`） | 改前 `tools/ui-e2e/out/vfx/before/`、改後 `tools/ui-e2e/out/vfx/after/`（`<id>_<TEAM>.mp4`／`.gif`／`_sheet.png`／`_sheet_gray.png`／`_tiles.png` 前 2 秒 15 格） |
 | V2b | 主動技能重做（`active_visuals.ts`） | 待做 | |
 | V2c | 普攻、投射物、命中特效（`basic_visuals.ts`、`projectiles/*`） | 待做 | |
 | V3 | 移除科幻殘留：掃描線、Glitch 喊招、六角稜柱護盾改為陣營護盾；`*_TECH_*` 鍵名改名；用 `perf:attribution` 或 VFX 風暴場景確認 p99 不比現在差 | 待做 | |
 | M1 | 地形改像素化程序烘焙（取代 AI 貼圖，依 P0 結果與 `ART_SPEC` §12） | 待做 | |
 
 ## 4. 下一步
-V2a（奧義重做）。開工前先讀 `data/vfx/ult_visuals.ts`、`data/vfx/SkillSequences.ts` 與 `engine/systems/vfx`（繪製入口、粒子型別、`VFXRenderer.submitRenderables`），決定零件接入點（建議：新增一種粒子 type，直接以 `drawPart` 畫 V1 的 `PartSprite`；呼叫端在生成粒子時 `vfxPartStore.get()` 一次並持有 sprite，不要每幀每粒子 get；動畫用 `partFrameAt(sprite, t)`）。先挑 1 個獅心奧義＋1 個灰燼奧義做樣板（起手法陣→命中主爆發＋衝擊環→餘韻），用 `node tools/vfx/record-skill.mjs --skill=<id>` 錄改前／改後，確認後再批次套到其餘奧義（機械性部分可交 Sonnet 子代理）。
-動到遊戲渲染路徑，要跑 `perf:guard`（注意 §5：瀏覽器若落在內顯會判無效）。
+1. **先修 VFX 地面高度查詢（影響所有地面特效，含舊的）**：`engine/renderer.ts` 傳給 `VFXSystem.update` 的 `(x, y) => grid.getHexAtWorldPoint(x, y)` 是「螢幕點選」（`GridSpatial.getHexAtWorldPoint` 會沿高度往下找視覺上蓋住該點的格子），但 `VFXPhysics` 傳入的是地面足跡（`p.y * ISO_SCALE_Y`，高度 0 的投影）。目標站在高台上時會取到前方較低的格子，地面法陣、衝擊環、`groundAnchored` 的火柱都落在目標前下方（改前的舊六角衝擊環也一樣，見 `before/wb_u3_BLUE_tiles.png`）。修法：新增「依足跡取格」的查詢（`HexUtils.fromPx(x, y)` 直接查 tile 高度），只給 VFX 物理用；改 facade 要說明理由。修完重錄 wb_u3／wr_u1 對照。
+2. **零件預烘焙**：`vfxPartStore.get` 在快取未命中時同步烘焙，第一次放某個奧義會在 tick 內烘 ~9 張 sprite（可能一次卡頓）。開戰時（或資產載入後）依 `ULT_PART_VFX` 預先 `get` 一遍。
+3. **V2a 其餘 28 個奧義**：照 `ult_parts.ts` 兩個樣板的三段結構（起手紋章 → 命中主爆發＋衝擊環 → 餘韻），依 `ART_SPEC` §5 元素 × 陣營語彙選零件與色階，每個 ≤ 2 s（測試會擋）。逐個改寫並把舊條目從 `imperial.ts`／`covenant.ts` 移除；每個用 `node tools/vfx/record-skill.mjs --skill=<id> --out=tools/ui-e2e/out/vfx/after` 錄影（改前先錄到 `before/`）。機械性的部分可交 Sonnet 子代理，但每 5 個主代理看一次 `_tiles.png`。
+4. 動到遊戲渲染要跑 `perf:guard`（注意 §5：瀏覽器常落在內顯而判無效）。
 
 ## 5. 待使用者確認（早上看）
 （自動工作階段在這裡累積需要使用者決定或審美確認的項目，附截圖路徑。）
@@ -53,6 +55,8 @@ V2a（奧義重做）。開工前先讀 `data/vfx/ult_visuals.ts`、`data/vfx/Sk
 - **特效零件總表**（V1）：`tools/ui-e2e/out/vfx/parts_sheet_t0.png`（灰階 `_gray`）。主代理選的預設：獅心＝乾淨圓環、日輪 12 道長短交錯、騎士盾＋十字＋三尖冠；灰燼＝鋸齒斷裂環、角骷髏、倒三角符文。血、瘴氣、深淵三種色階用一般混合（不發光）。已知：深淵（ASH_VOID）在灰階下偏暗，靠形狀辨識；火焰是平塗三層，偏卡通，若想更寫實可改成柔邊。
 - **像素密度建議改為 1/2**（推翻 P0a 時暫選的 1/3）：P0b 實測單位精靈高度 = `UNIT_SPRITE.targetHeightCanvasUnits`(59) ÷ k。1/3 → 約 20 px，KayKit 角色縮到 20 px 已糊成一團（臉、斧頭、披風分不出來）；1/2 → 約 30 px 清楚可讀，接近 FFT 的角色像素量。對照：`tools/ui-e2e/out/pixel_sprites/cmp_heights_idle.png`（左到右 h=20、30、40，各兩格 idle），完整精靈表 `BLUE_WARRIOR_h30_zoom.png`。若堅持 1/3，就要把單位放大到約 90 canvas 單位或改用手繪像素角色。
 - **P0b 像素化的審美預設**：14 色、飽和度 ×1.25、對比 ×1.15、外框＝最暗色 ×0.45（原本「用最暗色」實測太淺，與陰影同色會消失；這偏離 `ART_SPEC` §12-5 字面，接近黑但仍帶色相）。已知：野蠻人模型的毛帽在像素化後佔畫面太多、偏灰褐；正式做時可考慮換戰士模型或調整帽子顏色。
+- **V2a 兩個樣板奧義**（請看影片判斷方向對不對，再批次套用到其餘 28 個）：`tools/ui-e2e/out/vfx/after/wb_u3_BLUE.mp4`（誓約勝利：日輪法陣 → 金色劍弧＋光柱＋日輪放射＋衝擊環 → 金色光點上飄）、`after/wr_u1_RED.mp4`（諸神黃昏：角骷髏烙印 → 火柱＋周圍火舌＋鋸齒斷裂環＋碎石 → 灰煙翻騰＋火星）。改前在 `before/` 同名檔。快速看：`after/*_tiles.png`（前 2 秒每 4 幀一格）。已知：地面法陣位置偏前下方是既有的地面高度查詢 bug（§4 第 1 項），不是配方問題；火舌是平塗三層，偏卡通。
+- **錄影工具修正**：`record-skill.mjs` 之前錄的奧義與主動技影片（tb_u1、tr_u2、mb_u1）**都沒有技能序列**（CAST_START 在 tick 外送出，被下一個 tick 清掉），只有詠唱光環。已修，舊影片作廢。
 - **像素原型的取捨**（`ART_SPEC` §12-7）：地面 VFX 與光環留在像素層以保住遮擋順序；空中特效畫在世界之上、不再被前方物件遮住。鏡頭縮放尚未鎖整數倍級距。
 
 ## 6. 工作紀錄
@@ -66,3 +70,4 @@ V2a（奧義重做）。開工前先讀 `data/vfx/ult_visuals.ts`、`data/vfx/Sk
 - 2026-10-16 03:50 P0a 完成：像素世界原型 `?pixel=2|3`（預設路徑不變）。reviewer 審查找出兩點已修：光環／地面 VFX 原本被移到特效層會蓋過障礙物（改留像素層）；overlay／HUD 沒用對齊後的變換（改共用）。成本（1920×1080，`RenderPipeline.draw` 自身耗時中位數）：地形 0.6～1.2 ms，k=1/2/3 無明顯差異；戰鬥 2.7／3.3／2.6 ms。p99 受換地圖後烘焙干擾，不具比較性。
 - 2026-10-16 04:40 V1 完成：特效零件庫 12 種零件＋LRU（條目＋64 MB 位元組預算）＋品質降階減影格（循環週期不變）。reviewer 審查找出並已修：bolt／sigil 光暈被外框裁切、血／深淵色階誤用加法混合、無作用的 seed 浪費快取、未使用的 FPS、零散魔術數字。新增 320 組參數的裁切檢查（0 裁切）。零件尚未接進遊戲，未跑 `perf:guard`（遊戲渲染路徑無變更）。
 - 2026-10-16 05:10 P0b 完成：BLUE_WARRIOR 3D 轉像素測試（h=20／30／40，4 方向 × idle＋attack 各 4 格）。結論：1/3 密度下角色太小，建議改 1/2（見 §5）。只做測試素材，未接進遊戲。reviewer 審查後已修：對比基準改為全影格共用（原本逐格飄動）、放大圖改中灰底（看得見外框）、找不到影格時明確報錯、影格依數字排序。
+- 2026-10-16 06:10 V2a 進行中：零件接進粒子系統，兩個樣板奧義完成並錄影對照。修正 `record-skill.mjs` 的 CAST_START 遺失（之前的技能影片都缺序列）。reviewer 審查無確認缺陷；採納其建議，光柱與火柱加 `groundAnchored` 貼地；預烘焙與高負載時主形狀被預算丟棄（既有行為）列入後續。發現既有 bug：VFX 地面高度用螢幕點選查詢，高台目標的地面特效會偏到前方低格（§4 第 1 項）。保真 6/6 PASS；`perf:guard` 效能段又落在內顯。

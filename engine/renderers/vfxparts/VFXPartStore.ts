@@ -34,6 +34,8 @@ export type PartSurfaceFactory = (width: number, height: number) => { canvas: HT
 export interface DrawPartOptions {
     frame?: number;
     scale?: number;
+    /** 垂直額外縮放（貼地零件用 ISO_SCALE_Y 壓扁；在旋轉之後套用，等同先在地面旋轉再投影） */
+    scaleY?: number;
     /** 弧度 */
     rotation?: number;
     alpha?: number;
@@ -130,10 +132,12 @@ export function drawPart(ctx: CanvasRenderingContext2D, sprite: PartSprite, x: n
     ctx.globalCompositeOperation = opts.blend ?? sprite.blend;
     const w = sprite.width * scale;
     const h = sprite.height * scale;
-    if (opts.rotation) {
+    const sy = opts.scaleY ?? 1;
+    if (opts.rotation || sy !== 1) {
         ctx.save();
         ctx.translate(x, y);
-        ctx.rotate(opts.rotation);
+        if (sy !== 1) ctx.scale(1, sy);
+        if (opts.rotation) ctx.rotate(opts.rotation);
         ctx.drawImage(img, -sprite.anchorX * scale, -sprite.anchorY * scale, w, h);
         ctx.restore();
     } else {

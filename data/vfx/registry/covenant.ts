@@ -109,14 +109,6 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     },
 
     // WARRIOR
-    'FX_ULT_RED_RAGNAROK_ERUPTION': {
-        id: 'FX_ULT_RED_RAGNAROK_ERUPTION',
-        emitters: [
-            { particleType: 'BLAST', count: 2, lifetime: [1.0, 1.5], size: [160, 200], colors: ['#ea580c'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SMOKE_PUFF', count: [25, 40], lifetime: [1.2, 2.0], size: [80, 120], speed: [200, 300], colors: ['#1c1917', '#450a0a'], shape: 'BURST_DIR', delay: 0.1 },
-            { particleType: 'SPARK', count: [40, 60], lifetime: [1.5, 2.5], size: [5, 12], speed: [600, 1200], gravity: 1500, colors: ['#f97316', '#fff'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
-        ]
-    },
     'FX_ULT_RED_BLOODSTORM': {
         id: 'FX_ULT_RED_BLOODSTORM',
         emitters: [

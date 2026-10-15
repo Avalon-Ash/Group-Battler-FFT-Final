@@ -12,6 +12,7 @@ import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET } from "../../../constants";
 import { getQualityTier } from "../../renderers/RenderQuality";
+import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 
 const rnd = (r: Range | number | undefined): number => {
     if (r === undefined) return 0;
@@ -24,11 +25,13 @@ const pickColor = (colors: string[]): string => {
 };
 
 const FIXED_ORIENTATION_PARTICLES = new Set([
-    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE'
+    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE',
+    'PART', 'PART_GROUND', 'PART_DEBRIS'
 ]);
 const PROCEDURAL_TYPES = new Set([
     'PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE', 
-    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE', 'GIANT_HEX'
+    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE', 'GIANT_HEX',
+    'PART', 'PART_GROUND', 'PART_DEBRIS'
 ]);
 export class VFXPlayer {
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
@@ -85,11 +88,13 @@ export class VFXPlayer {
             }
         }
         const isGroundType = VFX_GROUND_TYPES.has(config.particleType);
-        const effectiveZ = (isGroundType && groundZ !== undefined) ? groundZ : cz;
+        const effectiveZ = ((isGroundType || config.groundAnchored) && groundZ !== undefined) ? groundZ : cz;
 
         // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation
         const rawCY = cy / ISO_SCALE_Y;
-        const rawGroundZ = groundZ !== undefined ? groundZ / ISO_SCALE_Y : undefined; 
+        const rawGroundZ = groundZ !== undefined ? groundZ / ISO_SCALE_Y : undefined;
+        // 零件 sprite 每個 emitter 只取一次（量化＋快取查詢不放在每粒子）
+        const partSprite = config.part ? vfxPartStore.get(config.part) : undefined;
 
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();
@@ -149,6 +154,12 @@ export class VFXPlayer {
                 p.vRotation = FIXED_ORIENTATION_PARTICLES.has(config.particleType) ? 0 : (Math.random() - 0.5) * 10;
             }
             if (config.blendMode) p.blendMode = config.blendMode;
+            if (partSprite) {
+                p.part = partSprite;
+                p.partAnim = config.partAnim;
+                p.rotation = config.partAnim?.rotation ?? 0;
+            }
+            if (config.groundAnchored) p.groundAnchored = true;
             if (!p.image && !PROCEDURAL_TYPES.has(p.type)) {
                 p.image = VFXFactory.getTexture(p.type, p.color);
             }

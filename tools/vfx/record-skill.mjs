@@ -247,6 +247,9 @@ try {
         caster.targetHex = { q: target.q, r: target.r };
         caster.facing = target.px > caster.px ? 1 : -1;
         const ok = e.initiateCast(caster, 0);
+        // initiateCast runs outside a tick, and tick() clears engine.events first, so CAST_START (which
+        // starts the skill's visual sequence) would be dropped. Flush it now, as the end of a tick would.
+        e.renderer.processVisualEvents(e.events.splice(0));
         const midX = (caster.px + target.px) / 2;
         // Units are drawn at (py - terrainHeight); aim at roughly body height above the tile.
         const midTerrain = (e.getTerrainHeight(caster.q, caster.r) + e.getTerrainHeight(target.q, target.r)) / 2;

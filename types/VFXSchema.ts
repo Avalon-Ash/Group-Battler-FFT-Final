@@ -1,5 +1,8 @@
+import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 
-export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE' | 'HEX_GRID' | 'CHAOS_RIFT' | 'GLITCH' | 'HEX_SHARD' | 'RIPPLE';
+export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE' | 'HEX_GRID' | 'CHAOS_RIFT' | 'GLITCH' | 'HEX_SHARD' | 'RIPPLE'
+    // V1 特效零件（PartSprite）：看板／貼地／受重力碎片
+    | 'PART' | 'PART_GROUND' | 'PART_DEBRIS';
 
 // Define the "Verbs" of our visual language
 export type VFXActionType = 
@@ -30,6 +33,23 @@ export interface VFXSequence {
     actions: VFXAction[];
 }
 
+/**
+ * 零件粒子的生命週期包絡（progress 0→1）。外形與色階由 part 規格在烘焙時決定。
+ */
+export interface PartAnim {
+    scaleFrom?: number;
+    scaleTo?: number;
+    /** 縮放曲線：out＝快起慢收（預設），in＝慢起快收 */
+    ease?: 'out' | 'in' | 'linear';
+    /** 淡入佔生命的比例 */
+    fadeIn?: number;
+    /** 淡出佔生命的比例（結尾） */
+    fadeOut?: number;
+    alpha?: number;
+    /** 初始旋轉（弧度）；持續旋轉用 EmitterConfig.vRotation */
+    rotation?: number;
+}
+
 // Add Range type
 export type Range = [number, number];
 
@@ -54,6 +74,11 @@ export interface EmitterConfig {
     // Added vz property to support explicit vertical velocity in registry definitions
     vz?: Range | number;
     blendMode?: GlobalCompositeOperation;
+    /** particleType 為 PART／PART_GROUND／PART_DEBRIS 時的零件規格 */
+    part?: PartSpec;
+    partAnim?: PartAnim;
+    /** 看板粒子貼著地面高度（光柱、火柱這類底部錨點的零件），不在命中點的身體高度 */
+    groundAnchored?: boolean;
 }
 
 // Add VFXAsset type

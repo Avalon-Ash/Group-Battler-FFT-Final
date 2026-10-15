@@ -122,14 +122,6 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'SPARK', count: [15, 25], lifetime: [0.4, 0.7], size: [4, 8], speed: [300, 600], colors: ['#fcd34d', '#fff'], shape: 'BURST_DIR', delay: 0 }
         ]
     },
-    'FX_ULT_BLUE_EXCALIBUR': {
-        id: 'FX_ULT_BLUE_EXCALIBUR',
-        emitters: [
-            { particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.5, 0.8], size: [40, 60], height: [800, 800], speed: [0,0], colors: ['#facc15'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SLASH', count: 1, lifetime: [0.2, 0.4], size: [150, 200], colors: ['#fef08a'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0.1, vRotation: 45 },
-            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.3, 0.5], size: [100, 200], colors: ['#eab308'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0.1 }
-        ]
-    },
     'FX_ULT_BLUE_BLADESTORM': {
         id: 'FX_ULT_BLUE_BLADESTORM',
         emitters: [

@@ -570,7 +570,7 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
 export const VFX_GROUND_TYPES = new Set([
     'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD',
     'MAGIC_CIRCLE', 'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE',
-    'GIANT_HEX', 'HEX_BEAM'
+    'GIANT_HEX', 'HEX_BEAM', 'PART_GROUND'
 ]);
 
 // ══════════════════════════════════════════════════════════════
