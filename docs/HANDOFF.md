@@ -41,7 +41,13 @@
 ### C. 文件整理
 - 報告 `docs/CLEANUP_REPORT.md`。過期註解與文件已校正、已完成的提示詞歸檔、刪除零引用死碼（`RagdollPhysics`、`SpriteManager.getUnitLayersFull`）。C2～C4 的 build 雜湊與 `main` 相同（證明沒改行為）。`docs/ASSET_NEEDS.md` 仍有未完成需求，保留。
 
-### D. 待使用者決定
+### D. 地形 R1：光照與高度接合（2026-10-16 合併）
+- R0 證據：高度感是 A1 換貼圖時丟失（側面明暗只疊 35%），與烘焙快取無關。
+- 修法：`bakeBlock` 先以光照漸層全強度填底，再以 `TERRAIN_SKIN.topDetail`／`sideDetail`（overlay 0.5）疊貼圖；`GridCache` 在 `mapVersion` 變動時算 6-bit 鄰格高度遮罩（key bit 25-30），烘焙崖邊亮邊、接觸陰影、平接邊淡化（`TERRAIN_SKIN.edge`）。每幀成本不變。
+- 量測工具 `tools/ui-e2e/terrain-contrast.mjs`（`--grid` 產生新舊對照）；報告 `docs/TERRAIN_R1_REPORT.md`（含調整手冊）；保真基準已重錄。
+- 已知：島嶼左下底部被切成平線（R1 前就有）；VOID／FOREST 頂面偏暗；換地圖時快取不清其他地形。
+
+### E. 待使用者決定
 - **Dockerfile／`server.js`／`.dockerignore`／`package.json` 的 `start`／README 的對應段落**（早期 Cloud Run 部署設定）：之後在 AI Studio 重新拉 git 發布時可能還用得到，暫時**保留**。
 - `art-source/` 與 `public/assets/units/` 的圖集重複（約 5 MB）：是否移出版本控制。
 
@@ -83,8 +89,9 @@
   3. 每個地圖主題一首 BGM；紅方勝利曲換成真正的暗黑曲。
   4. FEMALE 與其他體型、專用神職模型、加強陣營辨識度（見 `docs/ASSET_NEEDS.md`）。
   5. 手機版 UI 全面巡檢。
-  6. 縮圈墜落的單位是否需要專屬「墜落」動畫（目前是垂直掉入虛空後立即回收）。
-  7. **架構：狀態所有權**。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
+  6. **地形 R2（下一輪）**：正式化地表氛圍效果。R0 量測（只有地形）：地表細節 `drawTerrainDetail` 佔每幀 0.4～1.3 ms（FOREST／DESERT 約佔地形成本一半）、熔岩液面 0.2～0.5 ms、天氣粒子 `VFXAmbience` 量不到差異；ICE 的 p99 19 ms 與這三者無關，待查。方向：靜態細節烘進地形 sprite，動態效果改預渲染循環影格，參數集中到 `data/vfx/`。
+  7. 縮圈墜落的單位是否需要專屬「墜落」動畫（目前是垂直掉入虛空後立即回收）。
+  8. **架構：狀態所有權**。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
 
 ## 8. 使用者要做的事（提醒他）
 - 實機看擊飛手感、熔岩圖流暢度、護盾貼合（含飛行單位）、大逃殺縮圈是否乾淨。
