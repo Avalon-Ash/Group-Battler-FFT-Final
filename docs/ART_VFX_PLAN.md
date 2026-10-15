@@ -33,7 +33,7 @@
 | M0 | 美術與特效規格 `docs/ART_SPEC.md`：素材分工表（KayKit／程式碼）、各地形與陣營色盤、光源、陣營 × 元素的特效語彙（形狀、色票、節奏、層次）、效能規則（零件預烘焙、無 `shadowBlur`、品質分級） | 完成 | `docs/ART_SPEC.md` |
 | P0a | 像素原型（即時）：在引擎內加一個可切換的實驗選項（例如 `?pixel=2`／`?pixel=3`，預設關閉、行為與現在完全相同），把世界層畫到低解析度離屏畫布再最近鄰放大，特效層維持全解析度。5 個地形 × 1/2、1/3 各截一張，附一張戰鬥中的截圖；量 `terrain-cost.mjs` 看成本變化 | 待做 | |
 | P0b | 3D 轉像素測試：用 Blender 管線把 1 個 KayKit 角色（任一陣營戰士）以 P0a 選定的像素密度渲染 4 方向待機＋攻擊幾格，限色盤＋1px 外框，輸出精靈表與放大檢視圖；只做測試素材，不接進遊戲 | 待做 | |
-| V1 | 特效零件庫：程序化、預烘焙、可參數化的零件（光暈、衝擊環、斬擊弧、火焰舌、煙團、符文圈、光柱、火花拖尾、獅紋日輪、角骷髏符印），含品質分級與單元測試；做一個預覽頁輸出零件總表截圖。**另做錄影工具 `tools/vfx/record-skill.mjs`**：沿用保真工具的確定性 harness（`addInitScript` 注入 `__resetSeed`／`__stepFrames`），指定技能 → 固定亂數 → 逐幀推進截圖 → 本機 ffmpeg 編成短 MP4（另出一張 GIF 方便手機看）；之後 V2 每個技能都用它產出前後對照影片 | 待做 | |
+| V1 | 特效零件庫：程序化、預烘焙、可參數化的零件（光暈、衝擊環、斬擊弧、火焰舌、煙團、符文圈、光柱、火花拖尾、獅紋日輪、角骷髏符印），含品質分級與單元測試；做一個預覽頁輸出零件總表截圖。**另做錄影工具 `tools/vfx/record-skill.mjs`**：沿用保真工具的確定性 harness（`addInitScript` 注入 `__resetSeed`／`__stepFrames`），指定技能 → 固定亂數 → 逐幀推進截圖 → 本機 ffmpeg 編成短 MP4（另出一張 GIF 方便手機看）；之後 V2 每個技能都用它產出前後對照影片 | 錄影工具已完成（`tools/vfx/record-skill.mjs`；`node tools/vfx/record-skill.mjs --skill=<id或名稱> [--team=BLUE|RED] [--frames=90] [--fps=30] [--seed=1337] [--out=...]`，`--list` 列出技能；輸出 MP4、GIF、4 格時間序、灰階版到 `tools/ui-e2e/out/vfx/`；同參數兩次輸出逐位元相同）。零件庫與預覽總表待做 | |
 | V2a | 奧義技能逐一重做（`data/vfx/ult_visuals.ts`、`SkillSequences.ts`），每個技能存 4 格時間序截圖，並用 `record-skill.mjs` 錄改前／改後影片 | 待做 | |
 | V2b | 主動技能重做（`active_visuals.ts`） | 待做 | |
 | V2c | 普攻、投射物、命中特效（`basic_visuals.ts`、`projectiles/*`） | 待做 | |
@@ -56,3 +56,4 @@ P0a → V1（特效零件庫，含錄影工具若尚未完成）→ P0b → V2a�
 - 2026-10-16 02:10 加入三條規則（連續兩次相同錯誤就停、reviewer 子代理審查、子代理回報格式）。
 - 2026-10-16 02:20 V1 加入確定性技能錄影工具（MP4＋GIF），供使用者遠端審查特效動態。
 - 2026-10-16 02:45 使用者改定方向：像素世界＋現代特效。更新 `ART_SPEC` §1、§2、§12，新增 P0a／P0b，M1 改為像素地形。
+- 2026-10-16 01:43 完成確定性技能錄影工具 `tools/vfx/record-skill.mjs`（已驗證 tb_u1、tr_u2、mb_u1、tb_b1）；另做 WebGL 後製原型 `tools/webgl-post-proto.html`／`.md`（RTX 4070 實測 2560x1440 上傳＋後製合計約 0.5～0.8 ms）。
