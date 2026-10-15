@@ -154,6 +154,23 @@ export const BACKGROUND_COLORS = {
     TRANSPARENT: 'rgba(0, 0, 0, 0)'
 };
 
+/** 背景動態特效參數 */
+export const BACKGROUND_FX = {
+    AURORA: {
+        /** 極光改在此比例的離屏畫布繪製再放大貼回：全解析度的大面積 screen 填充是 ICE 地圖 p99 尖峰（GPU 端）的來源；極光本身柔和，低解析度看不出差異 */
+        RESOLUTION_SCALE: 0.25,
+        BANDS: 3,
+        /** 極光帶底緣佔畫面高度比例 */
+        BASE_HEIGHT_PCT: 0.4,
+        /** 輪廓取樣間距（px） */
+        SAMPLE_STEP: 50,
+        /** 兩組正弦波：振幅（px）、空間頻率、時間係數 */
+        WAVE_A: { amp: 50, freq: 0.005 },
+        WAVE_B: { amp: 20, freq: 0.02 },
+        TIME_SPEED: 0.2,
+    },
+} as const;
+
 export const KILL_STREAK_WINDOW = 5.0;
 
 export const PHYSICS = {
@@ -646,11 +663,11 @@ export const RENDER_CACHE = {
     FLOAT_STEP: 0.5,
     HEIGHT_KEY_SCALE: 2,
     SPRITE_PADDING: 4,
-    LIQUID_TIME_STEP: 0.05,
-    LIQUID_CACHE_SLOTS: 8,
     /** 地形 sprite 烘焙預算：每個時間窗內累計烘焙超過此毫秒數，其餘未命中改借用相鄰縮放級距的 sprite */
     BAKE_BUDGET_MS: 4,
     BAKE_WINDOW_MS: 16,
+    /** 液面循環影格（TerrainLoopAtlas）同時快取的組數上限（顏色 x layout x 量化強度）；每組約 2 MB，LRU 淘汰 */
+    LOOP_LIQUID_SLOTS: 16,
 } as const;
 
 /**

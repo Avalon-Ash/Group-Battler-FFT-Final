@@ -7,6 +7,7 @@ import { HexGeometry } from "./utils/HexGeometry";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
 import { applyNoiseMask } from "./materials/NoiseLib";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
+import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
 
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
@@ -156,34 +157,36 @@ export class VFXTextureCache {
         const key = `GRASS_${color}_${variant}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
-        const { canvas, ctx } = createCanvas(64, 64);
-        ctx.translate(32, 48); // 底部中心對齊
+        const sp = GRASS_DETAIL.sprite;
+        const { canvas, ctx } = createCanvas(sp.size, sp.size);
+        ctx.translate(sp.anchorX, sp.anchorY); // 底部中心對齊
         
-        const scale = 0.8 + (variant % 5) * 0.1;
-        const h = 22 * scale;
-        const w = 6 * scale;
+        const scale = sp.scaleBase + (variant % sp.scaleCycle) * sp.scaleStep;
+        const h = sp.bladeHeight * scale;
+        const w = sp.bladeWidth * scale;
         
         // 1. 預渲染陰影 (不使用 shadowBlur，改用漸層圓)
-        const shadowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, w * 2);
-        shadowGrad.addColorStop(0, 'rgba(0,0,0,0.35)');
+        const shadowR = w * sp.shadowRadiusMul;
+        const shadowGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, shadowR);
+        shadowGrad.addColorStop(0, sp.shadowColor);
         shadowGrad.addColorStop(1, 'transparent');
         ctx.fillStyle = shadowGrad;
         ctx.save();
         ctx.scale(1, ISO_SCALE_Y);
-        ctx.beginPath(); ctx.arc(0, 0, w * 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(0, 0, shadowR, 0, Math.PI * 2); ctx.fill();
         ctx.restore();
 
         // 2. 預渲染葉片主體
         const grassGrad = ctx.createLinearGradient(0, 0, 0, -h);
-        grassGrad.addColorStop(0, 'rgba(0,0,0,0.4)'); // 根部深色
-        grassGrad.addColorStop(0.5, color);           // 中段主色
-        grassGrad.addColorStop(1, '#ffffff');         // 葉尖高亮
+        grassGrad.addColorStop(0, sp.rootColor);      // 根部深色
+        grassGrad.addColorStop(sp.midStop, color);    // 中段主色
+        grassGrad.addColorStop(1, sp.tipColor);       // 葉尖高亮
 
         ctx.fillStyle = grassGrad;
         ctx.beginPath();
         ctx.moveTo(-w, 0);
-        ctx.quadraticCurveTo(-w * 0.5, -h * 0.5, 0, -h);
-        ctx.quadraticCurveTo(w * 0.5, -h * 0.5, w, 0);
+        ctx.quadraticCurveTo(-w * sp.curveCtrl, -h * sp.curveCtrl, 0, -h);
+        ctx.quadraticCurveTo(w * sp.curveCtrl, -h * sp.curveCtrl, w, 0);
         ctx.closePath();
         ctx.fill();
 
@@ -223,11 +226,14 @@ export class VFXTextureCache {
             ctx.closePath();
             ctx.fill();
         } else if (type === 'VOID') {
+            const runes = VOID_RUNES;
+            ctx.globalAlpha = runes.alpha;
+            ctx.lineWidth = runes.lineWidth;
             ctx.beginPath();
-            for(let i=0; i<4; i++) {
-                const angle = i * Math.PI / 2;
+            for(let i=0; i<runes.arms; i++) {
+                const angle = i * Math.PI * 2 / runes.arms;
                 ctx.moveTo(0,0);
-                ctx.lineTo(Math.cos(angle)*8, Math.sin(angle)*8);
+                ctx.lineTo(Math.cos(angle)*runes.armLength, Math.sin(angle)*runes.armLength);
             }
             ctx.strokeStyle = color;
             ctx.stroke();

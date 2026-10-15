@@ -6,6 +6,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { MaterialPainter } from "../../graphics/materials/MaterialPainter";
 import { variantFor } from "../../graphics/materials/NoiseLib";
 import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
+import { getTerrainAmbience } from "../../../data/vfx/terrainAmbience";
 import {
     createTerrainSpriteStore,
     quantizeRenderScale,
@@ -27,6 +28,20 @@ function getCoordForVariant(targetVariant: number, variants: number): [number, n
         }
     }
     return [0, 0];
+}
+
+/**
+ * 靜態表面細節（DESERT 沙紋、VOID 紋路）：烘進地形 sprite，原點為頂面中心。
+ * 變化只依 variant（不依螢幕座標）；哪些 variant 帶紋路由設定表決定。
+ */
+function paintStaticDetail(sCtx: CanvasRenderingContext2D, size: number, theme: TerrainTheme, type: string, variant: number) {
+    const detail = getTerrainAmbience(type)?.detail;
+    if (!detail || !detail.baked) return;
+    if (detail.kind === 'SAND_RIPPLES') {
+        SurfacePainter.drawSandRipples(sCtx, 0, 0, size, theme.sideDark || detail.fallbackColor, variant);
+    } else if (detail.variantMask[variant % detail.variantMask.length]) {
+        SurfacePainter.drawDetailTexture(sCtx, 0, 0, type, theme.detail, variant);
+    }
 }
 
 export const TerrainRenderer = {
@@ -81,10 +96,11 @@ export const TerrainRenderer = {
             ctx.drawImage(sprite.canvas, -sprite.anchorX, -sprite.anchorY, sprite.width, sprite.height);
         }
 
-        if (type === 'MAGMA') {
+        const liquid = getTerrainAmbience(type)?.liquid;
+        if (liquid) {
             const visualTopY = VisualMath.getIsoVisualY(0, height, floatOffset);
             ctx.translate(0, visualTopY);
-            SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0, layout);
+            SurfacePainter.drawLiquid(ctx, 0, 0, liquid.color, globalTime, liquid.intensity, layout);
         }
         ctx.restore();
     },
@@ -246,6 +262,7 @@ export const TerrainRenderer = {
             sCtx.globalAlpha = 1.0;
             const [qCoord, rCoord] = getCoordForVariant(variant, MATERIAL_CONFIG.terrain.grain.variants);
             MaterialPainter.paintTerrainGrain(sCtx, r, layout, qCoord, rCoord);
+            paintStaticDetail(sCtx, size, theme, type, variant);
 
             // 鄰格高度遮罩（只在烘焙時處理）：前側有落差邊 → 崖邊亮邊；背側鄰格較高 → 接觸陰影
             const edgeCfg = TERRAIN_SKIN.edge;
@@ -301,6 +318,7 @@ export const TerrainRenderer = {
             for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
             sCtx.closePath();
             sCtx.fill();
+            paintStaticDetail(sCtx, size, theme, type, variant);
             sCtx.strokeStyle = theme.rim;
             sCtx.lineWidth = 1.5;
             sCtx.globalAlpha = 0.6;
@@ -320,24 +338,23 @@ export const TerrainRenderer = {
     },
 
 
+    /**
+     * 動態地表細節（FOREST 草叢風擺、ICE 冰面反光）：從循環影格取圖，每格每幀一次 drawImage。
+     * 靜態細節（DESERT、VOID）已烘進 sprite，這裡不處理。
+     */
     drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: TerrainTheme, alpha: number = 1.0) {
-        const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
-        let floatOffset = 0;
-        if (isFloatingBiome) {
-            const rawFloat = Math.sin(globalTime * 1.5 + (baseX * 0.01) + (baseY * 0.01)) * 4;
-            floatOffset = Math.round(rawFloat / RENDER_CACHE.FLOAT_STEP) * RENDER_CACHE.FLOAT_STEP;
-        }
-        
-        const visualY = VisualMath.getIsoVisualY(baseY, height, floatOffset);
-        ctx.save();
+        const detail = getTerrainAmbience(type)?.detail;
+        if (!detail || detail.baked || detail.kind === 'NONE') return;
+
+        const visualY = VisualMath.getIsoVisualY(baseY, height, 0);
+        const prevAlpha = ctx.globalAlpha;
         ctx.globalAlpha = alpha;
-        if (type === 'FOREST') SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || '#14532d', 5, globalTime);
-        else if (type === 'ICE') SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
-        else if (type === 'DESERT') SurfacePainter.drawSandRipples(ctx, baseX, visualY, HEX_SIZE, theme.sideDark || '#92400e');
-        else if (type === 'VOID') {
-            const seed = Math.abs(Math.sin(q * 12.9898 + r * 78.233));
-            if (seed > 0.6) SurfacePainter.drawDetailTexture(ctx, baseX, visualY, type, detailColor, seed);
+        if (detail.kind === 'GRASS') {
+            const variant = variantFor(q, r, MATERIAL_CONFIG.terrain.grain.variants);
+            SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || detail.fallbackColor, globalTime, variant);
+        } else {
+            SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
         }
-        ctx.restore();
+        ctx.globalAlpha = prevAlpha;
     }
 };

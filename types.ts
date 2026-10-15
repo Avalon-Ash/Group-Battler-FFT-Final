@@ -403,3 +403,174 @@ export interface SpriteAppearanceConfig {
     flashStrength: number;
 }
 
+
+
+// ══════════════════════════════════════════════════════════════
+// Terrain Ambience (R2): 地表細節 / 液面循環 / 天氣粒子設定型別（資料在 data/vfx/terrainAmbience.ts）
+// ══════════════════════════════════════════════════════════════
+
+export type TerrainAmbienceBiome = 'VOID' | 'FOREST' | 'ICE' | 'MAGMA' | 'DESERT';
+export type AmbienceWeatherType = 'SNOW' | 'ASH' | 'EMBER' | 'SPORES' | 'SAND' | 'VOID';
+
+/** 隨機範圍：value = min + Math.random() * spread */
+export interface AmbienceRange {
+    min: number;
+    spread: number;
+}
+
+/** 無縫循環動畫：一個完整週期（秒）預渲染成 frames 張影格 */
+export interface LoopTiming {
+    period: number;
+    frames: number;
+}
+
+export interface GrassTuftConfig {
+    x: number;
+    y: number;
+    /** 草叢精靈編號（1 起算，會隨地形 variant 輪替） */
+    sprite: number;
+}
+
+export interface GrassSpriteConfig {
+    size: number;
+    anchorX: number;
+    anchorY: number;
+    scaleBase: number;
+    scaleStep: number;
+    scaleCycle: number;
+    bladeHeight: number;
+    bladeWidth: number;
+    shadowRadiusMul: number;
+    shadowColor: string;
+    rootColor: string;
+    tipColor: string;
+    midStop: number;
+    curveCtrl: number;
+}
+
+export interface GrassDetailConfig {
+    kind: 'GRASS';
+    baked: false;
+    loop: LoopTiming;
+    fallbackColor: string;
+    tufts: readonly GrassTuftConfig[];
+    windAmplitude: number;
+    windXPhase: number;
+    sprite: GrassSpriteConfig;
+}
+
+export interface IceSheenDetailConfig {
+    kind: 'ICE_SHEEN';
+    baked: false;
+    loop: LoopTiming;
+    radiusRatio: number;
+    gradientSpan: number;
+    slideWrap: number;
+    slideOffset: number;
+    bandHalfWidth: number;
+    bandPeakColor: string;
+    bandEdgeColor: string;
+    scratchColor: string;
+    scratchWidth: number;
+    scratches: readonly (readonly [number, number, number, number])[];
+    framePad: number;
+}
+
+export interface SandRipplesDetailConfig {
+    kind: 'SAND_RIPPLES';
+    baked: true;
+    fallbackColor: string;
+    lineWidth: number;
+    alpha: number;
+    rowFrom: number;
+    rowTo: number;
+    rowSpacing: number;
+    xFrom: number;
+    xTo: number;
+    xStep: number;
+    waveFrequency: number;
+    waveAmplitude: number;
+    offsetAmplitude: number;
+    variantPhases: readonly number[];
+}
+
+export interface RunesDetailConfig {
+    kind: 'RUNES';
+    baked: true;
+    variantMask: readonly boolean[];
+    arms: number;
+    armLength: number;
+    lineWidth: number;
+    alpha: number;
+}
+
+export interface NoDetailConfig {
+    kind: 'NONE';
+    baked: false;
+}
+
+export type TerrainSurfaceDetailConfig =
+    | GrassDetailConfig
+    | IceSheenDetailConfig
+    | SandRipplesDetailConfig
+    | RunesDetailConfig
+    | NoDetailConfig;
+
+export interface TerrainLiquidSurfaceConfig {
+    color: string;
+    intensity: number;
+}
+
+export interface TerrainAmbienceEntry {
+    detail: TerrainSurfaceDetailConfig;
+    /** 非 null 時，地塊頂面疊一層循環液面（drawLiquid） */
+    liquid: TerrainLiquidSurfaceConfig | null;
+}
+
+export interface LiquidLoopConfig {
+    loop: LoopTiming;
+    radiusRatio: number;
+    pad: number;
+    baseAlpha: number;
+    intensityStep: number;
+    flowAmplitude: number;
+    flowHarmonicX: number;
+    flowHarmonicY: number;
+    shadeColor: string;
+    shadeRadiusX: number;
+    shadeRadiusY: number;
+    bubbleColor: string;
+    bubbleAlpha: number;
+    bubbleHarmonicX: number;
+    bubbleHarmonicY: number;
+    bubbleOrbitRatio: number;
+    bubbleRadiusRatio: number;
+}
+
+export interface WeatherAmbienceConfig {
+    /** 品質階層 0 的生成間隔（秒）；低階層除以 VFX_BUDGET.TIER_EMISSION_RATIOS */
+    interval: number;
+    /** 品質階層 0 的同時存在 ATMOSPHERE 粒子上限；低階層乘以 TIER_EMISSION_RATIOS */
+    maxActive: number;
+    /** 1 或 2 種顏色；兩色時 primaryChance 為取第一色的機率 */
+    colors: readonly string[];
+    primaryChance: number;
+    size: AmbienceRange;
+    vx: AmbienceRange;
+    vy: AmbienceRange;
+    /** 壽命（秒）；null = 生成範圍寬度 / vx（剛好飛越整個範圍） */
+    life: number | null;
+    spawn: 'ANYWHERE' | 'LEFT_EDGE';
+    blendMode: GlobalCompositeOperation;
+}
+
+export interface WeatherBoundsConfig {
+    fallbackW: number;
+    fallbackH: number;
+    offsetX: number;
+    offsetY: number;
+    pxPerTile: number;
+    padding: number;
+    zMin: number;
+    zSpread: number;
+}
