@@ -58,7 +58,7 @@ export class GridRenderStrategy {
         }
 
         for (const tile of cache.tileList) {
-            const { q, r, px, py, h, key } = tile;
+            const { q, r, px, py, h, key, edgeMask } = tile;
             
             // 使用 VisualMath 進行轉場位移解算
             const offset = VisualMath.getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
@@ -96,6 +96,7 @@ export class GridRenderStrategy {
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h;
+            op.tEdge = edgeMask;
             op.tx = px; op.ty = visualBaseY; 
             op.y = visualBaseY; // Sorting based on footprint
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
@@ -145,6 +146,7 @@ export class GridRenderStrategy {
             const op = renderList.next();
             op.type = RenderOpType.TERRAIN;
             op.tq = q; op.tr = r; op.th = h; // Keep original height for block thickness
+            op.tEdge = 0; // 掉落中的地塊不套用鄰格遮罩
             op.tx = pos.x; op.ty = visualBaseY; 
             op.y = pos.y + offset; // Sorting based on initial footprint, ignore falling Z
             op.z = z; // Negative Z indicates falling and used for opacity calculation
