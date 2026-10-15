@@ -39,6 +39,9 @@ export function quantizeRenderScale(scale: number, steps: readonly number[] = RE
 /** packedInt 內「縮放級距索引」的位元位置與遮罩（與 terrainSpriteKey 的打包方式一致） */
 const SCALE_BIT_SHIFT = 22;
 const SCALE_BIT_MASK = 7;
+/** packedInt 內「鄰格高度遮罩」：bit 25-30（共 6 bit），不得與其他欄位重疊，總長不得超過 31 bit */
+export const EDGE_MASK_BIT_SHIFT = 25;
+export const EDGE_MASK_BIT_MASK = 63;
 
 export interface TerrainKeyCompound {
     theme: TerrainTheme;
@@ -57,7 +60,8 @@ export function terrainSpriteKey(
     h: number,
     variant: number,
     floatOffset: number,
-    scaleStep: number
+    scaleStep: number,
+    edgeMask: number = 0
 ): TerrainKeyCompound {
     const hKey = Math.round(h * RENDER_CACHE.HEIGHT_KEY_SCALE);
     const floatKey = Math.round(floatOffset / RENDER_CACHE.FLOAT_STEP);
@@ -72,7 +76,7 @@ export function terrainSpriteKey(
 
     const hOffset = Math.max(0, Math.min(511, hKey + 100));
     const fOffset = Math.max(0, Math.min(511, floatKey + 100));
-    const packedInt = ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT) | ((hOffset & 511) << 13) | ((fOffset & 511) << 4) | (variant & 15);
+    const packedInt = ((edgeMask & EDGE_MASK_BIT_MASK) << EDGE_MASK_BIT_SHIFT) | ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT) | ((hOffset & 511) << 13) | ((fOffset & 511) << 4) | (variant & 15);
 
     return {
         theme,

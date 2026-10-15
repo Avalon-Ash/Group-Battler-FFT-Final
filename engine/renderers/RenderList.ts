@@ -26,6 +26,7 @@ export class RenderOp {
     tx: number = 0; ty: number = 0; th: number = 0; 
     tsize: number = 0; ttheme: TerrainTheme | null = null;
     tq: number = 0; tr: number = 0;
+    tEdge: number = 0; // 地形鄰格高度遮罩（6-bit，見 GridCache.CachedTile.edgeMask）
     ttype: string = ''; tdetail: string = '';
     oStatus: string | undefined;
     oDanger: ActiveZone | undefined;
@@ -64,6 +65,7 @@ export class RenderOp {
         this.y = 0; this.z = 0;
         this.tx = 0; this.ty = 0; this.th = 0;
         this.tq = 0; this.tr = 0;
+        this.tEdge = 0;
         this.agent = null;
         this.alpha = 1.0;
         this.particle = null;

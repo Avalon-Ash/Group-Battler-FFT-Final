@@ -411,10 +411,39 @@ export interface TerrainSkinThemePaths {
     side: string;
 }
 
+/** 貼圖細節疊加層：先以光照漸層全強度填底色，再以 blend 混合貼圖（光照決定明暗，貼圖只提供細節） */
+export interface TerrainDetailLayer {
+    blend: 'soft-light' | 'overlay' | 'multiply';
+    alpha: number;
+}
+
+/** 鄰格高度遮罩（R1 / T2）：崖邊亮邊、接觸陰影、輪廓線 alpha */
+export interface TerrainEdgeConfig {
+    /** 高度差至少達到此值（與 BLOCK_HEIGHT 同單位）才算有落差 */
+    minStep: number;
+    /** 前側崖邊亮邊：線寬（世界單位）與 alpha，顏色取 theme.rim */
+    lip: { width: number; alpha: number };
+    /** 背側接觸陰影：寬度＝（邊中點到中心距離）× widthRatio，起點強度 strength，顏色取 sideShadeFloor */
+    ao: { widthRatio: number; strength: number };
+    /** 平接邊（遮罩 bit = 0）的頂面輪廓線 alpha */
+    flatRimAlpha: number;
+    /** 有落差邊（遮罩 bit = 1）的頂面輪廓線 alpha */
+    cliffRimAlpha: number;
+}
+
 export interface TerrainSkinConfig {
     texturePxPerHex: number;
     sideTexturePxPerUnit: number;
+    /** @deprecated R1 起不再影響畫面（光照改為全強度、貼圖改為 topDetail／sideDetail 混合）。 */
     tintStrength: number;
+    /** 頂面貼圖細節層 */
+    topDetail: TerrainDetailLayer;
+    /** 側面貼圖細節層 */
+    sideDetail: TerrainDetailLayer;
+    /** 暗側面漸層的底端色（亮側面底端取 theme.sideDark） */
+    sideShadeFloor: string;
+    /** 鄰格高度遮罩的烘焙參數 */
+    edge: TerrainEdgeConfig;
     variantOffsets: readonly { x: number; y: number }[];
     themes: Record<string, TerrainSkinThemePaths>;
 }
@@ -423,6 +452,16 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
     texturePxPerHex: 96,
     sideTexturePxPerUnit: 1.0,
     tintStrength: 0.35,
+    topDetail: { blend: 'overlay', alpha: 0.5 },
+    sideDetail: { blend: 'overlay', alpha: 0.5 },
+    sideShadeFloor: '#020617',
+    edge: {
+        minStep: BLOCK_HEIGHT,
+        lip: { width: 1.5, alpha: 0.85 },
+        ao: { widthRatio: 0.35, strength: 0.55 },
+        flatRimAlpha: 0.25,
+        cliffRimAlpha: 0.7,
+    },
     variantOffsets: [
         { x: 0, y: 0 },
         { x: 128, y: 64 },

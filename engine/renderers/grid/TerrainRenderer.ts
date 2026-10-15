@@ -14,6 +14,7 @@ import {
     SurfaceFactory,
 } from "./TerrainBlockCache";
 import { terrainTextureStore } from "./TerrainTextureStore";
+import { getEdgeTable } from "../../systems/grid/GridCache";
 
 const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
@@ -44,7 +45,8 @@ export const TerrainRenderer = {
         layout: HexLayout,
         alpha: number = 1.0,
         q: number = 0,
-        r2: number = 0
+        r2: number = 0,
+        edgeMask: number = 0
     ) {
         if (this.lastTextureRev !== terrainTextureStore.getRevision()) {
             this.lastTextureRev = terrainTextureStore.getRevision();
@@ -65,9 +67,9 @@ export const TerrainRenderer = {
         const renderScale = quantizeRenderScale(currentScale);
         const variant = variantFor(q, r2, MATERIAL_CONFIG.terrain.grain.variants);
 
-        const key = terrainSpriteKey(theme, layout, type, height, variant, floatOffset, renderScale);
+        const key = terrainSpriteKey(theme, layout, type, height, variant, floatOffset, renderScale, edgeMask);
         const sprite = this.store.get(key, (factory) => {
-            return this.bakeBlock(factory, size, height, theme, type, layout, variant, floatOffset, renderScale);
+            return this.bakeBlock(factory, size, height, theme, type, layout, variant, floatOffset, renderScale, edgeMask);
         });
 
         ctx.save();
@@ -96,7 +98,8 @@ export const TerrainRenderer = {
         layout: HexLayout,
         variant: number,
         floatOffset: number,
-        renderScale: number
+        renderScale: number,
+        edgeMask: number = 0
     ): TerrainSpriteEntry {
         const visualTopY = VisualMath.getIsoVisualY(0, height, floatOffset);
         const currentPedestalDepth = Math.max(PEDESTAL_DEPTH, -visualTopY + 15);
@@ -159,9 +162,22 @@ export const TerrainRenderer = {
                 const faceTopY = Math.min(v1.y, v2.y) + visualTopY;
                 const faceH = currentPedestalDepth - faceTopY;
 
+                // 光照決定明暗：先以側面漸層全強度填底色，再疊貼圖細節
+                if (Number.isFinite(visualTopY)) {
+                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
+                    grad.addColorStop(0, color);
+                    grad.addColorStop(1, isLightSide ? theme.sideDark : TERRAIN_SKIN.sideShadeFloor);
+                    sCtx.fillStyle = grad;
+                } else {
+                    sCtx.fillStyle = color;
+                }
+                sCtx.fillRect(minX, faceTopY, faceW, faceH);
+
                 const sidePattern = terrainTextureStore.getSidePattern(sCtx, type);
                 if (sidePattern) {
                     sCtx.save();
+                    sCtx.globalCompositeOperation = TERRAIN_SKIN.sideDetail.blend;
+                    sCtx.globalAlpha = TERRAIN_SKIN.sideDetail.alpha;
                     const patMatrix = new DOMMatrix();
                     const varOffsets = TERRAIN_SKIN.variantOffsets;
                     const varOffset = varOffsets[variant % varOffsets.length];
@@ -171,15 +187,6 @@ export const TerrainRenderer = {
                     sCtx.fillStyle = sidePattern;
                     sCtx.fillRect(minX, faceTopY, faceW, faceH);
                     sCtx.restore();
-                }
-
-                if (Number.isFinite(visualTopY)) {
-                    const grad = sCtx.createLinearGradient(0, visualTopY, 0, currentPedestalDepth);
-                    grad.addColorStop(0, color);
-                    grad.addColorStop(1, isLightSide ? theme.sideDark : '#020617');
-                    sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
-                    sCtx.fillStyle = grad;
-                    sCtx.fillRect(minX, faceTopY, faceW, faceH);
                 }
                 sCtx.restore();
             } else {
@@ -206,8 +213,23 @@ export const TerrainRenderer = {
             sCtx.closePath();
             sCtx.clip();
 
+            // 光照決定明暗：先以頂面漸層全強度填底色，再疊貼圖細節
+            if (Number.isFinite(r)) {
+                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
+                topGrad.addColorStop(0, theme.rim);
+                topGrad.addColorStop(0.3, theme.top);
+                topGrad.addColorStop(1, theme.sideDark);
+                sCtx.fillStyle = topGrad;
+            } else {
+                sCtx.fillStyle = theme.top;
+            }
+            sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+
             const topPattern = terrainTextureStore.getTopPattern(sCtx, type);
             if (topPattern) {
+                sCtx.save();
+                sCtx.globalCompositeOperation = TERRAIN_SKIN.topDetail.blend;
+                sCtx.globalAlpha = TERRAIN_SKIN.topDetail.alpha;
                 const patMatrix = new DOMMatrix();
                 const varOffsets = TERRAIN_SKIN.variantOffsets;
                 const varOffset = varOffsets[variant % varOffsets.length];
@@ -218,32 +240,59 @@ export const TerrainRenderer = {
                 topPattern.setTransform(patMatrix);
                 sCtx.fillStyle = topPattern;
                 sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
-            }
-
-            if (Number.isFinite(r)) {
-                const topGrad = sCtx.createLinearGradient(-r, -r, r, r);
-                topGrad.addColorStop(0, theme.rim);
-                topGrad.addColorStop(0.3, theme.top);
-                topGrad.addColorStop(1, theme.sideDark);
-                sCtx.fillStyle = topGrad;
-                sCtx.globalAlpha = TERRAIN_SKIN.tintStrength;
-                sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+                sCtx.restore();
             }
 
             sCtx.globalAlpha = 1.0;
             const [qCoord, rCoord] = getCoordForVariant(variant, MATERIAL_CONFIG.terrain.grain.variants);
             MaterialPainter.paintTerrainGrain(sCtx, r, layout, qCoord, rCoord);
 
+            // 鄰格高度遮罩（只在烘焙時處理）：前側有落差邊 → 崖邊亮邊；背側鄰格較高 → 接觸陰影
+            const edgeCfg = TERRAIN_SKIN.edge;
+            const edgeTable = getEdgeTable(layout);
+            for (let i = 0; i < 6; i++) {
+                if (((edgeMask >> i) & 1) === 0) continue;
+                const a = vertices[i], b = vertices[(i + 1) % 6];
+                if (edgeTable.edgeIsFront[i]) {
+                    // 線寬取兩倍，外半被頂面 clip 切掉，內半即為亮邊
+                    sCtx.beginPath();
+                    sCtx.moveTo(a.x, a.y);
+                    sCtx.lineTo(b.x, b.y);
+                    sCtx.strokeStyle = theme.rim;
+                    sCtx.lineWidth = edgeCfg.lip.width * 2;
+                    sCtx.globalAlpha = edgeCfg.lip.alpha;
+                    sCtx.stroke();
+                } else {
+                    // 漸層軸取「垂直於該邊」的向內法線（等距壓縮後邊與中心連線不垂直）
+                    const ex = b.x - a.x, ey = b.y - a.y;
+                    const len = Math.hypot(ex, ey);
+                    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                    let nx = -ey / len, ny = ex / len;
+                    if (nx * -mx + ny * -my < 0) { nx = -nx; ny = -ny; }
+                    const depth = (nx * -mx + ny * -my) * edgeCfg.ao.widthRatio;
+                    const aoGrad = sCtx.createLinearGradient(mx, my, mx + nx * depth, my + ny * depth);
+                    aoGrad.addColorStop(0, TERRAIN_SKIN.sideShadeFloor);
+                    aoGrad.addColorStop(1, 'transparent');
+                    sCtx.globalAlpha = edgeCfg.ao.strength;
+                    sCtx.fillStyle = aoGrad;
+                    sCtx.fillRect(-r * 2, -r * 2, r * 4, r * 4);
+                }
+            }
+            sCtx.globalAlpha = 1.0;
+
             sCtx.restore();
 
-            sCtx.beginPath();
-            sCtx.moveTo(vertices[0].x, vertices[0].y);
-            for (let i = 1; i < 6; i++) sCtx.lineTo(vertices[i].x, vertices[i].y);
-            sCtx.closePath();
+            // 頂面輪廓線：平接邊淡化、有落差邊維持較強 alpha
             sCtx.strokeStyle = theme.rim;
             sCtx.lineWidth = 1.5;
-            sCtx.globalAlpha = 0.6;
-            sCtx.stroke();
+            for (let i = 0; i < 6; i++) {
+                const a = vertices[i], b = vertices[(i + 1) % 6];
+                sCtx.beginPath();
+                sCtx.moveTo(a.x, a.y);
+                sCtx.lineTo(b.x, b.y);
+                sCtx.globalAlpha = ((edgeMask >> i) & 1) === 1 ? edgeCfg.cliffRimAlpha : edgeCfg.flatRimAlpha;
+                sCtx.stroke();
+            }
             sCtx.globalAlpha = 1.0;
         } else {
             sCtx.fillStyle = theme.top;
