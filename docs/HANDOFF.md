@@ -1,6 +1,6 @@
 # 主代理交接手冊（工具無關：Claude Code／Antigravity 皆可讀）
 
-> 更新：2026-10-15 凌晨（使用者由 Antigravity 改用 **Claude Code**）。新對話的主代理 **先讀本檔 → 再讀 `AGENTS.md` → 開工**，不要重新探索專案。
+> 更新：2026-10-16（合併序列與文件整理完成，回到單一主線）。新對話的主代理 **先讀本檔再開工**，不要重新探索專案；`AGENTS.md` 是審查 diff 時的檢查清單。
 > 歷史細節（已完成輪次的提示詞／報告／基準）在 [`docs/archive/`](archive/) 與各 `docs/*REPORT*.md`，**平常不用讀**。
 
 ## 0. 省點數守則（使用者額度有限，最重要）
@@ -18,41 +18,32 @@
 - **使用者機器**：Windows、RTX 4070、Ryzen 7800X3D、主螢幕 2560×1440 @ 239 Hz（量測用）、副螢幕 59 Hz（AMD 內顯，會污染量測要避開）、Python 3.10、Node 24、`msedge` 供 Playwright。
 - **PowerShell 陷阱**：終端機中文亂碼但檔案是 UTF-8；新檔寫 LF，多數原始檔是 CRLF（編輯保持原行尾）；巢狀引號易 ParserError，複雜字串改寫檔；字串內 `\r\n` 不會展開（用反引號）；**絕不輸出 `&gt;`／`&lt;` 之類 HTML 實體**；`git push` 的進度輸出會被當 stderr（退出碼 1 不代表失敗，看 `main -> main` 那行）。
 
-## 2. Git 狀態（2026-10-15 凌晨）
-**`origin/main` = `main` = `23e37c6`**（已 push）。已含：UI、效能 1～4、音訊、美術管線（精靈單位／貼圖地形／粒子貼圖）、AI Studio 的「美術修正輪」（**經我審查並修補**，見 §4）、地形烘焙預算、護盾貼合頭頂、`battle_frozen` 基準重錄。
+## 2. Git 狀態（2026-10-16）
+- **單一主線**：`C:\Git\Group-Battler-FFT-Final`，分支 `main`。主代理與 IDE 代理都在這個資料夾工作。若 `git worktree list` 還看得到 `Group-Battler-main`／`-death-vfx`／`-chore`，代表搬遷步驟尚未做完。
+- `main` 已含：大逃殺修正、死亡特效／擊飛、AI Studio 清理、文件整理、合約改版（`CLAUDE.md`／`AGENTS.md`／`.claude/agents/`）、README 更新。push 狀態以 `git status -sb` 為準。
+- **目前沒有進行中的分支或低階代理。**
+- **開新一輪的流程**：主代理寫 `docs/<NAME>_AGENT_PROMPT.md` → 從 `main` 開分支（例如 `feat/<topic>`），在原生資料夾切過去 → 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md` → 跑完告訴主代理 → 主代理審查、修正、本機實跑 → 使用者同意才合併，push 另外問。代理跑的期間主代理對該資料夾只讀不寫。
+- **真的需要並行時才開工作樹**（命名 `C:\Git\Group-Battler-<topic>`，`node_modules` 可用 junction 指回原生資料夾）。移除時**先刪 junction**（`cmd /c rmdir <path>
+ode_modules`）再 `git worktree remove`，否則可能連帶刪掉原生資料夾的 `node_modules`。
+- 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`、`br-fix-final`、`docs-cleanup-final`）未推，可忽略。
 
-**三個工作樹（`git worktree list`）— 各自有未合併的分支：**
-| 路徑 | 分支 | 內容 | 狀態 |
-| :-- | :-- | :-- | :-- |
-| `C:\Git\Group-Battler-FFT-Final` | `fix/br-ghosts-idle` | 大逃殺兩大 bug（見 §3-A）；低階代理依 `docs/BR_FIX_AGENT_PROMPT.md` **執行中**（已有 B0 commit `eba8447`） | 代理跑完前**不要動這個工作樹** |
-| `C:\Git\Group-Battler-death-vfx` | `feat/death-vfx` | 死亡特效／擊飛／計時修正（見 §3-B）＋ `docs/DOCS_CLEANUP_AGENT_PROMPT.md`；4 個 commit | **已完成待審**（lint／test／build 綠；擊飛手感待使用者實機看） |
-| `C:\Git\Group-Battler-chore` | `chore/drop-aistudio` | 移除 AI Studio 專用檔（`.aistudio/`、`server.ts`、`metadata.json`、`.env.example`、`ALLOW_ALL_HOSTS`）；1 個 commit | 已完成待合併 |
-| `C:\Git\Group-Battler-main` | `main` | **Claude Code 的乾淨工作樹**（`node_modules` 以 junction 連到主資料夾） | 在此讀檔／審查／合併 |
+## 3. 最近完成的工作（2026-10-15～16）
 
-> `main` 沒有被任何工作樹以外的地方檢出；要合併時在 `C:\Git\Group-Battler-main` 做。代理（IDE）跑完後，使用者可把原資料夾改回 `main`（`git switch main`），再用 `git worktree remove` 清掉不要的工作樹。
-> 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`）未推，可忽略。
+### A. 大逃殺（縮圈）兩大 bug
+- **殘影根因**：`ZoneSystem` 縮圈殺人繞過 `handleDeadState`；`PhysicsEngine` 凍結死者物理；`deathTimer` 兩個寫入者。現在所有死亡都走唯一入口 `agentManager.handleDeadState`，失去地面的屍體會往下掉，`PhysicsEngine` 只設 `outOfBounds`，`fullyDead` 由 `updateDeathState` 回收。
+- **發呆根因**：`ai_profiles.ts` 的 `Combat` 是 SEQUENCE，技能全部冷卻時整串失敗、追擊與 Idle 都不跑。改為 `Combat Actions` SELECTOR；被困時改為衝向目標。
+- **審查時我拿掉的**：代理加的「發呆看門狗」（B0 的 IDLE 實測 0 次，屬掩蓋症狀，且改到 facade `game.ts`）。
+- **重現工具**：`node tools/ui-e2e/br-soak.mjs --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`（修正後 20/20 乾淨）。細節見 `docs/BR_FIX_REPORT.md`（開頭有審查修正說明）。
 
-**建議合併順序**：① `fix/br-ghosts-idle`（代理完成並審查後）→ ② `feat/death-vfx`（與 ① 可能在 `AnimationSystem`／`agentManager` 衝突，見 §3）→ ③ `chore/drop-aistudio`（獨立）→ ④ 跑文件整理輪（`docs/DOCS_CLEANUP_AGENT_PROMPT.md`，**前提是 ①② 已合併**）。每次合併都**先問使用者**，push 另外問。
+### B. 死亡特效／擊飛
+- `deathTimer` 單一寫入者後，死亡動畫與屍體殘留（`DEATH_ANIM_DURATION`=5.5 秒）才真的會跑。擊飛：`data/units/appearance/deathMotion.ts`（純函式，依 `deathTimer` 與 ragdoll 軀幹初速推導），參數 `constants.ts` 的 `DEATH_KNOCKBACK`；`UnitSystem` 把滑行位移併入繪製位置與深度排序鍵。死亡粒子：塵煙＋火花（`DEATH_VFX`）。
+- **待使用者實機確認**：擊飛距離／彈跳手感、是否閃爍、5.5 秒殘留是否太久。
 
-## 3. 進行中的工作（詳細）
-
-### A. 大逃殺（縮圈）兩大 bug — `fix/br-ghosts-idle`
-- **現象**：① 縮圈後掉落／被殺的單位模型（連護盾稜柱）殘留在空地上直到換場；② 部分單位在場上站著發呆（行為樹不明原因，歷來抓不到）。
-- **我讀碼的疑點（未實測，需 B0 證據確認）**：`ZoneSystem` 縮圈殺人直接 `hp=0`＋`deadLogged=true` 卻**跳過 `handleDeadState`**（沒 `unregisterAgent`／`AGENT_DIED`／`deathTimer` 重置）；`PhysicsEngine.stepPhysics` 對 `hp<=0` 直接 return（死者物理凍結，下墜速度無效；被放逐者也不掉）；護盾等狀態繪製器未檢查死亡／出界；殘留佔位可能同時造成發呆。
-- **代理計劃**：`docs/BR_FIX_AGENT_PROMPT.md`（B0 重現工具 `tools/ui-e2e/br-soak.mjs` → B1 修殘留 → B2 修發呆 → B3 驗證與 `docs/BR_FIX_REPORT.md`）。**審查重點**：每個修正是否對應 B0 證據；有無「發呆就隨機走」類掩蓋；`perf:guard` 是否仍 0 差異；是否重錄 baseline（不得）。
-
-### B. 死亡特效／擊飛 — `feat/death-vfx`（已完成）
-- **根因**：`deathTimer` 有**兩個寫入者**（`updateDeathState` 累加、`AnimationSystem` 遞減）→ 計時永遠 0，死亡動畫停在第 0 格、屍體也從不被移除。現已改為**單一寫入者**（`AnimationSystem` 不再碰它）；屍體殘留 `DEATH_ANIM_DURATION`=5.5 秒（死亡動畫 0.75 秒→停格→最後 1.2 秒淡出下沉）後移除。
-- **擊飛**：`data/units/appearance/deathMotion.ts`（純函式，依 `deathTimer` 與 Ragdoll 軀幹初速推導滑行＋彈跳；參數 `constants.ts` 的 `DEATH_KNOCKBACK`）；`UnitDeathPainter.getKnockOffset`；`UnitSystem` 把滑行位移併入屍體的繪製位置**與深度排序鍵**（修過一次閃爍：排序鍵沒含位移導致被地塊來回覆蓋）。
-- **死亡粒子**：`UnitShatter.spawn` 改為輕量塵煙（`SMOKE_PUFF`）＋火花（`SPARK`）＋陣營靈魂／血滴（參數 `DEATH_VFX`），舊的程序化 token 碎片噴射已移除。
-- **合併注意**：縮圈殺人的單位在合併 ② 之前會「馬上消失」，② 之後會停在半空 5.5 秒——**必須先合 ① 再合 ②**（①會讓縮圈殺人走完整死亡收尾）。若兩邊都改了 `AnimationSystem` 的 `deathTimer` 段落，保留「單一寫入者」版本。
-- **待使用者實機確認**：擊飛距離／彈跳手感（調 `DEATH_KNOCKBACK`）、是否仍閃爍、5.5 秒殘留是否太久（調 `AGENT_CONSTANTS.DEATH_ANIM_DURATION`）。
-
-### C. 文件整理 — `docs/DOCS_CLEANUP_AGENT_PROMPT.md`（待跑，需 ①② 先合併）
-只改文件與過期註解、歸檔已完成文件、移除雜物、`HANDOFF.md` 再校正；用 **`dist/assets` 檔名雜湊不變**來證明「沒改行為」。C6 才允許刪零引用死碼（例：`SpriteManager.getUnitLayersFull`）。
+### C. 文件整理
+- 報告 `docs/CLEANUP_REPORT.md`。過期註解與文件已校正、已完成的提示詞歸檔、刪除零引用死碼（`RagdollPhysics`、`SpriteManager.getUnitLayersFull`）。C2～C4 的 build 雜湊與 `main` 相同（證明沒改行為）。`docs/ASSET_NEEDS.md` 仍有未完成需求，保留。
 
 ### D. 待使用者決定
-- **Dockerfile／`server.js`／`.dockerignore`／`package.json` 的 `start`／README 的對應段落**（早期 Cloud Run 部署設定，commit `632019c`）：之後在 AI Studio 重新拉 git 發布時可能還用得到，暫時**保留**；使用者決定是否移除。
+- **Dockerfile／`server.js`／`.dockerignore`／`package.json` 的 `start`／README 的對應段落**（早期 Cloud Run 部署設定）：之後在 AI Studio 重新拉 git 發布時可能還用得到，暫時**保留**。
 - `art-source/` 與 `public/assets/units/` 的圖集重複（約 5 MB）：是否移出版本控制。
 
 ## 4. 已完成輪次與審查結論（精簡）
@@ -70,6 +61,8 @@
   3. 一個狀態欄位**只能有一個寫入者**（`deathTimer` 的教訓）。
   4. 刪除「舊管線」前先 `git grep` 證明零引用；新管線常仍依賴舊檔案的一部分。
   5. 排序（depth sort）鍵必須包含繪製時才套用的位移。
+  6. 代理在缺乏證據時會加「安全網」掩蓋症狀（大逃殺的發呆看門狗）。B0 證據為 0 的修正一律拿掉，只保留對應到根因的改動。
+  7. 代理會改到舊版的交接文件而造成衝突；任務合約要列出「受保護檔案」，`HANDOFF.md`／合約檔由主代理親自維護。
 
 ## 5. 專案現況重點
 - **音訊**：`engine/audio/AudioEngine.ts`（共享單例＋擁有者計數＋BGM 請求序號；`?mute` 不建立 AudioContext）、`engine/systems/audio/AudioSystem.ts`（事件→Cue、BGM 切換）、`data/audio/{cues,music}.ts`、素材 `public/assets/audio/`（CC0／CC-BY，見 `docs/ASSET_LEDGER.md`、`CREDITS.md`）。展示模式只播 `SHOWCASE_AMBIENT`；手動：開戰 `BATTLE_NORMAL`→存活≤4 `BATTLE_TENSE`→勝敗曲（紅藍分開）→回氛圍。預覽頁 `tools/audio/preview.html`。
@@ -86,21 +79,21 @@
 ## 7. 決策與待辦池
 - 題材奇幻（FFT-like）、保持六角格、固定等距視角；AI 逐張生圖做單位已放棄，改 KayKit 預渲染；AI 圖只用於地形材質與日後圖示。授權：CC0 優先、CC-BY 可（致謝）、拒絕 NC／ND／GPL／不明；維護 `docs/ASSET_LEDGER.md`、`CREDITS.md`。
 - **待辦池（無順序，使用者要時再開）**：
-  1. 完成 §2 的合併序列與文件整理輪。
-  2. 效能五：清掉 §4 殘留熱點，以 `perf:frames` 的 p99 驗證。
-  3. 地形烘焙實作（設計 `docs/BAKED_RENDERING_DESIGN.md`、原型 `tools/baked-terrain-proto.html`）；先看熔岩圖在烘焙預算修正後是否已夠順。
-  4. 每個地圖主題一首 BGM；紅方勝利曲換成真正的暗黑曲。
-  5. FEMALE 與其他體型、專用神職模型、加強陣營辨識度。
-  6. 手機版 UI 全面巡檢。
-  7. 縮圈殺人的單位死亡演出（B 修好後，視覺是否需要專屬「墜落」動畫）。
+  1. 效能五：清掉 §4 殘留熱點，以 `perf:frames` 的 p99 驗證。
+  2. 地形烘焙實作（設計 `docs/BAKED_RENDERING_DESIGN.md`、原型 `tools/baked-terrain-proto.html`）；先看熔岩圖在烘焙預算修正後是否已夠順。
+  3. 每個地圖主題一首 BGM；紅方勝利曲換成真正的暗黑曲。
+  4. FEMALE 與其他體型、專用神職模型、加強陣營辨識度（見 `docs/ASSET_NEEDS.md`）。
+  5. 手機版 UI 全面巡檢。
+  6. 縮圈墜落的單位是否需要專屬「墜落」動畫（目前是垂直掉入虛空後立即回收）。
+  7. **架構：狀態所有權**。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
 
 ## 8. 使用者要做的事（提醒他）
-- 大逃殺修正代理跑完要告訴主代理；合併前親自開大逃殺看縮圈殺人是否乾淨、有無發呆。
-- 實機看擊飛手感、熔岩圖流暢度、護盾貼合（含飛行單位）。
+- 實機看擊飛手感、熔岩圖流暢度、護盾貼合（含飛行單位）、大逃殺縮圈是否乾淨。
 - 每次合併／push 前的決定由使用者下。
 
 ## 9. 在 Claude Code 使用的注意
-- Claude Code 會自動讀根目錄 `CLAUDE.md`（主代理專用的精簡版，會載入本檔；`AGENTS.md` 改為審查時才讀的檢查清單）。子代理定義在 `.claude/agents/`（explorer／worker／reviewer，模型與強度寫在 frontmatter）。工作流不依賴對話記憶。
-- 本機指令用 PowerShell；長時間指令以背景方式執行並等待完成，**不要輪詢**。
-- IDE 代理與你同時存取同一工作樹時，只讀不寫；你的工作在 `C:\Git\Group-Battler-main`。
+- Claude Code 會自動讀根目錄 `CLAUDE.md`（主代理專用的精簡版，會載入本檔；`AGENTS.md` 為審查時才讀的檢查清單）。子代理定義在 `.claude/agents/`（explorer／worker／reviewer，模型與強度寫在 frontmatter）。內建子代理不會讀 `CLAUDE.md`。
+- 使用者把這些指令檔統稱「合約」：主代理合約 `CLAUDE.md`、實作代理合約 `AGENTS.md` 與 `docs/*_AGENT_PROMPT.md`、子代理合約 `.claude/agents/*.md`。
+- 推理強度上限 high；工作階段不能自己切換強度，需要時停下請使用者在 App 切。
+- 本機指令用 PowerShell 或 Git Bash；長時間指令以背景方式執行並等待完成，**不要輪詢**。
 - 沒有圖像生成工具時，改用現成素材與指令列（Blender、PIL、ffmpeg 已在本機）。
