@@ -651,6 +651,8 @@ export const RENDER_CACHE = {
     /** 地形 sprite 烘焙預算：每個時間窗內累計烘焙超過此毫秒數，其餘未命中改借用相鄰縮放級距的 sprite */
     BAKE_BUDGET_MS: 4,
     BAKE_WINDOW_MS: 16,
+    /** 液面循環影格（TerrainLoopAtlas）同時快取的組數上限（顏色 x layout x 量化強度）；每組約 2 MB，LRU 淘汰 */
+    LOOP_LIQUID_SLOTS: 16,
 } as const;
 
 /**

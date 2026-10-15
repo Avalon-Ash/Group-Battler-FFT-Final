@@ -96,10 +96,11 @@ export const TerrainRenderer = {
             ctx.drawImage(sprite.canvas, -sprite.anchorX, -sprite.anchorY, sprite.width, sprite.height);
         }
 
-        if (type === 'MAGMA') {
+        const liquid = getTerrainAmbience(type)?.liquid;
+        if (liquid) {
             const visualTopY = VisualMath.getIsoVisualY(0, height, floatOffset);
             ctx.translate(0, visualTopY);
-            SurfacePainter.drawLiquid(ctx, 0, 0, '#ef4444', globalTime, 1.0, layout);
+            SurfacePainter.drawLiquid(ctx, 0, 0, liquid.color, globalTime, liquid.intensity, layout);
         }
         ctx.restore();
     },
@@ -337,19 +338,23 @@ export const TerrainRenderer = {
     },
 
 
+    /**
+     * 動態地表細節（FOREST 草叢風擺、ICE 冰面反光）：從循環影格取圖，每格每幀一次 drawImage。
+     * 靜態細節（DESERT、VOID）已烘進 sprite，這裡不處理。
+     */
     drawTerrainDetail(ctx: CanvasRenderingContext2D, baseX: number, baseY: number, height: number, type: string, detailColor: string, q: number, r: number, globalTime: number = 0, layout: HexLayout = 'FLAT', theme: TerrainTheme, alpha: number = 1.0) {
-        const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
-        let floatOffset = 0;
-        if (isFloatingBiome) {
-            const rawFloat = Math.sin(globalTime * 1.5 + (baseX * 0.01) + (baseY * 0.01)) * 4;
-            floatOffset = Math.round(rawFloat / RENDER_CACHE.FLOAT_STEP) * RENDER_CACHE.FLOAT_STEP;
-        }
-        
-        const visualY = VisualMath.getIsoVisualY(baseY, height, floatOffset);
-        ctx.save();
+        const detail = getTerrainAmbience(type)?.detail;
+        if (!detail || detail.baked || detail.kind === 'NONE') return;
+
+        const visualY = VisualMath.getIsoVisualY(baseY, height, 0);
+        const prevAlpha = ctx.globalAlpha;
         ctx.globalAlpha = alpha;
-        if (type === 'FOREST') SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || '#14532d', 5, globalTime);
-        else if (type === 'ICE') SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
-        ctx.restore();
+        if (detail.kind === 'GRASS') {
+            const variant = variantFor(q, r, MATERIAL_CONFIG.terrain.grain.variants);
+            SurfacePainter.drawGrass(ctx, baseX, visualY, theme.top || detail.fallbackColor, globalTime, variant);
+        } else {
+            SurfacePainter.drawIceSheen(ctx, baseX, visualY, HEX_SIZE, globalTime, layout);
+        }
+        ctx.globalAlpha = prevAlpha;
     }
 };
