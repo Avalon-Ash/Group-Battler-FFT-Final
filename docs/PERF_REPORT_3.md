@@ -97,8 +97,8 @@
 | **Battle Frame 180 (Skills/Low-HP)** | 0.0925 | **0.0441** | 0.59% | **0.33%** | **達標** |
 
 - **對照圖檔存證**：
-  - 全畫面並排圖：`tools/ui-e2e/out/glow_compare_battle_frozen_*.png`
-  - 單位與血條 2x 局部放大裁切圖：`tools/ui-e2e/out/glow_crop_battle_frozen_*.png`
+  - 全畫面並排圖：`tools/ui-e2e/out/`（通配檔名 `glow_compare_battle_frozen_*.png`）
+  - 單位與血條 2x 局部放大裁切圖：`tools/ui-e2e/out/`（通配檔名 `glow_crop_battle_frozen_*.png`）
 
 ---
 

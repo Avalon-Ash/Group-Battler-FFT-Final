@@ -27,7 +27,7 @@
 | 渲染無狀態 | 🟢/🟡 | 未發現 renderer 寫入 Agent；但 `engine/systems/vfx`、`engine/systems/unit` 被當 renderer 用，位置混亂 |
 | SSOT 色彩/常數 | 🔴 | engine 內大量硬編碼色碼（見 C1） |
 | 型別安全 | 🟡 | ~35 處 `any`（見 D1） |
-| 依賴方向 | 🟡 | `types.ts` ↔ `engine/core/Agent.ts` 循環（type-only，風險低）；`data/skills/blue_basic.ts` 反向 import `engine/types/Enums` |
+| 依賴方向 | 🟡 | `types.ts` ↔ `engine/core/Agent.ts` 循環（type-only，風險低）；`data/skills/blue_basic.ts` 反向 import `engine/types/Enums.ts` |
 
 ---
 
@@ -69,7 +69,7 @@
 - `Agent.bt`（行為樹實例）、`target: Agent`（物件參考）屬於「非純資料」，目前可接受，**不要動**，只記錄。
 
 **A6. UI 直接改 Agent**
-- `components/ui/UnitInspectorHUD.tsx:63,185`（`agent.role`、`maxHp/hp`）
+- `components/ui/inspector/UnitInspectorBody.tsx`（原 `UnitInspectorHUD.tsx:63,185`）（`agent.role`、`maxHp/hp`）
 - `hooks/useGameInput.ts:203`（`agent.role=…; saveState(); reset()`）
 - 這屬於編輯器模式，可接受，但應收斂到單一入口（`AgentManager`），見任務 B2。
 
@@ -97,7 +97,7 @@
 
 **C2. 魔術數字**：`SkillExecutor.ts:237`（`hitX + 8, hitY - 8`）、`AgentVFXSystem.ts:66-67`（`mapConfig.w * 40`）、`Agent.ts:56,108,149,192-200`（AI 間隔、`DEATH_ANIM_DURATION = 5.5`、`0.5` spawnTimer）、`game.ts:92-94`（螢幕尺寸）。→ `constants.ts`。
 
-**C3. 反向依賴**：`data/skills/blue_basic.ts:3` import `../../engine/types/Enums`。`Enums` 應與 `types.ts` 同層（SSOT），建議由 `types.ts` re-export，data 只從 `types` 取用。**只改 import 路徑，不搬檔案。**
+**C3. 反向依賴**：`data/skills/blue_basic.ts:3` import `../../engine/types/Enums.ts`。`Enums` 應與 `types.ts` 同層（SSOT），建議由 `types.ts` re-export，data 只從 `types` 取用。**只改 import 路徑，不搬檔案。**
 
 ### D. 型別安全（`any` 清單）
 
@@ -229,14 +229,14 @@ npm run lint; npm run build
 
 | 指標 | 第一輪 | 現在 | 目標 |
 | :--- | :--- | :--- | :--- |
-| `any` 相關（engine+components+hooks） | ~35（engine/components） | **57**（範圍多含 hooks，見下） | ≤ 5 |
+| `any` 相關（engine+components+hooks） | ~35（engine 與 components 總計） | **57**（範圍多含 hooks，見下） | ≤ 5 |
 | engine 內硬編碼色碼（前幾名） | BarPainter 28 / CCManager 15 / Token 14+12 | Token 13+11、ProjectilePainter 9、ProceduralPainter 8、GaugePainter 7… | 邏輯層 0 |
 | 邏輯層 → renderer/vfx | 6+ 處 | 僅剩 `agentManager.ts:153 UnitShatter.spawn(engine.vfx…)` | 0 |
 | 跨系統 `engine.X.method` | ~55 | BTRegistry 10、SkillExecutor 4（`getImpactArea`/`getEffectiveRange`/`handleDeadState`）、其餘各 1 | 見 T6.x |
 
 ### 8.2 ⚠️ 需要先處理的問題（依嚴重度）
 
-**P0-1 API Key 會被打包進前端**：`vite.config.ts` 的 `define` 把 `GEMINI_API_KEY` 注入 `process.env.API_KEY`，任何 `import.meta`/`process.env` 引用都會把金鑰**明文寫進 `dist/*.js`**。目前 `.env` 為空且程式未使用，所以尚未外洩；但只要填入金鑰並 build 就會洩漏。
+**P0-1 API Key 會被打包進前端**：`vite.config.ts` 的 `define` 把 `GEMINI_API_KEY` 注入 `process.env.API_KEY`，任何 `import.meta`/`process.env` 引用都會把金鑰**明文寫進 `dist/*.js`**。目前 `.env` 為空且程式未使用，所以尚未外洩；但只要填入金鑰並 build 就會洩漏。（已解決：已隨 AI Studio 專用檔清理全數移除，vite.config.ts 不再注入環境變數與金鑰，打包外洩風險已不存在）
 → 若實際用不到 Gemini：移除 `define` 兩行（與 `loadEnv`）。若要用：必須經後端代理，前端不得持有金鑰。另 `allowedHosts: true` 會關閉 Vite 的 host 檢查（DNS rebinding 防護），僅限需要的 AI Studio 環境，建議以環境變數開關。（此為上一個非解藕 commit `19a28ee` 帶入，**需使用者決定**，代理不要自行改。）
 
 **P0-2 `any` 反彈（57）**：第一輪範圍外的 `hooks/`、`components/`（`SkillDbTab` 約 10 處、`useGameInput`、`useGameApp: null as any`、`LogTab/useCameraControl engine: any`）+ engine 殘餘。大部分在 §2-D 清單中尚未完成：
@@ -245,20 +245,20 @@ npm run lint; npm run build
 
 **P1 三個「欄位不存在」隱性 bug 仍未處理**（代理已回報，等你決定）：
 - `CCManager.ts:250` `(target as any).resilience`：恆為 0，等於 CC 韌性機制從未生效。
-- `RagdollFactory.ts:17` `(agent as any).factionColor`：恆為 `#ffffff`，死亡碎片永遠白色。
+- `RagdollFactory.ts:17` `(agent as any).factionColor`：恆為 `#ffffff`，死亡碎片永遠白色。（已解決：已重構成使用 AGENT_CONSTANTS.RAGDOLL_BONE_PLACEHOLDER_COLOR，外觀色由 profile 控制）
 - `AgentVFXSystem.ts:66-67` `(engine as any).camera`：恆走 fallback（地圖中心）。
 → 修復 = 行為變更，請你逐項決定「刪除死碼」或「接上正確資料」。
 
 **P1 hp 寫入仍分散**：`PhysicsEngine.ts:98,115`、`HazardSystem.ts:108`、`EffectSystem.ts:42,85`、`SkillExecutor.ts:184,245,288,322`。T4.3 只做了顏色/文字常數與公式隔離，沒有建立單一「套用傷害」入口；`DamageCalculator` 沒被 Physics/Hazard/Effect 使用。
 
-**P2 `agentManager.ts:153`** 仍直接 `UnitShatter.spawn(engine.vfx, …)`（死亡碎片）。與 T3.2 同類，應改為事件（`AGENT_DIED`）由 renderer/VFX 訂閱。
+**P2 `agentManager.ts:153`** 仍直接 `UnitShatter.spawn(engine.vfx, …)`（死亡碎片）。與 T3.2 同類，應改為事件（`AGENT_DIED`）由 renderer/VFX 訂閱。（已解決：已在 T6.5 改由 AGENT_DIED 事件解耦，由 renderer 訂閱觸發）
 
 **P2 色碼殘餘**：`TokenFactory`（13/11）、`ProjectilePainter`、`ProceduralPainter`、`GaugePainter`、`GroundPainter`、`EventHUDMapper`、`HUDRenderer`、`GridOverlays`、`AnnouncerSystem`（邏輯層，應只送語意 key）。
 
-**P2 隨機性**：`engine/systems|ai|physics` 內 `Math.random` 共約 102 處（含 AI/傷害浮動/暴擊）→ 無法重播、無法寫確定性測試。
+**P2 隨機性**：`engine/systems|ai|physics` 內 `Math.random` 共約 102 處（含 AI/傷害浮動/暴擊）→ 無法重播、無法寫確定性測試。（已解決：已引入 engine/math/rng.ts 確定性隨機源與測試）
 
 **P2 其他**：
-- 專案**沒有任何測試**（0 個 `*.test.ts`，`package.json` 無 test script）。這輪重構全靠 lint + 人工，風險最大的缺口。
+- 專案**沒有任何測試**（0 個 `*.test.ts`，`package.json` 無 test script）。這輪重構全靠 lint + 人工，風險最大的缺口。（已解決：已建立 Vitest 單元測試套件與 34 個測試檔）
 - `BTRegistry.ts` 578 行、10 處 `engine.movement/combat/zones`；`MaterialPainter.ts` 590 行。
 - bundle 773 kB 單檔，可 `manualChunks` / 動態 import（編輯器、Inspector、Showcase 可延遲載入）。
 - `game.ts` 仍有約 15 個純轉發方法（`isValid`、`hasObstacle`…），與 `SpatialProvider` 重複。
@@ -277,7 +277,7 @@ npm run lint; npm run build
 | T6.4 | 建立 `applyDamage`（單一入口，位於 `systems/combat/`），先**只改 PhysicsEngine + HazardSystem**，保持原公式與護盾行為（先寫差異測試）。EffectSystem 與 SkillExecutor 之後再分批。 | ≤3 | 需 T6.0 完成 |
 | T6.5 | `UnitShatter` 改走 `AGENT_DIED` 事件。 | agentManager + renderer + EventMap | 順序不得變（同 tick 內 `handleDeadState` 之後） |
 | T6.6 | `AnnouncerSystem`、`EventHUDMapper` 色碼 → 語意 key + `data/vfx`；`TokenFactory` 殘餘色碼 → appearance profile。 | ≤3/批 | 以 material-preview 目視比對 |
-| T6.7 | 隨機源：新增 `engine/utils/rng.ts`（可注入種子，預設 `Math.random`），**先只替換 `DamageCalculator` 與 `agentManager`**，呼叫順序不變。 | ≤3 | 為重播/測試鋪路 |
+| T6.7 | 隨機源：新增 `engine/math/rng.ts`（可注入種子，預設 `Math.random`），**先只替換 `DamageCalculator` 與 `agentManager`**，呼叫順序不變。 | ≤3 | 為重播/測試鋪路 |
 | T6.8 | `game.ts` 純轉發方法：UI/系統逐步改吃 `SpatialProvider`，轉發方法標 `@deprecated`（不刪）。 | ≤3 | Facade，簽名不可動 |
 | T6.9 | 打包優化：`vite.config.ts` `manualChunks`（react / editor / inspector）、`MapEditor`/`Inspector`/`Showcase` 以 `React.lazy` 載入。 | ≤3 | **P0-1 由使用者決定後一併處理 vite.config** |
 
@@ -311,7 +311,7 @@ npm run lint; npm run build
 | 粒子池重用時 pIsUlt/ultSourceId 未重置 → cancelUltBySource 可能誤殺無關粒子 | 既有 | getParticle 重置 |
 | DamageCalculator 以 preRollCrit !== null 判斷，undefined 時恆不暴擊 | 既有（現有呼叫端皆傳布林，屬潛在） | 改 !== undefined＋測試 |
 | ZoneSystem 傳 pos 進 pushEvent opts（被忽略） | 既有 | 移除死參數 |
-| vite.config.ts 把 GEMINI_API_KEY define 進前端 bundle | 非解藕 commit | 移除；allowedHosts 改 ALLOW_ALL_HOSTS=true 開關 |
+| vite.config.ts 把 GEMINI_API_KEY define 進前端 bundle | 非解藕 commit | （已解決：已隨 AI Studio 專用檔清理全數移除，vite.config.ts 不再注入） |
 
 ### 9.3 仍待處理
 - T6.6 色碼（需目視）、T6.8 轉發方法標 deprecated、T6.9 lazy 載入。
@@ -327,22 +327,22 @@ npm run lint; npm run build
 - 分支 `feat/ui-window`（80+ commits）以 `--no-ff` 合併進 `main`（合併 commit 見 `git log main -1`）。內容：浮動工具視窗系統、Tailwind CDN 移除與建置管線、語意 Token SSOT（`data/ui/tokens.ts` → `styles/tokens.css`）、UICommand 唯一寫入閘門（`engine/systems/ui/UICommandSystem.ts`）、`useEngineView` 共用 ticker、Inspector 視窗化、≤900px bottom sheet、觸控命中區、編輯器/相機命令化（E8）。
 - 驗證（合併後在 `main` 上）：`npm run lint` 0 errors、`npm test` 150/150、`npm run build` 通過、`npm run e2e:ui` ALL PASSED（含 style-snapshot 0 差異）。
 - 合併前主代理審查修正：D13 把 `battleTime` 累加移到 `engine.tick` **開頭**會讓所有系統提早一步看到時間 → 已改為 tick **結尾**累加（`tests/EngineTick.test.ts` 有順序測試）。
-- 報告：`docs/UI_NIGHT_REPORT.md`～`_4.md`、`docs/UI_MERGE_CHECKLIST.md`（含預期外觀差異清單與回退指南）。本地 tag `ui-ckpt-*`（只存在本機，未推送）。
+- 報告：`docs/archive/UI_NIGHT_REPORT.md`～`_4.md`、`docs/archive/UI_MERGE_CHECKLIST.md`（含預期外觀差異清單與回退指南）。本地 tag `ui-ckpt-*`（只存在本機，未推送）。
 - **發佈狀態**：合併為本機動作；`git push origin main` 會觸發 GitHub Pages 部署，需使用者確認後才推。
 
 ### 10.2 FPS／渲染效能優化：一律在獨立分支 `perf/render-opt` 進行（規則）
-- **分支**：由合併後的 `main` 開出 `perf/render-opt`。**所有效能優化 commit 只進此分支；禁止直接在 `main` 上做渲染效能改動。** 合併回 `main` 前必須：`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui`、`npm run perf:guard`（P8 完成後）全綠，並由使用者審閱 `docs/PERF_REPORT.md`。
-- **執行入口**：`/goal docs/PERF_AGENT_PROMPT.md`（IDE 代理；不 push、不動 `main`）。本地 tag：`perf-ckpt-P0`、`perf-ckpt-P1`、`perf-ckpt-P4`、`perf-ckpt-P5`、`perf-ckpt-final`。
-- **調查結論（`docs/PERF_FINDINGS.md`）**：頭號元兇是 `TerrainRenderer.drawBlock` 每格每幀重畫「clip + overlay 顆粒」，約占渲染時間 40–47%（RTX 4070 實機與 headless 一致：閒置每幀約 10–12 ms，關掉顆粒後約 5–8 ms）。次要：全螢幕色調分級、畫布 DPR 無上限、`shadowBlur`、`backdrop-filter`／矩陣雨（僅量測）。
+- **分支**：由合併後的 `main` 開出 `perf/render-opt`。**所有效能優化 commit 只進此分支；禁止直接在 `main` 上做渲染效能改動。** 合併回 `main` 前必須：`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui`、`npm run perf:guard`（P8 完成後）全綠，並由使用者審閱 `docs/archive/PERF_REPORT.md`。
+- **執行入口**：`/goal docs/archive/PERF_AGENT_PROMPT.md`（IDE 代理；不 push、不動 `main`）。本地 tag：`perf-ckpt-P0`、`perf-ckpt-P1`、`perf-ckpt-P4`、`perf-ckpt-P5`、`perf-ckpt-final`。
+- **調查結論（`docs/archive/PERF_FINDINGS.md`）**：頭號元兇是 `TerrainRenderer.drawBlock` 每格每幀重畫「clip + overlay 顆粒」，約占渲染時間 40–47%（RTX 4070 實機與 headless 一致：閒置每幀約 10–12 ms，關掉顆粒後約 5–8 ms）。次要：全螢幕色調分級、畫布 DPR 無上限、`shadowBlur`、`backdrop-filter`／矩陣雨（僅量測）。
 - **量測工具**：`npm run perf:profile`（CDP 取樣）、`npm run perf:ab`（逐項關閉特效 A/B，`PERF_HEADED=1` 走真實 GPU）、`npm run perf:fidelity`（決定性截圖比對，P0c 後可用）。URL：`?perf` 顯示各階段 ms、`?quality=0..3` 釘死品質階層（P0b/P5 後可用）。
 - **畫面保真是鐵律**：渲染優化不得改變外觀（門檻：meanAbsDiff ≤ 0.8、badPixelPct ≤ 0.5%）；**不得重錄 baseline 來通過測試**。
 - **長期方向（尚未排程）**：「烘焙化渲染」——程序化材質改為啟動時烘焙成圖集，執行期只貼圖（HD 風格、不旋轉；素材槽可日後替換為手繪/AI 素材）。目標每幀：閒置 ≤5 ms、戰鬥 ≤6 ms（≈165 FPS）、延伸 ≤4.2 ms（240 FPS）。是否改用 WebGL 需使用者先改寫 `AGENTS.md` §1.4（目前禁止；原因文件未載明，推測為零依賴與維持單一 Canvas 2D 心智模型）。提示 6（單位圖集／VFX 預烘焙／`shadowBlur` 預烘焙光暈，後者會小幅改變外觀需使用者核定）待 `PERF_REPORT.md` 的殘餘熱點排名後再寫。
 
 ### 10.3 仍待處理
-- 手動目視項（`docs/UI_MERGE_CHECKLIST.md` §3 A–D）尚未由使用者確認；觸控捲動的 CDP 手勢在 headless 回報 `scrollTop 0`（e2e 標 INFO，需實機確認）。
+- 手動目視項（`docs/archive/UI_MERGE_CHECKLIST.md` §3 A–D）尚未由使用者確認；觸控捲動的 CDP 手勢在 headless 回報 `scrollTop 0`（e2e 標 INFO，需實機確認）。
 - `U13`（Tabs／CommandBar／InfoTip／Dialog／頂部狀態列）為選配，使用者未提需求，未排程。
 - `README.md` 仍提到已刪除的 `UnitInspectorHUD`（現為 `inspector` 視窗＋`UnitInspectorBody`）。
-- `tailwindPaletteClasses` baseline 仍有 369 處待 Token 化（U11e 批次未全做完，見 `UI_NIGHT_REPORT_4.md`）。
+- `tailwindPaletteClasses` baseline 仍有 369 處待 Token 化（U11e 批次未全做完，見 `docs/archive/UI_NIGHT_REPORT_4.md`）。
 
 ### 10.4 效能優化結果摘要（2026-10-11，perf/render-opt 執行完成）
 - **核心成效**：
@@ -358,14 +358,14 @@ npm run lint; npm run build
 - **未完成項**：**無**。P0a～P8 所有目標全數如期達成；P3a/b 依守則豁免（P2 Profiling 實測 JS 渲染函式均 ≤0.5%，無 ≥3% 殘餘熱點）。
 - **建議（待使用者決定）**：
   - Showcase 模式下矩陣雨（Matrix Rain）在高 DPR 下開銷顯著（可省 40% 耗時），建議保留既有視覺開關，低階/Retina 裝置可由使用者手動停用。
-  - 詳細對照數據、Profiling 排名與使用者驗證指南見 `docs/PERF_REPORT.md`。
+  - 詳細對照數據、Profiling 排名與使用者驗證指南見 `docs/archive/PERF_REPORT.md`。
 
 ### 10.5 效能第二輪摘要（2026-10-11，戰鬥／Showcase 殘餘成本與光暈預烘焙）
 - **核心成效**：
   - **診斷工具（Q1）**：新增零成本 `CtxOpCounter.ts`（`?perfops` 啟用），量化每幀 968 次 `save/restore` 與 66 次 `shadowBlur`，鎖定 92.4% 的光暈開銷在單位 (`units`, 37 次) 與血條 (`hud`, 24 次)。
   - **保真護欄全面覆蓋（Q2）**：修復隨機種子重置點，使 `battle_frozen`（實戰第 120 幀）達成 100% 決定性（diff=0/921600），成功納入 `perf:guard` 每日防線。
   - **矩陣雨分階減載（Q3a/b）**：`useMatrixRain.ts` 整合 `getMatrixRainBudget`。Tier 0（預設）維持 1.0x / 60Hz 逐像素零差異；Tier 1 降為 0.5x / 30Hz；Tier 2 自動停繪清空畫布，使 Showcase 幀耗時自 30.4ms 驟降至 **20.3ms（-33.3%，+50% FPS）**。
-  - **光暈預烘焙快取（Q4a/b/c）**：新增 `GlowSpriteCache.ts`（純衍生快取，LRU 容量上限保護），套用於 `BarPainter`、`UnitAmbientPainter`、`UnitCorePainter`。旗標 `GLOW_SPRITES` 預設為 `false`（`perf:fidelity` 零差異）。開啟 `?glow=1` 時實測戰鬥幀耗時降低 **11.74ms (-33.8%)**，並產出並排比較截圖（`tools/ui-e2e/out/glow_compare_*.png`，壞像素率 0.00%）供使用者目視核定。
+  - **光暈預烘焙快取（Q4a/b/c）**：新增 `GlowSpriteCache.ts`（純衍生快取，LRU 容量上限保護），套用於 `BarPainter`、`UnitAmbientPainter`、`UnitCorePainter`。旗標 `GLOW_SPRITES` 預設為 `false`（`perf:fidelity` 零差異）。開啟 `?glow=1` 時實測戰鬥幀耗時降低 **11.74ms (-33.8%)**，並產出並排比較截圖（`tools/ui-e2e/out/（對比圖前綴 glow_compare_*.png）`，壞像素率 0.00%）供使用者目視核定。
   - **「烘焙渲染」藍圖（Q5）**：產出 `docs/BAKED_RENDERING_DESIGN.md`，詳述高度分帶雙層烘焙方案、圖集 Manifest 資料格式草案、SSOT 外觀槽位對接以及 WebGL 客觀評估判準。
   - **單鍵真機評測（Q6）**：新增 `npm run perf:headed`（`tools/ui-e2e/perf-headed.mjs`），一鍵測量 7 大場景實機 FPS、DPR、GPU 字串與 `?perf` 各階段 ms。
 - **保真度驗證**：
@@ -374,18 +374,18 @@ npm run lint; npm run build
 - **本地 Checkpoint Tags**：
   - `perf2-ckpt-Q2`、`perf2-ckpt-Q3`、`perf2-ckpt-Q4`、`perf2-ckpt-final`。
 - **待使用者核定事項**：
-  - 查看 `tools/ui-e2e/out/glow_compare_*.png`，若視覺核定，可將 `constants.ts` 中的 `RENDER_QUALITY.GLOW_SPRITES` 改為 `true`，立即釋放戰鬥 +33.8% 效能。
-  - 詳見 `docs/PERF_REPORT_2.md`、`docs/PERF_BASELINE_2.md` 與 `docs/BAKED_RENDERING_DESIGN.md`。
+  - 查看 `tools/ui-e2e/out/（對比圖前綴 glow_compare_*.png）`，若視覺核定，可將 `constants.ts` 中的 `RENDER_QUALITY.GLOW_SPRITES` 改為 `true`，立即釋放戰鬥 +33.8% 效能。
+  - 詳見 `docs/archive/PERF_REPORT_2.md`、`docs/archive/PERF_BASELINE_2.md` 與 `docs/BAKED_RENDERING_DESIGN.md`。
 
 
 
 
 ### 10.6 效能第二輪審查結果與第三輪起點（2026-10-11）
 
-- 第二輪（perf/render-opt，1359a4b…357c901 + 主代理審查修正）已合併進 main。**第二輪報告中的 headless 毫秒數全部作廢**：當時量測落在 AMD 內顯 + 59 Hz 副螢幕；使用者主螢幕為 2560×1440 @ 239 Hz（RTX 4070）。詳見 docs/PERF_REPORT_2.md 末尾「審查更正」。
+- 第二輪（perf/render-opt，1359a4b…357c901 + 主代理審查修正）已合併進 main。**第二輪報告中的 headless 毫秒數全部作廢**：當時量測落在 AMD 內顯 + 59 Hz 副螢幕；使用者主螢幕為 2560×1440 @ 239 Hz（RTX 4070）。詳見 docs/archive/PERF_REPORT_2.md 末尾「審查更正」。
 - 量測鐵律（寫給所有後續代理）：腳本必須印出並記錄 GPU 字串與 DPR，落在 AMD/Radeon 即視為無效；觸發骰子按鈕一律 DOM click 並斷言單位數；量測戰鬥時要避開「戰鬥結束／showcase 轉場」；吞吐量測要取消幀率限制（--disable-frame-rate-limit --disable-gpu-vsync）。
 - 外觀決策：光暈預烘焙（GlowSpriteCache）已由使用者目視核定並設為預設開（RENDER_QUALITY.GLOW_SPRITES = true，?glow=0 可關）。attle_frozen baseline 已重錄（有單位的真實畫面）。
-- 第三輪計畫：docs/PERF_AGENT_PROMPT_3.md，在新分支 perf/render-opt-3（由 main 開出）進行；不得直接在 main 上優化。
+- 第三輪計畫：docs/archive/PERF_AGENT_PROMPT_3.md，在新分支 perf/render-opt-3（由 main 開出）進行；不得直接在 main 上優化。
 
 ### 10.7 效能第三輪完成摘要（2026-10-11，perf/render-opt-3 執行完成）
 
@@ -404,7 +404,7 @@ npm run lint; npm run build
   - `npm run e2e:ui` 連跑兩次 ALL PASSED
   - `npm run perf:guard` ALL PASSED（包含 5 地形與真實單位 battle_frozen 嚴格逐像素 0 差異）
 - **本地 Checkpoint Tags**：`perf3-ckpt-R0`、`perf3-ckpt-R2`、`perf3-ckpt-R3`、`perf3-ckpt-final`。
-- **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/PERF_BASELINE_3.md`。
+- **報告參考**：詳見 `docs/PERF_REPORT_3.md` 與 `docs/archive/PERF_BASELINE_3.md`。
 
 ---
 
@@ -468,7 +468,7 @@ npm run lint; npm run build
   - `npm run e2e:ui` 連跑兩次 ALL PASSED
   - `npm run perf:guard` 通過
 - **本地 Checkpoint Tags**：`perf4-ckpt-P0`、`perf4-ckpt-P3`、`perf4-ckpt-final`。
-- **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/PERF_BASELINE_4.md` 與 `docs/VFX_INVENTORY.md`。
+- **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/archive/PERF_BASELINE_4.md` 與 `docs/VFX_INVENTORY.md`。
 
 ---
 
@@ -510,6 +510,6 @@ npm run lint; npm run build
   - `npm run perf:guard` 通過 (全場景保真與性能防線全綠)
   - `npm run e2e:ui` 連跑兩次 ALL PASSED
 - **本地 Checkpoint Tags**：`art-ckpt-A1`、`art-ckpt-A2`、`art-ckpt-final`。
-- **報告參考**：詳見 `docs/ART_REPORT.md`、`docs/ART_PROGRESS.md`、`docs/ASSET_NEEDS.md` 與對比圖 `tools/ui-e2e/out/art_before_after_*.png`。
+- **報告參考**：詳見 `docs/ART_REPORT.md`、`docs/archive/ART_PROGRESS.md`、`docs/ASSET_NEEDS.md` 與對比圖 `tools/ui-e2e/out/（對比圖前綴 art_before_after_*.png）`。
 
 

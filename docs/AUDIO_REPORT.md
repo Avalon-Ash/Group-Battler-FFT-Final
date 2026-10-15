@@ -2,7 +2,7 @@
 
 > **專案分支**：`feat/audio`  
 > **系統核心**：TACTICAL.OS (`tactical-battler:-kernel-v9.7`)  
-> **執行規範**：依據 `docs/AUDIO_AGENT_PROMPT.md`、`AGENTS.md`、`docs/ART_STYLE_BIBLE.md`  
+> **執行規範**：依據 `docs/archive/AUDIO_AGENT_PROMPT.md`、`AGENTS.md`、`docs/ART_STYLE_BIBLE.md`  
 > **授權守則**：CC0 優先、CC-BY 明確致謝、拒絕 NC/ND/GPL/來源不明  
 > **完成時間**：2026-10-12  
 
@@ -22,7 +22,7 @@
 | **S1a** | `7356add` | **SFX 素材採集**：56 個 CC0 音效檔、`manifest.json`、`ASSET_LEDGER.md`、`CREDITS.md`、素材預算單元測試 | `manifest.json`, `docs/ASSET_LEDGER.md`, `CREDITS.md`, `tests/AudioAssets.test.ts` | 56/56 存在、1.28 MB（≤25 MB）全綠 |
 | **S1b** | `02752b0` | **SFX 實裝與校音**：`CUE_TABLE` 檔案關聯、RMS 響度正規化增益微調、`tools/audio/preview.html` 試聽頁、無頭音訊解碼驗證 | `cues.ts`, `preview.html`, `preview.ts`, `verify-audio.mjs`, `tools/audio/README.md` | 56/56 解碼 0 錯誤（標籤 `audio-ckpt-S1`） |
 | **S2a** | `80d10f5` | **BGM 素材採集**：5 首管弦奇幻風格曲目（CC-BY 3.0 / CC-BY 4.0 / CC0）、`music.ts` 循環點與預設音量設定、ledger/CREDITS 更新 | `music.ts`, `manifest.json`, `ASSET_LEDGER.md`, `CREDITS.md`, `AudioAssets.test.ts` | 5/5 存在、8.12 MB、總大小 9.40 MB 全綠 |
-| **S2b** | `1fe09b0` | **BGM 整合與體驗**：閒置預載（首屏僅載氛圍曲，其餘 idle prefetch）、視窗失焦淡出/聚焦淡入、非循環 sting 回歸氛圍曲、感知音量曲線、perf 驗證 | `AudioEngine.ts`, `perf-ab.mjs`, `docs/AUDIO_PROGRESS.md` | lint/test/build/perf:guard 全綠（標籤 `audio-ckpt-S2`） |
+| **S2b** | `1fe09b0` | **BGM 整合與體驗**：閒置預載（首屏僅載氛圍曲，其餘 idle prefetch）、視窗失焦淡出/聚焦淡入、非循環 sting 回歸氛圍曲、感知音量曲線、perf 驗證 | `AudioEngine.ts`, `perf-ab.mjs`, `docs/archive/AUDIO_PROGRESS.md` | lint/test/build/perf:guard 全綠（標籤 `audio-ckpt-S2`） |
 
 ---
 

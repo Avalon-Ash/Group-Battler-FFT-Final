@@ -11,7 +11,7 @@
 
 | 任務 | 項目名稱 | 狀態 | Commit Hash | 核心成果與檔案變更 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Pre** | 素材暫存入庫與前置設定 | DONE | `d7a651e` | 複製 `art-source/`、`tools/assets/blender/`，初始化 `docs/ART_PROGRESS.md`。 |
+| **Pre** | 素材暫存入庫與前置設定 | DONE | `d7a651e` | 複製 `art-source/`、`tools/assets/blender/`，初始化 `docs/archive/ART_PROGRESS.md`。 |
 | **A0a** | 素材目錄、授權制度、精靈入庫 | DONE | `fb61f1d` | 入庫 `public/assets/units/*.webp` (4.27MB) 與 `manifest.json`；建立 `docs/ASSET_LEDGER.md`、`CREDITS.md` 與 Blender 重現指引。 |
 | **A0b** | 素材驗證與地形處理工具 | DONE | `f36e663` | 建立 `verify-sprites.mjs` (精靈格檢驗) 與 `process-terrain.mjs` (去邊無縫化處理)；產出 10 張 512×512 WebP 地形貼圖。 |
 | **A1a** | 地形材質貼圖化（TERRAIN_SKIN） | DONE | `ebed9d3` | 實作 `TerrainTextureStore.ts`、常數 `TERRAIN_SKIN`，升級 `TerrainRenderer.ts` 頂/側面貼圖 pattern 烘焙與程序化回退。 |
@@ -77,15 +77,12 @@
 
 ---
 
-## 4. 即時回退開關與 Checkpoint Tags
+## 4. 回退方式與後續變更
 
-所有新素材均具備無縫回退能力，保證當前系統即使在最極端相容性環境下亦可瞬間切回改動前之程序化管線：
+舊的程序化單位／地形／粒子管線已移除；要回退請用 `git revert`，或使用 tag `art-ckpt-final`。
 
-| 子系統 | 切換檔案 | 旗標常數 | 預設值 | 回退值 | 回退後視覺行為 |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **地形貼圖** | `constants.ts` | `TERRAIN_SKIN.enabled` | `true` | `false` | 100% 逐像素退回舊版程序化六角格地形（fidelity 0.000 diff）。 |
-| **單位精靈** | `constants.ts` | `UNIT_RENDER_MODE` | `'sprite'` | `'procedural'` | 100% 逐像素退回舊版 Imperial / Covenant 骨骼幾何人體。 |
-| **特效粒子** | `constants.ts` | `VFX_SPRITES.enabled` | `true` | `false` | 100% 逐像素退回舊版程序化粒子幾何漸層（fidelity 0.000 diff）。 |
+### 後續變更備忘
+後續美術座標補償與切除舊管線細節見 `docs/archive/ART2_PROGRESS.md`；縮圈掉落死者殘留修復見 `docs/BR_FIX_REPORT.md`；死亡擊飛位移推導實作見 `data/units/appearance/deathMotion.ts`。
 
 ### Git Checkpoint Tags 備忘：
 - `art-ckpt-A1`：Task A1 完成點（地形貼圖化與首輪 baseline 重錄完成）。

@@ -2,8 +2,8 @@
 // ║  RagdollFactory — Ragdoll 骨骼快照產生器                 ║
 // ║  職責：依 Agent 死亡瞬間狀態建立 RagdollBone[] 初始快照  ║
 // ║  上游：AgentManager.handleDeadState（死亡瞬間呼叫一次）  ║
-// ║  下游：UnitDeathPainter.draw() 消費骨骼資料              ║
-// ║  [ARCH] 初始速度由 impactX/Y 決定，物理由 RagdollPhysics 接管║
+// ║  下游：UnitDeathPainter.getKnockOffset 取軀幹初速        ║
+// ║  [ARCH] 初始速度由 impactX/Y 決定，供 deathMotion 推導   ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../core/Agent";
@@ -14,7 +14,7 @@ export class RagdollFactory {
     static createFromAgent(agent: Agent, impactX: number, impactY: number): RagdollBone[] {
         // 以 agent.px / agent.py / groundZ 為中心，建立 6 個骨骼的初始位置
         // 速度初始值：全部帶一個 impactX/Y 的縮放分量
-        // 物理演算由 RagdollPhysics.update() 接管，此處僅建立初始快照
+        // 擊飛位移由 deathMotion 依 deathTimer 推導，此處僅建立初始快照
         const baseColor = AGENT_CONSTANTS.RAGDOLL_BONE_PLACEHOLDER_COLOR;
         const bones: RagdollBone[] = [
             { id: 'torso',  x: agent.px,       y: agent.py,       z: agent.physics.z + 20, vx: impactX * 0.5, vy: impactY * 0.5, vz: 150, angle: 0, angularVel: 0, color: baseColor, alpha: 1, radius: 10 },

@@ -120,7 +120,7 @@ export class UnitRenderSystem {
             if (agent.hp > 0) {
                 UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
             } else {
-                // [ARCH] 死亡單位使用 UnitDeathPainter 進行布娃娃物理繪製
+                // [ARCH] 死亡單位使用 UnitDeathPainter 進行死亡動畫、擊飛與淡出繪製
                 UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout }, terrainHeight, simDt);
             }
         }
