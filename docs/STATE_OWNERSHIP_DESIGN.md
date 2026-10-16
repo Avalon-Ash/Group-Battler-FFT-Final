@@ -284,4 +284,4 @@ CC 施加者是 `combat/CCManager.ts`，衰減者是 `status/ControlSystem.ts`�
 - 變形中的飛行單位會失去懸浮（原作者意圖；以前因覆寫而從未生效）。
 - 受擊閃光幀內的 `visualStatus` 不再沿用上一 tick 的殘值。
 
-**驗證**：每期 lint／test／build 全綠；P1c 與 P2 各跑 `br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`。未跑 perf 系列、未截圖（GPU 由效能五使用中）。
+**驗證**：每期 lint／test／build 全綠；P1c 與 P2 各跑 `br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`。結果皆 20/20 乾淨、0 殘影、0 發呆（P2 第一次執行在 seed 1 前就因 `clickDice: dice button matched 0 elements` 中止；另以 Playwright 開頁確認引擎與按鈕正常、無 pageerror，重跑 20/20 乾淨，判定為測試工具啟動時序問題）。未跑 perf 系列、未截圖（GPU 由效能五使用中）。
