@@ -719,6 +719,34 @@ export const RENDER_GLOW = {
 } as const;
 
 /**
+ * 效能五：每幀熱點去除用的快取參數 SSOT
+ * （單位漸層快取、預烘焙光暈文字；見 docs/PERF_REPORT_5.md）
+ */
+export const RENDER_HOTSPOT_CACHE = {
+    MAX_UNIT_GRADIENTS: 128,
+    MAX_GLOW_TEXT_SPRITES: 192,
+    /** 光暈文字烘焙縮放的量化級距（裝置像素 / 使用者單位） */
+    GLOW_SCALE_STEP: 0.125,
+    GLOW_SCALE_MIN: 0.25,
+    GLOW_SCALE_MAX: 4,
+    /** shadowBlur 擴散範圍約為 blur 值；四周保留 blur × 此倍率的裝置像素 */
+    GLOW_PAD_PER_BLUR: 1.5,
+    /** 文字盒四周額外留白（以字級 em 計，涵蓋斜體外伸與上下緣） */
+    GLOW_TEXT_MARGIN_EM: 0.5,
+} as const;
+
+/** 技能呼喊（SHOUT）光暈參數：原 TextPainter 內 shadowBlur 字面值 */
+export const SHOUT_GLOW = {
+    CAST_BLUR: 10,
+    ULT_BLUR: 20,
+    SCAN_BLUR: 15,
+    SCAN_WIDTH: 3,
+    SUCCESS_BLUR: 15,
+    /** SUCCESS 昇華光暈隨壽命遞減，模糊量以此級距量化以重用 sprite */
+    SUCCESS_BLUR_STEP: 3,
+} as const;
+
+/**
  * 音訊系統參數 SSOT
  */
 export const AUDIO = {
