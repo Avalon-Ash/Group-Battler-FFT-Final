@@ -8,7 +8,7 @@
 
 import { Agent } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { MapConfig } from "../../utils";
+import { HexUtils, MapConfig } from "../../utils";
 import { UnitVisualProcessor } from "./UnitVisualProcessor";
 import { UnitBodyPainter } from "../../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPainter";
@@ -63,6 +63,15 @@ export class UnitRenderSystem {
                 op.y += knock.y;
             }
             
+            // 深度鍵：單位腳下所在的格子必須排在該格地塊之後。地塊以格心 Y 排序，
+            // 單位走過格界後（腳已在前方鄰格內）腳 Y 仍小於該格格心 Y，會被「之後才畫」的前方地塊蓋住下半身。
+            // 因此把鍵抬到腳下格的格心線（只抬不降；同鍵時 subLayer 讓單位排在地塊之後）。
+            // 以含繪製位移（physics 偏移、屍體擊飛）的腳點判斷，轉場位移 offset 不參與（地塊也套同一個 offset）。
+            const footY = op.y - offset;
+            const hexUnderFoot = HexUtils.fromPx(op.tx, footY, mapConfig);
+            const hexCenterY = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig).y;
+            op.sortBias = Math.max(0, hexCenterY - footY);
+
             // Visual Y: Top of terrain (using SSOT Math)
             op.ty = VisualMath.getIsoVisualY(op.y, state.terrainHeight);
             

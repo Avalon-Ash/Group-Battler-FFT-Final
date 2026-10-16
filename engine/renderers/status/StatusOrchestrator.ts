@@ -33,7 +33,7 @@ export class StatusOrchestrator {
             const py = agent.py + agent.physics.y;
             const pz = isNaN(agent.physics?.z) ? 0 : agent.physics.z;
             
-            const terrainH = getTerrainHeight(agent.q, agent.r);
+            const terrainH = VisualMath.getUnitGroundHeight(agent, getTerrainHeight);
             const visualFloorY = py - terrainH; 
             
             // 核心數學：解算身體中心點（用於護盾與包裹類特效）

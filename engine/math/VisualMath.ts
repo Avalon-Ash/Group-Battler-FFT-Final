@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND } from "../../constants";
 
 export interface Point3D {
     x: number;
@@ -71,6 +71,32 @@ export class VisualMath {
         return surfaceY - this.Z_LAYERS[layer];
     }
 
+    /**
+     * SSOT：單位腳下的地面高度（不含 physics.z）。所有繪製／錨點／狀態圖示都從這裡取，
+     * 以免身體、血條、護盾各自用不同高度（曾發生：身體用邏輯格、血條用線性插值）。
+     * 不在移動中時等於邏輯格高度；移動中依 moveProgress 在目前格與下一格之間過渡（見 UNIT_STEP_BLEND）。
+     */
+    public static getUnitGroundHeight(
+        agent: Pick<Agent, 'q' | 'r' | 'isMoving' | 'path' | 'moveProgress'>,
+        heightAt: (q: number, r: number) => number
+    ): number {
+        const hA = heightAt(agent.q, agent.r);
+        if (!agent.isMoving || agent.path.length === 0) return hA;
+        const next = agent.path[0];
+        const hB = heightAt(next.q, next.r);
+        if (hB === hA) return hA;
+        const t = Math.max(0, Math.min(1, agent.moveProgress));
+        const k = hB > hA
+            ? VisualMath.smoothstep(UNIT_STEP_BLEND.RISE_START, UNIT_STEP_BLEND.RISE_END, t)
+            : VisualMath.smoothstep(UNIT_STEP_BLEND.FALL_START, UNIT_STEP_BLEND.FALL_END, t);
+        return hA + (hB - hA) * k;
+    }
+
+    private static smoothstep(edge0: number, edge1: number, x: number): number {
+        const u = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+        return u * u * (3 - 2 * u);
+    }
+
     public static getEntityVisualY(py: number, terrainH: number, physicsY: number, physicsZ: number, offset: number): number {
         return (py + physicsY) - terrainH - physicsZ + offset;
     }
@@ -102,7 +128,7 @@ export class VisualMath {
     }
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
-        const terrainH = engine.getTerrainHeight(agent.q, agent.r);
+        const terrainH = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r));
         // UNIT_BODY_OFFSET represents the vertical center/chest in 3D space.
         // For 2D screen-space projectile endpoints, use getProjectileTargetY() instead.
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
