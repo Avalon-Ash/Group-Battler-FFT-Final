@@ -27,7 +27,7 @@ export const ParticleRenderer = {
     ) {
         // 0. V1 特效零件（預烘焙 sprite）
         if (PART_PARTICLE_TYPES.has(p.type)) {
-            PartPainter.draw(ctx, p, drawX, drawY, progress);
+            PartPainter.draw(ctx, p, drawX, drawY, progress, layout);
             return;
         }
 

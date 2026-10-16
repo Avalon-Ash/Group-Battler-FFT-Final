@@ -10,7 +10,7 @@
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { createCanvas } from '../../graphics/CanvasUtils';
 import { getQualityTier } from '../RenderQuality';
-import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, frameCountForTier, baseFrameCount } from './PartSpec';
+import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
 import { bakePart } from './PartBakers';
 
 export interface PartSprite {
@@ -54,7 +54,7 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
     const stats = { hits: 0, misses: 0, evictions: 0 };
     let bytes = 0;
 
-    function bake(n: PartSpec, frameCount: number, key: string): PartSprite {
+    function bake(n: PartSpec, frameCount: number, key: string, emblemRotation: number): PartSprite {
         const b = partBounds(n);
         const s = VFX_PARTS.BAKE_SCALE;
         const pw = Math.max(1, Math.ceil(b.width * s));
@@ -63,17 +63,22 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
         for (let f = 0; f < frameCount; f++) {
             const { canvas, ctx } = createSurface(pw, ph);
             ctx.setTransform(s, 0, 0, s, b.anchorX * s, b.anchorY * s);
-            bakePart(ctx, n, f, frameCount);
+            bakePart(ctx, n, f, frameCount, emblemRotation);
             frames.push(canvas);
         }
         const fps = basePartFps(n.kind) * (frameCount / baseFrameCount(n.kind));
         return { frames, width: b.width, height: b.height, anchorX: b.anchorX, anchorY: b.anchorY, blend: partBlend(n), fps, bytes: pw * ph * 4 * frameCount, key };
     }
 
-    function get(spec: PartSpec): PartSprite {
+    /**
+     * @param groundRotation 貼地零件繪製時會再轉的角度（HexGeometry.alignRotation，FLAT 地圖為 0）。
+     *   有方向的法陣圖騰會另烘一張「圖騰反向轉」的版本，繪製旋轉後外框對齊格子、圖騰仍保持正向；其他零件忽略此參數。
+     */
+    function get(spec: PartSpec, groundRotation: number = 0): PartSprite {
         const n = normalizePartSpec(spec);
         const frameCount = frameCountForTier(n.kind, getTier());
-        const key = partKey(n, frameCount);
+        const emblemRotation = emblemCounterRotation(n, groundRotation);
+        const key = emblemRotation === 0 ? partKey(n, frameCount) : `${partKey(n, frameCount)}|emblemRot=${emblemRotation.toFixed(4)}`;
         const hit = cache.get(key);
         if (hit) {
             stats.hits++;
@@ -82,7 +87,7 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
             return hit;
         }
         stats.misses++;
-        const sprite = bake(n, frameCount, key);
+        const sprite = bake(n, frameCount, key, emblemRotation);
         cache.set(key, sprite);
         bytes += sprite.bytes;
         while (cache.size > 1 && (cache.size > VFX_PARTS.MAX_ENTRIES || bytes > VFX_PARTS.MAX_BYTES)) {

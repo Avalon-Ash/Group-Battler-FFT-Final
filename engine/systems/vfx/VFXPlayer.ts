@@ -13,6 +13,8 @@ import { VFXFactory } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET } from "../../../constants";
 import { getQualityTier } from "../../renderers/RenderQuality";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
+import { VFX_PARTS } from "../../../data/vfx/parts/partConfig";
+import { HexGeometry } from "../../graphics/utils/HexGeometry";
 
 const rnd = (r: Range | number | undefined): number => {
     if (r === undefined) return 0;
@@ -93,7 +95,9 @@ export class VFXPlayer {
         // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation
         const rawCY = cy / ISO_SCALE_Y;
         // 零件 sprite 每個 emitter 只取一次（量化＋快取查詢不放在每粒子）
-        const partSprite = config.part ? vfxPartStore.get(config.part) : undefined;
+        // 貼地零件繪製時會轉到地圖版面方向（PartPainter）；傳同一個角度讓有方向的法陣圖騰烘成正向版本
+        const groundRotation = config.particleType === 'PART_GROUND' ? HexGeometry.alignRotation(system.hexLayout, VFX_PARTS.HEX.ANGLE_OFFSET_RAD) : 0;
+        const partSprite = config.part ? vfxPartStore.get(config.part, groundRotation) : undefined;
 
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();
