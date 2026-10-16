@@ -36,16 +36,16 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     // ================= IMPERIAL (BLUE) =================
 
     // --- TANK ---
-    'tb_a1': { archetype: 'BUFF_AURA', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_TECH_SHIELD' },
+    'tb_a1': { archetype: 'BUFF_AURA', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_AEGIS_WARD' },
     'tb_a2': { archetype: 'SIMPLE_IMPACT', color: '#fcd34d', secondaryColor: '#fff', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
     'tb_a3': { archetype: 'GROUND_SLAM', color: '#1e3a8a', secondaryColor: '#3b82f6', scale: 1.2, impactFx: 'FX_GRID_IMPACT_BLUE' },
     'tb_a4': { archetype: 'DEBUFF_RAY', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.0, beamStyle: 'GENERIC_BEAM' },
-    'tb_a5': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.0, impactFx: 'FX_HIT_BLUE_TECH' },
+    'tb_a5': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.0, impactFx: 'FX_HIT_BLUE_LIGHTNING' },
 
     // --- WARRIOR ---
-    'wb_a1': { archetype: 'BURST_AOE', color: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_TECH_BURST' },
+    'wb_a1': { archetype: 'BURST_AOE', color: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_RADIANT_BURST' },
     'wb_a2': { archetype: 'DASH_ASSAULT', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.5, beamStyle: 'SLASH_CONNECT' },
-    'wb_a3': { archetype: 'BURST_AOE', color: '#3b82f6', secondaryColor: '#60a5fa', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_TECH_BURST' },
+    'wb_a3': { archetype: 'BURST_AOE', color: '#3b82f6', secondaryColor: '#60a5fa', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_RADIANT_BURST' },
     'wb_a4': { archetype: 'SIMPLE_IMPACT', color: '#f59e0b', secondaryColor: '#fcd34d', scale: 1.4, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
     'wb_a5': { archetype: 'SIMPLE_IMPACT', color: '#93c5fd', secondaryColor: '#fff', scale: 1.2, impactFx: 'FX_HIT_BLUE_PHYSICAL' },
 
@@ -65,10 +65,10 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
 
     // --- SUPPORT ---
     'sb_a1': { archetype: 'BUFF_AURA', color: '#86efac', secondaryColor: '#dcfce7', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
-    'sb_a2': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_TECH_SHIELD' },
+    'sb_a2': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_AEGIS_WARD' },
     'sb_a3': { archetype: 'BUFF_AURA', color: '#fde047', secondaryColor: '#fef3c7', scale: 1.0, impactFx: 'FX_HIT_BLUE_HOLY' },
     'sb_a4': { archetype: 'BURST_AOE', color: '#a7f3d0', secondaryColor: '#6ee7b7', scale: 1.5, impactFx: 'FX_HIT_BLUE_HOLY' },
-    'sb_a5': { archetype: 'BUFF_AURA', color: '#bae6fd', secondaryColor: '#60a5fa', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_TECH_BURST' },
+    'sb_a5': { archetype: 'BUFF_AURA', color: '#bae6fd', secondaryColor: '#60a5fa', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_RADIANT_BURST' },
 
 
     // ================= COVENANT (RED) =================

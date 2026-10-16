@@ -46,7 +46,7 @@ export const INJECT_VFX_STORM_SCRIPT = `
             'FX_HAZARD_FIELD_POISON',
             'FX_HAZARD_FIELD_ICE',
             'FX_ACTIVE_BLUE_HOLY_SMITE',
-            'FX_ACTIVE_BLUE_TECH_BURST',
+            'FX_ACTIVE_BLUE_RADIANT_BURST',
             'FX_ACTIVE_BLUE_FROST_SNAP',
             'FX_ACTIVE_BLUE_ARCANE_RIPPLE',
             'FX_ACTIVE_RED_WAR_STOMP',

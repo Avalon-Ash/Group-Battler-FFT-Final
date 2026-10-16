@@ -222,7 +222,7 @@ export class SkillExecutor {
                     const hitY = hexCenter.y;
 
                     // 選擇基礎打擊特效
-                    const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_TECH' : 'FX_HIT_RED_BLOOD';
+                    const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_LIGHTNING' : 'FX_HIT_RED_BLOOD';
 
                     // Decoupled Event: Emit HIT_FX for visual pipeline
                     engine.pushEvent('HIT_FX', { x: hitX, y: hitY }, {

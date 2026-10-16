@@ -11,8 +11,8 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'SPARK', count: [3, 5], lifetime: [0.2, 0.4], size: [2, 4], speed: [150, 300], colors: ['#e0f2fe', '#fff'], shape: 'BURST_DIR', delay: 0 }
         ]
     },
-    'FX_HIT_BLUE_TECH': {
-        id: 'FX_HIT_BLUE_TECH',
+    'FX_HIT_BLUE_LIGHTNING': {
+        id: 'FX_HIT_BLUE_LIGHTNING',
         emitters: [
             { particleType: 'RING', count: 1, lifetime: [0.1, 0.2], size: [10, 40], colors: ['#22d3ee'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
             { particleType: 'SPARK', count: [6, 10], lifetime: [0.1, 0.3], size: [2, 5], speed: [200, 500], colors: ['#67e8f9', '#fff'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
@@ -39,16 +39,16 @@ export const IMPERIAL_VFX: Record<string, VFXAsset> = {
             { particleType: 'SMOKE', count: [2, 4], lifetime: [0.5, 0.8], size: [20, 30], speed: [20, 50], colors: ['#e0f2fe'], shape: 'CIRCLE', shapeRadius: 10, blendMode: 'screen', delay: 0 }
         ]
     },
-    'FX_ACTIVE_BLUE_TECH_SHIELD': {
-        id: 'FX_ACTIVE_BLUE_TECH_SHIELD',
+    'FX_ACTIVE_BLUE_AEGIS_WARD': {
+        id: 'FX_ACTIVE_BLUE_AEGIS_WARD',
         emitters: [{ particleType: 'HEX_GLOW', count: 1, lifetime: [0.5, 0.8], size: [40, 60], colors: ['#60a5fa'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }]
     },
     'FX_ACTIVE_BLUE_HOLY_SMITE': {
         id: 'FX_ACTIVE_BLUE_HOLY_SMITE',
         emitters: [{ particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.4, 0.6], size: [20, 30], height: [60, 80], speed: [0,0], colors: ['#fcd34d', '#fff'], shape: 'POINT', blendMode: 'screen', delay: 0 }]
     },
-    'FX_ACTIVE_BLUE_TECH_BURST': {
-        id: 'FX_ACTIVE_BLUE_TECH_BURST',
+    'FX_ACTIVE_BLUE_RADIANT_BURST': {
+        id: 'FX_ACTIVE_BLUE_RADIANT_BURST',
         emitters: [{ particleType: 'SHOCKWAVE', count: 1, lifetime: [0.2, 0.3], size: [40, 60], colors: ['#3b82f6'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }]
     },
     'FX_ACTIVE_BLUE_FROST_SNAP': {

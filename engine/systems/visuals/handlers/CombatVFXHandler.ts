@@ -8,7 +8,7 @@ import { COMBAT_PARAM } from "../../../../constants";
 export class CombatVFXHandler {
     public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number, hexKey?: string) {
         if (event.type === 'HIT_FX') {
-            const hitFX = event.text || 'FX_HIT_BLUE_TECH';
+            const hitFX = event.text || 'FX_HIT_BLUE_LIGHTNING';
             const hitDamage = event.value || 0;
             const shieldAbsorb = event.absorbed || 0;
             const hitX = target.x;

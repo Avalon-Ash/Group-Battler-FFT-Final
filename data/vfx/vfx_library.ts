@@ -38,8 +38,8 @@ export const VFX_LIBRARY = {
 
     IMPERIAL_FLAVOR: [
         { key: 'FX_ULT_BLUE_AEGIS_IMPACT', name: '帝國神盾', desc: '藍軍防禦類奧義的標誌性幾何展開效果。', visuals: ['Cyan', 'Hexagon'] },
-        { key: 'FX_HIT_BLUE_TECH', name: '科技衝擊', desc: '帶有電磁感的藍軍打擊特效。', visuals: ['Electric', 'Pulse'] },
-        { key: 'PROJ_BLUE_SNIPER', name: '動能狙擊', desc: '高速線性彈道，帶有馬赫環視覺效果。', visuals: ['Railgun', 'Mach'] }
+        { key: 'FX_HIT_BLUE_LIGHTNING', name: '聖雷衝擊', desc: '帶有金白雷光的獅心打擊特效。', visuals: ['Electric', 'Pulse'] },
+        { key: 'PROJ_BLUE_LIGHT_ARROW', name: '光矢', desc: '高速線性的金白光矢，拖長尾跡。', visuals: ['Railgun', 'Mach'] }
     ] as VFXEntry[],
 
     COVENANT_FLAVOR: [

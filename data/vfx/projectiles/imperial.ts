@@ -5,7 +5,7 @@ export const IMPERIAL_PROJECTILES: Record<string, ProjectileVisualDef> = {
     // --- BLUE FACTION SPECIFIC ---
     
     // Blue Ranger: High Velocity Sniper
-    'PROJ_BLUE_SNIPER': {
+    'PROJ_BLUE_LIGHT_ARROW': {
         trajectory: 'LINEAR',
         renderType: 'SPRITE',
         spriteKey: 'ARROW', 

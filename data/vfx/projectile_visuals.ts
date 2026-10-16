@@ -30,7 +30,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     
     // --- IMPERIAL OVERRIDES (Blue) ---
     // Characteristics: Speed, Precision, "Railgun" look
-    'PROJ_BLUE_SNIPER': {
+    'PROJ_BLUE_LIGHT_ARROW': {
         trajectory: 'HOVER_DIP', dipAmount: 10,
         renderType: 'SPRITE', spriteKey: 'ARROW', 
         scale: 0.9, 

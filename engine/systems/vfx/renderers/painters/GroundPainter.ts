@@ -54,7 +54,7 @@ export const GroundPainter = {
     drawGenericGrid(ctx: CanvasRenderingContext2D, p: Particle, progress: number, layout: HexLayout) {
         const alpha = 1.0 - Math.pow(progress, 4);
         let color = p.color;
-        if (p.visualStyle === 'GRID_TECH_BLUE') color = '#3b82f6';
+        if (p.visualStyle === 'GRID_HEX_BLUE') color = '#3b82f6';
         if (p.visualStyle === 'GRID_CORRUPT_RED') color = '#ef4444';
         
         ctx.strokeStyle = color;

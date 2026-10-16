@@ -10,7 +10,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 0, cast: 0.4, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 80, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 400, ccType2: 'KNOCKBACK', ccForce2: 3, 
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_SHIELD', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_AEGIS_WARD', element: 'LIGHTNING'
     },
     { 
         id: 'tb_a2', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
@@ -34,7 +34,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 5, cast: 0.6, cd: 8.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 80, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 3, ccType2: 'TAUNT', ccDur2: 2.0,
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_BURST', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
     },
     { 
         id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
@@ -42,7 +42,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 0, cast: 0.3, cd: 10.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ffffff', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, 
-        visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'LIGHTNING'
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
     },
 
     // --- WARRIOR (Enhanced Gap Closers) ---
@@ -51,7 +51,7 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '旋光劍舞', desc: '周圍AOE', 
         range: 0, cast: 0.3, cd: 5.0, cost: 35, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 160, color: '#60a5fa', visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_BURST', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
     },
     { 
         id: 'wb_a2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', 
@@ -67,7 +67,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 0, cast: 0.5, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 120, color: '#3b82f6', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 2.0,
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_BURST', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
     },
     { 
         id: 'wb_a4', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', 
@@ -100,7 +100,7 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '穿雲貫甲', desc: '直線貫穿', 
         range: 9, cast: 1.2, cd: 7.0, cost: 45, gain: 0, 
         type: 'SINGLE', power: 320, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000, 
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
     },
     { 
         id: 'rb_a3', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
@@ -108,7 +108,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 7, cast: 0.2, cd: 7.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 160, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2500, 
         ccType: 'BLIND', ccDur: 2.5,
-        visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'LIGHTNING'
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'LIGHTNING'
     },
     { 
         id: 'rb_a4', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
@@ -124,7 +124,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 8, cast: 1.0, cd: 9.0, cost: 50, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 150, color: '#93c5fd', visual: 'ARROW', projectileSpeed: 1200, 
         ccType: 'DOT', ccForce: 30, ccDur: 3.0,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'PHYSICAL'
+        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
     },
 
     // --- MAGE ---
@@ -181,7 +181,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 7, cast: 0.4, cd: 7.0, cost: 30, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ffffff', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, 
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_SHIELD', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_AEGIS_WARD', element: 'LIGHTNING'
     },
     { 
         id: 'sb_a3', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
@@ -206,6 +206,6 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 0, cast: 0.5, cd: 12.0, cost: 50, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: -60, color: '#bae6fd', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 80,
-        visualHitEffect: 'FX_ACTIVE_BLUE_TECH_BURST', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
     }
 ];
