@@ -59,9 +59,9 @@ describe('TerrainBlockCache', () => {
             // 在 1.5 級距時，1.54 不升級（< 1.575），1.6 才升級
             expect(quantizeRenderScaleSticky(1.54, 1.5, m)).toBe(1.5);
             expect(quantizeRenderScaleSticky(1.6, 1.5, m)).toBe(2);
-            // 在 2 級距時，1.45 不降級（> 1.425），1.4 才降級
-            expect(quantizeRenderScaleSticky(1.45, 2, m)).toBe(2);
-            expect(quantizeRenderScaleSticky(1.4, 2, m)).toBe(1.5);
+            // 降級立即生效：在 2 級距時，1.45 直接回到 1.5，之後在 1.5～1.575 之間都不升級
+            expect(quantizeRenderScaleSticky(1.45, 2, m)).toBe(1.5);
+            expect(quantizeRenderScaleSticky(1.52, 1.5, m)).toBe(1.5);
             // 大幅變化直接跳到目標級距
             expect(quantizeRenderScaleSticky(3.5, 1, m)).toBe(4);
             expect(quantizeRenderScaleSticky(0.5, 4, m)).toBe(1);

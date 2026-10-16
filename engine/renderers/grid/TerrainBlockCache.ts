@@ -37,9 +37,9 @@ export function quantizeRenderScale(scale: number, steps: readonly number[] = RE
 }
 
 /**
- * 帶遲滯的縮放級距：已在某級距時，縮放需超出該級距 (1 + margin) 才升級、
- * 低於下一級 (1 - margin) 才降級。避免鏡頭在級距邊界（例如導演鏡頭 1.21～1.54 跨 1.5）
- * 來回切換解析度，同時保留兩組 sprite 而撐爆快取。
+ * 帶遲滯的縮放級距：已在某級距時，縮放需超出該級距 (1 + margin) 才升級；降級立即生效。
+ * 只要升級側有緩衝，鏡頭在級距邊界（例如導演鏡頭 1.21～1.54 跨 1.5）來回時就不會切換解析度、
+ * 同時保留兩組 sprite 而撐爆快取；降級不延遲，畫面結果與無遲滯版本一致（保真基準不受鏡頭歷程影響）。
  */
 export function quantizeRenderScaleSticky(
     scale: number,
@@ -53,8 +53,7 @@ export function quantizeRenderScaleSticky(
     if (target > prevStep) {
         return scale > prevStep * (1 + margin) ? target : prevStep;
     }
-    const lower = prevIdx > 0 ? steps[prevIdx - 1] : prevStep;
-    return scale < lower * (1 - margin) ? target : prevStep;
+    return target;
 }
 
 /** packedInt 內「縮放級距索引」的位元位置與遮罩（與 terrainSpriteKey 的打包方式一致） */
