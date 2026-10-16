@@ -1,5 +1,6 @@
 import { Agent } from "../../../game";
-import { Team, HexLayout } from "../../../../types";
+import { HexLayout } from "../../../../types";
+import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { SHIELD_VISUAL, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../../constants";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { SpriteUnitRenderer } from "../../units/factions/SpriteUnitRenderer";
@@ -30,12 +31,11 @@ export const ShieldPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, t: number, layout: HexLayout) {
         if (agent.shield <= 0) return;
 
-        const isBlue = agent.team === Team.BLUE;
         const shieldDef = STATUS_VISUALS['SHIELD'];
         
         // Task C1: 主色讀 STATUS_VISUALS，team 色用於描邊
         const baseColor = shieldDef?.primaryColor || '#bae6fd';
-        const teamColor = isBlue ? '#60a5fa' : '#ef4444';
+        const teamColor = getFactionSkin(agent.team).shield.strokeColor;
         
         // 護盾強度視覺映射
         const pct = Math.min(1, agent.shield / (agent.maxShield || 100));

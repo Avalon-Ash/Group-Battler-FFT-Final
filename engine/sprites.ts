@@ -15,15 +15,15 @@
 // ║  [注意] UnitLayers 等已無外部使用端，保留僅為向後相容           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { Role, Team, HexLayout } from "../types";
-import { PALETTE } from "../constants";
+import { Role, Team, HexLayout, BodyTypeId } from "../types";
 import { UnitFactory } from "./graphics/UnitFactory";
+import { getFactionSkin } from "../data/units/factionSkin";
+import { factionTextureStore } from "./renderers/units/FactionTextureStore";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
 const cache: Map<string, any> = new Map();
 export interface UnitAssets {
     base: HTMLCanvasElement;
     icon: HTMLCanvasElement;
-    color: string;
 }
 export interface UnitLayers {
     base: HTMLCanvasElement;
@@ -31,25 +31,33 @@ export interface UnitLayers {
     icon: HTMLCanvasElement;
 }
 const _layerCache = new Map<string, UnitLayers>();
+// 棋座／職業圖示烘焙快取：陣營貼圖載入完成（revision 變動）時整批丟棄重烘
+const _tokenCache = new Map<string, UnitAssets>();
+let _tokenRevision = -1;
 export const SpriteManager = {
-    getUnitImages(role: Role, team: Team): UnitAssets {
-        const keyBase = `TOKEN_BASE_${team}_V3`; 
-        let base = cache.get(keyBase);
-        if (!base) {
-            base = UnitFactory.generateTokenBase(team);
-            cache.set(keyBase, base);
+    /**
+     * 棋座與職業圖示（陣營皮膚 FACTION_SKINS＋手繪貼圖槽，烘焙一次後快取）
+     */
+    getUnitImages(role: Role, team: Team, body: BodyTypeId = 'MALE', layout: HexLayout = 'FLAT'): UnitAssets {
+        if (_tokenRevision !== factionTextureStore.revision) {
+            _tokenRevision = factionTextureStore.revision;
+            _tokenCache.clear();
+            _layerCache.clear();
         }
-        const keyIcon = `ROLE_ICON_${role}_${team}_V3`;
-        let icon = cache.get(keyIcon);
-        if (!icon) {
-            icon = UnitFactory.generateRoleIcon(role, team);
-            cache.set(keyIcon, icon);
+        const key = `${team}|${role}|${body}|${layout}`;
+        let assets = _tokenCache.get(key);
+        if (!assets) {
+            const skin = getFactionSkin(team, role, body);
+            const base = UnitFactory.generateTokenBase(skin, layout, {
+                pedestalTexture: factionTextureStore.getTexture(team, 'pedestalTexture', role, body),
+                pedestalRim: factionTextureStore.getTexture(team, 'pedestalRim', role, body),
+                emblem: factionTextureStore.getTexture(team, 'emblem', role, body),
+            });
+            const icon = UnitFactory.generateRoleIcon(role, skin, factionTextureStore.getTexture(team, 'classIcon', role, body));
+            assets = { base, icon };
+            _tokenCache.set(key, assets);
         }
-        return {
-            base: base,
-            icon: icon,
-            color: PALETTE.TEAMS[team].glow
-        };
+        return assets;
     },
     getUnitLayers(role: Role, team: Team): UnitLayers {
         const key = `${role}_${team}`;

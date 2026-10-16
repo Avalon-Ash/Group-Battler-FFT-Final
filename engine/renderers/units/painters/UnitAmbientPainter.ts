@@ -1,6 +1,5 @@
 import { Agent } from "../../../core/Agent";
-import { Team } from "../../../../types";
-import { FACTION_VISUALS, FactionVisualDef } from "../../../../data/vfx/faction_visuals";
+import { getFactionSkin, ProjectionSkin } from "../../../../data/units/factionSkin";
 import { UNIT_SCALE } from "../../../../constants";
 import { isGlowSpritesEnabled } from "../../RenderQuality";
 import { GlowSpriteCache, drawGlowSprite } from "../../GlowSpriteCache";
@@ -16,25 +15,23 @@ export const UnitAmbientPainter = {
         if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
         if (agent.visualStatus !== 'NONE') return; // CC 狀態不疊加常駐 VFX
 
-        const faction = FACTION_VISUALS[agent.team];
-        if (!faction || !faction.ambientGlowColor) return;
-
+        const projection = getFactionSkin(agent.team).projection;
         const inv = 1 / UNIT_SCALE;
 
-        if (agent.team === Team.BLUE) {
-            this.drawImperialAmbient(ctx, agent, t, faction, inv);
+        if (projection.style === 'LIONHEART_SEAMS') {
+            this.drawImperialAmbient(ctx, agent, t, projection, inv);
         } else {
-            this.drawKhorneAmbient(ctx, agent, t, faction, inv);
+            this.drawKhorneAmbient(ctx, agent, t, projection, inv);
         }
     },
 
-    drawImperialAmbient(ctx: CanvasRenderingContext2D, _agent: Agent, t: number, faction: FactionVisualDef, inv: number) {
+    drawImperialAmbient(ctx: CanvasRenderingContext2D, _agent: Agent, t: number, projection: ProjectionSkin, inv: number) {
         // 護甲接縫呼吸光
         const pulse = 0.5 + Math.sin(t * 3.0) * 0.2;
         ctx.save();
         ctx.scale(inv, inv);
         ctx.globalAlpha = pulse;
-        const glowColor = faction.ambientGlowColor || '#60a5fa';
+        const glowColor = projection.glowColor;
 
         if (isGlowSpritesEnabled()) {
             const entry = GlowSpriteCache.getGlowSprite('rect', glowColor, 18, 8, { width: 18, height: 10, rx: 2 });
@@ -60,7 +57,7 @@ export const UnitAmbientPainter = {
         ctx.restore();
     },
 
-    drawKhorneAmbient(ctx: CanvasRenderingContext2D, agent: Agent, t: number, faction: FactionVisualDef, inv: number) {
+    drawKhorneAmbient(ctx: CanvasRenderingContext2D, agent: Agent, t: number, projection: ProjectionSkin, inv: number) {
         const hpRatio = Math.max(0, agent.hp / agent.maxHp);
         // HP 越低，血腥感越強
         const intensity = 0.4 + (1 - hpRatio) * 0.6;
@@ -68,8 +65,8 @@ export const UnitAmbientPainter = {
         ctx.save();
         ctx.scale(inv, inv);
 
-        const glowColor = faction.ambientGlowColor || '#dc2626';
-        const blurRadius = (faction.ambientGlowRadius || 10) * intensity * 2;
+        const glowColor = projection.glowColor;
+        const blurRadius = projection.glowRadius * intensity * 2;
 
         if (isGlowSpritesEnabled()) {
             const entry = GlowSpriteCache.getGlowSprite('disc', glowColor, 4, blurRadius);
@@ -83,7 +80,7 @@ export const UnitAmbientPainter = {
 
         // 2. 血滴粒子（從肩部與身體各處滴落/噴濺）
         const dropCount = 6;
-        const particleColor = faction.ambientParticleColor || '#7f1d1d';
+        const particleColor = projection.particleColor;
         
         for (let i = 0; i < dropCount; i++) {
             const offset = i * (1.0 / dropCount);

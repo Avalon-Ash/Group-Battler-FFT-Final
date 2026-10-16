@@ -1,7 +1,6 @@
 
-import { Team } from "../../../../types";
 import { VFXSystem } from "../../vfx";
-import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
+import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { Agent } from "../../../core/Agent";
 import { VFX_BUDGET, DEATH_VFX } from "../../../../constants";
 import { getQualityTier } from "../../../renderers/RenderQuality";
@@ -14,7 +13,7 @@ export const UnitShatter = {
      */
     spawn(system: VFXSystem | undefined, agent: Agent, groundZ: number, impactX: number = 0, impactY: number = 0) {
         if (!system) return;
-        const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
+        const death = getFactionSkin(agent.team).death;
 
         const ox = agent.px;
         const oy = agent.py;
@@ -28,7 +27,7 @@ export const UnitShatter = {
         const lifeScale = isUnderPressure ? (VFX_BUDGET.SHATTER_LIFETIME_REDUCED / VFX_BUDGET.SHATTER_LIFETIME_NORMAL) : 1.0;
 
         // 0. Initial Burst Feedback
-        system.playEffect('FX_HIT_GENERIC', ox, oy, oz + 20, faction.primaryColor, floorLvl);
+        system.playEffect('FX_HIT_GENERIC', ox, oy, oz + 20, death.burstColor, floorLvl);
 
         // 1. 塵煙團：緩慢向外擴散並上升
         const puffCount = isUnderPressure ? DEATH_VFX.PUFF_REDUCED : DEATH_VFX.PUFF_NORMAL;
@@ -61,7 +60,7 @@ export const UnitShatter = {
             p.vy = Math.sin(angle) * speed + impactY * 0.4;
             p.vz = DEATH_VFX.SPARK_RISE_MIN + Math.random() * DEATH_VFX.SPARK_RISE_RANGE;
             p.size = DEATH_VFX.SPARK_SIZE_MIN + Math.random() * DEATH_VFX.SPARK_SIZE_RANGE;
-            p.color = faction.primaryColor;
+            p.color = death.burstColor;
             p.gravity = DEATH_VFX.SPARK_GRAVITY;
             p.life = DEATH_VFX.SPARK_LIFE * (0.8 + Math.random() * 0.4) * lifeScale;
             p.maxLife = p.life;
@@ -69,12 +68,12 @@ export const UnitShatter = {
         }
 
         // 3. 靈魂飛升 / 血噴 (Atmosphere/Spray)
-        if (agent.team === Team.BLUE) {
+        if (death.style === 'SPIRIT_RISE') {
             const soul = system.state.getParticle();
             soul.x = ox; soul.y = oy; soul.z = oz;
             soul.type = 'ATMOSPHERE';
             soul.size = 80;
-            soul.color = faction.deathSpiritColor;
+            soul.color = death.spiritColor;
             soul.vx = 0; soul.vy = 0; soul.vz = 100;
             soul.life = 2.5 * lifeScale; soul.maxLife = soul.life;
             soul.blendMode = 'screen';
@@ -82,7 +81,7 @@ export const UnitShatter = {
         } else {
             // 公約 (RED): 血噴放射粒子 (替代上升靈魂)
             const bloodCount = isUnderPressure ? VFX_BUDGET.SHATTER_BLOOD_REDUCED : VFX_BUDGET.SHATTER_BLOOD_NORMAL;
-            const bloodColor = faction.ambientGlowColor || faction.deathSpiritColor;
+            const bloodColor = death.bloodColor;
             
             for (let i = 0; i < bloodCount; i++) {
                 const p = system.state.getParticle();

@@ -10,6 +10,7 @@
  */
 
 import { UNIT_SPRITE } from '../../../constants';
+import { getFactionSkinByAtlasKey } from '../../../data/units/factionSkin';
 
 export interface UnitFrameDef {
     x: number;
@@ -52,7 +53,7 @@ interface BakedAtlasEntry {
 /**
  * resolveAssetUrl — 依據 Vite BASE_URL 解析相對資產路徑
  */
-function resolveAssetUrl(relativePath: string): string {
+export function resolveAssetUrl(relativePath: string): string {
     const base = (typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env.BASE_URL === 'string')
         ? import.meta.env.BASE_URL
         : './';
@@ -179,7 +180,7 @@ class SpriteAtlasStore {
 
             if (!img) return;
 
-            const baked = this.bakeAtlas(img);
+            const baked = this.bakeAtlas(img, getFactionSkinByAtlasKey(manifestKey)?.sprite.tint ?? null);
             this.atlases.set(manifestKey, baked);
             this.revision++;
         })();
@@ -191,12 +192,29 @@ class SpriteAtlasStore {
     /**
      * 預烘焙單張圖集的白閃剪影與所有 Mip 層級
      */
-    private bakeAtlas(img: HTMLImageElement): BakedAtlasEntry {
-        const w = img.naturalWidth || img.width;
-        const h = img.naturalHeight || img.height;
+    private bakeAtlas(sourceImg: HTMLImageElement, tint: { color: string; strength: number } | null): BakedAtlasEntry {
+        const w = sourceImg.naturalWidth || sourceImg.width;
+        const h = sourceImg.naturalHeight || sourceImg.height;
 
         const normalMips = new Map<number, CanvasImageSource>();
         const silhouetteMips = new Map<number, CanvasImageSource>();
+
+        // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
+        let img: HTMLImageElement | HTMLCanvasElement = sourceImg;
+        if (tint && tint.strength > 0) {
+            const tinted = document.createElement('canvas');
+            tinted.width = w;
+            tinted.height = h;
+            const tctx = tinted.getContext('2d');
+            if (tctx) {
+                tctx.drawImage(sourceImg, 0, 0);
+                tctx.globalCompositeOperation = 'source-atop';
+                tctx.globalAlpha = tint.strength;
+                tctx.fillStyle = tint.color;
+                tctx.fillRect(0, 0, w, h);
+                img = tinted;
+            }
+        }
 
         // 1.0 原寸
         normalMips.set(1.0, img);

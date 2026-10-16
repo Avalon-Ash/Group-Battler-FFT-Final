@@ -5,12 +5,13 @@ import { VFXFactory } from "../../../graphics/VFXFactory";
 import { UNIT_SCALE, ISO_SCALE_Y } from "../../../../constants";
 import { HexLayout } from "../../../../types";
 import { VisualMath } from "../../../math/VisualMath";
+import { resolveBodyType } from "../../../../data/units/appearance/bodyTypes";
 
 export const UnitShadowPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, t: number, isSilhouette: boolean, layout: HexLayout) {
         if (isSilhouette || agent.visualStatus === 'POLYMORPH') return;
 
-        const assets = SpriteManager.getUnitImages(agent.role, agent.team);
+        const assets = SpriteManager.getUnitImages(agent.role, agent.team, resolveBodyType(agent), layout);
         const surfaceY = py;
         
         // SSOT: Use centralized shadow bias
