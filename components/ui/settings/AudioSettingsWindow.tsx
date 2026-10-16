@@ -101,7 +101,7 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                 <button
                     data-testid="btn-mute-toggle"
                     onClick={handleToggleMute}
-                    className="px-4 py-1.5 rounded-lg font-bold transition-all text-xs border"
+                    className="touch-target px-4 py-1.5 rounded-lg font-bold transition-all text-xs border"
                     style={{
                         backgroundColor: settings.muted ? 'rgba(239, 68, 68, 0.25)' : 'rgba(6, 182, 212, 0.2)',
                         borderColor: settings.muted ? 'rgba(239, 68, 68, 0.5)' : 'rgba(6, 182, 212, 0.4)',

@@ -96,7 +96,7 @@ function App() {
           />
       </WindowLayer>
 
-      <div className="flex-1 relative z-0 bg-slate-900 touch-none">
+      <div className="flex-1 min-h-0 relative z-0 bg-slate-900 touch-none">
             <GameCanvas 
                 engine={engineRef.current} 
                 tool={state.tool}

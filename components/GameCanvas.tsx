@@ -9,6 +9,7 @@ import { useGameLoop } from '../hooks/useGameLoop';
 import { useGameCamera } from '../hooks/useGameCamera';
 import { useGameInput } from '../hooks/useGameInput';
 import { useCameraControl } from '../hooks/useCameraControl';
+import { useCompactViewport } from '../hooks/useCompactViewport';
 import { Icons } from './ui/icons';
 import { UI_Z } from '../constants';
 import { getRenderDpr } from '../engine/renderers/RenderQuality';
@@ -35,6 +36,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         engine, tool, selectedObstacle, hpInput, selectedAgent, hoveredSkill, 
         isShowcaseMode, spawnMode, draftRole, draftBodyType, onSelect, winner, rematch, nextLevel, transitionPhase, onOpenLogs 
     } = props;
+    const isCompact = useCompactViewport();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const wrapperRef = useRef<HTMLDivElement>(null);
     const rendererRef = useRef<GameRenderer | null>(null);
@@ -150,22 +152,22 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
                 onContextMenu={(e) => e.preventDefault()}
             />
             {winner !== null && !isShowcaseMode && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY }}>
-                    <div className="text-center p-10 liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
-                        <div className="mb-6">
+                <div className="absolute inset-0 flex overflow-y-auto bg-black/60 backdrop-blur-sm pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY }}>
+                    <div className={`text-center ${isCompact ? 'p-5' : 'p-10'} liquid-glass rounded-3xl animate-bounce-in max-w-lg w-full m-auto border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)]`}>
+                        <div className={isCompact ? 'mb-3' : 'mb-6'}>
                             <span className="text-xs font-mono font-bold tracking-[0.5em] text-slate-400 uppercase block mb-2">戰鬥模擬演算結束</span>
-                            <h2 className={`text-5xl md:text-6xl font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
+                            <h2 className={`${isCompact ? 'text-3xl' : 'text-5xl md:text-6xl'} font-black tracking-tighter ${winner === Team.BLUE ? 'text-blue-400 drop-shadow-[0_0_30px_rgba(59,130,246,0.6)]' : 'text-red-500 drop-shadow-[0_0_30px_rgba(239,68,68,0.6)]'}`}>
                                 {winner === Team.BLUE ? '帝國軍 (IMPERIAL)' : '誓約軍團 (COVENANT)'}
                             </h2>
-                            <h2 className="text-4xl md:text-5xl font-black text-white tracking-widest mt-1 opacity-90">
+                            <h2 className={`${isCompact ? 'text-2xl' : 'text-4xl md:text-5xl'} font-black text-white tracking-widest mt-1 opacity-90`}>
                                 獲得勝利 (VICTORY)
                             </h2>
                         </div>
-                        <div className="h-px w-24 mx-auto bg-white/20 rounded-full mb-8"></div>
+                        <div className={`h-px w-24 mx-auto bg-white/20 rounded-full ${isCompact ? 'mb-4' : 'mb-8'}`}></div>
                         <div className="flex flex-col gap-3">
                             <button 
                                 onClick={nextLevel} 
-                                className="liquid-btn-primary px-8 py-4 rounded-xl text-lg font-bold shadow-lg w-full flex items-center justify-center gap-3 group"
+                                className={`liquid-btn-primary px-8 ${isCompact ? 'py-3' : 'py-4'} rounded-xl text-lg font-bold shadow-lg w-full flex items-center justify-center gap-3 group`}
                             >
                                 <Icons.Dice className="w-5 h-5 group-hover:scale-110 transition-transform" />
                                 <span>前進下一關 (Next Level)</span>

@@ -64,7 +64,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
         <button
             onClick={() => setActiveTab(id)}
             data-testid={`showcase-tab-${id.toLowerCase()}`}
-            className={`flex-1 py-2 text-xs font-bold transition-all relative ${
+            className={`touch-target flex-1 py-2 text-xs font-bold transition-all relative ${
                 activeTab === id ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
             }`}
         >
@@ -146,7 +146,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                         key={l}
                                         onClick={() => handleLayoutChange(l)}
                                         data-testid={`showcase-layout-${l.toLowerCase()}`}
-                                        className={`py-2 px-3 rounded-xl border text-[11px] font-bold transition-all ${
+                                        className={`touch-target py-2 px-3 rounded-xl border text-[11px] font-bold transition-all ${
                                             activeLayout === l
                                                 ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]'
                                                 : 'bg-white/5 border-white/5 text-slate-400 hover:text-white'
@@ -200,7 +200,7 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
                                         key={d}
                                         onClick={() => updateConfig('direction', d)}
                                         data-testid={`showcase-direction-${d.toLowerCase()}`}
-                                        className={`flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                                        className={`touch-target flex-1 py-1 rounded-lg text-[10px] font-bold transition-all ${
                                             activeConfig.direction === d
                                                 ? 'bg-cyan-600 text-white shadow-md'
                                                 : 'text-slate-500 hover:text-slate-300'

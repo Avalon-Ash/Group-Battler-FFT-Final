@@ -3,6 +3,7 @@ import { Icons } from './icons';
 import { getRegisteredWindows } from './window/windowRegistry';
 import { useWindowStore, useWindowActions } from '../../hooks/useWindowStore';
 import { UI_Z } from '../../constants';
+import { useCompactViewport } from '../../hooks/useCompactViewport';
 
 interface SystemMenuProps {
     onDownloadSpec: () => void;
@@ -14,6 +15,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
     mode = 'manual',
 }: SystemMenuProps) => {
     const [isOpen, setIsOpen] = useState(false);
+    const isCompact = useCompactViewport();
 
     const windowStates = useWindowStore();
     const windowActions = useWindowActions();
@@ -31,7 +33,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
             )}
 
             <div
-                className="absolute top-6 right-6 flex flex-col items-end gap-3 pointer-events-auto"
+                className={`absolute flex flex-col items-end gap-3 pointer-events-auto ${isCompact ? 'top-3 right-3' : 'top-6 right-6'}`}
                 style={{ zIndex: UI_Z.MENU }}
             >
                 <button
@@ -48,7 +50,7 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                 </button>
 
                 {isOpen && (
-                    <div className="flex flex-col gap-2 animate-slide-down origin-top-right">
+                    <div className={`flex flex-col gap-2 animate-slide-down origin-top-right ${isCompact ? 'max-h-[calc(100dvh-5.5rem)] overflow-y-auto overscroll-contain' : ''}`}>
                         {/* Registered Windows in Registry */}
                         {registeredWindows.map((win) => {
                             const isWinOpen = windowStates[win.id]?.isOpen ?? false;

@@ -3,6 +3,7 @@ import { useMatrixRain } from './useMatrixRain';
 import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
 import { UI_Z } from '../../../constants';
+import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowActions, useWindowState } from '../../../hooks/useWindowStore';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
 
@@ -22,6 +23,8 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
     const windowActions = useWindowActions();
     const settingsWindowState = useWindowState('showcaseSettings');
     const isSettingsOpen = !!settingsWindowState?.isOpen;
+    // Settings open as a bottom sheet at compact widths; the title card would sit behind it.
+    const isCompactViewport = useCompactViewport();
     
     const [viewport, setViewport] = useState({ w: window.innerWidth, h: window.innerHeight });
 
@@ -82,7 +85,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
 
             <div className={`absolute flex animate-slide-up pointer-events-none transition-all duration-500 ${getLayoutClasses()}`} style={{ zIndex: UI_Z.MENU_BACKDROP }}>
                 
-                <div data-testid="showcase-card" className={`p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${isSettingsOpen ? 'max-md:opacity-0 max-md:invisible' : ''} ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
+                <div data-testid="showcase-card" className={`p-8 md:p-10 pointer-events-none flex max-w-full transition-opacity duration-300 ${isSettingsOpen && isCompactViewport ? 'opacity-0 invisible' : ''} ${isWideBar ? 'w-full flex-col md:flex-row items-center gap-8' : 'flex-col items-center gap-8 w-full'}`}>
                     
                     <div className={`relative flex flex-col max-w-full ${isWideBar ? 'items-center md:items-start text-center md:text-left flex-1' : (layout.includes('RIGHT') ? 'items-end' : 'items-center')}`}>
                         

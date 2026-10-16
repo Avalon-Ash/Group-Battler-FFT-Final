@@ -4,6 +4,7 @@ import { ToolType, Role, HexLayout, BodyTypeId } from '../../types';
 import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
+import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
 import { HexUtils } from '../../engine/utils';
 import { ROLE_MAP } from '../inspector/InspectorConstants';
@@ -50,6 +51,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
         hexLayout, onSetLayout
     } = props;
 
+    const isCompact = useCompactViewport();
+
     // Draggable Hook
     const ref = useRef<HTMLDivElement>(null);
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
@@ -69,10 +72,10 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
             {...dragHandlers}
         >
             {/* MAIN TOOLBAR */}
-            <div className={`liquid-card !bg-slate-900/90 !backdrop-blur-3xl !rounded-full p-2 flex items-center gap-2 shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-grab ${isDragging ? 'cursor-grabbing ring-2 ring-cyan-500/30' : ''}`}>
+            <div className={`liquid-card !bg-slate-900/90 !backdrop-blur-3xl !rounded-full p-2 flex items-center ${isCompact ? 'gap-1' : 'gap-2'} shadow-[0_10px_40px_rgba(0,0,0,0.5)] cursor-grab ${isDragging ? 'cursor-grabbing ring-2 ring-cyan-500/30' : ''}`}>
                 
                 {/* Drag Handle */}
-                <div className="w-6 flex flex-col gap-1 items-center justify-center opacity-30 hover:opacity-100 transition-opacity px-2 border-r border-white/10" onPointerDown={dragHandlers.onPointerDown}>
+                <div className={`w-6 ${isCompact ? 'hidden' : 'flex'} flex-col gap-1 items-center justify-center opacity-30 hover:opacity-100 transition-opacity px-2 border-r border-white/10`} onPointerDown={dragHandlers.onPointerDown}>
                     <div className="w-1 h-1 bg-white rounded-full"></div>
                     <div className="w-1 h-1 bg-white rounded-full"></div>
                     <div className="w-1 h-1 bg-white rounded-full"></div>
@@ -88,7 +91,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     <Icons.Select className="w-5 h-5" />
                 </button>
                 
-                <div className="w-px h-6 bg-white/10 mx-1"></div>
+                <div className={`w-px h-6 bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
                 
                 {/* 2. BLUE TEAM */}
                 <button 
@@ -110,7 +113,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     <Icons.Deploy className="w-5 h-5" />
                 </button>
                 
-                <div className="w-px h-6 bg-white/10 mx-1"></div>
+                <div className={`w-px h-6 bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
 
                 {/* 4. OBSTACLE */}
                 <button 
@@ -135,25 +138,25 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
 
             {/* SUB MENU: UNIT SETTINGS */}
             {isUnitTool && (
-                <div className="liquid-card !rounded-2xl p-2 flex items-center gap-3 animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
+                <div className="liquid-card !rounded-2xl p-2 flex flex-wrap justify-center items-center gap-3 max-w-[calc(100vw-1.5rem)] animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
                     <div className="flex items-center gap-1 bg-black/40 rounded-lg px-2 py-1 border border-white/5" title="初始生命值">
                         <span className="text-[11px] font-bold text-green-500">HP</span>
                         <input 
                             type="number" 
                             value={hpInput} 
                             onChange={(e) => setHpInput(Math.max(1, parseInt(e.target.value)))} 
-                            className="w-12 bg-transparent text-white text-xs font-mono text-center outline-none"
+                            className="touch-target w-12 bg-transparent text-white text-xs font-mono text-center outline-none"
                         />
                     </div>
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
-                        <button onClick={() => setSpawnMode('RANDOM')} title="隨機職業配置" className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>隨機</button>
-                        <button onClick={() => setSpawnMode('DRAFT')} title="指定固定職業" className={`px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>指定</button>
+                        <button onClick={() => setSpawnMode('RANDOM')} title="隨機職業配置" className={`touch-target px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>隨機</button>
+                        <button onClick={() => setSpawnMode('DRAFT')} title="指定固定職業" className={`touch-target px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>指定</button>
                     </div>
                     {spawnMode === 'DRAFT' && (
                         <select 
                             value={draftRole} 
                             onChange={(e) => setDraftRole(e.target.value as Role)} 
-                            className="bg-black/40 text-xs text-white rounded-lg px-2 py-1 border border-white/5 outline-none cursor-pointer hover:border-cyan-500/30"
+                            className="touch-target bg-black/40 text-xs text-white rounded-lg px-2 py-1 border border-white/5 outline-none cursor-pointer hover:border-cyan-500/30"
                         >
                             {Object.values(Role).map(r => (
                                 <option key={r} value={r}>
@@ -166,7 +169,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                         <button 
                             onClick={() => setDraftBodyType(undefined)} 
                             title="隨機體型" 
-                            className="px-2 py-1 rounded text-[11px] font-bold transition-all"
+                            className="touch-target px-2 py-1 rounded text-[11px] font-bold transition-all"
                             style={draftBodyType === undefined ? { backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9' } : { color: '#64748b' }}
                         >
                             隨機
@@ -178,7 +181,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                                     key={typeKey}
                                     onClick={() => setDraftBodyType(typeKey)} 
                                     title={`指定${profile.label}體型`} 
-                                    className="px-2 py-1 rounded text-[11px] font-bold transition-all"
+                                    className="touch-target px-2 py-1 rounded text-[11px] font-bold transition-all"
                                     style={draftBodyType === typeKey ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' } : { color: '#64748b' }}
                                 >
                                     {profile.label}
@@ -190,19 +193,19 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
 
             {/* SUB MENU: OBSTACLE & LAYOUT SETTINGS */}
             {isObstacleTool && (
-                <div className="liquid-card !rounded-2xl p-2 flex items-center gap-3 animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
+                <div className="liquid-card !rounded-2xl p-2 flex flex-wrap justify-center items-center gap-3 max-w-[calc(100vw-1.5rem)] animate-slide-down origin-top shadow-xl border-t-0" onPointerDown={e => e.stopPropagation()}>
                     {/* Layout Toggle */}
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shadow-inner">
                         <button 
                             onClick={() => onSetLayout('FLAT')} 
-                            className={`px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            className={`touch-target px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
                             title="平頂六邊形佈局 (Flat Top)"
                         >
                             平頂
                         </button>
                         <button 
                             onClick={() => onSetLayout('POINTY')} 
-                            className={`px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            className={`touch-target px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
                             title="尖頂六邊形佈局 (Pointy Top)"
                         >
                             尖頂
@@ -214,12 +217,12 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     <select 
                         value={selectedObstacle} 
                         onChange={(e) => setSelectedObstacle(e.target.value)} 
-                        className="bg-black/40 text-xs text-white rounded-lg px-3 py-1.5 border border-white/5 outline-none cursor-pointer hover:border-amber-500/30 w-32"
+                        className="touch-target bg-black/40 text-xs text-white rounded-lg px-3 py-1.5 border border-white/5 outline-none cursor-pointer hover:border-amber-500/30 w-32"
                     >
                         {Object.values(OBSTACLE_DB).map(o => <option key={o.id} value={o.id}>{o.name}</option>)}
                     </select>
                     
-                    <select value={currentSceneId} onChange={(e) => onSetScene(e.target.value)} className="bg-black/40 text-xs text-slate-400 rounded-lg px-2 py-1.5 border border-white/5 outline-none cursor-pointer hover:text-white w-24">
+                    <select value={currentSceneId} onChange={(e) => onSetScene(e.target.value)} className="touch-target bg-black/40 text-xs text-slate-400 rounded-lg px-2 py-1.5 border border-white/5 outline-none cursor-pointer hover:text-white w-24">
                         {SCENE_DB.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                     </select>
                 </div>
