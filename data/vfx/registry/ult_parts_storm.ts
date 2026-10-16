@@ -101,14 +101,14 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, partAnim: { fadeOut: 0.3 } }),
         ],
     },
-    // wr_u4 無限劍制（自身範圍 2 恐懼，12 次）：骨刃從地面刺出＋碎石
+    // wr_u4 無限劍制（自身範圍 2 恐懼，12 次）：骨刃從地面刺出（骨片轉 90° 直立）＋碎石
     'FX_ULT_RED_UNLIMITED_BLADE': {
         id: 'FX_ULT_RED_UNLIMITED_BLADE',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'shard', size: 32, shape: 'bone', ramp: 'ASH_PHYSICAL' }, count: 1, lifetime: 0.8, delay: 0, size: 32, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 80, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeOut: 0.4, ease: 'out' } }),
+                shape: 'CIRCLE', shapeRadius: 50, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeOut: 0.4, ease: 'out', rotation: 1.57 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 5, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 3 }, count: 2, lifetime: [0.5, 0.7], delay: 0, size: 5,
-                shape: 'CIRCLE', shapeRadius: 80, speed: [50, 120], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+                shape: 'CIRCLE', shapeRadius: 50, speed: [50, 120], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
         ],
     },
     // rr_u3 煉獄火雨（全場火雨，20 次）：隨機落點火舌＋火星

@@ -111,7 +111,7 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退；ult_visuals scale 3.0，零件尺寸要收小）：落地 → 白熱爆閃＋巨大火柱＋雙層斷裂環（擊退）＋碎石 → 蕈狀灰煙
+    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地 → 白熱爆閃＋巨大火柱＋雙層斷裂環（擊退）＋碎石 → 蕈狀灰煙
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
