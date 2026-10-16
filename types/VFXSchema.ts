@@ -63,7 +63,8 @@ export interface EmitterConfig {
     size: Range | number;
     height?: Range | number;
     colors: string[];
-    shape: 'POINT' | 'BURST_DIR' | 'CIRCLE';
+    /** RING：count 個粒子均勻分布在 shapeRadius 圓周上（例：六根光柱＝六角頂點） */
+    shape: 'POINT' | 'BURST_DIR' | 'CIRCLE' | 'RING';
     shapeRadius?: number;
     visualStyle?: string;
     drag?: number;
