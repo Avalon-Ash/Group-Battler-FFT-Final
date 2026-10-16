@@ -6,7 +6,6 @@
 Vite 6 + React 19 + TypeScript｜GitHub Pages 全球即時部署
 
 [![Play Online](https://img.shields.io/badge/Live%20Demo-GitHub%20Pages-2ea44f?logo=github&logoColor=white)](https://avalon-ash.github.io/Group-Battler-FFT-Final/)
-[![Deploy](https://img.shields.io/badge/Live%20Demo-Cloud%20Run-4285F4?logo=googlecloud&logoColor=white)](https://ai.studio/apps/ef9e48ce-2e94-41d8-98f5-f64bc8502565)
 
 ![TACTICAL.OS Gameplay](https://github.com/user-attachments/assets/a38770c9-05c8-4c21-ac86-c1da71650f45)
 
@@ -143,8 +142,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 ├── tools/                   ← 材質預覽、UI e2e、效能量測與渲染保真腳本、音訊預覽
 ├── types.ts                 ← 全域型別契約（VFX schema 另見 types/VFXSchema.ts）
 ├── constants.ts             ← 全域參數 SSOT（物理、戰鬥、顏色、版面、特效預算）
-├── .github/workflows/       ← GitHub Pages 自動部署
-└── server.js / Dockerfile   ← 容器部署（Cloud Run）
+└── .github/workflows/       ← GitHub Pages 自動部署
 ```
 
 ---
@@ -182,7 +180,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 | 美術 | KayKit 3D 模型預渲染的精靈圖集、貼圖地形、粒子貼圖（CC0／CC-BY，見 `CREDITS.md`） |
 | 音訊 | Web Audio（共享 AudioContext，事件驅動音效與 BGM） |
 | AI 協作開發 | 企劃主導：設計決策 → AI 實作 → 模擬器驗證（見下方「開發協作」） |
-| 部署 | GitHub Pages（CI/CD 自動化）／ Google Cloud Run ／ Docker |
+| 部署 | GitHub Pages（CI/CD 自動化） |
 
 ---
 
@@ -210,7 +208,6 @@ npm run dev          # 開發伺服器 http://localhost:3000
 npm run lint         # TypeScript 靜態檢查（0 errors）
 npm test             # 單元測試
 npm run build        # 生產環境打包（dist/）
-npm run start        # 以 server.js 啟動生產版本（容器部署用）
 npm run e2e:ui       # UI e2e（無頭 Edge）
 npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
 ```

@@ -14,7 +14,8 @@ import { AgentVFXSystem } from "./AgentVFXSystem";
 import { Point3D } from "../../math/VisualMath";
 import { GameEngine } from "../../game";
 import { HexMath } from "../../math/HexMath";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT } from "../../../constants";
+import type { HexLayout } from "../../../types";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
@@ -26,6 +27,11 @@ export class VFXSystem {
     public reset() { 
         this.state.reset(); 
         this.collapsedHexKeys.clear();
+    }
+
+    /** 目前地圖的六角版面（生成貼地零件時決定是否需要正向圖騰版本）；未綁定引擎時為預設版面。 */
+    public get hexLayout(): HexLayout {
+        return this.boundEngine?.mapConfig.layout ?? DEFAULT_HEX_LAYOUT;
     }
 
     public bind(engine: GameEngine) {

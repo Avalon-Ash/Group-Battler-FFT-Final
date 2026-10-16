@@ -12,6 +12,7 @@ import { HexUtils } from "../utils";
 import { MovementType } from "../../types";
 import { MapGenerator } from "./map/MapGenerator";
 import { MapSpatial } from "./map/MapSpatial";
+import { VisualMath } from "../math/VisualMath";
 export class MapSystem {
     public agentMap: Map<number, Agent> = new Map();
     public mapKeys: Set<string> = new Set();
@@ -40,8 +41,12 @@ export class MapSystem {
         return (agent && agent.hp > 0) ? agent : undefined;
     }
     public updateAgentPosition(agent: Agent, newQ: number, newR: number, engine: GameEngine) {
-        const oldH = engine.getTerrainHeight(agent.q, agent.r);
-        const newH = engine.getTerrainHeight(newQ, newR);
+        // 腳底（腳下地面高度＋physics.z）在換格前後必須連續。腳下地面高度的唯一定義是
+        // VisualMath.getUnitGroundHeight：走路抵達下一格時它已經過渡到目標高度，差值為 0，
+        // 瞬移／衝刺／擊退則依高度差由 physics.z 吸收（再由 PhysicsEngine 落下或夾平）。
+        const heightAt = (q: number, r: number) => engine.getTerrainHeight(q, r);
+        const oldH = VisualMath.getUnitGroundHeight(agent, heightAt);
+        const newH = VisualMath.getUnitGroundHeight({ q: newQ, r: newR, isMoving: agent.isMoving, path: agent.path, moveProgress: agent.moveProgress }, heightAt);
         const deltaH = oldH - newH;
         agent.physics.z += deltaH;
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
@@ -57,7 +62,7 @@ export class MapSystem {
             agent.px = p.x;
             agent.py = p.y;
             // physics.z 已由上方 deltaH 補正，代表跨高度的高差
-            // 視覺高度由 UnitVisualProcessor 讀取 getTerrainHeight(q,r) 計算，不需額外設定
+            // 視覺高度由 UnitVisualProcessor 經 VisualMath.getUnitGroundHeight 計算，不需額外設定
         }
     }
     public clearAgents() {

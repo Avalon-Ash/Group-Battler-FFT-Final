@@ -2,7 +2,7 @@
  * TerrainBlockCache — 地形六角格 Sprite 快取與量化調度器
  * -----------------------------------------------------------------------------
  * 說明：
- *  - 地形格頂面與側面外觀是 (theme, layout, type, height, variant, floatOffset, renderScale) 的純函數。
+ *  - 地形格頂面與側面外觀是 (theme, layout, type, height, variant, floatOffset, renderScale, edgeMask, baseLevel) 的純函數。
  *  - 將耗時的 createLinearGradient、clip 與 overlay 顆粒在離屏 canvas 烘焙為 Sprite。
  *  - 依照 RENDER_CACHE.SCALE_STEPS 向上量化解析度，無字窗配置，純衍生快取不持遊戲狀態。
  *  - 內含 MATERIAL_CONFIG 逐欄數值簽章比對，即時調參時自動清空重建。
@@ -62,6 +62,15 @@ const SCALE_BIT_MASK = 7;
 /** packedInt 內「鄰格高度遮罩」：bit 25-30（共 6 bit），不得與其他欄位重疊，總長不得超過 31 bit */
 export const EDGE_MASK_BIT_SHIFT = 25;
 export const EDGE_MASK_BIT_MASK = 63;
+/**
+ * packedInt 內「島嶼底座深度級數」：bit 9-12（共 4 bit）。
+ * 原本 bit 4-12 都給漂浮位移，但漂浮已改為繪製時平移（drawBlock 固定傳 0），故漂浮欄位縮為 bit 4-8（±16 級，±8 px）。
+ */
+export const BASE_LEVEL_BIT_SHIFT = 9;
+export const BASE_LEVEL_BIT_MASK = 15;
+const FLOAT_BIT_SHIFT = 4;
+const FLOAT_BIT_MASK = 31;
+const FLOAT_KEY_BIAS = 16;
 
 export interface TerrainKeyCompound {
     theme: TerrainTheme;
@@ -81,7 +90,8 @@ export function terrainSpriteKey(
     variant: number,
     floatOffset: number,
     scaleStep: number,
-    edgeMask: number = 0
+    edgeMask: number = 0,
+    baseLevel: number = 0
 ): TerrainKeyCompound {
     const hKey = Math.round(h * RENDER_CACHE.HEIGHT_KEY_SCALE);
     const floatKey = Math.round(floatOffset / RENDER_CACHE.FLOAT_STEP);
@@ -95,8 +105,13 @@ export function terrainSpriteKey(
     }
 
     const hOffset = Math.max(0, Math.min(511, hKey + 100));
-    const fOffset = Math.max(0, Math.min(511, floatKey + 100));
-    const packedInt = ((edgeMask & EDGE_MASK_BIT_MASK) << EDGE_MASK_BIT_SHIFT) | ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT) | ((hOffset & 511) << 13) | ((fOffset & 511) << 4) | (variant & 15);
+    const fOffset = Math.max(0, Math.min(FLOAT_BIT_MASK, floatKey + FLOAT_KEY_BIAS));
+    const packedInt = ((edgeMask & EDGE_MASK_BIT_MASK) << EDGE_MASK_BIT_SHIFT)
+        | ((scaleIdx & SCALE_BIT_MASK) << SCALE_BIT_SHIFT)
+        | ((hOffset & 511) << 13)
+        | ((baseLevel & BASE_LEVEL_BIT_MASK) << BASE_LEVEL_BIT_SHIFT)
+        | ((fOffset & FLOAT_BIT_MASK) << FLOAT_BIT_SHIFT)
+        | (variant & 15);
 
     return {
         theme,

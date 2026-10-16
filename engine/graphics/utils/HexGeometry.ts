@@ -5,9 +5,25 @@ import { HexLayout } from "../../../types";
  * 核心六邊形幾何真理 (Single Source of Truth) - V3.6 TA Corrected
  */
 export const HexGeometry = {
+    /**
+     * 版面 → 六角頂點起始角（弧度）：FLAT 平頂為 0（頂點在左右），POINTY 尖頂為 π/6（頂點在上下）。
+     * 所有「要和地圖格同向」的六角（地形、覆蓋層、地面特效、預烘焙零件）都以此為唯一來源。
+     */
+    layoutAngle(layout: HexLayout): number {
+        return layout === 'FLAT' ? 0 : Math.PI / 6;
+    },
+
+    /**
+     * 以起始角 bakedAngle 預先畫好的六角圖（零件 sprite、材質貼圖）要在地面平面上旋轉多少才會與 layout 的格子同向。
+     * 旋轉須在 ISO_SCALE_Y 壓扁之前套用（先在地面旋轉再投影）。六角每 60° 對稱，所以 FLAT 烘焙的圖在 FLAT 地圖上恆為 0。
+     */
+    alignRotation(layout: HexLayout, bakedAngle: number = 0): number {
+        return HexGeometry.layoutAngle(layout) - bakedAngle;
+    },
+
     getVertices(radius: number, applyIso: boolean = true, layout: HexLayout = 'FLAT'): {x: number, y: number}[] {
         const vertices = [];
-        const baseStartAngle = layout === 'FLAT' ? 0 : Math.PI / 6;
+        const baseStartAngle = HexGeometry.layoutAngle(layout);
         const scaleY = applyIso ? ISO_SCALE_Y : 1.0;
         for (let i = 0; i < 6; i++) {
             const angle = baseStartAngle + i * Math.PI / 3;

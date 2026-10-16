@@ -1,5 +1,6 @@
 import { Agent } from "../../game";
 import { MapConfig } from "../../utils";
+import { VisualMath } from "../../math/VisualMath";
 
 export interface UnitVisualState {
     agent: Agent;
@@ -26,10 +27,11 @@ export class UnitVisualProcessor {
         const visualX = agent.px + agent.physics.x;
         const visualY = agent.py + agent.physics.y;
         
-        // 核心：使用邏輯網格位置作為高度真理
-        const tq = agent.dragOverQ ?? agent.q;
-        const tr = agent.dragOverR ?? agent.r;
-        const terrainH = getTerrainHeight(tq, tr);
+        // 核心：腳下地面高度的唯一定義在 VisualMath.getUnitGroundHeight（編輯模式拖曳預覽例外：直接取游標所在格）
+        const isDragPreview = agent.dragOverQ !== null || agent.dragOverR !== null;
+        const terrainH = isDragPreview
+            ? getTerrainHeight(agent.dragOverQ ?? agent.q, agent.dragOverR ?? agent.r)
+            : VisualMath.getUnitGroundHeight(agent, getTerrainHeight);
         const isSelected = (agent === highlightAgent);
         
         return {

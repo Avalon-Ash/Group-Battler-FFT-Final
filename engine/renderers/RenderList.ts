@@ -28,6 +28,7 @@ export class RenderOp {
     tsize: number = 0; ttheme: TerrainTheme | null = null;
     tq: number = 0; tr: number = 0;
     tEdge: number = 0; // 地形鄰格高度遮罩（6-bit，見 GridCache.CachedTile.edgeMask）
+    tBase: number = 0; // 島嶼底座深度級數（見 GridCache.CachedTile.baseLevel）
     ttype: string = ''; tdetail: string = '';
     oStatus: string | undefined;
     oDanger: ActiveZone | undefined;
@@ -69,6 +70,7 @@ export class RenderOp {
         this.tx = 0; this.ty = 0; this.th = 0;
         this.tq = 0; this.tr = 0;
         this.tEdge = 0;
+        this.tBase = 0;
         this.agent = null;
         this.alpha = 1.0;
         this.particle = null;

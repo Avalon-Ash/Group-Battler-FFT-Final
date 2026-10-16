@@ -28,7 +28,7 @@ export const VFX_PARTS = {
     /** 預設播放速率（影格／秒） */
     FPS: { flame: 12, bolt: 20 } as const,
 
-    /** 六角骨架（ART_SPEC §0）：頂點起始角。0 = 平頂（頂點在左右），與 FLAT 地圖格同向 */
+    /** 六角骨架（ART_SPEC §0）：烘焙時的頂點起始角。0 = 平頂（頂點在左右），與 FLAT 地圖格同向；貼地零件在繪製時以 HexGeometry.alignRotation 轉到地圖版面（POINTY 為 π/6） */
     HEX: { ANGLE_OFFSET_RAD: 0 },
 
     GLOW: { SOFT_MAIN_STOP: 0.35, HARD_CORE_STOP: 0.3, HARD_MAIN_STOP: 0.6, MAIN_ALPHA: 0.55 },
