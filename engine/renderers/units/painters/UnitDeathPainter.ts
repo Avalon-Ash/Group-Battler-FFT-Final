@@ -1,5 +1,6 @@
-import { Agent, MapConfig, Team } from "../../../../types";
-import { UNIT_SPRITE, UNIT_SCALE, PALETTE } from "../../../../constants";
+import { Agent, MapConfig } from "../../../../types";
+import { UNIT_SPRITE, UNIT_SCALE } from "../../../../constants";
+import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { DEFAULT_FRAME_COUNTS } from "../../../../data/units/appearance/selectSpriteFrame";
 import { VisualMath } from "../../../math/VisualMath";
@@ -71,8 +72,7 @@ export class UnitDeathPainter {
         if (SpriteUnitRenderer.canRender(agent)) {
             SpriteUnitRenderer.draw(ctx, agent, t, false);
         } else {
-            const palette = PALETTE.TEAMS[agent.team] || PALETTE.TEAMS[Team.BLUE];
-            ctx.fillStyle = palette.main;
+            ctx.fillStyle = getFactionSkin(agent.team).fallbackBodyColor;
             ctx.beginPath();
             ctx.arc(0, 0, 20, 0, Math.PI * 2);
             ctx.fill();

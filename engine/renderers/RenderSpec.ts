@@ -58,6 +58,7 @@ export class RenderSpec {
         s += "本表管理「技能特效 VFX」的 Painter 路由，屬於 Skill-level 視覺。\n";
         s += "「單位本體外觀」（顏色/尺寸/武器形狀/披風）不在此範疇，\n";
         s += "請至 data/units/appearance/ 查閱與修改：\n\n";
+        s += "  陣營外觀  : data/units/factionSkin.ts → FACTION_SKINS（渲染器唯一入口，見 docs/FACTION_SLOTS.md）\n";
         s += "  SSOT 入口 : data/units/appearance/index.ts → UNIT_APPEARANCE\n";
         s += "  介面定義  : data/units/appearance/types.ts → RoleAppearance\n";
         s += "  欄位      : bodyWidth, bodyHeight, headRadius,\n";

@@ -5,7 +5,7 @@ import type { Particle } from '../engine/systems/vfx/state';
 import { TerrainRenderer } from '../engine/renderers/grid/TerrainRenderer';
 import { EnvironmentFactory } from '../engine/graphics/EnvironmentFactory';
 import { TERRAIN_THEMES } from '../constants';
-import { UnitFactory } from '../engine/graphics/UnitFactory';
+import { SpriteManager } from '../engine/sprites';
 import { SpriteUnitRenderer } from '../engine/renderers/units/factions/SpriteUnitRenderer';
 import { Role, Team } from '../types';
 import { Agent } from '../engine/core/Agent';
@@ -26,8 +26,8 @@ function cell(cx: number, cy: number, name: string, draw: () => void) {
     label(name, cx - 60, cy + 90);
 }
 
-const impToken = UnitFactory.generateTokenBase(Team.BLUE);
-const covToken = UnitFactory.generateTokenBase(Team.RED);
+const impToken = SpriteManager.getUnitImages(Role.WARRIOR, Team.BLUE).base;
+const covToken = SpriteManager.getUnitImages(Role.WARRIOR, Team.RED).base;
 
 const mapCfg = { hexRadius: 48, layout: 'FLAT' as const, w: 10, h: 10, offsetX: 0, offsetY: 0 };
 const impWarrior = new Agent('imp-w', Team.BLUE, 0, 0, mapCfg);

@@ -2,6 +2,7 @@
 import { Agent } from "../../game";
 import { HUD_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
+import { getFactionSkin } from "../../../data/units/factionSkin";
 import { isGlowSpritesEnabled } from "../RenderQuality";
 import { GlowSpriteCache, drawGlowSprite } from "../GlowSpriteCache";
 
@@ -37,7 +38,7 @@ export const BarPainter = {
         ctx.fill();
         
         // Team-colored Border Highlight
-        const teamBorder = HUD_COLORS.HP[agent.team].border;
+        const teamBorder = getFactionSkin(agent.team).hud.border;
         ctx.lineWidth = 1;
         ctx.strokeStyle = isSelected ? teamBorder : HUD_COLORS.CONTAINER_BORDER;
         ctx.stroke();
@@ -61,7 +62,7 @@ export const BarPainter = {
         
         let hpTop, hpBot, hpGlow;
 
-        const teamHp = HUD_COLORS.HP[agent.team];
+        const teamHp = getFactionSkin(agent.team).hud;
         hpTop = teamHp.top;
         hpBot = teamHp.bottom;
         hpGlow = teamHp.glow;

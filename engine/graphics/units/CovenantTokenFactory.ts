@@ -1,259 +1,139 @@
+// Ashen（RED）棋座程序化畫法：碎裂焦黑的六角，缺角、斷邊、裂縫透出餘燼。
+// 顏色全部來自 FACTION_SKINS（data/units/factionSkin.ts）；手繪貼圖存在時由 UnitFactory 逐層取代。
+import { HexLayout } from "../../../types";
+import { FactionSkin } from "../../../data/units/factionSkin";
+import type { PedestalPainter } from "../UnitFactory";
+import {
+    PedestalOutline,
+    projectIso,
+    hexPlane,
+    tracePedestalOutline,
+    drawPedestalSlab,
+    fillPedestalTop,
+} from "./PedestalGeometry";
 
-import { Role, Team } from "../../../types";
-import { ISO_SCALE_Y, PALETTE } from "../../../constants";
-import { createCanvas } from "../CanvasUtils";
-import { UnitAssetsFull } from "../UnitFactory";
-import { UNIT_APPEARANCE } from "../../../data/units/appearance";
-import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
-import { MaterialPainter } from "../materials/MaterialPainter";
+/** 每個頂點的缺角比例（沿相鄰兩邊截掉的長度比例；固定值，烘焙結果可重現） */
+const CORNER_CHIPS = [0.16, 0.04, 0.22, 0.07, 0.18, 0.1];
+/** 邊框斷口：每條邊的描邊區段 [起, 迄]（0..1），沒列到的部分是斷口 */
+const RIM_SEGMENTS: [number, number][][] = [
+    [[0, 0.62], [0.74, 1]],
+    [[0, 1]],
+    [[0.08, 0.46], [0.58, 1]],
+    [[0, 0.8]],
+    [[0, 0.35], [0.5, 1]],
+    [[0.12, 1]],
+];
+/** 裂縫：從中心附近往外的折線（以 radius 為單位的平面座標） */
+const CRACKS: { x: number; y: number }[][] = [
+    [{ x: 0.12, y: -0.05 }, { x: 0.38, y: -0.22 }, { x: 0.52, y: -0.18 }, { x: 0.78, y: -0.4 }],
+    [{ x: -0.1, y: 0.08 }, { x: -0.32, y: 0.3 }, { x: -0.3, y: 0.48 }, { x: -0.55, y: 0.66 }],
+    [{ x: 0.05, y: 0.14 }, { x: 0.22, y: 0.42 }, { x: 0.46, y: 0.5 }],
+    [{ x: -0.14, y: -0.1 }, { x: -0.44, y: -0.2 }, { x: -0.7, y: -0.12 }],
+];
 
-const BASE_SIZE = 128;
-const ICON_SIZE = 64;
+function chippedHexPlane(radius: number, layout: HexLayout): { x: number; y: number }[] {
+    const verts = hexPlane(radius, layout);
+    const out: { x: number; y: number }[] = [];
+    for (let i = 0; i < verts.length; i++) {
+        const prev = verts[(i + verts.length - 1) % verts.length];
+        const cur = verts[i];
+        const next = verts[(i + 1) % verts.length];
+        const chip = CORNER_CHIPS[i % CORNER_CHIPS.length];
+        out.push({ x: cur.x + (prev.x - cur.x) * chip, y: cur.y + (prev.y - cur.y) * chip });
+        out.push({ x: cur.x + (next.x - cur.x) * chip, y: cur.y + (next.y - cur.y) * chip });
+    }
+    return out;
+}
 
-export const CovenantTokenFactory = {
-    
-    generateBase(role: Role = Role.WARRIOR): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(BASE_SIZE, BASE_SIZE);
-        const cx = BASE_SIZE / 2;
-        const cy = BASE_SIZE / 2;
-        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
-        const highlightColor = ap.highlightColor ?? '#c0392b';
-        const radius = ap.tokenRadius;
-        
-        ctx.translate(cx, cy);
-        ctx.scale(1, ISO_SCALE_Y); // Use Source of Truth
-        
-        // 1. Drop Shadow
-        ctx.fillStyle = PALETTE.SHADOW;
-        ctx.beginPath(); ctx.arc(0, 8, radius + 4, 0, Math.PI*2); ctx.fill();
+export const CovenantTokenFactory: PedestalPainter = {
 
-        // 2. Blood-stained Brass & Iron (Radial Gradient for Sphere effect)
-        const grad = ctx.createRadialGradient(
-            -radius * 0.28, -radius * 0.35, radius * 0.05,
-             0,              0,              radius
-        );
-        grad.addColorStop(0,    highlightColor);
-        grad.addColorStop(0.45, ap.primaryColor); // Dried Blood
-        grad.addColorStop(0.8,  ap.deepColor);    // Dark Clot
-        grad.addColorStop(1,    ap.centerCoreColor ?? '#000000');
-        ctx.fillStyle = grad;
-        
-        // 3. Jagged Gear Shape (Chaos Star hint)
-        ctx.beginPath();
-        const sides = 8;
-        for(let i=0; i<=sides; i++) {
-            const a = (i/sides) * Math.PI*2;
-            const r = radius * (i%2===0 ? 1.0 : 0.85); 
-            const x = Math.cos(a)*r;
-            const y = Math.sin(a)*r;
-            if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-        }
-        ctx.closePath();
-        ctx.fill();
-
-        // 3.1 Tooth-tip Metallic Highlights (New)
-        ctx.strokeStyle = ap.innerRimColor ?? 'rgba(255, 160, 50, 0.30)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-        
-        // 4. Brass Trim (Tarnished)
-        ctx.strokeStyle = ap.rimShadowColor; // Dark Bronze
-        ctx.lineWidth = 5;
-        ctx.stroke();
-        ctx.strokeStyle = ap.rimColor; // Highlight Brass
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // 5. Inner Runes (Burning)
-        ctx.beginPath(); ctx.arc(0, 0, radius * 0.6, 0, Math.PI*2);
-        ctx.strokeStyle = ap.runeGlowColor ?? '#ef4444'; // Glowing Red
-        ctx.lineWidth = 2;
-        ctx.setLineDash([10, 5]);
-        ctx.stroke();
-        
-        // 6. Skull/Khorne Mark Hint
-        ctx.fillStyle = ap.centerCoreColor ?? '#000';
-        ctx.globalAlpha = 0.4;
-        ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI*2); ctx.fill();
-
-        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
-            MaterialPainter.weatherToken(canvas, highlightColor);
-        }
-
-        return canvas;
+    outline(skin: FactionSkin, layout: HexLayout): PedestalOutline {
+        return projectIso(chippedHexPlane(skin.pedestal.radius, layout));
     },
 
-    generateLayers(role: Role): UnitAssetsFull {
-        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
-        const highlightColor = ap.highlightColor ?? '#c0392b';
-        const R  = ap.tokenRadius;
-        
-        // 1. Base Layer (Jagged Body Only)
-        const baseRes = createCanvas(BASE_SIZE, BASE_SIZE);
-        const bCtx = baseRes.ctx;
-        bCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
-        bCtx.scale(1, ISO_SCALE_Y);
-        const grad = bCtx.createRadialGradient(
-            -R * 0.28, -R * 0.35, R * 0.05,
-             0,         0,         R
-        );
-        grad.addColorStop(0,    highlightColor);
-        grad.addColorStop(0.45, ap.primaryColor);
-        grad.addColorStop(0.8,  ap.deepColor);
-        grad.addColorStop(1,    ap.centerCoreColor ?? '#000000');
-        bCtx.fillStyle = grad;
-        bCtx.beginPath();
-        const sides = 8;
-        for(let i=0; i<=sides; i++) {
-            const a = (i/sides) * Math.PI*2;
-            const r = R * (i%2===0 ? 1.0 : 0.85); 
-            const x = Math.cos(a)*r;
-            const y = Math.sin(a)*r;
-            if(i===0) bCtx.moveTo(x,y); else bCtx.lineTo(x,y);
-        }
-        bCtx.fill();
-
-        if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
-            MaterialPainter.weatherToken(baseRes.canvas, highlightColor);
-        }
-
-        // 2. Rim Layer (Brass Trim Only)
-        const rimRes = createCanvas(BASE_SIZE, BASE_SIZE);
-        const rCtx = rimRes.ctx;
-        rCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
-        rCtx.scale(1, ISO_SCALE_Y);
-        rCtx.strokeStyle = ap.rimShadowColor;
-        rCtx.lineWidth = 5;
-        rCtx.beginPath();
-        for(let i=0; i<=sides; i++) {
-            const a = (i/sides) * Math.PI*2;
-            const r = R * (i%2===0 ? 1.0 : 0.85); 
-            const x = Math.cos(a)*r;
-            const y = Math.sin(a)*r;
-            if(i===0) rCtx.moveTo(x,y); else rCtx.lineTo(x,y);
-        }
-        rCtx.stroke();
-        rCtx.strokeStyle = ap.rimColor;
-        rCtx.lineWidth = 2;
-        rCtx.stroke();
-
-        // 3. Core Layer (Skull/Runes Hint)
-        const coreRes = createCanvas(BASE_SIZE, BASE_SIZE);
-        const cCtx = coreRes.ctx;
-        cCtx.translate(BASE_SIZE/2, BASE_SIZE/2);
-        cCtx.scale(1, ISO_SCALE_Y);
-
-        // 1. 底光暈（血紅）
-        const glowGrad = cCtx.createRadialGradient(0, 2, 0, 0, 2, R * 0.52);
-        glowGrad.addColorStop(0,   ap.coreGlowColor ?? 'rgba(239, 68, 68, 0.35)');
-        glowGrad.addColorStop(0.6, ap.coreGlowMidColor ?? 'rgba(239, 68, 68, 0.10)');
-        glowGrad.addColorStop(1,   ap.coreGlowFadeColor ?? 'rgba(239, 68, 68, 0)');
-        cCtx.fillStyle = glowGrad;
-        cCtx.beginPath(); cCtx.arc(0, 2, R * 0.52, 0, Math.PI*2); cCtx.fill();
-
-        // 2. 投影陰影
-        cCtx.fillStyle = ap.coreShadowColor ?? 'rgba(0, 0, 0, 0.50)';
-        cCtx.beginPath(); cCtx.ellipse(0, 6, R * 0.28, R * 0.10, 0, 0, Math.PI*2); cCtx.fill();
-
-        // 3. 中心黑核
-        cCtx.fillStyle = ap.centerCoreColor ?? '#000000';
-        cCtx.beginPath(); cCtx.arc(0, 0, 10, 0, Math.PI*2); cCtx.fill();
-
-        // 4. 魔紋環（燃燒效果）
-        cCtx.shadowColor = ap.runeGlowColor ?? '#ef4444';
-        cCtx.shadowBlur  = 10;
-        cCtx.beginPath(); cCtx.arc(0, 0, R * 0.6, 0, Math.PI*2);
-        cCtx.strokeStyle = ap.runeGlowColor ?? '#ef4444';
-        cCtx.lineWidth   = 2;
-        cCtx.setLineDash([10, 5]);
-        cCtx.stroke();
-        cCtx.setLineDash([]);
-        cCtx.shadowBlur  = 0;
-        cCtx.globalAlpha = 1; // Explicit reset as per protocol
-
-        return {
-            base: baseRes.canvas,
-            rim: rimRes.canvas,
-            core: coreRes.canvas,
-            icon: this.generateIcon(role),
-            color: PALETTE.TEAMS[Team.RED].glow
-        };
+    drawSlab(ctx: CanvasRenderingContext2D, skin: FactionSkin, outline: PedestalOutline): void {
+        drawPedestalSlab(ctx, skin, outline);
     },
 
-    generateIcon(role: Role): HTMLCanvasElement {
-        const ap = UNIT_APPEARANCE[Team.RED].roles[role] ?? UNIT_APPEARANCE[Team.RED].roles[Role.WARRIOR];
-        const { canvas, ctx } = createCanvas(ICON_SIZE, ICON_SIZE);
-        const cx = ICON_SIZE / 2;
-        const cy = ICON_SIZE / 2;
-        
-        // Red: Burning Orange (Warp Energy)
-        const color = ap.iconColor;
-        const shadowColor = ap.iconGlow;
+    drawTop(ctx: CanvasRenderingContext2D, skin: FactionSkin, outline: PedestalOutline): void {
+        const p = skin.pedestal;
+        fillPedestalTop(ctx, skin, outline);
 
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.shadowColor = shadowColor;
-        ctx.shadowBlur = 8;
-        ctx.lineWidth = 2.5;
+        // 裂縫：暗底＋餘燼亮芯
+        ctx.save();
+        tracePedestalOutline(ctx, outline);
+        ctx.clip();
         ctx.lineJoin = 'round';
         ctx.lineCap = 'round';
-
-        ctx.translate(cx, cy);
-        ctx.translate(0, -4);   // ← 上移 4px，製造懸浮高度
-        const scale = 1.1;
-        ctx.scale(scale, scale);
-
-        ctx.beginPath();
-        if (role === Role.TANK) {
-            // Shield -> Terminator Honors
-            ctx.rect(-10, -12, 20, 24);
+        for (const crack of CRACKS) {
+            const pts = projectIso(crack.map((q) => ({ x: q.x * p.radius, y: q.y * p.radius })));
+            ctx.beginPath();
+            pts.forEach((q, i) => (i === 0 ? ctx.moveTo(q.x, q.y) : ctx.lineTo(q.x, q.y)));
+            ctx.strokeStyle = p.sideShadow;
+            ctx.lineWidth = 2.5;
             ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
-        } else if (role === Role.WARRIOR) {
-            // Sword -> Chainaxe
-            ctx.moveTo(-10, -10); ctx.lineTo(10, 10); 
-            ctx.moveTo(-6, -10); ctx.lineTo(-10, -6); 
-            ctx.moveTo(6, 10); ctx.lineTo(10, 6); 
-            ctx.stroke();
-            // Teeth
+            ctx.strokeStyle = p.ember;
             ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(0, -8); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(4, -4); ctx.stroke();
-        } else if (role === Role.RANGER) {
-            // Bow -> Bolter Round
-            ctx.arc(0, 0, 10, 0, Math.PI*2);
             ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(0, -14); ctx.lineTo(0, -6);
-            ctx.moveTo(0, 6); ctx.lineTo(0, 14);
-            ctx.moveTo(-14, 0); ctx.lineTo(-6, 0);
-            ctx.moveTo(6, 0); ctx.lineTo(14, 0);
-            ctx.stroke();
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(0,0,2,0,Math.PI*2); ctx.fill();
-        } else if (role === Role.MAGE) {
-            // Staff -> Warp Bolt
-            ctx.beginPath();
-            ctx.moveTo(0, 10); ctx.lineTo(0, -6);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.arc(0, -10, 5, 0, Math.PI*2);
-            ctx.stroke();
-            // Lightning bolts
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(10, -18); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(-10, -18); ctx.stroke();
-        } else if (role === Role.SUPPORT) {
-            // Cross -> Chaos Icon
-            ctx.beginPath();
-            ctx.moveTo(0, -12); ctx.lineTo(0, 12);
-            ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-            ctx.stroke();
-            ctx.lineWidth = 1;
-            ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI*2); ctx.stroke();
         }
-        
-        return canvas;
+        ctx.restore();
+    },
+
+    drawRim(ctx: CanvasRenderingContext2D, skin: FactionSkin, outline: PedestalOutline, layout: HexLayout): void {
+        const p = skin.pedestal;
+        ctx.save();
+        ctx.lineCap = 'butt';
+
+        // 焦黑底線沿整個缺角輪廓
+        tracePedestalOutline(ctx, outline);
+        ctx.strokeStyle = p.rimShadow;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // 斷裂的金屬邊：只沿正六角的部分區段描亮線
+        const hex = projectIso(hexPlane(p.radius, layout));
+        ctx.strokeStyle = p.rim;
+        ctx.lineWidth = 2;
+        for (let i = 0; i < hex.length; i++) {
+            const a = hex[i];
+            const b = hex[(i + 1) % hex.length];
+            const chipA = CORNER_CHIPS[i % CORNER_CHIPS.length];
+            const chipB = CORNER_CHIPS[(i + 1) % CORNER_CHIPS.length];
+            for (const [s, e] of RIM_SEGMENTS[i % RIM_SEGMENTS.length]) {
+                const from = Math.max(s, chipA);
+                const to = Math.min(e, 1 - chipB);
+                if (to <= from) continue;
+                ctx.beginPath();
+                ctx.moveTo(a.x + (b.x - a.x) * from, a.y + (b.y - a.y) * from);
+                ctx.lineTo(a.x + (b.x - a.x) * to, a.y + (b.y - a.y) * to);
+                ctx.stroke();
+            }
+        }
+
+        // 內緣（齒尖金屬光）
+        tracePedestalOutline(ctx, projectIso(chippedHexPlane(p.radius - 5, layout)));
+        ctx.strokeStyle = p.innerRim;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // 魔紋環（虛線六角）
+        tracePedestalOutline(ctx, projectIso(hexPlane(p.radius * 0.6, layout)));
+        ctx.strokeStyle = p.ring;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([10, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+    },
+
+    drawEmblem(ctx: CanvasRenderingContext2D, skin: FactionSkin, layout: HexLayout): void {
+        // 程序化徽記：中央黑核（佔位，日後由 emblem 貼圖取代）
+        const p = skin.pedestal;
+        ctx.save();
+        ctx.globalAlpha = p.emblemAlpha;
+        tracePedestalOutline(ctx, projectIso(chippedHexPlane(p.radius * p.emblemScale, layout)));
+        ctx.fillStyle = p.emblem;
+        ctx.fill();
+        ctx.restore();
     },
 };

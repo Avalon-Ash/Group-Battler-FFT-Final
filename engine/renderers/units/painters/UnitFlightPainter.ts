@@ -1,8 +1,8 @@
 
 import { Agent } from "../../../game";
-import { Team, MovementType } from "../../../../types";
+import { MovementType } from "../../../../types";
 import { UNIT_SCALE, VISUAL_ANCHORS } from "../../../../constants";
-import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
+import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitFlightPainter = {
@@ -13,8 +13,7 @@ export const UnitFlightPainter = {
 
     drawFlightVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
         // This is called within the UnitBodyPainter's transformed context (Body Center)
-        const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
-        const color = faction.flightTrailColor;
+        const color = getFactionSkin(agent.team).projection.trailColor;
 
         ctx.save();
         ctx.translate(0, VISUAL_ANCHORS.ENGINE_OFFSET_Y); // Use Standard Constant
@@ -42,8 +41,7 @@ export const UnitFlightPainter = {
     drawRibbonTrail(ctx: CanvasRenderingContext2D, agent: Agent, t: number, currentH: number) {
         if (agent.trailHistory.length < 2) return;
 
-        const faction = FACTION_VISUALS[agent.team] || FACTION_VISUALS[Team.BLUE];
-        const color = faction.flightTrailColor;
+        const color = getFactionSkin(agent.team).projection.trailColor;
         const isFlying = agent.movementType === MovementType.FLYING;
 
         ctx.save();

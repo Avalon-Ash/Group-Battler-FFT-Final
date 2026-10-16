@@ -230,9 +230,8 @@ export class DesignExporter {
         s += "職責：包裹 UnitFactory / EnvironmentFactory，提供 key-based HTMLCanvasElement 快取\n";
         s += "不持有繪製邏輯，只做快取存取。\n\n";
         s += "快取 Key 格式：\n";
-        s += "  TOKEN_BASE_{team}_V3        → UnitFactory.generateTokenBase\n";
-        s += "  ROLE_ICON_{role}_{team}_V3  → UnitFactory.generateRoleIcon\n";
-        s += "  FULL_{role}_{team}          → UnitFactory.generateLayers\n";
+        s += "  {team}|{role}|{body}|{layout} → UnitFactory.generateTokenBase / generateRoleIcon\n";
+        s += "                                （陣營皮膚 data/units/factionSkin.ts；貼圖載入後依 revision 重烘）\n";
         s += "  OBSTACLE_{styleKey}_{layout}→ EnvironmentFactory.generateObstacle\n";
         s += "  MODEL_SHEEP / MODEL_ICE     → UnitFactory.generateSheep / EnvironmentFactory.generateIceBlock\n\n";
         s += "修改流程：\n";

@@ -2,20 +2,20 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitBodyPainter — 存活單位的主體繪製                    ║
 // ║  職責：hp > 0 單位的外觀渲染、血條、狀態圖示繪製         ║
-// ║  [ARCH] 外觀資料來源：UNIT_APPEARANCE (SSOT)             ║
+// ║  [ARCH] 陣營外觀來源：FACTION_SKINS (SSOT)               ║
 // ║  [ARCH] hp <= 0 時 early return，死亡演出由 DeathPainter 負責 ║
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
-import { Team, AnimState, MovementType, ActionState } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, PALETTE } from "../../../../constants";
+import { AnimState, MovementType, ActionState } from "../../../../types";
+import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
-import { FACTION_VISUALS } from "../../../../data/vfx/faction_visuals";
+import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { MaterialPainter } from "../../../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../../../data/vfx/materialConfig";
 
@@ -70,7 +70,7 @@ export const UnitBodyPainter = {
                 const history = agent.trailHistory;
                 const step = 2;
                 const maxGhosts = 2;
-                const faction = FACTION_VISUALS[agent.team];
+                const trailColor = getFactionSkin(agent.team).projection.trailColor;
                 
                 for (let i = Math.max(0, history.length - 1 - (maxGhosts*step)); i < history.length - 1; i += step) {
                     const pos = history[i];
@@ -83,7 +83,7 @@ export const UnitBodyPainter = {
                     ctx.scale(agent.facing > 0 ? 1 : -1, 1);
                     ctx.globalAlpha = opacity;
                     ctx.globalCompositeOperation = 'screen'; 
-                    ctx.fillStyle = faction.flightTrailColor; 
+                    ctx.fillStyle = trailColor; 
                     ctx.beginPath();
                     ctx.moveTo(-10, -40); ctx.lineTo(10, -40);
                     ctx.lineTo(5, 10); ctx.lineTo(-5, 10);
@@ -144,8 +144,7 @@ export const UnitBodyPainter = {
             if (SpriteUnitRenderer.canRender(agent)) {
                 SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                const palette = PALETTE.TEAMS[agent.team] || PALETTE.TEAMS[Team.BLUE];
-                ctx.fillStyle = isSilhouette ? '#ffffff' : palette.main;
+                ctx.fillStyle = isSilhouette ? '#ffffff' : getFactionSkin(agent.team).fallbackBodyColor;
                 ctx.beginPath();
                 ctx.arc(0, 0, 20, 0, Math.PI * 2);
                 ctx.fill();
