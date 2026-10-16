@@ -1,3 +1,5 @@
+import type { BeamStyleId } from "./beam_styles";
+
 
 // =========================================================================================
 // 🌟 ULTIMATE VISUAL CONFIGURATION (v10.0 HEXAGON PERFECTED)
@@ -24,7 +26,8 @@ export interface UltVisualDef {
     timing?: number;        // Delay or Duration
     count?: number;         // For Storm/Sanctuary (number of beams/drops)
     height?: number;        // Fall height
-    vfxOverride?: string;   // Specific particle ID to use
+    vfxOverride?: string;   // 命中／落點特效（VFX_REGISTRY 的鍵）
+    beamStyle?: BeamStyleId; // BEAM_SNIPE：光束樣式（BEAM_STYLES 的鍵）
     windupFx?: string;      // STORM：施放時只播一次的起手效果（陣營紋章），落點效果才重播 count 次
 }
 
@@ -53,7 +56,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
     'wb_u4': { archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 12, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)
-    'wb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
+    'wb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
 
     // --- RANGER (Ice/Sniper) ---
     // rb_u1: 極地冰河 -> 天降巨大冰晶六邊體
@@ -77,7 +80,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // mb_u4: 奧術洪流 -> 導彈群
     'mb_u4': { archetype: 'STORM', primaryColor: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.0, count: 12, vfxOverride: 'FX_ULT_BLUE_TORRENT', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
     // mb_u5: 聚輝光柱 -> 粗大的六邊形雷射
-    'mb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 3.5, vfxOverride: 'FX_ULT_BLUE_FOCUS_BEAM' },
+    'mb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_FOCUS_BEAM' },
 
     // --- SUPPORT (Heal/Buff) ---
     // sb_u1: 神聖干涉 -> 無敵六邊形結界
@@ -119,7 +122,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- RANGER (Explosive/Dark) ---
     // rr_u1: 灰燼穿心 -> 黑色電磁砲
-    'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#000', secondaryColor: '#ef4444', scale: 3.5, vfxOverride: 'FX_ULT_RED_RAILGUN' },
+    'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#000', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_RAILGUN' },
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 3.0, height: 2500, timing: 0.4, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
@@ -130,7 +133,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
         primaryColor: '#ea580c', 
         secondaryColor: '#fcd34d', 
         scale: 2.0, 
-        vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
+        beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
     },
     // rr_u5: 末日審判 -> 末日降臨 (STORM)
     'rr_u5': { archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.8, count: 12, timing: 0.1, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
@@ -139,7 +142,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)
     'mr_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#f97316', secondaryColor: '#7c2d12', scale: 2.2, height: 1800, vfxOverride: 'FX_ULT_RED_METEOR_IMPACT' },
     // mr_u2: 死亡一指 -> 紅色死光
-    'mr_u2': { archetype: 'BEAM_SNIPE', primaryColor: '#dc2626', secondaryColor: '#000', scale: 2.5, vfxOverride: 'FX_ULT_RED_DEATH_FINGER' },
+    'mr_u2': { archetype: 'BEAM_SNIPE', primaryColor: '#dc2626', secondaryColor: '#000', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_DEATH_FINGER' },
     // mr_u3: 虛空降臨 -> 虛空傳送門 (Domain)
     'mr_u3': { archetype: 'DOMAIN', primaryColor: '#22c55e', secondaryColor: '#16a34a', scale: 2.0, vfxOverride: 'FX_ULT_RED_VOID_PORTAL' },
     // mr_u4: 末世毒雨 -> 腐蝕酸雨

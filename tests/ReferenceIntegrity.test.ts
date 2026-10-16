@@ -14,6 +14,8 @@ import { ULT_VISUALS } from '../data/vfx/ult_visuals';
 import { STATUS_VISUALS } from '../data/vfx/status_visuals';
 import { HAZARD_VISUALS } from '../data/vfx/hazard_visuals';
 import { VFX_LIBRARY } from '../data/vfx/vfx_library';
+import { BEAM_STYLES } from '../data/vfx/beam_styles';
+import { FACTION_VISUALS } from '../data/vfx/faction_visuals';
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId } from '../data/vfx/registry/cast_break';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { STANDARD_AI_PROFILE, BTDef } from '../data/ai_profiles';
@@ -74,19 +76,14 @@ const FAMILIES: Record<string, () => string[]> = {
             .filter(h => !REGISTRY.has(h.key) && !PREFIXES.has(h.key) && h.file !== 'data/vfx/vfx_library.ts')
             .map(h => `${h.file}: ${h.key}`));
     },
-    /** SKILL_SEQUENCES 的 PARTICLE 動作（VFXPlayer.play 查不到就靜默略過）。ART_VFX_PLAN §5：vfxOverride 混放光束樣式／投射物 id／粒子型別。 */
+    /** SKILL_SEQUENCES 的 PARTICLE 動作（VFXPlayer.play 查不到就靜默略過）。光束樣式在 beamStyle、投射物在技能的 visualProjectileEffect（ART_VFX_PLAN §5）。 */
     'vfx.sequenceParticle': () => uniqSorted(Object.entries(SKILL_SEQUENCES).flatMap(([id, seq]) =>
         seq.actions.filter(a => a.type === 'PARTICLE' && !REGISTRY.has(a.id ?? 'FX_HIT_GENERIC')).map(a => `${id}: ${a.id}`))),
-    /** BEAM 動作的 style。VFXSystem.playBeam 只把 style 存進 p.style，畫光束時沒有任何地方讀它；這裡列出不是引擎慣用光束名的值。 */
-    'vfx.beamStyle': () => {
-        const KNOWN = new Set(['GENERIC_BEAM', 'SLASH_CONNECT', 'DEATH_RAY']);
-        return uniqSorted(Object.entries(SKILL_SEQUENCES).flatMap(([id, seq]) =>
-            seq.actions.filter(a => a.type === 'BEAM' && !KNOWN.has(a.style ?? 'GENERIC_BEAM')).map(a => `${id}: ${a.style}`)));
-    },
-    /** SkillSequences 的陣營預設特效（技能沒有 visualHitEffect／vfxOverride 時才用到；目前每個技能都有自己的，所以是潛伏缺口）。 */
-    'vfx.sequenceFallback': () => ['RED', 'BLUE'].flatMap(t => [
-        ...ROLES.map(r => `FX_HIT_${t}_${r}`), `FX_HIT_${t}_HEAVY`, `FX_ULT_${t}_IMPACT`,
-    ]).filter(id => !REGISTRY.has(id)).sort(),
+    /** BEAM 動作的 style 必須是 BEAM_STYLES 的鍵（光束寬度與畫法的唯一來源）。 */
+    'vfx.beamStyle': () => uniqSorted(Object.entries(SKILL_SEQUENCES).flatMap(([id, seq]) =>
+        seq.actions.filter(a => a.type === 'BEAM' && !(a.style && a.style in BEAM_STYLES)).map(a => `${id}: ${a.style}`))),
+    /** 陣營預設特效（技能沒有指定特效時 SkillSequences 的退路）＝ FACTION_VISUALS.defaultHitEffect。 */
+    'vfx.sequenceFallback': () => TEAMS.map(t => FACTION_VISUALS[t].defaultHitEffect).filter(id => !REGISTRY.has(id)).sort(),
     /** 檢視器「特效地圖」分頁的目錄條目（純展示）；FX_ 開頭的必須是現存特效。 */
     'vfx.libraryCatalog': () => uniqSorted(Object.values(VFX_LIBRARY).flat()
         .filter(e => e.key.startsWith('FX_') && !REGISTRY.has(e.key)).map(e => e.key)),
@@ -172,6 +169,14 @@ describe('VFX composed ids', () => {
 
     it('every registry entry id matches its key', () => {
         expect(Object.entries(VFX_REGISTRY).filter(([k, v]) => v.id !== k).map(([k]) => k)).toEqual([]);
+    });
+
+    it('per-skill visual tables point at registered effects', () => {
+        const bad = [
+            ...Object.entries(ACTIVE_VISUALS).filter(([, v]) => v.impactFx && !REGISTRY.has(v.impactFx)).map(([k, v]) => `${k} impactFx: ${v.impactFx}`),
+            ...Object.entries(ULT_VISUALS).filter(([, v]) => v.vfxOverride && !REGISTRY.has(v.vfxOverride)).map(([k, v]) => `${k} vfxOverride: ${v.vfxOverride}`),
+        ];
+        expect(bad).toEqual([]);
     });
 
     it('ult windupFx is registered', () => {

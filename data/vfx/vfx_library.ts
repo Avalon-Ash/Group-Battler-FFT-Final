@@ -37,13 +37,13 @@ export const VFX_LIBRARY = {
     ] as VFXEntry[],
 
     IMPERIAL_FLAVOR: [
-        { key: 'FX_ULT_BLUE_AEGIS', name: '帝國神盾', desc: '藍軍防禦類奧義的標誌性幾何展開效果。', visuals: ['Cyan', 'Hexagon'] },
+        { key: 'FX_ULT_BLUE_AEGIS_IMPACT', name: '帝國神盾', desc: '藍軍防禦類奧義的標誌性幾何展開效果。', visuals: ['Cyan', 'Hexagon'] },
         { key: 'FX_HIT_BLUE_TECH', name: '科技衝擊', desc: '帶有電磁感的藍軍打擊特效。', visuals: ['Electric', 'Pulse'] },
         { key: 'PROJ_BLUE_SNIPER', name: '動能狙擊', desc: '高速線性彈道，帶有馬赫環視覺效果。', visuals: ['Railgun', 'Mach'] }
     ] as VFXEntry[],
 
     COVENANT_FLAVOR: [
-        { key: 'FX_ULT_RED_NUKE', name: '末日審判', desc: '紅軍毀滅性打擊的極致視覺體現。', visuals: ['Crimson', 'Nuke'] },
+        { key: 'FX_ULT_RED_NUKE_FLASH', name: '末日審判', desc: '紅軍毀滅性打擊的極致視覺體現。', visuals: ['Crimson', 'Nuke'] },
         { key: 'FX_HIT_RED_BLOOD', name: '鮮血撕裂', desc: '紅軍特有的有機物質噴濺特效。', visuals: ['Gore', 'Dark'] },
         { key: 'PROJ_RED_CHAOS_ORB', name: '混沌法球', desc: '不穩定的螺旋軌跡與脈衝核心。', visuals: ['Chaos', 'Wobble'] }
     ] as VFXEntry[],

@@ -1,3 +1,4 @@
+import type { BeamStyleId } from "./beam_styles";
 
 // =========================================================================================
 // ⚔️ BASIC ATTACK VISUAL CONFIGURATION
@@ -22,9 +23,8 @@ export interface BasicVisualDef {
     color: string;
     secondaryColor: string;
     scale?: number;
-    slashStyle?: string; // For Melee
-    vfxOverride?: string; // Additional particle
-    sound?: string;
+    /** BEAM 動作的樣式（BEAM_STYLES 的鍵）；不填時依原型預設。命中特效 SSOT 在技能的 visualHitEffect。 */
+    beamStyle?: BeamStyleId;
 }
 
 export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
@@ -32,17 +32,17 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
 
     // --- TANK ---
     'tb_b1': { archetype: 'MELEE_SMASH', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.2 },
-    'tb_b2': { archetype: 'MELEE_SMASH', color: '#93c5fd', secondaryColor: '#fff', vfxOverride: 'SPARK' },
+    'tb_b2': { archetype: 'MELEE_SMASH', color: '#93c5fd', secondaryColor: '#fff' },
     'tb_b3': { archetype: 'MELEE_SMASH', color: '#1e3a8a', secondaryColor: '#3b82f6', scale: 1.0 },
-    'tb_b4': { archetype: 'MELEE_SMASH', color: '#60a5fa', secondaryColor: '#fff', vfxOverride: 'GLOW' },
+    'tb_b4': { archetype: 'MELEE_SMASH', color: '#60a5fa', secondaryColor: '#fff' },
     'tb_b5': { archetype: 'MELEE_CLEAVE', color: '#3b82f6', secondaryColor: '#bae6fd', scale: 1.4 },
 
     // --- WARRIOR ---
     'wb_b1': { archetype: 'CROSS_CUT', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.0 }, // Dual Swords
     'wb_b2': { archetype: 'MELEE_PIERCE', color: '#bae6fd', secondaryColor: '#3b82f6', scale: 1.2 },
-    'wb_b3': { archetype: 'MELEE_CLEAVE', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.5, slashStyle: 'SLASH' },
+    'wb_b3': { archetype: 'MELEE_CLEAVE', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.5 },
     'wb_b4': { archetype: 'MELEE_SMASH', color: '#94a3b8', secondaryColor: '#cbd5e1', scale: 0.8 },
-    'wb_b5': { archetype: 'MELEE_SLASH', color: '#fbbf24', secondaryColor: '#fff', vfxOverride: 'SPARK' },
+    'wb_b5': { archetype: 'MELEE_SLASH', color: '#fbbf24', secondaryColor: '#fff' },
 
     // --- RANGER ---
     'rb_b1': { archetype: 'RANGED_BOLT', color: '#38bdf8', secondaryColor: '#0ea5e9', scale: 1.0 },
@@ -76,7 +76,7 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
     'tr_b5': { archetype: 'MELEE_PIERCE', color: '#ef4444', secondaryColor: '#f87171', scale: 1.0 },
 
     // --- WARRIOR ---
-    'wr_b1': { archetype: 'MELEE_SLASH', color: '#dc2626', secondaryColor: '#991b1b', scale: 1.2, slashStyle: 'SLASH' },
+    'wr_b1': { archetype: 'MELEE_SLASH', color: '#dc2626', secondaryColor: '#991b1b', scale: 1.2 },
     'wr_b2': { archetype: 'RANGED_BOLT', color: '#b91c1c', secondaryColor: '#ef4444', scale: 1.0 },
     'wr_b3': { archetype: 'HEAVY_CLEAVE', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.4 },
     'wr_b4': { archetype: 'MELEE_SMASH', color: '#7f1d1d', secondaryColor: '#000', scale: 1.1 },
