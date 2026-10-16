@@ -3,6 +3,7 @@ import { Agent } from "../game";
 import { Particle } from "../systems/vfx/state";
 import { Projectile, Point, GroundHazard } from "../../types";
 import type { TerrainTheme } from "../../constants";
+import { VFX_RENDER } from "../../constants";
 import type { ActiveZone } from "../systems/ZoneSystem";
 
 export enum RenderOpType {
@@ -45,6 +46,8 @@ export class RenderOp {
     uSilhouette: boolean = false;
     isGround: boolean = false;
     sortBias: number = 0; // NEW: SSOT depth sorting adjustment (mostly for ground decals)
+    /** 貼地 VFX 的投影後半寬／半高（排序時判斷單位是否站在法陣上） */
+    gHalfW: number = 0; gHalfH: number = 0;
     particle: Particle | null = null;
     vProgress: number = 0;
     vChaos: boolean = false;
@@ -83,6 +86,7 @@ export class RenderOp {
         this.uSilhouette = false;
         this.isGround = false;
         this.sortBias = 0;
+        this.gHalfW = 0; this.gHalfH = 0;
         this.vChaos = false;
         this.ttheme = null;
         this.pTrail = [];
@@ -109,6 +113,8 @@ const SUB_LAYER = {
 // 值必須遠小於相鄰格 screenY 差距（約 24px），建議不超過 2.0
 const CORPSE_TIEBREAK = 0.5;
 const VFX_TIEBREAK = 1.0;
+/** 站在地面法陣上的單位排在法陣之後的最小間距（排序鍵 1 單位 = 0.01） */
+const DECAL_LIFT_EPS = 0.01;
 
 export class RenderList {
     public ops: RenderOp[] = [];
@@ -141,13 +147,38 @@ export class RenderList {
         return op;
     }
 
+    /** 本幀的大型地面法陣（重複使用，避免每幀配置） */
+    private decalView: RenderOp[] = [];
+
     public sort() {
         if (this.count <= 1) return;
+
+        // 大型地面法陣以前緣排序，站在範圍內的單位原本會先畫而被法陣蓋住腳；
+        // 這些單位改排在法陣之後（ART_SPEC §13 地面特效不得遮住棋座）。
+        let decals = 0;
+        for (let i = 0; i < this.count; i++) {
+            const op = this.ops[i];
+            if (op.type === RenderOpType.VFX && op.isGround && op.gHalfH >= VFX_RENDER.DECAL_LIFT_MIN_HALF_H) {
+                this.decalView[decals++] = op;
+            }
+        }
+
         for (let i = 0; i < this.count; i++) {
             const op = this.ops[i];
 
             // SSOT: Use base world Y plus a conceptual "sort bias" (e.g. front edge of a decal)
             let finalSortY = op.y + (op.sortBias || 0);
+
+            if (decals > 0 && (op.type === RenderOpType.UNIT || op.type === RenderOpType.CORPSE)) {
+                for (let d = 0; d < decals; d++) {
+                    const g = this.decalView[d];
+                    const dx = (op.tx - g.tx) / g.gHalfW;
+                    const dy = (op.y - g.y) / g.gHalfH;
+                    if (dx * dx + dy * dy <= 1) {
+                        finalSortY = Math.max(finalSortY, g.y + g.sortBias + VFX_TIEBREAK + DECAL_LIFT_EPS);
+                    }
+                }
+            }
 
             // [ARCH] Tiebreak: 確保在同一個 Y 坐標（同格）時，渲染順序符合預期
             // 屍體高於單位，VFX 高於屍體

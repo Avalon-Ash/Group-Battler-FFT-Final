@@ -17,12 +17,19 @@ function ease(t: number, kind: PartAnim['ease']): number {
  * 執行期只有 drawImage／alpha／混合模式／變換；外形與色階全在烘焙時決定，粒子 color 不參與。
  */
 export const PartPainter = {
+    /** 目前進度下的縮放（排序計算地面法陣範圍時也用同一公式） */
+    scaleAt(p: Particle, progress: number): number {
+        const a = p.partAnim;
+        const t = Math.max(0, Math.min(1, progress));
+        return (a?.scaleFrom ?? 1) + ((a?.scaleTo ?? 1) - (a?.scaleFrom ?? 1)) * ease(t, a?.ease);
+    },
+
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number): void {
         const sprite = p.part;
         if (!sprite) return;
         const a = p.partAnim;
         const t = Math.max(0, Math.min(1, progress));
-        const scale = (a?.scaleFrom ?? 1) + ((a?.scaleTo ?? 1) - (a?.scaleFrom ?? 1)) * ease(t, a?.ease);
+        const scale = PartPainter.scaleAt(p, progress);
         let alpha = a?.alpha ?? 1;
         const fadeIn = a?.fadeIn ?? 0;
         const fadeOut = a?.fadeOut ?? 0;
