@@ -38,9 +38,16 @@ export class AnimationSystem {
                 continue;
             }
 
-            if (agent.stunTimer > 0 || agent.banished || agent.fearTimer > 0 || agent.stasisTimer > 0) {
+            const isDisabled = agent.stunTimer > 0 || agent.banished || agent.fearTimer > 0 || agent.stasisTimer > 0;
+
+            // [ARCH] visualStatus 的唯一寫入者（STATE_OWNERSHIP_DESIGN P1）：CC 外觀（ccVisual，狀態域擁有）優先，
+            // 其次是逃生中的 DANGER。其他系統只寫自己的欄位，不得直接寫 visualStatus。
+            agent.visualStatus = agent.ccVisual !== 'NONE'
+                ? agent.ccVisual
+                : (!isDisabled && agent.actionState === ActionState.EVADING ? 'DANGER' : 'NONE');
+
+            if (isDisabled) {
                 agent.animState = AnimState.STUN;
-                agent.visualStatus = agent.stasisTimer > 0 ? 'STASIS' : 'NONE';
                 continue;
             }
 
@@ -54,21 +61,17 @@ export class AnimationSystem {
             switch (agent.actionState) {
                 case ActionState.EVADING:
                     agent.animState = AnimState.MOVE;
-                    agent.visualStatus = 'DANGER';
                     break;
                 case ActionState.WALKING:
                     agent.animState = AnimState.MOVE;
-                    agent.visualStatus = 'NONE';
                     break;
                 case ActionState.ATTACKING:
                 case ActionState.CASTING:
                     agent.animState = AnimState.ATTACK;
-                    agent.visualStatus = 'NONE';
                     break;
                 case ActionState.IDLE:
                 default:
                     agent.animState = agent.target ? AnimState.COMBAT_IDLE : AnimState.IDLE;
-                    agent.visualStatus = 'NONE';
                     break;
             }
 

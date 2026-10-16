@@ -33,7 +33,7 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         group: 'visual',
         kind: 'single',
         owners: ['engine/systems/AnimationSystem.ts'],
-        note: '每 tick 由 ccVisual 與 actionState 推導；模擬層不得讀寫。',
+        note: '每 tick 由 ccVisual 與 actionState 推導；模擬層不得讀寫（PhysicsEngine 改讀 polymorphTimer）。',
     },
     hitFlashTimer: {
         group: 'visual',

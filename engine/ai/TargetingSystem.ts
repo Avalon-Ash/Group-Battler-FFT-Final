@@ -85,7 +85,7 @@ export class TargetingSystem {
             
             // 如果已經有目標地塊且該地塊依然安全，則不需要重新搜尋
             if (a.targetHex && !spatial.isWarningTile(HexUtils.key(a.targetHex))) {
-                a.visualStatus = 'DANGER';
+                // DANGER 外觀由 AnimationSystem 依 actionState === EVADING 推導，這裡不寫 visualStatus。
                 // [FIX] 不可 early return，必須繼續往下執行以鎖定敵人，供背水一戰使用
             } else {
                 // 尋找距離自己最近、且不在 WARNING 清單內的安全地塊
@@ -132,11 +132,9 @@ export class TargetingSystem {
 
                 if (bestSafeHex) {
                     a.targetHex = bestSafeHex;
-                    a.visualStatus = 'DANGER';
                 } else {
                     // [FIX] 如果找不到安全地塊，必須清空 targetHex，讓後續能觸發背水一戰
                     a.targetHex = null;
-                    a.visualStatus = 'DANGER'; // Keep visual status even if no safe hex
                 }
             }
         } else if (!inDanger) {
@@ -144,9 +142,6 @@ export class TargetingSystem {
             // [FIX] 但如果單位正在詠唱非目標指向性的技能 (以 targetHex 為主)，就絕對不能清空！
             if (!a.target && a.targetHex && a.castingSkillIdx === -1) {
                 a.targetHex = null;
-            }
-            if (a.visualStatus === 'DANGER') {
-                a.visualStatus = 'NONE';
             }
         }
 

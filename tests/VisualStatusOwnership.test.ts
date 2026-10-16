@@ -49,22 +49,22 @@ describe('visualStatus ownership (P1a)', () => {
         return seen;
     }
 
-    // P1a 證實：AnimationSystem 在 tick 最後覆寫為 NONE（實測 6/6 tick 皆 NONE）。P1c 修正後改回 it。
-    it.fails('ICE stun shows FROZEN while stunned', () => {
+    // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
+    it('ICE stun shows FROZEN while stunned', () => {
         CCManager.applyCC(red, blue, ccSkill({ element: 'ICE', ccType: 'STUN' }), 'STUN', 2, 0, undefined, engine);
         expect(blue.stunTimer).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('FROZEN'));
     });
 
-    // P1a 證實：AnimationSystem 在 tick 最後覆寫為 NONE（實測 6/6 tick 皆 NONE）。P1c 修正後改回 it。
-    it.fails('POLYMORPH shows POLYMORPH while polymorphed', () => {
+    // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
+    it('POLYMORPH shows POLYMORPH while polymorphed', () => {
         CCManager.applyCC(red, blue, ccSkill({ ccType: 'POLYMORPH', specialVisualStatus: 'POLYMORPH' }), 'POLYMORPH', 2, 0, undefined, engine);
         expect(blue.polymorphTimer).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('POLYMORPH'));
     });
 
-    // P1a 證實：AnimationSystem 在 tick 最後覆寫為 NONE（實測 6/6 tick 皆 NONE）。P1c 修正後改回 it。
-    it.fails('INVINCIBLE shows INVINCIBLE while invincible', () => {
+    // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
+    it('INVINCIBLE shows INVINCIBLE while invincible', () => {
         CCManager.applyCC(blueAlly, blue, ccSkill({ ccType: 'INVINCIBLE', specialVisualStatus: 'INVINCIBLE' }), 'INVINCIBLE', 2, 0, undefined, engine);
         expect(blue.invincibleTimer).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('INVINCIBLE'));

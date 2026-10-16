@@ -78,7 +78,8 @@ export class PhysicsEngine {
 
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
-        const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
+        // 模擬層讀狀態計時器而非視覺欄位（FROZEN 必伴隨 stunTimer）。
+        const isDisabled = a.stunTimer > 0 || a.polymorphTimer > 0;
 
         // Check if standing on valid ground
         const isGroundValid = engine.isValid(a.q, a.r);
