@@ -5,7 +5,5 @@
   "hitFlashTimer@engine/systems/combat/SkillExecutor.ts",
   "hitFlashTimer@engine/systems/status/EffectSystem.ts",
   "visualOffset@engine/systems/combat/SkillExecutor.ts",
-  "visualStatus@engine/ai/TargetingSystem.ts",
-  "visualStatus@engine/systems/combat/CCManager.ts",
-  "visualStatus@engine/systems/status/ControlSystem.ts"
+  "visualStatus@engine/ai/TargetingSystem.ts"
 ]

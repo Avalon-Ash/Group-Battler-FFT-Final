@@ -79,7 +79,7 @@ export const CCManager = {
                 statusText = STATUS_VISUALS.STUN.label;
                 statusColor = STATUS_VISUALS.STUN.primaryColor;
                 
-                if (skill.element === 'ICE') target.visualStatus = 'FROZEN';
+                if (skill.element === 'ICE') target.ccVisual = 'FROZEN';
                 break;
 
             case 'SILENCE':
@@ -107,9 +107,9 @@ export const CCManager = {
                     // STASIS 使用獨立 timer，不共用 banishTimer 語意
                     target.stasisTimer = effectiveDuration;
                     target.stasisMax = effectiveDuration;
-                    target.visualStatus = 'STASIS';
+                    target.ccVisual = 'STASIS';
                 } else if (skill.specialVisualStatus) {
-                    target.visualStatus = skill.specialVisualStatus;
+                    target.ccVisual = skill.specialVisualStatus;
                 }
                 break;
 
@@ -157,14 +157,14 @@ export const CCManager = {
                 target.isMoving = false;
                 statusText = STATUS_VISUALS.POLYMORPH.label;
                 statusColor = STATUS_VISUALS.POLYMORPH.primaryColor;
-                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
                 break;
 
             case 'INVINCIBLE':
                 if (effectiveDuration > target.invincibleTimer) target.invincibleTimer = effectiveDuration;
                 statusText = STATUS_VISUALS.INVINCIBLE.label;
                 statusColor = STATUS_VISUALS.INVINCIBLE.primaryColor;
-                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
                 break;
 
             case 'VULNERABLE':

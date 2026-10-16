@@ -23,6 +23,12 @@ export interface AgentFieldOwnership {
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    ccVisual: {
+        group: 'status',
+        kind: 'domain',
+        owners: ['engine/systems/combat/CCManager.ts', 'engine/systems/status/ControlSystem.ts'],
+        note: '狀態域：CCManager 施加、ControlSystem 到期清除。',
+    },
     visualStatus: {
         group: 'visual',
         kind: 'single',
