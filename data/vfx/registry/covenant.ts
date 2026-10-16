@@ -72,76 +72,12 @@ export const COVENANT_VFX: Record<string, VFXAsset> = {
     // TANK
 
     // WARRIOR
-    'FX_ULT_RED_BLOODSTORM': {
-        id: 'FX_ULT_RED_BLOODSTORM',
-        emitters: [
-            { particleType: 'ATMOSPHERE', count: [20, 30], lifetime: [1.2, 1.8], size: [80, 110], speed: [15, 40], colors: ['#7f1d1d', '#450a0a'], shape: 'CIRCLE', shapeRadius: 40, blendMode: 'source-over', delay: 0 },
-            { particleType: 'SHARD', count: [30, 50], lifetime: [0.8, 1.4], size: [10, 18], speed: [100, 200], vz: [300, 600], gravity: 2000, colors: ['#ef4444', '#000'], shape: 'CIRCLE', shapeRadius: 30, vRotation: [15, 40], delay: 0.05 }
-        ]
-    },
-    'FX_ULT_RED_UNLIMITED_BLADE': {
-        id: 'FX_ULT_RED_UNLIMITED_BLADE',
-        emitters: [
-            // DRASTIC REDUCTION: 15 -> 6 Pillars to fix FPS
-            { particleType: 'PILLAR', visualStyle: 'PILLAR_VOID', count: 6, lifetime: [0.5, 1.0], size: [15, 25], height: [200, 300], speed: [0,0], colors: ['#000'], shape: 'CIRCLE', shapeRadius: 120, blendMode: 'source-over', delay: 0 },
-            { particleType: 'HEX_GLOW', count: 1, lifetime: [0.1, 0.2], size: [150, 200], colors: ['#ef4444'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
-        ]
-    },
 
     // RANGER
-    'FX_ULT_RED_RAILGUN': {
-        id: 'FX_ULT_RED_RAILGUN',
-        emitters: [
-            { particleType: 'BEAM', visualStyle: 'DEATH_RAY', count: 1, lifetime: [0.5, 0.8], size: [20, 20], colors: ['#000'], speed: [0,0], shape: 'POINT', blendMode: 'source-over', delay: 0 },
-            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.2, 0.4], size: [50, 100], colors: ['#ef4444'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_ULT_RED_INFERNO': {
-        id: 'FX_ULT_RED_INFERNO',
-        emitters: [
-            { particleType: 'BLAST', count: [3, 5], lifetime: [0.5, 1.0], size: [30, 60], colors: ['#ea580c'], speed: [0,0], shape: 'CIRCLE', shapeRadius: 200, blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [15, 25], lifetime: [0.5, 1.0], size: [3, 6], speed: [50, 100], vz: [100, 200], colors: ['#f97316', '#fff'], shape: 'CIRCLE', shapeRadius: 200, blendMode: 'lighter', delay: 0.2 }
-        ]
-    },
-    'FX_ULT_RED_HEADHUNTER': {
-        id: 'FX_ULT_RED_HEADHUNTER',
-        emitters: [
-            { particleType: 'RING', count: 1, lifetime: [0.3, 0.5], size: [20, 80], colors: ['#7f1d1d'], speed: [0,0], shape: 'POINT', blendMode: 'source-over', delay: 0 },
-            { particleType: 'RUBBLE', count: [8, 12], lifetime: [0.5, 0.8], size: [5, 10], speed: [100, 200], vz: [100, 200], colors: ['#991b1b'], shape: 'BURST_DIR', delay: 0.1 }
-        ]
-    },
-    'FX_ULT_RED_DOOM': {
-        id: 'FX_ULT_RED_DOOM',
-        emitters: [
-            { particleType: 'MAGIC_CIRCLE', count: 1, lifetime: [1.5, 2.0], size: [100, 120], colors: ['#581c87'], speed: [0,0], shape: 'POINT', blendMode: 'source-over', delay: 0 },
-            { particleType: 'SMOKE', count: [8, 12], lifetime: [1.0, 1.5], size: [30, 50], speed: [30, 60], colors: ['#4c1d95', '#000'], shape: 'CIRCLE', shapeRadius: 80, delay: 0.2 }
-        ]
-    },
 
     // MAGE
-    'FX_ULT_RED_DEATH_FINGER': {
-        id: 'FX_ULT_RED_DEATH_FINGER',
-        emitters: [
-            { particleType: 'BEAM', visualStyle: 'DEATH_RAY', count: 1, lifetime: [0.6, 0.8], size: [15, 15], colors: ['#be123c'], speed: [0,0], shape: 'POINT', blendMode: 'source-over', delay: 0 },
-            { particleType: 'SPARK', count: [15, 25], lifetime: [0.4, 0.6], size: [3, 5], speed: [100, 200], vz: [100, 200], colors: ['#ef4444'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
-        ]
-    },
-    'FX_ULT_RED_SOUL_BURN': {
-        id: 'FX_ULT_RED_SOUL_BURN',
-        emitters: [
-            { particleType: 'BLAST', count: [2, 3], lifetime: [0.5, 0.8], size: [50, 80], colors: ['#dc2626'], speed: [0,0], shape: 'CIRCLE', shapeRadius: 80, blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [10, 20], lifetime: [0.5, 1.0], size: [3, 5], speed: [50, 100], vz: [50, 100], colors: ['#fca5a5'], shape: 'BURST_DIR', delay: 0.1 }
-        ]
-    },
 
     // SUPPORT
-    'FX_ULT_RED_VOODOO': {
-        id: 'FX_ULT_RED_VOODOO',
-        emitters: [
-            { particleType: 'SMOKE', count: [15, 25], lifetime: [1.0, 1.5], size: [30, 50], speed: [30, 60], colors: ['#4c1d95', '#a78bfa'], shape: 'CIRCLE', shapeRadius: 150, delay: 0 },
-            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.5, 0.8], size: [300, 400], colors: ['#581c87'], speed: [0,0], shape: 'POINT', blendMode: 'multiply', delay: 0.2 }
-        ]
-    },
     'FX_COVENANT_RIFT': {
         id: 'FX_COVENANT_RIFT',
         emitters: [

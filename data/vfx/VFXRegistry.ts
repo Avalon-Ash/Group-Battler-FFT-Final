@@ -8,6 +8,7 @@ import { HAZARD_VFX } from "./registry/hazards";
 import { ULT_PART_VFX } from "./registry/ult_parts";
 import { ULT_PART_VFX_BLUE } from "./registry/ult_parts_blue";
 import { ULT_PART_VFX_RED } from "./registry/ult_parts_red";
+import { ULT_PART_VFX_STORM } from "./registry/ult_parts_storm";
 import { CAST_BREAK_VFX } from "./registry/cast_break";
 
 // ==========================================
@@ -26,6 +27,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...ULT_PART_VFX,
     ...ULT_PART_VFX_BLUE,
     ...ULT_PART_VFX_RED,
+    ...ULT_PART_VFX_STORM,
     ...CAST_BREAK_VFX
 };
 

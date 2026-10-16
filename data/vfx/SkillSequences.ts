@@ -189,6 +189,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     const count = ultConfig.count || 10;
                     const interval = ultConfig.timing || 0.1;
                     const fx = ultConfig.vfxOverride || 'SPARK';
+                    if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
                     for(let k=0; k<count; k++) { actions.push({ type: 'PARTICLE', id: fx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor, scale: ultConfig.scale * (0.8 + Math.random()*0.4), delay: k * interval }); }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.15, duration: count * interval }); // Sustained shake
                     break;
