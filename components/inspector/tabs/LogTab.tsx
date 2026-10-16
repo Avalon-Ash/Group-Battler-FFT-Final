@@ -205,7 +205,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                     </div>
                     <button 
                         onClick={downloadLogs} 
-                        className="liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
+                        className="touch-target liquid-btn px-3 py-1.5 !text-[10px] !rounded-lg border-white/10 text-slate-400 hover:text-white hover:border-cyan-500/30"
                         title="匯出戰鬥日誌 JSON"
                     >
                         <Icons.Save className="w-3 h-3 mr-1.5" /> 匯出記錄
@@ -219,7 +219,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                             <button 
                                 key={t}
                                 onClick={() => setFilterType(t)} 
-                                className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterType === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                className={`touch-target flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterType === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
                                 {t === 'ALL' ? '全部' : t === 'BATTLE' ? '戰鬥' : t === 'SKILL' ? '技能' : '其他'}
                             </button>
@@ -230,7 +230,7 @@ export const LogTab: React.FC<LogTabProps> = ({ engine }) => {
                             <button 
                                 key={s}
                                 onClick={() => setFilterSource(s)} 
-                                className={`flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterSource === s ? (s === 'BLUE' ? 'bg-blue-500/20 text-blue-400' : (s==='RED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')) : 'text-slate-500 hover:text-slate-300'}`}
+                                className={`touch-target flex-1 py-1.5 text-[10px] rounded-md font-bold transition-all uppercase tracking-wider ${filterSource === s ? (s === 'BLUE' ? 'bg-blue-500/20 text-blue-400' : (s==='RED' ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white')) : 'text-slate-500 hover:text-slate-300'}`}
                             >
                                 {s === 'ALL' ? '全軍' : s === 'BLUE' ? '藍軍' : '紅軍'}
                             </button>

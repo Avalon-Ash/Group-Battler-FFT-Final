@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { Team } from '../../types';
 import { useDraggable } from '../../hooks/useDraggable';
+import { useCompactViewport } from '../../hooks/useCompactViewport';
 import { Icons } from './icons';
 import { UI_Z, UI_PIN } from '../../constants';
 interface PlaybackHUDProps {
@@ -18,6 +19,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
     hidden, isPlaying, winner, timeScale, onTogglePlay, onRestart, onRandom, onSetTimeScale, onShowcase
 }) => {
     const ref = useRef<HTMLDivElement>(null);
+    const isCompact = useCompactViewport();
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'bottom-center',
         margin: 30,
@@ -33,7 +35,7 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
             style={{ ...style, zIndex: UI_Z.WINDOW_BASE }}
             {...dragHandlers}
         >
-            <div data-testid="playback-hud" className={`liquid-card !rounded-full p-2 pr-5 flex items-center gap-4 select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
+            <div data-testid="playback-hud" className={`liquid-card !rounded-full p-2 ${isCompact ? 'pr-3 gap-2' : 'pr-5 gap-4'} flex items-center select-none cursor-grab active:cursor-grabbing bg-slate-900/60 backdrop-blur-xl border ${glowClass} ${isDragging ? 'cursor-grabbing scale-105' : ''}`}>
                 <div className="relative group">
                     <div className={`absolute inset-0 rounded-full blur-md opacity-20 group-hover:opacity-40 transition-opacity ${isPlaying ? 'bg-emerald-500' : 'bg-amber-500'}`}></div>
                     <button 
@@ -51,12 +53,12 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         {isPlaying ? <Icons.Pause className="w-6 h-6 fill-current" /> : <Icons.Play className="w-6 h-6 fill-current ml-1" />}
                     </button>
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className={`flex gap-1.5 ${isCompact ? 'flex-row' : 'flex-col'}`}>
                     <button 
                         onClick={(e) => { e.stopPropagation(); onRestart(); }}
                         onPointerDown={(e) => e.stopPropagation()}
                         title="重新開始"
-                        className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 hover:border-white/20 flex items-center justify-center transition-all active:scale-95 group"
+                        className="touch-target-icon w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white border border-white/5 hover:border-white/20 flex items-center justify-center transition-all active:scale-95 group"
                     >
                         <Icons.Restart className="w-4 h-4 group-hover:-rotate-180 transition-transform duration-500" />
                     </button>
@@ -64,13 +66,13 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         onClick={(e) => { e.stopPropagation(); onRandom(); }}
                         onPointerDown={(e) => e.stopPropagation()}
                         title="隨機生成戰場與陣容"
-                        className="w-8 h-8 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
+                        className="touch-target-icon w-8 h-8 rounded-full bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 hover:text-purple-200 border border-purple-500/20 hover:border-purple-500/40 flex items-center justify-center transition-all active:scale-95"
                     >
                         <Icons.Dice className="w-4 h-4" />
                     </button>
                 </div>
-                <div className="h-8 w-px bg-white/10 mx-1"></div>
-                <div className="flex flex-col w-32 gap-1.5" onPointerDown={(e) => e.stopPropagation()}>
+                <div className={`h-8 w-px bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
+                <div className={`flex flex-col ${isCompact ? 'w-24' : 'w-32'} gap-1.5`} onPointerDown={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-center px-1">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">模擬速度</span>
                         <span className={`text-xs font-mono font-bold ${timeScale > 1.0 ? 'text-cyan-400 text-glow-cyan' : 'text-slate-300'}`}>
@@ -90,16 +92,16 @@ export const PlaybackHUD: React.FC<PlaybackHUDProps> = ({
                         />
                     </div>
                 </div>
-                <div className="h-8 w-px bg-white/10 mx-1"></div>
+                <div className={`h-8 w-px bg-white/10 ${isCompact ? '' : 'mx-1'}`}></div>
                 <button 
                     onClick={(e) => { e.stopPropagation(); onShowcase(); }}
                     onPointerDown={(e) => e.stopPropagation()}
                     title="進入展示模式 (Showcase)"
-                    className="w-10 h-10 rounded-full hover:bg-cyan-950/30 text-slate-500 hover:text-cyan-400 transition-all flex items-center justify-center group"
+                    className="touch-target-icon w-10 h-10 rounded-full hover:bg-cyan-950/30 text-slate-500 hover:text-cyan-400 transition-all flex items-center justify-center group"
                 >
                     <Icons.TV className="w-5 h-5 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                 </button>
-                <div className="w-1.5 h-8 flex flex-col justify-center gap-1 opacity-20 cursor-grab active:cursor-grabbing hover:opacity-50 transition-opacity">
+                <div className={`w-1.5 h-8 ${isCompact ? 'hidden' : 'flex'} flex-col justify-center gap-1 opacity-20 cursor-grab active:cursor-grabbing hover:opacity-50 transition-opacity`}>
                     <div className="w-1 h-1 rounded-full bg-white"></div>
                     <div className="w-1 h-1 rounded-full bg-white"></div>
                     <div className="w-1 h-1 rounded-full bg-white"></div>

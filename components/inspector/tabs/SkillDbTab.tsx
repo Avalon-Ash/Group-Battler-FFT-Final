@@ -54,7 +54,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                             <button 
                                 key={t}
                                 onClick={() => setDbTypeTab(t as DbTypeTab)} 
-                                className={`flex-1 py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
+                                className={`touch-target flex-1 py-2 text-[11px] rounded-lg font-bold transition-all uppercase tracking-wider ${dbTypeTab === t ? 'bg-cyan-500/20 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.1)]' : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'}`}
                             >
                                 {t === 'ALL' ? '全部' : TAG_MAP[t].label}
                             </button>

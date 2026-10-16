@@ -27,6 +27,10 @@
     --team-armor-light: rgb(var(--token-team-red-armor-light));
     --team-border-radius: var(--token-team-red-radius);
   }
+  :root {
+    /* Mirrors UI_WINDOW.TOUCH_TARGET_MIN_PX (constants.ts). */
+    --touch-target-min: 44px;
+  }
   html {
     font-size: 16px;
     height: 100%;
@@ -125,11 +129,25 @@
 
 @media (pointer: coarse) {
   [data-window-id] [data-window-titlebar="true"] {
-    min-height: 44px;
+    min-height: var(--touch-target-min);
   }
   [data-window-id] [data-no-drag="true"] button {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+  /* Opt-in: small chips, tabs and icon buttons grow to a finger-sized hit area on touch devices only. */
+  .touch-target {
+    min-height: var(--touch-target-min);
+  }
+  .touch-target-icon {
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+  }
+  /* Thin range tracks keep their look but get a taller touch area. */
+  [data-window-body] input[type="range"] {
+    box-sizing: content-box;
+    padding-block: 0.875rem;
+    background-clip: content-box;
   }
 }
 
