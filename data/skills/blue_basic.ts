@@ -15,7 +15,7 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'tb_b2', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '電擊警棍', desc: '機率微暈', 
+        name: '聖雷杖擊', desc: '機率微暈', 
         range: 1, cast: 0.4, cd: 1.2, cost: 0, gain: 20,
         type: 'SINGLE', power: 65, color: '#93c5fd', visual: 'SMASH', projectileSpeed: 0,
         ccType: 'STUN', ccDur: 0.5, 
@@ -23,7 +23,7 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'tb_b3', role: Role.TANK, team: Team.BLUE, tag: 'BASIC', 
-        name: '能量衝擊', desc: '回魔打擊', 
+        name: '聖印衝擊', desc: '回魔打擊', 
         range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 35, 
         type: 'SINGLE', power: 60, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
@@ -47,7 +47,7 @@ export const BLUE_BASIC: Skill[] = [
     // --- WARRIOR ---
     { 
         id: 'wb_b1', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
-        name: '光子劍刃', desc: '快速連擊', 
+        name: '輝光劍刃', desc: '快速連擊', 
         range: 1, cast: 0.3, cd: 0.7, cost: 0, gain: 25,
         type: 'SINGLE', power: 85, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', element: 'PHYSICAL'
@@ -68,7 +68,7 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'wb_b4', role: Role.WARRIOR, team: Team.BLUE, tag: 'BASIC', 
-        name: '戰術柄擊', desc: '微暈', 
+        name: '劍柄重擊', desc: '微暈', 
         range: 1, cast: 0.2, cd: 1.0, cost: 0, gain: 20, 
         type: 'SINGLE', power: 60, color: '#94a3b8', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 0.5,
@@ -100,14 +100,14 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
-        name: '雷射標記', desc: '必中', 
+        name: '獅眼印記', desc: '必中', 
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, // Nerf Range 6->5
         type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 0, // Instant
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
-        name: '震盪彈', desc: '擊退射擊', 
+        name: '震盪箭', desc: '擊退射擊', 
         range: 4, cast: 0.8, cd: 1.5, cost: 0, gain: 35, // Nerf Range 5->4
         type: 'SINGLE', power: 70, color: '#fbbf24', visual: 'BOLT', projectileSpeed: 1300, 
         ccType: 'KNOCKBACK', ccForce: 2,
@@ -125,7 +125,7 @@ export const BLUE_BASIC: Skill[] = [
     // --- MAGE (Nerfed Ranges -> 4) ---
     { 
         id: 'mb_b1', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
-        name: '追蹤導彈', desc: '追蹤魔法', 
+        name: '追跡魔彈', desc: '追蹤魔法', 
         range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 30, // Range 5->4
         type: 'SINGLE', power: 85, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 700, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
@@ -171,14 +171,14 @@ export const BLUE_BASIC: Skill[] = [
     },
     { 
         id: 'sb_b2', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
-        name: '超頻充能', desc: '極速回魔', 
+        name: '靈泉湧流', desc: '極速回魔', 
         range: 5, cast: 0.4, cd: 0.8, cost: 0, gain: 45, // Range 5->4
         type: 'SINGLE', power: 50, color: '#bfdbfe', visual: 'BOLT', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_BLUE_TECH', visualProjectileEffect: 'BOLT', element: 'LIGHTNING'
     },
     { 
         id: 'sb_b3', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
-        name: '護盾投射', desc: '給予護盾', 
+        name: '聖盾投影', desc: '給予護盾', 
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
         type: 'SINGLE', power: 0, color: '#e0f2fe', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 50,

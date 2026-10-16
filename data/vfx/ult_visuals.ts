@@ -59,15 +59,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'rb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#bae6fd', secondaryColor: '#fff', scale: 1.6, height: 1200, vfxOverride: 'FX_ULT_BLUE_GLACIAL_BURST' },
     // rb_u2: 星辰墜落 -> 六邊形流星雨
     'rb_u2': { archetype: 'STORM', primaryColor: '#fcd34d', secondaryColor: '#fff', scale: 0.9, count: 10, timing: 0.1, vfxOverride: 'FX_ULT_BLUE_STARFALL' },
-    // rb_u3: 軌道轟炸 -> 衛星離子砲 (垂直巨型六邊柱)
+    // rb_u3: 穿日神矢 -> 衛星離子砲 (垂直巨型六邊柱)
     'rb_u3': { archetype: 'HEAVEN_FALL', primaryColor: '#06b6d4', secondaryColor: '#22d3ee', scale: 1.8, height: 2500, timing: 0.1, vfxOverride: 'FX_ULT_BLUE_ORBITAL_BEAM' },
     // rb_u4: 絕對封鎖 -> 六邊形牢籠
     'rb_u4': { archetype: 'DOMAIN', primaryColor: '#7c3aed', secondaryColor: '#8b5cf6', scale: 1.4, vfxOverride: 'FX_ULT_BLUE_LOCKDOWN' },
-    // rb_u5: 系統超載 -> 自身周圍的高頻六邊形火花
+    // rb_u5: 疾風百矢 -> 自身周圍的高頻六邊形火花
     'rb_u5': { archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 15, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD' },
 
     // --- MAGE (Arcane/Gravity) ---
-    // mb_u1: 事件視界 -> 黑洞 (唯一保留球體特徵，但加上六邊形吸積盤)
+    // mb_u1: 奧術漩渦 -> 黑洞 (唯一保留球體特徵，但加上六邊形吸積盤)
     'mb_u1': { archetype: 'DOMAIN', primaryColor: '#000', secondaryColor: '#8b5cf6', scale: 2.0, vfxOverride: 'FX_ULT_BLUE_BLACKHOLE' },
     // mb_u2: 絕對零度 -> 擴散的凍結領域
     'mb_u2': { archetype: 'DOMAIN', primaryColor: '#bfdbfe', secondaryColor: '#3b82f6', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_GLACIAL_BURST' },
@@ -75,7 +75,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'mb_u3': { archetype: 'DOMAIN', primaryColor: '#fef08a', secondaryColor: '#fcd34d', scale: 2.5, vfxOverride: 'FX_ULT_BLUE_TIMESTOP' },
     // mb_u4: 奧術洪流 -> 導彈群
     'mb_u4': { archetype: 'STORM', primaryColor: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.0, count: 12, vfxOverride: 'FX_ULT_BLUE_TORRENT' },
-    // mb_u5: 聚能光束 -> 粗大的六邊形雷射
+    // mb_u5: 聚輝光柱 -> 粗大的六邊形雷射
     'mb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 3.5, vfxOverride: 'FX_ULT_BLUE_FOCUS_BEAM' },
 
     // --- SUPPORT (Heal/Buff) ---
@@ -117,9 +117,9 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'wr_u5': { archetype: 'INSTANT_IMPACT', primaryColor: '#450a0a', secondaryColor: '#000', scale: 2.0, vfxOverride: 'FX_ULT_RED_DEVASTATE' },
 
     // --- RANGER (Explosive/Dark) ---
-    // rr_u1: 終極爆破 -> 黑色電磁砲
+    // rr_u1: 灰燼穿心 -> 黑色電磁砲
     'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#000', secondaryColor: '#ef4444', scale: 3.5, vfxOverride: 'FX_ULT_RED_RAILGUN' },
-    // rr_u2: 戰術核彈 -> 核彈 (完美的 Heaven Fall)
+    // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 3.0, height: 2500, timing: 0.4, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
     'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#fff', scale: 1.0, count: 20, timing: 0.05, vfxOverride: 'FX_ULT_RED_INFERNO' },

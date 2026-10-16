@@ -79,7 +79,7 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'wr_u4', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
-        name: '無限劍制', desc: '變身恐懼', 
+        name: '千刃魔相', desc: '變身恐懼', 
         range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 400, color: '#000000', 
         visual: 'SMASH', projectileSpeed: 0, 
@@ -99,7 +99,7 @@ export const RED_ULT: Skill[] = [
     // --- RANGER ---
     { 
         id: 'rr_u1', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
-        name: '終極爆破', desc: '貫穿斬殺', 
+        name: '灰燼穿心', desc: '貫穿斬殺', 
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 800, color: '#000000', 
         visual: 'BOLT', projectileSpeed: 0, 
@@ -108,7 +108,7 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'rr_u2', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
-        name: '戰術核彈', desc: '大範圍擊退', 
+        name: '焦土衝擊', desc: '大範圍擊退', 
         range: 7, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 600, color: '#ef4444', 
         visual: 'BOMB', projectileSpeed: 0, 
@@ -154,7 +154,7 @@ export const RED_ULT: Skill[] = [
     },
     { 
         id: 'mr_u2', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
-        name: '死亡一指', desc: '單體秒殺技', 
+        name: '死亡宣告', desc: '單體秒殺技', 
         range: 7, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#be123c', 
         visual: 'BEAM', projectileSpeed: 0, 
