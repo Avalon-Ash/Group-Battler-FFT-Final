@@ -1,9 +1,4 @@
 
-import { VisualMath } from "../../math/VisualMath";
-
-// Re-export from the Single Source of Truth
-export const getTransitionOffset = VisualMath.getTransitionOffset;
-
 // Helper: Determine if a color is "Chaos" (Red/Purple/Dark/Fire) vs "Order" (Blue/Gold/White)
 export function isChaosStyle(color: string): boolean {
     const c = color.toLowerCase();
@@ -13,10 +8,3 @@ export function isChaosStyle(color: string): boolean {
            c.includes('#78') || c.includes('#000');
 }
 
-// Helper: Ensure 6-digit hex for alpha appending logic
-export function normalizeHex(color: string): string {
-    if (color.startsWith('#') && color.length === 4) {
-        return '#' + color[1] + color[1] + color[2] + color[2] + color[3] + color[3];
-    }
-    return color;
-}

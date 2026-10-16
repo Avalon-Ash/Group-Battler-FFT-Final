@@ -31,4 +31,3 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...CAST_BREAK_VFX
 };
 
-export { PROJECTILE_VISUALS } from "./projectile_visuals";

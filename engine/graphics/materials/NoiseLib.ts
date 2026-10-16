@@ -24,7 +24,7 @@ function smootherstep(t: number): number {
 }
 
 /** 2D value noise，回傳 [0,1] */
-export function valueNoise(x: number, y: number, seed: number): number {
+function valueNoise(x: number, y: number, seed: number): number {
     const ix = Math.floor(x);
     const iy = Math.floor(y);
     const fx = smootherstep(x - ix);
@@ -41,7 +41,7 @@ export function valueNoise(x: number, y: number, seed: number): number {
 }
 
 /** 分形疊加噪聲（fractal brownian motion），回傳 [0,1] */
-export function fbm(x: number, y: number, cfg: NoiseFieldConfig, seed: number): number {
+function fbm(x: number, y: number, cfg: NoiseFieldConfig, seed: number): number {
     let amp = 1;
     let freq = 1;
     let sum = 0;
@@ -66,7 +66,7 @@ const maskCache = new Map<string, HTMLCanvasElement>();
  * @param cfg    噪聲設定（讀自 MATERIAL_CONFIG）
  * @param radial 是否附加徑向衰減（中心密、邊緣散，用於地面痕跡）
  */
-export function getNoiseMask(
+function getNoiseMask(
     key: string,
     cfg: NoiseFieldConfig,
     radial = true,
@@ -118,12 +118,6 @@ export function getNoiseMask(
     ctx.putImageData(img, 0, 0);
     maskCache.set(cacheKey, canvas);
     return canvas;
-}
-
-/** 供熱重載 / 編輯器改參數後清空重算 */
-export function resetNoiseCache() {
-    grainCache.clear();
-    maskCache.clear();
 }
 
 /**
@@ -231,6 +225,3 @@ export function variantFor(q: number, r: number, variants: number): number {
     return Math.min(variants - 1, Math.floor(h * variants));
 }
 
-export function resetGrainCache() {
-    grainCache.clear();
-}

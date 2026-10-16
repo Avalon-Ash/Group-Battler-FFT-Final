@@ -10,12 +10,9 @@ export const DEFAULT_ZONE_CONFIG: ZoneConfig = {
 };
 export const HEX_SIZE = 48;
 export const BLOCK_HEIGHT = 24;
-export const BASE_HEIGHT = 4;
 export const MAX_TERRAIN_TIER = 6;
 export const ISO_SCALE_Y = 0.5;
-export const ISO_ANGLE = 0;
 export const TERRAIN_SORT_SCALE = 0.7;
-export const UNIT_VISUAL_HEIGHT = 100;
 export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;
 export const UNIT_SCALE = 0.65;
@@ -32,8 +29,6 @@ export const VISUAL_ANCHORS = {
     CENTER_OFFSET: 30
 };
 
-export const HUD_PADDING = 10;
-export const STATUS_ICON_OFFSET = 120;
 export const HUD_BAR_OFFSET = 150;
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
 
@@ -348,10 +343,6 @@ export const PALETTE = {
     MAGIC: '#8b5cf6'
 };
 
-export const COMBAT_Param = { // Deprecated alias, keeping for compatibility if needed, but prefer COMBAT_PARAM below
-    HIT_IMPULSE_MAX: 600
-};
-
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
@@ -427,19 +418,19 @@ export const TERRAIN_THEMES: Record<string, TerrainTheme> = {
     'DESERT': { top: '#b45309', sideLight: '#d97706', sideDark: '#78350f', detail: '#fde047', rim: '#fcd34d' }  // Sandstone
 };
 
-export interface TerrainSkinThemePaths {
+interface TerrainSkinThemePaths {
     top: string;
     side: string;
 }
 
 /** 貼圖細節疊加層：先以光照漸層全強度填底色，再以 blend 混合貼圖（光照決定明暗，貼圖只提供細節） */
-export interface TerrainDetailLayer {
+interface TerrainDetailLayer {
     blend: 'soft-light' | 'overlay' | 'multiply';
     alpha: number;
 }
 
 /** 鄰格高度遮罩（R1 / T2）：崖邊亮邊、接觸陰影、輪廓線 alpha */
-export interface TerrainEdgeConfig {
+interface TerrainEdgeConfig {
     /** 高度差至少達到此值（與 BLOCK_HEIGHT 同單位）才算有落差 */
     minStep: number;
     /** 前側崖邊亮邊：線寬（世界單位）與 alpha，顏色取 theme.rim */

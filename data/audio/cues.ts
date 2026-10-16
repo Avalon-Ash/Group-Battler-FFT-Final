@@ -305,26 +305,3 @@ export const CUE_TABLE: Record<CueId, CueDef> = {
     }
 };
 
-/**
- * 預設遊戲事件至 Cue 對映表
- */
-export const EVENT_TO_CUE = {
-    DAMAGE_LIGHT: 'HIT_LIGHT',
-    DAMAGE_HEAVY: 'HIT_HEAVY',
-    HEAL: 'MAGIC_HEAL',
-    CC_APPLIED: 'CC_STUN',
-    CAST_START: 'SPELL_CAST',
-    DEATH: 'DEATH',
-    SPAWN: 'SPAWN',
-    KILL: 'HIT_HEAVY',
-    KILL_STREAK: 'HIT_HEAVY',
-    IMPACT_AOE: 'COLLAPSE',
-    HAZARD_SPAWN: 'MAGIC_FIRE',
-    GROUND_IMPACT: 'IMPACT_GROUND',
-    TILE_COLLAPSED: 'COLLAPSE',
-    ZONE_SHRUNK: 'COLLAPSE',
-    LAST_STAND_TRIGGERED: 'RUMBLE',
-    CAMERA_SHAKE: 'RUMBLE',
-    VICTORY: 'VICTORY',
-    DEFEAT: 'DEFEAT'
-} as const;

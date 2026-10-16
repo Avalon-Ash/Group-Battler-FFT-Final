@@ -52,7 +52,7 @@ function hexArcPath(ctx: CanvasRenderingContext2D, r: number, u0: number, u1: nu
 }
 
 /** '#rrggbb' + alpha → rgba()；只在烘焙時呼叫。 */
-export function withAlpha(hex: string, alpha: number): string {
+function withAlpha(hex: string, alpha: number): string {
     const h = hex.replace('#', '');
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);

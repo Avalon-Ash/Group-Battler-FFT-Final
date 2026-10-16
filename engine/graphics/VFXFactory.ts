@@ -12,7 +12,7 @@ import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
 const TEXTURE_SIZE = 128; 
 const CENTER = TEXTURE_SIZE / 2;
 
-export class VFXTextureCache {
+class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
 
     public reset() { this.cache.clear(); }

@@ -133,10 +133,6 @@ export interface RegisteredWindowInfo {
     icon: React.ReactNode;
 }
 
-export function isWindowRegistered(id: WindowId): boolean {
-    return Boolean(WINDOW_REGISTRY[id]);
-}
-
 export function getRegisteredWindows(mode?: 'showcase' | 'manual'): RegisteredWindowInfo[] {
     const defs = mode ? filterWindowDefsByMode(WINDOW_DEFINITIONS, mode) : WINDOW_DEFINITIONS;
     return defs.filter((def) => Boolean(WINDOW_REGISTRY[def.id])).map((def) => ({
@@ -144,9 +140,5 @@ export function getRegisteredWindows(mode?: 'showcase' | 'manual'): RegisteredWi
         title: def.title,
         icon: WINDOW_REGISTRY[def.id]!.icon,
     }));
-}
-
-export function getWindowsForMode(mode: 'showcase' | 'manual'): RegisteredWindowInfo[] {
-    return getRegisteredWindows(mode);
 }
 

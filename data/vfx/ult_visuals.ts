@@ -6,7 +6,7 @@
 // All effects now utilize 2.5D Volumetric Hex Geometry.
 // =========================================================================================
 
-export type UltArchetype = 
+type UltArchetype = 
     | 'HEAVEN_FALL'   // Object falls from sky -> Impact (Meteor, Nuke)
     | 'SANCTUARY'     // Ring of pillars/beams around center
     | 'DOMAIN'        // Giant sphere/zone covering area

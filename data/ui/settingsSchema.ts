@@ -1,9 +1,9 @@
 import { UI_SETTINGS } from '../../constants';
 import { UICommand } from '../../types';
 
-export type SettingFieldKind = 'toggle' | 'slider';
+type SettingFieldKind = 'toggle' | 'slider';
 
-export interface BaseSettingField {
+interface BaseSettingField {
     id: string;
     label: string;
     description?: string;
@@ -25,13 +25,6 @@ export interface SliderSettingField extends BaseSettingField {
 }
 
 export type SettingField = ToggleSettingField | SliderSettingField;
-
-export interface SettingSection {
-    id: string;
-    title: string;
-    icon?: string;
-    fields: SettingField[];
-}
 
 export const DIRECTOR_SETTINGS_SCHEMA: SettingField[] = [
     {

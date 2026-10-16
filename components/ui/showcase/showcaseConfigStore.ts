@@ -126,9 +126,3 @@ export function useShowcaseLayout(): LayoutPreset {
     );
 }
 
-export function useShowcaseState(): ShowcaseState {
-    return useSyncExternalStore(
-        (cb) => showcaseConfigStore.subscribe(cb),
-        () => showcaseConfigStore.getState()
-    );
-}

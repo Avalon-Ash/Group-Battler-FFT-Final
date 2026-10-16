@@ -6,7 +6,7 @@
 // Defines unique visual archetypes for 50 Active Skills (IDs a1-a5)
 // =========================================================================================
 
-export type ActiveArchetype = 
+type ActiveArchetype = 
     | 'BURST_AOE'       // Instant explosion (Magic/Tech)
     | 'PROJECTILE_SALVO'// Multiple small projectiles
     | 'DASH_ASSAULT'    // Fast trail + Impact

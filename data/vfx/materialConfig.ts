@@ -89,11 +89,6 @@ export interface UnitTokenConfig {
     edgeGlow: number;
 }
 
-export interface UnitMaterialConfig {
-    armor: UnitArmorConfig;
-    token: UnitTokenConfig;
-}
-
 export interface PoisonConfig {
     noise: NoiseFieldConfig;
     /** 酸液底色 */
@@ -346,4 +341,3 @@ export const MATERIAL_CONFIG = {
     },
 };
 
-export type MaterialConfig = typeof MATERIAL_CONFIG;

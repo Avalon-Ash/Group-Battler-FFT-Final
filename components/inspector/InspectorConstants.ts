@@ -20,10 +20,7 @@
 // ║                           engine/renderers/units/painters/       ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { Role, Team, AnimState, AIState, ActionState, Skill } from '../../types';
-
-// [APPEARANCE SSOT] 單位外觀唯一資料源路徑，供 Inspector UI 說明文字使用
-export const UNIT_APPEARANCE_SOURCE = 'data/units/appearance/index.ts';
+import { Role, Team, AIState, ActionState, Skill } from '../../types';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: '坦克 (TANK)',    color: 'text-amber-400', border: 'border-amber-500' },
@@ -33,7 +30,7 @@ export const ROLE_MAP: Record<Role, { label: string; color: string; border: stri
     [Role.SUPPORT]: { label: '輔助 (SUPPORT)', color: 'text-purple-400', border: 'border-purple-500' }
 };
 
-export const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
+const TEAM_MAP: Record<Team, { label: string; color: string; bg: string }> = {
     [Team.BLUE]: { 
         label: '帝國軍 (IMPERIAL)', 
         color: 'text-cyan-400', 
@@ -52,7 +49,7 @@ export const TAG_MAP: Record<string, { label: string; color: string }> = {
     'BASIC':  { label: '基礎普攻', color: 'text-slate-400' }
 };
 
-export const AI_STATE_NAME_MAP: Record<AIState, string> = {
+const AI_STATE_NAME_MAP: Record<AIState, string> = {
     [AIState.IDLE]: '待機掃描',
     [AIState.WAITING]: '等待信號',
     [AIState.CC_INTERRUPTED]: '受控中斷',
@@ -68,7 +65,7 @@ export const AI_STATE_NAME_MAP: Record<AIState, string> = {
     [AIState.COMBAT_LOCK]: '交戰鎖定',
 };
 
-export const ACTION_STATE_MAP: Record<ActionState, string> = {
+const ACTION_STATE_MAP: Record<ActionState, string> = {
     [ActionState.IDLE]: '待機',
     [ActionState.WALKING]: '移動中',
     [ActionState.ATTACKING]: '攻擊中',
@@ -78,21 +75,7 @@ export const ACTION_STATE_MAP: Record<ActionState, string> = {
     [ActionState.DYING]: '陣亡消散'
 };
 
-export const ANIM_STATUS_MAP: Record<string, string> = {
-    [AnimState.IDLE]: '待命',
-    [AnimState.COMBAT_IDLE]: '備戰',
-    [AnimState.MOVE]: '位移',
-    [AnimState.ATTACK]: '攻擊',
-    [AnimState.HIT]: '受擊',
-    [AnimState.STUN]: '硬直',
-    [AnimState.DEAD]: '終止'
-};
-
-export const CC_OPTIONS = ['NONE', 'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'GRAVITY', 'DOT', 'HOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD'];
-export const EFFECT_OPTIONS = ['NONE', 'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'];
-export const ELEMENT_OPTIONS = ['PHYSICAL', 'FIRE', 'ICE', 'LIGHTNING', 'HOLY', 'VOID', 'POISON', 'ARCANE', 'BLOOD'];
-
-export const CC_OPTIONS_MAP = [
+const CC_OPTIONS_MAP = [
     { value: 'NONE', label: '無 (NONE)' },
     { value: 'STUN', label: '暈眩 (STUN)' },
     { value: 'BANISH', label: '放逐 (BANISH)' },
@@ -109,7 +92,7 @@ export const CC_OPTIONS_MAP = [
     { value: 'SHIELD', label: '護盾 (SHIELD)' }
 ];
 
-export const EFFECT_OPTIONS_MAP = [
+const EFFECT_OPTIONS_MAP = [
     { value: 'NONE', label: '無 (NONE)' },
     { value: 'VAMP', label: '生命吸取 (VAMP)' },
     { value: 'MANA_BURN', label: '法力燃燒 (MANA_BURN)' },
@@ -119,7 +102,7 @@ export const EFFECT_OPTIONS_MAP = [
     { value: 'SELF_DAMAGE', label: '自殘反噬 (SELF_DAMAGE)' }
 ];
 
-export const ELEMENT_OPTIONS_MAP = [
+const ELEMENT_OPTIONS_MAP = [
     { value: 'PHYSICAL', label: '物理 (PHYSICAL)' },
     { value: 'FIRE', label: '火焰 (FIRE)' },
     { value: 'ICE', label: '冰霜 (ICE)' },
@@ -131,7 +114,7 @@ export const ELEMENT_OPTIONS_MAP = [
     { value: 'BLOOD', label: '鮮血 (BLOOD)' }
 ];
 
-export const SPECIAL_VISUAL_MAP = [
+const SPECIAL_VISUAL_MAP = [
     { value: 'NONE', label: '正常 (NONE)' },
     { value: 'POLYMORPH', label: '變形 (POLYMORPH)' },
     { value: 'STASIS', label: '停滯 (STASIS)' },
@@ -139,17 +122,17 @@ export const SPECIAL_VISUAL_MAP = [
     { value: 'DANGER', label: '危險警告 (DANGER)' }
 ];
 
-export const TARGET_TYPE_MAP = [
+const TARGET_TYPE_MAP = [
     { value: 'SINGLE', label: '單體目標 (SINGLE)' },
     { value: 'AOE', label: '範圍傷害 (AOE)' }
 ];
 
 // [VISUAL SSOT] 此清單僅管理「技能特效 VFX ID」，不管理單位外觀。
 // 單位外觀（身體顏色/尺寸/武器）請至 data/units/appearance/ 修改。
-export const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'HEX_LOCK'];
+const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'HEX_LOCK'];
 
 /** 技能編輯欄位定義（SkillDbTab 依此動態產生表單）。key 必須是 Skill 的欄位。 */
-export interface SkillFieldDef {
+interface SkillFieldDef {
   key: keyof Skill;
   label: string;
   type: 'text' | 'number' | 'select' | 'color' | 'textarea';

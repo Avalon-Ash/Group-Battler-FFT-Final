@@ -21,12 +21,6 @@ export interface Hex {
     r: number;
 }
 
-export interface Cube {
-    x: number;
-    y: number;
-    z: number;
-}
-
 export interface Point {
     x: number;
     y: number;
@@ -308,7 +302,7 @@ export interface LogEntry {
 
 export type LogActionType = 'MOVE' | 'CAST' | 'HIT' | 'DECISION' | 'DEATH' | 'SYSTEM' | 'HEAL' | 'CC' | 'HAZARD';
 
-export interface KillStreakInfo {
+interface KillStreakInfo {
     count: number;
     lastTime: number;
 }
@@ -371,7 +365,7 @@ export interface WindowState {
     zIndex: number;
 }
 
-export interface SerializedWindowState {
+interface SerializedWindowState {
     x: number;
     y: number;
     w: number;
@@ -415,25 +409,25 @@ export type TerrainAmbienceBiome = 'VOID' | 'FOREST' | 'ICE' | 'MAGMA' | 'DESERT
 export type AmbienceWeatherType = 'SNOW' | 'ASH' | 'EMBER' | 'SPORES' | 'SAND' | 'VOID';
 
 /** 隨機範圍：value = min + Math.random() * spread */
-export interface AmbienceRange {
+interface AmbienceRange {
     min: number;
     spread: number;
 }
 
 /** 無縫循環動畫：一個完整週期（秒）預渲染成 frames 張影格 */
-export interface LoopTiming {
+interface LoopTiming {
     period: number;
     frames: number;
 }
 
-export interface GrassTuftConfig {
+interface GrassTuftConfig {
     x: number;
     y: number;
     /** 草叢精靈編號（1 起算，會隨地形 variant 輪替） */
     sprite: number;
 }
 
-export interface GrassSpriteConfig {
+interface GrassSpriteConfig {
     size: number;
     anchorX: number;
     anchorY: number;
@@ -506,19 +500,19 @@ export interface RunesDetailConfig {
     alpha: number;
 }
 
-export interface NoDetailConfig {
+interface NoDetailConfig {
     kind: 'NONE';
     baked: false;
 }
 
-export type TerrainSurfaceDetailConfig =
+type TerrainSurfaceDetailConfig =
     | GrassDetailConfig
     | IceSheenDetailConfig
     | SandRipplesDetailConfig
     | RunesDetailConfig
     | NoDetailConfig;
 
-export interface TerrainLiquidSurfaceConfig {
+interface TerrainLiquidSurfaceConfig {
     color: string;
     intensity: number;
 }

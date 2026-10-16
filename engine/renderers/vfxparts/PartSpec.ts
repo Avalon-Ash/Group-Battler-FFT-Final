@@ -42,12 +42,12 @@ export function quantizeSize(v: number, steps: readonly number[] = VFX_PARTS.SIZ
     return steps[steps.length - 1];
 }
 
-export function quantizeUnit(v: number | undefined): number {
+function quantizeUnit(v: number | undefined): number {
     const x = Math.max(0, Math.min(1, v ?? 0));
     return Math.round(x / VFX_PARTS.UNIT_STEP) * VFX_PARTS.UNIT_STEP;
 }
 
-export function quantizeAngleDeg(deg: number): number {
+function quantizeAngleDeg(deg: number): number {
     const step = VFX_PARTS.ANGLE_STEP_DEG;
     return Math.max(step, Math.min(360, Math.round(deg / step) * step));
 }

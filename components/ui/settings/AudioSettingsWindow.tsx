@@ -8,7 +8,7 @@ export interface AudioSettingsWindowProps {
     engine?: GameEngine;
 }
 
-export interface AudioSettingsState {
+interface AudioSettingsState {
     master: number;
     music: number;
     sfx: number;

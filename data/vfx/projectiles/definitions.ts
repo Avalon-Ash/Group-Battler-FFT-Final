@@ -3,8 +3,8 @@
 // 🏹 PROJECTILE TYPES & DEFAULTS
 // =========================================================================================
 
-export type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
-export type ProjectileRenderType = 'SPRITE' | 'BEAM' | 'RAY';
+type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
+type ProjectileRenderType = 'SPRITE' | 'BEAM' | 'RAY';
 
 export interface ProjectileVisualDef {
     // Behavior

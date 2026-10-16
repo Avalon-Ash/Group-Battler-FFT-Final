@@ -43,14 +43,14 @@ export function quantizeGlowBlur(b: number, steps: readonly number[] = RENDER_GL
     return steps[steps.length - 1];
 }
 
-export function quantizeGlowRectWidth(w: number, steps: readonly number[] = RENDER_GLOW.RECT_WIDTH_STEPS): number {
+function quantizeGlowRectWidth(w: number, steps: readonly number[] = RENDER_GLOW.RECT_WIDTH_STEPS): number {
     for (let i = 0; i < steps.length; i++) {
         if (steps[i] >= w - 1e-4) return steps[i];
     }
     return steps[steps.length - 1];
 }
 
-export function quantizeGlowRectHeight(h: number, steps: readonly number[] = RENDER_GLOW.RECT_HEIGHT_STEPS): number {
+function quantizeGlowRectHeight(h: number, steps: readonly number[] = RENDER_GLOW.RECT_HEIGHT_STEPS): number {
     for (let i = 0; i < steps.length; i++) {
         if (steps[i] >= h - 1e-4) return steps[i];
     }

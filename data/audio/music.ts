@@ -79,13 +79,3 @@ export const WINNER_TO_VICTORY_TRACK: Record<Team, TrackId> = {
     [Team.RED]: 'VICTORY_RED_STING'
 };
 
-/**
- * 遊戲模式與情境至音樂曲目之對映表
- */
-export const MODE_TO_MUSIC = {
-    SHOWCASE: 'SHOWCASE_AMBIENT',
-    BATTLE: 'BATTLE_NORMAL',
-    BATTLE_TENSE: 'BATTLE_TENSE',
-    VICTORY: 'VICTORY_STING',
-    DEFEAT: 'DEFEAT_STING'
-} as const;

@@ -4,7 +4,7 @@
 // Defines unique visual archetypes for 50 Basic Skills (IDs b1-b5)
 // =========================================================================================
 
-export type BasicArchetype = 
+type BasicArchetype = 
     | 'MELEE_SLASH'     // Standard Sword Swipe (1 Beam)
     | 'MELEE_SMASH'     // Blunt Impact
     | 'MELEE_PIERCE'    // Spear Thrust

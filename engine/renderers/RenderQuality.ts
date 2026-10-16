@@ -41,7 +41,7 @@ export interface QualityGovernorConfig {
 /**
  * 讀取 URL 查詢參數 ?quality=<0-3>
  */
-export function readPinnedQualityParam(): QualityTier | null {
+function readPinnedQualityParam(): QualityTier | null {
     if (typeof location === 'undefined' || !location.search) return null;
     try {
         const val = new URLSearchParams(location.search).get(RENDER_QUALITY.QUERY_KEY);
