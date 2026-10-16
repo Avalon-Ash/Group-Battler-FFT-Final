@@ -198,7 +198,7 @@ export const RED_ACTIVE: Skill[] = [
     },
     { 
         id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
-        name: '虛弱詛咒', desc: '範圍虛弱', 
+        name: '衰朽詛咒', desc: '範圍虛弱', 
         range: 6, cast: 0.8, cd: 12.0, cost: 45, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 50, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
         effectType: 'MANA_BURN', effectVal: 30,

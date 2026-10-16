@@ -6,7 +6,7 @@ export const BLUE_ACTIVE: Skill[] = [
     // --- TANK ---
     { 
         id: 'tb_a1', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '偏折力場', desc: '自身護盾與擊退', 
+        name: '六稜壁障', desc: '自身護盾與擊退', 
         range: 0, cast: 0.4, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 80, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 400, ccType2: 'KNOCKBACK', ccForce2: 3, 
@@ -22,7 +22,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'tb_a3', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '重力定錨', desc: '範圍禁錮', 
+        name: '磐石禁錮', desc: '範圍禁錮', 
         range: 0, cast: 0.5, cd: 10.0, cost: 45, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 100, color: '#1e3a8a', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'ROOT', ccDur: 3.0,
@@ -30,7 +30,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'tb_a4', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '電磁牽引', desc: '單體牽引', 
+        name: '聖鎖牽引', desc: '單體牽引', 
         range: 5, cast: 0.6, cd: 8.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 80, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 3, ccType2: 'TAUNT', ccDur2: 2.0,
@@ -55,7 +55,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'wb_a2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '光速突襲', desc: '突進並暈眩', 
+        name: '疾光突襲', desc: '突進並暈眩', 
         range: 6, cast: 0.2, cd: 7.0, cost: 30, gain: 0, // Buff Range 4->6, CD 9->8, Cast 0.1->0.2
         type: 'SINGLE', power: 140, color: '#e0f2fe', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.2, effectType: 'DASH',
@@ -63,7 +63,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'wb_a3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '靜電釋放', desc: '範圍沉默', 
+        name: '聖言禁語', desc: '範圍沉默', 
         range: 0, cast: 0.5, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: 120, color: '#3b82f6', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 2.0,
@@ -89,7 +89,7 @@ export const BLUE_ACTIVE: Skill[] = [
     // --- RANGER ---
     { 
         id: 'rb_a1', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '急凍手雷', desc: '小範圍緩速凍結', 
+        name: '霜寒法球', desc: '小範圍緩速凍結', 
         range: 7, cast: 0.6, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 120, color: '#bae6fd', visual: 'BOMB', projectileSpeed: 900,
         ccType: 'STUN', ccDur: 1.5, element: 'ICE', 
@@ -97,14 +97,14 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'rb_a2', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '穿甲狙擊', desc: '直線貫穿', 
+        name: '穿雲貫甲', desc: '直線貫穿', 
         range: 9, cast: 1.2, cd: 7.0, cost: 45, gain: 0, 
         type: 'SINGLE', power: 320, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_SNIPER', element: 'PHYSICAL'
     },
     { 
         id: 'rb_a3', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '閃現射擊', desc: '位移射擊', 
+        name: '疾影射擊', desc: '位移射擊', 
         range: 7, cast: 0.2, cd: 7.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 160, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2500, 
         ccType: 'BLIND', ccDur: 2.5,
@@ -145,7 +145,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '相位轉移', desc: '位置交換', 
+        name: '易位術', desc: '位置交換', 
         range: 7, cast: 0.5, cd: 10.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 60, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'DASH', 
@@ -177,7 +177,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'sb_a2', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '光能屏障', desc: '隊友護盾', 
+        name: '聖輝屏障', desc: '隊友護盾', 
         range: 7, cast: 0.4, cd: 7.0, cost: 30, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ffffff', visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, 
@@ -193,7 +193,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'sb_a4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '量子護盾', desc: '賦予目標短暫無敵',
+        name: '不滅聖印', desc: '賦予目標短暫無敵',
         range: 6, cast: 0.4, cd: 16.0, cost: 50, gain: 0,
         type: 'SINGLE', power: 0, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
         ccType: 'INVINCIBLE', ccDur: 1.5,
@@ -202,7 +202,7 @@ export const BLUE_ACTIVE: Skill[] = [
     },
     { 
         id: 'sb_a5', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
-        name: '戰術加速', desc: '群體加速', 
+        name: '疾風祝禱', desc: '群體加速', 
         range: 0, cast: 0.5, cd: 12.0, cost: 50, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: -60, color: '#bae6fd', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 80,

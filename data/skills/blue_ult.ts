@@ -116,7 +116,7 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'rb_u3', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '軌道轟炸', desc: '單體毀滅', 
+        name: '穿日神矢', desc: '單體毀滅', 
         range: 20, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#22d3ee', 
         visual: 'SMASH', projectileSpeed: 0, 
@@ -124,7 +124,7 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'rb_u4', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '絕對封鎖', desc: '區域禁錮', 
+        name: '六芒封鎖', desc: '區域禁錮', 
         range: 10, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 450, color: '#8b5cf6', 
         visual: 'BOMB', projectileSpeed: 0, 
@@ -133,7 +133,7 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'rb_u5', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '系統超載', desc: '極速連射', 
+        name: '疾風百矢', desc: '極速連射', 
         range: 10, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1000, color: '#ffffff', 
         visual: 'BOLT', projectileSpeed: 2500, 
@@ -143,7 +143,7 @@ export const BLUE_ULT: Skill[] = [
     // --- MAGE ---
     { 
         id: 'mb_u1', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '事件視界', desc: '牽引AOE', 
+        name: '奧術漩渦', desc: '牽引AOE', 
         range: 8, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 550, color: '#0f172a', 
         visual: 'SMASH', projectileSpeed: 0, 
@@ -178,7 +178,7 @@ export const BLUE_ULT: Skill[] = [
     },
     { 
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
-        name: '聚能光束', desc: '巨型高能光束', 
+        name: '聚輝光柱', desc: '巨型魔能光束', 
         range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 1200, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
