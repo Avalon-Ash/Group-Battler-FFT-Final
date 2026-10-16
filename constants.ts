@@ -658,7 +658,7 @@ export const RENDER_PERF = {
  */
 export const RENDER_CACHE = {
     SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
-    /** 縮放級距遲滯比例：超出目前級距 5% 才升級、低於下一級 5% 才降級（容許最多 5% 的放大模糊） */
+    /** 縮放級距遲滯比例：超出目前級距 5% 才升級（容許最多 5% 的放大模糊）；降級立即生效 */
     SCALE_HYSTERESIS: 0.05,
     MAX_TERRAIN_SPRITES: 2048,
     FLOAT_STEP: 0.5,
