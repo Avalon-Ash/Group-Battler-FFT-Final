@@ -20,13 +20,13 @@ export interface UnitFrameDef {
     oy: number;
 }
 
-export interface UnitAnimDef {
+interface UnitAnimDef {
     fps: number;
     loop: boolean;
     frames: Record<string, UnitFrameDef[]>;
 }
 
-export interface UnitAtlasDef {
+interface UnitAtlasDef {
     file: string;
     atlas: { w: number; h: number };
     idleHeightPx: number;
@@ -44,7 +44,7 @@ export interface UnitManifest {
     units: Record<string, UnitAtlasDef>;
 }
 
-export interface BakedAtlasEntry {
+interface BakedAtlasEntry {
     normalMips: Map<number, CanvasImageSource>;
     silhouetteMips: Map<number, CanvasImageSource>;
 }
@@ -52,7 +52,7 @@ export interface BakedAtlasEntry {
 /**
  * resolveAssetUrl — 依據 Vite BASE_URL 解析相對資產路徑
  */
-export function resolveAssetUrl(relativePath: string): string {
+function resolveAssetUrl(relativePath: string): string {
     const base = (typeof import.meta !== 'undefined' && import.meta.env && typeof import.meta.env.BASE_URL === 'string')
         ? import.meta.env.BASE_URL
         : './';
@@ -83,7 +83,7 @@ export function selectMipLevel(
     return best;
 }
 
-export class SpriteAtlasStore {
+class SpriteAtlasStore {
     private manifest: UnitManifest | null = null;
     private atlases: Map<string, BakedAtlasEntry> = new Map();
     private loadingPromises: Map<string, Promise<void>> = new Map();

@@ -8,7 +8,8 @@ import { BASIC_VISUALS } from "./basic_visuals";
 const sequences: Record<string, VFXSequence> = {};
 
 function fillFactionDefaults(prefix: string, primary: string, secondary: string, role: string) {
-    const isRed = prefix.includes('r');
+    // prefix = 職業字母 + 陣營字母（tb、rb、tr…）；只看第二個字母，否則 rb（獅心弓手）會被當成紅方
+    const isRed = prefix.endsWith('r');
     const hitFx = `FX_HIT_${isRed ? 'RED' : 'BLUE'}_${role}`;
 
     for (let i = 1; i <= 5; i++) {

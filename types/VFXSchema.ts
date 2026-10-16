@@ -5,7 +5,7 @@ export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' 
     | 'PART' | 'PART_GROUND' | 'PART_DEBRIS';
 
 // Define the "Verbs" of our visual language
-export type VFXActionType = 
+type VFXActionType = 
     | 'PARTICLE'    // Spawn an emitter
     | 'BEAM'        // Draw a line/laser
     | 'SHAKE'       // Camera trauma

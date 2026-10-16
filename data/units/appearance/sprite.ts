@@ -26,7 +26,7 @@ export function formatRoleName(role: Role | string): string {
     }
 }
 
-export const DEFAULT_SPRITE_APPEARANCE: Omit<SpriteAppearanceConfig, 'manifestKey'> = {
+const DEFAULT_SPRITE_APPEARANCE: Omit<SpriteAppearanceConfig, 'manifestKey'> = {
     targetHeight: UNIT_SPRITE.targetHeightCanvasUnits,
     shadowRadius: 20,
     flashStrength: 1.0,

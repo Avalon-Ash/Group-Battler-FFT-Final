@@ -19,7 +19,8 @@
     "perf:headed": "node tools/ui-e2e/perf-headed.mjs",
     "perf:frames": "node tools/ui-e2e/perf-frames.mjs",
     "perf:attribution": "node tools/ui-e2e/perf-vfx-attribution.mjs",
-    "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts"
+    "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts",
+    "knip": "knip"
   },
   "dependencies": {
     "react": "^19.2.3",
@@ -29,6 +30,7 @@
     "@types/node": "^22.14.0",
     "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.6.1",
+    "knip": "^6.41.0",
     "playwright-core": "^1.64.0",
     "postcss": "^8.5.29",
     "tailwindcss": "^3.4.19",

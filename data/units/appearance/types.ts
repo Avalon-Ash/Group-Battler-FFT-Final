@@ -1,7 +1,7 @@
 // data/units/appearance/types.ts
 import { Team } from '../../../types';
 
-export interface RoleAppearance {
+interface RoleAppearance {
   bodyWidth: number;      // 身體最大寬度（canvas unit）
   bodyHeight: number;     // 身體高度（canvas unit）
   headRadius: number;     // 頭部半徑

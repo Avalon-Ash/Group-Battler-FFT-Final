@@ -24,7 +24,6 @@ import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEven
 import { HexUtils, MapConfig } from "./utils";
 import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
-import type { SpecialVisualStatus } from "./core/Agent";
 import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { CombatSystem } from "./systems/combat";
@@ -50,7 +49,7 @@ import { UICommandSystem } from "./systems/ui/UICommandSystem";
 import { AudioSystem } from "./systems/audio/AudioSystem";
 import type { GameRenderer } from "./renderer";
 
-export { Agent, SpecialVisualStatus };
+export { Agent };
 
 export const VICTORY_PHASE_DURATION = 0.5; 
 

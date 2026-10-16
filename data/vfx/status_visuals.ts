@@ -1,6 +1,6 @@
 
-export type StatusIconShape = 'HEX_HALO' | 'HEX_LOCK' | 'HEX_PRISM' | 'HEX_RUNE' | 'HEX_SHIELD' | 'HEX_SKULL' | 'HEX_ANGRY' | 'HEX_EYE' | 'NONE';
-export type OverheadEffect = 'ICON' | 'NONE' | 'BUBBLE_POP' | 'GHOST_FLOAT'; 
+type StatusIconShape = 'HEX_HALO' | 'HEX_LOCK' | 'HEX_PRISM' | 'HEX_RUNE' | 'HEX_SHIELD' | 'HEX_SKULL' | 'HEX_ANGRY' | 'HEX_EYE' | 'NONE';
+type OverheadEffect = 'ICON' | 'NONE' | 'BUBBLE_POP' | 'GHOST_FLOAT'; 
 
 export interface StatusVisualDef {
     id: string;

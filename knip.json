@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "tools/**/*.{mjs,js,ts}",
+    "tests/**/*.test.ts"
+  ],
+  "project": [
+    "**/*.{ts,tsx,mjs,js}",
+    "!dist/**",
+    "!public/**",
+    "!art-source/**"
+  ]
+}

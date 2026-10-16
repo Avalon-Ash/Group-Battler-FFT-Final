@@ -55,6 +55,7 @@
 - 特效零件六角化：**骨架六角、細節自然**（法陣、衝擊環、護盾、光柱截面用六角；火焰、煙、光點保留自然形狀）。零件總表的圓環需改六角。
 - 掃描線／Glitch：只用於投影失真時刻；詠唱、AOE 預警與中斷的完整定義見 `ART_SPEC` §13。
 - 像素密度、P0b 審美預設、像素原型取捨：SD 線已暫停，**作廢**。
+- **基本攻擊／主動技下一輪必修（2026-10-16 knip 清理時發現）**：`SKILL_SEQUENCES` 裡有 81 個 PARTICLE 動作的 id 不在 `VFX_REGISTRY`，播放時被靜默略過（`GLOW`×43、`SMOKE_PUFF`×15、`PROJ_BLUE_SNIPER`×7、`PROJ_RED_HEAVY_BOLT`×6、`SPARK`×3、`PROJ_BLUE_FROST_BOLT`×3、`BEAM_RED_LINK`×2、`DRAIN_LINK`、`SLASH_CONNECT`）。主因是 `active_visuals`／`basic_visuals` 的 `vfxOverride` 兼放光束樣式、投射物 id 與粒子型別，又被當成命中特效 id 播放。重做時拆成 `hitFx`／`beamStyle`／`projectile` 三個欄位，並加測試：序列中每個 PARTICLE id 都要在登記表內。
 - 仍待確認：V2a 兩個樣板奧義，已換六角骨架並重錄：`tools/ui-e2e/out/vfx/wb_u3_BLUE.mp4`、`wr_u1_RED.mp4`（`*_sheet.png` 為逐格總表）。確認方向後再批次套用其餘 28 個。
 - 已完成（2026-10-16）：零件六角化（環、法陣外框、稜柱光柱、六角碎片）；§13 詠唱中斷與 AOE 預警崩解（截圖工具 `tools/vfx/cast-break-shot.mjs`）；地面法陣不再蓋住站在上面的單位；SD 像素原型移除（tag `pixel-proto-ckpt` 可復原）。
 

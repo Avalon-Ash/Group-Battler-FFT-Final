@@ -48,10 +48,6 @@ function bake(key: string, size: number, paint: (ctx: CanvasRenderingContext2D, 
     return canvas;
 }
 
-export function resetMaterialCache() {
-    bakeCache.clear();
-}
-
 /** 確定性亂數（seed 驅動），避免每帧抖動 */
 function rng(seed: number) {
     let s = seed >>> 0 || 1;

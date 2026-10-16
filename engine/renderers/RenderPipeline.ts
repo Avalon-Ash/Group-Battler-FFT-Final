@@ -17,7 +17,7 @@ import { particleTextureStore } from "./ParticleTextureStore";
 
 let allAssetsReady = typeof Image === 'undefined';
 
-export const unifiedAssetsReadyPromise: Promise<void> = Promise.all([
+void Promise.all([
     spriteAtlasStore.readyPromise,
     terrainTextureStore.readyPromise,
     particleTextureStore.readyPromise,

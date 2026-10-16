@@ -6,8 +6,8 @@ import { UI_SETTINGS } from '../constants';
 /**
  * Frequency of the shared UI view polling ticker (10 Hz / 100ms).
  */
-export const SNAPSHOT_HZ = UI_SETTINGS.SNAPSHOT_HZ;
-export const SNAPSHOT_INTERVAL_MS = 1000 / SNAPSHOT_HZ;
+const SNAPSHOT_HZ = UI_SETTINGS.SNAPSHOT_HZ;
+const SNAPSHOT_INTERVAL_MS = 1000 / SNAPSHOT_HZ;
 
 
 /**
@@ -67,7 +67,7 @@ export class EngineViewTicker {
     }
 }
 
-export const engineViewTicker = new EngineViewTicker();
+const engineViewTicker = new EngineViewTicker();
 
 /**
  * React hook to consume engine state through a pure selector.
