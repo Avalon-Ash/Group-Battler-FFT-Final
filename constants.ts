@@ -36,7 +36,7 @@ export const MAX_ARC_HEIGHT = 150;
 
 // SSOT: Element Colors for DoT and Effects
 export const DOT_COLORS: Record<string, string> = {
-    FIRE: '#f97316',
+    BURN: '#f97316', // 鍵＝agent.dotType（CCManager 只寫 'BURN'／'POISON'）；原為 FIRE，燃燒誤用綠色後備色
     POISON: '#10b981',
     VOID: '#a855f7',
     ICE: '#3b82f6',
