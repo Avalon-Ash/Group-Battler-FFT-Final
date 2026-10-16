@@ -264,3 +264,24 @@ CC 施加者是 `combat/CCManager.ts`，衰減者是 `status/ControlSystem.ts`�
 | P12（可選） | 純視覺群組改為 `agent.view` 子物件（方案 A 局部採用） | 機械性改名 | 同上、perf:guard |
 
 給低階代理的提示詞要寫明：受保護檔案（`docs/HANDOFF.md`、`CLAUDE.md`、`AGENTS.md`、facade）、每期只碰表中列出的檔案、不得放寬基準或門檻、不得新增「安全網」掩蓋症狀（HANDOFF §4 教訓 6）。
+
+## 5. 實作紀錄（2026-10-16，分支 `claude/ownership-p0-p2-b2e595`）
+
+| 期 | commit | 檔案 | 內容 |
+| :-- | :-- | :-- | :-- |
+| P0 | `70035ab` | `engine/core/AgentOwnership.ts`、`tests/AgentOwnership.test.ts`、`tests/agent-ownership.baseline.json` | 所有權表（目前只涵蓋 P0～P2 欄位，型別為 `Partial<Record<AgentField, …>>`，全部填完後改 `Record`）＋守門測試：掃 `engine/`、`components/`、`hooks/`、`data/`（排除 `Agent.ts` 與表本身、去註解），對每個欄位的 `=`／複合賦值／`++`／`--`／巢狀 `.x =`／索引寫入／陣列變異找寫入點；不在 `owners ∪ lifecycle` 即違規。基準雙向棘輪（新增違規失敗；基準內已消失的項目也失敗）。初始基準 9 筆，與 §1.10 的人工清單一致。 |
+| P1a | `c2e6171` | `tests/VisualStatusOwnership.test.ts` | **證實**：以 `CCManager.applyCC` 施加冰屬性暈眩／變形／無敵後跑完整 `engine.tick`，6/6 tick 的 `visualStatus` 皆為 `NONE`（AnimationSystem 在 tick 最後覆寫）。STASIS 不受影響（AnimationSystem 自行由 `stasisTimer` 推導）。三個案例先以 `it.fails` 記錄，P1c 轉綠。 |
+| P1b | `94a16eb` | `Agent.ts`、`CCManager.ts`、`ControlSystem.ts`（＋表、基準） | 新增狀態域欄位 `ccVisual`（`reset()` 會清）；CC／Control 對 `visualStatus` 的寫入機械式改寫為 `ccVisual`。 |
+| P1c | `7f99584` | `AnimationSystem.ts`、`TargetingSystem.ts`、`PhysicsEngine.ts`（＋表、基準、P1a 測試） | AnimationSystem 每 tick（含受擊閃光分支）推導 `visualStatus = ccVisual ≠ NONE ? ccVisual : (未失能且 EVADING ? DANGER : NONE)`；Targeting 不再寫 DANGER（原本除 EVADING 外都會被覆寫，效果不變）；Physics 改讀 `stunTimer`／`polymorphTimer`。 |
+| P2 | `e1de756` | `AnimationSystem.ts`、`SkillExecutor.ts`、`CCManager.ts`、`PhysicsEngine.ts`、`HazardSystem.ts`、`EffectSystem.ts`（＋表、基準） | `hitFlashTimer`／`visualOffset` 改由 AnimationSystem 匯出的 `triggerHitFlash`／`triggerHitShake` 寫入（§3.1 方式 1：擁有者寫入 API）。基準歸零。 |
+
+**與原計畫的差異**
+- P2 沒有採用「從 `engine.events` 推導」：墜落傷害事件沒有 `targetId`、擊退／拉扯完全不發事件、Hazard 在不發事件時也會閃光，且各路徑閃光時長不同（0.2／0.1／`HIT_FLASH_DURATION`）。改成事件推導需要先動 5 個檔案的事件格式並會改變畫面；寫入 API 讓行為逐位元相同（含 `Math.random` 呼叫順序），所有權一樣收斂到單一檔案。P2a／P2b 合為一個 commit。
+- `DirectorSystem.ts:153` 仍唯讀 `hitFlashTimer`（計畫允許）。
+
+**畫面行為變化（待主代理實機確認，R 項目）**
+- 冰屬性暈眩、變形、無敵的外觀（`UnitBodyPainter` 的 POLYMORPH／FROZEN 分支、`GroundEffectPainter`、`OverheadPainter`、`GaugePainter`、陰影隱藏、`UnitAmbientPainter` 停用常駐特效）**第一次會真的顯示**。
+- 變形中的飛行單位會失去懸浮（原作者意圖；以前因覆寫而從未生效）。
+- 受擊閃光幀內的 `visualStatus` 不再沿用上一 tick 的殘值。
+
+**驗證**：每期 lint／test／build 全綠；P1c 與 P2 各跑 `br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`。未跑 perf 系列、未截圖（GPU 由效能五使用中）。
