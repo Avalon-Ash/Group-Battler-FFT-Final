@@ -11,6 +11,7 @@ import { MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
+import { triggerHitFlash } from "./AnimationSystem";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
 
@@ -132,7 +133,7 @@ export class HazardSystem {
             engine.agentManager.handleDeadState(agent, engine);
         }
 
-        agent.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+        triggerHitFlash(agent, COMBAT_PARAM.HIT_FLASH_DURATION);
     }
 
     private updateGravityPull(dt: number, engine: GameEngine) {

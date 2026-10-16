@@ -4,6 +4,7 @@ import { Skill, Hex } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
+import { triggerHitFlash } from "../AnimationSystem";
 
 export const CCManager = {
     
@@ -79,7 +80,7 @@ export const CCManager = {
                 statusText = STATUS_VISUALS.STUN.label;
                 statusColor = STATUS_VISUALS.STUN.primaryColor;
                 
-                if (skill.element === 'ICE') target.visualStatus = 'FROZEN';
+                if (skill.element === 'ICE') target.ccVisual = 'FROZEN';
                 break;
 
             case 'SILENCE':
@@ -107,9 +108,9 @@ export const CCManager = {
                     // STASIS 使用獨立 timer，不共用 banishTimer 語意
                     target.stasisTimer = effectiveDuration;
                     target.stasisMax = effectiveDuration;
-                    target.visualStatus = 'STASIS';
+                    target.ccVisual = 'STASIS';
                 } else if (skill.specialVisualStatus) {
-                    target.visualStatus = skill.specialVisualStatus;
+                    target.ccVisual = skill.specialVisualStatus;
                 }
                 break;
 
@@ -157,14 +158,14 @@ export const CCManager = {
                 target.isMoving = false;
                 statusText = STATUS_VISUALS.POLYMORPH.label;
                 statusColor = STATUS_VISUALS.POLYMORPH.primaryColor;
-                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
                 break;
 
             case 'INVINCIBLE':
                 if (effectiveDuration > target.invincibleTimer) target.invincibleTimer = effectiveDuration;
                 statusText = STATUS_VISUALS.INVINCIBLE.label;
                 statusColor = STATUS_VISUALS.INVINCIBLE.primaryColor;
-                if (skill.specialVisualStatus) target.visualStatus = skill.specialVisualStatus;
+                if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
                 break;
 
             case 'VULNERABLE':
@@ -189,7 +190,7 @@ export const CCManager = {
                     statusText = visual.label;
                     statusColor = visual.primaryColor;
                     // SSOT: Trigger hit flash to cause reaction
-                    if (target.hp > 0) target.hitFlashTimer = 0.2;
+                    if (target.hp > 0) triggerHitFlash(target, 0.2);
                     target.physics.vz += PHYSICS.VISUAL_JUMP_KNOCKBACK; 
                     noDurationLog = true;
                     engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK });

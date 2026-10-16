@@ -21,7 +21,7 @@ export class ControlSystem {
         if (agent.stasisTimer > 0) {
             agent.stasisTimer = Math.max(0, agent.stasisTimer - dt);
             if (agent.stasisTimer <= 0) {
-                if (agent.visualStatus === 'STASIS') agent.visualStatus = 'NONE';
+                if (agent.ccVisual === 'STASIS') agent.ccVisual = 'NONE';
             }
         }
         if (agent.stunTimer > 0) agent.stunTimer = Math.max(0, agent.stunTimer - dt);
@@ -35,9 +35,9 @@ export class ControlSystem {
             agent.polymorphTimer -= dt;
             if (agent.polymorphTimer <= 0) {
                 agent.polymorphTimer = 0;
-                if (agent.visualStatus === 'POLYMORPH') agent.visualStatus = 'NONE';
+                if (agent.ccVisual === 'POLYMORPH') agent.ccVisual = 'NONE';
             } else {
-                agent.visualStatus = 'POLYMORPH';
+                agent.ccVisual = 'POLYMORPH';
             }
         }
 
@@ -46,9 +46,9 @@ export class ControlSystem {
             agent.invincibleTimer -= dt;
             if (agent.invincibleTimer <= 0) {
                 agent.invincibleTimer = 0;
-                if (agent.visualStatus === 'INVINCIBLE') agent.visualStatus = 'NONE';
+                if (agent.ccVisual === 'INVINCIBLE') agent.ccVisual = 'NONE';
             } else {
-                agent.visualStatus = 'INVINCIBLE';
+                agent.ccVisual = 'INVINCIBLE';
             }
         }
         if (agent.tauntTimer > 0) {
@@ -65,9 +65,9 @@ export class ControlSystem {
         } else {
             if (agent.banished) {
                 agent.banished = false;
-                // 只有在 STASIS 未持續時才清除 visualStatus
-                if (agent.visualStatus !== 'STASIS' || agent.stasisTimer <= 0) {
-                    agent.visualStatus = 'NONE';
+                // 只有在 STASIS 未持續時才清除 ccVisual
+                if (agent.ccVisual !== 'STASIS' || agent.stasisTimer <= 0) {
+                    agent.ccVisual = 'NONE';
                 }
                 engine.log(agent, 'CC', '放逐結束', null, '重返戰場');
             }
@@ -77,8 +77,8 @@ export class ControlSystem {
         if (agent.stunTimer > 0) {
             agent.isMoving = false;
             agent.path = [];
-        } else if (agent.visualStatus === 'FROZEN') {
-            agent.visualStatus = 'NONE';
+        } else if (agent.ccVisual === 'FROZEN') {
+            agent.ccVisual = 'NONE';
         }
 
         // State Logic: Root and Fear combined

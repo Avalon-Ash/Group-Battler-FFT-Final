@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { applyDirectDamage } from "../combat/DirectDamage";
+import { triggerHitFlash } from "../AnimationSystem";
 
 export class EffectSystem {
     
@@ -58,7 +59,7 @@ export class EffectSystem {
                     });
                 }
                 engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (${agent.dotType})`);
-                agent.hitFlashTimer = 0.1;
+                triggerHitFlash(agent, 0.1);
                 dotTimer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
                 this.feedbackTimers.set(dotKey, dotTimer);
             }

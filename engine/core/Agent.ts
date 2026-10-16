@@ -97,6 +97,8 @@ export class Agent {
     public dragOverQ: number | null = null;
     public dragOverR: number | null = null;
     public visualStatus: SpecialVisualStatus = 'NONE';
+    // [ownership] CC 施加的特殊外觀（狀態域：CCManager 施加、ControlSystem 到期清除）；visualStatus 由 AnimationSystem 從它推導。
+    public ccVisual: SpecialVisualStatus = 'NONE';
     public activeCCVFX: string[] = [];
     public hasLandedLastStand: boolean = false; // Track one-time EMP hit
     public spawnTimer: number = 0;
@@ -207,6 +209,7 @@ export class Agent {
         this.dotType = 'POISON';
         this.hotTimer = 0;
         this.visualStatus = 'NONE';
+        this.ccVisual = 'NONE';
         this.activeCCVFX = [];
 
         this.drStacks = {};

@@ -4,6 +4,7 @@ import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "../systems/combat/DirectDamage";
+import { triggerHitFlash } from "../systems/AnimationSystem";
 
 export class PhysicsEngine {
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
@@ -78,7 +79,8 @@ export class PhysicsEngine {
 
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
-        const isDisabled = a.stunTimer > 0 || a.visualStatus === 'FROZEN' || a.visualStatus === 'POLYMORPH';
+        // 模擬層讀狀態計時器而非視覺欄位（FROZEN 必伴隨 stunTimer）。
+        const isDisabled = a.stunTimer > 0 || a.polymorphTimer > 0;
 
         // Check if standing on valid ground
         const isGroundValid = engine.isValid(a.q, a.r);
@@ -132,7 +134,7 @@ export class PhysicsEngine {
                         engine.agentManager.handleDeadState(a, engine);
                     } else {
                         // SSOT: Set visual timer instead of imperative setAnim
-                        a.hitFlashTimer = 0.2; 
+                        triggerHitFlash(a, 0.2);
                     }
                 }
                 a.physics.vz = -a.physics.vz * 0.3;
