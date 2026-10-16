@@ -28,53 +28,36 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const specificHit = basicSkill.visualHitEffect || hitFx;
 
             if (basicConfig) {
-                // Config-Driven Basic Sequence
+                // 普攻序列只放「出手」的線條（斬擊弧、光束）；命中特效由 HIT_FX 事件播 skill.visualHitEffect，
+                // 所以這裡不放命中粒子、鏡頭震動與格子脈衝（ART_SPEC §6：普攻禁止震動與大範圍效果）
+                const style = basicConfig.beamStyle;
                 switch(basicConfig.archetype) {
                     case 'MELEE_SLASH':
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
-                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
                         break;
-                    case 'CROSS_CUT': // [NEW] Dual X-Slash
+                    case 'CROSS_CUT':
                     case 'DUAL_STRIKE':
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: 0.8 }); // Slash 1
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.15, scale: 0.8, delay: 0.1 }); // Slash 2 (Cross)
-                        actions.push({ type: 'PARTICLE', id: specificHit, scale: 0.7, delay: 0.15 });
-                        actions.push({ type: 'SHAKE', shakeIntensity: 0.1, delay: 0.15 });
+                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: 0.8 });
+                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.15, scale: 0.8, delay: 0.1 });
                         break;
-                    case 'HEAVY_CLEAVE': // [NEW] Massive Swing
+                    case 'HEAVY_CLEAVE':
                     case 'MELEE_CLEAVE':
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.25, scale: (basicConfig.scale || 1.2) * 1.5 });
-                        actions.push({ type: 'GRID_PULSE', color: basicConfig.secondaryColor, scale: 1.0, delay: 0.1 });
-                        actions.push({ type: 'SHAKE', shakeIntensity: 0.2, delay: 0.1 });
-                        break;
-                    case 'MELEE_SMASH':
-                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.color, scale: (basicConfig.scale || 1.0) * 1.2 });
-                        actions.push({ type: 'SHAKE', shakeIntensity: 0.15, delay: 0.05 });
-                        actions.push({ type: 'GRID_PULSE', color: basicConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.25, scale: (basicConfig.scale || 1.2) * 1.2 });
                         break;
                     case 'MELEE_PIERCE':
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
+                        actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
                         break;
-                    case 'RANGED_BOLT':
-                    case 'MAGIC_ORB':
-                        // 投射物與出手閃光由 ProjectileSystem／PROJECTILE_SPAWN 處理
-                        break;
-                    case 'LASER_SHOT': // [NEW] Instant Hit Beam
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'DEATH_RAY', color: basicConfig.color, duration: 0.2, scale: 0.6 });
+                    case 'LASER_SHOT':
+                        actions.push({ type: 'BEAM', style: style ?? 'LIGHTNING_BEAM', color: basicConfig.color, duration: 0.2, scale: 0.8 });
                         break;
                     case 'RANGED_BEAM':
-                        actions.push({ type: 'BEAM', style: basicConfig.beamStyle ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.3, scale: 1.0 });
-                        actions.push({ type: 'PARTICLE', id: specificHit, color: basicConfig.secondaryColor, scale: 0.7, delay: 0.05 });
+                        actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.25, scale: basicConfig.scale ?? 1.0 });
                         break;
+                    case 'MELEE_SMASH':
+                    case 'RANGED_BOLT':
+                    case 'MAGIC_ORB':
+                        break; // 打擊感全在 HIT_FX／投射物
                 }
-            } else {
-                // Fallback Legacy Logic
-                if (!basicSkill.projectileSpeed || basicSkill.projectileSpeed <= 0) {
-                    const beamStyle = (role === 'WARRIOR' || role === 'TANK') ? 'SLASH_CONNECT' : 'GENERIC_BEAM';
-                    actions.push({ type: 'BEAM', style: beamStyle, color: basicSkill.color, duration: 0.15 });
-                }
-                actions.push({ type: 'PARTICLE', id: specificHit, color: secondary, scale: 0.6, delay: 0.05 });
-                actions.push({ type: 'SHAKE', shakeIntensity: 0.05, delay: 0.05 });
             }
             sequences[basicId] = { id: basicId, actions };
         }
@@ -86,6 +69,9 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
         if (activeConfig) {
             const actions: VFXAction[] = [];
             const specificHit = activeConfig.impactFx || hitFx;
+            // 有投射物的主動技：主特效在投射物抵達時由 HIT_FX 播（visualHitEffect），序列只放出手預兆
+            const activeSkill = DEFAULT_SKILL_DB.find(sk => sk.id === activeId);
+            const isProjectile = (activeSkill?.projectileSpeed ?? 0) > 0;
 
             // Faction-Specific Flavor
             if (isRed) {
@@ -104,7 +90,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                 }
             }
 
-            switch (activeConfig.archetype) {
+            switch (isProjectile ? 'PROJECTILE_SALVO' : activeConfig.archetype) {
                 case 'BURST_AOE':
                     actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.25 });
@@ -129,14 +115,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 1.5, delay: 0.05 });
                     break;
                 case 'PROJECTILE_SALVO':
-                    // 投射物由 ProjectileSystem 生成；這裡只有明確指定的落點特效
-                    if (activeConfig.impactFx) {
-                        const count = activeConfig.count || 3;
-                        for(let k=0; k<count; k++) {
-                            actions.push({ type: 'PARTICLE', id: activeConfig.impactFx, color: activeConfig.color, scale: 0.7, delay: k * 0.1 });
-                        }
-                    }
-                    break;
+                    break; // 投射物與命中特效由 ProjectileSystem／HIT_FX 處理
                 default: // SIMPLE_IMPACT
                     actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 0.8 });
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.15 });
@@ -184,7 +163,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.3, delay: 0.05 }); // Added shake
                     break;
                 case 'BEAM_SNIPE':
-                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale });
+                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale * 0.35 });
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.5, delay: 0.1 });
                     // 命中點：光束本體是程序化 BEAM，命中特效要另外播
                     actions.push({ type: 'PARTICLE', id: ultFx, color: ultConfig.secondaryColor, scale: 1.5 });

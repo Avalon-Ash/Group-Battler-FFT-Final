@@ -6,6 +6,7 @@ import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
+import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
 
 export class SkillExecutor {
@@ -19,6 +20,11 @@ export class SkillExecutor {
             targetHex = { q: source.q, r: source.r };
         } else {
             targetHex = source.targetHex || (source.target ? {q: source.target.q, r: source.target.r} : {q: source.q, r: source.r});
+        }
+
+        // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
+        if (skill.tag === 'BASIC' && source.target) {
+            engine.pushEvent('VISUAL_BEAM', { x: source.px, y: source.py }, { skill, sourceId: source.id, targetId: source.target.id, color: skill.color });
         }
 
         // 2. 獲取受影響區域
@@ -221,8 +227,9 @@ export class SkillExecutor {
                     const hitX = hexCenter.x;
                     const hitY = hexCenter.y;
 
-                    // 選擇基礎打擊特效
-                    const hitFX = target.team === Team.BLUE ? 'FX_HIT_BLUE_LIGHTNING' : 'FX_HIT_RED_BLOOD';
+                    // 打擊特效：普攻與投射物主動技用技能自己的（奧義與無投射物的主動技由 SkillSequences 播主特效，這裡只播陣營預設小打擊）
+                    const ownHit = skill.tag === 'BASIC' || (skill.tag === 'ACTIVE' && (skill.projectileSpeed ?? 0) > 0);
+                    const hitFX = (ownHit && skill.visualHitEffect) || FACTION_VISUALS[source.team].defaultHitEffect;
 
                     // Decoupled Event: Emit HIT_FX for visual pipeline
                     engine.pushEvent('HIT_FX', { x: hitX, y: hitY }, {

@@ -84,7 +84,7 @@ export class SequenceSystem {
                 vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ);
                 break;
             case 'BEAM':
-                if (source) vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4);
+                if (source) vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4, action.scale ?? 1);
                 break;
             case 'SHAKE':
                 engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || 0.3 });
