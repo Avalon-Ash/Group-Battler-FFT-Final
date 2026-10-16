@@ -85,7 +85,8 @@ export class RenderOp {
         this.sortBias = 0;
         this.vChaos = false;
         this.ttheme = null;
-        this.pTrail = [];
+        // [PERF5] 重用自有陣列，不每幀配置；只有 ProjectileDrawer 在同一幀內區域讀取
+        this.pTrail.length = 0;
     }
 }
 
