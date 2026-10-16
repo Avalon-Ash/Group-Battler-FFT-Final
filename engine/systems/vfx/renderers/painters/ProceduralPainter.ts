@@ -6,6 +6,7 @@ import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../../../types";
 import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
+import { BEAM_STYLES, type BeamStyleId } from "../../../../../data/vfx/beam_styles";
 
 // [PERF5] 死光虛線樣式：共用陣列，避免每幀 setLineDash([..]) 配置
 const DEATH_RAY_DASH: number[] = [20, 10];
@@ -310,7 +311,7 @@ export const ProceduralPainter= {
         ctx.save();
         ctx.rotate(angle);
         
-        const isDeathRay = p.type === 'DEATH_RAY';
+        const isDeathRay = p.type === 'DEATH_RAY' || !!BEAM_STYLES[p.style as BeamStyleId]?.dashedEdges;
         const width = p.size * (isDeathRay ? (1.5 - progress) : (1.0 - progress));
 
         // [MATERIAL UPGRADE] 程序化材質路徑

@@ -29,7 +29,7 @@ export const COVENANT_PROJECTILES: Record<string, ProjectileVisualDef> = {
         trajectory: 'ARC',
         arcHeight: 70,
         renderType: 'SPRITE',
-        spriteKey: 'AXE', 
+        spriteKey: 'ARROW', 
         spinSpeed: 15, // Visible spin
         scale: 1.6,
         speed: 950,
@@ -46,9 +46,5 @@ export const COVENANT_PROJECTILES: Record<string, ProjectileVisualDef> = {
         scale: 1.4,
         speed: 1100,
         trailLength: 12
-    },
-    
-    // ULT BEAMS
-    'rr_u1': { trajectory: 'INSTANT', renderType: 'RAY', beamWidth: 20, colorOverride: '#000000', trailLength: 2 },
-    'mr_u2': { trajectory: 'INSTANT', renderType: 'RAY', beamWidth: 8, colorOverride: '#b91c1c', trailLength: 2 }
+    }
 };

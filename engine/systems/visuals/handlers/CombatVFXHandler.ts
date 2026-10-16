@@ -8,7 +8,7 @@ import { COMBAT_PARAM } from "../../../../constants";
 export class CombatVFXHandler {
     public static handle(event: GameEvent, vfx: VFXSystem, camera: CameraSystem, target: Point3D, groundZ: number, hexKey?: string) {
         if (event.type === 'HIT_FX') {
-            const hitFX = event.text || 'FX_HIT_BLUE_TECH';
+            const hitFX = event.text || 'FX_HIT_BLUE_LIGHTNING';
             const hitDamage = event.value || 0;
             const shieldAbsorb = event.absorbed || 0;
             const hitX = target.x;
@@ -18,9 +18,10 @@ export class CombatVFXHandler {
             if (shieldAbsorb > 0) {
                 vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ, undefined, undefined, undefined, hexKey);
             } else {
-                vfx.playEffect(hitFX, hitX, hitY, hitZ, undefined, undefined, undefined, hexKey);
+                // 零件特效：看板貼在受擊者身體高度，貼地零件（衝擊環）落在格子地面
+                vfx.playEffect(hitFX, hitX, hitY, target.z, undefined, hitZ, undefined, hexKey);
                 if (hitDamage >= COMBAT_PARAM.HIT_MEDIUM_THRESHOLD) {
-                    vfx.playEffect(hitFX, hitX + COMBAT_PARAM.HIT_FX_OFFSET, hitY - COMBAT_PARAM.HIT_FX_OFFSET, hitZ, undefined, undefined, undefined, hexKey);
+                    vfx.playEffect(hitFX, hitX + COMBAT_PARAM.HIT_FX_OFFSET, hitY - COMBAT_PARAM.HIT_FX_OFFSET, target.z, undefined, hitZ, undefined, hexKey);
                 }
             }
 

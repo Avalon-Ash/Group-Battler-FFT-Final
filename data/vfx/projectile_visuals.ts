@@ -30,9 +30,9 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     
     // --- IMPERIAL OVERRIDES (Blue) ---
     // Characteristics: Speed, Precision, "Railgun" look
-    'PROJ_BLUE_SNIPER': {
+    'PROJ_BLUE_LIGHT_ARROW': {
         trajectory: 'HOVER_DIP', dipAmount: 10,
-        renderType: 'SPRITE', spriteKey: 'HEX_DART', 
+        renderType: 'SPRITE', spriteKey: 'ARROW', 
         scale: 0.9, 
         colorOverride: '#60a5fa',
         speed: 1600, // Very Fast
@@ -40,7 +40,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     },
     'PROJ_BLUE_ICE_ARROW': {
         trajectory: 'ARC', arcHeight: 80, // Flatter Arc
-        renderType: 'SPRITE', spriteKey: 'CRYSTAL', 
+        renderType: 'SPRITE', spriteKey: 'ARROW', 
         colorOverride: '#bae6fd',
         scale: 0.8,
         trailLength: 20,
@@ -49,7 +49,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     },
     'PROJ_BLUE_ORB': {
         trajectory: 'WOBBLE', wobbleFreq: 1.0, wobbleAmp: 5, // Tight wobble
-        renderType: 'SPRITE', spriteKey: 'ORB', 
+        renderType: 'SPRITE', spriteKey: 'FIREBALL', 
         colorOverride: '#8b5cf6',
         scale: 0.9,
         speed: 700,
@@ -58,7 +58,7 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     },
     'PROJ_BLUE_FROST_BOLT': {
         trajectory: 'HOVER_DIP', dipAmount: 15,
-        renderType: 'SPRITE', spriteKey: 'CRYSTAL',
+        renderType: 'SPRITE', spriteKey: 'BOLT',
         scale: 0.8,
         colorOverride: '#e0f2fe',
         speed: 1000,
@@ -86,12 +86,28 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     },
     'PROJ_RED_AXE': {
         trajectory: 'ARC', arcHeight: 120, // High, lobbed arc (adjusted for adaptive logic)
-        renderType: 'SPRITE', spriteKey: 'AXE', 
+        renderType: 'SPRITE', spriteKey: 'ARROW', 
         spinSpeed: 15, 
         scale: 1.1,
         speed: 700,
         colorOverride: '#7f1d1d',
         trailLength: 8
+    },
+    // rr_a2 爆裂散射：近距離霰彈（短、直、快）
+    'PROJ_RED_SCATTER_SHOT': {
+        trajectory: 'LINEAR',
+        renderType: 'SPRITE', spriteKey: 'BOLT',
+        colorOverride: '#7c2d12',
+        scale: 0.9,
+        trailLength: 6
+    },
+    // tr_a1 奪命血鉤：直線甩出的血色鉤索
+    'PROJ_RED_BLOOD_HOOK': {
+        trajectory: 'LINEAR',
+        renderType: 'SPRITE', spriteKey: 'ARROW',
+        colorOverride: '#991b1b',
+        scale: 1.2,
+        trailLength: 24
     },
     'PROJ_RED_SHADOW': {
         trajectory: 'WOBBLE', wobbleFreq: 0.5, wobbleAmp: 10,

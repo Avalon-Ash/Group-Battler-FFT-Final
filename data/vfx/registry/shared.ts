@@ -77,7 +77,7 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
     },
     'FX_GRID_IMPACT_BLUE': {
         id: 'FX_GRID_IMPACT_BLUE',
-        emitters: [{ particleType: 'GRID_FIELD', visualStyle: 'GRID_TECH_BLUE', count: 1, lifetime: [0.4, 0.6], size: [32, 32], speed: [0, 0], colors: ['#3b82f6'], shape: 'POINT', locked: true, blendMode: 'screen', delay: 0 }]
+        emitters: [{ particleType: 'GRID_FIELD', visualStyle: 'GRID_HEX_BLUE', count: 1, lifetime: [0.4, 0.6], size: [32, 32], speed: [0, 0], colors: ['#3b82f6'], shape: 'POINT', locked: true, blendMode: 'screen', delay: 0 }]
     },
     'FX_GRID_IMPACT_RED': {
         id: 'FX_GRID_IMPACT_RED',

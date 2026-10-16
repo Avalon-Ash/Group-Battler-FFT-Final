@@ -16,6 +16,7 @@ import { GameEngine } from "../../game";
 import { HexMath } from "../../math/HexMath";
 import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT } from "../../../constants";
 import type { HexLayout } from "../../../types";
+import { BEAM_STYLES, type BeamStyleId } from "../../../data/vfx/beam_styles";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
@@ -108,8 +109,9 @@ export class VFXSystem {
         VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId, hexKey);
     }
     
-    public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4) {
+    public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4, scale: number = 1) {
         const p = this.state.getParticle();
+        p.size = (BEAM_STYLES[styleId as BeamStyleId]?.width ?? BEAM_STYLES.GENERIC_BEAM.width) * scale;
         p.sx = start.x; p.sy = start.y; p.sz = start.z;
         p.tx = end.x; p.ty = end.y; p.tz = end.z;
         p.x = start.x; p.y = start.y; p.z = start.z;

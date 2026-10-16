@@ -9,8 +9,8 @@ export const RED_ACTIVE: Skill[] = [
         name: '奪命血鉤', desc: '強力牽引', 
         range: 5, cast: 0.5, cd: 8.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 80, color: '#7f1d1d', visual: 'BEAM', projectileSpeed: 1500,
-        ccType: 'PULL', ccForce: 3, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        ccType: 'PULL', ccForce: 3,
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_HOOK', element: 'BLOOD'
     },
     { 
         id: 'tr_a2', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
@@ -102,8 +102,8 @@ export const RED_ACTIVE: Skill[] = [
         name: '爆裂散射', desc: '近身擊退', 
         range: 3, cast: 0.3, cd: 8.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 140, color: '#ea580c', visual: 'SMASH', projectileSpeed: 1500, 
-        ccType: 'KNOCKBACK', ccForce: 3, 
-        visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
+        ccType: 'KNOCKBACK', ccForce: 3,
+        visualHitEffect: 'FX_HIT_RED_HEAVY', visualProjectileEffect: 'PROJ_RED_SCATTER_SHOT', element: 'PHYSICAL'
     },
     { 
         id: 'rr_a3', role: Role.RANGER, team: Team.RED, tag: 'ACTIVE', 
