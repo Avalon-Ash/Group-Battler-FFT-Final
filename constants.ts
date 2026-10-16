@@ -17,6 +17,25 @@ export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;
 export const UNIT_SCALE = 0.65;
 
+/**
+ * 單位腳下地面高度的過渡（VisualMath.getUnitGroundHeight）。
+ * 移動中的單位視覺位置在 moveProgress = 0.5 越過格界，邏輯格卻到 1.0（抵達）才切換；
+ * 若高度跟著邏輯格，上坡時 t∈(0.5,1) 腳會陷進較高的柱子、下坡則懸空。
+ * 上坡：在越界前（RISE_START～RISE_END）升到目標高度；下坡：越界後（FALL_START～FALL_END）才降下。
+ * 不變式：RISE_END <= 0.5 <= FALL_START（腳永遠不低於所在格的頂面）。
+ */
+export const UNIT_STEP_BLEND = {
+    RISE_START: 0.25,
+    RISE_END: 0.5,
+    FALL_START: 0.5,
+    FALL_END: 0.75,
+} as const;
+
+/** 前方（螢幕下方）鄰格比單位腳下高出此值以上，就視為遮擋該單位（補畫輪廓） */
+export const UNIT_OCCLUSION = {
+    MIN_STEP: 20,
+} as const;
+
 /** 單位模型視覺中心距地板的 Z 偏移（像素）。
  *  對應 Sprite 高度的約 50%。依美術 Sprite 尺寸調整。 */
 export const AGENT_MODEL_CENTER_Z = 64;
@@ -252,7 +271,8 @@ export const DEATH_VFX = {
     /** 塵煙水平擴散速度與上升速度 */
     PUFF_SPEED: 60,
     PUFF_RISE: 50,
-    PUFF_DRAG: 1.5,
+    /** 每 1/60 秒損失的速度比例，必須落在 [0,1)（VFXPhysics: pow(1 - drag, dt * 60)；≥1 會得到 NaN）。0.025 ≈ 每秒 e^-1.5 的衰減 */
+    PUFF_DRAG: 0.025,
     PUFF_COLOR: '#cbd5e1',
     /** 火花數量（一般 / 高負載） */
     SPARK_NORMAL: 10,

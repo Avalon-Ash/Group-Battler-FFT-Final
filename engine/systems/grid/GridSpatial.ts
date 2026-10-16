@@ -1,7 +1,7 @@
 import { GameEngine, Agent } from "../../game";
 import { HexUtils } from "../../utils";
 import { Hex } from "../../../types";
-import { BLOCK_HEIGHT, HEX_SIZE } from "../../../constants";
+import { BLOCK_HEIGHT, HEX_SIZE, UNIT_OCCLUSION } from "../../../constants";
 import { GridCache } from "./GridCache";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -46,22 +46,20 @@ export class GridSpatial {
         const occluded: Agent[] = [];
         for (const a of engine.agents) {
             if (a.hp <= 0 && a.fullyDead) continue;
-            const uTerrainH = engine.map.getTerrainHeight(a.q, a.r);
+            const uTerrainH = VisualMath.getUnitGroundHeight(a, (q, r) => engine.map.getTerrainHeight(q, r));
+            const uY = HexUtils.toPx(a.q, a.r, engine.mapConfig).y;
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
-            const currentSort = a.q + a.r;
             for (const n of neighbors) {
-                // Topological occlusion check
-                if ((n.q + n.r) > currentSort) {
-                    const nKey = HexUtils.key(n);
-                    if (engine.mapKeys.has(nKey)) {
-                        // [FIX] 跳過正在下墜的地塊，避免已崩塌的格子繼續觸發矽影
-                        if (engine.zones.collapsingTiles.has(nKey)) continue;
-
-                        if (engine.map.getTerrainHeight(n.q, n.r) > uTerrainH + 20) {
-                            occluded.push(a);
-                            break;
-                        }
-                    }
+                const nKey = HexUtils.key(n);
+                if (!engine.mapKeys.has(nKey)) continue;
+                // [FIX] 跳過正在下墜的地塊，避免已崩塌的格子繼續觸發矽影
+                if (engine.zones.collapsingTiles.has(nKey)) continue;
+                // 以螢幕投影判斷「在前方」（繪製在單位之後）。曾用 q+r 代理，但等距投影下
+                // 方向 (-1,+1) 的鄰格 q+r 相同卻在畫面正前方，該格的高柱擋住單位卻不補畫輪廓。
+                if (HexUtils.toPx(n.q, n.r, engine.mapConfig).y <= uY) continue;
+                if (engine.map.getTerrainHeight(n.q, n.r) > uTerrainH + UNIT_OCCLUSION.MIN_STEP) {
+                    occluded.push(a);
+                    break;
                 }
             }
         }

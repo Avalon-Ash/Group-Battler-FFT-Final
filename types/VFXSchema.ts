@@ -67,6 +67,7 @@ export interface EmitterConfig {
     shape: 'POINT' | 'BURST_DIR' | 'CIRCLE' | 'RING';
     shapeRadius?: number;
     visualStyle?: string;
+    /** 每 1/60 秒損失的速度比例，必須在 [0,1)（≥1 會讓 VFXPhysics 的 pow(1 - drag, dt * 60) 變 NaN） */
     drag?: number;
     locked?: boolean;
     lockReason?: 'BEAM' | 'HAZARD_FIELD';
