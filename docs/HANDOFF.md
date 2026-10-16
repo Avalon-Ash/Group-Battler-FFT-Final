@@ -21,7 +21,7 @@
 ## 2. Git 狀態（2026-10-16）
 - **單一主線**：`C:\Git\Group-Battler-FFT-Final`，分支 `main`。主代理與 IDE 代理都在這個資料夾工作。若 `git worktree list` 還看得到 `Group-Battler-main`／`-death-vfx`／`-chore`，代表搬遷步驟尚未做完。
 - `main` 已含：大逃殺修正、死亡特效／擊飛、AI Studio 清理、文件整理、合約改版（`CLAUDE.md`／`AGENTS.md`／`.claude/agents/`）、README 更新。push 狀態以 `git status -sb` 為準。
-- **進行中分支 `feat/art-vfx`**（未合併）：美術與技能特效改造。進度、決策與 TBC 清單全在 `docs/ART_VFX_PLAN.md`，規格在 `docs/ART_SPEC.md`（§0 世界觀：六角世界、棋座＝實體、角色＝投影、法術六角化）。HD 為主線，SD 像素線暫停；特效風格待與使用者討論，V2 暫停。程式碼尚未經主代理審查。
+- **美術／特效改造已合併（2026-10-16）**：進度、決策在 `docs/ART_VFX_PLAN.md`，規格在 `docs/ART_SPEC.md`（§0 世界觀、§13 詠唱／中斷）。全部 50 個奧義已改六角零件版；光束本體仍是程式繪製（待新增 beam 零件）。HD 為主線，SD 原型已移除（tag `pixel-proto-ckpt`）。目前沒有進行中的分支。
 - **開新一輪的流程**：主代理寫 `docs/<NAME>_AGENT_PROMPT.md` → 從 `main` 開分支（例如 `feat/<topic>`），在原生資料夾切過去 → 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md` → 跑完告訴主代理 → 主代理審查、修正、本機實跑 → 使用者同意才合併，push 另外問。代理跑的期間主代理對該資料夾只讀不寫。
 - **真的需要並行時才開工作樹**（命名 `C:\Git\Group-Battler-<topic>`，`node_modules` 可用 junction 指回原生資料夾）。移除時**先刪 junction**（`cmd /c rmdir <path>\node_modules`）再 `git worktree remove`，否則可能連帶刪掉原生資料夾的 `node_modules`。
 - 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`、`br-fix-final`、`docs-cleanup-final`）未推，可忽略。
@@ -56,7 +56,10 @@
 - 地形快取：縮放級距只做升級遲滯（`RENDER_CACHE.SCALE_HYSTERESIS`）、換地圖丟其他主題（`evictOtherThemes`）。
 - 死碼清理（`tsc --noUnusedLocals` 非測試 0 筆）；`CAST_BREAK` 原播放未登記的 `FX_CAST_SHATTER`（從未顯示），已改 `FX_CAST_BREAK`，新增 `tests/VFXRegistryKeys.test.ts` 防止特效鍵對不上。
 - 技能改名 31 個（`docs/SKILL_NAMES.md`）；手機 UI 修正（`docs/MOBILE_UI_AUDIT.md`，桌面樣式 0 差異）；狀態所有權設計 `docs/STATE_OWNERSHIP_DESIGN.md`（P0～P12 遷移計畫，`visualStatus` 疑似 4 個寫入者待 P1a 測試證實）。
-- `feat/art-vfx` 未合併：零件六角化、§13 詠唱中斷碎裂、地面法陣不蓋腳、SD 原型移除（tag `pixel-proto-ckpt`）。等使用者看兩支樣板奧義影片後再批次套用其餘 28 個。
+- 美術：零件六角化、§13 詠唱中斷碎裂（`tools/vfx/cast-break-shot.mjs`）、地面法陣不蓋腳（`RenderList.sort` 把站在法陣內的單位排到法陣後）、50 個奧義零件化。
+- 狀態所有權 P0～P2：`engine/core/AgentOwnership.ts` 所有權表＋`tests/AgentOwnership.test.ts` 棘輪；`visualStatus` 改由 `AnimationSystem` 從 `ccVisual` 推導（修好 FROZEN／POLYMORPH／INVINCIBLE 從未顯示）；`hitFlashTimer`／`visualOffset` 經 `triggerHitFlash`／`triggerHitShake`。下一步 P3 起見設計文件。
+- 效能五：去 SHOUT `shadowBlur`、快取漸層與光暈文字（`RENDER_HOTSPOT_CACHE`、`SHOUT_GLOW`），`docs/PERF_REPORT_5.md`；`perf:frames` 前後差異在 239 Hz 量化雜訊內，未證實加速。
+- 注意：`.claude/worktrees/` 下的子工作階段工作樹會被 vitest 掃到；只跑本 repo 測試用 `npx vitest run --dir tests`。
 
 ### G. 待使用者決定
 - **Dockerfile／`server.js`／`.dockerignore`／`package.json` 的 `start`／README 的對應段落**（早期 Cloud Run 部署設定）：之後在 AI Studio 重新拉 git 發布時可能還用得到，暫時**保留**。
