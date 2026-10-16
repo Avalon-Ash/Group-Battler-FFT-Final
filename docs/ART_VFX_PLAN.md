@@ -53,7 +53,7 @@
 - **技能名稱的科幻殘留**（`ART_SPEC` §9 最後一列）：「系統超載」「軌道轟炸」「戰術核彈」「電擊警棍」「雷射標記」「量子護盾」「戰術加速」等。特效會照奇幻語彙重做，但名稱屬遊戲設計，要不要改名、改成什麼，由使用者決定。
 - **地形與陣營色盤**（`ART_SPEC` §3）是主代理選的預設，M1／V 系列會照它做；若想換色調，改這張表即可。
 - **像素密度**（1/2 或 1/3）：預設暫選 **1/3**（`ART_SPEC` §12 原定值，像素感最接近 FFT；1/2 偏「高解析像素」、細節較多）。開 `http://localhost:3000/?pixel=3` 或 `?pixel=2` 實機看。截圖（1920×1080）：`tools/ui-e2e/out/pixel/<VOID|FOREST|ICE|MAGMA|DESERT>_k<1|2|3>.png`、`battle_k<1|2|3>.png`；中央裁切三欄對照（左 k1、中 k2、右 k3）`cmp_FOREST.png`、`cmp_MAGMA.png`、`cmp_battle.png`。注意：現在的地形貼圖與精靈是高解析素材直接縮小，所以看起來是「模糊方塊」而不是像素美術；真正的像素感要等 M1（像素地形）與 P0b（3D 轉像素）。每次重建地圖亂數不同，三欄不是同一張地圖。
-- **`perf:guard` 的效能段落連兩次落在 AMD 內顯（副螢幕）而判無效**（保真段 6/6 PASS，證明預設路徑畫面不變）。依規則停止重試，未設 `PERF_ALLOW_ANY_GPU`。`pixel-proto.mjs` 的成本數字很可能也是內顯量的。請把 Edge 視窗固定在主螢幕或在 Windows 圖形設定指定高效能後重跑 `npm run perf:guard`。
+- **【已解決 2026-10-16 09:10】** `tools/ui-e2e/lib/perf-common.mjs` 加 `--force_high_performance_gpu` 後，`perf:guard` 在 RTX 4070 上全數通過（保真 6/6、效能 PASS）。原紀錄：**`perf:guard` 的效能段落連兩次落在 AMD 內顯（副螢幕）而判無效**（保真段 6/6 PASS，證明預設路徑畫面不變）。依規則停止重試，未設 `PERF_ALLOW_ANY_GPU`。`pixel-proto.mjs` 的成本數字很可能也是內顯量的。請把 Edge 視窗固定在主螢幕或在 Windows 圖形設定指定高效能後重跑 `npm run perf:guard`。
 - **特效零件總表**（V1）：`tools/ui-e2e/out/vfx/parts_sheet_t0.png`（灰階 `_gray`）。主代理選的預設：獅心＝乾淨圓環、日輪 12 道長短交錯、騎士盾＋十字＋三尖冠；灰燼＝鋸齒斷裂環、角骷髏、倒三角符文。血、瘴氣、深淵三種色階用一般混合（不發光）。已知：深淵（ASH_VOID）在灰階下偏暗，靠形狀辨識；火焰是平塗三層，偏卡通，若想更寫實可改成柔邊。
 - **像素密度建議改為 1/2**（推翻 P0a 時暫選的 1/3）：P0b 實測單位精靈高度 = `UNIT_SPRITE.targetHeightCanvasUnits`(59) ÷ k。1/3 → 約 20 px，KayKit 角色縮到 20 px 已糊成一團（臉、斧頭、披風分不出來）；1/2 → 約 30 px 清楚可讀，接近 FFT 的角色像素量。對照：`tools/ui-e2e/out/pixel_sprites/cmp_heights_idle.png`（左到右 h=20、30、40，各兩格 idle），完整精靈表 `BLUE_WARRIOR_h30_zoom.png`。若堅持 1/3，就要把單位放大到約 90 canvas 單位或改用手繪像素角色。
 - **P0b 像素化的審美預設**：14 色、飽和度 ×1.25、對比 ×1.15、外框＝最暗色 ×0.45（原本「用最暗色」實測太淺，與陰影同色會消失；這偏離 `ART_SPEC` §12-5 字面，接近黑但仍帶色相）。已知：野蠻人模型的毛帽在像素化後佔畫面太多、偏灰褐；正式做時可考慮換戰士模型或調整帽子顏色。
@@ -75,3 +75,4 @@
 - 2026-10-16 06:10 V2a 進行中：零件接進粒子系統，兩個樣板奧義完成並錄影對照。修正 `record-skill.mjs` 的 CAST_START 遺失（之前的技能影片都缺序列）。reviewer 審查無確認缺陷；採納其建議，光柱與火柱加 `groundAnchored` 貼地；預烘焙與高負載時主形狀被預算丟棄（既有行為）列入後續。發現既有 bug：VFX 地面高度用螢幕點選查詢，高台目標的地面特效會偏到前方低格（§4 第 1 項）。保真 6/6 PASS；`perf:guard` 效能段又落在內顯。
 - 2026-10-16 06:30 修正既有 bug：VFX 地面高度改依足跡取格（`engine/renderer.ts` facade 內 closure，公開介面不變）。原本用螢幕點選 `getHexAtWorldPoint`，高台目標的地面特效落到前方低格；也讓 `collapsingTiles` 分支真正生效、每粒子少掉高度迴圈。reviewer 審查無缺陷。保真 6/6 PASS。重錄 wb_u3／wr_u1（`after/`）。
 - 2026-10-16 08:40 使用者：HD／SD 兩線都保留待測試；特效風格暫停待討論；未回覆項目記 TBC。
+- 2026-10-16 09:10 perf 工具強制高效能 GPU；`perf:guard` 在 RTX 4070 通過。
