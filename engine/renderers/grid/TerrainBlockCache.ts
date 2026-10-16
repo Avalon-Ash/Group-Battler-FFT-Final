@@ -36,6 +36,27 @@ export function quantizeRenderScale(scale: number, steps: readonly number[] = RE
     return steps[steps.length - 1];
 }
 
+/**
+ * 帶遲滯的縮放級距：已在某級距時，縮放需超出該級距 (1 + margin) 才升級、
+ * 低於下一級 (1 - margin) 才降級。避免鏡頭在級距邊界（例如導演鏡頭 1.21～1.54 跨 1.5）
+ * 來回切換解析度，同時保留兩組 sprite 而撐爆快取。
+ */
+export function quantizeRenderScaleSticky(
+    scale: number,
+    prevStep: number,
+    margin: number = RENDER_CACHE.SCALE_HYSTERESIS,
+    steps: readonly number[] = RENDER_CACHE.SCALE_STEPS
+): number {
+    const target = quantizeRenderScale(scale, steps);
+    const prevIdx = steps.indexOf(prevStep);
+    if (prevIdx < 0 || target === prevStep) return target;
+    if (target > prevStep) {
+        return scale > prevStep * (1 + margin) ? target : prevStep;
+    }
+    const lower = prevIdx > 0 ? steps[prevIdx - 1] : prevStep;
+    return scale < lower * (1 - margin) ? target : prevStep;
+}
+
 /** packedInt 內「縮放級距索引」的位元位置與遮罩（與 terrainSpriteKey 的打包方式一致） */
 const SCALE_BIT_SHIFT = 22;
 const SCALE_BIT_MASK = 7;
@@ -204,6 +225,24 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         return removed;
     }
 
+    /** 換地圖主題時丟棄其他主題的 sprite，避免多張地圖累積到上限後整體清空；回傳丟棄數量 */
+    function evictOtherThemes(theme: TerrainTheme): number {
+        let removed = 0;
+        for (const [t, typeMap] of themeMap) {
+            if (t === theme) continue;
+            for (const layoutMap of typeMap.values()) {
+                for (const intMap of layoutMap.values()) removed += intMap.size;
+            }
+            themeMap.delete(t);
+        }
+        if (removed > 0) {
+            totalSprites -= removed;
+            evictions += removed;
+            if (RenderStats.enabled) RenderStats.recordTerrainCacheEviction(removed);
+        }
+        return removed;
+    }
+
     function get(
         key: TerrainKeyCompound,
         bake: (factory: SurfaceFactory) => TerrainSpriteEntry
@@ -275,6 +314,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     return {
         get,
         clear,
+        evictOtherThemes,
         resetStats,
         size: () => totalSprites,
         getStats: () => ({ size: totalSprites, hits, misses, clears, evictions, fallbacks }),
