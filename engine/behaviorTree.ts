@@ -36,7 +36,6 @@ export abstract class BTNode {
     }
 }
 export class Selector extends BTNode {
-    private _runningIdx: number = -1;
 
     constructor(n: string) {
         super(n, '?');
@@ -47,20 +46,16 @@ export class Selector extends BTNode {
             const r = this.c[i].tick(ctx);
 
             if (r === NodeState.RUNNING) {
-                this._runningIdx = i;
                 return this.record(r);
             }
             if (r === NodeState.SUCCESS) {
-                this._runningIdx = -1;
                 return this.record(r);
             }
         }
 
-        this._runningIdx = -1;
         return this.record(NodeState.FAILURE);
     }
     reset() {
-        this._runningIdx = -1;
         super.reset();
     }
 }

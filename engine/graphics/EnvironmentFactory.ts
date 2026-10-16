@@ -1,5 +1,5 @@
 
-import { OBSTACLE_STYLES, ObstacleStyle, HEX_SIZE, BASE_HEIGHT, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
+import { OBSTACLE_STYLES, ObstacleStyle, HEX_SIZE, BLOCK_HEIGHT, ISO_SCALE_Y, ENV_SPRITE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { HexGeometry } from "./utils/HexGeometry";
 import { MaterialPainter } from "./materials/MaterialPainter";

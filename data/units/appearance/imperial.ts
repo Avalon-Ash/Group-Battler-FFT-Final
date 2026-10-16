@@ -1,4 +1,4 @@
-import { RoleAppearance, FactionAppearanceProfile } from './types';
+import { FactionAppearanceProfile } from './types';
 import { THEME_IMPERIAL } from '../../../constants';
 import { Role, Team } from '../../../types';
 

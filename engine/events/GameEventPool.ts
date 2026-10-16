@@ -1,12 +1,11 @@
 
-import { GameEvent, GameEventType, Skill, Team, Point } from "../../types";
+import { GameEvent, GameEventType, Point } from "../../types";
 
 /** pushEvent / EventPool.get 可攜帶的選填欄位（GameEvent 去除 type/pos）。 */
 export type GameEventOpts = Omit<GameEvent, 'type' | 'pos'>;
 
 export class GameEventPool {
     private pool: GameEvent[] = [];
-    private _index = 0;
 
     constructor(initialSize: number = 100) {
         for (let i = 0; i < initialSize; i++) {

@@ -6,7 +6,7 @@
 // ║  → engine/renderers/units/painters/                     ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { Agent, GameEngine } from "../../game";
+import { Agent } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { MapConfig } from "../../utils";
 import { UnitVisualProcessor } from "./UnitVisualProcessor";

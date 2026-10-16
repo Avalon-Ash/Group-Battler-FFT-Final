@@ -4,7 +4,6 @@ import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../../../math/VisualMath";
-import { UnitShatter } from "../effects/UnitShatter";
 
 export class UnitVFXHandler {
     public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, camera: CameraSystem, origin: Point3D, groundZ: number, hexKey?: string) {

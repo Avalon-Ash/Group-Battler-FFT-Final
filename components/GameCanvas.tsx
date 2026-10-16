@@ -117,7 +117,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
         }
     }, [centerCamera]);
 
-    const { fpsRef } = useGameLoop(
+    useGameLoop(
         engine, 
         canvasRef, 
         wrapperRef, 

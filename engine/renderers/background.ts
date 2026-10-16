@@ -1,5 +1,5 @@
 import { SceneTheme } from "../../types";
-import { HEX_SIZE, BACKGROUND_COLORS, BACKGROUND_FX } from "../../constants";
+import { BACKGROUND_COLORS, BACKGROUND_FX } from "../../constants";
 import { AssetManager } from "../assets";
 import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";

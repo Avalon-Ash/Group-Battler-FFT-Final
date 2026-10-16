@@ -1,5 +1,4 @@
 
-import { HEX_SIZE, ISO_SCALE_Y } from "../constants";
 import { Hex, Point, HexLayout } from "../types";
 import { HexMath } from "./math/HexMath";
 

@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider, MovementType, SpatialHazard } from "../../types";
+import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
@@ -227,7 +227,6 @@ export class TargetingSystem {
      */
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider): { targetAgent: Agent | null, targetHex: Hex | null } {
         // [NEW] 背水一戰技能優先級：在危險區時，優先使用推拉技能
-        const isInDanger = spatial.isWarningTile(HexUtils.key(source));
         
         // 1. 自身爆發 (PBAOE) - Range 0 強制鎖定腳下
         if (skill.range === 0) {

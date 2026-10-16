@@ -1,5 +1,4 @@
 
-import { ISO_SCALE_Y } from "../../../constants";
 import { HexGeometry } from "../utils/HexGeometry";
 import { VFXFactory } from "../VFXFactory";
 import { HexLayout } from "../../../types";

@@ -1,6 +1,6 @@
 // Fix: Use 'import type' to break circular dependency with GameEngine
 import type { Agent, GameEngine } from "../game";
-import { NodeState, AIState, MovementType, ActionState, Hex, SpatialHazard } from "../../types";
+import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
 import type { BTArgs } from "../../data/ai_profiles";
@@ -528,7 +528,6 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "CastPushPull": (a, engine) => {
         const savedTarget = a.target;
-        const savedTargetHex = a.targetHex;
 
         // [Task 5] Decoupled Path-Clearing Targeting
         // 尋找第一個可用的推拉技能

@@ -1,6 +1,5 @@
 
 import { Role, Team } from "../../types";
-import { PALETTE } from "../../constants";
 import { createCanvas } from "./CanvasUtils";
 import { ImperialTokenFactory } from "./units/ImperialTokenFactory";
 import { CovenantTokenFactory } from "./units/CovenantTokenFactory";

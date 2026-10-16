@@ -27,7 +27,6 @@ export const HazardPainter = {
             const baseSize = HEX_SIZE * 3.5;
             
             for(let i = 0; i < layers; i++) {
-                const layerProgress = i / (layers - 1); // 0.0 to 1.0
                 
                 // Higher layers are drawn "higher" (smaller Y in screen space)
                 // -25px total height variance

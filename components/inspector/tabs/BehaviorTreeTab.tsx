@@ -21,7 +21,6 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
     const [btPos, setBtPos] = useState({x: 0, y: 16});
     const btContainerRef = useRef<HTMLDivElement>(null);
     const btContentRef = useRef<HTMLDivElement>(null);
-    const [btFps, setBtFps] = useState(20); 
     
     // Popup state
     const [isPopped, setIsPopped] = useState(false);

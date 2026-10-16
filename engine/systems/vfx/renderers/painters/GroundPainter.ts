@@ -4,7 +4,6 @@ import { ISO_SCALE_Y, HEX_SIZE } from "../../../../../constants";
 import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { VFXFactory } from "../../../../graphics/VFXFactory";
 import { HexLayout } from "../../../../../types";
-import { VisualMath } from "../../../../math/VisualMath";
 import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
 

@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, MovementType, SpatialProvider, SpatialHazard } from "../../types";
+import { Hex, MovementType, SpatialProvider } from "../../types";
 import { HexUtils, NEIGHBOR_HASH_OFFSETS } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { OBSTACLE_DB } from "../../data/obstacles";

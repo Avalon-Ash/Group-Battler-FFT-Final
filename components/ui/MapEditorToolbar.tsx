@@ -5,7 +5,6 @@ import { SCENE_DB } from '../../data/scenes';
 import { OBSTACLE_DB } from '../../data/obstacles';
 import { useDraggable } from '../../hooks/useDraggable';
 import { Icons } from './icons';
-import { HexUtils } from '../../engine/utils';
 import { ROLE_MAP } from '../inspector/InspectorConstants';
 import { UI_Z, UI_PIN } from '../../constants';
 import { BODY_TYPE_PROFILE } from '../../data/units/appearance/bodyTypes';

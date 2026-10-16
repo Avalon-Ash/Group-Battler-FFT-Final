@@ -24,7 +24,6 @@ export class AudioSystem {
     private isDestroyed: boolean = false;
 
     // 戰鬥狀態追蹤（僅用於決定音樂張力層切換）
-    private totalAgentsInBattle: number = 10;
     private remainingAgents: number = 10;
     private isBattleActive: boolean = false;
     private isTenseActive: boolean = false;
@@ -88,7 +87,6 @@ export class AudioSystem {
             this.isBattleActive = true;
             this.isTenseActive = false;
             this.isResultStingActive = false;
-            this.totalAgentsInBattle = 10;
             this.remainingAgents = 10;
             if (this.isShowcase) {
                 this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);

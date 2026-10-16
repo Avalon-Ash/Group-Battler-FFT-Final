@@ -1,6 +1,6 @@
 import { ZoneRenderer } from "./ZoneRenderer";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
-import { GroundHazard, HexLayout } from "../../../types";
+import { HexLayout } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { ActiveZone } from "../../systems/ZoneSystem";
 import { HexUtils } from "../../utils";

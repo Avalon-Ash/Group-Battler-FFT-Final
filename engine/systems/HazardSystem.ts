@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
-import { Team, MovementType, SpatialHazard, GameEvent } from "../../types";
+import { MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
