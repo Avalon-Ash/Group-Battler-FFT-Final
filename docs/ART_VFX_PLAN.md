@@ -88,3 +88,4 @@
 - 2026-10-16 09:10 perf 工具強制高效能 GPU；`perf:guard` 在 RTX 4070 通過。
 - 2026-10-16 09:20 使用者：SD 效果不好，暫停；HD 為主線。
 - 2026-10-16 09:30 使用者補充世界觀（六角世界、棋座＝實體、角色＝投影、法術六角化）；`ART_SPEC` §0、§1-5、§4、§7、§9 改寫。
+- 2026-10-16 22:50 奧義零件化草稿批次（分支 `claude/art-vfx-ult-batch-710d46`，未經使用者確認樣板方向）：已轉 31 個奧義（30 個效果 id）——BLUE：tb_u1～u5、wb_u1、wb_u2、rb_u1、rb_u3、rb_u4、mb_u1、mb_u2（與 rb_u1 共用 GLACIAL_BURST）、mb_u3、sb_u1、sb_u2、sb_u4；RED：tr_u1～u5、wr_u3、wr_u5、rr_u2、mr_u1、mr_u3、mr_u4、sr_u1、sr_u2、sr_u4、sr_u5。新檔 `data/vfx/registry/ult_parts_{blue,red}.ts`；HEAVEN_FALL 類命中即爆發（落體＝起手），紋章改為落地烙印；`EmitterConfig.shape` 補上 VFXPlayer 已實作的 `'RING'`（六柱聖域等距排列）。未轉 17 個：STORM 12 個（wb_u4、rb_u2、rb_u5、mb_u4、sb_u3、sb_u5、wr_u2、wr_u4、rr_u3、rr_u5、mr_u5、sr_u3）——SkillSequences 會把同一效果重播 10～20 次，需另設計單次「小落點」零件並核對 VFX_BUDGET；BEAM_SNIPE 5 個（wb_u5、mb_u5、rr_u1、rr_u4、mr_u2）——光束本體走 BEAM style，需新的光束零件。錄影 `tools/ui-e2e/out/vfx/<id>_<TEAM>.mp4`／`_sheet.png`（gitignore），只看過接觸表抓明顯錯誤，未細修。lint／test／build 綠。

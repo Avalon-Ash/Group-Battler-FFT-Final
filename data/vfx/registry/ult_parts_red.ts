@@ -111,13 +111,13 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地 → 白熱爆閃＋巨大火柱＋雙層斷裂環（擊退）＋碎石 → 蕈狀灰煙
+    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退；ult_visuals scale 3.0，零件尺寸要收小）：落地 → 白熱爆閃＋巨大火柱＋雙層斷裂環（擊退）＋碎石 → 蕈狀灰煙
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'glow', radius: 128, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.5, delay: 0, size: 128,
                 partAnim: { scaleFrom: 0.4, scaleTo: 1.5, fadeOut: 0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'flame', height: 224, ramp: 'ASH_FIRE', jagged: true }, count: 1, lifetime: 1.0, delay: 0.02, size: 112, groundAnchored: true,
+            part({ particleType: 'PART', part: { kind: 'flame', height: 128, ramp: 'ASH_FIRE', jagged: true }, count: 1, lifetime: 1.0, delay: 0.02, size: 64, groundAnchored: true,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.15, fadeOut: 0.5 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 20, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.6, delay: 0.02, size: 128,
                 partAnim: { scaleFrom: 0.3, scaleTo: 2.8, fadeOut: 0.5 } }),
