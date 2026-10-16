@@ -25,6 +25,7 @@ import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator";
 import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
 
 import { PointerProjector } from "./math/PointerProjector";
+import { HexUtils } from "./utils";
 
 export { Camera };
 
@@ -191,8 +192,10 @@ export class GameRenderer {
             battleTime, 
             engine.currentScene.ambientType, 
             (x, y) => {
-                const hex = this.grid.getHexAtWorldPoint(x, y, engine);
-                if (!hex) return { height: 0, isValid: false };
+                // (x, y) 是粒子在地面的足跡（VFXPhysics 傳 p.y * ISO_SCALE_Y），直接依足跡取格。
+                // 不用 getHexAtWorldPoint：那是螢幕點選，會沿高度找「視覺上蓋住該點」的格子，
+                // 目標站在高台時會取到前方較低的格子，地面特效因此落在目標前下方。
+                const hex = HexUtils.fromPx(x, y, engine.mapConfig);
                 
                 // [FIX] 特效打穿網格掉下去問題：
                 // 如果該地塊正在崩塌，它的 isValid 會是 false，導致特效直接穿透。

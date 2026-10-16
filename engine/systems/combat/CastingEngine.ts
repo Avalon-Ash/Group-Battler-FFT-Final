@@ -68,7 +68,9 @@ export class CastingEngine {
                     value: progressPct,
                     color: currentSkill.color, 
                     skill: currentSkill,
-                    sourceId: a.id 
+                    sourceId: a.id,
+                    team: a.team,
+                    hexes: currentSkill.type === 'AOE' && a.currentTelegraph ? a.currentTelegraph : undefined
                 });
             }
         }

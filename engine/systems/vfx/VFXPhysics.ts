@@ -13,7 +13,7 @@ export class VFXPhysics {
         p.y += p.vy * dt;
         p.rotation += p.vRotation * dt;
 
-        const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE', 'GIANT_HEX'].includes(p.type);
+        const isPhysical = ['DEBRIS', 'SHARD', 'SPRITE', 'ROCK', 'CHIP', 'RUBBLE', 'GIANT_HEX', 'PART_DEBRIS'].includes(p.type);
         const spatial = getSpatialInfo ? getSpatialInfo(p.x, p.y * ISO_SCALE_Y) : { height: 0, isValid: true };
         const currentGroundH = spatial.height;
         const isValid = spatial.isValid;
@@ -75,7 +75,7 @@ export class VFXPhysics {
 
             // [FIX] For ground particles, they MUST stick to the ground height exactly.
             // SSOT: Use centralized VFX_GROUND_TYPES
-            if (VFX_GROUND_TYPES.has(p.type)) {
+            if (VFX_GROUND_TYPES.has(p.type) || p.groundAnchored) {
                 p.z = currentGroundH;
                 p.vz = 0;
             }

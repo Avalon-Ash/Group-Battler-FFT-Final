@@ -182,13 +182,15 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                 case 'BEAM_SNIPE':
                     actions.push({ type: 'BEAM', style: ultConfig.vfxOverride || 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale });
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.5, delay: 0.1 });
-                    actions.push({ type: 'PARTICLE', id: 'SHOCKWAVE', color: ultConfig.secondaryColor, scale: 1.5 }); // Increased scale
+                    // 命中點：光束本體（程序化 BEAM）不會播 vfxOverride，命中特效要另外播；沒有覆寫時退回通用衝擊波
+                    actions.push({ type: 'PARTICLE', id: ultConfig.vfxOverride || 'SHOCKWAVE', color: ultConfig.secondaryColor, scale: 1.5 });
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.2, delay: 0.05 }); // Added pulse
                     break;
                 case 'STORM':
                     const count = ultConfig.count || 10;
                     const interval = ultConfig.timing || 0.1;
                     const fx = ultConfig.vfxOverride || 'SPARK';
+                    if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
                     for(let k=0; k<count; k++) { actions.push({ type: 'PARTICLE', id: fx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor, scale: ultConfig.scale * (0.8 + Math.random()*0.4), delay: k * interval }); }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.15, duration: count * interval }); // Sustained shake
                     break;

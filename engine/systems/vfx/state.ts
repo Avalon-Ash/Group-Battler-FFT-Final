@@ -1,5 +1,6 @@
 import { VFX_PARAM } from '../../../constants';
-import type { ParticleType } from '../../../types/VFXSchema';
+import type { ParticleType, PartAnim } from '../../../types/VFXSchema';
+import type { PartSprite } from '../../renderers/vfxparts/VFXPartStore';
 
 export interface Particle {
     active: boolean; 
@@ -40,7 +41,12 @@ export interface Particle {
     blendMode?: GlobalCompositeOperation; 
     sortBias?: number; 
     lastGroundHeight?: number; 
-    hexKey?: string; 
+    hexKey?: string;
+    /** 零件粒子的烘焙 sprite（生成時取一次，繪製時只 drawImage） */
+    part?: PartSprite;
+    partAnim?: PartAnim;
+    /** 每次物理更新都貼齊地面高度（看板仍正常繪製） */
+    groundAnchored?: boolean;
 }
 export interface Decal {
     x: number;
@@ -86,6 +92,9 @@ export class VFXStateManager {
             p.killAtTarget = undefined; 
             p.lastGroundHeight = undefined;
             p.hexKey = undefined;
+            p.part = undefined;
+            p.partAnim = undefined;
+            p.groundAnchored = undefined;
             return p;
         }
         return { 
@@ -105,6 +114,7 @@ export class VFXStateManager {
         p.active = false;
         p.image = undefined;
         p.texture = undefined;
+        p.part = undefined;
         if (this.particlePool.length >= VFX_PARAM.MAX_POOL_SIZE) return;
         this.particlePool.push(p);
     }

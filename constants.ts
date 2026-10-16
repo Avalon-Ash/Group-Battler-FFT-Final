@@ -116,14 +116,17 @@ export const HUD_COLORS = {
     GLOSS_HIGHLIGHT: 'rgba(255, 255, 255, 0.3)'
 };
 
+/** 詠唱中斷文字的錯位抖動（確定性：依文字存活時間雜湊，不每幀呼叫 Math.random） */
+export const TEXT_BREAK_JITTER = { X: 8, Y: 4, HASH_FREQ: 47, HASH_SCALE: 43758.5453 } as const;
+
 // SSOT: Floating Text Effect Colors
 export const TEXT_PAINTER_COLORS = {
     STROKE_SHADOW: 'rgba(0, 0, 0, 0.8)',
     KILL_STREAK_STROKE: '#000000',
     WHITE: '#ffffff',
-    GLITCH_RED: '#ff0000',
-    GLITCH_CYAN: '#00ffff',
-    GLITCH_FRAME: '#ef4444',
+    /** 詠唱中斷文字的陣營錯位色（ART_SPEC §13：投影失真用陣營色，不用 RGB 分離） */
+    CAST_BREAK_BLUE: '#fbbf24',
+    CAST_BREAK_RED: '#dc2626',
     TECH_BG: 'rgba(15, 23, 42, 0.4)',
     GRAD_TRANSPARENT: 'rgba(255, 255, 255, 0)'
 };
@@ -189,6 +192,8 @@ export const PHYSICS = {
 
 export const VFX_RENDER = {
     GROUND_SORT_BIAS:   15,  // ground-locked 粒子的 Y 軸排序偏移
+    /** 貼地特效投影後半高 ≥ 此值才算「大型地面法陣」：站在範圍內的單位改排在它之後，法陣不蓋腳 */
+    DECAL_LIFT_MIN_HALF_H: 20,
     GROUND_Z_BIAS:       5,  // ground-locked 粒子的 Z 軸偏移
     GROUND_VISUAL_BIAS:  2,  // 防 Z-fighting 的視覺偏移
     PARTICLE_SIZE_BIAS: 0.5, // 碰地計算的粒子半徑比例
@@ -569,7 +574,7 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
 export const VFX_GROUND_TYPES = new Set([
     'SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD',
     'MAGIC_CIRCLE', 'HEX_GLOW', 'PILLAR', 'DOMAIN', 'BLACK_HOLE',
-    'GIANT_HEX', 'HEX_BEAM'
+    'GIANT_HEX', 'HEX_BEAM', 'PART_GROUND'
 ]);
 
 // ══════════════════════════════════════════════════════════════

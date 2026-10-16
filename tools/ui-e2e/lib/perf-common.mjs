@@ -15,6 +15,8 @@ export async function launchBrowser({
     const args = [
         '--enable-gpu-rasterization',
         '--ignore-gpu-blocklist',
+        // 雙 GPU 機器（RTX 主螢幕＋AMD 內顯）上強制用高效能 GPU，否則量測會落在內顯而被 assertMainGpu 判無效
+        '--force_high_performance_gpu',
         '--window-size=2560,1440',
         ...extraArgs,
     ];

@@ -61,7 +61,7 @@ export class EventHUDMapper {
             case 'CAST_BREAK':
                 // 核心：觸發文字崩解，瞬間移除詠唱條
                 if (event.sourceId) {
-                    hud.breakCastText(event.sourceId);
+                    hud.breakCastText(event.sourceId, event.team);
                     // 同時彈出 "中斷" 提示
                     const baseY = visualGroundY - HUD_TEXT_OFFSET;
                     hud.addFloatingText(event.pos.x, baseY, "INTERRUPTED", "#ef4444", 16, 'CC');

@@ -7,6 +7,7 @@ import { Camera } from "../../systems/CameraSystem";
 import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
+import { PartPainter } from "./renderers/painters/PartPainter";
 
 import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
 
@@ -59,7 +60,15 @@ export class VFXRenderer {
             if (isGroundLocked) {
                 // Ground decals sort by their front edge to handle occlusion correctly.
                 // In iso view, front edge is approx projectedY + 0.5 * visual_height.
-                op.sortBias = (p.size ? p.size * 0.5 : 0) + VFX_RENDER.GROUND_SORT_BIAS;
+                // 零件法陣用實際繪製範圍（含縮放動畫）；其他沿用 size 估算。
+                let halfW = p.size || 0;
+                if (p.part) {
+                    const s = PartPainter.scaleAt(p, 1 - p.life / p.maxLife);
+                    halfW = Math.max(p.part.anchorX, p.part.width - p.part.anchorX) * s;
+                }
+                op.gHalfW = halfW;
+                op.gHalfH = halfW * ISO_SCALE_Y;
+                op.sortBias = op.gHalfH + VFX_RENDER.GROUND_SORT_BIAS;
             }
 
             op.z = isGroundLocked
