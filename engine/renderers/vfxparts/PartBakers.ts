@@ -12,6 +12,45 @@ import { type PartSpec, type ShardShape, type SigilEmblem, createPartRng, boltPo
 
 const TAU = Math.PI * 2;
 
+/** 六角形第 k 個頂點（半徑 r，起始角見 VFX_PARTS.HEX）。 */
+function hexVertex(r: number, k: number): [number, number] {
+    const a = VFX_PARTS.HEX.ANGLE_OFFSET_RAD + (k / 6) * TAU;
+    return [Math.cos(a) * r, Math.sin(a) * r];
+}
+
+/** 六角外框路徑（封閉）。 */
+function hexPath(ctx: CanvasRenderingContext2D, r: number): void {
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+        const [x, y] = hexVertex(r, k);
+        if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+}
+
+/** 六角周長上 u∈[0,1) 的點（從第 0 頂點起算）。 */
+function hexPerimeterPoint(r: number, u: number): [number, number] {
+    const t = (((u % 1) + 1) % 1) * 6;
+    const k = Math.floor(t);
+    const f = t - k;
+    const [x0, y0] = hexVertex(r, k);
+    const [x1, y1] = hexVertex(r, k + 1);
+    return [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f];
+}
+
+/** 沿六角周長描 u0→u1 的一段折線（跨頂點時會轉角）。 */
+function hexArcPath(ctx: CanvasRenderingContext2D, r: number, u0: number, u1: number): void {
+    ctx.beginPath();
+    const [sx, sy] = hexPerimeterPoint(r, u0);
+    ctx.moveTo(sx, sy);
+    for (let k = Math.floor(u0 * 6) + 1; k / 6 < u1; k++) {
+        const [x, y] = hexVertex(r, k);
+        ctx.lineTo(x, y);
+    }
+    const [ex, ey] = hexPerimeterPoint(r, u1);
+    ctx.lineTo(ex, ey);
+}
+
 /** '#rrggbb' + alpha → rgba()；只在烘焙時呼叫。 */
 export function withAlpha(hex: string, alpha: number): string {
     const h = hex.replace('#', '');
@@ -58,17 +97,20 @@ function bakeGlow(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp, hard:
 function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFXRamp, roughness: number, seed: number): void {
     const C = VFX_PARTS.RING;
     const outer = r + t;
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, outer);
-    const at = (v: number) => Math.max(0, Math.min(1, v / outer));
-    g.addColorStop(at(r - t), withAlpha(ramp.dark, 0));
-    g.addColorStop(at(r - t * C.INNER_STOP), withAlpha(ramp.main, (1 + C.INNER_ALPHA) / 2));
-    g.addColorStop(at(r), ramp.core);
-    g.addColorStop(at(r + t * C.MAIN_STOP_OUT), withAlpha(ramp.main, C.OUTER_ALPHA));
-    g.addColorStop(1, withAlpha(ramp.dark, 0));
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, outer, 0, TAU);
-    ctx.fill();
+    // 六角環（ART_SPEC §0）：光暈 → 主色 → 核心三層描邊
+    ctx.lineJoin = 'miter';
+    ctx.strokeStyle = withAlpha(ramp.dark, C.HALO_ALPHA);
+    ctx.lineWidth = t * C.HALO_WIDTH;
+    hexPath(ctx, r);
+    ctx.stroke();
+    ctx.strokeStyle = withAlpha(ramp.main, C.MAIN_ALPHA);
+    ctx.lineWidth = t * C.MAIN_WIDTH;
+    hexPath(ctx, r);
+    ctx.stroke();
+    ctx.strokeStyle = ramp.core;
+    ctx.lineWidth = Math.max(1, t * C.CORE_WIDTH);
+    hexPath(ctx, r);
+    ctx.stroke();
     if (roughness <= 0) return;
 
     // 灰燼風：外緣鋸齒缺口＋斷裂（destination-out 挖掉）
@@ -271,6 +313,25 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
     ctx.lineWidth = C.OUTLINE_W;
     ctx.strokeStyle = ramp.dark;
     ctx.lineJoin = 'round';
+    if (shape === 'hex') {
+        // 六角晶格碎片（詠唱崩解、法術結構碎裂，ART_SPEC §13）：略壓扁的六角板＋左上斜角高光
+        ctx.save();
+        ctx.scale(1, C.HEX_SQUASH);
+        ctx.fillStyle = ramp.main;
+        hexPath(ctx, s);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = ramp.core;
+        ctx.beginPath();
+        const [ax, ay] = hexVertex(s, 3);
+        const [bx, by] = hexVertex(s, 4);
+        const [cx, cy] = hexVertex(s, 5);
+        ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.lineTo(cx, cy);
+        ctx.lineTo(cx * C.HEX_BEVEL, cy * C.HEX_BEVEL); ctx.lineTo(bx * C.HEX_BEVEL, by * C.HEX_BEVEL); ctx.lineTo(ax * C.HEX_BEVEL, ay * C.HEX_BEVEL);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        return;
+    }
     if (shape === 'crystal') {
         const w = s * C.CRYSTAL_ASPECT;
         ctx.fillStyle = ramp.main;
@@ -325,11 +386,11 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
 function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem): void {
     const C = VFX_PARTS.SIGIL;
     const ring = (rr: number, gaps: number) => {
-        if (gaps <= 0) { ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.stroke(); return; }
-        const seg = TAU / gaps;
+        // 法陣外框一律六角（ART_SPEC §0）；gaps > 0 為斷裂六角（灰燼）
+        if (gaps <= 0) { hexPath(ctx, rr); ctx.stroke(); return; }
+        const seg = 1 / gaps;
         for (let i = 0; i < gaps; i++) {
-            ctx.beginPath();
-            ctx.arc(0, 0, rr, i * seg + seg * 0.08, (i + 1) * seg - seg * 0.08);
+            hexArcPath(ctx, rr, i * seg + seg * 0.08, (i + 1) * seg - seg * 0.08);
             ctx.stroke();
         }
     };
@@ -441,19 +502,22 @@ function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem
     sigilStrokes(ctx, r, emblem);
 }
 
-/** 光柱：錨點在底部中央，往上延伸 height，頂端淡出。 */
+/** 光柱（六角稜柱）：錨點在底部中央，往上延伸 height，頂端淡出。正面最亮，左側面受光、右側面背光。 */
 function bakePillar(ctx: CanvasRenderingContext2D, w: number, h: number, ramp: VFXRamp): void {
     const C = VFX_PARTS.PILLAR;
     const hw = w / 2;
-    const g = ctx.createLinearGradient(-hw, 0, hw, 0);
-    g.addColorStop(0, withAlpha(ramp.dark, 0));
-    g.addColorStop(0.5 - C.MAIN_RATIO / 2, withAlpha(ramp.main, C.MAIN_ALPHA));
-    g.addColorStop(0.5 - C.CORE_RATIO / 2, ramp.core);
-    g.addColorStop(0.5 + C.CORE_RATIO / 2, ramp.core);
-    g.addColorStop(0.5 + C.MAIN_RATIO / 2, withAlpha(ramp.main, C.MAIN_ALPHA));
-    g.addColorStop(1, withAlpha(ramp.dark, 0));
-    ctx.fillStyle = g;
-    ctx.fillRect(-hw, -h, w, h);
+    const fw = hw * C.FRONT_RATIO;
+    ctx.fillStyle = withAlpha(ramp.main, C.LIT_SIDE_ALPHA);
+    ctx.fillRect(-hw, -h, hw - fw, h);
+    ctx.fillStyle = withAlpha(ramp.dark, C.SHADE_SIDE_ALPHA);
+    ctx.fillRect(fw, -h, hw - fw, h);
+    ctx.fillStyle = ramp.core;
+    ctx.fillRect(-fw, -h, fw * 2, h);
+    // 稜線
+    ctx.fillStyle = withAlpha(ramp.core, C.EDGE_ALPHA);
+    const ew = Math.max(1, w * C.EDGE_WIDTH);
+    ctx.fillRect(-fw - ew / 2, -h, ew, h);
+    ctx.fillRect(fw - ew / 2, -h, ew, h);
     // 頂端淡出
     ctx.globalCompositeOperation = 'destination-in';
     const v = ctx.createLinearGradient(0, -h, 0, 0);

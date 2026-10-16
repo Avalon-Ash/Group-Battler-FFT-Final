@@ -35,6 +35,7 @@ const ALL_SPECS: PartSpec[] = [
     { kind: 'flame', height: 60, ramp: 'ASH_FIRE', jagged: true },
     { kind: 'smoke', radius: 30, color: 'ASH', roughness: 1 },
     { kind: 'shard', size: 14, shape: 'crystal', ramp: 'LION_ICE' },
+    { kind: 'shard', size: 14, shape: 'hex', ramp: 'LION_HOLY' },
     { kind: 'shard', size: 14, shape: 'rock', ramp: 'ASH_PHYSICAL' },
     { kind: 'shard', size: 14, shape: 'bone', ramp: 'ASH_PHYSICAL' },
     { kind: 'sigil', radius: 40, emblem: 'sun', ramp: 'LION_HOLY' },

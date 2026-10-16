@@ -9,7 +9,7 @@ import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../data/vfx/parts/vfxPalette';
 
 export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
-export type ShardShape = 'crystal' | 'rock' | 'bone';
+export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
 
 export type PartSpec =
     | { kind: 'glow'; radius: number; ramp: VFXRampId; hard?: boolean }
@@ -123,7 +123,7 @@ export function frameCountForTier(kind: PartKind, tier: number): number {
 export function partBlend(n: PartSpec): GlobalCompositeOperation {
     if (n.kind === 'smoke' || n.kind === 'droplet') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
-    if (n.kind === 'shard' && n.shape !== 'crystal') return 'source-over';
+    if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
 }
 
@@ -142,7 +142,12 @@ export function partBounds(n: PartSpec): PartBounds {
             const d = n.radius * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
-        case 'ring':
+        case 'ring': {
+            // 六角頂點（內角 120°）的斜接會讓光暈描邊外凸 halfWidth / sin(60°)
+            const halfHalo = n.thickness * VFX_PARTS.RING.HALO_WIDTH / 2;
+            const d = (n.radius + halfHalo / Math.sin(Math.PI / 3)) * 2 + pad * 2;
+            return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+        }
         case 'slashArc': {
             const d = (n.radius + n.thickness) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };

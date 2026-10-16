@@ -52,6 +52,12 @@ const rows: Row[] = [
         { name: 'shard crystal LION_ICE', spec: { kind: 'shard', size: 16, shape: 'crystal', ramp: 'LION_ICE' } },
         { name: 'shard rock + bone ASH_PHYSICAL', spec: { kind: 'shard', size: 16, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 1 } },
     ] },
+    { label: 'hex shard', specs: [
+        { name: 'hex LION_HOLY', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'LION_HOLY' } },
+        { name: 'hex LION_ARCANE', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'LION_ARCANE' } },
+        { name: 'hex ASH_FIRE', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_FIRE' } },
+        { name: 'hex ASH_VOID', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_VOID' } },
+    ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [
     { name: 'flame ASH_FIRE jagged', spec: { kind: 'flame', height: 64, ramp: 'ASH_FIRE', jagged: true } },
