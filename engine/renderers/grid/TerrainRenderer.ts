@@ -63,7 +63,8 @@ export const TerrainRenderer = {
         alpha: number = 1.0,
         q: number = 0,
         r2: number = 0,
-        edgeMask: number = 0
+        edgeMask: number = 0,
+        baseLevel: number = 0
     ) {
         if (this.lastTextureRev !== terrainTextureStore.getRevision()) {
             this.lastTextureRev = terrainTextureStore.getRevision();
@@ -92,9 +93,9 @@ export const TerrainRenderer = {
         // 漂浮位移不進快取鍵：整塊地形在繪製時平移（漂浮島整塊上下浮動）。
         // 若把位移烘進 sprite，浮動地圖每個縮放級距會有 1500+ 種組合，跨級距時超過 MAX_TERRAIN_SPRITES 而不斷重烘焙
         // （見 docs/PERF_LIFECYCLE_FINDINGS.md）。位移取整數像素，避免 sprite 落在半像素上變糊。
-        const key = terrainSpriteKey(theme, layout, type, height, variant, 0, renderScale, edgeMask);
+        const key = terrainSpriteKey(theme, layout, type, height, variant, 0, renderScale, edgeMask, baseLevel);
         const sprite = this.store.get(key, (factory) => {
-            return this.bakeBlock(factory, size, height, theme, type, layout, variant, 0, renderScale, edgeMask);
+            return this.bakeBlock(factory, size, height, theme, type, layout, variant, 0, renderScale, edgeMask, baseLevel);
         });
 
         ctx.save();
@@ -125,12 +126,40 @@ export const TerrainRenderer = {
         variant: number,
         floatOffset: number,
         renderScale: number,
-        edgeMask: number = 0
+        edgeMask: number = 0,
+        baseLevel: number = 0
     ): TerrainSpriteEntry {
         const visualTopY = VisualMath.getIsoVisualY(0, height, floatOffset);
+        // 舊基座深度：光照漸層的錨點（非外露格與外露格的上段畫面維持不變）
         const currentPedestalDepth = Math.max(PEDESTAL_DEPTH, -visualTopY + 15);
         const r = size + EXPANSION_BIAS;
         const vertices = HexGeometry.getVertices(r, true, layout);
+
+        // 島嶼底座：外露格的側面往下延伸到依地形輪廓換算的深度（見 GridCache.computeFoundationLevel）
+        const fCfg = TERRAIN_SKIN.foundation;
+        const profile = fCfg.profiles[type] ?? fCfg.defaultProfile;
+        const levelT = baseLevel > 0 ? (Math.min(baseLevel, fCfg.levels) - 1) / Math.max(1, fCfg.levels - 1) : 0;
+        const foundationDepth = baseLevel > 0
+            ? Math.max(currentPedestalDepth, profile.minDepth + (profile.maxDepth - profile.minDepth) * levelT)
+            : currentPedestalDepth;
+        const hasTips = baseLevel > 0 && profile.tips && foundationDepth > currentPedestalDepth;
+        // 有尖角時：側面頂點只延伸 shoulder 比例，整欄只有一個尖點（最前方）到 tipDepth（鐘乳岩）；平底則所有頂點同深
+        const vertexDepth = hasTips
+            ? currentPedestalDepth + (foundationDepth - currentPedestalDepth) * profile.shoulder
+            : foundationDepth;
+        const tipDepth = vertexDepth + (foundationDepth - vertexDepth) * fCfg.tipScales[variant % fCfg.tipScales.length];
+        // 前側面：FLAT 為三面（正前面兩頂點同為最低 → 尖點在正前面中點），POINTY 為兩面（共用的前頂點即尖點）
+        const sideFaces: readonly (readonly [number, number])[] = layout === 'FLAT' ? [[1, 0], [2, 1], [3, 2]] : [[1, 0], [2, 1]];
+        let tipVertex = -1;
+        let tipVertexY = -Infinity;
+        let tipShared = false;
+        for (const face of sideFaces) {
+            for (const idx of face) {
+                const vy = vertices[idx].y;
+                if (vy > tipVertexY + 1e-6) { tipVertexY = vy; tipVertex = idx; tipShared = false; }
+                else if (idx !== tipVertex && Math.abs(vy - tipVertexY) <= 1e-6) tipShared = true;
+            }
+        }
 
         let minVx = Infinity, maxVx = -Infinity, minVy = Infinity, maxVy = -Infinity;
         for (let i = 0; i < 6; i++) {
@@ -143,8 +172,8 @@ export const TerrainRenderer = {
 
         const topEdge = Number.isFinite(visualTopY) ? visualTopY + minVy : minVy;
         const bottomEdge = Number.isFinite(visualTopY)
-            ? Math.max(currentPedestalDepth + maxVy, visualTopY + maxVy)
-            : Math.max(currentPedestalDepth + maxVy, maxVy);
+            ? Math.max(foundationDepth + maxVy, visualTopY + maxVy)
+            : Math.max(foundationDepth + maxVy, maxVy);
 
         const padding = RENDER_CACHE.SPRITE_PADDING;
         const localLeft = Math.floor(minVx - padding);
@@ -171,13 +200,35 @@ export const TerrainRenderer = {
         const topImg = useSkin ? terrainTextureStore.getTopImage(type) : null;
         const sideImg = useSkin ? terrainTextureStore.getSideImage(type) : null;
 
+        // 延伸段底端加暗（只在外露格；漸層於烘焙時建立，每幀成本不變）。呼叫前 current path 須為面多邊形。
+        const shadeFoundation = (minX: number, faceW: number, faceBottomY: number) => {
+            if (foundationDepth <= currentPedestalDepth || profile.bottomShade <= 0) return;
+            sCtx.save();
+            sCtx.clip();
+            const shade = sCtx.createLinearGradient(0, currentPedestalDepth, 0, faceBottomY);
+            shade.addColorStop(0, 'transparent');
+            shade.addColorStop(1, TERRAIN_SKIN.sideShadeFloor);
+            sCtx.globalAlpha = profile.bottomShade;
+            sCtx.fillStyle = shade;
+            sCtx.fillRect(minX, currentPedestalDepth, faceW, faceBottomY - currentPedestalDepth);
+            sCtx.restore();
+        };
+
+        // 頂點底端深度：尖點頂點（POINTY）到 tipDepth，其餘停在 vertexDepth
+        const depthAt = (idx: number) => (hasTips && !tipShared && idx === tipVertex ? tipDepth : vertexDepth);
+
         const drawFace = (idx1: number, idx2: number, color: string, isLightSide: boolean) => {
             const v1 = vertices[idx1], v2 = vertices[idx2];
+            // FLAT 的正前面：兩頂點同為最低，尖點放在該面底端中點
+            const midTip = hasTips && tipShared && Math.abs(v1.y - tipVertexY) <= 1e-6 && Math.abs(v2.y - tipVertexY) <= 1e-6;
+            const d1 = depthAt(idx1), d2 = depthAt(idx2);
+            const faceBottomY = Math.max(v1.y + d1, v2.y + d2, midTip ? tipVertexY + tipDepth : -Infinity);
             sCtx.beginPath();
             sCtx.moveTo(v1.x, v1.y + visualTopY);
             sCtx.lineTo(v2.x, v2.y + visualTopY);
-            sCtx.lineTo(v2.x, v2.y + currentPedestalDepth);
-            sCtx.lineTo(v1.x, v1.y + currentPedestalDepth);
+            sCtx.lineTo(v2.x, v2.y + d2);
+            if (midTip) sCtx.lineTo((v1.x + v2.x) / 2, tipVertexY + tipDepth);
+            sCtx.lineTo(v1.x, v1.y + d1);
             sCtx.closePath();
 
             if (sideImg) {
@@ -186,7 +237,7 @@ export const TerrainRenderer = {
                 const minX = Math.min(v1.x, v2.x), maxX = Math.max(v1.x, v2.x);
                 const faceW = maxX - minX;
                 const faceTopY = Math.min(v1.y, v2.y) + visualTopY;
-                const faceH = currentPedestalDepth - faceTopY;
+                const faceH = Math.max(currentPedestalDepth, faceBottomY) - faceTopY;
 
                 // 光照決定明暗：先以側面漸層全強度填底色，再疊貼圖細節
                 if (Number.isFinite(visualTopY)) {
@@ -215,9 +266,11 @@ export const TerrainRenderer = {
                     sCtx.restore();
                 }
                 sCtx.restore();
+                shadeFoundation(minX, faceW, faceBottomY);
             } else {
                 sCtx.fillStyle = color;
                 sCtx.fill();
+                shadeFoundation(Math.min(v1.x, v2.x), Math.abs(v2.x - v1.x), faceBottomY);
             }
         };
 
