@@ -18,9 +18,25 @@ import { createCanvas } from '../CanvasUtils';
 import { applyNoiseMask, getGrainTile, variantFor } from './NoiseLib';
 import { MATERIAL_CONFIG } from '../../../data/vfx/materialConfig';
 import { HexGeometry } from '../utils/HexGeometry';
+import { createUnitGradientCache } from '../../renderers/UnitGradientCache';
 import type { HexLayout } from '../../../types';
 
 const bakeCache = new Map<string, HTMLCanvasElement>();
+
+// [PERF5] drawLayeredBeam 的單位漸層快取 (0,-1)→(0,1)；外管與最內白芯各一份，以色彩為鍵
+const beamTubeGradients = createUnitGradientCache((ctx, color) => buildBeamTubeGradient(ctx, color, color));
+const beamCoreGradients = createUnitGradientCache((ctx, color) => buildBeamTubeGradient(ctx, color, '#ffffff'));
+function buildBeamTubeGradient(ctx: CanvasRenderingContext2D, color: string, inner: string): CanvasGradient {
+    const grad = ctx.createLinearGradient(0, -1, 0, 1);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(0.35, color);
+    grad.addColorStop(0.5, inner);
+    grad.addColorStop(0.65, color);
+    grad.addColorStop(1, 'transparent');
+    return grad;
+}
+const BEAM_RIBBON_SIGNS: readonly number[] = [-1, 1];
+const NO_DASH: number[] = [];
 
 function bake(key: string, size: number, paint: (ctx: CanvasRenderingContext2D, r: number) => void) {
     const hit = bakeCache.get(key);
@@ -450,16 +466,15 @@ export const MaterialPainter = {
 
         for (let i = 0; i < cfg.tubes; i++) {
             const w = width * breathe * Math.pow(cfg.tubeFalloff, i);
-            const grad = ctx.createLinearGradient(0, -w, 0, w);
-            const inner = i === cfg.tubes - 1 ? '#ffffff' : color;
-            grad.addColorStop(0, 'transparent');
-            grad.addColorStop(0.35, color);
-            grad.addColorStop(0.5, inner);
-            grad.addColorStop(0.65, color);
-            grad.addColorStop(1, 'transparent');
-            ctx.fillStyle = grad;
+            if (!(w > 0)) continue;
+            // [PERF5] 快取單位漸層 (0,-1)→(0,1)，以 scale(1, w) 對映到 (0,-w)→(0,w)；fillRect 不受非等比縮放影響
+            const isInnermost = i === cfg.tubes - 1;
+            ctx.save();
+            ctx.scale(1, w);
+            ctx.fillStyle = isInnermost ? beamCoreGradients.get(ctx, color) : beamTubeGradients.get(ctx, color);
             ctx.globalAlpha = 0.45 + i * 0.2;
-            ctx.fillRect(0, -w, dist, w * 2);
+            ctx.fillRect(0, -1, dist, 2);
+            ctx.restore();
         }
 
         // 螺旋緞帶：虛線沿光束滾動，替代 GLSL 的 UV 位移
@@ -469,7 +484,7 @@ export const MaterialPainter = {
         ctx.setLineDash(cfg.dash);
         ctx.lineDashOffset = -now * cfg.scrollSpeed;
         const amp = width * breathe * 0.9;
-        for (const sign of [-1, 1]) {
+        for (const sign of BEAM_RIBBON_SIGNS) {
             ctx.beginPath();
             const seg = Math.max(8, Math.floor(dist / 12));
             for (let i = 0; i <= seg; i++) {
@@ -480,7 +495,7 @@ export const MaterialPainter = {
             }
             ctx.stroke();
         }
-        ctx.setLineDash([]);
+        ctx.setLineDash(NO_DASH);
         ctx.restore();
     },
 

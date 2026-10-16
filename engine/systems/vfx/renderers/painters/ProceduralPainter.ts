@@ -7,7 +7,11 @@ import { HexLayout } from "../../../../../types";
 import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
 
-export const ProceduralPainter = {
+// [PERF5] 死光虛線樣式：共用陣列，避免每幀 setLineDash([..]) 配置
+const DEATH_RAY_DASH: number[] = [20, 10];
+const NO_DASH: number[] = [];
+
+export const ProceduralPainter= {
     draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, now: number, layout: HexLayout = 'FLAT') {
         ctx.save();
         
@@ -323,13 +327,13 @@ export const ProceduralPainter = {
                 ctx.strokeStyle = p.color;
                 ctx.lineWidth = 1;
                 ctx.globalAlpha = 0.8;
-                ctx.setLineDash([20, 10]);
+                ctx.setLineDash(DEATH_RAY_DASH); // [PERF5] 共用常數陣列，不每幀配置
                 ctx.lineDashOffset = -now * 500;
                 ctx.beginPath();
                 ctx.moveTo(0, -width); ctx.lineTo(dist, -width);
                 ctx.moveTo(0, width); ctx.lineTo(dist, width);
                 ctx.stroke();
-                ctx.setLineDash([]);
+                ctx.setLineDash(NO_DASH);
             }
             ctx.restore();
             return;
