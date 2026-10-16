@@ -1,0 +1,103 @@
+{
+    "vfx.literal": [],
+    "vfx.sequenceParticle": [
+        "mb_a4: PROJ_BLUE_FROST_BOLT",
+        "mb_b1: GLOW",
+        "mb_b3: GLOW",
+        "mb_b4: GLOW",
+        "mr_b1: GLOW",
+        "mr_b3: GLOW",
+        "mr_b4: GLOW",
+        "mr_b5: GLOW",
+        "rb_a2: PROJ_BLUE_SNIPER",
+        "rb_a3: PROJ_BLUE_SNIPER",
+        "rb_a5: PROJ_BLUE_SNIPER",
+        "rb_b1: GLOW",
+        "rb_b2: GLOW",
+        "rb_b3: SPARK",
+        "rb_b4: GLOW",
+        "rb_b5: GLOW",
+        "rr_a1: SMOKE_PUFF",
+        "rr_a2: SMOKE_PUFF",
+        "rr_a3: SMOKE_PUFF",
+        "rr_a4: PROJ_RED_HEAVY_BOLT",
+        "rr_a4: SMOKE_PUFF",
+        "rr_a5: PROJ_RED_HEAVY_BOLT",
+        "rr_a5: SMOKE_PUFF",
+        "rr_b1: GLOW",
+        "rr_b2: GLOW",
+        "rr_b3: GLOW",
+        "rr_b4: GLOW",
+        "rr_b5: GLOW",
+        "sb_b2: GLOW",
+        "sb_b4: GLOW",
+        "sb_u1: GLOW",
+        "sr_a1: BEAM_RED_LINK",
+        "sr_a1: SMOKE_PUFF",
+        "sr_a2: SMOKE_PUFF",
+        "sr_a3: SMOKE_PUFF",
+        "sr_a4: SMOKE_PUFF",
+        "sr_a5: SMOKE_PUFF",
+        "sr_b2: GLOW",
+        "sr_b3: GLOW",
+        "sr_b5: GLOW",
+        "sr_u1: GLOW",
+        "tb_a4: DRAIN_LINK",
+        "tb_u1: GLOW",
+        "tr_a1: BEAM_RED_LINK",
+        "tr_b5: SPARK",
+        "tr_u5: GLOW",
+        "wb_a2: SLASH_CONNECT",
+        "wb_b2: SPARK",
+        "wr_b2: GLOW"
+    ],
+    "vfx.beamStyle": [
+        "mb_u5: FX_ULT_BLUE_FOCUS_BEAM",
+        "mr_u2: FX_ULT_RED_DEATH_FINGER",
+        "rr_u1: FX_ULT_RED_RAILGUN",
+        "rr_u4: FX_ULT_RED_HEADHUNTER",
+        "wb_u5: FX_ULT_BLUE_LIGHTSPEED"
+    ],
+    "vfx.sequenceFallback": [
+        "FX_HIT_BLUE_HEAVY",
+        "FX_HIT_BLUE_MAGE",
+        "FX_HIT_BLUE_RANGER",
+        "FX_HIT_BLUE_SUPPORT",
+        "FX_HIT_BLUE_TANK",
+        "FX_HIT_BLUE_WARRIOR",
+        "FX_HIT_RED_MAGE",
+        "FX_HIT_RED_RANGER",
+        "FX_HIT_RED_SUPPORT",
+        "FX_HIT_RED_TANK",
+        "FX_HIT_RED_WARRIOR",
+        "FX_ULT_BLUE_IMPACT",
+        "FX_ULT_RED_IMPACT"
+    ],
+    "vfx.libraryCatalog": [
+        "FX_ULT_BLUE_AEGIS",
+        "FX_ULT_RED_NUKE"
+    ],
+    "projectile.skillKey": [
+        "rr_a2: SMASH"
+    ],
+    "projectile.sprite": [
+        "BEAM: BEAM",
+        "PROJ_BLUE_FROST_BOLT: CRYSTAL",
+        "PROJ_BLUE_ICE_ARROW: CRYSTAL",
+        "PROJ_BLUE_ORB: ORB",
+        "PROJ_BLUE_SNIPER: HEX_DART",
+        "PROJ_RED_AXE: AXE"
+    ],
+    "projectile.orphan": [
+        "PROJ_BLUE_WAVE",
+        "mr_u2",
+        "rr_u1",
+        "wb_u5"
+    ],
+    "status.particle": [
+        "STASIS: FREEZE_LOOP"
+    ],
+    "status.specialVisual": [
+        "DANGER"
+    ]
+}
