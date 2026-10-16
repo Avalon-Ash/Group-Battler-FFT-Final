@@ -1,6 +1,33 @@
 
 import { HUDSystem } from "../../systems/hud";
-import { TEXT_PAINTER_COLORS } from "../../../constants";
+import { TEXT_PAINTER_COLORS, SHOUT_GLOW } from "../../../constants";
+import { GlowTextCache, quantizeDeviceScale } from "./GlowTextCache";
+import { createUnitGradientCache } from "../UnitGradientCache";
+
+// [PERF5] 字型字串依字級快取，避免每幀每條文字組合樣板字串
+type FontKind = 'ULT' | 'CAST' | 'KILL' | 'NUMBER';
+const fontCache: Record<FontKind, Map<number, string>> = {
+    ULT: new Map(), CAST: new Map(), KILL: new Map(), NUMBER: new Map(),
+};
+function fontFor(kind: FontKind, size: number): string {
+    const m = fontCache[kind];
+    let f = m.get(size);
+    if (f === undefined) {
+        if (kind === 'ULT' || kind === 'KILL') f = `900 italic ${size}px "Arial Black", sans-serif`;
+        else if (kind === 'CAST') f = `bold ${size}px "Segoe UI", sans-serif`;
+        else f = `900 ${size}px "Segoe UI", sans-serif`;
+        m.set(size, f);
+    }
+    return f;
+}
+
+// [PERF5] 詠唱條填充漸層：單位區間 (0→1)，繪製時 scale 到 revealW（與每幀 createLinearGradient 等價）
+const revealGradients = createUnitGradientCache((ctx, color) => {
+    const grad = ctx.createLinearGradient(0, 0, 1, 0);
+    grad.addColorStop(0, TEXT_PAINTER_COLORS.GRAD_TRANSPARENT);
+    grad.addColorStop(1, color + '44');
+    return grad;
+});
 
 export const TextPainter = {
     
@@ -10,7 +37,9 @@ export const TextPainter = {
 
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.shadowBlur = 0; 
+        ctx.shadowBlur = 0;
+        // [PERF5] 光暈 sprite 的烘焙縮放（相機縮放 × DPR，量化），每次呼叫算一次
+        const glowScale = quantizeDeviceScale(ctx);
 
         hud.damageNumbers.forEach(d => {
             if (!d.active) return;
@@ -51,8 +80,8 @@ export const TextPainter = {
                 const pulse = 1 + Math.sin(lifePct * 10) * 0.1;
                 const scale = pop * pulse * 1.5; 
                 ctx.scale(scale, scale);
-                ctx.font = `900 italic ${d.size}px "Arial Black", sans-serif`;
-                
+                ctx.font = fontFor('KILL', d.size);
+
                 ctx.lineWidth = 4;
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = TEXT_PAINTER_COLORS.KILL_STREAK_STROKE;
@@ -62,8 +91,9 @@ export const TextPainter = {
 
             } else if (d.type === 'SHOUT') {
                 // [OPTIMIZATION] Cache Width
+                const shoutFont = fontFor(d.isUlt ? 'ULT' : 'CAST', d.size);
                 if (d.cachedWidth === undefined) {
-                    ctx.font = d.isUlt ? `900 italic ${d.size}px "Arial Black", sans-serif` : `bold ${d.size}px "Segoe UI", sans-serif`;
+                    ctx.font = shoutFont;
                     d.cachedWidth = ctx.measureText(d.text).width;
                 }
 
@@ -72,7 +102,7 @@ export const TextPainter = {
                 const halfW = w / 2;
                 const halfH = h / 2;
 
-                ctx.font = d.isUlt ? `900 italic ${d.size}px "Arial Black", sans-serif` : `bold ${d.size}px "Segoe UI", sans-serif`;
+                ctx.font = shoutFont;
 
                 if (d.isUlt && !d.isShattered) {
                     const pulse = 1 + Math.sin(d.time * 12) * 0.05; 
@@ -89,10 +119,16 @@ export const TextPainter = {
                         const s = 1.0 + progress * 0.2;
                         ctx.scale(s, s);
                         
-                        ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
-                        ctx.shadowColor = d.color;
-                        ctx.shadowBlur = 15 * lifePct;
-                        ctx.fillText(d.text, 0, 0);
+                        // [PERF5] 預烘焙光暈文字取代 shadowBlur（模糊量依壽命量化）
+                        const blurStep = SHOUT_GLOW.SUCCESS_BLUR_STEP;
+                        const successBlur = Math.round(SHOUT_GLOW.SUCCESS_BLUR * lifePct / blurStep) * blurStep;
+                        if (successBlur > 0) {
+                            const glowText = GlowTextCache.getText(d.text, shoutFont, d.size, TEXT_PAINTER_COLORS.WHITE, d.color, successBlur, glowScale);
+                            ctx.drawImage(glowText.canvas, glowText.x, glowText.y, glowText.w, glowText.h);
+                        } else {
+                            ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
+                            ctx.fillText(d.text, 0, 0);
+                        }
 
                         // 2. 輕量化的橫向擴散線條
                         ctx.strokeStyle = TEXT_PAINTER_COLORS.WHITE;
@@ -181,33 +217,33 @@ export const TextPainter = {
                         ctx.rect(-halfW, -halfH, revealW, h);
                         ctx.clip();
 
-                        // 填充區背景光暈
-                        const grad = ctx.createLinearGradient(-halfW, 0, -halfW + revealW, 0);
-                        grad.addColorStop(0, TEXT_PAINTER_COLORS.GRAD_TRANSPARENT);
-                        grad.addColorStop(1, d.color + '44');
-                        ctx.fillStyle = grad;
-                        ctx.fillRect(-halfW, -halfH, revealW, h);
+                        // 填充區背景光暈（[PERF5] 快取單位漸層，scale 到 revealW）
+                        ctx.save();
+                        ctx.translate(-halfW, 0);
+                        ctx.scale(revealW, 1);
+                        ctx.fillStyle = revealGradients.get(ctx, d.color);
+                        ctx.fillRect(0, -halfH, 1, h);
+                        ctx.restore();
 
+                        // [PERF5] 預烘焙光暈文字取代 shadowBlur
                         ctx.globalAlpha = 1.0;
-                        ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
-                        ctx.shadowColor = d.color;
-                        ctx.shadowBlur = d.isUlt ? 20 : 10;
-                        ctx.fillText(d.text, 0, 0);
-                        
-                        // Scanner Line
+                        const castBlur = d.isUlt ? SHOUT_GLOW.ULT_BLUR : SHOUT_GLOW.CAST_BLUR;
+                        const glowText = GlowTextCache.getText(d.text, shoutFont, d.size, TEXT_PAINTER_COLORS.WHITE, d.color, castBlur, glowScale);
+                        ctx.drawImage(glowText.canvas, glowText.x, glowText.y, glowText.w, glowText.h);
+
+                        // Scanner Line（[PERF5] 預烘焙光暈矩形）
                         if (progress < 0.99) {
                             const scanX = -halfW + revealW;
-                            ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
-                            ctx.shadowBlur = 15;
-                            ctx.shadowColor = TEXT_PAINTER_COLORS.WHITE;
-                            ctx.fillRect(scanX - 1.5, -halfH + 1, 3, h - 2);
+                            const scanW = SHOUT_GLOW.SCAN_WIDTH;
+                            const scan = GlowTextCache.getRect(scanW, h - 2, TEXT_PAINTER_COLORS.WHITE, SHOUT_GLOW.SCAN_BLUR, glowScale);
+                            ctx.drawImage(scan.canvas, scanX - scanW / 2 + scan.x, -halfH + 1 + scan.y, scan.w, scan.h);
                         }
                         ctx.restore();
                     }
                 }
 
             } else {
-                ctx.font = `900 ${d.size}px "Segoe UI", sans-serif`;
+                ctx.font = fontFor('NUMBER', d.size);
                 ctx.lineWidth = 3;
                 ctx.strokeStyle = TEXT_PAINTER_COLORS.STROKE_SHADOW;
                 ctx.strokeText(d.text, 0, 0);

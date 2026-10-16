@@ -66,7 +66,7 @@ export const ProjectileRenderer = {
             op.pSpeed = speed; // Pass speed for motion blur scaling
             
             // 4. Trails (Calculated purely visually backwards from SSOT position)
-            op.pTrail = [];
+            op.pTrail.length = 0; // [PERF5] 重用 RenderOp 自有陣列
             const trailSamples = p.skill.tag === 'ULT' ? 24 : 12;
             
             if (trailSamples > 0) {

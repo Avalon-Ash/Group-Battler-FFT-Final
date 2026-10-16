@@ -1,6 +1,31 @@
 
 import { RenderOp } from "./RenderList";
 import { AssetManager } from "../assets";
+import { createUnitGradientCache } from "./UnitGradientCache";
+
+// [PERF5] 單位漸層快取：繪製時以 translate/rotate/scale 對映到實際端點，
+// 像素結果與每幀 createLinearGradient/createRadialGradient 相同，但零配置。
+const imperialTrailGradients = createUnitGradientCache((ctx, color) => {
+    const g = ctx.createLinearGradient(0, 0, 1, 0);
+    g.addColorStop(0, color);
+    g.addColorStop(0.2, color);
+    g.addColorStop(1, 'transparent');
+    return g;
+});
+const covenantFlareGradients = createUnitGradientCache((ctx, color) => {
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, '#fff');
+    g.addColorStop(0.4, color);
+    g.addColorStop(1, 'transparent');
+    return g;
+});
+const imperialFlareGradients = createUnitGradientCache((ctx, color) => {
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.3, color);
+    g.addColorStop(1, 'transparent');
+    return g;
+});
 
 /**
  * 飛行物視覺呈現器 v16.0 - Faction Distinct Styles
@@ -69,20 +94,30 @@ export const ProjectileDrawer = {
                 const endY = trail[trail.length-1].y;
 
                 if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(endX) && Number.isFinite(endY)) {
-                    const trailGrad = ctx.createLinearGradient(x, y, endX, endY);
-                    trailGrad.addColorStop(0, color);
-                    trailGrad.addColorStop(0.2, color); 
-                    trailGrad.addColorStop(1, 'transparent');
-
-                    ctx.strokeStyle = trailGrad;
-                    // Constant Width "Laser" look
-                    ctx.lineWidth = (op.pIsUlt ? 10 : 5) * op.pScale;
-                    ctx.lineCap = 'butt'; // Sharp ends
+                    const gdx = endX - x;
+                    const gdy = endY - y;
+                    const gLen = Math.sqrt(gdx * gdx + gdy * gdy);
+                    // 起訖點重合時 createLinearGradient 依規範不繪製任何東西，因此直接略過
+                    if (gLen > 0) {
+                        // [PERF5] 路徑已在原座標系建立；此處只換 CTM 讓單位漸層 (0,0)→(1,0) 對映到 (x,y)→(endX,endY)。
+                        // 等比縮放 gLen，因此 lineWidth 除以 gLen 以維持原寬度與 miter 外形。
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(Math.atan2(gdy, gdx));
+                        ctx.scale(gLen, gLen);
+                        ctx.strokeStyle = imperialTrailGradients.get(ctx, color);
+                        // Constant Width "Laser" look
+                        ctx.lineWidth = (op.pIsUlt ? 10 : 5) * op.pScale / gLen;
+                        ctx.lineCap = 'butt'; // Sharp ends
+                        ctx.lineJoin = 'miter';
+                        ctx.globalAlpha = 0.8;
+                        ctx.stroke();
+                        ctx.restore();
+                    }
+                    ctx.lineCap = 'butt';
                     ctx.lineJoin = 'miter';
-                    ctx.globalAlpha = 0.8;
-                    ctx.stroke();
                 }
-                
+
                 // Core bright line (The "Filament")
                 ctx.strokeStyle = '#ffffff';
                 ctx.lineWidth = (op.pIsUlt ? 3 : 1.5) * op.pScale;
@@ -141,23 +176,14 @@ export const ProjectileDrawer = {
         ctx.globalCompositeOperation = 'lighter';
         
         const flareR = (isCovenant ? 20 : 30) * op.pScale;
-        const flare = ctx.createRadialGradient(0,0,0, 0,0, flareR);
-        
-        if (isCovenant) {
-            // Red Core
-            flare.addColorStop(0, '#fff');
-            flare.addColorStop(0.4, color);
-            flare.addColorStop(1, 'transparent');
-        } else {
-            // Blue/White Star
-            flare.addColorStop(0, '#ffffff');
-            flare.addColorStop(0.3, color);
-            flare.addColorStop(1, 'transparent');
+
+        // [PERF5] 單位徑向漸層（半徑 1），以 scale(flareR) 對映；Red Core / Blue-White Star
+        if (flareR > 0) {
+            ctx.scale(flareR, flareR);
+            ctx.fillStyle = isCovenant ? covenantFlareGradients.get(ctx, color) : imperialFlareGradients.get(ctx, color);
+            ctx.globalAlpha = 0.9;
+            ctx.beginPath(); ctx.arc(0,0, 1, 0, Math.PI*2); ctx.fill();
         }
-        
-        ctx.fillStyle = flare;
-        ctx.globalAlpha = 0.9;
-        ctx.beginPath(); ctx.arc(0,0, flareR, 0, Math.PI*2); ctx.fill();
         ctx.restore();
     }
 };
