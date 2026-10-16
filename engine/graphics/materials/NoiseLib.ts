@@ -218,6 +218,11 @@ export function getGrainTile(cfg: SurfaceGrainConfig, variant: number, size: num
     return canvas;
 }
 
+/** 由格座標推導 [0,1) 的確定性雜訊（同一格、同一種子永遠同值） */
+export function tileHash01(q: number, r: number, seed: number): number {
+    return hash2(Math.round(q), Math.round(r), seed);
+}
+
 /** 由格座標推導變體編號（確定性，同一格永遠同一張） */
 export function variantFor(q: number, r: number, variants: number): number {
     if (variants <= 1) return 0;

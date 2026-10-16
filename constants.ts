@@ -443,6 +443,38 @@ interface TerrainEdgeConfig {
     cliffRimAlpha: number;
 }
 
+/** 島嶼底座輪廓（依地形 type）：外露格的側面往下延伸到此深度（世界單位，自地面基準 y 起算） */
+interface TerrainFoundationProfile {
+    /** 外露格延伸後的最淺／最深底端深度；實際深度不小於舊基座深度 */
+    minDepth: number;
+    maxDepth: number;
+    /** true = 每個前側面底端中點下垂成尖角（漂浮島鐘乳岩）；false = 平底土台 */
+    tips: boolean;
+    /** 尖角時，面兩端頂點的延伸比例（0 = 停在舊基座、1 = 與尖角同深） */
+    shoulder: number;
+    /** 延伸段底端加暗的 alpha（顏色 sideShadeFloor；漸層只在烘焙時建立） */
+    bottomShade: number;
+}
+
+/** 島嶼底座：只加深「前側有邊外露（鄰格不存在）」的格，其餘格維持舊基座，烘進既有地形 sprite */
+interface TerrainFoundationConfig {
+    /** 深度量化級數：GridCache 對外露格寫 1..levels，0 = 非外露格（舊基座）；sprite 快取鍵只有 4 bit，上限 15 */
+    levels: number;
+    /** 中央深、兩端淺的鐘形：bell = (1 - t²)^bellPower，t = 格中心離島中心的水平距離 ÷ 半寬 */
+    bellPower: number;
+    /** 半寬外加的餘裕（世界單位），讓最外側外露格仍保留少許深度 */
+    halfWidthMargin: number;
+    /** 每格固定雜訊在深度比例中的占比（0～1），打散底緣成不規則岩塊 */
+    jitter: number;
+    /** 雜訊種子（與材質變體的種子錯開，避免深度與貼圖變體同步） */
+    noiseSeed: number;
+    /** 尖角深度倍率表：第 i 個前側面取 tipScales[(i + variant) % length]，讓同一欄的尖角長短不一 */
+    tipScales: readonly number[];
+    /** 依地形 type 的輪廓；未列出的 type 用 defaultProfile */
+    profiles: Record<string, TerrainFoundationProfile>;
+    defaultProfile: TerrainFoundationProfile;
+}
+
 export interface TerrainSkinConfig {
     texturePxPerHex: number;
     sideTexturePxPerUnit: number;
@@ -456,6 +488,8 @@ export interface TerrainSkinConfig {
     sideShadeFloor: string;
     /** 鄰格高度遮罩的烘焙參數 */
     edge: TerrainEdgeConfig;
+    /** 島嶼底座（外露格的不規則底緣） */
+    foundation: TerrainFoundationConfig;
     variantOffsets: readonly { x: number; y: number }[];
     themes: Record<string, TerrainSkinThemePaths>;
 }
@@ -473,6 +507,19 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
         ao: { widthRatio: 0.35, strength: 0.55 },
         flatRimAlpha: 0.25,
         cliffRimAlpha: 0.7,
+    },
+    foundation: {
+        levels: 15,
+        bellPower: 0.6,
+        halfWidthMargin: HEX_SIZE,
+        jitter: 0.35,
+        noiseSeed: 7919,
+        tipScales: [1, 0.78, 0.9, 0.66] as const,
+        profiles: {
+            VOID: { minDepth: 70, maxDepth: 190, tips: true, shoulder: 0.45, bottomShade: 0.55 },
+            MAGMA: { minDepth: 70, maxDepth: 190, tips: true, shoulder: 0.45, bottomShade: 0.45 },
+        },
+        defaultProfile: { minDepth: 60, maxDepth: 110, tips: false, shoulder: 1, bottomShade: 0.5 },
     },
     variantOffsets: [
         { x: 0, y: 0 },
