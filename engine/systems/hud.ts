@@ -1,5 +1,7 @@
 
 import { GameEngine } from "../game";
+import { Team } from "../../types";
+import { TEXT_PAINTER_COLORS } from "../../constants";
 
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
@@ -141,13 +143,13 @@ export class HUDSystem {
      * 強制中斷文字：給予極高的向上速度與旋轉，並縮短壽命
      * 創造出 "文字被打飛/震碎" 的視覺效果
      */
-    public breakCastText(ownerId: string) {
+    public breakCastText(ownerId: string, team?: Team) {
         const text = this.damageNumbers.find(t => t.type === 'SHOUT' && t.ownerId === ownerId && !t.isShattered);
         
         if (text) {
             text.isShattered = true;
             text.shatterType = 'BREAK';
-            text.color = '#94a3b8'; // 變成灰色廢墟感
+            text.color = team === Team.RED ? TEXT_PAINTER_COLORS.CAST_BREAK_RED : TEXT_PAINTER_COLORS.CAST_BREAK_BLUE; // 陣營色錯位（TextPainter）
             text.vy = -250; // 用力向上炸飛
             text.vx = (Math.random() - 0.5) * 400; // 隨機左右噴飛
             text.vRot = (Math.random() - 0.5) * 30; // 劇烈旋轉

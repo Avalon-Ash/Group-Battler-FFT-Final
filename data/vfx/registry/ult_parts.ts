@@ -11,7 +11,7 @@ const NO_COLOR: string[] = [];
 const still = { speed: 0, shape: 'POINT', colors: NO_COLOR } as const;
 
 /** 零件 emitter 的共通預設 */
-function part(cfg: Omit<EmitterConfig, 'colors' | 'speed' | 'shape'> & Partial<Pick<EmitterConfig, 'speed' | 'shape' | 'shapeRadius'>>): EmitterConfig {
+export function part(cfg: Omit<EmitterConfig, 'colors' | 'speed' | 'shape'> & Partial<Pick<EmitterConfig, 'speed' | 'shape' | 'shapeRadius'>>): EmitterConfig {
     return { ...still, ...cfg };
 }
 

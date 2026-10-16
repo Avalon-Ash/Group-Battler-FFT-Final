@@ -195,6 +195,8 @@ export interface GameEvent {
     targetId?: string;
     team?: Team;
     absorbed?: number;
+    /** CAST_BREAK：被中斷的 AOE 技能預警範圍（中斷當下的 telegraph），供崩解特效逐格播放 */
+    hexes?: readonly Hex[];
 }
 
 export interface EventMap {

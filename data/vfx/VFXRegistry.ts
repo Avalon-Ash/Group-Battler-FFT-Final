@@ -6,6 +6,7 @@ import { COVENANT_VFX } from "./registry/covenant";
 import { LAST_STAND_VFX } from "./registry/last_stand";
 import { HAZARD_VFX } from "./registry/hazards";
 import { ULT_PART_VFX } from "./registry/ult_parts";
+import { CAST_BREAK_VFX } from "./registry/cast_break";
 
 // ==========================================
 // 📚 VFX ASSET REGISTRY (AGGREGATOR)
@@ -20,7 +21,8 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...COVENANT_VFX,
     ...LAST_STAND_VFX,
     ...HAZARD_VFX,
-    ...ULT_PART_VFX
+    ...ULT_PART_VFX,
+    ...CAST_BREAK_VFX
 };
 
 export { PROJECTILE_VISUALS } from "./projectile_visuals";

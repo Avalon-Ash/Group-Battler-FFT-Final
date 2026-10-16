@@ -1,6 +1,6 @@
 import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 
-export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE' | 'HEX_GRID' | 'CHAOS_RIFT' | 'GLITCH' | 'HEX_SHARD' | 'RIPPLE'
+export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE' | 'HEX_GRID' | 'CHAOS_RIFT' | 'HEX_SHARD' | 'RIPPLE'
     // V1 特效零件（PartSprite）：看板／貼地／受重力碎片
     | 'PART' | 'PART_GROUND' | 'PART_DEBRIS';
 

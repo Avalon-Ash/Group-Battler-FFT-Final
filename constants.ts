@@ -116,14 +116,17 @@ export const HUD_COLORS = {
     GLOSS_HIGHLIGHT: 'rgba(255, 255, 255, 0.3)'
 };
 
+/** 詠唱中斷文字的錯位抖動（確定性：依文字存活時間雜湊，不每幀呼叫 Math.random） */
+export const TEXT_BREAK_JITTER = { X: 8, Y: 4, HASH_FREQ: 47, HASH_SCALE: 43758.5453 } as const;
+
 // SSOT: Floating Text Effect Colors
 export const TEXT_PAINTER_COLORS = {
     STROKE_SHADOW: 'rgba(0, 0, 0, 0.8)',
     KILL_STREAK_STROKE: '#000000',
     WHITE: '#ffffff',
-    GLITCH_RED: '#ff0000',
-    GLITCH_CYAN: '#00ffff',
-    GLITCH_FRAME: '#ef4444',
+    /** 詠唱中斷文字的陣營錯位色（ART_SPEC §13：投影失真用陣營色，不用 RGB 分離） */
+    CAST_BREAK_BLUE: '#fbbf24',
+    CAST_BREAK_RED: '#dc2626',
     TECH_BG: 'rgba(15, 23, 42, 0.4)',
     GRAD_TRANSPARENT: 'rgba(255, 255, 255, 0)'
 };

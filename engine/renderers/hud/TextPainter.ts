@@ -1,6 +1,6 @@
 
 import { HUDSystem } from "../../systems/hud";
-import { TEXT_PAINTER_COLORS } from "../../../constants";
+import { TEXT_PAINTER_COLORS, TEXT_BREAK_JITTER } from "../../../constants";
 
 export const TextPainter = {
     
@@ -103,40 +103,20 @@ export const TextPainter = {
                         ctx.stroke();
 
                     } else {
-                        // --- 破棄演出：數位故障 Glitch / RGB Split ---
-                        const glitch = Math.random();
+                        // --- 中斷演出：投影失真（ART_SPEC §13）---
+                        // 陣營色錯位抖動，確定性雜湊（依存活時間），不每幀呼叫 Math.random
+                        const J = TEXT_BREAK_JITTER;
+                        const h1 = Math.abs(Math.sin(d.time * J.HASH_FREQ) * J.HASH_SCALE) % 1;
+                        const h2 = Math.abs(Math.sin((d.time + 1) * J.HASH_FREQ) * J.HASH_SCALE) % 1;
                         ctx.globalAlpha = lifePct;
-                        
-                        // RGB Split 效果
                         ctx.save();
-                        ctx.globalCompositeOperation = 'screen';
-                        
-                        // Red Channel
-                        ctx.fillStyle = TEXT_PAINTER_COLORS.GLITCH_RED;
-                        ctx.fillText(d.text, (glitch-0.5)*8, (Math.random()-0.5)*4);
-                        
-                        // Cyan Channel
-                        ctx.fillStyle = TEXT_PAINTER_COLORS.GLITCH_CYAN;
-                        ctx.fillText(d.text, (Math.random()-0.5)*8, (glitch-0.5)*4);
-                        
-                        // Main Shattered Text (White/Grey)
+                        ctx.globalCompositeOperation = 'lighter';
+                        ctx.fillStyle = d.color;
+                        ctx.fillText(d.text, (h1 - 0.5) * J.X, (h2 - 0.5) * J.Y);
+                        ctx.fillText(d.text, (h2 - 0.5) * J.X, (h1 - 0.5) * J.Y);
                         ctx.restore();
                         ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
                         ctx.fillText(d.text, 0, 0);
-
-                        // 繪製破碎的科技背景框
-                        ctx.strokeStyle = TEXT_PAINTER_COLORS.GLITCH_FRAME;
-                        ctx.lineWidth = 2;
-                        ctx.globalAlpha = lifePct * 0.5;
-                        ctx.strokeRect(-halfW - glitch*10, -halfH, w + glitch*20, h);
-                        
-                        // 靜態雜訊特效
-                        if (glitch > 0.7) {
-                            ctx.fillStyle = TEXT_PAINTER_COLORS.WHITE;
-                            for(let i=0; i<3; i++) {
-                                ctx.fillRect(-halfW, (Math.random()-0.5)*h, w, 1);
-                            }
-                        }
                     }
 
                 } else {
