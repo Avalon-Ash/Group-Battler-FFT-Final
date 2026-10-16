@@ -24,9 +24,6 @@ export class CombatVFXHandler {
                 }
             }
 
-            if (hitDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
-                vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ, undefined, undefined, undefined, hexKey);
-            }
             return;
         }
 
