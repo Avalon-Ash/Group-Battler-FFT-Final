@@ -39,12 +39,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         group: 'visual',
         kind: 'single',
         owners: ['engine/systems/AnimationSystem.ts'],
-        note: '模擬層透過 AnimationSystem 匯出的 triggerHitReaction 觸發；DirectorSystem 唯讀。',
+        note: '模擬層透過 AnimationSystem 匯出的 triggerHitFlash 觸發；DirectorSystem 唯讀。',
     },
     visualOffset: {
         group: 'visual',
         kind: 'single',
         owners: ['engine/systems/AnimationSystem.ts'],
-        note: '受擊抖動；同上，經 triggerHitReaction 寫入。',
+        note: '受擊抖動；經 AnimationSystem 匯出的 triggerHitShake 寫入。',
     },
 };

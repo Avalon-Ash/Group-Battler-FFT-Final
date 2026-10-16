@@ -1,8 +1,1 @@
-[
-  "hitFlashTimer@engine/physics/PhysicsEngine.ts",
-  "hitFlashTimer@engine/systems/HazardSystem.ts",
-  "hitFlashTimer@engine/systems/combat/CCManager.ts",
-  "hitFlashTimer@engine/systems/combat/SkillExecutor.ts",
-  "hitFlashTimer@engine/systems/status/EffectSystem.ts",
-  "visualOffset@engine/systems/combat/SkillExecutor.ts"
-]
+[]

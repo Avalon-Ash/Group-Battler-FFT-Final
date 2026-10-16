@@ -5,6 +5,7 @@ import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
+import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
 
 export class SkillExecutor {
@@ -209,12 +210,11 @@ export class SkillExecutor {
 
                 // SSOT: Trigger Animation System
                 if (!isHeal) {
-                    target.hitFlashTimer = COMBAT_PARAM.HIT_FLASH_DURATION;
+                    triggerHitFlash(target, COMBAT_PARAM.HIT_FLASH_DURATION);
                     
                     // [NEW] Optical Shake Sync: Decoupled visual jitter
                     const shakePower = Math.min(12, finalDamage / 8 + 3);
-                    target.visualOffset.x = (Math.random() - 0.5) * shakePower;
-                    target.visualOffset.y = (Math.random() - 0.5) * shakePower;
+                    triggerHitShake(target, shakePower);
 
                     // [FIX] SSOT Grid Anchor Locking for Hit VFX
                     const hexCenter = HexUtils.toPx(target.q, target.r, engine.mapConfig);
