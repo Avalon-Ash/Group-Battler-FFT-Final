@@ -9,7 +9,7 @@ import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
 import { getTerrainAmbience } from "../../../data/vfx/terrainAmbience";
 import {
     createTerrainSpriteStore,
-    quantizeRenderScale,
+    quantizeRenderScaleSticky,
     terrainSpriteKey,
     TerrainSpriteEntry,
     SurfaceFactory,
@@ -47,6 +47,8 @@ function paintStaticDetail(sCtx: CanvasRenderingContext2D, size: number, theme: 
 export const TerrainRenderer = {
     store: createTerrainSpriteStore(),
     lastTextureRev: -1,
+    lastTheme: null as TerrainTheme | null,
+    lastRenderScale: -1,
 
     drawBlock(
         ctx: CanvasRenderingContext2D,
@@ -67,6 +69,10 @@ export const TerrainRenderer = {
             this.lastTextureRev = terrainTextureStore.getRevision();
             this.store.clear();
         }
+        if (this.lastTheme !== theme) {
+            this.lastTheme = theme;
+            this.store.evictOtherThemes(theme);
+        }
 
         const drawX = Math.floor(x);
         const drawY = Math.floor(y);
@@ -79,7 +85,8 @@ export const TerrainRenderer = {
 
         const tf = ctx.getTransform();
         const currentScale = Math.hypot(tf.a, tf.b);
-        const renderScale = quantizeRenderScale(currentScale);
+        const renderScale = quantizeRenderScaleSticky(currentScale, this.lastRenderScale);
+        this.lastRenderScale = renderScale;
         const variant = variantFor(q, r2, MATERIAL_CONFIG.terrain.grain.variants);
 
         // 漂浮位移不進快取鍵：整塊地形在繪製時平移（漂浮島整塊上下浮動）。

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
     quantizeRenderScale,
+    quantizeRenderScaleSticky,
     terrainSpriteKey,
     createTerrainSpriteStore,
     SurfaceFactory,
@@ -49,6 +50,21 @@ describe('TerrainBlockCache', () => {
             expect(quantizeRenderScale(3.2, steps)).toBe(4);
             expect(quantizeRenderScale(4.0, steps)).toBe(4);
             expect(quantizeRenderScale(5.5, steps)).toBe(4); // Clamps to max step
+        });
+
+        it('sticky variant holds the current step near boundaries', () => {
+            const m = 0.05;
+            // 無前一級距：等同 quantizeRenderScale
+            expect(quantizeRenderScaleSticky(1.21, -1, m)).toBe(1.5);
+            // 在 1.5 級距時，1.54 不升級（< 1.575），1.6 才升級
+            expect(quantizeRenderScaleSticky(1.54, 1.5, m)).toBe(1.5);
+            expect(quantizeRenderScaleSticky(1.6, 1.5, m)).toBe(2);
+            // 在 2 級距時，1.45 不降級（> 1.425），1.4 才降級
+            expect(quantizeRenderScaleSticky(1.45, 2, m)).toBe(2);
+            expect(quantizeRenderScaleSticky(1.4, 2, m)).toBe(1.5);
+            // 大幅變化直接跳到目標級距
+            expect(quantizeRenderScaleSticky(3.5, 1, m)).toBe(4);
+            expect(quantizeRenderScaleSticky(0.5, 4, m)).toBe(1);
         });
     });
 
@@ -120,6 +136,18 @@ describe('TerrainBlockCache', () => {
 
             expect(bakeCount).toBe(1);
             expect(store.size()).toBe(1);
+        });
+
+        it('evictOtherThemes drops only sprites of other themes', () => {
+            const otherTheme: TerrainTheme = { ...dummyTheme, top: '#999999' };
+            store.get(terrainSpriteKey(dummyTheme, dummyLayout, 'a', 0, 0, 0, 1), () => createDummyEntry());
+            store.get(terrainSpriteKey(dummyTheme, dummyLayout, 'b', 0, 0, 0, 1), () => createDummyEntry());
+            store.get(terrainSpriteKey(otherTheme, dummyLayout, 'a', 0, 0, 0, 1), () => createDummyEntry());
+
+            expect(store.evictOtherThemes(otherTheme)).toBe(2);
+            expect(store.size()).toBe(1);
+            expect(store.getStats().evictions).toBe(2);
+            expect(store.evictOtherThemes(otherTheme)).toBe(0);
         });
 
         it('clears and rebuilds when exceeding MAX_TERRAIN_SPRITES capacity', () => {
