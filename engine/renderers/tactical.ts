@@ -12,15 +12,7 @@ export interface RenderCamera {
 }
 
 export class TacticalRenderer {
-    private holoGlitchTimer = 0;
-    private lastDirectorTarget = "";
-
     public update(dt: number, engine: GameEngine) {
-        if (engine.directorTargetId !== this.lastDirectorTarget) {
-            this.lastDirectorTarget = engine.directorTargetId || "";
-            this.holoGlitchTimer = 0.3; 
-        }
-        if (this.holoGlitchTimer > 0) this.holoGlitchTimer -= dt;
     }
 
     public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number) {

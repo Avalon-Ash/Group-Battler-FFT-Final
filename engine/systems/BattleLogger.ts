@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { LogEntry, LogActionType, Team } from "../../types";
+import { LogEntry, LogActionType } from "../../types";
 import { LOG_COLORS } from "../../constants";
 
 export class BattleLogger {

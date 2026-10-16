@@ -160,11 +160,9 @@ export const ProceduralPainter = {
                     const v = vertsBottom[k];
                     // 2D 旋轉
                     const rx = v.x * cos - v.y * sin;
-                    const ry = v.x * sin + v.y * cos; 
                     
                     // 投影
                     const px = rx;
-                    const py = ry * ISO_SCALE_Y;
                     
                     ctx.save();
                     // [SSOT FIX] Pillar base must start exactly at ground center (op.ty)

@@ -89,7 +89,6 @@ export class VFXPlayer {
 
         // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation
         const rawCY = cy / ISO_SCALE_Y;
-        const rawGroundZ = groundZ !== undefined ? groundZ / ISO_SCALE_Y : undefined; 
 
         for (let i = 0; i < count; i++) {
             const p = system.state.getParticle();

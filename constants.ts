@@ -351,7 +351,6 @@ export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
     HIT_MEDIUM_THRESHOLD: 150,
-    HIT_HEAVY_THRESHOLD: 400,
     DR_RESET_TIME: 10.0,
     /** 硬控基礎韌性（0 = 無減免）。尚無資料來源（單位/裝備皆未定義），日後接 UNIT_DB 時由此擴充。*/
     BASE_CC_RESILIENCE: 0,
@@ -659,7 +658,7 @@ export const RENDER_PERF = {
  */
 export const RENDER_CACHE = {
     SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
-    /** 縮放級距遲滯比例：超出目前級距 5% 才升級、低於下一級 5% 才降級（容許最多 5% 的放大模糊） */
+    /** 縮放級距遲滯比例：超出目前級距 5% 才升級（容許最多 5% 的放大模糊）；降級立即生效 */
     SCALE_HYSTERESIS: 0.05,
     MAX_TERRAIN_SPRITES: 2048,
     FLOAT_STEP: 0.5,

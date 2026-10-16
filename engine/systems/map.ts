@@ -9,7 +9,7 @@
 
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
-import { MovementType, GroundHazard } from "../../types";
+import { MovementType } from "../../types";
 import { MapGenerator } from "./map/MapGenerator";
 import { MapSpatial } from "./map/MapSpatial";
 export class MapSystem {

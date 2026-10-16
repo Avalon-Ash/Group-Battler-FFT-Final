@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
-import { Projectile, Skill, NodeState, AIState } from "../../../types";
+import { Skill, NodeState, AIState } from "../../../types";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { CastingEngine, BreakCastContext } from "./CastingEngine";
 import { SkillExecutor } from "./SkillExecutor";

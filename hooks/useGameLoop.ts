@@ -1,7 +1,6 @@
 
 import { useRef, useEffect, MutableRefObject } from 'react';
 import { GameEngine } from '../engine/game';
-import { GameEvent } from '../types';
 import { GameRenderer } from '../engine/renderer';
 import { getRenderDpr, getDefaultQualityGovernor } from '../engine/renderers/RenderQuality';
 

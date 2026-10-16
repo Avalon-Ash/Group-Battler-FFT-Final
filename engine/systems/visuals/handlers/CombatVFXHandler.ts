@@ -2,8 +2,7 @@
 import { GameEvent } from "../../../../types";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
-import { Point3D, VisualMath } from "../../../math/VisualMath";
-import { VFX_REGISTRY } from "../../../../data/vfx/VFXRegistry";
+import { Point3D } from "../../../math/VisualMath";
 import { COMBAT_PARAM } from "../../../../constants";
 
 export class CombatVFXHandler {
@@ -25,9 +24,6 @@ export class CombatVFXHandler {
                 }
             }
 
-            if (hitDamage >= COMBAT_PARAM.HIT_HEAVY_THRESHOLD) {
-                vfx.playEffect('EASING_SHOCKWAVE', hitX, hitY, hitZ, undefined, undefined, undefined, hexKey);
-            }
             return;
         }
 
@@ -62,8 +58,6 @@ export class CombatVFXHandler {
             return;
         }
 
-        // Standardize generic impact height to Hazard/Floor layer
-        const impactZ = groundZ + VisualMath.Z_LAYERS.HAZARD;
 
         if (event.type === 'PROJECTILE_HIT') {
             // Impact VFX now handled in SkillExecutor.resolveHit

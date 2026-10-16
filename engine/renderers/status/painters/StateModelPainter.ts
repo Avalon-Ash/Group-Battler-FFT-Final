@@ -15,7 +15,6 @@ export const StateModelPainter = {
 
         const isStasis = isStasisActive;
         const color = isStasis ? '#facc15' : '#c084fc'; 
-        const shadowColor = isStasis ? '#eab308' : '#7e22ce';
         
         ctx.save();
         ctx.translate(x, centerY);

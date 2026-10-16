@@ -1,6 +1,5 @@
 
 import { Agent } from "../../game";
-import { Team } from "../../../types";
 import { HUD_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { isGlowSpritesEnabled } from "../RenderQuality";

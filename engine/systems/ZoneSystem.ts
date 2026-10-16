@@ -9,7 +9,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";
-import { Team, SpatialHazard } from "../../types";
+import { Team } from "../../types";
 import { HexUtils } from "../utils";
 import { ISO_SCALE_Y, PHYSICS } from "../../constants";
 

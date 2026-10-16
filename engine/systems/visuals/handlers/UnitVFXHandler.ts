@@ -4,7 +4,6 @@ import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
 import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../../../math/VisualMath";
-import { UnitShatter } from "../effects/UnitShatter";
 
 export class UnitVFXHandler {
     public static handle(event: GameEvent, engine: GameEngine, vfx: VFXSystem, camera: CameraSystem, origin: Point3D, groundZ: number, hexKey?: string) {
@@ -26,7 +25,7 @@ export class UnitVFXHandler {
             const progress = event.value || 0.1;
             const powerScale = 0.5 + progress;
 
-            vfx.playEffect('FX_CAST_SHATTER', origin.x, origin.y, origin.z, event.color, undefined, undefined, hexKey);
+            vfx.playEffect('FX_CAST_BREAK', origin.x, origin.y, origin.z, event.color, undefined, undefined, hexKey);
             
             if (event.skill && event.skill.tag === 'ULT') {
                 camera.addTrauma(0.5 * powerScale);
