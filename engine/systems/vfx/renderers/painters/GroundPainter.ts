@@ -7,6 +7,13 @@ import { HexLayout } from "../../../../../types";
 import { MaterialPainter } from "../../../../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../../../../data/vfx/materialConfig";
 
+/** MaterialPainter 的地面貼圖（灼痕、冰殼、毒池、虛空）以 FLAT 六角烘焙；在已壓扁的座標系內先在地面轉到地圖版面方向。 */
+const MATERIAL_BAKED_HEX_ANGLE = HexGeometry.layoutAngle('FLAT');
+function alignBakedHex(ctx: CanvasRenderingContext2D, layout: HexLayout): void {
+    const rot = HexGeometry.alignRotation(layout, MATERIAL_BAKED_HEX_ANGLE);
+    if (rot !== 0) ctx.rotate(rot);
+}
+
 export const GroundPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, progress: number, drawX: number, drawY: number, layout: HexLayout) {
         
@@ -69,6 +76,7 @@ export const GroundPainter = {
             const tex = MaterialPainter.bakeScorch(MATERIAL_CONFIG.maskResolution, 11);
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
+            alignBakedHex(ctx, layout);
             ctx.globalCompositeOperation = 'source-over';
             const r = hexRadius * 0.95;
             ctx.drawImage(tex, -r, -r, r * 2, r * 2);
@@ -104,6 +112,7 @@ export const GroundPainter = {
             const tex = MaterialPainter.bakeIceCrust(MATERIAL_CONFIG.maskResolution, 7);
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
+            alignBakedHex(ctx, layout);
             ctx.globalCompositeOperation = 'source-over';
             const r = hexRadius * 0.95;
             ctx.drawImage(tex, -r, -r, r * 2, r * 2);
@@ -135,6 +144,7 @@ export const GroundPainter = {
             const tex = MaterialPainter.bakePoisonPool(MATERIAL_CONFIG.maskResolution, 19);
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
+            alignBakedHex(ctx, layout);
             ctx.globalCompositeOperation = 'source-over';
             const r = hexRadius * 0.95;
             ctx.drawImage(tex, -r, -r, r * 2, r * 2);
@@ -165,6 +175,7 @@ export const GroundPainter = {
             const tex = MaterialPainter.bakeVoidField(MATERIAL_CONFIG.maskResolution, 23);
             ctx.save();
             ctx.scale(1, ISO_SCALE_Y);
+            alignBakedHex(ctx, layout);
             ctx.globalCompositeOperation = 'source-over';
             const r = hexRadius * 0.95;
             ctx.drawImage(tex, -r, -r, r * 2, r * 2);
