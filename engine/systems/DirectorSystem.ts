@@ -8,15 +8,13 @@
 
 import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
-import { Point, AIState } from "../../types";
+import { AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
 import { HEX_SIZE } from "../../constants";
 import { VisualMath } from "../math/VisualMath";
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
-    private idleZoom = 0.9;
-    private combatZoom = 1.15;
     private ultZoom = 1.45;
 
     private readonly MIN_ZOOM = 0.45;
@@ -81,8 +79,6 @@ export class DirectorSystem {
                 zoomMod = 0.8;
             }
 
-            this.idleZoom = 0.9 * zoomMod;
-            this.combatZoom = 1.15 * zoomMod;
             this.ultZoom = 1.45 * zoomMod;
         }
 
@@ -135,7 +131,6 @@ export class DirectorSystem {
     }
 
     private findBestCandidate(engine: GameEngine): Agent | null {
-        let candidates: Agent[] = [];
         let maxScore = -1;
         let best: Agent | null = null;
 

@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_VISUAL_HEIGHT, UNIT_SCALE, VISUAL_ANCHORS, ISO_SCALE_Y } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y } from "../../constants";
 
 export interface Point3D {
     x: number;

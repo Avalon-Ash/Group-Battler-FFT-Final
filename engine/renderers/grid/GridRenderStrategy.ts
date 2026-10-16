@@ -1,7 +1,7 @@
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { Hex, Skill, Projectile, SpatialHazard, GroundHazard } from "../../../types";
+import { Hex, Skill, Projectile, GroundHazard } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, TERRAIN_SORT_SCALE } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
@@ -29,7 +29,6 @@ export class GridRenderStrategy {
         cache.ensure(engine);
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
-        const layout = engine.mapConfig.layout;
 
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
@@ -132,7 +131,7 @@ export class GridRenderStrategy {
         }
 
         // Render collapsing tiles
-        for (const [key, tile] of engine.zones.collapsingTiles.entries()) {
+        for (const [, tile] of engine.zones.collapsingTiles.entries()) {
             const { q, r, z, h } = tile;
             const pos = HexUtils.toPx(q, r, engine.mapConfig);
             

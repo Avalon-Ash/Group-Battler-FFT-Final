@@ -7,7 +7,7 @@
 // ║  [ARCH] SSOT：AnimState 的設定只在此系統，不得在外部直改 ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { Agent, GameEngine } from "../game";
+import { GameEngine } from "../game";
 import { AnimState, ActionState } from "../../types";
 
 export class AnimationSystem {

@@ -9,7 +9,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { ISO_SCALE_Y } from "../../../constants";
 
 export class ProjectileSystem {
   private pool: Projectile[] = [];

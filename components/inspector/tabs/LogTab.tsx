@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, memo, useRef } from 'react';
-import { LogEntry, Team, LogActionType } from '../../../types';
+import { LogEntry, Team } from '../../../types';
 import { Icons } from '../../ui/icons';
 import type { GameEngine } from '../../../engine/game';
 import { selectLogView } from '../../../engine/systems/ui/selectors';

@@ -92,7 +92,6 @@ export class VFXPlayer {
 
         // [SSOT] Unscale incoming isometric Y to raw 3D Y for pure physics simulation
         const rawCY = cy / ISO_SCALE_Y;
-        const rawGroundZ = groundZ !== undefined ? groundZ / ISO_SCALE_Y : undefined;
         // 零件 sprite 每個 emitter 只取一次（量化＋快取查詢不放在每粒子）
         const partSprite = config.part ? vfxPartStore.get(config.part) : undefined;
 

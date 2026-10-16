@@ -8,7 +8,6 @@ export interface Cube {
     z: number;
 }
 
-const SQRT3 = Math.sqrt(3);
 
 export const HexMath = {
     

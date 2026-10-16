@@ -1,5 +1,5 @@
 
-import { Agent, GameEngine } from "../game";
+import { GameEngine } from "../game";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
 
 export class PhysicsSystem {

@@ -104,12 +104,12 @@ export const useMatrixRain = (
 
             ctx.clearRect(0, 0, width, height);
             ctx.textBaseline = 'top';
-            let moveDelta = 0, trailDx = 0, trailDy = 0, startBound = 0, endBound = 0;
+            let moveDelta = 0, trailDx = 0, trailDy = 0, endBound = 0;
             switch(cfg.direction) {
-                case 'DOWN':  moveDelta = 1;  trailDx = 0; trailDy = -1; startBound = -100; endBound = height + 100; break;
-                case 'UP':    moveDelta = -1; trailDx = 0; trailDy = 1;  startBound = height + 100; endBound = -100; break;
-                case 'RIGHT': moveDelta = 1;  trailDx = -1; trailDy = 0; startBound = -100; endBound = width + 100; break;
-                case 'LEFT':  moveDelta = -1; trailDx = 1;  trailDy = 0; startBound = width + 100; endBound = -100; break;
+                case 'DOWN':  moveDelta = 1;  trailDx = 0; trailDy = -1; endBound = height + 100; break;
+                case 'UP':    moveDelta = -1; trailDx = 0; trailDy = 1;  endBound = -100; break;
+                case 'RIGHT': moveDelta = 1;  trailDx = -1; trailDy = 0; endBound = width + 100; break;
+                case 'LEFT':  moveDelta = -1; trailDx = 1;  trailDy = 0; endBound = -100; break;
             }
             const laneSize = cfg.fontSize + cfg.spacing;
             lanes.forEach((lane, idx) => {

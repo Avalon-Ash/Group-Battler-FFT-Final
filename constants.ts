@@ -351,7 +351,6 @@ export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
     HIT_MEDIUM_THRESHOLD: 150,
-    HIT_HEAVY_THRESHOLD: 400,
     DR_RESET_TIME: 10.0,
     /** 硬控基礎韌性（0 = 無減免）。尚無資料來源（單位/裝備皆未定義），日後接 UNIT_DB 時由此擴充。*/
     BASE_CC_RESILIENCE: 0,

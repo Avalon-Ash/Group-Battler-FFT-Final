@@ -3,7 +3,6 @@ import {
     WindowRect,
     WindowDef,
     WindowState,
-    SerializedWindowState,
     SerializedWindowMap,
 } from '../../../types';
 import { UI_WINDOW, UI_Z } from '../../../constants';

@@ -21,7 +21,6 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, AnimState, AIState, ActionState, Skill } from '../../types';
-import { PALETTE } from '../../constants';
 
 // [APPEARANCE SSOT] 單位外觀唯一資料源路徑，供 Inspector UI 說明文字使用
 export const UNIT_APPEARANCE_SOURCE = 'data/units/appearance/index.ts';

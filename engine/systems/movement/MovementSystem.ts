@@ -8,7 +8,7 @@
 
 import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
-import { Hex, NodeState, SpatialProvider, Skill, LogProvider, SpatialHazard } from "../../../types";
+import { Hex, NodeState, SpatialProvider, Skill, LogProvider } from "../../../types";
 import { Pathfinder } from "../../ai/Pathfinder";
 import { TargetingSystem } from "../../ai/TargetingSystem";
 import { MotionEngine } from "./MotionEngine";
