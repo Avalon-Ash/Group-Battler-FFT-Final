@@ -11,6 +11,19 @@ import { VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../dat
 export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
 export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
 
+/**
+ * 有上下方向的法陣圖騰（盾、顱骨、倒三角）。貼地零件在 POINTY 地圖會整張轉 π/6 讓六角外框對齊格子，
+ * 這些圖騰若跟著轉會歪掉，所以烘焙時先反向轉回（見 VFXPartStore.get 的 groundRotation）。
+ * 太陽紋（12 道放射＋同心六角）近似旋轉對稱，直接跟著轉，不另烘焙。
+ */
+const UPRIGHT_EMBLEMS: ReadonlySet<SigilEmblem> = new Set<SigilEmblem>(['lionShield', 'hornSkull', 'invTriangle']);
+
+/** 貼地繪製時會再轉 groundRotation 的零件，烘焙時圖騰要反向轉多少（0 = 不需要另烘焙）。 */
+export function emblemCounterRotation(n: PartSpec, groundRotation: number): number {
+    if (groundRotation === 0 || n.kind !== 'sigil' || !UPRIGHT_EMBLEMS.has(n.emblem)) return 0;
+    return -groundRotation;
+}
+
 export type PartSpec =
     | { kind: 'glow'; radius: number; ramp: VFXRampId; hard?: boolean }
     | { kind: 'ring'; radius: number; thickness: number; ramp: VFXRampId; roughness?: number; seed?: number }

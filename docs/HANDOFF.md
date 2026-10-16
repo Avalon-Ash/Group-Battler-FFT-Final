@@ -62,8 +62,7 @@
 - 注意：`.claude/worktrees/` 下的子工作階段工作樹會被 vitest 掃到；只跑本 repo 測試用 `npx vitest run --dir tests`。
 
 ### G. 待使用者決定
-- **Dockerfile／`server.js`／`.dockerignore`／`package.json` 的 `start`／README 的對應段落**（早期 Cloud Run 部署設定）：之後在 AI Studio 重新拉 git 發布時可能還用得到，暫時**保留**。
-- `art-source/` 與 `public/assets/units/` 的圖集重複（約 5 MB）：是否移出版本控制。
+- 已決定（2026-10-16）：刪除 Dockerfile／`server.js`／`.dockerignore`／`start` 指令與 README 的 Cloud Run 段落（全部搞定後再重新部署）；刪除與 `public/assets/units/` 完全相同的 `art-source/sprites/`，保留 `art-source/terrain_grid.jpg`（地形處理工具的來源圖）。
 
 ## 4. 已完成輪次與審查結論（精簡）
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。殘留熱點：`TextPainter`（SHOUT 漸層、`shadowBlur`、Glitch `Math.random`）、`UnitCorePainter` 受創 `shadowBlur`、`ProjectileDrawer` 每幀漸層、`ProceduralPainter` 光束、`FloatingTextDrawer`（見 `docs/PERF_REPORT_4.md` §3、§11 與 `docs/VFX_INVENTORY.md`）。

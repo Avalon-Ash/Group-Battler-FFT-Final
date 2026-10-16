@@ -1,7 +1,7 @@
 
 import { Agent } from "../game";
 import { HUD_BAR_OFFSET } from "../../constants";
-import { HexUtils, MapConfig } from "../utils";
+import { MapConfig } from "../utils";
 import { HUDSystem } from "../systems/hud";
 import { VisualMath } from "../math/VisualMath";
 import { BarPainter } from "./hud/BarPainter";
@@ -14,16 +14,8 @@ export class HUDRenderer {
         agents.forEach(a => {
             if (a.hp <= 0 || a.spawnTimer > 0) return;
             
-            let h = 0;
-            if (a.isMoving && a.path.length > 0) {
-                const startH = getTerrainHeight(a.q, a.r);
-                const endH = getTerrainHeight(a.path[0].q, a.path[0].r);
-                h = HexUtils.lerp(startH, endH, a.moveProgress);
-            } else {
-                // FIXED: Use logical coordinates (q, r) for stable height.
-                // Using pixel coordinates (fromPx) causes jitter due to physics drift crossing tile boundaries.
-                h = getTerrainHeight(a.q, a.r);
-            }
+            // SSOT：與身體共用同一個腳下高度（邏輯座標＋移動過渡；不用 fromPx，避免物理漂移跨格造成抖動）
+            const h = VisualMath.getUnitGroundHeight(a, getTerrainHeight);
 
             // SSOT: Use Unified Projection Formula
             const anchorY = VisualMath.getEntityVisualY(a.py, h, a.physics.y, a.physics.z, -HUD_BAR_OFFSET);

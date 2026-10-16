@@ -5,6 +5,7 @@ import { TERRAIN_SKIN } from "../../../constants";
 import { HexLayout } from "../../../types";
 import { HexMath } from "../../math/HexMath";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
+import { tileHash01 } from "../../graphics/materials/NoiseLib";
 
 export interface CachedTile {
     q: number;
@@ -19,6 +20,11 @@ export interface CachedTile {
      * 背側邊（螢幕法線 y < 0）：1 = 鄰格較高（接觸陰影）。
      */
     edgeMask: number;
+    /**
+     * 島嶼底座深度級數（見 computeFoundationLevel）：0 = 前側沒有外露邊，維持舊基座；
+     * 1..TERRAIN_SKIN.foundation.levels = 外露格，由 TerrainRenderer 依地形輪廓換算成底端深度。
+     */
+    baseLevel: number;
 }
 
 export interface EdgeTable {
@@ -93,6 +99,37 @@ export function computeEdgeMask(
     return mask;
 }
 
+/**
+ * 計算單格的島嶼底座深度級數（純函式；exists 對不存在的格回傳 false）。
+ * 只有「前側有邊外露（該方向鄰格不存在）」的格看得到底緣，其餘格的底部必被前方格蓋住，維持 0。
+ * 外露格：鐘形輪廓（島中央深、左右兩端淺）混入每格固定雜訊，量化成 1..levels。
+ * islandCenterX／islandHalfWidth 為所有格中心 px 的中點與半寬（不含 halfWidthMargin）。
+ */
+export function computeFoundationLevel(
+    q: number,
+    r: number,
+    px: number,
+    layout: HexLayout,
+    exists: (q: number, r: number) => boolean,
+    islandCenterX: number,
+    islandHalfWidth: number,
+    cfg = TERRAIN_SKIN.foundation
+): number {
+    const table = getEdgeTable(layout);
+    let exposed = false;
+    for (let i = 0; i < EDGE_COUNT; i++) {
+        if (!table.edgeIsFront[i]) continue;
+        const dir = HexMath.directions[table.edgeToDir[i]];
+        if (!exists(q + dir.q, r + dir.r)) { exposed = true; break; }
+    }
+    if (!exposed) return 0;
+
+    const t = Math.min(1, Math.abs(px - islandCenterX) / (islandHalfWidth + cfg.halfWidthMargin));
+    const bell = Math.pow(1 - t * t, cfg.bellPower);
+    const v = bell * (1 - cfg.jitter) + tileHash01(q, r, cfg.noiseSeed) * cfg.jitter;
+    return 1 + Math.round(v * (cfg.levels - 1));
+}
+
 export class GridCache {
     public tileMap: Map<string, CachedTile> = new Map();
     public tileList: CachedTile[] = []; 
@@ -121,7 +158,7 @@ export class GridCache {
             const pos = HexUtils.toPx(q, r, engine.mapConfig);
             const h = engine.map.getTerrainHeight(q, r);
             
-            const tile: CachedTile = { q, r, px: pos.x, py: pos.y, h, key: k, edgeMask: 0 };
+            const tile: CachedTile = { q, r, px: pos.x, py: pos.y, h, key: k, edgeMask: 0, baseLevel: 0 };
             
             this.tileList.push(tile);
             this.tileMap.set(k, tile);
@@ -132,6 +169,19 @@ export class GridCache {
         const heightAt = (nq: number, nr: number): number | undefined => this.tileMap.get(`${nq},${nr}`)?.h;
         for (const tile of this.tileList) {
             tile.edgeMask = computeEdgeMask(tile.q, tile.r, tile.h, layout, heightAt);
+        }
+
+        // 島嶼底座：外露格的底端深度級數（同樣只在重建時算一次）
+        let minPx = Infinity, maxPx = -Infinity;
+        for (const tile of this.tileList) {
+            if (tile.px < minPx) minPx = tile.px;
+            if (tile.px > maxPx) maxPx = tile.px;
+        }
+        const islandCenterX = (minPx + maxPx) / 2;
+        const islandHalfWidth = (maxPx - minPx) / 2;
+        const exists = (nq: number, nr: number): boolean => this.tileMap.has(`${nq},${nr}`);
+        for (const tile of this.tileList) {
+            tile.baseLevel = computeFoundationLevel(tile.q, tile.r, tile.px, layout, exists, islandCenterX, islandHalfWidth);
         }
 
         // Painter's Algorithm: Sort by visual depth (Screen Y)

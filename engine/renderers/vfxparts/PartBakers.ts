@@ -60,7 +60,8 @@ function withAlpha(hex: string, alpha: number): string {
     return `rgba(${r},${g},${b},${Math.max(0, Math.min(1, alpha))})`;
 }
 
-export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: number, frames: number): void {
+/** emblemRotation：只用於法陣，圖騰（外框以外的圖案）在烘焙時的旋轉；見 PartSpec.emblemCounterRotation。 */
+export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: number, frames: number, emblemRotation: number = 0): void {
     switch (n.kind) {
         case 'glow': return bakeGlow(ctx, n.radius, VFX_RAMPS[n.ramp], !!n.hard);
         case 'ring': return bakeRing(ctx, n.radius, n.thickness, VFX_RAMPS[n.ramp], n.roughness ?? 0, n.seed ?? 0);
@@ -70,7 +71,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'flame': return bakeFlame(ctx, n.height, VFX_RAMPS[n.ramp], !!n.jagged, frame / frames);
         case 'smoke': return bakeSmoke(ctx, n.radius, VFX_NEUTRALS[n.color], n.roughness ?? 0, n.seed ?? 0);
         case 'shard': return bakeShard(ctx, n.size, n.shape, VFX_RAMPS[n.ramp], n.seed ?? 0);
-        case 'sigil': return bakeSigil(ctx, n.radius, n.emblem, VFX_RAMPS[n.ramp]);
+        case 'sigil': return bakeSigil(ctx, n.radius, n.emblem, VFX_RAMPS[n.ramp], emblemRotation);
         case 'pillar': return bakePillar(ctx, n.width, n.height, VFX_RAMPS[n.ramp]);
         case 'spark': return bakeSpark(ctx, n.length, VFX_RAMPS[n.ramp]);
         case 'droplet': return bakeDroplet(ctx, n.size, VFX_RAMPS[n.ramp]);
@@ -383,7 +384,7 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
     }
 }
 
-function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem): void {
+function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem, emblemRotation: number): void {
     const C = VFX_PARTS.SIGIL;
     const ring = (rr: number, gaps: number) => {
         // 法陣外框一律六角（ART_SPEC §0）；gaps > 0 為斷裂六角（灰燼）
@@ -418,9 +419,13 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         ring(r * 0.22, 0);
         return;
     }
+    // 外框（六角環、刻度）之後的圖騰才套用 emblemRotation
+    const turnEmblem = () => { if (emblemRotation !== 0) ctx.rotate(emblemRotation); };
     if (emblem === 'lionShield') {
         ring(r * C.OUTER_RING, 0);
         ticks(r * 0.85, r * C.OUTER_RING, 8);
+        ctx.save();
+        turnEmblem();
         // 騎士盾（heater）＋十字＋三尖冠
         const w = r * 0.5, top = -r * 0.55, mid = r * 0.1, bot = r * 0.7;
         ctx.beginPath();
@@ -437,10 +442,13 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         ctx.moveTo(-w * 0.6, top - r * 0.05); ctx.lineTo(-w * 0.6, top - r * 0.22); ctx.lineTo(-w * 0.3, top - r * 0.12);
         ctx.lineTo(0, top - r * 0.27); ctx.lineTo(w * 0.3, top - r * 0.12); ctx.lineTo(w * 0.6, top - r * 0.22); ctx.lineTo(w * 0.6, top - r * 0.05);
         ctx.stroke();
+        ctx.restore();
         return;
     }
     if (emblem === 'hornSkull') {
         ring(r * C.OUTER_RING, C.RING_GAPS);
+        ctx.save();
+        turnEmblem();
         // 顱骨
         ctx.beginPath();
         ctx.arc(0, -r * 0.05, r * 0.3, Math.PI * 0.85, Math.PI * 0.15 + TAU);
@@ -459,10 +467,13 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
             ctx.quadraticCurveTo(s * r * 0.65, -r * 0.35, s * r * 0.55, -r * 0.75);
             ctx.stroke();
         }
+        ctx.restore();
         return;
     }
     // invTriangle：斷裂環＋倒三角＋頂點符刻
     ring(r * C.OUTER_RING, C.RING_GAPS + 2);
+    ctx.save();
+    turnEmblem();
     const tri = (rr: number) => {
         ctx.beginPath();
         for (let i = 0; i < 3; i++) {
@@ -482,9 +493,10 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         ctx.moveTo(x - r * 0.06, y - r * 0.05); ctx.lineTo(x + r * 0.02, y + r * 0.04); ctx.lineTo(x - r * 0.02, y + r * 0.08); ctx.lineTo(x + r * 0.06, y + r * 0.12);
     }
     ctx.stroke();
+    ctx.restore();
 }
 
-function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem, ramp: VFXRamp): void {
+function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem, ramp: VFXRamp, emblemRotation: number): void {
     const C = VFX_PARTS.SIGIL;
     const lw = Math.max(1, r * C.LINE_RATIO);
     ctx.lineCap = 'round';
@@ -492,14 +504,14 @@ function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem
     ctx.globalAlpha = C.HALO_ALPHA;
     ctx.strokeStyle = ramp.dark;
     ctx.lineWidth = lw * C.HALO_RATIO * C.HALO_WIDTH_MUL;
-    sigilStrokes(ctx, r, emblem);
+    sigilStrokes(ctx, r, emblem, emblemRotation);
     ctx.globalAlpha = 1;
     ctx.strokeStyle = ramp.main;
     ctx.lineWidth = lw * C.HALO_RATIO * C.MAIN_WIDTH_MUL;
-    sigilStrokes(ctx, r, emblem);
+    sigilStrokes(ctx, r, emblem, emblemRotation);
     ctx.strokeStyle = ramp.core;
     ctx.lineWidth = lw * C.CORE_WIDTH_MUL;
-    sigilStrokes(ctx, r, emblem);
+    sigilStrokes(ctx, r, emblem, emblemRotation);
 }
 
 /** 光柱（六角稜柱）：錨點在底部中央，往上延伸 height，頂端淡出。正面最亮，左側面受光、右側面背光。 */
