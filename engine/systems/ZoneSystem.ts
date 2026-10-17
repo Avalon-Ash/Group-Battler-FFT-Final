@@ -10,8 +10,10 @@
 
 import { GameEngine } from "../game";
 import { Team } from "../../types";
+import { applyLethal } from "./combat/DirectDamage";
+import { PhysicsEngine } from "../physics/PhysicsEngine";
 import { HexUtils } from "../utils";
-import { ISO_SCALE_Y, PHYSICS } from "../../constants";
+import { ISO_SCALE_Y } from "../../constants";
 
 export interface ActiveZone {
     q: number;
@@ -150,15 +152,13 @@ export class ZoneSystem {
                         const victims = engine.agents.filter(a => !a.fullyDead && a.q === hex.q && a.r === hex.r);
                         for (const victim of victims) {
                             if (victim.hp > 0 || !victim.deadLogged) {
-                                victim.hp = 0;
+                                applyLethal(victim);
                                 victim.banished = false;
                                 engine.agentManager.handleDeadState(victim, engine, '墜落出局', 'RING_OUT');
-                                victim.physics.z = 0;
-                                victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
+                                PhysicsEngine.startVoidFall(victim);
                             } else {
                                 // 已經在戰鬥中死亡但仍在該地塊上的屍體，隨地塊崩塌垂直落下
-                                victim.physics.z = 0;
-                                victim.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * 0.6);
+                                PhysicsEngine.startVoidFall(victim);
                             }
                         }
 

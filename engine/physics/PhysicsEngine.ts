@@ -3,12 +3,30 @@ import { Agent, GameEngine } from "../game";
 import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
-import { applyDirectDamage } from "../systems/combat/DirectDamage";
+import { applyDirectDamage, applyLethal } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../systems/AnimationSystem";
 import { random } from "../math/rng";
 import { unitEventPos } from "../events/EventPos";
 
+/** 縮圈墜落的初速占「安全落地速度」的比例（向下）。 */
+const VOID_FALL_START_SPEED_FACTOR = 0.6;
+
+/**
+ * [OWNER] Agent.physics 的位置與積分（z／vz 的直接改寫只在這裡）。
+ * 其他模組只能：① 對速度／偏移做 +=／-=（衝量、牽引、瞬移補償），② 呼叫下列寫入 API。
+ */
 export class PhysicsEngine {
+    /** 失去地面而墜落（縮圈）：從地面高度起往下掉，之後由積分與虛空判定處理。 */
+    public static startVoidFall(agent: Agent) {
+        agent.physics.z = 0;
+        agent.physics.vz = -(PHYSICS.SAFE_FALL_VELOCITY * VOID_FALL_START_SPEED_FACTOR);
+    }
+
+    /** 換格造成腳下地面高度改變時，由 physics.z 吸收差值，讓腳底世界高度連續（呼叫端是 MapSystem.updateAgentPosition）。 */
+    public static absorbGroundShift(agent: Agent, deltaH: number) {
+        agent.physics.z += deltaH;
+    }
+
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
         const dx = target.px - origin.x;
         const dy = target.py - origin.y;
@@ -112,7 +130,7 @@ export class PhysicsEngine {
             // Out of bounds anyone (alive or dead) who falls into the abyss
             if (!a.outOfBounds) {
                 if (!isDead) {
-                    a.hp = 0;
+                    applyLethal(a);
                     engine.agentManager.handleDeadState(a, engine, '墜落', 'RING_OUT');
                 }
                 a.outOfBounds = true; // Remove from battlefield rendering and logic; fullyDead 由 updateDeathState 回收

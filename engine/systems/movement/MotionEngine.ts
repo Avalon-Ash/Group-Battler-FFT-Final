@@ -3,13 +3,18 @@ import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
 import { SpatialProvider } from "../../../types";
 import { random } from "../../math/rng";
+import { stopMovement } from "./MotionCommands";
 
 const STACKING_RESOLUTION_FORCE = 8;
 const FACING_THRESHOLD = 1.5; 
 
 export class MotionEngine {
 
-    public static updateMovement(a: Agent, dt: number, spatial: SpatialProvider) {
+    /**
+     * @param hazardSpeedMult 敵方危害造成的減速倍率（HazardSystem.getHazardSpeedMult，由 MovementSystem 每 tick 算出）；
+     *        有效速度 = min(AI 要求的倍率, 危害倍率)。
+     */
+    public static updateMovement(a: Agent, dt: number, spatial: SpatialProvider, hazardSpeedMult: number = 1) {
         if (a.path.length === 0) {
             a.isMoving = false;
             a.moveProgress = 0;
@@ -24,7 +29,7 @@ export class MotionEngine {
             return;
         }
 
-        const moveDelta = a.moveSpeed * a.moveSpeedMult * dt;
+        const moveDelta = a.moveSpeed * Math.min(a.moveSpeedMult, hazardSpeedMult) * dt;
         a.moveProgress += moveDelta;
 
         while (a.moveProgress >= 1.0 && a.path.length > 0) {
@@ -62,15 +67,13 @@ export class MotionEngine {
     }
 
     private static cancelMove(a: Agent) {
-        a.isMoving = false;
-        a.path = [];
+        stopMovement(a);
         a.trajectory = [];
         a.moveProgress = 0;
     }
 
     private static finalizeMove(a: Agent) {
         a.isMoving = false;
-        a.moveSpeedMult = 1.0; 
         a.moveProgress = 0;
         
         a.physics.vx *= 0.1;

@@ -3,6 +3,7 @@ import { Agent } from "../../game";
 import { Skill, Role } from "../../../types";
 import { COMBAT_PARAM } from "../../../constants";
 import { random } from "../../math/rng";
+import { absorbWithShield } from "./DirectDamage";
 
 export interface DamageResult {
     finalValue: number;     // Final HP delta (negative for damage, positive for heal)
@@ -137,11 +138,9 @@ export class DamageCalculator {
         }
 
         // 5. Shield Absorption (SKIP IF LAST STAND)
-        let absorbed = 0;
-        if (!isSupport && target.shield > 0 && !isLastStand) {
-            absorbed = Math.min(target.shield, base);
+        if (!isSupport && !isLastStand) {
+            const absorbed = absorbWithShield(target, base);
             base -= absorbed;
-            target.shield -= absorbed;
             result.shieldAbsorb = absorbed;
         }
 

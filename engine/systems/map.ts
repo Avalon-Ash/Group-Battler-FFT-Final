@@ -13,6 +13,7 @@ import { MovementType } from "../../types";
 import { MapGenerator } from "./map/MapGenerator";
 import { MapSpatial } from "./map/MapSpatial";
 import { VisualMath } from "../math/VisualMath";
+import { PhysicsEngine } from "../physics/PhysicsEngine";
 export class MapSystem {
     public agentMap: Map<number, Agent> = new Map();
     public mapKeys: Set<string> = new Set();
@@ -48,7 +49,7 @@ export class MapSystem {
         const oldH = VisualMath.getUnitGroundHeight(agent, heightAt, engine.mapConfig);
         const newH = VisualMath.getUnitGroundHeight({ q: newQ, r: newR, isMoving: agent.isMoving, path: agent.path, moveProgress: agent.moveProgress, px: agent.px, py: agent.py, physics: agent.physics }, heightAt, engine.mapConfig);
         const deltaH = oldH - newH;
-        agent.physics.z += deltaH;
+        PhysicsEngine.absorbGroundShift(agent, deltaH);
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));
         agent.q = newQ;
         agent.r = newR;

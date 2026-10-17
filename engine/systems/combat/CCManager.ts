@@ -1,12 +1,13 @@
 
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
-import { Vector, HexUtils } from "../../utils";
+import { Vector } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../AnimationSystem";
 import { applyDirectDamage } from "./DirectDamage";
 import { unitEventPos } from "../../events/EventPos";
+import { stopMovement, teleportTo } from "../movement/MotionCommands";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 
@@ -39,8 +40,7 @@ export const CCManager = {
             // BANISH clears mobility-restricting CCs
             target.rootTimer = 0;
             target.fearTimer = 0;
-            target.isMoving = false;
-            target.path = [];
+            stopMovement(target);
             // Optional: clear DOTs? (The prompt says maintain "state purity")
             engine.log(target, 'CC', '狀態清洗', null, '進入放逐狀態，禁錮與恐懼已清除');
         }
@@ -79,7 +79,7 @@ export const CCManager = {
                     target.stunTimer = effectiveDuration;
                     target.stunMax = effectiveDuration;
                 }
-                target.isMoving = false;
+                stopMovement(target);
                 // SSOT: AnimState.STUN is derived from stunTimer
                 statusText = STATUS_VISUALS.STUN.label;
                 statusColor = STATUS_VISUALS.STUN.primaryColor;
@@ -102,7 +102,7 @@ export const CCManager = {
                     target.banishMax = effectiveDuration;
                 }
                 target.banished = true;
-                target.isMoving = false;
+                stopMovement(target);
                 // SSOT: AnimState.STUN is derived from banished state
                 
                 statusText = STATUS_VISUALS.BANISH.label;
@@ -120,7 +120,7 @@ export const CCManager = {
 
             case 'ROOT':
                 if (effectiveDuration > target.rootTimer) target.rootTimer = effectiveDuration;
-                target.isMoving = false;
+                stopMovement(target);
                 statusText = STATUS_VISUALS.ROOT.label;
                 statusColor = STATUS_VISUALS.ROOT.primaryColor;
                 break;
@@ -159,7 +159,7 @@ export const CCManager = {
 
             case 'POLYMORPH':
                 if (effectiveDuration > target.polymorphTimer) target.polymorphTimer = effectiveDuration;
-                target.isMoving = false;
+                stopMovement(target);
                 statusText = STATUS_VISUALS.POLYMORPH.label;
                 statusColor = STATUS_VISUALS.POLYMORPH.primaryColor;
                 if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
@@ -288,18 +288,8 @@ export const CCManager = {
 
         const moved = finalH.q !== target.q || finalH.r !== target.r;
         if (moved) {
-            const fromPx = {x: target.px, y: target.py};
-            engine.updateAgentPosition(target, finalH.q, finalH.r);
-            const newPx = HexUtils.toPx(finalH.q, finalH.r, engine.mapConfig);
-            target.px = newPx.x;
-            target.py = newPx.y;
-            target.physics.x += fromPx.x - newPx.x;
-            target.physics.y += fromPx.y - newPx.y;
-            
-            if (target.isMoving) {
-                target.isMoving = false;
-                target.path = [];
-            }
+            teleportTo(target, finalH.q, finalH.r, engine);
+            if (target.isMoving) stopMovement(target);
         }
 
         // 撞擊傷害（Tactics Ogre 式）：拉扯停在施法者身邊是目的，不算撞擊

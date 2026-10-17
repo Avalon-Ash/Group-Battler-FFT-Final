@@ -3,18 +3,48 @@
 // ║  HazardSystem — 地形危害（毒地/火場/冰面）管理           ║
 // ║  職責：spatialHazard tick / 傷害觸發 / VFX 播放          ║
 // ║  [ARCH] spatialHazard 的 VFX hexKey 由此寫入             ║
+// ║  [ARCH] 減速不寫 Agent：getHazardSpeedMult 是純函式，     ║
+// ║         由 MovementSystem 每 tick 算出再交給 MotionEngine ║
 // ║  關聯：ZoneSystem（格子陷落時清除此系統資料）             ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
 import { MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
+import type { MapConfig } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
 import { triggerHitFlash } from "./AnimationSystem";
 import { unitEventPos, hexEventPos } from "../events/EventPos";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
+
+/** 單位相對 GRAVITY 場中心的偏移；不在牽引半徑內（或貼著中心）回傳 null。牽引與減速共用這個判定。 */
+function gravityOffset(agent: Agent, h: SpatialHazard, mapConfig: MapConfig): { dx: number; dy: number; dist: number } | null {
+    if (h.type !== 'GRAVITY' || h.centerQ === undefined || h.centerR === undefined) return null;
+    const radius = h.pullRadius || (HEX_SIZE * 5);
+    const centerPx = HexUtils.toPx(h.centerQ, h.centerR, mapConfig);
+    const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return dist < radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST ? { dx, dy, dist } : null;
+}
+
+/**
+ * 敵方危害造成的移動速度倍率（1 = 不減速）：站在 GRAVITY／ICE 格子內，或在 GRAVITY 場的牽引半徑內。
+ * 純函式：沒有狀態，離開危害立刻恢復。取最小值（與 AI 要求的速度倍率取 min 由 MotionEngine 做）。
+ */
+export function getHazardSpeedMult(agent: Agent, hazards: readonly SpatialHazard[], mapConfig: MapConfig): number {
+    let mult = 1;
+    for (const h of hazards) {
+        if (h.team === agent.team) continue;
+        if (h.cells.some(c => c.q === agent.q && c.r === agent.r)) {
+            if (h.type === 'GRAVITY') mult = Math.min(mult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
+            else if (h.type === 'ICE') mult = Math.min(mult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
+        }
+        if (gravityOffset(agent, h, mapConfig)) mult = Math.min(mult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
+    }
+    return mult;
+}
 
 export class HazardSystem {
     
@@ -72,13 +102,6 @@ export class HazardSystem {
                 // Damage Tick
                 if (engine.battleTime >= h.lastTickTime + h.tickInterval) {
                      this.applyHazardEffect(agent, h, engine);
-                }
-
-                // Constant CC (Slows)
-                if (h.type === 'GRAVITY') {
-                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION); 
-                } else if (h.type === 'ICE') {
-                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.ICE_SPEED_REDUCTION);
                 }
             });
         });
@@ -139,21 +162,15 @@ export class HazardSystem {
         const spatialHazards = engine.state.spatialHazards;
         
         spatialHazards.forEach(h => {
-            if (h.type !== 'GRAVITY' || h.centerQ === undefined || h.centerR === undefined) return;
-            
-            const radius = h.pullRadius || (HEX_SIZE * 5);
-            const centerPx = HexUtils.toPx(h.centerQ, h.centerR, engine.mapConfig);
+            if (h.type !== 'GRAVITY') return;
 
             engine.agents.forEach(agent => {
                 if (agent.hp <= 0 || agent.banished || agent.outOfBounds || agent.team === h.team) return;
-                
-                const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                
-                if (dist < radius && dist > COMBAT_PARAM.GRAVITY_MIN_DIST) {
-                    agent.physics.vx += (dx/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
-                    agent.physics.vy += (dy/dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
-                    agent.moveSpeedMult = Math.min(agent.moveSpeedMult, COMBAT_PARAM.GRAVITY_SPEED_REDUCTION);
+
+                const pull = gravityOffset(agent, h, engine.mapConfig);
+                if (pull) {
+                    agent.physics.vx += (pull.dx / pull.dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
+                    agent.physics.vy += (pull.dy / pull.dist) * COMBAT_PARAM.GRAVITY_PULL_FORCE * dt;
                 }
             });
         });

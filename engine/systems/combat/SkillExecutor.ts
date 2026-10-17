@@ -6,6 +6,8 @@ import { CCManager } from "./CCManager";
 import { planDashPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
+import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
+import { teleportTo } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
@@ -41,17 +43,9 @@ export class SkillExecutor {
             const bestH = dash.stepsTaken > 0 ? dash.finalHex : null;
             
             if (bestH) {
-                const originPx = {x: source.px, y: source.py};
-                engine.updateAgentPosition(source, bestH.q, bestH.r);
-                const newPx = HexUtils.toPx(bestH.q, bestH.r, engine.mapConfig);
-                source.px = newPx.x;
-                source.py = newPx.y;
-                
-                // [FIX] Store the teleport distance into physics offset.
-                // This causes PhysicsEngine to naturally spring to the new location,
-                // capturing the dash cleanly with speed trails.
-                source.physics.x += originPx.x - newPx.x;
-                source.physics.y += originPx.y - newPx.y;
+                // teleportTo 把位移量存進 physics 偏移，PhysicsEngine 會自然彈到新位置，
+                // 衝刺因此帶著速度殘影
+                teleportTo(source, bestH.q, bestH.r, engine);
                 source.physics.vz += PHYSICS.VISUAL_JUMP_DASH; // Visual jump
                 
                 engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_DASH });
@@ -173,10 +167,12 @@ export class SkillExecutor {
 
         if (result.finalValue !== 0) {
             const finalDamage = Math.abs(Math.floor(result.finalValue));
-            target.hp = Math.max(0, Math.min(target.maxHp, target.hp + result.finalValue));
             if (result.finalValue < 0) {
-                target.lastHitSourceId = source.id;
+                // 護盾已在 DamageCalculator 扣過，所以這裡是真實傷害
+                applyDirectDamage(target, -result.finalValue, true, source.id);
                 target.lastHitDamage = finalDamage;
+            } else {
+                applyHeal(target, result.finalValue);
             }
             
             // Visual Event
@@ -231,7 +227,7 @@ export class SkillExecutor {
 
         // B. Secondary Effects (Vamp, Mana, Self Damage)
         if (result.vampAmount > 0) {
-            source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
+            applyHeal(source, result.vampAmount);
             engine.events.push({ 
                 type: 'HEAL', 
                 pos: unitEventPos(source, engine), 
@@ -274,7 +270,7 @@ export class SkillExecutor {
         if (skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE') {
             const selfDmgValue = skill.effectType === 'SELF_DAMAGE' ? (skill.effectVal || 0) : (skill.effectVal2 || 0);
             if (selfDmgValue > 0) {
-                source.hp = Math.max(0, source.hp - selfDmgValue);
+                applyDirectDamage(source, selfDmgValue, true); // 反噬無視護盾；無歸屬來源，沿用先前的擊殺歸屬
                 engine.events.push({
                     type: 'DAMAGE',
                     pos: unitEventPos(source, engine),
@@ -308,7 +304,7 @@ export class SkillExecutor {
         // D. Death Check & Absolute EXECUTE enforcement
         if (result.isExecute || target.hp <= 0) {
             if (result.isExecute) {
-                target.hp = 0; // Forced death logic
+                applyLethal(target, source.id); // Forced death logic
                 engine.log(source, 'HIT', '斬殺', target.id, `造成 ${Math.abs(result.finalValue)} 傷害 (絕對執行)`);
             }
             engine.agentManager.handleDeadState(target, engine);

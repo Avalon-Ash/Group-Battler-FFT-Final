@@ -17,12 +17,76 @@ export interface AgentFieldOwnership {
     /** single：只有一個模組寫；domain：同一 tick 階段、互相知道對方的一組模組視為同一擁有者。 */
     kind: 'single' | 'domain';
     owners: readonly string[];
+    /** 只准累加（+=／-=）的模組：衝量、牽引、瞬移補償等；其他寫法（=、*=、…）算違規。 */
+    accumulators?: readonly string[];
     /** 生成／死亡重設／編輯器命令等生命週期寫入者。 */
     lifecycle?: readonly string[];
     note?: string;
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    physics: {
+        group: 'physics',
+        kind: 'domain',
+        owners: ['engine/physics/PhysicsEngine.ts', 'engine/systems/movement/MotionEngine.ts'],
+        accumulators: [
+            'engine/systems/HazardSystem.ts',
+            'engine/systems/combat/CCManager.ts',
+            'engine/systems/combat/SkillExecutor.ts',
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/StackingResolver.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '積分與 z／vz 的直接改寫只在 PhysicsEngine（startVoidFall、absorbGroundShift 是給別人呼叫的 API）；MotionEngine 只在抵達時阻尼速度；其餘模組只准對速度／偏移 +=。',
+    },
+    isMoving: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: [
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/MotionEngine.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '移動域：起步在 MovementSystem、推進與抵達在 MotionEngine、其他系統一律呼叫 MotionCommands.stopMovement。',
+    },
+    path: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: [
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/MotionEngine.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '與 isMoving 同域。停止一律以新陣列重設（stopMovement）：path 與 trajectory 起步時是同一個陣列，不可用 length = 0 清空。',
+    },
+    trajectory: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: ['engine/systems/movement/MovementSystem.ts', 'engine/systems/movement/MotionEngine.ts'],
+        note: '落點預覽與投射物讀它；stopMovement 不動它。',
+    },
+    moveSpeedMult: {
+        group: 'locomotion',
+        kind: 'single',
+        owners: ['engine/systems/movement/MovementSystem.ts'],
+        note: '只代表 AI 要求的速度倍率。敵方危害的減速由 MovementSystem 每 tick 呼叫 HazardSystem.getHazardSpeedMult 算出，交給 MotionEngine 取 min。',
+    },
+    shield: {
+        group: 'vitals',
+        kind: 'domain',
+        owners: ['engine/systems/combat/DirectDamage.ts', 'engine/systems/combat/CCManager.ts'],
+        note: '戰鬥域：扣盾只在 DirectDamage.absorbWithShield（DamageCalculator 與 applyDirectDamage 共用），加盾在 CCManager 的 SHIELD 施加。',
+    },
+    hp: {
+        group: 'vitals',
+        kind: 'single',
+        owners: ['engine/systems/combat/DirectDamage.ts'],
+        lifecycle: ['engine/systems/agentManager.ts', 'engine/systems/ui/UICommandSystem.ts'],
+        note: '寫入 API：applyDirectDamage／applyHeal／applyLethal。死亡流程仍由呼叫端交給 agentManager.handleDeadState。',
+    },
     trailHistory: {
         group: 'locomotion',
         kind: 'single',

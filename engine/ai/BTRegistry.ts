@@ -3,6 +3,7 @@ import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
+import { stopMovement } from "../systems/movement/MotionCommands";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 
@@ -260,10 +261,7 @@ export const BTActions: Record<string, BTActionFn> = {
         }
         a.aiState = AIState.IDLE;
         a.actionState = ActionState.IDLE;
-        if (a.isMoving) {
-            a.isMoving = false;
-            a.path = [];
-        }
+        if (a.isMoving) stopMovement(a);
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
