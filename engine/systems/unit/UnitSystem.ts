@@ -4,129 +4,88 @@
 // ║                                                          ║
 // ║  繪圖實作位置：                                          ║
 // ║  → engine/renderers/units/painters/                     ║
-// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
-// ║  op.y＝含 physics／擊飛的腳點；sortBias 抬到腳下格格心；   ║
-// ║  高度只取傳入的繪製用高度（含漂浮位移，§5）。              ║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3、§4：║
+// ║  op 的 tx／y／ty／th／sortBias 一律讀 UnitFrame（每幀快照，  ║
+// ║  engine/renderers/frame/UnitFrame.ts），本檔不再取得地形高度，║
+// ║  也不自己算腳點、腳下格或擊飛位移。                        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { HexUtils, MapConfig } from "../../utils";
-import { UnitVisualProcessor } from "./UnitVisualProcessor";
+import { UnitFrame, UnitFrameStore } from "../../renderers/frame/UnitFrame";
 import { UnitBodyPainter } from "../../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPainter";
 import { UnitCorePainter } from "../../renderers/units/painters/UnitCorePainter";
 import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
-import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
 import { HexLayout } from "../../../types";
-import { VisualMath } from "../../math/VisualMath";
 import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../../constants";
 
 export class UnitRenderSystem {
     public submitRenderables(
         renderList: RenderList,
-        agents: Agent[], 
-        getTerrainHeight: (q: number, r: number) => number, 
-        globalTime: number, 
+        frames: UnitFrameStore,
+        globalTime: number,
         highlightAgent: Agent | null,
-        mapConfig: MapConfig,
-        transitionT: number = 0,
-        transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE',
-        simDt: number = 0.016,
-        hasGround?: (q: number, r: number) => boolean
+        simDt: number = 0.016
     ) {
-        if (transitionPhase === 'OUT' && transitionT > 0.95) return;
-
-        agents.forEach(agent => {
-            if (agent.fullyDead || agent.outOfBounds) return;
-            const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, highlightAgent);
-            
-            const offset = VisualMath.getTransitionOffset(state.x, state.y, mapConfig, transitionT, transitionPhase);
-            if (Math.abs(offset) > 800) return;
+        const list = frames.list;
+        for (let i = 0; i < list.length; i++) {
+            const f = list[i];
+            if (!f.visible) continue;
+            const agent = f.agent;
 
             const op = renderList.next();
-            op.type = agent.hp <= 0 ? RenderOpType.CORPSE : RenderOpType.UNIT;
+            op.type = f.isCorpse ? RenderOpType.CORPSE : RenderOpType.UNIT;
             op.simDt = simDt;
-            
+
             // 關鍵：將單位的當前邏輯網格位置傳入
-            op.tq = agent.q; 
+            op.tq = agent.q;
             op.tr = agent.r;
-            let groundH = state.terrainHeight;
-            op.th = groundH; 
-            
+            op.th = f.groundH;
+
             op.agent = agent;
-            op.tx = state.x; 
-            
-            // Sort Y: Ground position for depth sorting
-            op.y = state.y + offset; 
+            op.tx = f.footX;
 
-            // 擊飛中的屍體：滑行位移併入繪製位置與深度排序鍵，
-            // 否則排序仍以死亡點計算，滑到前方時會被後排地塊／障礙物來回覆蓋而閃爍。
-            if (agent.hp <= 0) {
-                const knock = UnitDeathPainter.getKnockOffset(agent);
-                op.tx += knock.x;
-                op.y += knock.y;
+            // Sort Y: Ground position for depth sorting（含 physics／擊飛／轉場；腳下格抬升見 UnitFrame.sortBias）
+            op.y = f.sortY;
+            op.sortBias = f.sortBias;
 
-                // 擊飛滑行是繪製位移，物理不知道屍體移動了：腳下高度要跟著滑到的那一格，
-                // 滑出已塌陷的地塊（虛空）就從該刻起墜落（回收仍走原本的死亡計時，不新增寫入者）。
-                if (hasGround) {
-                    const v = UnitDeathPainter.getKnockVelocity(agent);
-                    groundH = computeDeathGround(state.x, state.y, v.vx, v.vy, v.vz, agent.deathTimer, {
-                        hexAt: (x, y) => HexUtils.fromPx(x, y, mapConfig),
-                        hasGround,
-                        heightAt: getTerrainHeight,
-                    }).height;
-                    op.th = groundH;
-                }
-            }
-            
-            // 深度鍵：單位腳下所在的格子必須排在該格地塊之後。地塊以格心 Y 排序，
-            // 單位走過格界後（腳已在前方鄰格內）腳 Y 仍小於該格格心 Y，會被「之後才畫」的前方地塊蓋住下半身。
-            // 因此把鍵抬到腳下格的格心線（只抬不降；同鍵時 subLayer 讓單位排在地塊之後）。
-            // 以含繪製位移（physics 偏移、屍體擊飛）的腳點判斷，轉場位移 offset 不參與（地塊也套同一個 offset）。
-            const footY = op.y - offset;
-            const hexUnderFoot = HexUtils.fromPx(op.tx, footY, mapConfig);
-            const hexCenterY = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig).y;
-            op.sortBias = Math.max(0, hexCenterY - footY);
+            // Visual Y: Top of terrain
+            op.ty = f.drawY;
 
-            // Visual Y: Top of terrain (using SSOT Math)
-            op.ty = VisualMath.getIsoVisualY(op.y, groundH);
-            
-            op.z = agent.physics.z; 
+            op.z = agent.physics.z;
             op.time = globalTime;
-            op.uSelected = state.isSelected;
+            op.uSelected = agent === highlightAgent;
 
             // [FIX] Submit separate Aura/Indicator op locked to ground if casting
             if (agent.castingSkillIdx !== -1) {
                 const auraOp = renderList.next();
                 auraOp.type = RenderOpType.AURA;
                 auraOp.agent = agent;
-                auraOp.tx = state.x;
-                
+                auraOp.tx = f.footX;
+
                 // [SSOT FIX] AURA sorting: incorporate terrain height to prevent being hidden by grid
-                auraOp.y = state.y + offset + (state.terrainHeight * TERRAIN_SORT_SCALE);
+                auraOp.y = f.sortY + (f.groundH * TERRAIN_SORT_SCALE);
                 auraOp.sortBias = HEX_SIZE * 0.5; // Front-edge compensation
 
-                auraOp.ty = VisualMath.getIsoVisualY(state.y + offset, state.terrainHeight);
+                auraOp.ty = f.drawY;
                 auraOp.time = globalTime;
-                auraOp.th = state.terrainHeight;
+                auraOp.th = f.groundH;
             }
-        });
+        }
     }
 
     public drawSilhouette(
-        ctx: CanvasRenderingContext2D, 
-        agent: Agent, 
-        getTerrainHeight: (q: number, r: number) => number, 
-        globalTime: number, 
-        mapConfig: MapConfig
+        ctx: CanvasRenderingContext2D,
+        frame: UnitFrame,
+        globalTime: number,
+        layout: HexLayout
     ) {
+        const agent = frame.agent;
         if (agent.hp <= 0 || agent.fullyDead || agent.outOfBounds) return;
-        const state = UnitVisualProcessor.process(agent, getTerrainHeight, mapConfig, null);
-        const visualGroundY = VisualMath.getIsoVisualY(state.y, state.terrainHeight);
-        this.drawAssembly(ctx, agent, state.x, visualGroundY, globalTime, false, true, mapConfig.layout, state.terrainHeight);
+        this.drawAssembly(ctx, agent, frame.footX, frame.floorY, globalTime, false, true, layout, frame.groundH);
     }
 
     public drawAssembly(

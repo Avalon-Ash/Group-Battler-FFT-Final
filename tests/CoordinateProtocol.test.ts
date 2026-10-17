@@ -9,9 +9,10 @@ import { RenderSpec } from '../engine/renderers/RenderSpec';
 import { VisualMath } from '../engine/math/VisualMath';
 import { RenderList, RenderOpType } from '../engine/renderers/RenderList';
 import { UnitRenderSystem } from '../engine/systems/unit/UnitSystem';
+import { UnitFrameStore } from '../engine/renderers/frame/UnitFrame';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
-import { FLOAT_BOB, VFX_RENDER } from '../constants';
+import { FLOAT_BOB, HUD_BAR_OFFSET, VFX_RENDER } from '../constants';
 import { Team } from '../types';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -62,11 +63,18 @@ function scan(src: [string, string][], re: RegExp): string[] {
 const CORE_PAINTER = 'engine/renderers/units/painters/UnitCorePainter.ts';
 /** 漂浮位移的呼叫端（RenderSpec §5）。新增呼叫端＝新增一條浮動路徑：先改 RenderSpec，再改這裡。 */
 const FLOAT_CALLERS = ['engine/renderers/RenderPipeline.ts', 'engine/renderers/grid/GridRenderStrategy.ts'];
+/** 繪製端唯一可以呼叫 getUnitGroundHeight 的檔案（RenderSpec §4）：其餘繪製端讀 UnitFrame，拿不到地形高度函式 */
+const UNIT_GROUND_CALLERS = ['engine/renderers/frame/UnitFrame.ts'];
 
 const FAMILIES: Record<string, () => string[]> = {
     /** 繪製端直接用單位的邏輯格查高度（應改 VisualMath.getUnitGroundHeight：含移動過渡、所在格較高者） */
     'height.directAgent': () => scan(VISUAL_SOURCES,
-        /getTerrainHeight\(\s*(agent|a|source|target|unit|caster|highlight|owner|u)\.q\s*,\s*\1\.r\s*\)/g),
+        /getTerrainHeight\(\s*(agent|a|source|target|unit|caster|highlight|owner|u)\.q\s*,\s*\1\.r\s*[,)]/g),
+    /** engine/renderers 內呼叫 getUnitGroundHeight 的檔案（只允許 UNIT_GROUND_CALLERS；基準永遠是空的） */
+    'height.unitGroundCallers': () => [...new Set(listSources('engine/renderers'))]
+        .filter(f => !SSOT_FILES.has(f) && !UNIT_GROUND_CALLERS.includes(f))
+        .filter(f => /getUnitGroundHeight\s*\(/.test(stripComments(read(f))))
+        .sort(),
     /** 自己重算身體中心或核心高度（應改 getUnitAnchor／getVisualBodyCenterY／coreAnchorAt） */
     'anchor.recompute': () => scan(ALL_SOURCES.filter(([f]) => f !== CORE_PAINTER),
         /UNIT_BODY_OFFSET\s*\+\s*UNIT_HOVER_OFFSET|CORE_VISUAL\.hoverHeight/g),
@@ -162,10 +170,16 @@ describe('unit render op follows the protocol', () => {
     const HEIGHTS: Record<string, number> = { '0,0': 24, '0,1': 72 };
     const heightAt = (q: number, r: number) => HEIGHTS[`${q},${r}`] ?? 0;
 
-    function submit(agent: Agent, h = heightAt) {
+    function buildFrames(agents: Agent[], h = heightAt, hasGround?: (q: number, r: number) => boolean) {
+        const frames = new UnitFrameStore();
+        frames.build(agents, h, MAP, 0, 'IDLE', hasGround);
+        return frames;
+    }
+
+    function submit(agent: Agent, h = heightAt, type = RenderOpType.UNIT) {
         const list = new RenderList();
-        new UnitRenderSystem().submitRenderables(list, [agent], h, 0, null, MAP);
-        return list.ops.slice(0, list.count).find(o => o.type === RenderOpType.UNIT)!;
+        new UnitRenderSystem().submitRenderables(list, buildFrames([agent], h), 0, null);
+        return list.ops.slice(0, list.count).find(o => o.type === type)!;
     }
 
     it('sort Y includes the draw-time physics offset and lifts to the hex under the foot', () => {
@@ -187,5 +201,76 @@ describe('unit render op follows the protocol', () => {
         const bobbed = submit(a, (q, r) => heightAt(q, r) - 3);
         expect(bobbed.ty - flat.ty).toBeCloseTo(3, 6);
         expect(bobbed.y).toBe(flat.y); // 排序鍵不含漂浮位移
+    });
+});
+
+describe('UnitFrame is the single source of unit render coordinates', () => {
+    const MAP: MapConfig = { w: 10, h: 10, offsetX: 0, offsetY: 0, layout: 'FLAT' };
+    const HEIGHTS: Record<string, number> = { '0,0': 24, '0,1': 72 };
+    const heightAt = (q: number, r: number) => HEIGHTS[`${q},${r}`] ?? 0;
+    const build = (agents: Agent[], hasGround?: (q: number, r: number) => boolean) => {
+        const store = new UnitFrameStore();
+        store.build(agents, heightAt, MAP, 0, 'IDLE', hasGround);
+        return store;
+    };
+
+    it('UNIT op coordinates are the frame (op.ty, op.y, op.sortBias)', () => {
+        const a = new Agent('P', Team.BLUE, 0, 0, MAP);
+        a.physics.y = 9;
+        const store = build([a]);
+        const list = new RenderList();
+        new UnitRenderSystem().submitRenderables(list, store, 0, null);
+        const op = list.ops.slice(0, list.count).find(o => o.type === RenderOpType.UNIT)!;
+        const f = store.get(a)!;
+        expect(op.tx).toBe(f.footX);
+        expect(op.y).toBe(f.sortY);
+        expect(op.ty).toBe(f.drawY);
+        expect(op.sortBias).toBe(f.sortBias);
+        expect(op.th).toBe(f.groundH);
+    });
+
+    it('HUD anchor and body center hang off the same foot as the body', () => {
+        const a = new Agent('P', Team.BLUE, 0, 0, MAP);
+        a.physics.z = 30;
+        const f = build([a]).get(a)!;
+        expect(f.groundH).toBe(24);
+        expect(f.hudAnchorY).toBeCloseTo(f.drawY - a.physics.z - HUD_BAR_OFFSET, 9);
+        expect(f.bodyCenterY).toBeCloseTo(VisualMath.getVisualBodyCenterY(f.drawY, a.physics.z), 9);
+    });
+
+    it('drag preview moves body, HUD anchor and status with the cursor hex', () => {
+        const a = new Agent('P', Team.BLUE, 0, 0, MAP);
+        const rest = build([a]).get(a)!;
+        a.dragOverQ = 0;
+        a.dragOverR = 1;
+        const f = build([a]).get(a)!;
+        expect(f.groundH).toBe(72);
+        expect(f.hudAnchorY).toBeCloseTo(rest.hudAnchorY - (72 - 24), 9);
+        expect(f.bodyCenterY).toBeCloseTo(rest.bodyCenterY - (72 - 24), 9);
+        expect(f.drawY).toBeCloseTo(rest.drawY - (72 - 24), 9);
+    });
+
+    it('a corpse over a collapsed tile uses the death-ground height, and CORPSE op follows its frame', () => {
+        const a = new Agent('C', Team.BLUE, 0, 0, MAP);
+        a.hp = 0;
+        a.deathTimer = 1;
+        const store = build([a], () => false);
+        const f = store.get(a)!;
+        expect(f.isCorpse).toBe(true);
+        expect(f.groundH).toBe(0);
+        const list = new RenderList();
+        new UnitRenderSystem().submitRenderables(list, store, 0, null);
+        const op = list.ops.slice(0, list.count).find(o => o.type === RenderOpType.CORPSE)!;
+        expect(op.ty).toBe(f.drawY);
+        expect(op.y).toBe(f.sortY);
+    });
+
+    it('reuses pooled frames across builds', () => {
+        const a = new Agent('P', Team.BLUE, 0, 0, MAP);
+        const store = build([a]);
+        const first = store.get(a);
+        store.build([a], heightAt, MAP, 0, 'IDLE');
+        expect(store.get(a)).toBe(first);
+        expect(store.list.length).toBe(1);
     });
 });

@@ -1,30 +1,32 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  HUDRenderer — 血條、狀態量表、浮動文字、背水一戰橫幅      ║
+// ║  上游：UnitFrame（hudAnchorY／footX 由 RenderPipeline 每幀  ║
+// ║        建立，本檔不取得地形高度，無法自己重算）             ║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent } from "../game";
-import { HUD_BAR_OFFSET } from "../../constants";
-import { MapConfig } from "../utils";
 import { HUDSystem } from "../systems/hud";
-import { VisualMath } from "../math/VisualMath";
+import { UnitFrameStore } from "./frame/UnitFrame";
 import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";
 import { TextPainter } from "./hud/TextPainter";
 import { getRenderDpr } from "./RenderQuality";
 
 export class HUDRenderer {
-    public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, agents: Agent[], getTerrainHeight: (q: number, r: number) => number, mapConfig: MapConfig, highlight: Agent | null, time: number, isLastStand: boolean = false) {
-        agents.forEach(a => {
-            if (a.hp <= 0 || a.spawnTimer > 0) return;
-            
-            // SSOT：與身體共用同一個腳下高度（邏輯座標＋移動過渡；不用 fromPx，避免物理漂移跨格造成抖動）
-            const h = VisualMath.getUnitGroundHeight(a, getTerrainHeight, mapConfig);
+    public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, frames: UnitFrameStore, highlight: Agent | null, time: number, isLastStand: boolean = false) {
+        const list = frames.list;
+        for (let i = 0; i < list.length; i++) {
+            const f = list[i];
+            const a = f.agent;
+            if (a.hp <= 0 || a.spawnTimer > 0) continue;
 
-            // SSOT: Use Unified Projection Formula
-            const anchorY = VisualMath.getEntityVisualY(a.py, h, a.physics.y, a.physics.z, -HUD_BAR_OFFSET);
-            const headX = a.px + a.physics.x;
-
+            // SSOT：與身體共用同一份腳下高度（UnitFrame：邏輯座標＋移動過渡；拖曳預覽跟著游標格）
             const isSelected = (a === highlight);
-            BarPainter.drawUnitBars(ctx, a, headX, anchorY, isSelected);
-            GaugePainter.drawUnitStatusGauges(ctx, a, headX, anchorY);
-        });
+            BarPainter.drawUnitBars(ctx, a, f.footX, f.hudAnchorY, isSelected);
+            GaugePainter.drawUnitStatusGauges(ctx, a, f.footX, f.hudAnchorY);
+        }
         TextPainter.drawFloatingText(ctx, hud);
         if (isLastStand) this.drawLastStandBanner(ctx, time);
     }

@@ -62,7 +62,7 @@ export class MapSystem {
             agent.px = p.x;
             agent.py = p.y;
             // physics.z 已由上方 deltaH 補正，代表跨高度的高差
-            // 視覺高度由 UnitVisualProcessor 經 VisualMath.getUnitGroundHeight 計算，不需額外設定
+            // 視覺高度由 UnitFrame（engine/renderers/frame）經 VisualMath.getUnitGroundHeight 計算，不需額外設定
         }
     }
     public clearAgents() {

@@ -1,7 +1,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  RenderPipeline — 每幀渲染流程（提交→排序→分發→剪影→HUD） ║
 // ║  職責：建立「繪製用地面高度」＝模擬高度－該格漂浮位移，    ║
-// ║        傳給單位、特效、狀態、HUD、剪影                     ║
+// ║        傳給特效與 UnitFrameStore；drawWorld 開頭建一次     ║
+// ║        UnitFrame，單位、HUD、狀態、剪影、選取連線都讀它    ║
 // ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5；  ║
 // ║  模擬端永遠不讀繪製用高度。                                ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -13,6 +14,7 @@ import { Hex, Skill } from "../../types";
 import { BackgroundRenderer } from "./background";
 import { TacticalRenderer } from "./tactical";
 import { HUDRenderer } from "./HUDRenderer";
+import { UnitFrameStore } from "./frame/UnitFrame";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
@@ -45,6 +47,11 @@ export class RenderPipeline {
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
+    /** 每幀單位快照；唯一寫入者是 build（drawWorld 開頭），其餘只讀 */
+    private frames = new UnitFrameStore();
+    /** 屍體擊飛滑出已塌陷地塊就墜落用；與 _cachedTerrainH 同生命週期 */
+    private _hasGround: ((q: number, r: number) => boolean) | null = null;
+    private _isTileValid: ((q: number, r: number) => boolean) | null = null;
 
     // [FIX] 避免每幀重建 closure，只在 engine 實例變更時重建
     private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
@@ -151,12 +158,12 @@ export class RenderPipeline {
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
         CtxOpCounter.track('tactical-overlay', () => {
-            this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime);
+            this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime, this.frames);
         });
         
-        // _cachedTerrainH guaranteed non-null: drawWorld() runs before this point
+        // this.frames 已由 drawWorld() 建立（先於此處執行）
         CtxOpCounter.track('hud', () => {
-            this.hud.draw(ctx, this.renderer.hud, engine.agents, this._cachedTerrainH!, cfg, highlight, battleTime, engine.state.isLastStand);
+            this.hud.draw(ctx, this.renderer.hud, this.frames, highlight, battleTime, engine.state.isLastStand);
         });
         ctx.restore(); 
 
@@ -193,6 +200,8 @@ export class RenderPipeline {
                 const c = HexUtils.toPx(q, r, engine.mapConfig);
                 return h - VisualMath.floatBobAt(c.x, c.y, this._floatT);
             };
+            this._isTileValid = (q: number, r: number) => engine.map.isValid(q, r);
+            this._hasGround = (q: number, r: number) => engine.map.isValid(q, r) || engine.zones.collapsingTiles.has(`${q},${r}`);
         }
         this._floatT = VisualMath.isFloatingBiome(engine.currentScene.textureType) ? t : null;
         const terrainH = this._cachedTerrainH;
@@ -202,12 +211,13 @@ export class RenderPipeline {
         const lH = ctx.canvas.height / dpr;
 
         CtxOpCounter.track('submit', () => {
+            this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined);
             this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
             this._viewportScratch.width = lW;
             this._viewportScratch.height = lH;
             this._viewportScratch.camera = camera;
             this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
-            this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt, (q, r) => engine.map.isValid(q, r) || engine.zones.collapsingTiles.has(`${q},${r}`));
+            this.renderer.unit.submitRenderables(this.renderList, this.frames, t, highlight, dt);
         });
         
         CtxOpCounter.track('sort', () => {
@@ -260,7 +270,8 @@ export class RenderPipeline {
                 CtxOpCounter.track('silhouette', () => {
                     ctx.save();
                     for (let i = 0; i < this._scratchOccludedList.length; i++) {
-                        this.renderer.unit.drawSilhouette(ctx, this._scratchOccludedList[i], terrainH, t, engine.mapConfig);
+                        const frame = this.frames.get(this._scratchOccludedList[i]);
+                        if (frame) this.renderer.unit.drawSilhouette(ctx, frame, t, engine.mapConfig.layout);
                     }
                     ctx.restore();
                 });
@@ -269,7 +280,7 @@ export class RenderPipeline {
         
         // [FIX] Pass layout and map validity to StatusOrchestrator
         CtxOpCounter.track('status', () => {
-            this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout, (q, r) => engine.map.isValid(q, r), engine.mapConfig);
+            this.renderer.statusOrchestrator.draw(ctx, this.frames, t, engine.mapConfig.layout, this._isTileValid ?? undefined);
         });
     }
 }
