@@ -234,7 +234,7 @@ await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
         C.terrainInvFrames = (C.terrainInvFrames || 0) + (terrainInv > 0 ? 1 : 0);
         C.terrainInvMax = Math.max(C.terrainInvMax || 0, terrainInv);
         let decalCount = 0;
-        for (let i = 0; i < list.count; i++) { const o = list.ops[i]; if (o.type === RenderOpType.VFX && o.isGround && o.gHalfH >= consts.VFX_RENDER.DECAL_LIFT_MIN_HALF_H) decalCount++; }
+        for (let i = 0; i < list.count; i++) { const o = list.ops[i]; if (o.type === RenderOpType.VFX && o.isGround && o.gHalfH >= consts.GROUND_DRAPE.MIN_HALF_H) decalCount++; }
         const occluded = new Set(engine.renderer.grid.getOccludedAgents(engine).map((a) => a.id));
         const sortedAfter = new Map();
 

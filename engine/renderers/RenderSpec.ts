@@ -16,7 +16,7 @@ export class RenderSpec {
 
         s += "## 1. RenderOp 層序總表 (Layer Order SSOT)\n\n";
         s += "唯一定義點：RenderList.ts 的 SUB_LAYER。排序鍵：\n\n";
-        s += "  finalSortY = op.y + op.sortBias（＋貼地法陣抬升，見 §2）＋ tiebreak（CORPSE +0.5、VFX／PROJECTILE +1.0）\n";
+        s += "  finalSortY = op.y + op.sortBias ＋ tiebreak（CORPSE +0.5、VFX／PROJECTILE +1.0）\n";
         s += "  sortKey    = floor((finalSortY + 10000) * 100) + subLayer\n";
         s += "             ＋ 空中 VFX／PROJECTILE：z > 0 加 op.z * 20，z == 0 加 60\n";
         s += "             ＋ UNIT：agent id 雜湊 * 0.00001（同鍵決定性）\n";
@@ -25,10 +25,10 @@ export class RenderSpec {
 
         s += "| RenderOpType     | subLayer | 描述 |\n";
         s += "|------------------|----------|------|\n";
-        s += "| TERRAIN          | 10       | 地塊本體＋地表細節＋地塊狀態疊層 |\n";
+        s += "| TERRAIN          | 10       | 地塊本體＋地表細節＋地塊狀態疊層＋蓋到這格的貼地鋪設特效（§9，不是獨立 op） |\n";
         s += "| DECAL            | 20       | 地面貼花（燒灼痕） |\n";
         s += "| HAZARD           | 30       | 持續性空間危害（熔岩、毒霧） |\n";
-        s += "| VFX (isGround)   | 32       | 貼地特效（法陣、震波），不套 z-boost |\n";
+        s += "| VFX (isGround)   | 32       | 一般貼地特效（小型平貼、直立的柱／光束／結界），不套 z-boost；大型平貼特效改走 §9 |\n";
         s += "| AURA             | 38       | 單位施法圈 |\n";
         s += "| OVERLAY          | 42       | 射程、懸停、警告、背水一戰 |\n";
         s += "| OBSTACLE         | 44       | 地形障礙物 |\n";
@@ -46,10 +46,15 @@ export class RenderSpec {
         s += "| GridRenderStrategy | TERRAIN、OBSTACLE、HAZARD | 0 |\n";
         s += "| GridRenderStrategy | OVERLAY | HEX_SIZE * 0.5（格子前緣） |\n";
         s += "| UnitSystem | AURA | HEX_SIZE * 0.5 |\n";
-        s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(0, 腳下格格心 Y − 腳 Y)：腳跨過格界進入前方格時，排在該格地塊之後 |\n";
+        s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(0, 排序用腳下格格心 Y − 腳 Y)：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後，見下） |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
-        s += "貼地法陣抬升（RenderList.sort）：gHalfH ≥ VFX_RENDER.DECAL_LIFT_MIN_HALF_H 的大型法陣範圍內的 UNIT／CORPSE，\n";
-        s += "finalSortY 至少抬到法陣鍵之後（法陣不得蓋住棋座，ART_SPEC §13）。\n\n";
+        s += "**排序用腳下格帶滯後**（UnitFrameStore 的視覺狀態：每個單位上一幀的排序格）：腳點原始所在格與記憶格不同時，\n";
+        s += "只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換；離記憶格超過一環（瞬移、擊飛）立即切換。\n";
+        s += "否則 sortBias 在格界上是鋸齒函數（腳壓著格界走，鍵每幀跳約半格）。高度（getUnitGroundHeight）不受影響，只有排序格有滯後。\n";
+        s += "記憶只在 UnitFrameStore 內，單位不在列表時清除。\n\n";
+        s += "**沒有「法陣抬升」**：舊規則（RenderList.sort 把站在大型法陣橢圓內的單位／屍體的鍵抬到法陣前緣之後）已移除——它隨法陣生滅、縮放而開關，\n";
+        s += "是 docs/COORD_GUARD_FINDINGS.md 量到的 85% 排序震盪。單位站在法陣後半需要「前緣格 < 法陣 < 單位 < 前方地塊」，這是環，沒有任何單一排序鍵能滿足；\n";
+        s += "解法是讓法陣不再是獨立排序單位（§9）。\n\n";
         s += "**繪製時才套用的位移必須進排序鍵**（腳點 op.y 含 physics.y 與屍體擊飛滑行；腳下格以含位移的腳點判斷）。\n";
         s += "唯一例外是 §5 漂浮位移：整片地形一起起伏，相鄰格相位差很小，不改變前後關係，所以不進排序鍵。\n\n";
 
@@ -152,7 +157,8 @@ export class RenderSpec {
         s += "## 7. isGround 旗標語意 (isGround Semantics)\n\n";
         s += "isGround 由 VFX_GROUND_TYPES 決定，是排序行為與 Painter 路徑的分類旗標。\n\n";
         s += "- isGround = true：subLayer 32，不套 z-boost；op.z = max(p.z + GROUND_Z_BIAS, GROUND_Z_BIAS)，\n";
-        s += "  繪製位置再扣 GROUND_VISUAL_BIAS（只動 op.ty，不動排序用 op.y）\n";
+        s += "  繪製位置再扣 GROUND_VISUAL_BIAS（只動 op.ty，不動排序用 op.y）。isGround 且型別在 GROUND_DRAPE.MODE、\n";
+        s += "  gHalfH ≥ GROUND_DRAPE.MIN_HALF_H 的粒子不產生 op，走 §9 鋪設\n";
         s += "- isGround = false, z > 0：subLayer 50，加 op.z * 20（空中特效、HEX_PRISM、護盾）\n";
         s += "- isGround = false, z == 0：subLayer 50，加固定 60（平面空中 Billboard）\n\n";
 
@@ -168,6 +174,26 @@ export class RenderSpec {
         s += "6. 受影響檔案的方框檔頭（職責／上游／[ARCH]）同步更新\n";
         s += "7. npm test（含 tests/CoordinateProtocol.test.ts）；動到畫面再本機實跑截圖\n";
         s += "※ 若涉及單位外觀（非 VFX），改 data/units/appearance/ 的 RoleAppearance，而非新增 RenderOpType。\n";
+
+        s += "\n--- \n\n";
+
+        s += "## 9. 貼地鋪設 (Ground Drape, FFT 風格)\n\n";
+        s += "大型平貼特效（法陣、震波、龜裂…）是一張橫跨多格、高度可能不同的圖；它和站在上面的單位、前方高地塊之間沒有一致的單一排序。\n";
+        s += "所以它不再是 RenderList 的 op，而是和 FFT 的範圍標記一樣**鋪在它蓋到的每一格頂面**：\n\n";
+        s += "- 登記：VFXRenderer.submitRenderables 對符合條件的粒子呼叫 GroundDrapeLayer.add（engine/renderers/GroundDrape.ts，每幀 begin，池化）。\n";
+        s += "  條件：粒子型別在 GROUND_DRAPE.MODE，且投影後半高 ≥ GROUND_DRAPE.MIN_HALF_H。其餘貼地特效維持 §1 的 VFX (isGround) op。\n";
+        s += "- 繪製：RenderDispatcher 的 TERRAIN 在地塊、地表細節、基礎疊層之後呼叫 GroundDrapeLayer.drawOnTile：以足跡座標判斷哪些格被蓋到，\n";
+        s += "  裁切到該格頂面六邊形（半徑 + CLIP_EXPAND_PX，相鄰格重疊避免接縫），特效的地平面貼在該格頂面：\n";
+        s += "  y = 特效足跡 Y（含轉場位移）+ 該格漂浮位移（TERRAIN op.ty − op.y）− 該格高度（op.th）。所以橫跨不同高度的法陣在每格各自貼合頂面，VOID／MAGMA 跟著地塊浮動。\n";
+        s += "- 掉落中的地塊（op.z < 0）不畫鋪設特效。\n";
+        s += "- 模式：DIRECT＝每格裁切後直接畫粒子（單一 drawImage／少量填色，混合模式與原本一致）；OFFSCREEN＝多段描邊的向量特效，每幀只畫一次到池化離屏畫布\n";
+        s += "  （目前裝置縮放，容量只增不減），再逐格複製與該格外框相交的部分，以粒子混合模式貼上。\n";
+        s += "- 分類（依繪製內容；SSOT 在 constants.ts GROUND_DRAPE.MODE）：鋪設＝PART_GROUND、GRID_FIELD、CRACKS、BLAST、HEX_GLOW（DIRECT）、MAGIC_CIRCLE、SHOCKWAVE、RING（OFFSCREEN）。\n";
+        s += "  不鋪設（直立或有高度，維持 VFX (isGround) op、前緣 sortBias、無抬升）：PILLAR、HEX_BEAM（立柱）、DOMAIN（80px 稜柱）、GIANT_HEX（懸浮三層＋角柱）、BLACK_HOLE（球狀核心）。\n";
+        s += "- 排序後果：站在某格的單位在該格 TERRAIN 之後才畫（§2 sortBias），棋座壓在法陣上（ART_SPEC §13）；高地塊、障礙、危害、疊層都在鋪設之後，自然遮住法陣。\n";
+        s += "  奧義（pIsUlt）的貼地法陣不再有 +1e8 的永遠最上層，因為它不再是排序單位。\n\n";
+
+        s += "--- \n\n";
 
         return s;
     }

@@ -10,6 +10,9 @@
 // ║  VisualMath.getUnitGroundHeight 的地方（棘輪測試擋住）；     ║
 // ║  繪製端拿到的是 frames，沒有地形高度函式，所以無法自己重算。 ║
 // ║  唯一寫入者：UnitFrameStore.build。                          ║
+// ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
+// ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
+// ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）。        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -17,7 +20,7 @@ import { HexUtils, MapConfig } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { UnitDeathPainter } from "../units/painters/UnitDeathPainter";
 import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
-import { HUD_BAR_OFFSET } from "../../../constants";
+import { HUD_BAR_OFFSET, UNIT_FRAME } from "../../../constants";
 import { Hex } from "../../../types";
 
 export type UnitFramePhase = 'IN' | 'OUT' | 'IDLE';
@@ -67,9 +70,14 @@ function createFrame(agent: Agent): MutableUnitFrame {
     };
 }
 
+/** 排序用腳下格的跨幀記憶（每個單位一筆；stamp 標記最後一次被 build 看到的幀） */
+interface SortHexMemory { q: number; r: number; stamp: number }
+
 export class UnitFrameStore {
     private readonly pool: MutableUnitFrame[] = [];
     private readonly frames: UnitFrame[] = [];
+    private readonly sortHex = new Map<string, SortHexMemory>();
+    private buildStamp = 0;
 
     /** 與輸入 agents 同序、同長度的本幀快照 */
     public get list(): readonly UnitFrame[] { return this.frames; }
@@ -98,6 +106,7 @@ export class UnitFrameStore {
         const n = agents.length;
         if (this.frames.length > n) this.frames.length = n;
         const batchCulled = phase === 'OUT' && transitionT > TRANSITION_OUT_CULL_T;
+        this.buildStamp++;
 
         for (let i = 0; i < n; i++) {
             const agent = agents[i];
@@ -106,6 +115,42 @@ export class UnitFrameStore {
             this.frames[i] = f;
             this.fill(f, agent, renderHeightAt, mapConfig, transitionT, phase, batchCulled, hasGround);
         }
+
+        // 不在單位列表裡的單位（已移除）：丟掉它的腳下格記憶
+        if (this.sortHex.size > n) {
+            for (const [id, mem] of this.sortHex) {
+                if (mem.stamp !== this.buildStamp) this.sortHex.delete(id);
+            }
+        }
+    }
+
+    /**
+     * 排序用腳下格（帶滯後）：腳點原始所在格 raw 與上一幀記憶的格 prev 不同時，
+     * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換；
+     * 離 prev 超過一環（瞬移、擊飛）立即切換。結果寫進 out（幀自己的 Hex，不洩漏記憶物件）。
+     */
+    private resolveSortHex(out: Hex, agent: Agent, footX: number, footY: number, mapConfig: MapConfig): void {
+        const raw = HexUtils.fromPx(footX, footY, mapConfig);
+        let mem = this.sortHex.get(agent.id);
+        if (!mem) {
+            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp };
+            this.sortHex.set(agent.id, mem);
+            out.q = raw.q; out.r = raw.r;
+            return;
+        }
+        mem.stamp = this.buildStamp;
+        if (raw.q !== mem.q || raw.r !== mem.r) {
+            let sw = HexUtils.dist(raw, mem) > 1;
+            if (!sw) {
+                const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
+                const cOld = HexUtils.toPx(mem.q, mem.r, mapConfig);
+                const dNew = Math.hypot(footX - cNew.x, footY - cNew.y);
+                const dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
+                sw = dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld;
+            }
+            if (sw) { mem.q = raw.q; mem.r = raw.r; }
+        }
+        out.q = mem.q; out.r = mem.r;
     }
 
     private fill(
@@ -169,7 +214,9 @@ export class UnitFrameStore {
         // 單位走過格界後（腳已在前方鄰格內）腳 Y 仍小於該格格心 Y，會被「之後才畫」的前方地塊蓋住下半身。
         // 因此把鍵抬到腳下格的格心線（只抬不降；同鍵時 subLayer 讓單位排在地塊之後）。
         // 以含繪製位移（physics 偏移、屍體擊飛）的腳點判斷，轉場位移不參與（地塊也套同一個）。
-        const hexUnderFoot = HexUtils.fromPx(footX, footY, mapConfig);
+        // 排序用腳下格帶滯後（resolveSortHex）：高度仍由 getUnitGroundHeight 決定，不受影響
+        const hexUnderFoot = f.hexUnderFoot;
+        this.resolveSortHex(hexUnderFoot, agent, footX, footY, mapConfig);
         const hexCenterY = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig).y;
 
         const floorY = footY - groundH;
@@ -184,7 +231,6 @@ export class UnitFrameStore {
         f.sortY = sortY;
         f.drawY = VisualMath.getIsoVisualY(sortY, groundH);
         f.sortBias = Math.max(0, hexCenterY - footY);
-        f.hexUnderFoot = hexUnderFoot;
         f.bodyCenterY = VisualMath.getVisualBodyCenterY(floorY, pz);
         f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -HUD_BAR_OFFSET);
     }
