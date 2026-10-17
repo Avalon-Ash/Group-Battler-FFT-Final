@@ -22,7 +22,7 @@
 | 三層同心圓管光柱 | `MaterialPainter.drawLayeredBeam`：三層 linearGradient 疊加 + `setLineDash` 滾動螺旋緞帶 |
 | Icosphere 裂面 | 沿用既有 `HEX_SHARD` 碎片 + 噪聲遮罩邊緣 |
 | 後處理色調分級 | `PostProcessor.applyToneGrade`（接在世界層後、HUD 前，UI 不受影響） |
-| 速度扭曲層 | `MaterialPainter.drawMotionTrail`：遞減 alpha 殘影近似動態模糊 |
+| 速度扭曲層 | （已移除）改為真實精靈殘影：`UnitAfterimagePainter`（RenderSpec §10） |
 
 ## 接入點
 
@@ -80,7 +80,7 @@
 | 毒液池 (Poison) | 酸液池徑向漸層 + 腐蝕邊緣內環 + 確定性種子泡泡（徹底消除每幀 `Math.random()` 跳動）+ fbm 邊緣侵蝕 | `MaterialPainter.bakePoisonPool` / `GroundPainter.drawPoisonField` |
 | 虛空深淵 (Void) | 事件視界暗核 + 雙層吸積漸層 + 確定性暗絲撕裂，全面替代耗能的 `shadowBlur = 20` | `MaterialPainter.bakeVoidField` / `GroundPainter.drawVoidField` |
 | 刀光/火球/碎片 | 離屏烘焙時套用 `applyNoiseMask`，打散生硬向量邊緣（`SLASH`、`FIREBALL`、`HEX_SHARD`） | `VFXFactory.ts` |
-| 動態拖尾 (Trail) | 單位高速位移（`isHighSpeed`）或突進衝刺（`isDashing`）時，沿投影速度反方向疊繪遞減 alpha 殘影 | `MaterialPainter.drawMotionTrail` / `UnitBodyPainter.ts` |
+| 動態拖尾 (Trail) | 單位高速位移（`isHighSpeed`）或突進衝刺（`isDashing`）時，沿投影速度反方向疊繪遞減 alpha 殘影 | 已改為 `UnitAfterimagePainter`（精靈殘影，RenderSpec §10）；`drawMotionTrail` 已移除 |
 
 ### 預覽與 A/B 驗證
 

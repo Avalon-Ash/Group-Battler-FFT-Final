@@ -23,6 +23,13 @@ export interface AgentFieldOwnership {
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    trailHistory: {
+        group: 'locomotion',
+        kind: 'single',
+        owners: ['engine/systems/PhysicsSystem.ts'],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '繪製位置（px + physics）的最近軌跡，衝刺殘影與飛行緞帶讀它。MotionEngine 曾經也寫（飛行單位會重複推入），已移除。',
+    },
     ccVisual: {
         group: 'status',
         kind: 'domain',

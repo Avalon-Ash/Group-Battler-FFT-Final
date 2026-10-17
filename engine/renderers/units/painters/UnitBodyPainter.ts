@@ -5,19 +5,21 @@
 // ║  [ARCH] 陣營外觀來源：FACTION_SKINS (SSOT)               ║
 // ║  [ARCH] hp <= 0 時 early return，死亡演出由 DeathPainter 負責 ║
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
+// ║  [ARCH] 衝刺殘影：本體之前呼叫 UnitAfterimagePainter，偏移讀 ║
+// ║  UnitFrame.ghosts（局部座標原點＝腳底繪製點，RenderSpec §10）║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
-import { AnimState, MovementType, ActionState } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, UNIT_SPRITE } from "../../../../constants";
+import { AnimState, MovementType } from "../../../../types";
+import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { SpriteManager } from "../../../sprites";
 import { VisualMath } from "../../../math/VisualMath";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
-import { MaterialPainter } from "../../../graphics/materials/MaterialPainter";
-import { MATERIAL_CONFIG } from "../../../../data/vfx/materialConfig";
+import { UnitAfterimagePainter } from "./UnitAfterimagePainter";
+import type { UnitFrame } from "../../frame/UnitFrame";
 
 export const UnitBodyPainter = {
     draw(
@@ -28,7 +30,8 @@ export const UnitBodyPainter = {
         isSilhouette: boolean, 
         _isSelected: boolean,
         _scaleFactor: number,
-        terrainHeight: number
+        terrainHeight: number,
+        frame: UnitFrame | null = null
     ) {
         if (agent.hp <= 0 || agent.banished || agent.outOfBounds) return;
         
@@ -37,11 +40,9 @@ export const UnitBodyPainter = {
         const speedSq = vx*vx + vy*vy;
         
         let tiltAngle = 0;
-        let isHighSpeed = false;
 
         if (speedSq > VFX_PARAM.SPEED_TRAIL_THRESHOLD_SQ) {
             const speed = Math.sqrt(speedSq);
-            isHighSpeed = speed > VFX_PARAM.SPEED_TILT_THRESHOLD;
             
             const dirX = vx / speed;
             const dot = dirX * agent.facing; 
@@ -53,44 +54,17 @@ export const UnitBodyPainter = {
         }
 
         const finalRotation = agent.physics.angle + tiltAngle;
-        const isDashing = agent.actionState === ActionState.EVADING;
 
-        if ((isHighSpeed || isDashing) && !isSilhouette && agent.hp > 0) {
-            if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.motionTrail.enabled) {
-                const assets = SpriteManager.getUnitImages(agent.role, agent.team);
-                const pz = agent.physics.z;
-                const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-                ctx.save();
-                ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y);
-                ctx.scale(UNIT_SCALE, UNIT_SCALE);
-                const screenVy = vy * ISO_SCALE_Y;
-                MaterialPainter.drawMotionTrail(ctx, assets.base, 64, vx, screenVy, 0.45);
-                ctx.restore();
-            } else {
-                const history = agent.trailHistory;
-                const step = 2;
-                const maxGhosts = 2;
-                const trailColor = getFactionSkin(agent.team).projection.trailColor;
-                
-                for (let i = Math.max(0, history.length - 1 - (maxGhosts*step)); i < history.length - 1; i += step) {
-                    const pos = history[i];
-                    const opacity = (i / history.length) * 0.3; 
-                    ctx.save();
-                    const ghostY = VisualMath.getVisualBodyCenterY(pos.y, pos.z);
-                    ctx.translate(pos.x, ghostY);
-                    ctx.scale(UNIT_SCALE, UNIT_SCALE);
-                    ctx.rotate(finalRotation * 0.5);
-                    ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-                    ctx.globalAlpha = opacity;
-                    ctx.globalCompositeOperation = 'screen'; 
-                    ctx.fillStyle = trailColor; 
-                    ctx.beginPath();
-                    ctx.moveTo(-10, -40); ctx.lineTo(10, -40);
-                    ctx.lineTo(5, 10); ctx.lineTo(-5, 10);
-                    ctx.fill();
-                    ctx.restore();
-                }
-            }
+        let bodyFloat = 0;
+        if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
+             bodyFloat = Math.sin(t * 2) * 3;
+        } else if (agent.movementType === MovementType.FLYING) {
+             bodyFloat = Math.sin(t * 4) * 2;
+        }
+
+        // 衝刺／高速移動殘影：本體之前、單位局部座標（原點＝腳底繪製點），偏移來自 UnitFrame（RenderSpec §10）
+        if (frame && frame.ghostCount > 0 && !isSilhouette && agent.visualStatus !== 'POLYMORPH') {
+            UnitAfterimagePainter.draw(ctx, agent, frame, t, finalRotation, bodyFloat);
         }
 
         ctx.save(); 
@@ -115,12 +89,6 @@ export const UnitBodyPainter = {
         ctx.scale(UNIT_SCALE, UNIT_SCALE);
         ctx.rotate(finalRotation);
 
-        let bodyFloat = 0; 
-        if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             bodyFloat = Math.sin(t * 2) * 3; 
-        } else if (agent.movementType === MovementType.FLYING) {
-             bodyFloat = Math.sin(t * 4) * 2;
-        }
         ctx.translate(0, bodyFloat);
 
         // Layer 1: Rear Effects (Ribbons/Engines)

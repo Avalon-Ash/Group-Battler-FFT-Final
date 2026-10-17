@@ -305,16 +305,6 @@ export const MATERIAL_CONFIG = {
         } as BeamCoreConfig,
     },
 
-    /** 殘影拖尾：以遞減 alpha 疊繪近似動態模糊 */
-    motionTrail: {
-        enabled: true,
-        samples: 3,
-        /** 每層往速度反方向的位移比例 */
-        stride: 0.35,
-        /** 每層 alpha 衰減 */
-        falloff: 0.45,
-    },
-
     /**
      * 角色與棋座材質管線（Pass 3）
      */

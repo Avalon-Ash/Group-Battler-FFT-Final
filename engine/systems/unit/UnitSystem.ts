@@ -8,6 +8,8 @@
 // ║  op 的 tx／y／ty／th／sortBias 一律讀 UnitFrame（每幀快照，  ║
 // ║  engine/renderers/frame/UnitFrame.ts），本檔不再取得地形高度，║
 // ║  也不自己算腳點、腳下格或擊飛位移。                        ║
+// ║  UNIT op 帶著 UnitFrame（op.unitFrame），drawAssembly 轉給    ║
+// ║  UnitBodyPainter 畫衝刺殘影（RenderSpec §10）。              ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -46,6 +48,7 @@ export class UnitRenderSystem {
             op.th = f.groundH;
 
             op.agent = agent;
+            op.unitFrame = f;
             op.tx = f.footX;
 
             // Sort Y: Ground position for depth sorting（含 physics／擊飛／轉場；腳下格抬升見 UnitFrame.sortBias）
@@ -98,10 +101,11 @@ export class UnitRenderSystem {
         isSilhouette: boolean,
         layout: HexLayout,
         terrainHeight: number,
-        simDt: number = 0.016
+        simDt: number = 0.016,
+        frame: UnitFrame | null = null
     ) {
         ctx.save();
-        ctx.translate(drawX, drawY); 
+        ctx.translate(drawX, drawY);
         
         if (!isSilhouette) {
             if (agent.hp > 0) {
@@ -114,7 +118,7 @@ export class UnitRenderSystem {
         // 編輯模式拖曳預覽：只移動實體（棋座＋核心），角色投影放下後才回來
         const isDragPreview = agent.dragOverQ !== null || agent.dragOverR !== null;
         if (!isDragPreview) {
-            UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
+            UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight, frame);
         }
         // 核心寶石畫在角色之後：投影成形後藏在投影中心（淡色），否則是棋座上的實體寶石；位置與投射物起點同源（VisualMath.projectionCenterAt）
         if (!isSilhouette) {

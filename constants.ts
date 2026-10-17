@@ -299,6 +299,32 @@ export const UNIT_FRAME = {
     HEX_HYSTERESIS_PX: 3,
 } as const;
 
+/**
+ * 衝刺／高速移動殘影（角色投影的半透明複製，FFT 式）。
+ * 位置來自 Agent.trailHistory（PhysicsSystem 唯一寫入者），換算在 engine/renderers/frame/Afterimage.ts，
+ * 繪製在 UnitAfterimagePainter（RenderSpec §10）。
+ */
+export const AFTERIMAGE = {
+    /** trailHistory 保留的最大點數（每個物理 tick 一點） */
+    HISTORY_LENGTH: 15,
+    /** 物理端開始記錄軌跡的速度平方（px/s）² */
+    RECORD_SPEED_SQ: 10000,
+    /** 殘影最多幾個（再依品質階層取較少者） */
+    MAX_GHOSTS: 4,
+    /** 各品質階層 [Tier 0, 1, 2, 3] 的殘影數上限 */
+    GHOSTS_BY_TIER: [4, 3, 2, 1] as const,
+    /** 相鄰殘影在 trailHistory 中相隔幾個點 */
+    STRIDE: 2,
+    /** 殘影與本體腳點的最小水平距離（px）；更近的殘影整個疊在本體後面，省略 */
+    MIN_SEPARATION_PX: 6,
+    /** 最近一個殘影的不透明度；其後依序線性遞減 */
+    ALPHA_NEAREST: 0.5,
+    /** 陣營軌跡色疊在殘影上的強度（0～1，source-atop） */
+    TINT_STRENGTH: 0.6,
+    /** 染色影格快取上限（超過時淘汰最舊） */
+    MAX_TINTED_FRAMES: 96,
+} as const;
+
 // SSOT: VFX Thresholds
 export const VFX_PARAM = {
     SPEED_TRAIL_THRESHOLD_SQ: 1000,

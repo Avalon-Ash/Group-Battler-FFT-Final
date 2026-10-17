@@ -6,7 +6,6 @@
  *   Ribbon strip 參數化路徑    → 中點位移遞迴 + 多層輝光疊繪（drawRibbon）
  *   三層同心圓管光柱           → createLinearGradient 疊加 + setLineDash 滾動（drawLayeredBeam）
  *   後處理色調分級             → ctx.filter 字串（gradeFilter）
- *   速度扭曲層                 → 遞減 alpha 殘影（drawMotionTrail）
  *
  * 所有數值一律讀 MATERIAL_CONFIG，不在此檔寫死。
  *
@@ -503,39 +502,6 @@ export const MaterialPainter = {
             ctx.stroke();
         }
         ctx.setLineDash(NO_DASH);
-        ctx.restore();
-    },
-
-    /**
-     * 殘影拖尾：對同一張貼圖沿速度反方向遞減 alpha 疊繪。
-     * 用來近似對方的 velocity distortion pass，不需要位移貼圖。
-     */
-    drawMotionTrail(
-        ctx: CanvasRenderingContext2D,
-        img: CanvasImageSource,
-        size: number,
-        vx: number,
-        vy: number,
-        baseAlpha: number,
-    ) {
-        const cfg = MATERIAL_CONFIG.motionTrail;
-        if (!MATERIAL_CONFIG.enabled || !cfg.enabled) return;
-        const speed = Math.hypot(vx, vy);
-        if (speed < 1) return;
-        const ux = vx / speed;
-        const uy = vy / speed;
-        const stride = Math.min(size, speed * cfg.stride * 0.016);
-
-        ctx.save();
-        ctx.globalCompositeOperation = 'lighter';
-        let a = baseAlpha * cfg.falloff;
-        for (let i = 1; i <= cfg.samples; i++) {
-            ctx.globalAlpha = a;
-            const ox = -ux * stride * i;
-            const oy = -uy * stride * i;
-            ctx.drawImage(img, ox - size, oy - size, size * 2, size * 2);
-            a *= cfg.falloff;
-        }
         ctx.restore();
     },
 
