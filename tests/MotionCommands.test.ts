@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Team, Role } from '../types';
 import { HexUtils } from '../engine/utils';
+import { ControlSystem } from '../engine/systems/status/ControlSystem';
 import { stopMovement, teleportTo } from '../engine/systems/movement/MotionCommands';
 
 describe('MotionCommands', () => {
@@ -49,5 +50,24 @@ describe('MotionCommands', () => {
         expect(a.px + a.physics.x).toBeCloseTo(beforeX);
         expect(a.py + a.physics.y).toBeCloseTo(beforeY);
         expect(engine.map.getAgentAt(2, 0)).toBe(a);
+    });
+
+    it('ControlSystem stops a stunned mover once and does not reallocate the empty path every tick', () => {
+        const a = spawn();
+        const route = [{ q: 1, r: 0 }];
+        a.path = route;
+        a.trajectory = route;
+        a.isMoving = true;
+        a.stunTimer = 5;
+        const control = new ControlSystem();
+
+        control.update(a, 0.016, engine);
+        expect(a.isMoving).toBe(false);
+        expect(a.path).toEqual([]);
+        expect(a.trajectory).toBe(route);
+
+        const stopped = a.path;
+        control.update(a, 0.016, engine);
+        expect(a.path).toBe(stopped);
     });
 });

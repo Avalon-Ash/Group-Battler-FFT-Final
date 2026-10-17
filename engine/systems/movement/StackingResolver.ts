@@ -4,6 +4,7 @@ import { HexUtils, Vector } from "../../utils";
 import { MovementType, SpatialProvider, LogProvider } from "../../../types";
 import { BLOCK_HEIGHT } from "../../../constants";
 import { random } from "../../math/rng";
+import { stopMovement } from "./MotionCommands";
 
 /**
  * Robust Anti-Stacking System
@@ -49,10 +50,7 @@ export class StackingResolver {
                 spatial.updateAgentPosition(guest, found.q, found.r);
                 
                 // Clear active move to prevent pathing glitches
-                if (guest.isMoving) {
-                    guest.isMoving = false;
-                    guest.path = [];
-                }
+                if (guest.isMoving) stopMovement(guest);
 
                 // Add small physical impulse to separate visually
                 const dir = Vector.normalize(Vector.sub(

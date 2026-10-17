@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
 import { random } from "../../math/rng";
+import { stopMovement } from "../movement/MotionCommands";
 
 export class ControlSystem {
     
@@ -60,8 +61,7 @@ export class ControlSystem {
         // State Logic: Banishment
         if (agent.banishTimer > 0) {
             agent.banished = true;
-            agent.isMoving = false;
-            agent.path = [];
+            if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
             return; 
         } else {
             if (agent.banished) {
@@ -76,16 +76,14 @@ export class ControlSystem {
 
         // State Logic: Stun
         if (agent.stunTimer > 0) {
-            agent.isMoving = false;
-            agent.path = [];
+            if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
         } else if (agent.ccVisual === 'FROZEN') {
             agent.ccVisual = 'NONE';
         }
 
         // State Logic: Root and Fear combined
         if (agent.rootTimer > 0 || agent.stunTimer > 0) {
-            agent.isMoving = false;
-            agent.path = [];
+            if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
         }
 
         if (agent.fearMoveTimer > 0) agent.fearMoveTimer = Math.max(0, agent.fearMoveTimer - dt);
