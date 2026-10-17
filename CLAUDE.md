@@ -22,6 +22,7 @@
 - 修改 Facade 底下的子目錄實作，不改 Facade（`engine/renderer.ts`、`engine/game.ts` 等），除非刻意改公開介面。
 - 不用 `as any`；tick 和渲染迴圈裡不放 `console.log`；不引入 Three／Pixi／WebGL。
 - 一個狀態欄位只能有一個寫入者；depth sort 的鍵要包含繪製時才套用的位移。
+- **座標協議以 `engine/renderers/RenderSpec.ts` 為準**（層序、sortBias、三種 Y、腳下高度 `getUnitGroundHeight`、發射點 `getCoreAnchor`、受擊點 `getUnitAnchor`）。各檔的方框檔頭（職責／上游／[ARCH]）是它的局部說明。寫任何動到位置、高度、排序、發射點的任務說明時，**必須要求代理先讀 RenderSpec 與檔頭，並在同一個 commit 同步更新兩者**；審查時對照 RenderSpec。`tests/CoordinateProtocol.test.ts` 用只減不增的基準擋住偏離。
 
 ## 子代理與模型分級
 內建子代理不會讀到本檔或 `AGENTS.md`，所以規則都寫在 `.claude/agents/*.md` 各自的定義裡。開子代理時依下表選用（定義檔的 frontmatter 已鎖定模型與強度）：

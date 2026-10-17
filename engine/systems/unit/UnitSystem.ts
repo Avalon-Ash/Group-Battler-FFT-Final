@@ -4,6 +4,9 @@
 // ║                                                          ║
 // ║  繪圖實作位置：                                          ║
 // ║  → engine/renderers/units/painters/                     ║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
+// ║  op.y＝含 physics／擊飛的腳點；sortBias 抬到腳下格格心；   ║
+// ║  高度只取傳入的繪製用高度（含漂浮位移，§5）。              ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";

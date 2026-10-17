@@ -1,8 +1,17 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  VFXRenderer — 粒子／貼花／投射物 RenderOp 提交            ║
+// ║  職責：未投影 Y（p.y）乘回 ISO_SCALE_Y 成足跡 Y，貼地特效   ║
+// ║        以前緣排序（sortBias＝gHalfH＋GROUND_SORT_BIAS）    ║
+// ║  上游：VFXSystem 狀態、RenderPipeline 的繪製用地面高度     ║
+// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、§7║
+// ║  貼地特效／貼花跟地塊浮動；空中特效不套用。                ║
+// ╚══════════════════════════════════════════════════════════╝
+
 
 import { GameEngine } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { VFXSystem } from "../vfx";
-import { MapConfig } from "../../utils";
+import { HexUtils, MapConfig } from "../../utils";
 import { Camera } from "../../systems/CameraSystem";
 import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
@@ -22,6 +31,13 @@ export class VFXRenderer {
         transitionPhase: 'IN' | 'OUT' | 'IDLE',
         viewport?: { width: number, height: number, camera: Camera } 
     ) {
+        // 貼地特效與貼花跟著腳下地塊的繪製時位移（漂浮地形）：繪製用高度（getTerrainHeight，RenderPipeline 已含位移）
+        // 與模擬高度之差就是那一格的位移；非漂浮地形為 0。空中特效與投射物不套用（RenderSpec「漂浮位移」）。
+        const groundDrawShift = (x: number, screenY: number): number => {
+            const hex = HexUtils.fromPx(x, screenY, mapConfig);
+            return engine.getTerrainHeight(hex.q, hex.r) - getTerrainHeight(hex.q, hex.r);
+        };
+
         let cullMinX = -Infinity, cullMaxX = Infinity, cullMinY = -Infinity, cullMaxY = Infinity;
         
         const PAD_X = 1200;
@@ -86,15 +102,15 @@ export class VFXRenderer {
             // Apply visual bias (Z-Fighting prevention) directly to ty, NOT to sorting y.
             // visualBias is a pixel-space compensation to ensure ground effects hover slightly above terrain.
             const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
-            op.ty = projectedY + offset - p.z - visualBias; 
+            op.ty = projectedY + offset - p.z - visualBias + (isGroundLocked ? groundDrawShift(p.x, projectedY) : 0); 
             op.th = p.z; 
         });
 
-        this.submitDecalLayer(renderList, vfx, mapConfig, transitionT, transitionPhase, cullMinX, cullMaxX, cullMinY, cullMaxY);
+        this.submitDecalLayer(renderList, vfx, mapConfig, transitionT, transitionPhase, cullMinX, cullMaxX, cullMinY, cullMaxY, groundDrawShift);
         ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase);
     }
 
-    private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE', minX: number, maxX: number, minY: number, maxY: number) {
+    private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE', minX: number, maxX: number, minY: number, maxY: number, groundDrawShift: (x: number, screenY: number) => number) {
         vfx.state.decals.forEach(d => {
             if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) return;
             const offset = VisualMath.getTransitionOffset(d.x, d.y, mapConfig, t, phase);
@@ -102,7 +118,7 @@ export class VFXRenderer {
             op.type = RenderOpType.DECAL;
             op.y = d.y + offset + 1; 
             op.z = 2; 
-            op.tx = d.x; op.ty = d.y + offset; 
+            op.tx = d.x; op.ty = d.y + offset + groundDrawShift(d.x, d.y); 
             op.dColor = d.color;
             op.dScale = d.scale;
             op.dLife = d.life;

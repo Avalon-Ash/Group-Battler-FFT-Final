@@ -1,3 +1,12 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  GridRenderStrategy — 地塊／障礙／危害／疊層 RenderOp 提交 ║
+// ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
+// ║  上游：GridCache（格心、高度、鄰格遮罩）                   ║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
+// ║  op.y＝足跡 Y（高物件加 h*TERRAIN_SORT_SCALE），op.ty＝繪製 Y║
+// ║  漂浮位移（§5，VisualMath.floatBobAt）只加在 op.ty。       ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
@@ -29,6 +38,8 @@ export class GridRenderStrategy {
         cache.ensure(engine);
         const scene = engine.currentScene;
         const theme = TERRAIN_THEMES[scene.textureType] || TERRAIN_THEMES['VOID'];
+        // 漂浮位移只加在繪製位置 ty（不進排序鍵 op.y）；同一個值也由 RenderPipeline 併入繪製用地面高度（見 RenderSpec）
+        const floating = VisualMath.isFloatingBiome(scene.textureType);
 
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
@@ -63,6 +74,7 @@ export class GridRenderStrategy {
             const offset = VisualMath.getTransitionOffset(px, py, engine.mapConfig, transitionT, transitionPhase);
             const visualBaseY = py + offset;
             const visualSurfaceY = VisualMath.getIsoVisualY(visualBaseY, h);
+            const bob = floating ? VisualMath.floatBobAt(px, py, globalTime) : 0;
 
             if (Math.abs(offset) > 800) continue;
 
@@ -71,7 +83,7 @@ export class GridRenderStrategy {
                 const op = renderList.next();
                 op.type = RenderOpType.OBSTACLE;
                 op.tq = q; op.tr = r; op.th = h; 
-                op.tx = px; op.ty = visualSurfaceY; 
+                op.tx = px; op.ty = visualSurfaceY + bob; 
                 op.y = visualBaseY + (h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
                 op.ttype = obstacleType;
             }
@@ -81,7 +93,7 @@ export class GridRenderStrategy {
                 const hOp = renderList.next();
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
-                hOp.tx = px; hOp.ty = visualSurfaceY; 
+                hOp.tx = px; hOp.ty = visualSurfaceY + bob; 
                 hOp.y = visualBaseY + (tile.h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
                 hOp.oHazard = {
                     type: h.type,
@@ -97,7 +109,7 @@ export class GridRenderStrategy {
             op.tq = q; op.tr = r; op.th = h;
             op.tEdge = edgeMask;
             op.tBase = baseLevel;
-            op.tx = px; op.ty = visualBaseY; 
+            op.tx = px; op.ty = visualBaseY + bob; 
             op.y = visualBaseY; // Sorting based on footprint
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;
             op.oStatus = this._unitVisualStatus.get(key);
@@ -118,7 +130,7 @@ export class GridRenderStrategy {
                 const overlayOp = renderList.next();
                 overlayOp.type = RenderOpType.OVERLAY;
                 overlayOp.tq = q; overlayOp.tr = r; overlayOp.th = h;
-                overlayOp.tx = px; overlayOp.ty = visualBaseY; 
+                overlayOp.tx = px; overlayOp.ty = visualBaseY + bob; 
                 overlayOp.y = visualBaseY; 
                 overlayOp.sortBias = HEX_SIZE * 0.5;
                 overlayOp.tsize = HEX_SIZE;
@@ -148,7 +160,7 @@ export class GridRenderStrategy {
             op.tq = q; op.tr = r; op.th = h; // Keep original height for block thickness
             op.tEdge = 0; // 掉落中的地塊不套用鄰格遮罩
             op.tBase = 0; // 掉落中的地塊維持舊基座
-            op.tx = pos.x; op.ty = visualBaseY; 
+            op.tx = pos.x; op.ty = visualBaseY + (floating ? VisualMath.floatBobAt(pos.x, pos.y, globalTime) : 0); 
             op.y = pos.y + offset; // Sorting based on initial footprint, ignore falling Z
             op.z = z; // Negative Z indicates falling and used for opacity calculation
             op.tsize = HEX_SIZE; op.ttheme = theme; op.ttype = scene.textureType; op.tdetail = theme.detail;

@@ -1,3 +1,11 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  RenderPipeline — 每幀渲染流程（提交→排序→分發→剪影→HUD） ║
+// ║  職責：建立「繪製用地面高度」＝模擬高度－該格漂浮位移，    ║
+// ║        傳給單位、特效、狀態、HUD、剪影                     ║
+// ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5；  ║
+// ║  模擬端永遠不讀繪製用高度。                                ║
+// ╚══════════════════════════════════════════════════════════╝
+
 
 import { Agent, GameEngine, VICTORY_PHASE_DURATION } from "../game";
 import { Camera, GameRenderer } from "../renderer"; 
@@ -8,6 +16,8 @@ import { HUDRenderer } from "./HUDRenderer";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType } from "./RenderList";
 import { RenderDispatcher } from "./RenderDispatcher";
+import { VisualMath } from "../math/VisualMath";
+import { HexUtils } from "../utils";
 import { RenderStats } from "./RenderStats";
 import { getRenderDpr } from "./RenderQuality";
 import { CtxOpCounter } from "./CtxOpCounter";
@@ -39,6 +49,8 @@ export class RenderPipeline {
     // [FIX] 避免每幀重建 closure，只在 engine 實例變更時重建
     private _cachedTerrainH: ((q: number, r: number) => number) | null = null;
     private _terrainHEngine: GameEngine | null = null;
+    /** 本幀漂浮位移的時間；非漂浮地形為 null。繪製用地面高度讀它（見 drawWorld） */
+    private _floatT: number | null = null;
     
     // Scratch structures to eliminate per-frame allocations
     private _scratchOccludedSet = new Set<Agent>();
@@ -173,8 +185,16 @@ export class RenderPipeline {
 
         if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
             this._terrainHEngine = engine;
-            this._cachedTerrainH = (q: number, r: number) => this.renderer.grid.getTerrainHeight(q, r, engine);
+            // 繪製用地面高度＝地形高度－該格漂浮位移（位移往下為正）。單位、屍體、狀態、HUD、貼地特效都從這裡取高度，
+            // 所以跟 GridRenderStrategy 用同一個 VisualMath.floatBobAt 畫的地塊一起浮動。模擬端用 engine.getTerrainHeight，不受影響。
+            this._cachedTerrainH = (q: number, r: number) => {
+                const h = this.renderer.grid.getTerrainHeight(q, r, engine);
+                if (this._floatT === null) return h;
+                const c = HexUtils.toPx(q, r, engine.mapConfig);
+                return h - VisualMath.floatBobAt(c.x, c.y, this._floatT);
+            };
         }
+        this._floatT = VisualMath.isFloatingBiome(engine.currentScene.textureType) ? t : null;
         const terrainH = this._cachedTerrainH;
 
         const dpr = getRenderDpr();

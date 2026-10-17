@@ -1,0 +1,8 @@
+{
+    "height.directAgent": [
+        "engine/renderers/grid/GridRenderStrategy.ts: getTerrainHeight(highlight.q, highlight.r)"
+    ],
+    "anchor.recompute": [],
+    "float.outsideSSOT": [],
+    "submitter.header": []
+}

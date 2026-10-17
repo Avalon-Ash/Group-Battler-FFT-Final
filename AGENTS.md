@@ -41,7 +41,8 @@
 | :--- | :--- |
 | **Every task** | `types.ts`, `constants.ts`, your task prompt |
 | **Renderers / VFX** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants.ts` |
-| **Unit appearance** | `data/units/appearance/sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
+| **Unit appearance** | `engine/renderers/RenderSpec.ts`, `data/units/factionSkin.ts`, `data/units/appearance/sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
+| **Anything that positions, lifts or sorts a visual** (terrain, units, pedestals, cores, VFX, projectiles, HUD over units) | `engine/renderers/RenderSpec.ts` (layer order, sortBias, coordinate protocol), `engine/math/VisualMath.ts`, and the box header of every file you edit |
 | **AI / behavior trees** | `engine/behaviorTree.ts`, `engine/systems/ai.ts`, `engine/ai/`, `data/ai_profiles` |
 | **Combat / skills / CC** | `engine/systems/combat/`, `data/skills/`, `skillDatabase.ts` |
 | **Movement / hex grid** | `engine/systems/movement/`, `engine/systems/grid/`, `engine/math/VisualMath.ts`, `engine/math/PointerProjector.ts` |
@@ -65,6 +66,7 @@
 
 - **React StrictMode**: component cleanup runs and the component remounts. Never immediately `destroy()` an object that the remount will reuse; defer it.
 - **Depth sorting**: the sort key must include any offset applied at draw time, or the sprite flickers behind tiles.
+- **Coordinate protocol is a contract, not a comment.** Heights, anchors, emission points and sort keys come from the SSOT helpers named in `RenderSpec.ts` (unit ground height `VisualMath.getUnitGroundHeight`, emission origin `VisualMath.getCoreAnchor`, target/body anchor `VisualMath.getUnitAnchor`) — never recompute them locally (e.g. `getTerrainHeight(agent.q, agent.r)` in a painter). If your change alters any rule (a new offset, a new sortBias, a new layer), update `RenderSpec.ts` **and** the box header (`// ╔═ … 職責／上游／[ARCH] … ╚═`) of each touched file in the same commit. `tests/CoordinateProtocol.test.ts` enforces this with a shrink-only baseline; never add entries to it.
 - **Asset URLs**: build them with `import.meta.env.BASE_URL`, never a hardcoded `/assets/...` path.
 - **"All green" is not "works"**: lint/test/build can pass while the screen is frozen. If you change rendering or engine lifecycle and your prompt includes a runtime check (Playwright script), run it.
 

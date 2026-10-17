@@ -1,7 +1,15 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  VisualMath — 視覺錨點 SSOT                               ║
+// ║  職責：腳下地面高度、受擊點、核心發射點、漂浮位移、等角Y   ║
+// ║  [ARCH] 繪製／特效／HUD 一律從這裡取，不得自己用           ║
+// ║  getTerrainHeight(agent.q, agent.r) 重算。規則與用途表見   ║
+// ║  engine/renderers/RenderSpec.ts §4、§5。                   ║
+// ╚══════════════════════════════════════════════════════════╝
+
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND, CORE_VISUAL } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND, CORE_VISUAL, FLOAT_BOB, RENDER_CACHE } from "../../constants";
 
 export interface Point3D {
     x: number;
@@ -100,6 +108,20 @@ export class VisualMath {
             if (hv.q !== agent.q || hv.r !== agent.r) h = Math.max(h, heightAt(hv.q, hv.r));
         }
         return h;
+    }
+
+    public static isFloatingBiome(textureType: string): boolean {
+        return FLOAT_BOB.BIOMES.includes(textureType);
+    }
+
+    /**
+     * SSOT：漂浮地形的繪製時浮動（螢幕 px，正值往下，已取整數像素避免 sprite 落在半像素變糊）。
+     * x、y 取格心的世界座標（HexUtils.toPx），同一格的地塊與站在上面的東西拿到同一個值。
+     * 不進排序鍵：相鄰格的相位差很小（整片一起起伏），不改變前後關係。
+     */
+    public static floatBobAt(x: number, y: number, t: number): number {
+        const raw = Math.sin(t * FLOAT_BOB.SPEED + (x + y) * FLOAT_BOB.PHASE_PER_PX) * FLOAT_BOB.AMPLITUDE;
+        return Math.round(Math.round(raw / RENDER_CACHE.FLOAT_STEP) * RENDER_CACHE.FLOAT_STEP);
     }
 
     private static smoothstep(edge0: number, edge1: number, x: number): number {
