@@ -22,7 +22,7 @@
  *   but already below the CENTER line of a half-step neighbour B (FLAT: dy 20.8 px, foot can sit 25 px under A's centre) is NOT in
  *   front of B, because at the foot's x B's footprint is still entirely below it. Comparing against the centre would flag
  *   those (correct) cases. Hex-vs-hex needs no refinement: where two cells share an x-range the one with the smaller centre Y is behind.
- *   Unit x unit, VFX, decals, overlays, auras are out of scope.
+ *   Unit x unit, VFX, decals, overlays, auras, ground drape are out of scope.
  *
  * ── JUDGED PAIRS ───────────────────────────────────────────────────────────────────────────────────────────
  * Types TERRAIN, OBSTACLE, HAZARD, UNIT, CORPSE; at least one side UNIT/CORPSE/OBSTACLE; screen silhouettes must overlap (convex SAT):
@@ -35,10 +35,11 @@
  *
  * ── DRIVER (which sort input is responsible) ──────────────────────────────────────────────────────────────
  * Counterfactual: recompute both ops' sort keys with subsets of {E = h*TERRAIN_SORT_SCALE term of OBSTACLE/HAZARD,
- * SB = unit sortBias, LIFT = decal lift} removed; the smallest subset that makes the pair right is the driver. If nothing
+ * SB = unit sortBias, LIFT = any other positive sortKey excess} removed; the smallest subset that makes the pair right is the driver. If nothing
  * fixes it, the pure footprint keys decide: equal Y bucket -> 'subLayerTie', otherwise 'footprintY'.
  *
- * Does not depend on the decal-lift code: it only reads op fields after the sort (LIFT is inferred from sortKey - recomputed key).
+ * Depends only on op fields after RenderList.sort (no knowledge of ground drape / decal handling). Any sortKey excess over the recomputed
+ * key is reported as an 'other' driver (the decal lift that produced it was removed on main by the ground-drape change).
  */
 
 /** Page side. Installs window.__DO__ = { begin(cfg), end(), last() }. Self-contained: it is serialised through page.evaluate. */
@@ -256,7 +257,7 @@ export async function installDepthOracle(page) {
             const subsets = [['LIFT'], ['E'], ['SB'], ['E', 'SB'], ['E', 'LIFT'], ['SB', 'LIFT'], ['E', 'SB', 'LIFT']];
             for (const s of subsets) {
                 const drop = { E: s.includes('E'), SB: s.includes('SB'), LIFT: s.includes('LIFT') };
-                if (keyOf(first, drop) < keyOf(second, drop)) return s.map((x) => ({ E: 'hTerm', SB: 'sortBias', LIFT: 'decalLift' })[x]).join('+');
+                if (keyOf(first, drop) < keyOf(second, drop)) return s.map((x) => ({ E: 'hTerm', SB: 'sortBias', LIFT: 'otherExcess' })[x]).join('+');
             }
             const [a, b] = pureKeys(first, second);
             return a === b ? 'subLayerTie' : 'footprintY';
@@ -336,15 +337,14 @@ export async function installDepthOracle(page) {
             }
         }
         const ORIG_SORT = RenderList.prototype.sort;
-        const ORIG_LIFT_MIN = K.VFX_RENDER.DECAL_LIFT_MIN_HALF_H;
-        const TSS = K.TERRAIN_SORT_SCALE;
+                const TSS = K.TERRAIN_SORT_SCALE;
         /** what-if sorts (evidence for a proposed rule change): perturb op.y only while RenderList.sort computes keys, then restore */
         function sortWithSim(list, sim) {
             const saved = [];
             const cfg = engine.mapConfig;
             for (let i = 0; i < list.count; i++) {
                 const op = list.ops[i];
-                if (sim.includes('noE') && (op.type === T.OBSTACLE || op.type === T.HAZARD)) { saved.push(op, op.y); op.y = HexUtils.toPx(op.tq, op.tr, cfg).y; }
+                if ((sim.includes('noE') && (op.type === T.OBSTACLE || op.type === T.HAZARD)) || (sim.includes('noEH') && op.type === T.HAZARD) || (sim.includes('noEO') && op.type === T.OBSTACLE)) { saved.push(op, op.y); op.y = HexUtils.toPx(op.tq, op.tr, cfg).y; }
                 else if (sim.includes('unitE') && (op.type === T.UNIT || op.type === T.CORPSE)) { saved.push(op, op.y); op.y += (op.y - op.ty) * TSS; }
             }
             ORIG_SORT.call(list);
@@ -356,13 +356,9 @@ export async function installDepthOracle(page) {
             if (S.on) onFrame(this);
         };
         window.__DO__ = {
-            begin(cfg) {
-                reset(); S.cfg = cfg || {}; S.on = true;
-                K.VFX_RENDER.DECAL_LIFT_MIN_HALF_H = S.cfg.sim && S.cfg.sim.includes('noLift') ? 1e9 : ORIG_LIFT_MIN;
-            },
+            begin(cfg) { reset(); S.cfg = cfg || {}; S.on = true; },
             end() {
                 S.on = false;
-                K.VFX_RENDER.DECAL_LIFT_MIN_HALF_H = ORIG_LIFT_MIN;
                 for (const [, ep] of S.open) closeEp(ep);
                 S.open.clear();
                 const out = { frames: S.frame, judged: S.judged, judgedByGroup: S.judgedByGroup, wrongFramesTotal: S.wrongFramesTotal, framesWithWrong: S.framesWithWrong, episodes: S.episodes, episodesDropped: S.episodesDropped, shortByGroup: S.shortByGroup, wrongPairFramesByGroup: S.wrongPairFramesByGroup, last: S.last };
@@ -370,14 +366,14 @@ export async function installDepthOracle(page) {
             },
             last() { return S.last; },
             /** crafted boards: oracle over the most recent frame only, no 3-frame rule */
-            stop() { S.on = false; K.VFX_RENDER.DECAL_LIFT_MIN_HALF_H = ORIG_LIFT_MIN; },
+            stop() { S.on = false; },
         };
     });
 }
 
 /* ------------------------------------------------------------------ aggregation (Node side) */
 
-const STABLE_DRIVER_ORDER = ['hTerm', 'sortBias', 'hTerm+sortBias', 'decalLift', 'subLayerTie', 'footprintY'];
+const STABLE_DRIVER_ORDER = ['hTerm', 'sortBias', 'hTerm+sortBias', 'otherExcess', 'subLayerTie', 'footprintY'];
 
 /** Dominant driver of an episode (most violated frames) */
 export function dominantDriver(ep) {
@@ -507,24 +503,27 @@ export async function installCraft(page) {
                 cmd({ type: 'PLACE_AGENT', team: Team.BLUE, q: C.anchor.q, r: C.anchor.r, hp: 20000, role: Role.TANK });
                 const unit = e.agents[e.agents.length - 1];
                 unit.spawnTimer = 0; // CooldownSystem only counts the spawn animation down while the battle runs; edit mode would leave the sprite scaled to nothing
-                if (cfg.kind === 'HAZARD') {
+                // HAZARD: on the neighbour; HAZARD_UNDER: on the unit's own tile (the common in-game case: standing in the fire)
+                const hz = cfg.kind === 'HAZARD_UNDER' ? C.anchor : nb;
+                if (cfg.kind === 'HAZARD' || cfg.kind === 'HAZARD_UNDER') {
                     e.hazardSystem.registerHazard({
-                        id: `depth_hz_${cfg.dir}`, type: 'FIRE', cells: [{ q: nb.q, r: nb.r }], duration: 600, sourceId: unit.id, team: Team.RED,
-                        color: '#ffffff', power: 0, tickInterval: 999, lastTickTime: 0, centerQ: nb.q, centerR: nb.r,
+                        id: `depth_hz_${cfg.dir}`, type: 'FIRE', cells: [{ q: hz.q, r: hz.r }], duration: 600, sourceId: unit.id, team: Team.RED,
+                        color: '#ffffff', power: 0, tickInterval: 999, lastTickTime: 0, centerQ: hz.q, centerR: hz.r,
                     }, e);
                 }
                 for (let i = 0; i < (cfg.frames ?? 6); i++) window.__stepFrames(1);
-                return { unitId: unit.id, nb: { q: nb.q, r: nb.r } };
+                return { unitId: unit.id, nb: { q: hz.q, r: hz.r } };
             },
             /** every (dir, hu, ho) for one feature kind; returns compact cells judged on the last frame of each config */
             matrix(kind, hus, hos) {
                 const out = [];
-                for (const d of C.dirs) for (const hu of hus) for (const ho of hos) {
+                const under = kind === 'HAZARD_UNDER';
+                for (const d of under ? [C.dirs[0]] : C.dirs) for (const hu of hus) for (const ho of under ? [0] : hos) {
                     window.__DO__.begin({ keepLast: true });
                     const info = this.apply({ hu, dir: d.label, ho, kind, frames: 4 });
                     const rec = window.__DO__.end();
                     const L = rec.last || { violations: [], judgedPairs: [], judgedFrame: 0 };
-                    const feat = { PILLAR: 'O', WALL: 'O', TREE: 'O', HAZARD: 'H', TILE: 'T' }[kind] + `:${info.nb.q},${info.nb.r}`;
+                    const feat = { PILLAR: 'O', WALL: 'O', TREE: 'O', HAZARD: 'H', HAZARD_UNDER: 'H', TILE: 'T' }[kind] + `:${info.nb.q},${info.nb.r}`;
                     const uid = `U:${info.unitId}`;
                     const has = (a, b) => (a === feat && b === uid) || (a === uid && b === feat);
                     const featJudged = L.judgedPairs.some((p) => has(p[0], p[1]));
@@ -547,7 +546,7 @@ export async function installCraft(page) {
 
 const MATRIX_HEIGHTS = [0, 24, 48, 72, 96, 120, 144];
 const MATRIX_UNIT_H = [0, 24, 48, 72, 96, 144];
-const MATRIX_KINDS = ['PILLAR', 'WALL', 'TREE', 'TILE', 'HAZARD'];
+const MATRIX_KINDS = ['PILLAR', 'WALL', 'TREE', 'TILE', 'HAZARD', 'HAZARD_UNDER'];
 
 /** Screenshot cases. "back"/"front" exist for FLAT (straight up/down), "backL/backR/frontL/frontR" for both layouts. */
 function craftedCases(layout) {
@@ -565,6 +564,8 @@ function craftedCases(layout) {
         { id: '6_tree_on_plateau_behind_unit_on_plateau', desc: '樹 (格高 72) 在同高台地單位 (格高 72) 正後方（戰場常見：同一高台上的鄰格）', cfg: { hu: 72, dir: back, ho: 72, kind: 'TREE' } },
         { id: '7_hazard_on_plateau_behind_unit', desc: '危害 (FIRE, 格高 72) 在台地單位 (格高 48) 正後方', cfg: { hu: 48, dir: back, ho: 72, kind: 'HAZARD' } },
         { id: '8_pillar_plateau_backL', desc: '高柱 (格高 48) 在同高台地單位 (格高 48) 左後方鄰格', cfg: { hu: 48, dir: 'backL', ho: 48, kind: 'PILLAR' } },
+        { id: '9_hazard_under_unit_plateau', desc: '單位站在自己腳下有危害 (FIRE) 的台地 (格高 48)', cfg: { hu: 48, dir: back, ho: 0, kind: 'HAZARD_UNDER' } },
+        { id: '9b_hazard_under_unit_ground', desc: '對照：同上但格高 0', cfg: { hu: 0, dir: back, ho: 0, kind: 'HAZARD_UNDER' } },
         { id: '5b_hazard_low_front_of_high_unit', desc: '危害 (FIRE) 在低地前方，單位站高地 (96)', cfg: { hu: 96, dir: front, ho: 0, kind: 'HAZARD' } },
     ];
 }
@@ -616,6 +617,10 @@ export function printMatrix(craft, log = console.log) {
   crafted matrix ${L.layout}: rows = feature tile height ho, columns = direction of the feature relative to the unit, one block per unit tile height hu`);
         const dirs = L.board.dirs.map((d) => d.label);
         for (const kind of MATRIX_KINDS) {
+            if (kind === 'HAZARD_UNDER') {
+                log(`   HAZARD_UNDER (hazard on the unit's own tile; by unit tile height hu): ${MATRIX_UNIT_H.map((hu) => { const m = L.matrix.find((x) => x.kind === kind && x.hu === hu); return `hu=${hu}:${!m ? '?' : m.featWrong ? 'W' : m.featJudged ? 'ok' : '.'}`; }).join('  ')}`);
+                continue;
+            }
             log(`   ${kind}   ${dirs.map((d) => d.padEnd(8)).join('')}`);
             for (const hu of MATRIX_UNIT_H) {
                 for (const ho of MATRIX_HEIGHTS) {

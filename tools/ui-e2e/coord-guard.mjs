@@ -10,7 +10,7 @@
  * With no check flag float/sink/flicker run (--order only runs when asked). Evidence only: nothing in engine/ is edited; the page is monkey-patched.
  *
  * Usage: node tools/ui-e2e/coord-guard.mjs [--float] [--sink] [--flicker] [--assert]
- *          [--seeds=3] [--seedStart=1] [--seconds=20] [--biomes=FOREST,VOID] [--order] [--orderBiomes=FOREST,VOID,MAGMA] [--orderSeconds=20] [--no-crafted] [--orderSim=noE,unitE,noLift] [--fxfx] [--floatFrames=90] [--injectSink=N] [--no-decal-lift]
+ *          [--seeds=3] [--seedStart=1] [--seconds=20] [--biomes=FOREST,VOID] [--order] [--orderBiomes=FOREST,VOID,MAGMA] [--orderSeconds=20] [--no-crafted] [--orderSim=noE,noEH,noEO,unitE] [--fxfx] [--floatFrames=90] [--injectSink=N] [--no-decal-lift]
  * Output: tools/ui-e2e/out/coord_guard.json + a summary on stdout. Exit 1 with --assert on any violation.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
