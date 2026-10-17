@@ -15,7 +15,8 @@
 // ║    '#bae6fd' (absorb blue)               → inline 業務規則，暫未抽取   ║
 // ║                                                                  ║
 // ║  HUD 佈局常數來源：                                              ║
-// ║    HUD_TEXT_OFFSET / HUD_LAYOUT → constants.ts (SSOT)           ║
+// ║    hudTextHeight（投影頭頂 + 血條間距 + 文字間距，data/units/    ║
+// ║    appearance/projection.ts）/ HUD_LAYOUT → constants.ts (SSOT)  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEvent } from "../../../types";
@@ -24,7 +25,9 @@ import { HUDSystem } from "../hud";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { HUD_TEXT_OFFSET, HUD_LAYOUT } from "../../../constants";
+import { HUD_LAYOUT } from "../../../constants";
+import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
+import { hudTextHeight } from "../../../data/units/appearance/projection";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 
 export class EventHUDMapper {
@@ -43,15 +46,16 @@ export class EventHUDMapper {
         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
         const terrainHeight = grid.getTerrainHeight(hex.q, hex.r, engine);
         const visualGroundY = event.pos.y - terrainHeight;
+        const textOffset = this.textOffsetFor(event, engine);
         
         switch (event.type) {
             case 'DAMAGE':
             case 'HEAL':
             case 'CC_APPLIED':
-                this.handleCombatText(event, visualGroundY, hud);
+                this.handleCombatText(event, visualGroundY - textOffset, hud);
                 break;
             case 'CAST_START':
-                this.handleCastText(event, visualGroundY, hud);
+                this.handleCastText(event, visualGroundY - textOffset, hud);
                 break;
             case 'CAST_FINISH':
                 if (event.sourceId) {
@@ -63,13 +67,13 @@ export class EventHUDMapper {
                 if (event.sourceId) {
                     hud.breakCastText(event.sourceId, event.team);
                     // 同時彈出 "中斷" 提示
-                    const baseY = visualGroundY - HUD_TEXT_OFFSET;
+                    const baseY = visualGroundY - textOffset;
                     hud.addFloatingText(event.pos.x, baseY, "INTERRUPTED", "#ef4444", 16, 'CC');
                 }
                 break;
             case 'KILL_STREAK':
                 if (event.text && event.color) {
-                    const textY = visualGroundY - HUD_TEXT_OFFSET - 40;
+                    const textY = visualGroundY - textOffset - 40;
                     const size = 32 + ((event.value || 1) * 4); 
                     hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
                     camera.addTrauma(0.2 + (event.value || 0) * 0.1);
@@ -78,8 +82,17 @@ export class EventHUDMapper {
         }
     }
 
+    /** 文字基準線離地高度：事件主角（受擊者／施法者）的投影頭頂 + 血條間距 + 文字間距；找不到單位時用預設體型 */
+    private textOffsetFor(event: GameEvent, engine: GameEngine): number {
+        const ownerId = (event.type === 'DAMAGE' || event.type === 'HEAL' || event.type === 'CC_APPLIED')
+            ? event.targetId : event.sourceId;
+        const owner = ownerId ? engine.agents.find(a => a.id === ownerId) : undefined;
+        return hudTextHeight(resolveBodyType(owner));
+    }
+
+    /** visualY 已扣掉 textOffset（文字基準線） */
     private handleCombatText(event: GameEvent, visualY: number, hud: HUDSystem) {
-        const baseY = visualY - HUD_TEXT_OFFSET; 
+        const baseY = visualY; 
         let text = "";
         let color = "#fff";
         let size = 16;
@@ -134,7 +147,7 @@ export class EventHUDMapper {
         if (event.skill && event.skill.tag !== 'BASIC') {
             const isUlt = event.skill.tag === 'ULT';
             const offsetY = isUlt ? HUD_LAYOUT.CAST_BAR_Y_OFFSET_ULT : HUD_LAYOUT.CAST_BAR_Y_OFFSET_NORMAL;
-            const baseY = visualY - HUD_TEXT_OFFSET - offsetY; 
+            const baseY = visualY - offsetY; 
             const xOffset = HUD_LAYOUT.CAST_BAR_X_OFFSET; 
             
             hud.addFloatingText(

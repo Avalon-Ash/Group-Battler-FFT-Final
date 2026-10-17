@@ -85,8 +85,13 @@ export class RenderSpec {
         s += "| 用途 | 函式 | 定義 |\n";
         s += "|------|------|------|\n";
         s += "| 單位腳下地面高度 | getUnitGroundHeight | 邏輯格高度；移動中依 UNIT_STEP_BLEND 過渡；精靈實際所在格較高時取較高者（腳不陷進柱子） |\n";
-        s += "| 受擊點／身體中心 | getUnitAnchor | 腳下高度 + physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET |\n";
-        s += "| 施法／投射物／光束起點 | getCoreAnchor／coreAnchorAt | 棋座核心：腳下高度 + CORE_VISUAL.hoverHeight，不含 physics.z（飛行單位也從核心出發） |\n";
+        s += "| 投影中心 | projectionCenterAt(x, y, 腳下高度, physics.z, 體型) | 腳下高度 + physics.z + projectionCenterHeight(體型)；高度＝精靈腳底懸浮 + 頭頂高度 × centerFraction（頭頂高度＝UNIT_SPRITE.targetHeightCanvasUnits × 體型 heightScale，data/units/appearance/projection.ts，從精靈資料推導，不依賴圖集，模擬端可直接讀）。**發射點、受擊點、核心寶石都是這一點** |\n";
+        s += "| 受擊點／身體中心 | getUnitAnchor | ＝投影中心 |\n";
+        s += "| 施法／投射物／光束起點 | getCoreAnchor | ＝投影中心（與受擊點同一點，沒有水平位移；飛行單位從身體中心發射，含 physics.z）。核心寶石投影成形後藏在這裡，所以「從核心出發」與「從投影中心出發」是同一件事 |\n";
+        s += "| 投影中心（繪製） | getProjectionCenterY(腳底繪製 Y, physics.z, 體型) | 腳底繪製 Y − physics.z − projectionCenterHeight(體型)；UnitCorePainter 用，與上列同一個高度公式 |\n";
+        s += "| 血條錨點 | UnitFrame.hudAnchorY（hudBarHeight） | 腳底繪製 Y − physics.z − (頭頂高度 + HUD_ANCHOR.barHeadMargin)；血條上緣在錨點之上 5px。量表（GaugePainter）與頭頂狀態圖示（錨點之下 HUD_ANCHOR.overheadBelowBar，落在頭頂上方）都掛在它上面 |\n";
+        s += "| 浮動文字基準線 | hudTextHeight | 血條錨點 + HUD_ANCHOR.textGap（傷害數字、詠唱字、KILL_STREAK；EventHUDMapper 依事件主角的體型取值） |\n";
+        s += "| 精靈繪製原點 | getVisualBodyCenterY(腳底繪製 Y, physics.z) | 腳底繪製 Y − physics.z − UNIT_BODY_OFFSET − UNIT_HOVER_OFFSET。**這是 UnitBodyPainter／護盾／包裹類狀態的繪製原點（精靈腳底落在它之下 42px，見 UNIT_SPRITE.footOffsetLocal），不是投影中心**：投影中心在腳底之上頭頂高度的一半（目前約 29.5px），繪製原點在腳底之上 42px。UNIT_BODY_OFFSET／UNIT_HOVER_OFFSET 只剩這個繪製慣例與護盾稜柱貼地在用，錨點不再讀它們 |\n";
         s += "| 地面目標點 | resolveTargetPoint（ground-q,r） | 格高 + 2 |\n";
         s += "| 漂浮位移 | floatBobAt／isFloatingBiome | 見 §5 |\n";
         s += "| 單位事件位置 | unitEventPos（engine/events/EventPos.ts） | xy＝px+physics；z＝getUnitGroundHeight（模擬高度）+ physics.z |\n";
@@ -94,10 +99,13 @@ export class RenderSpec {
         s += "| 純 2D 事件位置 | pointEventPos | 只有 xy（無 z），消費端自查該格高度 |\n\n";
         s += "**單位的繪製座標只有一個出處：UnitFrame**（engine/renderers/frame/UnitFrame.ts）。RenderPipeline 在 drawWorld 開頭用繪製用高度函式建一次\n";
         s += "UnitFrameStore，每個單位一份：footX／footY（含 physics、屍體擊飛）、transition、groundH（拖曳預覽＝游標格；屍體＝computeDeathGround）、\n";
-        s += "floorY、drawY（＝UNIT op.ty）、sortY（＝op.y）、sortBias、bodyCenterY、hudAnchorY。UNIT／CORPSE／AURA 提交、剪影、血條、狀態、\n";
+        s += "floorY、drawY（＝UNIT op.ty）、sortY（＝op.y）、sortBias、bodyCenterY（繪製原點）、hudAnchorY（血條錨點）。UNIT／CORPSE／AURA 提交、剪影、血條、狀態、\n";
         s += "選取連線只讀 frames，**拿不到地形高度函式**，所以無法自己重算；engine/renderers 內只有 UnitFrame.ts 可以呼叫 getUnitGroundHeight（棘輪測試擋住）。\n";
         s += "HUD、狀態用不含轉場位移的 floorY／hudAnchorY（沿用原行為）。模擬端（EventVFXMapper、AgentVFXSystem、hud.ts SHOUT 跟隨）在 tick 內執行，\n";
         s += "讀不到每幀快照，維持用下表的模擬高度函式。\n\n";
+        s += "**核心寶石（UnitCorePainter）**：投影可見（活著、出生動畫結束、非拖曳預覽）時畫在投影中心，在角色之後（上層）、低不透明度（CORE_VISUAL.projectedAlpha），\n";
+        s += "施法時光暈拉高（projectedCastGlow）；位置＝getProjectionCenterY，再加純繪製位移（受擊晃動 visualOffset），跟著 physics.z 與 §5 漂浮（單位整體一起浮）。\n";
+        s += "投影不可見（編輯模式拖曳預覽、放置幽靈、出生前）維持實體寶石，懸在棋座上（CORE_VISUAL.hoverHeight）；出生動畫期間依 spawnTimer 從棋座升到投影中心並淡出成內光。\n\n";
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 
@@ -108,7 +116,7 @@ export class RenderSpec {
         s += "- 地塊、障礙、危害、射程疊層：GridRenderStrategy 把位移加在 op.ty（不加在 op.y）。\n";
         s += "- 單位、屍體、狀態、HUD、剪影：從繪製用高度自動取得（RenderPipeline 的高度函式扣掉位移）。\n";
         s += "- 貼地特效、貼花：VFXRenderer 以「模擬高度 − 繪製用高度」補到 op.ty。\n";
-        s += "- 不套用：空中特效、投射物、發射點（模擬端座標）。漂浮地圖上發射點與核心最多差 FLOAT_BOB.AMPLITUDE px。\n";
+        s += "- 不套用：空中特效、投射物、發射點／受擊點（模擬端座標）。漂浮地圖上發射點與投影中心最多差 FLOAT_BOB.AMPLITUDE px。\n";
         s += "- 地形 sprite 快取鍵不含位移（TerrainBlockCache 固定傳 0），否則每個縮放級距上千種組合（docs/PERF_LIFECYCLE_FINDINGS.md）。\n";
         s += "驗證：node tools/ui-e2e/float-align-probe.mjs --biome=VOID（單位與腳下地塊的距離必須恆定）。\n\n";
 

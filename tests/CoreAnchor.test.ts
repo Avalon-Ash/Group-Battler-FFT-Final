@@ -3,13 +3,14 @@ import { GameEngine } from '../engine/game';
 import { VisualMath } from '../engine/math/VisualMath';
 import { ProjectileSystem } from '../engine/systems/combat/ProjectileSystem';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
-import { CORE_VISUAL, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from '../constants';
 import { MovementType, Team } from '../types';
+import { resolveBodyType } from '../data/units/appearance/bodyTypes';
+import { projectionCenterHeight } from '../data/units/appearance/projection';
 
-// 核心位置（施法／投射物／光束起點）的唯一定義：VisualMath.getCoreAnchor。
-// 核心屬於棋座（地面），飛行或跳躍的角色投影不影響它；目標端仍用身體中心（getUnitAnchor）。
+// 發射點（getCoreAnchor）與受擊點（getUnitAnchor）都是投影中心（VisualMath.projectionCenterAt）：
+// 腳下地面 + physics.z + projectionCenterHeight(體型)，沒有水平位移。
 
-describe('VisualMath.getCoreAnchor', () => {
+describe('projection center anchors', () => {
     let engine: GameEngine;
 
     beforeEach(() => {
@@ -20,32 +21,35 @@ describe('VisualMath.getCoreAnchor', () => {
         engine.clear();
     });
 
-    it('sits above the pedestal ground, not at the body center', () => {
+    it('standing unit: emission anchor == hit anchor == projection center', () => {
         const a = engine.addAgent(Team.BLUE, 3, 3)!;
         const ground = engine.getTerrainHeight(3, 3);
+        const center = VisualMath.projectionCenterAt(a.px, a.py, ground, 0, resolveBodyType(a));
         const core = VisualMath.getCoreAnchor(a, engine);
-        expect(core.x).toBeCloseTo(a.px + CORE_VISUAL.offsetX);
+        const hit = VisualMath.getUnitAnchor(a, engine);
+        expect(core).toEqual(center);
+        expect(hit).toEqual(center);
+        expect(core.x).toBeCloseTo(a.px);
         expect(core.y).toBeCloseTo(a.py);
-        expect(core.z).toBeCloseTo(ground + CORE_VISUAL.hoverHeight);
-        expect(VisualMath.getUnitAnchor(a, engine).z).toBeCloseTo(ground + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET);
+        expect(core.z).toBeCloseTo(ground + projectionCenterHeight(resolveBodyType(a)));
     });
 
-    it('stays on the pedestal when the projection flies or jumps', () => {
+    it('flying or jumping unit: both anchors include physics.z (emit from the body center)', () => {
         const a = engine.addAgent(Team.BLUE, 3, 3)!;
         const before = VisualMath.getCoreAnchor(a, engine);
         a.movementType = MovementType.FLYING;
         a.physics.z = 90;
-        const after = VisualMath.getCoreAnchor(a, engine);
-        expect(after.z).toBe(before.z);
-        expect(VisualMath.getUnitAnchor(a, engine).z).toBeGreaterThan(after.z + 80);
+        const core = VisualMath.getCoreAnchor(a, engine);
+        expect(core.z).toBeCloseTo(before.z + 90);
+        expect(VisualMath.getUnitAnchor(a, engine)).toEqual(core);
     });
 
-    it('follows physics knockback offsets like the pedestal does', () => {
+    it('follows physics knockback offsets (no horizontal core offset)', () => {
         const a = engine.addAgent(Team.RED, 4, 2)!;
         a.physics.x = 7;
         a.physics.y = -5;
         const core = VisualMath.getCoreAnchor(a, engine);
-        expect(core.x).toBeCloseTo(a.px + 7 + CORE_VISUAL.offsetX);
+        expect(core.x).toBeCloseTo(a.px + 7);
         expect(core.y).toBeCloseTo(a.py - 5);
     });
 
@@ -53,16 +57,27 @@ describe('VisualMath.getCoreAnchor', () => {
         const a = engine.addAgent(Team.BLUE, 2, 2)!;
         const heights = (q: number, r: number) => (q === 2 && r === 2 ? 0 : 100);
         const walker = { q: 2, r: 2, isMoving: true, path: [{ q: 3, r: 2 }], moveProgress: 0, px: a.px, py: a.py, physics: a.physics };
-        const start = VisualMath.coreAnchorAt(a.px, a.py, VisualMath.getUnitGroundHeight(walker, heights));
+        const body = resolveBodyType(a);
+        const at = () => VisualMath.projectionCenterAt(a.px, a.py, VisualMath.getUnitGroundHeight(walker, heights), 0, body);
+        const start = at();
         walker.moveProgress = 1;
-        const end = VisualMath.coreAnchorAt(a.px, a.py, VisualMath.getUnitGroundHeight(walker, heights));
-        expect(start.z).toBeCloseTo(CORE_VISUAL.hoverHeight);
-        expect(end.z).toBeCloseTo(100 + CORE_VISUAL.hoverHeight);
+        const end = at();
+        expect(start.z).toBeCloseTo(projectionCenterHeight(body));
+        expect(end.z).toBeCloseTo(100 + projectionCenterHeight(body));
+    });
+
+    it('screen-space projection center is the same height the anchors use', () => {
+        const a = engine.addAgent(Team.BLUE, 3, 3)!;
+        const body = resolveBodyType(a);
+        for (const z of [0, 40]) {
+            // floorY = 0（ctx 原點在腳底）：螢幕 Y 往上為負，距離 = physics.z + 中心高度
+            expect(-VisualMath.getProjectionCenterY(0, z, body)).toBeCloseTo(z + projectionCenterHeight(body));
+        }
     });
 });
 
 describe('ProjectileSystem launch point', () => {
-    it('launches from the core of a flying caster, aims at the target body', () => {
+    it('launches from the caster projection center (incl. physics.z) and aims at the target projection center', () => {
         const engine = new GameEngine();
         try {
             const src = engine.addAgent(Team.BLUE, 2, 2)!;
@@ -80,7 +95,7 @@ describe('ProjectileSystem launch point', () => {
             expect(p.startY).toBeCloseTo(core.y);
             expect(p.startZ).toBeCloseTo(core.z);
             expect(p.endZ).toBeCloseTo(body.z);
-            expect(p.startZ).toBeLessThan(VisualMath.getUnitAnchor(src, engine).z);
+            expect(p.startZ).toBeCloseTo(VisualMath.getUnitAnchor(src, engine).z);
         } finally {
             engine.stop();
             engine.clear();

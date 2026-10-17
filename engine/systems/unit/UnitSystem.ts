@@ -116,7 +116,7 @@ export class UnitRenderSystem {
         if (!isDragPreview) {
             UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
         }
-        // 核心（懸浮晶體）畫在角色之後，永遠看得見；位置與投射物起點同源（VisualMath.coreAnchorAt）
+        // 核心寶石畫在角色之後：投影成形後藏在投影中心（淡色），否則是棋座上的實體寶石；位置與投射物起點同源（VisualMath.projectionCenterAt）
         if (!isSilhouette) {
             UnitCorePainter.draw(ctx, agent, globalTime, layout);
         }

@@ -1,10 +1,11 @@
 import { Agent } from "../../../game";
 import { AssetManager } from "../../../assets";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
-import { VisualMath } from "../../../math/VisualMath";
+import { HUD_ANCHOR } from "../../../../constants";
 
 export const OverheadPainter = {
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, surfaceY: number, t: number) {
+    /** @param anchorY UnitFrame.hudAnchorY（血條錨點，已含 physics.z）；圖示中心落在其下 HUD_ANCHOR.overheadBelowBar，即頭頂上方 */
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, x: number, anchorY: number, t: number) {
         let type = '';
         if (agent.stunTimer > 0) type = 'STUN';
         else if (agent.fearTimer > 0) type = 'FEAR';
@@ -22,7 +23,7 @@ export const OverheadPainter = {
         if (!icon) return;
 
         const bob = Math.sin(t * 8) * 4;
-        const drawY = VisualMath.getOverheadVisualY(surfaceY, agent.physics.z, bob);
+        const drawY = anchorY + HUD_ANCHOR.overheadBelowBar + bob;
 
         ctx.save();
         ctx.translate(x, drawY);
