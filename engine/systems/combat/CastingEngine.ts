@@ -1,8 +1,9 @@
 
 import { Agent, GameEngine } from "../../game";
 import { AIState } from "../../../types";
+import { unitEventPos } from "../../events/EventPos";
 
-export type BreakCastContext = Pick<GameEngine, 'log' | 'events'>;
+export type BreakCastContext = Pick<GameEngine, 'log' | 'events' | 'getTerrainHeight' | 'mapConfig'>;
 
 export class CastingEngine {
 
@@ -64,7 +65,7 @@ export class CastingEngine {
                 
                 engine.events.push({ 
                     type: 'CAST_BREAK', 
-                    pos: { x: a.px, y: a.py }, 
+                    pos: unitEventPos(a, engine), 
                     value: progressPct,
                     color: currentSkill.color, 
                     skill: currentSkill,

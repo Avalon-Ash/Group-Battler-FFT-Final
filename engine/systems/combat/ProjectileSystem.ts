@@ -11,6 +11,7 @@ import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y } from "../../../constants";
 import { random } from "../../math/rng";
+import { unitEventPos, pointEventPos } from "../../events/EventPos";
 
 export class ProjectileSystem {
   private pool: Projectile[] = [];
@@ -81,7 +82,7 @@ export class ProjectileSystem {
     skillExecutor: SkillExecutor,
   ) {
     const source = engine.agents.find((a) => a.id === p.sourceId);
-    const hitPos = { x: p.endX, y: p.endY };
+    const hitPos = pointEventPos(p.endX, p.endY);
 
     if (p.skill.type === "AOE") {
       const targetHex = { q: p.targetHexQ, r: p.targetHexR };
@@ -210,7 +211,7 @@ export class ProjectileSystem {
     engine.projectiles.push(p);
     engine.events.push({
       type: "PROJECTILE_SPAWN",
-      pos: { x: source.px, y: source.py },
+      pos: unitEventPos(source, engine),
       skill,
       sourceId: source.id,
       targetId,

@@ -14,6 +14,7 @@ import { TargetingSystem } from "../../ai/TargetingSystem";
 import { MotionEngine } from "./MotionEngine";
 import { StackingResolver } from "./StackingResolver";
 import type { GameEngine } from "../../game";
+import { hexEventPos } from "../../events/EventPos";
 
 export class MovementSystem {
     public pathfinder: Pathfinder;
@@ -199,7 +200,7 @@ export class MovementSystem {
                      a.hasLandedLastStand = true;
                      engine.events.push({
                          type: 'GROUND_IMPACT',
-                         pos: { x: targetPx.x, y: targetPx.y, z: 0 },
+                         pos: hexEventPos(targetHex.q, targetHex.r, engine),
                          text: 'LOCKED',
                          color: '#c084fc', // Purple EMP
                      });

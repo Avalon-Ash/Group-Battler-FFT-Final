@@ -1,6 +1,6 @@
 import { GameEngine } from "../game";
 import { KILL_STREAK_WINDOW } from "../../constants";
-import { GameEvent } from "../../types";
+import { GameEvent, Point } from "../../types";
 
 export class AnnouncerSystem {
     public update(dt: number, engine: GameEngine) {
@@ -15,7 +15,7 @@ export class AnnouncerSystem {
         }
     }
 
-    private processKill(killerId: string, pos: {x: number, y: number}, engine: GameEngine, outEvents: GameEvent[]) {
+    private processKill(killerId: string, pos: Point, engine: GameEngine, outEvents: GameEvent[]) {
         const now = engine.battleTime;
         const state = engine.sessionState;
         

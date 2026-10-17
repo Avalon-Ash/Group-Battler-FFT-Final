@@ -73,6 +73,9 @@ const FAMILIES: Record<string, () => string[]> = {
     /** 漂浮位移在 SSOT 之外重算（FLOAT_BOB 參數、地形種類判斷） */
     'float.outsideSSOT': () => scan(ALL_SOURCES,
         /FLOAT_BOB\b|['"](?:VOID|MAGMA)['"]\s*\|\|\s*\w+\s*===\s*['"](?:VOID|MAGMA)['"]|\w+\s*===\s*['"](?:VOID|MAGMA)['"]\s*\|\|\s*\w+\s*===\s*['"](?:VOID|MAGMA)['"]/g),
+    /** 事件發射端手寫 pos 物件字面量（應改 engine/events/EventPos.ts 的 unitEventPos／hexEventPos／pointEventPos；RenderSpec §3） */
+    'event.inlinePos': () => scan(ALL_SOURCES.filter(([f]) => f.startsWith('engine/')),
+        /events\.push\(\{(?:(?!\}\);)[\s\S])*?\bpos:\s*\{|pushEvent\([^,]+,\s*\{|EventPool\.get\([^,]+,\s*\{/g),
     /** 提交 RenderOp 的檔案必須有方框檔頭並指向 RenderSpec（規則改了要同步更新檔頭） */
     'submitter.header': () => ALL_SOURCES
         .filter(([, text]) => /renderList\.next\(\)/.test(text))

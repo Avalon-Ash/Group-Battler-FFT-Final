@@ -89,7 +89,8 @@ export class EventVFXMapper {
         return VisualMath.getCoreAnchor(agent, engine);
     }
 
-    private resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
+    /** 事件座標解析。pos.z 若存在是世界高度，沒有則查該格高度；活著的單位一律走 getUnitAnchor。 */
+    public resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
         if (agentId) {
             // Hazard IDs (HZD-xxx) 不在 agents 裡，直接跳過 agent 查詢
             if (agentId.startsWith('HZD-') || agentId.startsWith('ground-')) {
@@ -105,15 +106,15 @@ export class EventVFXMapper {
             const agent = engine.agents.find(a => a.id === agentId);
             if (agent) {
                 // 死亡 agent 的物理狀態已不可靠，直接用事件紀錄的 pos 作為最後位置。
-                // 單位事件的 pos.z 是相對腳下地面的 physics.z（SkillExecutor／EffectSystem 等），不是世界高度：
-                // 必須加回地形高度，否則致命一擊的受擊特效會畫在高台底下（RenderSpec「事件座標」）。
+                // pos.z 一律是世界高度（腳下絕對高度，含空中高度；EventPos.unitEventPos），不可再加地形高度；
+                // 沒有 z 才查該格高度。再加身體中心偏移（RenderSpec §3 事件座標）。
                 if (agent.hp <= 0 || agent.banished) {
                     const hex = HexUtils.fromPx(eventPos.x, eventPos.y, engine.mapConfig);
                     const terrainH = engine.getTerrainHeight(hex.q, hex.r);
                     return {
                         x: eventPos.x,
                         y: eventPos.y,
-                        z: terrainH + (eventPos.z ?? 0) + VISUAL_ANCHORS.CENTER_OFFSET
+                        z: (eventPos.z ?? terrainH) + VISUAL_ANCHORS.CENTER_OFFSET
                     };
                 }
                 return VisualMath.getUnitAnchor(agent, engine);

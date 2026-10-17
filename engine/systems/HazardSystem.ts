@@ -12,6 +12,7 @@ import { HexUtils } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
 import { triggerHitFlash } from "./AnimationSystem";
+import { unitEventPos, hexEventPos } from "../events/EventPos";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;
 
@@ -30,11 +31,9 @@ export class HazardSystem {
 
         // Trigger decoupled visual spawn event
         hazard.cells.forEach(tile => {
-            const px = HexUtils.toPx(tile.q, tile.r, engine.mapConfig);
-            const hz = engine.getTerrainHeight(tile.q, tile.r);
             engine.events.push({
                 type: 'HAZARD_SPAWN',
-                pos: { x: px.x, y: px.y, z: hz },
+                pos: hexEventPos(tile.q, tile.r, engine),
                 sourceId: hazard.sourceId,
                 targetId: hazard.id,
                 text: `FX_HAZARD_FIELD_${hazard.type}`,
@@ -101,7 +100,7 @@ export class HazardSystem {
         if (absorbed > 0) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                pos: unitEventPos(agent, engine), 
                 value: -Math.floor(absorbed), 
                 color: DAMAGE_TEXT_COLORS.ABSORB, 
                 text: "ABSORB",
@@ -113,7 +112,7 @@ export class HazardSystem {
         if (dmg > 0 || absorbed === 0) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                pos: unitEventPos(agent, engine), 
                 value: -Math.floor(dmg > 0 ? dmg : hazard.power),
                 color: hazard.color,
                 skill: { color: hazard.color, ccType: 'DOT' },

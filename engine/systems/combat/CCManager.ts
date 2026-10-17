@@ -5,6 +5,7 @@ import { Vector, HexUtils } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../AnimationSystem";
+import { unitEventPos } from "../../events/EventPos";
 
 export const CCManager = {
     
@@ -56,7 +57,7 @@ export const CCManager = {
         if (isImmune) {
             engine.events.push({ 
                 type: 'CC_APPLIED', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
+                pos: unitEventPos(target, engine), 
                 text: STATUS_VISUALS.IMMUNE.label, 
                 color: STATUS_VISUALS.IMMUNE.primaryColor,
                 sourceId: source.id,
@@ -229,7 +230,7 @@ export const CCManager = {
 
             engine.events.push({ 
                 type: 'CC_APPLIED', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: 0 }, 
+                pos: unitEventPos(target, engine), 
                 text: displayEffectText, 
                 color: statusColor,
                 sourceId: source.id,

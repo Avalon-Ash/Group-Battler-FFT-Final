@@ -14,6 +14,7 @@ import { SkillExecutor } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
 import { ULT_VISUALS } from '../../../data/vfx/ult_visuals';
 import { PHYSICS } from '../../../constants';
+import { unitEventPos } from "../../events/EventPos";
 
 export class CombatSystem {
     public projectileSystem: ProjectileSystem;
@@ -88,7 +89,7 @@ export class CombatSystem {
                 const targetHex = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : {q: a.q, r: a.r});
                 a.currentTelegraph = engine.movement.targeting.getImpactArea(a, targetHex, skill, engine);
                 
-                engine.events.push({ type: 'CAST_START', pos: { x: a.px, y: a.py }, skill, sourceId: a.id, targetId });
+                engine.events.push({ type: 'CAST_START', pos: unitEventPos(a, engine), skill, sourceId: a.id, targetId });
                 engine.bus.emit('CAST_START', { sourceId: a.id, skill });
             }
             
@@ -139,11 +140,7 @@ export class CombatSystem {
         if (a.castingSkillIdx === -1) return; // Safety guard
         
         // [FIX] Cache final position before handleDeadState might zero it out
-        const finalPos = { 
-            x: a.px + a.physics.x, 
-            y: a.py + a.physics.y, 
-            z: a.physics.z 
-        };
+        const finalPos = unitEventPos(a, engine);
 
         const s = a.skills[a.castingSkillIdx]!;
         if (!s) return;

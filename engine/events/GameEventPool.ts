@@ -36,8 +36,8 @@ class GameEventPool {
         // Hydrate
         event.type = type;
         
-        // Critical: Clone position to avoid reference drift if 'pos' is reused/mutated elsewhere
-        event.pos = { x: pos.x, y: pos.y };
+        // Critical: Clone position (incl. world-height z, see EventPos.ts) to avoid reference drift if 'pos' is reused/mutated elsewhere
+        event.pos = pos.z === undefined ? { x: pos.x, y: pos.y } : { x: pos.x, y: pos.y, z: pos.z };
         
         event.value = opts.value;
         event.text = opts.text;

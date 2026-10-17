@@ -76,7 +76,7 @@ describe('BehaviorTree', () => {
 });
 
 describe('EffectSystem DoT / HoT', () => {
-    const stubEngine = () => ({ events: [], log: () => {} }) as unknown as GameEngine;
+    const stubEngine = () => ({ events: [], log: () => {}, mapConfig: MAP, getTerrainHeight: () => 0 }) as unknown as GameEngine;
     const make = () => { const a = new Agent('E', Team.BLUE, 0, 0, MAP); a.hp = a.maxHp = 100; return a; };
 
     it('DoT deals dotDmg per second, shield absorbs first', () => {
