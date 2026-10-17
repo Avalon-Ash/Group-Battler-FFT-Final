@@ -285,6 +285,13 @@ function bakeFlame(ctx: CanvasRenderingContext2D, h: number, ramp: VFXRamp, jagg
         ctx.fillStyle = colors[i];
         flamePath(ctx, h * s, halfW * s, (phase + i * C.LAYER_PHASE) % 1, jagged, 0);
         ctx.fill();
+        if (i === 0) {
+            // 外層細亮邊：讓火焰在暗色地形上讀得出輪廓（烘焙一次，零每幀成本）
+            ctx.lineJoin = 'round';
+            ctx.lineWidth = C.RIM_WIDTH;
+            ctx.strokeStyle = withAlpha(ramp.core, C.RIM_ALPHA);
+            ctx.stroke();
+        }
     }
 }
 

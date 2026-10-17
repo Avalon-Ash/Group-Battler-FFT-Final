@@ -25,7 +25,17 @@ const bakeCache = new Map<string, HTMLCanvasElement>();
 
 // [PERF5] drawLayeredBeam 的單位漸層快取 (0,-1)→(0,1)；外管與最內白芯各一份，以色彩為鍵
 const beamTubeGradients = createUnitGradientCache((ctx, color) => buildBeamTubeGradient(ctx, color, color));
-const beamCoreGradients = createUnitGradientCache((ctx, color) => buildBeamTubeGradient(ctx, color, '#ffffff'));
+const WHITE_CORE = '#ffffff';
+// 最內芯依「芯色」各一份快取（陣營光束用 ramp.core；未指定時為白）
+const beamCoreGradientsByInner = new Map<string, ReturnType<typeof createUnitGradientCache>>();
+function beamCoreGradient(ctx: CanvasRenderingContext2D, color: string, inner: string): CanvasGradient {
+    let cache = beamCoreGradientsByInner.get(inner);
+    if (!cache) {
+        cache = createUnitGradientCache((c, col) => buildBeamTubeGradient(c, col, inner));
+        beamCoreGradientsByInner.set(inner, cache);
+    }
+    return cache.get(ctx, color);
+}
 function buildBeamTubeGradient(ctx: CanvasRenderingContext2D, color: string, inner: string): CanvasGradient {
     const grad = ctx.createLinearGradient(0, -1, 0, 1);
     grad.addColorStop(0, 'transparent');
@@ -453,6 +463,7 @@ export const MaterialPainter = {
         width: number,
         color: string,
         now: number,
+        coreColor: string = WHITE_CORE,
     ) {
         const cfg = MATERIAL_CONFIG.beam.core;
         const breathe = 1 + Math.sin(now * 12) * cfg.breathe;
@@ -467,14 +478,14 @@ export const MaterialPainter = {
             const isInnermost = i === cfg.tubes - 1;
             ctx.save();
             ctx.scale(1, w);
-            ctx.fillStyle = isInnermost ? beamCoreGradients.get(ctx, color) : beamTubeGradients.get(ctx, color);
+            ctx.fillStyle = isInnermost ? beamCoreGradient(ctx, color, coreColor) : beamTubeGradients.get(ctx, color);
             ctx.globalAlpha = 0.45 + i * 0.2;
             ctx.fillRect(0, -1, dist, 2);
             ctx.restore();
         }
 
         // 螺旋緞帶：虛線沿光束滾動，替代 GLSL 的 UV 位移
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = coreColor;
         ctx.globalAlpha = 0.5;
         ctx.lineWidth = 1.5;
         ctx.setLineDash(cfg.dash);

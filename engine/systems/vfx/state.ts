@@ -24,6 +24,8 @@ export interface Particle {
     targetY?: number; 
     targetZ?: number; 
     style?: string; 
+    /** 光束芯色（陣營色階 core）；未設則為白 */
+    beamCore?: string;
     ownerId?: string;
     /** 終極技粒子標記（SequenceSystem 寫入，vfx/render.ts 讀取以決定繪製排序）。 */
     pIsUlt?: boolean;
@@ -79,6 +81,7 @@ export class VFXStateManager {
             p.texture = undefined;
             p.blendMode = undefined;
             p.style = undefined; 
+            p.beamCore = undefined;
             p.visualStyle = undefined;
             p.ownerId = undefined;
             p.pIsUlt = undefined;
