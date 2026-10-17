@@ -285,3 +285,31 @@ CC 施加者是 `combat/CCManager.ts`，衰減者是 `status/ControlSystem.ts`�
 - 受擊閃光幀內的 `visualStatus` 不再沿用上一 tick 的殘值。
 
 **驗證**：每期 lint／test／build 全綠；P1c 與 P2 各跑 `br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`。結果皆 20/20 乾淨、0 殘影、0 發呆（P2 第一次執行在 seed 1 前就因 `clickDice: dice button matched 0 elements` 中止；另以 Playwright 開頁確認引擎與按鈕正常、無 pageerror，重跑 20/20 乾淨，判定為測試工具啟動時序問題）。未跑 perf 系列、未截圖（GPU 由效能五使用中）。
+
+## 6. 實作紀錄 P4a～P6（2026-10-18，分支 `worktree-agent-a15e0adc76891997b`，停在 P7a）
+
+前提：基準 `agent-ownership.baseline.json` 在 P2 後已是 `[]`，本輪沒有可再刪的項目；做法是每期把「已完全收乾淨」的欄位加進所有權表（基準維持空、不得新增）。
+
+| 期 | commit | 內容 |
+| :-- | :-- | :-- |
+| P4a | `71fe6cc` | `DirectDamage.ts` 新增 `applyHeal`、`applyLethal`，`applyDirectDamage` 多一個 `sourceId`（傳 id 就覆寫 `lastHitSourceId`；`null`＝環境／自傷，沿用先前歸屬）。`SkillExecutor` 的傷害、治療、吸血、反噬、斬殺全改呼叫（技能傷害的護盾已在 DamageCalculator 扣過，所以傳 `bypassShield = true`）。斬殺現在也會設擊殺歸屬。 |
+| P4b | `04d8d82` | `EffectSystem`（HoT）、`PhysicsEngine`（虛空）、`ZoneSystem`（縮圈）改呼叫 `applyHeal`／`applyLethal`。`hp` 進表（owners＝DirectDamage；lifecycle＝agentManager、UICommandSystem）。 |
+| P4c | `389eed4` | 新增 `absorbWithShield`，`DamageCalculator` 與 `applyDirectDamage` 共用。`shield` 進表（domain：DirectDamage 扣、CCManager 加）。 |
+| P5a | `0bef912` | 新增 `movement/MotionCommands.ts`：`stopMovement`（`isMoving = false`、`path` 換新陣列、不動 `trajectory`）、`teleportTo`（換格、貼齊 px/py、`physics.x/y` 補償）。`CCManager`（所有 CC 停步、擊退／拉扯）與 `SkillExecutor`（突進）改呼叫；位置裁決仍在 `ForcedMove`，`teleportTo` 只套用結果。暈眩／定身／變形現在也會清 `path`（原本只清 `isMoving`；所有讀 `path` 的地方都先檢查 `isMoving`，無行為差異）。 |
+| P5b | `92e15c1` | `ControlSystem`、`BTRegistry`（Idle）、`StackingResolver` 改呼叫 `stopMovement`；Control 的放逐／暈眩／定身分支加 `isMoving \|\| path.length` 守衛，不再每 tick 配置空陣列。 |
+| P5c | `2ed188f` | 敵方危害減速改為純函式 `HazardSystem.getHazardSpeedMult`（站在 GRAVITY／ICE 格內，或在 GRAVITY 牽引半徑內，取最小值），`MovementSystem.updateMovement` 每 tick 算出後傳給 `MotionEngine`（有效速度 = `min(moveSpeedMult, 危害倍率)`）。`moveSpeedMult` 只剩 `MovementSystem` 一個寫入者（`MotionEngine` 抵達時的重設已移除：移動中的單位每次起步都會被 `MovementSystem` 重設）。`isMoving`、`path`、`trajectory`、`moveSpeedMult` 進表；`MovementSystem`、`MotionEngine` 的停步也改走 `stopMovement`。 |
+| P6 | `51bdc87` | `PhysicsEngine.startVoidFall`（縮圈墜落）、`PhysicsEngine.absorbGroundShift`（換格時以 `physics.z` 吸收腳下高度差）；`ZoneSystem`、`map.ts` 改呼叫。所有權表新增 `accumulators`：清單內的檔案只准對 `physics.*` 做 `+=`／`-=`（衝量、牽引、瞬移補償），測試用 `nonAccumulatePattern` 擋其他寫法。`physics` 進表。 |
+
+**行為變化（需主代理實機確認，R 項目）**
+- 冰面／重力場的減速不再「黏著」：以前離開危害後會維持慢速直到下一次 AI 更新，現在離開當 tick 就恢復。
+- 重力場的牽引半徑減速與以前相同，只是改在移動時計算。
+- 擊退／拉扯／突進的位置補償與以前逐位元相同（同一組運算，只是搬進 `teleportTo`）；未實機截圖。
+
+**停在 P7a：前提不成立**
+設計假設「嘲諷靠 `tauntTargetId`＋`forceAiUpdate` 就夠」。實際上 `TargetingSystem.updateTarget` 的嘲諷強制鎖定只在 `updateTarget` 內執行，而 `updateTarget` 只有兩個呼叫點：`BTRegistry.HasTarget`（**只在目前目標失效時**才呼叫）與 `calculateOptimalTarget` 的後備。因此移除 `CCManager` 的 `target.target = source`，被嘲諷的單位會繼續打原本還活著的目標，嘲諷失效。要做 P7a 必須先讓 AI 端尊重嘲諷（例如 `HasTarget` 在 `tauntTimer > 0` 且目標不是嘲諷者時呼叫 `updateTarget`），這要改 `BTRegistry.ts`（P7a 檔案清單沒有）。P7b、P8 因此未做。
+
+**未收的相關寫入（不在各期檔案清單內，已列出供後續）**
+- `lastHitSourceId` 仍有兩個直接寫入：`CCManager.applyImpact`、`HazardSystem.applyHazardEffect`（兩處都已有 `sourceId` 可傳給 `applyDirectDamage`，改一行即可，之後 `lastHitSourceId` 就能進表）。
+- `px`／`py` 沒進表：`PhysicsEngine` 的靜止回正、`map.ts`、`UICommandSystem`、`useGameInput`（D11 例外）各有合理寫入，待另行決定。
+
+**驗證**：每期 lint／`vitest run --dir tests` 全綠，P4a、P4b、P5a、P5b、P5c、P6 各跑 `br-soak --seeds=10 --shrinkInterval=3 --assert-ghost --assert-idle`，皆 10/10 乾淨、0 殘影、0 發呆；P4c 依表不跑 BR。未跑 perf 系列、未截圖。

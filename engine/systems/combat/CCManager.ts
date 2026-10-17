@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
-import { Vector, HexUtils } from "../../utils";
+import { Vector } from "../../utils";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../AnimationSystem";
