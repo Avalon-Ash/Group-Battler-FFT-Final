@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Agent } from '../engine/core/Agent';
-import { applyDirectDamage, applyHeal, applyLethal } from '../engine/systems/combat/DirectDamage';
+import { applyDirectDamage, applyHeal, applyLethal, absorbWithShield } from '../engine/systems/combat/DirectDamage';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { Team } from '../types';
 
@@ -81,5 +81,27 @@ describe('applyLethal', () => {
         applyLethal(a);
         expect(a.hp).toBe(0);
         expect(a.lastHitSourceId).toBe('Y');
+    });
+});
+
+describe('absorbWithShield', () => {
+    it('absorbs up to the shield and returns the amount', () => {
+        const a = make(); a.shield = 20;
+        expect(absorbWithShield(a, 50)).toBe(20);
+        expect(a.shield).toBe(0);
+        expect(a.hp).toBe(100);
+    });
+    it('leaves the remainder of a larger shield', () => {
+        const a = make(); a.shield = 80;
+        expect(absorbWithShield(a, 50)).toBe(50);
+        expect(a.shield).toBe(30);
+    });
+    it('does nothing without a shield or for non-positive amounts', () => {
+        const a = make();
+        expect(absorbWithShield(a, 50)).toBe(0);
+        a.shield = 10;
+        expect(absorbWithShield(a, 0)).toBe(0);
+        expect(absorbWithShield(a, -5)).toBe(0);
+        expect(a.shield).toBe(10);
     });
 });

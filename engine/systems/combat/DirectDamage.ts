@@ -13,19 +13,21 @@ export interface DirectDamageResult {
  * sourceId：擊殺歸屬。傳入 id 就覆寫 lastHitSourceId；null 代表無可歸屬的來源（環境、自傷），沿用先前的歸屬。
  */
 
+/** 護盾扣減的單一入口：最多吸收 amount，回傳實際吸收量。DamageCalculator 與 applyDirectDamage 共用。 */
+export function absorbWithShield(agent: Agent, amount: number): number {
+    if (agent.shield <= 0 || amount <= 0) return 0;
+    const absorbed = Math.min(agent.shield, amount);
+    agent.shield -= absorbed;
+    return absorbed;
+}
+
 /**
  * 傷害（預設先扣護盾，再扣 HP；HP 下限為 0）。環境 / 狀態類傷害（墜落、地面危害、DoT）與技能傷害共用。
  * bypassShield = true 為真實傷害（例：墜落傷害；技能傷害的護盾已在 DamageCalculator 扣過）。
  */
 export function applyDirectDamage(agent: Agent, amount: number, bypassShield: boolean = false, sourceId: string | null = null): DirectDamageResult {
-    let remaining = amount;
-    let absorbed = 0;
-
-    if (!bypassShield && agent.shield > 0) {
-        absorbed = Math.min(agent.shield, remaining);
-        agent.shield -= absorbed;
-        remaining -= absorbed;
-    }
+    const absorbed = bypassShield ? 0 : absorbWithShield(agent, amount);
+    const remaining = amount - absorbed;
 
     if (remaining > 0) {
         agent.hp = Math.max(0, agent.hp - remaining);

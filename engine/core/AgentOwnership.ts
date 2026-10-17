@@ -23,6 +23,12 @@ export interface AgentFieldOwnership {
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    shield: {
+        group: 'vitals',
+        kind: 'domain',
+        owners: ['engine/systems/combat/DirectDamage.ts', 'engine/systems/combat/CCManager.ts'],
+        note: '戰鬥域：扣盾只在 DirectDamage.absorbWithShield（DamageCalculator 與 applyDirectDamage 共用），加盾在 CCManager 的 SHIELD 施加。',
+    },
     hp: {
         group: 'vitals',
         kind: 'single',
