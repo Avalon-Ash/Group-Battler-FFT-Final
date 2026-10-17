@@ -28,6 +28,7 @@ import { MovementSystem } from "./systems/movement";
 import { PhysicsSystem } from "./systems/PhysicsSystem"; 
 import { CombatSystem } from "./systems/combat";
 import { MapSystem } from "./systems/map";
+import { seedSimulation } from "./math/rng";
 import { HazardSystem } from "./systems/HazardSystem"; 
 import { AISystem } from "./systems/ai";
 import { AgentManager } from "./systems/agentManager";
@@ -141,6 +142,9 @@ export class GameEngine implements SpatialProvider {
             this.audio = new AudioSystem(this.bus);
         }
     }
+
+    /** 重設模擬隨機流（與表現層的隨機流完全分離；工具／重播在每個場景前呼叫）。 */
+    public seedSimulation(seed: number): void { seedSimulation(seed); }
 
     public nextId(prefix: string = 'ENT'): string {
         this._entityCounter++;

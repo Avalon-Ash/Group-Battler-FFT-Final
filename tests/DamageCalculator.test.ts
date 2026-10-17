@@ -1,4 +1,5 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
+import { setRandomSource, resetRandomSource } from '../engine/math/rng';
 import { Agent } from '../engine/core/Agent';
 import { DamageCalculator } from '../engine/systems/combat/DamageCalculator';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
@@ -37,17 +38,17 @@ describe('DamageCalculator.calculate (deterministic paths)', () => {
         expect(r.finalValue).toBe(-150);
     });
 
-    it('preRollCrit=undefined falls back to Math.random (10% crit chance)', () => {
-        const spy = vi.spyOn(Math, 'random');
-        spy.mockReturnValue(0.05);
+    it('preRollCrit=undefined falls back to the simulation random() (10% crit chance)', () => {
+        let roll = 0.05;
+        setRandomSource(() => roll);
         const crit = DamageCalculator.calculate(makeAgent(Team.BLUE), makeAgent(Team.RED), makeSkill({ power: 100 }));
         expect(crit.isCrit).toBe(true);
         expect(crit.finalValue).toBe(-150);
-        spy.mockReturnValue(0.5);
+        roll = 0.5;
         const normal = DamageCalculator.calculate(makeAgent(Team.BLUE), makeAgent(Team.RED), makeSkill({ power: 100 }));
         expect(normal.isCrit).toBe(false);
         expect(normal.finalValue).toBe(-100);
-        spy.mockRestore();
+        resetRandomSource();
     });
 
     it('tank blocks 15% of damage', () => {

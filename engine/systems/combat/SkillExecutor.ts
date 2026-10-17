@@ -8,6 +8,7 @@ import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
+import { random } from "../../math/rng";
 
 export class SkillExecutor {
 
@@ -135,7 +136,7 @@ export class SkillExecutor {
             targets.push(source);
         }
 
-        const preRollCrit = skill.power > 0 ? Math.random() < 0.1 : false;
+        const preRollCrit = skill.power > 0 ? random() < 0.1 : false;
         targets.forEach(target => {
             this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
         });

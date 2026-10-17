@@ -3,6 +3,7 @@ import { Agent } from "../../core/Agent";
 import { HexUtils, Vector } from "../../utils";
 import { MovementType, SpatialProvider, LogProvider } from "../../../types";
 import { BLOCK_HEIGHT } from "../../../constants";
+import { random } from "../../math/rng";
 
 /**
  * Robust Anti-Stacking System
@@ -72,7 +73,7 @@ export class StackingResolver {
         
         // Shuffle to avoid directional bias
         for (let i = neighbors.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(random() * (i + 1));
             [neighbors[i], neighbors[j]] = [neighbors[j], neighbors[i]];
         }
 
