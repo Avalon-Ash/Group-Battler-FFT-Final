@@ -17,6 +17,18 @@ export interface BTDef {
     args?: BTArgs;
 }
 
+/**
+ * 優先序（SELECTOR 由上到下，第一個 SUCCESS/RUNNING 勝出；同層不比權重，順序就是優先序）：
+ *   1. Dead / CC                       —— 不能行動
+ *   2. Survival: Run!                  —— 站在塌陷格／敵方 hazard 上且「走得動、有路」：先逃
+ *   3. Survival: Last Stand            —— 逃不掉：有推拉技能就用
+ *   4. Combat: Skill Priority          —— 逃不掉（IsPinned）或本來就安全：Ult > Active > Basic，
+ *                                         被釘住時 SkillReady 不再因塌陷格拒絕出手（原地戰鬥）
+ *   5. Combat: Gap Close               —— 追擊（只拒絕「停下來的格子會塌陷」）
+ *   6. Combat: Reposition              —— 追擊被拒：往更靠近目標的安全格挪
+ *   7. Combat: Idle                    —— 以上全無事可做才待命
+ * 任何「移動」節點在 CanMove 為假（root/stun/放逐/恐懼）時必須失敗，不能回 RUNNING。
+ */
 export const STANDARD_AI_PROFILE: BTDef = {
     type: 'SELECTOR',
     name: 'Root',
@@ -106,6 +118,10 @@ export const STANDARD_AI_PROFILE: BTDef = {
                                 { type: 'ACTION', name: 'Stick To Target', key: 'ChaseTarget', args: { slot: 2 } } 
                             ]
                         },
+                        // Reposition: chase refused (e.g. the only approach ends on a collapsing tile) -> edge toward the
+                        // target over safe ground instead of standing still.
+                        { type: 'ACTION', name: 'Reposition', key: 'Reposition' },
+                        // Last resort only: nothing above could do anything useful.
                         { type: 'ACTION', name: 'Idle', key: 'Idle' }
                     ]
                 }
