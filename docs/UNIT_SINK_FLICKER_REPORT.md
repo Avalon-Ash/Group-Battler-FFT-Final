@@ -79,3 +79,22 @@ ICE／VOID／MAGMA 各 2 場大逃殺（縮圈間隔 3 秒，共 4568 幀、4269
 ## 已知未處理
 - 瞬移／擊退到較低格後，精靈漂進該格的瞬間腳下高度會一次降到新格高度（原本是 `physics.z` 快速落下）。
 - 無敵單位所在格塌陷（`hp` 未歸零）時高度單幀突降。
+
+---
+
+# 追加二：屍體擊飛到已塌陷格子會懸空、死亡動畫面向來回翻
+
+## A. 屍體滑到虛空上空懸空（commit `ef02c10`）
+- 根因：擊飛滑行是繪製位移（`UnitSystem` 把 `getKnockOffset` 併入位置與排序鍵），物理不知道屍體移動了，腳下高度仍是死亡那格。滑到已塌陷的格子上空時，整段 5.5 秒的死亡動畫都停在原高度。
+- 重現（探針 `--force-collapse=death`）：鄰格塌陷、等它的墜落紀錄消失後，讓單位朝它方向死亡。修前每具屍體 222 幀懸空（≈ 3.7 秒），修後 0。
+- 修法：`data/units/appearance/deathMotion.ts` 新增純函式 `computeDeathGround`，以固定間隔取樣滑行軌跡：滑到有地面的格子，高度跟著那一格（較高較低都一樣，格高度來源與腳下高度 SSOT 同一個 `getTerrainHeight`）；軌跡一旦離開地塊就以 `PHYSICS.GRAVITY` 墜落。回收仍由原本的 `deathTimer` 路徑決定，沒有新增 `fullyDead`／`outOfBounds` 寫入者。`RenderPipeline` 傳入「有地面」判斷（存在或正在墜落的地塊）。取樣範圍與間隔在 `DEATH_KNOCKBACK.GROUND_SCAN_*`。
+- 測試：`tests/DeathMotion.test.ts` 新增三則（跟著較高地面、滑出後單調墜落、死亡當下腳下無地面不處理）。
+- 已知：滑過較低／較高的格子時高度是直接取該格高度，會有一階的跳變（滑行只有約 1 秒）。
+
+## B. 死亡動畫面向來回換（本 commit）
+- 根因：`agent.facing`（水平）對死亡單位沒有寫入者（探針 9 場 0 次翻轉，所有權表不用動）。翻的是精靈四向（SE/SW/NE/NW）的垂直部分：`selectSpriteDirection` 每幀依 `agent.target.py` 重新推導，而屍體仍掛著還活著的 target，目標一移動，屍體就來回翻面（滯後只有 120 ms）。
+- 證據：探針（ICE／MAGMA／VOID × 3，共 9 場）屍體方向翻轉 6 次，修後 0。
+- 修法：死亡（`hp <= 0`、`deathTimer > 0`、`fullyDead`）後方向鎖定在死亡前最後的方向，不再從目標／路徑推導；第一次就看到死者時依 `facing` 取 SE／SW。測試 `tests/DeathDirection.test.ts`。
+
+## 驗證（兩項合計）
+`npm run lint`、`npx vitest run --dir tests`（458）、`npm run build`、`perf:guard`（基準不用重錄）、`br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle`（20/20 乾淨）皆通過。
