@@ -1,11 +1,14 @@
 
 import { Agent, GameEngine } from "../../game";
-import { Skill, Hex } from "../../../types";
+import { Skill } from "../../../types";
 import { Vector, HexUtils } from "../../utils";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../AnimationSystem";
+import { applyDirectDamage } from "./DirectDamage";
 import { unitEventPos } from "../../events/EventPos";
+import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
+import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 
 export const CCManager = {
     
@@ -278,57 +281,68 @@ export const CCManager = {
         const originPx = origin ? origin : {x: source.px, y: source.py};
         const dir = Vector.normalize(Vector.sub({x: target.px, y: target.py}, originPx));
         const vector = type === 'KNOCKBACK' ? dir : Vector.mult(dir, -1); 
-        
-        let currentH = {q: target.q, r: target.r};
-        let finalH = currentH;
+        const kind: ForcedMoveKind = type === 'PULL' ? 'PULL' : 'KNOCKBACK';
 
-        for(let k=0; k<tilesToPush; k++) {
-            const neighbors = HexUtils.neighbors(currentH);
-            let bestN: Hex | null = null;
-            let bestDot = -2.0; 
-            
-            for(const n of neighbors) {
-                const nPx = HexUtils.toPx(n.q, n.r, engine.mapConfig);
-                const cPx = HexUtils.toPx(currentH.q, currentH.r, engine.mapConfig);
-                const nDir = Vector.normalize(Vector.sub(nPx, cPx));
-                
-                const dot = nDir.x * vector.x + nDir.y * vector.y;
-                if (dot > bestDot) {
-                    bestDot = dot;
-                    bestN = n;
-                }
-            }
-            
-            if (bestN) {
-                if (engine.map.hasObstacle(bestN.q, bestN.r)) break; 
-                if (engine.getAgentAt(bestN.q, bestN.r)) break; 
-                
-                const curHeight = engine.map.getTerrainHeight(currentH.q, currentH.r);
-                const nextHeight = engine.map.getTerrainHeight(bestN.q, bestN.r);
-                if (engine.map.isValid(bestN.q, bestN.r) && nextHeight > curHeight + 24) break; 
-                
-                currentH = bestN;
-                finalH = bestN;
-            } else {
-                break;
-            }
-        }
-        
-        if (finalH.q !== target.q || finalH.r !== target.r) {
-            const originPx = {x: target.px, y: target.py};
+        // 高度／障礙／單位的判定全在 ForcedMove（與 Pathfinder 共用爬高規則）
+        const { finalHex: finalH, blocked } = resolveForcedMove(target, vector, tilesToPush, kind, engine);
+
+        const moved = finalH.q !== target.q || finalH.r !== target.r;
+        if (moved) {
+            const fromPx = {x: target.px, y: target.py};
             engine.updateAgentPosition(target, finalH.q, finalH.r);
             const newPx = HexUtils.toPx(finalH.q, finalH.r, engine.mapConfig);
             target.px = newPx.x;
             target.py = newPx.y;
-            target.physics.x += originPx.x - newPx.x;
-            target.physics.y += originPx.y - newPx.y;
+            target.physics.x += fromPx.x - newPx.x;
+            target.physics.y += fromPx.y - newPx.y;
             
             if (target.isMoving) {
                 target.isMoving = false;
                 target.path = [];
             }
-            return { applied: true };
         }
-        return { applied: false };
+
+        // 撞擊傷害（Tactics Ogre 式）：拉扯停在施法者身邊是目的，不算撞擊
+        if (isImpactBlock(blocked, kind) && !(kind === 'PULL' && blocked.otherAgentId === source.id)) {
+            this.applyImpact(target, source, blocked, engine);
+        }
+        return { applied: moved };
+    },
+
+    /** 撞擊傷害：走 applyDirectDamage（先扣護盾），撞到單位時雙方各吃一部分。 */
+    applyImpact(target: Agent, source: Agent, block: ForcedMoveBlock, engine: GameEngine) {
+        const damage = computeImpactDamage(target.maxHp, block);
+        const victims: { agent: Agent; amount: number }[] = [{ agent: target, amount: damage }];
+        if (block.reason === 'UNIT' && block.otherAgentId) {
+            const other = engine.agents.find(a => a.id === block.otherAgentId);
+            if (other && other.hp > 0) {
+                victims.push({ agent: other, amount: Math.max(FORCED_MOVE.IMPACT_MIN, Math.floor(damage * FORCED_MOVE.IMPACT_UNIT_SHARE)) });
+            }
+        }
+
+        for (const { agent, amount } of victims) {
+            const { absorbed } = applyDirectDamage(agent, amount);
+            if (absorbed > 0) {
+                engine.pushEvent('DAMAGE', unitEventPos(agent, engine), {
+                    value: -Math.floor(absorbed), color: DAMAGE_TEXT_COLORS.ABSORB, text: 'ABSORB',
+                    sourceId: source.id, targetId: agent.id
+                });
+            }
+            engine.pushEvent('DAMAGE', unitEventPos(agent, engine), {
+                value: -amount, color: DAMAGE_TEXT_COLORS.RECOIL, text: FORCED_MOVE.IMPACT_TEXT,
+                sourceId: source.id, targetId: agent.id
+            });
+            engine.pushEvent('HIT_FX', unitEventPos(agent, engine), {
+                value: amount, text: FORCED_MOVE.IMPACT_FX, sourceId: source.id, targetId: agent.id
+            });
+            engine.log(source, 'CC', FORCED_MOVE.IMPACT_TEXT, agent.id, `${agent.id} 撞擊${block.reason} 受到 ${amount} 傷害`);
+            agent.lastHitSourceId = source.id;
+            if (agent.hp <= 0) {
+                engine.agentManager.handleDeadState(agent, engine, FORCED_MOVE.IMPACT_TEXT);
+            } else {
+                triggerHitFlash(agent, COMBAT_PARAM.HIT_FLASH_DURATION);
+            }
+        }
+        engine.bus.emit('CAMERA_SHAKE', { intensity: FORCED_MOVE.IMPACT_SHAKE });
     }
 };

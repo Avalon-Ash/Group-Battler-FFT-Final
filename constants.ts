@@ -436,6 +436,32 @@ export const PALETTE = {
     MAGIC: '#8b5cf6'
 };
 
+/**
+ * 強制位移（擊退／拉扯）的撞擊傷害，仿 Tactics Ogre：撞上爬不上去的高牆、障礙物或其他單位時，
+ * 沒走完的格數越多、牆越高，傷害越大。全部以「目標最大 HP 的比例」表示，才不會對高血量單位無感、
+ * 對低血量單位一擊斃命；單次撞擊再用 IMPACT_MAX_PCT 封頂。
+ * 例（maxHp 100）：力道 3 擊退，貼牆（牆比跳躍上限高 2 格）→ 剩 3 格：
+ * 3×0.05 + 2×0.05 = 25 傷害；撞單位時雙方各吃一半。
+ */
+export const FORCED_MOVE = {
+    /** 每個「沒走完的格」造成的傷害（maxHp 比例） */
+    IMPACT_BASE_PCT: 0.05,
+    /** 撞牆時，牆每高出起點一格（BLOCK_HEIGHT）追加的傷害（maxHp 比例） */
+    IMPACT_PER_HEIGHT_PCT: 0.05,
+    /** 單次撞擊傷害上限（maxHp 比例） */
+    IMPACT_MAX_PCT: 0.35,
+    /** 撞到其他單位時，被撞的一方承受撞擊傷害的比例 */
+    IMPACT_UNIT_SHARE: 0.5,
+    /** 撞擊傷害下限（避免低血量單位被取整成 0） */
+    IMPACT_MIN: 1,
+    /** 撞擊的 HUD 文字 */
+    IMPACT_TEXT: '撞擊',
+    /** 撞擊的受擊特效（VFXRegistry 鍵） */
+    IMPACT_FX: 'FX_HIT_RED_HEAVY',
+    /** 撞擊鏡頭震動強度 */
+    IMPACT_SHAKE: 0.3,
+};
+
 export const COMBAT_PARAM = {
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
