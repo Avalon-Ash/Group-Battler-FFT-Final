@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "CLAUDE_CODE_SUBAGENT_MODEL": "claude-sonnet-5-5"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "mcp__ccd_session__start_session|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/tools/hooks/agent-guardrails.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
