@@ -31,7 +31,7 @@ export class UnitVisualProcessor {
         const isDragPreview = agent.dragOverQ !== null || agent.dragOverR !== null;
         const terrainH = isDragPreview
             ? getTerrainHeight(agent.dragOverQ ?? agent.q, agent.dragOverR ?? agent.r)
-            : VisualMath.getUnitGroundHeight(agent, getTerrainHeight);
+            : VisualMath.getUnitGroundHeight(agent, getTerrainHeight, mapConfig);
         const isSelected = (agent === highlightAgent);
         
         return {

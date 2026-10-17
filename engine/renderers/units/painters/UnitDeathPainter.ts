@@ -13,19 +13,19 @@ export class UnitDeathPainter {
      * x/y 供 UnitRenderSystem 併入繪製位置與深度排序；lift 由本繪製器套用。
      */
     public static getKnockOffset(agent: Agent): DeathOffset {
-        let vx = 0, vy = 0, vz = 0;
+        const v = UnitDeathPainter.getKnockVelocity(agent);
+        return computeDeathOffset(v.vx, v.vy, v.vz, agent.deathTimer);
+    }
+
+    /** Ragdoll 軀幹初速（擊飛滑行的唯一輸入） */
+    public static getKnockVelocity(agent: Agent): { vx: number; vy: number; vz: number } {
         const bones = agent.ragdoll;
         if (bones) {
             for (let i = 0; i < bones.length; i++) {
-                if (bones[i].id === 'torso') {
-                    vx = bones[i].vx;
-                    vy = bones[i].vy;
-                    vz = bones[i].vz;
-                    break;
-                }
+                if (bones[i].id === 'torso') return { vx: bones[i].vx, vy: bones[i].vy, vz: bones[i].vz };
             }
         }
-        return computeDeathOffset(vx, vy, vz, agent.deathTimer);
+        return { vx: 0, vy: 0, vz: 0 };
     }
 
     /**

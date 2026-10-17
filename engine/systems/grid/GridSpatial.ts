@@ -46,7 +46,7 @@ export class GridSpatial {
         const occluded: Agent[] = [];
         for (const a of engine.agents) {
             if (a.hp <= 0 && a.fullyDead) continue;
-            const uTerrainH = VisualMath.getUnitGroundHeight(a, (q, r) => engine.map.getTerrainHeight(q, r));
+            const uTerrainH = VisualMath.getUnitGroundHeight(a, (q, r) => engine.map.getTerrainHeight(q, r), engine.mapConfig);
             const uY = HexUtils.toPx(a.q, a.r, engine.mapConfig).y;
             const neighbors = HexUtils.neighbors({q: a.q, r: a.r});
             for (const n of neighbors) {

@@ -300,6 +300,9 @@ export const DEATH_KNOCKBACK = {
     GRAVITY: 1050,
     RESTITUTION: 0.35,
     BOUNCES: 2,
+    /** 滑行軌跡檢查「是否滑出地塊」的時間範圍與取樣間隔（秒）；滑行約 1.5 秒後已停止 */
+    GROUND_SCAN_END: 1.6,
+    GROUND_SCAN_STEP: 0.05,
 } as const;
 
 export const THEME_IMPERIAL = {

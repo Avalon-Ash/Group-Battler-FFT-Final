@@ -64,6 +64,17 @@ export function selectSpriteDirection(
     const isFacingEast = agent.facing > 0;
     let wantsNorth = false;
 
+    // 垂直方向只在存活時由目標／路徑推導；單位一死就鎖定在死亡前最後的方向（死亡動畫期間不再重新推導）。
+    // 否則屍體仍掛著還活著的 target，目標一移動，屍體就在 NE/SE（NW/SW）之間來回翻面。
+    const isDying = agent.hp <= 0 || agent.fullyDead || agent.deathTimer > 0;
+    if (isDying) {
+        const held = agentDirMap.get(agent);
+        if (held) return held.dir;
+        const dir: SpriteDirection = isFacingEast ? 'SE' : 'SW';
+        agentDirMap.set(agent, { dir, lastSwitchTime: currentTime });
+        return dir;
+    }
+
     // 1. 若在移動中，依下一個路徑點之 screen Y 判斷
     if (agent.isMoving && agent.path && agent.path.length > 0) {
         const nextHex = agent.path[0];
