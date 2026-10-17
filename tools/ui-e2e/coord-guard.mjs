@@ -6,10 +6,11 @@
  *   --float     VOID/MAGMA: unit draw Y minus its tile's draw Y must stay constant while the tiles bob
  *   --sink      seeded battle royale: no unit's feet may sit below the top of the tile under them
  *   --flicker   seeded battles + idle edit board: no pair of overlapping ops may change draw order A<B, B<A, A<B within 8 frames
- * With no check flag all three run. Evidence only: nothing in engine/ is edited; the page is monkey-patched.
+ *   --order     STABLE wrong draw order (tools/ui-e2e/lib/depth-oracle.mjs): geometric oracle on seeded battles + a crafted board with screenshots
+ * With no check flag float/sink/flicker run (--order only runs when asked). Evidence only: nothing in engine/ is edited; the page is monkey-patched.
  *
  * Usage: node tools/ui-e2e/coord-guard.mjs [--float] [--sink] [--flicker] [--assert]
- *          [--seeds=3] [--seedStart=1] [--seconds=20] [--biomes=FOREST,VOID] [--fxfx] [--floatFrames=90] [--injectSink=N] [--no-decal-lift]
+ *          [--seeds=3] [--seedStart=1] [--seconds=20] [--biomes=FOREST,VOID] [--order] [--orderBiomes=FOREST,VOID,MAGMA] [--orderSeconds=20] [--no-crafted] [--orderSim=noE,unitE,noLift] [--fxfx] [--floatFrames=90] [--injectSink=N] [--no-decal-lift]
  * Output: tools/ui-e2e/out/coord_guard.json + a summary on stdout. Exit 1 with --assert on any violation.
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -17,6 +18,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { launchBrowser, START_TEXT } from './lib/perf-common.mjs';
 import { startServer, seededHarnessInit, runFloatAlign, installRecorder, setupBattle, stepFrames } from './lib/coord-probes.mjs';
+import { runOrderScenes, runCrafted, aggregateOrder, printOrderSummary, printMatrix } from './lib/depth-oracle.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const outDir = join(here, 'out');
@@ -24,10 +26,11 @@ mkdirSync(outDir, { recursive: true });
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(`--${n}`);
 const val = (n, d) => { const h = argv.find((a) => a.startsWith(`--${n}=`)); return h ? h.slice(n.length + 3) : d; };
-const any = flag('float') || flag('sink') || flag('flicker');
+const any = flag('float') || flag('sink') || flag('flicker') || flag('order');
 const DO_FLOAT = !any || flag('float');
 const DO_SINK = !any || flag('sink');
 const DO_FLICKER = !any || flag('flicker');
+const DO_ORDER = flag('order');
 const ASSERT = flag('assert');
 const SEEDS = Number(val('seeds', 3));
 const SEED_START = Number(val('seedStart', 1));
@@ -95,6 +98,14 @@ if (DO_SINK || DO_FLICKER) {
     await ctx.close();
 }
 
+/* ---------------------------------------------------------------- 4. ORDER (depth oracle) */
+if (DO_ORDER) {
+    console.log('== order (depth oracle) ==');
+    const deps = { openApp, setupBattle, stepFrames };
+    result.orderRuns = await runOrderScenes(deps, { biomes: val('orderBiomes', 'FOREST,VOID,MAGMA').split(','), seeds: SEEDS, seedStart: SEED_START, seconds: Number(val('orderSeconds', SECONDS)), sim: val('orderSim', '').split(',').filter(Boolean) });
+    if (!flag('no-crafted')) result.crafted = await runCrafted(deps, { outDir });
+}
+
 await browser.close();
 await server.close();
 
@@ -136,6 +147,11 @@ const oscStatic = flickerGroups.reduce((s, g) => s + g.staticEvents, 0);
 const oscEpisodes = flickerGroups.reduce((s, g) => s + g.episodes, 0);
 const flipsTotal = flickerGroups.reduce((s, g) => s + g.flips, 0);
 
+let orderAgg = null;
+if (DO_ORDER) {
+    orderAgg = aggregateOrder(result.orderRuns);
+    result.orderSummary = orderAgg;
+}
 writeFileSync(join(outDir, 'coord_guard.json'), JSON.stringify(result, null, 2));
 
 console.log('\n================ coord-guard summary ================');
@@ -169,11 +185,16 @@ if (DO_FLICKER) {
         }
     }
 }
+if (DO_ORDER) {
+    printOrderSummary(orderAgg, result.orderRuns);
+    if (result.crafted) printMatrix(result.crafted);
+}
 console.log(`\nSaved ${join(outDir, 'coord_guard.json')}`);
 
 if (DO_SINK && sink.violations > 0) failures.push(`sink ${sink.violations} violations`);
 if (DO_SINK && sink.voidSamples > 0) failures.push(`sink ${sink.voidSamples} over-void samples`);
 if (DO_FLICKER && oscTotal > 0) failures.push(`flicker ${oscTotal} oscillation events`);
+if (DO_ORDER && orderAgg.totals.stableEpisodes > 0) failures.push(`order ${orderAgg.totals.stableEpisodes} stable wrong-order episodes`);
 if (ASSERT && failures.length) {
     console.error(`[ASSERTION FAILED] ${failures.join('; ')}`);
     process.exit(1);
