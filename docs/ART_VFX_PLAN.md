@@ -99,3 +99,9 @@
   - **改名（V3）**：`FX_HIT_BLUE_TECH`→`FX_HIT_BLUE_LIGHTNING`、`FX_ACTIVE_BLUE_TECH_SHIELD`→`…_AEGIS_WARD`、`…_TECH_BURST`→`…_RADIANT_BURST`、`PROJ_BLUE_SNIPER`→`PROJ_BLUE_LIGHT_ARROW`、`GRID_TECH_BLUE`→`GRID_HEX_BLUE`。
   - **錄影**（`tools/ui-e2e/out/vfx/hit/<id>_<TEAM>_hit.png`，gitignore；12 格時間序，`tools/vfx/record-skill.mjs --zoom=2.6 --crop=400 --keep-frames` 後以 ffmpeg tile 拼）：BLUE 普攻 tb_b1／wb_b1／rb_b2／mb_b2／sb_b1，BLUE 主動 tb_a2／wb_a1／rb_a1／mb_a1／sb_a2，RED 普攻 tr_b1／wr_b1／rr_b4／mr_b3／sr_b1，RED 主動 tr_a3／wr_a5／rr_a1／mr_a1／sr_a4。目視檢查：wb_b1（聖雷＋金環＋火花）與 rr_a1（熔岩噴發）清楚正確；tb_a2、tr_a3 的取樣窗口多半落在特效前後（錄影場景有出生光柱與紅色 AOE 預警干擾），未能判定，需用 mp4 或調整起始格再看。未見破圖或崩壞。
   - **已知**：火柱「jagged」多層疊出的條紋偏重（rr_a1 末格）；Ashen 主動技的色彩辨識度要看實機；`ACTIVE_VISUALS.count` 欄位已無作用。
+- **Wave-2 美術收尾（2026-10-17，主代理定品味、FFT 為參照：清晰、俐落、有力）**：
+  - **ASH_VOID 色階提亮**（`vfxPalette.ts`）：core `#dc2626`→`#f0abfc`、main `#3b0764`→`#7e22ce`、dark `#000000`→`#2e1065`。灰階圖（`parts-sheet.mjs --gray`）上光暈／星芒／陣紋／六角碎片都讀得出來，仍是紫色深淵調，與 ASH_FIRE（橘）、LION_ARCANE（藍）分得開。
+  - **火焰維持平塗三層＋外層細亮邊**（`PartBakers.bakeFlame`，`VFX_PARTS.FLAME.RIM_WIDTH／RIM_ALPHA`）：以 ramp.core 描外層輪廓，只在烘焙時畫，零每幀成本。
+  - **光束吃陣營色階**（`data/vfx/beam_styles.ts` 的 `FACTION_BEAM_RAMP`：獅心＝LION_HOLY 金白、灰燼＝ASH_BLOOD 緋紅）：`SequenceSystem` 依施放者陣營傳入 `playBeam`，管身取 ramp.main、最內芯取 ramp.core（`Particle.beamCore`）；仍是程序化繪製，管身漸層快取沿用（芯色另按 inner 分快取）。取捨：治療等原本綠／紫的光束現在也依陣營變金／緋紅。
+  - **職業圖示改幻想向量符號**（`data/units/classGlyphs.ts`＋`UnitFactory.drawClassGlyph`）：TANK 盾、WARRIOR 劍、RANGER 弓、MAGE 法杖寶珠、SUPPORT 聖杯；獅心＝圓角乾淨（`CLEAN`），灰燼＝鋸齒破損（`JAGGED`），風格由 `FactionSkin.classIcon.glyph` 決定。`classIcon` 貼圖槽覆蓋路徑不變。
+  - **驗證圖**（`tools/ui-e2e/out/`，gitignore）：`vfx/before_gray.png`／`parts_sheet_t0_gray.png`（ASH_VOID 前後）、`faction/before_pedestals.png`／`after_pedestals.png`（圖示前後）、`vfx/beam_blue_after.png`、`vfx/mr_b2_RED_sheet.png`。`battle_frozen` 差異 0.122（過門檻）；因圖示刻意改變而另開 commit 重錄。
