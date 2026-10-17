@@ -7,13 +7,14 @@
  *  - 表現流：直接用 Math.random（粒子、鏡頭震動、浮動文字抖動、環境粒子、畫家函式）。
  *    表現流絕不可影響模擬狀態；tests/RngSplit.test.ts 以靜態掃描＋戰鬥重現鎖住這條界線。
  *
- * 種子：模組載入時自 Math.random 取一次（工具在載入前先固定 Math.random，因此仍可重現）。
- * 之後模擬流只靠 seedSimulation() 重設（GameEngine.seedSimulation 為對外入口，工具在每個場景前呼叫）。
- * setRandomSource() 可注入替代序列（單元測試用），resetRandomSource() 還原為種子化序列。
- * 每次呼叫零配置（只改一個數字）。
+ * 種子化時機：
+ *  - seedSimulation(seed)（GameEngine.seedSimulation 為對外入口）：工具／重播在每個場景前呼叫，同種子 → 同序列。
+ *  - 尚未種子化前（引擎建構、開戰前的地圖／佈陣）random() 暫時轉呼叫 Math.random，行為與拆分前一致。
+ * setRandomSource() 可注入替代序列（單元測試用），resetRandomSource() 還原。每次呼叫零配置（只改一個數字）。
  */
 export type RandomSource = () => number;
 
+let seeded = false;
 let state = 0;
 let seed = 0;
 
@@ -26,18 +27,22 @@ function nextSeeded(): number {
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
 
+/** 預設來源：已種子化 → 模擬流；否則暫時轉呼叫 Math.random（呼叫當下才解析，vi.spyOn 仍有效）。 */
+const defaultSource: RandomSource = () => (seeded ? nextSeeded() : Math.random());
+
 /** 以新種子重設模擬流（同種子 → 同序列）。 */
 export function seedSimulation(newSeed: number): void {
     seed = newSeed >>> 0;
     state = seed;
+    seeded = true;
 }
 
-/** 目前模擬流的起始種子（重播／回報用）。 */
+/** 目前模擬流的起始種子（重播／回報用；尚未種子化為 0）。 */
 export function getSimulationSeed(): number {
     return seed;
 }
 
-let source: RandomSource = nextSeeded;
+let source: RandomSource = defaultSource;
 
 export function random(): number {
     return source();
@@ -48,8 +53,5 @@ export function setRandomSource(fn: RandomSource): void {
 }
 
 export function resetRandomSource(): void {
-    source = nextSeeded;
+    source = defaultSource;
 }
-
-// 初始種子：載入時取一次 Math.random（此後模擬流不再碰 Math.random）。
-seedSimulation(Math.floor(Math.random() * 4294967296));
