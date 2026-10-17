@@ -205,6 +205,21 @@ export class RenderSpec {
 
         s += "--- \n\n";
 
+        s += "## 10. 衝刺／高速移動殘影 (Afterimages)\n\n";
+        s += "殘影是**單位 op 的一部分**（沒有新的 op）：UnitBodyPainter 在畫本體之前、同一個 drawAssembly 的 ctx 裡畫，所以跟著單位排序。\n\n";
+        s += "- 軌跡來源：Agent.trailHistory＝繪製位置 px + physics 的最近 AFTERIMAGE.HISTORY_LENGTH 點（每個物理 tick 一點），**唯一寫入者 PhysicsSystem**（AgentOwnership）。\n";
+        s += "  衝刺是 SkillExecutor 把 px/py 設到終點、physics.x/y 設成反向差值再由彈簧拉回，所以速度大、軌跡走過整段路徑；擊退滑行同理。\n";
+        s += "- 換算：UnitFrame.fill 呼叫 Afterimage.computeAfterimageGhosts，把軌跡點換成**相對單位目前腳底繪製點**的偏移：\n";
+        s += "  dx = 點.x − footX；dy = (點.y − 該點腳下繪製用高度) − floorY；z = 點.physics.z。腳下高度用繪製用高度函式（已扣漂浮位移），VOID／MAGMA 上殘影跟著地塊浮。\n";
+        s += "- 條件：物理速度 > VFX_PARAM.SPEED_TILT_THRESHOLD；屍體、拖曳預覽、剪影、變羊沒有殘影；距離本體不到 AFTERIMAGE.MIN_SEPARATION_PX 的點省略。\n";
+        s += "- 繪製：UnitAfterimagePainter。原點＝腳底繪製點；每個殘影 translate(dx, getVisualBodyCenterY(dy, z))、scale(UNIT_SCALE)、同本體的旋轉與漂浮，\n";
+        s += "  畫 SpriteUnitRenderer.resolveFrame 解析出的**同一張影格**（同朝向），染成陣營軌跡色（getFactionSkin(team).projection.trailColor）的快取畫布。\n";
+        s += "  染色影格每 (圖集, Mip, 影格, 顏色) 一張，第一次用到才建立，數量上限 AFTERIMAGE.MAX_TINTED_FRAMES；每幀零分配。\n";
+        s += "- 品質階層：殘影數 ≤ AFTERIMAGE.GHOSTS_BY_TIER[tier]。\n";
+        s += "- 舊的 assets.base 糊影（MaterialPainter.drawMotionTrail）與梯形預留圖形已移除。\n\n";
+
+        s += "--- \n\n";
+
         return s;
     }
 

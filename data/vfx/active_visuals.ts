@@ -11,7 +11,7 @@ import type { BeamStyleId } from "./beam_styles";
 type ActiveArchetype = 
     | 'BURST_AOE'       // Instant explosion (Magic/Tech)
     | 'PROJECTILE_SALVO'// Multiple small projectiles
-    | 'DASH_ASSAULT'    // Fast trail + Impact
+    | 'DASH_ASSAULT'    // 施放者位移（effectType 'DASH'）：出手線條 + 落點特效；殘影由位移速度自動產生（UnitAfterimagePainter）。只給 DASH 技能用（tests/DashSkillVisuals.test.ts）
     | 'BUFF_AURA'       // Upward flowing particles on self
     | 'DEBUFF_RAY'      // Dark cloud/beam on target
     | 'GROUND_SLAM'     // Physical debris shockwave
@@ -52,14 +52,14 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     // --- RANGER ---
     'rb_a1': { archetype: 'BURST_AOE', color: '#bae6fd', secondaryColor: '#fff', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_FROST_SNAP' },
     'rb_a2': { archetype: 'PROJECTILE_SALVO', color: '#38bdf8', secondaryColor: '#0ea5e9', scale: 1.0, count: 1 },
-    'rb_a3': { archetype: 'DASH_ASSAULT', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.2 },
+    'rb_a3': { archetype: 'PROJECTILE_SALVO', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.2 },
     'rb_a4': { archetype: 'TRAP', color: '#bfdbfe', secondaryColor: '#60a5fa', scale: 1.0, impactFx: 'FX_ACTIVE_BLUE_FROST_SNAP' },
     'rb_a5': { archetype: 'PROJECTILE_SALVO', color: '#93c5fd', secondaryColor: '#fff', scale: 0.8, count: 5 },
 
     // --- MAGE ---
     'mb_a1': { archetype: 'BURST_AOE', color: '#a855f7', secondaryColor: '#d8b4fe', scale: 1.4, impactFx: 'FX_ACTIVE_BLUE_ARCANE_RIPPLE' },
     'mb_a2': { archetype: 'DEBUFF_RAY', color: '#e0f2fe', secondaryColor: '#38bdf8', scale: 1.0, impactFx: 'FX_ACTIVE_BLUE_FROST_SNAP' },
-    'mb_a3': { archetype: 'BUFF_AURA', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.2, impactFx: 'FX_TELEPORT' },
+    'mb_a3': { archetype: 'DASH_ASSAULT', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.2, impactFx: 'FX_TELEPORT', beamStyle: 'LIGHTNING_BEAM' },
     'mb_a4': { archetype: 'PROJECTILE_SALVO', color: '#bae6fd', secondaryColor: '#e0f2fe', scale: 1.0, count: 3 },
     'mb_a5': { archetype: 'WALL', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.5, impactFx: 'FX_GRID_IMPACT_BLUE' },
 
@@ -83,7 +83,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     // --- WARRIOR ---
     'wr_a1': { archetype: 'BURST_AOE', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.3, impactFx: 'FX_HIT_RED_HEAVY' },
     'wr_a2': { archetype: 'SIMPLE_IMPACT', color: '#450a0a', secondaryColor: '#000', scale: 1.2, impactFx: 'FX_HIT_RED_BLOOD' },
-    'wr_a3': { archetype: 'GROUND_SLAM', color: '#b91c1c', secondaryColor: '#7f1d1d', scale: 1.4, impactFx: 'FX_ACTIVE_RED_WAR_STOMP' },
+    'wr_a3': { archetype: 'DASH_ASSAULT', color: '#b91c1c', secondaryColor: '#7f1d1d', scale: 1.4, impactFx: 'FX_ACTIVE_RED_WAR_STOMP', beamStyle: 'SLASH_CONNECT' },
     'wr_a4': { archetype: 'SIMPLE_IMPACT', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.5, impactFx: 'FX_HIT_RED_BLOOD' },
     'wr_a5': { archetype: 'BUFF_AURA', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 

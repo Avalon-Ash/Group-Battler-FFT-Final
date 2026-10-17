@@ -9,6 +9,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../game";
+import type { UnitFrame } from "./frame/UnitFrame";
 import { Particle } from "../systems/vfx/state";
 import { Projectile, Point, GroundHazard } from "../../types";
 import type { TerrainTheme } from "../../constants";
@@ -50,6 +51,8 @@ export class RenderOp {
     oWarning: boolean = false;
     oLastStand: boolean = false;
     agent: Agent | null = null;
+    /** UNIT／CORPSE：本幀的 UnitFrame（殘影偏移來源；唯讀） */
+    unitFrame: UnitFrame | null = null;
     alpha: number = 1.0;
     uSelected: boolean = false;
     uSilhouette: boolean = false;
@@ -80,6 +83,7 @@ export class RenderOp {
         this.tEdge = 0;
         this.tBase = 0;
         this.agent = null;
+        this.unitFrame = null;
         this.alpha = 1.0;
         this.particle = null;
         this.proj = null;

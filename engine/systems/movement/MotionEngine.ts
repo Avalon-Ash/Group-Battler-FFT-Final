@@ -1,11 +1,10 @@
 
 import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
-import { MovementType, SpatialProvider } from "../../../types";
+import { SpatialProvider } from "../../../types";
 import { random } from "../../math/rng";
 
 const STACKING_RESOLUTION_FORCE = 8;
-const TRAIL_HISTORY_LENGTH = 15;
 const FACING_THRESHOLD = 1.5; 
 
 export class MotionEngine {
@@ -60,12 +59,6 @@ export class MotionEngine {
         const t = Math.max(0, Math.min(1.0, a.moveProgress));
         a.px = c.x + (n.x - c.x) * t;
         a.py = c.y + (n.y - c.y) * t;
-        
-        if (a.movementType === MovementType.FLYING && a.hp > 0) {
-            const h = spatial.getTerrainHeight(a.q, a.r); // Approximation for current tile
-            a.trailHistory.push({ x: a.px, y: a.py, z: a.physics.z, h });
-            if (a.trailHistory.length > TRAIL_HISTORY_LENGTH) a.trailHistory.shift();
-        }
     }
 
     private static cancelMove(a: Agent) {

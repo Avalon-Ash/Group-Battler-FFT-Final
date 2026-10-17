@@ -10,6 +10,8 @@
 // ║  VisualMath.getUnitGroundHeight 的地方（棘輪測試擋住）；     ║
 // ║  繪製端拿到的是 frames，沒有地形高度函式，所以無法自己重算。 ║
 // ║  唯一寫入者：UnitFrameStore.build。                          ║
+// ║  殘影（ghosts）：trailHistory 的點換算成相對腳底的偏移       ║
+// ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
 // ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
 // ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）。        ║
@@ -24,6 +26,7 @@ import { UNIT_FRAME } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudBarHeight } from "../../../data/units/appearance/projection";
 import { Hex } from "../../../types";
+import { AfterimageGhost, computeAfterimageGhosts, createGhostSlots } from "./Afterimage";
 
 export type UnitFramePhase = 'IN' | 'OUT' | 'IDLE';
 
@@ -60,6 +63,9 @@ export interface UnitFrame {
     readonly bodyCenterY: number;
     /** 血條錨點 Y：腳底繪製 Y − physics.z − hudBarHeight(體型)（投影頭頂 + HUD_ANCHOR.barHeadMargin；血條、量表、頭頂狀態圖示共用） */
     readonly hudAnchorY: number;
+    /** 衝刺／高速移動殘影的槽位（預先配置，前 ghostCount 個有效；偏移相對單位目前腳底繪製點，RenderSpec §10） */
+    readonly ghosts: AfterimageGhost[];
+    readonly ghostCount: number;
 }
 
 type MutableUnitFrame = { -readonly [K in keyof UnitFrame]: UnitFrame[K] };
@@ -69,6 +75,7 @@ function createFrame(agent: Agent): MutableUnitFrame {
         agent, isCorpse: false, visible: false,
         footX: 0, footY: 0, transition: 0, groundH: 0, floorY: 0, drawY: 0, sortY: 0, sortBias: 0,
         hexUnderFoot: { q: 0, r: 0 }, bodyCenterY: 0, hudAnchorY: 0,
+        ghosts: createGhostSlots(), ghostCount: 0,
     };
 }
 
@@ -80,6 +87,14 @@ export class UnitFrameStore {
     private readonly frames: UnitFrame[] = [];
     private readonly sortHex = new Map<string, SortHexMemory>();
     private buildStamp = 0;
+    /** 本幀 build 的繪製用高度函式與地圖（殘影腳下高度用；每幀由 build 設定） */
+    private heightAt: (q: number, r: number) => number = () => 0;
+    private mapConfig: MapConfig | null = null;
+    private readonly ghostGroundAt = (x: number, y: number): number => {
+        if (!this.mapConfig) return 0;
+        const h = HexUtils.fromPx(x, y, this.mapConfig);
+        return this.heightAt(h.q, h.r);
+    };
 
     /** 與輸入 agents 同序、同長度的本幀快照 */
     public get list(): readonly UnitFrame[] { return this.frames; }
@@ -106,6 +121,8 @@ export class UnitFrameStore {
         hasGround?: (q: number, r: number) => boolean
     ): void {
         const n = agents.length;
+        this.heightAt = renderHeightAt;
+        this.mapConfig = mapConfig;
         if (this.frames.length > n) this.frames.length = n;
         const batchCulled = phase === 'OUT' && transitionT > TRANSITION_OUT_CULL_T;
         this.buildStamp++;
@@ -177,6 +194,7 @@ export class UnitFrameStore {
             f.footX = baseX; f.footY = baseY; f.transition = 0; f.groundH = 0;
             f.floorY = baseY; f.drawY = baseY; f.sortY = baseY; f.sortBias = 0;
             f.bodyCenterY = baseY; f.hudAnchorY = baseY;
+            f.ghostCount = 0;
             return;
         }
 
@@ -235,5 +253,13 @@ export class UnitFrameStore {
         f.sortBias = Math.max(0, hexCenterY - footY);
         f.bodyCenterY = VisualMath.getVisualBodyCenterY(floorY, pz);
         f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -hudBarHeight(resolveBodyType(agent)));
+
+        // 衝刺／高速移動殘影：屍體與拖曳預覽沒有（屍體的位移是擊飛，不是衝刺）
+        const hasGhosts = !isCorpse && !isDragPreview && agent.trailHistory.length > 0;
+        f.ghostCount = hasGhosts
+            ? computeAfterimageGhosts(f.ghosts, agent.trailHistory,
+                agent.physics.vx * agent.physics.vx + agent.physics.vy * agent.physics.vy,
+                footX, footY, groundH, this.ghostGroundAt)
+            : 0;
     }
 }

@@ -67,6 +67,21 @@ export function computeSpriteDrawRect(
     return { dx, dy, dw, dh, screenScale, localScale };
 }
 
+/** resolveFrame 的輸出（draw 與殘影共用；呼叫端自備或用模組內暫存，不跨呼叫保存） */
+export interface ResolvedSpriteFrame {
+    manifestKey: string;
+    frame: UnitFrameDef | null;
+    rect: SpriteDrawRect | null;
+    mipLevel: number;
+    flashStrength: number;
+}
+
+export function createResolvedSpriteFrame(): ResolvedSpriteFrame {
+    return { manifestKey: '', frame: null, rect: null, mipLevel: 1, flashStrength: 1 };
+}
+
+const scratchFrame = createResolvedSpriteFrame();
+
 export const SpriteUnitRenderer = {
     /**
      * 單位站姿「腳底到頭頂」的螢幕高度（世界座標、不受 UNIT_SCALE 影響）。
@@ -100,17 +115,18 @@ export const SpriteUnitRenderer = {
     },
 
     /**
-     * 核心繪製方法
+     * 解析單位本幀要畫的影格（影格選取、繪製矩形、Mip），寫進 out。draw 與殘影共用，
+     * 殘影才會和本體畫同一張影格、同一個朝向。圖集未就緒或查無外觀時回傳 false。
      */
-    draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean): void {
+    resolveFrame(agent: Agent, t: number, out: ResolvedSpriteFrame): boolean {
         const bodyType = resolveBodyType(agent);
         const bodyProfile = BODY_TYPE_PROFILE[bodyType];
         const appearance = lookupSpriteAppearance(agent.team, agent.role, bodyType);
-        if (!appearance) return;
+        if (!appearance) return false;
 
         const manifestKey = appearance.manifestKey;
         const unitDef = spriteAtlasStore.getUnitDef(manifestKey);
-        if (!unitDef) return;
+        if (!unitDef) return false;
 
         const manifest = spriteAtlasStore.getManifest();
         const refHeight = manifest?.referenceHeightPx ?? UNIT_SPRITE.referenceHeightPx;
@@ -126,17 +142,33 @@ export const SpriteUnitRenderer = {
             selection.dir,
             selection.frameIndex
         );
-        if (!frame) return;
+        if (!frame) return false;
 
         // 目標繪製矩形（補償外層 UNIT_SCALE 並加上 footOffsetLocal 使腳底落在 surfaceY）
         const rect = computeSpriteDrawRect(frame, refHeight, heightScale, anchorYOffset);
+        out.manifestKey = manifestKey;
+        out.frame = frame;
+        out.rect = rect;
+        // Mip 層級選取（以實際螢幕縮放 screenScale 為準）
+        out.mipLevel = selectMipLevel(rect.screenScale);
+        out.flashStrength = appearance.flashStrength || 1.0;
+        return true;
+    },
+
+    /**
+     * 核心繪製方法
+     */
+    draw(ctx: CanvasRenderingContext2D, agent: Agent, t: number, isSilhouette: boolean): void {
+        const r = scratchFrame;
+        if (!SpriteUnitRenderer.resolveFrame(agent, t, r) || !r.frame || !r.rect) return;
+        const manifestKey = r.manifestKey;
+        const frame = r.frame;
+        const rect = r.rect;
+        const mipLevel = r.mipLevel;
         let dx = rect.dx;
         const dy = rect.dy;
         const dw = rect.dw;
         const dh = rect.dh;
-
-        // Mip 層級選取（以實際螢幕縮放 screenScale 為準）
-        const mipLevel = selectMipLevel(rect.screenScale);
 
         // 來源圖集選取
         const atlasImage = isSilhouette
@@ -173,7 +205,7 @@ export const SpriteUnitRenderer = {
             if (silhouetteAtlas) {
                 const flashAlpha = Math.min(1.0, agent.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || 0.15));
                 ctx.save();
-                ctx.globalAlpha = flashAlpha * (appearance.flashStrength || 1.0);
+                ctx.globalAlpha = flashAlpha * r.flashStrength;
                 ctx.drawImage(silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);
                 ctx.restore();
             }
