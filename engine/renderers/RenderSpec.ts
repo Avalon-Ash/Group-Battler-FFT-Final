@@ -67,9 +67,11 @@ export class RenderSpec {
         s += "  physics.z（跳躍、飛行）在繪製時再往上扣，不進 op.y。\n\n";
         s += "VFX 粒子：p.y 是「未投影 Y」＝螢幕 Y / ISO_SCALE_Y（VFXPlayer 存入時除、VFXRenderer 提交時乘回）；p.z 是世界高度（含地形）。\n";
         s += "投射物：startY／endY 是螢幕 Y，ProjectileRenderer 內轉成未投影 Y 插值後再乘回。\n\n";
-        s += "事件座標（GameEvent.pos）：只是「發生在哪」的世界 xy。單位事件的 pos.z 是相對腳下地面的 physics.z，\n";
-        s += "危害事件（HAZARD_SPAWN）的 pos.z 是世界高度。視覺端一律以 sourceId／targetId 經 §4 的 SSOT 函式解析，\n";
-        s += "單位已死時才用 pos，並加回腳下地形高度（EventVFXMapper.resolvePoint）。\n\n";
+        s += "事件座標（GameEvent.pos）：xy 是「發生在哪」的世界座標；pos.z 若存在，**一律是世界高度**（模擬高度，\n";
+        s += "engine.getTerrainHeight 的尺度，單位事件含 physics.z 空中高度），沒有 z＝地面上某處，由消費端查該格高度。\n";
+        s += "發射端只能用 engine/events/EventPos.ts 的 unitEventPos／hexEventPos／pointEventPos 建構（§4），不手寫 pos 字面量。\n";
+        s += "視覺端一律以 sourceId／targetId 經 §4 的 SSOT 函式解析活著的單位；單位已死／出局時才用 pos，\n";
+        s += "並只加身體中心偏移，不再加地形高度（EventVFXMapper.resolvePoint）。\n\n";
 
         s += "--- \n\n";
 
@@ -81,7 +83,10 @@ export class RenderSpec {
         s += "| 受擊點／身體中心 | getUnitAnchor | 腳下高度 + physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET |\n";
         s += "| 施法／投射物／光束起點 | getCoreAnchor／coreAnchorAt | 棋座核心：腳下高度 + CORE_VISUAL.hoverHeight，不含 physics.z（飛行單位也從核心出發） |\n";
         s += "| 地面目標點 | resolveTargetPoint（ground-q,r） | 格高 + 2 |\n";
-        s += "| 漂浮位移 | floatBobAt／isFloatingBiome | 見 §5 |\n\n";
+        s += "| 漂浮位移 | floatBobAt／isFloatingBiome | 見 §5 |\n";
+        s += "| 單位事件位置 | unitEventPos（engine/events/EventPos.ts） | xy＝px+physics；z＝getUnitGroundHeight（模擬高度）+ physics.z |\n";
+        s += "| 格子事件位置 | hexEventPos | 六角格中心；z＝getTerrainHeight(q, r) |\n";
+        s += "| 純 2D 事件位置 | pointEventPos | 只有 xy（無 z），消費端自查該格高度 |\n\n";
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 

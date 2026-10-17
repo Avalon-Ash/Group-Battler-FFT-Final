@@ -3,6 +3,7 @@ import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { applyDirectDamage } from "../combat/DirectDamage";
 import { triggerHitFlash } from "../AnimationSystem";
+import { unitEventPos } from "../../events/EventPos";
 
 export class EffectSystem {
     
@@ -39,7 +40,7 @@ export class EffectSystem {
                 if (rateAbsorb > 0) {
                     engine.events.push({ 
                         type: 'DAMAGE', 
-                        pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                        pos: unitEventPos(agent, engine), 
                         value: -Math.floor(rateAbsorb), 
                         color: DAMAGE_TEXT_COLORS.ABSORB, 
                         text: "ABSORB",
@@ -51,7 +52,7 @@ export class EffectSystem {
                     const dotColor = DOT_COLORS[agent.dotType] || '#10b981';
                     engine.events.push({ 
                         type: 'DAMAGE', 
-                        pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                        pos: unitEventPos(agent, engine), 
                         value: -Math.floor(damagePerSec), 
                         color: dotColor, 
                         skill: { ccType: 'DOT', dotType: agent.dotType },
@@ -78,7 +79,7 @@ export class EffectSystem {
             if (hotTimer <= 0 && agent.hotVal > 0) {
                 engine.events.push({ 
                     type: 'HEAL', 
-                    pos: { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: agent.physics.z }, 
+                    pos: unitEventPos(agent, engine), 
                     value: Math.floor(healPerSec), 
                     color: DAMAGE_TEXT_COLORS.HEAL,
                     targetId: agent.id

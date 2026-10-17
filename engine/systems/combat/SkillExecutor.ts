@@ -9,6 +9,7 @@ import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { random } from "../../math/rng";
+import { unitEventPos, hexEventPos } from "../../events/EventPos";
 
 export class SkillExecutor {
 
@@ -25,13 +26,12 @@ export class SkillExecutor {
 
         // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
         if (skill.tag === 'BASIC' && source.target) {
-            engine.pushEvent('VISUAL_BEAM', { x: source.px, y: source.py }, { skill, sourceId: source.id, targetId: source.target.id, color: skill.color });
+            engine.pushEvent('VISUAL_BEAM', unitEventPos(source, engine), { skill, sourceId: source.id, targetId: source.target.id, color: skill.color });
         }
 
         // 2. 獲取受影響區域
         const impactCells = engine.movement.targeting.getImpactArea(source, targetHex, skill, engine);
-        const p = HexUtils.toPx(targetHex.q, targetHex.r, engine.mapConfig);
-        const origin = { x: p.x, y: p.y };
+        const origin = hexEventPos(targetHex.q, targetHex.r, engine);
 
         // [NEW] DASH Effect: Move caster towards targetHex
         if (skill.effectType === 'DASH' || skill.effectType2 === 'DASH') {
@@ -74,7 +74,7 @@ export class SkillExecutor {
                 
                 engine.events.push({ 
                     type: 'CC_APPLIED', 
-                    pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
+                    pos: unitEventPos(source, engine), 
                     text: "突進", 
                     color: DAMAGE_TEXT_COLORS.DASH,
                     sourceId: source.id,
@@ -152,7 +152,7 @@ export class SkillExecutor {
             target.lastHitDamage = 0;
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 text: "MISS", 
                 color: DAMAGE_TEXT_COLORS.MISS,
                 sourceId: source.id,
@@ -165,7 +165,7 @@ export class SkillExecutor {
         if (result.isBlock) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 text: "BLOCK", 
                 color: DAMAGE_TEXT_COLORS.BLOCK,
                 sourceId: source.id,
@@ -177,7 +177,7 @@ export class SkillExecutor {
         if (result.shieldAbsorb > 0) {
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 value: -Math.floor(result.shieldAbsorb), 
                 color: DAMAGE_TEXT_COLORS.ABSORB, 
                 text: "ABSORB",
@@ -202,7 +202,7 @@ export class SkillExecutor {
             
             engine.events.push({ 
                 type: evtType, 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 value: finalDamage, 
                 absorbed: result.shieldAbsorb > 0 ? Math.floor(result.shieldAbsorb) : undefined,
                 color,
@@ -224,16 +224,13 @@ export class SkillExecutor {
                     triggerHitShake(target, shakePower);
 
                     // [FIX] SSOT Grid Anchor Locking for Hit VFX
-                    const hexCenter = HexUtils.toPx(target.q, target.r, engine.mapConfig);
-                    const hitX = hexCenter.x;
-                    const hitY = hexCenter.y;
 
                     // 打擊特效：普攻與投射物主動技用技能自己的（奧義與無投射物的主動技由 SkillSequences 播主特效，這裡只播陣營預設小打擊）
                     const ownHit = skill.tag === 'BASIC' || (skill.tag === 'ACTIVE' && (skill.projectileSpeed ?? 0) > 0);
                     const hitFX = (ownHit && skill.visualHitEffect) || FACTION_VISUALS[source.team].defaultHitEffect;
 
                     // Decoupled Event: Emit HIT_FX for visual pipeline
-                    engine.pushEvent('HIT_FX', { x: hitX, y: hitY }, {
+                    engine.pushEvent('HIT_FX', hexEventPos(target.q, target.r, engine), {
                         value: finalDamage,
                         absorbed: result.shieldAbsorb,
                         text: hitFX,
@@ -253,7 +250,7 @@ export class SkillExecutor {
             source.hp = Math.min(source.maxHp, source.hp + result.vampAmount);
             engine.events.push({ 
                 type: 'HEAL', 
-                pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z }, 
+                pos: unitEventPos(source, engine), 
                 value: result.vampAmount, 
                 color: DAMAGE_TEXT_COLORS.VAMP, 
                 text: "VAMP",
@@ -266,7 +263,7 @@ export class SkillExecutor {
             target.mp = Math.max(0, target.mp - result.manaBurn);
             engine.events.push({ 
                 type: 'DAMAGE', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 value: result.manaBurn, 
                 color: DAMAGE_TEXT_COLORS.MANA_BURN, 
                 text: "BURN",
@@ -279,7 +276,7 @@ export class SkillExecutor {
             target.mp = Math.min(target.maxMp, target.mp + result.manaRestore);
             engine.events.push({ 
                 type: 'HEAL', 
-                pos: { x: target.px + target.physics.x, y: target.py + target.physics.y, z: target.physics.z }, 
+                pos: unitEventPos(target, engine), 
                 value: result.manaRestore, 
                 color: DAMAGE_TEXT_COLORS.MANA_RESTORE, 
                 text: "MP",
@@ -296,7 +293,7 @@ export class SkillExecutor {
                 source.hp = Math.max(0, source.hp - selfDmgValue);
                 engine.events.push({
                     type: 'DAMAGE',
-                    pos: { x: source.px + source.physics.x, y: source.py + source.physics.y, z: source.physics.z },
+                    pos: unitEventPos(source, engine),
                     value: selfDmgValue,
                     color: DAMAGE_TEXT_COLORS.RECOIL,
                     text: "RECOIL",

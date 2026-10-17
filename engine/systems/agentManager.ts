@@ -17,8 +17,9 @@ import { RagdollFactory } from "./unit/RagdollFactory";
 import { AGENT_CONSTANTS } from "../../constants";
 import { random } from "../math/rng";
 import { pickBodyType } from "../../data/units/appearance/bodyTypes";
+import { unitEventPos } from "../events/EventPos";
 
-export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'agents' | 'map'>;
+export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getTerrainHeight' | 'mapConfig' | 'agents' | 'map'>;
 
 export class AgentManager {
     public static matchSalt: number = Date.now();
@@ -69,7 +70,7 @@ export class AgentManager {
         
         const visual = FACTION_VISUALS[team] || FACTION_VISUALS[Team.BLUE];
         a.spawnTimer = 0.5;
-        engine.events.push({ type: 'SPAWN', pos: { x: a.px, y: a.py }, color: visual.primaryColor, sourceId: a.id });
+        engine.events.push({ type: 'SPAWN', pos: unitEventPos(a, engine), color: visual.primaryColor, sourceId: a.id });
 
         if (engine.isRunning) {
             a.skills = a.skillIds.map(id => engine.skillDB.find(s => s.id === id) || null);
@@ -88,7 +89,7 @@ export class AgentManager {
         engine.log(a, 'DEATH', reason, null, reason === '墜落出局' ? `${a.id} 隨地板崩落虛空` : '陣亡');
         engine.events.push({ 
             type: 'DEATH', 
-            pos: { x: a.px, y: a.py, z: 0 }, 
+            pos: unitEventPos(a, engine), 
             sourceId: a.id, 
             targetId: a.id,
             team: a.team,
@@ -98,7 +99,7 @@ export class AgentManager {
         if (a.lastHitSourceId) {
             engine.events.push({
                 type: 'KILL',
-                pos: { x: a.px, y: a.py, z: 0 },
+                pos: unitEventPos(a, engine),
                 sourceId: a.lastHitSourceId,
                 targetId: a.id
             });

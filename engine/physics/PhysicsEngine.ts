@@ -6,6 +6,7 @@ import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../systems/AnimationSystem";
 import { random } from "../math/rng";
+import { unitEventPos } from "../events/EventPos";
 
 export class PhysicsEngine {
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
@@ -126,7 +127,7 @@ export class PhysicsEngine {
                     const pct = Math.min(1.0, velocityOverhead / scaling);
                     const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
                     applyDirectDamage(a, rawDmg, true); // 墜落為真實傷害（無視護盾）
-                    engine.events.push({ type: 'DAMAGE', pos: {x: a.px, y: a.py}, value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
+                    engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
                     engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
                     
                     engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });

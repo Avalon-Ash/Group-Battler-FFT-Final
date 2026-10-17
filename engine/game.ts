@@ -20,7 +20,7 @@
 
 import { DEFAULT_SKILL_DB } from "../skillDatabase";
 import { SCENE_DB } from "../data/scenes";
-import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider } from "../types";
+import { LogEntry, NodeState, Role, Skill, Team, Projectile, GameEvent, GameEventType, AnimState, SceneTheme, Hex, MovementType, LogActionType, GlobalSessionState, ZoneConfig, ActionState, SpatialHazard, SpatialProvider, Point } from "../types";
 import { HexUtils, MapConfig } from "./utils";
 import { AUDIO, DEFAULT_HEX_LAYOUT, DEFAULT_ZONE_CONFIG, SCREEN_CONSTANTS } from "../constants";
 import { Agent } from "./core/Agent";
@@ -211,7 +211,7 @@ export class GameEngine implements SpatialProvider {
      * 視覺事件管線：將事件放入池化佇列，於 tick 結尾批次發送給 VisualSystem。
      * 系統間通知請走 this.bus.emit()。
      */
-    public pushEvent(type: GameEventType, pos: {x: number, y: number}, opts: GameEventOpts = {}) {
+    public pushEvent(type: GameEventType, pos: Point, opts: GameEventOpts = {}) {
         const evt = EventPool.get(type, pos, opts);
         this.events.push(evt);
     }
