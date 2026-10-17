@@ -12,6 +12,7 @@ import { HexUtils, MapConfig } from "../../utils";
 import { UnitVisualProcessor } from "./UnitVisualProcessor";
 import { UnitBodyPainter } from "../../renderers/units/painters/UnitBodyPainter";
 import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPainter";
+import { UnitCorePainter } from "../../renderers/units/painters/UnitCorePainter";
 import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
@@ -133,7 +134,15 @@ export class UnitRenderSystem {
                 UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout }, terrainHeight, simDt);
             }
         }
-        UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
+        // 編輯模式拖曳預覽：只移動實體（棋座＋核心），角色投影放下後才回來
+        const isDragPreview = agent.dragOverQ !== null || agent.dragOverR !== null;
+        if (!isDragPreview) {
+            UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight);
+        }
+        // 核心（懸浮晶體）畫在角色之後，永遠看得見；位置與投射物起點同源（VisualMath.coreAnchorAt）
+        if (!isSilhouette) {
+            UnitCorePainter.draw(ctx, agent, globalTime, layout);
+        }
 
         ctx.restore(); 
     }

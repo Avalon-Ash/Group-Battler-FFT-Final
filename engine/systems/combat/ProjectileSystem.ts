@@ -151,7 +151,8 @@ export class ProjectileSystem {
     
     // [FIX] Directly use target agent position if available instead of fetching by ID.
     // This prevents falling back to 0,0,-9999 if the target agent just died and was removed from engine.agents.
-    const launchPoint = VisualMath.getUnitAnchor(source, engine);
+    // 起點＝棋座核心（SSOT：VisualMath.getCoreAnchor）；目標端才用身體中心
+    const launchPoint = VisualMath.getCoreAnchor(source, engine);
     let targetPoint: Point3D;
     if ((target as Agent).id && (target as Agent).px !== undefined) {
       targetPoint = VisualMath.getUnitAnchor(target as Agent, engine);

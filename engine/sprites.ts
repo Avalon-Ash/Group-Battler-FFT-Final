@@ -8,11 +8,9 @@
 // ║                                                                  ║
 // ║  呼叫端 (現役)：                                                 ║
 // ║    UnitBodyPainter   → getSpecialModel('SHEEP' / 'ICE')         ║
-// ║    UnitShadowPainter → getUnitImages                            ║
+// ║    UnitShadowPainter / UnitCorePainter → getUnitImages          ║
 // ║    RenderDispatcher  → getObstacleSprite                        ║
 // ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
-// ║                                                                  ║
-// ║  [注意] UnitLayers 等已無外部使用端，保留僅為向後相容           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, HexLayout, BodyTypeId } from "../types";
@@ -20,66 +18,40 @@ import { UnitFactory } from "./graphics/UnitFactory";
 import { getFactionSkin } from "../data/units/factionSkin";
 import { factionTextureStore } from "./renderers/units/FactionTextureStore";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
+import { CoreFactory, CoreSprites } from "./graphics/units/CoreFactory";
 const cache: Map<string, any> = new Map();
 export interface UnitAssets {
     base: HTMLCanvasElement;
-    icon: HTMLCanvasElement;
+    /** 棋座核心（懸浮晶體）：本體＋光暈，位置見 VisualMath.getCoreAnchor */
+    core: CoreSprites;
 }
-export interface UnitLayers {
-    base: HTMLCanvasElement;
-    rim: HTMLCanvasElement;
-    icon: HTMLCanvasElement;
-}
-const _layerCache = new Map<string, UnitLayers>();
-// 棋座／職業圖示烘焙快取：陣營貼圖載入完成（revision 變動）時整批丟棄重烘
+// 棋座／核心烘焙快取：陣營貼圖載入完成（revision 變動）時整批丟棄重烘
 const _tokenCache = new Map<string, UnitAssets>();
 let _tokenRevision = -1;
 export const SpriteManager = {
     /**
-     * 棋座與職業圖示（陣營皮膚 FACTION_SKINS＋手繪貼圖槽，烘焙一次後快取）
+     * 棋座（含刻在頂面的職業字形）與核心（陣營皮膚 FACTION_SKINS＋手繪貼圖槽，烘焙一次後快取）
      */
     getUnitImages(role: Role, team: Team, body: BodyTypeId = 'MALE', layout: HexLayout = 'FLAT'): UnitAssets {
         if (_tokenRevision !== factionTextureStore.revision) {
             _tokenRevision = factionTextureStore.revision;
             _tokenCache.clear();
-            _layerCache.clear();
         }
         const key = `${team}|${role}|${body}|${layout}`;
         let assets = _tokenCache.get(key);
         if (!assets) {
             const skin = getFactionSkin(team, role, body);
-            const base = UnitFactory.generateTokenBase(skin, layout, {
+            const base = UnitFactory.generateTokenBase(skin, role, layout, {
                 pedestalTexture: factionTextureStore.getTexture(team, 'pedestalTexture', role, body),
                 pedestalRim: factionTextureStore.getTexture(team, 'pedestalRim', role, body),
                 emblem: factionTextureStore.getTexture(team, 'emblem', role, body),
+                classIcon: factionTextureStore.getTexture(team, 'classIcon', role, body),
             });
-            const icon = UnitFactory.generateRoleIcon(role, skin, factionTextureStore.getTexture(team, 'classIcon', role, body));
-            assets = { base, icon };
+            const core = CoreFactory.generate(skin, factionTextureStore.getTexture(team, 'core', role, body));
+            assets = { base, core };
             _tokenCache.set(key, assets);
         }
         return assets;
-    },
-    getUnitLayers(role: Role, team: Team): UnitLayers {
-        const key = `${role}_${team}`;
-        if (_layerCache.has(key)) return _layerCache.get(key)!;
-        
-        const full = this.getUnitImages(role, team);
-        
-        const base = document.createElement('canvas');
-        base.width = 64; base.height = 64;
-        base.getContext('2d')!.drawImage(full.base, 0, 0, 64, 64);
-        
-        const rim = document.createElement('canvas');
-        rim.width = 64; rim.height = 64;
-        rim.getContext('2d')!.drawImage(full.base, 0, 0, 64, 64);
-        
-        const icon = document.createElement('canvas');
-        icon.width = 48; icon.height = 48;
-        icon.getContext('2d')!.drawImage(full.icon, 0, 0, 48, 48);
-        
-        const layers: UnitLayers = { base, rim, icon };
-        _layerCache.set(key, layers);
-        return layers;
     },
     getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
         const key = `OBSTACLE_${styleKey}_${layout}`;

@@ -42,7 +42,7 @@ export class SequenceSystem {
         let sourcePos: Point3D | undefined;
         if (sourceId) {
             const agent = engine.agents.find(a => a.id === sourceId);
-            if (agent) sourcePos = VisualMath.getUnitAnchor(agent, engine);
+            if (agent) sourcePos = VisualMath.getCoreAnchor(agent, engine);
         }
 
         const baseTime = engine.battleTime;
@@ -65,7 +65,7 @@ export class SequenceSystem {
                 if (item.sourceId) {
                     const agent = engine.agents.find(a => a.id === item.sourceId);
                     if (agent && agent.hp > 0) {
-                        liveSource = VisualMath.getUnitAnchor(agent, engine);
+                        liveSource = VisualMath.getCoreAnchor(agent, engine);
                     }
                 }
                 this.dispatch(item.action, item.target, liveSource, vfx, engine, item.sourceId);

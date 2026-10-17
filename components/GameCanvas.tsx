@@ -13,6 +13,8 @@ import { useCompactViewport } from '../hooks/useCompactViewport';
 import { Icons } from './ui/icons';
 import { UI_Z } from '../constants';
 import { getRenderDpr } from '../engine/renderers/RenderQuality';
+import { PedestalGhostPainter } from '../engine/renderers/units/painters/PedestalGhostPainter';
+import { HexUtils } from '../engine/utils';
 interface GameCanvasProps {
     engine: GameEngine;
     tool: ToolType;
@@ -89,6 +91,30 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             realTime
         );
 
+        // 放置預覽：放置工具啟用時，游標所在的空格顯示「實體」（棋座＋核心），角色投影放下後才出現
+        const isPlaceTool = tool === ToolType.ADD_BLUE || tool === ToolType.ADD_RED;
+        if (isPlaceTool && !engine.isRunning && winner === null && currentHoverHex && canvasRef.current
+            && !engine.getAgentAt(currentHoverHex.q, currentHoverHex.r)
+            && !engine.hasObstacle(currentHoverHex.q, currentHoverHex.r)) {
+            const { x, y, zoom: camZoom } = camera.current;
+            const dpr = getRenderDpr();
+            ctx.save();
+            ctx.scale(dpr, dpr);
+            ctx.translate(canvasRef.current.width / dpr / 2, canvasRef.current.height / dpr / 2);
+            ctx.scale(camZoom, camZoom);
+            ctx.translate(-x, -y);
+            const p = HexUtils.toPx(currentHoverHex.q, currentHoverHex.r, engine.mapConfig);
+            const visualY = VisualMath.getIsoVisualY(p.y, engine.getTerrainHeight(currentHoverHex.q, currentHoverHex.r));
+            PedestalGhostPainter.draw(
+                ctx,
+                tool === ToolType.ADD_BLUE ? Team.BLUE : Team.RED,
+                spawnMode === 'DRAFT' ? draftRole : Role.WARRIOR,
+                draftBodyType ?? 'MALE',
+                engine.mapConfig.layout, p.x, visualY, realTime
+            );
+            ctx.restore();
+        }
+
         // Editor Drag Overlay
         if (draggedObstacle && canvasRef.current) {
             const { type, px, py } = draggedObstacle;
@@ -111,7 +137,7 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.drawImage(sprite, px - 32, visualY - 80 - liftOffset);
             ctx.restore();
         }
-    }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera]);
+    }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera, tool, spawnMode, draftRole, draftBodyType, winner]);
 
     const handleResize = useCallback((w: number, h: number) => {
         if (w > 0 && h > 0) {

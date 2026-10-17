@@ -10,12 +10,12 @@ import { PedestalOutline, tracePedestalOutline } from "./units/PedestalGeometry"
 
 /** 棋座畫布尺寸（UnitShadowPainter 以 -BASE/2 對齊中心） */
 export const PEDESTAL_CANVAS_SIZE = 128;
-/** 職業圖示畫布尺寸 */
-export const CLASS_ICON_CANVAS_SIZE = 64;
+/** 職業字形的設計半幅（drawClassGlyph 座標約 ±14），用來把字形縮放到 skin.classIcon.scale × radius */
+const CLASS_GLYPH_HALF_EXTENT = 14;
 
 /**
  * 棋座程序化畫法（貼圖槽缺席時的退路）。
- * 每個步驟各自可被手繪貼圖取代：頂面 ← pedestalTexture、邊框 ← pedestalRim、徽記 ← emblem。
+ * 每個步驟各自可被手繪貼圖取代：頂面 ← pedestalTexture、邊框 ← pedestalRim、徽記 ← emblem、職業字形 ← classIcon。
  */
 export interface PedestalPainter {
     outline(skin: FactionSkin, layout: HexLayout): PedestalOutline;
@@ -30,6 +30,7 @@ export interface PedestalTextures {
     pedestalTexture: CanvasImageSource | null;
     pedestalRim: CanvasImageSource | null;
     emblem: CanvasImageSource | null;
+    classIcon: CanvasImageSource | null;
 }
 
 const PEDESTAL_PAINTERS: Record<PedestalStyle, PedestalPainter> = {
@@ -60,6 +61,38 @@ function drawTopDownTexture(
     ctx.scale(1, ISO_SCALE_Y);
     if (layout === 'POINTY') ctx.rotate(Math.PI / 6);
     ctx.drawImage(tex, -halfSize, -halfSize, halfSize * 2, halfSize * 2);
+    ctx.restore();
+}
+
+/**
+ * 職業字形刻在棋座頂面（取代舊的懸浮職業圖示看板）：有 classIcon 貼圖就貼（俯視，等距壓扁），否則畫程序化字形。
+ * 烘焙期執行，shadowBlur 只在這裡用。
+ */
+function drawEngravedGlyph(
+    ctx: CanvasRenderingContext2D,
+    role: Role,
+    skin: FactionSkin,
+    texture: CanvasImageSource | null,
+    layout: HexLayout
+): void {
+    const half = skin.pedestal.radius * skin.classIcon.scale;
+    if (texture) {
+        drawTopDownTexture(ctx, texture, half, layout, 'source-over', skin.classIcon.alpha, null);
+        return;
+    }
+    const k = half / CLASS_GLYPH_HALF_EXTENT;
+    ctx.save();
+    ctx.globalAlpha = skin.classIcon.alpha;
+    ctx.scale(1, ISO_SCALE_Y);
+    ctx.scale(k, k);
+    ctx.strokeStyle = skin.classIcon.color;
+    ctx.fillStyle = skin.classIcon.color;
+    ctx.shadowColor = skin.classIcon.glow;
+    ctx.shadowBlur = 6;
+    ctx.lineWidth = 2.2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    drawClassGlyph(ctx, role, skin.classIcon.color);
     ctx.restore();
 }
 
@@ -115,7 +148,7 @@ export const UnitFactory = {
     /**
      * 烘焙棋座：程序化分層，每層若有手繪貼圖則以貼圖取代。結果由 SpriteManager 快取（執行期零成本）。
      */
-    generateTokenBase(skin: FactionSkin, layout: HexLayout, textures: PedestalTextures): HTMLCanvasElement {
+    generateTokenBase(skin: FactionSkin, role: Role, layout: HexLayout, textures: PedestalTextures): HTMLCanvasElement {
         const painter = PEDESTAL_PAINTERS[skin.pedestal.style];
         const { canvas, ctx } = createCanvas(PEDESTAL_CANVAS_SIZE, PEDESTAL_CANVAS_SIZE);
         ctx.translate(PEDESTAL_CANVAS_SIZE / 2, PEDESTAL_CANVAS_SIZE / 2);
@@ -142,31 +175,11 @@ export const UnitFactory = {
             painter.drawEmblem(ctx, skin, layout);
         }
 
+        drawEngravedGlyph(ctx, role, skin, textures.classIcon, layout);
+
         if (MATERIAL_CONFIG.enabled && MATERIAL_CONFIG.unit?.token?.enabled) {
             MaterialPainter.weatherToken(canvas, p.weatherHighlight);
         }
-        return canvas;
-    },
-
-    /** 烘焙職業圖示：有 classIcon 貼圖就直接使用，否則畫程序化字形 */
-    generateRoleIcon(role: Role, skin: FactionSkin, texture: CanvasImageSource | null): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(CLASS_ICON_CANVAS_SIZE, CLASS_ICON_CANVAS_SIZE);
-        if (texture) {
-            ctx.drawImage(texture, 0, 0, CLASS_ICON_CANVAS_SIZE, CLASS_ICON_CANVAS_SIZE);
-            return canvas;
-        }
-        const color = skin.classIcon.color;
-        ctx.strokeStyle = color;
-        ctx.fillStyle = color;
-        ctx.shadowColor = skin.classIcon.glow;
-        ctx.shadowBlur = 8;
-        ctx.lineWidth = 2.5;
-        ctx.lineJoin = 'round';
-        ctx.lineCap = 'round';
-        ctx.translate(CLASS_ICON_CANVAS_SIZE / 2, CLASS_ICON_CANVAS_SIZE / 2);
-        ctx.translate(0, -4);   // 上移 4px，製造懸浮高度
-        ctx.scale(1.1, 1.1);
-        drawClassGlyph(ctx, role, color);
         return canvas;
     },
 

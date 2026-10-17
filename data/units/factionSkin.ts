@@ -13,7 +13,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Team, Role, BodyTypeId } from '../../types';
-import { HUD_COLORS, PALETTE, THEME_IMPERIAL, THEME_COVENANT } from '../../constants';
+import { HUD_COLORS, PALETTE, THEME_IMPERIAL, THEME_COVENANT, CLASS_GLYPH } from '../../constants';
 import { FACTION_VISUALS } from '../vfx/faction_visuals';
 import { UNIT_APPEARANCE } from './appearance';
 import { BODY_TYPE_PROFILE } from './appearance/bodyTypes';
@@ -29,6 +29,9 @@ export const FACTION_KEY: Record<Team, FactionKey> = {
 /** 棋座程序化畫法（貼圖缺席時的退路），由 UnitFactory 對應到 Token 工廠 */
 export type PedestalStyle = 'LIONHEART_HEX' | 'ASHEN_BROKEN_HEX';
 
+/** 棋座核心（懸浮六角晶體）畫法：Lionheart 乾淨稜晶／Ashen 裂紋碎晶 */
+export type CoreStyle = 'LIONHEART_PRISM' | 'ASHEN_SHARD';
+
 /** 角色投影的常駐光效畫法（UnitAmbientPainter） */
 export type ProjectionStyle = 'LIONHEART_SEAMS' | 'ASHEN_EMBERS';
 
@@ -40,9 +43,10 @@ export type DeathStyle = 'SPIRIT_RISE' | 'BLOOD_SPRAY';
  *  - pedestalTexture：棋座頂面材質（俯視正方形，內切棋座外接圓；引擎負責等距壓扁）
  *  - pedestalRim：棋座邊框（同上座標，中央透明）
  *  - emblem：棋座中央陣營徽記（俯視正方形，邊長 = 2 × radius × emblemScale）
- *  - classIcon：職業圖示（直立看板，ICON 尺寸，見 FACTION_TEXTURE_SPEC）
+ *  - classIcon：職業圖示（俯視，刻在棋座頂面；邊長 = 2 × radius × classGlyphScale）
+ *  - core：棋座核心晶體（直立看板，CORE_VISUAL.canvasSize 畫布，自帶發光；只影響晶體本體）
  */
-export const FACTION_TEXTURE_SLOTS = ['pedestalTexture', 'pedestalRim', 'emblem', 'classIcon'] as const;
+export const FACTION_TEXTURE_SLOTS = ['pedestalTexture', 'pedestalRim', 'emblem', 'classIcon', 'core'] as const;
 export type FactionTextureSlot = typeof FACTION_TEXTURE_SLOTS[number];
 
 /** 貼圖規格（文件與測試共用；素材尺寸建議值，引擎會縮放到繪製矩形） */
@@ -50,7 +54,8 @@ export const FACTION_TEXTURE_SPEC: Record<FactionTextureSlot, { sizePx: number; 
     pedestalTexture: { sizePx: 256, projection: 'TOP_DOWN' },
     pedestalRim: { sizePx: 256, projection: 'TOP_DOWN' },
     emblem: { sizePx: 128, projection: 'TOP_DOWN' },
-    classIcon: { sizePx: 128, projection: 'BILLBOARD' },
+    classIcon: { sizePx: 128, projection: 'TOP_DOWN' },
+    core: { sizePx: 128, projection: 'BILLBOARD' },
 };
 
 /** 貼圖資產的根目錄（相對於 BASE_URL） */
@@ -99,6 +104,25 @@ export interface PedestalSkin {
 export interface ClassIconSkin {
     color: string;
     glow: string;
+    /** 刻在棋座頂面的字形：相對 radius 的比例（貼圖同樣使用）與不透明度 */
+    scale: number;
+    alpha: number;
+}
+
+/** 棋座核心：把角色投影出來的懸浮六角晶體（尺寸與位置見 constants.ts 的 CORE_VISUAL） */
+export interface CoreSkin {
+    style: CoreStyle;
+    /** 晶面：左半（受光）、右半（背光）、頂面高光、輪廓 */
+    light: string;
+    dark: string;
+    highlight: string;
+    edge: string;
+    /** 裂紋／內芯色（Lionheart 為內芯金光，Ashen 為裂縫餘燼） */
+    inner: string;
+    /** 光暈色（待機與施法時疊加，強度見 CORE_VISUAL） */
+    glow: string;
+    /** 相對 CORE_VISUAL 尺寸的縮放 */
+    sizeScale: number;
 }
 
 export interface SpriteSkin {
@@ -122,6 +146,7 @@ export interface FactionSkin {
     name: string;
     pedestal: PedestalSkin;
     classIcon: ClassIconSkin;
+    core: CoreSkin;
     sprite: SpriteSkin;
     projection: ProjectionSkin;
     shield: { strokeColor: string };
@@ -149,6 +174,7 @@ interface FactionStyleDef {
     emblemScale: number;
     ember: string;
     shieldStroke: string;
+    core: CoreSkin;
 }
 
 const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
@@ -167,6 +193,16 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemScale: 0.38,
         ember: '#fcd34d',
         shieldStroke: THEME_IMPERIAL.energy,
+        core: {
+            style: 'LIONHEART_PRISM',
+            light: '#fffbeb',
+            dark: '#e7c873',
+            highlight: '#ffffff',
+            edge: '#f5b82e',
+            inner: '#fde68a',
+            glow: '#fde68a',
+            sizeScale: 1,
+        },
     },
     // Ashen：碎裂焦黑的六角棋座、裂縫透出餘燼
     RED: {
@@ -183,6 +219,16 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemScale: 0.3,
         ember: '#f97316',
         shieldStroke: THEME_COVENANT.primary,
+        core: {
+            style: 'ASHEN_SHARD',
+            light: '#dc2626',
+            dark: '#4a0d0d',
+            highlight: '#fca5a5',
+            edge: '#1c1917',
+            inner: '#f97316',
+            glow: '#ef4444',
+            sizeScale: 1,
+        },
     },
 };
 
@@ -225,7 +271,8 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
             textureAlpha: 1,
             weatherHighlight: ap.highlightColor ?? palette.light,
         },
-        classIcon: { color: ap.iconColor, glow: ap.iconGlow },
+        classIcon: { color: ap.iconColor, glow: ap.iconGlow, scale: CLASS_GLYPH.scale, alpha: CLASS_GLYPH.alpha },
+        core: style.core,
         sprite: { atlasKey: `${key}:${role}:${body}`, tint: null },
         projection: {
             style: style.projectionStyle,

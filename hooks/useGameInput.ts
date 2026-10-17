@@ -101,9 +101,16 @@ export const useGameInput = (props: GameInputProps) => {
         cvs.setPointerCapture(e.pointerId);
     };
     const handlePointerMove = (e: PointerEvent) => {
-        if (!lastPointerPos.current || activePointers.current.size > 1) return;
         const cvs = canvasRef.current;
         if (!cvs) return;
+        if (!lastPointerPos.current || activePointers.current.size > 1) {
+            // 尚未按過指標時也要更新懸停格（放置預覽、格子高亮）
+            if (activePointers.current.size === 0) {
+                const hover = getHexFromEvent(e.clientX, e.clientY);
+                hoveredHexRef.current = (hover && queryIsValidHex(engine, hover.q, hover.r)) ? hover : null;
+            }
+            return;
+        }
         const rect = cvs.getBoundingClientRect();
         const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
         const dx = sx - lastPointerPos.current.x, dy = sy - lastPointerPos.current.y;
@@ -251,14 +258,17 @@ export const useGameInput = (props: GameInputProps) => {
             }
         }
     };
+    const handlePointerLeave = () => { hoveredHexRef.current = null; };
     useEffect(() => {
         const cvs = canvasRef.current;
         if (!cvs) return;
+        cvs.addEventListener('pointerleave', handlePointerLeave);
         cvs.addEventListener('pointerdown', handlePointerDown);
         cvs.addEventListener('pointermove', handlePointerMove);
         cvs.addEventListener('pointerup', handlePointerUp);
         cvs.addEventListener('pointercancel', handlePointerUp);
         return () => {
+            cvs.removeEventListener('pointerleave', handlePointerLeave);
             cvs.removeEventListener('pointerdown', handlePointerDown);
             cvs.removeEventListener('pointermove', handlePointerMove);
             cvs.removeEventListener('pointerup', handlePointerUp);

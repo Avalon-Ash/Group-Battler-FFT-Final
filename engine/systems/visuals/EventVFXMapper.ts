@@ -28,6 +28,8 @@ export class EventVFXMapper {
     ) {
         // 1. Resolve Spatial Context
         const origin = this.resolvePoint(event.pos, event.sourceId, engine);
+        // 施法／發射起點＝棋座核心（死亡、出生等「發生在單位身上」的效果仍用 origin 身體中心）
+        const castOrigin = this.resolveCastOrigin(origin, event.sourceId, engine);
         let target = this.resolvePoint(event.pos, event.targetId, engine);
         
         const groundHex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
@@ -50,7 +52,7 @@ export class EventVFXMapper {
                 break;
 
             case 'PROJECTILE_SPAWN':
-                vfx.playEffect('FX_MUZZLE_FLASH', origin.x, origin.y, origin.z, event.color, groundZ, undefined, hexKey);
+                vfx.playEffect('FX_MUZZLE_FLASH', castOrigin.x, castOrigin.y, castOrigin.z, event.color, groundZ, undefined, hexKey);
                 break;
 
             case 'DEATH':
@@ -61,7 +63,7 @@ export class EventVFXMapper {
 
             case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
-                CinematicVFXHandler.handle(event, engine, vfx, origin, target, sequences);
+                CinematicVFXHandler.handle(event, engine, vfx, castOrigin, target, sequences);
                 break;
                 
             case 'HAZARD_SPAWN':
@@ -78,6 +80,13 @@ export class EventVFXMapper {
                 }
                 break;
         }
+    }
+
+    private resolveCastOrigin(bodyOrigin: Point3D, sourceId: string | undefined, engine: GameEngine): Point3D {
+        if (!sourceId) return bodyOrigin;
+        const agent = engine.agents.find(a => a.id === sourceId);
+        if (!agent || agent.hp <= 0 || agent.banished) return bodyOrigin;
+        return VisualMath.getCoreAnchor(agent, engine);
     }
 
     private resolvePoint(eventPos: Point, agentId: string | undefined, engine: GameEngine): Point3D {
