@@ -1,6 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
+import { random } from "../../math/rng";
 
 export class ControlSystem {
     
@@ -129,7 +130,7 @@ export class ControlSystem {
                         HexUtils.dist(center, h) >= 2 && engine.map.isValid(h.q, h.r) && !engine.map.isBlocked(h.q, h.r, engine, agent.id)
                     );
                     if (fallbackCandidates.length > 0) {
-                        const targetHex = fallbackCandidates[Math.floor(Math.random() * fallbackCandidates.length)];
+                        const targetHex = fallbackCandidates[Math.floor(random() * fallbackCandidates.length)];
                         engine.moveAgentToHex(agent, targetHex, 0, 1.2);
                     }
                     agent.fearMoveTimer = 0.8; 

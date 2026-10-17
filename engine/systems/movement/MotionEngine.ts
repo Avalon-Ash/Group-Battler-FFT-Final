@@ -2,6 +2,7 @@
 import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
 import { MovementType, SpatialProvider } from "../../../types";
+import { random } from "../../math/rng";
 
 const STACKING_RESOLUTION_FORCE = 8;
 const TRAIL_HISTORY_LENGTH = 15;
@@ -63,7 +64,7 @@ export class MotionEngine {
         a.physics.vx *= 0.1;
         a.physics.vy *= 0.1;
         
-        a.physics.vx += (Math.random() - 0.5) * STACKING_RESOLUTION_FORCE;
-        a.physics.vy += (Math.random() - 0.5) * STACKING_RESOLUTION_FORCE;
+        a.physics.vx += (random() - 0.5) * STACKING_RESOLUTION_FORCE;
+        a.physics.vy += (random() - 0.5) * STACKING_RESOLUTION_FORCE;
     }
 }

@@ -43,7 +43,7 @@ await page.addInitScript(() => {
     let seed = 1337;
     Math.random = () => { let t = (seed += 0x6D2B79F5); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
     let now = 1000;
-    window.__resetSeed = (s) => { seed = s; now = 1000; };
+    window.__resetSeed = (s) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */ seed = s; now = 1000; };
     Date.now = () => Math.floor(now); performance.now = () => now;
     let id = 0; const cbs = new Map();
     window.requestAnimationFrame = (cb) => { cbs.set(++id, cb); return id; };

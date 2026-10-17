@@ -60,7 +60,7 @@ try {
             return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
         };
         let syntheticTime = 1000.0;
-        window.__resetSeed = (s = 1337) => { seed = s; syntheticTime = 1000.0; };
+        window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */ seed = s; syntheticTime = 1000.0; };
         Date.now = () => Math.floor(syntheticTime);
         performance.now = () => syntheticTime;
         let rafId = 0;

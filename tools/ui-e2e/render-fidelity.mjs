@@ -66,7 +66,7 @@ const createHarnessContext = async () => {
         }
         Math.random = mulberry32;
         let syntheticTime = 1000.0;
-        window.__resetSeed = (s = 1337) => {
+        window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */
             seed = s;
             syntheticTime = 1000.0;
         };

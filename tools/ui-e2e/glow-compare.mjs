@@ -51,7 +51,7 @@ const createHarnessContext = async (glow = 0) => {
             return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
         }
         Math.random = mulberry32;
-        window.__resetSeed = (s = 1337) => { seed = s; };
+        window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */ seed = s; };
 
         let syntheticTime = 1000.0;
         Date.now = () => Math.floor(syntheticTime);
