@@ -3,6 +3,7 @@ import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
 import { HEX_SIZE } from "../../constants";
+const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
@@ -15,6 +16,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsBanished": (a) => a.banishTimer > 0,
     "IsSilenced": (a) => a.silenceTimer > 0,
     "IsFeared": (a) => a.fearTimer > 0, 
+    // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
+    // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（BR_IDLE_REPORT 成因 B）。
+    "CanMove": (a) => a.rootTimer <= 0 && a.stunTimer <= 0 && !a.banished && a.fearTimer <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
     
@@ -98,6 +102,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
         return engine.movement.pathfinder.canEscape(a, engine);
     },
 
+    // 被釘住：逃不掉（不能動，或站在塌陷格上但鄰格全被堵/全危險）。被釘住時「原地戰鬥」優先於求生姿態。
+    "IsPinned": (a, engine) =>
+        !BTConditions["CanMove"](a, engine, {}) || !BTConditions["HasEscapeRoute"](a, engine, {}),
+
     "IsInWarningZoneOrEvading": (a, engine) =>
         BTConditions["IsEvading"](a, engine, {}) ||
         BTConditions["IsInWarningZone"](a, engine, {}),
@@ -125,7 +133,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
         
         // [FIX] Survival Check: Don't even start a skill if it will likely lead to death via ground collapse
-        if (engine.isWarningTile(HexUtils.key(a))) {
+        // 被釘住（逃不掉）時不套用此限制：反正走不了，原地出手勝過乾站到塌陷（成因 C）。
+        if (engine.isWarningTile(HexUtils.key(a)) && !BTConditions["IsPinned"](a, engine, {})) {
             const timeToCollapse = engine.zones.shrinkTimer;
             const safetyBuffer = 0.2;
             if (s.tag === 'BASIC') return false; // Never stand still for basics in a collapse zone
@@ -214,6 +223,25 @@ export const BTConditions: Record<string, BTConditionFn> = {
     }
 };
 
+/**
+ * 追擊／走位前的致命檢查：只看「停下來的那一格」是否會塌陷，不看目標腳下。
+ * 目標站在敵方 hazard（含己方自己丟的場）上不是理由原地不動——hazard 只是扣血，
+ * 路徑成本已經懲罰它；只有塌陷格（致死）才拒絕靠近（成因 D）。
+ * 回傳 true = 這次靠近會讓我停在即將塌陷的格子上。
+ */
+function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: number): boolean {
+    if (!engine.isWarningTile(HexUtils.key(dest)) &&
+        engine.getSpatialHazardsAt(dest.q, dest.r).every(h => h.team === a.team)) {
+        return false; // 目標腳下無任何危險，不必試算
+    }
+    const pf = engine.movement.pathfinder;
+    const tg = engine.movement.targeting;
+    let path = pf.findPath(a, dest.q, dest.r, range, false, engine, tg, false);
+    if (path.length === 0) path = pf.findPath(a, dest.q, dest.r, range, true, engine, tg, false);
+    const stop: Hex = path.length > 0 ? path[path.length - 1] : { q: a.q, r: a.r };
+    return engine.isWarningTile(HexUtils.key(stop));
+}
+
 export const BTActions: Record<string, BTActionFn> = {
     "Wait": (a, engine, args) => {
         a.aiState = args.state || AIState.WAITING;
@@ -246,6 +274,13 @@ export const BTActions: Record<string, BTActionFn> = {
             if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                 a.aiState = AIState.IDLE;
             }
+            return NodeState.FAILURE;
+        }
+
+        // 走不動：逃生分支不可 RUNNING（成因 B），交給 Last Stand／戰鬥分支。
+        if (!BTConditions["CanMove"](a, engine, {})) {
+            if (a.actionState === ActionState.EVADING) a.actionState = ActionState.IDLE;
+            a.aiState = AIState.LAST_STAND_PUSH;
             return NodeState.FAILURE;
         }
 
@@ -392,7 +427,9 @@ export const BTActions: Record<string, BTActionFn> = {
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
-                return NodeState.SUCCESS;
+                // 抵達後若腳下仍危險（抵達格剛好被佔用危險），不可以 SUCCESS 吞掉這一 tick：交給下一層。
+                const stillInDanger = BTConditions["IsInWarningZone"](a, engine, {}) || BTConditions["IsInUrgentDanger"](a, engine, {});
+                return stillInDanger ? NodeState.FAILURE : NodeState.SUCCESS;
             }
             if (state === NodeState.RUNNING) {
                 a.aiState = AIState.EVADING_URGENT;
@@ -444,33 +481,17 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
+        if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
         const isLowHp = a.target && (a.target.hp / a.target.maxHp < 0.25);
         const speedMult = isLowHp ? 1.6 : (skill.tag === 'ULT' ? 1.3 : 1.0);
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
-            // [FIX] Attacks should be allowed even if target is in a danger zone.
-            // Only the ATTACKER needs to find a safe destination.
-            
-            // Check if our current destination is safe FOR US
-            const destKey = HexUtils.key(dest);
-            const enemyHazards = engine.getSpatialHazardsAt(dest.q, dest.r).filter(h => h.team !== a.team);
-            const isUnsafeForMe = engine.isWarningTile(destKey) || enemyHazards.length > 0;
-            
-            if (isUnsafeForMe) {
-                const startHex = { q: a.q, r: a.r };
-                const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
-                if (path && path.length > 1) {
-                    dest = path[path.length - 1];
-                } else if (engine.isWarningTile(HexUtils.key(startHex))) {
-                    // [FIX] 處於危險且無安全退路時（困獸之鬥），直奔目標進攻到底，避免與 EscapeWarning 互相推託死鎖
-                    if (a.target) {
-                        dest = { q: a.target.q, r: a.target.r };
-                    } else {
-                        return NodeState.FAILURE;
-                    }
+            // 只有「停下來的格子會塌陷」才拒絕靠近；被困在塌陷格時（Survival 已放棄）直奔目標。
+            if (approachEndsOnCollapse(a, engine, dest, skill.range)) {
+                if (engine.isWarningTile(HexUtils.key(a)) && a.target) {
+                    dest = { q: a.target.q, r: a.target.r };
                 } else {
-                    // Cannot reach target safely, try another target if possible
                     return NodeState.FAILURE;
                 }
             }
@@ -490,36 +511,52 @@ export const BTActions: Record<string, BTActionFn> = {
         const idx = args.slot;
         const skill = a.skills[idx];
         if (!skill || !a.target) return NodeState.FAILURE;
+        if (!BTConditions["CanMove"](a, engine, {})) {
+            // 走不動但目標已在射程內：算「就位」（SUCCESS），不是失敗。
+            const eff = engine.getEffectiveRange(a, a.target.q, a.target.r, skill.range);
+            return HexUtils.dist(a, a.target) <= eff + 0.1 ? NodeState.SUCCESS : NodeState.FAILURE;
+        }
 
         const isLowHp = a.target.hp / a.target.maxHp < 0.25;
         const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
         
-        let dest = { q: a.target.q, r: a.target.r };
+        const dest = { q: a.target.q, r: a.target.r };
 
-        // [FIX] Attacker safety check: are we chasing them into a death trap?
-        const destKey = HexUtils.key(dest);
-        const enemyHazards = engine.getSpatialHazardsAt(dest.q, dest.r).filter(h => h.team !== a.team);
-        const isUnsafeForMe = engine.isWarningTile(destKey) || enemyHazards.length > 0;
-
-        if (isUnsafeForMe) {
-            const startHex = { q: a.q, r: a.r };
-            const path = engine.movement.pathfinder.findPathToSafety(startHex, a, engine, engine.movement.targeting);
-            if (path && path.length > 1) {
-                dest = path[path.length - 1];
-            } else if (engine.isWarningTile(HexUtils.key(startHex))) {
-                // [FIX] 處於危險且無安全退路時（困獸之鬥），直奔目標進攻，不放棄追擊
-                dest = { q: a.target.q, r: a.target.r };
-            } else {
-                // Target is in danger, but we are safe and can't go closer safely.
-                // If we are already in range, this is fine (we'll just stand and attack).
-                // If not in range, we'll return failure so the BT can try another target.
-                const dist = HexUtils.dist(startHex, dest);
-                if (dist > skill.range + 0.1) return NodeState.FAILURE;
-            }
+        // 只有「停下來的格子會塌陷」才不追；被困在塌陷格時直奔目標，不放棄追擊。
+        if (approachEndsOnCollapse(a, engine, dest, skill.range) && !engine.isWarningTile(HexUtils.key(a))) {
+            // 目標在塌陷區邊緣、我在安全格：已在射程內就原地待命（moveAgentToHex 會回 SUCCESS），否則交給 Reposition。
+            const dist = HexUtils.dist(a, dest);
+            if (dist > engine.getEffectiveRange(a, dest.q, dest.r, skill.range) + 0.1) return NodeState.FAILURE;
         }
 
         const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
         
+        if (state === NodeState.RUNNING) {
+            a.aiState = AIState.TRACKING;
+            a.actionState = ActionState.WALKING;
+        }
+        return state;
+    },
+    /**
+     * 走位：追擊失敗（目標腳下將塌陷、被堵住…）時，往「離目標更近的安全格」挪，不是原地發呆。
+     * 只挑嚴格更靠近目標、非塌陷、無敵方 hazard、無人佔用的格子，所以不會來回震盪；找不到就 FAILURE（交給 Idle）。
+     */
+    "Reposition": (a, engine) => {
+        if (!a.target || !BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
+        if (engine.isWarningTile(HexUtils.key(a))) return NodeState.FAILURE; // 這是 Survival 的事
+        const curDist = HexUtils.dist(a, a.target);
+        let best: Hex | null = null;
+        let bestDist = curDist;
+        for (const h of HexUtils.range(a, REPOSITION_RADIUS)) {
+            if (h.q === a.q && h.r === a.r) continue;
+            if (!engine.map.isValid(h.q, h.r) || engine.isBlocked(h.q, h.r, a.id, a.movementType)) continue;
+            if (engine.isWarningTile(HexUtils.key(h))) continue;
+            if (engine.getSpatialHazardsAt(h.q, h.r).some(hz => hz.team !== a.team)) continue;
+            const d = HexUtils.dist(h, a.target);
+            if (d < bestDist) { bestDist = d; best = h; }
+        }
+        if (!best) return NodeState.FAILURE;
+        const state = engine.moveAgentToHex(a, best, 0, 1.0);
         if (state === NodeState.RUNNING) {
             a.aiState = AIState.TRACKING;
             a.actionState = ActionState.WALKING;
