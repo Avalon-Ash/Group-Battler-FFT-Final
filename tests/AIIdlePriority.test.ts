@@ -76,9 +76,21 @@ describe('AIIdlePriority', () => {
             expect(a.q === 0 && a.r === 0).toBe(false);
         });
     });
+    /**
+     * addAgent 會從該職業的 BASIC 技能池隨機抽（例如 wb_b2 射程 2、其餘 1），而測試斷言的是「射程 1 的近戰」
+     * 追擊路徑；不釘住技能時結果會隨抽籤變動（成因 D 曾約三成機率失敗）。這裡固定成射程 1 的 BASIC。
+     */
+    const pinMeleeBasic = (a: NonNullable<ReturnType<typeof engine.agentManager.addAgent>>) => {
+        const basic = engine.skillDB.find(s =>
+            s.role === a.role && s.tag === 'BASIC' && s.range === 1 && (s.team === undefined || s.team === a.team));
+        if (!basic) throw new Error(`no melee BASIC skill for ${a.role}`);
+        a.skillIds[2] = basic.id;
+        a.skills[2] = basic;
+    };
     const mk = (team: Team, q: number, r: number, role: Role) => {
         const a = engine.agentManager.addAgent(engine, team, q, r, 500, role);
         if (!a) throw new Error(`addAgent failed @${q},${r}`);
+        pinMeleeBasic(a);
         return a;
     };
     const addHazard = (q: number, r: number, team: Team) => {
