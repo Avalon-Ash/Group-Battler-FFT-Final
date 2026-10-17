@@ -14,7 +14,7 @@
 | A3 | 死亡目標的受擊點 | `EventVFXMapper.resolvePoint` | **錯位**：單位事件的 `pos.z` 是相對高度（physics.z），死亡分支卻當成世界高度，致命一擊的特效畫在高台底下 | 加回腳下地形高度 |
 | A4 | 護盾腳底距離 | `ShieldPainter.computeShieldGeometry` | 自己重算 `UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET` | 改由 `getVisualBodyCenterY` 推導（數值不變） |
 | B | 發射事件的 `pos` 未含核心位置 | `ProjectileSystem` 的 `PROJECTILE_SPAWN`、`SkillExecutor` 的 `VISUAL_BEAM` 與 `CC_APPLIED`／`HEAL`／`DAMAGE` | **不是錯位**：事件 `pos` 只代表「發生在哪」，視覺端以 `sourceId` 經 `getCoreAnchor`、以 `targetId` 經 `getUnitAnchor` 解析（`EventVFXMapper`、`SequenceSystem`） | 寫進 RenderSpec §3「事件座標」，不改 |
-| D | AURA 排序鍵含高度 | `UnitSystem` | 符合 `terrainSortY` 規則；漂浮位移使鍵有 ±2.8 的變動，遠小於 sortBias 邊距（HEX_SIZE*0.5） | 記錄，不改 |
+| D | AURA 排序鍵含高度 | `UnitSystem` | 已移除（2026-10-18，docs/COORD_GUARD_FINDINGS.md §8.3：景深預言判 AURA 的穩定錯序 361 → 74）；AURA 現在是足跡 Y＋AIR_SORT_BIAS | 已修 |
 | — | 射程預覽用選取單位的邏輯格 | `GridRenderStrategy.checkIsRange` | 屬於遊戲規則（高低差射程加成），邏輯格是對的；但 `/ 24` 與實際目標判定是否同源未查 | 列入基準（唯一一筆） |
 
 已知限制：漂浮地圖上發射點（模擬端座標）與畫面上的核心最多差 `FLOAT_BOB.AMPLITUDE` px；投射物是空中物件，不套浮動。

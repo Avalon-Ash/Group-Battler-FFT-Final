@@ -159,6 +159,30 @@ describe('RenderSpec matches the implementation', () => {
         expect(renderList).not.toMatch(/DECAL_LIFT|decalView|MIN_HALF_H/);
     });
 
+    it('air sort rule: spec names the constants, RenderList has no height term in the key', () => {
+        for (const k of ['VFX_RENDER.AIR_SORT_BIAS', 'UNIT_FRAME.SORT_DEADBAND_PX']) expect(spec, k).toContain(k.split('.')[1]);
+        expect(VFX_RENDER.AIR_SORT_BIAS).toBeGreaterThan(0);
+        expect(UNIT_FRAME.SORT_DEADBAND_PX).toBeGreaterThan(0);
+        expect(stripComments(renderList)).not.toMatch(/op\.z\s*\*\s*20|sortKey\s*\+=\s*60/);
+        expect(read('constants.ts')).not.toMatch(/TERRAIN_SORT_SCALE/);
+    });
+
+    it('an air effect keeps the same sort key for its whole fall (height is not part of the key)', () => {
+        const list = new RenderList();
+        const keys: number[] = [];
+        for (const z of [140, 90, 40, 12, 0]) {
+            list.reset();
+            const op = list.next();
+            op.type = RenderOpType.VFX;
+            op.y = 100;
+            op.z = z;
+            op.sortBias = VFX_RENDER.AIR_SORT_BIAS;
+            list.sort();
+            keys.push(op.sortKey);
+        }
+        expect(new Set(keys).size).toBe(1);
+    });
+
     it('every SSOT helper the spec names exists on VisualMath', () => {
         const named = ['getUnitGroundHeight', 'getUnitAnchor', 'getCoreAnchor', 'projectionCenterAt', 'getProjectionCenterY', 'resolveTargetPoint', 'floatBobAt', 'isFloatingBiome'];
         for (const fn of named) {
@@ -280,6 +304,27 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
         const op = list.ops.slice(0, list.count).find(o => o.type === RenderOpType.CORPSE)!;
         expect(op.ty).toBe(f.drawY);
         expect(op.y).toBe(f.sortY);
+    });
+
+    describe('sort foot deadband', () => {
+        it('a 1-2 px hit-recoil wobble leaves the sort key untouched; a real move follows within the deadband', () => {
+            const a = new Agent('W', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            const keyAfter = (physY: number) => {
+                a.physics.y = physY;
+                store.build([a], heightAt, MAP, 0, 'IDLE');
+                const f = store.get(a)!;
+                return f.sortY + f.sortBias;
+            };
+            const center = HexUtils.toPx(0, 0, MAP).y;
+            const base = keyAfter(8);
+            for (const wobble of [9, 8.2, 9.9, 7.1, 8.8]) expect(keyAfter(wobble)).toBe(base);
+            // 真的走遠：鍵跟著腳點，落後不超過死區，且從不低於腳下格格心
+            const far = keyAfter(14);
+            expect(far).toBeCloseTo(a.py + 14 - UNIT_FRAME.SORT_DEADBAND_PX, 6);
+            expect(far).toBeGreaterThanOrEqual(center - 1e-6);
+            expect(keyAfter(-20)).toBeGreaterThanOrEqual(center - 1e-6);
+        });
     });
 
     describe('sort hex hysteresis', () => {

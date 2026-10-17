@@ -394,7 +394,8 @@ export async function installRecorder(page) {
                                             if ([d0, d1, d2].some((d) => Math.abs(d.B.sortKey - d.A.sortKey) < 0.05 && d.A.lift > 0 && d.B.lift > 0)) g.tiesBothLifted++;
                                             if (g.keyGaps.length < 4000) g.keyGaps.push(+minGap.toFixed(3));
                                             // which sort input moved the key gap B-A the most across the two flip transitions (in key units, 100 = 1 px of Y)
-                                            const zb = (d) => ((d.type === 'VFX' || d.type === 'PROJECTILE') && !d.isGround ? (d.z > 0 ? d.z * 20 : 60) : 0);
+                                            // air VFX height no longer enters the key (RenderSpec §2): the zBoost driver stays 0; kept so the driver table keeps its columns
+                                            const zb = () => 0;
                                             const comps = (d) => ({ y: d.y * 100, sortBias: d.sortBias * 100, zBoost: zb(d), decalLift: d.lift });
                                             let tag = 'other', best = 0;
                                             for (const [p, q] of [[d0, d1], [d1, d2]]) {

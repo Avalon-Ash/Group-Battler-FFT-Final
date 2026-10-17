@@ -18,7 +18,7 @@ export class RenderSpec {
         s += "唯一定義點：RenderList.ts 的 SUB_LAYER。排序鍵：\n\n";
         s += "  finalSortY = op.y + op.sortBias ＋ tiebreak（CORPSE +0.5、VFX／PROJECTILE +1.0）\n";
         s += "  sortKey    = floor((finalSortY + 10000) * 100) + subLayer\n";
-        s += "             ＋ 空中 VFX／PROJECTILE：z > 0 加 op.z * 20，z == 0 加 60\n";
+        s += "             空中 VFX／PROJECTILE／AURA：**高度 z 不進鍵**；鍵 = 足跡 Y ＋ 固定前緣 AIR_SORT_BIAS（§2），對粒子壽命單調\n";
         s += "             ＋ UNIT：agent id 雜湊 * 0.00001（同鍵決定性）\n";
         s += "             ＋ 奧義或 z > 600：+1e8（永遠在最上層）\n\n";
         s += "subLayer 只決定「同一個 Y 桶」內的先後；跨格遮擋由 finalSortY 決定（相鄰格 Y 差約 24 px，tiebreak 必須遠小於它）。\n\n";
@@ -40,18 +40,28 @@ export class RenderSpec {
         s += "--- \n\n";
 
         s += "## 2. sortBias 協議 (sortBias Protocol)\n\n";
-        s += "sortBias 是「視覺前緣補償」：不改變 op.y 的意義，只把排序用的 Y 往前推。只抬不降。\n\n";
+        s += "sortBias 是「視覺前緣補償」：不改變 op.y 的意義，只把排序用的 Y 往前推。只抬不降（唯一例外：UNIT／CORPSE 的腳點死區，見下）。\n\n";
         s += "| 提交者 | op | sortBias |\n";
         s += "|--------|----|----------|\n";
         s += "| GridRenderStrategy | TERRAIN、OBSTACLE、HAZARD | 0 |\n";
         s += "| GridRenderStrategy | OVERLAY | 0（畫在格子頂面，同格先於障礙與單位；2026-10-18 拿掉半格前緣） |\n";
-        s += "| UnitSystem | AURA | HEX_SIZE * 0.5 |\n";
-        s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(0, 排序用腳下格格心 Y − 腳 Y)：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後，見下） |\n";
+        s += "| UnitSystem | AURA | VFX_RENDER.AIR_SORT_BIAS（op.y＝UnitFrame.sortFootY，死區濾波後的足跡 Y，不含高度；光環是掛在施法者身上的空中效果，鍵比施法者高一個前緣，永遠排在施法者與腳下格之後） |\n";
+        s += "| VFXRenderer | VFX (air)、PROJECTILE | VFX_RENDER.AIR_SORT_BIAS（HEX_SIZE * 0.5）：空中物件當作站在它飄過那一格的前緣；粒子高度 z 不進鍵 |\n";
+        s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(死區濾波後的腳點 Y, 排序用腳下格格心 Y) − 腳 Y：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後與腳點死區，見下）。濾波使它可為 ≥ −SORT_DEADBAND_PX 的小負值，但鍵永遠不低於腳下格格心 |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
         s += "**排序用腳下格帶滯後**（UnitFrameStore 的視覺狀態：每個單位上一幀的排序格）：腳點原始所在格與記憶格不同時，\n";
         s += "只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換；離記憶格超過一環（瞬移、擊飛）立即切換。\n";
         s += "否則 sortBias 在格界上是鋸齒函數（腳壓著格界走，鍵每幀跳約半格）。高度（getUnitGroundHeight）不受影響，只有排序格有滯後。\n";
         s += "記憶只在 UnitFrameStore 內，單位不在列表時清除。\n\n";
+        s += "**腳點死區**（UNIT_FRAME.SORT_DEADBAND_PX＝2）：排序用腳點 Y 離上次採用的值不超過死區就不動，超過才跟隨（落後 ≤ 死區）。\n";
+        s += "根因：受擊後退是 PhysicsEngine 的彈簧（applyImpulse 的 HIT_IMPULSE 衝量），physics.y 擺盪約 1～2 px——真實位移、不是 bug、肉眼不可分辨；\n";
+        s += "連續的鍵卻會讓靜止的單位在鄰近的鍵（屍體 0.5 px 平局值、法陣粒子）兩側來回穿越。死區只作用在排序鍵：op.y／op.ty（繪製）仍是真實腳點。\n";
+        s += "鍵＝max(濾波後腳點, 腳下格格心)，所以單位永遠排在自己腳下那格地塊之後。\n\n";
+        s += "**空中物件的鍵（VFX air、PROJECTILE、AURA）= 足跡 Y ＋ 固定 AIR_SORT_BIAS，不含高度 z**。足跡 Y 是粒子在地面的投影（op.y），\n";
+        s += "高度只影響繪製位置（op.ty）。舊的 `op.z * 20`（z > 0）與固定 `+60`（z == 0）和 y*100 互相抵銷，往下掉的碎片鍵在鄰居兩側來回，\n";
+        s += "相對地塊／單位／疊層逐幀翻轉（docs/COORD_GUARD_FINDINGS.md H3）。現在掉落的碎片 y 不變則鍵不變，水平移動則鍵單調，\n";
+        s += "對任何靜止物件最多翻轉一次。投射物的 op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓它永遠在最上層。\n";
+        s += "AURA 去掉舊的 `高度 * TERRAIN_SORT_SCALE`（證據：docs/COORD_GUARD_FINDINGS.md §8，景深預言判 AURA 的穩定錯序 361 → 70）。\n\n";
         s += "**沒有「法陣抬升」**：舊規則（RenderList.sort 把站在大型法陣橢圓內的單位／屍體的鍵抬到法陣前緣之後）已移除——它隨法陣生滅、縮放而開關，\n";
         s += "是 docs/COORD_GUARD_FINDINGS.md 量到的 85% 排序震盪。單位站在法陣後半需要「前緣格 < 法陣 < 單位 < 前方地塊」，這是環，沒有任何單一排序鍵能滿足；\n";
         s += "解法是讓法陣不再是獨立排序單位（§9）。\n\n";
@@ -66,7 +76,7 @@ export class RenderSpec {
         s += "visualSurfaceY = getIsoVisualY(visualBaseY, h)   地塊頂面 Y。OBSTACLE／HAZARD 的 op.ty\n";
         s += "OBSTACLE／HAZARD 的 op.y = visualBaseY：與地塊、單位同一把尺，高度不進排序鍵\n";
         s += "  （2026-10-18 依 docs/DEPTH_ORDER_FINDINGS.md 拿掉 h*0.7：它讓高台上的障礙／危害蓋住同一座高台上前方的單位）\n";
-        s += "terrainSortY   = visualBaseY + h * TERRAIN_SORT_SCALE   只剩 AURA 的 op.y（尚未量測，景深預言涵蓋 AURA 後再定）\n\n";
+        s += "AURA 的 op.y = 施法者腳點 Y（sortY）：同樣不含高度（§2）。TERRAIN_SORT_SCALE 與 terrainSortY 已不存在，沒有任何 op 的排序 Y 含高度。\n\n";
         s += "單位（UnitFrame 計算，UnitSystem 提交；見 §4）：\n";
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";
         s += "  op.y  = py + physics.y + transitionOffset（屍體再加擊飛滑行 y）＝腳點，排序用\n";
@@ -169,8 +179,8 @@ export class RenderSpec {
         s += "- isGround = true：subLayer 32，不套 z-boost；op.z = max(p.z + GROUND_Z_BIAS, GROUND_Z_BIAS)，\n";
         s += "  繪製位置再扣 GROUND_VISUAL_BIAS（只動 op.ty，不動排序用 op.y）。isGround 且型別在 GROUND_DRAPE.MODE、\n";
         s += "  gHalfH ≥ GROUND_DRAPE.MIN_HALF_H 的粒子不產生 op，走 §9 鋪設\n";
-        s += "- isGround = false, z > 0：subLayer 50，加 op.z * 20（空中特效、HEX_PRISM、護盾）\n";
-        s += "- isGround = false, z == 0：subLayer 50，加固定 60（平面空中 Billboard）\n\n";
+        s += "- isGround = false（空中特效、HEX_PRISM、護盾、平面空中 Billboard）：subLayer 50，sortBias = VFX_RENDER.AIR_SORT_BIAS，\n";
+        s += "  z 不進排序鍵（z > 0 與 z == 0 同一規則；op.z 只用於 z > 600 的 +1e8 與繪製）\n\n";
 
         s += "--- \n\n";
 

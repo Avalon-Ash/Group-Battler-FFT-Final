@@ -1,9 +1,12 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  RenderList — RenderOp 池與深度排序（SUB_LAYER 唯一定義點） ║
 // ║  職責：sortKey＝floor((op.y＋sortBias＋tiebreak＋10000)*100) ║
-// ║        ＋subLayer（＋空中特效 z 加權）。不做任何「單位站在  ║
-// ║        法陣上」的特例抬升：大型平貼特效不是 op，改由        ║
-// ║        GroundDrapeLayer 鋪在格子頂面（RenderSpec §9）。      ║
+// ║        ＋subLayer。鍵只含足跡 Y、op.sortBias 與固定平局值：  ║
+// ║        沒有高度 z 加權（空中特效的前緣由 VFXRenderer 以      ║
+// ║        sortBias 提交，RenderSpec §2），也沒有「單位站在      ║
+// ║        法陣上」的抬升（大型平貼特效改由 GroundDrapeLayer     ║
+// ║        鋪在格子頂面，§9）。唯一例外：z > 600／奧義 +1e8      ║
+// ║        （永遠最上層，投射物靠它）。                           ║
 // ║  上游：各 submitter；下游：RenderDispatcher                 ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§2。       ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -197,26 +200,9 @@ export class RenderList {
 
             sortKey += subLayer;
             
-            // ── FIX: VFX z-height sort compensation ──────────────────────────
-            // Ground-locked VFX (BLAST, SHOCKWAVE, RING, etc.) have op.z set by
-            // VFXRenderer but the sort algo never uses it. As a result, terrain tiles
-            // further from camera (higher Y) override VFX subLayer advantage and clip
-            // on top of effects. We inject op.z as a sort boost so effects with any
-            // elevation always sort in front of terrain at the same footprint.
-            //
-            // Case A: isGround — no boost applied. subLayer 32 is enough.
-            // Case B: air effect (z > 0) — add op.z * 20 boost.
-            // Case C: zero-height non-ground — add flat +60 boost.
-            if (op.type === RenderOpType.VFX || op.type === RenderOpType.PROJECTILE) {
-                if (!op.isGround) {
-                    if (op.z > 0) {
-                        sortKey += op.z * 20;   // Case B
-                    } else {
-                        sortKey += 60;          // Case C
-                    }
-                }
-            }
-            // ─────────────────────────────────────────────────────────────────
+            // 空中特效／投射物的高度 z 不進排序鍵：舊的 `op.z * 20`（z>0）與固定 `+60`（z==0）和 y*100 互相抵銷，
+            // 往下掉的碎片會相對地塊、單位、疊層逐幀翻轉（docs/COORD_GUARD_FINDINGS.md H3）。
+            // 鍵對粒子壽命單調：只看足跡 Y（粒子在地面的投影）＋ VFXRenderer 提交的固定 sortBias（VFX_RENDER.AIR_SORT_BIAS）。
 
             // Tiebreaker for UNIT determinism (unchanged)
             if (op.type === RenderOpType.UNIT && op.agent) {

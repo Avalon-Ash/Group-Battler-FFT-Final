@@ -4,7 +4,8 @@
 // ║        特效（GROUND_DRAPE.MODE 內且 gHalfH ≥ MIN_HALF_H）   ║
 // ║        不提交 op，登記進 GroundDrapeLayer 鋪在格子頂面；    ║
 // ║        其餘貼地特效以前緣排序（sortBias＝gHalfH＋           ║
-// ║        GROUND_SORT_BIAS），不做任何法陣抬升。               ║
+// ║        GROUND_SORT_BIAS），不做任何法陣抬升。空中特效以     ║
+// ║        足跡 Y＋固定 AIR_SORT_BIAS 排序，高度 z 不進鍵。     ║
 // ║  上游：VFXSystem 狀態、RenderPipeline 的繪製用地面高度     ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、  ║
 // ║  §7、§9；貼花跟地塊浮動，空中特效不套用。                  ║
@@ -99,6 +100,9 @@ export class VFXRenderer {
                 op.gHalfW = halfW;
                 op.gHalfH = halfW * ISO_SCALE_Y;
                 op.sortBias = op.gHalfH + VFX_RENDER.GROUND_SORT_BIAS;
+            } else {
+                // 空中特效：鍵＝足跡 Y（op.y）＋固定前緣。高度 z 不進鍵（RenderSpec §2），鍵對粒子壽命單調。
+                op.sortBias = VFX_RENDER.AIR_SORT_BIAS;
             }
 
             op.z = isGroundLocked

@@ -153,3 +153,62 @@ FOREST 3 場 1,601 次、VOID 3 場 1,745 次（兩種地形差不多）。閒�
 | sink 違規（腳陷地） | 0 | 0（另有同一個單格 over-void 樣本，未變） |
 
 剩餘 647 依型別組合：UNIT×VFX 199、TERRAIN×VFX 151、AURA×VFX 78、OVERLAY×VFX 74、HAZARD×VFX 62、CORPSE×VFX 26、OBSTACLE×VFX 12、TERRAIN×UNIT 11、其餘共 34。幾乎全是「空中粒子 × 某物」：driver 以 z 加權（H3）與單位／粒子 y 抖動（H4）為主；靜止的 61 件中 AURA×VFX 33、UNIT×VFX 10、TERRAIN×VFX 7、OVERLAY×VFX 4、HAZARD×VFX 3，其餘 4。UNIT×UNIT 100 → 6、CORPSE×UNIT 34 → 4。
+
+## 8. 修正結果（H3、H4、AURA；2026-10-18，分支 `claude/draw-residuals`，基底 `main` @ `7d9cf60`）
+
+同一套種子、同一個探針（`npm run verify:coords`，閾值與定義沒改；探針只更新了「zBoost driver」模型，因為 z 加權已不存在）。表內是各型別組合 `flickerGroups` 的總和。
+
+| 項目 | 修正前 | 修正後 |
+| :-- | --: | --: |
+| 震盪配對（pairsOscillating） | 578 | **141** |
+| 震盪事件／段數（episodes） | 690／582 | **145／141** |
+| 靜止事件（兩者皆未移動 >2 px） | 52 | **2** |
+| 順序翻轉總數 | 15,575 | 12,955 |
+| UNIT×VFX（配對／段／靜止） | 223／224／13 | 93／93／2 |
+| TERRAIN×VFX | 89／89／2 | 0 |
+| AURA×VFX | 67／69／31 | 6／6／0 |
+| HAZARD×VFX | 65／65／4 | 0 |
+| OVERLAY×VFX | 42／42／2 | 0 |
+| CORPSE×VFX | 39／39／0 | 12／12／0 |
+| float VOID／MAGMA | PASS | PASS |
+| sink 違規／over-void | 0／0 | 0／0 |
+
+景深預言（`--order --no-crafted`，種子 1001–1003 × FOREST／VOID／MAGMA；補充 1004–1009）：
+
+| | 修正前 | 修正後 |
+| :-- | --: | --: |
+| 穩定錯序，**不判 AURA**（舊預言） | 61（2,646 幀） | 61 不變（AURA 以外的群組 episode 數逐項相同：74 − 13 個 AURA = 61；幀數差 ≤ 6） |
+| 穩定錯序，**判 AURA**（本輪新增） | 361（9,887 幀） | **74（2,700 幀）** |
+| 補充種子，判 AURA | 718（16,382 幀） | **249（6,247 幀）** |
+
+### 8.1 H3：空中特效的鍵（`z*20` 與 `+60` 已刪）
+
+- 規則：非貼地 VFX／PROJECTILE／AURA 的鍵 = 足跡 Y（`op.y`，粒子在地面的投影）＋固定 `VFX_RENDER.AIR_SORT_BIAS`（`HEX_SIZE*0.5`，由 `VFXRenderer` 以 `op.sortBias` 提交）；`RenderList.sort` 不再讀 `op.z`（只剩 `z > 600` 的 `+1e8`，投射物 `op.z = 5000 + 高度` 靠它永遠在最上層）。
+- 為什麼單調：往下掉的碎片 `y` 不變 → 鍵不變；水平移動 → 鍵單調，對靜止的地塊／單位／疊層最多翻轉一次。舊式 `100*dy + 20*dz` 在 0 附近，鍵在鄰居兩側來回。
+- 值為什麼是半格：把「飄在這一格上方」的粒子當作站在該格前緣，所以它排在腳下那格的地塊、危害、障礙、單位之後（和 AURA 原有的 `HEX_SIZE*0.5` 同一把尺），又不越過前方整列（列距 36～41.6 px）。
+- 效果：TERRAIN×VFX 89→0、HAZARD×VFX 65→0、OVERLAY×VFX 42→0（原本都是 z 驅動）。規格：RenderSpec §1、§2、§7。
+
+### 8.2 H4：單位 `physics.y` 抖動的根因與處理
+
+- **根因（量到的）**：不是 bug，是受擊後退。`SkillExecutor` 對受擊者 `PhysicsEngine.applyImpulse(…HIT_IMPULSE_MIN)`，`PhysicsEngine.stepPhysics` 的彈簧使 `physics.y` 在約 5～8 幀內擺盪 1～2 px（探針 `tools/ui-e2e/unit-jitter-probe.mjs`：種子 1001/1002 的 14 筆「靜止」單位 `py + physics.y` 變動 0.3～1.05 px，全部 `hitFlashTimer > 0`、`vy` 由 ±98 衰減到 0；另有 `finalizeMove` 的 ±4 px/s 隨機推擠）。這是刻意的受擊回饋，真實位移，不能拿掉；問題只在連續的排序鍵會被它推過鄰居的鍵（屍體 0.5 px 平局值、粒子）。
+- **處理**：`UnitFrameStore` 的排序用腳點 Y 加死區 `UNIT_FRAME.SORT_DEADBAND_PX = 2`（離上次採用值不超過死區就不動，超過才跟隨，落後 ≤ 2 px）。只作用在排序鍵；`op.y`／`op.ty`（繪製）仍是真實腳點。鍵 = `max(濾波腳點, 腳下格格心)`，所以單位永遠不會排到自己腳下那格地塊之前（`sortBias` 因此可為 ≥ −2 的小負值）。AURA 讀同一個濾波值（`UnitFrame.sortFootY`）。
+- 效果：靜止事件 52 → 2；UNIT×VFX 靜止 13 → 2。測試：`tests/CoordinateProtocol.test.ts` 的「sort foot deadband」。
+
+### 8.3 AURA：用證據決定（去掉高度加成）
+
+做法：`depth-oracle.mjs` 新增 AURA 判定。AURA 是掛在施法者身上的空中效果（光環畫在身體中心 `AGENT_MODEL_CENTER_Z`，蓋在施法者上），所以以足跡點判定，和空中 VFX 同一條規則：同格排在 TERRAIN／HAZARD／OBSTACLE／UNIT（含施法者）／CORPSE 之後；對其他格用直欄規則；對其他單位／屍體比足跡 Y（差 ≥ `HEX_SIZE/2` 才判，那是光環自己的前緣）；輪廓是身體中心高度的六角環（偏小，只會少算重疊）。`--orderSim=noEA` 在頁面內模擬「AURA 不加 `h*0.7`」。
+
+| 景深預言（判 AURA） | 現況（`h*0.7`） | `noEA` 模擬 | 實作後 |
+| :-- | --: | --: | --: |
+| 種子 1001–1003 穩定錯序 | 361 | 70 | **74** |
+| 補充種子 1004–1009 穩定錯序 | 718 | 225 | **249** |
+| AURA 群組（穩定）：AURA×UNIT／×TERRAIN／×OBSTACLE／×HAZARD／×CORPSE | 127／80／69／11／13 | 0／7／1／1／0 | 0／7／1／5／0 |
+| AURA×OBSTACLE 有 ≥100 px² 真實不透明重疊（hTerm 群組） | 68／68 個 | 1／1 | 1／1 |
+
+結論：**去掉。** `h*0.7` 在高地上把光環排到前方一整列的地塊、樹、危害之後（光環蓋在樹／危害上，樹幹應該蓋住光環下半部），與障礙物、危害同一個錯誤；去掉後只剩前緣偏移造成的少量殘留（13 個 episode，光環固定前緣與單位 hex 提升的差）。`TERRAIN_SORT_SCALE` 常數與 RenderSpec 的 `terrainSortY` 一併刪除（沒有任何 op 的排序 Y 再含高度）。
+
+### 8.4 限制
+
+- UNIT×VFX 剩 93：driver 以單位 `sortBias`（走過格心線時的轉折）與粒子 y 為主，兩者都在動，屬真實穿越。
+- 預言仍判不到光環的 AOE 指示器（圓形範圍蓋到鄰格）；它是一張橫跨多格的平貼圖，長遠該走 RenderSpec §9 的鋪設，不在本輪。
+- 預言的 AURA 輪廓只用身體環；上升粒子與詠唱聖域更大，所以數字偏保守。

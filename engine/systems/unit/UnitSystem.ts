@@ -10,6 +10,8 @@
 // ║  也不自己算腳點、腳下格或擊飛位移。                        ║
 // ║  UNIT op 帶著 UnitFrame（op.unitFrame），drawAssembly 轉給    ║
 // ║  UnitBodyPainter 畫衝刺殘影（RenderSpec §10）。              ║
+// ║  AURA（施法光環）是掛在施法者身上的空中效果：y＝濾波後足跡  ║
+// ║  Y（UnitFrame.sortFootY）、sortBias＝AIR_SORT_BIAS，不含高度。║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -22,7 +24,7 @@ import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicat
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
 import { HexLayout } from "../../../types";
-import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../../constants";
+import { VFX_RENDER } from "../../../constants";
 
 export class UnitRenderSystem {
     public submitRenderables(
@@ -69,9 +71,11 @@ export class UnitRenderSystem {
                 auraOp.agent = agent;
                 auraOp.tx = f.footX;
 
-                // [SSOT FIX] AURA sorting: incorporate terrain height to prevent being hidden by grid
-                auraOp.y = f.sortY + (f.groundH * TERRAIN_SORT_SCALE);
-                auraOp.sortBias = HEX_SIZE * 0.5; // Front-edge compensation
+                // AURA 是掛在施法者身上的空中效果：足跡 Y 不含高度（docs/COORD_GUARD_FINDINGS.md §8）；
+                // y＝死區濾波後的腳點（與單位同一把尺，受擊擺盪不動鍵），sortBias＝固定前緣 AIR_SORT_BIAS：
+                // 鍵比施法者的鍵（腳點與腳下格格心取大）高，永遠排在施法者與腳下格之後。
+                auraOp.y = f.sortFootY;
+                auraOp.sortBias = VFX_RENDER.AIR_SORT_BIAS;
 
                 auraOp.ty = f.drawY;
                 auraOp.time = globalTime;
