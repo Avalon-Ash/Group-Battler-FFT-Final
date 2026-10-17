@@ -10,6 +10,7 @@ import { HexUtils } from "../../utils";
 import { SkillExecutor } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y } from "../../../constants";
+import { random } from "../../math/rng";
 
 export class ProjectileSystem {
   private pool: Projectile[] = [];
@@ -85,7 +86,7 @@ export class ProjectileSystem {
     if (p.skill.type === "AOE") {
       const targetHex = { q: p.targetHexQ, r: p.targetHexR };
       const impactCells = HexUtils.range(targetHex, p.skill.aoeRadius || 1);
-      const preRollCrit = p.skill.power > 0 ? Math.random() < 0.1 : false;
+      const preRollCrit = p.skill.power > 0 ? random() < 0.1 : false;
 
       impactCells.forEach((cell) => {
         const t = engine.getAgentAt(cell.q, cell.r);

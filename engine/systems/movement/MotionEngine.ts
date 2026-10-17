@@ -2,6 +2,7 @@
 import { Agent } from "../../core/Agent";
 import { HexUtils } from "../../utils";
 import { MovementType, SpatialProvider } from "../../../types";
+import { random } from "../../math/rng";
 
 const STACKING_RESOLUTION_FORCE = 8;
 const TRAIL_HISTORY_LENGTH = 15;
@@ -16,6 +17,14 @@ export class MotionEngine {
             return;
         }
 
+        // 路徑上的下一格已消失（縮圈塌陷）：本系統是 path／isMoving 的推進者，就在這裡停下，
+        // 不能等 AI 下一次重新尋路（施法等狀態下 AI 不會重算，單位會一直朝已不存在的格子走，
+        // 腳下高度也會被拉向正在墜落的地塊）。
+        if (!spatial.isValid(a.path[0].q, a.path[0].r)) {
+            this.cancelMove(a);
+            return;
+        }
+
         const moveDelta = a.moveSpeed * a.moveSpeedMult * dt;
         a.moveProgress += moveDelta;
 
@@ -24,6 +33,10 @@ export class MotionEngine {
             spatial.updateAgentPosition(a, nextHex.q, nextHex.r);
             a.path.shift();
             a.moveProgress -= 1.0;
+            if (a.path.length > 0 && !spatial.isValid(a.path[0].q, a.path[0].r)) {
+                this.cancelMove(a);
+                return;
+            }
         }
 
         if (a.path.length === 0) {
@@ -55,6 +68,13 @@ export class MotionEngine {
         }
     }
 
+    private static cancelMove(a: Agent) {
+        a.isMoving = false;
+        a.path = [];
+        a.trajectory = [];
+        a.moveProgress = 0;
+    }
+
     private static finalizeMove(a: Agent) {
         a.isMoving = false;
         a.moveSpeedMult = 1.0; 
@@ -63,7 +83,7 @@ export class MotionEngine {
         a.physics.vx *= 0.1;
         a.physics.vy *= 0.1;
         
-        a.physics.vx += (Math.random() - 0.5) * STACKING_RESOLUTION_FORCE;
-        a.physics.vy += (Math.random() - 0.5) * STACKING_RESOLUTION_FORCE;
+        a.physics.vx += (random() - 0.5) * STACKING_RESOLUTION_FORCE;
+        a.physics.vy += (random() - 0.5) * STACKING_RESOLUTION_FORCE;
     }
 }

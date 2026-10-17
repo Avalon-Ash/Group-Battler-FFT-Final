@@ -154,7 +154,7 @@ try {
         }
         Math.random = mulberry32;
         let syntheticTime = 1000.0;
-        window.__resetSeed = (v = 1337) => { s = v; syntheticTime = 1000.0; };
+        window.__resetSeed = (v = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(v); /* 模擬流與 Math.random 分離，需一併重設 */ s = v; syntheticTime = 1000.0; };
         Date.now = () => Math.floor(syntheticTime);
         performance.now = () => syntheticTime;
 

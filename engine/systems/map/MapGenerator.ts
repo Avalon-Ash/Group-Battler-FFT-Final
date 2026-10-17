@@ -4,6 +4,7 @@ import { MapSystem } from "../map";
 import { SCENE_DB } from "../../../data/scenes";
 import { HexUtils } from "../../utils";
 import { HEX_SIZE, BLOCK_HEIGHT, MAX_TERRAIN_TIER } from "../../../constants";
+import { random } from "../../math/rng";
 
 export class MapGenerator {
     public static randomize(system: MapSystem, engine: GameEngine) {
@@ -11,16 +12,16 @@ export class MapGenerator {
         let cols, rows;
         
         if (layout === 'FLAT') {
-            cols = 8 + Math.floor(Math.random() * 2); 
-            rows = 10 + Math.floor(Math.random() * 2); 
+            cols = 8 + Math.floor(random() * 2); 
+            rows = 10 + Math.floor(random() * 2); 
         } else {
-            cols = 7 + Math.floor(Math.random() * 2); 
-            rows = 12 + Math.floor(Math.random() * 2); 
+            cols = 7 + Math.floor(random() * 2); 
+            rows = 12 + Math.floor(random() * 2); 
         }
         
         engine.mapConfig.w = cols; 
         engine.mapConfig.h = rows; 
-        engine.currentScene = SCENE_DB[Math.floor(Math.random() * SCENE_DB.length)];
+        engine.currentScene = SCENE_DB[Math.floor(random() * SCENE_DB.length)];
         this.rebuild(system, engine);
     }
 
@@ -41,8 +42,8 @@ export class MapGenerator {
         const centerHex = { q: centerQ, r: centerR };
         const centerPos = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
 
-        const noisePhaseA = Math.random() * 1000;
-        const noisePhaseB = Math.random() * 1000;
+        const noisePhaseA = random() * 1000;
+        const noisePhaseB = random() * 1000;
 
         // Radial Generation (Giant Hexagon Island)
         for (let q = -radius; q <= radius; q++) {
@@ -128,7 +129,7 @@ export class MapGenerator {
             if (engine.getAgentAt(q, r)) return;
 
             const noise = Math.sin(q * 0.8) * Math.cos(r * 0.8);
-            if (noise > noiseThreshold && Math.random() < density) {
+            if (noise > noiseThreshold && random() < density) {
                 system.setObstacle(q, r, obstacleType);
             }
         });

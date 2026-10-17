@@ -6,7 +6,12 @@
  * stepping deterministic frames via __stepFrames, sampling every 0.5 sim-seconds.
  * Detects:
  *   1. GHOST: Units standing on removed tiles, frozen physics, uncollected corpses, or lingering map occupancy.
- *   2. IDLE: Alive, non-CCed, non-casting units that stand completely idle with enemies alive for >= IDLE_GRACE_SEC.
+ *   2. IDLE (precise): alive, not CC'd, an enemy is alive, and for >= IDLE_GRACE_SEC the unit
+ *      (a) did not displace its pixel position by > IDLE_MOVE_PX, (b) was never casting, and
+ *      (c) never started a skill (no skill cooldown rose since the previous sample).
+ *      Claimed states (isMoving / actionState) are NOT counted as activity: they can be stale.
+ *      A unit with no targetable enemy (all banished / out of bounds / on collapsed tiles) is excluded.
+ *      Stun / banish / fear / stasis are excluded; root is excluded only while no enemy is in basic range.
  * Outputs:
  *   tools/ui-e2e/out/br_soak.json
  *   Terminal summary report table
@@ -29,6 +34,7 @@ const DICE_TITLE = '\u96a8\u6a5f\u751f\u6210\u6230\u5834\u8207\u9663\u5bb9'; // 
 const args = process.argv.slice(2);
 const assertMode = args.includes('--assert');
 const assertGhostOnly = args.includes('--assert-ghost');
+const assertIdleOnly = args.includes('--assert-idle');
 
 function getArgValue(name, defaultVal) {
     const prefix = `--${name}=`;
@@ -41,9 +47,11 @@ function getArgValue(name, defaultVal) {
 }
 
 const SEED_COUNT = getArgValue('seeds', 20);
+const SEED_START = getArgValue('seedStart', 1); // seed index of the first run (seed = 1000 + index)
 const SIM_SECONDS = getArgValue('simTime', 180);
 const GHOST_GRACE_SEC = getArgValue('ghostGrace', 6);
 const IDLE_GRACE_SEC = getArgValue('idleGrace', 6);
+const IDLE_MOVE_PX = getArgValue('idleMovePx', 3);
 const SHRINK_INTERVAL = getArgValue('shrinkInterval', 3);
 
 const launchBrowser = async () => {
@@ -97,7 +105,7 @@ await page.addInitScript(() => {
     Math.random = mulberry32;
 
     let syntheticTime = 1000.0;
-    window.__resetSeed = (s = 1337) => {
+    window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */
         seed = s;
         syntheticTime = 1000.0;
     };
@@ -155,9 +163,9 @@ const results = [];
 let totalGhosts = 0;
 let totalIdles = 0;
 
-for (let i = 1; i <= SEED_COUNT; i++) {
+for (let i = SEED_START; i < SEED_START + SEED_COUNT; i++) {
     const seed = 1000 + i;
-    process.stdout.write(`[Seed ${i.toString().padStart(2, ' ')}/${SEED_COUNT}] Seed #${seed} ... `);
+    process.stdout.write(`[Seed ${i.toString().padStart(2, ' ')}/${SEED_START + SEED_COUNT - 1}] Seed #${seed} ... `);
 
     // 1. Seed RNG
     await page.evaluate((s) => window.__resetSeed(s), seed);
@@ -174,6 +182,9 @@ for (let i = 1; i <= SEED_COUNT; i++) {
         shrinkInterval,
         ghostGraceSec,
         idleGraceSec,
+        idleMovePx,
+        traceAgentId,
+        traceFrom,
     }) => {
         const engine = window.__TACTICAL_ENGINE__;
         if (!engine) throw new Error('TacticalEngine not found on window.__TACTICAL_ENGINE__');
@@ -211,6 +222,76 @@ for (let i = 1; i <= SEED_COUNT; i++) {
                 lastResult: node.lastResult,
                 children: Array.isArray(node.c) ? node.c.map(ch => dumpBT(ch, depth + 1)) : [],
             };
+        }
+
+        // Nodes ticked during the unit's most recent BT tick (same lastRunTime as the root),
+        // flattened depth-first as "Name=RESULT" so the taken path reads top to bottom.
+        function lastTickTrace(root) {
+            const out = [];
+            const t = root.lastRunTime;
+            (function walk(n, d) {
+                if (!n || n.lastRunTime !== t) return;
+                out.push(`${'  '.repeat(d)}${n.n}=${n.lastResult}`);
+                for (const c of n.c || []) walk(c, d + 1);
+            })(root, 0);
+            return out;
+        }
+
+        function HexDist(p, q) {
+            const dq = p.q - q.q, dr = p.r - q.r;
+            return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2;
+        }
+
+        // Pathfinding probes for an idle unit: can it reach its target / escape hex at all?
+        function probeReach(a) {
+            const pf = engine.movement.pathfinder;
+            const tg = engine.movement.targeting;
+            const out = {};
+            const basic = (a.skills || []).find(sk => sk && sk.tag === 'BASIC');
+            const range = basic ? basic.range : 1;
+            if (a.target) {
+                const t = a.target;
+                const ps = (ign, esc) => pf.findPath(a, t.q, t.r, range, ign, engine, tg, esc);
+                const p1 = ps(false, false), p2 = ps(true, false);
+                const first = (p2[0] || p1[0]) || null;
+                out.chase = {
+                    range,
+                    effRange: engine.getEffectiveRange(a, t.q, t.r, range),
+                    gridDist: HexDist(a, t),
+                    pathLen: p1.length,
+                    pathLenIgnoreUnits: p2.length,
+                    myH: engine.map.getTerrainHeight(a.q, a.r),
+                    targetH: engine.map.getTerrainHeight(t.q, t.r),
+                    jump: a.jump,
+                    first: first && {
+                        q: first.q, r: first.r,
+                        blocked: engine.isBlocked(first.q, first.r, a.id, a.movementType),
+                        warning: engine.isWarningTile(`${first.q},${first.r}`),
+                        h: engine.map.getTerrainHeight(first.q, first.r),
+                        occ: (() => { const o = engine.map.getAgentAt(first.q, first.r); return o ? `${o.team}:${o.role}:${o.hp > 0 ? 'alive' : 'dead'}` : null; })(),
+                    },
+                    moveResult: (() => {
+                        // Replay the movement call the BT makes, then restore the unit's movement fields.
+                        const save = { isMoving: a.isMoving, path: a.path, trajectory: a.trajectory, mult: a.moveSpeedMult, stuck: a.stuckTicks, prog: a.moveProgress };
+                        const res = engine.movement.moveAgentToHex(a, { q: t.q, r: t.r }, range, engine, 1.0, false);
+                        const after = { isMoving: a.isMoving, pathLen: a.path.length, stuck: a.stuckTicks };
+                        a.isMoving = save.isMoving; a.path = save.path; a.trajectory = save.trajectory; a.moveSpeedMult = save.mult; a.stuckTicks = save.stuck; a.moveProgress = save.prog;
+                        return { res, after };
+                    })(),
+                    safePath: (() => { const sp = pf.findPathToSafety(a, a, engine, tg); return sp ? sp.length : null; })(),
+                };
+            }
+            if (a.targetHex) {
+                const th = a.targetHex;
+                const e1 = pf.findPath(a, th.q, th.r, 0, false, engine, tg, true);
+                out.escape = {
+                    th: { q: th.q, r: th.r },
+                    pathLen: e1.length,
+                    first: e1[0] ? { q: e1[0].q, r: e1[0].r, blocked: engine.isBlocked(e1[0].q, e1[0].r, a.id, a.movementType), occ: (() => { const o = engine.map.getAgentAt(e1[0].q, e1[0].r); return o ? `${o.team}:${o.role}:${o.hp > 0 ? 'alive' : 'dead'}` : null; })() } : null,
+                    canEscape: pf.canEscape(a, engine),
+                };
+            }
+            return out;
         }
 
         // Helper to capture full diagnostic snapshot
@@ -277,8 +358,8 @@ for (let i = 1; i <= SEED_COUNT; i++) {
                 .filter(l => l.agentId === a.id)
                 .slice(-8)
                 .map(l => ({
-                    time: +l.time.toFixed(2),
-                    type: l.type,
+                    time: l.time,
+                    type: l.actionType,
                     action: l.actionName,
                     target: l.targetInfo,
                     detail: l.detail,
@@ -313,7 +394,18 @@ for (let i = 1; i <= SEED_COUNT; i++) {
                     aiUpdateTimer: +a.aiUpdateTimer.toFixed(2),
                     castingSkillIdx: a.castingSkillIdx,
                 },
+                skills: (a.skills || []).map((sk, i) => sk ? ({ slot: i, tag: sk.tag, range: sk.range, cost: sk.cost, cd: +(a.curCDs[i] ?? 0).toFixed(2) }) : null),
+                mp: a.mp,
+                lockouts: { interrupt: +(a._interruptCooldown ?? 0).toFixed(2), castComplete: +(a._castCompleteCooldown ?? 0).toFixed(2), silence: +a.silenceTimer.toFixed(2) },
+                nearestEnemyDist: Math.min(...engine.agents.filter(e => e.hp > 0 && e.team !== a.team).map(e => HexDist(a, e))),
+                shrinkTimer: +engine.zones.shrinkTimer.toFixed(2),
+                shrinkLevel: engine.zones.currentShrinkLevel,
+                mapTiles: engine.map.mapKeys.size,
+                probe: probeReach(a),
+                moveDbg: (globalThis.__MOVE_DBG__ || []).filter(m => m.id === a.id).slice(-12),
+                actLog: (globalThis.__ACT_LOG__?.[a.id] || []).slice(-24),
                 recentLogs,
+                btTrace: lastTickTrace(a.bt),
                 btTree: dumpBT(a.bt),
                 neighbors,
             };
@@ -329,7 +421,31 @@ for (let i = 1; i <= SEED_COUNT; i++) {
 
         while (step < maxSteps) {
             step++;
-            window.__stepFrames(framesPerSample);
+            if (traceAgentId) {
+                const ta0 = engine.agents.find(x => x.id === traceAgentId);
+                if (ta0 && !ta0.__hooked) {
+                    ta0.__hooked = true;
+                    let v = ta0.isMoving;
+                    Object.defineProperty(ta0, 'isMoving', {
+                        get() { return v; },
+                        set(nv) {
+                            if (v && !nv && engine.battleTime >= traceFrom && engine.battleTime <= traceFrom + 1.2) {
+                                (globalThis.__FRAME_LOG__ ||= []).push(`${engine.battleTime.toFixed(3)} isMoving->false by ` + new Error().stack.split(String.fromCharCode(10)).slice(2, 5).map(l => l.trim().replace(/\(.*[\/]/, '(')).join(' < '));
+                            }
+                            v = nv;
+                        },
+                    });
+                }
+                for (let f = 0; f < framesPerSample; f++) {
+                    window.__stepFrames(1);
+                    const ta = engine.agents.find(x => x.id === traceAgentId);
+                    if (ta && engine.battleTime >= traceFrom && engine.battleTime <= traceFrom + 1.2) {
+                        (globalThis.__FRAME_LOG__ ||= []).push(`${engine.battleTime.toFixed(3)} mv=${ta.isMoving ? 1 : 0}/${ta.path.length} prog=${ta.moveProgress.toFixed(3)} mult=${ta.moveSpeedMult.toFixed(2)} @${ta.q},${ta.r} px=${ta.px.toFixed(1)},${ta.py.toFixed(1)} ai=${ta.aiUpdateTimer.toFixed(3)}`);
+                    }
+                }
+            } else {
+                window.__stepFrames(framesPerSample);
+            }
             currentSim = engine.battleTime;
 
             // Update collapsed tiles map
@@ -347,6 +463,25 @@ for (let i = 1; i <= SEED_COUNT; i++) {
                 if (!engine.map.isValid(a.q, a.r) && !collapseTimes.has(k)) {
                     collapseTimes.set(k, currentSim);
                 }
+            }
+
+            // Debug: record every Action node result per agent (ring buffer of 200).
+            for (const a of engine.agents) {
+                if (!a.bt || a.bt.__wrapped) continue;
+                a.bt.__wrapped = true;
+                const log = ((globalThis.__ACT_LOG__ ||= {})[a.id] = []);
+                (function walk(n) {
+                    if (n.type === 'ACT') {
+                        const orig = n.fn;
+                        n.fn = (ctx) => {
+                            const r = orig(ctx);
+                            log.push(`${engine.battleTime.toFixed(2)} ${n.n}=${r} @${ctx.q},${ctx.r} mv=${ctx.isMoving ? 1 : 0}/${ctx.path.length} prog=${ctx.moveProgress.toFixed(2)} spd=${ctx.moveSpeed}x${ctx.moveSpeedMult.toFixed(2)} px=${ctx.px.toFixed(0)},${ctx.py.toFixed(0)} tgt=${ctx.target ? ctx.target.id + '@' + ctx.target.q + ',' + ctx.target.r : '-'} th=${ctx.targetHex ? ctx.targetHex.q + ',' + ctx.targetHex.r : '-'}`);
+                            if (log.length > 200) log.shift();
+                            return r;
+                        };
+                    }
+                    for (const c of n.c || []) walk(c);
+                })(a.bt);
             }
 
             // Check alive teams
@@ -440,42 +575,39 @@ for (let i = 1; i <= SEED_COUNT; i++) {
                 for (const a of engine.agents) {
                     if (a.hp <= 0) continue;
 
-                    const isCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.stasisTimer > 0 || a.actionState === 5 || a.animState === 5;
-                    const isCasting = a.castingSkillIdx !== -1 || a.actionState === 4 || a.actionState === 'CASTING';
-                    const isMoving = a.isMoving || (a.path && a.path.length > 0) || a.actionState === 1 || a.actionState === 3 || a.actionState === 'WALKING' || a.actionState === 'EVADING' || a.animState === 6;
-                    const isAttacking = a.actionState === 2 || a.actionState === 'ATTACKING' || a.animState === 2 || a.animState === 'ATTACK' || a.animState === 'CAST_ULT';
+                    // A rooted unit cannot move but CAN still attack: it only counts as incapacitated while no enemy is in
+                    // its basic-skill range (otherwise standing there without attacking is exactly the bug).
+                    const basic = (a.skills || []).find(sk => sk && sk.tag === 'BASIC');
+                    const targetable = engine.agents.filter(e => e.hp > 0 && e.team !== a.team && !e.banished && !e.outOfBounds && engine.map.isValid(e.q, e.r));
+                    const nearest = Math.min(...targetable.map(e => HexDist(a, e)));
+                    const rootedNoTarget = a.rootTimer > 0 && nearest > (basic ? basic.range : 1);
+                    const isCC = targetable.length === 0 || a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.stasisTimer > 0 || a.outOfBounds || rootedNoTarget;
+                    const isCasting = a.castingSkillIdx !== -1;
 
                     let tr = idleTrackers.get(a.id);
                     if (!tr) {
                         tr = {
                             lastActiveTime: currentSim,
-                            lastQ: a.q,
-                            lastR: a.r,
                             lastPx: a.px,
                             lastPy: a.py,
+                            lastCDs: (a.curCDs || []).slice(),
                             triggered: false,
                         };
                         idleTrackers.set(a.id, tr);
                     }
 
-                    if (isCC) {
-                        // Incapacitated: reset timer
-                        tr.lastActiveTime = currentSim;
-                        tr.lastQ = a.q;
-                        tr.lastR = a.r;
-                        tr.lastPx = a.px;
-                        tr.lastPy = a.py;
-                        tr.triggered = false;
-                        continue;
+                    // A skill was started since the last sample if any cooldown rose.
+                    let startedSkill = false;
+                    const cds = a.curCDs || [];
+                    for (let i = 0; i < cds.length; i++) {
+                        if (cds[i] > (tr.lastCDs[i] ?? 0) + 0.01) startedSkill = true;
                     }
+                    tr.lastCDs = cds.slice();
 
                     const distMoved = Math.hypot(a.px - tr.lastPx, a.py - tr.lastPy);
-                    const posChanged = a.q !== tr.lastQ || a.r !== tr.lastR || distMoved > 5;
 
-                    if (isCasting || isMoving || isAttacking || posChanged) {
+                    if (isCC || isCasting || startedSkill || distMoved > idleMovePx) {
                         tr.lastActiveTime = currentSim;
-                        tr.lastQ = a.q;
-                        tr.lastR = a.r;
                         tr.lastPx = a.px;
                         tr.lastPy = a.py;
                         tr.triggered = false;
@@ -524,7 +656,14 @@ for (let i = 1; i <= SEED_COUNT; i++) {
         shrinkInterval: SHRINK_INTERVAL,
         ghostGraceSec: GHOST_GRACE_SEC,
         idleGraceSec: IDLE_GRACE_SEC,
+        idleMovePx: IDLE_MOVE_PX,
+        traceAgentId: process.env.TRACE_AGENT || '',
+        traceFrom: parseFloat(process.env.TRACE_FROM || '0'),
     });
+    if (process.env.TRACE_AGENT) {
+        const fl = await page.evaluate(() => globalThis.__FRAME_LOG__ || []);
+        console.log(fl.join('\n'));
+    }
 
     results.push(seedResult);
     totalGhosts += seedResult.ghostCount;
@@ -590,6 +729,7 @@ if (totalGhosts > 0 || totalIdles > 0) {
             const s = idl.snapshot;
             const targetDesc = s.target ? `${s.target.id} (${s.target.role}, hp=${s.target.hp}, dist=${s.target.distance}, validTile=${s.target.tileValid})` : 'none';
             console.log(`  - Agent ${s.agentId} (${s.role}, ${s.team}) @ (${s.pos.q},${s.pos.r}) for ${s.idleDuration}s: Target=${targetDesc}, safe=${s.inSafeZone}, pathLen=${s.movement.pathLength}, anim=${s.movement.animState}, aiState=${s.movement.aiState}`);
+            console.log(s.btTrace.map(l => '      ' + l).join('\n'));
         }
     }
 }
@@ -600,6 +740,13 @@ if (assertMode) {
         process.exit(1);
     } else {
         console.log('[ASSERTION PASSED] 0 ghosts, 0 idles.');
+    }
+} else if (assertIdleOnly) {
+    if (totalIdles > 0) {
+        console.error(`[ASSERTION FAILED] br-soak detected ${totalIdles} idle episodes.`);
+        process.exit(1);
+    } else {
+        console.log('[ASSERTION PASSED] 0 idle episodes.');
     }
 } else if (assertGhostOnly) {
     if (totalGhosts > 0) {

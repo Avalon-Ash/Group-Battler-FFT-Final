@@ -17,6 +17,7 @@ import { HUD_COLORS, PALETTE, THEME_IMPERIAL, THEME_COVENANT, CLASS_GLYPH } from
 import { FACTION_VISUALS } from '../vfx/faction_visuals';
 import { UNIT_APPEARANCE } from './appearance';
 import { BODY_TYPE_PROFILE } from './appearance/bodyTypes';
+import type { GlyphStyleId } from './classGlyphs';
 
 /** Manifest 與檔案路徑使用的陣營鍵（與單位圖集 manifestKey 前綴一致） */
 export type FactionKey = 'BLUE' | 'RED';
@@ -107,6 +108,8 @@ export interface ClassIconSkin {
     /** 刻在棋座頂面的字形：相對 radius 的比例（貼圖同樣使用）與不透明度 */
     scale: number;
     alpha: number;
+    /** 程序化字形風格（classGlyphs.ts）：獅心乾淨、灰燼鋸齒 */
+    glyph: GlyphStyleId;
 }
 
 /** 棋座核心：把角色投影出來的懸浮六角晶體（尺寸與位置見 constants.ts 的 CORE_VISUAL） */
@@ -175,6 +178,7 @@ interface FactionStyleDef {
     ember: string;
     shieldStroke: string;
     core: CoreSkin;
+    glyph: GlyphStyleId;
 }
 
 const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
@@ -203,6 +207,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
             glow: '#fde68a',
             sizeScale: 1,
         },
+        glyph: 'CLEAN',
     },
     // Ashen：碎裂焦黑的六角棋座、裂縫透出餘燼
     RED: {
@@ -229,6 +234,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
             glow: '#ef4444',
             sizeScale: 1,
         },
+        glyph: 'JAGGED',
     },
 };
 
@@ -271,7 +277,7 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
             textureAlpha: 1,
             weatherHighlight: ap.highlightColor ?? palette.light,
         },
-        classIcon: { color: ap.iconColor, glow: ap.iconGlow, scale: CLASS_GLYPH.scale, alpha: CLASS_GLYPH.alpha },
+        classIcon: { color: ap.iconColor, glow: ap.iconGlow, glyph: style.glyph, scale: CLASS_GLYPH.scale, alpha: CLASS_GLYPH.alpha },
         core: style.core,
         sprite: { atlasKey: `${key}:${role}:${body}`, tint: null },
         projection: {

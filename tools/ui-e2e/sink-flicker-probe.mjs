@@ -41,6 +41,8 @@ const SHRINK = parseInt(args.shrinkInterval ?? '3', 10);
 const MAX_SHOTS = parseInt(args.shots ?? '14', 10);
 const LABEL = String(args.label ?? 'run');
 const REALTIME = args.realtime === true;
+const FORCE = typeof args['force-collapse'] === 'string' ? args['force-collapse'] : null; // idle | path: collapse a taller neighbour of a unit at frame 60
+const NO_CORPSE_GROUND = args['no-corpse-ground'] === true; // drop the corpse ground-follow input to reproduce the pre-fix floating corpse
 const LEGACY_DRAG = args['legacy-drag'] === true; // re-introduce DEATH_VFX.PUFF_DRAG = 1.5 to reproduce the NaN sort corruption on fixed code
 const QUALITY = args.quality === 'free' ? null : parseInt(args.quality ?? '0', 10);
 const QS = QUALITY === null ? '' : `&quality=${QUALITY}`;
@@ -73,7 +75,7 @@ await page.addInitScript((realtime) => {
     Math.random = mulberry32;
     if (realtime) return;
     let syntheticTime = 1000.0;
-    window.__resetSeed = (s = 1337) => { seed = s; syntheticTime = 1000.0; };
+    window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */ seed = s; syntheticTime = 1000.0; };
     Date.now = () => Math.floor(syntheticTime);
     performance.now = () => syntheticTime;
     let rafId = 0;
@@ -101,7 +103,7 @@ if (await startBtn.isVisible().catch(() => false)) {
 }
 
 // ---- install the in-page probe (once)
-await page.evaluate(async (legacyDrag) => {
+await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
     const [{ RenderList, RenderOpType }, { HexUtils }, { TerrainRenderer }, quality, { HexGeometry }, consts] = await Promise.all([
         import('/engine/renderers/RenderList.ts'),
         import('/engine/utils.ts'),
@@ -110,23 +112,32 @@ await page.evaluate(async (legacyDrag) => {
         import('/engine/graphics/utils/HexGeometry.ts'),
         import('/constants.ts'),
     ]);
+    const { selectSpriteDirection } = await import('/data/units/appearance/selectSpriteFrame.ts');
     const origSort = RenderList.prototype.sort;
     let lastList = null;
     RenderList.prototype.sort = function () { origSort.call(this); lastList = this; };
 
     if (legacyDrag) consts.DEATH_VFX.PUFF_DRAG = 1.5;
+    if (noCorpseGround) {
+        const { UnitRenderSystem } = await import('/engine/systems/unit/UnitSystem.ts');
+        const orig = UnitRenderSystem.prototype.submitRenderables;
+        UnitRenderSystem.prototype.submitRenderables = function (a, b, c, d, e, f, g, h, i) { return orig.call(this, a, b, c, d, e, f, g, h, i, undefined); };
+    }
     const P = (window.__probe = {
         cfg: { sinkPx: 6 },
         frame: 0,
         events: [],
         counters: null,
         prevUnit: new Map(),
+        prevMove: new Map(),
+        prevFacing: new Map(),
+        prevDir: new Map(),
         prevCache: null,
         prevTier: null,
         lumHist: [],
         pixelEvents: [],
         reset() {
-            this.frame = 0; this.events = []; this.prevUnit = new Map(); this.prevCache = null;
+            this.frame = 0; this.events = []; this.prevUnit = new Map(); this.prevMove = new Map(); this.prevFacing = new Map(); this.prevDir = new Map(); this.prevCache = null;
             this.prevTier = null; this.lumHist = []; this.pixelEvents = []; this.evCount = {};
             this.counters = {
                 frames: 0, unitFrames: 0,
@@ -231,6 +242,45 @@ await page.evaluate(async (legacyDrag) => {
             const a = u.agent;
             if (!a) continue;
             C.unitFrames++;
+            if (a.hp <= 0) {
+                // corpse over a hex with no ground whose feet never dropped = floating in mid-air
+                const hvx = HexUtils.fromPx(u.tx, u.y, engine.mapConfig);
+                const kx = `${hvx.q},${hvx.r}`;
+                const ground = engine.map.mapKeys.has(kx) || engine.zones.collapsingTiles.has(kx);
+                if (!ground && a.deathTimer > 1.8 && u.th > -5) {
+                    C.corpseFloatFrames = (C.corpseFloatFrames || 0) + 1;
+                    if (this.capOk('CORPSE_FLOAT')) this.events.push({ kind: 'CORPSE_FLOAT', frame: this.frame, id: a.id, hex: kx, th: +u.th.toFixed(1), deathTimer: +a.deathTimer.toFixed(2) });
+                }
+                // facing flips of a dying unit
+                const pf = this.prevFacing.get(a.id);
+                if (pf !== undefined && pf !== a.facing) {
+                    C.corpseFacingFlips = (C.corpseFacingFlips || 0) + 1;
+                    if (this.capOk('FACING_FLIP')) this.events.push({ kind: 'FACING_FLIP', frame: this.frame, id: a.id, from: pf, to: a.facing, deathTimer: +a.deathTimer.toFixed(2), animState: a.animState, vx: +a.physics.vx.toFixed(1) });
+                }
+                this.prevFacing.set(a.id, a.facing);
+                // sprite direction (SE/SW/NE/NW) the renderer derives for the corpse; same time value as the draw => idempotent
+                const dir = selectSpriteDirection(a, u.time);
+                const pd = this.prevDir.get(a.id);
+                if (pd !== undefined && pd !== dir) {
+                    C.corpseDirFlips = (C.corpseDirFlips || 0) + 1;
+                    if (this.capOk('DIR_FLIP')) this.events.push({ kind: 'DIR_FLIP', frame: this.frame, id: a.id, from: pd, to: dir, deathTimer: +a.deathTimer.toFixed(2), hasTarget: !!a.target, targetAlive: a.target ? a.target.hp > 0 : null, isMoving: a.isMoving });
+                }
+                this.prevDir.set(a.id, dir);
+            }
+            if (a.hp > 0 && a.isMoving && a.path.length > 0) {
+                const nk = `${a.path[0].q},${a.path[0].r}`;
+                const prevM = this.prevMove.get(a.id);
+                const frozenFor = prevM && prevM.mp === a.moveProgress && prevM.nk === nk ? prevM.n + 1 : 0;
+                this.prevMove.set(a.id, { mp: a.moveProgress, nk, n: frozenFor });
+                if (!engine.map.mapKeys.has(nk)) {
+                    C.pathToRemovedFrames = (C.pathToRemovedFrames || 0) + 1;
+                    if (this.capOk('PATH_TO_REMOVED')) this.events.push({ kind: 'PATH_TO_REMOVED', frame: this.frame, id: a.id, q: a.q, r: a.r, next: nk, mp: +a.moveProgress.toFixed(2), stun: +a.stunTimer.toFixed(2), action: a.actionState, casting: a.castingSkillIdx, collapsing: engine.zones.collapsingTiles.has(nk) });
+                }
+                if (frozenFor === 20) {
+                    C.staleMoveEvents = (C.staleMoveEvents || 0) + 1;
+                    if (this.capOk('STALE_MOVE')) this.events.push({ kind: 'STALE_MOVE', frame: this.frame, id: a.id, q: a.q, r: a.r, next: nk, mp: +a.moveProgress.toFixed(2), stun: +a.stunTimer.toFixed(2), action: a.actionState, anim: a.animState, casting: a.castingSkillIdx });
+                }
+            } else this.prevMove.delete(a.id);
             const hv = HexUtils.fromPx(u.tx, u.y, engine.mapConfig);
             const vKey = `${hv.q},${hv.r}`;
             const lKey = `${a.q},${a.r}`;
@@ -369,6 +419,80 @@ await page.evaluate(async (legacyDrag) => {
         return { blocks, total };
     };
 
+    P.force = function (engine, mode) {
+        // Build A1 > A2 > A3 around a unit (A2 = its hex), then collapse A1 like ZoneSystem does.
+        for (const u of engine.agents) {
+            if (u.hp <= 0) continue;
+            const nbs = HexUtils.neighbors({ q: u.q, r: u.r }).filter((x) => engine.map.mapKeys.has(`${x.q},${x.r}`) && !engine.map.obstacles.has(`${x.q},${x.r}`) && !engine.map.getAgentAt(x.q, x.r));
+            if (nbs.length < 2) continue;
+            const [n, low] = nbs;
+            const key = `${n.q},${n.r}`;
+            engine.map.setHeight(`${u.q},${u.r}`, 72);
+            engine.map.setHeight(key, 144);
+            engine.map.setHeight(`${low.q},${low.r}`, 24);
+            engine.mapVersion++;
+            u.physics.z = 0;
+            if (mode === 'path') {
+                const c = HexUtils.toPx(u.q, u.r, engine.mapConfig), t = HexUtils.toPx(n.q, n.r, engine.mapConfig);
+                u.path = [{ q: n.q, r: n.r }]; u.isMoving = true; u.moveProgress = 0.6;
+                u.px = c.x + (t.x - c.x) * 0.6; u.py = c.y + (t.y - c.y) * 0.6;
+            }
+            if (mode === 'fight') {
+                // enemy next door on A3 so the two trade blows right at the cliff
+                const e = engine.agents.find((x) => x.hp > 0 && x.team !== u.team);
+                if (e) {
+                    e.path = []; e.isMoving = false;
+                    engine.updateAgentPosition(e, low.q, low.r);
+                    const p = HexUtils.toPx(low.q, low.r, engine.mapConfig);
+                    e.px = p.x; e.py = p.y; e.physics.x = 0; e.physics.y = 0; e.physics.z = 0;
+                }
+            }
+            this.pendingCollapse = { key, q: n.q, r: n.r, at: this.frame + 30, id: u.id };
+            this.events.push({ kind: 'FORCED_SETUP', mode, frame: this.frame, id: u.id, unit: [u.q, u.r], next: key });
+            return true;
+        }
+        return false;
+    };
+    P.forceDeath = function (engine) {
+        // Collapse a neighbour, wait for its collapsing entry to be gone, then kill the unit with a knockback toward it.
+        for (const u of engine.agents) {
+            if (u.hp <= 0) continue;
+            const n = HexUtils.neighbors({ q: u.q, r: u.r }).find((x) => engine.map.mapKeys.has(`${x.q},${x.r}`) && !engine.map.obstacles.has(`${x.q},${x.r}`) && !engine.map.getAgentAt(x.q, x.r));
+            if (!n) continue;
+            const key = `${n.q},${n.r}`;
+            engine.zones.collapsingTiles.set(key, { z: 0, speed: 0, q: n.q, r: n.r, h: engine.map.getTerrainHeight(n.q, n.r) });
+            engine.map.removeTile(n.q, n.r);
+            engine.mapVersion++;
+            u.bt = null; u.path = []; u.isMoving = false;
+            this.pendingDeath = { id: u.id, at: this.frame + 90, toward: n };
+            this.events.push({ kind: 'FORCED_DEATH_SETUP', frame: this.frame, id: u.id, unit: [u.q, u.r], void: key });
+            return true;
+        }
+        return false;
+    };
+    P.doDeath = function (engine) {
+        const p = this.pendingDeath;
+        if (!p || this.frame < p.at) return;
+        this.pendingDeath = null;
+        const u = engine.agents.find((x) => x.id === p.id);
+        if (!u) return;
+        const a = HexUtils.toPx(u.q, u.r, engine.mapConfig), b = HexUtils.toPx(p.toward.q, p.toward.r, engine.mapConfig);
+        const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+        u.hp = 0; u.lastHitSourceId = null;
+        engine.agentManager.handleDeadState(u, engine);
+        for (const bone of u.ragdoll || []) if (bone.id === 'torso') { bone.vx = (b.x - a.x) / len * 300; bone.vy = (b.y - a.y) / len * 300; }
+        this.events.push({ kind: 'FORCED_DEATH', frame: this.frame, id: u.id });
+    };
+    P.doPending = function (engine) {
+        const p = this.pendingCollapse;
+        if (!p || this.frame < p.at) return;
+        this.pendingCollapse = null;
+        engine.zones.collapsingTiles.set(p.key, { z: 0, speed: 0, q: p.q, r: p.r, h: engine.map.getTerrainHeight(p.q, p.r) });
+        engine.map.removeTile(p.q, p.r);
+        engine.mapVersion++;
+        this.events.push({ kind: 'FORCED_COLLAPSE', frame: this.frame, id: p.id, next: p.key });
+    };
+
     P.run = function (engine, maxFrames, opts) {
         // advances until `maxFrames` frames or the first new notable event (for screenshots)
         const startEvents = this.events.length;
@@ -376,6 +500,9 @@ await page.evaluate(async (legacyDrag) => {
         for (let i = 0; i < maxFrames; i++) {
             window.__stepFrames(1);
             this.frame++;
+            if (opts.force && opts.force !== 'death' && this.frame === 60) this.force(engine, opts.force);
+            this.doPending(engine);
+            if (opts.force === 'death') { if (this.frame === 60) this.forceDeath(engine); this.doDeath(engine); }
             this.prevNanOps = this.lastNanOps;
             this.sample(engine);
             if (opts.pixels) {
@@ -406,7 +533,7 @@ await page.evaluate(async (legacyDrag) => {
         }
         return { done: false, frames: maxFrames, time: engine.battleTime, ev: null };
     };
-}, LEGACY_DRAG);
+}, { legacyDrag: LEGACY_DRAG, noCorpseGround: NO_CORPSE_GROUND });
 
 const clickDice = async () => {
     const n = await page.evaluate((title) => {
@@ -448,11 +575,11 @@ for (const theme of THEMES) {
         const startTime = await page.evaluate(() => window.__TACTICAL_ENGINE__.battleTime);
         let done = false, guard = 0;
         while (!done && guard++ < 400) {
-            const res = await page.evaluate(({ simSec, realtime, skipKeys }) => {
+            const res = await page.evaluate(({ simSec, realtime, skipKeys, force }) => {
                 const engine = window.__TACTICAL_ENGINE__;
                 if (realtime) return { done: engine.battleTime >= simSec, frames: 0, time: engine.battleTime, ev: null };
-                return window.__probe.run(engine, 240, { simSec, pixels: true, skipKeys });
-            }, { simSec: SIM_SEC, realtime: REALTIME, skipKeys: [...shotQuota.entries()].filter(([, n]) => n >= 2).map(([k]) => k) });
+                return window.__probe.run(engine, 240, { simSec, pixels: true, skipKeys, force });
+            }, { simSec: SIM_SEC, realtime: REALTIME, force: FORCE, skipKeys: [...shotQuota.entries()].filter(([, n]) => n >= 2).map(([k]) => k) });
             if (REALTIME) { await page.waitForTimeout(1000); }
             done = res.done;
             if (res.ev) {
@@ -477,7 +604,7 @@ for (const theme of THEMES) {
         summary.push({ theme, seedIndex: k, seed: seedUsed, startTime, aliveAtEnd: alive, ...out.counters });
         for (const ev of out.events) allEvents.push({ theme, seedIndex: k, ...ev });
         const c = out.counters;
-        console.log(`[${theme} #${k}] frames=${c.frames} unitFrames=${c.unitFrames} SINK=${c.sinkFrames} (max ${c.sinkMax.toFixed(1)}) ${JSON.stringify(c.sinkByCause)} | COVERED=${c.coveredFrames} ${JSON.stringify(c.coveredByCause)} noSil=${c.coveredNoSilhouette} | sortFlips=${c.sortFlips} stationary=${c.sortFlipsStationary} | ABA=${c.abaFrames} (max blocks ${c.abaBlocksMax}) | cache ev=${c.cacheEvictions} miss=${c.cacheMisses} fb=${c.cacheFallbacks} clr=${c.cacheClears} | tierChg=${c.tierChanges} | sortNaN=${c.nanOpFrames || 0} abaWithNan=${c.abaWithNan || 0} abaWithShake=${c.abaWithShake || 0} traumaFrames=${c.traumaFrames || 0}/${(c.traumaMax || 0).toFixed(2)} shakeEvents=${c.shakeEvents || 0} sum=${(c.shakeSum || 0).toFixed(1)} max=${(c.shakeMax || 0).toFixed(2)} sortInv=${c.inversionFrames || 0} terrainInvFrames=${c.terrainInvFrames || 0} (max ${c.terrainInvMax || 0})`);
+        console.log(`[${theme} #${k}] frames=${c.frames} unitFrames=${c.unitFrames} SINK=${c.sinkFrames} (max ${c.sinkMax.toFixed(1)}) ${JSON.stringify(c.sinkByCause)} | COVERED=${c.coveredFrames} ${JSON.stringify(c.coveredByCause)} noSil=${c.coveredNoSilhouette} | sortFlips=${c.sortFlips} stationary=${c.sortFlipsStationary} | ABA=${c.abaFrames} (max blocks ${c.abaBlocksMax}) | cache ev=${c.cacheEvictions} miss=${c.cacheMisses} fb=${c.cacheFallbacks} clr=${c.cacheClears} | tierChg=${c.tierChanges} | sortNaN=${c.nanOpFrames || 0} abaWithNan=${c.abaWithNan || 0} abaWithShake=${c.abaWithShake || 0} traumaFrames=${c.traumaFrames || 0}/${(c.traumaMax || 0).toFixed(2)} shakeEvents=${c.shakeEvents || 0} sum=${(c.shakeSum || 0).toFixed(1)} max=${(c.shakeMax || 0).toFixed(2)} corpseFloat=${c.corpseFloatFrames || 0} facingFlips=${c.corpseFacingFlips || 0} dirFlips=${c.corpseDirFlips || 0} pathToRemoved=${c.pathToRemovedFrames || 0} staleMove=${c.staleMoveEvents || 0} sortInv=${c.inversionFrames || 0} terrainInvFrames=${c.terrainInvFrames || 0} (max ${c.terrainInvMax || 0})`);
     }
 }
 

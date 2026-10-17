@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDeathOffset } from '../data/units/appearance/deathMotion';
+import { computeDeathOffset, computeDeathGround } from '../data/units/appearance/deathMotion';
 import { AgentManager } from '../engine/systems/agentManager';
 import { AnimationSystem } from '../engine/systems/AnimationSystem';
 import { Agent } from '../engine/core/Agent';
@@ -70,3 +70,38 @@ describe('death timer lifecycle (single writer)', () => {
         expect(agent.fullyDead).toBe(true);
     });
 });
+
+describe('computeDeathGround (corpse slide vs. collapsed tiles)', () => {
+    // 一維地面：x < 50 有地面（高 48），x >= 50 是虛空；x < -50 有較高地面（72）
+    const query = {
+        hexAt: (x: number) => ({ q: Math.floor(x / 50), r: 0 }),
+        hasGround: (q: number) => q < 1,
+        heightAt: (q: number) => (q < -1 ? 72 : 48),
+    };
+
+    it('rides the ground under the slide point (higher or lower)', () => {
+        const stay = computeDeathGround(0, 0, 0, 0, 0, 3, query);
+        expect(stay).toEqual({ height: 48, fellAt: null });
+        const toHigher = computeDeathGround(-10, 0, -150, 0, 0, 3, query);
+        expect(toHigher.fellAt).toBeNull();
+        expect(toHigher.height).toBe(72);
+    });
+
+    it('falls from the moment the slide leaves the tiles and keeps falling', () => {
+        const out = (t: number) => computeDeathGround(20, 0, 150, 0, 0, t, query);
+        const early = out(0.05);
+        expect(early.fellAt).toBeNull();
+        const a = out(1.0), b = out(1.5), c = out(3.0);
+        expect(a.fellAt).not.toBeNull();
+        expect(a.height).toBeLessThan(48);
+        expect(b.height).toBeLessThan(a.height);
+        expect(c.height).toBeLessThan(b.height);
+        // 回收仍由死亡計時決定，這裡只保證終點在虛空時高度單調下降
+    });
+
+    it('does nothing special when it died with no ground under it (physics already handles the fall)', () => {
+        const none = { ...query, hasGround: () => false };
+        expect(computeDeathGround(0, 0, 150, 0, 0, 2, none)).toEqual({ height: 0, fellAt: null });
+    });
+});
+

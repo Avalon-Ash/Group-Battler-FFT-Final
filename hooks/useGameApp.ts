@@ -5,6 +5,7 @@ import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId } from '../types';
 import { DesignExporter } from '../engine/systems/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
+import { random } from '../engine/math/rng';
 import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueries';
 
 type DevWindow = Window & {
@@ -103,7 +104,7 @@ export const useGameApp = () => {
         // Shuffle arrays
         const shuffle = <T,>(array: T[]) => {
             for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
+                const j = Math.floor(random() * (i + 1));
                 [array[i], array[j]] = [array[j], array[i]];
             }
         };
@@ -122,7 +123,7 @@ export const useGameApp = () => {
                     team,
                     q: hex.q,
                     r: hex.r,
-                    hp: 600 + Math.random() * 400,
+                    hp: 600 + random() * 400,
                     role: roles[i % roles.length],
                 });
             }
@@ -138,9 +139,9 @@ export const useGameApp = () => {
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         setHud(prev => ({ ...prev, selectedAgent: null }));
-        const newW = Math.floor(10 + Math.random() * 4);
-        const newH = Math.floor(8 + Math.random() * 4);
-        const newLayout: HexLayout = Math.random() > 0.5 ? 'FLAT' : 'POINTY';
+        const newW = Math.floor(10 + random() * 4);
+        const newH = Math.floor(8 + random() * 4);
+        const newLayout: HexLayout = random() > 0.5 ? 'FLAT' : 'POINTY';
         engine.bus.emit('UI_COMMAND', {
             type: 'RANDOMIZE_MAP',
             w: newW,

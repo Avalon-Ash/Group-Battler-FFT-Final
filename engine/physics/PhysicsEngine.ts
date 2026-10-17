@@ -5,6 +5,7 @@ import { HexUtils } from "../utils";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../systems/AnimationSystem";
+import { random } from "../math/rng";
 
 export class PhysicsEngine {
     public static applyImpulse(target: Agent, origin: {x: number, y: number}, force: number, randomness: number = 0) {
@@ -14,7 +15,7 @@ export class PhysicsEngine {
         const effectiveForce = Math.min(PHYSICS.TERMINAL_VELOCITY_IMPULSE, Math.max(50, force));
         let vx = 0, vy = 0;
         if (len <= 0.1) {
-            const ang = Math.random() * Math.PI * 2;
+            const ang = random() * Math.PI * 2;
             vx = Math.cos(ang) * effectiveForce;
             vy = Math.sin(ang) * effectiveForce;
         } else {
@@ -24,9 +25,9 @@ export class PhysicsEngine {
         target.physics.vx += vx;
         target.physics.vy += vy;
         
-        target.physics.vAngle += (Math.random() - 0.5) * 10.0; 
+        target.physics.vAngle += (random() - 0.5) * 10.0; 
         
-        if (randomness > 0) target.physics.vAngle += (Math.random() - 0.5) * randomness;
+        if (randomness > 0) target.physics.vAngle += (random() - 0.5) * randomness;
     }
 
     public update(a: Agent, dt: number, engine: GameEngine) {

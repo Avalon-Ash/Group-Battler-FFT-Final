@@ -31,6 +31,10 @@ export class TargetingSystem {
      * High Ground Bonus: 每高一層 Block，射程微量增加
      */
     public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
+        // baseRange 0 = 「精確抵達該格」（逃生、自身 PBAOE）：高低差加成不得讓 dist 1 的鄰格算成已抵達，
+        // 否則 moveAgentToHex 會對相鄰的逃生格直接回 SUCCESS 而原地不動（BR_IDLE_REPORT 成因 A）。
+        if (baseRange === 0) return 0;
+
         const h1 = spatial.getTerrainHeight(a.q, a.r);
         const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
@@ -50,10 +54,7 @@ export class TargetingSystem {
         }
 
         // 最終射程計算：確保普攻以外的技能不受過度懲罰。
-        // [FIX] 如果 baseRange 是 0 (用於精確移動/逃生)，則不應強制 +1，否則會導致提早停止移動。
-        const result = baseRange + bonus - penalty;
-        if (baseRange === 0) return Math.max(0, result);
-        return Math.max(1, result);
+        return Math.max(1, baseRange + bonus - penalty);
     }
 
     /**

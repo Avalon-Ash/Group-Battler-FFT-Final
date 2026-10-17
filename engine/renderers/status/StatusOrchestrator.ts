@@ -6,6 +6,7 @@ import { GroundEffectPainter } from "./painters/GroundEffectPainter";
 import { StateModelPainter } from "./painters/StateModelPainter";
 import { VisualMath } from "../../math/VisualMath";
 import { HexLayout } from "../../../types";
+import { MapConfig } from "../../utils";
 
 /**
  * ECS Status Orchestrator v11.6
@@ -19,7 +20,8 @@ export class StatusOrchestrator {
         globalTime: number,
         getTerrainHeight: (q: number, r: number) => number,
         layout: HexLayout = 'FLAT',
-        isTileValid?: (q: number, r: number) => boolean
+        isTileValid?: (q: number, r: number) => boolean,
+        mapConfig?: MapConfig
     ) {
         for (const agent of agents) {
             // 跳過已徹底消失、已死亡或出界的單位
@@ -33,7 +35,7 @@ export class StatusOrchestrator {
             const py = agent.py + agent.physics.y;
             const pz = isNaN(agent.physics?.z) ? 0 : agent.physics.z;
             
-            const terrainH = VisualMath.getUnitGroundHeight(agent, getTerrainHeight);
+            const terrainH = VisualMath.getUnitGroundHeight(agent, getTerrainHeight, mapConfig);
             const visualFloorY = py - terrainH; 
             
             // 核心數學：解算身體中心點（用於護盾與包裹類特效）

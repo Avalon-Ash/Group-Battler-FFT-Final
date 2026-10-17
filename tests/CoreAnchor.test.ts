@@ -52,7 +52,7 @@ describe('VisualMath.getCoreAnchor', () => {
     it('rides the ground height blend while moving between heights', () => {
         const a = engine.addAgent(Team.BLUE, 2, 2)!;
         const heights = (q: number, r: number) => (q === 2 && r === 2 ? 0 : 100);
-        const walker = { q: 2, r: 2, isMoving: true, path: [{ q: 3, r: 2 }], moveProgress: 0 };
+        const walker = { q: 2, r: 2, isMoving: true, path: [{ q: 3, r: 2 }], moveProgress: 0, px: a.px, py: a.py, physics: a.physics };
         const start = VisualMath.coreAnchorAt(a.px, a.py, VisualMath.getUnitGroundHeight(walker, heights));
         walker.moveProgress = 1;
         const end = VisualMath.coreAnchorAt(a.px, a.py, VisualMath.getUnitGroundHeight(walker, heights));

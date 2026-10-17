@@ -334,6 +334,9 @@ export const DEATH_KNOCKBACK = {
     GRAVITY: 1050,
     RESTITUTION: 0.35,
     BOUNCES: 2,
+    /** 滑行軌跡檢查「是否滑出地塊」的時間範圍與取樣間隔（秒）；滑行約 1.5 秒後已停止 */
+    GROUND_SCAN_END: 1.6,
+    GROUND_SCAN_STEP: 0.05,
 } as const;
 
 export const THEME_IMPERIAL = {
@@ -564,16 +567,16 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
     },
     foundation: {
         levels: 15,
-        bellPower: 0.6,
+        bellPower: 1,
         halfWidthMargin: HEX_SIZE,
-        jitter: 0.35,
+        jitter: 0.05,
         noiseSeed: 7919,
         tipScales: [1, 0.78, 0.9, 0.66] as const,
         profiles: {
-            VOID: { minDepth: 70, maxDepth: 190, tips: true, shoulder: 0.45, bottomShade: 0.55 },
-            MAGMA: { minDepth: 70, maxDepth: 190, tips: true, shoulder: 0.45, bottomShade: 0.45 },
+            VOID: { minDepth: 60, maxDepth: 120, tips: false, shoulder: 1, bottomShade: 0.55 },
+            MAGMA: { minDepth: 60, maxDepth: 120, tips: false, shoulder: 1, bottomShade: 0.45 },
         },
-        defaultProfile: { minDepth: 60, maxDepth: 110, tips: false, shoulder: 1, bottomShade: 0.5 },
+        defaultProfile: { minDepth: 55, maxDepth: 100, tips: false, shoulder: 1, bottomShade: 0.5 },
     },
     variantOffsets: [
         { x: 0, y: 0 },
