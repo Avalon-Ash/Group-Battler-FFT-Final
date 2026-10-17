@@ -112,6 +112,7 @@ await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
         import('/engine/graphics/utils/HexGeometry.ts'),
         import('/constants.ts'),
     ]);
+    const { selectSpriteDirection } = await import('/data/units/appearance/selectSpriteFrame.ts');
     const origSort = RenderList.prototype.sort;
     let lastList = null;
     RenderList.prototype.sort = function () { origSort.call(this); lastList = this; };
@@ -130,12 +131,13 @@ await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
         prevUnit: new Map(),
         prevMove: new Map(),
         prevFacing: new Map(),
+        prevDir: new Map(),
         prevCache: null,
         prevTier: null,
         lumHist: [],
         pixelEvents: [],
         reset() {
-            this.frame = 0; this.events = []; this.prevUnit = new Map(); this.prevMove = new Map(); this.prevFacing = new Map(); this.prevCache = null;
+            this.frame = 0; this.events = []; this.prevUnit = new Map(); this.prevMove = new Map(); this.prevFacing = new Map(); this.prevDir = new Map(); this.prevCache = null;
             this.prevTier = null; this.lumHist = []; this.pixelEvents = []; this.evCount = {};
             this.counters = {
                 frames: 0, unitFrames: 0,
@@ -256,6 +258,14 @@ await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
                     if (this.capOk('FACING_FLIP')) this.events.push({ kind: 'FACING_FLIP', frame: this.frame, id: a.id, from: pf, to: a.facing, deathTimer: +a.deathTimer.toFixed(2), animState: a.animState, vx: +a.physics.vx.toFixed(1) });
                 }
                 this.prevFacing.set(a.id, a.facing);
+                // sprite direction (SE/SW/NE/NW) the renderer derives for the corpse; same time value as the draw => idempotent
+                const dir = selectSpriteDirection(a, u.time);
+                const pd = this.prevDir.get(a.id);
+                if (pd !== undefined && pd !== dir) {
+                    C.corpseDirFlips = (C.corpseDirFlips || 0) + 1;
+                    if (this.capOk('DIR_FLIP')) this.events.push({ kind: 'DIR_FLIP', frame: this.frame, id: a.id, from: pd, to: dir, deathTimer: +a.deathTimer.toFixed(2), hasTarget: !!a.target, targetAlive: a.target ? a.target.hp > 0 : null, isMoving: a.isMoving });
+                }
+                this.prevDir.set(a.id, dir);
             }
             if (a.hp > 0 && a.isMoving && a.path.length > 0) {
                 const nk = `${a.path[0].q},${a.path[0].r}`;
@@ -594,7 +604,7 @@ for (const theme of THEMES) {
         summary.push({ theme, seedIndex: k, seed: seedUsed, startTime, aliveAtEnd: alive, ...out.counters });
         for (const ev of out.events) allEvents.push({ theme, seedIndex: k, ...ev });
         const c = out.counters;
-        console.log(`[${theme} #${k}] frames=${c.frames} unitFrames=${c.unitFrames} SINK=${c.sinkFrames} (max ${c.sinkMax.toFixed(1)}) ${JSON.stringify(c.sinkByCause)} | COVERED=${c.coveredFrames} ${JSON.stringify(c.coveredByCause)} noSil=${c.coveredNoSilhouette} | sortFlips=${c.sortFlips} stationary=${c.sortFlipsStationary} | ABA=${c.abaFrames} (max blocks ${c.abaBlocksMax}) | cache ev=${c.cacheEvictions} miss=${c.cacheMisses} fb=${c.cacheFallbacks} clr=${c.cacheClears} | tierChg=${c.tierChanges} | sortNaN=${c.nanOpFrames || 0} abaWithNan=${c.abaWithNan || 0} abaWithShake=${c.abaWithShake || 0} traumaFrames=${c.traumaFrames || 0}/${(c.traumaMax || 0).toFixed(2)} shakeEvents=${c.shakeEvents || 0} sum=${(c.shakeSum || 0).toFixed(1)} max=${(c.shakeMax || 0).toFixed(2)} corpseFloat=${c.corpseFloatFrames || 0} facingFlips=${c.corpseFacingFlips || 0} pathToRemoved=${c.pathToRemovedFrames || 0} staleMove=${c.staleMoveEvents || 0} sortInv=${c.inversionFrames || 0} terrainInvFrames=${c.terrainInvFrames || 0} (max ${c.terrainInvMax || 0})`);
+        console.log(`[${theme} #${k}] frames=${c.frames} unitFrames=${c.unitFrames} SINK=${c.sinkFrames} (max ${c.sinkMax.toFixed(1)}) ${JSON.stringify(c.sinkByCause)} | COVERED=${c.coveredFrames} ${JSON.stringify(c.coveredByCause)} noSil=${c.coveredNoSilhouette} | sortFlips=${c.sortFlips} stationary=${c.sortFlipsStationary} | ABA=${c.abaFrames} (max blocks ${c.abaBlocksMax}) | cache ev=${c.cacheEvictions} miss=${c.cacheMisses} fb=${c.cacheFallbacks} clr=${c.cacheClears} | tierChg=${c.tierChanges} | sortNaN=${c.nanOpFrames || 0} abaWithNan=${c.abaWithNan || 0} abaWithShake=${c.abaWithShake || 0} traumaFrames=${c.traumaFrames || 0}/${(c.traumaMax || 0).toFixed(2)} shakeEvents=${c.shakeEvents || 0} sum=${(c.shakeSum || 0).toFixed(1)} max=${(c.shakeMax || 0).toFixed(2)} corpseFloat=${c.corpseFloatFrames || 0} facingFlips=${c.corpseFacingFlips || 0} dirFlips=${c.corpseDirFlips || 0} pathToRemoved=${c.pathToRemovedFrames || 0} staleMove=${c.staleMoveEvents || 0} sortInv=${c.inversionFrames || 0} terrainInvFrames=${c.terrainInvFrames || 0} (max ${c.terrainInvMax || 0})`);
     }
 }
 
