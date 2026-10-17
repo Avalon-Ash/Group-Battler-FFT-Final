@@ -23,6 +23,40 @@ export interface AgentFieldOwnership {
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    isMoving: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: [
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/MotionEngine.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '移動域：起步在 MovementSystem、推進與抵達在 MotionEngine、其他系統一律呼叫 MotionCommands.stopMovement。',
+    },
+    path: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: [
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/MotionEngine.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '與 isMoving 同域。停止一律以新陣列重設（stopMovement）：path 與 trajectory 起步時是同一個陣列，不可用 length = 0 清空。',
+    },
+    trajectory: {
+        group: 'locomotion',
+        kind: 'domain',
+        owners: ['engine/systems/movement/MovementSystem.ts', 'engine/systems/movement/MotionEngine.ts'],
+        note: '落點預覽與投射物讀它；stopMovement 不動它。',
+    },
+    moveSpeedMult: {
+        group: 'locomotion',
+        kind: 'single',
+        owners: ['engine/systems/movement/MovementSystem.ts'],
+        note: '只代表 AI 要求的速度倍率。敵方危害的減速由 MovementSystem 每 tick 呼叫 HazardSystem.getHazardSpeedMult 算出，交給 MotionEngine 取 min。',
+    },
     shield: {
         group: 'vitals',
         kind: 'domain',

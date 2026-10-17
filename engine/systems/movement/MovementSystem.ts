@@ -12,8 +12,10 @@ import { Hex, NodeState, SpatialProvider, Skill, LogProvider } from "../../../ty
 import { Pathfinder } from "../../ai/Pathfinder";
 import { TargetingSystem } from "../../ai/TargetingSystem";
 import { MotionEngine } from "./MotionEngine";
+import { stopMovement } from "./MotionCommands";
 import { StackingResolver } from "./StackingResolver";
 import type { GameEngine } from "../../game";
+import { getHazardSpeedMult } from "../HazardSystem";
 import { hexEventPos } from "../../events/EventPos";
 
 export class MovementSystem {
@@ -39,8 +41,10 @@ export class MovementSystem {
         return this.targeting.calculateOptimalTarget(source, skill, spatial);
     }
 
-    public updateMovement(a: Agent, dt: number, spatial: SpatialProvider) {
-        MotionEngine.updateMovement(a, dt, spatial);
+    public updateMovement(a: Agent, dt: number, spatial: SpatialProvider & Pick<GameEngine, 'state'>) {
+        // 敵方危害的減速每 tick 重算（不寫進 Agent）；moveSpeedMult 只代表 AI 要求的速度，由本檔寫入
+        const hazardSpeedMult = getHazardSpeedMult(a, spatial.state.spatialHazards, spatial.getMapConfig());
+        MotionEngine.updateMovement(a, dt, spatial, hazardSpeedMult);
     }
 
     public moveAgentToHex(a: Agent, targetHex: Hex, r: number, spatial: SpatialProvider, speedMult: number = 1.0, isEscaping: boolean = false): NodeState {
@@ -49,10 +53,7 @@ export class MovementSystem {
 
         // 1. 如果已經在射程內，停止移動並返回成功 (使用與 AI 相同的容差)
         if (distToTarget <= effRange + 0.1) {
-            if (a.isMoving) {
-                a.isMoving = false;
-                a.path = [];
-            }
+            if (a.isMoving) stopMovement(a);
             return NodeState.SUCCESS;
         }
 
@@ -126,8 +127,7 @@ export class MovementSystem {
                     a.stuckTicks++;
                     if (a.stuckTicks > 15) { // 約 0.5 秒 (假設 30fps)
                         // [FIX] 卡住太久，放棄當前路徑，讓 AI 重新思考 (可能觸發背水一戰或重新尋路)
-                        a.isMoving = false;
-                        a.path = [];
+                        stopMovement(a);
                         a.stuckTicks = 0;
                         return NodeState.FAILURE;
                     }
@@ -147,8 +147,7 @@ export class MovementSystem {
                 
                 a.stuckTicks = 0;
                 // [FIX] 如果被敵人或地形擋住，回傳 FAILURE 讓 AI 觸發其他邏輯 (例如背水一戰或攻擊)
-                a.isMoving = false;
-                a.path = [];
+                stopMovement(a);
                 return NodeState.FAILURE;
             }
 
@@ -165,8 +164,7 @@ export class MovementSystem {
         }
 
         // [FIX] 如果找不到路徑，必須清除舊路徑，防止 AI 繼續走向已經消失的網格
-        a.isMoving = false;
-        a.path = [];
+        stopMovement(a);
         return NodeState.FAILURE;
     }
 
