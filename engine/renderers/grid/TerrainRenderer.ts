@@ -76,13 +76,9 @@ export const TerrainRenderer = {
         }
 
         const drawX = Math.floor(x);
+        // y 已含漂浮位移（GridRenderStrategy 以 VisualMath.floatBobAt 加在 op.ty 上），這裡不再自己算：
+        // 同一個值也進了「繪製用地面高度」，站在地塊上的單位、狀態、HUD 才會跟地塊一起浮動。
         const drawY = Math.floor(y);
-        const isFloatingBiome = type === 'VOID' || type === 'MAGMA';
-        let floatOffset = 0;
-        if (isFloatingBiome) {
-            const rawFloat = Math.sin(globalTime * 1.5 + (x * 0.01) + (y * 0.01)) * 4;
-            floatOffset = Math.round(rawFloat / RENDER_CACHE.FLOAT_STEP) * RENDER_CACHE.FLOAT_STEP;
-        }
 
         const tf = ctx.getTransform();
         const currentScale = Math.hypot(tf.a, tf.b);
@@ -90,9 +86,9 @@ export const TerrainRenderer = {
         this.lastRenderScale = renderScale;
         const variant = variantFor(q, r2, MATERIAL_CONFIG.terrain.grain.variants);
 
-        // 漂浮位移不進快取鍵：整塊地形在繪製時平移（漂浮島整塊上下浮動）。
+        // 漂浮位移不進快取鍵（傳 0）：整塊地形在繪製時平移（漂浮島整塊上下浮動）。
         // 若把位移烘進 sprite，浮動地圖每個縮放級距會有 1500+ 種組合，跨級距時超過 MAX_TERRAIN_SPRITES 而不斷重烘焙
-        // （見 docs/PERF_LIFECYCLE_FINDINGS.md）。位移取整數像素，避免 sprite 落在半像素上變糊。
+        // （見 docs/PERF_LIFECYCLE_FINDINGS.md）。
         const key = terrainSpriteKey(theme, layout, type, height, variant, 0, renderScale, edgeMask, baseLevel);
         const sprite = this.store.get(key, (factory) => {
             return this.bakeBlock(factory, size, height, theme, type, layout, variant, 0, renderScale, edgeMask, baseLevel);
@@ -100,7 +96,7 @@ export const TerrainRenderer = {
 
         ctx.save();
         ctx.globalAlpha = alpha;
-        ctx.translate(drawX, drawY + Math.round(floatOffset));
+        ctx.translate(drawX, drawY);
         if (renderScale === 1 && sprite.canvas.width === sprite.width) {
             ctx.drawImage(sprite.canvas, -sprite.anchorX, -sprite.anchorY);
         } else {

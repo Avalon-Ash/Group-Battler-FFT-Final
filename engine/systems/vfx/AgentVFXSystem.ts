@@ -4,11 +4,13 @@ import { VFXSystem } from "../vfx";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { MovementType, AIState } from "../../../types";
 import { AGENT_MODEL_CENTER_Z, VFX_PARAM } from "../../../constants";
+import { VisualMath } from "../../math/VisualMath";
 
 /**
  * 視覺狀態觀察者 (Visual State Observer)
  * 負責監控 Agent 的狀態（速度、Debuff）並生成對應的持續性粒子。
  * 這屬於 Render Loop 的一部分，確保 Logic Loop 純淨無汙染。
+ * 粒子高度一律取 VisualMath.getUnitGroundHeight（精靈實際所在格），不直接查 agent.q/r 的格高（RenderSpec「單位座標」）。
  */
 export class AgentVFXSystem {
     private vfxTimers = new Map<string, number>();
@@ -43,7 +45,7 @@ export class AgentVFXSystem {
 
                 // Threshold: Only trigger on massive impulses (knockbacks / dashes)
                 if (speedSq > VFX_PARAM.FX_KNOCKBACK_DUST_THRESHOLD_SQ && isGrounded && !isFlyingUnit) {
-                    const terrainH = engine.map.getTerrainHeight(a.q, a.r);
+                    const terrainH = this.groundHeight(a, engine);
                     // Use DUST everywhere instead of STUN_LOOP to prevent the "Weird Orb of Light" stacking bug
                     vfx.playEffect('FX_STATUS_ROOT_LOOP', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
                 }
@@ -75,7 +77,7 @@ export class AgentVFXSystem {
         
         if (t <= 0) {
             t = 1.5 + Math.random() * 1.0; // Random interval for idle feel
-            const terrainZ = engine.map.getTerrainHeight(agent.q, agent.r);
+            const terrainZ = this.groundHeight(agent, engine);
             const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z * 0.5; // Idle 置於腰部
             const fxId = agent.team === 1 ? 'FX_IDLE_RED' : 'FX_IDLE_BLUE';
             
@@ -87,6 +89,10 @@ export class AgentVFXSystem {
             );
         }
         this.vfxTimers.set(timerKey, t);
+    }
+
+    private groundHeight(agent: Agent, engine: GameEngine): number {
+        return VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
     }
 
     public clearAgent(agentId: string) {
@@ -109,7 +115,7 @@ export class AgentVFXSystem {
             
             if (t <= 0) {
                 t = def.particleInterval || 0.5;
-                const terrainZ = engine.map.getTerrainHeight(agent.q, agent.r);
+                const terrainZ = this.groundHeight(agent, engine);
                 const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z;
                 
                 vfx.playEffect(

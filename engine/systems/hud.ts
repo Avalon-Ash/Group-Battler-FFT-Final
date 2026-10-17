@@ -2,6 +2,7 @@
 import { GameEngine } from "../game";
 import { Team } from "../../types";
 import { TEXT_PAINTER_COLORS } from "../../constants";
+import { VisualMath } from "../math/VisualMath";
 
 const GRAVITY = 200;
 const TEXT_LIFESPAN = 1.0;
@@ -176,8 +177,8 @@ export class HUDSystem {
                 const agent = engine.agents.find(a => a.id === d.ownerId);
                 if (agent && agent.hp > 0) {
                     // Update baseline position to match moving unit's HUD anchor
-                    // We need terrain height at agent position for correct visual Y
-                    const h = engine.map.getTerrainHeight(agent.q, agent.r);
+                    // 腳下高度用 SSOT（與身體、血條同一個值），不直接查 agent.q/r 的格高
+                    const h = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
                     d.x = agent.px + agent.physics.x;
                     // Reference HUDRenderer.ts: anchorY = VisualMath.getEntityVisualY(a.py, h, a.physics.y, a.physics.z, -HUD_BAR_OFFSET);
                     // But we don't want the -HUD_BAR_OFFSET here as SHOUT has its own vy 

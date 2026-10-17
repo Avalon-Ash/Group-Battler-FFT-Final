@@ -1,7 +1,8 @@
 import { Agent } from "../../../game";
 import { HexLayout } from "../../../../types";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
-import { SHIELD_VISUAL, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET } from "../../../../constants";
+import { SHIELD_VISUAL } from "../../../../constants";
+import { VisualMath } from "../../../math/VisualMath";
 import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { SpriteUnitRenderer } from "../../units/factions/SpriteUnitRenderer";
 import { STATUS_VISUALS } from "../../../../data/vfx/status_visuals";
@@ -19,7 +20,8 @@ export interface ShieldGeometry {
  */
 export function computeShieldGeometry(headHeight: number | null): ShieldGeometry {
     const height = headHeight === null ? SHIELD_VISUAL.height : headHeight + SHIELD_VISUAL.headMargin;
-    const feetDropY = UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
+    // body center 到腳底的距離：與 StatusOrchestrator 算 body center 用同一個 SSOT（VisualMath.getVisualBodyCenterY）
+    const feetDropY = -VisualMath.getVisualBodyCenterY(0, 0);
     return { height, centerOffsetY: feetDropY - height / 2 };
 }
 
