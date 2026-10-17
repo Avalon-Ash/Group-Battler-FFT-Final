@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Agent } from '../engine/core/Agent';
-import { applyDirectDamage } from '../engine/systems/combat/DirectDamage';
+import { applyDirectDamage, applyHeal, applyLethal } from '../engine/systems/combat/DirectDamage';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { Team } from '../types';
 
@@ -35,5 +35,51 @@ describe('applyDirectDamage', () => {
         const a = make();
         applyDirectDamage(a, 999);
         expect(a.hp).toBe(0);
+    });
+});
+
+describe('applyDirectDamage attribution', () => {
+    it('sets lastHitSourceId when a source is given', () => {
+        const a = make();
+        applyDirectDamage(a, 10, false, 'X');
+        expect(a.lastHitSourceId).toBe('X');
+    });
+    it('keeps the previous attribution when no source is given (environment / self damage)', () => {
+        const a = make(); a.lastHitSourceId = 'Y';
+        applyDirectDamage(a, 10);
+        expect(a.lastHitSourceId).toBe('Y');
+    });
+    it('does not attribute when the shield absorbed everything', () => {
+        const a = make(); a.shield = 80;
+        applyDirectDamage(a, 50, false, 'X');
+        expect(a.lastHitSourceId).toBeNull();
+    });
+});
+
+describe('applyHeal', () => {
+    it('heals and reports the actual amount', () => {
+        const a = make(); a.hp = 50;
+        expect(applyHeal(a, 30)).toBe(30);
+        expect(a.hp).toBe(80);
+    });
+    it('clamps at maxHp', () => {
+        const a = make(); a.hp = 90;
+        expect(applyHeal(a, 30)).toBe(10);
+        expect(a.hp).toBe(100);
+    });
+});
+
+describe('applyLethal', () => {
+    it('zeroes hp and attributes the kill', () => {
+        const a = make();
+        applyLethal(a, 'X');
+        expect(a.hp).toBe(0);
+        expect(a.lastHitSourceId).toBe('X');
+    });
+    it('without a source keeps the previous attribution', () => {
+        const a = make(); a.lastHitSourceId = 'Y';
+        applyLethal(a);
+        expect(a.hp).toBe(0);
+        expect(a.lastHitSourceId).toBe('Y');
     });
 });
