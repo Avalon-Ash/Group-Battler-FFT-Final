@@ -1,6 +1,8 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  VisualMath — 視覺錨點 SSOT                               ║
-// ║  職責：腳下地面高度、受擊點、核心發射點、漂浮位移、等角Y   ║
+// ║  職責：腳下地面高度、投影中心（發射點＝受擊點）、漂浮位移   ║
+// ║  投影中心的高度由 data/units/appearance/projection.ts 從    ║
+// ║  精靈資料推導（模擬端不依賴圖集）。                         ║
 // ║  [ARCH] 繪製／特效／HUD 一律從這裡取，不得自己用           ║
 // ║  getTerrainHeight(agent.q, agent.r) 重算。規則與用途表見   ║
 // ║  engine/renderers/RenderSpec.ts §4、§5。                   ║
@@ -9,7 +11,10 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND, CORE_VISUAL, FLOAT_BOB, RENDER_CACHE } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, ISO_SCALE_Y, UNIT_STEP_BLEND, FLOAT_BOB, RENDER_CACHE } from "../../constants";
+import { BodyTypeId } from "../../types";
+import { resolveBodyType } from "../../data/units/appearance/bodyTypes";
+import { projectionCenterHeight } from "../../data/units/appearance/projection";
 
 export interface Point3D {
     x: number;
@@ -133,24 +138,18 @@ export class VisualMath {
         return (py + physicsY) - terrainH - physicsZ + offset;
     }
 
+    /**
+     * 精靈繪製原點（身體中心）的螢幕 Y：精靈腳底落在 surfaceY（見 SpriteUnitRenderer 的 footOffsetLocal）。
+     * 這是「繪製原點」，不是投影中心：投影中心在腳底之上頭頂高度的一半（getProjectionCenterY）。
+     * UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET 只剩這個繪製慣例與護盾稜柱貼地在用（RenderSpec §4）。
+     */
     public static getVisualBodyCenterY(surfaceY: number, z: number): number {
         return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
     }
 
-    /**
-     * SSOT: Returns the visual Y coordinate for projectile aim targets.
-     * Represents the approximate chest/center of the unit body in screen space.
-     * Use this for all projectile hit targets, beam endpoints, and hitscan origin.
-     * 
-     * Distinct from getVisualBodyCenterY (which is for UI/status icon placement)
-     * in that it accounts for the full visual body lift including hover offset.
-     */
-    public static getProjectileTargetY(surfaceY: number, z: number): number {
-        return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET;
-    }
-
-    public static getOverheadVisualY(surfaceY: number, z: number, bob: number): number {
-        return surfaceY - z - UNIT_BODY_OFFSET - UNIT_HOVER_OFFSET - VISUAL_ANCHORS.HEAD_OFFSET + bob;
+    /** 投影中心的螢幕 Y（繪製端用；floorY 為腳底繪製 Y，不含 physics.z）。與 projectionCenterAt 同一個高度 */
+    public static getProjectionCenterY(floorY: number, z: number, body: BodyTypeId): number {
+        return floorY - z - projectionCenterHeight(body);
     }
 
     public static getShadowProperties(z: number): { scale: number, alpha: number } {
@@ -159,27 +158,27 @@ export class VisualMath {
         return { scale, alpha };
     }
 
+    /**
+     * SSOT：投影中心的世界座標——發射點、受擊點、核心寶石都是這一點。
+     * 高度＝腳下地面 + physics.z + projectionCenterHeight(體型)（從精靈資料推導，不依賴圖集）。
+     */
+    public static projectionCenterAt(x: number, y: number, groundH: number, physicsZ: number, body: BodyTypeId): Point3D {
+        return { x, y, z: groundH + physicsZ + projectionCenterHeight(body) };
+    }
+
+    /** 受擊點／身體中心＝投影中心 */
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
-        const terrainH = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
-        // UNIT_BODY_OFFSET represents the vertical center/chest in 3D space.
-        // For 2D screen-space projectile endpoints, use getProjectileTargetY() instead.
-        const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
-        return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
+        const ground = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
+        return VisualMath.projectionCenterAt(
+            agent.px + agent.physics.x, agent.py + agent.physics.y, ground, agent.physics.z, resolveBodyType(agent));
     }
 
     /**
-     * SSOT：棋座核心的世界座標（施法／投射物／光束起點）。
-     * 核心屬於棋座而不是角色投影：x、y 取棋座位置（含 physics 位移），高度＝腳下地面＋核心懸浮高度，
-     * 不含 physics.z、不含身體／飛行高度，所以飛行單位的投射物從地面上的核心出發，而不是帽子。
-     * 目標端（受擊、命中點）仍用 getUnitAnchor（身體中心）。
+     * 施法／投射物／光束起點＝投影中心（與受擊點同一點）。
+     * 核心寶石投影成形後藏在這裡；飛行單位從身體中心發射（含 physics.z）。
      */
-    public static coreAnchorAt(x: number, y: number, groundHeight: number): Point3D {
-        return { x: x + CORE_VISUAL.offsetX, y, z: groundHeight + CORE_VISUAL.hoverHeight };
-    }
-
     public static getCoreAnchor(agent: Agent, engine: GameEngine): Point3D {
-        const ground = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
-        return VisualMath.coreAnchorAt(agent.px + agent.physics.x, agent.py + agent.physics.y, ground);
+        return VisualMath.getUnitAnchor(agent, engine);
     }
 
     public static resolveTargetPoint(targetId: string, engine: GameEngine): Point3D {

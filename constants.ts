@@ -44,7 +44,6 @@ export const VISUAL_ANCHORS = {
     HEAD_OFFSET_Y: 50,
     ENGINE_OFFSET_Y: 15,
     HITBOX_RADIUS: 18,
-    HEAD_OFFSET: 60,
     CENTER_OFFSET: 30
 };
 
@@ -56,14 +55,13 @@ export const CLASS_GLYPH = {
 
 /**
  * 棋座核心（懸浮六角晶體，把角色投影出來的投影器）。
- * 位置與施法／投射物起點的唯一定義在 VisualMath.getCoreAnchor，繪製（UnitCorePainter）讀同一組數字。
- * 核心跟著棋座（地面），不跟角色投影浮空：飛行單位的投射物也從核心出發。
+ * 投影成形後，核心藏進投影中心、淡淡地透出來；發射點與受擊點都是投影中心
+ * （VisualMath.projectionCenterAt，高度由 data/units/appearance/projection.ts 從精靈資料推導），
+ * 繪製（UnitCorePainter）用同一個公式。投影不可見（拖曳預覽、放置幽靈、出生前）時才畫實體寶石，懸在棋座上。
  */
 export const CORE_VISUAL = {
-    /** 核心中心離棋座地面的高度（世界 z，等同螢幕像素） */
+    /** 實體寶石（投影未成形）中心離棋座地面的高度（世界 z，等同螢幕像素） */
     hoverHeight: 26,
-    /** 核心中心相對棋座中心的水平位移（世界 x，朝畫面右方；避免被角色身體完全遮住） */
-    offsetX: 13,
     /** 晶體半寬／半高（Token 畫布單位，烘焙後隨 UNIT_SCALE 縮放） */
     halfWidth: 11,
     halfHeight: 17,
@@ -76,14 +74,31 @@ export const CORE_VISUAL = {
     castGlow: 0.95,
     castGlowPulse: 0.2,
     castScale: 1.18,
+    /** 投影成形後：寶石本體的不透明度（淡淡透出，不搶角色） */
+    projectedAlpha: 0.25,
+    /** 投影成形後：待機光暈強度與脈動（附加在 idleGlow 的語意上，但更淡） */
+    projectedGlow: 0.12,
+    projectedGlowPulse: 0.05,
+    /** 投影成形後：施法中的光暈強度（比待機亮得多，讓「誰在詠唱」仍然看得出來） */
+    projectedCastGlow: 0.85,
     /** 半透明預覽（放置幽靈）的不透明度 */
     ghostAlpha: 0.65,
     /** 烘焙畫布邊長（Token 畫布單位） */
     canvasSize: 64,
 } as const;
 
-export const HUD_BAR_OFFSET = 150;
-export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
+/**
+ * 血條／浮動文字的錨點高度（離腳下地面）＝投影頭頂高度＋下列間距，
+ * 公式在 data/units/appearance/projection.ts（hudBarHeight／hudTextHeight）。
+ * barHeadMargin：血條錨點（血條上緣再往上 5px，容器高約 17px）離頭頂的距離，足以清開法師帽尖等較高的職業。
+ * textGap：浮動文字（傷害數字、詠唱字、KILL_STREAK）基準線在血條錨點之上的距離。
+ * overheadBelowBar：頭頂狀態圖示（暈眩星等）中心在血條錨點之下的距離（＝落在頭頂上方）。
+ */
+export const HUD_ANCHOR = {
+    barHeadMargin: 24,
+    textGap: 30,
+    overheadBelowBar: 6,
+} as const;
 
 export const MAX_ARC_HEIGHT = 150;
 
@@ -644,6 +659,12 @@ export const UNIT_SPRITE = {
     targetHeightCanvasUnits: 59,
     referenceHeightPx: 158.3,
     footOffsetLocal: (UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET) / UNIT_SCALE,
+    /** 精靈腳底離棋座地面的高度（目前精靈直接站在地面上；投影中心＝此值＋頭頂高度 × centerFraction） */
+    footHover: 0,
+    /** 投影中心在腳底到頭頂之間的位置（0.5＝正中央） */
+    centerFraction: 0.5,
+    /** 出生動畫長度（秒）；Agent.spawnTimer 從這裡倒數（UnitBodyPainter／UnitCorePainter 讀它） */
+    spawnDuration: 0.5,
     facingHysteresisMs: 120,
     hitFlashDuration: 0.15,
     deathFadeDuration: 1.2,

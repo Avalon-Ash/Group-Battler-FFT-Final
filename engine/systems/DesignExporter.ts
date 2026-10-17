@@ -218,7 +218,7 @@ export class DesignExporter {
         s += "  調整模型替換邏輯                                  → StateModelPainter.ts\n\n";
 
         s += "### 8-4. 佈局常數 (SSOT)\n\n";
-        s += "HUD_TEXT_OFFSET / HUD_LAYOUT → constants.ts\n\n";
+        s += "HUD_ANCHOR / HUD_LAYOUT → constants.ts\n\n";
         s += "修改流程：\n";
         s += "  調整浮字顏色/大小    → EventHUDMapper.handleCombatText()\n";
         s += "  調整浮字物理行為     → HUDSystem.update()\n";

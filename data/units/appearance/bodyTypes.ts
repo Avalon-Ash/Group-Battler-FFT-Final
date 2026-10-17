@@ -91,9 +91,11 @@ export function resolveBodyType(
     profiles: Record<BodyTypeId, { enabled: boolean; fallback: BodyTypeId | null }> = BODY_TYPE_PROFILE
 ): BodyTypeId {
     let current: BodyTypeId = agent?.bodyType ?? 'MALE';
-    const visited = new Set<BodyTypeId>();
+    // 每幀每個單位都會呼叫：體型已啟用（常態）時不配置 Set
+    let visited: Set<BodyTypeId> | null = null;
 
     while (!profiles[current]?.enabled) {
+        if (!visited) visited = new Set<BodyTypeId>();
         if (visited.has(current)) {
             return 'MALE';
         }

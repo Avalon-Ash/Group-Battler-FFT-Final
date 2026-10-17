@@ -12,7 +12,8 @@ import { UnitRenderSystem } from '../engine/systems/unit/UnitSystem';
 import { UnitFrameStore } from '../engine/renderers/frame/UnitFrame';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
-import { FLOAT_BOB, GROUND_DRAPE, HUD_BAR_OFFSET, UNIT_FRAME, VFX_GROUND_TYPES, VFX_RENDER } from '../constants';
+import { FLOAT_BOB, GROUND_DRAPE, UNIT_FRAME, VFX_GROUND_TYPES, VFX_RENDER } from '../constants';
+import { hudBarHeight } from '../data/units/appearance/projection';
 import { Team } from '../types';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -59,7 +60,7 @@ function scan(src: [string, string][], re: RegExp): string[] {
     return [...new Set(hits)].sort();
 }
 
-/** 單位核心的繪製端：與 VisualMath.coreAnchorAt 共用 CORE_VISUAL，是錨點的「畫」而不是重算 */
+/** 單位核心的繪製端：實體寶石（投影未成形）懸在棋座上的高度讀 CORE_VISUAL.hoverHeight；投影成形後的位置走 VisualMath.getProjectionCenterY */
 const CORE_PAINTER = 'engine/renderers/units/painters/UnitCorePainter.ts';
 /** 漂浮位移的呼叫端（RenderSpec §5）。新增呼叫端＝新增一條浮動路徑：先改 RenderSpec，再改這裡。 */
 const FLOAT_CALLERS = ['engine/renderers/RenderPipeline.ts', 'engine/renderers/grid/GridRenderStrategy.ts'];
@@ -75,7 +76,7 @@ const FAMILIES: Record<string, () => string[]> = {
         .filter(f => !SSOT_FILES.has(f) && !UNIT_GROUND_CALLERS.includes(f))
         .filter(f => /getUnitGroundHeight\s*\(/.test(stripComments(read(f))))
         .sort(),
-    /** 自己重算身體中心或核心高度（應改 getUnitAnchor／getVisualBodyCenterY／coreAnchorAt） */
+    /** 自己重算身體中心或核心高度（應改 getUnitAnchor／getVisualBodyCenterY／projectionCenterAt） */
     'anchor.recompute': () => scan(ALL_SOURCES.filter(([f]) => f !== CORE_PAINTER),
         /UNIT_BODY_OFFSET\s*\+\s*UNIT_HOVER_OFFSET|CORE_VISUAL\.hoverHeight/g),
     /** 漂浮位移在 SSOT 之外重算（FLOAT_BOB 參數、地形種類判斷） */
@@ -159,7 +160,7 @@ describe('RenderSpec matches the implementation', () => {
     });
 
     it('every SSOT helper the spec names exists on VisualMath', () => {
-        const named = ['getUnitGroundHeight', 'getUnitAnchor', 'getCoreAnchor', 'coreAnchorAt', 'resolveTargetPoint', 'floatBobAt', 'isFloatingBiome'];
+        const named = ['getUnitGroundHeight', 'getUnitAnchor', 'getCoreAnchor', 'projectionCenterAt', 'getProjectionCenterY', 'resolveTargetPoint', 'floatBobAt', 'isFloatingBiome'];
         for (const fn of named) {
             expect(spec, fn).toContain(fn);
             expect(typeof (VisualMath as unknown as Record<string, unknown>)[fn], fn).toBe('function');
@@ -250,7 +251,7 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
         a.physics.z = 30;
         const f = build([a]).get(a)!;
         expect(f.groundH).toBe(24);
-        expect(f.hudAnchorY).toBeCloseTo(f.drawY - a.physics.z - HUD_BAR_OFFSET, 9);
+        expect(f.hudAnchorY).toBeCloseTo(f.drawY - a.physics.z - hudBarHeight('MALE'), 9);
         expect(f.bodyCenterY).toBeCloseTo(VisualMath.getVisualBodyCenterY(f.drawY, a.physics.z), 9);
     });
 

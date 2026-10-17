@@ -56,8 +56,8 @@ export class StatusOrchestrator {
             ShieldPainter.draw(ctx, agent, px, bodyCenterY, globalTime, layout);
             
             // 4. 頭頂狀態圖標 (Floating HUD)
-            // 圖標高度 = 中心點 - 模型高度偏移
-            OverheadPainter.draw(ctx, agent, px, bodyCenterY, globalTime);
+            // 圖標高度 = 血條錨點（UnitFrame.hudAnchorY，投影頭頂 + 間距）+ HUD_ANCHOR.overheadBelowBar
+            OverheadPainter.draw(ctx, agent, px, frame.hudAnchorY, globalTime);
         }
     }
 }

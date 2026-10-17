@@ -9,7 +9,7 @@
 
 import { Agent } from "../../../game";
 import { AnimState, MovementType, ActionState } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y } from "../../../../constants";
+import { UNIT_SCALE, VFX_PARAM, ISO_SCALE_Y, UNIT_SPRITE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
@@ -105,8 +105,7 @@ export const UnitBodyPainter = {
         }
 
         if (agent.spawnTimer > 0) {
-            const SPAWN_DURATION = 0.5; 
-            const progress = 1 - (agent.spawnTimer / SPAWN_DURATION); 
+            const progress = 1 - (agent.spawnTimer / UNIT_SPRITE.spawnDuration); 
             const eased = 1 - Math.pow(1 - progress, 3); 
             const dropOffset = (1 - eased) * -40;
             ctx.translate(0, dropOffset);

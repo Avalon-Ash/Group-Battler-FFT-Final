@@ -20,7 +20,9 @@ import { HexUtils, MapConfig } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { UnitDeathPainter } from "../units/painters/UnitDeathPainter";
 import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
-import { HUD_BAR_OFFSET, UNIT_FRAME } from "../../../constants";
+import { UNIT_FRAME } from "../../../constants";
+import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
+import { hudBarHeight } from "../../../data/units/appearance/projection";
 import { Hex } from "../../../types";
 
 export type UnitFramePhase = 'IN' | 'OUT' | 'IDLE';
@@ -56,7 +58,7 @@ export interface UnitFrame {
     readonly hexUnderFoot: Hex;
     /** VisualMath.getVisualBodyCenterY(floorY, physics.z)：護盾與包裹類狀態 */
     readonly bodyCenterY: number;
-    /** 血條錨點 Y：VisualMath.getEntityVisualY(py, groundH, physics.y, physics.z, −HUD_BAR_OFFSET) */
+    /** 血條錨點 Y：腳底繪製 Y − physics.z − hudBarHeight(體型)（投影頭頂 + HUD_ANCHOR.barHeadMargin；血條、量表、頭頂狀態圖示共用） */
     readonly hudAnchorY: number;
 }
 
@@ -232,6 +234,6 @@ export class UnitFrameStore {
         f.drawY = VisualMath.getIsoVisualY(sortY, groundH);
         f.sortBias = Math.max(0, hexCenterY - footY);
         f.bodyCenterY = VisualMath.getVisualBodyCenterY(floorY, pz);
-        f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -HUD_BAR_OFFSET);
+        f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -hudBarHeight(resolveBodyType(agent)));
     }
 }
