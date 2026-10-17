@@ -35,6 +35,8 @@ const args = process.argv.slice(2);
 const assertMode = args.includes('--assert');
 const assertGhostOnly = args.includes('--assert-ghost');
 const assertIdleOnly = args.includes('--assert-idle');
+// A seed whose battleTime ends below this never really simulated; it must not count as CLEAN.
+const MIN_BATTLE_TIME_SEC = 5;
 
 function getArgValue(name, defaultVal) {
     const prefix = `--${name}=`;
@@ -107,7 +109,7 @@ await page.addInitScript(() => {
     let syntheticTime = 1000.0;
     window.__resetSeed = (s = 1337) => { window.__TACTICAL_ENGINE__?.seedSimulation?.(s); /* 模擬流與 Math.random 分離，需一併重設 */
         seed = s;
-        syntheticTime = 1000.0;
+        /* syntheticTime 刻意不倒退：遊戲迴圈的 lastTime 會保留上一場的值，倒退會讓 dt 為負 */
     };
     Date.now = () => Math.floor(syntheticTime);
     performance.now = () => syntheticTime;
@@ -643,6 +645,7 @@ for (let i = SEED_START; i < SEED_START + SEED_COUNT; i++) {
         return {
             seed: seedVal,
             simDuration: +currentSim.toFixed(2),
+            frames: step * framesPerSample,
             winner,
             ghostCount: ghostEvents.length,
             idleCount: idleEvents.length,
@@ -669,9 +672,10 @@ for (let i = SEED_START; i < SEED_START + SEED_COUNT; i++) {
     totalGhosts += seedResult.ghostCount;
     totalIdles += seedResult.idleCount;
 
-    const isClean = seedResult.ghostCount === 0 && seedResult.idleCount === 0;
-    const statusText = isClean ? 'CLEAN' : `GHOST: ${seedResult.ghostCount}, IDLE: ${seedResult.idleCount}`;
-    console.log(`Duration: ${seedResult.simDuration}s | Winner: ${seedResult.winner} | ${statusText}`);
+    seedResult.stalled = seedResult.simDuration < MIN_BATTLE_TIME_SEC;
+    const isClean = seedResult.ghostCount === 0 && seedResult.idleCount === 0 && !seedResult.stalled;
+    const statusText = isClean ? 'CLEAN' : seedResult.stalled ? `STALLED (battleTime < ${MIN_BATTLE_TIME_SEC}s), GHOST: ${seedResult.ghostCount}, IDLE: ${seedResult.idleCount}` : `GHOST: ${seedResult.ghostCount}, IDLE: ${seedResult.idleCount}`;
+    console.log(`Duration: ${seedResult.simDuration}s | Frames: ${seedResult.frames} | Winner: ${seedResult.winner} | ${statusText}`);
 }
 
 await browser.close();
@@ -690,7 +694,8 @@ writeFileSync(outPath, JSON.stringify({
     },
     summary: {
         totalSeeds: SEED_COUNT,
-        cleanSeeds: results.filter(r => r.ghostCount === 0 && r.idleCount === 0).length,
+        cleanSeeds: results.filter(r => r.ghostCount === 0 && r.idleCount === 0 && !r.stalled).length,
+        stalledSeeds: results.filter(r => r.stalled).length,
         totalGhosts,
         totalIdles,
     },
@@ -704,11 +709,11 @@ console.log('===================================================================
 console.log('| Seed | Sim Time | Winner | Ghosts | Idles | Status                                    |');
 console.log('| :--- | :------- | :----- | :----- | :---- | :---------------------------------------- |');
 for (const r of results) {
-    const status = (r.ghostCount === 0 && r.idleCount === 0) ? 'PASS (Clean)' : `FAIL (Ghosts:${r.ghostCount}, Idles:${r.idleCount})`;
+    const status = r.stalled ? `FAIL (Stalled: battleTime ${r.simDuration}s)` : (r.ghostCount === 0 && r.idleCount === 0) ? 'PASS (Clean)' : `FAIL (Ghosts:${r.ghostCount}, Idles:${r.idleCount})`;
     console.log(`| #${r.seed} | ${r.simDuration.toString().padStart(6, ' ')}s | ${r.winner.padEnd(6, ' ')} | ${r.ghostCount.toString().padStart(6, ' ')} | ${r.idleCount.toString().padStart(5, ' ')} | ${status.padEnd(41, ' ')} |`);
 }
 console.log('========================================================================================');
-console.log(`TOTALS: ${SEED_COUNT} Seeds | Clean Seeds: ${results.filter(r => r.ghostCount === 0 && r.idleCount === 0).length}/${SEED_COUNT}`);
+console.log(`TOTALS: ${SEED_COUNT} Seeds | Clean Seeds: ${results.filter(r => r.ghostCount === 0 && r.idleCount === 0 && !r.stalled).length}/${SEED_COUNT}`);
 console.log(`Total Ghost Events: ${totalGhosts} | Total Idle Events: ${totalIdles}`);
 console.log(`Saved report artifact: ${outPath}\n`);
 
@@ -734,6 +739,11 @@ if (totalGhosts > 0 || totalIdles > 0) {
     }
 }
 
+const stalledCount = results.filter(r => r.stalled).length;
+if (stalledCount > 0) {
+    console.error(`[ASSERTION FAILED] ${stalledCount} seed(s) ended with battleTime < ${MIN_BATTLE_TIME_SEC}s (harness did not advance the battle).`);
+    process.exitCode = 1;
+}
 if (assertMode) {
     if (totalGhosts > 0 || totalIdles > 0) {
         console.error(`[ASSERTION FAILED] br-soak detected ${totalGhosts} ghosts and ${totalIdles} idles.`);
