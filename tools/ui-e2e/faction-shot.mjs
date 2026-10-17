@@ -127,7 +127,15 @@ try {
                 roles.forEach((role, i) => {
                     const a = SpriteManager.getUnitImages(role, team, 'MALE', layout);
                     g.drawImage(a.base, i * cell, row * cell, cell, cell);
-                    g.drawImage(a.icon, i * cell + 64, row * cell + 24, 128, 128);
+                    // core: world offset (13, -26) at 2x, sprite 64 canvas units * UNIT_SCALE 0.65 * 2
+                    const cs = 64 * 0.65 * 2;
+                    const cx = i * cell + cell / 2 + 26 - cs / 2, cy = row * cell + cell / 2 - 52 - cs / 2;
+                    g.globalCompositeOperation = 'lighter';
+                    g.globalAlpha = 0.5;
+                    g.drawImage(a.core.glow, cx, cy, cs, cs);
+                    g.globalCompositeOperation = 'source-over';
+                    g.globalAlpha = 1;
+                    g.drawImage(a.core.body, cx, cy, cs, cs);
                 });
                 row++;
             }

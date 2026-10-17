@@ -48,6 +48,40 @@ export const VISUAL_ANCHORS = {
     CENTER_OFFSET: 30
 };
 
+/** 職業字形刻在棋座頂面（俯視字形，烘焙時套等距壓扁）：相對棋座半徑的大小與不透明度 */
+export const CLASS_GLYPH = {
+    scale: 0.55,
+    alpha: 0.8,
+} as const;
+
+/**
+ * 棋座核心（懸浮六角晶體，把角色投影出來的投影器）。
+ * 位置與施法／投射物起點的唯一定義在 VisualMath.getCoreAnchor，繪製（UnitCorePainter）讀同一組數字。
+ * 核心跟著棋座（地面），不跟角色投影浮空：飛行單位的投射物也從核心出發。
+ */
+export const CORE_VISUAL = {
+    /** 核心中心離棋座地面的高度（世界 z，等同螢幕像素） */
+    hoverHeight: 26,
+    /** 核心中心相對棋座中心的水平位移（世界 x，朝畫面右方；避免被角色身體完全遮住） */
+    offsetX: 13,
+    /** 晶體半寬／半高（Token 畫布單位，烘焙後隨 UNIT_SCALE 縮放） */
+    halfWidth: 11,
+    halfHeight: 17,
+    /** 上下浮動（世界像素）與週期（秒） */
+    bobAmplitude: 2,
+    bobPeriod: 2.6,
+    /** 待機／施法中的光暈強度（0..1）與施法時的放大倍率 */
+    idleGlow: 0.35,
+    idleGlowPulse: 0.12,
+    castGlow: 0.95,
+    castGlowPulse: 0.2,
+    castScale: 1.18,
+    /** 半透明預覽（放置幽靈）的不透明度 */
+    ghostAlpha: 0.65,
+    /** 烘焙畫布邊長（Token 畫布單位） */
+    canvasSize: 64,
+} as const;
+
 export const HUD_BAR_OFFSET = 150;
 export const HUD_TEXT_OFFSET = HUD_BAR_OFFSET + 30;
 

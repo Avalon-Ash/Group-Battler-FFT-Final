@@ -44,24 +44,6 @@ export const UnitShadowPainter = {
         ctx.drawImage(assets.base, -64, -64); 
         ctx.restore();
 
-        if (agent.hp > 0) {
-            ctx.save();
-            ctx.translate(px, tokenY);
-            ctx.scale(UNIT_SCALE, UNIT_SCALE); 
-            
-            const iconBaseY = -20; 
-            ctx.translate(0, iconBaseY);
-            // [FIX] 移除獨立浮動：icon 跟隨棋座靜止，身體浮動由 Faction Renderer 統一負責
-
-            ctx.fillStyle = 'rgba(0,0,0,0.2)';
-            ctx.beginPath(); ctx.ellipse(0, 28, 14, 6, 0, 0, Math.PI*2); ctx.fill();
-
-            ctx.globalAlpha = 1.0; 
-            ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 5;
-            ctx.drawImage(assets.icon, -32, -32, 64, 64);
-            ctx.restore();
-        }
-        
         ctx.restore();
     }
 };

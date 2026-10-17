@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND } from "../../constants";
+import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, VISUAL_ANCHORS, ISO_SCALE_Y, UNIT_STEP_BLEND, CORE_VISUAL } from "../../constants";
 
 export interface Point3D {
     x: number;
@@ -143,6 +143,21 @@ export class VisualMath {
         // For 2D screen-space projectile endpoints, use getProjectileTargetY() instead.
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;
         return { x: agent.px + agent.physics.x, y: agent.py + agent.physics.y, z: z };
+    }
+
+    /**
+     * SSOT：棋座核心的世界座標（施法／投射物／光束起點）。
+     * 核心屬於棋座而不是角色投影：x、y 取棋座位置（含 physics 位移），高度＝腳下地面＋核心懸浮高度，
+     * 不含 physics.z、不含身體／飛行高度，所以飛行單位的投射物從地面上的核心出發，而不是帽子。
+     * 目標端（受擊、命中點）仍用 getUnitAnchor（身體中心）。
+     */
+    public static coreAnchorAt(x: number, y: number, groundHeight: number): Point3D {
+        return { x: x + CORE_VISUAL.offsetX, y, z: groundHeight + CORE_VISUAL.hoverHeight };
+    }
+
+    public static getCoreAnchor(agent: Agent, engine: GameEngine): Point3D {
+        const ground = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
+        return VisualMath.coreAnchorAt(agent.px + agent.physics.x, agent.py + agent.physics.y, ground);
     }
 
     public static resolveTargetPoint(targetId: string, engine: GameEngine): Point3D {

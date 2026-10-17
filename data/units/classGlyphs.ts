@@ -1,5 +1,5 @@
 // data/units/classGlyphs.ts
-// 職業圖示字形表（SSOT）：棋座上方的幻想系向量符號，座標以圖示畫布中心為原點（約 ±15）。
+// 職業圖示字形表（SSOT）：刻在棋座頂面的幻想系向量符號（俯視，烘焙時等距壓扁），座標以圖示畫布中心為原點（約 ±15）。
 // 獅心＝乾淨圓角的金色符號；灰燼＝焦黑鋸齒的破損符號。UnitFactory.drawClassGlyph 只負責描繪。
 // 手繪貼圖槽（classIcon）有登記時完全繞過本表（docs/FACTION_SLOTS.md）。
 
