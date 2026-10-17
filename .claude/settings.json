@@ -6,7 +6,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "mcp__ccd_session__start_session|Bash|PowerShell",
+        "matcher": "mcp__ccd_session__start_session|Agent|Task|Bash|PowerShell",
         "hooks": [
           {
             "type": "command",
