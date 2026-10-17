@@ -75,7 +75,7 @@
 ## 5. Git and Test Discipline
 
 - Commit only on the branch named in your task prompt. **Never merge into `main`, never `git push`, never rebase or force anything.**
-- **Never re-record test baselines** (`perf:fidelity:record`, `E2E_UPDATE_STYLE=1`, any `*baseline*` file) **and never loosen a threshold**, unless your task prompt explicitly says so for that baseline.
+- **Never re-record test baselines** (`perf:fidelity:record`, `E2E_UPDATE_STYLE=1`, any `*baseline*` file) **and never loosen a threshold**, unless your task prompt explicitly says so for that baseline. When you are allowed to, first save an old/new/diff image, confirm only the expected elements changed, and list in the commit message what changed and which baselines stayed at 0 diff.
 - Keep each file's existing line endings (most source files are CRLF) and encoding (UTF-8).
 - If a check fails and the cause is outside your task, stop and report it. Do not "fix" unrelated code to make it pass.
 

@@ -7,6 +7,8 @@
  *    Accepting a proposal card (proposal_id only) passes through.
  * 2. No npm install/ci/uninstall/update inside .claude/worktrees: their node_modules is a
  *    junction to the main checkout, so npm would rewrite the shared folder.
+ * 3. start_session / Agent prompts that touch rendering or coordinates must name RenderSpec.ts
+ *    (the coordinate-protocol SSOT); sub-agents do not read AGENTS.md on their own.
  *
  * Reads the hook payload as JSON on stdin; prints a deny decision as JSON, or nothing to allow.
  */
@@ -41,7 +43,21 @@ if (tool.endsWith('__start_session')) {
         if (/opus/i.test(model) && !prompt.includes('[opus-ok]')) {
             deny('start_session 指定了 Opus。使用者是 Pro 方案；除非真的需要設計級推理，請改用 Sonnet。確有必要時在 prompt 寫明理由並加上 [opus-ok]。');
         }
+        requireRenderSpec(prompt, 'start_session');
     }
+}
+
+// 3. 動到位置／高度／排序／渲染的任務說明必須要求先讀 RenderSpec（座標協議 SSOT，CLAUDE.md）。
+//    子代理與子工作階段不會自動讀 AGENTS.md，規則只能靠任務說明帶過去。
+function requireRenderSpec(prompt, where) {
+    const touchesRender = /engine\/renderers|RenderList|RenderPipeline|VisualMath|sortBias|sortKey|op\.ty|getUnitGroundHeight|getCoreAnchor|getUnitAnchor|floatBob|depth sort|深度排序|排序鍵|錨點|發射點|閃爍/i.test(prompt);
+    if (touchesRender && !/RenderSpec/.test(prompt)) {
+        deny(`${where} 的任務說明動到渲染／座標，卻沒要求讀 engine/renderers/RenderSpec.ts。請在說明中寫明：先讀 RenderSpec 與所改檔案的方框檔頭，改規則時在同一個 commit 同步更新兩者。`);
+    }
+}
+
+if (tool === 'Agent' || tool === 'Task') {
+    requireRenderSpec(String(input.prompt || ''), '子代理');
 }
 
 if (tool === 'Bash' || tool === 'PowerShell') {
