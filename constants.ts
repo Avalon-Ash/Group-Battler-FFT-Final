@@ -12,7 +12,6 @@ export const HEX_SIZE = 48;
 export const BLOCK_HEIGHT = 24;
 export const MAX_TERRAIN_TIER = 6;
 export const ISO_SCALE_Y = 0.5;
-export const TERRAIN_SORT_SCALE = 0.7;
 export const UNIT_BODY_OFFSET = 36;
 export const UNIT_HOVER_OFFSET = 6;
 export const UNIT_SCALE = 0.65;
@@ -259,6 +258,13 @@ export const VFX_RENDER = {
     GROUND_VISUAL_BIAS:  2,  // 防 Z-fighting 的視覺偏移
     PARTICLE_SIZE_BIAS: 0.5, // 碰地計算的粒子半徑比例
     TRAIL_STEP_DIST:    20,  // Trail 採樣的目標點間距（螢幕像素）
+    /**
+     * 空中特效（非貼地粒子）與施法光環（AURA）的排序前緣：鍵＝足跡 Y（粒子在地面的投影）＋這個固定值。
+     * 粒子的高度 z 不進排序鍵（舊的 z*20 與 y*100 互相抵銷，下落的碎片會相對地塊／單位來回翻轉）；
+     * 半格＝把「飄在這一格上方」的東西當作站在該格前緣，所以它排在自己腳下這一格的地塊、危害、障礙物、單位之後，
+     * 又不會越過前方一整列。與 AURA 原有的 HEX_SIZE * 0.5 同一個值（RenderSpec §2）。
+     */
+    AIR_SORT_BIAS:      HEX_SIZE * 0.5,
 };
 
 /** 貼地鋪設（FFT 風格）：大型平貼特效不再是獨立排序 op，而是畫在它蓋到的每一格頂面（RenderSpec §9） */
@@ -297,6 +303,12 @@ export const GROUND_DRAPE = {
 export const UNIT_FRAME = {
     /** 腳下格只有在「新格格心比舊格格心近這麼多像素」時才切換，避免腳跨格界時排序鍵鋸齒翻轉 */
     HEX_HYSTERESIS_PX: 3,
+    /**
+     * 單位排序用腳點 Y 的死區（像素）：腳點離上次採用的值不超過這麼多就不動。
+     * 受擊後退（PhysicsEngine 的彈簧，HIT_IMPULSE 衝量）讓 physics.y 擺盪約 1～2 px，真實位移但肉眼不可分辨；
+     * 連續的鍵會讓它在鄰近的鍵（法陣粒子、屍體 0.5 px 平局值）兩側來回穿越。死區內鍵恆定，超過才跟隨（落後 ≤ 此值）。
+     */
+    SORT_DEADBAND_PX: 2,
 } as const;
 
 /**

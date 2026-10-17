@@ -14,7 +14,9 @@
 // ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
 // ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
-// ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）。        ║
+// ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）；腳點 Y   ║
+// ║  另有死區（UNIT_FRAME.SORT_DEADBAND_PX）：受擊後退的 1～2 px  ║
+// ║  擺盪不動排序鍵。                                            ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -56,8 +58,10 @@ export interface UnitFrame {
     readonly drawY: number;
     /** footY + transition（＝UNIT op.y，排序用） */
     readonly sortY: number;
-    /** max(0, 腳下格格心 Y − footY)（＝UNIT／CORPSE op.sortBias） */
+    /** max(死區濾波後的腳點 Y, 腳下格格心 Y) − footY（＝UNIT／CORPSE op.sortBias；濾波使它可為 ≥ −SORT_DEADBAND_PX 的小負值） */
     readonly sortBias: number;
+    /** 死區濾波後的腳點 Y ＋ 轉場位移：AURA 的 op.y（掛在施法者身上的空中效果，不含腳下格抬升，RenderSpec §2） */
+    readonly sortFootY: number;
     readonly hexUnderFoot: Hex;
     /** VisualMath.getVisualBodyCenterY(floorY, physics.z)：護盾與包裹類狀態 */
     readonly bodyCenterY: number;
@@ -73,14 +77,18 @@ type MutableUnitFrame = { -readonly [K in keyof UnitFrame]: UnitFrame[K] };
 function createFrame(agent: Agent): MutableUnitFrame {
     return {
         agent, isCorpse: false, visible: false,
-        footX: 0, footY: 0, transition: 0, groundH: 0, floorY: 0, drawY: 0, sortY: 0, sortBias: 0,
+        footX: 0, footY: 0, transition: 0, groundH: 0, floorY: 0, drawY: 0, sortY: 0, sortBias: 0, sortFootY: 0,
         hexUnderFoot: { q: 0, r: 0 }, bodyCenterY: 0, hudAnchorY: 0,
         ghosts: createGhostSlots(), ghostCount: 0,
     };
 }
 
 /** 排序用腳下格的跨幀記憶（每個單位一筆；stamp 標記最後一次被 build 看到的幀） */
-interface SortHexMemory { q: number; r: number; stamp: number }
+interface SortHexMemory {
+    q: number; r: number; stamp: number;
+    /** 排序用腳點 Y（死區濾波後；UNIT_FRAME.SORT_DEADBAND_PX） */
+    footY: number;
+}
 
 export class UnitFrameStore {
     private readonly pool: MutableUnitFrame[] = [];
@@ -148,16 +156,20 @@ export class UnitFrameStore {
      * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換；
      * 離 prev 超過一環（瞬移、擊飛）立即切換。結果寫進 out（幀自己的 Hex，不洩漏記憶物件）。
      */
-    private resolveSortHex(out: Hex, agent: Agent, footX: number, footY: number, mapConfig: MapConfig): void {
+    private resolveSortHex(out: Hex, agent: Agent, footX: number, footY: number, mapConfig: MapConfig): SortHexMemory {
         const raw = HexUtils.fromPx(footX, footY, mapConfig);
         let mem = this.sortHex.get(agent.id);
         if (!mem) {
-            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp };
+            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp, footY };
             this.sortHex.set(agent.id, mem);
             out.q = raw.q; out.r = raw.r;
-            return;
+            return mem;
         }
         mem.stamp = this.buildStamp;
+        // 腳點死區：受擊後退的 1～2 px 擺盪不動排序鍵，真的移動時落後不超過 SORT_DEADBAND_PX
+        const d = UNIT_FRAME.SORT_DEADBAND_PX;
+        if (footY > mem.footY + d) mem.footY = footY - d;
+        else if (footY < mem.footY - d) mem.footY = footY + d;
         if (raw.q !== mem.q || raw.r !== mem.r) {
             let sw = HexUtils.dist(raw, mem) > 1;
             if (!sw) {
@@ -170,6 +182,7 @@ export class UnitFrameStore {
             if (sw) { mem.q = raw.q; mem.r = raw.r; }
         }
         out.q = mem.q; out.r = mem.r;
+        return mem;
     }
 
     private fill(
@@ -192,7 +205,7 @@ export class UnitFrameStore {
         if (agent.fullyDead) {
             f.visible = false;
             f.footX = baseX; f.footY = baseY; f.transition = 0; f.groundH = 0;
-            f.floorY = baseY; f.drawY = baseY; f.sortY = baseY; f.sortBias = 0;
+            f.floorY = baseY; f.drawY = baseY; f.sortY = baseY; f.sortBias = 0; f.sortFootY = baseY;
             f.bodyCenterY = baseY; f.hudAnchorY = baseY;
             f.ghostCount = 0;
             return;
@@ -236,7 +249,7 @@ export class UnitFrameStore {
         // 以含繪製位移（physics 偏移、屍體擊飛）的腳點判斷，轉場位移不參與（地塊也套同一個）。
         // 排序用腳下格帶滯後（resolveSortHex）：高度仍由 getUnitGroundHeight 決定，不受影響
         const hexUnderFoot = f.hexUnderFoot;
-        this.resolveSortHex(hexUnderFoot, agent, footX, footY, mapConfig);
+        const sortMem = this.resolveSortHex(hexUnderFoot, agent, footX, footY, mapConfig);
         const hexCenterY = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig).y;
 
         const floorY = footY - groundH;
@@ -250,7 +263,9 @@ export class UnitFrameStore {
         f.floorY = floorY;
         f.sortY = sortY;
         f.drawY = VisualMath.getIsoVisualY(sortY, groundH);
-        f.sortBias = Math.max(0, hexCenterY - footY);
+        // 排序鍵 Y＝max(死區濾波後的腳點, 腳下格格心)：鍵永遠不低於自己腳下那一格的地塊；濾波使 sortBias 可為 ≥ −SORT_DEADBAND_PX 的小負值
+        f.sortBias = Math.max(sortMem.footY, hexCenterY) - footY;
+        f.sortFootY = sortMem.footY + transition;
         f.bodyCenterY = VisualMath.getVisualBodyCenterY(floorY, pz);
         f.hudAnchorY = VisualMath.getEntityVisualY(agent.py, groundH, agent.physics.y, agent.physics.z, -hudBarHeight(resolveBodyType(agent)));
 

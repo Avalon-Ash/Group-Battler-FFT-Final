@@ -22,10 +22,16 @@
  *   but already below the CENTER line of a half-step neighbour B (FLAT: dy 20.8 px, foot can sit 25 px under A's centre) is NOT in
  *   front of B, because at the foot's x B's footprint is still entirely below it. Comparing against the centre would flag
  *   those (correct) cases. Hex-vs-hex needs no refinement: where two cells share an x-range the one with the smaller centre Y is behind.
- *   Unit x unit, VFX, decals, overlays, auras, ground drape are out of scope.
+ *   AURA (UnitSystem casting aura) is a character-attached AIR effect: the rings are drawn around the caster's BODY CENTRE
+ *   (AGENT_MODEL_CENTER_Z above the foot), over the caster. Judged by its footprint point (foot = op.ty + op.th; op.y carries the legacy
+ *   h*TERRAIN_SORT_SCALE term = the "E" driver for AURA), exactly like an air VFX: it must come AFTER everything standing in its own hex
+ *   (TERRAIN, HAZARD, OBSTACLE, UNIT incl. its caster, CORPSE); against other hexes the column rule; against other units/corpses the foot Y
+ *   (needs a gap of AURA_MARGIN = HEX_SIZE/2, the aura's own front-edge bias, otherwise no constraint). AURA vs AURA: no constraint.
+ *   Silhouette: the hex ring around the body centre (rising particles / AOE indicator extend further: under-counts overlap).
+ *   Unit x unit (other than aura/caster), VFX, decals, overlays, ground drape are out of scope.
  *
  * ── JUDGED PAIRS ───────────────────────────────────────────────────────────────────────────────────────────
- * Types TERRAIN, OBSTACLE, HAZARD, UNIT, CORPSE; at least one side UNIT/CORPSE/OBSTACLE; screen silhouettes must overlap (convex SAT):
+ * Types TERRAIN, OBSTACLE, HAZARD, UNIT, CORPSE, AURA; at least one side UNIT/CORPSE/OBSTACLE/AURA; screen silhouettes must overlap (convex SAT):
  *   tile      convex hull of the top ring (ty - h) and the bottom ring (ty + foundation depth)  [TerrainRenderer.bakeBlock geometry]
  *   obstacle  alpha bounding box of the real sprite, placed at (tx - ENV_SPRITE.ANCHOR_X, ty - ENV_SPRITE.ANCHOR_Y)
  *   hazard    flat hex ring at ty
@@ -57,9 +63,9 @@ export async function installDepthOracle(page) {
         const R = K.HEX_SIZE;
         const EXPANSION_BIAS = 0.6;   // TerrainRenderer.EXPANSION_BIAS
         const PEDESTAL_DEPTH = 45;    // TerrainRenderer.PEDESTAL_DEPTH
-        const SUB = { [T.TERRAIN]: 10, [T.HAZARD]: 30, [T.OBSTACLE]: 44, [T.UNIT]: 46, [T.CORPSE]: 48 }; // RenderList SUB_LAYER
-        const TNAME = { [T.TERRAIN]: 'TERRAIN', [T.HAZARD]: 'HAZARD', [T.OBSTACLE]: 'OBSTACLE', [T.UNIT]: 'UNIT', [T.CORPSE]: 'CORPSE' };
-        const RANK = { [T.TERRAIN]: 0, [T.HAZARD]: 1, [T.OBSTACLE]: 2, [T.UNIT]: 2, [T.CORPSE]: 2 };
+        const SUB = { [T.TERRAIN]: 10, [T.HAZARD]: 30, [T.AURA]: 38, [T.OBSTACLE]: 44, [T.UNIT]: 46, [T.CORPSE]: 48 }; // RenderList SUB_LAYER
+        const TNAME = { [T.TERRAIN]: 'TERRAIN', [T.HAZARD]: 'HAZARD', [T.AURA]: 'AURA', [T.OBSTACLE]: 'OBSTACLE', [T.UNIT]: 'UNIT', [T.CORPSE]: 'CORPSE' };
+        const RANK = { [T.TERRAIN]: 0, [T.HAZARD]: 1, [T.AURA]: 3, [T.OBSTACLE]: 2, [T.UNIT]: 2, [T.CORPSE]: 2 };
         const UNIT_HALF_W = 22, UNIT_PAD_TOP = 4, UNIT_PAD_BOTTOM = 14, UNIT_FALLBACK_H = K.UNIT_SPRITE.targetHeightCanvasUnits;
         const MIN_STABLE = 3;
         const EX_PER_GROUP = 4, EP_CAP = 6000;
@@ -162,6 +168,7 @@ export async function installDepthOracle(page) {
         function identOf(it) {
             const op = it.op;
             if (it.t === T.UNIT || it.t === T.CORPSE) return `${it.t === T.UNIT ? 'U' : 'C'}:${op.agent ? op.agent.id : '?'}`;
+            if (it.t === T.AURA) return `A:${op.agent ? op.agent.id : '?'}`;
             return `${TNAME[it.t][0]}:${op.tq},${op.tr}`;
         }
 
@@ -173,7 +180,7 @@ export async function installDepthOracle(page) {
             const wHalf = Math.max(...footRing.map((v) => v.x));
             for (let i = 0; i < list.count; i++) {
                 const op = ops[i], t = op.type;
-                if (t !== T.TERRAIN && t !== T.OBSTACLE && t !== T.HAZARD && t !== T.UNIT && t !== T.CORPSE) continue;
+                if (t !== T.TERRAIN && t !== T.OBSTACLE && t !== T.HAZARD && t !== T.UNIT && t !== T.CORPSE && t !== T.AURA) continue;
                 if (t === T.TERRAIN && op.z < 0) continue; // collapsing tile: not on the ground plane any more
                 const it = { i, op, t, hex: t === T.TERRAIN || t === T.OBSTACLE || t === T.HAZARD, wHalf, E: 0, headH: 0 };
                 if (it.hex) {
@@ -193,6 +200,15 @@ export async function installDepthOracle(page) {
                         it.poly = ring(layout, R).map((v) => ({ x: op.tx + v.x, y: op.ty + v.y }));
                         it.E = op.y - c.y;
                     }
+                } else if (t === T.AURA) {
+                    // flat object centred on the caster's foot: foot Y = draw Y + ground height (UnitFrame.drawY = sortY - groundH)
+                    it.fx = op.tx; it.fy = op.ty + op.th;
+                    it.E = op.y - it.fy;
+                    const hx = HexUtils.fromPx(it.fx, it.fy, cfg);
+                    const c = HexUtils.toPx(hx.q, hx.r, cfg);
+                    it.q = hx.q; it.r = hx.r; it.cx = c.x; it.cy = c.y;
+                    const cy0 = op.ty - K.AGENT_MODEL_CENTER_Z * K.ISO_SCALE_Y, rx = K.HEX_SIZE * 0.95, ry = rx * 0.5;
+                    it.poly = rect(op.tx - rx, cy0 - ry, op.tx + rx, cy0 + ry);
                 } else {
                     it.fx = op.tx; it.fy = op.y;
                     const hx = HexUtils.fromPx(it.fx, it.fy, cfg);
@@ -213,7 +229,16 @@ export async function installDepthOracle(page) {
 
         /** -1: a must be drawn first, +1: b must be drawn first, 0: no constraint; also returns the rule used */
         function expectOrder(a, b) {
-            if (!a.hex && !b.hex) return [0, ''];
+            if (!a.hex && !b.hex) {
+                const au = a.t === T.AURA ? a : b.t === T.AURA ? b : null;
+                const un = au === a ? b : a;
+                if (!au || un.t === T.AURA) return [0, ''];
+                if (un.op.agent === au.op.agent && un.t === T.UNIT) return [au === a ? 1 : -1, 'ownAura']; // the caster is drawn first, the aura over it
+                const d = un.fy - au.fy;
+                if (Math.abs(d) < K.HEX_SIZE * 0.5) return [0, ''];
+                const unitFirst = d < 0; // the unit stands further back
+                return [unitFirst === (un === a) ? -1 : 1, 'auraFootY'];
+            }
             if (a.hex && b.hex) {
                 if (a.q === b.q && a.r === b.r) { const ra = RANK[a.t], rb = RANK[b.t]; return ra === rb ? [0, ''] : [ra < rb ? -1 : 1, 'sameHex']; }
                 if (Math.abs(a.cx - b.cx) >= 2 * a.wHalf - 0.5) return [0, ''];
@@ -275,7 +300,7 @@ export async function installDepthOracle(page) {
             const judged0 = S.judged;
             const items = buildItems(list);
             const special = [];
-            for (let i = 0; i < items.length; i++) { const t = items[i].t; if (t === T.UNIT || t === T.CORPSE || t === T.OBSTACLE) special.push(i); }
+            for (let i = 0; i < items.length; i++) { const t = items[i].t; if (t === T.UNIT || t === T.CORPSE || t === T.OBSTACLE || t === T.AURA) special.push(i); }
             const touched = new Set();
             const frameViol = S.cfg.keepLast ? [] : null;
             const framePairs = S.cfg.keepLast ? [] : null;
@@ -287,7 +312,7 @@ export async function installDepthOracle(page) {
                 for (let j = 0; j < items.length; j++) {
                     if (j === si) continue;
                     const b = items[j];
-                    if ((b.t === T.UNIT || b.t === T.CORPSE || b.t === T.OBSTACLE) && j < si) continue; // each special pair once
+                    if ((b.t === T.UNIT || b.t === T.CORPSE || b.t === T.OBSTACLE || b.t === T.AURA) && j < si) continue; // each special pair once
                     if (a.box.x1 <= b.box.x0 || b.box.x1 <= a.box.x0 || a.box.y1 <= b.box.y0 || b.box.y1 <= a.box.y0) continue;
                     if (!satOverlap(a.poly, b.poly)) continue;
                     const [exp, rule] = expectOrder(a, b);
@@ -337,7 +362,7 @@ export async function installDepthOracle(page) {
             }
         }
         const ORIG_SORT = RenderList.prototype.sort;
-                const TSS = K.TERRAIN_SORT_SCALE;
+                const TSS = 0.7; // the retired TERRAIN_SORT_SCALE (removed from constants.ts); only the hypothetical 'unitE' sim still uses it
         /** what-if sorts (evidence for a proposed rule change): perturb op.y only while RenderList.sort computes keys, then restore */
         function sortWithSim(list, sim) {
             const saved = [];
@@ -345,6 +370,7 @@ export async function installDepthOracle(page) {
             for (let i = 0; i < list.count; i++) {
                 const op = list.ops[i];
                 if ((sim.includes('noE') && (op.type === T.OBSTACLE || op.type === T.HAZARD)) || (sim.includes('noEH') && op.type === T.HAZARD) || (sim.includes('noEO') && op.type === T.OBSTACLE)) { saved.push(op, op.y); op.y = HexUtils.toPx(op.tq, op.tr, cfg).y; }
+                else if (sim.includes('noEA') && op.type === T.AURA) { saved.push(op, op.y); op.y = op.ty + op.th; }
                 else if (sim.includes('unitE') && (op.type === T.UNIT || op.type === T.CORPSE)) { saved.push(op, op.y); op.y += (op.y - op.ty) * TSS; }
             }
             ORIG_SORT.call(list);
