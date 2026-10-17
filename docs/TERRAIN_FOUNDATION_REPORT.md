@@ -41,3 +41,6 @@
 - `npm run lint`、`npx vitest run --dir tests`（新增 `tests/TerrainFoundation.test.ts`）、`npm run build` 全過。
 - 保真：5 個地形基準與 `battle_frozen` 預期改變（只有島底）。基準在獨立 commit 重錄；門檻未改。
 - 已知：預設鏡頭下島中央岩錐多半在畫面外，只看得到前緣；墜落中的地塊（縮圈）維持舊基座。
+
+## 追加：整體化底座（fix/terrain-foundation-tidy）
+使用者回報 VOID／MAGMA 的鐘乳尖刺像烘焙錯誤、少數欄位掛得過長。改為：所有地形 `tips: false`（平底六角柱端）、`bellPower` 1、`jitter` 0.05，漂浮圖深度 60～120、地面圖 55～100。底緣是中央略深的平緩輪廓，相鄰欄位深度差小。尖角程式碼與參數保留（`tips: true` 可還原），只是不再使用。截圖：`tidy_<LAYOUT>_<BIOME>.png`、`sheet_*_before_vs_tidy.png`（before 為修正前）。
