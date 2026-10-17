@@ -23,6 +23,13 @@ export interface AgentFieldOwnership {
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    hp: {
+        group: 'vitals',
+        kind: 'single',
+        owners: ['engine/systems/combat/DirectDamage.ts'],
+        lifecycle: ['engine/systems/agentManager.ts', 'engine/systems/ui/UICommandSystem.ts'],
+        note: '寫入 API：applyDirectDamage／applyHeal／applyLethal。死亡流程仍由呼叫端交給 agentManager.handleDeadState。',
+    },
     trailHistory: {
         group: 'locomotion',
         kind: 'single',

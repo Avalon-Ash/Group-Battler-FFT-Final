@@ -3,7 +3,7 @@ import { Agent, GameEngine } from "../game";
 import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
-import { applyDirectDamage } from "../systems/combat/DirectDamage";
+import { applyDirectDamage, applyLethal } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../systems/AnimationSystem";
 import { random } from "../math/rng";
 import { unitEventPos } from "../events/EventPos";
@@ -112,7 +112,7 @@ export class PhysicsEngine {
             // Out of bounds anyone (alive or dead) who falls into the abyss
             if (!a.outOfBounds) {
                 if (!isDead) {
-                    a.hp = 0;
+                    applyLethal(a);
                     engine.agentManager.handleDeadState(a, engine, '墜落', 'RING_OUT');
                 }
                 a.outOfBounds = true; // Remove from battlefield rendering and logic; fullyDead 由 updateDeathState 回收

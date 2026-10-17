@@ -10,6 +10,7 @@
 
 import { GameEngine } from "../game";
 import { Team } from "../../types";
+import { applyLethal } from "./combat/DirectDamage";
 import { HexUtils } from "../utils";
 import { ISO_SCALE_Y, PHYSICS } from "../../constants";
 
@@ -150,7 +151,7 @@ export class ZoneSystem {
                         const victims = engine.agents.filter(a => !a.fullyDead && a.q === hex.q && a.r === hex.r);
                         for (const victim of victims) {
                             if (victim.hp > 0 || !victim.deadLogged) {
-                                victim.hp = 0;
+                                applyLethal(victim);
                                 victim.banished = false;
                                 engine.agentManager.handleDeadState(victim, engine, '墜落出局', 'RING_OUT');
                                 victim.physics.z = 0;

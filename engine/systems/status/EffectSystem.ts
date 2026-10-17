@@ -1,7 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
-import { applyDirectDamage } from "../combat/DirectDamage";
+import { applyDirectDamage, applyHeal } from "../combat/DirectDamage";
 import { triggerHitFlash } from "../AnimationSystem";
 import { unitEventPos } from "../../events/EventPos";
 
@@ -73,7 +73,7 @@ export class EffectSystem {
             const healPerSec = agent.hotVal;
             const frameHeal = healPerSec * dt;
             
-            agent.hp = Math.min(agent.maxHp, agent.hp + frameHeal);
+            applyHeal(agent, frameHeal);
             
             // Periodic Visual Feedback
             if (hotTimer <= 0 && agent.hotVal > 0) {
