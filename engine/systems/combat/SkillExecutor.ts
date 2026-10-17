@@ -3,6 +3,7 @@ import { Skill, Team } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";
+import { planDashPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
@@ -33,28 +34,11 @@ export class SkillExecutor {
         const impactCells = engine.movement.targeting.getImpactArea(source, targetHex, skill, engine);
         const origin = hexEventPos(targetHex.q, targetHex.r, engine);
 
-        // [NEW] DASH Effect: Move caster towards targetHex
+        // [NEW] DASH Effect: Move caster towards targetHex（高度／障礙／單位由 ForcedMove 裁決）
         if (skill.effectType === 'DASH' || skill.effectType2 === 'DASH') {
-            let bestH = null;
-            let minDist = Infinity;
-            
-            // If targetHex is empty, dash directly there
-            const targetOccupant = engine.getAgentAt(targetHex.q, targetHex.r);
-            if (engine.map.isValid(targetHex.q, targetHex.r) && (!targetOccupant || targetOccupant === source) && !engine.map.hasObstacle(targetHex.q, targetHex.r)) {
-                bestH = targetHex;
-            } else {
-                // Otherwise find an empty neighbor
-                for (const n of HexUtils.neighbors(targetHex)) {
-                    const occupant = engine.getAgentAt(n.q, n.r);
-                    if (engine.map.isValid(n.q, n.r) && (!occupant || occupant === source) && !engine.map.hasObstacle(n.q, n.r)) {
-                        const dist = HexUtils.dist(source, n);
-                        if (dist < minDist) {
-                            minDist = dist;
-                            bestH = n;
-                        }
-                    }
-                }
-            }
+            const dashPath = planDashPath(source, targetHex, engine);
+            const dash = resolveForcedMove(source, dashPath, dashPath.length, 'DASH', engine);
+            const bestH = dash.stepsTaken > 0 ? dash.finalHex : null;
             
             if (bestH) {
                 const originPx = {x: source.px, y: source.py};

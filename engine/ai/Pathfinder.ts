@@ -3,6 +3,7 @@ import { Agent } from "../core/Agent";
 import { Hex, MovementType, SpatialProvider } from "../../types";
 import { HexUtils, NEIGHBOR_HASH_OFFSETS } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
+import { canStepUp } from "../math/ClimbRule";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { TargetingSystem } from "./TargetingSystem";
 
@@ -94,10 +95,9 @@ export class Pathfinder {
                     const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
                     
                     const deltaH = h2 - h1; // Target - Current
-                    const jumpLimit = Math.max(1, startAgent.jump) * BLOCK_HEIGHT;
 
-                    // 1. 向上攀爬 (Climbing Up)：嚴格檢定
-                    if (deltaH > jumpLimit) continue; 
+                    // 1. 向上攀爬 (Climbing Up)：嚴格檢定（與強制位移共用 canStepUp）
+                    if (!canStepUp(startAgent, h1, h2)) continue;
                     
                     // 2. 向下跳躍 (Jumping Down)：允許任何高度 (物理引擎會處理傷害)
                     // 無需檢查 deltaH < -jumpLimit
@@ -225,9 +225,8 @@ export class Pathfinder {
                     const h2 = spatial.getTerrainHeight(nHex.q, nHex.r);
                     
                     const deltaH = h2 - h1;
-                    const jumpLimit = Math.max(1, agent.jump) * BLOCK_HEIGHT;
 
-                    if (deltaH > jumpLimit) continue; 
+                    if (!canStepUp(agent, h1, h2)) continue;
 
                     if (deltaH > 0) {
                         moveCost += deltaH / BLOCK_HEIGHT * 0.5; 

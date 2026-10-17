@@ -4,6 +4,7 @@ import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
+import { canStepUp } from "../math/ClimbRule";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
@@ -112,12 +113,7 @@ export class TargetingSystem {
                                 const hexKey = HexUtils.key(hex);
                                 if (!spatial.isWarningTile(hexKey)) {
                                     // [FIX] 飛行單位無視高度限制，地面單位使用動態跳躍高度
-                                    if (a.movementType !== MovementType.FLYING) {
-                                        const h1 = spatial.getTerrainHeight(a.q, a.r);
-                                        const h2 = spatial.getTerrainHeight(hex.q, hex.r);
-                                        const jumpLimit = Math.max(1, a.jump) * BLOCK_HEIGHT; 
-                                        if (h2 - h1 > jumpLimit) continue;
-                                    }
+                                    if (!canStepUp(a, spatial.getTerrainHeight(a.q, a.r), spatial.getTerrainHeight(hex.q, hex.r))) continue;
 
                                     const distToCenter = HexUtils.dist(hex, {q: centerQ, r: centerR});
                                     if (distToCenter < minSafeDist) {
