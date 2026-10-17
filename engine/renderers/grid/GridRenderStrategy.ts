@@ -3,7 +3,7 @@
 // ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
 // ║  上游：GridCache（格心、高度、鄰格遮罩）                   ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
-// ║  op.y＝足跡 Y（高物件加 h*TERRAIN_SORT_SCALE），op.ty＝繪製 Y║
+// ║  op.y＝足跡 Y（不含高度，與單位同一把尺），op.ty＝繪製 Y  ║
 // ║  漂浮位移（§5，VisualMath.floatBobAt）只加在 op.ty。       ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -11,7 +11,7 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
 import { Hex, Skill, Projectile, GroundHazard } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, TERRAIN_SORT_SCALE } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -84,7 +84,9 @@ export class GridRenderStrategy {
                 op.type = RenderOpType.OBSTACLE;
                 op.tq = q; op.tr = r; op.th = h; 
                 op.tx = px; op.ty = visualSurfaceY + bob; 
-                op.y = visualBaseY + (h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
+                // 排序只看足跡 Y，不加高度：舊的 h*TERRAIN_SORT_SCALE 讓高地上的障礙物排到同一座高台上前方單位之後，
+                // 蓋住單位（docs/DEPTH_ORDER_FINDINGS.md，穩定錯序 449→50）。同格時 subLayer 決定先後。
+                op.y = visualBaseY;
                 op.ttype = obstacleType;
             }
 
@@ -94,7 +96,7 @@ export class GridRenderStrategy {
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
                 hOp.tx = px; hOp.ty = visualSurfaceY + bob; 
-                hOp.y = visualBaseY + (tile.h * TERRAIN_SORT_SCALE); // [SSOT] Sorting based on elevated footprint
+                hOp.y = visualBaseY; // 同上：危害不再因格高排到站在其上的單位之後（DEPTH_ORDER_FINDINGS §1-2）
                 hOp.oHazard = {
                     type: h.type,
                     team: h.team,
@@ -132,7 +134,9 @@ export class GridRenderStrategy {
                 overlayOp.tq = q; overlayOp.tr = r; overlayOp.th = h;
                 overlayOp.tx = px; overlayOp.ty = visualBaseY + bob; 
                 overlayOp.y = visualBaseY; 
-                overlayOp.sortBias = HEX_SIZE * 0.5;
+                // 疊層畫在格子頂面：與地塊同鍵，subLayer（42）排在同格障礙（44）與單位（46）之前；
+                // 舊的半格前緣 sortBias 會蓋住同格的障礙物（拿掉障礙物 h*0.7 加成後才顯現，DEPTH_ORDER_FINDINGS）。
+                overlayOp.sortBias = 0;
                 overlayOp.tsize = HEX_SIZE;
                 overlayOp.oRange = isHoverRange || isCastAOE;
                 overlayOp.oRangeCol = (isHoverRange ? hoveredSkill?.color : this._castingColor) || '';

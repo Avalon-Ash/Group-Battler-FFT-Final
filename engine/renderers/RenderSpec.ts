@@ -44,7 +44,7 @@ export class RenderSpec {
         s += "| 提交者 | op | sortBias |\n";
         s += "|--------|----|----------|\n";
         s += "| GridRenderStrategy | TERRAIN、OBSTACLE、HAZARD | 0 |\n";
-        s += "| GridRenderStrategy | OVERLAY | HEX_SIZE * 0.5（格子前緣） |\n";
+        s += "| GridRenderStrategy | OVERLAY | 0（畫在格子頂面，同格先於障礙與單位；2026-10-18 拿掉半格前緣） |\n";
         s += "| UnitSystem | AURA | HEX_SIZE * 0.5 |\n";
         s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(0, 排序用腳下格格心 Y − 腳 Y)：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後，見下） |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
@@ -64,7 +64,9 @@ export class RenderSpec {
         s += "世界座標（px, py）是 HexUtils.toPx 的輸出：已經是等角投影後的螢幕平面座標，高度另計。\n\n";
         s += "visualBaseY    = py + transitionOffset           地塊足跡 Y。TERRAIN／OVERLAY 的 op.y 與 op.ty\n";
         s += "visualSurfaceY = getIsoVisualY(visualBaseY, h)   地塊頂面 Y。OBSTACLE／HAZARD 的 op.ty\n";
-        s += "terrainSortY   = visualBaseY + h * TERRAIN_SORT_SCALE   OBSTACLE／HAZARD／AURA 的 op.y（高地物件不被低地蓋過）\n\n";
+        s += "OBSTACLE／HAZARD 的 op.y = visualBaseY：與地塊、單位同一把尺，高度不進排序鍵\n";
+        s += "  （2026-10-18 依 docs/DEPTH_ORDER_FINDINGS.md 拿掉 h*0.7：它讓高台上的障礙／危害蓋住同一座高台上前方的單位）\n";
+        s += "terrainSortY   = visualBaseY + h * TERRAIN_SORT_SCALE   只剩 AURA 的 op.y（尚未量測，景深預言涵蓋 AURA 後再定）\n\n";
         s += "單位（UnitFrame 計算，UnitSystem 提交；見 §4）：\n";
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";
         s += "  op.y  = py + physics.y + transitionOffset（屍體再加擊飛滑行 y）＝腳點，排序用\n";
