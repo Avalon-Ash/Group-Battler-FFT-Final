@@ -2,7 +2,7 @@
 // ║  RenderSpec — 渲染座標協議 SSOT（層序、排序鍵、座標、錨點）║
 // ║  職責：記錄所有「位置／高度／排序／發射點」規則的唯一文件 ║
 // ║  上游：RenderList.sort（SUB_LAYER）、VisualMath（錨點）、  ║
-// ║        RenderPipeline（繪製用地面高度）                    ║
+// ║        RenderPipeline（繪製用地面高度）、UnitFrame（單位）  ║
 // ║  [ARCH] 改到任何一條規則，必須在同一個 commit 更新本檔與  ║
 // ║  受影響檔案的方框檔頭；tests/CoordinateProtocol.test.ts   ║
 // ║  以只減不增的基準擋住偏離。                                ║
@@ -46,7 +46,7 @@ export class RenderSpec {
         s += "| GridRenderStrategy | TERRAIN、OBSTACLE、HAZARD | 0 |\n";
         s += "| GridRenderStrategy | OVERLAY | HEX_SIZE * 0.5（格子前緣） |\n";
         s += "| UnitSystem | AURA | HEX_SIZE * 0.5 |\n";
-        s += "| UnitSystem | UNIT、CORPSE | max(0, 腳下格格心 Y − 腳 Y)：腳跨過格界進入前方格時，排在該格地塊之後 |\n";
+        s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(0, 腳下格格心 Y − 腳 Y)：腳跨過格界進入前方格時，排在該格地塊之後 |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
         s += "貼地法陣抬升（RenderList.sort）：gHalfH ≥ VFX_RENDER.DECAL_LIFT_MIN_HALF_H 的大型法陣範圍內的 UNIT／CORPSE，\n";
         s += "finalSortY 至少抬到法陣鍵之後（法陣不得蓋住棋座，ART_SPEC §13）。\n\n";
@@ -60,7 +60,7 @@ export class RenderSpec {
         s += "visualBaseY    = py + transitionOffset           地塊足跡 Y。TERRAIN／OVERLAY 的 op.y 與 op.ty\n";
         s += "visualSurfaceY = getIsoVisualY(visualBaseY, h)   地塊頂面 Y。OBSTACLE／HAZARD 的 op.ty\n";
         s += "terrainSortY   = visualBaseY + h * TERRAIN_SORT_SCALE   OBSTACLE／HAZARD／AURA 的 op.y（高地物件不被低地蓋過）\n\n";
-        s += "單位（UnitSystem）：\n";
+        s += "單位（UnitFrame 計算，UnitSystem 提交；見 §4）：\n";
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";
         s += "  op.y  = py + physics.y + transitionOffset（屍體再加擊飛滑行 y）＝腳點，排序用\n";
         s += "  op.ty = op.y − 腳下地面高度（§4 getUnitGroundHeight；屍體用 computeDeathGround）\n";
@@ -87,6 +87,12 @@ export class RenderSpec {
         s += "| 單位事件位置 | unitEventPos（engine/events/EventPos.ts） | xy＝px+physics；z＝getUnitGroundHeight（模擬高度）+ physics.z |\n";
         s += "| 格子事件位置 | hexEventPos | 六角格中心；z＝getTerrainHeight(q, r) |\n";
         s += "| 純 2D 事件位置 | pointEventPos | 只有 xy（無 z），消費端自查該格高度 |\n\n";
+        s += "**單位的繪製座標只有一個出處：UnitFrame**（engine/renderers/frame/UnitFrame.ts）。RenderPipeline 在 drawWorld 開頭用繪製用高度函式建一次\n";
+        s += "UnitFrameStore，每個單位一份：footX／footY（含 physics、屍體擊飛）、transition、groundH（拖曳預覽＝游標格；屍體＝computeDeathGround）、\n";
+        s += "floorY、drawY（＝UNIT op.ty）、sortY（＝op.y）、sortBias、bodyCenterY、hudAnchorY。UNIT／CORPSE／AURA 提交、剪影、血條、狀態、\n";
+        s += "選取連線只讀 frames，**拿不到地形高度函式**，所以無法自己重算；engine/renderers 內只有 UnitFrame.ts 可以呼叫 getUnitGroundHeight（棘輪測試擋住）。\n";
+        s += "HUD、狀態用不含轉場位移的 floorY／hudAnchorY（沿用原行為）。模擬端（EventVFXMapper、AgentVFXSystem、hud.ts SHOUT 跟隨）在 tick 內執行，\n";
+        s += "讀不到每幀快照，維持用下表的模擬高度函式。\n\n";
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 

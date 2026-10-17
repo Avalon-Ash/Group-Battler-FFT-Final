@@ -2,6 +2,7 @@
     "height.directAgent": [
         "engine/renderers/grid/GridRenderStrategy.ts: getTerrainHeight(highlight.q, highlight.r)"
     ],
+    "height.unitGroundCallers": [],
     "anchor.recompute": [],
     "float.outsideSSOT": [],
     "event.inlinePos": [],

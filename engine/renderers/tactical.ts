@@ -1,9 +1,17 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  TacticalRenderer — 選取單位的路徑／目標連線、導播框、除錯  ║
+// ║  上游：UnitFrame（選取單位與目標的腳下高度；路徑格高度仍以  ║
+// ║        格為單位）                                           ║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "../game";
 import { GridSystem } from "../systems/grid";
 import { HexUtils } from "../utils";
 import { TACTICAL_COLORS } from "../../constants";
 import { RenderStats } from "./RenderStats";
 import { getQualityTier } from "./RenderQuality";
+import { UnitFrameStore } from "./frame/UnitFrame";
 
 export interface RenderCamera {
     x: number;
@@ -15,12 +23,14 @@ export class TacticalRenderer {
     public update(dt: number, engine: GameEngine) {
     }
 
-    public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number) {
+    public drawOverlay(ctx: CanvasRenderingContext2D, engine: GameEngine, highlight: Agent | null, grid: GridSystem, globalTime: number, frames: UnitFrameStore) {
         ctx.save();
-        if (highlight && highlight.hp > 0) {
-            const hH = grid.getTerrainHeight(highlight.q, highlight.r, engine);
+        const hFrame = highlight && highlight.hp > 0 ? frames.get(highlight) : undefined;
+        if (highlight && hFrame) {
+            // 單位的腳下高度一律來自 UnitFrame（含漂浮位移與移動過渡）；路徑格的高度維持以格為單位
+            const hH = hFrame.groundH;
             const startPx = highlight.px;
-            const startPy = highlight.py - hH - 30; 
+            const startPy = highlight.py - hH - 30;
             if (highlight.trajectory.length > 0) {
                 ctx.beginPath();
                 ctx.moveTo(startPx, startPy);
@@ -49,7 +59,7 @@ export class TacticalRenderer {
             }
             if (highlight.target && highlight.target.hp > 0) {
                 const t = highlight.target;
-                const tH = grid.getTerrainHeight(t.q, t.r, engine);
+                const tH = frames.get(t)?.groundH ?? 0;
                 const endPx = t.px;
                 const endPy = t.py - tH - 30;
                 

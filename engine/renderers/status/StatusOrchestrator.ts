@@ -4,42 +4,40 @@ import { ShieldPainter } from "./painters/ShieldPainter";
 import { OverheadPainter } from "./painters/OverheadPainter";
 import { GroundEffectPainter } from "./painters/GroundEffectPainter";
 import { StateModelPainter } from "./painters/StateModelPainter";
-import { VisualMath } from "../../math/VisualMath";
+import { UnitFrameStore } from "../frame/UnitFrame";
 import { HexLayout } from "../../../types";
-import { MapConfig } from "../../utils";
 
 /**
  * ECS Status Orchestrator v11.6
- * 負責所有單位狀態特效的座標解算與渲染分發
+ * 負責所有單位狀態特效的渲染分發
+ * [ARCH] 座標一律讀 UnitFrame（engine/renderers/frame/UnitFrame.ts；RenderSpec §3、§4），本檔不取得地形高度。
  */
 export class StatusOrchestrator {
 
     public draw(
-        ctx: CanvasRenderingContext2D, 
-        agents: Agent[], 
+        ctx: CanvasRenderingContext2D,
+        frames: UnitFrameStore,
         globalTime: number,
-        getTerrainHeight: (q: number, r: number) => number,
         layout: HexLayout = 'FLAT',
-        isTileValid?: (q: number, r: number) => boolean,
-        mapConfig?: MapConfig
+        isTileValid?: (q: number, r: number) => boolean
     ) {
-        for (const agent of agents) {
+        const list = frames.list;
+        for (let i = 0; i < list.length; i++) {
+            const frame = list[i];
+            const agent = frame.agent;
             // 跳過已徹底消失、已死亡或出界的單位
             if (agent.hp <= 0 || agent.fullyDead || agent.outOfBounds) continue;
-            
+
             // 已被放逐且地塊已消失的單位不繪製狀態
             if (agent.banished && isTileValid && !isTileValid(agent.q, agent.r)) continue;
-            
-            // 基礎幾何解算 (SSOT)
-            const px = agent.px + agent.physics.x;
-            const py = agent.py + agent.physics.y;
+
+            // 基礎幾何解算 (SSOT：UnitFrame)
+            const px = frame.footX;
             const pz = isNaN(agent.physics?.z) ? 0 : agent.physics.z;
-            
-            const terrainH = VisualMath.getUnitGroundHeight(agent, getTerrainHeight, mapConfig);
-            const visualFloorY = py - terrainH; 
-            
-            // 核心數學：解算身體中心點（用於護盾與包裹類特效）
-            const bodyCenterY = VisualMath.getVisualBodyCenterY(visualFloorY, pz);
+            const visualFloorY = frame.floorY;
+
+            // 身體中心點（用於護盾與包裹類特效）
+            const bodyCenterY = frame.bodyCenterY;
 
             // 1. 放逐/凝滯 (最高級狀態覆蓋)
             if (agent.banished) {

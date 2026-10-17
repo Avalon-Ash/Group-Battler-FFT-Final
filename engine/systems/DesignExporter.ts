@@ -53,7 +53,7 @@ export class DesignExporter {
         s += "  VisualMath.getIsoVisualY 計算含地形高度的視覺 Y 座標，確保障礙物預覽在\n";
         s += "  不同高度地形上精準對齊，不再僅使用網格中心的 px/py。\n\n";
         s += "- Core 光點拖動高度即時同步 (Core Dot Drag Height Sync):\n";
-        s += "  UnitVisualProcessor.ts 的 terrainHeight 計算現在優先檢查 agent.dragOverQ/R，\n";
+        s += "  UnitFrame.ts（engine/renderers/frame）的 groundH 計算現在優先檢查 agent.dragOverQ/R，\n";
         s += "  確保單位在跨高度地形拖動時，Core 光點（Blue 模式）即時跟隨棋座浮動，\n";
         s += "  不再發生高度落後或超前。\n\n";
         s += "- PointerProjector SSOT 職責邊界 (PointerProjector Responsibility Contract):\n";

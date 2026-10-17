@@ -67,3 +67,9 @@ export class UnitFrameStore {          // RenderPipeline 持有；物件池化�
 1. 只修證據指出的規則。
 2. sortBias 與各種特例收斂成一張表加一個 `sortKeyFor(op)`，RenderSpec §1、§2 由它生成或由測試比對。
 3. 法陣抬升的 O(單位×法陣) 迴圈保留或改格子索引，看量測結果決定。
+
+## 實作備註（2026-10-17，分支 `claude/unit-frame-b03a74`）
+- 新增 `engine/renderers/frame/UnitFrame.ts`；`UnitVisualProcessor` 已刪除（`git grep` 零引用）。`RenderPipeline` 在 `drawWorld` 的 submit 區段開頭 `frames.build(...)` 一次，`HUDRenderer`、`StatusOrchestrator`、剪影、`tactical.drawOverlay` 都讀 `frames`，不再收地形高度函式。
+- 與設計差異：① 多一個欄位 `floorY`（`footY − groundH`，不含轉場位移）給狀態與剪影；② **`bodyCenterY`／`hudAnchorY` 不含轉場位移**（沿用原 HUD／狀態行為：轉場期間它們不跟著單位飛入），設計文件寫的 `getVisualBodyCenterY(drawY, …)` 在 IDLE 時等價，轉場期間是否要跟著位移是另一個決定；③ 對所有單位建 frame（血條對 `outOfBounds` 但 hp>0 的單位仍要畫），`fullyDead` 只填最小欄位；④ `tactical.drawOverlay` 的**目標單位**（`highlight.target`）高度也改讀 `frames`（它是單位，不是格）。
+- 刻意的行為變更：拖曳預覽時血條與狀態跟著游標格（`tools/ui-e2e/drag-hud-shot.mjs`：血條與身體的距離在靜止與拖曳時都是 150）；剪影池不畫屍體，所以擊飛屍體剪影沒有變化。
+- 棘輪：`height.unitGroundCallers`（基準空）＋ `height.directAgent` 的 regex 補三參數寫法。
