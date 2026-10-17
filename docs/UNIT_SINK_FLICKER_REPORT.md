@@ -60,7 +60,7 @@ ICE／VOID／MAGMA 各 2 場大逃殺（縮圈間隔 3 秒，共 4568 幀、4269
 ## 量測（探針新增 `--force-collapse=idle|path|fight`、`PATH_TO_REMOVED`、`STALE_MOVE`）
 - 強制情境：在單位周圍造出 A1 > A2 > A3，30 幀後比照 `ZoneSystem` 移除 A1，`fight` 模式再把敵人放到 A3 讓兩邊開打。
 - **假設成立（路徑指向已消失的格子）**：`fight` 模式下單位邊走邊施法（actionState = CASTING），`path[0]` 是已塌陷的 A1，`isMoving` 仍為 true、`moveProgress` 持續前進（0.61 → 0.72 …）。`MotionEngine` 不檢查下一格是否還存在；AI 只有在 `moveAgentToHex` 被呼叫時才會驗證路徑，施法中不會重算。這段期間 `getUnitGroundHeight` 往正在墜落的 A1 高度混合，腳下高度被拉走。自然對戰 18 場沒有出現這個狀態（AI 通常來得及重算），所以它是少見但可重現的路徑。
-- **另一個更常見的原因（打鬥時）**：單位被命中後的 `physics.x/y` 位移，或瞬移／擊退後 `px/py` 還在漂向新格，精靈實際在較高的鄰格上方，腳下高度卻只看邏輯格 → 陷進較高的柱子。`fight` 模式修前 6 場有 5～7 幀連續下沉 24～72，自然對戰 15 場也有 15 筆（含連續 5 幀的受擊單位）。
+- **另一個更常見的原因（打鬥時）**：單位被命中後的 `physics.x/y` 位移，或瞬移／擊退後 `px/py` 還在漂向新格，精靈實際在較高的鄰格上方，腳下高度卻只看邏輯格 → 陷進較高的柱子。`fight` 模式修前 6 場縮圈後有受擊單位連續 5 幀以上下沉 24（ICE 一場 5 幀），自然對戰 15 場修前共 20 幀（含 MAGMA 一場連續 10 幀）。
 
 ## 根因與修法
 1. `MotionEngine`（`path`／`isMoving`／`moveProgress` 的推進者）在下一格已不存在時取消移動（每個 tick 檢查，換格後也檢查）。不在高度混合裡遮掩：路徑不再指向消失的格子，混合函式也不需要知道格子有效性。
@@ -69,7 +69,7 @@ ICE／VOID／MAGMA 各 2 場大逃殺（縮圈間隔 3 秒，共 4568 幀、4269
 ## 驗證
 | 項目 | 結果 |
 | :-- | :-- |
-| 探針，自然對戰 15 場（ICE／VOID／MAGMA × 5） | 沉入幀 14 → 1（剩下 1 筆：無敵單位所在格塌陷後高度突降，單幀，未處理） |
+| 探針，自然對戰 15 場（ICE／VOID／MAGMA × 5） | 沉入幀 20 → 1（剩下 1 筆：無敵單位所在格塌陷後高度突降，單幀，未處理） |
 | 探針 `--force-collapse=fight`（修後） | 縮圈後的受擊／路徑類沉入消失；殘留 1 幀 `PATH_TO_REMOVED` 是探針在 tick 之外強制塌陷造成的取樣假象，下個 tick 即被取消 |
 | 新增測試 | `UnitGroundHeight.test.ts`：被推進較高鄰格時不低於其頂面、不掉到較低鄰格；`MotionEngine` 下一格消失即取消移動（含換格後） |
 | `npm run lint` / `npx vitest run --dir tests`（452）/ `npm run build` | 通過 |
