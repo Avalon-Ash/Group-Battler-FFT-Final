@@ -32,6 +32,15 @@ function writePattern(field: string): RegExp {
     );
 }
 
+/** 累加以外的寫法（`=`、`*=`、…）。`+=`／`-=`／`++`／`--` 不算。accumulators 清單裡的檔案只准累加。 */
+function nonAccumulatePattern(field: string): RegExp {
+    const assign = String.raw`\s*(?:[*/%|&]|\*\*|\?\?|\|\||&&)?=(?!=)`;
+    return new RegExp(
+        String.raw`\.${field}\b(?:${assign}|\.\w+${assign}|\[[^\]]*\]${assign}|\.(?:push|pop|shift|unshift|splice|fill|sort|reverse)\()`,
+        'g',
+    );
+}
+
 function stripComments(src: string): string {
     return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
 }
@@ -42,11 +51,14 @@ function scanOwnershipViolations(): string[] {
     const violations = new Set<string>();
     for (const [field, own] of Object.entries(AGENT_FIELD_OWNERS) as [string, AgentFieldOwnership][]) {
         const allowed = new Set([...own.owners, ...(own.lifecycle ?? [])]);
+        const accumulators = new Set(own.accumulators ?? []);
         const re = writePattern(field);
+        const reNonAccumulate = nonAccumulatePattern(field);
         for (const [file, src] of contents) {
             if (allowed.has(file)) continue;
-            re.lastIndex = 0;
-            if (re.test(src)) violations.add(`${field}@${file}`);
+            const re2 = accumulators.has(file) ? reNonAccumulate : re;
+            re2.lastIndex = 0;
+            if (re2.test(src)) violations.add(`${field}@${file}`);
         }
     }
     return [...violations].sort();
@@ -84,5 +96,18 @@ describe('Agent field ownership ratchet', () => {
         expect(re.test('a.hitFlashTimer === 0')).toBe(false);
         const off = writePattern('visualOffset');
         expect(off.test('t.visualOffset.x = 1')).toBe(true);
+    });
+
+    it('accumulator pattern allows += / -= but flags plain, multiplicative and index writes', () => {
+        const acc = nonAccumulatePattern('physics');
+        expect(acc.test('a.physics.vx += 3;')).toBe(false);
+        acc.lastIndex = 0;
+        expect(acc.test('a.physics.vz -= g * dt;')).toBe(false);
+        acc.lastIndex = 0;
+        expect(acc.test('a.physics.z = 0;')).toBe(true);
+        acc.lastIndex = 0;
+        expect(acc.test('a.physics.vx *= 0.5;')).toBe(true);
+        acc.lastIndex = 0;
+        expect(acc.test('if (a.physics.z === 0)')).toBe(false);
     });
 });

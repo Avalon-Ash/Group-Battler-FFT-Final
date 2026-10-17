@@ -17,12 +17,29 @@ export interface AgentFieldOwnership {
     /** single：只有一個模組寫；domain：同一 tick 階段、互相知道對方的一組模組視為同一擁有者。 */
     kind: 'single' | 'domain';
     owners: readonly string[];
+    /** 只准累加（+=／-=）的模組：衝量、牽引、瞬移補償等；其他寫法（=、*=、…）算違規。 */
+    accumulators?: readonly string[];
     /** 生成／死亡重設／編輯器命令等生命週期寫入者。 */
     lifecycle?: readonly string[];
     note?: string;
 }
 
 export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>> = {
+    physics: {
+        group: 'physics',
+        kind: 'domain',
+        owners: ['engine/physics/PhysicsEngine.ts', 'engine/systems/movement/MotionEngine.ts'],
+        accumulators: [
+            'engine/systems/HazardSystem.ts',
+            'engine/systems/combat/CCManager.ts',
+            'engine/systems/combat/SkillExecutor.ts',
+            'engine/systems/movement/MotionCommands.ts',
+            'engine/systems/movement/MovementSystem.ts',
+            'engine/systems/movement/StackingResolver.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '積分與 z／vz 的直接改寫只在 PhysicsEngine（startVoidFall、absorbGroundShift 是給別人呼叫的 API）；MotionEngine 只在抵達時阻尼速度；其餘模組只准對速度／偏移 +=。',
+    },
     isMoving: {
         group: 'locomotion',
         kind: 'domain',
