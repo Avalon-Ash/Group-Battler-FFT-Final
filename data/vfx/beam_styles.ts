@@ -4,6 +4,9 @@
 // 光束本體是程序化繪製（ProceduralPainter.drawBeam），樣式決定寬度與邊緣；顏色由序列動作帶入。
 // =========================================================================================
 
+import { Team } from '../../types';
+import { VFX_RAMPS, type VFXRamp } from './parts/vfxPalette';
+
 export interface BeamStyleDef {
     /** 起始寬度（canvas 單位）；隨生命週期收窄 */
     width: number;
@@ -22,6 +25,12 @@ const DEFS = {
     /** 灰燼：血鏈／吸取連線（細） */
     BLOOD_LINK: { width: 4 },
 } as const satisfies Record<string, BeamStyleDef>;
+
+/** 光束的陣營色：管身取 ramp.main、最內芯取 ramp.core（獅心＝金白、灰燼＝緋紅） */
+export const FACTION_BEAM_RAMP: Record<Team, VFXRamp> = {
+    [Team.BLUE]: VFX_RAMPS.LION_HOLY,
+    [Team.RED]: VFX_RAMPS.ASH_BLOOD,
+};
 
 export type BeamStyleId = keyof typeof DEFS;
 export const BEAM_STYLES: Record<BeamStyleId, BeamStyleDef> = DEFS;

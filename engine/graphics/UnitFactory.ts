@@ -7,6 +7,7 @@ import { FactionSkin, PedestalStyle } from "../../data/units/factionSkin";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
 import { MaterialPainter } from "./materials/MaterialPainter";
 import { PedestalOutline, tracePedestalOutline } from "./units/PedestalGeometry";
+import { CLASS_GLYPHS, CLASS_GLYPH_STYLE, type GlyphStyleId } from "../../data/units/classGlyphs";
 
 /** 棋座畫布尺寸（UnitShadowPainter 以 -BASE/2 對齊中心） */
 export const PEDESTAL_CANVAS_SIZE = 128;
@@ -63,50 +64,33 @@ function drawTopDownTexture(
     ctx.restore();
 }
 
-/** 職業圖示的程序化字形（兩陣營共用形狀，顏色由皮膚決定） */
-function drawClassGlyph(ctx: CanvasRenderingContext2D, role: Role, color: string): void {
-    ctx.beginPath();
-    if (role === Role.TANK) {
-        ctx.rect(-10, -12, 20, 24);
-        ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(-10, 0); ctx.lineTo(10, 0); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, -12); ctx.lineTo(0, 12); ctx.stroke();
-    } else if (role === Role.WARRIOR) {
-        ctx.moveTo(-10, -10); ctx.lineTo(10, 10);
-        ctx.moveTo(-6, -10); ctx.lineTo(-10, -6);
-        ctx.moveTo(6, 10); ctx.lineTo(10, 6);
-        ctx.stroke();
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(-4, -4); ctx.lineTo(0, -8); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(4, -4); ctx.stroke();
-    } else if (role === Role.RANGER) {
-        ctx.arc(0, 0, 10, 0, Math.PI * 2);
-        ctx.stroke();
+/** 職業圖示的程序化字形：形狀與風格來自 data/units/classGlyphs.ts，顏色由皮膚決定 */
+function drawClassGlyph(ctx: CanvasRenderingContext2D, role: Role, glyph: GlyphStyleId): void {
+    const style = CLASS_GLYPH_STYLE[glyph];
+    ctx.lineJoin = style.lineJoin;
+    ctx.lineCap = style.lineCap;
+    for (const shape of CLASS_GLYPHS[glyph][role]) {
         ctx.beginPath();
-        ctx.moveTo(0, -14); ctx.lineTo(0, -6);
-        ctx.moveTo(0, 6); ctx.lineTo(0, 14);
-        ctx.moveTo(-14, 0); ctx.lineTo(-6, 0);
-        ctx.moveTo(6, 0); ctx.lineTo(14, 0);
+        if (shape.kind === 'circle') {
+            ctx.arc(shape.x, shape.y, shape.r, 0, Math.PI * 2);
+        } else {
+            const p = shape.pts;
+            ctx.moveTo(p[0], p[1]);
+            for (let i = 2; i < p.length; i += 2) ctx.lineTo(p[i], p[i + 1]);
+            if (shape.close) ctx.closePath();
+        }
+        if (shape.solid) {
+            ctx.fill();
+            continue;
+        }
+        if (shape.fillAlpha) {
+            const prev = ctx.globalAlpha;
+            ctx.globalAlpha = prev * shape.fillAlpha;
+            ctx.fill();
+            ctx.globalAlpha = prev;
+        }
+        ctx.lineWidth = (shape.kind === 'poly' && shape.width) || style.lineWidth;
         ctx.stroke();
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(0, 0, 2, 0, Math.PI * 2); ctx.fill();
-    } else if (role === Role.MAGE) {
-        ctx.beginPath();
-        ctx.moveTo(0, 10); ctx.lineTo(0, -6);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(0, -10, 5, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.moveTo(6, -14); ctx.lineTo(10, -18); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(-6, -14); ctx.lineTo(-10, -18); ctx.stroke();
-    } else if (role === Role.SUPPORT) {
-        ctx.beginPath();
-        ctx.moveTo(0, -12); ctx.lineTo(0, 12);
-        ctx.moveTo(-10, 0); ctx.lineTo(10, 0);
-        ctx.stroke();
-        ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.stroke();
     }
 }
 
@@ -166,7 +150,7 @@ export const UnitFactory = {
         ctx.translate(CLASS_ICON_CANVAS_SIZE / 2, CLASS_ICON_CANVAS_SIZE / 2);
         ctx.translate(0, -4);   // 上移 4px，製造懸浮高度
         ctx.scale(1.1, 1.1);
-        drawClassGlyph(ctx, role, color);
+        drawClassGlyph(ctx, role, skin.classIcon.glyph);
         return canvas;
     },
 

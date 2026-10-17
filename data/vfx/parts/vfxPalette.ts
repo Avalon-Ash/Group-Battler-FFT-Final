@@ -21,7 +21,7 @@ export const VFX_RAMPS = {
     ASH_BLOOD: { core: '#fca5a5', main: '#dc2626', dark: '#7f1d1d' },
     ASH_FIRE: { core: '#fde68a', main: '#f97316', dark: '#dc2626' },
     ASH_POISON: { core: '#d9f99d', main: '#84cc16', dark: '#365314' },
-    ASH_VOID: { core: '#dc2626', main: '#3b0764', dark: '#000000' },
+    ASH_VOID: { core: '#f0abfc', main: '#7e22ce', dark: '#2e1065' },
 } as const satisfies Record<string, VFXRamp>;
 
 export type VFXRampId = keyof typeof VFX_RAMPS;

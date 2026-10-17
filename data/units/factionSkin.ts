@@ -17,6 +17,7 @@ import { HUD_COLORS, PALETTE, THEME_IMPERIAL, THEME_COVENANT } from '../../const
 import { FACTION_VISUALS } from '../vfx/faction_visuals';
 import { UNIT_APPEARANCE } from './appearance';
 import { BODY_TYPE_PROFILE } from './appearance/bodyTypes';
+import type { GlyphStyleId } from './classGlyphs';
 
 /** Manifest 與檔案路徑使用的陣營鍵（與單位圖集 manifestKey 前綴一致） */
 export type FactionKey = 'BLUE' | 'RED';
@@ -99,6 +100,8 @@ export interface PedestalSkin {
 export interface ClassIconSkin {
     color: string;
     glow: string;
+    /** 程序化字形風格（classGlyphs.ts）：獅心乾淨、灰燼鋸齒 */
+    glyph: GlyphStyleId;
 }
 
 export interface SpriteSkin {
@@ -149,6 +152,7 @@ interface FactionStyleDef {
     emblemScale: number;
     ember: string;
     shieldStroke: string;
+    glyph: GlyphStyleId;
 }
 
 const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
@@ -167,6 +171,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemScale: 0.38,
         ember: '#fcd34d',
         shieldStroke: THEME_IMPERIAL.energy,
+        glyph: 'CLEAN',
     },
     // Ashen：碎裂焦黑的六角棋座、裂縫透出餘燼
     RED: {
@@ -183,6 +188,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemScale: 0.3,
         ember: '#f97316',
         shieldStroke: THEME_COVENANT.primary,
+        glyph: 'JAGGED',
     },
 };
 
@@ -225,7 +231,7 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
             textureAlpha: 1,
             weatherHighlight: ap.highlightColor ?? palette.light,
         },
-        classIcon: { color: ap.iconColor, glow: ap.iconGlow },
+        classIcon: { color: ap.iconColor, glow: ap.iconGlow, glyph: style.glyph },
         sprite: { atlasKey: `${key}:${role}:${body}`, tint: null },
         projection: {
             style: style.projectionStyle,

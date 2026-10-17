@@ -323,7 +323,7 @@ export const ProceduralPainter= {
                 ctx.restore();
                 return;
             }
-            MaterialPainter.drawLayeredBeam(ctx, dist, Math.max(1, width), p.color, now);
+            MaterialPainter.drawLayeredBeam(ctx, dist, Math.max(1, width), p.color, now, p.beamCore);
             if (isDeathRay) {
                 ctx.strokeStyle = p.color;
                 ctx.lineWidth = 1;
