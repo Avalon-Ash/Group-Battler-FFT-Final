@@ -50,3 +50,32 @@ ICE／VOID／MAGMA 各 2 場大逃殺（縮圈間隔 3 秒，共 4568 幀、4269
 - 受擊位移（`physics.x/y`）把單位推進較高鄰格時，腳仍畫在邏輯格高度（量測 3 幀）。
 - `PhysicsSystem`／`AgentVFXSystem`／`UnitFlightPainter` 的軌跡與生成特效仍用邏輯格高度，走路途中與身體差最多一階。
 - 輪廓補畫只看相鄰格。
+
+---
+
+# 追加：縮圈塌陷後單位下沉（分支 `fix/unit-sink-collapse`）
+
+回報：A1 > A2 > A3 三格，A1 塌陷後，站在 A2 的單位與 A3 的單位互毆時會沉到 A2 地面以下（「單位高度不是即時的」）。
+
+## 量測（探針新增 `--force-collapse=idle|path|fight`、`PATH_TO_REMOVED`、`STALE_MOVE`）
+- 強制情境：在單位周圍造出 A1 > A2 > A3，30 幀後比照 `ZoneSystem` 移除 A1，`fight` 模式再把敵人放到 A3 讓兩邊開打。
+- **假設成立（路徑指向已消失的格子）**：`fight` 模式下單位邊走邊施法（actionState = CASTING），`path[0]` 是已塌陷的 A1，`isMoving` 仍為 true、`moveProgress` 持續前進（0.61 → 0.72 …）。`MotionEngine` 不檢查下一格是否還存在；AI 只有在 `moveAgentToHex` 被呼叫時才會驗證路徑，施法中不會重算。這段期間 `getUnitGroundHeight` 往正在墜落的 A1 高度混合，腳下高度被拉走。自然對戰 18 場沒有出現這個狀態（AI 通常來得及重算），所以它是少見但可重現的路徑。
+- **另一個更常見的原因（打鬥時）**：單位被命中後的 `physics.x/y` 位移，或瞬移／擊退後 `px/py` 還在漂向新格，精靈實際在較高的鄰格上方，腳下高度卻只看邏輯格 → 陷進較高的柱子。`fight` 模式修前 6 場有 5～7 幀連續下沉 24～72，自然對戰 15 場也有 15 筆（含連續 5 幀的受擊單位）。
+
+## 根因與修法
+1. `MotionEngine`（`path`／`isMoving`／`moveProgress` 的推進者）在下一格已不存在時取消移動（每個 tick 檢查，換格後也檢查）。不在高度混合裡遮掩：路徑不再指向消失的格子，混合函式也不需要知道格子有效性。
+2. `VisualMath.getUnitGroundHeight` 新增可選的 `mapConfig`：腳下高度不得低於精靈實際所在格（`px + physics.x`）的頂面（只取較高者，不會憑空掉到較低鄰格）。身體、血條、狀態圖示、投射物錨點、輪廓遮擋判斷、`map.updateAgentPosition` 的補償都傳入。`StatusOrchestrator.draw` 多一個可選參數（`RenderPipeline` 傳入）。
+
+## 驗證
+| 項目 | 結果 |
+| :-- | :-- |
+| 探針，自然對戰 15 場（ICE／VOID／MAGMA × 5） | 沉入幀 14 → 1（剩下 1 筆：無敵單位所在格塌陷後高度突降，單幀，未處理） |
+| 探針 `--force-collapse=fight`（修後） | 縮圈後的受擊／路徑類沉入消失；殘留 1 幀 `PATH_TO_REMOVED` 是探針在 tick 之外強制塌陷造成的取樣假象，下個 tick 即被取消 |
+| 新增測試 | `UnitGroundHeight.test.ts`：被推進較高鄰格時不低於其頂面、不掉到較低鄰格；`MotionEngine` 下一格消失即取消移動（含換格後） |
+| `npm run lint` / `npx vitest run --dir tests`（452）/ `npm run build` | 通過 |
+| `perf:guard` | 通過，保真基準無需重錄（`battle_frozen` meanAbsDiff 0.113） |
+| `br-soak --seeds=20 --shrinkInterval=3 --assert-ghost --assert-idle` | 20/20 乾淨 |
+
+## 已知未處理
+- 瞬移／擊退到較低格後，精靈漂進該格的瞬間腳下高度會一次降到新格高度（原本是 `physics.z` 快速落下）。
+- 無敵單位所在格塌陷（`hp` 未歸零）時高度單幀突降。

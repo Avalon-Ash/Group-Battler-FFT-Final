@@ -45,8 +45,8 @@ export class MapSystem {
         // VisualMath.getUnitGroundHeight：走路抵達下一格時它已經過渡到目標高度，差值為 0，
         // 瞬移／衝刺／擊退則依高度差由 physics.z 吸收（再由 PhysicsEngine 落下或夾平）。
         const heightAt = (q: number, r: number) => engine.getTerrainHeight(q, r);
-        const oldH = VisualMath.getUnitGroundHeight(agent, heightAt);
-        const newH = VisualMath.getUnitGroundHeight({ q: newQ, r: newR, isMoving: agent.isMoving, path: agent.path, moveProgress: agent.moveProgress }, heightAt);
+        const oldH = VisualMath.getUnitGroundHeight(agent, heightAt, engine.mapConfig);
+        const newH = VisualMath.getUnitGroundHeight({ q: newQ, r: newR, isMoving: agent.isMoving, path: agent.path, moveProgress: agent.moveProgress, px: agent.px, py: agent.py, physics: agent.physics }, heightAt, engine.mapConfig);
         const deltaH = oldH - newH;
         agent.physics.z += deltaH;
         this.agentMap.delete(HexUtils.hash(agent.q, agent.r));

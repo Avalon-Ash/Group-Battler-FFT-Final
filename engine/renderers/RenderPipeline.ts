@@ -249,7 +249,7 @@ export class RenderPipeline {
         
         // [FIX] Pass layout and map validity to StatusOrchestrator
         CtxOpCounter.track('status', () => {
-            this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout, (q, r) => engine.map.isValid(q, r));
+            this.renderer.statusOrchestrator.draw(ctx, engine.agents, t, terrainH, engine.mapConfig.layout, (q, r) => engine.map.isValid(q, r), engine.mapConfig);
         });
     }
 }

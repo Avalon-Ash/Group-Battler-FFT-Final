@@ -77,19 +77,29 @@ export class VisualMath {
      * 不在移動中時等於邏輯格高度；移動中依 moveProgress 在目前格與下一格之間過渡（見 UNIT_STEP_BLEND）。
      */
     public static getUnitGroundHeight(
-        agent: Pick<Agent, 'q' | 'r' | 'isMoving' | 'path' | 'moveProgress'>,
-        heightAt: (q: number, r: number) => number
+        agent: Pick<Agent, 'q' | 'r' | 'isMoving' | 'path' | 'moveProgress' | 'px' | 'py' | 'physics'>,
+        heightAt: (q: number, r: number) => number,
+        mapConfig?: MapConfig
     ): number {
-        const hA = heightAt(agent.q, agent.r);
-        if (!agent.isMoving || agent.path.length === 0) return hA;
-        const next = agent.path[0];
-        const hB = heightAt(next.q, next.r);
-        if (hB === hA) return hA;
-        const t = Math.max(0, Math.min(1, agent.moveProgress));
-        const k = hB > hA
-            ? VisualMath.smoothstep(UNIT_STEP_BLEND.RISE_START, UNIT_STEP_BLEND.RISE_END, t)
-            : VisualMath.smoothstep(UNIT_STEP_BLEND.FALL_START, UNIT_STEP_BLEND.FALL_END, t);
-        return hA + (hB - hA) * k;
+        let h = heightAt(agent.q, agent.r);
+        if (agent.isMoving && agent.path.length > 0) {
+            const next = agent.path[0];
+            const hB = heightAt(next.q, next.r);
+            if (hB !== h) {
+                const t = Math.max(0, Math.min(1, agent.moveProgress));
+                const k = hB > h
+                    ? VisualMath.smoothstep(UNIT_STEP_BLEND.RISE_START, UNIT_STEP_BLEND.RISE_END, t)
+                    : VisualMath.smoothstep(UNIT_STEP_BLEND.FALL_START, UNIT_STEP_BLEND.FALL_END, t);
+                h = h + (hB - h) * k;
+            }
+        }
+        if (mapConfig) {
+            // 精靈不一定在邏輯格上方：受擊／擊退的 physics 位移、瞬移後 px/py 還在漂向新格、換路徑時 moveProgress 對不上位置。
+            // 腳下地面不得低於精靈實際所在格的頂面（否則腳陷進較高的柱子）；較低的鄰格不降（不憑空掉落）。
+            const hv = HexUtils.fromPx(agent.px + agent.physics.x, agent.py + agent.physics.y, mapConfig);
+            if (hv.q !== agent.q || hv.r !== agent.r) h = Math.max(h, heightAt(hv.q, hv.r));
+        }
+        return h;
     }
 
     private static smoothstep(edge0: number, edge1: number, x: number): number {
@@ -128,7 +138,7 @@ export class VisualMath {
     }
 
     public static getUnitAnchor(agent: Agent, engine: GameEngine): Point3D {
-        const terrainH = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r));
+        const terrainH = VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
         // UNIT_BODY_OFFSET represents the vertical center/chest in 3D space.
         // For 2D screen-space projectile endpoints, use getProjectileTargetY() instead.
         const z = terrainH + agent.physics.z + UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET;

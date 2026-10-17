@@ -15,7 +15,7 @@ export class HUDRenderer {
             if (a.hp <= 0 || a.spawnTimer > 0) return;
             
             // SSOT：與身體共用同一個腳下高度（邏輯座標＋移動過渡；不用 fromPx，避免物理漂移跨格造成抖動）
-            const h = VisualMath.getUnitGroundHeight(a, getTerrainHeight);
+            const h = VisualMath.getUnitGroundHeight(a, getTerrainHeight, mapConfig);
 
             // SSOT: Use Unified Projection Formula
             const anchorY = VisualMath.getEntityVisualY(a.py, h, a.physics.y, a.physics.z, -HUD_BAR_OFFSET);

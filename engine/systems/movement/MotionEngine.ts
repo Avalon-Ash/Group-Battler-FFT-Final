@@ -16,6 +16,14 @@ export class MotionEngine {
             return;
         }
 
+        // 路徑上的下一格已消失（縮圈塌陷）：本系統是 path／isMoving 的推進者，就在這裡停下，
+        // 不能等 AI 下一次重新尋路（施法等狀態下 AI 不會重算，單位會一直朝已不存在的格子走，
+        // 腳下高度也會被拉向正在墜落的地塊）。
+        if (!spatial.isValid(a.path[0].q, a.path[0].r)) {
+            this.cancelMove(a);
+            return;
+        }
+
         const moveDelta = a.moveSpeed * a.moveSpeedMult * dt;
         a.moveProgress += moveDelta;
 
@@ -24,6 +32,10 @@ export class MotionEngine {
             spatial.updateAgentPosition(a, nextHex.q, nextHex.r);
             a.path.shift();
             a.moveProgress -= 1.0;
+            if (a.path.length > 0 && !spatial.isValid(a.path[0].q, a.path[0].r)) {
+                this.cancelMove(a);
+                return;
+            }
         }
 
         if (a.path.length === 0) {
@@ -53,6 +65,13 @@ export class MotionEngine {
             a.trailHistory.push({ x: a.px, y: a.py, z: a.physics.z, h });
             if (a.trailHistory.length > TRAIL_HISTORY_LENGTH) a.trailHistory.shift();
         }
+    }
+
+    private static cancelMove(a: Agent) {
+        a.isMoving = false;
+        a.path = [];
+        a.trajectory = [];
+        a.moveProgress = 0;
     }
 
     private static finalizeMove(a: Agent) {
