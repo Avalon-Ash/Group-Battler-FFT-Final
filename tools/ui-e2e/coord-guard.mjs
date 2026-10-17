@@ -36,7 +36,7 @@ const BIOMES = val('biomes', 'FOREST,VOID').split(',');
 const FLOAT_FRAMES = Number(val('floatFrames', 90));
 const FXFX = flag('fxfx');
 const IDLE_FRAMES = 240;
-const NO_DECAL_LIFT = flag('no-decal-lift'); // experiment: disable RenderList's decal lift (VFX_RENDER.DECAL_LIFT_MIN_HALF_H = 1e9) to prove its share of the flicker
+const NO_DECAL_LIFT = flag('no-decal-lift'); // experiment: disable the ground drape (GROUND_DRAPE.MIN_HALF_H = 1e9) so large flat effects are sorted ops again (the old decal lift no longer exists)
 const INJECT_SINK = Number(val('injectSink', 0)); // negative control: shift unit ops down N px before the sink check
 
 const { server, port } = await startServer(3213);
@@ -150,7 +150,7 @@ if (DO_SINK) {
 if (DO_FLICKER) {
     const ds = battles.map((r) => r.decalStats);
     const sum = (k) => ds.reduce((a, d) => a + d[k], 0);
-    console.log(`DECALS (ground VFX with gHalfH >= DECAL_LIFT_MIN_HALF_H) seen=${sum('decalsSeen')} in ${sum('decalFramesWithDecals')} frames; lifetimes(frames): <=3:${ds.reduce((a, d) => a + d.lifetimeFrames.le3, 0)} 4-10:${ds.reduce((a, d) => a + d.lifetimeFrames.f4to10, 0)} 11-30:${ds.reduce((a, d) => a + d.lifetimeFrames.f11to30, 0)} >30:${ds.reduce((a, d) => a + d.lifetimeFrames.gt30, 0)}; with submit gaps: ${sum('withGaps')}; unit-frames lifted ${sum('liftedUnitFrames')}/${sum('unitFrames')}`);
+    console.log(`DECALS (ground VFX with gHalfH >= GROUND_DRAPE.MIN_HALF_H) seen=${sum('decalsSeen')} in ${sum('decalFramesWithDecals')} frames; lifetimes(frames): <=3:${ds.reduce((a, d) => a + d.lifetimeFrames.le3, 0)} 4-10:${ds.reduce((a, d) => a + d.lifetimeFrames.f4to10, 0)} 11-30:${ds.reduce((a, d) => a + d.lifetimeFrames.f11to30, 0)} >30:${ds.reduce((a, d) => a + d.lifetimeFrames.gt30, 0)}; with submit gaps: ${sum('withGaps')}; unit-frames lifted ${sum('liftedUnitFrames')}/${sum('unitFrames')}`);
     const byType = {};
     for (const d of ds) for (const [t, v] of Object.entries(d.byType)) { const x = (byType[t] ||= { count: 0, frames: 0, withGaps: 0 }); x.count += v.count; x.frames += v.frames; x.withGaps += v.withGaps; }
     console.log('  by type: ' + Object.entries(byType).map(([t, v]) => `${t}=${v.count}(${(v.frames / v.count).toFixed(1)}f avg, ${v.withGaps} gapped)`).join('  '));

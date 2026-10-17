@@ -138,3 +138,18 @@ FOREST 3 場 1,601 次、VOID 3 場 1,745 次（兩種地形差不多）。閒�
 - 修正輪的驗收：`npm run verify:coords -- --assert` 的震盪事件要大幅下降（先看靜止事件 1,024 → 接近 0，再看總數），sink 維持 0；`perf:guard` 與保真基準照常跑（排序規則一動，單格保真基準可能需要說明）。任何修正不要放寬閾值，要的是讓鍵對時間連續（例如對 lift 加遲滯或讓法陣範圍判定與壽命脫鉤，對 sortBias 與 z 加權設計單調鍵）。
 - 若要確認肉眼可見：對 §6 的座標在震盪幀區間逐幀截圖，比較重疊的兩個 op 是否真的像素重疊。
 - 副帶發現（不屬於本輪）：`tools/ui-e2e/br-soak.mjs` 的時鐘倒退問題（§2）。
+
+## 7. 修正結果（H1、H2；2026-10-17，分支 `claude/keen-faraday-6d08d6`）
+
+修法：H1 → 貼地鋪設（`engine/renderers/GroundDrape.ts`，RenderSpec §9）；法陣抬升已刪。H2 → `UnitFrameStore` 的排序用腳下格滯後（`UNIT_FRAME.HEX_HYSTERESIS_PX`＝3，RenderSpec §2）。H3、H4 未動。同一套種子、同一個探針（閾值與定義沒改）：
+
+| 項目 | 修正前 | 修正後 |
+| :-- | --: | --: |
+| 順序翻轉總數 | 42,793 | 14,940 |
+| 震盪事件 | 3,340 | **647** |
+| 段數 | 2,841 | 564 |
+| 兩者皆未移動 >2 px 的事件 | 1,024 | **61** |
+| float VOID／MAGMA | PASS | PASS |
+| sink 違規（腳陷地） | 0 | 0（另有同一個單格 over-void 樣本，未變） |
+
+剩餘 647 依型別組合：UNIT×VFX 199、TERRAIN×VFX 151、AURA×VFX 78、OVERLAY×VFX 74、HAZARD×VFX 62、CORPSE×VFX 26、OBSTACLE×VFX 12、TERRAIN×UNIT 11、其餘共 34。幾乎全是「空中粒子 × 某物」：driver 以 z 加權（H3）與單位／粒子 y 抖動（H4）為主；靜止的 61 件中 AURA×VFX 33、UNIT×VFX 10、TERRAIN×VFX 7、OVERLAY×VFX 4、HAZARD×VFX 3，其餘 4。UNIT×UNIT 100 → 6、CORPSE×UNIT 34 → 4。

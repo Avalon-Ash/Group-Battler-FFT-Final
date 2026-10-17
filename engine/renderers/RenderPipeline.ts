@@ -4,7 +4,8 @@
 // ║        傳給特效與 UnitFrameStore；drawWorld 開頭建一次     ║
 // ║        UnitFrame，單位、HUD、狀態、剪影、選取連線都讀它    ║
 // ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5；  ║
-// ║  模擬端永遠不讀繪製用高度。                                ║
+// ║  模擬端永遠不讀繪製用高度。每幀 begin 貼地鋪設層（§9），    ║
+// ║  VFXRenderer 登記、RenderDispatcher 逐格繪製。             ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -17,6 +18,7 @@ import { HUDRenderer } from "./HUDRenderer";
 import { UnitFrameStore } from "./frame/UnitFrame";
 import { PostProcessor } from "./PostProcessor"; 
 import { RenderList, RenderOpType } from "./RenderList";
+import { GroundDrapeLayer } from "./GroundDrape";
 import { RenderDispatcher } from "./RenderDispatcher";
 import { VisualMath } from "../math/VisualMath";
 import { HexUtils } from "../utils";
@@ -47,6 +49,8 @@ export class RenderPipeline {
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
+    /** 本幀貼地鋪設特效（VFXRenderer 登記、RenderDispatcher 逐格繪製；RenderSpec §9） */
+    private groundDrape = new GroundDrapeLayer();
     /** 每幀單位快照；唯一寫入者是 build（drawWorld 開頭），其餘只讀 */
     private frames = new UnitFrameStore();
     /** 屍體擊飛滑出已塌陷地塊就墜落用；與 _cachedTerrainH 同生命週期 */
@@ -189,6 +193,7 @@ export class RenderPipeline {
 
     private drawWorld(ctx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, hoveredHex: Hex | null, hoveredSkill: Skill | null, t: number, dt: number) {
         this.renderList.reset();
+        this.groundDrape.begin();
 
         if (this._terrainHEngine !== engine || !this._cachedTerrainH) {
             this._terrainHEngine = engine;
@@ -216,7 +221,7 @@ export class RenderPipeline {
             this._viewportScratch.width = lW;
             this._viewportScratch.height = lH;
             this._viewportScratch.camera = camera;
-            this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
+            this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, this.groundDrape, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
             this.renderer.unit.submitRenderables(this.renderList, this.frames, t, highlight, dt);
         });
         
@@ -238,7 +243,7 @@ export class RenderPipeline {
                               op.type === RenderOpType.OVERLAY ? 'overlay' : 'other';
                 CtxOpCounter.setScope(scope);
             }
-            RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit);
+            RenderDispatcher.dispatch(ctx, op, engine.mapConfig.layout, t, this.renderer.unit, this.groundDrape);
         }
 
         // [FIX] 編輯模式（isRunning === false）下禁用 silhouette pass：

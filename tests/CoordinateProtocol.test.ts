@@ -12,7 +12,7 @@ import { UnitRenderSystem } from '../engine/systems/unit/UnitSystem';
 import { UnitFrameStore } from '../engine/renderers/frame/UnitFrame';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
-import { FLOAT_BOB, HUD_BAR_OFFSET, VFX_RENDER } from '../constants';
+import { FLOAT_BOB, GROUND_DRAPE, HUD_BAR_OFFSET, UNIT_FRAME, VFX_GROUND_TYPES, VFX_RENDER } from '../constants';
 import { Team } from '../types';
 
 const ROOT = path.resolve(__dirname, '..');
@@ -136,10 +136,26 @@ describe('RenderSpec matches the implementation', () => {
         const vfx = /const VFX_TIEBREAK = ([\d.]+)/.exec(renderList)![1];
         expect(spec).toContain(`CORPSE +${corpse}`);
         expect(spec).toContain(`PROJECTILE +${vfx}`);
-        for (const k of ['GROUND_SORT_BIAS', 'DECAL_LIFT_MIN_HALF_H', 'GROUND_Z_BIAS', 'GROUND_VISUAL_BIAS'] as const) {
+        for (const k of ['GROUND_SORT_BIAS', 'GROUND_Z_BIAS', 'GROUND_VISUAL_BIAS'] as const) {
             expect(VFX_RENDER[k], k).toBeTypeOf('number');
             expect(spec).toContain(k);
         }
+    });
+
+    it('ground drape: spec names the constants, every drape type is a ground type, no decal lift remains', () => {
+        for (const k of ['GROUND_DRAPE.MODE', 'GROUND_DRAPE.MIN_HALF_H', 'UNIT_FRAME.HEX_HYSTERESIS_PX']) expect(spec, k).toContain(k);
+        expect(GROUND_DRAPE.MIN_HALF_H).toBeTypeOf('number');
+        expect(UNIT_FRAME.HEX_HYSTERESIS_PX).toBeTypeOf('number');
+        for (const [type, mode] of Object.entries(GROUND_DRAPE.MODE)) {
+            expect(VFX_GROUND_TYPES.has(type), type).toBe(true);
+            expect(['DIRECT', 'OFFSCREEN']).toContain(mode);
+            expect(spec, type).toContain(type);
+        }
+        // 直立或有高度的地面錨定特效不得鋪設（會被裁切到頂面而斷頭）
+        for (const upright of ['PILLAR', 'HEX_BEAM', 'DOMAIN', 'GIANT_HEX', 'BLACK_HOLE']) {
+            expect(GROUND_DRAPE.MODE[upright], upright).toBeUndefined();
+        }
+        expect(renderList).not.toMatch(/DECAL_LIFT|decalView|MIN_HALF_H/);
     });
 
     it('every SSOT helper the spec names exists on VisualMath', () => {
@@ -263,6 +279,53 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
         const op = list.ops.slice(0, list.count).find(o => o.type === RenderOpType.CORPSE)!;
         expect(op.ty).toBe(f.drawY);
         expect(op.y).toBe(f.sortY);
+    });
+
+    describe('sort hex hysteresis', () => {
+        const hexAt = (a: Agent, store: UnitFrameStore) => { const h = store.get(a)!.hexUnderFoot; return `${h.q},${h.r}`; };
+        const run = (a: Agent, store: UnitFrameStore) => store.build([a], heightAt, MAP, 0, 'IDLE');
+        /** 沿著 (0,0)→(0,1) 兩格心連線，腳 Y 從 t=0（0,0 格心）走到 t=1（0,1 格心） */
+        const footAt = (a: Agent, t: number) => {
+            const c0 = HexUtils.toPx(0, 0, MAP);
+            const c1 = HexUtils.toPx(0, 1, MAP);
+            a.physics.x = (c0.x + (c1.x - c0.x) * t) - a.px;
+            a.physics.y = (c0.y + (c1.y - c0.y) * t) - a.py;
+        };
+
+        it('sits on the old hex until the foot is clearly inside the new one', () => {
+            const a = new Agent('H', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            footAt(a, 0.2); run(a, store);
+            expect(hexAt(a, store)).toBe('0,0');
+            // 原始格已換成 (0,1)，但距離差小於滯後 → 排序格不動
+            const c0 = HexUtils.toPx(0, 0, MAP), c1 = HexUtils.toPx(0, 1, MAP);
+            const total = Math.hypot(c1.x - c0.x, c1.y - c0.y);
+            let t = 0.2, switchedAt = -1;
+            for (; t <= 1; t += 0.005) {
+                footAt(a, t); run(a, store);
+                if (hexAt(a, store) === '0,1') { switchedAt = t; break; }
+            }
+            expect(switchedAt).toBeGreaterThan(0.5);
+            // 切換時新格比舊格近至少 HEX_HYSTERESIS_PX
+            const foot = { x: a.px + a.physics.x, y: a.py + a.physics.y };
+            const dOld = Math.hypot(foot.x - c0.x, foot.y - c0.y), dNew = Math.hypot(foot.x - c1.x, foot.y - c1.y);
+            expect(dNew + UNIT_FRAME.HEX_HYSTERESIS_PX).toBeLessThan(dOld);
+            expect(total).toBeGreaterThan(UNIT_FRAME.HEX_HYSTERESIS_PX * 2);
+            // 往回走：同樣要明顯回到舊格才切回，不會在格界上來回翻
+            footAt(a, switchedAt - 0.01); run(a, store);
+            expect(hexAt(a, store)).toBe('0,1');
+        });
+
+        it('switches immediately when the previous hex is more than one ring away', () => {
+            const a = new Agent('T', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            run(a, store);
+            expect(hexAt(a, store)).toBe('0,0');
+            const far = HexUtils.toPx(0, 3, MAP);
+            a.physics.x = far.x - a.px; a.physics.y = far.y - a.py;
+            run(a, store);
+            expect(hexAt(a, store)).toBe('0,3');
+        });
     });
 
     it('reuses pooled frames across builds', () => {
