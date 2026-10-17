@@ -15,6 +15,7 @@ import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPain
 import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
+import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
 import { HexLayout } from "../../../types";
 import { VisualMath } from "../../math/VisualMath";
 import { HEX_SIZE, TERRAIN_SORT_SCALE } from "../../../constants";
@@ -29,7 +30,8 @@ export class UnitRenderSystem {
         mapConfig: MapConfig,
         transitionT: number = 0,
         transitionPhase: 'IN' | 'OUT' | 'IDLE' = 'IDLE',
-        simDt: number = 0.016
+        simDt: number = 0.016,
+        hasGround?: (q: number, r: number) => boolean
     ) {
         if (transitionPhase === 'OUT' && transitionT > 0.95) return;
 
@@ -47,7 +49,8 @@ export class UnitRenderSystem {
             // 關鍵：將單位的當前邏輯網格位置傳入
             op.tq = agent.q; 
             op.tr = agent.r;
-            op.th = state.terrainHeight; 
+            let groundH = state.terrainHeight;
+            op.th = groundH; 
             
             op.agent = agent;
             op.tx = state.x; 
@@ -61,6 +64,18 @@ export class UnitRenderSystem {
                 const knock = UnitDeathPainter.getKnockOffset(agent);
                 op.tx += knock.x;
                 op.y += knock.y;
+
+                // 擊飛滑行是繪製位移，物理不知道屍體移動了：腳下高度要跟著滑到的那一格，
+                // 滑出已塌陷的地塊（虛空）就從該刻起墜落（回收仍走原本的死亡計時，不新增寫入者）。
+                if (hasGround) {
+                    const v = UnitDeathPainter.getKnockVelocity(agent);
+                    groundH = computeDeathGround(state.x, state.y, v.vx, v.vy, v.vz, agent.deathTimer, {
+                        hexAt: (x, y) => HexUtils.fromPx(x, y, mapConfig),
+                        hasGround,
+                        heightAt: getTerrainHeight,
+                    }).height;
+                    op.th = groundH;
+                }
             }
             
             // 深度鍵：單位腳下所在的格子必須排在該格地塊之後。地塊以格心 Y 排序，
@@ -73,7 +88,7 @@ export class UnitRenderSystem {
             op.sortBias = Math.max(0, hexCenterY - footY);
 
             // Visual Y: Top of terrain (using SSOT Math)
-            op.ty = VisualMath.getIsoVisualY(op.y, state.terrainHeight);
+            op.ty = VisualMath.getIsoVisualY(op.y, groundH);
             
             op.z = agent.physics.z; 
             op.time = globalTime;

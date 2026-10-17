@@ -5,7 +5,7 @@
  *  - 水平：指數衰減滑行（先快後慢，距離有上限）
  *  - 垂直：拋物線彈跳，每次彈跳高度依恢復係數遞減，彈跳次數用盡後貼地
  */
-import { DEATH_KNOCKBACK } from '../../../constants';
+import { DEATH_KNOCKBACK, PHYSICS } from '../../../constants';
 
 export interface DeathOffset {
     /** 水平位移（世界座標單位） */
@@ -46,4 +46,50 @@ export function computeDeathOffset(vx: number, vy: number, vz: number, t: number
     }
 
     return { x, y, lift: Math.max(0, lift) };
+}
+
+export interface DeathGroundQuery {
+    /** 世界座標所在的格子 */
+    hexAt(x: number, y: number): { q: number; r: number };
+    /** 該格是否仍有地面（存在或正在墜落的地塊） */
+    hasGround(q: number, r: number): boolean;
+    /** 該格地面高度（SSOT：VisualMath.getUnitGroundHeight 的格高度來源） */
+    heightAt(q: number, r: number): number;
+}
+
+/**
+ * 屍體腳下的地面高度（純函式，渲染層無狀態）。
+ * 擊飛滑行的終點是繪製位移，物理不知道屍體移動了。屍體滑到的格子：
+ *  - 有地面：高度跟著該格地面（較高／較低都一樣）
+ *  - 已塌陷（虛空）：從滑出地塊的那一刻起以重力墜落（`PHYSICS.GRAVITY`），回收仍走原本的死亡計時
+ * 滑出地塊的時間用滑行軌跡以固定間隔取樣求得；只要軌跡曾經過虛空就視為已掉落。
+ */
+export function computeDeathGround(
+    baseX: number, baseY: number,
+    vx: number, vy: number, vz: number,
+    t: number,
+    q: DeathGroundQuery
+): { height: number; fellAt: number | null } {
+    const end = Math.min(t, DEATH_KNOCKBACK.GROUND_SCAN_END);
+    let lastGround = 0;
+    let haveGround = false;
+    for (let ti = 0; ti <= end; ti += DEATH_KNOCKBACK.GROUND_SCAN_STEP) {
+        const o = computeDeathOffset(vx, vy, vz, ti);
+        const hex = q.hexAt(baseX + o.x, baseY + o.y);
+        if (q.hasGround(hex.q, hex.r)) {
+            lastGround = q.heightAt(hex.q, hex.r);
+            haveGround = true;
+        } else if (haveGround) {
+            const fall = t - ti;
+            return { height: lastGround - 0.5 * PHYSICS.GRAVITY * fall * fall, fellAt: ti };
+        } else {
+            // 死亡當下腳下就沒有地面（物理已讓它自由落體）：維持原樣，不另外處理
+            return { height: 0, fellAt: null };
+        }
+    }
+    const o = computeDeathOffset(vx, vy, vz, t);
+    const hex = q.hexAt(baseX + o.x, baseY + o.y);
+    if (q.hasGround(hex.q, hex.r)) return { height: q.heightAt(hex.q, hex.r), fellAt: null };
+    const fall = Math.max(0, t - end);
+    return { height: lastGround - 0.5 * PHYSICS.GRAVITY * fall * fall, fellAt: end };
 }

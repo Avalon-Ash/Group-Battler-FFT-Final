@@ -187,7 +187,7 @@ export class RenderPipeline {
             this._viewportScratch.height = lH;
             this._viewportScratch.camera = camera;
             this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
-            this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt);
+            this.renderer.unit.submitRenderables(this.renderList, engine.agents, terrainH, t, highlight, engine.mapConfig, this.transitionT, this.transitionPhase, dt, (q, r) => engine.map.isValid(q, r) || engine.zones.collapsingTiles.has(`${q},${r}`));
         });
         
         CtxOpCounter.track('sort', () => {
