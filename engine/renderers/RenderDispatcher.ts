@@ -1,5 +1,14 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  RenderDispatcher — 依排序後的 RenderOp 逐一繪製            ║
+// ║  職責：TERRAIN 畫完地塊、細節與基礎疊層後，接著畫蓋到這格   ║
+// ║        的貼地鋪設特效（GroundDrapeLayer），所以站在這格的   ║
+// ║        單位（排在該格 TERRAIN 之後）棋座壓在法陣上。       ║
+// ║  上游：RenderList.sort、RenderPipeline.drawWorld            ║
+// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§9。      ║
+// ╚══════════════════════════════════════════════════════════╝
 
 import { RenderOp, RenderOpType } from "./RenderList";
+import type { GroundDrapeLayer } from "./GroundDrape";
 import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { GridOverlays } from "./grid/GridOverlays";
 import { HazardPainter } from "./grid/painters/HazardPainter";
@@ -17,7 +26,8 @@ export class RenderDispatcher {
         op: RenderOp, 
         layout: HexLayout, 
         globalTime: number,
-        unitRenderer: UnitRenderSystem
+        unitRenderer: UnitRenderSystem,
+        drape?: GroundDrapeLayer
     ) {
         const snapX = Math.round(op.tx);
         const snapY = Math.round(op.ty);
@@ -34,6 +44,8 @@ export class RenderDispatcher {
                 TerrainRenderer.drawTerrainDetail(ctx, snapX, snapY, op.th, op.ttype, op.tdetail, op.tq, op.tr, globalTime, layout, op.ttheme, finalAlpha);
                 // Draw base overlays (status, zones, lights, presence)
                 GridOverlays.drawOverlays(ctx, snapX, snapY, op.th, op.tsize, op.oStatus, op.oDanger, op.oLightCol, op.oLightInt, false, '', false, false, false, op.oHasUnit, op.tq, op.tr, op.time, layout);
+                // 貼地鋪設特效：裁切到這格頂面（RenderSpec §9）
+                if (drape) drape.drawOnTile(ctx, op, snapX, snapY, layout, globalTime);
                 break;
 
             case RenderOpType.OVERLAY:

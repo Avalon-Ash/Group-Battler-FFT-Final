@@ -240,13 +240,49 @@ export const PHYSICS = {
 
 export const VFX_RENDER = {
     GROUND_SORT_BIAS:   15,  // ground-locked 粒子的 Y 軸排序偏移
-    /** 貼地特效投影後半高 ≥ 此值才算「大型地面法陣」：站在範圍內的單位改排在它之後，法陣不蓋腳 */
-    DECAL_LIFT_MIN_HALF_H: 20,
     GROUND_Z_BIAS:       5,  // ground-locked 粒子的 Z 軸偏移
     GROUND_VISUAL_BIAS:  2,  // 防 Z-fighting 的視覺偏移
     PARTICLE_SIZE_BIAS: 0.5, // 碰地計算的粒子半徑比例
     TRAIL_STEP_DIST:    20,  // Trail 採樣的目標點間距（螢幕像素）
 };
+
+/** 貼地鋪設（FFT 風格）：大型平貼特效不再是獨立排序 op，而是畫在它蓋到的每一格頂面（RenderSpec §9） */
+export const GROUND_DRAPE = {
+    /** 投影後半高 ≥ 此值才鋪設；更小的平貼特效維持一般貼地 op（前緣排序） */
+    MIN_HALF_H: 20,
+    /** 判斷哪些格被蓋到時，特效半徑的放大倍率（涵蓋光暈／描邊超出 size 的部分） */
+    REACH_MARGIN: 1.15,
+    /** 頂面裁切六邊形比格子外擴的像素：相鄰格的裁切重疊，接縫不露底 */
+    CLIP_EXPAND_PX: 0.5,
+    /** 離屏畫布的邊界餘量（邏輯像素），涵蓋描邊與光暈 */
+    CANVAS_PAD_PX: 24,
+    /** 離屏畫布單邊上限（裝置像素）；超過時降低離屏解析度 */
+    MAX_CANVAS_PX: 2048,
+    /** 離屏畫布容量取整單位（裝置像素）：縮放動畫時尺寸每幀變動，不能每幀重配畫布 */
+    CANVAS_GROW_STEP_PX: 128,
+    /**
+     * 鋪設類別（依繪製內容判斷，見 docs/COORD_GUARD_FINDINGS.md 對應的修正輪）：
+     *  DIRECT    單一 drawImage／少量填色：每格裁切後直接畫，混合模式與原本完全一致
+     *  OFFSCREEN 多段描邊（曼陀羅、震波）：每幀只畫一次到離屏畫布，再逐格裁切貼上（以粒子混合模式貼上）
+     * 不在表內的平貼型別（直立或有高度的特效：PILLAR、HEX_BEAM、BLACK_HOLE、GIANT_HEX、DOMAIN）不鋪設。
+     */
+    MODE: {
+        PART_GROUND: 'DIRECT',
+        GRID_FIELD: 'DIRECT',
+        CRACKS: 'DIRECT',
+        BLAST: 'DIRECT',
+        HEX_GLOW: 'DIRECT',
+        MAGIC_CIRCLE: 'OFFSCREEN',
+        SHOCKWAVE: 'OFFSCREEN',
+        RING: 'OFFSCREEN',
+    } as Readonly<Record<string, 'DIRECT' | 'OFFSCREEN'>>,
+} as const;
+
+/** UnitFrame 的視覺狀態參數（腳下格排序滯後，RenderSpec §2） */
+export const UNIT_FRAME = {
+    /** 腳下格只有在「新格格心比舊格格心近這麼多像素」時才切換，避免腳跨格界時排序鍵鋸齒翻轉 */
+    HEX_HYSTERESIS_PX: 3,
+} as const;
 
 // SSOT: VFX Thresholds
 export const VFX_PARAM = {

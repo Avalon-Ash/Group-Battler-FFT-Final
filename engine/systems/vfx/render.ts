@@ -1,10 +1,13 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  VFXRenderer — 粒子／貼花／投射物 RenderOp 提交            ║
-// ║  職責：未投影 Y（p.y）乘回 ISO_SCALE_Y 成足跡 Y，貼地特效   ║
-// ║        以前緣排序（sortBias＝gHalfH＋GROUND_SORT_BIAS）    ║
+// ║  職責：未投影 Y（p.y）乘回 ISO_SCALE_Y 成足跡 Y。大型平貼   ║
+// ║        特效（GROUND_DRAPE.MODE 內且 gHalfH ≥ MIN_HALF_H）   ║
+// ║        不提交 op，登記進 GroundDrapeLayer 鋪在格子頂面；    ║
+// ║        其餘貼地特效以前緣排序（sortBias＝gHalfH＋           ║
+// ║        GROUND_SORT_BIAS），不做任何法陣抬升。               ║
 // ║  上游：VFXSystem 狀態、RenderPipeline 的繪製用地面高度     ║
-// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、§7║
-// ║  貼地特效／貼花跟地塊浮動；空中特效不套用。                ║
+// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、  ║
+// ║  §7、§9；貼花跟地塊浮動，空中特效不套用。                  ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -17,14 +20,16 @@ import { VisualMath } from "../../math/VisualMath";
 import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 import { PartPainter } from "./renderers/painters/PartPainter";
+import { GroundDrapeLayer } from "../../renderers/GroundDrape";
 
-import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES } from "../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, GROUND_DRAPE } from "../../../constants";
 
 export class VFXRenderer {
     public submitRenderables(
         renderList: RenderList,
         engine: GameEngine,
         vfx: VFXSystem,
+        drape: GroundDrapeLayer,
         getTerrainHeight: (q: number, r: number) => number,
         mapConfig: MapConfig,
         transitionT: number,
@@ -62,26 +67,35 @@ export class VFXRenderer {
             const offset = VisualMath.getTransitionOffset(p.x, p.y, mapConfig, transitionT, transitionPhase);
             if (Math.abs(offset) > 1500) return;
 
-            const op = renderList.next();
-            op.type = RenderOpType.VFX;
-            
             const isGroundLocked = VFX_GROUND_TYPES.has(p.type);
             const isUlt = p.pIsUlt || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
-            
+
             // [SSOT FIX] 1. Y calculation: op.y must be the footprint Y (raw world projected).
             // We use op.sortBias to handle the "front edge" depth sorting for large ground effects.
             const projectedY = p.y * ISO_SCALE_Y;
-            op.y = projectedY + offset; 
-            
+
+            // 貼地特效的實際範圍：零件法陣用實際繪製範圍（含縮放動畫）；其他沿用 size 估算。
+            let halfW = 0;
             if (isGroundLocked) {
-                // Ground decals sort by their front edge to handle occlusion correctly.
-                // In iso view, front edge is approx projectedY + 0.5 * visual_height.
-                // 零件法陣用實際繪製範圍（含縮放動畫）；其他沿用 size 估算。
-                let halfW = p.size || 0;
+                halfW = p.size || 0;
                 if (p.part) {
                     const s = PartPainter.scaleAt(p, 1 - p.life / p.maxLife);
                     halfW = Math.max(p.part.anchorX, p.part.width - p.part.anchorX) * s;
                 }
+                // 大型平貼特效（RenderSpec §9）：不進排序，鋪在它蓋到的每一格頂面
+                if (GroundDrapeLayer.modeOf(p.type) !== undefined && halfW * ISO_SCALE_Y >= GROUND_DRAPE.MIN_HALF_H) {
+                    drape.add(p, p.x, projectedY + offset, halfW, 1 - (p.life / p.maxLife), isChaosStyle(p.color));
+                    return;
+                }
+            }
+
+            const op = renderList.next();
+            op.type = RenderOpType.VFX;
+            op.y = projectedY + offset;
+
+            if (isGroundLocked) {
+                // Ground decals sort by their front edge to handle occlusion correctly.
+                // In iso view, front edge is approx projectedY + 0.5 * visual_height.
                 op.gHalfW = halfW;
                 op.gHalfH = halfW * ISO_SCALE_Y;
                 op.sortBias = op.gHalfH + VFX_RENDER.GROUND_SORT_BIAS;

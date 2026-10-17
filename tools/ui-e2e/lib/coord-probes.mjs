@@ -144,7 +144,7 @@ export async function installRecorder(page) {
         if (window.__CG__) return;
         const { RenderList, RenderOpType } = await import('/engine/renderers/RenderList.ts');
         const { HexUtils } = await import('/engine/utils.ts');
-        const { HEX_SIZE, VFX_RENDER } = await import('/constants.ts');
+        const { HEX_SIZE, GROUND_DRAPE } = await import('/constants.ts');
         const engine = window.__TACTICAL_ENGINE__;
         const T = RenderOpType;
         const TNAME = ['TERRAIN', 'OBSTACLE', 'UNIT', 'VFX', 'PROJECTILE', 'DECAL', 'HAZARD', 'AURA', 'OVERLAY', 'CORPSE'];
@@ -154,7 +154,7 @@ export async function installRecorder(page) {
         const FLIP_SPAN = 6; // two flips <= 6 frames apart => X,Y,X inside an 8-frame window
         const MOVE_PX = 2;
         const ORIG_SORT = RenderList.prototype.sort;
-        const ORIG_LIFT_MIN = VFX_RENDER.DECAL_LIFT_MIN_HALF_H;
+        const ORIG_LIFT_MIN = GROUND_DRAPE.MIN_HALF_H; // --no-decal-lift now means: no ground drape (large flat effects go back to being sorted ops)
 
         const S = { on: false, cfg: null, frame: 0 };
         const reset = () => {
@@ -208,8 +208,8 @@ export async function installRecorder(page) {
             if (slot.buf.length < n * FIELDS) slot.buf = new Float64Array(n * FIELDS * 2);
             const occ = new Map();
             const idOf = new Int32Array(n);
-            const decals = []; // same selection RenderList.sort uses for the decal lift
-            for (let i = 0; i < n; i++) { const op = ops[i]; if (op.type === T.VFX && op.isGround && op.gHalfH >= VFX_RENDER.DECAL_LIFT_MIN_HALF_H) decals.push(i); }
+            const decals = []; // large ground ops (since the drape change only appears with --no-decal-lift; the lift itself is gone)
+            for (let i = 0; i < n; i++) { const op = ops[i]; if (op.type === T.VFX && op.isGround && op.gHalfH >= GROUND_DRAPE.MIN_HALF_H) decals.push(i); }
             const terrain = new Map();
             let terrainChecked = 0, terrainFlat = 0;
             const gridCells = new Map();
@@ -438,7 +438,7 @@ export async function installRecorder(page) {
             if (S.on) onFrame(this);
         };
         window.__CG__ = {
-            begin(cfg) { S.cfg = { sink: true, flicker: true, fxfx: false, ...cfg }; reset(); VFX_RENDER.DECAL_LIFT_MIN_HALF_H = S.cfg.noDecalLift ? 1e9 : ORIG_LIFT_MIN; S.on = true; },
+            begin(cfg) { S.cfg = { sink: true, flicker: true, fxfx: false, ...cfg }; reset(); GROUND_DRAPE.MIN_HALF_H = S.cfg.noDecalLift ? 1e9 : ORIG_LIFT_MIN; S.on = true; },
             frames() { return S.frame; },
             end() {
                 S.on = false;
