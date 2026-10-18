@@ -228,6 +228,8 @@ async function runScenarioMeasurement(scenario, round) {
             await page.waitForTimeout(800);
         }
     }
+    // 量測窗開始時的零件快取統計（storm 結束時再取一次，記錄窗內的未命中／擠出）
+    const stormStart = scenario === 'battle_vfx_storm' ? await page.evaluate(() => window.__vfxStormStats?.()) : null;
 
     // CDP Session for tracing
     const cdp = await page.context().newCDPSession(page);
@@ -289,8 +291,21 @@ async function runScenarioMeasurement(scenario, round) {
     await tracingDone;
     await cdp.detach();
 
+    let storm = null;
     if (scenario === 'battle_vfx_storm') {
-        await stopVfxStorm(page);
+        const end = await stopVfxStorm(page);
+        if (end && end.parts && stormStart && stormStart.parts) {
+            storm = {
+                rounds: end.rounds, particles: end.particles, hazards: end.hazards,
+                partMisses: end.parts.misses - stormStart.parts.misses,
+                partEvictions: end.parts.evictions - stormStart.parts.evictions,
+                partEntries: end.parts.entries, partMB: +(end.parts.bytes / 1048576).toFixed(1),
+            };
+            storm.byKind = end.parts.byKind;
+            storm.top = end.parts.top;
+            console.log(`    storm by kind: ${JSON.stringify(end.parts.byKind)}`);
+            console.log(`    storm: rounds=${storm.rounds} particles=${storm.particles} hazards=${storm.hazards} part misses=${storm.partMisses} evictions=${storm.partEvictions} entries=${storm.partEntries} (${storm.partMB} MB)`);
+        }
     }
 
     // Trace event analysis: Find PERF_SAMPLE_START timestamp
@@ -398,6 +413,7 @@ async function runScenarioMeasurement(scenario, round) {
             avgDurationMs: avgGcDurMs,
         },
         phases: pageData.phases,
+        storm,
         longFramesCount: longFrames.length,
         topLongFrames: frameAttributions.sort((a, b) => b.dt - a.dt).slice(0, 5),
     };

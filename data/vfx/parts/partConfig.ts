@@ -5,7 +5,7 @@
  */
 export const VFX_PARTS = {
     /** 快取上限（條目數）；超過時丟最久未使用者 */
-    MAX_ENTRIES: 192,
+    MAX_ENTRIES: 320,
     /** 快取位元組預算（RGBA 估算，含全部影格）；超過時同樣丟最久未使用者 */
     MAX_BYTES: 64 * 1024 * 1024,
     /** 尺寸（半徑／長度／高度，canvas 單位）量化級距 */
@@ -20,6 +20,8 @@ export const VFX_PARTS = {
     PAD: 2,
     /** 烘焙解析度倍率：sprite 以 N 倍像素烘焙，繪製時縮回，鏡頭放大時線條仍銳利 */
     BAKE_SCALE: 2,
+    /** 柔邊零件（非硬光暈 glow、煙）只有漸層、沒有線條，放大也不會糊；以 1 倍烘焙省 3/4 記憶體（壓力情境的最大條目就是 256 半徑光暈，4.2 MB） */
+    SOFT_BAKE_SCALE: 1,
     /** 動畫零件的影格數（品質階層 0） */
     FRAMES: { flame: 8, bolt: 3, beam: 4 } as const,
     /** 各品質階層影格係數 [Tier 0..3]；主形狀永遠保留，只減少影格 */

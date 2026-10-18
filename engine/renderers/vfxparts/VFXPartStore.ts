@@ -10,7 +10,7 @@
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { createCanvas } from '../../graphics/CanvasUtils';
 import { getQualityTier } from '../RenderQuality';
-import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
+import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, partBakeScale, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
 import { bakePart } from './PartBakers';
 
 export interface PartSprite {
@@ -53,11 +53,14 @@ function basePartFps(kind: PartKind): number {
 export function createVFXPartStore(createSurface: PartSurfaceFactory = createCanvas, getTier: () => number = getQualityTier) {
     const cache = new Map<string, PartSprite>();
     const stats = { hits: 0, misses: 0, evictions: 0 };
+    /** 診斷用：依零件種類累計的未命中／擠出次數（tools/ui-e2e/lib/vfx-storm.mjs 讀） */
+    const missesByKind: Record<string, number> = {};
+    const evictionsByKind: Record<string, number> = {};
     let bytes = 0;
 
     function bake(n: PartSpec, frameCount: number, key: string, emblemRotation: number): PartSprite {
         const b = partBounds(n);
-        const s = VFX_PARTS.BAKE_SCALE;
+        const s = partBakeScale(n);
         const pw = Math.max(1, Math.ceil(b.width * s));
         const ph = Math.max(1, Math.ceil(b.height * s));
         const frames: HTMLCanvasElement[] = [];
@@ -88,6 +91,7 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
             return hit;
         }
         stats.misses++;
+        missesByKind[n.kind] = (missesByKind[n.kind] ?? 0) + 1;
         const sprite = bake(n, frameCount, key, emblemRotation);
         cache.set(key, sprite);
         bytes += sprite.bytes;
@@ -98,6 +102,8 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
             if (old) bytes -= old.bytes;
             cache.delete(oldest);
             stats.evictions++;
+            const kind = /(?:^|\|)kind=([a-zA-Z]+)/.exec(oldest)?.[1] ?? '?';
+            evictionsByKind[kind] = (evictionsByKind[kind] ?? 0) + 1;
         }
         return sprite;
     }
@@ -107,6 +113,9 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
         size: () => cache.size,
         bytes: () => bytes,
         stats: () => ({ ...stats }),
+        statsByKind: () => ({ misses: { ...missesByKind }, evictions: { ...evictionsByKind } }),
+        /** 診斷用：目前條目（鍵與位元組），依位元組由大到小 */
+        dump: () => Array.from(cache.values(), (sp) => ({ key: sp.key, bytes: sp.bytes })).sort((a, b) => b.bytes - a.bytes),
         clear: () => { cache.clear(); bytes = 0; },
     };
 }

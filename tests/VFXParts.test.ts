@@ -3,7 +3,7 @@ import { VFX_PARTS } from '../data/vfx/parts/partConfig';
 import { VFX_RAMPS, VFX_NEUTRALS } from '../data/vfx/parts/vfxPalette';
 import {
     type PartSpec, normalizePartSpec, partKey, partBounds, partBlend, frameCountForTier,
-    quantizeSize, quantizeSeed, boltPolyline, createPartRng,
+    quantizeSize, quantizeSeed, boltPolyline, createPartRng, partBakeScale,
 } from '../engine/renderers/vfxparts/PartSpec';
 import { createVFXPartStore, drawPart, partFrameAt } from '../engine/renderers/vfxparts/VFXPartStore';
 
@@ -154,7 +154,7 @@ describe('VFXPartStore', () => {
         for (const spec of ALL_SPECS) {
             const s = store.get(spec);
             expect(s.frames.length).toBe(frameCountForTier(spec.kind, 0));
-            expect(s.frames[0].width).toBe(Math.ceil(s.width * VFX_PARTS.BAKE_SCALE));
+            expect(s.frames[0].width).toBe(Math.ceil(s.width * partBakeScale(normalizePartSpec(spec))));
         }
     });
 

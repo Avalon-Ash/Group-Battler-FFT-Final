@@ -135,6 +135,11 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
     }
 }
 
+/** 烘焙解析度倍率：柔邊零件（非硬光暈 glow、煙）用 SOFT_BAKE_SCALE，其餘 BAKE_SCALE。 */
+export function partBakeScale(n: PartSpec): number {
+    return (n.kind === 'glow' && !n.hard) || n.kind === 'smoke' ? VFX_PARTS.SOFT_BAKE_SCALE : VFX_PARTS.BAKE_SCALE;
+}
+
 /** 快取鍵：量化後參數依固定欄位順序串接（不含時間）。 */
 export function partKey(n: PartSpec, frameCount: number): string {
     const fields = Object.keys(n).sort().map((k) => `${k}=${String((n as Record<string, unknown>)[k])}`);
