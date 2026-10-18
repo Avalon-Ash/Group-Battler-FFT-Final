@@ -20,6 +20,11 @@ export function projectionHeadHeight(body: BodyTypeId): number {
     return UNIT_SPRITE.targetHeightCanvasUnits * (BODY_TYPE_PROFILE[body]?.heightScale ?? 1);
 }
 
+/** 頭頂離腳下地面的高度＝腳底懸浮 + 頭頂高度。頭頂狀態標記（status_parts 的 HEAD 錨點）在它之上再加固定間距 */
+export function projectionTopHeight(body: BodyTypeId): number {
+    return UNIT_SPRITE.footHover + projectionHeadHeight(body);
+}
+
 /** 投影中心離腳下地面的高度＝腳底懸浮 + 頭頂高度 × 中心位置。發射點、受擊點、核心都是這一點 */
 export function projectionCenterHeight(body: BodyTypeId): number {
     return UNIT_SPRITE.footHover + projectionHeadHeight(body) * UNIT_SPRITE.centerFraction;

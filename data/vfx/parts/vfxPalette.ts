@@ -22,6 +22,10 @@ export const VFX_RAMPS = {
     ASH_FIRE: { core: '#fde68a', main: '#f97316', dark: '#dc2626' },
     ASH_POISON: { core: '#d9f99d', main: '#84cc16', dark: '#365314' },
     ASH_VOID: { core: '#f0abfc', main: '#7e22ce', dark: '#2e1065' },
+    /** 狀態專用中性色階（data/vfx/status_parts.ts）：不屬於任何陣營，兩隊看到同一個顏色 = 同一個狀態 */
+    STATUS_SLATE: { core: '#f1f5f9', main: '#94a3b8', dark: '#334155' },
+    STATUS_PINK: { core: '#fff1f2', main: '#f9a8d4', dark: '#9d174d' },
+    STATUS_GREEN: { core: '#f0fdf4', main: '#4ade80', dark: '#166534' },
 } as const satisfies Record<string, VFXRamp>;
 
 export type VFXRampId = keyof typeof VFX_RAMPS;

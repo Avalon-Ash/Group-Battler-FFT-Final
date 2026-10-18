@@ -1,8 +1,7 @@
 
 import { GameEngine, Agent } from "../../game";
 import { VFXSystem } from "../vfx";
-import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
-import { MovementType, AIState } from "../../../types";
+import { MovementType } from "../../../types";
 import { AGENT_MODEL_CENTER_Z, VFX_PARAM } from "../../../constants";
 import { VisualMath } from "../../math/VisualMath";
 
@@ -53,10 +52,9 @@ export class AgentVFXSystem {
             this.dustTimer = 0;
         }
 
-        // 2. Status Effect Particles (Poison bubbles, Stun stars, etc.)
+        // 2. Idle ambience（狀態視覺已改由 StatusPartPainter 逐幀繪製零件，不再生粒子）
         for (const a of engine.agents) {
             if (a.hp <= 0 || a.fullyDead) continue;
-            this.processStatusVFX(a, dt, engine, vfx);
             this.processIdleVFX(a, dt, engine, vfx);
         }
     }
@@ -101,50 +99,5 @@ export class AgentVFXSystem {
                 this.vfxTimers.delete(key);
             }
         }
-    }
-
-    private processStatusVFX(agent: Agent, dt: number, engine: GameEngine, vfx: VFXSystem) {
-        const checkVFX = (key: string, condition: boolean) => {
-            if (!condition) return;
-            const def = STATUS_VISUALS[key];
-            if (!def || !def.particleEffect) return;
-
-            const timerKey = `${agent.id}_${key}`;
-            let t = this.vfxTimers.get(timerKey) || 0;
-            t -= dt;
-            
-            if (t <= 0) {
-                t = def.particleInterval || 0.5;
-                const terrainZ = this.groundHeight(agent, engine);
-                const modelCenterZ = terrainZ + agent.physics.z + AGENT_MODEL_CENTER_Z;
-                
-                vfx.playEffect(
-                    def.particleEffect, 
-                    agent.px + agent.physics.x, 
-                    agent.py + agent.physics.y, 
-                    modelCenterZ,
-                    undefined,
-                    undefined,
-                    agent.id
-                );
-            }
-            this.vfxTimers.set(timerKey, t);
-        };
-
-        checkVFX('POISON', agent.dotTimer > 0 && agent.dotDmg > 0 && agent.dotType === 'POISON');
-        checkVFX('BURN', agent.dotTimer > 0 && agent.dotDmg > 0 && agent.dotType === 'BURN');
-        checkVFX('REGEN', agent.hotTimer > 0);
-        checkVFX('BANISH', agent.banished);
-        checkVFX('STUN', agent.stunTimer > 0);
-        checkVFX('SILENCE', agent.silenceTimer > 0);
-        checkVFX('FEAR', agent.fearTimer > 0);
-        checkVFX('ROOT', agent.rootTimer > 0);
-        checkVFX('VULNERABLE', agent.hp / agent.maxHp < 0.25);
-
-        // check AI states
-        checkVFX('CAST_ULT', agent.aiState === AIState.CASTING_ULT);
-        checkVFX('CAST_ACTIVE', agent.aiState === AIState.CASTING_ACTIVE);
-        checkVFX('CC_INTERRUPT', agent.aiState === AIState.CC_INTERRUPTED);
-        checkVFX('EVADING', agent.aiState === AIState.EVADING_URGENT);
     }
 }

@@ -105,3 +105,10 @@
   - **光束吃陣營色階**（`data/vfx/beam_styles.ts` 的 `FACTION_BEAM_RAMP`：獅心＝LION_HOLY 金白、灰燼＝ASH_BLOOD 緋紅）：`SequenceSystem` 依施放者陣營傳入 `playBeam`，管身取 ramp.main、最內芯取 ramp.core（`Particle.beamCore`）；仍是程序化繪製，管身漸層快取沿用（芯色另按 inner 分快取）。取捨：治療等原本綠／紫的光束現在也依陣營變金／緋紅。
   - **職業圖示改幻想向量符號**（`data/units/classGlyphs.ts`＋`UnitFactory.drawClassGlyph`）：TANK 盾、WARRIOR 劍、RANGER 弓、MAGE 法杖寶珠、SUPPORT 聖杯；獅心＝圓角乾淨（`CLEAN`），灰燼＝鋸齒破損（`JAGGED`），風格由 `FactionSkin.classIcon.glyph` 決定。`classIcon` 貼圖槽覆蓋路徑不變。
   - **驗證圖**（`tools/ui-e2e/out/`，gitignore）：`vfx/before_gray.png`／`parts_sheet_t0_gray.png`（ASH_VOID 前後）、`faction/before_pedestals.png`／`after_pedestals.png`（圖示前後）、`vfx/beam_blue_after.png`、`vfx/mr_b2_RED_sheet.png`。`battle_frozen` 差異 0.122（過門檻）；因圖示刻意改變而另開 commit 重錄。
+
+## 狀態／控制效果零件化（2026-10-18）
+- 表：`data/vfx/status_parts.ts`（`STATUS_PARTS`，每個 `STATUS_VISUALS` 鍵一筆；錨點 GROUND／BODY／HEAD、繞行／上升／脈動／抖動、優先序、品質階層截斷）。繪製：`StatusPartPainter`（只做 drawImage，sprite 依隊伍／版面／狀態快取，每幀不配置）；成立條件：`StatusActivity.isStatusActive`。
+- 強控各有獨立剪影：暈眩＝頭上繞行三顆金色六角星；沉默＝灰環被紅斜線劃掉；恐懼＝顫抖的紫色骷髏；嘲諷＝彈跳的紅色倒三角＋放射光；致盲＝繞頭的黑煙；禁錮＝腳下琥珀環＋棘刺；凍結＝冰環＋繞身冰晶（模型仍是冰塊）；變羊＝粉色日輪＋上升光點（模型仍是羊）；凝滯＝金藍稜柱＋上下六角環；放逐＝紫色稜柱＋繞行晶片；無敵＝金色放射光＋日輪＋頭頂光環。弱效果（中毒、燃燒、再生、易傷）與施法提示低調。護盾維持 `ShieldPainter` 的 `computeShieldGeometry`。
+- 已刪：`GroundEffectPainter`、`OverheadPainter`、`StateModelPainter`、`AgentVFXSystem.processStatusVFX` 與 `STATUS_VISUALS.particleEffect`。`FX_STATUS_ROOT_LOOP` 仍當擊飛塵土用。
+- 截圖表：`node tools/vfx/status-sheet.mjs`（輸出 `tools/ui-e2e/out/status_sheet.png`）。
+- 已知：變羊的羊貼圖（`SpriteManager.getSpecialModel('SHEEP')`）看起來像一團白雲，剪影靠零件層補；之後可換成像樣的羊模型。

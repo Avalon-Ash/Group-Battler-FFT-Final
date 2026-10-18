@@ -12,6 +12,7 @@ import { ACTIVE_VISUALS } from '../data/vfx/active_visuals';
 import { BASIC_VISUALS } from '../data/vfx/basic_visuals';
 import { ULT_VISUALS } from '../data/vfx/ult_visuals';
 import { STATUS_VISUALS } from '../data/vfx/status_visuals';
+import { STATUS_PARTS } from '../data/vfx/status_parts';
 import { HAZARD_VISUALS } from '../data/vfx/hazard_visuals';
 import { VFX_LIBRARY } from '../data/vfx/vfx_library';
 import { BEAM_STYLES } from '../data/vfx/beam_styles';
@@ -105,10 +106,13 @@ const FAMILIES: Record<string, () => string[]> = {
     'projectile.orphan': () => Object.keys(PROJECTILE_VISUALS).filter(k => !reachableProjectileKeys().has(k)).sort(),
 
     // ── 狀態 ───────────────────────────────────────────────────────────────
-    /** STATUS_VISUALS 的循環粒子特效。 */
-    'status.particle': () => uniqSorted(Object.entries(STATUS_VISUALS)
-        .filter(([, v]) => v.particleEffect && !REGISTRY.has(v.particleEffect)).map(([k, v]) => `${k}: ${v.particleEffect}`)),
-    /** 每個非 NONE 的 SpecialVisualStatus 都該有 STATUS_VISUALS 條目（GridOverlays／GroundEffectPainter 以它查表）。 */
+    /** 每個 STATUS_VISUALS 鍵都要有 STATUS_PARTS（零件版狀態表）條目，反之亦然；別名必須指向存在的鍵。 */
+    'status.parts': () => uniqSorted([
+        ...Object.keys(STATUS_VISUALS).filter(k => !(k in STATUS_PARTS)).map(k => `visual-without-parts: ${k}`),
+        ...Object.keys(STATUS_PARTS).filter(k => !(k in STATUS_VISUALS)).map(k => `parts-without-visual: ${k}`),
+        ...Object.entries(STATUS_PARTS).filter(([, v]) => v.alias && !(v.alias in STATUS_PARTS)).map(([k, v]) => `bad-alias: ${k} -> ${v.alias}`),
+    ]),
+    /** 每個非 NONE 的 SpecialVisualStatus 都該有 STATUS_VISUALS 條目（GridOverlays 以它查表）。 */
     'status.specialVisual': () => (Object.keys(SPECIAL_VISUALS) as SpecialVisualStatus[])
         .filter(k => !STATUS_VISUALS[k]).sort(),
 };
