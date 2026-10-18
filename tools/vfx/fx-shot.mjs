@@ -7,6 +7,8 @@
  *   隕石：--keys=FALL:BLUE,FALL:RED（直接跑 HEAVEN_FALL METEOR 動作，高度 FALL_H）。
  *   投射物：--keys=PROJ:PROJ_BLUE_ORB:BLUE,PROJ:ARROW:RED（外觀鍵:陣營）。地圖中央放一對藍紅單位（相距 PROJ_COLS 欄），
  *     施法者對另一方發射一發 power 0 的投射物（速度 PROJ_SPEED，可入鏡）；建議 --t=0.08,0.16,0.24,0.32,0.4。
+ *   詠唱：--keys=CAST:tb_u3,CAST:tr_a3（技能 id）。同一對單位，技能所屬陣營的單位對另一方開始詠唱（詠唱環、聖域、光點、能量柱）；
+ *     --t 依詠唱時間給（例：1.2 秒的奧義用 --t=0.2,0.5,0.8,1.1）。
  * 每個鍵輸出 <key>.png：一列 5 格（t = 0.03／0.1／0.2／0.32／0.48 秒）。
  */
 import { chromium } from 'playwright-core';
@@ -108,7 +110,7 @@ try {
     }, PROJ_COLS);
     if (!spot) throw new Error('no free tile');
     // 投射物模式：放好那一對單位（全部鍵共用；RED 鍵由紅方往藍方打）
-    if (keys.some((k) => k.startsWith('PROJ:'))) {
+    if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:'))) {
         if (!spot.foe) throw new Error(`no free tile for the projectile target ${JSON.stringify(spot)}`);
         await page.evaluate(async (spot) => {
             const e = window.__TACTICAL_ENGINE__;
@@ -128,7 +130,7 @@ try {
     for (const key of keys) {
         const frames = [];
         const isBeam = key.startsWith('BEAM:');
-        const isProj = key.startsWith('PROJ:');
+        const isProj = key.startsWith('PROJ:') || key.startsWith('CAST:');
         // 投射物模式的鏡頭對準兩單位中點
         const cam = isProj ? { x: (spot.x + spot.foe.x) / 2, y: (spot.y + spot.foe.y) / 2, gz: (spot.gz + spot.foe.gz) / 2 } : spot;
         await page.evaluate(async ({ key, spot, cam, lift, isBeam, beamDx, beamDy, fallH, fallZoom, projSpeed, projZoom }) => {
@@ -136,7 +138,20 @@ try {
             e.renderer.vfx.reset();
             e.renderer.camera.snapTo(cam.x, cam.y - cam.gz, key.startsWith('FALL:') ? fallZoom : key.startsWith('PROJ:') ? projZoom : 2.0);
             window.__stepFrames(2);
-            if (key.startsWith('PROJ:')) {
+            if (key.startsWith('CAST:')) {
+                // CAST:<技能 id>：技能所屬陣營的單位對另一方開始詠唱（只看詠唱期間的光環）
+                const id = key.split(':')[1];
+                const skill = e.skillDB.find((s) => s.id === id);
+                const red = skill.team === 1;
+                const src = red ? window.__projRed : window.__projBlue;
+                const dst = red ? window.__projBlue : window.__projRed;
+                src.skillIds = [id, null, null];
+                src.skills = [skill, null, null];
+                src.mp = src.maxMp;
+                src.target = dst;
+                src.targetHex = { q: dst.q, r: dst.r };
+                e.initiateCast(src, 0);
+            } else if (key.startsWith('PROJ:')) {
                 // PROJ:<外觀鍵>:<BLUE|RED>：施法者對另一方發射一發 power 0 的投射物
                 const [, look, team] = key.split(':');
                 const src = team === 'RED' ? window.__projRed : window.__projBlue;

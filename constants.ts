@@ -286,19 +286,55 @@ export const VFX_RENDER = {
 /**
  * 詠唱光環（UnitAuraPainter）的幾何參數。環是腰部高度的水平面，由 GroundDrapeLayer 以懸空平面逐格繪製（RenderSpec §9）。
  */
+/**
+ * 詠唱光環（UnitAuraPainter，全部是零件）：色階＝陣營×技能屬性（data/vfx/element_ramps.ts）。
+ * 尺寸以格（HEX_SIZE）或 px 為單位；ROT／FREQ 是 rad/s；ALPHA 是零件不透明度。
+ */
 export const CAST_RING = {
-    /** 一般詠唱環半徑（格） */
+    /** 一般詠唱環半徑（格）、律動幅度（半徑比例）與角頻率 */
     BASE_SIZE: 0.95,
-    /** 一般詠唱環的律動幅度（半徑比例） */
     PULSE: 0.05,
-    /** 奧義聖域半徑（格） */
+    PULSE_FREQ: 12,
+    /** 外環／內環：粗細（px）、內環半徑比例、旋轉速度、不透明度 */
+    RING_THICKNESS: 3,
+    INNER_RATIO: 0.7,
+    INNER_THICKNESS: 1.5,
+    ROT_SPEED: 3,
+    INNER_ROT_SPEED: 6,
+    RING_ALPHA: 0.9,
+    INNER_ALPHA: 0.55,
+    /** AOE 擴張環的起始不透明度（越接近完成越淡） */
+    AOE_ALPHA: 0.7,
+    /** 奧義聖域半徑（格）：陣營紋章法陣＋反向外環＋中心光 */
     ULT_SIZE: 2.5,
-    /** 奧義內環虛線 */
-    ULT_DASH: [12, 8] as number[],
-    /** 奧義能量柱最大高度與開始顯示的最小高度（px） */
+    ULT_ROT_SPEED: 1.5,
+    ULT_INNER_ROT_MUL: 0.8,
+    ULT_SIGIL_ALPHA: 0.85,
+    ULT_RING_THICKNESS: 3,
+    ULT_RING_ALPHA: 0.6,
+    ULT_CORE_RATIO: 0.4,
+    ULT_CORE_ALPHA: 0.35,
+    ULT_CORE_PULSE: 0.2,
+    ULT_CORE_PULSE_FREQ: 15,
+    /** 奧義能量柱：最大高度與開始顯示的最小高度（px）、寬度、所在環（聖域半徑比例）、不透明度與閃爍 */
     ULT_PILLAR_H: 150,
     ULT_PILLAR_MIN_H: 5,
-    /** 環的描邊光暈超出幾何半徑的餘量（px），判斷蓋到哪些格 */
+    ULT_PILLAR_W: 6,
+    ULT_PILLAR_RING: 0.7,
+    ULT_PILLAR_ALPHA: 0.35,
+    ULT_PILLAR_FLICKER: 0.25,
+    ULT_PILLAR_FLICKER_FREQ: 8,
+    /** 一般詠唱的上升光點：顆數、半徑、繞行半徑、上升高度（px）、週期速度、自轉、不透明度 */
+    MOTES: 3,
+    MOTE_RADIUS: 3,
+    MOTE_ORBIT: 35,
+    MOTE_RISE: 70,
+    MOTE_CYCLE_SPEED: 2.5,
+    MOTE_SPIN: 5,
+    MOTE_ALPHA: 0.85,
+    /** 環零件的混合模式：鋪設的離屏貼回（GROUND_DRAPE.PLANE_BLEND）與施法者那格直接畫要一致 */
+    BLEND: 'source-over' as GlobalCompositeOperation,
+    /** 環的光暈超出幾何半徑的餘量（px），判斷蓋到哪些格 */
     GLOW_PAD: 6,
 } as const;
 
