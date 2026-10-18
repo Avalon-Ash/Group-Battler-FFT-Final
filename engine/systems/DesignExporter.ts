@@ -229,7 +229,7 @@ export class DesignExporter {
         s += "  {team}|{role}|{body}|{layout} → UnitFactory.generateTokenBase（含刻在頂面的職業字形）＋ CoreFactory.generate\n";
         s += "                                （陣營皮膚 data/units/factionSkin.ts；貼圖載入後依 revision 重烘）\n";
         s += "  OBSTACLE_{styleKey}_{layout}→ EnvironmentFactory.generateObstacle\n";
-        s += "  MODEL_SHEEP / MODEL_ICE     → UnitFactory.generateSheep / EnvironmentFactory.generateIceBlock\n\n";
+        s += "  (變羊的羊與凍結冰塊已改為 PolymorphPainter／FrozenPainter 各自烘焙，不再經過這裡)\n\n";
         s += "修改流程：\n";
         s += "  調整單位外觀繪製邏輯 → engine/renderers/units/factions/SpriteUnitRenderer.ts\n";
         s += "                          data/units/appearance/sprite.ts\n";

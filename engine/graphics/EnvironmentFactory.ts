@@ -38,15 +38,6 @@ export const EnvironmentFactory = {
         return canvas;
     },
 
-    generateIceBlock(layout: HexLayout): HTMLCanvasElement {
-        const { canvas, ctx } = createCanvas(ENV_SPRITE.CANVAS_W, ENV_SPRITE.CANVAS_H);
-        ctx.translate(ENV_SPRITE.ANCHOR_X, ENV_SPRITE.ANCHOR_Y);
-        const style = OBSTACLE_STYLES['ICE_CRYSTAL'];
-        this.drawIsoCrystal(ctx, style, layout, 0.7);
-        MaterialPainter.weatherSprite(canvas);
-        return canvas;
-    },
-
     // =========================================================================================
     // 🏗️ GEOMETRY BUILDERS (Layout Aware)
     // =========================================================================================
