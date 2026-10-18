@@ -1,13 +1,22 @@
 
 import { createCanvas } from "./CanvasUtils";
 import { ParticlePainter } from "./painters/ParticlePainter";
-import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER } from "../../constants";
-import { applyNoiseMask } from "./materials/NoiseLib";
-import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
+import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER, UNIT_SHADOW } from "../../constants";
 import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
 
-const TEXTURE_SIZE = 128; 
+const TEXTURE_SIZE = 128;
 const CENTER = TEXTURE_SIZE / 2;
+
+/**
+ * 程序化貼圖的型別（封閉清單）：呼叫端傳不支援的名稱會編譯失敗。
+ * V5a 刪貼圖時 SMOKE／GLOW／ROCK／SHADOW_BLOB 仍有呼叫者，字串型別讓它們悄悄變成洋紅除錯方塊——這個型別就是為了擋那種回歸。
+ */
+export type VFXTextureType = 'GLOW_SPRITE' | 'BEAM' | 'SHADOW_BLOB' | 'DEBUG';
+
+/** 看板粒子用哪張貼圖：天氣（ATMOSPHERE）＝光點，其餘（只剩 GENERIC_DEBUG）＝除錯方塊 */
+export function particleTexture(particleType: string): VFXTextureType {
+    return particleType === 'ATMOSPHERE' ? 'GLOW_SPRITE' : 'DEBUG';
+}
 
 class VFXTextureCache {
     private cache: Map<string, HTMLCanvasElement> = new Map();
@@ -15,11 +24,9 @@ class VFXTextureCache {
     public reset() { this.cache.clear(); }
 
     /**
-     * 程序化貼圖（快取）：GLOW_SPRITE（天氣看板、AOE 體積光，ATMOSPHERE 同義）、CRACKS（危害場裂痕）、BEAM（森林背景光束）。
-     * 其餘型別畫成洋紅除錯方塊。
+     * 程序化貼圖（快取）：GLOW_SPRITE（天氣看板）、SHADOW_BLOB（單位接地陰影）、BEAM（森林背景光束）、DEBUG（洋紅除錯方塊）。
      */
-    public getTexture(type: string, color: string): HTMLCanvasElement {
-        if (type === 'ATMOSPHERE') type = 'GLOW_SPRITE';
+    public getTexture(type: VFXTextureType, color: string): HTMLCanvasElement {
         const key = `T92_${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
@@ -29,13 +36,16 @@ class VFXTextureCache {
 
         switch (type) {
             case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
-            case 'CRACKS':
-                ParticlePainter.drawCracks(ctx, r, color);
-                // 噪聲裁切：裂痕不再是等長放射線，末端自然斷裂消散
-                if (MATERIAL_CONFIG.enabled) {
-                    applyNoiseMask(ctx, 'crack', MATERIAL_CONFIG.scorch.noise, r, true, 23);
-                }
+            case 'SHADOW_BLOB': {
+                // 單位腳下的接地陰影（UnitShadowPainter，multiply 疊在地面上）
+                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+                grad.addColorStop(0, color);
+                grad.addColorStop(UNIT_SHADOW.MID_STOP, UNIT_SHADOW.MID_COLOR);
+                grad.addColorStop(1, 'transparent');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
                 break;
+            }
             case 'BEAM': {
                 const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
                 beamGrad.addColorStop(0, 'transparent');
@@ -46,7 +56,7 @@ class VFXTextureCache {
                 ctx.fillRect(-10, -60, 20, 120);
                 break;
             }
-            default:
+            case 'DEBUG':
                 ctx.fillStyle = VFX_RENDER.DEBUG_DOT_COLOR;
                 ctx.fillRect(-5, -5, 10, 10);
                 break;
@@ -100,7 +110,6 @@ class VFXTextureCache {
         return canvas;
     }
 
-    public generateCracks(color: string): HTMLCanvasElement { return this.getTexture('CRACKS', color); }
     public generateFogCloud(color: string): HTMLCanvasElement {
         const key = `FOG_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;

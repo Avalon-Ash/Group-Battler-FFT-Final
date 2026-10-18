@@ -9,7 +9,7 @@
 import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
-import { VFXFactory } from "../../graphics/VFXFactory";
+import { VFXFactory, particleTexture } from "../../graphics/VFXFactory";
 import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET, FIXED_ORIENTATION_PARTICLE_TYPES, SELF_DRAWN_PARTICLE_TYPES } from "../../../constants";
 import { getQualityTier } from "../../renderers/RenderQuality";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
@@ -145,7 +145,7 @@ export class VFXPlayer {
             }
             if (config.groundAnchored) p.groundAnchored = true;
             if (!p.image && !SELF_DRAWN_PARTICLE_TYPES.has(p.type)) {
-                p.image = VFXFactory.getTexture(p.type, p.color);
+                p.image = VFXFactory.getTexture(particleTexture(p.type), p.color);
             }
             system.state.particles.push(p);
         }

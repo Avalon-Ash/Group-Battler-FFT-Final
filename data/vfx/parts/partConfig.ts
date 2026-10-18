@@ -30,6 +30,8 @@ export const VFX_PARTS = {
 
     /** 六角骨架（ART_SPEC §0）：烘焙時的頂點起始角。0 = 平頂（頂點在左右），與 FLAT 地圖格同向；貼地零件在繪製時以 HexGeometry.alignRotation 轉到地圖版面（POINTY 為 π/6） */
     HEX: { ANGLE_OFFSET_RAD: 0 },
+    /** 零件層（data/vfx/parts/partLayer.ts）的確定性抖動頻率（Hz）與垂直分量比例、上升層水平散佈用的黃金角（rad） */
+    LAYER: { SHAKE_HZ: 9, SHAKE_Y_HZ_MUL: 1.3, SHAKE_Y_AMP: 0.5, GOLDEN_ANGLE: 2.399 },
 
     GLOW: { SOFT_MAIN_STOP: 0.35, HARD_CORE_STOP: 0.3, HARD_MAIN_STOP: 0.6, MAIN_ALPHA: 0.55 },
     /** 六角環：以三層描邊（光暈、主色、核心）畫六角外框；寬度是 thickness 的倍數 */
@@ -43,6 +45,16 @@ export const VFX_PARTS = {
     SIGIL: { LINE_RATIO: 0.035, HALO_RATIO: 2.4, HALO_ALPHA: 0.45, HALO_WIDTH_MUL: 1.5, MAIN_WIDTH_MUL: 0.6, CORE_WIDTH_MUL: 0.6, OUTER_RING: 0.95, TICKS: 24, SUN_RAYS: 12, RING_GAPS: 3 },
     /** 六角稜柱光柱：正面寬 = 寬度的 FRONT_RATIO，左右側面依光源（左上）分亮暗 */
     PILLAR: { FRONT_RATIO: 0.5, LIT_SIDE_ALPHA: 0.75, SHADE_SIDE_ALPHA: 0.4, EDGE_ALPHA: 0.9, EDGE_WIDTH: 0.06, TOP_FADE: 0.65, BASE_ELLIPSE: 0.35 },
+    /**
+     * 六角稜柱（等距投影與地圖版面烘焙在 sprite 裡，錨點＝底面中心）。半徑與高度以 STEP px 量化
+     * （呼叫端的尺寸只有少數幾種：護盾＝各體型頭頂高度、冰晶＝固定），不用 SIZE_STEPS，免得繪製時拉伸變形。
+     * glass＝六面半透明（護盾），solid＝只畫朝向鏡頭的面（冰晶塊）。側面是頂端 SIDE_TOP → 底端 SIDE_BASE 的漸層。
+     */
+    PRISM: {
+        STEP: 2,
+        GLASS: { BACK_FACES: true, SIDE_TOP: 0.3, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.3, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0.5 },
+        SOLID: { BACK_FACES: false, SIDE_TOP: 1, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.6, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0 },
+    },
     SPARK: { THICK_RATIO: 0.12, HEAD_GLOW_RATIO: 0.22, MAIN_STOP: 0.6, MAIN_ALPHA: 0.85 },
     DROPLET: { TIP_RATIO: 1.6, HIGHLIGHT_RATIO: 0.28, BODY_RATIO: 0.55 },
     /**

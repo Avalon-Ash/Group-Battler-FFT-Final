@@ -8,7 +8,9 @@
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_RAMPS, VFX_NEUTRALS, type VFXRamp } from '../../../data/vfx/parts/vfxPalette';
-import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, type MissileShape, createPartRng, boltPolyline } from './PartSpec';
+import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, type MissileShape, type PrismStyle, createPartRng, boltPolyline } from './PartSpec';
+import { HexGeometry } from '../../graphics/utils/HexGeometry';
+import type { HexLayout } from '../../../types';
 
 const TAU = Math.PI * 2;
 
@@ -77,6 +79,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'droplet': return bakeDroplet(ctx, n.size, VFX_RAMPS[n.ramp]);
         case 'beam': return bakeBeam(ctx, n.width, VFX_RAMPS[n.ramp], n.edge, n.seed ?? 0, frame);
         case 'missile': return bakeMissile(ctx, n.shape, n.length, VFX_RAMPS[n.ramp]);
+        case 'prism': return bakePrism(ctx, n.radius, n.height, VFX_RAMPS[n.ramp], n.layout ?? 'FLAT', n.style);
     }
 }
 
@@ -553,6 +556,64 @@ function bakePillar(ctx: CanvasRenderingContext2D, w: number, h: number, ramp: V
     ctx.scale(1, C.BASE_ELLIPSE);
     bakeGlow(ctx, hw, ramp, false);
     ctx.restore();
+}
+
+/**
+ * 六角稜柱（錨點＝底面中心，往上長 h）：側面漸層填色 → 垂直稜線 → 頂蓋 → 底面輪廓。
+ * 面朝向以邊中點的螢幕 Y 判斷（> 0＝朝向鏡頭）；glass 先畫背面再畫正面。
+ */
+function bakePrism(ctx: CanvasRenderingContext2D, r: number, h: number, ramp: VFXRamp, layout: HexLayout, style: PrismStyle): void {
+    const S = style === 'glass' ? VFX_PARTS.PRISM.GLASS : VFX_PARTS.PRISM.SOLID;
+    const v = HexGeometry.getVertices(r, true, layout);
+    const side = ctx.createLinearGradient(0, -h, 0, 0);
+    side.addColorStop(0, withAlpha(ramp.main, S.SIDE_TOP));
+    side.addColorStop(1, withAlpha(ramp.main, S.SIDE_BASE));
+    const edgeAt = [false, false, false, false, false, false];
+    ctx.fillStyle = side;
+    for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < 6; i++) {
+            const j = (i + 1) % 6;
+            const front = v[i].y + v[j].y > 0;
+            if (front !== (pass === 1)) continue;
+            if (!front && !S.BACK_FACES) continue;
+            ctx.beginPath();
+            ctx.moveTo(v[i].x, v[i].y);
+            ctx.lineTo(v[j].x, v[j].y);
+            ctx.lineTo(v[j].x, v[j].y - h);
+            ctx.lineTo(v[i].x, v[i].y - h);
+            ctx.closePath();
+            ctx.fill();
+            edgeAt[i] = true;
+            edgeAt[j] = true;
+        }
+    }
+    ctx.strokeStyle = withAlpha(ramp.core, S.EDGE_ALPHA);
+    ctx.lineWidth = S.EDGE_W;
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) {
+        if (!edgeAt[i]) continue;
+        ctx.moveTo(v[i].x, v[i].y);
+        ctx.lineTo(v[i].x, v[i].y - h);
+    }
+    ctx.stroke();
+    const hexAt = (dy: number) => {
+        ctx.beginPath();
+        ctx.moveTo(v[0].x, v[0].y + dy);
+        for (let i = 1; i < 6; i++) ctx.lineTo(v[i].x, v[i].y + dy);
+        ctx.closePath();
+    };
+    hexAt(-h);
+    ctx.fillStyle = withAlpha(ramp.main, S.CAP_FILL);
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(ramp.core, S.CAP_EDGE_ALPHA);
+    ctx.lineWidth = S.CAP_EDGE_W;
+    ctx.stroke();
+    if (S.BASE_EDGE_ALPHA > 0) {
+        hexAt(0);
+        ctx.strokeStyle = withAlpha(ramp.main, S.BASE_EDGE_ALPHA);
+        ctx.lineWidth = S.EDGE_W;
+        ctx.stroke();
+    }
 }
 
 /** 火花拖尾：頭端在錨點（朝 +x），尾巴往 -x 漸細淡出。 */

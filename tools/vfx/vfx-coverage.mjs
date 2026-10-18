@@ -57,7 +57,6 @@ const PAINTER_MODULES = {
     '/engine/renderers/units/painters/UnitShadowPainter.ts': ['UnitShadowPainter'],
     '/engine/systems/unit/UnitSystem.ts': ['UnitRenderSystem'],
     '/engine/graphics/painters/ParticlePainter.ts': ['ParticlePainter'],
-    '/engine/graphics/painters/VolumePainter.ts': ['VolumePainter'],
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],
 };
 // 存活探針掃描的目錄（視覺管線全部）：每個模組的全部匯出都包（'*'）

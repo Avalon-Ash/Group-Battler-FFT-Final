@@ -1,5 +1,5 @@
 import { Particle } from "../../state";
-import { VFXFactory } from "../../../../graphics/VFXFactory";
+import { VFXFactory, particleTexture } from "../../../../graphics/VFXFactory";
 import { BILLBOARD } from "../../../../../constants";
 
 /**
@@ -10,7 +10,7 @@ export const BillboardPainter = {
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number) {
         let img = p.image || p.texture;
         if (!img) {
-            p.image = VFXFactory.getTexture(p.type, p.color);
+            p.image = VFXFactory.getTexture(particleTexture(p.type), p.color);
             img = p.image;
         }
         const ease = 1 - Math.pow(1 - progress, 3);

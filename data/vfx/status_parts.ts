@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  status_parts — 狀態／控制效果的六角零件版視覺表（SSOT）   ║
 // ║  職責：每個 STATUS_VISUALS 鍵用哪些零件、掛在哪個錨點、怎麼動 ║
-// ║  上游：PartSpec（零件參數）、vfxPalette（色階）             ║
+// ║  上游：parts/partLayer（零件層格式）、PartSpec、vfxPalette   ║
 // ║  下游：StatusPartPainter（只做 drawImage／alpha／變換）；     ║
 // ║        StatusActivity（什麼時候算「這個狀態成立」）          ║
 // ║  [ARCH] 錨點定義見 engine/renderers/RenderSpec.ts §4：       ║
@@ -12,42 +12,13 @@
 // ║  標記只畫優先序最高的一個；弱效果（DoT／回復／易傷）低調。   ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { PartSpec } from '../../engine/renderers/vfxparts/PartSpec';
-import type { VFXRampId } from './parts/vfxPalette';
+import type { PartLayer } from './parts/partLayer';
 
 export type StatusAnchor = 'GROUND' | 'BODY' | 'HEAD';
 
-export interface StatusPartLayer {
-    /** 零件參數（色階為預設；紅隊可用 rampRed 覆寫） */
-    spec: PartSpec;
-    rampRed?: VFXRampId;
+/** 狀態零件層＝共用零件層（data/vfx/parts/partLayer.ts）＋掛在單位的哪個錨點 */
+export interface StatusPartLayer extends PartLayer {
     anchor: StatusAnchor;
-    /** 貼地（等距壓扁、轉到地圖六角方向）；其餘為看板 */
-    flat?: boolean;
-    /** 均分排列的份數（預設 1） */
-    count?: number;
-    /** 水平半徑（px）；繞行時垂直方向再乘 ISO_SCALE_Y */
-    orbitRadius?: number;
-    /** 繞行角速度（rad/s，負為反向）；0／未填＝靜態排列 */
-    orbitSpeed?: number;
-    /** 相對錨點往上的偏移（px） */
-    lift?: number;
-    /** 零件自轉（rad/s）；貼地時在地面平面內轉 */
-    spin?: number;
-    /** 固定旋轉（rad，看板用） */
-    rotation?: number;
-    scale?: number;
-    alpha?: number;
-    pulse?: { amp: number; hz: number };
-    bob?: { amp: number; hz: number };
-    /** 循環上升並淡入淡出（高度 px、週期 s）；份數在週期內均分相位 */
-    rise?: { height: number; period: number };
-    /** 隨機感抖動幅度（px，確定性 sin，不用亂數） */
-    shake?: number;
-    /** 覆寫零件預設混合模式。頭頂標記用 source-over：加法混合在亮地形上會洗成白色，失去顏色辨識 */
-    blend?: GlobalCompositeOperation;
-    /** 裝飾層：品質階層 ≥ DECOR_CUT_TIER 時略過，只保留主剪影 */
-    decor?: boolean;
 }
 
 export interface StatusPartSet {
@@ -82,8 +53,6 @@ export const STATUS_PART_RENDER = {
     MAX_SETS_BY_TIER: [3, 3, 2, 1] as const,
     /** 品質階層 ≥ 此值時略過 decor 層 */
     DECOR_CUT_TIER: 2,
-    /** 確定性抖動的基礎頻率（Hz） */
-    SHAKE_HZ: 9,
 } as const;
 
 export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
@@ -237,7 +206,7 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
     },
 
     // ── 沒有常駐零件層的條目 ─────────────────────────────────────────────
-    SHIELD: { priority: 50, strong: false, layers: [], handledBy: 'ShieldPainter（computeShieldGeometry 貼合頭頂高度的稜柱，幾何貼合與零件版相當，保留）' },
+    SHIELD: { priority: 50, strong: false, layers: [], handledBy: 'ShieldPainter（prism 零件，computeShieldGeometry 貼合頭頂高度）' },
     IMMUNE: { priority: 0, strong: false, layers: [], handledBy: '一次性事件：CC_APPLIED 浮動文字（CCManager），沒有常駐狀態' },
     KNOCKBACK: { priority: 0, strong: false, layers: [], handledBy: '一次性事件：ForcedMove 位移＋撞擊特效，沒有常駐狀態' },
     PULL: { priority: 0, strong: false, layers: [], handledBy: '一次性事件：ForcedMove 位移，沒有常駐狀態' },

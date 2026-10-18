@@ -14,7 +14,7 @@
 import { Agent } from "../game";
 import type { UnitFrame } from "./frame/UnitFrame";
 import { Particle } from "../systems/vfx/state";
-import { Projectile, Point, GroundHazard, Team } from "../../types";
+import { Projectile, Point, SpatialHazard, Team } from "../../types";
 import type { TerrainTheme } from "../../constants";
 import type { ActiveZone } from "../systems/ZoneSystem";
 
@@ -43,7 +43,7 @@ export class RenderOp {
     ttype: string = ''; tdetail: string = '';
     oStatus: string | undefined;
     oDanger: ActiveZone | undefined;
-    oHazard: GroundHazard | undefined;
+    oHazard: SpatialHazard | undefined;
     oLightCol: string | null = null;
     oLightInt: number = 0;
     oRange: boolean = false;

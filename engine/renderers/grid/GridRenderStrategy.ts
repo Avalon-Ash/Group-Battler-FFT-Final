@@ -10,7 +10,7 @@
 import { GameEngine, Agent } from "../../game";
 import { GridCache } from "../../systems/grid/GridCache";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { Hex, Skill, Projectile, GroundHazard } from "../../../types";
+import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
@@ -97,12 +97,7 @@ export class GridRenderStrategy {
                 hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
                 hOp.tx = px; hOp.ty = visualSurfaceY + bob; 
                 hOp.y = visualBaseY; // 同上：危害不再因格高排到站在其上的單位之後（DEPTH_ORDER_FINDINGS §1-2）
-                hOp.oHazard = {
-                    type: h.type,
-                    team: h.team,
-                    duration: h.duration,
-                    power: h.power
-                } as GroundHazard;
+                hOp.oHazard = h;
                 hOp.time = globalTime;
             }
 

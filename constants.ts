@@ -345,7 +345,7 @@ export const GROUND_DRAPE = {
     PAINTER_BLEND: 'screen' as GlobalCompositeOperation,
     /** 懸空平面（詠唱環）貼回的混合模式：環原本以一般疊加繪製（深色技能色在 screen 下會消失） */
     PLANE_BLEND: 'source-over' as GlobalCompositeOperation,
-    /** 繪製函式類鋪設的離屏畫布半邊長（× halfW，正方形）：涵蓋未壓扁的光暈貼圖（drawVolumetricHex 是 1.4 倍半徑） */
+    /** 繪製函式類鋪設的離屏畫布半邊長（× halfW，正方形）：涵蓋 AOE 預警的範圍光（AOE_INDICATOR.GLOW_RADIUS_MUL 1.4 倍範圍） */
     PAINTER_EXTENT: 1.5,
     /** 施法 AOE 預警的涵蓋半徑額外加的格數比例（描邊光暈超出幾何半徑的部分） */
     AOE_INDICATOR_PAD: 0.15,
@@ -792,11 +792,56 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
 // 2.5D Unit Sprite & Fantasy HD Art Configuration (SSOT)
 // ══════════════════════════════════════════════════════════════
 
-/** 護盾稜柱：height 為圖集未就緒時的預設高度；實際高度＝角色頭頂高度＋headMargin（見 ShieldPainter） */
+/**
+ * 護盾稜柱（ShieldPainter，全部是零件）：height 為圖集未就緒時的預設高度；實際高度＝角色頭頂高度＋headMargin。
+ * 稜柱用 PRISM_RAMP（兩隊同色＝同一個狀態），掃描環與上下緣用陣營色階（factionSkin.shield.accentRamp）。
+ */
 export const SHIELD_VISUAL = {
     height: 80,
     radius: 38,
     headMargin: 8,
+    PRISM_RAMP: 'STATUS_SKY',
+    BLEND: 'screen' as GlobalCompositeOperation,
+    /** 不透明度＝BASE_ALPHA＋護盾比例×STRENGTH_ALPHA＋sin(t×PULSE_FREQ)×PULSE_ALPHA；maxShield 未設定時以 DEFAULT_MAX 為分母 */
+    BASE_ALPHA: 0.3,
+    STRENGTH_ALPHA: 0.4,
+    PULSE_FREQ: 5,
+    PULSE_ALPHA: 0.1,
+    DEFAULT_MAX: 100,
+    /** 掃描環：上升速度（px/s）、各道環的半徑比例與不透明度倍率（份數＝陣列長度，相位均分）、粗細（px） */
+    SCAN_SPEED: 120,
+    SCAN_RATIOS: [0.9, 0.7] as const,
+    SCAN_ALPHA_MULS: [1.2, 0.6] as const,
+    SCAN_THICKNESS: 2,
+    /** 上下緣陣營環 */
+    RIM_THICKNESS: 1,
+    RIM_ALPHA: 0.4,
+} as const;
+
+/** 單位腳下接地陰影（UnitShadowPainter；貼圖 VFXFactory SHADOW_BLOB，multiply）。WIDTH＝陰影寬（UNIT_SCALE 前），BASE_HALF＝底座貼圖半邊長 */
+/**
+ * 施法 AOE 地面預警（UnitIndicatorPainter，零件、只經 GroundDrape 鋪設）：範圍＝aoeRadius 格，隨詠唱進度從中心擴張。
+ * 不透明度＝ALPHA＋sin(t×PULSE_FREQ)×PULSE_AMP，各零件再乘自己的倍率；光暈半徑＝範圍×GLOW_RADIUS_MUL。
+ */
+export const AOE_INDICATOR = {
+    ALPHA: 0.3,
+    PULSE_AMP: 0.1,
+    PULSE_FREQ: 8,
+    GLOW_RADIUS_MUL: 1.4,
+    GLOW_ALPHA_MUL: 1,
+    RING_THICKNESS: 2,
+    RING_ALPHA_MUL: 1.5,
+    INNER_RATIO: 0.8,
+    INNER_THICKNESS: 1,
+    INNER_ALPHA_MUL: 0.8,
+} as const;
+
+export const UNIT_SHADOW = {
+    WIDTH: 110,
+    BASE_HALF: 64,
+    CORE_COLOR: 'rgba(0,0,0,1)',
+    MID_STOP: 0.6,
+    MID_COLOR: 'rgba(0,0,0,0.3)',
 } as const;
 
 export const UNIT_SPRITE = {

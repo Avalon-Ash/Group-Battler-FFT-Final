@@ -194,6 +194,16 @@ VFXSystem.state.particles
 - `BillboardPainter` 只剩天氣（參數 `BILLBOARD`）；`materialConfig` 刪 ice／poison／void／particles／lightning／beam／unit.armor 與 6 個型別。
 - 結果：除錯點 0 次；battle_frozen 0.21%（與 V4 相同）、地形 0 差異。
 
+### 4.13 V5b（直接繪製器零件化）之後（2026-10-19）
+- 詠唱環 `UnitAuraPainter`：環、聖域（陣營 sigil）、光點、能量柱全部是零件，色階＝陣營×技能屬性（`data/vfx/element_ramps.ts`），參數 `CAST_RING`。飛行緞帶 `UnitFlightPainter` 刪除（在縮放／旋轉後的座標系畫，位置是錯的），拖尾共用 `vfxparts/TrailStreak`。
+- 共用零件層：`data/vfx/parts/partLayer.ts`（格式）＋`vfxparts/PartLayerPainter.ts`（解析與繪製）；狀態（`status_parts`）與危害（`hazard_visuals`）都用它。沒有繞行也沒有上升的多份層改為均分旋轉角（漩渦臂）。
+- 新零件 `prism`（六角稜柱，等距投影與版面烘焙在 sprite 裡，glass／solid）：護盾 `ShieldPainter`（稜柱＋上升掃描環＋陣營上下緣，`SHIELD_VISUAL`，陣營色階 `factionSkin.shield.accentRamp`）、冰封危害的冰塊。
+- 危害 `HazardPainter`：`HAZARD_VISUALS` 改成每格零件層＋中心格層（重力漩渦只畫在中心格，不再每格一個黑洞）；熔岩液面沿用地形循環影格。RenderOp 直接帶 `SpatialHazard`（刪 `GroundHazard` 與每幀配置的物件）。
+- AOE 地面預警 `UnitIndicatorPainter`：範圍光＋內外環零件（`AOE_INDICATOR`），不再每幀 `shadowBlur`。
+- 刪除：`VolumePainter`（整檔）、`SurfacePainter.drawCracks`、`ParticlePainter.drawCracks`、`VFXFactory` CRACKS、`NoiseLib.applyNoiseMask`、`materialConfig.scorch`、`Z_LAYERS.HAZARD_FOG`。
+- **回歸修正**：V5a 刪貼圖時 `HazardPainter`（SMOKE／GLOW／ROCK）與 `UnitShadowPainter`（SHADOW_BLOB）仍在呼叫，畫成洋紅除錯方塊。`VFXFactory.getTexture` 改收封閉型別 `VFXTextureType`，傳不支援的名稱編譯不過；SHADOW_BLOB 復原（參數 `UNIT_SHADOW`）。
+- 驗收：`fx-shot --keys=SHIELD:<陣營>`、`HAZARD:<類型>`、`CAST:tb_a3`（AOE 預警）新舊對照；battle_frozen 0.03%（陰影從除錯方塊恢復成柔和陰影，門檻內未重錄）、地形 0 差異。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

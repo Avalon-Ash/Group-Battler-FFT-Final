@@ -7,11 +7,15 @@
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../data/vfx/parts/vfxPalette';
+import { ISO_SCALE_Y } from '../../../constants';
+import type { HexLayout } from '../../../types';
 
 export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
 export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
 /** 光束磚的邊緣樣式：乾淨光管、兩側虛線（死光）、鋸齒（閃電）、珠鏈（血鏈） */
 export type BeamEdge = 'clean' | 'dashed' | 'zigzag' | 'beads';
+/** 六角稜柱的材質：glass＝六面半透明（護盾），solid＝只畫朝向鏡頭的面（冰晶塊） */
+export type PrismStyle = 'glass' | 'solid';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -45,7 +49,9 @@ export type PartSpec =
     | { kind: 'spark'; length: number; ramp: VFXRampId }
     | { kind: 'droplet'; size: number; ramp: VFXRampId }
     | { kind: 'beam'; width: number; ramp: VFXRampId; edge: BeamEdge; seed?: number }
-    | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId };
+    | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId }
+    /** 立體零件：等距投影與版面（FLAT／POINTY）烘焙在 sprite 裡，繪製時不可再旋轉或壓扁 */
+    | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle };
 
 export type PartKind = PartSpec['kind'];
 
@@ -121,6 +127,11 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             return { kind: 'beam', width: quantizeSize(spec.width), ramp: spec.ramp, edge: spec.edge, seed: spec.edge === 'zigzag' ? quantizeSeed(spec.seed) : 0 };
         case 'missile':
             return { kind: 'missile', shape: spec.shape, length: quantizeSize(spec.length), ramp: spec.ramp };
+        case 'prism': {
+            const step = VFX_PARTS.PRISM.STEP;
+            const q = (v: number) => Math.max(step, Math.round(v / step) * step);
+            return { kind: 'prism', radius: q(spec.radius), height: q(spec.height), ramp: spec.ramp, layout: spec.layout ?? 'FLAT', style: spec.style };
+        }
     }
 }
 
@@ -153,6 +164,7 @@ export function partBlend(n: PartSpec): GlobalCompositeOperation {
     if (n.kind === 'beam') return 'lighter';
     if (n.kind === 'smoke' || n.kind === 'droplet') return 'source-over';
     if (n.kind === 'missile' && SOLID_MISSILES.has(n.shape)) return 'source-over';
+    if (n.kind === 'prism' && n.style === 'solid') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
@@ -201,6 +213,13 @@ export function partBounds(n: PartSpec): PartBounds {
             const w = n.height * VFX_PARTS.FLAME.WIDTH_RATIO * VFX_PARTS.FLAME.EXTENT + pad * 2;
             const h = n.height + pad * 2;
             return { width: w, height: h, anchorX: w / 2, anchorY: h - pad };
+        }
+        case 'prism': {
+            // 底面中心為錨點；上下各多出一個壓扁六角的半高
+            const ry = n.radius * ISO_SCALE_Y;
+            const w = n.radius * 2 + pad * 2;
+            const h = n.height + ry * 2 + pad * 2;
+            return { width: w, height: h, anchorX: w / 2, anchorY: pad + ry + n.height };
         }
         case 'pillar': {
             const w = n.width + pad * 2;

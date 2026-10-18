@@ -13,7 +13,7 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Team, Role, BodyTypeId } from '../../types';
-import { HUD_COLORS, PALETTE, THEME_IMPERIAL, THEME_COVENANT, CLASS_GLYPH } from '../../constants';
+import { HUD_COLORS, PALETTE, CLASS_GLYPH } from '../../constants';
 import { FACTION_VISUALS } from '../vfx/faction_visuals';
 import { UNIT_APPEARANCE } from './appearance';
 import { BODY_TYPE_PROFILE } from './appearance/bodyTypes';
@@ -150,7 +150,8 @@ export interface FactionSkin {
     core: CoreSkin;
     sprite: SpriteSkin;
     projection: ProjectionSkin;
-    shield: { strokeColor: string };
+    /** 護盾掃描環與上下緣的色階（稜柱本體兩隊同色，SHIELD_VISUAL.PRISM_RAMP） */
+    shield: { accentRamp: VFXRampId };
     hud: { top: string; bottom: string; glow: string; border: string };
     death: { style: DeathStyle; burstColor: string; shatterColors: string[]; spiritColor: string; bloodColor: string; ramps: DeathPartRamps };
     /** 精靈尚未載入時的退路圓盤色 */
@@ -174,7 +175,7 @@ interface FactionStyleDef {
     emblemAlpha: number;
     emblemScale: number;
     ember: string;
-    shieldStroke: string;
+    shieldAccent: VFXRampId;
     core: CoreSkin;
     glyph: GlyphStyleId;
 }
@@ -194,7 +195,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemAlpha: 0.55,
         emblemScale: 0.38,
         ember: '#fcd34d',
-        shieldStroke: THEME_IMPERIAL.energy,
+        shieldAccent: 'LION_ARCANE',
         core: {
             style: 'LIONHEART_PRISM',
             light: '#fffbeb',
@@ -221,7 +222,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         emblemAlpha: 0.55,
         emblemScale: 0.3,
         ember: '#f97316',
-        shieldStroke: THEME_COVENANT.primary,
+        shieldAccent: 'ASH_BLOOD',
         core: {
             style: 'ASHEN_SHARD',
             light: '#dc2626',
@@ -281,7 +282,7 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
         projection: {
             trailColor: fv.flightTrailColor,
         },
-        shield: { strokeColor: style.shieldStroke },
+        shield: { accentRamp: style.shieldAccent },
         hud: HUD_COLORS.HP[team],
         death: {
             style: style.deathStyle,

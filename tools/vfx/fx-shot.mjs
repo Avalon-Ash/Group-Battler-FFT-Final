@@ -9,6 +9,9 @@
  *     施法者對另一方發射一發 power 0 的投射物（速度 PROJ_SPEED，可入鏡）；建議 --t=0.08,0.16,0.24,0.32,0.4。
  *   詠唱：--keys=CAST:tb_u3,CAST:tr_a3（技能 id）。同一對單位，技能所屬陣營的單位對另一方開始詠唱（詠唱環、聖域、光點、能量柱）；
  *     --t 依詠唱時間給（例：1.2 秒的奧義用 --t=0.2,0.5,0.8,1.1）。
+ *   護盾：--keys=SHIELD:BLUE,SHIELD:RED。同一對單位，該陣營的單位掛滿護盾，鏡頭對準它。
+ *   危害：--keys=HAZARD:FIRE,HAZARD:POISON,HAZARD:ICE,HAZARD:GRAVITY。地圖中央那格與鄰格登記一個空間危害
+ *     （中心＝那格），建議 --t=1.2,1.5,1.8（避開生成那一下的命中特效）。
  * 每個鍵輸出 <key>.png：一列 5 格（t = 0.03／0.1／0.2／0.32／0.48 秒）。
  */
 import { chromium } from 'playwright-core';
@@ -41,6 +44,9 @@ const PROJ_COLS = 3;
 const PROJ_SPEED = 520;
 const PROJ_CROP = { w: 560, h: 420 };
 const PROJ_ZOOM = 1.0;
+/** 危害模式（HAZARD:<類型>）：截圖範圍與縮放 */
+const HAZARD_CROP = { w: 520, h: 360 };
+const HAZARD_ZOOM = 1.4;
 
 const server = await createServer({ root, server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 let browser = null;
@@ -110,7 +116,7 @@ try {
     }, PROJ_COLS);
     if (!spot) throw new Error('no free tile');
     // 投射物模式：放好那一對單位（全部鍵共用；RED 鍵由紅方往藍方打）
-    if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:'))) {
+    if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:') || k.startsWith('SHIELD:'))) {
         if (!spot.foe) throw new Error(`no free tile for the projectile target ${JSON.stringify(spot)}`);
         await page.evaluate(async (spot) => {
             const e = window.__TACTICAL_ENGINE__;
@@ -131,14 +137,29 @@ try {
         const frames = [];
         const isBeam = key.startsWith('BEAM:');
         const isProj = key.startsWith('PROJ:') || key.startsWith('CAST:');
-        // 投射物模式的鏡頭對準兩單位中點
-        const cam = isProj ? { x: (spot.x + spot.foe.x) / 2, y: (spot.y + spot.foe.y) / 2, gz: (spot.gz + spot.foe.gz) / 2 } : spot;
-        await page.evaluate(async ({ key, spot, cam, lift, isBeam, beamDx, beamDy, fallH, fallZoom, projSpeed, projZoom }) => {
+        const isHazard = key.startsWith('HAZARD:');
+        // 投射物模式的鏡頭對準兩單位中點；護盾模式對準該陣營的單位
+        const cam = isProj ? { x: (spot.x + spot.foe.x) / 2, y: (spot.y + spot.foe.y) / 2, gz: (spot.gz + spot.foe.gz) / 2 } : key === 'SHIELD:RED' ? spot.foe : spot;
+        const zoom = key.startsWith('FALL:') ? FALL_ZOOM : isProj ? PROJ_ZOOM : isHazard ? HAZARD_ZOOM : 2.0;
+        await page.evaluate(async ({ key, spot, cam, lift, isBeam, beamDx, beamDy, fallH, projSpeed, zoom }) => {
             const e = window.__TACTICAL_ENGINE__;
             e.renderer.vfx.reset();
-            e.renderer.camera.snapTo(cam.x, cam.y - cam.gz, key.startsWith('FALL:') ? fallZoom : key.startsWith('PROJ:') ? projZoom : 2.0);
+            e.renderer.camera.snapTo(cam.x, cam.y - cam.gz, zoom);
             window.__stepFrames(2);
-            if (key.startsWith('CAST:')) {
+            if (key.startsWith('SHIELD:')) {
+                // SHIELD:<BLUE|RED>：該陣營的單位掛滿護盾
+                const a = key === 'SHIELD:RED' ? window.__projRed : window.__projBlue;
+                a.maxShield = 300;
+                a.shield = 300;
+            } else if (key.startsWith('HAZARD:')) {
+                // HAZARD:<類型>：那格與六個鄰格（存在的）登記一個空間危害，中心＝那格
+                const type = key.split(':')[1];
+                const types = await import('/types.ts');
+                e.state.spatialHazards.length = 0;
+                const cells = [{ q: spot.q, r: spot.r }];
+                for (const [dq, dr] of [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]]) if (e.isValid(spot.q + dq, spot.r + dr)) cells.push({ q: spot.q + dq, r: spot.r + dr });
+                e.hazardSystem.registerHazard({ id: `fx-shot-${type}`, type, cells, duration: 30, sourceId: 'fx-shot', team: types.Team.RED, color: '#ffffff', power: 0, tickInterval: 999, lastTickTime: e.battleTime, centerQ: spot.q, centerR: spot.r, pullRadius: 0 }, e);
+            } else if (key.startsWith('CAST:')) {
                 // CAST:<技能 id>：技能所屬陣營的單位對另一方開始詠唱（只看詠唱期間的光環）
                 const id = key.split(':')[1];
                 const skill = e.skillDB.find((s) => s.id === id);
@@ -182,16 +203,16 @@ try {
             } else {
                 e.renderer.vfx.playEffect(key, spot.x, spot.y, spot.gz + lift, undefined, spot.gz);
             }
-        }, { key, spot, cam, lift: bodyKeys.has(key) || isBeam ? BODY_LIFT : 0, isBeam, beamDx: BEAM_DX, beamDy: BEAM_DY, fallH: FALL_H, fallZoom: FALL_ZOOM, projSpeed: PROJ_SPEED, projZoom: PROJ_ZOOM });
+        }, { key, spot, cam, lift: bodyKeys.has(key) || isBeam ? BODY_LIFT : 0, isBeam, beamDx: BEAM_DX, beamDy: BEAM_DY, fallH: FALL_H, projSpeed: PROJ_SPEED, zoom });
         let tPrev = 0;
         for (const t of SAMPLE_T) {
             await page.evaluate(({ n, cam, zoom }) => {
                 window.__stepFrames(n);
                 window.__TACTICAL_ENGINE__.renderer.camera.snapTo(cam.x, cam.y - cam.gz, zoom);
                 window.__stepFrames(1);
-            }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), cam, zoom: key.startsWith('FALL:') ? FALL_ZOOM : isProj ? PROJ_ZOOM : 2.0 });
+            }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), cam, zoom });
             tPrev = t;
-            frames.push(await page.screenshot({ clip: isProj ? { x: 480 - PROJ_CROP.w / 2, y: 300 - PROJ_CROP.h * 0.72, width: PROJ_CROP.w, height: PROJ_CROP.h } : key.startsWith('DEATH:') ? { x: 480 - DEATH_CROP.w / 2, y: 300 - DEATH_CROP.h * 0.7, width: DEATH_CROP.w, height: DEATH_CROP.h } : key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h } : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
+            frames.push(await page.screenshot({ clip: isHazard ? { x: 480 - HAZARD_CROP.w / 2, y: 300 - HAZARD_CROP.h * 0.6, width: HAZARD_CROP.w, height: HAZARD_CROP.h } : isProj ? { x: 480 - PROJ_CROP.w / 2, y: 300 - PROJ_CROP.h * 0.72, width: PROJ_CROP.w, height: PROJ_CROP.h } : key.startsWith('DEATH:') ? { x: 480 - DEATH_CROP.w / 2, y: 300 - DEATH_CROP.h * 0.7, width: DEATH_CROP.w, height: DEATH_CROP.h } : key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h } : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
         }
         if (sharp) {
             const row = await sharp({ create: { width: CROP.w * frames.length, height: CROP.h, channels: 3, background: '#000' } })

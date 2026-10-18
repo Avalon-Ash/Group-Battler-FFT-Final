@@ -26,7 +26,7 @@ export class RenderSpec {
         s += "| RenderOpType     | subLayer | 描述 |\n";
         s += "|------------------|----------|------|\n";
         s += "| TERRAIN          | 10       | 地塊本體＋地表細節＋地塊狀態疊層＋蓋到這格的貼地鋪設特效（§9，不是獨立 op） |\n";
-        s += "| HAZARD           | 30       | 持續性空間危害（熔岩、毒霧） |\n";
+        s += "| HAZARD           | 30       | 持續性空間危害（熔岩、毒沼、冰封、重力場；HazardPainter 零件層，錨點＝格子頂面中心，flat 層 ≤ HAZARD_RENDER.FLAT_MAX_RADIUS） |\n";
         s += "| VFX (isGround)   | 32       | 一般貼地特效（小型平貼、直立的柱／光束／結界），不套 z-boost；大型平貼特效改走 §9 |\n";
         s += "| AURA             | 38       | 單位施法圈 |\n";
         s += "| OVERLAY          | 42       | 射程、懸停、警告、背水一戰 |\n";
@@ -102,7 +102,7 @@ export class RenderSpec {
         s += "| 施法／投射物／光束起點 | getCoreAnchor | ＝投影中心（與受擊點同一點，沒有水平位移；飛行單位從身體中心發射，含 physics.z）。核心寶石投影成形後藏在這裡，所以「從核心出發」與「從投影中心出發」是同一件事 |\n";
         s += "| 投影中心（繪製） | getProjectionCenterY(腳底繪製 Y, physics.z, 體型) | 腳底繪製 Y − physics.z − projectionCenterHeight(體型)；UnitCorePainter 用，與上列同一個高度公式 |\n";
         s += "| 血條錨點 | UnitFrame.hudAnchorY（hudBarHeight） | 腳底繪製 Y − physics.z − (頭頂高度 + HUD_ANCHOR.barHeadMargin)；血條上緣在錨點之上 5px。量表（GaugePainter）與頭頂狀態圖示（錨點之下 HUD_ANCHOR.overheadBelowBar，落在頭頂上方）都掛在它上面 |\n";
-        s += "| 狀態零件層（StatusPartPainter） | GROUND／BODY／HEAD 三種錨點（data/vfx/status_parts.ts） | 全部讀 UnitFrame 與 projection SSOT：GROUND＝floorY − physics.z（腳下，貼地層半徑 ≤ STATUS_PART_RENDER.GROUND_MAX_RADIUS，因為狀態在單位之後的總覽層繪製、不做 §9 鋪設，必須待在腳下那格）；BODY＝投影中心（floorY − physics.z − projectionCenterHeight）；HEAD＝頭頂（projectionTopHeight）+ STATUS_PART_RENDER.HEAD_MARGIN，頭頂標記擠在頭與血條之間，同一單位只畫優先序最高者。繪製順序：GROUND → BODY → HEAD。護盾仍由 ShieldPainter（computeShieldGeometry）貼合頭頂高度 |\n";
+        s += "| 狀態零件層（StatusPartPainter） | GROUND／BODY／HEAD 三種錨點（data/vfx/status_parts.ts） | 全部讀 UnitFrame 與 projection SSOT：GROUND＝floorY − physics.z（腳下，貼地層半徑 ≤ STATUS_PART_RENDER.GROUND_MAX_RADIUS，因為狀態在單位之後的總覽層繪製、不做 §9 鋪設，必須待在腳下那格）；BODY＝投影中心（floorY − physics.z − projectionCenterHeight）；HEAD＝頭頂（projectionTopHeight）+ STATUS_PART_RENDER.HEAD_MARGIN，頭頂標記擠在頭與血條之間，同一單位只畫優先序最高者。繪製順序：GROUND → BODY → HEAD。層格式與繪製共用 PartLayerPainter（危害也用）。護盾由 ShieldPainter 畫 prism 零件，底面＝腳底、高度＝頭頂＋headMargin（computeShieldGeometry） |\n";
         s += "| 浮動文字基準線 | hudTextHeight | 血條錨點 + HUD_ANCHOR.textGap（傷害數字、詠唱字、KILL_STREAK；EventHUDMapper 依事件主角的體型取值） |\n";
         s += "| 精靈繪製原點 | getVisualBodyCenterY(腳底繪製 Y, physics.z) | 腳底繪製 Y − physics.z − UNIT_BODY_OFFSET − UNIT_HOVER_OFFSET。**這是 UnitBodyPainter／護盾／包裹類狀態的繪製原點（精靈腳底落在它之下 42px，見 UNIT_SPRITE.footOffsetLocal），不是投影中心**：投影中心在腳底之上頭頂高度的一半（目前約 29.5px），繪製原點在腳底之上 42px。UNIT_BODY_OFFSET／UNIT_HOVER_OFFSET 只剩這個繪製慣例與護盾稜柱貼地在用，錨點不再讀它們 |\n";
         s += "| 地面目標點 | resolveTargetPoint（ground-q,r） | 格高 + 2 |\n";

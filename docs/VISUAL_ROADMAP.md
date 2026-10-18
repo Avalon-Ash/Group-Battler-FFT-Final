@@ -47,13 +47,15 @@
 
 ### V5 直接繪製器逐項決策（保留程序化／改零件／改烘焙）
 - ✅ V5a 2026-10-19：舊管線死碼（舊粒子型別、貼花、舊貼圖、`IconPainter`／`GeometryPainter`），見 VFX_PIPELINE_MAP §4.12。
+- ✅ V5b 2026-10-19：詠唱環、護盾、危害、AOE 預警零件化；共用零件層；`VolumePainter` 刪除；修 V5a 的貼圖回歸。見 VFX_PIPELINE_MAP §4.13。
 | 繪製器 | 現況 | 建議 |
 | :-- | :-- | :-- |
-| `UnitAuraPainter` 詠唱環 | 每幀描邊六角 | 烘成旋轉 sigil 零件（懸空平面機制不動） |
-| `UnitFlightPainter` 緞帶 | 每幀路徑 | 保留（依軌跡變形，烘焙不划算），統一色階 |
+| ~~`UnitAuraPainter` 詠唱環~~ | ✅ V5b 零件（環、陣營聖域、光點、能量柱） | 懸空平面機制不動 |
+| ~~`UnitFlightPainter` 緞帶~~ | ✅ 刪除（在縮放後的座標系畫，位置錯；引擎光點是舊身體的） | 飛行只留殘影 |
 | ~~`UnitAmbientPainter` 陣營氛圍~~ | ✅ 2026-10-19 刪除：座標是舊程序化身體的胸甲位置，換精靈後浮在頭頂（藍方矩形、紅方光點） | 待機氛圍只留零件版 `FX_IDLE_*` |
-| `ShieldPainter` | 舊式稜柱描邊 | 零件化或烘焙 |
-| `GridOverlays` 預警／射程、`HazardPainter`、`ZoneRenderer` | 地格層 | 併入地形 T3（網格氛圍）一起設計 |
+| ~~`ShieldPainter`~~ | ✅ V5b `prism` 零件＋掃描環 | — |
+| ~~`HazardPainter`、`UnitIndicatorPainter`~~ | ✅ V5b 零件層（中心格漩渦）、AOE 預警零件 | — |
+| `GridOverlays` 預警／射程、`ZoneRenderer` | 地格層 | 併入地形 T3（網格氛圍）一起設計 |
 | `TextPainter` SHOUT／傷害數字 | 效能熱點（漸層、shadowBlur） | 烘焙字形快取（PERF_REPORT_4 §3 已列） |
 
 ### V6 外觀調校

@@ -20,9 +20,9 @@
 | `GridOverlays`（懸停、射程、縮圈預警、最後一戰、區域、燈光） | 是 | 是；0.9～1.0 倍 | 格頂 `visualSurfaceY`，**不含漂浮位移**（見 §5-A） | OVERLAY：`y = visualBaseY`、`sortBias = HEX_SIZE·0.5` | 對齊（POINTY 截圖確認） |
 | `ZoneRenderer`（區域預警圈） | 是 | 是 | 同 GridOverlays | 同 OVERLAY | 正確 |
 | AOE 預警高亮（`GridRenderStrategy` 的 `_castingAOE` → OVERLAY） | 是 | 是 | 格頂 | 同 OVERLAY | 正確 |
-| `HazardPainter`（液面、延伸柱、霧） | 是（`drawLiquid`／`drawExtrusion` 傳 layout；霧為圓形貼圖） | 是 | 格頂＋`applyLayerBias` | HAZARD：`y = visualBaseY + h·0.7` | 正確 |
+| `HazardPainter`（液面＋零件層，2026-10-19） | 是（`drawLiquid` 傳 layout；flat 零件轉到版面方向、`prism` 烘焙時注入 layout） | 是 | 格頂＋`applyLayerBias` | HAZARD：`y = visualBaseY + h·0.7` | 正確 |
 | `GroundEffectPainter`、`UnitIndicatorPainter`（技能落點環）、`UnitAuraPainter`（詠唱／奧義光環） | 是（`traceHex`／`traceRotatedHex` 傳 layout） | 是 | 單位腳底 `surfaceY` | AURA：`y = 腳底 + h·0.7`、`sortBias = HEX_SIZE·0.5` | 正確 |
-| 護盾稜柱 `ShieldPainter`→`VolumePainter.draw3DPrism` | 是 | 是；`SHIELD_VISUAL.radius` | body center ＋ `computeShieldGeometry` | 隨單位 | 正確 |
+| 護盾稜柱 `ShieldPainter`（`prism` 零件，2026-10-19） | 是 | 是；`SHIELD_VISUAL.radius` | body center ＋ `computeShieldGeometry` | 隨單位 | 正確 |
 | 障礙物 sprite `EnvironmentFactory.generateObstacle`（快取鍵含 layout） | 是 | 是 | 格頂 | OBSTACLE | 正確 |
 | 直接繪製管線 `ProceduralPainter`（`GIANT_HEX`、`HEX_BEAM`、`DOMAIN`、`BLACK_HOLE`…）、`GroundPainter` 向量部分（`SHOCKWAVE`／`RING`／`BLAST`／`HEX_GLOW`／`GRID_FIELD` 一般格） | 是 | 是 | 粒子 z／groundZ | 地面粒子：`sortBias = gHalfH + 15` | 正確 |
 | **`GroundPainter` 材質場 `drawFireField`／`drawIceField`／`drawPoisonField`／`drawVoidField`**（`MaterialPainter.bake*` 以 FLAT 烘焙，`traceHex(..., false)` 預設 FLAT） | **否** | 是 | 同上 | 同上 | **POINTY 錯位 30° → 已修**（繪製時轉 `alignRotation`） |

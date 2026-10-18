@@ -54,7 +54,7 @@ export class RenderDispatcher {
 
             case RenderOpType.HAZARD: 
                 // [FIX] Pass layout to HazardPainter
-                if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.time, layout);
+                if (op.oHazard) HazardPainter.draw(ctx, snapX, snapY, op.oHazard, op.tq, op.tr, op.time, layout);
                 break;
 
             case RenderOpType.OBSTACLE:

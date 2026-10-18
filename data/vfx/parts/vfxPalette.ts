@@ -26,6 +26,8 @@ export const VFX_RAMPS = {
     STATUS_SLATE: { core: '#f1f5f9', main: '#94a3b8', dark: '#334155' },
     STATUS_PINK: { core: '#fff1f2', main: '#f9a8d4', dark: '#9d174d' },
     STATUS_GREEN: { core: '#f0fdf4', main: '#4ade80', dark: '#166534' },
+    /** 護盾稜柱（兩隊同色；陣營只出現在掃描環，factionSkin.shield.accentRamp） */
+    STATUS_SKY: { core: '#f0f9ff', main: '#bae6fd', dark: '#0369a1' },
 } as const satisfies Record<string, VFXRamp>;
 
 export type VFXRampId = keyof typeof VFX_RAMPS;

@@ -102,17 +102,6 @@ export const MATERIAL_CONFIG = {
             edgeBand: 0,
         } as SurfaceGrainConfig,
     },
-    scorch: {
-        noise: {
-            octaves: 5,
-            frequency: 6.5,
-            persistence: 0.55,
-            lacunarity: 2.1,
-            threshold: 0.32,
-            softness: 0.30,
-        } as NoiseFieldConfig,
-    },
-
     /** 棋座 Token 烘焙期風化（MaterialPainter.weatherToken） */
     unit: {
         token: {

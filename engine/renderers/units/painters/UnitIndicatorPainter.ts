@@ -1,53 +1,72 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  UnitIndicatorPainter — 施法 AOE 地面預警（全部是零件）     ║
+// ║  職責：施法者腳下的範圍光＋外環＋內環，隨詠唱進度從中心擴張 ║
+// ║  上游：UnitRenderSystem.paintAoeIndicator（GroundDrapeLayer   ║
+// ║        的繪製函式，原點＝施法者腳下地平面）、AOE_INDICATOR、  ║
+// ║        element_ramps（陣營×技能屬性色階）                     ║
+// ║  [ARCH] 只經 GroundDrape 鋪設繪製（RenderSpec §9 非粒子鋪設）；║
+// ║  平面零件在地面旋轉到版面方向再壓扁 ISO_SCALE_Y。sprite 依    ║
+// ║  （色階、範圍格數）快取，每幀零配置。                         ║
+// ╚══════════════════════════════════════════════════════════╝
 
-import { HEX_SIZE } from "../../../../constants";
-import { VolumePainter } from "../../../graphics/painters/VolumePainter";
-import { HexGeometry } from "../../../graphics/utils/HexGeometry";
-import { HexLayout } from "../../../../types";
+import { HEX_SIZE, ISO_SCALE_Y, AOE_INDICATOR } from "../../../../constants";
+import { HexLayout, Team, type Skill } from "../../../../types";
+import { elementRamp } from "../../../../data/vfx/element_ramps";
+import type { VFXRampId } from "../../../../data/vfx/parts/vfxPalette";
+import { vfxPartStore, drawPart, type PartSprite, type DrawPartOptions } from "../../vfxparts/VFXPartStore";
+import { quantizeSize } from "../../vfxparts/PartSpec";
+import { layoutAlign } from "../../vfxparts/PartLayerPainter";
+
+interface IndicatorSprites {
+    glow: PartSprite; glowScale: number;
+    ring: PartSprite; ringScale: number;
+    inner: PartSprite; innerScale: number;
+}
+
+const cache = new Map<VFXRampId, Map<number, IndicatorSprites>>();
+const OPTS: DrawPartOptions = { frame: 0, scale: 1, scaleY: ISO_SCALE_Y, rotation: 0, alpha: 1 };
+
+function resolve(ramp: VFXRampId, cells: number): IndicatorSprites {
+    let perRamp = cache.get(ramp);
+    if (!perRamp) { perRamp = new Map(); cache.set(ramp, perRamp); }
+    const hit = perRamp.get(cells);
+    if (hit) return hit;
+    const A = AOE_INDICATOR;
+    const ringR = cells * HEX_SIZE;
+    const glowR = ringR * A.GLOW_RADIUS_MUL;
+    const innerR = ringR * A.INNER_RATIO;
+    const s: IndicatorSprites = {
+        glow: vfxPartStore.get({ kind: 'glow', radius: glowR, ramp }), glowScale: glowR / quantizeSize(glowR),
+        ring: vfxPartStore.get({ kind: 'ring', radius: ringR, thickness: A.RING_THICKNESS, ramp }), ringScale: ringR / quantizeSize(ringR),
+        inner: vfxPartStore.get({ kind: 'ring', radius: innerR, thickness: A.INNER_THICKNESS, ramp }), innerScale: innerR / quantizeSize(innerR),
+    };
+    perRamp.set(cells, s);
+    return s;
+}
+
+function draw(ctx: CanvasRenderingContext2D, sprite: PartSprite, scale: number, rotation: number, alpha: number): void {
+    OPTS.scale = scale;
+    OPTS.rotation = rotation;
+    OPTS.alpha = alpha;
+    drawPart(ctx, sprite, 0, 0, OPTS);
+}
 
 export const UnitIndicatorPainter = {
-    
-    drawSkillGroundIndicator(
-        ctx: CanvasRenderingContext2D, 
-        x: number, y: number, 
-        color: string, 
-        t: number, 
-        progress: number, 
-        skillRadius: number, 
-        type: string, 
-        isAOE: boolean,
-        layout: HexLayout
-    ) {
-        // Strict Mathematical Radius
-        const maxPixelRadius = Math.max(1, skillRadius) * HEX_SIZE;
-        const currentRadius = maxPixelRadius * progress;
-        
-        // Alpha pulse
-        const opacity = 0.3 + Math.sin(t * 8) * 0.1;
+    /** 在原點畫 AOE 預警；progress＝詠唱進度 0～1（範圍從中心擴張到 aoeRadius 格） */
+    drawAoeIndicator(ctx: CanvasRenderingContext2D, skill: Skill, team: Team, t: number, progress: number, layout: HexLayout): void {
+        if (progress <= 0) return;
+        const A = AOE_INDICATOR;
+        const cells = Math.max(1, skill.aoeRadius || 1);
+        const s = resolve(elementRamp(team, skill.element), cells);
+        const alpha = A.ALPHA + Math.sin(t * A.PULSE_FREQ) * A.PULSE_AMP;
+        const align = layoutAlign(layout);
+        draw(ctx, s.glow, s.glowScale * progress, 0, alpha * A.GLOW_ALPHA_MUL);
+        draw(ctx, s.ring, s.ringScale * progress, align, Math.min(1, alpha * A.RING_ALPHA_MUL));
+        draw(ctx, s.inner, s.innerScale * progress, align, alpha * A.INNER_ALPHA_MUL);
+    },
 
-        // 1. Volumetric Glow (Floor lighting)
-        VolumePainter.drawVolumetricHex(ctx, x, y, currentRadius, color, opacity);
-        
-        // 2. Vector Ring (Precision geometry)
-        ctx.save();
-        ctx.translate(x, y);
-        
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 2;
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 10;
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = opacity * 1.5;
-        
-        // Draw expanding hex
-        HexGeometry.traceHex(ctx, 0, 0, currentRadius, true, layout);
-        ctx.stroke();
-        
-        // Inner Echo
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = opacity * 0.8;
-        HexGeometry.traceHex(ctx, 0, 0, currentRadius * 0.8, true, layout);
-        ctx.stroke();
-
-        ctx.restore();
-    }
+    /** 測試／工具用：丟掉解析快取 */
+    reset(): void {
+        cache.clear();
+    },
 };

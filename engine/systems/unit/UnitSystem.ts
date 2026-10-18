@@ -209,6 +209,6 @@ export class UnitRenderSystem {
         const skill = agent.castingSkillIdx !== -1 ? agent.skills[agent.castingSkillIdx] : undefined;
         if (!skill || skill.type !== 'AOE') return;
         const progress = 1 - (agent.castTimer / skill.cast);
-        UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, skill.aoeRadius || 1, skill.tag, true, layout);
+        UnitIndicatorPainter.drawAoeIndicator(ctx, skill, agent.team, t, progress, layout);
     }
 }

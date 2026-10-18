@@ -31,10 +31,9 @@ export class VisualMath {
     public static readonly Z_LAYERS = {
         TERRAIN: 0,
         HAZARD: 3,       // Lifted above terrain
-        HAZARD_FOG: -15, // Pushed down/behind
         OVERLAY: 5,      // UI Overlays
         SHADOW: 8,       // Shadows on top of overlays
-        DECAL: 2,        // Ground decals (cracks, scorch marks)
+        DECAL: 2,        // 地面衝擊（SequenceSystem 的落點高度）
         AURA: 1.5,       // Unit Auras (just below decals to blend?) or slightly above
         UNIT_FEET: 0,
         LIQUID_OFFSET: 1

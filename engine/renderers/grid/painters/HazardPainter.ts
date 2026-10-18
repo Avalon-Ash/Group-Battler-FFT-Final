@@ -1,157 +1,79 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  HazardPainter — 持續性空間危害（熔岩、毒沼、冰封、重力場）  ║
+// ║  職責：依 HAZARD_VISUALS 在一格畫液面底＋零件層；中心格另畫  ║
+// ║        centerLayers。執行期只有 drawImage／alpha／變換。      ║
+// ║  上游：data/vfx/hazard_visuals.ts（表）、GridRenderStrategy   ║
+// ║        （HAZARD op：op.tx／op.ty＝格子頂面中心，已含漂浮）、  ║
+// ║        PartLayerPainter、TerrainLoopAtlas（液面循環影格）     ║
+// ║  [ARCH] 錨點＝applyLayerBias(op.ty, 'HAZARD')（RenderSpec §2）；║
+// ║  不做鋪設（§9），flat 層待在那格內（FLAT_MAX_RADIUS）。sprite  ║
+// ║  依（危害、版面）快取，品質階層改變時重解；每幀零配置。       ║
+// ╚══════════════════════════════════════════════════════════╝
 
-import { GroundHazard, HexLayout } from "../../../../types";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../../constants";
-import { HAZARD_VISUALS } from "../../../../data/vfx/hazard_visuals";
-import { VFXFactory } from "../../../graphics/VFXFactory";
+import type { HexLayout, SpatialHazard } from "../../../../types";
+import { HAZARD_VISUALS, HAZARD_RENDER, type HazardType } from "../../../../data/vfx/hazard_visuals";
 import { SurfacePainter } from "../../../graphics/painters/SurfacePainter";
-import { VolumePainter } from "../../../graphics/painters/VolumePainter";
 import { VisualMath } from "../../../math/VisualMath";
+import { getQualityTier } from "../../RenderQuality";
+import { resolvePartLayer, drawPartLayer, layoutAlign, type ResolvedPartLayer } from "../../vfxparts/PartLayerPainter";
+
+interface ResolvedHazard {
+    layers: ResolvedPartLayer[];
+    center: ResolvedPartLayer[];
+}
+
+const HAZARD_TEAM = 0;
+const cache = new Map<string, ResolvedHazard>();
+let cacheTier = -1;
+
+function resolve(type: HazardType, layout: HexLayout): ResolvedHazard {
+    const tier = getQualityTier();
+    if (tier !== cacheTier) { cache.clear(); cacheTier = tier; }
+    const key = layout === 'POINTY' ? `${type}:P` : type;
+    const hit = cache.get(key);
+    if (hit) return hit;
+    const def = HAZARD_VISUALS[type];
+    const r: ResolvedHazard = {
+        layers: def.layers.map((l) => resolvePartLayer(l, HAZARD_TEAM, layout)),
+        center: (def.centerLayers ?? []).map((l) => resolvePartLayer(l, HAZARD_TEAM, layout)),
+    };
+    cache.set(key, r);
+    return r;
+}
+
+function drawLayers(ctx: CanvasRenderingContext2D, list: ResolvedPartLayer[], x: number, y: number, t: number, align: number, fade: number, cutDecor: boolean): void {
+    for (let i = 0; i < list.length; i++) {
+        if (cutDecor && list[i].layer.decor) continue;
+        drawPartLayer(ctx, list[i], x, y, t, align, fade);
+    }
+}
 
 export const HazardPainter = {
-    draw(ctx: CanvasRenderingContext2D, x: number, y: number, hazard: GroundHazard, globalTime: number, layout: HexLayout) {
-        const def = HAZARD_VISUALS[hazard.type] || HAZARD_VISUALS['GENERIC'];
-        // Smooth fade out at end of duration
-        let fade = hazard.duration < 0.8 ? hazard.duration / 0.8 : 1.0;
-        
-        ctx.save();
-        ctx.globalAlpha = fade;
+    /** (x, y)＝格子頂面中心；(q, r)＝這一格（判斷是不是危害中心格） */
+    draw(ctx: CanvasRenderingContext2D, x: number, y: number, hazard: SpatialHazard, q: number, r: number, t: number, layout: HexLayout) {
+        const type: HazardType = hazard.type;
+        const def = HAZARD_VISUALS[type];
+        const fade = hazard.duration < HAZARD_RENDER.FADE_SEC ? Math.max(0, hazard.duration / HAZARD_RENDER.FADE_SEC) : 1;
         const drawY = VisualMath.applyLayerBias(y, 'HAZARD');
 
-        if (def.type === 'FOG') {
-            const texture = VFXFactory.getTexture('SMOKE', def.primaryColor);
-            const speed = globalTime * def.speed;
-            
-            // VOLUMETRIC STACKING (3 Layers)
-            // Draw multiple layers at different Y offsets to simulate 3D volume
-            const layers = 3;
-            const baseSize = HEX_SIZE * 3.5;
-            
-            for(let i = 0; i < layers; i++) {
-                
-                // Higher layers are drawn "higher" (smaller Y in screen space)
-                // -25px total height variance
-                const layerY = drawY - (i * 12); 
-                
-                // Parallax scale: Top layers slightly larger and more transparent
-                const scale = 1.0 + (i * 0.1) + Math.sin(speed + i) * 0.05;
-                const size = baseSize * scale;
-                
-                ctx.save();
-                ctx.translate(x, layerY + VisualMath.Z_LAYERS.HAZARD_FOG);
-                ctx.scale(1, ISO_SCALE_Y);
-                
-                // Rotation variance per layer creates depth
-                const rotation = (i % 2 === 0 ? 1 : -1) * (speed * (0.1 + i * 0.05)) + i;
-                ctx.rotate(rotation);
-                
-                if (i === 0) {
-                    // Base Layer: Darker, Grounded
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = def.intensity * 0.6 * fade;
-                } else if (i === 1) {
-                    // Mid Layer: Body
-                    ctx.globalCompositeOperation = 'source-over';
-                    ctx.globalAlpha = def.intensity * 0.4 * fade;
-                } else {
-                    // Top Layer: Highlights/Wisps
-                    ctx.globalCompositeOperation = 'screen';
-                    ctx.globalAlpha = def.intensity * 0.3 * fade;
-                }
-
-                ctx.drawImage(texture, -size/2, -size/2, size, size);
-                ctx.restore();
-            }
+        if (def.liquid) {
+            const prev = ctx.globalAlpha;
+            ctx.globalAlpha = prev * fade;
+            SurfacePainter.drawLiquid(ctx, x, drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET, def.liquid.color, t * def.liquid.speed, def.liquid.intensity, layout);
+            ctx.globalAlpha = prev;
         }
-        else if (def.type === 'LIQUID') {
-            const speed = globalTime * def.speed;
-            const intensity = def.intensity * (0.85 + Math.sin(speed * 0.8) * 0.15);
-            const liquidY = drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET;
 
-            // Draw base liquid with correct layout
-            SurfacePainter.drawLiquid(ctx, x, liquidY, def.primaryColor, speed, Math.min(1.0, intensity * 1.2), layout);
-            
-            if (def.cracks) SurfacePainter.drawCracks(ctx, x, liquidY, def.secondaryColor, intensity);
-            
-            // Enhanced Fire Visuals
-            if (hazard.type === 'FIRE') {
-                const flameTex = VFXFactory.getTexture('SMOKE', '#fca5a5');
-                const glowTex = VFXFactory.getTexture('GLOW', '#f97316');
-                
-                // 1. Core Glow (Ground)
-                ctx.save();
-                ctx.translate(x, liquidY);
-                ctx.scale(1, ISO_SCALE_Y);
-                ctx.globalCompositeOperation = 'screen';
-                ctx.globalAlpha = 0.6 * fade;
-                const glowSize = HEX_SIZE * 2.5 + Math.sin(globalTime * 10) * 10;
-                ctx.drawImage(glowTex, -glowSize/2, -glowSize/2, glowSize, glowSize);
-                ctx.restore();
-
-                // 2. Rising Flame Tongues (Volumetric)
-                const flameCount = 3;
-                for(let i=0; i<flameCount; i++) {
-                    const offset = i * (Math.PI * 2 / flameCount);
-                    const cycle = (globalTime * 1.5 + offset) % 1; // 0 to 1 loop
-                    
-                    const riseH = cycle * 80; // Height
-                    const wiggle = Math.sin(globalTime * 5 + i) * 15;
-                    
-                    const scaleBase = 1.0 - cycle; // Shrink as rising
-                    const scaleY = 1.5 + Math.sin(globalTime * 10) * 0.5; // Flicker stretch
-                    
-                    ctx.save();
-                    ctx.translate(x + wiggle, liquidY - riseH);
-                    ctx.scale(scaleBase, scaleBase * scaleY);
-                    
-                    ctx.globalCompositeOperation = 'lighter';
-                    ctx.globalAlpha = (1.0 - cycle) * intensity * fade;
-                    
-                    const fSize = 60;
-                    ctx.drawImage(flameTex, -fSize/2, -fSize/2, fSize, fSize);
-                    ctx.restore();
-                }
-            }
+        const set = resolve(type, layout);
+        const align = layoutAlign(layout);
+        const cutDecor = getQualityTier() >= HAZARD_RENDER.DECOR_CUT_TIER;
+        drawLayers(ctx, set.layers, x, drawY, t, align, fade, cutDecor);
+        if (set.center.length > 0 && hazard.centerQ === q && hazard.centerR === r) {
+            drawLayers(ctx, set.center, x, drawY, t, align, fade, cutDecor);
         }
-        else if (def.type === 'CRYSTAL') {
-            if (def.extrude) VolumePainter.drawExtrusion(ctx, x, drawY, HEX_SIZE * 0.8, 8, def.primaryColor, 0.7, layout);
-            ctx.save();
-            ctx.translate(x, drawY - 5); ctx.scale(1, ISO_SCALE_Y);
-            ctx.globalCompositeOperation = 'screen'; ctx.globalAlpha = 0.6;
-            ctx.drawImage(VFXFactory.getTexture('ROCK', def.secondaryColor), -15, -15, 30, 30);
-            ctx.restore();
-        }
-        else if (def.type === 'VOID_HOLE') {
-            const r = HEX_SIZE * 1.6;
-            ctx.save();
-            ctx.translate(x, drawY); ctx.scale(1, ISO_SCALE_Y);
-            ctx.globalCompositeOperation = 'source-over'; ctx.fillStyle = '#000';
-            ctx.beginPath(); ctx.arc(0, 0, r * 0.7, 0, Math.PI*2); ctx.fill();
-            
-            ctx.globalCompositeOperation = 'lighter'; 
-            ctx.rotate(globalTime * 3);
+    },
 
-            // Layer 1: 柔光外環 (取代軟體 shadowBlur=20)
-            ctx.lineWidth = 8;
-            ctx.strokeStyle = def.secondaryColor;
-            ctx.globalAlpha = 0.35;
-            ctx.beginPath();
-            for(let i=0; i<3; i++) {
-                const ang = i * (Math.PI*2/3); ctx.moveTo(0,0);
-                ctx.quadraticCurveTo(Math.cos(ang)*r, Math.sin(ang)*r, Math.cos(ang+1)*r, Math.sin(ang+1)*r);
-            }
-            ctx.stroke();
-
-            // Layer 2: 核心能量弧線
-            ctx.lineWidth = 3; 
-            ctx.globalAlpha = 0.9;
-            ctx.beginPath();
-            for(let i=0; i<3; i++) {
-                const ang = i * (Math.PI*2/3); ctx.moveTo(0,0);
-                ctx.quadraticCurveTo(Math.cos(ang)*r, Math.sin(ang)*r, Math.cos(ang+1)*r, Math.sin(ang+1)*r);
-            }
-            ctx.stroke();
-            ctx.restore();
-        }
-        ctx.restore();
-    }
+    /** 測試／工具用：丟掉解析快取 */
+    reset(): void {
+        cache.clear();
+    },
 };

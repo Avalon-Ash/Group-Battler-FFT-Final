@@ -1,4 +1,4 @@
-import { HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { ISO_SCALE_Y } from "../../../constants";
 import { VFXFactory } from "../VFXFactory";
 import { HexLayout } from "../../../types";
 import { RenderStats } from "../../renderers/RenderStats";
@@ -100,24 +100,6 @@ export const SurfacePainter = {
             }
             ctx.stroke();
         }
-        ctx.restore();
-    },
-
-    drawCracks(
-        ctx: CanvasRenderingContext2D,
-        x: number, y: number,
-        color: string,
-        intensity: number
-    ) {
-        const texture = VFXFactory.generateCracks(color);
-        const size = HEX_SIZE * 2.4;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(1, ISO_SCALE_Y);
-        ctx.globalCompositeOperation = 'lighter';
-        ctx.globalAlpha = intensity;
-        ctx.rotate((x * 0.001) + (y * 0.001));
-        ctx.drawImage(texture, -size/2, -size/2, size, size);
         ctx.restore();
     },
 

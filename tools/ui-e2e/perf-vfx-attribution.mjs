@@ -50,7 +50,7 @@ const unthrottled = process.env.PERF_UNTHROTTLED !== '0';
 
 const TOGGLES = [
     { id: 'baseline', name: 'Baseline (All VFX Active)', prop: null },
-    { id: 'no_shields', name: 'Shield 3D Prism (VolumePainter)', prop: 'no_shields' },
+    { id: 'no_shields', name: 'Shield prism (ShieldPainter parts)', prop: 'no_shields' },
     { id: 'no_hazards', name: 'Map Hazard Painter (HazardPainter)', prop: 'no_hazards' },
     { id: 'no_shadowblur', name: 'All ShadowBlur Calls (Canvas Context)', prop: 'no_shadowblur' },
     { id: 'no_floating_text', name: 'Floating Damage & SHOUT Text (TextPainter)', prop: 'no_floating_text' },

@@ -119,8 +119,7 @@ export class GroundDrapeLayer {
         e.planeZ = planeZ;
         e.ownQ = ownQ;
         e.ownR = ownR;
-        // 繪製函式可能含未壓扁的圓形光暈（例：VolumePainter.drawVolumetricHex 的方形柔光貼圖），
-        // 離屏畫布取正方形，避免上下被切成硬邊。
+        // 繪製函式的零件外框（光暈、PAD）會略超出半徑，離屏畫布取正方形留餘量，避免上下被切成硬邊。
         this.fill(e, x, footY, halfW);
         e.extW = e.extH = halfW * GROUND_DRAPE.PAINTER_EXTENT + GROUND_DRAPE.CANVAS_PAD_PX;
         e.progress = 0;

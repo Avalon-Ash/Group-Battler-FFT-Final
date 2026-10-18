@@ -45,6 +45,8 @@ const ALL_SPECS: PartSpec[] = [
     { kind: 'pillar', width: 30, height: 90, ramp: 'LION_HOLY' },
     { kind: 'spark', length: 40, ramp: 'LION_LIGHTNING' },
     { kind: 'droplet', size: 14, ramp: 'ASH_BLOOD' },
+    { kind: 'prism', radius: 38, height: 67, ramp: 'STATUS_SKY', layout: 'POINTY', style: 'glass' },
+    { kind: 'prism', radius: 38, height: 8, ramp: 'LION_ICE', style: 'solid' },
 ];
 
 describe('VFX part palette', () => {
@@ -226,5 +228,22 @@ describe('drawPart', () => {
         expect(partFrameAt(sprite, 0, 10)).toBe(0);
         expect(partFrameAt(sprite, n / 10, 10)).toBe(0);
         expect(partFrameAt(sprite, 0.1, 10)).toBe(1);
+    });
+});
+
+describe('prism part', () => {
+    it('quantizes radius/height to PRISM.STEP (not SIZE_STEPS) and defaults the layout', () => {
+        const n = normalizePartSpec({ kind: 'prism', radius: 37.2, height: 66.6, ramp: 'STATUS_SKY', style: 'glass' });
+        expect(n).toMatchObject({ radius: 38, height: 66, layout: 'FLAT' });
+    });
+    it('anchors at the base centre with one squashed hex above and below', () => {
+        const b = partBounds(normalizePartSpec({ kind: 'prism', radius: 38, height: 60, ramp: 'LION_ICE', layout: 'FLAT', style: 'solid' }));
+        expect(b.anchorX).toBeCloseTo(b.width / 2);
+        expect(b.height - b.anchorY).toBeCloseTo(38 * 0.5 + VFX_PARTS.PAD);
+        expect(b.anchorY).toBeCloseTo(VFX_PARTS.PAD + 38 * 0.5 + 60);
+    });
+    it('solid prisms use source-over, glass prisms are additive light', () => {
+        expect(partBlend(normalizePartSpec({ kind: 'prism', radius: 38, height: 8, ramp: 'LION_ICE', style: 'solid' }))).toBe('source-over');
+        expect(partBlend(normalizePartSpec({ kind: 'prism', radius: 38, height: 8, ramp: 'LION_ICE', style: 'glass' }))).toBe('lighter');
     });
 });

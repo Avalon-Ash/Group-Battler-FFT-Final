@@ -155,24 +155,6 @@ export interface SpatialHazard {
     pullRadius?: number;
 }
 
-export interface GroundHazard {
-    id: string;
-    q: number;
-    r: number;
-    centerQ?: number;
-    centerR?: number;
-    pullRadius?: number;
-    type: 'POISON' | 'FIRE' | 'ICE' | 'GRAVITY' | 'GENERIC';
-    duration: number; 
-    sourceId: string;
-    team: Team;
-    color: string;
-    power: number; 
-    interval: number; 
-    timer: number; 
-    vfxId?: string; 
-}
-
 export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
 
 export interface GameEvent {
