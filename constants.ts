@@ -326,6 +326,47 @@ export const TACTICAL_COLORS = {
     SUDDEN_DEATH_SUB: 'rgba(255, 255, 255, 0.6)'
 };
 
+/**
+ * 地格疊層（GridOverlays，逐格向量六角）：RADIUS 是 HEX_SIZE 的倍率，LIFT 是在 OVERLAY 層偏移之上再往上的 px，
+ * FREQ 是 rad/s，脈動值 pulse ∈ [0, 1]，ALPHA＝BASE＋pulse×PULSE。
+ */
+export const GRID_OVERLAY = {
+    LAST_STAND: { LIFT: 2, FREQ: 15, RADIUS: 0.98, FILL: '#c084fc', FILL_ALPHA: 0.2, FILL_PULSE: 0.3, STROKE: '#f0abfc', LINE_W: 1.5, LINE_PULSE: 1.5, STROKE_ALPHA: 0.4, STROKE_PULSE: 0.4 },
+    /** 地格狀態底色（STATUS_VISUALS.floorColor）缺不透明度時的預設 */
+    STATUS_FLOOR_ALPHA: 0.4,
+    ZONE_LIFT: 1,
+    /** 地格光源（lightColor）：screen 疊加，不透明度＝min(MAX_ALPHA, intensity × GAIN) */
+    LIGHT: { MAX_ALPHA: 0.5, GAIN: 0.4 },
+    /** 預警／射程／滑過的疊層再往上 LIFT px */
+    MARK_LIFT: 2,
+    WARNING: { FREQ: 12, RADIUS: 0.95, FILL: '#ff0000', FILL_ALPHA: 0.6, FILL_PULSE: 0.4, STROKE: '#ffffff', LINE_W: 2, STROKE_ALPHA: 0.3, STROKE_PULSE: 0.5 },
+    RANGE: { FILL_RADIUS: 0.95, FILL_ALPHA: 0.12, STROKE_RADIUS: 0.9, LINE_W: 1.5, STROKE_ALPHA: 0.3 },
+    HOVER: { STROKE: '#ffffff', LINE_W: 2, ALPHA: 0.8 },
+} as const;
+
+/**
+ * 地格區域效果（ZoneRenderer，GridOverlays 呼叫）：波紋從中心擴張到 zoneRadius＋WAVE_OVERSHOOT 格，
+ * 寬 WAVE_WIDTH 格；敵方區域固定用 ENEMY_COLOR 並以虛線描邊界。
+ */
+export const ZONE_RENDER = {
+    WAVE_OVERSHOOT: 0.5,
+    WAVE_WIDTH: 1.5,
+    MIN_WAVE: 0.05,
+    ENEMY_COLOR: '#ef4444',
+    ENEMY_ALPHA: 0.2,
+    INSIDE_ALPHA: 0.15,
+    FILL_RADIUS: 0.95,
+    WAVE_LINE_W: 2,
+    WAVE_LINE_GROW: 2,
+    WAVE_RADIUS: 0.9,
+    WAVE_RADIUS_GROW: 0.1,
+    WAVE_INNER_RATIO: 0.7,
+    /** 距邊界不到 BORDER_BAND 格算邊界格 */
+    BORDER_BAND: 0.5,
+    BORDER_ALPHA: 0.5,
+    ENEMY_DASH: [4, 4] as number[],
+} as const;
+
 // SSOT: Background Renderer Colors
 export const BACKGROUND_COLORS = {
     VIGNETTE_START: 'rgba(0, 0, 0, 0)',
@@ -964,6 +1005,9 @@ export const UNIT_SPRITE = {
     hitFlashDuration: 0.15,
     deathFadeDuration: 1.2,
     deathSinkDistance: 12,
+    /** 精靈尚未載入時的退路圓盤半徑（UNIT_SCALE 前）與剪影色（UnitBodyPainter／UnitDeathPainter） */
+    fallbackRadius: 20,
+    fallbackSilhouetteColor: '#ffffff',
     mipLevels: [1.0, 0.5, 0.25] as const,
     silhouetteAlpha: 0.25,
     shadowScale: 1.0,

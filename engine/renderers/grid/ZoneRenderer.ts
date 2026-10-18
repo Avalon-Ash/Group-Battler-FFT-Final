@@ -1,6 +1,12 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  ZoneRenderer — 地格區域效果（擴張波紋、區域底色、邊界）    ║
+// ║  上游：GridOverlays（逐格呼叫，原點＝格子頂面＋OVERLAY 偏移） ║
+// ║  參數：constants.ts ZONE_RENDER                              ║
+// ╚══════════════════════════════════════════════════════════╝
 
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../types";
+import { ZONE_RENDER } from "../../../constants";
 
 export const ZoneRenderer = {
     
@@ -18,49 +24,49 @@ export const ZoneRenderer = {
         ctx.save();
         ctx.translate(x, y);
 
-        const currentWaveRadius = progress * (zoneRadius + 0.5);
+        const Z = ZONE_RENDER;
+        const currentWaveRadius = progress * (zoneRadius + Z.WAVE_OVERSHOOT);
         const distDiff = Math.abs(distToCenter - currentWaveRadius);
-        const waveWidth = 1.5; 
-        
+
         let waveIntensity = 0;
-        if (distDiff < waveWidth) {
-            waveIntensity = (Math.cos((distDiff / waveWidth) * Math.PI) + 1) * 0.5;
+        if (distDiff < Z.WAVE_WIDTH) {
+            waveIntensity = (Math.cos((distDiff / Z.WAVE_WIDTH) * Math.PI) + 1) * 0.5;
         }
 
         const isInside = distToCenter < currentWaveRadius;
-        const drawColor = isEnemy ? '#ef4444' : color;
+        const drawColor = isEnemy ? Z.ENEMY_COLOR : color;
 
         let baseAlpha = 0;
-        if (isEnemy) baseAlpha = 0.2; 
-        if (isInside && !isEnemy) baseAlpha = 0.15; 
+        if (isEnemy) baseAlpha = Z.ENEMY_ALPHA;
+        if (isInside && !isEnemy) baseAlpha = Z.INSIDE_ALPHA;
 
         if (baseAlpha > 0) {
             ctx.fillStyle = drawColor;
             ctx.globalAlpha = baseAlpha;
-            HexGeometry.traceHex(ctx, 0, 0, size * 0.95, true, layout);
+            HexGeometry.traceHex(ctx, 0, 0, size * Z.FILL_RADIUS, true, layout);
             ctx.fill();
         }
 
-        if (waveIntensity > 0.05) {
+        if (waveIntensity > Z.MIN_WAVE) {
             ctx.strokeStyle = drawColor;
-            ctx.lineWidth = 2 + waveIntensity * 2;
+            ctx.lineWidth = Z.WAVE_LINE_W + waveIntensity * Z.WAVE_LINE_GROW;
             ctx.globalAlpha = waveIntensity;
-            const pulseSize = size * (0.9 + waveIntensity * 0.1);
+            const pulseSize = size * (Z.WAVE_RADIUS + waveIntensity * Z.WAVE_RADIUS_GROW);
             HexGeometry.traceHex(ctx, 0, 0, pulseSize, true, layout);
             ctx.stroke();
-            
+
             ctx.lineWidth = 1;
-            HexGeometry.traceHex(ctx, 0, 0, pulseSize * 0.7, true, layout);
+            HexGeometry.traceHex(ctx, 0, 0, pulseSize * Z.WAVE_INNER_RATIO, true, layout);
             ctx.stroke();
         }
 
         if (isEnemy || isInside) {
-            const isBorder = Math.abs(distToCenter - zoneRadius) < 0.5;
+            const isBorder = Math.abs(distToCenter - zoneRadius) < Z.BORDER_BAND;
             if (isBorder) {
                 ctx.strokeStyle = drawColor;
                 ctx.lineWidth = 1;
-                ctx.globalAlpha = 0.5;
-                if (isEnemy) ctx.setLineDash([4, 4]);
+                ctx.globalAlpha = Z.BORDER_ALPHA;
+                if (isEnemy) ctx.setLineDash(Z.ENEMY_DASH);
                 HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.stroke();
                 ctx.setLineDash([]);

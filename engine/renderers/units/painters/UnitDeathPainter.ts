@@ -1,4 +1,4 @@
-import { Agent, MapConfig } from "../../../../types";
+import { Agent } from "../../../../types";
 import { UNIT_SPRITE, UNIT_SCALE } from "../../../../constants";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
@@ -38,15 +38,12 @@ export class UnitDeathPainter {
         visY: number,
         alpha: number,
         t: number,
-        _cfg: Partial<MapConfig> = {},
-        _terrainHeight: number,
-        _simDt: number = 0.016
     ): void {
         if (agent.fullyDead || agent.outOfBounds) return;
 
-        const totalAnimTime = (DEFAULT_FRAME_COUNTS.death ?? 6) / (UNIT_SPRITE.deathFps || 8);
-        const duration = agent.DEATH_ANIM_DURATION || 5.5;
-        const fadeDuration = UNIT_SPRITE.deathFadeDuration || 1.2;
+        const totalAnimTime = DEFAULT_FRAME_COUNTS.death / UNIT_SPRITE.deathFps;
+        const duration = agent.DEATH_ANIM_DURATION;
+        const fadeDuration = UNIT_SPRITE.deathFadeDuration;
         const fadeStart = Math.max(totalAnimTime, duration - fadeDuration);
 
         let fadeAlpha = 1.0;
@@ -54,7 +51,7 @@ export class UnitDeathPainter {
         if (agent.deathTimer > fadeStart) {
             const fadeProg = Math.min(1.0, (agent.deathTimer - fadeStart) / Math.max(0.01, duration - fadeStart));
             fadeAlpha = 1.0 - fadeProg;
-            sinkY = fadeProg * (UNIT_SPRITE.deathSinkDistance || 12);
+            sinkY = fadeProg * UNIT_SPRITE.deathSinkDistance;
         }
 
         if (fadeAlpha <= 0) return;
@@ -74,18 +71,9 @@ export class UnitDeathPainter {
         } else {
             ctx.fillStyle = getFactionSkin(agent.team).fallbackBodyColor;
             ctx.beginPath();
-            ctx.arc(0, 0, 20, 0, Math.PI * 2);
+            ctx.arc(0, 0, UNIT_SPRITE.fallbackRadius, 0, Math.PI * 2);
             ctx.fill();
         }
         ctx.restore();
-    }
-
-    /**
-     * 計算死亡進度（0.0 = 剛死，1.0 = 完全消失）
-     */
-    public static getDeathProgress(agent: Agent): number {
-        if (!agent.deathTimer || agent.deathTimer <= 0) return 0;
-        const duration = agent.DEATH_ANIM_DURATION; 
-        return Math.min(1.0, agent.deathTimer / duration);
     }
 }

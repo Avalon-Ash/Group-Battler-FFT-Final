@@ -72,7 +72,6 @@ export class RenderOp {
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
     time: number = 0;
-    simDt: number = 0.016;
 
     public clear() {
         this.type = RenderOpType.TERRAIN;

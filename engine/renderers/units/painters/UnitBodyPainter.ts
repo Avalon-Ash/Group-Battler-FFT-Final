@@ -99,9 +99,9 @@ export const UnitBodyPainter = {
             if (SpriteUnitRenderer.canRender(agent)) {
                 SpriteUnitRenderer.draw(ctx, agent, t, isSilhouette);
             } else {
-                ctx.fillStyle = isSilhouette ? '#ffffff' : getFactionSkin(agent.team).fallbackBodyColor;
+                ctx.fillStyle = isSilhouette ? UNIT_SPRITE.fallbackSilhouetteColor : getFactionSkin(agent.team).fallbackBodyColor;
                 ctx.beginPath();
-                ctx.arc(0, 0, 20, 0, Math.PI * 2);
+                ctx.arc(0, 0, UNIT_SPRITE.fallbackRadius, 0, Math.PI * 2);
                 ctx.fill();
             }
 

@@ -220,14 +220,6 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
     });
 
     describe('4. UnitDeathPainter Sprite & Fallback Integration (Task A2c)', () => {
-        it('calculates death progress correctly', () => {
-            const agent = new Agent('dead_agent', Team.BLUE, 0, 0, dummyConfig);
-            agent.hp = 0;
-            agent.deathTimer = 2.75;
-            const progress = UnitDeathPainter.getDeathProgress(agent);
-            expect(progress).toBeCloseTo(2.75 / 5.5, 2);
-        });
-
         it('returns immediately when agent is fullyDead', () => {
             const agent = new Agent('dead_agent', Team.BLUE, 0, 0, dummyConfig);
             agent.hp = 0;
@@ -241,7 +233,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
             // Should not throw or perform operations
             expect(() => {
-                UnitDeathPainter.draw(mockCtx, agent, 0, 0, 1.0, 0, {}, 0, 0.016);
+                UnitDeathPainter.draw(mockCtx, agent, 0, 0, 1.0, 0);
             }).not.toThrow();
         });
     });
@@ -330,7 +322,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
             } as unknown as CanvasRenderingContext2D;
 
             const surfaceY = 100;
-            UnitDeathPainter.draw(mockCtx, agent, 0, surfaceY, 1.0, 0, {}, 0, 0.016);
+            UnitDeathPainter.draw(mockCtx, agent, 0, surfaceY, 1.0, 0);
 
             expect(drawn).toBe(true);
             const expectedBodyY = VisualMath.getVisualBodyCenterY(surfaceY, agent.physics.z);

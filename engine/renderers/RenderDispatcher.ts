@@ -64,7 +64,7 @@ export class RenderDispatcher {
             case RenderOpType.UNIT:
             case RenderOpType.CORPSE:
                 // [ARCH] 統一分發至 UnitRenderSystem 進行狀態組裝（Alive Body 或 Death Ragdoll）
-                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th, op.simDt, op.unitFrame);
+                if (op.agent) unitRenderer.drawAssembly(ctx, op.agent, snapX, snapY, op.time, op.uSelected, op.uSilhouette, layout, op.th, op.unitFrame);
                 break;
 
             case RenderOpType.AURA:

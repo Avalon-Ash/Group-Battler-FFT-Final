@@ -37,7 +37,6 @@ export class UnitRenderSystem {
         frames: UnitFrameStore,
         globalTime: number,
         highlightAgent: Agent | null,
-        simDt: number = 0.016,
         drape?: GroundDrapeLayer
     ) {
         const list = frames.list;
@@ -48,7 +47,6 @@ export class UnitRenderSystem {
 
             const op = renderList.next();
             op.type = f.isCorpse ? RenderOpType.CORPSE : RenderOpType.UNIT;
-            op.simDt = simDt;
 
             // 關鍵：將單位的當前邏輯網格位置傳入
             op.tq = agent.q;
@@ -124,7 +122,6 @@ export class UnitRenderSystem {
         isSilhouette: boolean,
         layout: HexLayout,
         terrainHeight: number,
-        simDt: number = 0.016,
         frame: UnitFrame | null = null
     ) {
         ctx.save();
@@ -135,7 +132,7 @@ export class UnitRenderSystem {
                 UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);
             } else {
                 // [ARCH] 死亡單位使用 UnitDeathPainter 進行死亡動畫、擊飛與淡出繪製
-                UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime, { layout }, terrainHeight, simDt);
+                UnitDeathPainter.draw(ctx, agent, 0, 0, 1.0, globalTime);
             }
         }
         // 編輯模式拖曳預覽：只移動實體（棋座＋核心），角色投影放下後才回來
