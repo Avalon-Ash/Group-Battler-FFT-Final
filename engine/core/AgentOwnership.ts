@@ -94,6 +94,30 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '繪製位置（px + physics）的最近軌跡，衝刺殘影與飛行緞帶讀它。MotionEngine 曾經也寫（飛行單位會重複推入），已移除。',
     },
+    lastHitSourceId: {
+        group: 'vitals',
+        kind: 'single',
+        owners: ['engine/systems/combat/DirectDamage.ts'],
+        note: '擊殺歸屬：一律經 applyDirectDamage／applyLethal 的 sourceId 參數寫入（撞擊、地形危害也是）。護盾完全吸收、未扣到 HP 的傷害不更新歸屬。',
+    },
+    banished: {
+        group: 'status',
+        kind: 'single',
+        owners: ['engine/systems/status/ControlSystem.ts'],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '放逐旗標只在 ControlSystem（syncBanished／clearBanishedFlag）寫入；CCManager、ZoneSystem 呼叫這兩個 API。PhysicsEngine 只讀。',
+    },
+    _interruptCooldown: {
+        group: 'casting',
+        kind: 'domain',
+        owners: [
+            'engine/systems/combat/CastingEngine.ts',
+            'engine/systems/combat/CombatSystem.ts',
+            'engine/systems/status/CooldownSystem.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '施法域：中斷時由 CastingEngine 設定、breakCast(lockout) 延長（BT 不再直寫）、CooldownSystem 遞減。秒數在 CAST_LOCKOUT。',
+    },
     ccVisual: {
         group: 'status',
         kind: 'domain',

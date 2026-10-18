@@ -12,6 +12,7 @@ import { GameEngine } from "../game";
 import { Team } from "../../types";
 import { applyLethal } from "./combat/DirectDamage";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
+import { clearBanishedFlag } from "./status/ControlSystem";
 import { HexUtils } from "../utils";
 import { ISO_SCALE_Y } from "../../constants";
 
@@ -153,7 +154,7 @@ export class ZoneSystem {
                         for (const victim of victims) {
                             if (victim.hp > 0 || !victim.deadLogged) {
                                 applyLethal(victim);
-                                victim.banished = false;
+                                clearBanishedFlag(victim);
                                 engine.agentManager.handleDeadState(victim, engine, '墜落出局', 'RING_OUT');
                                 PhysicsEngine.startVoidFall(victim);
                             } else {

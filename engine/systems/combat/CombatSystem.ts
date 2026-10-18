@@ -103,10 +103,12 @@ export class CombatSystem {
         return NodeState.RUNNING;
     }
 
-    public breakCast(a: Agent, engine: BreakCastContext) {
+    /** `lockout`：中斷後禁止重新詠唱的秒數（_interruptCooldown 只在施法域寫入）。 */
+    public breakCast(a: Agent, engine: BreakCastContext, lockout?: number) {
         if (a.castingSkillIdx !== -1) {
             this.castingEngine.handleInterruption(a, engine);
         }
+        if (lockout !== undefined) a._interruptCooldown = Math.max(a._interruptCooldown, lockout);
         this._deferredCasts = this._deferredCasts.filter(dc => dc.agent !== a);
     }
 

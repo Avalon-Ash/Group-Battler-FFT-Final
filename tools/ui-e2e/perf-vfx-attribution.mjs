@@ -12,7 +12,7 @@
  *   - no_projectiles (ProjectileDrawer / projectile body and gradient trails)
  *   - no_unit_shatter (UnitShatter / death ragdoll shard decomposition)
  *   - no_beams_slashes (ProceduralPainter / beams and slashes)
- *   - no_ground_cc (GroundEffectPainter / status puddles, fumes, spiral hot)
+ *   - no_ground_cc (StatusPartPainter status layers)
  *   - no_particles (ParticleRenderer / all ECS simulation particles)
  *
  * Gathers:
@@ -58,7 +58,7 @@ const TOGGLES = [
     { id: 'no_projectiles', name: 'Projectiles & Trails (ProjectileDrawer)', prop: 'no_projectiles' },
     { id: 'no_unit_shatter', name: 'Unit Death Shatter (UnitShatter)', prop: 'no_unit_shatter' },
     { id: 'no_beams_slashes', name: 'Beams & Slashes (ProceduralPainter)', prop: 'no_beams_slashes' },
-    { id: 'no_ground_cc', name: 'Ground CC & Buffs (GroundEffectPainter)', prop: 'no_ground_cc' },
+    { id: 'no_ground_cc', name: 'Status parts (StatusPartPainter)', prop: 'no_ground_cc' },
     { id: 'no_particles', name: 'All ECS Particles (ParticleRenderer)', prop: 'no_particles' }
 ];
 
@@ -248,15 +248,15 @@ async function main() {
             };
         } catch (e) { console.warn('Hook ProceduralPainter failed', e); }
 
-        // 8. Hook GroundEffectPainter
+        // 8. Hook StatusPartPainter
         try {
-            const modGroundCC = await import('/engine/renderers/status/painters/GroundEffectPainter.ts');
-            const origGroundCCDraw = modGroundCC.GroundEffectPainter.draw;
-            modGroundCC.GroundEffectPainter.draw = function(...args) {
+            const modGroundCC = await import('/engine/renderers/status/painters/StatusPartPainter.ts');
+            const origGroundCCDraw = modGroundCC.StatusPartPainter.draw;
+            modGroundCC.StatusPartPainter.draw = function(...args) {
                 if (window.__vfxToggles.no_ground_cc) return;
                 return origGroundCCDraw.apply(this, args);
             };
-        } catch (e) { console.warn('Hook GroundEffectPainter failed', e); }
+        } catch (e) { console.warn('Hook StatusPartPainter failed', e); }
 
         // 9. Hook ParticleRenderer
         try {

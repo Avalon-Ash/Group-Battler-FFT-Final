@@ -8,6 +8,7 @@ import { triggerHitFlash } from "../AnimationSystem";
 import { applyDirectDamage } from "./DirectDamage";
 import { unitEventPos } from "../../events/EventPos";
 import { stopMovement, teleportTo } from "../movement/MotionCommands";
+import { syncBanished } from "../status/ControlSystem";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 
@@ -101,7 +102,7 @@ export const CCManager = {
                     target.banishTimer = effectiveDuration;
                     target.banishMax = effectiveDuration;
                 }
-                target.banished = true;
+                syncBanished(target);
                 stopMovement(target);
                 // SSOT: AnimState.STUN is derived from banished state
                 
@@ -137,10 +138,7 @@ export const CCManager = {
                     target.tauntTargetId = source.id; 
                     
                     // --- 2. State Machine Overrides ---
-                    // Force target to taunter immediately
-                    target.target = source;
-                    target.targetHex = null;
-                    
+                    // Target lock lives in TargetingSystem.updateTarget (BT HasTarget re-targets while tauntTimer > 0)
                     // Interrupt current action
                     engine.combat.breakCast(target, engine);
                     
@@ -311,7 +309,7 @@ export const CCManager = {
         }
 
         for (const { agent, amount } of victims) {
-            const { absorbed } = applyDirectDamage(agent, amount);
+            const { absorbed } = applyDirectDamage(agent, amount, false, source.id);
             if (absorbed > 0) {
                 engine.pushEvent('DAMAGE', unitEventPos(agent, engine), {
                     value: -Math.floor(absorbed), color: DAMAGE_TEXT_COLORS.ABSORB, text: 'ABSORB',
@@ -326,7 +324,6 @@ export const CCManager = {
                 value: amount, text: FORCED_MOVE.IMPACT_FX, sourceId: source.id, targetId: agent.id
             });
             engine.log(source, 'CC', FORCED_MOVE.IMPACT_TEXT, agent.id, `${agent.id} 撞擊${block.reason} 受到 ${amount} 傷害`);
-            agent.lastHitSourceId = source.id;
             if (agent.hp <= 0) {
                 engine.agentManager.handleDeadState(agent, engine, FORCED_MOVE.IMPACT_TEXT);
             } else {

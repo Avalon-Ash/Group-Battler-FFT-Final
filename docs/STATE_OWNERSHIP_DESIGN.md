@@ -313,3 +313,13 @@ CC 施加者是 `combat/CCManager.ts`，衰減者是 `status/ControlSystem.ts`�
 - `px`／`py` 沒進表：`PhysicsEngine` 的靜止回正、`map.ts`、`UICommandSystem`、`useGameInput`（D11 例外）各有合理寫入，待另行決定。
 
 **驗證**：每期 lint／`vitest run --dir tests` 全綠，P4a、P4b、P5a、P5b、P5c、P6 各跑 `br-soak --seeds=10 --shrinkInterval=3 --assert-ghost --assert-idle`，皆 10/10 乾淨、0 殘影、0 發呆；P4c 依表不跑 BR。未跑 perf 系列、未截圖。
+
+## 7. 實作紀錄 P7a～P8（2026-10-18，分支 `claude/chain-p7-cc-d394fd`）
+
+| 期 | 內容 |
+| :-- | :-- |
+| P7a（完成） | `BTRegistry.HasTarget` 在 `tauntTimer > 0` 且目標不是嘲諷者時呼叫 `updateTarget`（鎖定仍只在 `TargetingSystem`，嘲諷鎖定時一併清非逃生的 `targetHex`）；`CCManager` 不再寫 `target`／`targetHex`。`tests/TauntRetarget.test.ts`：切換、維持、嘲諷者死亡後釋放。 |
+| P7b（部分） | `_interruptCooldown` 歸施法域：`CombatSystem.breakCast(a, engine, lockout?)` 取代 BT 直寫，秒數進 `CAST_LOCKOUT`，表中新增條目。**`aiState` 的 `CASTING_*` 推導未做**：`aiState` 有 36 處寫入（BT 節點隨時覆寫），讀取者還有 `AgentVFXSystem`（CAST_ULT／CAST_ACTIVE）與檢視器標籤，超出 ≤3 檔；而 `resetCaster` 結束後把 `CASTING_*` 還原成 `IDLE` 的語意也會變。需要先設計「`aiState` 與施法狀態」的分工再動手。 |
+| P8（完成，前提修正） | `PhysicsEngine` 其實只讀 `banished`（設計表的 `:88` 已過時）。真正的非狀態域寫入是 `CCManager`（施加放逐）與 `ZoneSystem`（墜落出局），改呼叫 `ControlSystem.syncBanished`／`clearBanishedFlag`；表中新增 `banished`（唯一擁有者 ControlSystem）。`tests/StatusDomainApi.test.ts`。 |
+
+驗證：lint、`vitest --dir tests`（571 全綠）、`br-soak --seeds=10 --shrinkInterval=3 --assert-ghost --assert-idle` 10/10、0 殘影、0 發呆。

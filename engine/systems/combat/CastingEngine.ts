@@ -1,6 +1,7 @@
 
 import { Agent, GameEngine } from "../../game";
 import { AIState } from "../../../types";
+import { CAST_LOCKOUT } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 
 export type BreakCastContext = Pick<GameEngine, 'log' | 'events' | 'getTerrainHeight' | 'mapConfig'>;
@@ -53,7 +54,7 @@ export class CastingEngine {
 
         // [FIX] Only log/effect if not in recent interrupt cooldown to prevent spam
         if (a._interruptCooldown <= 0 && currentSkill) {
-            a._interruptCooldown = 0.1; // 100ms lockout for interrupts
+            a._interruptCooldown = CAST_LOCKOUT.INTERRUPT;
             
             if (currentSkill.tag !== 'BASIC') {
                 const progressPct = 1 - (a.castTimer / currentSkill.cast);
