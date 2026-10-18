@@ -56,25 +56,21 @@ export class VFXSystem {
         // Use pre-calculated world coordinates if available, otherwise fallback
         let targetX: number;
         let targetRawY: number;
-        let screenY: number;
 
         if (data.worldX !== undefined && data.worldY !== undefined) {
             targetX = data.worldX;
             targetRawY = data.worldY;
-            screenY = data.worldY * ISO_SCALE_Y;
         } else {
             const config = this.boundEngine.mapConfig;
             const pos = HexMath.hexToPixel(data.q, data.r, config.offsetX, config.offsetY, config.layout);
             targetX = pos.x;
             targetRawY = pos.y / ISO_SCALE_Y;
-            screenY = pos.y;
         }
         
         // [FIX] 根據常數 HEX_SIZE (48) 確定清除半徑。
         // 使用 1.25 倍半徑確保覆蓋邊角 (48 * 1.25 = 60)，HEX_SIZE^2 = 2304, 60^2 = 3600
         const HEX_R = HEX_SIZE * 1.25; 
         const rSq = HEX_R * HEX_R;
-        const HEX_R_PROJ_Y = HEX_R * ISO_SCALE_Y; 
         
         // 1. Kill Particles (Simulation space)
         const particles = this.state.particles;
@@ -94,17 +90,7 @@ export class VFXSystem {
             }
         }
 
-        // 2. Clear Decals (Projected screen space)
-        this.state.decals = this.state.decals.filter(d => {
-            const dx = d.x - targetX;
-            const dy = d.y - screenY;
-            // 使用橢圓檢查 (nx^2 + ny^2 < 1) 以匹配等角投影下的六角格
-            const nx = dx / HEX_R;
-            const ny = dy / HEX_R_PROJ_Y;
-            return (nx * nx + ny * ny) >= 1.0;
-        });
-
-        // 3. Mark for same-frame/next-frame blacklist
+        // 2. Mark for same-frame/next-frame blacklist
         this.collapsedHexKeys.add(`${data.q},${data.r}`);
     };
     
@@ -198,12 +184,6 @@ export class VFXSystem {
             }
             
             VFXPhysics.update(p, dt, getSpatialInfo);
-        }
-        
-        // Decals also respect time scale
-        for (let i = this.state.decals.length - 1; i >= 0; i--) {
-            this.state.decals[i].life -= dt * 0.5;
-            if (this.state.decals[i].life <= 0) this.state.decals.splice(i, 1);
         }
         
         // Pass engine for dynamic map bounds

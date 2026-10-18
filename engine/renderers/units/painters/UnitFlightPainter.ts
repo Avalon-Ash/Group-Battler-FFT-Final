@@ -7,10 +7,6 @@ import { VisualMath } from "../../../math/VisualMath";
 
 export const UnitFlightPainter = {
     
-    drawFlyingAnchor(ctx: CanvasRenderingContext2D, agent: Agent, t: number, physX: number, physY: number, physZ: number) {
-        // Deprecated
-    },
-
     drawFlightVFX(ctx: CanvasRenderingContext2D, agent: Agent, t: number) {
         // This is called within the UnitBodyPainter's transformed context (Body Center)
         const color = getFactionSkin(agent.team).projection.trailColor;

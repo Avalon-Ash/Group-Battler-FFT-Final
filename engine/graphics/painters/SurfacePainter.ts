@@ -103,35 +103,6 @@ export const SurfacePainter = {
         ctx.restore();
     },
 
-    drawFog(
-        ctx: CanvasRenderingContext2D,
-        x: number, y: number,
-        color: string,
-        time: number
-    ) {
-        const texture = VFXFactory.getTexture('SMOKE_PUFF', color);
-        const size = HEX_SIZE * 3.2;
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.scale(1, ISO_SCALE_Y);
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.12;
-        const puffs = 4;
-        const twoPi = Math.PI * 2;
-        for(let i=0; i<puffs; i++) {
-            const angle = time * 0.15 + (i * twoPi / puffs);
-            const dist = 15 + Math.sin(time * 0.8 + i) * 8;
-            const px = Math.cos(angle) * dist;
-            const py = Math.sin(angle) * dist;
-            const pulse = 1.0 + Math.sin(time * 1.2 + i) * 0.15;
-            const pSize = size * 0.55 * pulse;
-            ctx.drawImage(texture, px - pSize/2, py - pSize/2, pSize, pSize);
-        }
-        ctx.globalAlpha = 0.18;
-        ctx.drawImage(texture, -size/2, -size/2, size, size);
-        ctx.restore();
-    },
-
     drawCracks(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,

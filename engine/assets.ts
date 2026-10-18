@@ -2,11 +2,6 @@ import { VFXFactory } from "./graphics/VFXFactory";
 import { UIFactory } from "./graphics/UIFactory";
 const cache: Map<string, HTMLCanvasElement> = new Map();
 export const AssetManager = {
-    getGlowSprite(color: string): HTMLCanvasElement {
-        const key = `GLOW_SPRITE_${color}`;
-        if (!cache.has(key)) cache.set(key, VFXFactory.generateGlowOrb(color));
-        return cache.get(key)!;
-    },
     getFogCloud(color: string): HTMLCanvasElement {
         const key = `FOG_${color}`;
         if (!cache.has(key)) cache.set(key, VFXFactory.generateFogCloud(color));
@@ -22,9 +17,4 @@ export const AssetManager = {
         if (!cache.has(key)) cache.set(key, UIFactory.generateStatusIcon(type));
         return cache.get(key)!;
     },
-    getBlastZone(color: string): HTMLCanvasElement {
-        const key = `BLAST_${color}_V2`;
-        if (!cache.has(key)) cache.set(key, VFXFactory.getTexture('BLAST', color));
-        return cache.get(key)!;
-    }
 };

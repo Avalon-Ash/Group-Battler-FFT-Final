@@ -8,7 +8,8 @@ import { HexLayout } from "../../../../types";
 // 分派依 constants.ts 的 PARTICLE_TRAITS（particleBackend）；不在這裡另列型別清單
 
 /**
- * Unified Particle Dispatcher v9.7 (Time SSOT)
+ * 粒子分派：零件 → PartPainter；光束 → PartPainter.drawBeam；天氣 → BillboardPainter；其餘 → 除錯點。
+ * battleTime 由渲染迴圈傳入（光束磚捲動的時間 SSOT）。
  */
 export const ParticleRenderer = {
     
@@ -17,8 +18,7 @@ export const ParticleRenderer = {
         p: Particle, 
         drawX: number, 
         drawY: number, 
-        progress: number, 
-        isChaos: boolean, 
+        progress: number,
         layout: HexLayout,
         battleTime: number // SSOT: Received from RenderLoop
     ) {
@@ -29,21 +29,15 @@ export const ParticleRenderer = {
             return;
         }
 
-        // 0b. 陣營光束零件（可平鋪的光管磚）；沒有零件的後備光束走下面的程序化路徑
-        if (p.type === 'BEAM' && p.part) {
-            PartPainter.drawBeam(ctx, p, drawX, drawY, progress, battleTime);
+        // 1. 光束零件（可平鋪的光管磚）；VFXSystem.playBeam 一律掛零件
+        if (p.type === 'BEAM') {
+            if (p.part) PartPainter.drawBeam(ctx, p, drawX, drawY, progress, battleTime);
+            else ParticleRenderer.drawDebugDot(ctx, drawX, drawY);
             return;
         }
 
-        // 程序化（PROC）與地面向量（GROUND）繪製器已移除（docs/VFX_PIPELINE_MAP.md §4.10）：登記表只產生零件，
-        // 光束一律掛零件；萬一有舊型別漏進來，畫成洋紅除錯點，一眼看得出來。
-        if (backend === 'PROC' || backend === 'GROUND') {
-            ParticleRenderer.drawDebugDot(ctx, drawX, drawY);
-            return;
-        }
-
-        // 3. Billboard Sprites (Smoke, Sparks, Debris, Rocks)
-        if (p.type !== 'GENERIC_DEBUG') {
+        // 2. 天氣看板（ATMOSPHERE）；除錯型別或未知型別畫成洋紅除錯點，一眼看得出來
+        if (p.type === 'ATMOSPHERE') {
             BillboardPainter.draw(ctx, p, drawX, drawY, progress);
         } else {
             ParticleRenderer.drawDebugDot(ctx, drawX, drawY);

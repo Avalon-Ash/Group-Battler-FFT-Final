@@ -147,8 +147,8 @@ export async function installRecorder(page) {
         const { HEX_SIZE, GROUND_DRAPE } = await import('/constants.ts');
         const engine = window.__TACTICAL_ENGINE__;
         const T = RenderOpType;
-        const TNAME = ['TERRAIN', 'OBSTACLE', 'UNIT', 'VFX', 'PROJECTILE', 'DECAL', 'HAZARD', 'AURA', 'OVERLAY', 'CORPSE'];
-        const TCODE = { [T.TERRAIN]: 'T', [T.OBSTACLE]: 'O', [T.HAZARD]: 'H', [T.OVERLAY]: 'V', [T.UNIT]: 'U', [T.CORPSE]: 'C', [T.AURA]: 'A', [T.VFX]: 'X', [T.PROJECTILE]: 'P', [T.DECAL]: 'D' };
+        const TNAME = ['TERRAIN', 'OBSTACLE', 'UNIT', 'VFX', 'PROJECTILE', 'HAZARD', 'AURA', 'OVERLAY', 'CORPSE'];
+        const TCODE = { [T.TERRAIN]: 'T', [T.OBSTACLE]: 'O', [T.HAZARD]: 'H', [T.OVERLAY]: 'V', [T.UNIT]: 'U', [T.CORPSE]: 'C', [T.AURA]: 'A', [T.VFX]: 'X', [T.PROJECTILE]: 'P' };
         const DX = 1.6 * HEX_SIZE, DY = 2.5 * HEX_SIZE;
         const RING = 8, FIELDS = 15; // y, sortBias, sortKey, z, isGround, gHalfH, tx, ty, th, pos, type, decalLift, nearest-decal d2, its gHalfW, its ident id
         const FLIP_SPAN = 6; // two flips <= 6 frames apart => X,Y,X inside an 8-frame window
@@ -183,7 +183,6 @@ export async function installRecorder(page) {
                 case T.CORPSE: return `C:${op.agent ? op.agent.id : '?'}`;
                 case T.AURA: return `A:${op.agent ? op.agent.id : '?'}`;
                 case T.PROJECTILE: return `P:${op.proj ? op.proj.id : '?'}`;
-                case T.DECAL: { const k = `D:${Math.round(op.tx)},${Math.round(op.ty)},${op.dColor}`; const n = occ.get(k) || 0; occ.set(k, n + 1); return n ? `${k}#${n}` : k; }
                 case T.VFX: {
                     const p = op.particle;
                     if (!p) return 'X:?';

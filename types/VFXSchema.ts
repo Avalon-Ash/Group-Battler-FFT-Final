@@ -1,8 +1,13 @@
 import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 
-export type ParticleType = 'SPARK' | 'SMOKE' | 'SMOKE_PUFF' | 'GLOW' | 'DEBRIS' | 'SHARD' | 'BEAM' | 'SHOCKWAVE' | 'BLAST' | 'CHIP' | 'PILLAR' | 'HEX_GLOW' | 'GRID_FIELD' | 'DOMAIN' | 'SPRITE' | 'DEATH_RAY' | 'ROCK' | 'HEX_LOCK' | 'HEX_BEAM' | 'GIANT_HEX' | 'STREAK' | 'RING' | 'CRACKS' | 'PEBBLE' | 'RUBBLE' | 'SPIKE' | 'DUST' | 'ATMOSPHERE' | 'MAGIC_CIRCLE' | 'GENERIC_DEBUG' | 'SLASH' | 'BLACK_HOLE' | 'HEX_GRID' | 'CHAOS_RIFT' | 'HEX_SHARD' | 'RIPPLE'
-    // V1 特效零件（PartSprite）：看板／貼地／受重力碎片
-    | 'PART' | 'PART_GROUND' | 'PART_DEBRIS';
+/**
+ * 粒子型別（後端與特性見 constants.ts PARTICLE_TRAITS）：
+ *  - PART／PART_GROUND／PART_DEBRIS：特效零件（PartSprite）的看板／貼地／受重力碎片——所有登記特效都是這三種
+ *  - BEAM：光束（一律掛光束零件，PartPainter.drawBeam）
+ *  - ATMOSPHERE：天氣粒子（看板，VFXAmbience 生成；地形 T4 會改零件）
+ *  - GENERIC_DEBUG：除錯點
+ */
+export type ParticleType = 'PART' | 'PART_GROUND' | 'PART_DEBRIS' | 'BEAM' | 'ATMOSPHERE' | 'GENERIC_DEBUG';
 
 // Define the "Verbs" of our visual language
 type VFXActionType = 

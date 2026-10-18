@@ -139,11 +139,9 @@ describe('ParticleTextureStore & VFX_SPRITES', () => {
             return { ctx, calls };
         };
 
-        it('draws minimal solid circle for drawAtmosphere, drawSmoke, drawSpike when texture not ready', () => {
+        it('draws a minimal solid circle for drawAtmosphere when the texture is not ready', () => {
             for (const fn of [
                 ParticlePainter.drawAtmosphere,
-                ParticlePainter.drawSmoke,
-                ParticlePainter.drawSpike,
             ]) {
                 const { ctx, calls } = createMockCtx();
                 fn(ctx, 30, '#3b82f6');

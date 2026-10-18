@@ -1,9 +1,7 @@
 
 import { createCanvas } from "./CanvasUtils";
 import { ParticlePainter } from "./painters/ParticlePainter";
-import { IconPainter } from "./painters/IconPainter";
-import { HexGeometry } from "./utils/HexGeometry";
-import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER } from "../../constants";
 import { applyNoiseMask } from "./materials/NoiseLib";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
 import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
@@ -16,83 +14,28 @@ class VFXTextureCache {
 
     public reset() { this.cache.clear(); }
 
+    /**
+     * 程序化貼圖（快取）：GLOW_SPRITE（天氣看板、AOE 體積光，ATMOSPHERE 同義）、CRACKS（危害場裂痕）、BEAM（森林背景光束）。
+     * 其餘型別畫成洋紅除錯方塊。
+     */
     public getTexture(type: string, color: string): HTMLCanvasElement {
-        if (['DUST', 'PEBBLE', 'CHIP', 'RUBBLE', 'DEBRIS', 'SHARD'].includes(type)) type = 'ROCK';
-        if (['CLOUD', 'SMOKE_PUFF', 'MUSHROOM'].includes(type)) type = 'SMOKE';
-        if (['GLOW', 'FLARE', 'CORE', 'ATMOSPHERE'].includes(type)) type = 'GLOW_SPRITE';
-        if (['LIGHTNING', 'THUNDER'].includes(type)) type = 'BOLT';
-        if (['FLAME', 'EMBER'].includes(type)) type = 'FIREBALL';
-
+        if (type === 'ATMOSPHERE') type = 'GLOW_SPRITE';
         const key = `T92_${type}_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
 
-        // [FIX] Warning for unknown types
-        const KNOWN_TYPES = new Set(['SMOKE', 'GLOW_SPRITE', 'SPIKE', 'SPARK', 'ROCK', 'HEX_LOCK', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'SHADOW_BLOB', 'CRACKS', 'SLASH', 'HEX_GRID', 'CHAOS_RIFT', 'BEAM', 'BOLT', 'FIREBALL', 'BOMB', 'ARROW', 'HEX_SHARD', 'RIPPLE']);
-        if (!KNOWN_TYPES.has(type)) {
-            console.warn(`[VFXFactory] Unknown particle type: "${type}" — 將顯示 debug 洋紅色方塊`);
-        }
-
         const { canvas, ctx } = createCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
         ctx.translate(CENTER, CENTER);
-        const r = 40; 
+        const r = 40;
 
         switch (type) {
-            case 'SMOKE':
-                ParticlePainter.drawSmoke(ctx, r, color);
-                // [MATERIAL UPGRADE] 以 fbm 遮罩打散煙霧邊緣，取代單純的徑向漸層球
-                if (MATERIAL_CONFIG.enabled) {
-                    applyNoiseMask(ctx, 'smoke', MATERIAL_CONFIG.ice.noise, r, true, 41);
-                }
-                break;
-            case 'HEX_SHARD':
-                ParticlePainter.drawHexShard(ctx, r, color);
-                // [MATERIAL UPGRADE] 噪聲遮罩：六邊形碎片晶格碎裂邊緣侵蝕
-                if (MATERIAL_CONFIG.enabled) {
-                    applyNoiseMask(ctx, 'hex_shard', MATERIAL_CONFIG.particles.hexShard, r, true, 31);
-                }
-                break;
-            case 'RIPPLE': ParticlePainter.drawRipple(ctx, r, color); break;
             case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
-            case 'SPIKE':
-            case 'SPARK': ParticlePainter.drawSpike(ctx, r * (type === 'SPARK' ? 0.3 : 0.8), color); break;
-            case 'ROCK':
-                ctx.fillStyle = color;
-                HexGeometry.traceHex(ctx, 0, 0, r * 0.5, false);
-                ctx.fill();
-                break;
-            case 'HEX_LOCK': IconPainter.drawHexLock(ctx, r, color); break;
-            case 'HEX_HALO': IconPainter.drawHexHalo(ctx, r, color); break;
-            case 'HEX_PRISM': IconPainter.drawHexPrism(ctx, r, color); break;
-            case 'HEX_RUNE': IconPainter.drawHexRune(ctx, r, color); break;
-            case 'HEX_SHIELD': IconPainter.drawHexShield(ctx, r, color); break;
-            case 'HEX_SKULL': IconPainter.drawHexSkull(ctx, r, color); break;
-            case 'HEX_ANGRY': IconPainter.drawHexAngry(ctx, r, color); break;
-            case 'HEX_EYE': IconPainter.drawHexEye(ctx, r, color); break;
-            case 'SHADOW_BLOB': {
-                const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
-                grad.addColorStop(0, color); 
-                grad.addColorStop(0.6, 'rgba(0,0,0,0.3)');
-                grad.addColorStop(1, 'transparent'); 
-                ctx.fillStyle = grad;
-                ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-                break;
-            }
             case 'CRACKS':
                 ParticlePainter.drawCracks(ctx, r, color);
-                // [MATERIAL UPGRADE] 噪聲裁切：裂痕不再是等長放射線，末端自然斷裂消散
+                // 噪聲裁切：裂痕不再是等長放射線，末端自然斷裂消散
                 if (MATERIAL_CONFIG.enabled) {
                     applyNoiseMask(ctx, 'crack', MATERIAL_CONFIG.scorch.noise, r, true, 23);
                 }
                 break;
-            case 'SLASH':
-                ParticlePainter.drawSlash(ctx, r, color);
-                // [MATERIAL UPGRADE] 噪聲遮罩：破壞死板弧線幾何邊緣，提升劍氣刀光能量有機感
-                if (MATERIAL_CONFIG.enabled) {
-                    applyNoiseMask(ctx, 'slash', MATERIAL_CONFIG.particles.slash, r, false, 71);
-                }
-                break;
-            case 'HEX_GRID': ParticlePainter.drawHexGrid(ctx, r, color); break;
-            case 'CHAOS_RIFT': ParticlePainter.drawChaosRift(ctx, r, color); break;
             case 'BEAM': {
                 const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
                 beamGrad.addColorStop(0, 'transparent');
@@ -104,8 +47,8 @@ class VFXTextureCache {
                 break;
             }
             default:
-                ctx.fillStyle = '#ff00ff';
-                ctx.fillRect(-5,-5,10,10);
+                ctx.fillStyle = VFX_RENDER.DEBUG_DOT_COLOR;
+                ctx.fillRect(-5, -5, 10, 10);
                 break;
         }
 
@@ -157,7 +100,6 @@ class VFXTextureCache {
         return canvas;
     }
 
-    public generateGlowOrb(color: string): HTMLCanvasElement { return this.getTexture('GLOW_SPRITE', color); }
     public generateCracks(color: string): HTMLCanvasElement { return this.getTexture('CRACKS', color); }
     public generateFogCloud(color: string): HTMLCanvasElement {
         const key = `FOG_${color}`;

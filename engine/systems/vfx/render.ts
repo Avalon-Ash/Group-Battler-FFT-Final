@@ -19,7 +19,6 @@ import { VFXSystem } from "../vfx";
 import { HexUtils, MapConfig } from "../../utils";
 import { Camera } from "../../systems/CameraSystem";
 import { VisualMath } from "../../math/VisualMath";
-import { isChaosStyle } from "./utils";
 import { ProjectileRenderer } from "./renderers/ProjectileRenderer";
 import { PartPainter } from "./renderers/painters/PartPainter";
 import { GroundDrapeLayer } from "../../renderers/GroundDrape";
@@ -70,7 +69,7 @@ export class VFXRenderer {
             if (Math.abs(offset) > 1500) return;
 
             const isGroundLocked = VFX_GROUND_TYPES.has(p.type);
-            const isUlt = p.pIsUlt || p.type === 'GIANT_HEX' || p.type === 'MAGIC_CIRCLE';
+            const isUlt = !!p.pIsUlt;
 
             // [SSOT FIX] 1. Y calculation: op.y must be the footprint Y (raw world projected).
             // We use op.sortBias to handle the "front edge" depth sorting for large ground effects.
@@ -86,7 +85,7 @@ export class VFXRenderer {
                 }
                 // 大型平貼特效（RenderSpec §9）：不進排序，鋪在它蓋到的每一格頂面
                 if (GroundDrapeLayer.modeOf(p.type) !== undefined && halfW * ISO_SCALE_Y >= GROUND_DRAPE.MIN_HALF_H) {
-                    drape.add(p, p.x, projectedY + offset, halfW, 1 - (p.life / p.maxLife), isChaosStyle(p.color));
+                    drape.add(p, p.x, projectedY + offset, halfW, 1 - (p.life / p.maxLife));
                     return;
                 }
             }
@@ -96,7 +95,7 @@ export class VFXRenderer {
             op.y = projectedY + offset;
 
             if (isGroundLocked) {
-                // Ground decals sort by their front edge to handle occlusion correctly.
+                // 貼地特效以前緣排序（RenderSpec §2）。
                 // In iso view, front edge is approx projectedY + 0.5 * visual_height.
                 op.gHalfW = halfW;
                 op.gHalfH = halfW * ISO_SCALE_Y;
@@ -117,7 +116,6 @@ export class VFXRenderer {
             
             op.particle = p;
             op.vProgress = 1 - (p.life / p.maxLife);
-            op.vChaos = isChaosStyle(p.color);
             op.tx = p.x;
             
             // [SSOT FIX] 2. Screen Y (繪製位置) calculation:
@@ -126,7 +124,7 @@ export class VFXRenderer {
             const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
             // 光束兩端（模擬座標＝投影中心）各跟著所在格的漂浮位移：起點加在 op.ty，終點與起點的差交給 drawBeam（RenderSpec §5）
             let beamStartBob = 0;
-            if ((p.type === 'BEAM' || p.type === 'DEATH_RAY') && p.sx !== undefined && p.sy !== undefined && p.tx !== undefined && p.ty !== undefined) {
+            if (p.type === 'BEAM' && p.sx !== undefined && p.sy !== undefined && p.tx !== undefined && p.ty !== undefined) {
                 beamStartBob = groundDrawShift(p.sx, p.sy);
                 p.beamEndDy = groundDrawShift(p.tx, p.ty) - beamStartBob;
             }
@@ -134,22 +132,6 @@ export class VFXRenderer {
             op.th = p.z; 
         });
 
-        this.submitDecalLayer(renderList, vfx, mapConfig, transitionT, transitionPhase, cullMinX, cullMaxX, cullMinY, cullMaxY, groundDrawShift);
         ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase, groundDrawShift);
-    }
-
-    private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE', minX: number, maxX: number, minY: number, maxY: number, groundDrawShift: (x: number, screenY: number) => number) {
-        vfx.state.decals.forEach(d => {
-            if (d.x < minX || d.x > maxX || d.y < minY || d.y > maxY) return;
-            const offset = VisualMath.getTransitionOffset(d.x, d.y, mapConfig, t, phase);
-            const op = renderList.next();
-            op.type = RenderOpType.DECAL;
-            op.y = d.y + offset + 1; 
-            op.z = 2; 
-            op.tx = d.x; op.ty = d.y + offset + groundDrawShift(d.x, d.y); 
-            op.dColor = d.color;
-            op.dScale = d.scale;
-            op.dLife = d.life;
-        });
     }
 }

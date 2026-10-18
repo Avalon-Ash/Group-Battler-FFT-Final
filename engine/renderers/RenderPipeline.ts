@@ -236,7 +236,6 @@ export class RenderPipeline {
                 const scope = op.type === RenderOpType.TERRAIN ? 'terrain' :
                               op.type === RenderOpType.UNIT || op.type === RenderOpType.CORPSE || op.type === RenderOpType.AURA ? 'units' :
                               op.type === RenderOpType.VFX ? 'vfx' :
-                              op.type === RenderOpType.DECAL ? 'decal' :
                               op.type === RenderOpType.PROJECTILE ? 'projectile' :
                               op.type === RenderOpType.HAZARD ? 'hazard' :
                               op.type === RenderOpType.OBSTACLE ? 'obstacle' :

@@ -57,7 +57,6 @@ const PAINTER_MODULES = {
     '/engine/renderers/units/painters/UnitIndicatorPainter.ts': ['UnitIndicatorPainter'],
     '/engine/renderers/units/painters/UnitShadowPainter.ts': ['UnitShadowPainter'],
     '/engine/systems/unit/UnitSystem.ts': ['UnitRenderSystem'],
-    '/engine/graphics/painters/GeometryPainter.ts': ['GeometryPainter'],
     '/engine/graphics/painters/ParticlePainter.ts': ['ParticlePainter'],
     '/engine/graphics/painters/VolumePainter.ts': ['VolumePainter'],
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],

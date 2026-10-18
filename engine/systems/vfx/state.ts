@@ -55,16 +55,8 @@ export interface Particle {
     /** 每次物理更新都貼齊地面高度（看板仍正常繪製） */
     groundAnchored?: boolean;
 }
-export interface Decal {
-    x: number;
-    y: number;
-    color: string;
-    life: number;
-    scale: number;
-}
 export class VFXStateManager {
     public particles: Particle[] = [];
-    public decals: Decal[] = [];
     private particlePool: Particle[] = [];
     public getParticle(): Particle {
         if (this.particlePool.length > 0) {
@@ -142,6 +134,5 @@ export class VFXStateManager {
             const p = this.particles.pop();
             if (p) this.releaseParticle(p);
         }
-        this.decals.length = 0;
     }
 }

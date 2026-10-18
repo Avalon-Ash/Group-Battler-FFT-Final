@@ -24,7 +24,6 @@ export enum RenderOpType {
     UNIT,
     VFX,
     PROJECTILE,
-    DECAL,
     HAZARD,
     AURA,
     OVERLAY,
@@ -60,12 +59,11 @@ export class RenderOp {
     uSelected: boolean = false;
     uSilhouette: boolean = false;
     isGround: boolean = false;
-    sortBias: number = 0; // NEW: SSOT depth sorting adjustment (mostly for ground decals)
+    sortBias: number = 0; // 排序前緣偏移（RenderSpec §2）
     /** 貼地 VFX 的投影後半寬／半高（前緣 sortBias 的來源；大型平貼特效已改鋪設，不進排序，RenderSpec §9） */
     gHalfW: number = 0; gHalfH: number = 0;
     particle: Particle | null = null;
     vProgress: number = 0;
-    vChaos: boolean = false;
     pVisX: number = 0; pVisY: number = 0;
     /** 投射物外觀鍵（PROJECTILE_VISUALS）與施法者陣營（共用外觀依陣營選色階） */
     pLookKey: string = ''; pTeam: Team = Team.BLUE;
@@ -73,7 +71,6 @@ export class RenderOp {
     pSpeed: number = 0;
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
-    dColor: string = ''; dScale: number = 1; dLife: number = 0;
     time: number = 0;
     simDt: number = 0.016;
 
@@ -103,7 +100,6 @@ export class RenderOp {
         this.isGround = false;
         this.sortBias = 0;
         this.gHalfW = 0; this.gHalfH = 0;
-        this.vChaos = false;
         this.ttheme = null;
         // [PERF5] 重用自有陣列，不每幀配置；只有 ProjectilePartPainter 在同一幀內區域讀取
         this.pTrail.length = 0;
@@ -114,7 +110,6 @@ export class RenderOp {
 // 數值之間保留足夠間距供未來插入新層級
 const SUB_LAYER = {
     TERRAIN:        10,
-    DECAL:          20,
     HAZARD:         30,
     GROUND_VFX:     32,   // isGround VFX，高於危險區但低於單位
     AURA:           38,   // [FIX] 從 35 改到 38，緊貼 UNIT 下方，確保光環在 OBSTACLE 後渲染
@@ -184,7 +179,6 @@ export class RenderList {
             // Sub-layer within same Y bucket (unchanged)
             let subLayer = 0;
             if (op.type === RenderOpType.TERRAIN) subLayer = SUB_LAYER.TERRAIN;
-            else if (op.type === RenderOpType.DECAL) subLayer = SUB_LAYER.DECAL;
             else if (op.type === RenderOpType.OVERLAY) subLayer = SUB_LAYER.OVERLAY;
             else if (op.type === RenderOpType.HAZARD) subLayer = SUB_LAYER.HAZARD;
             else if (op.type === RenderOpType.AURA) subLayer = SUB_LAYER.AURA;

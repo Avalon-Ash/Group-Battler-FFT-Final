@@ -331,17 +331,10 @@ export const GROUND_DRAPE = {
      * 鋪設類別（依繪製內容判斷，見 docs/COORD_GUARD_FINDINGS.md 對應的修正輪）：
      *  DIRECT    單一 drawImage／少量填色：每格裁切後直接畫，混合模式與原本完全一致
      *  OFFSCREEN 多段描邊（曼陀羅、震波）：每幀只畫一次到離屏畫布，再逐格裁切貼上（以粒子混合模式貼上）
-     * 不在表內的平貼型別（直立或有高度的特效：PILLAR、HEX_BEAM、BLACK_HOLE、GIANT_HEX、DOMAIN）不鋪設。
+     * 登記特效全是零件，貼地的只有 PART_GROUND（單張 sprite → DIRECT）；OFFSCREEN 保留給多段描邊的繪製函式。
      */
     MODE: {
         PART_GROUND: 'DIRECT',
-        GRID_FIELD: 'DIRECT',
-        CRACKS: 'DIRECT',
-        BLAST: 'DIRECT',
-        HEX_GLOW: 'DIRECT',
-        MAGIC_CIRCLE: 'OFFSCREEN',
-        SHOCKWAVE: 'OFFSCREEN',
-        RING: 'OFFSCREEN',
     } as Readonly<Record<string, 'DIRECT' | 'OFFSCREEN'>>,
 } as const;
 
@@ -417,10 +410,6 @@ export const VFX_BUDGET = {
     HARD_PARTICLE_BUDGET: 380,
     /** 各品質階層粒子發射係數 [Tier 0, Tier 1, Tier 2, Tier 3] */
     TIER_EMISSION_RATIOS: [1.0, 0.75, 0.5, 0.35] as const,
-    /** 次要粒子類型集合（高負載或低階品質時優先縮減/跳過發射） */
-    SECONDARY_TYPES: ['DUST', 'SMOKE', 'SPARK', 'SPEED_LINE', 'GENERIC_DEBUG'] as const,
-    /** 關鍵回饋粒子類型集合（傷害/死亡/終極技能，全額優先保留） */
-    CRITICAL_TYPES: ['BLAST', 'DEATH_RAY', 'BEAM', 'HEX_BEAM', 'PILLAR', 'SHOCKWAVE'] as const,
     /** 單位死亡特效存活時間基準秒數；高負載或降階時以 REDUCED / NORMAL 比例縮短 */
     SHATTER_LIFETIME_NORMAL: 4.5,
     SHATTER_LIFETIME_REDUCED: 2.0,
@@ -802,6 +791,9 @@ export const UNIT_SPRITE = {
     manifestPath: 'assets/units/manifest.json',
 } as const;
 
+/** 看板粒子（天氣 ATMOSPHERE，BillboardPainter）：縮放 SCALE_FROM → +SCALE_GROW（ease-out）；進度 HOLD_UNTIL 前維持 HOLD_ALPHA，之後 (1−進度)×FADE_MUL 淡出 */
+export const BILLBOARD = { SCALE_FROM: 0.9, SCALE_GROW: 0.6, HOLD_UNTIL: 0.6, HOLD_ALPHA: 0.45, FADE_MUL: 1.1 } as const;
+
 /**
  * 投射物繪製（ProjectileRenderer 取樣、ProjectilePartPainter 繪製）。外觀表在 data/vfx/projectile_visuals.ts。
  * 本體沿螢幕上的飛行方向旋轉（自轉的投射物改用自轉角），速度越快拉得越長（動態模糊感）。
@@ -893,56 +885,23 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
 
 /**
  * 粒子型別特性表（SSOT，docs/VFX_PIPELINE_MAP.md §5-5）：每個 ParticleType 一列，下面的集合都由它推導。
- *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件，新材質）、BILL＝BillboardPainter（天氣 ATMOSPHERE）。
- *    PROC／GROUND 的繪製器已移除，這兩類型別只會畫成洋紅除錯點（不應出現）；BEAM 一律掛光束零件走 PartPainter.drawBeam。
+ *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件）、BILL＝BillboardPainter（天氣 ATMOSPHERE、除錯點）。
+ *    BEAM 一律掛光束零件走 PartPainter.drawBeam。舊的 PROC／GROUND 型別與繪製器已全部移除（docs/VFX_PIPELINE_MAP.md §4.10、§4.12）。
  *  - ground：貼地（排序用前緣、z 鎖地面、VFXPlayer 以 groundZ 生成）→ VFX_GROUND_TYPES
  *  - physical：受重力與落地反彈（VFXPhysics）→ PHYSICAL_PARTICLE_TYPES
  *  - fixed：生成時不給隨機自轉（VFXPlayer）→ FIXED_ORIENTATION_PARTICLE_TYPES
  *  - selfDrawn：繪製器自己畫外形、不需要粒子貼圖（VFXPlayer）→ SELF_DRAWN_PARTICLE_TYPES
- * 新增型別時只改這張表；tests/VFXBackend.test.ts 鎖住推導結果與舊後端數量。
+ * 新增型別時只改這張表；tests/VFXBackend.test.ts 鎖住推導結果。
  */
-export type ParticleBackend = 'PART' | 'PROC' | 'GROUND' | 'BILL';
+export type ParticleBackend = 'PART' | 'BILL';
 interface ParticleTraits { backend: ParticleBackend; ground?: true; physical?: true; fixed?: true; selfDrawn?: true }
 export const PARTICLE_TRAITS: Readonly<Record<ParticleType, ParticleTraits>> = {
     PART: { backend: 'PART', fixed: true, selfDrawn: true },
     PART_GROUND: { backend: 'PART', ground: true, fixed: true, selfDrawn: true },
     PART_DEBRIS: { backend: 'PART', physical: true, fixed: true, selfDrawn: true },
-    PILLAR: { backend: 'PROC', ground: true, fixed: true, selfDrawn: true },
-    HEX_BEAM: { backend: 'PROC', ground: true, fixed: true, selfDrawn: true },
-    GIANT_HEX: { backend: 'PROC', ground: true, physical: true, fixed: true, selfDrawn: true },
-    DOMAIN: { backend: 'PROC', ground: true, fixed: true, selfDrawn: true },
-    BLACK_HOLE: { backend: 'PROC', ground: true, fixed: true, selfDrawn: true },
-    MAGIC_CIRCLE: { backend: 'PROC', ground: true, selfDrawn: true },
-    DEATH_RAY: { backend: 'PROC', selfDrawn: true },
-    BEAM: { backend: 'PROC', selfDrawn: true },
-    SHOCKWAVE: { backend: 'GROUND', ground: true, selfDrawn: true },
-    RING: { backend: 'GROUND', ground: true, selfDrawn: true },
-    BLAST: { backend: 'GROUND', ground: true, selfDrawn: true },
-    HEX_GLOW: { backend: 'GROUND', ground: true, selfDrawn: true },
-    GRID_FIELD: { backend: 'GROUND', ground: true, fixed: true, selfDrawn: true },
-    CRACKS: { backend: 'GROUND', ground: true },
-    DEBRIS: { backend: 'BILL', physical: true },
-    SHARD: { backend: 'BILL', physical: true },
-    SPRITE: { backend: 'BILL', physical: true },
-    ROCK: { backend: 'BILL', physical: true },
-    CHIP: { backend: 'BILL', physical: true },
-    RUBBLE: { backend: 'BILL', physical: true },
-    SPARK: { backend: 'BILL' },
-    SMOKE: { backend: 'BILL' },
-    SMOKE_PUFF: { backend: 'BILL' },
-    GLOW: { backend: 'BILL' },
-    HEX_LOCK: { backend: 'BILL' },
-    STREAK: { backend: 'BILL' },
-    PEBBLE: { backend: 'BILL' },
-    SPIKE: { backend: 'BILL' },
-    DUST: { backend: 'BILL' },
+    BEAM: { backend: 'BILL', selfDrawn: true },
     ATMOSPHERE: { backend: 'BILL' },
     GENERIC_DEBUG: { backend: 'BILL' },
-    SLASH: { backend: 'BILL' },
-    HEX_GRID: { backend: 'BILL' },
-    CHAOS_RIFT: { backend: 'BILL' },
-    HEX_SHARD: { backend: 'BILL' },
-    RIPPLE: { backend: 'BILL' },
 };
 const particleTypesWhere = (pred: (t: ParticleTraits) => boolean): ReadonlySet<string> =>
     new Set((Object.keys(PARTICLE_TRAITS) as ParticleType[]).filter((k) => pred(PARTICLE_TRAITS[k])));

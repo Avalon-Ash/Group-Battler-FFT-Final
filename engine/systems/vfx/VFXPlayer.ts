@@ -38,12 +38,6 @@ export class VFXPlayer {
         if (VFX_BUDGET.enabled) {
             const currentTotal = system.state.particles.length;
             if (currentTotal >= VFX_BUDGET.HARD_PARTICLE_BUDGET) return;
-
-            const isSecondary = (VFX_BUDGET.SECONDARY_TYPES as readonly string[]).includes(config.particleType);
-            // 1. 次要粒子（煙塵、火花、拖尾）在超過軟預算時直接跳過，釋放算力
-            if (isSecondary && currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
-                return;
-            }
         } else {
             // ── [PERF] 全域粒子上限 guard (Fallback when budget governor disabled) ──
             if (system.state.particles.length >= VFX_PARAM.MAX_PARTICLES) return;
@@ -66,18 +60,14 @@ export class VFXPlayer {
 
         if (VFX_BUDGET.enabled) {
             const currentTotal = system.state.particles.length;
-            const isCritical = (VFX_BUDGET.CRITICAL_TYPES as readonly string[]).includes(config.particleType);
-
-            // 2. 品質階層與負載自動收緊（關鍵技能與受擊全額保留）
-            if (!isCritical) {
-                const tier = getQualityTier();
-                const tierRatio = VFX_BUDGET.TIER_EMISSION_RATIOS[tier];
-                if (tierRatio < 1.0) {
-                    count = Math.max(1, Math.round(count * tierRatio));
-                }
-                if (currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
-                    count = Math.max(1, Math.floor(count * 0.5));
-                }
+            // 品質階層與負載自動收緊（每個 emitter 至少保留 1 顆，主形狀不消失）
+            const tier = getQualityTier();
+            const tierRatio = VFX_BUDGET.TIER_EMISSION_RATIOS[tier];
+            if (tierRatio < 1.0) {
+                count = Math.max(1, Math.round(count * tierRatio));
+            }
+            if (currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
+                count = Math.max(1, Math.floor(count * 0.5));
             }
         }
         const isGroundType = VFX_GROUND_TYPES.has(config.particleType);

@@ -47,7 +47,6 @@ interface DrapeEntry {
     extW: number;
     extH: number;
     progress: number;
-    chaos: boolean;
     offscreen: boolean;
     // ── 離屏畫布（只有 OFFSCREEN 型別用） ──
     canvas: HTMLCanvasElement | null;
@@ -61,7 +60,7 @@ interface DrapeEntry {
 
 function createEntry(): DrapeEntry {
     return {
-        p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, chaos: false, offscreen: false,
+        p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, offscreen: false,
         canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1,
     };
 }
@@ -84,7 +83,7 @@ export class GroundDrapeLayer {
         return GROUND_DRAPE.MODE[type];
     }
 
-    public add(p: Particle, x: number, footY: number, halfW: number, progress: number, chaos: boolean): void {
+    public add(p: Particle, x: number, footY: number, halfW: number, progress: number): void {
         let e = this.entries[this.count];
         if (!e) { e = createEntry(); this.entries[this.count] = e; }
         this.count++;
@@ -94,7 +93,6 @@ export class GroundDrapeLayer {
         e.planeZ = NaN;
         this.fill(e, x, footY, halfW);
         e.progress = progress;
-        e.chaos = chaos;
         e.offscreen = GROUND_DRAPE.MODE[p.type] === 'OFFSCREEN';
     }
 
@@ -126,7 +124,6 @@ export class GroundDrapeLayer {
         this.fill(e, x, footY, halfW);
         e.extW = e.extH = halfW * GROUND_DRAPE.PAINTER_EXTENT + GROUND_DRAPE.CANVAS_PAD_PX;
         e.progress = 0;
-        e.chaos = false;
         e.offscreen = true;
     }
 
@@ -175,7 +172,7 @@ export class GroundDrapeLayer {
                 this.blit(ctx, e, ox, oy, snapX, topY, hexR, layout, battleTime);
             } else if (p) {
                 ctx.translate(ox, oy);
-                ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, e.progress, e.chaos, layout, battleTime);
+                ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, e.progress, layout, battleTime);
             }
             ctx.restore();
         }
@@ -265,7 +262,7 @@ export class GroundDrapeLayer {
         octx.globalCompositeOperation = 'source-over';
         octx.clearRect(0, 0, w, h);
         octx.setTransform(s, 0, 0, s, w / 2, h / 2);
-        if (e.p) ParticleRenderer.drawSingleParticle(octx, e.p, 0, 0, e.progress, e.chaos, layout, battleTime);
+        if (e.p) ParticleRenderer.drawSingleParticle(octx, e.p, 0, 0, e.progress, layout, battleTime);
         else if (e.painter && e.painterAgent) e.painter(octx, e.painterAgent, battleTime, layout);
         octx.setTransform(1, 0, 0, 1, 0, 0);
 

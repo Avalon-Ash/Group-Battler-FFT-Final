@@ -15,7 +15,6 @@ import { HazardPainter } from "./grid/painters/HazardPainter";
 import { SpriteManager } from "../sprites";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { ProjectilePartPainter } from "../systems/vfx/renderers/painters/ProjectilePartPainter";
-import { AssetManager } from "../assets";
 import { ENV_SPRITE } from "../../constants";
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../systems/unit";
@@ -72,21 +71,12 @@ export class RenderDispatcher {
                 if (op.agent) unitRenderer.drawAura(ctx, op.agent, snapX, snapY, op.time, layout, op.unitFrame);
                 break;
 
-            case RenderOpType.DECAL:
-                ctx.save();
-                ctx.translate(snapX, snapY);
-                ctx.scale(op.dScale, op.dScale);
-                ctx.globalAlpha = Math.min(1, op.dLife);
-                ctx.drawImage(AssetManager.getBlastZone(op.dColor), -64, -32, 128, 64);
-                ctx.restore();
-                break;
-
             case RenderOpType.VFX:
                 if (op.particle) {
                     ctx.save();
                     ctx.translate(snapX, snapY);
                     // Pass globalTime (BattleTime) to renderer to sync rotations
-                    ParticleRenderer.drawSingleParticle(ctx, op.particle, 0, 0, op.vProgress, op.vChaos, layout, globalTime);
+                    ParticleRenderer.drawSingleParticle(ctx, op.particle, 0, 0, op.vProgress, layout, globalTime);
                     ctx.restore();
                 }
                 break;

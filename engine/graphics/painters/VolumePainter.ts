@@ -114,35 +114,6 @@ export const VolumePainter = {
         ctx.restore();
     },
 
-    drawHexRipple(
-        ctx: CanvasRenderingContext2D,
-        x: number, y: number,
-        radius: number,
-        color: string,
-        opacity: number,
-        width: number,
-        layout: HexLayout = 'FLAT'
-    ) {
-        ctx.save();
-        ctx.globalAlpha = opacity;
-        ctx.strokeStyle = color;
-        ctx.lineWidth = width;
-        ctx.lineCap = 'round';
-        
-        ctx.shadowColor = color;
-        ctx.shadowBlur = width * 1.5;
-        
-        HexGeometry.traceHex(ctx, x, y, radius, true, layout);
-        ctx.stroke();
-        
-        ctx.lineWidth = width * 0.2;
-        ctx.strokeStyle = '#ffffff';
-        ctx.shadowBlur = 0;
-        ctx.stroke();
-
-        ctx.restore();
-    },
-
     drawExtrusion(
         ctx: CanvasRenderingContext2D,
         x: number, y: number,
