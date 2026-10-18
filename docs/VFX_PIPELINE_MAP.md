@@ -146,10 +146,17 @@ VFXSystem.state.particles
 - `VFXSystem.playBeam` 有陣營時掛零件；`ParticleRenderer` 把掛零件的 `BEAM` 交給 `PartPainter.drawBeam`（沿起點→終點平鋪、尖頭裁切、往終點捲動）。粒子型別仍是 `BEAM`，排序與漂浮位移規則（RenderSpec §2、§5）不變；沒有陣營的後備光束沿用 `ProceduralPainter.drawBeam`。
 - 對照：`node tools/vfx/fx-shot.mjs --keys=BEAM:DEATH_RAY:RED,...`。光束端點量測（`beam-align-shot`）FOREST／VOID 皆 0 px；verify:coords 振盪 39 對、靜止 0、sink 0；battle_frozen 0.43%（門檻 0.5%，未重錄）。
 
+### 4.6 步驟 4（隕石、燒魔）之後
+技能層全部零件化：抓得到粒子的 137 個技能都只用零件（普攻 38／主動 49／奧義 50；另 13 個單獨施放沒觸發命中，靜態表顯示命中特效為零件）。
+- `HEAVEN_FALL`（METEOR）：`SequenceSystem` 依施法者陣營生成兩顆同步自由落體的 `PART_DEBRIS`（岩塊 shard＋光暈），色階與尺寸在 `shared_parts.ts` 的 `METEOR_PARTS`／`METEOR_SIZE`；沒有陣營時沿用舊 ROCK。已知：零件路徑沒有舊看板的落點影子。
+- `FX_MANA_BURN`：虛紫閃光＋六道光芒＋火星（`ASH_VOID`）。
+- 對照：`node tools/vfx/fx-shot.mjs --keys=FALL:BLUE,FALL:RED,FX_MANA_BURN --body=FX_MANA_BURN`。
+- 實戰仍有舊粒子：死亡碎裂（`UnitShatter`：`FX_HIT_GENERIC`＋直接生成的 SHARD／SPARK／SMOKE_PUFF）、`FX_HIT_SHIELD_SPARK`、`FX_CAST_BREAK` 共用層。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
 3. ✅ **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
-4. **HEAVEN_FALL 改走登記表**。
+4. ✅ **HEAVEN_FALL 改零件**（落下時間依高度，維持由序列直接生成，零件規格放資料檔）。下一批：死亡碎裂、護盾火花、詠唱中斷共用層。
 5. **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
 6. 清死鍵（§2.6）與死欄位（§2.2）。

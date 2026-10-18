@@ -3,6 +3,7 @@
  *   node tools/vfx/fx-shot.mjs --keys=FX_HEAL_BURST,FX_GRID_IMPACT_BLUE [--body=FX_HEAL_BURST] [--out=tools/ui-e2e/out/vfx/fx]
  * --body：列出的鍵在身體高度播放（命中、治療、出手類）；其餘貼地播放（格子脈衝類）。
  *   光束：--keys=BEAM:DEATH_RAY:RED,BEAM:HOLY_RAY:BLUE（樣式:陣營，固定在身體高度往右下打）。
+ *   隕石：--keys=FALL:BLUE,FALL:RED（直接跑 HEAVEN_FALL METEOR 動作，高度 FALL_H）。
  * 每個鍵輸出 <key>.png：一列 5 格（t = 0.03／0.1／0.2／0.32／0.48 秒）。
  */
 import { chromium } from 'playwright-core';
@@ -24,6 +25,10 @@ const CROP = { w: 220, h: 200 };
 /** 光束模式：終點相對起點的螢幕偏移（world px），截圖範圍改用 BEAM_CROP */
 const BEAM_DX = 150, BEAM_DY = 60;
 const BEAM_CROP = { w: 420, h: 240 };
+/** 隕石模式（FALL:<陣營>）：落下高度（world px）與截圖範圍（直向） */
+const FALL_H = 160;
+const FALL_CROP = { w: 300, h: 420 };
+const FALL_ZOOM = 1.0;
 
 const server = await createServer({ root, server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 let browser = null;
@@ -92,12 +97,19 @@ try {
     for (const key of keys) {
         const frames = [];
         const isBeam = key.startsWith('BEAM:');
-        await page.evaluate(async ({ key, spot, lift, isBeam, beamDx, beamDy }) => {
+        await page.evaluate(async ({ key, spot, lift, isBeam, beamDx, beamDy, fallH, fallZoom }) => {
             const e = window.__TACTICAL_ENGINE__;
             e.renderer.vfx.reset();
-            e.renderer.camera.snapTo(spot.x, spot.y - spot.gz, 2.0);
+            e.renderer.camera.snapTo(spot.x, spot.y - spot.gz, key.startsWith('FALL:') ? fallZoom : 2.0);
             window.__stepFrames(2);
-            if (isBeam) {
+            if (key.startsWith('FALL:')) {
+                // FALL:<BLUE|RED>：直接跑一個 HEAVEN_FALL（METEOR）序列動作，高度壓低到能入鏡
+                const types = await import('/types.ts');
+                const { SequenceSystem } = await import('/engine/systems/visuals/SequenceSystem.ts');
+                const team = key.split(':')[1] === 'RED' ? types.Team.RED : types.Team.BLUE;
+                const src = e.agents.find((a) => a.team === team);
+                new SequenceSystem().run({ id: 'fx-shot', actions: [{ type: 'HEAVEN_FALL', style: 'METEOR', height: fallH, scale: 1.8, color: '#fbbf24' }] }, { x: spot.x, y: spot.y, z: spot.gz }, e, e.renderer.vfx, src?.id);
+            } else if (isBeam) {
                 // BEAM:<樣式>:<BLUE|RED>：從格子中心（身體高度）往右下打一條 0.4 秒的光束（螢幕座標，同 SequenceSystem）
                 const [, style, team] = key.split(':');
                 const types = await import('/types.ts');
@@ -106,16 +118,16 @@ try {
             } else {
                 e.renderer.vfx.playEffect(key, spot.x, spot.y, spot.gz + lift, undefined, spot.gz);
             }
-        }, { key, spot, lift: bodyKeys.has(key) || isBeam ? BODY_LIFT : 0, isBeam, beamDx: BEAM_DX, beamDy: BEAM_DY });
+        }, { key, spot, lift: bodyKeys.has(key) || isBeam ? BODY_LIFT : 0, isBeam, beamDx: BEAM_DX, beamDy: BEAM_DY, fallH: FALL_H, fallZoom: FALL_ZOOM });
         let tPrev = 0;
         for (const t of SAMPLE_T) {
-            await page.evaluate(({ n, spot }) => {
+            await page.evaluate(({ n, spot, zoom }) => {
                 window.__stepFrames(n);
-                window.__TACTICAL_ENGINE__.renderer.camera.snapTo(spot.x, spot.y - spot.gz, 2.0);
+                window.__TACTICAL_ENGINE__.renderer.camera.snapTo(spot.x, spot.y - spot.gz, zoom);
                 window.__stepFrames(1);
-            }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), spot });
+            }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), spot, zoom: key.startsWith('FALL:') ? FALL_ZOOM : 2.0 });
             tPrev = t;
-            frames.push(await page.screenshot({ clip: isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
+            frames.push(await page.screenshot({ clip: key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h } : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
         }
         if (sharp) {
             const row = await sharp({ create: { width: CROP.w * frames.length, height: CROP.h, channels: 3, background: '#000' } })

@@ -1,9 +1,11 @@
 import { VFXAsset } from "../../../types/VFXSchema";
+import type { VFXRampId } from "../parts/vfxPalette";
+import { Team } from "../../../types";
 import { part } from "./ult_parts";
 import { flash, spray } from "./basic_parts";
 
 // ==========================================
-// 共用特效（零件版）：格子脈衝、出手閃光、治療、吸血、瞬移。
+// 共用特效（零件版）：格子脈衝、出手閃光、治療、吸血、瞬移、燒魔；以及奧義 HEAVEN_FALL 的隕石。
 // 取代 shared.ts 裡的 GRID_FIELD／GLOW／SPARK／PILLAR／SPIKE 舊粒子（docs/VFX_PIPELINE_MAP.md §4.1）。
 // 零件的顏色在烘焙時由 ramp 決定，不吃 colorOverride：需要分陣營的拆成 _BLUE／_RED 兩個鍵，由呼叫端依施法者陣營選。
 // 尺寸參考：HEX_SIZE = 48。
@@ -72,6 +74,17 @@ export const SHARED_PART_VFX: Record<string, VFXAsset> = {
         ],
     },
 
+    // 燒魔（DAMAGE text=BURN，sr_a4）：虛紫一閃＋六道光芒＋紫色火星（原 SHOCKWAVE＋SPARK）
+    'FX_MANA_BURN': {
+        id: 'FX_MANA_BURN',
+        emitters: [
+            flash('ASH_VOID', 24, 0.22),
+            part({ particleType: 'PART', part: { kind: 'rays', radius: 34, count: 6, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.28, delay: 0, size: 34,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            spray('ASH_VOID', [4, 6], [100, 200], [0.25, 0.4], 3),
+        ],
+    },
+
     // 瞬移（mb_a3 秘儀突進的命中）：秘藍光柱＋閃光＋碎光
     'FX_TELEPORT': {
         id: 'FX_TELEPORT',
@@ -82,4 +95,23 @@ export const SHARED_PART_VFX: Record<string, VFXAsset> = {
             spray('LION_VOID', 4, [120, 220], [0.16, 0.28], 3),
         ],
     },
+};
+
+/**
+ * 奧義 HEAVEN_FALL（style METEOR）的隕石：SequenceSystem 直接生成兩顆同步自由落體的 PART_DEBRIS
+ * （岩塊在下層、光暈在上層），因為落下時間由每個奧義的高度決定，無法寫成固定壽命的登記資產。
+ * 尺寸以粒子 size（原 ROCK 看板大小）的比例給出；色階依施法者陣營。
+ */
+export const METEOR_PARTS: Record<Team, { rockRamp: VFXRampId; glowRamp: VFXRampId }> = {
+    [Team.BLUE]: { rockRamp: 'LION_HOLY', glowRamp: 'LION_HOLY' },
+    [Team.RED]: { rockRamp: 'ASH_PHYSICAL', glowRamp: 'ASH_FIRE' },
+};
+export const METEOR_SIZE = {
+    /** 岩塊 shard size（半徑）＝粒子 size × ROCK */
+    ROCK: 0.32,
+    /** 光暈半徑＝粒子 size × GLOW */
+    GLOW: 0.5,
+    /** 岩塊自轉速度範圍（rad/s） */
+    SPIN: [-3, 3] as const,
+    SEED: 5,
 };

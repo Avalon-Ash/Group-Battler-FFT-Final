@@ -1,7 +1,7 @@
 
 import { VFXAsset } from "../../../types/VFXSchema";
 
-// 格子脈衝、出手閃光、治療、吸血、瞬移已改零件版，見 shared_parts.ts
+// 格子脈衝、出手閃光、治療、吸血、瞬移、燒魔已改零件版，見 shared_parts.ts
 export const SHARED_VFX: Record<string, VFXAsset> = {
     'FX_SPAWN_BLUE': {
         id: 'FX_SPAWN_BLUE',
@@ -110,14 +110,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'SHARD', count: [8, 12], lifetime: [0.4, 0.6], size: [4, 8], speed: [50, 150], vz: [100, 200], gravity: 1500, colors: ['#991b1b', '#7f1d1d'], shape: 'BURST_DIR', delay: 0 },
             { particleType: 'SMOKE', count: [3, 5], lifetime: [0.5, 0.8], size: [15, 25], speed: [20, 40], colors: ['#450a0a', '#000'], shape: 'CIRCLE', shapeRadius: 10, delay: 0 },
             { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.3], size: [40, 60], colors: ['#7f1d1d'], speed: [0,0], shape: 'POINT', blendMode: 'multiply', delay: 0 }
-        ]
-    },
-    'FX_MANA_BURN': {
-        id: 'FX_MANA_BURN',
-        description: 'Mana burn effect',
-        emitters: [
-            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.2, 0.4], size: [30, 50], colors: ['#8b5cf6'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [4, 8], lifetime: [0.3, 0.5], size: [2, 4], speed: [100, 200], vz: [50, 150], colors: ['#c084fc', '#ffffff'], shape: 'BURST_DIR', blendMode: 'screen', delay: 0 }
         ]
     },
     'FX_MANA_RESTORE': {

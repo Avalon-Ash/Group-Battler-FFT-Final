@@ -6,6 +6,9 @@ import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
 import { PHYSICS } from "../../../constants";
 import { Team } from "../../../types";
+import { Particle } from "../vfx/state";
+import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
+import { METEOR_PARTS, METEOR_SIZE } from "../../../data/vfx/registry/shared_parts";
 
 interface QueuedAction {
     executeAt: number;
@@ -100,21 +103,40 @@ export class SequenceSystem {
                 // 依施法者陣營選格子脈衝；曾用 action.color 是否含 '#3b' 判斷，29 個藍方技能播成紅色（docs/VFX_PIPELINE_MAP.md §2.3）
                 vfx.playEffect(this.teamOf(sourceId, engine) === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
                 break;
-            case 'HEAVEN_FALL':
+            case 'HEAVEN_FALL': {
                 const h = action.height || 1200;
-                const p = vfx.state.getParticle();
-                p.x = target.x; p.y = target.y; p.z = target.z + h;
-                p.vz = 0; 
-                p.life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1; 
-                p.maxLife = p.life;
-                p.color = action.color || '#fff';
-                p.size = (action.scale || 1.8) * 80;
-                p.type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
-                p.locked = false;
-                p.pIsUlt = true; 
-                p.ultSourceId = sourceId;
-                vfx.state.particles.push(p);
+                const life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1;
+                const size = (action.scale || 1.8) * 80;
+                const spawn = (): Particle => {
+                    const p = vfx.state.getParticle();
+                    p.x = target.x; p.y = target.y; p.z = target.z + h;
+                    p.vz = 0;
+                    p.life = life; p.maxLife = life;
+                    p.color = action.color || '#fff';
+                    p.size = size;
+                    p.locked = false;
+                    p.pIsUlt = true;
+                    p.ultSourceId = sourceId;
+                    vfx.state.particles.push(p);
+                    return p;
+                };
+                const team = this.teamOf(sourceId, engine);
+                if (action.style === 'METEOR' && team !== undefined) {
+                    // 隕石零件（data/vfx/registry/shared_parts.ts）：岩塊＋光暈兩顆 PART_DEBRIS 同步自由落體
+                    const m = METEOR_PARTS[team];
+                    const rock = spawn();
+                    rock.type = 'PART_DEBRIS';
+                    rock.part = vfxPartStore.get({ kind: 'shard', size: size * METEOR_SIZE.ROCK, shape: 'rock', ramp: m.rockRamp, seed: METEOR_SIZE.SEED });
+                    rock.vRotation = METEOR_SIZE.SPIN[0] + Math.random() * (METEOR_SIZE.SPIN[1] - METEOR_SIZE.SPIN[0]);
+                    const glow = spawn();
+                    glow.type = 'PART_DEBRIS';
+                    glow.part = vfxPartStore.get({ kind: 'glow', radius: size * METEOR_SIZE.GLOW, ramp: m.glowRamp });
+                } else {
+                    // 沒有陣營（施法者已不存在）或非隕石樣式：沿用舊粒子
+                    spawn().type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
+                }
                 break;
+            }
         }
     }
 }
