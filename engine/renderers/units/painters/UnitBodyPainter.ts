@@ -7,6 +7,9 @@
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
 // ║  [ARCH] 衝刺殘影：本體之前呼叫 UnitAfterimagePainter，偏移讀 ║
 // ║  UnitFrame.ghosts（局部座標原點＝腳底繪製點，RenderSpec §10）║
+// ║  [ARCH] 本體替換：變羊 → PolymorphPainter（取代精靈）、凍結 → ║
+// ║  FrozenPainter（疊在精靈上）；兩者都畫在同一個局部座標，腳底  ║
+// ║  貼 UNIT_SPRITE.footOffsetLocal，不新增座標／排序規則        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
@@ -15,7 +18,8 @@ import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { UnitAmbientPainter } from "./UnitAmbientPainter";
-import { SpriteManager } from "../../../sprites";
+import { PolymorphPainter } from "./PolymorphPainter";
+import { FrozenPainter } from "./FrozenPainter";
 import { VisualMath } from "../../../math/VisualMath";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { UnitAfterimagePainter } from "./UnitAfterimagePainter";
@@ -101,11 +105,8 @@ export const UnitBodyPainter = {
             }
         }
 
-        if (agent.visualStatus === 'POLYMORPH' && !isSilhouette) {
-            ctx.scale(agent.facing > 0 ? 1 : -1, 1);
-            const sheep = SpriteManager.getSpecialModel('SHEEP');
-            const bounce = Math.abs(Math.sin(t * 5) * 5);
-            ctx.drawImage(sheep, -32, -32 - bounce, 64, 64);
+        if (agent.visualStatus === 'POLYMORPH') {
+            PolymorphPainter.draw(ctx, agent, t, isSilhouette);
         } else {
             // Layer 2: Main Body (Sprite Atlas with 5-line team circle fallback on load failure)
             if (SpriteUnitRenderer.canRender(agent)) {
@@ -122,13 +123,9 @@ export const UnitBodyPainter = {
                 UnitAmbientPainter.draw(ctx, agent, t);
             }
             
-            // Layer 4: Overlay Status (Ice Block)
+            // Layer 4: Overlay Status (Ice Block：六角稜柱，烘焙一次)
             if (agent.visualStatus === 'FROZEN' && !isSilhouette) {
-                const ice = SpriteManager.getSpecialModel('ICE');
-                ctx.save();
-                ctx.globalCompositeOperation = 'hard-light';
-                ctx.drawImage(ice, -48, -64, 96, 128);
-                ctx.restore();
+                FrozenPainter.draw(ctx);
             }
         }
         

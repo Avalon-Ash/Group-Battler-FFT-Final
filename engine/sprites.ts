@@ -7,7 +7,6 @@
 // ║    本層不持有任何繪製邏輯，只做快取存取                          ║
 // ║                                                                  ║
 // ║  呼叫端 (現役)：                                                 ║
-// ║    UnitBodyPainter   → getSpecialModel('SHEEP' / 'ICE')         ║
 // ║    UnitShadowPainter / UnitCorePainter → getUnitImages          ║
 // ║    RenderDispatcher  → getObstacleSprite                        ║
 // ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
@@ -57,18 +56,6 @@ export const SpriteManager = {
         const key = `OBSTACLE_${styleKey}_${layout}`;
         if (cache.has(key)) return cache.get(key)!;
         const canvas = EnvironmentFactory.generateObstacle(styleKey, layout);
-        cache.set(key, canvas);
-        return canvas;
-    },
-    getSpecialModel(type: 'SHEEP' | 'ICE'): HTMLCanvasElement {
-        const key = `MODEL_${type}`;
-        if (cache.has(key)) return cache.get(key)!;
-        let canvas;
-        if (type === 'SHEEP') {
-            canvas = UnitFactory.generateSheep();
-        } else {
-            canvas = EnvironmentFactory.generateIceBlock('FLAT');
-        }
         cache.set(key, canvas);
         return canvas;
     }

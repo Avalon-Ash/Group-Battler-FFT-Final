@@ -146,7 +146,7 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'spark', length: 8, ramp: 'STATUS_SLATE' }, anchor: 'HEAD', count: 3, orbitRadius: 14, orbitSpeed: -3, lift: 2, alpha: 0.6, decor: true },
         ],
     },
-    /** 變羊：模型換成羊（UnitBodyPainter）；這裡補腳下粉紫日輪與上升的粉色光點 */
+    /** 變羊：模型換成羊（PolymorphPainter 烘焙的毛球羊，站在腳底）；這裡補腳下粉紫日輪與上升的粉色光點 */
     POLYMORPH: {
         priority: 85, strong: true,
         layers: [
@@ -154,7 +154,7 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
             { spec: { kind: 'glow', radius: 4, ramp: 'STATUS_PINK', hard: true }, anchor: 'BODY', count: 4, orbitRadius: 14, lift: -20, rise: { height: 44, period: 1.6 }, alpha: 0.95 },
         ],
     },
-    /** 凍結：模型換成冰塊（UnitBodyPainter）；這裡補腳下冰環與繞身的冰晶 */
+    /** 凍結：單位被封進六角冰塊（FrozenPainter 烘焙的半透明稜柱）；這裡補腳下冰環與繞身的冰晶 */
     FROZEN: {
         priority: 88, strong: true,
         layers: [

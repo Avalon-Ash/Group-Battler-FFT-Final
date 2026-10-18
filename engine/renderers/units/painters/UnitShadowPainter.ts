@@ -9,7 +9,7 @@ import { resolveBodyType } from "../../../../data/units/appearance/bodyTypes";
 
 export const UnitShadowPainter = {
     draw(ctx: CanvasRenderingContext2D, agent: Agent, px: number, py: number, t: number, isSilhouette: boolean, layout: HexLayout) {
-        if (isSilhouette || agent.visualStatus === 'POLYMORPH') return;
+        if (isSilhouette) return;
 
         const assets = SpriteManager.getUnitImages(agent.role, agent.team, resolveBodyType(agent), layout);
         const surfaceY = py;

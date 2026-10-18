@@ -111,4 +111,4 @@
 - 強控各有獨立剪影：暈眩＝頭上繞行三顆金色六角星；沉默＝灰環被紅斜線劃掉；恐懼＝顫抖的紫色骷髏；嘲諷＝彈跳的紅色倒三角＋放射光；致盲＝繞頭的黑煙；禁錮＝腳下琥珀環＋棘刺；凍結＝冰環＋繞身冰晶（模型仍是冰塊）；變羊＝粉色日輪＋上升光點（模型仍是羊）；凝滯＝金藍稜柱＋上下六角環；放逐＝紫色稜柱＋繞行晶片；無敵＝金色放射光＋日輪＋頭頂光環。弱效果（中毒、燃燒、再生、易傷）與施法提示低調。護盾維持 `ShieldPainter` 的 `computeShieldGeometry`。
 - 已刪：`GroundEffectPainter`、`OverheadPainter`、`StateModelPainter`、`AgentVFXSystem.processStatusVFX` 與 `STATUS_VISUALS.particleEffect`。`FX_STATUS_ROOT_LOOP` 仍當擊飛塵土用。
 - 截圖表：`node tools/vfx/status-sheet.mjs`（輸出 `tools/ui-e2e/out/status_sheet.png`）。
-- 已知：變羊的羊貼圖（`SpriteManager.getSpecialModel('SHEEP')`）看起來像一團白雲，剪影靠零件層補；之後可換成像樣的羊模型。
+- 變羊的羊（原 `getSpecialModel('SHEEP')` 白雲）與凍結冰塊已重做：`PolymorphPainter`（毛球羊，站在腳底）與 `FrozenPainter`（六角冰塊），尺寸與顏色在 `data/units/appearance/ccBody.ts`。
