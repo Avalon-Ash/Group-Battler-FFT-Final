@@ -37,9 +37,6 @@ export type PedestalStyle = 'LIONHEART_HEX' | 'ASHEN_BROKEN_HEX';
 /** 棋座核心（懸浮六角晶體）畫法：Lionheart 乾淨稜晶／Ashen 裂紋碎晶 */
 export type CoreStyle = 'LIONHEART_PRISM' | 'ASHEN_SHARD';
 
-/** 角色投影的常駐光效畫法（UnitAmbientPainter） */
-export type ProjectionStyle = 'LIONHEART_SEAMS' | 'ASHEN_EMBERS';
-
 /** 死亡氛圍粒子：靈魂飛升（Lionheart）／血噴（Ashen），UnitShatter 使用 */
 export type DeathStyle = 'SPIRIT_RISE' | 'BLOOD_SPRAY';
 
@@ -139,11 +136,8 @@ export interface SpriteSkin {
     tint: { color: string; strength: number } | null;
 }
 
+/** 角色投影的陣營色：突進殘影（UnitAfterimagePainter）、飛行緞帶（UnitFlightPainter） */
 export interface ProjectionSkin {
-    style: ProjectionStyle;
-    glowColor: string;
-    glowRadius: number;
-    particleColor: string;
     trailColor: string;
 }
 
@@ -170,7 +164,6 @@ export interface FactionSkin {
 interface FactionStyleDef {
     name: string;
     pedestalStyle: PedestalStyle;
-    projectionStyle: ProjectionStyle;
     deathStyle: DeathStyle;
     deathRamps: DeathPartRamps;
     thickness: number;
@@ -191,7 +184,6 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
     BLUE: {
         name: 'Lionheart',
         pedestalStyle: 'LIONHEART_HEX',
-        projectionStyle: 'LIONHEART_SEAMS',
         deathStyle: 'SPIRIT_RISE',
         deathRamps: { spark: 'LION_HOLY', spirit: 'LION_HOLY', blood: 'ASH_BLOOD', puff: 'DUST' },
         thickness: 7,
@@ -219,7 +211,6 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
     RED: {
         name: 'Ashen',
         pedestalStyle: 'ASHEN_BROKEN_HEX',
-        projectionStyle: 'ASHEN_EMBERS',
         deathStyle: 'BLOOD_SPRAY',
         deathRamps: { spark: 'ASH_FIRE', spirit: 'ASH_VOID', blood: 'ASH_BLOOD', puff: 'ASH' },
         thickness: 7,
@@ -288,10 +279,6 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
         core: style.core,
         sprite: { atlasKey: `${key}:${role}:${body}`, tint: null },
         projection: {
-            style: style.projectionStyle,
-            glowColor: fv.ambientGlowColor ?? fv.primaryColor,
-            glowRadius: fv.ambientGlowRadius ?? 0,
-            particleColor: fv.ambientParticleColor ?? fv.secondaryColor,
             trailColor: fv.flightTrailColor,
         },
         shield: { strokeColor: style.shieldStroke },
@@ -301,7 +288,7 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
             burstColor: fv.primaryColor,
             shatterColors: fv.deathShatterColors,
             spiritColor: fv.deathSpiritColor,
-            bloodColor: fv.ambientGlowColor ?? fv.deathSpiritColor,
+            bloodColor: fv.deathBloodColor,
             ramps: style.deathRamps,
         },
         fallbackBodyColor: palette.main,

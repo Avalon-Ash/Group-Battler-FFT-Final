@@ -16,7 +16,6 @@
 | 職業字形（刻在棋座頂面） | `UnitFactory.drawEngravedGlyph`（烘焙進棋座） | `classIcon.color/glow/scale/alpha` | `classIcon` |
 | 棋座核心（懸浮六角晶體） | `CoreFactory.generate`、`UnitCorePainter` | `core.*`（尺寸位置見 `CORE_VISUAL`） | `core` |
 | 棋座/圖示繪製與快取 | `UnitShadowPainter.ts`、`engine/sprites.ts`（`getUnitImages`，鍵含 team/role/body/layout） | — | — |
-| 投影常駐光（護甲縫／餘燼粒子） | `UnitAmbientPainter.ts` | `projection.*` | — |
 | 飛行尾跡／殘影色 | `UnitFlightPainter.ts`、`UnitBodyPainter.ts` | `projection.trailColor` | — |
 | 護盾描邊色 | `ShieldPainter.ts` | `shield.strokeColor` | — |
 | 血條/選取框顏色 | `BarPainter.ts` | `hud.*` | — |

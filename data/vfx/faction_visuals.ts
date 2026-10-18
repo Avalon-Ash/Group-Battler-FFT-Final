@@ -26,11 +26,7 @@ export interface FactionVisualDef {
     deathShatterColors: string[]; // Palette for debris
     deathSpiritColor: string;     // Color of rising soul/energy
 
-    // Ambient VFX
-    ambientGlowColor?: string;
-    ambientGlowRadius?: number;
-    ambientParticleColor?: string;
-    ambientParticleRate?: number;
+    deathBloodColor: string;      // UnitShatter 血滴色
 }
 
 export const FACTION_VISUALS: Record<Team, FactionVisualDef> = {
@@ -47,10 +43,7 @@ export const FACTION_VISUALS: Record<Team, FactionVisualDef> = {
         deathShatterColors: [THEME_IMPERIAL.primary, THEME_IMPERIAL.armorLight, THEME_IMPERIAL.armorDark],
         deathSpiritColor: '#60a5fa',
 
-        ambientGlowColor: '#60a5fa',
-        ambientGlowRadius: 6,
-        ambientParticleColor: '#bae6fd',
-        ambientParticleRate: 0.6,
+        deathBloodColor: '#60a5fa',
     },
     
     [Team.RED]: {
@@ -66,9 +59,6 @@ export const FACTION_VISUALS: Record<Team, FactionVisualDef> = {
         deathShatterColors: [THEME_COVENANT.primary, THEME_COVENANT.armorBase, '#450a0a'],
         deathSpiritColor: '#ef4444',
 
-        ambientGlowColor: '#dc2626',
-        ambientGlowRadius: 10,
-        ambientParticleColor: '#7f1d1d',
-        ambientParticleRate: 1.2,
+        deathBloodColor: '#dc2626',
     }
 };

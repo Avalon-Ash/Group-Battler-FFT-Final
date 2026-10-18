@@ -17,7 +17,6 @@ import { AnimState, MovementType } from "../../../../types";
 import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
-import { UnitAmbientPainter } from "./UnitAmbientPainter";
 import { PolymorphPainter } from "./PolymorphPainter";
 import { FrozenPainter } from "./FrozenPainter";
 import { VisualMath } from "../../../math/VisualMath";
@@ -118,12 +117,7 @@ export const UnitBodyPainter = {
                 ctx.fill();
             }
 
-            // Layer 3: Ambient Faction VFX
-            if (!isSilhouette && agent.hp > 0) {
-                UnitAmbientPainter.draw(ctx, agent, t);
-            }
-            
-            // Layer 4: Overlay Status (Ice Block：六角稜柱，烘焙一次)
+            // Layer 3: Overlay Status (Ice Block：六角稜柱，烘焙一次)
             if (agent.visualStatus === 'FROZEN' && !isSilhouette) {
                 FrozenPainter.draw(ctx);
             }

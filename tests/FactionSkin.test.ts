@@ -59,11 +59,11 @@ describe('FACTION_SKINS completeness', () => {
         }
     });
 
-    it('factions use distinct pedestal, projection and death styles (readability)', () => {
+    it('factions use distinct pedestal and death styles (readability)', () => {
         const blue = getFactionSkin(Team.BLUE);
         const red = getFactionSkin(Team.RED);
         expect(blue.pedestal.style).not.toBe(red.pedestal.style);
-        expect(blue.projection.style).not.toBe(red.projection.style);
+        expect(blue.projection.trailColor).not.toBe(red.projection.trailColor);
         expect(blue.death.style).not.toBe(red.death.style);
         expect(blue.pedestal.rim).not.toBe(red.pedestal.rim);
     });
@@ -146,7 +146,6 @@ describe('Renderers read faction visuals only from FACTION_SKINS', () => {
         'engine/renderers/units/painters/UnitBodyPainter.ts',
         'engine/renderers/units/painters/UnitDeathPainter.ts',
         'engine/renderers/units/painters/UnitFlightPainter.ts',
-        'engine/renderers/units/painters/UnitAmbientPainter.ts',
         'engine/renderers/status/painters/ShieldPainter.ts',
         'engine/renderers/hud/BarPainter.ts',
         'engine/systems/visuals/effects/UnitShatter.ts',

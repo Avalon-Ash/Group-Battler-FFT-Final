@@ -43,7 +43,6 @@ const PAINTER_MODULES = {
     '/engine/renderers/status/StatusOrchestrator.ts': ['StatusOrchestrator'],
     '/engine/renderers/units/painters/PedestalGhostPainter.ts': ['PedestalGhostPainter'],
     '/engine/renderers/units/painters/UnitAfterimagePainter.ts': ['UnitAfterimagePainter'],
-    '/engine/renderers/units/painters/UnitAmbientPainter.ts': ['UnitAmbientPainter'],
     '/engine/renderers/units/painters/UnitAuraPainter.ts': ['UnitAuraPainter'],
     '/engine/renderers/units/painters/UnitCorePainter.ts': ['UnitCorePainter'],
     '/engine/renderers/units/painters/UnitDeathPainter.ts': ['UnitDeathPainter'],

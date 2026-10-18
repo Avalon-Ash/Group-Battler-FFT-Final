@@ -50,7 +50,7 @@
 | :-- | :-- | :-- |
 | `UnitAuraPainter` 詠唱環 | 每幀描邊六角 | 烘成旋轉 sigil 零件（懸空平面機制不動） |
 | `UnitFlightPainter` 緞帶 | 每幀路徑 | 保留（依軌跡變形，烘焙不划算），統一色階 |
-| `UnitAmbientPainter` 陣營氛圍 | 程序化 | 與 V2 的待機特效合一 |
+| ~~`UnitAmbientPainter` 陣營氛圍~~ | ✅ 2026-10-19 刪除：座標是舊程序化身體的胸甲位置，換精靈後浮在頭頂（藍方矩形、紅方光點） | 待機氛圍只留零件版 `FX_IDLE_*` |
 | `ShieldPainter` | 舊式稜柱描邊 | 零件化或烘焙 |
 | `GridOverlays` 預警／射程、`HazardPainter`、`ZoneRenderer` | 地格層 | 併入地形 T3（網格氛圍）一起設計 |
 | `TextPainter` SHOUT／傷害數字 | 效能熱點（漸層、shadowBlur） | 烘焙字形快取（PERF_REPORT_4 §3 已列） |
