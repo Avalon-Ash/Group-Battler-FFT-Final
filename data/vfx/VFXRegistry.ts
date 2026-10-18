@@ -12,6 +12,7 @@ import { ULT_PART_VFX_STORM } from "./registry/ult_parts_storm";
 import { BASIC_PART_VFX } from "./registry/basic_parts";
 import { ACTIVE_PART_VFX } from "./registry/active_parts";
 import { CAST_BREAK_VFX } from "./registry/cast_break";
+import { SHARED_PART_VFX } from "./registry/shared_parts";
 
 // ==========================================
 // 📚 VFX ASSET REGISTRY (AGGREGATOR)
@@ -32,6 +33,7 @@ export const VFX_REGISTRY: Record<string, VFXAsset> = {
     ...ULT_PART_VFX_STORM,
     ...BASIC_PART_VFX,
     ...ACTIVE_PART_VFX,
-    ...CAST_BREAK_VFX
+    ...CAST_BREAK_VFX,
+    ...SHARED_PART_VFX
 };
 

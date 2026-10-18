@@ -1,5 +1,5 @@
 
-import { GameEvent, Point } from "../../../types";
+import { GameEvent, Point, Team } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../grid";
@@ -51,9 +51,12 @@ export class EventVFXMapper {
                 CombatVFXHandler.handle(event, vfx, camera, target, groundZ, hexKey);
                 break;
 
-            case 'PROJECTILE_SPAWN':
-                vfx.playEffect('FX_MUZZLE_FLASH', castOrigin.x, castOrigin.y, castOrigin.z, event.color, groundZ, undefined, hexKey);
+            case 'PROJECTILE_SPAWN': {
+                // 零件不吃 colorOverride：出手閃光分陣營兩個鍵（data/vfx/registry/shared_parts.ts）
+                const muzzleRed = engine.agents.find(a => a.id === event.sourceId)?.team === Team.RED;
+                vfx.playEffect(muzzleRed ? 'FX_MUZZLE_FLASH_RED' : 'FX_MUZZLE_FLASH_BLUE', castOrigin.x, castOrigin.y, castOrigin.z, event.color, groundZ, undefined, hexKey);
                 break;
+            }
 
             case 'DEATH':
             case 'SPAWN':

@@ -1,14 +1,8 @@
 
 import { VFXAsset } from "../../../types/VFXSchema";
 
+// 格子脈衝、出手閃光、治療、吸血、瞬移已改零件版，見 shared_parts.ts
 export const SHARED_VFX: Record<string, VFXAsset> = {
-    'FX_TELEPORT': {
-        id: 'FX_TELEPORT',
-        emitters: [
-            { particleType: 'SPIKE', count: 1, lifetime: [0.25, 0.35], size: [30, 45], speed: [0, 0], colors: ['#fff'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.4, 0.4], size: [15, 25], speed: [0, 0], colors: ['#fff'], shape: 'POINT', blendMode: 'screen', delay: 0 }
-        ]
-    },
     'FX_SPAWN_BLUE': {
         id: 'FX_SPAWN_BLUE',
         description: 'Imperial spawn teleport effect',
@@ -75,14 +69,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             }
         ]
     },
-    'FX_GRID_IMPACT_BLUE': {
-        id: 'FX_GRID_IMPACT_BLUE',
-        emitters: [{ particleType: 'GRID_FIELD', visualStyle: 'GRID_HEX_BLUE', count: 1, lifetime: [0.4, 0.6], size: [32, 32], speed: [0, 0], colors: ['#3b82f6'], shape: 'POINT', locked: true, blendMode: 'screen', delay: 0 }]
-    },
-    'FX_GRID_IMPACT_RED': {
-        id: 'FX_GRID_IMPACT_RED',
-        emitters: [{ particleType: 'GRID_FIELD', visualStyle: 'GRID_CORRUPT_RED', count: 1, lifetime: [0.5, 0.7], size: [32, 32], speed: [0, 0], colors: ['#ef4444'], shape: 'POINT', locked: true, blendMode: 'screen', delay: 0 }]
-    },
     'FX_HIT_GENERIC': {
         id: 'FX_HIT_GENERIC',
         description: 'Precise physical impact with airborne debris',
@@ -126,22 +112,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.3], size: [40, 60], colors: ['#7f1d1d'], speed: [0,0], shape: 'POINT', blendMode: 'multiply', delay: 0 }
         ]
     },
-    'FX_HEAL_BURST': {
-        id: 'FX_HEAL_BURST',
-        description: 'Instant healing burst effect',
-        emitters: [
-            { particleType: 'GLOW', count: 1, lifetime: [0.3, 0.5], size: [40, 60], colors: ['#86efac'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [6, 10], lifetime: [0.4, 0.7], size: [3, 6], speed: [50, 100], vz: [100, 200], colors: ['#bbf7d0', '#ffffff'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_VAMP_BURST': {
-        id: 'FX_VAMP_BURST',
-        description: 'Vampiric healing burst effect',
-        emitters: [
-            { particleType: 'GLOW', count: 1, lifetime: [0.3, 0.5], size: [40, 60], colors: ['#be123c'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [6, 10], lifetime: [0.4, 0.7], size: [3, 6], speed: [50, 100], vz: [100, 200], colors: ['#f43f5e', '#ffffff'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
-        ]
-    },
     'FX_MANA_BURN': {
         id: 'FX_MANA_BURN',
         description: 'Mana burn effect',
@@ -165,14 +135,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
             { particleType: 'BLAST', count: 1, lifetime: [0.2, 0.4], size: [100, 150], colors: ['#ffffff'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
             { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.3, 0.5], size: [150, 250], colors: ['#ffffff'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
             { particleType: 'RUBBLE', count: [15, 25], lifetime: [0.6, 1.0], size: [8, 15], speed: [400, 800], vz: [400, 1000], gravity: 4000, colors: ['#ffffff', '#cbd5e1'], shape: 'BURST_DIR', delay: 0 }
-        ]
-    },
-    'FX_MUZZLE_FLASH': {
-        id: 'FX_MUZZLE_FLASH',
-        description: 'Muzzle flash for projectiles',
-        emitters: [
-            { particleType: 'GLOW', count: 1, lifetime: [0.1, 0.2], size: [30, 50], colors: ['#ffffff'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [4, 6], lifetime: [0.2, 0.3], size: [2, 4], speed: [100, 200], vz: [50, 100], colors: ['#fff', '#fbbf24'], shape: 'BURST_DIR', delay: 0 }
         ]
     },
     
