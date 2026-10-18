@@ -53,7 +53,6 @@ const PAINTER_MODULES = {
     '/engine/renderers/units/painters/UnitAuraPainter.ts': ['UnitAuraPainter'],
     '/engine/renderers/units/painters/UnitCorePainter.ts': ['UnitCorePainter'],
     '/engine/renderers/units/painters/UnitDeathPainter.ts': ['UnitDeathPainter'],
-    '/engine/renderers/units/painters/UnitFlightPainter.ts': ['UnitFlightPainter'],
     '/engine/renderers/units/painters/UnitIndicatorPainter.ts': ['UnitIndicatorPainter'],
     '/engine/renderers/units/painters/UnitShadowPainter.ts': ['UnitShadowPainter'],
     '/engine/systems/unit/UnitSystem.ts': ['UnitRenderSystem'],

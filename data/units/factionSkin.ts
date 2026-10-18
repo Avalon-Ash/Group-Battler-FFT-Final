@@ -136,7 +136,7 @@ export interface SpriteSkin {
     tint: { color: string; strength: number } | null;
 }
 
-/** 角色投影的陣營色：突進殘影（UnitAfterimagePainter）、飛行緞帶（UnitFlightPainter） */
+/** 角色投影的陣營色：衝刺殘影的染色（UnitAfterimagePainter） */
 export interface ProjectionSkin {
     trailColor: string;
 }

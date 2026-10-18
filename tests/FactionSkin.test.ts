@@ -145,7 +145,6 @@ describe('Renderers read faction visuals only from FACTION_SKINS', () => {
         'engine/renderers/units/painters/UnitShadowPainter.ts',
         'engine/renderers/units/painters/UnitBodyPainter.ts',
         'engine/renderers/units/painters/UnitDeathPainter.ts',
-        'engine/renderers/units/painters/UnitFlightPainter.ts',
         'engine/renderers/status/painters/ShieldPainter.ts',
         'engine/renderers/hud/BarPainter.ts',
         'engine/systems/visuals/effects/UnitShatter.ts',

@@ -15,6 +15,7 @@ import { PROJECTILE_VISUALS, DEFAULT_PROJECTILE_KEY, projectileRamp, type Projec
 import { PROJECTILE_RENDER } from "../../../../../constants";
 import { vfxPartStore, drawPart, type PartSprite } from "../../../../renderers/vfxparts/VFXPartStore";
 import { quantizeSize } from "../../../../renderers/vfxparts/PartSpec";
+import { drawTrailStreak } from "../../../../renderers/vfxparts/TrailStreak";
 import { Team } from "../../../../../types";
 
 interface LookSprites {
@@ -58,34 +59,6 @@ function resolve(key: string, team: Team): LookSprites {
     return resolved;
 }
 
-/** 光痕：光束磚（左端錨點、可平鋪）沿取樣點一段一段拉伸，越往尾端越窄越淡。 */
-function drawStreak(ctx: CanvasRenderingContext2D, tile: PartSprite, x: number, y: number, trail: RenderOp['pTrail'], widthScale: number): void {
-    const n = trail.length;
-    const img = tile.frames[0];
-    const prevBlend = ctx.globalCompositeOperation;
-    const prevAlpha = ctx.globalAlpha;
-    ctx.globalCompositeOperation = tile.blend;
-    let px = x, py = y;
-    for (let i = 0; i < n; i++) {
-        const q = trail[i];
-        const dx = q.x - px, dy = q.y - py;
-        const len = Math.sqrt(dx * dx + dy * dy);
-        if (len > 0.5) {
-            const k = i / n;
-            const w = (1 - k) * widthScale;
-            ctx.globalAlpha = prevAlpha * (1 - k) * PROJECTILE_RENDER.STREAK_ALPHA;
-            ctx.save();
-            ctx.translate(px, py);
-            ctx.rotate(Math.atan2(dy, dx));
-            ctx.drawImage(img, 0, -tile.anchorY * w, len, tile.height * w);
-            ctx.restore();
-        }
-        px = q.x; py = q.y;
-    }
-    ctx.globalAlpha = prevAlpha;
-    ctx.globalCompositeOperation = prevBlend;
-}
-
 /** 煙：每隔 SMOKE_EVERY 個取樣點蓋一團，越往尾端越大越淡。 */
 function drawSmoke(ctx: CanvasRenderingContext2D, puff: PartSprite, trail: RenderOp['pTrail'], scale: number): void {
     const n = trail.length;
@@ -107,7 +80,7 @@ export const ProjectilePartPainter = {
 
         // 1. 拖尾（在本體後面）
         if (s.trail && op.pTrail.length > 0) {
-            if (s.look.trail === 'streak') drawStreak(ctx, s.trail, x, y, op.pTrail, s.trailScale * ult);
+            if (s.look.trail === 'streak') drawTrailStreak(ctx, s.trail, x, y, op.pTrail, op.pTrail.length, s.trailScale * ult, PROJECTILE_RENDER.STREAK_ALPHA);
             else drawSmoke(ctx, s.trail, op.pTrail, s.trailScale * ult);
         }
 

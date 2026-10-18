@@ -40,10 +40,8 @@ export const UNIT_OCCLUSION = {
  *  對應 Sprite 高度的約 50%。依美術 Sprite 尺寸調整。 */
 export const AGENT_MODEL_CENTER_Z = 64;
 
+/** 沒有單位目標的特效（地面目標點）的身體高度：地面 + CENTER_OFFSET（EventVFXMapper） */
 export const VISUAL_ANCHORS = {
-    HEAD_OFFSET_Y: 50,
-    ENGINE_OFFSET_Y: 15,
-    HITBOX_RADIUS: 18,
     CENTER_OFFSET: 30
 };
 
@@ -837,8 +835,6 @@ export const UNIT_BODY_MOTION = {
     ultPulseCycles: 3,
     /** 出生動畫的下落距離（px，負值＝從上方落下；長度見 UNIT_SPRITE.spawnDuration） */
     spawnDrop: -40,
-    /** 地面單位速度平方超過此值時畫拖尾緞帶（飛行單位一律畫） */
-    ribbonSpeedSq: 5000,
 } as const;
 
 // ══════════════════════════════════════════════════════════════

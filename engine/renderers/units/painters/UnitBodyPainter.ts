@@ -1,7 +1,7 @@
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitBodyPainter — 存活單位的主體繪製                    ║
-// ║  職責：hp > 0 單位的本體（精靈或替換本體）與飛行緞帶     ║
+// ║  職責：hp > 0 單位的本體（精靈或替換本體）與衝刺殘影       ║
 // ║  （血條在 HUDRenderer、狀態在 StatusOrchestrator）       ║
 // ║  [ARCH] 陣營外觀來源：FACTION_SKINS (SSOT)               ║
 // ║  [ARCH] hp <= 0 時 early return，死亡演出由 UnitDeathPainter ║
@@ -20,7 +20,6 @@ import { Agent } from "../../../game";
 import { AnimState, MovementType } from "../../../../types";
 import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE, UNIT_BODY_MOTION } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
-import { UnitFlightPainter } from "./UnitFlightPainter";
 import { PolymorphPainter } from "./PolymorphPainter";
 import { FrozenPainter } from "./FrozenPainter";
 import { VisualMath } from "../../../math/VisualMath";
@@ -92,16 +91,6 @@ export const UnitBodyPainter = {
         ctx.rotate(finalRotation);
 
         ctx.translate(0, bodyFloat);
-
-        // Layer 1: Rear Effects (Ribbons/Engines)
-        if (agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
-            if (agent.movementType === MovementType.FLYING || speedSq > UNIT_BODY_MOTION.ribbonSpeedSq) {
-                UnitFlightPainter.drawRibbonTrail(ctx, agent, t, terrainHeight);
-            }
-            if (agent.movementType === MovementType.FLYING) {
-                UnitFlightPainter.drawFlightVFX(ctx, agent, t);
-            }
-        }
 
         if (agent.visualStatus === 'POLYMORPH') {
             PolymorphPainter.draw(ctx, agent, t, isSilhouette);

@@ -209,7 +209,9 @@ export class RenderSpec {
         s += "  畫 SpriteUnitRenderer.resolveFrame 解析出的**同一張影格**（同朝向），染成陣營軌跡色（getFactionSkin(team).projection.trailColor）的快取畫布。\n";
         s += "  染色影格每 (圖集, Mip, 影格, 顏色) 一張，第一次用到才建立，數量上限 AFTERIMAGE.MAX_TINTED_FRAMES；每幀零分配。\n";
         s += "- 品質階層：殘影數 ≤ AFTERIMAGE.GHOSTS_BY_TIER[tier]。\n";
-        s += "- 舊的 assets.base 糊影（MaterialPainter.drawMotionTrail）與梯形預留圖形已移除。\n\n";
+        s += "- 舊的 assets.base 糊影（MaterialPainter.drawMotionTrail）與梯形預留圖形已移除。\n";
+        s += "- 舊的 UnitFlightPainter（飛行緞帶與「引擎光點」）已移除：它在 UNIT_SCALE 與本體旋轉之後畫世界座標差，軌跡被縮成 0.65 倍並跟著傾斜轉，\n";
+        s += "  15 個 tick 的軌跡在正常飛行速度下只有十幾 px；引擎光點是舊程序化身體的殘留。飛行單位的移動感由懸浮浮動（UNIT_BODY_MOTION）與衝刺殘影提供。\n\n";
 
         s += "--- \n\n";
 
