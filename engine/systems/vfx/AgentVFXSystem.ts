@@ -45,8 +45,8 @@ export class AgentVFXSystem {
                 // Threshold: Only trigger on massive impulses (knockbacks / dashes)
                 if (speedSq > VFX_PARAM.FX_KNOCKBACK_DUST_THRESHOLD_SQ && isGrounded && !isFlyingUnit) {
                     const terrainH = this.groundHeight(a, engine);
-                    // Use DUST everywhere instead of STUN_LOOP to prevent the "Weird Orb of Light" stacking bug
-                    vfx.playEffect('FX_STATUS_ROOT_LOOP', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
+                    // 擊退／突進的地面塵（零件；曾借用 FX_STATUS_ROOT_LOOP）
+                    vfx.playEffect('FX_KNOCKBACK_DUST', a.px + a.physics.x, a.py + a.physics.y, terrainH + 5);
                 }
             }
             this.dustTimer = 0;

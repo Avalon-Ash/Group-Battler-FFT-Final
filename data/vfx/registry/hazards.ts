@@ -1,96 +1,35 @@
-
 import { VFXAsset } from "../../../types/VFXSchema";
+import type { VFXRampId } from "../parts/vfxPalette";
+import { part } from "./ult_parts";
+import { groundRing } from "./basic_parts";
 
-export const HAZARD_VFX: Record<string, VFXAsset> = {
-    'FX_HAZARD_FIELD_FIRE': {
-        id: 'FX_HAZARD_FIELD_FIRE',
-        emitters: [{
-            count: 1, particleType: 'GRID_FIELD', 
-            shape: 'POINT', 
-            lifetime: 4.0, // Fixed long duration, HazardSystem handles the actual lifetime by spawning more if needed or we can loop it
-            colors: ['#ea580c'], // Lava orange
-            size: 1.0, 
-            speed: 0,
-            delay: 0,
-            visualStyle: 'FIRE',
-            locked: true,
-            lockReason: 'HAZARD_FIELD',
-            blendMode: 'lighter'
-        }, {
-            count: 3, particleType: 'SMOKE', 
-            shape: 'CIRCLE',
-            shapeRadius: 20,
-            lifetime: [1, 2],
-            colors: ['#fbbf24', '#f59e0b'],
-            size: [10, 20],
-            speed: [10, 30],
-            delay: 0,
-            vz: [30, 80],
-            visualStyle: 'FLAME'
-        }]
-    },
-    'FX_HAZARD_FIELD_POISON': {
-        id: 'FX_HAZARD_FIELD_POISON',
-        emitters: [{
-            count: 1, particleType: 'GRID_FIELD',
-            shape: 'POINT',
-            lifetime: 4.0,
-            colors: ['#65a30d'],
-            size: 1.0,
-            speed: 0,
-            delay: 0,
-            visualStyle: 'POISON',
-            locked: true,
-            lockReason: 'HAZARD_FIELD',
-            blendMode: 'screen'
-        }]
-    },
-    'FX_HAZARD_FIELD_ICE': {
-        id: 'FX_HAZARD_FIELD_ICE',
-        emitters: [{
-            count: 1, particleType: 'GRID_FIELD',
-            shape: 'POINT',
-            lifetime: 4.0,
-            colors: ['#38bdf8'],
-            size: 1.0,
-            speed: 0,
-            delay: 0,
-            visualStyle: 'ICE',
-            locked: true,
-            lockReason: 'HAZARD_FIELD',
-            blendMode: 'screen'
-        }]
-    },
-    'FX_HAZARD_FIELD_GRAVITY': {
-        id: 'FX_HAZARD_FIELD_GRAVITY',
-        emitters: [{
-            count: 1, particleType: 'GRID_FIELD',
-            shape: 'POINT',
-            lifetime: 4.0,
-            colors: ['#7c3aed'],
-            size: 1.0,
-            speed: 0,
-            delay: 0,
-            visualStyle: 'VOID',
-            locked: true,
-            lockReason: 'HAZARD_FIELD',
-            blendMode: 'multiply'
-        }]
-    },
-    'FX_HAZARD_FIELD_GENERIC': {
-        id: 'FX_HAZARD_FIELD_GENERIC',
-        emitters: [{
-            count: 1, particleType: 'GRID_FIELD',
-            shape: 'POINT',
-            lifetime: 4.0,
-            colors: ['#94a3b8'],
-            size: 1.0,
-            speed: 0,
-            delay: 0,
-            visualStyle: 'FOG',
-            locked: true,
-            lockReason: 'HAZARD_FIELD',
-            blendMode: 'screen'
-        }]
-    }
-};
+// ==========================================
+// 危害場生成（HAZARD_SPAWN）的地面爆點（零件版）。
+// 持續的場面由 HazardPainter 依 HAZARD_VISUALS 逐格繪製；這裡只負責「場出現的那一下」。
+// EventVFXMapper 先用 HAZARD_VISUALS[type].spawnVfx（FIRE／POISON／ICE／GRAVITY 各有自己的命中特效），
+// 沒有 spawnVfx 的型別（GENERIC）才播 FX_HAZARD_FIELD_<type>；tests/ReferenceIntegrity 要求每個型別都有這個鍵。
+// 原版是 lifetime 4 s 的 GRID_FIELD（危害場改由 HazardPainter 繪製前的舊做法）。
+// ==========================================
+
+const FIELD_RAMPS: ReadonlyArray<readonly [string, VFXRampId]> = [
+    ['FIRE', 'ASH_FIRE'],
+    ['POISON', 'ASH_POISON'],
+    ['ICE', 'LION_ICE'],
+    ['GRAVITY', 'ASH_VOID'],
+    ['GENERIC', 'STATUS_SLATE'],
+];
+
+function fieldBurst(id: string, ramp: VFXRampId): VFXAsset {
+    return {
+        id,
+        emitters: [
+            groundRing(ramp, 30, 1.4, 0.35, { thickness: 5 }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'glow', radius: 40, ramp }, count: 1, lifetime: 0.5, delay: 0, size: 40,
+                partAnim: { fadeIn: 0.15, fadeOut: 0.7, alpha: 0.3 } }),
+        ],
+    };
+}
+
+export const HAZARD_VFX: Record<string, VFXAsset> = Object.fromEntries(
+    FIELD_RAMPS.map(([type, ramp]) => [`FX_HAZARD_FIELD_${type}`, fieldBurst(`FX_HAZARD_FIELD_${type}`, ramp)]),
+);

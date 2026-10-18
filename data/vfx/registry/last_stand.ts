@@ -1,50 +1,16 @@
-
 import { VFXAsset } from "../../../types/VFXSchema";
+import { part } from "./ult_parts";
+import { groundRing } from "./basic_parts";
 
+// 縮圈終局（Last Stand）：鎖定格子的地面脈衝（零件版；原 SHOCKWAVE 80～120、紫色 screen）
 export const LAST_STAND_VFX: Record<string, VFXAsset> = {
-    // Stage 1: The Lockdown (Current)
     'FX_LAST_STAND_LOCKED': {
         id: 'FX_LAST_STAND_LOCKED',
         description: 'Ground EMP for Last Stand entry',
         emitters: [
-            { 
-                particleType: 'SHOCKWAVE', 
-                count: 1, 
-                lifetime: [0.3, 0.4], 
-                size: [80, 120], 
-                colors: ['#c084fc'], 
-                speed: [0, 0], 
-                shape: 'POINT', 
-                blendMode: 'screen', 
-                delay: 0 
-            },
-            { 
-                particleType: 'RING', 
-                count: 1, 
-                lifetime: [0.4, 0.5], 
-                size: [100, 140], 
-                colors: ['#f0abfc'], 
-                speed: [0, 0], 
-                shape: 'POINT', 
-                blendMode: 'screen', 
-                delay: 0.05 
-            },
-            {
-                particleType: 'HEX_GLOW',
-                count: 1,
-                lifetime: [0.5, 0.6],
-                size: [60, 80],
-                colors: ['#a855f7'],
-                speed: [0, 0],
-                shape: 'POINT',
-                blendMode: 'screen',
-                delay: 0
-            }
-        ]
+            groundRing('ASH_VOID', 48, 1.8, 0.4, { thickness: 6 }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'glow', radius: 44, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.4, delay: 0, size: 44,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.8, alpha: 0.35 } }),
+        ],
     },
-    
-    // Future Expansion Slots:
-    // TODO: FX_LAST_STAND_REVIVAL - Dramatic vertical beam when a unit avoids death inside final hex
-    // TODO: FX_LAST_STAND_LOOP    - Subtle continuous aura on the final surviving hex
-    // TODO: FX_LAST_STAND_CLIMAX - Screen shake and pulse when timers reach critical threshold
 };

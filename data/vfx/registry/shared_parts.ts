@@ -2,7 +2,7 @@ import { VFXAsset } from "../../../types/VFXSchema";
 import type { VFXRampId } from "../parts/vfxPalette";
 import { Team } from "../../../types";
 import { part } from "./ult_parts";
-import { flash, spray, groundRing, debris } from "./basic_parts";
+import { flash, spray, groundRing, debris, puff } from "./basic_parts";
 
 // ==========================================
 // 共用特效（零件版）：格子脈衝、出手閃光、治療、吸血、瞬移、燒魔；以及奧義 HEAVEN_FALL 的隕石。
@@ -91,6 +91,74 @@ export const SHARED_PART_VFX: Record<string, VFXAsset> = {
             flash('LION_ICE', 20, 0.14),
             groundRing('LION_ICE', 24, 1.8, 0.32, { thickness: 4 }),
             debris('hex', 'LION_ICE', [6, 8], 5, [150, 250], [0.2, 0.32]),
+        ],
+    },
+
+    // 布陣出場：陣營法陣浮現＋光柱升起（原 HEX_GLOW／MAGIC_CIRCLE＋PILLAR＋SPARK／SMOKE）
+    'FX_SPAWN_BLUE': {
+        id: 'FX_SPAWN_BLUE',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 40, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0, size: 40,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 22, height: 90, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0, size: 45,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.6 } }),
+            spray('LION_ARCANE', [4, 6], [60, 140], [0.3, 0.55], 3),
+        ],
+    },
+    'FX_SPAWN_RED': {
+        id: 'FX_SPAWN_RED',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 40, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: 0, size: 40,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 22, height: 90, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.5, delay: 0, size: 45,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.6 } }),
+            puff('CHAR', 14, [3, 4], [0.4, 0.7], 0.5),
+        ],
+    },
+
+    // 待機：腰部飄起一兩顆小光點（原 SPARK；每 1.5～2.5 秒一次，保持很淡）
+    'FX_IDLE_BLUE': {
+        id: 'FX_IDLE_BLUE',
+        emitters: [
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 2.5, ramp: 'LION_ARCANE', hard: true }, count: [1, 2], lifetime: [0.8, 1.2], delay: 0, size: 2.5,
+                shape: 'CIRCLE', shapeRadius: 12, speed: [4, 12], vz: [30, 60], drag: 0.04, partAnim: { fadeIn: 0.2, fadeOut: 0.6, alpha: 0.8 } }),
+        ],
+    },
+    'FX_IDLE_RED': {
+        id: 'FX_IDLE_RED',
+        emitters: [
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 2.5, ramp: 'ASH_FIRE', hard: true }, count: [1, 2], lifetime: [0.8, 1.2], delay: 0, size: 2.5,
+                shape: 'CIRCLE', shapeRadius: 12, speed: [4, 12], vz: [30, 60], drag: 0.04, partAnim: { fadeIn: 0.2, fadeOut: 0.6, alpha: 0.8 } }),
+        ],
+    },
+
+    // 自傷（SACRIFICE）：暗紅一閃＋濺落血滴＋焦煙（原 SHARD／SMOKE／GLOW）
+    'FX_SELF_DAMAGE': {
+        id: 'FX_SELF_DAMAGE',
+        emitters: [
+            flash('ASH_BLOOD', 26, 0.22),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'ASH_BLOOD' }, count: [4, 6], lifetime: [0.4, 0.6], delay: 0, size: 4,
+                shape: 'BURST_DIR', speed: [100, 220], vz: [120, 260], gravity: 1800, partAnim: { fadeOut: 0.4 } }),
+            puff('CHAR', 14, [2, 3], [0.5, 0.8], 0.5),
+        ],
+    },
+
+    // 回魔：秘藍柔光＋上飄光點（同治療的結構，色階 LION_ARCANE）
+    'FX_MANA_RESTORE': {
+        id: 'FX_MANA_RESTORE',
+        emitters: [
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 30, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.4, delay: 0, size: 30,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeOut: 0.7, alpha: 0.8 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 3, ramp: 'LION_ARCANE', hard: true }, count: [6, 8], lifetime: [0.45, 0.7], delay: 0, size: 3,
+                shape: 'CIRCLE', shapeRadius: 16, speed: [10, 30], vz: [90, 160], drag: 0.06, partAnim: { fadeIn: 0.1, fadeOut: 0.6 } }),
+        ],
+    },
+
+    // 擊退／突進的地面塵（AgentVFXSystem；原本借用 FX_STATUS_ROOT_LOOP 的 DUST）
+    'FX_KNOCKBACK_DUST': {
+        id: 'FX_KNOCKBACK_DUST',
+        emitters: [
+            puff('DUST', 10, [2, 3], [0.35, 0.55], 0.45, 0),
         ],
     },
 

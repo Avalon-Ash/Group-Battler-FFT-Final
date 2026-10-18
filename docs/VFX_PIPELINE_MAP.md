@@ -166,6 +166,11 @@ VFXSystem.state.particles
 - 結果：**150／150 技能都只用零件**（普攻／主動／奧義各 50）。
 - 粒子型別特性表 `PARTICLE_TRAITS`（constants.ts）取代 4 份散落清單；`tests/VFXBackend.test.ts` 鎖住推導結果，並以只減不增名單擋住新的舊後端資產（目前 25 個）與引擎直接生成的舊型別（ATMOSPHERE／BEAM／GENERIC_DEBUG／GIANT_HEX／ROCK）。
 
+### 4.9 V2（剩餘活的舊資產）之後
+- 零件化：`FX_SPAWN_BLUE／RED`（獅盾／角顱法陣＋光柱）、`FX_IDLE_BLUE／RED`、`FX_SELF_DAMAGE`、`FX_MANA_RESTORE`、`FX_LAST_STAND_LOCKED`、`FX_HAZARD_FIELD_*`（5 個，改為場出現時的地面爆點；持續場面仍由 HazardPainter 畫）、擊退塵改用新鍵 `FX_KNOCKBACK_DUST`。
+- 登記表剩下的舊後端資產只有死鍵（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP`），留給 V3 刪除。
+- 保真工具修正：展示戰鬥在模擬流種子化前借用 Math.random，特效抽籤改變了展示單位的走位與鏡頭，第一張擷取（VOID）因鏡頭沒收斂而整張偏移（23% 像素）。`render-fidelity.mjs` 改為頁面載入後立即 `__resetSeed`，與特效脫鉤；新舊版本與原基準皆 0 差異，未重錄。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

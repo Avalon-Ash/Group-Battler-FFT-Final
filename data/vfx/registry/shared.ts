@@ -1,40 +1,8 @@
 
 import { VFXAsset } from "../../../types/VFXSchema";
 
-// 格子脈衝、出手閃光、治療、吸血、瞬移、燒魔、通用撞擊、護盾火花已改零件版，見 shared_parts.ts；詠唱中斷見 cast_break.ts
+// 格子脈衝、出手閃光、治療、吸血、瞬移、燒魔、通用撞擊、護盾火花、出場、待機、自傷、回魔、擊退塵已改零件版，見 shared_parts.ts；詠唱中斷見 cast_break.ts
 export const SHARED_VFX: Record<string, VFXAsset> = {
-    'FX_SPAWN_BLUE': {
-        id: 'FX_SPAWN_BLUE',
-        description: 'Imperial spawn teleport effect',
-        emitters: [
-            { particleType: 'HEX_GLOW', count: 1, lifetime: [0.4, 0.6], size: [40, 60], colors: ['#3b82f6'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.4, 0.5], size: [15, 25], speed: [0, 0], colors: ['#93c5fd', '#ffffff'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [8, 12], lifetime: [0.3, 0.6], size: [2, 4], speed: [100, 200], vz: [100, 300], colors: ['#60a5fa', '#ffffff'], shape: 'CIRCLE', shapeRadius: 20, blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_SPAWN_RED': {
-        id: 'FX_SPAWN_RED',
-        description: 'Covenant spawn teleport effect',
-        emitters: [
-            { particleType: 'MAGIC_CIRCLE', count: 1, lifetime: [0.4, 0.6], size: [40, 60], colors: ['#b91c1c'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'PILLAR', visualStyle: 'PILLAR_HOLY', count: 1, lifetime: [0.4, 0.5], size: [15, 25], speed: [0, 0], colors: ['#ef4444', '#ffffff'], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SMOKE', count: [4, 6], lifetime: [0.4, 0.7], size: [15, 25], speed: [20, 50], colors: ['#7f1d1d', '#000000'], shape: 'CIRCLE', shapeRadius: 20, delay: 0 }
-        ]
-    },
-    'FX_IDLE_BLUE': {
-        id: 'FX_IDLE_BLUE',
-        description: 'Imperial idle energy hum',
-        emitters: [
-            { particleType: 'SPARK', count: 1, lifetime: [0.8, 1.2], size: [2, 4], speed: [5, 15], vz: [10, 25], colors: ['#60a5fa', '#ffffff'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_IDLE_RED': {
-        id: 'FX_IDLE_RED',
-        description: 'Covenant idle chaos embers',
-        emitters: [
-            { particleType: 'SPARK', count: 1, lifetime: [0.6, 1.0], size: [2, 4], speed: [10, 20], vz: [20, 40], colors: ['#ef4444', '#f97316'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
-        ]
-    },
     'FX_CASTING_ULT': {
         id: 'FX_CASTING_ULT',
         description: 'ULT casting aura',
@@ -55,23 +23,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         emitters: [
             { particleType: 'RUBBLE', count: [3, 5], lifetime: [0.3, 0.5], size: [6, 12], speed: [100, 200], vz: [150, 400], colors: ['#f97316', '#7c2d12'], shape: 'BURST_DIR', delay: 0 },
             { particleType: 'SPARK', count: [8, 12], lifetime: [0.3, 0.5], size: [2, 4], speed: [200, 500], vz: [100, 600], colors: ['#fcd34d', '#fbbf24', '#fff'], shape: 'BURST_DIR', blendMode: 'lighter', delay: 0 }
-        ]
-    },
-    'FX_SELF_DAMAGE': {
-        id: 'FX_SELF_DAMAGE',
-        description: 'Self-inflicted damage effect (blood/chaos sacrifice)',
-        emitters: [
-            { particleType: 'SHARD', count: [8, 12], lifetime: [0.4, 0.6], size: [4, 8], speed: [50, 150], vz: [100, 200], gravity: 1500, colors: ['#991b1b', '#7f1d1d'], shape: 'BURST_DIR', delay: 0 },
-            { particleType: 'SMOKE', count: [3, 5], lifetime: [0.5, 0.8], size: [15, 25], speed: [20, 40], colors: ['#450a0a', '#000'], shape: 'CIRCLE', shapeRadius: 10, delay: 0 },
-            { particleType: 'GLOW', count: 1, lifetime: [0.2, 0.3], size: [40, 60], colors: ['#7f1d1d'], speed: [0,0], shape: 'POINT', blendMode: 'multiply', delay: 0 }
-        ]
-    },
-    'FX_MANA_RESTORE': {
-        id: 'FX_MANA_RESTORE',
-        description: 'Mana restore effect',
-        emitters: [
-            { particleType: 'GLOW', count: 1, lifetime: [0.3, 0.5], size: [40, 60], colors: ['#3b82f6'], speed: [0,0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'SPARK', count: [6, 10], lifetime: [0.4, 0.7], size: [3, 6], speed: [50, 100], vz: [100, 200], colors: ['#93c5fd', '#ffffff'], shape: 'CIRCLE', shapeRadius: 15, blendMode: 'screen', delay: 0 }
         ]
     },
     'FX_MASSIVE_IMPACT': {

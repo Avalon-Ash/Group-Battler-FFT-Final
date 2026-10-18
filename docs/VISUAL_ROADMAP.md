@@ -26,7 +26,7 @@
 - **單一後端宣告**：`ParticleRenderer`（PROCEDURAL_SET／GROUND_PLANE_SET）、`VFXPlayer`（FIXED_ORIENTATION／PROCEDURAL_TYPES）、`render.ts`（VFX_GROUND_TYPES）、`VFXPhysics`（isPhysical）四份型別清單收斂成一張表（constants 或 data），各處讀同一張。
 - **棘輪測試** `tests/VFXBackend.test.ts`：登記表舊後端資產數、引擎內直接 `getParticle()` 生成舊型別的呼叫點數，只減不增（同 `CoordinateProtocol` 模式）。
 
-### V2 剩餘活的舊資產（8 組）
+### V2 剩餘活的舊資產（8 組）（✅ 2026-10-18）
 | 鍵 | 用途 | 方向 |
 | :-- | :-- | :-- |
 | `FX_SPAWN_BLUE／RED` | 布陣出場（程序化法陣＋光柱） | 陣營法陣 sigil＋pillar 零件 |
