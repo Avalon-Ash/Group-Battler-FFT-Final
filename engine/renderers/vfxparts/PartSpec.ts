@@ -158,11 +158,12 @@ export function frameCountForTier(kind: PartKind, tier: number): number {
     return Math.max(VFX_PARTS.MIN_FRAMES, Math.round(base * ratio));
 }
 
-/** 預設混合模式：光類用加法（ART_SPEC §10-4）；煙、液滴、實體碎片、實體色階（血、瘴氣、深淵）用一般混合。 */
+/** 預設混合模式：光類用加法（ART_SPEC §10-4）；煙、液滴、火焰本體、實體碎片、實體色階（血、瘴氣、深淵）用一般混合。 */
 export function partBlend(n: PartSpec): GlobalCompositeOperation {
     // 光束一律是光（血鏈也是能量連線，不是實體血）
     if (n.kind === 'beam') return 'lighter';
-    if (n.kind === 'smoke' || n.kind === 'droplet') return 'source-over';
+    // 火焰本體一般混合：加法疊在冷色或亮地表上，橘紅外焰會變粉紫或洗白（光暈另由 glow 零件加法提供）
+    if (n.kind === 'smoke' || n.kind === 'droplet' || n.kind === 'flame') return 'source-over';
     if (n.kind === 'missile' && SOLID_MISSILES.has(n.shape)) return 'source-over';
     if (n.kind === 'prism' && n.style === 'solid') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';

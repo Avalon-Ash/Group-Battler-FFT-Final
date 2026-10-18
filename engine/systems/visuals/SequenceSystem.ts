@@ -8,7 +8,7 @@ import { PHYSICS } from "../../../constants";
 import { Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
-import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE } from "../../../data/vfx/registry/shared_parts";
+import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from "../../../data/vfx/registry/shared_parts";
 
 interface QueuedAction {
     executeAt: number;
@@ -105,7 +105,7 @@ export class SequenceSystem {
                 break;
             case 'HEAVEN_FALL': {
                 const h = action.height || 1200;
-                const life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + 0.1;
+                const life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + METEOR_SIZE.FALL_PAD;
                 const size = (action.scale || 1.8) * 80;
                 const spawn = (): Particle => {
                     const p = vfx.state.getParticle();
@@ -131,6 +131,14 @@ export class SequenceSystem {
                 const glow = spawn();
                 glow.type = 'PART_DEBRIS';
                 glow.part = vfxPartStore.get({ kind: 'glow', radius: size * METEOR_SIZE.GLOW, ramp: m.glowRamp });
+                // 落點影子：貼地、不動，壽命＝墜落時間，越接近落地越大越深（讓玩家看得出會砸在哪）
+                const shadow = spawn();
+                shadow.type = 'PART_GROUND';
+                shadow.z = groundZ;
+                shadow.locked = true;
+                shadow.life = shadow.maxLife = life - METEOR_SIZE.FALL_PAD;
+                shadow.part = vfxPartStore.get({ kind: 'smoke', radius: size * METEOR_SIZE.SHADOW, color: 'CHAR', roughness: METEOR_SIZE.SHADOW_ROUGHNESS, seed: METEOR_SIZE.SEED });
+                shadow.partAnim = METEOR_SHADOW_ANIM;
                 break;
             }
         }

@@ -989,6 +989,15 @@ export const AOE_INDICATOR = {
     INNER_ALPHA_MUL: 0.8,
 } as const;
 
+/**
+ * 加法零件的群系增益（VFXPartStore.setAdditiveGain，RenderPipeline 每幀依 scene.textureType 設定；未列＝1）。
+ * 依 fx-shot --scene 的白色飽和像素比例校到與 FOREST 同級（docs/VFX_PIPELINE_MAP.md §4.14）。
+ */
+export const VFX_BIOME_GAIN: Readonly<Record<string, number>> = {
+    ICE: 0.7,
+    DESERT: 0.85,
+};
+
 export const UNIT_SHADOW = {
     WIDTH: 110,
     BASE_HALF: 64,

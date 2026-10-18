@@ -1,4 +1,4 @@
-import { VFXAsset } from "../../../types/VFXSchema";
+import { VFXAsset, type PartAnim } from "../../../types/VFXSchema";
 import type { VFXRampId } from "../parts/vfxPalette";
 import { Team } from "../../../types";
 import { part } from "./ult_parts";
@@ -223,4 +223,12 @@ export const METEOR_SIZE = {
     /** 岩塊自轉速度範圍（rad/s） */
     SPIN: [-3, 3] as const,
     SEED: 5,
+    /** 落點影子（貼地煙零件，深色一般混合）：半徑＝粒子 size × SHADOW，隨墜落從 SHADOW_FROM 長到 1 並加深 */
+    SHADOW: 0.6,
+    SHADOW_ROUGHNESS: 0.25,
+    /** 粒子壽命＝自由落體時間＋FALL_PAD（秒；影子壽命＝自由落體時間，落地那一刻消失） */
+    FALL_PAD: 0.1,
 };
+
+/** 隕石落點影子的零件動畫：越接近落地越大、越深（慢起快收），落地瞬間由命中特效接手 */
+export const METEOR_SHADOW_ANIM: PartAnim = { scaleFrom: 0.25, scaleTo: 1, ease: 'in', fadeIn: 0.6, alpha: 0.75 };

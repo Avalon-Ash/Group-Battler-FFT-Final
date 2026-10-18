@@ -25,7 +25,8 @@ export interface Particle {
     targetZ?: number; 
     style?: string; 
     /** 光束芯色（陣營色階 core）；未設則為白 */
-    beamCore?: string;
+    /** 光束兩端光點（硬光暈零件，VFXSystem.playBeam 設定、PartPainter.drawBeam 畫在起點與終點） */
+    beamEnd?: PartSprite;
     /**
      * 光束終點相對起點的繪製時額外 Y 位移（螢幕 px，正值往下）＝終點格漂浮位移 − 起點格漂浮位移（RenderSpec §5）。
      * 唯一寫入者 VFXRenderer.submitRenderables（每幀提交時算），只給 PartPainter.drawBeam 讀；模擬端不讀不寫。
@@ -78,7 +79,7 @@ export class VFXStateManager {
             p.texture = undefined;
             p.blendMode = undefined;
             p.style = undefined; 
-            p.beamCore = undefined;
+            p.beamEnd = undefined;
             p.beamEndDy = undefined;
             p.visualStyle = undefined;
             p.ownerId = undefined;

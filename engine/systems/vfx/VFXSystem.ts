@@ -19,6 +19,7 @@ import type { HexLayout } from "../../../types";
 import type { Team } from "../../types/Enums";
 import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, NEUTRAL_BEAM_RAMP_ID, type BeamStyleId } from "../../../data/vfx/beam_styles";
 import { VFX_RAMPS } from "../../../data/vfx/parts/vfxPalette";
+import { VFX_PARTS } from "../../../data/vfx/parts/partConfig";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 
 export class VFXSystem {
@@ -113,7 +114,7 @@ export class VFXSystem {
         const rampId = team !== undefined ? (style.teamRamp?.[team] ?? FACTION_BEAM_RAMP_ID[team]) : NEUTRAL_BEAM_RAMP_ID;
         const ramp = VFX_RAMPS[rampId];
         p.color = colorOverride || ramp.main;
-        p.beamCore = ramp.core;
+        p.beamEnd = vfxPartStore.get({ kind: 'glow', radius: p.size * VFX_PARTS.BEAM.END_GLOW_RATIO, ramp: rampId, hard: true });
         p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * 31 + end.x * 17)) });
         p.type = 'BEAM'; p.style = styleId; p.locked = true; p.lockReason = 'BEAM';
         this.state.particles.push(p);

@@ -93,5 +93,16 @@ export const PartPainter = {
         ctx.clip();
         for (let x = x0; x < dist; x += tile) ctx.drawImage(img, x, top, tile, h);
         ctx.restore();
+
+        // 兩端光點：發射口（較小）與命中點，跟著光束收窄淡出
+        const end = p.beamEnd;
+        if (end) {
+            const B = VFX_PARTS.BEAM;
+            const pulse = 1 + Math.sin(now * Math.PI * 2 * B.END_PULSE_HZ) * B.END_PULSE;
+            const alpha = B.END_ALPHA * Math.min(1, widthMul);
+            const base = p.size * B.END_GLOW_RATIO / quantizeSize(p.size * B.END_GLOW_RATIO);
+            drawPart(ctx, end, drawX, drawY, { scale: base * B.START_SCALE * pulse, alpha, blend: p.blendMode });
+            drawPart(ctx, end, drawX + relX, drawY + relY, { scale: base * pulse, alpha, blend: p.blendMode });
+        }
     },
 };

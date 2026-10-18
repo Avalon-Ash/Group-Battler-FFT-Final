@@ -126,6 +126,15 @@ export function partFrameAt(sprite: PartSprite, seconds: number, fps: number = s
     return ((Math.floor(seconds * fps) % n) + n) % n;
 }
 
+/**
+ * 加法零件（'lighter'）的群系增益：亮地表（冰、沙）上加法會飽和成白，RenderPipeline 每幀依地圖設定
+ * （VFX_BIOME_GAIN）。一般混合不受影響。
+ */
+let additiveGain = 1;
+export function setAdditiveGain(gain: number): void {
+    additiveGain = gain;
+}
+
 export function drawPart(ctx: CanvasRenderingContext2D, sprite: PartSprite, x: number, y: number, opts: DrawPartOptions = {}): void {
     const n = sprite.frames.length;
     const img = sprite.frames[(((opts.frame ?? 0) % n) + n) % n];
@@ -134,8 +143,9 @@ export function drawPart(ctx: CanvasRenderingContext2D, sprite: PartSprite, x: n
     if (alpha <= 0 || scale <= 0) return;
     const prevAlpha = ctx.globalAlpha;
     const prevBlend = ctx.globalCompositeOperation;
-    ctx.globalAlpha = prevAlpha * alpha;
-    ctx.globalCompositeOperation = opts.blend ?? sprite.blend;
+    const blend = opts.blend ?? sprite.blend;
+    ctx.globalAlpha = prevAlpha * alpha * (blend === 'lighter' ? additiveGain : 1);
+    ctx.globalCompositeOperation = blend;
     const w = sprite.width * scale;
     const h = sprite.height * scale;
     const sy = opts.scaleY ?? 1;

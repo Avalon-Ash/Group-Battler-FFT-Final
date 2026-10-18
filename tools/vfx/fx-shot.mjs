@@ -12,6 +12,7 @@
  *   護盾：--keys=SHIELD:BLUE,SHIELD:RED。同一對單位，該陣營的單位掛滿護盾，鏡頭對準它。
  *   危害：--keys=HAZARD:FIRE,HAZARD:POISON,HAZARD:ICE,HAZARD:GRAVITY。地圖中央那格與鄰格登記一個空間危害
  *     （中心＝那格），建議 --t=1.2,1.5,1.8（避開生成那一下的命中特效）。
+ *   地圖：--scene=ICE（SCENE_DB 的 id；預設用展示地圖），同一個特效在不同群系的亮度比較用。
  * 每個鍵輸出 <key>.png：一列 5 格（t = 0.03／0.1／0.2／0.32／0.48 秒）。
  */
 import { chromium } from 'playwright-core';
@@ -27,6 +28,7 @@ const keys = arg('keys', 'FX_HEAL_BURST').split(',').filter(Boolean);
 const bodyKeys = new Set(arg('body', '').split(',').filter(Boolean));
 const outDir = resolve(root, arg('out', 'tools/ui-e2e/out/vfx/fx'));
 const START_TEXT = '啟動戰術模擬';
+const SCENE = arg('scene', '');
 const SAMPLE_T = (process.argv.find((a) => a.startsWith('--t=')) ?? '--t=0.03,0.1,0.2,0.32,0.48').slice(4).split(',').map(Number);
 const BODY_LIFT = 30; // 身體高度（world px，約為受擊點）
 const CROP = { w: 220, h: 200 };
@@ -83,11 +85,18 @@ try {
     await page.evaluate(() => window.__stepFrames(10));
     await page.getByText(START_TEXT).click();
     await page.waitForTimeout(300);
-    const spot = await page.evaluate(async (projCols) => {
+    const spot = await page.evaluate(async ({ projCols, scene }) => {
         const { HexUtils } = await import('/engine/utils.ts');
         const e = window.__TACTICAL_ENGINE__;
         const cmd = (c) => e.bus.emit('UI_COMMAND', c);
         cmd({ type: 'STOP_GAME' });
+        if (scene) {
+            const { SCENE_DB } = await import('/data/scenes.ts');
+            const sc = SCENE_DB.find((x) => x.id === scene);
+            if (!sc) throw new Error(`unknown scene ${scene}`);
+            e.currentScene = sc;
+            e.map.rebuildMap(e);
+        }
         cmd({ type: 'CLEAR_BOARD', keepScene: true });
         cmd({ type: 'SET_DIRECTOR_ENABLED', enabled: false });
         cmd({ type: 'SET_ZONE_CONFIG', config: { enabled: false } });
@@ -113,7 +122,7 @@ try {
             }
         }
         return null;
-    }, PROJ_COLS);
+    }, { projCols: PROJ_COLS, scene: SCENE });
     if (!spot) throw new Error('no free tile');
     // 投射物模式：放好那一對單位（全部鍵共用；RED 鍵由紅方往藍方打）
     if (keys.some((k) => k.startsWith('PROJ:') || k.startsWith('CAST:') || k.startsWith('SHIELD:'))) {

@@ -58,7 +58,7 @@
 | `GridOverlays` 預警／射程、`ZoneRenderer` | 地格層 | 併入地形 T3（網格氛圍）一起設計 |
 | ~~`TextPainter`、`BarPainter`、`GaugePainter`~~ | ✅ V5b：光暈預烘焙、血條 sprite 切片、碎裂亂流確定性、參數進常數 | 傷害數字仍是 fillText（未量到熱點，V7 以 perf 決定是否烘字形） |
 
-### V6 外觀調校
+### V6 外觀調校（✅ 2026-10-19，見 VFX_PIPELINE_MAP §4.14：群系增益＋火焰一般混合、隕石落影、光束端點）
 - **亮底發白**：`lighter` 疊加在冰面／沙地飽和成白（地面環、六角碎片、治療偏青）。依 T0 的地表亮度預算加「生物群系增益」（例如 `VFX_BIOME_GAIN`），或在亮地表改用 `screen`。
 - 隕石落點影子、光束兩端光點（命中閃光）等小項。
 

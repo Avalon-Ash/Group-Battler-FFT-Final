@@ -205,6 +205,12 @@ VFXSystem.state.particles
 - HUD（同輪）：血條／護盾／魔力填色改預烘焙 sprite 切片（漸層＋光暈＋高光，依顏色、高度、裝置縮放快取），選取框與量表進度弧的 `shadowBlur` 改寬描邊；量表的控制顏色改讀 `STATUS_VISUALS`（原本寫死、與狀態 SSOT 不一致）；背水一戰橫幅漸層依畫布尺寸快取、標題光暈預烘焙；浮動文字碎裂亂流改確定性雜湊。參數 `HUD_BAR`、`HUD_GAUGE`、`LAST_STAND_BANNER`、`TEXT_ANIM`。渲染路徑已沒有每幀 `shadowBlur`（只剩烘焙期）。
 - 驗收：`fx-shot --keys=SHIELD:<陣營>`、`HAZARD:<類型>`、`CAST:tb_a3`（AOE 預警）新舊對照；battle_frozen 0.03%（陰影從除錯方塊恢復成柔和陰影，門檻內未重錄）、地形 0 差異。
 
+### 4.14 V6（外觀調校）之後（2026-10-19）
+- **亮底發白**：`fx-shot --scene=<地圖>` 量白色飽和像素（min(R,G,B) ≥ 245）。ICE 上加法零件把金色洗白、橘紅火焰變粉紫，DESERT 吞掉熔岩火。修法：① `flame` 零件預設一般混合（本體保留色相，光暈仍由 glow 零件加法提供；危害火舌早先已這樣做）；② 加法零件乘群系增益 `VFX_BIOME_GAIN`（ICE 0.7、DESERT 0.85，`VFXPartStore.setAdditiveGain`，RenderPipeline 每幀依地圖設定）。HIT_BLUE_HOLY 白色比例 ICE 4.15% → 1.82%（FOREST 2.77%），HIT_RED_MAGMA ICE 1.95% → 0.07%。對照 `tools/ui-e2e/out/vfx/biome_cmp.png`（前）／`biome_cmp2.png`（後）。
+- **隕石落點影子**：HEAVEN_FALL 多生一顆貼地煙零件（`CHAR`，壽命＝自由落體時間），隨墜落從 0.25 長到 1 並加深（`METEOR_SIZE.SHADOW`、`METEOR_SHADOW_ANIM`）。
+- **光束兩端光點**：`playBeam` 另取一張硬光暈（`Particle.beamEnd`，取代只寫不讀的 `beamCore`），`PartPainter.drawBeam` 畫在發射口（較小）與命中點，隨光束收窄淡出並閃動（`VFX_PARTS.BEAM.END_*`）。
+- 保真：battle_frozen 0.09%（畫面內沒有火焰、光束、隕石），地形 0 差異。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

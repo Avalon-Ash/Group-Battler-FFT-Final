@@ -28,6 +28,8 @@ import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
 import { particleTextureStore } from "./ParticleTextureStore";
+import { setAdditiveGain } from "./vfxparts/VFXPartStore";
+import { VFX_BIOME_GAIN } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -209,6 +211,8 @@ export class RenderPipeline {
             this._hasGround = (q: number, r: number) => engine.map.isValid(q, r) || engine.zones.collapsingTiles.has(`${q},${r}`);
         }
         this._floatT = VisualMath.isFloatingBiome(engine.currentScene.textureType) ? t : null;
+        // 加法零件在亮地表上的增益（冰、沙會飽和成白）
+        setAdditiveGain(VFX_BIOME_GAIN[engine.currentScene.textureType] ?? 1);
         const terrainH = this._cachedTerrainH;
 
         const dpr = getRenderDpr();
