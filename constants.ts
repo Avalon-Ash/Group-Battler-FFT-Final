@@ -268,9 +268,38 @@ export const VFX_RENDER = {
 };
 
 /** 貼地鋪設（FFT 風格）：大型平貼特效不再是獨立排序 op，而是畫在它蓋到的每一格頂面（RenderSpec §9） */
+/**
+ * 詠唱光環（UnitAuraPainter）的幾何參數。環是腰部高度的水平面，由 GroundDrapeLayer 以懸空平面逐格繪製（RenderSpec §9）。
+ */
+export const CAST_RING = {
+    /** 一般詠唱環半徑（格） */
+    BASE_SIZE: 0.95,
+    /** 一般詠唱環的律動幅度（半徑比例） */
+    PULSE: 0.05,
+    /** 奧義聖域半徑（格） */
+    ULT_SIZE: 2.5,
+    /** 奧義內環虛線 */
+    ULT_DASH: [12, 8] as number[],
+    /** 奧義能量柱最大高度與開始顯示的最小高度（px） */
+    ULT_PILLAR_H: 150,
+    ULT_PILLAR_MIN_H: 5,
+    /** 環的描邊光暈超出幾何半徑的餘量（px），判斷蓋到哪些格 */
+    GLOW_PAD: 6,
+} as const;
+
 export const GROUND_DRAPE = {
     /** 投影後半高 ≥ 此值才鋪設；更小的平貼特效維持一般貼地 op（前緣排序） */
     MIN_HALF_H: 20,
+    /** 非粒子鋪設（施法 AOE 預警等繪製函式）貼回主畫布的混合模式：與原本直接繪製的 screen 一致 */
+    PAINTER_BLEND: 'screen' as GlobalCompositeOperation,
+    /** 懸空平面（詠唱環）貼回的混合模式：環原本以一般疊加繪製（深色技能色在 screen 下會消失） */
+    PLANE_BLEND: 'source-over' as GlobalCompositeOperation,
+    /** 繪製函式類鋪設的離屏畫布半邊長（× halfW，正方形）：涵蓋未壓扁的光暈貼圖（drawVolumetricHex 是 1.4 倍半徑） */
+    PAINTER_EXTENT: 1.5,
+    /** 施法 AOE 預警的涵蓋半徑額外加的格數比例（描邊光暈超出幾何半徑的部分） */
+    AOE_INDICATOR_PAD: 0.15,
+    /** 懸空平面（詠唱環）在格子頂面高過平面多少 px 以上才算被該格擋住（避免漂浮位移造成邊緣閃動） */
+    PLANE_OCCLUDE_EPS: 2,
     /** 判斷哪些格被蓋到時，特效半徑的放大倍率（涵蓋光暈／描邊超出 size 的部分） */
     REACH_MARGIN: 1.15,
     /** 頂面裁切六邊形比格子外擴的像素：相鄰格的裁切重疊，接縫不露底 */

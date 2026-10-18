@@ -222,7 +222,7 @@ export class RenderPipeline {
             this._viewportScratch.height = lH;
             this._viewportScratch.camera = camera;
             this.renderer.vfxRenderer.submitRenderables(this.renderList, engine, this.renderer.vfx, this.groundDrape, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._viewportScratch);
-            this.renderer.unit.submitRenderables(this.renderList, this.frames, t, highlight, dt);
+            this.renderer.unit.submitRenderables(this.renderList, this.frames, t, highlight, dt, this.groundDrape);
         });
         
         CtxOpCounter.track('sort', () => {

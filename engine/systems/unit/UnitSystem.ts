@@ -12,6 +12,9 @@
 // ║  UnitBodyPainter 畫衝刺殘影（RenderSpec §10）。              ║
 // ║  AURA（施法光環）是掛在施法者身上的空中效果：y＝濾波後足跡  ║
 // ║  Y（UnitFrame.sortFootY）、sortBias＝AIR_SORT_BIAS，不含高度。║
+// ║  AOE 地面預警是平貼的：不畫在 AURA op 裡，登記進            ║
+// ║  GroundDrapeLayer 逐格鋪在頂面（RenderSpec §9），否則同高度   ║
+// ║  的前方地塊會蓋掉它（看起來穿到地板下）。                  ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
@@ -24,7 +27,9 @@ import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicat
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
 import { HexLayout } from "../../../types";
-import { VFX_RENDER } from "../../../constants";
+import { VFX_RENDER, HEX_SIZE, GROUND_DRAPE } from "../../../constants";
+import type { GroundDrapeLayer } from "../../renderers/GroundDrape";
+import { HexGeometry } from "../../graphics/utils/HexGeometry";
 
 export class UnitRenderSystem {
     public submitRenderables(
@@ -32,7 +37,8 @@ export class UnitRenderSystem {
         frames: UnitFrameStore,
         globalTime: number,
         highlightAgent: Agent | null,
-        simDt: number = 0.016
+        simDt: number = 0.016,
+        drape?: GroundDrapeLayer
     ) {
         const list = frames.list;
         for (let i = 0; i < list.length; i++) {
@@ -80,6 +86,19 @@ export class UnitRenderSystem {
                 auraOp.ty = f.drawY;
                 auraOp.time = globalTime;
                 auraOp.th = f.groundH;
+                auraOp.unitFrame = f;
+
+                // 詠唱環（腰部高度的水平面）：懸空平面逐格繪製，前方較低的地塊不再蓋掉它，較高的前景照樣擋住；
+                // 施法者那格的前半在 drawAura 補畫（排在施法者之後）。
+                const ringR = drape && agent.hp > 0 ? UnitAuraPainter.ringRadius(agent) : 0;
+                if (ringR > 0 && drape) {
+                    drape.addPlane(UnitAuraPainter.drawRings, agent, f.footX, f.sortY, ringR,
+                        f.groundH + UnitAuraPainter.RING_LIFT, f.hexUnderFoot.q, f.hexUnderFoot.r);
+                }
+
+                // AOE 地面預警：鋪在施法者腳下附近的每一格頂面（足跡 Y＝含轉場、不含高度與漂浮，GroundDrape 自己貼合各格）
+                const aoeR = drape && f.agent.hp > 0 ? UnitRenderSystem.aoeIndicatorRadius(agent) : 0;
+                if (aoeR > 0 && drape) drape.addPainted(UnitRenderSystem.paintAoeIndicator, agent, f.footX, f.sortY, aoeR * (1 + GROUND_DRAPE.AOE_INDICATOR_PAD));
             }
         }
     }
@@ -138,7 +157,8 @@ export class UnitRenderSystem {
         drawX: number,
         drawY: number,
         globalTime: number,
-        layout: HexLayout
+        layout: HexLayout,
+        frame: UnitFrame | null = null
     ) {
         if (agent.hp <= 0 || agent.castingSkillIdx === -1) return;
         const skill = agent.skills[agent.castingSkillIdx];
@@ -156,15 +176,39 @@ export class UnitRenderSystem {
             UnitAuraPainter.drawCastingVFX(ctx, agent, 0, surfaceY, globalTime, layout);
         }
 
-        // 2. AOE Ground Indicators
-        const progress = 1 - (agent.castTimer / skill.cast);
-        const radius = skill.aoeRadius || 1;
-        const isAOE = skill.type === 'AOE';
-              
-        if (isAOE && radius > 0) {
-            UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, surfaceY, skill.color, globalTime, progress, radius, skill.tag, isAOE, layout);
+        // 詠唱環在施法者那格的前半（平面中心線以下）：裁切到該格在環平面高度上的六邊形，畫在施法者之後。
+        // 其餘部分由 GroundDrapeLayer 逐格畫（submitRenderables 登記）。AOE 地面預警同樣走 GroundDrapeLayer。
+        if (frame) {
+            const ringY = -UnitAuraPainter.RING_LIFT;
+            const hx = frame.hexCenterX - frame.footX;
+            const hy = frame.hexCenterY - frame.footY + ringY;
+            ctx.save();
+            HexGeometry.traceHex(ctx, hx, hy, HEX_SIZE + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
+            ctx.clip();
+            ctx.beginPath();
+            ctx.rect(hx - HEX_SIZE * 2, ringY, HEX_SIZE * 4, HEX_SIZE * 2);
+            ctx.clip();
+            ctx.translate(0, ringY);
+            ctx.globalCompositeOperation = GROUND_DRAPE.PLANE_BLEND;
+            UnitAuraPainter.drawRings(ctx, agent, globalTime, layout);
+            ctx.restore();
         }
 
         ctx.restore();
+    }
+
+    /** 施法中的 AOE 地面預警半徑（像素）；不是 AOE 回傳 0 */
+    private static aoeIndicatorRadius(agent: Agent): number {
+        const skill = agent.castingSkillIdx !== -1 ? agent.skills[agent.castingSkillIdx] : undefined;
+        if (!skill || skill.type !== 'AOE') return 0;
+        return Math.max(1, skill.aoeRadius || 1) * HEX_SIZE;
+    }
+
+    /** GroundDrapeLayer 的繪製函式：在原點（施法者腳下地平面）畫 AOE 預警。靜態參考，不每幀建立閉包。 */
+    public static paintAoeIndicator(ctx: CanvasRenderingContext2D, agent: Agent, t: number, layout: HexLayout): void {
+        const skill = agent.castingSkillIdx !== -1 ? agent.skills[agent.castingSkillIdx] : undefined;
+        if (!skill || skill.type !== 'AOE') return;
+        const progress = 1 - (agent.castTimer / skill.cast);
+        UnitIndicatorPainter.drawSkillGroundIndicator(ctx, 0, 0, skill.color, t, progress, skill.aoeRadius || 1, skill.tag, true, layout);
     }
 }

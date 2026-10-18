@@ -63,6 +63,9 @@ export interface UnitFrame {
     /** 死區濾波後的腳點 Y ＋ 轉場位移：AURA 的 op.y（掛在施法者身上的空中效果，不含腳下格抬升，RenderSpec §2） */
     readonly sortFootY: number;
     readonly hexUnderFoot: Hex;
+    /** hexUnderFoot 的格心（世界座標，不含轉場位移）：詠唱環在施法者那格的前半由 AURA op 補畫時的裁切中心 */
+    readonly hexCenterX: number;
+    readonly hexCenterY: number;
     /** VisualMath.getVisualBodyCenterY(floorY, physics.z)：護盾與包裹類狀態 */
     readonly bodyCenterY: number;
     /** 血條錨點 Y：腳底繪製 Y − physics.z − hudBarHeight(體型)（投影頭頂 + HUD_ANCHOR.barHeadMargin；血條、量表、頭頂狀態圖示共用） */
@@ -78,7 +81,7 @@ function createFrame(agent: Agent): MutableUnitFrame {
     return {
         agent, isCorpse: false, visible: false,
         footX: 0, footY: 0, transition: 0, groundH: 0, floorY: 0, drawY: 0, sortY: 0, sortBias: 0, sortFootY: 0,
-        hexUnderFoot: { q: 0, r: 0 }, bodyCenterY: 0, hudAnchorY: 0,
+        hexUnderFoot: { q: 0, r: 0 }, hexCenterX: 0, hexCenterY: 0, bodyCenterY: 0, hudAnchorY: 0,
         ghosts: createGhostSlots(), ghostCount: 0,
     };
 }
@@ -250,7 +253,10 @@ export class UnitFrameStore {
         // 排序用腳下格帶滯後（resolveSortHex）：高度仍由 getUnitGroundHeight 決定，不受影響
         const hexUnderFoot = f.hexUnderFoot;
         const sortMem = this.resolveSortHex(hexUnderFoot, agent, footX, footY, mapConfig);
-        const hexCenterY = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig).y;
+        const hexCenter = HexUtils.toPx(hexUnderFoot.q, hexUnderFoot.r, mapConfig);
+        const hexCenterY = hexCenter.y;
+        f.hexCenterX = hexCenter.x;
+        f.hexCenterY = hexCenterY;
 
         const floorY = footY - groundH;
         const pz = isNaN(agent.physics?.z) ? 0 : agent.physics.z;

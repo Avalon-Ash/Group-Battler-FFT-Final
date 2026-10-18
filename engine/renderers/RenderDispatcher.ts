@@ -69,7 +69,7 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.AURA:
-                if (op.agent) unitRenderer.drawAura(ctx, op.agent, snapX, snapY, op.time, layout);
+                if (op.agent) unitRenderer.drawAura(ctx, op.agent, snapX, snapY, op.time, layout, op.unitFrame);
                 break;
 
             case RenderOpType.DECAL:
