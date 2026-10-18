@@ -129,6 +129,14 @@ export class VisualMath {
         return Math.round(Math.round(raw / RENDER_CACHE.FLOAT_STEP) * RENDER_CACHE.FLOAT_STEP);
     }
 
+    /**
+     * 投射物發射格的漂浮位移權重（RenderSpec §5）：發射時 1，飛行進度 t 到 FLOAT_BOB.LAUNCH_FADE_T 時線性降為 0。
+     * 發射點是模擬座標（沒有繪製時漂浮），漂浮地圖上要補上施法者格的位移才與浮動的投影中心對齊。
+     */
+    public static floatLaunchWeight(t: number): number {
+        return Math.max(0, 1 - t / FLOAT_BOB.LAUNCH_FADE_T);
+    }
+
     private static smoothstep(edge0: number, edge1: number, x: number): number {
         const u = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
         return u * u * (3 - 2 * u);

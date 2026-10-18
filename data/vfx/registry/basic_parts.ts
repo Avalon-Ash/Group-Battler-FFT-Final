@@ -15,10 +15,17 @@ export function flash(ramp: VFXRampId, radius: number, life = 0.18, delay = 0): 
         partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.8 } });
 }
 
+/** 貼地環起始大小（相對起點半徑） */
+const RING_START_SCALE = 0.35;
+
 /** 貼地六角衝擊環 */
 export function groundRing(ramp: VFXRampId, radius: number, scaleTo: number, life = 0.28, opts: { thickness?: number; rough?: number; seed?: number; delay?: number } = {}): EmitterConfig {
-    return part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius, thickness: opts.thickness ?? Math.max(4, radius / 6), ramp, roughness: opts.rough, seed: opts.seed }, count: 1, lifetime: life, delay: opts.delay ?? 0, size: radius * 2,
-        partAnim: { scaleFrom: 0.35, scaleTo, fadeOut: 0.6 } });
+    // 烘焙在「終點半徑」、之後只縮小：環放大到終點時線寬就是 thickness。舊版以起點半徑烘焙再放大 scaleTo 倍，
+    // 線寬跟著放大 scaleTo 倍（scaleTo 2.0 時主線 21 px、光暈 43 px），在 lighter 疊加混合下飽和成一整片白帶，
+    // 逐格裁切後變成方塊狀白條（docs 的 cast-ring-shot --skill=wb_a3 重現）。
+    const finalRadius = radius * scaleTo;
+    return part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: finalRadius, thickness: opts.thickness ?? Math.max(4, radius / 6), ramp, roughness: opts.rough, seed: opts.seed }, count: 1, lifetime: life, delay: opts.delay ?? 0, size: finalRadius * 2,
+        partAnim: { scaleFrom: RING_START_SCALE / scaleTo, scaleTo: 1, fadeOut: 0.6 } });
 }
 
 /** 向四周迸出的光點／火星 */

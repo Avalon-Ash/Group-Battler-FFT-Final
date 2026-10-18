@@ -4,8 +4,8 @@
 // ║  上游：ProjectileSystem（起點＝VisualMath.getCoreAnchor）  ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§3；     ║
 // ║  op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓投射物永遠  ║
-// ║  在最上層（不是 z 加權，排序鍵不含高度）。空中物件，不套    ║
-// ║  漂浮位移（§5）。                                           ║
+// ║  在最上層（不是 z 加權，排序鍵不含高度）。漂浮地圖上發射格  ║
+// ║  的漂浮位移加在繪製位置，前半程淡出（§5）；不進排序鍵。     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -20,7 +20,9 @@ export const ProjectileRenderer = {
         renderList: RenderList,
         engine: GameEngine,
         transitionT: number,
-        transitionPhase: 'IN' | 'OUT' | 'IDLE'
+        transitionPhase: 'IN' | 'OUT' | 'IDLE',
+        /** 世界座標（x、螢幕足跡 Y）所在格目前的漂浮位移（螢幕 px，正值往下；非漂浮地圖為 0，RenderSpec §5） */
+        floatShiftAt: (x: number, screenY: number) => number
     ) {
         for (const p of engine.projectiles) {
             if (!p.active) continue;
@@ -55,7 +57,10 @@ export const ProjectileRenderer = {
             // 3. Project to Screen
             const transOffset = VisualMath.getTransitionOffset(current3D.x, current3D.y * ISO_SCALE_Y, engine.mapConfig, transitionT, transitionPhase);
             // Use SSOT Projection for final Y position
-            const visY = VisualMath.getIsoVisualY(current3D.y * ISO_SCALE_Y, current3D.z) + transOffset;
+            // 發射點是模擬座標（投影中心，沒有繪製時漂浮）；漂浮地圖上施法者的繪製位置會浮動，
+            // 所以加上發射格目前的漂浮位移，並在飛行前段淡出（RenderSpec §5）。
+            const launchBob = floatShiftAt(p.startX, p.startY);
+            const visY = VisualMath.getIsoVisualY(current3D.y * ISO_SCALE_Y, current3D.z) + transOffset + launchBob * VisualMath.floatLaunchWeight(p.t);
 
             const dist = Math.sqrt((end3D.x - start3D.x)**2 + (end3D.y - start3D.y)**2);
             const speed = dist / Math.max(0.01, p.totalDuration); 
@@ -95,7 +100,7 @@ export const ProjectileRenderer = {
                     const past3D = TrajectoryMath.evaluate(traj, start3D, end3D, tPast);
                     
                     const pOffset = VisualMath.getTransitionOffset(past3D.x, past3D.y * ISO_SCALE_Y, engine.mapConfig, transitionT, transitionPhase);
-                    const pastY = VisualMath.getIsoVisualY(past3D.y * ISO_SCALE_Y, past3D.z) + pOffset;
+                    const pastY = VisualMath.getIsoVisualY(past3D.y * ISO_SCALE_Y, past3D.z) + pOffset + launchBob * VisualMath.floatLaunchWeight(tPast);
                     op.pTrail.push({ x: past3D.x, y: pastY });
                     if (tPast <= 0) break;
                 }

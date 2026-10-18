@@ -932,6 +932,8 @@ export const FLOAT_BOB = {
     SPEED: 1.5,
     /** 相位隨世界座標變化（x + y）的比例，讓相鄰島塊錯開 */
     PHASE_PER_PX: 0.01,
+    /** 投射物發射格的漂浮位移在飛行進度 t 到這個值時淡出為 0（發射點與漂浮的施法者對齊，之後走原軌跡） */
+    LAUNCH_FADE_T: 0.5,
 } as const;
 
 /**
