@@ -161,10 +161,15 @@ VFXSystem.state.particles
 - 對照：`fx-shot.mjs --keys=DEATH:BLUE,DEATH:RED --t=0.05,0.2,0.45,0.8,1.3`；verify:coords 振盪 41 對、靜止 0、sink 0。
 - 已知：冰面上 `lighter` 混合的六角碎片偏白（與地面詠唱中斷碎片相同）。
 
+### 4.8 V1（守門與探針補強）之後
+- 探針兩個盲點修正：`caster.target` 要設成 Agent 物件（曾設成 id 字串，近戰單體技能打不到）；放好單位後結束出場計時（`spawnTimer > 0` 時投射物會被丟掉）。另加事件計數（每個標籤收到哪些遊戲事件）。
+- 結果：**150／150 技能都只用零件**（普攻／主動／奧義各 50）。
+- 粒子型別特性表 `PARTICLE_TRAITS`（constants.ts）取代 4 份散落清單；`tests/VFXBackend.test.ts` 鎖住推導結果，並以只減不增名單擋住新的舊後端資產（目前 25 個）與引擎直接生成的舊型別（ATMOSPHERE／BEAM／GENERIC_DEBUG／GIANT_HEX／ROCK）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
 3. ✅ **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
 4. ✅ **HEAVEN_FALL 改零件**（落下時間依高度，維持由序列直接生成，零件規格放資料檔）。死亡碎裂、護盾火花、詠唱中斷共用層 ✅。
-5. **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
+5. ✅ **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
 6. 清死鍵（§2.6）與死欄位（§2.2）。

@@ -139,6 +139,10 @@ try {
         VFXSystem.prototype.playEffect = function (id, ...a) { inc(bucket().fx, id); const n0 = this.state.particles.length; const r = pe.call(this, id, ...a); tagNew(this, n0, `fx:${id}`); return r; };
         const pb = VFXSystem.prototype.playBeam;
         VFXSystem.prototype.playBeam = function (id, ...a) { inc(bucket().beams, id); const n0 = this.state.particles.length; const r = pb.call(this, id, ...a); tagNew(this, n0, `beam:${id}`); return r; };
+        // 事件計數：每個標籤收到哪些遊戲事件（用來判斷「沒有粒子」是沒命中還是特效漏掛）
+        const rend = window.__TACTICAL_ENGINE__.renderer;
+        const pv = rend.processVisualEvents.bind(rend);
+        rend.processVisualEvents = (evs, ...rest) => { const b = bucket(); b.events ||= {}; for (const ev of evs) inc(b.events, ev.text && ev.type === 'DAMAGE' ? `DAMAGE:${ev.text}` : ev.type); return pv(evs, ...rest); };
         const st = window.__TACTICAL_ENGINE__.renderer.vfx.state;
         const gp = st.getParticle.bind(st);
         st.getParticle = () => { const p = gp(); p.__src = undefined; return p; };
@@ -210,8 +214,9 @@ try {
             const foe = e.agents[e.agents.length - 1];
             caster.skillIds = [skillId, null, null];
             e.play();
-            for (const a of e.agents) { a.bt = null; a.mp = a.maxMp; }
-            caster.target = foe.id;
+            // 出場動畫期間（spawnTimer > 0）投射物會被丟棄，短詠唱的技能因此看不到命中：直接結束出場
+            for (const a of e.agents) { a.bt = null; a.mp = a.maxMp; a.spawnTimer = 0; }
+            caster.target = foe; // Agent 物件（曾誤設成 id 字串，近戰單體技能因此沒有命中）
             caster.targetHex = { q: foeHex.q, r: foeHex.r };
             window.__cov.label = skillId;
             const ok = e.initiateCast(caster, 0);

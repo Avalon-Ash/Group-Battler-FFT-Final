@@ -10,7 +10,7 @@ import { VFXSystem } from "../vfx";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory } from "../../graphics/VFXFactory";
-import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET } from "../../../constants";
+import { ISO_SCALE_Y, VFX_GROUND_TYPES, VFX_PARAM, VFX_BUDGET, FIXED_ORIENTATION_PARTICLE_TYPES, SELF_DRAWN_PARTICLE_TYPES } from "../../../constants";
 import { getQualityTier } from "../../renderers/RenderQuality";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { VFX_PARTS } from "../../../data/vfx/parts/partConfig";
@@ -26,15 +26,6 @@ const pickColor = (colors: string[]): string => {
     return colors[Math.floor(Math.random() * colors.length)];
 };
 
-const FIXED_ORIENTATION_PARTICLES = new Set([
-    'GRID_FIELD', 'PILLAR', 'DOMAIN', 'HEX_BEAM', 'GIANT_HEX', 'BLACK_HOLE',
-    'PART', 'PART_GROUND', 'PART_DEBRIS'
-]);
-const PROCEDURAL_TYPES = new Set([
-    'PILLAR', 'BEAM', 'HEX_BEAM', 'GRID_FIELD', 'DOMAIN', 'MAGIC_CIRCLE', 
-    'DEATH_RAY', 'SHOCKWAVE', 'RING', 'BLAST', 'HEX_GLOW', 'BLACK_HOLE', 'GIANT_HEX',
-    'PART', 'PART_GROUND', 'PART_DEBRIS'
-]);
 export class VFXPlayer {
     public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
         const asset = VFX_REGISTRY[effectId];
@@ -154,7 +145,7 @@ export class VFXPlayer {
             if (config.vRotation) {
                 p.vRotation = rnd(config.vRotation);
             } else {
-                p.vRotation = FIXED_ORIENTATION_PARTICLES.has(config.particleType) ? 0 : (Math.random() - 0.5) * 10;
+                p.vRotation = FIXED_ORIENTATION_PARTICLE_TYPES.has(config.particleType) ? 0 : (Math.random() - 0.5) * 10;
             }
             if (config.blendMode) p.blendMode = config.blendMode;
             if (partSprite) {
@@ -163,7 +154,7 @@ export class VFXPlayer {
                 p.rotation = config.partAnim?.rotation ?? 0;
             }
             if (config.groundAnchored) p.groundAnchored = true;
-            if (!p.image && !PROCEDURAL_TYPES.has(p.type)) {
+            if (!p.image && !SELF_DRAWN_PARTICLE_TYPES.has(p.type)) {
                 p.image = VFXFactory.getTexture(p.type, p.color);
             }
             system.state.particles.push(p);

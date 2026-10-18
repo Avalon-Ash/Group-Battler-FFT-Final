@@ -3,12 +3,11 @@ import { Particle } from "../state";
 import { BillboardPainter } from "./painters/BillboardPainter";
 import { GroundPainter } from "./painters/GroundPainter";
 import { ProceduralPainter } from "./painters/ProceduralPainter";
-import { PartPainter, PART_PARTICLE_TYPES } from "./painters/PartPainter";
+import { PartPainter } from "./painters/PartPainter";
+import { particleBackend } from "../../../../constants";
 import { HexLayout } from "../../../../types";
 
-// Static categorization for faster dispatch
-const PROCEDURAL_SET = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE', 'BLACK_HOLE']);
-const GROUND_PLANE_SET = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW']);
+// 分派依 constants.ts 的 PARTICLE_TRAITS（particleBackend）；不在這裡另列型別清單
 
 /**
  * Unified Particle Dispatcher v9.7 (Time SSOT)
@@ -25,8 +24,9 @@ export const ParticleRenderer = {
         layout: HexLayout,
         battleTime: number // SSOT: Received from RenderLoop
     ) {
+        const backend = particleBackend(p.type);
         // 0. V1 特效零件（預烘焙 sprite）
-        if (PART_PARTICLE_TYPES.has(p.type)) {
+        if (backend === 'PART') {
             PartPainter.draw(ctx, p, drawX, drawY, progress, layout);
             return;
         }
@@ -39,7 +39,7 @@ export const ParticleRenderer = {
 
         // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)
         // Uses BattleTime for synchronous rotation/pulsing
-        if (PROCEDURAL_SET.has(p.type)) {
+        if (backend === 'PROC') {
             ctx.save();
             ctx.translate(drawX, drawY);
             ProceduralPainter.draw(ctx, p, progress, battleTime, layout);
@@ -48,7 +48,7 @@ export const ParticleRenderer = {
         }
 
         // 2. Ground Projection Logic (Ripples, Cracks, Fields)
-        if (GROUND_PLANE_SET.has(p.type)) {
+        if (backend === 'GROUND') {
             GroundPainter.draw(ctx, p, progress, drawX, drawY, layout);
             return;
         }
