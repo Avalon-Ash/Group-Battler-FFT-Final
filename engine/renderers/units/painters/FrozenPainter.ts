@@ -4,7 +4,7 @@
 // ║        （取代舊的 ICE_CRYSTAL 障礙物精靈＋hard-light）         ║
 // ║  上游：data/units/appearance/ccBody.ts（ICE_BLOCK：尺寸、     ║
 // ║        色階 VFX_RAMPS.LION_ICE、面板透明度）                  ║
-// ║  下游：UnitBodyPainter（精靈與常駐 VFX 之後、同一個局部座標）  ║
+// ║  下游：UnitBodyPainter（精靈之後、同一個局部座標）             ║
 // ║  [ARCH] 座標沿用精靈：ctx 已在單位局部座標（RenderSpec §4），  ║
 // ║  冰塊底面六角中心貼在腳底 footOffsetLocal，所以和棋座同心、   ║
 // ║  不新增座標或排序規則。烘焙一次、無 shadowBlur／漸層；        ║

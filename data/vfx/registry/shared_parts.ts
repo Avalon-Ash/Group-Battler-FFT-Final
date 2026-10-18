@@ -6,7 +6,7 @@ import { flash, spray, groundRing, debris, puff } from "./basic_parts";
 
 // ==========================================
 // 共用特效（零件版）：格子脈衝、出手閃光、治療、吸血、瞬移、燒魔；以及奧義 HEAVEN_FALL 的隕石。
-// 取代 shared.ts 裡的 GRID_FIELD／GLOW／SPARK／PILLAR／SPIKE 舊粒子（docs/VFX_PIPELINE_MAP.md §4.1）。
+// 原本是 shared.ts 的 GRID_FIELD／GLOW／SPARK／PILLAR／SPIKE 舊粒子（V3 已刪，docs/VFX_PIPELINE_MAP.md §4.1）。
 // 零件的顏色在烘焙時由 ramp 決定，不吃 colorOverride：需要分陣營的拆成 _BLUE／_RED 兩個鍵，由呼叫端依施法者陣營選。
 // 尺寸參考：HEX_SIZE = 48。
 // ==========================================

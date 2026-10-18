@@ -152,14 +152,8 @@ export class DesignExporter {
         s += "SSOT 入口: `data/units/appearance/index.ts` → `UNIT_APPEARANCE`\n\n";
         s += "| 欄位           | 型別                              | 用途                         |\n";
         s += "|----------------|-----------------------------------|------------------------------|\n";
-        s += "| bodyWidth      | number                            | 身體最大寬度（canvas unit）  |\n";
-        s += "| bodyHeight     | number                            | 身體高度（canvas unit）      |\n";
-        s += "| headRadius     | number                            | 頭部半徑                     |\n";
-        s += "| primaryColor   | string (hex)                      | 主色：裝甲/主體              |\n";
-        s += "| secondaryColor | string (hex)                      | 次色：武器/邊框              |\n";
-        s += "| accentColor    | string (hex)                      | 強調色：眼睛/發光            |\n";
-        s += "| weaponType     | 'sword'|'spear'|'bow'|'staff'|... | 武器形狀路由                 |\n";
-        s += "| capeColor      | string (hex) | null              | 披風色；null = 無披風        |\n";
+        s += "| primaryColor   | string (hex)   | 主色：棋座頂面、量表／圖示            |\n";
+        s += "| secondaryColor | string (hex)   | 次色：棋座邊框                        |\n";
         s += "| tokenRadius    | number         | Token 圓形半徑                        |\n";
         s += "| deepColor      | string (hex)   | 深色調：陰影面 / 內層                 |\n";
         s += "| rimColor       | string (hex)   | 外框高光色                            |\n";

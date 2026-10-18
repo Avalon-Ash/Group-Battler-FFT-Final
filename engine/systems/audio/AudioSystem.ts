@@ -1,4 +1,4 @@
-import { AUDIO, SCREEN_CONSTANTS } from '../../../constants';
+import { AUDIO, SCREEN_CONSTANTS, AUDIO_HEAVY_HIT_DAMAGE } from '../../../constants';
 import { GameEvent, Team, UICommand } from '../../../types';
 import {
     AudioEngine,
@@ -198,7 +198,7 @@ export class AudioSystem {
         switch (evt.type) {
             case 'DAMAGE': {
                 const val = evt.value ?? 0;
-                const isCrit = evt.text === 'CRITICAL' || val >= 80;
+                const isCrit = evt.crit === true || val >= AUDIO_HEAVY_HIT_DAMAGE;
                 const isMissOrBlock = evt.text === 'MISS' || evt.text === 'BLOCK';
 
                 if (isMissOrBlock) {

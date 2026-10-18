@@ -8,12 +8,17 @@
  *   1. 實戰：點開始後的預設自動對戰 N 秒，標籤 BATTLE（命中、狀態、危害、死亡、出場、待機）。
  *   2. 逐技能：每個技能單獨施放一次（施法者＋射程內 1～2 格的敵人），標籤＝技能 id。
  *
- *   node tools/vfx/vfx-coverage.mjs [--skills=all|wb_a3,rb_u1] [--battleSec=60]
+ *   node tools/vfx/vfx-coverage.mjs [--skills=all|wb_a3,rb_u1] [--battleSec=60] [--battles=1] [--liveness]
  *     -> tools/ui-e2e/out/vfx/coverage.json
+ * --battles=N：實戰段重複 N 場（每場按一次骰子＝隨機陣容，地圖依 SCENE_DB 順序輪替，N≥5 就涵蓋全部地圖），累計在同一個 BATTLE 標籤。
+ * --liveness：存活探針。另外自動包住 LIVENESS_DIRS 底下每個模組的全部匯出（物件方法、類別方法），
+ *   coverage.json 的 wrapped 列出包到的方法；vfx-coverage-report.mjs 依此印出「整輪零呼叫」的方法（刪除前的證據）。
+ *   只能包物件／類別上的方法；模組層級的具名函式（export function）包不到，要另外靜態查引用。
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +28,8 @@ const outDir = join(root, 'tools', 'ui-e2e', 'out', 'vfx');
 const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? `=${d}`).split('=')[1];
 const skillsArg = arg('skills', 'all');
 const battleSec = Number(arg('battleSec', '60'));
+const battles = Number(arg('battles', '1'));
+const liveness = process.argv.includes('--liveness');
 const START_TEXT = '啟動戰術模擬';
 const DICE_TITLE = '隨機生成戰場與陣容';
 
@@ -56,6 +63,12 @@ const PAINTER_MODULES = {
     '/engine/graphics/painters/VolumePainter.ts': ['VolumePainter'],
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],
 };
+// 存活探針掃描的目錄（視覺管線全部）：每個模組的全部匯出都包（'*'）
+const LIVENESS_DIRS = ['engine/graphics', 'engine/renderers', 'engine/systems/vfx', 'engine/systems/visuals', 'engine/systems/unit', 'engine/assets.ts', 'engine/sprites.ts', 'engine/renderer.ts'];
+if (liveness) {
+    const files = execSync(`git ls-files ${LIVENESS_DIRS.join(' ')}`, { cwd: root, encoding: 'utf8' }).split(/\r?\n/).filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
+    for (const f of files) if (!PAINTER_MODULES[`/${f}`]) PAINTER_MODULES[`/${f}`] = ['*'];
+}
 
 const server = await createServer({ root, server: { port: 3198, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 let browser = null;
@@ -98,7 +111,9 @@ try {
         const inc = (o, k, n = 1) => { o[k] = (o[k] || 0) + n; };
         const wrapped = [];
         const wrapFn = (owner, key, name) => {
-            const orig = owner[key];
+            const d = Object.getOwnPropertyDescriptor(owner, key);
+            if (!d || !('value' in d)) return; // getter／setter 不包（讀取會觸發副作用）
+            const orig = d.value;
             if (typeof orig !== 'function' || orig.__covWrapped || key === 'constructor') return;
             const w = function (...a) { inc(bucket().painters, name); return orig.apply(this, a); };
             w.__covWrapped = true;
@@ -107,22 +122,21 @@ try {
         for (const [path, names] of Object.entries(mods)) {
             let m;
             try { m = await import(path); } catch (e) { wrapped.push(`IMPORT_FAIL ${path}`); continue; }
-            for (const n of names) {
+            for (const n of (names[0] === '*' ? Object.keys(m) : names)) {
                 const obj = m[n];
+                if (names[0] === '*' && (obj === null || (typeof obj !== 'object' && typeof obj !== 'function'))) continue;
                 if (!obj) { wrapped.push(`MISSING ${n}`); continue; }
                 for (const k of Object.getOwnPropertyNames(obj)) if (!['length', 'name', 'prototype'].includes(k)) wrapFn(obj, k, `${n}.${k}`);
                 if (typeof obj === 'function' && obj.prototype) for (const k of Object.getOwnPropertyNames(obj.prototype)) wrapFn(obj.prototype, k, `${n}#${k}`);
             }
         }
-        // 粒子後端：依 ParticleRenderer 的分派規則分類（PART_PARTICLE_TYPES 與掛了零件的 BEAM 先、其次 PROC、GROUND，其餘 BILL）
+        // 粒子後端：與 ParticleRenderer 同一張特性表（constants.ts PARTICLE_TRAITS）；掛了零件的 BEAM 算 PART
         const { ParticleRenderer } = await import('/engine/systems/vfx/renderers/ParticleRenderer.ts');
-        const { PART_PARTICLE_TYPES } = await import('/engine/systems/vfx/renderers/painters/PartPainter.ts');
-        const PROC = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE', 'BLACK_HOLE']);
-        const GROUND = new Set(['SHOCKWAVE', 'RING', 'BLAST', 'CRACKS', 'GRID_FIELD', 'HEX_GLOW']);
+        const { particleBackend } = await import('/constants.ts');
         const seen = new WeakMap();
         const origDraw = ParticleRenderer.drawSingleParticle;
         ParticleRenderer.drawSingleParticle = function (ctx, p, ...rest) {
-            const be = PART_PARTICLE_TYPES.has(p.type) || (p.type === 'BEAM' && p.part) ? 'PART' : PROC.has(p.type) ? 'PROC' : GROUND.has(p.type) ? 'GROUND' : 'BILL';
+            const be = p.type === 'BEAM' && p.part ? 'PART' : particleBackend(p.type);
             // 粒子物件會被池化重用：以（物件，標籤，maxLife）判斷是不是新的一顆
             const sig = `${cov.label}|${p.maxLife}|${p.type}`;
             if (seen.get(p) !== sig) { seen.set(p, sig); inc(bucket().particles, `${p.__src || 'direct'}|${be}:${p.type}`); }
@@ -155,18 +169,24 @@ try {
     // ── 1. 實戰（先跑：點開始後場上是完整的雙方隊伍） ──
     if (battleSec > 0) {
         // 骰子鈕產生隨機地圖與雙方隊伍（同 br-soak）；導演、縮圈照預設
-        await page.evaluate((title) => { for (const b of document.querySelectorAll('button')) if (b.title === title) { b.click(); break; } }, DICE_TITLE);
-        await page.waitForTimeout(300);
-        await page.evaluate(() => window.__stepFrames(10));
-        await page.evaluate(() => {
-            const e = window.__TACTICAL_ENGINE__;
-            const cmd = (c) => e.bus.emit('UI_COMMAND', c);
-            window.__cov.label = 'SETUP';
-            if (!e.isRunning) cmd({ type: 'START_GAME' });
-            window.__cov.label = 'BATTLE';
-        });
-        for (let s = 0; s < battleSec; s += 10) await page.evaluate(() => window.__stepFrames(600));
-        console.log('battle done', await page.evaluate(() => ({ agents: window.__TACTICAL_ENGINE__.agents.length, t: window.__TACTICAL_ENGINE__.battleTime })));
+        for (let b = 0; b < battles; b++) {
+            await page.evaluate(() => { const e = window.__TACTICAL_ENGINE__; window.__cov.label = 'SETUP'; e.bus.emit('UI_COMMAND', { type: 'STOP_GAME' }); });
+            await page.evaluate((title) => { for (const b of document.querySelectorAll('button')) if (b.title === title) { b.click(); break; } }, DICE_TITLE);
+            await page.waitForTimeout(300);
+            await page.evaluate(() => window.__stepFrames(10));
+            await page.evaluate(async (b) => {
+                const e = window.__TACTICAL_ENGINE__;
+                const cmd = (c) => e.bus.emit('UI_COMMAND', c);
+                // 地圖輪替：骰子的陣容保留，地形換成第 b 張（同 biome-frames 的換圖方式）
+                const { SCENE_DB } = await import('/data/scenes.ts');
+                e.currentScene = SCENE_DB[b % SCENE_DB.length];
+                e.map.rebuildMap(e);
+                if (!e.isRunning) cmd({ type: 'START_GAME' });
+                window.__cov.label = 'BATTLE';
+            }, b);
+            for (let s = 0; s < battleSec; s += 10) await page.evaluate(() => window.__stepFrames(600));
+            console.log('battle done', await page.evaluate(() => ({ scene: window.__TACTICAL_ENGINE__.currentScene?.id, agents: window.__TACTICAL_ENGINE__.agents.length, t: window.__TACTICAL_ENGINE__.battleTime })));
+        }
     }
     // ── 2. 逐技能 ──
     const skillIds = await page.evaluate((arg) => {
@@ -229,7 +249,7 @@ try {
 
     const data = await page.evaluate(() => window.__cov?.data ?? null);
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, 'coverage.json'), JSON.stringify({ castLog, data, errors: [...new Set(errors)].slice(0, 20) }, null, 1));
+    writeFileSync(join(outDir, 'coverage.json'), JSON.stringify({ castLog, data, wrapped: installed.filter((s) => !/IMPORT_FAIL|MISSING/.test(s)), errors: [...new Set(errors)].slice(0, 20) }, null, 1));
     console.log('saved coverage.json', errors.length ? `pageErrors=${[...new Set(errors)].slice(0, 5).join(' | ')}` : '');
 } finally {
     await browser?.close();

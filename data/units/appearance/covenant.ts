@@ -5,8 +5,6 @@ import { Role, Team } from '../../../types';
 const COMMON_COVENANT = {
   primaryColor: '#991b1b',    // Dried Blood (matching Factory)
   secondaryColor: THEME_COVENANT.secondary, 
-  accentColor: THEME_COVENANT.accent,
-  capeColor: null,
   highlightColor: '#c0392b',  // Crimson Specular Highlight
   innerRimColor: 'rgba(255, 160, 50, 0.30)',
   // 棋座邊框：焦黑鐵（與 Lionheart 的金邊區隔；餘燼色在 FACTION_SKINS 的 ember）
@@ -22,10 +20,6 @@ export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
     [Role.WARRIOR]: {
       ...COMMON_COVENANT,
       highlightColor: '#c0392b',
-      bodyWidth: 42,
-      bodyHeight: 44,
-      headRadius: 11,
-      weaponType: 'sword',
       tokenRadius:    36,
       deepColor:      '#450a0a',
       iconColor:      '#fdba74',
@@ -34,10 +28,6 @@ export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
     [Role.TANK]: {
       ...COMMON_COVENANT,
       highlightColor: '#f87171',
-      bodyWidth: 54,
-      bodyHeight: 41,
-      headRadius: 12,
-      weaponType: 'shield_mace',
       tokenRadius:    36,
       deepColor:      '#450a0a',
       iconColor:      '#fdba74',
@@ -46,10 +36,6 @@ export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
     [Role.RANGER]: {
       ...COMMON_COVENANT,
       highlightColor: '#ef4444',
-      bodyWidth: 34,
-      bodyHeight: 46,
-      headRadius: 9,
-      weaponType: 'bow',
       tokenRadius:    36,
       deepColor:      '#450a0a',
       iconColor:      '#fdba74',
@@ -58,10 +44,6 @@ export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
     [Role.MAGE]: {
       ...COMMON_COVENANT,
       highlightColor: '#f87171',
-      bodyWidth: 38,
-      bodyHeight: 46,
-      headRadius: 11,
-      weaponType: 'staff',
       tokenRadius:    36,
       deepColor:      '#450a0a',
       iconColor:      '#fdba74',
@@ -70,10 +52,6 @@ export const COVENANT_APPEARANCE: FactionAppearanceProfile = {
     [Role.SUPPORT]: {
       ...COMMON_COVENANT,
       highlightColor: '#fb923c',
-      bodyWidth: 36,
-      bodyHeight: 44,
-      headRadius: 10,
-      weaponType: 'tome',
       tokenRadius:    36,
       deepColor:      '#450a0a',
       iconColor:      '#fdba74',

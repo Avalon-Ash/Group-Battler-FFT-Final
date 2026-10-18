@@ -2,10 +2,9 @@ import type { BeamStyleId } from "./beam_styles";
 
 
 // =========================================================================================
-// 🌟 ULTIMATE VISUAL CONFIGURATION (v10.0 HEXAGON PERFECTED)
-// 
-// "Based on Hexagons, Ending with Hexagons."
-// All effects now utilize 2.5D Volumetric Hex Geometry.
+// 奧義視覺表（SSOT）：每個奧義用哪個原型（archetype）、起手／命中特效鍵、光束樣式。
+// SequenceSystem 依原型排出動作序列（data/vfx/SkillSequences.ts）；特效鍵指向 VFX_REGISTRY 的零件版資產
+// （ult_parts_blue／red／storm），光束樣式指向 beam_styles.ts。tests/ReferenceIntegrity.test.ts 檢查全部引用。
 // =========================================================================================
 
 type UltArchetype = 

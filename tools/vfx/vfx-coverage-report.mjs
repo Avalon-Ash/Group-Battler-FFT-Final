@@ -2,6 +2,7 @@
  * vfx-coverage-report — 讀 vfx-coverage.mjs 的輸出，印出覆蓋率矩陣（markdown）。
  *   node tools/vfx/vfx-coverage-report.mjs [path=tools/ui-e2e/out/vfx/coverage.json]
  * 來源標記：fx:<登記鍵>、beam:<光束樣式>、direct（不經登記表直接生成的粒子）。
+ * 有 wrapped（--liveness）時另印「整輪零呼叫」的方法：依物件分組，整個物件都零呼叫的列在最前（刪除候選，刪前仍要 git grep 證明零引用）。
  * 後端：PART（新零件材質）、BILL（BillboardPainter）；PROC／GROUND 的繪製器已移除，出現就代表有舊型別漏網（畫成洋紅除錯點）。
  */
 import { readFileSync } from 'node:fs';
@@ -10,7 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const path = process.argv[2] ?? join(root, 'tools', 'ui-e2e', 'out', 'vfx', 'coverage.json');
-const { data, castLog } = JSON.parse(readFileSync(path, 'utf8'));
+const { data, castLog, wrapped } = JSON.parse(readFileSync(path, 'utf8'));
 
 // 每個技能標籤都會帶到的背景：出場、待機、天氣
 const NOISE = /^(fx:FX_SPAWN_|fx:FX_IDLE_|direct\|BILL:ATMOSPHERE)/;
@@ -69,4 +70,26 @@ if (battle) {
     for (const [src, desc, part] of rowsB.sort((a, b) => Number(a[2]) - Number(b[2]))) console.log(`| ${part ? '' : '**'}${src}${part ? '' : '**'} | ${desc} |`);
     console.log('\n## 直接繪製器（不經粒子）在實戰中的呼叫次數\n');
     for (const [k, n] of Object.entries(battle.painters).sort((a, b) => b[1] - a[1])) console.log(`- ${k}: ${n}`);
+}
+
+if (wrapped?.length) {
+    const calls = new Map();
+    for (const b of Object.values(data)) for (const [k, n] of Object.entries(b.painters ?? {})) calls.set(k, (calls.get(k) || 0) + n);
+    const groups = new Map(); // owner -> { zero: [], live: n }
+    for (const name of wrapped) {
+        const owner = name.split(/[.#]/)[0];
+        const g = groups.get(owner) ?? { zero: [], live: 0 };
+        if (calls.get(name)) g.live++; else g.zero.push(name.slice(owner.length + 1));
+        groups.set(owner, g);
+    }
+    const dead = [...groups].filter(([, g]) => g.live === 0).map(([o, g]) => `${o}（${g.zero.length}）`);
+    const partial = [...groups].filter(([, g]) => g.live > 0 && g.zero.length).sort((a, b) => b[1].zero.length - a[1].zero.length);
+    console.log(`
+## 存活探針：整輪零呼叫（包了 ${wrapped.length} 個方法）
+`);
+    console.log(`整個物件零呼叫（${dead.length}）：${dead.join('、') || '無'}
+`);
+    console.log('| 物件 | 有呼叫 | 零呼叫的方法 |');
+    console.log('| :-- | --: | :-- |');
+    for (const [o, g] of partial) console.log(`| ${o} | ${g.live} | ${g.zero.join(' ')} |`);
 }

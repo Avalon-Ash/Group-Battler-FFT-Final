@@ -112,6 +112,20 @@ export const DOT_COLORS: Record<string, string> = {
     IMPERIAL: '#3b82f6'
 };
 
+/** 戰鬥浮字的字級與版面（EventHUDMapper）；顏色在 DAMAGE_TEXT_COLORS */
+export const FLOATING_TEXT = {
+    DEFAULT_COLOR: '#ffffff',
+    /** STATUS_VISUALS.POISON 缺色時的後備 */
+    DOT_FALLBACK_COLOR: '#a3e635',
+    SIZE: { DAMAGE: 16, CRIT: 24, CC: 14, INTERRUPT: 16, KILL_STREAK_BASE: 32, KILL_STREAK_PER: 4 },
+    /** 連殺文字比一般浮字再高多少（px） */
+    KILL_STREAK_LIFT: 40,
+    KILL_STREAK_TRAUMA: { BASE: 0.2, PER: 0.1 },
+} as const;
+
+/** 重擊音效門檻：暴擊或單次傷害 ≥ 此值播 HIT_HEAVY（AudioSystem） */
+export const AUDIO_HEAVY_HIT_DAMAGE = 80;
+
 // SSOT: Floating Combat Text Colors
 export const DAMAGE_TEXT_COLORS = {
     DASH: '#60a5fa',
@@ -786,6 +800,26 @@ export const UNIT_SPRITE = {
     hitFps: 12,
     deathFps: 8,
     manifestPath: 'assets/units/manifest.json',
+} as const;
+
+/**
+ * 單位本體的純繪製動態（UnitBodyPainter）：只在單位局部座標內套用，不寫 Agent、不進 UnitFrame 與排序鍵，
+ * 發射點／受擊點（投影中心）不跟著浮動（RenderSpec §4）。
+ */
+export const UNIT_BODY_MOTION = {
+    /** 待機上下浮動：振幅（canvas 單位，UNIT_SCALE 之前）與角頻率（rad/s） */
+    groundBob: { amplitude: 3, freq: 2 },
+    flyingBob: { amplitude: 2, freq: 4 },
+    /** 高速移動的前傾上限（弧度）；反向移動（煞車）時的倍率 */
+    maxTilt: 0.5,
+    brakeTiltMult: 1.5,
+    /** 奧義詠唱的脈動縮放（振幅、整段詠唱的脈動次數） */
+    ultPulseAmp: 0.15,
+    ultPulseCycles: 3,
+    /** 出生動畫的下落距離（px，負值＝從上方落下；長度見 UNIT_SPRITE.spawnDuration） */
+    spawnDrop: -40,
+    /** 地面單位速度平方超過此值時畫拖尾緞帶（飛行單位一律畫） */
+    ribbonSpeedSq: 5000,
 } as const;
 
 // ══════════════════════════════════════════════════════════════

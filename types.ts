@@ -187,6 +187,8 @@ export interface GameEvent {
     targetId?: string;
     team?: Team;
     absorbed?: number;
+    /** DAMAGE：本次是暴擊（DamageCalculator 的結果；浮字字級與重擊音效讀它） */
+    crit?: boolean;
     /** CAST_BREAK：被中斷的 AOE 技能預警範圍（中斷當下的 telegraph），供崩解特效逐格播放 */
     hexes?: readonly Hex[];
 }

@@ -2,7 +2,8 @@
  * TerrainBlockCache — 地形六角格 Sprite 快取與量化調度器
  * -----------------------------------------------------------------------------
  * 說明：
- *  - 地形格頂面與側面外觀是 (theme, layout, type, height, variant, floatOffset, renderScale, edgeMask, baseLevel) 的純函數。
+ *  - 地形格頂面與側面外觀是 (theme, layout, type, height, variant, renderScale, edgeMask, baseLevel) 的純函數。
+ *    漂浮位移不進鍵：TerrainRenderer 一律傳 floatOffset＝0，整塊在繪製時平移（RenderSpec §5，docs/PERF_LIFECYCLE_FINDINGS.md）。
  *  - 將耗時的 createLinearGradient、clip 與 overlay 顆粒在離屏 canvas 烘焙為 Sprite。
  *  - 依照 RENDER_CACHE.SCALE_STEPS 向上量化解析度，無字窗配置，純衍生快取不持遊戲狀態。
  *  - 內含 MATERIAL_CONFIG 逐欄數值簽章比對，即時調參時自動清空重建。

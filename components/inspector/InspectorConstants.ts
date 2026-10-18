@@ -3,21 +3,15 @@
 // ║  InspectorConstants — Inspector UI 顯示常數與欄位定義             ║
 // ║                                                                  ║
 // ║  [VISUAL SSOT 分工]                                              ║
-// ║  技能特效 (Skill VFX) ─────────────── VISUAL_OPTIONS (本檔)      ║
-// ║  單位外觀 (Unit Appearance) ────────── data/units/appearance/    ║
-// ║                                        └ UNIT_APPEARANCE (SSOT) ║
-// ║                                          RoleAppearance 欄位：   ║
-// ║                                          bodyWidth, bodyHeight,  ║
-// ║                                          headRadius, primaryColor║
-// ║                                          secondaryColor,         ║
-// ║                                          accentColor, capeColor, ║
-// ║                                          weaponType              ║
+// ║  技能圖示／後備外觀鍵 ─────────────── VISUAL_OPTIONS (本檔)      ║
+// ║  技能特效、投射物、奧義序列的路由 ── engine/renderers/RenderSpec §6║
+// ║  單位外觀 ─────────── data/units/factionSkin.ts（getFactionSkin）  ║
+// ║                       data/units/appearance/（精靈、體型、棋座色）║
 // ║                                                                  ║
 // ║  修改流程：                                                       ║
-// ║    調整顏色/尺寸/武器類型 → data/units/appearance/*.ts            ║
-// ║    調整技能特效類型      → VISUAL_OPTIONS (本檔)                  ║
-// ║    調整繪製方式/動畫     → engine/renderers/units/factions/       ║
-// ║                           engine/renderers/units/painters/       ║
+// ║    調整技能圖示鍵        → VISUAL_OPTIONS (本檔)                  ║
+// ║    調整命中／投射物特效  → data/vfx/registry、projectile_visuals  ║
+// ║    調整陣營外觀          → data/units/factionSkin.ts              ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, AIState, ActionState, Skill } from '../../types';

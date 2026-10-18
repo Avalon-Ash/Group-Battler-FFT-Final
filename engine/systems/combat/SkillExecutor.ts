@@ -185,6 +185,7 @@ export class SkillExecutor {
                 pos: unitEventPos(target, engine), 
                 value: finalDamage, 
                 absorbed: result.shieldAbsorb > 0 ? Math.floor(result.shieldAbsorb) : undefined,
+                crit: !isHeal && result.isCrit,
                 color,
                 skill,
                 targetId: target.id,

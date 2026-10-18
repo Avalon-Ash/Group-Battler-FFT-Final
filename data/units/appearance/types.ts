@@ -2,15 +2,9 @@
 import { Team } from '../../../types';
 
 interface RoleAppearance {
-  bodyWidth: number;      // 身體最大寬度（canvas unit）
-  bodyHeight: number;     // 身體高度（canvas unit）
-  headRadius: number;     // 頭部半徑
-  primaryColor: string;   // 主色（裝甲/主體）
-  secondaryColor: string; // 次色（武器/邊框）
-  accentColor: string;    // 強調色（眼睛/發光）
-  highlightColor?: string; // 程序化甲胄邊緣高光 / Token 頂點高光
-  weaponType: 'sword' | 'spear' | 'bow' | 'staff' | 'shield_mace' | 'tome';
-  capeColor: string | null; // null = 無披風
+  primaryColor: string;   // 主色（棋座頂面、量表／圖示主色）
+  secondaryColor: string; // 次色（棋座邊框）
+  highlightColor?: string; // 棋座 Token 烘焙期高光（MaterialPainter.weatherToken）
   tokenRadius:    number;       // Token 圓形半徑（canvas unit）
   deepColor:      string;       // 深色調：陰影面/內層
   rimColor:       string;       // 外框高光色
@@ -21,9 +15,7 @@ interface RoleAppearance {
   // Token Procedural & Core Layer SSOT Colors
   innerRimColor?:     string;   // 內環高光色 (Imperial 亮白內邊, Covenant 齒尖金屬光)
   techRingColor?:     string;   // 輔助環/科技環色 (Imperial 儀表環)
-  symbolColor?:       string;   // 戰術符號色 (Imperial Ω 符號)
   runeGlowColor?:     string;   // 符文/核心光暈發光色
-  runeColor?:         string;   // 符文本體色
   centerCoreColor?:   string;   // 核心中央深核色 (Covenant 黑核)
 }
 

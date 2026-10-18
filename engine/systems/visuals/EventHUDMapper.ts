@@ -11,8 +11,8 @@
 // ║    STATUS_VISUALS['REGEN'].primaryColor  → data/vfx/status_visuals  ║
 // ║    event.skill.color                     → data/skills/ (Skill 定義)║
 // ║    event.color                           → GameEvent 欄位（來自 combat 結算）║
-// ║    '#ef4444' (crit red)                  → inline 業務規則，暫未抽取   ║
-// ║    '#bae6fd' (absorb blue)               → inline 業務規則，暫未抽取   ║
+// ║    暴擊／吸收／預設色、字級              → DAMAGE_TEXT_COLORS、FLOATING_TEXT║
+// ║    暴擊判定：event.crit（DamageCalculator 的結果，不另用數值猜）    ║
 // ║                                                                  ║
 // ║  HUD 佈局常數來源：                                              ║
 // ║    hudTextHeight（投影頭頂 + 血條間距 + 文字間距，data/units/    ║
@@ -25,7 +25,7 @@ import { HUDSystem } from "../hud";
 import { GridSystem } from "../grid";
 import { CameraSystem } from "../CameraSystem";
 import { HexUtils } from "../../utils";
-import { HUD_LAYOUT } from "../../../constants";
+import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudTextHeight } from "../../../data/units/appearance/projection";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
@@ -68,15 +68,15 @@ export class EventHUDMapper {
                     hud.breakCastText(event.sourceId, event.team);
                     // 同時彈出 "中斷" 提示
                     const baseY = visualGroundY - textOffset;
-                    hud.addFloatingText(event.pos.x, baseY, "INTERRUPTED", "#ef4444", 16, 'CC');
+                    hud.addFloatingText(event.pos.x, baseY, "INTERRUPTED", DAMAGE_TEXT_COLORS.CRIT, FLOATING_TEXT.SIZE.INTERRUPT, 'CC');
                 }
                 break;
             case 'KILL_STREAK':
                 if (event.text && event.color) {
-                    const textY = visualGroundY - textOffset - 40;
-                    const size = 32 + ((event.value || 1) * 4); 
+                    const textY = visualGroundY - textOffset - FLOATING_TEXT.KILL_STREAK_LIFT;
+                    const size = FLOATING_TEXT.SIZE.KILL_STREAK_BASE + ((event.value || 1) * FLOATING_TEXT.SIZE.KILL_STREAK_PER);
                     hud.addFloatingText(event.pos.x, textY, event.text, event.color, size, 'KILL_STREAK');
-                    camera.addTrauma(0.2 + (event.value || 0) * 0.1);
+                    camera.addTrauma(FLOATING_TEXT.KILL_STREAK_TRAUMA.BASE + (event.value || 0) * FLOATING_TEXT.KILL_STREAK_TRAUMA.PER);
                 }
                 break;
         }
@@ -94,8 +94,8 @@ export class EventHUDMapper {
     private handleCombatText(event: GameEvent, visualY: number, hud: HUDSystem) {
         const baseY = visualY; 
         let text = "";
-        let color = "#fff";
-        let size = 16;
+        let color: string = FLOATING_TEXT.DEFAULT_COLOR;
+        let size: number = FLOATING_TEXT.SIZE.DAMAGE;
         let type: 'DAMAGE' | 'HEAL' | 'CC' = 'DAMAGE';
         let xOffset = 0;
 
@@ -107,34 +107,33 @@ export class EventHUDMapper {
             }
 
             // [業務規則] 傷害顯示優先級：ABSORB > DOT (毒) > CRIT (暴擊) > 預設
-            // 顏色依賴：STATUS_VISUALS（SSOT）、inline crit/absorb 色（見檔頭說明）
-            const isCrit = val > 100;
+            const isCrit = event.crit === true;
             const isDot = event.skill?.ccType === 'DOT';
-            
+
             if (event.text === 'ABSORB') {
-                color = '#bae6fd';
+                color = DAMAGE_TEXT_COLORS.ABSORB;
             } else if (isDot) {
-                color = STATUS_VISUALS['POISON']?.primaryColor || '#a3e635';
+                color = STATUS_VISUALS['POISON']?.primaryColor || FLOATING_TEXT.DOT_FALLBACK_COLOR;
             } else if (isCrit) {
-                color = '#ef4444'; 
+                color = DAMAGE_TEXT_COLORS.CRIT;
             } else {
-                color = event.color || '#fff';
+                color = event.color || FLOATING_TEXT.DEFAULT_COLOR;
             }
-            
-            size = isCrit ? 24 : 16;
+
+            size = isCrit ? FLOATING_TEXT.SIZE.CRIT : FLOATING_TEXT.SIZE.DAMAGE;
             type = 'DAMAGE';
             xOffset = (Math.random() - 0.5) * HUD_LAYOUT.DAMAGE_TEXT_SCATTER;
 
         } else if (event.type === 'HEAL') {
             text = "+" + Math.abs(event.value || 0);
-            color = STATUS_VISUALS['REGEN']?.primaryColor || '#4ade80';
+            color = STATUS_VISUALS['REGEN']?.primaryColor || DAMAGE_TEXT_COLORS.HEAL;
             type = 'HEAL';
             xOffset = (Math.random() - 0.5) * HUD_LAYOUT.DAMAGE_TEXT_SCATTER;
         } else {
             text = event.text || "";
-            color = event.color || "#fff";
+            color = event.color || FLOATING_TEXT.DEFAULT_COLOR;
             type = 'CC';
-            size = 14;
+            size = FLOATING_TEXT.SIZE.CC;
             xOffset = HUD_LAYOUT.STATUS_TEXT_OFFSET_X;
         }
 

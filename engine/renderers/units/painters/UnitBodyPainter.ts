@@ -1,20 +1,24 @@
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UnitBodyPainter — 存活單位的主體繪製                    ║
-// ║  職責：hp > 0 單位的外觀渲染、血條、狀態圖示繪製         ║
+// ║  職責：hp > 0 單位的本體（精靈或替換本體）與飛行緞帶     ║
+// ║  （血條在 HUDRenderer、狀態在 StatusOrchestrator）       ║
 // ║  [ARCH] 陣營外觀來源：FACTION_SKINS (SSOT)               ║
-// ║  [ARCH] hp <= 0 時 early return，死亡演出由 DeathPainter 負責 ║
+// ║  [ARCH] hp <= 0 時 early return，死亡演出由 UnitDeathPainter ║
 // ║  [ARCH] AnimState 由 AnimationSystem 寫入，此處唯讀       ║
 // ║  [ARCH] 衝刺殘影：本體之前呼叫 UnitAfterimagePainter，偏移讀 ║
 // ║  UnitFrame.ghosts（局部座標原點＝腳底繪製點，RenderSpec §10）║
 // ║  [ARCH] 本體替換：變羊 → PolymorphPainter（取代精靈）、凍結 → ║
 // ║  FrozenPainter（疊在精靈上）；兩者都畫在同一個局部座標，腳底  ║
 // ║  貼 UNIT_SPRITE.footOffsetLocal，不新增座標／排序規則        ║
+// ║  [ARCH] 純繪製動態（浮動、傾斜、奧義脈動、出生下落）參數在  ║
+// ║  UNIT_BODY_MOTION；只動局部座標，不進 UnitFrame／排序鍵，   ║
+// ║  發射點不跟著浮動（RenderSpec §4）                          ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../../game";
 import { AnimState, MovementType } from "../../../../types";
-import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE } from "../../../../constants";
+import { UNIT_SCALE, VFX_PARAM, UNIT_SPRITE, UNIT_BODY_MOTION } from "../../../../constants";
 import { SpriteUnitRenderer } from "../factions/SpriteUnitRenderer";
 import { UnitFlightPainter } from "./UnitFlightPainter";
 import { PolymorphPainter } from "./PolymorphPainter";
@@ -49,21 +53,16 @@ export const UnitBodyPainter = {
             
             const dirX = vx / speed;
             const dot = dirX * agent.facing; 
-            const maxTilt = 0.5; 
-            const tiltFactor = Math.min(1.0, speed / VFX_PARAM.SPEED_MAX_TILT_REF) * maxTilt;
-            
+            const tiltFactor = Math.min(1.0, speed / VFX_PARAM.SPEED_MAX_TILT_REF) * UNIT_BODY_MOTION.maxTilt;
+
             if (dot > 0) tiltAngle = tiltFactor * agent.facing;
-            else tiltAngle = -tiltFactor * agent.facing * 1.5; 
+            else tiltAngle = -tiltFactor * agent.facing * UNIT_BODY_MOTION.brakeTiltMult;
         }
 
         const finalRotation = agent.physics.angle + tiltAngle;
 
-        let bodyFloat = 0;
-        if (agent.hp > 0 && agent.movementType !== MovementType.FLYING) {
-             bodyFloat = Math.sin(t * 2) * 3;
-        } else if (agent.movementType === MovementType.FLYING) {
-             bodyFloat = Math.sin(t * 4) * 2;
-        }
+        const bob = agent.movementType === MovementType.FLYING ? UNIT_BODY_MOTION.flyingBob : UNIT_BODY_MOTION.groundBob;
+        const bodyFloat = Math.sin(t * bob.freq) * bob.amplitude;
 
         // 衝刺／高速移動殘影：本體之前、單位局部座標（原點＝腳底繪製點），偏移來自 UnitFrame（RenderSpec §10）
         if (frame && frame.ghostCount > 0 && !isSilhouette && agent.visualStatus !== 'POLYMORPH') {
@@ -77,14 +76,14 @@ export const UnitBodyPainter = {
 
         if (agent.animState === AnimState.CAST_ULT) {
             const progress = 1 - (agent.castTimer / (agent.castingAnimationTimer || 1));
-            const ultPulse = 1 + 0.15 * Math.abs(Math.sin(progress * Math.PI * 3));
+            const ultPulse = 1 + UNIT_BODY_MOTION.ultPulseAmp * Math.abs(Math.sin(progress * Math.PI * UNIT_BODY_MOTION.ultPulseCycles));
             ctx.scale(ultPulse, ultPulse);
         }
 
         if (agent.spawnTimer > 0) {
             const progress = 1 - (agent.spawnTimer / UNIT_SPRITE.spawnDuration); 
             const eased = 1 - Math.pow(1 - progress, 3); 
-            const dropOffset = (1 - eased) * -40;
+            const dropOffset = (1 - eased) * UNIT_BODY_MOTION.spawnDrop;
             ctx.translate(0, dropOffset);
             ctx.globalAlpha *= eased;
         }
@@ -96,7 +95,7 @@ export const UnitBodyPainter = {
 
         // Layer 1: Rear Effects (Ribbons/Engines)
         if (agent.hp > 0 && !isSilhouette && agent.visualStatus === 'NONE') {
-            if (agent.movementType === MovementType.FLYING || speedSq > 5000) {
+            if (agent.movementType === MovementType.FLYING || speedSq > UNIT_BODY_MOTION.ribbonSpeedSq) {
                 UnitFlightPainter.drawRibbonTrail(ctx, agent, t, terrainHeight);
             }
             if (agent.movementType === MovementType.FLYING) {

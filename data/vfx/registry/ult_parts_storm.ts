@@ -6,7 +6,7 @@ import { part } from "./ult_parts";
 // STORM：SkillSequences 會把同一效果在「同一點」重播 count 次（間隔 timing），
 // 所以每個效果只是一次「小落點」（約 3～5 個粒子），散佈靠 emitter 內的 CIRCLE；
 // 陣營紋章不放在落點裡（會疊 N 次），改由 ult_visuals 的 windupFx 只播一次。
-// BEAM_SNIPE：光束本體仍由程序化 BEAM 繪製（需新的光束零件才能換），這裡只換命中點。
+// BEAM_SNIPE：光束本體是光束零件（beam_styles.ts → PartPainter.drawBeam），這裡只定義命中點。
 // ==========================================
 
 export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {

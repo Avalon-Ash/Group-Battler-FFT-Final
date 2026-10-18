@@ -139,43 +139,18 @@ export class RenderSpec {
 
         s += "--- \n\n";
 
-        s += "## 6. VISUAL_OPTIONS 與 Painter 映射表 (Visual ID → Painter Route)\n\n";
-        s += "說明：InspectorConstants.ts 中的 VISUAL_OPTIONS 是設計師填入技能視覺的入口。\n";
-        s += "每個 ID 在 VFX 管線中對應固定的 Painter 路徑，填錯 ID 不會報錯但會靜默失效。\n\n";
-
-        s += "[SSOT 邊界說明]\n";
-        s += "本表管理「技能特效 VFX」的 Painter 路由，屬於 Skill-level 視覺。\n";
-        s += "「單位本體外觀」（顏色/尺寸/武器形狀/披風）不在此範疇，\n";
-        s += "請至 data/units/appearance/ 查閱與修改：\n\n";
-        s += "  陣營外觀  : data/units/factionSkin.ts → FACTION_SKINS（渲染器唯一入口，見 docs/FACTION_SLOTS.md）\n";
-        s += "  SSOT 入口 : data/units/appearance/index.ts → UNIT_APPEARANCE\n";
-        s += "  介面定義  : data/units/appearance/types.ts → RoleAppearance\n";
-        s += "  欄位      : bodyWidth, bodyHeight, headRadius,\n";
-        s += "              primaryColor, secondaryColor, accentColor,\n";
-        s += "              weaponType, capeColor\n";
-        s += "  映射方式  : UNIT_APPEARANCE[Team.*].roles[Role.*]\n\n";
-        s += "修改流程：\n";
-        s += "  調整外觀顏色/尺寸  → data/units/appearance/imperial.ts 或 covenant.ts\n";
-        s += "  調整 Painter 繪法  → engine/renderers/units/factions/\n";
-        s += "                       engine/renderers/units/painters/\n\n";
-
-        s += "| Visual ID      | Painter 路徑         | 渲染分類     | 備註 |\n";
-        s += "|----------------|----------------------|--------------|------|\n";
-        s += "| SLASH          | BillboardPainter     | isGround     | 揮砍弧光 |\n";
-        s += "| ARROW          | ProjectileDrawer     | air          | 物理投射物 |\n";
-        s += "| FIREBALL       | ProjectileDrawer     | air          | 帶尾跡彈道 |\n";
-        s += "| BOLT           | ProjectileDrawer     | air          | 直線高速彈 |\n";
-        s += "| BEAM           | PartPainter.drawBeam（光束零件） | air (locked) | 鎖定型光束，不進排序 |\n";
-        s += "| BOMB           | ProjectileDrawer     | air          | 拋物線落點型 |\n";
-        s += "| SMASH          | PART_GROUND 零件    | isGround     | 貼地衝擊波 |\n";
-        s += "| HEX_HALO       | PART_GROUND 零件    | isGround     | 六角光環 |\n";
-        s += "| HEX_PRISM      | VolumePainter        | air (z>0)    | 立體柱狀 |\n";
-        s += "| HEX_RUNE       | PART_GROUND 零件    | isGround     | 貼地符文 |\n";
-        s += "| HEX_SHIELD     | VolumePainter        | air (z>0)    | 護盾立體球 |\n";
-        s += "| HEX_SKULL      | BillboardPainter     | air          | 狀態標記 |\n";
-        s += "| HEX_ANGRY      | BillboardPainter     | air          | 狀態標記 |\n";
-        s += "| HEX_EYE        | BillboardPainter     | air          | 狀態標記 |\n";
-        s += "| HEX_LOCK       | BillboardPainter     | air          | 狀態標記 |\n\n";
+        s += "## 6. 技能視覺欄位 → 繪製路徑 (Skill Visual Fields → Painter Route)\n\n";
+        s += "技能（data/skills/**）有四個視覺欄位，每個都指向一張 SSOT 表；tests/ReferenceIntegrity.test.ts 與開機時的 VFXValidator 檢查全部引用：\n\n";
+        s += "| 欄位 | 指向 | 繪製 |\n";
+        s += "|------|------|------|\n";
+        s += "| visualHitEffect | VFX_REGISTRY（data/vfx/registry/**，全部是零件） | 粒子 → ParticleRenderer → PartPainter（後端由 constants.ts PARTICLE_TRAITS 決定） |\n";
+        s += "| visualProjectileEffect | PROJECTILE_VISUALS（data/vfx/projectile_visuals.ts） | ProjectileRenderer 提交 PROJECTILE op（§1、§3）→ 投射物繪製器 |\n";
+        s += "| 奧義原型（ult_visuals.ts）／序列（SkillSequences.ts） | VFX_REGISTRY 鍵＋BEAM_STYLES 鍵（beam_styles.ts） | SequenceSystem 排動作；光束 → PartPainter.drawBeam（光束零件） |\n";
+        s += "| visual（ARROW／FIREBALL／BOLT／SLASH／SMASH／BEAM／BOMB） | 圖示與後備外觀鍵 | 技能圖示（UIFactory，量表 GaugePainter 與 Inspector 共用）；沒有 visualProjectileEffect 時當投射物外觀鍵 |\n\n";
+        s += "粒子後端只有一個出處：constants.ts 的 PARTICLE_TRAITS（PART／PART_GROUND／PART_DEBRIS 走零件；BEAM 掛光束零件；\n";
+        s += "ATMOSPHERE（天氣）走看板；其餘舊型別只畫洋紅除錯點，tests/VFXBackend.test.ts 以只減不增的棘輪擋住）。\n\n";
+        s += "單位本體外觀不在本表：陣營外觀唯一入口是 data/units/factionSkin.ts 的 getFactionSkin（docs/FACTION_SLOTS.md），\n";
+        s += "精靈圖集與體型在 data/units/appearance/（sprite.ts、bodyTypes.ts、projection.ts），棋座顏色在 appearance/imperial.ts、covenant.ts。\n\n";
 
         s += "--- \n\n";
 

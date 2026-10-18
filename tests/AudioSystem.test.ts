@@ -128,7 +128,7 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
             type: 'DAMAGE',
             pos: { x: 900, y: 300 },
             value: 120,
-            text: 'CRITICAL'
+            crit: true
         } as GameEvent);
 
         expect(playCueSpy).toHaveBeenCalledWith('HIT_HEAVY', expect.objectContaining({ x: 0.75 }));

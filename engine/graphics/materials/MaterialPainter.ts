@@ -1,16 +1,14 @@
 /**
- * MaterialPainter — 把 Three.js/GLSL 的六種特效生成手法翻譯成 Canvas 2D
+ * MaterialPainter — 烘焙期的材質處理（顆粒、風化、色調分級）
  * -----------------------------------------------------------------------------
- * 對照關係：
- *   GLSL SDF + noise 裁切      → 離屏烘焙 + destination-in 遮罩（bakeIceCrust / bakeScorch）
- *   Ribbon strip 參數化路徑    → 中點位移遞迴 + 多層輝光疊繪（drawRibbon）
- *   三層同心圓管光柱           → createLinearGradient 疊加 + setLineDash 滾動（drawLayeredBeam）
- *   後處理色調分級             → ctx.filter 字串（gradeFilter）
- *
- * 所有數值一律讀 MATERIAL_CONFIG，不在此檔寫死。
- *
+ * 全部只在烘焙階段執行（地形 sprite、障礙物 sprite、棋座 Token），執行期零成本：
+ *   paintTerrainGrain  地形頂面顆粒（TerrainRenderer.bakeBlock）
+ *   weatherSprite      障礙物風化（EnvironmentFactory）
+ *   weatherToken       棋座微顆粒＋鑄造高光（UnitFactory）
+ *   gradeFilter        最終合成前的色調分級字串（RenderPipeline）
+ * 噪聲貼圖來自 NoiseLib（確定性、快取）；所有數值讀 MATERIAL_CONFIG，不在此檔寫死。
  * 注意：destination-in 會影響整個目標 canvas，因此遮罩類效果一律
- * 在離屏 canvas 完成後才 drawImage 回主畫面，絕不直接對主 ctx 操作。
+ * 在離屏 canvas 完成後才 drawImage 回目標，絕不直接對主 ctx 操作。
  */
 
 import { createCanvas } from '../CanvasUtils';
@@ -54,32 +52,6 @@ export const MaterialPainter = {
     },
 
     /**
-     * 側面垂直岩紋：用同一張顆粒貼圖沿 Y 軸拉長，模擬地層堆疊方向。
-     * 呼叫前請先把目標面的路徑 clip 好。
-     */
-    paintSideGrain(
-        ctx: CanvasRenderingContext2D,
-        x: number,
-        y: number,
-        w: number,
-        h: number,
-        variant: number,
-    ) {
-        const strength = MATERIAL_CONFIG.terrain.sideGrain;
-        const cfg = MATERIAL_CONFIG.terrain.grain;
-        if (!MATERIAL_CONFIG.enabled || !cfg.enabled || strength <= 0) return;
-        if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
-
-        const tile = getGrainTile(cfg, variant, MATERIAL_CONFIG.maskResolution);
-        ctx.save();
-        ctx.globalCompositeOperation = 'overlay';
-        ctx.globalAlpha *= strength;
-        // 橫向壓縮、縱向拉伸 → 顆粒呈垂直流向，讀起來像岩層
-        ctx.drawImage(tile, x, y, w, h * 1.6);
-        ctx.restore();
-    },
-
-    /**
      * 障礙物 sprite 風化。
      * 在 sprite 烘焙階段呼叫一次，執行期零成本。
      * source-atop 只在既有像素上作畫，不會破壞 sprite 的透明輪廓。
@@ -114,77 +86,6 @@ export const MaterialPainter = {
         const g = MATERIAL_CONFIG.grade;
         if (!MATERIAL_CONFIG.enabled || !g.enabled) return 'none';
         return `contrast(${g.contrast}) saturate(${g.saturate}) brightness(${g.brightness})`;
-    },
-
-    /**
-     * 角色甲胄材質處理（金屬微顆粒 + 邊緣鏡面高光）
-     * @param ctx            目標 canvas context（座標系位於單位原點）
-     * @param pathTrace      路徑定義回呼函數（用於精確 clip 至部位輪廓）
-     * @param highlightColor 高光色（讀自 RoleAppearance.highlightColor）
-     * @param isImperial     是否為帝國陣營（決定高光傾斜角度與合成風格）
-     */
-    paintArmorSurface(
-        ctx: CanvasRenderingContext2D,
-        pathTrace: () => void,
-        highlightColor: string,
-        isImperial: boolean,
-    ) {
-        const cfg = MATERIAL_CONFIG.unit?.armor;
-        if (!MATERIAL_CONFIG.enabled || !cfg || !cfg.enabled) return;
-
-        ctx.save();
-        pathTrace();
-        ctx.clip();
-
-        // 1. 金屬微顆粒 (Armor Grain Overlay)
-        if (cfg.strength > 0) {
-            const variant = isImperial ? 0 : 1;
-            const tile = getGrainTile({
-                enabled: true,
-                octaves: 4,
-                frequency: 10.0,
-                persistence: 0.5,
-                lacunarity: 2.0,
-                strength: cfg.strength,
-                contrast: cfg.contrast,
-                variants: 2,
-                tintSpread: 0.04,
-                edgeAO: 0,
-                edgeBand: 0,
-            }, variant, MATERIAL_CONFIG.maskResolution);
-
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.globalAlpha = cfg.strength;
-            ctx.drawImage(tile, -80, -80, 160, 160);
-        }
-
-        // 2. 邊緣與鏡面高光 (Specular Highlight)
-        if (cfg.specular > 0 && highlightColor) {
-            ctx.globalCompositeOperation = isImperial ? 'screen' : 'lighter';
-            ctx.globalAlpha = cfg.specular;
-
-            if (isImperial) {
-                // 帝國陶鋼：左上往右下傾斜的高光帶
-                const specGrad = ctx.createLinearGradient(-30, -50, 10, -20);
-                specGrad.addColorStop(0, highlightColor);
-                specGrad.addColorStop(0.3, 'rgba(255, 255, 255, 0.35)');
-                specGrad.addColorStop(0.7, 'transparent');
-                specGrad.addColorStop(1, 'transparent');
-                ctx.fillStyle = specGrad;
-                ctx.fillRect(-80, -80, 160, 160);
-            } else {
-                // 盟約混沌金屬：銳利反向對角燃燒高光
-                const specGrad = ctx.createLinearGradient(20, -50, -20, 10);
-                specGrad.addColorStop(0, highlightColor);
-                specGrad.addColorStop(0.4, 'rgba(255, 120, 80, 0.35)');
-                specGrad.addColorStop(0.8, 'transparent');
-                specGrad.addColorStop(1, 'transparent');
-                ctx.fillStyle = specGrad;
-                ctx.fillRect(-80, -80, 160, 160);
-            }
-        }
-
-        ctx.restore();
     },
 
     /**
