@@ -187,7 +187,7 @@ export class RenderSpec {
         s += "- 掉落中的地塊（op.z < 0）不畫鋪設特效。\n";
         s += "- 模式：DIRECT＝每格裁切後直接畫粒子（單一 drawImage／少量填色，混合模式與原本一致）；OFFSCREEN＝多段描邊的向量特效，每幀只畫一次到池化離屏畫布\n";
         s += "  （目前裝置縮放，容量只增不減），再逐格複製與該格外框相交的部分，以粒子混合模式貼上。\n";
-        s += "- 分類（依繪製內容；SSOT 在 constants.ts GROUND_DRAPE.MODE）：鋪設＝PART_GROUND、GRID_FIELD、CRACKS、BLAST、HEX_GLOW（DIRECT）、MAGIC_CIRCLE、SHOCKWAVE、RING（OFFSCREEN）。\n";
+        s += "- 分類（SSOT 在 constants.ts GROUND_DRAPE.MODE）：粒子只有 PART_GROUND（DIRECT，單張零件）；施法 AOE 預警等繪製函式走 OFFSCREEN。\n";
         s += "- 非粒子鋪設：施法 AOE 地面預警（UnitRenderSystem.paintAoeIndicator，GroundDrapeLayer.addPainted）一律走離屏畫布，逐格貼在頂面；\n";
         s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱環、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
         s += "  逐格以平面高度裁切繪製；格子頂面高過平面＝被擋住不畫（前景高地照樣遮擋）。施法者腳下那格只畫後半，\n";

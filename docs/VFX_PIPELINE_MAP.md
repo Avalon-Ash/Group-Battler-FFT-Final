@@ -185,6 +185,15 @@ VFXSystem.state.particles
 - 修正：`dipAmount` 從未傳進 `trajectoryInfo`（HOVER_DIP 永遠用預設 20）；表裡的 `speed`、`renderType`、`colorOverride`、`trailLength` 欄位從未被讀，已移除（速度只看 `skill.projectileSpeed`）。
 - 驗收：`fx-shot --keys=PROJ:<鍵>:<陣營>` 18 組新舊對照（`tools/ui-e2e/out/vfx/proj_cmp.png`）；實戰 5 張地圖＋150 技能 0 頁面錯誤；battle_frozen 0.21%（門檻內，未重錄）；perf-ab 通過。
 
+### 4.12 V5a（舊管線死碼）之後（2026-10-19）
+- 證據：`vfx-coverage --liveness --battles=5`（5 張地圖輪替＋150 技能）列出整輪零呼叫的方法，再以 `git grep` 確認零引用才刪。
+- `ParticleType` 收斂成 PART／PART_GROUND／PART_DEBRIS／BEAM／ATMOSPHERE／GENERIC_DEBUG；`PARTICLE_TRAITS` 後端只剩 PART／BILL；`GROUND_DRAPE.MODE` 只剩 PART_GROUND；預算的 `SECONDARY_TYPES`／`CRITICAL_TYPES`（只列舊型別，永遠比對不到）拿掉，行為不變。
+- 貼花整條路徑（`state.decals` 從未有人 push）：`Decal`、`RenderOpType.DECAL`、`SUB_LAYER.DECAL`、分發分支、`AssetManager.getBlastZone`。
+- 混沌旗標 `isChaosStyle`／`op.vChaos`／GroundDrape `chaos`（零件不吃顏色，沒有繪製器讀它）。
+- 舊貼圖：`VFXFactory.getTexture` 只留 GLOW_SPRITE（天氣、AOE 體積光）、CRACKS（危害裂痕）、BEAM（森林背景光束）；`ParticlePainter` 刪 8 個方法；`IconPainter`、`GeometryPainter` 整檔刪；`SurfacePainter.drawFog`、`VolumePainter.drawHexRipple`、`UnitFlightPainter.drawFlyingAnchor`、`AssetManager.getGlowSprite`。
+- `BillboardPainter` 只剩天氣（參數 `BILLBOARD`）；`materialConfig` 刪 ice／poison／void／particles／lightning／beam／unit.armor 與 6 個型別。
+- 結果：除錯點 0 次；battle_frozen 0.21%（與 V4 相同）、地形 0 差異。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

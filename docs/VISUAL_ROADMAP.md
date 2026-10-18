@@ -46,6 +46,7 @@
 - 不動 `TrajectoryMath` 與 RenderSpec §5 的發射點漂浮位移；驗收：`beam-align-shot` 發射點 0 px、`verify:coords` 不升。
 
 ### V5 直接繪製器逐項決策（保留程序化／改零件／改烘焙）
+- ✅ V5a 2026-10-19：舊管線死碼（舊粒子型別、貼花、舊貼圖、`IconPainter`／`GeometryPainter`），見 VFX_PIPELINE_MAP §4.12。
 | 繪製器 | 現況 | 建議 |
 | :-- | :-- | :-- |
 | `UnitAuraPainter` 詠唱環 | 每幀描邊六角 | 烘成旋轉 sigil 零件（懸空平面機制不動） |
