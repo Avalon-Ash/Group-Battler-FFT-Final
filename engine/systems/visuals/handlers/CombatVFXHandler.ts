@@ -53,9 +53,9 @@ export class CombatVFXHandler {
             } else if (!event.skill?.projectileSpeed && event.skill?.ccType !== 'DOT') {
                 // Impact VFX now handled in SkillExecutor.resolveHit
                 camera.addTrauma(isMassive ? 0.45 : (isCrit ? 0.3 : 0.12));
-            } else if (event.skill?.ccType === 'DOT') {
-                vfx.playEffect('FX_STATUS_BURN_LOOP', target.x, target.y, target.z, event.color, undefined, undefined, hexKey);
             }
+            // DOT（BURN／POISON）的持續視覺由 StatusPartPainter 依 dotType 逐幀繪製狀態零件；
+            // 這裡曾在每一跳再播 FX_STATUS_BURN_LOOP，燒傷因此畫兩次、毒也冒火花（docs/VFX_PIPELINE_MAP.md §4.1）。
             return;
         }
 

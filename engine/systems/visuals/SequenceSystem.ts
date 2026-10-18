@@ -5,6 +5,7 @@ import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
 import { PHYSICS } from "../../../constants";
+import { Team } from "../../../types";
 
 interface QueuedAction {
     executeAt: number;
@@ -74,6 +75,10 @@ export class SequenceSystem {
         }
     }
 
+    private teamOf(sourceId: string | undefined, engine: GameEngine): Team | undefined {
+        return sourceId ? engine.agents.find(a => a.id === sourceId)?.team : undefined;
+    }
+
     private dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine, sourceId?: string) {
         const effectId = action.id || 'FX_HIT_GENERIC';
         
@@ -85,15 +90,15 @@ export class SequenceSystem {
                 break;
             case 'BEAM':
                 if (source) {
-                    const team = sourceId ? engine.agents.find(a => a.id === sourceId)?.team : undefined;
-                    vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4, action.scale ?? 1, team);
+                    vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4, action.scale ?? 1, this.teamOf(sourceId, engine));
                 }
                 break;
             case 'SHAKE':
                 engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || 0.3 });
                 break;
             case 'GRID_PULSE':
-                vfx.playEffect(action.color?.includes('#3b') ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
+                // 依施法者陣營選格子脈衝；曾用 action.color 是否含 '#3b' 判斷，29 個藍方技能播成紅色（docs/VFX_PIPELINE_MAP.md §2.3）
+                vfx.playEffect(this.teamOf(sourceId, engine) === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
                 break;
             case 'HEAVEN_FALL':
                 const h = action.height || 1200;
