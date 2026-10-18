@@ -2,7 +2,7 @@ import { VFXAsset } from "../../../types/VFXSchema";
 import type { VFXRampId } from "../parts/vfxPalette";
 import { Team } from "../../../types";
 import { part } from "./ult_parts";
-import { flash, spray } from "./basic_parts";
+import { flash, spray, groundRing, debris } from "./basic_parts";
 
 // ==========================================
 // 共用特效（零件版）：格子脈衝、出手閃光、治療、吸血、瞬移、燒魔；以及奧義 HEAVEN_FALL 的隕石。
@@ -74,6 +74,26 @@ export const SHARED_PART_VFX: Record<string, VFXAsset> = {
         ],
     },
 
+    // 通用撞擊（死亡爆點 UnitShatter、奧義詠唱中斷）：中性灰白一閃＋貼地環＋碎石（原 SHOCKWAVE／RUBBLE／GLOW）
+    'FX_HIT_GENERIC': {
+        id: 'FX_HIT_GENERIC',
+        emitters: [
+            flash('STATUS_SLATE', 30, 0.12),
+            groundRing('STATUS_SLATE', 26, 1.5, 0.22),
+            debris('rock', 'STATUS_SLATE', [4, 6], 5, [150, 300], [0.3, 0.5]),
+        ],
+    },
+
+    // 護盾吸收：冰藍六角碎晶＋貼地漣漪＋小閃（原 HEX_SHARD／RIPPLE）
+    'FX_HIT_SHIELD_SPARK': {
+        id: 'FX_HIT_SHIELD_SPARK',
+        emitters: [
+            flash('LION_ICE', 20, 0.14),
+            groundRing('LION_ICE', 24, 1.8, 0.32, { thickness: 4 }),
+            debris('hex', 'LION_ICE', [6, 8], 5, [150, 250], [0.2, 0.32]),
+        ],
+    },
+
     // 燒魔（DAMAGE text=BURN，sr_a4）：虛紫一閃＋六道光芒＋紫色火星（原 SHOCKWAVE＋SPARK）
     'FX_MANA_BURN': {
         id: 'FX_MANA_BURN',
@@ -106,6 +126,24 @@ export const METEOR_PARTS: Record<Team, { rockRamp: VFXRampId; glowRamp: VFXRamp
     [Team.BLUE]: { rockRamp: 'LION_HOLY', glowRamp: 'LION_HOLY' },
     [Team.RED]: { rockRamp: 'ASH_PHYSICAL', glowRamp: 'ASH_FIRE' },
 };
+/**
+ * 死亡碎裂（UnitShatter）的零件動畫與尺寸比例：粒子仍由 UnitShatter 逐顆生成（保留受擊方向噴濺與預算降階），
+ * 外形換成零件；色階來自 factionSkin 的 death.ramps。
+ */
+export const DEATH_PARTS = {
+    /** 塵煙：smoke 半徑＝粒子 size × PUFF_RADIUS */
+    PUFF_RADIUS: 0.5,
+    PUFF_SEEDS: 3,
+    PUFF_ANIM: { scaleFrom: 0.6, scaleTo: 1.4, fadeIn: 0.15, fadeOut: 0.6, alpha: 0.55 },
+    /** 火花：hard glow 半徑＝粒子 size */
+    SPARK_ANIM: { fadeOut: 0.6 },
+    /** 靈魂光（SPIRIT_RISE）：柔光上升 */
+    SOUL_RADIUS: 36,
+    SOUL_ANIM: { scaleFrom: 0.7, scaleTo: 1.3, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 },
+    /** 血滴（BLOOD_SPRAY）：droplet 大小＝粒子 size */
+    BLOOD_ANIM: { fadeOut: 0.4 },
+} as const;
+
 export const METEOR_SIZE = {
     /** 岩塊 shard size（半徑）＝粒子 size × ROCK */
     ROCK: 0.32,

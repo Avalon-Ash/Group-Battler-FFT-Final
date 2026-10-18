@@ -18,6 +18,10 @@ import { FACTION_VISUALS } from '../vfx/faction_visuals';
 import { UNIT_APPEARANCE } from './appearance';
 import { BODY_TYPE_PROFILE } from './appearance/bodyTypes';
 import type { GlyphStyleId } from './classGlyphs';
+import type { VFXRampId, VFXNeutralId } from '../vfx/parts/vfxPalette';
+
+/** 死亡碎裂的零件色階（UnitShatter）：火花、靈魂光（SPIRIT_RISE）、血滴（BLOOD_SPRAY）、塵煙 */
+export interface DeathPartRamps { spark: VFXRampId; spirit: VFXRampId; blood: VFXRampId; puff: VFXNeutralId }
 
 /** Manifest 與檔案路徑使用的陣營鍵（與單位圖集 manifestKey 前綴一致） */
 export type FactionKey = 'BLUE' | 'RED';
@@ -154,7 +158,7 @@ export interface FactionSkin {
     projection: ProjectionSkin;
     shield: { strokeColor: string };
     hud: { top: string; bottom: string; glow: string; border: string };
-    death: { style: DeathStyle; burstColor: string; shatterColors: string[]; spiritColor: string; bloodColor: string };
+    death: { style: DeathStyle; burstColor: string; shatterColors: string[]; spiritColor: string; bloodColor: string; ramps: DeathPartRamps };
     /** 精靈尚未載入時的退路圓盤色 */
     fallbackBodyColor: string;
 }
@@ -168,6 +172,7 @@ interface FactionStyleDef {
     pedestalStyle: PedestalStyle;
     projectionStyle: ProjectionStyle;
     deathStyle: DeathStyle;
+    deathRamps: DeathPartRamps;
     thickness: number;
     sideColor: string;
     sideShadow: string;
@@ -188,6 +193,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         pedestalStyle: 'LIONHEART_HEX',
         projectionStyle: 'LIONHEART_SEAMS',
         deathStyle: 'SPIRIT_RISE',
+        deathRamps: { spark: 'LION_HOLY', spirit: 'LION_HOLY', blood: 'ASH_BLOOD', puff: 'DUST' },
         thickness: 7,
         sideColor: '#1e3a8a',
         sideShadow: '#0b1640',
@@ -215,6 +221,7 @@ const FACTION_STYLE: Record<FactionKey, FactionStyleDef> = {
         pedestalStyle: 'ASHEN_BROKEN_HEX',
         projectionStyle: 'ASHEN_EMBERS',
         deathStyle: 'BLOOD_SPRAY',
+        deathRamps: { spark: 'ASH_FIRE', spirit: 'ASH_VOID', blood: 'ASH_BLOOD', puff: 'ASH' },
         thickness: 7,
         sideColor: '#1c1917',
         sideShadow: '#0c0a09',
@@ -295,6 +302,7 @@ function buildSkin(team: Team, role: Role, body: BodyTypeId): FactionSkin {
             shatterColors: fv.deathShatterColors,
             spiritColor: fv.deathSpiritColor,
             bloodColor: fv.ambientGlowColor ?? fv.deathSpiritColor,
+            ramps: style.deathRamps,
         },
         fallbackBodyColor: palette.main,
     };

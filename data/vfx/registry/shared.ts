@@ -1,7 +1,7 @@
 
 import { VFXAsset } from "../../../types/VFXSchema";
 
-// 格子脈衝、出手閃光、治療、吸血、瞬移、燒魔已改零件版，見 shared_parts.ts
+// 格子脈衝、出手閃光、治療、吸血、瞬移、燒魔、通用撞擊、護盾火花已改零件版，見 shared_parts.ts；詠唱中斷見 cast_break.ts
 export const SHARED_VFX: Record<string, VFXAsset> = {
     'FX_SPAWN_BLUE': {
         id: 'FX_SPAWN_BLUE',
@@ -48,52 +48,6 @@ export const SHARED_VFX: Record<string, VFXAsset> = {
         description: 'Active casting aura',
         emitters: [
             { particleType: 'SPARK', count: [2, 4], lifetime: [0.5, 0.9], size: [1, 3], speed: [5, 20], vz: [50, 100], colors: ['#60a5fa', '#dbeafe'], shape: 'CIRCLE', shapeRadius: 20, blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_CAST_BREAK': {
-        id: 'FX_CAST_BREAK',
-        description: '能量崩解粒子：具備物理重力感的碎裂',
-        emitters: [
-            { 
-                particleType: 'SHARD', count: [15, 20], lifetime: [0.5, 0.9], 
-                size: [4, 10], speed: [150, 450], vz: [400, 800], 
-                gravity: 4500, // 極高重力，產生沉重的崩裂感
-                colors: ['#ffffff', '#cbd5e1'], // 基本色會被 Skill Color 覆蓋
-                shape: 'BURST_DIR', delay: 0, vRotation: [20, 50] 
-            },
-            {
-                particleType: 'SMOKE_PUFF', count: [4, 6], lifetime: [0.3, 0.5],
-                size: [20, 35], speed: [50, 100], vz: [50, 150],
-                colors: ['#64748b'], shape: 'CIRCLE', shapeRadius: 10,
-                blendMode: 'screen', delay: 0
-            }
-        ]
-    },
-    'FX_HIT_GENERIC': {
-        id: 'FX_HIT_GENERIC',
-        description: 'Precise physical impact with airborne debris',
-        emitters: [
-            { particleType: 'SHOCKWAVE', count: 1, lifetime: [0.15, 0.25], size: [30, 45], colors: ['#ffffff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 },
-            { particleType: 'RUBBLE', count: [4, 6], lifetime: [0.3, 0.5], size: [4, 8], speed: [150, 300], vz: [200, 500], gravity: 3000, colors: ['#57534e', '#292524', '#78716c'], shape: 'BURST_DIR', vRotation: [20, 60], delay: 0 },
-            { particleType: 'GLOW', count: 1, lifetime: [0.08, 0.12], size: [50, 70], colors: ['#fff'], speed: [0, 0], shape: 'POINT', blendMode: 'screen', delay: 0 }
-        ]
-    },
-    'FX_HIT_SHIELD_SPARK': {
-        id: 'FX_HIT_SHIELD_SPARK',
-        description: '能量護盾受擊：產生藍色碎晶與擴散漣漪',
-        emitters: [
-            { 
-                particleType: 'HEX_SHARD', count: [8, 12], lifetime: [0.2, 0.3], 
-                size: [4, 10], speed: [150, 250], vz: [100, 300], 
-                colors: ['#bae6fd', '#3b82f6', '#ffffff'], 
-                shape: 'BURST_DIR', blendMode: 'screen', delay: 0 
-            },
-            { 
-                particleType: 'RIPPLE', count: 1, lifetime: [0.3, 0.4], 
-                size: [40, 60], speed: [0, 0], 
-                colors: ['#3b82f6'], 
-                shape: 'POINT', blendMode: 'screen', delay: 0 
-            }
         ]
     },
     'FX_HIT_FIRE': {

@@ -33,7 +33,7 @@ export const VFX_LIBRARY = {
         { key: 'HEAVEN_FALL', name: '天降物理件', desc: '模擬從 1200px 高度墜落的物體，支持重力係數與落地衝擊波。', visuals: ['Gravity', 'Impact'] },
         { key: 'BEAM_PROJ', name: '光束投影', desc: '高精度向量雷射，支持螺旋軌跡 (Helix) 與粒子採樣。', visuals: ['Helix', 'Laser'] },
         { key: 'GRID_RIFLE', name: '網格脈衝', desc: '直接修改底層網格材質屬性的渲染指令。', visuals: ['Shader', 'Flow'] },
-        { key: 'FX_CAST_BREAK', name: '詠唱崩解', desc: '能量崩解粒子：具備物理重力感的碎裂。', visuals: ['Gravity', 'Shatter'] }
+        { key: 'FX_CAST_BREAK_BURST_BLUE', name: '詠唱崩解', desc: '能量崩解：重力很重的六角碎片＋灰煙（紅方為 _RED）。', visuals: ['Gravity', 'Shatter'] }
     ] as VFXEntry[],
 
     IMPERIAL_FLAVOR: [

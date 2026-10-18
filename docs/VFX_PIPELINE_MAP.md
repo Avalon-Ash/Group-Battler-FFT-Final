@@ -153,10 +153,18 @@ VFXSystem.state.particles
 - 對照：`node tools/vfx/fx-shot.mjs --keys=FALL:BLUE,FALL:RED,FX_MANA_BURN --body=FX_MANA_BURN`。
 - 實戰仍有舊粒子：死亡碎裂（`UnitShatter`：`FX_HIT_GENERIC`＋直接生成的 SHARD／SPARK／SMOKE_PUFF）、`FX_HIT_SHIELD_SPARK`、`FX_CAST_BREAK` 共用層。
 
+### 4.7 死亡碎裂、護盾火花、詠唱中斷共用層之後
+登記表與實戰粒子全部零件化：探針的實戰段已沒有任何舊後端來源（天氣 ATMOSPHERE 屬環境氛圍，另計）。
+- `UnitShatter`：仍逐顆生成（保留受擊方向噴濺與預算降階），外形換成零件——塵煙 smoke、火花 hard glow、靈魂光、血滴 droplet；色階 `factionSkin` 的 `death.ramps`，動畫 `shared_parts.ts` 的 `DEATH_PARTS`。
+- `FX_HIT_GENERIC`（中性 `STATUS_SLATE` 閃光＋貼地環＋碎石）、`FX_HIT_SHIELD_SPARK`（`LION_ICE` 六角碎晶＋漣漪；播放點改到身體高度、漣漪落在格子地面，與一般命中同錨點）。
+- 舊的共用 `FX_CAST_BREAK` 改為 `FX_CAST_BREAK_BURST_BLUE／RED`（`cast_break.ts`，在施法者核心高度爆散）。
+- 對照：`fx-shot.mjs --keys=DEATH:BLUE,DEATH:RED --t=0.05,0.2,0.45,0.8,1.3`；verify:coords 振盪 41 對、靜止 0、sink 0。
+- 已知：冰面上 `lighter` 混合的六角碎片偏白（與地面詠唱中斷碎片相同）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
 3. ✅ **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
-4. ✅ **HEAVEN_FALL 改零件**（落下時間依高度，維持由序列直接生成，零件規格放資料檔）。下一批：死亡碎裂、護盾火花、詠唱中斷共用層。
+4. ✅ **HEAVEN_FALL 改零件**（落下時間依高度，維持由序列直接生成，零件規格放資料檔）。死亡碎裂、護盾火花、詠唱中斷共用層 ✅。
 5. **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
 6. 清死鍵（§2.6）與死欄位（§2.2）。

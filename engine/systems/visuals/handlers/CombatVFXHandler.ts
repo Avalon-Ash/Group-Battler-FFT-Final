@@ -16,7 +16,8 @@ export class CombatVFXHandler {
             const hitZ = groundZ;
 
             if (shieldAbsorb > 0) {
-                vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, hitZ, undefined, undefined, undefined, hexKey);
+                // 與一般命中同一套錨點：看板在身體高度、貼地漣漪落在格子地面
+                vfx.playEffect('FX_HIT_SHIELD_SPARK', hitX, hitY, target.z, undefined, hitZ, undefined, hexKey);
             } else {
                 // 零件特效：看板貼在受擊者身體高度，貼地零件（衝擊環）落在格子地面
                 vfx.playEffect(hitFX, hitX, hitY, target.z, undefined, hitZ, undefined, hexKey);

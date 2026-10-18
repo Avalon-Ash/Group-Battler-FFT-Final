@@ -82,7 +82,7 @@ describe('RNG split: simulation stream vs presentation stream', () => {
             engine.agentManager.addAgent(engine, Team.RED, right[i].q, right[i].r, 400, roles[i]);
         }
         engine.play();
-        const effects = ['FX_HIT_RED_HEAVY', 'FX_ACTIVE_BLUE_HOLY_SMITE', 'FX_CAST_BREAK'];
+        const effects = ['FX_HIT_RED_HEAVY', 'FX_ACTIVE_BLUE_HOLY_SMITE', 'FX_CAST_BREAK_BURST_BLUE'];
         for (let t = 0; t < 900; t++) {
             if (storm) {
                 for (let k = 0; k < 40; k++) Math.random();
