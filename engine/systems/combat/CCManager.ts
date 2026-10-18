@@ -137,10 +137,7 @@ export const CCManager = {
                     target.tauntTargetId = source.id; 
                     
                     // --- 2. State Machine Overrides ---
-                    // Force target to taunter immediately
-                    target.target = source;
-                    target.targetHex = null;
-                    
+                    // Target lock lives in TargetingSystem.updateTarget (BT HasTarget re-targets while tauntTimer > 0)
                     // Interrupt current action
                     engine.combat.breakCast(target, engine);
                     

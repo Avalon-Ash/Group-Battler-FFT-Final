@@ -29,8 +29,10 @@ export const BTConditions: Record<string, BTConditionFn> = {
             a._savedCombatTarget = null;
         }
 
-        if (a.target && a.target.hp > 0 && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
-            return true; 
+        // 嘲諷中且目標不是嘲諷者：交給 TargetingSystem 的嘲諷強制鎖定重選（CCManager 不再直接寫 target）
+        const tauntLocked = a.tauntTimer > 0 && a.tauntTargetId !== null && a.target?.id !== a.tauntTargetId;
+        if (!tauntLocked && a.target && a.target.hp > 0 && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
+            return true;
         }
         // target 死亡、出界或地塊消失：立刻重新選目標
         engine.updateTarget(a);

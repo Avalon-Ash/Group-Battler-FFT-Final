@@ -156,6 +156,8 @@ export class TargetingSystem {
             const taunter = spatial.getAgents().find(ag => ag.id === a.tauntTargetId);
             if (taunter && taunter.hp > 0 && !taunter.banished && !taunter.outOfBounds) {
                 a.target = taunter;
+                // 嘲諷鎖定期間不追逐殘留的地塊目標（逃生中的除外）
+                if (!inDanger && a.castingSkillIdx === -1) a.targetHex = null;
                 return;
             }
         }
