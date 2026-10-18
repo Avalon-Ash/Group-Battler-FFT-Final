@@ -177,6 +177,14 @@ VFXSystem.state.particles
 - 結果：實戰＋150 技能共 10,824 顆粒子，全是 PART（7,704）或天氣 ATMOSPHERE（3,120）；棘輪名單：舊後端資產 0、直接生成的舊型別只剩 ATMOSPHERE／BEAM（已掛零件）／GENERIC_DEBUG。
 - 保真 0 變化（未重錄）。
 
+### 4.11 V4（投射物零件化）之後（2026-10-19）
+- 新零件 `missile`（`PartSpec`／`PartBakers.bakeMissile`／`VFX_PARTS.MISSILE`）：箭、能量彈、法球、飛斧、炸彈、血鉤六種外形，指向 +x、錨點在中心；實體外形一般混合、能量外形加法。
+- 投射物表收斂成一張 SSOT `data/vfx/projectile_visuals.ts`（原本 `projectiles/shared／imperial／covenant.ts` 的值全被同檔覆寫表蓋掉，是死資料）：軌跡參數＋`look`（外形、長度、色階或依陣營的色階、拖尾 streak／smoke／none、頭部光暈）。
+- 繪製 `ProjectilePartPainter`：光痕＝光束磚沿取樣點串接、煙＝煙零件逐點蓋、頭部 glow、本體依速度拉長；色階由 `op.pTeam` 選，不再從技能顏色字串猜陣營。參數 `PROJECTILE_RENDER`。
+- 刪除：`ProjectileDrawer`（每幀漸層＋顏色猜陣營）、`graphics/painters/ProjectilePainter`、`AssetManager.getProjectile`／`PROJECTILE_TEXTURE_KEYS`、`VFXFactory` 的 ARROW／FIREBALL／BOLT／BOMB 貼圖。模擬端沒人讀的 `Projectile.trail` 一併拿掉。
+- 修正：`dipAmount` 從未傳進 `trajectoryInfo`（HOVER_DIP 永遠用預設 20）；表裡的 `speed`、`renderType`、`colorOverride`、`trailLength` 欄位從未被讀，已移除（速度只看 `skill.projectileSpeed`）。
+- 驗收：`fx-shot --keys=PROJ:<鍵>:<陣營>` 18 組新舊對照（`tools/ui-e2e/out/vfx/proj_cmp.png`）；實戰 5 張地圖＋150 技能 0 頁面錯誤；battle_frozen 0.21%（門檻內，未重錄）；perf-ab 通過。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

@@ -41,7 +41,7 @@
 - 遷移後沒人走的 `ProceduralPainter`／`GroundPainter`／`BillboardPainter` 分支：先用探針證明零呼叫再刪（教訓：刪舊管線前 `git grep` 證明零引用）。
 - 無陣營後備光束：給中性色階後也走光束零件，`ProceduralPainter.drawBeam` 可整段刪。
 
-### V4 投射物零件化
+### V4 投射物零件化（✅ 2026-10-19，見 VFX_PIPELINE_MAP §4.11）
 - `ProjectileDrawer`（14 種外觀：箭、冰箭、法球、斧、血鉤、散射…；每幀漸層＋光暈貼圖）→ 投射物零件（本體 sprite＋拖尾零件）。
 - 不動 `TrajectoryMath` 與 RenderSpec §5 的發射點漂浮位移；驗收：`beam-align-shot` 發射點 0 px、`verify:coords` 不升。
 

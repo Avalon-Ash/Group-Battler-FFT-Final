@@ -14,7 +14,7 @@
 import { Agent } from "../game";
 import type { UnitFrame } from "./frame/UnitFrame";
 import { Particle } from "../systems/vfx/state";
-import { Projectile, Point, GroundHazard } from "../../types";
+import { Projectile, Point, GroundHazard, Team } from "../../types";
 import type { TerrainTheme } from "../../constants";
 import type { ActiveZone } from "../systems/ZoneSystem";
 
@@ -66,10 +66,10 @@ export class RenderOp {
     particle: Particle | null = null;
     vProgress: number = 0;
     vChaos: boolean = false;
-    pVisX: number = 0; pVisY: number = 0; pVisShadowY: number = 0;
-    pSkillVis: string = ''; pColor: string = '';
+    pVisX: number = 0; pVisY: number = 0;
+    /** 投射物外觀鍵（PROJECTILE_VISUALS）與施法者陣營（共用外觀依陣營選色階） */
+    pLookKey: string = ''; pTeam: Team = Team.BLUE;
     pIsUlt: boolean = false; pAngle: number = 0; pSpin: number = 0;
-    pScale: number = 1.0; 
     pSpeed: number = 0;
     pTrail: Point[] = []; 
     proj: Projectile | null = null;
@@ -90,8 +90,7 @@ export class RenderOp {
         this.alpha = 1.0;
         this.particle = null;
         this.proj = null;
-        this.pIsUlt = false; 
-        this.pScale = 1.0;
+        this.pIsUlt = false;
         this.oRange = false;
         this.oHover = false;
         this.oWarning = false;
@@ -106,7 +105,7 @@ export class RenderOp {
         this.gHalfW = 0; this.gHalfH = 0;
         this.vChaos = false;
         this.ttheme = null;
-        // [PERF5] 重用自有陣列，不每幀配置；只有 ProjectileDrawer 在同一幀內區域讀取
+        // [PERF5] 重用自有陣列，不每幀配置；只有 ProjectilePartPainter 在同一幀內區域讀取
         this.pTrail.length = 0;
     }
 }

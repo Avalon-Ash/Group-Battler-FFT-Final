@@ -126,17 +126,16 @@ export interface Projectile {
     skill: Skill;
     sourceId: string;
     team: Team;
-    trail: Point[];
 
-    // NEW: Embedded Trajectory Configuration (The "How" of movement)
+    /** 生成時鎖定的軌跡參數（TrajectoryMath）與外觀鍵（PROJECTILE_VISUALS 的鍵，繪製端查 look） */
     trajectoryInfo: {
         type: 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
         arcHeight?: number;
         wobbleFreq?: number;
         wobbleAmp?: number;
         spinSpeed?: number;
-        spriteKey?: string; // Cache visual key
-        scale?: number;
+        dipAmount?: number;
+        lookKey: string;
     };
 }
 

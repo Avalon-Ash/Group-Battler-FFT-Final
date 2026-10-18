@@ -803,6 +803,33 @@ export const UNIT_SPRITE = {
 } as const;
 
 /**
+ * 投射物繪製（ProjectileRenderer 取樣、ProjectilePartPainter 繪製）。外觀表在 data/vfx/projectile_visuals.ts。
+ * 本體沿螢幕上的飛行方向旋轉（自轉的投射物改用自轉角），速度越快拉得越長（動態模糊感）。
+ */
+export const PROJECTILE_RENDER = {
+    /** 拖尾取樣點數（奧義乘 ULT_TRAIL_MULT）；間距見 VFX_RENDER.TRAIL_STEP_DIST */
+    TRAIL_SAMPLES: 12,
+    ULT_TRAIL_MULT: 2,
+    /** 取樣的 t 步長上下限（飛得越遠步長越小） */
+    TRAIL_T_STEP_MIN: 0.005,
+    TRAIL_T_STEP_MAX: 0.05,
+    /** 奧義投射物整體放大 */
+    ULT_SCALE: 1.5,
+    /** 速度拉伸：stretch = 1 + max(0, 速度 − SPEED_REF) / SPEED_SPAN；垂直方向壓到 max(SQUISH_MIN, 1/stretch) */
+    STRETCH_SPEED_REF: 800,
+    STRETCH_SPEED_SPAN: 2500,
+    SQUISH_MIN: 0.4,
+    /** 光痕拖尾的頭端不透明度；煙拖尾的頭端不透明度與尾端放大倍率 */
+    STREAK_ALPHA: 1,
+    SMOKE_ALPHA: 0.9,
+    SMOKE_GROW: 1.8,
+    /** 煙拖尾每隔幾個取樣點蓋一團（越大越省） */
+    SMOKE_EVERY: 2,
+    /** 頭部光暈不透明度 */
+    GLOW_ALPHA: 0.9,
+} as const;
+
+/**
  * 單位本體的純繪製動態（UnitBodyPainter）：只在單位局部座標內套用，不寫 Agent、不進 UnitFrame 與排序鍵，
  * 發射點／受擊點（投影中心）不跟著浮動（RenderSpec §4）。
  */

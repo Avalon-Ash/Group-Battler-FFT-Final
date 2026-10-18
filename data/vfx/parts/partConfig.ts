@@ -51,5 +51,22 @@ export const VFX_PARTS = {
      * 虛線（死光）在 ±w×DASH_OFFSET，週期需整除 TILE_LEN；鋸齒（閃電）兩端回到中線；珠鏈（血鏈）每 BEAD_PERIOD 一顆。
      * 執行期整排磚以 SCROLL_PX_S 往終點捲動（舊版虛線 lineDashOffset 的速度），兩端裁成尖頭（長度＝可見高度×TIP_RATIO）。
      */
+    /**
+     * 投射物本體（指向 +x，長度 L）：HEIGHT 是外框高度 / L；其餘是各外形的比例（相對 L）。
+     * 箭：桿身＋箭頭＋尾羽；能量彈：拉長六角晶體；法球：光暈＋六角核心；飛斧：柄＋月牙刃；炸彈：球身＋引信火花；血鉤：鉤頭＋短索。
+     */
+    MISSILE: {
+        HEIGHT: { arrow: 0.24, bolt: 0.24, orb: 1, axe: 0.72, bomb: 0.9, hook: 0.5 } as const,
+        OUTLINE_W: 1,
+        ARROW: { SHAFT_W: 0.05, HEAD_START: 0.22, HEAD_HALF: 0.11, FLETCH_LEN: 0.2, FLETCH_HALF: 0.1 },
+        BOLT: { WAIST_HALF: 0.1, FRONT: 0.22, BACK: 0.28, CORE_SCALE: 0.55 },
+        ORB: { CORE: 0.3, HALO_ALPHA: 0.55 },
+        AXE: { HANDLE_W: 0.06, BLADE_START: 0.12, BLADE_HALF: 0.34, BLADE_BULGE: 0.12 },
+        BOMB: { BODY: 0.34, FUSE_LEN: 0.16, SPARK: 0.09 },
+        HOOK: { R: 0.2, LINE_W: 0.08, SHAFT_FROM: -0.5, BARB: 0.12 },
+    },
     BEAM: { TILE_LEN: 64, MAIN_RATIO: 1.2, HALO_RATIO: 2.4, HALO_ALPHA: 0.22, CORE_RATIO: 0.2, TIP_RATIO: 0.8, DASH_PERIOD: 32, DASH_ON: 21, DASH_W: 1, DASH_OFFSET: 1, DASH_ALPHA: 0.8, ZIGZAG_POINTS: 8, ZIGZAG_AMP: 0.6, ZIGZAG_MAIN_W: 0.6, ZIGZAG_CORE_W: 0.25, BEAD_PERIOD: 16, BEAD_R: 0.45, SCROLL_PX_S: 500 },
 } as const;
+
+/** 投射物本體外形：箭、能量彈、法球、飛斧、炸彈、血鉤（PartSpec 的 missile 零件、data/vfx/projectile_visuals.ts） */
+export type MissileShape = keyof typeof VFX_PARTS.MISSILE.HEIGHT;

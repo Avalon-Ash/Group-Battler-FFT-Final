@@ -13,7 +13,7 @@ import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath, Point3D } from "../../../math/VisualMath";
-import { VFX_RENDER, ISO_SCALE_Y } from "../../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y, PROJECTILE_RENDER } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -73,16 +73,15 @@ export const ProjectileRenderer = {
             op.pVisX = current3D.x;
             op.pVisY = visY;
             op.pAngle = visAngle;
-            op.pSkillVis = traj.spriteKey || p.skill.visual || 'BOLT';
-            op.pColor = p.skill.color;
+            op.pLookKey = traj.lookKey;
+            op.pTeam = p.team;
             op.pIsUlt = p.skill.tag === 'ULT';
             op.pSpin = traj.spinSpeed ? (p.t * p.totalDuration * traj.spinSpeed) : 0;
-            op.pScale = traj.scale || 1.0; 
-            op.pSpeed = speed; // Pass speed for motion blur scaling
+            op.pSpeed = speed; // 速度拉伸用
             
             // 4. Trails (Calculated purely visually backwards from SSOT position)
             op.pTrail.length = 0; // [PERF5] 重用 RenderOp 自有陣列
-            const trailSamples = p.skill.tag === 'ULT' ? 24 : 12;
+            const trailSamples = PROJECTILE_RENDER.TRAIL_SAMPLES * (p.skill.tag === 'ULT' ? PROJECTILE_RENDER.ULT_TRAIL_MULT : 1);
             
             if (trailSamples > 0) {
                 // Determine step size based on actual pixel distance to ensure smooth physical gap 
@@ -92,7 +91,7 @@ export const ProjectileRenderer = {
                 let step = optimalStepDist / Math.max(1, dist);
                 
                 // Clamp step to avoid excessive iterations, but ensure dense enough for fast projectiles
-                step = Math.max(0.005, Math.min(0.05, step));
+                step = Math.max(PROJECTILE_RENDER.TRAIL_T_STEP_MIN, Math.min(PROJECTILE_RENDER.TRAIL_T_STEP_MAX, step));
 
                 for (let j = 1; j <= trailSamples; j++) {
                     const tPast = Math.max(0, p.t - j * step);

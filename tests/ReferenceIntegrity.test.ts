@@ -21,7 +21,6 @@ import { AOE_BREAK, aoeBreakFxId, castBreakFxId } from '../data/vfx/registry/cas
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { STANDARD_AI_PROFILE, BTDef } from '../data/ai_profiles';
 import { BTConditions, BTActions } from '../engine/ai/BTRegistry';
-import { PROJECTILE_TEXTURE_KEYS } from '../engine/assets';
 import { SCENE_DB } from '../data/scenes';
 import { OBSTACLE_DB } from '../data/obstacles';
 import { DOT_COLORS, OBSTACLE_STYLES, TERRAIN_THEMES, TERRAIN_SKIN } from '../constants';
@@ -96,12 +95,10 @@ const FAMILIES: Record<string, () => string[]> = {
         .map(s => [s.id, s.visualProjectileEffect || s.visual || 'BOLT'] as const)
         .filter(([, key]) => !PROJECTILE_VISUALS[key])
         .map(([id, key]) => `${id}: ${key}`)),
-    /** 實際會被查到的投射物定義，其精靈鍵（spriteKey || 定義鍵）必須有專屬貼圖，否則 AssetManager.getProjectile 退回 BOLT。 */
-    'projectile.sprite': () => uniqSorted(Object.keys(PROJECTILE_VISUALS)
-        .filter(k => reachableProjectileKeys().has(k))
-        .map(k => [k, PROJECTILE_VISUALS[k].spriteKey || k] as const)
-        .filter(([, sprite]) => !PROJECTILE_TEXTURE_KEYS.includes(sprite))
-        .map(([k, sprite]) => `${k}: ${sprite}`)),
+    /** 投射物外觀（零件版）：本體有長度、有拖尾就要有寬度、煙拖尾要指定煙色（外形與色階由型別保證）。 */
+    'projectile.look': () => uniqSorted(Object.entries(PROJECTILE_VISUALS)
+        .filter(([, d]) => !(d.look.size > 0) || (d.look.trail !== 'none' && !(d.look.trailWidth > 0)) || (d.look.trail === 'smoke' && !d.look.smoke))
+        .map(([k]) => k)),
     /** 沒有任何技能能查到的投射物定義（死資料）。 */
     'projectile.orphan': () => Object.keys(PROJECTILE_VISUALS).filter(k => !reachableProjectileKeys().has(k)).sort(),
 

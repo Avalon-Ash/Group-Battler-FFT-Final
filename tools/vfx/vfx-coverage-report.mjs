@@ -40,7 +40,7 @@ for (const id of skills) {
     const sm = sourcesOf(data[id]);
     const leg = legacyOf(sm);
     for (const s of leg) legacyFreq.set(fmtSrc(s), [...(legacyFreq.get(fmtSrc(s)) || []), id]);
-    rows[tagOf(id)].push({ id, total: sm.size, leg, partOnly: leg.length === 0 && sm.size > 0, empty: sm.size === 0, proj: !!data[id].painters['ProjectileDrawer.draw'] || Object.keys(data[id].painters).some((p) => p.startsWith('ProjectileDrawer')) });
+    rows[tagOf(id)].push({ id, total: sm.size, leg, partOnly: leg.length === 0 && sm.size > 0, empty: sm.size === 0, proj: Object.keys(data[id].painters).some((p) => p.startsWith('ProjectilePartPainter')) });
 }
 
 console.log(`# 執行期覆蓋率（${skills.length} 技能）\n`);

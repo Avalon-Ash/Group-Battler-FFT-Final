@@ -14,7 +14,7 @@ import { GridOverlays } from "./grid/GridOverlays";
 import { HazardPainter } from "./grid/painters/HazardPainter";
 import { SpriteManager } from "../sprites";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
-import { ProjectileDrawer } from "./ProjectileDrawer";
+import { ProjectilePartPainter } from "../systems/vfx/renderers/painters/ProjectilePartPainter";
 import { AssetManager } from "../assets";
 import { ENV_SPRITE } from "../../constants";
 import { HexLayout } from "../../types";
@@ -92,7 +92,7 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.PROJECTILE:
-                ProjectileDrawer.draw(ctx, op, globalTime);
+                ProjectilePartPainter.draw(ctx, op);
                 break;
         }
     }

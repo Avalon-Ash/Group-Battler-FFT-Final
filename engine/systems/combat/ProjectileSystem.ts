@@ -2,7 +2,7 @@ import { Agent, GameEngine } from "../../game";
 import { Projectile, Skill, Team } from "../../../types";
 import {
   PROJECTILE_VISUALS,
-  DEFAULT_PROJECTILE,
+  DEFAULT_PROJECTILE_KEY,
 } from "../../../data/vfx/projectile_visuals";
 import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
@@ -62,14 +62,6 @@ export class ProjectileSystem {
 
     // Use SSOT evaluate function in Pure 3D space
     const pos = TrajectoryMath.evaluate(p.trajectoryInfo, start, end, p.t);
-
-    // Save history for trail rendering BEFORE updating the current position
-    // We only want the last ~10 positions for a fast projectile trail
-    if (p.x !== 0 && p.y !== 0) {
-        // Trail expects projected screen Y for simplicity in existing trail renderers
-        p.trail.unshift({ x: p.x, y: p.y - p.z });
-        if (p.trail.length > 12) p.trail.pop();
-    }
 
     p.x = pos.x;
     p.y = pos.y * ISO_SCALE_Y; // Scale back to isometric space for rendering compatibility
@@ -191,10 +183,10 @@ export class ProjectileSystem {
     p.targetId = targetId;
     p.targetHexQ = targetQ;
     p.targetHexR = targetR;
-    p.trail = [];
 
-    const visualKey = skill.visualProjectileEffect || skill.visual || "BOLT";
-    const def = PROJECTILE_VISUALS[visualKey] || DEFAULT_PROJECTILE;
+    const requested = skill.visualProjectileEffect || skill.visual || DEFAULT_PROJECTILE_KEY;
+    const lookKey = PROJECTILE_VISUALS[requested] ? requested : DEFAULT_PROJECTILE_KEY;
+    const def = PROJECTILE_VISUALS[lookKey];
 
     p.trajectoryInfo = {
       type: def.trajectory,
@@ -202,8 +194,8 @@ export class ProjectileSystem {
       wobbleFreq: def.wobbleFreq,
       wobbleAmp: def.wobbleAmp,
       spinSpeed: def.spinSpeed,
-      spriteKey: def.spriteKey || visualKey,
-      scale: def.scale,
+      dipAmount: def.dipAmount,
+      lookKey,
     };
 
     this.updatePosition(p, engine);
@@ -220,7 +212,6 @@ export class ProjectileSystem {
 
   private release(p: Projectile) {
     p.active = false;
-    p.trail = [];
     this.pool.push(p);
   }
 
@@ -249,8 +240,7 @@ export class ProjectileSystem {
       skill: {} as Skill,
       sourceId: "",
       team: Team.BLUE,
-      trail: [],
-      trajectoryInfo: { type: "LINEAR" },
+      trajectoryInfo: { type: "LINEAR", lookKey: DEFAULT_PROJECTILE_KEY },
     };
   }
 }

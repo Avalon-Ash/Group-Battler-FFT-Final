@@ -12,6 +12,11 @@ export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
 export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
 /** 光束磚的邊緣樣式：乾淨光管、兩側虛線（死光）、鋸齒（閃電）、珠鏈（血鏈） */
 export type BeamEdge = 'clean' | 'dashed' | 'zigzag' | 'beads';
+/** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
+export type { MissileShape } from '../../../data/vfx/parts/partConfig';
+import type { MissileShape } from '../../../data/vfx/parts/partConfig';
+/** 實體投射物（一般混合）；其餘是能量（加法） */
+const SOLID_MISSILES: ReadonlySet<MissileShape> = new Set<MissileShape>(['arrow', 'axe', 'bomb', 'hook']);
 
 /**
  * 有上下方向的法陣圖騰（盾、顱骨、倒三角）。貼地零件在 POINTY 地圖會整張轉 π/6 讓六角外框對齊格子，
@@ -39,7 +44,8 @@ export type PartSpec =
     | { kind: 'pillar'; width: number; height: number; ramp: VFXRampId }
     | { kind: 'spark'; length: number; ramp: VFXRampId }
     | { kind: 'droplet'; size: number; ramp: VFXRampId }
-    | { kind: 'beam'; width: number; ramp: VFXRampId; edge: BeamEdge; seed?: number };
+    | { kind: 'beam'; width: number; ramp: VFXRampId; edge: BeamEdge; seed?: number }
+    | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId };
 
 export type PartKind = PartSpec['kind'];
 
@@ -113,6 +119,8 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
         case 'beam':
             // 種子只影響鋸齒折線；其他邊緣共用同一張
             return { kind: 'beam', width: quantizeSize(spec.width), ramp: spec.ramp, edge: spec.edge, seed: spec.edge === 'zigzag' ? quantizeSeed(spec.seed) : 0 };
+        case 'missile':
+            return { kind: 'missile', shape: spec.shape, length: quantizeSize(spec.length), ramp: spec.ramp };
     }
 }
 
@@ -144,6 +152,7 @@ export function partBlend(n: PartSpec): GlobalCompositeOperation {
     // 光束一律是光（血鏈也是能量連線，不是實體血）
     if (n.kind === 'beam') return 'lighter';
     if (n.kind === 'smoke' || n.kind === 'droplet') return 'source-over';
+    if (n.kind === 'missile' && SOLID_MISSILES.has(n.shape)) return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
@@ -213,6 +222,12 @@ export function partBounds(n: PartSpec): PartBounds {
         case 'droplet': {
             const d = n.size * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+        }
+        case 'missile': {
+            // 長度方向 = length；高度依外形（VFX_PARTS.MISSILE.HEIGHT）；錨點在中心（投射物位置）
+            const w = n.length + pad * 2;
+            const h = n.length * VFX_PARTS.MISSILE.HEIGHT[n.shape] + pad * 2;
+            return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
         }
     }
 }

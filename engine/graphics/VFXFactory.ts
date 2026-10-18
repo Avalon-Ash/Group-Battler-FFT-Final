@@ -1,7 +1,6 @@
 
 import { createCanvas } from "./CanvasUtils";
 import { ParticlePainter } from "./painters/ParticlePainter";
-import { ProjectilePainter } from "./painters/ProjectilePainter";
 import { IconPainter } from "./painters/IconPainter";
 import { HexGeometry } from "./utils/HexGeometry";
 import { HEX_SIZE, ISO_SCALE_Y } from "../../constants";
@@ -102,33 +101,6 @@ class VFXTextureCache {
                 beamGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = beamGrad;
                 ctx.fillRect(-10, -60, 20, 120);
-                break;
-            }
-            case 'BOLT':
-                ProjectilePainter.drawCovenantBolt(ctx, color);
-                break;
-            case 'FIREBALL':
-                ProjectilePainter.drawCovenantFireball(ctx, color);
-                // [MATERIAL UPGRADE] 噪聲遮罩：火球外輪廓有機擾動，打破生硬幾何輪廓
-                if (MATERIAL_CONFIG.enabled) {
-                    applyNoiseMask(ctx, 'fireball', MATERIAL_CONFIG.particles.fireball, r, true, 53);
-                }
-                break;
-            case 'BOMB':
-                ProjectilePainter.drawBomb(ctx, color);
-                break;
-            case 'ARROW': {
-                // Slim arrow: shaft + triangular head
-                ctx.strokeStyle = color;
-                ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(-20, 0); ctx.lineTo(16, 0); ctx.stroke();
-                ctx.fillStyle = color;
-                ctx.beginPath(); ctx.moveTo(24, 0); ctx.lineTo(12, -6); ctx.lineTo(12, 6); ctx.fill();
-                // Fletching
-                ctx.lineWidth = 1.5;
-                ctx.globalAlpha = 0.7;
-                ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, -6); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(-20, 6); ctx.stroke();
                 break;
             }
             default:

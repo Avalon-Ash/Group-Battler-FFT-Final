@@ -9,7 +9,7 @@
  *   - no_shadowblur (shadowBlur intercepted across all canvas operations)
  *   - no_floating_text (TextPainter / damage, crits, absorbs, shouts, glitches)
  *   - no_chants_auras (UnitAuraPainter / casting circle and ultimate chant)
- *   - no_projectiles (ProjectileDrawer / projectile body and gradient trails)
+ *   - no_projectiles (ProjectilePartPainter / projectile body and trail parts)
  *   - no_unit_shatter (UnitShatter / death ragdoll shard decomposition)
  *   - no_beams_slashes (PartPainter.drawBeam / beams and slashes)
  *   - no_ground_cc (StatusPartPainter status layers)
@@ -55,7 +55,7 @@ const TOGGLES = [
     { id: 'no_shadowblur', name: 'All ShadowBlur Calls (Canvas Context)', prop: 'no_shadowblur' },
     { id: 'no_floating_text', name: 'Floating Damage & SHOUT Text (TextPainter)', prop: 'no_floating_text' },
     { id: 'no_chants_auras', name: 'Chant & Ult Auras (UnitAuraPainter)', prop: 'no_chants_auras' },
-    { id: 'no_projectiles', name: 'Projectiles & Trails (ProjectileDrawer)', prop: 'no_projectiles' },
+    { id: 'no_projectiles', name: 'Projectiles & Trails (ProjectilePartPainter)', prop: 'no_projectiles' },
     { id: 'no_unit_shatter', name: 'Unit Death Shatter (UnitShatter)', prop: 'no_unit_shatter' },
     { id: 'no_beams_slashes', name: 'Beams & Slashes (PartPainter.drawBeam)', prop: 'no_beams_slashes' },
     { id: 'no_ground_cc', name: 'Status parts (StatusPartPainter)', prop: 'no_ground_cc' },
@@ -218,15 +218,15 @@ async function main() {
             };
         } catch (e) { console.warn('Hook UnitAuraPainter failed', e); }
 
-        // 5. Hook ProjectileDrawer
+        // 5. Hook ProjectilePartPainter
         try {
-            const modProj = await import('/engine/renderers/ProjectileDrawer.ts');
-            const origProjDraw = modProj.ProjectileDrawer.draw;
-            modProj.ProjectileDrawer.draw = function(...args) {
+            const modProj = await import('/engine/systems/vfx/renderers/painters/ProjectilePartPainter.ts');
+            const origProjDraw = modProj.ProjectilePartPainter.draw;
+            modProj.ProjectilePartPainter.draw = function(...args) {
                 if (window.__vfxToggles.no_projectiles) return;
                 return origProjDraw.apply(this, args);
             };
-        } catch (e) { console.warn('Hook ProjectileDrawer failed', e); }
+        } catch (e) { console.warn('Hook ProjectilePartPainter failed', e); }
 
         // 6. Hook UnitShatter
         try {

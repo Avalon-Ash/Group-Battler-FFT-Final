@@ -40,7 +40,7 @@ const PAINTER_MODULES = {
     '/engine/systems/vfx/renderers/ProjectileRenderer.ts': ['ProjectileRenderer'],
     '/engine/systems/vfx/VFXAmbience.ts': ['VFXAmbience'],
     '/engine/systems/visuals/effects/UnitShatter.ts': ['UnitShatter'],
-    '/engine/renderers/ProjectileDrawer.ts': ['ProjectileDrawer'],
+    '/engine/systems/vfx/renderers/painters/ProjectilePartPainter.ts': ['ProjectilePartPainter'],
     '/engine/renderers/GroundDrape.ts': ['GroundDrapeLayer'],
     '/engine/renderers/grid/GridOverlays.ts': ['GridOverlays'],
     '/engine/renderers/grid/painters/HazardPainter.ts': ['HazardPainter'],
@@ -59,7 +59,6 @@ const PAINTER_MODULES = {
     '/engine/systems/unit/UnitSystem.ts': ['UnitRenderSystem'],
     '/engine/graphics/painters/GeometryPainter.ts': ['GeometryPainter'],
     '/engine/graphics/painters/ParticlePainter.ts': ['ParticlePainter'],
-    '/engine/graphics/painters/ProjectilePainter.ts': ['ProjectilePainter'],
     '/engine/graphics/painters/VolumePainter.ts': ['VolumePainter'],
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],
 };

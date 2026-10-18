@@ -8,7 +8,7 @@
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_RAMPS, VFX_NEUTRALS, type VFXRamp } from '../../../data/vfx/parts/vfxPalette';
-import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, createPartRng, boltPolyline } from './PartSpec';
+import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, type MissileShape, createPartRng, boltPolyline } from './PartSpec';
 
 const TAU = Math.PI * 2;
 
@@ -76,6 +76,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'spark': return bakeSpark(ctx, n.length, VFX_RAMPS[n.ramp]);
         case 'droplet': return bakeDroplet(ctx, n.size, VFX_RAMPS[n.ramp]);
         case 'beam': return bakeBeam(ctx, n.width, VFX_RAMPS[n.ramp], n.edge, n.seed ?? 0, frame);
+        case 'missile': return bakeMissile(ctx, n.shape, n.length, VFX_RAMPS[n.ramp]);
     }
 }
 
@@ -656,4 +657,141 @@ function bakeBeam(ctx: CanvasRenderingContext2D, w: number, ramp: VFXRamp, edge:
             ctx.beginPath(); ctx.arc(x, 0, r, 0, TAU); ctx.fill();
         }
     }
+}
+
+/**
+ * 投射物本體（指向 +x，中心在原點，長度 L）。實體外形（箭、斧、炸彈、鉤）用一般混合：主色填色＋暗色描邊＋左上受光的核心色高光；
+ * 能量外形（能量彈、法球）用加法：由核心往外變暗。拖尾與頭部光暈是另外的零件（ProjectilePartPainter）。
+ */
+function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.MISSILE;
+    const h = L / 2;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.lineWidth = C.OUTLINE_W;
+    ctx.strokeStyle = ramp.dark;
+    if (shape === 'arrow') {
+        const A = C.ARROW;
+        // 桿身
+        ctx.fillStyle = ramp.main;
+        ctx.fillRect(-h, -L * A.SHAFT_W / 2, L * (0.5 + A.HEAD_START), L * A.SHAFT_W);
+        // 尾羽（上下兩片）
+        for (const sgn of [-1, 1]) {
+            ctx.beginPath();
+            ctx.moveTo(-h, 0);
+            ctx.lineTo(-h + L * A.FLETCH_LEN * 0.4, sgn * L * A.FLETCH_HALF);
+            ctx.lineTo(-h + L * A.FLETCH_LEN, sgn * L * A.FLETCH_HALF);
+            ctx.lineTo(-h + L * A.FLETCH_LEN * 0.6, 0);
+            ctx.closePath();
+            ctx.fillStyle = sgn < 0 ? ramp.core : ramp.main;
+            ctx.fill(); ctx.stroke();
+        }
+        // 箭頭：六角菱形（ART_SPEC §0 六角骨架）
+        ctx.beginPath();
+        ctx.moveTo(h, 0);
+        ctx.lineTo(L * A.HEAD_START + L * 0.08, -L * A.HEAD_HALF);
+        ctx.lineTo(L * A.HEAD_START, -L * A.HEAD_HALF * 0.5);
+        ctx.lineTo(L * A.HEAD_START, L * A.HEAD_HALF * 0.5);
+        ctx.lineTo(L * A.HEAD_START + L * 0.08, L * A.HEAD_HALF);
+        ctx.closePath();
+        ctx.fillStyle = ramp.core;
+        ctx.fill(); ctx.stroke();
+        return;
+    }
+    if (shape === 'bolt') {
+        const B = C.BOLT;
+        const crystal = (scale: number) => {
+            ctx.beginPath();
+            ctx.moveTo(h * scale, 0);
+            ctx.lineTo(L * B.FRONT * scale, -L * B.WAIST_HALF * scale);
+            ctx.lineTo(-L * B.BACK * scale, -L * B.WAIST_HALF * scale);
+            ctx.lineTo(-h * scale, 0);
+            ctx.lineTo(-L * B.BACK * scale, L * B.WAIST_HALF * scale);
+            ctx.lineTo(L * B.FRONT * scale, L * B.WAIST_HALF * scale);
+            ctx.closePath();
+        };
+        crystal(1);
+        ctx.fillStyle = withAlpha(ramp.main, 0.85);
+        ctx.fill();
+        crystal(B.CORE_SCALE);
+        ctx.fillStyle = ramp.core;
+        ctx.fill();
+        return;
+    }
+    if (shape === 'orb') {
+        const O = C.ORB;
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, h);
+        g.addColorStop(0, ramp.core);
+        g.addColorStop(O.CORE, withAlpha(ramp.main, O.HALO_ALPHA));
+        g.addColorStop(1, withAlpha(ramp.dark, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(0, 0, h, 0, TAU); ctx.fill();
+        ctx.fillStyle = ramp.core;
+        hexPath(ctx, L * O.CORE * 0.5);
+        ctx.fill();
+        return;
+    }
+    if (shape === 'axe') {
+        const X = C.AXE;
+        ctx.fillStyle = ramp.dark;
+        ctx.fillRect(-h, -L * X.HANDLE_W / 2, L, L * X.HANDLE_W);
+        // 月牙刃：外緣弧＋內緣直線，刃口用核心色
+        ctx.beginPath();
+        ctx.moveTo(L * X.BLADE_START, -L * X.BLADE_HALF);
+        ctx.quadraticCurveTo(h + L * X.BLADE_BULGE, 0, L * X.BLADE_START, L * X.BLADE_HALF);
+        ctx.lineTo(L * X.BLADE_START + L * 0.08, 0);
+        ctx.closePath();
+        ctx.fillStyle = ramp.main;
+        ctx.fill(); ctx.stroke();
+        ctx.strokeStyle = ramp.core;
+        ctx.lineWidth = C.OUTLINE_W * 1.5;
+        ctx.beginPath();
+        ctx.moveTo(L * X.BLADE_START + L * 0.05, -L * X.BLADE_HALF * 0.8);
+        ctx.quadraticCurveTo(h + L * X.BLADE_BULGE * 0.6, 0, L * X.BLADE_START + L * 0.05, L * X.BLADE_HALF * 0.8);
+        ctx.stroke();
+        return;
+    }
+    if (shape === 'bomb') {
+        const M = C.BOMB;
+        const r = L * M.BODY;
+        ctx.fillStyle = ramp.dark;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+        ctx.strokeStyle = ramp.main;
+        ctx.stroke();
+        ctx.fillStyle = withAlpha(ramp.core, 0.8);
+        ctx.beginPath(); ctx.arc(-r * 0.35, -r * 0.35, r * 0.25, 0, TAU); ctx.fill();
+        // 引信＋火花（朝飛行方向的後上方）
+        ctx.strokeStyle = ramp.main;
+        ctx.lineWidth = C.OUTLINE_W * 1.5;
+        ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.8); ctx.lineTo(-r * 0.6 - L * M.FUSE_LEN, -r * 0.8 - L * M.FUSE_LEN); ctx.stroke();
+        bakeGlowAt(ctx, -r * 0.6 - L * M.FUSE_LEN, -r * 0.8 - L * M.FUSE_LEN, Math.max(2, L * M.SPARK), ramp);
+        return;
+    }
+    // hook：短索＋鉤頭（J 形）＋倒刺
+    const K = C.HOOK;
+    const r = L * K.R;
+    ctx.strokeStyle = ramp.main;
+    ctx.lineWidth = L * K.LINE_W;
+    ctx.beginPath();
+    ctx.moveTo(L * K.SHAFT_FROM, 0);
+    ctx.lineTo(h - r, 0);
+    ctx.arc(h - r, r, r, -Math.PI / 2, Math.PI * 0.6);
+    ctx.stroke();
+    ctx.fillStyle = ramp.core;
+    ctx.beginPath();
+    const bx = h - r + Math.cos(Math.PI * 0.6) * r;
+    const by = r + Math.sin(Math.PI * 0.6) * r;
+    ctx.moveTo(bx, by);
+    ctx.lineTo(bx - L * K.BARB, by - L * K.BARB * 1.4);
+    ctx.lineTo(bx + L * K.BARB * 0.3, by - L * K.BARB * 0.6);
+    ctx.closePath();
+    ctx.fill();
+}
+
+/** 在 (x, y) 畫一顆硬光點（bakeGlow 的平移版，炸彈引信火花用）。 */
+function bakeGlowAt(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, ramp: VFXRamp): void {
+    ctx.save();
+    ctx.translate(x, y);
+    bakeGlow(ctx, r, ramp, true);
+    ctx.restore();
 }
