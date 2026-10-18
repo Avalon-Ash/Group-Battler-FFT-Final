@@ -1,5 +1,8 @@
 # VFX INVENTORY — 特效系統全量盤點與管線審查 (P1)
 
+> **歷史快照（2026-10-12 盤點）**：表中的 `VolumePainter`、`ProjectileDrawer`、`GroundEffectPainter`、每幀漸層／`shadowBlur` 等熱點都已在 VFX V1～V7 移除或改成預烘焙零件。現況以 `docs/VFX_PIPELINE_MAP.md` §4.11～§4.15 與 `engine/renderers/RenderSpec.ts` 為準。
+
+
 > **版本**：v1.0 (Performance Round 4 - P1)  
 > **日期**：2026-10-12  
 > **基準解析度**：2560×1440 @ 239 Hz, DPR 1 (RTX 4070)  

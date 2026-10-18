@@ -211,6 +211,12 @@ VFXSystem.state.particles
 - **光束兩端光點**：`playBeam` 另取一張硬光暈（`Particle.beamEnd`，取代只寫不讀的 `beamCore`），`PartPainter.drawBeam` 畫在發射口（較小）與命中點，隨光束收窄淡出並閃動（`VFX_PARTS.BEAM.END_*`）。
 - 保真：battle_frozen 0.09%（畫面內沒有火焰、光束、隕石），地形 0 差異。
 
+### 4.15 V7（效能驗證＋保真重錄）之後（2026-10-19）
+- `tools/ui-e2e/lib/vfx-storm.mjs` 重寫：舊版寫的是不存在的欄位（`a.currentSkill`、`a.x`、`engine.vfx`），大多空轉。現在走真實入口：每 600 ms 每個單位用 `initiateCast` 詠唱輪替的本陣營奧義、一半掛滿護盾、登記四種空間危害、每人一發投射物（輪替外觀）＋一條光束（輪替樣式）。`__vfxStormStats()` 回報零件快取依種類的未命中／擠出，`perf:frames` 記錄量測窗內的差值。
+- 發現：192 條目上限在壓力下來回擠（8 秒 127 次未命中、113～127 次擠出）。柔邊零件（非硬光暈、煙）改 `SOFT_BAKE_SCALE` 1 倍烘焙（最大條目是 256 半徑光暈 4.2 MB），`MAX_ENTRIES` 320、位元組預算不變 64 MB → 擠出 49 次（改由位元組上限決定）。
+- 幀間隔：本機這次 harness 只有 56 Hz（rAF 被壓在 60 Hz），平穩／壓力／展示三個情境都卡在 17.7 ms，p99 無法分辨；**需在 239 Hz 主螢幕重跑 `npm run perf:frames`**。
+- 保真：battle_frozen 一次性重錄（`359bc66`，證據 `tools/ui-e2e/out/fidelity_v7_evidence.png`：388 px／0.042%，全在單位區：接地陰影復原、血條 sprite 邊緣、量表光暈、柔邊光暈重取樣）；五個地形基準 0 差異未動。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

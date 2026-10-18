@@ -1,6 +1,6 @@
 # 主代理交接手冊（工具無關：Claude Code／Antigravity 皆可讀）
 
-> 更新：2026-10-18 晚（VFX 零件化 V1～V3、地形 T0～T1，見 §3 J；下一步照 `docs/VISUAL_ROADMAP.md` §0）。新對話的主代理 **先讀本檔再開工**，不要重新探索專案；`AGENTS.md` 是審查 diff 時的檢查清單。
+> 更新：2026-10-19（VFX 長計畫 V1～V7 全部完成，見 §3 K；下一步照 `docs/VISUAL_ROADMAP.md` §0：障礙物 O、地形 T2～T5）。新對話的主代理 **先讀本檔再開工**，不要重新探索專案；`AGENTS.md` 是審查 diff 時的檢查清單。
 > 歷史細節（已完成輪次的提示詞／報告／基準）在 [`docs/archive/`](archive/) 與各 `docs/*REPORT*.md`，**平常不用讀**。
 
 ## 0. 省點數守則（使用者額度有限，最重要）
@@ -90,8 +90,17 @@
 - **地形 T0**：`TERRAIN_SKIN.exposure`（每群系增益，烘焙最後乘上）＋`lumaBudget` 45～90；`terrain-contrast.mjs` 驗收預算。保真 5 地形＋battle_frozen 因此重錄（差異圖只落在地塊）。**T1**：三項已知缺陷都已不成立或已修，`tools/ui-e2e/biome-frames.mjs` 量各地圖真實幀間隔。
 - 未決（使用者）：`.claude/worktrees/` 剩 11 個資料夾無法自動刪（權限），需手動刪；未合併分支 `20260328`、`experiment/unit-rig-skin-poc`；網格線樣式改動（路線圖 D2）。
 
+### K. 2026-10-19 VFX V4～V7＋座標殘差（main，未 push）
+- **V4 投射物**：`missile` 零件、單一表 `data/vfx/projectile_visuals.ts`、`ProjectilePartPainter`；修 `dipAmount` 從未傳入。**V5a**：舊粒子型別／貼花／舊貼圖死碼刪除。
+- **V5b**：詠唱環／聖域／光點／能量柱、護盾（新 `prism` 零件）、危害（共用零件層 `data/vfx/parts/partLayer.ts`＋`vfxparts/PartLayerPainter.ts`，重力漩渦只畫中心格）、AOE 預警全部零件化；`VolumePainter`、`UnitFlightPainter`、`UnitAmbientPainter`（頭上藍框紅點）刪除。HUD：血條預烘焙 sprite、渲染路徑 0 個每幀 `shadowBlur`、量表顏色改讀 `STATUS_VISUALS`。格線疊層／縮圈／死亡繪製器的數字進常數。
+- **回歸修正**：V5a 刪貼圖後危害與單位陰影畫成洋紅除錯方塊；`VFXFactory.getTexture` 改收封閉型別 `VFXTextureType`，不支援的名稱編譯不過。
+- **座標**：屍體滑停在格界時腳下格滯後卡在舊格、被自己那格地塊蓋腳 → 靜止 `HEX_RELEASE_FRAMES` 幀後放開（每次靜止一次）。景深預言穩定錯序 pair-frames 1,727 → 668，閃爍振盪 53 → 57（`docs/COORD_GUARD_FINDINGS.md` §9）。
+- **V6**：`fx-shot --scene=` 量亮底發白 → 加法零件群系增益 `VFX_BIOME_GAIN`、火焰本體一般混合；隕石落點影子；光束兩端光點。**V7**：`vfx-storm` 改真實入口、零件快取擠出統計、柔邊零件 1 倍烘焙；battle_frozen 一次性重錄（`359bc66`，附證據）。
+- **待使用者**：在 239 Hz 主螢幕跑 `npm run perf:frames`（本機 harness 這次只有 56 Hz）；實機看冰／沙地圖特效亮度、護盾稜柱、危害新外觀；push 未做。
+- 細節：`docs/VFX_PIPELINE_MAP.md` §4.11～§4.15；README 的「視覺管線」段落已更新。
+
 ## 4. 已完成輪次與審查結論（精簡）
-- **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。殘留熱點：`TextPainter`（SHOUT 漸層、`shadowBlur`、Glitch `Math.random`）、`UnitCorePainter` 受創 `shadowBlur`、`ProjectileDrawer` 每幀漸層、`ProceduralPainter` 光束、`FloatingTextDrawer`（見 `docs/PERF_REPORT_4.md` §3、§11 與 `docs/VFX_INVENTORY.md`）。
+- **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
 - **美術（合併）**：KayKit 預渲染精靈 10 張（`public/assets/units`，manifest 在同目錄）＋地形貼圖 10 張＋粒子貼圖 5 張；體型軸 `Team×Role×BodyType`（MALE 有素材）。
 - **AI Studio 的「美術修正輪」（`8c014d1`）— 我審查後修補的重點**：
   1. **畫面凍結**：`useGameApp` 在 React StrictMode 清理時立刻 `engine.destroy()` 並重用 → 引擎永遠停止。已改為**延後一個 tick 銷毀、重新掛載則取消**。
@@ -123,7 +132,7 @@
 ## 7. 決策與待辦池
 - 題材奇幻（FFT-like）、保持六角格、固定等距視角；AI 逐張生圖做單位已放棄，改 KayKit 預渲染；AI 圖只用於地形材質與日後圖示。授權：CC0 優先、CC-BY 可（致謝）、拒絕 NC／ND／GPL／不明；維護 `docs/ASSET_LEDGER.md`、`CREDITS.md`。
 - **待辦池（無順序，使用者要時再開）**：
-  1. 效能五：清掉 §4 殘留熱點，以 `perf:frames` 的 p99 驗證。
+  1. 效能：殘留熱點已清（§3 K）；在 239 Hz 主螢幕以 `perf:frames`（含真實特效壓力情境）確認 p99。
   2. 地形烘焙實作（設計 `docs/BAKED_RENDERING_DESIGN.md`、原型 `tools/baked-terrain-proto.html`）；先看熔岩圖在烘焙預算修正後是否已夠順。
   3. 每個地圖主題一首 BGM；紅方勝利曲換成真正的暗黑曲。
   4. FEMALE 與其他體型、專用神職模型、加強陣營辨識度（見 `docs/ASSET_NEEDS.md`）。

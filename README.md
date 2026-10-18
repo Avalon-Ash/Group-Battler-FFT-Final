@@ -103,7 +103,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── movement/            ← Hex 移動、逐幀位移、同格碰撞排解
 │   │   ├── status/              ← 冷卻、持續效果、控場計時
 │   │   ├── unit/                ← 單位渲染提交、Ragdoll 快照
-│   │   ├── vfx/                 ← 特效系統、粒子物理、環境特效
+│   │   ├── vfx/                 ← 特效系統：登記特效播放、零件粒子、光束、物理、天氣
 │   │   ├── audio/AudioSystem.ts ← 遊戲事件 → 音效 Cue、BGM 切換
 │   │   ├── ui/UICommandSystem.ts← UI 寫入引擎的唯一閘門（UI_COMMAND 事件）
 │   │   ├── agentManager.ts      ← 單位生命週期：生成、唯一死亡入口、死亡計時、回收
@@ -116,13 +116,16 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── BattleLogger.ts / AnnouncerSystem.ts ← 戰鬥紀錄 / 戰況播報
 │   │   └── DesignExporter.ts    ← 戰鬥數據結構化輸出（企劃驗證用）
 │   ├── renderers/
-│   │   ├── RenderSpec.ts        ← 渲染物件資料結構（視覺 SSOT）
-│   │   ├── RenderPipeline.ts    ← 渲染主管線：Z 排序、分層提交
+│   │   ├── RenderSpec.ts        ← 座標協議 SSOT：層序、sortBias、三種 Y、腳下高度、發射點／受擊點
+│   │   ├── RenderPipeline.ts    ← 渲染主管線：提交、深度排序、分層繪製
 │   │   ├── RenderQuality.ts     ← 品質階層與自動降階
-│   │   ├── units/               ← 精靈單位（SpriteUnitRenderer、SpriteAtlasStore）與繪製器（含 UnitDeathPainter）
-│   │   ├── grid/                ← 地形、格子、Hazard 繪製（含地形烘焙快取）
-│   │   ├── status/              ← 狀態視覺（護盾、頭頂圖示、地板光暈、模型替換）
-│   │   └── hud/                 ← HUD 子元件
+│   │   ├── frame/UnitFrame.ts   ← 每幀一份單位繪製座標快照（所有渲染只讀它）
+│   │   ├── GroundDrape.ts       ← 貼地／懸空平面的逐格鋪設（法陣、詠唱環不被前景誤蓋）
+│   │   ├── vfxparts/            ← 六角零件：參數量化、烘焙、快取（VFXPartStore）、零件層繪製
+│   │   ├── units/               ← 精靈單位（SpriteUnitRenderer、SpriteAtlasStore）、詠唱光環、AOE 預警、死亡
+│   │   ├── grid/                ← 地形（烘焙快取）、格線疊層、危害（零件層）
+│   │   ├── status/              ← 狀態零件層（腳下／身體／頭頂）、護盾稜柱
+│   │   └── hud/                 ← 血條（預烘焙 sprite）、量表、浮動文字
 │   ├── graphics/            ← 程序化材質（materials/NoiseLib、MaterialPainter）、Token／環境 Sprite 工廠
 │   ├── audio/AudioEngine.ts ← Web Audio 共享引擎（擁有者計數、BGM 請求序號）
 │   ├── events/              ← EventBus、GameEventPool（物件池，避免 GC 壓力）
@@ -135,7 +138,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   ├── skills/              ← 各陣營技能資料
 │   ├── ai_profiles.ts       ← 行為樹定義（資料驅動）
 │   ├── audio/               ← 音效 Cue 與 BGM 定義
-│   ├── vfx/                 ← 特效登記、程序化材質參數（materialConfig）、狀態視覺定義
+│   ├── vfx/                 ← 特效登記（零件配方）、零件色階與參數（parts/）、投射物／危害／狀態零件表、光束樣式
 │   └── scenes.ts            ← 場景主題（森林、冰原、熔岩…）
 ├── public/assets/           ← 精靈單位、地形貼圖、粒子貼圖、音訊（授權見 CREDITS.md、docs/ASSET_LEDGER.md）
 ├── tests/                   ← Vitest 確定性單元測試
@@ -167,6 +170,11 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 ### 5. Director-Camera 分離
 `DirectorSystem` 負責**決策**（聚焦誰、持續多久），`CameraSystem` 負責**執行**（平滑插值、跟隨），兩者可各自調整。
 
+### 6. 視覺管線：座標協議＋預烘焙零件
+- **座標**：`engine/renderers/RenderSpec.ts` 是唯一的座標協議（層序、排序鍵、腳下高度、發射點＝受擊點＝投影中心）。單位座標每幀算一次放進 `UnitFrame`，狀態、HUD、護盾、光環都讀它，不各自算高度。`tests/CoordinateProtocol.test.ts` 以只減不增的基準擋住偏離。
+- **特效**：所有技能特效、投射物、光束、詠唱光環、護盾、危害、狀態都是「六角零件」——參數量化後烘焙成 sprite 快取（`VFXPartStore`），執行期只做 `drawImage`／透明度／變換，不建漸層、不用 `shadowBlur`。色階依陣營×技能屬性（`data/vfx/element_ramps.ts`），不吃技能顏色字串；亮地表（冰、沙）上的加法零件有群系增益。
+- **驗證**：`tools/vfx/fx-shot.mjs` 單一特效逐格截圖（可指定地圖）、`npm run verify:coords` 執行期座標守門（漂浮、下沉、閃爍、景深順序）、`npm run perf:fidelity` 像素保真。
+
 ---
 
 ## 技術棧
@@ -177,7 +185,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 | 建置 | Vite 6 |
 | 測試 | Vitest 單元測試、Playwright（`playwright-core` + Edge）UI e2e 與渲染保真比對 |
 | 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器，零外部圖形依賴；不使用 WebGL／Three／Pixi） |
-| 美術 | KayKit 3D 模型預渲染的精靈圖集、貼圖地形、粒子貼圖（CC0／CC-BY，見 `CREDITS.md`） |
+| 美術 | KayKit 3D 模型預渲染的精靈圖集、貼圖地形（CC0／CC-BY，見 `CREDITS.md`）；特效是程式烘焙的六角零件 |
 | 音訊 | Web Audio（共享 AudioContext，事件驅動音效與 BGM） |
 | AI 協作開發 | 企劃主導：設計決策 → AI 實作 → 模擬器驗證（見下方「開發協作」） |
 | 部署 | GitHub Pages（CI/CD 自動化） |
@@ -210,6 +218,8 @@ npm test             # 單元測試
 npm run build        # 生產環境打包（dist/）
 npm run e2e:ui       # UI e2e（無頭 Edge）
 npm run perf:guard   # 渲染保真與效能回歸檢查（改渲染時必跑）
+npm run verify:coords # 執行期座標守門（加 --order 跑景深順序預言）
+npm run perf:frames  # 真實幀間隔（平穩戰鬥／特效壓力／展示，2560×1440，請放在高更新率主螢幕）
 ```
 
 網址參數：`?perf` 顯示效能 HUD（含尖峰記錄），`?mute` 關閉音訊。
