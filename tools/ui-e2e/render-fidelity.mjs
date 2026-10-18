@@ -182,6 +182,9 @@ const createHarnessContext = async () => {
 
     await page.goto(`${baseUrl}?quality=0&mute`, { waitUntil: 'networkidle' });
     await page.waitForFunction(() => window.__ASSETS_READY__ === true, null, { timeout: 10000 }).catch(() => {});
+    // 開頭的展示戰鬥在模擬流種子化前會借用 Math.random，與特效抽籤共用同一條序列：特效改動會讓展示單位走位不同、
+    // 鏡頭停在別處，第一個擷取的場景（VOID）因鏡頭還沒收斂而整張偏移。一開始就種子化，讓擷取與特效抽籤脫鉤。
+    await page.evaluate(() => window.__resetSeed(1337));
     // Step a few frames to let React and ResizeObserver mount
     await page.evaluate(() => window.__stepFrames(10));
     // Enter manual mode
