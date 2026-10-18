@@ -115,7 +115,9 @@ export class VFXSystem {
         p.size = (BEAM_STYLES[styleId as BeamStyleId]?.width ?? BEAM_STYLES.GENERIC_BEAM.width) * scale;
         p.sx = start.x; p.sy = start.y; p.sz = start.z;
         p.tx = end.x; p.ty = end.y; p.tz = end.z;
-        p.x = start.x; p.y = start.y; p.z = start.z;
+        // p.y 是粒子的「未投影 Y」（螢幕 Y / ISO_SCALE_Y，VFXRenderer 提交時乘回，RenderSpec §3）；
+        // sx/sy/tx/ty 留螢幕座標給 ProceduralPainter.drawBeam。曾直接存螢幕 Y，光束整條畫在 0.5 倍 Y 的位置。
+        p.x = start.x; p.y = start.y / ISO_SCALE_Y; p.z = start.z;
         p.life = duration; p.maxLife = duration; 
         p.color = colorOverride || '#fff'; 
         if (team !== undefined) {
