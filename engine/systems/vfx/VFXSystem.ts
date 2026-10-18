@@ -17,7 +17,7 @@ import { HexMath } from "../../math/HexMath";
 import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT } from "../../../constants";
 import type { HexLayout } from "../../../types";
 import type { Team } from "../../types/Enums";
-import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, type BeamStyleId } from "../../../data/vfx/beam_styles";
+import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, NEUTRAL_BEAM_RAMP_ID, type BeamStyleId } from "../../../data/vfx/beam_styles";
 import { VFX_RAMPS } from "../../../data/vfx/parts/vfxPalette";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 
@@ -119,19 +119,16 @@ export class VFXSystem {
         p.sx = start.x; p.sy = start.y; p.sz = start.z;
         p.tx = end.x; p.ty = end.y; p.tz = end.z;
         // p.y 是粒子的「未投影 Y」（螢幕 Y / ISO_SCALE_Y，VFXRenderer 提交時乘回，RenderSpec §3）；
-        // sx/sy/tx/ty 留螢幕座標給 ProceduralPainter.drawBeam。曾直接存螢幕 Y，光束整條畫在 0.5 倍 Y 的位置。
+        // sx/sy/tx/ty 留螢幕座標給 PartPainter.drawBeam。曾直接存螢幕 Y，光束整條畫在 0.5 倍 Y 的位置。
         p.x = start.x; p.y = start.y / ISO_SCALE_Y; p.z = start.z;
         p.life = duration; p.maxLife = duration; 
-        p.color = colorOverride || '#fff'; 
-        if (team !== undefined) {
-            const rampId = style.teamRamp?.[team] ?? FACTION_BEAM_RAMP_ID[team];
-            const ramp = VFX_RAMPS[rampId];
-            p.color = ramp.main;
-            p.beamCore = ramp.core;
-            // 光束零件：烘焙一段可平鋪的光管磚，PartPainter.drawBeam 沿起點→終點鋪滿（docs/VFX_PIPELINE_MAP.md §5-3）。
-            // 種子只給鋸齒（閃電）挑折線變體；沒有陣營的後備光束不掛零件，沿用 ProceduralPainter.drawBeam。
-            p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * 31 + end.x * 17)) });
-        }
+        // 光束零件：烘焙一段可平鋪的光管磚，PartPainter.drawBeam 沿起點→終點鋪滿（docs/VFX_PIPELINE_MAP.md §5-3）。
+        // 色階取施法者陣營；沒有陣營的後備光束用中性色階（零件不吃 colorOverride）。種子只給鋸齒（閃電）挑折線變體。
+        const rampId = team !== undefined ? (style.teamRamp?.[team] ?? FACTION_BEAM_RAMP_ID[team]) : NEUTRAL_BEAM_RAMP_ID;
+        const ramp = VFX_RAMPS[rampId];
+        p.color = colorOverride || ramp.main;
+        p.beamCore = ramp.core;
+        p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * 31 + end.x * 17)) });
         p.type = 'BEAM'; p.style = styleId; p.locked = true; p.lockReason = 'BEAM';
         this.state.particles.push(p);
     }

@@ -1,6 +1,6 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
+import { Hex, Skill, SpatialProvider } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT } from "../../constants";
 import { Pathfinder } from "./Pathfinder";

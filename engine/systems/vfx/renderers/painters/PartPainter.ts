@@ -56,7 +56,7 @@ export const PartPainter = {
     /**
      * 光束零件：把光管磚（kind 'beam'，錨點在左端中線）沿起點→終點平鋪，裁在 [0, 長度]。
      * 呼叫時 ctx 未平移；(drawX, drawY) 是起點的繪製位置（含起點格漂浮位移，RenderSpec §5）。
-     * 終點與長度的算法與 ProceduralPainter.drawBeam 相同（sx/sy/tx/ty 是螢幕座標、beamEndDy 是兩端漂浮位移差）。
+     * sx/sy/tx/ty 是螢幕座標、beamEndDy 是兩端漂浮位移差（VFXRenderer 每幀寫入，RenderSpec §5）。
      * 寬度隨進度收窄（死光 1.5→0.5，其餘 1→0），整排磚往終點捲動，兩端裁成尖頭。
      */
     drawBeam(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, now: number): void {

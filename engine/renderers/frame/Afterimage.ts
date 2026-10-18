@@ -62,7 +62,6 @@ export function computeAfterimageGhosts(
         const ey = p.y - lastY;
         if (ex * ex + ey * ey < minSepSq) continue;
         const sx = p.x - footX;
-        const sy = p.y - footY;
         const g = out[n];
         g.dx = sx;
         g.dy = (p.y - groundAt(p.x, p.y)) - floorY;

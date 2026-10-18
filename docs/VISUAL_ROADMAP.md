@@ -36,7 +36,7 @@
 | `FX_HAZARD_FIELD_*`（5） | 危害場生成 | 零件；與 `HazardPainter` 的持續場面分工講清楚 |
 | `FX_STATUS_ROOT_LOOP`（被當擊退塵） | 擊退塵 | 改名 `FX_KNOCKBACK_DUST`＋零件 puff |
 
-### V3 死碼清理
+### V3 死碼清理（✅ 2026-10-18）
 - 死鍵 9 個（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP` 其餘）、`SkillDef.visualCastEffect／visualAoeEffect`（只被 `VFXValidator` 檢查）、`vfx_library`（inspector 清單）同步。
 - 遷移後沒人走的 `ProceduralPainter`／`GroundPainter`／`BillboardPainter` 分支：先用探針證明零呼叫再刪（教訓：刪舊管線前 `git grep` 證明零引用）。
 - 無陣營後備光束：給中性色階後也走光束零件，`ProceduralPainter.drawBeam` 可整段刪。

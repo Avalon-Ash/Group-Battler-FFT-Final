@@ -227,7 +227,7 @@ describe('skills', () => {
     it('skill visual effect fields point at registered assets (same rule as VFXValidator at startup)', () => {
         const bad: string[] = [];
         for (const s of DEFAULT_SKILL_DB) {
-            for (const [field, id] of [['hit', s.visualHitEffect], ['aoe', s.visualAoeEffect], ['cast', s.visualCastEffect]] as const) {
+            for (const [field, id] of [['hit', s.visualHitEffect]] as const) {
                 if (id && !REGISTRY.has(id)) bad.push(`${s.id} ${field}: ${id}`);
             }
             if (s.visualProjectileEffect && !PROJECTILE_VISUALS[s.visualProjectileEffect]) bad.push(`${s.id} proj: ${s.visualProjectileEffect}`);

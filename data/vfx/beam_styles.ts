@@ -1,8 +1,8 @@
 // =========================================================================================
 // 光束樣式表（SSOT）
 // SkillSequences 的 BEAM 動作只能引用這裡的鍵（tests/ReferenceIntegrity.test.ts 檢查）。
-// 有陣營的光束（序列動作都帶施法者陣營）畫成可平鋪的光束零件（PartPainter.drawBeam，part kind 'beam'），
-// 樣式決定寬度與邊緣、色階取陣營（可依樣式覆寫）；沒有陣營的後備光束仍由 ProceduralPainter.drawBeam 程序化繪製。
+// 光束一律畫成可平鋪的光束零件（PartPainter.drawBeam，part kind 'beam'）：樣式決定寬度與邊緣，
+// 色階取施法者陣營（可依樣式覆寫）；沒有陣營的後備光束用 NEUTRAL_BEAM_RAMP_ID。
 // =========================================================================================
 
 import { Team } from '../../types';
@@ -37,6 +37,8 @@ export const FACTION_BEAM_RAMP_ID: Record<Team, VFXRampId> = {
     [Team.BLUE]: 'LION_HOLY',
     [Team.RED]: 'ASH_BLOOD',
 };
+/** 沒有陣營的後備光束（CinematicVFXHandler 找不到序列時）用的中性色階 */
+export const NEUTRAL_BEAM_RAMP_ID: VFXRampId = 'STATUS_SLATE';
 export const FACTION_BEAM_RAMP: Record<Team, VFXRamp> = {
     [Team.BLUE]: VFX_RAMPS[FACTION_BEAM_RAMP_ID[Team.BLUE]],
     [Team.RED]: VFX_RAMPS[FACTION_BEAM_RAMP_ID[Team.RED]],

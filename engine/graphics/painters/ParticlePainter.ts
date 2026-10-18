@@ -31,7 +31,7 @@ export const ParticlePainter = {
         ctx.lineWidth = 4;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
-        // Shockwave texture MUST be Regular Hex. GroundPainter scales it.
+        // Shockwave texture MUST be Regular Hex.
         GeometryPainter.drawHex(ctx, 0, 0, r * 0.8, 'STROKE', false);
         
         ctx.strokeStyle = 'rgba(255,255,255,0.8)';

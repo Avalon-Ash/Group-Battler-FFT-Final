@@ -258,6 +258,8 @@ export const VFX_RENDER = {
     GROUND_Z_BIAS:       5,  // ground-locked 粒子的 Z 軸偏移
     GROUND_VISUAL_BIAS:  2,  // 防 Z-fighting 的視覺偏移
     PARTICLE_SIZE_BIAS: 0.5, // 碰地計算的粒子半徑比例
+    DEBUG_DOT_COLOR: '#ff00ff', // 沒有繪製器的粒子型別（不應出現）畫成的除錯點
+    DEBUG_DOT_RADIUS: 4,
     TRAIL_STEP_DIST:    20,  // Trail 採樣的目標點間距（螢幕像素）
     /**
      * 空中特效（非貼地粒子）與施法光環（AURA）的排序前緣：鍵＝足跡 Y（粒子在地面的投影）＋這個固定值。
@@ -819,8 +821,8 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
 
 /**
  * 粒子型別特性表（SSOT，docs/VFX_PIPELINE_MAP.md §5-5）：每個 ParticleType 一列，下面的集合都由它推導。
- *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件，新材質）、PROC＝ProceduralPainter、
- *    GROUND＝GroundPainter、BILL＝BillboardPainter（GENERIC_DEBUG 是除錯用的洋紅點）。掛了零件的 BEAM 另走 PartPainter.drawBeam。
+ *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件，新材質）、BILL＝BillboardPainter（天氣 ATMOSPHERE）。
+ *    PROC／GROUND 的繪製器已移除，這兩類型別只會畫成洋紅除錯點（不應出現）；BEAM 一律掛光束零件走 PartPainter.drawBeam。
  *  - ground：貼地（排序用前緣、z 鎖地面、VFXPlayer 以 groundZ 生成）→ VFX_GROUND_TYPES
  *  - physical：受重力與落地反彈（VFXPhysics）→ PHYSICAL_PARTICLE_TYPES
  *  - fixed：生成時不給隨機自轉（VFXPlayer）→ FIXED_ORIENTATION_PARTICLE_TYPES

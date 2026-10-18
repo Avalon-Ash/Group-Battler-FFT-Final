@@ -1,10 +1,8 @@
 
 import { Particle } from "../state";
 import { BillboardPainter } from "./painters/BillboardPainter";
-import { GroundPainter } from "./painters/GroundPainter";
-import { ProceduralPainter } from "./painters/ProceduralPainter";
 import { PartPainter } from "./painters/PartPainter";
-import { particleBackend } from "../../../../constants";
+import { particleBackend, VFX_RENDER } from "../../../../constants";
 import { HexLayout } from "../../../../types";
 
 // 分派依 constants.ts 的 PARTICLE_TRAITS（particleBackend）；不在這裡另列型別清單
@@ -37,19 +35,10 @@ export const ParticleRenderer = {
             return;
         }
 
-        // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)
-        // Uses BattleTime for synchronous rotation/pulsing
-        if (backend === 'PROC') {
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ProceduralPainter.draw(ctx, p, progress, battleTime, layout);
-            ctx.restore();
-            return;
-        }
-
-        // 2. Ground Projection Logic (Ripples, Cracks, Fields)
-        if (backend === 'GROUND') {
-            GroundPainter.draw(ctx, p, progress, drawX, drawY, layout);
+        // 程序化（PROC）與地面向量（GROUND）繪製器已移除（docs/VFX_PIPELINE_MAP.md §4.10）：登記表只產生零件，
+        // 光束一律掛零件；萬一有舊型別漏進來，畫成洋紅除錯點，一眼看得出來。
+        if (backend === 'PROC' || backend === 'GROUND') {
+            ParticleRenderer.drawDebugDot(ctx, drawX, drawY);
             return;
         }
 
@@ -57,12 +46,15 @@ export const ParticleRenderer = {
         if (p.type !== 'GENERIC_DEBUG') {
             BillboardPainter.draw(ctx, p, drawX, drawY, progress);
         } else {
-            // 4. Critical Safe Fallback
-            ctx.save();
-            ctx.translate(drawX, drawY);
-            ctx.fillStyle = '#ff00ff';
-            ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI*2); ctx.fill();
-            ctx.restore();
+            ParticleRenderer.drawDebugDot(ctx, drawX, drawY);
         }
+    },
+
+    /** 除錯點：沒有繪製器的粒子型別（不應出現） */
+    drawDebugDot(ctx: CanvasRenderingContext2D, x: number, y: number) {
+        ctx.save();
+        ctx.fillStyle = VFX_RENDER.DEBUG_DOT_COLOR;
+        ctx.beginPath(); ctx.arc(x, y, VFX_RENDER.DEBUG_DOT_RADIUS, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
     }
 };

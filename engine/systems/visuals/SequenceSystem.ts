@@ -8,7 +8,7 @@ import { PHYSICS } from "../../../constants";
 import { Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
-import { METEOR_PARTS, METEOR_SIZE } from "../../../data/vfx/registry/shared_parts";
+import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE } from "../../../data/vfx/registry/shared_parts";
 
 interface QueuedAction {
     executeAt: number;
@@ -120,21 +120,17 @@ export class SequenceSystem {
                     vfx.state.particles.push(p);
                     return p;
                 };
+                // 隕石零件（data/vfx/registry/shared_parts.ts）：岩塊＋光暈兩顆 PART_DEBRIS 同步自由落體。
+                // 序列只產生 METEOR 樣式；查不到施法者陣營時用中性色階。
                 const team = this.teamOf(sourceId, engine);
-                if (action.style === 'METEOR' && team !== undefined) {
-                    // 隕石零件（data/vfx/registry/shared_parts.ts）：岩塊＋光暈兩顆 PART_DEBRIS 同步自由落體
-                    const m = METEOR_PARTS[team];
-                    const rock = spawn();
-                    rock.type = 'PART_DEBRIS';
-                    rock.part = vfxPartStore.get({ kind: 'shard', size: size * METEOR_SIZE.ROCK, shape: 'rock', ramp: m.rockRamp, seed: METEOR_SIZE.SEED });
-                    rock.vRotation = METEOR_SIZE.SPIN[0] + Math.random() * (METEOR_SIZE.SPIN[1] - METEOR_SIZE.SPIN[0]);
-                    const glow = spawn();
-                    glow.type = 'PART_DEBRIS';
-                    glow.part = vfxPartStore.get({ kind: 'glow', radius: size * METEOR_SIZE.GLOW, ramp: m.glowRamp });
-                } else {
-                    // 沒有陣營（施法者已不存在）或非隕石樣式：沿用舊粒子
-                    spawn().type = action.style === 'METEOR' ? 'ROCK' : 'GIANT_HEX';
-                }
+                const m = team !== undefined ? METEOR_PARTS[team] : METEOR_NEUTRAL;
+                const rock = spawn();
+                rock.type = 'PART_DEBRIS';
+                rock.part = vfxPartStore.get({ kind: 'shard', size: size * METEOR_SIZE.ROCK, shape: 'rock', ramp: m.rockRamp, seed: METEOR_SIZE.SEED });
+                rock.vRotation = METEOR_SIZE.SPIN[0] + Math.random() * (METEOR_SIZE.SPIN[1] - METEOR_SIZE.SPIN[0]);
+                const glow = spawn();
+                glow.type = 'PART_DEBRIS';
+                glow.part = vfxPartStore.get({ kind: 'glow', radius: size * METEOR_SIZE.GLOW, ramp: m.glowRamp });
                 break;
             }
         }

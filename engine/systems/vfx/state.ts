@@ -28,7 +28,7 @@ export interface Particle {
     beamCore?: string;
     /**
      * 光束終點相對起點的繪製時額外 Y 位移（螢幕 px，正值往下）＝終點格漂浮位移 − 起點格漂浮位移（RenderSpec §5）。
-     * 唯一寫入者 VFXRenderer.submitRenderables（每幀提交時算），只給 ProceduralPainter.drawBeam 讀；模擬端不讀不寫。
+     * 唯一寫入者 VFXRenderer.submitRenderables（每幀提交時算），只給 PartPainter.drawBeam 讀；模擬端不讀不寫。
      */
     beamEndDy?: number;
     ownerId?: string;

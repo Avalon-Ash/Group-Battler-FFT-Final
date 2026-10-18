@@ -1,4 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// 光束一律掛零件：零件烘焙要 DOM canvas，本測試只看座標空間，關掉烘焙（同 RngSplit.test.ts）
+vi.mock('../engine/renderers/vfxparts/VFXPartStore', async (orig) => ({
+    ...(await orig<typeof import('../engine/renderers/vfxparts/VFXPartStore')>()),
+    vfxPartStore: { get: () => undefined },
+}));
 import { VFXSystem } from '../engine/systems/vfx';
 import { ISO_SCALE_Y } from '../constants';
 

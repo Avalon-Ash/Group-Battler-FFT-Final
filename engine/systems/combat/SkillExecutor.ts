@@ -1,5 +1,5 @@
 import { Agent, GameEngine } from "../../game";
-import { Skill, Team } from "../../../types";
+import { Skill } from "../../../types";
 import { HexUtils } from "../../utils";
 import { DamageCalculator } from "./DamageCalculator";
 import { CCManager } from "./CCManager";

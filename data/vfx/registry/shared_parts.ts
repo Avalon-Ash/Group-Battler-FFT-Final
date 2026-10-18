@@ -212,6 +212,9 @@ export const DEATH_PARTS = {
     BLOOD_ANIM: { fadeOut: 0.4 },
 } as const;
 
+/** 施法者已不存在（查不到陣營）時的隕石色階 */
+export const METEOR_NEUTRAL: { rockRamp: VFXRampId; glowRamp: VFXRampId } = { rockRamp: 'STATUS_SLATE', glowRamp: 'STATUS_SLATE' };
+
 export const METEOR_SIZE = {
     /** 岩塊 shard size（半徑）＝粒子 size × ROCK */
     ROCK: 0.32,

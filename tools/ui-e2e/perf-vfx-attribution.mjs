@@ -11,7 +11,7 @@
  *   - no_chants_auras (UnitAuraPainter / casting circle and ultimate chant)
  *   - no_projectiles (ProjectileDrawer / projectile body and gradient trails)
  *   - no_unit_shatter (UnitShatter / death ragdoll shard decomposition)
- *   - no_beams_slashes (ProceduralPainter / beams and slashes)
+ *   - no_beams_slashes (PartPainter.drawBeam / beams and slashes)
  *   - no_ground_cc (StatusPartPainter status layers)
  *   - no_particles (ParticleRenderer / all ECS simulation particles)
  *
@@ -57,7 +57,7 @@ const TOGGLES = [
     { id: 'no_chants_auras', name: 'Chant & Ult Auras (UnitAuraPainter)', prop: 'no_chants_auras' },
     { id: 'no_projectiles', name: 'Projectiles & Trails (ProjectileDrawer)', prop: 'no_projectiles' },
     { id: 'no_unit_shatter', name: 'Unit Death Shatter (UnitShatter)', prop: 'no_unit_shatter' },
-    { id: 'no_beams_slashes', name: 'Beams & Slashes (ProceduralPainter)', prop: 'no_beams_slashes' },
+    { id: 'no_beams_slashes', name: 'Beams & Slashes (PartPainter.drawBeam)', prop: 'no_beams_slashes' },
     { id: 'no_ground_cc', name: 'Status parts (StatusPartPainter)', prop: 'no_ground_cc' },
     { id: 'no_particles', name: 'All ECS Particles (ParticleRenderer)', prop: 'no_particles' }
 ];
@@ -238,15 +238,15 @@ async function main() {
             };
         } catch (e) { console.warn('Hook UnitShatter failed', e); }
 
-        // 7. Hook ProceduralPainter
+        // 7. Hook PartPainter.drawBeam（光束零件）
         try {
-            const modProc = await import('/engine/systems/vfx/renderers/painters/ProceduralPainter.ts');
-            const origBeamDraw = modProc.ProceduralPainter.drawBeam;
-            modProc.ProceduralPainter.drawBeam = function(...args) {
+            const modProc = await import('/engine/systems/vfx/renderers/painters/PartPainter.ts');
+            const origBeamDraw = modProc.PartPainter.drawBeam;
+            modProc.PartPainter.drawBeam = function(...args) {
                 if (window.__vfxToggles.no_beams_slashes) return;
                 return origBeamDraw.apply(this, args);
             };
-        } catch (e) { console.warn('Hook ProceduralPainter failed', e); }
+        } catch (e) { console.warn('Hook PartPainter.drawBeam failed', e); }
 
         // 8. Hook StatusPartPainter
         try {

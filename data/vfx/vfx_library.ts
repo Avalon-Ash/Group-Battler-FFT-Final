@@ -49,10 +49,10 @@ export const VFX_LIBRARY = {
     ] as VFXEntry[],
 
     STATUS_EFFECTS: [
-        { key: 'FX_STATUS_BURN_LOOP', name: '燃燒狀態', desc: '持續性火焰燃燒粒子效果。', visuals: ['Fire', 'Loop'] },
-        { key: 'FX_STATUS_POISON_LOOP', name: '中毒狀態', desc: '持續性毒液滴落與毒氣粒子。', visuals: ['Poison', 'Loop'] },
-        { key: 'FX_STATUS_STUN_LOOP', name: '暈眩狀態', desc: '頭部環繞的暈眩星芒粒子。', visuals: ['Stars', 'Loop'] },
-        { key: 'FX_STATUS_SILENCE_LOOP', name: '沉默狀態', desc: '封印符文與暗色粒子環繞。', visuals: ['Rune', 'Loop'] }
+        { key: 'STATUS_PART_BURN', name: '燃燒狀態', desc: '狀態零件（STATUS_PARTS.BURN，StatusPartPainter 逐幀繪製）。', visuals: ['Fire', 'Loop'] },
+        { key: 'STATUS_PART_POISON', name: '中毒狀態', desc: '狀態零件（STATUS_PARTS.POISON）。', visuals: ['Poison', 'Loop'] },
+        { key: 'STATUS_PART_STUN', name: '暈眩狀態', desc: '狀態零件（STATUS_PARTS.STUN）。', visuals: ['Stars', 'Loop'] },
+        { key: 'STATUS_PART_SILENCE', name: '沉默狀態', desc: '狀態零件（STATUS_PARTS.SILENCE）。', visuals: ['Rune', 'Loop'] }
     ] as VFXEntry[],
 
     BATTLE_ROYALE: [

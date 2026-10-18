@@ -136,9 +136,7 @@ export class DesignExporter {
         s += "  +-- RenderDispatcher\n";
         s += "        |\n";
         s += "        +-- ProjectileDrawer (Motion Blur, Trail Density)\n";
-        s += "        +-- ProceduralPainter (Vector Geometry: BlackHole, HexBeam)\n";
         s += "        +-- BillboardPainter (Sprite/Texture: Smoke, Spark)\n";
-        s += "        +-- GroundPainter (Projection: Cubic Easing Shockwaves, Grid)\n";
         s += "        +-- VolumePainter (3D Extrusion: Shields, Pillars)\n";
         s += "```\n\n";
 

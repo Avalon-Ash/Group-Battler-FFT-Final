@@ -25,7 +25,6 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
 
         if (basicSkill) {
             const actions: VFXAction[] = [];
-            const specificHit = basicSkill.visualHitEffect || hitFx;
 
             if (basicConfig) {
                 // 普攻序列只放「出手」的線條（斬擊弧、光束）；命中特效由 HIT_FX 事件播 skill.visualHitEffect，

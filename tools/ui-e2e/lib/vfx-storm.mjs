@@ -54,9 +54,9 @@ export const INJECT_VFX_STORM_SCRIPT = `
             'FX_ACTIVE_RED_SHADOW_SCREAM',
             'FX_HIT_RED_HEAVY',
             'FX_HIT_RED_MAGMA',
-            'FX_CASTING_ULT',
-            'FX_CASTING_ACTIVE',
-            'FX_CAST_BREAK',
+            'FX_CAST_BREAK_BURST_BLUE',
+            'FX_CAST_BREAK_BURST_RED',
+            'FX_CAST_BREAK_BLUE',
             'FX_SPAWN_BLUE',
             'FX_SPAWN_RED',
             'FX_TELEPORT'

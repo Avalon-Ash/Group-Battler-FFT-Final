@@ -29,8 +29,6 @@ const DICE_TITLE = '隨機生成戰場與陣容';
 // 被包住的繪製模組（路徑：匯出名）。新增繪製器時加進來。
 const PAINTER_MODULES = {
     '/engine/systems/vfx/renderers/painters/PartPainter.ts': ['PartPainter'],
-    '/engine/systems/vfx/renderers/painters/ProceduralPainter.ts': ['ProceduralPainter'],
-    '/engine/systems/vfx/renderers/painters/GroundPainter.ts': ['GroundPainter'],
     '/engine/systems/vfx/renderers/painters/BillboardPainter.ts': ['BillboardPainter'],
     '/engine/systems/vfx/renderers/ProjectileRenderer.ts': ['ProjectileRenderer'],
     '/engine/systems/vfx/VFXAmbience.ts': ['VFXAmbience'],

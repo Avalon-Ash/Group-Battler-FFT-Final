@@ -10,7 +10,7 @@
 | `data/vfx/materialConfig.ts` | 材質 SSOT。所有噪聲/緞帶/光管/分級參數集中一處，painter 每次繪製即時讀取，因此暫停狀態下改參數下一帧生效。 |
 | `engine/graphics/materials/NoiseLib.ts` | value noise + fbm（確定性 seed），烘焙成離屏 alpha 遮罩並 cache。等價 GLSL 的 SDF + noise 裁切。 |
 | `engine/graphics/materials/MaterialPainter.ts` | 六種手法的 Canvas 2D 實作：冰殼、灼痕、Ribbon 閃電、三層同心光管、殘影拖尾、色調分級。 |
-| `tools/material-preview.html` / `tools/materialPreview.ts` | 新舊材質並排驗證頁（`npx vite` 後開 `/tools/material-preview.html`）。 |
+| ~~`tools/material-preview.html` / `tools/materialPreview.ts`~~ | 已刪除（2026-10-18，VFX V3）：它比對的地面場與程序化光束繪製器已改為零件管線並移除。 |
 | `vite.preview.config.mjs` | 把驗證頁單獨 build 成靜態站的設定，方便丟給非工程同事看。 |
 
 ## 手法對照
@@ -85,4 +85,4 @@
 ### 預覽與 A/B 驗證
 
 所有升級皆受 `MATERIAL_CONFIG.enabled` 總開關守護，保留 100% legacy 回退機制。
-可於本地執行 `npx vite` 並開啟 `tools/material-preview.html` 檢視完整的 10 列新舊並排比對畫面。
+（並排比對頁 `tools/material-preview.html` 已於 VFX V3 刪除，見 `docs/VFX_PIPELINE_MAP.md` §4.10。）

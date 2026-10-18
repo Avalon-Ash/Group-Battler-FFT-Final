@@ -171,10 +171,16 @@ VFXSystem.state.particles
 - 登記表剩下的舊後端資產只有死鍵（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP`），留給 V3 刪除。
 - 保真工具修正：展示戰鬥在模擬流種子化前借用 Math.random，特效抽籤改變了展示單位的走位與鏡頭，第一張擷取（VOID）因鏡頭沒收斂而整張偏移（23% 像素）。`render-fidelity.mjs` 改為頁面載入後立即 `__resetSeed`，與特效脫鉤；新舊版本與原基準皆 0 差異，未重錄。
 
+### 4.10 V3（死碼清理）之後
+- 刪除：登記表死鍵 13 個（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP`，`registry/shared.ts` 整檔）、`SkillDef.visualCastEffect／visualAoeEffect`、`ProceduralPainter`、`GroundPainter`、`MaterialPainter` 只供它們用的 6 個函式與輔助、`tools/material-preview.html`／`materialPreview.ts`；另清掉 4 處 `--noUnusedLocals` 報的未使用項。
+- 無陣營後備改零件：光束用 `NEUTRAL_BEAM_RAMP_ID`、隕石用 `METEOR_NEUTRAL`；`ParticleRenderer` 遇到 PROC／GROUND 型別畫洋紅除錯點（`VFX_RENDER.DEBUG_DOT_*`）。
+- 結果：實戰＋150 技能共 10,824 顆粒子，全是 PART（7,704）或天氣 ATMOSPHERE（3,120）；棘輪名單：舊後端資產 0、直接生成的舊型別只剩 ATMOSPHERE／BEAM（已掛零件）／GENERIC_DEBUG。
+- 保真 0 變化（未重錄）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
 3. ✅ **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
 4. ✅ **HEAVEN_FALL 改零件**（落下時間依高度，維持由序列直接生成，零件規格放資料檔）。死亡碎裂、護盾火花、詠唱中斷共用層 ✅。
 5. ✅ **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
-6. 清死鍵（§2.6）與死欄位（§2.2）。
+6. ✅ 清死鍵（§2.6）與死欄位（§2.2）。

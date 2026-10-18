@@ -2,7 +2,7 @@
  * vfx-coverage-report — 讀 vfx-coverage.mjs 的輸出，印出覆蓋率矩陣（markdown）。
  *   node tools/vfx/vfx-coverage-report.mjs [path=tools/ui-e2e/out/vfx/coverage.json]
  * 來源標記：fx:<登記鍵>、beam:<光束樣式>、direct（不經登記表直接生成的粒子）。
- * 後端：PART（新零件材質）、PROC（ProceduralPainter）、GROUND（GroundPainter）、BILL（BillboardPainter）。
+ * 後端：PART（新零件材質）、BILL（BillboardPainter）；PROC／GROUND 的繪製器已移除，出現就代表有舊型別漏網（畫成洋紅除錯點）。
  */
 import { readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';

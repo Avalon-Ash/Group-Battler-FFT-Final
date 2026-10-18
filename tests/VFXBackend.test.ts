@@ -28,14 +28,10 @@ describe('particle traits table', () => {
 });
 
 /** 還在用舊後端的登記資產（只減不增） */
-const LEGACY_ASSETS_ALLOWED = [
-    'FX_CASTING_ULT', 'FX_CASTING_ACTIVE', 'FX_HIT_FIRE', 'FX_MASSIVE_IMPACT',
-    'FX_STATUS_STUN_LOOP', 'FX_STATUS_SILENCE_LOOP', 'FX_STATUS_POISON_LOOP', 'FX_STATUS_BURN_LOOP', 'FX_STATUS_REGEN_LOOP',
-    'FX_STATUS_BANISH_LOOP', 'FX_STATUS_FEAR_LOOP', 'FX_STATUS_ROOT_LOOP', 'FX_STATUS_VULNERABLE_LOOP',
-];
+const LEGACY_ASSETS_ALLOWED: string[] = [];
 
-/** 引擎內直接指定（不經登記表）的非零件粒子型別（只減不增）。BEAM 有陣營時會掛光束零件；GENERIC_DEBUG 是粒子池重置的預設值 */
-const LEGACY_DIRECT_TYPES_ALLOWED = ['ATMOSPHERE', 'BEAM', 'GENERIC_DEBUG', 'GIANT_HEX', 'ROCK'];
+/** 引擎內直接指定（不經登記表）的非零件粒子型別（只減不增）。ATMOSPHERE＝天氣（地形 T4 零件化）；BEAM 一律掛光束零件；GENERIC_DEBUG 是粒子池重置的預設值 */
+const LEGACY_DIRECT_TYPES_ALLOWED = ['ATMOSPHERE', 'BEAM', 'GENERIC_DEBUG'];
 
 function collectSources(dir: string, out: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
