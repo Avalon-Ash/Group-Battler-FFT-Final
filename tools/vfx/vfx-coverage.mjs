@@ -117,7 +117,7 @@ try {
                 if (typeof obj === 'function' && obj.prototype) for (const k of Object.getOwnPropertyNames(obj.prototype)) wrapFn(obj.prototype, k, `${n}#${k}`);
             }
         }
-        // 粒子後端：依 ParticleRenderer 的分派規則分類（PART_PARTICLE_TYPES 先、其次 PROC、GROUND，其餘 BILL）
+        // 粒子後端：依 ParticleRenderer 的分派規則分類（PART_PARTICLE_TYPES 與掛了零件的 BEAM 先、其次 PROC、GROUND，其餘 BILL）
         const { ParticleRenderer } = await import('/engine/systems/vfx/renderers/ParticleRenderer.ts');
         const { PART_PARTICLE_TYPES } = await import('/engine/systems/vfx/renderers/painters/PartPainter.ts');
         const PROC = new Set(['PILLAR', 'HEX_BEAM', 'GIANT_HEX', 'DOMAIN', 'DEATH_RAY', 'BEAM', 'MAGIC_CIRCLE', 'BLACK_HOLE']);
@@ -125,7 +125,7 @@ try {
         const seen = new WeakMap();
         const origDraw = ParticleRenderer.drawSingleParticle;
         ParticleRenderer.drawSingleParticle = function (ctx, p, ...rest) {
-            const be = PART_PARTICLE_TYPES.has(p.type) ? 'PART' : PROC.has(p.type) ? 'PROC' : GROUND.has(p.type) ? 'GROUND' : 'BILL';
+            const be = PART_PARTICLE_TYPES.has(p.type) || (p.type === 'BEAM' && p.part) ? 'PART' : PROC.has(p.type) ? 'PROC' : GROUND.has(p.type) ? 'GROUND' : 'BILL';
             // 粒子物件會被池化重用：以（物件，標籤，maxLife）判斷是不是新的一顆
             const sig = `${cov.label}|${p.maxLife}|${p.type}`;
             if (seen.get(p) !== sig) { seen.set(p, sig); inc(bucket().particles, `${p.__src || 'direct'}|${be}:${p.type}`); }

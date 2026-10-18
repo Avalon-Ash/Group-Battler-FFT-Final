@@ -21,12 +21,12 @@ export const VFX_PARTS = {
     /** 烘焙解析度倍率：sprite 以 N 倍像素烘焙，繪製時縮回，鏡頭放大時線條仍銳利 */
     BAKE_SCALE: 2,
     /** 動畫零件的影格數（品質階層 0） */
-    FRAMES: { flame: 8, bolt: 3 } as const,
+    FRAMES: { flame: 8, bolt: 3, beam: 4 } as const,
     /** 各品質階層影格係數 [Tier 0..3]；主形狀永遠保留，只減少影格 */
     TIER_FRAME_RATIO: [1, 1, 0.5, 0.5] as const,
     MIN_FRAMES: 2,
     /** 預設播放速率（影格／秒） */
-    FPS: { flame: 12, bolt: 20 } as const,
+    FPS: { flame: 12, bolt: 20, beam: 16 } as const,
 
     /** 六角骨架（ART_SPEC §0）：烘焙時的頂點起始角。0 = 平頂（頂點在左右），與 FLAT 地圖格同向；貼地零件在繪製時以 HexGeometry.alignRotation 轉到地圖版面（POINTY 為 π/6） */
     HEX: { ANGLE_OFFSET_RAD: 0 },
@@ -45,4 +45,11 @@ export const VFX_PARTS = {
     PILLAR: { FRONT_RATIO: 0.5, LIT_SIDE_ALPHA: 0.75, SHADE_SIDE_ALPHA: 0.4, EDGE_ALPHA: 0.9, EDGE_WIDTH: 0.06, TOP_FADE: 0.65, BASE_ELLIPSE: 0.35 },
     SPARK: { THICK_RATIO: 0.12, HEAD_GLOW_RATIO: 0.22, MAIN_STOP: 0.6, MAIN_ALPHA: 0.85 },
     DROPLET: { TIP_RATIO: 1.6, HIGHLIGHT_RATIO: 0.28, BODY_RATIO: 0.55 },
+    /**
+     * 光束磚：沿光束方向平鋪的一段光管（長 TILE_LEN，左右不加 PAD 才能無縫接）。寬度 w＝光束樣式寬度：
+     * 管身全厚 w×MAIN_RATIO、光暈全厚 w×HALO_RATIO（舊 drawLayeredBeam 的可見亮帶約 0.6w，管身取同級粗細）。
+     * 虛線（死光）在 ±w×DASH_OFFSET，週期需整除 TILE_LEN；鋸齒（閃電）兩端回到中線；珠鏈（血鏈）每 BEAD_PERIOD 一顆。
+     * 執行期整排磚以 SCROLL_PX_S 往終點捲動（舊版虛線 lineDashOffset 的速度），兩端裁成尖頭（長度＝可見高度×TIP_RATIO）。
+     */
+    BEAM: { TILE_LEN: 64, MAIN_RATIO: 1.2, HALO_RATIO: 2.4, HALO_ALPHA: 0.22, CORE_RATIO: 0.2, TIP_RATIO: 0.8, DASH_PERIOD: 32, DASH_ON: 21, DASH_W: 1, DASH_OFFSET: 1, DASH_ALPHA: 0.8, ZIGZAG_POINTS: 8, ZIGZAG_AMP: 0.6, ZIGZAG_MAIN_W: 0.6, ZIGZAG_CORE_W: 0.25, BEAD_PERIOD: 16, BEAD_R: 0.45, SCROLL_PX_S: 500 },
 } as const;

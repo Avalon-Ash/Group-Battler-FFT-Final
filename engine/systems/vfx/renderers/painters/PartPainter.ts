@@ -5,6 +5,8 @@ import type { PartAnim } from "../../../../../types/VFXSchema";
 import type { HexLayout } from "../../../../../types";
 import { VFX_PARTS } from "../../../../../data/vfx/parts/partConfig";
 import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
+import { quantizeSize } from "../../../../renderers/vfxparts/PartSpec";
+import { BEAM_STYLES, type BeamStyleId } from "../../../../../data/vfx/beam_styles";
 
 /** 粒子型別 → 繪製方式：PART_GROUND 貼地（等距壓扁），其他為看板。 */
 export const PART_PARTICLE_TYPES = new Set(['PART', 'PART_GROUND', 'PART_DEBRIS']);
@@ -49,5 +51,47 @@ export const PartPainter = {
             alpha,
             blend: p.blendMode,
         });
+    },
+
+    /**
+     * 光束零件：把光管磚（kind 'beam'，錨點在左端中線）沿起點→終點平鋪，裁在 [0, 長度]。
+     * 呼叫時 ctx 未平移；(drawX, drawY) 是起點的繪製位置（含起點格漂浮位移，RenderSpec §5）。
+     * 終點與長度的算法與 ProceduralPainter.drawBeam 相同（sx/sy/tx/ty 是螢幕座標、beamEndDy 是兩端漂浮位移差）。
+     * 寬度隨進度收窄（死光 1.5→0.5，其餘 1→0），整排磚往終點捲動，兩端裁成尖頭。
+     */
+    drawBeam(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, now: number): void {
+        const sprite = p.part;
+        if (!sprite || p.sx === undefined || p.sy === undefined || p.tx === undefined || p.ty === undefined) return;
+        const relX = p.tx - p.sx;
+        const relY = (p.ty - (p.tz ?? 0)) - (p.sy - (p.sz ?? 0)) + (p.beamEndDy ?? 0);
+        const dist = Math.sqrt(relX * relX + relY * relY);
+        if (dist < 1) return;
+        const t = Math.max(0, Math.min(1, progress));
+        const widthMul = BEAM_STYLES[p.style as BeamStyleId]?.dashedEdges ? 1.5 - t : 1 - t;
+        if (widthMul <= 0) return;
+        // 磚以量化後的寬度烘焙；縱向縮放回實際寬度再乘收窄係數
+        const sy = (p.size / quantizeSize(p.size)) * widthMul;
+        const tile = sprite.width;
+        const h = sprite.height * sy;
+        const top = -sprite.anchorY * sy;
+        const img = sprite.frames[partFrameAt(sprite, p.maxLife - p.life)];
+        const x0 = ((now * VFX_PARTS.BEAM.SCROLL_PX_S) % tile) - tile;
+        ctx.save();
+        ctx.translate(drawX, drawY);
+        ctx.rotate(Math.atan2(relY, relX));
+        ctx.globalCompositeOperation = p.blendMode ?? sprite.blend;
+        // 兩端尖頭：裁切成拉長的六邊形，避免光暈在終點留下直角方框
+        const tip = Math.min(dist / 2, h * VFX_PARTS.BEAM.TIP_RATIO);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(tip, top);
+        ctx.lineTo(dist - tip, top);
+        ctx.lineTo(dist, 0);
+        ctx.lineTo(dist - tip, top + h);
+        ctx.lineTo(tip, top + h);
+        ctx.closePath();
+        ctx.clip();
+        for (let x = x0; x < dist; x += tile) ctx.drawImage(img, x, top, tile, h);
+        ctx.restore();
     },
 };

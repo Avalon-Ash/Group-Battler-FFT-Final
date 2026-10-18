@@ -8,7 +8,7 @@
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_RAMPS, VFX_NEUTRALS, type VFXRamp } from '../../../data/vfx/parts/vfxPalette';
-import { type PartSpec, type ShardShape, type SigilEmblem, createPartRng, boltPolyline } from './PartSpec';
+import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, createPartRng, boltPolyline } from './PartSpec';
 
 const TAU = Math.PI * 2;
 
@@ -75,6 +75,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'pillar': return bakePillar(ctx, n.width, n.height, VFX_RAMPS[n.ramp]);
         case 'spark': return bakeSpark(ctx, n.length, VFX_RAMPS[n.ramp]);
         case 'droplet': return bakeDroplet(ctx, n.size, VFX_RAMPS[n.ramp]);
+        case 'beam': return bakeBeam(ctx, n.width, VFX_RAMPS[n.ramp], n.edge, n.seed ?? 0, frame);
     }
 }
 
@@ -587,4 +588,72 @@ function bakeDroplet(ctx: CanvasRenderingContext2D, s: number, ramp: VFXRamp): v
     ctx.beginPath();
     ctx.arc(-r * 0.35, 0, r * C.HIGHLIGHT_RATIO, 0, TAU);
     ctx.fill();
+}
+
+/**
+ * 光束磚（x 0→TILE_LEN，y 以中線為 0）。左右兩端必須能首尾相接：漸層只沿 y、虛線與珠鏈週期整除磚長、
+ * 鋸齒折線兩端回到中線。執行期由 PartPainter.drawBeam 沿光束平鋪。
+ */
+function bakeBeam(ctx: CanvasRenderingContext2D, w: number, ramp: VFXRamp, edge: BeamEdge, seed: number, frame: number): void {
+    const B = VFX_PARTS.BEAM;
+    const L = B.TILE_LEN;
+    const hh = (w * B.HALO_RATIO) / 2;
+    if (edge === 'zigzag') {
+        // 閃電：每個影格一條不同的折線（三層描邊），兩端固定在中線
+        const rng = createPartRng(seed * 7 + frame);
+        const pts: Array<[number, number]> = [];
+        for (let i = 0; i <= B.ZIGZAG_POINTS; i++) {
+            const edgePt = i === 0 || i === B.ZIGZAG_POINTS;
+            pts.push([(i / B.ZIGZAG_POINTS) * L, edgePt ? 0 : (rng() * 2 - 1) * w * B.ZIGZAG_AMP]);
+        }
+        ctx.lineJoin = 'round';
+        const stroke = (width: number, style: string) => {
+            ctx.strokeStyle = style;
+            ctx.lineWidth = width;
+            ctx.beginPath();
+            pts.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+            ctx.stroke();
+        };
+        stroke(hh, withAlpha(ramp.main, B.HALO_ALPHA));
+        stroke(Math.max(1, w * B.ZIGZAG_MAIN_W), ramp.main);
+        stroke(Math.max(1, w * B.ZIGZAG_CORE_W), ramp.core);
+        return;
+    }
+    // 光暈
+    const halo = ctx.createLinearGradient(0, -hh, 0, hh);
+    halo.addColorStop(0, withAlpha(ramp.dark, 0));
+    halo.addColorStop(0.5, withAlpha(ramp.main, B.HALO_ALPHA));
+    halo.addColorStop(1, withAlpha(ramp.dark, 0));
+    ctx.fillStyle = halo;
+    ctx.fillRect(0, -hh, L, hh * 2);
+    // 管身（與舊 drawLayeredBeam 同樣的 0.35／0.5／0.65 色標）
+    const m = (w * B.MAIN_RATIO) / 2;
+    const tube = ctx.createLinearGradient(0, -m, 0, m);
+    tube.addColorStop(0, withAlpha(ramp.main, 0));
+    tube.addColorStop(0.35, ramp.main);
+    tube.addColorStop(0.5, ramp.core);
+    tube.addColorStop(0.65, ramp.main);
+    tube.addColorStop(1, withAlpha(ramp.main, 0));
+    ctx.fillStyle = tube;
+    ctx.fillRect(0, -m, L, m * 2);
+    // 最內芯
+    const c = Math.max(0.5, (w * B.CORE_RATIO) / 2);
+    ctx.fillStyle = ramp.core;
+    ctx.fillRect(0, -c, L, c * 2);
+    if (edge === 'dashed') {
+        ctx.fillStyle = withAlpha(ramp.main, B.DASH_ALPHA);
+        const off = w * B.DASH_OFFSET;
+        for (let x = 0; x < L; x += B.DASH_PERIOD) {
+            ctx.fillRect(x, -off - B.DASH_W / 2, B.DASH_ON, B.DASH_W);
+            ctx.fillRect(x, off - B.DASH_W / 2, B.DASH_ON, B.DASH_W);
+        }
+    } else if (edge === 'beads') {
+        const r = Math.max(1, w * B.BEAD_R);
+        for (let x = B.BEAD_PERIOD / 2; x < L; x += B.BEAD_PERIOD) {
+            ctx.fillStyle = ramp.main;
+            ctx.beginPath(); ctx.arc(x, 0, r * 1.4, 0, TAU); ctx.fill();
+            ctx.fillStyle = ramp.core;
+            ctx.beginPath(); ctx.arc(x, 0, r, 0, TAU); ctx.fill();
+        }
+    }
 }

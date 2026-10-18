@@ -134,10 +134,22 @@ VFXSystem.state.particles
 單一特效前後對照：`node tools/vfx/fx-shot.mjs --keys=<鍵> --body=<身體高度的鍵>`。
 已知：治療的綠色在冰面上偏青（疊加混合）；battle_frozen 保真差異 0.03% → 0.40%（門檻 0.5%，未重錄）。
 
+### 4.5 步驟 3（光束零件）之後
+| 類別 | 技能 | 只用零件 | 含舊後端 | 沒抓到 |
+| :-- | --: | --: | --: | --: |
+| 普攻 | 50 | 38 | 0 | 12 |
+| 主動 | 50 | 48 | 1 | 1 |
+| 奧義 | 50 | 41 | 9 | 0 |
+
+只用零件：95 → **127**。剩下：`HEAVEN_FALL` 的 ROCK（9 奧義）、`FX_MANA_BURN`（sr_a4）。
+- 新零件 kind `beam`（`PartSpec`／`PartBakers.bakeBeam`／`VFX_PARTS.BEAM`）：一段 64 單位、可首尾無縫平鋪的光管磚；邊緣 `clean`／`dashed`（死光）／`zigzag`（閃電，4 影格）／`beads`（血鏈），樣式表 `BEAM_STYLES.edge`、陣營色階 `FACTION_BEAM_RAMP_ID`（閃電藍方覆寫為 `LION_LIGHTNING`）。
+- `VFXSystem.playBeam` 有陣營時掛零件；`ParticleRenderer` 把掛零件的 `BEAM` 交給 `PartPainter.drawBeam`（沿起點→終點平鋪、尖頭裁切、往終點捲動）。粒子型別仍是 `BEAM`，排序與漂浮位移規則（RenderSpec §2、§5）不變；沒有陣營的後備光束沿用 `ProceduralPainter.drawBeam`。
+- 對照：`node tools/vfx/fx-shot.mjs --keys=BEAM:DEATH_RAY:RED,...`。光束端點量測（`beam-align-shot`）FOREST／VOID 皆 0 px；verify:coords 振盪 39 對、靜止 0、sink 0；battle_frozen 0.43%（門檻 0.5%，未重錄）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
-3. **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
+3. ✅ **光束零件**（`ART_VFX_PLAN` 已列待辦）：6 種樣式、32 個技能。
 4. **HEAVEN_FALL 改走登記表**。
 5. **單一後端宣告＋棘輪**：資產宣告自己的後端，三份型別清單收斂成一份；新增 `tests/VFXBackend.test.ts`，以只減不增的基準鎖住舊後端數量（與 `CoordinateProtocol` 同模式）。
 6. 清死鍵（§2.6）與死欄位（§2.2）。

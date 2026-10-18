@@ -17,7 +17,9 @@ import { HexMath } from "../../math/HexMath";
 import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT } from "../../../constants";
 import type { HexLayout } from "../../../types";
 import type { Team } from "../../types/Enums";
-import { BEAM_STYLES, FACTION_BEAM_RAMP, type BeamStyleId } from "../../../data/vfx/beam_styles";
+import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, type BeamStyleId } from "../../../data/vfx/beam_styles";
+import { VFX_RAMPS } from "../../../data/vfx/parts/vfxPalette";
+import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
@@ -112,7 +114,8 @@ export class VFXSystem {
     
     public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4, scale: number = 1, team?: Team) {
         const p = this.state.getParticle();
-        p.size = (BEAM_STYLES[styleId as BeamStyleId]?.width ?? BEAM_STYLES.GENERIC_BEAM.width) * scale;
+        const style = BEAM_STYLES[styleId as BeamStyleId] ?? BEAM_STYLES.GENERIC_BEAM;
+        p.size = style.width * scale;
         p.sx = start.x; p.sy = start.y; p.sz = start.z;
         p.tx = end.x; p.ty = end.y; p.tz = end.z;
         // p.y 是粒子的「未投影 Y」（螢幕 Y / ISO_SCALE_Y，VFXRenderer 提交時乘回，RenderSpec §3）；
@@ -121,9 +124,13 @@ export class VFXSystem {
         p.life = duration; p.maxLife = duration; 
         p.color = colorOverride || '#fff'; 
         if (team !== undefined) {
-            const ramp = FACTION_BEAM_RAMP[team];
+            const rampId = style.teamRamp?.[team] ?? FACTION_BEAM_RAMP_ID[team];
+            const ramp = VFX_RAMPS[rampId];
             p.color = ramp.main;
             p.beamCore = ramp.core;
+            // 光束零件：烘焙一段可平鋪的光管磚，PartPainter.drawBeam 沿起點→終點鋪滿（docs/VFX_PIPELINE_MAP.md §5-3）。
+            // 種子只給鋸齒（閃電）挑折線變體；沒有陣營的後備光束不掛零件，沿用 ProceduralPainter.drawBeam。
+            p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * 31 + end.x * 17)) });
         }
         p.type = 'BEAM'; p.style = styleId; p.locked = true; p.lockReason = 'BEAM';
         this.state.particles.push(p);

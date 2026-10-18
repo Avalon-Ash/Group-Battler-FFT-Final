@@ -31,6 +31,12 @@ export const ParticleRenderer = {
             return;
         }
 
+        // 0b. 陣營光束零件（可平鋪的光管磚）；沒有零件的後備光束走下面的程序化路徑
+        if (p.type === 'BEAM' && p.part) {
+            PartPainter.drawBeam(ctx, p, drawX, drawY, progress, battleTime);
+            return;
+        }
+
         // 1. Vectorized Procedural Logic (Pillars, Domains, Beams)
         // Uses BattleTime for synchronous rotation/pulsing
         if (PROCEDURAL_SET.has(p.type)) {

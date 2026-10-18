@@ -46,6 +46,7 @@ export interface DrawPartOptions {
 function basePartFps(kind: PartKind): number {
     if (kind === 'flame') return VFX_PARTS.FPS.flame;
     if (kind === 'bolt') return VFX_PARTS.FPS.bolt;
+    if (kind === 'beam') return VFX_PARTS.FPS.beam;
     return 0;
 }
 

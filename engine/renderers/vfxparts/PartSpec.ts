@@ -10,6 +10,8 @@ import { VFX_SOLID_RAMPS, type VFXRampId, type VFXNeutralId } from '../../../dat
 
 export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
 export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
+/** 光束磚的邊緣樣式：乾淨光管、兩側虛線（死光）、鋸齒（閃電）、珠鏈（血鏈） */
+export type BeamEdge = 'clean' | 'dashed' | 'zigzag' | 'beads';
 
 /**
  * 有上下方向的法陣圖騰（盾、顱骨、倒三角）。貼地零件在 POINTY 地圖會整張轉 π/6 讓六角外框對齊格子，
@@ -36,7 +38,8 @@ export type PartSpec =
     | { kind: 'sigil'; radius: number; emblem: SigilEmblem; ramp: VFXRampId }
     | { kind: 'pillar'; width: number; height: number; ramp: VFXRampId }
     | { kind: 'spark'; length: number; ramp: VFXRampId }
-    | { kind: 'droplet'; size: number; ramp: VFXRampId };
+    | { kind: 'droplet'; size: number; ramp: VFXRampId }
+    | { kind: 'beam'; width: number; ramp: VFXRampId; edge: BeamEdge; seed?: number };
 
 export type PartKind = PartSpec['kind'];
 
@@ -107,6 +110,9 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             return { kind: 'spark', length: quantizeSize(spec.length), ramp: spec.ramp };
         case 'droplet':
             return { kind: 'droplet', size: quantizeSize(spec.size), ramp: spec.ramp };
+        case 'beam':
+            // 種子只影響鋸齒折線；其他邊緣共用同一張
+            return { kind: 'beam', width: quantizeSize(spec.width), ramp: spec.ramp, edge: spec.edge, seed: spec.edge === 'zigzag' ? quantizeSeed(spec.seed) : 0 };
     }
 }
 
@@ -120,6 +126,7 @@ export function partKey(n: PartSpec, frameCount: number): string {
 export function baseFrameCount(kind: PartKind): number {
     if (kind === 'flame') return VFX_PARTS.FRAMES.flame;
     if (kind === 'bolt') return VFX_PARTS.FRAMES.bolt;
+    if (kind === 'beam') return VFX_PARTS.FRAMES.beam;
     return 1;
 }
 
@@ -134,6 +141,8 @@ export function frameCountForTier(kind: PartKind, tier: number): number {
 
 /** 預設混合模式：光類用加法（ART_SPEC §10-4）；煙、液滴、實體碎片、實體色階（血、瘴氣、深淵）用一般混合。 */
 export function partBlend(n: PartSpec): GlobalCompositeOperation {
+    // 光束一律是光（血鏈也是能量連線，不是實體血）
+    if (n.kind === 'beam') return 'lighter';
     if (n.kind === 'smoke' || n.kind === 'droplet') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
@@ -194,6 +203,11 @@ export function partBounds(n: PartSpec): PartBounds {
             const w = n.length + t + pad * 2;
             const h = t * 2 + pad * 2;
             return { width: w, height: h, anchorX: w - t - pad, anchorY: h / 2 };
+        }
+        case 'beam': {
+            // 左右不加 PAD：磚要首尾無縫平鋪。錨點在左端中線（光束起點）。
+            const h = n.width * VFX_PARTS.BEAM.HALO_RATIO + pad * 2;
+            return { width: VFX_PARTS.BEAM.TILE_LEN, height: h, anchorX: 0, anchorY: h / 2 };
         }
         case 'shard':
         case 'droplet': {

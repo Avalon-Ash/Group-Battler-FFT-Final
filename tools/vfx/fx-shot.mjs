@@ -2,6 +2,7 @@
  * fx-shot — 單一登記特效的確定性逐格截圖（空場、地圖中央一格）。用來比對零件化前後的同一個鍵。
  *   node tools/vfx/fx-shot.mjs --keys=FX_HEAL_BURST,FX_GRID_IMPACT_BLUE [--body=FX_HEAL_BURST] [--out=tools/ui-e2e/out/vfx/fx]
  * --body：列出的鍵在身體高度播放（命中、治療、出手類）；其餘貼地播放（格子脈衝類）。
+ *   光束：--keys=BEAM:DEATH_RAY:RED,BEAM:HOLY_RAY:BLUE（樣式:陣營，固定在身體高度往右下打）。
  * 每個鍵輸出 <key>.png：一列 5 格（t = 0.03／0.1／0.2／0.32／0.48 秒）。
  */
 import { chromium } from 'playwright-core';
@@ -20,6 +21,9 @@ const START_TEXT = '啟動戰術模擬';
 const SAMPLE_T = [0.03, 0.1, 0.2, 0.32, 0.48];
 const BODY_LIFT = 30; // 身體高度（world px，約為受擊點）
 const CROP = { w: 220, h: 200 };
+/** 光束模式：終點相對起點的螢幕偏移（world px），截圖範圍改用 BEAM_CROP */
+const BEAM_DX = 150, BEAM_DY = 60;
+const BEAM_CROP = { w: 420, h: 240 };
 
 const server = await createServer({ root, server: { port: 3197, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 let browser = null;
@@ -87,13 +91,22 @@ try {
     const { default: sharp } = await import('sharp').catch(() => ({ default: null }));
     for (const key of keys) {
         const frames = [];
-        await page.evaluate(({ key, spot, lift }) => {
+        const isBeam = key.startsWith('BEAM:');
+        await page.evaluate(async ({ key, spot, lift, isBeam, beamDx, beamDy }) => {
             const e = window.__TACTICAL_ENGINE__;
             e.renderer.vfx.reset();
             e.renderer.camera.snapTo(spot.x, spot.y - spot.gz, 2.0);
             window.__stepFrames(2);
-            e.renderer.vfx.playEffect(key, spot.x, spot.y, spot.gz + lift, undefined, spot.gz);
-        }, { key, spot, lift: bodyKeys.has(key) ? BODY_LIFT : 0 });
+            if (isBeam) {
+                // BEAM:<樣式>:<BLUE|RED>：從格子中心（身體高度）往右下打一條 0.4 秒的光束（螢幕座標，同 SequenceSystem）
+                const [, style, team] = key.split(':');
+                const types = await import('/types.ts');
+                const z = spot.gz + lift;
+                e.renderer.vfx.playBeam(style, { x: spot.x, y: spot.y, z }, { x: spot.x + beamDx, y: spot.y + beamDy, z }, undefined, 0.4, 1, team === 'RED' ? types.Team.RED : types.Team.BLUE);
+            } else {
+                e.renderer.vfx.playEffect(key, spot.x, spot.y, spot.gz + lift, undefined, spot.gz);
+            }
+        }, { key, spot, lift: bodyKeys.has(key) || isBeam ? BODY_LIFT : 0, isBeam, beamDx: BEAM_DX, beamDy: BEAM_DY });
         let tPrev = 0;
         for (const t of SAMPLE_T) {
             await page.evaluate(({ n, spot }) => {
@@ -102,14 +115,14 @@ try {
                 window.__stepFrames(1);
             }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), spot });
             tPrev = t;
-            frames.push(await page.screenshot({ clip: { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
+            frames.push(await page.screenshot({ clip: isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
         }
         if (sharp) {
             const row = await sharp({ create: { width: CROP.w * frames.length, height: CROP.h, channels: 3, background: '#000' } })
                 .composite(frames.map((f, i) => ({ input: f, left: i * CROP.w, top: 0 }))).png().toBuffer();
-            writeFileSync(join(outDir, `${key}.png`), row);
+            writeFileSync(join(outDir, `${key.replace(/:/g, "_")}.png`), row);
         } else {
-            frames.forEach((f, i) => writeFileSync(join(outDir, `${key}_${i}.png`), f));
+            frames.forEach((f, i) => writeFileSync(join(outDir, `${key.replace(/:/g, "_")}_${i}.png`), f));
         }
         console.log('saved', key);
     }
