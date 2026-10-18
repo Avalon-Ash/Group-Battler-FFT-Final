@@ -94,6 +94,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '繪製位置（px + physics）的最近軌跡，衝刺殘影與飛行緞帶讀它。MotionEngine 曾經也寫（飛行單位會重複推入），已移除。',
     },
+    lastHitSourceId: {
+        group: 'vitals',
+        kind: 'single',
+        owners: ['engine/systems/combat/DirectDamage.ts'],
+        note: '擊殺歸屬：一律經 applyDirectDamage／applyLethal 的 sourceId 參數寫入（撞擊、地形危害也是）。護盾完全吸收、未扣到 HP 的傷害不更新歸屬。',
+    },
     banished: {
         group: 'status',
         kind: 'single',

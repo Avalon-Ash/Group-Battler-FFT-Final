@@ -309,7 +309,7 @@ export const CCManager = {
         }
 
         for (const { agent, amount } of victims) {
-            const { absorbed } = applyDirectDamage(agent, amount);
+            const { absorbed } = applyDirectDamage(agent, amount, false, source.id);
             if (absorbed > 0) {
                 engine.pushEvent('DAMAGE', unitEventPos(agent, engine), {
                     value: -Math.floor(absorbed), color: DAMAGE_TEXT_COLORS.ABSORB, text: 'ABSORB',
@@ -324,7 +324,6 @@ export const CCManager = {
                 value: amount, text: FORCED_MOVE.IMPACT_FX, sourceId: source.id, targetId: agent.id
             });
             engine.log(source, 'CC', FORCED_MOVE.IMPACT_TEXT, agent.id, `${agent.id} 撞擊${block.reason} 受到 ${amount} 傷害`);
-            agent.lastHitSourceId = source.id;
             if (agent.hp <= 0) {
                 engine.agentManager.handleDeadState(agent, engine, FORCED_MOVE.IMPACT_TEXT);
             } else {

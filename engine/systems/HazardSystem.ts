@@ -118,7 +118,7 @@ export class HazardSystem {
     }
 
     private applyHazardEffect(agent: Agent, hazard: SpatialHazard, engine: GameEngine) {
-        const { absorbed, dealt: dmg } = applyDirectDamage(agent, hazard.power);
+        const { absorbed, dealt: dmg } = applyDirectDamage(agent, hazard.power, false, hazard.sourceId || null);
 
         if (absorbed > 0) {
             engine.events.push({ 
@@ -147,10 +147,6 @@ export class HazardSystem {
         const source = engine.agents.find(a => a.id === hazard.sourceId) || null;
         engine.log(source, 'HAZARD', '地形傷害', agent.id, `受到 ${Math.floor(dmg)} 傷害 (${hazard.type})`);
         
-        if (hazard.sourceId) {
-            agent.lastHitSourceId = hazard.sourceId;
-        }
-
         if (agent.hp <= 0) {
             engine.agentManager.handleDeadState(agent, engine);
         }

@@ -56,3 +56,18 @@ describe('Status/casting domain APIs (state ownership P7b/P8)', () => {
         expect(a._interruptCooldown).toBe(CAST_LOCKOUT.FATAL_BREAK);
     });
 });
+
+describe('lastHitSourceId routing (state ownership step 3)', () => {
+    let engine: GameEngine;
+    beforeEach(() => { engine = new GameEngine(); engine.play(); });
+    afterEach(() => { engine.stop(); engine.clear(); });
+
+    it('撞擊傷害經 applyDirectDamage 設定擊殺歸屬', () => {
+        const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.WARRIOR);
+        const b = engine.agentManager.addAgent(engine, Team.RED, 0, 2, 100, Role.WARRIOR);
+        if (!a || !b) throw new Error('addAgent failed');
+        a.lastHitSourceId = null;
+        CCManager.applyImpact(a, b, { reason: 'WALL', hex: { q: 0, r: 1 }, heightDiff: 0, remaining: 2 }, engine);
+        expect(a.lastHitSourceId).toBe(b.id);
+    });
+});
