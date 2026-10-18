@@ -124,3 +124,16 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | `assets/vfx/smoke_01.png` | VFX_SMOKE | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
 | `assets/vfx/magic_01.png` | VFX_MAGIC | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
 | `assets/vfx/star_01.png` | VFX_STAR | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |
+
+## 6. 3D Source Packs (Obstacle pre-render) — docs/VISUAL_ROADMAP.md §B
+
+Source models only. They live in `C:\Git\_asset_stagingssets3d\` (outside the repo) and are pre-rendered in Blender; only the rendered sprites will enter `public/assets/obstacles/` (each sprite gets its own row when added).
+
+| Staging Path | Source Pack | Author | Source URL | License | Attribution Required | Size | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `assets3d/kaykit_forest_nature/` | KayKit Forest Nature Pack 1.0 (FREE) | Kay Lousberg | https://kaylousberg.itch.io/kaykit-forest | CC0 1.0 | Optional (Kay Lousberg, www.kaylousberg.com) | 6.1 MB zip, 105 glTF | 2026-10-18 |
+| `assets3d/kaykit_dungeon_remastered/` | KayKit Dungeon Remastered 1.0 | Kay Lousberg | https://github.com/KayKit-Game-Assets/KayKit-Dungeon-Remastered-1.0 | CC0 1.0 | Optional (Kay Lousberg) | 71 MB clone, 203 glb | 2026-10-18 |
+| `assets3d/kaykit_medieval_hexagon/` | KayKit Medieval Hexagon Pack 1.0 | Kay Lousberg | https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0 | CC0 1.0 | Optional (Kay Lousberg) | 95 MB clone, 221 models | 2026-10-18 |
+| `assets3d/kenney_nature_kit/` | Nature Kit 2.1 | Kenney (Kenney.nl) | https://kenney.nl/assets/nature-kit | CC0 1.0 | Optional (Kenney.nl) | 10.5 MB zip, 329 glb | 2026-10-18 |
+
+Redistribution note (KayKit): free for personal and commercial use; do not resell unmodified copies or claim them as your own. Rendered sprites are derivative game art, which is allowed.
