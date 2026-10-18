@@ -103,6 +103,9 @@ export class VFXRenderer {
             } else {
                 // 空中特效：鍵＝足跡 Y（op.y）＋固定前緣。高度 z 不進鍵（RenderSpec §2），鍵對粒子壽命單調。
                 op.sortBias = VFX_RENDER.AIR_SORT_BIAS;
+                // 光束是一條空中的線：以兩端中最靠前的足跡排序（sy／ty 是螢幕 Y），整條畫在它經過的地塊之後；
+                // 只用起點排序時，朝畫面前方延伸的那段會被起點前方的地塊蓋住（看起來穿進地底）。
+                if (p.sy !== undefined && p.ty !== undefined) op.sortBias += Math.max(0, p.ty - p.sy);
             }
 
             op.z = isGroundLocked

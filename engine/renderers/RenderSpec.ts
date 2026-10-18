@@ -47,6 +47,7 @@ export class RenderSpec {
         s += "| GridRenderStrategy | OVERLAY | 0（畫在格子頂面，同格先於障礙與單位；2026-10-18 拿掉半格前緣） |\n";
         s += "| UnitSystem | AURA | VFX_RENDER.AIR_SORT_BIAS（op.y＝UnitFrame.sortFootY，死區濾波後的足跡 Y，不含高度；光環是掛在施法者身上的空中效果，鍵比施法者高一個前緣，永遠排在施法者與腳下格之後） |\n";
         s += "| VFXRenderer | VFX (air)、PROJECTILE | VFX_RENDER.AIR_SORT_BIAS（HEX_SIZE * 0.5）：空中物件當作站在它飄過那一格的前緣；粒子高度 z 不進鍵 |\n";
+        s += "| VFXRenderer | BEAM（光束） | AIR_SORT_BIAS ＋ max(0, 終點螢幕 Y − 起點螢幕 Y)：以兩端中最靠前的足跡排序，整條畫在經過的地塊之後（2026-10-18） |\n";
         s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(死區濾波後的腳點 Y, 排序用腳下格格心 Y) − 腳 Y：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後與腳點死區，見下）。濾波使它可為 ≥ −SORT_DEADBAND_PX 的小負值，但鍵永遠不低於腳下格格心 |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
         s += "**排序用腳下格帶滯後**（UnitFrameStore 的視覺狀態：每個單位上一幀的排序格）：腳點原始所在格與記憶格不同時，\n";
@@ -209,6 +210,10 @@ export class RenderSpec {
         s += "- 模式：DIRECT＝每格裁切後直接畫粒子（單一 drawImage／少量填色，混合模式與原本一致）；OFFSCREEN＝多段描邊的向量特效，每幀只畫一次到池化離屏畫布\n";
         s += "  （目前裝置縮放，容量只增不減），再逐格複製與該格外框相交的部分，以粒子混合模式貼上。\n";
         s += "- 分類（依繪製內容；SSOT 在 constants.ts GROUND_DRAPE.MODE）：鋪設＝PART_GROUND、GRID_FIELD、CRACKS、BLAST、HEX_GLOW（DIRECT）、MAGIC_CIRCLE、SHOCKWAVE、RING（OFFSCREEN）。\n";
+        s += "- 非粒子鋪設：施法 AOE 地面預警（UnitRenderSystem.paintAoeIndicator，GroundDrapeLayer.addPainted）一律走離屏畫布，逐格貼在頂面；\n";
+        s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱環、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
+        s += "  逐格以平面高度裁切繪製；格子頂面高過平面＝被擋住不畫（前景高地照樣遮擋）。施法者腳下那格只畫後半，\n";
+        s += "  前半由 AURA op（UnitRenderSystem.drawAura）在施法者之後補畫，所以環繞在身體前後。垂直部分（上升粒子、能量柱）留在 AURA op。\n";
         s += "  不鋪設（直立或有高度，維持 VFX (isGround) op、前緣 sortBias、無抬升）：PILLAR、HEX_BEAM（立柱）、DOMAIN（80px 稜柱）、GIANT_HEX（懸浮三層＋角柱）、BLACK_HOLE（球狀核心）。\n";
         s += "- 排序後果：站在某格的單位在該格 TERRAIN 之後才畫（§2 sortBias），棋座壓在法陣上（ART_SPEC §13）；高地塊、障礙、危害、疊層都在鋪設之後，自然遮住法陣。\n";
         s += "  奧義（pIsUlt）的貼地法陣不再有 +1e8 的永遠最上層，因為它不再是排序單位。\n\n";

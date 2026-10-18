@@ -10,6 +10,11 @@
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║
 // ║  （ART_SPEC §13）。分類與參數：constants.ts GROUND_DRAPE。    ║
 // ║  池化：登記項與離屏畫布皆重複使用，容量只增不減。            ║
+// ║  除了粒子，也接受「繪製函式＋單位」（施法 AOE 地面預警），    ║
+// ║  一律走離屏畫布；函式是靜態參考，不每幀配置閉包。            ║
+// ║  懸空平面（planeZ，詠唱環）：不貼頂面，而是以固定高度逐格裁切；║
+// ║  頂面高過平面的格子不畫（被擋住），施法者那格只畫後半，前半  ║
+// ║  由 AURA op 在施法者之後補畫（RenderSpec §9）。              ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Particle } from "../systems/vfx/state";
@@ -18,9 +23,20 @@ import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { HexGeometry } from "../graphics/utils/HexGeometry";
 import { GROUND_DRAPE, ISO_SCALE_Y } from "../../constants";
 import type { RenderOp } from "./RenderList";
+import type { Agent } from "../core/Agent";
+
+/** 以單位為參數、畫在原點（特效中心＝地平面）的貼地繪製函式。必須是靜態函式參考（不每幀建立閉包）。 */
+export type DrapePainter = (ctx: CanvasRenderingContext2D, agent: Agent, battleTime: number, layout: HexLayout) => void;
 
 interface DrapeEntry {
     p: Particle | null;
+    /** 非粒子的鋪設來源（與 p 擇一） */
+    painter: DrapePainter | null;
+    painterAgent: Agent | null;
+    /** 懸空平面的繪製用高度（NaN＝貼在各格頂面）；ownQ／ownR＝施法者腳下格（只畫後半） */
+    planeZ: number;
+    ownQ: number;
+    ownR: number;
     /** 特效中心的世界 X（螢幕 X） */
     x: number;
     /** 特效中心的足跡 Y（含轉場位移，不含高度與漂浮） */
@@ -45,7 +61,7 @@ interface DrapeEntry {
 
 function createEntry(): DrapeEntry {
     return {
-        p: null, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, chaos: false, offscreen: false,
+        p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, chaos: false, offscreen: false,
         canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1,
     };
 }
@@ -73,14 +89,53 @@ export class GroundDrapeLayer {
         if (!e) { e = createEntry(); this.entries[this.count] = e; }
         this.count++;
         e.p = p;
+        e.painter = null;
+        e.painterAgent = null;
+        e.planeZ = NaN;
+        this.fill(e, x, footY, halfW);
+        e.progress = progress;
+        e.chaos = chaos;
+        e.offscreen = GROUND_DRAPE.MODE[p.type] === 'OFFSCREEN';
+    }
+
+    /** 非粒子的貼地繪製（例：施法 AOE 預警）。painter 在原點畫出整個圖形；一律離屏畫一次、逐格貼。 */
+    public addPainted(painter: DrapePainter, agent: Agent, x: number, footY: number, halfW: number): void {
+        this.addEntryPainted(painter, agent, x, footY, halfW, NaN, 0, 0);
+    }
+
+    /**
+     * 懸空平面（例：腰部高度的詠唱環）。planeZ＝平面的繪製用高度（已含施法者那格的漂浮位移）；
+     * ownQ／ownR＝施法者腳下格：那格只畫平面的後半，前半由 AURA op 在施法者之後補畫。
+     */
+    public addPlane(painter: DrapePainter, agent: Agent, x: number, footY: number, halfW: number, planeZ: number, ownQ: number, ownR: number): void {
+        this.addEntryPainted(painter, agent, x, footY, halfW, planeZ, ownQ, ownR);
+    }
+
+    private addEntryPainted(painter: DrapePainter, agent: Agent, x: number, footY: number, halfW: number, planeZ: number, ownQ: number, ownR: number): void {
+        let e = this.entries[this.count];
+        if (!e) { e = createEntry(); this.entries[this.count] = e; }
+        this.count++;
+        e.p = null;
+        e.painter = painter;
+        e.painterAgent = agent;
+        e.planeZ = planeZ;
+        e.ownQ = ownQ;
+        e.ownR = ownR;
+        // 繪製函式可能含未壓扁的圓形光暈（例：VolumePainter.drawVolumetricHex 的方形柔光貼圖），
+        // 離屏畫布取正方形，避免上下被切成硬邊。
+        this.fill(e, x, footY, halfW);
+        e.extW = e.extH = halfW * GROUND_DRAPE.PAINTER_EXTENT + GROUND_DRAPE.CANVAS_PAD_PX;
+        e.progress = 0;
+        e.chaos = false;
+        e.offscreen = true;
+    }
+
+    private fill(e: DrapeEntry, x: number, footY: number, halfW: number): void {
         e.x = x;
         e.footY = footY;
         e.reach = halfW * GROUND_DRAPE.REACH_MARGIN;
         e.extW = e.reach + GROUND_DRAPE.CANVAS_PAD_PX;
         e.extH = e.reach * ISO_SCALE_Y + GROUND_DRAPE.CANVAS_PAD_PX;
-        e.progress = progress;
-        e.chaos = chaos;
-        e.offscreen = GROUND_DRAPE.MODE[p.type] === 'OFFSCREEN';
         e.drawnStamp = -1;
     }
 
@@ -95,14 +150,16 @@ export class GroundDrapeLayer {
         const topY = snapY - op.th;
         const bob = op.ty - op.y;
         let clipped = false;
+        let planes = 0;
         for (let i = 0; i < this.count; i++) {
             const e = this.entries[i];
             const p = e.p;
-            if (!p) continue;
+            if (!p && !e.painter) continue;
             const dx = op.tx - e.x;
             const dy = (op.y - e.footY) / ISO_SCALE_Y;
             const reach = e.reach + hexR;
             if (dx * dx + dy * dy > reach * reach) continue;
+            if (!Number.isNaN(e.planeZ)) { planes++; continue; } // 懸空平面另一趟畫（不能套到頂面裁切）
 
             // 裁切路徑每格只設一次：同一格被多個特效蓋到時共用（路徑與裁切是這裡最貴的部分）
             if (!clipped) {
@@ -116,13 +173,45 @@ export class GroundDrapeLayer {
             ctx.save();
             if (e.offscreen) {
                 this.blit(ctx, e, ox, oy, snapX, topY, hexR, layout, battleTime);
-            } else {
+            } else if (p) {
                 ctx.translate(ox, oy);
                 ParticleRenderer.drawSingleParticle(ctx, p, 0, 0, e.progress, e.chaos, layout, battleTime);
             }
             ctx.restore();
         }
         if (clipped) ctx.restore();
+        if (planes === 0) return;
+        for (let i = 0; i < this.count; i++) {
+            const e = this.entries[i];
+            if (Number.isNaN(e.planeZ) || !e.painter) continue;
+            const dx = op.tx - e.x;
+            const dy = (op.y - e.footY) / ISO_SCALE_Y;
+            const reach = e.reach + hexR;
+            if (dx * dx + dy * dy > reach * reach) continue;
+            this.drawPlaneOnTile(ctx, e, op, snapX, hexR, bob, layout, battleTime);
+        }
+    }
+
+    /**
+     * 懸空平面在一格上的片段：平面高度上該格的六邊形裁切。該格頂面高過平面＝被擋住不畫；
+     * 施法者那格只畫後半（平面中心線以上），前半由 AURA op 補畫。不與頂面鋪設共用裁切。
+     */
+    private drawPlaneOnTile(ctx: CanvasRenderingContext2D, e: DrapeEntry, op: RenderOp, snapX: number, hexR: number, bob: number, layout: HexLayout, battleTime: number): void {
+        const tileTop = op.th - bob;
+        if (tileTop > e.planeZ + GROUND_DRAPE.PLANE_OCCLUDE_EPS) return;
+        const clipY = Math.round(op.y - e.planeZ);
+        const ox = Math.round(e.x);
+        const oy = Math.round(e.footY - e.planeZ);
+        ctx.save();
+        HexGeometry.traceHex(ctx, snapX, clipY, hexR + GROUND_DRAPE.CLIP_EXPAND_PX, true, layout);
+        ctx.clip();
+        if (op.tq === e.ownQ && op.tr === e.ownR) {
+            ctx.beginPath();
+            ctx.rect(snapX - hexR * 2, clipY - hexR * 2, hexR * 4, oy - (clipY - hexR * 2));
+            ctx.clip();
+        }
+        this.blit(ctx, e, ox, oy, snapX, clipY, hexR, layout, battleTime);
+        ctx.restore();
     }
 
     /** 離屏畫布貼到目前裁切區：只複製與該格外框相交的部分 */
@@ -141,7 +230,7 @@ export class GroundDrapeLayer {
         const ix0 = Math.max(dx0, bx0), ix1 = Math.min(dx0 + w / s, bx1);
         const iy0 = Math.max(dy0, by0), iy1 = Math.min(dy0 + h / s, by1);
         if (ix1 <= ix0 || iy1 <= iy0) return;
-        ctx.globalCompositeOperation = e.p!.blendMode || 'screen';
+        ctx.globalCompositeOperation = e.p?.blendMode || (Number.isNaN(e.planeZ) ? GROUND_DRAPE.PAINTER_BLEND : GROUND_DRAPE.PLANE_BLEND);
         ctx.drawImage(canvas, (ix0 - dx0) * s, (iy0 - dy0) * s, (ix1 - ix0) * s, (iy1 - iy0) * s, ix0, iy0, ix1 - ix0, iy1 - iy0);
     }
 
@@ -150,7 +239,7 @@ export class GroundDrapeLayer {
         if (e.drawnStamp === this.stamp) return e.drawnW > 0;
         e.drawnStamp = this.stamp;
         e.drawnW = 0;
-        if (typeof document === 'undefined' || !e.p) return false;
+        if (typeof document === 'undefined' || (!e.p && !e.painter)) return false;
 
         const tf = ctx.getTransform();
         const deviceScale = Math.hypot(tf.a, tf.b) || 1;
@@ -176,7 +265,8 @@ export class GroundDrapeLayer {
         octx.globalCompositeOperation = 'source-over';
         octx.clearRect(0, 0, w, h);
         octx.setTransform(s, 0, 0, s, w / 2, h / 2);
-        ParticleRenderer.drawSingleParticle(octx, e.p, 0, 0, e.progress, e.chaos, layout, battleTime);
+        if (e.p) ParticleRenderer.drawSingleParticle(octx, e.p, 0, 0, e.progress, e.chaos, layout, battleTime);
+        else if (e.painter && e.painterAgent) e.painter(octx, e.painterAgent, battleTime, layout);
         octx.setTransform(1, 0, 0, 1, 0, 0);
 
         e.drawnW = w;
