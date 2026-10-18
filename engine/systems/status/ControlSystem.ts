@@ -4,6 +4,16 @@ import { HexUtils } from "../../utils";
 import { random } from "../../math/rng";
 import { stopMovement } from "../movement/MotionCommands";
 
+/** 狀態域 API：`banished` 只由本檔寫入，其餘模組透過這兩個函式。 */
+export function syncBanished(agent: Agent): void {
+    agent.banished = agent.banishTimer > 0;
+}
+
+/** 墜落出局等情境：強制清掉放逐旗標（計時器不動）。 */
+export function clearBanishedFlag(agent: Agent): void {
+    agent.banished = false;
+}
+
 export class ControlSystem {
     
     public update(agent: Agent, dt: number, engine: GameEngine) {
@@ -60,12 +70,12 @@ export class ControlSystem {
 
         // State Logic: Banishment
         if (agent.banishTimer > 0) {
-            agent.banished = true;
+            syncBanished(agent);
             if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
             return; 
         } else {
             if (agent.banished) {
-                agent.banished = false;
+                syncBanished(agent);
                 // 只有在 STASIS 未持續時才清除 ccVisual
                 if (agent.ccVisual !== 'STASIS' || agent.stasisTimer <= 0) {
                     agent.ccVisual = 'NONE';

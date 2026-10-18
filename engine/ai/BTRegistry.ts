@@ -2,7 +2,7 @@
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
-import { HEX_SIZE } from "../../constants";
+import { HEX_SIZE, CAST_LOCKOUT } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
@@ -337,10 +337,9 @@ export const BTActions: Record<string, BTActionFn> = {
                     
                     if (isFatal) {
                         engine.log(a, 'DECISION', '中斷詠唱', '', `地面即將塌陷 (${timeToCollapse.toFixed(1)}s)，放棄詠唱 ${castSkill.name}`);
-                        engine.combat.breakCast(a, engine);
                         // [FIX] Long lockout for fatal breaks to ensure the unit actually tries to move 
                         // before the next AI tick potentially re-evaluates SkillReady
-                        a._interruptCooldown = 0.5;
+                        engine.combat.breakCast(a, engine, CAST_LOCKOUT.FATAL_BREAK);
                     }
                 }
             }

@@ -8,6 +8,7 @@ import { triggerHitFlash } from "../AnimationSystem";
 import { applyDirectDamage } from "./DirectDamage";
 import { unitEventPos } from "../../events/EventPos";
 import { stopMovement, teleportTo } from "../movement/MotionCommands";
+import { syncBanished } from "../status/ControlSystem";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
 
@@ -101,7 +102,7 @@ export const CCManager = {
                     target.banishTimer = effectiveDuration;
                     target.banishMax = effectiveDuration;
                 }
-                target.banished = true;
+                syncBanished(target);
                 stopMovement(target);
                 // SSOT: AnimState.STUN is derived from banished state
                 

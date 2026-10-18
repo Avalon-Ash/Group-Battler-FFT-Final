@@ -1003,6 +1003,10 @@ export const AUDIO = {
     SAMPLE_RATE: 44100
 } as const;
 
-
-
-
+/** 施法中斷後禁止立刻重新詠唱的秒數（_interruptCooldown，施法域唯一寫入）。 */
+export const CAST_LOCKOUT = {
+    /** 一般中斷：避免同一 tick 重複記錄／重施。 */
+    INTERRUPT: 0.1,
+    /** 地面將塌陷而放棄詠唱：確保單位真的先去逃生。 */
+    FATAL_BREAK: 0.5,
+} as const;
