@@ -303,8 +303,9 @@ export const ProceduralPainter= {
         // 1. 計算螢幕空間的相對座標
         // 由於 ctx 已經 translate 到 (p.x, p.y - p.z)，即起點的螢幕位置
         const relX = p.tx - p.sx;
-        const relY = (p.ty - p.tz) - (p.sy - p.sz);
-        
+        // beamEndDy：終點格與起點格的漂浮位移差（VFXRenderer 每幀寫入，RenderSpec §5）；起點的位移已在 op.ty
+        const relY = (p.ty - p.tz) - (p.sy - p.sz) + (p.beamEndDy ?? 0);
+
         const dist = Math.sqrt(relX * relX + relY * relY);
         const angle = Math.atan2(relY, relX);
         

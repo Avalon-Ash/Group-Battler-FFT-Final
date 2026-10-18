@@ -8,7 +8,8 @@
 // ║        足跡 Y＋固定 AIR_SORT_BIAS 排序，高度 z 不進鍵。     ║
 // ║  上游：VFXSystem 狀態、RenderPipeline 的繪製用地面高度     ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、  ║
-// ║  §7、§9；貼花跟地塊浮動，空中特效不套用。                  ║
+// ║  §7、§9；貼花跟地塊浮動；光束兩端與投射物發射點各加所在格  ║
+// ║  的漂浮位移（§5，只動 op.ty／繪製位置，不進排序鍵）。      ║
 // ╚══════════════════════════════════════════════════════════╝
 
 
@@ -123,12 +124,18 @@ export class VFXRenderer {
             // Apply visual bias (Z-Fighting prevention) directly to ty, NOT to sorting y.
             // visualBias is a pixel-space compensation to ensure ground effects hover slightly above terrain.
             const visualBias = isGroundLocked ? VFX_RENDER.GROUND_VISUAL_BIAS : 0;
-            op.ty = projectedY + offset - p.z - visualBias + (isGroundLocked ? groundDrawShift(p.x, projectedY) : 0); 
+            // 光束兩端（模擬座標＝投影中心）各跟著所在格的漂浮位移：起點加在 op.ty，終點與起點的差交給 drawBeam（RenderSpec §5）
+            let beamStartBob = 0;
+            if ((p.type === 'BEAM' || p.type === 'DEATH_RAY') && p.sx !== undefined && p.sy !== undefined && p.tx !== undefined && p.ty !== undefined) {
+                beamStartBob = groundDrawShift(p.sx, p.sy);
+                p.beamEndDy = groundDrawShift(p.tx, p.ty) - beamStartBob;
+            }
+            op.ty = projectedY + offset - p.z - visualBias + (isGroundLocked ? groundDrawShift(p.x, projectedY) : beamStartBob);
             op.th = p.z; 
         });
 
         this.submitDecalLayer(renderList, vfx, mapConfig, transitionT, transitionPhase, cullMinX, cullMaxX, cullMinY, cullMaxY, groundDrawShift);
-        ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase);
+        ProjectileRenderer.submit(renderList, engine, transitionT, transitionPhase, groundDrawShift);
     }
 
     private submitDecalLayer(renderList: RenderList, vfx: VFXSystem, mapConfig: MapConfig, t: number, phase: 'IN' | 'OUT' | 'IDLE', minX: number, maxX: number, minY: number, maxY: number, groundDrawShift: (x: number, screenY: number) => number) {

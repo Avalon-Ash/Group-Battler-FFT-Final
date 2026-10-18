@@ -26,6 +26,11 @@ export interface Particle {
     style?: string; 
     /** 光束芯色（陣營色階 core）；未設則為白 */
     beamCore?: string;
+    /**
+     * 光束終點相對起點的繪製時額外 Y 位移（螢幕 px，正值往下）＝終點格漂浮位移 − 起點格漂浮位移（RenderSpec §5）。
+     * 唯一寫入者 VFXRenderer.submitRenderables（每幀提交時算），只給 ProceduralPainter.drawBeam 讀；模擬端不讀不寫。
+     */
+    beamEndDy?: number;
     ownerId?: string;
     /** 終極技粒子標記（SequenceSystem 寫入，vfx/render.ts 讀取以決定繪製排序）。 */
     pIsUlt?: boolean;
@@ -82,6 +87,7 @@ export class VFXStateManager {
             p.blendMode = undefined;
             p.style = undefined; 
             p.beamCore = undefined;
+            p.beamEndDy = undefined;
             p.visualStyle = undefined;
             p.ownerId = undefined;
             p.pIsUlt = undefined;

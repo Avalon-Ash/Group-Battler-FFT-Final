@@ -130,7 +130,10 @@ export class RenderSpec {
         s += "- 地塊、障礙、危害、射程疊層：GridRenderStrategy 把位移加在 op.ty（不加在 op.y）。\n";
         s += "- 單位、屍體、狀態、HUD、剪影：從繪製用高度自動取得（RenderPipeline 的高度函式扣掉位移）。\n";
         s += "- 貼地特效、貼花：VFXRenderer 以「模擬高度 − 繪製用高度」補到 op.ty。\n";
-        s += "- 不套用：空中特效、投射物、發射點／受擊點（模擬端座標）。漂浮地圖上發射點與投影中心最多差 FLOAT_BOB.AMPLITUDE px。\n";
+        s += "- 不套用：空中特效粒子、發射點／受擊點（模擬端座標，不含漂浮）；排序鍵一律不含位移。\n";
+        s += "- 發射點與投影中心的對齊（繪製時補償，模擬端不動）：位移取自「模擬高度 − 繪製用高度」（＝該格的 floatBobAt）。\n";
+        s += "  投射物：ProjectileRenderer 把發射格目前的位移加在繪製位置與尾跡，權重由 1 線性淡出，飛行進度 t 到 FLOAT_BOB.LAUNCH_FADE_T 時為 0。\n";
+        s += "  光束：VFXRenderer 把起點格位移加在 op.ty、終點格與起點格的位移差寫進 Particle.beamEndDy（ProceduralPainter.drawBeam 讀），兩端各跟自己的投影中心。\n";
         s += "- 地形 sprite 快取鍵不含位移（TerrainBlockCache 固定傳 0），否則每個縮放級距上千種組合（docs/PERF_LIFECYCLE_FINDINGS.md）。\n";
         s += "驗證：node tools/ui-e2e/float-align-probe.mjs --biome=VOID（單位與腳下地塊的距離必須恆定）。\n\n";
 
