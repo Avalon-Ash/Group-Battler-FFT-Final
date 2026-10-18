@@ -110,11 +110,15 @@
 
 現況：R1 光照與高度接合、R2 地表細節（沙紋、虛空紋烘焙；冰面、草叢、液面預渲染循環）已完成。已知問題：島嶼左下底部被切平線；VOID／FOREST 頂面偏暗；ICE 的 aurora 背景造成 p99 約 19 ms；亮地表讓特效發白；網格線是很亮的白色描邊（截圖裡非常搶眼）。
 
-### T0 美術方向與調色盤
+### T0 美術方向與調色盤（✅ 2026-10-18：亮度預算）
+- **已做**：`TERRAIN_SKIN.exposure`（每群系增益，烘焙最後乘上，側／頂明暗比不變）＋`TERRAIN_SKIN.lumaBudget` 45～90（頂面中心 Rec.709 luma）。量測與驗收：`node tools/ui-e2e/terrain-contrast.mjs`（acceptance 會檢查預算）。前→後：VOID 29→48、FOREST 53→62、MAGMA 46→52、ICE 128→86、DESERT 104→84；冰面上的 `lighter` 特效發白明顯減輕。調色盤（色相）未動，留給 T2。
 - 每個生物群系一張調色盤＋亮度預算（頂面最高亮度、對比），與 VFX 色階對照，確保特效在每張地圖都讀得出來（解決冰面發白的根）。
 - 參考圖：你在 `_asset_staging/art/ref_*` 的風格參考（不進 repo）。
 
-### T1 修已知缺陷
+### T1 修已知缺陷（✅ 2026-10-18：三項都已不成立或已修）
+- 島嶼底座切平線：10/17 已修（`docs/TERRAIN_FOUNDATION_REPORT.md`）。VOID／FOREST 偏暗：T0 曝光已拉進預算。
+- ICE aurora：早已改為低解析度離屏（`BACKGROUND_FX.AURORA.RESOLUTION_SCALE`，9043459）。實測（`node tools/ui-e2e/biome-frames.mjs --biomes=ICE,VOID --no-bg=ICE`，2560×1440 unthrottled）：ICE p99 3.2 ms、關背景 1.9 ms、VOID 2.4 ms——19 ms 尖峰已不存在，未再改。
+- 原計畫：
 - 島嶼底座切平線、VOID／FOREST 頂面偏暗（R1 光照增益依群系調）。
 - ICE aurora 改預渲染低解析度循環影格（R2 報告已建議），目標 ICE p99 < 8 ms。
 

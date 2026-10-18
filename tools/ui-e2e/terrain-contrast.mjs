@@ -1,5 +1,5 @@
 /**
- * Terrain contrast probe (R1 / T0).
+ * Terrain contrast probe (R1 / T0). Acceptance also checks the T0 luma budget (TERRAIN_SKIN.lumaBudget).
  * Bakes one block per biome with TerrainRenderer.bakeBlock and measures mean luma (Rec.709, sRGB values)
  * of three regions: top face centre, lit side face (drawFace(2,1)) middle, dark side face (drawFace(1,0)) middle.
  * Every biome is measured twice: texture path, and procedural path (terrainTextureStore.isReady patched to false
@@ -192,6 +192,16 @@ try {
         const okD = t.darkOverTop <= p.darkOverTop * 1.15;
         if (!okL || !okD) allOk = false;
         console.log(`  ${pad(b, 8)} light ${t.lightOverTop} <= ${(p.lightOverTop * 1.15).toFixed(3)} ${okL ? 'ok' : 'NO'} | dark ${t.darkOverTop} <= ${(p.darkOverTop * 1.15).toFixed(3)} ${okD ? 'ok' : 'NO'} | top rgb ${t.topRgb.map((v) => v.toFixed(0)).join(',')} vs theme.top ${t.themeTop}`);
+    }
+    // T0 亮度預算：貼圖路徑頂面中心 luma 要落在 TERRAIN_SKIN.lumaBudget（群系曝光 TERRAIN_SKIN.exposure 調整）
+    const budget = await page.evaluate(async () => (await import('/constants.ts')).TERRAIN_SKIN.lumaBudget);
+    console.log(`
+luma budget (texture top, ${budget.min}..${budget.max}):`);
+    for (const b of BIOMES) {
+        const t = rows.find((x) => x.biome === b && x.path === 'texture');
+        const ok = t.top >= budget.min && t.top <= budget.max;
+        if (!ok) allOk = false;
+        console.log(`  ${pad(b, 8)} top ${t.top.toFixed(1)} ${ok ? 'ok' : 'OUT OF BUDGET'}`);
     }
     console.log(`acceptance: ${allOk ? 'PASS' : 'FAIL'}`);
     writeFileSync(join(OUT_DIR, jsonName), JSON.stringify({ layout, skinOverride, accept: allOk, rows }, null, 2));

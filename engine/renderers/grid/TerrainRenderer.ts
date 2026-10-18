@@ -17,6 +17,28 @@ import {
 import { terrainTextureStore } from "./TerrainTextureStore";
 import { getEdgeTable } from "../../systems/grid/GridCache";
 
+/**
+ * 群系曝光（TERRAIN_SKIN.exposure，地形 T0）：整張地塊乘上 gain，只在烘焙時執行。
+ * gain < 1：在既有像素上蓋一層黑（source-atop，透明處不動）；gain > 1：以 lighter 把自己再疊一次（每次最多 +1 倍）。
+ */
+function applyExposure(ctx: CanvasRenderingContext2D, canvas: CanvasImageSource & { width: number; height: number }, gain: number): void {
+    if (!(gain > 0) || gain === 1) return;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    if (gain < 1) {
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = `rgba(0,0,0,${1 - gain})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    } else {
+        ctx.globalCompositeOperation = 'lighter';
+        for (let g = gain - 1; g > 0; g -= 1) {
+            ctx.globalAlpha = Math.min(1, g);
+            ctx.drawImage(canvas, 0, 0);
+        }
+    }
+    ctx.restore();
+}
+
 const PEDESTAL_DEPTH = 45; 
 const EXPANSION_BIAS = 0.6;
 
@@ -386,6 +408,7 @@ export const TerrainRenderer = {
         }
 
         sCtx.restore();
+        applyExposure(sCtx, surface.canvas, TERRAIN_SKIN.exposure[type] ?? 1);
 
         return {
             canvas: surface.canvas,

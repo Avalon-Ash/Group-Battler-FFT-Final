@@ -1,6 +1,6 @@
 # 主代理交接手冊（工具無關：Claude Code／Antigravity 皆可讀）
 
-> 更新：2026-10-18（座標／繪製順序整輪已合併，見 §3 I）。新對話的主代理 **先讀本檔再開工**，不要重新探索專案；`AGENTS.md` 是審查 diff 時的檢查清單。
+> 更新：2026-10-18 晚（VFX 零件化 V1～V3、地形 T0～T1，見 §3 J；下一步照 `docs/VISUAL_ROADMAP.md` §0）。新對話的主代理 **先讀本檔再開工**，不要重新探索專案；`AGENTS.md` 是審查 diff 時的檢查清單。
 > 歷史細節（已完成輪次的提示詞／報告／基準）在 [`docs/archive/`](archive/) 與各 `docs/*REPORT*.md`，**平常不用讀**。
 
 ## 0. 省點數守則（使用者額度有限，最重要）
@@ -45,7 +45,7 @@
 - R0 證據：高度感是 A1 換貼圖時丟失（側面明暗只疊 35%），與烘焙快取無關。
 - 修法：`bakeBlock` 先以光照漸層全強度填底，再以 `TERRAIN_SKIN.topDetail`／`sideDetail`（overlay 0.5）疊貼圖；`GridCache` 在 `mapVersion` 變動時算 6-bit 鄰格高度遮罩（key bit 25-30），烘焙崖邊亮邊、接觸陰影、平接邊淡化（`TERRAIN_SKIN.edge`）。每幀成本不變。
 - 量測工具 `tools/ui-e2e/terrain-contrast.mjs`（`--grid` 產生新舊對照）；報告 `docs/TERRAIN_R1_REPORT.md`（含調整手冊）；保真基準已重錄。
-- 已知：島嶼左下底部被切成平線（R1 前就有）；VOID／FOREST 頂面偏暗（換地圖不清其他地形已修：`evictOtherThemes`；縮放級距另加遲滯 `RENDER_CACHE.SCALE_HYSTERESIS`）。
+- 已知（後續已修）：島嶼左下底部切平線（10/17 修）；VOID／FOREST 頂面偏暗（T0 曝光修，§3 J）（換地圖不清其他地形已修：`evictOtherThemes`；縮放級距另加遲滯 `RENDER_CACHE.SCALE_HYSTERESIS`）。
 
 ### E. 熔岩／虛空卡頓與生命週期（2026-10-16 合併）
 - 根因：漂浮地圖把浮動位移算進地形 sprite 快取鍵，每個縮放級距 1500+ 種組合，導演鏡頭縮放跨 1.5 級距時超過 `MAX_TERRAIN_SPRITES` 而不斷擠出重烘焙（實戰 p99 VOID 204 ms、MAGMA 125 ms）。修法：浮動改為繪製時整塊平移（`TerrainRenderer.drawBlock`）。縮放掃描 p99：VOID 86.8→13.0 ms、MAGMA 103.1→17.1 ms（FOREST 對照 17.1 ms），0 擠出。
@@ -80,6 +80,15 @@
 - **新規則**：渲染／座標工作一次只開一條；重錄保真基準要附新舊差異圖並在獨立 commit 寫明；hook 要求渲染任務說明引用 `RenderSpec.ts`。
 - 注意：排程／無人值守的執行不能 `start_session`，改用 `Agent`（Sonnet、`isolation: worktree`）。
 - **狀態所有權 P4a～P6**（同批合併）：vitals API（`applyHeal`／`applyLethal`／`absorbWithShield`）、`movement/MotionCommands.ts`（`stopMovement`／`teleportTo`）、危害減速改純函式 `getHazardSpeedMult`（離開危害立即恢復，battle_frozen 因此重錄）、`physics.*` 累加器守門。**P7a 前提不成立**：嘲諷鎖定只在 `TargetingSystem.updateTarget`，拿掉 `CCManager` 的 `target.target = source` 會讓嘲諷失效，需改 `BTRegistry.HasTarget`（`tauntTimer > 0` 時重選目標）才能做；P7b、P8 未做。紀錄在 `docs/STATE_OWNERSHIP_DESIGN.md` §6。最終 verify:coords 振盪 65、br-soak 10/10。
+
+### J. 2026-10-18 VFX 零件化收尾＋地形 T0～T1（已合併）
+- **路線圖** `docs/VISUAL_ROADMAP.md`：§0 總順序（VFX V1～V7、障礙物 O0～O4、地形 T0～T5 都是渲染工作，串行）、§D 待決定。管線地圖與每輪紀錄在 `docs/VFX_PIPELINE_MAP.md`。
+- **VFX**：150／150 技能只用零件（光束 6 樣式、HEAVEN_FALL、MANA_BURN、死亡碎裂、護盾火花、詠唱中斷、出場／待機等共用資產）。`PARTICLE_TRAITS`（constants.ts）是粒子後端的唯一來源，`tests/VFXBackend.test.ts` 棘輪只剩 ATMOSPHERE（天氣，T4）、BEAM、GENERIC_DEBUG。ProceduralPainter／GroundPainter 已刪，PROC／GROUND 型別只畫洋紅除錯點。探針 `tools/vfx/vfx-coverage.mjs`＋`vfx-coverage-report.mjs`；單張對照 `tools/vfx/fx-shot.mjs`。
+- **保真 harness**：展示戰鬥在種子前就借用 `Math.random`，特效抽數一變鏡頭就偏；`render-fidelity.mjs` 載入後立即 `__resetSeed(1337)`。
+- **CC 外觀**（子代理合併）：變羊是烘焙的羊、冰凍是六角冰塊（`PolymorphPainter`／`FrozenPainter`、`data/units/appearance/ccBody.ts`）。
+- **障礙物素材**：已下載 CC0 的 KayKit Forest Nature／Dungeon Remastered／Medieval Hexagon 與 Kenney Nature Kit 到 `_asset_stagingssets3d\`（`docs/ASSET_LEDGER.md` §6），O1 Blender 管線尚未開始。
+- **地形 T0**：`TERRAIN_SKIN.exposure`（每群系增益，烘焙最後乘上）＋`lumaBudget` 45～90；`terrain-contrast.mjs` 驗收預算。保真 5 地形＋battle_frozen 因此重錄（差異圖只落在地塊）。**T1**：三項已知缺陷都已不成立或已修，`tools/ui-e2e/biome-frames.mjs` 量各地圖真實幀間隔。
+- 未決（使用者）：`.claude/worktrees/` 剩 11 個資料夾無法自動刪（權限），需手動刪；未合併分支 `20260328`、`experiment/unit-rig-skin-poc`；網格線樣式改動（路線圖 D2）。
 
 ## 4. 已完成輪次與審查結論（精簡）
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。殘留熱點：`TextPainter`（SHOUT 漸層、`shadowBlur`、Glitch `Math.random`）、`UnitCorePainter` 受創 `shadowBlur`、`ProjectileDrawer` 每幀漸層、`ProceduralPainter` 光束、`FloatingTextDrawer`（見 `docs/PERF_REPORT_4.md` §3、§11 與 `docs/VFX_INVENTORY.md`）。
@@ -119,7 +128,7 @@
   3. 每個地圖主題一首 BGM；紅方勝利曲換成真正的暗黑曲。
   4. FEMALE 與其他體型、專用神職模型、加強陣營辨識度（見 `docs/ASSET_NEEDS.md`）。
   5. 手機版 UI 全面巡檢。
-  6. **地形 R2（下一輪）**：正式化地表氛圍效果。R0 量測（只有地形）：地表細節 `drawTerrainDetail` 佔每幀 0.4～1.3 ms（FOREST／DESERT 約佔地形成本一半）、熔岩液面 0.2～0.5 ms、天氣粒子 `VFXAmbience` 量不到差異；ICE 的 p99 19 ms 與這三者無關，待查。方向：靜態細節烘進地形 sprite，動態效果改預渲染循環影格，參數集中到 `data/vfx/`。
+  6. **地形 R2（下一輪）**：正式化地表氛圍效果。R0 量測（只有地形）：地表細節 `drawTerrainDetail` 佔每幀 0.4～1.3 ms（FOREST／DESERT 約佔地形成本一半）、熔岩液面 0.2～0.5 ms、天氣粒子 `VFXAmbience` 量不到差異；ICE 的 p99 19 ms 已不存在（極光改低解析度離屏後，2026-10-18 實測 p99 3.2 ms）。方向：靜態細節烘進地形 sprite，動態效果改預渲染循環影格，參數集中到 `data/vfx/`。
   7. 縮圈墜落的單位是否需要專屬「墜落」動畫（目前是垂直掉入虛空後立即回收）。
   8. **架構：狀態所有權**。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
 

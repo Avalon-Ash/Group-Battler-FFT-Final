@@ -696,6 +696,14 @@ export interface TerrainSkinConfig {
     foundation: TerrainFoundationConfig;
     variantOffsets: readonly { x: number; y: number }[];
     themes: Record<string, TerrainSkinThemePaths>;
+    /**
+     * 群系曝光（地形 T0 亮度預算，docs/VISUAL_ROADMAP.md §C）：整塊地塊（頂面＋側面）在烘焙最後乘上這個增益，
+     * 側面與頂面的明暗比例不變。目標是讓每張地圖頂面中心平均亮度（Rec.709 luma，0～255）落在 lumaBudget 內：
+     * 太亮（ICE、DESERT）時 lighter 疊加的特效會飽和成白；太暗（VOID）時畫面只剩網格線在撐。
+     * 量測與驗收：node tools/ui-e2e/terrain-contrast.mjs（acceptance 會檢查 lumaBudget）。未列的群系為 1。
+     */
+    exposure: Readonly<Record<string, number>>;
+    lumaBudget: { readonly min: number; readonly max: number };
 }
 
 export const TERRAIN_SKIN: TerrainSkinConfig = {
@@ -712,6 +720,9 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
         flatRimAlpha: 0.25,
         cliffRimAlpha: 0.7,
     },
+    // 2026-10-18 量測（貼圖路徑頂面中心 luma）：VOID 29、FOREST 53、MAGMA 46、ICE 128、DESERT 104
+    exposure: { VOID: 1.65, FOREST: 1.18, MAGMA: 1.12, ICE: 0.67, DESERT: 0.81 },
+    lumaBudget: { min: 45, max: 90 },
     foundation: {
         levels: 15,
         bellPower: 1,
