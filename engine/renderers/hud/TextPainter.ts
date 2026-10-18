@@ -1,6 +1,6 @@
 
 import { HUDSystem } from "../../systems/hud";
-import { TEXT_PAINTER_COLORS, SHOUT_GLOW, TEXT_BREAK_JITTER } from "../../../constants";
+import { TEXT_PAINTER_COLORS, SHOUT_GLOW, TEXT_BREAK_JITTER, TEXT_ANIM } from "../../../constants";
 import { GlowTextCache, quantizeDeviceScale } from "./GlowTextCache";
 import { createUnitGradientCache } from "../UnitGradientCache";
 
@@ -29,6 +29,11 @@ const revealGradients = createUnitGradientCache((ctx, color) => {
     return grad;
 });
 
+/** 確定性雜湊 [0,1)：依文字存活時間（與 TEXT_BREAK_JITTER 同一個式子），取代每幀 Math.random */
+function jitterHash(t: number): number {
+    return Math.abs(Math.sin(t * TEXT_BREAK_JITTER.HASH_FREQ) * TEXT_BREAK_JITTER.HASH_SCALE) % 1;
+}
+
 export const TextPainter = {
     
     drawFloatingText(ctx: CanvasRenderingContext2D, hud: HUDSystem) {
@@ -41,14 +46,14 @@ export const TextPainter = {
         // [PERF5] 光暈 sprite 的烘焙縮放（相機縮放 × DPR，量化），每次呼叫算一次
         const glowScale = quantizeDeviceScale(ctx);
 
+        const A = TEXT_ANIM;
         hud.damageNumbers.forEach(d => {
             if (!d.active) return;
 
             const lifePct = d.life / d.maxLife;
-            // Early cull for nearly invisible text
-            if (lifePct <= 0.05) return;
+            if (lifePct <= A.CULL_PCT) return;
 
-            const alpha = d.isShattered ? lifePct : (lifePct < 0.3 ? lifePct / 0.3 : 1.0);
+            const alpha = d.isShattered ? lifePct : (lifePct < A.FADE_IN_PCT ? lifePct / A.FADE_IN_PCT : 1.0);
             ctx.globalAlpha = alpha;
             
             ctx.save();
@@ -58,31 +63,29 @@ export const TextPainter = {
 
             if (d.isShattered) {
                 const shatterProgress = 1 - lifePct;
-                const scale = 1.0 + shatterProgress * 0.8;
+                const scale = 1.0 + shatterProgress * A.SHATTER_GROW;
                 ctx.scale(scale, scale);
-                // 模擬爆炸後的亂流位移
-                ctx.translate((Math.random()-0.5)*10, (Math.random()-0.5)*10);
+                // 爆炸後的亂流位移（確定性雜湊）
+                ctx.translate((jitterHash(d.time) - 0.5) * A.SHATTER_JITTER, (jitterHash(d.time + 1) - 0.5) * A.SHATTER_JITTER);
             } else if (d.type === 'SHOUT') {
                 // Entry Pop up animation
-                const entryDuration = 0.25;
-                if (d.time < entryDuration) {
-                    const t = d.time / entryDuration;
-                    const bounce = Math.sin(t * Math.PI) * 0.2;
-                    const s = t * 1.0 + bounce;
+                if (d.time < A.SHOUT_POP_SEC) {
+                    const t = d.time / A.SHOUT_POP_SEC;
+                    const s = t + Math.sin(t * Math.PI) * A.SHOUT_POP_BOUNCE;
                     ctx.scale(s, s);
                 }
-                const floatY = Math.sin(d.time * 6) * 3;
+                const floatY = Math.sin(d.time * A.SHOUT_FLOAT_FREQ) * A.SHOUT_FLOAT_AMP;
                 ctx.translate(0, floatY);
             }
 
             if (d.type === 'KILL_STREAK') {
-                const pop = Math.min(1, (1 - lifePct) * 5); 
-                const pulse = 1 + Math.sin(lifePct * 10) * 0.1;
-                const scale = pop * pulse * 1.5; 
+                const pop = Math.min(1, (1 - lifePct) * A.KILL_POP_SPEED);
+                const pulse = 1 + Math.sin(lifePct * A.KILL_PULSE_FREQ) * A.KILL_PULSE_AMP;
+                const scale = pop * pulse * A.KILL_SCALE;
                 ctx.scale(scale, scale);
                 ctx.font = fontFor('KILL', d.size);
 
-                ctx.lineWidth = 4;
+                ctx.lineWidth = A.KILL_STROKE_W;
                 ctx.lineJoin = 'round';
                 ctx.strokeStyle = TEXT_PAINTER_COLORS.KILL_STREAK_STROKE;
                 ctx.strokeText(d.text, 0, 0);
@@ -97,15 +100,15 @@ export const TextPainter = {
                     d.cachedWidth = ctx.measureText(d.text).width;
                 }
 
-                const w = d.cachedWidth! + 24; 
-                const h = d.size + (d.isUlt ? 16 : 10);
+                const w = d.cachedWidth! + A.SHOUT_PAD_X;
+                const h = d.size + (d.isUlt ? A.SHOUT_PAD_Y_ULT : A.SHOUT_PAD_Y_CAST);
                 const halfW = w / 2;
                 const halfH = h / 2;
 
                 ctx.font = shoutFont;
 
                 if (d.isUlt && !d.isShattered) {
-                    const pulse = 1 + Math.sin(d.time * 12) * 0.05; 
+                    const pulse = 1 + Math.sin(d.time * A.ULT_PULSE_FREQ) * A.ULT_PULSE_AMP;
                     ctx.scale(pulse, pulse);
                 }
 
@@ -116,7 +119,7 @@ export const TextPainter = {
                         ctx.globalAlpha = lifePct;
                         
                         // 1. 文字閃光並輕微縮放 (減少到 1.2x 避免躁訊)
-                        const s = 1.0 + progress * 0.2;
+                        const s = 1.0 + progress * A.SUCCESS_GROW;
                         ctx.scale(s, s);
                         
                         // [PERF5] 預烘焙光暈文字取代 shadowBlur（模糊量依壽命量化）
@@ -132,18 +135,18 @@ export const TextPainter = {
 
                         // 2. 輕量化的橫向擴散線條
                         ctx.strokeStyle = TEXT_PAINTER_COLORS.WHITE;
-                        ctx.lineWidth = 2 * lifePct;
+                        ctx.lineWidth = A.SUCCESS_LINE_W * lifePct;
                         ctx.beginPath();
-                        ctx.moveTo(-halfW * (1 + progress * 0.5), 0);
-                        ctx.lineTo(halfW * (1 + progress * 0.5), 0);
+                        ctx.moveTo(-halfW * (1 + progress * A.SUCCESS_LINE_SPREAD), 0);
+                        ctx.lineTo(halfW * (1 + progress * A.SUCCESS_LINE_SPREAD), 0);
                         ctx.stroke();
 
                     } else {
                         // --- 中斷演出：投影失真（ART_SPEC §13）---
                         // 陣營色錯位抖動，確定性雜湊（依存活時間），不每幀呼叫 Math.random
                         const J = TEXT_BREAK_JITTER;
-                        const h1 = Math.abs(Math.sin(d.time * J.HASH_FREQ) * J.HASH_SCALE) % 1;
-                        const h2 = Math.abs(Math.sin((d.time + 1) * J.HASH_FREQ) * J.HASH_SCALE) % 1;
+                        const h1 = jitterHash(d.time);
+                        const h2 = jitterHash(d.time + 1);
                         ctx.globalAlpha = lifePct;
                         ctx.save();
                         ctx.globalCompositeOperation = 'lighter';
@@ -163,11 +166,9 @@ export const TextPainter = {
 
                     // 2. 科技括號 (Tech Brackets)
                     ctx.strokeStyle = d.color;
-                    ctx.lineWidth = 2;
-                    const glowIntensity = 0.5 + Math.sin(d.time * 8) * 0.3;
-                    ctx.globalAlpha = glowIntensity;
-                    
-                    const bracketSize = 8;
+                    ctx.lineWidth = A.BRACKET_W;
+                    ctx.globalAlpha = A.BRACKET_GLOW_BASE + Math.sin(d.time * A.BRACKET_GLOW_FREQ) * A.BRACKET_GLOW_AMP;
+                    const bracketSize = A.BRACKET;
                     ctx.beginPath();
                     // 左括號 [
                     ctx.moveTo(-halfW + bracketSize, -halfH);
@@ -187,7 +188,7 @@ export const TextPainter = {
                     
                     // 幽靈文字 (底色)
                     ctx.fillStyle = d.color;
-                    ctx.globalAlpha = 0.15;
+                    ctx.globalAlpha = A.GHOST_ALPHA;
                     ctx.fillText(d.text, 0, 0);
 
                     if (progress > 0) {
@@ -212,7 +213,7 @@ export const TextPainter = {
                         ctx.drawImage(glowText.canvas, glowText.x, glowText.y, glowText.w, glowText.h);
 
                         // Scanner Line（[PERF5] 預烘焙光暈矩形）
-                        if (progress < 0.99) {
+                        if (progress < A.SCAN_DONE) {
                             const scanX = -halfW + revealW;
                             const scanW = SHOUT_GLOW.SCAN_WIDTH;
                             const scan = GlowTextCache.getRect(scanW, h - 2, TEXT_PAINTER_COLORS.WHITE, SHOUT_GLOW.SCAN_BLUR, glowScale);
@@ -224,7 +225,7 @@ export const TextPainter = {
 
             } else {
                 ctx.font = fontFor('NUMBER', d.size);
-                ctx.lineWidth = 3;
+                ctx.lineWidth = A.NUMBER_STROKE_W;
                 ctx.strokeStyle = TEXT_PAINTER_COLORS.STROKE_SHADOW;
                 ctx.strokeText(d.text, 0, 0);
                 ctx.fillStyle = d.color; 

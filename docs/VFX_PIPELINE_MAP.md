@@ -202,6 +202,7 @@ VFXSystem.state.particles
 - AOE 地面預警 `UnitIndicatorPainter`：範圍光＋內外環零件（`AOE_INDICATOR`），不再每幀 `shadowBlur`。
 - 刪除：`VolumePainter`（整檔）、`SurfacePainter.drawCracks`、`ParticlePainter.drawCracks`、`VFXFactory` CRACKS、`NoiseLib.applyNoiseMask`、`materialConfig.scorch`、`Z_LAYERS.HAZARD_FOG`。
 - **回歸修正**：V5a 刪貼圖時 `HazardPainter`（SMOKE／GLOW／ROCK）與 `UnitShadowPainter`（SHADOW_BLOB）仍在呼叫，畫成洋紅除錯方塊。`VFXFactory.getTexture` 改收封閉型別 `VFXTextureType`，傳不支援的名稱編譯不過；SHADOW_BLOB 復原（參數 `UNIT_SHADOW`）。
+- HUD（同輪）：血條／護盾／魔力填色改預烘焙 sprite 切片（漸層＋光暈＋高光，依顏色、高度、裝置縮放快取），選取框與量表進度弧的 `shadowBlur` 改寬描邊；量表的控制顏色改讀 `STATUS_VISUALS`（原本寫死、與狀態 SSOT 不一致）；背水一戰橫幅漸層依畫布尺寸快取、標題光暈預烘焙；浮動文字碎裂亂流改確定性雜湊。參數 `HUD_BAR`、`HUD_GAUGE`、`LAST_STAND_BANNER`、`TEXT_ANIM`。渲染路徑已沒有每幀 `shadowBlur`（只剩烘焙期）。
 - 驗收：`fx-shot --keys=SHIELD:<陣營>`、`HAZARD:<類型>`、`CAST:tb_a3`（AOE 預警）新舊對照；battle_frozen 0.03%（陰影從除錯方塊恢復成柔和陰影，門檻內未重錄）、地形 0 差異。
 
 ## 5. 遷移順序建議

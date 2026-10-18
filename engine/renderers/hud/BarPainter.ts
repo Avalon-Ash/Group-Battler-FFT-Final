@@ -1,262 +1,211 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  BarPainter — 單位頭頂的血條／護盾／魔力／詠唱條／控制條    ║
+// ║  上游：HUDRenderer（UnitFrame.hudAnchorY、footX；裝置縮放）、 ║
+// ║        HUD_BAR／HUD_COLORS（尺寸與顏色）、STATUS_VISUALS     ║
+// ║        （控制條名稱與顏色）、factionSkin.hud（陣營色）        ║
+// ║  [ARCH] 座標規則見 RenderSpec §3、§4（錨點＝投影頭頂上方）。  ║
+// ║  填色條是預烘焙 sprite（漸層＋光暈＋高光，依顏色、高度、裝置  ║
+// ║  縮放快取），每幀只切片 drawImage；不建立漸層、不設 shadowBlur。║
+// ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
-import { HUD_COLORS } from "../../../constants";
+import { HUD_COLORS, HUD_BAR, RENDER_HOTSPOT_CACHE } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { getFactionSkin } from "../../../data/units/factionSkin";
 import { isGlowSpritesEnabled } from "../RenderQuality";
-import { GlowSpriteCache, drawGlowSprite } from "../GlowSpriteCache";
+import { createCanvas } from "../../graphics/CanvasUtils";
 
-const BAR_WIDTH = 44;
-const BAR_HEIGHT = 6;
-const BAR_PADDING = 3;
+interface BarSkin {
+    canvas: HTMLCanvasElement;
+    /** 使用者座標的光暈留白（sprite 左上角相對填色區左上角的偏移） */
+    pad: number;
+    scale: number;
+}
+
+/** skins[top 色][高度 × 1000 + 縮放 × 100 + 光暈旗標]：每幀不組合字串鍵 */
+const skins = new Map<string, Map<number, BarSkin>>();
+
+function barSkin(top: string, bottom: string, glow: string, h: number, scale: number, glowOn: boolean): BarSkin {
+    let perColor = skins.get(top);
+    if (!perColor) { perColor = new Map(); skins.set(top, perColor); }
+    const key = h * 1000 + Math.round(scale * 100) * 2 + (glowOn ? 1 : 0);
+    const hit = perColor.get(key);
+    if (hit) return hit;
+    const B = HUD_BAR;
+    const blur = glowOn ? B.FILL_GLOW_BLUR : 0;
+    const padDev = Math.ceil(blur * RENDER_HOTSPOT_CACHE.GLOW_PAD_PER_BLUR);
+    const w = B.WIDTH * (1 + B.SHIELD_OVERFLOW);
+    const { canvas, ctx } = createCanvas(Math.ceil(w * scale) + padDev * 2, Math.ceil(h * scale) + padDev * 2);
+    ctx.translate(padDev, padDev);
+    ctx.scale(scale, scale);
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, top);
+    grad.addColorStop(1, bottom);
+    ctx.fillStyle = grad;
+    if (blur > 0) {
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = blur;
+    }
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h, B.FILL_CORNER);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = HUD_COLORS.GLOSS_HIGHLIGHT;
+    ctx.beginPath();
+    ctx.roundRect(0, 0, w, h * B.GLOSS_RATIO, B.FILL_CORNER);
+    ctx.fill();
+    const skin = { canvas, pad: padDev / scale, scale };
+    perColor.set(key, skin);
+    return skin;
+}
+
+/** 從 sprite 左側切出 fillW 寬（含左側光暈留白）畫在 (x, y) */
+function drawSkin(ctx: CanvasRenderingContext2D, skin: BarSkin, x: number, y: number, fillW: number): void {
+    const c = skin.canvas;
+    const sw = Math.min(c.width, Math.ceil((skin.pad + fillW) * skin.scale));
+    ctx.drawImage(c, 0, 0, sw, c.height, x - skin.pad, y - skin.pad, sw / skin.scale, c.height / skin.scale);
+}
+
+type CCTimerKey = 'banishTimer' | 'stunTimer' | 'fearTimer' | 'tauntTimer' | 'silenceTimer' | 'rootTimer' | 'blindTimer';
+type CCMaxKey = 'banishMax' | 'stunMax' | 'silenceMax';
+interface CCPriorityItem {
+    key: CCTimerKey;
+    name: string;
+    color: string;
+    /** 有記錄最大值的欄位；沒有的用 HUD_BAR.CC.DEFAULT_MAX */
+    max: CCMaxKey | null;
+}
+
+/** 控制條優先序（高→低）：名稱與顏色來自 STATUS_VISUALS */
+const CC_PRIORITY: readonly CCPriorityItem[] = [
+    { key: 'banishTimer', name: STATUS_VISUALS.BANISH.label, color: STATUS_VISUALS.BANISH.primaryColor, max: 'banishMax' },
+    { key: 'stunTimer', name: STATUS_VISUALS.STUN.label, color: STATUS_VISUALS.STUN.primaryColor, max: 'stunMax' },
+    { key: 'fearTimer', name: STATUS_VISUALS.FEAR.label, color: STATUS_VISUALS.FEAR.primaryColor, max: null },
+    { key: 'tauntTimer', name: STATUS_VISUALS.TAUNT.label, color: STATUS_VISUALS.TAUNT.primaryColor, max: null },
+    { key: 'silenceTimer', name: STATUS_VISUALS.SILENCE.label, color: STATUS_VISUALS.SILENCE.primaryColor, max: 'silenceMax' },
+    { key: 'rootTimer', name: STATUS_VISUALS.ROOT.label, color: STATUS_VISUALS.ROOT.primaryColor, max: null },
+    { key: 'blindTimer', name: STATUS_VISUALS.BLIND.label, color: STATUS_VISUALS.BLIND.primaryColor, max: null },
+];
 
 export const BarPainter = {
-    
-    drawUnitBars(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, isSelected: boolean) {
+    /** @param devScale 裝置縮放（quantizeDeviceScale，HUDRenderer 每幀算一次） */
+    drawUnitBars(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number, isSelected: boolean, devScale: number = 1) {
+        const B = HUD_BAR;
         const hasMp = agent.maxMp > 0;
-        
-        const contentW = BAR_WIDTH;
-        const hpHeight = BAR_HEIGHT;
-        const mpHeight = hasMp ? 3 : 0;
-        const gap = hasMp ? 2 : 0;
-        
-        const contentH = hpHeight + gap + mpHeight;
-        const totalW = contentW + BAR_PADDING * 2;
-        const totalH = contentH + BAR_PADDING * 2;
-        
+        const contentW = B.WIDTH;
+        const hpHeight = B.HP_HEIGHT;
+        const mpHeight = hasMp ? B.MP_HEIGHT : 0;
+        const gap = hasMp ? B.GAP : 0;
+        const totalW = contentW + B.PADDING * 2;
+        const totalH = hpHeight + gap + mpHeight + B.PADDING * 2;
         const startX = x - totalW / 2;
-        const startY = y - 5; 
+        const startY = y - B.TOP_OFFSET;
+        const glowOn = isGlowSpritesEnabled();
+        const hudSkin = getFactionSkin(agent.team).hud;
 
-        // Container
-        ctx.save();
+        // 外框：深色玻璃底＋邊框；選取時以陣營色加一圈寬的半透明描邊當光暈
         ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(startX, startY, totalW, totalH, 6);
-        else ctx.rect(startX, startY, totalW, totalH);
-        
-        // Dark Glass BG
-        ctx.fillStyle = HUD_COLORS.CONTAINER_BG; 
+        ctx.roundRect(startX, startY, totalW, totalH, B.CORNER);
+        ctx.fillStyle = HUD_COLORS.CONTAINER_BG;
         ctx.fill();
-        
-        // Team-colored Border Highlight
-        const teamBorder = getFactionSkin(agent.team).hud.border;
         ctx.lineWidth = 1;
-        ctx.strokeStyle = isSelected ? teamBorder : HUD_COLORS.CONTAINER_BORDER;
+        if (isSelected) {
+            ctx.strokeStyle = hudSkin.border;
+            ctx.globalAlpha = B.SELECT_GLOW_ALPHA;
+            ctx.lineWidth = B.SELECT_GLOW_WIDTH;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 1;
+        } else {
+            ctx.strokeStyle = HUD_COLORS.CONTAINER_BORDER;
+        }
         ctx.stroke();
 
-        if (isSelected) {
-            ctx.shadowColor = teamBorder;
-            ctx.shadowBlur = 10;
-            ctx.stroke();
-            ctx.shadowBlur = 0;
-        }
-        ctx.restore();
+        const barX = startX + B.PADDING;
+        const barY = startY + B.PADDING;
 
-        const barX = startX + BAR_PADDING;
-        const barY = startY + BAR_PADDING;
-
-        // HP Bar - Faction Colored
+        // 血量（陣營色）
         const hpPct = Math.max(0, agent.hp / agent.maxHp);
-        
-        // Calculate Shield Pct (Relative to Max HP)
-        const shieldPct = Math.max(0, agent.shield / agent.maxHp);
-        
-        let hpTop, hpBot, hpGlow;
-
-        const teamHp = getFactionSkin(agent.team).hud;
-        hpTop = teamHp.top;
-        hpBot = teamHp.bottom;
-        hpGlow = teamHp.glow;
-
-        // 1. Draw Empty Slot Background (Dark Grey)
         ctx.fillStyle = HUD_COLORS.SLOT_BG;
         ctx.fillRect(barX, barY, contentW, hpHeight);
+        if (hpPct > B.MIN_PCT) drawSkin(ctx, barSkin(hudSkin.top, hudSkin.bottom, hudSkin.glow, hpHeight, devScale, glowOn), barX, barY, Math.max(1, contentW * hpPct));
 
-        // 2. Draw Base HP
-        this.drawFluidBar(ctx, barX, barY, contentW, hpHeight, hpPct, hpTop, hpBot, hpGlow);
-
-        // 3. Draw Shield Overlay (Fix: Ensure visibility)
+        // 護盾：接在血量後面，可超出空槽 SHIELD_OVERFLOW
+        const shieldPct = Math.max(0, agent.shield / agent.maxHp);
         if (shieldPct > 0) {
-            // Shield starts where HP ends
-            const shieldStartX = barX + (contentW * hpPct);
-            
-            // Allow shield to visually overlay the empty part of HP bar, and even extend slightly
-            // Max visual width is limited to remaining bar space + 20% overflow
-            const remainingPct = 1.0 - hpPct;
-            const drawShieldPct = Math.min(shieldPct, remainingPct + 0.3); 
-            const shieldW = contentW * drawShieldPct;
-            
-            if (shieldW > 0.5) {
-                // Shield Colors (White/Silver/Energy) - High Contrast
-                const shieldTop = HUD_COLORS.SHIELD.top;
-                const shieldBot = HUD_COLORS.SHIELD.bottom;
-                
-                ctx.save();
-                ctx.beginPath();
-                // No rounding on left side to connect with HP
-                ctx.rect(shieldStartX, barY, shieldW, hpHeight);
-                
-                if (Number.isFinite(shieldStartX) && Number.isFinite(barY) && Number.isFinite(hpHeight)) {
-                    const grad = ctx.createLinearGradient(shieldStartX, barY, shieldStartX, barY + hpHeight);
-                    grad.addColorStop(0, shieldTop);
-                    grad.addColorStop(1, shieldBot);
-                    ctx.fillStyle = grad;
-                } else {
-                    ctx.fillStyle = shieldTop;
-                }
-                
-                ctx.shadowColor = HUD_COLORS.SHIELD.glow;
-                ctx.shadowBlur = 5;
-                ctx.fill();
-                ctx.shadowBlur = 0;
-                
-                // Shield Seam
+            const shieldStartX = barX + contentW * hpPct;
+            const shieldW = contentW * Math.min(shieldPct, 1 - hpPct + B.SHIELD_OVERFLOW);
+            if (shieldW > B.MIN_SHIELD_W) {
+                const S = HUD_COLORS.SHIELD;
+                drawSkin(ctx, barSkin(S.top, S.bottom, S.glow, hpHeight, devScale, glowOn), shieldStartX, barY, shieldW);
+                ctx.strokeStyle = S.seam;
+                ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.moveTo(shieldStartX, barY);
                 ctx.lineTo(shieldStartX, barY + hpHeight);
-                ctx.strokeStyle = HUD_COLORS.SHIELD.seam;
-                ctx.lineWidth = 1;
                 ctx.stroke();
-                
-                // Over-shield indicator (White outline if shield is huge)
-                if (agent.shield > agent.maxHp * 0.5) {
-                    ctx.strokeStyle = HUD_COLORS.SHIELD.outline;
-                    ctx.lineWidth = 1;
+                if (agent.shield > agent.maxHp * B.OVERSHIELD_RATIO) {
+                    ctx.strokeStyle = S.outline;
                     ctx.strokeRect(barX - 1, barY - 1, contentW + 2, hpHeight + 2);
                 }
-                ctx.restore();
             }
         }
 
-        // MP Bar - Always Blue/Purple
+        // 魔力
         if (hasMp) {
             const mpPct = Math.max(0, agent.mp / agent.maxMp);
             const mpY = barY + hpHeight + gap;
-            // Draw empty MP background
             ctx.fillStyle = HUD_COLORS.SLOT_BG;
             ctx.fillRect(barX, mpY, contentW, mpHeight);
-            
-            this.drawFluidBar(ctx, barX, mpY, contentW, mpHeight, mpPct, HUD_COLORS.MP.top, HUD_COLORS.MP.bottom, HUD_COLORS.MP.glow);
+            if (mpPct > B.MIN_PCT) drawSkin(ctx, barSkin(HUD_COLORS.MP.top, HUD_COLORS.MP.bottom, HUD_COLORS.MP.glow, mpHeight, devScale, glowOn), barX, mpY, Math.max(1, contentW * mpPct));
         }
 
+        // 詠唱條（剩餘時間）
         if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill && skill.cast > 0 && skill.tag !== 'BASIC') {
                 const pct = Math.max(0, agent.castTimer / skill.cast);
-                const castBarY = startY + totalH + 2;
-                const castColor = skill.color || HUD_COLORS.CAST.defaultColor;
-                
-                // 背景
+                const castBarY = startY + totalH + B.CAST.GAP;
                 ctx.fillStyle = HUD_COLORS.CAST.bg;
-                ctx.fillRect(startX, castBarY, totalW, 4);
-                // 進度
-                ctx.fillStyle = castColor;
-                ctx.fillRect(startX, castBarY, totalW * pct, 4);
-                // 外框
+                ctx.fillRect(startX, castBarY, totalW, B.CAST.HEIGHT);
+                ctx.fillStyle = skill.color || HUD_COLORS.CAST.defaultColor;
+                ctx.fillRect(startX, castBarY, totalW * pct, B.CAST.HEIGHT);
                 ctx.strokeStyle = HUD_COLORS.CAST.border;
                 ctx.lineWidth = 1;
-                ctx.strokeRect(startX, castBarY, totalW, 4);
+                ctx.strokeRect(startX, castBarY, totalW, B.CAST.HEIGHT);
             }
         }
 
-        // --- CC ProgressBar with Priority ---
+        // 控制條（優先序最高的一個）
         const cc = this.getHighestPriorityCC(agent);
         if (cc) {
-            const ccY = startY - 12;
-            const pct = Math.max(0, cc.time / cc.maxTime);
-            
-            // Container
+            const C = B.CC;
+            const ccY = startY - C.OFFSET;
+            const time = agent[cc.key];
+            const maxTime = cc.max ? (agent[cc.max] || time) : C.DEFAULT_MAX;
             ctx.fillStyle = HUD_COLORS.CC_BAR.bg;
-            ctx.fillRect(startX, ccY, totalW, 6);
-            
-            // Bar
+            ctx.fillRect(startX, ccY, totalW, C.HEIGHT);
             ctx.fillStyle = cc.color;
-            ctx.fillRect(startX, ccY, totalW * pct, 6);
-            
-            // Text Label
+            ctx.fillRect(startX, ccY, totalW * Math.min(1, Math.max(0, time / maxTime)), C.HEIGHT);
             ctx.fillStyle = HUD_COLORS.CC_BAR.text;
-            ctx.font = 'bold 9px Arial';
+            ctx.font = C.FONT;
             ctx.textAlign = 'center';
-            ctx.fillText(cc.name, startX + totalW / 2, ccY - 2);
-            
-            // Border
+            ctx.fillText(cc.name, startX + totalW / 2, ccY - C.LABEL_GAP);
             ctx.strokeStyle = HUD_COLORS.CC_BAR.border;
-            ctx.strokeRect(startX, ccY, totalW, 6);
+            ctx.strokeRect(startX, ccY, totalW, C.HEIGHT);
         }
     },
 
-    getHighestPriorityCC(agent: Agent) {
-        type CCTimerKey = 'banishTimer' | 'stunTimer' | 'fearTimer' | 'tauntTimer' | 'silenceTimer' | 'rootTimer' | 'blindTimer';
-        type CCMaxKey = 'banishMax' | 'stunMax' | 'silenceMax';
-        interface CCPriorityItem {
-            key: CCTimerKey;
-            name: string;
-            priority: number;
-            color: string;
-            max: CCMaxKey | number;
+    /** 成立中、優先序最高的控制（CC_PRIORITY 依序第一個）；沒有回傳 null */
+    getHighestPriorityCC(agent: Agent): CCPriorityItem | null {
+        for (let i = 0; i < CC_PRIORITY.length; i++) {
+            if ((agent[CC_PRIORITY[i].key] || 0) > 0) return CC_PRIORITY[i];
         }
-
-        const CC_PRIORITY: CCPriorityItem[] = [
-            { key: 'banishTimer', name: STATUS_VISUALS.BANISH.label, priority: 99, color: STATUS_VISUALS.BANISH.primaryColor, max: 'banishMax' },
-            { key: 'stunTimer', name: STATUS_VISUALS.STUN.label, priority: 80, color: STATUS_VISUALS.STUN.primaryColor, max: 'stunMax' },
-            { key: 'fearTimer', name: STATUS_VISUALS.FEAR.label, priority: 70, color: STATUS_VISUALS.FEAR.primaryColor, max: 5 }, // Fear doesn't have a max recorded, assume 5s or just full bar
-            { key: 'tauntTimer', name: STATUS_VISUALS.TAUNT.label, priority: 65, color: STATUS_VISUALS.TAUNT.primaryColor, max: 5 },
-            { key: 'silenceTimer', name: STATUS_VISUALS.SILENCE.label, priority: 60, color: STATUS_VISUALS.SILENCE.primaryColor, max: 'silenceMax' },
-            { key: 'rootTimer', name: STATUS_VISUALS.ROOT.label, priority: 50, color: STATUS_VISUALS.ROOT.primaryColor, max: 5 },
-            { key: 'blindTimer', name: STATUS_VISUALS.BLIND.label, priority: 40, color: STATUS_VISUALS.BLIND.primaryColor, max: 5 },
-        ];
-
-        let best: (CCPriorityItem & { time: number; maxTime: number }) | null = null;
-        let maxP = -1;
-
-        for (const cc of CC_PRIORITY) {
-            const time = agent[cc.key] || 0;
-            if (time > 0 && cc.priority > maxP) {
-                maxP = cc.priority;
-                const mKey = cc.max;
-                const maxTime = typeof mKey === 'string' ? (agent[mKey] || time) : mKey;
-                best = { ...cc, time, maxTime };
-            }
-        }
-        return best;
+        return null;
     },
 
-    drawFluidBar(ctx: CanvasRenderingContext2D, bx: number, by: number, bw: number, bh: number, pct: number, colTop: string, colBot: string, glow: string) {
-        if (pct <= 0.01) return;
-        const fillW = Math.max(1, bw * pct); 
-        
-        ctx.save();
-        ctx.beginPath();
-        // Slightly rounded corners
-        if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh, 1);
-        else ctx.rect(bx, by, fillW, bh);
-        
-        if (Number.isFinite(bx) && Number.isFinite(by) && Number.isFinite(bh)) {
-            const grad = ctx.createLinearGradient(bx, by, bx, by + bh);
-            grad.addColorStop(0, colTop);
-            grad.addColorStop(1, colBot);
-            ctx.fillStyle = grad;
-        } else {
-            ctx.fillStyle = colTop;
-        }
-        
-        if (isGlowSpritesEnabled()) {
-            const entry = GlowSpriteCache.getGlowSprite('rect', glow, fillW, 6, { width: fillW, height: bh, rx: 1 });
-            drawGlowSprite(ctx, entry, bx, by, 0.8);
-            ctx.fill();
-        } else {
-            ctx.shadowColor = glow;
-            ctx.shadowBlur = 6;
-            ctx.fill();
-            ctx.shadowBlur = 0;
-        }
-
-        // Gloss highlight
-        ctx.fillStyle = HUD_COLORS.GLOSS_HIGHLIGHT;
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(bx, by, fillW, bh * 0.4, 1);
-        else ctx.rect(bx, by, fillW, bh * 0.4);
-        ctx.fill();
-        
-        ctx.restore();
-    }
+    /** 測試／工具用：丟掉 sprite 快取 */
+    reset(): void {
+        skins.clear();
+    },
 };

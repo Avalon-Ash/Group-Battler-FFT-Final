@@ -1,88 +1,86 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  GaugePainter — 單位頭頂的圓形量表（控制剩餘時間／詠唱進度） ║
+// ║  上游：HUDRenderer（UnitFrame.hudAnchorY、footX）、HUD_GAUGE、 ║
+// ║        STATUS_VISUALS（控制的顏色＝狀態 SSOT）、AssetManager  ║
+// ║        （技能／狀態圖示，已快取）                             ║
+// ║  [ARCH] 光暈用一道較寬的半透明描邊代替 shadowBlur。           ║
+// ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../game";
 import { AssetManager } from "../../assets";
+import { HUD_GAUGE } from "../../../constants";
+import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
+
+const TAU = Math.PI * 2;
 
 export const GaugePainter = {
-    
+
     drawUnitStatusGauges(ctx: CanvasRenderingContext2D, agent: Agent, x: number, y: number) {
         let activeTimer = 0;
         let maxTimer = 0;
-        let iconType = '';
-        let gaugeColor = '';
+        let iconType: 'POLYMORPH' | 'STASIS' | 'BANISH' | 'STUN' | 'SILENCE' | '' = '';
 
         if (agent.banished) {
             activeTimer = agent.banishTimer;
             maxTimer = agent.banishMax || activeTimer;
-            
-            if (agent.visualStatus === 'POLYMORPH') {
-                iconType = 'POLYMORPH'; gaugeColor = '#d8b4fe';
-            } else if (agent.visualStatus === 'STASIS') {
-                iconType = 'STASIS'; gaugeColor = '#facc15';
-            } else {
-                iconType = 'BANISH'; gaugeColor = '#7e22ce';
-            }
+            iconType = agent.visualStatus === 'POLYMORPH' ? 'POLYMORPH' : agent.visualStatus === 'STASIS' ? 'STASIS' : 'BANISH';
         } else if (agent.stunTimer > 0) {
             activeTimer = agent.stunTimer;
             maxTimer = agent.stunMax || activeTimer;
-            iconType = 'STUN'; gaugeColor = '#fbbf24';
+            iconType = 'STUN';
         } else if (agent.silenceTimer > 0) {
             activeTimer = agent.silenceTimer;
             maxTimer = agent.silenceMax || activeTimer;
-            iconType = 'SILENCE'; gaugeColor = '#94a3b8';
+            iconType = 'SILENCE';
         } else if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];
             if (skill) {
                 const progress = 1 - (agent.castTimer / skill.cast);
-                this.drawCircularGauge(ctx, x, y, progress, skill.visual || 'BOLT', skill.color, true);
+                this.drawCircularGauge(ctx, x, y, progress, skill.visual || HUD_GAUGE.DEFAULT_SKILL_VISUAL, skill.color, true);
                 return;
             }
         }
 
         if (iconType && maxTimer > 0) {
-            const progress = activeTimer / maxTimer;
-            this.drawCircularGauge(ctx, x, y, progress, iconType, gaugeColor, false);
+            this.drawCircularGauge(ctx, x, y, activeTimer / maxTimer, iconType, STATUS_VISUALS[iconType].primaryColor, false);
         }
     },
 
     drawCircularGauge(ctx: CanvasRenderingContext2D, x: number, y: number, pct: number, visualKey: string, color: string, isSkill: boolean) {
-        const radius = 14;
-        const iconY = y - 24; 
-        
+        const G = HUD_GAUGE;
+        const radius = G.RADIUS;
+        const iconY = y - G.LIFT;
+
         ctx.save();
         ctx.beginPath();
-        ctx.arc(x, iconY, radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(2, 6, 23, 0.8)';
+        ctx.arc(x, iconY, radius, 0, TAU);
+        ctx.fillStyle = G.BG;
         ctx.fill();
         ctx.save();
         ctx.clip();
-        
-        let icon;
-        if (isSkill) {
-            icon = AssetManager.getSkillIcon(visualKey, color);
-        } else {
-            icon = AssetManager.getStatusIcon(visualKey);
-        }
-        
-        ctx.globalAlpha = 0.8;
+        const icon = isSkill ? AssetManager.getSkillIcon(visualKey, color) : AssetManager.getStatusIcon(visualKey);
+        ctx.globalAlpha = G.ICON_ALPHA;
         if (icon) ctx.drawImage(icon, x - radius, iconY - radius, radius * 2, radius * 2);
         ctx.restore();
 
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = G.RIM;
+        ctx.lineWidth = G.RIM_WIDTH;
         ctx.stroke();
 
         const safePct = Math.max(0, Math.min(1, pct));
         if (safePct > 0) {
             ctx.beginPath();
-            ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * safePct));
+            ctx.arc(x, iconY, radius, -Math.PI / 2, -Math.PI / 2 + TAU * safePct);
             ctx.strokeStyle = color;
-            ctx.lineWidth = 3;
             ctx.lineCap = 'round';
-            ctx.shadowColor = color;
-            ctx.shadowBlur = 8;
+            ctx.globalAlpha = G.GLOW_ALPHA;
+            ctx.lineWidth = G.ARC_WIDTH + G.GLOW_WIDTH;
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = G.ARC_WIDTH;
             ctx.stroke();
         }
-        
+
         ctx.restore();
     }
 };

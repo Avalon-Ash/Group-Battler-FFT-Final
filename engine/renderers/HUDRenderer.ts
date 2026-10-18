@@ -13,10 +13,14 @@ import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";
 import { TextPainter } from "./hud/TextPainter";
 import { getRenderDpr } from "./RenderQuality";
+import { GlowTextCache, quantizeDeviceScale } from "./hud/GlowTextCache";
+import { LAST_STAND_BANNER } from "../../constants";
 
 export class HUDRenderer {
     public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, frames: UnitFrameStore, highlight: Agent | null, time: number, isLastStand: boolean = false) {
         const list = frames.list;
+        // 血條 sprite 的烘焙縮放（相機縮放 × DPR，量化），每幀算一次
+        const devScale = quantizeDeviceScale(ctx);
         for (let i = 0; i < list.length; i++) {
             const f = list[i];
             const a = f.agent;
@@ -24,7 +28,7 @@ export class HUDRenderer {
 
             // SSOT：與身體共用同一份腳下高度（UnitFrame：邏輯座標＋移動過渡；拖曳預覽跟著游標格）
             const isSelected = (a === highlight);
-            BarPainter.drawUnitBars(ctx, a, f.footX, f.hudAnchorY, isSelected);
+            BarPainter.drawUnitBars(ctx, a, f.footX, f.hudAnchorY, isSelected, devScale);
             GaugePainter.drawUnitStatusGauges(ctx, a, f.footX, f.hudAnchorY);
         }
         TextPainter.drawFloatingText(ctx, hud);
@@ -32,53 +36,57 @@ export class HUDRenderer {
     }
 
     private drawLastStandBanner(ctx: CanvasRenderingContext2D, time: number) {
+        const L = LAST_STAND_BANNER;
         const { width, height } = ctx.canvas;
         const dpr = getRenderDpr();
         const cw = width / dpr;
-        
+        const ch = height / dpr;
+        const g = bannerGradients(ctx, cw, ch);
+
         ctx.save();
         ctx.resetTransform();
         ctx.scale(dpr, dpr);
 
-        // 1. Edge Vignette (Subtle Red Pulse)
-        const pulse = (Math.sin(time * 4) + 1) / 2;
-        const grad = ctx.createRadialGradient(cw/2, height/(2*dpr), 0, cw/2, height/(2*dpr), cw * 0.8);
-        grad.addColorStop(0, 'transparent');
-        grad.addColorStop(1, `rgba(239, 68, 68, ${0.1 + pulse * 0.15})`);
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, cw, height/dpr);
+        // 1. 邊緣暗紅脈動（漸層快取在全強度，脈動只改 globalAlpha）
+        const pulse = (Math.sin(time * L.PULSE_FREQ) + 1) / 2;
+        ctx.globalAlpha = L.VIGNETTE_ALPHA + pulse * L.VIGNETTE_PULSE;
+        ctx.fillStyle = g.vignette;
+        ctx.fillRect(0, 0, cw, ch);
+        ctx.globalAlpha = 1;
 
-        // 2. Top Banner
-        const bannerH = 40;
-        const bannerGrad = ctx.createLinearGradient(0, 0, 0, bannerH);
-        bannerGrad.addColorStop(0, 'rgba(15, 23, 42, 0.9)');
-        bannerGrad.addColorStop(1, 'rgba(15, 23, 42, 0)');
-        ctx.fillStyle = bannerGrad;
-        ctx.fillRect(0, 0, cw, bannerH * 2);
+        // 2. 頂端橫幅
+        ctx.fillStyle = g.banner;
+        ctx.fillRect(0, 0, cw, L.BANNER_H * 2);
 
-        // 3. Text
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.font = '900 italic 28px "Arial Black", sans-serif';
-        
-        const text = "L A S T   S T A N D";
+        // 3. 標題（描邊＋預烘焙光暈文字）與副標
         const x = cw / 2;
-        const y = 20;
-
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = '#ef4444';
-        ctx.strokeStyle = '#000';
-        ctx.lineWidth = 4;
-        ctx.strokeText(text, x, y);
-        ctx.fillStyle = '#ef4444';
-        ctx.fillText(text, x, y);
-
-        // Subtle subtitle
-        ctx.font = 'bold 12px "Segoe UI", sans-serif';
-        ctx.fillStyle = '#cbd5e1';
-        ctx.shadowBlur = 0;
-        ctx.fillText("ALL DEFENSES COLLAPSED • HEALING DISABLED", x, y + 35);
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = L.TITLE_FONT;
+        ctx.strokeStyle = L.TITLE_STROKE;
+        ctx.lineWidth = L.TITLE_STROKE_W;
+        ctx.strokeText(L.TITLE, x, L.TITLE_Y);
+        const glow = GlowTextCache.getText(L.TITLE, L.TITLE_FONT, L.TITLE_SIZE, L.COLOR, L.COLOR, L.TITLE_GLOW_BLUR, dpr);
+        ctx.drawImage(glow.canvas, x + glow.x, L.TITLE_Y + glow.y, glow.w, glow.h);
+        ctx.font = L.SUBTITLE_FONT;
+        ctx.fillStyle = L.SUBTITLE_COLOR;
+        ctx.fillText(L.SUBTITLE, x, L.SUBTITLE_Y);
 
         ctx.restore();
     }
+}
+
+/** 橫幅漸層依畫布尺寸快取（尺寸改變才重建） */
+let bannerCache: { cw: number; ch: number; vignette: CanvasGradient; banner: CanvasGradient } | null = null;
+function bannerGradients(ctx: CanvasRenderingContext2D, cw: number, ch: number) {
+    if (bannerCache && bannerCache.cw === cw && bannerCache.ch === ch) return bannerCache;
+    const L = LAST_STAND_BANNER;
+    const vignette = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, cw * L.VIGNETTE_REACH);
+    vignette.addColorStop(0, 'transparent');
+    vignette.addColorStop(1, L.COLOR);
+    const banner = ctx.createLinearGradient(0, 0, 0, L.BANNER_H);
+    banner.addColorStop(0, L.BANNER_TOP);
+    banner.addColorStop(1, L.BANNER_BOTTOM);
+    bannerCache = { cw, ch, vignette, banner };
+    return bannerCache;
 }
