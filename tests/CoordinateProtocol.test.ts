@@ -362,6 +362,20 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
             expect(hexAt(a, store)).toBe('0,1');
         });
 
+        it('releases the hysteresis once the foot stays put just past the border (corpse slid to rest)', () => {
+            const a = new Agent('S', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            footAt(a, 0.2); run(a, store);
+            // 停在剛過格界的地方：原始格已是 (0,1)，但距離差小於滯後
+            footAt(a, 0.52); run(a, store);
+            expect(hexAt(a, store)).toBe('0,0');
+            for (let i = 0; i < UNIT_FRAME.HEX_RELEASE_FRAMES; i++) run(a, store);
+            expect(hexAt(a, store)).toBe('0,1');
+            // 鍵不低於自己腳下那格的格心
+            const f = store.get(a)!;
+            expect(f.sortY + f.sortBias).toBeGreaterThanOrEqual(HexUtils.toPx(0, 1, MAP).y - 1e-6);
+        });
+
         it('switches immediately when the previous hex is more than one ring away', () => {
             const a = new Agent('T', Team.BLUE, 0, 0, MAP);
             const store = new UnitFrameStore();

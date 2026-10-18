@@ -14,6 +14,7 @@
 // ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
 // ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
+// ║  靜止 HEX_RELEASE_FRAMES 幀後放開（停在格界不會卡在舊格），   ║
 // ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）；腳點 Y   ║
 // ║  另有死區（UNIT_FRAME.SORT_DEADBAND_PX）：受擊後退的 1～2 px  ║
 // ║  擺盪不動排序鍵。                                            ║
@@ -91,6 +92,12 @@ interface SortHexMemory {
     q: number; r: number; stamp: number;
     /** 排序用腳點 Y（死區濾波後；UNIT_FRAME.SORT_DEADBAND_PX） */
     footY: number;
+    /** 靜止錨點（腳點離它超過 STILL_PX 就重設）與停在錨點附近的幀數（≥ HEX_RELEASE_FRAMES 時滯後放開，見 resolveSortHex） */
+    anchorX: number;
+    anchorY: number;
+    still: number;
+    /** 這次靜止已經放開過一次（錨點重設前不再放開：腳正好壓在格界上時原始格會來回跳，不能跟著跳） */
+    released: boolean;
 }
 
 export class UnitFrameStore {
@@ -157,24 +164,38 @@ export class UnitFrameStore {
     /**
      * 排序用腳下格（帶滯後）：腳點原始所在格 raw 與上一幀記憶的格 prev 不同時，
      * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換；
-     * 離 prev 超過一環（瞬移、擊飛）立即切換。結果寫進 out（幀自己的 Hex，不洩漏記憶物件）。
+     * 離 prev 超過一環（瞬移、擊飛）立即切換。腳點連續 HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內也切換：
+     * 滯後只為了擋「移動中壓著格界」的鋸齒，停在格界附近的單位或屍體不會閃爍，卻會因為卡在舊格而排在
+     * 自己腳下那格的地塊之前（腳被地塊蓋住；景深預言 CORPSE×TERRAIN sameHex 70 段、屍體擊飛滑停後整段殘留）。
+     * 每次靜止只放開一次：腳正好壓在格界時原始格會隨次像素抖動來回跳，放開後回到一般滯後。
+     * 結果寫進 out（幀自己的 Hex，不洩漏記憶物件）。
      */
     private resolveSortHex(out: Hex, agent: Agent, footX: number, footY: number, mapConfig: MapConfig): SortHexMemory {
         const raw = HexUtils.fromPx(footX, footY, mapConfig);
         let mem = this.sortHex.get(agent.id);
         if (!mem) {
-            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp, footY };
+            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp, footY, anchorX: footX, anchorY: footY, still: 0, released: false };
             this.sortHex.set(agent.id, mem);
             out.q = raw.q; out.r = raw.r;
             return mem;
         }
         mem.stamp = this.buildStamp;
+        // 以錨點的累積位移判斷靜止：慢速行走（每幀 < STILL_PX）也會很快離開錨點，不會被當成靜止
+        if (Math.abs(footX - mem.anchorX) + Math.abs(footY - mem.anchorY) > UNIT_FRAME.STILL_PX) {
+            mem.anchorX = footX;
+            mem.anchorY = footY;
+            mem.still = 0;
+            mem.released = false;
+        } else {
+            mem.still++;
+        }
         // 腳點死區：受擊後退的 1～2 px 擺盪不動排序鍵，真的移動時落後不超過 SORT_DEADBAND_PX
         const d = UNIT_FRAME.SORT_DEADBAND_PX;
         if (footY > mem.footY + d) mem.footY = footY - d;
         else if (footY < mem.footY - d) mem.footY = footY + d;
         if (raw.q !== mem.q || raw.r !== mem.r) {
-            let sw = HexUtils.dist(raw, mem) > 1;
+            const release = !mem.released && mem.still >= UNIT_FRAME.HEX_RELEASE_FRAMES;
+            let sw = HexUtils.dist(raw, mem) > 1 || release;
             if (!sw) {
                 const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
                 const cOld = HexUtils.toPx(mem.q, mem.r, mapConfig);
@@ -183,6 +204,7 @@ export class UnitFrameStore {
                 sw = dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld;
             }
             if (sw) { mem.q = raw.q; mem.r = raw.r; }
+            if (release) mem.released = true;
         }
         out.q = mem.q; out.r = mem.r;
         return mem;
