@@ -5,6 +5,7 @@ import * as path from 'path';
 interface BoundaryMetrics {
     directEngineMutation: number;
     directAgentMutation: number;
+    directAgentIndexWrite: number;
     directRendererAccess: number;
     asAny: number;
     setIntervalCount: number;
@@ -44,6 +45,7 @@ function scanBoundaryMetrics(): BoundaryMetrics {
     const counts: BoundaryMetrics = {
         directEngineMutation: 0,
         directAgentMutation: 0,
+        directAgentIndexWrite: 0,
         directRendererAccess: 0,
         asAny: 0,
         setIntervalCount: 0,
@@ -56,6 +58,8 @@ function scanBoundaryMetrics(): BoundaryMetrics {
     const patterns: Record<Exclude<keyof BoundaryMetrics, 'zIndexClasses'>, RegExp> = {
         directEngineMutation: /engine\.\w+(\.\w+)*\s*=[^=]/g,
         directAgentMutation: /agent\.\w+\s*=[^=]/g,
+        // 索引寫入（agent.skillIds[i] = …）也算直接改 agent（STATE_OWNERSHIP_DESIGN P9）
+        directAgentIndexWrite: /agent\.\w+\[[^\]]+\]\s*=[^=]/g,
         directRendererAccess: /\.renderer\b/g,
         asAny: /as\s+any\b/g,
         setIntervalCount: /\bsetInterval\s*\(/g,
@@ -106,6 +110,13 @@ describe('UI Boundary Ratchet Guard (E9)', () => {
             current.directAgentMutation,
             `Direct agent mutations (${current.directAgentMutation}) exceeded baseline (${baseline.directAgentMutation}). Mutations must use EDIT_AGENT command!`
         ).toBeLessThanOrEqual(baseline.directAgentMutation);
+    });
+
+    it('UI never writes agent fields by index (agent.skillIds[i] = …); use UICommand', () => {
+        expect(
+            current.directAgentIndexWrite,
+            `Direct agent index writes (${current.directAgentIndexWrite}) exceeded baseline (${baseline.directAgentIndexWrite}). Use SET_AGENT_SKILL / EDIT_AGENT!`
+        ).toBeLessThanOrEqual(baseline.directAgentIndexWrite);
     });
 
     it('enforces direct renderer access does not increase (ratchet)', () => {

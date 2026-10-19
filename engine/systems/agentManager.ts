@@ -129,7 +129,6 @@ export class AgentManager {
 
         // [PROMPT] 透過 EventBus 通知 Renderer 清理及回收長效粒子
         engine.bus.emit('AGENT_RESET', { agentId: a.id });
-        a.activeCCVFX = [];
 
         // [FIX] Trigger Unit Shatter (Ragdoll Parts)
         // 碎裂特效由 Renderer 訂閱 AGENT_DIED 播放（邏輯層不碰 VFX）。

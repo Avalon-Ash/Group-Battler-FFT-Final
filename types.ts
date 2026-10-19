@@ -204,6 +204,8 @@ export type UICommand =
     | { type: 'SET_ZONE_CONFIG'; config: Partial<ZoneConfig> }
     | { type: 'EDIT_AGENT'; agentId: string; role?: Role; maxHp?: number; hp?: number; maxMp?: number; bodyType?: BodyTypeId }
     | { type: 'REBUILD_AGENT_AI'; agentId: string }
+    /** 檢視器換技能槽（UnitStatusTab）；skillId null＝清空。開戰時 game.ts 依 skillIds 重建 skills */
+    | { type: 'SET_AGENT_SKILL'; agentId: string; slot: number; skillId: string | null }
     | { type: 'RESET_GAME' }
     | { type: 'PAUSE_GAME' }
     | { type: 'RESUME_GAME' }

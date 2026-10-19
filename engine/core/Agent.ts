@@ -99,7 +99,6 @@ export class Agent {
     public visualStatus: SpecialVisualStatus = 'NONE';
     // [ownership] CC 施加的特殊外觀（狀態域：CCManager 施加、ControlSystem 到期清除）；visualStatus 由 AnimationSystem 從它推導。
     public ccVisual: SpecialVisualStatus = 'NONE';
-    public activeCCVFX: string[] = [];
     public hasLandedLastStand: boolean = false; // Track one-time EMP hit
     public spawnTimer: number = 0;
     public escapeCooldown: number = 0; // Added missing property
@@ -210,7 +209,6 @@ export class Agent {
         this.hotTimer = 0;
         this.visualStatus = 'NONE';
         this.ccVisual = 'NONE';
-        this.activeCCVFX = [];
 
         this.drStacks = {};
         this.drTimers = {};
@@ -231,6 +229,19 @@ export class Agent {
 
         this.target = null;
         this.targetHex = null;
+        // §1.12（STATE_OWNERSHIP_DESIGN）漏清的欄位：宣告預設值與這裡一致
+        this.trajectory = [];
+        this.facing = 1;
+        this._savedCombatTarget = null;
+        this.aiState = AIState.IDLE;
+        this.aiUpdateTimer = 0;
+        this.forceAiUpdate = false;
+        this.escapeCooldown = 0;
+        this.dotDmg = 0;
+        this.hotVal = 0;
+        this.hasLandedLastStand = false;
+        this.dragOverQ = null;
+        this.dragOverR = null;
         
         this.physics = { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, angle: 0, vAngle: 0 };
         this.trailHistory = [];

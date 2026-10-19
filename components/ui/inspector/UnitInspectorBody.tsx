@@ -8,6 +8,7 @@ import { useEngineView } from '../../../hooks/useEngineView';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { Icons } from '../icons';
 import { Helpers, ROLE_MAP } from '../../inspector/InspectorConstants';
+import { displayAiState } from '../../../engine/core/AgentDerived';
 import { BehaviorTreeTab } from '../../inspector/tabs/BehaviorTreeTab';
 import { UnitStatusTab } from '../../inspector/tabs/UnitStatusTab';
 
@@ -368,7 +369,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                             </div>
                             <div className="flex items-center gap-2">
                                 <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? '#475569' : '#fbbf24' }}>
-                                    {Helpers.getAIStateLabel(agent.aiState)}
+                                    {Helpers.getAIStateLabel(displayAiState(agent))}
                                 </span>
                                 <span className="text-[10px] font-mono" style={{ color: '#334155' }}>/</span>
                                 <span className="text-xs font-mono font-bold" style={{ color: agent.hp <= 0 ? '#475569' : '#67e8f9' }}>
@@ -410,7 +411,12 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
 
                 {tab === 'SKILLS' && (
                     <div className="flex-1 w-full h-full relative overflow-hidden p-1">
-                        <UnitStatusTab agent={agent} db={engine.skillDB} onUpdate={() => setUpdateCounter((n) => n + 1)} />
+                        <UnitStatusTab
+                            agent={agent}
+                            db={engine.skillDB}
+                            onSetSkill={(slot, skillId) => send({ type: 'SET_AGENT_SKILL', agentId: agent.id, slot, skillId })}
+                            onUpdate={() => setUpdateCounter((n) => n + 1)}
+                        />
                     </div>
                 )}
             </div>

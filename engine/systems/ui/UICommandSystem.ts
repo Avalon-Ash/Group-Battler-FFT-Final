@@ -100,6 +100,14 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_AGENT_SKILL': {
+                const agent = this.engine.agents.find((a) => a.id === cmd.agentId);
+                if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length) break;
+                if (cmd.skillId !== null && !this.engine.skillDB.some((s) => s.id === cmd.skillId)) break;
+                agent.skillIds[cmd.slot] = cmd.skillId;
+                break;
+            }
+
             case 'REBUILD_AGENT_AI': {
                 if (!cmd.agentId) break;
                 const agent = this.engine.agents.find((a) => a.id === cmd.agentId);

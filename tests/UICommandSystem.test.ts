@@ -53,6 +53,23 @@ describe('UICommandSystem', () => {
         });
     });
 
+    describe('SET_AGENT_SKILL', () => {
+        it('sets a skill slot by id, clears with null, ignores unknown ids and bad slots', () => {
+            const a = new Agent('agent_skill_1', Team.BLUE, 0, 0, engine.mapConfig);
+            a.skillIds = ['x', 'y', 'z'];
+            engine.agents = [a];
+            const known = engine.skillDB[0].id;
+            engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 1, skillId: known });
+            expect(a.skillIds[1]).toBe(known);
+            engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 1, skillId: null });
+            expect(a.skillIds[1]).toBeNull();
+            engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 0, skillId: 'NOT_A_SKILL' });
+            expect(a.skillIds[0]).toBe('x');
+            engine.bus.emit('UI_COMMAND', { type: 'SET_AGENT_SKILL', agentId: a.id, slot: 7, skillId: known });
+            expect(a.skillIds.length).toBe(3);
+        });
+    });
+
     describe('EDIT_AGENT', () => {
         let testAgent: Agent;
 

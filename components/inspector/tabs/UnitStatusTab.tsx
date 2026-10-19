@@ -10,13 +10,15 @@ interface UnitStatusTabProps {
     agent: Agent;
     db: Skill[];
     onHoverSkill?: (skill: Skill | null) => void;
+    /** 換技能槽：父層經 UICommand（SET_AGENT_SKILL）寫入引擎，本元件不直接改 agent */
+    onSetSkill: (slot: number, skillId: string | null) => void;
     onUpdate: () => void;
 }
 
-export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHoverSkill, onUpdate }) => {
+export const UnitStatusTab: React.FC<UnitStatusTabProps> = ({ agent, db, onHoverSkill, onSetSkill, onUpdate }) => {
     
     const setSkill = (idx: number, id: string) => {
-        agent.skillIds[idx] = id || null; 
+        onSetSkill(idx, id || null);
         onUpdate();
     };
 
