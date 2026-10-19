@@ -76,7 +76,12 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 | `assets/audio/music/battle_normal.ogg` | BATTLE_NORMAL | Battle Music | Alexandr Zhelanov | https://opengameart.org/content/battle-music | CC-BY 3.0 | Yes (soundcloud.com/alexandr-zhelanov) | 2026-10-12 |
 | `assets/audio/music/battle_tense.ogg` | BATTLE_TENSE | Tiny Swords Duel | Alexandr Zhelanov | https://opengameart.org/content/tiny-swords-duel | CC-BY 4.0 | Yes (youtube.com/c/AlexandrZhelanovsMusic) | 2026-10-12 |
 | `assets/audio/music/victory_sting.ogg` | VICTORY_STING | Victory Fanfare Short | cynicmusic | https://opengameart.org/content/victory-fanfare-short | CC0 1.0 | Optional (cynicmusic.com) | 2026-10-12 |
-| `assets/audio/music/victory_red.ogg` | VICTORY_RED_STING | Victory Theme for RPG (derived: pitched down ~4 semitones, lowpass 7 kHz, trimmed to 45 s, fade-out) | cynicmusic | https://opengameart.org/content/victory-theme-for-rpg | CC0 1.0 | Optional (cynicmusic.com) | 2026-10-12 |
+| `assets/audio/music/battle_void.ogg` | BATTLE_VOID | Galactic Temple (loudness-normalized to -11 LUFS, OGG q2) | yd | https://opengameart.org/content/galactic-temple | CC0 1.0 | No (Public Domain) | 2026-10-19 |
+| `assets/audio/music/battle_forest.ogg` | BATTLE_FOREST | Beautiful Forest [Orchestra] (normalized, OGG q2) | nene | https://opengameart.org/content/beautiful-forest-orchestra | CC0 1.0 | No (Public Domain) | 2026-10-19 |
+| `assets/audio/music/battle_ice.ogg` | BATTLE_ICE | Icy Realm - Seven and Eight (7-8 combined; normalized, OGG q2) | cynicmusic | https://opengameart.org/content/icy-realm-seven-and-eight | CC0 1.0 | Optional (author asks for credit: cynicmusic.com) | 2026-10-19 |
+| `assets/audio/music/battle_magma.ogg` | BATTLE_MAGMA | Lava Area Theme — LavaLand - One Loop (normalized, OGG q2) | Wolfgang_ | https://opengameart.org/content/lava-area-theme | CC-BY 4.0 | Yes (Wolfgang_) | 2026-10-19 |
+| `assets/audio/music/battle_desert.ogg` | BATTLE_DESERT | Fantasy Music - The Eternal Sands (normalized, OGG q2) | Hitctrl | https://opengameart.org/node/139616 | CC-BY 3.0 | Yes (Hitctrl) | 2026-10-19 |
+| `assets/audio/music/victory_red_dark.ogg` | VICTORY_RED_STING | Orcs Victorious (2024 version; normalized, OGG q2) | Bobjt | https://opengameart.org/content/orcs-victorious | CC0 1.0 | No (Public Domain) | 2026-10-19 |
 | `assets/audio/music/defeat_sting.ogg` | DEFEAT_STING | Game Over - Repeating Dream | Devlin Bataric | https://opengameart.org/content/69-game-over-jingles-pack | CC-BY 4.0 | Yes (Devlin Bataric) | 2026-10-12 |
 
 ---

@@ -1,4 +1,6 @@
-# BGM 候選清單（2026-10-19，待使用者試聽挑選）
+# BGM 候選清單（2026-10-19）
+
+> **已採用（2026-10-19，使用者授權主代理決定）**：森林 Beautiful Forest、冰原 Icy Realm、沙漠 The Eternal Sands（首選 Desert Loop 的頁面與檔案已無法取得）、熔岩 Lava Area Theme、虛空 Galactic Temple、紅方勝利 Orcs Victorious。下載時 OpenGameArt 網站本身故障，頁面資訊取自 Wayback 快照，檔案直接取自 `opengameart.org/sites/default/files/`。轉檔：響度對齊 −11 LUFS、Vorbis q2（BGM 總量上限 15 MB，`tests/AudioAssets.test.ts`）。登記見 `docs/ASSET_LEDGER.md`、`CREDITS.md`。
 
 > 目標：每張地圖一首戰鬥 BGM（取代共用的 `BATTLE_NORMAL`；`BATTLE_TENSE`、勝敗曲維持共用），紅方勝利曲換成真正的暗黑曲。
 > 授權規則見 `docs/DECISIONS.md` §2（CC0 優先、CC-BY 可但要致謝，拒絕 NC／ND／GPL）。**主代理聽不到音樂**：以下只依頁面描述與標籤挑選，請你試聽後勾選；下載前會再列一次檔名與大小。

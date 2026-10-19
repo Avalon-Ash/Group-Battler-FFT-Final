@@ -111,6 +111,7 @@
 - e2e 樣式快照修正（`63c4808`）：UI 批次移除左上齒輪後快照仍找它（那批 push 前沒跑 e2e:ui）；改從系統選單開，基準只刪該鍵。
 - 展示模式戰鬥結束／換圖卡頓（`f5e33f0`）：長幀對齊 CPU 取樣，全部是地形 `bakeBlock`（2560×1440 每塊 4～9 ms）。烘焙預算原本按「16 ms 時間窗」重置，一幀內烘到一半就過期重置，從來擋不住長幀；改為每幀（`TerrainRenderer.beginFrame`）。縮圈塌陷改了鄰格邊緣遮罩→新鍵無級距可借 → 超預算時借同一格上一次的 sprite。換圖 IN／OUT 期間無可借用者延後一幀（`TRANSITION_BAKE_BUDGET_MS` 12）。展示探針 3 次：無 > 40 ms 的地形長幀（原 300／660 ms）；保真數值不變。探針在 `tools/ui-e2e/out/_scratch_terrain_stats.mjs`、`_scratch_longframe.mjs`。
 - ECS-lite S4 常數拆檔（Gemini 執行 `b591451`～`649cd8b`，主代理審查後合併）：`constants.ts` 1,447 行拆成 `constants/` 10 個領域檔，`constants.ts` 只剩轉發，185 個 import 端不變；`tests/ConstantsBarrel.test.ts`＋`tests/constants-snapshot.json` 鎖住 86 個匯出名稱與值。審查：舊檔每一行都在新檔（多重集合比對），只漏一段 `UNIT_SHADOW` 說明註解（已補回 `4a8b137`）；保真與 br-soak 與改前相同。`AGENTS.md`／`CLAUDE.md`／`METHODOLOGY.md` 改指向 `constants/*.ts`。報告 `docs/CONSTANTS_SPLIT_REPORT.md`。
+- BGM：五張地圖專屬戰鬥曲＋紅方勝利曲換成 Orcs Victorious（舊的變調版 `victory_red.ogg` 刪除）。CC0 四首、CC-BY 兩首（熔岩 Wolfgang_ 4.0、沙漠 Hitctrl 3.0，已致謝）。OpenGameArt 網站故障，頁面資訊取 Wayback 快照、檔案直接下載靜態路徑。響度 −11 LUFS、Vorbis q2，BGM 總量 14.05 MB（上限 15 MB）。
 
 ## 3. 更早的輪次與審查修補
 

@@ -45,45 +45,45 @@ export const MUSIC_TABLE: Record<TrackId, MusicTrackDef> = {
         synthPadRootFreq: 174.61 // F3
     },
     /**
-     * 各地圖的戰鬥曲（2026-10-19 先打通通道；曲子是占位，正式版換曲只改 files，候選見 docs/BGM_CANDIDATES.md）。
-     * 同一個檔案在 AudioEngine 以網址快取，只載入一次。synthPadRootFreq 是檔案載入失敗時的合成墊音根音，各圖錯開。
+     * 各地圖的戰鬥曲（2026-10-19 換成各圖專屬曲，來源與授權見 docs/ASSET_LEDGER.md、CREDITS.md；響度對齊約 −11 LUFS）。
+     * synthPadRootFreq 是檔案載入失敗時的合成墊音根音，各圖錯開。
      */
     BATTLE_VOID: {
         id: 'BATTLE_VOID',
-        title: 'Battle (Void, placeholder)',
-        files: ['assets/audio/music/battle_normal.ogg'],
+        title: 'Galactic Temple (Void battle)',
+        files: ['assets/audio/music/battle_void.ogg'],
         loop: true,
         volume: 0.70,
         synthPadRootFreq: 138.59 // C#3
     },
     BATTLE_FOREST: {
         id: 'BATTLE_FOREST',
-        title: 'Battle (Forest, placeholder)',
-        files: ['assets/audio/music/battle_normal.ogg'],
+        title: 'Beautiful Forest [Orchestra] (Forest battle)',
+        files: ['assets/audio/music/battle_forest.ogg'],
         loop: true,
         volume: 0.70,
         synthPadRootFreq: 196.00 // G3
     },
     BATTLE_ICE: {
         id: 'BATTLE_ICE',
-        title: 'Battle (Ice, placeholder)',
-        files: ['assets/audio/music/battle_normal.ogg'],
+        title: 'Icy Realm - Seven and Eight (Ice battle)',
+        files: ['assets/audio/music/battle_ice.ogg'],
         loop: true,
         volume: 0.70,
         synthPadRootFreq: 220.00 // A3
     },
     BATTLE_MAGMA: {
         id: 'BATTLE_MAGMA',
-        title: 'Battle (Magma, placeholder)',
-        files: ['assets/audio/music/battle_normal.ogg'],
+        title: 'Lava Area Theme - LavaLand One Loop (Magma battle)',
+        files: ['assets/audio/music/battle_magma.ogg'],
         loop: true,
         volume: 0.70,
         synthPadRootFreq: 146.83 // D3
     },
     BATTLE_DESERT: {
         id: 'BATTLE_DESERT',
-        title: 'Battle (Desert, placeholder)',
-        files: ['assets/audio/music/battle_normal.ogg'],
+        title: 'Fantasy Music - The Eternal Sands (Desert battle)',
+        files: ['assets/audio/music/battle_desert.ogg'],
         loop: true,
         volume: 0.70,
         synthPadRootFreq: 164.81 // E3
@@ -106,8 +106,8 @@ export const MUSIC_TABLE: Record<TrackId, MusicTrackDef> = {
     },
     VICTORY_RED_STING: {
         id: 'VICTORY_RED_STING',
-        title: 'Ashen Legion Triumph (Victory Theme, pitched down)',
-        files: ['assets/audio/music/victory_red.ogg'],
+        title: 'Orcs Victorious 2024 (Red victory)',
+        files: ['assets/audio/music/victory_red_dark.ogg'],
         loop: false,
         volume: 0.80,
         synthPadRootFreq: 196.00 // G3
