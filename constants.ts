@@ -1,21 +1,13 @@
-
-import { Team, HexLayout, ZoneConfig } from './types';
+import { Team } from './types';
 import type { ParticleType } from './types/VFXSchema';
+import { HEX_SIZE, BLOCK_HEIGHT, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_SCALE } from './constants/geometry';
 
-export const DEFAULT_HEX_LAYOUT: HexLayout = 'FLAT';
-export const DEFAULT_ZONE_CONFIG: ZoneConfig = {
-    enabled: true,
-    initialRadius: 12,
-    shrinkInterval: 10,
-    minRadius: 1
-};
-export const HEX_SIZE = 48;
-export const BLOCK_HEIGHT = 24;
-export const MAX_TERRAIN_TIER = 6;
-export const ISO_SCALE_Y = 0.5;
-export const UNIT_BODY_OFFSET = 36;
-export const UNIT_HOVER_OFFSET = 6;
-export const UNIT_SCALE = 0.65;
+export * from './constants/geometry';
+export * from './constants/combat';
+export * from './constants/palette';
+export * from './constants/audio';
+export * from './constants/ui';
+export * from './constants/render';
 
 /**
  * 單位腳下地面高度的過渡（VisualMath.getUnitGroundHeight）。
@@ -35,15 +27,6 @@ export const UNIT_STEP_BLEND = {
 export const UNIT_OCCLUSION = {
     MIN_STEP: 20,
 } as const;
-
-/** 單位模型視覺中心距地板的 Z 偏移（像素）。
- *  對應 Sprite 高度的約 50%。依美術 Sprite 尺寸調整。 */
-export const AGENT_MODEL_CENTER_Z = 64;
-
-/** 沒有單位目標的特效（地面目標點）的身體高度：地面 + CENTER_OFFSET（EventVFXMapper） */
-export const VISUAL_ANCHORS = {
-    CENTER_OFFSET: 30
-};
 
 /** 職業字形刻在棋座頂面（俯視字形，烘焙時套等距壓扁）：相對棋座半徑的大小與不透明度 */
 export const CLASS_GLYPH = {
@@ -98,18 +81,6 @@ export const HUD_ANCHOR = {
     overheadBelowBar: 6,
 } as const;
 
-export const MAX_ARC_HEIGHT = 150;
-
-// SSOT: Element Colors for DoT and Effects
-export const DOT_COLORS: Record<string, string> = {
-    BURN: '#f97316', // 鍵＝agent.dotType（CCManager 只寫 'BURN'／'POISON'）；原為 FIRE，燃燒誤用綠色後備色
-    POISON: '#10b981',
-    VOID: '#a855f7',
-    ICE: '#3b82f6',
-    COVENANT: '#ef4444',
-    IMPERIAL: '#3b82f6'
-};
-
 /** 戰鬥浮字的字級與版面（EventHUDMapper）；顏色在 DAMAGE_TEXT_COLORS */
 export const FLOATING_TEXT = {
     DEFAULT_COLOR: '#ffffff',
@@ -120,23 +91,6 @@ export const FLOATING_TEXT = {
     KILL_STREAK_LIFT: 40,
     KILL_STREAK_TRAUMA: { BASE: 0.2, PER: 0.1 },
 } as const;
-
-/** 重擊音效門檻：暴擊或單次傷害 ≥ 此值播 HIT_HEAVY（AudioSystem） */
-export const AUDIO_HEAVY_HIT_DAMAGE = 80;
-
-// SSOT: Floating Combat Text Colors
-export const DAMAGE_TEXT_COLORS = {
-    DASH: '#60a5fa',
-    MISS: '#9ca3af',
-    BLOCK: '#fb923c',
-    ABSORB: '#bae6fd',
-    HEAL: '#86efac',
-    CRIT: '#ef4444',
-    VAMP: '#be123c',
-    MANA_BURN: '#8b5cf6',
-    MANA_RESTORE: '#60a5fa',
-    RECOIL: '#ef4444'
-};
 
 // SSOT: HUD Layout Constants
 export const HUD_LAYOUT = {
@@ -403,22 +357,6 @@ export const BACKGROUND_FX = {
     },
 } as const;
 
-export const KILL_STREAK_WINDOW = 5.0;
-
-export const PHYSICS = {
-    GRAVITY: 3500,
-    SAFE_FALL_VELOCITY: 1000,
-    FATAL_FALL_VELOCITY: 3000,
-    FALL_DAMAGE_MIN: 200,
-    STIFFNESS_ALIVE: 150,
-    DAMPING_ALIVE: 25,
-    DRIFT_SPEED: 25.0, 
-    TERMINAL_VELOCITY_IMPULSE: 400,
-    DEFAULT_DRAG: 0.94,
-    VISUAL_JUMP_DASH: 250,
-    VISUAL_JUMP_KNOCKBACK: 200,
-};
-
 export const VFX_RENDER = {
     GROUND_SORT_BIAS:   15,  // ground-locked 粒子的 Y 軸排序偏移
     GROUND_Z_BIAS:       5,  // ground-locked 粒子的 Z 軸偏移
@@ -658,142 +596,6 @@ export const DEATH_KNOCKBACK = {
     GROUND_SCAN_END: 1.6,
     GROUND_SCAN_STEP: 0.05,
 } as const;
-
-export const THEME_IMPERIAL = {
-    primary: '#3b82f6',
-    secondary: '#fde047',
-    armorLight: '#f1f5f9',
-    armorDark: '#1e3a8a',
-    energy: '#60a5fa',
-    cape: 'rgba(30, 58, 138, 0.9)'
-};
-
-export const THEME_COVENANT = {
-    primary: '#ef4444',
-    secondary: '#fb923c',
-    armorDark: '#09090b',
-    armorBase: '#27272a',
-    accent: '#7f1d1d',
-    spike: '#18181b'
-};
-
-export const TEAM_COLORS = {
-    [Team.BLUE]: {
-        primary: THEME_IMPERIAL.primary,
-        secondary: THEME_IMPERIAL.secondary,
-        glow: 'rgba(59, 130, 246, 0.6)',
-        armorLight: THEME_IMPERIAL.armorLight,
-        borderRadius: '1rem',
-    },
-    [Team.RED]: {
-        primary: THEME_COVENANT.primary,
-        secondary: THEME_COVENANT.secondary,
-        glow: 'rgba(239, 68, 68, 0.6)',
-        armorLight: '#fca5a5',
-        borderRadius: '0.25rem',
-    },
-} as const;
-
-export const LOG_COLORS = {
-    MOVE: '#38bdf8',
-    CAST: '#fbbf24',
-    HIT: '#f87171',
-    HEAL: '#4ade80',
-    DECISION: '#c084fc',
-    DEATH: '#94a3b8',
-    CC: '#facc15',
-    SYSTEM: '#64748b',
-    HAZARD: '#fb923c'
-};
-
-export const PALETTE = {
-    UI_BG: '#020617',
-    UI_BORDER: '#1e293b',
-    SHADOW: 'rgba(0, 0, 0, 0.6)',
-    TEAMS: {
-        [Team.BLUE]: { main: '#2563eb', dark: '#1e3a8a', light: '#fbbf24', glow: 'rgba(59, 130, 246, 0.8)', accent: '#f8fafc' },
-        [Team.RED]: { main: '#dc2626', dark: '#450a0a', light: '#fca5a5', glow: 'rgba(220, 38, 38, 0.8)', accent: '#2d0a0a' }
-    },
-    DAMAGE: '#ffffff',
-    HEAL: '#10b981',
-    CRIT: '#ef4444',
-    MAGIC: '#8b5cf6'
-};
-
-/**
- * 強制位移（擊退／拉扯）的撞擊傷害，仿 Tactics Ogre：撞上爬不上去的高牆、障礙物或其他單位時，
- * 沒走完的格數越多、牆越高，傷害越大。全部以「目標最大 HP 的比例」表示，才不會對高血量單位無感、
- * 對低血量單位一擊斃命；單次撞擊再用 IMPACT_MAX_PCT 封頂。
- * 例（maxHp 100）：力道 3 擊退，貼牆（牆比跳躍上限高 2 格）→ 剩 3 格：
- * 3×0.05 + 2×0.05 = 25 傷害；撞單位時雙方各吃一半。
- */
-export const FORCED_MOVE = {
-    /** 每個「沒走完的格」造成的傷害（maxHp 比例） */
-    IMPACT_BASE_PCT: 0.05,
-    /** 撞牆時，牆每高出起點一格（BLOCK_HEIGHT）追加的傷害（maxHp 比例） */
-    IMPACT_PER_HEIGHT_PCT: 0.05,
-    /** 單次撞擊傷害上限（maxHp 比例） */
-    IMPACT_MAX_PCT: 0.35,
-    /** 撞到其他單位時，被撞的一方承受撞擊傷害的比例 */
-    IMPACT_UNIT_SHARE: 0.5,
-    /** 撞擊傷害下限（避免低血量單位被取整成 0） */
-    IMPACT_MIN: 1,
-    /** 撞擊的 HUD 文字 */
-    IMPACT_TEXT: '撞擊',
-    /** 撞擊的受擊特效（VFXRegistry 鍵） */
-    IMPACT_FX: 'FX_HIT_RED_HEAVY',
-    /** 撞擊鏡頭震動強度 */
-    IMPACT_SHAKE: 0.3,
-};
-
-export const COMBAT_PARAM = {
-    HIT_IMPULSE_MAX: 600,
-    HIT_IMPULSE_MIN: 150,
-    HIT_MEDIUM_THRESHOLD: 150,
-    DR_RESET_TIME: 10.0,
-    /** 硬控基礎韌性（0 = 無減免）。尚無資料來源（單位/裝備皆未定義），日後接 UNIT_DB 時由此擴充。*/
-    BASE_CC_RESILIENCE: 0,
-    EXECUTE_THRESHOLD: 0.25,
-    BASE_EXECUTE_MULTIPLIER: 2.0,
-    BASE_VAMP_PCT: 0.35,
-    MANA_BURN_DEFAULT: 25,
-    MANA_RESTORE_DEFAULT: 25,
-    GRAVITY_PULL_FORCE: 150,
-    GRAVITY_MIN_DIST: 5,
-    GRAVITY_SPEED_REDUCTION: 0.3,
-    ICE_SPEED_REDUCTION: 0.5,
-    HIT_FLASH_DURATION: 0.1,
-    AI_CD_TOLERANCE: 0.01,
-    AI_PERCEPTION_BONUS_ULT: 5,
-    AI_PERCEPTION_BONUS_NORMAL: 2,
-    MOVE_SPEED_ULT: 1.3,
-    MOVE_SPEED_NORMAL: 1.0,
-    CHASE_SPEED_ULT: 1.4,
-    CHASE_SPEED_NORMAL: 1.1,
-    HIT_FX_OFFSET: 8
-};
-
-export const SCREEN_CONSTANTS = {
-    DEFAULT_WIDTH: 1200,
-    DEFAULT_HEIGHT: 675,
-    DEFAULT_ASPECT: 1.77
-};
-
-export const AGENT_CONSTANTS = {
-    DEFAULT_AI_UPDATE_INTERVAL: 0.08,
-    AI_UPDATE_INTERVAL_JITTER: 0.02,
-    DEATH_ANIM_DURATION: 5.5,
-    /** RagdollBone.color 佔位色。目前單位走精靈渲染，此值僅滿足型別契約。*/
-    RAGDOLL_BONE_PLACEHOLDER_COLOR: '#ffffff',
-    AI_UPDATE_INTERVAL_BY_ROLE: {
-        TANK: 0.08,
-        WARRIOR: 0.06,
-        RANGER: 0.07,
-        MAGE: 0.08,
-        SUPPORT: 0.10
-    }
-};
-
 
 export const ENV_SPRITE = {
   CANVAS_W: 128,          // 障礙物 Sprite canvas 寬度（px）
@@ -1086,7 +888,6 @@ export const UNIT_SPRITE = {
     manifestPath: 'assets/units/manifest.json',
 } as const;
 
-
 /**
  * 投射物繪製（ProjectileRenderer 取樣、ProjectilePartPainter 繪製）。外觀表在 data/vfx/projectile_visuals.ts。
  * 本體沿螢幕上的飛行方向旋轉（自轉的投射物改用自轉角），速度越快拉得越長（動態模糊感）。
@@ -1141,13 +942,6 @@ export const UNIT_BODY_MOTION = {
     fallShrink: 0.45,
 } as const;
 
-// ══════════════════════════════════════════════════════════════
-// VFX Particle Sprites (SSOT)
-// ══════════════════════════════════════════════════════════════
-
-
-
-
 export interface ObstacleStyle { main: string; light: string; dark: string; detail: string; highlight: string; sideLight?: string; sideDark?: string }
 
 export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
@@ -1187,261 +981,3 @@ export const PHYSICAL_PARTICLE_TYPES = particleTypesWhere((t) => !!t.physical);
 export const FIXED_ORIENTATION_PARTICLE_TYPES = particleTypesWhere((t) => !!t.fixed);
 export const SELF_DRAWN_PARTICLE_TYPES = particleTypesWhere((t) => !!t.selfDrawn);
 export const PART_PARTICLE_TYPES = particleTypesWhere((t) => t.backend === 'PART');
-
-// ══════════════════════════════════════════════════════════════
-// UI Window & Layout Constants (SSOT)
-// ══════════════════════════════════════════════════════════════
-
-export const UI_WINDOW = {
-    STORAGE_KEY: 'tacticalWindowsV1',
-    SAVE_DEBOUNCE_MS: 300,
-    HANDLE_PX: 8,
-    HANDLE_PX_COARSE: 44,
-    TOUCH_TARGET_MIN_PX: 44,
-    MAXIMIZE_MARGIN: 12,
-    MIN_WIDTH: 260,
-    MIN_HEIGHT: 160,
-    BOTTOM_SHEET_MAX_HEIGHT_VH: 72,
-    MOBILE_BREAKPOINT: 900,
-    SHEET_BREAKPOINT: 900,
-    SHEET_MAX_VH: 72,
-    /** Corner handle edge length = edge thickness * this factor. */
-    HANDLE_CORNER_FACTOR: 2,
-    /** Resize handles sit above window content (z-order inside the window's own stacking context). */
-    HANDLE_Z_INDEX: 100,
-    /** Used only when a window has neither saved state nor a registered definition. */
-    FALLBACK_RECT: { x: 100, y: 100, width: 400, height: 300 },
-    /** Used only when `window` is unavailable (SSR / tests). */
-    FALLBACK_VIEWPORT: { width: 1200, height: 800 },
-} as const;
-
-export const UI_Z = {
-    INSPECTOR: 30,
-    /** 展示模式標題卡與背景：在視窗層之下，展示模式開的設定／音訊等視窗才不會被標題卡蓋住 */
-    SHOWCASE: 35,
-    WINDOW_BASE: 40,
-    OVERLAY: 50,
-    MENU_BACKDROP: 55,
-    MENU: 60,
-    OVERLAY_CONTROLS: 60,
-    WINDOW_MAX: 80,
-    TOP_OVERLAY: 90,
-} as const;
-
-/**
- * UI ??Engine tunable ranges (SSOT). Shared by UICommandSystem (clamping),
- * the renderer (camera tuning) and the settings schema / sliders.
- */
-export const UI_SETTINGS = {
-    SNAPSHOT_HZ: 10,
-    ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
-    ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
-    ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },
-    CAMERA_STIFFNESS: { min: 0.1, max: 20, followDefault: 0.25, zoomDefault: 0.2, step: 0.1, sliderMax: 5.0 },
-    TIME_SCALE: { min: 0.1, max: 5.0, default: 1.0, step: 0.1 },
-    MATRIX_SPEED: { min: 0.1, max: 5.0, step: 0.1 },
-    MATRIX_GAP: { min: 0, max: 1.0, step: 0.05 },
-    MAP_WIDTH: { min: 6, max: 24, default: 12, step: 1 },
-    MAP_HEIGHT: { min: 6, max: 24, default: 8, step: 1 },
-} as const;
-
-/**
- * Pinned toolbar parameters and storage keys (SSOT).
- */
-export const UI_PIN = {
-    /** 地圖編輯工具列離畫面頂端（與左右）的邊距；手機尺寸要讓開右上角的系統選單鈕（top-3＋48px＋間隔） */
-    TOOLBAR_MARGIN: 40,
-    TOOLBAR_MARGIN_COMPACT: 68,
-    FALLBACK_VIEWPORT: { w: 1920, h: 1080 },
-    FALLBACK_SIZE: { w: 200, h: 60 },
-    STORAGE_KEYS: {
-        mapEditor: 'tactical_toolbar_map_editor',
-        playback: 'tactical_toolbar_playback',
-    },
-} as const;
-
-/**
- * 渲染效能診斷與量測參數 SSOT。
- */
-export const RENDER_PERF = {
-    QUERY_KEY: 'perf',
-    OPS_QUERY_KEY: 'perfops',
-    EMA_ALPHA: 0.1,
-    HISTORY_FRAMES: 60,
-    HISTORY_WINDOW_MS: 2000,
-    SPIKE_THRESHOLD_MS: 16.7,
-    SPIKE_RING_SIZE: 64,
-    PHASES: ['background', 'world', 'post', 'overlay+hud'] as const,
-} as const;
-
-/**
- * 地形 Sprite 快取與量化參數 SSOT。
- */
-export const RENDER_CACHE = {
-    SCALE_STEPS: [1, 1.5, 2, 3, 4] as const,
-    /** 縮放級距遲滯比例：超出目前級距 5% 才升級（容許最多 5% 的放大模糊）；降級立即生效 */
-    SCALE_HYSTERESIS: 0.05,
-    MAX_TERRAIN_SPRITES: 2048,
-    FLOAT_STEP: 0.5,
-    HEIGHT_KEY_SCALE: 2,
-    SPRITE_PADDING: 4,
-    /**
-     * 地形 sprite 烘焙預算：每幀（TerrainRenderer.beginFrame 重置）累計烘焙超過此毫秒數，其餘未命中改借用
-     * 相鄰縮放級距或同一格上一次的 sprite。2026-10-19 前是「每 16 ms 時間窗」：單塊 4～9 ms，一幀內烘到一半
-     * 時間窗就過期重置，長幀永遠擋不住（戰鬥結束 300 ms、換圖 660 ms）。
-     */
-    BAKE_BUDGET_MS: 4,
-    /**
-     * 轉場（換圖 IN／OUT）期間的烘焙預算：新地圖沒有任何可借用的 sprite，超過預算的地塊延後到下一幀才畫
-     * （地塊正從畫面外落入，晚幾幀看不出來）。2560×1440 一塊約 4～9 ms，IN 約 1.5 秒內要烘完整張圖。
-     */
-    TRANSITION_BAKE_BUDGET_MS: 12,
-    /** 液面循環影格（TerrainLoopAtlas）同時快取的組數上限（顏色 x layout x 量化強度）；每組約 2 MB，LRU 淘汰 */
-    LOOP_LIQUID_SLOTS: 16,
-    /** 液面循環影格排成一張圖的最大寬度（px）；超過就換行 */
-    LOOP_SHEET_MAX_W: 2048,
-} as const;
-
-/**
- * 漂浮地形（虛空／熔岩）的繪製時浮動 SSOT。只影響畫面，不影響模擬與排序鍵。
- * 唯一實作：VisualMath.floatBobAt；地塊（GridRenderStrategy）與「繪製用地面高度」（RenderPipeline）共用，
- * 所以站在地塊上的單位、屍體、狀態、HUD、貼地特效跟地塊一起浮動。見 RenderSpec「漂浮位移」。
- */
-export const FLOAT_BOB = {
-    BIOMES: ['VOID', 'MAGMA'] as readonly string[],
-    AMPLITUDE: 4,
-    SPEED: 1.5,
-    /** 相位隨世界座標變化（x + y）的比例，讓相鄰島塊錯開 */
-    PHASE_PER_PX: 0.01,
-    /** 投射物發射格的漂浮位移在飛行進度 t 到這個值時淡出為 0（發射點與漂浮的施法者對齊，之後走原軌跡） */
-    LAUNCH_FADE_T: 0.5,
-} as const;
-
-/**
- * 渲染解析度與自適應品質調度參數 SSOT。
- */
-export const RENDER_QUALITY = {
-    /**
-     * 每幀繪製（主畫布、貼地鋪設離屏）的 drawImage 取樣品質。必須是 'low'：
-     * 來源多是離屏畫布，'medium'／'high' 每次 drawImage 都要重算 mipmap／雙三次濾波，
-     * 2560×1440 展示戰鬥幀間隔中位數 4.3 → 8.3 ms、p99 16.8 → 25～50 ms（2026-10-19 A/B，tools/ui-e2e/out 探針）。
-     * 一次性烘焙（engine/graphics/CanvasUtils.createCanvas、SpriteAtlasStore 縮圖）仍用 'high'，不受此值影響。
-     */
-    IMAGE_SMOOTHING: 'low' as ImageSmoothingQuality,
-    MAX_DPR: 2,
-    DEFAULT_DPR: 1,
-    IGNORE_FRAME_MS: 250,
-    /** 降階門檻：幀間隔平均 > 14ms（約 < 70 FPS）持續 DOWN_HOLD_S 才降階；一般 100+ FPS 遊玩不得降畫質（僅應付真正的瞬間掉幀） */
-    DOWN_MS: 14,
-    /**
-     * 降到解析度階層（2／3，畫面變糊）的門檻：幀間隔平均 > 22ms（約 < 45 FPS）。0→1 只關色調分級，用 DOWN_MS。
-     * 2026-10-19「放著不動越跑越糊」：以前所有階層共用 14ms，偶發重場面就把解析度降下去。
-     */
-    DOWN_RES_MS: 22,
-    /**
-     * 降階門檻至少是「螢幕刷新週期 × DOWN_REFRESH_RATIO」：幀間隔被 vsync 鎖在刷新週期，60 Hz 螢幕永遠 ≥ 16.7ms，
-     * 以前一律被判成掉幀而降到最低階。刷新週期＝最短幀間隔（衰減最小值，每幀往上回彈 REFRESH_DECAY），
-     * ×REFRESH_TOL 後對齊到 DISPLAY_PERIODS_MS 中不超過它的最大值（找不到更大的就用 60 Hz）。
-     */
-    DOWN_REFRESH_RATIO: 1.4,
-    REFRESH_DECAY: 0.002,
-    REFRESH_TOL: 1.1,
-    DISPLAY_PERIODS_MS: [4.17, 6.06, 6.94, 8.33, 11.11, 13.33, 16.67] as readonly number[],
-    /** 升階冷卻加倍（upBackoff）每 BACKOFF_DECAY_S 秒沒有再降階就減一級；以前只增不減，降過幾次就永久卡在低畫質 */
-    BACKOFF_DECAY_S: 60,
-    DOWN_HOLD_S: 2,
-    /** 升階門檻：主執行緒耗時 < 9ms（與 vsync 無關的工作時間） */
-    UP_MS: 9,
-    UP_HOLD_S: 12,
-    COOLDOWN_S: 15,
-    /** Frames during the first seconds are ignored (JIT warm-up, sprite baking). */
-    STARTUP_GRACE_S: 5,
-    /** Max exponent of the upgrade-cooldown doubling after an upgrade is immediately undone. */
-    MAX_UP_BACKOFF: 4,
-    WINDOW_FRAMES: 60,
-    TIER_SCALES: [1.0, 1.0, 0.75, 0.5] as const,
-    QUERY_KEY: 'quality',
-    MATRIX_RAIN_TIER_0_SCALE: 1.0,
-    MATRIX_RAIN_TIER_1_SCALE: 1.0,
-    MATRIX_RAIN_TIER_0_HZ: 60,
-    MATRIX_RAIN_TIER_1_HZ: 30,
-    GLOW_SPRITES: true,
-    GLOW_QUERY_KEY: 'glow',
-} as const;
-
-/**
- * 光暈 Sprite 快取與量化參數 SSOT
- */
-export const RENDER_GLOW = {
-    MAX_GLOW_SPRITES: 256,
-    RADIUS_STEPS: [4, 8, 12, 16, 24, 32, 48, 64] as const,
-    BLUR_STEPS: [2, 4, 8, 12, 16, 24, 32] as const,
-    RECT_WIDTH_STEPS: [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46, 47, 48, 52, 56,
-        64, 80, 96, 128, 180, 240
-    ] as const,
-    RECT_HEIGHT_STEPS: [4, 8, 12, 16, 24] as const,
-} as const;
-
-/**
- * 效能五：每幀熱點去除用的快取參數 SSOT
- * （單位漸層快取、預烘焙光暈文字；見 docs/PERF_REPORT_5.md）
- */
-export const RENDER_HOTSPOT_CACHE = {
-    MAX_UNIT_GRADIENTS: 128,
-    MAX_GLOW_TEXT_SPRITES: 192,
-    /** 光暈文字烘焙縮放的量化級距（裝置像素 / 使用者單位） */
-    GLOW_SCALE_STEP: 0.125,
-    GLOW_SCALE_MIN: 0.25,
-    GLOW_SCALE_MAX: 4,
-    /** shadowBlur 擴散範圍約為 blur 值；四周保留 blur × 此倍率的裝置像素 */
-    GLOW_PAD_PER_BLUR: 1.5,
-    /** 文字盒四周額外留白（以字級 em 計，涵蓋斜體外伸與上下緣） */
-    GLOW_TEXT_MARGIN_EM: 0.5,
-} as const;
-
-/** 技能呼喊（SHOUT）光暈參數：原 TextPainter 內 shadowBlur 字面值 */
-export const SHOUT_GLOW = {
-    CAST_BLUR: 10,
-    ULT_BLUR: 20,
-    SCAN_BLUR: 15,
-    SCAN_WIDTH: 3,
-    SUCCESS_BLUR: 15,
-    /** SUCCESS 昇華光暈隨壽命遞減，模糊量以此級距量化以重用 sprite */
-    SUCCESS_BLUR_STEP: 3,
-} as const;
-
-/**
- * 音訊系統參數 SSOT
- */
-export const AUDIO = {
-    MAX_VOICES: 24,
-    CUE_THROTTLE_MS: 50,
-    DEFAULT_MASTER_VOLUME: 0.8,
-    DEFAULT_MUSIC_VOLUME: 0.6,
-    DEFAULT_SFX_VOLUME: 0.8,
-    DEFAULT_UI_VOLUME: 0.7,
-    PAN_RANGE: 0.8,
-    PITCH_JITTER: 0.08,
-    VOLUME_JITTER: 0.05,
-    PRNG_SEED: 133742,
-    BGM_CROSSFADE_SEC: 1.5,
-    PRELOAD_BATCH_SIZE: 8,
-    SHOWCASE_SFX_GAIN: 0.2,
-    STORAGE_KEY: 'tactical_audio_settings',
-    QUERY_MUTE_KEY: 'mute',
-    VOLUME_CURVE_EXPONENT: 2,
-    SAMPLE_RATE: 44100
-} as const;
-
-/** 施法中斷後禁止立刻重新詠唱的秒數（_interruptCooldown，施法域唯一寫入）。 */
-export const CAST_LOCKOUT = {
-    /** 一般中斷：避免同一 tick 重複記錄／重施。 */
-    INTERRUPT: 0.1,
-    /** 地面將塌陷而放棄詠唱：確保單位真的先去逃生。 */
-    FATAL_BREAK: 0.5,
-} as const;
