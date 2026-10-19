@@ -81,7 +81,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'wb_u4', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
         name: '劍刃風暴', desc: '連續劍舞', 
         range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 750, color: '#60a5fa', 
+        type: 'AOE', aoeRadius: 3, power: 700, color: '#60a5fa', 
         visual: 'SLASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_BLADESTORM', element: 'PHYSICAL'
     },
@@ -180,7 +180,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '聚輝光柱', desc: '巨型魔能光束', 
         range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 1200, color: '#60a5fa', 
+        type: 'AOE', aoeRadius: 1, power: 1050, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM', element: 'ARCANE'
     },
@@ -199,7 +199,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'sb_u2', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
         name: '復活之光', desc: '大範圍治療', 
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 6, power: -1000, color: '#86efac', 
+        type: 'AOE', aoeRadius: 6, power: -900, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_RESURRECTION', element: 'HOLY'
     },
@@ -225,9 +225,9 @@ export const BLUE_ULT: Skill[] = [
         id: 'sb_u5', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
         name: '寧靜之雨', desc: '持續治療', 
         range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: -600, color: '#86efac', 
+        type: 'AOE', aoeRadius: 5, power: -550, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'HOT', ccForce: 150, ccDur: 6.0,
+        ccType: 'HOT', ccForce: 135, ccDur: 6.0,
         visualHitEffect: 'FX_ULT_BLUE_RAIN', element: 'HOLY'
     }
 ];
