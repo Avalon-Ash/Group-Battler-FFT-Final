@@ -127,8 +127,8 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'rr_u4', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
         name: '血腥獵殺', desc: '鎖定秒殺', 
-        range: 12, cast: 1.6, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1350, color: '#7f1d1d', 
+        range: 12, cast: 1.3, cd: 5.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 1450, color: '#7f1d1d', 
         visual: 'BOLT', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_RED_HEADHUNTER', element: 'BLOOD'
     },
@@ -173,9 +173,9 @@ export const RED_ULT: Skill[] = [
         id: 'mr_u4', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '末世毒雨', desc: '全場毒雨', 
         range: 0, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 10, power: 280, color: '#a3e635', 
+        type: 'AOE', aoeRadius: 10, power: 250, color: '#a3e635', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'DOT', ccForce: 45, ccDur: 8.0,
+        ccType: 'DOT', ccForce: 38, ccDur: 6.0,
         visualHitEffect: 'FX_ULT_RED_POISON_RAIN', element: 'POISON'
     },
     { 

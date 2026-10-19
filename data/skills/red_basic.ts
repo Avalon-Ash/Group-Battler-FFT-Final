@@ -15,8 +15,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'tr_b2', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '血腥肉鉤', desc: '微量牽引', 
-        range: 2, cast: 0.5, cd: 1.3, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 48, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
+        range: 1, cast: 0.5, cd: 1.4, cost: 0, gain: 18, 
+        type: 'SINGLE', power: 40, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 1, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -32,8 +32,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'tr_b4', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '野蠻頭槌', desc: '微暈', 
-        range: 1, cast: 0.3, cd: 1.5, cost: 0, gain: 25,
-        type: 'SINGLE', power: 60, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        range: 1, cast: 0.3, cd: 1.0, cost: 0, gain: 30,
+        type: 'SINGLE', power: 75, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 0.5,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
@@ -80,9 +80,9 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'wr_b5', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '狂怒連斬', desc: '低血高傷', 
-        range: 1, cast: 0.4, cd: 0.7, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 90, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
-        effectType: 'EXECUTE', effectVal: 1.4,
+        range: 1, cast: 0.4, cd: 0.9, cost: 0, gain: 25, 
+        type: 'SINGLE', power: 75, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
+        effectType: 'EXECUTE', effectVal: 1.25,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
 
@@ -194,8 +194,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '鮮血治癒', desc: '耗血補人', 
-        range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 20, 
-        type: 'SINGLE', power: -60, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        range: 5, cast: 0.5, cd: 0.85, cost: 0, gain: 30, 
+        type: 'SINGLE', power: -90, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 
