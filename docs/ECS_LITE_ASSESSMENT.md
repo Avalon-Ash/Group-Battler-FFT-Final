@@ -12,7 +12,7 @@
 
 | 項目 | 價值 | 成本 | 判斷 |
 | :-- | :-- | :-- | :-- |
-| **S1 狀態效果資料化**：把 13 種控制／持續效果的 `xxxTimer`／`xxxMax` 平行欄位（約 26 個）改成一張效果表 `agent.effects`（種類、剩餘、總長、來源），效果定義放 `data/` | 高。新增一種控制目前要動 Agent、`reset()`、CCManager、AnimationSystem 推導、UI 顯示、所有權表 6 處；改完是加一筆資料。`reset()` 漏清、計時器各自遞減不一致這類 bug 會整類消失 | 中大：`stunTimer` 出現在 14 個檔、`silenceTimer` 12 個，合計約 30 個檔 | **值得，優先** |
+| **S1 狀態效果資料化**：把 13 種控制／持續效果的 `xxxTimer`／`xxxMax` 平行欄位（21 個）改成一張效果表 `agent.effects`（種類、剩餘、總長、來源），效果定義放 `data/` | 高。新增一種控制目前要動 Agent、`reset()`、CCManager、AnimationSystem 推導、UI 顯示、所有權表 6 處；改完是加一筆資料。`reset()` 漏清、計時器各自遞減不一致這類 bug 會整類消失 | 中大：`stunTimer` 出現在 14 個檔、`silenceTimer` 12 個，合計約 30 個檔 | **值得，優先** |
 | **S2 渲染層搬家（原 P11）**：渲染相關系統搬到 `engine/presentation/`，只拿唯讀的 `Readonly<Agent>`；模擬端不 import 渲染 | 中高。查問題時「誰會改模擬狀態」一眼可見；型別擋住渲染端偷寫 | 中：機械性搬檔＋改 import，但碰渲染，必須單獨一條 | **值得，在 S1 之後** |
 | **S3 外觀欄位分組（原 P12）**：`animState`、`hitFlashTimer`、`visualStatus`、`trailHistory`… 收進 `agent.view` | 中。和 S2 一起做才有意義（view 只有表現層寫） | 小中 | **併入 S2** |
 | 其他欄位也拆成子物件（`agent.vitals.hp`、`agent.transform.q`…） | 低。所有權表已經管住寫入者；只是把幾百處 `agent.hp` 改名 | 大（`hp`／`maxHp` 就 48 個檔） | **不做**（為做而做） |
