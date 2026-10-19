@@ -3,9 +3,9 @@ import { HexGeometry } from '../engine/graphics/utils/HexGeometry';
 import { VFX_PARTS } from '../data/vfx/parts/partConfig';
 import { emblemCounterRotation, type PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 import { createVFXPartStore } from '../engine/renderers/vfxparts/VFXPartStore';
-import { PartPainter } from '../engine/systems/vfx/renderers/painters/PartPainter';
+import { PartPainter } from '../engine/presentation/vfx/renderers/painters/PartPainter';
 import { ISO_SCALE_Y } from '../constants';
-import type { Particle } from '../engine/systems/vfx/state';
+import type { Particle } from '../engine/presentation/vfx/state';
 
 const fakeSurface = () => {
     const ctx = new Proxy({} as Record<string, unknown>, {

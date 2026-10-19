@@ -16,8 +16,8 @@ import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { GridOverlays } from "./grid/GridOverlays";
 import { HazardPainter } from "./grid/painters/HazardPainter";
 import { SpriteManager } from "../sprites";
-import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
-import { ProjectilePartPainter } from "../systems/vfx/renderers/painters/ProjectilePartPainter";
+import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer";
+import { ProjectilePartPainter } from "../presentation/vfx/renderers/painters/ProjectilePartPainter";
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../systems/unit";
 

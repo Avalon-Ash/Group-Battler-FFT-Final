@@ -1,7 +1,7 @@
 
 import { GameEvent } from "../../../../types";
 import { VFXSystem } from "../../vfx";
-import { CameraSystem } from "../../CameraSystem";
+import { CameraSystem } from "../../../systems/CameraSystem";
 import { Point3D } from "../../../math/VisualMath";
 import { COMBAT_PARAM } from "../../../../constants";
 

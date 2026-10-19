@@ -17,9 +17,9 @@
 // ║  由 AURA op 在施法者之後補畫（RenderSpec §9）。              ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import type { Particle } from "../systems/vfx/state";
+import type { Particle } from "../presentation/vfx/state";
 import type { HexLayout } from "../../types";
-import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
+import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer";
 import { HexGeometry } from "../graphics/utils/HexGeometry";
 import { GROUND_DRAPE, ISO_SCALE_Y, RENDER_QUALITY } from "../../constants";
 import type { RenderOp } from "./RenderList";

@@ -146,8 +146,7 @@ describe('Renderers read faction visuals only from FACTION_SKINS', () => {
         'engine/renderers/units/painters/UnitBodyPainter.ts',
         'engine/renderers/units/painters/UnitDeathPainter.ts',
         'engine/renderers/status/painters/ShieldPainter.ts',
-        'engine/renderers/hud/BarPainter.ts',
-        'engine/systems/visuals/effects/UnitShatter.ts',
+        'engine/presentation/visuals/effects/UnitShatter.ts',
     ];
     const PEDESTAL_FILES = FILES.filter((f) => f.startsWith('engine/graphics/units/'));
 

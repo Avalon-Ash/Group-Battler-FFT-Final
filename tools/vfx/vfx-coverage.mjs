@@ -35,12 +35,12 @@ const DICE_TITLE = '隨機生成戰場與陣容';
 
 // 被包住的繪製模組（路徑：匯出名）。新增繪製器時加進來。
 const PAINTER_MODULES = {
-    '/engine/systems/vfx/renderers/painters/PartPainter.ts': ['PartPainter'],
-    '/engine/systems/vfx/renderers/painters/BillboardPainter.ts': ['BillboardPainter'],
-    '/engine/systems/vfx/renderers/ProjectileRenderer.ts': ['ProjectileRenderer'],
-    '/engine/systems/vfx/VFXAmbience.ts': ['VFXAmbience'],
-    '/engine/systems/visuals/effects/UnitShatter.ts': ['UnitShatter'],
-    '/engine/systems/vfx/renderers/painters/ProjectilePartPainter.ts': ['ProjectilePartPainter'],
+    '/engine/presentation/vfx/renderers/painters/PartPainter.ts': ['PartPainter'],
+    '/engine/presentation/vfx/renderers/painters/BillboardPainter.ts': ['BillboardPainter'],
+    '/engine/presentation/vfx/renderers/ProjectileRenderer.ts': ['ProjectileRenderer'],
+    '/engine/presentation/vfx/VFXAmbience.ts': ['VFXAmbience'],
+    '/engine/presentation/visuals/effects/UnitShatter.ts': ['UnitShatter'],
+    '/engine/presentation/vfx/renderers/painters/ProjectilePartPainter.ts': ['ProjectilePartPainter'],
     '/engine/renderers/GroundDrape.ts': ['GroundDrapeLayer'],
     '/engine/renderers/grid/GridOverlays.ts': ['GridOverlays'],
     '/engine/renderers/grid/painters/HazardPainter.ts': ['HazardPainter'],
@@ -60,7 +60,7 @@ const PAINTER_MODULES = {
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],
 };
 // 存活探針掃描的目錄（視覺管線全部）：每個模組的全部匯出都包（'*'）
-const LIVENESS_DIRS = ['engine/graphics', 'engine/renderers', 'engine/systems/vfx', 'engine/systems/visuals', 'engine/systems/unit', 'engine/assets.ts', 'engine/sprites.ts', 'engine/renderer.ts'];
+const LIVENESS_DIRS = ['engine/graphics', 'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/systems/unit', 'engine/assets.ts', 'engine/sprites.ts', 'engine/renderer.ts'];
 if (liveness) {
     const files = execSync(`git ls-files ${LIVENESS_DIRS.join(' ')}`, { cwd: root, encoding: 'utf8' }).split(/\r?\n/).filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
     for (const f of files) if (!PAINTER_MODULES[`/${f}`]) PAINTER_MODULES[`/${f}`] = ['*'];
@@ -127,7 +127,7 @@ try {
             }
         }
         // 粒子後端：與 ParticleRenderer 同一張特性表（constants.ts PARTICLE_TRAITS）；掛了零件的 BEAM 算 PART
-        const { ParticleRenderer } = await import('/engine/systems/vfx/renderers/ParticleRenderer.ts');
+        const { ParticleRenderer } = await import('/engine/presentation/vfx/renderers/ParticleRenderer.ts');
         const { particleBackend } = await import('/constants.ts');
         const seen = new WeakMap();
         const origDraw = ParticleRenderer.drawSingleParticle;
@@ -138,7 +138,7 @@ try {
             if (seen.get(p) !== sig) { seen.set(p, sig); inc(bucket().particles, `${p.__src || 'direct'}|${be}:${p.type}`); }
             return origDraw.call(this, ctx, p, ...rest);
         };
-        const { VFXSystem } = await import('/engine/systems/vfx/VFXSystem.ts');
+        const { VFXSystem } = await import('/engine/presentation/vfx/VFXSystem.ts');
         // 來源標記：playEffect／playBeam 新推進 particles 的粒子記下來源；池化重用時由 getParticle 清掉舊標記。
         // 沒有標記的粒子＝不經登記表直接生成（HEAVEN_FALL、UnitShatter 碎片、天氣等）。
         const tagNew = (sys, n0, src) => { const ps = sys.state.particles; for (let i = n0; i < ps.length; i++) ps[i].__src = src; };

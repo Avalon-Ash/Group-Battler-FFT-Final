@@ -41,7 +41,7 @@ const read = (f: string) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
 /** 繪製端：畫面、特效、HUD、UI。模擬端（物理、AI、戰鬥）用邏輯格高度是對的，不在此列。 */
 const VISUAL_SCOPE = [
-    'engine/renderers', 'engine/systems/vfx', 'engine/systems/visuals', 'engine/systems/unit',
+    'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/systems/unit',
     'engine/systems/hud.ts', 'engine/systems/VisualSystem.ts', 'engine/graphics', 'components',
 ];
 /** 規格本身（字串裡會寫到函式名）與 SSOT 定義檔不掃 */

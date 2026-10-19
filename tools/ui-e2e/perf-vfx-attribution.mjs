@@ -220,7 +220,7 @@ async function main() {
 
         // 5. Hook ProjectilePartPainter
         try {
-            const modProj = await import('/engine/systems/vfx/renderers/painters/ProjectilePartPainter.ts');
+            const modProj = await import('/engine/presentation/vfx/renderers/painters/ProjectilePartPainter.ts');
             const origProjDraw = modProj.ProjectilePartPainter.draw;
             modProj.ProjectilePartPainter.draw = function(...args) {
                 if (window.__vfxToggles.no_projectiles) return;
@@ -230,7 +230,7 @@ async function main() {
 
         // 6. Hook UnitShatter
         try {
-            const modShatter = await import('/engine/systems/visuals/effects/UnitShatter.ts');
+            const modShatter = await import('/engine/presentation/visuals/effects/UnitShatter.ts');
             const origShatterSpawn = modShatter.UnitShatter.spawn;
             modShatter.UnitShatter.spawn = function(...args) {
                 if (window.__vfxToggles.no_unit_shatter) return;
@@ -240,7 +240,7 @@ async function main() {
 
         // 7. Hook PartPainter.drawBeam（光束零件）
         try {
-            const modProc = await import('/engine/systems/vfx/renderers/painters/PartPainter.ts');
+            const modProc = await import('/engine/presentation/vfx/renderers/painters/PartPainter.ts');
             const origBeamDraw = modProc.PartPainter.drawBeam;
             modProc.PartPainter.drawBeam = function(...args) {
                 if (window.__vfxToggles.no_beams_slashes) return;
@@ -260,7 +260,7 @@ async function main() {
 
         // 9. Hook ParticleRenderer
         try {
-            const modParticle = await import('/engine/systems/vfx/renderers/ParticleRenderer.ts');
+            const modParticle = await import('/engine/presentation/vfx/renderers/ParticleRenderer.ts');
             const origParticleDraw = modParticle.ParticleRenderer.drawSingleParticle;
             modParticle.ParticleRenderer.drawSingleParticle = function(...args) {
                 if (window.__vfxToggles.no_particles) return;

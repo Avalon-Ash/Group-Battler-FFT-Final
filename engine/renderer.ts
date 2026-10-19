@@ -11,10 +11,10 @@
 import { Agent, GameEngine } from "./game";
 import { Hex, GameEvent, Skill, EventMap, UICommand } from "../types";
 import { UI_SETTINGS } from "../constants";
-import { UnitShatter } from "./systems/visuals/effects/UnitShatter";
+import { UnitShatter } from "./presentation/visuals/effects/UnitShatter";
 import { GridSystem } from "./systems/grid";
-import { VFXSystem } from "./systems/vfx";
-import { VFXRenderer } from "./systems/vfx/render";
+import { VFXSystem } from "./presentation/vfx";
+import { VFXRenderer } from "./presentation/vfx/render";
 import { UnitRenderSystem } from "./systems/unit";
 import { HUDSystem } from "./systems/hud";
 import { CameraSystem } from "./systems/CameraSystem";
@@ -22,7 +22,7 @@ import type { Camera } from "./systems/CameraSystem";
 import { VisualSystem } from "./systems/VisualSystem";
 import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
-import { SequenceSystem } from "./systems/visuals/SequenceSystem"; 
+import { SequenceSystem } from "./presentation/visuals/SequenceSystem"; 
 
 import { PointerProjector } from "./math/PointerProjector";
 import { HexUtils } from "./utils";

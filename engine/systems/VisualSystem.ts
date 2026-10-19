@@ -22,13 +22,13 @@
 
 import { GameEngine } from "../game";
 import { GameEvent } from "../../types";
-import { VFXSystem } from "./vfx";
+import { VFXSystem } from "../presentation/vfx";
 import { HUDSystem } from "./hud";
 import { GridSystem } from "./grid";
 import { CameraSystem } from "./CameraSystem";
-import { SequenceSystem } from "./visuals/SequenceSystem";
-import { EventHUDMapper } from "./visuals/EventHUDMapper";
-import { EventVFXMapper } from "./visuals/EventVFXMapper";
+import { SequenceSystem } from "../presentation/visuals/SequenceSystem";
+import { EventHUDMapper } from "../presentation/visuals/EventHUDMapper";
+import { EventVFXMapper } from "../presentation/visuals/EventVFXMapper";
 import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
 import { HexUtils } from "../utils";

@@ -6,7 +6,7 @@
 // ║  上游：VFXSystem.playEffect() / HazardSystem / combat    ║
 // ╚══════════════════════════════════════════════════════════╝
 
-import { VFXSystem } from "../vfx";
+import { VFXSystem } from "./VFXSystem";
 import { VFX_REGISTRY } from "../../../data/vfx/VFXRegistry";
 import { EmitterConfig, Range } from "../../../types/VFXSchema";
 import { VFXFactory, particleTexture } from "../../graphics/VFXFactory";

@@ -21,9 +21,9 @@
 
 import { GameEvent } from "../../../types";
 import { GameEngine } from "../../game";
-import { HUDSystem } from "../hud";
-import { GridSystem } from "../grid";
-import { CameraSystem } from "../CameraSystem";
+import { HUDSystem } from "../../systems/hud";
+import { GridSystem } from "../../systems/grid";
+import { CameraSystem } from "../../systems/CameraSystem";
 import { HexUtils } from "../../utils";
 import { HUD_LAYOUT, DAMAGE_TEXT_COLORS, FLOATING_TEXT } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";

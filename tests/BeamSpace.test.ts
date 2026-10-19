@@ -5,7 +5,7 @@ vi.mock('../engine/renderers/vfxparts/VFXPartStore', async (orig) => ({
     ...(await orig<typeof import('../engine/renderers/vfxparts/VFXPartStore')>()),
     vfxPartStore: { get: () => undefined },
 }));
-import { VFXSystem } from '../engine/systems/vfx';
+import { VFXSystem } from '../engine/presentation/vfx';
 import { ISO_SCALE_Y } from '../constants';
 
 // 粒子的 p.y 是「未投影 Y」（螢幕 Y / ISO_SCALE_Y），VFXRenderer 提交時乘回（RenderSpec §3）。

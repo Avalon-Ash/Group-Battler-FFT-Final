@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest';
 import { unitEventPos, hexEventPos, pointEventPos } from '../engine/events/EventPos';
 import { EventPool } from '../engine/events/GameEventPool';
-import { EventVFXMapper } from '../engine/systems/visuals/EventVFXMapper';
+import { EventVFXMapper } from '../engine/presentation/visuals/EventVFXMapper';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
 import type { GameEngine } from '../engine/game';

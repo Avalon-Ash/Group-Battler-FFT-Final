@@ -13,7 +13,7 @@
 
 import { Agent } from "../game";
 import type { UnitFrame } from "./frame/UnitFrame";
-import { Particle } from "../systems/vfx/state";
+import { Particle } from "../presentation/vfx/state";
 import { Projectile, Point, SpatialHazard, Team, ActiveZone } from "../../types";
 import type { TerrainTheme } from "../../constants";
 

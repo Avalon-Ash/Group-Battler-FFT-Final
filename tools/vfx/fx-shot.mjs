@@ -202,13 +202,13 @@ try {
             } else if (key.startsWith('DEATH:')) {
                 // DEATH:<BLUE|RED>：直接呼叫死亡碎裂 UnitShatter.spawn（以假單位代入位置與陣營）
                 const types = await import('/types.ts');
-                const { UnitShatter } = await import('/engine/systems/visuals/effects/UnitShatter.ts');
+                const { UnitShatter } = await import('/engine/presentation/visuals/effects/UnitShatter.ts');
                 const team = key.split(':')[1] === 'RED' ? types.Team.RED : types.Team.BLUE;
                 UnitShatter.spawn(e.renderer.vfx, { team, px: spot.x, py: spot.y, physics: { z: spot.gz } }, spot.gz, 0, 0);
             } else if (key.startsWith('FALL:')) {
                 // FALL:<BLUE|RED>：直接跑一個 HEAVEN_FALL（METEOR）序列動作，高度壓低到能入鏡
                 const types = await import('/types.ts');
-                const { SequenceSystem } = await import('/engine/systems/visuals/SequenceSystem.ts');
+                const { SequenceSystem } = await import('/engine/presentation/visuals/SequenceSystem.ts');
                 const team = key.split(':')[1] === 'RED' ? types.Team.RED : types.Team.BLUE;
                 const src = e.agents.find((a) => a.team === team);
                 new SequenceSystem().run({ id: 'fx-shot', actions: [{ type: 'HEAVEN_FALL', style: 'METEOR', height: fallH, scale: 1.8, color: '#fbbf24' }] }, { x: spot.x, y: spot.y, z: spot.gz }, e, e.renderer.vfx, src?.id);

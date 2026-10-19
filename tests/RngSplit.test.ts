@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import { GameEngine } from '../engine/game';
-import { VFXSystem } from '../engine/systems/vfx/VFXSystem';
+import { VFXSystem } from '../engine/presentation/vfx/VFXSystem';
 import { HexUtils } from '../engine/utils';
 import { Team, Role } from '../types';
 import { random, seedSimulation, getSimulationSeed } from '../engine/math/rng';

@@ -1,4 +1,4 @@
-// [BARREL] 轉發層 — 實作已遷至 engine/systems/vfx/
+// [BARREL] 轉發層 — 實作已遷至 engine/presentation/vfx/
 export * from './vfx/VFXSystem';
 export * from './vfx/AgentVFXSystem';
 export * from './vfx/VFXAmbience';

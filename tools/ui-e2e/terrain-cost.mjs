@@ -57,7 +57,7 @@ await page.evaluate(async () => {
         if (window.__t.no_liquid || window.__t.no_surface || window.__t.no_all) return;
         const t0 = performance.now(); const r = ol.apply(this, a); window.__self.liquid += performance.now() - t0; return r;
     };
-    const amb = (await import('/engine/systems/vfx/VFXAmbience.ts')).VFXAmbience;
+    const amb = (await import('/engine/presentation/vfx/VFXAmbience.ts')).VFXAmbience;
     const ou = amb.prototype.update;
     amb.prototype.update = function (...a) {
         if (window.__t.no_ambience || window.__t.no_all) return;
@@ -66,7 +66,7 @@ await page.evaluate(async () => {
     // Weather only spawns while the simulation clock runs (simDt > 0), but an agent-less engine would
     // enter the victory phase and stop. Feed the VFX system the real frame delta instead, so weather
     // behaves as in a live battle while the terrain stays the only workload.
-    const vs = (await import('/engine/systems/vfx/VFXSystem.ts')).VFXSystem;
+    const vs = (await import('/engine/presentation/vfx/VFXSystem.ts')).VFXSystem;
     const vu = vs.prototype.update;
     let lastNow = performance.now();
     vs.prototype.update = function (dt, ...rest) {

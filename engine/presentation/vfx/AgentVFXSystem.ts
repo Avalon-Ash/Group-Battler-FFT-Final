@@ -1,6 +1,6 @@
 
 import { GameEngine, Agent } from "../../game";
-import { VFXSystem } from "../vfx";
+import { VFXSystem } from "./VFXSystem";
 import { MovementType } from "../../../types";
 import { AGENT_MODEL_CENTER_Z, VFX_PARAM } from "../../../constants";
 import { VisualMath } from "../../math/VisualMath";

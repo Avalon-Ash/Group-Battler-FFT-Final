@@ -15,7 +15,7 @@
 
 import { GameEngine } from "../../game";
 import { RenderList, RenderOpType } from "../../renderers/RenderList";
-import { VFXSystem } from "../vfx";
+import { VFXSystem } from "./VFXSystem";
 import { HexUtils, MapConfig } from "../../utils";
 import { Camera } from "../../systems/CameraSystem";
 import { VisualMath } from "../../math/VisualMath";
