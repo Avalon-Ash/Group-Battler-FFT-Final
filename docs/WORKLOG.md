@@ -106,6 +106,7 @@
 ### Q. 2026-10-19 深夜 UI 批次＋ECS-lite S1 狀態效果資料化
 - UI 批次（`200849c`、`0c1ff4d`，已 push）：展示模式左上舊齒輪移除（設定只從系統選單開）；結算畫面可開戰鬥紀錄（`WindowDef.visibleOnGameOver`、模式 `gameover`）；特效展示庫改讀現行資料（`data/vfx/parts/partGallery.ts` 實際烘焙縮圖＋登記表分組，刪 `vfx_library.ts`）；技能資料庫編輯改走 `UPDATE_SKILL`（可改欄位 `data/ui/skillEditor.ts`，選單只列 `VFX_REGISTRY`／`PROJECTILE_VISUALS` 的鍵）；展示標題卡 `UI_Z.SHOWCASE` 35 降到視窗層下、文字改英文（`START SIMULATION`，工具腳本同步）。
 - S1（Gemini 執行，`7dea6ee`～`9971b68`，主代理審查後合併）：21 個平行狀態欄位收成 `agent.effects`（13 槽，`types.ts` `EffectKind`／`EffectSlot`、`engine/core/Effects.ts`、規則表 `data/status/effect_defs.ts` 的極性／硬控／施加清洗），`ControlSystem` 遞減改統一迴圈，`AgentOwnership` 加 `effects`；`tests/EffectFieldsRatchet.test.ts` 鎖舊欄位 0 次。審查：極性與硬控清單與舊陣列逐項一致（STASIS 不是 ccType，改列 DEBUFF 無影響）、到期副作用相對順序不變。驗證：614 測試、保真 6/6 通過、實戰 40 秒各槽位寫入／遞減正常、0 頁面錯誤。報告 `docs/STATUS_EFFECTS_REPORT.md`。
+- 效能退步修正（`c08bcd3`）：使用者 239 Hz 主螢幕 `perf:frames` 一般戰鬥 p99 75 ms、特效壓力 142 ms。CPU 取樣顯示主執行緒一半閒置、耗時在原生 `drawImage`／`restore`；A/B（固定種子展示戰鬥 2560×1440）證實是 §O 加的每幀 `imageSmoothingQuality` high（medium 一樣慢，來源是離屏畫布，每次 drawImage 重算濾波）。每幀繪製改回 low、一次性烘焙維持 high；保真 6/6 未重錄。修正後中位數／p99：一般 4.3／16.7、壓力 8.2／16.7、展示 4.2／16.7 ms，平均約 145 FPS。
 
 ## 3. 更早的輪次與審查修補
 

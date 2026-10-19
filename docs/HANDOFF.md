@@ -7,12 +7,13 @@
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **ECS-lite S2＋S3**（渲染層搬家＋外觀分組，渲染工作單獨一條）、S4（常數拆檔），見 `docs/ECS_LITE_ASSESSMENT.md`；S1 已合併（WORKLOG §Q）。提示詞待寫。
-2. **效能報表**：使用者回家在 239 Hz 主螢幕跑 `npm run perf:frames`（10/19 外出時螢幕降到 28 Hz，數字無效）。
+1. **ECS-lite S2＋S3 表現層分離**：提示詞 `docs/PRESENTATION_LAYER_AGENT_PROMPT.md`，使用者在 IDE 執行 `/goal docs/PRESENTATION_LAYER_AGENT_PROMPT.md`（分支 `feat/presentation-layer`）。**這是渲染工作，跑的期間主代理只做診斷、不修渲染**（導播抖動、變羊閃爍等修正等它合併後再做）。之後 S4（常數拆檔）。
+2. **技能全面修正**：使用者 10/19 同意開始規劃（設計由主代理寫，實作交 Gemini）；個別奧義美術翻新併在這裡。
+3. **BGM**：主代理從 `docs/BGM_CANDIDATES.md` 挑曲放進 `data/audio/music.ts`（下載前列檔名／來源給使用者同意）。
 
 ## 3. 待使用者實機確認
 - 展示模式戰鬥結束時導播狂抖、FPS 驟降（使用者回報，未量測；疑單一焦點時縮放解到 2.0 觸發地形重烘焙，或震動量隨縮放平方放大）。
-- 個別奧義美術翻新：等技能全面修正時一起做。
+- 單一格閃爍（使用者回家路上看到，疑似變羊等 CC 時），未重現。
 
 ## 4. 以後再說
 - 重新部署方式（Cloud Run 相關檔案已刪）。
