@@ -28,6 +28,7 @@
 - 狀態欄位唯一寫入者（`engine/core/AgentOwnership.ts` 所有權表）；嘲諷鎖定只在 `TargetingSystem`（P7a）。
 - 大逃殺的「發呆看門狗」不採用：B0 證據 IDLE 為 0，屬掩蓋症狀且改到 facade。根因修法是行為樹 `Combat Actions` SELECTOR。
 - 保真基準不得任意重錄、門檻不得放寬；重錄要附新舊差異圖並獨立 commit。
+- 文件防過時（2026-10-20 使用者同意）：過時文件直接刪除、不歸檔（git 歷史已保存；歸檔會被代理 grep 到當成現況），刪前把程式註解引用的理由寫回註解或改指 commit。檔頭只留「職責＋[ARCH] 不變式」，不寫上下游清單與路徑（可由 import／grep 推得，最容易過時）。過時要變成測試失敗：`tests/DocDrift.test.ts` 檢查文件與註解裡的路徑、識別字、檔頭類別名都存在。能寫成棘輪測試的規則就寫成測試，文字只解釋理由。
 
 ## 5. 專案範圍（2026-10-16 使用者決定）
 - 刪除 Dockerfile／`server.js`／`.dockerignore`／`start` 指令與 README 的 Cloud Run 段落；全部搞定後再重新部署。
