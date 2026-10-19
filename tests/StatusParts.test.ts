@@ -106,8 +106,13 @@ describe('isStatusActive', () => {
         expect(isStatusActive('REGEN', a)).toBe(true);
         a.hp = a.maxHp * 0.1;
         expect(isStatusActive('VULNERABLE', a)).toBe(true);
-        a.aiState = AIState.CASTING_ULT;
+        // 施法狀態由 castingSkillIdx＋技能 tag 推導（P7b）；aiState 寫什麼都不影響
+        a.skills = [{ ...a.skills[0], tag: 'ULT' }];
+        a.castingSkillIdx = 0;
+        a.aiState = AIState.TRACKING;
         expect(isStatusActive('CAST_ULT', a)).toBe(true);
         expect(isStatusActive('CAST_ACTIVE', a)).toBe(false);
+        a.castingSkillIdx = -1;
+        expect(isStatusActive('CAST_ULT', a)).toBe(false);
     });
 });

@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
-import { Skill, NodeState, AIState } from "../../../types";
+import { Skill, NodeState } from "../../../types";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { CastingEngine, BreakCastContext } from "./CastingEngine";
 import { SkillExecutor } from "./SkillExecutor";
@@ -69,10 +69,7 @@ export class CombatSystem {
             // [FIX] Ensure at least one frame of duration to prevent immediate completion loop
             a.castTimer = Math.max(skill.cast, 0.016);
             a.castingAnimationTimer = Math.max(skill.cast, 0.016);
-            
-            if (skill.tag === 'ULT') a.aiState = AIState.CASTING_ULT;
-            else if (skill.tag === 'ACTIVE') a.aiState = AIState.CASTING_ACTIVE;
-            else a.aiState = AIState.CASTING_BASIC;
+                        // 施法中的 AI 狀態由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b），這裡不寫 aiState
 
             let targetName = '地面';
             if (a.target) targetName = a.target.id;

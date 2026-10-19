@@ -107,6 +107,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '放逐旗標只在 ControlSystem（syncBanished／clearBanishedFlag）寫入；CCManager、ZoneSystem 呼叫這兩個 API。PhysicsEngine 只讀。',
     },
+    aiState: {
+        group: 'ai',
+        kind: 'single',
+        owners: ['engine/ai/BTRegistry.ts'],
+        note: 'AI 行為狀態只由 BT 節點寫入。施法中的 CASTING_* 不再存進來，改由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b）。',
+    },
     _interruptCooldown: {
         group: 'casting',
         kind: 'domain',

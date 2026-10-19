@@ -9,6 +9,7 @@ import {
 } from '../../../types/UIViewModel';
 import { Skill, Team, AIState, ActionState } from '../../../types';
 import { UI_SETTINGS } from '../../../constants';
+import { displayAiState } from '../../core/AgentDerived';
 
 export interface DirectorTargetView {
     readonly id: string;
@@ -291,7 +292,7 @@ export function selectDirectorTargetView(engine: GameEngine): DirectorTargetView
     const mp = agent.mp;
     const maxMp = agent.maxMp;
     const targetId = agent.target?.id ?? null;
-    const aiState = agent.aiState;
+    const aiState = displayAiState(agent);
     const actionState = agent.actionState;
 
     if (

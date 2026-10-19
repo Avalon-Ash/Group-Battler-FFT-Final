@@ -1,6 +1,5 @@
 
 import { Agent, GameEngine } from "../../game";
-import { AIState } from "../../../types";
 import { CAST_LOCKOUT } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 
@@ -89,13 +88,6 @@ export class CastingEngine {
         if (fromCompletion) {
             a._castCompleteCooldown = 0.15; // [FIX] Lockout to prevent instant re-cast loop
         }
-        // [FIX] Ensure aiState doesn't remain in CASTING state
-        if (
-            a.aiState === AIState.CASTING_ULT ||
-            a.aiState === AIState.CASTING_ACTIVE ||
-            a.aiState === AIState.CASTING_BASIC
-        ) {
-            a.aiState = AIState.IDLE;
-        }
+        // aiState 不再存 CASTING_*（castingSkillIdx 歸 -1 即結束施法狀態，P7b），不必還原
     }
 }

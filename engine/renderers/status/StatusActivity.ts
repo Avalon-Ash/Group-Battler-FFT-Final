@@ -7,6 +7,7 @@
 
 import type { Agent } from "../../core/Agent";
 import { AIState } from "../../../types";
+import { castingAiState } from "../../core/AgentDerived";
 import type { StatusPartKey } from "../../../data/vfx/status_parts";
 
 /** 易傷（VULNERABLE）的視覺門檻：血量比例低於此值才顯示（沿用 AgentVFXSystem 原條件） */
@@ -31,8 +32,8 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'BURN': return a.dotTimer > 0 && a.dotDmg > 0 && a.dotType === 'BURN';
         case 'REGEN': return a.hotTimer > 0;
         case 'VULNERABLE': return a.maxHp > 0 && a.hp / a.maxHp < VULNERABLE_VISUAL_HP_RATIO;
-        case 'CAST_ULT': return a.aiState === AIState.CASTING_ULT;
-        case 'CAST_ACTIVE': return a.aiState === AIState.CASTING_ACTIVE;
+        case 'CAST_ULT': return castingAiState(a) === AIState.CASTING_ULT;
+        case 'CAST_ACTIVE': return castingAiState(a) === AIState.CASTING_ACTIVE;
         case 'EVADING': return a.aiState === AIState.EVADING_URGENT;
         default: return false;
     }
