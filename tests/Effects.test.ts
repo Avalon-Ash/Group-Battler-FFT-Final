@@ -11,10 +11,10 @@ const CCMANAGER_DEBUFFS = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT',
 const CCMANAGER_HARD_CC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'];
 
 describe('Effects core and definitions (ECS-lite S1 - SE1)', () => {
-    it('EFFECT_KINDS contains exactly 13 effect kinds', () => {
-        expect(EFFECT_KINDS.length).toBe(13);
+    it('EFFECT_KINDS contains exactly 16 effect kinds', () => {
+        expect(EFFECT_KINDS.length).toBe(16);
         const unique = new Set(EFFECT_KINDS);
-        expect(unique.size).toBe(13);
+        expect(unique.size).toBe(16);
     });
 
     it('every kind has a slot in createEffectSlots() initialized to zero/null', () => {

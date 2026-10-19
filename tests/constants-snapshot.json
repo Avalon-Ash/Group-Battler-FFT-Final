@@ -183,7 +183,8 @@
     "VAMP": "#be123c",
     "MANA_BURN": "#8b5cf6",
     "MANA_RESTORE": "#60a5fa",
-    "RECOIL": "#ef4444"
+    "RECOIL": "#ef4444",
+    "REFLECT": "#f59e0b"
   },
   "DEATH_KNOCKBACK": {
     "SPEED_SCALE": 2.2,
@@ -231,6 +232,11 @@
     "ICE": "#3b82f6",
     "COVENANT": "#ef4444",
     "IMPERIAL": "#3b82f6"
+  },
+  "EFFECT_LIMITS": {
+    "HASTE_MAX_PCT": 100,
+    "REFLECT_MAX_PCT": 100,
+    "LIFESTEAL_MAX_PCT": 100
   },
   "ENV_SPRITE": {
     "CANVAS_W": 128,

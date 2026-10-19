@@ -18,6 +18,9 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
     'POLYMORPH',
     'INVINCIBLE',
     'VULNERABLE',
+    'HASTE',
+    'REFLECT',
+    'LIFESTEAL',
     'DOT',
     'HOT',
 ] as const;
@@ -45,6 +48,9 @@ export function createEffectSlots(): EffectSlots {
         POLYMORPH: createEffectSlot(),
         INVINCIBLE: createEffectSlot(),
         VULNERABLE: createEffectSlot(),
+        HASTE: createEffectSlot(),
+        REFLECT: createEffectSlot(),
+        LIFESTEAL: createEffectSlot(),
         DOT: createEffectSlot(),
         HOT: createEffectSlot(),
     };

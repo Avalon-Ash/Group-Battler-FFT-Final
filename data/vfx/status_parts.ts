@@ -36,8 +36,8 @@ export interface StatusPartSet {
 
 export const STATUS_PART_KEYS = [
     'STUN', 'SILENCE', 'BANISH', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'SHIELD', 'POISON', 'BURN', 'IMMUNE',
-    'KNOCKBACK', 'PULL', 'REGEN', 'POLYMORPH', 'FROZEN', 'STASIS', 'VULNERABLE', 'CAST_ULT', 'CAST_ACTIVE',
-    'CC_INTERRUPT', 'EVADING', 'INVINCIBLE', 'DEFAULT',
+    'KNOCKBACK', 'PULL', 'REGEN', 'POLYMORPH', 'FROZEN', 'STASIS', 'VULNERABLE', 'HASTE', 'REFLECT', 'LIFESTEAL',
+    'CAST_ULT', 'CAST_ACTIVE', 'CC_INTERRUPT', 'EVADING', 'INVINCIBLE', 'DEFAULT',
 ] as const;
 export type StatusPartKey = typeof STATUS_PART_KEYS[number];
 
@@ -177,6 +177,24 @@ export const STATUS_PARTS: Record<StatusPartKey, StatusPartSet> = {
         layers: [
             { spec: { kind: 'ring', radius: 24, thickness: 3, ramp: 'ASH_BLOOD' }, anchor: 'GROUND', flat: true, alpha: 0.3, pulse: { amp: 0.1, hz: 1.2 } },
             { spec: { kind: 'droplet', size: 4, ramp: 'ASH_BLOOD' }, anchor: 'HEAD', lift: 0, bob: { amp: 2, hz: 1.4 }, alpha: 0.7 },
+        ],
+    },
+    HASTE: {
+        priority: 18, strong: false,
+        layers: [
+            { spec: { kind: 'ring', radius: 16, thickness: 2, ramp: 'LION_ARCANE' }, anchor: 'GROUND', flat: true, spin: 1.2, alpha: 0.4 },
+        ],
+    },
+    REFLECT: {
+        priority: 22, strong: false,
+        layers: [
+            { spec: { kind: 'shard', size: 6, shape: 'crystal', ramp: 'LION_HOLY' }, anchor: 'BODY', count: 3, orbitRadius: 14, orbitSpeed: 2, alpha: 0.8 },
+        ],
+    },
+    LIFESTEAL: {
+        priority: 24, strong: false,
+        layers: [
+            { spec: { kind: 'droplet', size: 4, ramp: 'ASH_BLOOD' }, anchor: 'BODY', count: 3, orbitRadius: 10, lift: -16, rise: { height: 36, period: 1.5 }, alpha: 0.8 },
         ],
     },
 

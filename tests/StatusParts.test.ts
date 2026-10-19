@@ -115,4 +115,13 @@ describe('isStatusActive', () => {
         a.castingSkillIdx = -1;
         expect(isStatusActive('CAST_ULT', a)).toBe(false);
     });
+
+    it('HASTE, REFLECT, LIFESTEAL follow their timers', () => {
+        const a = fresh();
+        for (const k of ['HASTE', 'REFLECT', 'LIFESTEAL'] as const) expect(isStatusActive(k, a), k).toBe(false);
+        a.effects.HASTE.remaining = 1;
+        a.effects.REFLECT.remaining = 1;
+        a.effects.LIFESTEAL.remaining = 1;
+        for (const k of ['HASTE', 'REFLECT', 'LIFESTEAL'] as const) expect(isStatusActive(k, a), k).toBe(true);
+    });
 });

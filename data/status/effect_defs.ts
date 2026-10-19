@@ -68,6 +68,21 @@ export const EFFECT_DEFS: Readonly<Record<EffectKind, EffectDef>> = {
         hardCC: false,
         clearsOnApply: [],
     },
+    HASTE: {
+        polarity: 'BUFF',
+        hardCC: false,
+        clearsOnApply: [],
+    },
+    REFLECT: {
+        polarity: 'BUFF',
+        hardCC: false,
+        clearsOnApply: [],
+    },
+    LIFESTEAL: {
+        polarity: 'BUFF',
+        hardCC: false,
+        clearsOnApply: [],
+    },
     DOT: {
         polarity: 'DEBUFF',
         hardCC: false,

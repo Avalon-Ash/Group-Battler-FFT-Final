@@ -198,6 +198,36 @@ export const CCManager = {
                 statusColor = STATUS_VISUALS.VULNERABLE.primaryColor;
                 break;
 
+            case 'HASTE':
+                if (effectiveDuration > target.effects.HASTE.remaining) {
+                    target.effects.HASTE.remaining = effectiveDuration;
+                    target.effects.HASTE.max = effectiveDuration;
+                    target.effects.HASTE.value = force || 0;
+                }
+                statusText = STATUS_VISUALS.HASTE.label;
+                statusColor = STATUS_VISUALS.HASTE.primaryColor;
+                break;
+
+            case 'REFLECT':
+                if (effectiveDuration > target.effects.REFLECT.remaining) {
+                    target.effects.REFLECT.remaining = effectiveDuration;
+                    target.effects.REFLECT.max = effectiveDuration;
+                    target.effects.REFLECT.value = force || 0;
+                }
+                statusText = STATUS_VISUALS.REFLECT.label;
+                statusColor = STATUS_VISUALS.REFLECT.primaryColor;
+                break;
+
+            case 'LIFESTEAL':
+                if (effectiveDuration > target.effects.LIFESTEAL.remaining) {
+                    target.effects.LIFESTEAL.remaining = effectiveDuration;
+                    target.effects.LIFESTEAL.max = effectiveDuration;
+                    target.effects.LIFESTEAL.value = force || 0;
+                }
+                statusText = STATUS_VISUALS.LIFESTEAL.label;
+                statusColor = STATUS_VISUALS.LIFESTEAL.primaryColor;
+                break;
+
             case 'SHIELD':
                 target.shield += amount;
                 target.maxShield = Math.max(target.maxShield, target.shield);

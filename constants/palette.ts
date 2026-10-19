@@ -27,7 +27,8 @@ export const DAMAGE_TEXT_COLORS = {
     VAMP: '#be123c',
     MANA_BURN: '#8b5cf6',
     MANA_RESTORE: '#60a5fa',
-    RECOIL: '#ef4444'
+    RECOIL: '#ef4444',
+    REFLECT: '#f59e0b'
 };
 
 export const THEME_IMPERIAL = {

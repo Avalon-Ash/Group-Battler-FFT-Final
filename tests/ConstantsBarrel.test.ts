@@ -24,6 +24,7 @@ export const EXPECTED_EXPORTS = [
     'DEFAULT_HEX_LAYOUT',
     'DEFAULT_ZONE_CONFIG',
     'DOT_COLORS',
+    'EFFECT_LIMITS',
     'ENV_SPRITE',
     'FIXED_ORIENTATION_PARTICLE_TYPES',
     'FLOATING_TEXT',
@@ -106,7 +107,7 @@ function serialize(v: unknown): unknown {
 }
 
 describe('Constants Barrel Export Contract', () => {
-    it('exports exactly the 86 expected names in sorted order', () => {
+    it('exports exactly the 87 expected names in sorted order', () => {
         const actualExports = Object.keys(C).sort();
         expect(actualExports).toEqual(EXPECTED_EXPORTS);
     });

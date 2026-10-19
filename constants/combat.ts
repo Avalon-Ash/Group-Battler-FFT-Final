@@ -95,3 +95,10 @@ export const CAST_LOCKOUT = {
     /** 地面將塌陷而放棄詠唱：確保單位真的先去逃生。 */
     FATAL_BREAK: 0.5,
 } as const;
+
+/** 狀態效果參數上限（百分比 100 ＝ +100%）。 */
+export const EFFECT_LIMITS = {
+    HASTE_MAX_PCT: 100,
+    REFLECT_MAX_PCT: 100,
+    LIFESTEAL_MAX_PCT: 100,
+} as const;

@@ -1,7 +1,7 @@
 
 import { Agent } from "../../game";
 import { Skill, Role } from "../../../types";
-import { COMBAT_PARAM } from "../../../constants";
+import { COMBAT_PARAM, EFFECT_LIMITS } from "../../../constants";
 import { random } from "../../math/rng";
 import { absorbWithShield } from "./DirectDamage";
 
@@ -150,10 +150,13 @@ export class DamageCalculator {
         // 7. Secondary Effects (Vamp, Mana)
         const isVamp1 = skill.effectType === 'VAMP';
         const isVamp2 = skill.effectType2 === 'VAMP';
-        if (!isHeal && (isVamp1 || isVamp2)) {
-            const vampPct = (isVamp1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_VAMP_PCT;
-            // Vamp based on unmitigated damage or actual HP damage? Usually actual.
-            result.vampAmount = Math.floor(final * vampPct);
+        const lsPct = source.effects.LIFESTEAL.remaining > 0
+            ? Math.min(source.effects.LIFESTEAL.value, EFFECT_LIMITS.LIFESTEAL_MAX_PCT) / 100
+            : 0;
+        if (!isHeal && (isVamp1 || isVamp2 || lsPct > 0)) {
+            const skillVampPct = (isVamp1 ? skill.effectVal : (isVamp2 ? skill.effectVal2 : 0)) || (isVamp1 || isVamp2 ? COMBAT_PARAM.BASE_VAMP_PCT : 0);
+            const totalVampPct = skillVampPct + lsPct;
+            result.vampAmount = Math.floor(final * totalVampPct);
         }
 
         // Mana Burn

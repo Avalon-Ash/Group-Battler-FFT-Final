@@ -85,7 +85,13 @@ const CC_OPTIONS_MAP = [
     { value: 'FEAR', label: '恐懼 (FEAR)' },
     { value: 'TAUNT', label: '嘲諷 (TAUNT)' },
     { value: 'BLIND', label: '致盲 (BLIND)' },
-    { value: 'SHIELD', label: '護盾 (SHIELD)' }
+    { value: 'SHIELD', label: '護盾 (SHIELD)' },
+    { value: 'POLYMORPH', label: '變羊 (POLYMORPH)' },
+    { value: 'INVINCIBLE', label: '無敵 (INVINCIBLE)' },
+    { value: 'VULNERABLE', label: '易傷 (VULNERABLE)' },
+    { value: 'HASTE', label: '加速 (HASTE)' },
+    { value: 'REFLECT', label: '反傷 (REFLECT)' },
+    { value: 'LIFESTEAL', label: '吸血 (LIFESTEAL)' }
 ];
 
 const EFFECT_OPTIONS_MAP = [

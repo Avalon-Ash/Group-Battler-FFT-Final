@@ -1,12 +1,18 @@
 
 import { Agent } from "../../game";
+import { EFFECT_LIMITS } from "../../../constants";
 
 export class CooldownSystem {
     public update(agent: Agent, dt: number) {
+        const cdMultiplier = agent.effects.HASTE.remaining > 0
+            ? 1 + Math.min(agent.effects.HASTE.value, EFFECT_LIMITS.HASTE_MAX_PCT) / 100
+            : 1;
+        const cdDelta = dt * cdMultiplier;
+
         // Skill Cooldowns
         for (let i = 0; i < agent.curCDs.length; i++) {
             if (agent.curCDs[i] > 0) {
-                agent.curCDs[i] -= dt;
+                agent.curCDs[i] -= cdDelta;
                 // Safety Clamp: Prevent negative small floats or NaN
                 if (agent.curCDs[i] < 0 || isNaN(agent.curCDs[i])) {
                     agent.curCDs[i] = 0;

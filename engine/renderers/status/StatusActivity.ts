@@ -32,6 +32,9 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'BURN': return a.effects.DOT.remaining > 0 && a.effects.DOT.value > 0 && a.effects.DOT.tag === 'BURN';
         case 'REGEN': return a.effects.HOT.remaining > 0;
         case 'VULNERABLE': return a.maxHp > 0 && a.hp / a.maxHp < VULNERABLE_VISUAL_HP_RATIO;
+        case 'HASTE': return a.effects.HASTE.remaining > 0;
+        case 'REFLECT': return a.effects.REFLECT.remaining > 0;
+        case 'LIFESTEAL': return a.effects.LIFESTEAL.remaining > 0;
         case 'CAST_ULT': return castingAiState(a) === AIState.CASTING_ULT;
         case 'CAST_ACTIVE': return castingAiState(a) === AIState.CASTING_ACTIVE;
         case 'EVADING': return a.aiState === AIState.EVADING_URGENT;

@@ -112,6 +112,21 @@ export const STATUS_VISUALS: Record<string, StatusVisualDef> = {
         primaryColor: '#ef4444', secondaryColor: '#7f1d1d',
         iconShape: 'HEX_SKULL', overheadType: 'NONE',
     },
+    'HASTE': {
+        id: 'HASTE', label: '加速',
+        primaryColor: '#38bdf8', secondaryColor: '#0284c7',
+        iconShape: 'NONE', overheadType: 'NONE'
+    },
+    'REFLECT': {
+        id: 'REFLECT', label: '反傷',
+        primaryColor: '#f59e0b', secondaryColor: '#b45309',
+        iconShape: 'NONE', overheadType: 'NONE'
+    },
+    'LIFESTEAL': {
+        id: 'LIFESTEAL', label: '吸血',
+        primaryColor: '#be123c', secondaryColor: '#881337',
+        iconShape: 'NONE', overheadType: 'NONE'
+    },
     'CAST_ULT': {
         id: 'CAST_ULT', label: '',
         primaryColor: '#fbbf24', secondaryColor: '#d97706',

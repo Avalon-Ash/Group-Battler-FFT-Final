@@ -10,7 +10,7 @@ import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
 import { teleportTo } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS } from "../../../constants";
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
 
@@ -173,6 +173,28 @@ export class SkillExecutor {
                 // 護盾已在 DamageCalculator 扣過，所以這裡是真實傷害
                 applyDirectDamage(target, -result.finalValue, true, source.id);
                 target.lastHitDamage = finalDamage;
+
+                // [NEW] REFLECT: 反傷判定（受到敵方技能直接傷害後，對攻擊者造成 實際扣血量×v/100 的真實傷害）
+                if (target.effects.REFLECT.remaining > 0 && target.team !== source.team && source.hp > 0 && !source.banished && !source.outOfBounds) {
+                    const reflectPct = Math.min(target.effects.REFLECT.value, EFFECT_LIMITS.REFLECT_MAX_PCT) / 100;
+                    const reflectDmg = Math.floor(finalDamage * reflectPct);
+                    if (reflectDmg > 0) {
+                        applyDirectDamage(source, reflectDmg, true, target.id);
+                        engine.events.push({
+                            type: 'DAMAGE',
+                            pos: unitEventPos(source, engine),
+                            value: reflectDmg,
+                            color: DAMAGE_TEXT_COLORS.REFLECT,
+                            text: "反傷",
+                            sourceId: target.id,
+                            targetId: source.id
+                        });
+                        engine.log(target, 'HIT', '反傷', source.id, `反彈 ${reflectDmg} 傷害`);
+                        if (source.hp <= 0) {
+                            engine.agentManager.handleDeadState(source, engine);
+                        }
+                    }
+                }
             } else {
                 applyHeal(target, result.finalValue);
             }

@@ -4,6 +4,7 @@ import { HexUtils } from "../../utils";
 import { SpatialProvider } from "../../../types";
 import { random } from "../../math/rng";
 import { stopMovement } from "./MotionCommands";
+import { EFFECT_LIMITS } from "../../../constants";
 
 const STACKING_RESOLUTION_FORCE = 8;
 const FACING_THRESHOLD = 1.5; 
@@ -29,7 +30,10 @@ export class MotionEngine {
             return;
         }
 
-        const moveDelta = a.moveSpeed * Math.min(a.moveSpeedMult, hazardSpeedMult) * dt;
+        const hasteMult = (a.effects?.HASTE?.remaining ?? 0) > 0
+            ? 1 + Math.min(a.effects.HASTE.value, EFFECT_LIMITS.HASTE_MAX_PCT) / 100
+            : 1;
+        const moveDelta = a.moveSpeed * Math.min(a.moveSpeedMult, hazardSpeedMult) * hasteMult * dt;
         a.moveProgress += moveDelta;
 
         while (a.moveProgress >= 1.0 && a.path.length > 0) {
