@@ -7,7 +7,7 @@
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **技能平衡輪**（還沒設計）：紅藍勝率、各技能實際傷害／治療量的批次統計，再調數值。主代理先做量測工具與設計，實作交 Gemini。
+1. **技能平衡輪**：提示詞 `docs/BALANCE_AGENT_PROMPT.md`，使用者執行 `/goal docs/BALANCE_AGENT_PROMPT.md`（分支 `feat/balance`）。基準（`tools/balance/batch-sim.mjs`，1000 場）：藍方勝率 71.5%，交換站位 73.8%；紅方各職業技能傷害約只有藍方一半（數值系統性偏低）。目標兩種站位都 46%～54%、技能勝率差 ±0.08、只調數值不改機制。
 2. **個別奧義美術翻新**（還沒設計）：50 個奧義的序列與零件細調（`docs/VFX_PIPELINE_MAP.md` §4.16）。渲染工作，單獨一條。
 
 ## 3. 待使用者確認
