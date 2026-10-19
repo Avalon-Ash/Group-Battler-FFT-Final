@@ -222,22 +222,24 @@ export const CCManager = {
                 break;
 
             case 'DOT':
-                target.dotDmg = force || 10;
-                target.dotTimer = effectiveDuration;
+                target.effects.DOT.remaining = effectiveDuration;
+                target.effects.DOT.max = effectiveDuration;
+                target.effects.DOT.value = force || 10;
                 if (skill.element === 'FIRE') {
-                    target.dotType = 'BURN';
+                    target.effects.DOT.tag = 'BURN';
                     statusText = STATUS_VISUALS.BURN.label;
                     statusColor = STATUS_VISUALS.BURN.primaryColor;
                 } else {
-                    target.dotType = 'POISON';
+                    target.effects.DOT.tag = 'POISON';
                     statusText = STATUS_VISUALS.POISON.label;
                     statusColor = STATUS_VISUALS.POISON.primaryColor;
                 }
                 break;
 
             case 'HOT':
-                target.hotVal = force || 10;
-                target.hotTimer = effectiveDuration;
+                target.effects.HOT.remaining = effectiveDuration;
+                target.effects.HOT.max = effectiveDuration;
+                target.effects.HOT.value = force || 10;
                 statusText = STATUS_VISUALS.REGEN.label;
                 statusColor = STATUS_VISUALS.REGEN.primaryColor;
                 break;

@@ -67,11 +67,6 @@ export class Agent {
     public banished: boolean = false;
     public outOfBounds: boolean = false;
 
-    public dotTimer: number = 0;
-    public dotDmg: number = 0;
-    public dotType: string = 'POISON';
-    public hotTimer: number = 0;
-    public hotVal: number = 0;
 
     public drStacks: Record<string, number> = {};
     public drTimers: Record<string, number> = {};
@@ -173,9 +168,6 @@ export class Agent {
 
         this.banished = false;
         this.outOfBounds = false;
-        this.dotTimer = 0;
-        this.dotType = 'POISON';
-        this.hotTimer = 0;
         this.visualStatus = 'NONE';
         this.ccVisual = 'NONE';
 
@@ -206,8 +198,6 @@ export class Agent {
         this.aiUpdateTimer = 0;
         this.forceAiUpdate = false;
         this.escapeCooldown = 0;
-        this.dotDmg = 0;
-        this.hotVal = 0;
         this.hasLandedLastStand = false;
         this.dragOverQ = null;
         this.dragOverR = null;

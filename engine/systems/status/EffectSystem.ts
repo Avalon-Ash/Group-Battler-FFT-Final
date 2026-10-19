@@ -27,14 +27,14 @@ export class EffectSystem {
 
         // 1. Damage over Time (DoT)
         // Mathematically apply damage per second
-        if (agent.dotTimer > 0) {
-            agent.dotTimer = Math.max(0, agent.dotTimer - dt);
+        if (agent.effects.DOT.remaining > 0) {
+            agent.effects.DOT.remaining = Math.max(0, agent.effects.DOT.remaining - dt);
             
-            const damagePerSec = agent.dotDmg;
+            const damagePerSec = agent.effects.DOT.value;
             const { absorbed, dealt: frameDamage } = applyDirectDamage(agent, damagePerSec * dt);
 
             // Periodic Visual Feedback
-            if (dotTimer <= 0 && agent.dotDmg > 0) { 
+            if (dotTimer <= 0 && agent.effects.DOT.value > 0) { 
                 const rateAbsorb = absorbed / dt;
                 
                 if (rateAbsorb > 0) {
@@ -49,17 +49,17 @@ export class EffectSystem {
                 }
                 
                 if (frameDamage > 0 || absorbed === 0) {
-                    const dotColor = DOT_COLORS[agent.dotType] || '#10b981';
+                    const dotColor = (agent.effects.DOT.tag && DOT_COLORS[agent.effects.DOT.tag]) || '#10b981';
                     engine.events.push({ 
                         type: 'DAMAGE', 
                         pos: unitEventPos(agent, engine), 
                         value: -Math.floor(damagePerSec), 
                         color: dotColor, 
-                        skill: { ccType: 'DOT', dotType: agent.dotType },
+                        skill: { ccType: 'DOT', dotType: agent.effects.DOT.tag ?? undefined },
                         targetId: agent.id
                     });
                 }
-                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (${agent.dotType})`);
+                engine.log(null, 'HAZARD', '持續傷害', agent.id, `受到 ${Math.floor(damagePerSec)} 傷害 (護盾抵擋 ${Math.floor(rateAbsorb)}) (${agent.effects.DOT.tag})`);
                 triggerHitFlash(agent, 0.1);
                 dotTimer = this.FEEDBACK_INTERVAL; // 無論有無 HoT 都先 reset
                 this.feedbackTimers.set(dotKey, dotTimer);
@@ -67,16 +67,16 @@ export class EffectSystem {
         }
 
         // 2. Heal over Time (HoT)
-        if (agent.hotTimer > 0) {
-            agent.hotTimer = Math.max(0, agent.hotTimer - dt);
+        if (agent.effects.HOT.remaining > 0) {
+            agent.effects.HOT.remaining = Math.max(0, agent.effects.HOT.remaining - dt);
             
-            const healPerSec = agent.hotVal;
+            const healPerSec = agent.effects.HOT.value;
             const frameHeal = healPerSec * dt;
             
             applyHeal(agent, frameHeal);
             
             // Periodic Visual Feedback
-            if (hotTimer <= 0 && agent.hotVal > 0) {
+            if (hotTimer <= 0 && agent.effects.HOT.value > 0) { 
                 engine.events.push({ 
                     type: 'HEAL', 
                     pos: unitEventPos(agent, engine), 

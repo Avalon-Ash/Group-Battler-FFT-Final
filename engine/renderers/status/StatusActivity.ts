@@ -28,9 +28,9 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'BLIND': return a.effects.BLIND.remaining > 0;
         case 'POLYMORPH': return a.visualStatus === 'POLYMORPH';
         case 'INVINCIBLE': return a.visualStatus === 'INVINCIBLE';
-        case 'POISON': return a.dotTimer > 0 && a.dotDmg > 0 && a.dotType === 'POISON';
-        case 'BURN': return a.dotTimer > 0 && a.dotDmg > 0 && a.dotType === 'BURN';
-        case 'REGEN': return a.hotTimer > 0;
+        case 'POISON': return a.effects.DOT.remaining > 0 && a.effects.DOT.value > 0 && a.effects.DOT.tag === 'POISON';
+        case 'BURN': return a.effects.DOT.remaining > 0 && a.effects.DOT.value > 0 && a.effects.DOT.tag === 'BURN';
+        case 'REGEN': return a.effects.HOT.remaining > 0;
         case 'VULNERABLE': return a.maxHp > 0 && a.hp / a.maxHp < VULNERABLE_VISUAL_HP_RATIO;
         case 'CAST_ULT': return castingAiState(a) === AIState.CASTING_ULT;
         case 'CAST_ACTIVE': return castingAiState(a) === AIState.CASTING_ACTIVE;

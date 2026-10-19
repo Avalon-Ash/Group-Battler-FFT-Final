@@ -99,10 +99,10 @@ describe('isStatusActive', () => {
 
     it('DoT type, regen, vulnerable and casting states', () => {
         const a = fresh();
-        a.dotTimer = 2; a.dotDmg = 3; a.dotType = 'BURN';
+        a.effects.DOT.remaining = 2; a.effects.DOT.value = 3; a.effects.DOT.tag = 'BURN';
         expect(isStatusActive('BURN', a)).toBe(true);
         expect(isStatusActive('POISON', a)).toBe(false);
-        a.hotTimer = 1;
+        a.effects.HOT.remaining = 1;
         expect(isStatusActive('REGEN', a)).toBe(true);
         a.hp = a.maxHp * 0.1;
         expect(isStatusActive('VULNERABLE', a)).toBe(true);

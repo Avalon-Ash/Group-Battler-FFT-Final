@@ -53,11 +53,11 @@ export const EFFECT_FIELDS_BASELINE: Record<LegacyEffectField, number> = {
     polymorphTimer: 0,
     invincibleTimer: 0,
     vulnerableTimer: 0,
-    dotTimer: 7,
-    dotDmg: 6,
-    dotType: 8,
-    hotTimer: 6,
-    hotVal: 4,
+    dotTimer: 0,
+    dotDmg: 0,
+    dotType: 0,
+    hotTimer: 0,
+    hotVal: 0,
 };
 
 function listSources(dir: string): string[] {
@@ -122,6 +122,12 @@ describe('Legacy effect fields ratchet (SE0)', () => {
             }
         }
         expect(stale, 'Baseline entries that should be ratcheted down').toEqual([]);
+    });
+
+    it('all legacy effect fields are 0 and must never reappear (SE4 complete elimination)', () => {
+        for (const field of LEGACY_EFFECT_FIELDS) {
+            expect(currentCounts[field], `legacy field .${field} must be 0`).toBe(0);
+        }
     });
 
     it('pattern sanity check', () => {

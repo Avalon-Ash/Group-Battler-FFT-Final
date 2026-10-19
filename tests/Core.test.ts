@@ -82,17 +82,17 @@ describe('EffectSystem DoT / HoT', () => {
     it('DoT deals dotDmg per second, shield absorbs first', () => {
         const fx = new EffectSystem();
         const a = make();
-        a.dotTimer = 5; a.dotDmg = 10; a.shield = 4;
+        a.effects.DOT.remaining = 5; a.effects.DOT.value = 10; a.shield = 4;
         fx.update(a, 1, stubEngine());
         expect(a.shield).toBe(0);
         expect(a.hp).toBeCloseTo(94, 5);
-        expect(a.dotTimer).toBe(4);
+        expect(a.effects.DOT.remaining).toBe(4);
     });
 
     it('HoT heals but never exceeds maxHp', () => {
         const fx = new EffectSystem();
         const a = make();
-        a.hp = 95; a.hotTimer = 5; a.hotVal = 20;
+        a.hp = 95; a.effects.HOT.remaining = 5; a.effects.HOT.value = 20;
         fx.update(a, 1, stubEngine());
         expect(a.hp).toBe(100);
     });
@@ -100,7 +100,7 @@ describe('EffectSystem DoT / HoT', () => {
     it('dead / banished agents are skipped', () => {
         const fx = new EffectSystem();
         const a = make();
-        a.banished = true; a.dotTimer = 5; a.dotDmg = 50;
+        a.banished = true; a.effects.DOT.remaining = 5; a.effects.DOT.value = 50;
         fx.update(a, 1, stubEngine());
         expect(a.hp).toBe(100);
     });

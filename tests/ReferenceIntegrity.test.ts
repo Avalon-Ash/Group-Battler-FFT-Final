@@ -248,7 +248,7 @@ describe('status keys', () => {
     });
 
     it('every dotType written has a DOT_COLORS entry', () => {
-        const written = uniqSorted(scan(/dotType\s*=\s*['"]([A-Z_]+)['"]/g).map(h => h.key));
+        const written = uniqSorted(scan(/(?:dotType|\btag)\s*=\s*['"]([A-Z_]+)['"]/g).map(h => h.key));
         expect(written.length).toBeGreaterThan(0);
         expect(written.filter(k => !DOT_COLORS[k])).toEqual([]);
     });
