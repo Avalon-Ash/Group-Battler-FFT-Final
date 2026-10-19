@@ -56,7 +56,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
     const ref = useRef<HTMLDivElement>(null);
     const { dragHandlers, style, isDragging } = useDraggable(ref, {
         anchor: 'top-center',
-        margin: 40,
+        // 手機直向：工具列放在右上角系統選單鈕下方，否則兩者重疊（mobile-audit overlap）
+        margin: isCompact ? UI_PIN.TOOLBAR_MARGIN_COMPACT : UI_PIN.TOOLBAR_MARGIN,
         storageKey: UI_PIN.STORAGE_KEYS.mapEditor,
     });
 
@@ -148,8 +149,8 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                         />
                     </div>
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5">
-                        <button onClick={() => setSpawnMode('RANDOM')} title="隨機職業配置" className={`touch-target px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>隨機</button>
-                        <button onClick={() => setSpawnMode('DRAFT')} title="指定固定職業" className={`touch-target px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>指定</button>
+                        <button onClick={() => setSpawnMode('RANDOM')} title="隨機職業配置" className={`touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'RANDOM' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-500 hover:text-slate-300'}`}>隨機</button>
+                        <button onClick={() => setSpawnMode('DRAFT')} title="指定固定職業" className={`touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all ${spawnMode === 'DRAFT' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-500 hover:text-slate-300'}`}>指定</button>
                     </div>
                     {spawnMode === 'DRAFT' && (
                         <select 
@@ -168,7 +169,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                         <button 
                             onClick={() => setDraftBodyType(undefined)} 
                             title="隨機體型" 
-                            className="touch-target px-2 py-1 rounded text-[11px] font-bold transition-all"
+                            className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
                             style={draftBodyType === undefined ? { backgroundColor: 'rgba(6, 182, 212, 0.2)', color: '#67e8f9' } : { color: '#64748b' }}
                         >
                             隨機
@@ -180,7 +181,7 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                                     key={typeKey}
                                     onClick={() => setDraftBodyType(typeKey)} 
                                     title={`指定${profile.label}體型`} 
-                                    className="touch-target px-2 py-1 rounded text-[11px] font-bold transition-all"
+                                    className="touch-target-icon px-2 py-1 rounded text-[11px] font-bold transition-all"
                                     style={draftBodyType === typeKey ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' } : { color: '#64748b' }}
                                 >
                                     {profile.label}
@@ -197,14 +198,14 @@ export const MapEditorToolbar: React.FC<MapEditorToolbarProps> = (props) => {
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shadow-inner">
                         <button 
                             onClick={() => onSetLayout('FLAT')} 
-                            className={`touch-target px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            className={`touch-target-icon px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'FLAT' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
                             title="平頂六邊形佈局 (Flat Top)"
                         >
                             平頂
                         </button>
                         <button 
                             onClick={() => onSetLayout('POINTY')} 
-                            className={`touch-target px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
+                            className={`touch-target-icon px-2 py-1 rounded text-[10px] font-black transition-all ${hexLayout === 'POINTY' ? 'bg-white/20 text-white shadow-sm' : 'text-slate-500 hover:text-slate-400'}`}
                             title="尖頂六邊形佈局 (Pointy Top)"
                         >
                             尖頂

@@ -182,7 +182,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                     <div className="flex bg-black/40 rounded-lg p-0.5 border border-white/5 shrink-0">
                         <button
                             onClick={() => setTab('STATUS')}
-                            className="touch-target px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
+                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'STATUS'
                                     ? { backgroundColor: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8' }
@@ -194,7 +194,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                         </button>
                         <button
                             onClick={() => setTab('AI')}
-                            className="touch-target px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
+                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'AI'
                                     ? { backgroundColor: 'rgba(245, 158, 11, 0.2)', color: '#fcd34d' }
@@ -206,7 +206,7 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                         </button>
                         <button
                             onClick={() => setTab('SKILLS')}
-                            className="touch-target px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
+                            className="touch-target-icon px-2.5 py-1 rounded-md text-[11px] font-bold transition-all"
                             style={
                                 tab === 'SKILLS'
                                     ? { backgroundColor: 'rgba(34, 211, 238, 0.2)', color: '#67e8f9' }

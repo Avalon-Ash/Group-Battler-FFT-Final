@@ -1247,6 +1247,9 @@ export const UI_SETTINGS = {
  * Pinned toolbar parameters and storage keys (SSOT).
  */
 export const UI_PIN = {
+    /** 地圖編輯工具列離畫面頂端（與左右）的邊距；手機尺寸要讓開右上角的系統選單鈕（top-3＋48px＋間隔） */
+    TOOLBAR_MARGIN: 40,
+    TOOLBAR_MARGIN_COMPACT: 68,
     FALLBACK_VIEWPORT: { w: 1920, h: 1080 },
     FALLBACK_SIZE: { w: 200, h: 60 },
     STORAGE_KEYS: {
