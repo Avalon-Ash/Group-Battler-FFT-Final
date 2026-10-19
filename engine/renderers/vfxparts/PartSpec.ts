@@ -41,7 +41,8 @@ export function emblemCounterRotation(n: PartSpec, groundRotation: number): numb
 
 export type PartSpec =
     | { kind: 'glow'; radius: number; ramp: VFXRampId; hard?: boolean }
-    | { kind: 'ring'; radius: number; thickness: number; ramp: VFXRampId; roughness?: number; seed?: number }
+    /** soft：只畫模糊光暈＋細芯、沒有實心主線（逐格大量鋪開時用，避免排成硬邊網格）；不套 roughness */
+    | { kind: 'ring'; radius: number; thickness: number; ramp: VFXRampId; roughness?: number; seed?: number; soft?: boolean }
     | { kind: 'slashArc'; radius: number; arcDeg: number; thickness: number; ramp: VFXRampId }
     | { kind: 'rays'; radius: number; count: number; ramp: VFXRampId; lengthJitter?: number; seed?: number }
     | { kind: 'bolt'; length: number; branches: number; ramp: VFXRampId; seed?: number }
@@ -101,7 +102,7 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             const radius = quantizeSize(spec.radius);
             const roughness = quantizeUnit(spec.roughness);
             // 種子只影響粗糙外緣；乾淨環共用同一張
-            return { kind: 'ring', radius, thickness: Math.min(radius, quantizeSize(spec.thickness)), ramp: spec.ramp, roughness, seed: roughness > 0 ? quantizeSeed(spec.seed) : 0 };
+            return { kind: 'ring', radius, thickness: Math.min(radius, quantizeSize(spec.thickness)), ramp: spec.ramp, roughness, seed: roughness > 0 ? quantizeSeed(spec.seed) : 0, ...(spec.soft ? { soft: true } : {}) };
         }
         case 'slashArc': {
             const radius = quantizeSize(spec.radius);
@@ -189,8 +190,8 @@ export function partBounds(n: PartSpec): PartBounds {
     switch (n.kind) {
         case 'sigil': {
             const S = VFX_PARTS.SIGIL;
-            const haloHalf = Math.max(1, n.radius * S.LINE_RATIO) * S.HALO_RATIO * S.HALO_WIDTH_MUL / 2;
-            const d = (n.radius * S.OUTER_RING + haloHalf) * 2 + pad * 2;
+            const haloHalf = Math.max(1, n.radius * S.LINE_RATIO) * S.GLOW_WIDTH_MUL / 2;
+            const d = (n.radius * S.OUTER_RING + haloHalf + S.BLUR * 2) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
         case 'magicCircle': {

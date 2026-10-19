@@ -2,10 +2,12 @@ import { VFXAsset } from "../../../types/VFXSchema";
 import { Team } from "../../../types";
 import type { VFXRampId } from "../parts/vfxPalette";
 import { part } from "./ult_parts";
+import { HEX_SIZE, CAST_RING } from "../../../constants";
 
 // ==========================================
 // 詠唱中斷（ART_SPEC §13）：法術結構崩解＝六角晶格碎裂。
-//  - FX_CAST_BREAK_<TEAM>：施法者腳下的斷裂六角環＋六角碎片噴散。
+//  - FX_CAST_BREAK_<TEAM>：施法者腳下的詠唱法陣（與 UnitAuraPainter 同一個 magicCircle 外層）往外崩開淡出＋六角碎片噴散。
+//    2026-10-19 前是硬邊斷裂六角環，與新法陣外觀對不上。
 //  - FX_CAST_BREAK_BURST_<TEAM>：施法者身上（核心高度）的崩解爆散：重力很重的六角碎片＋灰煙（取代舊的共用 FX_CAST_BREAK）。
 //  - FX_AOE_BREAK_<TEAM>_<band>：AOE 預警格逐格閃一次後收縮熄滅並迸出碎片；
 //    band 0 為最外圈、延遲最短，由外向中心依序熄滅，讓玩家看出「這片危險解除了」。
@@ -15,10 +17,13 @@ import { part } from "./ult_parts";
 /** AOE 崩解的延遲分層數與每層延遲（秒） */
 export const AOE_BREAK = { BANDS: 3, BAND_DELAY: 0.08 } as const;
 
-const FACTIONS: ReadonlyArray<{ key: 'BLUE' | 'RED'; ramp: VFXRampId; roughness: number }> = [
-    { key: 'BLUE', ramp: 'LION_HOLY', roughness: 0.5 },
-    { key: 'RED', ramp: 'ASH_FIRE', roughness: 1 },
+const FACTIONS: ReadonlyArray<{ key: 'BLUE' | 'RED'; ramp: VFXRampId; style: 'LION' | 'ASH' }> = [
+    { key: 'BLUE', ramp: 'LION_HOLY', style: 'LION' },
+    { key: 'RED', ramp: 'ASH_FIRE', style: 'ASH' },
 ];
+
+/** 崩開的法陣半徑＝詠唱法陣半徑 */
+const BREAK_CIRCLE_R = HEX_SIZE * CAST_RING.BASE_SIZE;
 
 export function castBreakFxId(team: Team | undefined): string {
     return team === Team.RED ? 'FX_CAST_BREAK_RED' : 'FX_CAST_BREAK_BLUE';
@@ -42,8 +47,8 @@ function buildCastBreak(): Record<string, VFXAsset> {
             emitters: [
                 part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: f.ramp, hard: true }, count: 1, lifetime: 0.25, delay: 0, size: 32,
                     partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeOut: 0.8 } }),
-                part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 6, ramp: f.ramp, roughness: f.roughness, seed: 1 }, count: 1, lifetime: 0.4, delay: 0, size: 32,
-                    partAnim: { scaleFrom: 0.7, scaleTo: 1.6, fadeOut: 0.6 } }),
+                part({ particleType: 'PART_GROUND', part: { kind: 'magicCircle', radius: BREAK_CIRCLE_R, ramp: f.ramp, layer: 'outer', style: f.style, seed: 1 }, count: 1, lifetime: 0.4, delay: 0, size: BREAK_CIRCLE_R,
+                    vRotation: 1.5, partAnim: { scaleFrom: 1, scaleTo: 1.35, fadeOut: 0.8 } }),
                 part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'hex', ramp: f.ramp }, count: [10, 14], lifetime: [0.6, 0.9], delay: 0, size: 6,
                     shape: 'BURST_DIR', speed: [150, 350], vz: [300, 600], gravity: 2500, vRotation: [-10, 10], partAnim: { fadeOut: 0.4 } }),
             ],
@@ -66,7 +71,7 @@ function buildCastBreak(): Record<string, VFXAsset> {
                 id: aid,
                 emitters: [
                     // 預警格閃一次，再收縮熄滅
-                    part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 4, ramp: f.ramp }, count: 1, lifetime: 0.3, delay, size: 48,
+                    part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 4, ramp: f.ramp, soft: true }, count: 1, lifetime: 0.3, delay, size: 48,
                         partAnim: { scaleFrom: 0.95, scaleTo: 0.55, fadeIn: 0.1, fadeOut: 0.7 } }),
                     // 沿格迸出的六角碎片
                     part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: f.ramp }, count: [1, 2], lifetime: [0.4, 0.6], delay, size: 4,

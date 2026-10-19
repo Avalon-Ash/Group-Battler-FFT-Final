@@ -66,7 +66,7 @@ function withAlpha(hex: string, alpha: number): string {
 export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: number, frames: number, emblemRotation: number = 0): void {
     switch (n.kind) {
         case 'glow': return bakeGlow(ctx, n.radius, VFX_RAMPS[n.ramp], !!n.hard);
-        case 'ring': return bakeRing(ctx, n.radius, n.thickness, VFX_RAMPS[n.ramp], n.roughness ?? 0, n.seed ?? 0);
+        case 'ring': return bakeRing(ctx, n.radius, n.thickness, VFX_RAMPS[n.ramp], n.roughness ?? 0, n.seed ?? 0, !!n.soft);
         case 'slashArc': return bakeSlashArc(ctx, n.radius, n.arcDeg, n.thickness, VFX_RAMPS[n.ramp]);
         case 'rays': return bakeRays(ctx, n.radius, n.count, VFX_RAMPS[n.ramp], n.lengthJitter ?? 0, n.seed ?? 0);
         case 'bolt': return bakeBolt(ctx, n.length, n.branches, VFX_RAMPS[n.ramp], (n.seed ?? 0) * frames + frame);
@@ -101,7 +101,7 @@ function bakeGlow(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp, hard:
     ctx.fill();
 }
 
-function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFXRamp, roughness: number, seed: number): void {
+function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFXRamp, roughness: number, seed: number, soft: boolean): void {
     const C = VFX_PARTS.RING;
     const outer = r + t;
     // 六角環（ART_SPEC §0）：光暈 → 主色 → 核心三層描邊。光暈烘焙時模糊（2026-10-19：硬邊光暈像第二條實線，畫面毛刺）
@@ -112,6 +112,20 @@ function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFX
     hexPath(ctx, r);
     ctx.stroke();
     ctx.filter = 'none';
+    if (soft) {
+        // 柔光版：光暈改主色，不畫實心主線，只留細芯
+        ctx.filter = `blur(${C.HALO_BLUR * VFX_PARTS.BAKE_SCALE}px)`;
+        ctx.strokeStyle = withAlpha(ramp.main, C.SOFT_GLOW_ALPHA);
+        ctx.lineWidth = t * C.MAIN_WIDTH;
+        hexPath(ctx, r);
+        ctx.stroke();
+        ctx.filter = 'none';
+        ctx.strokeStyle = withAlpha(ramp.core, C.SOFT_CORE_ALPHA);
+        ctx.lineWidth = Math.max(1, t * C.CORE_WIDTH);
+        hexPath(ctx, r);
+        ctx.stroke();
+        return;
+    }
     ctx.strokeStyle = withAlpha(ramp.main, C.MAIN_ALPHA);
     ctx.lineWidth = t * C.MAIN_WIDTH;
     hexPath(ctx, r);
@@ -514,19 +528,32 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
 function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem, ramp: VFXRamp, emblemRotation: number): void {
     const C = VFX_PARTS.SIGIL;
     const lw = Math.max(1, r * C.LINE_RATIO);
+    const outer = r * C.OUTER_RING;
+    // 透光圓盤：中心幾乎透明、外緣微亮
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, outer);
+    g.addColorStop(0, withAlpha(ramp.main, C.DISC.CENTER_ALPHA));
+    g.addColorStop(C.DISC.MID_STOP, withAlpha(ramp.main, C.DISC.MID_ALPHA));
+    g.addColorStop(1, withAlpha(ramp.core, C.DISC.RIM_ALPHA));
+    ctx.fillStyle = g;
+    hexPath(ctx, outer);
+    ctx.fill();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.globalAlpha = C.HALO_ALPHA;
-    ctx.strokeStyle = ramp.dark;
-    ctx.lineWidth = lw * C.HALO_RATIO * C.HALO_WIDTH_MUL;
-    sigilStrokes(ctx, r, emblem, emblemRotation);
-    ctx.globalAlpha = 1;
+    // 光暈只在烘焙時模糊
+    ctx.filter = `blur(${C.BLUR * VFX_PARTS.BAKE_SCALE}px)`;
+    ctx.globalAlpha = C.GLOW_ALPHA;
     ctx.strokeStyle = ramp.main;
-    ctx.lineWidth = lw * C.HALO_RATIO * C.MAIN_WIDTH_MUL;
+    ctx.lineWidth = lw * C.GLOW_WIDTH_MUL;
     sigilStrokes(ctx, r, emblem, emblemRotation);
+    ctx.filter = 'none';
+    ctx.globalAlpha = C.MAIN_ALPHA;
+    ctx.lineWidth = lw * C.MAIN_WIDTH_MUL;
+    sigilStrokes(ctx, r, emblem, emblemRotation);
+    ctx.globalAlpha = C.CORE_ALPHA;
     ctx.strokeStyle = ramp.core;
     ctx.lineWidth = lw * C.CORE_WIDTH_MUL;
     sigilStrokes(ctx, r, emblem, emblemRotation);
+    ctx.globalAlpha = 1;
 }
 
 /**

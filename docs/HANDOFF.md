@@ -113,8 +113,8 @@
 ### N. 2026-10-19 深夜 狀態所有權 P7b～P10（main，未 push）
 - P7a（嘲諷鎖定只在 TargetingSystem）其實 10/18 已合併；這次補完 P7b（施法中的 `aiState` 改推導，`engine/core/AgentDerived.ts`）、P9（技能槽改走 `SET_AGENT_SKILL`、`reset()` 補齊、刪 `activeCCVFX`）、P10（開戰準備與 `escapeCooldown` 移出 facade）。細節 `docs/STATE_OWNERSHIP_DESIGN.md` §8。剩 P11／P12（可選，機械性搬移）。
 
-### O. 2026-10-19 詠唱法陣＋鋸齒（main，未 push）
-- 詠唱光環改 `magicCircle` 零件（模糊光暈＋細芯、慢轉、screen），AOE 範圍格／區域波紋／縮圈預警改 `SoftTile` 柔光格，`ring` 光暈模糊；主畫布 `imageSmoothingQuality` high＋裝置像素對齊（RenderSpec §3）。保真 4 張重錄附證據。細節 `docs/VFX_PIPELINE_MAP.md` §4.19。
+### O. 2026-10-19 詠唱法陣＋鋸齒（已 push 289b3a8；紋章／詠唱中斷補漏在其後）
+- 詠唱光環改 `magicCircle` 零件（模糊光暈＋細芯、慢轉、screen），AOE 範圍格／區域波紋／縮圈預警改 `SoftTile` 柔光格，`ring` 光暈模糊；主畫布 `imageSmoothingQuality` high＋裝置像素對齊（RenderSpec §3）。保真 4 張重錄附證據。補漏：技能紋章 `sigil` 與詠唱中斷改同一套柔光畫法（`ring` 加 `soft` 選項）。細節 `docs/VFX_PIPELINE_MAP.md` §4.19。
 - **待使用者實機看**：法陣亮度與大小、縮圈紅格是否夠醒目、239 Hz 下鋸齒是否改善。
 
 ## 4. 已完成輪次與審查結論（精簡）

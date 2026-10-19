@@ -244,6 +244,7 @@ VFXSystem.state.particles
 - **地格疊層**：真正的「藍色毛刺」是 AOE 範圍格與區域波紋逐格描 1.5～2 px 實線，相鄰格雙邊排成密集網格。新 `engine/renderers/grid/SoftTile.ts`（半透明底＋模糊內緣光＋淡芯線，依外觀×尺寸×layout 快取）取代 `GridOverlays` 的預警／射程／滑過與 `ZoneRenderer` 的波紋／邊界（虛線邊界移除，敵方邊界改較亮的紅光）。縮圈預警保留醒目紅底（`GRID_OVERLAY.WARNING.FILL_ALPHA` 0.75）。`ring` 零件的外光暈改為烘焙時模糊（`VFX_PARTS.RING.HALO_BLUR`）。
 - **鋸齒**：主畫布每幀 `imageSmoothingQuality='high'`（`RENDER_QUALITY.IMAGE_SMOOTHING`，離屏畫布同）；op 繪製點改對齊裝置像素（`RenderDispatcher.setDeviceGrid`／`snap`，RenderSpec §3），`TerrainRenderer.drawBlock` 不再 `Math.floor`。
 - 驗證：lint、`vitest --dir tests` 590、build、perf-ab 持平；保真 VOID／ICE／MAGMA／battle_frozen 重錄（證據 `tools/ui-e2e/out/fidelity_aa_evidence.png`），FOREST／DESERT 在門檻內未動。
+- **補漏（同日）**：`sigil` 零件（技能地面紋章 51 處＋奧義聖域，太陽／獅盾／角顱／倒三角）仍是深色粗光暈＋實心主線的三層硬描邊，改成同一套透光圓盤＋烘焙模糊光暈＋細主線＋亮芯（`VFX_PARTS.SIGIL`）。詠唱中斷 `FX_CAST_BREAK_*` 的硬邊斷裂六角環改成詠唱法陣外層往外崩開淡出；AOE 中斷逐格閃的環改 `ring` 新選項 `soft`（只畫模糊光暈＋細芯）。保真 6 張 0 差異。
 - 參考：Clip Studio 法陣教學（同心圓→符文帶→多邊形星）、realtimevfx 法陣 WIP 討論（分層慢轉、加法光暈）、發光線條＝寬模糊光暈＋細亮芯。
 
 ## 5. 遷移順序建議
