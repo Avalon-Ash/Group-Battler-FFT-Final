@@ -45,7 +45,7 @@ const VISUAL_SCOPE = [
     'engine/presentation/hud.ts', 'engine/presentation/VisualSystem.ts', 'engine/graphics', 'components',
 ];
 /** 規格本身（字串裡會寫到函式名）與 SSOT 定義檔不掃 */
-const SSOT_FILES = new Set(['engine/renderers/RenderSpec.ts', 'engine/math/VisualMath.ts', 'constants.ts']);
+const SSOT_FILES = new Set(['engine/renderers/RenderSpec.ts', 'engine/math/VisualMath.ts', 'constants.ts', ...listSources('constants')]);
 const ALL_SCOPE = ['engine', 'data', 'components', 'hooks'];
 
 const sources = (dirs: string[]): [string, string][] => [...new Set(dirs.flatMap(listSources))]
@@ -164,7 +164,10 @@ describe('RenderSpec matches the implementation', () => {
         expect(VFX_RENDER.AIR_SORT_BIAS).toBeGreaterThan(0);
         expect(UNIT_FRAME.SORT_DEADBAND_PX).toBeGreaterThan(0);
         expect(stripComments(renderList)).not.toMatch(/op\.z\s*\*\s*20|sortKey\s*\+=\s*60/);
-        expect(read('constants.ts')).not.toMatch(/TERRAIN_SORT_SCALE/);
+        const constantsFiles = ['constants.ts', ...listSources('constants')];
+        for (const f of constantsFiles) {
+            expect(read(f), `${f} must not contain TERRAIN_SORT_SCALE`).not.toMatch(/TERRAIN_SORT_SCALE/);
+        }
     });
 
     it('an air effect keeps the same sort key for its whole fall (height is not part of the key)', () => {
