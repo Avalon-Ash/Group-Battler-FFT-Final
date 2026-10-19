@@ -100,6 +100,21 @@
     "BATTLE_NORMAL": [
       "assets/audio/music/battle_normal.ogg"
     ],
+    "BATTLE_VOID": [
+      "assets/audio/music/battle_void.ogg"
+    ],
+    "BATTLE_FOREST": [
+      "assets/audio/music/battle_forest.ogg"
+    ],
+    "BATTLE_ICE": [
+      "assets/audio/music/battle_ice.ogg"
+    ],
+    "BATTLE_MAGMA": [
+      "assets/audio/music/battle_magma.ogg"
+    ],
+    "BATTLE_DESERT": [
+      "assets/audio/music/battle_desert.ogg"
+    ],
     "BATTLE_TENSE": [
       "assets/audio/music/battle_tense.ogg"
     ],
@@ -107,7 +122,7 @@
       "assets/audio/music/victory_sting.ogg"
     ],
     "VICTORY_RED_STING": [
-      "assets/audio/music/victory_red.ogg"
+      "assets/audio/music/victory_red_dark.ogg"
     ],
     "DEFEAT_STING": [
       "assets/audio/music/defeat_sting.ogg"
