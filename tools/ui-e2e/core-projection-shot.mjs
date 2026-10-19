@@ -15,7 +15,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(here, 'out');
 mkdirSync(OUT_DIR, { recursive: true });
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const CROP = 460;
 const ZOOM = 3.0;
 // projectile shots show both units (3 hexes apart): lower zoom, wide crop

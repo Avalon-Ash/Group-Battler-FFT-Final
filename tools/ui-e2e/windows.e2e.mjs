@@ -25,7 +25,7 @@ mkdirSync(OUT, { recursive: true });
 
 const STORAGE_KEY = 'tacticalWindowsV1'; // UI_WINDOW.STORAGE_KEY
 // "Start tactical simulation" / "Close window" (kept escaped so the file is encoding-proof)
-const START_TEXT = '\u555f\u52d5\u6230\u8853\u6a21\u64ec';
+const START_TEXT = 'START SIMULATION';
 const CLOSE_TITLE = '\u95dc\u9589\u8996\u7a97';
 
 /**
@@ -469,8 +469,9 @@ const runShowcaseAndPinSuite = async () => {
     const logsInShowcase = await rectOf(page, 'logs');
     ok('showcase mode: standard window (logs) is hidden', logsInShowcase === null);
 
-    // Open showcaseSettings via the gear icon in ShowcaseOverlay
-    await page.locator('button[title="展示與特效設定"]').click();
+    // Open showcaseSettings from the system menu (the old top-left gear was removed 2026-10-19)
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.locator('[data-testid="menu-item-showcaseSettings"]').click();
     await page.waitForTimeout(500);
     const scRect = await rectOf(page, 'showcaseSettings');
     ok('showcase mode: showcaseSettings window visible and interactive', scRect !== null);

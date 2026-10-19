@@ -222,6 +222,8 @@ export type UICommand =
     | { type: 'REBUILD_AGENT_AI'; agentId: string }
     /** 檢視器換技能槽（UnitStatusTab）；skillId null＝清空。開戰時 game.ts 依 skillIds 重建 skills */
     | { type: 'SET_AGENT_SKILL'; agentId: string; slot: number; skillId: string | null }
+    /** 技能資料庫編輯（SkillDbTab）：field 限 data/ui/skillEditor.ts SKILL_EDITABLE_FIELDS；value undefined＝清除選填欄位 */
+    | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'PAUSE_GAME' }
     | { type: 'RESUME_GAME' }
@@ -354,6 +356,8 @@ export interface WindowDef {
     kind?: 'window' | 'toolbar';
     visibleInShowcase?: boolean;
     visibleInManual?: boolean;
+    /** 手動模式結算畫面（勝負已分）時仍可開啟；預設不可見（結算畫面只留這些視窗） */
+    visibleOnGameOver?: boolean;
 }
 
 export interface WindowState {

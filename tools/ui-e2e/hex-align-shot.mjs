@@ -23,7 +23,7 @@ const layouts = arg('layouts', 'FLAT,POINTY').split(',').map((s) => s.trim().toU
 const sceneArg = arg('scene', '');
 const zoom = Number(arg('zoom', '1.6'));
 const tag = arg('tag', '');
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const CLIP = { x: 180, y: 90, width: 600, height: 420 };
 const SIGILS = ['FX_ULT_BLUE_TITAN_SMASH', 'FX_ULT_BLUE_KINGS_BLESSING', 'FX_ULT_RED_PLAGUE', 'FX_ULT_RED_GUILLOTINE_IMPACT'];
 const FIELDS = ['FX_HAZARD_FIELD_ICE', 'FX_HAZARD_FIELD_POISON', 'FX_HAZARD_FIELD_FIRE', 'FX_HAZARD_FIELD_GRAVITY'];

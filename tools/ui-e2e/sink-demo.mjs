@@ -25,7 +25,7 @@ const args = Object.fromEntries(process.argv.slice(2).map((a) => {
 }));
 const LABEL = String(args.label ?? 'run');
 const THEME = String(args.theme ?? 'ICE');
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const DICE_TITLE = '隨機生成戰場與陣容';
 const STEPS = [0.3, 0.6, 0.9];
 

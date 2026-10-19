@@ -40,7 +40,7 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
     db: {
         icon: <Icons.Database className="w-4 h-4" />,
         flush: true,
-        render: ({ engine }) => <SkillDbTab db={engine.skillDB} onUpdate={() => {}} />,
+        render: ({ engine }) => <SkillDbTab engine={engine} />,
     },
     vfxmap: {
         icon: <Icons.VFX className="w-4 h-4" />,
@@ -84,10 +84,11 @@ const WINDOW_REGISTRY: Partial<Record<WindowId, WindowRegistration>> = {
 /** Pure filtering helper by runtime mode. */
 export function filterWindowDefsByMode(
     defs: WindowDef[],
-    mode: 'showcase' | 'manual'
+    mode: 'showcase' | 'manual' | 'gameover'
 ): WindowDef[] {
     return defs.filter((def) => {
         if (mode === 'showcase') return Boolean(def.visibleInShowcase);
+        if (mode === 'gameover') return Boolean(def.visibleOnGameOver);
         if (mode === 'manual') return def.visibleInManual !== false;
         return true;
     });
@@ -103,7 +104,8 @@ export const RegisteredWindows: React.FC<
     showcaseMode = false,
     isGameOver = false,
 }) => {
-    const mode = showcaseMode || isGameOver ? 'showcase' : 'manual';
+    // 結算畫面：以前沿用 showcase 過濾，結算鈕「戰鬥記錄」開的 logs 被濾掉，要到下一關才出現
+    const mode = showcaseMode ? 'showcase' : isGameOver ? 'gameover' : 'manual';
     const activeDefs = filterWindowDefsByMode(WINDOW_DEFINITIONS, mode);
 
     return (

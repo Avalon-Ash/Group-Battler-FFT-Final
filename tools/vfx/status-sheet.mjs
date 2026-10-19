@@ -18,7 +18,7 @@ const zoom = Number(arg('zoom', '2'));
 const quality = arg('quality', '0');
 const outPath = resolve(root, arg('out', 'tools/ui-e2e/out/status_sheet.png'));
 const only = arg('only', '').split(',').filter(Boolean);
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const SETTLE_FRAMES = 45;
 const CLIP = { w: 220, h: 300 };
 

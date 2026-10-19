@@ -27,7 +27,7 @@ const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? `=${
 const keys = arg('keys', 'FX_HEAL_BURST').split(',').filter(Boolean);
 const bodyKeys = new Set(arg('body', '').split(',').filter(Boolean));
 const outDir = resolve(root, arg('out', 'tools/ui-e2e/out/vfx/fx'));
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const SCENE = arg('scene', '');
 const SAMPLE_T = (process.argv.find((a) => a.startsWith('--t=')) ?? '--t=0.03,0.1,0.2,0.32,0.48').slice(4).split(',').map(Number);
 const BODY_LIFT = 30; // 身體高度（world px，約為受擊點）

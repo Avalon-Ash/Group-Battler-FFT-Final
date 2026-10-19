@@ -27,7 +27,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(here, 'out', 'sink-flicker');
 mkdirSync(OUT_DIR, { recursive: true });
 
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const DICE_TITLE = '隨機生成戰場與陣容';
 
 const args = Object.fromEntries(process.argv.slice(2).map((a) => {

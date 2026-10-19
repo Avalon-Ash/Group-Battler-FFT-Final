@@ -107,7 +107,7 @@ async function runSession({ unthrottled = true } = {}) {
                 } else {
                     // One of 5 idle scenes
                     // Ensure manual idle mode
-                    await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click().catch(() => {});
+                    await page.getByText('START SIMULATION').click().catch(() => {});
                     await page.waitForTimeout(300);
                     await page.evaluate(async (targetId) => {
                         const mod = await import('/data/scenes.ts');

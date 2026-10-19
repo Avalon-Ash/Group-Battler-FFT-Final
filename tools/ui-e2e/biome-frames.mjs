@@ -16,7 +16,7 @@ const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? `=${
 const biomes = arg('biomes', 'ICE,VOID,FOREST,MAGMA,DESERT').split(',');
 const sec = Number(arg('sec', '10'));
 const noBg = new Set(arg('no-bg', '').split(',').filter(Boolean));
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 
 const server = await createServer({ root, server: { port: 3195, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
 await server.listen();

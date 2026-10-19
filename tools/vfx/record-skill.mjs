@@ -39,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '..', '..');
 
-const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 const ENGINE_HZ = 60;
 
 // ---------------------------------------------------------------- args

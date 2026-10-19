@@ -27,7 +27,7 @@ const FLAG_PER_SEC = 2;
 const OUT = join(here, 'out', 'ui-remount');
 mkdirSync(OUT, { recursive: true });
 
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const WINDOW_IDS = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'audioSettings'];
 const SHOWCASE_TABS = ['system', 'camera', 'matrix', 'gameplay'];
 
@@ -84,7 +84,8 @@ try {
     };
 
     await check('showcase');
-    await page.locator('button[title="展示與特效設定"]').click();
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.locator('[data-testid="menu-item-showcaseSettings"]').click();
     await page.waitForTimeout(400);
     for (const tab of SHOWCASE_TABS) {
         const btn = page.locator(`[data-testid="showcase-tab-${tab}"]`);

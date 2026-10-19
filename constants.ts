@@ -1217,6 +1217,8 @@ export const UI_WINDOW = {
 
 export const UI_Z = {
     INSPECTOR: 30,
+    /** 展示模式標題卡與背景：在視窗層之下，展示模式開的設定／音訊等視窗才不會被標題卡蓋住 */
+    SHOWCASE: 35,
     WINDOW_BASE: 40,
     OVERLAY: 50,
     MENU_BACKDROP: 55,

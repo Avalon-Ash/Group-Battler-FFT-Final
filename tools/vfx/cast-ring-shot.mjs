@@ -16,7 +16,7 @@ const outDir = join(root, 'tools', 'ui-e2e', 'out', 'vfx');
 const arg = (k, d) => (process.argv.find((a) => a.startsWith(`--${k}=`)) ?? `=${d}`).split('=')[1];
 const skillId = arg('skill', 'wb_a3');
 const team = arg('team', 'BLUE').toUpperCase();
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const SHOT_FRAMES = [0, 3, 6, 10, 15, 22];
 
 const server = await createServer({ root, server: { port: 3199, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });

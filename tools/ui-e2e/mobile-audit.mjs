@@ -28,7 +28,7 @@ const VIEWPORTS = arg('viewports', '375x812,812x375,390x844')
 const OUT = join(here, 'out', 'mobile', TAG);
 mkdirSync(OUT, { recursive: true });
 
-const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 const MIN_TAP = 40;
 
 const WINDOW_IDS = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'audioSettings'];
@@ -162,7 +162,8 @@ try {
         await shot('01_showcase');
 
         // showcase settings window
-        await tap(page.locator('button[title="展示與特效設定"]'));
+        await tap(page.locator('[data-testid="system-menu-button"]'));
+        await tap(page.locator('[data-testid="menu-item-showcaseSettings"]'));
         await shot('02_showcase_settings');
         await page.locator('[data-window-btn="close"]').first().tap().catch(() => {});
 

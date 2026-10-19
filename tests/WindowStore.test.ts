@@ -317,6 +317,11 @@ describe('WindowStore & Window Clamping/Restoration', () => {
 
             const manualDefs = filterWindowDefsByMode(testDefs, 'manual');
             expect(manualDefs.map(d => d.id)).toEqual(['logs']);
+
+            // 結算畫面只留 visibleOnGameOver 的視窗；正式表裡戰鬥記錄必須在內（結算鈕「戰鬥記錄」要能開）
+            expect(filterWindowDefsByMode(testDefs, 'gameover')).toEqual([]);
+            const { WINDOW_DEFINITIONS } = await import('../data/ui/windows');
+            expect(filterWindowDefsByMode(WINDOW_DEFINITIONS, 'gameover').map(d => d.id)).toEqual(['logs']);
         });
 
         it('getRegisteredWindows returns only showcase windows in showcase mode', async () => {
