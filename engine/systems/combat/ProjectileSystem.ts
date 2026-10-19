@@ -7,7 +7,7 @@ import {
 import { TrajectoryMath, Point3D } from "../../math/TrajectoryMath";
 import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
-import { SkillExecutor } from "./SkillExecutor";
+import { SkillExecutor, applySelfCC } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
 import { ISO_SCALE_Y } from "../../../constants";
 import { random } from "../../math/rng";
@@ -97,6 +97,7 @@ export class ProjectileSystem {
       
       if (source) {
           HazardManager.spawnHazards(source, impactCells, p.skill, engine, targetHex);
+          applySelfCC(source, p.skill, engine);
       }
 
       engine.events.push({
@@ -112,6 +113,9 @@ export class ProjectileSystem {
       if (target && target.hp > 0 && !target.banished) {
         if (source)
           skillExecutor.resolveHit(source, target, p.skill, undefined, engine);
+      }
+      if (source) {
+        applySelfCC(source, p.skill, engine);
       }
       engine.events.push({
         type: "PROJECTILE_HIT",

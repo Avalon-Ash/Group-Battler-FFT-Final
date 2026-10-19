@@ -27,9 +27,9 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
         return true;
     });
 
-    const updateSkill = (field: keyof Skill, value: string | number | undefined) => {
+    const updateSkill = (field: keyof Skill, value: string | number | boolean | undefined) => {
         if (!selectedSkillId) return;
-        let v: string | number | Team | undefined = value;
+        let v: string | number | boolean | Team | undefined = value;
         if (field === 'team') v = value === 'BLUE' ? Team.BLUE : value === 'RED' ? Team.RED : undefined;
         send({ type: 'UPDATE_SKILL', skillId: selectedSkillId, field, value: v });
         rerender();
@@ -121,6 +121,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                                                         if (val === undefined) displayVal = 'ANY';
                                                         else if (val === Team.BLUE) displayVal = 'BLUE';
                                                         else if (val === Team.RED) displayVal = 'RED';
+                                                    } else if (field.key === 'ccSelf' || field.key === 'ccSelf2') {
+                                                        displayVal = val ? 'true' : 'false';
                                                     } else if (val === undefined || val === null) {
                                                         // 選單的「無」選項值是 NONE；未設定時要選中它，而不是落在第一個實際選項上
                                                         displayVal = field.type === 'select' ? 'NONE' : '';
@@ -146,9 +148,13 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                                                                         value={displayVal}
                                                                         onChange={e => {
                                                                             const v = e.target.value;
-                                                                            // Fix: Cast key to keyof Skill
-                                                                            if (v === 'NONE' || v === 'ANY' || v === '') updateSkill(field.key, undefined);
-                                                                            else updateSkill(field.key, v); 
+                                                                            if (field.key === 'ccSelf' || field.key === 'ccSelf2') {
+                                                                                updateSkill(field.key, v === 'true');
+                                                                            } else if (v === 'NONE' || v === 'ANY' || v === '') {
+                                                                                updateSkill(field.key, undefined);
+                                                                            } else {
+                                                                                updateSkill(field.key, v); 
+                                                                            }
                                                                         }}
                                                                     >
                                                                         {/* Fix: Use any cast for flexible field options access */}

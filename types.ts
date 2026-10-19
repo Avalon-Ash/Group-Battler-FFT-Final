@@ -67,9 +67,11 @@ export interface Skill {
     ccType?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE';
     ccDur?: number;
     ccForce?: number;
+    ccSelf?: boolean;
     ccType2?: 'STUN' | 'BANISH' | 'KNOCKBACK' | 'PULL' | 'DOT' | 'HOT' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND' | 'SHIELD' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE';
     ccDur2?: number;
     ccForce2?: number;
+    ccSelf2?: boolean;
     effectType?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
     effectVal?: number; 
     effectType2?: 'VAMP' | 'MANA_BURN' | 'EXECUTE' | 'MANA_RESTORE' | 'DASH' | 'SELF_DAMAGE';
@@ -242,7 +244,7 @@ export type UICommand =
     /** 檢視器換技能槽（UnitStatusTab）；skillId null＝清空。開戰時 game.ts 依 skillIds 重建 skills */
     | { type: 'SET_AGENT_SKILL'; agentId: string; slot: number; skillId: string | null }
     /** 技能資料庫編輯（SkillDbTab）：field 限 data/ui/skillEditor.ts SKILL_EDITABLE_FIELDS；value undefined＝清除選填欄位 */
-    | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | Team | undefined }
+    | { type: 'UPDATE_SKILL'; skillId: string; field: keyof Skill; value: string | number | boolean | Team | undefined }
     | { type: 'RESET_GAME' }
     | { type: 'PAUSE_GAME' }
     | { type: 'RESUME_GAME' }

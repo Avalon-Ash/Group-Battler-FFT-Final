@@ -79,7 +79,7 @@ export const BLUE_BASIC: Skill[] = [
         name: '絕對招架', desc: '防禦反擊', 
         range: 1, cast: 0.4, cd: 1.0, cost: 0, gain: 30, 
         type: 'SINGLE', power: 75, color: '#fbbf24', visual: 'SLASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 40, 
+        ccType: 'SHIELD', ccForce: 40, ccSelf: true, 
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },
 

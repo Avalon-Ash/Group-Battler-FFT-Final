@@ -118,6 +118,8 @@ export class SkillExecutor {
         targets.forEach(target => {
             this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
         });
+
+        applySelfCC(source, skill, engine);
     }
 
     public resolveHit(source: Agent, target: Agent, skill: Skill, origin: {x: number, y: number} | undefined, engine: GameEngine, preRollCrit: boolean | undefined = undefined) {
@@ -291,15 +293,11 @@ export class SkillExecutor {
         
         // C. Crowd Control (CC) Application
         // Cast to string to allow 'NONE' check against strictly typed Union
-        if (skill.ccType && (skill.ccType as string) !== 'NONE') {
-            const isBuff = skill.ccType === 'SHIELD' || skill.ccType === 'HOT';
-            const ccTarget = (isBuff && target.team !== source.team) ? source : target;
-            CCManager.applyCC(source, ccTarget, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
+        if (skill.ccType && (skill.ccType as string) !== 'NONE' && !skill.ccSelf) {
+            CCManager.applyCC(source, target, skill, skill.ccType, skill.ccDur, skill.ccForce, origin, engine);
         }
-        if (skill.ccType2 && (skill.ccType2 as string) !== 'NONE') {
-            const isBuff2 = skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT';
-            const ccTarget2 = (isBuff2 && target.team !== source.team) ? source : target;
-            CCManager.applyCC(source, ccTarget2, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
+        if (skill.ccType2 && (skill.ccType2 as string) !== 'NONE' && !skill.ccSelf2) {
+            CCManager.applyCC(source, target, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, origin, engine);
         }
 
         // D. Death Check & Absolute EXECUTE enforcement
@@ -310,5 +308,19 @@ export class SkillExecutor {
             }
             engine.agentManager.handleDeadState(target, engine);
         }
+    }
+}
+
+/**
+ * 技能自我控制套用（SK1：ccSelf / ccSelf2）
+ * 每次技能施放只對施法者套用一次（無論打中幾個、有沒有打中）。
+ */
+export function applySelfCC(source: Agent, skill: Skill, engine: GameEngine): void {
+    if (source.hp <= 0 || source.banished || source.outOfBounds) return;
+    if (skill.ccSelf && skill.ccType && (skill.ccType as string) !== 'NONE') {
+        CCManager.applyCC(source, source, skill, skill.ccType, skill.ccDur, skill.ccForce, undefined, engine);
+    }
+    if (skill.ccSelf2 && skill.ccType2 && (skill.ccType2 as string) !== 'NONE') {
+        CCManager.applyCC(source, source, skill, skill.ccType2, skill.ccDur2, skill.ccForce2, undefined, engine);
     }
 }

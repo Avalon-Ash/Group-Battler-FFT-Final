@@ -8,7 +8,8 @@ export const SKILL_EDITABLE_FIELDS = [
     'name', 'desc', 'tag', 'team', 'visual', 'visualHitEffect', 'visualProjectileEffect', 'specialVisualStatus', 'color',
     'projectileSpeed', 'range', 'type', 'aoeRadius',
     'power', 'cast', 'cost', 'gain', 'cd', 'element',
-    'ccType', 'ccDur', 'ccForce', 'ccType2', 'ccDur2', 'ccForce2',
+    'ccType', 'ccDur', 'ccForce', 'ccSelf',
+    'ccType2', 'ccDur2', 'ccForce2', 'ccSelf2',
     'effectType', 'effectVal', 'effectType2', 'effectVal2',
 ] as const satisfies readonly (keyof Skill)[];
 

@@ -9,7 +9,7 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '六稜壁障', desc: '自身護盾與擊退', 
         range: 0, cast: 0.4, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 80, color: '#60a5fa', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 400, ccType2: 'KNOCKBACK', ccForce2: 3, 
+        ccType: 'SHIELD', ccForce: 400, ccSelf: true, ccType2: 'KNOCKBACK', ccForce2: 3, 
         visualHitEffect: 'FX_ACTIVE_BLUE_AEGIS_WARD', element: 'LIGHTNING'
     },
     { 

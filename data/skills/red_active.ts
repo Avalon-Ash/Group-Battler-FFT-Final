@@ -18,7 +18,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 0, cast: 0.2, cd: 8.0, cost: 35, gain: 0,
         type: 'AOE', aoeRadius: 2, power: 50, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0,
         ccType: 'TAUNT', ccDur: 2.5,
-        ccType2: 'SHIELD', ccForce2: 150,
+        ccType2: 'SHIELD', ccForce2: 150, ccSelf2: true,
         visualHitEffect: 'FX_ACTIVE_RED_WAR_STOMP', element: 'PHYSICAL'
     },
     { 

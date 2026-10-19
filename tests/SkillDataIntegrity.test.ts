@@ -265,6 +265,7 @@ describe('SkillDataIntegrity (SK0)', () => {
     it('violations ratchet: count must never exceed SK0 baseline (56)', () => {
         const violations = collectSkillIntegrityViolations();
         expect(violations.length).toBeLessThanOrEqual(SK0_BASELINE_VIOLATIONS.length);
-        expect(violations.length).toBe(56);
+        // SK1 resolved 4 DAMAGE_BUFF_NOT_SELF violations (tb_a1, tr_a2, wb_b5, tr_b3)
+        expect(violations.length).toBe(52);
     });
 });
