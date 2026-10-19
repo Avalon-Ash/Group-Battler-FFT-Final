@@ -101,6 +101,7 @@
 - 越跑越糊：畫質治理器以 vsync 鎖住的幀間隔判斷降級，60 Hz 一律降到最低階且升階冷卻只增不減。改成刷新週期下限、解析度階層另設 `DOWN_RES_MS`、冷卻加倍會消退（`d733eda`）。粒子沒有累積。工具 `tools/ui-e2e/idle-quality-soak.mjs`。
 - UI 巡檢第二輪：工具列子選單分段鈕、檢查器分頁在觸控裝置補到 44×44（D11），手機直向工具列讓開系統選單鈕（`UI_PIN.TOOLBAR_MARGIN_COMPACT`）；三種手機尺寸 0 問題（`031b9a3`）。使用者實機（iPhone 14 Plus）確認墜落動畫 OK。
 - 已備：S1 提示詞 `docs/STATUS_EFFECTS_AGENT_PROMPT.md`、BGM 候選 `docs/BGM_CANDIDATES.md`。
+- 每張地圖戰鬥曲通道：`GAME_START` 帶 `sceneId`，`AudioSystem` 依 `SCENE_BATTLE_TRACK` 選曲（五圖各自的 TrackId，暫用 `battle_normal.ogg` 占位）；實機確認三場分別播對應曲目。
 
 ## 3. 更早的輪次與審查修補
 

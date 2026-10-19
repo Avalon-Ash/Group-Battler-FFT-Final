@@ -228,7 +228,7 @@ export class GameEngine implements SpatialProvider {
             this.sessionState.killStreaks.clear();
             this.sessionState.firstBloodTriggered = false;
             this.log(null, 'SYSTEM', '開始', null, '戰鬥分析開始');
-            this.bus.emit('GAME_START', {});
+            this.bus.emit('GAME_START', { sceneId: this.currentScene.id });
         }
         this.map.clearAgents();
         this.agents.forEach(a => {
@@ -266,7 +266,7 @@ export class GameEngine implements SpatialProvider {
         this.projectiles = [];
         
         this.log(null, 'SYSTEM', '重置', null, '戰場狀態已重置');
-        this.bus.emit('GAME_START', {}); // Use Game Start on restart
+        this.bus.emit('GAME_START', { sceneId: this.currentScene.id }); // Use Game Start on restart
     }
 
     public resetAgent(a: Agent) {

@@ -5,6 +5,8 @@ import { AudioEngine } from '../engine/audio/AudioEngine';
 import { AudioSystem } from '../engine/systems/audio/AudioSystem';
 import { EventBus } from '../engine/events/EventBus';
 import { Team, GameEvent } from '../types';
+import { MUSIC_TABLE, SCENE_BATTLE_TRACK, battleTrackForScene } from '../data/audio/music';
+import { SCENE_DB } from '../data/scenes';
 
 function createMockAudioContext() {
     let currentTime = 0;
@@ -153,6 +155,24 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
 
         bus.emit('CAMERA_SHAKE', { intensity: 0.5 });
         expect(playCueSpy).toHaveBeenCalledWith('RUMBLE', expect.objectContaining({ intensity: 1.0 }));
+    });
+
+    it('GAME_START picks the battle track of the scene (per-map BGM channel)', () => {
+        audioEngine.unlock();
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+        bus.emit('GAME_START', { sceneId: 'MAGMA' });
+        expect(playMusicSpy).toHaveBeenLastCalledWith('BATTLE_MAGMA', AUDIO.BGM_CROSSFADE_SEC);
+        bus.emit('GAME_START', { sceneId: 'NOT_A_SCENE' });
+        expect(playMusicSpy).toHaveBeenLastCalledWith('BATTLE_NORMAL', AUDIO.BGM_CROSSFADE_SEC);
+    });
+
+    it('every scene has a battle track with at least one file', () => {
+        for (const scene of SCENE_DB) {
+            const track = battleTrackForScene(scene.id);
+            expect(SCENE_BATTLE_TRACK[scene.id]).toBe(track);
+            expect(MUSIC_TABLE[track].files.length).toBeGreaterThan(0);
+            expect(MUSIC_TABLE[track].loop).toBe(true);
+        }
     });
 
     it('transitions BGM on GAME_START, AGENT_DIED casualties, and GAME_OVER', () => {

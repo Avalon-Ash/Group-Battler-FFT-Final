@@ -180,7 +180,8 @@ export interface EventMap {
     GAME_RESET: Record<string, never> | void;
     GAME_CLEAR: Record<string, never> | void;
     ENV_UPDATE: Record<string, never> | void;
-    GAME_START: Record<string, never> | void;
+    /** sceneId：開戰時的地圖（SCENE_DB id），AudioSystem 依它選戰鬥曲 */
+    GAME_START: { sceneId?: string } | void;
     CAMERA_SHAKE: { intensity: number };
     CAMERA_MOVE: { x: number; y: number; zoom: number };
     GAME_OVER: { winner: Team | null };

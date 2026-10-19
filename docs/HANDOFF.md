@@ -8,14 +8,13 @@
 
 ## 2. 排定（使用者 2026-10-19 核可）
 1. **ECS-lite S1 狀態效果資料化**：提示詞 `docs/STATUS_EFFECTS_AGENT_PROMPT.md` 已備好，使用者回家在 IDE 執行 `/goal docs/STATUS_EFFECTS_AGENT_PROMPT.md`（分支 `feat/status-effects`），跑完主代理審查。之後 S2＋S3（渲染層搬家＋外觀分組，渲染工作單獨一條）、S4（常數拆檔），見 `docs/ECS_LITE_ASSESSMENT.md`。
-2. **BGM**：候選清單 `docs/BGM_CANDIDATES.md`，等使用者試聽挑選；挑完列檔名與大小再下載。
-3. **效能報表**：使用者回家在 239 Hz 主螢幕跑 `npm run perf:frames`（10/19 外出時螢幕降到 28 Hz，數字無效）。
+2. **效能報表**：使用者回家在 239 Hz 主螢幕跑 `npm run perf:frames`（10/19 外出時螢幕降到 28 Hz，數字無效）。
 
 ## 3. 待使用者實機確認
 - 個別奧義美術翻新：等技能全面修正時一起做。
 
 ## 4. 以後再說
 - 重新部署方式（Cloud Run 相關檔案已刪）。
-- 新體型／女性／神職模型：外觀軸（`Team×Role×BodyType`，`data/units/appearance/bodyTypes.ts`）早已拆開，加體型不必等 ECS。候選 Quaternius Ultimate Modular Women（官方標 CC0／下載頁再確認）；風格是平塗低多邊形，和 KayKit 的貼圖卡通不同，渲染管線會再上卡通光影與描邊；動畫骨架不同，`render_unit.py` 要加動畫名稱對照。使用者已授權需要時直接下載。
+- 正式版素材：每張地圖的戰鬥曲目前是占位（換曲只改 `data/audio/music.ts` 的 `files`，候選 `docs/BGM_CANDIDATES.md`）；新體型／女性／神職模型要找和 KayKit 同風格的素材（Quaternius 已否決），外觀軸 `Team×Role×BodyType` 已可直接擴充。
 - 地形烘焙實作（`docs/BAKED_RENDERING_DESIGN.md`）：熔岩圖現況夠順，暫不做。
 - 座標殘差：景深預言穩定錯序 668 pair-frames、閃爍振盪 57（`docs/COORD_GUARD_FINDINGS.md` §9），觀察即可。

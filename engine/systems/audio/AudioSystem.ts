@@ -7,7 +7,7 @@ import {
     releaseSharedAudioEngine
 } from '../../audio/AudioEngine';
 import { EventBus } from '../../events/EventBus';
-import { WINNER_TO_VICTORY_TRACK } from '../../../data/audio/music';
+import { WINNER_TO_VICTORY_TRACK, battleTrackForScene } from '../../../data/audio/music';
 
 /**
  * AudioSystem — 音訊系統控制器（事件驅動橋接器）
@@ -83,7 +83,7 @@ export class AudioSystem {
         });
 
         // 2. 系統級事件
-        this.subscribe('GAME_START', () => {
+        this.subscribe('GAME_START', (data?: { sceneId?: string } | void) => {
             this.isBattleActive = true;
             this.isTenseActive = false;
             this.isResultStingActive = false;
@@ -93,7 +93,7 @@ export class AudioSystem {
                 return;
             }
             this.audioEngine.playCue('UI_START');
-            this.audioEngine.playMusic('BATTLE_NORMAL', AUDIO.BGM_CROSSFADE_SEC);
+            this.audioEngine.playMusic(battleTrackForScene(data ? data.sceneId : undefined), AUDIO.BGM_CROSSFADE_SEC);
         });
 
         this.subscribe('GAME_OVER', (data: { winner: Team | null }) => {
