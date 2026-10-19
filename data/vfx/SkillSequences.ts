@@ -5,6 +5,8 @@ import { ULT_VISUALS } from "./ult_visuals";
 import { ACTIVE_VISUALS } from "./active_visuals";
 import { BASIC_VISUALS } from "./basic_visuals";
 import { FACTION_VISUALS } from "./faction_visuals";
+import { ULT_SEQUENCE } from "./ult_visuals";
+import { PHYSICS } from "../../constants";
 
 // 序列裡的 id 一律是 VFX_REGISTRY 的鍵、style 一律是 BEAM_STYLES 的鍵（tests/ReferenceIntegrity.test.ts 檢查）。
 // 投射物不在序列裡：ProjectileSystem 依技能的 visualProjectileEffect 生成。
@@ -143,45 +145,62 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
         if (ultConfig) {
             const actions: VFXAction[] = [];
             const ultFx = ultConfig.vfxOverride || hitFx;
+            const U = ULT_SEQUENCE;
+            const fxScale = Math.min(U.MAX_FX_SCALE, ultConfig.scale);
+            const pulse = (k: number) => Math.min(U.MAX_PULSE_SCALE, k);
+            const shake = (k: number) => Math.max(U.MIN_SHAKE, k);
+            // hitAt＝序列開始後的命中時刻；CAST_START 延後 (詠唱 − hitAt) 才開始，命中與傷害同一刻（VFXSequence.hitAt）
+            let hitAt = U.HIT_LEAD;
 
             switch (ultConfig.archetype) {
-                case 'HEAVEN_FALL':
-                    actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height: ultConfig.height || 1000, scale: ultConfig.scale });
-                    actions.push({ type: 'PARTICLE', id: ultFx, scale: ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 1.0 * ultConfig.scale, delay: (ultConfig.timing || 0) + 0.4 }); // Increased shake
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2.5, delay: (ultConfig.timing || 0) + 0.45 }); // Increased pulse
+                case 'HEAVEN_FALL': {
+                    // 隕石自由落體時間＝sqrt(2h/g)；資產自己的命中在 HIT_LEAD，所以提早 HIT_LEAD 播。原本固定 0.4 s，比落地早一半
+                    const height = ultConfig.height || U.DEFAULT_FALL_HEIGHT;
+                    hitAt = Math.sqrt((2 * height) / PHYSICS.GRAVITY) + (ultConfig.timing || 0);
+                    actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height, scale: ultConfig.scale });
+                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, delay: Math.max(0, hitAt - U.HIT_LEAD) });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ultConfig.scale), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.5), delay: hitAt + 0.05 });
                     break;
+                }
                 case 'SANCTUARY':
-                    actions.push({ type: 'PARTICLE', id: ultFx, scale: ultConfig.scale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.8, delay: 0.2 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.2, delay: 0.1 }); // Added shake
+                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(1.8), delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.2), delay: hitAt });
                     break;
                 case 'DOMAIN':
-                    actions.push({ type: 'PARTICLE', id: ultFx, scale: ultConfig.scale, color: ultConfig.primaryColor, duration: 3.0 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 2.0, delay: 0.1 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.3, delay: 0.05 }); // Added shake
+                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.0), delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.3), delay: hitAt });
                     break;
                 case 'BEAM_SNIPE':
-                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale * 0.35 });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.5, delay: 0.1 });
-                    // 命中點：光束本體是程序化 BEAM，命中特效要另外播
-                    actions.push({ type: 'PARTICLE', id: ultFx, color: ultConfig.secondaryColor, scale: 1.5 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: 1.2, delay: 0.05 }); // Added pulse
+                    // 光束在命中那一刻打出；命中點資產提早 HIT_LEAD 開始（起手紋章在目標腳下浮現）
+                    actions.push({ type: 'PARTICLE', id: ultFx, color: ultConfig.secondaryColor, scale: Math.min(U.MAX_FX_SCALE, 1.5) });
+                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale * 0.35, delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.5), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(1.2), delay: hitAt + 0.05 });
                     break;
-                case 'STORM':
+                case 'STORM': {
                     const count = ultConfig.count || 10;
                     const interval = ultConfig.timing || 0.1;
                     if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
-                    for(let k=0; k<count; k++) { actions.push({ type: 'PARTICLE', id: ultFx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor, scale: ultConfig.scale * (0.8 + Math.random()*0.4), delay: k * interval }); }
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.15, duration: count * interval }); // Sustained shake
+                    // 落點大小確定性交錯（黃金比例），不在模組載入時抽亂數
+                    for (let k = 0; k < count; k++) {
+                        actions.push({ type: 'PARTICLE', id: ultFx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
+                            scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (0.8 + ((k * 0.618) % 1) * 0.4)), delay: hitAt + k * interval });
+                    }
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.15), delay: hitAt });
                     break;
+                }
                 case 'INSTANT_IMPACT':
-                    actions.push({ type: 'PARTICLE', id: ultFx, scale: ultConfig.scale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'SHAKE', shakeIntensity: 0.6 * ultConfig.scale, delay: 0.05 });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: ultConfig.scale * 1.5, delay: 0.1 });
+                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.6 * ultConfig.scale), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 1.5), delay: hitAt + 0.05 });
                     break;
             }
-            sequences[ultId] = { id: ultId, actions };
+            // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻
+            actions.push({ type: 'PARTICLE', id: isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE', scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+            sequences[ultId] = { id: ultId, actions, hitAt };
         }
     }
 }

@@ -27,14 +27,15 @@ const pickColor = (colors: string[]): string => {
 };
 
 export class VFXPlayer {
-    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
+    /** @param scale 整組縮放（序列動作的 scale）：零件尺寸、散佈半徑與初速一起放大，形狀比例不變 */
+    public static play(system: VFXSystem, effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string, scale: number = 1) {
         const asset = VFX_REGISTRY[effectId];
         if (!asset) return;
         for (const emitter of asset.emitters) {
-            this.processEmitter(system, emitter, x, y, z, colorOverride, groundZ, ownerId, hexKey);
+            this.processEmitter(system, emitter, x, y, z, colorOverride, groundZ, ownerId, hexKey, scale);
         }
     }
-    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
+    private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string, scale: number = 1) {
         if (VFX_BUDGET.enabled) {
             const currentTotal = system.state.particles.length;
             if (currentTotal >= VFX_BUDGET.HARD_PARTICLE_BUDGET) return;
@@ -86,7 +87,7 @@ export class VFXPlayer {
             p.hexKey = hexKey;
             let vx = 0, vy = 0, vz = 0;
             let px = cx, py = rawCY, pz = effectiveZ;
-            const speed = rnd(config.speed);
+            const speed = rnd(config.speed) * scale;
             if (config.shape === 'POINT') {} 
             else if (config.shape === 'BURST_DIR') {
                 const theta = Math.random() * Math.PI * 2;
@@ -98,7 +99,7 @@ export class VFXPlayer {
             }
             else if (config.shape === 'CIRCLE') {
                 const angle = Math.random() * Math.PI * 2;
-                const r = config.shapeRadius || 10;
+                const r = (config.shapeRadius || 10) * scale;
                 px += Math.cos(angle) * r;
                 py += Math.sin(angle) * r;
                 vx = Math.cos(angle) * speed;
@@ -106,21 +107,22 @@ export class VFXPlayer {
             }
             else if (config.shape === 'RING') {
                 const theta = (i / count) * Math.PI * 2; // 均勻分布
-                const r = config.shapeRadius || 10;
+                const r = (config.shapeRadius || 10) * scale;
                 px += Math.cos(theta) * r;
                 py += Math.sin(theta) * r;
                 vx = Math.cos(theta) * speed;
                 vy = Math.sin(theta) * speed;
             }
             if (config.vz !== undefined) {
-                vz = rnd(config.vz);
+                vz = rnd(config.vz) * scale;
             }
             p.x = px; p.y = py; p.z = pz;
             p.vx = vx; p.vy = vy; p.vz = vz;
             p.life = rnd(config.lifetime); 
             p.maxLife = p.life;
             p.delay = rnd(config.delay);
-            p.size = rnd(config.size);
+            p.size = rnd(config.size) * scale;
+            if (scale !== 1) p.fxScale = scale;
             if (config.height !== undefined) p.height = rnd(config.height);
             p.color = colorOverride || pickColor(config.colors);
             p.type = config.particleType;

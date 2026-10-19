@@ -1,4 +1,5 @@
 import { VFXAsset, EmitterConfig } from "../../../types/VFXSchema";
+import type { VFXRampId } from "../parts/vfxPalette";
 
 // ==========================================
 // 奧義特效（V2a，零件版）
@@ -14,6 +15,35 @@ const still = { speed: 0, shape: 'POINT', colors: NO_COLOR } as const;
 export function part(cfg: Omit<EmitterConfig, 'colors' | 'speed' | 'shape'> & Partial<Pick<EmitterConfig, 'speed' | 'shape' | 'shapeRadius'>>): EmitterConfig {
     return { ...still, ...cfg };
 }
+
+/**
+ * 奧義共用命中包（SkillSequences 在每個奧義的命中時刻加播，序列 scale＝奧義 scale）：
+ * 大型衝擊環兩道（外圈快、內圈慢）、爆閃、地面裂紋、碎石與火星。各奧義自己的資產負責「是什麼」，這包負責「打得多重」。
+ */
+function ultImpact(id: string, ramp: VFXRampId, debrisRamp: VFXRampId): VFXAsset {
+    return {
+        id,
+        emitters: [
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp, hard: true }, count: 1, lifetime: 0.28, delay: 0, size: 96,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.25, fadeOut: 0.85 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 7, ramp }, count: 1, lifetime: 0.55, delay: 0, size: 320,
+                partAnim: { scaleFrom: 0.15, scaleTo: 1, ease: 'out', fadeOut: 0.55 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 112, thickness: 5, ramp, roughness: 0.5, seed: 2 }, count: 1, lifetime: 0.7, delay: 0.06, size: 224,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1, ease: 'out', fadeOut: 0.6 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 96, count: 10, ramp, lengthJitter: 0.75, seed: 4 }, count: 1, lifetime: 0.9, delay: 0, size: 96,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.05, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 9, shape: 'rock', ramp: debrisRamp, seed: 1 }, count: [8, 10], lifetime: [0.8, 1.1], delay: 0, size: 9,
+                shape: 'BURST_DIR', speed: [260, 520], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp, hard: true }, count: [14, 18], lifetime: [0.35, 0.6], delay: 0, size: 5,
+                shape: 'BURST_DIR', speed: [300, 620], vz: [80, 260], drag: 0.06, partAnim: { fadeOut: 0.6 } }),
+        ],
+    };
+}
+
+export const ULT_IMPACT_VFX: Record<string, VFXAsset> = {
+    FX_ULT_IMPACT_BLUE: ultImpact('FX_ULT_IMPACT_BLUE', 'LION_HOLY', 'LION_PHYSICAL'),
+    FX_ULT_IMPACT_RED: ultImpact('FX_ULT_IMPACT_RED', 'ASH_FIRE', 'ASH_PHYSICAL'),
+};
 
 export const ULT_PART_VFX: Record<string, VFXAsset> = {
     // wb_u3 誓約勝利（獅心・聖光）：日輪法陣浮現 → 巨大金色劍弧＋光柱落下 → 金色光點上飄

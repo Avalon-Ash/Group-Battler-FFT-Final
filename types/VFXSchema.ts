@@ -36,6 +36,11 @@ export interface VFXAction {
 export interface VFXSequence {
     id: string;
     actions: VFXAction[];
+    /**
+     * 序列開始後幾秒「打中」（命中特效的爆發、震動、格子脈衝）。有詠唱的技能在 CAST_START 排程，
+     * 延後 max(0, 詠唱時間 − hitAt) 才開始，讓命中落在傷害結算（詠唱結束）那一刻；未設＝0。
+     */
+    hitAt?: number;
 }
 
 /**

@@ -1,5 +1,22 @@
 import type { BeamStyleId } from "./beam_styles";
 
+/**
+ * 奧義序列的時序與打擊感參數（data/vfx/SkillSequences.ts）。
+ * HIT_LEAD：零件版奧義資產（ult_parts_*）的命中時間——起手紋章在 0 s、主爆發約在 0.3 s（ART_SPEC §6）。
+ * 序列 scale 上限：資產本身已是奧義尺寸，原始表的 2.5 倍會讓加法零件飽和成白帶。
+ */
+export const ULT_SEQUENCE = {
+    HIT_LEAD: 0.3,
+    MAX_FX_SCALE: 1.4,
+    MAX_PULSE_SCALE: 2.5,
+    /** 命中時的鏡頭震動下限與倍率（原本 SANCTUARY 0.2、STORM 0.15，太弱） */
+    MIN_SHAKE: 0.55,
+    /** 共用命中包（FX_ULT_IMPACT_<陣營>）的序列 scale＝奧義 scale × IMPACT_SCALE */
+    IMPACT_SCALE: 0.6,
+    /** 隕石預設落下高度（px） */
+    DEFAULT_FALL_HEIGHT: 1000,
+} as const;
+
 
 // =========================================================================================
 // 奧義視覺表（SSOT）：每個奧義用哪個原型（archetype）、起手／命中特效鍵、光束樣式。

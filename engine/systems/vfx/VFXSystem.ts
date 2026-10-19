@@ -95,8 +95,8 @@ export class VFXSystem {
         this.collapsedHexKeys.add(`${data.q},${data.r}`);
     };
     
-    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string) {
-        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId, hexKey);
+    public playEffect(effectId: string, x: number, y: number, z: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string, scale: number = 1) {
+        VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId, hexKey, scale);
     }
     
     public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4, scale: number = 1, team?: Team) {

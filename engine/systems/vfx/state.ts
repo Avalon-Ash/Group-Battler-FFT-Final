@@ -25,6 +25,8 @@ export interface Particle {
     targetZ?: number; 
     style?: string; 
     /** 光束芯色（陣營色階 core）；未設則為白 */
+    /** 整組特效的縮放（序列動作的 scale，VFXPlayer.play 設定）：零件繪製尺寸與生成散佈範圍都乘上它；未設＝1 */
+    fxScale?: number;
     /** 光束兩端光點（硬光暈零件，VFXSystem.playBeam 設定、PartPainter.drawBeam 畫在起點與終點） */
     beamEnd?: PartSprite;
     /**
@@ -80,6 +82,7 @@ export class VFXStateManager {
             p.blendMode = undefined;
             p.style = undefined; 
             p.beamEnd = undefined;
+            p.fxScale = undefined;
             p.beamEndDy = undefined;
             p.visualStyle = undefined;
             p.ownerId = undefined;

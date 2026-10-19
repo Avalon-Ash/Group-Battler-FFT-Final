@@ -26,7 +26,7 @@ export const PartPainter = {
     scaleAt(p: Particle, progress: number): number {
         const a = p.partAnim;
         const t = Math.max(0, Math.min(1, progress));
-        return (a?.scaleFrom ?? 1) + ((a?.scaleTo ?? 1) - (a?.scaleFrom ?? 1)) * ease(t, a?.ease);
+        return ((a?.scaleFrom ?? 1) + ((a?.scaleTo ?? 1) - (a?.scaleFrom ?? 1)) * ease(t, a?.ease)) * (p.fxScale ?? 1);
     },
 
     draw(ctx: CanvasRenderingContext2D, p: Particle, drawX: number, drawY: number, progress: number, layout: HexLayout): void {

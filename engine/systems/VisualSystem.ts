@@ -67,7 +67,9 @@ export class VisualSystem {
                         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
                         target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
                     }
-                    sequences.run(sequence, target3D, engine, vfx, event.sourceId);
+                    // 命中對齊傷害：序列延後 (詠唱 − hitAt) 才開始；詠唱被打斷時 CAST_BREAK 取消整串（VFXSequence.hitAt）
+                    const startDelay = Math.max(0, (event.skill.cast || 0) - (sequence.hitAt ?? 0));
+                    sequences.run(sequence, target3D, engine, vfx, event.sourceId, startDelay);
                     return; 
                 }
             }

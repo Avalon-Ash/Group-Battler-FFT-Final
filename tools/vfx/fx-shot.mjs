@@ -102,7 +102,14 @@ try {
         cmd({ type: 'SET_ZONE_CONFIG', config: { enabled: false } });
         // 兩個不動的單位放在地圖角落，讓戰鬥時鐘照常前進（停止狀態下特效不會更新）
         const types = await import('/types.ts');
-        const corner = (c0, dir) => { for (let c = c0; c >= 0 && c < e.mapConfig.w; c += dir) { const h = HexUtils.offsetToAxial(c, dir > 0 ? 0 : e.mapConfig.h - 1, e.mapConfig); if (e.isValid(h.q, h.r) && !e.hasObstacle(h.q, h.r)) return h; } return null; };
+        // 從角落往內找第一個可站的格（整列都無效時換下一列；地圖形狀隨種子變化）
+        const corner = (c0, dir) => {
+            for (let k = 0; k < e.mapConfig.h; k++) {
+                const r = dir > 0 ? k : e.mapConfig.h - 1 - k;
+                for (let c = c0; c >= 0 && c < e.mapConfig.w; c += dir) { const h = HexUtils.offsetToAxial(c, r, e.mapConfig); if (e.isValid(h.q, h.r) && !e.hasObstacle(h.q, h.r)) return h; }
+            }
+            return null;
+        };
         const ha = corner(0, 1), hb = corner(e.mapConfig.w - 1, -1);
         cmd({ type: 'PLACE_AGENT', team: types.Team.BLUE, q: ha.q, r: ha.r, hp: 99999, role: types.Role.TANK });
         cmd({ type: 'PLACE_AGENT', team: types.Team.RED, q: hb.q, r: hb.r, hp: 99999, role: types.Role.TANK });
@@ -181,6 +188,8 @@ try {
                 src.target = dst;
                 src.targetHex = { q: dst.q, r: dst.r };
                 e.initiateCast(src, 0);
+                // tick 一開始會清空 engine.events：在 tick 之外推入的 CAST_START 要立即交給視覺層，否則技能序列永遠不會跑
+                e.renderer.processVisualEvents(e.events.splice(0));
             } else if (key.startsWith('PROJ:')) {
                 // PROJ:<外觀鍵>:<BLUE|RED>：施法者對另一方發射一發 power 0 的投射物
                 const [, look, team] = key.split(':');
@@ -221,6 +230,11 @@ try {
                 window.__stepFrames(1);
             }, { n: Math.max(1, Math.round((t - tPrev) * 60) - 1), cam, zoom });
             tPrev = t;
+            if (process.argv.includes('--probe')) console.log(key, t, JSON.stringify(await page.evaluate(() => {
+                const e = window.__TACTICAL_ENGINE__; const ps = e.renderer.vfx.state.particles;
+                const kinds = {}; for (const p of ps) { const k = p.type + ':' + (p.fxScale ?? 1).toFixed(2); kinds[k] = (kinds[k] || 0) + 1; }
+                return { queue: e.renderer.sequences.actionQueue.length, n: ps.length, kinds };
+            })));
             frames.push(await page.screenshot({ clip: isHazard ? { x: 480 - HAZARD_CROP.w / 2, y: 300 - HAZARD_CROP.h * 0.6, width: HAZARD_CROP.w, height: HAZARD_CROP.h } : isProj ? { x: 480 - PROJ_CROP.w / 2, y: 300 - PROJ_CROP.h * 0.72, width: PROJ_CROP.w, height: PROJ_CROP.h } : key.startsWith('DEATH:') ? { x: 480 - DEATH_CROP.w / 2, y: 300 - DEATH_CROP.h * 0.7, width: DEATH_CROP.w, height: DEATH_CROP.h } : key.startsWith('FALL:') ? { x: 480 - FALL_CROP.w / 2, y: 300 - FALL_CROP.h * 0.75, width: FALL_CROP.w, height: FALL_CROP.h } : isBeam ? { x: 480 - 60, y: 300 - 140, width: BEAM_CROP.w, height: BEAM_CROP.h } : { x: 480 - CROP.w / 2, y: 300 - CROP.h * 0.7, width: CROP.w, height: CROP.h } }));
         }
         if (sharp) {

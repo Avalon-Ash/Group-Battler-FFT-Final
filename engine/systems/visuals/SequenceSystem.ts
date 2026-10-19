@@ -41,7 +41,8 @@ export class SequenceSystem {
         target: Point3D,
         engine: GameEngine,
         vfx: VFXSystem,
-        sourceId?: string
+        sourceId?: string,
+        startDelay: number = 0
     ) {
         let sourcePos: Point3D | undefined;
         if (sourceId) {
@@ -51,7 +52,7 @@ export class SequenceSystem {
 
         const baseTime = engine.battleTime;
         sequence.actions.forEach(action => {
-            const executeAt = baseTime + (action.delay || 0);
+            const executeAt = baseTime + startDelay + (action.delay || 0);
             if (executeAt <= baseTime) {
                 this.dispatch(action, target, sourcePos, vfx, engine, sourceId);
             } else {
@@ -89,7 +90,7 @@ export class SequenceSystem {
 
         switch (action.type) {
             case 'PARTICLE':
-                vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ);
+                vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ, undefined, undefined, action.scale ?? 1);
                 break;
             case 'BEAM':
                 if (source) {
@@ -101,7 +102,7 @@ export class SequenceSystem {
                 break;
             case 'GRID_PULSE':
                 // 依施法者陣營選格子脈衝；曾用 action.color 是否含 '#3b' 判斷，29 個藍方技能播成紅色（docs/VFX_PIPELINE_MAP.md §2.3）
-                vfx.playEffect(this.teamOf(sourceId, engine) === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ);
+                vfx.playEffect(this.teamOf(sourceId, engine) === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ, undefined, undefined, action.scale ?? 1);
                 break;
             case 'HEAVEN_FALL': {
                 const h = action.height || 1200;

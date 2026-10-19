@@ -195,15 +195,25 @@ const createHarnessContext = async () => {
     return { ctx, page };
 };
 
+/**
+ * 擷取前固定地圖尺寸與版面：開機時 MapGenerator.randomize 用的是種子化前的 Math.random，
+ * 任何模組載入時的亂數呼叫增減（例：2026-10-19 拿掉 SkillSequences 的載入期亂數）都會換掉整張地圖。
+ * 值＝既有基準擷取時的設定（引擎預設），固定後基準與模組載入順序脫鉤。
+ */
+const FIDELITY_MAP = { w: 12, h: 8, layout: 'POINTY' };
+
 const captureScene = async (page, sid) => {
-    await page.evaluate(async (sceneId) => {
+    const cfg = await page.evaluate(async ({ sceneId, map }) => {
         window.__resetSeed(1337);
         const mod = await import('/data/scenes.ts');
         const e = window.__TACTICAL_ENGINE__;
         const s = mod.SCENE_DB.find((x) => x.id === sceneId);
         e.currentScene = s;
+        Object.assign(e.mapConfig, map);
         e.map.rebuildMap(e);
-    }, sid);
+        return JSON.stringify(e.mapConfig);
+    }, { sceneId: sid, map: FIDELITY_MAP });
+    if (process.env.FIDELITY_PRINT_MAP) console.log('[fidelity-map]', sid, cfg);
     await page.evaluate(() => window.__stepFrames(30));
     return await page.evaluate(() => {
         const c = document.querySelector('canvas');
@@ -212,13 +222,16 @@ const captureScene = async (page, sid) => {
 };
 
 const captureBattleFrozen = async (page) => {
-    await page.evaluate(async () => {
+    const cfgB = await page.evaluate(async (map) => {
         window.__resetSeed(42);
         const mod = await import('/data/scenes.ts');
         const e = window.__TACTICAL_ENGINE__;
         e.currentScene = mod.SCENE_DB[0];
+        Object.assign(e.mapConfig, map);
         e.map.rebuildMap(e);
-    });
+        return JSON.stringify(e.mapConfig);
+    }, FIDELITY_MAP);
+    if (process.env.FIDELITY_PRINT_MAP) console.log('[fidelity-map] battle_frozen', cfgB);
     await page.evaluate(() => window.__stepFrames(5));
     // Click dice button to generate battlefield and teams.
     // NOTE: Playwright's locator.click({ force: true }) silently does nothing under the synthetic
@@ -252,6 +265,9 @@ try {
     const sceneIds = await page.evaluate(async () => {
         return (await import('/data/scenes.ts')).SCENE_DB.map((x) => x.id);
     });
+    // 暖機：先丟掉一張，讓鏡頭從展示戰鬥收斂到固定地圖（第一張擷取原本會因鏡頭起點不同而整張偏移）。
+    // __resetSeed 會把合成時間重設，漂浮地圖的起伏相位不受暖機影響。
+    await captureScene(page, sceneIds[0]);
 
     if (isRecord) {
         console.log('== RECORDING FIDELITY BASELINE PNGs ==');
