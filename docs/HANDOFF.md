@@ -8,7 +8,7 @@
 
 ## 2. 排定（使用者 2026-10-19 核可）
 1. **S4 常數拆檔**：提示詞 `docs/CONSTANTS_SPLIT_AGENT_PROMPT.md`，使用者在 IDE 執行 `/goal docs/CONSTANTS_SPLIT_AGENT_PROMPT.md`（分支 `refactor/constants-split`）。跑的期間主代理不碰 `constants.ts`、不跑重量測；可寫技能設計文件（只動 `docs/`，經臨時工作樹提交）。合併後主代理更新 `AGENTS.md` 對 `constants.ts` 的描述。
-2. **技能全面修正**：使用者 10/19 同意開始規劃（設計由主代理寫，實作交 Gemini）；個別奧義美術翻新併在這裡。
+2. **技能正確性修正＋三種新效果（加速、反傷、吸血）**：提示詞 `docs/SKILL_FIX_AGENT_PROMPT.md`，**S4 合併後**使用者執行 `/goal docs/SKILL_FIX_AGENT_PROMPT.md`（分支 `feat/skill-fix`）。使用者決定：缺的機制做成新效果、這輪不調平衡。`battle_frozen` 保真預期會變，由主代理審查後決定是否重錄。之後再做平衡輪與個別奧義美術翻新。
 3. **BGM**：主代理從 `docs/BGM_CANDIDATES.md` 挑曲放進 `data/audio/music.ts`（下載前列檔名／來源給使用者同意）。
 
 ## 3. 待使用者確認
