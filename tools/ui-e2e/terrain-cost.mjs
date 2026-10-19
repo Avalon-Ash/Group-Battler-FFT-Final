@@ -86,7 +86,7 @@ const sample = (sec) => page.evaluate((s) => new Promise((res) => {
         selfD.push(window.__self.detail); selfL.push(window.__self.liquid);
         window.__self.detail = 0; window.__self.liquid = 0;
         const ps = window.__TACTICAL_ENGINE__.vfx?.state?.particles ?? [];
-        let n = 0; for (const p of ps) if (p.type === 'ATMOSPHERE') n++;
+        let n = 0; for (const p of ps) if (p.weather) n++;
         atmo.push(n);
         requestAnimationFrame(loop);
     };

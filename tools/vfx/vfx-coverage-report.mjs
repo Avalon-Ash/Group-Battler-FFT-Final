@@ -3,7 +3,7 @@
  *   node tools/vfx/vfx-coverage-report.mjs [path=tools/ui-e2e/out/vfx/coverage.json]
  * 來源標記：fx:<登記鍵>、beam:<光束樣式>、direct（不經登記表直接生成的粒子）。
  * 有 wrapped（--liveness）時另印「整輪零呼叫」的方法：依物件分組，整個物件都零呼叫的列在最前（刪除候選，刪前仍要 git grep 證明零引用）。
- * 後端：PART（新零件材質）、BILL（BillboardPainter）；PROC／GROUND 的繪製器已移除，出現就代表有舊型別漏網（畫成洋紅除錯點）。
+ * 後端：PART（新零件材質，含天氣）、BILL（光束與除錯點）；PROC／GROUND 的繪製器已移除，出現就代表有舊型別漏網（畫成洋紅除錯點）。
  */
 import { readFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
@@ -14,7 +14,7 @@ const path = process.argv[2] ?? join(root, 'tools', 'ui-e2e', 'out', 'vfx', 'cov
 const { data, castLog, wrapped } = JSON.parse(readFileSync(path, 'utf8'));
 
 // 每個技能標籤都會帶到的背景：出場、待機、天氣
-const NOISE = /^(fx:FX_SPAWN_|fx:FX_IDLE_|direct\|BILL:ATMOSPHERE)/;
+const NOISE = /^(fx:FX_SPAWN_|fx:FX_IDLE_)/;
 const parse = (k) => { const [src, rest] = k.split('|'); const [be, type] = rest.split(':'); return { src, be, type }; };
 
 const sourcesOf = (bucket) => {
