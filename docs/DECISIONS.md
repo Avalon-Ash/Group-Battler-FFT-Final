@@ -1,0 +1,34 @@
+# 決策紀錄（已定案的方向與理由）
+
+> 從 `docs/HANDOFF.md` 拆出（2026-10-19）。只記「選了什麼、為什麼、放棄了什麼」；要推翻某條先找使用者。
+> 工作方法在 `docs/METHODOLOGY.md`，完成紀錄在 `docs/WORKLOG.md`，待辦在 `docs/HANDOFF.md`。
+
+## 1. 題材與畫面
+- 題材奇幻（FFT-like）、保持六角格、固定等距視角（相機正交仰角 30°＝`ISO_SCALE_Y 0.5`、四向原生渲染）。
+- 陣營色：BLUE＝皇家藍、RED＝深紅＋暗護甲。已知弱點：兩陣營辨識度偏弱（待辦池）。
+- HD 為主線，SD 像素原型已移除（tag `pixel-proto-ckpt`）。
+- 禁 Three／Pixi／WebGL，全部 HTML5 Canvas 2D。
+
+## 2. 素材策略與授權
+- 單位：AI 逐張生圖已放棄，改 KayKit 預渲染（Blender 可攜版在 `_asset_staging`）。AI 圖只用於地形材質與日後圖示。
+- 障礙物：選 CC0 3D 套件預渲染（KayKit Forest Nature／Dungeon Remastered／Medieval Hexagon、Kenney Nature Kit），不走改良程序化（`VISUAL_ROADMAP.md` D1）。
+- 授權：CC0 優先、CC-BY 可（致謝）、拒絕 NC／ND／GPL／不明；維護 `docs/ASSET_LEDGER.md`、`CREDITS.md`。
+- 使用者的風格參考圖（`_asset_staging\art\ref_*`）不得進 repo。
+
+## 3. 視覺細節
+- 特效一律預烘焙零件（`data/vfx/parts`、`engine/renderers/vfxparts`），模糊只在烘焙時用；渲染路徑 0 個每幀 `shadowBlur`。
+- 零件外框語言是六角（ART_SPEC §0）；**詠唱法陣例外改圓形 `magicCircle`**（2026-10-19：實線六角高速旋轉造成毛刺，使用者回饋）。線條一律「模糊光暈＋細亮芯」，不畫實心粗線。
+- 逐格鋪開的疊層（範圍、預警、區域）用柔光格 `SoftTile`，不逐格描實線（相鄰格雙邊會排成網格）。
+- 地形變體 4→8 刻意不做：地塊快取翻倍，地表裝飾已提供變化。
+- 障礙物動態：樹風擺用影格表；冰晶星芒、黑曜柱發光用疊層（影格表版多 3～5 ms p99）。
+- 繪製點對齊裝置像素、主畫布 `imageSmoothingQuality` high（RenderSpec §3）。
+
+## 4. 架構
+- 座標協議以 `engine/renderers/RenderSpec.ts` 為準；渲染／座標工作一次只開一條（2026-10 平行拆工造成錯位回歸）。
+- 狀態欄位唯一寫入者（`engine/core/AgentOwnership.ts` 所有權表）；嘲諷鎖定只在 `TargetingSystem`（P7a）。
+- 大逃殺的「發呆看門狗」不採用：B0 證據 IDLE 為 0，屬掩蓋症狀且改到 facade。根因修法是行為樹 `Combat Actions` SELECTOR。
+- 保真基準不得任意重錄、門檻不得放寬；重錄要附新舊差異圖並獨立 commit。
+
+## 5. 專案範圍（2026-10-16 使用者決定）
+- 刪除 Dockerfile／`server.js`／`.dockerignore`／`start` 指令與 README 的 Cloud Run 段落；全部搞定後再重新部署。
+- 刪除與 `public/assets/units/` 完全相同的 `art-source/sprites/`，保留 `art-source/terrain_grid.jpg`（地形處理工具的來源圖）。

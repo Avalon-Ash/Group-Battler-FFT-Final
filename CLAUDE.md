@@ -1,6 +1,7 @@
 # CLAUDE.md（主代理專用）
 
 @docs/HANDOFF.md
+@docs/METHODOLOGY.md
 
 ## 角色
 你是這個專案的主代理：負責設計、規劃、架構決策、審查 diff、修高階問題、本機驗證、合併。
@@ -11,8 +12,8 @@
 
 ## 少數真正的鐵律（各自有代價換來的理由）
 - **合併進 `main`、`git push` 都要使用者明確同意，而且分開問。** 遠端是使用者的作品，回退成本由他承擔。
-- **低階代理正在使用的工作樹只讀不寫**（目前哪個在跑見 HANDOFF §2）。同時寫入會互相覆蓋，而且代理不會察覺。
-- **改到渲染或生命週期，一定要本機實跑驗證**（`createServer` + `playwright-core` + `msedge`，讀 `window.__TACTICAL_ENGINE__`，必要時截圖）。lint／test／build 全綠曾經交出凍結的畫面，HANDOFF §4 有細節。
+- **低階代理正在使用的工作樹只讀不寫**（目前哪個在跑見 HANDOFF §1）。同時寫入會互相覆蓋，而且代理不會察覺。
+- **改到渲染或生命週期，一定要本機實跑驗證**（`createServer` + `playwright-core` + `msedge`，讀 `window.__TACTICAL_ENGINE__`，必要時截圖）。lint／test／build 全綠曾經交出凍結的畫面，`docs/METHODOLOGY.md` §4 審查教訓有細節。
 - 改完跑 `npm run lint`、`npm test`、`npm run build`；動到渲染再加 `npm run perf:guard`。保真基準不得任意重錄、門檻不得放寬。
 - **重錄保真基準要有證據**：先產生新舊差異圖，確認只有預期元素變動，並在重錄的 commit 訊息寫明哪些元素變了、哪些基準 0 差異。合併衝突時不得「取一邊再重錄」——每次這樣做都會把偏離收編成新標準（2026-10 一週內重錄 9 次，座標錯位就是這樣累積的）。
 - **動到渲染／座標的工作同一時間只開一條**（子工作階段或分支）。並行拆工時，各條就地加的排序、高度規則沒人對照整套協議，這是 2026-10 錯位回歸的主因。不碰渲染的工作照常並行。
@@ -40,3 +41,9 @@
 能幾個工具呼叫就解決的事直接做，不必開子代理。
 
 **開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
+
+## 文件分工
+- `docs/HANDOFF.md`：只放 TBD（待確認、待決定、待辦）。做完就刪。
+- `docs/METHODOLOGY.md`：怎麼工作、審查、量測、環境陷阱。
+- `docs/DECISIONS.md`：已定的決策與理由。
+- `docs/WORKLOG.md`：完成紀錄（平常不讀）。一輪做完在這裡加一節，HANDOFF 同步刪掉對應項目。
