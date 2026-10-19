@@ -151,7 +151,7 @@ export const TerrainRenderer = {
             ctx.translate(0, visualTopY);
             // 硬殼變體與相位依格子雜湊：鄰格不同步（2026-10-19 前全場同一張）
             SurfacePainter.drawLiquid(ctx, 0, 0, liquid.color, globalTime, liquid.intensity, layout,
-                variantFor(q, r2, TERRAIN_LIQUID.variants), tileHash01(q, r2, TERRAIN_LIQUID.crust.seed));
+                variantFor(q, r2, TERRAIN_LIQUID.variants), tileHash01(q, r2, TERRAIN_LIQUID.crust.seed), renderScale);
         }
         ctx.restore();
     },

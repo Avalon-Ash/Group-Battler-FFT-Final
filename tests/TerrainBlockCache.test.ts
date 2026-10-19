@@ -292,6 +292,7 @@ describe('TerrainBlockCache', () => {
                         ellipse: () => {},
                         arc: () => {},
                         scale: () => {},
+                        setTransform: () => {},
                         stroke: () => {},
                         fillRect: () => {},
                         drawImage: () => {},

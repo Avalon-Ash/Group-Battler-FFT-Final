@@ -146,7 +146,7 @@ describe('TerrainLoopAtlas bakes once per configuration', () => {
     it('MAGMA liquid: slots are keyed by color, layout and quantized intensity', () => {
         const layout: HexLayout = 'FLAT';
         const a = TerrainLoopAtlas.getLiquid('#ef4444', layout, 1.0);
-        expect(a.frames.length).toBe(TERRAIN_LIQUID.loop.frames);
+        expect(a.sheet.count).toBe(TERRAIN_LIQUID.loop.frames);
         expect(TerrainLoopAtlas.getLiquid('#ef4444', layout, 1.0)).toBe(a);
         // 同一量化步距內的 intensity 共用同一組
         const step = TERRAIN_LIQUID.intensityStep;

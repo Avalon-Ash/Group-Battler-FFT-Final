@@ -30,15 +30,17 @@ export const SurfacePainter = {
         intensity: number,
         layout: HexLayout = 'FLAT',
         variant: number = 0,
-        phase: number = 0
+        phase: number = 0,
+        renderScale: number = TERRAIN_LIQUID.bakeScale
     ) {
         if (RenderStats.enabled) RenderStats.beginSubPhase('liquid');
         if (CtxOpCounter.enabled) CtxOpCounter.setScope('liquid');
 
         const loop = TERRAIN_LIQUID.loop;
-        const set = TerrainLoopAtlas.getLiquid(color, layout, intensity, variant);
-        const frame = set.frames[loopFrameIndex(time, loop.period, loop.frames, phase)];
-        ctx.drawImage(frame, x - set.anchorX, y - set.anchorY, set.width ?? frame.width, set.height ?? frame.height);
+        const set = TerrainLoopAtlas.getLiquid(color, layout, intensity, variant, renderScale);
+        const sh = set.sheet;
+        const i = loopFrameIndex(time, loop.period, sh.count, phase);
+        ctx.drawImage(sh.canvas, (i % sh.cols) * sh.fw, Math.floor(i / sh.cols) * sh.fh, sh.fw, sh.fh, x - set.anchorX, y - set.anchorY, set.width ?? sh.fw, set.height ?? sh.fh);
 
         if (RenderStats.enabled) RenderStats.endSubPhase('liquid');
     },

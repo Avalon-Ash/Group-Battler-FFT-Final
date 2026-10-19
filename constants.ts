@@ -1267,6 +1267,8 @@ export const RENDER_CACHE = {
     BAKE_WINDOW_MS: 16,
     /** 液面循環影格（TerrainLoopAtlas）同時快取的組數上限（顏色 x layout x 量化強度）；每組約 2 MB，LRU 淘汰 */
     LOOP_LIQUID_SLOTS: 16,
+    /** 液面循環影格排成一張圖的最大寬度（px）；超過就換行 */
+    LOOP_SHEET_MAX_W: 2048,
 } as const;
 
 /**

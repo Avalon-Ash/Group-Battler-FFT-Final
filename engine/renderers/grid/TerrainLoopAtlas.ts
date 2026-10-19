@@ -24,6 +24,19 @@ export interface LoopFrameSet {
     height?: number;
 }
 
+/**
+ * 整組影格排在一張圖上（液面）：每格每幀只取不同的子矩形，來源永遠是同一張 canvas。
+ * 每影格一張小 canvas 時，熔岩圖上百格各取不同影格，實測 p99 約 17 ms（關掉液面 3.7 ms）。
+ */
+export interface LoopSheet {
+    canvas: HTMLCanvasElement;
+    cols: number;
+    /** 單一影格的像素尺寸 */
+    fw: number;
+    fh: number;
+    count: number;
+}
+
 interface IceFrameSet extends LoopFrameSet {
     size: number;
 }
@@ -33,6 +46,9 @@ interface LiquidFrameSet extends LoopFrameSet {
     layout: HexLayout;
     level: number;
     variant: number;
+    /** 烘焙密度（1 或 TERRAIN_LIQUID.bakeScale），依繪製時的渲染縮放級距選 */
+    scale: number;
+    sheet: LoopSheet;
     lastUsedTick: number;
 }
 
@@ -186,18 +202,20 @@ export const TerrainLoopAtlas = {
     },
 
     /** 取（顏色、layout、量化後 intensity、硬殼變體）對應的液面循環組；槽數上限 RENDER_CACHE.LOOP_LIQUID_SLOTS，LRU 淘汰 */
-    getLiquid(color: string, layout: HexLayout, intensity: number, variant: number = 0): LoopFrameSet {
+    getLiquid(color: string, layout: HexLayout, intensity: number, variant: number = 0, renderScale: number = TERRAIN_LIQUID.bakeScale): LiquidFrameSet {
         const level = Math.round(intensity / TERRAIN_LIQUID.intensityStep);
+        // 縮放級距 ≤ 1 時用 1 倍烘焙：每格只是 1:1 貼圖，不必每幀把 2 倍影格縮小
+        const scale = renderScale <= 1 ? 1 : TERRAIN_LIQUID.bakeScale;
         const slots = this._liquid;
         for (let i = 0; i < slots.length; i++) {
             const s = slots[i];
-            if (s.level === level && s.layout === layout && s.color === color && s.variant === variant) {
+            if (s.level === level && s.layout === layout && s.color === color && s.variant === variant && s.scale === scale) {
                 s.lastUsedTick = ++this._liquidTick;
                 this._liquidHits++;
                 return s;
             }
         }
-        const baked = this.bakeLiquid(color, layout, level, variant);
+        const baked = this.bakeLiquid(color, layout, level, variant, scale);
         baked.lastUsedTick = ++this._liquidTick;
         this._liquidBakes++;
         if (slots.length < RENDER_CACHE.LOOP_LIQUID_SLOTS) {
@@ -324,11 +342,11 @@ export const TerrainLoopAtlas = {
         return { frames, anchorX: -left, anchorY: -top };
     },
 
-    bakeLiquid(color: string, layout: HexLayout, level: number, variant: number = 0): LiquidFrameSet {
+    bakeLiquid(color: string, layout: HexLayout, level: number, variant: number = 0, bakeScale: number = TERRAIN_LIQUID.bakeScale): LiquidFrameSet {
         const c = TERRAIN_LIQUID;
         const intensity = level * c.intensityStep;
         const r = HEX_SIZE * c.radiusRatio;
-        const sc = c.bakeScale;
+        const sc = bakeScale;
         const width = Math.ceil((r + c.pad) * 2);
         const height = Math.ceil((r * ISO_SCALE_Y + c.pad) * 2);
         const cx = width / 2, cy = height / 2;
@@ -344,11 +362,14 @@ export const TerrainLoopAtlas = {
         const edge = mixRgb(base, [0, 0, 0], m.edgeDarken);
         const T = c.crust.tile;
         const shift = c.drift.variantShift * variant;
-        const frames: HTMLCanvasElement[] = [];
+        const fw = Math.ceil(width * sc), fh = Math.ceil(height * sc);
+        const cols = Math.max(1, Math.min(c.loop.frames, Math.floor(RENDER_CACHE.LOOP_SHEET_MAX_W / fw)));
+        const rows = Math.ceil(c.loop.frames / cols);
+        const { canvas: sheetCanvas, ctx } = createCanvas(fw * cols, fh * rows);
         for (let i = 0; i < c.loop.frames; i++) {
             const u = i / c.loop.frames;
-            const { canvas, ctx } = createCanvas(Math.ceil(width * sc), Math.ceil(height * sc));
-            ctx.scale(sc, sc);
+            ctx.save();
+            ctx.setTransform(sc, 0, 0, sc, (i % cols) * fw, Math.floor(i / cols) * fh);
             ctx.translate(cx, cy);
             ctx.globalAlpha = c.baseAlpha * intensity;
             HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
@@ -408,9 +429,10 @@ export const TerrainLoopAtlas = {
             ctx.lineWidth = c.rim.width;
             HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
             ctx.stroke();
-            frames.push(canvas);
+            ctx.restore();
         }
         this.bakeCount++;
-        return { frames, anchorX: cx, anchorY: cy, width: Math.ceil(width * sc) / sc, height: Math.ceil(height * sc) / sc, color, layout, level, variant, lastUsedTick: 0 };
+        const sheet: LoopSheet = { canvas: sheetCanvas, cols, fw, fh, count: c.loop.frames };
+        return { frames: [], sheet, anchorX: cx, anchorY: cy, width: fw / sc, height: fh / sc, color, layout, level, variant, scale: sc, lastUsedTick: 0 };
     },
 };
