@@ -104,10 +104,10 @@
 - 保真 harness 固定地圖＋暖機；VOID／battle_frozen 重錄（`681e07e`，附證據）。
 - 清理：`.claude/worktrees/` 已清、本地分支 `20260328`／`experiment/unit-rig-skin-poc` 已刪（遠端仍在）。
 - 下一步：照 `docs/VISUAL_ROADMAP.md` §0 跑 O1～O4、T2～T5（熔岩液面、草地擺動等網格上特效仍是程式繪製，屬 T2～T3）。
-### M. 2026-10-19 深夜 障礙物 O1～O4＋地形 T2～T5（main，未 push）
+### M. 2026-10-19 深夜 障礙物 O1～O4＋地形 T2～T5（已 push d82c857；O3／崖邊／氛圍層在其後，未 push）
 - 障礙物預渲染（Blender 腳本在 `tools/assets/blender/`，素材在 `_asset_staging/assets3d/`）、熔岩液面重繪（影格表 `LoopSheet`）、草叢與地表裝飾、落差描邊降對比、天氣零件化（ATMOSPHERE 與看板路徑刪除）。細節 `docs/VFX_PIPELINE_MAP.md` §4.17。
 - 保真重錄兩次（`ad64afd`、`f312187`，證據在 `tools/ui-e2e/out/fidelity_o2_evidence.png`、`fidelity_t2_evidence.png`）。
-- 未做（可選）：O3 樹木風擺／冰晶閃光、T2 變體 4→8 與崖邊草垂／積雪簷、T3 低處霧氣／光柱／熱浪。
+- 後續（同晚）：O3 障礙物動態（樹風擺、冰晶星芒、黑曜柱發光；後兩者用疊層，影格表版會多 3～5 ms p99）、崖邊垂草／積雪簷／熔岩發光邊、森林霧氣＋光柱、虛空紫霧、熔岩熱浪（`docs/VFX_PIPELINE_MAP.md` §4.18，保真 `516b22e`）。地形變體 4→8 刻意不做（地塊快取翻倍，裝飾已提供變化）。
 - **待使用者**：實機看新障礙物、熔岩、草叢與天氣；push 未做。
 
 ## 4. 已完成輪次與審查結論（精簡）

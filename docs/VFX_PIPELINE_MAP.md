@@ -232,6 +232,12 @@ VFXSystem.state.particles
 - **天氣**：`VFXAmbience` 生 PART 粒子（WEATHER_* 中性色階），以 `Particle.weather` 計數（ownerId 沒有對應單位會被 VFXSystem 回收）。ATMOSPHERE、BillboardPainter、ParticleTextureStore 與 5 張 Kenney 粒子貼圖刪除；後端棘輪只剩 BEAM、GENERIC_DEBUG。
 - 驗證：`tools/ui-e2e/obstacle-shot.mjs`（各群系全圖＋放大，`--frames=600` 看天氣）、`biome-frames.mjs`、`terrain-contrast.mjs`、保真兩次附證據重錄（`ad64afd` 障礙物、`f312187` 地表）。
 
+### 4.18 O3＋T2 崖邊＋T3 氛圍層（2026-10-19）
+- **障礙物動態**（`OBSTACLE_SPRITE.ANIM`）：樹以底部為軸斜切風擺（12 影格表）；冰晶星芒、黑曜柱頂發光是「靜態本體＋加法疊層」，執行期只改疊層 alpha／位置（`ObstacleSprite.overlay`，RenderDispatcher 多一次 drawImage）。先做的整張影格表版在 MAGMA 量到 p99 多 3～5 ms，疊層版與關掉動畫交錯 A/B 無差異。每格相位依 q,r 雜湊。
+- **崖邊裝飾**（`TERRAIN_AMBIENCE.edge`，`TerrainRenderer.paintEdgeDecor`）：只畫在前側落差邊——森林垂草、冰雪簷＋冰柱、熔岩發光邊＋滴落、虛空淡光；烘進地塊 sprite，每幀成本不變。
+- **氛圍層**（`BIOME_ATMOSPHERE`）：依地圖額外的零件粒子層，只在地圖格子範圍內生成（`spawn: 'ISLAND'`）：森林低處霧氣＋斜射光柱、虛空紫霧、熔岩往上飄的熱浪光暈。`Particle.weather` 改為層編號（1＝場景天氣）。
+- 驗證：`tools/ui-e2e/obstacle-sheet-dump.mjs`（動畫影格並排）、verify:coords 振盪 85（靜止 2，慢速漂移的霧／光柱）、保真重錄 `516b22e`（證據 `tools/ui-e2e/out/fidelity_o3_evidence.png`）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
