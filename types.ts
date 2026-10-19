@@ -61,6 +61,21 @@ export interface Skill {
     visualProjectileEffect?: string;
 }
 
+export type EffectKind =
+    | 'STUN' | 'SILENCE' | 'ROOT' | 'FEAR' | 'TAUNT' | 'BLIND'
+    | 'BANISH' | 'STASIS' | 'POLYMORPH' | 'INVINCIBLE' | 'VULNERABLE'
+    | 'DOT' | 'HOT';
+
+export interface EffectSlot {
+    remaining: number;     // 原 xxxTimer
+    max: number;           // 原 xxxMax（沒有 Max 欄位的效果也記，給 UI 用）
+    value: number;         // DOT＝原 dotDmg、HOT＝原 hotVal，其餘 0
+    tag: string | null;    // DOT＝原 dotType，其餘 null
+    sourceId: string | null; // TAUNT＝原 tauntTargetId，其餘 null
+}
+export type EffectSlots = Record<EffectKind, EffectSlot>;
+
+
 import type { Agent } from './engine/core/Agent';
 import type { PartSpec } from './engine/renderers/vfxparts/PartSpec';
 import type { PartAnim } from './types/VFXSchema';

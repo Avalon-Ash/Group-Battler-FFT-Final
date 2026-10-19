@@ -2,12 +2,13 @@
 // [ENTITY] 純資料容器。saveState/reset 為例外保留（生命週期管理）。
 // 禁止在此新增業務邏輯，任何計算請移至對應 System。
 
-import { Skill, Hex, BodyTypeId } from "../../types";
+import { Skill, Hex, BodyTypeId, EffectSlots } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { BTNode } from "../behaviorTree";
 import { AGENT_CONSTANTS } from "../../constants";
+import { createEffectSlots, resetEffectSlots } from "./Effects";
 
 export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS' | 'DANGER' | 'INVINCIBLE';
 
@@ -59,6 +60,9 @@ export class Agent {
 
     // SSOT Update: Store terrain height 'h' to ensure trails respect topography
     public trailHistory: {x: number, y: number, z: number, h: number}[] = [];
+
+    // [ECS-lite S1] 狀態效果槽位（固定 13 槽，零每幀配置）
+    public effects: EffectSlots = createEffectSlots();
 
     public stunTimer: number = 0;
     public stunMax: number = 0;
@@ -184,6 +188,8 @@ export class Agent {
         this.path = [];
         this.moveProgress = 0;
         this.stuckTicks = 0;
+
+        resetEffectSlots(this.effects);
 
         this.stunTimer = 0;
         this.stunMax = 0;
