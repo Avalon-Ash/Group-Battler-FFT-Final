@@ -137,3 +137,15 @@ Source models only. They live in `C:\Git\_asset_stagingssets3d\` (outside the r
 | `assets3d/kenney_nature_kit/` | Nature Kit 2.1 | Kenney (Kenney.nl) | https://kenney.nl/assets/nature-kit | CC0 1.0 | Optional (Kenney.nl) | 10.5 MB zip, 329 glb | 2026-10-18 |
 
 Redistribution note (KayKit): free for personal and commercial use; do not resell unmodified copies or claim them as your own. Rendered sprites are derivative game art, which is allowed.
+
+### 6.1 Rendered obstacle atlases (2026-10-19, O1)
+
+Rendered by `tools/assets/blender/render_obstacle.py`, packed by `pack_obstacles.py` (manifest: `public/assets/obstacles/manifest.json`).
+
+| Asset Path | Obstacle | Source models | Author | License | Added Date |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `assets/obstacles/tree.webp` | TREE | KayKit Forest Nature `Tree_1_A`～`Tree_4_A` | Kay Lousberg | CC0 1.0 | 2026-10-19 |
+| `assets/obstacles/wall.webp` | WALL | KayKit Dungeon Remastered `pillar`, `column`; Kenney Nature Kit `statue_column`, `statue_obelisk` (recoloured) | Kay Lousberg; Kenney | CC0 1.0 | 2026-10-19 |
+| `assets/obstacles/sandstone.webp` | SANDSTONE | Kenney Nature Kit `rock_tallA`～`D` (recoloured) | Kenney | CC0 1.0 | 2026-10-19 |
+| `assets/obstacles/ice_crystal.webp` | ICE_CRYSTAL | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
+| `assets/obstacles/obsidian_pillar.webp` | OBSIDIAN_PILLAR | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
