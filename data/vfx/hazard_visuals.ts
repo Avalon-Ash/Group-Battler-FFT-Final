@@ -76,10 +76,14 @@ export const HAZARD_VISUALS: Record<HazardType, HazardVisualDef> = {
             { spec: { kind: 'smoke', radius: 34, color: 'CHAR', roughness: 0.25, seed: 1 }, flat: true, alpha: 0.5 },
             { spec: { kind: 'ring', radius: 30, thickness: 3, ramp: 'ASH_VOID', roughness: 0.5, seed: 2 }, flat: true, spin: -1.5, alpha: 0.7 },
         ],
+        // 2026-10-19 實機回饋「漩渦有點弱」：紫色底光＋粗外臂＋反轉內臂＋向心放射紋，黑色核心加大
         centerLayers: [
-            { spec: { kind: 'slashArc', radius: 38, arcDeg: 75, thickness: 6, ramp: 'LION_VOID' }, flat: true, count: 3, spin: 3, alpha: 0.85 },
-            { spec: { kind: 'smoke', radius: 20, color: 'CHAR', roughness: 0, seed: 0 }, flat: true, alpha: 0.9 },
-            { spec: { kind: 'glow', radius: 3, ramp: 'LION_VOID', hard: true }, count: 4, orbitRadius: 26, orbitSpeed: 2.4, lift: 6, alpha: 0.9, decor: true },
+            { spec: { kind: 'glow', radius: 40, ramp: 'ASH_VOID' }, flat: true, alpha: 0.6, pulse: { amp: 0.08, hz: 1.5 } },
+            { spec: { kind: 'rays', radius: 40, count: 9, ramp: 'LION_VOID', lengthJitter: 0.5, seed: 3 }, flat: true, spin: -2, alpha: 0.55 },
+            { spec: { kind: 'slashArc', radius: 38, arcDeg: 90, thickness: 9, ramp: 'LION_VOID' }, flat: true, count: 3, spin: 3.5, alpha: 1 },
+            { spec: { kind: 'slashArc', radius: 24, arcDeg: 70, thickness: 5, ramp: 'ASH_VOID' }, flat: true, count: 3, spin: -5, alpha: 0.9 },
+            { spec: { kind: 'smoke', radius: 22, color: 'CHAR', roughness: 0, seed: 0 }, flat: true, alpha: 1 },
+            { spec: { kind: 'glow', radius: 3, ramp: 'LION_VOID', hard: true }, count: 6, orbitRadius: 28, orbitSpeed: 3.2, lift: 6, alpha: 1, decor: true },
         ],
         spawnVfx: 'FX_HIT_RED_SHADOW',
     },

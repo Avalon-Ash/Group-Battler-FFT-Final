@@ -994,8 +994,9 @@ export const AOE_INDICATOR = {
  * 依 fx-shot --scene 的白色飽和像素比例校到與 FOREST 同級（docs/VFX_PIPELINE_MAP.md §4.14）。
  */
 export const VFX_BIOME_GAIN: Readonly<Record<string, number>> = {
-    ICE: 0.7,
-    DESERT: 0.85,
+    /** 2026-10-19 實機：0.7／0.85 偏暗，各提亮 10% */
+    ICE: 0.77,
+    DESERT: 0.94,
 };
 
 export const UNIT_SHADOW = {
