@@ -255,6 +255,7 @@ export const CCManager = {
                 target.effects.DOT.remaining = effectiveDuration;
                 target.effects.DOT.max = effectiveDuration;
                 target.effects.DOT.value = force || 10;
+                target.effects.DOT.sourceId = source.id;
                 if (skill.element === 'FIRE') {
                     target.effects.DOT.tag = 'BURN';
                     statusText = STATUS_VISUALS.BURN.label;
