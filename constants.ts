@@ -828,22 +828,29 @@ export const OBSTACLE_SPRITE = {
    * 障礙物動態（VISUAL_ROADMAP O3）：烘成循環影格表，執行期仍只有一次 drawImage；每格相位依 q,r 雜湊錯開。
    *  - sway：以底部為軸斜切，頂端位移 amp（canvas 單位）
    *  - glint：一顆星芒沿最高晶柱往上滑，週期前 visible 比例可見（靜態本體＋星芒疊層，執行期只改位置與 alpha）
-   *  - glow：從精靈取出橘色發光部位（GLOW_KEY），加法疊上並帶模糊光暈，亮度 0..amp 脈動（靜態本體＋發光疊層）
+   *  - glow：從精靈取出發光部位（GLOW_KEYS[key]：熔岩橘／虛空紫），加法疊上並帶模糊光暈，亮度 0..amp 脈動（靜態本體＋發光疊層）
    *  只有 sway 烘成整張影格表；glint／glow 若也烘成影格表，熔岩圖 p99 實測多 3～5 ms（每根柱子各取一張大圖）。
    */
   ANIM: {
     TREE: { kind: 'sway', frames: 12, period: 4.5, amp: 3 },
     ICE_CRYSTAL: { kind: 'glint', frames: 16, period: 4, amp: 0.9, visible: 0.4, radius: 6 },
-    OBSIDIAN_PILLAR: { kind: 'glow', frames: 12, period: 3, amp: 0.75, blurPx: 3 },
+    OBSIDIAN_PILLAR: { kind: 'glow', frames: 12, period: 3, amp: 0.75, blurPx: 3, key: 'EMBER' },
+    WALL: { kind: 'glow', frames: 12, period: 4, amp: 0.7, blurPx: 3, key: 'VIOLET' },
   } as Readonly<Record<string, ObstacleAnimConfig>>,
-  /** glow 取色：r ≥ minR、b ≤ maxB、r ≥ g × ratio 的像素算發光部位 */
-  GLOW_KEY: { minR: 170, maxB: 120, ratio: 1.25 },
+  /**
+   * glow 取色：主通道（r 或 b）≥ min、主通道 ≥ g × ratio、另一個通道（b 或 r）≤ maxOther 的像素算發光部位。
+   * EMBER＝黑曜柱岩漿裂縫（render_obstacle.py OBSIDIAN_GLOW），VIOLET＝虛空石碑脈絡與符文環（VOID_GLOW）。
+   */
+  GLOW_KEYS: {
+    EMBER: { main: 'r', min: 170, ratio: 1.25, maxOther: 120 },
+    VIOLET: { main: 'b', min: 200, ratio: 1.3, maxOther: 255 },
+  } as Readonly<Record<'EMBER' | 'VIOLET', { main: 'r' | 'b'; min: number; ratio: number; maxOther: number }>>,
 } as const;
 
 export type ObstacleAnimConfig =
   | { kind: 'sway'; frames: number; period: number; amp: number }
   | { kind: 'glint'; frames: number; period: number; amp: number; visible: number; radius: number }
-  | { kind: 'glow'; frames: number; period: number; amp: number; blurPx: number };
+  | { kind: 'glow'; frames: number; period: number; amp: number; blurPx: number; key: 'EMBER' | 'VIOLET' };
 
 export interface TerrainTheme { top: string; sideLight: string; sideDark: string; detail: string; rim: string }
 

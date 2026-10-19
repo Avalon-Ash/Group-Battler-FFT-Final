@@ -55,49 +55,49 @@
   "WALL": {
    "file": "wall.webp",
    "atlas": {
-    "w": 444,
-    "h": 250
+    "w": 418,
+    "h": 260
    },
    "variants": [
     {
      "x": 0,
      "y": 0,
-     "w": 120,
-     "h": 238,
-     "ax": 60,
-     "ay": 206,
-     "heightHex": 2.084,
-     "source": "pillar.gltf.glb"
+     "w": 112,
+     "h": 247,
+     "ax": 56,
+     "ay": 213,
+     "heightHex": 2.527,
+     "source": "prisms:void_monolith:31"
     },
     {
-     "x": 120,
+     "x": 112,
      "y": 0,
-     "w": 114,
-     "h": 219,
-     "ax": 57,
-     "ay": 188,
-     "heightHex": 2.206,
-     "source": "column.gltf.glb"
-    },
-    {
-     "x": 234,
-     "y": 0,
-     "w": 96,
+     "w": 100,
      "h": 227,
-     "ax": 48,
-     "ay": 201,
-     "heightHex": 2.171,
-     "source": "statue_column.glb"
+     "ax": 50,
+     "ay": 196,
+     "heightHex": 2.361,
+     "source": "prisms:void_monolith:32"
     },
     {
-     "x": 330,
+     "x": 212,
      "y": 0,
-     "w": 114,
-     "h": 250,
-     "ax": 57,
-     "ay": 220,
-     "heightHex": 2.598,
-     "source": "statue_obelisk.glb"
+     "w": 106,
+     "h": 260,
+     "ax": 53,
+     "ay": 228,
+     "heightHex": 2.662,
+     "source": "prisms:void_monolith:33"
+    },
+    {
+     "x": 318,
+     "y": 0,
+     "w": 100,
+     "h": 235,
+     "ax": 50,
+     "ay": 205,
+     "heightHex": 2.459,
+     "source": "prisms:void_monolith:34"
     }
    ]
   },
@@ -202,48 +202,48 @@
   "OBSIDIAN_PILLAR": {
    "file": "obsidian_pillar.webp",
    "atlas": {
-    "w": 448,
-    "h": 265
+    "w": 494,
+    "h": 227
    },
    "variants": [
     {
      "x": 0,
      "y": 0,
-     "w": 100,
-     "h": 249,
-     "ax": 50,
-     "ay": 220,
-     "heightHex": 2.569,
+     "w": 106,
+     "h": 227,
+     "ax": 53,
+     "ay": 193,
+     "heightHex": 2.372,
      "source": "prisms:obsidian:11"
     },
     {
-     "x": 100,
+     "x": 106,
      "y": 0,
-     "w": 112,
-     "h": 217,
-     "ax": 56,
+     "w": 114,
+     "h": 226,
+     "ax": 57,
      "ay": 196,
-     "heightHex": 2.401,
+     "heightHex": 2.228,
      "source": "prisms:obsidian:12"
     },
     {
-     "x": 212,
+     "x": 220,
      "y": 0,
-     "w": 120,
-     "h": 265,
-     "ax": 60,
-     "ay": 236,
-     "heightHex": 2.537,
+     "w": 132,
+     "h": 224,
+     "ax": 66,
+     "ay": 198,
+     "heightHex": 2.35,
      "source": "prisms:obsidian:13"
     },
     {
-     "x": 332,
+     "x": 352,
      "y": 0,
-     "w": 116,
-     "h": 233,
-     "ax": 58,
+     "w": 142,
+     "h": 222,
+     "ax": 71,
      "ay": 204,
-     "heightHex": 2.573,
+     "heightHex": 2.554,
      "source": "prisms:obsidian:14"
     }
    ]

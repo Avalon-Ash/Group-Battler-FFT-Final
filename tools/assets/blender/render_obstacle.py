@@ -37,11 +37,9 @@ TYPES = {
         {'file': f'{FOREST}/Tree_3_A_Color1.gltf', 'height': 140},
         {'file': f'{FOREST}/Tree_4_A_Color1.gltf', 'height': 112},
     ]},
-    'WALL': {'fit': 0.78, 'tint': (0.78, 0.82, 1.05), 'variants': [
-        {'file': f'{DUNGEON}/pillar.gltf.glb', 'height': 96, 'xy': 1.5},
-        {'file': f'{DUNGEON}/column.gltf.glb', 'height': 92},
-        {'file': f'{KENNEY}/statue_column.glb', 'height': 96, 'xy': 1.4, 'override': (0.33, 0.35, 0.47)},
-        {'file': f'{KENNEY}/statue_obelisk.glb', 'height': 108, 'xy': 1.2, 'override': (0.33, 0.35, 0.47)},
+    # 虛空石碑（2026-10-19 取代地牢石柱／方尖碑組：磚石造型與漂浮的宇宙島不搭）：符文基座＋懸浮晶碑＋環繞碎晶
+    'WALL': {'fit': 0.80, 'variants': [
+        {'prisms': 'void_monolith', 'seed': s, 'height': h} for s, h in ((31, 104), (32, 96), (33, 112), (34, 100))
     ]},
     'SANDSTONE': {'fit': 0.86, 'override': (0.86, 0.60, 0.36), 'variants': [
         {'file': f'{KENNEY}/rock_tallA.glb', 'height': 72},
@@ -52,7 +50,8 @@ TYPES = {
     'ICE_CRYSTAL': {'fit': 0.80, 'variants': [
         {'prisms': 'ice', 'seed': s, 'height': h} for s, h in ((1, 72), (2, 64), (3, 80), (4, 60))
     ]},
-    'OBSIDIAN_PILLAR': {'fit': 0.76, 'variants': [
+    # 黑曜柱（2026-10-19 重新設計：3～4 根粗柱、斜切斷頂，側面岩漿裂縫＋底部熔岩光帶；舊版只有頂面橘色、發光看不出來）
+    'OBSIDIAN_PILLAR': {'fit': 0.78, 'variants': [
         {'prisms': 'obsidian', 'seed': s, 'height': h} for s, h in ((11, 108), (12, 96), (13, 116), (14, 100))
     ]},
     # 不阻擋的地表裝飾（VISUAL_ROADMAP T2）：小尺寸、細描邊；TerrainLoopAtlas／bakeBlock 依格子雜湊擺放
@@ -84,7 +83,9 @@ TYPES = {
 ICE_RGB = (0.62, 0.86, 1.0)
 ICE_GLOW = (0.55, 0.85, 1.0)
 OBSIDIAN_RGB = (0.035, 0.028, 0.045)  # linear; Standard view transform lifts it to ~#2a2430
-OBSIDIAN_GLOW = (1.0, 0.36, 0.08)
+OBSIDIAN_GLOW = (1.0, 0.36, 0.08)     # sRGB ~ (255,161,79): engine OBSTACLE_SPRITE.GLOW_KEYS.EMBER picks it up
+VOID_RGB = (0.055, 0.04, 0.095)
+VOID_GLOW = (0.5, 0.28, 1.0)          # sRGB ~ (188,145,255): GLOW_KEYS.VIOLET
 
 
 def reset():
@@ -177,6 +178,101 @@ def hex_prism(bm, x, y, r, h, tip, tilt_x, tilt_y, yaw):
     bmesh.ops.transform(bm, matrix=m, verts=allv)
 
 
+def basalt_column(bm, x, y, r, h, slant, slant_dir, tilt_x, tilt_y, z0=0.0, tip=0.0, squash=1.0):
+    """Hex column, base at z0. slant tilts the flat top cap (broken basalt); tip > 0 turns the top into a point instead."""
+    geom = bmesh.ops.create_cone(bm, cap_ends=True, segments=6, radius1=r, radius2=r, depth=h)
+    verts = geom['verts']
+    bmesh.ops.translate(bm, verts=verts, vec=(0, 0, h / 2))
+    top = [v for v in verts if v.co.z > h * 0.99]
+    allv = list(verts)
+    if tip > 0:
+        centre = bm.verts.new((0, 0, h + tip))
+        faces = [f for f in bm.faces if all(v in top for v in f.verts)]
+        ring = sorted(top, key=lambda v: math.atan2(v.co.y, v.co.x))
+        bmesh.ops.delete(bm, geom=faces, context='FACES_ONLY')
+        for i in range(len(ring)):
+            bm.faces.new((ring[i], ring[(i + 1) % len(ring)], centre))
+        allv.append(centre)
+    else:
+        dx, dy = math.cos(slant_dir), math.sin(slant_dir)
+        for v in top:
+            v.co.z += (v.co.x * dx + v.co.y * dy) / max(r, 1e-6) * slant
+    for v in allv:
+        v.co.x *= squash
+    from mathutils import Matrix
+    m = Matrix.Translation((x, y, z0)) @ Matrix.Rotation(tilt_x, 4, 'X') @ Matrix.Rotation(tilt_y, 4, 'Y')
+    bmesh.ops.transform(bm, matrix=m, verts=allv)
+
+
+def glow_mask_material(mat, base_rgb, glow_rgb, kind):
+    """toon() body, then mix in glow_rgb where a procedural mask (object space) is 1: lava cracks / void veins."""
+    toon(mat, base_rgb=base_rgb)
+    nt = mat.node_tree
+    emit = next(n for n in nt.nodes if n.type == 'EMISSION')
+    link = emit.inputs['Color'].links[0]
+    color = link.from_socket
+    nt.links.remove(link)
+
+    def node(t, **kw):
+        n = nt.nodes.new(t)
+        for k, v in kw.items():
+            setattr(n, k, v)
+        return n
+
+    def map_range(src, a, b, c, d):
+        m = node('ShaderNodeMapRange', clamp=True)
+        nt.links.new(src, m.inputs['Value'])
+        m.inputs['From Min'].default_value, m.inputs['From Max'].default_value = a, b
+        m.inputs['To Min'].default_value, m.inputs['To Max'].default_value = c, d
+        return m.outputs['Result']
+
+    def math_op(op, x, y):
+        m = node('ShaderNodeMath', operation=op)
+        nt.links.new(x, m.inputs[0])
+        nt.links.new(y, m.inputs[1])
+        return m.outputs['Value']
+
+    tc = node('ShaderNodeTexCoord')
+    sep = node('ShaderNodeSeparateXYZ')
+    nt.links.new(tc.outputs['Object'], sep.inputs['Vector'])
+    vor = node('ShaderNodeTexVoronoi', voronoi_dimensions='3D', feature='DISTANCE_TO_EDGE')
+    nt.links.new(tc.outputs['Object'], vor.inputs['Vector'])
+    noise = node('ShaderNodeTexNoise')
+    nt.links.new(tc.outputs['Object'], noise.inputs['Vector'])
+    if kind == 'obsidian':
+        vor.inputs['Scale'].default_value = 3.0
+        noise.inputs['Scale'].default_value = 1.6
+        crack = map_range(vor.outputs['Distance'], 0.0, 0.045, 1.0, 0.0)
+        patch = map_range(noise.outputs['Fac'], 0.45, 0.55, 0.0, 1.0)
+        fall = map_range(sep.outputs['Z'], 0.25, 1.1, 1.0, 0.0)   # cracks only in the lower part; upper column stays clean
+        veins = math_op('MULTIPLY', math_op('MULTIPLY', crack, patch), fall)
+        band = map_range(sep.outputs['Z'], 0.0, 0.2, 1.0, 0.0)
+        mask = math_op('MAXIMUM', veins, band)
+    else:
+        vor.inputs['Scale'].default_value = 4.5
+        noise.inputs['Scale'].default_value = 2.2
+        crack = map_range(vor.outputs['Distance'], 0.0, 0.03, 1.0, 0.0)
+        patch = map_range(noise.outputs['Fac'], 0.52, 0.6, 0.0, 1.0)
+        above = map_range(sep.outputs['Z'], 0.1, 0.14, 0.0, 1.0)   # veins only on the floating crystals
+        veins = math_op('MULTIPLY', math_op('MULTIPLY', crack, patch), above)
+        comb = node('ShaderNodeCombineXYZ')
+        nt.links.new(sep.outputs['X'], comb.inputs['X'])
+        nt.links.new(sep.outputs['Y'], comb.inputs['Y'])
+        ln = node('ShaderNodeVectorMath', operation='LENGTH')
+        nt.links.new(comb.outputs['Vector'], ln.inputs[0])
+        d = ln.outputs['Value']
+        ring = math_op('MULTIPLY', map_range(d, 0.28, 0.31, 0.0, 1.0), map_range(d, 0.35, 0.38, 1.0, 0.0))
+        on_plinth_top = math_op('MULTIPLY', map_range(sep.outputs['Z'], 0.05, 0.07, 0.0, 1.0), map_range(sep.outputs['Z'], 0.09, 0.11, 1.0, 0.0))
+        mask = math_op('MAXIMUM', veins, math_op('MULTIPLY', ring, on_plinth_top))
+    mix = nt.nodes.new('ShaderNodeMix')
+    mix.data_type = 'RGBA'
+    mix.blend_type = 'MIX'
+    nt.links.new(mask, mix.inputs['Factor'])
+    nt.links.new(color, mix.inputs['A'])
+    mix.inputs['B'].default_value = (*glow_rgb, 1)
+    nt.links.new(mix.outputs['Result'], emit.inputs['Color'])
+
+
 def build_prisms(kind, seed):
     rnd = random.Random(seed)
     mesh = bpy.data.meshes.new(f'{kind}_{seed}')
@@ -196,13 +292,28 @@ def build_prisms(kind, seed):
             d = 0 if i == 0 else rnd.uniform(0.25, 0.45)
             hex_prism(bm, math.cos(a) * d, math.sin(a) * d, rnd.uniform(0.12, 0.2), rnd.uniform(0.5, 1.0), rnd.uniform(0.18, 0.3),
                       math.sin(a) * rnd.uniform(0.2, 0.6) * -1, math.cos(a) * rnd.uniform(0.2, 0.6), rnd.random())
+    elif kind == 'void_monolith':
+        # rune plinth on the ground + one floating crystal slab + 2..3 orbiting shards
+        basalt_column(bm, 0, 0, 0.5, 0.08, 0, 0, 0, 0)
+        gap = rnd.uniform(0.36, 0.44)
+        hgt = rnd.uniform(1.25, 1.55)
+        basalt_column(bm, 0, 0, rnd.uniform(0.2, 0.24), hgt, 0, 0, rnd.uniform(-0.06, 0.06), rnd.uniform(-0.06, 0.06),
+                      z0=0.08 + gap, tip=rnd.uniform(0.3, 0.42), squash=0.78)
+        for i in range(rnd.randint(2, 3)):
+            a = i / 3 * math.tau + rnd.uniform(-0.5, 0.5)
+            d = rnd.uniform(0.36, 0.44)
+            basalt_column(bm, math.cos(a) * d, math.sin(a) * d, rnd.uniform(0.05, 0.08), rnd.uniform(0.16, 0.26), 0, 0,
+                          rnd.uniform(-0.7, 0.7), rnd.uniform(-0.7, 0.7), z0=0.08 + gap + rnd.uniform(0.2, hgt * 0.8), tip=0.08)
     else:
-        # basalt column group: 5..7 upright hex columns of stepped heights, flat-ish tops
-        cols = [(0, 0)] + [(math.cos(i / 6 * math.tau) * 0.36, math.sin(i / 6 * math.tau) * 0.36) for i in range(6)]
-        rnd.shuffle(cols)
-        for i, (x, y) in enumerate(cols[:rnd.randint(5, 7)]):
-            h = (2.4 if i == 0 else rnd.uniform(1.0, 2.1))
-            hex_prism(bm, x, y, 0.21, h, rnd.uniform(0.02, 0.12), rnd.uniform(-0.04, 0.04), rnd.uniform(-0.04, 0.04), 0)
+        # obsidian: 3..4 thick basalt columns, slanted broken tops, slight outward lean
+        n = rnd.randint(3, 4)
+        basalt_column(bm, 0, 0, 0.3, 2.3, rnd.uniform(0.12, 0.22), rnd.random() * math.tau, rnd.uniform(-0.03, 0.03), rnd.uniform(-0.03, 0.03))
+        for i in range(n - 1):
+            a = i / (n - 1) * math.tau + rnd.uniform(-0.4, 0.4)
+            d = rnd.uniform(0.36, 0.44)
+            lean = rnd.uniform(0.05, 0.12)
+            basalt_column(bm, math.cos(a) * d, math.sin(a) * d, rnd.uniform(0.2, 0.27), rnd.uniform(0.9, 1.7),
+                          rnd.uniform(0.1, 0.25), rnd.random() * math.tau, -math.sin(a) * lean, math.cos(a) * lean)
     bm.normal_update()
     bm.to_mesh(mesh)
     bm.free()
@@ -298,20 +409,12 @@ def render_variant(type_id, cfg, idx, v):
         mat = bpy.data.materials.new(kind)
         if kind in ('ice', 'ice_shards'):
             toon(mat, base_rgb=ICE_RGB, emission=ICE_GLOW, emission_strength=0.18)
+        elif kind == 'void_monolith':
+            glow_mask_material(mat, VOID_RGB, VOID_GLOW, 'void')
         else:
-            toon(mat, base_rgb=OBSIDIAN_RGB)
+            glow_mask_material(mat, OBSIDIAN_RGB, OBSIDIAN_GLOW, 'obsidian')
         for o in objs:
             o.data.materials.append(mat)
-        if kind == 'obsidian':
-            # glowing crack band near the base of each column (magma light)
-            glow = bpy.data.materials.new('obsidian_glow')
-            toon(glow, base_rgb=OBSIDIAN_GLOW, emission=OBSIDIAN_GLOW, emission_strength=0.6)
-            for o in objs:
-                o.data.materials.append(glow)
-                for p in o.data.polygons:
-                    zs = [o.data.vertices[i].co.z for i in p.vertices]
-                    if p.normal.z > 0.5 and max(zs) > 0.5:
-                        p.material_index = 1
     else:
         objs = import_model(v['file'])
         for o in objs:

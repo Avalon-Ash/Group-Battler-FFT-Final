@@ -184,7 +184,7 @@ class ObstacleSpriteStoreImpl {
         const s = OBSTACLE_SPRITE.BAKE_SCALE;
         const spriteH = v.ay * k;
         if (anim.kind === 'glow') {
-            const mask = extractGlowMask(img, v);
+            const mask = extractGlowMask(img, v, anim.key);
             const pad = anim.blurPx * 2;
             const w = v.w * k + pad * 2, h = v.h * k + pad * 2;
             const { canvas, ctx } = createCanvas(Math.ceil(w * s), Math.ceil(h * s));
@@ -255,7 +255,7 @@ interface ObstacleOverlaySet {
 }
 
 /** 從精靈取出橘色發光部位（黑曜柱頂）：其餘像素透明。只在烘焙時讀一次像素 */
-function extractGlowMask(img: HTMLImageElement, v: ObstacleVariantDef): HTMLCanvasElement | null {
+function extractGlowMask(img: HTMLImageElement, v: ObstacleVariantDef, key: 'EMBER' | 'VIOLET'): HTMLCanvasElement | null {
     const { canvas, ctx } = createCanvas(v.w, v.h);
     ctx.drawImage(img, v.x, v.y, v.w, v.h, 0, 0, v.w, v.h);
     let data: ImageData;
@@ -264,10 +264,13 @@ function extractGlowMask(img: HTMLImageElement, v: ObstacleVariantDef): HTMLCanv
     } catch {
         return null;
     }
-    const K = OBSTACLE_SPRITE.GLOW_KEY;
+    const K = OBSTACLE_SPRITE.GLOW_KEYS[key];
+    const mainOff = K.main === 'r' ? 0 : 2;
+    const otherOff = K.main === 'r' ? 2 : 0;
     const d = data.data;
     for (let i = 0; i < d.length; i += 4) {
-        const keep = d[i] >= K.minR && d[i + 2] <= K.maxB && d[i] >= d[i + 1] * K.ratio;
+        const m = d[i + mainOff];
+        const keep = m >= K.min && m >= d[i + 1] * K.ratio && d[i + otherOff] <= K.maxOther;
         if (!keep) d[i + 3] = 0;
     }
     ctx.putImageData(data, 0, 0);

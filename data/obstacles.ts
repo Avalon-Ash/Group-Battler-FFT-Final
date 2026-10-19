@@ -4,7 +4,7 @@ import { ObstacleDef } from "../types";
 export const OBSTACLE_DB: Record<string, ObstacleDef> = {
     'WALL': {
         id: 'WALL',
-        name: '石牆',
+        name: '虛空石碑',
         blocksMovement: true,
         blocksVision: true,
         blocksFlying: false // Flyers can pass
