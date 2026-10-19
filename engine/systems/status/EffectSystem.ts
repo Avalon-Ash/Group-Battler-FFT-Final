@@ -2,7 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { DOT_COLORS, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { applyDirectDamage, applyHeal } from "../combat/DirectDamage";
-import { triggerHitFlash } from "../AnimationSystem";
+import { triggerHitFlash } from "../../core/ViewCommands";
 import { unitEventPos } from "../../events/EventPos";
 
 export class EffectSystem {

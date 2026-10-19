@@ -8,7 +8,7 @@ import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
 import { teleportTo } from "../movement/MotionCommands";
-import { triggerHitFlash, triggerHitShake } from "../AnimationSystem";
+import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS } from "../../../constants";
 import { random } from "../../math/rng";

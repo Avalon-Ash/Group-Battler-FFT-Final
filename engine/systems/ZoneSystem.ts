@@ -10,21 +10,14 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";
-import { Team } from "../../types";
+import { Team, ActiveZone } from "../../types";
 import { applyLethal } from "./combat/DirectDamage";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
 import { clearBanishedFlag } from "./status/ControlSystem";
 import { HexUtils } from "../utils";
 import { ISO_SCALE_Y } from "../../constants";
 
-export interface ActiveZone {
-    q: number;
-    r: number;
-    radius: number;
-    color: string;
-    progress: number;
-    isEnemy: boolean;
-}
+export type { ActiveZone };
 
 export class ZoneSystem {
     public activeZones: ActiveZone[] = [];

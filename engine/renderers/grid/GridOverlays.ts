@@ -10,9 +10,8 @@
 
 import { ZoneRenderer } from "./ZoneRenderer";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
-import { HexLayout } from "../../../types";
+import { HexLayout, ActiveZone } from "../../../types";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
-import { ActiveZone } from "../../systems/ZoneSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { GRID_OVERLAY } from "../../../constants";

@@ -4,7 +4,7 @@ import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage, applyLethal } from "../systems/combat/DirectDamage";
-import { triggerHitFlash } from "../systems/AnimationSystem";
+import { triggerHitFlash } from "../core/ViewCommands";
 import { random } from "../math/rng";
 import { unitEventPos } from "../events/EventPos";
 

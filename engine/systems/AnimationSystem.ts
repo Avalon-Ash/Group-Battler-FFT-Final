@@ -10,16 +10,7 @@
 import { Agent, GameEngine } from "../game";
 import { AnimState, ActionState } from "../../types";
 
-// [ARCH] hitFlashTimer / visualOffset 的唯一寫入入口（STATE_OWNERSHIP_DESIGN P2）。
-// 模擬層在受擊當下呼叫；寫入只發生在本檔，由 AnimationSystem.update 衰減。
-export function triggerHitFlash(agent: Agent, duration: number): void {
-    agent.hitFlashTimer = duration;
-}
 
-export function triggerHitShake(agent: Agent, power: number): void {
-    agent.visualOffset.x = (Math.random() - 0.5) * power;
-    agent.visualOffset.y = (Math.random() - 0.5) * power;
-}
 
 export class AnimationSystem {
     public update(dt: number, engine: GameEngine) {

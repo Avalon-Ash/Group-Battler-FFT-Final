@@ -156,14 +156,14 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
     },
     hitFlashTimer: {
         group: 'visual',
-        kind: 'single',
-        owners: ['engine/systems/AnimationSystem.ts'],
-        note: '模擬層透過 AnimationSystem 匯出的 triggerHitFlash 觸發；DirectorSystem 唯讀。',
+        kind: 'domain',
+        owners: ['engine/systems/AnimationSystem.ts', 'engine/core/ViewCommands.ts'],
+        note: '模擬層透過 ViewCommands 匯出的 triggerHitFlash 觸發；AnimationSystem 衰減；DirectorSystem 唯讀。',
     },
     visualOffset: {
         group: 'visual',
-        kind: 'single',
-        owners: ['engine/systems/AnimationSystem.ts'],
-        note: '受擊抖動；經 AnimationSystem 匯出的 triggerHitShake 寫入。',
+        kind: 'domain',
+        owners: ['engine/systems/AnimationSystem.ts', 'engine/core/ViewCommands.ts'],
+        note: '受擊抖動；經 ViewCommands 匯出的 triggerHitShake 寫入；AnimationSystem 衰減。',
     },
 };

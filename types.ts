@@ -624,3 +624,13 @@ export interface WeatherBoundsConfig {
     zMin: number;
     zSpread: number;
 }
+
+export interface ActiveZone {
+    q: number;
+    r: number;
+    radius: number;
+    color: string;
+    progress: number;
+    isEnemy: boolean;
+}
+

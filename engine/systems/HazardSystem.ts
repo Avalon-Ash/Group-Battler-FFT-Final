@@ -14,7 +14,7 @@ import { HexUtils } from "../utils";
 import type { MapConfig } from "../utils";
 import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
-import { triggerHitFlash } from "./AnimationSystem";
+import { triggerHitFlash } from "../core/ViewCommands";
 import { unitEventPos, hexEventPos } from "../events/EventPos";
 
 export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'mapConfig' | 'getTerrainHeight' | 'events'>;

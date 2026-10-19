@@ -14,9 +14,8 @@
 import { Agent } from "../game";
 import type { UnitFrame } from "./frame/UnitFrame";
 import { Particle } from "../systems/vfx/state";
-import { Projectile, Point, SpatialHazard, Team } from "../../types";
+import { Projectile, Point, SpatialHazard, Team, ActiveZone } from "../../types";
 import type { TerrainTheme } from "../../constants";
-import type { ActiveZone } from "../systems/ZoneSystem";
 
 export enum RenderOpType {
     TERRAIN,
