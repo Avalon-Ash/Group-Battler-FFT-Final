@@ -4,7 +4,7 @@ import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
 import { UI_Z } from '../../../constants';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
-import { useWindowActions, useWindowState } from '../../../hooks/useWindowStore';
+import { useWindowState } from '../../../hooks/useWindowStore';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
 
 interface ShowcaseOverlayProps {
@@ -20,7 +20,6 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const config = useShowcaseConfig();
     const layout = useShowcaseLayout();
-    const windowActions = useWindowActions();
     const settingsWindowState = useWindowState('showcaseSettings');
     const isSettingsOpen = !!settingsWindowState?.isOpen;
     // Settings open as a bottom sheet at compact widths; the title card would sit behind it.
@@ -117,16 +116,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                     </div>
                 </div>
             </div>
-
-            <div className="absolute top-6 left-6 pointer-events-auto" style={{ zIndex: UI_Z.OVERLAY_CONTROLS }}>
-                <button 
-                    onClick={() => windowActions.toggle('showcaseSettings')}
-                    className={`liquid-icon-btn hover:text-cyan-400 hover:border-cyan-500/50 hover:bg-white/10 ${isSettingsOpen ? 'text-cyan-400 border-cyan-500/50 bg-white/10' : 'text-slate-400'}`}
-                    title="展示與特效設定"
-                >
-                    <Icons.Settings className={`w-5 h-5 ${isSettingsOpen ? 'animate-spin-slow' : ''}`} />
-                </button>
-            </div>
+            {/* 展示設定只從右上角系統選單開（showcaseSettings visibleInShowcase）；左上舊的齒輪入口 2026-10-19 移除 */}
         </div>
     );
 };

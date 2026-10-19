@@ -84,7 +84,8 @@ try {
     };
 
     await check('showcase');
-    await page.locator('button[title="展示與特效設定"]').click();
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.locator('[data-testid="menu-item-showcaseSettings"]').click();
     await page.waitForTimeout(400);
     for (const tab of SHOWCASE_TABS) {
         const btn = page.locator(`[data-testid="showcase-tab-${tab}"]`);

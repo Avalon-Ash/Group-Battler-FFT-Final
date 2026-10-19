@@ -15,6 +15,8 @@
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, AIState, ActionState, Skill } from '../../types';
+import { VFX_REGISTRY } from '../../data/vfx/VFXRegistry';
+import { PROJECTILE_VISUALS } from '../../data/vfx/projectile_visuals';
 
 export const ROLE_MAP: Record<Role, { label: string; color: string; border: string }> = {
     [Role.TANK]:    { label: '坦克 (TANK)',    color: 'text-amber-400', border: 'border-amber-500' },
@@ -123,9 +125,13 @@ const TARGET_TYPE_MAP = [
 
 // [VISUAL SSOT] 此清單僅管理「技能特效 VFX ID」，不管理單位外觀。
 // 單位外觀（身體顏色/尺寸/武器）請至 data/units/appearance/ 修改。
-const VISUAL_OPTIONS = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH', 'HEX_HALO', 'HEX_PRISM', 'HEX_RUNE', 'HEX_SHIELD', 'HEX_SKULL', 'HEX_ANGRY', 'HEX_EYE', 'HEX_LOCK'];
+/** Skill.visual 的合法值（型別檢查擋住不存在的值；舊的 HEX_* 選項在零件化後已無對應） */
+const VISUAL_OPTIONS: NonNullable<Skill['visual']>[] = ['SLASH', 'ARROW', 'FIREBALL', 'BOLT', 'BEAM', 'BOMB', 'SMASH'];
+/** 命中特效＝VFX_REGISTRY 的鍵、彈道外觀＝PROJECTILE_VISUALS 的鍵（VFXValidator 用同兩張表驗證）；NONE＝不指定 */
+const HIT_EFFECT_OPTIONS = ['NONE', ...Object.keys(VFX_REGISTRY).sort()];
+const PROJECTILE_EFFECT_OPTIONS = ['NONE', ...Object.keys(PROJECTILE_VISUALS).sort()];
 
-/** 技能編輯欄位定義（SkillDbTab 依此動態產生表單）。key 必須是 Skill 的欄位。 */
+/** 技能編輯欄位定義（SkillDbTab 依此動態產生表單）。key 必須在 data/ui/skillEditor.ts SKILL_EDITABLE_FIELDS 內（UPDATE_SKILL 只收這些）。 */
 interface SkillFieldDef {
   key: keyof Skill;
   label: string;
@@ -147,9 +153,9 @@ export const SKILL_FIELD_GROUPS: SkillFieldGroup[] = [
       { key: 'name', label: '技能名稱', type: 'text' },
       { key: 'desc', label: '技能描述', type: 'text' },
       { key: 'tag', label: '技能類型', type: 'select', options: Object.keys(TAG_MAP).map(k => ({ value: k, label: `${TAG_MAP[k].label} (${k})` })) },
-      { key: 'visual', label: '基礎外觀 (Mesh)', type: 'select', simpleOptions: VISUAL_OPTIONS },
-      { key: 'visualHitEffect', label: '命中特效 (VFX_ID)', type: 'text' },
-      { key: 'visualProjectileEffect', label: '彈道特效 (VFX_ID)', type: 'text' },
+      { key: 'visual', label: '基礎外觀 (Mesh)', type: 'select', simpleOptions: ['NONE', ...VISUAL_OPTIONS] },
+      { key: 'visualHitEffect', label: '命中特效 (VFX_REGISTRY)', type: 'select', simpleOptions: HIT_EFFECT_OPTIONS },
+      { key: 'visualProjectileEffect', label: '彈道外觀 (PROJECTILE_VISUALS)', type: 'select', simpleOptions: PROJECTILE_EFFECT_OPTIONS },
       { key: 'specialVisualStatus', label: '特殊視覺狀態', type: 'select', options: SPECIAL_VISUAL_MAP },
       { key: 'color', label: '核心色標 (Hex)', type: 'color' },
     ]

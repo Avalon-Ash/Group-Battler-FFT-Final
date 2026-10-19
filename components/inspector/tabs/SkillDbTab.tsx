@@ -1,17 +1,22 @@
 
-import React, { useState } from 'react';
+import React, { useReducer, useState } from 'react';
 import { Role, Skill, Team } from '../../../types';
+import type { GameEngine } from '../../../engine/game';
+import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
 
 type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT';
 
 interface SkillDbTabProps {
-    db: Skill[];
-    onUpdate: () => void;
+    engine: GameEngine;
 }
 
-export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
+export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
+    const db = engine.skillDB;
+    const { send } = useEngineCommands(engine);
+    // UPDATE_SKILL 在 bus 上同步處理；送出後重繪一次讓表單讀到新值（以前直接改物件、onUpdate 是空函式，輸入框不會動）
+    const [, rerender] = useReducer((n: number) => n + 1, 0);
     const [dbTypeTab, setDbTypeTab] = useState<DbTypeTab>('ALL');
     const [dbRoleFilter, setDbRoleFilter] = useState<Role | 'ALL'>('ALL');
     const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
@@ -23,17 +28,11 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
     });
 
     const updateSkill = (field: keyof Skill, value: string | number | undefined) => {
-        const skill = db.find(s => s.id === selectedSkillId);
-        if (skill) { 
-            if (field === 'team') {
-                if (value === 'ANY') Object.assign(skill, { team: undefined });
-                else if (value === 'BLUE') Object.assign(skill, { team: Team.BLUE });
-                else if (value === 'RED') Object.assign(skill, { team: Team.RED });
-            } else {
-                Object.assign(skill, { [field]: value }); 
-            }
-            onUpdate(); 
-        }
+        if (!selectedSkillId) return;
+        let v: string | number | Team | undefined = value;
+        if (field === 'team') v = value === 'BLUE' ? Team.BLUE : value === 'RED' ? Team.RED : undefined;
+        send({ type: 'UPDATE_SKILL', skillId: selectedSkillId, field, value: v });
+        rerender();
     };
 
     return (
@@ -123,7 +122,8 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ db, onUpdate }) => {
                                                         else if (val === Team.BLUE) displayVal = 'BLUE';
                                                         else if (val === Team.RED) displayVal = 'RED';
                                                     } else if (val === undefined || val === null) {
-                                                        displayVal = '';
+                                                        // 選單的「無」選項值是 NONE；未設定時要選中它，而不是落在第一個實際選項上
+                                                        displayVal = field.type === 'select' ? 'NONE' : '';
                                                     }
 
                                                     const isWide = field.type === 'textarea';

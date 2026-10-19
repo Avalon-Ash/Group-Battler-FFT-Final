@@ -14,7 +14,7 @@ import { ULT_VISUALS } from '../data/vfx/ult_visuals';
 import { STATUS_VISUALS } from '../data/vfx/status_visuals';
 import { STATUS_PARTS } from '../data/vfx/status_parts';
 import { HAZARD_VISUALS } from '../data/vfx/hazard_visuals';
-import { VFX_LIBRARY } from '../data/vfx/vfx_library';
+import { PART_GALLERY } from '../data/vfx/parts/partGallery';
 import { BEAM_STYLES } from '../data/vfx/beam_styles';
 import { FACTION_VISUALS } from '../data/vfx/faction_visuals';
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId } from '../data/vfx/registry/cast_break';
@@ -73,7 +73,7 @@ const FAMILIES: Record<string, () => string[]> = {
     'vfx.literal': () => {
         const PREFIXES = new Set(['FX_HAZARD_FIELD_', 'FX_AOE_BREAK_RED', 'FX_AOE_BREAK_BLUE']);
         return uniqSorted(scan(/['"`](FX_[A-Z0-9_]+)['"`]/g)
-            .filter(h => !REGISTRY.has(h.key) && !PREFIXES.has(h.key) && h.file !== 'data/vfx/vfx_library.ts')
+            .filter(h => !REGISTRY.has(h.key) && !PREFIXES.has(h.key))
             .map(h => `${h.file}: ${h.key}`));
     },
     /** SKILL_SEQUENCES 的 PARTICLE 動作（VFXPlayer.play 查不到就靜默略過）。光束樣式在 beamStyle、投射物在技能的 visualProjectileEffect（ART_VFX_PLAN §5）。 */
@@ -84,9 +84,9 @@ const FAMILIES: Record<string, () => string[]> = {
         seq.actions.filter(a => a.type === 'BEAM' && !(a.style && a.style in BEAM_STYLES)).map(a => `${id}: ${a.style}`))),
     /** 陣營預設特效（技能沒有指定特效時 SkillSequences 的退路）＝ FACTION_VISUALS.defaultHitEffect。 */
     'vfx.sequenceFallback': () => TEAMS.map(t => FACTION_VISUALS[t].defaultHitEffect).filter(id => !REGISTRY.has(id)).sort(),
-    /** 檢視器「特效地圖」分頁的目錄條目（純展示）；FX_ 開頭的必須是現存特效。 */
-    'vfx.libraryCatalog': () => uniqSorted(Object.values(VFX_LIBRARY).flat()
-        .filter(e => e.key.startsWith('FX_') && !REGISTRY.has(e.key)).map(e => e.key)),
+    /** 特效展示庫的零件圖鑑（PART_GALLERY）必須涵蓋登記特效用到的每一種零件。 */
+    'vfx.libraryGallery': () => uniqSorted(Object.values(VFX_REGISTRY).flatMap(a => a.emitters.map(e => e.part?.kind))
+        .filter((k): k is NonNullable<typeof k> => !!k && !PART_GALLERY.some(g => g.kind === k))),
 
     // ── 投射物 ─────────────────────────────────────────────────────────────
     /** projectileSpeed > 0 的技能會生成投射物；ProjectileSystem 以 visualProjectileEffect || visual || 'BOLT' 查 PROJECTILE_VISUALS，查不到退回 DEFAULT_PROJECTILE。 */

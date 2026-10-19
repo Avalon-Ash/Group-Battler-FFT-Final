@@ -10,6 +10,7 @@ export const WINDOW_DEFINITIONS: WindowDef[] = [
         minSize: { width: 360, height: 240 },
         kind: 'window',
         visibleInShowcase: false,
+        visibleOnGameOver: true,
     },
     {
         id: 'db',
