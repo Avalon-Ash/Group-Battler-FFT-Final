@@ -28,6 +28,26 @@ export interface ShowcaseSettingsProps {
 
 type TabKey = 'SYSTEM' | 'CAMERA' | 'MATRIX' | 'GAMEPLAY';
 
+/**
+ * 分頁按鈕。必須宣告在 ShowcaseSettings 外面：宣告在 render 裡每次重繪都是新的元件型別，
+ * 設定面板跟著引擎播放狀態每秒重繪多次，按鈕被反覆卸載重建 → 文字閃爍、點擊落不到同一個節點而按不到
+ * （tools/ui-e2e/ui-remount-audit.mjs 量到每顆每秒 10 次）。
+ */
+const TabButton: React.FC<{ id: TabKey; label: string; icon: string; active: boolean; onSelect: (id: TabKey) => void }> = ({ id, label, icon, active, onSelect }) => (
+    <button
+        onClick={() => onSelect(id)}
+        data-testid={`showcase-tab-${id.toLowerCase()}`}
+        className={`touch-target flex-1 py-2 text-xs font-bold transition-all relative ${
+            active ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
+        }`}
+    >
+        <span className="mr-1">{icon}</span> {label}
+        {active && (
+            <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 shadow-[0_0_8px_cyan]" />
+        )}
+    </button>
+);
+
 export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
     engine,
 }) => {
@@ -60,29 +80,14 @@ export const ShowcaseSettings: React.FC<ShowcaseSettingsProps> = ({
         send({ type: 'SET_TIME_SCALE', timeScale: val });
     };
 
-    const TabButton = ({ id, label, icon }: { id: TabKey; label: string; icon: string }) => (
-        <button
-            onClick={() => setActiveTab(id)}
-            data-testid={`showcase-tab-${id.toLowerCase()}`}
-            className={`touch-target flex-1 py-2 text-xs font-bold transition-all relative ${
-                activeTab === id ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
-            }`}
-        >
-            <span className="mr-1">{icon}</span> {label}
-            {activeTab === id && (
-                <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-cyan-500 shadow-[0_0_8px_cyan]" />
-            )}
-        </button>
-    );
-
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none">
             {/* Tabs Bar */}
             <div className="flex px-2 border-b border-white/5 bg-black/20 shrink-0">
-                <TabButton id="SYSTEM" label="系統" icon="🖥️" />
-                <TabButton id="CAMERA" label="鏡頭" icon="🎥" />
-                <TabButton id="MATRIX" label="視覺" icon="🔮" />
-                <TabButton id="GAMEPLAY" label="玩法" icon="🗺️" />
+                <TabButton id="SYSTEM" label="系統" icon="🖥️" active={activeTab === 'SYSTEM'} onSelect={setActiveTab} />
+                <TabButton id="CAMERA" label="鏡頭" icon="🎥" active={activeTab === 'CAMERA'} onSelect={setActiveTab} />
+                <TabButton id="MATRIX" label="視覺" icon="🔮" active={activeTab === 'MATRIX'} onSelect={setActiveTab} />
+                <TabButton id="GAMEPLAY" label="玩法" icon="🗺️" active={activeTab === 'GAMEPLAY'} onSelect={setActiveTab} />
             </div>
 
             {/* Content Body */}
