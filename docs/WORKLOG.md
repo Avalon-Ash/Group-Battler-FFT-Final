@@ -109,6 +109,7 @@
 - 效能退步修正（`c08bcd3`）：使用者 239 Hz 主螢幕 `perf:frames` 一般戰鬥 p99 75 ms、特效壓力 142 ms。CPU 取樣顯示主執行緒一半閒置、耗時在原生 `drawImage`／`restore`；A/B（固定種子展示戰鬥 2560×1440）證實是 §O 加的每幀 `imageSmoothingQuality` high（medium 一樣慢，來源是離屏畫布，每次 drawImage 重算濾波）。每幀繪製改回 low、一次性烘焙維持 high；保真 6/6 未重錄。修正後中位數／p99：一般 4.3／16.7、壓力 8.2／16.7、展示 4.2／16.7 ms，平均約 145 FPS。
 - ECS-lite S2＋S3 表現層分離（Gemini 執行 `da0dea5`～`d24d4cb`，主代理審查後合併）：特效、事件視覺、單位提交、HUD、動畫推導、鏡頭／導播、DesignExporter 搬到 `engine/presentation/`，`GridCache` 搬 `engine/renderers/grid/`，`GridSystem` 只留查詢（點格快取由 renderer 注入 `HexSpatialLookup`）；`triggerHitFlash`／`triggerHitShake` 移到 `engine/core/ViewCommands.ts`；`visualStatus`／`hitFlashTimer`／`visualOffset` 收進 `agent.view`（`animState`、`trailHistory` 有模擬端寫入者，留原處）。`tests/LayerBoundary.test.ts`：模擬端 → 表現端 import 36 → 0（只准 0）。驗證：619 測試、保真與 main 數值完全相同、e2e:ui 全過。報告 `docs/PRESENTATION_LAYER_REPORT.md`。
 - e2e 樣式快照修正（`63c4808`）：UI 批次移除左上齒輪後快照仍找它（那批 push 前沒跑 e2e:ui）；改從系統選單開，基準只刪該鍵。
+- 展示模式戰鬥結束／換圖卡頓（`f5e33f0`）：長幀對齊 CPU 取樣，全部是地形 `bakeBlock`（2560×1440 每塊 4～9 ms）。烘焙預算原本按「16 ms 時間窗」重置，一幀內烘到一半就過期重置，從來擋不住長幀；改為每幀（`TerrainRenderer.beginFrame`）。縮圈塌陷改了鄰格邊緣遮罩→新鍵無級距可借 → 超預算時借同一格上一次的 sprite。換圖 IN／OUT 期間無可借用者延後一幀（`TRANSITION_BAKE_BUDGET_MS` 12）。展示探針 3 次：無 > 40 ms 的地形長幀（原 300／660 ms）；保真數值不變。探針在 `tools/ui-e2e/out/_scratch_terrain_stats.mjs`、`_scratch_longframe.mjs`。
 
 ## 3. 更早的輪次與審查修補
 
