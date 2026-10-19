@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  AgentView — 視覺欄位分組守門測試（PL4）                  ║
 // ║  職責：確保視覺狀態收束在 agent.view，且模擬層不可直寫     ║
-// ║  規則：docs/PRESENTATION_LAYER_AGENT_PROMPT.md §PL4       ║
+// ║  規則：docs/archive/PRESENTATION_LAYER_AGENT_PROMPT.md §PL4       ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { describe, it, expect } from 'vitest';

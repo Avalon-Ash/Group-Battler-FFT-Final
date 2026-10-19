@@ -13,7 +13,7 @@
 
 ## 指令本文
 
-你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程與守則**沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、不 `as any`、常數進 `constants.ts`、渲染／tick 迴圈無 `console.log`、保留既有註解），差異：① 進度寫在新檔 `docs/AUDIO_PROGRESS.md`；② 結束後在 `docs/DECOUPLING_HANDOFF.md` 新增 §12「音訊導入結果」；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有 e2e／fidelity／perf 腳本網址一律加 `?mute`。
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程與守則**沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、不 `as any`、常數進 `constants.ts`、渲染／tick 迴圈無 `console.log`、保留既有註解），差異：① 進度寫在新檔 `docs/AUDIO_PROGRESS.md`；② 結束後在 `docs/archive/DECOUPLING_HANDOFF.md` 新增 §12「音訊導入結果」；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有 e2e／fidelity／perf 腳本網址一律加 `?mute`。
 
 **先閱讀**：`AGENTS.md`、`types.ts`（尤其 `GameEventType`、`EventMap`、`WindowDef`）、`constants.ts`、`engine/events/**`（EventBus、GameEventPool）、`engine/game.ts`（生命週期、場景切換、模式切換）、`engine/systems/**` 中發出事件的位置（只讀，了解事件 payload）、`data/ui/windows.ts`、`components/ui/windowRegistry.tsx`、`components/ui/**` 既有視窗（以 `showcaseSettings` 為範本）、`engine/ui/**`（若有 UICommand 與 windowActions）、`tools/ui-e2e/render-fidelity.mjs`、`tools/ui-e2e/windows.e2e.mjs`。
 

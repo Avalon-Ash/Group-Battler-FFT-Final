@@ -1,6 +1,6 @@
 # 執行指令：狀態效果資料化（ECS-lite S1）
 
-> 用法：在 IDE 代理對話輸入 `/goal docs/STATUS_EFFECTS_AGENT_PROMPT.md`。
+> 用法：在 IDE 代理對話輸入 `/goal docs/archive/STATUS_EFFECTS_AGENT_PROMPT.md`。
 > 背景：`docs/ECS_LITE_ASSESSMENT.md` §2 S1。13 種控制／持續效果目前是 `Agent` 上21 個平行欄位（`stunTimer`／`stunMax`、`silenceTimer`／`silenceMax`…），新增一種效果要改 6 處，`reset()` 漏清、遞減寫法不一致這類 bug 反覆出現。本輪把它們收成一個元件 `agent.effects`，效果的規則放 `data/`。
 > **本輪是純重構：遊戲行為必須完全不變。** 保真基準 0 差異、`br-soak` 10/10 是硬條件；任何基準都不得重錄、門檻不得放寬。
 

@@ -4,7 +4,7 @@ import { PartPainter } from "./painters/PartPainter";
 import { particleBackend, VFX_RENDER } from "../../../../constants";
 import { HexLayout } from "../../../../types";
 
-// 分派依 constants.ts 的 PARTICLE_TRAITS（particleBackend）；不在這裡另列型別清單
+// 分派依 constants/vfx.ts 的 PARTICLE_TRAITS（particleBackend）；不在這裡另列型別清單
 
 /**
  * 粒子分派：零件（含天氣）→ PartPainter；光束 → PartPainter.drawBeam；其餘 → 除錯點。

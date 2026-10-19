@@ -1,5 +1,7 @@
 # ECS-lite 評估（2026-10-19）
 
+> **現況（2026-10-20）**：S1（`agent.effects`）、S2＋S3（`engine/presentation/`、`agent.view`）、S4（`constants/*.ts`）全部完成，紀錄見 `docs/WORKLOG.md` §Q。本文件保留作決策依據。
+
 > 使用者目標：架構透明簡潔、好新增擴充、好查問題；不為做而做。本文件判斷哪些值得跑、哪些不值得。
 
 ## 1. 現況

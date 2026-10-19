@@ -21,7 +21,7 @@
 | **A2e** | 體型隨機派發＋戰場編輯器可改 | DONE | `cfbbd65` | `AgentManager` FNV-1a 確定性體型派發；`UICommandSystem`、`MapEditorToolbar` 與 `UnitInspectorBody` 支援動態體型選擇。 |
 | **A2c** [E2E] | 死亡與狀態整合 | DONE | `e73126b` | `UnitDeathPainter.ts` 6 格死亡停格＋淡出 12px 沉降；依 A2 特殊授權重錄 battle_frozen；產出前後對比圖；e2e×2 全綠。 |
 | **A3** | 特效粒子材質與障礙物清單 | DONE | `c68bf1e` | 入庫 Kenney CC0 粒子貼圖；實作 `ParticleTextureStore.ts` 與 `VFX_SPRITES`；產出 `docs/ASSET_NEEDS.md` 視覺需求評估書。 |
-| **REPORT** | 成果報告與交付更新 | DONE | *(本報告)* | 完成 `docs/ART_REPORT.md` 與 `docs/DECOUPLING_HANDOFF.md` §11 更新。 |
+| **REPORT** | 成果報告與交付更新 | DONE | *(本報告)* | 完成 `docs/ART_REPORT.md` 與 `docs/archive/DECOUPLING_HANDOFF.md` §11 更新。 |
 | **FINAL** | 全量驗證與 Checkpoint Tags | DONE | *(即將打點)* | 全量驗證 (lint / test / build / e2e×2 / perf:guard)；打點 `art-ckpt-final`。 |
 
 ---

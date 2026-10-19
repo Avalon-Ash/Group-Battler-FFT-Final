@@ -119,7 +119,7 @@ export class DesignExporter {
         s += "- 六角零件管線 (Hex-Part Pipeline): 所有技能特效、投射物、光束、詠唱光環、護盾、危害、狀態都是預烘焙零件（`engine/renderers/vfxparts/`：PartSpec 量化 → PartBakers 烘焙 → VFXPartStore LRU 快取）。執行期只有 drawImage／globalAlpha／混合模式／變換，不建漸層、不設 shadowBlur。色階依陣營×技能屬性（`data/vfx/element_ramps.ts`），不吃技能顏色字串。\n";
         s += "- 投射物 (Projectiles): 單一表 `data/vfx/projectile_visuals.ts`（軌跡＋外觀）；`ProjectilePartPainter` 畫本體（依速度拉長）、光痕（光束磚沿取樣點串接）或煙、頭部光暈；色階由 op.pTeam 選。\n";
         s += "- 亮地表增益 (Biome Gain): 加法零件乘 `VFX_BIOME_GAIN`（冰、沙會飽和成白），火焰本體一般混合以保留色相。\n";
-        s += "- § VFX 粒子預算 (Particle Budget，constants.ts VFX_PARAM／VFX_BUDGET):\n";
+        s += "- § VFX 粒子預算 (Particle Budget，constants/vfx.ts VFX_PARAM／VFX_BUDGET):\n";
         s += "  - MAX_PARTICLES: 全域粒子硬上限，VFXPlayer spawn 前檢查。\n";
         s += "  - MAX_POOL_SIZE: 物件池回收上限。\n";
         s += "  - HAZARD_FIELD_MAX_PER_CELL: 每格 locked 危害粒子上限。\n";
@@ -211,11 +211,11 @@ export class DesignExporter {
         s += "  模型替換（變羊／冰塊）                            → UnitBodyPainter.ts\n\n";
 
         s += "### 8-4. 佈局常數 (SSOT)\n\n";
-        s += "HUD_ANCHOR / HUD_LAYOUT → constants.ts\n\n";
+        s += "HUD_ANCHOR / HUD_LAYOUT → constants/hud.ts\n\n";
         s += "修改流程：\n";
         s += "  調整浮字顏色/大小    → EventHUDMapper.handleCombatText()\n";
         s += "  調整浮字物理行為     → HUDSystem.update()\n";
-        s += "  調整佈局偏移常數     → constants.ts (HUD_LAYOUT)\n";
+        s += "  調整佈局偏移常數     → constants/hud.ts (HUD_LAYOUT)\n";
         s += "  調整毒/回復顯示色    → data/vfx/status_visuals.ts\n\n";
 
         s += "## 9. 資產快取層 (Asset Cache Layer)\n\n";

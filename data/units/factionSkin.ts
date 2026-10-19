@@ -113,7 +113,7 @@ export interface ClassIconSkin {
     glyph: GlyphStyleId;
 }
 
-/** 棋座核心：把角色投影出來的懸浮六角晶體（尺寸與位置見 constants.ts 的 CORE_VISUAL） */
+/** 棋座核心：把角色投影出來的懸浮六角晶體（尺寸與位置見 constants/units.ts 的 CORE_VISUAL） */
 export interface CoreSkin {
     style: CoreStyle;
     /** 晶面：左半（受光）、右半（背光）、頂面高光、輪廓 */

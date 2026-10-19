@@ -101,19 +101,23 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   │   ├── grid.ts / map.ts     ← [Facade] 網格查詢、地圖資料（實作在 grid/、map/）
 │   │   ├── combat/              ← 戰鬥：技能執行、傷害公式、彈道、施法、控場（combat.ts 為轉發 barrel）
 │   │   ├── movement/            ← Hex 移動、逐幀位移、同格碰撞排解
-│   │   ├── status/              ← 冷卻、持續效果、控場計時
-│   │   ├── unit/                ← 單位渲染提交、Ragdoll 快照
-│   │   ├── vfx/                 ← 特效系統：登記特效播放、零件粒子、光束、物理、天氣
+│   │   ├── status/              ← 冷卻、持續效果、控場計時（效果槽位 agent.effects，規則表 data/status/effect_defs.ts）
+│   │   ├── unit/RagdollFactory.ts ← Ragdoll 快照
 │   │   ├── audio/AudioSystem.ts ← 遊戲事件 → 音效 Cue、BGM 切換
 │   │   ├── ui/UICommandSystem.ts← UI 寫入引擎的唯一閘門（UI_COMMAND 事件）
 │   │   ├── agentManager.ts      ← 單位生命週期：生成、唯一死亡入口、死亡計時、回收
 │   │   ├── ZoneSystem.ts        ← 大逃殺縮圈：Flood-fill 深度、地形崩落、墜落出局
 │   │   ├── PhysicsSystem.ts     ← 物理積分：衝量、重力、自由落體
-│   │   ├── AnimationSystem.ts   ← 動畫狀態推導（tick 最末層）
-│   │   ├── DirectorSystem.ts / CameraSystem.ts ← 導播決策 / 鏡頭執行
 │   │   ├── HazardSystem.ts      ← 地面危機區域（毒、火、冰、重力）
 │   │   ├── VictorySystem.ts     ← 勝負判定（含平局收尾）
-│   │   ├── BattleLogger.ts / AnnouncerSystem.ts ← 戰鬥紀錄 / 戰況播報
+│   │   └── BattleLogger.ts / AnnouncerSystem.ts ← 戰鬥紀錄 / 戰況播報
+│   ├── presentation/            ← 表現層（模擬端不得 import，tests/LayerBoundary.test.ts）
+│   │   ├── vfx/                 ← 特效系統：登記特效播放、零件粒子、光束、物理、天氣
+│   │   ├── visuals/             ← 遊戲事件 → 特效／浮字對應、技能序列
+│   │   ├── unit/UnitSystem.ts   ← 單位渲染提交
+│   │   ├── AnimationSystem.ts   ← 動畫狀態推導（tick 最末層；外觀欄位在 agent.view）
+│   │   ├── DirectorSystem.ts / CameraSystem.ts ← 導播決策 / 鏡頭執行
+│   │   ├── hud.ts               ← 浮動文字
 │   │   └── DesignExporter.ts    ← 戰鬥數據結構化輸出（企劃驗證用）
 │   ├── renderers/
 │   │   ├── RenderSpec.ts        ← 座標協議 SSOT：層序、sortBias、三種 Y、腳下高度、發射點／受擊點
@@ -136,15 +140,17 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 ├── data/
 │   ├── units/appearance/    ← 單位外觀 SSOT：精靈圖集對應、體型、影格選擇、死亡擊飛（deathMotion）
 │   ├── skills/              ← 各陣營技能資料
+│   ├── status/effect_defs.ts ← 狀態效果規則（極性、硬控、施加清洗）
 │   ├── ai_profiles.ts       ← 行為樹定義（資料驅動）
 │   ├── audio/               ← 音效 Cue 與 BGM 定義
 │   ├── vfx/                 ← 特效登記（零件配方）、零件色階與參數（parts/）、投射物／危害／狀態零件表、光束樣式
 │   └── scenes.ts            ← 場景主題（森林、冰原、熔岩…）
 ├── public/assets/           ← 精靈單位、障礙物／地表裝飾圖集、地形貼圖、音訊（授權見 CREDITS.md、docs/ASSET_LEDGER.md）
 ├── tests/                   ← Vitest 確定性單元測試
-├── tools/                   ← 材質預覽、UI e2e、效能量測與渲染保真腳本、音訊預覽
+├── tools/                   ← UI e2e、效能量測與渲染保真腳本、特效截圖、批次對戰平衡模擬（balance/）、音訊預覽
 ├── types.ts                 ← 全域型別契約（VFX schema 另見 types/VFXSchema.ts）
-├── constants.ts             ← 全域參數 SSOT（物理、戰鬥、顏色、版面、特效預算）
+├── constants/               ← 全域參數 SSOT，依領域分檔（geometry、combat、palette、units、hud、terrain、vfx、ui、render、audio）
+├── constants.ts             ← 只轉發 constants/*.ts（import 一律從這裡）
 └── .github/workflows/       ← GitHub Pages 自動部署
 ```
 
@@ -155,7 +161,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 ### 1. SSOT（Single Source of Truth）
 單位狀態集中在 `Agent`，渲染層與 UI 層**只讀取，不寫入**（UI 的修改經 `UICommandSystem` 提交）。
 動畫狀態在 `tick()` 最後由 `AnimationSystem` 統一推導，確保視覺與邏輯一致。
-參數與顏色在 `constants.ts`，單位外觀在 `data/units/appearance/`，渲染器只消費資料、不定義資料。
+參數與顏色在 `constants/*.ts`（依領域分檔），單位外觀在 `data/units/appearance/`，渲染器只消費資料、不定義資料。
 
 ### 2. 單一寫入者
 每個狀態欄位只由一個系統寫入。例如死亡計時 `deathTimer` 與回收旗標 `fullyDead` 只由 `agentManager.updateDeathState` 寫入；曾經有兩個系統同時寫它，結果計時永遠歸零、死亡動畫從不播放。

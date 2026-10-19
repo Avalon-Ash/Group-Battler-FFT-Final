@@ -1,6 +1,6 @@
 # 執行指令：表現層分離（ECS-lite S2＋S3）
 
-> 用法：在 IDE 代理對話輸入 `/goal docs/PRESENTATION_LAYER_AGENT_PROMPT.md`。
+> 用法：在 IDE 代理對話輸入 `/goal docs/archive/PRESENTATION_LAYER_AGENT_PROMPT.md`。
 > 背景：`docs/ECS_LITE_ASSESSMENT.md` §2 S2、S3。渲染相關的「系統」（特效、單位提交、HUD、鏡頭、動畫推導）放在 `engine/systems/` 底下，模擬端有 14 個檔 import 渲染層、渲染層有 9 個檔反過來 import 系統層。查問題時看不出「誰會改模擬狀態」。本輪把表現端搬到 `engine/presentation/`，讓模擬端不再 import 表現端；純視覺欄位收進 `agent.view`。
 > **本輪是純搬移／改名：遊戲行為與畫面必須完全不變。** 任何基準不得重錄、門檻不得放寬。
 

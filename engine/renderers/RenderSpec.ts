@@ -133,7 +133,7 @@ export class RenderSpec {
         s += "--- \n\n";
 
         s += "## 5. 漂浮位移 (Floating Bob: VOID／MAGMA)\n\n";
-        s += "唯一實作 VisualMath.floatBobAt(格心 x, 格心 y, battleTime)，參數 FLOAT_BOB（constants.ts），取整數像素，正值往下。\n";
+        s += "唯一實作 VisualMath.floatBobAt(格心 x, 格心 y, battleTime)，參數 FLOAT_BOB（constants/geometry.ts），取整數像素，正值往下。\n";
         s += "- 地塊、障礙、危害、射程疊層：GridRenderStrategy 把位移加在 op.ty（不加在 op.y）。\n";
         s += "- 單位、屍體、狀態、HUD、剪影：從繪製用高度自動取得（RenderPipeline 的高度函式扣掉位移）。\n";
         s += "- 貼地特效、貼花：VFXRenderer 以「模擬高度 − 繪製用高度」補到 op.ty。\n";
@@ -150,11 +150,11 @@ export class RenderSpec {
         s += "技能（data/skills/**）有四個視覺欄位，每個都指向一張 SSOT 表；tests/ReferenceIntegrity.test.ts 與開機時的 VFXValidator 檢查全部引用：\n\n";
         s += "| 欄位 | 指向 | 繪製 |\n";
         s += "|------|------|------|\n";
-        s += "| visualHitEffect | VFX_REGISTRY（data/vfx/registry/**，全部是零件） | 粒子 → ParticleRenderer → PartPainter（後端由 constants.ts PARTICLE_TRAITS 決定） |\n";
+        s += "| visualHitEffect | VFX_REGISTRY（data/vfx/registry/**，全部是零件） | 粒子 → ParticleRenderer → PartPainter（後端由 constants/vfx.ts PARTICLE_TRAITS 決定） |\n";
         s += "| visualProjectileEffect | PROJECTILE_VISUALS（data/vfx/projectile_visuals.ts） | ProjectileRenderer 提交 PROJECTILE op（§1、§3）→ 投射物繪製器 |\n";
         s += "| 奧義原型（ult_visuals.ts）／序列（SkillSequences.ts） | VFX_REGISTRY 鍵＋BEAM_STYLES 鍵（beam_styles.ts） | SequenceSystem 排動作；光束 → PartPainter.drawBeam（光束零件） |\n";
         s += "| visual（ARROW／FIREBALL／BOLT／SLASH／SMASH／BEAM／BOMB） | 圖示與後備外觀鍵 | 技能圖示（UIFactory，量表 GaugePainter 與 Inspector 共用）；沒有 visualProjectileEffect 時當投射物外觀鍵 |\n\n";
-        s += "粒子後端只有一個出處：constants.ts 的 PARTICLE_TRAITS（PART／PART_GROUND／PART_DEBRIS 走零件；BEAM 掛光束零件；\n";
+        s += "粒子後端只有一個出處：constants/vfx.ts 的 PARTICLE_TRAITS（PART／PART_GROUND／PART_DEBRIS 走零件；BEAM 掛光束零件；\n";
         s += "天氣也是 PART 粒子（VFXAmbience，T4）；其餘舊型別只畫洋紅除錯點，tests/VFXBackend.test.ts 以只減不增的棘輪擋住）。\n\n";
         s += "單位本體外觀不在本表：陣營外觀唯一入口是 data/units/factionSkin.ts 的 getFactionSkin（docs/FACTION_SLOTS.md），\n";
         s += "精靈圖集與體型在 data/units/appearance/（sprite.ts、bodyTypes.ts、projection.ts），棋座顏色在 appearance/imperial.ts、covenant.ts。\n\n";
@@ -195,7 +195,7 @@ export class RenderSpec {
         s += "- 掉落中的地塊（op.z < 0）不畫鋪設特效。\n";
         s += "- 模式：DIRECT＝每格裁切後直接畫粒子（單一 drawImage／少量填色，混合模式與原本一致）；OFFSCREEN＝多段描邊的向量特效，每幀只畫一次到池化離屏畫布\n";
         s += "  （目前裝置縮放，容量只增不減），再逐格複製與該格外框相交的部分，以粒子混合模式貼上。\n";
-        s += "- 分類（SSOT 在 constants.ts GROUND_DRAPE.MODE）：粒子只有 PART_GROUND（DIRECT，單張零件）；施法 AOE 預警等繪製函式走 OFFSCREEN。\n";
+        s += "- 分類（SSOT 在 constants/vfx.ts GROUND_DRAPE.MODE）：粒子只有 PART_GROUND（DIRECT，單張零件）；施法 AOE 預警等繪製函式走 OFFSCREEN。\n";
         s += "- 非粒子鋪設：施法 AOE 地面預警（UnitRenderSystem.paintAoeIndicator，GroundDrapeLayer.addPainted）一律走離屏畫布，逐格貼在頂面；\n";
         s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱法陣（magicCircle 零件）、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
         s += "  以 screen 貼回（GROUND_DRAPE.PLANE_BLEND＝CAST_RING.BLEND，兩者必須一致，否則施法者那格的補畫與鋪設結果不同），\n";

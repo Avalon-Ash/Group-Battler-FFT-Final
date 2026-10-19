@@ -16,7 +16,7 @@
 
 ## 指令本文
 
-你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、陷阱、停下條件**完全沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、保真鐵律、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`），再加上 `docs/PERF_AGENT_PROMPT_2.md` 的核心原則（預設外觀逐像素等價；會改變外觀者做成預設關閉的旗標並出前後對照圖）。差異：① 進度寫在新檔 `docs/PERF_BASELINE_3.md`；② 結束後在 `docs/DECOUPLING_HANDOFF.md` 新增 §10.6；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有量測網址一律 `?quality=0`（除非該任務明說）。
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、陷阱、停下條件**完全沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、保真鐵律、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`），再加上 `docs/PERF_AGENT_PROMPT_2.md` 的核心原則（預設外觀逐像素等價；會改變外觀者做成預設關閉的旗標並出前後對照圖）。差異：① 進度寫在新檔 `docs/PERF_BASELINE_3.md`；② 結束後在 `docs/archive/DECOUPLING_HANDOFF.md` 新增 §10.6；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有量測網址一律 `?quality=0`（除非該任務明說）。
 
 ### 本輪新增的「量測可信度」鐵律（違反＝該任務結果作廢）
 
@@ -27,7 +27,7 @@
 - 量測期間不得同時跑其他重負載（`e2e`、建置）。
 - **避免被「戰鬥結束／場景切換」污染（使用者回報 showcase 量測會失真）**：manual_battle 量測期間必須確認戰鬥**仍在進行**（engine.isRunning === true 且尚未收到 GAME_OVER）；每個取樣視窗開始與結束都檢查，若期間戰鬥已結束 → 該視窗作廢並重跑（可在量測腳本內於戰鬥快結束前重新生成陣容／重置，或把單位 HP 調高以確保整個視窗內持續交戰）。showcase 因為會自動換場（OUT 1.2 s + IN 1.5 s 的轉場），**要把取樣切成「純交戰區間」**：監聽 session 轉場（	ransitionPhase !== 'IDLE' 或 engine.agents.length === 0）期間的幀一律丟棄，另外回報「轉場期間」的 ms 以供參考。每個視窗輸出實際採用的幀數與丟棄的幀數。
 
-先閱讀：`AGENTS.md`、`docs/PERF_REPORT.md`、`docs/PERF_REPORT_2.md`（含審查更正）、`docs/PERF_BASELINE_2.md`、`docs/BAKED_RENDERING_DESIGN.md`、`docs/DECOUPLING_HANDOFF.md` §10、`constants.ts`、`engine/renderers/RenderQuality.ts`、`RenderStats.ts`、`CtxOpCounter.ts`、`GlowSpriteCache.ts`、`engine/renderers/grid/TerrainRenderer.ts`、`TerrainBlockCache.ts`、`engine/renderers/RenderPipeline.ts`、`tools/ui-e2e/perf-*.mjs`、`tools/ui-e2e/render-fidelity.mjs`。
+先閱讀：`AGENTS.md`、`docs/PERF_REPORT.md`、`docs/PERF_REPORT_2.md`（含審查更正）、`docs/PERF_BASELINE_2.md`、`docs/BAKED_RENDERING_DESIGN.md`、`docs/archive/DECOUPLING_HANDOFF.md` §10、`constants.ts`、`engine/renderers/RenderQuality.ts`、`RenderStats.ts`、`CtxOpCounter.ts`、`GlowSpriteCache.ts`、`engine/renderers/grid/TerrainRenderer.ts`、`TerrainBlockCache.ts`、`engine/renderers/RenderPipeline.ts`、`tools/ui-e2e/perf-*.mjs`、`tools/ui-e2e/render-fidelity.mjs`。
 
 **開工檢查**：分支必須是 `perf/render-opt-3`；`git status` 乾淨（否則停下回報）；`npm run lint`、`npm test`、`npm run build`、`npm run perf:guard` 全綠（`perf:guard` 內 `battle_frozen` 必須是**有單位**的畫面——自行打開 `tools/ui-e2e/baseline/fidelity/battle_frozen.png` 目視確認，若是模糊空場景 → 停下回報）。若 `docs/PERF_BASELINE_3.md` 已存在，從第一個未完成任務接續。
 

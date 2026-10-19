@@ -10,14 +10,14 @@
 
 ## 指令本文
 
-你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、陷阱、停下條件**完全沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、保真鐵律、量測紀律「交錯兩輪、<5% 視為雜訊」、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`）。差異：① 進度寫在新檔 `docs/PERF_BASELINE_2.md`「任務進度」表；② 結束後把摘要補進 `docs/DECOUPLING_HANDOFF.md` §10.4 之後（新增 §10.5「效能第二輪」）；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有量測／e2e 網址一律 `?quality=0`。
+你是本專案（`c:\Git\Group-Battler-FFT-Final`）的執行代理。流程、守則、陷阱、停下條件**完全沿用 `docs/PERF_AGENT_PROMPT.md` 的「指令本文」與「本輪額外規則」**（≤3 檔、lint/test/build、一任務一 commit、不 push、同題失敗 3 次就停、保真鐵律、量測紀律「交錯兩輪、<5% 視為雜訊」、不 `as any`、常數進 `constants.ts`、渲染迴圈無 `console.log`）。差異：① 進度寫在新檔 `docs/PERF_BASELINE_2.md`「任務進度」表；② 結束後把摘要補進 `docs/archive/DECOUPLING_HANDOFF.md` §10.4 之後（新增 §10.5「效能第二輪」）；③ `e2e:ui` 只在 **[E2E]** 任務與 FINAL 跑（各連跑兩次）；④ 所有量測／e2e 網址一律 `?quality=0`。
 
 **核心原則（本輪新增）**：
 - **預設外觀必須與現在逐像素等價**（`perf:fidelity` 不得放寬門檻、不得重錄 baseline）。
 - **會改變外觀的優化（例如 shadowBlur → 預烘焙光暈）一律做成「預設關閉」的旗標／品質階層**，產出「前／後」截圖供使用者目視核定；**由使用者決定是否轉為預設，代理不得自行開啟為預設。**
 - 「只做有數據佐證的優化」：每項需要 profile／計數前後對照；未達驗收 → 還原。
 
-先閱讀：`AGENTS.md`、`docs/PERF_REPORT.md`、`docs/PERF_BASELINE.md`、`docs/DECOUPLING_HANDOFF.md` §10、`types.ts`、`constants.ts`、`engine/renderers/RenderQuality.ts`、`engine/renderers/RenderStats.ts`、`engine/renderers/RenderPipeline.ts`、`engine/renderers/units/**`、`engine/graphics/painters/**`、`engine/systems/vfx/renderers/**`、`engine/renderers/hud/**`、`components/ui/showcase/useMatrixRain.ts`、`tools/ui-e2e/perf-*.mjs`、`tools/ui-e2e/render-fidelity.mjs`。
+先閱讀：`AGENTS.md`、`docs/PERF_REPORT.md`、`docs/PERF_BASELINE.md`、`docs/archive/DECOUPLING_HANDOFF.md` §10、`types.ts`、`constants.ts`、`engine/renderers/RenderQuality.ts`、`engine/renderers/RenderStats.ts`、`engine/renderers/RenderPipeline.ts`、`engine/renderers/units/**`、`engine/graphics/painters/**`、`engine/systems/vfx/renderers/**`、`engine/renderers/hud/**`、`components/ui/showcase/useMatrixRain.ts`、`tools/ui-e2e/perf-*.mjs`、`tools/ui-e2e/render-fidelity.mjs`。
 
 **開工檢查**：分支必須是 `perf/render-opt`（不是 → `git checkout perf/render-opt`；不存在 → 停下回報）；`git status` 乾淨（否則停下回報）；`npm run lint`、`npm test`、`npm run build`、`npm run e2e:ui`、`npm run perf:guard` 全綠。若 `docs/PERF_BASELINE_2.md` 已存在，從第一個未完成任務接續。
 

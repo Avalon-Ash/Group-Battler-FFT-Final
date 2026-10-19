@@ -445,7 +445,7 @@ npm run lint; npm run build
 - **背景與目標**：針對使用者回報「主螢幕 2560×1440 @ 239 Hz（RTX 4070）在全場特效齊發時狂掉 FPS 掉至 60 左右」與「?perf HUD 顯示 390 FPS 矛盾」，開展特效系統全量盤點與瞬時負載優化。
 - **核心成果與實現**：
   1. **?perf HUD 真實 rAF 算法修復 (P0b)**：修正舊算法僅統計 CPU JS 繪製時間之盲區，改採真實 `requestAnimationFrame` 間隔滑動平均，新增 `1% Low FPS`、近 1 秒最長幀、`Frame Total` 與 `JS Total`。HUD 與量測腳本誤差 < 0.13%。
-  2. **特效庫存盤點與可疑項清理 (P1)**：產出 `docs/VFX_INVENTORY.md`（涵蓋 109 項資產與 11 大程序化系統）。定位危害區在網格層與粒子層之雙重繪製，並標記死碼。
+  2. **特效庫存盤點與可疑項清理 (P1)**：產出 `docs/archive/VFX_INVENTORY.md`（涵蓋 109 項資產與 11 大程序化系統）。定位危害區在網格層與粒子層之雙重繪製，並標記死碼。
   3. **逐項成本歸因 (P2)**：在壓力情境（`battle_vfx_storm`）建立 Top 10 成本排行榜。確認 78% 之長幀由 Canvas 2D 軟體光柵化（`shadowBlur` 與每幀重複建立漸層）造成。
   4. **熱路徑光柵化與漸層消除 (P3)**：
      - `VolumePainter`：移除 SOLID 樣式漸層，側面 6 面共用垂直漸層。
@@ -468,7 +468,7 @@ npm run lint; npm run build
   - `npm run e2e:ui` 連跑兩次 ALL PASSED
   - `npm run perf:guard` 通過
 - **本地 Checkpoint Tags**：`perf4-ckpt-P0`、`perf4-ckpt-P3`、`perf4-ckpt-final`。
-- **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/archive/PERF_BASELINE_4.md` 與 `docs/VFX_INVENTORY.md`。
+- **報告參考**：詳見 `docs/PERF_REPORT_4.md`、`docs/archive/PERF_BASELINE_4.md` 與 `docs/archive/VFX_INVENTORY.md`。
 
 ---
 

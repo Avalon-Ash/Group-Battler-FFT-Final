@@ -1,7 +1,7 @@
 import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 
 /**
- * 粒子型別（後端與特性見 constants.ts PARTICLE_TRAITS）：
+ * 粒子型別（後端與特性見 constants/vfx.ts PARTICLE_TRAITS）：
  *  - PART／PART_GROUND／PART_DEBRIS：特效零件（PartSprite）的看板／貼地／受重力碎片——所有登記特效都是這三種
  *  - BEAM：光束（一律掛光束零件，PartPainter.drawBeam）
  *  - ATMOSPHERE：天氣粒子（看板，VFXAmbience 生成；地形 T4 會改零件）

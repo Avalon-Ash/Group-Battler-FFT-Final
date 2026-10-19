@@ -13,11 +13,17 @@
    - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading).
    - **Agent entity**: `Agent` (`engine/core/Agent.ts`) is pure data. **Never add methods to `Agent`.** All logic lives in Systems.
    - **One writer per field**: each state field is written by exactly one system. Before writing a field, `git grep` for other writers. (A timer once had two writers — one adding, one subtracting — so it stayed at 0 and death animations never played.)
-   - **Animation derivation**: visual/animation states are derived at the end of each tick in `AnimationSystem`.
+   - **Animation derivation**: visual/animation states are derived at the end of each tick in `AnimationSystem` (`engine/presentation/`).
+   - **Status effects**: all control / over-time effects live in `agent.effects` (fixed slots, `engine/core/Effects.ts`); their rules (polarity, hard CC, cleanses) are data in `data/status/effect_defs.ts`. Add an effect by adding a kind + def, not new `xxxTimer` fields (`tests/EffectFieldsRatchet.test.ts`).
+   - **Visual fields**: `agent.view` (`visualStatus`, `hitFlashTimer`, `visualOffset`) is written only by presentation code and `engine/core/ViewCommands.ts` (`triggerHitFlash`, `triggerHitShake`); simulation code calls those commands.
 
 2. **Facade and barrel files**:
    - **Facades** (public API / lifecycle orchestration): `engine/renderer.ts`, `engine/game.ts`, `engine/systems/grid.ts`, `engine/systems/map.ts`. Do not modify them unless the task explicitly changes a public signature or the tick order.
-   - **Barrels** (`// [BARREL]` header, e.g. `engine/systems/combat.ts`, `movement.ts`, `unit.ts`, `vfx.ts`): re-exports only. Put code in the matching subdirectory (`engine/systems/combat/`, etc.), never in the barrel.
+   - **Barrels** (`// [BARREL]` header, e.g. `engine/systems/combat.ts`, `movement.ts`, `engine/presentation/unit.ts`, `vfx.ts`, and `constants.ts`): re-exports only. Put code in the matching subdirectory (`engine/systems/combat/`, `constants/<domain>.ts`, etc.), never in the barrel.
+
+2b. **Simulation / presentation boundary**:
+   - Simulation = `engine/systems/**`, `engine/ai/**`, `engine/physics/**`, `engine/core/**`, `engine/events/**`, `engine/math/**`, `engine/types/**`. Presentation = `engine/presentation/**` (VFX, event visuals, unit submission, HUD, animation derivation, camera/director), `engine/renderers/**`, `engine/graphics/**`, `engine/renderer.ts`. `engine/game.ts` is the composition root.
+   - **Simulation must never import presentation** (not even `import type`); `tests/LayerBoundary.test.ts` holds this at 0. Presentation may read simulation state but never write it.
 
 3. **Event-driven communication**:
    - Subsystems communicate only through `engine.bus` (`EventBus`). Systems never call another system's methods directly.
@@ -90,7 +96,7 @@ npm run build       # production build, must succeed
 npm run perf:guard  # only if you changed renderers / materials / VFX
 ```
 
-For procedural material changes you can preview `tools/material-preview.html` with `npx vite`.
+For VFX part changes, preview with `node tools/vfx/fx-shot.mjs` (single-effect screenshot) or the in-game VFX Library window.
 
 ---
 
@@ -114,7 +120,8 @@ For procedural material changes you can preview `tools/material-preview.html` wi
 ├── data/                # Data profiles (units/appearance, skills, scenes, vfx, audio)
 ├── engine/
 │   ├── core/Agent.ts    # Agent entity (pure data)
-│   ├── systems/         # Game logic systems (combat, movement, zone, ui, vfx, audio...)
+│   ├── systems/         # Simulation systems (combat, movement, status, zone, ai, ui, audio...)
+│   ├── presentation/    # VFX, event visuals, unit submission, HUD, animation, camera/director
 │   ├── ai/              # Behavior tree registry, targeting, pathfinding
 │   ├── renderers/       # Canvas 2D render pipeline and painters
 │   ├── graphics/        # Procedural materials (materials/NoiseLib, MaterialPainter), factories

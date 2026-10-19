@@ -8,7 +8,7 @@
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§2、§9：    ║
 // ║  鋪設特效不是排序 op，所以沒有「單位站在法陣上」的排序環；    ║
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║
-// ║  （ART_SPEC §13）。分類與參數：constants.ts GROUND_DRAPE。    ║
+// ║  （ART_SPEC §13）。分類與參數：constants/vfx.ts GROUND_DRAPE。    ║
 // ║  池化：登記項與離屏畫布皆重複使用，容量只增不減。            ║
 // ║  除了粒子，也接受「繪製函式＋單位」（施法 AOE 地面預警），    ║
 // ║  一律走離屏畫布；函式是靜態參考，不每幀配置閉包。            ║
@@ -78,7 +78,7 @@ export class GroundDrapeLayer {
 
     public get size(): number { return this.count; }
 
-    /** 此粒子型別是否以鋪設方式繪製（constants.ts GROUND_DRAPE.MODE；不在表內＝一般 op） */
+    /** 此粒子型別是否以鋪設方式繪製（constants/vfx.ts GROUND_DRAPE.MODE；不在表內＝一般 op） */
     public static modeOf(type: string): 'DIRECT' | 'OFFSCREEN' | undefined {
         return GROUND_DRAPE.MODE[type];
     }

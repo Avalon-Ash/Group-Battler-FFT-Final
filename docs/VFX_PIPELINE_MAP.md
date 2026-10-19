@@ -1,5 +1,7 @@
 # 特效管線地圖（P0）與覆蓋率矩陣（P1）
 
+> **現況（2026-10-20）**：§1～§3 是 2026-10-18 遷移前的快照，保留作歷史。現在所有特效都走零件：粒子後端只看 `constants/vfx.ts` 的 `PARTICLE_TRAITS`——`PART`／`PART_GROUND`／`PART_DEBRIS`（含天氣）→ `PartPainter`＋`VFXPartStore`；`BEAM` → `PartPainter.drawBeam`；其餘 → 洋紅除錯點（`ParticleRenderer.drawDebugDot`）。投射物 → `ProjectilePartPainter`（`data/vfx/projectile_visuals.ts`）；危害、詠唱環、護盾、AOE 預警 → 零件層（`PartLayerPainter`）。`ProceduralPainter`、`GroundPainter`、看板繪製器、`ProjectileDrawer` 都已刪除。特效系統在 `engine/presentation/vfx/`、`engine/presentation/visuals/`（S2 搬家）。每一輪的變更見 §4。
+
 > 2026-10-18。目的：遷移前先看清「事件 → 資料表 → 播放 → 粒子 → 繪製後端」每一條路，避免像座標問題那樣盲改。
 > 靜態矩陣來自直接載入登記表／技能序列（無執行期）；執行期矩陣來自 `node tools/vfx/vfx-coverage.mjs`（不改引擎，在頁面內包住繪製器計數）。
 > 「新材質」＝預烘焙六角零件（`PART`／`PART_GROUND`／`PART_DEBRIS`，`PartPainter`＋`VFXPartStore`）；其餘都是舊路線。

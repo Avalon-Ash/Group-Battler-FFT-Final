@@ -1,6 +1,6 @@
 # 常數依領域拆檔報告（ECS-lite S4）
 
-> 依據 `docs/CONSTANTS_SPLIT_AGENT_PROMPT.md` 執行完成。
+> 依據 `docs/archive/CONSTANTS_SPLIT_AGENT_PROMPT.md` 執行完成。
 > 分支：`refactor/constants-split`
 > 狀態：全綠，0 行業務邏輯變更，185 個 import 端無須變更。
 
@@ -37,7 +37,7 @@
 
 ## 3. 表外匯出歸類判斷
 
-經對比原 `constants.ts` 之 86 個執行期匯出名稱，所有匯出皆在 `docs/CONSTANTS_SPLIT_AGENT_PROMPT.md` §1 目標設計表列範圍內，**無任何未列入表的額外匯出**。
+經對比原 `constants.ts` 之 86 個執行期匯出名稱，所有匯出皆在 `docs/archive/CONSTANTS_SPLIT_AGENT_PROMPT.md` §1 目標設計表列範圍內，**無任何未列入表的額外匯出**。
 
 型別匯出部分：
 - `ObstacleAnimConfig`, `TerrainTheme`, `TerrainSkinConfig`, `ObstacleStyle` 依其領域隨地形常數歸入 `constants/terrain.ts`。

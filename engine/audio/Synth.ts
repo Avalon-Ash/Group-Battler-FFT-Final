@@ -2,7 +2,7 @@ import { AUDIO } from '../../constants';
 import { SynthId } from '../../data/audio/cues';
 
 /**
- * 獨立確定性 PRNG（mulberry32），種子來自 constants.ts 的 AUDIO.PRNG_SEED。
+ * 獨立確定性 PRNG（mulberry32），種子來自 constants/audio.ts 的 AUDIO.PRNG_SEED。
  * 嚴禁呼叫 Math.random，以防止破壞視覺渲染與單元測試之確定性。
  */
 export class AudioPRNG {

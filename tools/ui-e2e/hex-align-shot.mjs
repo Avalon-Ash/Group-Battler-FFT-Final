@@ -1,5 +1,5 @@
 /**
- * hex-align-shot — 六角版面（FLAT／POINTY）對齊的確定性截圖（docs/HEX_ALIGN_AUDIT.md）。
+ * hex-align-shot — 六角版面（FLAT／POINTY）對齊的確定性截圖（docs/archive/HEX_ALIGN_AUDIT.md）。
  * 每個版面截：覆蓋層（滑鼠懸停、技能射程、縮圈預警、危險區、護盾）、AOE 預警、詠唱中斷（施法者環＋AOE 斷裂環）、
  * 四種法陣圖騰（太陽、獅盾、顱骨、倒三角）、地面材質場（冰／毒／火／重力）、每格一個 r=48 的 AOE 斷裂環。
  * 輸出 tools/ui-e2e/out/hex-align/<layout>_<shot>.png（已 gitignore）。

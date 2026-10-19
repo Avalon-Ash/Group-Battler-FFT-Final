@@ -1,7 +1,7 @@
 # 技能正確性修正與新效果實作報告（SK0 - SK3）
 
 > **分支**：`feat/skill-fix`  
-> **目標依據**：`docs/SKILL_FIX_AGENT_PROMPT.md`  
+> **目標依據**：`docs/archive/SKILL_FIX_AGENT_PROMPT.md`  
 > **日期**：2026-10-20  
 > **狀態**：全部任務驗證通過（Lint 0 錯誤、Vitest 637 測試全過、Build 成功、Fidelity 0 漂移、br-soak 10/10 CLEAN）
 

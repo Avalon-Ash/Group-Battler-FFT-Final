@@ -126,7 +126,7 @@ try {
                 if (typeof obj === 'function' && obj.prototype) for (const k of Object.getOwnPropertyNames(obj.prototype)) wrapFn(obj.prototype, k, `${n}#${k}`);
             }
         }
-        // 粒子後端：與 ParticleRenderer 同一張特性表（constants.ts PARTICLE_TRAITS）；掛了零件的 BEAM 算 PART
+        // 粒子後端：與 ParticleRenderer 同一張特性表（constants/vfx.ts PARTICLE_TRAITS）；掛了零件的 BEAM 算 PART
         const { ParticleRenderer } = await import('/engine/presentation/vfx/renderers/ParticleRenderer.ts');
         const { particleBackend } = await import('/constants.ts');
         const seen = new WeakMap();

@@ -1,4 +1,4 @@
-// 字串鍵交叉引用守門測試（docs/REFERENCE_AUDIT.md）。
+// 字串鍵交叉引用守門測試（docs/archive/REFERENCE_AUDIT.md）。
 // 特效、投射物、狀態、AI 節點等都以字串鍵查表，查不到時多半靜默退回或不播放，型別系統抓不到。
 // 每個家族：「目前違規」必須與 reference-integrity.baseline.json 完全相同——
 // 新增違規直接失敗；基準內已修好的項目也失敗（強迫同步刪除基準），所以基準只會縮小。

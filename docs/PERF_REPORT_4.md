@@ -20,7 +20,7 @@
   - 舊 `RenderStats` 的 FPS 算法採用 `1000 / avg(jsDrawTime)`，只計算了 CPU 呼叫 `render()` 的純 JS 執行時間（~2.5 ms，換算即 ~390 FPS），**完全排除了瀏覽器等待 VSync、Canvas 2D 後台排程光柵化、以及 GPU Present 的時間**。
   - **P0b 修正**：全面改為監聽實際 `requestAnimationFrame(now)` 之真實幀間隔（`rAF DeltaTime`）滑動平均，並新增 **1% Low FPS**、近 1 秒最長幀（`Max 1s`）、`Frame Total`、與 `JS Total`。修正後 HUD 與測試腳本之量測誤差小於 **0.13%**。
 
-### 1.2 特效盤點結論 (`docs/VFX_INVENTORY.md`)
+### 1.2 特效盤點結論 (`docs/archive/VFX_INVENTORY.md`)
 - 透過對 `data/vfx/` 與 `engine/systems/` 進行全庫靜態稽核，盤點出 **109 個註冊粒子/光束資產** 與 **11 大程序化直接繪製子系統**。
 - **重大發現與可疑項**：
   1. **雙重重複繪製（危害區）**：`GridRenderStrategy`（底層 3D 地形）與 `EventVFXMapper` / `HazardSystem`（頂層粒子）同時繪製長達 4 秒的持續危害區，造成同一格危害區每幀被繪製兩次。
@@ -150,7 +150,7 @@ export const VFX_BUDGET = {
 ## 8. 使用者要做的事 (人機協同指引)
 
 1. **查閱盤點與排行榜**：
-   - 瀏覽 `docs/VFX_INVENTORY.md` 與本報告 §3 特效排行榜，確認早期 AI 堆疊的廢棄視覺與重複項目已清理。
+   - 瀏覽 `docs/archive/VFX_INVENTORY.md` 與本報告 §3 特效排行榜，確認早期 AI 堆疊的廢棄視覺與重複項目已清理。
 2. **239 Hz 螢幕實玩驗證**：
    - 主螢幕（2560×1440 @ 239 Hz）啟動遊戲（帶 `?perf`）。
    - 觀察全新 HUD：

@@ -32,7 +32,7 @@ export function rgbChannelsToHex(channels: string): string {
 /**
  * Semantic UI Tokens SSOT.
  * All color values are formatted as "R G B" channel strings to support Tailwind's opacity modifier syntax (e.g. /20, /50).
- * Team colors directly reference TEAM_COLORS from constants.ts.
+ * Team colors directly reference TEAM_COLORS from constants/palette.ts.
  */
 export const UI_TOKENS = {
     surface: {

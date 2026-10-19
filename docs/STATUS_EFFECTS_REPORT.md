@@ -1,6 +1,6 @@
 # 狀態效果資料化（ECS-lite S1）實作執行報告
 
-> 執行目標：根據 `docs/STATUS_EFFECTS_AGENT_PROMPT.md`，將 `Agent` 上的 21 個平行控制與持續效果欄位完整重構收斂至 `agent.effects: EffectSlots` 元件，並由 `data/status/effect_defs.ts` 資料驅動管理。  
+> 執行目標：根據 `docs/archive/STATUS_EFFECTS_AGENT_PROMPT.md`，將 `Agent` 上的 21 個平行控制與持續效果欄位完整重構收斂至 `agent.effects: EffectSlots` 元件，並由 `data/status/effect_defs.ts` 資料驅動管理。  
 > 執行分支：`feat/status-effects`（基於 `main`）  
 > 核心約束：純重構，遊戲邏輯與畫面保真度 100% 完全不變；0 容忍保真度回退；10/10 soak 乾淨種子。
 

@@ -14,7 +14,7 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **P0a** | 幀時間分佈量測工具 (`tools/ui-e2e/perf-frames.mjs`, `perf:frames`) | ☑ | `78d40e8` | 2560×1440 headed, 20s × 3 輪交錯, CDP Tracing (GC/Timeline) |
 | **P0b** | 修正 `?perf` HUD 的 FPS 算法、新增 1% low / max1s / total / JS 欄位並建立真實基準 | ☑ | (current) | 修正為 rAF 間隔滑動平均，HUD 與腳本誤差 0.13% (<5%) |
-| **P1** | 特效盤點＋壓力情境產生器 (`docs/VFX_INVENTORY.md`, `lib/vfx-storm.mjs`) | ☑ | `3795942` | 盤點 109 項登記資產 + 11 項直接繪製系統，完成 storm 壓力產生器 |
+| **P1** | 特效盤點＋壓力情境產生器 (`docs/archive/VFX_INVENTORY.md`, `lib/vfx-storm.mjs`) | ☑ | `3795942` | 盤點 109 項登記資產 + 11 項直接繪製系統，完成 storm 壓力產生器 |
 | **P2** | 逐項成本歸因（A/B 開關、每幀分配取樣、Canvas 操作排行榜、長幀成因） | ☑ | (current) | 11 項 A/B 歸因，證實 shadowBlur/CC/Hazards/Prism 為長幀元兇 |
 | **P3a** | 依 P2 排行榜執行優化決策清單 (前項，≤4 項，預期 ≥8%) | ☐ | 待處理 | 依數據選定 4 大項目：shadowBlur優化、Prism漸層共用、危害區雙繪去重、GroundCC節流 |
 | **P3b** | 執行優化決策清單剩餘項目 | ☐ | 待處理 | 每完成一項更新基準並驗證收益 |
@@ -94,7 +94,7 @@
 
 ## 5. P1: 特效系統全量盤點總結
 
-完整盤點表請詳見 `docs/VFX_INVENTORY.md`。重點結論如下：
+完整盤點表請詳見 `docs/archive/VFX_INVENTORY.md`。重點結論如下：
 1. **已登記資產**：`VFX_REGISTRY` 匯聚 109 項資產，主要覆蓋命中受擊、主動技光環、奧義光芒與背水決戰。
 2. **直接繪製系統（未登記但重度繪製）**：包括 `HazardPainter`（危害區）、`ShieldPainter`（3D 護盾稜柱）、`UnitAuraPainter`（法陣光暈）、`TextPainter`（傷害與詠唱浮字）、`ProjectileDrawer`（尾跡）、`GroundEffectPainter`（CC 光暈與煙霧）、`UnitShatter`（死亡碎片解體）。
 3. **死碼與未引用檔案**：`data/vfx/beam_visuals.ts`、`data/vfx/cast_visuals.ts`、`data/vfx/procedural_visuals.ts` 以及 `data/vfx/procedural/` 旗下 5 個檔案全無外部調用。

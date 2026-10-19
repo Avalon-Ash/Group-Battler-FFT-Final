@@ -55,7 +55,7 @@ export class CombatVFXHandler {
                 // Impact VFX now handled in SkillExecutor.resolveHit
                 camera.addTrauma(isMassive ? 0.45 : (isCrit ? 0.3 : 0.12));
             }
-            // DOT（BURN／POISON）的持續視覺由 StatusPartPainter 依 dotType 逐幀繪製狀態零件；
+            // DOT（BURN／POISON）的持續視覺由 StatusPartPainter 依 effects.DOT.tag 逐幀繪製狀態零件；
             // 這裡曾在每一跳再播 FX_STATUS_BURN_LOOP，燒傷因此畫兩次、毒也冒火花（docs/VFX_PIPELINE_MAP.md §4.1）。
             return;
         }

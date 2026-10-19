@@ -1,5 +1,7 @@
 # Agent 狀態所有權設計（HANDOFF §7 待辦 #8）
 
+> **現況（2026-10-20）**：P0～P10 已完成。控制／持續效果的 `xxxTimer` 欄位已在 ECS-lite S1 收進 `agent.effects`，`visualStatus`／`hitFlashTimer`／`visualOffset` 在 S3 收進 `agent.view`；下文的欄位名與行號是設計當時（`460b571`）的狀態。所有權現況以 `engine/core/AgentOwnership.ts` 為準。
+
 > 2026-10-16，基準 commit `460b571`。**只設計、未實作**。行號以該 commit 為準。
 > 方法：對 `engine/core/Agent.ts` 的 89 個欄位逐一 `git grep -nE "\.<field>(\s*[-+*/|&]?=[^=]|\+\+|--|\.(push|shift|splice)|\[..\]\s*=|\.x\s*=)"`，排除 `Agent.ts` 自身（建構／`reset`／`saveState`）與 `tests/`、`tools/`，再人工剔除同名誤判；別名寫入另查（只找到兩處別名，皆為讀取：`UnitBodyPainter.ts:70`、`UnitDeathPainter.ts:16`）；無 `Object.assign`／動態鍵寫入。
 > 讀者欄縮寫：S＝模擬、R＝渲染（`engine/renderers`、`data/units/appearance`）、U＝UI（`components`、`hooks`、`selectors`）。

@@ -15,6 +15,8 @@
 - **導播狂抖＋掉幀**：掉幀已修（`f5e33f0`，WORKLOG §Q）。導播目標每幀跳動被鏡頭跟隨剛性（預設 0.25，約 4 秒時間常數）濾掉，不是肉眼的抖動來源；戰鬥結束附近剩下的是擊退／墜落的 `CAMERA_SHAKE`（0.55，約 70 ms 衰減）。**待使用者實機確認**是否還覺得抖。
 - **單一格閃爍：重現不出來**（10/19 查）。暫停戰鬥＋全員強制變羊，攔 `RenderList.sort` 約 900 幀：單位 sortKey 與鄰格地塊前後關係 0 變化（不變羊對照也是 0）；連拍像素只有鏡頭平移與光束動畫。`verify:coords --flicker` 的振盪全是移動中（屍體擊飛滑行跨格），靜止 0 件。探針 `tools/ui-e2e/out/_scratch_poly_flicker.mjs`。**請使用者下次看到時錄影或截圖，記下地圖與當時發生的事**（同一格整塊一閃、還是單位一閃）。
 
+- **平衡輪合併後順手改**：`engine/systems/combat/CCManager.ts`（第 87、116、151 行附近）與 `engine/systems/status/EffectSystem.ts`（第 64 行）註解裡的 `stunTimer`／`banishTimer`／`tauntTimer`／`dotTimer` 舊欄位名（文件清理時為了不和 Gemini 衝突先跳過）。
+
 ## 4. 以後再說
 - 重新部署方式（Cloud Run 相關檔案已刪）。
 - 正式版素材：新體型／女性／神職模型要找和 KayKit 同風格的素材（Quaternius 已否決），外觀軸 `Team×Role×BodyType` 已可直接擴充。

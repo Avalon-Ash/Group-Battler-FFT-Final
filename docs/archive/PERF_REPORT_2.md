@@ -33,7 +33,7 @@
 | **Q5** | 烘焙渲染藍圖設計文件 | `fead2ce` | 完成 | 產出 `docs/BAKED_RENDERING_DESIGN.md`：清查資產現況、評估高度分帶雙層烘焙、訂定圖集槽位規格與 WebGL 客觀判準。 |
 | **Q6** | 真機量測腳本整備 | `3ba0aff` | 完成 | 新增 `tools/ui-e2e/perf-headed.mjs` 與 `npm run perf:headed`，整合 DPR、GPU 診斷字串與 7 大場景各階段計時。 |
 | **Q7** | 改後重量測與進度更新 | `6bab60d` | 完成 | 更新 `PERF_BASELINE_2.md`，納入真機實測、光暈 A/B 數據與殘餘熱點排名。 |
-| **REPORT** | 總結報告與交接文件更新 | 本次 | 完成 | 產出 `docs/PERF_REPORT_2.md` 與更新 `docs/DECOUPLING_HANDOFF.md` §10.5。 |
+| **REPORT** | 總結報告與交接文件更新 | 本次 | 完成 | 產出 `docs/PERF_REPORT_2.md` 與更新 `docs/archive/DECOUPLING_HANDOFF.md` §10.5。 |
 | **FINAL** | 全量防護與 Checkpoint Tag | 本次 | 完成 | lint/test/build/e2e*2/guard 全綠，打上 `perf2-ckpt-final`。 |
 
 > **被還原的嘗試 (Reverted Attempts)**：

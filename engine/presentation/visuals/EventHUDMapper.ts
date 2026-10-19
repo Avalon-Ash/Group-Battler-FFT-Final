@@ -16,7 +16,7 @@
 // ║                                                                  ║
 // ║  HUD 佈局常數來源：                                              ║
 // ║    hudTextHeight（投影頭頂 + 血條間距 + 文字間距，data/units/    ║
-// ║    appearance/projection.ts）/ HUD_LAYOUT → constants.ts (SSOT)  ║
+// ║    appearance/projection.ts）/ HUD_LAYOUT → constants/hud.ts (SSOT)  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEvent } from "../../../types";

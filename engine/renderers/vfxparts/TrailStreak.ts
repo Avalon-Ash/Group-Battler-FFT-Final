@@ -1,6 +1,6 @@
 /**
  * TrailStreak — 光痕：把光束磚（kind 'beam'，左端錨點、可平鋪）沿一串點一段一段拉伸，越往尾端越窄越淡。
- * 投射物拖尾（ProjectilePartPainter）與飛行尾跡（UnitWakePainter）共用；執行期只有 drawImage 與變換，零配置。
+ * 投射物拖尾（ProjectilePartPainter）使用；執行期只有 drawImage 與變換，零配置。
  * 點由近到遠排列，第一段從 (headX, headY) 連到 points[0]。
  */
 

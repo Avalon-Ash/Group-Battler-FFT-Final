@@ -99,7 +99,7 @@ export class PhysicsEngine {
 
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
-        // 模擬層讀狀態計時器而非視覺欄位（FROZEN 必伴隨 stunTimer）。
+        // 模擬層讀狀態計時器而非視覺欄位（FROZEN 必伴隨 effects.STUN）。
         const isDisabled = a.effects.STUN.remaining > 0 || a.effects.POLYMORPH.remaining > 0;
 
         // Check if standing on valid ground

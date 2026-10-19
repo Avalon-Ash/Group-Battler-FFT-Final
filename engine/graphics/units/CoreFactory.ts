@@ -1,5 +1,5 @@
 // 棋座核心（懸浮六角晶體）的烘焙：Lionheart 乾淨稜晶、Ashen 裂紋碎晶。
-// 顏色與樣式來自 FACTION_SKINS（skin.core），尺寸來自 constants.ts 的 CORE_VISUAL。
+// 顏色與樣式來自 FACTION_SKINS（skin.core），尺寸來自 constants/units.ts 的 CORE_VISUAL。
 // 本檔只在烘焙期執行（SpriteManager 快取），每幀只剩兩次 drawImage。
 // 若 manifest 登記了 `core` 貼圖槽，晶體本體改用貼圖，光暈仍由皮膚色烘焙。
 

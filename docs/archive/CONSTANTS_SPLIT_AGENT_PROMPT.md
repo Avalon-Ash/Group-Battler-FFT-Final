@@ -1,6 +1,6 @@
 # 執行指令：常數依領域拆檔（ECS-lite S4）
 
-> 用法：在 IDE 代理對話輸入 `/goal docs/CONSTANTS_SPLIT_AGENT_PROMPT.md`。
+> 用法：在 IDE 代理對話輸入 `/goal docs/archive/CONSTANTS_SPLIT_AGENT_PROMPT.md`。
 > 背景：`docs/ECS_LITE_ASSESSMENT.md` §2 S4。`constants.ts` 1,447 行、86 個匯出，參數、顏色、UI、渲染快取、物理全混在一起，找參數要整檔搜。本輪把它依領域拆成 `constants/*.ts`，`constants.ts` 只留轉發（barrel），**185 個 import 端一個都不用改**。
 > **本輪是純搬移：任何常數的值、名稱、型別都不得改變。** 保真、`br-soak` 必須與改前相同；任何基準不得重錄、門檻不得放寬。
 

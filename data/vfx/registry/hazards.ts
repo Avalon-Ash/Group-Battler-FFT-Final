@@ -7,7 +7,7 @@ import { groundRing } from "./basic_parts";
 // 危害場生成（HAZARD_SPAWN）的地面爆點（零件版）。
 // 持續的場面由 HazardPainter 依 HAZARD_VISUALS 逐格繪製；這裡只負責「場出現的那一下」。
 // EventVFXMapper 先用 HAZARD_VISUALS[type].spawnVfx（FIRE／POISON／ICE／GRAVITY 各有自己的命中特效），
-// 沒有 spawnVfx 的型別（GENERIC）才播 FX_HAZARD_FIELD_<type>；tests/ReferenceIntegrity 要求每個型別都有這個鍵。
+// 沒有 spawnVfx 的型別（GENERIC）才播 FX_HAZARD_FIELD_<type>；tests/ReferenceIntegrity.test.ts 要求每個型別都有這個鍵。
 // 原版是 lifetime 4 s 的 GRID_FIELD（危害場改由 HazardPainter 繪製前的舊做法）。
 // ==========================================
 

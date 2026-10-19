@@ -8,7 +8,7 @@ import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { quantizeSize } from "../../../../renderers/vfxparts/PartSpec";
 import { BEAM_STYLES, type BeamStyleId } from "../../../../../data/vfx/beam_styles";
 
-/** 零件粒子型別（由 constants.ts 的 PARTICLE_TRAITS 推導）：PART_GROUND 貼地（等距壓扁），其他為看板。 */
+/** 零件粒子型別（由 constants/vfx.ts 的 PARTICLE_TRAITS 推導）：PART_GROUND 貼地（等距壓扁），其他為看板。 */
 export { PART_PARTICLE_TYPES } from "../../../../../constants";
 
 function ease(t: number, kind: PartAnim['ease']): number {

@@ -7,7 +7,7 @@ import { CCManager } from '../engine/systems/combat/CCManager';
 
 /**
  * P7a：嘲諷的目標鎖定只存在 TargetingSystem.updateTarget；
- * CCManager 不再直接寫 target.target，由 BT HasTarget 在 tauntTimer > 0 時重選。
+ * CCManager 不再直接寫 target.target，由 BT HasTarget 在 effects.TAUNT.remaining > 0 時重選。
  */
 describe('Taunt retarget (state ownership P7a)', () => {
     let engine: GameEngine;

@@ -1,6 +1,6 @@
 # 執行指令：技能正確性修正＋三種新效果（SK）
 
-> 用法：**S4（常數拆檔）合併進 `main` 之後**，在 IDE 代理對話輸入 `/goal docs/SKILL_FIX_AGENT_PROMPT.md`。
+> 用法：**S4（常數拆檔）合併進 `main` 之後**，在 IDE 代理對話輸入 `/goal docs/archive/SKILL_FIX_AGENT_PROMPT.md`。
 > 背景：主代理 2026-10-19 稽核 150 個技能（`data/skills/*`，稽核腳本 `tools/ui-e2e/out/_scratch_skill_audit.mjs`），使用者決定：**缺的機制做成新效果；這輪只修正確性，不調平衡數值**。
 > 稽核結果摘要：
 > - 增益控制（護盾、持續回血）只有打中敵人時才「轉給施法者」，AOE 打到幾個敵人就疊幾次，沒打到人就沒有（`SkillExecutor.ts` 的 `isBuff && target.team !== source.team ? source : target`）；`INVINCIBLE` 不在轉向名單裡。

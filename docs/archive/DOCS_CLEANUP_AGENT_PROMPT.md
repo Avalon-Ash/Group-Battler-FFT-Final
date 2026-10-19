@@ -77,9 +77,9 @@
 建立 `docs/CLEANUP_REPORT.md`，先寫「盤點」一節。用 `git grep` 找出跟 §2 衝突的內容，每項標出 `檔案:行號`、目前的寫法、應有的事實。至少涵蓋：
 
 1. **死亡流程的過期註解**：搜尋 `Ragdoll`、`布娃娃`、`RagdollPhysics`、`TODO: RAGDOLL`、`DeathPainter`、`deathTimer`、`fullyDead`。重點檔案：`engine/systems/unit/RagdollFactory.ts`、`engine/systems/unit/RagdollPhysics.ts`、`engine/systems/agentManager.ts`（檔頭方框註解）、`engine/types/ragdoll.ts`、`engine/systems/unit/UnitSystem.ts`、`constants.ts`（`RAGDOLL_BONE_PLACEHOLDER_COLOR` 附近）。
-2. **單位外觀的過期描述**：搜尋 `UNIT_RENDER_MODE`、`TERRAIN_SKIN`、`VFX_SPRITES`、`ImperialUnitRenderer`、`CovenantUnitRenderer`、`程序化單位`。重點檔案：`docs/ART_REPORT.md`（回退方式）、`docs/DECOUPLING_HANDOFF.md`、`docs/ART_PROGRESS.md`、`docs/ASSET_LEDGER.md`、`README.md`、`tools/assets/README.md`、`tools/assets/blender/README.md`。
+2. **單位外觀的過期描述**：搜尋 `UNIT_RENDER_MODE`、`TERRAIN_SKIN`、`VFX_SPRITES`、`ImperialUnitRenderer`、`CovenantUnitRenderer`、`程序化單位`。重點檔案：`docs/ART_REPORT.md`（回退方式）、`docs/archive/DECOUPLING_HANDOFF.md`、`docs/ART_PROGRESS.md`、`docs/ASSET_LEDGER.md`、`README.md`、`tools/assets/README.md`、`tools/assets/blender/README.md`。
 3. **特效的過期描述**：搜尋 `UnitShatter`、`SHATTER_SHARDS`、`token 碎片`、`碎片噴射`。
-4. **AI Studio／金鑰的過期描述**：搜尋 `server.ts`、`ALLOW_ALL_HOSTS`、`GEMINI_API_KEY`、`metadata.json`、`.aistudio`。注意：若在 `docs/DECOUPLING_HANDOFF.md` 之類被描述成「待修風險」，就屬於過期。
+4. **AI Studio／金鑰的過期描述**：搜尋 `server.ts`、`ALLOW_ALL_HOSTS`、`GEMINI_API_KEY`、`metadata.json`、`.aistudio`。注意：若在 `docs/archive/DECOUPLING_HANDOFF.md` 之類被描述成「待修風險」，就屬於過期。
 5. **失效路徑**：寫一個暫存腳本放在 `tools/ui-e2e/out/`（不提交），掃描所有 `docs/*.md`、`README.md`、`tools/**/*.md`、`CREDITS.md`，找出內文提到的 `docs/…`、`engine/…`、`data/…`、`tools/…`、`components/…` 路徑中，實際不存在的那些。列出清單和總數。
 6. **自稱完成但與事實不符**：`docs/ART2_PROGRESS.md`（AI Studio 產生，它曾誤刪 token 工廠、宣稱全綠但畫面凍結）只列出與程式碼不符的宣稱，**不要照抄它的完成宣稱**。
 7. **受保護檔案的過期處**：只列出來，不改（交給主代理）。
@@ -97,7 +97,7 @@ commit：`docs(cleanup): C2 fix stale comments`
 ### C3 · 修正文件事實
 依 C1 第 2～6 項，更新**非受保護**的文件：
 - `docs/ART_REPORT.md` 的「回退方式」改成：「舊的程序化單位／地形／粒子管線已移除；要回退請用 `git revert`，或使用 tag `art-ckpt-final`。」另外補一小段「後續變更」，只用一兩句話引用 `docs/ART2_PROGRESS.md`、`docs/BR_FIX_REPORT.md`、`data/units/appearance/deathMotion.ts`，不要重寫細節。
-- `docs/DECOUPLING_HANDOFF.md`：已經解決的風險項目，在原處標注「（已解決：<一句話說明>）」，不要整段刪除。
+- `docs/archive/DECOUPLING_HANDOFF.md`：已經解決的風險項目，在原處標注「（已解決：<一句話說明>）」，不要整段刪除。
 - 失效路徑：檔案移到 `docs/archive/` 的就改成新路徑；已經不存在、也沒有替代檔案的，改寫成不含路徑的敘述，並寫進報告。
 - 其他 README 和素材文件的過期描述照同樣原則處理。
 
@@ -108,7 +108,7 @@ commit：`docs(cleanup): C3 fix stale docs`
 - `docs/ART_AGENT_PROMPT.md`、`docs/ART_AGENT_PROMPT_2.md`、`docs/BR_FIX_AGENT_PROMPT.md`、`docs/ART_PROGRESS.md`、`docs/ART2_PROGRESS.md`
 - `docs/ASSET_NEEDS.md`：先讀內容；若裡面還有未完成的需求就**不要搬**，在報告寫明原因。
 
-**不得搬**：§1.3 的受保護檔案、`docs/ART_STYLE_BIBLE.md`、`docs/ASSET_LEDGER.md`、`docs/BAKED_RENDERING_DESIGN.md`、`docs/DECOUPLING_HANDOFF.md`、`docs/VFX_INVENTORY.md`、所有 `*REPORT*.md`、`CREDITS.md`、`README.md`，以及本檔（本檔最後由主代理歸檔）。
+**不得搬**：§1.3 的受保護檔案、`docs/ART_STYLE_BIBLE.md`、`docs/ASSET_LEDGER.md`、`docs/BAKED_RENDERING_DESIGN.md`、`docs/archive/DECOUPLING_HANDOFF.md`、`docs/archive/VFX_INVENTORY.md`、所有 `*REPORT*.md`、`CREDITS.md`、`README.md`，以及本檔（本檔最後由主代理歸檔）。
 
 搬完重跑 C1 第 5 項的腳本，**失效路徑必須是 0**（受保護檔案裡的失效路徑除外，那些列進報告）。
 

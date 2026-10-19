@@ -6,7 +6,7 @@
 ## 1. Git 歷程備忘
 - **單一主線**：`C:\Git\Group-Battler-FFT-Final`，分支 `main`。主代理與 IDE 代理都在這個資料夾工作。若 `git worktree list` 還看得到 `Group-Battler-main`／`-death-vfx`／`-chore`，代表搬遷步驟尚未做完。
 - `main` 已含：大逃殺修正、死亡特效／擊飛、AI Studio 清理、文件整理、合約改版（`CLAUDE.md`／`AGENTS.md`／`.claude/agents/`）、README 更新。push 狀態以 `git status -sb` 為準。
-- **美術／特效改造已合併（2026-10-16）**：進度、決策在 `docs/ART_VFX_PLAN.md`，規格在 `docs/ART_SPEC.md`（§0 世界觀、§13 詠唱／中斷）。全部 50 個奧義已改六角零件版；光束本體仍是程式繪製（待新增 beam 零件）。HD 為主線，SD 原型已移除（tag `pixel-proto-ckpt`）。目前沒有進行中的分支。
+- **美術／特效改造已合併（2026-10-16）**：進度、決策在 `docs/archive/ART_VFX_PLAN.md`，規格在 `docs/ART_SPEC.md`（§0 世界觀、§13 詠唱／中斷）。全部 50 個奧義已改六角零件版；光束本體仍是程式繪製（待新增 beam 零件）。HD 為主線，SD 原型已移除（tag `pixel-proto-ckpt`）。目前沒有進行中的分支。
 
 ## 2. 2026-10-15～19 各輪
 
@@ -100,7 +100,7 @@
 - ECS-lite 評估：`docs/ECS_LITE_ASSESSMENT.md`（建議 S1 狀態效果資料化優先）。
 - 越跑越糊：畫質治理器以 vsync 鎖住的幀間隔判斷降級，60 Hz 一律降到最低階且升階冷卻只增不減。改成刷新週期下限、解析度階層另設 `DOWN_RES_MS`、冷卻加倍會消退（`d733eda`）。粒子沒有累積。工具 `tools/ui-e2e/idle-quality-soak.mjs`。
 - UI 巡檢第二輪：工具列子選單分段鈕、檢查器分頁在觸控裝置補到 44×44（D11），手機直向工具列讓開系統選單鈕（`UI_PIN.TOOLBAR_MARGIN_COMPACT`）；三種手機尺寸 0 問題（`031b9a3`）。使用者實機（iPhone 14 Plus）確認墜落動畫 OK。
-- 已備：S1 提示詞 `docs/STATUS_EFFECTS_AGENT_PROMPT.md`、BGM 候選 `docs/BGM_CANDIDATES.md`。
+- 已備：S1 提示詞 `docs/archive/STATUS_EFFECTS_AGENT_PROMPT.md`、BGM 候選 `docs/BGM_CANDIDATES.md`。
 - 每張地圖戰鬥曲通道：`GAME_START` 帶 `sceneId`，`AudioSystem` 依 `SCENE_BATTLE_TRACK` 選曲（五圖各自的 TrackId，暫用 `battle_normal.ogg` 占位）；實機確認三場分別播對應曲目。
 
 ### Q. 2026-10-19 深夜 UI 批次＋ECS-lite S1 狀態效果資料化
@@ -113,6 +113,7 @@
 - ECS-lite S4 常數拆檔（Gemini 執行 `b591451`～`649cd8b`，主代理審查後合併）：`constants.ts` 1,447 行拆成 `constants/` 10 個領域檔，`constants.ts` 只剩轉發，185 個 import 端不變；`tests/ConstantsBarrel.test.ts`＋`tests/constants-snapshot.json` 鎖住 86 個匯出名稱與值。審查：舊檔每一行都在新檔（多重集合比對），只漏一段 `UNIT_SHADOW` 說明註解（已補回 `4a8b137`）；保真與 br-soak 與改前相同。`AGENTS.md`／`CLAUDE.md`／`METHODOLOGY.md` 改指向 `constants/*.ts`。報告 `docs/CONSTANTS_SPLIT_REPORT.md`。
 - BGM：五張地圖專屬戰鬥曲＋紅方勝利曲換成 Orcs Victorious（舊的變調版 `victory_red.ogg` 刪除）。CC0 四首、CC-BY 兩首（熔岩 Wolfgang_ 4.0、沙漠 Hitctrl 3.0，已致謝）。OpenGameArt 網站故障，頁面資訊取 Wayback 快照、檔案直接下載靜態路徑。響度 −11 LUFS、Vorbis q2，BGM 總量 14.05 MB（上限 15 MB）。
 - 技能正確性修正＋三種新效果（Gemini 執行 `68f9e87`～`5b959a6`，主代理審查後合併）：`Skill.ccSelf`／`ccSelf2`（每次施放只對施法者套用一次，取代「增益打到敵人就轉給自己」）；新效果 `HASTE`（移速與冷卻遞減 ×(1+v%)）、`REFLECT`（受敵方技能直接傷害後反彈真實傷害，不連鎖、不含 DOT）、`LIFESTEAL`（與技能 VAMP 相加），上限 `EFFECT_LIMITS`；資料照表修正（稜鏡反射、尖刺防禦、疾風祝禱、嗜血狂熱、惡魔降臨、猩紅血月、神聖干涉改真無敵、3 個描述），42 個技能補 `element`（新增 3 火、4 虛空會生成危害區）。`tests/SkillDataIntegrity.test.ts` 違規 56 → 0。審查：保真 6/6 與 main 數值相同（`battle_frozen` 未變，不需重錄）；實戰 3 輪各 40 秒三種新效果都有觸發、0 頁面錯誤。報告 `docs/SKILL_FIX_REPORT.md`。使用者實機聽過新 BGM，全部 OK。
+- 文件與檔頭清理（使用者 10/20 要求）：已完成的 Gemini 提示詞 5 份與被取代的稽核／設計文件 7 份移到 `docs/archive/`，連結同步更新；`STATE_OWNERSHIP_DESIGN`、`ECS_LITE_ASSESSMENT`、`VFX_PIPELINE_MAP` 開頭加「現況」；`AGENTS.md` 補模擬／表現層邊界、`agent.effects`、`agent.view` 規則與目錄樹，README 目錄樹改成 S2 後的樣子；程式註解的 `constants.ts 的 X` 改指 `constants/<領域>.ts`（19 行），舊欄位名與已刪類別的註解修正。稽核腳本：路徑存在性＋舊識別字＋檔頭類別名。
 
 ## 3. 更早的輪次與審查修補
 
