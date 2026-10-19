@@ -62,6 +62,7 @@ export interface Skill {
 }
 
 import type { Agent } from './engine/core/Agent';
+import type { PartSpec } from './engine/renderers/vfxparts/PartSpec';
 import { MapConfig } from './engine/utils';
 export type { Agent };
 export type { MapConfig };
@@ -552,11 +553,15 @@ export interface LiquidLoopConfig {
 export interface WeatherAmbienceConfig {
     /** 品質階層 0 的生成間隔（秒）；低階層除以 VFX_BUDGET.TIER_EMISSION_RATIOS */
     interval: number;
-    /** 品質階層 0 的同時存在 ATMOSPHERE 粒子上限；低階層乘以 TIER_EMISSION_RATIOS */
+    /** 品質階層 0 的同時存在天氣粒子上限；低階層乘以 TIER_EMISSION_RATIOS */
     maxActive: number;
-    /** 1 或 2 種顏色；兩色時 primaryChance 為取第一色的機率 */
-    colors: readonly string[];
+    /** 1 或 2 種零件（T4：天氣改六角零件管線）；兩種時 primaryChance 為取第一種的機率 */
+    parts: readonly PartSpec[];
+    /** 零件的基準半徑（px）：粒子 size 除以它就是繪製縮放 */
+    partRadius: number;
     primaryChance: number;
+    /** 拉長型零件（spark）沿速度方向轉；其餘不轉 */
+    alignToVelocity: boolean;
     size: AmbienceRange;
     vx: AmbienceRange;
     vy: AmbienceRange;

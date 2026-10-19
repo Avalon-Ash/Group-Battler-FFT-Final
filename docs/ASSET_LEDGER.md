@@ -117,6 +117,8 @@ All assets adhere strictly to the project licensing policy: **CC0 prioritized, C
 
 ## 5. Particle Sprites (VFX) — Task A3
 
+> **Removed 2026-10-19 (terrain T4)**: weather was the last user of these textures (via ParticleTextureStore); weather now uses the hex-part pipeline, so the five PNGs and the store were deleted. Rows kept for history.
+
 | Relative Path | Asset ID | Source Pack | Author | Source URL | License | Attribution Required | Added Date |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | `assets/vfx/light_01.png` | VFX_LIGHT | Particle Pack (1.1) | Kenney Vleugels (Kenney.nl) | https://kenney.nl/assets/particle-pack | CC0 1.0 | Optional (Kenney.nl) | 2026-10-14 |

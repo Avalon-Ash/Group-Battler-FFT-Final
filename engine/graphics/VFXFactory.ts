@@ -1,6 +1,5 @@
 
 import { createCanvas } from "./CanvasUtils";
-import { ParticlePainter } from "./painters/ParticlePainter";
 import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER, UNIT_SHADOW } from "../../constants";
 import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
 
@@ -11,11 +10,11 @@ const CENTER = TEXTURE_SIZE / 2;
  * 程序化貼圖的型別（封閉清單）：呼叫端傳不支援的名稱會編譯失敗。
  * V5a 刪貼圖時 SMOKE／GLOW／ROCK／SHADOW_BLOB 仍有呼叫者，字串型別讓它們悄悄變成洋紅除錯方塊——這個型別就是為了擋那種回歸。
  */
-export type VFXTextureType = 'GLOW_SPRITE' | 'BEAM' | 'SHADOW_BLOB' | 'DEBUG';
+export type VFXTextureType = 'BEAM' | 'SHADOW_BLOB' | 'DEBUG';
 
-/** 看板粒子用哪張貼圖：天氣（ATMOSPHERE）＝光點，其餘（只剩 GENERIC_DEBUG）＝除錯方塊 */
-export function particleTexture(particleType: string): VFXTextureType {
-    return particleType === 'ATMOSPHERE' ? 'GLOW_SPRITE' : 'DEBUG';
+/** 非零件粒子用哪張貼圖：只剩 GENERIC_DEBUG＝除錯方塊（天氣 T4 已改零件） */
+export function particleTexture(_particleType: string): VFXTextureType {
+    return 'DEBUG';
 }
 
 class VFXTextureCache {
@@ -24,7 +23,7 @@ class VFXTextureCache {
     public reset() { this.cache.clear(); }
 
     /**
-     * 程序化貼圖（快取）：GLOW_SPRITE（天氣看板）、SHADOW_BLOB（單位接地陰影）、BEAM（森林背景光束）、DEBUG（洋紅除錯方塊）。
+     * 程序化貼圖（快取）：SHADOW_BLOB（單位接地陰影）、BEAM（森林背景光束）、DEBUG（洋紅除錯方塊）。
      */
     public getTexture(type: VFXTextureType, color: string): HTMLCanvasElement {
         const key = `T92_${type}_${color}`;
@@ -35,7 +34,6 @@ class VFXTextureCache {
         const r = 40;
 
         switch (type) {
-            case 'GLOW_SPRITE': ParticlePainter.drawAtmosphere(ctx, r, color); break;
             case 'SHADOW_BLOB': {
                 // 單位腳下的接地陰影（UnitShadowPainter，multiply 疊在地面上）
                 const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);

@@ -28,6 +28,13 @@ export const VFX_RAMPS = {
     STATUS_GREEN: { core: '#f0fdf4', main: '#4ade80', dark: '#166534' },
     /** 護盾稜柱（兩隊同色；陣營只出現在掃描環，factionSkin.shield.accentRamp） */
     STATUS_SKY: { core: '#f0f9ff', main: '#bae6fd', dark: '#0369a1' },
+    /** 天氣（地圖氛圍，data/vfx/terrainAmbience.ts WEATHER_AMBIENCE）：不屬於任何陣營 */
+    WEATHER_SNOW: { core: '#ffffff', main: '#e0f2fe', dark: '#7dd3fc' },
+    WEATHER_EMBER: { core: '#fff7cc', main: '#f59e0b', dark: '#b91c1c' },
+    WEATHER_SPORE: { core: '#f7fee7', main: '#bef264', dark: '#3f6212' },
+    WEATHER_SPORE_VIOLET: { core: '#faf5ff', main: '#c084fc', dark: '#581c87' },
+    WEATHER_SAND: { core: '#fef3c7', main: '#fcd34d', dark: '#b45309' },
+    WEATHER_VOID: { core: '#e9d5ff', main: '#7e22ce', dark: '#1e0b3b' },
 } as const satisfies Record<string, VFXRamp>;
 
 export type VFXRampId = keyof typeof VFX_RAMPS;

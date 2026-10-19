@@ -4,6 +4,7 @@
  * 每個場景重建地圖、放幾個單位在障礙物旁邊，固定時鐘截全畫面，並以第一個障礙物為中心裁一張放大圖。
  *   node tools/ui-e2e/obstacle-shot.mjs [--scenes=VOID,FOREST,ICE,MAGMA,DESERT] [--zoom=2] [--out=tools/ui-e2e/out/obstacles]
  *   --procedural：不載入預渲染圖集（攔下 manifest），看舊的程序化外觀做對照
+ *   --frames=N：截圖前步進幾幀（預設 90；看天氣用 600）
  */
 import { createServer } from 'vite';
 import { chromium } from 'playwright-core';
@@ -16,6 +17,8 @@ const SCENES = arg('scenes', 'VOID,FOREST,ICE,MAGMA,DESERT').split(',');
 const ZOOM = Number(arg('zoom', '2'));
 const OUT = path.resolve(root, arg('out', 'tools/ui-e2e/out/obstacles'));
 const PROCEDURAL = process.argv.includes('--procedural');
+/** 截圖前步進的幀數（天氣等需要時間累積的效果用大一點） */
+const FRAMES = Number(arg('frames', '90'));
 const START_TEXT = '啟動戰術模擬';
 const CROP = { w: 520, h: 360 };
 fs.mkdirSync(OUT, { recursive: true });
@@ -87,7 +90,8 @@ try {
             const p = HexUtils.toPx(oq, or, e.mapConfig);
             return { obstacles: keys.length, q: oq, r: or, x: p.x, y: p.y, placed };
         }, { scene, zoom: ZOOM });
-        await page.evaluate(() => window.__stepFrames(90));
+        await page.evaluate((n) => window.__stepFrames(n), FRAMES);
+        const weather = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.vfx.state.particles.filter((p) => p.weather).length);
         await page.screenshot({ path: path.join(OUT, `${scene}${PROCEDURAL ? '_proc' : ''}_full.png`) });
         // 放大圖：鏡頭對準那個障礙物
         await page.evaluate(({ x, y, zoom }) => {
@@ -98,7 +102,7 @@ try {
         }, { ...info, zoom: ZOOM });
         await page.evaluate(() => window.__stepFrames(30));
         await page.screenshot({ path: path.join(OUT, `${scene}${PROCEDURAL ? '_proc' : ''}_zoom.png`), clip: { x: 640 - CROP.w / 2, y: 360 - CROP.h / 2, width: CROP.w, height: CROP.h } });
-        console.log(scene, JSON.stringify(info));
+        console.log(scene, JSON.stringify({ ...info, weather }));
     }
     if (errors.length) console.log('PAGE ERRORS', errors.slice(0, 5));
 } finally {

@@ -237,12 +237,11 @@ export async function collectSnapshot(opts) {
     // singletons with stats APIs
     const caches = {};
     const tryImport = async (p) => { try { return await import(p); } catch { return null; } };
-    const [tr, vf, gl, la, pt, sa, tt, es, rs] = await Promise.all([
+    const [tr, vf, gl, la, sa, tt, es, rs] = await Promise.all([
         tryImport('/engine/renderers/grid/TerrainRenderer.ts'),
         tryImport('/engine/graphics/VFXFactory.ts'),
         tryImport('/engine/renderers/GlowSpriteCache.ts'),
         tryImport('/engine/renderers/grid/TerrainLoopAtlas.ts'),
-        tryImport('/engine/renderers/ParticleTextureStore.ts'),
         tryImport('/engine/renderers/units/SpriteAtlasStore.ts'),
         tryImport('/engine/renderers/grid/TerrainTextureStore.ts'),
         tryImport('/engine/events/GameEventPool.ts'),
@@ -252,7 +251,6 @@ export async function collectSnapshot(opts) {
     if (vf) caches.VFXFactory = vf.VFXFactory.cache.size;
     if (gl) caches.GlowSpriteCache = gl.GlowSpriteCache.getStats();
     if (la) caches.TerrainLoopAtlas = { liquid: la.TerrainLoopAtlas.getLiquidStats(), grassColors: la.TerrainLoopAtlas._grass.size, bakeCount: la.TerrainLoopAtlas.bakeCount };
-    if (pt) caches.particleTint = pt.particleTextureStore.tintedCache.size;
     if (sa) caches.spriteAtlases = sa.spriteAtlasStore.atlases.size;
     if (tt) caches.terrainTexturePatterns = { top: tt.terrainTextureStore.topPatterns.size, side: tt.terrainTextureStore.sidePatterns.size };
     if (es) { const ep = es.EventPool; caches.eventPool = ep.pool?.length ?? null; }
@@ -315,7 +313,7 @@ export async function collectSnapshot(opts) {
         };
         walk(engine, 'engine', 0);
         for (const [name, mod, key] of [
-            ['VFXFactory', vf, 'VFXFactory'], ['particleTextureStore', pt, 'particleTextureStore'],
+            ['VFXFactory', vf, 'VFXFactory'],
             ['spriteAtlasStore', sa, 'spriteAtlasStore'], ['terrainTextureStore', tt, 'terrainTextureStore'],
             ['TerrainLoopAtlas', la, 'TerrainLoopAtlas'], ['RenderStats', rs, 'RenderStats'], ['EventPool', es, 'EventPool'],
         ]) {

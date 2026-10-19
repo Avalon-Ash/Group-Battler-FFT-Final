@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TerrainLoopAtlas, loopFrameIndex } from '../engine/renderers/grid/TerrainLoopAtlas';
 import { SurfacePainter } from '../engine/graphics/painters/SurfacePainter';
+import { vfxPartStore } from '../engine/renderers/vfxparts/VFXPartStore';
 import { VFXAmbience } from '../engine/systems/vfx/VFXAmbience';
 import { VFXStateManager } from '../engine/systems/vfx/state';
 import { forceSetQualityTier } from '../engine/renderers/RenderQuality';
@@ -223,8 +224,9 @@ describe('TerrainAmbience config table', () => {
             expect(cfg.size.spread).toBeGreaterThanOrEqual(0);
             expect(cfg.primaryChance).toBeGreaterThan(0);
             expect(cfg.primaryChance).toBeLessThanOrEqual(1);
-            expect(cfg.colors.length).toBeGreaterThanOrEqual(1);
-            expect(cfg.colors.length).toBeLessThanOrEqual(2);
+            expect(cfg.parts.length).toBeGreaterThanOrEqual(1);
+            expect(cfg.parts.length).toBeLessThanOrEqual(2);
+            expect(cfg.partRadius).toBeGreaterThan(0);
             if (cfg.life !== null) expect(cfg.life).toBeGreaterThan(0);
             else expect(cfg.vx.min).toBeGreaterThan(0);
         }
@@ -248,7 +250,21 @@ describe('TerrainAmbience config table', () => {
 });
 
 describe('VFXAmbience weather particles', () => {
-    afterEach(() => forceSetQualityTier(0));
+    // 天氣是零件粒子：生成時烘焙零件 sprite，需要最小的 canvas 替身
+    let prevDocument: unknown;
+    beforeEach(() => {
+        prevDocument = (globalThis as unknown as { document?: unknown }).document;
+        const ctx = new Proxy({} as Record<string, unknown>, {
+            get: (t, prop: string) => (prop in t ? t[prop] : (prop.startsWith('create') ? () => ({ addColorStop: () => {} }) : () => {})),
+            set: (t, prop: string, v) => { t[prop] = v; return true; },
+        });
+        (globalThis as unknown as { document?: unknown }).document = { createElement: () => ({ width: 0, height: 0, getContext: () => ctx }) };
+    });
+    afterEach(() => {
+        forceSetQualityTier(0);
+        vfxPartStore.clear();
+        (globalThis as unknown as { document?: unknown }).document = prevDocument;
+    });
 
     const fill = (type: string, seconds: number) => {
         const state = new VFXStateManager();
@@ -258,11 +274,11 @@ describe('VFXAmbience weather particles', () => {
         return state;
     };
 
-    it('spawns ATMOSPHERE particles from the config table and never exceeds the cap', () => {
+    it('spawns weather part particles from the config table and never exceeds the cap', () => {
         const state = fill('SNOW', 60);
         const cap = WEATHER_AMBIENCE.SNOW.maxActive;
         expect(state.particles.length).toBe(cap);
-        expect(state.particles.every((p) => p.type === 'ATMOSPHERE')).toBe(true);
+        expect(state.particles.every((p) => p.type === 'PART' && p.weather === true && !!p.part)).toBe(true);
         // 沒有重複加入同一個粒子物件
         expect(new Set(state.particles).size).toBe(state.particles.length);
     });

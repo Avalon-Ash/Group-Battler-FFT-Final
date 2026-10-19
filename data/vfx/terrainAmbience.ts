@@ -27,6 +27,7 @@ import type {
     WeatherAmbienceConfig,
     WeatherBoundsConfig,
 } from '../../types';
+import type { PartAnim } from '../../types/VFXSchema';
 
 const TWO_PI = Math.PI * 2;
 
@@ -185,11 +186,19 @@ export const WEATHER_BOUNDS: WeatherBoundsConfig = {
     zSpread: 400,
 };
 
+/**
+ * 天氣粒子（T4，2026-10-19）：六角零件管線（PART 粒子，VFXAmbience 生成），取代程序化光點看板（ATMOSPHERE 型別已刪）。
+ * 縮放＝粒子 size / partRadius；淡入淡出沿用舊看板的節奏（先維持再淡出、略為放大）。
+ */
+export const WEATHER_PART_ANIM: PartAnim = { scaleFrom: 0.9, scaleTo: 1.5, fadeIn: 0.1, fadeOut: 0.4, alpha: 0.55 };
+
 export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbienceConfig>> = {
     SNOW: {
         interval: 0.03,
         maxActive: 160,
-        colors: ['#fff'],
+        parts: [{ kind: 'glow', radius: 4, ramp: 'WEATHER_SNOW', hard: true }],
+        partRadius: 4,
+        alignToVelocity: false,
         primaryChance: 1,
         size: { min: 1.5, spread: 2.5 },
         vx: { min: 40, spread: 30 },
@@ -201,7 +210,9 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
     ASH: {
         interval: 0.03,
         maxActive: 200,
-        colors: ['#1c1917', '#451a03'],
+        parts: [{ kind: 'smoke', radius: 4, color: 'ASH' }, { kind: 'smoke', radius: 4, color: 'CHAR' }],
+        partRadius: 4,
+        alignToVelocity: false,
         primaryChance: 0.5,
         size: { min: 1, spread: 3 },
         vx: { min: 20, spread: 20 },
@@ -213,7 +224,9 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
     EMBER: {
         interval: 0.15,
         maxActive: 40,
-        colors: ['#f59e0b', '#ef4444'],
+        parts: [{ kind: 'glow', radius: 4, ramp: 'WEATHER_EMBER', hard: true }, { kind: 'spark', length: 8, ramp: 'WEATHER_EMBER' }],
+        partRadius: 4,
+        alignToVelocity: true,
         primaryChance: 0.5,
         size: { min: 1, spread: 2 },
         vx: { min: -20, spread: 40 },
@@ -225,7 +238,9 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
     SPORES: {
         interval: 0.15,
         maxActive: 64,
-        colors: ['#bef264', '#a855f7'],
+        parts: [{ kind: 'glow', radius: 4, ramp: 'WEATHER_SPORE' }, { kind: 'glow', radius: 4, ramp: 'WEATHER_SPORE_VIOLET' }],
+        partRadius: 3,
+        alignToVelocity: false,
         primaryChance: 0.5,
         size: { min: 0.5, spread: 2.5 },
         vx: { min: -7.5, spread: 15 },
@@ -237,7 +252,9 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
     SAND: {
         interval: 0.005,
         maxActive: 240,
-        colors: ['#fcd34d', '#d97706'],
+        parts: [{ kind: 'spark', length: 12, ramp: 'WEATHER_SAND' }, { kind: 'spark', length: 8, ramp: 'WEATHER_SAND' }],
+        partRadius: 2,
+        alignToVelocity: true,
         primaryChance: 0.4,
         size: { min: 1, spread: 2 },
         vx: { min: 1200, spread: 600 },
@@ -250,7 +267,9 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
     VOID: {
         interval: 0.15,
         maxActive: 40,
-        colors: ['#581c87', '#000000'],
+        parts: [{ kind: 'glow', radius: 6, ramp: 'WEATHER_VOID' }, { kind: 'smoke', radius: 6, color: 'CHAR' }],
+        partRadius: 4,
+        alignToVelocity: false,
         primaryChance: 0.5,
         size: { min: 2, spread: 4 },
         vx: { min: -10, spread: 20 },

@@ -148,7 +148,7 @@ export class DesignExporter {
         s += "- 特效零件：程式烘焙，無貼圖（VFXPartStore）\n";
         s += "- UnitFactory／CoreFactory: 棋座 Token、職業字形、核心晶體\n";
         s += "- EnvironmentFactory: 程序化障礙物（樹、晶體、岩石）\n";
-        s += "- VFXFactory: 天氣光點（public/assets/vfx 粒子貼圖染色）、單位接地陰影、背景光束（封閉的 VFXTextureType 清單）\n";
+        s += "- VFXFactory: 單位接地陰影、背景光束、除錯方塊（封閉的 VFXTextureType 清單）；天氣粒子是零件（data/vfx/terrainAmbience.ts WEATHER_AMBIENCE）\n";
         s += "- UIFactory: 技能圖示、狀態圖示\n\n";
 
         s += "## 7-A. 單位外觀 SSOT (Unit Appearance Registry)\n\n";

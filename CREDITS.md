@@ -71,8 +71,8 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
 
 ### Obstacle Models (Derived Pre-rendered Sprites)
 
-- **Kay Lousberg (KayKit)** — KayKit Forest Nature Pack 1.0 (trees) and KayKit Dungeon Remastered 1.0 (pillars, columns), [kaylousberg.com](https://www.kaylousberg.com), CC0 1.0.
-- **Kenney (Kenney.nl)** — Nature Kit 2.1 (statue column, obelisk, tall rocks), [kenney.nl](https://kenney.nl/assets/nature-kit), CC0 1.0.
+- **Kay Lousberg (KayKit)** — KayKit Forest Nature Pack 1.0 (trees, grass and bush tufts) and KayKit Dungeon Remastered 1.0 (pillars, columns), [kaylousberg.com](https://www.kaylousberg.com), CC0 1.0.
+- **Kenney (Kenney.nl)** — Nature Kit 2.1 (statue column, obelisk, tall and small rocks), [kenney.nl](https://kenney.nl/assets/nature-kit), CC0 1.0.
   - *Usage*: offline pre-rendered in Blender with the unit camera and cel-shading, recoloured per biome. Ice crystals and obsidian columns are scripted geometry (own work). Attribution is non-mandatory for CC0 but gratefully acknowledged.
 
 ### Terrain Concept & Textures
@@ -80,14 +80,4 @@ We gratefully acknowledge the creators whose work powers our audio and visual si
 - **Procedural AI Synthesis (Google Gemini)**
   - *Source*: Offline generated 2x5 biome terrain swatch palette (Void, Forest, Ice, Magma, Desert) based on project artistic style guide (ART_STYLE_BIBLE.md §5).
   - *License*: Public Domain / CC0 Equivalent
-
-### Particle Pack Textures (VFX)
-
-- **Kenney (Kenney.nl)**
-  - *Pack*: Particle Pack (1.1) (80+ sprites)
-  - *Source*: [kenney.nl](https://kenney.nl/assets/particle-pack)
-  - *License*: Creative Commons CC0 1.0 Universal (Public Domain)
-  - *Usage*: High-performance textured sprite overlays for particle effects (sparks, smoke puffs, atmosphere glow, magic circles, stars) pre-tinted in memory and blended via 2.5D billboard painter. Attribution is non-mandatory for CC0 but gratefully acknowledged.
-
-
 

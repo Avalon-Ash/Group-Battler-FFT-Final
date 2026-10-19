@@ -15,24 +15,24 @@ import {
 const sorted = (s: ReadonlySet<string>) => [...s].sort();
 
 describe('particle traits table', () => {
-    it('only the part types, beams, weather and the debug dot exist (V5a)', () => {
+    it('only the part types, beams and the debug dot exist (V5a, T4)', () => {
         // 舊的 PROC／GROUND／看板型別已全部移除（docs/VFX_PIPELINE_MAP.md §4.12）；新增型別要先在特性表登記
-        expect(Object.keys(PARTICLE_TRAITS).sort()).toEqual(['ATMOSPHERE', 'BEAM', 'GENERIC_DEBUG', 'PART', 'PART_DEBRIS', 'PART_GROUND']);
+        expect(Object.keys(PARTICLE_TRAITS).sort()).toEqual(['BEAM', 'GENERIC_DEBUG', 'PART', 'PART_DEBRIS', 'PART_GROUND']);
         expect(sorted(VFX_GROUND_TYPES)).toEqual(['PART_GROUND']);
         expect(sorted(PHYSICAL_PARTICLE_TYPES)).toEqual(['PART_DEBRIS']);
         expect(sorted(FIXED_ORIENTATION_PARTICLE_TYPES)).toEqual(['PART', 'PART_DEBRIS', 'PART_GROUND']);
         expect(sorted(SELF_DRAWN_PARTICLE_TYPES)).toEqual(['BEAM', 'PART', 'PART_DEBRIS', 'PART_GROUND']);
         expect(sorted(PART_PARTICLE_TYPES)).toEqual(['PART', 'PART_DEBRIS', 'PART_GROUND']);
         const byBackend = (b: string) => Object.keys(PARTICLE_TRAITS).filter((k) => particleBackend(k) === b).sort();
-        expect(byBackend('BILL')).toEqual(['ATMOSPHERE', 'BEAM', 'GENERIC_DEBUG']);
+        expect(byBackend('BILL')).toEqual(['BEAM', 'GENERIC_DEBUG']);
     });
 });
 
 /** 還在用舊後端的登記資產（只減不增） */
 const LEGACY_ASSETS_ALLOWED: string[] = [];
 
-/** 引擎內直接指定（不經登記表）的非零件粒子型別（只減不增）。ATMOSPHERE＝天氣（地形 T4 零件化）；BEAM 一律掛光束零件；GENERIC_DEBUG 是粒子池重置的預設值 */
-const LEGACY_DIRECT_TYPES_ALLOWED = ['ATMOSPHERE', 'BEAM', 'GENERIC_DEBUG'];
+/** 引擎內直接指定（不經登記表）的非零件粒子型別（只減不增）。天氣已在地形 T4 零件化；BEAM 一律掛光束零件；GENERIC_DEBUG 是粒子池重置的預設值 */
+const LEGACY_DIRECT_TYPES_ALLOWED = ['BEAM', 'GENERIC_DEBUG'];
 
 function collectSources(dir: string, out: string[] = []): string[] {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

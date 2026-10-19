@@ -7,7 +7,7 @@ import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
  *  - ATMOSPHERE：天氣粒子（看板，VFXAmbience 生成；地形 T4 會改零件）
  *  - GENERIC_DEBUG：除錯點
  */
-export type ParticleType = 'PART' | 'PART_GROUND' | 'PART_DEBRIS' | 'BEAM' | 'ATMOSPHERE' | 'GENERIC_DEBUG';
+export type ParticleType = 'PART' | 'PART_GROUND' | 'PART_DEBRIS' | 'BEAM' | 'GENERIC_DEBUG';
 
 // Define the "Verbs" of our visual language
 type VFXActionType = 

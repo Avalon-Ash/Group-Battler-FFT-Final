@@ -1050,8 +1050,6 @@ export const UNIT_SPRITE = {
     manifestPath: 'assets/units/manifest.json',
 } as const;
 
-/** 看板粒子（天氣 ATMOSPHERE，BillboardPainter）：縮放 SCALE_FROM → +SCALE_GROW（ease-out）；進度 HOLD_UNTIL 前維持 HOLD_ALPHA，之後 (1−進度)×FADE_MUL 淡出 */
-export const BILLBOARD = { SCALE_FROM: 0.9, SCALE_GROW: 0.6, HOLD_UNTIL: 0.6, HOLD_ALPHA: 0.45, FADE_MUL: 1.1 } as const;
 
 /**
  * 投射物繪製（ProjectileRenderer 取樣、ProjectilePartPainter 繪製）。外觀表在 data/vfx/projectile_visuals.ts。
@@ -1102,31 +1100,6 @@ export const UNIT_BODY_MOTION = {
 // VFX Particle Sprites (SSOT)
 // ══════════════════════════════════════════════════════════════
 
-export interface VfxSpritesConfig {
-    tintSizes: readonly number[];
-    colorQuantBits: number;
-    maxTintCache: number;
-    textures: {
-        light: string;
-        spark: string;
-        smoke: string;
-        magic: string;
-        star: string;
-    };
-}
-
-export const VFX_SPRITES: VfxSpritesConfig = {
-    tintSizes: [32, 64, 128, 256] as const,
-    colorQuantBits: 4,
-    maxTintCache: 128,
-    textures: {
-        light: 'assets/vfx/light_01.png',
-        spark: 'assets/vfx/spark_01.png',
-        smoke: 'assets/vfx/smoke_01.png',
-        magic: 'assets/vfx/magic_01.png',
-        star: 'assets/vfx/star_01.png',
-    },
-};
 
 
 
@@ -1142,7 +1115,8 @@ export const OBSTACLE_STYLES: Record<string, ObstacleStyle> = {
 
 /**
  * 粒子型別特性表（SSOT，docs/VFX_PIPELINE_MAP.md §5-5）：每個 ParticleType 一列，下面的集合都由它推導。
- *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件）、BILL＝BillboardPainter（天氣 ATMOSPHERE、除錯點）。
+ *  - backend：ParticleRenderer 交給哪個繪製器——PART＝PartPainter（零件）、BILL＝非零件（光束掛零件另走 drawBeam；其餘只畫除錯點）。
+ *    天氣在地形 T4（2026-10-19）改成 PART 粒子，ATMOSPHERE 型別與看板繪製器已刪。
  *    BEAM 一律掛光束零件走 PartPainter.drawBeam。舊的 PROC／GROUND 型別與繪製器已全部移除（docs/VFX_PIPELINE_MAP.md §4.10、§4.12）。
  *  - ground：貼地（排序用前緣、z 鎖地面、VFXPlayer 以 groundZ 生成）→ VFX_GROUND_TYPES
  *  - physical：受重力與落地反彈（VFXPhysics）→ PHYSICAL_PARTICLE_TYPES
@@ -1157,7 +1131,6 @@ export const PARTICLE_TRAITS: Readonly<Record<ParticleType, ParticleTraits>> = {
     PART_GROUND: { backend: 'PART', ground: true, fixed: true, selfDrawn: true },
     PART_DEBRIS: { backend: 'PART', physical: true, fixed: true, selfDrawn: true },
     BEAM: { backend: 'BILL', selfDrawn: true },
-    ATMOSPHERE: { backend: 'BILL' },
     GENERIC_DEBUG: { backend: 'BILL' },
 };
 const particleTypesWhere = (pred: (t: ParticleTraits) => boolean): ReadonlySet<string> =>

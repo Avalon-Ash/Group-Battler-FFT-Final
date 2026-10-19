@@ -150,7 +150,7 @@ export class RenderSpec {
         s += "| 奧義原型（ult_visuals.ts）／序列（SkillSequences.ts） | VFX_REGISTRY 鍵＋BEAM_STYLES 鍵（beam_styles.ts） | SequenceSystem 排動作；光束 → PartPainter.drawBeam（光束零件） |\n";
         s += "| visual（ARROW／FIREBALL／BOLT／SLASH／SMASH／BEAM／BOMB） | 圖示與後備外觀鍵 | 技能圖示（UIFactory，量表 GaugePainter 與 Inspector 共用）；沒有 visualProjectileEffect 時當投射物外觀鍵 |\n\n";
         s += "粒子後端只有一個出處：constants.ts 的 PARTICLE_TRAITS（PART／PART_GROUND／PART_DEBRIS 走零件；BEAM 掛光束零件；\n";
-        s += "ATMOSPHERE（天氣）走看板；其餘舊型別只畫洋紅除錯點，tests/VFXBackend.test.ts 以只減不增的棘輪擋住）。\n\n";
+        s += "天氣也是 PART 粒子（VFXAmbience，T4）；其餘舊型別只畫洋紅除錯點，tests/VFXBackend.test.ts 以只減不增的棘輪擋住）。\n\n";
         s += "單位本體外觀不在本表：陣營外觀唯一入口是 data/units/factionSkin.ts 的 getFactionSkin（docs/FACTION_SLOTS.md），\n";
         s += "精靈圖集與體型在 data/units/appearance/（sprite.ts、bodyTypes.ts、projection.ts），棋座顏色在 appearance/imperial.ts、covenant.ts。\n\n";
 
