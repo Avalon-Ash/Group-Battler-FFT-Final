@@ -10,6 +10,8 @@
  *      3: 色調分級關 + DPR 倍率 0.5 (ToneGrade OFF, DPR Scale 0.5)
  *  - 支援 ?quality=<0-3> 查詢參數釘死品質階層。
  *  - 包含視窗平均降階/升階/冷卻/忽略長幀的自適應品質調度器 (createQualityGovernor)。
+ *  - 降階門檻至少是「推估的螢幕刷新週期 × DOWN_REFRESH_RATIO」（vsync 鎖住的間隔不算掉幀）；
+ *    進入解析度階層（2／3）用更高的 DOWN_RES_MS；升階冷卻加倍每 BACKOFF_DECAY_S 消退一級（2026-10-19 越跑越糊修正）。
  */
 
 import { RENDER_QUALITY } from '../../constants';
@@ -18,8 +20,10 @@ export type QualityTier = 0 | 1 | 2 | 3;
 
 export interface QualityGovernorConfig {
     ignoreFrameMs?: number;
-    /** Downgrade when the averaged frame INTERVAL (rAF dt) exceeds this. */
+    /** Downgrade 0 -> 1 when the averaged frame INTERVAL (rAF dt) exceeds this (and the refresh-based floor). */
     downMs?: number;
+    /** Downgrade into the resolution tiers (1 -> 2 -> 3) only above this averaged interval. */
+    downResMs?: number;
     downHoldS?: number;
     /**
      * Upgrade when the averaged main-thread WORK time (not the rAF interval) is below this.
@@ -125,6 +129,7 @@ export function getRenderDpr(): number {
 export function createQualityGovernor(config: QualityGovernorConfig = {}) {
     const ignoreFrameMs = config.ignoreFrameMs ?? RENDER_QUALITY.IGNORE_FRAME_MS;
     const downMs = config.downMs ?? RENDER_QUALITY.DOWN_MS;
+    const downResMs = config.downResMs ?? RENDER_QUALITY.DOWN_RES_MS;
     const downHoldS = config.downHoldS ?? RENDER_QUALITY.DOWN_HOLD_S;
     const upMs = config.upMs ?? RENDER_QUALITY.UP_MS;
     const upHoldS = config.upHoldS ?? RENDER_QUALITY.UP_HOLD_S;
@@ -159,6 +164,18 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
     let timeSinceLastDowngrade = cooldownS; // allow an upgrade as soon as the conditions hold
     let timeSinceLastUpgrade = Infinity;
     let upBackoff = 0;
+    let backoffDecayElapsed = 0;
+    /** Decaying minimum of the frame interval: estimates the display refresh period (vsync pin). */
+    let fastMs = Infinity;
+
+    /** Snap the fastest observed interval to a standard display period (60 Hz at most). */
+    function refreshPeriodMs(): number {
+        if (!Number.isFinite(fastMs)) return 0;
+        const limit = fastMs * RENDER_QUALITY.REFRESH_TOL;
+        let best = -1;
+        for (const p of RENDER_QUALITY.DISPLAY_PERIODS_MS) if (p <= limit && p > best) best = p;
+        return best > 0 ? best : fastMs;
+    }
 
     function clearWindow(): void {
         count = 0;
@@ -186,6 +203,8 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
         if (elapsedS < startupGraceS) return currentTier;
 
         const work = workMs ?? frameMs;
+        if (frameMs < fastMs) fastMs = frameMs;
+        else fastMs += (frameMs - fastMs) * RENDER_QUALITY.REFRESH_DECAY;
         if (count < windowFrames) {
             buffer[head] = frameMs;
             workBuffer[head] = work;
@@ -206,10 +225,18 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
 
         timeSinceLastDowngrade += dtSec;
         timeSinceLastUpgrade += dtSec;
+        backoffDecayElapsed += dtSec;
+        if (upBackoff > 0 && backoffDecayElapsed >= RENDER_QUALITY.BACKOFF_DECAY_S) {
+            upBackoff--;
+            backoffDecayElapsed = 0;
+        }
         const avgMs = sum / count;
         const avgWorkMs = workSum / count;
+        // 刷新週期下限：vsync 鎖住的幀間隔不算掉幀；解析度階層要更慢才降
+        const refreshFloor = refreshPeriodMs() * RENDER_QUALITY.DOWN_REFRESH_RATIO;
+        const downThreshold = Math.max(currentTier >= 1 ? downResMs : downMs, refreshFloor);
 
-        if (avgMs > downMs) {
+        if (avgMs > downThreshold) {
             downHoldElapsed += dtSec;
             upHoldElapsed = 0;
             if (downHoldElapsed >= downHoldS && currentTier < 3) {
@@ -219,6 +246,7 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
                 }
                 currentTier = (currentTier + 1) as QualityTier;
                 timeSinceLastDowngrade = 0;
+                backoffDecayElapsed = 0;
                 clearWindow();
                 forceSetQualityTier(currentTier);
             }
@@ -259,6 +287,8 @@ export function createQualityGovernor(config: QualityGovernorConfig = {}) {
         timeSinceLastDowngrade = cooldownS;
         timeSinceLastUpgrade = Infinity;
         upBackoff = 0;
+        backoffDecayElapsed = 0;
+        fastMs = Infinity;
     }
 
     return {

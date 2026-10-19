@@ -1309,6 +1309,22 @@ export const RENDER_QUALITY = {
     IGNORE_FRAME_MS: 250,
     /** 降階門檻：幀間隔平均 > 14ms（約 < 70 FPS）持續 DOWN_HOLD_S 才降階；一般 100+ FPS 遊玩不得降畫質（僅應付真正的瞬間掉幀） */
     DOWN_MS: 14,
+    /**
+     * 降到解析度階層（2／3，畫面變糊）的門檻：幀間隔平均 > 22ms（約 < 45 FPS）。0→1 只關色調分級，用 DOWN_MS。
+     * 2026-10-19「放著不動越跑越糊」：以前所有階層共用 14ms，偶發重場面就把解析度降下去。
+     */
+    DOWN_RES_MS: 22,
+    /**
+     * 降階門檻至少是「螢幕刷新週期 × DOWN_REFRESH_RATIO」：幀間隔被 vsync 鎖在刷新週期，60 Hz 螢幕永遠 ≥ 16.7ms，
+     * 以前一律被判成掉幀而降到最低階。刷新週期＝最短幀間隔（衰減最小值，每幀往上回彈 REFRESH_DECAY），
+     * ×REFRESH_TOL 後對齊到 DISPLAY_PERIODS_MS 中不超過它的最大值（找不到更大的就用 60 Hz）。
+     */
+    DOWN_REFRESH_RATIO: 1.4,
+    REFRESH_DECAY: 0.002,
+    REFRESH_TOL: 1.1,
+    DISPLAY_PERIODS_MS: [4.17, 6.06, 6.94, 8.33, 11.11, 13.33, 16.67] as readonly number[],
+    /** 升階冷卻加倍（upBackoff）每 BACKOFF_DECAY_S 秒沒有再降階就減一級；以前只增不減，降過幾次就永久卡在低畫質 */
+    BACKOFF_DECAY_S: 60,
     DOWN_HOLD_S: 2,
     /** 升階門檻：主執行緒耗時 < 9ms（與 vsync 無關的工作時間） */
     UP_MS: 9,

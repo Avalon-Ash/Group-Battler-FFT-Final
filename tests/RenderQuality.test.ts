@@ -284,6 +284,21 @@ describe('RenderQuality & createQualityGovernor', () => {
             while (gov.getTier() === 1 && guard++ < 2000) gov.feedFrame(8, 0.05, 5);
             expect(gov.getTier()).toBe(0);
         });
+        it('does not downgrade on a 60 Hz display just because the interval is pinned at 16.7 ms (idle blur bug)', () => {
+            const gov = createQualityGovernor({ startupGraceS: 0, initialTier: 0, pinnedTier: null });
+            for (let i = 0; i < 3600; i++) gov.feedFrame(16.7, 0.0167, 12); // 60 s
+            expect(gov.getTier()).toBe(0);
+        });
+
+        it('on a fast display a moderate slowdown only drops tone grading, not resolution', () => {
+            const gov = createQualityGovernor({ startupGraceS: 0, initialTier: 0, pinnedTier: null });
+            for (let i = 0; i < 480; i++) gov.feedFrame(4.17, 0.00417, 3); // 239 Hz baseline
+            for (let i = 0; i < 600; i++) gov.feedFrame(16, 0.016, 10);   // ~62 fps for ~10 s
+            expect(gov.getTier()).toBe(1);
+            for (let i = 0; i < 300; i++) gov.feedFrame(30, 0.03, 25);    // genuinely slow -> resolution tiers
+            expect(gov.getTier()).toBeGreaterThanOrEqual(2);
+        });
+
         it('ignores frames longer than ignoreFrameMs (stalls/background)', () => {
             const gov = createQualityGovernor({
                 startupGraceS: 0,
