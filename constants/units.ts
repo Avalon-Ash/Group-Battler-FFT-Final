@@ -153,6 +153,7 @@ export const SHIELD_VISUAL = {
     RIM_ALPHA: 0.4,
 } as const;
 
+/** 單位腳下接地陰影（UnitShadowPainter；貼圖 VFXFactory SHADOW_BLOB，multiply）。WIDTH＝陰影寬（UNIT_SCALE 前），BASE_HALF＝底座貼圖半邊長 */
 export const UNIT_SHADOW = {
     WIDTH: 110,
     BASE_HALF: 64,
