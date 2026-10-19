@@ -56,7 +56,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Priority 1: Death takes precedence over all other animation states', () => {
             // Set all conflicting states active
-            agent.hitFlashTimer = 0.15;
+            agent.view.hitFlashTimer = 0.15;
             agent.castingSkillIdx = 0;
             agent.castTimer = 0.5;
             agent.isMoving = true;
@@ -80,7 +80,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Priority 2: Hit reaction takes precedence over cast, attack, walk and idle', () => {
             agent.hp = 100;
-            agent.hitFlashTimer = 0.12;
+            agent.view.hitFlashTimer = 0.12;
             agent.castingSkillIdx = 0;
             agent.isMoving = true;
 
@@ -92,7 +92,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Priority 3: Cast / Attack takes precedence over move and idle', () => {
             agent.hp = 100;
-            agent.hitFlashTimer = 0;
+            agent.view.hitFlashTimer = 0;
             agent.castingSkillIdx = 0;
             agent.castTimer = 0.5; // halfway through 1.0s cast
             agent.isMoving = true;
@@ -104,7 +104,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Cast falls back to attack when unit lacks cast animation', () => {
             agent.hp = 100;
-            agent.hitFlashTimer = 0;
+            agent.view.hitFlashTimer = 0;
             agent.role = Role.WARRIOR; // Warrior does not have cast animation in KayKit
             agent.castingSkillIdx = 0;
             agent.castTimer = 0.5;
@@ -116,7 +116,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Priority 4: Walk takes precedence over idle', () => {
             agent.hp = 100;
-            agent.hitFlashTimer = 0;
+            agent.view.hitFlashTimer = 0;
             agent.castingSkillIdx = -1;
             agent.isMoving = true;
 
@@ -128,7 +128,7 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
 
         it('Priority 5: Idle when no active action or movement', () => {
             agent.hp = 100;
-            agent.hitFlashTimer = 0;
+            agent.view.hitFlashTimer = 0;
             agent.castingSkillIdx = -1;
             agent.isMoving = false;
             agent.actionState = ActionState.IDLE;

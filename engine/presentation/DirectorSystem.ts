@@ -150,7 +150,7 @@ export class DirectorSystem {
                 else if (skill?.tag === 'ACTIVE') score += 20;
                 else score += 5; 
             }
-            if (a.hitFlashTimer > 0) score += 15; 
+            if (a.view.hitFlashTimer > 0) score += 15; 
             if (a.isMoving) score += 5;
 
             if (a.role === 'WARRIOR' || a.role === 'TANK') score += 2;

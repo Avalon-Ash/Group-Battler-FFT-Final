@@ -163,8 +163,8 @@ export const PolymorphPainter = {
             ctx.drawImage(sprite.silhouette, 0, 0, S.boxW, S.boxH);
         } else {
             ctx.drawImage(sprite.color, 0, 0, S.boxW, S.boxH);
-            if (agent.hitFlashTimer > 0) {
-                ctx.globalAlpha *= Math.min(1, agent.hitFlashTimer / UNIT_SPRITE.hitFlashDuration);
+            if (agent.view.hitFlashTimer > 0) {
+                ctx.globalAlpha *= Math.min(1, agent.view.hitFlashTimer / UNIT_SPRITE.hitFlashDuration);
                 ctx.drawImage(sprite.silhouette, 0, 0, S.boxW, S.boxH);
             }
         }

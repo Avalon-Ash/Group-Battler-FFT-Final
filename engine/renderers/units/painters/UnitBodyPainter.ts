@@ -65,14 +65,14 @@ export const UnitBodyPainter = {
         const bodyFloat = Math.sin(t * bob.freq) * bob.amplitude;
 
         // 衝刺／高速移動殘影：本體之前、單位局部座標（原點＝腳底繪製點），偏移來自 UnitFrame（RenderSpec §10）
-        if (frame && frame.ghostCount > 0 && !isSilhouette && agent.visualStatus !== 'POLYMORPH') {
+        if (frame && frame.ghostCount > 0 && !isSilhouette && agent.view.visualStatus !== 'POLYMORPH') {
             UnitAfterimagePainter.draw(ctx, agent, frame, t, finalRotation, bodyFloat);
         }
 
         ctx.save(); 
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-        ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y);
+        ctx.translate(px + agent.view.visualOffset.x, bodyY + agent.view.visualOffset.y);
 
         // 墜落：繞身體中心翻滾並縮小（淡出由 UnitRenderSystem.drawAssembly 整組套用）
         const fall = unitFallProgress(pz);
@@ -101,7 +101,7 @@ export const UnitBodyPainter = {
 
         ctx.translate(0, bodyFloat);
 
-        if (agent.visualStatus === 'POLYMORPH') {
+        if (agent.view.visualStatus === 'POLYMORPH') {
             PolymorphPainter.draw(ctx, agent, t, isSilhouette);
         } else {
             // Layer 2: Main Body (Sprite Atlas with 5-line team circle fallback on load failure)
@@ -115,7 +115,7 @@ export const UnitBodyPainter = {
             }
 
             // Layer 3: Overlay Status (Ice Block：六角稜柱，烘焙一次)
-            if (agent.visualStatus === 'FROZEN' && !isSilhouette) {
+            if (agent.view.visualStatus === 'FROZEN' && !isSilhouette) {
                 FrozenPainter.draw(ctx);
             }
         }

@@ -16,16 +16,16 @@ export class AnimationSystem {
     public update(dt: number, engine: GameEngine) {
         for (const agent of engine.agents) {
             // 1. Update Visual Timers
-            if (agent.hitFlashTimer > 0) {
-                agent.hitFlashTimer -= dt;
+            if (agent.view.hitFlashTimer > 0) {
+                agent.view.hitFlashTimer -= dt;
             }
 
             // 1.1 Decay Visual Offset (Damping)
-            if (agent.visualOffset.x !== 0 || agent.visualOffset.y !== 0) {
-                agent.visualOffset.x *= (1 - 15 * dt);
-                agent.visualOffset.y *= (1 - 15 * dt);
-                if (Math.abs(agent.visualOffset.x) < 0.1) agent.visualOffset.x = 0;
-                if (Math.abs(agent.visualOffset.y) < 0.1) agent.visualOffset.y = 0;
+            if (agent.view.visualOffset.x !== 0 || agent.view.visualOffset.y !== 0) {
+                agent.view.visualOffset.x *= (1 - 15 * dt);
+                agent.view.visualOffset.y *= (1 - 15 * dt);
+                if (Math.abs(agent.view.visualOffset.x) < 0.1) agent.view.visualOffset.x = 0;
+                if (Math.abs(agent.view.visualOffset.y) < 0.1) agent.view.visualOffset.y = 0;
             }
 
             // 2. Derive Animation State (Priority Based)
@@ -33,7 +33,7 @@ export class AnimationSystem {
             
             if (agent.hp <= 0) {
                 agent.animState = AnimState.DEAD;
-                agent.visualStatus = 'NONE';
+                agent.view.visualStatus = 'NONE';
                 
                 // [ARCH] deathTimer / fullyDead 的唯一寫入者是 AgentManager.updateDeathState（累加制）。
                 // 這裡只衍生動畫狀態；先前在此遞減 deathTimer 會與累加互相抵銷，造成計時永遠停在 0。
@@ -44,7 +44,7 @@ export class AnimationSystem {
 
             // [ARCH] visualStatus 的唯一寫入者（STATE_OWNERSHIP_DESIGN P1）：CC 外觀（ccVisual，狀態域擁有）優先，
             // 其次是逃生中的 DANGER。其他系統只寫自己的欄位，不得直接寫 visualStatus。
-            agent.visualStatus = agent.ccVisual !== 'NONE'
+            agent.view.visualStatus = agent.ccVisual !== 'NONE'
                 ? agent.ccVisual
                 : (!isDisabled && agent.actionState === ActionState.EVADING ? 'DANGER' : 'NONE');
 
@@ -54,7 +54,7 @@ export class AnimationSystem {
             }
 
             // Hit reaction has high priority but short duration
-            if (agent.hitFlashTimer > 0.05) {
+            if (agent.view.hitFlashTimer > 0.05) {
                 agent.animState = AnimState.HIT;
                 continue;
             }

@@ -148,22 +148,10 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         owners: ['engine/systems/combat/CCManager.ts', 'engine/systems/status/ControlSystem.ts'],
         note: '狀態域：CCManager 施加、ControlSystem 到期清除。',
     },
-    visualStatus: {
-        group: 'visual',
-        kind: 'single',
-        owners: ['engine/presentation/AnimationSystem.ts'],
-        note: '每 tick 由 ccVisual 與 actionState 推導；模擬層不得讀寫（PhysicsEngine 改讀 polymorphTimer）。',
-    },
-    hitFlashTimer: {
+    view: {
         group: 'visual',
         kind: 'domain',
         owners: ['engine/presentation/AnimationSystem.ts', 'engine/core/ViewCommands.ts'],
-        note: '模擬層透過 ViewCommands 匯出的 triggerHitFlash 觸發；AnimationSystem 衰減；DirectorSystem 唯讀。',
-    },
-    visualOffset: {
-        group: 'visual',
-        kind: 'domain',
-        owners: ['engine/presentation/AnimationSystem.ts', 'engine/core/ViewCommands.ts'],
-        note: '受擊抖動；經 ViewCommands 匯出的 triggerHitShake 寫入；AnimationSystem 衰減。',
+        note: '視覺狀態容器（AgentView）；模擬層透過 ViewCommands 匯出的純函式寫入；AnimationSystem 推導與衰減。',
     },
 };

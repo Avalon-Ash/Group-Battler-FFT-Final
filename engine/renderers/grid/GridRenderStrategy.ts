@@ -50,7 +50,7 @@ export class GridRenderStrategy {
             if (a.hp > 0) {
                 const key = `${a.q},${a.r}`;
                 this._unitPresence.add(key);
-                if (a.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.visualStatus);
+                if (a.view.visualStatus !== 'NONE') this._unitVisualStatus.set(key, a.view.visualStatus);
 
                 // Check for casting AOE to highlight
                 if (a.castingSkillIdx !== -1 && a.currentTelegraph) {

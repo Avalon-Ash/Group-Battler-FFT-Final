@@ -44,7 +44,7 @@ describe('visualStatus ownership (P1a)', () => {
         const seen: string[] = [];
         for (let i = 0; i < TICKS; i++) {
             engine.tick(TICK);
-            seen.push(agent.visualStatus);
+            seen.push(agent.view.visualStatus);
         }
         return seen;
     }
@@ -80,6 +80,6 @@ describe('visualStatus ownership (P1a)', () => {
         CCManager.applyCC(red, blue, ccSkill({ ccType: 'POLYMORPH', specialVisualStatus: 'POLYMORPH' }), 'POLYMORPH', 0.1, 0, undefined, engine);
         for (let i = 0; i < 10; i++) engine.tick(TICK);
         expect(blue.effects.POLYMORPH.remaining).toBe(0);
-        expect(blue.visualStatus).not.toBe('POLYMORPH');
+        expect(blue.view.visualStatus).not.toBe('POLYMORPH');
     });
 });

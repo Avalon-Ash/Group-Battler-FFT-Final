@@ -2,15 +2,16 @@
 // [ENTITY] 純資料容器。saveState/reset 為例外保留（生命週期管理）。
 // 禁止在此新增業務邏輯，任何計算請移至對應 System。
 
-import { Skill, Hex, BodyTypeId, EffectSlots } from "../../types";
+import { Skill, Hex, BodyTypeId, EffectSlots, SpecialVisualStatus, AgentView } from "../../types";
 import { Team, Role, MovementType, AnimState, AIState, ActionState } from "../types/Enums";
 import { RagdollBone } from "../types/ragdoll";
 import { HexUtils, MapConfig } from "../utils";
 import { BTNode } from "../behaviorTree";
 import { AGENT_CONSTANTS } from "../../constants";
 import { createEffectSlots, resetEffectSlots } from "./Effects";
+import { createAgentView, resetAgentView } from "./ViewCommands";
 
-export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS' | 'DANGER' | 'INVINCIBLE';
+export type { SpecialVisualStatus, AgentView };
 
 export class Agent {
     public id: string;
@@ -73,7 +74,7 @@ export class Agent {
 
     public dragOverQ: number | null = null;
     public dragOverR: number | null = null;
-    public visualStatus: SpecialVisualStatus = 'NONE';
+    public view: AgentView = createAgentView();
     // [ownership] CC 施加的特殊外觀（狀態域：CCManager 施加、ControlSystem 到期清除）；visualStatus 由 AnimationSystem 從它推導。
     public ccVisual: SpecialVisualStatus = 'NONE';
     public hasLandedLastStand: boolean = false; // Track one-time EMP hit
@@ -88,12 +89,10 @@ export class Agent {
     public fullyDead: boolean = false;
     public ragdoll: RagdollBone[] | null = null; // [ARCH] null = 未啟動，死亡時由 AgentManager 初始化
     public animState: AnimState = AnimState.IDLE;
-    public hitFlashTimer: number = 0;
     public lastHitDamage: number = 0;
     public lastHitSourceId: string | null = null;
     public actionState: ActionState = ActionState.IDLE;
     public fearMoveTimer: number = 0;
-    public visualOffset = { x: 0, y: 0 };
 
     public physics = {
         x: 0, y: 0, z: 0,
@@ -168,15 +167,13 @@ export class Agent {
 
         this.banished = false;
         this.outOfBounds = false;
-        this.visualStatus = 'NONE';
+        resetAgentView(this.view);
         this.ccVisual = 'NONE';
 
         this.drStacks = {};
         this.drTimers = {};
         this.lastHitSourceId = null;
-        this.hitFlashTimer = 0;
         this.lastHitDamage = 0;
-        this.visualOffset = { x: 0, y: 0 };
         this.actionState = ActionState.IDLE;
         this.fearMoveTimer = 0;
         this.deathTimer = 0;

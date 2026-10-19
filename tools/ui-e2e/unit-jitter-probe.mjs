@@ -34,7 +34,7 @@ for (const [biome, seed] of [['FOREST', 1001], ['FOREST', 1002]]) {
           if (!p) continue;
           const dy = y - p.y;
           if (Math.abs(dy) > 0.3 && Math.abs(dy) < 3 && !a.isMoving && !p.moving && a.px === p.px && a.py === p.py) {
-            J.hits.push({ f: J.frame, id: a.id, dy: +dy.toFixed(3), y: +y.toFixed(2), physY: +a.physics.y.toFixed(3), vy: +a.physics.vy.toFixed(2), prevVy: +p.vy.toFixed(2), stun: +a.stunTimer.toFixed(2), z: +a.physics.z.toFixed(2), anim: a.animState, cast: a.castingSkillIdx, hitFlash: a.hitFlashTimer });
+            J.hits.push({ f: J.frame, id: a.id, dy: +dy.toFixed(3), y: +y.toFixed(2), physY: +a.physics.y.toFixed(3), vy: +a.physics.vy.toFixed(2), prevVy: +p.vy.toFixed(2), stun: +a.stunTimer.toFixed(2), z: +a.physics.z.toFixed(2), anim: a.animState, cast: a.castingSkillIdx, hitFlash: a.view.hitFlashTimer });
           }
         }
       }

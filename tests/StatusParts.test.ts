@@ -87,7 +87,7 @@ describe('isStatusActive', () => {
     it('frozen stun shows ice, not stun stars; interrupt alias only without stun', () => {
         const a = fresh();
         a.effects.STUN.remaining = 1;
-        a.visualStatus = 'FROZEN';
+        a.view.visualStatus = 'FROZEN';
         expect(isStatusActive('STUN', a)).toBe(false);
         expect(isStatusActive('FROZEN', a)).toBe(true);
         const b = fresh();

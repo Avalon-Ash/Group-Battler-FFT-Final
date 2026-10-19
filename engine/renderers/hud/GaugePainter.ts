@@ -23,7 +23,7 @@ export const GaugePainter = {
         if (agent.banished) {
             activeTimer = agent.effects.BANISH.remaining;
             maxTimer = agent.effects.BANISH.max || activeTimer;
-            iconType = agent.visualStatus === 'POLYMORPH' ? 'POLYMORPH' : agent.visualStatus === 'STASIS' ? 'STASIS' : 'BANISH';
+            iconType = agent.view.visualStatus === 'POLYMORPH' ? 'POLYMORPH' : agent.view.visualStatus === 'STASIS' ? 'STASIS' : 'BANISH';
         } else if (agent.effects.STUN.remaining > 0) {
             activeTimer = agent.effects.STUN.remaining;
             maxTimer = agent.effects.STUN.max || activeTimer;

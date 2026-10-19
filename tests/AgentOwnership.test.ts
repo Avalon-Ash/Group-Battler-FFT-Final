@@ -88,14 +88,14 @@ describe('Agent field ownership ratchet', () => {
     });
 
     it('detects a write pattern sanity check', () => {
-        const re = writePattern('hitFlashTimer');
-        expect(re.test('a.hitFlashTimer = 0.2;')).toBe(true);
+        const re = writePattern('view');
+        expect(re.test('a.view.hitFlashTimer = 0.2;')).toBe(true);
         re.lastIndex = 0;
-        expect(re.test('if (a.hitFlashTimer > 0.05)')).toBe(false);
+        expect(re.test('if (a.view.hitFlashTimer > 0.05)')).toBe(false);
         re.lastIndex = 0;
-        expect(re.test('a.hitFlashTimer === 0')).toBe(false);
-        const off = writePattern('visualOffset');
-        expect(off.test('t.visualOffset.x = 1')).toBe(true);
+        expect(re.test('a.view.visualStatus === "NONE"')).toBe(false);
+        const off = writePattern('view');
+        expect(off.test('t.view.visualOffset.x = 1')).toBe(true);
     });
 
     it('accumulator pattern allows += / -= but flags plain, multiplicative and index writes', () => {

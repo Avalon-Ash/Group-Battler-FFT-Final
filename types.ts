@@ -38,6 +38,14 @@ export interface HexSpatialLookup {
     ensure?(engine?: unknown): void;
 }
 
+export type SpecialVisualStatus = 'NONE' | 'FROZEN' | 'POLYMORPH' | 'STASIS' | 'DANGER' | 'INVINCIBLE';
+
+export interface AgentView {
+    visualStatus: SpecialVisualStatus;
+    hitFlashTimer: number;
+    visualOffset: Point;
+}
+
 export interface Skill {
     id: string;
     tag: 'BASIC' | 'ACTIVE' | 'ULT';

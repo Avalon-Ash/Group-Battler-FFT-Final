@@ -65,7 +65,7 @@ export const UnitCorePainter = {
         ctx.save();
         if (projected > 0) {
             // 投影跟著受擊晃動（UnitBodyPainter 以 visualOffset 平移身體）
-            ctx.translate(agent.visualOffset.x * projected, agent.visualOffset.y * projected);
+            ctx.translate(agent.view.visualOffset.x * projected, agent.view.visualOffset.y * projected);
         }
         UnitCorePainter.drawCore(ctx, agent.team, agent.role, body, layout, t, {
             casting: agent.castingSkillIdx !== -1,

@@ -163,13 +163,13 @@ export function selectSpriteFrame(
     // ══════════════════════════════════════════════════════════════
     // 動畫優先序 2：受擊 (HIT)
     // ══════════════════════════════════════════════════════════════
-    const isHit = agent.hitFlashTimer > 0.05 || agent.animState === AnimState.HIT;
+    const isHit = agent.view.hitFlashTimer > 0.05 || agent.animState === AnimState.HIT;
     if (isHit) {
         const anim = 'hit';
         const totalFrames = frameCounts[anim] ?? 3;
         const flashDur = UNIT_SPRITE.hitFlashDuration || 0.15;
         // hitFlashTimer 從 flashDur 倒數至 0
-        const progress = Math.max(0, Math.min(1, 1 - (agent.hitFlashTimer / flashDur)));
+        const progress = Math.max(0, Math.min(1, 1 - (agent.view.hitFlashTimer / flashDur)));
         const frameIndex = Math.min(totalFrames - 1, Math.floor(progress * totalFrames));
         return { anim, dir, frameIndex };
     }

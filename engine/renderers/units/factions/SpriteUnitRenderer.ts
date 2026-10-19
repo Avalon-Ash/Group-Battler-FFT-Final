@@ -183,7 +183,7 @@ export const SpriteUnitRenderer = {
         const sh = frame.h * mipLevel;
 
         // 受擊輕微抖動
-        if (agent.hitFlashTimer > 0) {
+        if (agent.view.hitFlashTimer > 0) {
             const hitShake = Math.sin(t * 80) * 2;
             dx += hitShake;
         }
@@ -200,10 +200,10 @@ export const SpriteUnitRenderer = {
         ctx.drawImage(atlasImage, sx, sy, sw, sh, dx, dy, dw, dh);
 
         // 受擊閃白疊層（預烘焙剪影直接 blit）
-        if (agent.hitFlashTimer > 0) {
+        if (agent.view.hitFlashTimer > 0) {
             const silhouetteAtlas = spriteAtlasStore.getSilhouette(manifestKey, mipLevel);
             if (silhouetteAtlas) {
-                const flashAlpha = Math.min(1.0, agent.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || 0.15));
+                const flashAlpha = Math.min(1.0, agent.view.hitFlashTimer / (UNIT_SPRITE.hitFlashDuration || 0.15));
                 ctx.save();
                 ctx.globalAlpha = flashAlpha * r.flashStrength;
                 ctx.drawImage(silhouetteAtlas, sx, sy, sw, sh, dx, dy, dw, dh);
