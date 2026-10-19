@@ -92,6 +92,12 @@
 ### O. 2026-10-19 詠唱法陣＋鋸齒（289b3a8 已 push；紋章補漏 b8405ea、太陽八芒星 072ff2c）
 - 詠唱光環改 `magicCircle` 零件（模糊光暈＋細芯、慢轉、screen），AOE 範圍格／區域波紋／縮圈預警改 `SoftTile` 柔光格，`ring` 光暈模糊；主畫布 `imageSmoothingQuality` high＋裝置像素對齊（RenderSpec §3）。保真 4 張重錄附證據。補漏：技能紋章 `sigil` 與詠唱中斷改同一套柔光畫法（`ring` 加 `soft` 選項）；太陽紋章改八芒星（舊版刻度＋放射線像一堆柱子），工具 `tools/vfx/sigil-dump.mjs`。細節 `docs/VFX_PIPELINE_MAP.md` §4.19。
 
+### P. 2026-10-19 夜 實機回饋第二輪（已 push）
+- 遠端只留 `main`：`20260328`、`experiment/unit-rig-skin-poc` 各留本地 tag `archive/*`，`feat/procedural-material-upgrade` 已合併。
+- 觀賞模式設定 TAB 閃爍、按不到：`TabButton` 宣告在 render 內，每次重繪重建（每秒 10 次）；移到模組層（`57ab9b7`）。新工具 `tools/ui-e2e/ui-remount-audit.mjs`。
+- 障礙物：黑曜柱改粗柱斷頂＋下半部 Voronoi 岩漿裂縫＋底部熔岩帶；虛空圖 WALL 改符文基座＋懸浮暗紫晶碑（`1472aad`），發光取色依類型 `OBSTACLE_SPRITE.GLOW_KEYS`。保真 VOID／MAGMA 重錄（`3f25d11`，證據 `tools/ui-e2e/out/fidelity_obs2_evidence.png`）。
+- 越跑越糊：畫質治理器以 vsync 鎖住的幀間隔判斷降級，60 Hz 一律降到最低階且升階冷卻只增不減。改成刷新週期下限、解析度階層另設 `DOWN_RES_MS`、冷卻加倍會消退（`d733eda`）。粒子沒有累積。工具 `tools/ui-e2e/idle-quality-soak.mjs`。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
