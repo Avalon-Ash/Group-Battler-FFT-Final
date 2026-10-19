@@ -18,6 +18,10 @@ import { terrainTextureStore } from "./TerrainTextureStore";
 import { obstacleSpriteStore } from "./ObstacleSpriteStore";
 import { getEdgeTable } from "./GridCache";
 
+/** lastSpriteByTile 的格子鍵：(q+OFFSET)*SPAN+(r+OFFSET)，地圖座標遠小於 ±OFFSET */
+const TILE_KEY_OFFSET = 1024;
+const TILE_KEY_SPAN = 2048;
+
 /**
  * 群系曝光（TERRAIN_SKIN.exposure，地形 T0）：整張地塊乘上 gain，只在烘焙時執行。
  * gain < 1：在既有像素上蓋一層黑（source-atop，透明處不動）；gain > 1：以 lighter 把自己再疊一次（每次最多 +1 倍）。
@@ -174,6 +178,16 @@ export const TerrainRenderer = {
     lastDecorRev: -1,
     lastTheme: null as TerrainTheme | null,
     lastRenderScale: -1,
+    /** 轉場期間為 true：超過烘焙預算的地塊延後到下一幀（RENDER_CACHE.TRANSITION_BAKE_BUDGET_MS）。由 beginFrame 設定 */
+    deferBakes: false,
+
+    /** RenderPipeline 每幀畫世界前呼叫一次：重置烘焙預算、設定是否在轉場中 */
+    beginFrame(transitioning: boolean) {
+        this.deferBakes = transitioning;
+        this.store.beginFrame();
+    },
+    /** 每格上一次畫的 sprite（tileKey → entry），當作超預算時的借用來源；快取清空／換主題時一併清 */
+    lastSpriteByTile: new Map<number, TerrainSpriteEntry>(),
 
     drawBlock(
         ctx: CanvasRenderingContext2D,
@@ -195,10 +209,12 @@ export const TerrainRenderer = {
             this.lastTextureRev = terrainTextureStore.getRevision();
             this.lastDecorRev = obstacleSpriteStore.revision;
             this.store.clear();
+            this.lastSpriteByTile.clear();
         }
         if (this.lastTheme !== theme) {
             this.lastTheme = theme;
             this.store.evictOtherThemes(theme);
+            this.lastSpriteByTile.clear();
         }
 
         // x／y 已由 RenderDispatcher 對齊到裝置像素；這裡再 floor 世界座標會把它拉離像素格
@@ -217,9 +233,17 @@ export const TerrainRenderer = {
         // 若把位移烘進 sprite，浮動地圖每個縮放級距會有 1500+ 種組合，跨級距時超過 MAX_TERRAIN_SPRITES 而不斷重烘焙
         // （見 docs/PERF_LIFECYCLE_FINDINGS.md）。
         const key = terrainSpriteKey(theme, layout, type, height, variant, 0, renderScale, edgeMask, baseLevel);
+        const tileKey = (q + TILE_KEY_OFFSET) * TILE_KEY_SPAN + (r2 + TILE_KEY_OFFSET);
+        const prevSprite = this.lastSpriteByTile.get(tileKey);
         const sprite = this.store.get(key, (factory) => {
             return this.bakeBlock(factory, size, height, theme, type, layout, variant, 0, renderScale, edgeMask, baseLevel);
+        }, {
+            tileFallback: prevSprite,
+            defer: this.deferBakes,
+            budgetMs: this.deferBakes ? RENDER_CACHE.TRANSITION_BAKE_BUDGET_MS : undefined,
         });
+        if (!sprite) return;
+        if (sprite !== prevSprite) this.lastSpriteByTile.set(tileKey, sprite);
 
         ctx.save();
         ctx.globalAlpha = alpha;

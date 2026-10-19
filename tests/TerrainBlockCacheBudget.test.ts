@@ -60,7 +60,7 @@ describe('TerrainBlockCache eviction and bake budget', () => {
         expect(baked).toBe(0);
     });
 
-    it('borrows a neighbouring-scale sprite once the per-window bake budget is spent', () => {
+    it('borrows a neighbouring-scale sprite once the per-frame bake budget is spent', () => {
         let clock = 1000;
         vi.spyOn(performance, 'now').mockImplementation(() => clock);
 
@@ -77,7 +77,7 @@ describe('TerrainBlockCache eviction and bake budget', () => {
         const first = store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, 0, 0, scaleA), slowBake);
         expect(bakeCount).toBe(1);
 
-        // 同一時間窗內預算已用完 → 借用另一縮放級距的同款 sprite，不再烘焙
+        // 同一幀內預算已用完 → 借用另一縮放級距的同款 sprite，不再烘焙
         const borrowed = store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, 0, 0, scaleB), slowBake);
         expect(borrowed).toBe(first);
         expect(bakeCount).toBe(1);
@@ -87,10 +87,48 @@ describe('TerrainBlockCache eviction and bake budget', () => {
         store.get(terrainSpriteKey(theme, layout, 'MAGMA', 7, 3, 0, scaleB), slowBake);
         expect(bakeCount).toBe(2);
 
-        // 進入下一個時間窗後，原本借用的鍵才真正烘焙
-        clock += RENDER_CACHE.BAKE_WINDOW_MS + 1;
+        // 下一幀（beginFrame）後，原本借用的鍵才真正烘焙
+        store.beginFrame();
         const real = store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, 0, 0, scaleB), slowBake);
         expect(real).not.toBe(first);
         expect(bakeCount).toBe(3);
+    });
+
+    it('does not reset the budget mid-frame however long the bakes take', () => {
+        let clock = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => clock);
+        const store = createTerrainSpriteStore(mockFactory);
+        const scaleA = RENDER_CACHE.SCALE_STEPS[0];
+        const scaleB = RENDER_CACHE.SCALE_STEPS[2];
+        const slowBake = (): TerrainSpriteEntry => { clock += 50; return makeEntry(); };
+        for (let v = 0; v < 8; v++) store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, v, 0, scaleA), slowBake);
+        store.beginFrame();
+        let baked = 0;
+        const countBake = (): TerrainSpriteEntry => { baked++; return slowBake(); };
+        for (let v = 0; v < 8; v++) store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, v, 0, scaleB), countBake);
+        // 第一塊就超過預算，其餘 7 塊在同一幀內一律借用，不因經過 50 ms 以上而重新開始計算
+        expect(baked).toBe(1);
+        expect(store.getStats().fallbacks).toBe(7);
+    });
+
+    it('over budget: borrows the tile\'s previous sprite, else defers when asked, else bakes', () => {
+        let clock = 1000;
+        vi.spyOn(performance, 'now').mockImplementation(() => clock);
+        const store = createTerrainSpriteStore(mockFactory);
+        const scale = RENDER_CACHE.SCALE_STEPS[1];
+        const slowBake = (): TerrainSpriteEntry => { clock += RENDER_CACHE.BAKE_BUDGET_MS + 1; return makeEntry(); };
+        const prev = store.get(terrainSpriteKey(theme, layout, 'MAGMA', 1, 0, 0, scale, 0), slowBake)!;
+
+        // 鄰格塌陷改了邊緣遮罩：新鍵在任何級距都沒有，借同一格上一次的 sprite
+        const edgeChanged = terrainSpriteKey(theme, layout, 'MAGMA', 1, 0, 0, scale, 5);
+        expect(store.get(edgeChanged, slowBake, { tileFallback: prev })).toBe(prev);
+
+        // 轉場中（defer）且無可借用 → null，這幀不畫
+        const fresh = terrainSpriteKey(theme, layout, 'MAGMA', 3, 2, 0, scale);
+        expect(store.get(fresh, slowBake, { defer: true })).toBeNull();
+        expect(store.getStats().deferrals).toBe(1);
+
+        // 非轉場、無可借用 → 照舊強制烘焙
+        expect(store.get(fresh, slowBake)).not.toBeNull();
     });
 });

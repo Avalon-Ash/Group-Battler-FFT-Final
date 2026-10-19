@@ -27,6 +27,7 @@ import { getRenderDpr } from "./RenderQuality";
 import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
+import { TerrainRenderer } from "./grid/TerrainRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
 import { VFX_BIOME_GAIN, RENDER_QUALITY } from "../../constants";
@@ -145,6 +146,8 @@ export class RenderPipeline {
         
         // 2. Main Scene (World Space)
         RenderStats.begin('world');
+        // 地形烘焙預算每幀重置；轉場中地塊從畫面外落入，超過預算的延後一幀（RENDER_CACHE.TRANSITION_BAKE_BUDGET_MS）
+        TerrainRenderer.beginFrame(this.transitionPhase !== 'IDLE');
         ctx.save();
         this.renderer.camera.sync(camera); 
         this.renderer.camera.applyTransform(ctx, lW, lH);

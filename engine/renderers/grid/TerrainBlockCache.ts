@@ -130,7 +130,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
     let clears = 0;
     let evictions = 0;
     let fallbacks = 0;
-    let bakeWindowStart = 0;
+    let deferrals = 0;
     let bakeSpentMs = 0;
 
     // 材質簽章追蹤（逐欄數值比較，零字串配置）
@@ -197,6 +197,7 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         clears = 0;
         evictions = 0;
         fallbacks = 0;
+        deferrals = 0;
     }
 
     function lookup(key: TerrainKeyCompound, packed: number): TerrainSpriteEntry | undefined {
@@ -258,10 +259,16 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         return removed;
     }
 
+    /**
+     * opts.tileFallback：同一格上一次畫的 sprite（鄰格塌陷改了邊緣遮罩、高度時，新鍵沒有其他級距可借）。
+     * opts.defer：超過預算又無可借用時回傳 null（呼叫端這幀不畫），只在轉場期間使用；否則照舊強制烘焙。
+     * opts.budgetMs：本次使用的預算（預設 RENDER_CACHE.BAKE_BUDGET_MS）。
+     */
     function get(
         key: TerrainKeyCompound,
-        bake: (factory: SurfaceFactory) => TerrainSpriteEntry
-    ): TerrainSpriteEntry {
+        bake: (factory: SurfaceFactory) => TerrainSpriteEntry,
+        opts?: { tileFallback?: TerrainSpriteEntry; defer?: boolean; budgetMs?: number }
+    ): TerrainSpriteEntry | null {
         checkMaterialSignature();
 
         const hit = lookup(key, key.packedInt);
@@ -271,18 +278,18 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
             return hit;
         }
 
-        // 烘焙預算：同一時間窗內烘焙耗時超標時，先借用相鄰縮放級距的 sprite（縮放繪製），
-        // 避免縮放／換景時一幀內烘焙上百塊造成數百毫秒卡頓；無可借用者才強制烘焙。
+        // 烘焙預算（每幀，beginFrame 重置）：本幀烘焙耗時超標時，先借用相鄰縮放級距或同格上一次的 sprite，
+        // 避免縮放／塌陷／換景時一幀內烘焙上百塊造成數百毫秒卡頓；無可借用者才強制烘焙（轉場中改為延後）。
         const now = performance.now();
-        if (now - bakeWindowStart >= RENDER_CACHE.BAKE_WINDOW_MS) {
-            bakeWindowStart = now;
-            bakeSpentMs = 0;
-        }
-        if (bakeSpentMs >= RENDER_CACHE.BAKE_BUDGET_MS) {
-            const fallback = findScaleFallback(key);
+        if (bakeSpentMs >= (opts?.budgetMs ?? RENDER_CACHE.BAKE_BUDGET_MS)) {
+            const fallback = findScaleFallback(key) ?? opts?.tileFallback;
             if (fallback) {
                 fallbacks++;
                 return fallback;
+            }
+            if (opts?.defer) {
+                deferrals++;
+                return null;
             }
         }
 
@@ -326,13 +333,19 @@ export function createTerrainSpriteStore(createSurface: SurfaceFactory = createC
         return entry;
     }
 
+    /** 每幀開頭呼叫一次（TerrainRenderer.beginFrame）：重置本幀烘焙預算 */
+    function beginFrame(): void {
+        bakeSpentMs = 0;
+    }
+
     return {
         get,
+        beginFrame,
         clear,
         evictOtherThemes,
         resetStats,
         size: () => totalSprites,
-        getStats: () => ({ size: totalSprites, hits, misses, clears, evictions, fallbacks }),
+        getStats: () => ({ size: totalSprites, hits, misses, clears, evictions, fallbacks, deferrals }),
         checkMaterialSignature,
     };
 }

@@ -1285,9 +1285,17 @@ export const RENDER_CACHE = {
     FLOAT_STEP: 0.5,
     HEIGHT_KEY_SCALE: 2,
     SPRITE_PADDING: 4,
-    /** 地形 sprite 烘焙預算：每個時間窗內累計烘焙超過此毫秒數，其餘未命中改借用相鄰縮放級距的 sprite */
+    /**
+     * 地形 sprite 烘焙預算：每幀（TerrainRenderer.beginFrame 重置）累計烘焙超過此毫秒數，其餘未命中改借用
+     * 相鄰縮放級距或同一格上一次的 sprite。2026-10-19 前是「每 16 ms 時間窗」：單塊 4～9 ms，一幀內烘到一半
+     * 時間窗就過期重置，長幀永遠擋不住（戰鬥結束 300 ms、換圖 660 ms）。
+     */
     BAKE_BUDGET_MS: 4,
-    BAKE_WINDOW_MS: 16,
+    /**
+     * 轉場（換圖 IN／OUT）期間的烘焙預算：新地圖沒有任何可借用的 sprite，超過預算的地塊延後到下一幀才畫
+     * （地塊正從畫面外落入，晚幾幀看不出來）。2560×1440 一塊約 4～9 ms，IN 約 1.5 秒內要烘完整張圖。
+     */
+    TRANSITION_BAKE_BUDGET_MS: 12,
     /** 液面循環影格（TerrainLoopAtlas）同時快取的組數上限（顏色 x layout x 量化強度）；每組約 2 MB，LRU 淘汰 */
     LOOP_LIQUID_SLOTS: 16,
     /** 液面循環影格排成一張圖的最大寬度（px）；超過就換行 */
