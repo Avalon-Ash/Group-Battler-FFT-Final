@@ -15,6 +15,7 @@ import { TextPainter } from "./hud/TextPainter";
 import { getRenderDpr } from "./RenderQuality";
 import { GlowTextCache, quantizeDeviceScale } from "./hud/GlowTextCache";
 import { LAST_STAND_BANNER } from "../../constants";
+import { unitFallProgress } from "../../data/units/appearance/fallMotion";
 
 export class HUDRenderer {
     public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, frames: UnitFrameStore, highlight: Agent | null, time: number, isLastStand: boolean = false) {
@@ -24,7 +25,8 @@ export class HUDRenderer {
         for (let i = 0; i < list.length; i++) {
             const f = list[i];
             const a = f.agent;
-            if (a.hp <= 0 || a.spawnTimer > 0) continue;
+            // 墜落中（縮圈塌陷）的單位已註定出局：血條與量表不跟著往下掉
+            if (a.hp <= 0 || a.spawnTimer > 0 || unitFallProgress(a.physics.z) > 0) continue;
 
             // SSOT：與身體共用同一份腳下高度（UnitFrame：邏輯座標＋移動過渡；拖曳預覽跟著游標格）
             const isSelected = (a === highlight);

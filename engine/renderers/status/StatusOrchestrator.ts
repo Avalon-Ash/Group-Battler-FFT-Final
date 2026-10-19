@@ -2,6 +2,7 @@ import { ShieldPainter } from "./painters/ShieldPainter";
 import { StatusPartPainter } from "./painters/StatusPartPainter";
 import { UnitFrameStore } from "../frame/UnitFrame";
 import { HexLayout } from "../../../types";
+import { unitFallProgress } from "../../../data/units/appearance/fallMotion";
 
 /**
  * ECS Status Orchestrator v12
@@ -23,6 +24,8 @@ export class StatusOrchestrator {
             const agent = frame.agent;
             // 跳過已徹底消失、已死亡或出界的單位
             if (agent.hp <= 0 || agent.fullyDead || agent.outOfBounds) continue;
+            // 墜落中（縮圈塌陷）不畫狀態與護盾：本體翻滾淡出時它們不該留在原處
+            if (unitFallProgress(agent.physics.z) > 0) continue;
 
             // 已被放逐且地塊已消失的單位不繪製狀態
             if (agent.banished && isTileValid && !isTileValid(agent.q, agent.r)) continue;

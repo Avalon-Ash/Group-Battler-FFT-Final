@@ -25,6 +25,7 @@ import { UnitShadowPainter } from "../../renderers/units/painters/UnitShadowPain
 import { UnitCorePainter } from "../../renderers/units/painters/UnitCorePainter";
 import { UnitIndicatorPainter } from "../../renderers/units/painters/UnitIndicatorPainter";
 import { UnitAuraPainter } from "../../renderers/units/painters/UnitAuraPainter";
+import { unitFallProgress, unitFallAlpha } from "../../../data/units/appearance/fallMotion";
 import { UnitDeathPainter } from "../../renderers/units/painters/UnitDeathPainter";
 import { HexLayout } from "../../../types";
 import { VFX_RENDER, HEX_SIZE, GROUND_DRAPE } from "../../../constants";
@@ -126,7 +127,10 @@ export class UnitRenderSystem {
     ) {
         ctx.save();
         ctx.translate(drawX, drawY);
-        
+        // 墜落（縮圈塌陷）：影子、本體、核心整組淡出；翻滾與縮小在 UnitBodyPainter
+        const fall = agent.hp > 0 ? unitFallProgress(agent.physics.z) : 0;
+        if (fall > 0) ctx.globalAlpha *= unitFallAlpha(fall);
+
         if (!isSilhouette) {
             if (agent.hp > 0) {
                 UnitShadowPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, layout);

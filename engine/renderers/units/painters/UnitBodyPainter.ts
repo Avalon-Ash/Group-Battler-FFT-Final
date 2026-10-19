@@ -26,6 +26,7 @@ import { VisualMath } from "../../../math/VisualMath";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { UnitAfterimagePainter } from "./UnitAfterimagePainter";
 import type { UnitFrame } from "../../frame/UnitFrame";
+import { unitFallProgress } from "../../../../data/units/appearance/fallMotion";
 
 export const UnitBodyPainter = {
     draw(
@@ -71,7 +72,15 @@ export const UnitBodyPainter = {
         ctx.save(); 
         const pz = agent.physics.z;
         const bodyY = VisualMath.getVisualBodyCenterY(py, pz);
-        ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y); 
+        ctx.translate(px + agent.visualOffset.x, bodyY + agent.visualOffset.y);
+
+        // 墜落：繞身體中心翻滾並縮小（淡出由 UnitRenderSystem.drawAssembly 整組套用）
+        const fall = unitFallProgress(pz);
+        if (fall > 0) {
+            ctx.rotate(fall * UNIT_BODY_MOTION.fallTumble * agent.facing);
+            const fs = 1 - fall * UNIT_BODY_MOTION.fallShrink;
+            ctx.scale(fs, fs);
+        }
 
         if (agent.animState === AnimState.CAST_ULT) {
             const progress = 1 - (agent.castTimer / (agent.castingAnimationTimer || 1));

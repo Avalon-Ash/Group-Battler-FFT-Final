@@ -1130,6 +1130,15 @@ export const UNIT_BODY_MOTION = {
     ultPulseCycles: 3,
     /** 出生動畫的下落距離（px，負值＝從上方落下；長度見 UNIT_SPRITE.spawnDuration） */
     spawnDrop: -40,
+    /**
+     * 墜落（縮圈塌陷，physics.z < 0）：進度＝min(1, −z / fallFadeDepth)。本體繞身體中心翻滾 fallTumble 弧度（朝面向）、
+     * 縮小 fallShrink 比例；影子、本體、核心整組淡出（不透明度 1 − 進度^fallFadePow）。
+     * 模擬端在 z < −1000 才判出局，淡出深度遠小於它，所以單位在消失前已經看不見。
+     */
+    fallFadeDepth: 320,
+    fallFadePow: 1.5,
+    fallTumble: 1.4,
+    fallShrink: 0.45,
 } as const;
 
 // ══════════════════════════════════════════════════════════════
