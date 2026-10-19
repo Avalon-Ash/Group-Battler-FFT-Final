@@ -238,6 +238,14 @@ VFXSystem.state.particles
 - **氛圍層**（`BIOME_ATMOSPHERE`）：依地圖額外的零件粒子層，只在地圖格子範圍內生成（`spawn: 'ISLAND'`）：森林低處霧氣＋斜射光柱、虛空紫霧、熔岩往上飄的熱浪光暈。`Particle.weather` 改為層編號（1＝場景天氣）。
 - 驗證：`tools/ui-e2e/obstacle-sheet-dump.mjs`（動畫影格並排）、verify:coords 振盪 85（靜止 2，慢速漂移的霧／光柱）、保真重錄 `516b22e`（證據 `tools/ui-e2e/out/fidelity_o3_evidence.png`）。
 
+### 4.19 詠唱法陣重新設計＋場景鋸齒（2026-10-19，`2f36ff3`、`6ac59fd`）
+- 實機回饋：藍色詠唱光環毛刺、實線讓畫面髒；整體場景有鋸齒。
+- **法陣**：新零件 `magicCircle`（`PartSpec`／`PartBakers.bakeMagicCircle`，參數 `VFX_PARTS.MAGIC`）。外層＝徑向半透明圓盤＋雙同心圓＋種子符文帶＋刻度；內層＝獅心六芒星／灰燼倒三角＋斷弧，頂點光點、中心光。所有線條＝烘焙時模糊的主色光暈＋細亮芯，不畫實線。`UnitAuraPainter` 外層／內層反向慢轉（0.45／0.8 rad/s，舊版 3～6）、詠唱開始淡入（`CAST_RING.FADE_IN_S`），screen 混合（`GROUND_DRAPE.PLANE_BLEND` 必須等於 `CAST_RING.BLEND`）。`UnitIndicatorPainter` 的 AOE 預警同樣改用法陣外層。對照工具 `tools/vfx/magic-circle-dump.mjs`。
+- **地格疊層**：真正的「藍色毛刺」是 AOE 範圍格與區域波紋逐格描 1.5～2 px 實線，相鄰格雙邊排成密集網格。新 `engine/renderers/grid/SoftTile.ts`（半透明底＋模糊內緣光＋淡芯線，依外觀×尺寸×layout 快取）取代 `GridOverlays` 的預警／射程／滑過與 `ZoneRenderer` 的波紋／邊界（虛線邊界移除，敵方邊界改較亮的紅光）。縮圈預警保留醒目紅底（`GRID_OVERLAY.WARNING.FILL_ALPHA` 0.75）。`ring` 零件的外光暈改為烘焙時模糊（`VFX_PARTS.RING.HALO_BLUR`）。
+- **鋸齒**：主畫布每幀 `imageSmoothingQuality='high'`（`RENDER_QUALITY.IMAGE_SMOOTHING`，離屏畫布同）；op 繪製點改對齊裝置像素（`RenderDispatcher.setDeviceGrid`／`snap`，RenderSpec §3），`TerrainRenderer.drawBlock` 不再 `Math.floor`。
+- 驗證：lint、`vitest --dir tests` 590、build、perf-ab 持平；保真 VOID／ICE／MAGMA／battle_frozen 重錄（證據 `tools/ui-e2e/out/fidelity_aa_evidence.png`），FOREST／DESERT 在門檻內未動。
+- 參考：Clip Studio 法陣教學（同心圓→符文帶→多邊形星）、realtimevfx 法陣 WIP 討論（分層慢轉、加法光暈）、發光線條＝寬模糊光暈＋細亮芯。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
