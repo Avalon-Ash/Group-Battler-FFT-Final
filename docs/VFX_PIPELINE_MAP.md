@@ -224,6 +224,14 @@ VFXSystem.state.particles
 - 保真 harness：移除模組載入的 `Math.random` 讓開機地圖隨機化偏移 → `render-fidelity.mjs` 固定 `FIDELITY_MAP`（12×8 POINTY）並先暖機一次。VOID（舊基準在鏡頭收斂途中截取）與 battle_frozen（奧義區 0.39%）重錄於 `681e07e`，其他 0 差異。
 - 驗證：`tools/vfx/fx-shot.mjs` CAST 模式（`--probe` 印序列佇列）；之後每個奧義的美術細調可在此結構上逐一進行。
 
+### 4.17 障礙物 O1～O4＋地形 T2～T5（2026-10-19）
+- **障礙物**：`tools/assets/blender/render_obstacle.py` 用單位同款相機（正交 30°、同一套 toon 色帶與描邊）渲染，1 BU＝HEX_SIZE、原點固定像素；TREE＝KayKit 樹 4 種、WALL＝KayKit 柱＋Kenney 石柱／方尖碑、SANDSTONE＝Kenney 高岩、ICE_CRYSTAL／OBSIDIAN_PILLAR＝腳本建的六角稜柱（黑曜柱頂發光）。`pack_obstacles.py` 裁切成 WebP 圖集＋`public/assets/obstacles/manifest.json`（約 300 KB）。執行期 `ObstacleSpriteStore` 依 q,r 雜湊選變體、合成足跡陰影＋精靈一次；錨點讀 manifest（`ENV_SPRITE` 只剩載入前的程序化退路）。
+- **熔岩**：舊版每格同一張暗橢圓、全場同步。新版熔體放射漸層＋脈動、環面 Voronoi 硬殼沿圓周漂移、裂縫發光、冒泡、岸邊暗環；4 個硬殼變體＋每格相位（雜湊），液態危害同路徑。效能：每影格一張小 canvas 時 MAGMA p99 16～18 ms（關液面 3.7 ms），改成整組影格一張圖（`LoopSheet`）＋縮放級距 ≤1 用 1 倍烘焙後 10.6～11.9 ms，低於重繪前（13.6～13.9 ms）。
+- **地表裝飾**：草叢改 KayKit 草／灌木預渲染（以底部為軸斜切風擺，每變體 1～3 叢）；沙漠碎石、冰渣、虛空碎塊烘進地塊 sprite（`TERRAIN_AMBIENCE.decor`）。圖集載入時地塊與草叢快取依 `obstacleSpriteStore.revision` 重烘。
+- **網格**：落差描邊 alpha 0.7→0.45、崖邊亮邊 0.85→0.6（`TERRAIN_SKIN.edge`）。
+- **天氣**：`VFXAmbience` 生 PART 粒子（WEATHER_* 中性色階），以 `Particle.weather` 計數（ownerId 沒有對應單位會被 VFXSystem 回收）。ATMOSPHERE、BillboardPainter、ParticleTextureStore 與 5 張 Kenney 粒子貼圖刪除；後端棘輪只剩 BEAM、GENERIC_DEBUG。
+- 驗證：`tools/ui-e2e/obstacle-shot.mjs`（各群系全圖＋放大，`--frames=600` 看天氣）、`biome-frames.mjs`、`terrain-contrast.mjs`、保真兩次附證據重錄（`ad64afd` 障礙物、`f312187` 地表）。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

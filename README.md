@@ -140,7 +140,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 │   ├── audio/               ← 音效 Cue 與 BGM 定義
 │   ├── vfx/                 ← 特效登記（零件配方）、零件色階與參數（parts/）、投射物／危害／狀態零件表、光束樣式
 │   └── scenes.ts            ← 場景主題（森林、冰原、熔岩…）
-├── public/assets/           ← 精靈單位、地形貼圖、粒子貼圖、音訊（授權見 CREDITS.md、docs/ASSET_LEDGER.md）
+├── public/assets/           ← 精靈單位、障礙物／地表裝飾圖集、地形貼圖、音訊（授權見 CREDITS.md、docs/ASSET_LEDGER.md）
 ├── tests/                   ← Vitest 確定性單元測試
 ├── tools/                   ← 材質預覽、UI e2e、效能量測與渲染保真腳本、音訊預覽
 ├── types.ts                 ← 全域型別契約（VFX schema 另見 types/VFXSchema.ts）
@@ -185,7 +185,7 @@ TACTICAL.OS 是一套可在瀏覽器中執行的 **5v5 Hex 戰術設計驗證平
 | 建置 | Vite 6 |
 | 測試 | Vitest 單元測試、Playwright（`playwright-core` + Edge）UI e2e 與渲染保真比對 |
 | 渲染 | HTML5 Canvas（自製 2.5D Isometric 渲染器，零外部圖形依賴；不使用 WebGL／Three／Pixi） |
-| 美術 | KayKit 3D 模型預渲染的精靈圖集、貼圖地形（CC0／CC-BY，見 `CREDITS.md`）；特效是程式烘焙的六角零件 |
+| 美術 | KayKit／Kenney 3D 模型預渲染的單位、障礙物與地表裝飾圖集，貼圖地形（CC0／CC-BY，見 `CREDITS.md`）；特效與天氣是程式烘焙的六角零件 |
 | 音訊 | Web Audio（共享 AudioContext，事件驅動音效與 BGM） |
 | AI 協作開發 | 企劃主導：設計決策 → AI 實作 → 模擬器驗證（見下方「開發協作」） |
 | 部署 | GitHub Pages（CI/CD 自動化） |

@@ -11,8 +11,8 @@
 | 1 | VFX V1～V3（守門、剩餘舊資產、死碼） | 便宜、收尾；先把棘輪立起來，後面每一輪才不會回退 |
 | 2 | 地形 T0～T1（調色盤、已知缺陷） | 地表亮度決定特效在各地圖的可讀性（冰面發白就是這個問題），要先定 |
 | 3 | VFX V4～V5（投射物、直接繪製器） | 依 T0 的亮度預算調 |
-| 4 | 障礙物 O1～O4 | O1 的 Blender 素材管線是離線工具，**可以在 1～3 進行時並行**；O2 起才碰渲染 |
-| 5 | 地形 T2～T4（地表細節、網格氛圍、天氣） | 障礙物定稿後再做地表裝飾，避免互相蓋 |
+| 4 | ~~障礙物 O1～O4~~ | ✅ 2026-10-19（O3 風擺／閃光未做，可選） |
+| 5 | ~~地形 T2～T5~~ | ✅ 2026-10-19：熔岩／草地重繪、地表裝飾、落差描邊降對比、天氣零件化（霧氣／光柱／熱浪未做） |
 | 6 | ~~VFX V6～V7＋全面重錄保真基準~~ | ✅ 2026-10-19（battle_frozen 重錄於 `359bc66`）；VFX 長計畫全部完成，剩 O、T 兩條 |
 
 ---
@@ -91,19 +91,19 @@
 
 註：找到的 CC0 水晶包（OpenGameArt「LowPoly Crystals Pack」）留言區有授權爭議，所以冰晶與黑曜柱改自製；六角稜柱也正好符合本作的六角骨架。KayKit 與現有單位同一作者，風格最一致。
 
-### O1 素材管線（離線，可並行）
+### O1 素材管線（✅ 2026-10-19：`tools/assets/blender/render_obstacle.py`＋`pack_obstacles.py`）
 - `tools/assets/blender/render_obstacle.py`：沿用 `render_unit.py` 的相機與燈光（左上光源，與地形 R1 一致），輸出 WebP 圖集＋manifest（每張的錨點、底面六角足跡、像素高度）。
 - `public/assets/obstacles/`、`ASSET_LEDGER.md`、`CREDITS.md`。
 
-### O2 執行期接入（渲染工作）
+### O2 執行期接入（✅ 2026-10-19：`engine/renderers/grid/ObstacleSpriteStore.ts`，錨點讀 manifest，RenderSpec §3 已更新）
 - `ObstacleSpriteStore`（仿 `SpriteAtlasStore`）：圖集載入、變體選擇、未載入時退回現行程序化。
 - **錨點與高度改讀 manifest**，刪掉 `ANCHOR_Y` 魔術數字；障礙物的排序規則照 RenderSpec §2（腳點＝格子中心，不加高度），同 commit 更新 RenderSpec 與檔頭。
 - 高障礙擋住單位時的剪影（`drawSilhouette`）要跟著新高度驗證。
 
-### O3 生物群系細節（可選）
+### O3 生物群系細節（可選，未做）
 - 樹木 2～4 格風擺影格、冰晶閃光、黑曜柱符文微光（預渲染循環，執行期只有 drawImage）。
 
-### O4 驗收
+### O4 驗收（✅ 2026-10-19：verify:coords 障礙物 0 振盪；6 張保真附證據重錄 `ad64afd`）
 - 景深 oracle（`depth-oracle`）＋`verify:coords` 不回退；`perf:guard` 通過。
 - 5 張地形保真基準一定會變 → 附新舊差異圖、獨立 commit 重錄。
 
@@ -125,20 +125,20 @@
 - 島嶼底座切平線、VOID／FOREST 頂面偏暗（R1 光照增益依群系調）。
 - ICE aurora 改預渲染低解析度循環影格（R2 報告已建議），目標 ICE p99 < 8 ms。
 
-### T2 地表細節 v2
+### T2 地表細節 v2（✅ 2026-10-19 部分：裝飾烘進地塊＋KayKit 草叢；變體數維持 4、崖邊草垂／積雪簷未做）
 - 每種地形的變體從 4 → 8，加烘焙貼花（裂紋、苔蘚、積雪、焦痕）。
 - 高低差邊緣：崖邊草垂、積雪簷、熔岩邊緣發光（沿用 R1 的鄰格高度遮罩，烘進 sprite，每幀成本不變）。
 - 不阻擋的小裝飾（草叢、小石、骨頭、冰渣），與障礙物 O0 第 3 點合併決定。
 
-### T3 網格氛圍翻新
+### T3 網格氛圍翻新（✅ 2026-10-19 部分：熔岩液面重繪、落差描邊 0.7→0.45；低處霧氣／光柱／熱浪未做）
 - **網格線**：白色亮描邊 → 依群系染色、低對比的細線；選取／射程／預警另有高對比樣式（`GridOverlays`）。
 - 危害場（`HazardPainter`）、縮圈（`ZoneRenderer`）、預警格的視覺語言統一（與 VFX V5 合併做）。
 - 低處霧氣（VOID／FOREST）、光柱（FOREST）、熔岩岸邊熱浪（MAGMA）：預渲染循環圖層，鋪在地格上（用 `GroundDrape` 的逐格裁切避免穿到前景高地）。
 
-### T4 天氣粒子零件化
+### T4 天氣粒子零件化（✅ 2026-10-19：PART 粒子＋WEATHER_* 色階，ATMOSPHERE／看板繪製器刪除）
 - 天氣 `ATMOSPHERE` 仍是舊看板粒子：雪、灰燼、沙塵、孢子、虛空微光改零件，並受 `VFX_BUDGET` 控量。
 
-### T5 驗收
+### T5 驗收（✅ 2026-10-19：terrain-contrast 預算通過、biome-frames、保真 `f312187`、br-soak 6/6）
 - `terrain-contrast.mjs --grid` 新舊對照、`perf:frames` 各群系 p99、保真基準附證據重錄。
 
 ---
