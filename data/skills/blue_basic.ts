@@ -134,7 +134,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b2', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '閃電束', desc: '瞬發光束', 
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 58, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
     },
     { 
