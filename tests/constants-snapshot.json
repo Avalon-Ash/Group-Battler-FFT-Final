@@ -1,0 +1,1385 @@
+{
+  "AFTERIMAGE": {
+    "HISTORY_LENGTH": 15,
+    "RECORD_SPEED_SQ": 10000,
+    "MAX_GHOSTS": 4,
+    "GHOSTS_BY_TIER": [
+      4,
+      3,
+      2,
+      1
+    ],
+    "STRIDE": 2,
+    "MIN_SEPARATION_PX": 6,
+    "ALPHA_NEAREST": 0.5,
+    "TINT_STRENGTH": 0.6,
+    "MAX_TINTED_FRAMES": 96
+  },
+  "AGENT_CONSTANTS": {
+    "DEFAULT_AI_UPDATE_INTERVAL": 0.08,
+    "AI_UPDATE_INTERVAL_JITTER": 0.02,
+    "DEATH_ANIM_DURATION": 5.5,
+    "RAGDOLL_BONE_PLACEHOLDER_COLOR": "#ffffff",
+    "AI_UPDATE_INTERVAL_BY_ROLE": {
+      "TANK": 0.08,
+      "WARRIOR": 0.06,
+      "RANGER": 0.07,
+      "MAGE": 0.08,
+      "SUPPORT": 0.1
+    }
+  },
+  "AGENT_MODEL_CENTER_Z": 64,
+  "AOE_INDICATOR": {
+    "ALPHA": 0.5,
+    "PULSE_AMP": 0.08,
+    "PULSE_FREQ": 3,
+    "GLOW_RADIUS_MUL": 1.4,
+    "GLOW_ALPHA_MUL": 0.5,
+    "CIRCLE_ALPHA_MUL": 1,
+    "ROT_SPEED": 0.2
+  },
+  "AUDIO": {
+    "MAX_VOICES": 24,
+    "CUE_THROTTLE_MS": 50,
+    "DEFAULT_MASTER_VOLUME": 0.8,
+    "DEFAULT_MUSIC_VOLUME": 0.6,
+    "DEFAULT_SFX_VOLUME": 0.8,
+    "DEFAULT_UI_VOLUME": 0.7,
+    "PAN_RANGE": 0.8,
+    "PITCH_JITTER": 0.08,
+    "VOLUME_JITTER": 0.05,
+    "PRNG_SEED": 133742,
+    "BGM_CROSSFADE_SEC": 1.5,
+    "PRELOAD_BATCH_SIZE": 8,
+    "SHOWCASE_SFX_GAIN": 0.2,
+    "STORAGE_KEY": "tactical_audio_settings",
+    "QUERY_MUTE_KEY": "mute",
+    "VOLUME_CURVE_EXPONENT": 2,
+    "SAMPLE_RATE": 44100
+  },
+  "AUDIO_HEAVY_HIT_DAMAGE": 80,
+  "BACKGROUND_COLORS": {
+    "VIGNETTE_START": "rgba(0, 0, 0, 0)",
+    "VIGNETTE_END": "rgba(0, 0, 0, 0.8)",
+    "STAR_WHITE": "#ffffff",
+    "SKY_RIVER_PRIMARY": "rgba(124, 58, 237, 0.25)",
+    "SKY_RIVER_SECONDARY": "rgba(79, 70, 229, 0.15)",
+    "AURORA_COLOR": "hsla(170, 80%, 60%, 0.15)",
+    "CANOPY_RAY": "rgba(255, 255, 255, 0.1)",
+    "TRANSPARENT": "rgba(0, 0, 0, 0)"
+  },
+  "BACKGROUND_FX": {
+    "AURORA": {
+      "RESOLUTION_SCALE": 0.25,
+      "BANDS": 3,
+      "BASE_HEIGHT_PCT": 0.4,
+      "SAMPLE_STEP": 50,
+      "WAVE_A": {
+        "amp": 50,
+        "freq": 0.005
+      },
+      "WAVE_B": {
+        "amp": 20,
+        "freq": 0.02
+      },
+      "TIME_SPEED": 0.2
+    }
+  },
+  "BLOCK_HEIGHT": 24,
+  "CAST_LOCKOUT": {
+    "INTERRUPT": 0.1,
+    "FATAL_BREAK": 0.5
+  },
+  "CAST_RING": {
+    "BASE_SIZE": 0.95,
+    "PULSE": 0.025,
+    "PULSE_FREQ": 2.4,
+    "ROT_SPEED": 0.45,
+    "INNER_ROT_SPEED": 0.8,
+    "RING_ALPHA": 0.95,
+    "INNER_ALPHA": 0.85,
+    "FADE_IN_S": 0.18,
+    "AOE_ALPHA": 0.55,
+    "ULT_SIZE": 2.5,
+    "ULT_ROT_SPEED": 0.3,
+    "ULT_INNER_ROT_MUL": 1.6,
+    "ULT_SIGIL_ALPHA": 0.4,
+    "ULT_RING_ALPHA": 0.95,
+    "ULT_CORE_RATIO": 0.4,
+    "ULT_CORE_ALPHA": 0.3,
+    "ULT_CORE_PULSE": 0.12,
+    "ULT_CORE_PULSE_FREQ": 4,
+    "ULT_PILLAR_H": 150,
+    "ULT_PILLAR_MIN_H": 5,
+    "ULT_PILLAR_W": 6,
+    "ULT_PILLAR_RING": 0.7,
+    "ULT_PILLAR_ALPHA": 0.35,
+    "ULT_PILLAR_FLICKER": 0.25,
+    "ULT_PILLAR_FLICKER_FREQ": 8,
+    "MOTES": 3,
+    "MOTE_RADIUS": 3,
+    "MOTE_ORBIT": 35,
+    "MOTE_RISE": 70,
+    "MOTE_CYCLE_SPEED": 2.5,
+    "MOTE_SPIN": 5,
+    "MOTE_ALPHA": 0.85,
+    "BLEND": "screen",
+    "GLOW_PAD": 8
+  },
+  "CLASS_GLYPH": {
+    "scale": 0.55,
+    "alpha": 0.8
+  },
+  "COMBAT_PARAM": {
+    "HIT_IMPULSE_MAX": 600,
+    "HIT_IMPULSE_MIN": 150,
+    "HIT_MEDIUM_THRESHOLD": 150,
+    "DR_RESET_TIME": 10,
+    "BASE_CC_RESILIENCE": 0,
+    "EXECUTE_THRESHOLD": 0.25,
+    "BASE_EXECUTE_MULTIPLIER": 2,
+    "BASE_VAMP_PCT": 0.35,
+    "MANA_BURN_DEFAULT": 25,
+    "MANA_RESTORE_DEFAULT": 25,
+    "GRAVITY_PULL_FORCE": 150,
+    "GRAVITY_MIN_DIST": 5,
+    "GRAVITY_SPEED_REDUCTION": 0.3,
+    "ICE_SPEED_REDUCTION": 0.5,
+    "HIT_FLASH_DURATION": 0.1,
+    "AI_CD_TOLERANCE": 0.01,
+    "AI_PERCEPTION_BONUS_ULT": 5,
+    "AI_PERCEPTION_BONUS_NORMAL": 2,
+    "MOVE_SPEED_ULT": 1.3,
+    "MOVE_SPEED_NORMAL": 1,
+    "CHASE_SPEED_ULT": 1.4,
+    "CHASE_SPEED_NORMAL": 1.1,
+    "HIT_FX_OFFSET": 8
+  },
+  "CORE_VISUAL": {
+    "hoverHeight": 26,
+    "halfWidth": 11,
+    "halfHeight": 17,
+    "bobAmplitude": 2,
+    "bobPeriod": 2.6,
+    "idleGlow": 0.35,
+    "idleGlowPulse": 0.12,
+    "castGlow": 0.95,
+    "castGlowPulse": 0.2,
+    "castScale": 1.18,
+    "projectedAlpha": 0.25,
+    "projectedGlow": 0.12,
+    "projectedGlowPulse": 0.05,
+    "projectedCastGlow": 0.85,
+    "ghostAlpha": 0.65,
+    "canvasSize": 64
+  },
+  "DAMAGE_TEXT_COLORS": {
+    "DASH": "#60a5fa",
+    "MISS": "#9ca3af",
+    "BLOCK": "#fb923c",
+    "ABSORB": "#bae6fd",
+    "HEAL": "#86efac",
+    "CRIT": "#ef4444",
+    "VAMP": "#be123c",
+    "MANA_BURN": "#8b5cf6",
+    "MANA_RESTORE": "#60a5fa",
+    "RECOIL": "#ef4444"
+  },
+  "DEATH_KNOCKBACK": {
+    "SPEED_SCALE": 2.2,
+    "SLIDE_DECAY": 4,
+    "MAX_SLIDE": 110,
+    "VZ_SCALE": 1.6,
+    "GRAVITY": 1050,
+    "RESTITUTION": 0.35,
+    "BOUNCES": 2,
+    "GROUND_SCAN_END": 1.6,
+    "GROUND_SCAN_STEP": 0.05
+  },
+  "DEATH_VFX": {
+    "PUFF_NORMAL": 4,
+    "PUFF_REDUCED": 2,
+    "PUFF_LIFE": 1.4,
+    "PUFF_SIZE_MIN": 26,
+    "PUFF_SIZE_RANGE": 18,
+    "PUFF_SPEED": 60,
+    "PUFF_RISE": 50,
+    "PUFF_DRAG": 0.025,
+    "PUFF_COLOR": "#cbd5e1",
+    "SPARK_NORMAL": 10,
+    "SPARK_REDUCED": 4,
+    "SPARK_LIFE": 0.7,
+    "SPARK_SPEED_MIN": 180,
+    "SPARK_SPEED_RANGE": 220,
+    "SPARK_RISE_MIN": 120,
+    "SPARK_RISE_RANGE": 160,
+    "SPARK_SIZE_MIN": 6,
+    "SPARK_SIZE_RANGE": 6,
+    "SPARK_GRAVITY": 900
+  },
+  "DEFAULT_HEX_LAYOUT": "FLAT",
+  "DEFAULT_ZONE_CONFIG": {
+    "enabled": true,
+    "initialRadius": 12,
+    "shrinkInterval": 10,
+    "minRadius": 1
+  },
+  "DOT_COLORS": {
+    "BURN": "#f97316",
+    "POISON": "#10b981",
+    "VOID": "#a855f7",
+    "ICE": "#3b82f6",
+    "COVENANT": "#ef4444",
+    "IMPERIAL": "#3b82f6"
+  },
+  "ENV_SPRITE": {
+    "CANVAS_W": 128,
+    "CANVAS_H": 160,
+    "ANCHOR_X": 64,
+    "ANCHOR_Y": 140,
+    "WALL_HEIGHT_MULT": 3,
+    "PILLAR_HEIGHT_MULT": 4.5,
+    "CRYSTAL_HEIGHT_MULT": 2.5,
+    "TREE_LAYER_HEIGHT_MULT": 2,
+    "HEX_RADIUS_FULL": 0.9,
+    "HEX_RADIUS_PILLAR": 0.7,
+    "TREE_BASE_RATIO": 0.6,
+    "TREE_RATIO_RANGE": 0.4,
+    "TREE_LAYER_OVERLAP": 0.7
+  },
+  "FIXED_ORIENTATION_PARTICLE_TYPES": {
+    "__type": "Set",
+    "values": [
+      "PART",
+      "PART_DEBRIS",
+      "PART_GROUND"
+    ]
+  },
+  "FLOATING_TEXT": {
+    "DEFAULT_COLOR": "#ffffff",
+    "DOT_FALLBACK_COLOR": "#a3e635",
+    "SIZE": {
+      "DAMAGE": 16,
+      "CRIT": 24,
+      "CC": 14,
+      "INTERRUPT": 16,
+      "KILL_STREAK_BASE": 32,
+      "KILL_STREAK_PER": 4
+    },
+    "KILL_STREAK_LIFT": 40,
+    "KILL_STREAK_TRAUMA": {
+      "BASE": 0.2,
+      "PER": 0.1
+    }
+  },
+  "FLOAT_BOB": {
+    "BIOMES": [
+      "VOID",
+      "MAGMA"
+    ],
+    "AMPLITUDE": 4,
+    "SPEED": 1.5,
+    "PHASE_PER_PX": 0.01,
+    "LAUNCH_FADE_T": 0.5
+  },
+  "FORCED_MOVE": {
+    "IMPACT_BASE_PCT": 0.05,
+    "IMPACT_PER_HEIGHT_PCT": 0.05,
+    "IMPACT_MAX_PCT": 0.35,
+    "IMPACT_UNIT_SHARE": 0.5,
+    "IMPACT_MIN": 1,
+    "IMPACT_TEXT": "撞擊",
+    "IMPACT_FX": "FX_HIT_RED_HEAVY",
+    "IMPACT_SHAKE": 0.3
+  },
+  "GRID_OVERLAY": {
+    "LAST_STAND": {
+      "LIFT": 2,
+      "FREQ": 15,
+      "RADIUS": 0.98,
+      "FILL": "#c084fc",
+      "FILL_ALPHA": 0.2,
+      "FILL_PULSE": 0.3,
+      "STROKE": "#f0abfc",
+      "LINE_W": 1.5,
+      "LINE_PULSE": 1.5,
+      "STROKE_ALPHA": 0.4,
+      "STROKE_PULSE": 0.4
+    },
+    "STATUS_FLOOR_ALPHA": 0.4,
+    "ZONE_LIFT": 1,
+    "LIGHT": {
+      "MAX_ALPHA": 0.5,
+      "GAIN": 0.4
+    },
+    "MARK_LIFT": 2,
+    "WARNING": {
+      "FREQ": 5,
+      "ALPHA_MIN": 0.65,
+      "ALPHA_PULSE": 0.35,
+      "FILL": "#ff2a1f",
+      "EDGE": "#ffb0a6",
+      "FILL_ALPHA": 0.75,
+      "EDGE_ALPHA": 0.8,
+      "CORE_ALPHA": 0.45
+    },
+    "RANGE": {
+      "FILL_ALPHA": 0.1,
+      "EDGE_ALPHA": 0.55,
+      "CORE_ALPHA": 0.3
+    },
+    "HOVER": {
+      "STROKE": "#ffffff",
+      "FILL_ALPHA": 0,
+      "EDGE_ALPHA": 0.6,
+      "CORE_ALPHA": 0.55
+    },
+    "TILE": {
+      "BAKE_SCALE": 2,
+      "FILL_RADIUS": 0.95,
+      "EDGE_RADIUS": 0.86,
+      "EDGE_W": 3,
+      "EDGE_BLUR": 2.5,
+      "CORE_W": 0.8,
+      "PAD": 6
+    }
+  },
+  "GROUND_DRAPE": {
+    "MIN_HALF_H": 20,
+    "PAINTER_BLEND": "screen",
+    "PLANE_BLEND": "screen",
+    "PAINTER_EXTENT": 1.5,
+    "AOE_INDICATOR_PAD": 0.15,
+    "PLANE_OCCLUDE_EPS": 2,
+    "REACH_MARGIN": 1.15,
+    "CLIP_EXPAND_PX": 0.5,
+    "CANVAS_PAD_PX": 24,
+    "MAX_CANVAS_PX": 2048,
+    "CANVAS_GROW_STEP_PX": 128,
+    "MODE": {
+      "PART_GROUND": "DIRECT"
+    }
+  },
+  "HEX_SIZE": 48,
+  "HUD_ANCHOR": {
+    "barHeadMargin": 24,
+    "textGap": 30,
+    "overheadBelowBar": 6
+  },
+  "HUD_BAR": {
+    "WIDTH": 44,
+    "HP_HEIGHT": 6,
+    "MP_HEIGHT": 3,
+    "GAP": 2,
+    "PADDING": 3,
+    "TOP_OFFSET": 5,
+    "CORNER": 6,
+    "FILL_CORNER": 1,
+    "GLOSS_RATIO": 0.4,
+    "FILL_GLOW_BLUR": 6,
+    "SELECT_GLOW_WIDTH": 4,
+    "SELECT_GLOW_ALPHA": 0.35,
+    "MIN_PCT": 0.01,
+    "MIN_SHIELD_W": 0.5,
+    "SHIELD_OVERFLOW": 0.3,
+    "OVERSHIELD_RATIO": 0.5,
+    "CAST": {
+      "GAP": 2,
+      "HEIGHT": 4
+    },
+    "CC": {
+      "OFFSET": 12,
+      "HEIGHT": 6,
+      "LABEL_GAP": 2,
+      "FONT": "bold 9px Arial",
+      "DEFAULT_MAX": 5
+    }
+  },
+  "HUD_COLORS": {
+    "CONTAINER_BG": "rgba(2, 6, 23, 0.85)",
+    "CONTAINER_BORDER": "rgba(255, 255, 255, 0.2)",
+    "SLOT_BG": "#1e293b",
+    "HP": {
+      "0": {
+        "top": "#22d3ee",
+        "bottom": "#0284c7",
+        "glow": "rgba(6, 182, 212, 0.5)",
+        "border": "#3b82f6"
+      },
+      "1": {
+        "top": "#f87171",
+        "bottom": "#dc2626",
+        "glow": "rgba(220, 38, 38, 0.5)",
+        "border": "#ef4444"
+      }
+    },
+    "SHIELD": {
+      "top": "#ffffff",
+      "bottom": "#cbd5e1",
+      "glow": "#ffffff",
+      "seam": "rgba(0, 0, 0, 0.5)",
+      "outline": "#ffffff"
+    },
+    "MP": {
+      "top": "#a78bfa",
+      "bottom": "#7c3aed",
+      "glow": "rgba(139, 92, 246, 0.4)"
+    },
+    "CAST": {
+      "bg": "rgba(0, 0, 0, 0.5)",
+      "border": "rgba(255, 255, 255, 0.3)",
+      "defaultColor": "#ffffff"
+    },
+    "CC_BAR": {
+      "bg": "rgba(0, 0, 0, 0.6)",
+      "border": "rgba(255, 255, 255, 0.2)",
+      "text": "#ffffff"
+    },
+    "GLOSS_HIGHLIGHT": "rgba(255, 255, 255, 0.3)"
+  },
+  "HUD_GAUGE": {
+    "RADIUS": 14,
+    "LIFT": 24,
+    "BG": "rgba(2, 6, 23, 0.8)",
+    "ICON_ALPHA": 0.8,
+    "RIM": "rgba(255, 255, 255, 0.1)",
+    "RIM_WIDTH": 2,
+    "ARC_WIDTH": 3,
+    "GLOW_WIDTH": 4,
+    "GLOW_ALPHA": 0.35,
+    "DEFAULT_SKILL_VISUAL": "BOLT"
+  },
+  "HUD_LAYOUT": {
+    "CAST_BAR_X_OFFSET": 55,
+    "CAST_BAR_Y_OFFSET_NORMAL": 10,
+    "CAST_BAR_Y_OFFSET_ULT": 30,
+    "DAMAGE_TEXT_SCATTER": 10,
+    "STATUS_TEXT_OFFSET_X": -45
+  },
+  "ISO_SCALE_Y": 0.5,
+  "KILL_STREAK_WINDOW": 5,
+  "LAST_STAND_BANNER": {
+    "COLOR": "#ef4444",
+    "PULSE_FREQ": 4,
+    "VIGNETTE_ALPHA": 0.1,
+    "VIGNETTE_PULSE": 0.15,
+    "VIGNETTE_REACH": 0.8,
+    "BANNER_H": 40,
+    "BANNER_TOP": "rgba(15, 23, 42, 0.9)",
+    "BANNER_BOTTOM": "rgba(15, 23, 42, 0)",
+    "TITLE": "L A S T   S T A N D",
+    "TITLE_SIZE": 28,
+    "TITLE_FONT": "900 italic 28px \"Arial Black\", sans-serif",
+    "TITLE_Y": 34,
+    "TITLE_STROKE": "#000",
+    "TITLE_STROKE_W": 4,
+    "TITLE_GLOW_BLUR": 10,
+    "SUBTITLE": "ALL DEFENSES COLLAPSED • HEALING DISABLED",
+    "SUBTITLE_FONT": "bold 12px \"Segoe UI\", sans-serif",
+    "SUBTITLE_COLOR": "#cbd5e1",
+    "SUBTITLE_Y": 61
+  },
+  "LOG_COLORS": {
+    "MOVE": "#38bdf8",
+    "CAST": "#fbbf24",
+    "HIT": "#f87171",
+    "HEAL": "#4ade80",
+    "DECISION": "#c084fc",
+    "DEATH": "#94a3b8",
+    "CC": "#facc15",
+    "SYSTEM": "#64748b",
+    "HAZARD": "#fb923c"
+  },
+  "MAX_ARC_HEIGHT": 150,
+  "MAX_TERRAIN_TIER": 6,
+  "OBSTACLE_SPRITE": {
+    "dir": "assets/obstacles",
+    "manifestPath": "assets/obstacles/manifest.json",
+    "BAKE_SCALE": 2,
+    "SHADOW_PAD": 6,
+    "SHEET_MAX_W": 2048,
+    "ANIM": {
+      "TREE": {
+        "kind": "sway",
+        "frames": 12,
+        "period": 4.5,
+        "amp": 3
+      },
+      "ICE_CRYSTAL": {
+        "kind": "glint",
+        "frames": 16,
+        "period": 4,
+        "amp": 0.9,
+        "visible": 0.4,
+        "radius": 6
+      },
+      "OBSIDIAN_PILLAR": {
+        "kind": "glow",
+        "frames": 12,
+        "period": 3,
+        "amp": 0.75,
+        "blurPx": 3,
+        "key": "EMBER"
+      },
+      "WALL": {
+        "kind": "glow",
+        "frames": 12,
+        "period": 4,
+        "amp": 0.7,
+        "blurPx": 3,
+        "key": "VIOLET"
+      }
+    },
+    "GLOW_KEYS": {
+      "EMBER": {
+        "main": "r",
+        "min": 170,
+        "ratio": 1.25,
+        "maxOther": 120
+      },
+      "VIOLET": {
+        "main": "b",
+        "min": 200,
+        "ratio": 1.3,
+        "maxOther": 255
+      }
+    }
+  },
+  "OBSTACLE_STYLES": {
+    "WALL": {
+      "main": "#475569",
+      "light": "#64748b",
+      "dark": "#334155",
+      "detail": "#94a3b8",
+      "highlight": "#cbd5e1"
+    },
+    "TREE": {
+      "main": "#3f6212",
+      "light": "#4d7c0f",
+      "dark": "#1a2e05",
+      "detail": "#84cc16",
+      "highlight": "#bef264"
+    },
+    "ICE_CRYSTAL": {
+      "main": "#7dd3fc",
+      "light": "#bae6fd",
+      "dark": "#0ea5e9",
+      "detail": "#e0f2fe",
+      "highlight": "#ffffff"
+    },
+    "OBSIDIAN_PILLAR": {
+      "main": "#18181b",
+      "light": "#27272a",
+      "dark": "#09090b",
+      "detail": "#ef4444",
+      "highlight": "#fca5a5"
+    },
+    "SANDSTONE": {
+      "main": "#b45309",
+      "light": "#d97706",
+      "dark": "#92400e",
+      "detail": "#f59e0b",
+      "highlight": "#fde047"
+    }
+  },
+  "PALETTE": {
+    "UI_BG": "#020617",
+    "UI_BORDER": "#1e293b",
+    "SHADOW": "rgba(0, 0, 0, 0.6)",
+    "TEAMS": {
+      "0": {
+        "main": "#2563eb",
+        "dark": "#1e3a8a",
+        "light": "#fbbf24",
+        "glow": "rgba(59, 130, 246, 0.8)",
+        "accent": "#f8fafc"
+      },
+      "1": {
+        "main": "#dc2626",
+        "dark": "#450a0a",
+        "light": "#fca5a5",
+        "glow": "rgba(220, 38, 38, 0.8)",
+        "accent": "#2d0a0a"
+      }
+    },
+    "DAMAGE": "#ffffff",
+    "HEAL": "#10b981",
+    "CRIT": "#ef4444",
+    "MAGIC": "#8b5cf6"
+  },
+  "PARTICLE_TRAITS": {
+    "PART": {
+      "backend": "PART",
+      "fixed": true,
+      "selfDrawn": true
+    },
+    "PART_GROUND": {
+      "backend": "PART",
+      "ground": true,
+      "fixed": true,
+      "selfDrawn": true
+    },
+    "PART_DEBRIS": {
+      "backend": "PART",
+      "physical": true,
+      "fixed": true,
+      "selfDrawn": true
+    },
+    "BEAM": {
+      "backend": "BILL",
+      "selfDrawn": true
+    },
+    "GENERIC_DEBUG": {
+      "backend": "BILL"
+    }
+  },
+  "PART_PARTICLE_TYPES": {
+    "__type": "Set",
+    "values": [
+      "PART",
+      "PART_DEBRIS",
+      "PART_GROUND"
+    ]
+  },
+  "PHYSICAL_PARTICLE_TYPES": {
+    "__type": "Set",
+    "values": [
+      "PART_DEBRIS"
+    ]
+  },
+  "PHYSICS": {
+    "GRAVITY": 3500,
+    "SAFE_FALL_VELOCITY": 1000,
+    "FATAL_FALL_VELOCITY": 3000,
+    "FALL_DAMAGE_MIN": 200,
+    "STIFFNESS_ALIVE": 150,
+    "DAMPING_ALIVE": 25,
+    "DRIFT_SPEED": 25,
+    "TERMINAL_VELOCITY_IMPULSE": 400,
+    "DEFAULT_DRAG": 0.94,
+    "VISUAL_JUMP_DASH": 250,
+    "VISUAL_JUMP_KNOCKBACK": 200
+  },
+  "PROJECTILE_RENDER": {
+    "TRAIL_SAMPLES": 12,
+    "ULT_TRAIL_MULT": 2,
+    "TRAIL_T_STEP_MIN": 0.005,
+    "TRAIL_T_STEP_MAX": 0.05,
+    "ULT_SCALE": 1.5,
+    "STRETCH_SPEED_REF": 800,
+    "STRETCH_SPEED_SPAN": 2500,
+    "SQUISH_MIN": 0.4,
+    "STREAK_ALPHA": 1,
+    "SMOKE_ALPHA": 0.9,
+    "SMOKE_GROW": 1.8,
+    "SMOKE_EVERY": 2,
+    "GLOW_ALPHA": 0.9
+  },
+  "RENDER_CACHE": {
+    "SCALE_STEPS": [
+      1,
+      1.5,
+      2,
+      3,
+      4
+    ],
+    "SCALE_HYSTERESIS": 0.05,
+    "MAX_TERRAIN_SPRITES": 2048,
+    "FLOAT_STEP": 0.5,
+    "HEIGHT_KEY_SCALE": 2,
+    "SPRITE_PADDING": 4,
+    "BAKE_BUDGET_MS": 4,
+    "TRANSITION_BAKE_BUDGET_MS": 12,
+    "LOOP_LIQUID_SLOTS": 16,
+    "LOOP_SHEET_MAX_W": 2048
+  },
+  "RENDER_GLOW": {
+    "MAX_GLOW_SPRITES": 256,
+    "RADIUS_STEPS": [
+      4,
+      8,
+      12,
+      16,
+      24,
+      32,
+      48,
+      64
+    ],
+    "BLUR_STEPS": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      24,
+      32
+    ],
+    "RECT_WIDTH_STEPS": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      52,
+      56,
+      64,
+      80,
+      96,
+      128,
+      180,
+      240
+    ],
+    "RECT_HEIGHT_STEPS": [
+      4,
+      8,
+      12,
+      16,
+      24
+    ]
+  },
+  "RENDER_HOTSPOT_CACHE": {
+    "MAX_UNIT_GRADIENTS": 128,
+    "MAX_GLOW_TEXT_SPRITES": 192,
+    "GLOW_SCALE_STEP": 0.125,
+    "GLOW_SCALE_MIN": 0.25,
+    "GLOW_SCALE_MAX": 4,
+    "GLOW_PAD_PER_BLUR": 1.5,
+    "GLOW_TEXT_MARGIN_EM": 0.5
+  },
+  "RENDER_PERF": {
+    "QUERY_KEY": "perf",
+    "OPS_QUERY_KEY": "perfops",
+    "EMA_ALPHA": 0.1,
+    "HISTORY_FRAMES": 60,
+    "HISTORY_WINDOW_MS": 2000,
+    "SPIKE_THRESHOLD_MS": 16.7,
+    "SPIKE_RING_SIZE": 64,
+    "PHASES": [
+      "background",
+      "world",
+      "post",
+      "overlay+hud"
+    ]
+  },
+  "RENDER_QUALITY": {
+    "IMAGE_SMOOTHING": "low",
+    "MAX_DPR": 2,
+    "DEFAULT_DPR": 1,
+    "IGNORE_FRAME_MS": 250,
+    "DOWN_MS": 14,
+    "DOWN_RES_MS": 22,
+    "DOWN_REFRESH_RATIO": 1.4,
+    "REFRESH_DECAY": 0.002,
+    "REFRESH_TOL": 1.1,
+    "DISPLAY_PERIODS_MS": [
+      4.17,
+      6.06,
+      6.94,
+      8.33,
+      11.11,
+      13.33,
+      16.67
+    ],
+    "BACKOFF_DECAY_S": 60,
+    "DOWN_HOLD_S": 2,
+    "UP_MS": 9,
+    "UP_HOLD_S": 12,
+    "COOLDOWN_S": 15,
+    "STARTUP_GRACE_S": 5,
+    "MAX_UP_BACKOFF": 4,
+    "WINDOW_FRAMES": 60,
+    "TIER_SCALES": [
+      1,
+      1,
+      0.75,
+      0.5
+    ],
+    "QUERY_KEY": "quality",
+    "MATRIX_RAIN_TIER_0_SCALE": 1,
+    "MATRIX_RAIN_TIER_1_SCALE": 1,
+    "MATRIX_RAIN_TIER_0_HZ": 60,
+    "MATRIX_RAIN_TIER_1_HZ": 30,
+    "GLOW_SPRITES": true,
+    "GLOW_QUERY_KEY": "glow"
+  },
+  "SCREEN_CONSTANTS": {
+    "DEFAULT_WIDTH": 1200,
+    "DEFAULT_HEIGHT": 675,
+    "DEFAULT_ASPECT": 1.77
+  },
+  "SELF_DRAWN_PARTICLE_TYPES": {
+    "__type": "Set",
+    "values": [
+      "BEAM",
+      "PART",
+      "PART_DEBRIS",
+      "PART_GROUND"
+    ]
+  },
+  "SHIELD_VISUAL": {
+    "height": 80,
+    "radius": 38,
+    "headMargin": 8,
+    "PRISM_RAMP": "STATUS_SKY",
+    "BLEND": "screen",
+    "BASE_ALPHA": 0.3,
+    "STRENGTH_ALPHA": 0.4,
+    "PULSE_FREQ": 5,
+    "PULSE_ALPHA": 0.1,
+    "DEFAULT_MAX": 100,
+    "SCAN_SPEED": 120,
+    "SCAN_RATIOS": [
+      0.9,
+      0.7
+    ],
+    "SCAN_ALPHA_MULS": [
+      1.2,
+      0.6
+    ],
+    "SCAN_THICKNESS": 2,
+    "RIM_THICKNESS": 1,
+    "RIM_ALPHA": 0.4
+  },
+  "SHOUT_GLOW": {
+    "CAST_BLUR": 10,
+    "ULT_BLUR": 20,
+    "SCAN_BLUR": 15,
+    "SCAN_WIDTH": 3,
+    "SUCCESS_BLUR": 15,
+    "SUCCESS_BLUR_STEP": 3
+  },
+  "TACTICAL_COLORS": {
+    "TRAJECTORY": "#ffffff",
+    "TARGET_ENEMY": "#ef4444",
+    "TARGET_ALLY": "#4ade80",
+    "TARGET_FADE": "rgba(0, 0, 0, 0)",
+    "DIRECTOR_FRAME": "rgba(6, 182, 212, 0.4)",
+    "DIRECTOR_REC": "#ef4444",
+    "DIRECTOR_TEXT": "rgba(255, 255, 255, 0.8)",
+    "DEBUG_FPS": "rgba(255, 255, 255, 0.5)",
+    "SUDDEN_DEATH_ALERT": "rgba(239, 68, 68, 0.8)",
+    "SUDDEN_DEATH_SUB": "rgba(255, 255, 255, 0.6)"
+  },
+  "TEAM_COLORS": {
+    "0": {
+      "primary": "#3b82f6",
+      "secondary": "#fde047",
+      "glow": "rgba(59, 130, 246, 0.6)",
+      "armorLight": "#f1f5f9",
+      "borderRadius": "1rem"
+    },
+    "1": {
+      "primary": "#ef4444",
+      "secondary": "#fb923c",
+      "glow": "rgba(239, 68, 68, 0.6)",
+      "armorLight": "#fca5a5",
+      "borderRadius": "0.25rem"
+    }
+  },
+  "TERRAIN_SKIN": {
+    "texturePxPerHex": 96,
+    "sideTexturePxPerUnit": 1,
+    "tintStrength": 0.35,
+    "topDetail": {
+      "blend": "overlay",
+      "alpha": 0.5
+    },
+    "sideDetail": {
+      "blend": "overlay",
+      "alpha": 0.5
+    },
+    "sideShadeFloor": "#020617",
+    "edge": {
+      "minStep": 24,
+      "lip": {
+        "width": 1.5,
+        "alpha": 0.6
+      },
+      "ao": {
+        "widthRatio": 0.35,
+        "strength": 0.55
+      },
+      "flatRimAlpha": 0.22,
+      "cliffRimAlpha": 0.45
+    },
+    "exposure": {
+      "VOID": 1.65,
+      "FOREST": 1.18,
+      "MAGMA": 1.12,
+      "ICE": 0.67,
+      "DESERT": 0.81
+    },
+    "lumaBudget": {
+      "min": 45,
+      "max": 90
+    },
+    "foundation": {
+      "levels": 15,
+      "bellPower": 1,
+      "halfWidthMargin": 48,
+      "jitter": 0.05,
+      "noiseSeed": 7919,
+      "tipScales": [
+        1,
+        0.78,
+        0.9,
+        0.66
+      ],
+      "profiles": {
+        "VOID": {
+          "minDepth": 60,
+          "maxDepth": 120,
+          "tips": false,
+          "shoulder": 1,
+          "bottomShade": 0.55
+        },
+        "MAGMA": {
+          "minDepth": 60,
+          "maxDepth": 120,
+          "tips": false,
+          "shoulder": 1,
+          "bottomShade": 0.45
+        }
+      },
+      "defaultProfile": {
+        "minDepth": 55,
+        "maxDepth": 100,
+        "tips": false,
+        "shoulder": 1,
+        "bottomShade": 0.5
+      }
+    },
+    "variantOffsets": [
+      {
+        "x": 0,
+        "y": 0
+      },
+      {
+        "x": 128,
+        "y": 64
+      },
+      {
+        "x": 256,
+        "y": 128
+      },
+      {
+        "x": 384,
+        "y": 192
+      }
+    ],
+    "themes": {
+      "VOID": {
+        "top": "assets/terrain/void_top.webp",
+        "side": "assets/terrain/void_side.webp"
+      },
+      "FOREST": {
+        "top": "assets/terrain/forest_top.webp",
+        "side": "assets/terrain/forest_side.webp"
+      },
+      "ICE": {
+        "top": "assets/terrain/ice_top.webp",
+        "side": "assets/terrain/ice_side.webp"
+      },
+      "MAGMA": {
+        "top": "assets/terrain/magma_top.webp",
+        "side": "assets/terrain/magma_side.webp"
+      },
+      "DESERT": {
+        "top": "assets/terrain/desert_top.webp",
+        "side": "assets/terrain/desert_side.webp"
+      }
+    }
+  },
+  "TERRAIN_THEMES": {
+    "VOID": {
+      "top": "#1e293b",
+      "sideLight": "#334155",
+      "sideDark": "#0f172a",
+      "detail": "#6366f1",
+      "rim": "#818cf8"
+    },
+    "FOREST": {
+      "top": "#14532d",
+      "sideLight": "#166534",
+      "sideDark": "#052e16",
+      "detail": "#4ade80",
+      "rim": "#86efac"
+    },
+    "ICE": {
+      "top": "#3b82f6",
+      "sideLight": "#2563eb",
+      "sideDark": "#1e3a8a",
+      "detail": "#bae6fd",
+      "rim": "#e0f2fe"
+    },
+    "MAGMA": {
+      "top": "#7f1d1d",
+      "sideLight": "#991b1b",
+      "sideDark": "#450a0a",
+      "detail": "#fca5a5",
+      "rim": "#f87171"
+    },
+    "DESERT": {
+      "top": "#b45309",
+      "sideLight": "#d97706",
+      "sideDark": "#78350f",
+      "detail": "#fde047",
+      "rim": "#fcd34d"
+    }
+  },
+  "TEXT_ANIM": {
+    "CULL_PCT": 0.05,
+    "FADE_IN_PCT": 0.3,
+    "SHATTER_GROW": 0.8,
+    "SHATTER_JITTER": 10,
+    "SHOUT_POP_SEC": 0.25,
+    "SHOUT_POP_BOUNCE": 0.2,
+    "SHOUT_FLOAT_FREQ": 6,
+    "SHOUT_FLOAT_AMP": 3,
+    "SHOUT_PAD_X": 24,
+    "SHOUT_PAD_Y_ULT": 16,
+    "SHOUT_PAD_Y_CAST": 10,
+    "ULT_PULSE_FREQ": 12,
+    "ULT_PULSE_AMP": 0.05,
+    "SUCCESS_GROW": 0.2,
+    "SUCCESS_LINE_W": 2,
+    "SUCCESS_LINE_SPREAD": 0.5,
+    "BRACKET": 8,
+    "BRACKET_W": 2,
+    "BRACKET_GLOW_BASE": 0.5,
+    "BRACKET_GLOW_AMP": 0.3,
+    "BRACKET_GLOW_FREQ": 8,
+    "GHOST_ALPHA": 0.15,
+    "SCAN_DONE": 0.99,
+    "KILL_POP_SPEED": 5,
+    "KILL_PULSE_FREQ": 10,
+    "KILL_PULSE_AMP": 0.1,
+    "KILL_SCALE": 1.5,
+    "KILL_STROKE_W": 4,
+    "NUMBER_STROKE_W": 3
+  },
+  "TEXT_BREAK_JITTER": {
+    "X": 8,
+    "Y": 4,
+    "HASH_FREQ": 47,
+    "HASH_SCALE": 43758.5453
+  },
+  "TEXT_PAINTER_COLORS": {
+    "STROKE_SHADOW": "rgba(0, 0, 0, 0.8)",
+    "KILL_STREAK_STROKE": "#000000",
+    "WHITE": "#ffffff",
+    "CAST_BREAK_BLUE": "#fbbf24",
+    "CAST_BREAK_RED": "#dc2626",
+    "TECH_BG": "rgba(15, 23, 42, 0.4)",
+    "GRAD_TRANSPARENT": "rgba(255, 255, 255, 0)"
+  },
+  "THEME_COVENANT": {
+    "primary": "#ef4444",
+    "secondary": "#fb923c",
+    "armorDark": "#09090b",
+    "armorBase": "#27272a",
+    "accent": "#7f1d1d",
+    "spike": "#18181b"
+  },
+  "THEME_IMPERIAL": {
+    "primary": "#3b82f6",
+    "secondary": "#fde047",
+    "armorLight": "#f1f5f9",
+    "armorDark": "#1e3a8a",
+    "energy": "#60a5fa",
+    "cape": "rgba(30, 58, 138, 0.9)"
+  },
+  "UI_PIN": {
+    "TOOLBAR_MARGIN": 40,
+    "TOOLBAR_MARGIN_COMPACT": 68,
+    "FALLBACK_VIEWPORT": {
+      "w": 1920,
+      "h": 1080
+    },
+    "FALLBACK_SIZE": {
+      "w": 200,
+      "h": 60
+    },
+    "STORAGE_KEYS": {
+      "mapEditor": "tactical_toolbar_map_editor",
+      "playback": "tactical_toolbar_playback"
+    }
+  },
+  "UI_SETTINGS": {
+    "SNAPSHOT_HZ": 10,
+    "ZONE_INITIAL_RADIUS": {
+      "min": 3,
+      "max": 20,
+      "default": 8,
+      "step": 1
+    },
+    "ZONE_SHRINK_INTERVAL": {
+      "min": 1,
+      "max": 60,
+      "default": 15,
+      "step": 1
+    },
+    "ZONE_MIN_RADIUS": {
+      "min": 0,
+      "max": 10,
+      "default": 1,
+      "step": 1
+    },
+    "CAMERA_STIFFNESS": {
+      "min": 0.1,
+      "max": 20,
+      "followDefault": 0.25,
+      "zoomDefault": 0.2,
+      "step": 0.1,
+      "sliderMax": 5
+    },
+    "TIME_SCALE": {
+      "min": 0.1,
+      "max": 5,
+      "default": 1,
+      "step": 0.1
+    },
+    "MATRIX_SPEED": {
+      "min": 0.1,
+      "max": 5,
+      "step": 0.1
+    },
+    "MATRIX_GAP": {
+      "min": 0,
+      "max": 1,
+      "step": 0.05
+    },
+    "MAP_WIDTH": {
+      "min": 6,
+      "max": 24,
+      "default": 12,
+      "step": 1
+    },
+    "MAP_HEIGHT": {
+      "min": 6,
+      "max": 24,
+      "default": 8,
+      "step": 1
+    }
+  },
+  "UI_WINDOW": {
+    "STORAGE_KEY": "tacticalWindowsV1",
+    "SAVE_DEBOUNCE_MS": 300,
+    "HANDLE_PX": 8,
+    "HANDLE_PX_COARSE": 44,
+    "TOUCH_TARGET_MIN_PX": 44,
+    "MAXIMIZE_MARGIN": 12,
+    "MIN_WIDTH": 260,
+    "MIN_HEIGHT": 160,
+    "BOTTOM_SHEET_MAX_HEIGHT_VH": 72,
+    "MOBILE_BREAKPOINT": 900,
+    "SHEET_BREAKPOINT": 900,
+    "SHEET_MAX_VH": 72,
+    "HANDLE_CORNER_FACTOR": 2,
+    "HANDLE_Z_INDEX": 100,
+    "FALLBACK_RECT": {
+      "x": 100,
+      "y": 100,
+      "width": 400,
+      "height": 300
+    },
+    "FALLBACK_VIEWPORT": {
+      "width": 1200,
+      "height": 800
+    }
+  },
+  "UI_Z": {
+    "INSPECTOR": 30,
+    "SHOWCASE": 35,
+    "WINDOW_BASE": 40,
+    "OVERLAY": 50,
+    "MENU_BACKDROP": 55,
+    "MENU": 60,
+    "OVERLAY_CONTROLS": 60,
+    "WINDOW_MAX": 80,
+    "TOP_OVERLAY": 90
+  },
+  "UNIT_BODY_MOTION": {
+    "groundBob": {
+      "amplitude": 3,
+      "freq": 2
+    },
+    "flyingBob": {
+      "amplitude": 2,
+      "freq": 4
+    },
+    "maxTilt": 0.5,
+    "brakeTiltMult": 1.5,
+    "ultPulseAmp": 0.15,
+    "ultPulseCycles": 3,
+    "spawnDrop": -40,
+    "fallFadeDepth": 320,
+    "fallFadePow": 1.5,
+    "fallTumble": 1.4,
+    "fallShrink": 0.45
+  },
+  "UNIT_BODY_OFFSET": 36,
+  "UNIT_FRAME": {
+    "HEX_HYSTERESIS_PX": 3,
+    "HEX_RELEASE_FRAMES": 12,
+    "STILL_PX": 0.5,
+    "SORT_DEADBAND_PX": 2
+  },
+  "UNIT_HOVER_OFFSET": 6,
+  "UNIT_OCCLUSION": {
+    "MIN_STEP": 20
+  },
+  "UNIT_SCALE": 0.65,
+  "UNIT_SHADOW": {
+    "WIDTH": 110,
+    "BASE_HALF": 64,
+    "CORE_COLOR": "rgba(0,0,0,1)",
+    "MID_STOP": 0.6,
+    "MID_COLOR": "rgba(0,0,0,0.3)"
+  },
+  "UNIT_SPRITE": {
+    "targetHeightCanvasUnits": 59,
+    "referenceHeightPx": 158.3,
+    "footOffsetLocal": 64.61538461538461,
+    "footHover": 0,
+    "centerFraction": 0.5,
+    "spawnDuration": 0.5,
+    "facingHysteresisMs": 120,
+    "hitFlashDuration": 0.15,
+    "deathFadeDuration": 1.2,
+    "deathSinkDistance": 12,
+    "fallbackRadius": 20,
+    "fallbackSilhouetteColor": "#ffffff",
+    "mipLevels": [
+      1,
+      0.5,
+      0.25
+    ],
+    "silhouetteAlpha": 0.25,
+    "shadowScale": 1,
+    "idleFps": 6,
+    "walkFps": 10,
+    "attackFps": 12,
+    "castFps": 10,
+    "hitFps": 12,
+    "deathFps": 8,
+    "manifestPath": "assets/units/manifest.json"
+  },
+  "UNIT_STEP_BLEND": {
+    "RISE_START": 0.25,
+    "RISE_END": 0.5,
+    "FALL_START": 0.5,
+    "FALL_END": 0.75
+  },
+  "VFX_BIOME_GAIN": {
+    "ICE": 0.77,
+    "DESERT": 0.94
+  },
+  "VFX_BUDGET": {
+    "enabled": true,
+    "SOFT_PARTICLE_BUDGET": 240,
+    "HARD_PARTICLE_BUDGET": 380,
+    "TIER_EMISSION_RATIOS": [
+      1,
+      0.75,
+      0.5,
+      0.35
+    ],
+    "SHATTER_LIFETIME_NORMAL": 4.5,
+    "SHATTER_LIFETIME_REDUCED": 2,
+    "SHATTER_BLOOD_NORMAL": 18,
+    "SHATTER_BLOOD_REDUCED": 6
+  },
+  "VFX_GROUND_TYPES": {
+    "__type": "Set",
+    "values": [
+      "PART_GROUND"
+    ]
+  },
+  "VFX_PARAM": {
+    "SPEED_TRAIL_THRESHOLD_SQ": 1000,
+    "SPEED_TILT_THRESHOLD": 300,
+    "SPEED_MAX_TILT_REF": 800,
+    "SHAKE_INTENSITY_DASH": 0.4,
+    "SHAKE_INTENSITY_KNOCKBACK": 0.35,
+    "FX_KNOCKBACK_DUST_THRESHOLD_SQ": 80000,
+    "MAX_PARTICLES": 450,
+    "MAX_POOL_SIZE": 350,
+    "HAZARD_FIELD_MAX_PER_CELL": 2,
+    "IDLE_VFX_CULL_DIST_SQ": 90000,
+    "IDLE_VFX_CULL_CENTER_PER_TILE": 40
+  },
+  "VFX_RENDER": {
+    "GROUND_SORT_BIAS": 15,
+    "GROUND_Z_BIAS": 5,
+    "GROUND_VISUAL_BIAS": 2,
+    "PARTICLE_SIZE_BIAS": 0.5,
+    "DEBUG_DOT_COLOR": "#ff00ff",
+    "DEBUG_DOT_RADIUS": 4,
+    "TRAIL_STEP_DIST": 20,
+    "AIR_SORT_BIAS": 24
+  },
+  "VISUAL_ANCHORS": {
+    "CENTER_OFFSET": 30
+  },
+  "ZONE_RENDER": {
+    "WAVE_OVERSHOOT": 0.5,
+    "WAVE_WIDTH": 1.5,
+    "MIN_WAVE": 0.05,
+    "ENEMY_COLOR": "#ef4444",
+    "ENEMY_ALPHA": 0.2,
+    "INSIDE_ALPHA": 0.12,
+    "FILL_RADIUS": 0.95,
+    "WAVE_EDGE_ALPHA": 0.6,
+    "WAVE_CORE_ALPHA": 0.25,
+    "WAVE_SCALE_GROW": 0.08,
+    "BORDER_BAND": 0.5,
+    "BORDER_EDGE_ALPHA": 0.35,
+    "ENEMY_BORDER_EDGE_ALPHA": 0.5,
+    "BORDER_CORE_ALPHA": 0.2
+  },
+  "particleBackend": "function"
+}
