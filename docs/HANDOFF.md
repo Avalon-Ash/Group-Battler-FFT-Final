@@ -7,11 +7,11 @@
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **ECS-lite S2＋S3 表現層分離**：提示詞 `docs/PRESENTATION_LAYER_AGENT_PROMPT.md`，使用者在 IDE 執行 `/goal docs/PRESENTATION_LAYER_AGENT_PROMPT.md`（分支 `feat/presentation-layer`）。**這是渲染工作，跑的期間主代理只做診斷、不修渲染**（導播抖動、變羊閃爍等修正等它合併後再做）。之後 S4（常數拆檔）。
+1. **導播抖動＋換圖卡頓、單一格閃爍**：診斷見 §3，S2 已合併，可以修（渲染工作，單獨一條）。之後 S4（常數拆檔，可交 Gemini）。
 2. **技能全面修正**：使用者 10/19 同意開始規劃（設計由主代理寫，實作交 Gemini）；個別奧義美術翻新併在這裡。
 3. **BGM**：主代理從 `docs/BGM_CANDIDATES.md` 挑曲放進 `data/audio/music.ts`（下載前列檔名／來源給使用者同意）。
 
-## 3. 已診斷、等 S2 合併後修（使用者 10/19 決定 S2 先跑）
+## 3. 已診斷、待修
 - **導播狂抖＋掉幀**（探針 `tools/ui-e2e/out/_scratch_director_end.mjs`、`_scratch_spike_profile.mjs`）：
   - `DirectorSystem.smooth()` 只夾縮放、沒有平滑；構圖每幀依「誰在施法」在優先度 2（施法者）與 4（全景）之間切換，`CAMERA_MOVE` 目標每 16 ms 跳 50～120 px、縮放 1.33↔1.6（新一局開打時最嚴重）。修法方向：導播輸出加時間常數低通（位置約 0.25 s、縮放約 0.6 s）或構圖模式切換遲滯。
   - 縮放亂跳跨過地形快取級距（1.5／2）→ 戰鬥結束那幀 `bakeBlock` 272 ms。
