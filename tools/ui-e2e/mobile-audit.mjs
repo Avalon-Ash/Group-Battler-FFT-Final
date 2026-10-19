@@ -28,7 +28,7 @@ const VIEWPORTS = arg('viewports', '375x812,812x375,390x844')
 const OUT = join(here, 'out', 'mobile', TAG);
 mkdirSync(OUT, { recursive: true });
 
-const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 const MIN_TAP = 40;
 
 const WINDOW_IDS = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'audioSettings'];

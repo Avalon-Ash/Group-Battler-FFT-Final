@@ -25,7 +25,7 @@ mkdirSync(OUT, { recursive: true });
 
 const STORAGE_KEY = 'tacticalWindowsV1'; // UI_WINDOW.STORAGE_KEY
 // "Start tactical simulation" / "Close window" (kept escaped so the file is encoding-proof)
-const START_TEXT = '\u555f\u52d5\u6230\u8853\u6a21\u64ec';
+const START_TEXT = 'START SIMULATION';
 const CLOSE_TITLE = '\u95dc\u9589\u8996\u7a97';
 
 /**

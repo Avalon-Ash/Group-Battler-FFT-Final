@@ -27,7 +27,7 @@ const FLAG_PER_SEC = 2;
 const OUT = join(here, 'out', 'ui-remount');
 mkdirSync(OUT, { recursive: true });
 
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const WINDOW_IDS = ['logs', 'db', 'vfxmap', 'monitor', 'directorSettings', 'zoneSettings', 'audioSettings'];
 const SHOWCASE_TABS = ['system', 'camera', 'matrix', 'gameplay'];
 

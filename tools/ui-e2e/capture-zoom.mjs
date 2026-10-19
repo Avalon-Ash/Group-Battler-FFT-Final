@@ -29,7 +29,7 @@ try {
     await page.waitForTimeout(2000);
 
     // Enter manual simulation mode
-    await page.getByText('\u555f\u52d5\u6230\u8853\u6a21\u64ec').click();
+    await page.getByText('START SIMULATION').click();
     await page.waitForTimeout(1000);
 
     const zoomLevels = [0.5, 1.0, 2.0, 3.0];

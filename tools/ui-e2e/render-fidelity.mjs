@@ -23,7 +23,7 @@ mkdirSync(BASELINE_DIR, { recursive: true });
 mkdirSync(OUT_DIR, { recursive: true });
 
 const isRecord = process.argv.includes('--record');
-const START_TEXT = '\u555f\u52d5\u6230\u8853\u6a21\u64ec'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 const DICE_TITLE = '\u96a8\u6a5f\u751f\u6210\u6230\u5834\u8207\u9663\u5bb9'; // 隨機生成戰場與陣容
 
 const MEAN_ABS_DIFF_LIMIT = 0.8;

@@ -30,7 +30,7 @@ const skillsArg = arg('skills', 'all');
 const battleSec = Number(arg('battleSec', '60'));
 const battles = Number(arg('battles', '1'));
 const liveness = process.argv.includes('--liveness');
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const DICE_TITLE = '隨機生成戰場與陣容';
 
 // 被包住的繪製模組（路徑：匯出名）。新增繪製器時加進來。

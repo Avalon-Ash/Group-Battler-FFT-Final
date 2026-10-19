@@ -26,7 +26,7 @@ const tag = argOf('tag', 'shot');
 const viewH = Number(argOf('height', '720'));
 const BIOMES = ['VOID', 'FOREST', 'ICE', 'MAGMA', 'DESERT'];
 const LAYOUTS = ['FLAT', 'POINTY'];
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 
 const launchBrowser = async () => {
     const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];

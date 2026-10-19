@@ -19,7 +19,7 @@ const OUT = path.resolve(root, arg('out', 'tools/ui-e2e/out/obstacles'));
 const PROCEDURAL = process.argv.includes('--procedural');
 /** 截圖前步進的幀數（天氣等需要時間累積的效果用大一點） */
 const FRAMES = Number(arg('frames', '90'));
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const CROP = { w: 520, h: 360 };
 fs.mkdirSync(OUT, { recursive: true });
 

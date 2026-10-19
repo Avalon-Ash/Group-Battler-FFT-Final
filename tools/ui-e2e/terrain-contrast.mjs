@@ -44,7 +44,7 @@ const animArg = process.argv.find((a) => a === '--anim' || a.startsWith('--anim=
 const wantAnim = Boolean(animArg);
 const animOutName = animArg && animArg.includes('=') ? animArg.slice(animArg.indexOf('=') + 1) : 'terrain_r2_anim.png';
 const BIOMES = ['VOID', 'FOREST', 'ICE', 'MAGMA', 'DESERT'];
-const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 
 const launchBrowser = async () => {
     const args = ['--enable-gpu-rasterization', '--ignore-gpu-blocklist'];

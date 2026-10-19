@@ -18,7 +18,7 @@ mkdirSync(OUT_DIR, { recursive: true });
 
 const tagArg = process.argv.find((a) => a.startsWith('--tag='));
 const tag = tagArg ? tagArg.slice('--tag='.length) : 'shot';
-const START_TEXT = '啟動戰術模擬'; // 啟動戰術模擬
+const START_TEXT = 'START SIMULATION';
 const DICE_TITLE = '隨機生成戰場與陣容'; // 隨機生成戰場與陣容
 
 const launchBrowser = async () => {

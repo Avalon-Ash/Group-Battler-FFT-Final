@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT_DIR = join(here, 'out', 'pedestal-core');
 mkdirSync(OUT_DIR, { recursive: true });
-const START_TEXT = '啟動戰術模擬';
+const START_TEXT = 'START SIMULATION';
 const DEPLOY_BLUE = '部署藍軍 (帝國)';
 
 const launchBrowser = async () => {

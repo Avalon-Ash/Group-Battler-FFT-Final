@@ -4,7 +4,8 @@ import { Icons } from '../icons';
 import { GameEngine } from '../../../engine/game';
 import { UI_Z } from '../../../constants';
 import { useCompactViewport } from '../../../hooks/useCompactViewport';
-import { useWindowState } from '../../../hooks/useWindowStore';
+import { useWindowStore } from '../../../hooks/useWindowStore';
+import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
 
 interface ShowcaseOverlayProps {
@@ -20,8 +21,9 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const config = useShowcaseConfig();
     const layout = useShowcaseLayout();
-    const settingsWindowState = useWindowState('showcaseSettings');
-    const isSettingsOpen = !!settingsWindowState?.isOpen;
+    // 窄螢幕上任何展示模式視窗（設定、音訊…）開著時收起標題卡，讓出空間
+    const windows = useWindowStore();
+    const isSettingsOpen = WINDOW_DEFINITIONS.some((def) => def.visibleInShowcase && windows[def.id]?.isOpen);
     // Settings open as a bottom sheet at compact widths; the title card would sit behind it.
     const isCompactViewport = useCompactViewport();
     
@@ -63,7 +65,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
     };
 
     return (
-        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.OVERLAY }}>
+        <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: UI_Z.SHOWCASE }}>
             
             <div 
                 className="absolute inset-0 transition-colors duration-300"
@@ -90,7 +92,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                         
                         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/30 border border-cyan-500/30 text-[10px] text-cyan-400 font-mono tracking-widest mb-4 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
                             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse box-shadow-[0_0_5px_cyan]"></span>
-                            <span>系統就緒 (READY)</span>
+                            <span>SYSTEM READY</span>
                         </div>
 
                         <h1 className={`font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-cyan-100 to-cyan-500 font-mono tracking-tighter drop-shadow-[0_0_30px_rgba(6,182,212,0.5)] ${isCompact ? 'text-5xl' : 'text-7xl md:text-8xl'}`}>
@@ -98,7 +100,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                         </h1>
                         
                         <div className="text-slate-400 font-mono text-xs tracking-[0.4em] uppercase mt-3 opacity-80 mix-blend-plus-lighter">
-                            SSOT 運算核心已啟動
+                            SSOT CORE ONLINE
                         </div>
                     </div>
 
@@ -109,7 +111,7 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
                             className={`group liquid-btn-primary rounded-2xl overflow-hidden transition-all duration-300 ${isWideBar ? 'px-16 py-6 w-full md:w-auto text-xl' : 'w-full px-12 py-5 text-lg'} shadow-[0_0_30px_rgba(6,182,212,0.2)]`}
                         >
                             <span className="relative flex items-center justify-center gap-4 z-10">
-                                <span>啟動戰術模擬</span>
+                                <span className="whitespace-nowrap">START SIMULATION</span>
                                 <Icons.Play className="w-5 h-5 fill-current group-hover:translate-x-1 transition-transform" />
                             </span>
                         </button>
