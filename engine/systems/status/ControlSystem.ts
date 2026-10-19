@@ -6,7 +6,7 @@ import { stopMovement } from "../movement/MotionCommands";
 
 /** 狀態域 API：`banished` 只由本檔寫入，其餘模組透過這兩個函式。 */
 export function syncBanished(agent: Agent): void {
-    agent.banished = agent.banishTimer > 0;
+    agent.banished = agent.effects.BANISH.remaining > 0;
 }
 
 /** 墜落出局等情境：強制清掉放逐旗標（計時器不動）。 */
@@ -29,10 +29,10 @@ export class ControlSystem {
         }
 
         // Timer Decrements
-        if (agent.banishTimer > 0) agent.banishTimer = Math.max(0, agent.banishTimer - dt);
-        if (agent.stasisTimer > 0) {
-            agent.stasisTimer = Math.max(0, agent.stasisTimer - dt);
-            if (agent.stasisTimer <= 0) {
+        if (agent.effects.BANISH.remaining > 0) agent.effects.BANISH.remaining = Math.max(0, agent.effects.BANISH.remaining - dt);
+        if (agent.effects.STASIS.remaining > 0) {
+            agent.effects.STASIS.remaining = Math.max(0, agent.effects.STASIS.remaining - dt);
+            if (agent.effects.STASIS.remaining <= 0) {
                 if (agent.ccVisual === 'STASIS') agent.ccVisual = 'NONE';
             }
         }
@@ -41,12 +41,12 @@ export class ControlSystem {
         if (agent.effects.ROOT.remaining > 0) agent.effects.ROOT.remaining = Math.max(0, agent.effects.ROOT.remaining - dt);
         if (agent.effects.FEAR.remaining > 0) agent.effects.FEAR.remaining = Math.max(0, agent.effects.FEAR.remaining - dt);
         if (agent.effects.BLIND.remaining > 0) agent.effects.BLIND.remaining = Math.max(0, agent.effects.BLIND.remaining - dt);
-        if (agent.vulnerableTimer > 0) agent.vulnerableTimer = Math.max(0, agent.vulnerableTimer - dt);
+        if (agent.effects.VULNERABLE.remaining > 0) agent.effects.VULNERABLE.remaining = Math.max(0, agent.effects.VULNERABLE.remaining - dt);
         // POLYMORPH timer 清除
-        if (agent.polymorphTimer !== undefined && agent.polymorphTimer > 0) {
-            agent.polymorphTimer -= dt;
-            if (agent.polymorphTimer <= 0) {
-                agent.polymorphTimer = 0;
+        if (agent.effects.POLYMORPH.remaining > 0) {
+            agent.effects.POLYMORPH.remaining -= dt;
+            if (agent.effects.POLYMORPH.remaining <= 0) {
+                agent.effects.POLYMORPH.remaining = 0;
                 if (agent.ccVisual === 'POLYMORPH') agent.ccVisual = 'NONE';
             } else {
                 agent.ccVisual = 'POLYMORPH';
@@ -54,22 +54,22 @@ export class ControlSystem {
         }
 
         // INVINCIBLE timer 清除
-        if (agent.invincibleTimer !== undefined && agent.invincibleTimer > 0) {
-            agent.invincibleTimer -= dt;
-            if (agent.invincibleTimer <= 0) {
-                agent.invincibleTimer = 0;
+        if (agent.effects.INVINCIBLE.remaining > 0) {
+            agent.effects.INVINCIBLE.remaining -= dt;
+            if (agent.effects.INVINCIBLE.remaining <= 0) {
+                agent.effects.INVINCIBLE.remaining = 0;
                 if (agent.ccVisual === 'INVINCIBLE') agent.ccVisual = 'NONE';
             } else {
                 agent.ccVisual = 'INVINCIBLE';
             }
         }
-        if (agent.tauntTimer > 0) {
-            agent.tauntTimer = Math.max(0, agent.tauntTimer - dt);
-            if (agent.tauntTimer <= 0) agent.tauntTargetId = null;
+        if (agent.effects.TAUNT.remaining > 0) {
+            agent.effects.TAUNT.remaining = Math.max(0, agent.effects.TAUNT.remaining - dt);
+            if (agent.effects.TAUNT.remaining <= 0) agent.effects.TAUNT.sourceId = null;
         }
 
         // State Logic: Banishment
-        if (agent.banishTimer > 0) {
+        if (agent.effects.BANISH.remaining > 0) {
             syncBanished(agent);
             if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
             return; 
@@ -77,7 +77,7 @@ export class ControlSystem {
             if (agent.banished) {
                 syncBanished(agent);
                 // 只有在 STASIS 未持續時才清除 ccVisual
-                if (agent.ccVisual !== 'STASIS' || agent.stasisTimer <= 0) {
+                if (agent.ccVisual !== 'STASIS' || agent.effects.STASIS.remaining <= 0) {
                     agent.ccVisual = 'NONE';
                 }
                 engine.log(agent, 'CC', '放逐結束', null, '重返戰場');
@@ -104,7 +104,7 @@ export class ControlSystem {
                 // Determine Flee Target: Source position or center if no source
                 let sourcePos = { q: agent.q, r: agent.r };
                 // Attempt to find the source of fear from combat logs or current target (approximate)
-                const taunter = engine.agents.find(a => a.id === agent.tauntTargetId);
+                const taunter = engine.agents.find(a => a.id === agent.effects.TAUNT.sourceId);
                 if (taunter) {
                     sourcePos = { q: taunter.q, r: taunter.r };
                 } else if (agent.lastHitSourceId) {

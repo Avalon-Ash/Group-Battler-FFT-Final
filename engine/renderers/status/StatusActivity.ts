@@ -15,8 +15,8 @@ export const VULNERABLE_VISUAL_HP_RATIO = 0.25;
 
 export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
     switch (key) {
-        case 'BANISH': return a.banished && a.banishTimer > 0;
-        case 'STASIS': return a.stasisTimer > 0;
+        case 'BANISH': return a.banished && a.effects.BANISH.remaining > 0;
+        case 'STASIS': return a.effects.STASIS.remaining > 0;
         case 'FROZEN': return a.visualStatus === 'FROZEN';
         // 冰凍的暈眩由 FROZEN 的冰晶表達，不再疊暈眩星
         case 'STUN': return a.effects.STUN.remaining > 0 && a.visualStatus !== 'FROZEN';
@@ -24,7 +24,7 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'SILENCE': return a.effects.SILENCE.remaining > 0;
         case 'ROOT': return a.effects.ROOT.remaining > 0;
         case 'FEAR': return a.effects.FEAR.remaining > 0;
-        case 'TAUNT': return a.tauntTimer > 0;
+        case 'TAUNT': return a.effects.TAUNT.remaining > 0;
         case 'BLIND': return a.effects.BLIND.remaining > 0;
         case 'POLYMORPH': return a.visualStatus === 'POLYMORPH';
         case 'INVINCIBLE': return a.visualStatus === 'INVINCIBLE';

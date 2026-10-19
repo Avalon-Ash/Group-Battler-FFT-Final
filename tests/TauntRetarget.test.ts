@@ -43,7 +43,7 @@ describe('Taunt retarget (state ownership P7a)', () => {
         taunt(taunter, victim, 2);
         // CCManager 自己不寫目標
         expect(victim.target).toBe(bystander);
-        expect(victim.tauntTimer).toBeGreaterThan(0);
+        expect(victim.effects.TAUNT.remaining).toBeGreaterThan(0);
 
         // BT HasTarget 發現目標不是嘲諷者 → 交給 TargetingSystem 重選
         expect(BTConditions['HasTarget'](victim, engine, {})).toBe(true);
@@ -53,8 +53,8 @@ describe('Taunt retarget (state ownership P7a)', () => {
         expect(victim.target).toBe(taunter);
 
         // 到期釋放：不再被鎖定，可選回其他目標
-        victim.tauntTimer = 0;
-        victim.tauntTargetId = null;
+        victim.effects.TAUNT.remaining = 0;
+        victim.effects.TAUNT.sourceId = null;
         engine.updateTarget(victim);
         expect(victim.target).toBe(bystander);
     });

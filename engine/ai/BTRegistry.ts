@@ -14,7 +14,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
     "IsStunned": (a) => a.effects.STUN.remaining > 0,
-    "IsBanished": (a) => a.banishTimer > 0,
+    "IsBanished": (a) => a.effects.BANISH.remaining > 0,
     "IsSilenced": (a) => a.effects.SILENCE.remaining > 0,
     "IsFeared": (a) => a.effects.FEAR.remaining > 0, 
     // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
@@ -30,7 +30,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         }
 
         // 嘲諷中且目標不是嘲諷者：交給 TargetingSystem 的嘲諷強制鎖定重選（CCManager 不再直接寫 target）
-        const tauntLocked = a.tauntTimer > 0 && a.tauntTargetId !== null && a.target?.id !== a.tauntTargetId;
+        const tauntLocked = a.effects.TAUNT.remaining > 0 && a.effects.TAUNT.sourceId !== null && a.target?.id !== a.effects.TAUNT.sourceId;
         if (!tauntLocked && a.target && a.target.hp > 0 && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
             return true;
         }

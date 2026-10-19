@@ -31,7 +31,7 @@ describe('Status/casting domain APIs (state ownership P7b/P8)', () => {
         if (!a || !b) throw new Error('addAgent failed');
         CCManager.applyCC(b, a, { element: 'PHYSICAL' } as Skill, 'BANISH', 2, undefined, undefined, engine);
         expect(a.banished).toBe(true);
-        a.banishTimer = 0;
+        a.effects.BANISH.remaining = 0;
         syncBanished(a);
         expect(a.banished).toBe(false);
     });
@@ -39,12 +39,12 @@ describe('Status/casting domain APIs (state ownership P7b/P8)', () => {
     it('clearBanishedFlag 只清旗標、不動計時器', () => {
         const a = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0, 100, Role.WARRIOR);
         if (!a) throw new Error('addAgent failed');
-        a.banishTimer = 3;
+        a.effects.BANISH.remaining = 3;
         syncBanished(a);
         expect(a.banished).toBe(true);
         clearBanishedFlag(a);
         expect(a.banished).toBe(false);
-        expect(a.banishTimer).toBe(3);
+        expect(a.effects.BANISH.remaining).toBe(3);
     });
 
     it('breakCast(lockout) 延長 _interruptCooldown 但不縮短既有值', () => {

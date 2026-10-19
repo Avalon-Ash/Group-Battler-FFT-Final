@@ -152,8 +152,8 @@ export class TargetingSystem {
         let bestTarget: Agent | null = null;
 
         // 嘲諷強制鎖定
-        if (a.tauntTimer > 0 && a.tauntTargetId) {
-            const taunter = spatial.getAgents().find(ag => ag.id === a.tauntTargetId);
+        if (a.effects.TAUNT.remaining > 0 && a.effects.TAUNT.sourceId) {
+            const taunter = spatial.getAgents().find(ag => ag.id === a.effects.TAUNT.sourceId);
             if (taunter && taunter.hp > 0 && !taunter.banished && !taunter.outOfBounds) {
                 a.target = taunter;
                 // 嘲諷鎖定期間不追逐殘留的地塊目標（逃生中的除外）

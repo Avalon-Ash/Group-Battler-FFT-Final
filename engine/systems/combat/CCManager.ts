@@ -40,10 +40,10 @@ export const CCManager = {
         let effectiveDuration = dur || 0;
 
         // --- 1. Exclusion Table Logic ---
-        if (type === 'BANISH') {
-            // BANISH clears mobility-restricting CCs
-            target.effects.ROOT.remaining = 0;
-            target.effects.FEAR.remaining = 0;
+        if (def?.clearsOnApply && def.clearsOnApply.length > 0) {
+            for (const clearedKind of def.clearsOnApply) {
+                target.effects[clearedKind].remaining = 0;
+            }
             stopMovement(target);
             // Optional: clear DOTs? (The prompt says maintain "state purity")
             engine.log(target, 'CC', '狀態清洗', null, '進入放逐狀態，禁錮與恐懼已清除');
@@ -101,9 +101,9 @@ export const CCManager = {
                 break;
 
             case 'BANISH':
-                if (effectiveDuration > target.banishTimer) {
-                    target.banishTimer = effectiveDuration;
-                    target.banishMax = effectiveDuration;
+                if (effectiveDuration > target.effects.BANISH.remaining) {
+                    target.effects.BANISH.remaining = effectiveDuration;
+                    target.effects.BANISH.max = effectiveDuration;
                 }
                 syncBanished(target);
                 stopMovement(target);
@@ -114,8 +114,8 @@ export const CCManager = {
                 
                 if (skill.specialVisualStatus === 'STASIS') {
                     // STASIS 使用獨立 timer，不共用 banishTimer 語意
-                    target.stasisTimer = effectiveDuration;
-                    target.stasisMax = effectiveDuration;
+                    target.effects.STASIS.remaining = effectiveDuration;
+                    target.effects.STASIS.max = effectiveDuration;
                     target.ccVisual = 'STASIS';
                 } else if (skill.specialVisualStatus) {
                     target.ccVisual = skill.specialVisualStatus;
@@ -142,9 +142,10 @@ export const CCManager = {
                 break;
 
             case 'TAUNT':
-                if (effectiveDuration > target.tauntTimer) {
-                    target.tauntTimer = effectiveDuration;
-                    target.tauntTargetId = source.id; 
+                if (effectiveDuration > target.effects.TAUNT.remaining) {
+                    target.effects.TAUNT.remaining = effectiveDuration;
+                    target.effects.TAUNT.max = effectiveDuration;
+                    target.effects.TAUNT.sourceId = source.id; 
                     
                     // --- 2. State Machine Overrides ---
                     // Target lock lives in TargetingSystem.updateTarget (BT HasTarget re-targets while tauntTimer > 0)
@@ -168,7 +169,10 @@ export const CCManager = {
                 break;
 
             case 'POLYMORPH':
-                if (effectiveDuration > target.polymorphTimer) target.polymorphTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.POLYMORPH.remaining) {
+                    target.effects.POLYMORPH.remaining = effectiveDuration;
+                    target.effects.POLYMORPH.max = effectiveDuration;
+                }
                 stopMovement(target);
                 statusText = STATUS_VISUALS.POLYMORPH.label;
                 statusColor = STATUS_VISUALS.POLYMORPH.primaryColor;
@@ -176,14 +180,20 @@ export const CCManager = {
                 break;
 
             case 'INVINCIBLE':
-                if (effectiveDuration > target.invincibleTimer) target.invincibleTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.INVINCIBLE.remaining) {
+                    target.effects.INVINCIBLE.remaining = effectiveDuration;
+                    target.effects.INVINCIBLE.max = effectiveDuration;
+                }
                 statusText = STATUS_VISUALS.INVINCIBLE.label;
                 statusColor = STATUS_VISUALS.INVINCIBLE.primaryColor;
                 if (skill.specialVisualStatus) target.ccVisual = skill.specialVisualStatus;
                 break;
 
             case 'VULNERABLE':
-                if (effectiveDuration > target.vulnerableTimer) target.vulnerableTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.VULNERABLE.remaining) {
+                    target.effects.VULNERABLE.remaining = effectiveDuration;
+                    target.effects.VULNERABLE.max = effectiveDuration;
+                }
                 statusText = STATUS_VISUALS.VULNERABLE.label;
                 statusColor = STATUS_VISUALS.VULNERABLE.primaryColor;
                 break;

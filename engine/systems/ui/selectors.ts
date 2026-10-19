@@ -65,7 +65,7 @@ export function selectAgentView(
     const prev = cache.get(agentId);
 
     const isDead = agent.hp <= 0 || agent.banished || agent.fullyDead;
-    const targetId = agent.target ? agent.target.id : (agent.tauntTargetId ?? undefined);
+    const targetId = agent.target ? agent.target.id : (agent.effects.TAUNT.sourceId ?? undefined);
     const targetHex = agent.targetHex ? { q: agent.targetHex.q, r: agent.targetHex.r } : undefined;
 
     const currentCastSkill =

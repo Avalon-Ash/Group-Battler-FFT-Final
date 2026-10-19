@@ -64,21 +64,8 @@ export class Agent {
     // [ECS-lite S1] 狀態效果槽位（固定 13 槽，零每幀配置）
     public effects: EffectSlots = createEffectSlots();
 
-    public banishTimer: number = 0;
-    public banishMax: number = 0;
-
-    public stasisTimer: number = 0;
-    public stasisMax: number = 0;
-
-    public polymorphTimer: number = 0;
-    public invincibleTimer: number = 0;
-    public vulnerableTimer: number = 0;
-
     public banished: boolean = false;
     public outOfBounds: boolean = false;
-
-    public tauntTimer: number = 0;
-    public tauntTargetId: string | null = null;
 
     public dotTimer: number = 0;
     public dotDmg: number = 0;
@@ -182,15 +169,7 @@ export class Agent {
 
         resetEffectSlots(this.effects);
 
-        this.banishTimer = 0;
-        this.banishMax = 0;
-        this.stasisTimer = 0;
-        this.stasisMax = 0;
-        this.polymorphTimer = 0;
-        this.invincibleTimer = 0;
-        this.vulnerableTimer = 0;
-        this.tauntTimer = 0;
-        this.tauntTargetId = null;
+
 
         this.banished = false;
         this.outOfBounds = false;

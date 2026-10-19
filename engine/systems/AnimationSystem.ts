@@ -49,7 +49,7 @@ export class AnimationSystem {
                 continue;
             }
 
-            const isDisabled = agent.effects.STUN.remaining > 0 || agent.banished || agent.effects.FEAR.remaining > 0 || agent.stasisTimer > 0;
+            const isDisabled = agent.effects.STUN.remaining > 0 || agent.banished || agent.effects.FEAR.remaining > 0 || agent.effects.STASIS.remaining > 0;
 
             // [ARCH] visualStatus 的唯一寫入者（STATE_OWNERSHIP_DESIGN P1）：CC 外觀（ccVisual，狀態域擁有）優先，
             // 其次是逃生中的 DANGER。其他系統只寫自己的欄位，不得直接寫 visualStatus。

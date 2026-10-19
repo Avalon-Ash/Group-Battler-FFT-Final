@@ -80,7 +80,7 @@ describe('isStatusActive', () => {
     it('timer-driven CCs follow their timers', () => {
         const a = fresh();
         for (const k of ['STUN', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND'] as const) expect(isStatusActive(k, a), k).toBe(false);
-        a.effects.STUN.remaining = 1; a.effects.SILENCE.remaining = 1; a.effects.ROOT.remaining = 1; a.effects.FEAR.remaining = 1; a.tauntTimer = 1; a.effects.BLIND.remaining = 1;
+        a.effects.STUN.remaining = 1; a.effects.SILENCE.remaining = 1; a.effects.ROOT.remaining = 1; a.effects.FEAR.remaining = 1; a.effects.TAUNT.remaining = 1; a.effects.BLIND.remaining = 1;
         for (const k of ['STUN', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND'] as const) expect(isStatusActive(k, a), k).toBe(true);
     });
 

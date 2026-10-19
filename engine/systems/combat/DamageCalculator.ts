@@ -51,7 +51,7 @@ export class DamageCalculator {
         }
 
         // --- INVINCIBLE: NO DAMAGE ---
-        if (target.invincibleTimer > 0 && !isHeal && !isSupport) {
+        if (target.effects.INVINCIBLE.remaining > 0 && !isHeal && !isSupport) {
             return result;
         }
 
@@ -92,7 +92,7 @@ export class DamageCalculator {
         // 1. Role Multipliers & Base Logic
         if (!isHeal) {
             // Vulnerable check
-            if (target.vulnerableTimer > 0) {
+            if (target.effects.VULNERABLE.remaining > 0) {
                 base *= 1.35; // 35% bonus damage
             }
         }

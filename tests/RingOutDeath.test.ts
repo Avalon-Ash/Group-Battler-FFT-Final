@@ -76,7 +76,7 @@ describe('RingOutDeath (Task B1: Unified Ring-Out Death & Residual Cleanup)', ()
         if (!agent) return;
 
         agent.banished = true;
-        agent.banishTimer = 5.0;
+        agent.effects.BANISH.remaining = 5.0;
 
         // Tile collapses under banished agent
         agent.hp = 0;

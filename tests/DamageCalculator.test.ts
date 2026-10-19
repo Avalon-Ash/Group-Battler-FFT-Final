@@ -59,7 +59,7 @@ describe('DamageCalculator.calculate (deterministic paths)', () => {
 
     it('vulnerable target takes 35% more', () => {
         const target = makeAgent(Team.RED);
-        target.vulnerableTimer = 5;
+        target.effects.VULNERABLE.remaining = 5;
         const r = DamageCalculator.calculate(makeAgent(Team.BLUE), target, makeSkill({ power: 100 }), 0, false);
         expect(r.finalValue).toBe(-135);
     });
@@ -75,7 +75,7 @@ describe('DamageCalculator.calculate (deterministic paths)', () => {
 
     it('banished and invincible targets take nothing', () => {
         const banished = makeAgent(Team.RED); banished.banished = true;
-        const invincible = makeAgent(Team.RED); invincible.invincibleTimer = 3;
+        const invincible = makeAgent(Team.RED); invincible.effects.INVINCIBLE.remaining = 3;
         const skill = makeSkill({ power: 100 });
         expect(DamageCalculator.calculate(makeAgent(Team.BLUE), banished, skill, 0, false).finalValue).toBe(0);
         expect(DamageCalculator.calculate(makeAgent(Team.BLUE), invincible, skill, 0, false).finalValue).toBe(0);

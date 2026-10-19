@@ -130,10 +130,10 @@ export class AgentManager {
         a.isMoving = false;
         a.outOfBounds = false;
         a.banished = false;
-        a.banishTimer = 0;
-        a.banishMax = 0;
-        a.stasisTimer = 0;
-        a.stasisMax = 0;
+        a.effects.BANISH.remaining = 0;
+        a.effects.BANISH.max = 0;
+        a.effects.STASIS.remaining = 0;
+        a.effects.STASIS.max = 0;
         a.path = [];
         a.trailHistory = [];
         // ──────────────────────────────────

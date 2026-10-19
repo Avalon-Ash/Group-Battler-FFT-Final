@@ -59,27 +59,27 @@ describe('visualStatus ownership (P1a)', () => {
     // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
     it('POLYMORPH shows POLYMORPH while polymorphed', () => {
         CCManager.applyCC(red, blue, ccSkill({ ccType: 'POLYMORPH', specialVisualStatus: 'POLYMORPH' }), 'POLYMORPH', 2, 0, undefined, engine);
-        expect(blue.polymorphTimer).toBeGreaterThan(0);
+        expect(blue.effects.POLYMORPH.remaining).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('POLYMORPH'));
     });
 
     // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
     it('INVINCIBLE shows INVINCIBLE while invincible', () => {
         CCManager.applyCC(blueAlly, blue, ccSkill({ ccType: 'INVINCIBLE', specialVisualStatus: 'INVINCIBLE' }), 'INVINCIBLE', 2, 0, undefined, engine);
-        expect(blue.invincibleTimer).toBeGreaterThan(0);
+        expect(blue.effects.INVINCIBLE.remaining).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('INVINCIBLE'));
     });
 
     it('STASIS banish shows STASIS while in stasis', () => {
         CCManager.applyCC(red, blue, ccSkill({ ccType: 'BANISH', specialVisualStatus: 'STASIS' }), 'BANISH', 2, 0, undefined, engine);
-        expect(blue.stasisTimer).toBeGreaterThan(0);
+        expect(blue.effects.STASIS.remaining).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('STASIS'));
     });
 
     it('returns to NONE after the CC expires', () => {
         CCManager.applyCC(red, blue, ccSkill({ ccType: 'POLYMORPH', specialVisualStatus: 'POLYMORPH' }), 'POLYMORPH', 0.1, 0, undefined, engine);
         for (let i = 0; i < 10; i++) engine.tick(TICK);
-        expect(blue.polymorphTimer).toBe(0);
+        expect(blue.effects.POLYMORPH.remaining).toBe(0);
         expect(blue.visualStatus).not.toBe('POLYMORPH');
     });
 });
