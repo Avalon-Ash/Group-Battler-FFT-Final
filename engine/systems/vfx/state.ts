@@ -57,8 +57,11 @@ export interface Particle {
     partAnim?: PartAnim;
     /** 每次物理更新都貼齊地面高度（看板仍正常繪製） */
     groundAnchored?: boolean;
-    /** 天氣粒子（VFXAmbience 生成；計數同時存在的天氣用）。不用 ownerId：沒有對應單位的 ownerId 會被 VFXSystem 當成擁有者已死而移除 */
-    weather?: boolean;
+    /**
+     * 天氣／氛圍層編號（VFXAmbience 生成；1＝場景天氣，2 起＝BIOME_ATMOSPHERE），計數同時存在的粒子用。
+     * 不用 ownerId：沒有對應單位的 ownerId 會被 VFXSystem 當成擁有者已死而移除
+     */
+    weather?: number;
 }
 export class VFXStateManager {
     public particles: Particle[] = [];

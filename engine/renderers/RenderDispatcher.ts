@@ -60,8 +60,18 @@ export class RenderDispatcher {
             case RenderOpType.OBSTACLE:
             {
                 // 錨點＝格子中心地面點（ObstacleSpriteStore manifest；程序化退回 ENV_SPRITE）
-                const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr);
-                ctx.drawImage(ob.image, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+                const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, globalTime);
+                if (ob.sw !== undefined) ctx.drawImage(ob.image, ob.sx!, ob.sy!, ob.sw, ob.sh!, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+                else ctx.drawImage(ob.image, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+                const ov = ob.overlay;
+                if (ov && ov.alpha > 0) {
+                    const prevA = ctx.globalAlpha, prevOp = ctx.globalCompositeOperation;
+                    ctx.globalAlpha = prevA * ov.alpha;
+                    ctx.globalCompositeOperation = 'lighter';
+                    ctx.drawImage(ov.image, snapX + ov.x, snapY + ov.y, ov.width, ov.height);
+                    ctx.globalAlpha = prevA;
+                    ctx.globalCompositeOperation = prevOp;
+                }
             }
                 break;
 

@@ -278,7 +278,7 @@ describe('VFXAmbience weather particles', () => {
         const state = fill('SNOW', 60);
         const cap = WEATHER_AMBIENCE.SNOW.maxActive;
         expect(state.particles.length).toBe(cap);
-        expect(state.particles.every((p) => p.type === 'PART' && p.weather === true && !!p.part)).toBe(true);
+        expect(state.particles.every((p) => p.type === 'PART' && p.weather === 1 && !!p.part)).toBe(true);
         // 沒有重複加入同一個粒子物件
         expect(new Set(state.particles).size).toBe(state.particles.length);
     });

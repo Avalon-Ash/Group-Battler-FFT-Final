@@ -813,7 +813,28 @@ export const OBSTACLE_SPRITE = {
   BAKE_SCALE: 2,
   /** 足跡陰影外擴（canvas 單位，含 blur 半徑） */
   SHADOW_PAD: 6,
+  /** 循環影格排成一張圖的最大寬度（px） */
+  SHEET_MAX_W: 2048,
+  /**
+   * 障礙物動態（VISUAL_ROADMAP O3）：烘成循環影格表，執行期仍只有一次 drawImage；每格相位依 q,r 雜湊錯開。
+   *  - sway：以底部為軸斜切，頂端位移 amp（canvas 單位）
+   *  - glint：一顆星芒沿最高晶柱往上滑，週期前 visible 比例可見（靜態本體＋星芒疊層，執行期只改位置與 alpha）
+   *  - glow：從精靈取出橘色發光部位（GLOW_KEY），加法疊上並帶模糊光暈，亮度 0..amp 脈動（靜態本體＋發光疊層）
+   *  只有 sway 烘成整張影格表；glint／glow 若也烘成影格表，熔岩圖 p99 實測多 3～5 ms（每根柱子各取一張大圖）。
+   */
+  ANIM: {
+    TREE: { kind: 'sway', frames: 12, period: 4.5, amp: 3 },
+    ICE_CRYSTAL: { kind: 'glint', frames: 16, period: 4, amp: 0.9, visible: 0.4, radius: 6 },
+    OBSIDIAN_PILLAR: { kind: 'glow', frames: 12, period: 3, amp: 0.75, blurPx: 3 },
+  } as Readonly<Record<string, ObstacleAnimConfig>>,
+  /** glow 取色：r ≥ minR、b ≤ maxB、r ≥ g × ratio 的像素算發光部位 */
+  GLOW_KEY: { minR: 170, maxB: 120, ratio: 1.25 },
 } as const;
+
+export type ObstacleAnimConfig =
+  | { kind: 'sway'; frames: number; period: number; amp: number }
+  | { kind: 'glint'; frames: number; period: number; amp: number; visible: number; radius: number }
+  | { kind: 'glow'; frames: number; period: number; amp: number; blurPx: number };
 
 export interface TerrainTheme { top: string; sideLight: string; sideDark: string; detail: string; rim: string }
 

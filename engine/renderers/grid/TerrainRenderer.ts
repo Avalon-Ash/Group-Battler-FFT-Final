@@ -74,6 +74,90 @@ function paintStaticDecor(sCtx: CanvasRenderingContext2D, type: string, variant:
     }
 }
 
+/** 確定性 0..1（崖邊裝飾的長度、位置）：同一 variant、邊、序號永遠同值 */
+function edgeHash(variant: number, edge: number, k: number): number {
+    let h = Math.imul(variant + 1, 0x9e3779b1) ^ Math.imul(edge + 7, 0x85ebca6b) ^ Math.imul(k + 13, 0xc2b2ae35);
+    h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12;
+    return (h >>> 0) / 4294967296;
+}
+
+/**
+ * 崖邊裝飾（TERRAIN_AMBIENCE.edge）：只畫在前側、鄰格較低的邊。座標 (0, 0) 為頂面中心，往下（+y）是側面。
+ * 在頂面 clip 之外畫，垂草／垂冰／熔岩滴落才能蓋到側面上。
+ */
+function paintEdgeDecor(sCtx: CanvasRenderingContext2D, type: string, vertices: readonly { x: number; y: number }[], edgeMask: number, isFront: readonly boolean[], variant: number) {
+    const cfg = getTerrainAmbience(type)?.edge;
+    if (!cfg) return;
+    sCtx.save();
+    sCtx.lineCap = 'round';
+    for (let i = 0; i < 6; i++) {
+        if (((edgeMask >> i) & 1) === 0 || !isFront[i]) continue;
+        const a = vertices[i], b = vertices[(i + 1) % 6];
+        const len = Math.hypot(b.x - a.x, b.y - a.y);
+        const at = (t: number) => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+        if (cfg.kind === 'FRINGE') {
+            const n = Math.max(1, Math.floor(len / cfg.spacing));
+            for (let j = 0; j < n; j++) {
+                const p = at((j + 0.5) / n);
+                const L = cfg.minLen + (cfg.maxLen - cfg.minLen) * edgeHash(variant, i, j);
+                const sway = (edgeHash(variant, i, j + 97) - 0.5) * 3;
+                sCtx.strokeStyle = cfg.color;
+                sCtx.lineWidth = cfg.width;
+                sCtx.beginPath();
+                sCtx.moveTo(p.x, p.y - 1);
+                sCtx.quadraticCurveTo(p.x + sway * 0.3, p.y + L * 0.5, p.x + sway, p.y + L);
+                sCtx.stroke();
+                sCtx.strokeStyle = cfg.tipColor;
+                sCtx.lineWidth = cfg.width * 0.6;
+                sCtx.beginPath();
+                sCtx.moveTo(p.x, p.y - 1);
+                sCtx.quadraticCurveTo(p.x + sway * 0.3, p.y + L * 0.35, p.x + sway * 0.6, p.y + L * 0.6);
+                sCtx.stroke();
+            }
+        } else if (cfg.kind === 'EAVE') {
+            sCtx.strokeStyle = cfg.color;
+            sCtx.lineWidth = cfg.width;
+            sCtx.beginPath(); sCtx.moveTo(a.x, a.y); sCtx.lineTo(b.x, b.y); sCtx.stroke();
+            const n = Math.max(1, Math.floor(len / cfg.dripEvery));
+            sCtx.fillStyle = cfg.color;
+            for (let j = 0; j < n; j++) {
+                const p = at((j + 0.3 + 0.4 * edgeHash(variant, i, j)) / n);
+                const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + 31);
+                const w = cfg.dripWidth * (0.6 + 0.4 * edgeHash(variant, i, j + 57));
+                sCtx.beginPath();
+                sCtx.moveTo(p.x - w, p.y);
+                sCtx.lineTo(p.x + w, p.y);
+                sCtx.lineTo(p.x, p.y + L);
+                sCtx.closePath();
+                sCtx.fill();
+            }
+        } else {
+            sCtx.globalCompositeOperation = 'lighter';
+            sCtx.globalAlpha = cfg.alpha;
+            sCtx.strokeStyle = cfg.color;
+            sCtx.lineWidth = cfg.width;
+            sCtx.beginPath(); sCtx.moveTo(a.x, a.y); sCtx.lineTo(b.x, b.y); sCtx.stroke();
+            if (cfg.dripEvery > 0) {
+                const n = Math.max(1, Math.floor(len / cfg.dripEvery));
+                for (let j = 0; j < n; j++) {
+                    if (edgeHash(variant, i, j + 211) < 0.35) continue;
+                    const p = at((j + 0.2 + 0.6 * edgeHash(variant, i, j)) / n);
+                    const L = cfg.dripMin + (cfg.dripMax - cfg.dripMin) * edgeHash(variant, i, j + 19);
+                    const g = sCtx.createLinearGradient(p.x, p.y, p.x, p.y + L);
+                    g.addColorStop(0, cfg.color);
+                    g.addColorStop(1, 'rgba(0,0,0,0)');
+                    sCtx.strokeStyle = g;
+                    sCtx.lineWidth = cfg.width * 0.8;
+                    sCtx.beginPath(); sCtx.moveTo(p.x, p.y); sCtx.lineTo(p.x, p.y + L); sCtx.stroke();
+                }
+            }
+            sCtx.globalCompositeOperation = 'source-over';
+            sCtx.globalAlpha = 1;
+        }
+    }
+    sCtx.restore();
+}
+
 function paintStaticDetail(sCtx: CanvasRenderingContext2D, size: number, theme: TerrainTheme, type: string, variant: number) {
     const detail = getTerrainAmbience(type)?.detail;
     if (!detail || !detail.baked) return;
@@ -414,6 +498,7 @@ export const TerrainRenderer = {
                 sCtx.stroke();
             }
             sCtx.globalAlpha = 1.0;
+            paintEdgeDecor(sCtx, type, vertices, edgeMask, edgeTable.edgeIsFront, variant);
             paintStaticDecor(sCtx, type, variant);
         } else {
             sCtx.fillStyle = theme.top;

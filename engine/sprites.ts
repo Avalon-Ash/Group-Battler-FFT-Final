@@ -60,8 +60,8 @@ export const SpriteManager = {
      * 障礙物精靈：預渲染圖集（ObstacleSpriteStore，依 q,r 選變體）優先，未載入時退回程序化（ENV_SPRITE 錨點）。
      * 尺寸與錨點都是 canvas 單位；錨點＝格子中心地面點。
      */
-    getObstacleSprite(styleKey: string, layout: HexLayout, q: number = 0, r: number = 0): ObstacleSprite {
-        const baked = obstacleSpriteStore.get(styleKey, layout, q, r);
+    getObstacleSprite(styleKey: string, layout: HexLayout, q: number = 0, r: number = 0, time: number = 0): ObstacleSprite {
+        const baked = obstacleSpriteStore.get(styleKey, layout, q, r, time);
         if (baked) return baked;
         const key = `OBSTACLE_${styleKey}_${layout}`;
         let sprite = _proceduralObstacles.get(key);

@@ -24,6 +24,7 @@ import type {
     TerrainAmbienceBiome,
     TerrainAmbienceEntry,
     TerrainDecorConfig,
+    TerrainEdgeConfig,
     WeatherAmbienceConfig,
     WeatherBoundsConfig,
 } from '../../types';
@@ -138,13 +139,19 @@ export const SAND_PEBBLES: TerrainDecorConfig = { type: 'DECOR_PEBBLE', scale: 1
 export const ICE_SHARDS: TerrainDecorConfig = { type: 'DECOR_ICE', scale: 1, spots: DECOR_SPOTS, countByVariant: [1, 0, 2, 0] };
 export const VOID_RUBBLE: TerrainDecorConfig = { type: 'DECOR_RUBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [0, 1, 0, 1] };
 
+/** 崖邊裝飾（T2，2026-10-19）：顏色在曝光（TERRAIN_SKIN.exposure）之前，所以 VOID 用偏暗的值 */
+export const FOREST_FRINGE: TerrainEdgeConfig = { kind: 'FRINGE', color: '#0d3a1c', tipColor: '#2f6b25', spacing: 2.6, minLen: 3, maxLen: 9, width: 1.4 };
+export const ICE_EAVE: TerrainEdgeConfig = { kind: 'EAVE', color: '#f0f9ff', width: 3, dripEvery: 6, dripMin: 3, dripMax: 9, dripWidth: 2.2 };
+export const MAGMA_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#ff8a1f', width: 2.5, alpha: 0.75, dripEvery: 9, dripMin: 6, dripMax: 18 };
+export const VOID_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#3f3290', width: 1.6, alpha: 0.35, dripEvery: 0, dripMin: 0, dripMax: 0 };
+
 export const TERRAIN_AMBIENCE: Readonly<Record<TerrainAmbienceBiome, TerrainAmbienceEntry>> = {
-    VOID: { detail: VOID_RUNES, liquid: null, decor: VOID_RUBBLE },
-    FOREST: { detail: GRASS_DETAIL, liquid: null, decor: null },
-    ICE: { detail: ICE_SHEEN, liquid: null, decor: ICE_SHARDS },
+    VOID: { detail: VOID_RUNES, liquid: null, decor: VOID_RUBBLE, edge: VOID_GLOW },
+    FOREST: { detail: GRASS_DETAIL, liquid: null, decor: null, edge: FOREST_FRINGE },
+    ICE: { detail: ICE_SHEEN, liquid: null, decor: ICE_SHARDS, edge: ICE_EAVE },
     // 熔岩：地塊頂面疊一層循環液面
-    MAGMA: { detail: { kind: 'NONE', baked: false }, liquid: { color: '#ef4444', intensity: 1.0 }, decor: null },
-    DESERT: { detail: SAND_RIPPLES, liquid: null, decor: SAND_PEBBLES },
+    MAGMA: { detail: { kind: 'NONE', baked: false }, liquid: { color: '#ef4444', intensity: 1.0 }, decor: null, edge: MAGMA_GLOW },
+    DESERT: { detail: SAND_RIPPLES, liquid: null, decor: SAND_PEBBLES, edge: null },
 };
 
 const TERRAIN_AMBIENCE_BY_NAME: Readonly<Record<string, TerrainAmbienceEntry | undefined>> = TERRAIN_AMBIENCE;
@@ -278,6 +285,39 @@ export const WEATHER_AMBIENCE: Readonly<Record<AmbienceWeatherType, WeatherAmbie
         spawn: 'ANYWHERE',
         blendMode: 'screen',
     },
+};
+
+/**
+ * 地圖氛圍層（VISUAL_ROADMAP T3，2026-10-19）：依地圖（scene id）疊在天氣之上，同樣是零件粒子。
+ * 森林＝低處霧氣＋斜射光柱、虛空＝紫霧、熔岩＝往上飄的熱浪光暈。只在地圖格子範圍內生成。
+ */
+export const BIOME_ATMOSPHERE: Readonly<Partial<Record<TerrainAmbienceBiome, readonly WeatherAmbienceConfig[]>>> = {
+    FOREST: [
+        {
+            interval: 0.7, maxActive: 12, parts: [{ kind: 'glow', radius: 64, ramp: 'WEATHER_MIST' }], partRadius: 64, primaryChance: 1, alignToVelocity: false,
+            size: { min: 40, spread: 50 }, vx: { min: 4, spread: 8 }, vy: { min: -3, spread: 6 }, life: 12, spawn: 'ISLAND', blendMode: 'screen',
+            z: { min: 4, spread: 30 }, anim: { scaleFrom: 0.8, scaleTo: 1.2, fadeIn: 0.3, fadeOut: 0.4, alpha: 0.16 },
+        },
+        {
+            interval: 2.2, maxActive: 4, parts: [{ kind: 'pillar', width: 24, height: 256, ramp: 'WEATHER_SUN' }], partRadius: 24, primaryChance: 1, alignToVelocity: false,
+            size: { min: 18, spread: 16 }, vx: { min: 2, spread: 3 }, vy: { min: 0, spread: 0 }, life: 9, spawn: 'ISLAND', blendMode: 'lighter',
+            z: { min: 0, spread: 0 }, rotation: 0.32, anim: { scaleFrom: 1, scaleTo: 1, fadeIn: 0.35, fadeOut: 0.4, alpha: 0.13 },
+        },
+    ],
+    VOID: [
+        {
+            interval: 0.8, maxActive: 10, parts: [{ kind: 'glow', radius: 64, ramp: 'WEATHER_VOID' }], partRadius: 64, primaryChance: 1, alignToVelocity: false,
+            size: { min: 40, spread: 60 }, vx: { min: -5, spread: 10 }, vy: { min: -3, spread: 6 }, life: 12, spawn: 'ISLAND', blendMode: 'screen',
+            z: { min: 0, spread: 24 }, anim: { scaleFrom: 0.8, scaleTo: 1.3, fadeIn: 0.3, fadeOut: 0.4, alpha: 0.14 },
+        },
+    ],
+    MAGMA: [
+        {
+            interval: 0.35, maxActive: 16, parts: [{ kind: 'glow', radius: 32, ramp: 'WEATHER_EMBER' }], partRadius: 32, primaryChance: 1, alignToVelocity: false,
+            size: { min: 16, spread: 20 }, vx: { min: -4, spread: 8 }, vy: { min: -2, spread: 4 }, life: 5, spawn: 'ISLAND', blendMode: 'screen',
+            z: { min: 0, spread: 10 }, vz: { min: 18, spread: 14 }, anim: { scaleFrom: 0.6, scaleTo: 1.6, fadeIn: 0.25, fadeOut: 0.6, alpha: 0.12 },
+        },
+    ],
 };
 
 const WEATHER_AMBIENCE_BY_NAME: Readonly<Record<string, WeatherAmbienceConfig | undefined>> = WEATHER_AMBIENCE;

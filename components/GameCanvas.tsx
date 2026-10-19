@@ -134,7 +134,8 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
             ctx.shadowOffsetY = 30;
             ctx.globalAlpha = 0.9;
             const visualY = VisualMath.getIsoVisualY(py, draggedObstacle.terrainHeight);
-            ctx.drawImage(sprite.image, px - sprite.anchorX, visualY - sprite.anchorY - liftOffset, sprite.width, sprite.height);
+            if (sprite.sw !== undefined) ctx.drawImage(sprite.image, sprite.sx ?? 0, sprite.sy ?? 0, sprite.sw, sprite.sh ?? 0, px - sprite.anchorX, visualY - sprite.anchorY - liftOffset, sprite.width, sprite.height);
+            else ctx.drawImage(sprite.image, px - sprite.anchorX, visualY - sprite.anchorY - liftOffset, sprite.width, sprite.height);
             ctx.restore();
         }
     }, [engine, pressedAgent, selectedAgent, hoveredHexRef, hoveredSkill, draggedObstacle, camera, tool, spawnMode, draftRole, draftBodyType, winner]);

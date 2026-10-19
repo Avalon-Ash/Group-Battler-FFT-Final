@@ -63,6 +63,7 @@ export interface Skill {
 
 import type { Agent } from './engine/core/Agent';
 import type { PartSpec } from './engine/renderers/vfxparts/PartSpec';
+import type { PartAnim } from './types/VFXSchema';
 import { MapConfig } from './engine/utils';
 export type { Agent };
 export type { MapConfig };
@@ -513,7 +514,20 @@ export interface TerrainDecorConfig {
     countByVariant: readonly number[];
 }
 
+/**
+ * 崖邊裝飾（VISUAL_ROADMAP T2）：烘進地塊 sprite，只畫在「前側、鄰格較低」的邊（edgeMask 位元且 edgeIsFront）。
+ *  - FRINGE：垂草（沿邊每 spacing 一根，往下垂 minLen..maxLen）
+ *  - EAVE：積雪簷（沿邊粗白帶＋垂冰）
+ *  - GLOW：發光邊（加法描邊＋往下滴落的光痕；drips 0＝只描邊）
+ */
+export type TerrainEdgeConfig =
+    | { kind: 'FRINGE'; color: string; tipColor: string; spacing: number; minLen: number; maxLen: number; width: number }
+    | { kind: 'EAVE'; color: string; width: number; dripEvery: number; dripMin: number; dripMax: number; dripWidth: number }
+    | { kind: 'GLOW'; color: string; width: number; alpha: number; dripEvery: number; dripMin: number; dripMax: number };
+
 export interface TerrainAmbienceEntry {
+    /** 非 null 時在崖邊（前側落差邊）烘進裝飾 */
+    edge: TerrainEdgeConfig | null;
     /** 非 null 時烘進靜態地表裝飾 */
     decor: TerrainDecorConfig | null;
     detail: TerrainSurfaceDetailConfig;
@@ -567,8 +581,15 @@ export interface WeatherAmbienceConfig {
     vy: AmbienceRange;
     /** 壽命（秒）；null = 生成範圍寬度 / vx（剛好飛越整個範圍） */
     life: number | null;
-    spawn: 'ANYWHERE' | 'LEFT_EDGE';
+    /** ANYWHERE／LEFT_EDGE＝天氣範圍（地圖外擴 WEATHER_BOUNDS.padding）；ISLAND＝只在地圖格子範圍內（霧氣、光柱） */
+    spawn: 'ANYWHERE' | 'LEFT_EDGE' | 'ISLAND';
     blendMode: GlobalCompositeOperation;
+    /** 以下為地圖氛圍層（T3）用的覆寫；未設時用 WEATHER_BOUNDS 的高度、WEATHER_PART_ANIM、不旋轉 */
+    z?: AmbienceRange;
+    vz?: AmbienceRange;
+    anim?: PartAnim;
+    /** 固定旋轉（弧度，光柱斜射）；alignToVelocity 為 true 時忽略 */
+    rotation?: number;
 }
 
 export interface WeatherBoundsConfig {

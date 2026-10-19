@@ -35,6 +35,9 @@ export const VFX_RAMPS = {
     WEATHER_SPORE_VIOLET: { core: '#faf5ff', main: '#c084fc', dark: '#581c87' },
     WEATHER_SAND: { core: '#fef3c7', main: '#fcd34d', dark: '#b45309' },
     WEATHER_VOID: { core: '#e9d5ff', main: '#7e22ce', dark: '#1e0b3b' },
+    /** 地圖氛圍層（T3）：森林霧氣、光柱 */
+    WEATHER_MIST: { core: '#f0fdf4', main: '#bbf7d0', dark: '#14532d' },
+    WEATHER_SUN: { core: '#fffbea', main: '#fde68a', dark: '#a16207' },
 } as const satisfies Record<string, VFXRamp>;
 
 export type VFXRampId = keyof typeof VFX_RAMPS;
