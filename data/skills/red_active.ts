@@ -133,9 +133,9 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a1', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '靈魂腐化', desc: '強力DoT', 
-        range: 6, cast: 0.5, cd: 7.5, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 70, color: '#a3e635', visual: 'BOLT', projectileSpeed: 900, 
-        ccType: 'DOT', ccForce: 65, ccDur: 5.0, 
+        range: 6, cast: 0.5, cd: 6.5, cost: 35, gain: 0, 
+        type: 'SINGLE', power: 100, color: '#a3e635', visual: 'BOLT', projectileSpeed: 900, 
+        ccType: 'DOT', ccForce: 85, ccDur: 5.0, 
         visualHitEffect: 'FX_ACTIVE_RED_FEL_SPLASH', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
     },
     { 

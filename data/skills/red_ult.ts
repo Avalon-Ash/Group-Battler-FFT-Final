@@ -127,8 +127,8 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'rr_u4', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
         name: '血腥獵殺', desc: '鎖定秒殺', 
-        range: 12, cast: 1.3, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 1450, color: '#7f1d1d', 
+        range: 12, cast: 1.1, cd: 5.0, cost: 100, gain: 0, 
+        type: 'SINGLE', power: 1600, color: '#7f1d1d', 
         visual: 'BOLT', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_RED_HEADHUNTER', element: 'BLOOD'
     },
@@ -220,8 +220,8 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#be123c', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'LIFESTEAL', ccDur: 7.0, ccForce: 40,
-        ccType2: 'HOT', ccDur2: 7.0, ccForce2: 140,
+        ccType: 'LIFESTEAL', ccDur: 6.0, ccForce: 30,
+        ccType2: 'HOT', ccDur2: 6.0, ccForce2: 110,
         visualHitEffect: 'FX_ULT_RED_BLOOD_MOON', element: 'BLOOD'
     },
     { 

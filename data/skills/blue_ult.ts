@@ -162,17 +162,17 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '時間停止', desc: '全場靜止', 
-        range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 0.7, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 2.8,
+        ccType: 'STUN', ccDur: 3.2,
         visualHitEffect: 'FX_ULT_BLUE_TIMESTOP', element: 'ARCANE'
     },
     { 
         id: 'mb_u4', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '奧術洪流', desc: '奧術彈幕', 
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 5, power: 750, color: '#a855f7', 
+        type: 'AOE', aoeRadius: 5, power: 650, color: '#a855f7', 
         visual: 'BOLT', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_TORRENT', element: 'ARCANE'
     },
