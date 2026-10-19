@@ -8,27 +8,13 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";
-import { Hex, Skill, Projectile } from "../../types";
-import { RenderList } from "../renderers/RenderList";
-import { GridCache } from "./grid/GridCache";
+import { Hex, HexSpatialLookup } from "../../types";
 import { GridSpatial } from "./grid/GridSpatial";
-import { GridRenderStrategy } from "../renderers/grid/GridRenderStrategy";
 
 export class GridSystem {
-    private cache: GridCache;
-    private renderer: GridRenderStrategy;
-
-    constructor() {
-        this.cache = new GridCache();
-        this.renderer = new GridRenderStrategy();
-    }
+    public spatialCache?: HexSpatialLookup;
 
     public reset() {
-        this.cache.reset();
-    }
-
-    public get spatialCache(): GridCache {
-        return this.cache;
     }
 
     public getTerrainHeight(q: number, r: number, engine?: GameEngine): number {
@@ -37,7 +23,7 @@ export class GridSystem {
     }
 
     public getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine): Hex | null {
-        return GridSpatial.getHexAtWorldPoint(wx, wy, engine, this.cache);
+        return GridSpatial.getHexAtWorldPoint(wx, wy, engine, this.spatialCache);
     }
 
     public getOccludedAgents(engine: GameEngine): Agent[] {
@@ -46,30 +32,5 @@ export class GridSystem {
 
     public getObstacleOccludedAgents(engine: GameEngine): Agent[] {
         return GridSpatial.getObstacleOccludedAgents(engine);
-    }
-
-    public submitRenderables(
-        renderList: RenderList,
-        engine: GameEngine, 
-        hoveredHex: Hex | null, 
-        hoveredSkill: Skill | null, 
-        highlightAgent: Agent | null, 
-        projectiles: Projectile[],
-        transitionT: number,      
-        transitionPhase: 'IN' | 'OUT' | 'IDLE',
-        globalTime: number
-    ) {
-        this.renderer.submit(
-            this.cache,
-            renderList,
-            engine,
-            hoveredHex,
-            hoveredSkill,
-            highlightAgent,
-            projectiles,
-            transitionT,
-            transitionPhase,
-            globalTime
-        );
     }
 }

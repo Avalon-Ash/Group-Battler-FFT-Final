@@ -73,8 +73,8 @@ const measurePhases = async (name, prepare) => {
 
         // Time submit: wrap submitRenderables of grid, vfx, unit
         let submitStart = 0;
-        const origGridSubmit = r.grid.submitRenderables.bind(r.grid);
-        r.grid.submitRenderables = function(...args) {
+        const origGridSubmit = r.tactical.submitRenderables.bind(r.tactical);
+        r.tactical.submitRenderables = function(...args) {
             submitStart = performance.now();
             return origGridSubmit(...args);
         };

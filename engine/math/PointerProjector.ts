@@ -22,12 +22,10 @@
 // ║    × 不得在此處呼叫 VisualMath.getIsoVisualY（視覺層責任分離）  ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { Hex, Point } from "../../types";
-import { Camera } from "../systems/CameraSystem";
+import { Hex, Point, Camera, HexSpatialLookup } from "../../types";
 import { HexUtils, MapConfig } from "../utils";
 import { GridSpatial } from "../systems/grid/GridSpatial";
 import { GameEngine } from "../game";
-import { GridCache } from "../systems/grid/GridCache";
 
 export class PointerProjector {
 
@@ -97,7 +95,7 @@ export class PointerProjector {
         canvas: HTMLCanvasElement,
         camera: Camera,
         engine: GameEngine,
-        cache: GridCache,
+        cache?: HexSpatialLookup,
         cachedRect?: DOMRect
     ): Hex | null {
         const rect = cachedRect ?? canvas.getBoundingClientRect();

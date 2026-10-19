@@ -128,43 +128,19 @@ export function scanPresToSystemsImports(): string[] {
     return imports.sort();
 }
 
-export const SIM_TO_PRES_BASELINE: readonly string[] = [
-    'engine/systems/DesignExporter.ts:engine/renderers/RenderSpec.ts',
-    'engine/systems/grid/GridCache.ts:engine/graphics/materials/NoiseLib.ts',
-    'engine/systems/grid/GridCache.ts:engine/graphics/utils/HexGeometry.ts',
-    'engine/systems/grid.ts:engine/renderers/grid/GridRenderStrategy.ts',
-    'engine/systems/grid.ts:engine/renderers/RenderList.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/graphics/utils/HexGeometry.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/frame/UnitFrame.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/GroundDrape.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/RenderList.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitAuraPainter.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitBodyPainter.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitCorePainter.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitDeathPainter.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitIndicatorPainter.ts',
-    'engine/systems/unit/UnitSystem.ts:engine/renderers/units/painters/UnitShadowPainter.ts',
-    'engine/systems/VisualSystem.ts:engine/presentation/vfx.ts',
-    'engine/systems/VisualSystem.ts:engine/presentation/visuals/EventHUDMapper.ts',
-    'engine/systems/VisualSystem.ts:engine/presentation/visuals/EventVFXMapper.ts',
-    'engine/systems/VisualSystem.ts:engine/presentation/visuals/SequenceSystem.ts',
-];
+export const SIM_TO_PRES_BASELINE: readonly string[] = [];
 
 describe('Layer boundary ratchet (Simulation -> Presentation)', () => {
     const current = scanSimToPresImports();
 
-    it('matches baseline count on initialization', () => {
-        expect(current.length).toBeLessThanOrEqual(SIM_TO_PRES_BASELINE.length);
+    it('reaches 0 simulation -> presentation imports', () => {
+        expect(current).toEqual([]);
+        expect(current.length).toBe(0);
     });
 
-    it('no new simulation -> presentation imports', () => {
+    it('no new simulation -> presentation imports (0 and never re-appears)', () => {
         const added = current.filter(x => !SIM_TO_PRES_BASELINE.includes(x));
         expect(added, 'New simulation -> presentation imports detected').toEqual([]);
-    });
-
-    it('ratchet only shrinks (remove fixed entries from SIM_TO_PRES_BASELINE)', () => {
-        const stale = SIM_TO_PRES_BASELINE.filter(x => !current.includes(x));
-        expect(stale, 'Stale entries in baseline that are no longer imported').toEqual([]);
     });
 
     it('records presentation -> engine/systems/** imports count', () => {

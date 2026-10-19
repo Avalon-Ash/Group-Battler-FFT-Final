@@ -8,7 +8,7 @@ import * as path from 'path';
 import { RenderSpec } from '../engine/renderers/RenderSpec';
 import { VisualMath } from '../engine/math/VisualMath';
 import { RenderList, RenderOpType } from '../engine/renderers/RenderList';
-import { UnitRenderSystem } from '../engine/systems/unit/UnitSystem';
+import { UnitRenderSystem } from '../engine/presentation/unit/UnitSystem';
 import { UnitFrameStore } from '../engine/renderers/frame/UnitFrame';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
@@ -41,8 +41,8 @@ const read = (f: string) => fs.readFileSync(path.join(ROOT, f), 'utf8');
 
 /** 繪製端：畫面、特效、HUD、UI。模擬端（物理、AI、戰鬥）用邏輯格高度是對的，不在此列。 */
 const VISUAL_SCOPE = [
-    'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/systems/unit',
-    'engine/systems/hud.ts', 'engine/systems/VisualSystem.ts', 'engine/graphics', 'components',
+    'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/presentation/unit',
+    'engine/presentation/hud.ts', 'engine/presentation/VisualSystem.ts', 'engine/graphics', 'components',
 ];
 /** 規格本身（字串裡會寫到函式名）與 SSOT 定義檔不掃 */
 const SSOT_FILES = new Set(['engine/renderers/RenderSpec.ts', 'engine/math/VisualMath.ts', 'constants.ts']);

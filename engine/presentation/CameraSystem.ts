@@ -7,12 +7,9 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { UI_SETTINGS } from '../../constants';
+import type { Camera } from '../../types';
 
-export interface Camera {
-    x: number;
-    y: number;
-    zoom: number;
-}
+export type { Camera };
 
 export class CameraSystem {
     // Current State

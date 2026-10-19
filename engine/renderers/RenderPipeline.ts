@@ -47,7 +47,7 @@ void Promise.all([
 export class RenderPipeline {
     private renderer: GameRenderer;
     private background = new BackgroundRenderer();
-    private tactical = new TacticalRenderer();
+    private tactical: TacticalRenderer;
     private hud = new HUDRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
@@ -81,6 +81,7 @@ export class RenderPipeline {
 
     constructor(renderer: GameRenderer) { 
         this.renderer = renderer; 
+        this.tactical = renderer.tactical;
     }
 
     public setTransitionPhase(phase: 'IN' | 'OUT' | 'IDLE') {
@@ -224,7 +225,7 @@ export class RenderPipeline {
 
         CtxOpCounter.track('submit', () => {
             this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined);
-            this.renderer.grid.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
+            this.tactical.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
             this._viewportScratch.width = lW;
             this._viewportScratch.height = lH;
             this._viewportScratch.camera = camera;

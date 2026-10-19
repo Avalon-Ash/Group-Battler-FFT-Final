@@ -3,7 +3,7 @@ import { GameEvent, Point, Team } from "../../../types";
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { GridSystem } from "../../systems/grid";
-import { CameraSystem } from "../../systems/CameraSystem";
+import { CameraSystem } from "../CameraSystem";
 import { SequenceSystem } from "./SequenceSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";

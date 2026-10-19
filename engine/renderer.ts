@@ -15,14 +15,15 @@ import { UnitShatter } from "./presentation/visuals/effects/UnitShatter";
 import { GridSystem } from "./systems/grid";
 import { VFXSystem } from "./presentation/vfx";
 import { VFXRenderer } from "./presentation/vfx/render";
-import { UnitRenderSystem } from "./systems/unit";
-import { HUDSystem } from "./systems/hud";
-import { CameraSystem } from "./systems/CameraSystem";
-import type { Camera } from "./systems/CameraSystem";
-import { VisualSystem } from "./systems/VisualSystem";
+import { UnitRenderSystem } from "./presentation/unit";
+import { HUDSystem } from "./presentation/hud";
+import { CameraSystem } from "./presentation/CameraSystem";
+import type { Camera } from "../types";
+import { VisualSystem } from "./presentation/VisualSystem";
 import { RenderPipeline } from "./renderers/RenderPipeline";
 import { StatusOrchestrator } from "./renderers/status/StatusOrchestrator"; 
 import { SequenceSystem } from "./presentation/visuals/SequenceSystem"; 
+import { TacticalRenderer } from "./renderers/tactical";
 
 import { PointerProjector } from "./math/PointerProjector";
 import { HexUtils } from "./utils";
@@ -30,6 +31,7 @@ import { HexUtils } from "./utils";
 export { Camera };
 
 export class GameRenderer {
+    public tactical: TacticalRenderer = new TacticalRenderer();
     public grid: GridSystem = new GridSystem();
     public vfx: VFXSystem = new VFXSystem();
     public vfxRenderer: VFXRenderer = new VFXRenderer();
@@ -39,7 +41,12 @@ export class GameRenderer {
     public camera: CameraSystem = new CameraSystem();
     public sequences: SequenceSystem = new SequenceSystem();
     private visualSystem: VisualSystem = new VisualSystem();
-    private pipeline: RenderPipeline = new RenderPipeline(this);
+    private pipeline: RenderPipeline;
+    
+    constructor() {
+        this.grid.spatialCache = this.tactical.gridCache;
+        this.pipeline = new RenderPipeline(this);
+    }
     
     private boundEngine: GameEngine | null = null;
 
@@ -140,6 +147,7 @@ export class GameRenderer {
         this.camera.reset();
         this.visualSystem.reset();
         this.grid.reset(); 
+        this.tactical.reset();
         this.sequences.clear();
     }
 

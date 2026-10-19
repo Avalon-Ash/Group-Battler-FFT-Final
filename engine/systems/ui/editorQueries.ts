@@ -5,10 +5,8 @@
  * Safe to call with null/undefined engine or renderer references, returning sensible fallbacks.
  */
 
-import { Hex } from '../../../types';
+import { Hex, Camera, HexSpatialLookup } from '../../../types';
 import { GameEngine, Agent } from '../../game';
-import { Camera } from '../CameraSystem';
-import { GridCache } from '../grid/GridCache';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
 
@@ -102,7 +100,7 @@ export function queryHexAtScreenPoint(
     canvas: HTMLCanvasElement | null | undefined,
     camera: Camera | null | undefined,
     engine: GameEngine | null | undefined,
-    spatialCache: GridCache | null | undefined,
+    spatialCache: HexSpatialLookup | null | undefined,
     cachedRect?: DOMRect
 ): Hex | null {
     if (!canvas || !camera || !engine || !spatialCache) return null;

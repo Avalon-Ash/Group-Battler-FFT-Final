@@ -2,7 +2,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId } from '../types';
-import { DesignExporter } from '../engine/systems/DesignExporter';
+import { DesignExporter } from '../engine/presentation/DesignExporter';
 import { DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { random } from '../engine/math/rng';

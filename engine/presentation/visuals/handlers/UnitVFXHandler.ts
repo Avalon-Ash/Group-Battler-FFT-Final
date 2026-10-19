@@ -2,7 +2,7 @@
 import { GameEvent } from "../../../../types";
 import { GameEngine } from "../../../game";
 import { VFXSystem } from "../../vfx";
-import { CameraSystem } from "../../../systems/CameraSystem";
+import { CameraSystem } from "../../CameraSystem";
 import { Point3D } from "../../../math/VisualMath";
 import { HexUtils } from "../../../utils";
 import { AOE_BREAK, aoeBreakFxId, castBreakFxId, castBreakBurstFxId } from "../../../../data/vfx/registry/cast_break";

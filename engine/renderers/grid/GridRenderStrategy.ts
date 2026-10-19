@@ -8,8 +8,8 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../../game";
-import { GridCache } from "../../systems/grid/GridCache";
-import { RenderList, RenderOpType } from "../../renderers/RenderList";
+import { GridCache } from "./GridCache";
+import { RenderList, RenderOpType } from "../RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
 import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
 import { HexUtils } from "../../utils";

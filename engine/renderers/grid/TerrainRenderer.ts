@@ -16,7 +16,7 @@ import {
 } from "./TerrainBlockCache";
 import { terrainTextureStore } from "./TerrainTextureStore";
 import { obstacleSpriteStore } from "./ObstacleSpriteStore";
-import { getEdgeTable } from "../../systems/grid/GridCache";
+import { getEdgeTable } from "./GridCache";
 
 /**
  * 群系曝光（TERRAIN_SKIN.exposure，地形 T0）：整張地塊乘上 gain，只在烘焙時執行。

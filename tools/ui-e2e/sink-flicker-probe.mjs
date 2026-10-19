@@ -119,7 +119,7 @@ await page.evaluate(async ({ legacyDrag, noCorpseGround }) => {
 
     if (legacyDrag) consts.DEATH_VFX.PUFF_DRAG = 1.5;
     if (noCorpseGround) {
-        const { UnitRenderSystem } = await import('/engine/systems/unit/UnitSystem.ts');
+        const { UnitRenderSystem } = await import('/engine/presentation/unit/UnitSystem.ts');
         const orig = UnitRenderSystem.prototype.submitRenderables;
         UnitRenderSystem.prototype.submitRenderables = function (a, b, c, d, e, f, g, h, i) { return orig.call(this, a, b, c, d, e, f, g, h, i, undefined); };
     }

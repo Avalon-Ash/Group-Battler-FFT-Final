@@ -55,12 +55,12 @@ const PAINTER_MODULES = {
     '/engine/renderers/units/painters/UnitDeathPainter.ts': ['UnitDeathPainter'],
     '/engine/renderers/units/painters/UnitIndicatorPainter.ts': ['UnitIndicatorPainter'],
     '/engine/renderers/units/painters/UnitShadowPainter.ts': ['UnitShadowPainter'],
-    '/engine/systems/unit/UnitSystem.ts': ['UnitRenderSystem'],
+    '/engine/presentation/unit/UnitSystem.ts': ['UnitRenderSystem'],
     '/engine/graphics/painters/ParticlePainter.ts': ['ParticlePainter'],
     '/engine/renderers/hud/TextPainter.ts': ['TextPainter'],
 };
 // 存活探針掃描的目錄（視覺管線全部）：每個模組的全部匯出都包（'*'）
-const LIVENESS_DIRS = ['engine/graphics', 'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/systems/unit', 'engine/assets.ts', 'engine/sprites.ts', 'engine/renderer.ts'];
+const LIVENESS_DIRS = ['engine/graphics', 'engine/renderers', 'engine/presentation/vfx', 'engine/presentation/visuals', 'engine/presentation/unit', 'engine/assets.ts', 'engine/sprites.ts', 'engine/renderer.ts'];
 if (liveness) {
     const files = execSync(`git ls-files ${LIVENESS_DIRS.join(' ')}`, { cwd: root, encoding: 'utf8' }).split(/\r?\n/).filter((f) => /\.tsx?$/.test(f) && !/\.test\./.test(f));
     for (const f of files) if (!PAINTER_MODULES[`/${f}`]) PAINTER_MODULES[`/${f}`] = ['*'];

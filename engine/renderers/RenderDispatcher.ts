@@ -19,7 +19,7 @@ import { SpriteManager } from "../sprites";
 import { ParticleRenderer } from "../presentation/vfx/renderers/ParticleRenderer";
 import { ProjectilePartPainter } from "../presentation/vfx/renderers/painters/ProjectilePartPainter";
 import { HexLayout } from "../../types";
-import { UnitRenderSystem } from "../systems/unit";
+import { UnitRenderSystem } from "../presentation/unit";
 
 export class RenderDispatcher {
     /**

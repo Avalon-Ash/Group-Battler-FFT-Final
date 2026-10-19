@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../game";
-import { HUDSystem } from "../systems/hud";
+import { HUDSystem } from "../presentation/hud";
 import { UnitFrameStore } from "./frame/UnitFrame";
 import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";

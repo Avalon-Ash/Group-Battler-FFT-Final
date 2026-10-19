@@ -16,19 +16,19 @@
 // ║                                                                  ║
 // ║  [不在此管理的項目]                                              ║
 // ║    單位本體外觀 → data/units/appearance/                         ║
-// ║    動畫狀態機   → engine/systems/AnimationSystem.ts              ║
-// ║    HUD 浮字物理 → engine/systems/hud.ts                          ║
+// ║    動畫狀態機   → engine/presentation/AnimationSystem.ts         ║
+// ║    HUD 浮字物理 → engine/presentation/hud.ts                     ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";
 import { GameEvent } from "../../types";
-import { VFXSystem } from "../presentation/vfx";
+import { VFXSystem } from "./vfx";
 import { HUDSystem } from "./hud";
-import { GridSystem } from "./grid";
+import { GridSystem } from "../systems/grid";
 import { CameraSystem } from "./CameraSystem";
-import { SequenceSystem } from "../presentation/visuals/SequenceSystem";
-import { EventHUDMapper } from "../presentation/visuals/EventHUDMapper";
-import { EventVFXMapper } from "../presentation/visuals/EventVFXMapper";
+import { SequenceSystem } from "./visuals/SequenceSystem";
+import { EventHUDMapper } from "./visuals/EventHUDMapper";
+import { EventVFXMapper } from "./visuals/EventVFXMapper";
 import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
 import { HexUtils } from "../utils";

@@ -1,8 +1,7 @@
 import { GameEngine, Agent } from "../../game";
 import { HexUtils } from "../../utils";
-import { Hex } from "../../../types";
+import { Hex, HexSpatialLookup } from "../../../types";
 import { BLOCK_HEIGHT, HEX_SIZE, UNIT_OCCLUSION } from "../../../constants";
-import { GridCache } from "./GridCache";
 import { VisualMath } from "../../math/VisualMath";
 
 export class GridSpatial {
@@ -11,8 +10,10 @@ export class GridSpatial {
         return candidates.filter(hex => engine.map.isValid(hex.q, hex.r));
     }
 
-    public static getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine, cache: GridCache): Hex | null {
-        cache.ensure(engine);
+    public static getHexAtWorldPoint(wx: number, wy: number, engine: GameEngine, cache?: HexSpatialLookup): Hex | null {
+        if (cache?.ensure) {
+            cache.ensure(engine);
+        }
         // 解算高度步進，匹配視覺投影
         const maxHeight = 300; 
         const step = BLOCK_HEIGHT;
@@ -24,18 +25,34 @@ export class GridSpatial {
             // 視覺投影 vy = y - z -> y = vy + z
             const testY = wy + h; 
             const rounded = HexUtils.fromPx(wx, testY, engine.mapConfig);
-            const tile = cache.tileMap.get(HexUtils.key(rounded));
+            const key = HexUtils.key(rounded);
+
+            let tilePx: number;
+            let tilePy: number;
+            let tileH: number;
+
+            if (cache) {
+                const tile = cache.tileMap.get(key);
+                if (!tile) continue;
+                tilePx = tile.px;
+                tilePy = tile.py;
+                tileH = tile.h;
+            } else {
+                if (!engine.mapKeys.has(key)) continue;
+                const pos = HexUtils.toPx(rounded.q, rounded.r, engine.mapConfig);
+                tilePx = pos.x;
+                tilePy = pos.y;
+                tileH = engine.map.getTerrainHeight(rounded.q, rounded.r);
+            }
+
+            const visualTopY = VisualMath.getIsoVisualY(tilePy, tileH);
+            const dx = Math.abs(wx - tilePx);
+            const dy = Math.abs(wy - visualTopY);
             
-            if (tile) {
-                const visualTopY = VisualMath.getIsoVisualY(tile.py, tile.h);
-                const dx = Math.abs(wx - tile.px);
-                const dy = Math.abs(wy - visualTopY);
-                
-                if (dx < HEX_SIZE * 0.9 && dy < HEX_SIZE * 0.6) {
-                    if (tile.h >= bestH) {
-                        bestHex = rounded;
-                        bestH = tile.h;
-                    }
+            if (dx < HEX_SIZE * 0.9 && dy < HEX_SIZE * 0.6) {
+                if (tileH >= bestH) {
+                    bestHex = rounded;
+                    bestH = tileH;
                 }
             }
         }

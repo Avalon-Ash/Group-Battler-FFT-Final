@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeFoundationLevel } from '../engine/systems/grid/GridCache';
+import { computeFoundationLevel } from '../engine/renderers/grid/GridCache';
 import { terrainSpriteKey, BASE_LEVEL_BIT_SHIFT, BASE_LEVEL_BIT_MASK } from '../engine/renderers/grid/TerrainBlockCache';
 import { HexUtils } from '../engine/utils';
 import { TERRAIN_SKIN, TERRAIN_THEMES } from '../constants';

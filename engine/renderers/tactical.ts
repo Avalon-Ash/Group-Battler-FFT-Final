@@ -12,6 +12,10 @@ import { TACTICAL_COLORS } from "../../constants";
 import { RenderStats } from "./RenderStats";
 import { getQualityTier } from "./RenderQuality";
 import { UnitFrameStore } from "./frame/UnitFrame";
+import { Hex, Skill, Projectile } from "../../types";
+import { RenderList } from "./RenderList";
+import { GridRenderStrategy } from "./grid/GridRenderStrategy";
+import { GridCache } from "./grid/GridCache";
 
 export interface RenderCamera {
     x: number;
@@ -20,6 +24,38 @@ export interface RenderCamera {
 }
 
 export class TacticalRenderer {
+    public gridStrategy = new GridRenderStrategy();
+    public gridCache = new GridCache();
+
+    public reset() {
+        this.gridCache.reset();
+    }
+
+    public submitRenderables(
+        renderList: RenderList,
+        engine: GameEngine,
+        hoveredHex: Hex | null,
+        hoveredSkill: Skill | null,
+        highlightAgent: Agent | null,
+        projectiles: Projectile[],
+        transitionT: number,
+        transitionPhase: 'IN' | 'OUT' | 'IDLE',
+        globalTime: number
+    ) {
+        this.gridStrategy.submit(
+            this.gridCache,
+            renderList,
+            engine,
+            hoveredHex,
+            hoveredSkill,
+            highlightAgent,
+            projectiles,
+            transitionT,
+            transitionPhase,
+            globalTime
+        );
+    }
+
     public update(dt: number, engine: GameEngine) {
     }
 

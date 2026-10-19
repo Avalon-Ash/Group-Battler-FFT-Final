@@ -1,5 +1,5 @@
 
-import { HUDSystem } from "../../systems/hud";
+import { HUDSystem } from "../../presentation/hud";
 import { TEXT_PAINTER_COLORS, SHOUT_GLOW, TEXT_BREAK_JITTER, TEXT_ANIM } from "../../../constants";
 import { GlowTextCache, quantizeDeviceScale } from "./GlowTextCache";
 import { createUnitGradientCache } from "../UnitGradientCache";

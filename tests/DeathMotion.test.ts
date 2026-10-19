@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { computeDeathOffset, computeDeathGround } from '../data/units/appearance/deathMotion';
 import { AgentManager } from '../engine/systems/agentManager';
-import { AnimationSystem } from '../engine/systems/AnimationSystem';
+import { AnimationSystem } from '../engine/presentation/AnimationSystem';
 import { Agent } from '../engine/core/Agent';
 import type { GameEngine } from '../engine/game';
 import { Team } from '../types';

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeEdgeMask, getEdgeTable } from '../engine/systems/grid/GridCache';
+import { computeEdgeMask, getEdgeTable } from '../engine/renderers/grid/GridCache';
 import { terrainSpriteKey, EDGE_MASK_BIT_SHIFT } from '../engine/renderers/grid/TerrainBlockCache';
 import { HexMath } from '../engine/math/HexMath';
 import { BLOCK_HEIGHT, RENDER_CACHE, TERRAIN_THEMES } from '../constants';

@@ -27,6 +27,17 @@ export interface Point {
     z?: number;
 }
 
+export interface Camera {
+    x: number;
+    y: number;
+    zoom: number;
+}
+
+export interface HexSpatialLookup {
+    tileMap: Map<string, { px: number; py: number; h: number }>;
+    ensure?(engine?: unknown): void;
+}
+
 export interface Skill {
     id: string;
     tag: 'BASIC' | 'ACTIVE' | 'ULT';
