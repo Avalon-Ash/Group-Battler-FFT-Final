@@ -95,7 +95,8 @@ export class RenderSpec {
         s += "像素對齊（2026-10-19）：RenderDispatcher 對 op.tx／op.ty 做「裝置像素」對齊——RenderPipeline.drawWorld 在套好相機變換後\n";
         s += "呼叫 RenderDispatcher.setDeviceGrid(ctx) 記下縮放與平移，snap(v)＝(round(v×縮放＋平移)−平移)／縮放；變換含旋轉／非等比時不對齊。\n";
         s += "以前在世界座標取整數，相機縮放非整數時每格各偏 0～1 個實際像素，格線參差、移動時抖動。TerrainRenderer.drawBlock 不再自行 Math.floor。\n";
-        s += "只動繪製點，不動排序鍵 op.y。主畫布與離屏畫布的 imageSmoothingQuality＝RENDER_QUALITY.IMAGE_SMOOTHING（high）。\n\n";
+        s += "只動繪製點，不動排序鍵 op.y。每幀繪製的主畫布與貼地離屏 imageSmoothingQuality＝RENDER_QUALITY.IMAGE_SMOOTHING（low；high 會讓幀時間加倍），\n";
+        s += "一次性烘焙畫布（CanvasUtils.createCanvas）用 high。\n\n";
 
         s += "--- \n\n";
 

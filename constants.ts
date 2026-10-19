@@ -1314,10 +1314,12 @@ export const FLOAT_BOB = {
  */
 export const RENDER_QUALITY = {
     /**
-     * drawImage 縮小取樣品質（主畫布、貼地鋪設離屏、烘焙畫布）。預設 'low' 是無 mipmap 的雙線性，
-     * 2 倍烘焙的障礙物、零件縮小繪製與壓扁的貼地法陣都會出現鋸齒／毛刺（2026-10-19 使用者回報）。
+     * 每幀繪製（主畫布、貼地鋪設離屏）的 drawImage 取樣品質。必須是 'low'：
+     * 來源多是離屏畫布，'medium'／'high' 每次 drawImage 都要重算 mipmap／雙三次濾波，
+     * 2560×1440 展示戰鬥幀間隔中位數 4.3 → 8.3 ms、p99 16.8 → 25～50 ms（2026-10-19 A/B，tools/ui-e2e/out 探針）。
+     * 一次性烘焙（engine/graphics/CanvasUtils.createCanvas、SpriteAtlasStore 縮圖）仍用 'high'，不受此值影響。
      */
-    IMAGE_SMOOTHING: 'high' as ImageSmoothingQuality,
+    IMAGE_SMOOTHING: 'low' as ImageSmoothingQuality,
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
     IGNORE_FRAME_MS: 250,
