@@ -32,3 +32,4 @@
 ## 5. 專案範圍（2026-10-16 使用者決定）
 - 刪除 Dockerfile／`server.js`／`.dockerignore`／`start` 指令與 README 的 Cloud Run 段落；全部搞定後再重新部署。
 - 刪除與 `public/assets/units/` 完全相同的 `art-source/sprites/`，保留 `art-source/terrain_grid.jpg`（地形處理工具的來源圖）。
+- 2026-10-19：網格線維持現狀（參數在 `TERRAIN_SKIN.edge`，隨時可調）；遠端只留 `main`（`20260328`、`experiment/unit-rig-skin-poc` 各留本地 tag `archive/*`，`feat/procedural-material-upgrade` 已合併）；縮圈墜落改做程式化動畫（不加新美術）；部署以後再說。
