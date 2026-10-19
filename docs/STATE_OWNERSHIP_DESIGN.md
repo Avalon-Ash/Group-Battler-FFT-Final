@@ -323,3 +323,14 @@ CC 施加者是 `combat/CCManager.ts`，衰減者是 `status/ControlSystem.ts`�
 | P8（完成，前提修正） | `PhysicsEngine` 其實只讀 `banished`（設計表的 `:88` 已過時）。真正的非狀態域寫入是 `CCManager`（施加放逐）與 `ZoneSystem`（墜落出局），改呼叫 `ControlSystem.syncBanished`／`clearBanishedFlag`；表中新增 `banished`（唯一擁有者 ControlSystem）。`tests/StatusDomainApi.test.ts`。 |
 
 驗證：lint、`vitest --dir tests`（571 全綠）、`br-soak --seeds=10 --shrinkInterval=3 --assert-ghost --assert-idle` 10/10、0 殘影、0 發呆。
+
+## 8. 實作紀錄 P7b 收尾、P9、P10（2026-10-19，main）
+
+| 期 | commit | 內容 |
+| :-- | :-- | :-- |
+| P7b（收尾） | `ed6eed1` | 施法中的 `CASTING_*` 不再存進 `aiState`：`engine/core/AgentDerived.ts` 由 `castingSkillIdx`＋技能 tag 推導（`castingAiState`／`displayAiState`）；`CombatSystem` 不再寫、`CastingEngine` 不再還原。讀者（`StatusActivity` 的 CAST_ULT／CAST_ACTIVE、導演選擇器、檢視器標籤）改讀推導值。以前 BT 在詠唱中途覆寫 `aiState`，施法圖示與標籤會中途消失。所有權表新增 `aiState`（唯一擁有者 BTRegistry）。`tests/AgentDerived.test.ts`。 |
+| P9 | `6ee9578` | `UnitStatusTab` 不再直寫 `agent.skillIds[i]`，改送新指令 `SET_AGENT_SKILL`（檢查槽位與技能 id）；`UIBoundary` 新增索引寫入棘輪 `directAgentIndexWrite`＝0。`Agent.reset()` 補齊 §1.12 的漏清欄位；刪除只寫不讀的 `activeCCVFX`。 |
+| P10 | `485267c` | `AgentManager.prepareForBattle` 取代 `game.ts` 兩處開戰／重開的技能、行為樹、動畫、行動狀態重設；`escapeCooldown` 改由 `CooldownSystem` 遞減（語意不變）。所有權表新增 `escapeCooldown`（BT＋CooldownSystem）。 |
+
+驗證：lint、`vitest --dir tests` 589 全綠、build、保真 6 場景 0 差異、`br-soak --seeds=10 --shrinkInterval=3 --assert-ghost --assert-idle` 10/10。
+未做（可選）：P11 渲染系統搬到 `engine/presentation/`、P12 視覺欄位改 `agent.view` 子物件（都是機械性大搬移）。

@@ -110,6 +110,9 @@
 - 後續（同晚）：O3 障礙物動態（樹風擺、冰晶星芒、黑曜柱發光；後兩者用疊層，影格表版會多 3～5 ms p99）、崖邊垂草／積雪簷／熔岩發光邊、森林霧氣＋光柱、虛空紫霧、熔岩熱浪（`docs/VFX_PIPELINE_MAP.md` §4.18，保真 `516b22e`）。地形變體 4→8 刻意不做（地塊快取翻倍，裝飾已提供變化）。
 - **待使用者**：實機看新障礙物、熔岩、草叢與天氣；push 未做。
 
+### N. 2026-10-19 深夜 狀態所有權 P7b～P10（main，未 push）
+- P7a（嘲諷鎖定只在 TargetingSystem）其實 10/18 已合併；這次補完 P7b（施法中的 `aiState` 改推導，`engine/core/AgentDerived.ts`）、P9（技能槽改走 `SET_AGENT_SKILL`、`reset()` 補齊、刪 `activeCCVFX`）、P10（開戰準備與 `escapeCooldown` 移出 facade）。細節 `docs/STATE_OWNERSHIP_DESIGN.md` §8。剩 P11／P12（可選，機械性搬移）。
+
 ## 4. 已完成輪次與審查結論（精簡）
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
 - **美術（合併）**：KayKit 預渲染精靈 10 張（`public/assets/units`，manifest 在同目錄）＋地形貼圖 10 張＋粒子貼圖 5 張；體型軸 `Team×Role×BodyType`（MALE 有素材）。
@@ -150,7 +153,7 @@
   5. 手機版 UI 全面巡檢。
   6. **地形 R2（下一輪）**：正式化地表氛圍效果。R0 量測（只有地形）：地表細節 `drawTerrainDetail` 佔每幀 0.4～1.3 ms（FOREST／DESERT 約佔地形成本一半）、熔岩液面 0.2～0.5 ms、天氣粒子 `VFXAmbience` 量不到差異；ICE 的 p99 19 ms 已不存在（極光改低解析度離屏後，2026-10-18 實測 p99 3.2 ms）。方向：靜態細節烘進地形 sprite，動態效果改預渲染循環影格，參數集中到 `data/vfx/`。
   7. 縮圈墜落的單位是否需要專屬「墜落」動畫（目前是垂直掉入虛空後立即回收）。
-  8. **架構：狀態所有權**。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
+  8. **架構：狀態所有權**（P0～P10 已完成，剩可選的 P11／P12；見 `docs/STATE_OWNERSHIP_DESIGN.md` §8）。`Agent` 有約 89 個欄位，模擬與視覺狀態混在一起，「唯一寫入者」目前只靠紀律維持。下一步可替欄位分組並標註唯一寫入者；系統與渲染層之間仍有雙向 import（`engine/systems/` 內含渲染系統）。先設計再動手。
 
 ## 8. 使用者要做的事（提醒他）
 - 實機看擊飛手感、熔岩圖流暢度、護盾貼合（含飛行單位）、大逃殺縮圈是否乾淨。
