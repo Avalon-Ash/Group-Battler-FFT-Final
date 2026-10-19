@@ -20,6 +20,9 @@ export class CooldownSystem {
             if (agent.spawnTimer < 0) agent.spawnTimer = 0;
         }
 
+        // 逃生冷卻（BT EscapeWarning 設定，TargetingSystem 讀 <= 0）；P10 自 game.ts 移入，語意不變（不夾 0）
+        if (agent.escapeCooldown > 0) agent.escapeCooldown -= dt;
+
         // Interrupt Cooldown
         if (agent._interruptCooldown > 0) {
             agent._interruptCooldown -= dt;

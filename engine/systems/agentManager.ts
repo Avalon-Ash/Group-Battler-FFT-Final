@@ -10,7 +10,7 @@
 
 import { GameEngine } from "../game";           // GameEngine 仍從 game.ts 取（避免循環依賴）
 import { Agent } from "../core/Agent";
-import { Role, Team, Skill, BodyTypeId } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
+import { Role, Team, Skill, BodyTypeId, AnimState, ActionState } from "../../types";            // [ARCH] Agent 型別契約統一從 types.ts 取
 import { UNIT_DB } from "../../data/units";
 import { FACTION_VISUALS } from "../../data/vfx/faction_visuals";
 import { RagdollFactory } from "./unit/RagdollFactory";
@@ -23,6 +23,17 @@ export type DeadStateContext = Pick<GameEngine, 'log' | 'events' | 'bus' | 'getT
 
 export class AgentManager {
     public static matchSalt: number = Date.now();
+
+    /**
+     * 開戰／重開前的單位準備（P10 自 game.ts facade 移入）：依 skillIds 重建技能、重建行為樹、動畫與行動狀態歸 IDLE。
+     * @param resetAction false 時保留 actionState（restart 前已由 Agent.reset 清過，與舊行為逐位元相同）
+     */
+    public static prepareForBattle(agent: Agent, engine: GameEngine, resetAction: boolean = true) {
+        agent.skills = agent.skillIds.map(id => engine.skillDB.find(s => s.id === id) || null);
+        agent.bt = engine.ai.buildAI(agent, engine);
+        agent.animState = AnimState.IDLE;
+        if (resetAction) agent.actionState = ActionState.IDLE;
+    }
 
     public static applyRoleStats(agent: Agent, hpOverride?: number, applyJitter: boolean = false) {
         const stats = UNIT_DB[agent.role];

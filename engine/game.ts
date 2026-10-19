@@ -232,10 +232,7 @@ export class GameEngine implements SpatialProvider {
         }
         this.map.clearAgents();
         this.agents.forEach(a => {
-            a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
-            a.bt = this.ai.buildAI(a, this); 
-            a.animState = AnimState.IDLE;
-            a.actionState = ActionState.IDLE;
+            AgentManager.prepareForBattle(a, this);
             if (a.hp > 0) this.map.registerAgent(a);
         });
         this.isRunning = true;
@@ -263,9 +260,7 @@ export class GameEngine implements SpatialProvider {
         this.agents.forEach(a => {
             a.reset(this.mapConfig);
             AgentManager.applyRoleStats(a, undefined, true);
-            a.skills = a.skillIds.map(id => this.skillDB.find(s => s.id === id) || null);
-            a.bt = this.ai.buildAI(a, this); 
-            a.animState = AnimState.IDLE;
+            AgentManager.prepareForBattle(a, this, false);
             this.map.registerAgent(a);
         });
         this.projectiles = [];
@@ -355,7 +350,6 @@ export class GameEngine implements SpatialProvider {
             this.cooldowns.update(a, dt);
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
-            if (a.escapeCooldown > 0) a.escapeCooldown -= dt;
             if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }

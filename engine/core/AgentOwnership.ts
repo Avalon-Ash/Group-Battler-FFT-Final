@@ -113,6 +113,12 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         owners: ['engine/ai/BTRegistry.ts'],
         note: 'AI 行為狀態只由 BT 節點寫入。施法中的 CASTING_* 不再存進來，改由 castingSkillIdx 推導（engine/core/AgentDerived.ts，P7b）。',
     },
+    escapeCooldown: {
+        group: 'ai',
+        kind: 'domain',
+        owners: ['engine/ai/BTRegistry.ts', 'engine/systems/status/CooldownSystem.ts'],
+        note: '逃生冷卻：BT（EscapeWarning）設定、CooldownSystem 遞減（P10 自 game.ts 移入），TargetingSystem 只讀。',
+    },
     _interruptCooldown: {
         group: 'casting',
         kind: 'domain',
