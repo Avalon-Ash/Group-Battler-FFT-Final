@@ -27,7 +27,7 @@
  └─ VFXAmbience（天氣 ATMOSPHERE 粒子）
 
 VFXSystem.state.particles
- └─ VFXRenderer.submitRenderables（engine/systems/vfx/render.ts）
+ └─ VFXRenderer.submitRenderables（engine/presentation/vfx/render.ts）
       ├─ 大型貼地 → GroundDrapeLayer（逐格頂面）
       └─ RenderOp VFX → ParticleRenderer.drawSingleParticle 依 p.type 分派：
            PART*           → PartPainter         ← 新材質
