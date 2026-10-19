@@ -195,9 +195,9 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'sb_a4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
         name: '不滅聖印', desc: '賦予目標短暫無敵',
-        range: 6, cast: 0.4, cd: 16.0, cost: 50, gain: 0,
-        type: 'SINGLE', power: 0, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
-        ccType: 'INVINCIBLE', ccDur: 1.5,
+        range: 6, cast: 0.4, cd: 11.0, cost: 35, gain: 0,
+        type: 'SINGLE', power: -120, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
+        ccType: 'INVINCIBLE', ccDur: 2.0,
         specialVisualStatus: 'INVINCIBLE',
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },

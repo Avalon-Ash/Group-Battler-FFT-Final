@@ -132,7 +132,7 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b1', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '混沌之球', desc: '隨機傷害', 
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 85, color: '#16a34a', visual: 'BOLT', projectileSpeed: 900, 
+        type: 'SINGLE', power: 95, color: '#16a34a', visual: 'BOLT', projectileSpeed: 900, 
         visualHitEffect: 'FX_HIT_RED_FEL', visualProjectileEffect: 'PROJ_RED_CHAOS_ORB', element: 'POISON'
     },
     { 
@@ -147,8 +147,8 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b3', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '燃燒餘燼', desc: '燃燒傷害', 
         range: 5, cast: 0.4, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 65, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 900, 
-        ccType: 'DOT', ccForce: 9, ccDur: 3.0,
+        type: 'SINGLE', power: 75, color: '#fca5a5', visual: 'FIREBALL', projectileSpeed: 900, 
+        ccType: 'DOT', ccForce: 12, ccDur: 3.0,
         visualHitEffect: 'FX_HIT_RED_MAGMA', visualProjectileEffect: 'FIREBALL', element: 'FIRE'
     },
     { 
@@ -162,7 +162,7 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b5', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '暗影箭', desc: '穿透', 
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 75, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1100, 
+        type: 'SINGLE', power: 85, color: '#7c3aed', visual: 'BOLT', projectileSpeed: 1100, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
 

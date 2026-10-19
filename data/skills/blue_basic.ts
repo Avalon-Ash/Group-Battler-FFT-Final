@@ -127,14 +127,14 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b1', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '追跡魔彈', desc: '追蹤魔法', 
         range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 30, // Range 5->4
-        type: 'SINGLE', power: 80, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 700, 
+        type: 'SINGLE', power: 72, color: '#8b5cf6', visual: 'BOLT', projectileSpeed: 700, 
         visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 
         id: 'mb_b2', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '閃電束', desc: '瞬發光束', 
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 65, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 58, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
     },
     { 
