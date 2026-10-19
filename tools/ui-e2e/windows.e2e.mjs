@@ -759,7 +759,6 @@ const TARGET_ELEMENTS_MANUAL = [
 const TARGET_ELEMENTS_SHOWCASE = [
     { id: 'showcase_card', selector: '[data-testid="showcase-card"]' },
     { id: 'showcase_enter_btn', selector: '[data-testid="showcase-enter-btn"]' },
-    { id: 'showcase_settings_btn', selector: 'button[title="\u5c55\u793a\u8207\u7279\u6548\u8a2d\u5b9a"]' },
     { id: 'window_showcase_settings', selector: '[data-window-id="showcaseSettings"]' },
     { id: 'showcase_settings_tab_system', selector: '[data-testid="showcase-tab-system"]' },
     { id: 'showcase_settings_tab_matrix', selector: '[data-testid="showcase-tab-matrix"]' },
@@ -877,12 +876,11 @@ const runStyleSnapshotSuite = async () => {
         await page.waitForTimeout(600);
     }
 
-    // Open showcaseSettings in showcase mode
-    const showcaseSettingsBtn = page.locator('button[title="\u5c55\u793a\u8207\u7279\u6548\u8a2d\u5b9a"]');
-    if (await showcaseSettingsBtn.count() > 0) {
-        await showcaseSettingsBtn.click();
-        await page.waitForTimeout(400);
-    }
+    // Open showcaseSettings in showcase mode（左上舊齒輪 2026-10-19 移除，改從系統選單開）
+    await page.locator('[data-testid="system-menu-button"]').click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-testid="menu-item-showcaseSettings"]').click();
+    await page.waitForTimeout(400);
 
     const showcaseStyles = await collectStyles(TARGET_ELEMENTS_SHOWCASE);
 
