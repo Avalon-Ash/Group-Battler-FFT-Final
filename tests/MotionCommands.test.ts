@@ -58,7 +58,7 @@ describe('MotionCommands', () => {
         a.path = route;
         a.trajectory = route;
         a.isMoving = true;
-        a.stunTimer = 5;
+        a.effects.STUN.remaining = 5;
         const control = new ControlSystem();
 
         control.update(a, 0.016, engine);

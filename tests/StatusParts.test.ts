@@ -80,20 +80,20 @@ describe('isStatusActive', () => {
     it('timer-driven CCs follow their timers', () => {
         const a = fresh();
         for (const k of ['STUN', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND'] as const) expect(isStatusActive(k, a), k).toBe(false);
-        a.stunTimer = 1; a.silenceTimer = 1; a.rootTimer = 1; a.fearTimer = 1; a.tauntTimer = 1; a.blindTimer = 1;
+        a.effects.STUN.remaining = 1; a.effects.SILENCE.remaining = 1; a.effects.ROOT.remaining = 1; a.effects.FEAR.remaining = 1; a.tauntTimer = 1; a.effects.BLIND.remaining = 1;
         for (const k of ['STUN', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND'] as const) expect(isStatusActive(k, a), k).toBe(true);
     });
 
     it('frozen stun shows ice, not stun stars; interrupt alias only without stun', () => {
         const a = fresh();
-        a.stunTimer = 1;
+        a.effects.STUN.remaining = 1;
         a.visualStatus = 'FROZEN';
         expect(isStatusActive('STUN', a)).toBe(false);
         expect(isStatusActive('FROZEN', a)).toBe(true);
         const b = fresh();
         b.aiState = AIState.CC_INTERRUPTED;
         expect(isStatusActive('CC_INTERRUPT', b)).toBe(true);
-        b.stunTimer = 1;
+        b.effects.STUN.remaining = 1;
         expect(isStatusActive('CC_INTERRUPT', b)).toBe(false);
     });
 

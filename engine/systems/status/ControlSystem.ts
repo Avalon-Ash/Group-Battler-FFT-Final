@@ -36,11 +36,11 @@ export class ControlSystem {
                 if (agent.ccVisual === 'STASIS') agent.ccVisual = 'NONE';
             }
         }
-        if (agent.stunTimer > 0) agent.stunTimer = Math.max(0, agent.stunTimer - dt);
-        if (agent.silenceTimer > 0) agent.silenceTimer = Math.max(0, agent.silenceTimer - dt);
-        if (agent.rootTimer > 0) agent.rootTimer = Math.max(0, agent.rootTimer - dt);
-        if (agent.fearTimer > 0) agent.fearTimer = Math.max(0, agent.fearTimer - dt);
-        if (agent.blindTimer > 0) agent.blindTimer = Math.max(0, agent.blindTimer - dt);
+        if (agent.effects.STUN.remaining > 0) agent.effects.STUN.remaining = Math.max(0, agent.effects.STUN.remaining - dt);
+        if (agent.effects.SILENCE.remaining > 0) agent.effects.SILENCE.remaining = Math.max(0, agent.effects.SILENCE.remaining - dt);
+        if (agent.effects.ROOT.remaining > 0) agent.effects.ROOT.remaining = Math.max(0, agent.effects.ROOT.remaining - dt);
+        if (agent.effects.FEAR.remaining > 0) agent.effects.FEAR.remaining = Math.max(0, agent.effects.FEAR.remaining - dt);
+        if (agent.effects.BLIND.remaining > 0) agent.effects.BLIND.remaining = Math.max(0, agent.effects.BLIND.remaining - dt);
         if (agent.vulnerableTimer > 0) agent.vulnerableTimer = Math.max(0, agent.vulnerableTimer - dt);
         // POLYMORPH timer 清除
         if (agent.polymorphTimer !== undefined && agent.polymorphTimer > 0) {
@@ -85,21 +85,21 @@ export class ControlSystem {
         }
 
         // State Logic: Stun
-        if (agent.stunTimer > 0) {
+        if (agent.effects.STUN.remaining > 0) {
             if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
         } else if (agent.ccVisual === 'FROZEN') {
             agent.ccVisual = 'NONE';
         }
 
         // State Logic: Root and Fear combined
-        if (agent.rootTimer > 0 || agent.stunTimer > 0) {
+        if (agent.effects.ROOT.remaining > 0 || agent.effects.STUN.remaining > 0) {
             if (agent.isMoving || agent.path.length > 0) stopMovement(agent);
         }
 
         if (agent.fearMoveTimer > 0) agent.fearMoveTimer = Math.max(0, agent.fearMoveTimer - dt);
         
         // State Logic: Fear (Fleeing Movement)
-        if (agent.fearTimer > 0) {
+        if (agent.effects.FEAR.remaining > 0) {
             if (!agent.isMoving && agent.fearMoveTimer <= 0) {
                 // Determine Flee Target: Source position or center if no source
                 let sourcePos = { q: agent.q, r: agent.r };

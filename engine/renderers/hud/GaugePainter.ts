@@ -24,13 +24,13 @@ export const GaugePainter = {
             activeTimer = agent.banishTimer;
             maxTimer = agent.banishMax || activeTimer;
             iconType = agent.visualStatus === 'POLYMORPH' ? 'POLYMORPH' : agent.visualStatus === 'STASIS' ? 'STASIS' : 'BANISH';
-        } else if (agent.stunTimer > 0) {
-            activeTimer = agent.stunTimer;
-            maxTimer = agent.stunMax || activeTimer;
+        } else if (agent.effects.STUN.remaining > 0) {
+            activeTimer = agent.effects.STUN.remaining;
+            maxTimer = agent.effects.STUN.max || activeTimer;
             iconType = 'STUN';
-        } else if (agent.silenceTimer > 0) {
-            activeTimer = agent.silenceTimer;
-            maxTimer = agent.silenceMax || activeTimer;
+        } else if (agent.effects.SILENCE.remaining > 0) {
+            activeTimer = agent.effects.SILENCE.remaining;
+            maxTimer = agent.effects.SILENCE.max || activeTimer;
             iconType = 'SILENCE';
         } else if (agent.castingSkillIdx !== -1) {
             const skill = agent.skills[agent.castingSkillIdx];

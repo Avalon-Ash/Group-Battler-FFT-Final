@@ -350,12 +350,12 @@ export const UnitInspectorBody: React.FC<UnitInspectorBodyProps> = ({ engine, ag
                                     行為樹狀態 | 執行流程
                                 </span>
                                 <div className="flex gap-1">
-                                    {agent.stunTimer > 0 && (
+                                    {agent.effects.STUN.remaining > 0 && (
                                         <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'rgba(245, 158, 11, 0.2)', borderColor: 'rgba(245, 158, 11, 0.5)', color: '#fcd34d' }}>
                                             暈眩
                                         </span>
                                     )}
-                                    {agent.silenceTimer > 0 && (
+                                    {agent.effects.SILENCE.remaining > 0 && (
                                         <span className="liquid-tag text-[10px] px-1.5" style={{ backgroundColor: 'rgba(51, 65, 85, 0.5)', borderColor: '#64748b', color: '#cbd5e1' }}>
                                             沉默
                                         </span>

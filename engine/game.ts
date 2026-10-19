@@ -350,7 +350,7 @@ export class GameEngine implements SpatialProvider {
             this.cooldowns.update(a, dt);
             this.effects.update(a, dt, this);
             this.controls.update(a, dt, this);
-            if (a.isMoving && a.path.length > 0 && a.stunTimer <= 0) {
+            if (a.isMoving && a.path.length > 0 && a.effects.STUN.remaining <= 0) {
                 this.movement.updateMovement(a, dt, this);
             }
             if (a.bt && a.aiUpdateTimer > 0) {

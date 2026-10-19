@@ -19,13 +19,13 @@ export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
         case 'STASIS': return a.stasisTimer > 0;
         case 'FROZEN': return a.visualStatus === 'FROZEN';
         // 冰凍的暈眩由 FROZEN 的冰晶表達，不再疊暈眩星
-        case 'STUN': return a.stunTimer > 0 && a.visualStatus !== 'FROZEN';
-        case 'CC_INTERRUPT': return a.aiState === AIState.CC_INTERRUPTED && a.stunTimer <= 0;
-        case 'SILENCE': return a.silenceTimer > 0;
-        case 'ROOT': return a.rootTimer > 0;
-        case 'FEAR': return a.fearTimer > 0;
+        case 'STUN': return a.effects.STUN.remaining > 0 && a.visualStatus !== 'FROZEN';
+        case 'CC_INTERRUPT': return a.aiState === AIState.CC_INTERRUPTED && a.effects.STUN.remaining <= 0;
+        case 'SILENCE': return a.effects.SILENCE.remaining > 0;
+        case 'ROOT': return a.effects.ROOT.remaining > 0;
+        case 'FEAR': return a.effects.FEAR.remaining > 0;
         case 'TAUNT': return a.tauntTimer > 0;
-        case 'BLIND': return a.blindTimer > 0;
+        case 'BLIND': return a.effects.BLIND.remaining > 0;
         case 'POLYMORPH': return a.visualStatus === 'POLYMORPH';
         case 'INVINCIBLE': return a.visualStatus === 'INVINCIBLE';
         case 'POISON': return a.dotTimer > 0 && a.dotDmg > 0 && a.dotType === 'POISON';

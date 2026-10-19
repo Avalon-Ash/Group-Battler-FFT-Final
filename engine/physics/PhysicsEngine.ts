@@ -100,14 +100,14 @@ export class PhysicsEngine {
         const isAirborne = a.physics.z > 0;
         const isFlying = a.movementType === MovementType.FLYING && !isDead;
         // 模擬層讀狀態計時器而非視覺欄位（FROZEN 必伴隨 stunTimer）。
-        const isDisabled = a.stunTimer > 0 || a.polymorphTimer > 0;
+        const isDisabled = a.effects.STUN.remaining > 0 || a.polymorphTimer > 0;
 
         // Check if standing on valid ground
         const isGroundValid = engine.isValid(a.q, a.r);
 
         if (!isGroundValid) {
             // Free fall logic for everyone if ground is gone
-            a.stunTimer = Math.max(a.stunTimer, 0.1); // Force out of control
+            a.effects.STUN.remaining = Math.max(a.effects.STUN.remaining, 0.1); // Force out of control
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         } else if (isFlying && !isDisabled) {
             const hoverHeight = 55, hoverFreq = 2.5; 

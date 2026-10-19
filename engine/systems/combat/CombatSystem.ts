@@ -40,7 +40,7 @@ export class CombatSystem {
     }
 
     public initiateCast(a: Agent, skillIdx: number, engine: GameEngine): NodeState {
-        const isHardCC = a.stunTimer > 0 || a.banished || a.fearTimer > 0 || a.hp <= 0;
+        const isHardCC = a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0 || a.hp <= 0;
         if (isHardCC) return NodeState.FAILURE;
         
         if (a._castCompleteCooldown > 0) return NodeState.FAILURE;
@@ -61,7 +61,7 @@ export class CombatSystem {
             return NodeState.FAILURE;
         }
 
-        if (a.silenceTimer > 0 && skill.tag !== 'BASIC') return NodeState.FAILURE;
+        if (a.effects.SILENCE.remaining > 0 && skill.tag !== 'BASIC') return NodeState.FAILURE;
         if (a.mp < skill.cost) return NodeState.FAILURE;
 
         if (a.castingSkillIdx === -1) {

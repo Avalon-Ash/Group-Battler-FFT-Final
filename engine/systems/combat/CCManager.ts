@@ -11,6 +11,8 @@ import { stopMovement, teleportTo } from "../movement/MotionCommands";
 import { syncBanished } from "../status/ControlSystem";
 import { resolveForcedMove, isImpactBlock, computeImpactDamage } from "./ForcedMove";
 import type { ForcedMoveKind, ForcedMoveBlock } from "./ForcedMove";
+import { EFFECT_DEFS } from "../../../data/status/effect_defs";
+import type { EffectKind } from "../../../types";
 
 export const CCManager = {
     
@@ -26,8 +28,9 @@ export const CCManager = {
     ) {
         if (!type || type === 'NONE') return;
 
-        const isBuff = ['SHIELD', 'HOT', 'INVINCIBLE'].includes(type);
-        const isDebuff = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT', 'KNOCKBACK', 'PULL', 'DOT', 'BLIND', 'POLYMORPH', 'VULNERABLE'].includes(type);
+        const def = (type && type in EFFECT_DEFS) ? EFFECT_DEFS[type as EffectKind] : undefined;
+        const isBuff = type === 'SHIELD' || def?.polarity === 'BUFF';
+        const isDebuff = type === 'KNOCKBACK' || type === 'PULL' || def?.polarity === 'DEBUFF';
 
         if (isBuff && source.team !== target.team) return;
         if (isDebuff && source.team === target.team) return;
@@ -39,15 +42,15 @@ export const CCManager = {
         // --- 1. Exclusion Table Logic ---
         if (type === 'BANISH') {
             // BANISH clears mobility-restricting CCs
-            target.rootTimer = 0;
-            target.fearTimer = 0;
+            target.effects.ROOT.remaining = 0;
+            target.effects.FEAR.remaining = 0;
             stopMovement(target);
             // Optional: clear DOTs? (The prompt says maintain "state purity")
             engine.log(target, 'CC', '狀態清洗', null, '進入放逐狀態，禁錮與恐懼已清除');
         }
 
         // DR only applies to duration-based Hard CCs
-        const isHardCC = ['STUN', 'SILENCE', 'BANISH', 'FEAR', 'TAUNT', 'ROOT'].includes(type);
+        const isHardCC = def?.hardCC ?? false;
         let drMultiplier = 1.0;
         if (isHardCC) {
             const drResult = this.checkDR(target, type, dur || 0);
@@ -76,9 +79,9 @@ export const CCManager = {
 
         switch (type) {
             case 'STUN':
-                if (effectiveDuration > target.stunTimer) {
-                    target.stunTimer = effectiveDuration;
-                    target.stunMax = effectiveDuration;
+                if (effectiveDuration > target.effects.STUN.remaining) {
+                    target.effects.STUN.remaining = effectiveDuration;
+                    target.effects.STUN.max = effectiveDuration;
                 }
                 stopMovement(target);
                 // SSOT: AnimState.STUN is derived from stunTimer
@@ -89,9 +92,9 @@ export const CCManager = {
                 break;
 
             case 'SILENCE':
-                if (effectiveDuration > target.silenceTimer) {
-                    target.silenceTimer = effectiveDuration;
-                    target.silenceMax = effectiveDuration;
+                if (effectiveDuration > target.effects.SILENCE.remaining) {
+                    target.effects.SILENCE.remaining = effectiveDuration;
+                    target.effects.SILENCE.max = effectiveDuration;
                 }
                 statusText = STATUS_VISUALS.SILENCE.label;
                 statusColor = STATUS_VISUALS.SILENCE.primaryColor;
@@ -120,14 +123,20 @@ export const CCManager = {
                 break;
 
             case 'ROOT':
-                if (effectiveDuration > target.rootTimer) target.rootTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.ROOT.remaining) {
+                    target.effects.ROOT.remaining = effectiveDuration;
+                    target.effects.ROOT.max = effectiveDuration;
+                }
                 stopMovement(target);
                 statusText = STATUS_VISUALS.ROOT.label;
                 statusColor = STATUS_VISUALS.ROOT.primaryColor;
                 break;
 
             case 'FEAR':
-                if (effectiveDuration > target.fearTimer) target.fearTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.FEAR.remaining) {
+                    target.effects.FEAR.remaining = effectiveDuration;
+                    target.effects.FEAR.max = effectiveDuration;
+                }
                 statusText = STATUS_VISUALS.FEAR.label;
                 statusColor = STATUS_VISUALS.FEAR.primaryColor;
                 break;
@@ -150,7 +159,10 @@ export const CCManager = {
                 break;
 
             case 'BLIND':
-                if (effectiveDuration > target.blindTimer) target.blindTimer = effectiveDuration;
+                if (effectiveDuration > target.effects.BLIND.remaining) {
+                    target.effects.BLIND.remaining = effectiveDuration;
+                    target.effects.BLIND.max = effectiveDuration;
+                }
                 statusText = STATUS_VISUALS.BLIND.label;
                 statusColor = STATUS_VISUALS.BLIND.primaryColor;
                 break;

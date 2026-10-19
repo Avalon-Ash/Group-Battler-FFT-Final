@@ -13,13 +13,13 @@ export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => Nod
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
     "IsAlive": (a) => a.hp > 0,
-    "IsStunned": (a) => a.stunTimer > 0,
+    "IsStunned": (a) => a.effects.STUN.remaining > 0,
     "IsBanished": (a) => a.banishTimer > 0,
-    "IsSilenced": (a) => a.silenceTimer > 0,
-    "IsFeared": (a) => a.fearTimer > 0, 
+    "IsSilenced": (a) => a.effects.SILENCE.remaining > 0,
+    "IsFeared": (a) => a.effects.FEAR.remaining > 0, 
     // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
     // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（BR_IDLE_REPORT 成因 B）。
-    "CanMove": (a) => a.rootTimer <= 0 && a.stunTimer <= 0 && !a.banished && a.fearTimer <= 0,
+    "CanMove": (a) => a.effects.ROOT.remaining <= 0 && a.effects.STUN.remaining <= 0 && !a.banished && a.effects.FEAR.remaining <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,
     
@@ -132,8 +132,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (isOnCD || a.mp < s.cost) return false;
         if (a._castCompleteCooldown > 0) return false;
         if (a._interruptCooldown > 0) return false;
-        if (a.stunTimer > 0 || a.banished || a.fearTimer > 0) return false;
-        if (a.silenceTimer > 0 && s.tag !== 'BASIC') return false;
+        if (a.effects.STUN.remaining > 0 || a.banished || a.effects.FEAR.remaining > 0) return false;
+        if (a.effects.SILENCE.remaining > 0 && s.tag !== 'BASIC') return false;
         
         // [FIX] Survival Check: Don't even start a skill if it will likely lead to death via ground collapse
         // 被釘住（逃不掉）時不套用此限制：反正走不了，原地出手勝過乾站到塌陷（成因 C）。

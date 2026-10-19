@@ -81,7 +81,7 @@ export class DamageCalculator {
 
         // --- LAST STAND: ABSOLUTE PENETRATION (SKIP MISS) ---
         // 0. Miss Logic (Blind)
-        if (!isSupport && source.blindTimer > 0 && !isLastStand) {
+        if (!isSupport && source.effects.BLIND.remaining > 0 && !isLastStand) {
             // 50% Chance to miss if blinded 
             if (random() < 0.5) {
                 result.isMiss = true;

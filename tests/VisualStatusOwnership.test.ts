@@ -52,7 +52,7 @@ describe('visualStatus ownership (P1a)', () => {
     // P1a 曾證實此案例在修正前 6/6 tick 皆為 NONE（AnimationSystem 覆寫）；P1c 後轉綠。
     it('ICE stun shows FROZEN while stunned', () => {
         CCManager.applyCC(red, blue, ccSkill({ element: 'ICE', ccType: 'STUN' }), 'STUN', 2, 0, undefined, engine);
-        expect(blue.stunTimer).toBeGreaterThan(0);
+        expect(blue.effects.STUN.remaining).toBeGreaterThan(0);
         expect(statusesOverTicks(blue)).toEqual(Array(TICKS).fill('FROZEN'));
     });
 

@@ -106,7 +106,7 @@ describe('AIIdlePriority', () => {
         it('CanMove 在 root／stun／fear 時為假', () => {
             const a = mk(Team.BLUE, 0, 0, Role.WARRIOR);
             expect(BTConditions['CanMove'](a, engine, {})).toBe(true);
-            a.rootTimer = 2;
+            a.effects.ROOT.remaining = 2;
             expect(BTConditions['CanMove'](a, engine, {})).toBe(false);
         });
 
@@ -114,7 +114,7 @@ describe('AIIdlePriority', () => {
             const a = mk(Team.BLUE, 0, 0, Role.WARRIOR);
             const e = mk(Team.RED, 1, 0, Role.WARRIOR);
             addHazard(0, 0, Team.RED);
-            a.rootTimer = 3;
+            a.effects.ROOT.remaining = 3;
             a.target = e;
             expect(BTActions['EscapeWarning'](a, engine, {})).toBe(NodeState.FAILURE);
             expect(BTActions['ChaseTarget'](a, engine, { slot: 2 })).not.toBe(NodeState.RUNNING);
@@ -128,7 +128,7 @@ describe('AIIdlePriority', () => {
         it('定身且敵人在射程外：Chase 失敗（不是假裝在追）', () => {
             const a = mk(Team.BLUE, 0, 0, Role.WARRIOR);
             const e = mk(Team.RED, 3, 0, Role.WARRIOR);
-            a.rootTimer = 3;
+            a.effects.ROOT.remaining = 3;
             a.target = e;
             expect(BTActions['ChaseTarget'](a, engine, { slot: 2 })).toBe(NodeState.FAILURE);
         });

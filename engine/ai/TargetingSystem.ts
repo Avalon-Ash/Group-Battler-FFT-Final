@@ -162,7 +162,7 @@ export class TargetingSystem {
             }
         }
 
-        const isSilenced = a.silenceTimer > 0;
+        const isSilenced = a.effects.SILENCE.remaining > 0;
 
         for (const o of spatial.getAgents()) {
             if (o.team !== a.team && this.isValidTarget(o, spatial)) {

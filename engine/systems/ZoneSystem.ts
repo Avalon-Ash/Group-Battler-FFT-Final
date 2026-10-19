@@ -230,7 +230,7 @@ export class ZoneSystem {
         for (const a of engine.agents) {
             if (a.hp <= 0 || a.banished) continue;
             
-            if (a.stunTimer <= 0 && a.silenceTimer <= 0 && a.castingSkillIdx !== -1) {
+            if (a.effects.STUN.remaining <= 0 && a.effects.SILENCE.remaining <= 0 && a.castingSkillIdx !== -1) {
                 const s = a.skills[a.castingSkillIdx];
                 if (s && s.type === 'AOE') {
                     let tq = a.q, tr = a.r;
