@@ -55,6 +55,30 @@ TYPES = {
     'OBSIDIAN_PILLAR': {'fit': 0.76, 'variants': [
         {'prisms': 'obsidian', 'seed': s, 'height': h} for s, h in ((11, 108), (12, 96), (13, 116), (14, 100))
     ]},
+    # 不阻擋的地表裝飾（VISUAL_ROADMAP T2）：小尺寸、細描邊；TerrainLoopAtlas／bakeBlock 依格子雜湊擺放
+    'DECOR_GRASS': {'fit': 0.30, 'outline': 1.0, 'tint': (0.54, 0.78, 0.48), 'variants': [
+        {'file': f'{FOREST}/Grass_1_A_Color1.gltf', 'height': 16},
+        {'file': f'{FOREST}/Grass_1_C_Color1.gltf', 'height': 16},
+        {'file': f'{FOREST}/Grass_1_B_Color1.gltf', 'height': 18},
+        {'file': f'{FOREST}/Grass_1_D_Color1.gltf', 'height': 17},
+        {'file': f'{FOREST}/Bush_1_A_Color1.gltf', 'height': 20},
+        {'file': f'{FOREST}/Bush_2_A_Color1.gltf', 'height': 18},
+    ]},
+    'DECOR_PEBBLE': {'fit': 0.22, 'outline': 1.0, 'override': (0.55, 0.36, 0.20), 'variants': [
+        {'file': f'{KENNEY}/rock_smallA.glb', 'height': 10},
+        {'file': f'{KENNEY}/rock_smallFlatA.glb', 'height': 7},
+        {'file': f'{KENNEY}/rock_smallC.glb', 'height': 11},
+        {'file': f'{KENNEY}/stone_smallB.glb', 'height': 9},
+    ]},
+    'DECOR_ICE': {'fit': 0.24, 'outline': 1.0, 'variants': [
+        {'prisms': 'ice_shards', 'seed': s, 'height': h} for s, h in ((21, 16), (22, 13), (23, 18), (24, 12))
+    ]},
+    'DECOR_RUBBLE': {'fit': 0.26, 'outline': 1.0, 'override': (0.022, 0.026, 0.05), 'variants': [
+        {'file': f'{KENNEY}/rock_smallB.glb', 'height': 10},
+        {'file': f'{KENNEY}/rock_smallG.glb', 'height': 9},
+        {'file': f'{KENNEY}/stone_smallFlatA.glb', 'height': 7},
+        {'file': f'{KENNEY}/rock_smallTopA.glb', 'height': 11},
+    ]},
 }
 
 ICE_RGB = (0.62, 0.86, 1.0)
@@ -165,6 +189,13 @@ def build_prisms(kind, seed):
             d = rnd.uniform(0.28, 0.5)
             hex_prism(bm, math.cos(a) * d, math.sin(a) * d, rnd.uniform(0.11, 0.19), rnd.uniform(0.55, 1.15), rnd.uniform(0.2, 0.32),
                       math.sin(a) * rnd.uniform(0.25, 0.55) * -1, math.cos(a) * rnd.uniform(0.25, 0.55), rnd.random())
+    elif kind == 'ice_shards':
+        # 2..4 small leaning shards (non-blocking ground decor)
+        for i in range(rnd.randint(2, 4)):
+            a = i / 3 * math.tau + rnd.uniform(-0.5, 0.5)
+            d = 0 if i == 0 else rnd.uniform(0.25, 0.45)
+            hex_prism(bm, math.cos(a) * d, math.sin(a) * d, rnd.uniform(0.12, 0.2), rnd.uniform(0.5, 1.0), rnd.uniform(0.18, 0.3),
+                      math.sin(a) * rnd.uniform(0.2, 0.6) * -1, math.cos(a) * rnd.uniform(0.2, 0.6), rnd.random())
     else:
         # basalt column group: 5..7 upright hex columns of stepped heights, flat-ish tops
         cols = [(0, 0)] + [(math.cos(i / 6 * math.tau) * 0.36, math.sin(i / 6 * math.tau) * 0.36) for i in range(6)]
@@ -182,7 +213,7 @@ def build_prisms(kind, seed):
     return [obj], kind
 
 
-def setup_scene():
+def setup_scene(outline_px=OUTLINE_PX):
     scene = bpy.context.scene
     sun = bpy.data.objects.new('Sun', bpy.data.lights.new('Sun', 'SUN'))
     sun.data.energy = 3.0
@@ -220,7 +251,7 @@ def setup_scene():
     ls.select_border = True
     ls.select_crease = True
     ls.linestyle.color = OUTLINE_RGB
-    ls.linestyle.thickness = OUTLINE_PX * PX_PER_HEX / 96.0
+    ls.linestyle.thickness = outline_px * PX_PER_HEX / 96.0
     scene.render.line_thickness_mode = 'ABSOLUTE'
     return up
 
@@ -261,11 +292,11 @@ def normalise(objs, fit, height_canvas, up, xy=1.0):
 
 def render_variant(type_id, cfg, idx, v):
     reset()
-    up = setup_scene()
+    up = setup_scene(cfg.get('outline', OUTLINE_PX))
     if 'prisms' in v:
         objs, kind = build_prisms(v['prisms'], v['seed'])
         mat = bpy.data.materials.new(kind)
-        if kind == 'ice':
+        if kind in ('ice', 'ice_shards'):
             toon(mat, base_rgb=ICE_RGB, emission=ICE_GLOW, emission_strength=0.18)
         else:
             toon(mat, base_rgb=OBSIDIAN_RGB)

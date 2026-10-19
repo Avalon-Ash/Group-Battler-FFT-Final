@@ -13,6 +13,8 @@
 import type { HexLayout, SpatialHazard } from "../../../../types";
 import { HAZARD_VISUALS, HAZARD_RENDER, type HazardType } from "../../../../data/vfx/hazard_visuals";
 import { SurfacePainter } from "../../../graphics/painters/SurfacePainter";
+import { variantFor, tileHash01 } from "../../../graphics/materials/NoiseLib";
+import { TERRAIN_LIQUID } from "../../../../data/vfx/terrainAmbience";
 import { VisualMath } from "../../../math/VisualMath";
 import { getQualityTier } from "../../RenderQuality";
 import { resolvePartLayer, drawPartLayer, layoutAlign, type ResolvedPartLayer } from "../../vfxparts/PartLayerPainter";
@@ -59,7 +61,8 @@ export const HazardPainter = {
         if (def.liquid) {
             const prev = ctx.globalAlpha;
             ctx.globalAlpha = prev * fade;
-            SurfacePainter.drawLiquid(ctx, x, drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET, def.liquid.color, t * def.liquid.speed, def.liquid.intensity, layout);
+            SurfacePainter.drawLiquid(ctx, x, drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET, def.liquid.color, t * def.liquid.speed, def.liquid.intensity, layout,
+                variantFor(q, r, TERRAIN_LIQUID.variants), tileHash01(q, r, TERRAIN_LIQUID.crust.seed));
             ctx.globalAlpha = prev;
         }
 

@@ -434,6 +434,8 @@ export interface GrassDetailConfig {
     windAmplitude: number;
     windXPhase: number;
     sprite: GrassSpriteConfig;
+    /** 預渲染草叢（ObstacleSpriteStore 的裝飾圖集）；載入前退回 sprite 程序化草叢 */
+    decor: { type: string; bakeScale: number; scale: number; frameStep: number; countByVariant: readonly number[] };
 }
 
 export interface IceSheenDetailConfig {
@@ -498,30 +500,53 @@ interface TerrainLiquidSurfaceConfig {
     intensity: number;
 }
 
+/**
+ * 靜態地表裝飾（VISUAL_ROADMAP T2）：烘進地塊 sprite（bakeBlock），依地形 variant 決定擺幾個、擺哪裡。
+ * spots 是頂面中心起算的地面座標（canvas 單位，y 已是等距壓縮後）；只用前半格（y ≥ 0），裝飾頂端才不會超出 sprite。
+ */
+export interface TerrainDecorConfig {
+    type: string;
+    scale: number;
+    spots: readonly { x: number; y: number }[];
+    /** 索引＝variant % length：這個 variant 擺前幾個 spot */
+    countByVariant: readonly number[];
+}
+
 export interface TerrainAmbienceEntry {
+    /** 非 null 時烘進靜態地表裝飾 */
+    decor: TerrainDecorConfig | null;
     detail: TerrainSurfaceDetailConfig;
     /** 非 null 時，地塊頂面疊一層循環液面（drawLiquid） */
     liquid: TerrainLiquidSurfaceConfig | null;
 }
 
+/**
+ * 液面循環影格（熔岩地塊、液態危害；TerrainLoopAtlas.bakeLiquid）。
+ * 結構：發光熔體（中心亮、邊緣暗的放射漸層＋脈動）→ 漂移的冷卻硬殼（無縫 Voronoi，裂縫露出熔體）→
+ * 冒泡 → 邊緣暗環。所有動作的諧波數都是整數，頭尾影格無縫。
+ */
 export interface LiquidLoopConfig {
     loop: LoopTiming;
     radiusRatio: number;
     pad: number;
     baseAlpha: number;
     intensityStep: number;
-    flowAmplitude: number;
-    flowHarmonicX: number;
-    flowHarmonicY: number;
-    shadeColor: string;
-    shadeRadiusX: number;
-    shadeRadiusY: number;
-    bubbleColor: string;
-    bubbleAlpha: number;
-    bubbleHarmonicX: number;
-    bubbleHarmonicY: number;
-    bubbleOrbitRatio: number;
-    bubbleRadiusRatio: number;
+    /** 烘焙像素密度（每 canvas 單位幾 px），繪製時縮回 canvas 單位 */
+    bakeScale: number;
+    /** 硬殼位移不同的變體數（依格子雜湊選，鄰格不同步） */
+    variants: number;
+    /** 熔體配色：由液面基準色往這些顏色混合（0..1） */
+    melt: { coreColor: string; coreMix: number; hotColor: string; hotMix: number; edgeDarken: number; coreStop: number; hotStop: number };
+    /** 熔體亮度脈動：1 + amp * sin(2π * harmonic * u) */
+    pulse: { harmonic: number; amp: number };
+    /** 無縫硬殼貼圖：tile＝邊長（地面座標 px）、cells＝格點數、crack＝裂縫半寬、heat＝裂縫旁硬殼泛紅的寬度 */
+    crust: { tile: number; cells: number; seed: number; crack: number; heat: number; alpha: number; color: string; heatColor: string; grain: number };
+    /** 硬殼沿圓周漂移（半徑 px、整數諧波），變體之間再錯開 variantShift 個 tile 比例 */
+    drift: { radius: number; harmonic: number; variantShift: number };
+    /** 冒泡：每個泡泡在週期內生滅 harmonic 次 */
+    bubbles: { count: number; radius: number; orbit: number; harmonic: number; alpha: number; color: string };
+    /** 邊緣暗環（硬殼堆積在岸邊） */
+    rim: { color: string; width: number };
 }
 
 export interface WeatherAmbienceConfig {

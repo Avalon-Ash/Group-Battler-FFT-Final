@@ -4,9 +4,9 @@ import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
 import { HexLayout } from "../../../types";
 import { VisualMath } from "../../math/VisualMath";
 import { MaterialPainter } from "../../graphics/materials/MaterialPainter";
-import { variantFor } from "../../graphics/materials/NoiseLib";
+import { variantFor, tileHash01 } from "../../graphics/materials/NoiseLib";
 import { MATERIAL_CONFIG } from "../../../data/vfx/materialConfig";
-import { getTerrainAmbience } from "../../../data/vfx/terrainAmbience";
+import { getTerrainAmbience, TERRAIN_LIQUID } from "../../../data/vfx/terrainAmbience";
 import {
     createTerrainSpriteStore,
     quantizeRenderScaleSticky,
@@ -15,6 +15,7 @@ import {
     SurfaceFactory,
 } from "./TerrainBlockCache";
 import { terrainTextureStore } from "./TerrainTextureStore";
+import { obstacleSpriteStore } from "./ObstacleSpriteStore";
 import { getEdgeTable } from "../../systems/grid/GridCache";
 
 /**
@@ -56,6 +57,23 @@ function getCoordForVariant(targetVariant: number, variants: number): [number, n
  * 靜態表面細節（DESERT 沙紋、VOID 紋路）：烘進地形 sprite，原點為頂面中心。
  * 變化只依 variant（不依螢幕座標）；哪些 variant 帶紋路由設定表決定。
  */
+/**
+ * 靜態地表裝飾（碎石、冰渣、虛空碎塊）：圖集已載入時烘進地塊 sprite，擺放由 variant 決定（TERRAIN_AMBIENCE.decor）。
+ * 圖集載入時 drawBlock 依 obstacleSpriteStore.revision 清快取重烘。座標 (0, 0) 為頂面中心。
+ */
+function paintStaticDecor(sCtx: CanvasRenderingContext2D, type: string, variant: number) {
+    const decor = getTerrainAmbience(type)?.decor;
+    if (!decor) return;
+    const count = Math.min(decor.spots.length, decor.countByVariant[variant % decor.countByVariant.length]);
+    for (let i = 0; i < count; i++) {
+        const f = obstacleSpriteStore.getFrame(decor.type, variant + i * 3);
+        if (!f) return;
+        const k = f.k * decor.scale;
+        const s = decor.spots[(i + variant) % decor.spots.length];
+        sCtx.drawImage(f.image, f.sx, f.sy, f.sw, f.sh, s.x - f.ax * k, s.y - f.ay * k, f.sw * k, f.sh * k);
+    }
+}
+
 function paintStaticDetail(sCtx: CanvasRenderingContext2D, size: number, theme: TerrainTheme, type: string, variant: number) {
     const detail = getTerrainAmbience(type)?.detail;
     if (!detail || !detail.baked) return;
@@ -69,6 +87,7 @@ function paintStaticDetail(sCtx: CanvasRenderingContext2D, size: number, theme: 
 export const TerrainRenderer = {
     store: createTerrainSpriteStore(),
     lastTextureRev: -1,
+    lastDecorRev: -1,
     lastTheme: null as TerrainTheme | null,
     lastRenderScale: -1,
 
@@ -88,8 +107,9 @@ export const TerrainRenderer = {
         edgeMask: number = 0,
         baseLevel: number = 0
     ) {
-        if (this.lastTextureRev !== terrainTextureStore.getRevision()) {
+        if (this.lastTextureRev !== terrainTextureStore.getRevision() || this.lastDecorRev !== obstacleSpriteStore.revision) {
             this.lastTextureRev = terrainTextureStore.getRevision();
+            this.lastDecorRev = obstacleSpriteStore.revision;
             this.store.clear();
         }
         if (this.lastTheme !== theme) {
@@ -129,7 +149,9 @@ export const TerrainRenderer = {
         if (liquid) {
             const visualTopY = VisualMath.getIsoVisualY(0, height, 0);
             ctx.translate(0, visualTopY);
-            SurfacePainter.drawLiquid(ctx, 0, 0, liquid.color, globalTime, liquid.intensity, layout);
+            // 硬殼變體與相位依格子雜湊：鄰格不同步（2026-10-19 前全場同一張）
+            SurfacePainter.drawLiquid(ctx, 0, 0, liquid.color, globalTime, liquid.intensity, layout,
+                variantFor(q, r2, TERRAIN_LIQUID.variants), tileHash01(q, r2, TERRAIN_LIQUID.crust.seed));
         }
         ctx.restore();
     },
@@ -392,6 +414,7 @@ export const TerrainRenderer = {
                 sCtx.stroke();
             }
             sCtx.globalAlpha = 1.0;
+            paintStaticDecor(sCtx, type, variant);
         } else {
             sCtx.fillStyle = theme.top;
             sCtx.beginPath();

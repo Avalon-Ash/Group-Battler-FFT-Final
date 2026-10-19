@@ -18,8 +18,9 @@ export const SurfacePainter = {
     },
 
     /**
-     * 液面：從循環影格快取取圖（顏色、layout、量化後 intensity 各一組，參數在 TERRAIN_LIQUID）。
+     * 液面：從循環影格快取取圖（顏色、layout、量化後 intensity、硬殼變體各一組，參數在 TERRAIN_LIQUID）。
      * 每次呼叫只做一次 drawImage；影格索引由 time 對週期取模決定，頭尾無縫銜接。
+     * variant／phase 由呼叫端依格子雜湊給（鄰格硬殼位置與脈動不同步）。
      */
     drawLiquid(
         ctx: CanvasRenderingContext2D,
@@ -27,14 +28,17 @@ export const SurfacePainter = {
         color: string,
         time: number,
         intensity: number,
-        layout: HexLayout = 'FLAT'
+        layout: HexLayout = 'FLAT',
+        variant: number = 0,
+        phase: number = 0
     ) {
         if (RenderStats.enabled) RenderStats.beginSubPhase('liquid');
         if (CtxOpCounter.enabled) CtxOpCounter.setScope('liquid');
 
         const loop = TERRAIN_LIQUID.loop;
-        const set = TerrainLoopAtlas.getLiquid(color, layout, intensity);
-        ctx.drawImage(set.frames[loopFrameIndex(time, loop.period, loop.frames)], x - set.anchorX, y - set.anchorY);
+        const set = TerrainLoopAtlas.getLiquid(color, layout, intensity, variant);
+        const frame = set.frames[loopFrameIndex(time, loop.period, loop.frames, phase)];
+        ctx.drawImage(frame, x - set.anchorX, y - set.anchorY, set.width ?? frame.width, set.height ?? frame.height);
 
         if (RenderStats.enabled) RenderStats.endSubPhase('liquid');
     },
@@ -53,7 +57,8 @@ export const SurfacePainter = {
         const c = GRASS_DETAIL;
         const set = TerrainLoopAtlas.getGrass(color, variant);
         const phase = (x * c.windXPhase) / TWO_PI;
-        ctx.drawImage(set.frames[loopFrameIndex(time, c.loop.period, c.loop.frames, phase)], x - set.anchorX, y - set.anchorY);
+        const frame = set.frames[loopFrameIndex(time, c.loop.period, c.loop.frames, phase)];
+        ctx.drawImage(frame, x - set.anchorX, y - set.anchorY, set.width ?? frame.width, set.height ?? frame.height);
     },
 
     /**

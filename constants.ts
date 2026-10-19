@@ -918,10 +918,11 @@ export const TERRAIN_SKIN: TerrainSkinConfig = {
     sideShadeFloor: '#020617',
     edge: {
         minStep: BLOCK_HEIGHT,
-        lip: { width: 1.5, alpha: 0.85 },
+        // 2026-10-19 T3：落差邊描邊降低對比（原 lip 0.85／cliffRim 0.7，螢光描邊太搶眼）；選取／射程／預警另有高對比樣式
+        lip: { width: 1.5, alpha: 0.6 },
         ao: { widthRatio: 0.35, strength: 0.55 },
-        flatRimAlpha: 0.25,
-        cliffRimAlpha: 0.7,
+        flatRimAlpha: 0.22,
+        cliffRimAlpha: 0.45,
     },
     // 2026-10-18 量測（貼圖路徑頂面中心 luma）：VOID 29、FOREST 53、MAGMA 46、ICE 128、DESERT 104
     exposure: { VOID: 1.65, FOREST: 1.18, MAGMA: 1.12, ICE: 0.67, DESERT: 0.81 },

@@ -4,6 +4,7 @@ import { createCanvas } from "../../graphics/CanvasUtils";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { VFXFactory } from "../../graphics/VFXFactory";
 import { GRASS_DETAIL, ICE_SHEEN, TERRAIN_LIQUID } from "../../../data/vfx/terrainAmbience";
+import { obstacleSpriteStore } from "./ObstacleSpriteStore";
 
 /**
  * 地表動態效果的循環影格快取（冰面反光、草叢風擺、熔岩液面）。
@@ -18,6 +19,9 @@ export interface LoopFrameSet {
     /** drawImage 時，影格左上角相對於格心的偏移（畫在 x - anchorX, y - anchorY） */
     anchorX: number;
     anchorY: number;
+    /** 有值時影格是高密度烘焙，繪製時縮成這個 canvas 單位尺寸 */
+    width?: number;
+    height?: number;
 }
 
 interface IceFrameSet extends LoopFrameSet {
@@ -28,7 +32,86 @@ interface LiquidFrameSet extends LoopFrameSet {
     color: string;
     layout: HexLayout;
     level: number;
+    variant: number;
     lastUsedTick: number;
+}
+
+type RGB = [number, number, number];
+
+function parseHex(color: string): RGB {
+    const m = /^#?([0-9a-f]{6})$/i.exec(color.trim());
+    if (!m) return [239, 68, 68];
+    const n = parseInt(m[1], 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function mixRgb(a: RGB, b: RGB, t: number): RGB {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+}
+
+function rgbCss(c: RGB, alpha: number = 1): string {
+    return `rgba(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])},${alpha})`;
+}
+
+function smoothstep(e0: number, e1: number, x: number): number {
+    const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+    return t * t * (3 - 2 * t);
+}
+
+/** 確定性亂數（硬殼格點、顆粒）：同一種子永遠同一串 */
+function seeded(seed: number): () => number {
+    let a = seed >>> 0;
+    return () => {
+        a = (a + 0x6D2B79F5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+/**
+ * 無縫硬殼貼圖（地面座標，未壓扁）：環面 Voronoi，裂縫透明露出熔體，裂縫旁泛紅、板塊中央略亮。
+ * 只在烘焙期跑一次（每個 bakeScale 一張）。
+ */
+function bakeCrustTile(scale: number): HTMLCanvasElement {
+    const c = TERRAIN_LIQUID.crust;
+    const size = Math.max(1, Math.round(c.tile * scale));
+    const rnd = seeded(c.seed);
+    const pts: number[] = [];
+    for (let i = 0; i < c.cells; i++) pts.push(rnd() * c.tile, rnd() * c.tile);
+    const crust = parseHex(c.color);
+    const heat = parseHex(c.heatColor);
+    const cellSpan = c.tile / Math.sqrt(c.cells);
+    const { canvas, ctx } = createCanvas(size, size);
+    const img = ctx.createImageData(size, size);
+    const data = img.data;
+    const grain = seeded(c.seed * 31 + 1);
+    for (let py = 0; py < size; py++) {
+        for (let px = 0; px < size; px++) {
+            const x = (px + 0.5) / scale, y = (py + 0.5) / scale;
+            let d1 = Infinity, d2 = Infinity;
+            for (let i = 0; i < pts.length; i += 2) {
+                let dx = Math.abs(x - pts[i]); if (dx > c.tile / 2) dx = c.tile - dx;
+                let dy = Math.abs(y - pts[i + 1]); if (dy > c.tile / 2) dy = c.tile - dy;
+                const d = Math.hypot(dx, dy);
+                if (d < d1) { d2 = d1; d1 = d; } else if (d < d2) d2 = d;
+            }
+            const edge = d2 - d1;
+            const a = smoothstep(c.crack * 0.5, c.crack * 1.5, edge) * c.alpha;
+            const hot = 1 - smoothstep(c.crack, c.crack + c.heat, edge);
+            const plate = 1.12 - 0.3 * Math.min(1, d1 / cellSpan);
+            const g = 1 + c.grain * (grain() - 0.5);
+            const col = mixRgb(crust, heat, hot * 0.85);
+            const k = (py * size + px) * 4;
+            data[k] = Math.min(255, col[0] * plate * g);
+            data[k + 1] = Math.min(255, col[1] * plate * g);
+            data[k + 2] = Math.min(255, col[2] * plate * g);
+            data[k + 3] = Math.round(a * 255);
+        }
+    }
+    ctx.putImageData(img, 0, 0);
+    return canvas;
 }
 
 /**
@@ -49,12 +132,15 @@ export const TerrainLoopAtlas = {
     _ice: { FLAT: null, POINTY: null } as Record<HexLayout, IceFrameSet | null>,
     _grass: new Map<string, (LoopFrameSet | undefined)[]>(),
     _liquid: [] as LiquidFrameSet[],
+    _crust: new Map<number, HTMLCanvasElement>(),
+    _grassRev: -1,
     _liquidTick: 0,
     _liquidBakes: 0,
     _liquidHits: 0,
 
     /** 清空所有循環影格（設定表改變後呼叫，下次取用時重新預渲染） */
     reset() {
+        this._crust.clear();
         this._ice.FLAT = null;
         this._ice.POINTY = null;
         this._grass.clear();
@@ -82,6 +168,11 @@ export const TerrainLoopAtlas = {
     },
 
     getGrass(color: string, variant: number): LoopFrameSet {
+        // 裝飾圖集載入後整批重烘（載入前用程序化草叢）
+        if (this._grassRev !== obstacleSpriteStore.revision) {
+            this._grassRev = obstacleSpriteStore.revision;
+            this._grass.clear();
+        }
         let bySprite = this._grass.get(color);
         if (!bySprite) {
             bySprite = [];
@@ -94,19 +185,19 @@ export const TerrainLoopAtlas = {
         return baked;
     },
 
-    /** 取（顏色、layout、量化後 intensity）對應的液面循環組；槽數上限 RENDER_CACHE.LOOP_LIQUID_SLOTS，LRU 淘汰 */
-    getLiquid(color: string, layout: HexLayout, intensity: number): LoopFrameSet {
+    /** 取（顏色、layout、量化後 intensity、硬殼變體）對應的液面循環組；槽數上限 RENDER_CACHE.LOOP_LIQUID_SLOTS，LRU 淘汰 */
+    getLiquid(color: string, layout: HexLayout, intensity: number, variant: number = 0): LoopFrameSet {
         const level = Math.round(intensity / TERRAIN_LIQUID.intensityStep);
         const slots = this._liquid;
         for (let i = 0; i < slots.length; i++) {
             const s = slots[i];
-            if (s.level === level && s.layout === layout && s.color === color) {
+            if (s.level === level && s.layout === layout && s.color === color && s.variant === variant) {
                 s.lastUsedTick = ++this._liquidTick;
                 this._liquidHits++;
                 return s;
             }
         }
-        const baked = this.bakeLiquid(color, layout, level);
+        const baked = this.bakeLiquid(color, layout, level, variant);
         baked.lastUsedTick = ++this._liquidTick;
         this._liquidBakes++;
         if (slots.length < RENDER_CACHE.LOOP_LIQUID_SLOTS) {
@@ -157,7 +248,52 @@ export const TerrainLoopAtlas = {
         return { frames, anchorX: center, anchorY: center, size };
     },
 
+    /** 預渲染草叢：每叢以底部為軸斜切擺動（頂端位移 windAmplitude），高密度烘焙後縮回 canvas 單位 */
+    bakeGrassDecor(variant: number): LoopFrameSet | null {
+        const c = GRASS_DETAIL;
+        const d = c.decor;
+        const n = obstacleSpriteStore.frameCount(d.type);
+        if (n === 0) return null;
+        // 這個 variant 擺幾叢（從 variant 起輪替位置，鄰格疏密不同）
+        const count = Math.max(1, Math.min(c.tufts.length, d.countByVariant[variant % d.countByVariant.length]));
+        const tufts = Array.from({ length: count }, (_, i) => c.tufts[(i + variant) % c.tufts.length]);
+        const picks = tufts.map((t, i) => obstacleSpriteStore.getFrame(d.type, (t.sprite - 1) + variant * d.frameStep + i));
+        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+        for (let i = 0; i < tufts.length; i++) {
+            const f = picks[i];
+            if (!f) continue;
+            const k = f.k * d.scale;
+            minX = Math.min(minX, tufts[i].x - f.ax * k - c.windAmplitude);
+            maxX = Math.max(maxX, tufts[i].x + (f.sw - f.ax) * k + c.windAmplitude);
+            minY = Math.min(minY, tufts[i].y - f.ay * k);
+            maxY = Math.max(maxY, tufts[i].y + (f.sh - f.ay) * k);
+        }
+        if (!Number.isFinite(minX)) return null;
+        const left = Math.floor(minX), top = Math.floor(minY);
+        const width = Math.ceil(maxX) - left, height = Math.ceil(maxY) - top;
+        const sc = d.bakeScale;
+        const frames: HTMLCanvasElement[] = [];
+        for (let fi = 0; fi < c.loop.frames; fi++) {
+            const wind = Math.sin(TWO_PI * (fi / c.loop.frames)) * c.windAmplitude;
+            const { canvas, ctx } = createCanvas(Math.ceil(width * sc), Math.ceil(height * sc));
+            for (let i = 0; i < tufts.length; i++) {
+                const f = picks[i];
+                if (!f) continue;
+                const k = f.k * d.scale;
+                const h = Math.max(1, f.ay * k);
+                // 底部（錨點）不動、頂端位移 wind：x' = x - (wind / h) * y（y 往上為負）
+                ctx.setTransform(sc, 0, -sc * (wind / h), sc, (tufts[i].x - left) * sc, (tufts[i].y - top) * sc);
+                ctx.drawImage(f.image, f.sx, f.sy, f.sw, f.sh, -f.ax * k, -f.ay * k, f.sw * k, f.sh * k);
+            }
+            frames.push(canvas);
+        }
+        this.bakeCount++;
+        return { frames, anchorX: -left, anchorY: -top, width: Math.ceil(width * sc) / sc, height: Math.ceil(height * sc) / sc };
+    },
+
     bakeGrass(color: string, variant: number): LoopFrameSet {
+        const decor = this.bakeGrassDecor(variant);
+        if (decor) return decor;
         const c = GRASS_DETAIL;
         const sp = c.sprite;
         const tufts = c.tufts;
@@ -188,49 +324,93 @@ export const TerrainLoopAtlas = {
         return { frames, anchorX: -left, anchorY: -top };
     },
 
-    bakeLiquid(color: string, layout: HexLayout, level: number): LiquidFrameSet {
+    bakeLiquid(color: string, layout: HexLayout, level: number, variant: number = 0): LiquidFrameSet {
         const c = TERRAIN_LIQUID;
         const intensity = level * c.intensityStep;
         const r = HEX_SIZE * c.radiusRatio;
-        const totalSize = Math.ceil((r + c.pad) * 2);
-        const center = totalSize / 2;
+        const sc = c.bakeScale;
+        const width = Math.ceil((r + c.pad) * 2);
+        const height = Math.ceil((r * ISO_SCALE_Y + c.pad) * 2);
+        const cx = width / 2, cy = height / 2;
+        let crust = this._crust.get(sc);
+        if (!crust) {
+            crust = bakeCrustTile(sc);
+            this._crust.set(sc, crust);
+        }
+        const base = parseHex(color);
+        const m = c.melt;
+        const core = mixRgb(base, parseHex(m.coreColor), m.coreMix);
+        const hot = mixRgb(base, parseHex(m.hotColor), m.hotMix);
+        const edge = mixRgb(base, [0, 0, 0], m.edgeDarken);
+        const T = c.crust.tile;
+        const shift = c.drift.variantShift * variant;
         const frames: HTMLCanvasElement[] = [];
         for (let i = 0; i < c.loop.frames; i++) {
             const u = i / c.loop.frames;
-            const { canvas, ctx } = createCanvas(totalSize, totalSize);
-            ctx.save();
-            ctx.translate(center, center);
-
-            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
-            ctx.fillStyle = color;
+            const { canvas, ctx } = createCanvas(Math.ceil(width * sc), Math.ceil(height * sc));
+            ctx.scale(sc, sc);
+            ctx.translate(cx, cy);
             ctx.globalAlpha = c.baseAlpha * intensity;
-            ctx.fill();
+            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
             ctx.clip();
 
-            const flowX = Math.sin(TWO_PI * c.flowHarmonicX * u) * c.flowAmplitude;
-            const flowY = Math.cos(TWO_PI * c.flowHarmonicY * u) * c.flowAmplitude;
+            // 1. 熔體：放射漸層（地面座標畫，再壓扁成等距）＋亮度脈動
+            ctx.save();
+            ctx.scale(1, ISO_SCALE_Y);
+            const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+            grad.addColorStop(0, rgbCss(core));
+            grad.addColorStop(m.coreStop, rgbCss(core));
+            grad.addColorStop(m.hotStop, rgbCss(hot));
+            grad.addColorStop(1, rgbCss(edge));
+            ctx.fillStyle = grad;
+            ctx.fillRect(-r, -r, r * 2, r * 2);
+            const pulse = c.pulse.amp * (0.5 + 0.5 * Math.sin(TWO_PI * c.pulse.harmonic * u));
+            if (pulse > 0) {
+                ctx.globalCompositeOperation = 'lighter';
+                ctx.globalAlpha = c.baseAlpha * intensity * pulse;
+                ctx.fillStyle = rgbCss(core);
+                ctx.fillRect(-r, -r, r * 2, r * 2);
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.globalAlpha = c.baseAlpha * intensity;
+            }
 
-            ctx.globalCompositeOperation = 'multiply';
-            ctx.fillStyle = c.shadeColor;
-            ctx.beginPath();
-            ctx.ellipse(flowX, flowY, r * c.shadeRadiusX, r * c.shadeRadiusY, 0, 0, TWO_PI);
-            ctx.fill();
+            // 2. 硬殼：無縫貼圖沿圓周漂移（諧波整數 → 頭尾接上），變體錯開位置
+            const ang = TWO_PI * c.drift.harmonic * u;
+            let ox = (Math.cos(ang) * c.drift.radius + shift * T) % T;
+            let oy = (Math.sin(ang) * c.drift.radius + shift * T * 0.61) % T;
+            if (ox > 0) ox -= T;
+            if (oy > 0) oy -= T;
+            for (let tx = ox - Math.ceil((r + ox) / T) * T; tx < r; tx += T) {
+                for (let ty = oy - Math.ceil((r + oy) / T) * T; ty < r; ty += T) {
+                    ctx.drawImage(crust, tx, ty, T, T);
+                }
+            }
 
-            ctx.globalCompositeOperation = 'overlay';
-            ctx.fillStyle = c.bubbleColor;
-            ctx.globalAlpha = c.bubbleAlpha;
-
-            const bubbleX = Math.cos(TWO_PI * c.bubbleHarmonicX * u) * (r * c.bubbleOrbitRatio);
-            const bubbleY = Math.sin(TWO_PI * c.bubbleHarmonicY * u) * (r * c.bubbleOrbitRatio) * ISO_SCALE_Y;
-
-            ctx.beginPath();
-            ctx.arc(bubbleX, bubbleY, r * c.bubbleRadiusRatio, 0, TWO_PI);
-            ctx.fill();
-
+            // 3. 冒泡：每個泡泡在週期內生滅 harmonic 次，位置依變體錯開
+            const bub = c.bubbles;
+            const bubCol = parseHex(bub.color);
+            for (let k = 0; k < bub.count; k++) {
+                const ph = ((u * bub.harmonic + k / bub.count + variant * 0.17) % 1 + 1) % 1;
+                if (ph >= 0.7) continue;
+                const life = ph / 0.7;
+                const rr = bub.radius * Math.sin(Math.PI * life);
+                const a0 = TWO_PI * (k / bub.count) + variant * 1.3;
+                const bx = Math.cos(a0) * r * bub.orbit, by = Math.sin(a0) * r * bub.orbit;
+                ctx.fillStyle = rgbCss(bubCol, bub.alpha * (1 - life * 0.5));
+                ctx.beginPath();
+                ctx.arc(bx, by, Math.max(0.1, rr), 0, TWO_PI);
+                ctx.fill();
+            }
             ctx.restore();
+
+            // 4. 岸邊暗環
+            ctx.strokeStyle = c.rim.color;
+            ctx.lineWidth = c.rim.width;
+            HexGeometry.traceHex(ctx, 0, 0, r, true, layout);
+            ctx.stroke();
             frames.push(canvas);
         }
         this.bakeCount++;
-        return { frames, anchorX: center, anchorY: center, color, layout, level, lastUsedTick: 0 };
+        return { frames, anchorX: cx, anchorY: cy, width: Math.ceil(width * sc) / sc, height: Math.ceil(height * sc) / sc, color, layout, level, variant, lastUsedTick: 0 };
     },
 };

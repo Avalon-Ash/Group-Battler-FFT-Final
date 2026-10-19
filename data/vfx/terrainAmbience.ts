@@ -23,6 +23,7 @@ import type {
     SandRipplesDetailConfig,
     TerrainAmbienceBiome,
     TerrainAmbienceEntry,
+    TerrainDecorConfig,
     WeatherAmbienceConfig,
     WeatherBoundsConfig,
 } from '../../types';
@@ -66,6 +67,8 @@ export const GRASS_DETAIL: GrassDetailConfig = {
         midStop: 0.5,
         curveCtrl: 0.5,
     },
+    // 2026-10-19：KayKit 草叢／灌木預渲染（tools/assets/blender/render_obstacle.py DECOR_GRASS），風擺改為以底部為軸的斜切
+    decor: { type: 'DECOR_GRASS', bakeScale: 2, scale: 1, frameStep: 2, countByVariant: [2, 1, 3, 1] },
 };
 
 export const ICE_SHEEN: IceSheenDetailConfig = {
@@ -123,13 +126,24 @@ export const VOID_RUNES: RunesDetailConfig = {
     alpha: 0.3,
 };
 
+/** 靜態裝飾擺放點（前半格；見 TerrainDecorConfig） */
+const DECOR_SPOTS = [
+    { x: 13, y: 6 },
+    { x: -15, y: 9 },
+    { x: 2, y: 15 },
+] as const;
+
+export const SAND_PEBBLES: TerrainDecorConfig = { type: 'DECOR_PEBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [2, 0, 1, 1] };
+export const ICE_SHARDS: TerrainDecorConfig = { type: 'DECOR_ICE', scale: 1, spots: DECOR_SPOTS, countByVariant: [1, 0, 2, 0] };
+export const VOID_RUBBLE: TerrainDecorConfig = { type: 'DECOR_RUBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [0, 1, 0, 1] };
+
 export const TERRAIN_AMBIENCE: Readonly<Record<TerrainAmbienceBiome, TerrainAmbienceEntry>> = {
-    VOID: { detail: VOID_RUNES, liquid: null },
-    FOREST: { detail: GRASS_DETAIL, liquid: null },
-    ICE: { detail: ICE_SHEEN, liquid: null },
+    VOID: { detail: VOID_RUNES, liquid: null, decor: VOID_RUBBLE },
+    FOREST: { detail: GRASS_DETAIL, liquid: null, decor: null },
+    ICE: { detail: ICE_SHEEN, liquid: null, decor: ICE_SHARDS },
     // 熔岩：地塊頂面疊一層循環液面
-    MAGMA: { detail: { kind: 'NONE', baked: false }, liquid: { color: '#ef4444', intensity: 1.0 } },
-    DESERT: { detail: SAND_RIPPLES, liquid: null },
+    MAGMA: { detail: { kind: 'NONE', baked: false }, liquid: { color: '#ef4444', intensity: 1.0 }, decor: null },
+    DESERT: { detail: SAND_RIPPLES, liquid: null, decor: SAND_PEBBLES },
 };
 
 const TERRAIN_AMBIENCE_BY_NAME: Readonly<Record<string, TerrainAmbienceEntry | undefined>> = TERRAIN_AMBIENCE;
@@ -142,24 +156,21 @@ export function getTerrainAmbience(type: string): TerrainAmbienceEntry | undefin
 /** 液面循環影格的共用參數：drawLiquid（地塊熔岩與 HazardPainter 的液態危害區）共用 */
 export const TERRAIN_LIQUID: LiquidLoopConfig = {
     // 週期內所有動作的諧波數 k 必須是整數（角速度 = 2π * k / period）
-    loop: { period: 12, frames: 60 },
+    loop: { period: 10, frames: 48 },
     radiusRatio: 0.9,
     pad: 2,
-    baseAlpha: 0.9,
+    baseAlpha: 0.95,
     // 強度量化步距：同色同 layout 只在此步距的整數倍各存一組循環影格
     intensityStep: 0.1,
-    flowAmplitude: 8,
-    flowHarmonicX: 1,
-    flowHarmonicY: 1,
-    shadeColor: 'rgba(0,0,0,0.4)',
-    shadeRadiusX: 0.6,
-    shadeRadiusY: 0.4,
-    bubbleColor: '#fff',
-    bubbleAlpha: 0.3,
-    bubbleHarmonicX: 2,
-    bubbleHarmonicY: 2,
-    bubbleOrbitRatio: 0.4,
-    bubbleRadiusRatio: 0.3,
+    bakeScale: 2,
+    variants: 4,
+    // 熔體：中心偏金黃、往外是基準色、岸邊壓暗（2026-10-19 重繪：取代單色橢圓）
+    melt: { coreColor: '#ffe08a', coreMix: 0.8, hotColor: '#ff9a1f', hotMix: 0.55, edgeDarken: 0.45, coreStop: 0.15, hotStop: 0.55 },
+    pulse: { harmonic: 2, amp: 0.12 },
+    crust: { tile: 112, cells: 11, seed: 7, crack: 2.8, heat: 7, alpha: 0.92, color: '#2a0e08', heatColor: '#a8260c', grain: 0.18 },
+    drift: { radius: 9, harmonic: 1, variantShift: 0.29 },
+    bubbles: { count: 3, radius: 3.2, orbit: 0.45, harmonic: 2, alpha: 0.85, color: '#ffd27a' },
+    rim: { color: 'rgba(20,4,2,0.55)', width: 2.5 },
 };
 
 /** 天氣粒子生成範圍（依地圖格數推算；無引擎時用 fallback） */

@@ -51,6 +51,18 @@ export interface ObstacleSprite {
     anchorY: number;
 }
 
+/** 圖集中的一張影格（地表裝飾直接取用，不合成陰影）；k＝每像素幾個 canvas 單位 */
+export interface AtlasFrame {
+    image: HTMLImageElement;
+    sx: number;
+    sy: number;
+    sw: number;
+    sh: number;
+    ax: number;
+    ay: number;
+    k: number;
+}
+
 /** 純函式：依格子座標選變體（穩定、不閃爍） */
 export function obstacleVariant(q: number, r: number, count: number): number {
     if (count <= 1) return 0;
@@ -66,6 +78,8 @@ class ObstacleSpriteStoreImpl {
     private images = new Map<string, HTMLImageElement>();
     private sprites = new Map<string, ObstacleSprite>();
     private _readyPromise: Promise<void>;
+    /** 圖集載入完成時遞增；用到裝飾的烘焙快取（地塊 sprite、草叢循環）據此重烘 */
+    private _revision = 0;
 
     constructor() {
         this._readyPromise = this.load();
@@ -88,6 +102,7 @@ class ObstacleSpriteStoreImpl {
                 img.src = resolveAssetUrl(`${OBSTACLE_SPRITE.dir}/${def.file}`);
             })));
             this.manifest = manifest;
+            this._revision++;
         } catch {
             this.manifest = null;
         }
@@ -95,6 +110,24 @@ class ObstacleSpriteStoreImpl {
 
     getManifest(): ObstacleManifest | null {
         return this.manifest;
+    }
+
+    get revision(): number {
+        return this._revision;
+    }
+
+    /** 此類型已載入的影格數（0＝沒有圖集或尚未載入） */
+    frameCount(type: string): number {
+        return this.images.has(type) ? (this.manifest?.types[type]?.variants.length ?? 0) : 0;
+    }
+
+    /** 地表裝飾用：取原始影格（idx 會取模） */
+    getFrame(type: string, idx: number): AtlasFrame | null {
+        const def = this.manifest?.types[type];
+        const img = this.images.get(type);
+        if (!def || !img || def.variants.length === 0) return null;
+        const v = def.variants[((idx % def.variants.length) + def.variants.length) % def.variants.length];
+        return { image: img, sx: v.x, sy: v.y, sw: v.w, sh: v.h, ax: v.ax, ay: v.ay, k: HEX_SIZE / this.manifest!.pxPerHex };
     }
 
     /** @returns null＝此類型沒有預渲染圖集（或尚未載入），呼叫端用程序化外觀 */

@@ -19,14 +19,15 @@ describe('障礙物預渲染圖集（VISUAL_ROADMAP O1／O2）', () => {
         }
     });
 
-    it('影格在圖集內、錨點落在影格內（腳底在下緣附近）', () => {
+    it('影格在圖集內、錨點落在影格內', () => {
         for (const [id, def] of Object.entries(manifest.types)) {
             for (const v of def.variants) {
                 expect(v.x + v.w, id).toBeLessThanOrEqual(def.atlas.w);
                 expect(v.y + v.h, id).toBeLessThanOrEqual(def.atlas.h);
                 expect(v.ax).toBeGreaterThan(0);
                 expect(v.ax).toBeLessThan(v.w);
-                expect(v.ay).toBeGreaterThan(v.h * 0.6);
+                // 障礙物腳底在下緣附近；地表裝飾很扁，足跡會伸到錨點下方
+                expect(v.ay).toBeGreaterThan(id.startsWith('DECOR_') ? 0 : v.h * 0.6);
                 expect(v.ay).toBeLessThanOrEqual(v.h);
             }
         }

@@ -71,10 +71,9 @@ describe('TerrainAmbience loop frame index', () => {
 
     it('uses integer harmonics so first and last frames join seamlessly', () => {
         const harmonics = [
-            TERRAIN_LIQUID.flowHarmonicX,
-            TERRAIN_LIQUID.flowHarmonicY,
-            TERRAIN_LIQUID.bubbleHarmonicX,
-            TERRAIN_LIQUID.bubbleHarmonicY,
+            TERRAIN_LIQUID.drift.harmonic,
+            TERRAIN_LIQUID.pulse.harmonic,
+            TERRAIN_LIQUID.bubbles.harmonic,
         ];
         for (const k of harmonics) expect(Number.isInteger(k) && k > 0).toBe(true);
         // 冰面反光：週期內滑過一整個 wrap 距離，頭尾位置相差剛好一個 wrap
@@ -93,6 +92,7 @@ describe('TerrainLoopAtlas bakes once per configuration', () => {
             createLinearGradient: () => { calls.gradient++; return { addColorStop: () => {} }; },
             createRadialGradient: () => { calls.gradient++; return { addColorStop: () => {} }; },
             drawImage: () => { calls.drawImage++; },
+            createImageData: (w: number, h: number) => ({ data: new Uint8ClampedArray(w * h * 4) }),
         };
         return new Proxy(target, {
             get: (t, prop: string) => (prop in t ? t[prop] : () => {}),
