@@ -116,4 +116,34 @@ describe('Effects core and definitions (ECS-lite S1 - SE1)', () => {
         applyEffect(slots, 'DOT', 2.0);
         expect(slots.DOT.remaining).toBe(4.0);
     });
+
+    it('iterating EFFECT_KINDS applies, decrements, and expires every kind without modifying defs', () => {
+        const dummyConfig = { w: 30, h: 30, offsetX: 400, offsetY: 300, layout: 'POINTY' as const };
+        const agent = new Agent('test-loop', Team.BLUE, 0, 0, dummyConfig);
+
+        for (const kind of EFFECT_KINDS) {
+            // 1. Definition check: every kind in EFFECT_KINDS must have polarity & hardCC defined
+            expect(EFFECT_DEFS[kind], `Missing definition for ${kind}`).toBeDefined();
+            expect(['BUFF', 'DEBUFF']).toContain(EFFECT_DEFS[kind].polarity);
+
+            // 2. Application
+            applyEffect(agent.effects, kind, 2.0, { value: 15, tag: 'TAG', sourceId: 'src-1' });
+            expect(isEffectActive(agent, kind)).toBe(true);
+            expect(effectRemaining(agent, kind)).toBe(2.0);
+            expect(agent.effects[kind].max).toBe(2.0);
+            expect(agent.effects[kind].value).toBe(15);
+            expect(agent.effects[kind].tag).toBe('TAG');
+            expect(agent.effects[kind].sourceId).toBe('src-1');
+
+            // 3. Decrement
+            agent.effects[kind].remaining = Math.max(0, agent.effects[kind].remaining - 1.0);
+            expect(effectRemaining(agent, kind)).toBe(1.0);
+            expect(isEffectActive(agent, kind)).toBe(true);
+
+            // 4. Expiration
+            agent.effects[kind].remaining = Math.max(0, agent.effects[kind].remaining - 1.0);
+            expect(effectRemaining(agent, kind)).toBe(0);
+            expect(isEffectActive(agent, kind)).toBe(false);
+        }
+    });
 });

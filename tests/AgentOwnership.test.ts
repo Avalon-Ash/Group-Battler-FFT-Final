@@ -23,11 +23,11 @@ function listSources(dir: string): string[] {
     return out;
 }
 
-/** `.field = / += / ++ / --`、`.field.x = `、`.field[i] = `、`.field.push(...)` 等。 */
+/** `.field = / += / ++ / --`、`.field.x = `、`.field.x.y = `、`.field[i] = `、`.field.push(...)` 等。 */
 function writePattern(field: string): RegExp {
     const assign = String.raw`\s*(?:[-+*/%|&]|\*\*|\?\?|\|\||&&)?=(?!=)`;
     return new RegExp(
-        String.raw`\.${field}\b(?:${assign}|\s*(?:\+\+|--)|\.\w+${assign}|\[[^\]]*\]${assign}|\.(?:push|pop|shift|unshift|splice|fill|sort|reverse)\()`,
+        String.raw`\.${field}\b(?:${assign}|\s*(?:\+\+|--)|(?:\.\w+|\[[^\]]*\])+${assign}|\.(?:push|pop|shift|unshift|splice|fill|sort|reverse)\()`,
         'g',
     );
 }
@@ -36,7 +36,7 @@ function writePattern(field: string): RegExp {
 function nonAccumulatePattern(field: string): RegExp {
     const assign = String.raw`\s*(?:[*/%|&]|\*\*|\?\?|\|\||&&)?=(?!=)`;
     return new RegExp(
-        String.raw`\.${field}\b(?:${assign}|\.\w+${assign}|\[[^\]]*\]${assign}|\.(?:push|pop|shift|unshift|splice|fill|sort|reverse)\()`,
+        String.raw`\.${field}\b(?:${assign}|(?:\.\w+|\[[^\]]*\])+${assign}|\.(?:push|pop|shift|unshift|splice|fill|sort|reverse)\()`,
         'g',
     );
 }

@@ -107,6 +107,18 @@ export const AGENT_FIELD_OWNERS: Partial<Record<AgentField, AgentFieldOwnership>
         lifecycle: ['engine/systems/agentManager.ts'],
         note: '放逐旗標只在 ControlSystem（syncBanished／clearBanishedFlag）寫入；CCManager、ZoneSystem 呼叫這兩個 API。PhysicsEngine 只讀。',
     },
+    effects: {
+        group: 'status',
+        kind: 'domain',
+        owners: [
+            'engine/systems/combat/CCManager.ts',
+            'engine/systems/status/ControlSystem.ts',
+            'engine/systems/status/EffectSystem.ts',
+            'engine/physics/PhysicsEngine.ts',
+        ],
+        lifecycle: ['engine/systems/agentManager.ts'],
+        note: '狀態域：CCManager 施加、ControlSystem 遞減控制類、EffectSystem 遞減持續傷害與治療。PhysicsEngine 失去地面時強加 0.1s STUN（既有行為）。',
+    },
     aiState: {
         group: 'ai',
         kind: 'single',

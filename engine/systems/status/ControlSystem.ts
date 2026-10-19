@@ -3,6 +3,7 @@ import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
 import { random } from "../../math/rng";
 import { stopMovement } from "../movement/MotionCommands";
+import { EFFECT_KINDS } from "../../core/Effects";
 
 /** 狀態域 API：`banished` 只由本檔寫入，其餘模組透過這兩個函式。 */
 export function syncBanished(agent: Agent): void {
@@ -29,43 +30,39 @@ export class ControlSystem {
         }
 
         // Timer Decrements
-        if (agent.effects.BANISH.remaining > 0) agent.effects.BANISH.remaining = Math.max(0, agent.effects.BANISH.remaining - dt);
-        if (agent.effects.STASIS.remaining > 0) {
-            agent.effects.STASIS.remaining = Math.max(0, agent.effects.STASIS.remaining - dt);
-            if (agent.effects.STASIS.remaining <= 0) {
-                if (agent.ccVisual === 'STASIS') agent.ccVisual = 'NONE';
-            }
-        }
-        if (agent.effects.STUN.remaining > 0) agent.effects.STUN.remaining = Math.max(0, agent.effects.STUN.remaining - dt);
-        if (agent.effects.SILENCE.remaining > 0) agent.effects.SILENCE.remaining = Math.max(0, agent.effects.SILENCE.remaining - dt);
-        if (agent.effects.ROOT.remaining > 0) agent.effects.ROOT.remaining = Math.max(0, agent.effects.ROOT.remaining - dt);
-        if (agent.effects.FEAR.remaining > 0) agent.effects.FEAR.remaining = Math.max(0, agent.effects.FEAR.remaining - dt);
-        if (agent.effects.BLIND.remaining > 0) agent.effects.BLIND.remaining = Math.max(0, agent.effects.BLIND.remaining - dt);
-        if (agent.effects.VULNERABLE.remaining > 0) agent.effects.VULNERABLE.remaining = Math.max(0, agent.effects.VULNERABLE.remaining - dt);
-        // POLYMORPH timer 清除
-        if (agent.effects.POLYMORPH.remaining > 0) {
-            agent.effects.POLYMORPH.remaining -= dt;
-            if (agent.effects.POLYMORPH.remaining <= 0) {
-                agent.effects.POLYMORPH.remaining = 0;
-                if (agent.ccVisual === 'POLYMORPH') agent.ccVisual = 'NONE';
-            } else {
-                agent.ccVisual = 'POLYMORPH';
-            }
-        }
+        for (const k of EFFECT_KINDS) {
+            // DOT and HOT are managed by EffectSystem
+            if (k === 'DOT' || k === 'HOT') continue;
 
-        // INVINCIBLE timer 清除
-        if (agent.effects.INVINCIBLE.remaining > 0) {
-            agent.effects.INVINCIBLE.remaining -= dt;
-            if (agent.effects.INVINCIBLE.remaining <= 0) {
-                agent.effects.INVINCIBLE.remaining = 0;
-                if (agent.ccVisual === 'INVINCIBLE') agent.ccVisual = 'NONE';
+            const slot = agent.effects[k];
+            if (slot.remaining <= 0) continue;
+
+            slot.remaining = Math.max(0, slot.remaining - dt);
+            if (slot.remaining <= 0) {
+                switch (k) {
+                    case 'STASIS':
+                        if (agent.ccVisual === 'STASIS') agent.ccVisual = 'NONE';
+                        break;
+                    case 'POLYMORPH':
+                        if (agent.ccVisual === 'POLYMORPH') agent.ccVisual = 'NONE';
+                        break;
+                    case 'INVINCIBLE':
+                        if (agent.ccVisual === 'INVINCIBLE') agent.ccVisual = 'NONE';
+                        break;
+                    case 'TAUNT':
+                        slot.sourceId = null;
+                        break;
+                }
             } else {
-                agent.ccVisual = 'INVINCIBLE';
+                switch (k) {
+                    case 'POLYMORPH':
+                        agent.ccVisual = 'POLYMORPH';
+                        break;
+                    case 'INVINCIBLE':
+                        agent.ccVisual = 'INVINCIBLE';
+                        break;
+                }
             }
-        }
-        if (agent.effects.TAUNT.remaining > 0) {
-            agent.effects.TAUNT.remaining = Math.max(0, agent.effects.TAUNT.remaining - dt);
-            if (agent.effects.TAUNT.remaining <= 0) agent.effects.TAUNT.sourceId = null;
         }
 
         // State Logic: Banishment
