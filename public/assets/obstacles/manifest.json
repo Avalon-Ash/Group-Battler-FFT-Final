@@ -1,0 +1,252 @@
+{
+ "version": 1,
+ "pxPerHex": 96,
+ "elevationDeg": 30.0,
+ "types": {
+  "TREE": {
+   "file": "tree.webp",
+   "atlas": {
+    "w": 672,
+    "h": 254
+   },
+   "variants": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 206,
+     "h": 251,
+     "ax": 103,
+     "ay": 240,
+     "heightHex": 2.687,
+     "source": "Tree_1_A_Color1.gltf"
+    },
+    {
+     "x": 206,
+     "y": 0,
+     "w": 150,
+     "h": 254,
+     "ax": 75,
+     "ay": 244,
+     "heightHex": 2.656,
+     "source": "Tree_2_A_Color1.gltf"
+    },
+    {
+     "x": 356,
+     "y": 0,
+     "w": 210,
+     "h": 231,
+     "ax": 105,
+     "ay": 219,
+     "heightHex": 2.381,
+     "source": "Tree_3_A_Color1.gltf"
+    },
+    {
+     "x": 566,
+     "y": 0,
+     "w": 106,
+     "h": 234,
+     "ax": 53,
+     "ay": 228,
+     "heightHex": 2.697,
+     "source": "Tree_4_A_Color1.gltf"
+    }
+   ]
+  },
+  "WALL": {
+   "file": "wall.webp",
+   "atlas": {
+    "w": 444,
+    "h": 250
+   },
+   "variants": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 120,
+     "h": 238,
+     "ax": 60,
+     "ay": 206,
+     "heightHex": 2.084,
+     "source": "pillar.gltf.glb"
+    },
+    {
+     "x": 120,
+     "y": 0,
+     "w": 114,
+     "h": 219,
+     "ax": 57,
+     "ay": 188,
+     "heightHex": 2.206,
+     "source": "column.gltf.glb"
+    },
+    {
+     "x": 234,
+     "y": 0,
+     "w": 96,
+     "h": 227,
+     "ax": 48,
+     "ay": 201,
+     "heightHex": 2.171,
+     "source": "statue_column.glb"
+    },
+    {
+     "x": 330,
+     "y": 0,
+     "w": 114,
+     "h": 250,
+     "ax": 57,
+     "ay": 220,
+     "heightHex": 2.598,
+     "source": "statue_obelisk.glb"
+    }
+   ]
+  },
+  "SANDSTONE": {
+   "file": "sandstone.webp",
+   "atlas": {
+    "w": 506,
+    "h": 188
+   },
+   "variants": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 164,
+     "h": 170,
+     "ax": 82,
+     "ay": 139,
+     "heightHex": 1.641,
+     "source": "rock_tallA.glb"
+    },
+    {
+     "x": 164,
+     "y": 0,
+     "w": 134,
+     "h": 168,
+     "ax": 67,
+     "ay": 132,
+     "heightHex": 1.521,
+     "source": "rock_tallB.glb"
+    },
+    {
+     "x": 298,
+     "y": 0,
+     "w": 108,
+     "h": 188,
+     "ax": 54,
+     "ay": 160,
+     "heightHex": 1.781,
+     "source": "rock_tallC.glb"
+    },
+    {
+     "x": 406,
+     "y": 0,
+     "w": 100,
+     "h": 168,
+     "ax": 50,
+     "ay": 140,
+     "heightHex": 1.676,
+     "source": "rock_tallD.glb"
+    }
+   ]
+  },
+  "ICE_CRYSTAL": {
+   "file": "ice_crystal.webp",
+   "atlas": {
+    "w": 476,
+    "h": 173
+   },
+   "variants": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 128,
+     "h": 168,
+     "ax": 64,
+     "ay": 149,
+     "heightHex": 1.749,
+     "source": "prisms:ice:1"
+    },
+    {
+     "x": 128,
+     "y": 0,
+     "w": 96,
+     "h": 151,
+     "ax": 48,
+     "ay": 132,
+     "heightHex": 1.72,
+     "source": "prisms:ice:2"
+    },
+    {
+     "x": 224,
+     "y": 0,
+     "w": 130,
+     "h": 173,
+     "ax": 65,
+     "ay": 151,
+     "heightHex": 1.799,
+     "source": "prisms:ice:3"
+    },
+    {
+     "x": 354,
+     "y": 0,
+     "w": 122,
+     "h": 139,
+     "ax": 61,
+     "ay": 125,
+     "heightHex": 1.442,
+     "source": "prisms:ice:4"
+    }
+   ]
+  },
+  "OBSIDIAN_PILLAR": {
+   "file": "obsidian_pillar.webp",
+   "atlas": {
+    "w": 448,
+    "h": 265
+   },
+   "variants": [
+    {
+     "x": 0,
+     "y": 0,
+     "w": 100,
+     "h": 249,
+     "ax": 50,
+     "ay": 220,
+     "heightHex": 2.569,
+     "source": "prisms:obsidian:11"
+    },
+    {
+     "x": 100,
+     "y": 0,
+     "w": 112,
+     "h": 217,
+     "ax": 56,
+     "ay": 196,
+     "heightHex": 2.401,
+     "source": "prisms:obsidian:12"
+    },
+    {
+     "x": 212,
+     "y": 0,
+     "w": 120,
+     "h": 265,
+     "ax": 60,
+     "ay": 236,
+     "heightHex": 2.537,
+     "source": "prisms:obsidian:13"
+    },
+    {
+     "x": 332,
+     "y": 0,
+     "w": 116,
+     "h": 233,
+     "ax": 58,
+     "ay": 204,
+     "heightHex": 2.573,
+     "source": "prisms:obsidian:14"
+    }
+   ]
+  }
+ }
+}

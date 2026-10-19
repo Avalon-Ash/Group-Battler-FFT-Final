@@ -802,6 +802,19 @@ export const ENV_SPRITE = {
   TREE_LAYER_OVERLAP: 0.7, // 樹葉層縱向疊壓比例
 } as const;
 
+/**
+ * 障礙物預渲染精靈（VISUAL_ROADMAP O1／O2）：tools/assets/blender/render_obstacle.py → pack_obstacles.py。
+ * 錨點與尺寸讀 manifest；圖集未載入時退回 EnvironmentFactory 程序化外觀（ENV_SPRITE）。
+ */
+export const OBSTACLE_SPRITE = {
+  dir: 'assets/obstacles',
+  manifestPath: 'assets/obstacles/manifest.json',
+  /** 合成畫布像素密度（每 canvas 單位幾 px）；與圖集 pxPerHex／HEX_SIZE 相同，不重取樣 */
+  BAKE_SCALE: 2,
+  /** 足跡陰影外擴（canvas 單位，含 blur 半徑） */
+  SHADOW_PAD: 6,
+} as const;
+
 export interface TerrainTheme { top: string; sideLight: string; sideDark: string; detail: string; rim: string }
 
 export const TERRAIN_THEMES: Record<string, TerrainTheme> = {

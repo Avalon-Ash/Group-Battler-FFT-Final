@@ -77,6 +77,8 @@ export class RenderSpec {
         s += "visualSurfaceY = getIsoVisualY(visualBaseY, h)   地塊頂面 Y。OBSTACLE／HAZARD 的 op.ty\n";
         s += "OBSTACLE／HAZARD 的 op.y = visualBaseY：與地塊、單位同一把尺，高度不進排序鍵\n";
         s += "  （2026-10-18 依 docs/DEPTH_ORDER_FINDINGS.md 拿掉 h*0.7：它讓高台上的障礙／危害蓋住同一座高台上前方的單位）\n";
+        s += "OBSTACLE 精靈錨點＝格子中心地面點，對齊 (op.tx, op.ty)：預渲染圖集讀 public/assets/obstacles/manifest.json 的 ax／ay\n";
+        s += "  （ObstacleSpriteStore，依 q,r 雜湊選變體）；未載入時退回程序化 ENV_SPRITE.ANCHOR_X／Y。精靈高度不影響排序。\n";
         s += "AURA 的 op.y = 施法者腳點 Y（sortY）：同樣不含高度（§2）。TERRAIN_SORT_SCALE 與 terrainSortY 已不存在，沒有任何 op 的排序 Y 含高度。\n\n";
         s += "單位（UnitFrame 計算，UnitSystem 提交；見 §4）：\n";
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";

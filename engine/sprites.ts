@@ -8,7 +8,8 @@
 // ║                                                                  ║
 // ║  呼叫端 (現役)：                                                 ║
 // ║    UnitShadowPainter / UnitCorePainter → getUnitImages          ║
-// ║    RenderDispatcher  → getObstacleSprite                        ║
+// ║    RenderDispatcher  → getObstacleSprite（預渲染優先，         ║
+// ║                        ObstacleSpriteStore；退回程序化）       ║
 // ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
@@ -18,6 +19,8 @@ import { getFactionSkin } from "../data/units/factionSkin";
 import { factionTextureStore } from "./renderers/units/FactionTextureStore";
 import { EnvironmentFactory } from "./graphics/EnvironmentFactory";
 import { CoreFactory, CoreSprites } from "./graphics/units/CoreFactory";
+import { obstacleSpriteStore, ObstacleSprite } from "./renderers/grid/ObstacleSpriteStore";
+import { ENV_SPRITE } from "../constants";
 const cache: Map<string, any> = new Map();
 export interface UnitAssets {
     base: HTMLCanvasElement;
@@ -27,6 +30,7 @@ export interface UnitAssets {
 // 棋座／核心烘焙快取：陣營貼圖載入完成（revision 變動）時整批丟棄重烘
 const _tokenCache = new Map<string, UnitAssets>();
 let _tokenRevision = -1;
+const _proceduralObstacles = new Map<string, ObstacleSprite>();
 export const SpriteManager = {
     /**
      * 棋座（含刻在頂面的職業字形）與核心（陣營皮膚 FACTION_SKINS＋手繪貼圖槽，烘焙一次後快取）
@@ -52,11 +56,19 @@ export const SpriteManager = {
         }
         return assets;
     },
-    getObstacleSprite(styleKey: string, layout: HexLayout): HTMLCanvasElement {
+    /**
+     * 障礙物精靈：預渲染圖集（ObstacleSpriteStore，依 q,r 選變體）優先，未載入時退回程序化（ENV_SPRITE 錨點）。
+     * 尺寸與錨點都是 canvas 單位；錨點＝格子中心地面點。
+     */
+    getObstacleSprite(styleKey: string, layout: HexLayout, q: number = 0, r: number = 0): ObstacleSprite {
+        const baked = obstacleSpriteStore.get(styleKey, layout, q, r);
+        if (baked) return baked;
         const key = `OBSTACLE_${styleKey}_${layout}`;
-        if (cache.has(key)) return cache.get(key)!;
-        const canvas = EnvironmentFactory.generateObstacle(styleKey, layout);
-        cache.set(key, canvas);
-        return canvas;
+        let sprite = _proceduralObstacles.get(key);
+        if (!sprite) {
+            sprite = { image: EnvironmentFactory.generateObstacle(styleKey, layout), width: ENV_SPRITE.CANVAS_W, height: ENV_SPRITE.CANVAS_H, anchorX: ENV_SPRITE.ANCHOR_X, anchorY: ENV_SPRITE.ANCHOR_Y };
+            _proceduralObstacles.set(key, sprite);
+        }
+        return sprite;
     }
 };

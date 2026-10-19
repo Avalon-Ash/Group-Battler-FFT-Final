@@ -28,6 +28,7 @@ import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
 import { particleTextureStore } from "./ParticleTextureStore";
+import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
 import { VFX_BIOME_GAIN } from "../../constants";
 
@@ -37,6 +38,7 @@ void Promise.all([
     spriteAtlasStore.readyPromise,
     terrainTextureStore.readyPromise,
     particleTextureStore.readyPromise,
+    obstacleSpriteStore.readyPromise,
 ]).then(() => {
     allAssetsReady = true;
     if (typeof window !== 'undefined') {

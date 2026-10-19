@@ -4,7 +4,8 @@
 // ║        的貼地鋪設特效（GroundDrapeLayer），所以站在這格的   ║
 // ║        單位（排在該格 TERRAIN 之後）棋座壓在法陣上。       ║
 // ║  上游：RenderList.sort、RenderPipeline.drawWorld            ║
-// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§9。      ║
+// ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§3、§9。  ║
+// ║         OBSTACLE 錨點讀精靈本身（SpriteManager），不寫死。  ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { RenderOp, RenderOpType } from "./RenderList";
@@ -15,7 +16,6 @@ import { HazardPainter } from "./grid/painters/HazardPainter";
 import { SpriteManager } from "../sprites";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { ProjectilePartPainter } from "../systems/vfx/renderers/painters/ProjectilePartPainter";
-import { ENV_SPRITE } from "../../constants";
 import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../systems/unit";
 
@@ -58,7 +58,11 @@ export class RenderDispatcher {
                 break;
 
             case RenderOpType.OBSTACLE:
-                ctx.drawImage(SpriteManager.getObstacleSprite(op.ttype, layout), snapX - ENV_SPRITE.ANCHOR_X, snapY - ENV_SPRITE.ANCHOR_Y);
+            {
+                // 錨點＝格子中心地面點（ObstacleSpriteStore manifest；程序化退回 ENV_SPRITE）
+                const ob = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr);
+                ctx.drawImage(ob.image, snapX - ob.anchorX, snapY - ob.anchorY, ob.width, ob.height);
+            }
                 break;
 
             case RenderOpType.UNIT:
