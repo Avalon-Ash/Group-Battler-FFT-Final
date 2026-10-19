@@ -166,8 +166,8 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a5', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '鮮血分流', desc: '回魔傷害', 
-        range: 6, cast: 0.4, cd: 7.0, cost: 0, gain: 50, 
-        type: 'SINGLE', power: 100, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
+        range: 6, cast: 0.4, cd: 8.5, cost: 0, gain: 35, 
+        type: 'SINGLE', power: 80, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     },
 
@@ -199,9 +199,9 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
         name: '衰朽詛咒', desc: '範圍虛弱', 
-        range: 6, cast: 0.7, cd: 10.0, cost: 40, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 70, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
-        effectType: 'MANA_BURN', effectVal: 35,
+        range: 6, cast: 0.7, cd: 10.5, cost: 40, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 60, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
+        effectType: 'MANA_BURN', effectVal: 24,
         visualHitEffect: 'FX_HIT_RED_SHADOW', element: 'VOID'
     },
     { 

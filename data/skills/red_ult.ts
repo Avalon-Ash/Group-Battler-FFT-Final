@@ -135,10 +135,10 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'rr_u5', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
         name: '末日審判', desc: '範圍恐懼', 
-        range: 8, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 500, color: '#581c87', 
+        range: 8, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 450, color: '#581c87', 
         visual: 'BOMB', projectileSpeed: 0, 
-        ccType: 'FEAR', ccDur: 2.0,
+        ccType: 'FEAR', ccDur: 1.6,
         visualHitEffect: 'FX_ULT_RED_DOOM', element: 'VOID'
     },
 
@@ -181,8 +181,8 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'mr_u5', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '靈魂爆燃', desc: '連鎖爆炸', 
-        range: 8, cast: 1.2, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 700, color: '#dc2626', 
+        range: 8, cast: 1.3, cd: 5.0, cost: 100, gain: 0, 
+        type: 'AOE', aoeRadius: 2, power: 630, color: '#dc2626', 
         visual: 'FIREBALL', projectileSpeed: 0, element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
