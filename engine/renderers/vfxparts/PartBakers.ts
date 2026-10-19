@@ -434,18 +434,19 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         ctx.stroke();
     };
     if (emblem === 'sun') {
+        // 六角外框＋內圓＋八芒星（長弦交織，沒有放射短線）＋中心圓
+        const S = C.SUN;
         ring(r * C.OUTER_RING, 0);
-        ring(r * 0.78, 0);
-        ticks(r * 0.78, r * C.OUTER_RING, C.TICKS);
+        ctx.beginPath(); ctx.arc(0, 0, r * S.CIRCLE, 0, TAU); ctx.stroke();
         ctx.beginPath();
-        for (let i = 0; i < C.SUN_RAYS; i++) {
-            const a = (i / C.SUN_RAYS) * TAU - Math.PI / 2;
-            const len = i % 2 === 0 ? r * 0.7 : r * 0.55;
-            ctx.moveTo(Math.cos(a) * r * 0.3, Math.sin(a) * r * 0.3);
-            ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+        for (let i = 0; i <= S.STAR_POINTS; i++) {
+            const a = ((i * S.STAR_STEP) % S.STAR_POINTS) / S.STAR_POINTS * TAU - Math.PI / 2;
+            const x = Math.cos(a) * r * S.STAR_R, y = Math.sin(a) * r * S.STAR_R;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
         }
+        ctx.closePath();
         ctx.stroke();
-        ring(r * 0.22, 0);
+        ctx.beginPath(); ctx.arc(0, 0, r * S.CORE, 0, TAU); ctx.stroke();
         return;
     }
     // 外框（六角環、刻度）之後的圖騰才套用 emblemRotation
@@ -529,14 +530,14 @@ function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem
     const C = VFX_PARTS.SIGIL;
     const lw = Math.max(1, r * C.LINE_RATIO);
     const outer = r * C.OUTER_RING;
-    // 透光圓盤：中心幾乎透明、外緣微亮
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, outer);
+    // 透光圓盤：中心幾乎透明、往外漸亮，外緣淡出到 0
+    const discR = outer * C.DISC.RADIUS;
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, discR);
     g.addColorStop(0, withAlpha(ramp.main, C.DISC.CENTER_ALPHA));
     g.addColorStop(C.DISC.MID_STOP, withAlpha(ramp.main, C.DISC.MID_ALPHA));
-    g.addColorStop(1, withAlpha(ramp.core, C.DISC.RIM_ALPHA));
+    g.addColorStop(1, withAlpha(ramp.main, 0));
     ctx.fillStyle = g;
-    hexPath(ctx, outer);
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, discR, 0, TAU); ctx.fill();
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     // 光暈只在烘焙時模糊

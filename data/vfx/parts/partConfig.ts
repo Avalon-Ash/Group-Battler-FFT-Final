@@ -66,8 +66,11 @@ export const VFX_PARTS = {
      */
     SIGIL: {
         LINE_RATIO: 0.035, BLUR: 2.2, GLOW_WIDTH_MUL: 2.6, GLOW_ALPHA: 0.55, MAIN_WIDTH_MUL: 0.7, MAIN_ALPHA: 0.6, CORE_WIDTH_MUL: 0.35, CORE_ALPHA: 0.95,
-        DISC: { CENTER_ALPHA: 0.04, MID_STOP: 0.75, MID_ALPHA: 0.08, RIM_ALPHA: 0.16 },
-        OUTER_RING: 0.95, TICKS: 24, SUN_RAYS: 12, RING_GAPS: 3,
+        /** 透光圓盤：半徑＝外框×RADIUS，中心→MID_STOP 漸亮，外緣淡出到 0（斷裂外框的缺口不露硬邊） */
+        DISC: { RADIUS: 0.9, CENTER_ALPHA: 0.04, MID_STOP: 0.7, MID_ALPHA: 0.12 },
+        OUTER_RING: 0.95, RING_GAPS: 3,
+        /** 太陽（2026-10-19 重新設計：舊版 24 刻度＋12 放射線像一堆柱子）：內圓＋八芒星 {POINTS/STEP}＋中心圓（半徑比例） */
+        SUN: { CIRCLE: 0.72, STAR_R: 0.7, STAR_POINTS: 8, STAR_STEP: 3, CORE: 0.24 },
     },
     /** 六角稜柱光柱：正面寬 = 寬度的 FRONT_RATIO，左右側面依光源（左上）分亮暗 */
     PILLAR: { FRONT_RATIO: 0.5, LIT_SIDE_ALPHA: 0.75, SHADE_SIDE_ALPHA: 0.4, EDGE_ALPHA: 0.9, EDGE_WIDTH: 0.06, TOP_FADE: 0.65, BASE_ELLIPSE: 0.35 },
