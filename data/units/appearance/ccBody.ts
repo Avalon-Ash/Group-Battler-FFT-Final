@@ -2,7 +2,6 @@
 // ║  ccBody — 控制狀態的「本體替換」外觀表（變羊、冰塊）       ║
 // ║  職責：變羊的羊（毛球叢、臉、腿、顏色、跳動）與凍結冰塊的   ║
 // ║        尺寸、色階、面板透明度；只有數據，沒有繪製          ║
-// ║  下游：PolymorphPainter／FrozenPainter（烘焙一次成離屏畫布） ║
 // ║  [ARCH] 尺寸單位＝單位局部座標（UnitBodyPainter 在           ║
 // ║  ctx.scale(UNIT_SCALE) 之後繪製，原點＝精靈繪製原點，腳底在   ║
 // ║  UNIT_SPRITE.footOffsetLocal）；烘焙畫布的底邊就是腳底，所以   ║

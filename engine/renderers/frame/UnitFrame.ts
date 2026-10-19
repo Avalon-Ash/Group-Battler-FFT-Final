@@ -2,9 +2,6 @@
 // ║  UnitFrame — 每幀單位視覺快照（腳點／高度／排序／錨點）    ║
 // ║  職責：每幀只算一次「繪製用」單位座標；UNIT／CORPSE／AURA、 ║
 // ║        血條、狀態、剪影、選取連線都讀同一份，不再各算各的   ║
-// ║  上游：RenderPipeline（drawWorld 開頭建立，傳入繪製用高度   ║
-// ║        函式＝已含漂浮位移）、VisualMath（SSOT 函式）、      ║
-// ║        deathMotion（屍體擊飛／墜落）                        ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
 // ║  本檔是 engine/renderers 內唯一可以呼叫                      ║
 // ║  VisualMath.getUnitGroundHeight 的地方（棘輪測試擋住）；     ║

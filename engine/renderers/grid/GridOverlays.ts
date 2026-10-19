@@ -1,8 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  GridOverlays — 地格疊層（背水一戰、地格狀態底色、區域、光源、║
 // ║  預警、射程、滑過），逐格向量六角                            ║
-// ║  上游：GridRenderStrategy（TERRAIN op 帶的 oStatus／oDanger／ ║
-// ║        射程與預警旗標）、STATUS_VISUALS.floorColor            ║
 // ║  [ARCH] 錨點＝getIsoVisualY(baseY, h) 再 applyLayerBias       ║
 // ║  'OVERLAY'（RenderSpec §2、§3）；參數 GRID_OVERLAY。          ║
 // ║  預警／射程／滑過是預烘焙的柔光格（SoftTile），不逐格描實線。║

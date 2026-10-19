@@ -7,11 +7,6 @@
 // ║  技能特效、投射物、奧義序列的路由 ── engine/renderers/RenderSpec §6║
 // ║  單位外觀 ─────────── data/units/factionSkin.ts（getFactionSkin）  ║
 // ║                       data/units/appearance/（精靈、體型、棋座色）║
-// ║                                                                  ║
-// ║  修改流程：                                                       ║
-// ║    調整技能圖示鍵        → VISUAL_OPTIONS (本檔)                  ║
-// ║    調整命中／投射物特效  → data/vfx/registry、projectile_visuals  ║
-// ║    調整陣營外觀          → data/units/factionSkin.ts              ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, AIState, ActionState, Skill } from '../../types';

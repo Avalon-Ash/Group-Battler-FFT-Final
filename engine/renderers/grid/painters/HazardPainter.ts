@@ -2,9 +2,6 @@
 // ║  HazardPainter — 持續性空間危害（熔岩、毒沼、冰封、重力場）  ║
 // ║  職責：依 HAZARD_VISUALS 在一格畫液面底＋零件層；中心格另畫  ║
 // ║        centerLayers。執行期只有 drawImage／alpha／變換。      ║
-// ║  上游：data/vfx/hazard_visuals.ts（表）、GridRenderStrategy   ║
-// ║        （HAZARD op：op.tx／op.ty＝格子頂面中心，已含漂浮）、  ║
-// ║        PartLayerPainter、TerrainLoopAtlas（液面循環影格）     ║
 // ║  [ARCH] 錨點＝applyLayerBias(op.ty, 'HAZARD')（RenderSpec §2）；║
 // ║  不做鋪設（§9），flat 層待在那格內（FLAT_MAX_RADIUS）。sprite  ║
 // ║  依（危害、版面）快取，品質階層改變時重解；每幀零配置。       ║

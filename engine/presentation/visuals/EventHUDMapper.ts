@@ -3,15 +3,6 @@
 // ║  EventHUDMapper — 戰鬥事件 → HUD 浮字映射器                     ║
 // ║                                                                  ║
 // ║  職責：將 GameEvent 轉換為 HUDSystem.addFloatingText() 呼叫      ║
-// ║  上游：VisualSystem.flush() → EventHUDMapper.process()           ║
-// ║  下游：HUDSystem（addFloatingText / completeCastText / break）   ║
-// ║                                                                  ║
-// ║  顏色來源分類 (SSOT 邊界)：                                      ║
-// ║    STATUS_VISUALS['POISON'].primaryColor → data/vfx/status_visuals  ║
-// ║    STATUS_VISUALS['REGEN'].primaryColor  → data/vfx/status_visuals  ║
-// ║    event.skill.color                     → data/skills/ (Skill 定義)║
-// ║    event.color                           → GameEvent 欄位（來自 combat 結算）║
-// ║    暴擊／吸收／預設色、字級              → DAMAGE_TEXT_COLORS、FLOATING_TEXT║
 // ║    暴擊判定：event.crit（DamageCalculator 的結果，不另用數值猜）    ║
 // ║                                                                  ║
 // ║  HUD 佈局常數來源：                                              ║

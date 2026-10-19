@@ -2,9 +2,6 @@
 // ║  ProjectilePartPainter — 投射物（零件版，V4）              ║
 // ║  職責：PROJECTILE op → 拖尾＋頭部光暈＋本體，全部是預烘焙  ║
 // ║        零件，執行期只有 drawImage／alpha／混合／變換       ║
-// ║  上游：ProjectileRenderer（op.pVisX／pVisY／pAngle／pSpin／ ║
-// ║        pTrail 已是繪製座標，含漂浮位移，RenderSpec §5）、    ║
-// ║        data/vfx/projectile_visuals.ts（look）、VFXPartStore ║
 // ║  [ARCH] 不讀技能顏色、不猜陣營：色階來自 look（共用外觀依   ║
 // ║  op.pTeam 選）。排序由 ProjectileRenderer 提交（§1），這裡  ║
 // ║  只畫。解析後的 sprite 依（外觀鍵、陣營）快取，每幀零配置。 ║

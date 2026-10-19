@@ -2,8 +2,6 @@
 // ║  UnitRenderSystem — 單位渲染對外統一入口                ║
 // ║  本檔負責：提交 RenderOp、座標轉換、層級調度            ║
 // ║                                                          ║
-// ║  繪圖實作位置：                                          ║
-// ║  → engine/renderers/units/painters/                     ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3、§4：║
 // ║  op 的 tx／y／ty／th／sortBias 一律讀 UnitFrame（每幀快照，  ║
 // ║  engine/renderers/frame/UnitFrame.ts），本檔不再取得地形高度，║

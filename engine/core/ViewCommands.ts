@@ -1,8 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ViewCommands — 表現層視覺指令                            ║
 // ║  職責：提供模擬端安全的視覺指令（受擊閃白、受擊震動）    ║
-// ║  上游：PhysicsEngine、SkillExecutor、CCManager、Hazard     ║
-// ║  下游：Agent.view、AnimationSystem                        ║
 // ║  [ARCH] 模擬端不得直連 AnimationSystem，透過此指令通道    ║
 // ╚══════════════════════════════════════════════════════════╝
 

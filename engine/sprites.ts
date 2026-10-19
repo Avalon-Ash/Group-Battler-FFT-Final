@@ -5,12 +5,6 @@
 // ║    對 UnitFactory / EnvironmentFactory 產生的 HTMLCanvasElement  ║
 // ║    做 key-based 快取，避免每幀重複繪製相同資產                   ║
 // ║    本層不持有任何繪製邏輯，只做快取存取                          ║
-// ║                                                                  ║
-// ║  呼叫端 (現役)：                                                 ║
-// ║    UnitShadowPainter / UnitCorePainter → getUnitImages          ║
-// ║    RenderDispatcher  → getObstacleSprite（預渲染優先，         ║
-// ║                        ObstacleSpriteStore；退回程序化）       ║
-// ║    GameCanvas        → getObstacleSprite (編輯器模式)           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { Role, Team, HexLayout, BodyTypeId } from "../types";

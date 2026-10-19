@@ -1,8 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  RenderSpec — 渲染座標協議 SSOT（層序、排序鍵、座標、錨點）║
 // ║  職責：記錄所有「位置／高度／排序／發射點」規則的唯一文件 ║
-// ║  上游：RenderList.sort（SUB_LAYER）、VisualMath（錨點）、  ║
-// ║        RenderPipeline（繪製用地面高度）、UnitFrame（單位）  ║
 // ║  [ARCH] 改到任何一條規則，必須在同一個 commit 更新本檔與  ║
 // ║  受影響檔案的方框檔頭；tests/CoordinateProtocol.test.ts   ║
 // ║  以只減不增的基準擋住偏離。                                ║

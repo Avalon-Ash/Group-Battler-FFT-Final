@@ -2,9 +2,6 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  GameEngine — 引擎主控制器（核心入口）                           ║
 // ║  職責：tick 主迴圈、系統初始化、Agent 生命週期派發               ║
-// ║  上游：main.ts / UI 層呼叫                                       ║
-// ║  下游：AgentManager / VFXSystem / ZoneSystem / Renderer          ║
-// ║  tick 順序：ZoneSystem → AgentManager → VFX → Renderer           ║
 // ║  [ARCH] engine.vfx 為 getter，指向 engine.renderer.vfx           ║
 // ║                                                                  ║
 // ║  [事件通道規範 SSOT Architecture Contract]                        ║

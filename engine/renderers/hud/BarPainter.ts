@@ -1,8 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  BarPainter — 單位頭頂的血條／護盾／魔力／詠唱條／控制條    ║
-// ║  上游：HUDRenderer（UnitFrame.hudAnchorY、footX；裝置縮放）、 ║
-// ║        HUD_BAR／HUD_COLORS（尺寸與顏色）、STATUS_VISUALS     ║
-// ║        （控制條名稱與顏色）、factionSkin.hud（陣營色）        ║
 // ║  [ARCH] 座標規則見 RenderSpec §3、§4（錨點＝投影頭頂上方）。  ║
 // ║  填色條是預烘焙 sprite（漸層＋光暈＋高光，依顏色、高度、裝置  ║
 // ║  縮放快取），每幀只切片 drawImage；不建立漸層、不設 shadowBlur。║

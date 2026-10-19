@@ -2,9 +2,6 @@
 // ║  PolymorphPainter — 變羊：單位本體換成一隻羊               ║
 // ║  職責：把羊（毛球叢、深色臉與腿、陣營色項圈）烘焙一次成離屏   ║
 // ║        畫布（含白色剪影變體），繪製時只有 drawImage + 變換   ║
-// ║  上游：data/units/appearance/ccBody.ts（尺寸、顏色、跳動）、  ║
-// ║        factionSkin（項圈色）、UNIT_SPRITE.footOffsetLocal     ║
-// ║  下游：UnitBodyPainter（取代精靈的那一層）                   ║
 // ║  [ARCH] 座標沿用精靈：呼叫時 ctx 已在單位局部座標（原點＝精靈  ║
 // ║  繪製原點，腳底在 footOffsetLocal，RenderSpec §4），烘焙盒的   ║
 // ║  腳底線貼在 footOffsetLocal 上，不新增座標或排序規則。陣營色   ║

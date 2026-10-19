@@ -2,8 +2,6 @@
 // ║  MotionCommands — 單位「停下／瞬移」的寫入 API（純函式）       ║
 // ║  職責：isMoving／path／px／py 與瞬移時 physics.x／y 補償的     ║
 // ║        單一寫入處（其他模組一律呼叫，不直接寫這幾個欄位）。    ║
-// ║  上游：CCManager（CC 停步、擊退／拉扯）、SkillExecutor（突進）、║
-// ║        ControlSystem／BTRegistry／StackingResolver（停步）。   ║
 // ║  [ARCH] stopMovement 以新陣列重設 path、不動 trajectory：      ║
 // ║         path 與 trajectory 在 MovementSystem 起步時是同一個    ║
 // ║         陣列，絕不可用 length = 0 清空（會連帶抹掉落點預覽）。 ║

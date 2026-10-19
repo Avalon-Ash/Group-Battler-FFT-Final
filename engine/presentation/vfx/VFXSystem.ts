@@ -1,9 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  VFXSystem — 特效系統 Orchestrator                      ║
 // ║  職責：EventBus 訂閱 / 主更新循環 / 子系統串接          ║
-// ║  上游：game.ts（bind/unbind/update 呼叫端）             ║
-// ║  下游：VFXStateManager / VFXPhysics / VFXAmbience /    ║
-// ║        AgentVFXSystem / VFXPlayer / VFXRenderer        ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { VFXStateManager } from "./state";

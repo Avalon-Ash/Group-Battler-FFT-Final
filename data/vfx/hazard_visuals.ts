@@ -2,9 +2,6 @@
 // ║  hazard_visuals — 持續性空間危害的六角零件版視覺表（SSOT）   ║
 // ║  職責：每種危害（SpatialHazard.type）每格畫哪些零件層、中心  ║
 // ║        格另外畫什麼、生成那一下播哪個登記特效                 ║
-// ║  上游：parts/partLayer（零件層格式）、PartSpec、vfxPalette   ║
-// ║  下游：HazardPainter（只做 drawImage／alpha／變換）；         ║
-// ║        EventVFXMapper（spawnVfx）                            ║
 // ║  [ARCH] 錨點＝格子頂面中心（GridRenderStrategy 的 op.ty，已含 ║
 // ║  漂浮）＋ Z_LAYERS.HAZARD 偏移（RenderSpec §2、§3）。危害在   ║
 // ║  格子自己的 HAZARD op 繪製、不做鋪設（RenderSpec §9），所以   ║

@@ -1,9 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  CombatSystem — 戰鬥系統 Orchestrator                   ║
 // ║  職責：攻擊判定 / 傷害計算 / 技能效果觸發                ║
-// ║  上游：engine/ai/BTRegistry.ts 的行為樹動作節點          ║
-// ║  下游：AgentManager.handleDeadState / VFX events         ║
-// ║  實作位置：combat/ (SkillExecutor, ProjectileSystem)     ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";

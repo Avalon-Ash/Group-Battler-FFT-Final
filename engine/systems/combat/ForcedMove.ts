@@ -6,7 +6,6 @@
 // ║        障礙物 → OBSTACLE；單位 → UNIT；向下任意高度皆可。       ║
 // ║        虛空格：擊退／拉扯照舊推出去（ring-out，落地傷害歸物理）；║
 // ║        突進絕不停在虛空（EDGE）。                               ║
-// ║  上游：CCManager.calculateKnockback、SkillExecutor（DASH）。    ║
 // ║  [ARCH] 本檔不寫 Agent 欄位、不發事件；位置與傷害由呼叫端套用。 ║
 // ║  撞擊傷害公式見 computeImpactDamage（參數在 FORCED_MOVE）。     ║
 // ╚══════════════════════════════════════════════════════════════╝

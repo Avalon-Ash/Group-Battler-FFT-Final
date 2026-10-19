@@ -3,8 +3,6 @@
 // ║  職責：本幀的大型平貼特效（法陣、震波、龜裂…）不進 RenderList ║
 // ║        排序，登記在這裡；RenderDispatcher 畫每個 TERRAIN op  ║
 // ║        時，裁切到該格頂面六邊形、貼合該格高度與漂浮位移後畫。║
-// ║  上游：VFXRenderer.submitRenderables（登記）、RenderPipeline  ║
-// ║        （每幀 begin、持有）、RenderDispatcher（逐格繪製）。  ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§2、§9：    ║
 // ║  鋪設特效不是排序 op，所以沒有「單位站在法陣上」的排序環；    ║
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║

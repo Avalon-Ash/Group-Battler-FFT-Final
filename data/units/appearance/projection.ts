@@ -2,10 +2,6 @@
 // ║  projection — 角色投影的高度 SSOT（投影中心、頭頂、血條）  ║
 // ║  職責：從「精靈資料」推導投影離腳下地面的高度，不依賴圖集    ║
 // ║        載入，所以模擬端（tick 內發射投射物）也能直接讀      ║
-// ║  上游：UNIT_SPRITE（目標高度、腳底懸浮、中心位置）、        ║
-// ║        BODY_TYPE_PROFILE.heightScale、HUD_ANCHOR            ║
-// ║  下游：VisualMath.projectionCenterAt（發射點＝受擊點）、    ║
-// ║        UnitFrame.hudAnchorY、UnitCorePainter、EventHUDMapper ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §4。測試      ║
 // ║  tests/CoreProjection.test.ts 比對本檔與                    ║
 // ║  SpriteUnitRenderer.getHeadHeight（實際圖集），不得漂移。   ║

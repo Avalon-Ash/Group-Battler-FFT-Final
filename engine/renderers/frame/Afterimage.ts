@@ -2,8 +2,6 @@
 // ║  Afterimage — 衝刺／高速移動殘影的位置換算（純函式）       ║
 // ║  職責：把 Agent.trailHistory 的世界座標點，換算成「相對於    ║
 // ║        單位目前腳底繪製點」的局部偏移與不透明度              ║
-// ║  上游：UnitFrame.fill（呼叫，傳入繪製用高度）、             ║
-// ║        UnitAfterimagePainter（消費偏移並畫殘影）            ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §10。      ║
 // ║  局部座標原點＝單位目前腳底繪製點（UnitSystem.drawAssembly   ║
 // ║  的 translate）：dx＝殘影腳點 x − footX；dy＝殘影腳底繪製 Y  ║

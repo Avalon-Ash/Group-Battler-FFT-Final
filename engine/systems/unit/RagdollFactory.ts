@@ -1,8 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  RagdollFactory — Ragdoll 骨骼快照產生器                 ║
 // ║  職責：依 Agent 死亡瞬間狀態建立 RagdollBone[] 初始快照  ║
-// ║  上游：AgentManager.handleDeadState（死亡瞬間呼叫一次）  ║
-// ║  下游：UnitDeathPainter.getKnockOffset 取軀幹初速        ║
 // ║  [ARCH] 初始速度由 impactX/Y 決定，供 deathMotion 推導   ║
 // ╚══════════════════════════════════════════════════════════╝
 

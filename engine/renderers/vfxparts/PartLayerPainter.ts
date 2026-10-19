@@ -3,8 +3,6 @@
 // ║  職責：把一層解析成 PartSprite（resolvePartLayer，呼叫端快取）║
 // ║        並在錨點畫出份數／繞行／上升／自轉／律動／抖動        ║
 // ║        （drawPartLayer，每幀只做 drawImage 與變換，零配置）  ║
-// ║  上游：VFXPartStore（烘焙快取）、VFX_PARTS.LAYER（抖動參數） ║
-// ║  下游：StatusPartPainter（單位錨點）、HazardPainter（格子）  ║
 // ║  [ARCH] 錨點由呼叫端給（螢幕座標，已含漂浮與高度）；這裡只   ║
 // ║  加相對偏移。flat 層在地面平面旋轉到版面方向（align）再壓扁 ║
 // ║  ISO_SCALE_Y；prism（立體零件）的版面在解析時注入、不旋轉。  ║

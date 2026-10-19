@@ -2,9 +2,6 @@
 // ║  UnitIndicatorPainter — 施法 AOE 地面預警（全部是零件）     ║
 // ║  職責：施法者腳下的範圍光＋法陣（magicCircle 外層，陣營樣式，║
 // ║        慢轉），隨詠唱進度從中心擴張                          ║
-// ║  上游：UnitRenderSystem.paintAoeIndicator（GroundDrapeLayer   ║
-// ║        的繪製函式，原點＝施法者腳下地平面）、AOE_INDICATOR、  ║
-// ║        element_ramps（陣營×技能屬性色階）                     ║
 // ║  [ARCH] 只經 GroundDrape 鋪設繪製（RenderSpec §9 非粒子鋪設）；║
 // ║  平面零件在地面旋轉到版面方向再壓扁 ISO_SCALE_Y。sprite 依    ║
 // ║  （色階、陣營、範圍格數）快取，每幀零配置。                   ║

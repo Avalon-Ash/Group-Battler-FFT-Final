@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  GridRenderStrategy — 地塊／障礙／危害／疊層 RenderOp 提交 ║
 // ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
-// ║  上游：GridCache（格心、高度、鄰格遮罩）                   ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
 // ║  op.y＝足跡 Y（不含高度，與單位同一把尺），op.ty＝繪製 Y  ║
 // ║  漂浮位移（§5，VisualMath.floatBobAt）只加在 op.ty。       ║

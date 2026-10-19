@@ -1,9 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  status_parts — 狀態／控制效果的六角零件版視覺表（SSOT）   ║
 // ║  職責：每個 STATUS_VISUALS 鍵用哪些零件、掛在哪個錨點、怎麼動 ║
-// ║  上游：parts/partLayer（零件層格式）、PartSpec、vfxPalette   ║
-// ║  下游：StatusPartPainter（只做 drawImage／alpha／變換）；     ║
-// ║        StatusActivity（什麼時候算「這個狀態成立」）          ║
 // ║  [ARCH] 錨點定義見 engine/renderers/RenderSpec.ts §4：       ║
 // ║  GROUND＝腳下（UnitFrame.floorY − physics.z）、              ║
 // ║  BODY＝投影中心、HEAD＝頭頂 + HEAD_MARGIN。座標一律讀       ║

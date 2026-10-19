@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ProjectileRenderer — 投射物 RenderOp 提交                 ║
 // ║  職責：起終點（螢幕 Y）轉未投影 Y 插值，再投影成 op.y／ty  ║
-// ║  上游：ProjectileSystem（起點＝VisualMath.getCoreAnchor）  ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§3；     ║
 // ║  op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓投射物永遠  ║
 // ║  在最上層（不是 z 加權，排序鍵不含高度）。漂浮地圖上發射格  ║

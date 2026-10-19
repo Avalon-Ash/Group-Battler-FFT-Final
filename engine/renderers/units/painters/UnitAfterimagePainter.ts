@@ -2,9 +2,6 @@
 // ║  UnitAfterimagePainter — 衝刺／高速移動殘影                ║
 // ║  職責：在本體後面畫幾個「同一張精靈影格」的半透明複製，      ║
 // ║        染成陣營軌跡色，沿 trailHistory 的過去位置遞減淡出    ║
-// ║  上游：UnitBodyPainter（本體之前呼叫）、UnitFrame.ghosts     ║
-// ║        （偏移已換算好，Afterimage.ts）、SpriteUnitRenderer.   ║
-// ║        resolveFrame（與本體同一影格、同一朝向）              ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §10：      ║
 // ║  ctx 原點＝單位目前腳底繪製點；殘影屬於單位 op 的一部分，    ║
 // ║  跟著單位排序，沒有新的 op。                                 ║

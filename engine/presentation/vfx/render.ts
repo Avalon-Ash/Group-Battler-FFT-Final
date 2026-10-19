@@ -6,7 +6,6 @@
 // ║        其餘貼地特效以前緣排序（sortBias＝gHalfH＋           ║
 // ║        GROUND_SORT_BIAS），不做任何法陣抬升。空中特效以     ║
 // ║        足跡 Y＋固定 AIR_SORT_BIAS 排序，高度 z 不進鍵。     ║
-// ║  上游：VFXSystem 狀態、RenderPipeline 的繪製用地面高度     ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §2、§3、§5、  ║
 // ║  §7、§9；貼花跟地塊浮動；光束兩端與投射物發射點各加所在格  ║
 // ║  的漂浮位移（§5，只動 op.ty／繪製位置，不進排序鍵）。      ║

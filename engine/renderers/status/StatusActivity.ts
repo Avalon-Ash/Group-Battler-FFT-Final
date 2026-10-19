@@ -1,8 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  StatusActivity — 「這個狀態現在成立嗎」的純判斷           ║
 // ║  職責：Agent 欄位 → STATUS_PARTS 鍵是否成立（唯讀、零配置） ║
-// ║  上游：Agent 狀態欄位（計時器、visualStatus、aiState）      ║
-// ║  下游：StatusPartPainter                                    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { Agent } from "../../core/Agent";

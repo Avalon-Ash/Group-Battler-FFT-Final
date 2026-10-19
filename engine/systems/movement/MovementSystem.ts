@@ -1,9 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  MovementSystem — 單位移動路徑執行                      ║
 // ║  職責：路徑跟隨 / 等角 3D 座標插值 / 跳躍拋物線          ║
-// ║  上游：ai.ts MOVE 節點寫入 agent.path                    ║
-// ║  下游：PhysicsSystem（速度驅動）/ AnimationSystem（狀態）║
-// ║  實作位置：movement/ (MotionEngine, StackingResolver)    ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../../core/Agent";

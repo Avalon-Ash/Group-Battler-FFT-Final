@@ -3,7 +3,6 @@
 // ║  職責：TERRAIN 畫完地塊、細節與基礎疊層後，接著畫蓋到這格   ║
 // ║        的貼地鋪設特效（GroundDrapeLayer），所以站在這格的   ║
 // ║        單位（排在該格 TERRAIN 之後）棋座壓在法陣上。       ║
-// ║  上游：RenderList.sort、RenderPipeline.drawWorld            ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§3、§9。  ║
 // ║         繪製點對齊裝置像素（setDeviceGrid／snap，§3），     ║
 // ║         排序鍵 op.y 不動。                                  ║

@@ -1,9 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ShieldPainter — 護盾稜柱（全部是預烘焙零件）              ║
 // ║  職責：貼合角色頭頂高度的六角稜柱＋上升掃描環＋上下緣陣營環 ║
-// ║  上游：UnitFrame（footX、bodyCenterY，經 StatusOrchestrator）、║
-// ║        SpriteUnitRenderer.getHeadHeight（頭頂高度）、        ║
-// ║        factionSkin.shield.accentRamp（陣營色階）、SHIELD_VISUAL║
 // ║  [ARCH] 稜柱底面＝腳底（bodyCenterY − getVisualBodyCenterY 的 ║
 // ║  反推，見 computeShieldGeometry），飛行單位的 bodyCenterY 已含 ║
 // ║  升空，護盾自動跟著升。稜柱是 prism 零件（等距投影與版面烘焙 ║

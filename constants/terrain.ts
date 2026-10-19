@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  constants/terrain.ts — 地形、覆蓋層、背景與障礙物常數 SSOT  ║
 // ║  職責：定義戰術疊層色、地格覆蓋、背景特效、地形皮膚與障礙物 ║
-// ║  下游：engine/renderers/grid、TerrainRenderer、painters   ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { HEX_SIZE, BLOCK_HEIGHT } from './geometry';

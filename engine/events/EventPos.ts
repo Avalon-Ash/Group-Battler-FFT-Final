@@ -3,7 +3,6 @@
 // ║  規則：pos.z 若存在，一律是「世界高度」（模擬高度，        ║
 // ║        engine.getTerrainHeight 的尺度，含空中高度）。     ║
 // ║        沒有 z＝地面上某處，由消費端查該格高度。           ║
-// ║  上游：各 System 的事件發射端；下游：EventVFXMapper 等    ║
 // ║  [ARCH] 發射端不得再手寫 pos 物件字面量                   ║
 // ║  （tests/CoordinateProtocol.test.ts 的 event.inlinePos）。║
 // ║  規格見 engine/renderers/RenderSpec.ts §3 事件座標。      ║

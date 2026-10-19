@@ -2,9 +2,6 @@
 // ║  StatusPartPainter — 狀態／控制效果的六角零件繪製           ║
 // ║  職責：依 STATUS_PARTS 把預烘焙零件（PartSprite）畫在單位    ║
 // ║        腳下／投影中心／頭頂；執行期只有 drawImage 與變換     ║
-// ║  上游：data/vfx/status_parts.ts（表）、StatusActivity（成立）、║
-// ║        UnitFrame（floorY、footX）、projection（頭頂／中心高度）║
-// ║        、PartLayerPainter（共用零件層的解析與繪製）           ║
 // ║  [ARCH] 錨點：GROUND＝floorY − physics.z；BODY＝投影中心；    ║
 // ║  HEAD＝頭頂 + HEAD_MARGIN（RenderSpec §4）。總覽層繪製（單位  ║
 // ║  之後），所以貼地層限制在腳下那格（GROUND_MAX_RADIUS），不做   ║

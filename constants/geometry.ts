@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  constants/geometry.ts — 地圖幾何、尺寸、投影與錨點常數 SSOT  ║
 // ║  職責：定義六角網格尺寸、地塊高度、單位縮放與視覺錨點      ║
-// ║  下游：engine/math、engine/renderers、engine/systems      ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { HexLayout, ZoneConfig } from '../types';

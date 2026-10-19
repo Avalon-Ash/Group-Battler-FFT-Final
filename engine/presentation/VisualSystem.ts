@@ -10,14 +10,6 @@
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
 // ║    EventVFXMapper  → 粒子特效事件 → VFXSystem                    ║
 // ║    SequenceSystem  → CAST_START 技能序列排程                      ║
-// ║                                                                  ║
-// ║  上游：GameEngine.tick → renderer.ts → VisualSystem.flush()      ║
-// ║  下游：HUDSystem (浮字物件池) / VFXSystem (粒子) / SequenceSystem ║
-// ║                                                                  ║
-// ║  [不在此管理的項目]                                              ║
-// ║    單位本體外觀 → data/units/appearance/                         ║
-// ║    動畫狀態機   → engine/presentation/AnimationSystem.ts         ║
-// ║    HUD 浮字物理 → engine/presentation/hud.ts                     ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";

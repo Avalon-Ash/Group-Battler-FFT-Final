@@ -2,9 +2,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  ZoneSystem — 地形事件與空間陷阱管理                     ║
 // ║  職責：縮圈（格子崩塌）與背水一戰（Last Stand）          ║
-// ║  上游：GameEngine.tick                                    ║
-// ║  下游：bus TILE_COLLAPSED → VFXSystem 清該格粒子          ║
-// ║        bus ZONE_SHRUNK／LAST_STAND_TRIGGERED → 視覺、音訊 ║
 // ║        圈外單位：applyLethal → agentManager.handleDeadState║
 // ║  [FIX] 清除格子後發送 TILE_COLLAPSED 事件（AOE VFX 同步）║
 // ╚══════════════════════════════════════════════════════════╝

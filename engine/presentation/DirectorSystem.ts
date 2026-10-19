@@ -2,8 +2,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  DirectorSystem — 戰鬥演出導演                           ║
 // ║  職責：CameraSystem 目標決策 / 戲劇性鏡頭切換邏輯        ║
-// ║  上游：GameEngine.tick / 戰鬥事件（DEATH / KILL）        ║
-// ║  下游：CameraSystem.setTarget()                          ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine, Agent } from "../game";

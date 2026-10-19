@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  constants/vfx.ts — 粒子、特效、法陣、投射物與鋪設常數 SSOT  ║
 // ║  職責：定義特效渲染偏移、法陣幾何、鋪設模式、粒子特性與預算 ║
-// ║  下游：engine/presentation/vfx、ParticleRenderer、painters║
 // ╚══════════════════════════════════════════════════════════╝
 
 import type { ParticleType } from '../types/VFXSchema';

@@ -1,7 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  constants/units.ts — 單位外觀、投影、動畫與視覺動態 SSOT    ║
 // ║  職責：定義單位階梯過渡、遮擋、核心投影、幀快取、殘影與精靈 ║
-// ║  下游：engine/renderers/units、engine/renderers/frame      ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, UNIT_SCALE } from './geometry';

@@ -2,8 +2,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  AgentManager — 單位生命週期管理                         ║
 // ║  職責：addAgent / handleDeadState / updateDeathState      ║
-// ║  上游：GameEngine.tick（每幀呼叫 updateDeathState）       ║
-// ║  下游：RagdollFactory / EventBus(AGENT_DIED, AGENT_RESET)  ║
 // ║  [ARCH] deathTimer 由此累計，UnitDeathPainter 消費        ║
 // ║  ragdoll 快照由此建立，供 UnitDeathPainter 取軀幹初速    ║
 // ╚══════════════════════════════════════════════════════════╝
