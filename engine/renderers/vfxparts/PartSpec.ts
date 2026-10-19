@@ -14,6 +14,10 @@ export type SigilEmblem = 'sun' | 'lionShield' | 'hornSkull' | 'invTriangle';
 export type ShardShape = 'crystal' | 'hex' | 'rock' | 'bone';
 /** 光束磚的邊緣樣式：乾淨光管、兩側虛線（死光）、鋸齒（閃電）、珠鏈（血鏈） */
 export type BeamEdge = 'clean' | 'dashed' | 'zigzag' | 'beads';
+/** 詠唱法陣：outer＝光暈圓盤＋雙環＋符文帶，inner＝星形＋內環；兩層分開烘焙以便反向旋轉 */
+export type MagicCircleLayer = 'outer' | 'inner';
+/** 法陣風格：LION＝六芒星＋圓潤符文（獅心），ASH＝倒三角＋斷弧＋折線符文（灰燼） */
+export type MagicCircleStyle = 'LION' | 'ASH';
 /** 六角稜柱的材質：glass＝六面半透明（護盾），solid＝只畫朝向鏡頭的面（冰晶塊） */
 export type PrismStyle = 'glass' | 'solid';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
@@ -50,6 +54,7 @@ export type PartSpec =
     | { kind: 'droplet'; size: number; ramp: VFXRampId }
     | { kind: 'beam'; width: number; ramp: VFXRampId; edge: BeamEdge; seed?: number }
     | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId }
+    | { kind: 'magicCircle'; radius: number; ramp: VFXRampId; layer: MagicCircleLayer; style: MagicCircleStyle; seed?: number }
     /** 立體零件：等距投影與版面（FLAT／POINTY）烘焙在 sprite 裡，繪製時不可再旋轉或壓扁 */
     | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle };
 
@@ -127,6 +132,8 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             return { kind: 'beam', width: quantizeSize(spec.width), ramp: spec.ramp, edge: spec.edge, seed: spec.edge === 'zigzag' ? quantizeSeed(spec.seed) : 0 };
         case 'missile':
             return { kind: 'missile', shape: spec.shape, length: quantizeSize(spec.length), ramp: spec.ramp };
+        case 'magicCircle':
+            return { kind: 'magicCircle', radius: quantizeSize(spec.radius), ramp: spec.ramp, layer: spec.layer, style: spec.style, seed: quantizeSeed(spec.seed) };
         case 'prism': {
             const step = VFX_PARTS.PRISM.STEP;
             const q = (v: number) => Math.max(step, Math.round(v / step) * step);
@@ -186,6 +193,12 @@ export function partBounds(n: PartSpec): PartBounds {
             const d = (n.radius * S.OUTER_RING + haloHalf) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
+        case 'magicCircle': {
+            // 光暈模糊會往外擴 BLUR×2，外環光暈再寬 HALO_WIDTH_MUL 倍線寬
+            const M = VFX_PARTS.MAGIC;
+            const d = (n.radius + M.BLUR * 2 + M.RING_A.W * M.HALO_WIDTH_MUL) * 2 + pad * 2;
+            return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+        }
         case 'glow':
         case 'rays': {
             const d = n.radius * 2 + pad * 2;
@@ -194,7 +207,7 @@ export function partBounds(n: PartSpec): PartBounds {
         case 'ring': {
             // 六角頂點（內角 120°）的斜接會讓光暈描邊外凸 halfWidth / sin(60°)
             const halfHalo = n.thickness * VFX_PARTS.RING.HALO_WIDTH / 2;
-            const d = (n.radius + halfHalo / Math.sin(Math.PI / 3)) * 2 + pad * 2;
+            const d = (n.radius + halfHalo / Math.sin(Math.PI / 3) + VFX_PARTS.RING.HALO_BLUR * 2) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
         case 'slashArc': {

@@ -29,7 +29,7 @@ import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
-import { VFX_BIOME_GAIN } from "../../constants";
+import { VFX_BIOME_GAIN, RENDER_QUALITY } from "../../constants";
 
 let allAssetsReady = typeof Image === 'undefined';
 
@@ -130,6 +130,9 @@ export class RenderPipeline {
         // 1. Clear & Background
         RenderStats.begin('background');
         ctx.resetTransform(); 
+        // 畫布改尺寸會重設 context 狀態，所以每幀設定（縮小取樣品質，RENDER_QUALITY.IMAGE_SMOOTHING）
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = RENDER_QUALITY.IMAGE_SMOOTHING;
         ctx.fillStyle = '#020617'; 
         ctx.fillRect(0, 0, pW, pH);
         ctx.scale(dpr, dpr);
@@ -234,6 +237,7 @@ export class RenderPipeline {
         });
 
         // 單一渲染 pass：依據深度排序後的順序進行繪製（包含存活單位與死亡布娃娃）
+        RenderDispatcher.setDeviceGrid(ctx);
         for (let i = 0; i < this.renderList.count; i++) {
             const op = this.renderList.ops[i];
             if (CtxOpCounter.enabled) {

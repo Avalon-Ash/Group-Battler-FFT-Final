@@ -339,14 +339,22 @@ export const GRID_OVERLAY = {
     LIGHT: { MAX_ALPHA: 0.5, GAIN: 0.4 },
     /** 預警／射程／滑過的疊層再往上 LIFT px */
     MARK_LIFT: 2,
-    WARNING: { FREQ: 12, RADIUS: 0.95, FILL: '#ff0000', FILL_ALPHA: 0.6, FILL_PULSE: 0.4, STROKE: '#ffffff', LINE_W: 2, STROKE_ALPHA: 0.3, STROKE_PULSE: 0.5 },
-    RANGE: { FILL_RADIUS: 0.95, FILL_ALPHA: 0.12, STROKE_RADIUS: 0.9, LINE_W: 1.5, STROKE_ALPHA: 0.3 },
-    HOVER: { STROKE: '#ffffff', LINE_W: 2, ALPHA: 0.8 },
+    /**
+     * 預警／射程／滑過（2026-10-19 改成預烘焙的柔光格：半透明底＋模糊內緣光＋淡細芯線）。
+     * 舊版逐格描 1.5～2 px 實線，AOE 範圍內相鄰格的雙邊排成密集網格，是畫面「毛刺、髒」的主因。
+     * FILL_ALPHA＝底色、EDGE_ALPHA＝內緣光、CORE_ALPHA＝細芯線；預警整格不透明度在 ALPHA_MIN～＋ALPHA_PULSE 間以 FREQ 律動。
+     */
+    WARNING: { FREQ: 5, ALPHA_MIN: 0.65, ALPHA_PULSE: 0.35, FILL: '#ff2a1f', EDGE: '#ffb0a6', FILL_ALPHA: 0.75, EDGE_ALPHA: 0.8, CORE_ALPHA: 0.45 },
+    RANGE: { FILL_ALPHA: 0.1, EDGE_ALPHA: 0.55, CORE_ALPHA: 0.3 },
+    HOVER: { STROKE: '#ffffff', FILL_ALPHA: 0, EDGE_ALPHA: 0.6, CORE_ALPHA: 0.55 },
+    /** 柔光格烘焙：倍率、底色與內緣半徑（格半徑比例）、內緣光線寬與模糊（px）、芯線寬、畫布邊距（px） */
+    TILE: { BAKE_SCALE: 2, FILL_RADIUS: 0.95, EDGE_RADIUS: 0.86, EDGE_W: 3, EDGE_BLUR: 2.5, CORE_W: 0.8, PAD: 6 },
 } as const;
 
 /**
  * 地格區域效果（ZoneRenderer，GridOverlays 呼叫）：波紋從中心擴張到 zoneRadius＋WAVE_OVERSHOOT 格，
- * 寬 WAVE_WIDTH 格；敵方區域固定用 ENEMY_COLOR 並以虛線描邊界。
+ * 寬 WAVE_WIDTH 格；敵方區域固定用 ENEMY_COLOR。2026-10-19 波紋與邊界改成柔光格（SoftTile，GRID_OVERLAY.TILE），
+ * 不再逐格描實線雙環與虛線：波紋＝內緣光 WAVE_EDGE_ALPHA＋芯線 WAVE_CORE_ALPHA，整格不透明度＝波紋強度、放大 1＋強度×WAVE_SCALE_GROW。
  */
 export const ZONE_RENDER = {
     WAVE_OVERSHOOT: 0.5,
@@ -354,17 +362,16 @@ export const ZONE_RENDER = {
     MIN_WAVE: 0.05,
     ENEMY_COLOR: '#ef4444',
     ENEMY_ALPHA: 0.2,
-    INSIDE_ALPHA: 0.15,
+    INSIDE_ALPHA: 0.12,
     FILL_RADIUS: 0.95,
-    WAVE_LINE_W: 2,
-    WAVE_LINE_GROW: 2,
-    WAVE_RADIUS: 0.9,
-    WAVE_RADIUS_GROW: 0.1,
-    WAVE_INNER_RATIO: 0.7,
-    /** 距邊界不到 BORDER_BAND 格算邊界格 */
+    WAVE_EDGE_ALPHA: 0.6,
+    WAVE_CORE_ALPHA: 0.25,
+    WAVE_SCALE_GROW: 0.08,
+    /** 距邊界不到 BORDER_BAND 格算邊界格；邊界格的內緣光（敵方較亮以便辨識）與芯線 */
     BORDER_BAND: 0.5,
-    BORDER_ALPHA: 0.5,
-    ENEMY_DASH: [4, 4] as number[],
+    BORDER_EDGE_ALPHA: 0.35,
+    ENEMY_BORDER_EDGE_ALPHA: 0.5,
+    BORDER_CORE_ALPHA: 0.2,
 } as const;
 
 // SSOT: Background Renderer Colors
@@ -438,31 +445,33 @@ export const VFX_RENDER = {
  * 尺寸以格（HEX_SIZE）或 px 為單位；ROT／FREQ 是 rad/s；ALPHA 是零件不透明度。
  */
 export const CAST_RING = {
-    /** 一般詠唱環半徑（格）、律動幅度（半徑比例）與角頻率 */
+    /**
+     * 詠唱法陣（2026-10-19 重新設計：VFX_PARTS.MAGIC 的 magicCircle 零件，外層與內層反向慢轉）。
+     * 舊版是 3～6 rad/s 高速旋轉的實線六角環，尖角閃爍造成毛刺感；現在旋轉放慢、律動放輕、詠唱開始時淡入。
+     */
+    /** 一般詠唱法陣半徑（格）、律動幅度（半徑比例）與角頻率 */
     BASE_SIZE: 0.95,
-    PULSE: 0.05,
-    PULSE_FREQ: 12,
-    /** 外環／內環：粗細（px）、內環半徑比例、旋轉速度、不透明度 */
-    RING_THICKNESS: 3,
-    INNER_RATIO: 0.7,
-    INNER_THICKNESS: 1.5,
-    ROT_SPEED: 3,
-    INNER_ROT_SPEED: 6,
-    RING_ALPHA: 0.9,
-    INNER_ALPHA: 0.55,
+    PULSE: 0.025,
+    PULSE_FREQ: 2.4,
+    /** 外層／內層旋轉速度（rad/s，內層反向）與不透明度 */
+    ROT_SPEED: 0.45,
+    INNER_ROT_SPEED: 0.8,
+    RING_ALPHA: 0.95,
+    INNER_ALPHA: 0.85,
+    /** 詠唱開始的淡入時間（秒） */
+    FADE_IN_S: 0.18,
     /** AOE 擴張環的起始不透明度（越接近完成越淡） */
-    AOE_ALPHA: 0.7,
-    /** 奧義聖域半徑（格）：陣營紋章法陣＋反向外環＋中心光 */
+    AOE_ALPHA: 0.55,
+    /** 奧義聖域半徑（格）：法陣外層＋內層＋陣營紋章（淡）＋中心光 */
     ULT_SIZE: 2.5,
-    ULT_ROT_SPEED: 1.5,
-    ULT_INNER_ROT_MUL: 0.8,
-    ULT_SIGIL_ALPHA: 0.85,
-    ULT_RING_THICKNESS: 3,
-    ULT_RING_ALPHA: 0.6,
+    ULT_ROT_SPEED: 0.3,
+    ULT_INNER_ROT_MUL: 1.6,
+    ULT_SIGIL_ALPHA: 0.4,
+    ULT_RING_ALPHA: 0.95,
     ULT_CORE_RATIO: 0.4,
-    ULT_CORE_ALPHA: 0.35,
-    ULT_CORE_PULSE: 0.2,
-    ULT_CORE_PULSE_FREQ: 15,
+    ULT_CORE_ALPHA: 0.3,
+    ULT_CORE_PULSE: 0.12,
+    ULT_CORE_PULSE_FREQ: 4,
     /** 奧義能量柱：最大高度與開始顯示的最小高度（px）、寬度、所在環（聖域半徑比例）、不透明度與閃爍 */
     ULT_PILLAR_H: 150,
     ULT_PILLAR_MIN_H: 5,
@@ -479,10 +488,10 @@ export const CAST_RING = {
     MOTE_CYCLE_SPEED: 2.5,
     MOTE_SPIN: 5,
     MOTE_ALPHA: 0.85,
-    /** 環零件的混合模式：鋪設的離屏貼回（GROUND_DRAPE.PLANE_BLEND）與施法者那格直接畫要一致 */
-    BLEND: 'source-over' as GlobalCompositeOperation,
-    /** 環的光暈超出幾何半徑的餘量（px），判斷蓋到哪些格 */
-    GLOW_PAD: 6,
+    /** 法陣的混合模式：screen 讓光線疊在地面上有透光感、不會像加法那樣在亮地表洗白；鋪設的離屏貼回（GROUND_DRAPE.PLANE_BLEND）要一致 */
+    BLEND: 'screen' as GlobalCompositeOperation,
+    /** 法陣光暈超出幾何半徑的餘量（px），判斷蓋到哪些格 */
+    GLOW_PAD: 8,
 } as const;
 
 export const GROUND_DRAPE = {
@@ -490,8 +499,8 @@ export const GROUND_DRAPE = {
     MIN_HALF_H: 20,
     /** 非粒子鋪設（施法 AOE 預警等繪製函式）貼回主畫布的混合模式：與原本直接繪製的 screen 一致 */
     PAINTER_BLEND: 'screen' as GlobalCompositeOperation,
-    /** 懸空平面（詠唱環）貼回的混合模式：環原本以一般疊加繪製（深色技能色在 screen 下會消失） */
-    PLANE_BLEND: 'source-over' as GlobalCompositeOperation,
+    /** 懸空平面（詠唱法陣）貼回的混合模式：與 CAST_RING.BLEND 一致（2026-10-19 法陣改成發光線條，screen） */
+    PLANE_BLEND: 'screen' as GlobalCompositeOperation,
     /** 繪製函式類鋪設的離屏畫布半邊長（× halfW，正方形）：涵蓋 AOE 預警的範圍光（AOE_INDICATOR.GLOW_RADIUS_MUL 1.4 倍範圍） */
     PAINTER_EXTENT: 1.5,
     /** 施法 AOE 預警的涵蓋半徑額外加的格數比例（描邊光暈超出幾何半徑的部分） */
@@ -1009,19 +1018,18 @@ export const SHIELD_VISUAL = {
 /** 單位腳下接地陰影（UnitShadowPainter；貼圖 VFXFactory SHADOW_BLOB，multiply）。WIDTH＝陰影寬（UNIT_SCALE 前），BASE_HALF＝底座貼圖半邊長 */
 /**
  * 施法 AOE 地面預警（UnitIndicatorPainter，零件、只經 GroundDrape 鋪設）：範圍＝aoeRadius 格，隨詠唱進度從中心擴張。
+ * 2026-10-19：實線六角雙環改成 magicCircle 外層（光暈圓盤＋雙環＋符文，陣營樣式），慢轉、律動放慢；底下仍墊一層範圍光。
  * 不透明度＝ALPHA＋sin(t×PULSE_FREQ)×PULSE_AMP，各零件再乘自己的倍率；光暈半徑＝範圍×GLOW_RADIUS_MUL。
  */
 export const AOE_INDICATOR = {
-    ALPHA: 0.3,
-    PULSE_AMP: 0.1,
-    PULSE_FREQ: 8,
+    ALPHA: 0.5,
+    PULSE_AMP: 0.08,
+    PULSE_FREQ: 3,
     GLOW_RADIUS_MUL: 1.4,
-    GLOW_ALPHA_MUL: 1,
-    RING_THICKNESS: 2,
-    RING_ALPHA_MUL: 1.5,
-    INNER_RATIO: 0.8,
-    INNER_THICKNESS: 1,
-    INNER_ALPHA_MUL: 0.8,
+    GLOW_ALPHA_MUL: 0.5,
+    CIRCLE_ALPHA_MUL: 1,
+    /** 法陣旋轉速度（rad/s） */
+    ROT_SPEED: 0.2,
 } as const;
 
 /**
@@ -1284,6 +1292,11 @@ export const FLOAT_BOB = {
  * 渲染解析度與自適應品質調度參數 SSOT。
  */
 export const RENDER_QUALITY = {
+    /**
+     * drawImage 縮小取樣品質（主畫布、貼地鋪設離屏、烘焙畫布）。預設 'low' 是無 mipmap 的雙線性，
+     * 2 倍烘焙的障礙物、零件縮小繪製與壓扁的貼地法陣都會出現鋸齒／毛刺（2026-10-19 使用者回報）。
+     */
+    IMAGE_SMOOTHING: 'high' as ImageSmoothingQuality,
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
     IGNORE_FRAME_MS: 250,

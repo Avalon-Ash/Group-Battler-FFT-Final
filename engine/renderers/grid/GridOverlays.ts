@@ -5,6 +5,7 @@
 // ║        射程與預警旗標）、STATUS_VISUALS.floorColor            ║
 // ║  [ARCH] 錨點＝getIsoVisualY(baseY, h) 再 applyLayerBias       ║
 // ║  'OVERLAY'（RenderSpec §2、§3）；參數 GRID_OVERLAY。          ║
+// ║  預警／射程／滑過是預烘焙的柔光格（SoftTile），不逐格描實線。║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { ZoneRenderer } from "./ZoneRenderer";
@@ -15,6 +16,14 @@ import { ActiveZone } from "../../systems/ZoneSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { GRID_OVERLAY } from "../../../constants";
+import { SoftTile, type SoftTileLook } from "./SoftTile";
+
+const LOOK: SoftTileLook = { fill: '', edge: '', fillAlpha: 0, edgeAlpha: 0, coreAlpha: 0 };
+
+function drawTile(ctx: CanvasRenderingContext2D, fill: string, edge: string, fillAlpha: number, edgeAlpha: number, coreAlpha: number, size: number, layout: HexLayout): void {
+    LOOK.fill = fill; LOOK.edge = edge; LOOK.fillAlpha = fillAlpha; LOOK.edgeAlpha = edgeAlpha; LOOK.coreAlpha = coreAlpha;
+    SoftTile.draw(ctx, LOOK, size, layout);
+}
 
 export const GridOverlays = {
     drawOverlays(
@@ -105,37 +114,19 @@ export const GridOverlays = {
             if (isWarning) {
                 const W = G.WARNING;
                 const pulse = (Math.sin(globalTime * W.FREQ) + 1) / 2;
-                ctx.fillStyle = W.FILL;
-                ctx.globalAlpha = W.FILL_ALPHA + pulse * W.FILL_PULSE;
-                HexGeometry.traceHex(ctx, 0, 0, size * W.RADIUS, true, layout);
-                ctx.fill();
-
-                ctx.strokeStyle = W.STROKE;
-                ctx.lineWidth = W.LINE_W;
-                ctx.globalAlpha = W.STROKE_ALPHA + pulse * W.STROKE_PULSE;
-                HexGeometry.traceHex(ctx, 0, 0, size * W.RADIUS, true, layout);
-                ctx.stroke();
+                ctx.globalAlpha = W.ALPHA_MIN + pulse * W.ALPHA_PULSE;
+                drawTile(ctx, W.FILL, W.EDGE, W.FILL_ALPHA, W.EDGE_ALPHA, W.CORE_ALPHA, size, layout);
             }
 
             ctx.globalCompositeOperation = 'screen';
-            if (isRange) { 
+            ctx.globalAlpha = 1;
+            if (isRange) {
                 const R = G.RANGE;
-                ctx.fillStyle = rangeColor;
-                ctx.globalAlpha = R.FILL_ALPHA;
-                HexGeometry.traceHex(ctx, 0, 0, size * R.FILL_RADIUS, true, layout);
-                ctx.fill();
-                ctx.strokeStyle = rangeColor;
-                ctx.lineWidth = R.LINE_W;
-                ctx.globalAlpha = R.STROKE_ALPHA;
-                HexGeometry.traceHex(ctx, 0, 0, size * R.STROKE_RADIUS, true, layout);
-                ctx.stroke();
+                drawTile(ctx, rangeColor, rangeColor, R.FILL_ALPHA, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
             }
-            if (isHover) { 
-                ctx.strokeStyle = G.HOVER.STROKE;
-                ctx.lineWidth = G.HOVER.LINE_W;
-                ctx.globalAlpha = G.HOVER.ALPHA;
-                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
-                ctx.stroke();
+            if (isHover) {
+                const H = G.HOVER;
+                drawTile(ctx, H.STROKE, H.STROKE, H.FILL_ALPHA, H.EDGE_ALPHA, H.CORE_ALPHA, size, layout);
             }
             ctx.restore();
         }

@@ -21,7 +21,7 @@ import type { Particle } from "../systems/vfx/state";
 import type { HexLayout } from "../../types";
 import { ParticleRenderer } from "../systems/vfx/renderers/ParticleRenderer";
 import { HexGeometry } from "../graphics/utils/HexGeometry";
-import { GROUND_DRAPE, ISO_SCALE_Y } from "../../constants";
+import { GROUND_DRAPE, ISO_SCALE_Y, RENDER_QUALITY } from "../../constants";
 import type { RenderOp } from "./RenderList";
 import type { Agent } from "../core/Agent";
 
@@ -257,6 +257,8 @@ export class GroundDrapeLayer {
         if (c.height < h) c.height = Math.ceil(h / step) * step;
 
         octx.setTransform(1, 0, 0, 1, 0, 0);
+        octx.imageSmoothingEnabled = true;
+        octx.imageSmoothingQuality = RENDER_QUALITY.IMAGE_SMOOTHING;
         octx.globalAlpha = 1;
         octx.globalCompositeOperation = 'source-over';
         octx.clearRect(0, 0, w, h);

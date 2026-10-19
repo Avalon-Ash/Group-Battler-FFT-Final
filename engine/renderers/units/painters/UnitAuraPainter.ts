@@ -6,8 +6,9 @@
 // ║    比環高的前景地塊照樣擋住；施法者那格的前半由 AURA op 補畫。║
 // ║  ・drawCastingVFX／drawUltimateChantVFX：只剩垂直部分        ║
 // ║    （上升光點、能量柱），留在 AURA op。                      ║
-// ║  [ARCH] 全部是預烘焙零件（V5b）：環＝ring、聖域＝陣營 sigil、 ║
-// ║  光點＝glow、能量柱＝pillar。色階＝陣營×技能屬性             ║
+// ║  [ARCH] 全部是預烘焙零件（V5b）：法陣＝magicCircle（外層／   ║
+// ║  內層，2026-10-19 重新設計）、聖域紋章＝陣營 sigil、光點＝   ║
+// ║  glow、能量柱＝pillar。色階＝陣營×技能屬性                   ║
 // ║  （data/vfx/element_ramps.ts），不吃技能顏色字串。平面零件   ║
 // ║  先在地面旋轉再壓扁（drawPart scaleY＝ISO_SCALE_Y），與舊的   ║
 // ║  traceRotatedHex 同一個投影；混合模式固定 CAST_RING.BLEND，   ║
@@ -34,6 +35,7 @@ interface AuraSprites {
     inner: PartSprite; innerScale: number;
     sanctum: PartSprite; sanctumScale: number;
     ultRing: PartSprite; ultRingScale: number;
+    ultInner: PartSprite;
     core: PartSprite; coreScale: number;
     mote: PartSprite; moteScale: number;
     pillar: PartSprite;
@@ -48,14 +50,15 @@ function resolve(ramp: VFXRampId, team: Team): AuraSprites {
     if (hit) return hit;
     const C = CAST_RING;
     const ringR = HEX_SIZE * C.BASE_SIZE;
-    const innerR = ringR * C.INNER_RATIO;
     const ultR = HEX_SIZE * C.ULT_SIZE;
     const coreR = ultR * C.ULT_CORE_RATIO;
+    const style = team === Team.BLUE ? 'LION' : 'ASH';
     const s: AuraSprites = {
-        ring: vfxPartStore.get({ kind: 'ring', radius: ringR, thickness: C.RING_THICKNESS, ramp }), ringScale: ringR / quantizeSize(ringR),
-        inner: vfxPartStore.get({ kind: 'ring', radius: innerR, thickness: C.INNER_THICKNESS, ramp }), innerScale: innerR / quantizeSize(innerR),
+        ring: vfxPartStore.get({ kind: 'magicCircle', radius: ringR, ramp, layer: 'outer', style, seed: team }), ringScale: ringR / quantizeSize(ringR),
+        inner: vfxPartStore.get({ kind: 'magicCircle', radius: ringR, ramp, layer: 'inner', style }), innerScale: ringR / quantizeSize(ringR),
         sanctum: vfxPartStore.get({ kind: 'sigil', radius: ultR, emblem: ULT_SANCTUM_EMBLEM[team], ramp }), sanctumScale: ultR / quantizeSize(ultR),
-        ultRing: vfxPartStore.get({ kind: 'ring', radius: ultR, thickness: C.ULT_RING_THICKNESS, ramp }), ultRingScale: ultR / quantizeSize(ultR),
+        ultRing: vfxPartStore.get({ kind: 'magicCircle', radius: ultR, ramp, layer: 'outer', style, seed: team + 2 }), ultRingScale: ultR / quantizeSize(ultR),
+        ultInner: vfxPartStore.get({ kind: 'magicCircle', radius: ultR, ramp, layer: 'inner', style }),
         core: vfxPartStore.get({ kind: 'glow', radius: coreR, ramp }), coreScale: coreR / quantizeSize(coreR),
         mote: vfxPartStore.get({ kind: 'glow', radius: C.MOTE_RADIUS, ramp, hard: true }), moteScale: C.MOTE_RADIUS / quantizeSize(C.MOTE_RADIUS),
         pillar: vfxPartStore.get({ kind: 'pillar', width: C.ULT_PILLAR_W, height: C.ULT_PILLAR_H, ramp }),
@@ -88,18 +91,22 @@ export const UnitAuraPainter = {
         const s = resolve(elementRamp(agent.team, skill.element), agent.team);
         const align = HexGeometry.alignRotation(layout, VFX_PARTS.HEX.ANGLE_OFFSET_RAD);
         const blend = C.BLEND;
+        // 詠唱開始淡入（castTimer 從 skill.cast 往下數）
+        const elapsed = Math.max(0, (skill.cast || 0) - agent.castTimer);
+        const fade = Math.min(1, elapsed / C.FADE_IN_S);
         if (skill.tag === 'ULT') {
             const rot = t * C.ULT_ROT_SPEED;
-            drawPart(ctx, s.sanctum, 0, 0, { rotation: align + rot, scaleY: ISO_SCALE_Y, scale: s.sanctumScale, alpha: C.ULT_SIGIL_ALPHA, blend });
-            drawPart(ctx, s.ultRing, 0, 0, { rotation: align - rot * C.ULT_INNER_ROT_MUL, scaleY: ISO_SCALE_Y, scale: s.ultRingScale, alpha: C.ULT_RING_ALPHA, blend });
+            drawPart(ctx, s.sanctum, 0, 0, { rotation: align + rot, scaleY: ISO_SCALE_Y, scale: s.sanctumScale, alpha: C.ULT_SIGIL_ALPHA * fade, blend });
+            drawPart(ctx, s.ultRing, 0, 0, { rotation: align + rot, scaleY: ISO_SCALE_Y, scale: s.ultRingScale, alpha: C.ULT_RING_ALPHA * fade, blend });
+            drawPart(ctx, s.ultInner, 0, 0, { rotation: align - rot * C.ULT_INNER_ROT_MUL, scaleY: ISO_SCALE_Y, scale: s.ultRingScale, alpha: C.ULT_RING_ALPHA * fade, blend });
             const pulse = C.ULT_CORE_ALPHA + Math.sin(t * C.ULT_CORE_PULSE_FREQ) * C.ULT_CORE_PULSE;
-            drawPart(ctx, s.core, 0, 0, { scaleY: ISO_SCALE_Y, scale: s.coreScale, alpha: pulse, blend });
+            drawPart(ctx, s.core, 0, 0, { scaleY: ISO_SCALE_Y, scale: s.coreScale, alpha: pulse * fade, blend });
             return;
         }
-        // 一般詠唱：外環律動＋內環反向高速旋轉
+        // 一般詠唱：外層（光暈圓盤、雙環、符文）慢轉＋輕律動，內層（星形）反向慢轉
         const pulse = 1 + Math.sin(t * C.PULSE_FREQ) * C.PULSE;
-        drawPart(ctx, s.ring, 0, 0, { rotation: align + t * C.ROT_SPEED, scaleY: ISO_SCALE_Y, scale: s.ringScale * pulse, alpha: C.RING_ALPHA, blend });
-        drawPart(ctx, s.inner, 0, 0, { rotation: align - t * C.INNER_ROT_SPEED, scaleY: ISO_SCALE_Y, scale: s.innerScale, alpha: C.INNER_ALPHA, blend });
+        drawPart(ctx, s.ring, 0, 0, { rotation: align + t * C.ROT_SPEED, scaleY: ISO_SCALE_Y, scale: s.ringScale * pulse, alpha: C.RING_ALPHA * fade, blend });
+        drawPart(ctx, s.inner, 0, 0, { rotation: align - t * C.INNER_ROT_SPEED, scaleY: ISO_SCALE_Y, scale: s.innerScale, alpha: C.INNER_ALPHA * fade, blend });
         // AOE：環從中心擴張到技能範圍（ease-out），越接近完成越淡
         if (skill.type === 'AOE') {
             const progress = 1 - (agent.castTimer / skill.cast);

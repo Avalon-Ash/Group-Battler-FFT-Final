@@ -201,10 +201,11 @@ export const TerrainRenderer = {
             this.store.evictOtherThemes(theme);
         }
 
-        const drawX = Math.floor(x);
+        // x／y 已由 RenderDispatcher 對齊到裝置像素；這裡再 floor 世界座標會把它拉離像素格
+        const drawX = x;
         // y 已含漂浮位移（GridRenderStrategy 以 VisualMath.floatBobAt 加在 op.ty 上），這裡不再自己算：
         // 同一個值也進了「繪製用地面高度」，站在地塊上的單位、狀態、HUD 才會跟地塊一起浮動。
-        const drawY = Math.floor(y);
+        const drawY = y;
 
         const tf = ctx.getTransform();
         const currentScale = Math.hypot(tf.a, tf.b);

@@ -92,6 +92,10 @@ export class RenderSpec {
         s += "發射端只能用 engine/events/EventPos.ts 的 unitEventPos／hexEventPos／pointEventPos 建構（§4），不手寫 pos 字面量。\n";
         s += "視覺端一律以 sourceId／targetId 經 §4 的 SSOT 函式解析活著的單位；單位已死／出局時才用 pos，\n";
         s += "並只加身體中心偏移，不再加地形高度（EventVFXMapper.resolvePoint）。\n\n";
+        s += "像素對齊（2026-10-19）：RenderDispatcher 對 op.tx／op.ty 做「裝置像素」對齊——RenderPipeline.drawWorld 在套好相機變換後\n";
+        s += "呼叫 RenderDispatcher.setDeviceGrid(ctx) 記下縮放與平移，snap(v)＝(round(v×縮放＋平移)−平移)／縮放；變換含旋轉／非等比時不對齊。\n";
+        s += "以前在世界座標取整數，相機縮放非整數時每格各偏 0～1 個實際像素，格線參差、移動時抖動。TerrainRenderer.drawBlock 不再自行 Math.floor。\n";
+        s += "只動繪製點，不動排序鍵 op.y。主畫布與離屏畫布的 imageSmoothingQuality＝RENDER_QUALITY.IMAGE_SMOOTHING（high）。\n\n";
 
         s += "--- \n\n";
 
@@ -192,7 +196,8 @@ export class RenderSpec {
         s += "  （目前裝置縮放，容量只增不減），再逐格複製與該格外框相交的部分，以粒子混合模式貼上。\n";
         s += "- 分類（SSOT 在 constants.ts GROUND_DRAPE.MODE）：粒子只有 PART_GROUND（DIRECT，單張零件）；施法 AOE 預警等繪製函式走 OFFSCREEN。\n";
         s += "- 非粒子鋪設：施法 AOE 地面預警（UnitRenderSystem.paintAoeIndicator，GroundDrapeLayer.addPainted）一律走離屏畫布，逐格貼在頂面；\n";
-        s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱環、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
+        s += "- 懸空平面（GroundDrapeLayer.addPlane，planeZ＝腳下繪製高度＋UnitAuraPainter.RING_LIFT）：詠唱法陣（magicCircle 零件）、奧義聖域、AOE 擴張波紋是腰部高度的水平面，\n";
+        s += "  以 screen 貼回（GROUND_DRAPE.PLANE_BLEND＝CAST_RING.BLEND，兩者必須一致，否則施法者那格的補畫與鋪設結果不同），\n";
         s += "  逐格以平面高度裁切繪製；格子頂面高過平面＝被擋住不畫（前景高地照樣遮擋）。施法者腳下那格只畫後半，\n";
         s += "  前半由 AURA op（UnitRenderSystem.drawAura）在施法者之後補畫，所以環繞在身體前後。垂直部分（上升粒子、能量柱）留在 AURA op。\n";
         s += "  不鋪設（直立或有高度，維持 VFX (isGround) op、前緣 sortBias、無抬升）：PILLAR、HEX_BEAM（立柱）、DOMAIN（80px 稜柱）、GIANT_HEX（懸浮三層＋角柱）、BLACK_HOLE（球狀核心）。\n";

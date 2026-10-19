@@ -8,7 +8,7 @@
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { VFX_RAMPS, VFX_NEUTRALS, type VFXRamp } from '../../../data/vfx/parts/vfxPalette';
-import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, type MissileShape, type PrismStyle, createPartRng, boltPolyline } from './PartSpec';
+import { type PartSpec, type ShardShape, type SigilEmblem, type BeamEdge, type MissileShape, type PrismStyle, type MagicCircleLayer, type MagicCircleStyle, createPartRng, boltPolyline } from './PartSpec';
 import { HexGeometry } from '../../graphics/utils/HexGeometry';
 import type { HexLayout } from '../../../types';
 
@@ -74,6 +74,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'smoke': return bakeSmoke(ctx, n.radius, VFX_NEUTRALS[n.color], n.roughness ?? 0, n.seed ?? 0);
         case 'shard': return bakeShard(ctx, n.size, n.shape, VFX_RAMPS[n.ramp], n.seed ?? 0);
         case 'sigil': return bakeSigil(ctx, n.radius, n.emblem, VFX_RAMPS[n.ramp], emblemRotation);
+        case 'magicCircle': return bakeMagicCircle(ctx, n.radius, VFX_RAMPS[n.ramp], n.layer, n.style, n.seed ?? 0);
         case 'pillar': return bakePillar(ctx, n.width, n.height, VFX_RAMPS[n.ramp]);
         case 'spark': return bakeSpark(ctx, n.length, VFX_RAMPS[n.ramp]);
         case 'droplet': return bakeDroplet(ctx, n.size, VFX_RAMPS[n.ramp]);
@@ -103,12 +104,14 @@ function bakeGlow(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp, hard:
 function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFXRamp, roughness: number, seed: number): void {
     const C = VFX_PARTS.RING;
     const outer = r + t;
-    // 六角環（ART_SPEC §0）：光暈 → 主色 → 核心三層描邊
+    // 六角環（ART_SPEC §0）：光暈 → 主色 → 核心三層描邊。光暈烘焙時模糊（2026-10-19：硬邊光暈像第二條實線，畫面毛刺）
     ctx.lineJoin = 'miter';
+    ctx.filter = `blur(${C.HALO_BLUR * VFX_PARTS.BAKE_SCALE}px)`;
     ctx.strokeStyle = withAlpha(ramp.dark, C.HALO_ALPHA);
     ctx.lineWidth = t * C.HALO_WIDTH;
     hexPath(ctx, r);
     ctx.stroke();
+    ctx.filter = 'none';
     ctx.strokeStyle = withAlpha(ramp.main, C.MAIN_ALPHA);
     ctx.lineWidth = t * C.MAIN_WIDTH;
     hexPath(ctx, r);
@@ -524,6 +527,166 @@ function bakeSigil(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmblem
     ctx.strokeStyle = ramp.core;
     ctx.lineWidth = lw * C.CORE_WIDTH_MUL;
     sigilStrokes(ctx, r, emblem, emblemRotation);
+}
+
+/**
+ * 發光描邊：先畫一層模糊的主色寬光暈（filter blur，只在烘焙時），再畫細的核心亮線。
+ * path 每次都重建（filter 與 stroke 綁在同一條路徑上）。
+ */
+function glowStroke(ctx: CanvasRenderingContext2D, path: () => void, width: number, ramp: VFXRamp, alpha: number = 1): void {
+    const M = VFX_PARTS.MAGIC;
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.filter = `blur(${M.BLUR * VFX_PARTS.BAKE_SCALE}px)`;
+    ctx.globalAlpha = M.HALO_ALPHA * alpha;
+    ctx.strokeStyle = ramp.main;
+    ctx.lineWidth = width * M.HALO_WIDTH_MUL;
+    path();
+    ctx.stroke();
+    ctx.filter = 'none';
+    ctx.globalAlpha = M.CORE_ALPHA * alpha;
+    ctx.strokeStyle = ramp.core;
+    ctx.lineWidth = width;
+    path();
+    ctx.stroke();
+    ctx.restore();
+}
+
+function circlePath(ctx: CanvasRenderingContext2D, r: number): () => void {
+    return () => { ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); };
+}
+
+/** 符文：在 (0,0) 附近、大小 s 的方框裡畫 2～3 筆；LION 圓潤（短線＋小圓弧），ASH 折線 */
+function runeGlyph(ctx: CanvasRenderingContext2D, s: number, style: MagicCircleStyle, rng: () => number): void {
+    ctx.beginPath();
+    const strokes = 2 + Math.floor(rng() * 2);
+    for (let k = 0; k < strokes; k++) {
+        const x0 = (rng() - 0.5) * s, y0 = (rng() - 0.5) * s;
+        if (style === 'LION' && rng() < 0.45) {
+            ctx.moveTo(x0 + s * 0.22, y0);
+            ctx.arc(x0, y0, s * 0.22, 0, TAU * (0.5 + rng() * 0.5));
+        } else {
+            const x1 = (rng() - 0.5) * s, y1 = (rng() - 0.5) * s;
+            ctx.moveTo(x0, y0);
+            if (style === 'ASH') ctx.lineTo((x0 + x1) / 2 + (rng() - 0.5) * s * 0.6, (y0 + y1) / 2 + (rng() - 0.5) * s * 0.6);
+            ctx.lineTo(x1, y1);
+        }
+    }
+}
+
+/**
+ * 詠唱法陣（2026-10-19 重新設計，取代高速旋轉的實線六角環）：
+ *  outer：光暈圓盤（中心淡、近外緣亮的透光感）＋雙同心圓＋一圈符文＋內側刻度
+ *  inner：獅心六芒星（兩個交疊三角）／灰燼倒三角＋斷弧、內圓、頂點光點、中心柔光
+ */
+function bakeMagicCircle(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp, layer: MagicCircleLayer, style: MagicCircleStyle, seed: number): void {
+    const M = VFX_PARTS.MAGIC;
+    if (layer === 'outer') {
+        const D = M.DISC;
+        const g = ctx.createRadialGradient(0, 0, 0, 0, 0, r);
+        g.addColorStop(0, withAlpha(ramp.main, D.CENTER_ALPHA));
+        g.addColorStop(D.MID_STOP, withAlpha(ramp.main, D.MID_ALPHA));
+        g.addColorStop(D.RIM_STOP, withAlpha(ramp.core, D.RIM_ALPHA));
+        g.addColorStop(1, withAlpha(ramp.main, 0));
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
+        glowStroke(ctx, circlePath(ctx, r * M.RING_A.R), M.RING_A.W, ramp);
+        glowStroke(ctx, circlePath(ctx, r * M.RING_B.R), M.RING_B.W, ramp);
+        // 符文帶：沿切線方向排一圈
+        const R = M.RUNES;
+        const count = style === 'LION' ? R.COUNT_LION : R.COUNT_ASH;
+        const rng = createPartRng(seed + 101);
+        // 光暈與芯各畫一次：每個符文用自己的種子重建，兩次筆畫相同
+        const seeds = Array.from({ length: count }, () => Math.floor(rng() * 1e6));
+        const drawRunes = () => {
+            ctx.beginPath();
+            for (let i = 0; i < count; i++) {
+                const a = (i / count) * TAU;
+                const local = createPartRng(seeds[i]);
+                ctx.save();
+                ctx.rotate(a);
+                ctx.translate(r * R.R, 0);
+                ctx.rotate(Math.PI / 2);
+                runeGlyph(ctx, r * R.SIZE * 2, style, local);
+                ctx.restore();
+                ctx.stroke();
+            }
+        };
+        ctx.save();
+        ctx.lineCap = 'round';
+        ctx.filter = `blur(${M.BLUR * VFX_PARTS.BAKE_SCALE}px)`;
+        ctx.globalAlpha = M.HALO_ALPHA * R.ALPHA;
+        ctx.strokeStyle = ramp.main;
+        ctx.lineWidth = R.W * M.HALO_WIDTH_MUL;
+        drawRunes();
+        ctx.filter = 'none';
+        ctx.globalAlpha = M.CORE_ALPHA * R.ALPHA;
+        ctx.strokeStyle = ramp.core;
+        ctx.lineWidth = R.W;
+        drawRunes();
+        ctx.restore();
+        // 刻度
+        const T = M.TICKS;
+        glowStroke(ctx, () => {
+            ctx.beginPath();
+            for (let i = 0; i < T.COUNT; i++) {
+                const a = (i / T.COUNT) * TAU;
+                const len = i % 2 === 0 ? T.LEN : T.LEN * 0.5;
+                ctx.moveTo(Math.cos(a) * r * T.R, Math.sin(a) * r * T.R);
+                ctx.lineTo(Math.cos(a) * r * (T.R - len), Math.sin(a) * r * (T.R - len));
+            }
+        }, T.W, ramp, T.ALPHA);
+        return;
+    }
+
+    // inner
+    const S = M.STAR;
+    const sr = r * S.R;
+    const verts: Array<[number, number]> = [];
+    const triangle = (offset: number) => {
+        for (let k = 0; k < 3; k++) {
+            const a = VFX_PARTS.HEX.ANGLE_OFFSET_RAD + offset + (k / 3) * TAU;
+            const x = Math.cos(a) * sr, y = Math.sin(a) * sr;
+            verts.push([x, y]);
+            if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+    };
+    if (style === 'LION') {
+        glowStroke(ctx, () => { ctx.beginPath(); triangle(-Math.PI / 2); triangle(Math.PI / 2); }, S.W, ramp);
+    } else {
+        // 倒三角（尖端朝向鏡頭前方）＋三段斷弧
+        glowStroke(ctx, () => { ctx.beginPath(); triangle(Math.PI / 2); }, S.W, ramp);
+        const A = M.ASH_ARCS;
+        glowStroke(ctx, () => {
+            ctx.beginPath();
+            for (let i = 0; i < A.COUNT; i++) {
+                const a0 = (i / A.COUNT) * TAU + 0.3;
+                ctx.moveTo(Math.cos(a0) * r * A.R, Math.sin(a0) * r * A.R);
+                ctx.arc(0, 0, r * A.R, a0, a0 + A.SPAN_RAD);
+            }
+        }, A.W, ramp);
+    }
+    glowStroke(ctx, circlePath(ctx, r * M.INNER_RING.R), M.INNER_RING.W, ramp);
+    // 頂點光點與中心柔光（柔邊漸層，不描邊）
+    const node = (x: number, y: number, rr: number, alpha: number) => {
+        const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
+        g.addColorStop(0, withAlpha(ramp.core, alpha));
+        g.addColorStop(0.4, withAlpha(ramp.main, alpha * 0.6));
+        g.addColorStop(1, withAlpha(ramp.main, 0));
+        ctx.fillStyle = g;
+        ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+    };
+    const nr = Math.max(1.5, r * M.NODES.R) * 2.5;
+    const seen = new Set<string>();
+    for (const [x, y] of verts) {
+        const k = `${x.toFixed(2)},${y.toFixed(2)}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        node(x, y, nr, M.NODES.ALPHA);
+    }
+    node(0, 0, r * M.CORE.R, M.CORE.ALPHA);
 }
 
 /** 光柱（六角稜柱）：錨點在底部中央，往上延伸 height，頂端淡出。正面最亮，左側面受光、右側面背光。 */

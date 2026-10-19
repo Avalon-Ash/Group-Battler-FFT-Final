@@ -5,6 +5,8 @@
 // ║        單位（排在該格 TERRAIN 之後）棋座壓在法陣上。       ║
 // ║  上游：RenderList.sort、RenderPipeline.drawWorld            ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§3、§9。  ║
+// ║         繪製點對齊裝置像素（setDeviceGrid／snap，§3），     ║
+// ║         排序鍵 op.y 不動。                                  ║
 // ║         OBSTACLE 錨點讀精靈本身（SpriteManager），不寫死。  ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -20,6 +22,31 @@ import { HexLayout } from "../../types";
 import { UnitRenderSystem } from "../systems/unit";
 
 export class RenderDispatcher {
+    /**
+     * 裝置像素格（每幀 setDeviceGrid 設一次）：op 的繪製點對齊「實際螢幕像素」而不是世界座標整數。
+     * 以前在世界座標四捨五入，相機縮放 1.6 時每格各自偏移最多 0.8 個實際像素，格線與輪廓參差、移動時抖動（2026-10-19）。
+     */
+    private static gridScale = 1;
+    private static gridOX = 0;
+    private static gridOY = 0;
+
+    /** 相機變換套用之後呼叫一次（RenderPipeline.drawWorld）；變換含旋轉／斜切時不對齊 */
+    public static setDeviceGrid(ctx: CanvasRenderingContext2D): void {
+        const t = ctx.getTransform();
+        const ok = t.b === 0 && t.c === 0 && t.a > 0 && Math.abs(t.a - t.d) < 1e-6;
+        RenderDispatcher.gridScale = ok ? t.a : 0;
+        RenderDispatcher.gridOX = t.e;
+        RenderDispatcher.gridOY = t.f;
+    }
+
+    /** 世界座標 → 對齊到最近裝置像素後的世界座標 */
+    public static snap(v: number, axis: 0 | 1): number {
+        const s = RenderDispatcher.gridScale;
+        if (s === 0) return v;
+        const o = axis === 0 ? RenderDispatcher.gridOX : RenderDispatcher.gridOY;
+        return (Math.round(v * s + o) - o) / s;
+    }
+
     public static dispatch(
         ctx: CanvasRenderingContext2D, 
         op: RenderOp, 
@@ -28,8 +55,8 @@ export class RenderDispatcher {
         unitRenderer: UnitRenderSystem,
         drape?: GroundDrapeLayer
     ) {
-        const snapX = Math.round(op.tx);
-        const snapY = Math.round(op.ty);
+        const snapX = RenderDispatcher.snap(op.tx, 0);
+        const snapY = RenderDispatcher.snap(op.ty, 1);
 
         switch (op.type) {
             case RenderOpType.TERRAIN:

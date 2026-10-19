@@ -4,6 +4,7 @@ export function createCanvas(w: number, h: number) {
     canvas.width = w;
     canvas.height = h;
     const ctx = canvas.getContext('2d')!;
-    ctx.imageSmoothingEnabled = true; 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
     return { canvas, ctx };
 }

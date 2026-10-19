@@ -2,11 +2,16 @@
 // ║  ZoneRenderer — 地格區域效果（擴張波紋、區域底色、邊界）    ║
 // ║  上游：GridOverlays（逐格呼叫，原點＝格子頂面＋OVERLAY 偏移） ║
 // ║  參數：constants.ts ZONE_RENDER                              ║
+// ║  [ARCH] 波紋與邊界是柔光格（SoftTile，screen），2026-10-19   ║
+// ║  取代逐格實線雙環＋虛線邊界。                                ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { HexLayout } from "../../../types";
 import { ZONE_RENDER } from "../../../constants";
+import { SoftTile, type SoftTileLook } from "./SoftTile";
+
+const LOOK: SoftTileLook = { fill: '', edge: '', fillAlpha: 0, edgeAlpha: 0, coreAlpha: 0 };
 
 export const ZoneRenderer = {
     
@@ -47,29 +52,20 @@ export const ZoneRenderer = {
             ctx.fill();
         }
 
+        ctx.globalCompositeOperation = 'screen';
+        LOOK.fill = drawColor; LOOK.edge = drawColor; LOOK.fillAlpha = 0;
         if (waveIntensity > Z.MIN_WAVE) {
-            ctx.strokeStyle = drawColor;
-            ctx.lineWidth = Z.WAVE_LINE_W + waveIntensity * Z.WAVE_LINE_GROW;
+            LOOK.edgeAlpha = Z.WAVE_EDGE_ALPHA; LOOK.coreAlpha = Z.WAVE_CORE_ALPHA;
             ctx.globalAlpha = waveIntensity;
-            const pulseSize = size * (Z.WAVE_RADIUS + waveIntensity * Z.WAVE_RADIUS_GROW);
-            HexGeometry.traceHex(ctx, 0, 0, pulseSize, true, layout);
-            ctx.stroke();
-
-            ctx.lineWidth = 1;
-            HexGeometry.traceHex(ctx, 0, 0, pulseSize * Z.WAVE_INNER_RATIO, true, layout);
-            ctx.stroke();
+            SoftTile.draw(ctx, LOOK, size, layout, 1 + waveIntensity * Z.WAVE_SCALE_GROW);
         }
 
         if (isEnemy || isInside) {
             const isBorder = Math.abs(distToCenter - zoneRadius) < Z.BORDER_BAND;
             if (isBorder) {
-                ctx.strokeStyle = drawColor;
-                ctx.lineWidth = 1;
-                ctx.globalAlpha = Z.BORDER_ALPHA;
-                if (isEnemy) ctx.setLineDash(Z.ENEMY_DASH);
-                HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
-                ctx.stroke();
-                ctx.setLineDash([]);
+                LOOK.edgeAlpha = isEnemy ? Z.ENEMY_BORDER_EDGE_ALPHA : Z.BORDER_EDGE_ALPHA; LOOK.coreAlpha = Z.BORDER_CORE_ALPHA;
+                ctx.globalAlpha = 1;
+                SoftTile.draw(ctx, LOOK, size, layout);
             }
         }
 

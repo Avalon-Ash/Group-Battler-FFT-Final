@@ -78,6 +78,20 @@ describe('PartSpec quantization', () => {
         expect(partKey(a, 1)).not.toBe(partKey(c, 1));
     });
 
+    it('magicCircle: layers and styles get separate sprites, bounds cover the blurred halo, blend is additive', () => {
+        const base = { kind: 'magicCircle', radius: 47, ramp: 'LION_ARCANE', layer: 'outer', style: 'LION', seed: 1 } as const;
+        const outer = normalizePartSpec(base);
+        const inner = normalizePartSpec({ ...base, layer: 'inner' });
+        const ash = normalizePartSpec({ ...base, style: 'ASH' });
+        expect(new Set([partKey(outer, 1), partKey(inner, 1), partKey(ash, 1)]).size).toBe(3);
+        const M = VFX_PARTS.MAGIC;
+        const r = outer.kind === 'magicCircle' ? outer.radius : 0;
+        const b = partBounds(outer);
+        expect(b.width).toBeGreaterThanOrEqual((r + M.BLUR * 2 + M.RING_A.W * M.HALO_WIDTH_MUL) * 2);
+        expect(b.anchorX).toBe(b.width / 2);
+        expect(partBlend(outer)).toBe('lighter');
+    });
+
     it('cache key includes frame count but no time', () => {
         const n = normalizePartSpec({ kind: 'flame', height: 60, ramp: 'ASH_FIRE' });
         expect(partKey(n, 8)).not.toBe(partKey(n, 4));
