@@ -11,7 +11,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 3, power: 300, color: '#f59e0b', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.0, 
-        visualHitEffect: 'FX_ULT_BLUE_SANCTUARY_IMPACT' 
+        visualHitEffect: 'FX_ULT_BLUE_SANCTUARY_IMPACT', element: 'HOLY'
     },
     { 
         id: 'tb_u2', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
@@ -20,7 +20,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fbbf24', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'TAUNT', ccDur: 3.5, ccType2: 'SHIELD', ccForce2: 800, 
-        visualHitEffect: 'FX_ULT_BLUE_KINGS_BLESSING'
+        visualHitEffect: 'FX_ULT_BLUE_KINGS_BLESSING', element: 'HOLY'
     },
     { 
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
@@ -29,7 +29,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 4, power: 500, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 4,
-        visualHitEffect: 'FX_ULT_BLUE_AEGIS_IMPACT'
+        visualHitEffect: 'FX_ULT_BLUE_AEGIS_IMPACT', element: 'PHYSICAL'
     },
     { 
         id: 'tb_u4', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
@@ -38,7 +38,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'SINGLE', power: 120, color: '#fcd34d', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5,
-        visualHitEffect: 'FX_ULT_BLUE_TITAN_SMASH'
+        visualHitEffect: 'FX_ULT_BLUE_TITAN_SMASH', element: 'PHYSICAL'
     },
     { 
         id: 'tb_u5', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
@@ -47,7 +47,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 0, color: '#60a5fa', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 600,
-        visualHitEffect: 'FX_ULT_BLUE_FINAL_DEFENSE'
+        visualHitEffect: 'FX_ULT_BLUE_FINAL_DEFENSE', element: 'PHYSICAL'
     },
 
     // --- WARRIOR ---
@@ -58,7 +58,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 3, power: 550, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5, 
-        visualHitEffect: 'FX_ULT_BLUE_THUNDER_SLAM' 
+        visualHitEffect: 'FX_ULT_BLUE_THUNDER_SLAM', element: 'LIGHTNING'
     },
     { 
         id: 'wb_u2', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
@@ -66,7 +66,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 4, power: 650, color: '#f59e0b', 
         visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_DAYBREAK'
+        visualHitEffect: 'FX_ULT_BLUE_DAYBREAK', element: 'HOLY'
     },
     { 
         id: 'wb_u3', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
@@ -75,7 +75,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'SINGLE', power: 600, color: '#facc15', 
         visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 2.5, 
-        visualHitEffect: 'FX_ULT_BLUE_EXCALIBUR'
+        visualHitEffect: 'FX_ULT_BLUE_EXCALIBUR', element: 'HOLY'
     },
     { 
         id: 'wb_u4', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
@@ -83,7 +83,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 3, power: 750, color: '#60a5fa', 
         visual: 'SLASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_BLADESTORM'
+        visualHitEffect: 'FX_ULT_BLUE_BLADESTORM', element: 'PHYSICAL'
     },
     { 
         id: 'wb_u5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
@@ -92,13 +92,13 @@ export const BLUE_ULT: Skill[] = [
         type: 'SINGLE', power: 900, color: '#e0f2fe', 
         visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5,
-        visualHitEffect: 'FX_ULT_BLUE_LIGHTSPEED'
+        visualHitEffect: 'FX_ULT_BLUE_LIGHTSPEED', element: 'LIGHTNING'
     },
 
     // --- RANGER ---
     { 
         id: 'rb_u1', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
-        name: '極地冰河', desc: '全場凍結', 
+        name: '極地冰河', desc: '單體凍結', 
         range: 15, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 450, color: '#60a5fa', 
         visual: 'SMASH', projectileSpeed: 0, 
@@ -112,7 +112,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 550, color: '#fcd34d', 
         visual: 'ARROW', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_STARFALL'
+        visualHitEffect: 'FX_ULT_BLUE_STARFALL', element: 'HOLY'
     },
     { 
         id: 'rb_u3', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
@@ -120,7 +120,7 @@ export const BLUE_ULT: Skill[] = [
         range: 20, cast: 2.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1200, color: '#22d3ee', 
         visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM' 
+        visualHitEffect: 'FX_ULT_BLUE_ORBITAL_BEAM', element: 'LIGHTNING'
     },
     { 
         id: 'rb_u4', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
@@ -129,7 +129,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 4, power: 450, color: '#8b5cf6', 
         visual: 'BOMB', projectileSpeed: 0, 
         ccType: 'ROOT', ccDur: 4.0,
-        visualHitEffect: 'FX_ULT_BLUE_LOCKDOWN'
+        visualHitEffect: 'FX_ULT_BLUE_LOCKDOWN', element: 'ARCANE'
     },
     { 
         id: 'rb_u5', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
@@ -137,7 +137,7 @@ export const BLUE_ULT: Skill[] = [
         range: 10, cast: 0.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 1000, color: '#ffffff', 
         visual: 'BOLT', projectileSpeed: 2500, 
-        visualHitEffect: 'FX_ULT_BLUE_OVERLOAD'
+        visualHitEffect: 'FX_ULT_BLUE_OVERLOAD', element: 'PHYSICAL'
     },
 
     // --- MAGE ---
@@ -166,7 +166,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5,
-        visualHitEffect: 'FX_ULT_BLUE_TIMESTOP'
+        visualHitEffect: 'FX_ULT_BLUE_TIMESTOP', element: 'ARCANE'
     },
     { 
         id: 'mb_u4', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
@@ -174,7 +174,7 @@ export const BLUE_ULT: Skill[] = [
         range: 10, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: 750, color: '#a855f7', 
         visual: 'BOLT', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_TORRENT'
+        visualHitEffect: 'FX_ULT_BLUE_TORRENT', element: 'ARCANE'
     },
     { 
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
@@ -182,7 +182,7 @@ export const BLUE_ULT: Skill[] = [
         range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 1200, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM'
+        visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM', element: 'ARCANE'
     },
 
     // --- SUPPORT ---
@@ -192,8 +192,8 @@ export const BLUE_ULT: Skill[] = [
         range: 8, cast: 0.8, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: -800, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'BANISH', ccDur: 3.5, specialVisualStatus: 'STASIS',
-        visualHitEffect: 'FX_ULT_BLUE_INTERVENTION'
+        ccType: 'INVINCIBLE', ccDur: 3.5, specialVisualStatus: 'INVINCIBLE',
+        visualHitEffect: 'FX_ULT_BLUE_INTERVENTION', element: 'HOLY'
     },
     { 
         id: 'sb_u2', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
@@ -201,16 +201,16 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 6, power: -1000, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
-        visualHitEffect: 'FX_ULT_BLUE_RESURRECTION'
+        visualHitEffect: 'FX_ULT_BLUE_RESURRECTION', element: 'HOLY'
     },
     { 
         id: 'sb_u3', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
-        name: '英勇讚美', desc: '全隊Buff', 
+        name: '英勇讚美', desc: '全隊治療與護盾', 
         range: 0, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: -300, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 500,
-        visualHitEffect: 'FX_ULT_BLUE_HYMN'
+        visualHitEffect: 'FX_ULT_BLUE_HYMN', element: 'HOLY'
     },
     { 
         id: 'sb_u4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
@@ -219,7 +219,7 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 4, power: 500, color: '#fcd34d', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5, 
-        visualHitEffect: 'FX_ULT_BLUE_WRATH'
+        visualHitEffect: 'FX_ULT_BLUE_WRATH', element: 'HOLY'
     },
     { 
         id: 'sb_u5', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
@@ -228,6 +228,6 @@ export const BLUE_ULT: Skill[] = [
         type: 'AOE', aoeRadius: 5, power: -600, color: '#86efac', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HOT', ccForce: 150, ccDur: 6.0,
-        visualHitEffect: 'FX_ULT_BLUE_RAIN'
+        visualHitEffect: 'FX_ULT_BLUE_RAIN', element: 'HOLY'
     }
 ];

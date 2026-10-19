@@ -27,6 +27,7 @@ export const RED_BASIC: Skill[] = [
         range: 1, cast: 0.4, cd: 1.0, cost: 0, gain: 20,
         type: 'SINGLE', power: 45, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 15, ccSelf: true,
+        ccType2: 'REFLECT', ccDur2: 3, ccForce2: 20, ccSelf2: true,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
     { 

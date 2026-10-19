@@ -34,7 +34,7 @@ export const RED_ACTIVE: Skill[] = [
         name: '鮮血護盾', desc: '生命護盾', 
         range: 0, cast: 0.4, cd: 12.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 250,
+        ccType: 'SHIELD', ccForce: 250, ccSelf: true,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
     { 
@@ -84,7 +84,8 @@ export const RED_ACTIVE: Skill[] = [
         name: '嗜血狂熱', desc: '攻速吸血', 
         range: 0, cast: 0.2, cd: 12.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
-        effectType: 'VAMP', effectVal: 0.8,
+        ccType: 'HASTE', ccDur: 5, ccForce: 30, ccSelf: true,
+        ccType2: 'LIFESTEAL', ccDur2: 5, ccForce2: 30, ccSelf2: true,
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     },
 

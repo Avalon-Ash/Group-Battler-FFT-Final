@@ -41,7 +41,8 @@ export const BLUE_ACTIVE: Skill[] = [
         name: '稜鏡反射', desc: '反傷護盾', 
         range: 0, cast: 0.3, cd: 10.0, cost: 40, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ffffff', visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 300, 
+        ccType: 'SHIELD', ccForce: 300, ccSelf: true,
+        ccType2: 'REFLECT', ccDur2: 4, ccForce2: 30, ccSelf2: true,
         visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
     },
 
@@ -206,6 +207,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 0, cast: 0.5, cd: 12.0, cost: 50, gain: 0, 
         type: 'AOE', aoeRadius: 5, power: -60, color: '#bae6fd', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 80,
+        ccType2: 'HASTE', ccDur2: 4, ccForce2: 30,
         visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
     }
 ];

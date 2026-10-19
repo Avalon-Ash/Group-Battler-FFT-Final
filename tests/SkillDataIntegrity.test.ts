@@ -248,24 +248,14 @@ export const SK0_BASELINE_VIOLATIONS: readonly string[] = [
     'sr_u5:NO_ELEMENT',
 ];
 
-describe('SkillDataIntegrity (SK0)', () => {
+describe('SkillDataIntegrity (SK3)', () => {
     it('skills count is exactly 150', () => {
         expect(DEFAULT_SKILL_DB.length).toBe(150);
     });
 
-    it('all current violations are accounted for in the baseline (no unknown violations)', () => {
+    it('violations ratchet: zero violations permitted across all skills (SK3)', () => {
         const violations = collectSkillIntegrityViolations();
-        const baselineSet = new Set(SK0_BASELINE_VIOLATIONS);
-
-        for (const v of violations) {
-            expect(baselineSet.has(v.sig), `Unexpected violation not in baseline: ${v.sig} (${v.msg})`).toBe(true);
-        }
-    });
-
-    it('violations ratchet: count must never exceed SK0 baseline (56)', () => {
-        const violations = collectSkillIntegrityViolations();
-        expect(violations.length).toBeLessThanOrEqual(SK0_BASELINE_VIOLATIONS.length);
-        // SK1 resolved 4 DAMAGE_BUFF_NOT_SELF violations (tb_a1, tr_a2, wb_b5, tr_b3)
-        expect(violations.length).toBe(52);
+        expect(violations).toEqual([]);
+        expect(violations.length).toBe(0);
     });
 });
