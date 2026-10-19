@@ -8,7 +8,7 @@
 
 1. **Single Source of Truth (SSOT)**:
    - **Types**: `types.ts` is the master contract. VFX particle/decal schemas are in `types/VFXSchema.ts`. Check types here before implementing.
-   - **Parameters**: `constants.ts` holds all physics, combat, color, and layout constants. Never hardcode numbers or colors in engine/renderer code.
+   - **Parameters**: `constants/*.ts` holds all physics, combat, color, and layout constants, one file per domain (`geometry`, `combat`, `palette`, `units`, `hud`, `terrain`, `vfx`, `ui`, `render`, `audio`). `constants.ts` only re-exports them: keep importing from `constants`, but add new constants to the matching domain file. Never hardcode numbers or colors in engine/renderer code.
    - **Unit appearance**: `data/units/appearance/` (`sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`) defines sprite atlas mappings, body types, and frame selection consumed by `SpriteUnitRenderer`. Renderers only consume these profiles; they never define visual config or colors.
    - **Procedural VFX**: `data/vfx/materialConfig.ts` controls procedural material parameters (noise, ribbon, beam, grading).
    - **Agent entity**: `Agent` (`engine/core/Agent.ts`) is pure data. **Never add methods to `Agent`.** All logic lives in Systems.
@@ -39,8 +39,8 @@
 
 | Task scope | Read first |
 | :--- | :--- |
-| **Every task** | `types.ts`, `constants.ts`, your task prompt |
-| **Renderers / VFX** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants.ts` |
+| **Every task** | `types.ts`, the relevant `constants/*.ts` file, your task prompt |
+| **Renderers / VFX** | `engine/renderers/RenderSpec.ts`, `data/vfx/materialConfig.ts`, `VFX_PARAM` in `constants/vfx.ts` |
 | **Unit appearance** | `engine/renderers/RenderSpec.ts`, `data/units/factionSkin.ts`, `data/units/appearance/sprite.ts`, `bodyTypes.ts`, `selectSpriteFrame.ts`, `engine/renderers/units/factions/SpriteUnitRenderer.ts` |
 | **Anything that positions, lifts or sorts a visual** (terrain, units, pedestals, cores, VFX, projectiles, HUD over units) | `engine/renderers/RenderSpec.ts` (layer order, sortBias, coordinate protocol), `engine/math/VisualMath.ts`, and the box header of every file you edit |
 | **AI / behavior trees** | `engine/behaviorTree.ts`, `engine/systems/ai.ts`, `engine/ai/`, `data/ai_profiles` |
@@ -53,7 +53,7 @@
 
 - **No speculative refactoring.** Do not restructure working code or add abstractions the task did not ask for.
 - **No `as any`.**
-- **No hardcoded numbers or colors.** They belong in `constants.ts` or a `data/**` profile.
+- **No hardcoded numbers or colors.** They belong in `constants/*.ts` or a `data/**` profile.
 - **No `console.log`** in `tick()`, render loops, or particle updates.
 - **No state in renderers.** Renderers read `Agent` state; they do not store their own.
 - **No symptom hiding.** Fix the cause. Example of what is forbidden: "if a unit is idle, make it walk randomly."
@@ -127,6 +127,7 @@ For procedural material changes you can preview `tools/material-preview.html` wi
 ├── tests/               # Unit tests
 ├── tools/               # Preview harnesses, e2e and perf scripts
 ├── docs/                # Task prompts, reports, handoff
-├── constants.ts         # Parameter SSOT
+├── constants.ts         # Re-exports constants/*.ts (import from here)
+├── constants/           # Parameter SSOT, one file per domain
 └── types.ts             # Type contract
 ```

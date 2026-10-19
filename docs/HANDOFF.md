@@ -7,9 +7,8 @@
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **S4 常數拆檔**：提示詞 `docs/CONSTANTS_SPLIT_AGENT_PROMPT.md`，使用者在 IDE 執行 `/goal docs/CONSTANTS_SPLIT_AGENT_PROMPT.md`（分支 `refactor/constants-split`）。跑的期間主代理不碰 `constants.ts`、不跑重量測；可寫技能設計文件（只動 `docs/`，經臨時工作樹提交）。合併後主代理更新 `AGENTS.md` 對 `constants.ts` 的描述。
-2. **技能正確性修正＋三種新效果（加速、反傷、吸血）**：提示詞 `docs/SKILL_FIX_AGENT_PROMPT.md`，**S4 合併後**使用者執行 `/goal docs/SKILL_FIX_AGENT_PROMPT.md`（分支 `feat/skill-fix`）。使用者決定：缺的機制做成新效果、這輪不調平衡。`battle_frozen` 保真預期會變，由主代理審查後決定是否重錄。之後再做平衡輪與個別奧義美術翻新。
-3. **BGM**：主代理從 `docs/BGM_CANDIDATES.md` 挑曲放進 `data/audio/music.ts`（下載前列檔名／來源給使用者同意）。
+1. **技能正確性修正＋三種新效果（加速、反傷、吸血）**：提示詞 `docs/SKILL_FIX_AGENT_PROMPT.md`，S4 已合併，使用者可執行 `/goal docs/SKILL_FIX_AGENT_PROMPT.md`（分支 `feat/skill-fix`）。使用者決定：缺的機制做成新效果、這輪不調平衡。`battle_frozen` 保真預期會變，由主代理審查後決定是否重錄。之後再做平衡輪與個別奧義美術翻新。
+2. **BGM**：主代理從 `docs/BGM_CANDIDATES.md` 挑曲放進 `data/audio/music.ts`（下載前列檔名／來源給使用者同意）。
 
 ## 3. 待使用者確認
 - **導播狂抖＋掉幀**：掉幀已修（`f5e33f0`，WORKLOG §Q）。導播目標每幀跳動被鏡頭跟隨剛性（預設 0.25，約 4 秒時間常數）濾掉，不是肉眼的抖動來源；戰鬥結束附近剩下的是擊退／墜落的 `CAMERA_SHAKE`（0.55，約 70 ms 衰減）。**待使用者實機確認**是否還覺得抖。

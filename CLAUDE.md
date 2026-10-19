@@ -21,7 +21,7 @@
 ## 架構不變式（摘要；完整版在 `AGENTS.md`）
 `AGENTS.md` 是寫給低階代理的嚴格合約，也是你審查 diff 時的檢查清單——審查或做跨系統修改前再讀它。自己動手時記住這些重點：
 - `Agent` 是純資料，邏輯放在 System；系統之間只透過 `engine.bus` 溝通；UI 只經 `UICommand` 寫入引擎。
-- SSOT：型別在 `types.ts`，參數與顏色在 `constants.ts` 或 `data/**`，不寫魔術數字。
+- SSOT：型別在 `types.ts`，參數與顏色在 `constants/*.ts`（依領域分檔，`constants.ts` 只轉發）或 `data/**`，不寫魔術數字。
 - 修改 Facade 底下的子目錄實作，不改 Facade（`engine/renderer.ts`、`engine/game.ts` 等），除非刻意改公開介面。
 - 不用 `as any`；tick 和渲染迴圈裡不放 `console.log`；不引入 Three／Pixi／WebGL。
 - 一個狀態欄位只能有一個寫入者；depth sort 的鍵要包含繪製時才套用的位移。
