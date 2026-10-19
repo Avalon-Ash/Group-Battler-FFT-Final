@@ -217,6 +217,13 @@ VFXSystem.state.particles
 - 幀間隔：本機這次 harness 只有 56 Hz（rAF 被壓在 60 Hz），平穩／壓力／展示三個情境都卡在 17.7 ms，p99 無法分辨；**需在 239 Hz 主螢幕重跑 `npm run perf:frames`**。
 - 保真：battle_frozen 一次性重錄（`359bc66`，證據 `tools/ui-e2e/out/fidelity_v7_evidence.png`：388 px／0.042%，全在單位區：接地陰影復原、血條 sprite 邊緣、量表光暈、柔邊光暈重取樣）；五個地形基準 0 差異未動。
 
+### 4.16 U1（奧義時序與反饋）＋實機回饋（2026-10-19）
+- 實機 `perf:frames`（238 Hz，3 輪 × 20 秒）：平穩 median 4.2／p99 16.7 ms、壓力 8.4／24.8 ms、展示 4.2／12.6 ms。壓力下零件快取 64 MB 仍擠出 71～189 次 → `VFX_PARTS.MAX_BYTES` 96 MB。
+- `VFX_BIOME_GAIN` ICE 0.77、DESERT 0.94（實機偏暗，各提亮 10%）；重力漩渦中心格加強（光暈、射線、雙層旋臂、軌道光點）。
+- **奧義清查**：序列在詠唱開始就播（傷害幀在詠唱結束）、詠唱被打斷仍播完整特效、`scale` 欄位從未套用、HEAVEN_FALL 落地時間錯、震屏偏弱、STORM 在模組載入時用 `Math.random`。修法：`VFXSequence.hitAt`（序列內的命中時刻），`VisualSystem` 在 CAST_START 以 `startDelay = max(0, cast − hitAt)` 排程，CAST_BREAK 取消佇列；`Particle.fxScale` 群組縮放（size／spread／speed／vz），`PartPainter.scaleAt` 乘上；HEAVEN_FALL `hitAt = √(2h/g)`；每個奧義命中幀加共用 `FX_ULT_IMPACT_BLUE/RED`（光暈、雙地環、地面射線、碎石、火花）；參數集中 `ULT_SEQUENCE`（`data/vfx/ult_visuals.ts`）。全螢幕閃光維持移除（PostProcessor）。
+- 保真 harness：移除模組載入的 `Math.random` 讓開機地圖隨機化偏移 → `render-fidelity.mjs` 固定 `FIDELITY_MAP`（12×8 POINTY）並先暖機一次。VOID（舊基準在鏡頭收斂途中截取）與 battle_frozen（奧義區 0.39%）重錄於 `681e07e`，其他 0 差異。
+- 驗證：`tools/vfx/fx-shot.mjs` CAST 模式（`--probe` 印序列佇列）；之後每個奧義的美術細調可在此結構上逐一進行。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。
