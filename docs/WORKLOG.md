@@ -96,6 +96,8 @@
 - 遠端只留 `main`：`20260328`、`experiment/unit-rig-skin-poc` 各留本地 tag `archive/*`，`feat/procedural-material-upgrade` 已合併。
 - 觀賞模式設定 TAB 閃爍、按不到：`TabButton` 宣告在 render 內，每次重繪重建（每秒 10 次）；移到模組層（`57ab9b7`）。新工具 `tools/ui-e2e/ui-remount-audit.mjs`。
 - 障礙物：黑曜柱改粗柱斷頂＋下半部 Voronoi 岩漿裂縫＋底部熔岩帶；虛空圖 WALL 改符文基座＋懸浮暗紫晶碑（`1472aad`），發光取色依類型 `OBSTACLE_SPRITE.GLOW_KEYS`。保真 VOID／MAGMA 重錄（`3f25d11`，證據 `tools/ui-e2e/out/fidelity_obs2_evidence.png`）。
+- 縮圈墜落動畫：純繪製（`data/units/appearance/fallMotion.ts`，`UNIT_BODY_MOTION.fall*`），翻滾縮小淡出，墜落中不畫血條與狀態（`25e4485`）。
+- ECS-lite 評估：`docs/ECS_LITE_ASSESSMENT.md`（建議 S1 狀態效果資料化優先）。
 - 越跑越糊：畫質治理器以 vsync 鎖住的幀間隔判斷降級，60 Hz 一律降到最低階且升階冷卻只增不減。改成刷新週期下限、解析度階層另設 `DOWN_RES_MS`、冷卻加倍會消退（`d733eda`）。粒子沒有累積。工具 `tools/ui-e2e/idle-quality-soak.mjs`。
 
 ## 3. 更早的輪次與審查修補
