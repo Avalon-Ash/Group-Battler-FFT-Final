@@ -103,6 +103,10 @@
 - 已備：S1 提示詞 `docs/STATUS_EFFECTS_AGENT_PROMPT.md`、BGM 候選 `docs/BGM_CANDIDATES.md`。
 - 每張地圖戰鬥曲通道：`GAME_START` 帶 `sceneId`，`AudioSystem` 依 `SCENE_BATTLE_TRACK` 選曲（五圖各自的 TrackId，暫用 `battle_normal.ogg` 占位）；實機確認三場分別播對應曲目。
 
+### Q. 2026-10-19 深夜 UI 批次＋ECS-lite S1 狀態效果資料化
+- UI 批次（`200849c`、`0c1ff4d`，已 push）：展示模式左上舊齒輪移除（設定只從系統選單開）；結算畫面可開戰鬥紀錄（`WindowDef.visibleOnGameOver`、模式 `gameover`）；特效展示庫改讀現行資料（`data/vfx/parts/partGallery.ts` 實際烘焙縮圖＋登記表分組，刪 `vfx_library.ts`）；技能資料庫編輯改走 `UPDATE_SKILL`（可改欄位 `data/ui/skillEditor.ts`，選單只列 `VFX_REGISTRY`／`PROJECTILE_VISUALS` 的鍵）；展示標題卡 `UI_Z.SHOWCASE` 35 降到視窗層下、文字改英文（`START SIMULATION`，工具腳本同步）。
+- S1（Gemini 執行，`7dea6ee`～`9971b68`，主代理審查後合併）：21 個平行狀態欄位收成 `agent.effects`（13 槽，`types.ts` `EffectKind`／`EffectSlot`、`engine/core/Effects.ts`、規則表 `data/status/effect_defs.ts` 的極性／硬控／施加清洗），`ControlSystem` 遞減改統一迴圈，`AgentOwnership` 加 `effects`；`tests/EffectFieldsRatchet.test.ts` 鎖舊欄位 0 次。審查：極性與硬控清單與舊陣列逐項一致（STASIS 不是 ccType，改列 DEBUFF 無影響）、到期副作用相對順序不變。驗證：614 測試、保真 6/6 通過、實戰 40 秒各槽位寫入／遞減正常、0 頁面錯誤。報告 `docs/STATUS_EFFECTS_REPORT.md`。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
