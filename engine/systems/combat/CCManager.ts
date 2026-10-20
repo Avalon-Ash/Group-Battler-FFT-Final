@@ -84,7 +84,7 @@ export const CCManager = {
                     target.effects.STUN.max = effectiveDuration;
                 }
                 stopMovement(target);
-                // SSOT: AnimState.STUN is derived from stunTimer
+                // SSOT: AnimState.STUN is derived from effects.STUN
                 statusText = STATUS_VISUALS.STUN.label;
                 statusColor = STATUS_VISUALS.STUN.primaryColor;
                 
@@ -113,7 +113,7 @@ export const CCManager = {
                 statusColor = STATUS_VISUALS.BANISH.primaryColor;
                 
                 if (skill.specialVisualStatus === 'STASIS') {
-                    // STASIS 使用獨立 timer，不共用 banishTimer 語意
+                    // STASIS 使用獨立槽位，不共用 effects.BANISH 語意
                     target.effects.STASIS.remaining = effectiveDuration;
                     target.effects.STASIS.max = effectiveDuration;
                     target.ccVisual = 'STASIS';
@@ -148,7 +148,7 @@ export const CCManager = {
                     target.effects.TAUNT.sourceId = source.id; 
                     
                     // --- 2. State Machine Overrides ---
-                    // Target lock lives in TargetingSystem.updateTarget (BT HasTarget re-targets while tauntTimer > 0)
+                    // Target lock lives in TargetingSystem.updateTarget (BT HasTarget re-targets while effects.TAUNT.remaining > 0)
                     // Interrupt current action
                     engine.combat.breakCast(target, engine);
                     

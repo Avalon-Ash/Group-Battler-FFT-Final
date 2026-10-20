@@ -114,6 +114,8 @@
 - BGM：五張地圖專屬戰鬥曲＋紅方勝利曲換成 Orcs Victorious（舊的變調版 `victory_red.ogg` 刪除）。CC0 四首、CC-BY 兩首（熔岩 Wolfgang_ 4.0、沙漠 Hitctrl 3.0，已致謝）。OpenGameArt 網站故障，頁面資訊取 Wayback 快照、檔案直接下載靜態路徑。響度 −11 LUFS、Vorbis q2，BGM 總量 14.05 MB（上限 15 MB）。
 - 技能正確性修正＋三種新效果（Gemini 執行 `68f9e87`～`5b959a6`，主代理審查後合併）：`Skill.ccSelf`／`ccSelf2`（每次施放只對施法者套用一次，取代「增益打到敵人就轉給自己」）；新效果 `HASTE`（移速與冷卻遞減 ×(1+v%)）、`REFLECT`（受敵方技能直接傷害後反彈真實傷害，不連鎖、不含 DOT）、`LIFESTEAL`（與技能 VAMP 相加），上限 `EFFECT_LIMITS`；資料照表修正（稜鏡反射、尖刺防禦、疾風祝禱、嗜血狂熱、惡魔降臨、猩紅血月、神聖干涉改真無敵、3 個描述），42 個技能補 `element`（新增 3 火、4 虛空會生成危害區）。`tests/SkillDataIntegrity.test.ts` 違規 56 → 0。審查：保真 6/6 與 main 數值相同（`battle_frozen` 未變，不需重錄）；實戰 3 輪各 40 秒三種新效果都有觸發、0 頁面錯誤。報告 `docs/SKILL_FIX_REPORT.md`。使用者實機聽過新 BGM，全部 OK。
 - 文件與檔頭清理（使用者 10/20 要求）：已完成的 Gemini 提示詞 5 份與被取代的稽核／設計文件 7 份移到 `docs/archive/`，連結同步更新；`STATE_OWNERSHIP_DESIGN`、`ECS_LITE_ASSESSMENT`、`VFX_PIPELINE_MAP` 開頭加「現況」；`AGENTS.md` 補模擬／表現層邊界、`agent.effects`、`agent.view` 規則與目錄樹，README 目錄樹改成 S2 後的樣子；程式註解的 `constants.ts 的 X` 改指 `constants/<領域>.ts`（19 行），舊欄位名與已刪類別的註解修正。稽核腳本：路徑存在性＋舊識別字＋檔頭類別名。
+- 檔頭瘦身（主代理親自做，`b63f1da`）：71 個方框檔頭刪掉「上游／下游」、呼叫端清單、實作位置清單與過時的 tick 順序，只留職責＋不變式（−162 行，只改註解）；測試檔頭不再指向提示詞文件。
+- 技能平衡輪（Gemini 執行 `99d0531`～`ccaf42b`，主代理審查後合併）：150 個技能改了 90 個，全部只動數值欄位（以模組載入逐欄比對 main，非數值變動 0）；紅方普攻／主動／奧義的威力、射程、詠唱整體上調，藍法與部分藍奧義下修。主代理重跑標準量測（各 1000 場 seed 1）：藍方勝率一般 48.4%、交換 51.7%、合併 50.0%，p50 17.3 s，高頻技能勝率差超標 0 筆，同職業紅藍輸出差最大 −22.9%（法師）。`battle_frozen` 因戰鬥軌跡不同重錄（`2829472`，差異集中在單位／浮字／特效，5 張地形照舊）。工具：`npm run balance:sim`／`balance:report`（`tools/balance/`），持續傷害記錄 `effects.DOT.sourceId` 供歸屬統計。報告 `docs/BALANCE_REPORT.md`、基準 `docs/BALANCE_BASELINE.md`。
 
 ## 3. 更早的輪次與審查修補
 
