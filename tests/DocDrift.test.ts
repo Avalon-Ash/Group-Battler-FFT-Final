@@ -18,6 +18,8 @@ const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'out', 'worktrees', '
 const TEXT_EXT = /\.(ts|tsx|mjs|js|md)$/;
 // 歷史紀錄：允許提到已刪除的檔案與舊欄位
 const HISTORY_DOCS = new Set(['docs/WORKLOG.md']);
+// 任務提示詞會寫「要新增的檔案」，路徑尚不存在；合併後提示詞即刪除（METHODOLOGY §3）
+const isAgentPrompt = (f: string) => /^docs\/[A-Z0-9_]+_AGENT_PROMPT\.md$/.test(f);
 // 設計當時的欄位名有「現況」說明，只檢查路徑
 const LEGACY_FIELD_ALLOWED = new Set(['docs/WORKLOG.md', 'docs/DECISIONS.md', 'docs/STATE_OWNERSHIP_DESIGN.md', 'tests/EffectFieldsRatchet.test.ts', 'tests/DocDrift.test.ts']);
 // 執行期才產生的輸出位置，不在 repo 裡
@@ -90,7 +92,7 @@ describe('DocDrift', () => {
     it('文件與註解裡的 repo 路徑都存在', () => {
         const bad: string[] = [];
         for (const [f, src] of sources) {
-            if (HISTORY_DOCS.has(f)) continue;
+            if (HISTORY_DOCS.has(f) || isAgentPrompt(f)) continue;
             bad.push(...brokenPaths(f, commentText(f, src)));
         }
         expect(bad).toEqual([]);
