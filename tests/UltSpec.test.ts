@@ -15,10 +15,17 @@ import { HexUtils } from '../engine/utils';
 import { HEX_SIZE } from '../constants';
 import type { Skill, MapConfig } from '../types';
 import type { VFXAsset, EmitterConfig } from '../types/VFXSchema';
+import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
 
 export type RuleCode = 'C1' | 'C2' | 'C3' | 'C4' | 'C5' | 'C6' | 'C7' | 'C8';
 
 export const ALL_RULES: readonly RuleCode[] = ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8'];
+
+/**
+ * C6_MAX_RING: 非 STORM 中央貼地零件最大半徑上限環數 (3 圈)。
+ * 理由：單一貼地零件超過約 3 格會蓋滿畫面，且增加貼地鋪設的每格裁切成本。
+ */
+export const C6_MAX_RING = 3;
 
 export interface UltEvalResult {
     id: string;
@@ -82,7 +89,9 @@ export function evaluateUlt(id: string): UltEvalResult {
     let mainBurst: EmitterConfig | null = null;
     let maxGlowRingRadius = -1;
     for (const em of glowRingEmitters) {
-        const r = (em.part as any).radius ?? em.size ?? 0;
+        const part = em.part as PartSpec | undefined;
+        const partRadius = part && (part.kind === 'glow' || part.kind === 'ring') ? part.radius : undefined;
+        const r = partRadius ?? maxOf(em.size, 0);
         if (r > maxGlowRingRadius) {
             maxGlowRingRadius = r;
             mainBurst = em;
@@ -147,7 +156,9 @@ export function evaluateUlt(id: string): UltEvalResult {
     const emitterCount = recipeAsset.emitters.length;
     const c5Pass = emitterCount >= 3 && emitterCount <= 6;
 
-    // C6: 範圍 — AOE：最大貼地發射器水平半徑落在最外層格心水平距離 0.7～1.3 倍；SINGLE：<= 1.5 * HEX_SIZE
+    // C6: 範圍 —
+    // C6b (非 STORM): 中央貼地零件最大半徑 <= 1.3 * min(aoeRadius, C6_MAX_RING) 圈的格心距離；SINGLE <= 1.5 * HEX_SIZE。沒有下限。
+    // C6c (STORM): STORM 每一擊配方的最大貼地半徑 <= 1.5 * HEX_SIZE；AOE 的 STORM 每一擊都有 scatterRings === aoeRadius。
     const seqScale = recipeAction?.scale ?? Math.min(ULT_SEQUENCE.MAX_FX_SCALE, ultConfig.scale);
     const groundEmitters = recipeAsset.emitters.filter((e) => e.particleType === 'PART_GROUND');
     let maxGroundRadius = 0;
@@ -159,15 +170,26 @@ export function evaluateUlt(id: string): UltEvalResult {
 
     let c6Pass = false;
     let targetDist = 0;
-    if (skill.type === 'SINGLE') {
-        targetDist = 1.5 * HEX_SIZE; // 72
-        c6Pass = maxGroundRadius <= targetDist + 1e-4;
+    if (ultConfig.archetype !== 'STORM') {
+        if (skill.type === 'SINGLE') {
+            targetDist = 1.5 * HEX_SIZE; // 72
+            c6Pass = maxGroundRadius <= targetDist + 1e-4;
+        } else {
+            const aoeRadius = skill.aoeRadius ?? 1;
+            const effectiveRings = Math.min(aoeRadius, C6_MAX_RING);
+            const p0 = HexUtils.toPx(0, 0, MAP_CONFIG);
+            const pR = HexUtils.toPx(effectiveRings, 0, MAP_CONFIG);
+            targetDist = Math.abs(pR.x - p0.x);
+            c6Pass = maxGroundRadius <= targetDist * 1.3 + 1e-4;
+        }
     } else {
+        targetDist = 1.5 * HEX_SIZE; // 72
+        const radiusOk = maxGroundRadius <= targetDist + 1e-4;
+        const isAoe = skill.type !== 'SINGLE';
+        const stormHits = sequence.actions.filter((a) => a.type === 'PARTICLE' && a.id === recipeKey);
         const aoeRadius = skill.aoeRadius ?? 1;
-        const p0 = HexUtils.toPx(0, 0, MAP_CONFIG);
-        const pR = HexUtils.toPx(aoeRadius, 0, MAP_CONFIG);
-        targetDist = Math.abs(pR.x - p0.x);
-        c6Pass = maxGroundRadius >= targetDist * 0.7 - 1e-4 && maxGroundRadius <= targetDist * 1.3 + 1e-4;
+        const scatterOk = !isAoe || (stormHits.length > 0 && stormHits.every((a) => a.scatterRings === aoeRadius));
+        c6Pass = radiusOk && scatterOk;
     }
 
     // C7: 運動方向 — 治療／增益 (power <= 0) 至少一個 vz > 0 發射器，且無向外擴張貼地衝擊環當主爆發；
@@ -195,8 +217,15 @@ export function evaluateUlt(id: string): UltEvalResult {
     }
 
     // C8: 粒子量 — 一次施放粒子數上限（count 上限總和 x STORM 次數 + 共用包）<= 80
-    // 共用命中包 FX_ULT_IMPACT_BLUE/RED 粒子數上限為 1+1+1+1+10+18 = 32
-    const commonImpactCount = 32;
+    // 共用命中包 FX_ULT_IMPACT_BLUE/RED 粒子數上限依陣營從 VFX_REGISTRY 實算
+    const isRed = skill.team === 1 || id[1] === 'r';
+    const commonImpactAsset = VFX_REGISTRY[isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE'];
+    let commonImpactCount = 0;
+    if (commonImpactAsset) {
+        for (const em of commonImpactAsset.emitters) {
+            commonImpactCount += maxOf(em.count, 1);
+        }
+    }
     let recipeParticleSum = 0;
     for (const em of recipeAsset.emitters) {
         recipeParticleSum += maxOf(em.count, 1);
@@ -255,24 +284,14 @@ export function evaluateUlt(id: string): UltEvalResult {
     };
 }
 
-export const ALL_ULT_IDS = [
-    'tb_u1', 'tb_u2', 'tb_u3', 'tb_u4', 'tb_u5',
-    'wb_u1', 'wb_u2', 'wb_u3', 'wb_u4', 'wb_u5',
-    'rb_u1', 'rb_u2', 'rb_u3', 'rb_u4', 'rb_u5',
-    'mb_u1', 'mb_u2', 'mb_u3', 'mb_u4', 'mb_u5',
-    'sb_u1', 'sb_u2', 'sb_u3', 'sb_u4', 'sb_u5',
-    'tr_u1', 'tr_u2', 'tr_u3', 'tr_u4', 'tr_u5',
-    'wr_u1', 'wr_u2', 'wr_u3', 'wr_u4', 'wr_u5',
-    'rr_u1', 'rr_u2', 'rr_u3', 'rr_u4', 'rr_u5',
-    'mr_u1', 'mr_u2', 'mr_u3', 'mr_u4', 'mr_u5',
-    'sr_u1', 'sr_u2', 'sr_u3', 'sr_u4', 'sr_u5',
-];
+export const ALL_ULT_IDS = Object.keys(ULT_VISUALS).sort();
 
 const ROOT = path.resolve(__dirname, '..');
 const BASELINE_PATH = path.join(ROOT, 'tests', 'ult-spec.baseline.json');
 
 describe('UltSpec (UA1: 50 Ultimate VFX Rules C1~C8 Ratchet)', () => {
     it('evaluates all 50 ultimates and matches ratchet baseline', () => {
+        expect(ALL_ULT_IDS).toHaveLength(50);
         const results = ALL_ULT_IDS.map((id) => evaluateUlt(id));
         const currentViolationsByRule: Record<RuleCode, string[]> = {
             C1: [], C2: [], C3: [], C4: [], C5: [], C6: [], C7: [], C8: [],
@@ -287,8 +306,7 @@ describe('UltSpec (UA1: 50 Ultimate VFX Rules C1~C8 Ratchet)', () => {
         }
 
         if (!fs.existsSync(BASELINE_PATH)) {
-            // Write baseline if not yet existing
-            fs.writeFileSync(BASELINE_PATH, JSON.stringify(currentViolationsByRule, null, 4), 'utf8');
+            expect.fail(`Baseline file missing at ${BASELINE_PATH}; auto-generation is disabled.`);
         }
 
         const baseline: Record<RuleCode, string[]> = JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));

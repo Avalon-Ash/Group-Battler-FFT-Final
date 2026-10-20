@@ -28,6 +28,9 @@ export interface VFXAction {
     duration?: number;
     height?: number;       // For HeavenFall or Pillars
     shakeIntensity?: number;
+    scatterRings?: number; // C: 落點散布外圈半徑（AOE STORM 散布用，0 或未設＝無散布）
+    scatterIndex?: number; // C: 散布序號（0 <= k < scatterCount）
+    scatterCount?: number; // C: 散布總擊數
 }
 
 /**
