@@ -114,7 +114,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- TANK (Blood/Undead) ---
     // tr_u1: 處決斷頭台 -> 巨大的紅色斷頭台刃 (Vertical Slash)
-    'tr_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.5, height: 1000, vfxOverride: 'FX_ULT_RED_GUILLOTINE_IMPACT' },
+    'tr_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.5, height: 300, vfxOverride: 'FX_ULT_RED_GUILLOTINE_IMPACT' },
     // tr_u2: 亡靈瘟疫 -> 擴散的綠色毒霧領域
     'tr_u2': { archetype: 'DOMAIN', primaryColor: '#3f6212', secondaryColor: '#a3e635', scale: 1.8, vfxOverride: 'FX_ULT_RED_PLAGUE' },
     // tr_u3: 不朽屍王 -> 血色晶體護甲
