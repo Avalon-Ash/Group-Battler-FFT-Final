@@ -102,13 +102,13 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // sb_u1: 神聖干涉 -> 無敵六邊形結界
     'sb_u1': { archetype: 'SANCTUARY', primaryColor: '#fef3c7', secondaryColor: '#fbbf24', scale: 1.6, count: 4, vfxOverride: 'FX_ULT_BLUE_INTERVENTION' },
     // sb_u2: 復活之光 -> 天降重生光柱
-    'sb_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#86efac', secondaryColor: '#fff', scale: 1.4, height: 1500, timing: 0.5, vfxOverride: 'FX_ULT_BLUE_RESURRECTION' },
+    'sb_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#86efac', secondaryColor: '#fff', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_RESURRECTION' },
     // sb_u3: 英勇讚美 -> 上升的音波紋
-    'sb_u3': { archetype: 'STORM', primaryColor: '#3b82f6', secondaryColor: '#fff', scale: 0.9, count: 10, vfxOverride: 'FX_ULT_BLUE_HYMN', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'sb_u3': { archetype: 'STORM', primaryColor: '#3b82f6', secondaryColor: '#fff', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_BLUE_HYMN', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
     // sb_u4: 神之怒火 -> 天譴
     'sb_u4': { archetype: 'INSTANT_IMPACT', primaryColor: '#fcd34d', secondaryColor: '#f59e0b', scale: 1.5, vfxOverride: 'FX_ULT_BLUE_WRATH' },
     // sb_u5: 寧靜之雨 -> 六邊形光雨
-    'sb_u5': { archetype: 'STORM', primaryColor: '#86efac', secondaryColor: '#dcfce7', scale: 0.6, count: 20, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_RAIN', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'sb_u5': { archetype: 'STORM', primaryColor: '#86efac', secondaryColor: '#dcfce7', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_BLUE_RAIN', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
 
     // ================= COVENANT (RED - Chaos/Blood/Fire) =================
 

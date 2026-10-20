@@ -78,24 +78,32 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
         ],
     },
-    // sb_u3 英勇讚美（全隊 Buff，10 次）：金色聖歌波紋一圈圈擴散＋光點上升
+    // sb_u3 英勇讚美（全隊 Buff，8 次）：金色聖歌波紋一圈圈擴散＋光點上升
     'FX_ULT_BLUE_HYMN': {
         id: 'FX_ULT_BLUE_HYMN',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0, size: 48,
-                partAnim: { scaleFrom: 0.5, scaleTo: 2.6, fadeIn: 0.1, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: [0.8, 1.0], delay: [0, 0.1], size: 6,
+            // 命中主爆發（glow radius 400 大於環，非擴張環；delay 0 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 400, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 400,
+                shape: 'CIRCLE', shapeRadius: 100, vz: [40, 80], partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
+            // 範圍 10 波紋環（360 * 2.5 * 0.8 = 720px，落於 582～1081px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 360, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 360,
+                partAnim: { scaleFrom: 0.3, scaleTo: 2.5, fadeIn: 0.1, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: 0.45, delay: 0, size: 6,
                 shape: 'CIRCLE', shapeRadius: 120, vz: [60, 110], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
         ],
     },
-    // sb_u5 寧靜之雨（範圍 5 持續治療，20 次）：金白光雨滴落下＋柔光點
+    // sb_u5 寧靜之雨（範圍 5 持續治療，8 次）：金白光雨滴落下＋光霧＋擴散環
     'FX_ULT_BLUE_RAIN': {
         id: 'FX_ULT_BLUE_RAIN',
         emitters: [
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'LION_HOLY' }, count: 2, lifetime: [0.4, 0.6], delay: [0, 0.04], size: 4,
-                shape: 'CIRCLE', shapeRadius: 120, vz: [-60, 0], gravity: 1500, partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.1, size: 8,
-                shape: 'CIRCLE', shapeRadius: 120, vz: [20, 40], partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeIn: 0.2, fadeOut: 0.6 } }),
+            // 命中主爆發（glow radius 260 大於環，非擴張環；delay 0 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 260, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 260,
+                shape: 'CIRCLE', shapeRadius: 100, vz: [20, 50], partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeIn: 0.1, fadeOut: 0.6 } }),
+            // 範圍 5 擴散環（280 * 1.8 * 0.8 = 403.2px，落於 291.0～540.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 240, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 280,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'LION_HOLY' }, count: 2, lifetime: [0.35, 0.45], delay: 0, size: 4,
+                shape: 'CIRCLE', shapeRadius: 100, vz: [-40, -10], gravity: 1200, partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
         ],
     },
 
