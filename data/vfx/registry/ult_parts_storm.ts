@@ -41,14 +41,16 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
         ],
     },
-    // rb_u2 星辰墜落（全場隨機箭雨，10 次）：細光矢落在隨機位置＋星光
+    // rb_u2 星辰墜落（全場隨機箭雨，8 次）：細光矢落在隨機位置＋星光＋擴張星環
     'FX_ULT_BLUE_STARFALL': {
         id: 'FX_ULT_BLUE_STARFALL',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 12, height: 192, ramp: 'LION_HOLY' }, count: 2, lifetime: 0.3, delay: [0, 0.08], size: 12, groundAnchored: true,
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 12, height: 192, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0, size: 12, groundAnchored: true,
                 shape: 'CIRCLE', shapeRadius: 110, partAnim: { scaleFrom: 1.4, scaleTo: 0.6, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 16, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: 0.35, delay: [0.05, 0.12], size: 16,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
                 shape: 'CIRCLE', shapeRadius: 110, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 480, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 480,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1.6, fadeOut: 0.5 } }),
         ],
     },
     // rb_u5 系統超載（單體極速連射，15 次）：命中點連閃＋小衝擊環＋電光碎點

@@ -127,22 +127,25 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // rb_u1 極地冰河（HEAVEN_FALL）／mb_u2 絕對零度（DOMAIN）共用：冰晶爆裂 → 冰霜衝擊環＋六角冰晶飛散 → 日輪霜印、冰塵
+    // rb_u1 極地冰河（HEAVEN_FALL，單體）：日輪霜印 → 冰霜主爆發＋衝擊環＋碎冰飛散 → 冰塵餘韻
     'FX_ULT_BLUE_GLACIAL_BURST': {
         id: 'FX_ULT_BLUE_GLACIAL_BURST',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_ICE', hard: true }, count: 1, lifetime: 0.45, delay: 0, size: 96,
+            // 起手：日輪霜印（單體尺寸 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_ICE' }, count: 1, lifetime: 1.15, delay: 0, size: 36, vRotation: 0.2,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
+            // 命中主爆發（delay 0.3 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_ICE', hard: true }, count: 1, lifetime: 0.35, delay: 0.3, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'shard', size: 32, shape: 'crystal', ramp: 'LION_ICE' }, count: [5, 6], lifetime: [0.9, 1.2], delay: [0, 0.1], size: 32, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 50, partAnim: { scaleFrom: 0.3, scaleTo: 1, fadeOut: 0.4 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 14, ramp: 'LION_ICE' }, count: 1, lifetime: 0.6, delay: 0.02, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.5, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_ICE' }, count: [10, 12], lifetime: [0.8, 1.1], delay: 0, size: 8,
-                shape: 'BURST_DIR', speed: [200, 420], vz: [250, 450], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_ICE' }, count: 1, lifetime: 1.5, delay: 0.05, size: 112, vRotation: 0.2,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.45 } }),
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 40, color: 'STEEL', seed: 4 }, count: [3, 5], lifetime: [1.0, 1.3], delay: [0.15, 0.3], size: 40,
-                shape: 'CIRCLE', shapeRadius: 70, speed: [20, 40], vz: [10, 30], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.5, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.5 } }),
+            // 命中衝擊環（單體擴張環，半徑 32 * 1.1 * 1.4 = 49.3 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 8, ramp: 'LION_ICE' }, count: 1, lifetime: 0.45, delay: 0.3, size: 32,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.1, fadeOut: 0.6 } }),
+            // 碎冰飛散
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'crystal', ramp: 'LION_ICE' }, count: [6, 8], lifetime: [0.5, 0.7], delay: 0.3, size: 6,
+                shape: 'BURST_DIR', speed: [120, 260], vz: [150, 320], gravity: 1800, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
+            // 餘韻冰塵
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_ICE', hard: true }, count: [6, 8], lifetime: [0.6, 0.8], delay: [0.35, 0.5], size: 4,
+                shape: 'CIRCLE', shapeRadius: 30, speed: [5, 15], vz: [20, 50], drag: 0.02, partAnim: { fadeIn: 0.1, fadeOut: 0.5 } }),
         ],
     },
 
@@ -150,18 +153,21 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
     'FX_ULT_BLUE_ORBITAL_BEAM': {
         id: 'FX_ULT_BLUE_ORBITAL_BEAM',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 48, height: 320, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.7, delay: 0, size: 48, groundAnchored: true,
+            // 起手：日輪光印（單體尺寸 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.05, delay: 0, size: 36, vRotation: 0.5,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
+            // 命中：細長聖光柱
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 48, height: 320, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 48, groundAnchored: true,
                 partAnim: { scaleFrom: 1.3, scaleTo: 0.6, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0, size: 80,
+            // 命中主爆發（delay 0.3 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 80, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.02, size: 80,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.4, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 10, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.02, size: 96,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.0, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.2, delay: 0.05, size: 64, vRotation: 1.0,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: [8, 10], lifetime: [0.8, 1.1], delay: [0.1, 0.4], size: 6,
-                shape: 'CIRCLE', shapeRadius: 40, speed: [10, 30], vz: [60, 120], drag: 0.02, partAnim: { fadeOut: 0.5 } }),
+            // 命中衝擊環（單體擴張環，半徑 32 * 1.1 * 1.4 = 49.3 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.3, size: 32,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.1, fadeOut: 0.6 } }),
+            // 餘韻光點
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_HOLY', hard: true }, count: [6, 8], lifetime: [0.5, 0.7], delay: [0.35, 0.45], size: 4,
+                shape: 'CIRCLE', shapeRadius: 30, speed: [10, 25], vz: [40, 80], drag: 0.02, partAnim: { fadeOut: 0.5 } }),
         ],
     },
 
@@ -237,18 +243,18 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // rb_u4 絕對封鎖（範圍 4 禁錮）：日輪法陣 → 六根細光柱沿六角環落下成牢籠＋收縮環 → 牢籠淡出
+    // rb_u4 絕對封鎖（範圍 4 禁錮）：日輪法陣 → 六根細光柱沿六角環落下成牢籠＋擴張環 → 牢籠淡出
     'FX_ULT_BLUE_LOCKDOWN': {
         id: 'FX_ULT_BLUE_LOCKDOWN',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.7, delay: 0, size: 112,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.6, delay: 0, size: 112,
                 partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 24, height: 224, ramp: 'LION_ARCANE' }, count: 6, lifetime: 1.2, delay: 0.25, size: 24, groundAnchored: true,
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 24, height: 224, ramp: 'LION_ARCANE' }, count: 6, lifetime: 1.0, delay: 0.25, size: 24, groundAnchored: true,
                 shape: 'RING', shapeRadius: 100, partAnim: { scaleFrom: 1.3, scaleTo: 1, fadeIn: 0.05, fadeOut: 0.35 } }),
-            // 禁錮：環由外向內收緊
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_ARCANE' }, count: 2, lifetime: 0.6, delay: [0.3, 0.55], size: 128,
-                partAnim: { scaleFrom: 2.4, scaleTo: 0.6, fadeIn: 0.2, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.45, delay: 0.85, size: 64,
+            // 命中衝擊環：擴張環（範圍 4：128 * 2.3 * 1.4 = 412.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.7, delay: 0.3, size: 128,
+                partAnim: { scaleFrom: 0.4, scaleTo: 2.3, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 64,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
         ],
     },
