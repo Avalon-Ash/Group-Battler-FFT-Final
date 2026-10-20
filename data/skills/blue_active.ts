@@ -147,8 +147,8 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '易位術', desc: '位置交換', 
-        range: 7, cast: 0.5, cd: 10.0, cost: 40, gain: 0, 
-        type: 'SINGLE', power: 60, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
+        range: 5, cast: 0.5, cd: 7.5, cost: 15, gain: 25, 
+        type: 'SINGLE', power: 110, color: '#8b5cf6', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'DASH', 
         visualHitEffect: 'FX_TELEPORT', element: 'ARCANE'
     },
@@ -156,7 +156,7 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'mb_a4', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '晶體折射', desc: '折射傷害', 
         range: 6, cast: 0.8, cd: 7.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 160, color: '#bae6fd', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'AOE', aoeRadius: 1, power: 135, color: '#bae6fd', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_BLUE_ICE', element: 'ICE'
     },
     { 
@@ -195,9 +195,9 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'sb_a4', role: Role.SUPPORT, team: Team.BLUE, tag: 'ACTIVE', 
         name: '不滅聖印', desc: '賦予目標短暫無敵',
-        range: 6, cast: 0.4, cd: 16.0, cost: 50, gain: 0,
-        type: 'SINGLE', power: 0, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
-        ccType: 'INVINCIBLE', ccDur: 1.5,
+        range: 6, cast: 0.4, cd: 11.0, cost: 35, gain: 0,
+        type: 'SINGLE', power: -120, color: '#fde68a', visual: 'SMASH', projectileSpeed: 0,
+        ccType: 'INVINCIBLE', ccDur: 2.0,
         specialVisualStatus: 'INVINCIBLE',
         visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
     },

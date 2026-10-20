@@ -20,7 +20,9 @@
     "perf:frames": "node tools/ui-e2e/perf-frames.mjs",
     "perf:attribution": "node tools/ui-e2e/perf-vfx-attribution.mjs",
     "gen:tokens": "npx vite-node tools/gen-ui-tokens.ts",
-    "knip": "knip"
+    "knip": "knip",
+    "balance:sim": "node tools/balance/batch-sim.mjs",
+    "balance:report": "node tools/balance/report.mjs"
   },
   "dependencies": {
     "react": "^19.2.3",
