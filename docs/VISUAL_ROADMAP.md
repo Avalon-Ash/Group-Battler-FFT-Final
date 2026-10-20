@@ -1,6 +1,6 @@
 # 視覺路線圖：VFX 收尾、障礙物換新、地形美術與網格氛圍（2026-10-18 草案，待對齊）
 
-> 依據：`docs/VFX_PIPELINE_MAP.md`（管線地圖＋覆蓋率）、`docs/TERRAIN_R2_REPORT.md`、`docs/ASSET_NEEDS.md`、本輪盤點。
+> 依據：`docs/VFX_PIPELINE_MAP.md`（管線地圖＋覆蓋率）、地形 R2 報告（已刪，見 git 歷史）、`docs/ASSET_NEEDS.md`、本輪盤點。
 > 鐵律照舊：渲染／座標工作同一時間只開一條；動到位置／高度／排序就同 commit 更新 `RenderSpec.ts` 與檔頭；保真基準重錄要附新舊差異圖、獨立 commit。
 > 共用驗收工具：`tools/vfx/fx-shot.mjs`（單一特效／光束／隕石／死亡逐格）、`tools/vfx/vfx-coverage.mjs`（後端覆蓋率）、`npm run verify:coords`、`tools/ui-e2e/beam-align-shot.mjs`、`tools/ui-e2e/terrain-contrast.mjs`、`perf:guard`／`perf:fidelity`／`perf:frames`。
 
@@ -119,7 +119,7 @@
 - 參考圖：你在 `_asset_staging/art/ref_*` 的風格參考（不進 repo）。
 
 ### T1 修已知缺陷（✅ 2026-10-18：三項都已不成立或已修）
-- 島嶼底座切平線：10/17 已修（`docs/TERRAIN_FOUNDATION_REPORT.md`）。VOID／FOREST 偏暗：T0 曝光已拉進預算。
+- 島嶼底座切平線：10/17 已修。VOID／FOREST 偏暗：T0 曝光已拉進預算。
 - ICE aurora：早已改為低解析度離屏（`BACKGROUND_FX.AURORA.RESOLUTION_SCALE`，9043459）。實測（`node tools/ui-e2e/biome-frames.mjs --biomes=ICE,VOID --no-bg=ICE`，2560×1440 unthrottled）：ICE p99 3.2 ms、關背景 1.9 ms、VOID 2.4 ms——19 ms 尖峰已不存在，未再改。
 - 原計畫：
 - 島嶼底座切平線、VOID／FOREST 頂面偏暗（R1 光照增益依群系調）。

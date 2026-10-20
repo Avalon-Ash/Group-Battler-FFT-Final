@@ -117,7 +117,7 @@ export const RENDER_GLOW = {
 
 /**
  * 效能五：每幀熱點去除用的快取參數 SSOT
- * （單位漸層快取、預烘焙光暈文字；見 docs/PERF_REPORT_5.md）
+ * （單位漸層快取、預烘焙光暈文字）
  */
 export const RENDER_HOTSPOT_CACHE = {
     MAX_UNIT_GRADIENTS: 128,

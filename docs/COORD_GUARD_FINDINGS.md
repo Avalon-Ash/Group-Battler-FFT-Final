@@ -110,7 +110,7 @@ FOREST 3 場 1,601 次、VOID 3 場 1,745 次（兩種地形差不多）。閒�
 
 ### H2：單位／屍體的 `sortBias` 是鋸齒函數（格界上有最大約半格的不連續）
 
-規則：`engine/systems/unit/UnitSystem.ts:92`，`sortBias = max(0, 腳下格格心Y − 腳Y)`；RenderSpec §2 寫的是「腳跨過格界進入前方格時，排在該格地塊之後」。這讓鍵 `y + sortBias` 在格內是常數（等於格心線），一跨格界就掉到新格自己的 `y`，反向則往上跳，不連續量約 20 px（2,000 鍵單位）。
+規則：當時的 `UnitSystem.ts`（現 `engine/presentation/unit/UnitSystem.ts`），`sortBias = max(0, 腳下格格心Y − 腳Y)`；RenderSpec §2 寫的是「腳跨過格界進入前方格時，排在該格地塊之後」。這讓鍵 `y + sortBias` 在格內是常數（等於格心線），一跨格界就掉到新格自己的 `y`，反向則往上跳，不連續量約 20 px（2,000 鍵單位）。
 
 證據（停用 decal lift 後仍剩的 194 次 sortBias 驅動事件）：CORPSE×UNIT 54、CORPSE×VFX 63、UNIT×VFX 61、TERRAIN×UNIT 7、OVERLAY×UNIT 7。
 

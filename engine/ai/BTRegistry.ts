@@ -18,7 +18,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
     "IsSilenced": (a) => a.effects.SILENCE.remaining > 0,
     "IsFeared": (a) => a.effects.FEAR.remaining > 0, 
     // 能否自行移動：被定身（root）／暈眩／放逐／恐懼時，任何「移動」節點都必須失敗，
-    // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（BR_IDLE_REPORT 成因 B）。
+    // 否則 Survival 的 Run! 會永遠 RUNNING，單位被釘在原地卻也不出手（大逃殺發呆成因 B，tests/AIIdlePriority.test.ts）。
     "CanMove": (a) => a.effects.ROOT.remaining <= 0 && a.effects.STUN.remaining <= 0 && !a.banished && a.effects.FEAR.remaining <= 0,
     "IsEvading": (a) => a.aiState === AIState.EVADING_URGENT ||
                         a.aiState === AIState.LAST_STAND_PUSH,

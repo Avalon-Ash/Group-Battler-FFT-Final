@@ -5,29 +5,8 @@ import * as path from 'path';
 const ROOT = path.resolve(__dirname, '..');
 const SCAN_DIRS = ['engine', 'components', 'data', 'hooks'];
 
-export const LEGACY_EFFECT_FIELDS = [
-    'stunTimer',
-    'stunMax',
-    'silenceTimer',
-    'silenceMax',
-    'banishTimer',
-    'banishMax',
-    'stasisTimer',
-    'stasisMax',
-    'rootTimer',
-    'fearTimer',
-    'tauntTimer',
-    'tauntTargetId',
-    'blindTimer',
-    'polymorphTimer',
-    'invincibleTimer',
-    'vulnerableTimer',
-    'dotTimer',
-    'dotDmg',
-    'dotType',
-    'hotTimer',
-    'hotVal',
-] as const;
+import { LEGACY_EFFECT_FIELDS } from './legacyEffectFields';
+export { LEGACY_EFFECT_FIELDS };
 
 export type LegacyEffectField = typeof LEGACY_EFFECT_FIELDS[number];
 

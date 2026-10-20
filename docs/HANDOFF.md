@@ -7,8 +7,7 @@
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **文件防過時**（決策見 `DECISIONS.md` §4；檔頭瘦身已完成 `b63f1da`）：① 刪 `docs/archive/` 與已被取代的報告（含 `BALANCE_AGENT_PROMPT.md`），修好引用；② 加 `tests/DocDrift.test.ts`（路徑／識別字／檔頭類別名存在性）。
-2. **個別奧義美術翻新**（還沒設計）：50 個奧義的序列與零件細調（`docs/VFX_PIPELINE_MAP.md` §4.16）。渲染工作，單獨一條。順帶：平衡輪縮短詠唱後，隕石類 `rr_u2`（落地約晚 0.2 s）、`tr_u1`（約晚 0.26 s，改前就晚 0.16 s）的隕石比傷害晚到，調 `data/vfx/ult_visuals.ts` 的 `height`／`timing` 讓 `hitAt ≤ cast`。
+1. **個別奧義美術翻新**（還沒設計）：50 個奧義的序列與零件細調（`docs/VFX_PIPELINE_MAP.md` §4.16）。渲染工作，單獨一條。順帶：平衡輪縮短詠唱後，隕石類 `rr_u2`（落地約晚 0.2 s）、`tr_u1`（約晚 0.26 s，改前就晚 0.16 s）的隕石比傷害晚到，調 `data/vfx/ult_visuals.ts` 的 `height`／`timing` 讓 `hitAt ≤ cast`。
 
 ## 3. 待使用者確認
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。

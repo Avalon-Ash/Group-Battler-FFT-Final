@@ -2,7 +2,7 @@
 
 This directory contains offline scripts used by the principal engineer to render and pack 3D KayKit models into 2.5D isometric directional sprite sheets for TACTICAL.OS.
 
-> **Note for AI Agents**: The sprite atlases in `public/assets/units/` are already rendered and packed (the duplicate copy in `art-source/sprites/` was removed; Blender sources live outside the repo in `C:\Git\_asset_staging\`). **Do not execute Blender or rerun these scripts autonomously.** If sprite defects are observed, document them in `docs/ART_REPORT.md` for offline adjustment.
+> **Note for AI Agents**: The sprite atlases in `public/assets/units/` are already rendered and packed (the duplicate copy in `art-source/sprites/` was removed; Blender sources live outside the repo in `C:\Git\_asset_staging\`). **Do not execute Blender or rerun these scripts autonomously.** If sprite defects are observed, report them to the main agent (add a TBD in `docs/HANDOFF.md`) for offline adjustment.
 
 ---
 

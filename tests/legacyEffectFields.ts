@@ -1,0 +1,25 @@
+// 已移除的狀態欄位名（ECS-lite S1 前的 xxxTimer 欄位）。
+// EffectFieldsRatchet（程式碼）與 DocDrift（註解與文件）共用。
+export const LEGACY_EFFECT_FIELDS = [
+    'stunTimer',
+    'stunMax',
+    'silenceTimer',
+    'silenceMax',
+    'banishTimer',
+    'banishMax',
+    'stasisTimer',
+    'stasisMax',
+    'rootTimer',
+    'fearTimer',
+    'tauntTimer',
+    'tauntTargetId',
+    'blindTimer',
+    'polymorphTimer',
+    'invincibleTimer',
+    'vulnerableTimer',
+    'dotTimer',
+    'dotDmg',
+    'dotType',
+    'hotTimer',
+    'hotVal',
+] as const;

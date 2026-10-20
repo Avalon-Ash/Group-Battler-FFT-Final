@@ -1,4 +1,4 @@
-// 座標協議守門測試（engine/renderers/RenderSpec.ts、docs/COORDINATE_AUDIT.md）。
+// 座標協議守門測試（engine/renderers/RenderSpec.ts）。
 // 高度、錨點、發射點、排序鍵、漂浮位移都有唯一的 SSOT 函式；各處自己重算就會「又」對不齊（2026-10 曾發生）。
 // 靜態家族：「目前違規」必須與 coordinate-protocol.baseline.json 完全相同——新增違規直接失敗，
 // 基準內已修好的項目也失敗（強迫同步刪除基準），所以基準只會縮小。另有 RenderSpec 與實作一致性、行為測試。

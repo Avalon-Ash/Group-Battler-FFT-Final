@@ -174,7 +174,7 @@ VFXSystem.state.particles
 - 保真工具修正：展示戰鬥在模擬流種子化前借用 Math.random，特效抽籤改變了展示單位的走位與鏡頭，第一張擷取（VOID）因鏡頭沒收斂而整張偏移（23% 像素）。`render-fidelity.mjs` 改為頁面載入後立即 `__resetSeed`，與特效脫鉤；新舊版本與原基準皆 0 差異，未重錄。
 
 ### 4.10 V3（死碼清理）之後
-- 刪除：登記表死鍵 13 個（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP`，`registry/shared.ts` 整檔）、`SkillDef.visualCastEffect／visualAoeEffect`、`ProceduralPainter`、`GroundPainter`、`MaterialPainter` 只供它們用的 6 個函式與輔助、`tools/material-preview.html`／`materialPreview.ts`；另清掉 4 處 `--noUnusedLocals` 報的未使用項。
+- 刪除：登記表死鍵 13 個（`FX_CASTING_*`、`FX_HIT_FIRE`、`FX_MASSIVE_IMPACT`、`FX_STATUS_*_LOOP`，`registry/shared.ts` 整檔）、`SkillDef.visualCastEffect／visualAoeEffect`、`ProceduralPainter`、`GroundPainter`、`MaterialPainter` 只供它們用的 6 個函式與輔助、`material-preview.html`／`materialPreview.ts`；另清掉 4 處 `--noUnusedLocals` 報的未使用項。
 - 無陣營後備改零件：光束用 `NEUTRAL_BEAM_RAMP_ID`、隕石用 `METEOR_NEUTRAL`；`ParticleRenderer` 遇到 PROC／GROUND 型別畫洋紅除錯點（`VFX_RENDER.DEBUG_DOT_*`）。
 - 結果：實戰＋150 技能共 10,824 顆粒子，全是 PART（7,704）或天氣 ATMOSPHERE（3,120）；棘輪名單：舊後端資產 0、直接生成的舊型別只剩 ATMOSPHERE／BEAM（已掛零件）／GENERIC_DEBUG。
 - 保真 0 變化（未重錄）。

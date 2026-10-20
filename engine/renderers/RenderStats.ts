@@ -3,7 +3,7 @@
  * -----------------------------------------------------------------------------
  * 說明：
  *  - 本模組為純診斷計時工具，不包含任何遊戲模擬狀態。
- *  - 依 AGENTS.md 與 docs/archive/PERF_AGENT_PROMPT.md 規範，特許存在於 engine/renderers/ 目錄。
+ *  - 依 AGENTS.md 規範，特許存在於 engine/renderers/ 目錄。
  *  - `enabled` 在載入時由 URL 查詢參數 `?perf` 決定（SSR/Node 環境預設 false）。
  *  - 當 `enabled === false` 時，所有計時方法第一行直接 early return，執行期零成本。
  *  - 當 `enabled === true` 時，使用 performance.now() 計量各階段毫秒數，並以 EMA 平滑。

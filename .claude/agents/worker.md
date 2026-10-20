@@ -18,7 +18,7 @@ Hard rules:
    - No hardcoded numbers or colors in engine/renderer code; they go in `constants.ts` or `data/**`.
    - No `console.log` in `tick()`, render loops, or particle updates.
    - Do not add methods to `Agent` (`engine/core/Agent.ts`).
-   - Do not edit facade files (`engine/renderer.ts`, `engine/game.ts`, `engine/systems/combat/index.ts`, `engine/systems/movement/index.ts`).
+   - Do not edit facade files (`engine/renderer.ts`, `engine/game.ts`, `engine/systems/combat.ts`, `engine/systems/movement.ts`).
 6. Never re-record test baselines or loosen test thresholds (`tools/ui-e2e/*baseline*`, `perf:fidelity` baselines).
 7. If something is unclear or a command fails in a way the task did not predict, stop and report. Do not improvise a fix.
 

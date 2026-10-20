@@ -63,7 +63,7 @@
 | 階段 / 提交 | 範圍與操作 | 快速量測 (300場) | 標準量測 (2000場) | 關鍵指標說明 |
 | :--- | :--- | :--- | :--- | :--- |
 | **BL0** (`99d0531`) | 工具補強：DOT 來源歸屬、反傷/吸血監聽、報告產生器 | 71.5% / 73.8% | 72.6% | 100% 確定性驗證通過，不改任何數值 |
-| **BL1** (`c8d34ae`) | 基準量測與成因歸納 | — | 72.6% | 產出 `BALANCE_BASELINE.md`，確認法師/遊俠/輔助為最大差距 |
+| **BL1** (`c8d34ae`) | 基準量測與成因歸納 | — | 72.6% | 產出基準報告（已刪，見該 commit），確認法師/遊俠/輔助為最大差距 |
 | **BL2-Batch1** (`b5f158a`) | 紅方 Basic & Active 基礎數值體系拉抬 (5職業各+20%~40%) | 58.7% (一般) | — | 藍方勝率從 71.5% 大幅回落至 58.7% |
 | **BL2-Batch2** (`8961c3c`) | 紅方 Ult 強化 + 藍方超模大招修剪 (`wb_u4`, `mb_u5`, `sb_u2/u5`) | 46.0% (一般)<br>51.0% (交換) | 45.3% (合併) | 陣營勝率首度進入 45%~51% 平衡帶；中位數 16.0s |
 | **BL3-Batch1** (`912fa71`) | 針對 8 個初期偏離超標技能 (`mb_b3/b5`, `mb_a3/a4`, `tr_b2`, `sr_a4` 等) 微調 | 49.3% (一般)<br>50.0% (交換) | 45.7% (合併) | 超標技能由 8 筆降為 5 筆 |
@@ -191,7 +191,7 @@ npm run perf:fidelity
 | 提交 Hash | 標題 | 變更範疇 |
 | :--- | :--- | :--- |
 | `99d0531` | `feat(balance): enhance batch-sim and add report generator (BL0)` | `CCManager.ts` 補 `sourceId`、`batch-sim.mjs` 歸屬鉤子、`report.mjs` |
-| `c8d34ae` | `docs(balance): record baseline simulation report and disparity analysis (BL1)` | `docs/BALANCE_BASELINE.md`（基準 72.6% 報告與成因） |
+| `c8d34ae` | `docs(balance): record baseline simulation report and disparity analysis (BL1)` | 基準 72.6% 報告與成因（檔案已刪，見該 commit） |
 | `b5f158a` | `feat(balance): buff red basics and actives (BL2 batch 1: blue win rate 71.5% -> 58.7%)` | `red_basic.ts`, `red_active.ts` 全面骨幹數值拉抬 |
 | `8961c3c` | `feat(balance): BL2 Batch 2 - buff Red ults and trim Blue ults (winrate 71.5% -> ~48.5%)` | `red_ult.ts` 強化，`blue_ult.ts` 修剪 |
 | `912fa71` | `feat(balance): BL3 fine-tune skill outliers (mb_b3/b5, mb_a3/a4, mb_u3, tr_b2, sr_a4, mr_a5, rr_u5, mr_u5)` | 修正 8 個偏離超標技能 |

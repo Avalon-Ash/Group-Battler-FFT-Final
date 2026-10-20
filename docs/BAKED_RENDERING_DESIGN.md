@@ -96,7 +96,7 @@ atlas://<domain>/<faction>/<category>/<id>[@state][_frame]
 - `atlas://terrain/themes/forest/hex_top_h0` (森林主題高度 0 頂面)
 - `atlas://vfx/spells/holy_circle_outer` (神聖法陣外環)
 
-### 3.2 圖集 Manifest 資料型別定義 (`types/AtlasSchema.ts`)
+### 3.2 圖集 Manifest 資料型別定義 （擬新增 `AtlasSchema.ts`，放在 types 目錄）
 
 ```typescript
 export interface AtlasFrameDef {

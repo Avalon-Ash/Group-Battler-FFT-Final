@@ -18,7 +18,7 @@
 - **PowerShell 陷阱**：終端機中文亂碼但檔案是 UTF-8；新檔寫 LF，多數原始檔是 CRLF（編輯保持原行尾）；巢狀引號易 ParserError，複雜字串改寫檔；字串內 `\r\n` 不會展開（用反引號）；**絕不輸出 `&gt;`／`&lt;` 之類 HTML 實體**；`git push` 的進度輸出會被當 stderr（退出碼 1 不代表失敗，看 `main -> main` 那行）。
 
 ## 3. 一輪工作的流程
-- **開新一輪的流程**：主代理寫 `docs/<NAME>_AGENT_PROMPT.md` → 從 `main` 開分支（例如 `feat/<topic>`），在原生資料夾切過去 → 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md` → 跑完告訴主代理 → 主代理審查、修正、本機實跑 → 使用者同意才合併，push 另外問。代理跑的期間主代理對該資料夾只讀不寫。
+- **開新一輪的流程**：主代理寫 `docs/<NAME>_AGENT_PROMPT.md` → 從 `main` 開分支（例如 `feat/<topic>`），在原生資料夾切過去 → 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md` → 跑完告訴主代理 → 主代理審查、修正、本機實跑 → 使用者同意才合併，push 另外問。合併後刪掉該輪提示詞與被取代的報告（DECISIONS §4，`tests/DocDrift.test.ts` 擋斷鏈）。代理跑的期間主代理對該資料夾只讀不寫。
 - **真的需要並行時才開工作樹**（命名 `C:\Git\Group-Battler-<topic>`，`node_modules` 可用 junction 指回原生資料夾）。移除時**先刪 junction**（`cmd /c rmdir <path>\node_modules`）再 `git worktree remove`，否則可能連帶刪掉原生資料夾的 `node_modules`。
 - 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`、`br-fix-final`、`docs-cleanup-final`）未推，可忽略。
 - 一輪做完：程式碼、保真重錄（獨立 commit＋證據）、文件（`VFX_PIPELINE_MAP` 等專題文件＋`WORKLOG` 一節）分開提交；HANDOFF 只刪掉做完的 TBD、加上新的待確認事項。

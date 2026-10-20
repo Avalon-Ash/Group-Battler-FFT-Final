@@ -2,6 +2,7 @@
 
 > 從 `docs/HANDOFF.md` 拆出（2026-10-19）。只記「做了什麼、證據在哪」，平常不用讀；要查某個系統的來龍去脈時再搜尋。
 > 新完成的輪次往最後加一節（日期＋一句話結論＋commit／報告位置），HANDOFF 裡對應的 TBD 同時刪掉。
+> 文中提到的提示詞與報告檔大多已刪除（DECISIONS §4），內容在 git 歷史：`git log --all -- docs/<檔名>`。
 
 ## 1. Git 歷程備忘
 - **單一主線**：`C:\Git\Group-Battler-FFT-Final`，分支 `main`。主代理與 IDE 代理都在這個資料夾工作。若 `git worktree list` 還看得到 `Group-Battler-main`／`-death-vfx`／`-chore`，代表搬遷步驟尚未做完。
@@ -116,6 +117,7 @@
 - 文件與檔頭清理（使用者 10/20 要求）：已完成的 Gemini 提示詞 5 份與被取代的稽核／設計文件 7 份移到 `docs/archive/`，連結同步更新；`STATE_OWNERSHIP_DESIGN`、`ECS_LITE_ASSESSMENT`、`VFX_PIPELINE_MAP` 開頭加「現況」；`AGENTS.md` 補模擬／表現層邊界、`agent.effects`、`agent.view` 規則與目錄樹，README 目錄樹改成 S2 後的樣子；程式註解的 `constants.ts 的 X` 改指 `constants/<領域>.ts`（19 行），舊欄位名與已刪類別的註解修正。稽核腳本：路徑存在性＋舊識別字＋檔頭類別名。
 - 檔頭瘦身（主代理親自做，`b63f1da`）：71 個方框檔頭刪掉「上游／下游」、呼叫端清單、實作位置清單與過時的 tick 順序，只留職責＋不變式（−162 行，只改註解）；測試檔頭不再指向提示詞文件。
 - 技能平衡輪（Gemini 執行 `99d0531`～`ccaf42b`，主代理審查後合併）：150 個技能改了 90 個，全部只動數值欄位（以模組載入逐欄比對 main，非數值變動 0）；紅方普攻／主動／奧義的威力、射程、詠唱整體上調，藍法與部分藍奧義下修。主代理重跑標準量測（各 1000 場 seed 1）：藍方勝率一般 48.4%、交換 51.7%、合併 50.0%，p50 17.3 s，高頻技能勝率差超標 0 筆，同職業紅藍輸出差最大 −22.9%（法師）。`battle_frozen` 因戰鬥軌跡不同重錄（`2829472`，差異集中在單位／浮字／特效，5 張地形照舊）。工具：`npm run balance:sim`／`balance:report`（`tools/balance/`），持續傷害記錄 `effects.DOT.sourceId` 供歸屬統計。報告 `docs/BALANCE_REPORT.md`、基準 `docs/BALANCE_BASELINE.md`。
+- 文件防過時（10/20）：刪除 `docs/archive/`（45 份）與已完成輪次的提示詞／報告 22 份，程式註解與文件裡的引用改寫或拿掉；新增 `tests/DocDrift.test.ts`：文件與註解裡的 repo 路徑、md 相對連結、方框檔頭第一行的名稱都必須存在，已移除的狀態欄位名（`tests/legacyEffectFields.ts`，與 `EffectFieldsRatchet` 共用）不得出現在註解與文件（WORKLOG 為歷史，不檢查）。順手修：`worker.md` 的 Facade 路徑、`types.ts` 效果槽位註解、兩個檔頭名稱（`FACTION_SKINS`、`GameRenderer`）。保留：`MOBILE_UI_AUDIT`（仍有未修項）、`STATE_OWNERSHIP_DESIGN`、`COORD_GUARD_FINDINGS`、`DEPTH_ORDER_FINDINGS`、`PERF_LIFECYCLE_FINDINGS`（程式註解引用的理由）。
 
 ## 3. 更早的輪次與審查修補
 

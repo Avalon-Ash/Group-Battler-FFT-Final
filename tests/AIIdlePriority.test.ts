@@ -7,7 +7,7 @@ import { BTActions, BTConditions } from '../engine/ai/BTRegistry';
 import { STANDARD_AI_PROFILE, type BTDef } from '../data/ai_profiles';
 
 /**
- * BR 發呆（docs/BR_IDLE_REPORT.md）：每個成因一則回歸測試，外加行為樹優先序測試。
+ * BR 發呆：每個成因一則回歸測試，外加行為樹優先序測試。
  */
 describe('AIIdlePriority', () => {
     let engine: GameEngine;

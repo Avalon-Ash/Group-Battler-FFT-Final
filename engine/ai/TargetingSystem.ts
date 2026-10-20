@@ -33,7 +33,7 @@ export class TargetingSystem {
      */
     public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         // baseRange 0 = 「精確抵達該格」（逃生、自身 PBAOE）：高低差加成不得讓 dist 1 的鄰格算成已抵達，
-        // 否則 moveAgentToHex 會對相鄰的逃生格直接回 SUCCESS 而原地不動（BR_IDLE_REPORT 成因 A）。
+        // 否則 moveAgentToHex 會對相鄰的逃生格直接回 SUCCESS 而原地不動（大逃殺發呆成因 A，tests/AIIdlePriority.test.ts）。
         if (baseRange === 0) return 0;
 
         const h1 = spatial.getTerrainHeight(a.q, a.r);

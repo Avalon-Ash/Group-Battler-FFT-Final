@@ -91,9 +91,9 @@ export type EffectKind =
 export interface EffectSlot {
     remaining: number;     // 原 xxxTimer
     max: number;           // 原 xxxMax（沒有 Max 欄位的效果也記，給 UI 用）
-    value: number;         // DOT＝原 dotDmg、HOT＝原 hotVal，其餘 0
-    tag: string | null;    // DOT＝原 dotType，其餘 null
-    sourceId: string | null; // TAUNT＝原 tauntTargetId，其餘 null
+    value: number;         // DOT＝每跳傷害、HOT＝每跳回復，其餘 0
+    tag: string | null;    // DOT＝'BURN'／'POISON'，其餘 null
+    sourceId: string | null; // TAUNT＝嘲諷者 id、DOT＝施放者 id，其餘 null
 }
 export type EffectSlots = Record<EffectKind, EffectSlot>;
 

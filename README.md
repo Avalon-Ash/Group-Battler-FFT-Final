@@ -244,7 +244,7 @@ npm run perf:frames  # 真實幀間隔（平穩戰鬥／特效壓力／展示，
 | `CLAUDE.md` | 主代理（Claude Code） | 角色分工、少數鐵律、子代理與模型分級 |
 | `.claude/agents/*.md` | Claude Code 子代理 | 搜尋／執行／審查三種子代理，各自鎖定模型與權限 |
 | `docs/HANDOFF.md` | 主代理 | 目前的分支、進行中的工作、審查教訓、待辦池 |
-| `docs/*_AGENT_PROMPT.md` | 實作代理 | 單輪任務合約（完成後歸檔至 `docs/archive/`） |
+| `docs/*_AGENT_PROMPT.md` | 實作代理 | 單輪任務合約（合併後刪除，歷史在 git） |
 
 分工：主代理負責設計、審查與合併；長時間的機械性實作交給實作代理，在獨立分支完成後由主代理審查 diff 並本機實跑驗證，經使用者同意才合併進 `main`。
 
