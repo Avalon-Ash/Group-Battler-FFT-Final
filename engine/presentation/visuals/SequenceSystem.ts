@@ -10,6 +10,8 @@ import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from "../../../data/vfx/registry/shared_parts";
 
+import { HexUtils, MapConfig } from "../../utils";
+
 interface QueuedAction {
     executeAt: number;
     action: VFXAction;
@@ -20,6 +22,35 @@ interface QueuedAction {
 
 export class SequenceSystem {
     private actionQueue: QueuedAction[] = [];
+    private scratchOffset = { x: 0, y: 0 };
+
+    /**
+     * 確定性向日葵分佈偏移（C: STORM 落點散布）
+     * 角度 k × 2.39996（黃金角）、距離 √((k + 0.5) / count) × 半徑像素；
+     * 半徑像素＝scatterRings 圈最外層格心與中心格心的距離。不得用 Math.random。
+     */
+    public static computeScatterOffset(
+        scatterRings: number,
+        k: number,
+        count: number,
+        mapConfig: MapConfig,
+        out?: { x: number; y: number }
+    ): { x: number; y: number } {
+        const pt = out ?? { x: 0, y: 0 };
+        if (scatterRings <= 0 || count <= 0) {
+            pt.x = 0;
+            pt.y = 0;
+            return pt;
+        }
+        const p0 = HexUtils.toPx(0, 0, mapConfig);
+        const pR = HexUtils.toPx(scatterRings, 0, mapConfig);
+        const radiusPx = Math.hypot(pR.x - p0.x, pR.y - p0.y);
+        const theta = k * 2.39996;
+        const dist = Math.sqrt((k + 0.5) / count) * radiusPx;
+        pt.x = Math.cos(theta) * dist;
+        pt.y = Math.sin(theta) * dist;
+        return pt;
+    }
 
     public clear() {
         this.actionQueue = [];
@@ -90,7 +121,23 @@ export class SequenceSystem {
 
         switch (action.type) {
             case 'PARTICLE':
-                vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ, undefined, undefined, action.scale ?? 1);
+                if (action.scatterRings && action.scatterRings > 0) {
+                    SequenceSystem.computeScatterOffset(
+                        action.scatterRings,
+                        action.scatterIndex ?? 0,
+                        action.scatterCount ?? 1,
+                        engine.mapConfig,
+                        this.scratchOffset
+                    );
+                    const finalX = target.x + this.scratchOffset.x;
+                    const finalY = target.y + this.scratchOffset.y;
+                    const hex = HexUtils.fromPx(finalX, finalY, engine.mapConfig);
+                    const finalZ = engine.getTerrainHeight(hex.q, hex.r) + 5;
+                    const finalGroundZ = finalZ - VisualMath.Z_LAYERS.DECAL;
+                    vfx.playEffect(effectId, finalX, finalY, finalZ, action.color, finalGroundZ, undefined, undefined, action.scale ?? 1);
+                } else {
+                    vfx.playEffect(effectId, target.x, target.y, target.z, action.color, groundZ, undefined, undefined, action.scale ?? 1);
+                }
                 break;
             case 'BEAM':
                 if (source) {
