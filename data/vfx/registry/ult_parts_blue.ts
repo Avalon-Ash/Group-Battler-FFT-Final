@@ -10,43 +10,45 @@ import { part } from "./ult_parts";
 // ==========================================
 
 export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
-    // tb_u3 絕對防禦（天降神盾，HEAVEN_FALL，範圍 4）：神盾落地 → 獅盾紋章展開＋光柱＋六角護盾碎片 → 光點上飄
+    // tb_u3 絕對防禦（天降神盾，HEAVEN_FALL，範圍 4）：起手神盾法陣預告 → 落地神盾衝擊＋光柱＋六角護盾碎片 → 光點上飄
     'FX_ULT_BLUE_AEGIS_IMPACT': {
         id: 'FX_ULT_BLUE_AEGIS_IMPACT',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0, size: 96,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 80, height: 224, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0, size: 80, groundAnchored: true,
-                partAnim: { scaleFrom: 1.2, scaleTo: 0.85, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.02, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.4, fadeOut: 0.6 } }),
-            // 紋章：神盾落地後烙下，緩慢淡出（守護範圍的提示）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0.05, size: 112, vRotation: 0.3,
+            // 起手：獅盾紋章（陣營紋章），在落點預告
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.1, delay: 0, size: 112, vRotation: 0.3,
                 partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
+            // 起手：天降神盾光柱
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 80, height: 224, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.1, size: 80, groundAnchored: true,
+                partAnim: { scaleFrom: 1.2, scaleTo: 0.85, fadeOut: 0.6 } }),
+            // 命中：落地主爆發（delay 0.3 與自由落體落地時刻對齊）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 96,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
+                partAnim: { scaleFrom: 0.4, scaleTo: 2.0, fadeOut: 0.6 } }),
             // 六角護盾碎片向外彈開
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: [8, 10], lifetime: [0.8, 1.1], delay: 0.02, size: 8,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: [8, 10], lifetime: [0.6, 0.8], delay: 0.3, size: 8,
                 shape: 'BURST_DIR', speed: [180, 360], vz: [250, 450], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.3, 0.6], size: 8,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.6, 0.85], delay: [0.4, 0.55], size: 8,
                 shape: 'CIRCLE', shapeRadius: 90, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
 
-    // tb_u4 泰坦降臨（巨型重擊，近身）：日輪法陣快閃 → 金色重擊閃光＋放射＋衝擊環＋碎石 → 塵土
+    // tb_u4 泰坦降臨（巨型重擊，單體）：日輪法陣快閃 → 金色重擊閃光＋放射＋衝擊環＋碎石 → 塵土
     'FX_ULT_BLUE_TITAN_SMASH': {
         id: 'FX_ULT_BLUE_TITAN_SMASH',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 80, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.2, delay: 0, size: 80,
-                partAnim: { scaleFrom: 1.3, scaleTo: 1, fadeIn: 0.08, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.2, size: 80,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.2, delay: 0, size: 36,
+                partAnim: { scaleFrom: 1.0, scaleTo: 1.0, fadeIn: 0.08, fadeOut: 0.4 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 80,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 80, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.2, size: 80,
+            part({ particleType: 'PART', part: { kind: 'rays', radius: 80, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.3, size: 80,
                 partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 16, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.55, delay: 0.2, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.0, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'LION_PHYSICAL', seed: 2 }, count: [8, 12], lifetime: [0.9, 1.2], delay: 0.2, size: 8,
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'LION_PHYSICAL', seed: 2 }, count: [8, 12], lifetime: [0.7, 0.9], delay: 0.3, size: 8,
                 shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 40, color: 'DUST', seed: 3 }, count: [3, 5], lifetime: [0.9, 1.2], delay: [0.3, 0.45], size: 40,
-                shape: 'CIRCLE', shapeRadius: 50, speed: [20, 40], vz: [10, 30], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.5, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'DUST', seed: 3 }, count: [3, 5], lifetime: [0.7, 0.9], delay: [0.35, 0.45], size: 32,
+                shape: 'CIRCLE', shapeRadius: 36, speed: [20, 40], vz: [10, 30], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.5, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.6 } }),
         ],
     },
 
@@ -119,7 +121,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 80,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.9, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.7, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.5, 0.8], size: 8,
                 shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
@@ -211,7 +213,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.6 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_HOLY' }, count: 3, lifetime: 0.8, delay: [0.3, 0.7], size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 3.2, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 3.8, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.9, 1.2], delay: [0.4, 0.8], size: 8,
                 shape: 'CIRCLE', shapeRadius: 120, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
@@ -229,7 +231,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.5, delay: 0.3, size: 80,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_ARCANE' }, count: 2, lifetime: 0.8, delay: [0.3, 0.55], size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 3.0, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 3.8, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_ARCANE', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.5, 0.8], size: 8,
                 shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
