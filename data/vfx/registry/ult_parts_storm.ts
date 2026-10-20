@@ -179,14 +179,19 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'CIRCLE', shapeRadius: 40, speed: [20, 40], vz: [40, 80], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
         ],
     },
-    // sr_u3 群體恐慌（單體逐出，10 次）：深淵暗光與黑煙向目標收攏
+    // sr_u3 群體恐慌（單體逐出，8 次）：深淵暗光與黑煙向目標收攏
     'FX_ULT_RED_VOODOO': {
         id: 'FX_ULT_RED_VOODOO',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'CHAR', roughness: 1, seed: 15 }, count: 1, lifetime: [0.7, 0.9], delay: 0, size: 32,
-                shape: 'CIRCLE', shapeRadius: 50, speed: [-30, -10], vz: [20, 50], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'ASH_VOID', hard: true }, count: 2, lifetime: [0.5, 0.7], delay: [0, 0.1], size: 6,
-                shape: 'CIRCLE', shapeRadius: 60, speed: [-60, -30], vz: [30, 60], partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
+            // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_VOID', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            // 單體微光環（非擴張環，size 24 * 1.0 * 0.8 = 19.2 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 6, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0, size: 24,
+                partAnim: { scaleFrom: 1.0, scaleTo: 1.0, fadeOut: 0.5 } }),
+            // 黑煙螺旋上升（vz > 0 滿足 power <= 0 規則）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 28, color: 'CHAR', roughness: 1, seed: 15 }, count: 1, lifetime: 0.5, delay: 0, size: 28,
+                shape: 'CIRCLE', shapeRadius: 20, speed: [-15, 15], vz: [30, 60], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
         ],
     },
 
