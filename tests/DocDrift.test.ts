@@ -39,7 +39,7 @@ function listFiles(): string[] {
     for (const e of fs.readdirSync(ROOT, { withFileTypes: true })) {
         if (e.isFile() && TEXT_EXT.test(e.name)) files.push(e.name);
     }
-    for (const d of ['engine', 'components', 'data', 'constants', 'hooks', 'tests', 'tools', 'docs', '.claude/agents', 'types']) {
+    for (const d of ['engine', 'components', 'data', 'constants', 'hooks', 'tests', 'tools', 'docs', '.claude/agents', '.claude/skills', 'types']) {
         if (fs.existsSync(path.join(ROOT, d))) walk(path.join(ROOT, d), files);
     }
     return files;

@@ -1,74 +1,153 @@
 #!/usr/bin/env node
 /**
- * PreToolUse guardrails for Claude Code in this repo (wired in .claude/settings.json).
+ * PreToolUse / PostToolUse guardrails for Claude Code in this repo (wired in .claude/settings.json).
+ * Rules that prose alone kept failing to hold live here: a hook cannot be skipped.
+ * Design rule: never stall an unattended chain on routine steps. Only irreversible actions ask;
+ * everything else is a deny-with-fix (the agent retries at once) or an after-the-fact reminder.
  *
+ * PreToolUse
  * 1. start_session must name a cheap model (CLAUDE.md tier table). Opus needs an explicit
  *    "[opus-ok]" marker in the prompt, so the reason is written down for the user to see.
  *    Accepting a proposal card (proposal_id only) passes through.
  * 2. No npm install/ci/uninstall/update inside .claude/worktrees: their node_modules is a
  *    junction to the main checkout, so npm would rewrite the shared folder.
- * 3. start_session / Agent prompts that touch rendering or coordinates must name RenderSpec.ts
- *    (the coordinate-protocol SSOT); sub-agents do not read AGENTS.md on their own.
+ * 3. start_session / writing sub-agent prompts that touch rendering or coordinates must name
+ *    RenderSpec.ts (the coordinate-protocol SSOT); sub-agents do not read AGENTS.md on their own.
+ *    Read-only sub-agents (explorer, reviewer, Explore) are exempt.
+ * 4. Destructive `git push` (force, --all/--mirror/--tags, deleting a branch) asks the user.
+ *    A plain push or merge does not: the main agent asks in chat first (CLAUDE.md 鐵律), and a
+ *    second dialog would stall the chain the user already approved.
  *
- * Reads the hook payload as JSON on stdin; prints a deny decision as JSON, or nothing to allow.
+ * PostToolUse
+ * 5. The first edit of a rendering / lifecycle file in a session gets a reminder that green
+ *    lint/test/build is not enough (METHODOLOGY §4 lesson 1).
+ * 6. Re-recording a fidelity / style baseline gets the evidence checklist as a reminder
+ *    (rebaseline-fidelity skill); it does not block.
+ *
+ * Reads the hook payload as JSON on stdin; prints a decision as JSON, or nothing to allow.
+ * Behaviour is covered by tests/HarnessContract.test.ts (runs this script with sample payloads).
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
-const deny = (reason) => {
-    process.stdout.write(JSON.stringify({
-        hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: reason },
-    }));
-    process.exit(0);
-};
+// 只認「指令位置」上的指令（開頭或 ; & | ( 換行之後），避免把字串／文件內容裡的字樣誤判
+const AT_CMD = '(^|[;&|(\\n]\\s*)';
 
-let payload;
-try {
-    payload = JSON.parse(readFileSync(0, 'utf8') || '{}');
-} catch {
-    process.exit(0); // malformed payload: do not block
-}
-const tool = payload.tool_name || '';
-const input = payload.tool_input || {};
-
-if (tool.endsWith('__start_session')) {
-    // 只接受提案卡（proposal_id）或先發 offer 卡（只有 title）：此時還沒有 brief，也不決定模型
-    const startingProposal = input.proposal_id && !input.prompt && !input.title;
-    const offerCard = input.initiation === 'offer' && !input.prompt;
-    if (!startingProposal && !offerCard) {
-        const model = String(input.model || '');
-        const prompt = String(input.prompt || '');
-        if (!model) {
-            deny('start_session 必須指定 model（CLAUDE.md 分級：機械性實作 Sonnet／medium、追根因與審查 Sonnet／high、找檔 Haiku／low）。');
+/** 破壞性 push（強推、整批推 tag／分支、刪遠端分支）→ 回傳詢問理由；一般 push 回傳 null */
+function destructivePushReason(cmd) {
+    const re = new RegExp(`${AT_CMD}git\\s+(?:-C\\s+\\S+\\s+)?push(?![\\w-])([^;&|\\n]*)`, 'g');
+    for (const m of cmd.matchAll(re)) {
+        const args = m[2].trim().split(/\s+/).filter(Boolean);
+        const destructive = args.some(a =>
+            /^--(force|force-with-lease|force-if-includes|all|mirror|tags|delete|prune)(=.*)?$/.test(a)
+            || /^-[a-zA-Z]*[fd]$/.test(a)
+            || a.startsWith('+') || a.startsWith(':'));
+        if (destructive) {
+            return '破壞性 git push（強推、--all／--mirror／--tags、刪除或修剪遠端分支）需要使用者明確同意；遠端是使用者的作品，回退成本由他承擔。';
         }
-        if (/opus/i.test(model) && !prompt.includes('[opus-ok]')) {
-            deny('start_session 指定了 Opus。使用者是 Pro 方案；除非真的需要設計級推理，請改用 Sonnet。確有必要時在 prompt 寫明理由並加上 [opus-ok]。');
-        }
-        requireRenderSpec(prompt, 'start_session');
     }
+    return null;
 }
 
-// 3. 動到位置／高度／排序／渲染的任務說明必須要求先讀 RenderSpec（座標協議 SSOT，CLAUDE.md）。
-//    子代理與子工作階段不會自動讀 AGENTS.md，規則只能靠任務說明帶過去。
-function requireRenderSpec(prompt, where) {
+const BASELINE_RECORD = /perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
+const BASELINE_REMINDER = '你剛重錄了保真／樣式基準（rebaseline-fidelity skill）。確認：① 重錄前已產生新舊差異圖，'
+    + '只有本輪預期的元素變動；② 重錄獨立一個 commit，訊息寫明哪些元素變了、哪些基準 0 差異、證據圖路徑；'
+    + '③ 重錄後再跑一次 npm run perf:fidelity 全部通過。合併衝突時不得「取一邊再重錄」。';
+
+// 改到這些路徑就是渲染或生命週期變更（CLAUDE.md：一定要本機實跑驗證）
+const RENDER_PATH = /(^|\/)(engine\/(renderers|graphics|presentation)\/|engine\/(renderer|game)\.ts$|engine\/math\/VisualMath\.ts$|data\/vfx\/|hooks\/useGameApp\.ts$|components\/GameCanvas)/;
+
+function isRenderPath(filePath) {
+    return RENDER_PATH.test(String(filePath || '').replace(/\\/g, '/'));
+}
+
+const RENDER_REMINDER = '你改到渲染或生命週期檔案。lint／test／build 全綠不代表畫面正常：結束前要本機實跑'
+    + '（render-verify skill：createServer＋playwright-core 讀 window.__TACTICAL_ENGINE__，0 頁面錯誤），'
+    + '再加 npm run perf:guard。動到位置／高度／排序時同一個 commit 更新 RenderSpec.ts 與檔頭。';
+
+// 只讀的子代理不改程式，不需要座標協議
+const READ_ONLY_AGENTS = new Set(['explorer', 'reviewer', 'Explore', 'claude-code-guide']);
+
+function requireRenderSpec(prompt, where, deny) {
     const touchesRender = /engine\/renderers|RenderList|RenderPipeline|VisualMath|sortBias|sortKey|op\.ty|getUnitGroundHeight|getCoreAnchor|getUnitAnchor|floatBob|depth sort|深度排序|排序鍵|錨點|發射點|閃爍/i.test(prompt);
     if (touchesRender && !/RenderSpec/.test(prompt)) {
         deny(`${where} 的任務說明動到渲染／座標，卻沒要求讀 engine/renderers/RenderSpec.ts。請在說明中寫明：先讀 RenderSpec 與所改檔案的方框檔頭，改規則時在同一個 commit 同步更新兩者。`);
     }
 }
 
-if (tool === 'Agent' || tool === 'Task') {
-    requireRenderSpec(String(input.prompt || ''), '子代理');
+function postContext(text) {
+    process.stdout.write(JSON.stringify({
+        hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: text },
+    }));
 }
 
-if (tool === 'Bash' || tool === 'PowerShell') {
-    const cmd = String(input.command || '');
-    const cwd = String(payload.cwd || '').replace(/\\/g, '/');
-    // 只認「指令位置」上的 npm（開頭或 ; & | ( 換行之後），避免把字串／文件內容裡的字樣誤判
-    const npmMutating = /(^|[;&|(\n]\s*)npm(\.cmd)?\s+(install|i|ci|uninstall|remove|rm|update|up|prune|dedupe)\b/i.test(cmd);
-    const inWorktree = /\/\.claude\/worktrees\//i.test(cwd + '/') || /\.claude[\\/]worktrees/i.test(cmd);
-    if (npmMutating && inWorktree) {
-        deny('不可在 .claude/worktrees 內執行 npm install/ci/uninstall：node_modules 是指向主資料夾的 junction，會改寫共用的套件。需要套件時停下並回報主代理。');
+function main() {
+    const decide = (permissionDecision, reason) => {
+        process.stdout.write(JSON.stringify({
+            hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision, permissionDecisionReason: reason },
+        }));
+        process.exit(0);
+    };
+    const deny = (reason) => decide('deny', reason);
+
+    let payload;
+    try {
+        payload = JSON.parse(readFileSync(0, 'utf8') || '{}');
+    } catch {
+        process.exit(0); // malformed payload: do not block
     }
+    const tool = payload.tool_name || '';
+    const input = payload.tool_input || {};
+
+    if (payload.hook_event_name === 'PostToolUse') {
+        if (/^(Edit|Write|MultiEdit)$/.test(tool) && isRenderPath(input.file_path)) {
+            // 每個工作階段只提醒一次，避免每次編輯都塞同一段話進上下文
+            const marker = join(tmpdir(), `tactical-render-reminder-${String(payload.session_id || 'nosession').replace(/[^\w-]/g, '')}`);
+            if (!existsSync(marker)) {
+                try { writeFileSync(marker, ''); } catch { /* 提醒照發 */ }
+                postContext(RENDER_REMINDER);
+            }
+        } else if ((tool === 'Bash' || tool === 'PowerShell') && BASELINE_RECORD.test(String(input.command || ''))) {
+            postContext(BASELINE_REMINDER);
+        }
+        process.exit(0);
+    }
+
+    if (tool.endsWith('__start_session')) {
+        // 只接受提案卡（proposal_id）或先發 offer 卡（只有 title）：此時還沒有 brief，也不決定模型
+        const startingProposal = input.proposal_id && !input.prompt && !input.title;
+        const offerCard = input.initiation === 'offer' && !input.prompt;
+        if (!startingProposal && !offerCard) {
+            const model = String(input.model || '');
+            const prompt = String(input.prompt || '');
+            if (!model) {
+                deny('start_session 必須指定 model（CLAUDE.md 分級：機械性實作 Sonnet／medium、追根因與審查 Sonnet／high、找檔 Haiku／low）。');
+            }
+            if (/opus/i.test(model) && !prompt.includes('[opus-ok]')) {
+                deny('start_session 指定了 Opus。使用者是 Pro 方案；除非真的需要設計級推理，請改用 Sonnet。確有必要時在 prompt 寫明理由並加上 [opus-ok]。');
+            }
+            requireRenderSpec(prompt, 'start_session', deny);
+        }
+    }
+
+    if ((tool === 'Agent' || tool === 'Task') && !READ_ONLY_AGENTS.has(String(input.subagent_type || ''))) {
+        requireRenderSpec(String(input.prompt || ''), '子代理', deny);
+    }
+
+    if (tool === 'Bash' || tool === 'PowerShell') {
+        const cmd = String(input.command || '');
+        const cwd = String(payload.cwd || '').replace(/\\/g, '/');
+        const npmMutating = new RegExp(`${AT_CMD}npm(\\.cmd)?\\s+(install|i|ci|uninstall|remove|rm|update|up|prune|dedupe)\\b`, 'i').test(cmd);
+        const inWorktree = /\/\.claude\/worktrees\//i.test(cwd + '/') || /\.claude[\\/]worktrees/i.test(cmd);
+        if (npmMutating && inWorktree) {
+            deny('不可在 .claude/worktrees 內執行 npm install/ci/uninstall：node_modules 是指向主資料夾的 junction，會改寫共用的套件。需要套件時停下並回報主代理。');
+        }
+        const push = destructivePushReason(cmd);
+        if (push) decide('ask', push);
+    }
+
+    process.exit(0);
 }
 
-process.exit(0);
+main();

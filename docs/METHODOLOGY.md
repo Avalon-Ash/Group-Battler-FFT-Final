@@ -18,10 +18,8 @@
 - **PowerShell 陷阱**：終端機中文亂碼但檔案是 UTF-8；新檔寫 LF，多數原始檔是 CRLF（編輯保持原行尾）；巢狀引號易 ParserError，複雜字串改寫檔；字串內 `\r\n` 不會展開（用反引號）；**絕不輸出 `&gt;`／`&lt;` 之類 HTML 實體**；`git push` 的進度輸出會被當 stderr（退出碼 1 不代表失敗，看 `main -> main` 那行）。
 
 ## 3. 一輪工作的流程
-- **開新一輪的流程**：主代理寫 `docs/<NAME>_AGENT_PROMPT.md` → 從 `main` 開分支（例如 `feat/<topic>`），在原生資料夾切過去 → 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md` → 跑完告訴主代理 → 主代理審查、修正、本機實跑 → 使用者同意才合併，push 另外問。合併後刪掉該輪提示詞與被取代的報告（DECISIONS §4，`tests/DocDrift.test.ts` 擋斷鏈）。代理跑的期間主代理對該資料夾只讀不寫。
-- **真的需要並行時才開工作樹**（命名 `C:\Git\Group-Battler-<topic>`，`node_modules` 可用 junction 指回原生資料夾）。移除時**先刪 junction**（`cmd /c rmdir <path>\node_modules`）再 `git worktree remove`，否則可能連帶刪掉原生資料夾的 `node_modules`。
+- 程序放在按需載入的 skill（`.claude/skills/`），不放常駐文字：開新一輪與寫提示詞 → `agent-prompt`；審查、收尾、合約效果紀錄 → `review-round`；渲染實跑 → `render-verify`；重錄基準 → `rebaseline-fidelity`。
 - 本地 tag（`perf*-ckpt-*`、`ui-ckpt-*`、`audio-ckpt-*`、`art-ckpt-*`、`br-fix-final`、`docs-cleanup-final`）未推，可忽略。
-- 一輪做完：程式碼、保真重錄（獨立 commit＋證據）、文件（`VFX_PIPELINE_MAP` 等專題文件＋`WORKLOG` 一節）分開提交；HANDOFF 只刪掉做完的 TBD、加上新的待確認事項。
 
 ## 4. 審查教訓
   1. **AI Studio 容器看不到實際畫面、跑不了 Playwright**——它宣稱「全綠」不代表畫面正常。凡改渲染／生命週期，**必須本機實跑驗證**（最小：`createServer`＋`playwright-core`＋`msedge` 開頁、讀 `window.__TACTICAL_ENGINE__`、必要時截一張圖）。
@@ -46,7 +44,7 @@
 
 ## 7. 在 Claude Code 使用的注意
 - Claude Code 會自動讀根目錄 `CLAUDE.md`（主代理專用的精簡版，會載入 `HANDOFF.md` 與本檔；`AGENTS.md` 為審查時才讀的檢查清單）。子代理定義在 `.claude/agents/`（explorer／worker／reviewer，模型與強度寫在 frontmatter）。內建子代理不會讀 `CLAUDE.md`。
-- 使用者把這些指令檔統稱「合約」：主代理合約 `CLAUDE.md`、實作代理合約 `AGENTS.md` 與 `docs/*_AGENT_PROMPT.md`、子代理合約 `.claude/agents/*.md`。
+- 使用者把這些指令檔統稱「合約」：主代理合約 `CLAUDE.md`、實作代理合約 `AGENTS.md` 與 `docs/*_AGENT_PROMPT.md`、子代理合約 `.claude/agents/*.md`、程序 `.claude/skills/*/SKILL.md`、強制規則 `tools/hooks/agent-guardrails.mjs`。
 - 推理強度上限 high；工作階段不能自己切換強度，需要時停下請使用者在 App 切。
 - 本機指令用 PowerShell 或 Git Bash；長時間指令以背景方式執行並等待完成，**不要輪詢**。
 - 沒有圖像生成工具時，改用現成素材與指令列（Blender、PIL、ffmpeg 已在本機）。
