@@ -125,6 +125,7 @@
 - hook（`tools/hooks/agent-guardrails.mjs`）：改到渲染／生命週期檔案時每個工作階段提醒一次實跑（新增 PostToolUse）。主代理審查時改成不卡自動長鏈：雲端版本的「push／main 上 merge／重錄基準一律跳確認」改為只有破壞性 push（強推、`--tags`／`--all`、刪分支）跳確認，重錄基準改成 PostToolUse 事後提醒取證清單；`merge\b` 會誤攔 `git merge-tree`／`merge-base` 也一併消失；唯讀子代理（explorer／reviewer）不再因提到排序鍵、閃爍而被要求寫 RenderSpec。
 - 新增 `tools/ui-e2e/runtime-smoke.mjs`：真實 rAF 跑一場戰鬥，檢查 0 頁面錯誤、有單位、`battleTime` 前進、畫布有變（抓凍結畫面）；雲端 Chromium 實跑通過。
 - 新增 `tests/HarnessContract.test.ts`（skill 觸發句、子代理模型、hook 腳本存在、hook 判定 7 組情境）；`DocDrift` 加掃 `.claude/skills`。
+- 長指令觀測與重試（10/21）：Gemini 兩度無限等待已結束的指令（2 小時、70 分鐘；IDE 收不到開 vite／瀏覽器指令的完成通知）。新增 `tools/agent/run.mjs`：前景包裝長指令，log 最後一行 `EXIT=<代碼>`＋`status.json`（含心跳），逾時結束自己的子程序樹（回 124），`--check <名稱>` 印狀態與下一步；`AGENTS.md` §7 加逾時表與「卡住就 --check、同一步兩次失敗就記報告跳下一個任務」；`agent-prompt` 範本同步。`tests/AgentRunner.test.ts` 驗證成功／失敗／逾時殺孫程序／--check。
 
 ## 3. 更早的輪次與審查修補
 
