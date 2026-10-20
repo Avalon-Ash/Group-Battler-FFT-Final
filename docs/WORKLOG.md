@@ -122,7 +122,7 @@
 ### R. 2026-10-20 合約分層（Harness² 方法移植，雲端工作階段 `claude/funny-cori-xqw4jq`）
 - 研究 `google-research/harness2`（任務層 Propose–Probe–Compose、經驗層反思庫、8 種 harness 元件與成本排序），只移植方法，不裝框架（DECISIONS §4）。
 - 新增 skill 4 個（`.claude/skills/`）：`render-verify`、`rebaseline-fidelity`、`agent-prompt`（INV／DOM 分段、寫查證過的事實、提示詞範本）、`review-round`（每個改動一行 kept／revised／dropped＋證據、收尾、合約效果表）；METHODOLOGY §3 的流程搬進 skill，CLAUDE.md 加觸發表。
-- hook（`tools/hooks/agent-guardrails.mjs`）：`git push` 與 main 上的 `git merge` 一律跳確認（`claude/*` 分支例外）、重錄保真／樣式基準跳確認並附取證步驟、改到渲染／生命週期檔案時每個工作階段提醒一次實跑（新增 PostToolUse）。
+- hook（`tools/hooks/agent-guardrails.mjs`）：改到渲染／生命週期檔案時每個工作階段提醒一次實跑（新增 PostToolUse）。主代理審查時改成不卡自動長鏈：雲端版本的「push／main 上 merge／重錄基準一律跳確認」改為只有破壞性 push（強推、`--tags`／`--all`、刪分支）跳確認，重錄基準改成 PostToolUse 事後提醒取證清單；`merge\b` 會誤攔 `git merge-tree`／`merge-base` 也一併消失；唯讀子代理（explorer／reviewer）不再因提到排序鍵、閃爍而被要求寫 RenderSpec。
 - 新增 `tools/ui-e2e/runtime-smoke.mjs`：真實 rAF 跑一場戰鬥，檢查 0 頁面錯誤、有單位、`battleTime` 前進、畫布有變（抓凍結畫面）；雲端 Chromium 實跑通過。
 - 新增 `tests/HarnessContract.test.ts`（skill 觸發句、子代理模型、hook 腳本存在、hook 判定 7 組情境）；`DocDrift` 加掃 `.claude/skills`。
 

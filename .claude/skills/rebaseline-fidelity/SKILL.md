@@ -5,7 +5,7 @@ description: 保真基準（perf:fidelity）或 UI 樣式基準（E2E_UPDATE_STY
 
 # 重錄基準的取證流程
 
-基準不得任意重錄、門檻不得放寬（CLAUDE.md 鐵律）。2026-10 一週內重錄 9 次，座標錯位就是這樣被收編成新標準。重錄指令會被 `tools/hooks/agent-guardrails.mjs` 攔下來問使用者。
+基準不得任意重錄、門檻不得放寬（CLAUDE.md 鐵律）。2026-10 一週內重錄 9 次，座標錯位就是這樣被收編成新標準。重錄指令跑完後，`tools/hooks/agent-guardrails.mjs` 會提醒這份取證清單（不擋，自動長鏈照跑）。
 
 ## 0. 先判斷該不該重錄
 - 變動不是本輪刻意造成的 → **不重錄**，回頭找根因。
@@ -18,7 +18,7 @@ description: 保真基準（perf:fidelity）或 UI 樣式基準（E2E_UPDATE_STY
 3. 看差異圖：只允許本輪預期的元素變動（例如單位、浮字、特效）。出現預期外區域（地塊、邊線、其他圖層）就停下。
 
 ## 2. 重錄
-- 使用者同意後才跑 `npm run perf:fidelity:record`（UI 樣式：`E2E_UPDATE_STYLE=1 npm run e2e:ui`，並確認 `tools/ui-e2e/style-baseline.json` 的 diff 只有預期的鍵）。
+- 取證確認只有預期元素變動後才跑 `npm run perf:fidelity:record`（UI 樣式：`E2E_UPDATE_STYLE=1 npm run e2e:ui`，並確認 `tools/ui-e2e/style-baseline.json` 的 diff 只有預期的鍵）。
 - 重錄**獨立一個 commit**，訊息格式：
   ```
   test(fidelity): re-record <scene> after <原因>

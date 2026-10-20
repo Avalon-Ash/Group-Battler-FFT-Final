@@ -10,7 +10,6 @@
 1. **個別奧義美術翻新**（還沒設計）：50 個奧義的序列與零件細調（`docs/VFX_PIPELINE_MAP.md` §4.16）。渲染工作，單獨一條。順帶：平衡輪縮短詠唱後，隕石類 `rr_u2`（落地約晚 0.2 s）、`tr_u1`（約晚 0.26 s，改前就晚 0.16 s）的隕石比傷害晚到，調 `data/vfx/ult_visuals.ts` 的 `height`／`timing` 讓 `hitAt ≤ cast`。
 
 ## 3. 待使用者確認
-- **合約分層（`claude/funny-cori-xqw4jq`，WORKLOG §R）待審查**：`git fetch origin claude/funny-cori-xqw4jq` 後看 diff；本機 Windows 確認 hook 在 PowerShell 下正常（push／main 上 merge 會跳確認）、`node tools/ui-e2e/runtime-smoke.mjs` 用 msedge 能跑。同意再合併。
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。
 - **技能新效果實機看**：稜鏡反射／尖刺防禦的「反傷」浮字、疾風祝禱與嗜血狂熱的加速、猩紅血月與惡魔降臨的吸血、神聖干涉的無敵（WORKLOG §Q）。
 - **導播狂抖＋掉幀**：掉幀已修（`f5e33f0`，WORKLOG §Q）。導播目標每幀跳動被鏡頭跟隨剛性（預設 0.25，約 4 秒時間常數）濾掉，不是肉眼的抖動來源；戰鬥結束附近剩下的是擊退／墜落的 `CAMERA_SHAKE`（0.55，約 70 ms 衰減）。**待使用者實機確認**是否還覺得抖。

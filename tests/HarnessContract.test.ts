@@ -35,12 +35,6 @@ function runHook(payload: object): { permissionDecision?: string; additionalCont
     return JSON.parse(res.stdout).hookSpecificOutput;
 }
 
-function gitRepoOn(branch: string): string {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'harness-'));
-    spawnSync('git', ['init', '-q', '-b', branch, dir]);
-    return dir;
-}
-
 describe('HarnessContract', () => {
     it('每個 skill 的 name 與目錄一致、有 description，並在 CLAUDE.md 有觸發句', () => {
         const skillsDir = path.join(ROOT, '.claude/skills');
@@ -83,32 +77,36 @@ describe('HarnessContract', () => {
     describe('agent-guardrails hook', () => {
         const bash = (command: string, cwd = ROOT) => runHook({ tool_name: 'Bash', tool_input: { command }, cwd });
 
-        it('push 到 main 或無法判斷目標時詢問；claude/* 分支放行', () => {
-            expect(bash('git push origin main').permissionDecision).toBe('ask');
-            expect(bash('git push origin HEAD:refs/heads/main').permissionDecision).toBe('ask');
-            expect(bash('git push --tags').permissionDecision).toBe('ask');
-            expect(bash('npm test && git push origin feat/x').permissionDecision).toBe('ask');
+        it('一般 push／merge 不擋（自動長鏈）；只有破壞性 push 詢問', () => {
+            expect(bash('git push origin main').permissionDecision).toBeUndefined();
+            expect(bash('cd /c/Git/x && git push origin main 2>&1 | tail -1').permissionDecision).toBeUndefined();
             expect(bash('git push -u origin claude/some-branch').permissionDecision).toBeUndefined();
-            expect(bash('git push', gitRepoOn('main')).permissionDecision).toBe('ask');
-            expect(bash('git push', gitRepoOn('claude/x')).permissionDecision).toBeUndefined();
+            expect(bash('git merge --no-ff -q feat/x -m "Merge"').permissionDecision).toBeUndefined();
+            expect(bash('git merge-tree --write-tree main feat/x').permissionDecision).toBeUndefined();
+            expect(bash('git push --force origin main').permissionDecision).toBe('ask');
+            expect(bash('git push -f origin main').permissionDecision).toBe('ask');
+            expect(bash('git push origin +main').permissionDecision).toBe('ask');
+            expect(bash('git push --tags').permissionDecision).toBe('ask');
+            expect(bash('git push origin --delete feat/x').permissionDecision).toBe('ask');
+            expect(bash('git push origin :feat/x').permissionDecision).toBe('ask');
+            expect(bash('echo "later: git push --force"').permissionDecision).toBeUndefined();
         });
 
-        it('只有在 main 上 merge 才詢問；文件字串裡的 git push 不算', () => {
-            expect(bash('git merge feat/x', gitRepoOn('main')).permissionDecision).toBe('ask');
-            expect(bash('git merge main', gitRepoOn('feat/x')).permissionDecision).toBeUndefined();
-            expect(bash('echo "remember: git push later"').permissionDecision).toBeUndefined();
+        it('重錄基準不擋，跑完後提醒取證流程', () => {
+            const post = (command: string) => runHook({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command } });
+            expect(bash('npm run perf:fidelity:record').permissionDecision).toBeUndefined();
+            expect(post('npm run perf:fidelity:record').additionalContext).toMatch(/rebaseline-fidelity/);
+            expect(post('node tools/ui-e2e/render-fidelity.mjs --record').additionalContext).toMatch(/差異圖/);
+            expect(post('E2E_UPDATE_STYLE=1 npm run e2e:ui').additionalContext).toMatch(/獨立一個 commit/);
+            expect(post('npm run perf:fidelity').additionalContext).toBeUndefined();
         });
 
-        it('重錄基準要詢問', () => {
-            expect(bash('npm run perf:fidelity:record').permissionDecision).toBe('ask');
-            expect(bash('node tools/ui-e2e/render-fidelity.mjs --record').permissionDecision).toBe('ask');
-            expect(bash('E2E_UPDATE_STYLE=1 npm run e2e:ui').permissionDecision).toBe('ask');
-            expect(bash('npm run perf:fidelity').permissionDecision).toBeUndefined();
-        });
-
-        it('子代理任務動到渲染卻沒提 RenderSpec 時拒絕', () => {
+        it('會寫程式的子代理動到渲染卻沒提 RenderSpec 時拒絕；唯讀子代理放行', () => {
             expect(runHook({ tool_name: 'Agent', tool_input: { prompt: '修 engine/renderers 的排序鍵' } }).permissionDecision).toBe('deny');
+            expect(runHook({ tool_name: 'Agent', tool_input: { subagent_type: 'worker', prompt: '修排序鍵' } }).permissionDecision).toBe('deny');
             expect(runHook({ tool_name: 'Agent', tool_input: { prompt: '修排序鍵，先讀 RenderSpec.ts' } }).permissionDecision).toBeUndefined();
+            expect(runHook({ tool_name: 'Agent', tool_input: { subagent_type: 'explorer', prompt: '找誰寫 sortKey' } }).permissionDecision).toBeUndefined();
+            expect(runHook({ tool_name: 'Agent', tool_input: { subagent_type: 'reviewer', prompt: '查閃爍根因' } }).permissionDecision).toBeUndefined();
         });
 
         it('改到渲染檔案時，每個工作階段提醒一次實跑驗證', () => {

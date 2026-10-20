@@ -17,7 +17,7 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
    - 下行風險和上行收益一樣重：會讓畫面凍結或沒有產出的改動，除非證據壓倒性，否則 dropped。
    - 「全部不收、維持 main」也是正當結論。
 4. 渲染／生命週期改動 → `render-verify` skill。基準檔有變 → `rebaseline-fidelity` skill。
-5. 修完問使用者能不能合併；push 另外問（hook 也會擋）。
+5. 修完問使用者能不能合併；push 另外問（hook 只攔破壞性 push，一般 push／merge 靠這條規則）。
 
 ## 2. 收尾（合併後）
 - 刪掉該輪提示詞與被取代的報告（DECISIONS §4；`tests/DocDrift.test.ts` 擋斷鏈）。
