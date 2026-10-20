@@ -128,11 +128,11 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // wr_u1: 諸神黃昏 -> 地面爆發
     'wr_u1': { archetype: 'INSTANT_IMPACT', primaryColor: '#ea580c', secondaryColor: '#7f1d1d', scale: 2.8, vfxOverride: 'FX_ULT_RED_RAGNAROK_ERUPTION' },
     // wr_u2: 血腥旋風 -> 旋轉的血刃
-    'wr_u2': { archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#991b1b', scale: 1.3, count: 15, vfxOverride: 'FX_ULT_RED_BLOODSTORM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'wr_u2': { archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#991b1b', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_BLOODSTORM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
     // wr_u3: 惡魔降臨 -> 變身爆發
     'wr_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#000', secondaryColor: '#7f1d1d', scale: 1.6, vfxOverride: 'FX_ULT_RED_DEMON_FORM' },
     // wr_u4: 無限劍制 -> 劍塚 (大量 PILLAR)
-    'wr_u4': { archetype: 'STORM', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.0, count: 12, vfxOverride: 'FX_ULT_RED_UNLIMITED_BLADE', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'wr_u4': { archetype: 'STORM', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_UNLIMITED_BLADE', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
     // wr_u5: 毀滅重擊 -> 擊碎地面的六邊形裂痕
     'wr_u5': { archetype: 'INSTANT_IMPACT', primaryColor: '#450a0a', secondaryColor: '#000', scale: 2.0, vfxOverride: 'FX_ULT_RED_DEVASTATE' },
 
