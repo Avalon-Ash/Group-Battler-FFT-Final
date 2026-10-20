@@ -65,14 +65,17 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [200, 400], drag: 0.08, partAnim: { fadeOut: 0.6 } }),
         ],
     },
-    // mb_u4 奧術洪流（範圍 5 彈幕，12 次）：奧術飛彈落點（藍光爆點＋六角碎晶）
+    // mb_u4 奧術洪流（範圍 5 彈幕，8 次）：奧術飛彈落點（藍光爆點＋六角碎晶＋擴張環）
     'FX_ULT_BLUE_TORRENT': {
         id: 'FX_ULT_BLUE_TORRENT',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_ARCANE', hard: true }, count: 2, lifetime: 0.3, delay: [0, 0.06], size: 24,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
                 shape: 'CIRCLE', shapeRadius: 70, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_ARCANE' }, count: [3, 4], lifetime: [0.4, 0.6], delay: 0, size: 4,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_ARCANE' }, count: [2, 3], lifetime: [0.35, 0.5], delay: 0, size: 4,
                 shape: 'CIRCLE', shapeRadius: 70, speed: [50, 150], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
+            // 範圍 5 擴張環（280 * 1.8 * 0.8 = 403.2px，落於 291.0～540.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 280, thickness: 6, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0, size: 280,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
         ],
     },
     // sb_u3 英勇讚美（全隊 Buff，10 次）：金色聖歌波紋一圈圈擴散＋光點上升
@@ -177,20 +180,23 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeOut: 0.6 } }),
         ],
     },
-    // mb_u5 聚能光束（巨型光束，命中範圍 1）：光束終點爆閃＋光芒＋衝擊環＋日輪烙印＋六角碎晶
+    // mb_u5 聚能光束（巨型光束，命中範圍 1）：日輪烙印 → 光束終點爆閃＋光芒＋衝擊環＋六角碎晶
     'FX_ULT_BLUE_FOCUS_BEAM': {
         id: 'FX_ULT_BLUE_FOCUS_BEAM',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.5, delay: 0, size: 80,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 12, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.4, delay: 0, size: 96,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_ARCANE' }, count: 2, lifetime: 0.5, delay: [0.02, 0.25], size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 80, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.2, delay: 0.05, size: 80, vRotation: 0.8,
+            // 起手：日輪烙印（範圍 1 尺寸 <= 108px，48 * 1.0 * 1.4 = 67.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 48, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.2, delay: 0, size: 48, vRotation: 0.8,
                 partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_ARCANE' }, count: [6, 8], lifetime: [0.6, 0.9], delay: 0, size: 6,
-                shape: 'BURST_DIR', speed: [200, 400], vz: [200, 400], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
+            // 命中主爆發（delay 0.3 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART', part: { kind: 'rays', radius: 48, count: 12, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.35, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6 } }),
+            // 範圍 1 擴張環（48 * 1.2 * 1.4 = 80.6px，落於 58.2～108.1px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_ARCANE' }, count: [4, 6], lifetime: [0.5, 0.7], delay: 0.3, size: 6,
+                shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
         ],
     },
     // rr_u1 灰燼穿心（貫穿斬殺）：貫穿爆點（深紅閃光＋鋸齒放射）＋斷裂環＋骨片＋灰煙
