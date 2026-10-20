@@ -27,13 +27,17 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- BLUE STORM 落點 ----------
-    // wb_u4 劍刃風暴（自身範圍 3，12 次）：旋轉鋼白劍弧＋迸出六角碎光
+    // wb_u4 劍刃風暴（自身範圍 3，8 次）：旋轉鋼白劍弧＋中央閃光＋地面衝擊環＋迸出六角碎光
     'FX_ULT_BLUE_BLADESTORM': {
         id: 'FX_ULT_BLUE_BLADESTORM',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'slashArc', radius: 64, arcDeg: 150, thickness: 16, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0, size: 64,
                 shape: 'CIRCLE', shapeRadius: 30, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_HOLY' }, count: [2, 3], lifetime: [0.4, 0.6], delay: 0.05, size: 4,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.4, delay: 0, size: 128,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.5, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_HOLY' }, count: 2, lifetime: [0.3, 0.4], delay: 0.05, size: 4,
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
         ],
     },
@@ -155,20 +159,20 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- BEAM_SNIPE 命中點（光束本體不變） ----------
-    // wb_u5 光速斬擊（瞬移斬擊）：交叉雙劍弧＋閃光＋小衝擊環＋日輪烙印
+    // wb_u5 光速斬擊（瞬移斬擊，單體）：日輪紋章起手 → 交叉雙劍弧＋命中核心爆閃＋單體地面環
     'FX_ULT_BLUE_LIGHTSPEED': {
         id: 'FX_ULT_BLUE_LIGHTSPEED',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0, size: 96,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: 0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.08, size: 96,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: -0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0.05, size: 64,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.08, size: 96,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: 0.1, size: 64, vRotation: 1.0,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: 0, size: 36, vRotation: 1.0,
                 partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0.1, size: 96,
+                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: 0.8 } }),
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.18, size: 96,
+                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: -0.8 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0.3, size: 64,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeOut: 0.6 } }),
         ],
     },
     // mb_u5 聚能光束（巨型光束，命中範圍 1）：光束終點爆閃＋光芒＋衝擊環＋日輪烙印＋六角碎晶

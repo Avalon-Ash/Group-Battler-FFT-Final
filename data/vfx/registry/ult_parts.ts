@@ -50,8 +50,8 @@ export const ULT_PART_VFX: Record<string, VFXAsset> = {
     'FX_ULT_BLUE_EXCALIBUR': {
         id: 'FX_ULT_BLUE_EXCALIBUR',
         emitters: [
-            // 起手：日輪法陣（陣營紋章），緩慢旋轉
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 96, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0, size: 96, vRotation: 0.5,
+            // 起手：日輪法陣（陣營紋章），緩慢旋轉（單體尺寸 ≤ 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0, size: 36, vRotation: 0.5,
                 partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
             // 命中：光柱
             part({ particleType: 'PART', part: { kind: 'pillar', width: 64, height: 256, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.7, delay: 0.3, size: 64, groundAnchored: true,
@@ -59,17 +59,15 @@ export const ULT_PART_VFX: Record<string, VFXAsset> = {
             // 命中：巨大劍弧（由右上斬下）
             part({ particleType: 'PART', part: { kind: 'slashArc', radius: 128, arcDeg: 150, thickness: 32, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.32, size: 128,
                 partAnim: { scaleFrom: 0.85, scaleTo: 1.1, fadeOut: 0.5, rotation: 0.6 } }),
-            // 命中：核心閃光＋日輪放射
+            // 命中：核心閃光
             part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.5, delay: 0.32, size: 96,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 12, ramp: 'LION_HOLY', lengthJitter: 0.5 }, count: 1, lifetime: 0.45, delay: 0.34, size: 96,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.4, fadeOut: 0.6 } }),
-            // 命中：地面衝擊環
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.34, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.2, fadeOut: 0.6 } }),
+            // 命中：地面衝擊環（單體尺寸 ≤ 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.34, size: 48,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.0, fadeOut: 0.6 } }),
             // 餘韻：光點緩慢上飄後淡出
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 14], lifetime: [0.9, 1.2], delay: [0.45, 0.7], size: 8,
-                shape: 'CIRCLE', shapeRadius: 70, speed: [5, 20], vz: [40, 90], drag: 0.02,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 14], lifetime: [0.8, 1.1], delay: [0.45, 0.65], size: 8,
+                shape: 'CIRCLE', shapeRadius: 50, speed: [5, 20], vz: [40, 90], drag: 0.02,
                 partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },

@@ -64,13 +64,13 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- WARRIOR (Thunder/Blade) ---
     // wb_u1: 雷霆之怒 -> 天降雷霆六邊柱
-    'wb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#3b82f6', secondaryColor: '#22d3ee', scale: 1.4, height: 1500, vfxOverride: 'FX_ULT_BLUE_THUNDER_SLAM' },
+    'wb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#3b82f6', secondaryColor: '#22d3ee', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_THUNDER_SLAM' },
     // wb_u2: 破曉聖擊 -> 擴散的六邊形光爆
     'wb_u2': { archetype: 'INSTANT_IMPACT', primaryColor: '#fef3c7', secondaryColor: '#f59e0b', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_DAYBREAK' },
     // wb_u3: 誓約勝利 -> 巨大光刃 (仍保留 Slash，但加上六邊形底座)
     'wb_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#facc15', secondaryColor: '#eab308', scale: 2.2, vfxOverride: 'FX_ULT_BLUE_EXCALIBUR' },
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
-    'wb_u4': { archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 12, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'wb_u4': { archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)
     'wb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
 
