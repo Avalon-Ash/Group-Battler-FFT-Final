@@ -138,21 +138,21 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- RANGER (Explosive/Dark) ---
     // rr_u1: 灰燼穿心 -> 黑色電磁砲
-    'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#000', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_RAILGUN' },
+    'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#ea580c', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_RAILGUN' },
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
-    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 3.0, height: 2500, timing: 0.4, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
+    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
-    'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#fff', scale: 1.0, count: 20, timing: 0.05, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
     // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)
     'rr_u4': { 
         archetype: 'BEAM_SNIPE', 
         primaryColor: '#ea580c', 
-        secondaryColor: '#fcd34d', 
+        secondaryColor: '#dc2626', 
         scale: 2.0, 
         beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
     },
     // rr_u5: 末日審判 -> 末日降臨 (STORM)
-    'rr_u5': { archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.8, count: 12, timing: 0.1, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'rr_u5': { archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#581c87', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
 
     // --- MAGE (Fel/Void) ---
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)

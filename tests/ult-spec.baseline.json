@@ -1,6 +1,5 @@
 {
     "C1": [
-        "rr_u2",
         "sr_u4",
         "tr_u3",
         "wb_u5",
@@ -10,32 +9,20 @@
         "mr_u1",
         "mr_u2",
         "mr_u3",
-        "rr_u1",
-        "rr_u2",
-        "rr_u4",
-        "rr_u5",
         "sr_u4"
     ],
     "C3": [
         "mr_u1",
-        "mr_u2",
-        "rr_u1",
-        "rr_u2"
+        "mr_u2"
     ],
     "C4": [
         "mr_u1",
-        "rr_u2",
-        "rr_u3",
-        "rr_u5",
         "sr_u2",
         "sr_u3",
         "sr_u4"
     ],
     "C5": [
         "mr_u1",
-        "rr_u2",
-        "rr_u3",
-        "rr_u5",
         "sr_u3"
     ],
     "C6": [
@@ -44,23 +31,15 @@
         "mr_u3",
         "mr_u4",
         "mr_u5",
-        "rr_u1",
-        "rr_u2",
-        "rr_u3",
-        "rr_u4",
-        "rr_u5",
         "sr_u4",
         "sr_u5"
     ],
     "C7": [
         "mr_u2",
         "mr_u3",
-        "rr_u3",
-        "rr_u5",
         "sr_u1"
     ],
     "C8": [
-        "mr_u5",
-        "rr_u3"
+        "mr_u5"
     ]
 }

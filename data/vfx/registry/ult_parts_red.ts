@@ -116,24 +116,25 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地 → 白熱爆閃＋巨大火柱＋雙層斷裂環（擊退）＋碎石 → 蕈狀灰煙
+    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱爆閃＋擴張衝擊環＋碎石＋灰煙
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 128, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.5, delay: 0, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.5, fadeOut: 0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'flame', height: 128, ramp: 'ASH_FIRE', jagged: true }, count: 1, lifetime: 1.0, delay: 0.02, size: 64, groundAnchored: true,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.15, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 20, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.6, delay: 0.02, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.8, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'ASH_BLOOD', roughness: 1, seed: 9 }, count: 1, lifetime: 0.6, delay: 0.15, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.2, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 10, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [10, 12], lifetime: [0.9, 1.3], delay: 0, size: 10,
-                shape: 'BURST_DIR', speed: [300, 600], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 64, color: 'CHAR', roughness: 1, seed: 10 }, count: [5, 6], lifetime: [1.1, 1.4], delay: [0.25, 0.4], size: 64,
-                shape: 'CIRCLE', shapeRadius: 40, speed: [20, 50], vz: [80, 140], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.7, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'ASH_FIRE', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.1, 0.4], size: 6,
-                shape: 'CIRCLE', shapeRadius: 90, speed: [30, 70], vz: [60, 140], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
+            // 落點預告印記（delay 0 < burstTime 0.3，滿足 C3 起手；size 64 * 1.0 * 2.0 = 128px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.6, delay: 0, size: 64,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.4 } }),
+            // 命中主爆發（glow radius 110 大於環，delay 0.3 對齊 hitAt 0.8944）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 110, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 110,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.8 } }),
+            // 範圍 3 擴張衝擊環（size 96 * 1.3 * 2.0 = 249.6px，落於 174.6～324.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 16, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.55, delay: 0.3, size: 96,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.3, fadeOut: 0.5 } }),
+            // 碎石飛散
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [5, 7], lifetime: [0.5, 0.7], delay: 0.3, size: 8,
+                shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+            // 灰煙餘韻（delay 0.35 + lifetime 0.75 = 1.1s，在序列中 0.5944 + 1.1 = 1.6944s >= 1.3944s 且 <= 2.0s）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 48, color: 'CHAR', roughness: 1, seed: 10 }, count: [3, 4], lifetime: 0.75, delay: 0.35, size: 48,
+                shape: 'CIRCLE', shapeRadius: 35, speed: [15, 35], vz: [50, 90], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
         ],
     },
 
