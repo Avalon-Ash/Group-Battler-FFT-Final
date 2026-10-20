@@ -111,6 +111,24 @@ For VFX part changes, preview with `node tools/vfx/fx-shot.mjs` (single-effect s
 | `npm run e2e:ui` | Headless UI tests (`tools/ui-e2e/`) |
 | `npm run perf:guard` | Render fidelity + performance regression check |
 
+### Long commands: run them through `tools/agent/run.mjs`
+
+Your IDE may run a long command in the background and wait for a "task finished" notification. For commands that start Vite or a browser that notification often never arrives, and agents have waited 70 minutes to 2 hours for a command that had already ended. So completion must be readable from a file, not from the IDE.
+
+- **Every command that can take more than 30 s** (test, fidelity, guard, e2e, smoke, soak, batch sims, fx/ult sheets) runs in the foreground through the wrapper:
+  ```bash
+  node tools/agent/run.mjs <name> <timeoutSec> -- <command...>
+  # e.g. node tools/agent/run.mjs fidelity 600 -- npm run perf:fidelity
+  ```
+  It streams output, writes `tools/ui-e2e/out/agent-logs/<name>.log` (last line `EXIT=<code>` or `EXIT=TIMEOUT`) and `<name>.status.json`, and on timeout kills only that command's own process tree (exit 124).
+- **Timeouts** (upper bounds, not estimates): lint 120, test 300, build 180, `perf:fidelity` 600, `perf:guard` 900, `e2e:ui` 600, `runtime-smoke` 180, `br-soak` 900, `balance:sim` 1000 battles 1200, screenshot/sheet tools 900.
+- **If you notice you are waiting** (no new output for a few minutes, or the IDE still shows a task running past its timeout): run `node tools/agent/run.mjs --check <name>` and do what it says:
+  - `state=done` → read the result from the log and continue. Never keep waiting on a finished command.
+  - `state=timeout`, or the process is gone without `EXIT=` → rerun once.
+  - still running with recent output → wait, check again later.
+- **The same step fails or times out twice** → write it in your report as "not completed: <name> (log path)" and move on to the next task. One stuck command must not stall the whole round.
+- Never start a second copy of a command that `--check` reports as running, and never wait more than 10 minutes when no `node` process of yours is running.
+
 ---
 
 ## 8. Directory Map
