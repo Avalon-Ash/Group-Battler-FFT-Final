@@ -6,8 +6,8 @@
 ## 1. 目前狀態
 - 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 近戰攻擊與受擊特效（`feat/melee-fx`，提示詞 `docs/MELEE_FX_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
 
-## 2. 排定（使用者 2026-10-21 核可，依序；2、3 都是渲染工作，一次一條）
-1. **近戰特效（MF）**：8 招近戰普攻沒有揮擊、其餘是攻擊者到目標的直線光束；7 招近戰主動技沿用普攻命中包。只改特效資料，硬性驗收 `tests/MeleeFxSpec.test.ts` 0 違規。使用者執行 `/goal docs/MELEE_FX_AGENT_PROMPT.md`。
+## 2. 排定（使用者 2026-10-21 核可，依序；1、2 都是渲染工作，一次一條）
+1. **近戰特效（MF）**：8 招近戰普攻沒有揮擊、其餘是攻擊者到目標的直線光束；7 招近戰主動技沿用普攻命中包。只改特效資料，硬性驗收是新的 MeleeFxSpec 規格測試 0 違規。使用者執行 `/goal docs/MELEE_FX_AGENT_PROMPT.md`。
 2. **位移技能軌跡**：衝刺現在是 `teleportTo`（`SkillExecutor.ts` DASH 區段）＋物理偏移彈回，看起來像瞬移、有時像 bug；要有軌跡與速度曲線，攻擊者近戰前衝也在這輪。動到位置，須對照 RenderSpec。
 3. **行為樹優化**：先錄戰鬥分析不自然的行為，再改；改完要重跑平衡模擬（`npm run balance:sim`），勝率維持 45～55%。
 
