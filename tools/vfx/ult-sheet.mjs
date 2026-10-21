@@ -134,11 +134,13 @@ try {
                 const types = await import('/types.ts');
                 const { HexUtils } = await import('/engine/utils.ts');
                 const { SKILL_SEQUENCES } = await import('/data/vfx/SkillSequences.ts');
+                const { ULT_VISUALS } = await import('/data/vfx/ult_visuals.ts');
 
                 const cmd = (c) => e.bus.emit('UI_COMMAND', c);
 
+                const COLS = 6;
                 const sheetCanvas = document.createElement('canvas');
-                sheetCanvas.width = labelW + cellW * 5;
+                sheetCanvas.width = labelW + cellW * COLS;
                 sheetCanvas.height = headerH + cellH * ultIds.length;
                 const ctx = sheetCanvas.getContext('2d');
 
@@ -150,8 +152,15 @@ try {
                 ctx.font = 'bold 13px monospace';
                 ctx.fillText(`${factionName} ULTIMATES (FOREST)`, 16, 25);
 
-                const colTitles = ['hitAt - 0.20s', 'hitAt (Impact)', 'hitAt + 0.15s', 'hitAt + 0.40s', 'hitAt + 0.80s'];
-                for (let c = 0; c < 5; c++) {
+                const colTitles = [
+                    'hitAt - 0.20s',
+                    'hitAt (Impact)',
+                    'hitAt + 0.15s',
+                    'hitAt + 0.40s',
+                    'hitAt + 0.80s',
+                    '全景 (hitAt+0.25s)',
+                ];
+                for (let c = 0; c < COLS; c++) {
                     ctx.fillText(colTitles[c], labelW + c * cellW + 16, 25);
                 }
 
@@ -180,6 +189,7 @@ try {
                     const hitAt = sequence.hitAt;
                     const cast = skill.cast;
                     const isRed = skill.team === 1;
+                    const isStorm = ULT_VISUALS[ultId]?.archetype === 'STORM';
 
                     // Clean board
                     cmd({ type: 'CLEAR_BOARD', keepScene: true });
@@ -232,7 +242,7 @@ try {
                     ctx.fillStyle = '#94a3b8';
                     ctx.font = '11px monospace';
                     ctx.fillText(`cast:${cast.toFixed(2)}s hitAt:${hitAt.toFixed(2)}s`, 10, y + 50);
-                    ctx.fillText(`type:${skill.type} r:${skill.aoeRadius ?? skill.range}`, 10, y + 70);
+                    ctx.fillText(`type:${skill.type} r:${skill.aoeRadius ?? skill.range}${isStorm ? ' [STORM]' : ''}`, 10, y + 70);
 
                     for (let colIdx = 0; colIdx < 5; colIdx++) {
                         const targetTau = hitAt + sampleOffsets[colIdx];
@@ -252,6 +262,42 @@ try {
                         // Border for frame cell
                         ctx.strokeStyle = '#1e293b';
                         ctx.strokeRect(x, y, cellW, cellH);
+
+                        // After capturing col 2 (hitAt + 0.15s), capture col 5 (Panorama at hitAt + 0.25s) before advancing to col 3 (hitAt + 0.40s)
+                        if (colIdx === 2) {
+                            const x5 = labelW + 5 * cellW;
+                            if (isStorm) {
+                                const panoramaTau = hitAt + 0.25;
+                                const pDelta = panoramaTau - currentTau;
+                                if (pDelta > 0) {
+                                    window.__stepFrames(Math.max(1, Math.round(pDelta * 60)));
+                                    currentTau = panoramaTau;
+                                }
+                                const aoeR = skill.type === 'SINGLE' ? 1 : (skill.aoeRadius ?? 1);
+                                const panoramaZoom = Math.min(0.6, Math.max(0.12, 160 / (Math.max(1, aoeR) * 2 * 83.14)));
+                                e.renderer.camera.snapTo(targetCenterPx.x, targetCenterPx.y - gz, panoramaZoom);
+                                window.__stepFrames(1);
+                                currentTau += 1 / 60;
+
+                                const cropPanoramaY = Math.round(gH / 2 - cellH / 2);
+                                ctx.drawImage(gameCanvas, cropX, cropPanoramaY, cellW, cellH, x5, y, cellW, cellH);
+                                ctx.strokeStyle = '#1e293b';
+                                ctx.strokeRect(x5, y, cellW, cellH);
+
+                                // Reset camera back to standard zoom
+                                e.renderer.camera.snapTo(targetCenterPx.x, targetCenterPx.y - gz, 1.4);
+                                window.__stepFrames(1);
+                                currentTau += 1 / 60;
+                            } else {
+                                ctx.fillStyle = '#0f172a';
+                                ctx.fillRect(x5, y, cellW, cellH);
+                                ctx.fillStyle = '#334155';
+                                ctx.font = '12px monospace';
+                                ctx.fillText('—', x5 + cellW / 2 - 4, y + cellH / 2);
+                                ctx.strokeStyle = '#1e293b';
+                                ctx.strokeRect(x5, y, cellW, cellH);
+                            }
+                        }
                     }
 
                     // Border for label cell
