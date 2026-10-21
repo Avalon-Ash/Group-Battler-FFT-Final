@@ -34,19 +34,35 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                 const style = basicConfig.beamStyle;
                 switch(basicConfig.archetype) {
                     case 'MELEE_SLASH':
-                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
+                        if (isRed) {
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_SLASH', delay: 0, scale: basicConfig.scale || 1.0 });
+                        } else {
+                            const swingId = basicSkill.element === 'HOLY' ? 'FX_SWING_BLUE_SLASH_HOLY' : 'FX_SWING_BLUE_SLASH';
+                            actions.push({ type: 'PARTICLE', id: swingId, delay: 0, scale: basicConfig.scale || 1.0 });
+                        }
                         break;
                     case 'CROSS_CUT':
                     case 'DUAL_STRIKE':
-                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: 0.8 });
-                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.15, scale: 0.8, delay: 0.1 });
+                        if (isRed) {
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_1', delay: 0, scale: basicConfig.scale || 0.9 });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_2', delay: 0.08, scale: basicConfig.scale || 0.9 });
+                        } else {
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_BLUE_CROSS_1', delay: 0, scale: basicConfig.scale || 0.9 });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_BLUE_CROSS_2', delay: 0.08, scale: basicConfig.scale || 0.9 });
+                        }
                         break;
                     case 'HEAVY_CLEAVE':
                     case 'MELEE_CLEAVE':
-                        actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.25, scale: (basicConfig.scale || 1.2) * 1.2 });
+                        if (isRed) {
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CLEAVE', delay: 0, scale: basicConfig.scale || 1.1 });
+                        } else {
+                            const swingId = basicSkill.element === 'ARCANE' ? 'FX_SWING_BLUE_CLEAVE_ARCANE' : 'FX_SWING_BLUE_CLEAVE';
+                            actions.push({ type: 'PARTICLE', id: swingId, delay: 0, scale: basicConfig.scale || 1.1 });
+                        }
                         break;
                     case 'MELEE_PIERCE':
                         actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
+                        actions.push({ type: 'PARTICLE', id: isRed ? 'FX_SWING_RED_PIERCE_TIP' : 'FX_SWING_BLUE_PIERCE_TIP', delay: 0.02, scale: 0.8 });
                         break;
                     case 'LASER_SHOT':
                         actions.push({ type: 'BEAM', style: style ?? 'LIGHTNING_BEAM', color: basicConfig.color, duration: 0.2, scale: 0.8 });
@@ -55,6 +71,15 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.25, scale: basicConfig.scale ?? 1.0 });
                         break;
                     case 'MELEE_SMASH':
+                        if (isRed) {
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_SMASH', delay: 0, scale: basicConfig.scale || 1.0 });
+                        } else {
+                            let smashId = 'FX_SWING_BLUE_SMASH';
+                            if (basicSkill.element === 'LIGHTNING') smashId = 'FX_SWING_BLUE_SMASH_LIGHTNING';
+                            else if (basicSkill.element === 'HOLY') smashId = 'FX_SWING_BLUE_SMASH_HOLY';
+                            actions.push({ type: 'PARTICLE', id: smashId, delay: 0, scale: basicConfig.scale || 1.0 });
+                        }
+                        break;
                     case 'RANGED_BOLT':
                     case 'MAGIC_ORB':
                         break; // 打擊感全在 HIT_FX／投射物
@@ -71,6 +96,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const actions: VFXAction[] = [];
             const specificHit = activeConfig.impactFx || hitFx;
             // 有投射物的主動技：主特效在投射物抵達時由 HIT_FX 播（visualHitEffect），序列只放出手預兆
+            // 無投射物的主動技：HIT_FX 只播陣營預設小打擊（SkillExecutor 的 ownHit），主特效 impactFx 只有這裡播，不可去重拿掉
             const activeSkill = DEFAULT_SKILL_DB.find(sk => sk.id === activeId);
             const isProjectile = (activeSkill?.projectileSpeed ?? 0) > 0;
 

@@ -83,7 +83,7 @@ export const BASIC_PART_VFX: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 36, count: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.26, delay: 0, size: 36,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
             groundRing('LION_HOLY', 28, 1.4, 0.3),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_HOLY', hard: true }, count: [3, 4], lifetime: [0.3, 0.4], delay: 0.05, size: 4,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_HOLY', hard: true }, count: [3, 4], lifetime: [0.2, 0.28], delay: 0.05, size: 4,
                 shape: 'CIRCLE', shapeRadius: 16, speed: [0, 10], vz: [50, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
@@ -117,8 +117,8 @@ export const BASIC_PART_VFX: Record<string, VFXAsset> = {
         emitters: [
             flash('ASH_PHYSICAL', 26, 0.14),
             groundRing('ASH_PHYSICAL', 32, 1.4, 0.26, { rough: 1, seed: 1, thickness: 8 }),
-            debris('rock', 'ASH_PHYSICAL', [2, 3], 6),
-            puff('DUST', 24, 1),
+            debris('rock', 'ASH_PHYSICAL', [2, 3], 6, [120, 260], [0.22, 0.32]),
+            puff('DUST', 24, 1, [0.22, 0.30], 0.55, 0.02),
         ],
     },
 
@@ -128,8 +128,8 @@ export const BASIC_PART_VFX: Record<string, VFXAsset> = {
         emitters: [
             flash('ASH_FIRE', 32, 0.16),
             groundRing('ASH_PHYSICAL', 40, 1.6, 0.3, { rough: 1, seed: 2, thickness: 10 }),
-            debris('rock', 'ASH_PHYSICAL', [3, 4], 8, [140, 300], [0.32, 0.45]),
-            puff('ASH', 28, 1, [0.35, 0.45]),
+            debris('rock', 'ASH_PHYSICAL', [3, 4], 8, [140, 300], [0.24, 0.32]),
+            puff('ASH', 28, 1, [0.22, 0.30], 0.55, 0.02),
         ],
     },
 
@@ -139,7 +139,7 @@ export const BASIC_PART_VFX: Record<string, VFXAsset> = {
         emitters: [
             part({ particleType: 'PART', part: { kind: 'slashArc', radius: 40, arcDeg: 120, thickness: 10, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.2, delay: 0, size: 40,
                 partAnim: { scaleFrom: 0.8, scaleTo: 1.1, fadeOut: 0.6, rotation: -0.5 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [4, 5], lifetime: [0.3, 0.42], delay: 0.02, size: 6,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [4, 5], lifetime: [0.22, 0.32], delay: 0.02, size: 6,
                 shape: 'BURST_DIR', speed: [100, 220], gravity: 1800, partAnim: { fadeOut: 0.3 } }),
             groundRing('ASH_BLOOD', 26, 1.2, 0.24, { rough: 1, seed: 3, thickness: 6 }),
         ],

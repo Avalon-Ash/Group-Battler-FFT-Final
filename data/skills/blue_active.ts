@@ -43,7 +43,7 @@ export const BLUE_ACTIVE: Skill[] = [
         type: 'SINGLE', power: 0, color: '#ffffff', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 300, ccSelf: true,
         ccType2: 'REFLECT', ccDur2: 4, ccForce2: 30, ccSelf2: true,
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_PRISM_REFLECT', element: 'LIGHTNING'
     },
 
     // --- WARRIOR (Enhanced Gap Closers) ---
@@ -84,7 +84,7 @@ export const BLUE_ACTIVE: Skill[] = [
         range: 1, cast: 0.4, cd: 6.0, cost: 30, gain: 0, 
         type: 'SINGLE', power: 180, color: '#93c5fd', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 3,
-        visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', element: 'PHYSICAL'
+        visualHitEffect: 'FX_ACTIVE_BLUE_JUDGMENT_SLASH', element: 'PHYSICAL'
     },
 
     // --- RANGER ---
