@@ -4,12 +4,13 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 奧義有感（`feat/ult-feel`，提示詞 `docs/ULT_FEEL_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。下一輪 Gemini 起用 `run.mjs --detach／--wait`（AGENTS §7），第一次使用時留意 log 裡有沒有 `STATE=LOST`。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **奧義有感（UF）**（渲染工作，單獨一條）：共用演出（詠唱暗場＋施法者聚光、奧義名橫幅、命中光爆，參數 `ULT_FEEL`）＋STORM 節奏（`rr_u3` 加速、`rb_u5` 三連）與落點不出地圖＋重做 `sr_u4`／`rr_u2`／`mr_u1`／`wb_u5`／`sr_u1`／`sr_u5`。使用者執行 `/goal docs/ULT_FEEL_AGENT_PROMPT.md`。合併後刪 `docs/ULT_ART_REPORT.md` 與本輪提示詞。另 3 個 C1 違規（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s）若要清，下次平衡輪把 cast 調到 0.3。
+1. （無排定項目；奧義有感已合併，等使用者實機回饋決定下一步。）
 
 ## 3. 待使用者確認
+- **奧義有感實機看**（`docs/ULT_FEEL_REPORT.md`，VFX_PIPELINE_MAP §4.21）：詠唱暗場夠不夠明顯（森林只暗約 20～25%，可調 `ULT_FEEL` 的暗場不透明度，上限 0.4）、名稱橫幅是否太細、命中光爆是否刺眼；`sr_u4` 血月、`sr_u5` 鬼火、`wb_u5` 斬痕新造型；`rr_u3` 加速、`rb_u5` 三連節奏。另：火屬性奧義生成的火焰危害區範圍＝`aoeRadius`，`rr_u3`（8 圈）命中後整片火海，是玩法不是特效，要調得改技能資料。看完刪 `docs/ULT_FEEL_REPORT.md`。
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。
 - **技能新效果實機看**：稜鏡反射／尖刺防禦的「反傷」浮字、疾風祝禱與嗜血狂熱的加速、猩紅血月與惡魔降臨的吸血、神聖干涉的無敵（WORKLOG §Q）。
 - **導播狂抖＋掉幀**：掉幀已修（`f5e33f0`，WORKLOG §Q）。導播目標每幀跳動被鏡頭跟隨剛性（預設 0.25，約 4 秒時間常數）濾掉，不是肉眼的抖動來源；戰鬥結束附近剩下的是擊退／墜落的 `CAMERA_SHAKE`（0.55，約 70 ms 衰減）。**待使用者實機確認**是否還覺得抖。
@@ -17,6 +18,7 @@
 
 
 ## 4. 以後再說
+- 3 個 C1 違規（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s 小於奧義命中前置 0.3 s，特效晚約 0.1 s）：下次平衡輪把 cast 調到 0.3 即可清（`tests/ult-spec.baseline.json`）。
 - 重新部署方式（Cloud Run 相關檔案已刪）。
 - 正式版素材：新體型／女性／神職模型要找和 KayKit 同風格的素材（Quaternius 已否決），外觀軸 `Team×Role×BodyType` 已可直接擴充。
 - 地形烘焙實作（`docs/BAKED_RENDERING_DESIGN.md`）：熔岩圖現況夠順，暫不做。

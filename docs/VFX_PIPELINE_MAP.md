@@ -254,7 +254,16 @@ VFXSystem.state.particles
 - 範圍不靠特效表示：詠唱期間的逐格預警（`currentTelegraph`）就是範圍；舊「貼地零件對齊 aoeRadius」會讓全場奧義蓋滿畫面，已廢除。
 - STORM 落點散布：`SkillSequences` 給每擊 `scatterRings／scatterIndex／scatterCount`，`SequenceSystem.computeScatterOffset` 確定性向日葵分佈（黃金角），每個落點重算所在格地面高度（`tests/UltScatter.test.ts`）。
 - HEAVEN_FALL 為對齊傷害降低落下高度（`tr_u1`、`sr_u4` 300 px，多數 1000 px）；STORM 次數統一 8（C8）；`mb_u2` 改用專屬配方 `FX_ULT_BLUE_ABSOLUTE_ZERO`（原與 `rb_u1` 共用）；7 個紅方奧義的 `primary/secondaryColor` 改成與技能屬性一致。
-- 對照總表：`node tools/vfx/ult-sheet.mjs --out=<dir>`（藍／紅各一張，取樣 hitAt−0.2～+0.8，STORM 加全景欄，ICE／DESERT 白色飽和比例寫 json）。報告 `docs/ULT_ART_REPORT.md`。
+- 對照總表：`node tools/vfx/ult-sheet.mjs --out=<dir>`（藍／紅各一張，取樣 hitAt−0.2～+0.8，STORM 加全景欄，ICE／DESERT 白色飽和比例寫 json）。報告已刪（UA／UA6，見 git 歷史 `3061fbc`）。
+
+### 4.21 奧義有感 UF（2026-10-21，合併 `c7df349`）
+- 共用演出（參數 `constants/vfx.ts` 的 `ULT_FEEL`；狀態 `engine/presentation/vfx/UltFeelStore.ts`，寫入者只有 `VisualSystem`（CAST_START／CAST_BREAK）與 `SequenceSystem`（新動作 `ULT_IMPACT`，在 hitAt），`VFXSystem.reset()` 清空）：
+  - 詠唱暗場＋施法者聚光：`engine/renderers/ult/UltWorldRenderer.ts`，畫在後製之後、tactical overlay 與 HUD 之前；聚光中心讀 UnitFrame，最多 2 個，最低品質階層關閉聚光。聚光沿用主畫布當下的變換（重呼叫 `camera.applyTransform` 會重抽震動亂數，審查時修正）。
+  - 奧義名橫幅：`HUDRenderer`（HUD 螢幕層，陣營色取 `factionSkin`，漸層快取），出現時該奧義的頭頂 SHOUT 不顯示。
+  - 命中光爆：命中點局部加法光爆（不透明度上限 0.35），不做全畫面閃白。
+- STORM：`UltVisualDef.cadence`（`rr_u3` ACCEL、`rb_u5` CLUSTER）；落點出地圖時沿中心方向縮回（`SequenceSystem.clampScatterToMap`，`engine.isValid`）。
+- 重做：`sr_u4` 空中月輪＋血光柱＋回流光點、`rr_u2`／`mr_u1` 餘韻收斂、`wb_u5` 獅盾紋章＋交錯斬痕、`sr_u1` 鎖鏈收緊、`sr_u5` 鬼火。
+- 全畫面驗收圖：`node tools/vfx/ult-sheet.mjs --feel`（8 個奧義 × 詠唱／命中／餘韻）。量測：森林地圖詠唱畫面比餘韻暗約 20～25%。報告 `docs/ULT_FEEL_REPORT.md`。
 
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。

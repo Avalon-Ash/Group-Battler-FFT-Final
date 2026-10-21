@@ -127,6 +127,8 @@
 - 新增 `tests/HarnessContract.test.ts`（skill 觸發句、子代理模型、hook 腳本存在、hook 判定 7 組情境）；`DocDrift` 加掃 `.claude/skills`。
 - 長指令觀測與重試（10/21）：Gemini 兩度無限等待已結束的指令（2 小時、70 分鐘；IDE 收不到開 vite／瀏覽器指令的完成通知）。新增 `tools/agent/run.mjs`：前景包裝長指令，log 最後一行 `EXIT=<代碼>`＋`status.json`（含心跳），逾時結束自己的子程序樹（回 124），`--check <名稱>` 印狀態與下一步；`AGENTS.md` §7 加逾時表與「卡住就 --check、同一步兩次失敗就記報告跳下一個任務」；`agent-prompt` 範本同步。`tests/AgentRunner.test.ts` 驗證成功／失敗／逾時殺孫程序／--check。
 - 奧義規格化（Gemini UA 與 UA6，主代理審查後合併 `3061fbc`）：見 `docs/VFX_PIPELINE_MAP.md` §4.20。審查決定：kept → 色彩改動（依據：技能 `element`）、`mb_u2` 專屬配方（依據：原與 `rb_u1` 共用同一配方）；revised → 舊 C6（依據：總表上全場奧義貼地半徑 550～720 px 蓋滿畫面），改成上限＋STORM 散布（UA6），使用者否決命中時的範圍格閃光（詠唱預警已足、瞬發奧義看到也無用）。驗證：657 項測試、保真 6/6、perf 斷言、smoke 全過。
+- 奧義有感（Gemini UF，主代理審查後合併 `c7df349`）：見 `docs/VFX_PIPELINE_MAP.md` §4.21。審查修正 `e211b83`：聚光重抽震動亂數（改沿用主畫布變換）、橫幅漸層 `as unknown as` 型別造假、`typeof engine.isValid` 防禦式寫法（測試假引擎補 `isValid`）。驗證：673 項測試、保真 6/6（與 UF0 相同）、perf 斷言、smoke、`--feel` 全畫面圖。
+- 實作代理分段等待（10/21）：UA6 在 10 秒的 smoke 之後停了 6.5 小時（IDE 把工具呼叫轉背景、代理交出回合）→ `run.mjs --detach／--wait`（`2af6435`）；UF 時發現 IDE 終端機的 Job 會在指令返回時收掉 detached 子程序（狀態永遠 starting，`--wait` 呼叫 30 次）→ Windows 改經 WMI `Win32_Process.Create` 啟動（父程序 WmiPrvSE，不在 Job 內），starting 超過 10 秒回報 `STATE=LOST` 並給前景改跑指令（`d4345e5`）。
 
 ## 3. 更早的輪次與審查修補
 
