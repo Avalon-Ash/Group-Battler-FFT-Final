@@ -202,25 +202,38 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
     it('plays a distinct victory track for Red, and DEFEAT_STING for a draw', () => {
         audioEngine.unlock();
         const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+        const playCueSpy = vi.spyOn(audioEngine, 'playCue');
 
         bus.emit('GAME_OVER', { winner: Team.RED });
         expect(playMusicSpy).toHaveBeenCalledWith('VICTORY_RED_STING', 0.2);
         expect(playMusicSpy).not.toHaveBeenCalledWith('VICTORY_STING', 0.2);
+        // VICTORY 音效與藍方勝利曲是同一首號角：紅方贏不得播
+        expect(playCueSpy).not.toHaveBeenCalledWith('VICTORY');
 
         bus.emit('GAME_OVER', { winner: null });
         expect(playMusicSpy).toHaveBeenCalledWith('DEFEAT_STING', 0.2);
     });
 
-    it('does not cut the result sting short on ENV_UPDATE, but resumes ambient after GAME_CLEAR', () => {
+    it('cuts the result sting back to ambient on scene change (ENV_UPDATE) and on GAME_CLEAR', () => {
         audioEngine.unlock();
         bus.emit('GAME_OVER', { winner: Team.BLUE });
         const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
 
         bus.emit('ENV_UPDATE', {});
-        expect(playMusicSpy).not.toHaveBeenCalled();
+        expect(playMusicSpy).toHaveBeenCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
 
+        playMusicSpy.mockClear();
         bus.emit('GAME_CLEAR', {});
         expect(playMusicSpy).toHaveBeenCalledWith('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
+    });
+
+    it('does not interrupt battle music on ENV_UPDATE during a battle', () => {
+        audioEngine.unlock();
+        bus.emit('GAME_START', {});
+        const playMusicSpy = vi.spyOn(audioEngine, 'playMusic');
+
+        bus.emit('ENV_UPDATE', {});
+        expect(playMusicSpy).not.toHaveBeenCalled();
     });
 
     it('showcase mode: ambient BGM only (no battle/tense/result music), SFX bus ducked, restored on exit', () => {

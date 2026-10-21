@@ -27,7 +27,6 @@ export class AudioSystem {
     private remainingAgents: number = 10;
     private isBattleActive: boolean = false;
     private isTenseActive: boolean = false;
-    private isResultStingActive: boolean = false;
     private isShowcase: boolean = true;
 
     // 儲存事件取消訂閱用之引用
@@ -86,7 +85,6 @@ export class AudioSystem {
         this.subscribe('GAME_START', (data?: { sceneId?: string } | void) => {
             this.isBattleActive = true;
             this.isTenseActive = false;
-            this.isResultStingActive = false;
             this.remainingAgents = 10;
             if (this.isShowcase) {
                 this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
@@ -100,9 +98,8 @@ export class AudioSystem {
             this.isBattleActive = false;
             this.isTenseActive = false;
             if (this.isShowcase) return;
-            this.isResultStingActive = true;
             if (data.winner !== null) {
-                this.audioEngine.playCue('VICTORY');
+                // 勝利只播陣營勝利曲；VICTORY 音效檔與藍方勝利曲是同一首號角，紅方贏也會聽到藍方的，且音效換場切不掉
                 this.audioEngine.playMusic(WINNER_TO_VICTORY_TRACK[data.winner], 0.2);
             } else {
                 // 平手 / 同歸於盡：無勝方
@@ -114,13 +111,12 @@ export class AudioSystem {
         this.subscribe('GAME_CLEAR', () => {
             this.isBattleActive = false;
             this.isTenseActive = false;
-            this.isResultStingActive = false;
             this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
         });
 
         this.subscribe('ENV_UPDATE', () => {
-            // 結算曲播放中不被地圖重置打斷
-            if (!this.isBattleActive && !this.isResultStingActive) {
+            // 換場（只有玩家的 RANDOMIZE_MAP 會觸發）一律切回氛圍曲，結算曲不跨場延續
+            if (!this.isBattleActive) {
                 this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
             }
         });
@@ -186,7 +182,6 @@ export class AudioSystem {
         if (enabled) {
             this.isBattleActive = false;
             this.isTenseActive = false;
-            this.isResultStingActive = false;
             this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO.BGM_CROSSFADE_SEC);
         }
     }
