@@ -1,17 +1,17 @@
 # 交接：還沒做的事（TBD）
 
-> 更新：2026-10-21。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
+> 更新：2026-10-22。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 近戰攻擊與受擊特效（`feat/melee-fx`，提示詞 `docs/MELEE_FX_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。近戰特效（MF）已審查合併（`3c9d06f`），目前沒有進行中的分支或背景代理。下一輪：排定 §2 的「位移技能軌跡」。push 狀態以 `git status -sb` 為準。
 
-## 2. 排定（使用者 2026-10-21 核可，依序；1、2 都是渲染工作，一次一條）
-1. **近戰特效（MF）**：8 招近戰普攻沒有揮擊、其餘是攻擊者到目標的直線光束；7 招近戰主動技沿用普攻命中包。只改特效資料，硬性驗收是新的 MeleeFxSpec 規格測試 0 違規。使用者執行 `/goal docs/MELEE_FX_AGENT_PROMPT.md`。
-2. **位移技能軌跡**：衝刺現在是 `teleportTo`（`SkillExecutor.ts` DASH 區段）＋物理偏移彈回，看起來像瞬移、有時像 bug；要有軌跡與速度曲線，攻擊者近戰前衝也在這輪。動到位置，須對照 RenderSpec。
-3. **行為樹優化**：先錄戰鬥分析不自然的行為，再改；改完要重跑平衡模擬（`npm run balance:sim`），勝率維持 45～55%。
+## 2. 排定（使用者 2026-10-21 核可，依序；第 1 項為渲染／座標工作，單獨一條）
+1. **位移技能軌跡**：衝刺現在是 `teleportTo`（`SkillExecutor.ts` DASH 區段）＋物理偏移彈回，看起來像瞬移、有時像 bug；要有軌跡與速度曲線，攻擊者近戰前衝也在這輪。動到位置，須對照 RenderSpec。
+2. **行為樹優化**：先錄戰鬥分析不自然的行為，再改；改完要重跑平衡模擬（`npm run balance:sim`），勝率維持 45～55%。
 
 ## 3. 待使用者確認
+- **近戰特效實機看**（`docs/MELEE_FX_REPORT.md`，VFX_PIPELINE_MAP §4.22）：先看對照圖 `tools/ui-e2e/out/ult/melee_before.png` 與 `melee_after.png`，再實機看坦克／戰士的 18 招近戰普攻是否有揮擊刀弧／重擊感（取代空序列與直線光束）、7 招近戰主動技（`tb_a5`、`wb_a5`、`tr_a4`、`wr_a1`、`wr_a2`、`wr_a4`、`sr_a3`）放招和普攻是否分得出來（留意 `wr_a2` 斷筋打擊因序列帶入黑色 `secondaryColor: '#000'` 覆蓋是否偏暗、以及 `wb_b2` 長槍刺擊一併多了尖端閃光）。看完刪 `docs/MELEE_FX_REPORT.md`。
 - **奧義有感實機看**（`docs/ULT_FEEL_REPORT.md`，VFX_PIPELINE_MAP §4.21）：命中光爆是否刺眼（詠唱暗場已依使用者回饋移除）；`mb_u1` 黑洞、`rr_u2` 核彈依舊版構圖做回（紫黑旋轉吸積盤＋黑核；火球＋大衝擊環＋蘑菇煙＋高飛碎石，預覽 `node tools/vfx/ult-sheet.mjs --feel --ids=mb_u1,rr_u2 --times=0.05,0.35,0.7,1.1`）；`sr_u4` 血月、`sr_u5` 鬼火、`wb_u5` 斬痕新造型；`rr_u3` 加速、`rb_u5` 三連節奏。另：火屬性奧義生成的火焰危害區範圍＝`aoeRadius`，`rr_u3`（8 圈）命中後整片火海，是玩法不是特效，要調得改技能資料。看完刪 `docs/ULT_FEEL_REPORT.md`。
 - **勝利音樂實機聽**（`9b22842`）：紅方贏只有紅方勝利曲（不再先響藍方號角）；結算曲播放中換場會淡回氛圍曲、不混音。
 - **背景實機看**：5 張地圖背景應與以前相同（星星大小、亮度略不同）；高 DPI 螢幕上背景應更清晰。
