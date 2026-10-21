@@ -425,7 +425,7 @@ try {
     }
 
     // Helper to capture Feel verification sheet (--feel)
-    async function captureFeelSheet(ultIds) {
+    async function captureFeelSheet(ultIds, sampleOffsets) {
         console.log(`[ult-sheet] Capturing feel sheet for ${ultIds.length} ultimates on FOREST...`);
 
         // Set scene to FOREST
@@ -438,7 +438,7 @@ try {
         });
 
         const sheetDataUrl = await page.evaluate(
-            async ({ ultIds }) => {
+            async ({ ultIds, sampleOffsets }) => {
                 const e = window.__TACTICAL_ENGINE__;
                 const types = await import('/types.ts');
                 const { HexUtils } = await import('/engine/utils.ts');
@@ -450,7 +450,7 @@ try {
                 const CELL_H = 360;
                 const LABEL_W = 220;
                 const HEADER_H = 40;
-                const COLS = 3;
+                const COLS = sampleOffsets.length;
 
                 const sheetCanvas = document.createElement('canvas');
                 sheetCanvas.width = LABEL_W + CELL_W * COLS;
@@ -465,11 +465,7 @@ try {
                 ctx.font = 'bold 13px monospace';
                 ctx.fillText('ULTIMATE FEEL VERIFICATION (FOREST, FULL UNBUFFERED CANVAS)', 16, 25);
 
-                const colTitles = [
-                    '詠唱中 (hitAt - 0.30s) [暗場＋聚光＋頭頂喊招]',
-                    '命中 (hitAt + 0.03s) [局部光爆＋主爆發]',
-                    '餘韻 (hitAt + 0.60s) [焦痕／餘燼收斂]',
-                ];
+                const colTitles = sampleOffsets.map((o) => `hitAt ${o >= 0 ? '+' : '-'} ${Math.abs(o).toFixed(2)}s`);
                 for (let c = 0; c < COLS; c++) {
                     ctx.fillText(colTitles[c], LABEL_W + c * CELL_W + 16, 25);
                 }
@@ -532,7 +528,6 @@ try {
 
                     // Sequence timing
                     const castDelay = Math.max(0, cast - hitAt);
-                    const sampleOffsets = [-0.30, 0.03, 0.60];
                     let currentTau = -castDelay;
 
                     const y = HEADER_H + rowIdx * CELL_H;
@@ -572,7 +567,7 @@ try {
 
                 return sheetCanvas.toDataURL('image/png');
             },
-            { ultIds },
+            { ultIds, sampleOffsets },
         );
 
         return Buffer.from(sheetDataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
@@ -580,8 +575,10 @@ try {
 
     const isFeel = process.argv.includes('--feel');
     if (isFeel) {
-        const feelSkills = ['sr_u4', 'rr_u2', 'mr_u1', 'wb_u5', 'sr_u1', 'sr_u5', 'rr_u3', 'rb_u5'];
-        const feelBuf = await captureFeelSheet(feelSkills);
+        const feelSkills = arg('ids', '') ? arg('ids', '').split(',') : ['sr_u4', 'rr_u2', 'mr_u1', 'wb_u5', 'sr_u1', 'sr_u5', 'rr_u3', 'rb_u5'];
+        // --ids=mb_u1,rr_u2 指定奧義；--times=-0.3,0.03,0.6 指定相對 hitAt 的取樣時刻（秒）
+        const feelTimes = arg('times', '') ? arg('times', '').split(',').map(Number) : [-0.30, 0.03, 0.60];
+        const feelBuf = await captureFeelSheet(feelSkills, feelTimes);
         const feelOutDir = resolve(root, 'tools/ui-e2e/out/ult');
         mkdirSync(feelOutDir, { recursive: true });
         const feelPath = join(feelOutDir, 'feel.png');

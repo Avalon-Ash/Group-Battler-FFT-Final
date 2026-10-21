@@ -171,24 +171,30 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // mb_u1 事件視界／奧術漩渦（範圍 3 牽引）：奧術法陣 → 收縮的六角環與向心碎晶（牽引感）→ 核心閃光＋衝擊環
+    // mb_u1 事件視界／奧術漩渦（範圍 3 牽引）：向心碎晶開始被吸 → 命中時黑洞張開：旋轉的六角吸積盤＋旋臂＋黑色核心球，
+    // 持續吸入碎晶 → 結尾坍縮閃光。2026-10-21 使用者：舊版（6927b68 之前的 BLACK_HOLE 程序繪製）是最喜歡的之一，依舊版構圖做回。
+    // 時長：DOMAIN 序列在 hitAt − 0.3 開始，發射器須在 delay＋lifetime ≤ 2.0 內結束（C4）。
     'FX_ULT_BLUE_BLACKHOLE': {
         id: 'FX_ULT_BLUE_BLACKHOLE',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_VOID' }, count: 1, lifetime: 1.6, delay: 0, size: 112, vRotation: -1.2,
-                partAnim: { scaleFrom: 1.1, scaleTo: 0.8, fadeIn: 0.15, fadeOut: 0.3 } }),
-            // 牽引：衝擊環由外向內收縮（小於主爆發尺寸）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 8, ramp: 'LION_VOID' }, count: 1, lifetime: 0.4, delay: 0.1, size: 96,
-                partAnim: { scaleFrom: 1.4, scaleTo: 0.2, fadeIn: 0.1, fadeOut: 0.3 } }),
-            // 向心碎晶：從外圈被吸向中心
-            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [8, 10], lifetime: [0.5, 0.7], delay: [0.1, 0.3], size: 8,
-                shape: 'CIRCLE', shapeRadius: 100, speed: [-200, -150], vRotation: [-6, 6], partAnim: { fadeIn: 0.2, fadeOut: 0.3 } }),
-            // 命中主爆發（delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 80,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.7 } }),
-            // 命中衝擊環（範圍 3：128 * 1.4 * 1.4 = 250.9px，落於 174.6～324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.6 } }),
+            // 向心碎晶：命中前就開始被吸（C3 起手），整段持續往中心掉
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [16, 20], lifetime: [0.45, 0.6], delay: [0.05, 1.3], size: 8,
+                shape: 'CIRCLE', shapeRadius: 150, speed: [-320, -240], vRotation: [-6, 6], partAnim: { fadeIn: 0.25, fadeOut: 0.25 } }),
+            // 主體：紫黑六角吸積盤快速旋轉（ASH_VOID 一般混合的實色，舊版的紫黑色調；主爆發，delay 0.3 對齊 hitAt；96 * 1.0 * 1.4 = 134.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 48, ramp: 'ASH_VOID' }, count: 1, lifetime: 1.6, delay: 0.3, size: 96, vRotation: 3,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.2 } }),
+            // 旋臂：反向慢轉的放射線（110 * 1.0 * 1.4 = 154px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 110, count: 6, ramp: 'ASH_VOID', lengthJitter: 0.3, seed: 4 }, count: 1, lifetime: 1.5, delay: 0.35, size: 110, vRotation: -2,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.0, fadeIn: 0.15, fadeOut: 0.25, alpha: 0.8 } }),
+            // 事件視界外緣光暈（畫在核心後面，形成黑球的紫色描邊）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 84, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.9, delay: 0.3, size: 84,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.5, alpha: 0.7 } }),
+            // 黑色核心球（一般混合的實體黑；暗色在加法混合下會消失，所以用 smoke；兩層疊到不透明）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 52, color: 'CHAR', roughness: 0 }, count: 2, lifetime: 1.55, delay: 0.3, size: 52,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.15 } }),
+            // 結尾坍縮：擴張衝擊環（C7 傷害要有擴張貼地環；88 * 1.3 * 1.4 = 160px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 88, thickness: 10, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.3, delay: 1.65, size: 88,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1.3, fadeOut: 0.6 } }),
         ],
     },
 

@@ -118,28 +118,31 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱爆閃＋擴張衝擊環＋碎石＋焦土與零星餘燼收斂
+    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱火球上升＋大衝擊環＋高飛碎石 → 蘑菇雲升起＋火星
+    // 2026-10-21 使用者：舊版（6927b68 之前的 SHOCKWAVE／蘑菇雲煙柱／RUBBLE）是最喜歡的之一，零件化後變弱，依舊版構圖做回。
+    // 時長：序列在 hitAt − 0.3 開始，發射器須在 delay＋lifetime ≤ 1.4 內結束（C4 ≤ 2.0 s）。
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
-            // 落點預告印記（delay 0 < burstTime 0.3，滿足 C3 起手；size 64 * 1.0 * 2.0 = 128px）
+            // 落點預告印記（delay 0 < burstTime 0.3，滿足 C3 起手；64 * 1.0 * 1.4 = 89.6px）
             part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.6, delay: 0, size: 64,
                 partAnim: { scaleFrom: 0.8, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.4 } }),
-            // 命中主爆發（glow radius 110 大於環，delay 0.3 對齊 hitAt 0.8944）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 110, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 110,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.8 } }),
-            // 範圍 3 擴張衝擊環（size 96 * 1.3 * 2.0 = 249.6px，落於 174.6～324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 16, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.3, fadeOut: 0.5 } }),
-            // 碎石飛散
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [5, 7], lifetime: [0.45, 0.65], delay: 0.3, size: 8,
-                shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            // 地面焦土印記（命中 0.6s 後收斂留存焦黑）
-            part({ particleType: 'PART_GROUND', part: { kind: 'smoke', radius: 64, color: 'CHAR', roughness: 1, seed: 10 }, count: 1, lifetime: 0.75, delay: 0.3, size: 64,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1.1, fadeIn: 0.05, fadeOut: 0.55, alpha: 0.9 } }),
-            // 零星焦黑餘燼（快速收斂）
-            part({ particleType: 'PART', part: { kind: 'spark', length: 8, ramp: 'ASH_FIRE' }, count: [4, 6], lifetime: [0.35, 0.55], delay: [0.35, 0.45], size: 8,
-                shape: 'CIRCLE', shapeRadius: 35, speed: [12, 30], vz: [20, 45], partAnim: { fadeOut: 0.4 } }),
+            // 命中主爆發：白熱火球，邊膨脹邊上升成蘑菇雲的頭（glow 160 大於環，delay 0.3 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 160, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.75, delay: 0.3, size: 160, vz: 140,
+                partAnim: { scaleFrom: 0.35, scaleTo: 1.25, fadeOut: 0.6 } }),
+            // 範圍 3 大衝擊環（160 * 1.4 * 1.4 = 313.6px，上限 324.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 24, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.7, delay: 0.3, size: 160,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1.4, fadeOut: 0.55 } }),
+            // 蘑菇雲：焦黑煙團往上竄、越高越大（一般混合的實體煙；快的形成雲頭、慢的留成煙柱）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 44, color: 'CHAR', roughness: 0.8, seed: 12 }, count: 12, lifetime: [0.85, 1.0], delay: [0.33, 0.4], size: 44,
+                shape: 'CIRCLE', shapeRadius: 26, speed: [10, 40], vz: [120, 420], drag: 0.03, vRotation: [-1, 1],
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.9, fadeIn: 0.08, fadeOut: 0.45, alpha: 0.92 } }),
+            // 高飛碎石
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 10, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [10, 12], lifetime: [0.7, 1.0], delay: 0.3, size: 10,
+                shape: 'BURST_DIR', speed: [350, 700], vz: [400, 800], gravity: 2600, vRotation: [-10, 10], partAnim: { fadeOut: 0.3 } }),
+            // 火星四射（餘韻：hitAt + 0.5 s 仍存活）
+            part({ particleType: 'PART', part: { kind: 'spark', length: 14, ramp: 'ASH_FIRE' }, count: [8, 10], lifetime: [0.5, 0.8], delay: [0.32, 0.5], size: 14,
+                shape: 'BURST_DIR', speed: [220, 460], vz: [80, 300], drag: 0.04, partAnim: { fadeOut: 0.5 } }),
         ],
     },
 
