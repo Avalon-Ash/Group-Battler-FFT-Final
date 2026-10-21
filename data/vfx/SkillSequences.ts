@@ -35,7 +35,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                 switch(basicConfig.archetype) {
                     case 'MELEE_SLASH':
                         if (isRed) {
-                            actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: basicConfig.scale });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_SLASH', delay: 0, scale: basicConfig.scale || 1.0 });
                         } else {
                             const swingId = basicSkill.element === 'HOLY' ? 'FX_SWING_BLUE_SLASH_HOLY' : 'FX_SWING_BLUE_SLASH';
                             actions.push({ type: 'PARTICLE', id: swingId, delay: 0, scale: basicConfig.scale || 1.0 });
@@ -44,8 +44,8 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     case 'CROSS_CUT':
                     case 'DUAL_STRIKE':
                         if (isRed) {
-                            actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.15, scale: 0.8 });
-                            actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.secondaryColor, duration: 0.15, scale: 0.8, delay: 0.1 });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_1', delay: 0, scale: basicConfig.scale || 0.9 });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_2', delay: 0.08, scale: basicConfig.scale || 0.9 });
                         } else {
                             actions.push({ type: 'PARTICLE', id: 'FX_SWING_BLUE_CROSS_1', delay: 0, scale: basicConfig.scale || 0.9 });
                             actions.push({ type: 'PARTICLE', id: 'FX_SWING_BLUE_CROSS_2', delay: 0.08, scale: basicConfig.scale || 0.9 });
@@ -54,7 +54,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     case 'HEAVY_CLEAVE':
                     case 'MELEE_CLEAVE':
                         if (isRed) {
-                            actions.push({ type: 'BEAM', style: style ?? 'SLASH_CONNECT', color: basicConfig.color, duration: 0.25, scale: (basicConfig.scale || 1.2) * 1.2 });
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CLEAVE', delay: 0, scale: basicConfig.scale || 1.1 });
                         } else {
                             const swingId = basicSkill.element === 'ARCANE' ? 'FX_SWING_BLUE_CLEAVE_ARCANE' : 'FX_SWING_BLUE_CLEAVE';
                             actions.push({ type: 'PARTICLE', id: swingId, delay: 0, scale: basicConfig.scale || 1.1 });
@@ -62,9 +62,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         break;
                     case 'MELEE_PIERCE':
                         actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
-                        if (!isRed) {
-                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_BLUE_PIERCE_TIP', delay: 0.02, scale: 0.8 });
-                        }
+                        actions.push({ type: 'PARTICLE', id: isRed ? 'FX_SWING_RED_PIERCE_TIP' : 'FX_SWING_BLUE_PIERCE_TIP', delay: 0.02, scale: 0.8 });
                         break;
                     case 'LASER_SHOT':
                         actions.push({ type: 'BEAM', style: style ?? 'LIGHTNING_BEAM', color: basicConfig.color, duration: 0.2, scale: 0.8 });
@@ -74,7 +72,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         break;
                     case 'MELEE_SMASH':
                         if (isRed) {
-                            break; // 灰燼重擊留在 MF3
+                            actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_SMASH', delay: 0, scale: basicConfig.scale || 1.0 });
                         } else {
                             let smashId = 'FX_SWING_BLUE_SMASH';
                             if (basicSkill.element === 'LIGHTNING') smashId = 'FX_SWING_BLUE_SMASH_LIGHTNING';
