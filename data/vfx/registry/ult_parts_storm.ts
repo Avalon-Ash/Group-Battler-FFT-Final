@@ -188,20 +188,28 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- BEAM_SNIPE 命中點（光束本體不變） ----------
-    // wb_u5 光速斬擊（瞬移斬擊，單體）：日輪紋章起手 → 交叉雙劍弧＋命中核心爆閃＋單體地面環
+    // wb_u5 光速斬擊（瞬移斬擊，單體）：獅心盾紋章起手 → 三道交錯瞬移劍弧＋命中核心爆閃＋單體地面環
     'FX_ULT_BLUE_LIGHTSPEED': {
         id: 'FX_ULT_BLUE_LIGHTSPEED',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: 0, size: 36, vRotation: 1.0,
+            // 起手：獅心盾紋章（與 mb_u5 日輪明確區分）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: 0, size: 36, vRotation: 0,
                 partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0.1, size: 96,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: 0.8 } }),
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 120, thickness: 20, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.18, size: 96,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.15, fadeOut: 0.5, rotation: -0.8 } }),
+            // 瞬移斬痕 1（左斜斬）
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 104, arcDeg: 130, thickness: 22, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0.12, size: 104,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.5, rotation: 0.75 } }),
+            // 瞬移斬痕 2（右斜斬）
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 104, arcDeg: 130, thickness: 22, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.20, size: 104,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.5, rotation: -0.75 } }),
+            // 瞬移斬痕 3（橫斷斬）
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 140, thickness: 24, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.28, size: 96,
+                partAnim: { scaleFrom: 0.85, scaleTo: 1.25, fadeOut: 0.5, rotation: 1.57 } }),
+            // 命中核心爆閃
             part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0.3, size: 64,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.3, size: 48,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeOut: 0.6 } }),
+            // 單體地面衝擊環（scaleTo > scaleFrom 滿足 C7，size 36 * 1.2 * 1.4 = 60.48 <= 72px 滿足 C6）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.3, size: 36,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
         ],
     },
     // mb_u5 聚能光束（巨型光束，命中範圍 1）：日輪烙印 → 光束終點爆閃＋光芒＋衝擊環＋六角碎晶

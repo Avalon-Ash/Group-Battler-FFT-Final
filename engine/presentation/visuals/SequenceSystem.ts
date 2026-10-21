@@ -4,13 +4,14 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
-import { PHYSICS } from "../../../constants";
+import { PHYSICS, ULT_FEEL } from "../../../constants";
 import { Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from "../../../data/vfx/registry/shared_parts";
 
 import { HexUtils, MapConfig } from "../../utils";
+import { ultFeelStore } from "../vfx/UltFeelStore";
 
 interface QueuedAction {
     executeAt: number;
@@ -50,6 +51,35 @@ export class SequenceSystem {
         pt.x = Math.cos(theta) * dist;
         pt.y = Math.sin(theta) * dist;
         return pt;
+    }
+
+    /**
+     * 散布落點邊界約束（UF4 / ART_SPEC §6）：
+     * 若落點超出地圖，沿中心方向以固定比例收縮（最多 MAX_STEPS 次，仍出界則落在中心 (0, 0)），確定性。
+     */
+    public static clampScatterToMap(
+        target: { x: number; y: number },
+        offset: { x: number; y: number },
+        mapConfig: MapConfig,
+        isValidTile: (q: number, r: number) => boolean,
+        retractRatio: number = ULT_FEEL.SCATTER_CLAMP_RETRACT_RATIO,
+        maxSteps: number = ULT_FEEL.SCATTER_CLAMP_MAX_STEPS
+    ): { x: number; y: number } {
+        let hex = HexUtils.fromPx(target.x + offset.x, target.y + offset.y, mapConfig);
+        if (isValidTile(hex.q, hex.r)) {
+            return offset;
+        }
+        for (let step = 0; step < maxSteps; step++) {
+            offset.x *= retractRatio;
+            offset.y *= retractRatio;
+            hex = HexUtils.fromPx(target.x + offset.x, target.y + offset.y, mapConfig);
+            if (isValidTile(hex.q, hex.r)) {
+                return offset;
+            }
+        }
+        offset.x = 0;
+        offset.y = 0;
+        return offset;
     }
 
     public clear() {
@@ -129,6 +159,13 @@ export class SequenceSystem {
                         engine.mapConfig,
                         this.scratchOffset
                     );
+                    const isTileValid = (q: number, r: number): boolean => engine.isValid(q, r);
+                    SequenceSystem.clampScatterToMap(
+                        target,
+                        this.scratchOffset,
+                        engine.mapConfig,
+                        isTileValid
+                    );
                     const finalX = target.x + this.scratchOffset.x;
                     const finalY = target.y + this.scratchOffset.y;
                     const hex = HexUtils.fromPx(finalX, finalY, engine.mapConfig);
@@ -189,6 +226,15 @@ export class SequenceSystem {
                 shadow.partAnim = METEOR_SHADOW_ANIM;
                 break;
             }
+            case 'ULT_IMPACT':
+                ultFeelStore.recordImpact(
+                    target.x,
+                    target.y,
+                    target.z,
+                    this.teamOf(sourceId, engine),
+                    engine.battleTime
+                );
+                break;
         }
     }
 }

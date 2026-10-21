@@ -1,7 +1,7 @@
 
 // ╔══════════════════════════════════════════════════════════╗
-// ║  HUDRenderer — 血條、狀態量表、浮動文字、背水一戰橫幅      ║
-// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4。   ║
+// ║  HUDRenderer — 血條、狀態量表、浮動文字、背水一戰與奧義橫幅║
+// ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §3、§4、§11║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent } from "../game";
@@ -9,11 +9,13 @@ import { HUDSystem } from "../presentation/hud";
 import { UnitFrameStore } from "./frame/UnitFrame";
 import { BarPainter } from "./hud/BarPainter";
 import { GaugePainter } from "./hud/GaugePainter";
-import { TextPainter } from "./hud/TextPainter";
+import { TextPainter, fontFor } from "./hud/TextPainter";
 import { getRenderDpr } from "./RenderQuality";
 import { GlowTextCache, quantizeDeviceScale } from "./hud/GlowTextCache";
-import { LAST_STAND_BANNER } from "../../constants";
+import { LAST_STAND_BANNER, ULT_FEEL } from "../../constants";
 import { unitFallProgress } from "../../data/units/appearance/fallMotion";
+import { ultFeelStore } from "../presentation/vfx/UltFeelStore";
+import { getFactionSkin } from "../../data/units/factionSkin";
 
 export class HUDRenderer {
     public draw(ctx: CanvasRenderingContext2D, hud: HUDSystem, frames: UnitFrameStore, highlight: Agent | null, time: number, isLastStand: boolean = false) {
@@ -33,6 +35,87 @@ export class HUDRenderer {
         }
         TextPainter.drawFloatingText(ctx, hud);
         if (isLastStand) this.drawLastStandBanner(ctx, time);
+        this.drawUltBanner(ctx, time);
+    }
+
+    private drawUltBanner(ctx: CanvasRenderingContext2D, time: number) {
+        const banner = ultFeelStore.getBanner(time);
+        if (!banner) return;
+
+        const U = ULT_FEEL;
+        const elapsed = time - banner.startTime;
+        if (elapsed < 0 || elapsed >= U.BANNER_DURATION) return;
+
+        const { width, height } = ctx.canvas;
+        const dpr = getRenderDpr();
+        const cw = width / dpr;
+        const ch = height / dpr;
+
+        // 計算滑入、停留、滑出之位置與透明度
+        let alpha = 1.0;
+        let slideX = 0;
+
+        if (elapsed < U.BANNER_SLIDE_IN) {
+            const t = elapsed / U.BANNER_SLIDE_IN;
+            const ease = 1 - Math.pow(1 - t, 3);
+            slideX = (1 - ease) * (-cw * 0.35);
+            alpha = ease;
+        } else if (elapsed > U.BANNER_DURATION - U.BANNER_SLIDE_OUT) {
+            const t = (elapsed - (U.BANNER_DURATION - U.BANNER_SLIDE_OUT)) / U.BANNER_SLIDE_OUT;
+            const ease = t * t;
+            slideX = ease * (cw * 0.35);
+            alpha = 1 - ease;
+        }
+
+        const skin = getFactionSkin(banner.team);
+        const highlightColor = skin.pedestal.topHighlight;
+        const accentColor = skin.death.burstColor;
+        const bgDark = skin.pedestal.sideShadow;
+
+        ctx.save();
+        ctx.resetTransform();
+        ctx.scale(dpr, dpr);
+        ctx.globalAlpha = alpha;
+
+        const bannerY = U.BANNER_Y;
+        const bannerH = U.BANNER_HEIGHT;
+        const cx = cw / 2 + slideX;
+
+        // 1. 底層飾帶漸層（依畫布寬度與陣營快取）
+        const bgGrad = ultBannerGradient(ctx, cw, bgDark);
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, bannerY - bannerH / 2, cw, bannerH);
+
+        // 2. 上下金屬／陣營光芒邊線
+        const borderGrad = ultBannerBorderGradient(ctx, cw, highlightColor);
+        ctx.fillStyle = borderGrad;
+        ctx.fillRect(0, bannerY - bannerH / 2, cw, 2);
+        ctx.fillRect(0, bannerY + bannerH / 2 - 2, cw, 2);
+
+        // 3. 技能名稱文字
+        const font = fontFor('ULT', U.BANNER_FONT_SIZE);
+        ctx.font = font;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // 黑色描邊增加可讀性
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.strokeText(banner.skillName, cx, bannerY);
+
+        // 預烘焙光暈文字
+        const glow = GlowTextCache.getText(
+            banner.skillName,
+            font,
+            U.BANNER_FONT_SIZE,
+            highlightColor,
+            accentColor,
+            U.BANNER_GLOW_BLUR,
+            dpr
+        );
+        ctx.drawImage(glow.canvas, cx + glow.x, bannerY + glow.y, glow.w, glow.h);
+
+        ctx.restore();
     }
 
     private drawLastStandBanner(ctx: CanvasRenderingContext2D, time: number) {
@@ -77,10 +160,13 @@ export class HUDRenderer {
 }
 
 /** 橫幅漸層依畫布尺寸快取（尺寸改變才重建） */
-let bannerCache: { cw: number; ch: number; vignette: CanvasGradient; banner: CanvasGradient } | null = null;
+let bannerCache: { cw: number; ch: number; vignette: CanvasGradient | string; banner: CanvasGradient | string } | null = null;
 function bannerGradients(ctx: CanvasRenderingContext2D, cw: number, ch: number) {
     if (bannerCache && bannerCache.cw === cw && bannerCache.ch === ch) return bannerCache;
     const L = LAST_STAND_BANNER;
+    if (!ctx.createRadialGradient || !ctx.createLinearGradient) {
+        return { cw, ch, vignette: L.COLOR, banner: L.BANNER_BOTTOM };
+    }
     const vignette = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, cw * L.VIGNETTE_REACH);
     vignette.addColorStop(0, 'transparent');
     vignette.addColorStop(1, L.COLOR);
@@ -89,4 +175,32 @@ function bannerGradients(ctx: CanvasRenderingContext2D, cw: number, ch: number) 
     banner.addColorStop(1, L.BANNER_BOTTOM);
     bannerCache = { cw, ch, vignette, banner };
     return bannerCache;
+}
+
+let ultBgCache: { cw: number; color: string; grad: CanvasGradient } | null = null;
+function ultBannerGradient(ctx: CanvasRenderingContext2D, cw: number, color: string): CanvasGradient | string {
+    if (ultBgCache && ultBgCache.cw === cw && ultBgCache.color === color) return ultBgCache.grad;
+    if (!ctx.createLinearGradient) return color;
+    const grad = ctx.createLinearGradient(0, 0, cw, 0);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(0.2, color);
+    grad.addColorStop(0.5, color);
+    grad.addColorStop(0.8, color);
+    grad.addColorStop(1, 'transparent');
+    ultBgCache = { cw, color, grad };
+    return grad;
+}
+
+let ultBorderCache: { cw: number; color: string; grad: CanvasGradient } | null = null;
+function ultBannerBorderGradient(ctx: CanvasRenderingContext2D, cw: number, color: string): CanvasGradient | string {
+    if (ultBorderCache && ultBorderCache.cw === cw && ultBorderCache.color === color) return ultBorderCache.grad;
+    if (!ctx.createLinearGradient) return color;
+    const grad = ctx.createLinearGradient(0, 0, cw, 0);
+    grad.addColorStop(0, 'transparent');
+    grad.addColorStop(0.3, color);
+    grad.addColorStop(0.5, color);
+    grad.addColorStop(0.7, color);
+    grad.addColorStop(1, 'transparent');
+    ultBorderCache = { cw, color, grad };
+    return grad;
 }

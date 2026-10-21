@@ -18,6 +18,7 @@ import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, NEUTRAL_BEAM_RAMP_ID, type BeamStyle
 import { VFX_RAMPS } from "../../../data/vfx/parts/vfxPalette";
 import { VFX_PARTS } from "../../../data/vfx/parts/partConfig";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
+import { ultFeelStore } from "./UltFeelStore";
 
 export class VFXSystem {
     public state: VFXStateManager = new VFXStateManager();
@@ -29,6 +30,7 @@ export class VFXSystem {
     public reset() { 
         this.state.reset(); 
         this.collapsedHexKeys.clear();
+        ultFeelStore.reset();
     }
 
     /** 目前地圖的六角版面（生成貼地零件時決定是否需要正向圖騰版本）；未綁定引擎時為預設版面。 */

@@ -6,3 +6,4 @@ export * from './vfx/VFXPhysics';
 export * from './vfx/VFXPlayer';
 export * from './vfx/render';
 export * from './vfx/state';
+export * from './vfx/UltFeelStore';
