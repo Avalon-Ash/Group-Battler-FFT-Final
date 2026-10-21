@@ -4,10 +4,10 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。下一輪 Gemini 起用 `run.mjs --detach／--wait`（AGENTS §7），第一次使用時留意 log 裡有沒有 `STATE=LOST`。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 背景管線現代化（`feat/bg-pipeline`，提示詞 `docs/BACKGROUND_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。這是第一次用 `run.mjs --detach／--wait`（AGENTS §7），審查時留意 log 裡有沒有 `STATE=LOST`。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. （無排定項目；奧義有感已合併，等使用者實機回饋決定下一步。）
+1. **背景管線現代化**（渲染工作，單獨一條；使用者 2026-10-21 交主代理決定）：實測背景每幀約 0.02～0.06 ms 不是瓶頸，目標是對齊其他管線（每幀零漸層與配置、參數進 `BACKGROUND_FX`、品質階層、星星確定性、依 dpr 烘焙），外觀不變。量測工具 `tools/ui-e2e/bg-probe.mjs`。使用者執行 `/goal docs/BACKGROUND_AGENT_PROMPT.md`。
 
 ## 3. 待使用者確認
 - **奧義有感實機看**（`docs/ULT_FEEL_REPORT.md`，VFX_PIPELINE_MAP §4.21）：詠唱暗場夠不夠明顯（森林只暗約 20～25%，可調 `ULT_FEEL` 的暗場不透明度，上限 0.4）、命中光爆是否刺眼；`sr_u4` 血月、`sr_u5` 鬼火、`wb_u5` 斬痕新造型；`rr_u3` 加速、`rb_u5` 三連節奏。另：火屬性奧義生成的火焰危害區範圍＝`aoeRadius`，`rr_u3`（8 圈）命中後整片火海，是玩法不是特效，要調得改技能資料。看完刪 `docs/ULT_FEEL_REPORT.md`。
