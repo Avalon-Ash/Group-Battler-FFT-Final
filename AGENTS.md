@@ -111,23 +111,22 @@ For VFX part changes, preview with `node tools/vfx/fx-shot.mjs` (single-effect s
 | `npm run e2e:ui` | Headless UI tests (`tools/ui-e2e/`) |
 | `npm run perf:guard` | Render fidelity + performance regression check |
 
-### Long commands: run them through `tools/agent/run.mjs`
+### Long commands: detach, then wait in short chunks (`tools/agent/run.mjs`)
 
-Your IDE may run a long command in the background and wait for a "task finished" notification. For commands that start Vite or a browser that notification often never arrives, and agents have waited 70 minutes to 2 hours for a command that had already ended. So completion must be readable from a file, not from the IDE.
+Your IDE turns any tool call that runs longer than a few seconds into a background task, ends your turn, and waits for a "task finished" notification. That notification often never arrives, so you sit idle until the user writes to you: agents have idled 70 minutes, 2 hours, and 6.5 hours (2026-10-21, after a 10-second smoke test) on commands that had already finished. The fix is to **never let a tool call run long, and never end your turn while your own command is still running.**
 
-- **Every command that can take more than 30 s** (test, fidelity, guard, e2e, smoke, soak, batch sims, fx/ult sheets) runs in the foreground through the wrapper:
+- **Any command that can take more than ~5 s** (test, build, fidelity, guard, e2e, smoke, soak, batch sims, fx/ult sheets) is started detached and then polled:
   ```bash
-  node tools/agent/run.mjs <name> <timeoutSec> -- <command...>
-  # e.g. node tools/agent/run.mjs fidelity 600 -- npm run perf:fidelity
+  node tools/agent/run.mjs --detach <name> <timeoutSec> -- <command...>   # returns immediately
+  node tools/agent/run.mjs --wait <name>                                   # returns within ~5 s
+  # e.g. node tools/agent/run.mjs --detach guard 900 -- npm run perf:guard
   ```
-  It streams output, writes `tools/ui-e2e/out/agent-logs/<name>.log` (last line `EXIT=<code>` or `EXIT=TIMEOUT`) and `<name>.status.json`, and on timeout kills only that command's own process tree (exit 124).
-- **Timeouts** (upper bounds, not estimates): lint 120, test 300, build 180, `perf:fidelity` 600, `perf:guard` 900, `e2e:ui` 600, `runtime-smoke` 180, `br-soak` 900, `balance:sim` 1000 battles 1200, screenshot/sheet tools 900.
-- **If you notice you are waiting** (no new output for a few minutes, or the IDE still shows a task running past its timeout): run `node tools/agent/run.mjs --check <name>` and do what it says:
-  - `state=done` → read the result from the log and continue. Never keep waiting on a finished command.
-  - `state=timeout`, or the process is gone without `EXIT=` → rerun once.
-  - still running with recent output → wait, check again later.
+  `--wait` prints one first line: `STATE=RUNNING` → **call `--wait <name>` again right away, in the same turn**; `STATE=DONE EXIT=<code>` → read the tail it prints (full log in `tools/ui-e2e/out/agent-logs/<name>.log`) and continue; `STATE=TIMEOUT` or `STATE=LOST` → rerun once.
+- Short commands (lint, a single small test file) may run directly; if one ever comes back as "running in the background", switch to `--wait` for it instead of waiting.
+- **Never end your turn while a command you started is running. Never send a message like "waiting for it to complete" or "I will report when it finishes"** — that hands the turn back and nothing wakes you up. Keep calling `--wait` until it says DONE, then move on.
+- **Timeouts** (upper bounds, not estimates): lint 120, test 300, build 180, `perf:fidelity` 600, `perf:guard` 900, `e2e:ui` 600, `runtime-smoke` 180, `br-soak` 900, `balance:sim` 1000 battles 1200, screenshot/sheet tools 900. On timeout the wrapper kills only that command's own process tree (exit 124).
 - **The same step fails or times out twice** → write it in your report as "not completed: <name> (log path)" and move on to the next task. One stuck command must not stall the whole round.
-- Never start a second copy of a command that `--check` reports as running, and never wait more than 10 minutes when no `node` process of yours is running.
+- `node tools/agent/run.mjs --check <name>` prints the state and the next step if you are unsure. Never start a second copy of a command that is still running (`--detach` refuses).
 
 ---
 

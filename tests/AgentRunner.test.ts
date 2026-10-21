@@ -55,6 +55,29 @@ describe('AgentRunner', () => {
         expect(runner(['--check', 'slow']).stdout).toMatch(/重跑一次/);
     });
 
+    it('--detach 立刻返回；--wait 分段返回，先 RUNNING 後 DONE，結束碼原樣傳回', () => {
+        const t0 = Date.now();
+        const d = runner(['--detach', 'bg', '30', '--', process.execPath, '-e', 'setTimeout(()=>process.exit(5),3000)']);
+        expect(d.status).toBe(0);
+        expect(Date.now() - t0).toBeLessThan(2000);
+        const w1 = runner(['--wait', 'bg', '1']);
+        expect(w1.stdout.split(/\r?\n/)[0]).toMatch(/^STATE=RUNNING/);
+        expect(w1.status).toBe(0);
+        let last = w1;
+        for (let i = 0; i < 10 && !/^STATE=DONE/.test(last.stdout); i++) last = runner(['--wait', 'bg', '2']);
+        expect(last.stdout.split(/\r?\n/)[0]).toMatch(/^STATE=DONE EXIT=5/);
+        expect(last.status).toBe(5);
+        expect(lastLine('bg')).toBe('EXIT=5');
+    });
+
+    it('--detach 前先寫 starting，--wait 不會讀到上一次的結果', () => {
+        runner(['again', '30', '--', process.execPath, '-e', 'process.exit(0)']);
+        expect(status('again').state).toBe('done');
+        runner(['--detach', 'again', '30', '--', process.execPath, '-e', 'setTimeout(()=>{},2000)']);
+        expect(runner(['--wait', 'again', '0.5']).stdout).toMatch(/^STATE=RUNNING/);
+        for (let i = 0; i < 10 && !/^STATE=DONE/.test(runner(['--wait', 'again', '2']).stdout); i++) { /* 等它結束，避免殘留程序 */ }
+    });
+
     it('--check：已結束的指令告訴代理不要再等', () => {
         expect(runner(['--check', 'ok']).stdout).toMatch(/不要再等/);
         expect(runner(['--check', 'never-ran']).stdout).toMatch(/沒有狀態檔/);
