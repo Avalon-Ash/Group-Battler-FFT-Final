@@ -24,7 +24,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 96,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.0, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
             // 六角護盾碎片向外彈開
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: [8, 10], lifetime: [0.6, 0.8], delay: 0.3, size: 8,
                 shape: 'BURST_DIR', speed: [180, 360], vz: [250, 450], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
@@ -82,7 +82,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 128, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 128,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.6, rotation: 0.2 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.32, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.2, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.45, size: 128,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.7 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.9, 1.2], delay: [0.45, 0.7], size: 8,
@@ -221,9 +221,9 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             // 命中主爆發（glow radius 140 大於環，非擴張環；delay 0.3 對齊 hitAt）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 140,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 6 柔和環（128 * 2.7 * 1.4 = 483.8px，落於 349.2～648.5px）
+            // 範圍 6 柔和環（128 * 1.8 * 1.4 = 322.6px）
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.7, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.6, 0.8], delay: [0.35, 0.45], size: 8,
                 shape: 'CIRCLE', shapeRadius: 140, speed: [5, 20], vz: [60, 120], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
@@ -240,7 +240,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.6 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_HOLY' }, count: 3, lifetime: 0.8, delay: [0.3, 0.7], size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 3.8, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.9, 1.2], delay: [0.4, 0.8], size: 8,
                 shape: 'CIRCLE', shapeRadius: 120, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
@@ -258,7 +258,7 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.5, delay: 0.3, size: 80,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_ARCANE' }, count: 2, lifetime: 0.8, delay: [0.3, 0.55], size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 3.8, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_ARCANE', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.5, 0.8], size: 8,
                 shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
@@ -272,9 +272,9 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
             part({ particleType: 'PART', part: { kind: 'pillar', width: 24, height: 224, ramp: 'LION_ARCANE' }, count: 6, lifetime: 1.0, delay: 0.25, size: 24, groundAnchored: true,
                 shape: 'RING', shapeRadius: 100, partAnim: { scaleFrom: 1.3, scaleTo: 1, fadeIn: 0.05, fadeOut: 0.35 } }),
-            // 命中衝擊環：擴張環（範圍 4：128 * 2.3 * 1.4 = 412.2px）
+            // 命中衝擊環：擴張環（範圍 4：128 * 1.8 * 1.4 = 322.6px）
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.7, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 2.3, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.5 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 64,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
         ],
@@ -291,9 +291,9 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
             // 命中主爆發（glow radius 140 大於環，非擴張環；delay 0.3 對齊 hitAt）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 140,
                 partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.8 } }),
-            // 範圍 10 環（128 * 3.4 * 1.4 = 609.3px，落於 582～1081px）
+            // 範圍 10 環（128 * 1.8 * 1.4 = 322.6px）
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 3.4, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             // 懸停光點（vz > 0 滿足 power <= 0 規則）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.35, 0.45], size: 8,
                 shape: 'CIRCLE', shapeRadius: 130, vz: [10, 30], partAnim: { fadeIn: 0.1, fadeOut: 0.4 } }),

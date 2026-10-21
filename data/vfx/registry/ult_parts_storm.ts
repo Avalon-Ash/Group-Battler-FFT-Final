@@ -32,11 +32,11 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_BLUE_BLADESTORM',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'slashArc', radius: 64, arcDeg: 150, thickness: 16, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0, size: 64,
-                shape: 'CIRCLE', shapeRadius: 30, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
+                shape: 'CIRCLE', shapeRadius: 15, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.4, delay: 0, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.5, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 6, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.4, delay: 0, size: 40,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_HOLY' }, count: 2, lifetime: [0.3, 0.4], delay: 0.05, size: 4,
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
         ],
@@ -46,11 +46,11 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_BLUE_STARFALL',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'pillar', width: 12, height: 192, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0, size: 12, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 110, partAnim: { scaleFrom: 1.4, scaleTo: 0.6, fadeOut: 0.6 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 1.4, scaleTo: 0.6, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
-                shape: 'CIRCLE', shapeRadius: 110, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 480, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 480,
-                partAnim: { scaleFrom: 0.2, scaleTo: 1.6, fadeOut: 0.5 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // rb_u5 系統超載（單體極速連射，15 次）：命中點連閃＋小衝擊環＋電光碎點
@@ -70,40 +70,37 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_BLUE_TORRENT',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
-                shape: 'CIRCLE', shapeRadius: 70, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_ARCANE' }, count: [2, 3], lifetime: [0.35, 0.5], delay: 0, size: 4,
-                shape: 'CIRCLE', shapeRadius: 70, speed: [50, 150], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
-            // 範圍 5 擴張環（280 * 1.8 * 0.8 = 403.2px，落於 291.0～540.4px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 280, thickness: 6, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0, size: 280,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
+                shape: 'CIRCLE', shapeRadius: 10, speed: [50, 150], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // sb_u3 英勇讚美（全隊 Buff，8 次）：金色聖歌波紋一圈圈擴散＋光點上升
     'FX_ULT_BLUE_HYMN': {
         id: 'FX_ULT_BLUE_HYMN',
         emitters: [
-            // 命中主爆發（glow radius 400 大於環，非擴張環；delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 400, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 400,
-                shape: 'CIRCLE', shapeRadius: 100, vz: [40, 80], partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
-            // 範圍 10 波紋環（360 * 2.5 * 0.8 = 720px，落於 582～1081px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 360, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 360,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.5, fadeIn: 0.1, fadeOut: 0.6 } }),
+            // 命中主爆發（glow radius 48 大於環，非擴張環；delay 0 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 48,
+                shape: 'CIRCLE', shapeRadius: 10, vz: [40, 80], partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeIn: 0.1, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: 0.45, delay: 0, size: 6,
-                shape: 'CIRCLE', shapeRadius: 120, vz: [60, 110], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
+                shape: 'CIRCLE', shapeRadius: 10, vz: [60, 110], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
         ],
     },
     // sb_u5 寧靜之雨（範圍 5 持續治療，8 次）：金白光雨滴落下＋光霧＋擴散環
     'FX_ULT_BLUE_RAIN': {
         id: 'FX_ULT_BLUE_RAIN',
         emitters: [
-            // 命中主爆發（glow radius 260 大於環，非擴張環；delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 260, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 260,
-                shape: 'CIRCLE', shapeRadius: 100, vz: [20, 50], partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeIn: 0.1, fadeOut: 0.6 } }),
-            // 範圍 5 擴散環（280 * 1.8 * 0.8 = 403.2px，落於 291.0～540.4px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 240, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 280,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.5 } }),
+            // 命中主爆發（glow radius 48 大於環，非擴張環；delay 0 對齊 hitAt）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 48,
+                shape: 'CIRCLE', shapeRadius: 10, vz: [20, 50], partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeIn: 0.1, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'LION_HOLY' }, count: 2, lifetime: [0.35, 0.45], delay: 0, size: 4,
-                shape: 'CIRCLE', shapeRadius: 100, vz: [-40, -10], gravity: 1200, partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
+                shape: 'CIRCLE', shapeRadius: 10, vz: [-40, -10], gravity: 1200, partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
         ],
     },
 
