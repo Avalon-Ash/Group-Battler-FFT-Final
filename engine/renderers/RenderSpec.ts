@@ -220,6 +220,10 @@ export class RenderSpec {
         s += "- 舊的 UnitFlightPainter（飛行緞帶與「引擎光點」）已移除：它在 UNIT_SCALE 與本體旋轉之後畫世界座標差，軌跡被縮成 0.65 倍並跟著傾斜轉，\n";
         s += "  15 個 tick 的軌跡在正常飛行速度下只有十幾 px；引擎光點是舊程序化身體的殘留。飛行單位的移動感由懸浮浮動（UNIT_BODY_MOTION）與衝刺殘影提供。\n\n";
 
+        s += "## 11. 奧義專屬演出層 (Ultimate Feel Layers)\n\n";
+        s += "奧義專屬演出（UF，ART_SPEC §6、DECISIONS §4）：\n";
+        s += "- 奧義暗場／聚光／命中光爆：表現層狀態，畫在後製之後、tactical overlay 與 HUD 之前（世界座標，聚光中心讀 UnitFrame）；\n";
+        s += "- 奧義橫幅：HUD 螢幕座標層。\n\n";
         s += "--- \n\n";
 
         return s;

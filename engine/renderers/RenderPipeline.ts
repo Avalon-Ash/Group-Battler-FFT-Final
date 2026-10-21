@@ -3,7 +3,9 @@
 // ║  職責：建立「繪製用地面高度」＝模擬高度－該格漂浮位移，    ║
 // ║        傳給特效與 UnitFrameStore；drawWorld 開頭建一次     ║
 // ║        UnitFrame，單位、HUD、狀態、剪影、選取連線都讀它    ║
-// ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5；  ║
+// ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5、§11；║
+// ║  奧義暗場／聚光／命中光爆畫在後製之後、overlay 與 HUD 之前 ║
+// ║  （世界座標，聚光中心讀 UnitFrame；奧義橫幅走 HUD 層）。    ║
 // ║  模擬端永遠不讀繪製用高度。每幀 begin 貼地鋪設層（§9），    ║
 // ║  VFXRenderer 登記、RenderDispatcher 逐格繪製。             ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -28,6 +30,7 @@ import { CtxOpCounter } from "./CtxOpCounter";
 import { spriteAtlasStore } from "./units/SpriteAtlasStore";
 import { terrainTextureStore } from "./grid/TerrainTextureStore";
 import { TerrainRenderer } from "./grid/TerrainRenderer";
+import { UltWorldRenderer } from "./ult/UltWorldRenderer";
 import { obstacleSpriteStore } from "./grid/ObstacleSpriteStore";
 import { setAdditiveGain } from "./vfxparts/VFXPartStore";
 import { VFX_BIOME_GAIN, RENDER_QUALITY } from "../../constants";
@@ -50,6 +53,7 @@ export class RenderPipeline {
     private background = new BackgroundRenderer();
     private tactical: TacticalRenderer;
     private hud = new HUDRenderer();
+    private ultWorld = new UltWorldRenderer();
     private post = new PostProcessor();
     private renderList = new RenderList();
     /** 本幀貼地鋪設特效（VFXRenderer 登記、RenderDispatcher 逐格繪製；RenderSpec §9） */
@@ -170,6 +174,9 @@ export class RenderPipeline {
         RenderStats.begin('overlay+hud');
         ctx.save(); 
         this.renderer.camera.applyTransform(ctx, lW, lH);
+        CtxOpCounter.track('ult-world', () => {
+            this.ultWorld.draw(ctx, engine, this.frames, this.renderer.camera, lW, lH, dpr, battleTime);
+        });
         CtxOpCounter.track('tactical-overlay', () => {
             this.tactical.drawOverlay(ctx, engine, highlight, this.renderer.grid, realTime, this.frames);
         });
