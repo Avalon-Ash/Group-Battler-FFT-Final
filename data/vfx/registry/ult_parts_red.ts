@@ -93,7 +93,7 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // mr_u1 毀滅隕石（HEAVEN_FALL，範圍 2）：落地印記預告 → 火光爆閃＋擴張衝擊環＋碎石＋灰煙
+    // mr_u1 毀滅隕石（HEAVEN_FALL，範圍 2）：落地印記預告 → 火光爆閃＋擴張衝擊環＋碎石＋焦痕與零星餘燼收斂
     'FX_ULT_RED_METEOR_IMPACT': {
         id: 'FX_ULT_RED_METEOR_IMPACT',
         emitters: [
@@ -104,18 +104,21 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 112, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 112,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.8 } }),
             // 範圍 2 擴張衝擊環（size 56 * 1.5 * 2.0 = 168.0px，落於 116.4～216.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 56, thickness: 14, ramp: 'ASH_FIRE', roughness: 1, seed: 7 }, count: 1, lifetime: 0.55, delay: 0.3, size: 56,
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 56, thickness: 14, ramp: 'ASH_FIRE', roughness: 1, seed: 7 }, count: 1, lifetime: 0.5, delay: 0.3, size: 56,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.5, fadeOut: 0.5 } }),
             // 熔岩碎石飛散
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_FIRE', seed: 5 }, count: [5, 7], lifetime: [0.5, 0.7], delay: 0.3, size: 8,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_FIRE', seed: 5 }, count: [5, 7], lifetime: [0.45, 0.65], delay: 0.3, size: 8,
                 shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            // 灰煙餘韻（delay 0.35 + lifetime 0.75 = 1.1s，在序列中 0.5944 + 1.1 = 1.6944s >= 1.3944s 且 <= 2.0s）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 40, color: 'ASH', roughness: 1, seed: 9 }, count: [3, 4], lifetime: 0.75, delay: 0.35, size: 40,
-                shape: 'CIRCLE', shapeRadius: 30, speed: [10, 30], vz: [30, 60], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
+            // 地面焦痕餘韻（收斂為暗黑灼痕）
+            part({ particleType: 'PART_GROUND', part: { kind: 'smoke', radius: 48, color: 'CHAR', roughness: 1, seed: 9 }, count: 1, lifetime: 0.75, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1.0, fadeIn: 0.05, fadeOut: 0.55, alpha: 0.85 } }),
+            // 零星火星餘燼（命中後快速收斂）
+            part({ particleType: 'PART', part: { kind: 'spark', length: 6, ramp: 'ASH_FIRE' }, count: [4, 6], lifetime: [0.35, 0.55], delay: [0.35, 0.45], size: 6,
+                shape: 'CIRCLE', shapeRadius: 25, speed: [10, 25], vz: [15, 35], partAnim: { fadeOut: 0.4 } }),
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱爆閃＋擴張衝擊環＋碎石＋灰煙
+    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱爆閃＋擴張衝擊環＋碎石＋焦土與零星餘燼收斂
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
@@ -126,32 +129,39 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 110, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 110,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.8 } }),
             // 範圍 3 擴張衝擊環（size 96 * 1.3 * 2.0 = 249.6px，落於 174.6～324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 16, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.55, delay: 0.3, size: 96,
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 16, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.3, fadeOut: 0.5 } }),
             // 碎石飛散
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [5, 7], lifetime: [0.5, 0.7], delay: 0.3, size: 8,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [5, 7], lifetime: [0.45, 0.65], delay: 0.3, size: 8,
                 shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            // 灰煙餘韻（delay 0.35 + lifetime 0.75 = 1.1s，在序列中 0.5944 + 1.1 = 1.6944s >= 1.3944s 且 <= 2.0s）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 48, color: 'CHAR', roughness: 1, seed: 10 }, count: [3, 4], lifetime: 0.75, delay: 0.35, size: 48,
-                shape: 'CIRCLE', shapeRadius: 35, speed: [15, 35], vz: [50, 90], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
+            // 地面焦土印記（命中 0.6s 後收斂留存焦黑）
+            part({ particleType: 'PART_GROUND', part: { kind: 'smoke', radius: 64, color: 'CHAR', roughness: 1, seed: 10 }, count: 1, lifetime: 0.75, delay: 0.3, size: 64,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1.1, fadeIn: 0.05, fadeOut: 0.55, alpha: 0.9 } }),
+            // 零星焦黑餘燼（快速收斂）
+            part({ particleType: 'PART', part: { kind: 'spark', length: 8, ramp: 'ASH_FIRE' }, count: [4, 6], lifetime: [0.35, 0.55], delay: [0.35, 0.45], size: 8,
+                shape: 'CIRCLE', shapeRadius: 35, speed: [12, 30], vz: [20, 45], partAnim: { fadeOut: 0.4 } }),
         ],
     },
 
-    // sr_u4 猩紅血月（自身範圍 10 吸血）：血月（深紅光暈）高懸 → 角骷髏法陣＋擴張斷裂環 → 血滴向上被吸走
+    // sr_u4 猩紅血月（自身範圍 10 吸血）：角骷髏起手 → 空中月輪高懸＋血色光柱灑下＋地面聚光環＋吸血光點往上回流
     'FX_ULT_RED_BLOOD_MOON': {
         id: 'FX_ULT_RED_BLOOD_MOON',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 128, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: 0, size: 128, vRotation: 0.2,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            // 血月主爆發：大光暈（radius 140 大於環，delay 0.3 對齊 hitAt 0.4899，vz 緩升滿足 power <= 0 規則）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 1.4, delay: 0.3, size: 140, vz: 30,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.1, fadeIn: 0.2, fadeOut: 0.3 } }),
-            // 範圍 10 擴張環（size 128 * 1.8 * 1.4 = 322.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 14, ramp: 'ASH_BLOOD', roughness: 1, seed: 11 }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
-            // 吸血：外圈血滴向上、向中心漂
-            part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 12], lifetime: [0.8, 1.1], delay: [0.35, 0.6], size: 6,
-                shape: 'CIRCLE', shapeRadius: 150, speed: [-140, -100], vz: [60, 120], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.4 } }),
+            // 起手：角骷髏法陣（精緻地面印記）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: 0, size: 64, vRotation: 0.2,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
+            // 血月月輪：懸在目標上空的月輪（空中層、緊湊較小、不再滿屏粉紅）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 56, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.95, delay: 0.3, size: 56, vz: 15,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1.05, fadeIn: 0.15, fadeOut: 0.4, alpha: 0.9 } }),
+            // 血色光柱往下灑
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 44, height: 160, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.65, delay: 0.3, size: 80, groundAnchored: true,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.5, alpha: 0.85 } }),
+            // 地面聚光環
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 10, ramp: 'ASH_BLOOD', roughness: 1, seed: 11 }, count: 1, lifetime: 0.65, delay: 0.3, size: 48,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.5 } }),
+            // 吸血光點向上回流到隊友方向（增益＝上升聚合，vz > 0）
+            part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 14], lifetime: [0.65, 0.95], delay: [0.35, 0.55], size: 6,
+                shape: 'CIRCLE', shapeRadius: 110, speed: [-90, -40], vz: [80, 150], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.4 } }),
         ],
     },
 
@@ -259,40 +269,47 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // sr_u1 靈魂連結（自身範圍 4 群體禁錮，SANCTUARY）：深淵倒三角法陣 → 五道深淵雷鏈沿環落下＋擴張斷裂環 → 暗光
+    // sr_u1 靈魂連結（自身範圍 4 群體禁錮，SANCTUARY）：深淵倒三角法陣 → 鎖鏈環狀收緊＋內圈禁錮鎖死＋珠鏈連結＋中心爆發
     'FX_ULT_RED_SOUL_WEB': {
         id: 'FX_ULT_RED_SOUL_WEB',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'invTriangle', ramp: 'ASH_VOID' }, count: 1, lifetime: 1.7, delay: 0, size: 112, vRotation: 0.5,
+            // 起手：深淵倒三角法陣
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'invTriangle', ramp: 'ASH_VOID' }, count: 1, lifetime: 1.6, delay: 0, size: 112, vRotation: 0.5,
                 partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'bolt', length: 160, branches: 1, ramp: 'ASH_VOID', seed: 5 }, count: 5, lifetime: 0.5, delay: [0.25, 0.45], size: 80, groundAnchored: true,
-                shape: 'RING', shapeRadius: 100, partAnim: { fadeOut: 0.6 } }),
-            // 範圍 4 擴張環（size 110 * 2.0 * 1.4 = 308.0px，落於 232.78～432.3px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'ASH_VOID', roughness: 1, seed: 18 }, count: 1, lifetime: 0.6, delay: 0.3, size: 110,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.0, fadeIn: 0.1, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.6, delay: 0.3, size: 64,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.6 } }),
+            // 外圈鎖鏈環狀收緊（強化束縛感，scaleFrom 2.0 -> 0.7）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 14, ramp: 'ASH_VOID', roughness: 1, seed: 18 }, count: 1, lifetime: 0.65, delay: 0.3, size: 96,
+                partAnim: { scaleFrom: 2.0, scaleTo: 0.7, fadeIn: 0.08, fadeOut: 0.45 } }),
+            // 內圈禁錮衝擊環（鎖死時向外震盪，滿足傷害技擴張貼地環規則）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 10, ramp: 'ASH_VOID', roughness: 1, seed: 19 }, count: 1, lifetime: 0.5, delay: 0.35, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeIn: 0.08, fadeOut: 0.5 } }),
+            // 鎖鏈束縛連結線（環狀分布的深淵鎖鏈）
+            part({ particleType: 'PART', part: { kind: 'bolt', length: 140, branches: 1, ramp: 'ASH_VOID', seed: 5 }, count: 5, lifetime: 0.55, delay: [0.28, 0.42], size: 70, groundAnchored: true,
+                shape: 'RING', shapeRadius: 90, partAnim: { fadeOut: 0.5 } }),
+            // 中心靈魂鎖定爆發
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.55, delay: 0.3, size: 72,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
         ],
     },
 
-    // sr_u5 惡靈附身（單體強化）：角骷髏法陣 → 深淵火焰纏身＋黑煙螺旋上升 → 暗紅殘光
+    // sr_u5 惡靈附身（單體強化）：倒三角起手印記 → 鬼火幽焰升騰＋鬼火幽光上浮＋核心爆閃＋單體鬼火環
     'FX_ULT_RED_POSSESSION': {
         id: 'FX_ULT_RED_POSSESSION',
         emitters: [
-            // 起手印記（size 36 * 1.2 * 1.2 = 51.84 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'hornSkull', ramp: 'ASH_VOID' }, count: 1, lifetime: 1.5, delay: 0, size: 36, vRotation: -0.6,
+            // 起手印記（倒三角區分於 sr_u3，size 36 * 1.2 * 1.2 = 51.84 <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'invTriangle', ramp: 'ASH_VOID' }, count: 1, lifetime: 1.5, delay: 0, size: 36, vRotation: 0.8,
                 partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.08, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'flame', height: 128, ramp: 'ASH_VOID', jagged: true }, count: 1, lifetime: 0.9, delay: 0.25, size: 64, groundAnchored: true,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.1, fadeOut: 0.5 } }),
+            // 鬼火火焰升騰（flame 零件 + ASH_VOID 色階，與 sr_u3 做出明顯造型區隔）
+            part({ particleType: 'PART', part: { kind: 'flame', height: 112, ramp: 'ASH_VOID', jagged: true }, count: 2, lifetime: 0.85, delay: 0.28, size: 56, groundAnchored: true,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.15, fadeOut: 0.45 } }),
             // 命中主爆發（glow radius 48 大於環，delay 0.28 對齊 hitAt 0.3）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0.28, size: 48,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.4, fadeOut: 0.8 } }),
-            // 黑煙螺旋上升（vz > 0 滿足 power <= 0 規則）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'CHAR', roughness: 1, seed: 13 }, count: [3, 4], lifetime: 0.9, delay: [0.3, 0.5], size: 32,
-                shape: 'CIRCLE', shapeRadius: 20, speed: [-15, 15], vz: [60, 110], drag: 0.02, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.8 } }),
-            // 單體環（size 24 * 1.5 * 1.2 = 43.2 <= 72px）
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.7 } }),
+            // 鬼火幽光上升（vz > 0 滿足 power <= 0 增益規則）
+            part({ particleType: 'PART', part: { kind: 'spark', length: 10, ramp: 'ASH_VOID' }, count: [6, 8], lifetime: [0.6, 0.9], delay: [0.3, 0.45], size: 10,
+                shape: 'CIRCLE', shapeRadius: 20, speed: [-15, 15], vz: [70, 130], drag: 0.02, partAnim: { fadeIn: 0.1, fadeOut: 0.5 } }),
+            // 單體鬼火環（size 24 * 1.4 * 1.2 = 40.32 <= 72px）
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'ASH_VOID', roughness: 1, seed: 19 }, count: 1, lifetime: 0.5, delay: 0.28, size: 24,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.5, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
 };
