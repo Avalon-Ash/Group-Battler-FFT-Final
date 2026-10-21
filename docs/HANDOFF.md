@@ -4,10 +4,12 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。`run.mjs --detach／--wait` 在背景輪實戰通過（約 30 個長指令、0 次 LOST）。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 近戰攻擊與受擊特效（`feat/melee-fx`，提示詞 `docs/MELEE_FX_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
 
-## 2. 排定（使用者 2026-10-19 核可）
-1. （無排定項目。）
+## 2. 排定（使用者 2026-10-21 核可，依序；2、3 都是渲染工作，一次一條）
+1. **近戰特效（MF）**：8 招近戰普攻沒有揮擊、其餘是攻擊者到目標的直線光束；7 招近戰主動技沿用普攻命中包。只改特效資料，硬性驗收 `tests/MeleeFxSpec.test.ts` 0 違規。使用者執行 `/goal docs/MELEE_FX_AGENT_PROMPT.md`。
+2. **位移技能軌跡**：衝刺現在是 `teleportTo`（`SkillExecutor.ts` DASH 區段）＋物理偏移彈回，看起來像瞬移、有時像 bug；要有軌跡與速度曲線，攻擊者近戰前衝也在這輪。動到位置，須對照 RenderSpec。
+3. **行為樹優化**：先錄戰鬥分析不自然的行為，再改；改完要重跑平衡模擬（`npm run balance:sim`），勝率維持 45～55%。
 
 ## 3. 待使用者確認
 - **奧義有感實機看**（`docs/ULT_FEEL_REPORT.md`，VFX_PIPELINE_MAP §4.21）：命中光爆是否刺眼（詠唱暗場已依使用者回饋移除）；`mb_u1` 黑洞、`rr_u2` 核彈依舊版構圖做回（紫黑旋轉吸積盤＋黑核；火球＋大衝擊環＋蘑菇煙＋高飛碎石，預覽 `node tools/vfx/ult-sheet.mjs --feel --ids=mb_u1,rr_u2 --times=0.05,0.35,0.7,1.1`）；`sr_u4` 血月、`sr_u5` 鬼火、`wb_u5` 斬痕新造型；`rr_u3` 加速、`rb_u5` 三連節奏。另：火屬性奧義生成的火焰危害區範圍＝`aoeRadius`，`rr_u3`（8 圈）命中後整片火海，是玩法不是特效，要調得改技能資料。看完刪 `docs/ULT_FEEL_REPORT.md`。
