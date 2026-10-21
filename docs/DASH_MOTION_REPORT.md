@@ -76,18 +76,19 @@
 
 ### 3.1 單元測試
 - **指令**：`npm test`
-- **結果**：**88 test files, 695 tests 全部通過 (EXIT=0)**。
-- **新測試**：`tests/DashMotion.test.ts` 包含 10 個測試案例，全數通過：
+- **結果**：**88 test files, 696 tests 全部通過 (EXIT=0)**。
+- **新測試**：`tests/DashMotion.test.ts` 包含 11 個測試案例，全數通過：
   1. 平地衝刺爆發初速、面向與平滑減速
   2. 衝刺面向反轉
   3. 首幀起點殘影紀錄
   4. 上坡衝刺重力拋物線與無瞬移跳變
   5. 下坡衝刺跨格界高度吸收與無單幀瞬降
-  6. 近戰普攻前衝位移（6～15 px、原格內、彈簧歸位）
-  7. 近戰主動技前衝位移（6～15 px、原格內、彈簧歸位）
-  8. 貼身突進（`stepsTaken === 0`）前衝退回
-  9. 連續前衝速度防爆封頂
-  10. 遠程／自身範圍技無前衝
+  6. 6 階（144 px）最高崖下坡突進以安全落地速度封頂吸收，不觸發自傷墜落傷害（審查修正）
+  7. 近戰普攻前衝位移（6～15 px、原格內、彈簧歸位）
+  8. 近戰主動技前衝位移（6～15 px、原格內、彈簧歸位）
+  9. 貼身突進（`stepsTaken === 0`）前衝退回
+  10. 連續前衝速度防爆封頂
+  11. 遠程／自身範圍技無前衝
 
 ### 3.2 代碼品質（Lint）
 - **指令**：`npm run lint`（`tsc --noEmit`）
@@ -129,7 +130,8 @@
 | **`7971066`** | fix(ult): align cast times for tr_u3, wr_u3, wb_u5 to 0.3 to clear C1 baseline (DM1) | `data/skills/blue_ult.ts`<br>`data/skills/red_ult.ts`<br>`tests/ult-spec.baseline.json` |
 | **`bca589e`** | feat(motion): add dash burst speed, continuous uphill/downhill physics, and trail start recording (DM2) | `constants/combat.ts`<br>`engine/physics/PhysicsEngine.ts`<br>`engine/systems/PhysicsSystem.ts`<br>`engine/systems/combat/SkillExecutor.ts`<br>`engine/systems/movement/MotionCommands.ts`<br>`tests/constants-snapshot.json`<br>`tests/DashMotion.test.ts` |
 | **`916ea17`** | feat(motion): add melee attack and point-blank dash lunge with anti-stacking speed cap (DM3) | `engine/systems/movement/MotionCommands.ts`<br>`engine/systems/combat/SkillExecutor.ts`<br>`tests/DashMotion.test.ts` |
-| **當前 Commit** | docs(motion): add completion report for dash motion and melee lunge (DM4) | `docs/DASH_MOTION_REPORT.md` |
+| **`4d4f7fc`** | docs(motion): add completion report for dash motion and melee lunge (DM4) | `docs/DASH_MOTION_REPORT.md` |
+| **`dc56395`** | fix(motion): cap step-down absorption so terrain drops never cause fall damage; sync RenderSpec (DM review) | `engine/physics/PhysicsEngine.ts`<br>`engine/renderers/RenderSpec.ts`<br>`tests/DashMotion.test.ts` |
 
 如需完全回退本輪修改，可執行：
 ```bash
