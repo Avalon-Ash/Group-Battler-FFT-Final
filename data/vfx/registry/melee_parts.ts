@@ -436,13 +436,13 @@ export const MELEE_PART_VFX: Record<string, VFXAsset> = {
         ],
     },
 
-    // sr_a3 治療圖騰：範圍回血（4 層，≤ 0.8 s，粒子數 ≤ 36）
+    // sr_a3 治療圖騰：範圍回血（4 層，≤ 0.8 s，粒子數 ≤ 36）；圖騰與上升液滴用 ASH_POISON（技能色 #84cc16），閃光／地環用血色
     'FX_ACTIVE_RED_BLOOD_TOTEM': {
         id: 'FX_ACTIVE_RED_BLOOD_TOTEM',
         emitters: [
             part({
                 particleType: 'PART_GROUND',
-                part: { kind: 'sigil', radius: 56, emblem: 'invTriangle', ramp: 'ASH_BLOOD' },
+                part: { kind: 'sigil', radius: 56, emblem: 'invTriangle', ramp: 'ASH_POISON' },
                 count: 1,
                 lifetime: 0.7,
                 delay: 0,
@@ -453,7 +453,7 @@ export const MELEE_PART_VFX: Record<string, VFXAsset> = {
             groundRing('ASH_BLOOD', 60, 1.8, 0.55, { rough: 1, seed: 1, thickness: 8, delay: 0.05 }),
             part({
                 particleType: 'PART_DEBRIS',
-                part: { kind: 'droplet', size: 5, ramp: 'ASH_BLOOD' },
+                part: { kind: 'droplet', size: 5, ramp: 'ASH_POISON' },
                 count: [6, 8],
                 lifetime: [0.45, 0.65],
                 delay: [0.05, 0.15],

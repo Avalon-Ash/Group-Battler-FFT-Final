@@ -2,6 +2,9 @@
 // ║  tests/MeleeFxSpec.test.ts — 近戰攻擊與受擊特效規格測試 (MF1)║
 // ║  職責：依 docs/MELEE_FX_AGENT_PROMPT.md 驗證近戰 M1～M4 規格 ║
 // ║  棘輪規則：以 tests/melee-fx.baseline.json 為基準，只准減   ║
+// ║  [ARCH] 主動技「實際播放」依 SkillExecutor 的 ownHit 規則：  ║
+// ║   有投射物 → HIT_FX 播 visualHitEffect；無投射物 → HIT_FX   ║
+// ║   只播陣營預設小打擊，主特效只由序列（impactFx）播。         ║
 // ╚══════════════════════════════════════════════════════════╝
 
 import { describe, it, expect } from 'vitest';
@@ -10,6 +13,9 @@ import * as path from 'node:path';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
 import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
 import { VFX_REGISTRY } from '../data/vfx/VFXRegistry';
+import { ACTIVE_VISUALS } from '../data/vfx/active_visuals';
+import { FACTION_VISUALS } from '../data/vfx/faction_visuals';
+import type { Skill } from '../types';
 
 export const MELEE_BASIC_IDS = [
     'tb_b1', 'tb_b2', 'tb_b3', 'tb_b4', 'tb_b5',
@@ -27,6 +33,14 @@ export const ALL_MELEE_RULES: readonly MeleeRuleCode[] = ['M1', 'M2', 'M3', 'M4'
 
 const maxOf = (v: number | [number, number] | undefined, d = 0): number =>
     v === undefined ? d : typeof v === 'number' ? v : v[1];
+
+const isProjectileActive = (skill: Skill): boolean => (skill.projectileSpeed ?? 0) > 0;
+
+/** 扣血時 HIT_FX 實際播放的特效（與 engine/systems/combat/SkillExecutor.ts 的 ownHit 規則一致） */
+export function hitFxPlayedOnDamage(skill: Skill): string {
+    const ownHit = skill.tag === 'BASIC' || (skill.tag === 'ACTIVE' && isProjectileActive(skill));
+    return (ownHit && skill.visualHitEffect) || FACTION_VISUALS[skill.team].defaultHitEffect;
+}
 
 export function evaluateMeleeBasic(id: string): { pass: Record<'M1' | 'M2', boolean>; violations: ('M1' | 'M2')[] } {
     const skill = DEFAULT_SKILL_DB.find((s) => s.id === id);
@@ -94,17 +108,20 @@ export function evaluateMeleeActive(id: string): { pass: Record<'M3' | 'M4', boo
     if (!skill) throw new Error(`Skill ${id} not found`);
     const sequence = SKILL_SEQUENCES[id];
     const actions = sequence?.actions ?? [];
+    const seqParticleIds = actions.filter((a) => a.type === 'PARTICLE' && a.id).map((a) => a.id as string);
 
     const allBasicHitPacks = new Set(
         DEFAULT_SKILL_DB.filter((s) => s.tag === 'BASIC' && s.visualHitEffect).map((s) => s.visualHitEffect!)
     );
 
-    // M3: 近戰主動技的 visualHitEffect 不得是任何普攻用到的命中包；發射器 2～6 個、最晚結束 ≤ 0.8 s、粒子數上限總和 ≤ 36
+    // M3: 近戰主動技的 visualHitEffect 不得是任何普攻用到的命中包；發射器 2～6 個、最晚結束 ≤ 0.8 s、粒子數上限總和 ≤ 36；
+    //     且這個專屬特效在實機真的會播：無投射物的主動技 HIT_FX 不播 visualHitEffect，必須由序列播（impactFx）
     const hitFxId = skill.visualHitEffect;
     let m3Pass = false;
     if (hitFxId && !allBasicHitPacks.has(hitFxId)) {
         const asset = VFX_REGISTRY[hitFxId];
-        if (asset && asset.emitters.length >= 2 && asset.emitters.length <= 6) {
+        const reachable = isProjectileActive(skill) || seqParticleIds.includes(hitFxId);
+        if (reachable && asset && asset.emitters.length >= 2 && asset.emitters.length <= 6) {
             let latestEnd = 0;
             let totalParticles = 0;
             for (const em of asset.emitters) {
@@ -118,9 +135,10 @@ export function evaluateMeleeActive(id: string): { pass: Record<'M3' | 'M4', boo
         }
     }
 
-    // M4: 同一招主動技的序列 PARTICLE 不得與它的 visualHitEffect 是同一個 id
-    const hasSameId = hitFxId ? actions.some((a) => a.type === 'PARTICLE' && a.id === hitFxId) : false;
-    const m4Pass = !hasSameId;
+    // M4: 序列 PARTICLE 不得與扣血時 HIT_FX 實際播放的特效是同一個 id（避免同一刻疊兩次）。
+    //     有投射物 → 即 visualHitEffect（提示詞原文）；無投射物 → HIT_FX 播的是陣營預設命中包。
+    const playedOnDamage = hitFxPlayedOnDamage(skill);
+    const m4Pass = !seqParticleIds.includes(playedOnDamage);
 
     const pass = { M3: m3Pass, M4: m4Pass };
     const violations: ('M3' | 'M4')[] = [];
@@ -163,23 +181,42 @@ describe('MeleeFxSpec (MF1: Melee Combat VFX Rules M1~M4 Ratchet)', () => {
         }
 
         if (!fs.existsSync(BASELINE_PATH)) {
-            expect.fail(`Baseline file missing at ${BASELINE_PATH}; run with UPDATE_BASELINE=1 to generate.`);
+            expect.fail(`Baseline file missing at ${BASELINE_PATH}`);
         }
-        if (process.env.UPDATE_BASELINE === '1') {
-            fs.writeFileSync(BASELINE_PATH, JSON.stringify(currentViolationsByRule, null, 2) + '\n', 'utf8');
-        }
-
         const baseline: Record<MeleeRuleCode, string[]> = JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf8'));
 
         for (const rule of ALL_MELEE_RULES) {
             const curr = currentViolationsByRule[rule] ?? [];
             const base = (baseline[rule] ?? []).slice().sort();
 
+            // 只准減：新違規一律失敗（UPDATE_BASELINE 也不能把新違規寫進基準）
             const unexpected = curr.filter((id) => !base.includes(id));
             expect(unexpected, `Rule ${rule} has new/unexpected violations not in baseline`).toEqual([]);
+        }
 
+        if (process.env.UPDATE_BASELINE === '1') {
+            fs.writeFileSync(BASELINE_PATH, JSON.stringify(currentViolationsByRule, null, 2) + '\n', 'utf8');
+            return;
+        }
+
+        for (const rule of ALL_MELEE_RULES) {
+            const curr = currentViolationsByRule[rule] ?? [];
+            const base = (baseline[rule] ?? []).slice().sort();
             const fixed = base.filter((id) => !curr.includes(id));
             expect(fixed, `Rule ${rule} baseline entries were fixed and must be removed from baseline`).toEqual([]);
         }
+    });
+
+    // 回歸保護：MF4 曾以「序列粒子＝visualHitEffect 就去重」移除序列主特效，
+    // 但無投射物主動技的 HIT_FX 不播 visualHitEffect，結果 24 招主動技完全失去主特效。
+    it('every non-projectile active with impactFx plays it from its sequence', () => {
+        const missing: string[] = [];
+        for (const [id, def] of Object.entries(ACTIVE_VISUALS)) {
+            const skill = DEFAULT_SKILL_DB.find((s) => s.id === id);
+            if (!skill || !def.impactFx || isProjectileActive(skill)) continue;
+            const played = (SKILL_SEQUENCES[id]?.actions ?? []).some((a) => a.type === 'PARTICLE' && a.id === def.impactFx);
+            if (!played) missing.push(id);
+        }
+        expect(missing).toEqual([]);
     });
 });
