@@ -249,6 +249,13 @@ VFXSystem.state.particles
 - **補漏（同日）**：`sigil` 零件（技能地面紋章 51 處＋奧義聖域，太陽／獅盾／角顱／倒三角）仍是深色粗光暈＋實心主線的三層硬描邊，改成同一套透光圓盤＋烘焙模糊光暈＋細主線＋亮芯（`VFX_PARTS.SIGIL`）。詠唱中斷 `FX_CAST_BREAK_*` 的硬邊斷裂六角環改成詠唱法陣外層往外崩開淡出；AOE 中斷逐格閃的環改 `ring` 新選項 `soft`（只畫模糊光暈＋細芯）。保真 6 張 0 差異。
 - 參考：Clip Studio 法陣教學（同心圓→符文帶→多邊形星）、realtimevfx 法陣 WIP 討論（分層慢轉、加法光暈）、發光線條＝寬模糊光暈＋細亮芯。
 
+### 4.20 奧義規格化 UA＋UA6（2026-10-21，合併 `3061fbc`）
+- ART_SPEC §6 寫成棘輪測試 `tests/UltSpec.test.ts`（C1 時序 hitAt ≤ cast、C2 主爆發對齊 hitAt、C3 起手／餘韻、C4 時長 1～2 s、C5 發射器 3～6、C6 中央貼地半徑 ≤ 1.3 × min(aoeRadius, 3) 圈＋STORM 每擊 ≤ 1.5 格、C7 傷害擴張環／治療上升、C8 粒子 ≤ 80）；違規 132 → 3（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s 小於 HIT_LEAD 0.3，受技能資料限制）。
+- 範圍不靠特效表示：詠唱期間的逐格預警（`currentTelegraph`）就是範圍；舊「貼地零件對齊 aoeRadius」會讓全場奧義蓋滿畫面，已廢除。
+- STORM 落點散布：`SkillSequences` 給每擊 `scatterRings／scatterIndex／scatterCount`，`SequenceSystem.computeScatterOffset` 確定性向日葵分佈（黃金角），每個落點重算所在格地面高度（`tests/UltScatter.test.ts`）。
+- HEAVEN_FALL 為對齊傷害降低落下高度（`tr_u1`、`sr_u4` 300 px，多數 1000 px）；STORM 次數統一 8（C8）；`mb_u2` 改用專屬配方 `FX_ULT_BLUE_ABSOLUTE_ZERO`（原與 `rb_u1` 共用）；7 個紅方奧義的 `primary/secondaryColor` 改成與技能屬性一致。
+- 對照總表：`node tools/vfx/ult-sheet.mjs --out=<dir>`（藍／紅各一張，取樣 hitAt−0.2～+0.8，STORM 加全景欄，ICE／DESERT 白色飽和比例寫 json）。報告 `docs/ULT_ART_REPORT.md`。
+
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。
 2. ✅（前 6 個）**共用 6 資產零件化**（一次一條渲染工作）：GRID_IMPACT、MUZZLE_FLASH、HEAL_BURST、VAMP_BURST、TELEPORT；之後是 FX_HIT_GENERIC／護盾火花／出場特效。

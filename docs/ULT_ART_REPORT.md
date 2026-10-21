@@ -1,7 +1,7 @@
 # TACTICAL.OS — 奧義 50 招視覺規格標準化驗證報告（ULT_ART）
 
 > **任務分支**: `feat/ult-art`  
-> **基礎規格依據**: `docs/ART_SPEC.md` §6（C1～C8）、`docs/ULT_ART_AGENT_PROMPT.md`  
+> **基礎規格依據**: `docs/ART_SPEC.md` §6（C1～C8）（任務提示詞 UA、UA6 已刪，見 git 歷史 `f3b5e22`、`b9f3186`）  
 > **涵蓋範圍**: 藍方 25 招（`tb_u1`～`sb_u5`）、紅方 25 招（`tr_u1`～`sr_u5`）  
 > **驗證狀態**: 全面通過（Lint 0 錯誤、82 個測試檔 648 個測試全綠、生產打包成功、perf:guard 通過、smoke 測試通過）
 

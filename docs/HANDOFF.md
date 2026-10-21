@@ -4,10 +4,10 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 奧義規格化（`feat/ult-art`，提示詞 `docs/ULT_ART_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **奧義美術翻新**（渲染工作，單獨一條）：第一輪＝規格化（UA）：ART_SPEC §6 寫成棘輪測試 `UltSpec`（時序對齊傷害、命中對齊、三拍、時長、層數、範圍對 `aoeRadius`、運動方向、粒子量）修到 0 違規，含 `rr_u2`／`tr_u1` 隕石晚到；產出 50 個奧義改前／改後對照總表。使用者執行 `/goal docs/ULT_ART_AGENT_PROMPT.md`。第二輪＝使用者看總表挑出要重做造型的奧義，主代理再寫提示詞。
+1. **奧義美術第二輪**（渲染工作，單獨一條）：規格化已完成（VFX_PIPELINE_MAP §4.20）。**等使用者看對照總表**（`tools/ui-e2e/out/ult/compare_blue.png`、`compare_red.png`，重產用 `node tools/vfx/ult-sheet.mjs`）挑要重做造型的奧義，主代理再寫提示詞；本輪結束後刪 `docs/ULT_ART_REPORT.md`。候選觀察：`sr_u4` 血紅月光暈（半徑約 215 px、1.4 s）、`rr_u2`／`mr_u1` 餘韻火焰偏滿、STORM 散布落點會落到地圖外（高度 0，懸空）。另 3 個 C1 違規（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s）若要清，下次平衡輪把 cast 調到 0.3。
 
 ## 3. 待使用者確認
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。
