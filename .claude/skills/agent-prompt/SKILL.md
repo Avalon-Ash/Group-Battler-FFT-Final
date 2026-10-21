@@ -17,7 +17,7 @@ description: 撰寫給 IDE Gemini 執行的任務提示詞 docs/<NAME>_AGENT_PRO
 - **寫查證過的事實，不要只寫「去找出 X」**：檔案:行號、常數名與現值、欄位的唯一寫入者、量測基準數字。讓代理少走摸索的路，也少一個改錯地方的機會。事實要標明「目前」，猜的不要寫。
 - **INV／DOM 分開寫**：INV＝代理怎麼工作（讀什麼、指令、驗證順序、commit 切法、停下條件）；DOM＝這個領域的知識與驗收（RenderSpec 座標協議、平衡目標、美術規格）。混在一起時代理會用領域敘述跳過流程。
 - **能檢查的規則，不寫背景**：「結束前確認 X 涵蓋 A、B、C」勝過一段說明。
-- **寫明怎麼觀測與重試**：每個長指令給名稱與逾時（`AGENTS.md` §7 的表），並寫「卡住時 `--check`、兩次就跳過」。代理的 IDE 收不到長指令的完成通知時會無限等待（2026-10 卡過 70 分鐘、2 小時）。
+- **寫明怎麼觀測與重試**：每個長指令給名稱與逾時（`AGENTS.md` §7 的表），一律寫成「`--detach` 啟動、`--wait` 分段等、同一步兩次失敗就跳過」，並明寫「指令還在跑時不得結束回合、不得只回報『等待中』」。代理的 IDE 會把超過幾秒的工具呼叫轉背景並交出回合，通知沒來就停住（2026-10 停過 70 分鐘、2 小時、6.5 小時）。
 - **允許「不改」**：證據不支持改動時要求它停下回報，而不是硬做（防安全網，METHODOLOGY §4 第 6 條）。
 - 動到渲染／座標：必須寫「先讀 `engine/renderers/RenderSpec.ts` 與所改檔案的方框檔頭，改規則時同一個 commit 同步更新兩者」。渲染工作同一時間只開一條。
 
@@ -37,7 +37,7 @@ description: 撰寫給 IDE Gemini 執行的任務提示詞 docs/<NAME>_AGENT_PRO
 ### 0. 開工前（INV）
 - 先讀：`AGENTS.md`（全部）、<檔案清單，含 RenderSpec 若相關>。
 - 從 `main` 開分支 `feat/<topic>`；`git status` 必須乾淨。先跑並記進報告（不綠就停下回報）：`npm run lint`、`npm test`、`npm run build`、<基準量測>。
-- **長指令（可能超過 30 秒）一律用 `node tools/agent/run.mjs <名稱> <逾時秒數> -- <指令>` 前景執行**，結束與否看 `tools/ui-e2e/out/agent-logs/<名稱>.log` 最後一行 `EXIT=`，等不到就 `--check <名稱>`；同一步失敗或逾時兩次就記進報告、跳下一個任務（`AGENTS.md` §7）。
+- **長指令（可能超過約 5 秒）一律分段跑**：`node tools/agent/run.mjs --detach <名稱> <逾時秒數> -- <指令>` 啟動，接著反覆 `node tools/agent/run.mjs --wait <名稱>` 直到第一行是 `STATE=DONE`；**指令還在跑時不得結束回合，不得只回覆「等待中」**。同一步失敗或逾時兩次就記進報告、跳下一個任務（`AGENTS.md` §7）。
 - **受保護檔案（不得修改）**：`CLAUDE.md`、`AGENTS.md`、`docs/HANDOFF.md`、`docs/METHODOLOGY.md`、`docs/DECISIONS.md`、`docs/WORKLOG.md`、`.claude/**`、`tools/hooks/**`、`tools/ui-e2e/baseline/**`、`tools/ui-e2e/style-baseline.json`、所有 `tests/*.baseline.json` 的放寬方向<、本輪不該動的檔>。**保真基準一律不得重錄**。
 - 不准 `push`、不准動 `main`、不准合併。
 

@@ -17,6 +17,13 @@
  * 查狀態（卡住時用）：
  *   node tools/agent/run.mjs --check <名稱>
  *   印出 state、結束碼、程序是否還活著、距離上次輸出幾秒、log 最後 15 行，以及該怎麼做（AGENTS.md §7）。
+ *
+ * 分段等待（超過約 5 秒的指令一律這樣跑）：
+ *   node tools/agent/run.mjs --detach <名稱> <逾時秒數> -- <指令…>   立刻返回，指令在背景跑
+ *   node tools/agent/run.mjs --wait <名稱> [最多等幾秒，預設 5]        最多等這麼久就返回
+ *   --wait 第一行是 STATE=RUNNING（再呼叫一次 --wait）或 STATE=DONE EXIT=<代碼>／STATE=TIMEOUT／STATE=LOST。
+ *   IDE 代理的工具呼叫超過幾秒就轉成背景並結束回合等通知，通知沒來就整晚停住（2026-10-21 停了 6.5 小時，
+ *   指令 10 秒就結束）。每次呼叫都在幾秒內返回，代理就不會交出回合。
  */
 import { spawn, execFileSync } from 'node:child_process';
 import { createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -72,6 +79,64 @@ function check(name) {
     return 0;
 }
 
+/** 背景啟動：先寫 starting 狀態（避免 --wait 讀到上一次的結果），再以獨立程序跑 run 模式 */
+function detach(name, timeoutSec, rest) {
+    mkdirSync(LOG_DIR, { recursive: true });
+    const p = paths(name);
+    if (existsSync(p.status)) {
+        const prev = JSON.parse(readFileSync(p.status, 'utf8'));
+        if ((prev.state === 'running' && isAlive(prev.pid)) || prev.state === 'starting') {
+            console.log(`[detach] ${name} 已經在跑或正在啟動。用 --wait ${name} 等它。`);
+            return 3;
+        }
+    }
+    writeFileSync(p.status, JSON.stringify({ name, state: 'starting', startedAt: now(), timeoutSec }, null, 2));
+    writeFileSync(p.log, '');
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), name, String(timeoutSec), '--', ...rest], {
+        cwd: process.cwd(), detached: true, stdio: 'ignore', windowsHide: true, env: process.env,
+    });
+    child.unref();
+    console.log(`[detach] ${name} 已在背景啟動（逾時 ${timeoutSec}s）。接著執行：node tools/agent/run.mjs --wait ${name}`);
+    return 0;
+}
+
+/** 最多等 maxSec 秒；第一行固定是 STATE=…，代理據此決定再等或往下走 */
+async function waitFor(name, maxSec) {
+    const p = paths(name);
+    const deadline = Date.now() + maxSec * 1000;
+    let s = null;
+    for (;;) {
+        s = existsSync(p.status) ? JSON.parse(readFileSync(p.status, 'utf8')) : null;
+        const finished = s && (s.state === 'done' || s.state === 'timeout');
+        const lost = s && s.state === 'running' && !isAlive(s.pid);
+        if (finished || lost || Date.now() >= deadline) break;
+        await new Promise((r) => setTimeout(r, 500));
+    }
+    if (!s) {
+        console.log(`STATE=MISSING\n[wait] ${name}: 沒有狀態檔。先用 --detach 啟動它。`);
+        return 2;
+    }
+    if (s.state === 'done') {
+        console.log(`STATE=DONE EXIT=${s.exit}  用時 ${s.seconds}s  log: ${p.log}`);
+        console.log(tail(p.log, 15));
+        return s.exit;
+    }
+    if (s.state === 'timeout') {
+        console.log(`STATE=TIMEOUT  log: ${p.log}\n${tail(p.log, 15)}\n[wait] → 重跑一次；再逾時就記進報告、跳下一個任務。`);
+        return TIMEOUT_EXIT;
+    }
+    if (s.state === 'running' && !isAlive(s.pid)) {
+        console.log(`STATE=LOST  程序已不在但沒有寫 EXIT。log: ${p.log}\n[wait] → 重跑一次。`);
+        return 70;
+    }
+    const elapsed = Math.round((Date.now() - Date.parse(s.startedAt)) / 1000);
+    const quiet = s.lastOutputAt ? Math.round((Date.now() - Date.parse(s.lastOutputAt)) / 1000) : elapsed;
+    console.log(`STATE=RUNNING  已跑 ${elapsed}s／逾時 ${s.timeoutSec}s  距上次輸出 ${quiet}s`);
+    console.log(tail(p.log, 3));
+    console.log(`[wait] → 還沒結束。不要結束回合，立刻再執行：node tools/agent/run.mjs --wait ${name}`);
+    return 0;
+}
+
 function run(name, timeoutSec, command) {
     mkdirSync(LOG_DIR, { recursive: true });
     const p = paths(name);
@@ -87,7 +152,7 @@ function run(name, timeoutSec, command) {
     const status = { name, command, state: 'running', exit: null, pid: null, startedAt, lastOutputAt: startedAt, heartbeatAt: startedAt, timeoutSec, seconds: null };
     const save = () => writeFileSync(p.status, JSON.stringify(status, null, 2));
 
-    const child = spawn(command, { cwd: process.cwd(), shell: true, detached: process.platform !== 'win32', env: process.env });
+    const child = spawn(command, { cwd: process.cwd(), shell: true, detached: process.platform !== 'win32', windowsHide: true, env: process.env });
     status.pid = child.pid;
     save();
     log.write(`[run] ${name} pid=${child.pid} start=${startedAt} timeout=${timeoutSec}s\n[run] $ ${command}\n`);
@@ -123,18 +188,25 @@ function run(name, timeoutSec, command) {
     });
 }
 
-const argv = process.argv.slice(2);
+let argv = process.argv.slice(2);
 if (argv[0] === '--check' && argv[1]) {
     process.exit(check(argv[1]));
 }
+if (argv[0] === '--wait' && argv[1]) {
+    const maxSec = Number(argv[2] ?? 5);
+    process.exit(await waitFor(argv[1], maxSec > 0 ? maxSec : 5));
+}
+const detachMode = argv[0] === '--detach';
+if (detachMode) argv = argv.slice(1);
 const sep = argv.indexOf('--');
 const [name, timeoutRaw] = argv;
 const timeoutSec = Number(timeoutRaw);
 if (sep !== 2 || !/^[\w.-]+$/.test(name || '') || !(timeoutSec > 0) || argv.length <= sep + 1) {
-    console.error('用法：node tools/agent/run.mjs <名稱> <逾時秒數> -- <指令…>\n      node tools/agent/run.mjs --check <名稱>');
+    console.error('用法：node tools/agent/run.mjs [--detach] <名稱> <逾時秒數> -- <指令…>\n      node tools/agent/run.mjs --wait <名稱> [秒數]\n      node tools/agent/run.mjs --check <名稱>');
     process.exit(2);
 }
 // 一個參數＝整串交給 shell；多個參數＝逐一加引號（含空白或 shell 特殊字元的才加），保留原本的切分
 const quote = (a) => (/^[\w./:=@%+,-]+$/.test(a) ? a : `"${a.replace(/"/g, '\\"')}"`);
 const rest = argv.slice(sep + 1);
+if (detachMode) process.exit(detach(name, timeoutSec, rest));
 process.exit(await run(name, timeoutSec, rest.length === 1 ? rest[0] : rest.map(quote).join(' ')));
