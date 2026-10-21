@@ -74,6 +74,7 @@ export const EXPECTED_EXPORTS = [
     'UI_SETTINGS',
     'UI_WINDOW',
     'UI_Z',
+    'ULT_FEEL',
     'UNIT_BODY_MOTION',
     'UNIT_BODY_OFFSET',
     'UNIT_FRAME',
@@ -107,7 +108,7 @@ function serialize(v: unknown): unknown {
 }
 
 describe('Constants Barrel Export Contract', () => {
-    it('exports exactly the 87 expected names in sorted order', () => {
+    it('exports exactly the 88 expected names in sorted order', () => {
         const actualExports = Object.keys(C).sort();
         expect(actualExports).toEqual(EXPECTED_EXPORTS);
     });

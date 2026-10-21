@@ -24,6 +24,8 @@ import { EventVFXMapper } from "./visuals/EventVFXMapper";
 import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
 import { HexUtils } from "../utils";
+import { ultFeelStore } from "./vfx/UltFeelStore";
+import { Team } from "../../types";
 
 export class VisualSystem {
     private hudMapper: EventHUDMapper;
@@ -46,6 +48,18 @@ export class VisualSystem {
         events.forEach(event => {
             this.hudMapper.process(event, engine, hud, grid, camera);
             if (event.type === 'CAST_START' && event.skill) {
+                if (event.skill.tag === 'ULT') {
+                    const agent = event.sourceId ? engine.agents.find(a => a.id === event.sourceId) : undefined;
+                    const team = agent ? agent.team : Team.BLUE;
+                    ultFeelStore.recordCastStart(
+                        event.sourceId || '',
+                        event.skill.name,
+                        team,
+                        event.skill.cast || 0,
+                        engine.battleTime
+                    );
+                }
+
                 const sequence = event.skill.id ? SKILL_SEQUENCES[event.skill.id] : undefined;
                 if (sequence) {
                     const target3D = VisualMath.resolveTargetPoint(event.targetId || "", engine);
@@ -67,6 +81,7 @@ export class VisualSystem {
             }
             
             if (event.type === 'CAST_BREAK' && event.sourceId) {
+                ultFeelStore.removeCaster(event.sourceId);
                 sequences.cancel(event.sourceId, vfx);
                 // Also let Mapper handle the particles
             }

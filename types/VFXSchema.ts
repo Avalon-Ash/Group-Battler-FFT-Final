@@ -9,14 +9,14 @@ import type { PartSpec } from '../engine/renderers/vfxparts/PartSpec';
  */
 export type ParticleType = 'PART' | 'PART_GROUND' | 'PART_DEBRIS' | 'BEAM' | 'GENERIC_DEBUG';
 
-// Define the "Verbs" of our visual language
 type VFXActionType = 
     | 'PARTICLE'    // Spawn an emitter
     | 'BEAM'        // Draw a line/laser
     | 'SHAKE'       // Camera trauma
     | 'GRID_PULSE'  // Floor ripple
     | 'HEAVEN_FALL' // High-altitude impact object
-    | 'WAIT';       // Delay next action
+    | 'WAIT'        // Delay next action
+    | 'ULT_IMPACT'; // Impact burst for ultimates (UF)
 
 export interface VFXAction {
     type: VFXActionType;

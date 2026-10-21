@@ -11,6 +11,7 @@ import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from "../../../data/vfx/registry/shared_parts";
 
 import { HexUtils, MapConfig } from "../../utils";
+import { ultFeelStore } from "../vfx/UltFeelStore";
 
 interface QueuedAction {
     executeAt: number;
@@ -189,6 +190,15 @@ export class SequenceSystem {
                 shadow.partAnim = METEOR_SHADOW_ANIM;
                 break;
             }
+            case 'ULT_IMPACT':
+                ultFeelStore.recordImpact(
+                    target.x,
+                    target.y,
+                    target.z,
+                    this.teamOf(sourceId, engine),
+                    engine.battleTime
+                );
+                break;
         }
     }
 }
