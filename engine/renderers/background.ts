@@ -18,8 +18,23 @@ export class BackgroundRenderer {
     private lastSceneId: string = "";
     private lastWidth: number = 0;
     private lastHeight: number = 0;
+
+    // 動態層預烘焙與快取
+    private horizonGlowCanvas: HTMLCanvasElement | null = null;
+    private moteSprites: Map<string, HTMLCanvasElement> = new Map();
+
     private auroraCanvas: HTMLCanvasElement | null = null;
     private auroraCtx: CanvasRenderingContext2D | null = null;
+    private auroraGrad: CanvasGradient | null = null;
+    private auroraGradW: number = 0;
+
+    private heatHazeGrad: CanvasGradient | null = null;
+    private heatHazeKey: string = '';
+
+    private sandstormGrad: CanvasGradient | null = null;
+    private sandstormGradKey: string = '';
+    private sandstormMistGrad: CanvasGradient | null = null;
+    private sandstormMistKey: string = '';
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneTheme, mapConfig: MapConfig, globalTime: number): void {
         if (!this.staticCache || this.lastSceneId !== scene.id || this.lastWidth !== width || this.lastHeight !== height) {
@@ -94,6 +109,49 @@ export class BackgroundRenderer {
         vig.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
         ctx.fillStyle = vig;
         ctx.fillRect(0, 0, w, h);
+
+        // 預烘焙地平線光暈 sprite
+        this.updateHorizonGlow(w, h, scene);
+    }
+
+    private updateHorizonGlow(w: number, h: number, scene: SceneTheme) {
+        const G = BACKGROUND_FX.HORIZON_GLOW;
+        const horizonY = h * VisualMath.HORIZON_Y_PCT;
+        const gh = Math.max(1, Math.round(h * G.FILL_H_RATIO));
+        if (!this.horizonGlowCanvas) {
+            const { canvas } = createCanvas(w, gh);
+            this.horizonGlowCanvas = canvas;
+        } else {
+            this.horizonGlowCanvas.width = w;
+            this.horizonGlowCanvas.height = gh;
+        }
+        const ctx = this.horizonGlowCanvas.getContext('2d')!;
+        ctx.clearRect(0, 0, w, gh);
+        const localY = horizonY + G.Y_OFFSET - h * G.FILL_Y_RATIO;
+        const horizonGrad = ctx.createRadialGradient(
+            w / 2, localY, w * G.INNER_RADIUS_RATIO,
+            w / 2, localY, w * G.OUTER_RADIUS_RATIO
+        );
+        horizonGrad.addColorStop(0, scene.horizon);
+        horizonGrad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
+        ctx.fillStyle = horizonGrad;
+        ctx.fillRect(0, 0, w, gh);
+    }
+
+    private getMoteSprite(color: string): HTMLCanvasElement {
+        let sprite = this.moteSprites.get(color);
+        if (!sprite) {
+            const R = 8;
+            const size = R * 2;
+            const { canvas, ctx } = createCanvas(size, size);
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(R, R, R, 0, Math.PI * 2);
+            ctx.fill();
+            this.moteSprites.set(color, canvas);
+            sprite = canvas;
+        }
+        return sprite;
     }
 
     private drawPerspectiveGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
@@ -213,26 +271,32 @@ export class BackgroundRenderer {
 
     public drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number) {
         ctx.save();
-        ctx.fillStyle = scene.ambientColor;
         const M = BACKGROUND_FX.MOTES;
+        const moteSprite = this.getMoteSprite(scene.ambientColor);
         for(let i=0; i<M.COUNT; i++) {
             const speed = (i % M.SPEED_MOD + M.SPEED_BASE) * M.SPEED_MULT;
             const y = (h + (i * M.Y_SEED) - (t * speed)) % h;
             const x = (w + (i * M.X_SEED) + Math.sin(t + i)*M.X_SWING) % w;
             const size = Math.sin(t * M.SIZE_FREQ + i) + M.SIZE_BASE;
             ctx.globalAlpha = (Math.sin(t + i) * 0.5 + 0.5) * M.ALPHA_MULT;
-            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
+            ctx.drawImage(moteSprite, x - size, y - size, size * 2, size * 2);
         }
+
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const G = BACKGROUND_FX.HORIZON_GLOW;
         const pulse = G.PULSE_BASE + Math.sin(t * G.PULSE_FREQ) * G.PULSE_AMP;
-        const horizonGrad = ctx.createRadialGradient(w/2, horizonY + G.Y_OFFSET, w * G.INNER_RADIUS_RATIO, w/2, horizonY + G.Y_OFFSET, w * G.OUTER_RADIUS_RATIO * pulse);
-        horizonGrad.addColorStop(0, scene.horizon);
-        horizonGrad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
-        ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = G.ALPHA;
-        ctx.fillStyle = horizonGrad;
-        ctx.fillRect(0, h * G.FILL_Y_RATIO, w, h * G.FILL_H_RATIO);
+        if (this.horizonGlowCanvas) {
+            ctx.globalCompositeOperation = 'screen';
+            ctx.globalAlpha = G.ALPHA;
+            const gh = h * G.FILL_H_RATIO;
+            const gw = w * pulse;
+            const gScaledH = gh * pulse;
+            const gx = (w - gw) * 0.5;
+            const localY = horizonY + G.Y_OFFSET - h * G.FILL_Y_RATIO;
+            const gy = h * G.FILL_Y_RATIO + localY * (1 - pulse);
+            ctx.drawImage(this.horizonGlowCanvas, gx, gy, gw, gScaledH);
+        }
+
         if (scene.bgFeature === 'AURORA') this.drawAurora(ctx, w, h, t);
         else if (scene.bgFeature === 'CANOPY') this.drawCanopyRays(ctx, w, h, t);
         else if (scene.bgFeature === 'HEAT_WAVE') this.drawHeatHaze(ctx, w, h, t, scene.horizon);
@@ -268,11 +332,18 @@ export class BackgroundRenderer {
         actx.globalCompositeOperation = 'screen';
         // 帶與帶之間的疊加沿用呼叫端當下的 alpha，貼回時不再乘一次
         actx.globalAlpha = ctx.globalAlpha;
-        const grad = actx.createLinearGradient(0, 0, w, 0);
-        grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
-        grad.addColorStop(0.5, BACKGROUND_COLORS.AURORA_COLOR);
-        grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
-        actx.fillStyle = grad;
+        
+        // 快取極光漸層，避免每幀建立
+        if (!this.auroraGrad || this.auroraGradW !== w) {
+            const grad = actx.createLinearGradient(0, 0, w, 0);
+            grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
+            grad.addColorStop(0.5, BACKGROUND_COLORS.AURORA_COLOR);
+            grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
+            this.auroraGrad = grad;
+            this.auroraGradW = w;
+        }
+        actx.fillStyle = this.auroraGrad;
+
         for (let i = 0; i < A.BANDS; i++) {
             const speed = t * A.TIME_SPEED + i;
             actx.beginPath(); actx.moveTo(0, baseH);
@@ -309,9 +380,15 @@ export class BackgroundRenderer {
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         ctx.globalCompositeOperation = 'screen';
         if (Number.isFinite(h) && Number.isFinite(horizonY)) {
-            const grad = ctx.createLinearGradient(0, h, 0, horizonY);
-            grad.addColorStop(0, color); grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
-            ctx.fillStyle = grad;
+            const key = `${h}_${horizonY}_${color}`;
+            if (!this.heatHazeGrad || this.heatHazeKey !== key) {
+                const grad = ctx.createLinearGradient(0, h, 0, horizonY);
+                grad.addColorStop(0, color);
+                grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
+                this.heatHazeGrad = grad;
+                this.heatHazeKey = key;
+            }
+            ctx.fillStyle = this.heatHazeGrad;
         } else {
             ctx.fillStyle = color;
         }
@@ -341,9 +418,16 @@ export class BackgroundRenderer {
         ctx.globalCompositeOperation = 'overlay'; 
         const drift = t * S.WIND_SPEED;
         if (Number.isFinite(w)) {
-            const grad = ctx.createLinearGradient(0, 0, w, 0);
-            grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); grad.addColorStop(0.5, color); grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
-            ctx.fillStyle = grad;
+            const key = `${w}_${color}`;
+            if (!this.sandstormGrad || this.sandstormGradKey !== key) {
+                const grad = ctx.createLinearGradient(0, 0, w, 0);
+                grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
+                grad.addColorStop(0.5, color);
+                grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
+                this.sandstormGrad = grad;
+                this.sandstormGradKey = key;
+            }
+            ctx.fillStyle = this.sandstormGrad;
         } else {
             ctx.fillStyle = color;
         }
@@ -356,9 +440,16 @@ export class BackgroundRenderer {
         }
         const mistH = S.MIST_HEIGHT, mistY = h - mistH;
         if (Number.isFinite(mistY) && Number.isFinite(h)) {
-            const mistGrad = ctx.createLinearGradient(0, mistY, 0, h);
-            mistGrad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); mistGrad.addColorStop(0.4, color); mistGrad.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
-            ctx.fillStyle = mistGrad;
+            const mKey = `${mistY}_${h}_${color}`;
+            if (!this.sandstormMistGrad || this.sandstormMistKey !== mKey) {
+                const mistGrad = ctx.createLinearGradient(0, mistY, 0, h);
+                mistGrad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
+                mistGrad.addColorStop(0.4, color);
+                mistGrad.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
+                this.sandstormMistGrad = mistGrad;
+                this.sandstormMistKey = mKey;
+            }
+            ctx.fillStyle = this.sandstormMistGrad;
         } else {
             ctx.fillStyle = color;
         }

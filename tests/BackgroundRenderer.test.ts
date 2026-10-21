@@ -9,22 +9,22 @@ import { forceSetQualityTier, setPinnedTier, getQualityTier } from '../engine/re
  * 記錄重構各階段的目標值。BG1 記錄現況，BG3/BG4/BG5 依任務目標歸零／啟用。
  */
 export const BG_BASELINE = {
-    // BG1 現況每幀平均漸層建立次數；BG3 必須全部為 0
+    // BG3 動態層已完全達成每幀零漸層、零 arc
     perFrameGradients: {
-        VOID: 1,    // 地平線徑向漸層 1
-        FOREST: 1,  // 地平線徑向漸層 1
-        ICE: 2,     // 地平線徑向漸層 1 + 極光線性漸層 1
-        MAGMA: 2,   // 地平線徑向漸層 1 + 熱浪線性漸層 1
-        DESERT: 3,  // 地平線徑向漸層 1 + 沙塵暴漸層 2
+        VOID: 0,
+        FOREST: 0,
+        ICE: 0,
+        MAGMA: 0,
+        DESERT: 0,
     } as Record<string, number>,
 
-    // BG1 現況每幀 arc 次數（50 個光點）；BG3 必須全部為 0
+    // BG3 動態層已改用預烘焙光點 Sprite，每幀 0 次 arc
     perFrameArcs: {
-        VOID: 50,
-        FOREST: 50,
-        ICE: 50,
-        MAGMA: 50,
-        DESERT: 50,
+        VOID: 0,
+        FOREST: 0,
+        ICE: 0,
+        MAGMA: 0,
+        DESERT: 0,
     } as Record<string, number>,
 
     // BG1 靜態星星含 Math.random()，非確定性；BG4 改以確定性雜湊後設為 true
@@ -329,8 +329,8 @@ describe('BackgroundRenderer Pipeline Verification', () => {
                 expect(screenStats.fillRect).toBe(0);
                 expect(screenStats.arc).toBe(0);
             } else {
-                // In BG1, dynamic layer is not gated by tier yet
-                expect(screenStats.arc).toBe(50);
+                // Before BG5, dynamic layer is not gated by tier yet, so motes drawImage calls occur
+                expect(screenStats.drawImage).toBeGreaterThan(1);
             }
         });
     });
