@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  tests/MeleeFxSpec.test.ts — 近戰攻擊與受擊特效規格測試 (MF1)║
-// ║  職責：依 docs/MELEE_FX_AGENT_PROMPT.md 驗證近戰 M1～M4 規格 ║
+// ║  職責：依 docs/ART_SPEC.md §4～§6 驗證近戰 M1～M4 規格       ║
 // ║  棘輪規則：以 tests/melee-fx.baseline.json 為基準，只准減   ║
 // ║  [ARCH] 主動技「實際播放」依 SkillExecutor 的 ownHit 規則：  ║
 // ║   有投射物 → HIT_FX 播 visualHitEffect；無投射物 → HIT_FX   ║
