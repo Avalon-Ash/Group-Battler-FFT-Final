@@ -138,6 +138,7 @@
   | 提示詞的文字停下條件（保真變差就停、bg-probe 不得高於改前） | BG3／BG4 保真變差、bg-probe 變 2～4 倍仍繼續，報告寫「無遺留」 | no effect |
 
 - 近戰攻擊與受擊特效（Gemini MF，主代理審查修正後合併 3c9d06f）：見 docs/VFX_PIPELINE_MAP.md §4.22、報告 docs/MELEE_FX_REPORT.md。18 招近戰普攻補齊目標處揮擊（FX_SWING_* 刀弧／下壓重擊／尖端閃光，取代 8 招空序列與直線光束 SLASH_CONNECT），7 招近戰主動技新增專屬命中包（data/vfx/registry/melee_parts.ts），	ests/MeleeFxSpec.test.ts M1～M4 違規 32 → 0。審查修正（3dbd265）：revised → 還原 SkillSequences.ts 主動技區段並將 7 招專屬特效掛回 ACTIVE_VISUALS[id].impactFx（依據：SkillExecutor.ts:234 的 ownHit 規則使無投射物主動技在 HIT_FX 只播陣營預設小打擊、不播 isualHitEffect；MF4 誤以為會疊兩次而全域去重，導致 7 招新特效實機完全沒播、另有 24 招主動技主特效消失，也是 attle_frozen 0.50% FAIL 的根因）；revised → MeleeFxSpec M3 加驗實機可達、M4 改比對 HIT_FX 實際播放特效、補無投射物主動技 impactFx 回歸測試；revised → sr_a3 治療圖騰紋章與液滴改 ASH_POISON。驗證：685 項測試、保真 6/6 PASS（attle_frozen 回到 0.305／0.32%，不需重錄）、perf 護欄、smoke、重拍 melee_after.png。
+- 實機驗收批次（10/22，使用者確認）：近戰特效、勝利音樂、背景管線、平衡輪、導播鏡頭抖動、單一格閃爍共 6 項實機確認 OK（刪除 docs/MELEE_FX_REPORT.md、docs/BALANCE_REPORT.md、docs/ULT_FEEL_REPORT.md）；技能新效果實機可用（「戰場有點混亂，不過暫時先這樣」記進 HANDOFF §4）；奧義回饋「視覺還是太弱，原版的體積感很強，現在都太虛化」排入 HANDOFF §2「奧義體積感強化」；3 個暫緩的奧義 C1 違規併入「位移技能軌跡」輪（docs/DASH_MOTION_AGENT_PROMPT.md）一起清零。
 
 ## 3. 更早的輪次與審查修補
 

@@ -264,12 +264,12 @@ VFXSystem.state.particles
 - STORM：`UltVisualDef.cadence`（`rr_u3` ACCEL、`rb_u5` CLUSTER）；落點出地圖時沿中心方向縮回（`SequenceSystem.clampScatterToMap`，`engine.isValid`）。
 - 重做（10/21 使用者最喜歡、依 `6927b68` 之前的舊版構圖做回）：`mb_u1` 黑洞（ASH_VOID 實色六角吸積盤＋反轉旋臂＋疊兩層 CHAR 黑核＋持續吸入碎晶＋結尾坍縮環）、`rr_u2` 核彈（上升火球＋範圍 3 大衝擊環＋蘑菇煙團＋高飛碎石＋火星）。
 - 重做：`sr_u4` 空中月輪＋血光柱＋回流光點、`rr_u2`／`mr_u1` 餘韻收斂、`wb_u5` 獅盾紋章＋交錯斬痕、`sr_u1` 鎖鏈收緊、`sr_u5` 鬼火。
-- 全畫面驗收圖：`node tools/vfx/ult-sheet.mjs --feel`（8 個奧義 × 詠唱／命中／餘韻）。報告 `docs/ULT_FEEL_REPORT.md`。
+- 全畫面驗收圖：`node tools/vfx/ult-sheet.mjs --feel`（8 個奧義 × 詠唱／命中／餘韻）。報告已刪（UF，見 git 歷史 `c7df349`）。
 
 ### 4.22 近戰揮擊與主動技專屬命中 MF（2026-10-22，合併 `3c9d06f`）
 - 規格測試 `tests/MeleeFxSpec.test.ts`（棘輪基準 `tests/melee-fx.baseline.json`，違規 32 → 0）：M1 18 招近戰普攻皆有揮擊動作且無震動／格子脈衝；M2 普攻揮擊＋命中包各發射器 ≤ 0.35 s、粒子數總和 ≤ 14；M3 7 招近戰主動技（`tb_a5`、`wb_a5`、`tr_a4`、`wr_a1`、`wr_a2`、`wr_a4`、`sr_a3`）不沿用普攻命中包、發射器 2～6、≤ 0.8 s、粒子 ≤ 36 且實機可播；M4 序列粒子不與 `HIT_FX` 實際播放特效（`SkillExecutor.ts` `ownHit` 規則）重複。
 - 新登記表 `data/vfx/registry/melee_parts.ts`（16 個 `FX_SWING_*` 刀弧／重擊下壓／刺擊尖端閃光＋7 個 `FX_ACTIVE_*` 專屬命中包）；4 個普攻命中包微調尾隨粒子時長 ≤ 0.35 s。
-- 無投射物主動技的主特效僅由 `SkillSequences`（`ACTIVE_VISUALS[id].impactFx`）播放，`HIT_FX` 只播陣營預設小打擊；對照圖 `node tools/vfx/ult-sheet.mjs --feel --name=melee_before|melee_after`。報告 `docs/MELEE_FX_REPORT.md`。
+- 無投射物主動技的主特效僅由 `SkillSequences`（`ACTIVE_VISUALS[id].impactFx`）播放，`HIT_FX` 只播陣營預設小打擊；對照圖 `node tools/vfx/ult-sheet.mjs --feel --name=melee_before|melee_after`。報告已刪（MF，見 git 歷史 `3c9d06f`）。
 
 ## 5. 遷移順序建議
 1. ✅ **先修 bug（不改材質）**：GRID_PULSE 依施法者陣營選色；DOT 不再播 `FX_STATUS_BURN_LOOP`（交給狀態零件），毒不播火花；`FX_CAST_BREAK` 共用層確認是否該拿掉。

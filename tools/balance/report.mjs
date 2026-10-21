@@ -1,7 +1,7 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  report.mjs — 讀取 balance*.json，輸出平衡分析 Markdown   ║
 // ║  用法：node tools/balance/report.mjs [file1.json] [file2...]║
-// ║        [--out=docs/BALANCE_REPORT.md]                      ║
+// ║        [--out=<輸出路徑.md>]                                ║
 // ╚══════════════════════════════════════════════════════════╝
 import { readFileSync, writeFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
