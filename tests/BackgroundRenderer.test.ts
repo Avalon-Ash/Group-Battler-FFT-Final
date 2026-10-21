@@ -27,8 +27,8 @@ export const BG_BASELINE = {
         DESERT: 0,
     } as Record<string, number>,
 
-    // BG1 靜態星星含 Math.random()，非確定性；BG4 改以確定性雜湊後設為 true
-    staticCacheDeterministic: false,
+    // BG4 靜態星星改用以索引為種子的純整數雜湊，達成 100% 確定性
+    staticCacheDeterministic: true,
 
     // BG1 背景尚未整合品質階層；BG5 降級實作後 Tier 3 動態繪製數必須為 0
     tier3DynamicDisabled: false,

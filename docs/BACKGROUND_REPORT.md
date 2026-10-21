@@ -11,12 +11,12 @@
 
 | 場景 | BG0 (改前) meanAbsDiff | BG0 badPixelPct | BG2 meanAbsDiff | BG3 meanAbsDiff | BG4 meanAbsDiff | 最終 meanAbsDiff | 狀態 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| VOID | 0.194 | 0.01% | 0.194 | 0.227 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
-| FOREST | 0.635 | 0.16% | 0.635 | 0.662 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
-| ICE | 0.234 | 0.21% | 0.234 | 0.273 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
-| MAGMA | 0.237 | 0.03% | 0.237 | 0.259 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
-| DESERT | 0.513 | 0.22% | 0.513 | 0.541 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
-| battle_frozen | 0.000 | 0.00% | 0.000 | 0.052 | 待測 | 待測 | PASS (門檻 ≤ 0.8) |
+| VOID | 0.194 | 0.01% | 0.194 | 0.227 | 0.240 | 待測 | PASS (門檻 ≤ 0.8) |
+| FOREST | 0.635 | 0.16% | 0.635 | 0.662 | 0.670 | 待測 | PASS (門檻 ≤ 0.8) |
+| ICE | 0.234 | 0.21% | 0.234 | 0.273 | 0.281 | 待測 | PASS (門檻 ≤ 0.8) |
+| MAGMA | 0.237 | 0.03% | 0.237 | 0.259 | 0.267 | 待測 | PASS (門檻 ≤ 0.8) |
+| DESERT | 0.513 | 0.22% | 0.513 | 0.541 | 0.550 | 待測 | PASS (門檻 ≤ 0.8) |
+| battle_frozen | 0.000 | 0.00% | 0.000 | 0.052 | 0.326 | 待測 | PASS (門檻 ≤ 0.8) |
 
 ### 1.2 幀時間與背景開銷（bg-probe.mjs，viewport 2560x1440 headed=false）
 
@@ -42,19 +42,18 @@
 
 ## 2. 改動紀錄與架構說明
  
-- **BG3 動態層零漸層、零 arc 現代化**：
-  - 光點改用 `getMoteSprite(color)` 預烘焙 16x16 圓形精靈，每幀使用 `drawImage`，完全消滅每幀 50 次 `arc`。
-  - 地平線光暈改為 `updateHorizonGlow` 預烘焙離屏畫布，每幀僅需一次 `drawImage` 配合 scale 與 alpha，消滅每幀的 `createRadialGradient`。
-  - 極光（ICE）、熱浪（MAGMA）、沙塵暴（DESERT）之線性漸層改為尺寸/顏色鍵快取，在尺寸或場景未改變時零建立。
-  - `tests/BackgroundRenderer.test.ts` 每幀漸層數與 arc 數基準全數歸零（0 gradients, 0 arcs），測試全綠。
-  - `perf:guard` 6 個場景保真度全數 PASS（最大 meanAbsDiff 僅 0.662 ≤ 0.8）。
+- **BG4 確定性雜湊與高 DPI 靜態烘焙**：
+  - 星空大小與透明度改用純整數位元雜湊函式 `starHash(i, salt)` 取代 `Math.random`，完全消滅背景靜態快取重建時的不確定性。
+  - 靜態快取依 `getRenderDpr()` 以實體裝置像素烘焙（`setTransform(dpr, 0, 0, dpr, 0, 0)`），在高解析度螢幕繪製時縮回邏輯尺寸（`drawImage(canvas, 0, 0, width, height)`），dpr 改變時自動重建。
+  - `tests/BackgroundRenderer.test.ts` 靜態快取兩次重建繪製呼叫完全相同，確定性測試通過。
+  - `perf:guard` 6 個場景保真度全數 PASS（最大 meanAbsDiff 僅 0.670 ≤ 0.8，battle_frozen 0.326 ≤ 0.8）。
 
 ---
 
 ## 3. 未完成項目與日誌路徑
 
 - 目前無未完成項目。
-- 基準測試日誌：`tools/ui-e2e/out/agent-logs/guard-bg3.log`。
+- 基準測試日誌：`tools/ui-e2e/out/agent-logs/guard-bg4.log`。
 
 ---
 
@@ -66,3 +65,4 @@
 | BG1 | 新增 BackgroundRenderer 測試與改前棘輪基準 | `git revert HEAD` |
 | BG2 | 參數搬進 BACKGROUND_FX／BACKGROUND_COLORS | `git revert HEAD` |
 | BG3 | 動態層每幀零漸層、零 arc（光暈/光點 sprite、漸層快取） | `git revert HEAD` |
+| BG4 | 星空確定性雜湊＋靜態快取依 dpr 烘焙 | `git revert HEAD` |

@@ -12,12 +12,23 @@ import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";
 import { VFXFactory } from "../graphics/VFXFactory";
 import { VisualMath } from "../math/VisualMath";
+import { getRenderDpr } from "./RenderQuality";
+
+/** 以索引為種子的純整數雜湊（回傳 [0, 1)），取代 Math.random 確保靜態星星完全確定性 */
+function starHash(i: number, salt: number): number {
+    let h = Math.imul(i ^ salt, 0x5bd1e995);
+    h ^= h >>> 15;
+    h = Math.imul(h, 0x5bd1e995);
+    h ^= h >>> 15;
+    return (h >>> 0) / 4294967296;
+}
 
 export class BackgroundRenderer {
     private staticCache: HTMLCanvasElement | null = null;
     private lastSceneId: string = "";
     private lastWidth: number = 0;
     private lastHeight: number = 0;
+    private lastDpr: number = 1;
 
     // 動態層預烘焙與快取
     private horizonGlowCanvas: HTMLCanvasElement | null = null;
@@ -37,11 +48,12 @@ export class BackgroundRenderer {
     private sandstormMistKey: string = '';
 
     public draw(ctx: CanvasRenderingContext2D, width: number, height: number, scene: SceneTheme, mapConfig: MapConfig, globalTime: number): void {
-        if (!this.staticCache || this.lastSceneId !== scene.id || this.lastWidth !== width || this.lastHeight !== height) {
-            this.updateStaticCache(width, height, scene);
+        const dpr = getRenderDpr();
+        if (!this.staticCache || this.lastSceneId !== scene.id || this.lastWidth !== width || this.lastHeight !== height || this.lastDpr !== dpr) {
+            this.updateStaticCache(width, height, scene, dpr);
         }
         if (this.staticCache) {
-            ctx.drawImage(this.staticCache, 0, 0);
+            ctx.drawImage(this.staticCache, 0, 0, width, height);
         }
         this.drawDynamicElements(ctx, width, height, scene, mapConfig, globalTime);
     }
@@ -52,21 +64,26 @@ export class BackgroundRenderer {
         return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${alpha})`;
     }
 
-    private updateStaticCache(w: number, h: number, scene: SceneTheme) {
+    private updateStaticCache(w: number, h: number, scene: SceneTheme, dpr: number = getRenderDpr()) {
         const ST = BACKGROUND_FX.STATIC;
+        const pw = Math.max(1, Math.round(w * dpr));
+        const ph = Math.max(1, Math.round(h * dpr));
+
         if (!this.staticCache) {
-            const { canvas } = createCanvas(w, h);
+            const { canvas } = createCanvas(pw, ph);
             this.staticCache = canvas;
         } else {
-            this.staticCache.width = w;
-            this.staticCache.height = h;
+            this.staticCache.width = pw;
+            this.staticCache.height = ph;
         }
 
         this.lastSceneId = scene.id;
         this.lastWidth = w;
         this.lastHeight = h;
+        this.lastDpr = dpr;
 
         const ctx = this.staticCache.getContext('2d')!;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.clearRect(0, 0, w, h);
 
         if (Number.isFinite(w) && Number.isFinite(h)) {
@@ -190,8 +207,8 @@ export class BackgroundRenderer {
         for(let i=0; i<count; i++) {
             const sx = (Math.sin(i * seed) * 0.5 + 0.5) * w;
             const sy = (Math.cos(i * seed * 1.5) * 0.5 + 0.5) * h * ST.STARS_HEIGHT_PCT;
-            const size = Math.random() * ST.STARS_MAX_SIZE;
-            ctx.globalAlpha = Math.random() * ST.STARS_ALPHA_RANGE + ST.STARS_MIN_ALPHA;
+            const size = starHash(i, 1013) * ST.STARS_MAX_SIZE;
+            ctx.globalAlpha = starHash(i, 2017) * ST.STARS_ALPHA_RANGE + ST.STARS_MIN_ALPHA;
             ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
         }
     }
