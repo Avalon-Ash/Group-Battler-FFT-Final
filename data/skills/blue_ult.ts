@@ -88,7 +88,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'wb_u5', role: Role.WARRIOR, team: Team.BLUE, tag: 'ULT', 
         name: '光速斬擊', desc: '瞬移斬擊', 
-        range: 9, cast: 0.2, cd: 5.0, cost: 100, gain: 0, 
+        range: 9, cast: 0.3, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 900, color: '#e0f2fe', 
         visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 1.5,

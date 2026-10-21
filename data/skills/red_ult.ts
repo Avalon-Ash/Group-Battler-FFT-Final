@@ -24,7 +24,7 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'tr_u3', role: Role.TANK, team: Team.RED, tag: 'ULT', 
         name: '不朽屍王', desc: '巨量護盾', 
-        range: 0, cast: 0.2, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 0.3, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 0, color: '#16a34a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 1000, ccSelf: true,
@@ -70,7 +70,7 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'wr_u3', role: Role.WARRIOR, team: Team.RED, tag: 'ULT', 
         name: '惡魔降臨', desc: '單體攻速吸血', 
-        range: 0, cast: 0.1, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 0.3, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 0, color: '#b91c1c', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HASTE', ccDur: 7.0, ccForce: 50, ccSelf: true,
