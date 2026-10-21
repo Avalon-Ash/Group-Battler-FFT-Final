@@ -94,10 +94,11 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
 
         if (activeConfig) {
             const actions: VFXAction[] = [];
-            const specificHit = activeConfig.impactFx || hitFx;
+            const specificHit = activeConfig.impactFx;
             // 有投射物的主動技：主特效在投射物抵達時由 HIT_FX 播（visualHitEffect），序列只放出手預兆
             const activeSkill = DEFAULT_SKILL_DB.find(sk => sk.id === activeId);
             const isProjectile = (activeSkill?.projectileSpeed ?? 0) > 0;
+            const isHitFxDuplicated = Boolean(specificHit && specificHit === activeSkill?.visualHitEffect);
 
             // Faction-Specific Flavor
             if (isRed) {
@@ -118,32 +119,44 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
 
             switch (isProjectile ? 'PROJECTILE_SALVO' : activeConfig.archetype) {
                 case 'BURST_AOE':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 1.0 });
+                    }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.25 });
                     actions.push({ type: 'GRID_PULSE', color: activeConfig.color, scale: 1.2, delay: 0.1 });
                     break;
                 case 'DASH_ASSAULT':
                     actions.push({ type: 'BEAM', style: activeConfig.beamStyle ?? 'SLASH_CONNECT', color: activeConfig.color, duration: 0.2, scale: 1.5 });
-                    if (activeConfig.impactFx) actions.push({ type: 'PARTICLE', id: activeConfig.impactFx, color: activeConfig.secondaryColor, scale: 1.2, delay: 0.1 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: 1.2, delay: 0.1 });
+                    }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.3 });
                     break;
                 case 'BUFF_AURA':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: activeConfig.scale || 1.0, duration: 1.0 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: activeConfig.scale || 1.0, duration: 1.0 });
+                    }
                     actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 0.8, delay: 0.0 });
                     break;
                 case 'DEBUFF_RAY':
                     actions.push({ type: 'BEAM', style: activeConfig.beamStyle ?? 'GENERIC_BEAM', color: activeConfig.color, duration: 0.5 });
-                    if (activeConfig.impactFx) actions.push({ type: 'PARTICLE', id: activeConfig.impactFx, color: activeConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: 0.8, delay: 0.1 });
+                    }
                     break;
                 case 'GROUND_SLAM':
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: 1.3 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.color, scale: 1.3 });
+                    }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.4 });
                     actions.push({ type: 'GRID_PULSE', color: activeConfig.secondaryColor, scale: 1.5, delay: 0.05 });
                     break;
                 case 'PROJECTILE_SALVO':
                     break; // 投射物與命中特效由 ProjectileSystem／HIT_FX 處理
                 default: // SIMPLE_IMPACT
-                    actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 0.8 });
+                    if (specificHit && !isHitFxDuplicated) {
+                        actions.push({ type: 'PARTICLE', id: specificHit, color: activeConfig.secondaryColor, scale: activeConfig.scale || 0.8 });
+                    }
                     actions.push({ type: 'SHAKE', shakeIntensity: 0.15 });
                     break;
             }

@@ -40,14 +40,14 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     'tb_a2': { archetype: 'SIMPLE_IMPACT', color: '#fcd34d', secondaryColor: '#fff', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
     'tb_a3': { archetype: 'GROUND_SLAM', color: '#1e3a8a', secondaryColor: '#3b82f6', scale: 1.2, impactFx: 'FX_GRID_IMPACT_BLUE' },
     'tb_a4': { archetype: 'DEBUFF_RAY', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.0, beamStyle: 'GENERIC_BEAM' },
-    'tb_a5': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.0, impactFx: 'FX_HIT_BLUE_LIGHTNING' },
+    'tb_a5': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.0 },
 
     // --- WARRIOR ---
     'wb_a1': { archetype: 'BURST_AOE', color: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_RADIANT_BURST' },
     'wb_a2': { archetype: 'DASH_ASSAULT', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.5, beamStyle: 'SLASH_CONNECT' },
     'wb_a3': { archetype: 'BURST_AOE', color: '#3b82f6', secondaryColor: '#60a5fa', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_RADIANT_BURST' },
     'wb_a4': { archetype: 'SIMPLE_IMPACT', color: '#f59e0b', secondaryColor: '#fcd34d', scale: 1.4, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
-    'wb_a5': { archetype: 'SIMPLE_IMPACT', color: '#93c5fd', secondaryColor: '#fff', scale: 1.2, impactFx: 'FX_HIT_BLUE_PHYSICAL' },
+    'wb_a5': { archetype: 'SIMPLE_IMPACT', color: '#93c5fd', secondaryColor: '#fff', scale: 1.2 },
 
     // --- RANGER ---
     'rb_a1': { archetype: 'BURST_AOE', color: '#bae6fd', secondaryColor: '#fff', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_FROST_SNAP' },
@@ -77,14 +77,14 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     'tr_a1': { archetype: 'DEBUFF_RAY', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.2, beamStyle: 'GENERIC_BEAM' },
     'tr_a2': { archetype: 'BURST_AOE', color: '#7c3aed', secondaryColor: '#5b21b6', scale: 1.4, impactFx: 'FX_ACTIVE_RED_SHADOW_SCREAM' },
     'tr_a3': { archetype: 'GROUND_SLAM', color: '#450a0a', secondaryColor: '#7f1d1d', scale: 1.3, impactFx: 'FX_ACTIVE_RED_WAR_STOMP' },
-    'tr_a4': { archetype: 'BUFF_AURA', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.2, impactFx: 'FX_HIT_RED_BLOOD' },
+    'tr_a4': { archetype: 'BUFF_AURA', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.2 },
     'tr_a5': { archetype: 'DEBUFF_RAY', color: '#be123c', secondaryColor: '#e11d48', scale: 1.0, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 
     // --- WARRIOR ---
-    'wr_a1': { archetype: 'BURST_AOE', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.3, impactFx: 'FX_HIT_RED_HEAVY' },
-    'wr_a2': { archetype: 'SIMPLE_IMPACT', color: '#450a0a', secondaryColor: '#000', scale: 1.2, impactFx: 'FX_HIT_RED_BLOOD' },
+    'wr_a1': { archetype: 'BURST_AOE', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.3 },
+    'wr_a2': { archetype: 'SIMPLE_IMPACT', color: '#450a0a', secondaryColor: '#000', scale: 1.2 },
     'wr_a3': { archetype: 'DASH_ASSAULT', color: '#b91c1c', secondaryColor: '#7f1d1d', scale: 1.4, impactFx: 'FX_ACTIVE_RED_WAR_STOMP', beamStyle: 'SLASH_CONNECT' },
-    'wr_a4': { archetype: 'SIMPLE_IMPACT', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.5, impactFx: 'FX_HIT_RED_BLOOD' },
+    'wr_a4': { archetype: 'SIMPLE_IMPACT', color: '#7f1d1d', secondaryColor: '#991b1b', scale: 1.5 },
     'wr_a5': { archetype: 'BUFF_AURA', color: '#ef4444', secondaryColor: '#fca5a5', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 
     // --- RANGER ---
@@ -104,7 +104,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     // --- SUPPORT ---
     'sr_a1': { archetype: 'DEBUFF_RAY', color: '#be123c', secondaryColor: '#fb7185', scale: 1.0, beamStyle: 'GENERIC_BEAM' },
     'sr_a2': { archetype: 'BUFF_AURA', color: '#a3e635', secondaryColor: '#d9f99d', scale: 1.2, impactFx: 'FX_ACTIVE_RED_FEL_SPLASH' },
-    'sr_a3': { archetype: 'BUFF_AURA', color: '#84cc16', secondaryColor: '#bef264', scale: 1.2, impactFx: 'FX_ACTIVE_RED_FEL_SPLASH' },
+    'sr_a3': { archetype: 'BUFF_AURA', color: '#84cc16', secondaryColor: '#bef264', scale: 1.2 },
     'sr_a4': { archetype: 'BURST_AOE', color: '#581c87', secondaryColor: '#7c3aed', scale: 1.3, impactFx: 'FX_HIT_RED_SHADOW' },
     'sr_a5': { archetype: 'BUFF_AURA', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 };

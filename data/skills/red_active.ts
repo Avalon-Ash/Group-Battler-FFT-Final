@@ -34,7 +34,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 0, cast: 0.3, cd: 10.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 0, color: '#ef4444', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 350, ccSelf: true,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_ACTIVE_RED_BLOOD_BARRIER', element: 'BLOOD'
     },
     { 
         id: 'tr_a5', role: Role.TANK, team: Team.RED, tag: 'ACTIVE', 
@@ -52,7 +52,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 0, cast: 0.4, cd: 5.5, cost: 35, gain: 0, 
         type: 'AOE', aoeRadius: 1, power: 130, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.6,
-        visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
+        visualHitEffect: 'FX_ACTIVE_RED_WHIRLWIND', element: 'PHYSICAL'
     },
     { 
         id: 'wr_a2', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
@@ -60,7 +60,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 1, cast: 0.4, cd: 7.0, cost: 30, gain: 0, 
         type: 'SINGLE', power: 150, color: '#450a0a', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'ROOT', ccDur: 2.0,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'PHYSICAL'
+        visualHitEffect: 'FX_ACTIVE_RED_HAMSTRING_STRIKE', element: 'PHYSICAL'
     },
     { 
         id: 'wr_a3', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
@@ -76,7 +76,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 1, cast: 0.4, cd: 7.0, cost: 35, gain: 0, 
         type: 'SINGLE', power: 250, color: '#7f1d1d', visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 2.2,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_ACTIVE_RED_EXECUTE_SLASH', element: 'BLOOD'
     },
     { 
         id: 'wr_a5', role: Role.WARRIOR, team: Team.RED, tag: 'ACTIVE', 
@@ -194,7 +194,7 @@ export const RED_ACTIVE: Skill[] = [
         range: 0, cast: 0.7, cd: 9.0, cost: 40, gain: 0, 
         type: 'AOE', aoeRadius: 2, power: -140, color: '#84cc16', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'HOT', ccForce: 40, ccDur: 5.0,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_ACTIVE_RED_BLOOD_TOTEM', element: 'BLOOD'
     },
     { 
         id: 'sr_a4', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
