@@ -424,32 +424,197 @@ try {
         );
     }
 
-    // 1. Capture Blue Sheet (FOREST)
-    const blueBuf = await captureFactionSheet('BLUE (IMPERIAL)', BLUE_ULTS);
-    writeFileSync(join(outDir, 'blue.png'), blueBuf);
-    console.log(`[ult-sheet] Saved ${join(outDir, 'blue.png')}`);
+    // Helper to capture Feel verification sheet (--feel)
+    async function captureFeelSheet(ultIds) {
+        console.log(`[ult-sheet] Capturing feel sheet for ${ultIds.length} ultimates on FOREST...`);
 
-    // 2. Capture Red Sheet (FOREST)
-    const redBuf = await captureFactionSheet('RED (COVENANT)', RED_ULTS);
-    writeFileSync(join(outDir, 'red.png'), redBuf);
-    console.log(`[ult-sheet] Saved ${join(outDir, 'red.png')}`);
+        // Set scene to FOREST
+        await page.evaluate(async () => {
+            const e = window.__TACTICAL_ENGINE__;
+            const { SCENE_DB } = await import('/data/scenes.ts');
+            const sc = SCENE_DB.find((x) => x.id === 'FOREST');
+            e.currentScene = sc;
+            e.map.rebuildMap(e);
+        });
 
-    // 3. Measure ICE & DESERT White Saturation
-    const all50 = [...BLUE_ULTS, ...RED_ULTS];
-    const iceStats = await measureSceneSaturation('ICE', all50);
-    const desertStats = await measureSceneSaturation('DESERT', all50);
+        const sheetDataUrl = await page.evaluate(
+            async ({ ultIds }) => {
+                const e = window.__TACTICAL_ENGINE__;
+                const types = await import('/types.ts');
+                const { HexUtils } = await import('/engine/utils.ts');
+                const { SKILL_SEQUENCES } = await import('/data/vfx/SkillSequences.ts');
 
-    const sheetJson = {};
-    for (const id of all50) {
-        sheetJson[id] = {
-            iceSatRatio: iceStats[id],
-            desertSatRatio: desertStats[id],
-            maxSatRatio: Math.max(iceStats[id], desertStats[id]),
-        };
+                const cmd = (c) => e.bus.emit('UI_COMMAND', c);
+
+                const CELL_W = 640;
+                const CELL_H = 360;
+                const LABEL_W = 220;
+                const HEADER_H = 40;
+                const COLS = 3;
+
+                const sheetCanvas = document.createElement('canvas');
+                sheetCanvas.width = LABEL_W + CELL_W * COLS;
+                sheetCanvas.height = HEADER_H + CELL_H * ultIds.length;
+                const ctx = sheetCanvas.getContext('2d');
+
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, sheetCanvas.width, sheetCanvas.height);
+
+                // Draw Header
+                ctx.fillStyle = '#f8fafc';
+                ctx.font = 'bold 13px monospace';
+                ctx.fillText('ULTIMATE FEEL VERIFICATION (FOREST, FULL UNBUFFERED CANVAS)', 16, 25);
+
+                const colTitles = [
+                    '詠唱中 (hitAt - 0.30s) [暗場＋聚光＋橫幅]',
+                    '命中 (hitAt + 0.03s) [局部光爆＋主爆發]',
+                    '餘韻 (hitAt + 0.60s) [焦痕／餘燼收斂]',
+                ];
+                for (let c = 0; c < COLS; c++) {
+                    ctx.fillText(colTitles[c], LABEL_W + c * CELL_W + 16, 25);
+                }
+                ctx.strokeStyle = '#334155';
+                ctx.strokeRect(0, 0, sheetCanvas.width, HEADER_H);
+
+                const centerH = { q: 0, r: 0 };
+                const t1H = { q: 1, r: 0 };
+                const t2H = { q: 0, r: 1 };
+                const t3H = { q: 1, r: -1 };
+
+                const targetCenterPx = HexUtils.toPx(0, 0, e.mapConfig);
+                const gz = e.getTerrainHeight(0, 0);
+
+                const gameCanvas = document.querySelector('canvas');
+                const gW = gameCanvas.width;
+                const gH = gameCanvas.height;
+
+                for (let rowIdx = 0; rowIdx < ultIds.length; rowIdx++) {
+                    const ultId = ultIds[rowIdx];
+                    const skill = e.skillDB.find((s) => s.id === ultId);
+                    const sequence = SKILL_SEQUENCES[ultId];
+                    const hitAt = sequence.hitAt;
+                    const cast = skill.cast;
+                    const isRed = skill.team === 1;
+
+                    cmd({ type: 'CLEAR_BOARD', keepScene: true });
+
+                    const casterTeam = isRed ? types.Team.RED : types.Team.BLUE;
+                    const targetTeam = isRed ? types.Team.BLUE : types.Team.RED;
+
+                    cmd({ type: 'PLACE_AGENT', team: casterTeam, q: centerH.q, r: centerH.r, hp: 99999, role: types.Role.MAGE });
+                    cmd({ type: 'PLACE_AGENT', team: targetTeam, q: t1H.q, r: t1H.r, hp: 99999, role: types.Role.TANK });
+                    cmd({ type: 'PLACE_AGENT', team: targetTeam, q: t2H.q, r: t2H.r, hp: 99999, role: types.Role.WARRIOR });
+                    cmd({ type: 'PLACE_AGENT', team: targetTeam, q: t3H.q, r: t3H.r, hp: 99999, role: types.Role.RANGER });
+
+                    e.play();
+                    for (const a of e.agents) {
+                        a.bt = null;
+                        a.mp = 0;
+                        a.spawnTimer = 0;
+                    }
+
+                    const caster = e.agents.find((a) => a.team === casterTeam);
+                    const target1 = e.agents.find((a) => a.team === targetTeam && a.q === t1H.q && a.r === t1H.r);
+
+                    caster.skillIds = [ultId, null, null];
+                    caster.skills = [skill, null, null];
+                    caster.mp = caster.maxMp;
+                    caster.target = target1;
+                    caster.targetHex = { q: target1.q, r: target1.r };
+
+                    e.renderer.vfx.reset();
+                    e.renderer.camera.snapTo(targetCenterPx.x, targetCenterPx.y - gz, 1.4);
+                    window.__stepFrames(2);
+
+                    // Initiate Cast
+                    e.initiateCast(caster, 0);
+                    e.renderer.processVisualEvents(e.events.splice(0));
+
+                    // Sequence timing
+                    const castDelay = Math.max(0, cast - hitAt);
+                    const sampleOffsets = [-0.30, 0.03, 0.60];
+                    let currentTau = -castDelay;
+
+                    const y = HEADER_H + rowIdx * CELL_H;
+
+                    // Row label
+                    ctx.fillStyle = isRed ? '#fca5a5' : '#93c5fd';
+                    ctx.font = 'bold 12px monospace';
+                    ctx.fillText(`${ultId} ${skill.name}`, 10, y + 30);
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '11px monospace';
+                    ctx.fillText(`cast:${cast.toFixed(2)}s hitAt:${hitAt.toFixed(2)}s`, 10, y + 50);
+                    ctx.fillText(`type:${skill.type} r:${skill.aoeRadius ?? skill.range}`, 10, y + 70);
+                    ctx.fillText(skill.desc || '', 10, y + 90);
+
+                    for (let colIdx = 0; colIdx < COLS; colIdx++) {
+                        const targetTau = hitAt + sampleOffsets[colIdx];
+                        const deltaTau = targetTau - currentTau;
+                        if (deltaTau > 0) {
+                            const framesToStep = Math.max(1, Math.round(deltaTau * 60));
+                            window.__stepFrames(framesToStep);
+                            currentTau = targetTau;
+                        }
+
+                        e.renderer.camera.snapTo(targetCenterPx.x, targetCenterPx.y - gz, 1.4);
+                        window.__stepFrames(1);
+
+                        const x = LABEL_W + colIdx * CELL_W;
+                        // Draw uncropped full screen
+                        ctx.drawImage(gameCanvas, 0, 0, gW, gH, x, y, CELL_W, CELL_H);
+                        ctx.strokeStyle = '#1e293b';
+                        ctx.strokeRect(x, y, CELL_W, CELL_H);
+                    }
+
+                    ctx.strokeStyle = '#334155';
+                    ctx.strokeRect(0, y, LABEL_W, CELL_H);
+                }
+
+                return sheetCanvas.toDataURL('image/png');
+            },
+            { ultIds },
+        );
+
+        return Buffer.from(sheetDataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
     }
 
-    writeFileSync(join(outDir, 'ult-sheet.json'), JSON.stringify(sheetJson, null, 2), 'utf8');
-    console.log(`[ult-sheet] Saved ${join(outDir, 'ult-sheet.json')}`);
+    const isFeel = process.argv.includes('--feel');
+    if (isFeel) {
+        const feelSkills = ['sr_u4', 'rr_u2', 'mr_u1', 'wb_u5', 'sr_u1', 'sr_u5', 'rr_u3', 'rb_u5'];
+        const feelBuf = await captureFeelSheet(feelSkills);
+        const feelOutDir = resolve(root, 'tools/ui-e2e/out/ult');
+        mkdirSync(feelOutDir, { recursive: true });
+        const feelPath = join(feelOutDir, 'feel.png');
+        writeFileSync(feelPath, feelBuf);
+        console.log(`[ult-sheet] Saved feel sheet to ${feelPath}`);
+    } else {
+        // 1. Capture Blue Sheet (FOREST)
+        const blueBuf = await captureFactionSheet('BLUE (IMPERIAL)', BLUE_ULTS);
+        writeFileSync(join(outDir, 'blue.png'), blueBuf);
+        console.log(`[ult-sheet] Saved ${join(outDir, 'blue.png')}`);
+
+        // 2. Capture Red Sheet (FOREST)
+        const redBuf = await captureFactionSheet('RED (COVENANT)', RED_ULTS);
+        writeFileSync(join(outDir, 'red.png'), redBuf);
+        console.log(`[ult-sheet] Saved ${join(outDir, 'red.png')}`);
+
+        // 3. Measure ICE & DESERT White Saturation
+        const all50 = [...BLUE_ULTS, ...RED_ULTS];
+        const iceStats = await measureSceneSaturation('ICE', all50);
+        const desertStats = await measureSceneSaturation('DESERT', all50);
+
+        const sheetJson = {};
+        for (const id of all50) {
+            sheetJson[id] = {
+                iceSatRatio: iceStats[id],
+                desertSatRatio: desertStats[id],
+                maxSatRatio: Math.max(iceStats[id], desertStats[id]),
+            };
+        }
+
+        writeFileSync(join(outDir, 'ult-sheet.json'), JSON.stringify(sheetJson, null, 2), 'utf8');
+        console.log(`[ult-sheet] Saved ${join(outDir, 'ult-sheet.json')}`);
+    }
 
     if (pageErrors.length > 0) {
         console.warn(`[ult-sheet] Page errors encountered:`, pageErrors.slice(0, 5));
