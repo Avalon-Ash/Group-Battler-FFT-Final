@@ -83,7 +83,7 @@ export const BASIC_PART_VFX: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 36, count: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.26, delay: 0, size: 36,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
             groundRing('LION_HOLY', 28, 1.4, 0.3),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_HOLY', hard: true }, count: [3, 4], lifetime: [0.3, 0.4], delay: 0.05, size: 4,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_HOLY', hard: true }, count: [3, 4], lifetime: [0.2, 0.28], delay: 0.05, size: 4,
                 shape: 'CIRCLE', shapeRadius: 16, speed: [0, 10], vz: [50, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
