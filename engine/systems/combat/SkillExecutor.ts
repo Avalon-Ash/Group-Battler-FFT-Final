@@ -7,7 +7,7 @@ import { planDashPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
-import { teleportTo } from "../movement/MotionCommands";
+import { teleportTo, dashTo } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS } from "../../../constants";
@@ -43,10 +43,9 @@ export class SkillExecutor {
             const bestH = dash.stepsTaken > 0 ? dash.finalHex : null;
             
             if (bestH) {
-                // teleportTo 把位移量存進 physics 偏移，PhysicsEngine 會自然彈到新位置，
-                // 衝刺因此帶著速度殘影
-                teleportTo(source, bestH.q, bestH.r, engine);
-                source.physics.vz += PHYSICS.VISUAL_JUMP_DASH; // Visual jump
+                // dashTo 把位移量存進 physics 偏移並注入順向初速與跳躍弧度，
+                // 衝刺因此帶著速度前傾與殘影
+                dashTo(source, bestH.q, bestH.r, engine);
                 
                 engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_DASH });
                 

@@ -17,6 +17,17 @@ export class PhysicsSystem {
         for (const a of engine.agents) {
             const isGroundValid = engine.isValid(a.q, a.r);
             if (a.hp <= 0 && isGroundValid) continue; // [SSOT] Skip physical updates for dead agents on valid ground
+
+            const speedSqBefore = a.physics.vx * a.physics.vx + a.physics.vy * a.physics.vy;
+            if (a.trailHistory.length === 0 && speedSqBefore > AFTERIMAGE.RECORD_SPEED_SQ) {
+                a.trailHistory.push({
+                    x: a.px + a.physics.x,
+                    y: a.py + a.physics.y,
+                    z: a.physics.z,
+                    h: engine.map.getTerrainHeight(a.q, a.r),
+                });
+            }
+
             this.engine.update(a, dt, engine);
             
             // [ARCH] Agent.trailHistory 的唯一寫入者（殘影與飛行緞帶的軌跡來源，AgentOwnership）。

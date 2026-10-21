@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../game";
 import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
+import { VisualMath } from "../math/VisualMath";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage, applyLethal } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../core/ViewCommands";
@@ -115,12 +116,25 @@ export class PhysicsEngine {
             const dz = targetZ - a.physics.z;
             a.physics.vz += dz * 5 * dt;
             a.physics.vz *= 0.92;
-        } else if (isAirborne || a.physics.z > 0.1) {
+        } else if (isAirborne || a.physics.z > 0.1 || a.physics.vz > 0) {
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         }
 
+        const shouldTrackGroundShift = !isDead && isGroundValid && engine.mapConfig && (a.physics.x !== 0 || a.physics.y !== 0 || a.physics.vx !== 0 || a.physics.vy !== 0);
+        const gBefore = shouldTrackGroundShift
+            ? VisualMath.getUnitGroundHeight(a, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig)
+            : 0;
+
         a.physics.x += a.physics.vx * dt;
         a.physics.y += a.physics.vy * dt;
+
+        if (shouldTrackGroundShift) {
+            const gAfter = VisualMath.getUnitGroundHeight(a, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
+            if (gAfter < gBefore) {
+                a.physics.z += gBefore - gAfter;
+            }
+        }
+
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
 
@@ -135,32 +149,37 @@ export class PhysicsEngine {
                 }
                 a.outOfBounds = true; // Remove from battlefield rendering and logic; fullyDead 由 updateDeathState 回收
             }
-        } else if (isGroundValid && a.physics.z < 0) {
-            a.physics.z = 0;
-            if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
-                const impactSpeed = Math.abs(a.physics.vz);
-                if (!isDead) {
-                    const velocityOverhead = impactSpeed - PHYSICS.SAFE_FALL_VELOCITY;
-                    const scaling = PHYSICS.FATAL_FALL_VELOCITY - PHYSICS.SAFE_FALL_VELOCITY;
-                    const pct = Math.min(1.0, velocityOverhead / scaling);
-                    const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
-                    applyDirectDamage(a, rawDmg, true); // 墜落為真實傷害（無視護盾）
-                    engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
-                    engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
-                    
-                    engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
+        } else if (isGroundValid && a.physics.z < 0 && a.physics.vz <= 0) {
+            if (a.physics.vz < 0) {
+                a.physics.z = 0;
+                if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
+                    const impactSpeed = Math.abs(a.physics.vz);
+                    if (!isDead) {
+                        const velocityOverhead = impactSpeed - PHYSICS.SAFE_FALL_VELOCITY;
+                        const scaling = PHYSICS.FATAL_FALL_VELOCITY - PHYSICS.SAFE_FALL_VELOCITY;
+                        const pct = Math.min(1.0, velocityOverhead / scaling);
+                        const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
+                        applyDirectDamage(a, rawDmg, true); // 墜落為真實傷害（無視護盾）
+                        engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
+                        engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
+                        
+                        engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
 
-                    if (a.hp <= 0) {
-                        engine.agentManager.handleDeadState(a, engine);
-                    } else {
-                        // SSOT: Set visual timer instead of imperative setAnim
-                        triggerHitFlash(a, 0.2);
+                        if (a.hp <= 0) {
+                            engine.agentManager.handleDeadState(a, engine);
+                        } else {
+                            // SSOT: Set visual timer instead of imperative setAnim
+                            triggerHitFlash(a, 0.2);
+                        }
                     }
+                    a.physics.vz = -a.physics.vz * 0.3;
+                    a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
+                } else {
+                    a.physics.vz = 0;
                 }
-                a.physics.vz = -a.physics.vz * 0.3;
-                a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
             } else {
-                a.physics.vz = 0;
+                a.physics.z *= dampFactor;
+                if (a.physics.z > -0.5) a.physics.z = 0;
             }
         }
 
