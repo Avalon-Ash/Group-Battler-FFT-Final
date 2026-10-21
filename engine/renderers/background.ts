@@ -1,3 +1,10 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║  BackgroundRenderer — 場景背景繪製器                     ║
+// ║  職責：繪製遠景底色、星空、透視格線、地形剪影與動態環境特效 ║
+// ║  上游：RenderPipeline 在 drawWorld 前呼叫                ║
+// ║  [ARCH] 參數集中於 constants/terrain.ts (BACKGROUND_FX) ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { SceneTheme } from "../../types";
 import { BACKGROUND_COLORS, BACKGROUND_FX } from "../../constants";
 import { AssetManager } from "../assets";
@@ -31,6 +38,7 @@ export class BackgroundRenderer {
     }
 
     private updateStaticCache(w: number, h: number, scene: SceneTheme) {
+        const ST = BACKGROUND_FX.STATIC;
         if (!this.staticCache) {
             const { canvas } = createCanvas(w, h);
             this.staticCache = canvas;
@@ -49,8 +57,8 @@ export class BackgroundRenderer {
         if (Number.isFinite(w) && Number.isFinite(h)) {
             const bgGrad = ctx.createLinearGradient(0, 0, 0, h);
             bgGrad.addColorStop(0, scene.background);
-            bgGrad.addColorStop(0.4, scene.fogColor); 
-            bgGrad.addColorStop(1, scene.horizon); 
+            bgGrad.addColorStop(ST.BG_GRAD_FOG_STOP, scene.fogColor); 
+            bgGrad.addColorStop(ST.BG_GRAD_HORIZON_STOP, scene.horizon); 
             ctx.fillStyle = bgGrad;
         } else {
             ctx.fillStyle = scene.background;
@@ -58,7 +66,7 @@ export class BackgroundRenderer {
         ctx.fillRect(0, 0, w, h);
 
         if (scene.bgFeature === 'SKY_RIVER') this.drawStaticSkyRiver(ctx, w, h);
-        else this.drawStaticStars(ctx, w, h, 150);
+        else this.drawStaticStars(ctx, w, h, ST.STARS_COUNT_DEFAULT);
 
         this.drawPerspectiveGrid(ctx, w, h, scene.horizon);
 
@@ -67,23 +75,21 @@ export class BackgroundRenderer {
 
         // SSOT: Use VisualMath.HORIZON_Y_PCT
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
-        const seamHeight = 350; 
+        const seamHeight = ST.SEAM_HEIGHT; 
         if (Number.isFinite(horizonY)) {
-            const seamGrad = ctx.createLinearGradient(0, horizonY - seamHeight * 0.6, 0, horizonY + seamHeight * 0.4);
+            const seamGrad = ctx.createLinearGradient(0, horizonY - seamHeight * ST.SEAM_TOP_OFFSET_RATIO, 0, horizonY + seamHeight * ST.SEAM_BOTTOM_OFFSET_RATIO);
             
-            seamGrad.addColorStop(0, this.hexToRgba(scene.fogColor, 0));
-            seamGrad.addColorStop(0.3, this.hexToRgba(scene.fogColor, 0.8));
-            seamGrad.addColorStop(0.5, this.hexToRgba(scene.fogColor, 1.0)); 
-            seamGrad.addColorStop(0.7, this.hexToRgba(scene.fogColor, 0.8));
-            seamGrad.addColorStop(1, this.hexToRgba(scene.fogColor, 0));
+            for (let i = 0; i < ST.SEAM_STOPS.length; i++) {
+                seamGrad.addColorStop(ST.SEAM_STOPS[i], this.hexToRgba(scene.fogColor, ST.SEAM_ALPHAS[i]));
+            }
             
             ctx.globalCompositeOperation = 'source-over';
             ctx.fillStyle = seamGrad;
-            ctx.fillRect(0, horizonY - seamHeight * 0.6, w, seamHeight);
+            ctx.fillRect(0, horizonY - seamHeight * ST.SEAM_TOP_OFFSET_RATIO, w, seamHeight);
         }
 
         const rad = Math.max(w, h);
-        const vig = ctx.createRadialGradient(w/2, h/2, rad * 0.4, w/2, h/2, rad * 0.9);
+        const vig = ctx.createRadialGradient(w/2, h/2, rad * ST.VIGNETTE_INNER_RATIO, w/2, h/2, rad * ST.VIGNETTE_OUTER_RATIO);
         vig.addColorStop(0, BACKGROUND_COLORS.VIGNETTE_START);
         vig.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
         ctx.fillStyle = vig;
@@ -91,25 +97,26 @@ export class BackgroundRenderer {
     }
 
     private drawPerspectiveGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
+        const ST = BACKGROUND_FX.STATIC;
         ctx.save();
-        ctx.globalAlpha = 0.15;
+        ctx.globalAlpha = ST.GRID_ALPHA;
         ctx.strokeStyle = color;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = ST.GRID_LINE_WIDTH;
         
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const centerX = w * 0.5;
         
         ctx.beginPath();
-        for (let x = -w; x < w * 2; x += 100) {
+        for (let x = -w; x < w * 2; x += ST.GRID_STEP_X) {
             ctx.moveTo(x, h);
-            ctx.lineTo(centerX + (x - centerX) * 0.1, horizonY);
+            ctx.lineTo(centerX + (x - centerX) * ST.GRID_CONVERGE_RATIO, horizonY);
         }
         ctx.stroke();
 
-        for (let y = h; y > horizonY; y -= (y - horizonY) * 0.1 + 2) {
+        for (let y = h; y > horizonY; y -= (y - horizonY) * ST.GRID_DECAY_RATE + ST.GRID_STEP_MIN) {
             const dist = (y - horizonY) / (h - horizonY);
-            if (dist < 0.2) continue; 
-            ctx.globalAlpha = 0.15 * Math.pow(dist, 0.5);
+            if (dist < ST.GRID_MIN_DIST) continue; 
+            ctx.globalAlpha = ST.GRID_ALPHA * Math.pow(dist, ST.GRID_DIST_POW);
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(w, y);
@@ -119,21 +126,24 @@ export class BackgroundRenderer {
     }
 
     private drawStaticStars(ctx: CanvasRenderingContext2D, w: number, h: number, count: number) {
+        const ST = BACKGROUND_FX.STATIC;
         ctx.fillStyle = BACKGROUND_COLORS.STAR_WHITE;
-        const seed = 123;
+        const seed = ST.STARS_SEED;
         for(let i=0; i<count; i++) {
             const sx = (Math.sin(i * seed) * 0.5 + 0.5) * w;
-            const sy = (Math.cos(i * seed * 1.5) * 0.5 + 0.5) * h * 0.7;
-            const size = Math.random() * 1.8;
-            ctx.globalAlpha = Math.random() * 0.6 + 0.2;
+            const sy = (Math.cos(i * seed * 1.5) * 0.5 + 0.5) * h * ST.STARS_HEIGHT_PCT;
+            const size = Math.random() * ST.STARS_MAX_SIZE;
+            ctx.globalAlpha = Math.random() * ST.STARS_ALPHA_RANGE + ST.STARS_MIN_ALPHA;
             ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI*2); ctx.fill();
         }
     }
 
     private drawStaticSkyRiver(ctx: CanvasRenderingContext2D, w: number, h: number) {
+        const ST = BACKGROUND_FX.STATIC;
+        const SR = ST.SKY_RIVER;
         ctx.save();
         if (Number.isFinite(w) && Number.isFinite(h)) {
-            const grad = ctx.createLinearGradient(0, 0, w, h * 0.8);
+            const grad = ctx.createLinearGradient(0, 0, w, h * SR.HEIGHT_RATIO);
             grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT);
             grad.addColorStop(0.3, BACKGROUND_COLORS.SKY_RIVER_SECONDARY);
             grad.addColorStop(0.5, BACKGROUND_COLORS.SKY_RIVER_PRIMARY);
@@ -142,46 +152,50 @@ export class BackgroundRenderer {
             ctx.globalCompositeOperation = 'screen';
             ctx.fillStyle = grad;
             ctx.beginPath();
-            ctx.moveTo(0, h*0.2);
-            ctx.quadraticCurveTo(w*0.5, h*0.5, w, h*0.4);
-            ctx.lineTo(w, h*0.7);
-            ctx.quadraticCurveTo(w*0.5, h*0.8, 0, h*0.5);
+            ctx.moveTo(0, h * SR.P0_Y_RATIO);
+            ctx.quadraticCurveTo(w * SR.CP0_X_RATIO, h * SR.CP0_Y_RATIO, w * SR.P1_X_RATIO, h * SR.P1_Y_RATIO);
+            ctx.lineTo(w * SR.P2_X_RATIO, h * SR.P2_Y_RATIO);
+            ctx.quadraticCurveTo(w * SR.CP1_X_RATIO, h * SR.CP1_Y_RATIO, SR.P3_X_RATIO, h * SR.P3_Y_RATIO);
             ctx.fill();
         }
-        this.drawStaticStars(ctx, w, h, 200);
+        this.drawStaticStars(ctx, w, h, ST.STARS_COUNT_SKY_RIVER);
         ctx.restore();
     }
 
     private drawStaticMountains(ctx: CanvasRenderingContext2D, w: number, h: number, colorFar: string, colorNear: string) {
+        const ST = BACKGROUND_FX.STATIC;
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const drawLayer = (yOffset: number, color: string, roughness: number, seedOffset: number) => {
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.moveTo(0, h);
             ctx.lineTo(0, horizonY + yOffset);
-            for(let x=0; x<=w; x+=20) {
-                const n = Math.sin(x * 0.01 + seedOffset) * Math.cos(x * 0.03) * roughness;
+            for(let x=0; x<=w; x+=ST.MOUNTAINS_STEP) {
+                const n = Math.sin(x * ST.MOUNTAINS_FREQ_A + seedOffset) * Math.cos(x * ST.MOUNTAINS_FREQ_B) * roughness;
                 ctx.lineTo(x, horizonY + yOffset + n);
             }
             ctx.lineTo(w, horizonY + yOffset);
             ctx.lineTo(w, h);
             ctx.fill();
         };
-        ctx.globalAlpha = 0.3;
-        drawLayer(0, colorFar, 60, 0);
-        ctx.globalAlpha = 0.5;
-        drawLayer(60, colorNear, 40, 100);
+        const far = ST.MOUNTAINS_FAR;
+        ctx.globalAlpha = far.alpha;
+        drawLayer(far.yOffset, colorFar, far.roughness, far.seedOffset);
+        const near = ST.MOUNTAINS_NEAR;
+        ctx.globalAlpha = near.alpha;
+        drawLayer(near.yOffset, colorNear, near.roughness, near.seedOffset);
         ctx.globalAlpha = 1.0;
     }
 
     private drawStaticDunes(ctx: CanvasRenderingContext2D, w: number, h: number, colorFar: string, colorNear: string) {
+        const ST = BACKGROUND_FX.STATIC;
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const drawDune = (yBase: number, color: string, amp: number, freq: number, offset: number) => {
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.moveTo(0, h);
             ctx.lineTo(0, yBase);
-            for(let x=0; x<=w; x+=30) {
+            for(let x=0; x<=w; x+=ST.DUNES_STEP) {
                 const y = yBase + Math.sin(x * freq + offset) * amp;
                 ctx.lineTo(x, y);
             }
@@ -189,32 +203,36 @@ export class BackgroundRenderer {
             ctx.lineTo(w, h);
             ctx.fill();
         };
-        ctx.globalAlpha = 0.4;
-        drawDune(horizonY + 50, colorFar, 30, 0.005, 0);
-        ctx.globalAlpha = 0.6;
-        drawDune(horizonY + 150, colorNear, 40, 0.003, 2);
+        const far = ST.DUNES_FAR;
+        ctx.globalAlpha = far.alpha;
+        drawDune(horizonY + far.yOffset, colorFar, far.amp, far.freq, far.offset);
+        const near = ST.DUNES_NEAR;
+        ctx.globalAlpha = near.alpha;
+        drawDune(horizonY + near.yOffset, colorNear, near.amp, near.freq, near.offset);
     }
 
-    private drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number) {
+    public drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number) {
         ctx.save();
         ctx.fillStyle = scene.ambientColor;
-        for(let i=0; i<50; i++) {
-            const speed = (i % 5 + 1) * 10;
-            const y = (h + (i * 53) - (t * speed)) % h;
-            const x = (w + (i * 97) + Math.sin(t + i)*50) % w;
-            const size = Math.sin(t * 2 + i) + 2;
-            ctx.globalAlpha = (Math.sin(t + i) * 0.5 + 0.5) * 0.6;
+        const M = BACKGROUND_FX.MOTES;
+        for(let i=0; i<M.COUNT; i++) {
+            const speed = (i % M.SPEED_MOD + M.SPEED_BASE) * M.SPEED_MULT;
+            const y = (h + (i * M.Y_SEED) - (t * speed)) % h;
+            const x = (w + (i * M.X_SEED) + Math.sin(t + i)*M.X_SWING) % w;
+            const size = Math.sin(t * M.SIZE_FREQ + i) + M.SIZE_BASE;
+            ctx.globalAlpha = (Math.sin(t + i) * 0.5 + 0.5) * M.ALPHA_MULT;
             ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI*2); ctx.fill();
         }
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
-        const pulse = 1.0 + Math.sin(t * 0.5) * 0.1;
-        const horizonGrad = ctx.createRadialGradient(w/2, horizonY + 50, w * 0.2, w/2, horizonY + 50, w * 0.8 * pulse);
+        const G = BACKGROUND_FX.HORIZON_GLOW;
+        const pulse = G.PULSE_BASE + Math.sin(t * G.PULSE_FREQ) * G.PULSE_AMP;
+        const horizonGrad = ctx.createRadialGradient(w/2, horizonY + G.Y_OFFSET, w * G.INNER_RADIUS_RATIO, w/2, horizonY + G.Y_OFFSET, w * G.OUTER_RADIUS_RATIO * pulse);
         horizonGrad.addColorStop(0, scene.horizon);
         horizonGrad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
         ctx.globalCompositeOperation = 'screen';
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = G.ALPHA;
         ctx.fillStyle = horizonGrad;
-        ctx.fillRect(0, h/2, w, h/2);
+        ctx.fillRect(0, h * G.FILL_Y_RATIO, w, h * G.FILL_H_RATIO);
         if (scene.bgFeature === 'AURORA') this.drawAurora(ctx, w, h, t);
         else if (scene.bgFeature === 'CANOPY') this.drawCanopyRays(ctx, w, h, t);
         else if (scene.bgFeature === 'HEAT_WAVE') this.drawHeatHaze(ctx, w, h, t, scene.horizon);
@@ -275,46 +293,53 @@ export class BackgroundRenderer {
 
     private drawCanopyRays(ctx: CanvasRenderingContext2D, w: number, h: number, t: number) {
         ctx.globalCompositeOperation = 'overlay';
+        const C = BACKGROUND_FX.CANOPY;
         const raySprite = VFXFactory.getTexture('BEAM', BACKGROUND_COLORS.CANOPY_RAY);
-        for (let i = 0; i < 4; i++) {
-            const angle = Math.sin(t * 0.2 + i) * 0.1 + 0.6, x = w * (0.2 + i * 0.2) + Math.sin(t * 0.1) * 50;
-            ctx.save(); ctx.translate(x, -100); ctx.rotate(angle); ctx.globalAlpha = 0.15 + Math.sin(t * 0.5 + i) * 0.05;
-            ctx.drawImage(raySprite, -50, 0, 100, h * 1.5); ctx.restore();
+        for (let i = 0; i < C.RAYS_COUNT; i++) {
+            const angle = Math.sin(t * C.SWAY_FREQ + i) * C.SWAY_AMP + C.BASE_ANGLE;
+            const x = w * (C.X_START_RATIO + i * C.X_STEP_RATIO) + Math.sin(t * C.X_SWAY_FREQ) * C.X_SWAY_AMP;
+            ctx.save(); ctx.translate(x, C.Y_OFFSET); ctx.rotate(angle);
+            ctx.globalAlpha = C.ALPHA_BASE + Math.sin(t * C.ALPHA_FREQ + i) * C.ALPHA_AMP;
+            ctx.drawImage(raySprite, C.DRAW_OFFSET_X, 0, C.WIDTH, h * C.HEIGHT_MULT); ctx.restore();
         }
     }
 
     private drawHeatHaze(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, color: string) {
+        const HZ = BACKGROUND_FX.HEAT_HAZE;
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         ctx.globalCompositeOperation = 'screen';
         if (Number.isFinite(h) && Number.isFinite(horizonY)) {
             const grad = ctx.createLinearGradient(0, h, 0, horizonY);
-            grad.addColorStop(0, color); grad.addColorStop(1, 'transparent');
+            grad.addColorStop(0, color); grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
             ctx.fillStyle = grad;
         } else {
             ctx.fillStyle = color;
         }
-        ctx.globalAlpha = 0.2 + Math.sin(t * 2) * 0.05;
+        ctx.globalAlpha = HZ.ALPHA_BASE + Math.sin(t * HZ.ALPHA_FREQ) * HZ.ALPHA_AMP;
         ctx.fillRect(0, horizonY, w, h - horizonY);
-        ctx.globalAlpha = 0.05; ctx.fillStyle = BACKGROUND_COLORS.STAR_WHITE;
-        for(let i=0; i<5; i++) {
-            const y = h - ((t * 50 + i * 100) % (h * 0.4));
-            ctx.fillRect(0, y, w, 10);
+        ctx.globalAlpha = HZ.BANDS_ALPHA; ctx.fillStyle = BACKGROUND_COLORS.STAR_WHITE;
+        for(let i=0; i<HZ.BANDS_COUNT; i++) {
+            const y = h - ((t * HZ.SPEED + i * HZ.SPACING) % (h * HZ.RANGE_RATIO));
+            ctx.fillRect(0, y, w, HZ.BAND_HEIGHT);
         }
     }
 
     private drawFogLayers(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, mapConfig: MapConfig, t: number) {
+        const F = BACKGROUND_FX.FOG;
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         ctx.globalCompositeOperation = 'screen';
         const fogSprite = AssetManager.getFogCloud(color);
-        for (let i = 0; i < 4; i++) {
-            const speed = 25, x = ((t * speed + i * (w / 4)) % (w + 400)) - 200, y = horizonY + Math.sin(i + t * 0.2) * 50;
-            ctx.globalAlpha = 0.08; ctx.drawImage(fogSprite, x - 200, y - 100, 400, 200);
+        for (let i = 0; i < F.LAYERS_COUNT; i++) {
+            const x = ((t * F.SPEED + i * (w / F.LAYERS_COUNT)) % (w + F.WRAP_PAD)) - F.WRAP_OFFSET;
+            const y = horizonY + Math.sin(i + t * F.SWAY_FREQ) * F.SWAY_AMP;
+            ctx.globalAlpha = F.ALPHA; ctx.drawImage(fogSprite, x + F.DRAW_OFFSET_X, y + F.DRAW_OFFSET_Y, F.WIDTH, F.HEIGHT);
         }
     }
 
     private drawSandStorm(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, color: string) {
+        const S = BACKGROUND_FX.SANDSTORM;
         ctx.globalCompositeOperation = 'overlay'; 
-        const windSpeed = 300, drift = t * windSpeed;
+        const drift = t * S.WIND_SPEED;
         if (Number.isFinite(w)) {
             const grad = ctx.createLinearGradient(0, 0, w, 0);
             grad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); grad.addColorStop(0.5, color); grad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
@@ -322,13 +347,14 @@ export class BackgroundRenderer {
         } else {
             ctx.fillStyle = color;
         }
-        ctx.globalAlpha = 0.2; ctx.fillRect(0, 0, w, h);
+        ctx.globalAlpha = S.OVERLAY_ALPHA; ctx.fillRect(0, 0, w, h);
         const fogSprite = AssetManager.getFogCloud(color);
-        for (let i = 0; i < 6; i++) {
-            const x = ((drift + i * (w / 6)) % (w + 600)) - 300, y = (Math.sin(i * 132 + t) * 0.5 + 0.5) * h;
-            ctx.globalAlpha = 0.12; ctx.drawImage(fogSprite, x, y, 500, 150);
+        for (let i = 0; i < S.FOG_COUNT; i++) {
+            const x = ((drift + i * (w / S.FOG_COUNT)) % (w + S.FOG_WRAP_PAD)) - S.FOG_WRAP_OFFSET;
+            const y = (Math.sin(i * S.FOG_HASH + t) * 0.5 + 0.5) * h;
+            ctx.globalAlpha = S.FOG_ALPHA; ctx.drawImage(fogSprite, x, y, S.FOG_WIDTH, S.FOG_HEIGHT);
         }
-        const mistH = 200, mistY = h - mistH;
+        const mistH = S.MIST_HEIGHT, mistY = h - mistH;
         if (Number.isFinite(mistY) && Number.isFinite(h)) {
             const mistGrad = ctx.createLinearGradient(0, mistY, 0, h);
             mistGrad.addColorStop(0, BACKGROUND_COLORS.TRANSPARENT); mistGrad.addColorStop(0.4, color); mistGrad.addColorStop(1, BACKGROUND_COLORS.VIGNETTE_END);
@@ -336,11 +362,12 @@ export class BackgroundRenderer {
         } else {
             ctx.fillStyle = color;
         }
-        ctx.globalAlpha = 0.4 + Math.sin(t*3) * 0.1; ctx.fillRect(0, mistY, w, mistH);
-        ctx.strokeStyle = BACKGROUND_COLORS.STAR_WHITE; ctx.globalAlpha = 0.08; ctx.lineWidth = 1; ctx.beginPath();
-        for (let i = 0; i < 30; i++) {
-            const streakX = ((drift * 2.5 + i * 153) % (w + 200)) - 100, streakY = (Math.sin(i * 21) * 0.5 + 0.5) * (h * 0.8) + h * 0.2;
-            ctx.moveTo(streakX, streakY); ctx.lineTo(streakX + 150, streakY + 5);
+        ctx.globalAlpha = S.MIST_ALPHA_BASE + Math.sin(t * S.MIST_ALPHA_FREQ) * S.MIST_ALPHA_AMP; ctx.fillRect(0, mistY, w, mistH);
+        ctx.strokeStyle = BACKGROUND_COLORS.STAR_WHITE; ctx.globalAlpha = S.STREAKS_ALPHA; ctx.lineWidth = 1; ctx.beginPath();
+        for (let i = 0; i < S.STREAKS_COUNT; i++) {
+            const streakX = ((drift * S.STREAKS_SPEED_MULT + i * S.STREAKS_SPACING) % (w + S.STREAKS_WRAP_PAD)) - S.STREAKS_WRAP_OFFSET;
+            const streakY = (Math.sin(i * S.STREAKS_HASH) * 0.5 + 0.5) * (h * S.STREAKS_HEIGHT_RATIO) + h * S.STREAKS_BASE_RATIO;
+            ctx.moveTo(streakX, streakY); ctx.lineTo(streakX + S.STREAKS_DX, streakY + S.STREAKS_DY);
         }
         ctx.stroke();
     }

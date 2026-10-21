@@ -79,8 +79,101 @@ export const BACKGROUND_COLORS = {
     TRANSPARENT: 'rgba(0, 0, 0, 0)'
 };
 
-/** 背景動態特效參數 */
+/** 背景動態特效與幾何參數 SSOT */
 export const BACKGROUND_FX = {
+    /** 靜態背景快取參數（底色、星空、地平線接縫、暗角、山脈、沙丘、天河） */
+    STATIC: {
+        /** 基礎背景漸層色標位置（頂部 0 為 scene.background） */
+        BG_GRAD_FOG_STOP: 0.4,
+        BG_GRAD_HORIZON_STOP: 1.0,
+
+        /** 星星總數（一般場景 150，虛空星河 200） */
+        STARS_COUNT_DEFAULT: 150,
+        STARS_COUNT_SKY_RIVER: 200,
+        STARS_SEED: 123,
+        STARS_HEIGHT_PCT: 0.7,
+        STARS_MAX_SIZE: 1.8,
+        STARS_MIN_ALPHA: 0.2,
+        STARS_ALPHA_RANGE: 0.6,
+
+        /** 透視網格線 */
+        GRID_ALPHA: 0.15,
+        GRID_LINE_WIDTH: 1,
+        GRID_STEP_X: 100,
+        GRID_CONVERGE_RATIO: 0.1,
+        GRID_DECAY_RATE: 0.1,
+        GRID_STEP_MIN: 2,
+        GRID_MIN_DIST: 0.2,
+        GRID_DIST_POW: 0.5,
+
+        /** 地平線接縫過渡高度與色標偏移 */
+        SEAM_HEIGHT: 350,
+        SEAM_TOP_OFFSET_RATIO: 0.6,
+        SEAM_BOTTOM_OFFSET_RATIO: 0.4,
+        SEAM_STOPS: [0, 0.3, 0.5, 0.7, 1.0] as readonly number[],
+        SEAM_ALPHAS: [0, 0.8, 1.0, 0.8, 0] as readonly number[],
+
+        /** 暗角徑向漸層半徑比例 */
+        VIGNETTE_INNER_RATIO: 0.4,
+        VIGNETTE_OUTER_RATIO: 0.9,
+
+        /** 山脈靜態層參數 */
+        MOUNTAINS_STEP: 20,
+        MOUNTAINS_FREQ_A: 0.01,
+        MOUNTAINS_FREQ_B: 0.03,
+        MOUNTAINS_FAR: { yOffset: 0, roughness: 60, seedOffset: 0, alpha: 0.3 },
+        MOUNTAINS_NEAR: { yOffset: 60, roughness: 40, seedOffset: 100, alpha: 0.5 },
+
+        /** 沙丘靜態層參數 */
+        DUNES_STEP: 30,
+        DUNES_FAR: { yOffset: 50, amp: 30, freq: 0.005, offset: 0, alpha: 0.4 },
+        DUNES_NEAR: { yOffset: 150, amp: 40, freq: 0.003, offset: 2, alpha: 0.6 },
+
+        /** 虛空星河靜態形狀 */
+        SKY_RIVER: {
+            HEIGHT_RATIO: 0.8,
+            P0_Y_RATIO: 0.2,
+            CP0_X_RATIO: 0.5,
+            CP0_Y_RATIO: 0.5,
+            P1_X_RATIO: 1.0,
+            P1_Y_RATIO: 0.4,
+            P2_X_RATIO: 1.0,
+            P2_Y_RATIO: 0.7,
+            CP1_X_RATIO: 0.5,
+            CP1_Y_RATIO: 0.8,
+            P3_X_RATIO: 0.0,
+            P3_Y_RATIO: 0.5,
+        },
+    },
+
+    /** 環境光點（螢火蟲／孢子／火星）動態參數 */
+    MOTES: {
+        COUNT: 50,
+        SPEED_MOD: 5,
+        SPEED_BASE: 1,
+        SPEED_MULT: 10,
+        Y_SEED: 53,
+        X_SEED: 97,
+        X_SWING: 50,
+        SIZE_FREQ: 2,
+        SIZE_BASE: 2,
+        ALPHA_MULT: 0.6,
+    },
+
+    /** 地平線脈動光暈參數 */
+    HORIZON_GLOW: {
+        Y_OFFSET: 50,
+        PULSE_BASE: 1.0,
+        PULSE_FREQ: 0.5,
+        PULSE_AMP: 0.1,
+        INNER_RADIUS_RATIO: 0.2,
+        OUTER_RADIUS_RATIO: 0.8,
+        ALPHA: 0.3,
+        FILL_Y_RATIO: 0.5,
+        FILL_H_RATIO: 0.5,
+    },
+
+    /** 極光（ICE）參數 */
     AURORA: {
         /** 極光改在此比例的離屏畫布繪製再放大貼回：全解析度的大面積 screen 填充是 ICE 地圖 p99 尖峰（GPU 端）的來源；極光本身柔和，低解析度看不出差異 */
         RESOLUTION_SCALE: 0.25,
@@ -93,6 +186,87 @@ export const BACKGROUND_FX = {
         WAVE_A: { amp: 50, freq: 0.005 },
         WAVE_B: { amp: 20, freq: 0.02 },
         TIME_SPEED: 0.2,
+    },
+
+    /** 秘境古樹光柱（FOREST CANOPY）參數 */
+    CANOPY: {
+        RAYS_COUNT: 4,
+        SWAY_FREQ: 0.2,
+        SWAY_AMP: 0.1,
+        BASE_ANGLE: 0.6,
+        X_START_RATIO: 0.2,
+        X_STEP_RATIO: 0.2,
+        X_SWAY_FREQ: 0.1,
+        X_SWAY_AMP: 50,
+        Y_OFFSET: -100,
+        ALPHA_BASE: 0.15,
+        ALPHA_FREQ: 0.5,
+        ALPHA_AMP: 0.05,
+        WIDTH: 100,
+        HEIGHT_MULT: 1.5,
+        DRAW_OFFSET_X: -50,
+    },
+
+    /** 地核熱浪（MAGMA HEAT_WAVE）參數 */
+    HEAT_HAZE: {
+        ALPHA_BASE: 0.2,
+        ALPHA_FREQ: 2,
+        ALPHA_AMP: 0.05,
+        BANDS_ALPHA: 0.05,
+        BANDS_COUNT: 5,
+        SPEED: 50,
+        SPACING: 100,
+        RANGE_RATIO: 0.4,
+        BAND_HEIGHT: 10,
+    },
+
+    /** 環境霧層（FOG）參數 */
+    FOG: {
+        LAYERS_COUNT: 4,
+        SPEED: 25,
+        WRAP_PAD: 400,
+        WRAP_OFFSET: 200,
+        SWAY_FREQ: 0.2,
+        SWAY_AMP: 50,
+        ALPHA: 0.08,
+        DRAW_OFFSET_X: -200,
+        DRAW_OFFSET_Y: -100,
+        WIDTH: 400,
+        HEIGHT: 200,
+    },
+
+    /** 沙塵暴（DESERT SANDSTORM）參數 */
+    SANDSTORM: {
+        WIND_SPEED: 300,
+        OVERLAY_ALPHA: 0.2,
+        FOG_COUNT: 6,
+        FOG_WRAP_PAD: 600,
+        FOG_WRAP_OFFSET: 300,
+        FOG_HASH: 132,
+        FOG_ALPHA: 0.12,
+        FOG_WIDTH: 500,
+        FOG_HEIGHT: 150,
+        MIST_HEIGHT: 200,
+        MIST_ALPHA_BASE: 0.4,
+        MIST_ALPHA_FREQ: 3,
+        MIST_ALPHA_AMP: 0.1,
+        STREAKS_COUNT: 30,
+        STREAKS_ALPHA: 0.08,
+        STREAKS_SPEED_MULT: 2.5,
+        STREAKS_SPACING: 153,
+        STREAKS_WRAP_PAD: 200,
+        STREAKS_WRAP_OFFSET: 100,
+        STREAKS_HASH: 21,
+        STREAKS_HEIGHT_RATIO: 0.8,
+        STREAKS_BASE_RATIO: 0.2,
+        STREAKS_DX: 150,
+        STREAKS_DY: 5,
+    },
+
+    /** 品質階層數量縮減比例（Tier 0, 1, 2, 3） */
+    TIERS: {
+        MOTES_SCALE: [1.0, 1.0, 0.5, 0.0] as const,
+        FOG_SCALE: [1.0, 1.0, 0.5, 0.0] as const,
     },
 } as const;
 

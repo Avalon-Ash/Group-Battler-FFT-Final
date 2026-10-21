@@ -11,12 +11,12 @@
 
 | 場景 | BG0 (改前) meanAbsDiff | BG0 badPixelPct | BG2 meanAbsDiff | BG3 meanAbsDiff | BG4 meanAbsDiff | 最終 meanAbsDiff | 狀態 |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| VOID | 0.194 | 0.01% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
-| FOREST | 0.635 | 0.16% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
-| ICE | 0.234 | 0.21% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
-| MAGMA | 0.237 | 0.03% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
-| DESERT | 0.513 | 0.22% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
-| battle_frozen | 0.000 | 0.00% | 待測 | 待測 | 待測 | 待測 | 基準記錄 |
+| VOID | 0.194 | 0.01% | 0.194 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
+| FOREST | 0.635 | 0.16% | 0.635 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
+| ICE | 0.234 | 0.21% | 0.234 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
+| MAGMA | 0.237 | 0.03% | 0.237 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
+| DESERT | 0.513 | 0.22% | 0.513 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
+| battle_frozen | 0.000 | 0.00% | 0.000 | 待測 | 待測 | 待測 | 與 BG0 完全相同 |
 
 ### 1.2 幀時間與背景開銷（bg-probe.mjs，viewport 2560x1440 headed=false）
 
@@ -41,15 +41,19 @@
 ---
 
 ## 2. 改動紀錄與架構說明
-
-*待任務推進填寫*
+ 
+- **BG2 參數集中化**：
+  - 將 `background.ts` 中的所有數字參數與顏色統一提取至 `constants/terrain.ts` 的 `BACKGROUND_FX` 與 `BACKGROUND_COLORS`。
+  - 分組包含 `STATIC`（底色 stop、星星數量/種子/高度/透明度、透視網格步長與衰減、接縫尺寸與 stops、暗角比例、山脈/沙丘幾何參數、天河幾何控制點）、`MOTES`、`HORIZON_GLOW`、`CANOPY`、`HEAT_HAZE`、`FOG`、`SANDSTORM`、`TIERS`。
+  - 更新 `tests/constants-snapshot.json` 以同步 `BACKGROUND_FX`。
+  - 數值完全不變，保真度測試 6 個場景與 BG0 100% 相同。
 
 ---
 
 ## 3. 未完成項目與日誌路徑
 
 - 目前無未完成項目。
-- 基準測試日誌：`tools/ui-e2e/out/agent-logs/guard.log`、`smoke.log`、`bgprobe.log`。
+- 基準測試日誌：`tools/ui-e2e/out/agent-logs/guard-bg2.log`。
 
 ---
 
@@ -59,3 +63,4 @@
 | :--- | :--- | :--- |
 | BG0 | 建立基準與報告骨架 | `git revert HEAD` |
 | BG1 | 新增 BackgroundRenderer 測試與改前棘輪基準 | `git revert HEAD` |
+| BG2 | 參數搬進 BACKGROUND_FX／BACKGROUND_COLORS | `git revert HEAD` |
