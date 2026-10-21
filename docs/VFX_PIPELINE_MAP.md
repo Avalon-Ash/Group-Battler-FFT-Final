@@ -262,6 +262,7 @@ VFXSystem.state.particles
   - 奧義名橫幅：做過（`3edfa7f`），使用者評「廉價」後移除，奧義名回到施法者頭頂喊招。
   - 命中光爆：`engine/renderers/ult/UltWorldRenderer.ts`，畫在後製之後、tactical overlay 與 HUD 之前；命中點局部加法光爆（不透明度上限 0.35），不做全畫面閃白。
 - STORM：`UltVisualDef.cadence`（`rr_u3` ACCEL、`rb_u5` CLUSTER）；落點出地圖時沿中心方向縮回（`SequenceSystem.clampScatterToMap`，`engine.isValid`）。
+- 重做（10/21 使用者最喜歡、依 `6927b68` 之前的舊版構圖做回）：`mb_u1` 黑洞（ASH_VOID 實色六角吸積盤＋反轉旋臂＋疊兩層 CHAR 黑核＋持續吸入碎晶＋結尾坍縮環）、`rr_u2` 核彈（上升火球＋範圍 3 大衝擊環＋蘑菇煙團＋高飛碎石＋火星）。
 - 重做：`sr_u4` 空中月輪＋血光柱＋回流光點、`rr_u2`／`mr_u1` 餘韻收斂、`wb_u5` 獅盾紋章＋交錯斬痕、`sr_u1` 鎖鏈收緊、`sr_u5` 鬼火。
 - 全畫面驗收圖：`node tools/vfx/ult-sheet.mjs --feel`（8 個奧義 × 詠唱／命中／餘韻）。報告 `docs/ULT_FEEL_REPORT.md`。
 
