@@ -31,7 +31,12 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const LOG_DIR = process.env.AGENT_LOG_DIR ? resolve(process.env.AGENT_LOG_DIR) : join(ROOT, 'tools', 'ui-e2e', 'out', 'agent-logs');
+// 記錄目錄：--log-dir=（背景啟動時由 detach 傳入，WMI 程序不繼承環境變數）＞ AGENT_LOG_DIR ＞ 預設
+const logDirArg = process.argv.find((a) => a.startsWith('--log-dir='));
+const LOG_DIR = logDirArg ? resolve(logDirArg.slice('--log-dir='.length))
+    : process.env.AGENT_LOG_DIR ? resolve(process.env.AGENT_LOG_DIR) : join(ROOT, 'tools', 'ui-e2e', 'out', 'agent-logs');
+/** --detach 後超過這麼久還停在 starting＝背景程序沒啟動 */
+const STARTUP_GRACE_SEC = 10;
 const HEARTBEAT_MS = 10_000;
 /** 沒有輸出超過這麼久，--check 視為「可能卡住」 */
 const STALE_SEC = 300;
@@ -79,24 +84,53 @@ function check(name) {
     return 0;
 }
 
+const startingStale = (s) => s.state === 'starting' && (Date.now() - Date.parse(s.startedAt)) / 1000 > STARTUP_GRACE_SEC;
+
+/** Windows 命令列引號（MSVC 規則：雙引號包住、內部 " 跳脫） */
+const winQuote = (a) => `"${String(a).replace(/(\\*)"/g, '$1$1\\"').replace(/(\\+)$/, '$1$1')}"`;
+
+/**
+ * Windows：經 WMI（Win32_Process.Create）建立程序。IDE 代理的終端機會把指令放進 Job 物件，
+ * 指令結束時連子程序一起結束（2026-10-21：detached spawn 的背景程序一啟動就被收掉，狀態永遠停在 starting）；
+ * WMI 建立的程序由 WmiPrvSE 產生，不在呼叫端的 Job 裡。回傳新程序 pid，失敗回傳 0。
+ * WMI 程序不繼承環境變數，所以記錄目錄改用 --log-dir 參數傳遞。
+ */
+function spawnOutsideJob(args) {
+    const cmdline = [process.execPath, ...args].map(winQuote).join(' ');
+    const script = '$si = New-CimInstance -ClassName Win32_ProcessStartup -ClientOnly -Property @{ShowWindow=[uint16]0};'
+        + '$r = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{CommandLine=$env:RUNMJS_CMDLINE; CurrentDirectory=$env:RUNMJS_CWD; ProcessStartupInformation=$si};'
+        + 'Write-Output "$($r.ReturnValue) $($r.ProcessId)"';
+    try {
+        const out = execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
+            encoding: 'utf8', windowsHide: true, env: { ...process.env, RUNMJS_CMDLINE: cmdline, RUNMJS_CWD: process.cwd() },
+        }).trim().split(/\s+/);
+        return out[0] === '0' ? Number(out[1]) : 0;
+    } catch {
+        return 0;
+    }
+}
+
 /** 背景啟動：先寫 starting 狀態（避免 --wait 讀到上一次的結果），再以獨立程序跑 run 模式 */
 function detach(name, timeoutSec, rest) {
     mkdirSync(LOG_DIR, { recursive: true });
     const p = paths(name);
     if (existsSync(p.status)) {
         const prev = JSON.parse(readFileSync(p.status, 'utf8'));
-        if ((prev.state === 'running' && isAlive(prev.pid)) || prev.state === 'starting') {
+        if ((prev.state === 'running' && isAlive(prev.pid)) || (prev.state === 'starting' && !startingStale(prev))) {
             console.log(`[detach] ${name} 已經在跑或正在啟動。用 --wait ${name} 等它。`);
             return 3;
         }
     }
     writeFileSync(p.status, JSON.stringify({ name, state: 'starting', startedAt: now(), timeoutSec }, null, 2));
     writeFileSync(p.log, '');
-    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), name, String(timeoutSec), '--', ...rest], {
-        cwd: process.cwd(), detached: true, stdio: 'ignore', windowsHide: true, env: process.env,
-    });
-    child.unref();
-    console.log(`[detach] ${name} 已在背景啟動（逾時 ${timeoutSec}s）。接著執行：node tools/agent/run.mjs --wait ${name}`);
+    const args = [fileURLToPath(import.meta.url), `--log-dir=${LOG_DIR}`, name, String(timeoutSec), '--', ...rest];
+    let how = 'wmi';
+    if (process.platform !== 'win32' || !spawnOutsideJob(args)) {
+        how = 'spawn';
+        const child = spawn(process.execPath, args, { cwd: process.cwd(), detached: true, stdio: 'ignore', windowsHide: true, env: process.env });
+        child.unref();
+    }
+    console.log(`[detach] ${name} 已在背景啟動（${how}，逾時 ${timeoutSec}s）。接著執行：node tools/agent/run.mjs --wait ${name}`);
     return 0;
 }
 
@@ -108,7 +142,7 @@ async function waitFor(name, maxSec) {
     for (;;) {
         s = existsSync(p.status) ? JSON.parse(readFileSync(p.status, 'utf8')) : null;
         const finished = s && (s.state === 'done' || s.state === 'timeout');
-        const lost = s && s.state === 'running' && !isAlive(s.pid);
+        const lost = s && ((s.state === 'running' && !isAlive(s.pid)) || startingStale(s));
         if (finished || lost || Date.now() >= deadline) break;
         await new Promise((r) => setTimeout(r, 500));
     }
@@ -124,6 +158,10 @@ async function waitFor(name, maxSec) {
     if (s.state === 'timeout') {
         console.log(`STATE=TIMEOUT  log: ${p.log}\n${tail(p.log, 15)}\n[wait] → 重跑一次；再逾時就記進報告、跳下一個任務。`);
         return TIMEOUT_EXIT;
+    }
+    if (startingStale(s)) {
+        console.log(`STATE=LOST  背景程序 ${STARTUP_GRACE_SEC}s 內沒有啟動（可能被 IDE 的程序群組收掉）。\n[wait] → 改用前景執行：node tools/agent/run.mjs ${name} ${s.timeoutSec} -- <同一個指令>`);
+        return 70;
     }
     if (s.state === 'running' && !isAlive(s.pid)) {
         console.log(`STATE=LOST  程序已不在但沒有寫 EXIT。log: ${p.log}\n[wait] → 重跑一次。`);
@@ -188,7 +226,7 @@ function run(name, timeoutSec, command) {
     });
 }
 
-let argv = process.argv.slice(2);
+let argv = process.argv.slice(2).filter((a) => !a.startsWith('--log-dir='));
 if (argv[0] === '--check' && argv[1]) {
     process.exit(check(argv[1]));
 }

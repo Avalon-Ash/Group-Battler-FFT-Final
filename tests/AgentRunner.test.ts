@@ -59,7 +59,8 @@ describe('AgentRunner', () => {
         const t0 = Date.now();
         const d = runner(['--detach', 'bg', '30', '--', process.execPath, '-e', 'setTimeout(()=>process.exit(5),3000)']);
         expect(d.status).toBe(0);
-        expect(Date.now() - t0).toBeLessThan(2000);
+        expect(Date.now() - t0).toBeLessThan(5000);
+        if (process.platform === 'win32') expect(d.stdout).toMatch(/（wmi，/); // 不在呼叫端的 Job 裡
         const w1 = runner(['--wait', 'bg', '1']);
         expect(w1.stdout.split(/\r?\n/)[0]).toMatch(/^STATE=RUNNING/);
         expect(w1.status).toBe(0);
@@ -76,6 +77,19 @@ describe('AgentRunner', () => {
         runner(['--detach', 'again', '30', '--', process.execPath, '-e', 'setTimeout(()=>{},2000)']);
         expect(runner(['--wait', 'again', '0.5']).stdout).toMatch(/^STATE=RUNNING/);
         for (let i = 0; i < 10 && !/^STATE=DONE/.test(runner(['--wait', 'again', '2']).stdout); i++) { /* 等它結束，避免殘留程序 */ }
+    });
+
+    it('背景程序沒啟動（狀態停在 starting 超過寬限）：--wait 回 LOST 與前景改跑的指令，--detach 可重來', () => {
+        const stale = { name: 'ghost', state: 'starting', startedAt: new Date(Date.now() - 60_000).toISOString(), timeoutSec: 30 };
+        fs.writeFileSync(path.join(LOG_DIR, 'ghost.status.json'), JSON.stringify(stale));
+        const w = runner(['--wait', 'ghost', '1']);
+        expect(w.stdout.split(/\r?\n/)[0]).toMatch(/^STATE=LOST/);
+        expect(w.stdout).toMatch(/改用前景執行/);
+        expect(w.status).toBe(70);
+        const d = runner(['--detach', 'ghost', '30', '--', process.execPath, '-e', 'process.exit(0)']);
+        expect(d.stdout).toMatch(/已在背景啟動/);
+        for (let i = 0; i < 10 && !/^STATE=DONE/.test(runner(['--wait', 'ghost', '2']).stdout); i++) { /* 等它結束 */ }
+        expect(status('ghost').state).toBe('done');
     });
 
     it('--check：已結束的指令告訴代理不要再等', () => {
