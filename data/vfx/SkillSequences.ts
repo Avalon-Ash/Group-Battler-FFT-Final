@@ -141,6 +141,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
         // --- 3. ULTIMATE SKILLS (High Definition) ---
         const ultId = `${prefix}_u${i}`;
         const ultConfig = ULT_VISUALS[ultId];
+        const ultSkill = DEFAULT_SKILL_DB.find(s => s.id === ultId);
 
         if (ultConfig) {
             const actions: VFXAction[] = [];
@@ -184,10 +185,19 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     const count = ultConfig.count || 10;
                     const interval = ultConfig.timing || 0.1;
                     if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
+                    const scatterRings = ultSkill?.type === 'SINGLE' ? 0 : (ultSkill?.aoeRadius ?? 1);
                     // 落點大小確定性交錯（黃金比例），不在模組載入時抽亂數
                     for (let k = 0; k < count; k++) {
-                        actions.push({ type: 'PARTICLE', id: ultFx, color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
-                            scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (0.8 + ((k * 0.618) % 1) * 0.4)), delay: hitAt + k * interval });
+                        actions.push({
+                            type: 'PARTICLE',
+                            id: ultFx,
+                            color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
+                            scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (0.8 + ((k * 0.618) % 1) * 0.4)),
+                            delay: hitAt + k * interval,
+                            scatterRings,
+                            scatterIndex: k,
+                            scatterCount: count,
+                        });
                     }
                     actions.push({ type: 'SHAKE', shakeIntensity: shake(0.15), delay: hitAt });
                     break;
