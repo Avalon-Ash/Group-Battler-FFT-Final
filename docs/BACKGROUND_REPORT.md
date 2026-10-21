@@ -48,12 +48,20 @@
   - `tests/BackgroundRenderer.test.ts` 靜態快取兩次重建繪製呼叫完全相同，確定性測試通過。
   - `perf:guard` 6 個場景保真度全數 PASS（最大 meanAbsDiff 僅 0.670 ≤ 0.8，battle_frozen 0.326 ≤ 0.8）。
 
+- **BG5 品質階層降級（Quality Tier Degradation）**：
+  - 根據 `getQualityTier()`（0 最高、3 最低）降級背景動態層：
+    - Tier 0, 1: 全效繪製（motes 50 顆、霧層 4 團、沙塵暴 6 團/30 條風線）。
+    - Tier 2: 數量減半（motes 25 顆、霧層 2 團、沙塵暴 3 團/15 條風線），比例定義於 `BACKGROUND_FX.TIERS`。
+    - Tier 3: 完全關閉動態層，僅保留靜態快取繪製（1 次 `drawImage`），極大化低階裝置效能。
+  - `tests/BackgroundRenderer.test.ts` 驗證 Tier 2 繪製呼叫減半（從 56 減至 29 次 drawImage），Tier 3 完全抑制動態繪製（僅 1 次 drawImage）。
+  - `runtime-smoke` 驗證通過（0 page errors，引擎與畫布推進正常）。
+
 ---
 
 ## 3. 未完成項目與日誌路徑
 
 - 目前無未完成項目。
-- 基準測試日誌：`tools/ui-e2e/out/agent-logs/guard-bg4.log`。
+- 基準測試日誌：`tools/ui-e2e/out/agent-logs/smoke-bg5.log`。
 
 ---
 
@@ -66,3 +74,5 @@
 | BG2 | 參數搬進 BACKGROUND_FX／BACKGROUND_COLORS | `git revert HEAD` |
 | BG3 | 動態層每幀零漸層、零 arc（光暈/光點 sprite、漸層快取） | `git revert HEAD` |
 | BG4 | 星空確定性雜湊＋靜態快取依 dpr 烘焙 | `git revert HEAD` |
+| BG5 | 品質階層降級（Tier 2 減半、Tier 3 完全關閉動態層） | `git revert HEAD` |
+

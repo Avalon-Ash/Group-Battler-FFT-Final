@@ -30,8 +30,8 @@ export const BG_BASELINE = {
     // BG4 靜態星星改用以索引為種子的純整數雜湊，達成 100% 確定性
     staticCacheDeterministic: true,
 
-    // BG1 背景尚未整合品質階層；BG5 降級實作後 Tier 3 動態繪製數必須為 0
-    tier3DynamicDisabled: false,
+    // BG5 降級實作後 Tier 3 動態繪製數必須為 0（僅繪製 1 次靜態快取）
+    tier3DynamicDisabled: true,
 };
 
 const dummyConfig: MapConfig = {
@@ -293,7 +293,41 @@ describe('BackgroundRenderer Pipeline Verification', () => {
         }
     });
 
-    describe('3. Quality Tier 3 degradation', () => {
+    describe('3. Quality Tier degradation', () => {
+        it('Tier 2 halves motes and fog draw calls', () => {
+            forceSetQualityTier(2);
+            const renderer = new BackgroundRenderer();
+            const screenStats: CtxStats = {
+                createLinearGradient: 0,
+                createRadialGradient: 0,
+                arc: 0,
+                createCanvas: 0,
+                drawImage: 0,
+                fillRect: 0,
+                stroke: 0,
+                fill: 0,
+                totalGradients: 0,
+                calls: [],
+            };
+            const screenCtx = createMockContext(screenStats);
+            const scene = SCENE_DB[0]; // VOID
+
+            // Warmup
+            renderer.draw(screenCtx, 1920, 1080, scene, dummyConfig, 0);
+
+            screenStats.calls = [];
+            screenStats.drawImage = 0;
+            screenStats.fillRect = 0;
+            screenStats.arc = 0;
+
+            // Draw at t = 1.0
+            renderer.draw(screenCtx, 1920, 1080, scene, dummyConfig, 1.0);
+
+            // Tier 2: static cache (1) + horizon glow (1) + 25 motes (25) + 2 fog layers (2) = 29 drawImage calls
+            // (vs Tier 0: 1 + 1 + 50 + 4 = 56 drawImage calls)
+            expect(screenStats.drawImage).toBe(29);
+        });
+
         it('Tier 3 suppresses dynamic background draw calls when enabled', () => {
             forceSetQualityTier(3);
             const renderer = new BackgroundRenderer();

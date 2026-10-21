@@ -12,7 +12,7 @@ import { MapConfig } from "../utils";
 import { createCanvas } from "../graphics/CanvasUtils";
 import { VFXFactory } from "../graphics/VFXFactory";
 import { VisualMath } from "../math/VisualMath";
-import { getRenderDpr } from "./RenderQuality";
+import { getQualityTier, getRenderDpr } from "./RenderQuality";
 
 /** 以索引為種子的純整數雜湊（回傳 [0, 1)），取代 Math.random 確保靜態星星完全確定性 */
 function starHash(i: number, salt: number): number {
@@ -55,7 +55,12 @@ export class BackgroundRenderer {
         if (this.staticCache) {
             ctx.drawImage(this.staticCache, 0, 0, width, height);
         }
-        this.drawDynamicElements(ctx, width, height, scene, mapConfig, globalTime);
+
+        // 品質階層降級：Tier 3 完全關閉動態層（僅保留靜態快取）
+        const tier = getQualityTier();
+        if (tier < 3) {
+            this.drawDynamicElements(ctx, width, height, scene, mapConfig, globalTime, tier);
+        }
     }
 
     private hexToRgba(hex: string, alpha: number): string {
@@ -286,11 +291,13 @@ export class BackgroundRenderer {
         drawDune(horizonY + near.yOffset, colorNear, near.amp, near.freq, near.offset);
     }
 
-    public drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number) {
+    public drawDynamicElements(ctx: CanvasRenderingContext2D, w: number, h: number, scene: SceneTheme, mapConfig: MapConfig, t: number, tier: number = getQualityTier()) {
         ctx.save();
         const M = BACKGROUND_FX.MOTES;
+        const moteScale = BACKGROUND_FX.TIERS.MOTES_SCALE[tier] ?? 1.0;
+        const moteCount = Math.round(M.COUNT * moteScale);
         const moteSprite = this.getMoteSprite(scene.ambientColor);
-        for(let i=0; i<M.COUNT; i++) {
+        for(let i=0; i<moteCount; i++) {
             const speed = (i % M.SPEED_MOD + M.SPEED_BASE) * M.SPEED_MULT;
             const y = (h + (i * M.Y_SEED) - (t * speed)) % h;
             const x = (w + (i * M.X_SEED) + Math.sin(t + i)*M.X_SWING) % w;
@@ -317,8 +324,8 @@ export class BackgroundRenderer {
         if (scene.bgFeature === 'AURORA') this.drawAurora(ctx, w, h, t);
         else if (scene.bgFeature === 'CANOPY') this.drawCanopyRays(ctx, w, h, t);
         else if (scene.bgFeature === 'HEAT_WAVE') this.drawHeatHaze(ctx, w, h, t, scene.horizon);
-        if (scene.textureType === 'DESERT') this.drawSandStorm(ctx, w, h, t, scene.fogColor);
-        else this.drawFogLayers(ctx, w, h, scene.fogColor, mapConfig, t);
+        if (scene.textureType === 'DESERT') this.drawSandStorm(ctx, w, h, t, scene.fogColor, tier);
+        else this.drawFogLayers(ctx, w, h, scene.fogColor, mapConfig, t, tier);
         ctx.restore();
     }
 
@@ -418,19 +425,21 @@ export class BackgroundRenderer {
         }
     }
 
-    private drawFogLayers(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, mapConfig: MapConfig, t: number) {
+    private drawFogLayers(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, mapConfig: MapConfig, t: number, tier: number) {
         const F = BACKGROUND_FX.FOG;
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         ctx.globalCompositeOperation = 'screen';
         const fogSprite = AssetManager.getFogCloud(color);
-        for (let i = 0; i < F.LAYERS_COUNT; i++) {
+        const fogScale = BACKGROUND_FX.TIERS.FOG_SCALE[tier] ?? 1.0;
+        const count = Math.max(1, Math.round(F.LAYERS_COUNT * fogScale));
+        for (let i = 0; i < count; i++) {
             const x = ((t * F.SPEED + i * (w / F.LAYERS_COUNT)) % (w + F.WRAP_PAD)) - F.WRAP_OFFSET;
             const y = horizonY + Math.sin(i + t * F.SWAY_FREQ) * F.SWAY_AMP;
             ctx.globalAlpha = F.ALPHA; ctx.drawImage(fogSprite, x + F.DRAW_OFFSET_X, y + F.DRAW_OFFSET_Y, F.WIDTH, F.HEIGHT);
         }
     }
 
-    private drawSandStorm(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, color: string) {
+    private drawSandStorm(ctx: CanvasRenderingContext2D, w: number, h: number, t: number, color: string, tier: number) {
         const S = BACKGROUND_FX.SANDSTORM;
         ctx.globalCompositeOperation = 'overlay'; 
         const drift = t * S.WIND_SPEED;
@@ -450,7 +459,9 @@ export class BackgroundRenderer {
         }
         ctx.globalAlpha = S.OVERLAY_ALPHA; ctx.fillRect(0, 0, w, h);
         const fogSprite = AssetManager.getFogCloud(color);
-        for (let i = 0; i < S.FOG_COUNT; i++) {
+        const fogScale = BACKGROUND_FX.TIERS.FOG_SCALE[tier] ?? 1.0;
+        const fogCount = Math.max(1, Math.round(S.FOG_COUNT * fogScale));
+        for (let i = 0; i < fogCount; i++) {
             const x = ((drift + i * (w / S.FOG_COUNT)) % (w + S.FOG_WRAP_PAD)) - S.FOG_WRAP_OFFSET;
             const y = (Math.sin(i * S.FOG_HASH + t) * 0.5 + 0.5) * h;
             ctx.globalAlpha = S.FOG_ALPHA; ctx.drawImage(fogSprite, x, y, S.FOG_WIDTH, S.FOG_HEIGHT);
@@ -472,7 +483,8 @@ export class BackgroundRenderer {
         }
         ctx.globalAlpha = S.MIST_ALPHA_BASE + Math.sin(t * S.MIST_ALPHA_FREQ) * S.MIST_ALPHA_AMP; ctx.fillRect(0, mistY, w, mistH);
         ctx.strokeStyle = BACKGROUND_COLORS.STAR_WHITE; ctx.globalAlpha = S.STREAKS_ALPHA; ctx.lineWidth = 1; ctx.beginPath();
-        for (let i = 0; i < S.STREAKS_COUNT; i++) {
+        const streakCount = Math.max(1, Math.round(S.STREAKS_COUNT * fogScale));
+        for (let i = 0; i < streakCount; i++) {
             const streakX = ((drift * S.STREAKS_SPEED_MULT + i * S.STREAKS_SPACING) % (w + S.STREAKS_WRAP_PAD)) - S.STREAKS_WRAP_OFFSET;
             const streakY = (Math.sin(i * S.STREAKS_HASH) * 0.5 + 0.5) * (h * S.STREAKS_HEIGHT_RATIO) + h * S.STREAKS_BASE_RATIO;
             ctx.moveTo(streakX, streakY); ctx.lineTo(streakX + S.STREAKS_DX, streakY + S.STREAKS_DY);
