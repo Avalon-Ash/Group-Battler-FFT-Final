@@ -189,3 +189,139 @@
   - `battle_frozen`: `meanAbsDiff = 0.000` (PASS)
   - 5 張地形底圖與凍結場景差值均完全維持在基準水準，無任何非預期漂移。
 - **執行期 Smoke**: 10 名單位全速運行 4.57 秒，0 頁面錯誤、畫布穩定變更。
+
+---
+
+## 8. UA6 奧義範圍修正——風暴落點散布＋貼地零件上限報告
+
+### 8.1 背景與核心原則變更
+
+在 UA0～UA5 完成後，主代理審查發現原先 C6「貼地零件半徑對齊 `aoeRadius`」存在結構性缺陷：
+1. **大範圍奧義畫面遮蔽**：`aoeRadius` 為 8～10 的全場型奧義，其中央貼地零件被放大至半徑 550～720 px，覆蓋大半戰場甚至整面螢幕（如 `sr_u4` 命中後整格畫面變成粉紅色）。
+2. **STORM 落點集中無散布**：STORM 類型的 8 次打擊全部堆疊在目標中心同一點，每一擊又依照全場範圍放大，造成嚴重視覺堆疊與過曝。
+
+**設計定案（2026-10-21）**：
+- **範圍不靠特效表示**：詠唱期間已存在精確的逐格範圍預警（`currentTelegraph` 柔光格，與傷害判定邏輯及行為樹閃避完全一致）與施法者腳下法陣；命中時不另加全場覆蓋的地面大光圈。
+- **STORM 落點向日葵散布**：每一擊尺寸縮小為單體衝擊規模（≤ 72 px），並以確定性向日葵分佈（Sunflower distribution）撒在 `aoeRadius` 圈內。
+- **中央貼地零件上限約束**：
+  - **C6b (Non-STORM)**：中央貼地零件最大半徑 ≤ $1.3 \times \min(\text{aoeRadius}, 3)$ 圈格心距離（`C6_MAX_RING = 3`，約 324.24 px）；SINGLE 技 ≤ $1.5 \times \text{HEX\_SIZE}$ (72 px)。**取消下限**。
+  - **C6c (STORM)**：單擊配方最大貼地半徑 ≤ $1.5 \times \text{HEX\_SIZE}$ (72 px)；AOE 的 STORM 每一擊均具備 `scatterRings === aoeRadius`。
+
+---
+
+### 8.2 測試套件重構與清理 (`tests/UltSpec.test.ts`)
+
+1. **型別安全**：移除 `(em.part as any).radius`，換用型別保護 `isExpandingRing` 與安全求值 `Math.max(em.size[0], em.size[1])`。
+2. **基準保護**：基準檔不存在時明確拋錯提示，禁止測試於執行期自動寫入更新基準。
+3. **粒子計數動態化**：共用命中包粒子數由寫死 32 改為自 `VFX_REGISTRY` 依陣營動態計算。
+4. **奧義清單動態化**：`ALL_ULT_IDS` 改由 `Object.keys(ULT_VISUALS).sort()` 動態提取，並嚴格斷言 50 招。
+
+---
+
+### 8.3 STORM 落點散布演算法實作
+
+- **Schema 擴充** (`types/VFXSchema.ts`)：
+  - `VFXAction` 增加可選欄位 `scatterRings?: number`、`scatterIndex?: number`、`scatterCount?: number`。
+- **序列建構** (`data/vfx/SkillSequences.ts`)：
+  - STORM 原型排入 PARTICLE 動作時，填入 `scatterRings = aoeRadius`（SINGLE 技為 0）、`scatterIndex = k`、`scatterCount = count`。
+- **確定性向日葵分佈與地面高度重算** (`engine/presentation/visuals/SequenceSystem.ts`)：
+  - 偏移計算：黃金角 $\theta = k \times 2.39996$；距離 $r = \sqrt{\frac{k + 0.5}{\text{count}}} \times R_{\text{px}}$。
+  - **高低差協議遵從**：落點偏移後，透過 `HexUtils.fromPx(hitX, hitY, engine.mapConfig)` 重新求得該落點所在之 Hex 格子，調用 `engine.getTerrainHeight(hex.q, hex.r) + 5` 重新計算該點專屬的 `z` 與 `groundZ`，符合 `RenderSpec` 地面高度協議，落點絕不懸空或穿透地塊。
+  - **零 GC 配置**：重用內部 `scratchOffset` 結構，無每幀/每次施放物件配置。
+- **單元測試驗證** (`tests/UltScatter.test.ts`)：
+  - 100% 確定性（同一參數重複計算座標完全一致）。
+  - 半徑邊界驗證（所有落點距離皆在散布圈半徑內）。
+  - 零半徑居中（`scatterRings = 0` 時精確落在目標中心）。
+  - 最小間距驗證（所有落點間距 > 1 px，互不重疊）。
+  - 高低差重算驗證（不同落點根據所在格子高度精確求得對應地面高度）。
+
+---
+
+### 8.4 23 招貼地零件縮小對照表
+
+所有 23 招超標技能依約束縮小貼地零件尺寸，`tests/ult-spec.baseline.json` 中的 `"C6": []` 完全歸零：
+
+| 技能 ID | 名稱 | 陣營 | 類型 | aoeRadius | 改前最大貼地半徑 | 改後最大貼地半徑 | 規範上限 | 符合規則 |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `tb_u2` | 神聖庇護 | 藍 | AOE | 10 | 681.4 px | 312.0 px | 324.2 px | C6b |
+| `tb_u3` | 破陣衝擊 | 藍 | AOE | 4 | 384.0 px | 312.0 px | 324.2 px | C6b |
+| `tb_u5` | 天堂之怒 | 藍 | AOE | 10 | 681.4 px | 312.0 px | 324.2 px | C6b |
+| `wb_u2` | 旋風斬 | 藍 | AOE | 4 | 348.0 px | 312.0 px | 324.2 px | C6b |
+| `wb_u4` | 劍刃風暴 | 藍 | STORM | 3 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `rb_u2` | 群星墜落 | 藍 | STORM | 10 | 614.4 px | 67.2 px | 72.0 px | C6c |
+| `rb_u4` | 冰霜陷阱 | 藍 | AOE | 5 | 452.4 px | 312.0 px | 324.2 px | C6b |
+| `mb_u3` | 暴風雪 | 藍 | AOE | 10 | 609.0 px | 312.0 px | 324.2 px | C6b |
+| `mb_u4` | 奧術洪流 | 藍 | STORM | 2 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `sb_u2` | 庇護之陣 | 藍 | AOE | 5 | 452.4 px | 312.0 px | 324.2 px | C6b |
+| `sb_u3` | 神聖讚美詩 | 藍 | STORM | 10 | 720.0 px | 67.2 px | 72.0 px | C6c |
+| `sb_u5` | 祈雨術 | 藍 | STORM | 10 | 480.0 px | 67.2 px | 72.0 px | C6c |
+| `tr_u4` | 死亡之握 | 紅 | AOE | 8 | 573.0 px | 312.0 px | 324.2 px | C6b |
+| `tr_u5` | 巨石投擲 | 紅 | AOE | 4 | 384.0 px | 312.0 px | 324.2 px | C6b |
+| `wr_u2` | 嗜血狂風 | 紅 | STORM | 2 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `wr_u4` | 無限劍製 | 紅 | STORM | 3 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `wr_u5` | 戰爭踐踏 | 紅 | AOE | 4 | 384.0 px | 312.0 px | 324.2 px | C6b |
+| `rr_u3` | 煉獄火雨 | 紅 | STORM | 8 | 563.2 px | 67.2 px | 72.0 px | C6c |
+| `rr_u5` | 末日降臨 | 紅 | STORM | 3 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `mr_u4` | 流星雨 | 紅 | AOE | 10 | 672.0 px | 312.0 px | 324.2 px | C6b |
+| `mr_u5` | 靈魂爆燃 | 紅 | STORM | 10 | 240.0 px | 67.2 px | 72.0 px | C6c |
+| `sr_u2` | 狂亂之舞 | 紅 | AOE | 8 | 546.0 px | 312.0 px | 324.2 px | C6b |
+| `sr_u4` | 鮮血盛宴 | 紅 | AOE | 10 | 672.0 px | 312.0 px | 324.2 px | C6b |
+
+---
+
+### 8.5 總表擴充與全景觀察 (`tools/vfx/ult-sheet.mjs`)
+
+- 總表結構擴充為 6 欄（增加 `全景 (hitAt+0.25s)`）。
+- 針對 12 招 STORM 技能，於序列推進至 `hitAt + 0.25s` 時，透過動態計算鏡頭縮放：
+  $$\text{panoramaZoom} = \min\left(0.60, \max\left(0.12, \frac{160}{2 \times \max(1, \text{aoeRadius}) \times 83.14}\right)\right)$$
+  將整個 `aoeRadius` 完整收納於 240×180 預覽格內，可清晰觀察到多個落點均勻散布在戰場上，單格飽和度顯著降低。
+- 非 STORM 技能之第 6 欄繪製簡約灰線 `—`，視覺排版乾淨整齊。
+- 總表產物已更新至 `tools/ui-e2e/out/ult/after/blue.png` 與 `tools/ui-e2e/out/ult/after/red.png`。
+
+---
+
+### 8.6 白色飽和度量測數據 (`tools/ui-e2e/out/ult/after/ult-sheet.json`)
+
+在 ICE 與 DESERT 場景於 `hitAt + 0.05s` 進行像素採樣分析：
+- **STORM 技能白飽和比全面受控**：12 招 STORM 技能因落點分散且單擊尺寸適當，白飽和比極低（最低 `sr_u3` 0.0000、`rr_u3` 0.0001；最高 `mb_u4` 0.2027、`wb_u4` 0.1721；其餘皆在 0.01～0.13 之間）。
+- **全技能最高飽和比排行 Top 5**：
+  1. `rb_u4`（冰霜陷阱）：0.5665（DESERT）
+  2. `mb_u2`（絕對零度）：0.5054（DESERT）
+  3. `sb_u4`（靜態力場）：0.4558（DESERT）
+  4. `sb_u2`（庇護之陣）：0.4515（ICE）
+  5. `tb_u1`（聖光盾擊）：0.3762（ICE）
+- 50 招奧義均無全螢幕過曝現象，色彩反差與視覺清晰度良好。
+
+---
+
+### 8.7 系統品質與保護檢驗結論 (UA6e)
+
+1. **TypeScript Lint (`npm run lint`)**: 0 errors，用時 5s。
+2. **單元測試 (`npm test`)**: 84 個測試檔案、657 個測試 100% 通過，用時 4s。
+   - `tests/UltSpec.test.ts`: PASS（50 招奧義除已列入基準的 3 個 C1 歷史違規外，其餘全數通過；C6 違規為 0）。
+   - `tests/UltScatter.test.ts`: 5 個測試全部 PASS。
+3. **生產構建 (`npm run build`)**: 構建完成用時 2.86s，產物正常。
+4. **執行期煙霧檢測 (`runtime-smoke.mjs`)**: agents=10 運行 4.05 秒，0 頁面錯誤，畫布平滑推進。
+5. **渲染保真度與效能守門 (`npm run perf:guard`)**:
+   - `VOID`: `meanAbsDiff = 0.194` (PASS)
+   - `FOREST`: `meanAbsDiff = 0.635` (PASS)
+   - `ICE`: `meanAbsDiff = 0.234` (PASS)
+   - `MAGMA`: `meanAbsDiff = 0.237` (PASS)
+   - `DESERT`: `meanAbsDiff = 0.513` (PASS)
+   - `battle_frozen`: `meanAbsDiff = 0.000` (PASS)
+   - 效能防護（`perf-ab.mjs`）：5 張地形 baseline/no_grain ratio 均為 1.00（閥值 $\le 1.15$），當前影格渲染耗時 4.17ms（閥值 26.4ms），全數 PASS。
+6. **未完成項目**: 0 項（無指令逾時或失敗）。
+
+---
+
+### 8.8 UA6 版本回退指南（Commit Guide）
+
+| Commit | 階段 | 影響範圍 | 說明 |
+| :--- | :--- | :--- | :--- |
+| `679d5dd` | UA6a | `tests/UltSpec.test.ts`, `tests/ult-spec.baseline.json` | 測試清理、改寫 C6 規則為 C6b/C6c、動態粒子計數與 50 招動態提取 |
+| `7808fca` | UA6b | `types/VFXSchema.ts`, `data/vfx/SkillSequences.ts`, `engine/presentation/visuals/SequenceSystem.ts`, `tests/UltScatter.test.ts` | STORM 散布欄位擴充、確定性向日葵分佈實作、依格心重算地面 z |
+| `0973c6f` | UA6c | `data/vfx/registry/ult_parts_blue.ts`, `ult_parts_storm.ts`, `tests/ult-spec.baseline.json` | 藍方 12 招奧義貼地零件配方縮小，下調基準檔 |
+| `a2047f9` | UA6c | `data/vfx/registry/ult_parts_red.ts`, `ult_parts_storm.ts`, `tests/ult-spec.baseline.json` | 紅方 11 招奧義貼地零件配方縮小，C6 違規完全清零（`"C6": []`） |
+| `06cf71c` | UA6d | `tools/vfx/ult-sheet.mjs` | 總表新增第 6 欄「全景 (hitAt+0.25s)」鏡頭拉遠並重新產生 after 總表與白飽和數據 |
+| `a4d06e2` | REPORT | `docs/ULT_ART_REPORT.md` | 本報告更新 |
+
