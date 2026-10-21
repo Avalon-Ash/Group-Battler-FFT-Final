@@ -18,20 +18,18 @@ export const BG_BASELINE = {
         DESERT: 0,
     } as Record<string, number>,
 
-    // BG3 動態層已改用預烘焙光點 Sprite，每幀 0 次 arc
+    // 光點維持逐顆 arc（每幀 50 次）：實測 16px sprite 縮放 drawImage 比 arc 更貴（審查 2026-10-21）
     perFrameArcs: {
-        VOID: 0,
-        FOREST: 0,
-        ICE: 0,
-        MAGMA: 0,
-        DESERT: 0,
+        VOID: 50,
+        FOREST: 50,
+        ICE: 50,
+        MAGMA: 50,
+        DESERT: 50,
     } as Record<string, number>,
 
     // BG4 靜態星星改用以索引為種子的純整數雜湊，達成 100% 確定性
     staticCacheDeterministic: true,
 
-    // BG5 降級實作後 Tier 3 動態繪製數必須為 0（僅繪製 1 次靜態快取）
-    tier3DynamicDisabled: true,
 };
 
 const dummyConfig: MapConfig = {
@@ -323,9 +321,9 @@ describe('BackgroundRenderer Pipeline Verification', () => {
             // Draw at t = 1.0
             renderer.draw(screenCtx, 1920, 1080, scene, dummyConfig, 1.0);
 
-            // Tier 2: static cache (1) + horizon glow (1) + 25 motes (25) + 2 fog layers (2) = 29 drawImage calls
-            // (vs Tier 0: 1 + 1 + 50 + 4 = 56 drawImage calls)
-            expect(screenStats.drawImage).toBe(29);
+            // Tier 2: static cache (1) + horizon glow (1) + 2 fog layers (2) = 4 drawImage；光點 25 顆 arc（Tier 0 為 50）
+            expect(screenStats.drawImage).toBe(4);
+            expect(screenStats.arc).toBe(25);
         });
 
         it('Tier 3 suppresses dynamic background draw calls when enabled', () => {
@@ -357,15 +355,10 @@ describe('BackgroundRenderer Pipeline Verification', () => {
             // Draw at t = 1.0
             renderer.draw(screenCtx, 1920, 1080, scene, dummyConfig, 1.0);
 
-            if (BG_BASELINE.tier3DynamicDisabled) {
-                // Tier 3: only draws static cache (1 drawImage), no dynamic calls
-                expect(screenStats.drawImage).toBe(1);
-                expect(screenStats.fillRect).toBe(0);
-                expect(screenStats.arc).toBe(0);
-            } else {
-                // Before BG5, dynamic layer is not gated by tier yet, so motes drawImage calls occur
-                expect(screenStats.drawImage).toBeGreaterThan(1);
-            }
+            // Tier 3: only draws static cache (1 drawImage), no dynamic calls
+            expect(screenStats.drawImage).toBe(1);
+            expect(screenStats.fillRect).toBe(0);
+            expect(screenStats.arc).toBe(0);
         });
     });
 });

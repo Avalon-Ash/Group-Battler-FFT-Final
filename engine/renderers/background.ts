@@ -32,7 +32,12 @@ export class BackgroundRenderer {
 
     // 動態層預烘焙與快取
     private horizonGlowCanvas: HTMLCanvasElement | null = null;
-    private moteSprites: Map<string, HTMLCanvasElement> = new Map();
+    /** 光暈烘焙圖的原點（相對目的矩形左上）、光暈中心、目的矩形高度 */
+    private glowX0 = 0;
+    private glowY0 = 0;
+    private glowCX = 0;
+    private glowCY = 0;
+    private glowH = 0;
 
     private auroraCanvas: HTMLCanvasElement | null = null;
     private auroraCtx: CanvasRenderingContext2D | null = null;
@@ -141,39 +146,39 @@ export class BackgroundRenderer {
         const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const gh = Math.max(1, Math.round(h * G.FILL_H_RATIO));
         if (!this.horizonGlowCanvas) {
-            const { canvas } = createCanvas(w, gh);
-            this.horizonGlowCanvas = canvas;
-        } else {
-            this.horizonGlowCanvas.width = w;
-            this.horizonGlowCanvas.height = gh;
+            this.horizonGlowCanvas = createCanvas(1, 1).canvas;
         }
+        // 脈動＝以光暈中心縮放取樣範圍，畫到固定的目的矩形（不縮目的矩形，避免縮小時兩側露出硬邊）。
+        // 烘焙範圍要涵蓋最小／最大脈動下的取樣範圍。
+        const cx = w / 2;
+        const cy = horizonY + G.Y_OFFSET - h * G.FILL_Y_RATIO;
+        const pMin = G.PULSE_BASE - G.PULSE_AMP;
+        const pMax = G.PULSE_BASE + G.PULSE_AMP;
+        const x0 = cx - cx / pMin;
+        const x1 = cx + (w - cx) / pMin;
+        const y0 = Math.min(cy - cy / pMin, cy - cy / pMax);
+        const y1 = Math.max(cy + (gh - cy) / pMin, cy + (gh - cy) / pMax);
+        const bw = Math.max(1, Math.ceil(x1 - x0));
+        const bh = Math.max(1, Math.ceil(y1 - y0));
+        this.horizonGlowCanvas.width = bw;
+        this.horizonGlowCanvas.height = bh;
+        this.glowX0 = x0;
+        this.glowY0 = y0;
+        this.glowCX = cx;
+        this.glowCY = cy;
+        this.glowH = gh;
+
         const ctx = this.horizonGlowCanvas.getContext('2d')!;
-        ctx.clearRect(0, 0, w, gh);
-        const localY = horizonY + G.Y_OFFSET - h * G.FILL_Y_RATIO;
+        ctx.setTransform(1, 0, 0, 1, -x0, -y0);
+        ctx.clearRect(x0, y0, bw, bh);
         const horizonGrad = ctx.createRadialGradient(
-            w / 2, localY, w * G.INNER_RADIUS_RATIO,
-            w / 2, localY, w * G.OUTER_RADIUS_RATIO
+            cx, cy, w * G.INNER_RADIUS_RATIO,
+            cx, cy, w * G.OUTER_RADIUS_RATIO
         );
         horizonGrad.addColorStop(0, scene.horizon);
         horizonGrad.addColorStop(1, BACKGROUND_COLORS.TRANSPARENT);
         ctx.fillStyle = horizonGrad;
-        ctx.fillRect(0, 0, w, gh);
-    }
-
-    private getMoteSprite(color: string): HTMLCanvasElement {
-        let sprite = this.moteSprites.get(color);
-        if (!sprite) {
-            const R = 8;
-            const size = R * 2;
-            const { canvas, ctx } = createCanvas(size, size);
-            ctx.fillStyle = color;
-            ctx.beginPath();
-            ctx.arc(R, R, R, 0, Math.PI * 2);
-            ctx.fill();
-            this.moteSprites.set(color, canvas);
-            sprite = canvas;
-        }
-        return sprite;
+        ctx.fillRect(x0, y0, bw, bh);
     }
 
     private drawPerspectiveGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
@@ -296,29 +301,27 @@ export class BackgroundRenderer {
         const M = BACKGROUND_FX.MOTES;
         const moteScale = BACKGROUND_FX.TIERS.MOTES_SCALE[tier] ?? 1.0;
         const moteCount = Math.round(M.COUNT * moteScale);
-        const moteSprite = this.getMoteSprite(scene.ambientColor);
+        // 光點維持逐顆 arc：2026-10-21 實測（2560×1440）改成 16px sprite 縮放 drawImage 反而每次背景多約 0.08 ms
+        ctx.fillStyle = scene.ambientColor;
         for(let i=0; i<moteCount; i++) {
             const speed = (i % M.SPEED_MOD + M.SPEED_BASE) * M.SPEED_MULT;
             const y = (h + (i * M.Y_SEED) - (t * speed)) % h;
             const x = (w + (i * M.X_SEED) + Math.sin(t + i)*M.X_SWING) % w;
             const size = Math.sin(t * M.SIZE_FREQ + i) + M.SIZE_BASE;
             ctx.globalAlpha = (Math.sin(t + i) * 0.5 + 0.5) * M.ALPHA_MULT;
-            ctx.drawImage(moteSprite, x - size, y - size, size * 2, size * 2);
+            ctx.beginPath(); ctx.arc(x, y, size, 0, Math.PI * 2); ctx.fill();
         }
 
-        const horizonY = h * VisualMath.HORIZON_Y_PCT;
         const G = BACKGROUND_FX.HORIZON_GLOW;
         const pulse = G.PULSE_BASE + Math.sin(t * G.PULSE_FREQ) * G.PULSE_AMP;
         if (this.horizonGlowCanvas) {
             ctx.globalCompositeOperation = 'screen';
             ctx.globalAlpha = G.ALPHA;
-            const gh = h * G.FILL_H_RATIO;
-            const gw = w * pulse;
-            const gScaledH = gh * pulse;
-            const gx = (w - gw) * 0.5;
-            const localY = horizonY + G.Y_OFFSET - h * G.FILL_Y_RATIO;
-            const gy = h * G.FILL_Y_RATIO + localY * (1 - pulse);
-            ctx.drawImage(this.horizonGlowCanvas, gx, gy, gw, gScaledH);
+            // 目的矩形固定；取樣範圍以光暈中心縮 1/pulse（見 updateHorizonGlow）
+            const cx = this.glowCX, cy = this.glowCY, gh = this.glowH;
+            const sx = cx - cx / pulse - this.glowX0;
+            const sy = cy - cy / pulse - this.glowY0;
+            ctx.drawImage(this.horizonGlowCanvas, sx, sy, w / pulse, gh / pulse, 0, h * G.FILL_Y_RATIO, w, gh);
         }
 
         if (scene.bgFeature === 'AURORA') this.drawAurora(ctx, w, h, t);
