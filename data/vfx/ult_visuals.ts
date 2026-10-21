@@ -45,6 +45,7 @@ export interface UltVisualDef {
     vfxOverride?: string;   // 命中／落點特效（VFX_REGISTRY 的鍵）
     beamStyle?: BeamStyleId; // BEAM_SNIPE：光束樣式（BEAM_STYLES 的鍵）
     windupFx?: string;      // STORM：施放時只播一次的起手效果（陣營紋章），落點效果才重播 count 次
+    cadence?: 'EVEN' | 'ACCEL' | 'CLUSTER'; // STORM：落點節奏（預設 EVEN）
 }
 
 export const ULT_VISUALS: Record<string, UltVisualDef> = {
@@ -84,7 +85,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rb_u4: 絕對封鎖 -> 六邊形牢籠
     'rb_u4': { archetype: 'DOMAIN', primaryColor: '#7c3aed', secondaryColor: '#8b5cf6', scale: 1.4, vfxOverride: 'FX_ULT_BLUE_LOCKDOWN' },
     // rb_u5: 疾風百矢 -> 自身周圍的高頻六邊形火花
-    'rb_u5': { archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'rb_u5': { archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_STORM_SIGIL', cadence: 'CLUSTER' },
 
     // --- MAGE (Arcane/Gravity) ---
     // mb_u1: 奧術漩渦 -> 黑洞 (唯一保留球體特徵，但加上六邊形吸積盤)
@@ -142,7 +143,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
-    'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL', cadence: 'ACCEL' },
     // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)
     'rr_u4': { 
         archetype: 'BEAM_SNIPE', 
@@ -164,7 +165,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // mr_u4: 末世毒雨 -> 腐蝕酸雨
     'mr_u4': { archetype: 'DOMAIN', primaryColor: '#a3e635', secondaryColor: '#15803d', scale: 1.8, vfxOverride: 'FX_ULT_RED_POISON_RAIN' },
     // mr_u5: 靈魂爆燃 -> 連鎖爆炸
-    'mr_u5': { archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'mr_u5': { archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_STORM_SIGIL', cadence: 'EVEN' },
 
     // --- SUPPORT (Blood/Curse) ---
     // sr_u1: 靈魂連結 -> 靈魂鎖鏈陣

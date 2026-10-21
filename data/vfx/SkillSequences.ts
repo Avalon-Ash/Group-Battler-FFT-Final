@@ -186,14 +186,25 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     const interval = ultConfig.timing || 0.1;
                     if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
                     const scatterRings = ultSkill?.type === 'SINGLE' ? 0 : (ultSkill?.aoeRadius ?? 1);
+                    const cadence = ultConfig.cadence ?? 'EVEN';
+                    const totalSpan = (count - 1) * interval;
                     // 落點大小確定性交錯（黃金比例），不在模組載入時抽亂數
                     for (let k = 0; k < count; k++) {
+                        let delay = hitAt + k * interval;
+                        if (cadence === 'ACCEL') {
+                            const u = count > 1 ? k / (count - 1) : 0;
+                            delay = hitAt + (1 - (1 - u) * (1 - u)) * totalSpan;
+                        } else if (cadence === 'CLUSTER') {
+                            const group = Math.floor(k / 3);
+                            const intra = k % 3;
+                            delay = hitAt + group * (interval * 2.5) + intra * (interval * 0.5);
+                        }
                         actions.push({
                             type: 'PARTICLE',
                             id: ultFx,
                             color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
                             scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (0.8 + ((k * 0.618) % 1) * 0.4)),
-                            delay: hitAt + k * interval,
+                            delay,
                             scatterRings,
                             scatterIndex: k,
                             scatterCount: count,

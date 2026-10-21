@@ -327,4 +327,10 @@ export const ULT_FEEL = {
     MAX_CASTERS: 8,
     /** 命中點追蹤槽位上限 */
     MAX_IMPACTS: 8,
+
+    // --- B: 風暴落點邊界約束 ---
+    /** 散布落點超出地圖時，每次往中心收縮的比例 */
+    SCATTER_CLAMP_RETRACT_RATIO: 0.75,
+    /** 散布落點超出地圖時，最大收縮嘗試次數（超過仍出界則直接落在中心） */
+    SCATTER_CLAMP_MAX_STEPS: 4,
 } as const;
