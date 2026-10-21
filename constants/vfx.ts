@@ -288,26 +288,6 @@ export const ULT_FEEL = {
     /** 預烘焙聚光 sprite 半徑（像素） */
     SPOTLIGHT_BAKE_RADIUS: 256,
 
-    // --- A2: 奧義名橫幅 ---
-    /** 橫幅總展示時間（秒，約 1.0～1.3 s） */
-    BANNER_DURATION: 1.2,
-    /** 橫幅滑入時間（秒） */
-    BANNER_SLIDE_IN: 0.2,
-    /** 橫幅停留時間（秒） */
-    BANNER_HOLD: 0.7,
-    /** 橫幅滑出時間（秒） */
-    BANNER_SLIDE_OUT: 0.3,
-    /** 橫幅高度（像素） */
-    BANNER_HEIGHT: 52,
-    /** 橫幅 Y 軸螢幕位置（頂部距離像素） */
-    BANNER_Y: 72,
-    /** 橫幅字型大小（像素） */
-    BANNER_FONT_SIZE: 22,
-    /** 橫幅光暈模糊半徑 */
-    BANNER_GLOW_BLUR: 12,
-    /** 橫幅背景漸層最大透明度 */
-    BANNER_BG_ALPHA: 0.85,
-
     // --- A3: 命中光爆 ---
     /** 命中局部光爆半徑（格數，約 2～3 格） */
     IMPACT_BURST_RADIUS_HEX: 2.4,

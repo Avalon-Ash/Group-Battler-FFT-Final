@@ -259,7 +259,7 @@ VFXSystem.state.particles
 ### 4.21 奧義有感 UF（2026-10-21，合併 `c7df349`）
 - 共用演出（參數 `constants/vfx.ts` 的 `ULT_FEEL`；狀態 `engine/presentation/vfx/UltFeelStore.ts`，寫入者只有 `VisualSystem`（CAST_START／CAST_BREAK）與 `SequenceSystem`（新動作 `ULT_IMPACT`，在 hitAt），`VFXSystem.reset()` 清空）：
   - 詠唱暗場＋施法者聚光：`engine/renderers/ult/UltWorldRenderer.ts`，畫在後製之後、tactical overlay 與 HUD 之前；聚光中心讀 UnitFrame，最多 2 個，最低品質階層關閉聚光。聚光沿用主畫布當下的變換（重呼叫 `camera.applyTransform` 會重抽震動亂數，審查時修正）。
-  - 奧義名橫幅：`HUDRenderer`（HUD 螢幕層，陣營色取 `factionSkin`，漸層快取），出現時該奧義的頭頂 SHOUT 不顯示。
+  - 奧義名橫幅：做過（`3edfa7f`），使用者評「廉價」後移除，奧義名回到施法者頭頂喊招。
   - 命中光爆：命中點局部加法光爆（不透明度上限 0.35），不做全畫面閃白。
 - STORM：`UltVisualDef.cadence`（`rr_u3` ACCEL、`rb_u5` CLUSTER）；落點出地圖時沿中心方向縮回（`SequenceSystem.clampScatterToMap`，`engine.isValid`）。
 - 重做：`sr_u4` 空中月輪＋血光柱＋回流光點、`rr_u2`／`mr_u1` 餘韻收斂、`wb_u5` 獅盾紋章＋交錯斬痕、`sr_u1` 鎖鏈收緊、`sr_u5` 鬼火。

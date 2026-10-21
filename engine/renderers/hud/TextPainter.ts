@@ -9,7 +9,7 @@ type FontKind = 'ULT' | 'CAST' | 'KILL' | 'NUMBER';
 const fontCache: Record<FontKind, Map<number, string>> = {
     ULT: new Map(), CAST: new Map(), KILL: new Map(), NUMBER: new Map(),
 };
-export function fontFor(kind: FontKind, size: number): string {
+function fontFor(kind: FontKind, size: number): string {
     const m = fontCache[kind];
     let f = m.get(size);
     if (f === undefined) {

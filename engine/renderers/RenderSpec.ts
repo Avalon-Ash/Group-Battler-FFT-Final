@@ -222,8 +222,7 @@ export class RenderSpec {
 
         s += "## 11. 奧義專屬演出層 (Ultimate Feel Layers)\n\n";
         s += "奧義專屬演出（UF，ART_SPEC §6、DECISIONS §4）：\n";
-        s += "- 奧義暗場／聚光／命中光爆：表現層狀態，畫在後製之後、tactical overlay 與 HUD 之前（世界座標，聚光中心讀 UnitFrame）；\n";
-        s += "- 奧義橫幅：HUD 螢幕座標層。\n\n";
+        s += "- 奧義暗場／聚光／命中光爆：表現層狀態，畫在後製之後、tactical overlay 與 HUD 之前（世界座標，聚光中心讀 UnitFrame）。奧義名稱沿用施法者頭頂的喊招文字（畫面橫幅已於 2026-10-21 依使用者回饋移除）。\n\n";
         s += "--- \n\n";
 
         return s;

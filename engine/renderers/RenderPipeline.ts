@@ -5,7 +5,7 @@
 // ║        UnitFrame，單位、HUD、狀態、剪影、選取連線都讀它    ║
 // ║  [ARCH] 座標協議見 engine/renderers/RenderSpec.ts §4、§5、§11；║
 // ║  奧義暗場／聚光／命中光爆畫在後製之後、overlay 與 HUD 之前 ║
-// ║  （世界座標，聚光中心讀 UnitFrame；奧義橫幅走 HUD 層）。    ║
+// ║  （世界座標，聚光中心讀 UnitFrame）。                        ║
 // ║  模擬端永遠不讀繪製用高度。每幀 begin 貼地鋪設層（§9），    ║
 // ║  VFXRenderer 登記、RenderDispatcher 逐格繪製。             ║
 // ╚══════════════════════════════════════════════════════════╝

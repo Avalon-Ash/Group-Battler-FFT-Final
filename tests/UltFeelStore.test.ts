@@ -10,15 +10,8 @@ describe('UltFeelStore Contract', () => {
         store = new UltFeelStore();
     });
 
-    it('CAST_START 記錄：正確記錄施法者、橫幅與暗場淡入', () => {
+    it('CAST_START 記錄：正確記錄施法者與暗場淡入', () => {
         store.recordCastStart('a1', 'Doom Meteor', Team.RED, 1.5, 10.0);
-
-        // 橫幅顯示技能名稱與陣營
-        const banner = store.getBanner(10.0);
-        expect(banner).not.toBeNull();
-        expect(banner?.skillName).toBe('Doom Meteor');
-        expect(banner?.team).toBe(Team.RED);
-        expect(banner?.casterId).toBe('a1');
 
         // 施法者聚光佇列
         const casters = store.getActiveSpotlightCasters(10.0);
@@ -33,7 +26,7 @@ describe('UltFeelStore Contract', () => {
         expect(alphaMid).toBeCloseTo(ULT_FEEL.DIM_ALPHA, 3);
     });
 
-    it('CAST_BREAK 移除：中斷時即時移除施法者並關閉橫幅與暗場', () => {
+    it('CAST_BREAK 移除：中斷時即時移除施法者並關閉暗場', () => {
         store.recordCastStart('a1', 'Soul Harvest', Team.RED, 2.0, 10.0);
         expect(store.getActiveSpotlightCasters(10.2)).toHaveLength(1);
 
@@ -41,7 +34,6 @@ describe('UltFeelStore Contract', () => {
         store.removeCaster('a1');
 
         expect(store.getActiveSpotlightCasters(10.2)).toHaveLength(0);
-        expect(store.getBanner(10.2)).toBeNull();
         expect(store.getDimAlpha(10.2)).toBe(0);
     });
 
@@ -73,21 +65,7 @@ describe('UltFeelStore Contract', () => {
         expect(spotlight[1].casterId).toBe('c2');
     });
 
-    it('最新橫幅優先：多個奧義連續施放時橫幅以最新一個為主', () => {
-        store.recordCastStart('c1', 'First Ult', Team.BLUE, 2.0, 10.0);
-        expect(store.getBanner(10.1)?.skillName).toBe('First Ult');
-
-        // 第二個奧義起手
-        store.recordCastStart('c2', 'Second Ult', Team.RED, 2.0, 10.3);
-        const latestBanner = store.getBanner(10.4);
-        expect(latestBanner?.skillName).toBe('Second Ult');
-        expect(latestBanner?.team).toBe(Team.RED);
-
-        // 超過總時長後橫幅消失
-        expect(store.getBanner(10.3 + ULT_FEEL.BANNER_DURATION + 0.05)).toBeNull();
-    });
-
-    it('reset 清空：重置時清除所有施法者、命中記錄與橫幅', () => {
+    it('reset 清空：重置時清除所有施法者與命中記錄', () => {
         store.recordCastStart('c1', 'Test Ult', Team.BLUE, 1.5, 10.0);
         store.recordImpact(50, 50, 0, Team.RED, 10.0);
 
@@ -95,7 +73,6 @@ describe('UltFeelStore Contract', () => {
 
         expect(store.getActiveSpotlightCasters(10.0)).toHaveLength(0);
         expect(store.getActiveImpacts(10.0)).toHaveLength(0);
-        expect(store.getBanner(10.0)).toBeNull();
         expect(store.getDimAlpha(10.0)).toBe(0);
     });
 

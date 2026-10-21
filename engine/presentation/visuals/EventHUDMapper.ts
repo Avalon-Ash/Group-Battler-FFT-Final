@@ -136,10 +136,7 @@ export class EventHUDMapper {
     private handleCastText(event: GameEvent, visualY: number, hud: HUDSystem) {
         if (event.skill && event.skill.tag !== 'BASIC') {
             const isUlt = event.skill.tag === 'ULT';
-            // 橫幅出現時，該奧義的頭頂 SHOUT 文字不再顯示（其他技能不變）
-            if (isUlt) return;
-
-            const offsetY = HUD_LAYOUT.CAST_BAR_Y_OFFSET_NORMAL;
+            const offsetY = isUlt ? HUD_LAYOUT.CAST_BAR_Y_OFFSET_ULT : HUD_LAYOUT.CAST_BAR_Y_OFFSET_NORMAL;
             const baseY = visualY - offsetY; 
             const xOffset = HUD_LAYOUT.CAST_BAR_X_OFFSET; 
             

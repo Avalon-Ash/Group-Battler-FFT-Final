@@ -466,7 +466,7 @@ try {
                 ctx.fillText('ULTIMATE FEEL VERIFICATION (FOREST, FULL UNBUFFERED CANVAS)', 16, 25);
 
                 const colTitles = [
-                    '詠唱中 (hitAt - 0.30s) [暗場＋聚光＋橫幅]',
+                    '詠唱中 (hitAt - 0.30s) [暗場＋聚光＋頭頂喊招]',
                     '命中 (hitAt + 0.03s) [局部光爆＋主爆發]',
                     '餘韻 (hitAt + 0.60s) [焦痕／餘燼收斂]',
                 ];

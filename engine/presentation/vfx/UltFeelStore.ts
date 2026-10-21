@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  UltFeelStore — 奧義演出狀態儲存庫 (Presentation State)    ║
-// ║  職責：記錄奧義詠唱施法者、名稱橫幅、命中光爆狀態          ║
+// ║  職責：記錄奧義詠唱施法者（暗場聚光）與命中光爆狀態        ║
 // ║  [ARCH] 寫入者唯二：VisualSystem (CAST_START / CAST_BREAK) ║
 // ║         與 SequenceSystem (ULT_IMPACT)。VFXSystem.reset 清空║
 // ║         每幀零配置、固定容量槽位。                         ║
@@ -18,14 +18,6 @@ export interface UltCasterRecord {
     castDuration: number;
 }
 
-export interface UltBannerRecord {
-    active: boolean;
-    casterId: string;
-    skillName: string;
-    team: Team;
-    startTime: number;
-}
-
 export interface UltImpactRecord {
     active: boolean;
     x: number;
@@ -38,7 +30,6 @@ export interface UltImpactRecord {
 export class UltFeelStore {
     private readonly casters: UltCasterRecord[];
     private readonly impacts: UltImpactRecord[];
-    private readonly banner: UltBannerRecord;
 
     // Preallocated buffers for queries (zero allocations per frame)
     private readonly _activeSpotlightBuffer: UltCasterRecord[] = [];
@@ -63,14 +54,6 @@ export class UltFeelStore {
             team: undefined,
             time: 0,
         }));
-
-        this.banner = {
-            active: false,
-            casterId: '',
-            skillName: '',
-            team: Team.BLUE,
-            startTime: 0,
-        };
     }
 
     /** 記錄奧義詠唱開始（寫入者：VisualSystem） */
@@ -97,13 +80,6 @@ export class UltFeelStore {
         slot.team = team;
         slot.startTime = now;
         slot.castDuration = castDuration;
-
-        // 2. 記錄橫幅：同時多個奧義只顯示最新一個
-        this.banner.active = true;
-        this.banner.casterId = casterId;
-        this.banner.skillName = skillName;
-        this.banner.team = team;
-        this.banner.startTime = now;
     }
 
     /** 移除施法者（寫入者：VisualSystem 在 CAST_BREAK 時呼叫） */
@@ -113,9 +89,6 @@ export class UltFeelStore {
             if (c.active && c.casterId === casterId) {
                 c.active = false;
             }
-        }
-        if (this.banner.active && this.banner.casterId === casterId) {
-            this.banner.active = false;
         }
     }
 
@@ -220,19 +193,6 @@ export class UltFeelStore {
     }
 
     /**
-     * 取得目前的奧義橫幅（若已過期則回傳 null）
-     */
-    public getBanner(now: number): UltBannerRecord | null {
-        if (!this.banner.active) return null;
-        const elapsed = now - this.banner.startTime;
-        if (elapsed < 0 || elapsed >= ULT_FEEL.BANNER_DURATION) {
-            this.banner.active = false;
-            return null;
-        }
-        return this.banner;
-    }
-
-    /**
      * 取得進行中的命中光爆
      */
     public getActiveImpacts(now: number): readonly UltImpactRecord[] {
@@ -270,11 +230,6 @@ export class UltFeelStore {
             imp.team = undefined;
             imp.time = 0;
         }
-        this.banner.active = false;
-        this.banner.casterId = '';
-        this.banner.skillName = '';
-        this.banner.team = Team.BLUE;
-        this.banner.startTime = 0;
         this._activeSpotlightBuffer.length = 0;
         this._activeImpactsBuffer.length = 0;
         this._sortScratch.length = 0;
