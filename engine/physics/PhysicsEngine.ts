@@ -12,6 +12,9 @@ import { unitEventPos } from "../events/EventPos";
 /** 縮圈墜落的初速占「安全落地速度」的比例（向下）。 */
 const VOID_FALL_START_SPEED_FACTOR = 0.6;
 
+/** 物理子步上限（秒，約 60 fps）：高倍速時仍維持積分穩定。 */
+const MAX_SUBSTEP = 0.016;
+
 /**
  * [OWNER] Agent.physics 的位置與積分（z／vz 的直接改寫只在這裡）。
  * 其他模組只能：① 對速度／偏移做 +=／-=（衝量、牽引、瞬移補償），② 呼叫下列寫入 API。
@@ -54,11 +57,10 @@ export class PhysicsEngine {
         if (a.fullyDead || a.outOfBounds || (a.banished && engine.isValid(a.q, a.r))) return;
         
         // Sub-step physics to guarantee stability at high time scales
-        const maxStep = 0.016; // ~60fps step
         let remainingDt = dt;
         
         while (remainingDt > 0) {
-            const stepDt = Math.min(remainingDt, maxStep);
+            const stepDt = Math.min(remainingDt, MAX_SUBSTEP);
             remainingDt -= stepDt;
             this.stepPhysics(a, stepDt, engine);
         }
@@ -131,7 +133,12 @@ export class PhysicsEngine {
         if (shouldTrackGroundShift) {
             const gAfter = VisualMath.getUnitGroundHeight(a, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
             if (gAfter < gBefore) {
-                a.physics.z += gBefore - gAfter;
+                // 視覺腳點跨出較高格：高差轉入 physics.z 自然落下，腳底世界高度連續。
+                // 這是地形落差的視覺過渡、不是墜落（ForcedMove：向下任意高度皆可、不受傷）：
+                // 吸收量以「落地速度不超過 SAFE_FALL_VELOCITY」為上限（含一個子步的離散誤差），超出部分照舊直接落下。
+                const vSafe = PHYSICS.SAFE_FALL_VELOCITY - PHYSICS.GRAVITY * MAX_SUBSTEP;
+                const zAllowed = (vSafe * vSafe - a.physics.vz * a.physics.vz) / (2 * PHYSICS.GRAVITY);
+                a.physics.z += Math.min(gBefore - gAfter, Math.max(0, zAllowed - Math.max(0, a.physics.z)));
             }
         }
 

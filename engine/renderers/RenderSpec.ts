@@ -82,7 +82,9 @@ export class RenderSpec {
         s += "  op.tx = px + physics.x（屍體再加擊飛滑行 x）\n";
         s += "  op.y  = py + physics.y + transitionOffset（屍體再加擊飛滑行 y）＝腳點，排序用\n";
         s += "  op.ty = op.y − 腳下地面高度（§4 getUnitGroundHeight；屍體用 computeDeathGround）\n";
-        s += "  physics.z（跳躍、飛行）在繪製時再往上扣，不進 op.y。\n\n";
+        s += "  physics.z（跳躍、飛行）在繪製時再往上扣，不進 op.y。換格或位移讓腳下地面高度改變時，腳底世界高度（腳下地面高度 + physics.z）必須連續：\n";
+        s += "  換格時 MapSystem.updateAgentPosition 經 PhysicsEngine.absorbGroundShift 吸收；位移中腳點跨出較高格時由 PhysicsEngine.stepPhysics 把落差轉入 physics.z 自然落下\n";
+        s += "  （吸收量以安全落地速度為上限，地形落差不造成墜落傷害）；上坡突進由 MotionCommands.dashTo 給足以越過高差的起跳速度。\n\n";
         s += "VFX 粒子：p.y 是「未投影 Y」＝螢幕 Y / ISO_SCALE_Y（VFXPlayer 存入時除、VFXRenderer 提交時乘回）；p.z 是世界高度（含地形）。\n";
         s += "投射物：startY／endY 是螢幕 Y，ProjectileRenderer 內轉成未投影 Y 插值後再乘回。\n\n";
         s += "事件座標（GameEvent.pos）：xy 是「發生在哪」的世界座標；pos.z 若存在，**一律是世界高度**（模擬高度，\n";
@@ -208,7 +210,8 @@ export class RenderSpec {
         s += "## 10. 衝刺／高速移動殘影 (Afterimages)\n\n";
         s += "殘影是**單位 op 的一部分**（沒有新的 op）：UnitBodyPainter 在畫本體之前、同一個 drawAssembly 的 ctx 裡畫，所以跟著單位排序。\n\n";
         s += "- 軌跡來源：Agent.trailHistory＝繪製位置 px + physics 的最近 AFTERIMAGE.HISTORY_LENGTH 點（每個物理 tick 一點），**唯一寫入者 PhysicsSystem**（AgentOwnership）。\n";
-        s += "  衝刺是 SkillExecutor 把 px/py 設到終點、physics.x/y 設成反向差值再由彈簧拉回，所以速度大、軌跡走過整段路徑；擊退滑行同理。\n";
+        s += "  衝刺是 MotionCommands.dashTo：px/py 設到終點、physics.x/y 設成反向差值，並注入順向爆發初速（PHYSICS.DASH_BURST_FACTOR）再由彈簧減速滑入，所以第 0 幀就有殘影、軌跡走過整段路徑；擊退滑行（teleportTo，無初速）同理。\n";
+        s += "  起點：PhysicsSystem 在積分前、軌跡為空且速度超過門檻時先記下起點，殘影從起點格開始。近戰前衝（MotionCommands.lungeToward）只有約 10 px，不跨格。\n";
         s += "- 換算：UnitFrame.fill 呼叫 Afterimage.computeAfterimageGhosts，把軌跡點換成**相對單位目前腳底繪製點**的偏移：\n";
         s += "  dx = 點.x − footX；dy = (點.y − 該點腳下繪製用高度) − floorY；z = 點.physics.z。腳下高度用繪製用高度函式（已扣漂浮位移），VOID／MAGMA 上殘影跟著地塊浮。\n";
         s += "- 條件：物理速度 > VFX_PARAM.SPEED_TILT_THRESHOLD；屍體、拖曳預覽、剪影、變羊沒有殘影；距離本體不到 AFTERIMAGE.MIN_SEPARATION_PX 的點省略。\n";

@@ -4,7 +4,7 @@ import type { Agent } from '../engine/game';
 import { Team, Role } from '../types';
 import type { Skill } from '../types';
 import { HexUtils } from '../engine/utils';
-import { BLOCK_HEIGHT, PHYSICS, AFTERIMAGE } from '../constants';
+import { BLOCK_HEIGHT, MAX_TERRAIN_TIER, PHYSICS, AFTERIMAGE } from '../constants';
 import { dashTo, lungeToward } from '../engine/systems/movement/MotionCommands';
 import { VisualMath } from '../engine/math/VisualMath';
 import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
@@ -203,6 +203,22 @@ describe('DashMotion (DM2)', () => {
         // Settles on lower ground (0 px)
         expect(prevWorldH).toBeCloseTo(0, 1);
         expect(a.physics.z).toBeCloseTo(0, 1);
+    });
+    it('a dash off the tallest cliff is a visual step-down, not a fall: no fall damage (review fix)', () => {
+        // 審查修正：落差吸收進 physics.z 後自由落下，6 階（144 px）落差落地速度曾超過 SAFE_FALL_VELOCITY，
+        // 施法者突進下崖自己吃 200+ 墜落傷害（main 上不會）。吸收量以安全落地速度為上限。
+        setHeight(0, 0, MAX_TERRAIN_TIER * BLOCK_HEIGHT);
+        setHeight(1, 0, 0);
+        const a = spawn(Team.BLUE, 0, 0);
+        dashTo(a, 1, 0, engine);
+        let minVz = 0;
+        for (let t = 0; t < 2.0; t += 1 / 60) {
+            engine.physics.update(1 / 60, engine);
+            minVz = Math.min(minVz, a.physics.vz);
+        }
+        expect(minVz).toBeGreaterThan(-PHYSICS.SAFE_FALL_VELOCITY);
+        expect(a.hp).toBe(HP);
+        expect(getWorldHeight(a)).toBeCloseTo(0, 1);
     });
 
     describe('Melee Lunge (DM3)', () => {
