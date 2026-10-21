@@ -85,6 +85,7 @@ describe('UltScatter (UA6: Deterministic Sunflower Scatter for STORM)', () => {
             battleTime: 0,
             agents: [],
             mapConfig: MAP_CONFIG,
+            isValid: vi.fn(() => true),
             getTerrainHeight: vi.fn((q: number, r: number) => {
                 // 不同格給不同高度
                 return 100 + (q * 10) + r;

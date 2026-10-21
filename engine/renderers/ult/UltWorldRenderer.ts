@@ -126,7 +126,8 @@ export class UltWorldRenderer {
                 const casters = ultFeelStore.getActiveSpotlightCasters(battleTime);
                 if (casters.length > 0) {
                     dCtx.save();
-                    camera.applyTransform(dCtx, lW, lH);
+                    // 沿用主畫布當下的世界變換（含 dpr 與本幀的震動位移）；重呼叫 applyTransform 會重抽震動亂數，聚光會和施法者錯開
+                    dCtx.setTransform(ctx.getTransform());
                     dCtx.globalCompositeOperation = 'destination-out';
 
                     const spotRadius = ULT_FEEL.SPOTLIGHT_RADIUS_HEX * HEX_SIZE;

@@ -160,12 +160,12 @@ export class HUDRenderer {
 }
 
 /** 橫幅漸層依畫布尺寸快取（尺寸改變才重建） */
-let bannerCache: { cw: number; ch: number; vignette: CanvasGradient; banner: CanvasGradient } | null = null;
+let bannerCache: { cw: number; ch: number; vignette: CanvasGradient | string; banner: CanvasGradient | string } | null = null;
 function bannerGradients(ctx: CanvasRenderingContext2D, cw: number, ch: number) {
     if (bannerCache && bannerCache.cw === cw && bannerCache.ch === ch) return bannerCache;
     const L = LAST_STAND_BANNER;
     if (!ctx.createRadialGradient || !ctx.createLinearGradient) {
-        return { cw, ch, vignette: L.COLOR as unknown as CanvasGradient, banner: L.BANNER_BOTTOM as unknown as CanvasGradient };
+        return { cw, ch, vignette: L.COLOR, banner: L.BANNER_BOTTOM };
     }
     const vignette = ctx.createRadialGradient(cw / 2, ch / 2, 0, cw / 2, ch / 2, cw * L.VIGNETTE_REACH);
     vignette.addColorStop(0, 'transparent');

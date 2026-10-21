@@ -159,15 +159,7 @@ export class SequenceSystem {
                         engine.mapConfig,
                         this.scratchOffset
                     );
-                    const isTileValid = (q: number, r: number): boolean => {
-                        if (typeof engine.isValid === 'function') {
-                            return engine.isValid(q, r);
-                        }
-                        if (engine.map && typeof engine.map.isValid === 'function') {
-                            return engine.map.isValid(q, r);
-                        }
-                        return true;
-                    };
+                    const isTileValid = (q: number, r: number): boolean => engine.isValid(q, r);
                     SequenceSystem.clampScatterToMap(
                         target,
                         this.scratchOffset,
