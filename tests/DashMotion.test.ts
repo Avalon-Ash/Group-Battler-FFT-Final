@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import type { Agent } from '../engine/game';
 import { Team, Role } from '../types';
+import type { Skill } from '../types';
 import { HexUtils } from '../engine/utils';
 import { BLOCK_HEIGHT, PHYSICS, AFTERIMAGE } from '../constants';
-import { dashTo } from '../engine/systems/movement/MotionCommands';
+import { dashTo, lungeToward } from '../engine/systems/movement/MotionCommands';
 import { VisualMath } from '../engine/math/VisualMath';
+import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 
 const HP = 200;
 
@@ -202,4 +204,172 @@ describe('DashMotion (DM2)', () => {
         expect(prevWorldH).toBeCloseTo(0, 1);
         expect(a.physics.z).toBeCloseTo(0, 1);
     });
+
+    describe('Melee Lunge (DM3)', () => {
+        const makeSkill = (overrides: Partial<Skill> = {}): Skill => ({
+            id: 'test_skill',
+            name: 'Test Skill',
+            desc: 'Test',
+            role: Role.WARRIOR,
+            tag: 'ACTIVE',
+            range: 1,
+            cast: 0,
+            cd: 5,
+            cost: 0,
+            gain: 0,
+            type: 'SINGLE',
+            power: 100,
+            color: '#ff0000',
+            visual: 'SLASH',
+            projectileSpeed: 0,
+            ...overrides,
+        });
+
+        it('basic melee attack triggers lunge with peak displacement in 6~15 px and stays in same hex', () => {
+            const source = spawn(Team.BLUE, 0, 0);
+            const target = spawn(Team.RED, 1, 0);
+            source.target = target;
+
+            const basicSkill = makeSkill({ tag: 'BASIC', range: 1, power: 100 });
+            const executor = new SkillExecutor();
+            executor.executeInstantSkill(source, basicSkill, engine);
+
+            expect(source.physics.vx).toBeGreaterThan(400);
+
+            let peakDisp = 0;
+            const dt = 0.016;
+            for (let t = 0; t < 1.0; t += dt) {
+                engine.physics.update(dt, engine);
+                const disp = Math.hypot(source.physics.x, source.physics.y);
+                peakDisp = Math.max(peakDisp, disp);
+
+                const currentHex = HexUtils.fromPx(source.px + source.physics.x, source.py + source.physics.y, engine.mapConfig);
+                expect(currentHex.q + 0).toBe(0);
+                expect(currentHex.r + 0).toBe(0);
+            }
+
+            // Peak displacement within 6~15 px (nominal ~8.8 px)
+            expect(peakDisp).toBeGreaterThanOrEqual(6);
+            expect(peakDisp).toBeLessThanOrEqual(15);
+
+            // Springs back to rest
+            expect(Math.hypot(source.physics.x, source.physics.y)).toBeLessThan(0.1);
+        });
+
+        it('active melee skill triggers stronger lunge with peak displacement in 6~15 px', () => {
+            const source = spawn(Team.BLUE, 0, 0);
+            const target = spawn(Team.RED, 1, 0);
+            source.target = target;
+
+            const activeSkill = makeSkill({ tag: 'ACTIVE', range: 2, power: 250 });
+            const executor = new SkillExecutor();
+            executor.executeInstantSkill(source, activeSkill, engine);
+
+            expect(source.physics.vx).toBeGreaterThan(500);
+
+            let peakDisp = 0;
+            const dt = 0.016;
+            for (let t = 0; t < 1.0; t += dt) {
+                engine.physics.update(dt, engine);
+                const disp = Math.hypot(source.physics.x, source.physics.y);
+                peakDisp = Math.max(peakDisp, disp);
+
+                const currentHex = HexUtils.fromPx(source.px + source.physics.x, source.py + source.physics.y, engine.mapConfig);
+                expect(currentHex.q + 0).toBe(0);
+                expect(currentHex.r + 0).toBe(0);
+            }
+
+            // Peak displacement within 6~15 px (nominal ~11.2 px)
+            expect(peakDisp).toBeGreaterThanOrEqual(6);
+            expect(peakDisp).toBeLessThanOrEqual(15);
+            expect(Math.hypot(source.physics.x, source.physics.y)).toBeLessThan(0.1);
+        });
+
+        it('point-blank DASH (stepsTaken === 0) falls back to active lunge', () => {
+            const source = spawn(Team.BLUE, 0, 0);
+            const target = spawn(Team.RED, 1, 0);
+            source.target = target;
+
+            // Target (1, 0) is occupied by target, so planDashPath cannot enter (stepsTaken = 0)
+            const dashSkill = makeSkill({ effectType: 'DASH', range: 1, power: 150 });
+            const executor = new SkillExecutor();
+            executor.executeInstantSkill(source, dashSkill, engine);
+
+            // Must have lunged forward without changing logical tile
+            expect(source.q).toBe(0);
+            expect(source.r).toBe(0);
+            expect(source.physics.vx).toBeGreaterThan(500);
+
+            let peakDisp = 0;
+            const dt = 0.016;
+            for (let t = 0; t < 1.0; t += dt) {
+                engine.physics.update(dt, engine);
+                peakDisp = Math.max(peakDisp, Math.hypot(source.physics.x, source.physics.y));
+
+                const currentHex = HexUtils.fromPx(source.px + source.physics.x, source.py + source.physics.y, engine.mapConfig);
+                expect(currentHex.q + 0).toBe(0);
+                expect(currentHex.r + 0).toBe(0);
+            }
+
+            expect(peakDisp).toBeGreaterThanOrEqual(6);
+            expect(peakDisp).toBeLessThanOrEqual(15);
+            expect(Math.hypot(source.physics.x, source.physics.y)).toBeLessThan(0.1);
+        });
+
+        it('consecutive lunge triggers do not stack velocity beyond speed cap', () => {
+            const source = spawn(Team.BLUE, 0, 0);
+            const target = spawn(Team.RED, 1, 0);
+            source.target = target;
+
+            const activeSkill = makeSkill({ tag: 'ACTIVE', range: 1, power: 200 });
+            const executor = new SkillExecutor();
+
+            // Trigger 5 times in rapid succession
+            for (let i = 0; i < 5; i++) {
+                executor.executeInstantSkill(source, activeSkill, engine);
+            }
+
+            // Velocity must be capped at LUNGE_SPEED_ACTIVE, not 5 * 540
+            expect(source.physics.vx).toBeLessThanOrEqual(PHYSICS.LUNGE_SPEED_ACTIVE + 1);
+
+            let peakDisp = 0;
+            const dt = 0.016;
+            for (let t = 0; t < 1.0; t += dt) {
+                engine.physics.update(dt, engine);
+                peakDisp = Math.max(peakDisp, Math.hypot(source.physics.x, source.physics.y));
+
+                const currentHex = HexUtils.fromPx(source.px + source.physics.x, source.py + source.physics.y, engine.mapConfig);
+                expect(currentHex.q + 0).toBe(0);
+                expect(currentHex.r + 0).toBe(0);
+            }
+
+            expect(peakDisp).toBeLessThanOrEqual(15);
+        });
+
+        it('ranged skills and self skills (range === 0) do not trigger lunge', () => {
+            const source = spawn(Team.BLUE, 0, 0);
+            const target = spawn(Team.RED, 3, 0);
+            source.target = target;
+            const executor = new SkillExecutor();
+
+            // 1. Ranged projectile skill
+            const rangedSkill = makeSkill({ range: 3, projectileSpeed: 600, power: 100 });
+            executor.executeInstantSkill(source, rangedSkill, engine);
+            expect(source.physics.vx).toBe(0);
+            expect(source.physics.vy).toBe(0);
+
+            // 2. Self skill (range === 0)
+            const selfSkill = makeSkill({ range: 0, power: 0, type: 'SINGLE' });
+            executor.executeInstantSkill(source, selfSkill, engine);
+            expect(source.physics.vx).toBe(0);
+            expect(source.physics.vy).toBe(0);
+
+            // 3. Far range beam (range > 2)
+            const beamSkill = makeSkill({ range: 4, projectileSpeed: 0, power: 100 });
+            executor.executeInstantSkill(source, beamSkill, engine);
+            expect(source.physics.vx).toBe(0);
+            expect(source.physics.vy).toBe(0);
+        });
+    });
 });
+

@@ -70,3 +70,27 @@ export function dashTo(agent: Agent, q: number, r: number, engine: GameEngine): 
         agent.physics.vz += targetVz - agent.physics.vz;
     }
 }
+
+/**
+ * 向目標點前衝（近戰普攻／技能打擊感）：
+ * 向目標方向注入速度，由彈簧自動拉回，全過程不跨出當前格。
+ * 順向速度超過 speed 時不追加速度，避免連續施法疊爆。
+ */
+export function lungeToward(agent: Agent, targetPos: { x: number; y: number }, speed: number): void {
+    const dx = targetPos.x - agent.px;
+    const dy = targetPos.y - agent.py;
+    const dist = Math.hypot(dx, dy);
+    if (dist <= 1.5) return;
+
+    if (Math.abs(dx) > 1.5) {
+        agent.facing = dx > 0 ? 1 : -1;
+    }
+
+    const dirX = dx / dist;
+    const dirY = dy / dist;
+    const projV = agent.physics.vx * dirX + agent.physics.vy * dirY;
+    const boost = Math.max(0, speed - projV);
+    agent.physics.vx += dirX * boost;
+    agent.physics.vy += dirY * boost;
+}
+

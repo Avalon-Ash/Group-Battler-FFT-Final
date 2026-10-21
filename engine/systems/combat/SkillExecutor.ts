@@ -7,7 +7,7 @@ import { planDashPath, resolveForcedMove } from "./ForcedMove";
 import { HazardManager } from "./HazardManager";
 import { PhysicsEngine } from "../../physics/PhysicsEngine";
 import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
-import { teleportTo, dashTo } from "../movement/MotionCommands";
+import { teleportTo, dashTo, lungeToward } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
 import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS } from "../../../constants";
@@ -57,7 +57,17 @@ export class SkillExecutor {
                     sourceId: source.id,
                     targetId: source.id
                 });
+            } else {
+                lungeToward(source, origin, PHYSICS.LUNGE_SPEED_ACTIVE);
             }
+        } else if (
+            skill.range >= 1 &&
+            skill.range <= 2 &&
+            (skill.projectileSpeed ?? 0) === 0 &&
+            skill.power > 0 &&
+            (targetHex.q !== source.q || targetHex.r !== source.r)
+        ) {
+            lungeToward(source, origin, skill.tag === 'BASIC' ? PHYSICS.LUNGE_SPEED_BASIC : PHYSICS.LUNGE_SPEED_ACTIVE);
         }
 
         // 3. 判定受擊目標
