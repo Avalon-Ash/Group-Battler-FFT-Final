@@ -4,10 +4,10 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 奧義有感（`feat/ult-feel`，提示詞 `docs/ULT_FEEL_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **奧義美術第二輪**（渲染工作，單獨一條）：規格化已完成（VFX_PIPELINE_MAP §4.20）。**等使用者看對照總表**（`tools/ui-e2e/out/ult/compare_blue.png`、`compare_red.png`，重產用 `node tools/vfx/ult-sheet.mjs`）挑要重做造型的奧義，主代理再寫提示詞；本輪結束後刪 `docs/ULT_ART_REPORT.md`。候選觀察：`sr_u4` 血紅月光暈（半徑約 215 px、1.4 s）、`rr_u2`／`mr_u1` 餘韻火焰偏滿、STORM 散布落點會落到地圖外（高度 0，懸空）。另 3 個 C1 違規（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s）若要清，下次平衡輪把 cast 調到 0.3。
+1. **奧義有感（UF）**（渲染工作，單獨一條）：共用演出（詠唱暗場＋施法者聚光、奧義名橫幅、命中光爆，參數 `ULT_FEEL`）＋STORM 節奏（`rr_u3` 加速、`rb_u5` 三連）與落點不出地圖＋重做 `sr_u4`／`rr_u2`／`mr_u1`／`wb_u5`／`sr_u1`／`sr_u5`。使用者執行 `/goal docs/ULT_FEEL_AGENT_PROMPT.md`。合併後刪 `docs/ULT_ART_REPORT.md` 與本輪提示詞。另 3 個 C1 違規（`tr_u3`／`wb_u5`／`wr_u3` 詠唱 0.2 s）若要清，下次平衡輪把 cast 調到 0.3。
 
 ## 3. 待使用者確認
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。
