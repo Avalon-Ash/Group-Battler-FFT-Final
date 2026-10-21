@@ -269,25 +269,9 @@ export const PART_PARTICLE_TYPES = particleTypesWhere((t) => t.backend === 'PART
 
 /**
  * 奧義專屬演出常數（ART_SPEC §6、DECISIONS §4、ULT_FEEL §2-A）：
- * 詠唱暗場＋施法者聚光、奧義名橫幅、命中點局部光爆。
+ * 命中點局部光爆（奧義名橫幅、詠唱暗場＋聚光都試過，使用者回饋後移除；暗場見 c7df349）。
  */
 export const ULT_FEEL = {
-    // --- A1: 詠唱暗場＋施法者聚光 ---
-    /** 詠唱暗場最大不透明度（上限 <= 0.4） */
-    DIM_ALPHA: 0.35,
-    /** 最低品質階層的暗場不透明度（關閉聚光、只留較淡暗場） */
-    DIM_ALPHA_LOW_TIER: 0.20,
-    /** 暗場淡入時間（秒） */
-    DIM_FADE_IN: 0.25,
-    /** 命中後／詠唱結束後的暗場淡出時間（秒） */
-    DIM_FADE_OUT: 0.35,
-    /** 施法者周圍柔邊聚光半徑（格數，約 2.5 格） */
-    SPOTLIGHT_RADIUS_HEX: 2.5,
-    /** 同時最多聚光的施法者數量（最新的最多 2 個） */
-    SPOTLIGHT_MAX_CASTERS: 2,
-    /** 預烘焙聚光 sprite 半徑（像素） */
-    SPOTLIGHT_BAKE_RADIUS: 256,
-
     // --- A3: 命中光爆 ---
     /** 命中局部光爆半徑（格數，約 2～3 格） */
     IMPACT_BURST_RADIUS_HEX: 2.4,
@@ -303,8 +287,6 @@ export const ULT_FEEL = {
     IMPACT_BURST_SCALE_TO: 1.15,
 
     // --- 容量上限（固定容量、每幀零配置） ---
-    /** 施法者追蹤槽位上限 */
-    MAX_CASTERS: 8,
     /** 命中點追蹤槽位上限 */
     MAX_IMPACTS: 8,
 

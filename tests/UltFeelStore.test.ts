@@ -10,33 +10,6 @@ describe('UltFeelStore Contract', () => {
         store = new UltFeelStore();
     });
 
-    it('CAST_START 記錄：正確記錄施法者與暗場淡入', () => {
-        store.recordCastStart('a1', 'Doom Meteor', Team.RED, 1.5, 10.0);
-
-        // 施法者聚光佇列
-        const casters = store.getActiveSpotlightCasters(10.0);
-        expect(casters).toHaveLength(1);
-        expect(casters[0].casterId).toBe('a1');
-
-        // 暗場淡入
-        const alphaStart = store.getDimAlpha(10.0);
-        expect(alphaStart).toBe(0);
-
-        const alphaMid = store.getDimAlpha(10.0 + ULT_FEEL.DIM_FADE_IN);
-        expect(alphaMid).toBeCloseTo(ULT_FEEL.DIM_ALPHA, 3);
-    });
-
-    it('CAST_BREAK 移除：中斷時即時移除施法者並關閉暗場', () => {
-        store.recordCastStart('a1', 'Soul Harvest', Team.RED, 2.0, 10.0);
-        expect(store.getActiveSpotlightCasters(10.2)).toHaveLength(1);
-
-        // CAST_BREAK 觸發
-        store.removeCaster('a1');
-
-        expect(store.getActiveSpotlightCasters(10.2)).toHaveLength(0);
-        expect(store.getDimAlpha(10.2)).toBe(0);
-    });
-
     it('ULT_IMPACT 記錄與過期：命中光爆在有效時間內存活，逾時自動過期', () => {
         store.recordImpact(120, 240, 15, Team.BLUE, 10.0);
 
@@ -53,43 +26,23 @@ describe('UltFeelStore Contract', () => {
         expect(expiredImpacts).toHaveLength(0);
     });
 
-    it('聚光最多 2 個：同時多個施法者時，僅回傳最新 2 個施法者', () => {
-        store.recordCastStart('c1', 'Ult 1', Team.BLUE, 2.0, 10.0);
-        store.recordCastStart('c2', 'Ult 2', Team.RED, 2.0, 10.2);
-        store.recordCastStart('c3', 'Ult 3', Team.BLUE, 2.0, 10.4);
+    it('槽位滿時替換最舊的命中記錄', () => {
+        for (let i = 0; i < ULT_FEEL.MAX_IMPACTS; i++) {
+            store.recordImpact(i, 0, 0, Team.RED, 10.0 + i * 0.001);
+        }
+        store.recordImpact(999, 0, 0, Team.BLUE, 10.05);
 
-        const spotlight = store.getActiveSpotlightCasters(10.5);
-        expect(spotlight).toHaveLength(2);
-        // 最新優先排序
-        expect(spotlight[0].casterId).toBe('c3');
-        expect(spotlight[1].casterId).toBe('c2');
+        const active = store.getActiveImpacts(10.06);
+        expect(active).toHaveLength(ULT_FEEL.MAX_IMPACTS);
+        expect(active.some(imp => imp.x === 0)).toBe(false);
+        expect(active.some(imp => imp.x === 999)).toBe(true);
     });
 
-    it('reset 清空：重置時清除所有施法者與命中記錄', () => {
-        store.recordCastStart('c1', 'Test Ult', Team.BLUE, 1.5, 10.0);
+    it('reset 清空：重置時清除所有命中記錄', () => {
         store.recordImpact(50, 50, 0, Team.RED, 10.0);
 
         store.reset();
 
-        expect(store.getActiveSpotlightCasters(10.0)).toHaveLength(0);
         expect(store.getActiveImpacts(10.0)).toHaveLength(0);
-        expect(store.getDimAlpha(10.0)).toBe(0);
-    });
-
-    it('暗場淡出與最低品質階層支援', () => {
-        store.recordCastStart('c1', 'Test Ult', Team.BLUE, 1.0, 10.0);
-
-        // 命中後（t = 11.0）進入淡出期（DIM_FADE_OUT）
-        const halfFadeAlpha = store.getDimAlpha(10.0 + 1.0 + ULT_FEEL.DIM_FADE_OUT * 0.5);
-        expect(halfFadeAlpha).toBeCloseTo(ULT_FEEL.DIM_ALPHA * 0.5, 2);
-
-        // 完全淡出後歸零
-        const fullFadeAlpha = store.getDimAlpha(10.0 + 1.0 + ULT_FEEL.DIM_FADE_OUT + 0.01);
-        expect(fullFadeAlpha).toBe(0);
-
-        // 最低品質階層使用較淡暗場
-        store.recordCastStart('c2', 'Low Tier Ult', Team.RED, 1.0, 20.0);
-        const lowTierAlpha = store.getDimAlpha(20.5, true);
-        expect(lowTierAlpha).toBeCloseTo(ULT_FEEL.DIM_ALPHA_LOW_TIER, 2);
     });
 });
