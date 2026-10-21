@@ -43,9 +43,9 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'glow', radius: 112, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.6, delay: 0.3, size: 112,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.5, fadeOut: 0.8 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 20, ramp: 'ASH_VOID', roughness: 1, seed: 4 }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 3.2, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'ASH_BLOOD', roughness: 1, seed: 5 }, count: 1, lifetime: 0.7, delay: 0.45, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.6, fadeOut: 0.6 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'smoke', radius: 56, color: 'CHAR', roughness: 1, seed: 6 }, count: [5, 7], lifetime: [1.0, 1.3], delay: [0.4, 0.6], size: 56,
                 shape: 'CIRCLE', shapeRadius: 120, speed: [20, 50], vz: [20, 50], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.6, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.75 } }),
             part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'crystal', ramp: 'ASH_VOID' }, count: [8, 10], lifetime: [0.9, 1.2], delay: [0.4, 0.7], size: 8,
@@ -85,7 +85,7 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 8, ramp: 'ASH_BLOOD', lengthJitter: 1, seed: 5 }, count: 1, lifetime: 0.3, delay: 0.25, size: 96,
                 partAnim: { scaleFrom: 0.7, scaleTo: 1.3, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 20, ramp: 'ASH_PHYSICAL', roughness: 1, seed: 6 }, count: 1, lifetime: 0.6, delay: 0.25, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.2, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 10, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 4 }, count: [10, 14], lifetime: [0.9, 1.3], delay: 0.25, size: 10,
                 shape: 'BURST_DIR', speed: [250, 550], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
             part({ particleType: 'PART', part: { kind: 'smoke', radius: 48, color: 'DUST', roughness: 1, seed: 8 }, count: [4, 5], lifetime: [1.0, 1.3], delay: [0.35, 0.5], size: 48,
@@ -146,9 +146,9 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             // 血月主爆發：大光暈（radius 140 大於環，delay 0.3 對齊 hitAt 0.4899，vz 緩升滿足 power <= 0 規則）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 1.4, delay: 0.3, size: 140, vz: 30,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.1, fadeIn: 0.2, fadeOut: 0.3 } }),
-            // 範圍 10 擴張環（size 160 * 3.0 * 1.4 = 672.0px，落於 582～1080.8px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 80, thickness: 14, ramp: 'ASH_BLOOD', roughness: 1, seed: 11 }, count: 1, lifetime: 0.8, delay: 0.3, size: 160,
-                partAnim: { scaleFrom: 0.3, scaleTo: 3.0, fadeOut: 0.5 } }),
+            // 範圍 10 擴張環（size 128 * 1.8 * 1.4 = 322.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 14, ramp: 'ASH_BLOOD', roughness: 1, seed: 11 }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             // 吸血：外圈血滴向上、向中心漂
             part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 12], lifetime: [0.8, 1.1], delay: [0.35, 0.6], size: 6,
                 shape: 'CIRCLE', shapeRadius: 150, speed: [-140, -100], vz: [60, 120], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.4 } }),
@@ -186,9 +186,9 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
             // 命中主爆發（glow radius 80 大於環，非擴張環；delay 0.25 對齊 hitAt）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.45, delay: 0.25, size: 80,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 4 柔和環（128 * 1.9 * 1.4 = 340.5px，落於 232.8～432.3px）
+            // 範圍 4 柔和環（128 * 1.8 * 1.4 = 322.6px）
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 14, ramp: 'ASH_BLOOD', roughness: 1, seed: 13 }, count: 1, lifetime: 0.6, delay: 0.25, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.9, fadeOut: 0.5 } }),
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 12], lifetime: [0.7, 1.0], delay: [0.4, 0.7], size: 6,
                 shape: 'CIRCLE', shapeRadius: 100, speed: [10, 40], vz: [150, 300], gravity: 1800, partAnim: { fadeOut: 0.3 } }),
         ],
@@ -202,9 +202,9 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
             part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 8 擴張環（size 130 * 3.0 * 1.4 = 546.0px，落於 465.5～864.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'ASH_BLOOD', roughness: 0.5, seed: 14 }, count: 2, lifetime: 0.8, delay: [0.3, 0.55], size: 130,
-                partAnim: { scaleFrom: 0.3, scaleTo: 3.0, fadeOut: 0.6 } }),
+            // 範圍 8 擴張環（size 128 * 1.8 * 1.4 = 322.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'ASH_BLOOD', roughness: 0.5, seed: 14 }, count: 2, lifetime: 0.8, delay: [0.3, 0.55], size: 128,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.6 } }),
             part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 12], lifetime: [0.8, 1.1], delay: [0.35, 0.6], size: 6,
                 shape: 'CIRCLE', shapeRadius: 130, speed: [5, 20], vz: [50, 100], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
         ],
@@ -252,8 +252,8 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 6, ramp: 'ASH_POISON' }, count: [14, 16], lifetime: [0.7, 1.0], delay: [0.25, 0.8], size: 6,
                 shape: 'CIRCLE', shapeRadius: 140, speed: [-40, 40], vz: [300, 450], gravity: 2000, partAnim: { fadeOut: 0.3 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 80, thickness: 12, ramp: 'ASH_POISON', roughness: 1, seed: 17 }, count: 1, lifetime: 0.8, delay: 0.3, size: 160,
-                partAnim: { scaleFrom: 0.3, scaleTo: 3.0, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'ASH_POISON', roughness: 1, seed: 17 }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
             part({ particleType: 'PART', part: { kind: 'smoke', radius: 56, color: 'MIASMA', roughness: 1, seed: 12 }, count: [5, 6], lifetime: [1.1, 1.4], delay: [0.4, 0.6], size: 56,
                 shape: 'CIRCLE', shapeRadius: 110, speed: [10, 30], vz: [10, 30], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.5, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.6 } }),
         ],

@@ -110,13 +110,12 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_BLOODSTORM',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'slashArc', radius: 64, arcDeg: 160, thickness: 18, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.3, delay: 0, size: 64,
-                shape: 'CIRCLE', shapeRadius: 25, vRotation: [-12, -6], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
+                shape: 'CIRCLE', shapeRadius: 10, vRotation: [-12, -6], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
             // 命中主爆發（glow delay 0 對齊 hitAt）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 3 擴張環（160 * 1.9 * 0.8 = 243.2px，落於 174.6～324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 6, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.45, delay: 0, size: 160,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.9, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // wr_u4 無限劍制（自身範圍 3 恐懼，8 次）：骨刃從地面刺出＋中央閃光＋擴張骨環
@@ -124,13 +123,12 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_UNLIMITED_BLADE',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'shard', size: 32, shape: 'bone', ramp: 'ASH_PHYSICAL' }, count: 1, lifetime: 0.6, delay: 0, size: 32, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 50, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeOut: 0.4, ease: 'out', rotation: 1.57 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeOut: 0.4, ease: 'out', rotation: 1.57 } }),
             // 命中主爆發（glow delay 0 對齊 hitAt）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 3 擴張環（160 * 1.9 * 0.8 = 243.2px，落於 174.6～324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 6, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0, size: 160,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.9, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // rr_u3 煉獄火雨（全場火雨，8 次）：火舌＋火球爆發＋全場擴張火環
@@ -138,13 +136,12 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_INFERNO',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'flame', height: 48, ramp: 'ASH_FIRE', jagged: true }, count: 1, lifetime: 0.45, delay: 0, size: 32, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 80, partAnim: { scaleFrom: 0.4, scaleTo: 1, fadeOut: 0.5 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.4, scaleTo: 1, fadeOut: 0.5 } }),
             // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 8 全場擴張環（320 * 2.2 * 0.8 = 563.2px，落於 465.5～864.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 320, thickness: 8, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0, size: 320,
-                partAnim: { scaleFrom: 0.3, scaleTo: 2.2, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // rr_u5 末日審判（範圍 2 恐懼，8 次）：深淵雷擊落下＋核心暗光＋擴張暗環
@@ -152,13 +149,12 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         id: 'FX_ULT_RED_DOOM',
         emitters: [
             part({ particleType: 'PART', part: { kind: 'bolt', length: 120, branches: 1, ramp: 'ASH_VOID', seed: 6 }, count: 1, lifetime: 0.25, delay: 0, size: 60, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 40, partAnim: { fadeOut: 0.6 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { fadeOut: 0.6 } }),
             // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_VOID', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 2 擴張環（110 * 1.8 * 0.8 = 158.4px，落於 116.4～216.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 110, thickness: 6, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0, size: 110,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // mr_u5 靈魂爆燃（範圍 2 連鎖爆炸，8 次）：連鎖小爆（火光＋擴張火環）＋火星
@@ -167,13 +163,12 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
         emitters: [
             // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
             part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
-                shape: 'CIRCLE', shapeRadius: 40, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
-            // 範圍 2 擴張環（110 * 1.8 * 0.8 = 158.4px，落於 116.4～216.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 110, thickness: 6, ramp: 'ASH_FIRE', roughness: 1, seed: 20 }, count: 1, lifetime: 0.45, delay: 0, size: 110,
-                shape: 'CIRCLE', shapeRadius: 40, partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_FIRE', roughness: 1, seed: 20 }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
             // 火星飛散
             part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp: 'ASH_FIRE', hard: true }, count: 2, lifetime: [0.4, 0.7], delay: [0.05, 0.2], size: 5,
-                shape: 'CIRCLE', shapeRadius: 40, speed: [20, 40], vz: [40, 80], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
+                shape: 'CIRCLE', shapeRadius: 10, speed: [20, 40], vz: [40, 80], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
         ],
     },
     // sr_u3 群體恐慌（單體逐出，8 次）：深淵暗光與黑煙向目標收攏
