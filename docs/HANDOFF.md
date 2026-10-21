@@ -1,16 +1,17 @@
 # 交接：還沒做的事（TBD）
 
-> 更新：2026-10-20。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
+> 更新：2026-10-21。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。下一輪：Gemini 背景管線現代化（`feat/bg-pipeline`，提示詞 `docs/BACKGROUND_AGENT_PROMPT.md`）；**跑的期間主代理對原生資料夾只讀不寫、不跑 e2e／perf**。這是第一次用 `run.mjs --detach／--wait`（AGENTS §7），審查時留意 log 裡有沒有 `STATE=LOST`。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。沒有進行中的分支，也沒有低階代理在跑。`run.mjs --detach／--wait` 在背景輪實戰通過（約 30 個長指令、0 次 LOST）。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（使用者 2026-10-19 核可）
-1. **背景管線現代化**（渲染工作，單獨一條；使用者 2026-10-21 交主代理決定）：實測背景每幀約 0.02～0.06 ms 不是瓶頸，目標是對齊其他管線（每幀零漸層與配置、參數進 `BACKGROUND_FX`、品質階層、星星確定性、依 dpr 烘焙），外觀不變。量測工具 `tools/ui-e2e/bg-probe.mjs`。使用者執行 `/goal docs/BACKGROUND_AGENT_PROMPT.md`。
+1. （無排定項目。）
 
 ## 3. 待使用者確認
 - **奧義有感實機看**（`docs/ULT_FEEL_REPORT.md`，VFX_PIPELINE_MAP §4.21）：命中光爆是否刺眼（詠唱暗場已依使用者回饋移除）；`mb_u1` 黑洞、`rr_u2` 核彈依舊版構圖做回（紫黑旋轉吸積盤＋黑核；火球＋大衝擊環＋蘑菇煙＋高飛碎石，預覽 `node tools/vfx/ult-sheet.mjs --feel --ids=mb_u1,rr_u2 --times=0.05,0.35,0.7,1.1`）；`sr_u4` 血月、`sr_u5` 鬼火、`wb_u5` 斬痕新造型；`rr_u3` 加速、`rb_u5` 三連節奏。另：火屬性奧義生成的火焰危害區範圍＝`aoeRadius`，`rr_u3`（8 圈）命中後整片火海，是玩法不是特效，要調得改技能資料。看完刪 `docs/ULT_FEEL_REPORT.md`。
+- **背景實機看**：5 張地圖背景應與以前相同（星星大小、亮度略不同）；高 DPI 螢幕上背景應更清晰。
 - **平衡輪實機看**（`docs/BALANCE_REPORT.md`）：模擬勝率 50.0%，實機節奏與手感（紅方普攻射程加長、`rr_u4` 血腥獵殺詠唱 0.3 s／威力 1800）是否 OK。
 - **技能新效果實機看**：稜鏡反射／尖刺防禦的「反傷」浮字、疾風祝禱與嗜血狂熱的加速、猩紅血月與惡魔降臨的吸血、神聖干涉的無敵（WORKLOG §Q）。
 - **導播狂抖＋掉幀**：掉幀已修（`f5e33f0`，WORKLOG §Q）。導播目標每幀跳動被鏡頭跟隨剛性（預設 0.25，約 4 秒時間常數）濾掉，不是肉眼的抖動來源；戰鬥結束附近剩下的是擊退／墜落的 `CAMERA_SHAKE`（0.55，約 70 ms 衰減）。**待使用者實機確認**是否還覺得抖。

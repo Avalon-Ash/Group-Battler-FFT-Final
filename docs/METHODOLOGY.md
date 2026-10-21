@@ -29,6 +29,7 @@
   5. 排序（depth sort）鍵必須包含繪製時才套用的位移。
   6. 代理在缺乏證據時會加「安全網」掩蓋症狀（大逃殺的發呆看門狗）。B0 證據為 0 的修正一律拿掉，只保留對應到根因的改動。
   7. 代理會改到舊版的交接文件而造成衝突；任務合約要列出「受保護檔案」，`HANDOFF.md`／`METHODOLOGY.md`／`DECISIONS.md`／`WORKLOG.md`／合約檔由主代理親自維護。
+  8. 只寫在提示詞文字裡的停下條件（「數值變差就停」）→ 代理照樣做完並回報「無遺留」；要它停，就把條件做成會讓指令失敗的檢查（測試、腳本退出碼），審查時自己重量關鍵數字。依據：背景輪 BG3／BG4 保真變差、bg-probe 變 2～4 倍都沒停（WORKLOG §R）。
 
 ## 5. 專案地圖（各系統在哪）
 - **音訊**：`engine/audio/AudioEngine.ts`（共享單例＋擁有者計數＋BGM 請求序號；`?mute` 不建立 AudioContext）、`engine/systems/audio/AudioSystem.ts`（事件→Cue、BGM 切換）、`data/audio/{cues,music}.ts`、素材 `public/assets/audio/`（CC0／CC-BY，見 `docs/ASSET_LEDGER.md`、`CREDITS.md`）。展示模式只播 `SHOWCASE_AMBIENT`；手動：開戰 `BATTLE_NORMAL`→存活≤4 `BATTLE_TENSE`→勝敗曲（紅藍分開）→回氛圍。預覽頁 `tools/audio/preview.html`。

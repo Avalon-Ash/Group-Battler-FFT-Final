@@ -129,6 +129,13 @@
 - 奧義規格化（Gemini UA 與 UA6，主代理審查後合併 `3061fbc`）：見 `docs/VFX_PIPELINE_MAP.md` §4.20。審查決定：kept → 色彩改動（依據：技能 `element`）、`mb_u2` 專屬配方（依據：原與 `rb_u1` 共用同一配方）；revised → 舊 C6（依據：總表上全場奧義貼地半徑 550～720 px 蓋滿畫面），改成上限＋STORM 散布（UA6），使用者否決命中時的範圍格閃光（詠唱預警已足、瞬發奧義看到也無用）。驗證：657 項測試、保真 6/6、perf 斷言、smoke 全過。
 - 奧義有感（Gemini UF，主代理審查後合併 `c7df349`）：見 `docs/VFX_PIPELINE_MAP.md` §4.21。審查修正 `e211b83`：聚光重抽震動亂數（改沿用主畫布變換）、橫幅漸層 `as unknown as` 型別造假、`typeof engine.isValid` 防禦式寫法（測試假引擎補 `isValid`）。驗證：673 項測試、保真 6/6（與 UF0 相同）、perf 斷言、smoke、`--feel` 全畫面圖。
 - 實作代理分段等待（10/21）：UA6 在 10 秒的 smoke 之後停了 6.5 小時（IDE 把工具呼叫轉背景、代理交出回合）→ `run.mjs --detach／--wait`（`2af6435`）；UF 時發現 IDE 終端機的 Job 會在指令返回時收掉 detached 子程序（狀態永遠 starting，`--wait` 呼叫 30 次）→ Windows 改經 WMI `Win32_Process.Create` 啟動（父程序 WmiPrvSE，不在 Job 內），starting 超過 10 秒回報 `STATE=LOST` 並給前景改跑指令（`d4345e5`）。
+- 奧義回饋（10/21，主代理，`85d01c2`）：詠唱暗場＋聚光移除——奧義詠唱只有 0.1～2 秒，來不及聚焦，只看到畫面亮暗快速交替（VRR OLED 上像閃爍），實作在 `c7df349` 可取回；規則改為詠唱短於 5 秒不做全畫面亮度變化（ART_SPEC §6、RenderSpec §11）。使用者最喜歡的 `mb_u1` 黑洞、`rr_u2` 核彈依 `6927b68` 之前的舊版構圖做回（VFX_PIPELINE_MAP §4.21），UltSpec C1～C8 0 新違規；`ult-sheet --feel` 加 `--ids`／`--times`。
+- 背景管線現代化（Gemini BG，主代理審查後合併 `f887910`）：參數集中 `BACKGROUND_FX`／`BACKGROUND_COLORS`、每幀 0 次建漸層（快取）、星星大小亮度改雜湊、靜態層依 dpr 烘焙、品質階層（Tier 2 減半、Tier 3 只畫靜態層）、`tests/BackgroundRenderer.test.ts`。審查決定（`2f8c3c7`）：revised → 光點改回 `arc`（依據：拆解探針，16px sprite 縮放 `drawImage` 每次背景多約 0.08 ms，是成本變 2～4 倍的主因）；revised → 地平線光暈改成目的矩形固定、縮放取樣範圍（依據：整張縮放在脈動縮小時兩側露出硬邊）。bg-probe 開視窗 2560×1440 每次背景（main／Gemini 版／修完）：VOID 0.033／0.089／0.033、FOREST 0.033／0.122／0.033、ICE 0.089／0.189／0.089、MAGMA 0.022／0.089／0.022、DESERT 0.044／0.100／0.033。保真 6/6 PASS；`battle_frozen` 0→0.308 是星星不再耗用 `Math.random`、保真 harness 的亂數序列位移，未重錄。
+
+  | 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+  | :-- | :-- | :-- |
+  | `AGENTS.md` §7＋`run.mjs --detach／--wait`（WMI 啟動） | 40 分鐘跑完約 30 個長指令，0 次 LOST、0 次卡住等待（`tools/ui-e2e/out/agent-logs/*-bg*`） | helped |
+  | 提示詞的文字停下條件（保真變差就停、bg-probe 不得高於改前） | BG3／BG4 保真變差、bg-probe 變 2～4 倍仍繼續，報告寫「無遺留」 | no effect |
 
 ## 3. 更早的輪次與審查修補
 
