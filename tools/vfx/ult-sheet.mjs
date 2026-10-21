@@ -488,9 +488,9 @@ try {
                     const ultId = ultIds[rowIdx];
                     const skill = e.skillDB.find((s) => s.id === ultId);
                     const sequence = SKILL_SEQUENCES[ultId];
-                    const hitAt = sequence.hitAt;
-                    const cast = skill.cast;
-                    const isRed = skill.team === 1;
+                    const hitAt = sequence?.hitAt ?? 0;
+                    const cast = skill?.cast ?? 0;
+                    const isRed = skill ? (skill.team === 1 || skill.team === types.Team.RED) : false;
 
                     cmd({ type: 'CLEAR_BOARD', keepScene: true });
 
@@ -581,7 +581,9 @@ try {
         const feelBuf = await captureFeelSheet(feelSkills, feelTimes);
         const feelOutDir = resolve(root, 'tools/ui-e2e/out/ult');
         mkdirSync(feelOutDir, { recursive: true });
-        const feelPath = join(feelOutDir, 'feel.png');
+        const feelName = arg('name', 'feel');
+        const feelFile = feelName.endsWith('.png') ? feelName : `${feelName}.png`;
+        const feelPath = join(feelOutDir, feelFile);
         writeFileSync(feelPath, feelBuf);
         console.log(`[ult-sheet] Saved feel sheet to ${feelPath}`);
     } else {
