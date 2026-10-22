@@ -1,10 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
-import { Team, Role, NodeState, ActionState, type Skill, type Agent } from '../types';
+import { Team, Role, NodeState, type Skill } from '../types';
 import { HexUtils } from '../engine/utils';
 import { COMBAT_PARAM } from '../constants';
 import { BTConditions, BTActions } from '../engine/ai/BTRegistry';
-import { SkillExecutor } from '../engine/systems/combat/SkillExecutor';
 import { CombatSystem } from '../engine/systems/combat/CombatSystem';
 
 describe('BTOptimization (行為樹與目標選擇優化)', () => {
@@ -203,6 +202,26 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const resAllyInjured = engine.movement.targeting.calculateOptimalTarget(healer, sacrificeHeal, engine);
             expect(resAllyInjured.targetAgent?.id).toBe(ally.id);
         });
+
+        it('當 Slot 1 治療技能因全員滿血不施放時，ChaseTarget(1) 回傳 FAILURE 並正常落入 Slot 2 普攻敵軍', () => {
+            const healer = engine.agentManager.addAgent(engine, Team.RED, 0, 0, 500, Role.SUPPORT);
+            const ally = engine.agentManager.addAgent(engine, Team.RED, 1, 0, 500, Role.TANK);
+            const enemy = engine.agentManager.addAgent(engine, Team.BLUE, 4, 0, 500, Role.WARRIOR);
+            if (!healer || !ally || !enemy) throw new Error('addAgent failed');
+
+            const activeHeal = engine.skillDB.find(s => s.id === 'sr_a1')!;
+            const basicAtk = engine.skillDB.find(s => s.id === 'sr_b1')!;
+            healer.skills[1] = activeHeal;
+            healer.skillIds[1] = activeHeal.id;
+            healer.skills[2] = basicAtk;
+            healer.skillIds[2] = basicAtk.id;
+            healer.curCDs = [0, 0, 0];
+
+            healer.bt!.tick(healer);
+            // 應跳過滿血無法施放的 sr_a1 (slot 1)，並啟動 sr_b1 (slot 2) 詠唱攻擊敵人
+            expect(healer.castingSkillIdx).toBe(2);
+            expect(healer.target?.id).toBe(enemy.id);
+        });
     });
 
     describe('4. 自身短效增益與護盾：防止開場遠距空開', () => {
@@ -239,8 +258,6 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             const HOSTILE_CC_SET = new Set(['STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'POLYMORPH', 'VULNERABLE']);
 
             let allyTargetTicks = 0;
-            let idleAllyTicks = 0;
-            let castingAllyTicks = 0;
             let emptyPbaoeCasts = 0;
             let healFullHpCasts = 0;
 
@@ -248,7 +265,10 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
             CombatSystem.prototype.initiateCast = function (a, skillIdx, simEngine) {
                 const skill = a.skills[skillIdx];
                 if (skill) {
-                    const hasHostileCC = (skill.ccType && HOSTILE_CC_SET.has(skill.ccType)) || (skill.ccType2 && HOSTILE_CC_SET.has(skill.ccType2));
+                    const hasHostileCC = Boolean(
+                        (skill.ccType && !skill.ccSelf && HOSTILE_CC_SET.has(skill.ccType)) ||
+                        (skill.ccType2 && !skill.ccSelf2 && HOSTILE_CC_SET.has(skill.ccType2))
+                    );
 
                     // 檢查 PBAOE 空放（對敵傷害或對敵控制）
                     if (skill.range === 0 && skill.type === 'AOE' && (skill.power > 0 || hasHostileCC)) {
@@ -265,7 +285,7 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
 
                     if (skill.power < 0 && !hasHostileCC && !isFriendlyBuff) {
                         if (skill.type === 'SINGLE') {
-                            const isSelfDamage = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE' || Boolean(skill.ccSelf);
+                            const isSelfDamage = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
                             if (isSelfDamage && a.target && a.target.id === a.id) {
                                 healFullHpCasts++;
                             } else if (a.target && a.target.team === a.team && a.target.hp >= a.target.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {
@@ -274,17 +294,8 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                         } else if (skill.type === 'AOE') {
                             const radius = Math.max(1, skill.aoeRadius || 1);
                             const injuredAllies = simEngine.agents.filter(u => u.team === a.team && u.hp > 0 && !u.banished && !u.outOfBounds && HexUtils.dist(a, u) <= radius && u.hp < u.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD);
-                            const enemies = simEngine.agents.filter(e => e.team !== a.team && e.hp > 0 && !e.banished && !e.outOfBounds && HexUtils.dist(a, e) <= radius);
-                            if (skill.id === 'sr_a3') {
-                                if (injuredAllies.length === 0 && enemies.length === 0) {
-                                    healFullHpCasts++;
-                                    console.log(`[HEAL CHECK sr_a3] ${a.id} cast sr_a3 with 0 injured allies and 0 enemies`);
-                                }
-                            } else {
-                                if (injuredAllies.length === 0) {
-                                    healFullHpCasts++;
-                                    console.log(`[HEAL CHECK AOE] ${a.id} cast ${skill.id} with 0 injured allies`);
-                                }
+                            if (injuredAllies.length === 0) {
+                                healFullHpCasts++;
                             }
                         }
                     }
@@ -292,7 +303,6 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                 return origInitiate.call(this, a, skillIdx, simEngine);
             };
 
-            const idleStateBreakdown: Record<string, number> = {};
             try {
                 const roles = [Role.TANK, Role.WARRIOR, Role.RANGER, Role.MAGE, Role.SUPPORT];
                 const SEED = 42;
@@ -326,8 +336,8 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                         t += DT;
                         for (const a of sim.agents) {
                             if (a.hp > 0 && !a.banished && !a.outOfBounds) {
-                                // 稽核「非施法時段 a.target 絕不殘留為友軍」（BT_OPT_AGENT_PROMPT.md §2.1）
-                                if (a.target && a.target.team === a.team && a.castingSkillIdx === -1 && a.actionState !== ActionState.CASTING) {
+                                // 稽核「非施法時段 a.target 絕不殘留為友軍」
+                                if (a.target && a.target.team === a.team && a.castingSkillIdx === -1) {
                                     allyTargetTicks++;
                                 }
                             }

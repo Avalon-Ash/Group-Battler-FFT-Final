@@ -4,6 +4,7 @@ import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types"
 import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
+import { isHostileSkill } from "./TargetingSystem";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 
@@ -194,8 +195,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         }
 
         // 未能計算出有效目標（如純治療無人受傷、PBAOE 範圍內無敵軍）：
-        // 還原或尋找敵方戰鬥目標，防止 a.target 殘留友軍
+        // 還原或尋找敵方戰鬥目標，防止 a.target 殘留友軍與 targetHex 殘留過期座標
         restoreCombatTarget(a, engine);
+        a.targetHex = null;
         return false;
     },
     
@@ -547,16 +549,27 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
-        const skill = a.skills[idx];
+        const skill = idx !== undefined ? a.skills[idx] : undefined;
         if (!skill) return NodeState.FAILURE;
 
         restoreCombatTarget(a, engine);
         if (!a.target || a.target.team === a.team) return NodeState.FAILURE;
 
-        // 若技能 range === 0，追擊等效射程為 Math.max(1, skill.aoeRadius || 1)
-        const chaseRange = (skill.range === 0) ? Math.max(1, skill.aoeRadius || 1) : skill.range;
+        // 非對敵技能（治療／友軍增益／自身增益）在 Smart Cast 未命中條件時：
+        // 若是 Ult (0) 或 Active (1)，不可攔截並追擊敵軍，必須回傳 FAILURE 讓 BT 繼續嘗試下一槽位技能（如普攻），
+        // 直到所有技能皆無法施放時才由 Gap Close (slot 2) 推進。
+        if (idx !== undefined && idx < 2 && !isHostileSkill(skill)) {
+            return NodeState.FAILURE;
+        }
+
+        // 若技能 range === 0，對敵 PBAOE 追擊射程為 Math.max(1, skill.aoeRadius || 1)，非對敵技能用普攻射程
+        const basicRange = a.skills[2]?.range || 1;
+        const chaseRange = (skill.range === 0)
+            ? (isHostileSkill(skill) ? Math.max(1, skill.aoeRadius || 1) : Math.max(1, basicRange))
+            : skill.range;
 
         if (!BTConditions["CanMove"](a, engine, {})) {
+            if (idx !== undefined && idx < 2) return NodeState.FAILURE;
             // 走不動但目標已在射程內：算「就位」（SUCCESS），不是失敗。
             const eff = engine.getEffectiveRange(a, a.target.q, a.target.r, chaseRange);
             return HexUtils.dist(a, a.target) <= eff + 0.1 ? NodeState.SUCCESS : NodeState.FAILURE;
@@ -579,6 +592,9 @@ export const BTActions: Record<string, BTActionFn> = {
         if (state === NodeState.RUNNING) {
             a.aiState = AIState.TRACKING;
             a.actionState = ActionState.WALKING;
+        } else if (state === NodeState.SUCCESS && idx !== undefined && idx < 2) {
+            // Ult / Active 的 Smart Cast 已失敗且無需移動：回傳 FAILURE 交給下一槽位技能出手，不可空轉吞掉此 tick
+            return NodeState.FAILURE;
         }
         return state;
     },

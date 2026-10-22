@@ -8,13 +8,21 @@ import { canStepUp } from "../math/ClimbRule";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
-const HOSTILE_CC: ReadonlySet<string> = new Set([
+export const HOSTILE_CC: ReadonlySet<string> = new Set([
     'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'POLYMORPH', 'VULNERABLE'
 ]);
 
-const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
+export const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
     'SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'
 ]);
+
+export function isHostileSkill(skill: Skill): boolean {
+    const hasHostileCC = Boolean(
+        (skill.ccType && !skill.ccSelf && HOSTILE_CC.has(skill.ccType)) ||
+        (skill.ccType2 && !skill.ccSelf2 && HOSTILE_CC.has(skill.ccType2))
+    );
+    return skill.power > 0 || hasHostileCC;
+}
 
 export class TargetingSystem {
     /**
@@ -235,20 +243,10 @@ export class TargetingSystem {
         // 1. PBAOE 或自身技能 (Range 0)
         if (skill.range === 0) {
             const aoeRadius = Math.max(1, skill.aoeRadius || 1);
-            const hasHostileCC = (skill.ccType && HOSTILE_CC.has(skill.ccType)) || (skill.ccType2 && HOSTILE_CC.has(skill.ccType2));
+            const hasFriendlyBuff = (skill.ccType && FRIENDLY_BUFF_CC.has(skill.ccType)) || (skill.ccType2 && FRIENDLY_BUFF_CC.has(skill.ccType2));
 
-            // A. 特殊技能：sr_a3 治療圖騰 (power < 0，HOT，具群補或接戰價值)
-            if (skill.id === 'sr_a3') {
-                const hasInjuredAlly = allies.some(a => HexUtils.dist(source, a) <= aoeRadius && a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD);
-                const hasEnemy = enemies.some(e => HexUtils.dist(source, e) <= aoeRadius);
-                if (hasInjuredAlly || hasEnemy) {
-                    return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
-                }
-                return { targetAgent: null, targetHex: null };
-            }
-
-            // B. 對敵傷害或對敵控制 PBAOE (power > 0 或含有敵方 CC)
-            if (skill.type === 'AOE' && (skill.power > 0 || hasHostileCC)) {
+            // A. 對敵傷害或對敵控制 PBAOE (power > 0 或含有敵方 CC)
+            if (skill.type === 'AOE' && isHostileSkill(skill)) {
                 const hasEnemyInRange = enemies.some(e => HexUtils.dist(source, e) <= aoeRadius);
                 if (hasEnemyInRange) {
                     return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
@@ -256,30 +254,36 @@ export class TargetingSystem {
                 return { targetAgent: null, targetHex: null };
             }
 
-            // C. 純友軍群體治療 (AOE 且 power < 0 且無敵方控制)
-            if (skill.type === 'AOE' && skill.power < 0) {
-                const hasInjuredAlly = allies.some(a => HexUtils.dist(source, a) <= aoeRadius && a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD);
+            // B. 純友軍群體治療／持續回血 (AOE 且 power < 0 且無主動防護／加速增益)
+            if (skill.type === 'AOE' && skill.power < 0 && !hasFriendlyBuff) {
+                const isSelfDmg = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
+                const hasInjuredAlly = allies.some(a =>
+                    HexUtils.dist(source, a) <= aoeRadius &&
+                    (!isSelfDmg || a.id !== source.id || a.hp < a.maxHp * 0.8) &&
+                    a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD
+                );
                 if (hasInjuredAlly) {
                     return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
                 }
                 return { targetAgent: null, targetHex: null };
             }
 
-            // D. 友軍群體增益／護盾 (AOE 且 power <= 0 且含友軍增益)
+            // C. 友軍群體增益／護盾 (AOE 且 power <= 0 且含友軍增益)
             if (skill.type === 'AOE' && skill.power <= 0) {
                 const alliesInRange = allies.filter(a => HexUtils.dist(source, a) <= aoeRadius);
                 if (alliesInRange.length > 0) {
+                    const hasInjuredAlly = alliesInRange.some(a => a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD);
                     const minEnemyDist = enemies.length > 0
                         ? Math.min(...enemies.map(e => HexUtils.dist(source, e)))
                         : Infinity;
-                    if (minEnemyDist <= COMBAT_PARAM.AI_SELF_BUFF_ENGAGE_DIST + aoeRadius) {
+                    if (hasInjuredAlly || minEnemyDist <= COMBAT_PARAM.AI_SELF_BUFF_ENGAGE_DIST) {
                         return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
                     }
                 }
                 return { targetAgent: null, targetHex: null };
             }
 
-            // E. 自身單體增益／護盾 (SINGLE 且 power === 0 且無敵方控制)
+            // D. 自身單體增益／護盾 (SINGLE 且 power === 0 且無敵方控制)
             if (skill.type === 'SINGLE' && skill.power === 0) {
                 const isInjured = source.hp < source.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD;
                 const minEnemyDist = enemies.length > 0
@@ -309,8 +313,7 @@ export class TargetingSystem {
                            (!skill.ccType || !FRIENDLY_BUFF_CC.has(skill.ccType)) &&
                            (!skill.ccType2 || !FRIENDLY_BUFF_CC.has(skill.ccType2));
         const isSelfDamageHeal = skill.effectType === 'SELF_DAMAGE' ||
-                                 skill.effectType2 === 'SELF_DAMAGE' ||
-                                 Boolean(skill.ccSelf);
+                                 skill.effectType2 === 'SELF_DAMAGE';
 
         let validStickyTarget = false;
         if (source.target && source.target.hp > 0 && !source.target.banished) {
@@ -378,10 +381,7 @@ export class TargetingSystem {
         return { targetAgent: source.target, targetHex: null };
     }
 
-    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {
-        if (source.target && source.target.team === source.team) {
-            source.forceAiUpdate = true;
-        }
+    public getImpactArea(_source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {
         if (skill.type === 'AOE') {
             const radius = skill.aoeRadius || 1;
             return HexUtils.range(targetHex, radius).filter(h => spatial.isValid(h.q, h.r));

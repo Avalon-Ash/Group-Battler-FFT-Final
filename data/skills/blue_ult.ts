@@ -145,7 +145,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'mb_u1', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '奧術漩渦', desc: '牽引AOE', 
         range: 8, cast: 1.0, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 470, color: '#0f172a', 
+        type: 'AOE', aoeRadius: 3, power: 430, color: '#0f172a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 4, ccDur: 2.0, element: 'VOID',
         visualHitEffect: 'FX_ULT_BLUE_BLACKHOLE'
@@ -180,7 +180,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '聚輝光柱', desc: '巨型魔能光束', 
         range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 800, color: '#60a5fa', 
+        type: 'AOE', aoeRadius: 1, power: 850, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM', element: 'ARCANE'
     },

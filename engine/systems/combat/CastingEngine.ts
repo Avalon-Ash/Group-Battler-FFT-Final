@@ -85,6 +85,9 @@ export class CastingEngine {
         a.castTimer = 0;
         a.castingAnimationTimer = 0;
         a.currentTelegraph = null;
+        if (a.target && a.target.team === a.team) {
+            a.forceAiUpdate = true;
+        }
         if (fromCompletion) {
             a._castCompleteCooldown = 0.15; // [FIX] Lockout to prevent instant re-cast loop
         }
