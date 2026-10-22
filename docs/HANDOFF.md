@@ -4,10 +4,10 @@
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
 ## 1. 目前狀態
-- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。「位移技能軌跡＋近戰前衝＋奧義 C1 歸零」（`feat/dash-motion`）已審查修正並合併入 `main`（報告 `docs/DASH_MOTION_REPORT.md`）。下一輪：排定 §2 第 1 項「行為樹優化」，提示詞 `docs/BT_OPT_AGENT_PROMPT.md` 已就緒。push 狀態以 `git status -sb` 為準。
+- 單一主線 `main`（`C:\Git\Group-Battler-FFT-Final`），遠端也只剩 `main`。「位移技能軌跡＋近戰前衝＋奧義 C1 歸零」（`feat/dash-motion`）已審查修正並合併入 `main`（報告 `docs/DASH_MOTION_REPORT.md`）。下一輪：排定 §2 第 1 項「行為樹優化與技能強度重調」，提示詞 `docs/BT_OPT_AGENT_PROMPT.md` 已就緒。push 狀態以 `git status -sb` 為準。
 
 ## 2. 排定（依序；第 2 項為渲染工作，單獨一條串行）
-1. **行為樹優化**（`docs/BT_OPT_AGENT_PROMPT.md`，分支 `feat/bt-opt`）：30 場無頭對戰錄製分析抓出四類不自然行為（友軍目標殘留 `13,317` ticks、PBAOE 空地空放 `32+12` 次、對滿血友軍空放治療 `66` 次、遠距空開短效自身增益 `14` 次）；修正 `TargetingSystem` 與 `BTRegistry`，改完重跑平衡模擬（`npm run balance:sim`），勝率維持 45～55%。
+1. **行為樹優化與技能強度重調**（`docs/BT_OPT_AGENT_PROMPT.md`，分支 `feat/bt-opt`）：30 場無頭對戰錄製抓出四類不自然行為（友軍目標殘留 `13,317` ticks、PBAOE 空地空放、對滿血友軍空放治療與對自身放自殘補血、遠距空開短效自身增益）。過去技能數值是在「AI 會空放範圍技／空補滿血隊友／提早浪費增益」的前提下調出來的，修好行為樹後各技能的有效命中率、每場治療量與覆蓋率指標都會改變；修正 `TargetingSystem` 與 `BTRegistry` 後，必須同步重跑平衡模擬並重調技能強度（`data/skills/*.ts` 數值欄位），通過 `tools/balance/report.mjs` 全部 6 項平衡指標（一般／交換勝率 46～54%、合併勝率 47～53%、p50 時長 12～22s、高頻技能勝率差 ±0.08 內、同職業紅藍差距 ≤ ±25%）。
 2. **奧義體積感強化**（使用者 2026-10-22 實機回饋）：目前零件化奧義半透明柔邊疊層過多，「視覺還是太弱，原版的體積感很強，現在都太虛化」。對照 `6927b68` 前原版構圖與實心體積階層，把奧義的厚重立體感與核心密度做回來。
 
 ## 3. 待使用者確認

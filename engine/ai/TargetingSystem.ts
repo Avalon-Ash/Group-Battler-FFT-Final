@@ -2,11 +2,27 @@
 import { Agent } from "../core/Agent";
 import { Hex, Skill, SpatialProvider } from "../../types";
 import { HexUtils } from "../utils";
-import { BLOCK_HEIGHT } from "../../constants";
+import { BLOCK_HEIGHT, COMBAT_PARAM } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 import { canStepUp } from "../math/ClimbRule";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
+
+export const HOSTILE_CC: ReadonlySet<string> = new Set([
+    'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'POLYMORPH', 'VULNERABLE'
+]);
+
+export const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
+    'SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'
+]);
+
+export function isHostileSkill(skill: Skill): boolean {
+    const hasHostileCC = Boolean(
+        (skill.ccType && !skill.ccSelf && HOSTILE_CC.has(skill.ccType)) ||
+        (skill.ccType2 && !skill.ccSelf2 && HOSTILE_CC.has(skill.ccType2))
+    );
+    return skill.power > 0 || hasHostileCC;
+}
 
 export class TargetingSystem {
     /**
@@ -220,10 +236,65 @@ export class TargetingSystem {
      * 核心：計算最佳施法目標 (Smart Cast)
      */
     public calculateOptimalTarget(source: Agent, skill: Skill, spatial: SpatialProvider): { targetAgent: Agent | null, targetHex: Hex | null } {
-        // [NEW] 背水一戰技能優先級：在危險區時，優先使用推拉技能
-        
-        // 1. 自身爆發 (PBAOE) - Range 0 強制鎖定腳下
+        const allAgents = spatial.getAgents();
+        const enemies = allAgents.filter(e => e.team !== source.team && this.isValidTarget(e, spatial));
+        const allies = allAgents.filter(a => a.team === source.team && this.isValidTarget(a, spatial));
+
+        // 1. PBAOE 或自身技能 (Range 0)
         if (skill.range === 0) {
+            const aoeRadius = Math.max(1, skill.aoeRadius || 1);
+            const hasFriendlyBuff = (skill.ccType && FRIENDLY_BUFF_CC.has(skill.ccType)) || (skill.ccType2 && FRIENDLY_BUFF_CC.has(skill.ccType2));
+
+            // A. 對敵傷害或對敵控制 PBAOE (power > 0 或含有敵方 CC)
+            if (skill.type === 'AOE' && isHostileSkill(skill)) {
+                const hasEnemyInRange = enemies.some(e => HexUtils.dist(source, e) <= aoeRadius);
+                if (hasEnemyInRange) {
+                    return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
+                }
+                return { targetAgent: null, targetHex: null };
+            }
+
+            // B. 純友軍群體治療／持續回血 (AOE 且 power < 0 且無主動防護／加速增益)
+            if (skill.type === 'AOE' && skill.power < 0 && !hasFriendlyBuff) {
+                const isSelfDmg = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
+                const hasInjuredAlly = allies.some(a =>
+                    HexUtils.dist(source, a) <= aoeRadius &&
+                    (!isSelfDmg || a.id !== source.id || a.hp < a.maxHp * 0.8) &&
+                    a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD
+                );
+                if (hasInjuredAlly) {
+                    return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
+                }
+                return { targetAgent: null, targetHex: null };
+            }
+
+            // C. 友軍群體增益／護盾 (AOE 且 power <= 0 且含友軍增益)
+            if (skill.type === 'AOE' && skill.power <= 0) {
+                const alliesInRange = allies.filter(a => HexUtils.dist(source, a) <= aoeRadius);
+                if (alliesInRange.length > 0) {
+                    const hasInjuredAlly = alliesInRange.some(a => a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD);
+                    const minEnemyDist = enemies.length > 0
+                        ? Math.min(...enemies.map(e => HexUtils.dist(source, e)))
+                        : Infinity;
+                    if (hasInjuredAlly || minEnemyDist <= COMBAT_PARAM.AI_SELF_BUFF_ENGAGE_DIST) {
+                        return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
+                    }
+                }
+                return { targetAgent: null, targetHex: null };
+            }
+
+            // D. 自身單體增益／護盾 (SINGLE 且 power === 0 且無敵方控制)
+            if (skill.type === 'SINGLE' && skill.power === 0) {
+                const isInjured = source.hp < source.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD;
+                const minEnemyDist = enemies.length > 0
+                    ? Math.min(...enemies.map(e => HexUtils.dist(source, e)))
+                    : Infinity;
+                if (isInjured || minEnemyDist <= COMBAT_PARAM.AI_SELF_BUFF_ENGAGE_DIST) {
+                    return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
+                }
+                return { targetAgent: null, targetHex: null };
+            }
+
             return { targetAgent: null, targetHex: { q: source.q, r: source.r } };
         }
 
@@ -231,16 +302,38 @@ export class TargetingSystem {
         if (skill.type === 'AOE') {
             return this.findBestAOELocation(source, skill, spatial);
         }
-        
-        const isBuffCC = (skill.ccType === 'SHIELD' || skill.ccType === 'HOT' || skill.ccType2 === 'SHIELD' || skill.ccType2 === 'HOT');
+
+        // 3. 單體技能
+        const isBuffCC = (skill.ccType && FRIENDLY_BUFF_CC.has(skill.ccType)) ||
+                         (skill.ccType2 && FRIENDLY_BUFF_CC.has(skill.ccType2)) ||
+                         skill.ccType === 'HOT' || skill.ccType2 === 'HOT';
         const targetIsAlly = skill.power < 0 || (skill.power === 0 && isBuffCC);
-        
+
+        const isPureHeal = skill.power < 0 &&
+                           (!skill.ccType || !FRIENDLY_BUFF_CC.has(skill.ccType)) &&
+                           (!skill.ccType2 || !FRIENDLY_BUFF_CC.has(skill.ccType2));
+        const isSelfDamageHeal = skill.effectType === 'SELF_DAMAGE' ||
+                                 skill.effectType2 === 'SELF_DAMAGE';
+
         let validStickyTarget = false;
         if (source.target && source.target.hp > 0 && !source.target.banished) {
-            validStickyTarget = targetIsAlly ? source.target.team === source.team : source.target.team !== source.team;
+            if (targetIsAlly) {
+                if (source.target.team === source.team) {
+                    validStickyTarget = true;
+                    // 純治療不可黏著滿血友軍
+                    if (isPureHeal && source.target.hp >= source.target.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) {
+                        validStickyTarget = false;
+                    }
+                    // 自殘治療不可選自己
+                    if (isSelfDamageHeal && source.target.id === source.id) {
+                        validStickyTarget = false;
+                    }
+                }
+            } else {
+                validStickyTarget = source.target.team !== source.team;
+            }
         }
 
-        // 3. 單體技能 - 包含盟友智能選取
         if (targetIsAlly && skill.type === 'SINGLE') {
             if (validStickyTarget && source.target) {
                 const effRange = this.getEffectiveRange(source, source.target.q, source.target.r, skill.range, spatial);
@@ -251,21 +344,26 @@ export class TargetingSystem {
             // 尋找最佳隊友 (根據失血量)
             let bestAlly: Agent | null = null;
             let maxAllyScore = -Infinity;
-            for (const ally of spatial.getAgents()) {
-                if (ally.team === source.team && ally.hp > 0 && !ally.banished && !ally.outOfBounds) {
-                    const dist = Math.max(0.5, HexUtils.dist(source, ally));
-                    const missingHpPct = 1 - (ally.hp / ally.maxHp);
-                    let score = missingHpPct * 1000 - dist * 10;
-                    if (ally === source) score -= 100; // 優先救別人
-                    if (score > maxAllyScore) {
-                        maxAllyScore = score;
-                        bestAlly = ally;
-                    }
+            for (const ally of allies) {
+                // 自殘治療排除自身
+                if (isSelfDamageHeal && ally.id === source.id) continue;
+                // 純治療略過滿血/近滿血友軍
+                if (isPureHeal && ally.hp >= ally.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD) continue;
+
+                const dist = Math.max(0.5, HexUtils.dist(source, ally));
+                const missingHpPct = 1 - (ally.hp / ally.maxHp);
+                let score = missingHpPct * 1000 - dist * 10;
+                if (ally === source) score -= 100; // 優先救別人
+                if (score > maxAllyScore) {
+                    maxAllyScore = score;
+                    bestAlly = ally;
                 }
             }
             if (bestAlly) {
                 return { targetAgent: bestAlly, targetHex: null };
             }
+            // 友軍目標技能無合法友軍時，回傳 null（不可回傳敵軍，亦不可空放）
+            return { targetAgent: null, targetHex: null };
         } else if (skill.type === 'SINGLE') {
             // 普通敵方目標黏著邏輯
             if (validStickyTarget && source.target) {
@@ -283,7 +381,7 @@ export class TargetingSystem {
         return { targetAgent: source.target, targetHex: null };
     }
 
-    public getImpactArea(source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {
+    public getImpactArea(_source: Agent, targetHex: Hex, skill: Skill, spatial: ImpactAreaContext): Hex[] {
         if (skill.type === 'AOE') {
             const radius = skill.aoeRadius || 1;
             return HexUtils.range(targetHex, radius).filter(h => spatial.isValid(h.q, h.r));

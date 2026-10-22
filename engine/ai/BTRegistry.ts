@@ -4,11 +4,27 @@ import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types"
 import { HexUtils } from "../utils";
 import { HEX_SIZE, CAST_LOCKOUT } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
+import { isHostileSkill } from "./TargetingSystem";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
 import type { BTArgs } from "../../data/ai_profiles";
 
 export type BTConditionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => boolean;
 export type BTActionFn = (agent: Agent, engine: GameEngine, args: BTArgs) => NodeState;
+
+function restoreCombatTarget(a: Agent, engine: GameEngine): void {
+    if (a.target && a.target.team === a.team) {
+        if (a._savedCombatTarget && a._savedCombatTarget.hp > 0 && a._savedCombatTarget.team !== a.team) {
+            a.target = a._savedCombatTarget;
+            a._savedCombatTarget = null;
+        } else {
+            a.target = null;
+            engine.updateTarget(a);
+        }
+    } else if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0 && a._savedCombatTarget.team !== a.team) {
+        a.target = a._savedCombatTarget;
+        a._savedCombatTarget = null;
+    }
+}
 
 export const BTConditions: Record<string, BTConditionFn> = {
     "IsDead": (a) => a.hp <= 0,
@@ -24,19 +40,17 @@ export const BTConditions: Record<string, BTConditionFn> = {
                         a.aiState === AIState.LAST_STAND_PUSH,
     
     "HasTarget": (a, engine) => {
-        if (!a.target && a._savedCombatTarget && a._savedCombatTarget.hp > 0) {
-            a.target = a._savedCombatTarget;
-            a._savedCombatTarget = null;
-        }
+        restoreCombatTarget(a, engine);
 
         // 嘲諷中且目標不是嘲諷者：交給 TargetingSystem 的嘲諷強制鎖定重選（CCManager 不再直接寫 target）
         const tauntLocked = a.effects.TAUNT.remaining > 0 && a.effects.TAUNT.sourceId !== null && a.target?.id !== a.effects.TAUNT.sourceId;
-        if (!tauntLocked && a.target && a.target.hp > 0 && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
+        if (!tauntLocked && a.target && a.target.hp > 0 && a.target.team !== a.team && !a.target.banished && !a.target.outOfBounds && engine.map.isValid(a.target.q, a.target.r)) {
             return true;
         }
-        // target 死亡、出界或地塊消失：立刻重新選目標
+        // target 死亡、出界、同隊或地塊消失：立刻重新選目標
+        a.target = null;
         engine.updateTarget(a);
-        return a.target !== null;
+        return a.target !== null && a.target.team !== a.team;
     },
     
     "HpBelow": (a, _, args) => (a.hp / a.maxHp) < args.threshold,
@@ -155,14 +169,35 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const result = engine.calculateOptimalTarget(a, skill);
         
         if (result.targetAgent) {
-            a.target = result.targetAgent;
-            a.targetHex = null;
+            if (result.targetAgent.team === a.team) {
+                if (a.target && a.target.team !== a.team) {
+                    a._savedCombatTarget = a.target;
+                }
+                const effRange = engine.getEffectiveRange(a, result.targetAgent.q, result.targetAgent.r, skill.range);
+                const inRange = HexUtils.dist(a, result.targetAgent) <= effRange + 0.1;
+                if (inRange) {
+                    a.target = result.targetAgent;
+                    a.targetHex = null;
+                } else {
+                    restoreCombatTarget(a, engine);
+                    a.targetHex = { q: result.targetAgent.q, r: result.targetAgent.r };
+                }
+            } else {
+                a.target = result.targetAgent;
+                a.targetHex = null;
+            }
             return true;
         } else if (result.targetHex) {
             // 不清除 a.target，保留作為單體目標退化之用 (解決 AOE 跑到空地發呆)
+            restoreCombatTarget(a, engine);
             a.targetHex = result.targetHex;
             return true;
         }
+
+        // 未能計算出有效目標（如純治療無人受傷、PBAOE 範圍內無敵軍）：
+        // 還原或尋找敵方戰鬥目標，防止 a.target 殘留友軍與 targetHex 殘留過期座標
+        restoreCombatTarget(a, engine);
+        a.targetHex = null;
         return false;
     },
     
@@ -239,8 +274,9 @@ function approachEndsOnCollapse(a: Agent, engine: GameEngine, dest: Hex, range: 
     }
     const pf = engine.movement.pathfinder;
     const tg = engine.movement.targeting;
-    let path = pf.findPath(a, dest.q, dest.r, range, false, engine, tg, false);
-    if (path.length === 0) path = pf.findPath(a, dest.q, dest.r, range, true, engine, tg, false);
+    const effRange = range === 0 ? 1 : range;
+    let path = pf.findPath(a, dest.q, dest.r, effRange, false, engine, tg, false);
+    if (path.length === 0) path = pf.findPath(a, dest.q, dest.r, effRange, true, engine, tg, false);
     const stop: Hex = path.length > 0 ? path[path.length - 1] : { q: a.q, r: a.r };
     return engine.isWarningTile(HexUtils.key(stop));
 }
@@ -255,18 +291,22 @@ export const BTActions: Record<string, BTActionFn> = {
             engine.combat.breakCast(a, engine);
         }
 
+        restoreCombatTarget(a, engine);
+
         return NodeState.RUNNING;
     },
     "Idle": (a, engine) => {
         if (engine && engine.isWarningTile(HexUtils.key(a))) {
             engine.log(a, 'DECISION', '決策異常', '', '注意：單位在危險區進入 IDLE 狀態！可能是戰鬥邏輯均失敗。');
         }
+        restoreCombatTarget(a, engine);
         a.aiState = AIState.IDLE;
         a.actionState = ActionState.IDLE;
         if (a.isMoving) stopMovement(a);
         return NodeState.SUCCESS;
     },
     "EscapeWarning": (a, engine) => {
+        restoreCombatTarget(a, engine);
         const inDanger = BTConditions["IsInWarningZone"](a, engine, {}) || BTConditions["IsInUrgentDanger"](a, engine, {});
 
         if (!inDanger) {
@@ -486,8 +526,9 @@ export const BTActions: Record<string, BTActionFn> = {
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
+            const moveRange = (skill.range === 0) ? Math.max(1, skill.aoeRadius || 1) : skill.range;
             // 只有「停下來的格子會塌陷」才拒絕靠近；被困在塌陷格時（Survival 已放棄）直奔目標。
-            if (approachEndsOnCollapse(a, engine, dest, skill.range)) {
+            if (approachEndsOnCollapse(a, engine, dest, moveRange)) {
                 if (engine.isWarningTile(HexUtils.key(a)) && a.target) {
                     dest = { q: a.target.q, r: a.target.r };
                 } else {
@@ -497,7 +538,7 @@ export const BTActions: Record<string, BTActionFn> = {
 
             if (a.q === dest.q && a.r === dest.r) return NodeState.SUCCESS;
 
-            const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
+            const state = engine.moveAgentToHex(a, dest, moveRange, speedMult);
             if (state === NodeState.RUNNING) {
                 a.aiState = AIState.TRACKING; // Now safe to set
                 a.actionState = ActionState.WALKING;
@@ -508,11 +549,29 @@ export const BTActions: Record<string, BTActionFn> = {
     },
     "ChaseTarget": (a, engine, args) => {
         const idx = args.slot;
-        const skill = a.skills[idx];
-        if (!skill || !a.target) return NodeState.FAILURE;
+        const skill = idx !== undefined ? a.skills[idx] : undefined;
+        if (!skill) return NodeState.FAILURE;
+
+        restoreCombatTarget(a, engine);
+        if (!a.target || a.target.team === a.team) return NodeState.FAILURE;
+
+        // 非對敵技能（治療／友軍增益／自身增益）在 Smart Cast 未命中條件時：
+        // 若是 Ult (0) 或 Active (1)，不可攔截並追擊敵軍，必須回傳 FAILURE 讓 BT 繼續嘗試下一槽位技能（如普攻），
+        // 直到所有技能皆無法施放時才由 Gap Close (slot 2) 推進。
+        if (idx !== undefined && idx < 2 && !isHostileSkill(skill)) {
+            return NodeState.FAILURE;
+        }
+
+        // 若技能 range === 0，對敵 PBAOE 追擊射程為 Math.max(1, skill.aoeRadius || 1)，非對敵技能用普攻射程
+        const basicRange = a.skills[2]?.range || 1;
+        const chaseRange = (skill.range === 0)
+            ? (isHostileSkill(skill) ? Math.max(1, skill.aoeRadius || 1) : Math.max(1, basicRange))
+            : skill.range;
+
         if (!BTConditions["CanMove"](a, engine, {})) {
+            if (idx !== undefined && idx < 2) return NodeState.FAILURE;
             // 走不動但目標已在射程內：算「就位」（SUCCESS），不是失敗。
-            const eff = engine.getEffectiveRange(a, a.target.q, a.target.r, skill.range);
+            const eff = engine.getEffectiveRange(a, a.target.q, a.target.r, chaseRange);
             return HexUtils.dist(a, a.target) <= eff + 0.1 ? NodeState.SUCCESS : NodeState.FAILURE;
         }
 
@@ -522,17 +581,20 @@ export const BTActions: Record<string, BTActionFn> = {
         const dest = { q: a.target.q, r: a.target.r };
 
         // 只有「停下來的格子會塌陷」才不追；被困在塌陷格時直奔目標，不放棄追擊。
-        if (approachEndsOnCollapse(a, engine, dest, skill.range) && !engine.isWarningTile(HexUtils.key(a))) {
+        if (approachEndsOnCollapse(a, engine, dest, chaseRange) && !engine.isWarningTile(HexUtils.key(a))) {
             // 目標在塌陷區邊緣、我在安全格：已在射程內就原地待命（moveAgentToHex 會回 SUCCESS），否則交給 Reposition。
             const dist = HexUtils.dist(a, dest);
-            if (dist > engine.getEffectiveRange(a, dest.q, dest.r, skill.range) + 0.1) return NodeState.FAILURE;
+            if (dist > engine.getEffectiveRange(a, dest.q, dest.r, chaseRange) + 0.1) return NodeState.FAILURE;
         }
 
-        const state = engine.moveAgentToHex(a, dest, skill.range, speedMult);
+        const state = engine.moveAgentToHex(a, dest, chaseRange, speedMult);
         
         if (state === NodeState.RUNNING) {
             a.aiState = AIState.TRACKING;
             a.actionState = ActionState.WALKING;
+        } else if (state === NodeState.SUCCESS && idx !== undefined && idx < 2) {
+            // Ult / Active 的 Smart Cast 已失敗且無需移動：回傳 FAILURE 交給下一槽位技能出手，不可空轉吞掉此 tick
+            return NodeState.FAILURE;
         }
         return state;
     },
@@ -541,6 +603,7 @@ export const BTActions: Record<string, BTActionFn> = {
      * 只挑嚴格更靠近目標、非塌陷、無敵方 hazard、無人佔用的格子，所以不會來回震盪；找不到就 FAILURE（交給 Idle）。
      */
     "Reposition": (a, engine) => {
+        restoreCombatTarget(a, engine);
         if (!a.target || !BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
         if (engine.isWarningTile(HexUtils.key(a))) return NodeState.FAILURE; // 這是 Survival 的事
         const curDist = HexUtils.dist(a, a.target);
