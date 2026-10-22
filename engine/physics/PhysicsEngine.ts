@@ -2,6 +2,7 @@
 import { Agent, GameEngine } from "../game";
 import { MovementType } from "../../types";
 import { HexUtils } from "../utils";
+import { VisualMath } from "../math/VisualMath";
 import { PHYSICS, DAMAGE_TEXT_COLORS } from "../../constants";
 import { applyDirectDamage, applyLethal } from "../systems/combat/DirectDamage";
 import { triggerHitFlash } from "../core/ViewCommands";
@@ -10,6 +11,9 @@ import { unitEventPos } from "../events/EventPos";
 
 /** 縮圈墜落的初速占「安全落地速度」的比例（向下）。 */
 const VOID_FALL_START_SPEED_FACTOR = 0.6;
+
+/** 物理子步上限（秒，約 60 fps）：高倍速時仍維持積分穩定。 */
+const MAX_SUBSTEP = 0.016;
 
 /**
  * [OWNER] Agent.physics 的位置與積分（z／vz 的直接改寫只在這裡）。
@@ -53,11 +57,10 @@ export class PhysicsEngine {
         if (a.fullyDead || a.outOfBounds || (a.banished && engine.isValid(a.q, a.r))) return;
         
         // Sub-step physics to guarantee stability at high time scales
-        const maxStep = 0.016; // ~60fps step
         let remainingDt = dt;
         
         while (remainingDt > 0) {
-            const stepDt = Math.min(remainingDt, maxStep);
+            const stepDt = Math.min(remainingDt, MAX_SUBSTEP);
             remainingDt -= stepDt;
             this.stepPhysics(a, stepDt, engine);
         }
@@ -115,12 +118,30 @@ export class PhysicsEngine {
             const dz = targetZ - a.physics.z;
             a.physics.vz += dz * 5 * dt;
             a.physics.vz *= 0.92;
-        } else if (isAirborne || a.physics.z > 0.1) {
+        } else if (isAirborne || a.physics.z > 0.1 || a.physics.vz > 0) {
             a.physics.vz -= PHYSICS.GRAVITY * dt;
         }
 
+        const shouldTrackGroundShift = !isDead && isGroundValid && engine.mapConfig && (a.physics.x !== 0 || a.physics.y !== 0 || a.physics.vx !== 0 || a.physics.vy !== 0);
+        const gBefore = shouldTrackGroundShift
+            ? VisualMath.getUnitGroundHeight(a, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig)
+            : 0;
+
         a.physics.x += a.physics.vx * dt;
         a.physics.y += a.physics.vy * dt;
+
+        if (shouldTrackGroundShift) {
+            const gAfter = VisualMath.getUnitGroundHeight(a, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
+            if (gAfter < gBefore) {
+                // 視覺腳點跨出較高格：高差轉入 physics.z 自然落下，腳底世界高度連續。
+                // 這是地形落差的視覺過渡、不是墜落（ForcedMove：向下任意高度皆可、不受傷）：
+                // 吸收量以「落地速度不超過 SAFE_FALL_VELOCITY」為上限（含一個子步的離散誤差），超出部分照舊直接落下。
+                const vSafe = PHYSICS.SAFE_FALL_VELOCITY - PHYSICS.GRAVITY * MAX_SUBSTEP;
+                const zAllowed = (vSafe * vSafe - a.physics.vz * a.physics.vz) / (2 * PHYSICS.GRAVITY);
+                a.physics.z += Math.min(gBefore - gAfter, Math.max(0, zAllowed - Math.max(0, a.physics.z)));
+            }
+        }
+
         a.physics.z += a.physics.vz * dt;
         a.physics.angle += a.physics.vAngle * dt;
 
@@ -135,32 +156,37 @@ export class PhysicsEngine {
                 }
                 a.outOfBounds = true; // Remove from battlefield rendering and logic; fullyDead 由 updateDeathState 回收
             }
-        } else if (isGroundValid && a.physics.z < 0) {
-            a.physics.z = 0;
-            if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
-                const impactSpeed = Math.abs(a.physics.vz);
-                if (!isDead) {
-                    const velocityOverhead = impactSpeed - PHYSICS.SAFE_FALL_VELOCITY;
-                    const scaling = PHYSICS.FATAL_FALL_VELOCITY - PHYSICS.SAFE_FALL_VELOCITY;
-                    const pct = Math.min(1.0, velocityOverhead / scaling);
-                    const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
-                    applyDirectDamage(a, rawDmg, true); // 墜落為真實傷害（無視護盾）
-                    engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
-                    engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
-                    
-                    engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
+        } else if (isGroundValid && a.physics.z < 0 && a.physics.vz <= 0) {
+            if (a.physics.vz < 0) {
+                a.physics.z = 0;
+                if (a.physics.vz < -PHYSICS.SAFE_FALL_VELOCITY) {
+                    const impactSpeed = Math.abs(a.physics.vz);
+                    if (!isDead) {
+                        const velocityOverhead = impactSpeed - PHYSICS.SAFE_FALL_VELOCITY;
+                        const scaling = PHYSICS.FATAL_FALL_VELOCITY - PHYSICS.SAFE_FALL_VELOCITY;
+                        const pct = Math.min(1.0, velocityOverhead / scaling);
+                        const rawDmg = Math.floor(a.maxHp * pct) + PHYSICS.FALL_DAMAGE_MIN;
+                        applyDirectDamage(a, rawDmg, true); // 墜落為真實傷害（無視護盾）
+                        engine.events.push({ type: 'DAMAGE', pos: unitEventPos(a, engine), value: -rawDmg, color: DAMAGE_TEXT_COLORS.RECOIL, text: "墜落" });
+                        engine.log(a, 'HAZARD', '墜落', '地面', `受到墜落傷害 ${rawDmg}`);
+                        
+                        engine.bus.emit('CAMERA_SHAKE', { intensity: pct * 0.5 });
 
-                    if (a.hp <= 0) {
-                        engine.agentManager.handleDeadState(a, engine);
-                    } else {
-                        // SSOT: Set visual timer instead of imperative setAnim
-                        triggerHitFlash(a, 0.2);
+                        if (a.hp <= 0) {
+                            engine.agentManager.handleDeadState(a, engine);
+                        } else {
+                            // SSOT: Set visual timer instead of imperative setAnim
+                            triggerHitFlash(a, 0.2);
+                        }
                     }
+                    a.physics.vz = -a.physics.vz * 0.3;
+                    a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
+                } else {
+                    a.physics.vz = 0;
                 }
-                a.physics.vz = -a.physics.vz * 0.3;
-                a.physics.vx *= 0.5; a.physics.vy *= 0.5; a.physics.vAngle *= 0.5;
             } else {
-                a.physics.vz = 0;
+                a.physics.z *= dampFactor;
+                if (a.physics.z > -0.5) a.physics.z = 0;
             }
         }
 
