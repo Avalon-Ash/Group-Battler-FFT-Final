@@ -132,8 +132,8 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'mb_a1', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '奧術爆破', desc: '標準AOE', 
-        range: 7, cast: 1.0, cd: 7.0, cost: 40, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 240, color: '#a855f7', visual: 'BOLT', projectileSpeed: 800,
+        range: 7, cast: 1.0, cd: 7.5, cost: 40, gain: 0, 
+        type: 'AOE', aoeRadius: 1, power: 210, color: '#a855f7', visual: 'BOLT', projectileSpeed: 800,
         visualHitEffect: 'FX_ACTIVE_BLUE_ARCANE_RIPPLE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
     { 

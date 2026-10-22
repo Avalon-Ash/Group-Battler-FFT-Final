@@ -141,8 +141,8 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a2', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '暗影之怒', desc: '範圍恐懼', 
-        range: 6, cast: 0.7, cd: 10.0, cost: 45, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 110, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
+        range: 6, cast: 0.7, cd: 8.5, cost: 45, gain: 0, 
+        type: 'AOE', aoeRadius: 1, power: 160, color: '#581c87', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'FEAR', ccDur: 1.5,
         visualHitEffect: 'FX_ACTIVE_RED_SHADOW_SCREAM', element: 'VOID'
     },
@@ -158,16 +158,16 @@ export const RED_ACTIVE: Skill[] = [
     { 
         id: 'mr_a4', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '裂甲詛咒', desc: '使目標進入虛弱狀態',
-        range: 6, cast: 0.5, cd: 8.5, cost: 35, gain: 0,
-        type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 900,
+        range: 6, cast: 0.5, cd: 7.5, cost: 35, gain: 0,
+        type: 'SINGLE', power: 90, color: '#ef4444', visual: 'BOLT', projectileSpeed: 900,
         ccType: 'VULNERABLE', ccDur: 4.0,
         visualHitEffect: 'FX_HIT_RED_SHADOW', element: 'VOID'
     },
     { 
         id: 'mr_a5', role: Role.MAGE, team: Team.RED, tag: 'ACTIVE', 
         name: '鮮血分流', desc: '回魔傷害', 
-        range: 6, cast: 0.4, cd: 8.5, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 80, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
+        range: 6, cast: 0.4, cd: 7.5, cost: 0, gain: 35, 
+        type: 'SINGLE', power: 110, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ACTIVE_RED_BLOOD_RAGE', element: 'BLOOD'
     },
 

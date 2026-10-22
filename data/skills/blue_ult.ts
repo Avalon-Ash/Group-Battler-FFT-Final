@@ -180,7 +180,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'mb_u5', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '聚輝光柱', desc: '巨型魔能光束', 
         range: 12, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 1, power: 900, color: '#60a5fa', 
+        type: 'AOE', aoeRadius: 1, power: 800, color: '#60a5fa', 
         visual: 'BEAM', projectileSpeed: 0, 
         visualHitEffect: 'FX_ULT_BLUE_FOCUS_BEAM', element: 'ARCANE'
     },

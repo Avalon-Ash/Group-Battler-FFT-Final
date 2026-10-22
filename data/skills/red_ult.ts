@@ -73,8 +73,8 @@ export const RED_ULT: Skill[] = [
         range: 0, cast: 0.3, cd: 5.0, cost: 100, gain: 0, 
         type: 'SINGLE', power: 0, color: '#b91c1c', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'HASTE', ccDur: 7.0, ccForce: 50, ccSelf: true,
-        ccType2: 'LIFESTEAL', ccDur2: 7.0, ccForce2: 50, ccSelf2: true,
+        ccType: 'HASTE', ccDur: 8.0, ccForce: 75, ccSelf: true,
+        ccType2: 'LIFESTEAL', ccDur2: 8.0, ccForce2: 75, ccSelf2: true,
         visualHitEffect: 'FX_ULT_RED_DEMON_FORM', element: 'BLOOD'
     },
     { 
@@ -164,7 +164,7 @@ export const RED_ULT: Skill[] = [
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '時間凝結', desc: '將目標凝滯於時間中',
         range: 7, cast: 0.8, cd: 5.0, cost: 100, gain: 0,
-        type: 'SINGLE', power: 300, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
+        type: 'SINGLE', power: 520, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
         ccType: 'BANISH', ccDur: 3.5,
         specialVisualStatus: 'STASIS',
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'

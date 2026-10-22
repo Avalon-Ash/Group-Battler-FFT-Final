@@ -138,8 +138,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'mr_b2', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '生命虹吸', desc: '吸血連結', 
-        range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 70, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 25, 
+        type: 'SINGLE', power: 82, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.6, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -155,7 +155,7 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b4', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '虛弱詛咒', desc: '虛弱', 
         range: 6, cast: 0.6, cd: 1.2, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 65, color: '#581c87', visual: 'BOLT', projectileSpeed: 1100, 
+        type: 'SINGLE', power: 75, color: '#581c87', visual: 'BOLT', projectileSpeed: 1100, 
         visualHitEffect: 'FX_HIT_RED_SHADOW', visualProjectileEffect: 'PROJ_RED_SHADOW', element: 'VOID'
     },
     { 
