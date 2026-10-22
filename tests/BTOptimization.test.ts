@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { GameEngine } from '../engine/game';
-import { Team, Role, NodeState, type Skill, type Agent } from '../types';
+import { Team, Role, NodeState, ActionState, type Skill, type Agent } from '../types';
 import { HexUtils } from '../engine/utils';
 import { COMBAT_PARAM } from '../constants';
 import { BTConditions, BTActions } from '../engine/ai/BTRegistry';
@@ -327,7 +327,7 @@ describe('BTOptimization (行為樹與目標選擇優化)', () => {
                         for (const a of sim.agents) {
                             if (a.hp > 0 && !a.banished && !a.outOfBounds) {
                                 // 稽核「非施法時段 a.target 絕不殘留為友軍」（BT_OPT_AGENT_PROMPT.md §2.1）
-                                if (a.target && a.target.team === a.team && a.castingSkillIdx === -1) {
+                                if (a.target && a.target.team === a.team && a.castingSkillIdx === -1 && a.actionState !== ActionState.CASTING) {
                                     allyTargetTicks++;
                                 }
                             }
