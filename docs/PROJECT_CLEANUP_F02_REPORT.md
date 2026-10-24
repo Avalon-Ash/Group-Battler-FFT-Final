@@ -19,36 +19,35 @@
 
 ## 3. F 組實作與管線狀態（F02 目標動態追蹤與鎖定）
 - **受影響技能與資格判定**:
-  - 僅限 `type === 'SINGLE' && cast > 0 && projectileSpeed <= 0 && animation !== 'HEAVEN_FALL'` 且目標在場存活之技能（如 `mb_a2` 秘法射線、`ps_a1`、`ab_a1`、`dr_a1`、`dr_a2`）。
-  - 排除範圍：地面 AOE（`mb_u1`）、彈道投射物（`projectileSpeed > 0`）、無詠唱瞬發技能、天降型大絕（`HEAVEN_FALL`）。
+  - 僅限 `skill.type === 'SINGLE' && (skill.cast || 0) > 0 && (!skill.projectileSpeed || skill.projectileSpeed <= 0) && sequence.actions.every(a => a.type !== 'HEAVEN_FALL')` 且目標仍在 `engine.agents` 集合中之技能。
+  - 受影響非 BASIC 技能共 36 項（真實資料庫導出，參見 `review-f02-eligible.json`，含 `mb_a2` 冰封禁錮、`tb_a2` 制裁震擊、`wb_a2` 疾光突襲、`sb_a1` 神聖癒合、`tr_a4` 鮮血護盾等，無杜撰之 `ps_a1/ab_a1/dr_a1/dr_a2`）。
+  - 排除範圍：地面 AOE（`mb_u1`）、彈道投射物（`projectileSpeed > 0` 如 `mb_b1`）、無詠唱瞬發技能（`cast <= 0`）、天降型動作（序列 actions 含 `HEAVEN_FALL` 如 `tr_u1` 處決斷頭台）。
 - **架構實作**:
-  - `engine/presentation/visuals/SequenceSystem.ts`: 引入 `SequenceRunOptions` 與 `SequenceTargetBinding`，於 `update()` 在 `lockAt` 前每幀採樣 `VisualMath.getUnitAnchor(target, engine)`；達 `lockAt` 或目標死亡／離場時於最後已知點固化。新增架構箱頭。
-  - `engine/presentation/VisualSystem.ts`: 於 `CAST_START` 判定單體資格並注入 `options: { targetId, lockAt: event.lockAt }`。新增架構箱頭。
+  - `engine/presentation/visuals/SequenceSystem.ts`: 引入 `SequenceRunOptions` 與 `SequenceTargetBinding`，於 `update()` 在 `lockAt` 前每幀採樣 `VisualMath.getUnitAnchor(target, engine)`；首次 `battleTime >= lockAt` 永久鎖定；若目標在 `engine.agents` 集合中（即使 `hp <= 0`）仍可採樣；目標離場移出集合時沿用最後有效快照 `lastAnchor`。
+  - `engine/presentation/VisualSystem.ts`: 於 `CAST_START` 查驗 `sequence.actions` 判定資格，`lockAt` 算自當下 `engine.battleTime + (skill.cast || 0)`（資料與事件無 `animation` 或 `event.lockAt` 欄位），注入 options。檔頭箱頭已校正為「目標仍在集合」。
   - `engine/renderers/RenderSpec.ts` & `docs/VFX_PIPELINE_MAP.md`: 新增 §4.1 目標錨點採樣與時點協議，同步管線拓撲。
 
-## 4. 探針與自動化驗證數據
+## 4. 探針與自動化驗證數據（含 V01 補驗）
 - **F02 專用探針 (`cleanup-f02-check.mjs`)**:
-  - Before (`tools/ui-e2e/out/f02-before.json`):
-    - `mb_a2`: 初始 (144, 41.57, 53.5) -> 目標移動至 (4, 0) 後錨點 (277.75, 80.18, 149.5)，殘留漂移 `drift3D = 169.10px`（靜態鎖死發動點）。
-    - `mb_u1`: 地面點 (144, 41.57, 53.5) 維持原位，`drift3D = 0.00px`（地面鎖定符合預期）。
-  - After (`tools/ui-e2e/out/f02-after.json`):
-    - `mb_a2`: 命中派發時點動態採樣目標最新位置，`drift3D = 0.00px`（完全貼合動態目標錨點）！
-- **完整驗證套件結果**:
-  - `f02-lint`: `npm run lint` -> `EXIT=0`（0 錯誤）。
-  - `f02-test`: `npm test` -> `EXIT=0`（91 files, 777 passed，含 `SequenceTargetBinding.test.ts` 13 項全過、`SkillEditor.test.ts` 59 項全過）。
-  - `f02-build`: `npm run build` -> `EXIT=0`（304 模組打包成功）。
-  - `f02-smoke`: `runtime-smoke.mjs --shot` -> `EXIT=0`（0 page errors，畫面正常推進）。
-  - `f02-coords`: `npm run verify:coords` -> `EXIT=0`（無新增浮空／穿透異常）。
-  - `f02-doc-final`: `vitest run tests/DocDrift.test.ts` -> `EXIT=0`（3 passed）。
-  - `f02-guard`: `npm run perf:guard` -> `EXIT=1`（`battle_frozen` badPixelPct 0.59% > 0.50%）。
+  - Before 歷史記錄 (`tools/ui-e2e/out/f02-before.json`):
+    - `mb_a2`（冰封禁錮）: 初始 (144, 41.57, 53.5) -> 目標移動至 (4, 0) 後錨點 (277.75, 80.18, 149.5)，殘留漂移 `drift3D = 169.10px`（靜態鎖死發動點）。
+    - `mb_u1`: 原報告僅以傷害 hex 對照判定，未實際取樣視覺空間派發座標。
+  - V01 After 補驗 (`tools/ui-e2e/out/v01-f02-after.json`):
+    - `mb_a2`: 嚴格捕捉 BEAM 動作（移除 fallback），`drift3D = 0.00px`（完全貼合動態目標錨點，傷害 110）。
+    - `mb_u1`: 實測序列空間派發座標，`maxVisualDrift = 0.00px`，`followedMovedTarget = false`；獨立斷言 `simulationGroundLocked = true`（逃脫目標傷害 0、進圈目標傷害 430）與 `visualGroundLocked = true`（空間動作鎖定原序列點）。
+    - 探針退出碼校正：`before` 異狀（`BEFORE_ANOMALY`）與 console/page 錯誤均設 `process.exitCode = 1`。負向控制經注入 `console.error` 實跑證實退出碼為 1。
+- **座標與守門回歸事實**:
+  - 原 `verify:coords` EXIT=0 是因未帶 `--assert`。帶 `--assert` 實跑為 EXIT=1：實測存在 sink=1（`FOREST` seed 1001 `RED-0002` f337，delta 1.89px，移動步進過渡）、over-void=1（`FOREST` seed 1002 `BLU-0007` f510，擊飛出界掉落）、oscillation=106 flips / 13 static episodes。不能在無基底對照下聲稱「無新增異常」。
+  - 原 `perf:guard` 在 fidelity 失敗後短路，`perf-ab` 當時未執行。
+  - V01 補驗：經 B 節限定授權單張更新 `battle_frozen.png` 後，`npm run perf:guard` 完整跑完且全綠（EXIT=0）：6 場景保真度全過（battle_frozen 0% 差異，五群系在閾值內）、`perf-ab` 5 群系效能斷言全數通過（基準比率 <= 1.15，絕對幀時間 <= 門檻）。
 
 ## 5. 未完成事項、風險與回退方案
-- **perf:guard 差異風險（未重錄 baseline）**:
-  - 差異集中於戰鬥畫面中單位移動時單體追蹤之視覺修正，`battle_frozen` 像素差異 0.59% 超過 0.5% 門檻。
-  - 嚴格遵守「本輪完全未授權 baseline 重錄」合約，不私自覆寫 baseline，保留原始輸出並列為未完成事項交主代理審查。
+- **保真更新與效能狀態**:
+  - V01 批次已獲得明確授權更新單張 `battle_frozen.png`（變更集中於中心目標光束特效 [664, 236, 803, 398]，五地形 baseline hash 完全未變）；完整 `perf:guard` 執行通過。
 - **HANDOFF 與未完成事項**:
-  - 依照指示不提前關閉 F02/F03，保留在 HANDOFF 待審查。
-  - A0 歷史清冊大量項目未核實、COORD01 景深殘差、T01/K01/K02 待後續查核；奧義 50 招重新設計與全庫平衡順序不變。
+  - F02 單體目標動態綁定核心與所有測試／探針驗證完成，待主代理合併後結案。
+  - COORD01 景深殘差與 A0 全庫清冊缺口已建立證據台帳（`docs/PROJECT_CLEANUP_V01_FINDINGS.md`），不提前宣告關閉。
+  - 奧義 50 招重新設計與全庫平衡順序不變。
 - **回退方案**:
-  - F 組回退: `git revert fbe56ca`（保留 R 組修復）。
+  - F 組回退: `git revert fbe56ca`。
   - R 組回退: `git revert 053aa4d`。

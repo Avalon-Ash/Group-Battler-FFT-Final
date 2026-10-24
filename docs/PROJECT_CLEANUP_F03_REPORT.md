@@ -64,4 +64,7 @@
   - R2：`tools/ui-e2e/cleanup-f03-check.mjs` API REJECT 斷言 `Object.is(after, before)` 且其餘欄位不變；ACCEPT 斷言同一物件引用；UI 測試實測未提交草稿切換技能 B 時不污染 B，失焦正確提交 A；驗證 Enter 後 blur 只派發一次 `UPDATE_SKILL`；煙霧測試強化為 `t1 > t0` 嚴格大於；輸出統一至 `tools/ui-e2e/out/`。
   - R3：`docs/BAKED_RENDERING_DESIGN.md` 與本報告補正完畢。
 - 實跑探針：`cleanup-f03-check.mjs` API 20 項全過、UI 互動全過、戰鬥 smoke 正常、0 pageerror。
-- 未完成事項：A0 歷史清冊大量未人工核實；F02 移動目標追蹤、COORD01 景深殘差、T01/K01/K02 待後續查核；奧義 50 招重新設計與全庫平衡順序不變。
+- **V01 最終工具驗收狀態 (`tools/ui-e2e/cleanup-f03-check.mjs`)**:
+  - 補正探針 before 分支守門契約：若出現 console/page 錯誤、還原失敗 (`apiRestored !== true || uiRestored !== true`) 或戰鬥煙霧推進失敗，狀態設定為 `BEFORE_ANOMALY` 且 `process.exitCode = 1`，不再無條件設為 `COMPLETED_BEFORE`。舊 before 歷史記錄維持其原樣，不偽造舊 before 成功。
+  - After 驗收實跑 (`tools/ui-e2e/out/v01-f03-after.json`): 20 項 API 邊界案例全數通過、UI 表單與草稿生命週期驗證全數通過、戰鬥煙霧推進正常且狀態維持 running、零 console/pageerror，狀態為 `PASS`，退出碼 `EXIT=0`。
+- 未完成事項：A0 歷史清冊大量未人工核實；COORD01 景深殘差、T01/K01/K02 待後續查核；奧義 50 招重新設計與全庫平衡順序不變。
