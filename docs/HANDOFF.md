@@ -3,35 +3,19 @@
 > 更新：2026-10-24。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
-## 1. 目前狀態
-- 目前在 `feat/project-cleanup` 分支（`C:\Git\Group-Battler-FFT-Final`），尚未合併至 `main`；遠端狀態未查不作斷言。
-- 目前工作執行進度：
-  1. **V01 / AUDIT01 已完成項目**：
-     - **F02 移動目標動態鎖定**：16 項單元測試無 `as any` 全數通過、探針嚴格取樣（drift3D=0px）通過、授權更新 `battle_frozen.png` 單張基準檔、完整 `perf:guard` 全數通過。結案。
-     - **F03 技能編輯器數值緩衝與測試隔離**：探針 before/after 狀態隔離與錯誤攔截驗證通過、負向控制確認 EXIT=1。結案。
-     - **T01 DocDrift 檔頭規範**：檔頭已標明工具邊界（僅路徑／名稱語法檢查），3 項測試全過。結案。
-     - **K01 Knip 根路徑解析**：46 條唯一路徑全數在磁碟存在，確認為 Vite 瀏覽器端動態 import 語法限制，非缺檔。結案。
-     - **K02 無 Sharp 預覽健全度**：確認無 sharp 套件時 `fx-shot` 健全降級為逐幀 PNG 輸出（尺寸 220x200 有效圖檔）。結案。
-     - **Package B (4 項 Export 收斂)**：`data/ui/skillEditor.ts` 移除 3 項未外部使用之 export、`SequenceSystem.ts` 移除 1 項 export；修復 `SequenceTargetBinding.test.ts` 障礙物地圖隔離；校正 V01 報告行尾空白與口徑。結案。
-     - **Package C (COORD01 真確取證與因果收斂)**：專用探針 `cleanup-coord01-check.mjs` 擷取 4 組代表案例 RenderOp 與數據至 `tools/ui-e2e/out/audit01/`。確立 SINK (P1/D3 懸崖插值過早)、VOID (P3/D1 探針離散取樣誤判)、OSC (P2/D3 屍體滯後釋放與格界翻轉) 根因與修復設計。取證結案，修復待排程。
-     - **Package A (全庫真實台帳與檔頭對齊)**：基於 `git ls-files -s` 建立 657 檔台帳 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv`（30 語義已讀、183 不適用、444 待查；195 單元測試、125 實跑、337 未驗證）與 `docs/PROJECT_CLEANUP_AUDIT01_FINDINGS.csv`；修復 `data/status/effect_defs.ts` 檔頭 13->16 種。結案。
-  2. **尚待處理事項（保持開啟）**：
-     - **全庫語義審查推進**：AUDIT01 已完成枚舉與首批 30 檔深度對照，剩餘 444 檔待查原始碼/測試檔依領域輪次推進。
-     - **COORD01 產品代碼修復**：依 AUDIT01 取證報告已產出之修復設計（`VisualMath.ts` 懸崖足跡約束、`UnitFrame.ts` 陣亡單位 sortHex 鎖定、`coord-probes.mjs` 下墜速度過濾），在授權輪次進行產品代碼修復。
-     - **奧義重新設計（待做需求，非已實作）**：50 個奧義有差異化結果、每個詠唱不得少於 1.5 秒；體積感與核心密度強化。
-     - **全庫平衡**：上述全部完成後才跑平衡。
+## 1. 目前狀態與主審更正
 
-## 2. 待處理事項與查核缺口
-- **全庫語義清冊推進（未完成，不得提前關閉）**：
-  - 尚有 444 檔原始碼與測試碼標記為 `未讀（待查）`；依領域分類逐批建立語義與 runtime 證據：模擬、表現、UI 與資料、工具與設定。
-- **COORD01 產品與探針修復實施（未完成，等待修復輪次授權）**：
-  - 依 AUDIT01 取證結論，待修復項目：
-    1. Sink 缺陷 (P1/D3)：`VisualMath.ts` 在 `hB < h` 時，依足跡所在格限制高度不得低於起點高台。
-    2. Void 誤判 (P3/D1)：`coord-probes.mjs` 加入向下垂直速度過濾（`vz < -50`）。
-    3. 靜態景深翻轉 (P2/D3)：`UnitFrame.ts` 對 `hp <= 0` 且滑動速度極小之陣亡單位鎖定 `sortHex`，消除格界滯後解除震盪。
-- **奧義重新設計（待做需求，非已實作）**：
-  - 50 個奧義有差異化結果、每個詠唱不得少於 1.5 秒；解決零件化半透明柔邊疊層虛化問題，找回原版厚重立體感與核心密度。
-- **全庫平衡（待做需求）**：全部清理與奧義完成後最後執行。
+- 分支 feat/project-cleanup，未合併 main／未推送。AUDIT01 原交付 c856081，主審修復與計畫見 PROJECT_CLEANUP_AUDIT01_REVIEW.md、PROJECT_CLEANUP_NEXT_PLAN.md。
+- F01/F02/F03、T01、K01/K02 與前批 C01–C05 清理沿用已審查結果；AUDIT01 四 export 收斂、測試障礙物隔離與 effect_defs 檔頭更正保留。
+- 全庫枚舉與語義審計不可混稱完成。AUDIT01 CSV 實為 659 列；原 31 已讀宣稱僅作部分事實，逐檔 runtime 覆蓋未證實，文件／JSON／設定仍需讀。詳見更正後帳本與報告。
+- COORD01 僅診斷重現：sink 1.89px、void 高速下墜取樣、static 與 moved 排序翻轉。未批准永久鎖屍體 sortHex、vz<-50 過濾或高度 clamp。原報告修復設計不得直接執行。
+
+## 2. 下一步
+
+1. 收斂 COORD01 因果及繼續未讀清冊；已有問題有獨立追蹤，不以全庫缺少逐檔 runtime 驗證當作全部功能故障。
+2. ULT-T01：全 50 奧義有效詠唱至少 1.5 秒，資料／編輯／施法事件／讀條一致；不改平衡其他欄位。
+3. Claude ULT-V01：全 50 招視覺差異化，先四代表作自驗再按職業成套完成；與 T01 同一工作目錄須串行，詳見新提示詞。舊 BESPOKE／VOLUME／R1 提示詞不作本輪執行授權。
+4. 完整奧義、時序與阻斷問題完成後，鎖定 commit 統一重跑平衡。
 
 ## 3. 待使用者實機確認
 1. **位移技能軌跡與近戰前衝實機看**（`docs/DASH_MOTION_REPORT.md`）：開一場戰鬥觀察衝刺技能（如 `wb_a2` 光速突進、`wr_a3` 狂暴衝鋒、`rb_a4` 戰術翻滾）起手爆發推進、跨高低差斜坡／跳落曲線與殘影起點，以及近戰普攻／主動技出手時的微幅前衝體感。
