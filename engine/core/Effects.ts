@@ -25,7 +25,7 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
     'HOT',
 ] as const;
 
-export function createEffectSlot(): EffectSlot {
+function createEffectSlot(): EffectSlot {
     return {
         remaining: 0,
         max: 0,
