@@ -162,7 +162,7 @@ export class AgentManager {
         }
         
         // [ARCH] 建立 Ragdoll 初始骨骼快照，供 UnitDeathPainter 使用
-        // [TODO: RAGDOLL] 這裡只是靜態快照，物理演算在 UnitDeathPainter.draw() 階段加入
+        // [ARCH] UnitDeathPainter 讀取軀幹初速快照，結合 deathTimer 推導死亡擊飛位移（渲染層無狀態）。
         a.ragdoll = RagdollFactory.createFromAgent(a, impactX, impactY);
 
         engine.bus.emit('AGENT_DIED', { agent: a, groundZ, impactX, impactY });
