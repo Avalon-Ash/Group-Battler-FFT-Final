@@ -14,10 +14,11 @@
  */
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = process.cwd();
@@ -60,7 +61,10 @@ const results = {
         timestamp: new Date().toISOString(),
         nodeVersion: process.version,
         gitHead,
+        sourceSha256: createHash('sha256').update(readFileSync(fileURLToPath(import.meta.url))).digest('hex'),
+        workingTreeStatus: execSync('git status --porcelain -- tools/ui-e2e/cleanup-a0-repro.mjs', { cwd: root, encoding: 'utf-8' }).trim(),
         seed: 1337,
+        faviconFixture: 'GET /favicon.ico returns 204 in this harness only',
         command: process.argv.join(' '),
         outDir,
     },
@@ -94,6 +98,19 @@ try {
 
     server = await createServer({
         root,
+        plugins: [{
+            name: 'audit-favicon-fixture',
+            configureServer(vite) {
+                // Register before Vite's terminal 404 middleware. This fixture
+                // supplies only browser decoration, never app assets.
+                vite.middlewares.use((request, response, next) => {
+                    if (request.method === 'GET' && request.url === '/favicon.ico') {
+                        response.statusCode = 204;
+                        response.end();
+                    } else next();
+                });
+            },
+        }],
         server: { port: 3198, strictPort: false, host: '127.0.0.1' },
         logLevel: 'error',
     });
@@ -117,9 +134,20 @@ try {
 
     page.on('console', (msg) => {
         if (msg.type() === 'error') {
-            results.consoleErrors.push(msg.text());
+            results.consoleErrors.push({ message: msg.text(), location: msg.location() });
         }
     });
+
+    if (process.argv.includes('--inject-console-error')) {
+        await page.evaluate(() => console.error('INJECTED_CONSOLE_ERROR'));
+        await page.waitForTimeout(100);
+        throw new Error('Injected console error captured');
+    }
+    if (process.argv.includes('--inject-page-error')) {
+        await page.evaluate(() => { setTimeout(() => { throw new Error('INJECTED_PAGE_ERROR'); }, 0); });
+        await page.waitForTimeout(100);
+        throw new Error('Injected page error captured');
+    }
 
     // Install deterministic test clock hook
     await page.addInitScript(() => {
@@ -197,7 +225,7 @@ try {
         try {
             const targetHpBefore = target.hp;
             const initiated = e.initiateCast(caster, 0);
-            if (!initiated) throw new Error('initiateCast failed for F01-A');
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F01-A');
 
             e.renderer.processVisualEvents(e.events.splice(0));
             window.__stepFrames(1);
@@ -265,7 +293,7 @@ try {
 
         try {
             const initiated = e.initiateCast(caster, 0);
-            if (!initiated) throw new Error('initiateCast failed for F01-B');
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F01-B');
             e.renderer.processVisualEvents(e.events.splice(0));
             window.__stepFrames(1);
 
@@ -346,7 +374,7 @@ try {
 
             try {
                 const initiated = e.initiateCast(caster, 0);
-                if (!initiated) throw new Error(`initiateCast failed for F01-C1 run ${runIdx}`);
+                if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error(`initiateCast failed for F01-C1 run ${runIdx}`);
                 e.renderer.processVisualEvents(e.events.splice(0));
                 window.__stepFrames(1);
 
@@ -439,7 +467,7 @@ try {
 
             try {
                 const initiated = e.initiateCast(caster, 0);
-                if (!initiated) throw new Error(`initiateCast failed for F01-C2 run ${runIdx}`);
+                if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error(`initiateCast failed for F01-C2 run ${runIdx}`);
                 e.renderer.processVisualEvents(e.events.splice(0));
                 window.__stepFrames(1);
 
@@ -523,7 +551,7 @@ try {
 
         try {
             const initiated = e.initiateCast(caster, 0);
-            if (!initiated) throw new Error('initiateCast failed for F01-E1');
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F01-E1');
             e.renderer.processVisualEvents(e.events.splice(0));
             window.__stepFrames(1);
 
@@ -585,7 +613,7 @@ try {
 
         try {
             const initiated = e.initiateCast(caster, 0);
-            if (!initiated) throw new Error('initiateCast failed for F01-E2');
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F01-E2');
             e.renderer.processVisualEvents(e.events.splice(0));
             window.__stepFrames(1);
 
@@ -614,7 +642,7 @@ try {
 
     results.F01.E2_game_reset_during_cast = resF01E2;
     results.scenarios.F01_E2_game_reset_during_cast = {
-        status: (resF01E2.queueBeforeReset > 0 && resF01E2.hadGameReset) ? 'OBSERVED' : 'NOT_REPRODUCED',
+        status: (resF01E2.queueBeforeReset > 0 && resF01E2.hadGameReset && resF01E2.queueCleared) ? 'OBSERVED' : 'NOT_REPRODUCED',
         data: resF01E2,
     };
 
@@ -643,7 +671,7 @@ try {
         caster.targetHex = { q: target.q, r: target.r };
 
         const initiated = e.initiateCast(caster, 0);
-        if (!initiated) throw new Error('initiateCast failed for F01-D');
+        if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F01-D');
         e.renderer.processVisualEvents(e.events.splice(0));
         window.__stepFrames(1);
 
@@ -717,7 +745,7 @@ try {
         caster.targetHex = { q: target1.q, r: target1.r };
 
         const initiated = e.initiateCast(caster, 0);
-        if (!initiated) throw new Error('initiateCast failed for F02-AOE');
+        if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F02-AOE');
         e.renderer.processVisualEvents(e.events.splice(0));
         window.__stepFrames(1);
 
@@ -797,7 +825,9 @@ try {
 
         const initialTargetPos = { q: target.q, r: target.r, px: target.px, py: target.py };
 
-        // Intercept dispatch on caster
+        const castStartTargetPoint = { ...VisualMath.resolveTargetPoint(target.id, e) };
+        // Attribute nested VFX calls only to this caster's sequence dispatch.
+        let insideCasterDispatch = false;
         const recordedDispatches = [];
         const origDispatch = e.renderer.sequences.dispatch.bind(e.renderer.sequences);
         e.renderer.sequences.dispatch = (action, targetPos, sourcePos, vfx, engine, sourceId) => {
@@ -815,14 +845,17 @@ try {
                     diffY: Math.abs(targetPos.y - targetAnchor.y),
                 });
             }
-            return origDispatch(action, targetPos, sourcePos, vfx, engine, sourceId);
+            const previous = insideCasterDispatch;
+            insideCasterDispatch = sourceId === caster.id;
+            try { return origDispatch(action, targetPos, sourcePos, vfx, engine, sourceId); }
+            finally { insideCasterDispatch = previous; }
         };
 
         // Intercept vfx.playEffect
         const recordedVfx = [];
         const origPlayEffect = e.renderer.vfx.playEffect.bind(e.renderer.vfx);
         e.renderer.vfx.playEffect = (...vfxArgs) => {
-            recordedVfx.push({
+            if (insideCasterDispatch) recordedVfx.push({
                 id: vfxArgs[0],
                 x: vfxArgs[1],
                 y: vfxArgs[2],
@@ -833,7 +866,7 @@ try {
 
         try {
             const initiated = e.initiateCast(caster, 0);
-            if (!initiated) throw new Error('initiateCast failed for F02-SINGLE');
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) throw new Error('initiateCast failed for F02-SINGLE');
             e.renderer.processVisualEvents(e.events.splice(0));
             window.__stepFrames(1);
 
@@ -849,8 +882,10 @@ try {
                 throw new Error('Expected sequence action was not dispatched for caster');
             }
 
-            const dispatch = recordedDispatches[0];
-            const hasCoordinateDrift = dispatch.diffX > 50; // Expected offset > 100px
+            const dispatch = recordedDispatches.find(item => item.actionType === 'BEAM');
+            if (!dispatch) throw new Error('Expected SINGLE BEAM action was not observed');
+            const hasCoordinateDrift = Math.hypot(dispatch.diffX, dispatch.diffY) > 1;
+            const stayedAtStart = Math.hypot(dispatch.passedTarget.x - castStartTargetPoint.x, dispatch.passedTarget.y - castStartTargetPoint.y) <= 1;
 
             return {
                 skillId: skill.id,
@@ -858,11 +893,14 @@ try {
                 skillType: skill.type,
                 initialTargetPos,
                 targetMovedTo: { q: target.q, r: target.r, px: target.px, py: target.py },
+                castStartTargetPoint,
                 dispatchObservation: dispatch,
+                dispatchObservations: recordedDispatches,
+                vfxEffectCalls: recordedVfx,
                 vfxEffectCallsCount: recordedVfx.length,
                 damageDealt: tHpBefore - tHpAfter,
                 simDamagedTargetAtNewPosition: (tHpBefore - tHpAfter) > 0,
-                visualRemainedAtCastStartPos: hasCoordinateDrift,
+                visualRemainedAtCastStartPos: hasCoordinateDrift && stayedAtStart,
                 conclusion: 'Simulation damages target agent reference regardless of displacement; Visual sequence dispatches at static target Point3D sampled at CAST_START.',
             };
         } finally {
@@ -948,7 +986,8 @@ try {
             }
         }
 
-        const restoredCorrectly = Object.entries(origValues).every(([k, v]) => skill[k] === v);
+        const restoredCorrectly = Object.entries(origValues).every(([k, v]) => Object.is(skill[k], v));
+        if (!restoredCorrectly) throw new Error('API test failed to restore original skill values');
 
         return {
             testedCases: testResults,
@@ -1021,6 +1060,7 @@ try {
     let uiNegativeAccepted = false;
     let uiClearBehavior = null;
     let uiRestoreWorks = false;
+    let restoredInFinally = false;
 
     try {
         // Test A: Type negative number into range input
@@ -1079,7 +1119,10 @@ try {
                 field: 'range',
                 value: origVal
             });
+            const restored = window.__TACTICAL_ENGINE__.skillDB.find(s => s.id === 'mb_u1');
+            if (!restored || !Object.is(restored.range, origVal)) throw new Error('UI range restoration failed');
         }, initialRangeDb);
+        restoredInFinally = true;
     }
 
     const resF03Ui = {
@@ -1092,6 +1135,7 @@ try {
         uiNegativeAccepted,
         uiClearBehavior,
         uiRestoreWorks,
+        restoredInFinally,
         conclusion: 'In UI: tag and type are constrained by dedicated select dropdowns; numeric inputs accept negative numbers; clearing numeric input produces NaN rejected by isFinite, causing DOM to snap back to previous valid state.',
     };
 
@@ -1120,12 +1164,12 @@ try {
     try {
         if (browser) await browser.close();
     } catch (e) {
-        console.error('[Probe] Error closing browser in finally:', e.message);
+        results.errors.push({ currentScenario: 'TEARDOWN_BROWSER', message: e.message, stack: e.stack });
     }
     try {
         if (server) await server.close();
     } catch (e) {
-        console.error('[Probe] Error closing server in finally:', e.message);
+        results.errors.push({ currentScenario: 'TEARDOWN_SERVER', message: e.message, stack: e.stack });
     }
 
     // Compute final status and counts
@@ -1158,8 +1202,7 @@ try {
     results.summary.notRunScenarios = notRunCount;
 
     // Track product bugs observed during valid measurement
-    if (results.scenarios.F01_C1_state_injected_death_run1?.status === 'OBSERVED' &&
-        results.scenarios.F01_C2_controlled_lethal_damage_run1?.status === 'OBSERVED') {
+    if (requiredScenarioKeys.filter(k => k.startsWith('F01_C')).every(k => results.scenarios[k]?.status === 'OBSERVED')) {
         results.summary.productBugsObserved.push('F01: Caster death leaves sequence action queue active without CAST_BREAK');
     }
     if (results.scenarios.F02_SINGLE_target_locked?.status === 'OBSERVED') {
@@ -1167,12 +1210,12 @@ try {
     }
     if (results.scenarios.F03_API_boundary_inputs?.status === 'OBSERVED' &&
         results.scenarios.F03_UI_inspector_interaction?.status === 'OBSERVED') {
-        results.summary.productBugsObserved.push('F03: UPDATE_SKILL lacks numeric lower bounds schema and empty input handling');
+        results.summary.productBugsObserved.push('F03: API/UI boundary observations require field-specific validation and input UX design');
     }
 
     // Overall tool execution success: all required scenarios ran, 0 errors, 0 page errors
     const allRequiredCompleted = completedCount === requiredScenarioKeys.length && notRunCount === 0;
-    const noErrors = results.errors.length === 0 && results.pageErrors.length === 0;
+    const noErrors = results.errors.length === 0 && results.pageErrors.length === 0 && results.consoleErrors.length === 0 && errorCount === 0;
     const toolSuccess = allRequiredCompleted && noErrors;
 
     results.summary.toolExecutionStatus = toolSuccess ? 'SUCCESS' : 'FAILED';
