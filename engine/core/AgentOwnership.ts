@@ -8,7 +8,7 @@ import type { Agent } from './Agent';
 
 export type AgentField = Exclude<keyof Agent, 'saveState' | 'reset'>;
 
-export type AgentGroup =
+type AgentGroup =
     | 'identity' | 'stats' | 'vitals' | 'casting' | 'ai' | 'locomotion'
     | 'physics' | 'status' | 'death' | 'visual' | 'editor';
 

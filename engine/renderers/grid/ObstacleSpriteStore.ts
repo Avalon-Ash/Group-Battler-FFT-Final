@@ -60,7 +60,7 @@ export interface ObstacleSprite {
 }
 
 /** 圖集中的一張影格（地表裝飾直接取用，不合成陰影）；k＝每像素幾個 canvas 單位 */
-export interface AtlasFrame {
+interface AtlasFrame {
     image: HTMLImageElement;
     sx: number;
     sy: number;
