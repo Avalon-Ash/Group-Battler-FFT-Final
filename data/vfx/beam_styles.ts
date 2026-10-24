@@ -6,7 +6,7 @@
 // =========================================================================================
 
 import { Team } from '../../types';
-import { VFX_RAMPS, type VFXRamp, type VFXRampId } from './parts/vfxPalette';
+import type { VFXRampId } from './parts/vfxPalette';
 import type { BeamEdge } from '../../engine/renderers/vfxparts/PartSpec';
 
 export interface BeamStyleDef {
@@ -39,10 +39,6 @@ export const FACTION_BEAM_RAMP_ID: Record<Team, VFXRampId> = {
 };
 /** 沒有陣營的後備光束（CinematicVFXHandler 找不到序列時）用的中性色階 */
 export const NEUTRAL_BEAM_RAMP_ID: VFXRampId = 'STATUS_SLATE';
-export const FACTION_BEAM_RAMP: Record<Team, VFXRamp> = {
-    [Team.BLUE]: VFX_RAMPS[FACTION_BEAM_RAMP_ID[Team.BLUE]],
-    [Team.RED]: VFX_RAMPS[FACTION_BEAM_RAMP_ID[Team.RED]],
-};
 
 export type BeamStyleId = keyof typeof DEFS;
 export const BEAM_STYLES: Record<BeamStyleId, BeamStyleDef> = DEFS;
