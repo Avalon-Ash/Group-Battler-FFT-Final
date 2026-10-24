@@ -99,7 +99,8 @@ async function createAuditPage() {
             window.__AUDIT_RESOLVE_LOGS__ = [];
             const origResolve = UnitFrameStore.prototype.resolveSortHex;
             UnitFrameStore.prototype.resolveSortHex = function (out, agent, footX, footY, mapConfig) {
-                const f = window.__CG__?.frames?.() || 0;
+                // resolve runs before RenderList.sort advances the recorder frame.
+                const f = (window.__CG__?.frames?.() || 0) + 1;
                 const prevMem = this.sortHex?.get(agent.id);
                 const memBefore = prevMem ? {
                     q: prevMem.q, r: prevMem.r, stamp: prevMem.stamp, footY: prevMem.footY,
@@ -113,7 +114,7 @@ async function createAuditPage() {
                     if (memBefore) {
                         const anchorMoved = Math.abs(footX - memBefore.anchorX) + Math.abs(footY - memBefore.anchorY) > UNIT_FRAME.STILL_PX;
                         const stillCount = anchorMoved ? 0 : memBefore.still + 1;
-                        releaseCond = !memBefore.released && stillCount >= UNIT_FRAME.HEX_RELEASE_FRAMES;
+                        releaseCond = !(anchorMoved ? false : memBefore.released) && stillCount >= UNIT_FRAME.HEX_RELEASE_FRAMES;
                         dist = HexUtils.dist(raw, memBefore);
                         if (raw.q !== memBefore.q || raw.r !== memBefore.r) {
                             if (dist > 1) branch = 'dist_gt_1';
@@ -121,7 +122,7 @@ async function createAuditPage() {
                             else {
                                 const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
                                 const cOld = HexUtils.toPx(memBefore.q, memBefore.r, mapConfig);
-                                dNew = Math.hypot(footX - cNew.x, footY - cOld.y);
+                                dNew = Math.hypot(footX - cNew.x, footY - cNew.y);
                                 dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
                                 if (dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld) branch = 'hysteresis_switch';
                                 else branch = 'hysteresis_held';
@@ -151,6 +152,21 @@ async function createAuditPage() {
     });
 
     return { ctx, page };
+}
+
+
+function verifyResolveTrace(label, frames, trace) {
+    for (const frame of frames) {
+        const sample = trace.find(t => t.frame === frame.frame);
+        const rendered = frame.corpseOp?.unitFrame;
+        if (!sample || !rendered || sample.footX !== rendered.footX || sample.footY !== rendered.footY || sample.out.q !== rendered.hexUnderFoot.q || sample.out.r !== rendered.hexUnderFoot.r) {
+            evidence.summary.mismatches.push(label + ': resolve/render frame mismatch at ' + frame.frame);
+            continue;
+        }
+        const before = sample.memBefore;
+        const expected = ['dist_gt_1', 'release_after_still', 'hysteresis_switch'].includes(sample.branch) ? sample.raw : before;
+        if (!expected || expected.q !== sample.out.q || expected.r !== sample.out.r) evidence.summary.mismatches.push(label + ': predicted branch differs from actual result at ' + frame.frame);
+    }
 }
 
 function verifyEpisode(label, frames, hazardField, diagnostic, pair) {
@@ -469,6 +485,7 @@ try {
         });
 
         if (process.argv.includes('--negative-control')) oscFrames[1].hazard1 = undefined;
+        verifyResolveTrace('OSC static', oscFrames, resolveLogs);
         evidence.summary.oscillationReproduced = verifyEpisode('OSC static', oscFrames, 'hazard1', exStatic, ['C:RED-0010', 'H:1,2']);
 
         evidence.cases.oscillation = {
@@ -528,6 +545,7 @@ try {
             return (window.__AUDIT_RESOLVE_LOGS__ || []).filter(l => l.agentId === 'RED-0002');
         });
 
+        verifyResolveTrace('OSC moved', ctx2Frames, resolveLogsCtx2);
         evidence.summary.context2OscReproduced = verifyEpisode('OSC moved', ctx2Frames, 'hazardOp', exMoved, ['C:RED-0002', 'H:4,0']);
 
         evidence.cases.oscillationContext2 = {

@@ -3,6 +3,12 @@
 > 更新：2026-10-24。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
+## CLOSE02 主審更新
+
+- 已保留新增取證與索引，修正探針自己的 cOld.y 誤用、resolve/render 幀號偏移與 anchor reset 判定；產品 UnitFrame 沒有該 typo，不得照原報告修改。
+- 撤回「全庫語義審查完成」「完整墜落回收已驗證」；清冊維持證據限度，COORD01 核心修法仍未批准。詳見 PROJECT_CLEANUP_CLOSE02_REVIEW.md 及更正後報告。
+- 使用者本輪授權推送 feat/project-cleanup，不合併 main；奧義工作明天再處理。
+
 ## 1. 目前狀態與主審更正
 
 - 分支 feat/project-cleanup，未合併 main／未推送。AUDIT01 原交付 c856081，主審修復與計畫見 PROJECT_CLEANUP_AUDIT01_REVIEW.md、PROJECT_CLEANUP_NEXT_PLAN.md。
