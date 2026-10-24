@@ -1,7 +1,15 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  CastingEngine — 單位詠唱與中斷狀態管理                 ║
+// ║  職責：更新引導進度、處理受控/致死中斷、派發 CAST_BREAK ║
+// ║  上游：CombatSystem.update / breakCast                    ║
+// ║  下游：engine.events (CAST_BREAK) → VisualSystem        ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { Agent, GameEngine } from "../../game";
 import { CAST_LOCKOUT } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
+import { EventPool } from "../../events/GameEventPool";
 
 export type BreakCastContext = Pick<GameEngine, 'log' | 'events' | 'getTerrainHeight' | 'mapConfig'>;
 
@@ -44,6 +52,20 @@ export class CastingEngine {
 
     public handleInterruption(a: Agent, engine: BreakCastContext) {
         if (a.hp <= 0) {
+            const skillIdx = a.castingSkillIdx;
+            const currentSkill = skillIdx !== -1 ? a.skills[skillIdx] : null;
+            if (currentSkill && currentSkill.tag !== 'BASIC' && currentSkill.cast > 0) {
+                const progressPct = 1 - (a.castTimer / currentSkill.cast);
+                const ev = EventPool.get('CAST_BREAK', unitEventPos(a, engine), {
+                    sourceId: a.id,
+                    team: a.team,
+                    skill: currentSkill,
+                    color: currentSkill.color,
+                    value: progressPct,
+                    hexes: currentSkill.type === 'AOE' && a.currentTelegraph ? a.currentTelegraph : undefined,
+                });
+                engine.events.push(ev);
+            }
             this.resetCaster(a);
             return;
         }

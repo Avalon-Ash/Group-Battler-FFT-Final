@@ -40,6 +40,23 @@ describe('GameEventPool', () => {
         const e2 = EventPool.get('HIT_FX', { x: 0, y: 0 });
         expect(e2.absorbed).toBeUndefined();
     });
+
+    it('REGRESSION: CAST_BREAK keeps hexes and clears reference on release', () => {
+        const hexes = [{ q: 1, r: 2 }, { q: 2, r: 2 }] as const;
+        const e = EventPool.get('CAST_BREAK', { x: 1, y: 2 }, { hexes });
+        try {
+            expect(e.hexes).toBe(hexes);
+        } finally {
+            EventPool.release(e);
+        }
+        expect(e.hexes).toBeUndefined();
+        const e2 = EventPool.get('CAST_BREAK', { x: 0, y: 0 });
+        try {
+            expect(e2.hexes).toBeUndefined();
+        } finally {
+            EventPool.release(e2);
+        }
+    });
 });
 
 describe('EventBus', () => {
