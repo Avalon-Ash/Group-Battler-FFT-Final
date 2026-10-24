@@ -61,38 +61,92 @@ async function createAuditPage() {
         if (!window.__AUDIT_HOOK_INSTALLED__) {
             window.__AUDIT_HOOK_INSTALLED__ = true;
             const { RenderList, RenderOpType } = await import('/engine/renderers/RenderList.ts');
-            {
-                const TNAME = RenderOpType;
-                const orig = RenderList.prototype.sort;
-                RenderList.prototype.sort = function () {
-                    orig.call(this);
-                    const f = window.__CG__?.frames?.() || 0;
-                    if (window.__WATCH_FRAMES__ && window.__WATCH_FRAMES__.has(f)) {
-                        const ops = [];
-                        for (let i = 0; i < this.count; i++) {
-                            const op = this.ops[i];
-                            ops.push({
-                                index: i,
-                                type: op.type,
-                                typeName: TNAME[op.type] || '?',
-                                y: op.y,
-                                sortBias: op.sortBias,
-                                sortKey: op.sortKey,
-                                tx: op.tx,
-                                ty: op.ty,
-                                th: op.th,
-                                z: op.z,
-                                isGround: !!op.isGround,
-                                agentId: op.agent ? op.agent.id : undefined,
-                                unitFrame: op.unitFrame ? { footX: op.unitFrame.footX, footY: op.unitFrame.footY, groundH: op.unitFrame.groundH, hexUnderFoot: { ...op.unitFrame.hexUnderFoot }, sortFootY: op.unitFrame.sortFootY, hexCenterY: op.unitFrame.hexCenterY } : null,
-                                tq: op.tq,
-                                tr: op.tr,
-                            });
-                        }
-                        window.__AUDIT_FRAME_OPS__.set(f, ops);
+            const { UnitFrameStore } = await import('/engine/renderers/frame/UnitFrame.ts');
+            const { HexUtils } = await import('/engine/utils.ts');
+            const { UNIT_FRAME } = await import('/constants.ts');
+
+            const TNAME = RenderOpType;
+            const orig = RenderList.prototype.sort;
+            RenderList.prototype.sort = function () {
+                orig.call(this);
+                const f = window.__CG__?.frames?.() || 0;
+                if (window.__WATCH_FRAMES__ && window.__WATCH_FRAMES__.has(f)) {
+                    const ops = [];
+                    for (let i = 0; i < this.count; i++) {
+                        const op = this.ops[i];
+                        ops.push({
+                            index: i,
+                            type: op.type,
+                            typeName: TNAME[op.type] || '?',
+                            y: op.y,
+                            sortBias: op.sortBias,
+                            sortKey: op.sortKey,
+                            tx: op.tx,
+                            ty: op.ty,
+                            th: op.th,
+                            z: op.z,
+                            isGround: !!op.isGround,
+                            agentId: op.agent ? op.agent.id : undefined,
+                            unitFrame: op.unitFrame ? { footX: op.unitFrame.footX, footY: op.unitFrame.footY, groundH: op.unitFrame.groundH, hexUnderFoot: { ...op.unitFrame.hexUnderFoot }, sortFootY: op.unitFrame.sortFootY, hexCenterY: op.unitFrame.hexCenterY } : null,
+                            tq: op.tq,
+                            tr: op.tr,
+                        });
                     }
-                };
-            }
+                    window.__AUDIT_FRAME_OPS__.set(f, ops);
+                }
+            };
+
+            window.__AUDIT_RESOLVE_LOGS__ = [];
+            const origResolve = UnitFrameStore.prototype.resolveSortHex;
+            UnitFrameStore.prototype.resolveSortHex = function (out, agent, footX, footY, mapConfig) {
+                const f = window.__CG__?.frames?.() || 0;
+                const prevMem = this.sortHex?.get(agent.id);
+                const memBefore = prevMem ? {
+                    q: prevMem.q, r: prevMem.r, stamp: prevMem.stamp, footY: prevMem.footY,
+                    anchorX: prevMem.anchorX, anchorY: prevMem.anchorY, still: prevMem.still, released: prevMem.released
+                } : null;
+                const raw = HexUtils.fromPx(footX, footY, mapConfig);
+                const ret = origResolve.call(this, out, agent, footX, footY, mapConfig);
+                if (window.__WATCH_FRAMES__ && window.__WATCH_FRAMES__.has(f)) {
+                    let branch = 'no_change';
+                    let dNew = null, dOld = null, releaseCond = null, dist = null;
+                    if (memBefore) {
+                        const anchorMoved = Math.abs(footX - memBefore.anchorX) + Math.abs(footY - memBefore.anchorY) > UNIT_FRAME.STILL_PX;
+                        const stillCount = anchorMoved ? 0 : memBefore.still + 1;
+                        releaseCond = !memBefore.released && stillCount >= UNIT_FRAME.HEX_RELEASE_FRAMES;
+                        dist = HexUtils.dist(raw, memBefore);
+                        if (raw.q !== memBefore.q || raw.r !== memBefore.r) {
+                            if (dist > 1) branch = 'dist_gt_1';
+                            else if (releaseCond) branch = 'release_after_still';
+                            else {
+                                const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
+                                const cOld = HexUtils.toPx(memBefore.q, memBefore.r, mapConfig);
+                                dNew = Math.hypot(footX - cNew.x, footY - cOld.y);
+                                dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
+                                if (dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld) branch = 'hysteresis_switch';
+                                else branch = 'hysteresis_held';
+                            }
+                        }
+                    }
+                    window.__AUDIT_RESOLVE_LOGS__.push({
+                        frame: f,
+                        agentId: agent.id,
+                        footX, footY,
+                        raw: { q: raw.q, r: raw.r },
+                        out: { q: out.q, r: out.r },
+                        branch,
+                        dist,
+                        releaseCond,
+                        dNew, dOld,
+                        memBefore,
+                        memAfter: {
+                            q: ret.q, r: ret.r, stamp: ret.stamp, footY: ret.footY,
+                            anchorX: ret.anchorX, anchorY: ret.anchorY, still: ret.still, released: ret.released
+                        }
+                    });
+                }
+                return ret;
+            };
         }
     });
 
@@ -136,6 +190,8 @@ try {
 
         // Step up to frame 336 (before)
         await stepFrames(page, 336);
+        const shot336 = join(outDir, 'case1_sink_f336.png');
+        await page.screenshot({ path: shot336 });
         const f336Data = await page.evaluate(async () => {
             const e = window.__TACTICAL_ENGINE__;
             const a = e.agents.find(ag => ag.id === 'RED-0002');
@@ -179,6 +235,8 @@ try {
 
         // Step to 338 (after)
         await stepFrames(page, 1);
+        const shot338 = join(outDir, 'case1_sink_f338.png');
+        await page.screenshot({ path: shot338 });
         const f338Data = await page.evaluate(async () => {
             const e = window.__TACTICAL_ENGINE__;
             const a = e.agents.find(ag => ag.id === 'RED-0002');
@@ -216,6 +274,7 @@ try {
             f337: f337Data,
             f338: f338Data,
             worstDiagnostic: worst,
+            screenshots: { f336: shot336, f337: shot337, f338: shot338 },
             screenshot: shot337,
         };
 
@@ -238,6 +297,8 @@ try {
 
         // Advance to 511 (before)
         await stepFrames(page, 511);
+        const shot511 = join(outDir, 'case2_void_f511.png');
+        await page.screenshot({ path: shot511 });
         const f511Data = await page.evaluate(async () => {
             const e = window.__TACTICAL_ENGINE__;
             const a = e.agents.find(ag => ag.id === 'BLU-0007');
@@ -279,6 +340,8 @@ try {
 
         // Step to 513 (after)
         await stepFrames(page, 1);
+        const shot513 = join(outDir, 'case2_void_f513.png');
+        await page.screenshot({ path: shot513 });
         const f513Data = await page.evaluate(async () => {
             const e = window.__TACTICAL_ENGINE__;
             const a = e.agents.find(ag => ag.id === 'BLU-0007');
@@ -291,8 +354,33 @@ try {
             };
         });
 
+        // Track full trajectory down to outOfBounds across frames 514..540
+        const voidTrajectory = [
+            { frame: 511, pz: f511Data.agent?.physics?.z, vz: f511Data.agent?.physics?.vz, hp: f511Data.agent?.hp, outOfBounds: f511Data.agent?.outOfBounds },
+            { frame: 512, pz: f512Data.agent?.physics?.z, vz: f512Data.agent?.physics?.vz, hp: f512Data.agent?.hp, outOfBounds: f512Data.agent?.outOfBounds },
+            { frame: 513, pz: f513Data.agent?.physics?.z, vz: f513Data.agent?.physics?.vz, hp: f513Data.agent?.hp, outOfBounds: f513Data.agent?.outOfBounds },
+        ];
+        for (let nextF = 514; nextF <= 540; nextF++) {
+            await stepFrames(page, 1);
+            const stepData = await page.evaluate((curF) => {
+                const e = window.__TACTICAL_ENGINE__;
+                const a = e.agents.find(ag => ag.id === 'BLU-0007');
+                return a ? {
+                    frame: curF,
+                    pz: +a.physics.z.toFixed(2),
+                    vz: +a.physics.vz.toFixed(1),
+                    hp: a.hp,
+                    outOfBounds: a.outOfBounds,
+                    banished: a.banished,
+                    deathTimer: +a.deathTimer.toFixed(3),
+                    isGroundValid: e.map.isValid(a.q, a.r),
+                } : null;
+            }, nextF);
+            if (stepData) voidTrajectory.push(stepData);
+        }
+
         // Advance to 600 to finish probe run
-        await stepFrames(page, 86);
+        await stepFrames(page, 600 - 540);
         const cgEnd = await page.evaluate(() => window.__CG__.end());
         const voidWorst = cgEnd.sink.voidWorst[0];
 
@@ -316,6 +404,8 @@ try {
             f512: f512Data,
             f513: f513Data,
             voidWorstDiagnostic: voidWorst,
+            voidTrajectory,
+            screenshots: { f511: shot511, f512: shot512, f513: shot513 },
             screenshot: shot512,
         };
 
@@ -332,7 +422,7 @@ try {
         await stepFrames(page, 6);
 
         await page.evaluate(() => {
-            window.__WATCH_FRAMES__ = new Set([507, 508, 510]);
+            window.__WATCH_FRAMES__ = new Set([506, 507, 508, 509, 510]);
             window.__CG__.begin({ sink: true, flicker: true });
         });
 
@@ -374,12 +464,17 @@ try {
         const corpseHazardGroup = cgEnd.flicker['CORPSE×HAZARD'];
         const exStatic = corpseHazardGroup?.exStatic?.find(e => e.pair.includes('C:RED-0010'));
 
+        const resolveLogs = await page.evaluate(() => {
+            return (window.__AUDIT_RESOLVE_LOGS__ || []).filter(l => l.agentId === 'RED-0010');
+        });
+
         if (process.argv.includes('--negative-control')) oscFrames[1].hazard1 = undefined;
         evidence.summary.oscillationReproduced = verifyEpisode('OSC static', oscFrames, 'hazard1', exStatic, ['C:RED-0010', 'H:1,2']);
 
         evidence.cases.oscillation = {
             frames: oscFrames,
             probeExStatic: exStatic,
+            resolveSortHexTrace: resolveLogs,
         };
 
         await ctx.close();
@@ -395,7 +490,7 @@ try {
         await stepFrames(page, 6);
 
         await page.evaluate(() => {
-            window.__WATCH_FRAMES__ = new Set([563, 564, 565]);
+            window.__WATCH_FRAMES__ = new Set([562, 563, 564, 565]);
             window.__CG__.begin({ sink: true, flicker: true });
         });
 
@@ -429,11 +524,16 @@ try {
         const cgEnd = await page.evaluate(() => window.__CG__.end());
         const exMoved = cgEnd.flicker['CORPSE×HAZARD']?.exMoved?.find(e => e.pair.includes('C:RED-0002'));
 
+        const resolveLogsCtx2 = await page.evaluate(() => {
+            return (window.__AUDIT_RESOLVE_LOGS__ || []).filter(l => l.agentId === 'RED-0002');
+        });
+
         evidence.summary.context2OscReproduced = verifyEpisode('OSC moved', ctx2Frames, 'hazardOp', exMoved, ['C:RED-0002', 'H:4,0']);
 
         evidence.cases.oscillationContext2 = {
             frames: ctx2Frames,
             probeExMoved: exMoved,
+            resolveSortHexTrace: resolveLogsCtx2,
         };
 
         await ctx.close();
