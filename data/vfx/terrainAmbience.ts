@@ -135,15 +135,15 @@ const DECOR_SPOTS = [
     { x: 2, y: 15 },
 ] as const;
 
-export const SAND_PEBBLES: TerrainDecorConfig = { type: 'DECOR_PEBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [2, 0, 1, 1] };
-export const ICE_SHARDS: TerrainDecorConfig = { type: 'DECOR_ICE', scale: 1, spots: DECOR_SPOTS, countByVariant: [1, 0, 2, 0] };
-export const VOID_RUBBLE: TerrainDecorConfig = { type: 'DECOR_RUBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [0, 1, 0, 1] };
+const SAND_PEBBLES: TerrainDecorConfig = { type: 'DECOR_PEBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [2, 0, 1, 1] };
+const ICE_SHARDS: TerrainDecorConfig = { type: 'DECOR_ICE', scale: 1, spots: DECOR_SPOTS, countByVariant: [1, 0, 2, 0] };
+const VOID_RUBBLE: TerrainDecorConfig = { type: 'DECOR_RUBBLE', scale: 1, spots: DECOR_SPOTS, countByVariant: [0, 1, 0, 1] };
 
 /** 崖邊裝飾（T2，2026-10-19）：顏色在曝光（TERRAIN_SKIN.exposure）之前，所以 VOID 用偏暗的值 */
-export const FOREST_FRINGE: TerrainEdgeConfig = { kind: 'FRINGE', color: '#0d3a1c', tipColor: '#2f6b25', spacing: 2.6, minLen: 3, maxLen: 9, width: 1.4 };
-export const ICE_EAVE: TerrainEdgeConfig = { kind: 'EAVE', color: '#f0f9ff', width: 3, dripEvery: 6, dripMin: 3, dripMax: 9, dripWidth: 2.2 };
-export const MAGMA_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#ff8a1f', width: 2.5, alpha: 0.75, dripEvery: 9, dripMin: 6, dripMax: 18 };
-export const VOID_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#3f3290', width: 1.6, alpha: 0.35, dripEvery: 0, dripMin: 0, dripMax: 0 };
+const FOREST_FRINGE: TerrainEdgeConfig = { kind: 'FRINGE', color: '#0d3a1c', tipColor: '#2f6b25', spacing: 2.6, minLen: 3, maxLen: 9, width: 1.4 };
+const ICE_EAVE: TerrainEdgeConfig = { kind: 'EAVE', color: '#f0f9ff', width: 3, dripEvery: 6, dripMin: 3, dripMax: 9, dripWidth: 2.2 };
+const MAGMA_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#ff8a1f', width: 2.5, alpha: 0.75, dripEvery: 9, dripMin: 6, dripMax: 18 };
+const VOID_GLOW: TerrainEdgeConfig = { kind: 'GLOW', color: '#3f3290', width: 1.6, alpha: 0.35, dripEvery: 0, dripMin: 0, dripMax: 0 };
 
 export const TERRAIN_AMBIENCE: Readonly<Record<TerrainAmbienceBiome, TerrainAmbienceEntry>> = {
     VOID: { detail: VOID_RUNES, liquid: null, decor: VOID_RUBBLE, edge: VOID_GLOW },
