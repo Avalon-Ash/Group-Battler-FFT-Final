@@ -10,7 +10,7 @@ import { PedestalOutline, tracePedestalOutline } from "./units/PedestalGeometry"
 import { CLASS_GLYPHS, CLASS_GLYPH_STYLE, type GlyphStyleId } from "../../data/units/classGlyphs";
 
 /** 棋座畫布尺寸（UnitShadowPainter 以 -BASE/2 對齊中心） */
-export const PEDESTAL_CANVAS_SIZE = 128;
+const PEDESTAL_CANVAS_SIZE = 128;
 /** 職業字形的設計半幅（drawClassGlyph 座標約 ±14），用來把字形縮放到 skin.classIcon.scale × radius */
 const CLASS_GLYPH_HALF_EXTENT = 14;
 
