@@ -21,7 +21,7 @@
 - 逐格鋪開的疊層（範圍、預警、區域）用柔光格 `SoftTile`，不逐格描實線（相鄰格雙邊會排成網格）。
 - 地形變體 4→8 刻意不做：地塊快取翻倍，地表裝飾已提供變化。
 - 障礙物動態：樹風擺用影格表；冰晶星芒、黑曜柱發光用疊層（影格表版多 3～5 ms p99）。
-- 繪製點對齊裝置像素、主畫布 `imageSmoothingQuality` high（RenderSpec §3）。
+- 繪製點對齊裝置像素、主畫布 `imageSmoothingQuality` 為 low（`RENDER_QUALITY.IMAGE_SMOOTHING`，RenderSpec §3；歷史上曾設 high，因 drawImage 重複計算致幀時間倍增而降為 low；離線烘焙維持 high）。
 
 ## 4. 架構
 - 座標協議以 `engine/renderers/RenderSpec.ts` 為準；渲染／座標工作一次只開一條（2026-10 平行拆工造成錯位回歸）。

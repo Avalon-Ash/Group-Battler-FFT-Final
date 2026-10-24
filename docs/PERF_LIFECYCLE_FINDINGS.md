@@ -1,5 +1,7 @@
 # PERF_LIFECYCLE_FINDINGS — MAGMA/VOID 卡頓與「越跑越慢」調查（只蒐證，未改任何引擎碼）
 
+> **歷史量測說明**：本文數據為先前分支 `fix/perf-lifecycle` 之歷史量測紀錄（數據維持歷史原值不變，不作為本輪重測數據）。文中提及之 `GlowSpriteCache` 為歷史模組，已於 commit `2b15fad` 正式退役。
+
 分支 `fix/perf-lifecycle`。機器：RTX 4070（`assertMainGpu` 通過）、msedge 155、2560×1440、DPR 1、有頭、vsync（約 238 Hz）、dev server。
 工具：`tools/ui-e2e/terrain-float-probe.mjs`（A）、`tools/ui-e2e/perf-lifecycle-soak.mjs`（B）、共用 `tools/ui-e2e/lib/lifecycle-probe.mjs`。原始資料在 `tools/ui-e2e/out/`（gitignored）。
 
@@ -48,7 +50,7 @@
 1. **地形 sprite 快取抖動（主因，非洩漏）**：`TerrainRenderer.ts:73-78` 的 float 量化讓 key 空間 ×17；`TerrainBlockCache.ts:79` 打包；`:238-249` 滿時 `evictOtherScales`（`:189`）或整體 `clear()`（`:152`）；`constants.ts:662-668` 上限 2048 與烘焙預算。預算只在「有相鄰級距可借」時生效（`:227-233`），冷啟動／跨級距無可借者仍強制烘焙。證據：上表；floatflat 把掃描段 p99 降 5 倍。
 2. **被淘汰的 canvas 變垃圾**（同上 `:196` `intMap.delete`）：11 分鐘 7.4 萬張，renderer／GPU 行程各 1–1.7 GB。證據是行程記憶體與 canvas 計數，**未量到單張大小與 GPU 常駐量**。
 3. **無上限但飽和的顏色鍵快取**（低風險）：`VFXFactory.ts:16/29`（`T92_${type}_${color}`）75→187；`engine/assets.ts:3`（`GLOW_SPRITE_/PROJ_/SK_ICON_…`）34→138；`engine/sprites.ts:23`。約第 500 s 起持平；只有 `reset()`／換貼圖才清。若日後出現動態顏色字串會變成真洩漏。
-4. 有上限，行為正常：`logger.logs`（5000，`BattleLogger.ts:58`）、`GlowSpriteCache`（256，實際 113）、`particleTint`（128，實際 97）、液面循環 slots（16，實際 8）。
+4. 有上限，行為正常：`logger.logs`（5000，`BattleLogger.ts:58`）、`GlowSpriteCache`（256，實際 113；歷史量測，已於 commit `2b15fad` 退役）、`particleTint`（128，實際 97）、液面循環 slots（16，實際 8）。
 5. **保留而非成長**：`RenderList.ts` 的 8000 個 op 在 `reset()` 後仍持有 agent／particle／proj 引用直到被覆寫（有界）；`RenderOp.clear()` 每次 `pTrail = []` 產生小垃圾。未量到影響。
 
 ## 未能量到／限制

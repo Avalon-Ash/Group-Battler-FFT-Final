@@ -15,12 +15,12 @@
 | :--- | :--- | :--- | :--- |
 | **單位底座與圖示 (Token Base & Icon)** | `ImperialTokenFactory`, `CovenantTokenFactory`, `UnitFactory` | **已烘焙**：開機時依陣營 × 職業 (10 種組合) 生成 128×128 與 64×64 離屏 Canvas 精靈。 | `drawImage` 貼圖 (43 次/幀)。 |
 | **單位主體／肢體／裝甲 (Unit Body & Limbs)** | `ImperialRenderer`, `CovenantRenderer` | **即時向量繪製**：每幀針對每個活體單位即時計算呼吸、擺動、關節矩陣、高光漸層、接縫線。 | 向量路徑 `stroke` (59 次/幀)、`fill` (152 次/幀)、即時漸層 (23 次/幀)。 |
-| **單位核心與常駐環境光 (Unit Core & Ambient)** | `UnitCorePainter`, `UnitAmbientPainter` | **Q4 混合烘焙**：預設走即時 `shadowBlur` (12 次/幀)；啟用 `GLOW_SPRITES` 時走 `GlowSpriteCache` 離屏烘焙。 | 即時 `shadowBlur` (原佔單位 37 次/幀之大宗) 或快取貼圖 blit。 |
+| **單位核心與常駐環境光 (Unit Core & Ambient)** | `UnitCorePainter`, `UnitAmbientPainter` | **現況**：舊版曾走 `GlowSpriteCache`（已於 commit `2b15fad` 退役）；現行單位環境光已併入零件與底座，常駐文字光暈走 `GlowTextCache`。 | 快取貼圖 blit 或零件繪製。 |
 | **地形六角塊 (Terrain Blocks)** | `TerrainBlockCache`, `TerrainRenderer` | **已烘焙**：依主題、高度、尺寸量化預先烘焙等角六角稜柱 Sprite（最大 512 個）。 | `drawImage` 貼圖 (269 次/幀)，但包含 345 次 `save/restore` 狀態切換。 |
-| **動態地形液面 (Magma/Water Surface)** | `TerrainSurfacePainter` | **即時計算**：依時間 t 計算 Simplex 噪聲並即時填充多邊形。 | 即時噪聲計算與多邊形填充。 |
-| **地面危害與裂紋 (Hazard & Scars)** | `HazardPainter`, `GroundPainter` | **部分烘焙**：灼痕與黑洞以離屏貼圖快取，網格動態掃描即時運算。 | `drawImage` (57 次/幀) 與 19 次 `globalCompositeOperation` 切換。 |
-| **VFX 粒子與投射物 (Particles & Projectiles)** | `BillboardPainter`, `ProceduralPainter`, `VFXFactory` | **部分快取**：草地、部分火花預繪，但光束、幾何符文環每幀即時生成。 | 110 次 `drawImage`、116 次 `globalCompositeOperation` (`lighter`)、241 次 `save/restore`。 |
-| **HUD 血條／護盾／數值 (Bar & Text HUD)** | `BarPainter`, `TextPainter`, `GaugePainter` | **Q4 混合烘焙**：血條主體即時漸層；光暈可選 `GlowSpriteCache`；數字即時文字繪製。 | 24 次 `shadowBlur`、19 次即時漸層、58 次 `save/restore`。 |
+| **動態地形液面 (Magma/Water Surface)** | `TerrainSurfacePainter` | **已烘焙**：液面循環影格排成一張圖（`LoopSheet`）＋縮放級距量化快取。 | 循環圖表 blit 貼圖。 |
+| **地面危害與裂紋 (Hazard & Scars)** | `HazardPainter`, `GroundPainter` | **零件化**：危害場域改走 `partLayer` 零件層與中心格漩渦。 | 零件 drawPart 貼圖。 |
+| **VFX 粒子與投射物 (Particles & Projectiles)** | `ParticleRenderer`, `ProjectilePartPainter` | **已全面零件化**：粒子與投射物全面走 `VFXPartStore` 預烘焙零件（`missile`, `beam`, `glow`）。 | 零件 drawImage 貼圖。 |
+| **HUD 血條／護盾／數值 (Bar & Text HUD)** | `BarPainter`, `TextPainter`, `GaugePainter` | **現行切片與快取**：血條／護盾改走預烘焙切片（`HUD_BAR`, `HUD_GAUGE`）；光暈文字走 `GlowTextCache`（舊 `GlowSpriteCache` 已退役）。 | 預烘焙切片 blit 與文字繪製。 |
 
 ### 1.2 Q1 診斷數據佐證（Manual Battle 實戰）
 
@@ -151,9 +151,9 @@ export interface UnitVisualBinding {
 ### 4.1 分階段實施步驟
 
 ```
-Phase 1 (本輪完成)  ───► Phase 2 (靜態烘焙擴充) ───► Phase 3 (圖集整合)   ───► Phase 4 (高清素材抽換)
-- 矩陣雨分階減載        - 高度分帶底層烘焙          - AtlasManager 統一管理    - 外部 HD 手繪/AI 圖集
-- GlowSpriteCache       - HUD 靜態槽位預烘焙        - 粒子合批 (Batch Draw)    - 支援 4 方向/8 方向動畫
+Phase 1 (歷史階段完成)───► Phase 2 (靜態烘焙提案)───► Phase 3 (圖集整合提案) ───► Phase 4 (高清素材抽換)
+- 矩陣雨分階減載        - 高度分帶底層烘焙 (暫緩)   - AtlasManager 統一管理    - 外部 HD 手繪/AI 圖集
+- HUD 切片與 GlowTextCache- HUD 靜態槽位預烘焙        - 粒子合批 (Batch Draw)    - 支援 4 方向/8 方向動畫
 - Native 操作基線監控   - 單位肢體圖形離屏烘焙      - 狀態列圖示圖集化         - 完全消除即時向量運算
 ```
 
@@ -172,9 +172,9 @@ Phase 1 (本輪完成)  ───► Phase 2 (靜態烘焙擴充) ───► P
 
 ---
 
-## 5. 總結
+## 5. 總結與現況區分
 
-本藍圖確立了「以離屏烘焙圖集化徹底消除 Native Canvas 呼叫開銷」的技術航向：
-- 短期內（Q4b/Q4c）藉由 `GlowSpriteCache` 解決了 90% 以上最昂貴的 `shadowBlur` 負擔。
-- 中期（Phase 2）藉由高度分帶雙層烘焙進一步消除地形 250+ 次 `drawImage` 與狀態切換。
-- 長期（Phase 3~4）藉由統一圖集契約，讓專案能無縫迎向 HD FFT / Tactics Ogre 畫質與極限流暢體驗。
+本藍圖整理了「以離屏烘焙與圖集化降低 Native Canvas 呼叫開銷」的設計方向。需特別釐清現行快取與未採用提案的邊界：
+- **現行已採用快取**：`TerrainBlockCache`（地塊 Sprite）、`VFXPartStore`（預烘焙粒子零件）、`LoopSheet`（動態液面循環表）、`ObstacleSpriteStore`（障礙物圖集）與 `GlowTextCache`（HUD 光暈文字）已穩定運行於生產管線。
+- **已退役模組**：歷史上的 `GlowSpriteCache` 專屬快取已於 commit `2b15fad` 退役，HUD 光暈改由切片與 `GlowTextCache` 管理。
+- **尚未採用／暫緩提案**：高度分帶雙層烘焙（Phase 2）與全靜態遮罩切分（Phase 3）屬評估中之藍圖，目前因現行效能已達標且熔岩流暢而暫緩實作（見 `docs/HANDOFF.md`）。不宣稱所有 runtime 繪圖皆為 `drawImage` 或已降耗 90% 等無本批證據之結論。

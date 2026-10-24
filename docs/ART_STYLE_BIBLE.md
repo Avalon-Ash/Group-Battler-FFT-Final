@@ -45,7 +45,9 @@
 | MAGMA | 暗玄武岩殼、橘色熔岩裂縫 | 焦黑岩層、發光裂縫 |
 | DESERT | 金黃細沙波紋、少量小卵石 | 橘褐砂岩層 |
 
-## 5. 生成記錄（可重現）
+## 5. 生成記錄（歷史探索紀錄）
+
+> **歷史製作流程說明**：§5、§6、§8、§9 為專案早期採用 AI 逐張生成旋轉圖之探索紀錄。現行單位素材生產已由 §11「3D 預渲染單位精靈管線」全面取代；本節僅保留作為服裝造型與風格意圖參考，不再作為現行操作指令。
 
 模型：Google Gemini 圖像生成（透過 Antigravity `generate_image`）。以下為實際使用的提示摘要，原圖在 `art-source/`。
 
@@ -134,7 +136,7 @@ AI 逐張生成旋轉圖（含單圖多視角）的正背面一致性（持握�
 
 - **保留**：§7 體型軸（`Team × Role × BodyType`）、§9 的四向資料結構與 `mirrorFrom` 後備、A2e 的隨機派發與編輯器、陣營識別（§2）、地形材質（§4，仍用 `terrain_grid.jpg`）。
 - **降級為風格參考（不入遊戲）**：`art/_superseded/`、`art/turn_*.jpg`、`IMAGE_PROMPT_PACK.md`，以及使用者自備的雙陣營五職業 10 張圖。
-- **待試驗後確認**：低多邊形卡通渲染是否接受；女性體型來源（Quaternius）；動作格清單與格尺寸。
+- **待試驗後確認**：低多邊形卡通渲染已定案（§11）；Quaternius 女性素材因風格與 KayKit 差距過大已否決（DECISIONS §5 / HANDOFF §4），其他新模型標為「待評估」；動作格清單已於 §11.1 定案。
 
 ## 11. 3D 預渲染單位精靈管線規格（2026-10-11，取代 §8、§9 的「AI 逐張生圖」製作方式）
 
@@ -161,7 +163,7 @@ AI 逐張生成旋轉圖（含單圖多視角）的正背面一致性（持握�
 
 ### 11.3 體型擴充
 - 新體型（FEMALE、幼童、巨人、動物、神話生物）＝**新增一組角色模型／骨架對應＋同一腳本渲染＋manifest 新鍵 `<TEAM>:<ROLE>:<BODY>`＋把 `BODY_TYPE_PROFILE[...].enabled` 打開**；渲染器不改。
-- FEMALE 預計用 Quaternius Universal Base Characters（寫實比例，須搭配組裝護甲／髮型）；若比例與 KayKit Q 版差距過大，需統一為同一風格再入庫。
+- FEMALE 原評估之 Quaternius Universal Base Characters 因寫實比例與 KayKit Q 版差距過大已否決（DECISIONS §5 / HANDOFF §4）；新模型來源標為待評估，外觀軸 `Team×Role×BodyType` 支援直接擴充。
 
 ### 11.4 授權與紀錄
 - KayKit Adventurers 1.0：CC0（`LICENSE.txt` 隨包附）；作者 Kay Lousberg；登記於 `docs/ASSET_LEDGER.md`，致謝建議列於 `CREDITS.md`。
