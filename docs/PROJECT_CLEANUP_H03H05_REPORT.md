@@ -3,7 +3,7 @@
 - 開工 HEAD: `269b53f898d687e4da5505f93e8091ce4a516e21`
 - 分支: `feat/project-cleanup`
 - R 組 Commit: `71ec4e6` (`fix(tool/docs): lifecycle error location, favicon fixture, and c02c03 report re-verification`)
-- D 組 Commit: （待填入）
+- D 組 Commit: `a56b90a` (`docs: H03-H05 document alignment for smoothing, pipeline topology, and HD art direction`)
 - 狀態: R (DONE) / D (DONE) / H03 (DONE) / H04 (DONE) / H05 (DONE)
 
 ## 1. 逐檔修改摘要（Kept / Revised / Dropped）
