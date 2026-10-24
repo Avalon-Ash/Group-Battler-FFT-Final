@@ -4,7 +4,8 @@
 - 分支: `feat/project-cleanup`
 - R 組 Commit: `71ec4e6` (`fix(tool/docs): lifecycle error location, favicon fixture, and c02c03 report re-verification`)
 - D 組 Commit: `a56b90a` (`docs: H03-H05 document alignment for smoothing, pipeline topology, and HD art direction`)
-- 狀態: R (DONE) / D (DONE) / H03 (DONE) / H04 (DONE) / H05 (DONE)
+- 狀態: R (DONE) / D (PARTIAL - H04/H05 殘留於 F03 補正) / H03 (DONE) / H04 (PARTIAL) / H05 (PARTIAL)
+- 補正說明: 主代理審查指出 H04/H05 存在舊現況殘留與過強宣稱，前批工具驗收已完成，文件殘留於後續 F03 批次補正完成，不倒寫歷史。
 
 ## 1. 逐檔修改摘要（Kept / Revised / Dropped）
 

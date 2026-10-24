@@ -9,7 +9,7 @@
 3. **法術特效刻意做成六角形**：法陣、衝擊環、護盾、光柱截面、碎片都以六角幾何為基礎；兩個陣營在六角幾何之上，以**顏色、邊緣處理、節奏、紋章**區分。
 
 ## 1. 總原則
-1. **HD 主線、現代特效與卡通預渲染**（DECISIONS §1 定案，SD 像素原型已於 `pixel-proto-ckpt` 移除）：單位與障礙物一律採用 **KayKit / Kenney ＋ Blender 離線卡通預渲染**（正交仰角 30° 原生四向）；地形為程序化材質烘焙；技能特效是全解析度程序化零件發光層。不再使用強制像素化與低解析度限制。
+1. **HD 主線、現代特效與卡通預渲染**（DECISIONS §1 定案，SD 像素原型已於 `pixel-proto-ckpt` 移除）：單位預渲染原生四向（正交仰角 30°）；障礙物按各自 manifest 與生成腳本（`render_obstacle.py` / `pack_obstacles.py`）定義，不強制四向，並保留自製冰晶／黑曜柱等來源例外；地形為程序化材質烘焙；技能特效是全解析度程序化零件發光層。不再使用強制像素化與低解析度限制。
 2. **光源固定在左上**（與單位預渲染一致）：亮面朝左上、陰影落右下。地形側面、障礙物、特效的高光都照這個方向。
 3. **明度分層**：地形最暗、單位中間、特效與 UI 最亮。特效不得讓地形或單位比它更搶眼；地形不得出現比單位更亮的大面積高光。
 4. **陣營一眼可辨**：任何特效只看形狀與色調（不看位置）就要分得出是獅心還是灰燼。
@@ -19,11 +19,11 @@
 | 類別 | 做法 | 負責 | 備註 |
 | :-- | :-- | :-- | :-- |
 | 單位 | **3D 離線預渲染**：KayKit Adventurers 模型於 Blender 離線卡通渲染（256×256 四向無鏡射）→ 打包 WebP 圖集 | Blender 管線（`render_unit.py` / `pack_sprites.py`） | 依 `SpriteAtlasStore` 載入；外觀軸 `Team×Role×BodyType` |
-| 障礙物（樹、柱、岩、冰晶） | **3D 離線預渲染**：KayKit 自然/地城與 Kenney 模型預渲染 → WebP 圖集＋manifest 錨點 | Blender 管線（`render_obstacle.py` / `pack_obstacles.py`） | 依 `ObstacleSpriteStore` 載入；與單位同相機、同光源 |
+| 障礙物（樹、柱、岩、冰晶） | **3D 離線預渲染**：依各自生成腳本與 manifest 定義，來源涵蓋 KayKit 自然/地城、Kenney 模型與自製冰晶／黑曜柱等例外；障礙物不強制四向，以各 manifest 錨點為準 | Blender 管線（`render_obstacle.py` / `pack_obstacles.py`） | 依 `ObstacleSpriteStore` 載入；與單位同相機、同光源 |
 | 地形材質（頂面、側面） | 程序化材質烘焙：`TerrainRenderer` 預先烘焙六角稜柱 Sprite，亮度預算控管 | 主系統 | 支援 5 大主題、液面循環圖表 `LoopSheet` 與崖邊裝飾 |
 | 背景、天空、遠景、霧 | 離屏背景渲染與粒子氛圍層（`BIOME_ATMOSPHERE`） | 主系統 | 低負載離屏畫布與零件粒子 |
 | 技能特效 | 程序化零件庫（`vfxparts`）＋資料驅動序列編排 | 主系統 | 本檔 §5～§8，全面零件化 |
-| UI 圖示／HUD | 預烘焙切片（`HUD_BAR`, `HUD_GAUGE`）與字形光暈快取（`GlowTextCache`） | 主系統 | 渲染路徑 0 個每幀 `shadowBlur` |
+| UI 圖示／HUD | 預烘焙切片（`HUD_BAR`, `HUD_GAUGE`）與字形光暈快取（`GlowTextCache`） | 主系統 | 穩態繪製使用快取，未命中時由 `BarPainter` 等 bake 函式烘焙（仍設 `shadowBlur`）；穩態渲染路徑避免每幀 `shadowBlur` 重複呼叫 |
 
 ## 3. 色彩
 ### 3.1 地形色盤（卡通、飽和中等、明度偏低，讓單位跳出來）
@@ -101,7 +101,7 @@
 | `droplet` 液滴 | 大小、色 | 血、毒液 |
 
 ## 8. 效能規則
-1. 執行期**禁止** `shadowBlur`、每幀建立漸層、每幀 `clip`、每幀組長路徑；這些只能出現在烘焙階段。
+1. 穩態繪製迴圈**避免每幀重複** `shadowBlur`、每幀建立漸層、每幀 `clip`、每幀組長路徑；這些應在烘焙階段（如 `BarPainter` 的 bake 函式）完成並由快取提供。
 2. 每個零件的烘焙結果快取；快取鍵是參數，不含時間。
 3. 動畫零件用預渲染影格（同地形 R2 的循環影格做法）。
 4. 品質分級：沿用 `RenderQuality` 階層與 `VFX_BUDGET.TIER_EMISSION_RATIOS`；低階層減少粒子數與次要層，**主形狀不得消失**。

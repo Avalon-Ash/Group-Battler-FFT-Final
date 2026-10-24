@@ -13,18 +13,18 @@
 
 | 資產類別 | 涉及模組 | 目前快取／烘焙狀態 | 執行期開銷模式 |
 | :--- | :--- | :--- | :--- |
-| **單位底座與圖示 (Token Base & Icon)** | `ImperialTokenFactory`, `CovenantTokenFactory`, `UnitFactory` | **已烘焙**：開機時依陣營 × 職業 (10 種組合) 生成 128×128 與 64×64 離屏 Canvas 精靈。 | `drawImage` 貼圖 (43 次/幀)。 |
-| **單位主體／肢體／裝甲 (Unit Body & Limbs)** | `ImperialRenderer`, `CovenantRenderer` | **即時向量繪製**：每幀針對每個活體單位即時計算呼吸、擺動、關節矩陣、高光漸層、接縫線。 | 向量路徑 `stroke` (59 次/幀)、`fill` (152 次/幀)、即時漸層 (23 次/幀)。 |
+| **單位底座與圖示 (Token Base & Icon)** | `ImperialTokenFactory`, `CovenantTokenFactory`, `UnitFactory` | **已烘焙**：開機時依陣營 × 職業 (10 種組合) 生成 128×128 與 64×64 離屏 Canvas 精靈。 | `drawImage` 貼圖。 |
+| **單位主體／肢體／裝甲 (Unit Body & Limbs)** | `UnitBodyPainter`, `SpriteUnitRenderer`, `SpriteAtlasStore` | **已圖集化**：讀取 KayKit 預渲染精靈圖集（`SpriteAtlasStore`），由 `UnitBodyPainter` 委派 `SpriteUnitRenderer` 依朝向與動畫影格貼圖，非由 `ImperialRenderer` / `CovenantRenderer` 即時向量繪製角色。 | `drawImage` 精靈貼圖。 |
 | **單位核心與常駐環境光 (Unit Core & Ambient)** | `UnitCorePainter`, `UnitAmbientPainter` | **現況**：舊版曾走 `GlowSpriteCache`（已於 commit `2b15fad` 退役）；現行單位環境光已併入零件與底座，常駐文字光暈走 `GlowTextCache`。 | 快取貼圖 blit 或零件繪製。 |
-| **地形六角塊 (Terrain Blocks)** | `TerrainBlockCache`, `TerrainRenderer` | **已烘焙**：依主題、高度、尺寸量化預先烘焙等角六角稜柱 Sprite（最大 512 個）。 | `drawImage` 貼圖 (269 次/幀)，但包含 345 次 `save/restore` 狀態切換。 |
+| **地形六角塊 (Terrain Blocks)** | `TerrainBlockCache`, `TerrainRenderer` | **已烘焙**：依主題、高度、尺寸量化預先烘焙等角六角稜柱 Sprite，上限取 `constants/render.ts` 的 `RENDER_CACHE.MAX_TERRAIN_SPRITES = 2048`（非 512）。 | `drawImage` 貼圖與狀態切換。 |
 | **動態地形液面 (Magma/Water Surface)** | `TerrainSurfacePainter` | **已烘焙**：液面循環影格排成一張圖（`LoopSheet`）＋縮放級距量化快取。 | 循環圖表 blit 貼圖。 |
 | **地面危害與裂紋 (Hazard & Scars)** | `HazardPainter`, `GroundPainter` | **零件化**：危害場域改走 `partLayer` 零件層與中心格漩渦。 | 零件 drawPart 貼圖。 |
 | **VFX 粒子與投射物 (Particles & Projectiles)** | `ParticleRenderer`, `ProjectilePartPainter` | **已全面零件化**：粒子與投射物全面走 `VFXPartStore` 預烘焙零件（`missile`, `beam`, `glow`）。 | 零件 drawImage 貼圖。 |
 | **HUD 血條／護盾／數值 (Bar & Text HUD)** | `BarPainter`, `TextPainter`, `GaugePainter` | **現行切片與快取**：血條／護盾改走預烘焙切片（`HUD_BAR`, `HUD_GAUGE`）；光暈文字走 `GlowTextCache`（舊 `GlowSpriteCache` 已退役）。 | 預烘焙切片 blit 與文字繪製。 |
 
-### 1.2 Q1 診斷數據佐證（Manual Battle 實戰）
+### 1.2 Q1 歷史診斷數據佐證（2026-Q1 早期量測，僅作歷史對照，不作目前系統現值）
 
-依據 Q1 於 6 單位實戰下的 CDP Native 操作採樣：
+依據 2026-Q1 於 6 單位實戰下的 CDP Native 操作歷史採樣（用於對比早期即時向量繪製架構）：
 1. **即時向量操作佔用極高頻次**：
    - 每幀執行 **968 次 `save/restore`**（其中地形佔 345 次、VFX 佔 241 次、單位佔 170 次）。
    - 每幀執行 **322 次 `fill`** 與 **160 次 `stroke`**。
@@ -40,10 +40,9 @@
 ### 2.1 現況痛點：交錯深度排序 (Interleaved Depth Sort)
 
 在現行架構中，`RenderPipeline.drawWorld()` 採單一 `RenderList` 統一深度排序：
-$$\text{depthKey} = (q + r) \times 1000 + z_{\text{order}}$$
-六角塊、單位（底座、身體、陰影）、地面危害、障礙物、投射物在同一個串列中依幾何深度穿插排序並派發。
+深度鍵與圖層順序嚴格遵循 `engine/renderers/RenderSpec.ts` SSOT（`RENDER_LAYER_BIAS` 與 `VisualMath.calculateDepthKey`），六角塊、單位（底座、身體、陰影）、地面危害、障礙物、投射物在同一個串列中依幾何深度與圖層偏置穿插排序並派發。
 - **優點**：完美解決 2.5D 等角投影下的前後遮擋關係（單位站在地塊上，同時被前方更高或更前排的地塊遮擋）。
-- **缺點**：無法將所有地形直接合併成單一靜態 Background Canvas，每幀必須個別繪製 ~269 個地塊精靈與 345 次矩陣切換。
+- **缺點**：無法將所有地形直接合併成單一靜態 Background Canvas，每幀必須個別繪製地塊精靈與矩陣切換。
 
 ### 2.2 三種分層方案架構對照
 
@@ -141,8 +140,8 @@ export interface UnitVisualBinding {
 }
 ```
 
-- **程序化模式 (現狀)**：若未載入外部圖集，系統在啟動時自動使用 `MaterialPainter` / `NoiseLib` 將現有程式碼烘焙至記憶體內動態 Atlas。
-- **HD 素材模式 (未來)**：載入外部 Sprite Sheet 時，管線直接切換至靜態 Atlas，渲染迴圈邏輯維持完全不變（皆呼叫 `AtlasManager.draw(ctx, slotKey, px, py)`）。
+- **現行單位圖集架構**：現行管線已全面走 `SpriteAtlasStore` 載入 KayKit 離線預渲染 WebP 圖集，由 `SpriteUnitRenderer` 依朝向與幀索引繪製；程序化材質僅用於地形烘焙（`TerrainRenderer`）與特效零件（`VFXPartStore`）。
+- **未採用提案（暫緩）**：早先草案擬設之通用 `AtlasManager` 與高度分帶底層烘焙方案均屬未採用提案並明確標記為暫緩，不作為現行系統 API。
 
 ---
 
@@ -152,23 +151,16 @@ export interface UnitVisualBinding {
 
 ```
 Phase 1 (歷史階段完成)───► Phase 2 (靜態烘焙提案)───► Phase 3 (圖集整合提案) ───► Phase 4 (高清素材抽換)
-- 矩陣雨分階減載        - 高度分帶底層烘焙 (暫緩)   - AtlasManager 統一管理    - 外部 HD 手繪/AI 圖集
+- 矩陣雨分階減載        - 高度分帶底層烘焙 (暫緩)   - AtlasManager (暫緩提案)  - 外部 HD 手繪/AI 圖集
 - HUD 切片與 GlowTextCache- HUD 靜態槽位預烘焙        - 粒子合批 (Batch Draw)    - 支援 4 方向/8 方向動畫
-- Native 操作基線監控   - 單位肢體圖形離屏烘焙      - 狀態列圖示圖集化         - 完全消除即時向量運算
+- Native 操作基線監控   - 單位肢體圖形離屏烘焙      - 狀態列圖示圖集化         - 降低即時向量運算
 ```
 
-### 4.2 WebGL 例外評估之客觀判準（何時才值得打破 `AGENTS.md` §1.4）
+### 4.2 WebGL 例外提案不具合約效力（重申 `AGENTS.md` §1.4 絕對禁止）
 
-專案合約嚴格禁止引入 Three.js、Pixi.js、WebGL。然而，若系統追求極限 4.2 ms (240 FPS)，是否引入 WebGL 必須有以下**量化與客觀觸發條件**，缺一不可：
-
-1. **條件一：已完成 Phase 1~3 所有 2D Canvas 烘焙優化**。
-   - 所有即時向量運算（`fill`, `stroke`, `shadowBlur`）已替換為 `drawImage`。
-   - 幀內 Canvas 指令數量已壓制在 300 次以內。
-2. **條件二：在目標真機（Hardware Accelerated Browser） headed 實測下，戰鬥幀時間仍穩定大於 6.0 ms**。
-3. **條件三：效能瓶頸確定受限於瀏覽器 2D Context 的 CPU-to-GPU Draw Call 負擔（排隊與排版 overhead）**，且 Profile 顯示 GPU 使用率極低但 CPU 主執行緒在等待 Context 提交。
-4. **滿足上述所有條件後之合約例外提案**：
-   - 僅允許以輕量自研 WebGL 2D Sprite Batcher（≤500 行程式碼，零第三方依賴）取代主 2D Context 進行圖集貼圖 Blit。
-   - 嚴禁引入 Three.js / Pixi.js 等重型肥大引擎。
+依據專案核心合約 `AGENTS.md` §1.4「零重型圖形依賴」，渲染端嚴格限制為純 HTML5 Canvas 2D 結合程序化材質烘焙與 Sprite 圖集貼圖，**絕對禁止引入 Three.js、Pixi.js 或任何 WebGL 庫**。
+- **合約效力**：早先藍圖提及的 WebGL 例外觸發判準與操作性許可不具備架構合約效力，予以完全刪除。
+- **邊界維持**：維持純 Canvas 2D 實作；不新增或授權任何 WebGL 例外，亦不宣稱全 runtime 已達到純 blit 或現行效能全面達標。
 
 ---
 
