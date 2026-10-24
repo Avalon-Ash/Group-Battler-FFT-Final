@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
     SKILL_EDITABLE_FIELDS,
+    SkillEditableField,
     isSkillEditableField,
     validateSkillFieldValue,
     isSkillFieldOptional,
@@ -357,7 +358,7 @@ describe('SkillEditor Field Validation Rules', () => {
                             convertedVal = rawVal;
                         }
 
-                        const ok = validateSkillFieldValue(field.key, convertedVal);
+                        const ok = validateSkillFieldValue(field.key as SkillEditableField, convertedVal);
                         expect(ok).toBe(true);
                     }
                 }
@@ -401,17 +402,17 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             field: 'range',
             value: 99,
         });
-        (mbU1 as Record<string, unknown>).tempFieldForTest = 'polluted';
+        (mbU1 as unknown as Record<string, unknown>).tempFieldForTest = 'polluted';
 
         expect(mbU1.range).toBe(99);
-        expect((mbU1 as Record<string, unknown>).tempFieldForTest).toBe('polluted');
+        expect((mbU1 as unknown as Record<string, unknown>).tempFieldForTest).toBe('polluted');
 
         restoreDbSnapshots(dbSnapshots);
 
         expect(DEFAULT_SKILL_DB.find(s => s.id === 'mb_u1')).toBe(mbU1);
         expect(mbU1.range).toBe(origRange);
         expect(mbU1.power).toBe(origPower);
-        expect((mbU1 as Record<string, unknown>).tempFieldForTest).toBeUndefined();
+        expect((mbU1 as unknown as Record<string, unknown>).tempFieldForTest).toBeUndefined();
         expect(Object.keys(mbU1).sort()).toEqual(origKeys);
     });
 

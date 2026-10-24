@@ -5,17 +5,17 @@
 ## 1. 現行管線拓樸
 
 ```
-遊戲事件（engine.bus）
- ├─ VisualSystem.flush(events)
- │   ├─ EventHUDMapper  ──► DAMAGE / HEAL / CC / CAST 事件 ──► HUDSystem
- │   ├─ EventVFXMapper  ──► 狀態、受創、護盾火花、出場、中斷等 ──► VFXSystem
- │   └─ CAST_START (skill.id) ──► SKILL_SEQUENCES[skill.id] ──► SequenceSystem.dispatch
- │         ├─ PARTICLE   ──► VFXSystem.playEffect(id)（掛零件）
- │         ├─ BEAM       ──► VFXSystem.playBeam(style)（掛光束零件，依陣營色階）
- │         ├─ GRID_PULSE ──► VFXSystem.playEffect（依 teamOf 選 FX_GRID_IMPACT_BLUE 或 RED）
- │         ├─ HEAVEN_FALL──► 生成兩顆同步自由落體 PART_DEBRIS（rock＋glow）＋貼地 PART_GROUND shadow
- │         ├─ SHAKE      ──► engine.bus.emit('CAMERA_SHAKE')
- │         └─ ULT_IMPACT ──► UltFeelStore.recordImpact（奧義命中光爆）
+ 遊戲事件（engine.bus）
+  ├─ VisualSystem.flush(events)
+  │   ├─ EventHUDMapper  ──► DAMAGE / HEAL / CC / CAST 事件 ──► HUDSystem
+  │   ├─ EventVFXMapper  ──► 狀態、受創、護盾火花、出場、中斷等 ──► VFXSystem
+  │   └─ CAST_START (skill.id) ──► 符合資格單體非投射物帶 targetId/lockAt ──► SequenceSystem.run
+  │         ├─ PARTICLE   ──► VFXSystem.playEffect(id)（掛零件）
+  │         ├─ BEAM       ──► VFXSystem.playBeam(style)（掛光束零件，依陣營色階）
+  │         ├─ GRID_PULSE ──► VFXSystem.playEffect（依 teamOf 選 FX_GRID_IMPACT_BLUE 或 RED）
+  │         ├─ HEAVEN_FALL──► 生成兩顆同步自由落體 PART_DEBRIS（rock＋glow）＋貼地 PART_GROUND shadow
+  │         ├─ SHAKE      ──► engine.bus.emit('CAMERA_SHAKE')
+  │         └─ ULT_IMPACT ──► UltFeelStore.recordImpact（奧義命中光爆）
  │
  ├─ 投射物管線
  │   └─ ProjectileSystem ──► engine.projectiles

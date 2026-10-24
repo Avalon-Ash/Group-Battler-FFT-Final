@@ -130,6 +130,14 @@ export class RenderSpec {
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 
+        s += "### 4.1 目標錨點採樣與時點協議 (Target Anchor Sampling & Timing Protocol)\n\n";
+        s += "- **CAST_START 單體序列動態目標綁定**：僅限 `skill.type === 'SINGLE'`、`cast > 0`、`projectileSpeed <= 0` 或缺席、無 `HEAVEN_FALL` 動作且 `targetId` 指向現有單位的施法事件啟用動態綁定。\n";
+        s += "- **取樣與鎖定邊界**：\n";
+        s += "  - 詠唱期間（`battleTime < lockAt`，其中 `lockAt = battleTime + skill.cast`）：每次 `SequenceSystem.update` 在派發前以 `VisualMath.getUnitAnchor(target, engine)` 動態更新目標錨點（含地形高度與物理位移）。\n";
+        s += "  - 結算幀（首次 `battleTime >= lockAt`）：取當幀錨點後永久鎖定（`binding.locked = true`）；後續同序列餘波動作使用鎖定快照，不追隨移動。\n";
+        s += "  - 目標邊界：目標該幀被命中致死但在 `engine.agents` 中時仍可取錨點；目標移出集合則沿用最後有效快照。\n";
+        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、HEAVEN_FALL 動作與無有效目標者維持靜態快照。\n\n";
+
         s += "--- \n\n";
 
         s += "## 5. 漂浮位移 (Floating Bob: VOID／MAGMA)\n\n";
