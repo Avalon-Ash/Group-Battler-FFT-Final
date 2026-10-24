@@ -1,641 +1,644 @@
-﻿path,區域,用途類別,入口或消費者,檔頭狀態,具體問題,建議動作,證據來源,查證狀態
-.claude/agents/explorer.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/agents/reviewer.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/agents/worker.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/settings.json,.claude,代理規格與技能,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/skills/agent-prompt/SKILL.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/skills/rebaseline-fidelity/SKILL.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/skills/render-verify/SKILL.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.claude/skills/review-round/SKILL.md,.claude,代理規格與技能,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.github/workflows/deploy.yml,.github,CI/CD 工作流程,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.gitignore,.gitignore,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-AGENTS.md,AGENTS.md,根目錄設定與入口,開發者／AI 代理文檔,標準方框檔頭,無,保留,靜態母表檢視,已查證
-App.tsx,App.tsx,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-CLAUDE.md,CLAUDE.md,根目錄設定與入口,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-CREDITS.md,CREDITS.md,根目錄設定與入口,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-README.md,README.md,根目錄設定與入口,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-art-source/terrain_grid.jpg,art-source,美術設計原始來源檔,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-components/GameCanvas.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/InspectorConstants.ts,components,React UI 組件,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-components/inspector/parts/SkillIcon.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/parts/TreeNode.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/tabs/BehaviorTreeTab.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/tabs/LogTab.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/tabs/SkillDbTab.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/tabs/UnitStatusTab.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/inspector/tabs/VFXMapTab.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/DirectorMonitorHUD.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/MapEditorToolbar.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/PlaybackHUD.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/SystemMenu.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/icons/index.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/inspector/UnitInspectorBody.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/settings/AudioSettingsWindow.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/settings/SchemaForm.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/settings/SettingsWindows.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/ShowcaseOverlay.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/ShowcaseSettings.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/defaults.ts,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/showcaseConfigStore.ts,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/types.ts,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/showcase/useMatrixRain.ts,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/window/ToolWindow.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/window/WindowLayer.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/window/windowRegistry.tsx,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-components/ui/window/windowStore.ts,components,React UI 組件,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-constants.ts,constants.ts,根目錄設定與入口,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/audio.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/combat.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/geometry.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/hud.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/palette.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/render.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/terrain.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,C03: TerrainSkinConfig.tintStrength 已標註 @deprecated，渲染器不讀取，但 tests/TerrainSkin.test.ts 與 constants-snapshot.json 仍斷言,主代理授權後於 A2 移除欄位、更新測試與受保護快照,TerrainSkin.test.ts:123; constants-snapshot.json:1123,已查證
-constants/ui.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/units.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-constants/vfx.ts,constants,數值與常數 SSOT,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/ai_profiles.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/audio/cues.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/audio/music.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/obstacles.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/scenes.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/blue.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/blue_active.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/blue_basic.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/blue_ult.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/red.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/red_active.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/red_basic.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/skills/red_ult.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/status/effect_defs.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/ui/settingsSchema.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/ui/skillEditor.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/ui/tokens.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/ui/windows.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/bodyTypes.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/ccBody.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/units/appearance/covenant.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/deathMotion.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/units/appearance/fallMotion.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/imperial.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/index.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/projection.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/units/appearance/selectSpriteFrame.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/units/appearance/sprite.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/units/appearance/types.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/units/classGlyphs.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/units/factionSkin.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/SkillSequences.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/VFXRegistry.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/active_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/basic_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/beam_styles.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,C01: FACTION_BEAM_RAMP 物件全庫無消費者（消費者均使用 FACTION_BEAM_RAMP_ID 鍵值）,A2 刪除 FACTION_BEAM_RAMP 宣告與多餘 import,VFXSystem.ts:113; audit-knip-1024.log,已查證
-data/vfx/element_ramps.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,ELEMENT_RAMPS 與 SkillElement 僅檔內使用，外部皆調用 getElementRampId,A2 移除 export,audit-knip-1024.log; element_ramps.ts:47,已查證
-data/vfx/faction_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/hazard_visuals.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/materialConfig.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/parts/partConfig.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/parts/partGallery.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/parts/partLayer.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/parts/vfxPalette.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/projectile_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/active_parts.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/basic_parts.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/cast_break.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/covenant.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/hazards.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/imperial.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/last_stand.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/melee_parts.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/registry/shared_parts.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/ult_parts.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/ult_parts_blue.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/ult_parts_red.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/registry/ult_parts_storm.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/status_parts.ts,data,靜態設定與資料設定檔,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-data/vfx/status_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-data/vfx/terrainAmbience.ts,data,靜態設定與資料設定檔,系統消費者,簡短註解檔頭,C04: SAND_PEBBLES、ICE_SHARDS 等 7 個常數僅在檔內 TERRAIN_AMBIENCE 使用,A2 移除個別常數的 export,audit-knip-1024.log; terrainAmbience.ts:148-155,已查證
-data/vfx/ult_visuals.ts,data,靜態設定與資料設定檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/ART_SPEC.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,H05: 像素美術部分敘述與現行 HD 手繪精靈存在歷史矛盾,A1 標註現行規格以最新決策為準,docs 盤點; DECISIONS.md,已查證
-docs/ART_STYLE_BIBLE.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/ASSET_LEDGER.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/ASSET_NEEDS.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/BAKED_RENDERING_DESIGN.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/BGM_CANDIDATES.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/BT_OPT_REPORT.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/COORD_GUARD_FINDINGS.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/CORE_PROJECTION_DESIGN.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/DASH_MOTION_REPORT.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/DECISIONS.md,docs,規範與設計文件,開發者／AI 代理文檔,規範文件矛盾,H03: 第 24 行稱主畫布 imageSmoothingQuality 為 high；constants/render.ts 與 RenderSpec 實為 low（commit c08bcd3 效能修正後未同步）,由主代理同步治理文件為 low，實作代理不自行修改,constants/render.ts:58; WORKLOG.md:110,已查證
-docs/DEPTH_ORDER_FINDINGS.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/FACTION_SLOTS.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/HANDOFF.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/METHODOLOGY.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/MOBILE_UI_AUDIT.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/PEDESTAL_CORE.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/PERF_LIFECYCLE_FINDINGS.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/SKILL_NAMES.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/STATE_OWNERSHIP_DESIGN.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/VFX_PIPELINE_MAP.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,H04: 混有舊版遷移前描述（如每幀 high 濾波）,A1 核對最新 renderer 實作並同步,constants/render.ts:58; WORKLOG.md:110,已查證
-docs/VISUAL_ROADMAP.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,H04: 混有已完成項目與歷史舊待辦,A1 清理已完成待辦與失效指令,docs 盤點,已查證
-docs/WORKLOG.md,docs,規範與設計文件,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-docs/depth_order/depth_6_tree_on_plateau_behind_unit_on_plateau_FLAT.jpg,docs,規範與設計文件,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-docs/depth_order/depth_7_hazard_on_plateau_behind_unit_FLAT.jpg,docs,規範與設計文件,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-docs/depth_order/depth_9_hazard_under_unit_plateau_FLAT.jpg,docs,規範與設計文件,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-docs/depth_order/sheet_FLAT.jpg,docs,規範與設計文件,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-docs/depth_order/sheet_POINTY.jpg,docs,規範與設計文件,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-engine/ai/BTRegistry.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/ai/Pathfinder.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/ai/TargetingSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,HOSTILE_CC 與 FRIENDLY_BUFF_CC 僅供檔內使用，無外部引用,A2 移除 export,"audit-knip-1024.log; TargetingSystem.ts:21,246",已查證
-engine/assets.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/audio/AudioEngine.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/audio/Synth.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/behaviorTree.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/core/Agent.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/core/AgentDerived.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/core/AgentOwnership.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/core/Effects.ts,engine,核心模擬與渲染,系統消費者,檔頭待修正,H01: 檔頭第 3 行稱 13 種，EFFECT_KINDS 實為 16 種；createEffectSlot 為檔內私有 export,A1 修檔頭，A2 移除未使用的 createEffectSlot export,EFFECT_KINDS.length === 16; audit-knip-1024.log,已查證
-engine/core/ViewCommands.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/events/EventBus.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/events/EventPos.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/events/GameEventPool.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/game.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/CanvasUtils.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/graphics/EnvironmentFactory.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/graphics/UIFactory.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/graphics/UnitFactory.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,PEDESTAL_CANVAS_SIZE 僅檔內使用,A2 移除 export,audit-knip-1024.log; UnitFactory.ts:134,已查證
-engine/graphics/VFXFactory.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/graphics/materials/MaterialPainter.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/materials/NoiseLib.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/painters/SurfacePainter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/graphics/units/CoreFactory.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/units/CovenantTokenFactory.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/units/ImperialTokenFactory.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/units/PedestalGeometry.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/graphics/utils/HexGeometry.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/math/ClimbRule.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,C04: getJumpLimit 僅檔內使用，外部無引用,A2 移除 export 關鍵字,audit-knip-1024.log; ClimbRule.ts:24,已查證
-engine/math/HexMath.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/math/PointerProjector.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/math/TrajectoryMath.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/math/VisualMath.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/math/rng.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/physics/PhysicsEngine.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/AnimationSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/CameraSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/CameraTargetGroup.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/DesignExporter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/DirectorSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/VisualSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/hud.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/unit.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/unit/UnitSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/AgentVFXSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/UltFeelStore.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/VFXAmbience.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/VFXPhysics.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/VFXPlayer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/VFXSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/render.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/renderers/ParticleRenderer.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/renderers/ProjectileRenderer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/renderers/painters/PartPainter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,PART_PARTICLE_TYPES 重新匯出無外部引用（消費者均直接自 constants 匯入）,A2 移除冗餘 export,audit-knip-1024.log; constants/vfx.ts,已查證
-engine/presentation/vfx/renderers/painters/ProjectilePartPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/vfx/state.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/EventHUDMapper.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/EventVFXMapper.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/SequenceSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/effects/UnitShatter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/handlers/CinematicVFXHandler.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/handlers/CombatVFXHandler.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/presentation/visuals/handlers/UnitVFXHandler.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/CtxOpCounter.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/GlowSpriteCache.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,C02: 舊版離屏烘焙光暈快取，產品渲染器無消費者，僅測試與 2 個效能日誌探針引用,A2 移除該模組、對應測試與探針動態載入,tests/GlowSpriteCache.test.ts; audit-knip-1024.log,已查證
-engine/renderers/GroundDrape.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/HUDRenderer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/PostProcessor.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderDispatcher.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderList.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderPipeline.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderQuality.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderSpec.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/RenderStats.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/UnitGradientCache.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/background.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/frame/Afterimage.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/frame/UnitFrame.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/GridCache.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/GridOverlays.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/GridRenderStrategy.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/ObstacleSpriteStore.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/SoftTile.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/TerrainBlockCache.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/TerrainLoopAtlas.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/TerrainRenderer.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/TerrainTextureStore.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/ZoneRenderer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/grid/painters/HazardPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/hud/BarPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/hud/GaugePainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/hud/GlowTextCache.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/hud/TextPainter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/status/StatusActivity.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,VULNERABLE_VISUAL_HP_RATIO 僅檔內使用,A2 移除 export,audit-knip-1024.log; StatusActivity.ts:32,已查證
-engine/renderers/status/StatusOrchestrator.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/status/painters/ShieldPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/status/painters/StatusPartPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/tactical.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/ult/UltWorldRenderer.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/FactionTextureStore.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,C04: export class FactionTextureStore 外部無直接類別引用（外部皆引用實例 factionTextureStore）,A2 移除 class 的 export,audit-knip-1024.log; sprites.ts:13,已查證
-engine/renderers/units/SpriteAtlasStore.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/factions/SpriteUnitRenderer.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/FrozenPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/PedestalGhostPainter.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/PolymorphPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitAfterimagePainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitAuraPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitBodyPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitCorePainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitDeathPainter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitIndicatorPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/units/painters/UnitShadowPainter.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/units/utils.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/renderers/vfxparts/PartBakers.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/vfxparts/PartLayerPainter.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/vfxparts/PartSpec.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/vfxparts/TrailStreak.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/renderers/vfxparts/VFXPartStore.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/sprites.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/AnnouncerSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/BattleLogger.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/HazardSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/PhysicsSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/TimeSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/VFXValidator.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/VictorySystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/ZoneSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/agentManager.ts,engine,核心模擬與渲染,系統消費者,註解待更新,H02: 第 165 行 TODO 稱物理演算在 UnitDeathPainter.draw；實由 UnitDeathPainter.getKnockVelocity 讀取快照並經 computeDeathOffset 推導,A1 更新 TODO 註解，保留快照流程,UnitDeathPainter.ts:16-29; agentManager.ts:165,已查證
-engine/systems/ai.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/audio/AudioSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/combat/CCManager.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat/CastingEngine.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,F01: handleInterruption 在 a.hp <= 0 分支直接 return，未發送 CAST_BREAK，導致 SequenceSystem 殘留排程動作並於死後觸發,A3 修復：施法者死亡時補發中斷通知或由 VisualSystem.flush 於 DEATH 時取消該施法者排程,repro_results.json F01.C; VisualSystem.ts:69,已查證
-engine/systems/combat/CombatSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/combat/DamageCalculator.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat/DirectDamage.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat/ForcedMove.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/combat/HazardManager.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat/ProjectileSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/combat/SkillExecutor.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/grid.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/grid/GridSpatial.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/map.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/map/MapGenerator.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/map/MapSpatial.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/movement.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/movement/MotionCommands.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/movement/MotionEngine.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/movement/MovementSystem.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/movement/StackingResolver.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/status/ControlSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/status/CooldownSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/status/EffectSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/ui/UICommandSystem.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,"F03: UPDATE_SKILL 僅檢查 key 白名單與 isFinite，無欄位下限/型別檢驗（如 range < 0, cast < 0, 非法 enum 字串）",A3 修復：為 UPDATE_SKILL 欄位增加類型與範圍驗證,repro_results.json F03; UICommandSystem.ts:115,已查證
-engine/systems/ui/editorQueries.ts,engine,核心模擬與渲染,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-engine/systems/ui/selectors.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/systems/unit/RagdollFactory.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/types/Enums.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-engine/types/ragdoll.ts,engine,核心模擬與渲染,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-engine/utils.ts,engine,核心模擬與渲染,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useCameraControl.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useCompactViewport.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useDraggable.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useEngineCommands.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useEngineView.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useGameApp.ts,hooks,React 狀態與週期 Hook,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-hooks/useGameCamera.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useGameInput.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useGameLoop.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useWindowInteraction.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-hooks/useWindowStore.ts,hooks,React 狀態與週期 Hook,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-index.css,index.css,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-index.html,index.html,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-index.tsx,index.tsx,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-knip.json,knip.json,根目錄設定與入口,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-package.json,package.json,根目錄設定與入口,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-postcss.config.js,postcss.config.js,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/audio/manifest.json,public,公開靜態描述檔,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/audio/music/battle_desert.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_forest.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_ice.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_magma.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_normal.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_tense.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/battle_void.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/defeat_sting.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/soliloquy.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/victory_red_dark.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/music/victory_sting.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/bow_1.wav,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/bow_2.wav,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/bow_3.wav,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/cc_stun_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/cc_stun_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/cc_stun_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/collapse_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/collapse_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/collapse_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/death_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/death_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/death_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/defeat_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/defeat_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_heavy_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_heavy_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_heavy_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_heavy_4.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_light_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_light_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_light_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/hit_light_4.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/impact_ground_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/impact_ground_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/impact_ground_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_fire_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_fire_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_fire_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_heal_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_heal_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_heal_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_ice_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_ice_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/magic_ice_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/rumble_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/rumble_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/rumble_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/slash_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/slash_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/slash_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/slash_4.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spawn_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spawn_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spawn_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spell_cast_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spell_cast_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/spell_cast_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_click_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_click_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_click_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_hover_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_hover_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_hover_3.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_start_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/ui_start_2.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/audio/sfx/victory_1.ogg,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/factions/blue/.gitkeep,public,公開靜態描述檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/factions/manifest.json,public,公開靜態描述檔,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/factions/red/.gitkeep,public,公開靜態描述檔,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/obstacles/decor_grass.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/decor_ice.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/decor_pebble.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/decor_rubble.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/ice_crystal.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/manifest.json,public,公開靜態描述檔,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/obstacles/obsidian_pillar.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/sandstone.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/tree.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/obstacles/wall.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/desert_side.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/desert_top.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/forest_side.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/forest_top.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/ice_side.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/ice_top.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/magma_side.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/magma_top.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/void_side.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/terrain/void_top.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/blue_mage_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/blue_ranger_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/blue_support_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/blue_tank_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/blue_warrior_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/manifest.json,public,公開靜態描述檔,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-public/assets/units/red_mage_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/red_ranger_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/red_support_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/red_tank_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-public/assets/units/red_warrior_male.webp,public,公開圖像／音訊資產,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-skillDatabase.ts,skillDatabase.ts,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-styles/tokens.css,styles,根目錄設定與入口,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tailwind.config.js,tailwind.config.js,根目錄設定與入口,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/AIIdle.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AIIdlePriority.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AfterimageGhosts.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AgentDerived.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AgentOwnership.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/AgentRunner.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/AgentView.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/AudioAssets.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AudioEngine.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/AudioSystem.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/BTOptimization.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/BackgroundRenderer.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/BeamSpace.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/BodyTypeEditor.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CcBodyPainters.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CcSelf.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/ConstantsBarrel.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CoordinateProtocol.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/Core.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CoreAnchor.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CoreProjection.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/CtxOpCounter.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DamageCalculator.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DashMotion.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DashSkillVisuals.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DeathDirection.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DeathMotion.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DirectDamage.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/DocDrift.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/EditorQueries.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/EffectFieldsRatchet.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/Effects.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/EngineTick.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/EventPos.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/FactionSkin.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/FallMotion.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ForcedMove.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/GlowSpriteCache.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/HarnessContract.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/HazardSpeedMult.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/HexLayoutAlign.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/InspectorCommands.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/LayerBoundary.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/MeleeFxSpec.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/MotionCommands.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/NewStatusEffects.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/ObstacleSprites.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ProjectileLaunchBob.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ReferenceIntegrity.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/RenderQuality.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/RenderStats.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/RendererCommands.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/RingOutDeath.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/Rng.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/RngSplit.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/SchemaForm.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ShieldFit.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ShowcaseConfigStore.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/SkillDataIntegrity.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/SkillEditor.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/SkillSequenceFaction.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/SpriteAtlas.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/SpriteUnitRenderer.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/StatusDomainApi.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/StatusParts.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TauntRetarget.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainAmbience.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainBlockCache.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainBlockCacheBudget.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainEdgeMask.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainFoundation.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/TerrainSkin.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UIBoundary.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UICommandSystem.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UISelectors.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UITokens.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UltFeelStore.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UltPartRecipes.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UltScatter.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/UltSpec.test.ts,tests,自動化單元測試,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tests/UnitGroundHeight.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VFXBackend.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VFXDragRange.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VFXLibrary.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VFXParts.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VFXRegistryKeys.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/VisualStatusOwnership.test.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/WindowStore.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/agent-ownership.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/constants-snapshot.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/coordinate-protocol.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/legacyEffectFields.ts,tests,自動化單元測試,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tests/melee-fx.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/reference-integrity.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ui-boundary.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/ult-spec.baseline.json,tests,自動化單元測試,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tests/useDraggable.test.ts,tests,自動化單元測試,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/agent/run.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/README.md,tools,維護／評測／截圖工具,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/README.md,tools,維護／評測／截圖工具,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/pack_obstacles.py,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/pack_sprites.py,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/render_obstacle.py,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/render_unit.py,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/blender/sheet.py,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/assets/create-battle-comparison.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/assets/process-terrain.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/assets/verify-sprites.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/audio/README.md,tools,維護／評測／截圖工具,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/audio/preview.html,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/audio/preview.ts,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/audio/verify-audio.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/baked-terrain-proto.html,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/balance/batch-sim.mjs,tools,維護／評測／截圖工具,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tools/balance/report.mjs,tools,維護／評測／截圖工具,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tools/gen-ui-tokens.ts,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/hooks/agent-guardrails.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/aoe-drape-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/baseline/fidelity/DESERT.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/baseline/fidelity/FOREST.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/baseline/fidelity/ICE.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/baseline/fidelity/MAGMA.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/baseline/fidelity/VOID.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/baseline/fidelity/battle_frozen.png,tools,維護／評測／截圖工具,SpriteAtlasStore / 音效 / 地形貼圖,不適用（二進位資產）,無,保留（靜態素材）,public/assets 清冊與 manifest,已查證
-tools/ui-e2e/beam-align-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/bg-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/biome-frames.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/br-soak.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/capture-zoom.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/coord-guard.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/core-projection-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/dash-trail-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/drag-hud-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/drape-perf.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/faction-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/float-align-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/glow-compare.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/glow-smoke.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/ground-drape-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/hex-align-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/idle-quality-soak.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/lib/coord-probes.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/lib/depth-oracle.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/lib/lifecycle-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/lib/perf-common.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/lib/vfx-storm.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/measure-showcase-tiers.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/mobile-audit.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/obstacle-sheet-dump.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/obstacle-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/pedestal-core-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-ab.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-baseline.json,tools,維護／評測／截圖工具,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-frames.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-governor-60s.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-headed.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-lifecycle-soak.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-ops-breakdown.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-profile.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-r1-attribution.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-r4-smoke-governor.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-r5-matrix.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-r6-runner.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-stages.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-trace.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/perf-vfx-attribution.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/render-fidelity.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/runtime-smoke.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/sink-demo.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/sink-flicker-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/smoke-params.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/style-baseline.json,tools,維護／評測／截圖工具,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/terrain-base-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/terrain-contrast.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/terrain-cost.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/terrain-float-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/ui-remount-audit.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/unit-jitter-probe.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/ui-e2e/windows.e2e.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/cast-break-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/cast-ring-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/fx-shot.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/magic-circle-dump.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/parts-preview.html,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/vfx/parts-preview.ts,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/parts-sheet.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/record-skill.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/sigil-dump.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/status-sheet.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/ult-sheet.mjs,tools,維護／評測／截圖工具,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/vfx-coverage-report.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vfx/vfx-coverage.mjs,tools,維護／評測／截圖工具,系統消費者,簡短註解檔頭,無,保留,靜態母表檢視,已查證
-tools/vite.preview.config.mjs,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/webgl-post-proto.html,tools,維護／評測／截圖工具,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tools/webgl-post-proto.md,tools,維護／評測／截圖工具,開發者／AI 代理文檔,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-tsconfig.json,tsconfig.json,根目錄設定與入口,建置／測試設定,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-types.ts,types.ts,根目錄設定與入口,系統消費者,標準方框檔頭,無,保留,靜態母表檢視,已查證
-types/UIViewModel.ts,types,型別主契約,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-types/VFXSchema.ts,types,型別主契約,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-vite.config.ts,vite.config.ts,根目錄設定與入口,系統消費者,缺少檔頭註解,無,保留,靜態母表檢視,已查證
-.agents/,根目錄（未追蹤）,使用者 Agent 自訂技能與規則,Antigravity / Gemini IDE 擴充,不適用（目錄）,無（使用者工作環境）,保留，不收進提交,git status,已查證
-.codex/,根目錄（未追蹤）,使用者 Codex 輔助設定,Codex 工具鏈,不適用（目錄）,無（使用者工作環境）,保留，不收進提交,git status,已查證
-docs/PROJECT_CLEANUP_A0_AGENT_PROMPT.md,docs（未追蹤）,本輪 A0 任務提示詞,Gemini / 實作代理執行依據,標準指令檔頭,無,保留，由使用者/主代理管理，不收進本輪提交,git status,已查證
-docs/PROJECT_CLEANUP_PLAN.md,docs（未追蹤）,全專案整理總計畫,主代理與各輪執行提示詞上游,標準計畫檔頭,無,保留，由主代理管理，不收進本輪提交,git status,已查證
-docs/ULT_BESPOKE_DESIGN.md,docs（未追蹤）,奧義個別重構美術與演出設計規範,未來奧義重構輪次,標準設計檔頭,無,保留，後續奧義輪次使用，不收進本輪提交,git status,已查證
-docs/ULT_REDESIGN_PLAN.md,docs（未追蹤）,奧義重構整體推進計畫,未來奧義重構輪次,標準計畫檔頭,無,保留，暫緩執行，待整理完成後重啟,git status,已查證
-docs/ULT_REDESIGN_R1_AGENT_PROMPT.md,docs（未追蹤）,原奧義 R1 提示詞（已暫緩）,暫緩執行,標準指令檔頭,基底過期（以整理前基底撰寫）,保留，待專案整理完畢後依新基底重構,git status; PROJECT_CLEANUP_PLAN.md,已查證
-docs/ULT_VOLUME_AGENT_PROMPT.md,docs（未追蹤）,歷史奧義體積提示詞草稿,歷史記錄,標準指令檔頭,前輪工作遺留,保留，由主代理收尾時處理,git status,已查證
-tools/ui-e2e/out/,tools（.gitignore 忽略）,本機產出、日誌、探針、截圖與驗證輸出,評測工具、執行代理、本輪證據探針,不適用（輸出目錄）,無,保留本機輸出，禁止 git add,.gitignore; git status,已查證
+﻿"path","zone","category","consumers","staticRefs","dynamicEntry","headerStatus","funcObserved","verifyStatus","unverifiedReason","evidenceSource","specificIssue","suggestedAction"
+".claude/agents/explorer.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/agents/reviewer.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/agents/worker.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/settings.json",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/skills/agent-prompt/SKILL.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/skills/rebaseline-fidelity/SKILL.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/skills/render-verify/SKILL.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".claude/skills/review-round/SKILL.md",".claude","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".github/workflows/deploy.yml",".github","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".gitignore","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"AGENTS.md","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"App.tsx","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"CLAUDE.md","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"CREDITS.md","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"README.md","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"art-source/terrain_grid.jpg","art-source","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"components/GameCanvas.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/InspectorConstants.ts","components","ui","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"components/inspector/parts/SkillIcon.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/parts/TreeNode.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/tabs/BehaviorTreeTab.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/tabs/LogTab.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/tabs/SkillDbTab.tsx","components","ui","windowRegistry.tsx (db window)","windowRegistry.tsx","React UI","無方框但合規","e2e:ui, repro_probe F03","已深度查證","無","AST, grep, 活體探針, 測試","F03: 清空數字輸入框產生 NaN 被 isFinite 擋下導致 snapback","於 A3 優化空值輸入與失焦處理"
+"components/inspector/tabs/UnitStatusTab.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/inspector/tabs/VFXMapTab.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/DirectorMonitorHUD.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/MapEditorToolbar.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/PlaybackHUD.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/SystemMenu.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/icons/index.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/inspector/UnitInspectorBody.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/settings/AudioSettingsWindow.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/settings/SchemaForm.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/settings/SettingsWindows.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/ShowcaseOverlay.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/ShowcaseSettings.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/defaults.ts","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/showcaseConfigStore.ts","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/types.ts","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/showcase/useMatrixRain.ts","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/window/ToolWindow.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/window/WindowLayer.tsx","components","ui","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"components/ui/window/windowRegistry.tsx","components","ui","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"components/ui/window/windowStore.ts","components","ui","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"constants.ts","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/audio.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/combat.ts","constants","constants","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"constants/geometry.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/hud.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/palette.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/render.ts","constants","constants","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"constants/terrain.ts","constants","constants","MapGenerator, TerrainLoopAtlas, tests","全庫地形引用","無","合規","smoke, e2e:ui, verify:coords","已深度查證","無","AST, grep, 活體探針, 測試","C03: tintStrength 已廢棄但受受保護快照斷言","需主代理明確授權更新快照方可刪除"
+"constants/ui.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/units.ts","constants","constants","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"constants/vfx.ts","constants","constants","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/ai_profiles.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/audio/cues.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/audio/music.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/obstacles.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/scenes.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/blue.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/blue_active.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/skills/blue_basic.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/blue_ult.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/skills/red.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/red_active.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/red_basic.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/skills/red_ult.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/status/effect_defs.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/ui/settingsSchema.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/ui/skillEditor.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/ui/tokens.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/ui/windows.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/units.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/bodyTypes.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/ccBody.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/covenant.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/deathMotion.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/fallMotion.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/imperial.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/index.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/projection.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/selectSpriteFrame.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/sprite.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/appearance/types.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/classGlyphs.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/units/factionSkin.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/SkillSequences.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/vfx/VFXRegistry.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/active_visuals.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/vfx/basic_visuals.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/beam_styles.ts","data","data","SkillSequences.ts, VFXSystem.ts","FACTION_BEAM_RAMP_ID 被使用","無","合規","vfxmap, smoke","已深度查證","無","AST, grep, 活體探針, 測試","C01: FACTION_BEAM_RAMP 100% 死碼","於 A2 刪除"
+"data/vfx/element_ramps.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/faction_visuals.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/vfx/hazard_visuals.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/materialConfig.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/parts/partConfig.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/parts/partGallery.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/parts/partLayer.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/parts/vfxPalette.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/projectile_visuals.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/active_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/basic_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/cast_break.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/covenant.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/hazards.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/imperial.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/last_stand.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/melee_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/shared_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/ult_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/ult_parts_blue.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/ult_parts_red.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/registry/ult_parts_storm.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/status_parts.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/status_visuals.ts","data","data","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"data/vfx/terrainAmbience.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"data/vfx/ult_visuals.ts","data","data","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"docs/ART_SPEC.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","H05: 殘留像素風格描述","於A1註明現行HD規格"
+"docs/ART_STYLE_BIBLE.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/ASSET_LEDGER.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/ASSET_NEEDS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/BAKED_RENDERING_DESIGN.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/BGM_CANDIDATES.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/BT_OPT_REPORT.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/COORD_GUARD_FINDINGS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/CORE_PROJECTION_DESIGN.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/DASH_MOTION_REPORT.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/DECISIONS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","已深度查證","無","git ls-files 列舉","H03: 平滑品質 high 與 low 衝突","由主代理修正文字"
+"docs/DEPTH_ORDER_FINDINGS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/FACTION_SLOTS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/HANDOFF.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/METHODOLOGY.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/MOBILE_UI_AUDIT.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/PEDESTAL_CORE.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/PERF_LIFECYCLE_FINDINGS.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/PROJECT_CLEANUP_A0_FINDINGS.csv","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/PROJECT_CLEANUP_A0_INVENTORY.csv","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/PROJECT_CLEANUP_A0_REPORT.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/SKILL_NAMES.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/STATE_OWNERSHIP_DESIGN.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/VFX_PIPELINE_MAP.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","H04: 混有過期指令","由主代理更新或於A1清理"
+"docs/VISUAL_ROADMAP.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","H04: 混有過期指令","由主代理更新或於A1清理"
+"docs/WORKLOG.md","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/depth_order/depth_6_tree_on_plateau_behind_unit_on_plateau_FLAT.jpg","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/depth_order/depth_7_hazard_on_plateau_behind_unit_FLAT.jpg","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/depth_order/depth_9_hazard_under_unit_plateau_FLAT.jpg","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/depth_order/sheet_FLAT.jpg","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"docs/depth_order/sheet_POINTY.jpg","docs","doc","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/ai/BTRegistry.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/ai/Pathfinder.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/ai/TargetingSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/assets.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/audio/AudioEngine.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/audio/Synth.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/behaviorTree.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/core/Agent.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/core/AgentDerived.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/core/AgentOwnership.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/core/Effects.ts","engine","core_sim","Agent.ts, EffectSystem.ts, CCManager.ts","7 處直接匯入","無","檔頭落後 (H01)","測試 EffectFieldsRatchet, repro_probe","已深度查證","無","AST, grep, 活體探針, 測試","H01: 檔頭寫 13 種，實為 16 種；C04: createEffectSlot 多餘 export","於 A1 更新檔頭，於 A2 收縮 export"
+"engine/core/ViewCommands.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/events/EventBus.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/events/EventPos.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/events/GameEventPool.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/game.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/graphics/CanvasUtils.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/EnvironmentFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/UIFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/UnitFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/VFXFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/materials/MaterialPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/materials/NoiseLib.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/painters/SurfacePainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/units/CoreFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/units/CovenantTokenFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/units/ImperialTokenFactory.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/units/PedestalGeometry.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/graphics/utils/HexGeometry.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/math/ClimbRule.ts","engine","code","MovementSystem.ts","MovementSystem.ts","無","合規","smoke, tests","已深度查證","無","AST, grep, 活體探針, 測試","C04: getJumpLimit 多餘 export（僅檔內使用）","於 A2 移除 export 關鍵字"
+"engine/math/HexMath.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/math/PointerProjector.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/math/TrajectoryMath.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/math/VisualMath.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/math/rng.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/physics/PhysicsEngine.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/AnimationSystem.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/CameraSystem.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/CameraTargetGroup.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/DesignExporter.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/DirectorSystem.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/VisualSystem.ts","engine","presentation","game.ts:316 (flush)","game.ts, renderer.ts","無","合規","smoke, e2e:ui, repro_probe","已深度查證","無","AST, grep, 活體探針, 測試","F01: 僅在 CAST_BREAK 時呼叫 sequences.cancel","保留，A3 與 CastingEngine 協同修復"
+"engine/presentation/hud.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/unit.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/unit/UnitSystem.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/AgentVFXSystem.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/UltFeelStore.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/vfx/VFXAmbience.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/VFXPhysics.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/VFXPlayer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/VFXSystem.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/vfx/render.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/renderers/ParticleRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/renderers/ProjectileRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/renderers/painters/PartPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/renderers/painters/ProjectilePartPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/vfx/state.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/visuals/EventHUDMapper.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/visuals/EventVFXMapper.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/visuals/SequenceSystem.ts","engine","presentation","VisualSystem.ts","VisualSystem, renderer.ts","無","合規","smoke, repro_probe F01/F02","已深度查證","無","AST, grep, 活體探針, 測試","F02: run() 快照 target Point3D，不隨目標移動更新","保留"
+"engine/presentation/visuals/effects/UnitShatter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/visuals/handlers/CinematicVFXHandler.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/presentation/visuals/handlers/CombatVFXHandler.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/presentation/visuals/handlers/UnitVFXHandler.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderer.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/renderers/CtxOpCounter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/GlowSpriteCache.ts","engine","presentation","tests/GlowSpriteCache.test.ts, perf-r1-attribution.mjs, lifecycle-probe.mjs","生產代碼 0 direct import","工具動態 import","合規","僅測試與工具執行","已深度查證","無","AST, grep, 活體探針, 測試","C02: 生產無消費者，僅測試與工具引用","於 A2 評估與測試連帶退役"
+"engine/renderers/GroundDrape.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/HUDRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/PostProcessor.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/RenderDispatcher.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/RenderList.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/RenderPipeline.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/renderers/RenderQuality.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/RenderSpec.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/renderers/RenderStats.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/UnitGradientCache.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/background.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/frame/Afterimage.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/frame/UnitFrame.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/GridCache.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/GridOverlays.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/GridRenderStrategy.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/ObstacleSpriteStore.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/SoftTile.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/TerrainBlockCache.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/TerrainLoopAtlas.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/TerrainRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/TerrainTextureStore.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/ZoneRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/grid/painters/HazardPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/hud/BarPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/hud/GaugePainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/hud/GlowTextCache.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/hud/TextPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/status/StatusActivity.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/status/StatusOrchestrator.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/status/painters/ShieldPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/status/painters/StatusPartPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/tactical.ts","engine","presentation","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/renderers/ult/UltWorldRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/FactionTextureStore.ts","engine","presentation","SpriteUnitRenderer.ts","SpriteUnitRenderer.ts","無","合規","runtime-smoke, e2e:ui","已深度查證","無","AST, grep, 活體探針, 測試","C04: export class 多餘 export（僅檔內或SpriteUnitRenderer使用）","保留實作，確認邊界"
+"engine/renderers/units/SpriteAtlasStore.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/factions/SpriteUnitRenderer.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/FrozenPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/PedestalGhostPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/PolymorphPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitAfterimagePainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitAuraPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitBodyPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitCorePainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitDeathPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitIndicatorPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/painters/UnitShadowPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/units/utils.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/vfxparts/PartBakers.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/vfxparts/PartLayerPainter.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/vfxparts/PartSpec.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/vfxparts/TrailStreak.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/renderers/vfxparts/VFXPartStore.ts","engine","presentation","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/sprites.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/AnnouncerSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/BattleLogger.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/HazardSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/PhysicsSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/TimeSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/VFXValidator.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/VictorySystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/ZoneSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/agentManager.ts","engine","code","GameEngine (game.ts)","game.ts, UICommandSystem.ts","無","註解落後 (H02)","runtime-smoke, UnitDeathPainter","已深度查證","無","AST, grep, 活體探針, 測試","H02: 第 165 行殘留過期死亡物理 TODO","於 A1 更新註解說明"
+"engine/systems/ai.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/audio/AudioSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/combat.ts","engine","core_sim","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/combat/CCManager.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/CastingEngine.ts","engine","core_sim","CombatSystem.ts:39","CombatSystem, game.ts","無","待補方框","a0-smoke, repro_probe F01","已深度查證","無","AST, grep, 活體探針, 測試","F01: hp<=0 分支未發 CAST_BREAK","於 A3 修復事件發送"
+"engine/systems/combat/CombatSystem.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/DamageCalculator.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/DirectDamage.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/ForcedMove.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/HazardManager.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/ProjectileSystem.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/combat/SkillExecutor.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/grid.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/grid/GridSpatial.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/map.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/map/MapGenerator.ts","engine","code","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/map/MapSpatial.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/movement.ts","engine","core_sim","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/movement/MotionCommands.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/movement/MotionEngine.ts","engine","core_sim","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/movement/MovementSystem.ts","engine","core_sim","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"engine/systems/movement/StackingResolver.ts","engine","core_sim","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/status/ControlSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/status/CooldownSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/status/EffectSystem.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/ui/UICommandSystem.ts","engine","code","game.ts, UI EventBus","UI components, useEngineCommands","UI_COMMAND 事件處理器","合規","e2e:ui, repro_probe F03","已深度查證","無","AST, grep, 活體探針, 測試","F03: UPDATE_SKILL 缺邊界下限與 enum 校驗","於 A3 加入邊界校驗 Schema"
+"engine/systems/ui/editorQueries.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/ui/selectors.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/systems/unit/RagdollFactory.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/types/Enums.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/types/ragdoll.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"engine/utils.ts","engine","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useCameraControl.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useCompactViewport.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useDraggable.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useEngineCommands.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useEngineView.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useGameApp.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useGameCamera.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useGameInput.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useGameLoop.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useWindowInteraction.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"hooks/useWindowStore.ts","hooks","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"index.css","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"index.html","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"index.tsx","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"knip.json","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"package.json","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"postcss.config.js","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"public/assets/audio/manifest.json","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_desert.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_forest.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_ice.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_magma.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_normal.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_tense.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/battle_void.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/defeat_sting.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/soliloquy.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/victory_red_dark.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/music/victory_sting.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/bow_1.wav","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/bow_2.wav","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/bow_3.wav","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/cc_stun_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/cc_stun_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/cc_stun_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/collapse_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/collapse_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/collapse_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/death_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/death_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/death_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/defeat_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/defeat_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_heavy_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_heavy_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_heavy_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_heavy_4.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_light_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_light_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_light_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/hit_light_4.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/impact_ground_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/impact_ground_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/impact_ground_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_fire_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_fire_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_fire_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_heal_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_heal_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_heal_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_ice_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_ice_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/magic_ice_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/rumble_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/rumble_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/rumble_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/slash_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/slash_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/slash_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/slash_4.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spawn_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spawn_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spawn_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spell_cast_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spell_cast_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/spell_cast_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_click_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_click_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_click_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_hover_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_hover_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_hover_3.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_start_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/ui_start_2.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/audio/sfx/victory_1.ogg","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/factions/blue/.gitkeep","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/factions/manifest.json","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/factions/red/.gitkeep","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/decor_grass.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/decor_ice.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/decor_pebble.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/decor_rubble.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/ice_crystal.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/manifest.json","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/obsidian_pillar.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/sandstone.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/tree.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/obstacles/wall.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/desert_side.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/desert_top.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/forest_side.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/forest_top.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/ice_side.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/ice_top.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/magma_side.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/magma_top.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/void_side.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/terrain/void_top.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/blue_mage_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/blue_ranger_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/blue_support_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/blue_tank_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/blue_warrior_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/manifest.json","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/red_mage_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/red_ranger_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/red_support_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/red_tank_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"public/assets/units/red_warrior_male.webp","public/assets","asset","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"skillDatabase.ts","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"styles/tokens.css","styles","code","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tailwind.config.js","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AIIdle.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AIIdlePriority.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AfterimageGhosts.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AgentDerived.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AgentOwnership.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AgentRunner.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AgentView.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AudioAssets.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AudioEngine.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/AudioSystem.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/BTOptimization.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/BackgroundRenderer.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/BeamSpace.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/BodyTypeEditor.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CcBodyPainters.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CcSelf.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ConstantsBarrel.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CoordinateProtocol.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/Core.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CoreAnchor.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CoreProjection.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/CtxOpCounter.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DamageCalculator.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DashMotion.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DashSkillVisuals.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DeathDirection.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DeathMotion.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DirectDamage.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/DocDrift.test.ts","tests","test","npm test, vitest","npm scripts","無","合規","vitest 執行通過 (3/3)","已深度查證","無","AST, grep, 活體探針, 測試","T01: 僅檢查路徑存在性與檔頭類別名，無法偵測註解語義過時","於 A1 補充驗證邊界說明"
+"tests/EditorQueries.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/EffectFieldsRatchet.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/Effects.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/EngineTick.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/EventPos.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/FactionSkin.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/FallMotion.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ForcedMove.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/GlowSpriteCache.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/HarnessContract.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/HazardSpeedMult.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/HexLayoutAlign.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/InspectorCommands.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/LayerBoundary.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/MeleeFxSpec.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/MotionCommands.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/NewStatusEffects.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ObstacleSprites.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ProjectileLaunchBob.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ReferenceIntegrity.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/RenderQuality.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/RenderStats.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/RendererCommands.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/RingOutDeath.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/Rng.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/RngSplit.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SchemaForm.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ShieldFit.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ShowcaseConfigStore.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SkillDataIntegrity.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SkillEditor.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SkillSequenceFaction.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SpriteAtlas.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/SpriteUnitRenderer.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/StatusDomainApi.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/StatusParts.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TauntRetarget.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainAmbience.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainBlockCache.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainBlockCacheBudget.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainEdgeMask.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainFoundation.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/TerrainSkin.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UIBoundary.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UICommandSystem.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UISelectors.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UITokens.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UltFeelStore.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UltPartRecipes.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UltScatter.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UltSpec.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/UnitGroundHeight.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VFXBackend.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VFXDragRange.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VFXLibrary.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VFXParts.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VFXRegistryKeys.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/VisualStatusOwnership.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/WindowStore.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/agent-ownership.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/constants-snapshot.json","tests","test","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"tests/coordinate-protocol.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/legacyEffectFields.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/melee-fx.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/reference-integrity.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ui-boundary.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/ult-spec.baseline.json","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tests/useDraggable.test.ts","tests","test","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/agent/run.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/README.md","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/README.md","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/pack_obstacles.py","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/pack_sprites.py","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/render_obstacle.py","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/render_unit.py","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/blender/sheet.py","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/create-battle-comparison.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/process-terrain.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/assets/verify-sprites.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/audio/README.md","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/audio/preview.html","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/audio/preview.ts","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/audio/verify-audio.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/baked-terrain-proto.html","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/balance/batch-sim.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/balance/report.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/gen-ui-tokens.ts","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/hooks/agent-guardrails.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/aoe-drape-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/DESERT.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/FOREST.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/ICE.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/MAGMA.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/VOID.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/baseline/fidelity/battle_frozen.png","tools","tool","待查證","待查證","無","不適用","待動態驗證","僅列舉／待查","二進位資產，僅確認存在於目錄，未逐一核對精靈圖集","git ls-files 列舉","無","保留"
+"tools/ui-e2e/beam-align-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/bg-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/biome-frames.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/br-soak.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/capture-zoom.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/coord-guard.mjs","tools","tool","npm run verify:coords","package.json","工具指令","無方框但合規","a0r1-coords 實跑 (exit 1 with --assert)","已深度查證","無","AST, grep, 活體探針, 測試","COORD01: 診斷出下陷 1 次、over-void 1 次、震盪 102 次","保留診斷工具，功能面列 P2/D3 待後續畫面確認"
+"tools/ui-e2e/core-projection-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/dash-trail-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/drag-hud-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/drape-perf.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/faction-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/float-align-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/glow-compare.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/glow-smoke.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/ground-drape-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/hex-align-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/idle-quality-soak.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/lib/coord-probes.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/lib/depth-oracle.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/lib/lifecycle-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/lib/perf-common.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/lib/vfx-storm.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/measure-showcase-tiers.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/mobile-audit.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/obstacle-sheet-dump.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/obstacle-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/pedestal-core-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-ab.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-baseline.json","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-frames.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-governor-60s.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-headed.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-lifecycle-soak.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-ops-breakdown.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-profile.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-r1-attribution.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-r4-smoke-governor.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-r5-matrix.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-r6-runner.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-stages.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-trace.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/perf-vfx-attribution.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/render-fidelity.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/runtime-smoke.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/sink-demo.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/sink-flicker-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/smoke-params.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/style-baseline.json","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/terrain-base-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/terrain-contrast.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/terrain-cost.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/terrain-float-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/ui-remount-audit.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/unit-jitter-probe.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/ui-e2e/windows.e2e.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/cast-break-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/cast-ring-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/fx-shot.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/magic-circle-dump.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/parts-preview.html","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/parts-preview.ts","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/parts-sheet.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/record-skill.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/sigil-dump.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/status-sheet.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/ult-sheet.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/vfx-coverage-report.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vfx/vfx-coverage.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/vite.preview.config.mjs","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/webgl-post-proto.html","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tools/webgl-post-proto.md","tools","tool","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"tsconfig.json","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"types.ts","root","config","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"types/UIViewModel.ts","types","types","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+"types/VFXSchema.ts","types","types","系統消費者 (GameEngine / RenderPipeline / Tests)","存在直接匯入","無","合規","smoke / unit test","已深度查證","無","AST, grep, 活體探針, 測試","無","保留"
+"vite.config.ts","root","config","待查證","待查證","無","待查","待動態驗證","僅列舉／待查","非本輪核心修復／候選項目，保留於後續輪次審查","git ls-files 列舉","無","保留"
+".agents/ (使用者自訂 Agent 提示詞與技能)",".agents","user_workflow","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","保留，不納入 git commit"
+".codex/ (Codex 外部專案上下文)",".codex","user_workflow","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","保留，不納入 git commit"
+"docs/PROJECT_CLEANUP_A0R1_AGENT_PROMPT.md","docs","task_prompt","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","保留於工作區"
+"docs/PROJECT_CLEANUP_A0_AGENT_PROMPT.md","docs","task_prompt","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","保留於工作區"
+"docs/PROJECT_CLEANUP_A0_REVIEW.md","docs","review_doc","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","受保護文件，保持只讀"
+"docs/PROJECT_CLEANUP_PLAN.md","docs","master_plan","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","受保護計畫，保持只讀"
+"docs/ULT_BESPOKE_DESIGN.md","docs","design_doc","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","既有使用者工作，不納入本次提交"
+"docs/ULT_REDESIGN_PLAN.md","docs","design_doc","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","既有使用者工作，不納入本次提交"
+"docs/ULT_REDESIGN_R1_AGENT_PROMPT.md","docs","task_prompt","外部開發者／CLI","非 git 追蹤","無","不適用","靜態存在","僅列舉／待查","頂層未追蹤或既有使用者任務文件","檔案系統檢查","無","既有使用者工作，不納入本次提交"

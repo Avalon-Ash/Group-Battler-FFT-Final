@@ -1,0 +1,379 @@
+{
+  "metadata": {
+    "task": "PROJECT_CLEANUP_A0_R1",
+    "gitBase": "a86c1668aae6ddd23b243d54c1a8dbebe7d149c8",
+    "startHead": "5d99130e5e1698e956c69ae3c2138798376d8ded",
+    "branch": "feat/project-cleanup",
+    "generatedAt": "2026-10-24T05:48:16.631Z"
+  },
+  "inventoryCoverage": {
+    "totalTracked": 634,
+    "deepVerifiedCount": 64,
+    "enumeratedPendingCount": 430,
+    "untrackedItemsCount": 9,
+    "zoneCounts": {
+      "engine": 163,
+      "components": 28,
+      "data": 63,
+      "constants": 10,
+      "types": 3,
+      "tests": 97,
+      "tools": 98,
+      "docs": 31,
+      "publicAssets": 102,
+      "hooks": 11,
+      "rootConfig": 18
+    }
+  },
+  "verificationLogs": {
+    "smoke": {
+      "status": "PASS",
+      "log": "tools/ui-e2e/out/agent-logs/a0-smoke.log",
+      "errors": 0
+    },
+    "e2eUi": {
+      "status": "PASS",
+      "log": "tools/ui-e2e/out/agent-logs/a0-ui.log",
+      "testsPassed": 34,
+      "styleDiffs": 0
+    },
+    "perfFidelity": {
+      "status": "PASS_WITHIN_THRESHOLD",
+      "note": "All 6 scenes meanAbsDiff below threshold (0.154~0.651), not 0 diff",
+      "log": "tools/ui-e2e/out/agent-logs/status-guard-native-1024.log"
+    },
+    "coordsGuardAssert": {
+      "status": "ASSERTION_FAILED_EXIT_1",
+      "log": "tools/ui-e2e/out/cleanup-a0-r1/coords/coord_guard_assert.log",
+      "sinkViolations": 1,
+      "sinkDetails": "FOREST/1001 agent=RED-0002 f=337 delta=1.89px moving=true",
+      "overVoidSamples": 1,
+      "voidDetails": "FOREST/1002 agent=BLU-0007 f=510",
+      "flickerOscillationEvents": 102,
+      "flickerEpisodes": 93,
+      "flickerStaticEpisodesMovedUnder2px": 13,
+      "staticFlickerExample": "VOID/1002 CORPSE RED-0010 vs VFX X:80.3 f507-509 sortBias jump -2.0 to 13.2",
+      "classification": "Sampling diagnosis anomaly (P2/D3 待確認), not confirmed visual breakage"
+    },
+    "unitTests": {
+      "status": "PASS",
+      "passedCount": 707,
+      "totalFiles": 89,
+      "log": "tools/ui-e2e/out/agent-logs/status-test-native-1024.log"
+    },
+    "lint": {
+      "status": "PASS",
+      "errors": 0,
+      "log": "tools/ui-e2e/out/agent-logs/status-lint-1024.log"
+    },
+    "build": {
+      "status": "PASS",
+      "log": "tools/ui-e2e/out/agent-logs/status-build-1024.log"
+    },
+    "docDrift": {
+      "status": "PASS",
+      "passedCount": 3,
+      "failedCount": 0
+    }
+  },
+  "probeFindings": {
+    "F01": {
+      "classification": "P1 / D3 (CONFIRMED_DEFECT)",
+      "normalCompletion": {
+        "condition": "normal_completion",
+        "skillId": "mb_u1",
+        "skillName": "奧術漩渦",
+        "skillType": "AOE",
+        "castDur": 1,
+        "initiated": "R",
+        "targetHpBefore": 2000,
+        "targetHpAfter": 1452,
+        "damageDealt": 548,
+        "events": [
+          "CAST_START",
+          "CAST_FINISH",
+          "IMPACT_AOE",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "HAZARD_SPAWN",
+          "DAMAGE",
+          "DAMAGE",
+          "HIT_FX"
+        ],
+        "completedSuccessfully": true
+      },
+      "stunInterruption": {
+        "condition": "stun_interruption_while_alive",
+        "skillId": "mb_u1",
+        "queueSizeBeforeStun": 5,
+        "queueSizeAfterStun": 0,
+        "hadCastBreak": true,
+        "damageDealt": 0,
+        "casterAlive": true,
+        "events": [
+          "CAST_START",
+          "CAST_BREAK"
+        ],
+        "queueCleanedByBreak": true
+      },
+      "stateInjectedDeath": [
+        {
+          "run": 1,
+          "condition": "state_injected_death_at_40pct",
+          "skillId": "mb_u1",
+          "hadCastBreak": false,
+          "queueAtDeath": 5,
+          "actionsDispatchedAfterDeath": 5,
+          "damageDealt": 0,
+          "casterDead": true,
+          "defectConfirmed": true
+        },
+        {
+          "run": 2,
+          "condition": "state_injected_death_at_40pct",
+          "skillId": "mb_u1",
+          "hadCastBreak": false,
+          "queueAtDeath": 5,
+          "actionsDispatchedAfterDeath": 5,
+          "damageDealt": 0,
+          "casterDead": true,
+          "defectConfirmed": true
+        }
+      ],
+      "naturalCombatDamageDeath": [
+        {
+          "run": 1,
+          "condition": "natural_lethal_damage_at_40pct",
+          "skillId": "mb_u1",
+          "hadCastBreak": false,
+          "queueAtDeath": 5,
+          "actionsDispatchedAfterDeath": 5,
+          "damageDealt": 0,
+          "casterDead": true,
+          "defectConfirmed": true
+        },
+        {
+          "run": 2,
+          "condition": "natural_lethal_damage_at_40pct",
+          "skillId": "mb_u1",
+          "hadCastBreak": false,
+          "queueAtDeath": 5,
+          "actionsDispatchedAfterDeath": 5,
+          "damageDealt": 0,
+          "casterDead": true,
+          "defectConfirmed": true
+        }
+      ],
+      "agentResetDuringCast": {
+        "condition": "agent_reset_during_cast",
+        "skillId": "mb_u1",
+        "queueBeforeReset": 5,
+        "queueAfterReset": 5,
+        "clearedByAgentReset": false
+      },
+      "airborneProjectileAfterDeath": {
+        "condition": "projectile_in_flight_when_caster_killed",
+        "skillId": "rb_a1",
+        "projectilesSpawned": 1,
+        "casterDead": true,
+        "targetHpBefore": 2000,
+        "targetHpAfter": 1898,
+        "damageDealt": 102,
+        "projectileHitOccurred": true,
+        "physicsPreserved": true
+      }
+    },
+    "F02": {
+      "classification": "P2 / D2 (OBSERVED_SPEC_DIFFERENCE)",
+      "groundAoe": {
+        "skillId": "mb_u1",
+        "skillName": "奧術漩渦",
+        "skillType": "AOE",
+        "aoeRadius": 3,
+        "initialTargetHex": {
+          "q": 2,
+          "r": 0
+        },
+        "telegraphCellCount": 37,
+        "target1MovedTo": {
+          "q": 6,
+          "r": 0
+        },
+        "target2MovedTo": {
+          "q": 2,
+          "r": 0
+        },
+        "target1Damage": 0,
+        "target2Damage": 365,
+        "target1Escaped": true,
+        "target2Hit": true,
+        "designConclusion": "Ground AOE damage strictly locked to targeted ground hexes. Original target that moved out took 0 damage; new target that moved into the hexes took full damage."
+      },
+      "singleTarget": {
+        "skillId": "mb_a2",
+        "skillName": "冰封禁錮",
+        "skillType": "SINGLE",
+        "initialTargetPos": {
+          "q": 2,
+          "r": 0,
+          "px": 144,
+          "py": 41.569219381653056
+        },
+        "targetMovedTo": {
+          "q": 4,
+          "r": 0,
+          "px": 288,
+          "py": 83.13843876330611
+        },
+        "sequenceTargetPointAtStart": {
+          "x": 144,
+          "y": 41.569219381653056,
+          "z": 29.5
+        },
+        "sequenceTargetPointBeforeDispatch": {
+          "x": 144,
+          "y": 41.569219381653056,
+          "z": 29.5
+        },
+        "visualTracksMovement": false,
+        "damageDealt": 165,
+        "simHitTargetAtNewPosition": true,
+        "conclusion": "Simulation damages target agent reference regardless of movement; Visual sequence maintains static target Point3D sampled at CAST_START."
+      }
+    },
+    "F03": {
+      "classification": "P2 / D2 (CONFIRMED_API_DEFECT_AND_UI_OBSERVED)",
+      "apiBoundary": {
+        "testedCases": [
+          {
+            "field": "range",
+            "inputString": "-5",
+            "valueKind": "number_negative",
+            "beforeVal": 8,
+            "afterVal": -5,
+            "accepted": true
+          },
+          {
+            "field": "cast",
+            "inputString": "-2",
+            "valueKind": "number_negative",
+            "beforeVal": 1,
+            "afterVal": -2,
+            "accepted": true
+          },
+          {
+            "field": "cd",
+            "inputString": "-1",
+            "valueKind": "number_negative",
+            "beforeVal": 5,
+            "afterVal": -1,
+            "accepted": true
+          },
+          {
+            "field": "cost",
+            "inputString": "-50",
+            "valueKind": "number_negative",
+            "beforeVal": 100,
+            "afterVal": -50,
+            "accepted": true
+          },
+          {
+            "field": "power",
+            "inputString": "-100",
+            "valueKind": "number_negative_heal_valid",
+            "beforeVal": 430,
+            "afterVal": -100,
+            "accepted": true
+          },
+          {
+            "field": "range",
+            "inputString": "NaN",
+            "valueKind": "NaN",
+            "beforeVal": -5,
+            "afterVal": -5,
+            "accepted": false
+          },
+          {
+            "field": "cast",
+            "inputString": "Infinity",
+            "valueKind": "Infinity",
+            "beforeVal": -2,
+            "afterVal": -2,
+            "accepted": false
+          },
+          {
+            "field": "tag",
+            "inputString": "INVALID_TAG",
+            "valueKind": "string_invalid_enum",
+            "beforeVal": "ULT",
+            "afterVal": "INVALID_TAG",
+            "accepted": true
+          },
+          {
+            "field": "type",
+            "inputString": "INVALID_TYPE",
+            "valueKind": "string_invalid_enum",
+            "beforeVal": "AOE",
+            "afterVal": "INVALID_TYPE",
+            "accepted": true
+          }
+        ],
+        "restoredCorrectly": true,
+        "summary": {
+          "negativeNumbersAccepted": true,
+          "specialValuesAccepted": false,
+          "invalidEnumsAccepted": true
+        }
+      },
+      "uiInteraction": {
+        "inspectorOpened": true,
+        "selectElementsPresent": true,
+        "tagSelectVisible": true,
+        "enumProtectedBySelect": true,
+        "uiNegativeAccepted": true,
+        "uiClearBehavior": {
+          "clearedInputVal": "-5",
+          "dbValAfterClear": -5,
+          "blurredInputVal": "-5",
+          "snappedBack": true
+        },
+        "uiRestoreWorks": true,
+        "conclusion": "In UI: Enums are constrained by select dropdowns; numeric inputs accept negative numbers; clearing numeric input produces NaN which is rejected by isFinite, leaving DB value unchanged."
+      }
+    }
+  }
+}
