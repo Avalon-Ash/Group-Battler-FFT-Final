@@ -5,6 +5,8 @@ import type { GameEngine } from '../../../engine/game';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { SKILL_FIELD_GROUPS, TAG_MAP, ROLE_MAP } from '../InspectorConstants';
 import { SkillIcon } from '../parts/SkillIcon';
+import { SkillNumberInput } from '../parts/SkillNumberInput';
+import type { SkillEditableField } from '../../../data/ui/skillEditor';
 
 type DbTypeTab = 'ALL' | 'BASIC' | 'ACTIVE' | 'ULT';
 
@@ -186,14 +188,21 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                                                                         />
                                                                     </div>
                                                                 </div>
+                                                            ) : field.type === 'number' ? (
+                                                                <SkillNumberInput
+                                                                    key={`${skill.id}_${field.key}`}
+                                                                    field={field.key as SkillEditableField}
+                                                                    value={typeof val === 'number' ? val : undefined}
+                                                                    step={field.step || 1}
+                                                                    onCommit={(f, numVal) => updateSkill(f, numVal)}
+                                                                />
                                                             ) : (
                                                                 <input 
                                                                     type={field.type} 
                                                                     className="liquid-input w-full h-9 text-xs font-mono !bg-black/50 !rounded-xl"
                                                                     value={displayVal}
                                                                     step={field.step || 1}
-                                                                    // Fix: Cast key to keyof Skill
-                                                                    onChange={e => updateSkill(field.key, field.type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                                                                    onChange={e => updateSkill(field.key, e.target.value)}
                                                                 />
                                                             )}
                                                         </div>

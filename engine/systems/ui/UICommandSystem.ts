@@ -4,7 +4,7 @@ import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
 import { AgentManager } from '../agentManager';
-import { isSkillEditableField } from '../../../data/ui/skillEditor';
+import { isSkillEditableField, validateSkillFieldValue } from '../../../data/ui/skillEditor';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -112,7 +112,7 @@ export class UICommandSystem {
             case 'UPDATE_SKILL': {
                 const skill = this.engine.skillDB.find((s) => s.id === cmd.skillId);
                 if (!skill || !isSkillEditableField(cmd.field)) break;
-                if (typeof cmd.value === 'number' && !Number.isFinite(cmd.value)) break;
+                if (!validateSkillFieldValue(cmd.field, cmd.value)) break;
                 // 技能物件同時被單位的 skills 引用，改這裡即時生效（開戰時 prepareForBattle 也會依 id 重新取）
                 Object.assign(skill, { [cmd.field]: cmd.value });
                 break;
