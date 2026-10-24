@@ -1,12 +1,12 @@
 /**
  * tools/ui-e2e/cleanup-coord01-check.mjs
  * COORD01 Forensic Probe & Reproduction Verification (Read-Only)
- * 
- * Accurately reproduces and collects ground-truth RenderOp, agent physics, terrain, and
+ *
+ * Collects RenderOp, agent physics, terrain, and
  * visual frame data for the 3 representative coordinate protocol diagnostic cases:
- * 1. SINK: Step-blend transition interpolation cliff descent (FOREST seed 1001 f337 RED-0002 + context 2)
- * 2. VOID: Knockback impulse pushing agent outside map grid while grounded (FOREST seed 1002 f512 BLU-0007 + context 2)
- * 3. OSCILLATION: Dead body boundary hysteresis & deadband flip against adjacent hazard (VOID seed 1002 f508-510 + VOID seed 1001 f562-564)
+ * 1. SINK diagnostic: FOREST seed 1001 f337 RED-0002.
+ * 2. VOID diagnostic: FOREST seed 1002 f512 BLU-0007.
+ * 3. Static and moved corpse/hazard A-B-A episodes; no root-cause claim.
  */
 
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -16,11 +16,12 @@ import { launchBrowser, START_TEXT } from './lib/perf-common.mjs';
 import { startServer, seededHarnessInit, installRecorder, setupBattle, stepFrames } from './lib/coord-probes.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outDir = join(here, 'out', 'audit01');
+const outName = process.argv.find(a => a.startsWith('--out='))?.slice(6) || 'audit01-review';
+const outDir = join(here, 'out', outName);
 mkdirSync(outDir, { recursive: true });
 
 const { server, port } = await startServer(3230);
-const browser = await launchBrowser({ headed: false, unthrottled: false });
+const browser = await launchBrowser({ headed: false, unthrottled: false }).catch(async err => { await server.close(); throw err; });
 
 const evidence = {
     timestamp: new Date().toISOString(),
@@ -31,16 +32,20 @@ const evidence = {
         oscillationReproduced: false,
         context2OscReproduced: false,
         mismatches: [],
+        pageErrors: [],
     },
 };
 
 async function createAuditPage() {
     const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1 });
     const page = await ctx.newPage();
-    page.on('pageerror', (e) => console.warn('[pageerror]', String(e).slice(0, 200)));
+    // Explicit harness-only favicon fixture, matching the F02/F03 probes.
+    await page.route('**/favicon.ico', route => route.fulfill({ status: 204, body: '' }));
+    page.on('pageerror', e => evidence.summary.pageErrors.push(String(e)));
+    page.on('console', msg => { if (msg.type() === 'error') evidence.summary.pageErrors.push(msg.text()); });
     await page.addInitScript(seededHarnessInit);
     await page.goto(`http://localhost:${port}/?mute&quality=0`, { waitUntil: 'networkidle' });
-    await page.waitForFunction(() => window.__ASSETS_READY__ === true, null, { timeout: 20000 }).catch(() => {});
+    await page.waitForFunction(() => window.__ASSETS_READY__ === true, null, { timeout: 20000 });
     await page.evaluate(() => window.__stepFrames(10));
     await page.getByText(START_TEXT).click();
     await page.waitForTimeout(400);
@@ -50,13 +55,14 @@ async function createAuditPage() {
     await installRecorder(page);
 
     // Install forensic frame-inspector that saves complete RenderList ops per frame
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
         window.__AUDIT_FRAME_OPS__ = new Map(); // frame -> array of serialized ops
 
         if (!window.__AUDIT_HOOK_INSTALLED__) {
             window.__AUDIT_HOOK_INSTALLED__ = true;
-            import('/engine/renderers/RenderList.ts').then(({ RenderList }) => {
-                const TNAME = ['TERRAIN', 'OBSTACLE', 'UNIT', 'VFX', 'PROJECTILE', 'HAZARD', 'AURA', 'OVERLAY', 'CORPSE'];
+            const { RenderList, RenderOpType } = await import('/engine/renderers/RenderList.ts');
+            {
+                const TNAME = RenderOpType;
                 const orig = RenderList.prototype.sort;
                 RenderList.prototype.sort = function () {
                     orig.call(this);
@@ -78,6 +84,7 @@ async function createAuditPage() {
                                 z: op.z,
                                 isGround: !!op.isGround,
                                 agentId: op.agent ? op.agent.id : undefined,
+                                unitFrame: op.unitFrame ? { footX: op.unitFrame.footX, footY: op.unitFrame.footY, groundH: op.unitFrame.groundH, hexUnderFoot: { ...op.unitFrame.hexUnderFoot }, sortFootY: op.unitFrame.sortFootY, hexCenterY: op.unitFrame.hexCenterY } : null,
                                 tq: op.tq,
                                 tr: op.tr,
                             });
@@ -85,11 +92,29 @@ async function createAuditPage() {
                         window.__AUDIT_FRAME_OPS__.set(f, ops);
                     }
                 };
-            });
+            }
         }
     });
 
     return { ctx, page };
+}
+
+function verifyEpisode(label, frames, hazardField, diagnostic, pair) {
+    const mismatch = reason => { evidence.summary.mismatches.push(label + ': ' + reason); return false; };
+    if (!diagnostic || JSON.stringify(diagnostic.pair) !== JSON.stringify(pair) || JSON.stringify(diagnostic.frames) !== JSON.stringify(frames.map(f => f.frame))) return mismatch('diagnostic pair/frame mismatch');
+    const signs = [];
+    for (let i = 0; i < frames.length; i++) {
+        const a = frames[i].corpseOp, b = frames[i][hazardField];
+        const expected = diagnostic.atFrames[i];
+        if (!a || !b || !expected) return mismatch('missing corpse/hazard/sample');
+        if (!Number.isFinite(a.sortKey) || !Number.isFinite(b.sortKey) || a.sortKey !== expected.A.sortKey || b.sortKey !== expected.B.sortKey) return mismatch('sort keys differ from diagnostic');
+        const order = Math.sign(a.index - b.index);
+        if (!order || order !== Math.sign(a.sortKey - b.sortKey)) return mismatch('dispatch order/key mismatch');
+        signs.push(order);
+    }
+    if (signs[0] !== signs[2] || signs[0] === signs[1]) return mismatch('no A-B-A flip');
+    console.log('[audit01] ' + label + ' reproduced: ' + diagnostic.frames.join('/') + '; moved=' + diagnostic.moved.join('/'));
+    return true;
 }
 
 try {
@@ -177,6 +202,8 @@ try {
         } else if (!worst || worst.frame !== 337 || worst.agent !== 'RED-0002') {
             console.error(`[audit01] REPRO_MISMATCH: worst event mismatch: got ${JSON.stringify(worst)}`);
             evidence.summary.mismatches.push('SINK: worst event mismatch');
+        } else if (!Number.isFinite(f337Data.calculatedDelta) || Math.abs(f337Data.calculatedDelta - worst.delta) > 0.01 || Math.abs(f337Data.unitOp.ty - worst.unitTy) > 0.01 || f337Data.footHex.q !== worst.q || f337Data.footHex.r !== worst.r) {
+            evidence.summary.mismatches.push("SINK: captured sample differs from diagnostic");
         } else {
             console.log(`[audit01] SINK verified: agent=RED-0002 frame=337 delta=${f337Data.calculatedDelta?.toFixed(2)}px (worst delta=${worst.delta})`);
             console.log(`         tileTop=${f337Data.calculatedTileTop?.toFixed(2)} unitTy=${f337Data.unitOp.ty.toFixed(2)} moveProgress=${f337Data.agent.moveProgress}`);
@@ -275,6 +302,8 @@ try {
         } else if (!voidWorst || voidWorst.frame !== 512 || voidWorst.agent !== 'BLU-0007') {
             console.error(`[audit01] REPRO_MISMATCH: voidWorst event mismatch: got ${JSON.stringify(voidWorst)}`);
             evidence.summary.mismatches.push('VOID: voidWorst event mismatch');
+        } else if (f512Data.terrainAtFoot || !f512Data.footHex || f512Data.footHex.q !== voidWorst.hex[0] || f512Data.footHex.r !== voidWorst.hex[1] || Math.abs(f512Data.agent.physics.z - voidWorst.physicsZ) > 0.01) {
+            evidence.summary.mismatches.push("VOID: captured sample differs from diagnostic");
         } else {
             console.log(`[audit01] VOID verified: agent=BLU-0007 frame=512 hp=${f512Data.agent.hp} pz=${f512Data.agent.physics.z.toFixed(2)} vz=${f512Data.agent.physics.vz.toFixed(1)}`);
             console.log(`         footHex=[${f512Data.footHex?.q}, ${f512Data.footHex?.r}] terrainAtFoot=${f512Data.terrainAtFoot} logicalValid=${f512Data.agent.isGroundValid}`);
@@ -294,25 +323,27 @@ try {
     }
 
     // =========================================================================
-    // CASE 3: STATIC OSCILLATION (VOID seed 1002 frames 508-510 C:RED-0010 vs Hazard)
+    // CASE 3: STATIC OSCILLATION (VOID seed 1002 frames 507/508/510 C:RED-0010 vs Hazard)
     // =========================================================================
-    console.log('\n--- Case 3: STATIC OSCILLATION (VOID 1002 f508-f510 C:RED-0010) ---');
+    console.log('\n--- Case 3: STATIC OSCILLATION (VOID 1002 f507/508/510 C:RED-0010) ---');
     {
         const { ctx, page } = await createAuditPage();
         await setupBattle(page, { biome: 'VOID', seed: 1002, start: true });
         await stepFrames(page, 6);
 
         await page.evaluate(() => {
-            window.__WATCH_FRAMES__ = new Set([508, 509, 510]);
+            window.__WATCH_FRAMES__ = new Set([507, 508, 510]);
             window.__CG__.begin({ sink: true, flicker: true });
         });
 
-        // Advance to 507
-        await stepFrames(page, 507);
+        // Capture all three frames of the diagnostic A-B-A episode.
+        await stepFrames(page, 506);
 
         const oscFrames = [];
-        for (const f of [508, 509, 510]) {
-            await stepFrames(page, 1);
+        let previousFrame = 506;
+        for (const f of [507, 508, 510]) {
+            await stepFrames(page, f - previousFrame);
+            previousFrame = f;
             const shotPath = join(outDir, `case3_osc_f${f}.png`);
             await page.screenshot({ path: shotPath });
 
@@ -343,23 +374,8 @@ try {
         const corpseHazardGroup = cgEnd.flicker['CORPSE×HAZARD'];
         const exStatic = corpseHazardGroup?.exStatic?.find(e => e.pair.includes('C:RED-0010'));
 
-        const f508 = oscFrames[0];
-        const f509 = oscFrames[1];
-        const f510 = oscFrames[2];
-
-        if (!f508.corpseOp || !f509.corpseOp || !f510.corpseOp) {
-            console.error('[audit01] REPRO_MISMATCH: corpseOp not found in frames 508-510');
-            evidence.summary.mismatches.push('OSC: corpseOp not found');
-        } else if (!f508.hazard1 || !f509.hazard1 || !f510.hazard1) {
-            console.error('[audit01] REPRO_MISMATCH: hazard1 not found in frames 508-510');
-            evidence.summary.mismatches.push('OSC: hazard1 not found');
-        } else {
-            console.log(`[audit01] OSCILLATION verified: C:RED-0010 vs H:1,2 across f508-f510`);
-            console.log(`         f508: corpse sortBias=${f508.corpseOp.sortBias} sortKey=${f508.corpseOp.sortKey} hazard sortKey=${f508.hazard1.sortKey}`);
-            console.log(`         f509: corpse sortBias=${f509.corpseOp.sortBias} sortKey=${f509.corpseOp.sortKey} hazard sortKey=${f509.hazard1.sortKey}`);
-            console.log(`         f510: corpse sortBias=${f510.corpseOp.sortBias} sortKey=${f510.corpseOp.sortKey} hazard sortKey=${f510.hazard1.sortKey}`);
-            evidence.summary.oscillationReproduced = true;
-        }
+        if (process.argv.includes('--negative-control')) oscFrames[1].hazard1 = undefined;
+        evidence.summary.oscillationReproduced = verifyEpisode('OSC static', oscFrames, 'hazard1', exStatic, ['C:RED-0010', 'H:1,2']);
 
         evidence.cases.oscillation = {
             frames: oscFrames,
@@ -370,7 +386,7 @@ try {
     }
 
     // =========================================================================
-    // CASE 4: CONTEXT 2 FOR OSCILLATION (VOID seed 1001 frames 562-564 C:RED-0002 vs H:4,0)
+    // CASE 4: CONTEXT 2 FOR OSCILLATION (VOID seed 1001 frames 563/564/565 C:RED-0002 vs H:4,0)
     // =========================================================================
     console.log('\n--- Case 4: CONTEXT 2 FOR OSCILLATION / STATIC FLIP ---');
     {
@@ -379,14 +395,14 @@ try {
         await stepFrames(page, 6);
 
         await page.evaluate(() => {
-            window.__WATCH_FRAMES__ = new Set([562, 563, 564]);
+            window.__WATCH_FRAMES__ = new Set([563, 564, 565]);
             window.__CG__.begin({ sink: true, flicker: true });
         });
 
-        await stepFrames(page, 561);
+        await stepFrames(page, 562);
 
         const ctx2Frames = [];
-        for (const f of [562, 563, 564]) {
+        for (const f of [563, 564, 565]) {
             await stepFrames(page, 1);
             const shotPath = join(outDir, `case4_osc2_f${f}.png`);
             await page.screenshot({ path: shotPath });
@@ -409,20 +425,11 @@ try {
             ctx2Frames.push(frameInfo);
         }
 
-        await stepFrames(page, 36);
+        await stepFrames(page, 35);
         const cgEnd = await page.evaluate(() => window.__CG__.end());
         const exMoved = cgEnd.flicker['CORPSE×HAZARD']?.exMoved?.find(e => e.pair.includes('C:RED-0002'));
 
-        if (!ctx2Frames[0].corpseOp || !ctx2Frames[1].corpseOp || !ctx2Frames[2].corpseOp) {
-            console.error('[audit01] REPRO_MISMATCH: corpseOp not found in context 2 frames');
-            evidence.summary.mismatches.push('OSC Context 2: corpseOp not found');
-        } else {
-            console.log(`[audit01] Context 2 verified: C:RED-0002 vs H:4,0 across f562-f564`);
-            console.log(`         f562: corpse sortBias=${ctx2Frames[0].corpseOp.sortBias} sortKey=${ctx2Frames[0].corpseOp.sortKey}`);
-            console.log(`         f563: corpse sortBias=${ctx2Frames[1].corpseOp.sortBias} sortKey=${ctx2Frames[1].corpseOp.sortKey}`);
-            console.log(`         f564: corpse sortBias=${ctx2Frames[2].corpseOp.sortBias} sortKey=${ctx2Frames[2].corpseOp.sortKey}`);
-            evidence.summary.context2OscReproduced = true;
-        }
+        evidence.summary.context2OscReproduced = verifyEpisode('OSC moved', ctx2Frames, 'hazardOp', exMoved, ['C:RED-0002', 'H:4,0']);
 
         evidence.cases.oscillationContext2 = {
             frames: ctx2Frames,
@@ -432,6 +439,7 @@ try {
         await ctx.close();
     }
 
+    if (evidence.summary.pageErrors.length) evidence.summary.mismatches.push('Browser errors');
     // Write final structured evidence
     const evidencePath = join(outDir, 'coord01_evidence.json');
     writeFileSync(evidencePath, JSON.stringify(evidence, null, 2), 'utf-8');
@@ -439,16 +447,15 @@ try {
 
     if (evidence.summary.mismatches.length > 0) {
         console.error(`[audit01] REPRO_MISMATCH detected: ${evidence.summary.mismatches.join('; ')}`);
-        process.exit(1);
+        process.exitCode = 1;
+    } else {
+        console.log('[audit01] Diagnostic episodes reproduced; root causes are NOT asserted by this probe.');
     }
-
-    console.log('[audit01] COORD01 Forensic Check PASSED (all cases confirmed with 100% exact RenderOps).');
-    process.exit(0);
 
 } catch (err) {
     console.error('[audit01] Fatal execution error:', err);
-    process.exit(1);
+    process.exitCode = 1;
+    writeFileSync(join(outDir, "failure.json"), JSON.stringify({ error: String(err), summary: evidence.summary }, null, 2));
 } finally {
-    await browser.close();
-    await server.close();
+    try { await browser.close(); } finally { await server.close(); }
 }

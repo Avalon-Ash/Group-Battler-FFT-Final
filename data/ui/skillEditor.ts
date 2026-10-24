@@ -38,7 +38,6 @@ export const SKILL_CC_TYPE_OPTIONS = [
 export const SKILL_EFFECT_TYPE_OPTIONS = [
     'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'
 ] as const satisfies readonly NonNullable<Skill['effectType']>[];
-const SKILL_TEAM_OPTIONS = [Team.BLUE, Team.RED] as const satisfies readonly Team[];
 
 const TAG_SET = new Set<string>(SKILL_TAG_OPTIONS);
 const TYPE_SET = new Set<string>(SKILL_TYPE_OPTIONS);
