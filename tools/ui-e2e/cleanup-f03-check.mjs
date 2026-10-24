@@ -7,7 +7,7 @@
 import { chromium } from 'playwright-core';
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -30,8 +30,11 @@ if (outArg) {
 }
 
 let gitHead = 'unknown';
+let trackedDirty = false;
 try {
     gitHead = execSync('git rev-parse HEAD', { cwd: root, encoding: 'utf-8' }).trim();
+    const statusOut = execSync('git status --porcelain', { cwd: root, encoding: 'utf-8' }).trim();
+    trackedDirty = statusOut.split('\n').filter(l => l && !l.startsWith('??')).length > 0;
 } catch {
     gitHead = 'unknown';
 }
@@ -44,13 +47,16 @@ const results = {
         timestamp: new Date().toISOString(),
         nodeVersion: process.version,
         gitHead,
+        trackedDirty,
         toolSha256,
         command: process.argv.join(' '),
         phase,
         faviconFixture: 'GET /favicon.ico returns 204 in this harness only',
     },
     apiCases: [],
+    apiRestored: false,
     uiCases: {},
+    uiRestored: false,
     smokeBattle: { status: 'NOT_RUN' },
     errors: [],
     pageErrors: [],
@@ -131,40 +137,12 @@ try {
         const skill = e.skillDB.find(s => s.id === 'mb_u1');
         if (!skill) throw new Error('Skill mb_u1 not found');
 
-        // Snapshot original pristine values
-        const origValues = {
-            name: skill.name,
-            desc: skill.desc,
-            tag: skill.tag,
-            team: skill.team,
-            visual: skill.visual,
-            visualHitEffect: skill.visualHitEffect,
-            visualProjectileEffect: skill.visualProjectileEffect,
-            specialVisualStatus: skill.specialVisualStatus,
-            color: skill.color,
-            projectileSpeed: skill.projectileSpeed,
-            range: skill.range,
-            type: skill.type,
-            aoeRadius: skill.aoeRadius,
-            power: skill.power,
-            cast: skill.cast,
-            cost: skill.cost,
-            gain: skill.gain,
-            cd: skill.cd,
-            element: skill.element,
-            ccType: skill.ccType,
-            ccDur: skill.ccDur,
-            ccForce: skill.ccForce,
-            ccSelf: skill.ccSelf,
-            ccType2: skill.ccType2,
-            ccDur2: skill.ccDur2,
-            ccForce2: skill.ccForce2,
-            ccSelf2: skill.ccSelf2,
-            effectType: skill.effectType,
-            effectVal: skill.effectVal,
-            effectType2: skill.effectType2,
-            effectVal2: skill.effectVal2,
-        };
+        // Snapshot original pristine properties and keys (without JSON roundtrip)
+        const origKeys = Reflect.ownKeys(skill);
+        const origValues = {};
+        for (const k of origKeys) {
+            origValues[k] = skill[k];
+        }
 
         const cases = [
             { id: 'cast_negative', field: 'cast', value: -2, expectAfter: 'REJECT' },
@@ -194,16 +172,42 @@ try {
         try {
             for (const c of cases) {
                 const beforeVal = skill[c.field];
+                const keysBefore = Reflect.ownKeys(skill);
+                const propsBefore = {};
+                for (const k of keysBefore) {
+                    propsBefore[k] = skill[k];
+                }
+
                 e.bus.emit('UI_COMMAND', {
                     type: 'UPDATE_SKILL',
                     skillId: 'mb_u1',
                     field: c.field,
                     value: c.value,
                 });
+
                 const afterVal = skill[c.field];
                 const isAccepted = (typeof c.value === 'number' && Number.isNaN(c.value))
                     ? Number.isNaN(afterVal)
                     : (afterVal === c.value);
+
+                const keysAfter = Reflect.ownKeys(skill);
+                let otherFieldsUntouched = true;
+                for (const k of keysBefore) {
+                    if (k === c.field) continue;
+                    if (!Object.is(skill[k], propsBefore[k])) {
+                        otherFieldsUntouched = false;
+                        break;
+                    }
+                }
+                for (const k of keysAfter) {
+                    if (k === c.field) continue;
+                    if (!(k in propsBefore)) {
+                        otherFieldsUntouched = false;
+                        break;
+                    }
+                }
+
+                const sameObjectRef = Object.is(skill, e.skillDB.find(s => s.id === 'mb_u1'));
 
                 // Restore this field immediately before next test
                 if (c.field in origValues) {
@@ -212,10 +216,14 @@ try {
                     delete skill[c.field];
                 }
 
-                const expectedBehavior = (currentPhase === 'after') ? c.expectAfter : 'OBSERVE';
-                const pass = (currentPhase === 'before')
-                    ? true // In before phase, we observe and record whatever happens
-                    : (c.expectAfter === 'ACCEPT' ? isAccepted : !isAccepted);
+                let pass = false;
+                if (currentPhase === 'before') {
+                    pass = true; // In before phase, observe and record
+                } else if (c.expectAfter === 'ACCEPT') {
+                    pass = isAccepted && otherFieldsUntouched && sameObjectRef;
+                } else { // REJECT
+                    pass = Object.is(afterVal, beforeVal) && otherFieldsUntouched && sameObjectRef;
+                }
 
                 caseOutputs.push({
                     id: c.id,
@@ -224,17 +232,25 @@ try {
                     expectedAfter: c.expectAfter,
                     isAccepted,
                     afterVal: typeof afterVal === 'number' && Number.isNaN(afterVal) ? 'NaN' : afterVal,
+                    sameObjectRef,
+                    otherFieldsUntouched,
                     pass,
                 });
             }
         } finally {
-            // Full pristine restore
+            // Full in-place pristine restore
+            for (const k of Reflect.ownKeys(skill)) {
+                if (!(k in origValues)) {
+                    delete skill[k];
+                }
+            }
             for (const [k, v] of Object.entries(origValues)) {
                 skill[k] = v;
             }
         }
 
-        const restored = Object.entries(origValues).every(([k, v]) => Object.is(skill[k], v));
+        const restored = Reflect.ownKeys(skill).length === origKeys.length &&
+            origKeys.every(k => Object.is(skill[k], origValues[k]));
 
         return { caseOutputs, restored };
     }, phase);
@@ -268,8 +284,6 @@ try {
     await page.waitForTimeout(300);
 
     // Check Dropdown Options
-    const tagSelect = dbWindow.locator('label', { hasText: '技能類型' }).locator('..').locator('select');
-    const typeSelect = dbWindow.locator('label', { hasText: '目標模式' }).locator('..').locator('select');
     const ccTypeSelect = dbWindow.locator('label', { hasText: '主控制類型' }).locator('..').locator('select');
     const specialVisualSelect = dbWindow.locator('label', { hasText: '特殊視覺狀態' }).locator('..').locator('select');
 
@@ -289,22 +303,19 @@ try {
         validInAfter: !ccHasGravity && !visualHasDanger && visualHasInvincible,
     };
 
-    // Range input (numeric required)
+    // Inputs
     const rangeContainer = dbWindow.locator('label', { hasText: '極限射程' }).locator('..');
     const rangeInput = rangeContainer.locator('input');
     const initialRange = await rangeInput.inputValue();
 
-    // Cast input (numeric required >= 0)
     const castContainer = dbWindow.locator('label', { hasText: '詠唱時間 (秒)' }).locator('..');
     const castInput = castContainer.locator('input');
     const initialCast = await castInput.inputValue();
 
-    // Power input (numeric signed)
     const powerContainer = dbWindow.locator('label', { hasText: '威力指數' }).locator('..');
     const powerInput = powerContainer.locator('input');
     const initialPower = await powerInput.inputValue();
 
-    // AOE Radius input (numeric optional)
     const aoeContainer = dbWindow.locator('label', { hasText: '範圍半徑' }).locator('..');
     const aoeInput = aoeContainer.locator('input');
     const initialAoe = await aoeInput.inputValue();
@@ -387,25 +398,73 @@ try {
         const dbRangeAfterEscape = await page.evaluate(() => window.__TACTICAL_ENGINE__.skillDB.find(s => s.id === 'mb_u1').range);
         const escapeCancels = (domRangeAfterEscape === '7') && (dbRangeAfterEscape === 7);
 
-        // 6. Switch skill does not leak draft
-        // Find another skill row (e.g. '連環火球' or second skill row)
-        const secondSkill = dbWindow.locator('.liquid-card').nth(1);
-        await secondSkill.click();
-        await page.waitForTimeout(200);
-        const secondSkillRangeInput = dbWindow.locator('label', { hasText: '極限射程' }).locator('..').locator('input').last();
-        const secondSkillRangeVal = await secondSkillRangeInput.inputValue();
-        const switchSkillNoLeak = (secondSkillRangeVal !== '7' && secondSkillRangeVal !== '999');
+        // 6. Enter followed by blur dispatches UPDATE_SKILL only ONCE
+        await page.evaluate(() => {
+            window.__updateSkillCount = 0;
+            window.__updateSkillListener = (cmd) => {
+                if (cmd && cmd.type === 'UPDATE_SKILL' && cmd.skillId === 'mb_u1' && cmd.field === 'range') {
+                    window.__updateSkillCount++;
+                }
+            };
+            window.__TACTICAL_ENGINE__.bus.on('UI_COMMAND', window.__updateSkillListener);
+        });
+        await rangeInput.fill('8');
+        await rangeInput.press('Enter');
+        await page.waitForTimeout(50);
+        await rangeInput.blur();
+        await page.waitForTimeout(100);
+        const singleDispatchOnEnterBlur = await page.evaluate(() => {
+            const count = window.__updateSkillCount;
+            window.__TACTICAL_ENGINE__.bus.off('UI_COMMAND', window.__updateSkillListener);
+            delete window.__updateSkillListener;
+            delete window.__updateSkillCount;
+            return count === 1;
+        });
+
+        // 7. Switch skill with uncommitted draft does not leak draft to skill B
+        const skillBInfo = await page.evaluate(() => {
+            const b = window.__TACTICAL_ENGINE__.skillDB.find(s => s.id !== 'mb_u1');
+            return { id: b.id, name: b.name, realRange: b.range };
+        });
+
+        // Skill A is currently open. Set uncommitted draft without Enter/Escape
+        await rangeInput.fill('42');
+
+        // Click skill B directly: blur commits draft to A, but B shows B's pristine range
+        const skillBItem = dbWindow.getByText(skillBInfo.name).first();
+        await skillBItem.click();
+        await page.waitForTimeout(300);
+
+        const skillBRangeInput = dbWindow.locator('label', { hasText: '極限射程' }).locator('..').locator('input');
+        const domRangeB = await skillBRangeInput.inputValue();
+        const dbStateAfterSwitch = await page.evaluate((bId) => {
+            const e = window.__TACTICAL_ENGINE__;
+            const a = e.skillDB.find(s => s.id === 'mb_u1');
+            const b = e.skillDB.find(s => s.id === bId);
+            return {
+                aRange: a.range,
+                bRange: b.range,
+            };
+        }, skillBInfo.id);
+
+        const switchSkillNoLeak = (domRangeB === String(skillBInfo.realRange)) &&
+            (dbStateAfterSwitch.bRange === skillBInfo.realRange) &&
+            (dbStateAfterSwitch.aRange === 42);
 
         // Restore all modified fields in engine
-        await page.evaluate((orig) => {
-            const s = window.__TACTICAL_ENGINE__.skillDB.find(x => x.id === 'mb_u1');
+        const uiRestored = await page.evaluate((orig) => {
+            const e = window.__TACTICAL_ENGINE__;
+            const s = e.skillDB.find(x => x.id === 'mb_u1');
             if (s) {
                 s.range = Number(orig.range);
                 s.cast = Number(orig.cast);
                 s.power = Number(orig.power);
                 s.aoeRadius = orig.aoe ? Number(orig.aoe) : undefined;
             }
+            return s && s.range === Number(orig.range) && s.cast === Number(orig.cast) &&
+                s.power === Number(orig.power) && s.aoeRadius === (orig.aoe ? Number(orig.aoe) : undefined);
         }, { range: initialRange, cast: initialCast, power: initialPower, aoe: initialAoe });
+        results.uiRestored = uiRestored;
 
         results.uiCases.afterValidation = {
             draftAndCommitOk,
@@ -413,12 +472,13 @@ try {
             negativePowerSubmitted,
             emptyOptionalCleared,
             escapeCancels,
+            singleDispatchOnEnterBlur,
             switchSkillNoLeak,
             dropdownsValid: results.uiCases.dropdowns.validInAfter,
         };
     }
 
-    // Save screenshot
+    // Save screenshot in outDir
     const shotPath = join(outDir, `f03-${phase}-ui.png`);
     await page.screenshot({ path: shotPath, fullPage: false });
     results.screenshot = shotPath;
@@ -433,7 +493,7 @@ try {
             const t0 = e.state?.time?.battleTime ?? 0;
             await new Promise(r => setTimeout(r, 400));
             const t1 = e.state?.time?.battleTime ?? 0;
-            return { ok: true, t0, t1, advanced: t1 >= t0, isRunning: Boolean(e.isRunning) };
+            return { ok: true, t0, t1, advanced: t1 > t0, isRunning: Boolean(e.isRunning) };
         } catch (err) {
             return { ok: false, error: err.message };
         }
@@ -455,9 +515,22 @@ try {
         const av = results.uiCases.afterValidation;
         const allUiPassed = av && av.draftAndCommitOk && av.negativeCastRejected &&
             av.negativePowerSubmitted && av.emptyOptionalCleared && av.escapeCancels &&
-            av.switchSkillNoLeak && av.dropdownsValid;
+            av.singleDispatchOnEnterBlur && av.switchSkillNoLeak && av.dropdownsValid;
 
-        if (allUiPassed && apiFailed === 0 && results.smokeBattle.ok && results.pageErrors.length === 0) {
+        const allOk = Boolean(
+            allUiPassed &&
+            apiFailed === 0 &&
+            results.apiRestored === true &&
+            results.uiRestored === true &&
+            results.smokeBattle.ok === true &&
+            results.smokeBattle.advanced === true &&
+            results.smokeBattle.isRunning === true &&
+            results.errors.length === 0 &&
+            results.pageErrors.length === 0 &&
+            results.consoleErrors.length === 0
+        );
+
+        if (allOk) {
             uiPassed = 1;
             results.summary.status = 'PASS';
         } else {
@@ -486,13 +559,10 @@ try {
         if (server) await server.close();
     } catch { /* ignore */ }
 
-    // Write results to JSON
-    const primaryOutPath = resolve(root, outFileName);
-    const backupOutPath = join(outDir, outFileName.split(/[/\\]/).pop());
+    // Write results to JSON inside outDir only (never root directory)
+    const fileNameOnly = outFileName.split(/[/\\]/).pop();
+    const finalOutPath = isAbsolute(outFileName) ? outFileName : join(outDir, fileNameOnly);
     const jsonStr = JSON.stringify(results, null, 2);
-    writeFileSync(primaryOutPath, jsonStr, 'utf-8');
-    if (primaryOutPath !== backupOutPath) {
-        writeFileSync(backupOutPath, jsonStr, 'utf-8');
-    }
-    console.log(`[f03-check] Results written to ${primaryOutPath} (status: ${results.summary.status})`);
+    writeFileSync(finalOutPath, jsonStr, 'utf-8');
+    console.log(`[f03-check] Results written to ${finalOutPath} (status: ${results.summary.status})`);
 }

@@ -7,7 +7,7 @@
 
 ---
 
-## 1. 現行渲染資產烘焙現況分析與 Q1 診斷佐證
+## 1. 現行渲染資產烘焙現況分析與歷史量測／診斷代號 Q1 佐證
 
 ### 1.1 現行資產管線清查
 
@@ -22,9 +22,9 @@
 | **VFX 粒子與投射物 (Particles & Projectiles)** | `ParticleRenderer`, `ProjectilePartPainter` | **已全面零件化**：粒子與投射物全面走 `VFXPartStore` 預烘焙零件（`missile`, `beam`, `glow`）。 | 零件 drawImage 貼圖。 |
 | **HUD 血條／護盾／數值 (Bar & Text HUD)** | `BarPainter`, `TextPainter`, `GaugePainter` | **現行切片與快取**：血條／護盾改走預烘焙切片（`HUD_BAR`, `HUD_GAUGE`）；光暈文字走 `GlowTextCache`（舊 `GlowSpriteCache` 已退役）。 | 預烘焙切片 blit 與文字繪製。 |
 
-### 1.2 Q1 歷史診斷數據佐證（2026-Q1 早期量測，僅作歷史對照，不作目前系統現值）
+### 1.2 歷史量測／診斷代號 Q1 佐證（日期來源未核實，僅作歷史對照，不作目前系統現值）
 
-依據 2026-Q1 於 6 單位實戰下的 CDP Native 操作歷史採樣（用於對比早期即時向量繪製架構）：
+依據歷史量測／診斷代號 Q1（日期來源未核實）於 6 單位實戰下的 CDP Native 操作歷史採樣（用於對比早期即時向量繪製架構）：
 1. **即時向量操作佔用極高頻次**：
    - 每幀執行 **968 次 `save/restore`**（其中地形佔 345 次、VFX 佔 241 次、單位佔 170 次）。
    - 每幀執行 **322 次 `fill`** 與 **160 次 `stroke`**。
@@ -40,7 +40,7 @@
 ### 2.1 現況痛點：交錯深度排序 (Interleaved Depth Sort)
 
 在現行架構中，`RenderPipeline.drawWorld()` 採單一 `RenderList` 統一深度排序：
-深度鍵與圖層順序嚴格遵循 `engine/renderers/RenderSpec.ts` SSOT（`RENDER_LAYER_BIAS` 與 `VisualMath.calculateDepthKey`），六角塊、單位（底座、身體、陰影）、地面危害、障礙物、投射物在同一個串列中依幾何深度與圖層偏置穿插排序並派發。
+深度鍵與圖層順序嚴格遵循 RenderSpec §1 與 `RenderList` 的現行排序規則，六角塊、單位（底座、身體、陰影）、地面危害、障礙物、投射物在同一個串列中依幾何深度與圖層偏置穿插排序並派發。
 - **優點**：完美解決 2.5D 等角投影下的前後遮擋關係（單位站在地塊上，同時被前方更高或更前排的地塊遮擋）。
 - **缺點**：無法將所有地形直接合併成單一靜態 Background Canvas，每幀必須個別繪製地塊精靈與矩陣切換。
 

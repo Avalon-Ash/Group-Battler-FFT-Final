@@ -34,15 +34,15 @@
 - **驗證單一來源 (`data/ui/skillEditor.ts`)**：覆蓋全部 31 個編輯欄位，`satisfies Record<SkillEditableField, SkillFieldRule>` 強型別防漏。
 - **負向數值保留**：`power` 允許負值（合法治療，如 `red_basic` -90、`red_ult` -1100/-700）；`ccForce`、`effectVal` 允許負值。
 - **非負數值限制**：`range`、`cast`、`cd`、`cost`、`gain`、`aoeRadius`、`projectileSpeed`、`ccDur` 強制 `>= 0`。本輪 cast 下限設為 0，不搶先強制奧義 >= 1.5 秒。
-- **現存技能庫驗證**：`tests/SkillEditor.test.ts` 遍歷 `DEFAULT_SKILL_DB` 全 45+ 技能的所有編輯欄位，與新規則 100% 相容，無衝突項。
+- **現存技能庫驗證**：`tests/SkillEditor.test.ts` 遍歷 `DEFAULT_SKILL_DB` 全 150 項技能（6 類 × 25 項）的所有編輯欄位，驗證全部必填與選填欄位，與新規則 100% 相容，無衝突項。
 
 ## 3. D 組文件殘留補正摘要
 
 - `docs/BAKED_RENDERING_DESIGN.md`：
   - §1.1 現況管線重寫：單位主體走 `UnitBodyPainter` → `SpriteUnitRenderer` → `SpriteAtlasStore`，非 `ImperialRenderer` / `CovenantRenderer` 即時向量繪製。
   - 地形快取上限更新為 `constants/render.ts` 的 `RENDER_CACHE.MAX_TERRAIN_SPRITES = 2048`（非 512）；移除無日期來源的每幀次數。
-  - §1.2 標記 Q1 診斷為 2026-Q1 早期量測，不作現值。
-  - §2.1 移除自造公式，直接引用 `engine/renderers/RenderSpec.ts` SSOT。
+  - §1.2 標記 Q1 診斷為歷史量測／診斷代號 Q1（日期來源未核實），不作現值，移除杜撰之 2026-Q1。
+  - §2.1 刪除不存在之 `RENDER_LAYER_BIAS` 與 `VisualMath.calculateDepthKey`，直接引用 `RenderSpec §1` 與 `RenderList` 現行排序規則。
   - §3.3 標明現況已走圖集，`AtlasManager` 與高度分帶為未採用暫緩提案。
   - §4.2 刪除 WebGL 例外許可條款，重申 `AGENTS.md` §1.4 純 Canvas 2D 鐵律。
 - `docs/ART_SPEC.md`：
@@ -51,13 +51,17 @@
 - `docs/HANDOFF.md` 與 `docs/PROJECT_CLEANUP_H03H05_REPORT.md`：
   - 區分前批工具驗收已完成與本批文件補正；H04/H05 修正為 PARTIAL 並記明由 F03 補正完成。
 
-## 4. 驗證與未完成事項
+## 4. 驗證與 R 組補正事項
 
 - 驗證命令矩陣：
   - `f03-lint`: EXIT=0 (5s, `tsc --noEmit` 通過無報錯)
-  - `f03-test`: EXIT=0 (11s, 90 files / 761 tests 全部通過，含 `tests/SkillEditor.test.ts` 56 tests)
+  - `f03-test`: EXIT=0 (原時點 90 files / 761 tests 全部通過，含 `tests/SkillEditor.test.ts` 56 tests；HEAD 複核為 57 tests；R1 補正擴充為 59 tests 全部通過)
   - `f03-build`: EXIT=0 (3s, 304 modules transformed, production bundle 成功)
   - `f03-smoke`: EXIT=0 (11s, 0 page errors, 10 單位 battleTime 0.52 -> 4.57s 畫面正常推進)
   - `f03-doc-final`: EXIT=0 (1s, `DocDrift.test.ts` 3 tests 通過，路徑與標頭無漂移)
+- R 組補正（F02 批次先行完成）：
+  - R1：`tests/SkillEditor.test.ts` 原位快照與還原 `DEFAULT_SKILL_DB`，清除測試新增 key；移除 4 處 `as any`；增加跨 engine 物件身分與欄位不變之隔離斷言；驗證 150 招技能所有 31 欄位（必填不漏驗）；驗證 UI 表單所有 select 選項之真實 sentinel/boolean/team 轉換。
+  - R2：`tools/ui-e2e/cleanup-f03-check.mjs` API REJECT 斷言 `Object.is(after, before)` 且其餘欄位不變；ACCEPT 斷言同一物件引用；UI 測試實測未提交草稿切換技能 B 時不污染 B，失焦正確提交 A；驗證 Enter 後 blur 只派發一次 `UPDATE_SKILL`；煙霧測試強化為 `t1 > t0` 嚴格大於；輸出統一至 `tools/ui-e2e/out/`。
+  - R3：`docs/BAKED_RENDERING_DESIGN.md` 與本報告補正完畢。
 - 實跑探針：`cleanup-f03-check.mjs` API 20 項全過、UI 互動全過、戰鬥 smoke 正常、0 pageerror。
 - 未完成事項：A0 歷史清冊大量未人工核實；F02 移動目標追蹤、COORD01 景深殘差、T01/K01/K02 待後續查核；奧義 50 招重新設計與全庫平衡順序不變。

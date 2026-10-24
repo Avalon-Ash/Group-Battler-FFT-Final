@@ -1,7 +1,8 @@
 // ╔══════════════════════════════════════════════════════════════════╗
 // ║  SkillEditor — 技能編輯器欄位驗證與 UICommandSystem 守門測試       ║
-// ║  職責：檢查全部 29 個編輯欄位的合法/非法值、負數規則、選填清除、   ║
-// ║        enum/own-key 白名單、現有技能庫相容性與 real UI_COMMAND 寫入║
+// ║  職責：檢查全部編輯欄位（SKILL_EDITABLE_FIELDS）的合法/非法值、     ║
+// ║        負數規則、選填清除、enum/own-key 白名單、既有技能庫相容性與  ║
+// ║        real UI_COMMAND 寫入與測試隔離原位還原                    ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -24,6 +25,40 @@ import { Team, Skill } from '../types';
 import { VFX_REGISTRY } from '../data/vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../data/vfx/projectile_visuals';
 import { SKILL_FIELD_GROUPS } from '../components/inspector/InspectorConstants';
+
+interface SkillPropertySnapshot {
+    ref: Record<string, unknown>;
+    keys: string[];
+    values: Map<string, unknown>;
+}
+
+function captureDbSnapshots(): SkillPropertySnapshot[] {
+    return DEFAULT_SKILL_DB.map(s => {
+        const ref = s as unknown as Record<string, unknown>;
+        const keys = Object.keys(ref);
+        const values = new Map<string, unknown>();
+        for (const k of keys) {
+            values.set(k, ref[k]);
+        }
+        return { ref, keys, values };
+    });
+}
+
+function restoreDbSnapshots(snapshots: SkillPropertySnapshot[]): void {
+    for (const snap of snapshots) {
+        // Delete any keys added during tests
+        const currentKeys = Object.keys(snap.ref);
+        for (const k of currentKeys) {
+            if (!snap.values.has(k)) {
+                delete snap.ref[k];
+            }
+        }
+        // In-place restore all original keys and values (including undefined values)
+        for (const [k, v] of snap.values.entries()) {
+            snap.ref[k] = v;
+        }
+    }
+}
 
 describe('SkillEditor Field Validation Rules', () => {
     it('covers all 31 editable fields', () => {
@@ -262,17 +297,16 @@ describe('SkillEditor Field Validation Rules', () => {
     });
 
     describe('Existing Skill Database Compatibility', () => {
-        it('all skills in DEFAULT_SKILL_DB pass validation on all defined editable fields', () => {
+        it('all skills in DEFAULT_SKILL_DB pass validation on all editable fields (including required field presence)', () => {
             const failures: { skillId: string; field: string; value: unknown }[] = [];
 
             for (const skill of DEFAULT_SKILL_DB) {
+                const record = skill as unknown as Record<string, unknown>;
                 for (const field of SKILL_EDITABLE_FIELDS) {
-                    if (field in skill) {
-                        const val = skill[field as keyof Skill];
-                        const ok = validateSkillFieldValue(field, val);
-                        if (!ok) {
-                            failures.push({ skillId: skill.id, field, value: val });
-                        }
+                    const val = record[field];
+                    const ok = validateSkillFieldValue(field, val);
+                    if (!ok) {
+                        failures.push({ skillId: skill.id, field, value: val });
                     }
                 }
             }
@@ -298,24 +332,87 @@ describe('SkillEditor Field Validation Rules', () => {
             for (const v of proj.simpleOptions!) if (v !== 'NONE') expect(PROJECTILE_VISUALS[v]).toBeDefined();
             expect(fields.find((f) => f.key === 'visual')!.simpleOptions!.some((v) => v.startsWith('HEX_'))).toBe(false);
         });
+
+        it('all select options in SKILL_FIELD_GROUPS convert via real form transforms to valid values', () => {
+            for (const group of SKILL_FIELD_GROUPS) {
+                for (const field of group.fields) {
+                    if (field.type !== 'select') continue;
+                    const rawOptions: string[] = [];
+                    if (field.options) {
+                        rawOptions.push(...field.options.map(o => o.value));
+                    }
+                    if (field.simpleOptions) {
+                        rawOptions.push(...field.simpleOptions);
+                    }
+
+                    for (const rawVal of rawOptions) {
+                        let convertedVal: unknown;
+                        if (field.key === 'ccSelf' || field.key === 'ccSelf2') {
+                            convertedVal = rawVal === 'true';
+                        } else if (field.key === 'team') {
+                            convertedVal = rawVal === 'BLUE' ? Team.BLUE : rawVal === 'RED' ? Team.RED : undefined;
+                        } else if (rawVal === 'NONE' || rawVal === 'ANY' || rawVal === '') {
+                            convertedVal = undefined;
+                        } else {
+                            convertedVal = rawVal;
+                        }
+
+                        const ok = validateSkillFieldValue(field.key, convertedVal);
+                        expect(ok).toBe(true);
+                    }
+                }
+            }
+        });
     });
 });
 
 describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
     let engine: GameEngine;
-    let pristineSkillSnapshot: Record<string, unknown>;
+    let dbSnapshots: SkillPropertySnapshot[];
 
     beforeEach(() => {
+        dbSnapshots = captureDbSnapshots();
         engine = new GameEngine();
         const skill = engine.skillDB.find(s => s.id === 'mb_u1');
         if (!skill) throw new Error('Skill mb_u1 not found in test engine');
-        pristineSkillSnapshot = JSON.parse(JSON.stringify(skill));
     });
 
     afterEach(() => {
-        if (engine) {
-            engine.destroy();
+        try {
+            if (dbSnapshots && dbSnapshots.length > 0) {
+                restoreDbSnapshots(dbSnapshots);
+            }
+        } finally {
+            if (engine) {
+                engine.destroy();
+            }
         }
+    });
+
+    it('maintains strict isolation: DEFAULT_SKILL_DB object identities and fields remain identical across mutations and restores', () => {
+        const mbU1 = DEFAULT_SKILL_DB.find(s => s.id === 'mb_u1')!;
+        const origKeys = Object.keys(mbU1).sort();
+        const origRange = mbU1.range;
+        const origPower = mbU1.power;
+
+        engine.bus.emit('UI_COMMAND', {
+            type: 'UPDATE_SKILL',
+            skillId: 'mb_u1',
+            field: 'range',
+            value: 99,
+        });
+        (mbU1 as Record<string, unknown>).tempFieldForTest = 'polluted';
+
+        expect(mbU1.range).toBe(99);
+        expect((mbU1 as Record<string, unknown>).tempFieldForTest).toBe('polluted');
+
+        restoreDbSnapshots(dbSnapshots);
+
+        expect(DEFAULT_SKILL_DB.find(s => s.id === 'mb_u1')).toBe(mbU1);
+        expect(mbU1.range).toBe(origRange);
+        expect(mbU1.power).toBe(origPower);
+        expect((mbU1 as Record<string, unknown>).tempFieldForTest).toBeUndefined();
+        expect(Object.keys(mbU1).sort()).toEqual(origKeys);
     });
 
     it('accepts valid update and updates engine.skillDB in place', () => {
@@ -359,7 +456,7 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
             field: 'range',
-            value: '5' as any,
+            value: '5',
         });
         expect(skill.range).toBe(origRange);
     });
@@ -373,7 +470,7 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
             field: 'ccType',
-            value: 'GRAVITY' as any,
+            value: 'GRAVITY',
         });
         expect(skill.ccType).toBe(origCc);
 
@@ -381,7 +478,7 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
             field: 'specialVisualStatus',
-            value: 'DANGER' as any,
+            value: 'DANGER',
         });
         expect(skill.specialVisualStatus).toBe(origVisual);
     });
@@ -393,7 +490,7 @@ describe('GameEngine UPDATE_SKILL Mutation Gate via UI_COMMAND', () => {
             type: 'UPDATE_SKILL',
             skillId: 'mb_u1',
             field: 'ccSelf',
-            value: 'false' as any,
+            value: 'false',
         });
         expect(skill.ccSelf).toBe(origSelf);
     });
