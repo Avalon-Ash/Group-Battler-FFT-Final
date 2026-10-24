@@ -12,11 +12,11 @@ import { Team } from "../../types";
 // tests/ReferenceIntegrity.test.ts 檢查每個技能的鍵都查得到、沒有死條目。
 // =========================================================================================
 
-export type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
+type ProjectileTrajectory = 'LINEAR' | 'ARC' | 'WOBBLE' | 'INSTANT' | 'HOVER_DIP';
 /** 拖尾：streak＝光痕（光束磚沿軌跡串接，加法）；smoke＝煙（一般混合，越往後越大越淡）；none＝無 */
-export type ProjectileTrailStyle = 'streak' | 'smoke' | 'none';
+type ProjectileTrailStyle = 'streak' | 'smoke' | 'none';
 /** 色階：單一色階，或依施法者陣營選 */
-export type ProjectileRamp = VFXRampId | Readonly<Record<Team, VFXRampId>>;
+type ProjectileRamp = VFXRampId | Readonly<Record<Team, VFXRampId>>;
 
 export interface ProjectileLook {
     shape: MissileShape;
