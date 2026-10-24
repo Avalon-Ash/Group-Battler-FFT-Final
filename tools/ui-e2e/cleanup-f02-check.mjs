@@ -233,7 +233,10 @@ try {
                 throw new Error('Expected sequence action was not dispatched for caster');
             }
 
-            const beamDispatch = recordedDispatches.find(item => item.actionType === 'BEAM') || recordedDispatches[0];
+            const beamDispatch = recordedDispatches.find(item => item.actionType === 'BEAM');
+            if (!beamDispatch) {
+                throw new Error('mb_a2 did not dispatch a BEAM action: expected BEAM dispatch in recordedDispatches');
+            }
             const damageDealt = tHpBefore - tHpAfter;
             const targetMovedAnchor = VisualMath.getUnitAnchor(target, e);
 
@@ -275,6 +278,7 @@ try {
 
     const aoeResult = await page.evaluate(async () => {
         const types = await import('/types.ts');
+        const { VisualMath } = await import('/engine/math/VisualMath.ts');
         const { teleportTo } = await import('/engine/systems/movement/MotionCommands.ts');
         const e = window.__TACTICAL_ENGINE__;
         const cmd = (c) => e.bus.emit('UI_COMMAND', c);
@@ -301,45 +305,98 @@ try {
         caster.targetHex = { q: target1.q, r: target1.r };
 
         const initialTargetHex = { ...caster.targetHex };
+        const castStartTargetPoint = { ...VisualMath.resolveTargetPoint(target1.id, e) };
 
-        const initiated = e.initiateCast(caster, 0);
-        if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) {
-            throw new Error('initiateCast failed for mb_u1 AOE');
-        }
-        e.renderer.processVisualEvents(e.events.splice(0));
-        window.__stepFrames(1);
-
-        // At 50% cast:
-        // Target 1 teleports out to (6, 0), Target 2 teleports into ground hex (2, 0)
-        window.__stepFrames(Math.floor(skill.cast * 60 * 0.5));
-        teleportTo(target1, 6, 0, e);
-        teleportTo(target2, 2, 0, e);
-
-        const t1HpBefore = target1.hp;
-        const t2HpBefore = target2.hp;
-
-        window.__stepFrames(Math.ceil(skill.cast * 60 * 0.5) + 15);
-
-        const t1HpAfter = target1.hp;
-        const t2HpAfter = target2.hp;
-
-        const target1Damage = t1HpBefore - t1HpAfter;
-        const target2Damage = t2HpBefore - t2HpAfter;
-
-        return {
-            skillId: skill.id,
-            skillName: skill.name,
-            skillType: skill.type,
-            aoeRadius: skill.aoeRadius,
-            initialTargetHex,
-            target1MovedTo: { q: target1.q, r: target1.r },
-            target2MovedTo: { q: target2.q, r: target2.r },
-            target1Damage,
-            target2Damage,
-            target1Escaped: target1Damage === 0,
-            target2Hit: target2Damage > 0,
-            groundLocked: target1Damage === 0 && target2Damage > 0,
+        const recordedDispatches = [];
+        const origDispatch = e.renderer.sequences.dispatch.bind(e.renderer.sequences);
+        e.renderer.sequences.dispatch = (action, targetPos, sourcePos, vfx, engine, sourceId) => {
+            if (sourceId === caster.id) {
+                // Record spatial actions; exclude SHAKE and non-spatial actions
+                const isSpatial = action.type === 'PARTICLE' || action.type === 'BEAM' || action.type === 'GRID_PULSE' || action.type === 'HEAVEN_FALL';
+                if (isSpatial) {
+                    const currentTarget1Anchor = VisualMath.getUnitAnchor(target1, engine);
+                    const driftFromCastStart = Math.hypot(
+                        targetPos.x - castStartTargetPoint.x,
+                        targetPos.y - castStartTargetPoint.y,
+                        (targetPos.z ?? 0) - (castStartTargetPoint.z ?? 0)
+                    );
+                    const driftFromTarget1 = Math.hypot(
+                        targetPos.x - currentTarget1Anchor.x,
+                        targetPos.y - currentTarget1Anchor.y,
+                        (targetPos.z ?? 0) - (currentTarget1Anchor.z ?? 0)
+                    );
+                    recordedDispatches.push({
+                        actionId: action.id,
+                        actionType: action.type,
+                        simTime: engine.battleTime,
+                        passedTarget: { x: targetPos.x, y: targetPos.y, z: targetPos.z },
+                        castStartPoint: { ...castStartTargetPoint },
+                        target1Anchor: { x: currentTarget1Anchor.x, y: currentTarget1Anchor.y, z: currentTarget1Anchor.z },
+                        driftFromCastStart,
+                        driftFromTarget1,
+                        followedMovedTarget: driftFromTarget1 <= 1,
+                    });
+                }
+            }
+            return origDispatch(action, targetPos, sourcePos, vfx, engine, sourceId);
         };
+
+        try {
+            const initiated = e.initiateCast(caster, 0);
+            if (initiated !== types.NodeState.RUNNING || caster.castingSkillIdx !== 0) {
+                throw new Error('initiateCast failed for mb_u1 AOE');
+            }
+            e.renderer.processVisualEvents(e.events.splice(0));
+            window.__stepFrames(1);
+
+            // At 50% cast:
+            // Target 1 teleports out to (6, 0), Target 2 teleports into ground hex (2, 0)
+            window.__stepFrames(Math.floor(skill.cast * 60 * 0.5));
+            teleportTo(target1, 6, 0, e);
+            teleportTo(target2, 2, 0, e);
+
+            const t1HpBefore = target1.hp;
+            const t2HpBefore = target2.hp;
+
+            window.__stepFrames(Math.ceil(skill.cast * 60 * 0.5) + 15);
+
+            const t1HpAfter = target1.hp;
+            const t2HpAfter = target2.hp;
+
+            const target1Damage = t1HpBefore - t1HpAfter;
+            const target2Damage = t2HpBefore - t2HpAfter;
+
+            if (recordedDispatches.length === 0) {
+                throw new Error('Expected AOE sequence spatial actions were not dispatched for caster');
+            }
+
+            const maxVisualDrift = Math.max(...recordedDispatches.map(d => d.driftFromCastStart));
+            const followedMovedTarget = recordedDispatches.some(d => d.followedMovedTarget);
+            const visualGroundLocked = maxVisualDrift <= 1 && !followedMovedTarget;
+            const simulationGroundLocked = target1Damage === 0 && target2Damage > 0;
+
+            return {
+                skillId: skill.id,
+                skillName: skill.name,
+                skillType: skill.type,
+                aoeRadius: skill.aoeRadius,
+                initialTargetHex,
+                castStartTargetPoint,
+                target1MovedTo: { q: target1.q, r: target1.r },
+                target2MovedTo: { q: target2.q, r: target2.r },
+                target1Damage,
+                target2Damage,
+                target1Escaped: target1Damage === 0,
+                target2Hit: target2Damage > 0,
+                maxVisualDrift,
+                simulationGroundLocked,
+                visualGroundLocked,
+                groundLocked: simulationGroundLocked && visualGroundLocked,
+                allSpatialDispatches: recordedDispatches,
+            };
+        } finally {
+            e.renderer.sequences.dispatch = origDispatch;
+        }
     });
 
     results.groundAoeCase = aoeResult;
@@ -364,16 +421,19 @@ try {
 
     if (phase === 'before') {
         const observedDefect = s.simDamagedTargetAtNewPosition && s.stayedAtCastStartPos && s.dispatch.drift3D > 1;
-        const aoeGroundLocked = a.groundLocked;
-        if (observedDefect && aoeGroundLocked && results.pageErrors.length === 0) {
+        const aoeGroundLocked = a.simulationGroundLocked && a.visualGroundLocked;
+        const noErrors = results.errors.length === 0 && results.pageErrors.length === 0 && results.consoleErrors.length === 0;
+
+        if (observedDefect && aoeGroundLocked && noErrors) {
             results.summary.status = 'COMPLETED_BEFORE';
         } else {
             results.summary.status = 'BEFORE_ANOMALY';
+            process.exitCode = 1;
         }
     } else {
-        // AFTER phase: single target must track to new anchor <= 1px, AOE must remain ground locked
+        // AFTER phase: single target must track to new anchor <= 1px, AOE must remain ground locked (both sim and visual)
         const singlePassed = s.simDamagedTargetAtNewPosition && s.trackedToNewAnchor;
-        const aoePassed = a.groundLocked;
+        const aoePassed = a.simulationGroundLocked && a.visualGroundLocked;
         const noErrors = results.errors.length === 0 && results.pageErrors.length === 0 && results.consoleErrors.length === 0;
 
         if (singlePassed && aoePassed && noErrors) {

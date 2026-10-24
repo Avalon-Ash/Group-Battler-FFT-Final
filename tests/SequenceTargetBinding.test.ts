@@ -15,6 +15,8 @@ import { CameraSystem } from '../engine/presentation/CameraSystem';
 import { VisualMath, Point3D } from '../engine/math/VisualMath';
 import { Team, Role, GameEvent, Skill } from '../types';
 import { VFXSequence, VFXAction } from '../types/VFXSchema';
+import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
+import { DEFAULT_SKILL_DB } from '../skillDatabase';
 
 describe('SequenceTargetBinding (F02)', () => {
     let engine: GameEngine;
@@ -123,8 +125,9 @@ describe('SequenceTargetBinding (F02)', () => {
 
             sequenceSystem.run(sequence, initialAnchor, engine, vfxSystem, caster.id, 0, options);
 
-            // Move target during cast to px + 100
+            // Move target during cast to px + 100, py + 50
             target.px += 100;
+            target.py += 50;
             engine.battleTime = lockAt; // reach lockAt exactly (0.5s)
             const lockedAnchor = VisualMath.getUnitAnchor(target, engine);
 
@@ -138,7 +141,6 @@ describe('SequenceTargetBinding (F02)', () => {
             const origPlayEffect = vfxSystem.playEffect.bind(vfxSystem);
             vfxSystem.playEffect = (_id, x, y, z, ..._rest) => {
                 particleTargetPos = { x, y, z };
-                return null as any;
             };
 
             try {
@@ -146,16 +148,23 @@ describe('SequenceTargetBinding (F02)', () => {
                 sequenceSystem.update(engine, vfxSystem);
                 expect(beamTargetPos).toBeDefined();
                 expect(beamTargetPos!.x).toBeCloseTo(lockedAnchor.x, 1);
+                expect(beamTargetPos!.y).toBeCloseTo(lockedAnchor.y, 1);
+                expect(beamTargetPos!.z).toBeCloseTo(lockedAnchor.z, 1);
 
                 // Now move target far away AFTER lockAt (at 0.8s)
                 target.px += 200;
+                target.py += 100;
                 engine.battleTime = 0.8;
                 sequenceSystem.update(engine, vfxSystem);
 
                 expect(particleTargetPos).toBeDefined();
-                // Lingering action must use the LOCKED anchor at 0.5s, NOT the target's new position at 0.8s!
+                // Lingering action must use the LOCKED anchor (all 3 axes) at 0.5s, NOT the target's new position at 0.8s!
                 expect(particleTargetPos!.x).toBeCloseTo(lockedAnchor.x, 1);
-                expect(particleTargetPos!.x).not.toBeCloseTo(VisualMath.getUnitAnchor(target, engine).x, 1);
+                expect(particleTargetPos!.y).toBeCloseTo(lockedAnchor.y, 1);
+                expect(particleTargetPos!.z).toBeCloseTo(lockedAnchor.z, 1);
+                const currentAnchor = VisualMath.getUnitAnchor(target, engine);
+                expect(particleTargetPos!.x).not.toBeCloseTo(currentAnchor.x, 1);
+                expect(particleTargetPos!.y).not.toBeCloseTo(currentAnchor.y, 1);
             } finally {
                 vfxSystem.playBeam = origPlayBeam;
                 vfxSystem.playEffect = origPlayEffect;
@@ -184,7 +193,7 @@ describe('SequenceTargetBinding (F02)', () => {
             const origPlayBeam = vfxSystem.playBeam.bind(vfxSystem);
             vfxSystem.playBeam = (_s, _src, t) => { capturedPositions.push({ ...t }); };
             const origPlayEffect = vfxSystem.playEffect.bind(vfxSystem);
-            vfxSystem.playEffect = (_id, x, y, z) => { capturedPositions.push({ x, y, z }); return null as any; };
+            vfxSystem.playEffect = (_id, x, y, z) => { capturedPositions.push({ x, y, z }); };
 
             try {
                 sequenceSystem.update(engine, vfxSystem);
@@ -198,31 +207,118 @@ describe('SequenceTargetBinding (F02)', () => {
             }
         });
 
-        it('maintains independent bindings for consecutive runs by same caster', () => {
+        it('maintains independent bindings and dispatches distinct targets for consecutive runs by same caster', () => {
             const caster = engine.agents[0];
-            const target = engine.agents[1];
-            const initialAnchor = VisualMath.getUnitAnchor(target, engine);
+            const target1 = engine.agents[1];
+            // Place target2 at another location
+            engine.bus.emit('UI_COMMAND', {
+                type: 'PLACE_AGENT',
+                team: Team.RED,
+                q: 3,
+                r: 1,
+                hp: 1000,
+                role: Role.WARRIOR,
+            });
+            const target2 = engine.agents[2];
+            const initialAnchor1 = VisualMath.getUnitAnchor(target1, engine);
+            const initialAnchor2 = VisualMath.getUnitAnchor(target2, engine);
 
-            const action: VFXAction = { type: 'BEAM', style: 'GENERIC_BEAM', delay: 0.5 };
-            const seq: VFXSequence = { id: 'test_seq', actions: [action] };
+            const action1: VFXAction = { type: 'BEAM', style: 'GENERIC_BEAM', delay: 0.3 };
+            const seq1: VFXSequence = { id: 'test_seq_1', actions: [action1] };
 
-            // Run 1 for target at (0, 0)
-            sequenceSystem.run(seq, initialAnchor, engine, vfxSystem, caster.id, 0, {
-                targetId: target.id,
+            const action2: VFXAction = { type: 'BEAM', style: 'GENERIC_BEAM', delay: 0.6 };
+            const seq2: VFXSequence = { id: 'test_seq_2', actions: [action2] };
+
+            // Run 1 for target1
+            sequenceSystem.run(seq1, initialAnchor1, engine, vfxSystem, caster.id, 0, {
+                targetId: target1.id,
                 lockAt: 0.5,
             });
 
-            // Target moves, run 2 for target at new position
-            target.px += 100;
-            const secondAnchor = VisualMath.getUnitAnchor(target, engine);
-            sequenceSystem.run(seq, secondAnchor, engine, vfxSystem, caster.id, 0.2, {
-                targetId: target.id,
-                lockAt: 0.7,
+            // Run 2 for target2
+            sequenceSystem.run(seq2, initialAnchor2, engine, vfxSystem, caster.id, 0, {
+                targetId: target2.id,
+                lockAt: 0.8,
             });
 
             // Two distinct bindings exist and don't overwrite each other
             expect(sequenceSystem['actionQueue'].length).toBe(2);
             expect(sequenceSystem['actionQueue'][0].binding).not.toBe(sequenceSystem['actionQueue'][1].binding);
+
+            const dispatched: { time: number; target: Point3D }[] = [];
+            const origPlayBeam = vfxSystem.playBeam.bind(vfxSystem);
+            vfxSystem.playBeam = (_s, _src, t) => {
+                dispatched.push({ time: engine.battleTime, target: { ...t } });
+            };
+
+            try {
+                // Move target1 and target2 during cast
+                target1.px += 50;
+                target2.px += 90;
+                engine.battleTime = 0.3;
+                const anchor1At03 = VisualMath.getUnitAnchor(target1, engine);
+                sequenceSystem.update(engine, vfxSystem);
+
+                expect(dispatched.length).toBe(1);
+                expect(dispatched[0].target.x).toBeCloseTo(anchor1At03.x, 1);
+
+                // Move target2 further before its dispatch at 0.6
+                target2.px += 40;
+                engine.battleTime = 0.6;
+                const anchor2At06 = VisualMath.getUnitAnchor(target2, engine);
+                sequenceSystem.update(engine, vfxSystem);
+
+                expect(dispatched.length).toBe(2);
+                expect(dispatched[1].target.x).toBeCloseTo(anchor2At06.x, 1);
+                // Verify distinct spatial dispatch coordinates
+                expect(dispatched[0].target.x).not.toBeCloseTo(dispatched[1].target.x, 1);
+            } finally {
+                vfxSystem.playBeam = origPlayBeam;
+            }
+        });
+
+        it('resolves dynamic target anchor identically for immediate (delay=0) and due (delay>0) actions', () => {
+            const caster = engine.agents[0];
+            const target = engine.agents[1];
+            const initialAnchor = VisualMath.getUnitAnchor(target, engine);
+
+            const actionImmediate: VFXAction = { type: 'BEAM', style: 'GENERIC_BEAM', delay: 0 };
+            const actionDue: VFXAction = { type: 'BEAM', style: 'GENERIC_BEAM', delay: 0.3 };
+            const seq: VFXSequence = { id: 'test_immediate_due_seq', actions: [actionImmediate, actionDue] };
+
+            const dispatchedTargets: Point3D[] = [];
+            const origPlayBeam = vfxSystem.playBeam.bind(vfxSystem);
+            vfxSystem.playBeam = (_s, _src, t) => { dispatchedTargets.push({ ...t }); };
+
+            try {
+                // Run with target binding
+                sequenceSystem.run(seq, initialAnchor, engine, vfxSystem, caster.id, 0, {
+                    targetId: target.id,
+                    lockAt: 0.5,
+                });
+
+                // Immediate action was dispatched right inside run()
+                expect(dispatchedTargets.length).toBe(1);
+                expect(dispatchedTargets[0].x).toBeCloseTo(initialAnchor.x, 1);
+                expect(dispatchedTargets[0].y).toBeCloseTo(initialAnchor.y, 1);
+                expect(dispatchedTargets[0].z).toBeCloseTo(initialAnchor.z, 1);
+
+                // Move target before due action
+                target.px += 80;
+                target.py += 40;
+                engine.battleTime = 0.3;
+                const anchorAt03 = VisualMath.getUnitAnchor(target, engine);
+
+                sequenceSystem.update(engine, vfxSystem);
+                expect(dispatchedTargets.length).toBe(2);
+                // Due action dispatched dynamically to updated anchor at 0.3s
+                expect(dispatchedTargets[1].x).toBeCloseTo(anchorAt03.x, 1);
+                expect(dispatchedTargets[1].y).toBeCloseTo(anchorAt03.y, 1);
+                expect(dispatchedTargets[1].z).toBeCloseTo(anchorAt03.z, 1);
+                expect(dispatchedTargets[1].x).not.toBeCloseTo(initialAnchor.x, 1);
+            } finally {
+                vfxSystem.playBeam = origPlayBeam;
+            }
         });
 
         it('samples anchor cleanly when target has hp <= 0 but is still in agents list', () => {
@@ -320,9 +416,13 @@ describe('SequenceTargetBinding (F02)', () => {
             const caster = engine.agents[0];
             const target = engine.agents[1];
 
+            expect(SKILL_SEQUENCES['mb_a2']).toBeDefined();
+
+            let runCalled = false;
             let lastRunOptions: SequenceRunOptions | undefined;
             const origRun = sequenceSystem.run.bind(sequenceSystem);
             sequenceSystem.run = (...args) => {
+                runCalled = true;
                 lastRunOptions = args[6];
                 return origRun(...args);
             };
@@ -353,6 +453,7 @@ describe('SequenceTargetBinding (F02)', () => {
 
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeDefined();
                 expect(lastRunOptions!.targetId).toBe(target.id);
                 expect(lastRunOptions!.lockAt).toBe(engine.battleTime + 0.5);
@@ -361,13 +462,17 @@ describe('SequenceTargetBinding (F02)', () => {
             }
         });
 
-        it('does NOT pass binding options for AOE skills', () => {
+        it('does NOT pass binding options for AOE skills (ensuring sequence exists and run is called)', () => {
             const caster = engine.agents[0];
             const target = engine.agents[1];
 
-            let lastRunOptions: SequenceRunOptions | undefined;
+            expect(SKILL_SEQUENCES['mb_u1']).toBeDefined();
+
+            let runCalled = false;
+            let lastRunOptions: SequenceRunOptions | undefined = { targetId: 'sentinel', lockAt: -1 };
             const origRun = sequenceSystem.run.bind(sequenceSystem);
             sequenceSystem.run = (...args) => {
+                runCalled = true;
                 lastRunOptions = args[6];
                 return origRun(...args);
             };
@@ -398,19 +503,24 @@ describe('SequenceTargetBinding (F02)', () => {
 
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeUndefined();
             } finally {
                 sequenceSystem.run = origRun;
             }
         });
 
-        it('does NOT pass binding options for projectile skills with projectileSpeed > 0', () => {
+        it('does NOT pass binding options for projectile skills with projectileSpeed > 0 (ensuring sequence exists and run is called)', () => {
             const caster = engine.agents[0];
             const target = engine.agents[1];
 
-            let lastRunOptions: SequenceRunOptions | undefined;
+            expect(SKILL_SEQUENCES['mb_b1']).toBeDefined();
+
+            let runCalled = false;
+            let lastRunOptions: SequenceRunOptions | undefined = { targetId: 'sentinel', lockAt: -1 };
             const origRun = sequenceSystem.run.bind(sequenceSystem);
             sequenceSystem.run = (...args) => {
+                runCalled = true;
                 lastRunOptions = args[6];
                 return origRun(...args);
             };
@@ -441,18 +551,23 @@ describe('SequenceTargetBinding (F02)', () => {
 
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeUndefined();
             } finally {
                 sequenceSystem.run = origRun;
             }
         });
 
-        it('does NOT pass binding options for ground-only targetId', () => {
+        it('does NOT pass binding options for ground-only targetId (ensuring sequence exists and run is called)', () => {
             const caster = engine.agents[0];
 
-            let lastRunOptions: SequenceRunOptions | undefined;
+            expect(SKILL_SEQUENCES['mb_a2']).toBeDefined();
+
+            let runCalled = false;
+            let lastRunOptions: SequenceRunOptions | undefined = { targetId: 'sentinel', lockAt: -1 };
             const origRun = sequenceSystem.run.bind(sequenceSystem);
             sequenceSystem.run = (...args) => {
+                runCalled = true;
                 lastRunOptions = args[6];
                 return origRun(...args);
             };
@@ -483,6 +598,102 @@ describe('SequenceTargetBinding (F02)', () => {
 
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
+                expect(lastRunOptions).toBeUndefined();
+            } finally {
+                sequenceSystem.run = origRun;
+            }
+        });
+
+        it('does NOT pass binding options for skills with cast <= 0 (ensuring sequence exists and run is called)', () => {
+            const caster = engine.agents[0];
+            const target = engine.agents[1];
+
+            const tempSeqId = 'test_no_cast_skill';
+            SKILL_SEQUENCES[tempSeqId] = {
+                id: tempSeqId,
+                actions: [{ type: 'BEAM', style: 'GENERIC_BEAM' }],
+            };
+
+            let runCalled = false;
+            let lastRunOptions: SequenceRunOptions | undefined = { targetId: 'sentinel', lockAt: -1 };
+            const origRun = sequenceSystem.run.bind(sequenceSystem);
+            sequenceSystem.run = (...args) => {
+                runCalled = true;
+                lastRunOptions = args[6];
+                return origRun(...args);
+            };
+
+            const noCastSkill: Skill = {
+                id: tempSeqId,
+                name: '瞬發測試',
+                role: Role.MAGE,
+                tag: 'ACTIVE',
+                range: 3,
+                cast: 0,
+                cd: 5,
+                cost: 20,
+                gain: 0,
+                type: 'SINGLE',
+                power: 100,
+                projectileSpeed: 0,
+                color: '#4fc3f7',
+            };
+
+            const castEvent: GameEvent = {
+                type: 'CAST_START',
+                sourceId: caster.id,
+                targetId: target.id,
+                skill: noCastSkill,
+                pos: { x: target.px, y: target.py, z: 10 },
+            };
+
+            const origPlayBeam = vfxSystem.playBeam.bind(vfxSystem);
+            vfxSystem.playBeam = () => {};
+
+            try {
+                visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
+                expect(lastRunOptions).toBeUndefined();
+            } finally {
+                sequenceSystem.run = origRun;
+                vfxSystem.playBeam = origPlayBeam;
+                delete SKILL_SEQUENCES[tempSeqId];
+            }
+        });
+
+        it('does NOT pass binding options for skills containing HEAVEN_FALL actions (ensuring sequence exists and run is called)', () => {
+            const caster = engine.agents[0];
+            const target = engine.agents[1];
+
+            expect(SKILL_SEQUENCES['tr_u1']).toBeDefined();
+            expect(SKILL_SEQUENCES['tr_u1'].actions.some(a => a.type === 'HEAVEN_FALL')).toBe(true);
+
+            const realTrU1 = DEFAULT_SKILL_DB.find(s => s.id === 'tr_u1');
+            expect(realTrU1).toBeDefined();
+            expect(realTrU1!.type).toBe('SINGLE');
+            expect(realTrU1!.cast).toBeGreaterThan(0);
+
+            let runCalled = false;
+            let lastRunOptions: SequenceRunOptions | undefined = { targetId: 'sentinel', lockAt: -1 };
+            const origRun = sequenceSystem.run.bind(sequenceSystem);
+            sequenceSystem.run = (...args) => {
+                runCalled = true;
+                lastRunOptions = args[6];
+                return origRun(...args);
+            };
+
+            const castEvent: GameEvent = {
+                type: 'CAST_START',
+                sourceId: caster.id,
+                targetId: target.id,
+                skill: realTrU1!,
+                pos: { x: target.px, y: target.py, z: 10 },
+            };
+
+            try {
+                visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
+                expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeUndefined();
             } finally {
                 sequenceSystem.run = origRun;
@@ -508,7 +719,7 @@ describe('SequenceTargetBinding (F02)', () => {
 
             // Stub playEffect to avoid canvas creation in node test environment
             const origPlayEffect = vfxSystem.playEffect.bind(vfxSystem);
-            vfxSystem.playEffect = () => null as any;
+            vfxSystem.playEffect = () => {};
 
             try {
                 // Emit CAST_BREAK event through visualSystem

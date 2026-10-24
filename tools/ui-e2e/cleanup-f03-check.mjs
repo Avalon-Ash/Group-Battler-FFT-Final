@@ -509,8 +509,18 @@ try {
     let uiFailed = 0;
 
     if (phase === 'before') {
-        uiPassed = 1;
-        results.summary.status = 'COMPLETED_BEFORE';
+        const noErrors = results.errors.length === 0 && results.pageErrors.length === 0 && results.consoleErrors.length === 0;
+        const restorePassed = results.apiRestored === true && results.uiRestored === true;
+        const smokePassed = results.smokeBattle.ok === true && results.smokeBattle.advanced === true && results.smokeBattle.isRunning === true;
+
+        if (noErrors && restorePassed && smokePassed) {
+            uiPassed = 1;
+            results.summary.status = 'COMPLETED_BEFORE';
+        } else {
+            uiFailed = 1;
+            results.summary.status = 'BEFORE_ANOMALY';
+            process.exitCode = 1;
+        }
     } else {
         const av = results.uiCases.afterValidation;
         const allUiPassed = av && av.draftAndCommitOk && av.negativeCastRejected &&
