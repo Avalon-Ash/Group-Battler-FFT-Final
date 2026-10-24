@@ -120,7 +120,7 @@ describe('TerrainSkin & TerrainTextureStore', () => {
 
         it('exposes TERRAIN_SKIN SSOT parameters without legacy enabled toggle', () => {
             expect(TERRAIN_SKIN.texturePxPerHex).toBe(96);
-            expect(TERRAIN_SKIN.tintStrength).toBe(0.35);
+            expect('tintStrength' in TERRAIN_SKIN).toBe(false);
             expect('enabled' in TERRAIN_SKIN).toBe(false);
         });
     });

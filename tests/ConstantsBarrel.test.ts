@@ -53,7 +53,6 @@ export const EXPECTED_EXPORTS = [
     'PHYSICS',
     'PROJECTILE_RENDER',
     'RENDER_CACHE',
-    'RENDER_GLOW',
     'RENDER_HOTSPOT_CACHE',
     'RENDER_PERF',
     'RENDER_QUALITY',
@@ -108,7 +107,7 @@ function serialize(v: unknown): unknown {
 }
 
 describe('Constants Barrel Export Contract', () => {
-    it('exports exactly the 88 expected names in sorted order', () => {
+    it('exports exactly the expected names in sorted order', () => {
         const actualExports = Object.keys(C).sort();
         expect(actualExports).toEqual(EXPECTED_EXPORTS);
     });
