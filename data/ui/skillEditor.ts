@@ -38,7 +38,7 @@ export const SKILL_CC_TYPE_OPTIONS = [
 export const SKILL_EFFECT_TYPE_OPTIONS = [
     'VAMP', 'MANA_BURN', 'EXECUTE', 'MANA_RESTORE', 'DASH', 'SELF_DAMAGE'
 ] as const satisfies readonly NonNullable<Skill['effectType']>[];
-export const SKILL_TEAM_OPTIONS = [Team.BLUE, Team.RED] as const satisfies readonly Team[];
+const SKILL_TEAM_OPTIONS = [Team.BLUE, Team.RED] as const satisfies readonly Team[];
 
 const TAG_SET = new Set<string>(SKILL_TAG_OPTIONS);
 const TYPE_SET = new Set<string>(SKILL_TYPE_OPTIONS);
@@ -67,12 +67,12 @@ function isFiniteNumber(val: unknown): boolean {
 // =========================================================================
 // 逐欄驗證規則表（型別完整性檢查，覆蓋全部 SkillEditableField）
 // =========================================================================
-export interface SkillFieldRule {
+interface SkillFieldRule {
     required: boolean;
     validate: (val: unknown) => boolean;
 }
 
-export const SKILL_FIELD_RULES: Record<SkillEditableField, SkillFieldRule> = {
+const SKILL_FIELD_RULES: Record<SkillEditableField, SkillFieldRule> = {
     // 1. 必填、非負有限數值（>= 0，可小數）
     range: { required: true, validate: isNonNegativeFiniteNumber },
     cast: { required: true, validate: isNonNegativeFiniteNumber },

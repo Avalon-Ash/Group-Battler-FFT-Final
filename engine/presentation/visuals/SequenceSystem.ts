@@ -26,7 +26,7 @@ export interface SequenceRunOptions {
     lockAt?: number;
 }
 
-export interface SequenceTargetBinding {
+interface SequenceTargetBinding {
     targetId: string;
     lockAt: number;
     locked: boolean;

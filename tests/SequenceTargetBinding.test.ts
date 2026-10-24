@@ -29,6 +29,7 @@ describe('SequenceTargetBinding (F02)', () => {
 
     beforeEach(() => {
         engine = new GameEngine();
+        engine.map.obstacles.clear();
         sequenceSystem = new SequenceSystem();
         visualSystem = new VisualSystem();
         vfxSystem = new VFXSystem();

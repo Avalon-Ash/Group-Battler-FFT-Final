@@ -6,15 +6,15 @@
 
 ## 1. 查證與收尾項目台帳總表
 
-| 項目代號 | 項目名稱 | 判定 | 狀態 | 核心依據 |
+| 項目代號 | 項目名稱 | 分級 (P/D) | 狀態 | 核心依據 |
 | --- | --- | --- | --- | --- |
-| **F02** | 單體序列動態目標綁定與鎖定時點 | P | **可關閉** | 36 招受影響技能動態跟隨目標至結算幀，AOE 雙重鎖定（sim/visual 0px），測試 16 項全過，保真單張更新後全綠。 |
-| **F03** | 技能編輯器數值緩衝與驗證守門 | P | **可關閉** | 20 項 API 邊界驗證全過、UI 草稿生命週期全過、短戰鬥煙霧正常，before 探針補正非零退出碼守門。 |
-| **T01** | DocDrift 檔頭防過時能力邊界 | D | **可關閉** | 檔頭明確註記工具能力邊界（路徑與名稱守門，不保語義時序）；本批文件名稱數量已人工核對。 |
-| **K01** | Knip 匯入解析限制與缺檔查證 | D | **可關閉** | 144 處未解析均為瀏覽器端 Vite root import 之工具解析限制（對應 46 條不重複路徑，100% 存在於磁碟）；真正缺檔為 0。 |
-| **K02** | Sharp 套件環境相容與逐幀退避 | D | **可關閉** | 本機無 sharp 時自動走 `frames.forEach` 退避，實測 `FX_HEAL_BURST` 輸出 5 張 220x200 逐幀有效 PNG，無報錯。 |
-| **COORD01** | 渲染座標協議違規診斷與分級 | D | **保留（未完成）** | `--assert` 實跑 EXIT=1，sink=1 (1.89px)、over-void=1 (擊飛出界)、oscillation=106 flips (13 static episodes)，代表案例取證完畢，不提前關閉。 |
-| **A0-GAP** | A0 歷史清冊缺口量化盤點 | D | **保留（未完成）** | 649 檔中 43 檔有實質人工證據，606 檔待核實；已分 4 組量化並列出後續批次建議，不偽稱完成。 |
+| **F02** | 單體序列動態目標綁定與鎖定時點 | P2/D2 | **可關閉** | 36 招受影響技能動態跟隨目標至結算幀，AOE 雙重鎖定（sim/visual 0px），測試 16 項全過，保真單張更新後全綠。 |
+| **F03** | 技能編輯器數值緩衝與驗證守門 | P2/D2 | **可關閉** | 20 項 API 邊界驗證全過、UI 草稿生命週期全過、短戰鬥煙霧正常，before 探針補正非零退出碼守門。 |
+| **T01** | DocDrift 檔頭防過時能力邊界 | P3/D1 | **可關閉** | 檔頭明確註記工具能力邊界（路徑與名稱守門，不保語義時序）；本批文件名稱數量已人工核對。 |
+| **K01** | Knip 匯入解析限制與缺檔查證 | P3/D1 | **可關閉** | 144 處未解析均為瀏覽器端 Vite root import 之工具解析限制（對應 46 條不重複路徑，100% 存在於磁碟）；真正缺檔為 0。 |
+| **K02** | Sharp 套件環境相容與逐幀退避 | P3/D1 | **可關閉** | 本機無 sharp 時自動走 `frames.forEach` 退避，實測 `FX_HEAL_BURST` 輸出 5 張 220x200 逐幀有效 PNG，無報錯。 |
+| **COORD01** | 渲染座標協議違規診斷與分級 | 暫定 P2/D3 | **保留（未完成）** | `--assert` 實跑 EXIT=1，sink=1 (1.89px)、over-void=1 (擊飛出界)、oscillation=106 flips (13 static episodes)。V01 抽樣有 corpseOp=null 及採樣時間錯位限制，根因為假說，代表案例取證待 AUDIT01 補強，不提前關閉。 |
+| **A0-GAP** | A0 歷史清冊缺口量化盤點 | P3/D0 | **保留（未完成）** | 歷史 CSV 649 列中 9 條已確認事實、640 條列舉待查；V01 43 檔手列名單不能充當全檔驗收數；已分 4 組量化，待 AUDIT01 重建全庫真確帳本，不偽稱完成。 |
 
 ---
 
@@ -22,7 +22,7 @@
 
 ### 項目 F02：單體序列動態目標綁定與時點協議
 - **問題**: 單體有詠唱非投射物技能在目標移動時，特效留在施法起點造成視覺脫節；且需保證 AOE 技能維持地面鎖定不跟隨。
-- **證據**: 
+- **證據**:
   - `tools/ui-e2e/out/v01-f02-after.json` (status: PASS, EXIT=0)
   - `tools/ui-e2e/out/agent-logs/v01-f02.log`
   - `tests/SequenceTargetBinding.test.ts` (16 tests passed, 0 failures, 0 `as any`)
@@ -33,7 +33,7 @@
   - 受影響非 BASIC 技能經真實資料庫與序列庫導出共 36 項（見 `review-f02-eligible.json`），無杜撰之假 ID。
   - 負向控制：注入 `console.error` 實跑證實退出碼為 1 (`EXIT=1`, status `FAIL`)。
 - **結論**: 單體目標動態綁定機制完整落實，邊界與排除路由均經強化斷言驗證，保真基準更新後 guard 全綠。
-- **P/D**: P（實作與驗收修復完成）
+- **P/D**: P2/D2（原計畫暫列 P2/D2；實作與驗收修復完成，結案）
 - **下一步**: 關閉 F02；隨 V01 批次由主代理合併。
 - **最小檔案範圍**: `engine/presentation/visuals/SequenceSystem.ts`, `engine/presentation/VisualSystem.ts`, `engine/renderers/RenderSpec.ts`, `tests/SequenceTargetBinding.test.ts`, `tools/ui-e2e/cleanup-f02-check.mjs`.
 
@@ -41,7 +41,7 @@
 
 ### 項目 F03：技能編輯器數值緩衝與驗證守門
 - **問題**: 技能編輯器數值未緩衝導致輸入過程異常更新，且缺乏 API 邊界驗證；測試缺乏跨 engine 隔離。
-- **證據**: 
+- **證據**:
   - `tools/ui-e2e/out/v01-f03-after.json` (status: PASS, EXIT=0)
   - `tools/ui-e2e/out/agent-logs/v01-f03.log`
   - `tests/SkillEditor.test.ts` (59 tests passed, 0 failures, 0 `as any`)
@@ -50,7 +50,7 @@
   - UI 草稿生命週期：SkillNumberInput 緩衝有效，Enter/blur 單次派發，Escape 取消草稿，切換技能不串連。
   - 探針守門：`cleanup-f03-check.mjs` before 分支若遇錯誤、還原失敗或 smoke 失敗均嚴格回傳 `BEFORE_ANOMALY` 與 `EXIT=1`。
 - **結論**: 技能編輯器驗證與緩衝合約全數落實，測試與探針補正完畢。
-- **P/D**: P（實作與驗收修復完成）
+- **P/D**: P2/D2（原計畫暫列 P2/D2；實作與驗收修復完成，結案）
 - **下一步**: 關閉 F03；隨 V01 批次由主代理合併。
 - **最小檔案範圍**: `data/ui/skillEditor.ts`, `components/inspector/parts/SkillNumberInput.tsx`, `components/inspector/tabs/SkillDbTab.tsx`, `engine/systems/ui/UICommandSystem.ts`, `tests/SkillEditor.test.ts`, `tools/ui-e2e/cleanup-f03-check.mjs`.
 
@@ -58,7 +58,7 @@
 
 ### 項目 T01：DocDrift 檔頭防過時能力邊界
 - **問題**: 評估 `tests/DocDrift.test.ts` 自動防過時測試的能力邊界，確認是否能判定語義與時序正確性。
-- **證據**: 
+- **證據**:
   - `tests/DocDrift.test.ts` 方框檔頭與測試原始碼
   - `npx vitest run tests/DocDrift.test.ts` (3 tests passed)
 - **觀察**:
@@ -66,7 +66,7 @@
   - 無法判定：中文語義是否正確、責任劃分是否真實、參數數量與時間點是否精確、時序與規範是否如實對齊。
   - 人工核對：本批涉及之報告與檔頭（VisualSystem 集合狀態、RenderSpec §4.1、各報告名稱與時序）均經人工逐字核對。
 - **結論**: 已在 `tests/DocDrift.test.ts` 檔頭明確補充能力邊界警語；確立「DocDrift 為語彙防懸空守門，非自動語義驗收工具」之架構認知。
-- **P/D**: D（診斷完成，能力邊界已固化至檔頭）
+- **P/D**: P3/D1（原計畫 P3/D1；能力邊界已固化至檔頭，結案）
 - **下一步**: 關閉 T01。後續批次維持「靜態工具守路徑 + 代理人工審查語義」之雙重紀律。
 - **最小檔案範圍**: `tests/DocDrift.test.ts`.
 
@@ -74,7 +74,7 @@
 
 ### 項目 K01：Knip 匯入解析限制與缺檔查證
 - **問題**: 釐清 `npm run knip` 報出之 144 處 Unresolved imports 是否為專案真實缺檔。
-- **證據**: 
+- **證據**:
   - `tools/ui-e2e/out/v01/knip.log` (EXIT=1)
   - `tools/ui-e2e/out/v01/knip_analysis.json`
 - **觀察**:
@@ -83,7 +83,7 @@
   - 根因：全部來自 `tools/` 測試腳本在 Playwright 瀏覽器 `page.evaluate()` 內部以 Vite 根路徑（如 `import('/types.ts')`）進行動態載入。Knip 以 Node 檔案系統根目錄解析，導致誤報。
   - Unused exports 僅 2 項（`SKILL_TEAM_OPTIONS`、`SKILL_FIELD_RULES`），Unused types 僅 2 項（`SkillFieldRule`、`SequenceTargetBinding`），均為公開模組合理導出型別。
 - **結論**: 已證實 144 處未解析為「工具解析限制，非產品故障」，且無任何代碼缺檔。依合約不修改 knip 設定以求虛假全綠。
-- **P/D**: D（診斷結案）
+- **P/D**: P3/D1（原計畫暫列 P3/D1；診斷結案，無程式缺檔）
 - **下一步**: 關閉 K01；保留既有配置。
 - **最小檔案範圍**: 無產品代碼修改。
 
@@ -91,7 +91,7 @@
 
 ### 項目 K02：Sharp 套件相容與無 sharp 逐幀退避
 - **問題**: 查證當前執行環境是否具備 `sharp` 套件，並驗證 `fx-shot` 在無 sharp 環境下的退避表現。
-- **證據**: 
+- **證據**:
   - `node -e "import('sharp')"` 報 `Cannot find package 'sharp'`
   - 實跑命令: `node tools/vfx/fx-shot.mjs --keys=FX_HEAL_BURST --out=tools/ui-e2e/out/v01/fx-no-sharp` (EXIT=0)
   - 產出檔案: `tools/ui-e2e/out/v01/fx-no-sharp/FX_HEAL_BURST_0..4.png`
@@ -100,7 +100,7 @@
   - `tools/vfx/fx-shot.mjs` 原生具備退避設計：當 `import('sharp')` 失敗時，走 `frames.forEach((f, i) => writeFileSync(...))` 逐幀輸出。
   - 產出的 5 張 PNG 經標頭與維度驗證：全部為標準 PNG 格式，尺寸均為 220x200，大小 46KB~51KB，非空白畫面，像素渲染正常。
 - **結論**: `fx-shot` 在無 sharp 環境下具備完整的確定性逐幀輸出能力，差異僅為未拼合成單張橫幅總表，不影響工具查證與美術預覽功能。
-- **P/D**: D（診斷與實跑驗證完成）
+- **P/D**: P3/D1（原計畫暫列 P3/D1；診斷與實跑驗證完成，結案）
 - **下一步**: 關閉 K02。
 - **最小檔案範圍**: 無產品代碼修改。
 
@@ -108,7 +108,7 @@
 
 ### 項目 COORD01：渲染座標協議違規診斷與分級
 - **問題**: `node tools/ui-e2e/coord-guard.mjs --assert` 實跑 EXIT=1，存在座標協議違規，需進行只讀診斷、代表案例取證與分級，不得硬修產品或放寬門檻。
-- **證據**: 
+- **證據**:
   - `tools/ui-e2e/out/v01/coord_guard_new.json` (EXIT=1)
   - `tools/ui-e2e/out/v01/v01-coords.log`
   - `tools/ui-e2e/out/v01/coord_cases.json`
@@ -135,16 +135,16 @@
      - 分析: 屍體受擊微弱位移停留在格界臨界線上，`UnitFrameStore` 的格界滯後閾值（`HEX_HYSTERESIS_PX`）與死區（`SORT_DEADBAND_PX`）在相鄰格格心高度差較大時產生鋸齒切換。
      - A0 歷史: A0 已存在。
      - 建議最小修復範圍: `engine/renderers/frame/UnitFrame.ts` 中屍體進入完全靜止狀態時鎖定排序格，禁止格界反覆切換。
-- **結論**: 三大問題已精確重現、完成多幀取證並確認根因候選。按合約本輪只讀診斷、不擴大修改產品。
-- **P/D**: D（診斷、代表案例取證與分級建議完成，未修復）
-- **下一步**: 保留於 HANDOFF，留待主代理於專案修復批次中依建議最小範圍進行針對性修復。**不得提前關閉**。
+- **結論**: 三大問題已由 coord-guard 重現診斷。按合約本輪只讀診斷、不擴大修改產品。（審查更正：V01 初版之 capture-cases.mjs 存在查詢未實例化之 renderer.lastRenderList 導致 corpseOp=null 及 hazardCount=0、以及 voidCase 抽樣時間與診斷時點錯位之限制；原報告所述 clamp、立即 banish 或屍體排序凍結僅為初探假說，非已證實根因與已定解法；保留原觀測，真確因果鏈留待 AUDIT01 補強取證）。
+- **P/D**: 暫列 P2/D3（原診斷保留，取證待 AUDIT01 補強，未修復）
+- **下一步**: 保留於 HANDOFF，留待 AUDIT01 補強取證並由主代理審查修復設計。**不得提前關閉**。
 - **最小檔案範圍**: 無產品代碼修改。
 
 ---
 
 ### 項目 A0-GAP：A0 清冊缺口量化盤點
 - **問題**: A0 歷史清冊（649 檔）中絕大多數未進行實質逐檔查核，需量化未核實缺口並分組規劃。
-- **證據**: 
+- **證據**:
   - `docs/PROJECT_CLEANUP_A0_INVENTORY.csv`
   - `tools/ui-e2e/out/v01/a0_gap_summary.json`
   - `git diff --name-status e92b635..HEAD`
@@ -159,7 +159,7 @@
 - **A0 以來追蹤檔案變更**:
   - Tracked 刪除 (2 檔，commit `2b15fad`): 裸檔名 `GlowSpriteCache.ts`, `GlowSpriteCache.test.ts`
   - Tracked 新增 (17 檔): `components/inspector/parts/SkillNumberInput.tsx`, 6 個單元/E2E 測試 (`SequenceTargetBinding`, `SkillEditor`, `RenderGlowFlag`, `CastingDeathInterruption`, `cleanup-f02-check`, `cleanup-f03-check`), 10 份進度報告
-- **結論**: A0 清冊絕大多數（93.4%）仍處於未實質核實狀態。不得宣稱「全庫已查清」。缺口已依 4 大領域清晰切分。
-- **P/D**: D（缺口量化盤點完成）
-- **下一步**: 依 4 大領域建議後續專屬批次逐批核實；**不得提前關閉**。
+- **結論**: 歷史 A0 CSV 共有 649 列，其中僅 9 列為「已確認該事實」，其餘 640 列為「僅列舉／待查」；V01 報告所列 43 檔為初選之手列名單，非全檔語義驗收數，絕大多數（93.4%）仍處於未實質核實狀態。不得宣稱「全庫已查清」。缺口已依 4 大領域清晰切分。
+- **P/D**: P3/D0（缺口量化盤點完成，待 AUDIT01 逐檔查證重建全庫帳本）
+- **下一步**: 依 4 大領域由 AUDIT01 執行當前全庫真確帳本重建；**不得提前關閉**。
 - **最小檔案範圍**: 無產品代碼修改。
