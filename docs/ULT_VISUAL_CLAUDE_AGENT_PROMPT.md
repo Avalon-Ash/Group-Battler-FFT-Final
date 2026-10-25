@@ -4,7 +4,7 @@
 
 ## 0. INV：入口與工作方式
 
-- 目錄 C:\Git\Group-Battler-FFT-Final，分支 feat/project-cleanup。記錄起點 SHA／status。此 checkout 同時只能有一個寫入代理與一條渲染驗證流程，不和 Gemini 同時改檔。
+- 目錄 C:\Git\Group-Battler-FFT-Final。ULT-T01 合併進 `main` 之後，從 `main` 開分支 `feat/ult-visual`。記錄起點 SHA 與 status。這個 checkout 同時只能有一個寫入代理、一條渲染驗證流程。離線素材（Codex 的 lionheart skin 工作樹）可以同時進行，但 Blender 烘焙不得和這裡的 perf:guard／perf:fidelity 同時跑。
 - 先讀 AGENTS.md、types.ts、constants/vfx.ts、RenderSpec、materialConfig、ULT_REDESIGN_PLAN 的50招方向表、ULT_TIMING_REPORT（若存在）、NEXT_PLAN。本文件授權全50視覺，取代舊R1只做四招的範圍；不授權戰鬥機制、時序下限或基準放寬。
 - 若清理／ULT-T01 尚未獲主審接受，可先完成設計矩陣與 tools/ui-e2e/out/ult-v01/ 的隔離預覽；正式配方／產品整合必須等 T01 入口成立。不要自行合併其他分支、提交其他代理工作、替別人修核心座標。
 - 允許域：data/vfx/ult_visuals.ts、registry/ult_parts*.ts、SkillSequences.ts 中奧義專屬資料、data/vfx/parts/**、engine/renderers/vfxparts/{PartSpec,PartBakers,PartLayerPainter,VFXPartStore}.ts 的必要最小能力、既有奧義展示工具及新專題探針／測試。先在 ULT_VISUAL_CLAUDE_REPORT 列精確改檔清單；共用零件改動要驗證普攻／主動技未退化。

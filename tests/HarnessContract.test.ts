@@ -53,14 +53,12 @@ describe('HarnessContract', () => {
         expect(bad).toEqual([]);
     });
 
-    it('Codex 版 skill（.agents/skills）與 .claude/skills 內容一致', () => {
-        const read = (f: string) => fs.readFileSync(f, 'utf8').replace(/\r/g, '');
-        const claudeDir = path.join(ROOT, '.claude/skills');
-        const codexDir = path.join(ROOT, '.agents/skills');
-        expect(fs.readdirSync(codexDir).sort()).toEqual(fs.readdirSync(claudeDir).sort());
-        for (const name of fs.readdirSync(claudeDir)) {
-            expect(read(path.join(codexDir, name, 'SKILL.md')), name).toBe(read(path.join(claudeDir, name, 'SKILL.md')));
-        }
+    it('Codex 版合約副本（.agents/skills、.codex/agents）與 .claude 來源同步', () => {
+        const res = spawnSync(process.execPath, [path.join(ROOT, 'tools/agent/sync-codex-contracts.mjs'), '--check'], { encoding: 'utf8' });
+        expect(res.stderr).toBe('');
+        expect(res.status).toBe(0);
+        // 沒有來源的多餘 skill 副本
+        expect(fs.readdirSync(path.join(ROOT, '.agents/skills')).sort()).toEqual(fs.readdirSync(path.join(ROOT, '.claude/skills')).sort());
     });
 
     it('子代理定義鎖定模型，且不是 Opus', () => {

@@ -16,7 +16,7 @@
 - **改到渲染或生命週期，一定要本機實跑驗證**（`render-verify` skill；最小是 `node tools/ui-e2e/runtime-smoke.mjs`）。lint／test／build 全綠曾經交出凍結的畫面，`docs/METHODOLOGY.md` §4 審查教訓有細節。
 - 改完跑 `npm run lint`、`npm test`、`npm run build`；動到渲染再加 `npm run perf:guard`。保真基準不得任意重錄、門檻不得放寬。
 - **重錄保真基準要有證據**（`rebaseline-fidelity` skill；重錄後 hook 會提醒取證清單）：先產生新舊差異圖，確認只有預期元素變動，並在重錄的 commit 訊息寫明哪些元素變了、哪些基準 0 差異。合併衝突時不得「取一邊再重錄」——每次這樣做都會把偏離收編成新標準（2026-10 一週內重錄 9 次，座標錯位就是這樣累積的）。
-- **動到渲染／座標的工作同一時間只開一條**（子工作階段或分支）。並行拆工時，各條就地加的排序、高度規則沒人對照整套協議，這是 2026-10 錯位回歸的主因。不碰渲染的工作照常並行。
+- **動到渲染／座標的工作同一時間只開一條**（子工作階段或分支）。並行拆工時，各條就地加的排序、高度規則沒人對照整套協議，這是 2026-10 錯位回歸的主因。不碰渲染的工作照常並行。離線素材製作（概念稿、Blender 建模與烘焙，不改 `engine/`、`data/vfx/` 也不改圖集載入）不算渲染工作，可以並行；接進圖集或渲染器的那一步才算。重量測（`perf:guard`、`perf:fidelity`、`perf:frames`）不得和 Blender 烘焙同時跑。
 
 ## 架構不變式（摘要；完整版在 `AGENTS.md`）
 `AGENTS.md` 是寫給低階代理的嚴格合約，也是你審查 diff 時的檢查清單——審查或做跨系統修改前再讀它。自己動手時記住這些重點：
@@ -47,7 +47,7 @@
 
 能幾個工具呼叫就解決的事直接做，不必開子代理。
 
-**Codex（GPT）**：用使用者的 ChatGPT Plus 額度，不吃 Claude 額度，但 Plus 很緊（每 5 小時估計 Astra 5～45 則、Sol 15～160、Luna 350～3,000；生圖約 3～5 倍）。呼叫方式：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --model … --effort … [--write] --cwd <工作樹> --prompt-file <檔>`，**不加 `--background`**，讓 harness 在結束時通知，不輪詢 `status`。Codex 會自己讀 `AGENTS.md`；可寫任務的提示詞照 `agent-prompt` skill 的 Codex 版。hook 擋下沒寫 `--model`（task 還要 `--effort`）的呼叫，以及沒加 `[codex-cost-ok]` 的 Astra、xhigh、非 Luna 的 high；同一串指令裡每個呼叫各自檢查。`review` 不收 `--effort`，強度跟 Codex 實際載入的 config 走：專案 `.codex/config.toml` 的信任只涵蓋主資料夾，外部工作樹可能讀到全域的 high，成本照 high 估。派工後要宣稱用了哪個檔位，先查 `~/.codex/sessions` 的紀錄（模型自報的名稱不可信）。這些是 Claude 端的入口檢查。Codex 執行時，另由 `.codex/hooks.json` 呼叫同一支腳本的 `--codex` 模式（Bash／spawn_agent／apply_patch；Codex 不支援 `ask`，一律改成 `deny`），2026-10-25 已實測會擋下工作樹內的 npm 安裝。hook 內容改過以後，使用者要在 Codex 用 `/hooks` 重新信任才會生效。`.agents/skills`、`.codex/agents` 是 Codex 版的副本：skill 要和 `.claude/skills` 保持一致，子代理定義由 `.claude/agents` 產生（檔頭有寫）；改 Claude 版的時候要一起同步。生圖只做少量概念稿，不做整套圖集。
+**Codex（GPT）**：用使用者的 ChatGPT Plus 額度，不吃 Claude 額度，但 Plus 很緊（每 5 小時估計 Astra 5～45 則、Sol 15～160、Luna 350～3,000；生圖約 3～5 倍）。呼叫方式：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --model … --effort … [--write] --cwd <工作樹> --prompt-file <檔>`，**不加 `--background`**，讓 harness 在結束時通知，不輪詢 `status`。Codex 會自己讀 `AGENTS.md`；可寫任務的提示詞照 `agent-prompt` skill 的 Codex 版。hook 擋下沒寫 `--model`（task 還要 `--effort`）的呼叫，以及沒加 `[codex-cost-ok]` 的 Astra、xhigh、非 Luna 的 high；同一串指令裡每個呼叫各自檢查。`review` 不收 `--effort`，強度跟 Codex 實際載入的 config 走：專案 `.codex/config.toml` 的信任只涵蓋主資料夾，外部工作樹可能讀到全域的 high，成本照 high 估。派工後要宣稱用了哪個檔位，先查 `~/.codex/sessions` 的紀錄（模型自報的名稱不可信）。這些是 Claude 端的入口檢查。Codex 執行時，另由 `.codex/hooks.json` 呼叫同一支腳本的 `--codex` 模式（Bash／spawn_agent／apply_patch；Codex 不支援 `ask`，一律改成 `deny`），2026-10-25 已實測會擋下工作樹內的 npm 安裝。hook 內容改過以後，使用者要在 Codex 用 `/hooks` 重新信任才會生效。`.agents/skills`、`.codex/agents` 是 Codex 版的副本：改了 `.claude/skills` 或 `.claude/agents` 之後，執行 `node tools/agent/sync-codex-contracts.mjs` 同步；沒同步的話，`tests/HarnessContract.test.ts` 會失敗。生圖只做少量概念稿，不做整套圖集。
 
 **開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 

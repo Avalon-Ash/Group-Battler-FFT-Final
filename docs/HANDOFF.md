@@ -5,7 +5,11 @@
 
 ## 1. 目前狀態
 
-- 清理第一階段（`feat/project-cleanup`）已合併進本機 `main`，`main` 還沒 push。完成紀錄見 WORKLOG §2 S；後續計畫見 `docs/PROJECT_CLEANUP_NEXT_PLAN.md`。
+- 清理第一階段已合併進 `main`，並已 push。完成紀錄見 WORKLOG §2 S；後續計畫見 `docs/PROJECT_CLEANUP_NEXT_PLAN.md`。
+- **兩條並行線**：
+  - Codex 在自己的工作樹（`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`，分支 `codex/lionheart-warrior-skins`）做獅心戰士男女 skin：離線製作與試烘焙。交接文件是該分支 docs 底下的 `LIONHEART_WARRIOR_SKIN_TRIAL_OPUS_HANDOFF.md`（main 上還沒有這個檔）。
+  - Claude 在主資料夾做奧義（ULT-T01 → ULT-V01）。
+  - skin 正式接進圖集、做效能量測時，由主代理排時段；Blender 烘焙不和 `perf:*` 同時跑（CLAUDE.md 鐵律）。
 - 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 共 659 列：520 列未讀、31 列只核對部分事實、108 列不適用。逐檔語義審計**沒有完成**，之後只能逐檔累積可追溯的證據，不可整批標成完成。
 - 未結案的 findings（`docs/PROJECT_CLEANUP_AUDIT01_FINDINGS.csv`）：
   - **COORD-SINK-01**（P2）：受擊位移讓單位滯留原格，下坡插值時下陷 1.89px。原因已定位，修法還沒批准。

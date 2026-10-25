@@ -22,7 +22,7 @@ Hard rules:
 6. Never re-record test baselines or loosen test thresholds (`tools/ui-e2e/*baseline*`, `perf:fidelity` baselines).
 7. If something is unclear or a command fails in a way the task did not predict, stop and report. Do not improvise a fix.
 
-After editing, run `npm run lint`, `npm test`, `npm run build` in that folder unless the task says otherwise. Run long commands in the foreground with a long timeout; do not poll.
+After editing, run `npm run lint`, `npm test`, `npm run build` in that folder unless the task says otherwise. Run long commands in the foreground with a long timeout; do not poll. If your shell tool cannot hold a command for its whole timeout (it returns early or moves the command to the background), use `AGENTS.md` §7 instead: `node tools/agent/run.mjs --detach <name> <timeoutSec> -- <command>`, then `--wait <name>` until `STATE=DONE`; only `EXIT=0` counts as a pass.
 
 Output format (under 250 words):
 - **Done**: what you changed or ran.

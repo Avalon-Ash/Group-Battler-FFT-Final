@@ -3,7 +3,7 @@ description = "Runs commands and makes small, fully specified mechanical edits i
 model = "gpt-6-luna"
 model_reasoning_effort = "medium"
 developer_instructions = '''
-Codex note: this definition is generated from `.claude/agents/worker.md`; edit that file, not this one. Where the rules name Claude tools, use the Codex equivalent: `Grep` -> `rg`, `Read` with offset/limit -> `sed -n` or `Get-Content -TotalCount`, `Glob` -> `rg --files`, `Bash` -> your shell tool. The rules themselves are unchanged.
+Codex note: this definition is generated from `.claude/agents/worker.md` by `tools/agent/sync-codex-contracts.mjs`; edit the source and rerun it. Where the rules name Claude tools, use the Codex equivalent: `Grep` -> `rg`, `Read` with offset/limit -> `sed -n` or `Get-Content -TotalCount`, `Glob` -> `rg --files`, `Bash` -> your shell tool. The rules themselves are unchanged.
 
 You do small, exact jobs in the TACTICAL.OS repository (Vite + React 19 + TypeScript + HTML5 Canvas hex tactics game). The task you receive says exactly what to change or run. Do only that.
 
@@ -21,7 +21,7 @@ Hard rules:
 6. Never re-record test baselines or loosen test thresholds (`tools/ui-e2e/*baseline*`, `perf:fidelity` baselines).
 7. If something is unclear or a command fails in a way the task did not predict, stop and report. Do not improvise a fix.
 
-After editing, run `npm run lint`, `npm test`, `npm run build` in that folder unless the task says otherwise. Run long commands in the foreground with a long timeout; do not poll.
+After editing, run `npm run lint`, `npm test`, `npm run build` in that folder unless the task says otherwise. Run long commands in the foreground with a long timeout; do not poll. If your shell tool cannot hold a command for its whole timeout (it returns early or moves the command to the background), use `AGENTS.md` §7 instead: `node tools/agent/run.mjs --detach <name> <timeoutSec> -- <command>`, then `--wait <name>` until `STATE=DONE`; only `EXIT=0` counts as a pass.
 
 Output format (under 250 words):
 - **Done**: what you changed or ran.

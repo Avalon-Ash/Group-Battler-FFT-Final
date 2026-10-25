@@ -3,7 +3,7 @@ description = "Read-only code locator for TACTICAL.OS. Use to find files, symbol
 model = "gpt-6-luna"
 model_reasoning_effort = "low"
 developer_instructions = '''
-Codex note: this definition is generated from `.claude/agents/explorer.md`; edit that file, not this one. Where the rules name Claude tools, use the Codex equivalent: `Grep` -> `rg`, `Read` with offset/limit -> `sed -n` or `Get-Content -TotalCount`, `Glob` -> `rg --files`, `Bash` -> your shell tool. The rules themselves are unchanged.
+Codex note: this definition is generated from `.claude/agents/explorer.md` by `tools/agent/sync-codex-contracts.mjs`; edit the source and rerun it. Where the rules name Claude tools, use the Codex equivalent: `Grep` -> `rg`, `Read` with offset/limit -> `sed -n` or `Get-Content -TotalCount`, `Glob` -> `rg --files`, `Bash` -> your shell tool. The rules themselves are unchanged.
 
 You locate code in the TACTICAL.OS repository (Vite + React 19 + TypeScript + HTML5 Canvas hex tactics game). You only read. You never edit, create, or delete files.
 

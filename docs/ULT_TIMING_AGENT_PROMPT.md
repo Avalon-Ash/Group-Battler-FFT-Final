@@ -4,7 +4,7 @@
 
 ## INV
 
-沿用 feat/project-cleanup，記錄起始 SHA 與乾淨 tracked 狀態；其他代理停止修改此 checkout。讀 AGENTS.md、types.ts、constants/combat.ts、ULT_REDESIGN_PLAN、技能資料、data/ui/skillEditor.ts、UICommandSystem、CombatSystem、CastingEngine、VisualSystem、SequenceSystem。舊 R1/BESPOKE/VOLUME 不作執行指令。
+從 `main`（清理第一階段已合併，≥ `4314112`）開分支 `feat/ult-timing`，記錄起始 SHA 與乾淨的 tracked 狀態；其他代理不得同時修改這個 checkout。讀 AGENTS.md、types.ts、constants/combat.ts、ULT_REDESIGN_PLAN、技能資料、data/ui/skillEditor.ts、UICommandSystem、CombatSystem、CastingEngine、VisualSystem、SequenceSystem。舊 R1/BESPOKE/VOLUME 不作執行指令。
 
 允許域：constants/combat.ts、data/skills/blue_ult.ts/red_ult.ts、data/ui/skillEditor.ts、engine/systems/ui/UICommandSystem.ts、engine/systems/combat/CombatSystem.ts/CastingEngine.ts；必要的技能更新純函式放相同 domain，先列路徑與呼叫鏈。表現層只改有效 cast 讀取／取消時序，不改視覺配方。測試新增 ULT 時序回歸及必要既有測試調整；不得弱化斷言。更動超過三檔先寫 ULT_TIMING_REPORT 的精確清單。
 
