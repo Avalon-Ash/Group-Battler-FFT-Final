@@ -9,8 +9,7 @@ import { ProjectileSystem } from "./ProjectileSystem";
 import { CastingEngine, BreakCastContext } from "./CastingEngine";
 import { SkillExecutor } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
-import { ULT_VISUALS } from '../../../data/vfx/ult_visuals';
-import { PHYSICS } from '../../../constants';
+import { ultImpactDelay } from '../../../data/vfx/ult_visuals';
 import { unitEventPos } from "../../events/EventPos";
 
 export class CombatSystem {
@@ -162,12 +161,9 @@ export class CombatSystem {
         
         engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
 
-        const isHeavenFall = ULT_VISUALS[s.id]?.archetype === 'HEAVEN_FALL';
-        if (isHeavenFall) {
-            const cfg = ULT_VISUALS[s.id];
-            const fallHeight = cfg.height || 1000;
-            const fallTime = Math.sqrt((2 * fallHeight) / PHYSICS.GRAVITY);
-            const delay = (cfg.timing || 0) + fallTime;
+        // 天降類：詠唱結束後再等 timing＋落下時間才結算（ultImpactDelay；特效命中也讀同一個值）
+        const delay = ultImpactDelay(s.id);
+        if (delay > 0) {
             this._deferredCasts.push({
                 executeAt: engine.battleTime + delay,
                 agent: a,

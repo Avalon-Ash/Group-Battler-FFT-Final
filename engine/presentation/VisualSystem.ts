@@ -26,6 +26,7 @@ import { EventHUDMapper } from "./visuals/EventHUDMapper";
 import { EventVFXMapper } from "./visuals/EventVFXMapper";
 import { VisualMath } from "../math/VisualMath";
 import { SKILL_SEQUENCES } from "../../data/vfx/SkillSequences";
+import { ultImpactDelay } from "../../data/vfx/ult_visuals";
 import { HexUtils } from "../utils";
 
 export class VisualSystem {
@@ -62,8 +63,10 @@ export class VisualSystem {
                         const hex = HexUtils.fromPx(event.pos.x, event.pos.y, engine.mapConfig);
                         target3D.z = engine.getTerrainHeight(hex.q, hex.r) + 5; // Add bias to prevent ground clipping
                     }
-                    // 命中對齊傷害：序列延後 (詠唱 − hitAt) 才開始；詠唱被打斷時 CAST_BREAK 取消整串（VFXSequence.hitAt）
-                    const startDelay = Math.max(0, (event.skill.cast || 0) - (sequence.hitAt ?? 0));
+                    // 命中對齊傷害：傷害在 詠唱＋ultImpactDelay（天降類的落下時間，其他 0）結算，序列延後 (那一刻 − hitAt) 才開始；
+                    // 詠唱被打斷時 CAST_BREAK 取消整串（VFXSequence.hitAt）
+                    const impactAt = (event.skill.cast || 0) + ultImpactDelay(event.skill.id);
+                    const startDelay = Math.max(0, impactAt - (sequence.hitAt ?? 0));
 
                     // F02: 僅為 CAST_START 下符合資格的單體非投射物技能啟用動態目標綁定
                     const isEligibleSingle =

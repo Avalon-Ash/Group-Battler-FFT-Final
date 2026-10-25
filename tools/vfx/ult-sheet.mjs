@@ -134,6 +134,7 @@ try {
                 const types = await import('/types.ts');
                 const { HexUtils } = await import('/engine/utils.ts');
                 const { SKILL_SEQUENCES } = await import('/data/vfx/SkillSequences.ts');
+                const { ultImpactDelay } = await import('/data/vfx/ult_visuals.ts');
                 const { ULT_VISUALS } = await import('/data/vfx/ult_visuals.ts');
 
                 const cmd = (c) => e.bus.emit('UI_COMMAND', c);
@@ -229,7 +230,7 @@ try {
                     e.renderer.hud.reset();
 
                     // Sequence timing
-                    const castDelay = Math.max(0, cast - hitAt);
+                    const castDelay = Math.max(0, cast + ultImpactDelay(ultId) - hitAt);
                     const sampleOffsets = [-0.2, 0.0, 0.15, 0.4, 0.8];
                     let currentTau = -castDelay; // battleTime delta relative to sequence start
 
@@ -332,6 +333,7 @@ try {
                 const types = await import('/types.ts');
                 const { HexUtils } = await import('/engine/utils.ts');
                 const { SKILL_SEQUENCES } = await import('/data/vfx/SkillSequences.ts');
+                const { ultImpactDelay } = await import('/data/vfx/ult_visuals.ts');
                 const cmd = (c) => e.bus.emit('UI_COMMAND', c);
 
                 const centerH = { q: 0, r: 0 };
@@ -395,7 +397,7 @@ try {
                     e.renderer.processVisualEvents(e.events.splice(0));
                     e.renderer.hud.reset();
 
-                    const castDelay = Math.max(0, cast - hitAt);
+                    const castDelay = Math.max(0, cast + ultImpactDelay(ultId) - hitAt);
                     const targetTime = castDelay + hitAt + 0.05;
                     const framesToStep = Math.max(1, Math.round(targetTime * 60));
                     window.__stepFrames(framesToStep);
@@ -443,6 +445,7 @@ try {
                 const types = await import('/types.ts');
                 const { HexUtils } = await import('/engine/utils.ts');
                 const { SKILL_SEQUENCES } = await import('/data/vfx/SkillSequences.ts');
+                const { ultImpactDelay } = await import('/data/vfx/ult_visuals.ts');
 
                 const cmd = (c) => e.bus.emit('UI_COMMAND', c);
 
@@ -527,7 +530,7 @@ try {
                     e.renderer.processVisualEvents(e.events.splice(0));
 
                     // Sequence timing
-                    const castDelay = Math.max(0, cast - hitAt);
+                    const castDelay = Math.max(0, cast + ultImpactDelay(ultId) - hitAt);
                     let currentTau = -castDelay;
 
                     const y = HEADER_H + rowIdx * CELL_H;

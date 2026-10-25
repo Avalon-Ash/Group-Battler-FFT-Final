@@ -1,5 +1,5 @@
 import type { BeamStyleId } from "./beam_styles";
-import { COMBAT_PARAM } from "../../constants";
+import { COMBAT_PARAM, PHYSICS } from "../../constants";
 
 /**
  * 奧義序列的時序與打擊感參數（data/vfx/SkillSequences.ts）。
@@ -187,3 +187,18 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // sr_u5: 惡靈附身 -> 附身儀式
     'sr_u5': { archetype: 'DOMAIN', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.2, vfxOverride: 'FX_ULT_RED_POSSESSION' },
 };
+
+/** 天降類奧義的自由落體時間（落下高度 height，未設用 ULT_SEQUENCE.DEFAULT_FALL_HEIGHT）。 */
+export function ultFallTime(def: UltVisualDef): number {
+    return Math.sqrt((2 * (def.height || ULT_SEQUENCE.DEFAULT_FALL_HEIGHT)) / PHYSICS.GRAVITY);
+}
+
+/**
+ * 奧義在詠唱結束後再過多久才結算傷害（秒）：天降類＝timing＋自由落體時間，其他＝0。
+ * 單一來源：CombatSystem 的延遲結算、VisualSystem 的序列起點、SkillSequences 的命中時刻都讀它，
+ * 特效命中因此落在真正傷害那一刻（ULT-V01，使用者決定保留天降延遲、玩法不變）。
+ */
+export function ultImpactDelay(skillId: string | undefined): number {
+    const def = skillId ? ULT_VISUALS[skillId] : undefined;
+    return def?.archetype === 'HEAVEN_FALL' ? (def.timing || 0) + ultFallTime(def) : 0;
+}

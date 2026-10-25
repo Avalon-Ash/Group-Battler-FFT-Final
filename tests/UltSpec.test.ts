@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
-import { ULT_VISUALS, ULT_SEQUENCE } from '../data/vfx/ult_visuals';
+import { ULT_VISUALS, ULT_SEQUENCE, ultImpactDelay } from '../data/vfx/ult_visuals';
 import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
 import { VFX_REGISTRY } from '../data/vfx/VFXRegistry';
 import { HexUtils } from '../engine/utils';
@@ -79,8 +79,8 @@ export function evaluateUlt(id: string): UltEvalResult {
     const recipeAction = sequence.actions.find((a) => a.type === 'PARTICLE' && a.id === recipeKey);
     const actionStartTime = recipeAction?.delay ?? 0;
 
-    // C1: 時序 hitAt <= cast + 0.02
-    const c1Pass = hitAt <= cast + 0.02 + 1e-6;
+    // C1: 時序 hitAt <= 傷害結算時刻 + 0.02；結算時刻＝cast＋ultImpactDelay（天降類的落下時間，其他 0）
+    const c1Pass = hitAt <= cast + ultImpactDelay(id) + 0.02 + 1e-6;
 
     // C2: 命中對齊 — 主爆發 (半徑最大的 glow 或 ring 發射器) 落在 hitAt ± 0.08 s
     const glowRingEmitters = recipeAsset.emitters.filter(
