@@ -6,13 +6,13 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
 # 審查一輪、收尾一輪
 
 ## 1. 便宜地審查
-1. `git diff main...<branch> --stat`；只讀程式碼變更（`engine/`、`components/`、`data/`、`constants/`、`tests/`）。報告只看數字表與回退指南，不整份讀。
+1. `git diff main...<branch> --stat`；只讀程式碼變更（`engine/`、`components/`、`data/`、`constants/`、`tests/`；動到 `tools/hooks/`、`.claude/`、`.codex/`、設定檔時這些也要讀）。報告只看數字表與回退指南，不整份讀。
 2. 對照 `AGENTS.md`（檢查清單）；動到位置／排序時對照 `engine/renderers/RenderSpec.ts`。需要第二意見才開 `reviewer` 子代理。
 3. 每個改動寫一行決定（取自 Harness² 合成者規則；沒有證據的決定，下一個讀者無法稽核）：
    ```
    kept|revised|dropped -> <哪個改動> -> <依據：哪段程式、哪個量測、出現幾次>
    ```
-   - 重複出現的失敗才是真的；只出現一次的現象，針對它的改動是過度擬合。
+   - 量測或隨機現象要重複出現才算真的；只出現一次就針對它改，是過度擬合。能直接構造反例的確定性缺陷（例如 hook 誤放行、型別錯誤），一次證據就成立，不必浪費額度重演。
    - 只有「看起來是好習慣」不算證據；B0 證據為 0 的修正一律 dropped（§4 第 6 條）。
    - 下行風險和上行收益一樣重：會讓畫面凍結或沒有產出的改動，除非證據壓倒性，否則 dropped。
    - 「全部不收、維持 main」也是正當結論。

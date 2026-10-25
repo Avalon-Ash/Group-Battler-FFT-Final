@@ -14,11 +14,16 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 4. 跑完 → `review-round` skill。
 
 ## 改派給 Codex 時（主代理自己發起）
-- **先選檔位**（CLAUDE.md 派工表）：讀檔／摘要／轉換用 `gpt-6-luna`／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
-- **範圍要窄**：一份提示詞一個工作包。Codex 每一則訊息都計次，把讀檔範圍、驗收指令、停下條件寫死，比讓它自己探索便宜。
+- **先選檔位**（CLAUDE.md 派工表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
+- **範圍要窄**：一份提示詞一個工作包。成本來自上下文、工具呼叫和重試，不只是訊息數；把讀檔範圍、驗收指令、停下條件寫死，並寫明探索與重試的上限。要避免的寫法：整庫清冊、要它重貼全文、沒有新假設的重試、要它看所有截圖。
 - **工作樹**：可寫任務在 repo 外開工作樹（`git worktree add -b <branch> C:\Git\_wt_<topic> <base>`，用 `cmd /c mklink /J node_modules <主資料夾>\node_modules` 接 junction，不跑 npm 安裝）。不可放在主資料夾或 `.claude/worktrees` 底下，否則可能被代理 `git add` 進去。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
 - **啟動**：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --write --model <m> --effort <e> --cwd <工作樹> --prompt-file docs/<NAME>_AGENT_PROMPT.md`，不加 `--background`，結束時 harness 會通知；不輪詢。只讀任務拿掉 `--write`。
-- **範本差異**：Codex 會自己讀 `AGENTS.md`，範本照用，但改掉「用法：/goal」那行。長指令照樣用 `tools/agent/run.mjs`。Codex 能在本機開瀏覽器截圖，渲染任務要求把截圖路徑寫進報告當證據。
+- **範本差異**：Codex 會自己讀 `AGENTS.md`，範本其餘部分照用，但以下要改：
+  - 刪掉「用法：/goal」那行。
+  - INV 的「從 `main` 開分支」改成必填表頭：工作樹絕對路徑、已建好的分支、base SHA。寫明代理只確認 `git rev-parse HEAD` 和 `git status`，不建分支、不切分支。
+  - `--prompt-file` 用絕對路徑，而且先確認檔案存在。提示詞如果還沒提交，就放在 scratchpad，不要指向工作樹裡不存在的 `docs/`。
+  - 長指令照樣用 `tools/agent/run.mjs`。Codex 能在本機開瀏覽器截圖，渲染任務要求把截圖路徑寫進報告當證據。
+- **回報格式**（寫進提示詞）：短摘要只列完成／未完成 ID、commit、每個檢查的「指令＋退出碼＋log 路徑」、截圖路徑＋觀測值。證據綁定 commit：條件相同才能沿用，改動之後必要的檢查仍要重跑。
 - 跑完照樣走 `review-round`；Codex 的報告也不整份讀。
 
 ## 寫法原則（取自 Harness² 的提案者規則）
@@ -45,8 +50,8 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 ### 0. 開工前（INV）
 - 先讀：`AGENTS.md`（全部）、<檔案清單，含 RenderSpec 若相關>。
 - 從 `main` 開分支 `feat/<topic>`；`git status` 必須乾淨。先跑並記進報告（不綠就停下回報）：`npm run lint`、`npm test`、`npm run build`、<基準量測>。
-- **長指令（可能超過約 5 秒）一律分段跑**：`node tools/agent/run.mjs --detach <名稱> <逾時秒數> -- <指令>` 啟動，接著反覆 `node tools/agent/run.mjs --wait <名稱>` 直到第一行是 `STATE=DONE`；**指令還在跑時不得結束回合，不得只回覆「等待中」**。同一步失敗或逾時兩次就記進報告、跳下一個任務（`AGENTS.md` §7）。
-- **受保護檔案（不得修改）**：`CLAUDE.md`、`AGENTS.md`、`docs/HANDOFF.md`、`docs/METHODOLOGY.md`、`docs/DECISIONS.md`、`docs/WORKLOG.md`、`.claude/**`、`tools/hooks/**`、`tools/ui-e2e/baseline/**`、`tools/ui-e2e/style-baseline.json`、所有 `tests/*.baseline.json` 的放寬方向<、本輪不該動的檔>。**保真基準一律不得重錄**。
+- **長指令（可能超過約 5 秒）一律分段跑**：`node tools/agent/run.mjs --detach <名稱> <逾時秒數> -- <指令>` 啟動，接著反覆 `node tools/agent/run.mjs --wait <名稱>` 直到第一行是 `STATE=DONE`；**指令還在跑時不得結束回合，不得只回覆「等待中」**。只有 `STATE=DONE EXIT=0` 算通過；`TIMEOUT` 重跑一次，`LOST` 改前景補跑一次。同一步失敗或逾時兩次就記進報告、跳下一個任務（`AGENTS.md` §7）；範圍外的錯誤立即停下回報。必要的驗證沒完成，該任務就標「未完成」，不得宣稱驗收通過。
+- **受保護檔案（不得修改）**：`CLAUDE.md`、`AGENTS.md`、`docs/HANDOFF.md`、`docs/METHODOLOGY.md`、`docs/DECISIONS.md`、`docs/WORKLOG.md`、`.claude/**`、`.codex/**`、`tools/hooks/**`、`tools/ui-e2e/baseline/**`、`tools/ui-e2e/style-baseline.json`、所有 `tests/*.baseline.json` 的放寬方向<、本輪不該動的檔>。**保真基準一律不得重錄**。
 - 不准 `push`、不准動 `main`、不准合併。
 
 ### 1. 已查證的事實（DOM）

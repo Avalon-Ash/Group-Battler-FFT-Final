@@ -9,8 +9,8 @@
  * 1. start_session must name a cheap model (CLAUDE.md tier table). Opus needs an explicit
  *    "[opus-ok]" marker in the prompt, so the reason is written down for the user to see.
  *    Accepting a proposal card (proposal_id only) passes through.
- * 2. No npm install/ci/uninstall/update inside .claude/worktrees: their node_modules is a
- *    junction to the main checkout, so npm would rewrite the shared folder.
+ * 2. No npm install/ci/uninstall/update inside .claude/worktrees or C:\Git\_wt_* worktrees: their
+ *    node_modules is a junction to the main checkout, so npm would rewrite the shared folder.
  * 3. start_session / writing sub-agent prompts that touch rendering or coordinates must name
  *    RenderSpec.ts (the coordinate-protocol SSOT); sub-agents do not read AGENTS.md on their own.
  *    Read-only sub-agents (explorer, reviewer, Explore) are exempt.
@@ -21,6 +21,8 @@
  *    sub-agent and the codex:rescue skill — must name --model (task also --effort): the user is
  *    on ChatGPT Plus and the Codex default is the costliest model. Astra, xhigh, or high on a
  *    non-Luna model needs "[codex-cost-ok]" in the command or prompt (CLAUDE.md 派工表).
+ *    Each call in a chained command is checked on its own segment, so one call's flags or
+ *    marker cannot cover another. Entry check only: Codex's own actions are not seen here.
  *
  * PostToolUse
  * 5. The first edit of a rendering / lifecycle file in a session gets a reminder that green
@@ -36,7 +38,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 // 只認「指令位置」上的指令（開頭或 ; & | ( 換行之後），避免把字串／文件內容裡的字樣誤判
-const AT_CMD = '(^|[;&|(\\n]\\s*)';
+const AT_CMD = '(^\\s*|[;&|(\\n]\\s*)';
 
 /** 破壞性 push（強推、整批推 tag／分支、刪遠端分支）→ 回傳詢問理由；一般 push 回傳 null */
 function destructivePushReason(cmd) {
@@ -57,8 +59,10 @@ function destructivePushReason(cmd) {
 // Codex（GPT）額度：使用者是 ChatGPT Plus，Astra 每 5 小時只有 5～45 則（CLAUDE.md 派工表）
 const CODEX_COST_OK = '[codex-cost-ok]';
 const CODEX_TIERS = '派工表：大量讀檔／摘要 gpt-6-luna＋medium、長線實作 gpt-6.1-sol＋medium、跨模型審查 gpt-6.1-sol。';
-const CODEX_TASK = new RegExp(`${AT_CMD}(?:node(?:\\.exe)?\\s+[^;&|\\n]*codex-companion\\.mjs["']?\\s+task\\b|codex(?:\\.exe)?\\s+exec\\b)`);
-const CODEX_REVIEW = new RegExp(`${AT_CMD}node(?:\\.exe)?\\s+[^;&|\\n]*codex-companion\\.mjs["']?\\s+(?:adversarial-)?review\\b`);
+// 一段指令的開頭可帶環境變數、env、完整路徑（含引號包住的路徑，如 PowerShell 的 & "C:\…\node.exe"）
+const CMD_HEAD = String.raw`^\s*(?:env\s+)?(?:\w+=\S*\s+)*(?:"[^"]*[\\/]|'[^']*[\\/]|[^\s"']*[\\/])?`;
+const CODEX_TASK = new RegExp(`${CMD_HEAD}(?:node(?:\\.exe)?["']?\\s.*codex-companion\\.mjs["']?\\s+task\\b|codex(?:\\.exe)?["']?\\s+exec\\b)`, 'i');
+const CODEX_REVIEW = new RegExp(`${CMD_HEAD}node(?:\\.exe)?["']?\\s.*codex-companion\\.mjs["']?\\s+(?:adversarial-)?review\\b`, 'i');
 
 /** 抓旗標值（--model x、--model=x、-m x） */
 function flagValue(text, names) {
@@ -83,7 +87,18 @@ function codexCostReason(text, needEffort) {
     return null;
 }
 
-const BASELINE_RECORD =/perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
+/** 每一次 Codex 呼叫各自檢查：旗標與理由標記只算同一段指令裡的，不能被串接的另一個呼叫借用 */
+function codexCommandReason(cmd) {
+    for (const seg of cmd.split(/[;&|(\n]/)) {
+        const task = CODEX_TASK.test(seg);
+        if (!task && !CODEX_REVIEW.test(seg)) continue;
+        const reason = codexCostReason(seg, task);
+        if (reason) return reason;
+    }
+    return null;
+}
+
+const BASELINE_RECORD = /perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
 const BASELINE_REMINDER = '你剛重錄了保真／樣式基準（rebaseline-fidelity skill）。確認：① 重錄前已產生新舊差異圖，'
     + '只有本輪預期的元素變動；② 重錄獨立一個 commit，訊息寫明哪些元素變了、哪些基準 0 差異、證據圖路徑；'
     + '③ 重錄後再跑一次 npm run perf:fidelity 全部通過。合併衝突時不得「取一邊再重錄」。';
@@ -181,15 +196,13 @@ function main() {
         const cmd = String(input.command || '');
         const cwd = String(payload.cwd || '').replace(/\\/g, '/');
         const npmMutating = new RegExp(`${AT_CMD}npm(\\.cmd)?\\s+(install|i|ci|uninstall|remove|rm|update|up|prune|dedupe)\\b`, 'i').test(cmd);
-        const inWorktree = /\/\.claude\/worktrees\//i.test(cwd + '/') || /\.claude[\\/]worktrees/i.test(cmd);
+        // 兩種工作樹都用 junction 共用主資料夾的 node_modules：.claude/worktrees 與 repo 外的 C:\Git\_wt_*
+        const inWorktree = /\/\.claude\/worktrees\/|\/_wt_[^/]*\//i.test(cwd + '/') || /\.claude[\\/]worktrees|[\\/]_wt_/i.test(cmd);
         if (npmMutating && inWorktree) {
             deny('不可在 .claude/worktrees 內執行 npm install/ci/uninstall：node_modules 是指向主資料夾的 junction，會改寫共用的套件。需要套件時停下並回報主代理。');
         }
-        const codexTask = CODEX_TASK.test(cmd);
-        if (codexTask || CODEX_REVIEW.test(cmd)) {
-            const reason = codexCostReason(cmd, codexTask);
-            if (reason) deny(reason);
-        }
+        const codex = codexCommandReason(cmd);
+        if (codex) deny(codex);
         const push = destructivePushReason(cmd);
         if (push) decide('ask', push);
     }
