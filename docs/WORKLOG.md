@@ -157,7 +157,7 @@
   - `cc056b0`（主審）：非對稱滯後——進入前格立即切換，原始格穩定不變才放開。
   - coord-guard 穩定錯序 19→7（只套 8f7ef65 時是 25），static 7→1。Gemini 報告的組別數字有誤，以 `docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md` 為準。
 - **合約**：Codex 派工表、hook 第 7 條強制 `--model`／`--effort`、專案 `.codex/config.toml`（`a2820d7`、`15a4e99`，合併 `cb15d46`）。Codex Sol／high 做跨模型審查，10 條意見採納 8 條。
-- **收尾**：刪除已完成的提示詞（CLOSE02、COORD_R1、F01）與被取代的報告（A0、AUDIT01、C01–C05、CLOSE02、COORD_R1、F01–F03、H01–H05、V01）。保留清冊 CSV、A0 資料（`tools/audit/cleanup-a0-inventory.mjs` 會讀）、COORD_R1_REVIEW、NEXT_PLAN、兩份 ULT 提示詞。
+- **收尾**：刪除已完成的提示詞（CLOSE02、COORD_R1、F01）與被取代的報告（A0、AUDIT01、C01–C05、CLOSE02、COORD_R1、F01–F03、H01–H05、V01）。保留清冊 CSV、COORD_R1_REVIEW、NEXT_PLAN、兩份 ULT 提示詞。後續再刪一批：A0 資料連同一次性產生工具 `tools/audit/cleanup-a0-inventory.mjs`、`MOBILE_UI_AUDIT.md`、`SKILL_NAMES.md`，以及本機分支 `feat/ult-volume`（`5fd0c8d`，UV1–UV4 沒合併）。未追蹤的舊提示詞與審查（27 份）移到 `C:\Git\_asset_staging\docs\archive-2026-10-25\`。`ULT_REDESIGN_PLAN.md` 因為兩份 ULT 提示詞會讀，改為進版控。
 - **驗證**：lint、788 個測試、build、runtime-smoke、perf:guard（保真 6/6，`battle_frozen` 0.000）。
 
   | 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
