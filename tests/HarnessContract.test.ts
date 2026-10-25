@@ -117,5 +117,52 @@ describe('HarnessContract', () => {
             expect(edit('/repo/engine/renderers/RenderList.ts').additionalContext).toBeUndefined();
             fs.rmSync(path.join(os.tmpdir(), `tactical-render-reminder-${session}`), { force: true });
         });
+
+        it('Codex 呼叫必須寫模型／強度；高成本組合要寫理由', () => {
+            const cc = 'node "C:/x/codex/scripts/codex-companion.mjs"';
+            expect(bash(`${cc} task --write --model gpt-6.1-sol --effort medium --prompt-file p.md`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --model gpt-6-luna --effort high "讀清冊"`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --write "修 bug"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6.1-sol "修 bug"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-astra --effort low "追根因"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-astra --effort low "追根因" # [codex-cost-ok] Sol 兩次沒找到`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --model gpt-6.1-sol --effort high "x"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-luna --effort xhigh "x"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} adversarial-review --background --base main`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} review --wait --model gpt-6.1-sol --base main`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} status --all`).permissionDecision).toBeUndefined();
+            expect(bash('codex exec "fix"').permissionDecision).toBe('deny');
+            expect(bash('codex exec -m gpt-6-luna -c model_reasoning_effort=medium "sum"').permissionDecision).toBeUndefined();
+            expect(bash('git commit -m "docs: codex-companion.mjs task 規則"').permissionDecision).toBeUndefined();
+            const rescue = (prompt: string) => runHook({ tool_name: 'Agent', tool_input: { subagent_type: 'codex:codex-rescue', prompt } }).permissionDecision;
+            expect(rescue('查 X 的根因')).toBe('deny');
+            expect(rescue('--model gpt-6.1-sol --effort medium 查 X 的根因')).toBeUndefined();
+            expect(runHook({ tool_name: 'Skill', tool_input: { skill: 'codex:rescue', args: '修 X' } }).permissionDecision).toBe('deny');
+        });
+
+        it('Codex 每次呼叫各自檢查，前綴與完整路徑不能繞過', () => {
+            const cc = 'node "C:/x/codex/scripts/codex-companion.mjs"';
+            const cheap = `${cc} task --model gpt-6-luna --effort medium "a"`;
+            // 便宜呼叫的旗標與另一段的理由標記都不能借給昂貴呼叫
+            expect(bash(`${cheap} && ${cc} task --model gpt-6-astra --effort high "b"`).permissionDecision).toBe('deny');
+            expect(bash(`${cheap} ; ${cc} task --write "b"`).permissionDecision).toBe('deny');
+            expect(bash(`echo "[codex-cost-ok]" ; ${cc} task --model gpt-6-astra --effort low "b"`).permissionDecision).toBe('deny');
+            expect(bash(`${cheap} && ${cc} review --model gpt-6.1-sol --base main`).permissionDecision).toBeUndefined();
+            // 開頭空白、環境變數、env、完整路徑、PowerShell 呼叫運算子
+            expect(bash('  codex exec "fix"').permissionDecision).toBe('deny');
+            expect(bash(`FOO=1 ${cc} task "x"`).permissionDecision).toBe('deny');
+            expect(bash(`env FOO=1 ${cc} task "x"`).permissionDecision).toBe('deny');
+            expect(bash('"C:/Program Files/nodejs/node.exe" C:/x/codex-companion.mjs task "x"').permissionDecision).toBe('deny');
+            expect(bash('& "C:\\Program Files\\nodejs\\node.exe" "C:/x/codex-companion.mjs" task "x"').permissionDecision).toBe('deny');
+            expect(bash('C:/tools/codex.exe exec "x"').permissionDecision).toBe('deny');
+        });
+
+        it('repo 外的 _wt_ 工作樹也不准 npm 安裝（node_modules 是 junction）', () => {
+            expect(bash('npm install', 'C:/Git/_wt_codex2').permissionDecision).toBe('deny');
+            expect(bash('cd /c/Git/_wt_x && npm ci').permissionDecision).toBe('deny');
+            expect(bash('npm install', 'C:/Git/.claude/worktrees/x').permissionDecision).toBe('deny');
+            expect(bash('npm install', 'C:/Git/Group-Battler-FFT-Final').permissionDecision).toBeUndefined();
+            expect(bash('npm run test', 'C:/Git/_wt_codex2').permissionDecision).toBeUndefined();
+        });
     });
 });
