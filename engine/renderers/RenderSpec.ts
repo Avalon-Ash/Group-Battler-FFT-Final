@@ -48,8 +48,9 @@ export class RenderSpec {
         s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(死區濾波後的腳點 Y, 排序用腳下格格心 Y) − 腳 Y：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後與腳點死區，見下）。濾波使它可為 ≥ −SORT_DEADBAND_PX 的小負值，但鍵永遠不低於腳下格格心 |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
         s += "**排序用腳下格帶滯後**（UnitFrameStore 的視覺狀態：每個單位上一幀的排序格）：腳點原始所在格與記憶格不同時，\n";
-        s += "只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換（距離在未壓扁平面計算，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致，COORD-OSC-01）；離記憶格超過一環（瞬移、擊飛）立即切換；\n";
-        s += "腳點連續 UNIT_FRAME.HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內（累積位移）也切換，每次靜止只放開一次（停在格界的單位／屍體不會卡在舊格而被自己腳下的地塊蓋住，也不會隨次像素抖動來回跳，2026-10-19）。\n";
+        s += "新格在記憶格前方（格心 Y 較大）立即切換——腳壓在格界時排在前格，地塊遮擋永遠正確，排在後格則會被自己腳下的地塊蓋住（COORD-R1）；\n";
+        s += "退回後格或同列側移時，只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換（距離在未壓扁平面計算，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致，COORD-OSC-01），格界上的抖動因此收斂在前格；離記憶格超過一環（瞬移、擊飛）立即切換；\n";
+        s += "腳點連續 UNIT_FRAME.HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內（累積位移）且原始格不變也切換（原始格在格界上抖動不算停住），每次靜止只放開一次（停在格界的單位／屍體不會卡在舊格而被自己腳下的地塊蓋住，也不會隨次像素抖動來回跳，2026-10-19）。\n";
         s += "否則 sortBias 在格界上是鋸齒函數（腳壓著格界走，鍵每幀跳約半格）。高度（getUnitGroundHeight）不受影響，只有排序格有滯後。\n";
         s += "記憶只在 UnitFrameStore 內，單位不在列表時清除。\n\n";
         s += "**腳點死區**（UNIT_FRAME.SORT_DEADBAND_PX＝2）：排序用腳點 Y 離上次採用的值不超過死區就不動，超過才跟隨（落後 ≤ 死區）。\n";
