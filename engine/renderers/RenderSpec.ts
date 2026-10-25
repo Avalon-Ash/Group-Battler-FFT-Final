@@ -48,8 +48,9 @@ export class RenderSpec {
         s += "| UnitSystem（值來自 UnitFrame） | UNIT、CORPSE | max(死區濾波後的腳點 Y, 排序用腳下格格心 Y) − 腳 Y：腳進入前方格時，排在該格地塊之後（排序用腳下格帶滯後與腳點死區，見下）。濾波使它可為 ≥ −SORT_DEADBAND_PX 的小負值，但鍵永遠不低於腳下格格心 |\n";
         s += "| VFXRenderer | VFX (isGround) | gHalfH + VFX_RENDER.GROUND_SORT_BIAS（法陣前緣） |\n\n";
         s += "**排序用腳下格帶滯後**（UnitFrameStore 的視覺狀態：每個單位上一幀的排序格）：腳點原始所在格與記憶格不同時，\n";
-        s += "只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換；離記憶格超過一環（瞬移、擊飛）立即切換；\n";
-        s += "腳點連續 UNIT_FRAME.HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內（累積位移）也切換，每次靜止只放開一次（停在格界的單位／屍體不會卡在舊格而被自己腳下的地塊蓋住，也不會隨次像素抖動來回跳，2026-10-19）。\n";
+        s += "新格在記憶格前方（格心 Y 較大）立即切換——腳壓在格界時排在前格，地塊遮擋永遠正確，排在後格則會被自己腳下的地塊蓋住（COORD-R1）；\n";
+        s += "退回後格或同列側移時，只有「到新格格心的距離 + UNIT_FRAME.HEX_HYSTERESIS_PX < 到記憶格格心的距離」才切換（距離在未壓扁平面計算，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致，COORD-OSC-01），格界上的抖動因此收斂在前格；離記憶格超過一環（瞬移、擊飛）立即切換；\n";
+        s += "腳點連續 UNIT_FRAME.HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內（累積位移）且原始格不變也切換（原始格在格界上抖動不算停住），每次靜止只放開一次（停在格界的單位／屍體不會卡在舊格而被自己腳下的地塊蓋住，也不會隨次像素抖動來回跳，2026-10-19）。\n";
         s += "否則 sortBias 在格界上是鋸齒函數（腳壓著格界走，鍵每幀跳約半格）。高度（getUnitGroundHeight）不受影響，只有排序格有滯後。\n";
         s += "記憶只在 UnitFrameStore 內，單位不在列表時清除。\n\n";
         s += "**腳點死區**（UNIT_FRAME.SORT_DEADBAND_PX＝2）：排序用腳點 Y 離上次採用的值不超過死區就不動，超過才跟隨（落後 ≤ 死區）。\n";
@@ -129,6 +130,14 @@ export class RenderSpec {
         s += "投影不可見（編輯模式拖曳預覽、放置幽靈、出生前）維持實體寶石，懸在棋座上（CORE_VISUAL.hoverHeight）；出生動畫期間依 spawnTimer 從棋座升到投影中心並淡出成內光。\n\n";
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
+
+        s += "### 4.1 目標錨點採樣與時點協議 (Target Anchor Sampling & Timing Protocol)\n\n";
+        s += "- **CAST_START 單體序列動態目標綁定**：僅限 `skill.type === 'SINGLE'`、`cast > 0`、`projectileSpeed <= 0` 或缺席、無 `HEAVEN_FALL` 動作且 `targetId` 指向現有單位的施法事件啟用動態綁定。\n";
+        s += "- **取樣與鎖定邊界**：\n";
+        s += "  - 詠唱期間（`battleTime < lockAt`，其中 `lockAt = battleTime + skill.cast`）：每次 `SequenceSystem.update` 在派發前以 `VisualMath.getUnitAnchor(target, engine)` 動態更新目標錨點（含地形高度與物理位移）。\n";
+        s += "  - 結算幀（首次 `battleTime >= lockAt`）：取當幀錨點後永久鎖定（`binding.locked = true`）；後續同序列餘波動作使用鎖定快照，不追隨移動。\n";
+        s += "  - 目標邊界：目標該幀被命中致死但在 `engine.agents` 中時仍可取錨點；目標移出集合則沿用最後有效快照。\n";
+        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、HEAVEN_FALL 動作與無有效目標者維持靜態快照。\n\n";
 
         s += "--- \n\n";
 

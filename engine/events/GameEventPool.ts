@@ -1,4 +1,11 @@
 
+// ╔══════════════════════════════════════════════════════════╗
+// ║  GameEventPool — 遊戲核心事件物件池                      ║
+// ║  職責：重用 GameEvent 物件減少 GC 壓力（hydrate / release）║
+// ║  上游：CastingEngine / CombatSystem / DamageCalculator 等  ║
+// ║  下游：VisualSystem / EventVFXMapper / AudioSystem       ║
+// ╚══════════════════════════════════════════════════════════╝
+
 import { GameEvent, GameEventType, Point } from "../../types";
 
 /** pushEvent / EventPool.get 可攜帶的選填欄位（GameEvent 去除 type/pos）。 */
@@ -47,6 +54,7 @@ class GameEventPool {
         event.targetId = opts.targetId;
         event.team = opts.team;
         event.absorbed = opts.absorbed;
+        event.hexes = opts.hexes;
 
         return event;
     }
@@ -58,6 +66,7 @@ class GameEventPool {
         event.targetId = undefined;
         event.team = undefined;
         event.absorbed = undefined;
+        event.hexes = undefined;
         this.pool.push(event);
     }
 }

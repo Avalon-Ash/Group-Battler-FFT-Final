@@ -1,6 +1,6 @@
 // ╔══════════════════════════════════════════════════════════╗
 // ║  [CORE] 狀態效果純函式與槽位管理（ECS-lite S1）             ║
-// ║  職責：13 種持續／控制效果固定槽位建構、重設與查詢 API。    ║
+// ║  職責：16 種持續／控制效果固定槽位建構、重設與查詢 API。    ║
 // ║  無狀態純函式，零每幀記憶體配置。                           ║
 // ╚══════════════════════════════════════════════════════════╝
 
@@ -25,7 +25,7 @@ export const EFFECT_KINDS: readonly EffectKind[] = [
     'HOT',
 ] as const;
 
-export function createEffectSlot(): EffectSlot {
+function createEffectSlot(): EffectSlot {
     return {
         remaining: 0,
         max: 0,

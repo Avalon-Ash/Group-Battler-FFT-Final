@@ -5,6 +5,9 @@
 // ║  職責：                                                          ║
 // ║    接收每幀的 GameEvent[]，依事件類型路由至正確的子系統           ║
 // ║    本類不持有任何外觀資料，只做分發，不做決策                     ║
+// ║  [ARCH] 遵守 RenderSpec §4.1 目標錨點採樣時點規則：             ║
+// ║    CAST_START 僅當單體有詠唱非投射物且目標仍在集合時傳遞綁定選項 ║
+// ║    （targetId, lockAt）；AOE／投射物／無有效目標維持靜態快照      ║
 // ║                                                                  ║
 // ║  子系統分工 (SSOT 邊界)：                                        ║
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
@@ -61,7 +64,21 @@ export class VisualSystem {
                     }
                     // 命中對齊傷害：序列延後 (詠唱 − hitAt) 才開始；詠唱被打斷時 CAST_BREAK 取消整串（VFXSequence.hitAt）
                     const startDelay = Math.max(0, (event.skill.cast || 0) - (sequence.hitAt ?? 0));
-                    sequences.run(sequence, target3D, engine, vfx, event.sourceId, startDelay);
+
+                    // F02: 僅為 CAST_START 下符合資格的單體非投射物技能啟用動態目標綁定
+                    const isEligibleSingle =
+                        event.skill.type === 'SINGLE' &&
+                        (event.skill.cast || 0) > 0 &&
+                        (!event.skill.projectileSpeed || event.skill.projectileSpeed <= 0) &&
+                        sequence.actions.every(a => a.type !== 'HEAVEN_FALL') &&
+                        Boolean(event.targetId && engine.agents.some(a => a.id === event.targetId));
+
+                    const options = isEligibleSingle ? {
+                        targetId: event.targetId,
+                        lockAt: engine.battleTime + (event.skill.cast || 0),
+                    } : undefined;
+
+                    sequences.run(sequence, target3D, engine, vfx, event.sourceId, startDelay, options);
                     return; 
                 }
             }

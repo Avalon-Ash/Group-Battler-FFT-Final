@@ -72,7 +72,6 @@ const CC_OPTIONS_MAP = [
     { value: 'BANISH', label: '放逐 (BANISH)' },
     { value: 'KNOCKBACK', label: '擊退 (KNOCKBACK)' },
     { value: 'PULL', label: '拉拽 (PULL)' },
-    { value: 'GRAVITY', label: '重力吸引 (GRAVITY)' },
     { value: 'DOT', label: '持續傷害 (DOT)' },
     { value: 'HOT', label: '持續治療 (HOT)' },
     { value: 'SILENCE', label: '沉默 (SILENCE)' },
@@ -116,7 +115,7 @@ const SPECIAL_VISUAL_MAP = [
     { value: 'POLYMORPH', label: '變形 (POLYMORPH)' },
     { value: 'STASIS', label: '停滯 (STASIS)' },
     { value: 'FROZEN', label: '冰凍 (FROZEN)' },
-    { value: 'DANGER', label: '危險警告 (DANGER)' }
+    { value: 'INVINCIBLE', label: '無敵 (INVINCIBLE)' }
 ];
 
 const TARGET_TYPE_MAP = [

@@ -98,24 +98,6 @@ export const RENDER_QUALITY = {
 } as const;
 
 /**
- * 光暈 Sprite 快取與量化參數 SSOT
- */
-export const RENDER_GLOW = {
-    MAX_GLOW_SPRITES: 256,
-    RADIUS_STEPS: [4, 8, 12, 16, 24, 32, 48, 64] as const,
-    BLUR_STEPS: [2, 4, 8, 12, 16, 24, 32] as const,
-    RECT_WIDTH_STEPS: [
-        1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
-        11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-        21, 22, 23, 24, 25, 26, 27, 28, 29, 30,
-        31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
-        41, 42, 43, 44, 45, 46, 47, 48, 52, 56,
-        64, 80, 96, 128, 180, 240
-    ] as const,
-    RECT_HEIGHT_STEPS: [4, 8, 12, 16, 24] as const,
-} as const;
-
-/**
  * 效能五：每幀熱點去除用的快取參數 SSOT
  * （單位漸層快取、預烘焙光暈文字）
  */

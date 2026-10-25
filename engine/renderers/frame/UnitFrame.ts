@@ -10,7 +10,9 @@
 // ║  殘影（ghosts）：trailHistory 的點換算成相對腳底的偏移       ║
 // ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
-// ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
+// ║  進入前格（格心 Y 較大）立即切換；退回後格或同列側移才要求  ║
+// ║  腳明顯進入新格（UNIT_FRAME.HEX_HYSTERESIS_PX，未壓扁平面   ║
+// ║  距離 dy/ISO_SCALE_Y 與 HexUtils.fromPx 一致），             ║
 // ║  靜止 HEX_RELEASE_FRAMES 幀後放開（停在格界不會卡在舊格），   ║
 // ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）；腳點 Y   ║
 // ║  另有死區（UNIT_FRAME.SORT_DEADBAND_PX）：受擊後退的 1～2 px  ║
@@ -22,7 +24,7 @@ import { HexUtils, MapConfig } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { UnitDeathPainter } from "../units/painters/UnitDeathPainter";
 import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
-import { UNIT_FRAME } from "../../../constants";
+import { UNIT_FRAME, ISO_SCALE_Y } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudBarHeight } from "../../../data/units/appearance/projection";
 import { Hex } from "../../../types";
@@ -89,10 +91,13 @@ interface SortHexMemory {
     q: number; r: number; stamp: number;
     /** 排序用腳點 Y（死區濾波後；UNIT_FRAME.SORT_DEADBAND_PX） */
     footY: number;
-    /** 靜止錨點（腳點離它超過 STILL_PX 就重設）與停在錨點附近的幀數（≥ HEX_RELEASE_FRAMES 時滯後放開，見 resolveSortHex） */
+    /** 靜止錨點（腳點離它超過 STILL_PX 就重設）與停在錨點附近、原始格也不變的幀數（≥ HEX_RELEASE_FRAMES 時滯後放開，見 resolveSortHex） */
     anchorX: number;
     anchorY: number;
     still: number;
+    /** 上一幀的原始格（腳壓在格界時原始格會隨次像素抖動來回跳，這種「停住」不算穩定，不放開） */
+    rawQ: number;
+    rawR: number;
     /** 這次靜止已經放開過一次（錨點重設前不再放開：腳正好壓在格界上時原始格會來回跳，不能跟著跳） */
     released: boolean;
 }
@@ -160,7 +165,11 @@ export class UnitFrameStore {
 
     /**
      * 排序用腳下格（帶滯後）：腳點原始所在格 raw 與上一幀記憶的格 prev 不同時，
-     * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換；
+     * raw 在 prev 前方（格心 Y 較大）就立即切換；否則只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換
+     * （距離在未壓扁平面計算，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致，COORD-OSC-01）。
+     * 非對稱的理由：腳壓在格界時排在前格，地塊遮擋永遠正確；排在後格，自己腳下那格的地塊會蓋住腳
+     * （COORD-R1 審查：FOREST/1001 屍體停在 (0,0)／(1,−1) 格界，兩格心距離差 0.07，對稱滯後卡在後格約 150 幀）。
+     * 格界上的抖動因此收斂在前格，不會來回翻（原始格在抖時不累計靜止幀，放開不會挑到後格那一幀）；
      * 離 prev 超過一環（瞬移、擊飛）立即切換。腳點連續 HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內也切換：
      * 滯後只為了擋「移動中壓著格界」的鋸齒，停在格界附近的單位或屍體不會閃爍，卻會因為卡在舊格而排在
      * 自己腳下那格的地塊之前（腳被地塊蓋住；景深預言 CORPSE×TERRAIN sameHex 70 段、屍體擊飛滑停後整段殘留）。
@@ -171,7 +180,7 @@ export class UnitFrameStore {
         const raw = HexUtils.fromPx(footX, footY, mapConfig);
         let mem = this.sortHex.get(agent.id);
         if (!mem) {
-            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp, footY, anchorX: footX, anchorY: footY, still: 0, released: false };
+            mem = { q: raw.q, r: raw.r, stamp: this.buildStamp, footY, anchorX: footX, anchorY: footY, still: 0, rawQ: raw.q, rawR: raw.r, released: false };
             this.sortHex.set(agent.id, mem);
             out.q = raw.q; out.r = raw.r;
             return mem;
@@ -183,9 +192,13 @@ export class UnitFrameStore {
             mem.anchorY = footY;
             mem.still = 0;
             mem.released = false;
+        } else if (raw.q !== mem.rawQ || raw.r !== mem.rawR) {
+            mem.still = 0;
         } else {
             mem.still++;
         }
+        mem.rawQ = raw.q;
+        mem.rawR = raw.r;
         // 腳點死區：受擊後退的 1～2 px 擺盪不動排序鍵，真的移動時落後不超過 SORT_DEADBAND_PX
         const d = UNIT_FRAME.SORT_DEADBAND_PX;
         if (footY > mem.footY + d) mem.footY = footY - d;
@@ -196,9 +209,10 @@ export class UnitFrameStore {
             if (!sw) {
                 const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
                 const cOld = HexUtils.toPx(mem.q, mem.r, mapConfig);
-                const dNew = Math.hypot(footX - cNew.x, footY - cNew.y);
-                const dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
-                sw = dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld;
+                const dNew = Math.hypot(footX - cNew.x, (footY - cNew.y) / ISO_SCALE_Y);
+                const dOld = Math.hypot(footX - cOld.x, (footY - cOld.y) / ISO_SCALE_Y);
+                // 前進到前格不需滯後（fromPx 已判定腳在 raw 格內）；退回後格或同列側移才要求距離差
+                sw = cNew.y > cOld.y || dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld;
             }
             if (sw) { mem.q = raw.q; mem.r = raw.r; }
             if (release) mem.released = true;

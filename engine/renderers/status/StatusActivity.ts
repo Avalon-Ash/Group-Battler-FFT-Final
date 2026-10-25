@@ -9,7 +9,7 @@ import { castingAiState } from "../../core/AgentDerived";
 import type { StatusPartKey } from "../../../data/vfx/status_parts";
 
 /** 易傷（VULNERABLE）的視覺門檻：血量比例低於此值才顯示（沿用 AgentVFXSystem 原條件） */
-export const VULNERABLE_VISUAL_HP_RATIO = 0.25;
+const VULNERABLE_VISUAL_HP_RATIO = 0.25;
 
 export function isStatusActive(key: StatusPartKey, a: Agent): boolean {
     switch (key) {

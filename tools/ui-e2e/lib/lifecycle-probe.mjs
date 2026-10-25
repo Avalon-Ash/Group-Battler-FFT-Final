@@ -237,10 +237,9 @@ export async function collectSnapshot(opts) {
     // singletons with stats APIs
     const caches = {};
     const tryImport = async (p) => { try { return await import(p); } catch { return null; } };
-    const [tr, vf, gl, la, sa, tt, es, rs] = await Promise.all([
+    const [tr, vf, la, sa, tt, es, rs] = await Promise.all([
         tryImport('/engine/renderers/grid/TerrainRenderer.ts'),
         tryImport('/engine/graphics/VFXFactory.ts'),
-        tryImport('/engine/renderers/GlowSpriteCache.ts'),
         tryImport('/engine/renderers/grid/TerrainLoopAtlas.ts'),
         tryImport('/engine/renderers/units/SpriteAtlasStore.ts'),
         tryImport('/engine/renderers/grid/TerrainTextureStore.ts'),
@@ -249,7 +248,6 @@ export async function collectSnapshot(opts) {
     ]);
     if (tr) { const s = tr.TerrainRenderer.store.getStats(); caches.terrainSprites = s; }
     if (vf) caches.VFXFactory = vf.VFXFactory.cache.size;
-    if (gl) caches.GlowSpriteCache = gl.GlowSpriteCache.getStats();
     if (la) caches.TerrainLoopAtlas = { liquid: la.TerrainLoopAtlas.getLiquidStats(), grassColors: la.TerrainLoopAtlas._grass.size, bakeCount: la.TerrainLoopAtlas.bakeCount };
     if (sa) caches.spriteAtlases = sa.spriteAtlasStore.atlases.size;
     if (tt) caches.terrainTexturePatterns = { top: tt.terrainTextureStore.topPatterns.size, side: tt.terrainTextureStore.sidePatterns.size };

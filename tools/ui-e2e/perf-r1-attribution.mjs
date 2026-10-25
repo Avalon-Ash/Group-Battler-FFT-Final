@@ -12,7 +12,7 @@
  *   7. no_backdrop_filter (CSS backdrop-filter: none)
  *   8. no_matrix_rain (showcase only)
  *
- * Simultaneously gathers TerrainBlockCache & GlowSpriteCache hits, misses, and clears per frame.
+ * Simultaneously gathers TerrainBlockCache hits, misses, and clears per frame.
  * Output:
  *   - tools/ui-e2e/out/perf_attribution.json
  */
@@ -219,14 +219,11 @@ try {
         // Measure cache behavior on baseline for 3s
         const cacheStats = await page.evaluate(async () => {
             const { TerrainRenderer } = await import('/engine/renderers/grid/TerrainRenderer.ts');
-            const { GlowSpriteCache } = await import('/engine/renderers/GlowSpriteCache.ts');
             const terrainBefore = TerrainRenderer.store.getStats?.() || { size: 0, hits: 0, misses: 0, clears: 0 };
-            const glowBefore = GlowSpriteCache.getStats?.() || { size: 0, hits: 0, misses: 0 };
 
             await new Promise((r) => setTimeout(r, 2000));
 
             const terrainAfter = TerrainRenderer.store.getStats?.() || { size: 0, hits: 0, misses: 0, clears: 0 };
-            const glowAfter = GlowSpriteCache.getStats?.() || { size: 0, hits: 0, misses: 0 };
 
             return {
                 terrain: {
@@ -235,15 +232,10 @@ try {
                     deltaMisses: terrainAfter.misses - terrainBefore.misses,
                     deltaClears: terrainAfter.clears - terrainBefore.clears,
                 },
-                glow: {
-                    size: glowAfter.size,
-                    deltaHits: glowAfter.hits - glowBefore.hits,
-                    deltaMisses: glowAfter.misses - glowBefore.misses,
-                },
             };
         });
 
-        console.log(`Cache (2s window) | Terrain: size=${cacheStats.terrain.size}, +hits=${cacheStats.terrain.deltaHits}, +misses=${cacheStats.terrain.deltaMisses}, +clears=${cacheStats.terrain.deltaClears} | Glow: size=${cacheStats.glow.size}, +hits=${cacheStats.glow.deltaHits}, +misses=${cacheStats.glow.deltaMisses}`);
+        console.log(`Cache (2s window) | Terrain: size=${cacheStats.terrain.size}, +hits=${cacheStats.terrain.deltaHits}, +misses=${cacheStats.terrain.deltaMisses}, +clears=${cacheStats.terrain.deltaClears}`);
 
         for (const toggle of applicableToggles) {
             process.stdout.write(`  Measuring toggle [${toggle.padEnd(18)}] ... `);

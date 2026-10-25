@@ -4,6 +4,8 @@
 // Every SAMPLE_S seconds: forced GC, then JS heap, DOM nodes, live canvases, listeners, timers, rAF rate, audio nodes,
 // engine/VFX/HUD/render-list counters, bus listener counts, every registered/exported cache, and a generic census of every
 // Map/Set/Array reachable from the engine. Monotonic growth is flagged in the analysis.
+// R-group: Tracks console.error with location and http status>=400 errors; non-empty errors result in process.exitCode=1.
+// Harness provides GET /favicon.ico -> 204 fixture for browser decoration request.
 // Usage: node tools/ui-e2e/perf-lifecycle-soak.mjs [--minutes=11] [--showcase=5] [--sample=10] [--out=perf_lifecycle_soak.json]
 //   env: PL_ANALYZE_ONLY=<json file under out/> re-runs only the analysis.
 import { createServer } from 'vite';
@@ -161,15 +163,74 @@ async function procMemory(bcdp) {
 }
 
 // ---------------- run ----------------
-const server = await createServer({ root, plugins: [cacheRegistryPlugin()], server: { port: 3212, strictPort: false, host: '127.0.0.1' }, logLevel: 'error' });
+const httpErrors = [];
+const meta = {
+    fixture: 'GET /favicon.ico returns 204 in this harness only',
+};
+
+const faviconFixturePlugin = {
+    name: 'audit-favicon-fixture',
+    configureServer(vite) {
+        // Register before Vite's terminal 404 middleware. This fixture
+        // supplies only browser decoration, never app assets.
+        vite.middlewares.use((request, response, next) => {
+            if (request.method === 'GET' && request.url === '/favicon.ico') {
+                response.statusCode = 204;
+                response.end();
+            } else next();
+        });
+    },
+};
+
+const httpAuditPlugin = {
+    name: 'perf-lifecycle-http-audit',
+    configureServer(vite) {
+        vite.middlewares.use((req, res, next) => {
+            res.on('finish', () => {
+                if (res.statusCode >= 400) {
+                    const method = req.method || 'GET';
+                    const url = req.url || '';
+                    const status = res.statusCode;
+                    if (!httpErrors.some((e) => e.method === method && e.url === url && e.status === status)) {
+                        httpErrors.push({ method, url, status });
+                    }
+                }
+            });
+            next();
+        });
+    },
+};
+
+const server = await createServer({
+    root,
+    plugins: [cacheRegistryPlugin(), faviconFixturePlugin, httpAuditPlugin],
+    server: { port: 3212, strictPort: false, host: '127.0.0.1' },
+    logLevel: 'error',
+});
 await server.listen();
 const port = server.config.server.port;
 const browser = await launchBrowser({ headed: true, unthrottled: false, extraArgs: ['--enable-precise-memory-info', '--js-flags=--expose-gc', '--mute-audio'] });
 const ctx = await browser.newContext({ viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 const errors = [];
+page.on('response', (res) => {
+    if (res.status() >= 400) {
+        const req = res.request();
+        const method = req ? req.method() : 'GET';
+        const url = res.url();
+        const status = res.status();
+        if (!httpErrors.some((e) => e.method === method && e.url === url && e.status === status)) {
+            httpErrors.push({ method, url, status });
+        }
+    }
+});
 page.on('pageerror', (e) => errors.push(`pageerror: ${String(e.message).slice(0, 200)}`));
-page.on('console', (m) => { if (m.type() === 'error') errors.push(`console.error: ${m.text().slice(0, 200)}`); });
+page.on('console', (m) => {
+    if (m.type() === 'error') {
+        const loc = m.location()?.url;
+        errors.push(`console.error: ${m.text()}${loc ? ` (${loc})` : ''}`);
+    }
+});
 await page.addInitScript(installTrackers);
 await page.goto(`http://localhost:${port}/?perf&quality=0`, { waitUntil: 'networkidle' });
 await page.waitForFunction(() => window.__ASSETS_READY__ === true, null, { timeout: 30000 }).catch(() => {});
@@ -217,7 +278,7 @@ async function sampleOnce(index) {
     samples.push(snap);
     const c = snap.curated;
     console.log(`#${String(index).padStart(3)} t=${String(snap.wallS).padStart(6)} ${snap.phase.padEnd(8)} scene=${c.scene} battles=${snap.battles.play}+${snap.battles.restart} agents=${c.agents} part=${c.vfxParticles} heapGC=${(snap.heapAfter / 1048576).toFixed(1)}MB dom=${snap.dom} canv=${snap.canvases.live}/${snap.canvases.created} lst=${snap.listeners.total}/${snap.cdp.JSEventListeners} med=${snap.frame.median} p99=${snap.frame.p99} max=${snap.frame.max} raf/s=${snap.rafRate.appRafPerSec}/${snap.rafRate.framesPerSec}${snap.proc ? ` gpuMB=${snap.proc.gpu_privMB ?? '?'} rendMB=${snap.proc.renderer_privMB ?? '?'}` : ''}`);
-    if (index % 6 === 0) writeFileSync(outFile, JSON.stringify({ env, config: { MINUTES, SHOWCASE_MIN, SAMPLE_S }, errors, samples }));
+    if (index % 6 === 0) writeFileSync(outFile, JSON.stringify({ env, config: { MINUTES, SHOWCASE_MIN, SAMPLE_S }, meta, errors, httpErrors, samples }));
 }
 
 async function driver() {
@@ -280,8 +341,12 @@ while (elapsed() < target) {
 await Promise.race([driverPromise, new Promise((r) => setTimeout(r, 15000))]);
 
 const rows = report(samples, SAMPLE_S);
-writeFileSync(outFile, JSON.stringify({ env, config: { MINUTES, SHOWCASE_MIN, SAMPLE_S, SAMPLE_S_: SAMPLE_S }, errors, samples, analysis: rows }));
+writeFileSync(outFile, JSON.stringify({ env, config: { MINUTES, SHOWCASE_MIN, SAMPLE_S, SAMPLE_S_: SAMPLE_S }, meta, errors, httpErrors, samples, analysis: rows }));
 console.log('errors:', errors.length ? errors.slice(0, 10) : 'none');
+console.log('httpErrors:', httpErrors.length ? httpErrors.slice(0, 10) : 'none');
 console.log('wrote', outFile);
 await browser.close();
 await server.close();
+if (errors.length > 0 || httpErrors.length > 0) {
+    process.exitCode = 1;
+}

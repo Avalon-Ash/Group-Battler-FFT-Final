@@ -8,11 +8,11 @@ import { canStepUp } from "../math/ClimbRule";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
 
-export const HOSTILE_CC: ReadonlySet<string> = new Set([
+const HOSTILE_CC: ReadonlySet<string> = new Set([
     'STUN', 'BANISH', 'KNOCKBACK', 'PULL', 'DOT', 'SILENCE', 'ROOT', 'FEAR', 'TAUNT', 'BLIND', 'POLYMORPH', 'VULNERABLE'
 ]);
 
-export const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
+const FRIENDLY_BUFF_CC: ReadonlySet<string> = new Set([
     'SHIELD', 'INVINCIBLE', 'HASTE', 'REFLECT', 'LIFESTEAL'
 ]);
 

@@ -18,7 +18,7 @@ import type { MapConfig } from "../../utils";
 import { canStepUp } from "../../math/ClimbRule";
 
 export type ForcedMoveKind = 'KNOCKBACK' | 'PULL' | 'DASH';
-export type ForcedMoveBlockReason = 'WALL' | 'OBSTACLE' | 'UNIT' | 'EDGE';
+type ForcedMoveBlockReason = 'WALL' | 'OBSTACLE' | 'UNIT' | 'EDGE';
 
 /** 解析器需要的地圖查詢（GameEngine 滿足；測試可用簡單替身）。 */
 export interface ForcedMoveSpatial {

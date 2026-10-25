@@ -269,7 +269,7 @@ try {
         // Side by side
         const sideBySideUrl = await h1.page.evaluate(
             ({ left, right, l1, l2 }) => window.__createSideBySide(left, right, l1, l2),
-            { left: img0, right: img1, l1: 'glow=0 (Native shadowBlur)', l2: 'glow=1 (GlowSpriteCache Baked)' }
+            { left: img0, right: img1, l1: 'glow=0 (HUD glow off)', l2: 'glow=1 (HUD glow on)' }
         );
 
         // Crop side by side

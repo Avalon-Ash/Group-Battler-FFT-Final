@@ -21,7 +21,7 @@ import type { GlyphStyleId } from './classGlyphs';
 import type { VFXRampId, VFXNeutralId } from '../vfx/parts/vfxPalette';
 
 /** 死亡碎裂的零件色階（UnitShatter）：火花、靈魂光（SPIRIT_RISE）、血滴（BLOOD_SPRAY）、塵煙 */
-export interface DeathPartRamps { spark: VFXRampId; spirit: VFXRampId; blood: VFXRampId; puff: VFXNeutralId }
+interface DeathPartRamps { spark: VFXRampId; spirit: VFXRampId; blood: VFXRampId; puff: VFXNeutralId }
 
 /** Manifest 與檔案路徑使用的陣營鍵（與單位圖集 manifestKey 前綴一致） */
 export type FactionKey = 'BLUE' | 'RED';
@@ -35,10 +35,10 @@ export const FACTION_KEY: Record<Team, FactionKey> = {
 export type PedestalStyle = 'LIONHEART_HEX' | 'ASHEN_BROKEN_HEX';
 
 /** 棋座核心（懸浮六角晶體）畫法：Lionheart 乾淨稜晶／Ashen 裂紋碎晶 */
-export type CoreStyle = 'LIONHEART_PRISM' | 'ASHEN_SHARD';
+type CoreStyle = 'LIONHEART_PRISM' | 'ASHEN_SHARD';
 
 /** 死亡氛圍粒子：靈魂飛升（Lionheart）／血噴（Ashen），UnitShatter 使用 */
-export type DeathStyle = 'SPIRIT_RISE' | 'BLOOD_SPRAY';
+type DeathStyle = 'SPIRIT_RISE' | 'BLOOD_SPRAY';
 
 /**
  * 可由手繪貼圖覆蓋的槽位。
@@ -70,7 +70,7 @@ export interface FactionAssetManifest {
     factions: Partial<Record<FactionKey, Record<string, string>>>;
 }
 
-export interface PedestalSkin {
+interface PedestalSkin {
     style: PedestalStyle;
     /** 棋座外接圓半徑（Token 畫布單位，烘焙後隨 UNIT_SCALE 縮放） */
     radius: number;
@@ -103,7 +103,7 @@ export interface PedestalSkin {
     weatherHighlight: string;
 }
 
-export interface ClassIconSkin {
+interface ClassIconSkin {
     color: string;
     glow: string;
     /** 刻在棋座頂面的字形：相對 radius 的比例（貼圖同樣使用）與不透明度 */
@@ -129,7 +129,7 @@ export interface CoreSkin {
     sizeScale: number;
 }
 
-export interface SpriteSkin {
+interface SpriteSkin {
     /** 精靈圖集鍵（public/assets/units/manifest.json 的 units 鍵） */
     atlasKey: string;
     /** 烘焙期染色；null = 不染色（目前兩陣營皆為 null，保持原圖） */
@@ -137,7 +137,7 @@ export interface SpriteSkin {
 }
 
 /** 角色投影的陣營色：衝刺殘影的染色（UnitAfterimagePainter） */
-export interface ProjectionSkin {
+interface ProjectionSkin {
     trailColor: string;
 }
 

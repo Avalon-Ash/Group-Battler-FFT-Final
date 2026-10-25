@@ -28,7 +28,7 @@ export interface LoopFrameSet {
  * 整組影格排在一張圖上（液面）：每格每幀只取不同的子矩形，來源永遠是同一張 canvas。
  * 每影格一張小 canvas 時，熔岩圖上百格各取不同影格，實測 p99 約 17 ms（關掉液面 3.7 ms）。
  */
-export interface LoopSheet {
+interface LoopSheet {
     canvas: HTMLCanvasElement;
     cols: number;
     /** 單一影格的像素尺寸 */

@@ -8,8 +8,8 @@ import { Role } from '../../types';
 export type GlyphStyleId = 'CLEAN' | 'JAGGED';
 
 /** 多邊形／折線：pts 為 [x, y, x, y, ...]；fillAlpha > 0 時以描邊色填半透明底；solid 為實心填色 */
-export interface GlyphPoly { kind: 'poly'; pts: readonly number[]; close?: boolean; fillAlpha?: number; width?: number; solid?: boolean }
-export interface GlyphCircle { kind: 'circle'; x: number; y: number; r: number; fillAlpha?: number; solid?: boolean }
+interface GlyphPoly { kind: 'poly'; pts: readonly number[]; close?: boolean; fillAlpha?: number; width?: number; solid?: boolean }
+interface GlyphCircle { kind: 'circle'; x: number; y: number; r: number; fillAlpha?: number; solid?: boolean }
 export type GlyphShape = GlyphPoly | GlyphCircle;
 
 export interface GlyphStyleDef {

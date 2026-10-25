@@ -8,9 +8,9 @@ import { Team, type Skill } from "../../types";
 // 沒有屬性的技能用 DEFAULT。
 // =========================================================================================
 
-export type SkillElement = NonNullable<Skill['element']>;
+type SkillElement = NonNullable<Skill['element']>;
 
-export const ELEMENT_RAMPS: Readonly<Record<Team, Readonly<Record<SkillElement | 'DEFAULT', VFXRampId>>>> = {
+const ELEMENT_RAMPS: Readonly<Record<Team, Readonly<Record<SkillElement | 'DEFAULT', VFXRampId>>>> = {
     [Team.BLUE]: {
         DEFAULT: 'LION_ARCANE',
         PHYSICAL: 'LION_PHYSICAL',

@@ -16,7 +16,7 @@ import {
 } from '../../../data/units/factionSkin';
 import { resolveAssetUrl } from './SpriteAtlasStore';
 
-export class FactionTextureStore {
+class FactionTextureStore {
     private manifest: FactionAssetManifest | null = null;
     private readonly images = new Map<string, HTMLImageElement>();
     private readonly warned = new Set<string>();

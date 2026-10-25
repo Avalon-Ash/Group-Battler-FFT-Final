@@ -397,8 +397,6 @@ interface TerrainFoundationConfig {
 export interface TerrainSkinConfig {
     texturePxPerHex: number;
     sideTexturePxPerUnit: number;
-    /** @deprecated R1 起不再影響畫面（光照改為全強度、貼圖改為 topDetail／sideDetail 混合）。 */
-    tintStrength: number;
     /** 頂面貼圖細節層 */
     topDetail: TerrainDetailLayer;
     /** 側面貼圖細節層 */
@@ -424,7 +422,6 @@ export interface TerrainSkinConfig {
 export const TERRAIN_SKIN: TerrainSkinConfig = {
     texturePxPerHex: 96,
     sideTexturePxPerUnit: 1.0,
-    tintStrength: 0.35,
     topDetail: { blend: 'overlay', alpha: 0.5 },
     sideDetail: { blend: 'overlay', alpha: 0.5 },
     sideShadeFloor: '#020617',

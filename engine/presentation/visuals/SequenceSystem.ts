@@ -1,4 +1,12 @@
 
+// ╔══════════════════════════════════════════════════════════════════╗
+// ║  SequenceSystem — 技能特效時序與動作排程系統                      ║
+// ║  職責：管理 VFXSequence 動態動作佇列與派發（PARTICLE / BEAM 等）  ║
+// ║  [ARCH] 遵守 RenderSpec §4.1 目標錨點採樣時點規則：             ║
+// ║    單體有詠唱非投射物在 lockAt 前每幀採樣 VisualMath.getUnitAnchor║
+// ║    首次 battleTime >= lockAt 鎖定錨點；AOE 與舊呼叫維持原快照     ║
+// ╚══════════════════════════════════════════════════════════════════╝
+
 import { GameEngine } from "../../game";
 import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
@@ -13,12 +21,25 @@ import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from ".
 import { HexUtils, MapConfig } from "../../utils";
 import { ultFeelStore } from "../vfx/UltFeelStore";
 
+export interface SequenceRunOptions {
+    targetId?: string;
+    lockAt?: number;
+}
+
+interface SequenceTargetBinding {
+    targetId: string;
+    lockAt: number;
+    locked: boolean;
+    lastAnchor: Point3D;
+}
+
 interface QueuedAction {
     executeAt: number;
     action: VFXAction;
     target: Point3D;
     source?: Point3D;
     sourceId?: string; // Track who started this sequence
+    binding?: SequenceTargetBinding;
 }
 
 export class SequenceSystem {
@@ -103,7 +124,8 @@ export class SequenceSystem {
         engine: GameEngine,
         vfx: VFXSystem,
         sourceId?: string,
-        startDelay: number = 0
+        startDelay: number = 0,
+        options?: SequenceRunOptions
     ) {
         let sourcePos: Point3D | undefined;
         if (sourceId) {
@@ -111,19 +133,56 @@ export class SequenceSystem {
             if (agent) sourcePos = VisualMath.getCoreAnchor(agent, engine);
         }
 
+        let binding: SequenceTargetBinding | undefined;
+        if (options?.targetId && typeof options.lockAt === 'number') {
+            const targetAgent = engine.agents.find(a => a.id === options.targetId);
+            if (targetAgent) {
+                const anchor = VisualMath.getUnitAnchor(targetAgent, engine);
+                binding = {
+                    targetId: options.targetId,
+                    lockAt: options.lockAt,
+                    locked: engine.battleTime >= options.lockAt,
+                    lastAnchor: { x: anchor.x, y: anchor.y, z: anchor.z },
+                };
+            }
+        }
+
         const baseTime = engine.battleTime;
         sequence.actions.forEach(action => {
             const executeAt = baseTime + startDelay + (action.delay || 0);
             if (executeAt <= baseTime) {
-                this.dispatch(action, target, sourcePos, vfx, engine, sourceId);
+                const actionTarget = binding ? (binding.locked ? binding.lastAnchor : { ...binding.lastAnchor }) : target;
+                this.dispatch(action, actionTarget, sourcePos, vfx, engine, sourceId);
             } else {
-                this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId });
+                this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId, binding });
             }
         });
     }
 
     public update(engine: GameEngine, vfx: VFXSystem) {
         const now = engine.battleTime;
+
+        // F02: 在派發到期 action 之前更新尚未鎖定的 binding
+        const activeBindings = new Set<SequenceTargetBinding>();
+        for (const item of this.actionQueue) {
+            if (item.binding && !item.binding.locked) {
+                activeBindings.add(item.binding);
+            }
+        }
+
+        for (const binding of activeBindings) {
+            const targetAgent = engine.agents.find(a => a.id === binding.targetId);
+            if (targetAgent) {
+                // 目標在 engine.agents 中（含 hp <= 0 仍在集合中的情況），更新為最新錨點
+                const anchor = VisualMath.getUnitAnchor(targetAgent, engine);
+                binding.lastAnchor = { x: anchor.x, y: anchor.y, z: anchor.z };
+            }
+            // 首次 battleTime >= lockAt 時永久鎖定
+            if (now >= binding.lockAt) {
+                binding.locked = true;
+            }
+        }
+
         for (let i = this.actionQueue.length - 1; i >= 0; i--) {
             const item = this.actionQueue[i];
             if (now >= item.executeAt) {
@@ -134,7 +193,8 @@ export class SequenceSystem {
                         liveSource = VisualMath.getCoreAnchor(agent, engine);
                     }
                 }
-                this.dispatch(item.action, item.target, liveSource, vfx, engine, item.sourceId);
+                const actionTarget = item.binding ? item.binding.lastAnchor : item.target;
+                this.dispatch(item.action, actionTarget, liveSource, vfx, engine, item.sourceId);
                 this.actionQueue.splice(i, 1);
             }
         }

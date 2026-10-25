@@ -14,7 +14,7 @@ export interface Climber {
 }
 
 /** 單位一步最多能爬的高度（世界單位）。 */
-export function getJumpLimit(climber: Pick<Climber, 'jump'>): number {
+function getJumpLimit(climber: Pick<Climber, 'jump'>): number {
     return Math.max(1, climber.jump) * BLOCK_HEIGHT;
 }
 

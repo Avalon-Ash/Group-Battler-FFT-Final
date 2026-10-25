@@ -12,7 +12,7 @@ import { UnitRenderSystem } from '../engine/presentation/unit/UnitSystem';
 import { UnitFrameStore } from '../engine/renderers/frame/UnitFrame';
 import { Agent } from '../engine/core/Agent';
 import { HexUtils, type MapConfig } from '../engine/utils';
-import { FLOAT_BOB, GROUND_DRAPE, UNIT_FRAME, VFX_GROUND_TYPES, VFX_RENDER } from '../constants';
+import { FLOAT_BOB, GROUND_DRAPE, ISO_SCALE_Y, UNIT_FRAME, VFX_GROUND_TYPES, VFX_RENDER } from '../constants';
 import { hudBarHeight } from '../data/units/appearance/projection';
 import { Team } from '../types';
 
@@ -341,42 +341,71 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
             a.physics.y = (c0.y + (c1.y - c0.y) * t) - a.py;
         };
 
-        it('sits on the old hex until the foot is clearly inside the new one', () => {
+        it('enters the front hex at the border, but sits on it when walking back until clearly inside the back hex', () => {
             const a = new Agent('H', Team.BLUE, 0, 0, MAP);
             const store = new UnitFrameStore();
+            const c0 = HexUtils.toPx(0, 0, MAP), c1 = HexUtils.toPx(0, 1, MAP);
+            expect(c1.y).toBeGreaterThan(c0.y); // (0,1) 在前方
+            // 往前走：fromPx 一判到 (0,1) 就切換，不等滯後（排在後格會被腳下地塊蓋住）
             footAt(a, 0.2); run(a, store);
             expect(hexAt(a, store)).toBe('0,0');
-            // 原始格已換成 (0,1)，但距離差小於滯後 → 排序格不動
-            const c0 = HexUtils.toPx(0, 0, MAP), c1 = HexUtils.toPx(0, 1, MAP);
-            const total = Math.hypot(c1.x - c0.x, c1.y - c0.y);
-            let t = 0.2, switchedAt = -1;
-            for (; t <= 1; t += 0.005) {
-                footAt(a, t); run(a, store);
-                if (hexAt(a, store) === '0,1') { switchedAt = t; break; }
-            }
-            expect(switchedAt).toBeGreaterThan(0.5);
-            // 切換時新格比舊格近至少 HEX_HYSTERESIS_PX
-            const foot = { x: a.px + a.physics.x, y: a.py + a.physics.y };
-            const dOld = Math.hypot(foot.x - c0.x, foot.y - c0.y), dNew = Math.hypot(foot.x - c1.x, foot.y - c1.y);
-            expect(dNew + UNIT_FRAME.HEX_HYSTERESIS_PX).toBeLessThan(dOld);
-            expect(total).toBeGreaterThan(UNIT_FRAME.HEX_HYSTERESIS_PX * 2);
-            // 往回走：同樣要明顯回到舊格才切回，不會在格界上來回翻
-            footAt(a, switchedAt - 0.01); run(a, store);
+            footAt(a, 0.502); run(a, store);
             expect(hexAt(a, store)).toBe('0,1');
+            // 往回走：原始格已回到 (0,0)，但距離差小於滯後 → 排序格停在前格
+            const total = Math.hypot(c1.x - c0.x, (c1.y - c0.y) / ISO_SCALE_Y);
+            let t = 0.8, switchedAt = -1;
+            for (; t >= 0; t -= 0.005) {
+                footAt(a, t); run(a, store);
+                if (hexAt(a, store) === '0,0') { switchedAt = t; break; }
+            }
+            expect(switchedAt).toBeLessThan(0.5);
+            // 切換時後格比前格近至少 HEX_HYSTERESIS_PX（未壓扁平面距離）
+            const foot = { x: a.px + a.physics.x, y: a.py + a.physics.y };
+            const dFront = Math.hypot(foot.x - c1.x, (foot.y - c1.y) / ISO_SCALE_Y);
+            const dBack = Math.hypot(foot.x - c0.x, (foot.y - c0.y) / ISO_SCALE_Y);
+            expect(dBack + UNIT_FRAME.HEX_HYSTERESIS_PX).toBeLessThan(dFront);
+            expect(total).toBeGreaterThan(UNIT_FRAME.HEX_HYSTERESIS_PX * 2);
         });
 
-        it('releases the hysteresis once the foot stays put just past the border (corpse slid to rest)', () => {
-            const a = new Agent('S', Team.BLUE, 0, 0, MAP);
+        it('settles on the front hex when the foot jitters across the border (no A-B-A flip)', () => {
+            const a = new Agent('J', Team.BLUE, 0, 0, MAP);
             const store = new UnitFrameStore();
             footAt(a, 0.2); run(a, store);
-            // 停在剛過格界的地方：原始格已是 (0,1)，但距離差小於滯後
-            footAt(a, 0.52); run(a, store);
-            expect(hexAt(a, store)).toBe('0,0');
-            for (let i = 0; i < UNIT_FRAME.HEX_RELEASE_FRAMES; i++) run(a, store);
+            const seen: string[] = [];
+            for (let i = 0; i < 40; i++) {
+                footAt(a, i % 2 ? 0.499 : 0.501); run(a, store);
+                seen.push(hexAt(a, store));
+            }
+            // 第一次跨到前格後就停在前格
+            expect(seen.slice(seen.indexOf('0,1'))).toEqual(Array(40 - seen.indexOf('0,1')).fill('0,1'));
+        });
+
+        it('releases the hysteresis once the foot stays put just past the border into the back hex (corpse slid to rest)', () => {
+            const a = new Agent('S', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            footAt(a, 0.8); run(a, store);
             expect(hexAt(a, store)).toBe('0,1');
+            // 停在剛退過格界的地方：原始格已是後格 (0,0)，但距離差（未壓扁平面距離）小於滯後
+            footAt(a, 0.492); run(a, store);
+            expect(hexAt(a, store)).toBe('0,1');
+            for (let i = 0; i < UNIT_FRAME.HEX_RELEASE_FRAMES; i++) run(a, store);
+            expect(hexAt(a, store)).toBe('0,0');
             // 鍵不低於自己腳下那格的格心
             const f = store.get(a)!;
-            expect(f.sortY + f.sortBias).toBeGreaterThanOrEqual(HexUtils.toPx(0, 1, MAP).y - 1e-6);
+            expect(f.sortY + f.sortBias).toBeGreaterThanOrEqual(HexUtils.toPx(0, 0, MAP).y - 1e-6);
+        });
+
+        it('keeps the hysteresis for same-row neighbours (POINTY sideways move)', () => {
+            const cfg: MapConfig = { w: 10, h: 10, offsetX: 0, offsetY: 0, layout: 'POINTY' };
+            const a = new Agent('L', Team.BLUE, 0, 0, cfg);
+            const store = new UnitFrameStore();
+            const c0 = HexUtils.toPx(0, 0, cfg), c1 = HexUtils.toPx(1, 0, cfg);
+            expect(c1.y).toBe(c0.y);
+            const at = (t: number) => { a.px = c0.x + (c1.x - c0.x) * t; a.py = c0.y; store.build([a], heightAt, cfg, 0, 'IDLE'); return hexAt(a, store); };
+            expect(at(0.2)).toBe('0,0');
+            expect(at(0.505)).toBe('0,0');
+            expect(at(0.6)).toBe('1,0');
+            expect(at(0.495)).toBe('1,0');
         });
 
         it('switches immediately when the previous hex is more than one ring away', () => {
@@ -388,6 +417,103 @@ describe('UnitFrame is the single source of unit render coordinates', () => {
             a.physics.x = far.x - a.px; a.physics.y = far.y - a.py;
             run(a, store);
             expect(hexAt(a, store)).toBe('0,3');
+        });
+
+        it('holds released hex on subtle border movement in both FLAT and POINTY with non-zero offset', () => {
+            for (const layout of ['FLAT', 'POINTY'] as const) {
+                const cfg: MapConfig = { w: 20, h: 20, offsetX: 173, offsetY: -91, layout };
+                const a = new Agent('metric-' + layout, Team.BLUE, 2, 1, cfg);
+                const store = new UnitFrameStore();
+                const old = HexUtils.toPx(2, 1, cfg);
+                const next = HexUtils.toPx(1, 2, cfg);
+                const dx = next.x - old.x;
+                const dy = (next.y - old.y) / ISO_SCALE_Y;
+                const length = Math.hypot(dx, dy);
+                const mid = {
+                    x: (old.x + next.x) / 2 + dy * 0.25,
+                    y: (old.y + next.y) / 2 - dx * 0.25 * ISO_SCALE_Y,
+                };
+                const pOld = {
+                    x: mid.x - (dx / length) * 0.005,
+                    y: mid.y - (dy / length) * 0.005 * ISO_SCALE_Y,
+                };
+                const pNew = {
+                    x: mid.x + (dx / length) * 0.005,
+                    y: mid.y + (dy / length) * 0.005 * ISO_SCALE_Y,
+                };
+
+                // Confirm fromPx raw values are A=(2,1) and B=(1,2)
+                const rawOld = HexUtils.fromPx(pOld.x, pOld.y, cfg);
+                const rawNew = HexUtils.fromPx(pNew.x, pNew.y, cfg);
+                expect(rawOld).toEqual({ q: 2, r: 1 });
+                expect(rawNew).toEqual({ q: 1, r: 2 });
+
+                const sample = (p: { x: number; y: number }) => {
+                    a.px = p.x; a.py = p.y;
+                    store.build([a], () => 0, cfg, 0, 'IDLE');
+                    const f = store.get(a)!;
+                    return { ...f.hexUnderFoot };
+                };
+
+                // 1. Establish memory at A=(2,1) center
+                const initHex = sample(old);
+                expect(initHex).toEqual({ q: 2, r: 1 });
+
+                // 2. Move to A-side border point pOld and stay at least HEX_RELEASE_FRAMES frames
+                sample(pOld);
+                for (let i = 0; i < UNIT_FRAME.HEX_RELEASE_FRAMES; i++) {
+                    sample(pOld);
+                }
+
+                // 3. Move slightly across border to B-side pNew (triggers release)
+                const released = sample(pNew);
+                expect(released).toEqual({ q: 1, r: 2 });
+
+                // 4. Return to pOld (A-side boundary). Under unflattened metric, hysteresis holds B!
+                const returned = sample(pOld);
+                expect(returned).toEqual({ q: 1, r: 2 });
+
+                // 5. Truly returning to A center returns to A
+                const returnedCenter = sample(old);
+                expect(returnedCenter).toEqual({ q: 2, r: 1 });
+
+                // 6. Teleport to (5,5) switches immediately
+                const teleported = sample(HexUtils.toPx(5, 5, cfg));
+                expect(teleported).toEqual({ q: 5, r: 5 });
+            }
+        });
+
+        it('slow cumulative movement leaves stationary anchor and resets still count', () => {
+            const a = new Agent('slow-move', Team.BLUE, 0, 0, MAP);
+            const store = new UnitFrameStore();
+            // 從前格 (0,1) 出發：退回後格才有滯後（進入前格是立即切換）
+            const c1 = HexUtils.toPx(0, 1, MAP);
+            a.px = c1.x; a.py = c1.y;
+            store.build([a], () => 0, MAP, 0, 'IDLE');
+
+            // Move by 0.1 px per frame for 10 frames (> STILL_PX = 0.5)
+            // Even though per-frame delta is < STILL_PX, cumulative distance from anchor exceeds STILL_PX
+            for (let i = 1; i <= 10; i++) {
+                a.px = c1.x + i * 0.1;
+                store.build([a], () => 0, MAP, 0, 'IDLE');
+            }
+            const back = HexUtils.toPx(0, 0, MAP);
+            a.px = c1.x;
+            a.py = (back.y + c1.y) / 2 - 0.5;
+            store.build([a], () => 0, MAP, 0, 'IDLE');
+            expect(store.get(a)!.hexUnderFoot).toEqual({ q: 0, r: 1 });
+        });
+
+        it('clears memory of agents removed from the build list', () => {
+            const a1 = new Agent('A1', Team.BLUE, 0, 0, MAP);
+            const a2 = new Agent('A2', Team.RED, 1, 1, MAP);
+            const store = new UnitFrameStore();
+            store.build([a1, a2], () => 0, MAP, 0, 'IDLE');
+            expect(store.list.length).toBe(2);
+
+            store.build([a1], () => 0, MAP, 0, 'IDLE');
+            expect(store.list.length).toBe(1);
+            expect(store.get(a2)).toBeUndefined();
         });
     });
 

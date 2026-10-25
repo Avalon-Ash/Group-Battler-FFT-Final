@@ -379,8 +379,8 @@ export function resolveGlowFlag(query: string | null, defaultOn: boolean, tier: 
 }
 
 /**
- * 是否啟用光暈預烘焙 Sprite (GLOW_SPRITES)
- * 預設取 RENDER_QUALITY.GLOW_SPRITES（目前 true，使用者已目視核定外觀差異可接受）。
+ * 是否啟用血條／HUD 光暈旗標 (GLOW_SPRITES)
+ * 控制 BarPainter 血條填色光暈；預設取 RENDER_QUALITY.GLOW_SPRITES。
  * 查詢參數僅在首次呼叫時解析並快取（此函式位於逐單位／逐血條的熱路徑）。
  */
 export function isGlowSpritesEnabled(): boolean {
