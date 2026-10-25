@@ -1,4 +1,5 @@
 import type { BeamStyleId } from "./beam_styles";
+import { COMBAT_PARAM } from "../../constants";
 
 /**
  * 奧義序列的時序與打擊感參數（data/vfx/SkillSequences.ts）。
@@ -15,6 +16,11 @@ export const ULT_SEQUENCE = {
     IMPACT_SCALE: 0.6,
     /** 隕石預設落下高度（px） */
     DEFAULT_FALL_HEIGHT: 1000,
+    /**
+     * 充能式奧義（UltVisualDef.charged）的命中時刻＝奧義詠唱下限：資產時間軸從詠唱開始（0 s）排到命中（此值），
+     * 整段詠唱都有起手→成形→峰值（ULT-V01）。詠唱比下限長的招式（rb_u3 2.0）序列延後 cast − 此值才開始，命中仍落在結算那一刻。
+     */
+    CHARGED_HIT_AT: COMBAT_PARAM.ULT_MIN_CAST_SEC,
 } as const;
 
 
@@ -46,6 +52,8 @@ export interface UltVisualDef {
     beamStyle?: BeamStyleId; // BEAM_SNIPE：光束樣式（BEAM_STYLES 的鍵）
     windupFx?: string;      // STORM：施放時只播一次的起手效果（陣營紋章），落點效果才重播 count 次
     cadence?: 'EVEN' | 'ACCEL' | 'CLUSTER'; // STORM：落點節奏（預設 EVEN）
+    /** 充能式（ULT-V01）：資產時間軸從詠唱開始排到 ULT_SEQUENCE.CHARGED_HIT_AT 命中，不再只播最後 HIT_LEAD 秒 */
+    charged?: boolean;
 }
 
 export const ULT_VISUALS: Record<string, UltVisualDef> = {
@@ -68,8 +76,8 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'wb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#3b82f6', secondaryColor: '#22d3ee', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_THUNDER_SLAM' },
     // wb_u2: 破曉聖擊 -> 擴散的六邊形光爆
     'wb_u2': { archetype: 'INSTANT_IMPACT', primaryColor: '#fef3c7', secondaryColor: '#f59e0b', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_DAYBREAK' },
-    // wb_u3: 誓約勝利 -> 巨大光刃 (仍保留 Slash，但加上六邊形底座)
-    'wb_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#facc15', secondaryColor: '#eab308', scale: 2.2, vfxOverride: 'FX_ULT_BLUE_EXCALIBUR' },
+    // wb_u3: 誓約勝利 -> 光片聚成獅翼聖劍、在目標上空抬起，再重刃砸落插地（充能式，ULT-V01 代表作）
+    'wb_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#facc15', secondaryColor: '#eab308', scale: 2.2, vfxOverride: 'FX_ULT_BLUE_EXCALIBUR', charged: true },
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
     'wb_u4': { archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)

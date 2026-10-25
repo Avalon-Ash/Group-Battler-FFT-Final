@@ -81,6 +81,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'beam': return bakeBeam(ctx, n.width, VFX_RAMPS[n.ramp], n.edge, n.seed ?? 0, frame);
         case 'missile': return bakeMissile(ctx, n.shape, n.length, VFX_RAMPS[n.ramp]);
         case 'prism': return bakePrism(ctx, n.radius, n.height, VFX_RAMPS[n.ramp], n.layout ?? 'FLAT', n.style);
+        case 'construct': return bakeGreatsword(ctx, n.size, VFX_RAMPS[n.ramp]);
     }
 }
 
@@ -1038,6 +1039,136 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
     ctx.lineTo(bx + L * K.BARB * 0.3, by - L * K.BARB * 0.6);
     ctx.closePath();
     ctx.fill();
+}
+
+/** 魔法構造體的一片：外暈（烘焙時 shadowBlur）→ 半透明體積填色 → 亮邊（core）。 */
+function energyPiece(ctx: CanvasRenderingContext2D, path: () => void, fill: string | CanvasGradient, ramp: VFXRamp, L: number): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    ctx.save();
+    path();
+    ctx.shadowColor = withAlpha(ramp.main, C.AURA_ALPHA);
+    ctx.shadowBlur = L * C.AURA_BLUR;
+    ctx.fillStyle = fill;
+    ctx.fill();
+    ctx.restore();
+    path();
+    ctx.strokeStyle = withAlpha(ramp.core, C.RIM_ALPHA);
+    ctx.lineWidth = Math.max(1, L * C.RIM_W);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+}
+
+/** 受光面（core→main，較實）與背光面（main→dark，較暗較透）的體積漸層。 */
+function faceGradient(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number, ramp: VFXRamp, lit: boolean): CanvasGradient {
+    const C = VFX_PARTS.CONSTRUCT;
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    if (lit) {
+        g.addColorStop(0, withAlpha(ramp.core, C.LIT_ALPHA[0]));
+        g.addColorStop(1, withAlpha(ramp.main, C.LIT_ALPHA[1]));
+    } else {
+        g.addColorStop(0, withAlpha(ramp.main, C.SHADE_ALPHA[0]));
+        g.addColorStop(1, withAlpha(ramp.dark, C.SHADE_ALPHA[1]));
+    }
+    return g;
+}
+
+/**
+ * 獅翼聖劍（kind 'construct'，shape 'greatsword'）：劍尖在錨點 (0,0) 朝下，柄頭在 (0, −L)。
+ * 魔法構造體：有體積（左半受光較亮較實、右半背光較暗較透），整體半透明、帶外暈與亮邊，中脊是一道內光；
+ * 不是實心物件，不描深色外框（ULT-V01 使用者美術方向）。
+ */
+function bakeGreatsword(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    const G = C.GREATSWORD;
+    const bw = (G.BLADE_W * L) / 2;
+    const tipY = -G.TIP_LEN * L;
+    const guardY = -G.GUARD_Y * L;
+    const gh = G.GUARD_H * L;
+
+    // 獅翼（在劍刃後面）：每側 FEATHERS 片尖羽，從護手根部往上展開成扇形；外側先畫、內側蓋上去
+    const span = (G.WING_SPAN * L) / 2;
+    const [a0, a1] = G.FEATHER_ANGLE_DEG;
+    for (const side of [-1, 1]) {
+        for (let i = G.FEATHERS - 1; i >= 0; i--) {
+            const u = G.FEATHERS > 1 ? i / (G.FEATHERS - 1) : 1;
+            const ang = ((a0 + (a1 - a0) * u) * Math.PI) / 180;
+            const len = span * (G.FEATHER_LEN[0] + (G.FEATHER_LEN[1] - G.FEATHER_LEN[0]) * u);
+            const rootX = side * bw * G.FEATHER_ROOT_X;
+            const rootY = guardY - gh / 2;
+            const tipX = rootX + side * Math.cos(ang) * len;
+            const tipYw = rootY - Math.sin(ang) * len;
+            const nx = side * Math.sin(ang), ny = Math.cos(ang);
+            const wdt = len * G.FEATHER_WIDTH;
+            const midX = (rootX + tipX) / 2, midY = (rootY + tipYw) / 2;
+            const feather = () => {
+                ctx.beginPath();
+                ctx.moveTo(rootX, rootY);
+                ctx.quadraticCurveTo(midX - nx * wdt, midY - ny * wdt, tipX, tipYw);
+                ctx.quadraticCurveTo(midX + nx * wdt, midY + ny * wdt, rootX, rootY);
+                ctx.closePath();
+            };
+            // 羽根往羽尖由背光漸亮（光從羽尖透出來）
+            energyPiece(ctx, feather, faceGradient(ctx, tipX, tipYw, rootX, rootY, ramp, side < 0), ramp, L);
+        }
+    }
+
+    // 劍刃：左半受光、右半背光
+    const leftHalf = () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(-bw, tipY); ctx.lineTo(-bw, guardY); ctx.lineTo(0, guardY);
+        ctx.closePath();
+    };
+    const rightHalf = () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0); ctx.lineTo(0, guardY); ctx.lineTo(bw, guardY); ctx.lineTo(bw, tipY);
+        ctx.closePath();
+    };
+    energyPiece(ctx, leftHalf, faceGradient(ctx, -bw, guardY, 0, 0, ramp, true), ramp, L);
+    energyPiece(ctx, rightHalf, faceGradient(ctx, 0, guardY, bw, 0, ramp, false), ramp, L);
+    // 中脊內光：一道 core 細線加光暈，沿劍身流動的能量
+    ctx.save();
+    ctx.shadowColor = ramp.core;
+    ctx.shadowBlur = L * C.CORE_BLUR;
+    ctx.strokeStyle = ramp.core;
+    ctx.lineWidth = Math.max(1, L * C.CORE_W);
+    ctx.beginPath();
+    ctx.moveTo(0, tipY * G.CORE_START);
+    ctx.lineTo(0, guardY);
+    ctx.stroke();
+    ctx.restore();
+
+    // 護手橫桿：上亮下暗
+    const gx = bw * G.GUARD_EXTENT;
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-gx, guardY - gh, gx * 2, gh); },
+        faceGradient(ctx, 0, guardY - gh, 0, guardY, ramp, true), ramp, L);
+
+    // 握柄：背光較透，纏繩是幾道亮紋
+    const gw = (G.GRIP_W * L) / 2;
+    const gripTop = guardY - gh - G.GRIP_LEN * L;
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-gw, gripTop, gw * 2, G.GRIP_LEN * L); },
+        faceGradient(ctx, -gw, gripTop, gw, gripTop, ramp, false), ramp, L);
+    ctx.strokeStyle = withAlpha(ramp.core, C.WRAP_ALPHA);
+    ctx.lineWidth = Math.max(1, L * C.RIM_W);
+    ctx.beginPath();
+    for (let k = 1; k <= G.WRAPS; k++) {
+        const y = guardY - gh - (G.GRIP_LEN * L * k) / (G.WRAPS + 1);
+        ctx.moveTo(-gw, y + gw * G.WRAP_SLANT);
+        ctx.lineTo(gw, y - gw * G.WRAP_SLANT);
+    }
+    ctx.stroke();
+
+    // 柄頭六角寶石：光源
+    const pr = G.POMMEL_R * L;
+    ctx.save();
+    ctx.translate(0, gripTop - pr * G.POMMEL_LIFT);
+    bakeGlow(ctx, G.GEM_GLOW * L, ramp, false);
+    hexPath(ctx, pr);
+    ctx.fillStyle = withAlpha(ramp.main, C.LIT_ALPHA[1]);
+    ctx.fill();
+    hexPath(ctx, pr * G.GEM_CORE);
+    ctx.fillStyle = ramp.core;
+    ctx.fill();
+    ctx.restore();
 }
 
 /** 在 (x, y) 畫一顆硬光點（bakeGlow 的平移版，炸彈引信火花用）。 */

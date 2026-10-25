@@ -145,6 +145,7 @@ export class VFXPlayer {
                 p.rotation = config.partAnim?.rotation ?? 0;
             }
             if (config.groundAnchored) p.groundAnchored = true;
+            if (config.partAnim?.rise) p.spawnZ = pz;
             if (!p.image && !SELF_DRAWN_PARTICLE_TYPES.has(p.type)) {
                 p.image = VFXFactory.getTexture(particleTexture(p.type), p.color);
             }

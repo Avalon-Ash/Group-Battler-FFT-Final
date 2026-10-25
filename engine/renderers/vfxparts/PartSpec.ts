@@ -20,6 +20,11 @@ export type MagicCircleLayer = 'outer' | 'inner';
 export type MagicCircleStyle = 'LION' | 'ASH';
 /** 六角稜柱的材質：glass＝六面半透明（護盾），solid＝只畫朝向鏡頭的面（冰晶塊） */
 export type PrismStyle = 'glass' | 'solid';
+/**
+ * 奧義魔法構造體（ULT-V01）：有體積的半透明能量體（受光面較亮較實、背光面較暗較透、外暈＋亮邊＋內光），
+ * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）。
+ */
+export type ConstructShape = 'greatsword';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -57,7 +62,9 @@ export type PartSpec =
     | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId }
     | { kind: 'magicCircle'; radius: number; ramp: VFXRampId; layer: MagicCircleLayer; style: MagicCircleStyle; seed?: number }
     /** 立體零件：等距投影與版面（FLAT／POINTY）烘焙在 sprite 裡，繪製時不可再旋轉或壓扁 */
-    | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle };
+    | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle }
+    /** 具象實體（ConstructShape）：size＝主軸長度（world px），錨點依造型（見 partBounds） */
+    | { kind: 'construct'; shape: ConstructShape; size: number; ramp: VFXRampId };
 
 export type PartKind = PartSpec['kind'];
 
@@ -140,6 +147,8 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             const q = (v: number) => Math.max(step, Math.round(v / step) * step);
             return { kind: 'prism', radius: q(spec.radius), height: q(spec.height), ramp: spec.ramp, layout: spec.layout ?? 'FLAT', style: spec.style };
         }
+        case 'construct':
+            return { kind: 'construct', shape: spec.shape, size: quantizeSize(spec.size), ramp: spec.ramp };
     }
 }
 
@@ -179,6 +188,7 @@ export function partBlend(n: PartSpec): GlobalCompositeOperation {
     if (n.kind === 'smoke' || n.kind === 'droplet' || n.kind === 'flame') return 'source-over';
     if (n.kind === 'missile' && SOLID_MISSILES.has(n.shape)) return 'source-over';
     if (n.kind === 'prism' && n.style === 'solid') return 'source-over';
+    if (n.kind === 'construct') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
@@ -267,6 +277,13 @@ export function partBounds(n: PartSpec): PartBounds {
             const w = n.length + pad * 2;
             const h = n.length * VFX_PARTS.MISSILE.HEIGHT[n.shape] + pad * 2;
             return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
+        }
+        case 'construct': {
+            // greatsword：劍尖朝下，錨點在劍尖（插地／砸落的接觸點）；寬度＝獅翼護手展開；四周多留外暈的模糊半徑
+            const m = pad + n.size * VFX_PARTS.CONSTRUCT.AURA_BLUR * 2;
+            const w = n.size * VFX_PARTS.CONSTRUCT.GREATSWORD.WING_SPAN + m * 2;
+            const h = n.size + m * 2;
+            return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
         }
     }
 }

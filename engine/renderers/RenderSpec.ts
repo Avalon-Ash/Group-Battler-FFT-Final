@@ -61,6 +61,8 @@ export class RenderSpec {
         s += "高度只影響繪製位置（op.ty）。舊的 `op.z * 20`（z > 0）與固定 `+60`（z == 0）和 y*100 互相抵銷，往下掉的碎片鍵在鄰居兩側來回，\n";
         s += "相對地塊／單位／疊層逐幀翻轉（docs/COORD_GUARD_FINDINGS.md H3）。現在掉落的碎片 y 不變則鍵不變，水平移動則鍵單調，\n";
         s += "對任何靜止物件最多翻轉一次。投射物的 op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓它永遠在最上層。\n";
+        s += "零件高度路徑（PartAnim.rise，ULT-V01 奧義主體的成形／抬起／砸落）只依生命進度改 z（VFXPhysics），足跡不動，所以同樣不進鍵；\n";
+        s += "貼地零件（groundAnchored）以當前地面高度為基準加上路徑偏移。\n";
         s += "AURA 去掉舊的 `高度 * TERRAIN_SORT_SCALE`（證據：docs/COORD_GUARD_FINDINGS.md §8，景深預言判 AURA 的穩定錯序 361 → 70）。\n\n";
         s += "**沒有「法陣抬升」**：舊規則（RenderList.sort 把站在大型法陣橢圓內的單位／屍體的鍵抬到法陣前緣之後）已移除——它隨法陣生滅、縮放而開關，\n";
         s += "是 docs/COORD_GUARD_FINDINGS.md 量到的 85% 排序震盪。單位站在法陣後半需要「前緣格 < 法陣 < 單位 < 前方地塊」，這是環，沒有任何單一排序鍵能滿足；\n";

@@ -177,7 +177,7 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const pulse = (k: number) => Math.min(U.MAX_PULSE_SCALE, k);
             const shake = (k: number) => Math.max(U.MIN_SHAKE, k);
             // hitAt＝序列開始後的命中時刻；CAST_START 延後 (詠唱 − hitAt) 才開始，命中與傷害同一刻（VFXSequence.hitAt）
-            let hitAt = U.HIT_LEAD;
+            let hitAt = ultConfig.charged ? U.CHARGED_HIT_AT : U.HIT_LEAD;
 
             switch (ultConfig.archetype) {
                 case 'HEAVEN_FALL': {

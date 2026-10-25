@@ -84,6 +84,30 @@ export const VFX_PARTS = {
         GLASS: { BACK_FACES: true, SIDE_TOP: 0.3, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.3, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0.5 },
         SOLID: { BACK_FACES: false, SIDE_TOP: 1, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.6, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0 },
     },
+    /**
+     * 奧義魔法構造體（kind 'construct'，ULT-V01）：有體積但不是實心物件——半透明能量體＋外暈＋亮邊＋內光。
+     * 比例都是相對主軸長度 size。LIT_ALPHA＝受光面 [core 端, main 端] 不透明度；SHADE_ALPHA＝背光面 [main 端, dark 端]（較暗較透）；
+     * AURA_BLUR／AURA_ALPHA＝烘焙時的外暈；RIM_W／RIM_ALPHA＝core 亮邊；CORE_W／CORE_BLUR＝中脊內光。
+     * GREATSWORD：劍尖朝下。BLADE_W＝劍刃寬，TIP_LEN＝劍尖收斂長，GUARD_Y＝護手高度，WING_SPAN＝獅翼全寬，
+     * FEATHER_*＝羽片（角度範圍、長度範圍、根部位置、寬度），GRIP_*＝握柄，POMMEL_R＝柄頭寶石半徑，CORE_START＝內光起點（相對劍尖長）。
+     */
+    CONSTRUCT: {
+        LIT_ALPHA: [0.9, 0.6] as const,
+        SHADE_ALPHA: [0.45, 0.22] as const,
+        AURA_BLUR: 0.05,
+        AURA_ALPHA: 0.85,
+        RIM_W: 0.007,
+        RIM_ALPHA: 0.9,
+        CORE_W: 0.012,
+        CORE_BLUR: 0.04,
+        WRAP_ALPHA: 0.7,
+        GREATSWORD: {
+            BLADE_W: 0.13, TIP_LEN: 0.12, CORE_START: 1.3,
+            GUARD_Y: 0.68, GUARD_H: 0.045, GUARD_EXTENT: 1.7, WING_SPAN: 0.62, FEATHERS: 5,
+            FEATHER_ANGLE_DEG: [8, 62] as const, FEATHER_LEN: [0.55, 1] as const, FEATHER_ROOT_X: 1.1, FEATHER_WIDTH: 0.16,
+            GRIP_LEN: 0.2, GRIP_W: 0.045, WRAPS: 5, WRAP_SLANT: 0.6, POMMEL_R: 0.04, POMMEL_LIFT: 0.8, GEM_GLOW: 0.09, GEM_CORE: 0.5,
+        },
+    },
     SPARK: { THICK_RATIO: 0.12, HEAD_GLOW_RATIO: 0.22, MAIN_STOP: 0.6, MAIN_ALPHA: 0.85 },
     DROPLET: { TIP_RATIO: 1.6, HIGHLIGHT_RATIO: 0.28, BODY_RATIO: 0.55 },
     /**

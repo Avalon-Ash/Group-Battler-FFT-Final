@@ -46,29 +46,31 @@ export const ULT_IMPACT_VFX: Record<string, VFXAsset> = {
 };
 
 export const ULT_PART_VFX: Record<string, VFXAsset> = {
-    // wb_u3 誓約勝利（獅心・聖光）：日輪法陣浮現 → 巨大金色劍弧＋光柱落下 → 金色光點上飄
+    // wb_u3 誓約勝利（獅心・聖光，充能式，hit＝ULT_SEQUENCE.CHARGED_HIT_AT 1.5 s）：
+    // 日輪法陣浮現、光點與劍片向上空匯聚 → 獅翼聖劍在目標上空成形並抬起 → 重刃砸落插地 → 地裂、碎晶、光點上飄
     'FX_ULT_BLUE_EXCALIBUR': {
         id: 'FX_ULT_BLUE_EXCALIBUR',
         emitters: [
-            // 起手：日輪法陣（陣營紋章），緩慢旋轉（單體尺寸 ≤ 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0, size: 36, vRotation: 0.5,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            // 命中：光柱
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 64, height: 256, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.7, delay: 0.3, size: 64, groundAnchored: true,
-                partAnim: { scaleFrom: 1.15, scaleTo: 0.9, fadeIn: 0.05, fadeOut: 0.6 } }),
-            // 命中：巨大劍弧（由右上斬下）
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 128, arcDeg: 150, thickness: 32, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.32, size: 128,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.1, fadeOut: 0.5, rotation: 0.6 } }),
-            // 命中：核心閃光
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.5, delay: 0.32, size: 96,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 命中：地面衝擊環（單體尺寸 ≤ 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.34, size: 48,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.0, fadeOut: 0.6 } }),
-            // 餘韻：光點緩慢上飄後淡出
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 14], lifetime: [0.8, 1.1], delay: [0.45, 0.65], size: 8,
-                shape: 'CIRCLE', shapeRadius: 50, speed: [5, 20], vz: [40, 90], drag: 0.02,
-                partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
+            // 起手（0 s）：日輪法陣，整段詠唱緩慢放大旋轉
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 2.0, delay: 0, size: 36, vRotation: 0.6,
+                partAnim: { scaleFrom: 0.55, scaleTo: 1.1, ease: 'linear', fadeIn: 0.08, fadeOut: 0.25 } }),
+            // 成形（0.15–1.05 s）：劍片由外圈向中心收、往上空劍的位置升起
+            part({ particleType: 'PART', part: { kind: 'shard', size: 12, shape: 'crystal', ramp: 'LION_HOLY' }, count: 10, lifetime: 0.75, delay: [0.15, 0.3], size: 12,
+                shape: 'RING', shapeRadius: 70, speed: -85, vRotation: [-6, 6], groundAnchored: true,
+                partAnim: { fadeIn: 0.25, fadeOut: 0.25, rise: [{ at: 0, z: 30 }, { at: 1, z: 120 }] } }),
+            // 聖劍（0.75–2.35 s）：上空顯形並緩慢抬起 → 1.4 s 急墜 → 1.5 s 插地停留後淡出（劍尖高度＝rise）
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'greatsword', size: 128, ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0.75, size: 128, groundAnchored: true,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1, fadeIn: 0.16, fadeOut: 0.24,
+                    rise: [{ at: 0, z: 100 }, { at: 0.40625, z: 150 }, { at: 0.46875, z: 0, ease: 'in' }, { at: 1, z: 0 }] } }),
+            // 命中：地面放射裂紋與衝擊環
+            // 單體技能：貼地零件不超過 1.5 格（C6），畫面不暗示比實際更大的打擊範圍
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 48, count: 8, ramp: 'LION_HOLY', lengthJitter: 0.6, seed: 3 }, count: 1, lifetime: 0.9, delay: 1.5, size: 48,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 40, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 1.5, size: 40,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
+            // 命中：碎晶噴濺
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 9, shape: 'crystal', ramp: 'LION_HOLY' }, count: 8, lifetime: [0.6, 0.9], delay: 1.5, size: 9,
+                shape: 'BURST_DIR', speed: [200, 380], gravity: 1800, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
         ],
     },
 

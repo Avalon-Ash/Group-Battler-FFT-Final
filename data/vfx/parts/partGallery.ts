@@ -28,4 +28,5 @@ export const PART_GALLERY: readonly PartGalleryEntry[] = [
     { kind: 'beam', name: '光束段', desc: '光束本體（clean／dashed／zigzag／beads 四種邊）。', spec: { kind: 'beam', width: 16, ramp: 'LION_ARCANE', edge: 'clean' } },
     { kind: 'missile', name: '投射物', desc: '箭、弩矢、法球、飛斧、炸彈、鉤爪。', spec: { kind: 'missile', shape: 'orb', length: 28, ramp: 'ASH_VOID' } },
     { kind: 'prism', name: '稜柱', desc: '護盾稜柱（glass）與實心稜柱；投影烘在 sprite 裡。', spec: { kind: 'prism', radius: 26, height: 40, ramp: 'LION_ARCANE', style: 'glass' } },
+    { kind: 'construct', name: '魔法構造體', desc: '奧義主體（獅翼聖劍等）：有體積的半透明能量體，受光面亮、背光面較透，帶外暈與亮邊。', spec: { kind: 'construct', shape: 'greatsword', size: 64, ramp: 'LION_HOLY' } },
 ];
