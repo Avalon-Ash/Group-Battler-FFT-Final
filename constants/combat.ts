@@ -70,6 +70,12 @@ export const COMBAT_PARAM = {
     AI_PERCEPTION_BONUS_ULT: 5,
     AI_PERCEPTION_BONUS_NORMAL: 2,
     AI_HEAL_HP_THRESHOLD: 0.95,
+    /**
+     * 奧義（tag ULT）的有效詠唱下限（秒，模擬時間）。預設資料與 UPDATE_SKILL 都以 data/ui/skillEditor.ts 的
+     * normalizeSkillCast 套用，所以 skill.cast 本身就是有效值：計時、讀條、CAST_START 與演出排程都直接讀它，
+     * 執行期不另外 clamp（避免讀條／特效與計時各用一個值，ULT-T01）。
+     */
+    ULT_MIN_CAST_SEC: 1.5,
     AI_SELF_BUFF_ENGAGE_DIST: 3,
     MOVE_SPEED_ULT: 1.3,
     MOVE_SPEED_NORMAL: 1.0,

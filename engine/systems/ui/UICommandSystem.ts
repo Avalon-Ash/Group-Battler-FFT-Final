@@ -4,7 +4,7 @@ import { UI_SETTINGS } from '../../../constants';
 import { HexUtils } from '../../utils';
 import { SCENE_DB } from '../../../data/scenes';
 import { AgentManager } from '../agentManager';
-import { isSkillEditableField, validateSkillFieldValue } from '../../../data/ui/skillEditor';
+import { buildSkillUpdate, isSkillEditableField } from '../../../data/ui/skillEditor';
 
 type NumericRange = { readonly min: number; readonly max: number };
 
@@ -105,6 +105,8 @@ export class UICommandSystem {
                 const agent = this.engine.agents.find((a) => a.id === cmd.agentId);
                 if (!agent || !Number.isInteger(cmd.slot) || cmd.slot < 0 || cmd.slot >= agent.skillIds.length) break;
                 if (cmd.skillId !== null && !this.engine.skillDB.some((s) => s.id === cmd.skillId)) break;
+                // 正在詠唱這一格時不換：計時與演出已依這一招排定（ULT-T01）
+                if (agent.castingSkillIdx === cmd.slot) break;
                 agent.skillIds[cmd.slot] = cmd.skillId;
                 break;
             }
@@ -112,9 +114,13 @@ export class UICommandSystem {
             case 'UPDATE_SKILL': {
                 const skill = this.engine.skillDB.find((s) => s.id === cmd.skillId);
                 if (!skill || !isSkillEditableField(cmd.field)) break;
-                if (!validateSkillFieldValue(cmd.field, cmd.value)) break;
+                // 有單位正在詠唱這一招時拒絕：計時、讀條與演出排程已依目前的 cast／序列排定（ULT-T01）
+                if (this.engine.agents.some((a) => a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.id === skill.id)) break;
+                // 驗證欄位，並以完整候選技能套用奧義詠唱下限（data/ui/skillEditor.ts）
+                const patch = buildSkillUpdate(skill, cmd.field, cmd.value);
+                if (!patch) break;
                 // 技能物件同時被單位的 skills 引用，改這裡即時生效（開戰時 prepareForBattle 也會依 id 重新取）
-                Object.assign(skill, { [cmd.field]: cmd.value });
+                Object.assign(skill, patch);
                 break;
             }
 
