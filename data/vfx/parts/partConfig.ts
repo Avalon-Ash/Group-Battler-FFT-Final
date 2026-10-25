@@ -107,7 +107,25 @@ export const VFX_PARTS = {
             FEATHER_ANGLE_DEG: [8, 62] as const, FEATHER_LEN: [0.55, 1] as const, FEATHER_ROOT_X: 1.1, FEATHER_WIDTH: 0.16,
             GRIP_LEN: 0.2, GRIP_W: 0.045, WRAPS: 5, WRAP_SLANT: 0.6, POMMEL_R: 0.04, POMMEL_LIFT: 0.8, GEM_GLOW: 0.09, GEM_CORE: 0.5,
         },
+        /**
+         * 多面奇點（size＝直徑 D）：外六角半徑 0.5D 切成 6 個三角面，頂點偏左上 APEX（相對半徑）做出受光／背光；
+         * 中心事件視界＝轉 30° 的內六角 HORIZON（相對半徑）填 HORIZON_COLOR；FACET_*＝面的不透明度（中心深、外緣依受光）；
+         * 受光面外緣 FACET_EDGE_STOP 之後往 core 透光（FACET_GLINT_ALPHA×受光度）；HORIZON_RIM_*＝事件視界邊緣的壓縮亮光；
+         * EDGE_ALPHA＝面與面的稜線；RING_*＝外圈壓縮光環（相對 D 的半徑、線寬、模糊；受光側 core 亮弧的角度範圍與線寬倍率）；
+         * HALO_R＝外框半徑（相對 D）。
+         */
+        SINGULARITY: {
+            APEX: [-0.16, -0.2] as const, HORIZON: 0.42, HORIZON_COLOR: 'CHAR' as const, HORIZON_ALPHA: 0.92, HORIZON_RIM_W: 0.025, HORIZON_RIM_ALPHA: 0.8,
+            FACET_CENTER_ALPHA: 0.9, FACET_LIT_ALPHA: 0.8, FACET_SHADE_ALPHA: 0.35, FACET_EDGE_STOP: 0.8, FACET_GLINT_ALPHA: 0.7, EDGE_ALPHA: 0.35,
+            RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
+        },
     },
+    /**
+     * 螺旋吸積帶（kind 'spiral'）：每條光帶從外緣半徑繞 turns 圈收到 INNER×半徑，寬度由 thickness 收到 TAPER 倍（越往內越細）；
+     * 填色是以中心為圓心的放射漸層（外緣 OUTER_ALPHA 的 dark → MID_STOP 處 main → 中心 core），越往內越亮＝向心壓縮。
+     * HALO_W／HALO_BLUR／HALO_ALPHA＝外暈（相對 thickness）；CORE_W＝中線亮芯寬；SEGMENTS＝每條光帶取樣點數。
+     */
+    SPIRAL: { INNER: 0.12, TAPER: 0.2, OUTER_ALPHA: 0.1, MID_STOP: 0.55, MID_ALPHA: 0.8, HALO_W: 2, HALO_BLUR: 0.6, HALO_ALPHA: 0.6, CORE_W: 0.3, CORE_ALPHA: 0.9, SEGMENTS: 48, TURN_STEP: 0.25, MAX_TURNS: 2, MAX_ARMS: 8 },
     SPARK: { THICK_RATIO: 0.12, HEAD_GLOW_RATIO: 0.22, MAIN_STOP: 0.6, MAIN_ALPHA: 0.85 },
     DROPLET: { TIP_RATIO: 1.6, HIGHLIGHT_RATIO: 0.28, BODY_RATIO: 0.55 },
     /**

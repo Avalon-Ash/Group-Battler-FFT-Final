@@ -4,7 +4,7 @@
 // ║        VisualSystem 路由資格門控及 CAST_BREAK 中斷清理             ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { SequenceSystem, SequenceRunOptions } from '../engine/presentation/visuals/SequenceSystem';
 import { VisualSystem } from '../engine/presentation/VisualSystem';
@@ -485,7 +485,7 @@ describe('SequenceTargetBinding (F02)', () => {
                 role: Role.MAGE,
                 tag: 'ULT',
                 range: 4,
-                cast: 1.0,
+                cast: 1.5,
                 cd: 15,
                 cost: 100,
                 gain: 0,
@@ -503,12 +503,15 @@ describe('SequenceTargetBinding (F02)', () => {
                 pos: { x: target.px, y: target.py, z: 10 },
             };
 
+            // mb_u1 是充能式奧義：序列在 CAST_START 當下就開始播，零件烘焙需要 DOM，這裡只驗路由
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => undefined);
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeUndefined();
             } finally {
                 sequenceSystem.run = origRun;
+                playSpy.mockRestore();
             }
         });
 

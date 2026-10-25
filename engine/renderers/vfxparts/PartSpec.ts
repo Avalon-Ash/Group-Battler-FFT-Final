@@ -22,9 +22,10 @@ export type MagicCircleStyle = 'LION' | 'ASH';
 export type PrismStyle = 'glass' | 'solid';
 /**
  * 奧義魔法構造體（ULT-V01）：有體積的半透明能量體（受光面較亮較實、背光面較暗較透、外暈＋亮邊＋內光），
- * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）。
+ * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）；
+ * singularity＝多面奇點（深色多面能量核＋亮邊壓縮光環，錨點在中心，size＝直徑）。
  */
-export type ConstructShape = 'greatsword';
+export type ConstructShape = 'greatsword' | 'singularity';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -50,6 +51,8 @@ export type PartSpec =
     | { kind: 'ring'; radius: number; thickness: number; ramp: VFXRampId; roughness?: number; seed?: number; soft?: boolean }
     | { kind: 'slashArc'; radius: number; arcDeg: number; thickness: number; ramp: VFXRampId }
     | { kind: 'rays'; radius: number; count: number; ramp: VFXRampId; lengthJitter?: number; seed?: number }
+    /** 螺旋吸積帶：arms 條彎曲光帶從外緣 radius 繞 turns 圈收進中心，越往內越細越亮（向心壓縮）；貼地用 PART_GROUND */
+    | { kind: 'spiral'; radius: number; arms: number; turns: number; thickness: number; ramp: VFXRampId }
     | { kind: 'bolt'; length: number; branches: number; ramp: VFXRampId; seed?: number }
     | { kind: 'flame'; height: number; ramp: VFXRampId; jagged?: boolean }
     | { kind: 'smoke'; radius: number; color: VFXNeutralId; roughness?: number; seed?: number }
@@ -118,6 +121,12 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
         case 'rays': {
             const lengthJitter = quantizeUnit(spec.lengthJitter);
             return { kind: 'rays', radius: quantizeSize(spec.radius), count: clampInt(spec.count, 3, 32), ramp: spec.ramp, lengthJitter, seed: lengthJitter > 0 ? quantizeSeed(spec.seed) : 0 };
+        }
+        case 'spiral': {
+            const S = VFX_PARTS.SPIRAL;
+            const turns = Math.max(S.TURN_STEP, Math.min(S.MAX_TURNS, Math.round(spec.turns / S.TURN_STEP) * S.TURN_STEP));
+            const radius = quantizeSize(spec.radius);
+            return { kind: 'spiral', radius, arms: clampInt(spec.arms, 2, S.MAX_ARMS), turns, thickness: Math.min(radius, quantizeSize(spec.thickness)), ramp: spec.ramp };
         }
         case 'bolt':
             return { kind: 'bolt', length: quantizeSize(spec.length), branches: clampInt(spec.branches, 0, 6), ramp: spec.ramp, seed: quantizeSeed(spec.seed) };
@@ -210,6 +219,12 @@ export function partBounds(n: PartSpec): PartBounds {
             const d = (n.radius + M.BLUR * 2 + M.RING_A.W * M.HALO_WIDTH_MUL) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
+        case 'spiral': {
+            // 外緣光帶最粗：光暈半寬＋烘焙模糊
+            const S = VFX_PARTS.SPIRAL;
+            const d = (n.radius + n.thickness * S.HALO_W / 2 + n.thickness * S.HALO_BLUR * 2) * 2 + pad * 2;
+            return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+        }
         case 'glow':
         case 'rays': {
             const d = n.radius * 2 + pad * 2;
@@ -279,8 +294,13 @@ export function partBounds(n: PartSpec): PartBounds {
             return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
         }
         case 'construct': {
-            // greatsword：劍尖朝下，錨點在劍尖（插地／砸落的接觸點）；寬度＝獅翼護手展開；四周多留外暈的模糊半徑
             const m = pad + n.size * VFX_PARTS.CONSTRUCT.AURA_BLUR * 2;
+            if (n.shape === 'singularity') {
+                // 錨點在中心；外框含壓縮光環
+                const d = n.size * VFX_PARTS.CONSTRUCT.SINGULARITY.HALO_R * 2 + m * 2;
+                return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+            }
+            // greatsword：劍尖朝下，錨點在劍尖（插地／砸落的接觸點）；寬度＝獅翼護手展開；四周多留外暈的模糊半徑
             const w = n.size * VFX_PARTS.CONSTRUCT.GREATSWORD.WING_SPAN + m * 2;
             const h = n.size + m * 2;
             return { width: w, height: h, anchorX: w / 2, anchorY: h - m };

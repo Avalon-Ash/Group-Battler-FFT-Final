@@ -81,7 +81,8 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'beam': return bakeBeam(ctx, n.width, VFX_RAMPS[n.ramp], n.edge, n.seed ?? 0, frame);
         case 'missile': return bakeMissile(ctx, n.shape, n.length, VFX_RAMPS[n.ramp]);
         case 'prism': return bakePrism(ctx, n.radius, n.height, VFX_RAMPS[n.ramp], n.layout ?? 'FLAT', n.style);
-        case 'construct': return bakeGreatsword(ctx, n.size, VFX_RAMPS[n.ramp]);
+        case 'spiral': return bakeSpiral(ctx, n.radius, n.arms, n.turns, n.thickness, VFX_RAMPS[n.ramp]);
+        case 'construct': return n.shape === 'singularity' ? bakeSingularity(ctx, n.size, VFX_RAMPS[n.ramp]) : bakeGreatsword(ctx, n.size, VFX_RAMPS[n.ramp]);
     }
 }
 
@@ -1168,6 +1169,157 @@ function bakeGreatsword(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp)
     hexPath(ctx, pr * G.GEM_CORE);
     ctx.fillStyle = ramp.core;
     ctx.fill();
+    ctx.restore();
+}
+
+/**
+ * 螺旋吸積帶（kind 'spiral'）：arms 條彎曲光帶，從外緣 R 繞 turns 圈收到 INNER×R，越往內越細。
+ * 填色是以中心為圓心的放射漸層（外緣暗而透 → 中心 core 亮）：亮度只跟半徑有關，光帶整條一次填完，沒有分段接縫。
+ * 角度隨深入而增加，所以執行期要「往內流」須給負的 vRotation。
+ */
+function bakeSpiral(ctx: CanvasRenderingContext2D, R: number, arms: number, turns: number, thickness: number, ramp: VFXRamp): void {
+    const S = VFX_PARTS.SPIRAL;
+    const r0 = R * S.INNER;
+    const fill = ctx.createRadialGradient(0, 0, r0, 0, 0, R);
+    fill.addColorStop(0, ramp.core);
+    fill.addColorStop(1 - S.MID_STOP, withAlpha(ramp.main, S.MID_ALPHA));
+    fill.addColorStop(1, withAlpha(ramp.dark, S.OUTER_ALPHA));
+    const coreFill = ctx.createRadialGradient(0, 0, r0, 0, 0, R);
+    coreFill.addColorStop(0, withAlpha(ramp.core, S.CORE_ALPHA));
+    coreFill.addColorStop(1, withAlpha(ramp.core, 0));
+    const N = S.SEGMENTS;
+    for (let a = 0; a < arms; a++) {
+        const a0 = (a / arms) * TAU;
+        const center: Array<[number, number]> = [];
+        const left: Array<[number, number]> = [];
+        const right: Array<[number, number]> = [];
+        for (let i = 0; i <= N; i++) {
+            const t = i / N;
+            const r = R - (R - r0) * t;
+            const th = a0 + turns * TAU * t;
+            const w = (thickness * (1 - (1 - S.TAPER) * t)) / 2;
+            const cx = Math.cos(th) * r, cy = Math.sin(th) * r;
+            // 法線取半徑方向：光帶寬度落在內外兩側
+            const nx = Math.cos(th), ny = Math.sin(th);
+            center.push([cx, cy]);
+            left.push([cx + nx * w, cy + ny * w]);
+            right.push([cx - nx * w, cy - ny * w]);
+        }
+        ctx.beginPath();
+        ctx.moveTo(left[0][0], left[0][1]);
+        for (let i = 1; i <= N; i++) ctx.lineTo(left[i][0], left[i][1]);
+        for (let i = N; i >= 0; i--) ctx.lineTo(right[i][0], right[i][1]);
+        ctx.closePath();
+        ctx.save();
+        ctx.shadowColor = withAlpha(ramp.main, S.HALO_ALPHA);
+        ctx.shadowBlur = thickness * S.HALO_BLUR;
+        ctx.fillStyle = fill;
+        ctx.fill();
+        ctx.restore();
+        // 中線亮芯
+        ctx.beginPath();
+        ctx.moveTo(center[0][0], center[0][1]);
+        for (let i = 1; i <= N; i++) ctx.lineTo(center[i][0], center[i][1]);
+        ctx.strokeStyle = coreFill;
+        ctx.lineWidth = Math.max(1, thickness * S.CORE_W);
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+    }
+}
+
+/**
+ * 多面奇點（kind 'construct'，shape 'singularity'）：錨點在中心，D＝直徑。
+ * 外六角切成 6 個三角面，頂點偏左上：朝左上的面受光（main 較實）、朝右下的面背光（dark 較透），中心最深；
+ * 中央是轉 30° 的深色事件視界，外圈一道 core 壓縮亮環。魔法能量體：半透明＋外暈＋亮邊，不描深色外框（ULT-V01）。
+ */
+function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    const S = C.SINGULARITY;
+    const R = D / 2;
+    const ax = S.APEX[0] * R, ay = S.APEX[1] * R;
+    // 光源在左上：面朝向 (−1,−1)/√2 的程度決定受光
+    const lx = -Math.SQRT1_2, ly = -Math.SQRT1_2;
+
+    // 整體外暈（先畫，面再蓋上去）
+    ctx.save();
+    hexPath(ctx, R);
+    ctx.shadowColor = withAlpha(ramp.main, C.AURA_ALPHA);
+    ctx.shadowBlur = D * C.AURA_BLUR;
+    ctx.fillStyle = withAlpha(ramp.dark, S.FACET_SHADE_ALPHA);
+    ctx.fill();
+    ctx.restore();
+
+    for (let k = 0; k < 6; k++) {
+        const [x0, y0] = hexVertex(R, k);
+        const [x1, y1] = hexVertex(R, k + 1);
+        const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+        const len = Math.hypot(mx, my) || 1;
+        const lit = Math.max(0, (mx * lx + my * ly) / len);
+        const g = ctx.createLinearGradient(ax, ay, mx, my);
+        g.addColorStop(0, withAlpha(ramp.dark, S.FACET_CENTER_ALPHA));
+        if (lit > 0) {
+            // 受光面：外緣是 main，最亮的面再往 core 透出一點光
+            g.addColorStop(S.FACET_EDGE_STOP, withAlpha(ramp.main, S.FACET_SHADE_ALPHA + (S.FACET_LIT_ALPHA - S.FACET_SHADE_ALPHA) * lit));
+            g.addColorStop(1, withAlpha(ramp.core, S.FACET_GLINT_ALPHA * lit));
+        } else {
+            g.addColorStop(1, withAlpha(ramp.dark, S.FACET_SHADE_ALPHA));
+        }
+        ctx.beginPath();
+        ctx.moveTo(ax, ay); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1);
+        ctx.closePath();
+        ctx.fillStyle = g;
+        ctx.fill();
+    }
+
+    // 稜線：頂點到六個角
+    ctx.strokeStyle = withAlpha(ramp.core, S.EDGE_ALPHA);
+    ctx.lineWidth = Math.max(1, D * C.RIM_W);
+    ctx.beginPath();
+    for (let k = 0; k < 6; k++) {
+        const [x, y] = hexVertex(R, k);
+        ctx.moveTo(ax, ay); ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // 事件視界：轉 30° 的深色內六角，邊緣一圈被壓縮的亮光
+    ctx.save();
+    ctx.translate(ax * 0.5, ay * 0.5);
+    ctx.rotate(Math.PI / 6);
+    hexPath(ctx, R * S.HORIZON);
+    ctx.shadowColor = ramp.main;
+    ctx.shadowBlur = D * C.CORE_BLUR;
+    ctx.strokeStyle = withAlpha(ramp.core, S.HORIZON_RIM_ALPHA);
+    ctx.lineWidth = Math.max(1, D * S.HORIZON_RIM_W);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = withAlpha(VFX_NEUTRALS[S.HORIZON_COLOR], S.HORIZON_ALPHA);
+    ctx.fill();
+    ctx.restore();
+
+    // 外框亮邊
+    hexPath(ctx, R);
+    ctx.strokeStyle = withAlpha(ramp.core, C.RIM_ALPHA);
+    ctx.lineWidth = Math.max(1, D * C.RIM_W);
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+
+    // 壓縮光環：整圈是柔和的 main 光暈，受光側（左上）再疊一段 core 亮弧，看得出圓環有前後與受光
+    ctx.save();
+    ctx.shadowColor = ramp.main;
+    ctx.shadowBlur = D * S.RING_BLUR;
+    ctx.strokeStyle = withAlpha(ramp.main, S.RING_ALPHA);
+    ctx.lineWidth = Math.max(1, D * S.RING_W);
+    ctx.beginPath();
+    ctx.arc(0, 0, D * S.RING_R, 0, TAU);
+    ctx.stroke();
+    ctx.strokeStyle = withAlpha(ramp.core, S.RING_LIT_ALPHA);
+    ctx.lineWidth = Math.max(1, D * S.RING_W * S.RING_LIT_W);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 0, D * S.RING_R, S.RING_LIT_ARC_DEG[0] * Math.PI / 180, S.RING_LIT_ARC_DEG[1] * Math.PI / 180);
+    ctx.stroke();
     ctx.restore();
 }
 

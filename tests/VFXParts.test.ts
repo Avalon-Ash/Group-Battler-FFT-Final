@@ -47,6 +47,9 @@ const ALL_SPECS: PartSpec[] = [
     { kind: 'droplet', size: 14, ramp: 'ASH_BLOOD' },
     { kind: 'prism', radius: 38, height: 67, ramp: 'STATUS_SKY', layout: 'POINTY', style: 'glass' },
     { kind: 'prism', radius: 38, height: 8, ramp: 'LION_ICE', style: 'solid' },
+    { kind: 'spiral', radius: 40, arms: 3, turns: 0.75, thickness: 10, ramp: 'LION_VOID' },
+    { kind: 'construct', shape: 'greatsword', size: 64, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'singularity', size: 64, ramp: 'ASH_VOID' },
 ];
 
 describe('VFX part palette', () => {

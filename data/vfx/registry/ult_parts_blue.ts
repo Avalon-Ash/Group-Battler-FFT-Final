@@ -171,29 +171,31 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // mb_u1 事件視界／奧術漩渦（範圍 3 牽引）：向心碎晶開始被吸 → 命中時黑洞張開：旋轉的六角吸積盤＋旋臂＋黑色核心球，
-    // 持續吸入碎晶 → 結尾坍縮閃光。2026-10-21 使用者：舊版（6927b68 之前的 BLACK_HOLE 程序繪製）是最喜歡的之一，依舊版構圖做回。
-    // 時長：DOMAIN 序列在 hitAt − 0.3 開始，發射器須在 delay＋lifetime ≤ 2.0 內結束（C4）。
+    // mb_u1 奧術漩渦（範圍 3 牽引，充能式，hit＝ULT_SEQUENCE.CHARGED_HIT_AT 1.5 s）：
+    // 詠唱期間螺旋吸積帶在目標地面成形、一邊旋轉一邊往內收，碎晶被吸進去，上空多面奇點從小長大 →
+    // 1.5 s 命中（傷害＋牽引）：大亮環向內壓縮、內圈快轉吸積帶收進奇點 → 約 2.6 s 奇點坍縮放出衝擊環。
+    // 魔法能量體（ULT-V01 美術方向）：奇點是半透明多面能量核＋亮邊，不是黑煙球；吸積帶是彎曲光帶，不是直線放射。
+    // 吸積帶與壓縮環只畫牽引的實際作用（向心），範圍不超過 3 格（C6）。
     'FX_ULT_BLUE_BLACKHOLE': {
         id: 'FX_ULT_BLUE_BLACKHOLE',
         emitters: [
-            // 向心碎晶：命中前就開始被吸（C3 起手），整段持續往中心掉
-            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [16, 20], lifetime: [0.45, 0.6], delay: [0.05, 1.3], size: 8,
+            // 吸積盤（0.1–2.7 s）：三條彎曲光帶，負 vRotation＝往內流，整盤由 1.25 收到 0.45（120 * 1.25 * 1.4 = 210px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 120, arms: 3, turns: 0.75, thickness: 22, ramp: 'LION_VOID' }, count: 1, lifetime: 2.6, delay: 0.1, size: 120, vRotation: -2.2,
+                partAnim: { scaleFrom: 1.25, scaleTo: 0.45, ease: 'linear', fadeIn: 0.3, fadeOut: 0.2 } }),
+            // 向心碎晶：整段詠唱往中心掉
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_VOID' }, count: [14, 18], lifetime: [0.45, 0.6], delay: [0.05, 1.6], size: 8,
                 shape: 'CIRCLE', shapeRadius: 150, speed: [-320, -240], vRotation: [-6, 6], partAnim: { fadeIn: 0.25, fadeOut: 0.25 } }),
-            // 主體：紫黑六角吸積盤快速旋轉（ASH_VOID 一般混合的實色，舊版的紫黑色調；主爆發，delay 0.3 對齊 hitAt；96 * 1.0 * 1.4 = 134.4px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 48, ramp: 'ASH_VOID' }, count: 1, lifetime: 1.6, delay: 0.3, size: 96, vRotation: 3,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.2 } }),
-            // 旋臂：反向慢轉的放射線（110 * 1.0 * 1.4 = 154px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 110, count: 6, ramp: 'ASH_VOID', lengthJitter: 0.3, seed: 4 }, count: 1, lifetime: 1.5, delay: 0.35, size: 110, vRotation: -2,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.0, fadeIn: 0.15, fadeOut: 0.25, alpha: 0.8 } }),
-            // 事件視界外緣光暈（畫在核心後面，形成黑球的紫色描邊）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 84, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.9, delay: 0.3, size: 84,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.5, alpha: 0.7 } }),
-            // 黑色核心球（一般混合的實體黑；暗色在加法混合下會消失，所以用 smoke；兩層疊到不透明）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 52, color: 'CHAR', roughness: 0 }, count: 2, lifetime: 1.55, delay: 0.3, size: 52,
-                partAnim: { scaleFrom: 0.2, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.15 } }),
-            // 結尾坍縮：擴張衝擊環（C7 傷害要有擴張貼地環；88 * 1.3 * 1.4 = 160px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 88, thickness: 10, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.3, delay: 1.65, size: 88,
+            // 多面奇點（0.2–2.75 s）：懸在目標上空，從 0.25 長到全尺寸，坍縮時快速淡出
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'singularity', size: 64, ramp: 'ASH_VOID' }, count: 1, lifetime: 2.55, delay: 0.2, size: 64, vRotation: 0.6, groundAnchored: true,
+                partAnim: { scaleFrom: 0.25, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.12, rise: [{ at: 0, z: 100 }] } }),
+            // 命中主爆發（1.5 s）：亮環向內壓縮（半徑最大的 ring，C2；120 * 1.2 * 1.4 = 201.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 120, thickness: 10, ramp: 'LION_VOID' }, count: 1, lifetime: 0.35, delay: 1.5, size: 120,
+                partAnim: { scaleFrom: 1.2, scaleTo: 0.25, ease: 'in', fadeOut: 0.3 } }),
+            // 內圈快轉吸積帶（1.4–2.6 s）：命中後更緊更快地收進奇點
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 80, arms: 4, turns: 1, thickness: 12, ramp: 'LION_VOID' }, count: 1, lifetime: 1.2, delay: 1.4, size: 80, vRotation: -5,
+                partAnim: { scaleFrom: 1.1, scaleTo: 0.3, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 坍縮（2.6 s）：奇點消失時放出擴張衝擊環（C7；64 * 1.3 * 1.4 = 116.5px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.3, delay: 2.6, size: 64,
                 partAnim: { scaleFrom: 0.2, scaleTo: 1.3, fadeOut: 0.6 } }),
         ],
     },

@@ -96,8 +96,8 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     'rb_u5': { archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_STORM_SIGIL', cadence: 'CLUSTER' },
 
     // --- MAGE (Arcane/Gravity) ---
-    // mb_u1: 奧術漩渦 -> 黑洞 (唯一保留球體特徵，但加上六邊形吸積盤)
-    'mb_u1': { archetype: 'DOMAIN', primaryColor: '#000', secondaryColor: '#8b5cf6', scale: 2.0, vfxOverride: 'FX_ULT_BLUE_BLACKHOLE' },
+    // mb_u1: 奧術漩渦 -> 多面奇點＋螺旋吸積帶（充能式）
+    'mb_u1': { archetype: 'DOMAIN', primaryColor: '#000', secondaryColor: '#8b5cf6', scale: 2.0, vfxOverride: 'FX_ULT_BLUE_BLACKHOLE', charged: true },
     // mb_u2: 絕對零度 -> 擴散的凍結領域
     'mb_u2': { archetype: 'DOMAIN', primaryColor: '#bfdbfe', secondaryColor: '#3b82f6', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_ABSOLUTE_ZERO' },
     // mb_u3: 時間停止 -> 巨大的黃金時鐘 (魔法陣)

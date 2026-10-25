@@ -58,6 +58,12 @@ const rows: Row[] = [
         { name: 'hex ASH_FIRE', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_FIRE' } },
         { name: 'hex ASH_VOID', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_VOID' } },
     ] },
+    { label: 'ult construct / spiral', specs: [
+        { name: 'greatsword LION_HOLY', spec: { kind: 'construct', shape: 'greatsword', size: 96, ramp: 'LION_HOLY' } },
+        { name: 'singularity ASH_VOID', spec: { kind: 'construct', shape: 'singularity', size: 96, ramp: 'ASH_VOID' } },
+        { name: 'spiral LION_VOID 3 arms', spec: { kind: 'spiral', radius: 64, arms: 3, turns: 0.75, thickness: 12, ramp: 'LION_VOID' } },
+        { name: 'spiral LION_VOID 4 arms', spec: { kind: 'spiral', radius: 48, arms: 4, turns: 1, thickness: 8, ramp: 'LION_VOID' } },
+    ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [
     { name: 'flame ASH_FIRE jagged', spec: { kind: 'flame', height: 64, ramp: 'ASH_FIRE', jagged: true } },
