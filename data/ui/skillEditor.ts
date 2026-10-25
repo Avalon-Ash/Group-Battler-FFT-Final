@@ -1,4 +1,5 @@
 import { Skill, Team } from '../../types';
+import { COMBAT_PARAM } from '../../constants';
 import { VFX_REGISTRY } from '../vfx/VFXRegistry';
 import { PROJECTILE_VISUALS } from '../vfx/projectile_visuals';
 
@@ -131,6 +132,29 @@ export function validateSkillFieldValue(field: SkillEditableField, value: unknow
     const rule = SKILL_FIELD_RULES[field];
     if (!rule) return false;
     return rule.validate(value);
+}
+
+/**
+ * 奧義詠唱下限：ULT 的 cast 低於 COMBAT_PARAM.ULT_MIN_CAST_SEC 時提高到下限，其他 tag 原樣。
+ * 預設資料已滿足（tests/UltCastTiming.test.ts），編輯入口經 buildSkillUpdate 套用同一規則。
+ */
+export function normalizeSkillCast(tag: Skill['tag'], cast: number): number {
+    return tag === 'ULT' && cast < COMBAT_PARAM.ULT_MIN_CAST_SEC ? COMBAT_PARAM.ULT_MIN_CAST_SEC : cast;
+}
+
+/**
+ * UPDATE_SKILL 的候選更新：先驗證單一欄位，再以「套用後的完整技能」檢查詠唱下限
+ * （改 cast，或把 tag 改成 ULT，都會把不足的 cast 正規化）。不合法回傳 null，不污染資料。
+ */
+export function buildSkillUpdate(skill: Skill, field: SkillEditableField, value: unknown): Partial<Record<keyof Skill, unknown>> | null {
+    if (!validateSkillFieldValue(field, value)) return null;
+    const patch: Partial<Record<keyof Skill, unknown>> = { [field]: value };
+    // value 已通過該欄位的規則（tag 在 SKILL_TAG_OPTIONS 內、cast 為非負有限數），這裡只是收窄型別
+    const tag = (field === 'tag' ? value : skill.tag) as Skill['tag'];
+    const cast = (field === 'cast' ? value : skill.cast) as number;
+    const normalized = normalizeSkillCast(tag, cast);
+    if (normalized !== cast) patch.cast = normalized;
+    return patch;
 }
 
 /**
