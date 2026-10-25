@@ -91,7 +91,7 @@ function codexCostReason(text, needEffort) {
 function codexCommandReason(cmd) {
     for (const seg of cmd.split(/[;&|(\n]/)) {
         const task = CODEX_TASK.test(seg);
-        if (!task && !CODEX_REVIEW.test(seg)) continue;
+        if ((!task && !CODEX_REVIEW.test(seg)) || /\s(--help|-h)(\s|$)/.test(seg)) continue;
         const reason = codexCostReason(seg, task);
         if (reason) return reason;
     }
@@ -131,9 +131,11 @@ function postContext(text) {
 }
 
 function main() {
+    // Opt in from Codex hooks; preserve Claude's existing decision behavior.
+    const codex = process.argv.includes('--codex');
     const decide = (permissionDecision, reason) => {
         process.stdout.write(JSON.stringify({
-            hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision, permissionDecisionReason: reason },
+            hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: codex && permissionDecision === 'ask' ? 'deny' : permissionDecision, permissionDecisionReason: reason },
         }));
         process.exit(0);
     };
@@ -145,11 +147,17 @@ function main() {
     } catch {
         process.exit(0); // malformed payload: do not block
     }
-    const tool = payload.tool_name || '';
-    const input = payload.tool_input || {};
+    const tool = codex && payload.tool_name === 'spawn_agent' ? 'Agent' : payload.tool_name || '';
+    const input = codex && payload.tool_name === 'spawn_agent'
+        ? { ...payload.tool_input, subagent_type: payload.tool_input?.agent_type, prompt: payload.tool_input?.message }
+        : payload.tool_input || {};
+    // Codex apply_patch sends patch text, not file_path. Include move destinations.
+    const patchPaths = codex && tool === 'apply_patch'
+        ? [...String(input.command || '').matchAll(/^\*\*\* (?:Add File|Update File|Delete File|Move to): ([^\r\n]+)\r?$/gm)].map(m => m[1])
+        : [];
 
     if (payload.hook_event_name === 'PostToolUse') {
-        if (/^(Edit|Write|MultiEdit)$/.test(tool) && isRenderPath(input.file_path)) {
+        if ((/^(Edit|Write|MultiEdit)$/.test(tool) && isRenderPath(input.file_path)) || patchPaths.some(isRenderPath)) {
             // 每個工作階段只提醒一次，避免每次編輯都塞同一段話進上下文
             const marker = join(tmpdir(), `tactical-render-reminder-${String(payload.session_id || 'nosession').replace(/[^\w-]/g, '')}`);
             if (!existsSync(marker)) {

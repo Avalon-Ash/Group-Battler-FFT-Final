@@ -29,8 +29,10 @@ function frontmatter(file: string): Record<string, string> {
     return out;
 }
 
-function runHook(payload: object): { permissionDecision?: string; additionalContext?: string } {
-    const res = spawnSync(process.execPath, [HOOK], { input: JSON.stringify(payload), encoding: 'utf8' });
+function runHook(payload: object, args: string[] = []): { permissionDecision?: string; additionalContext?: string } {
+    const res = spawnSync(process.execPath, [HOOK, ...args], { input: JSON.stringify(payload), encoding: 'utf8' });
+    expect(res.error).toBeUndefined();
+    expect(res.status).toBe(0);
     if (!res.stdout.trim()) return {};
     return JSON.parse(res.stdout).hookSpecificOutput;
 }
@@ -49,6 +51,16 @@ describe('HarnessContract', () => {
             if (!claudeMd.includes(`\`${name}\``)) bad.push(`${name}: CLAUDE.md 沒有觸發句`);
         }
         expect(bad).toEqual([]);
+    });
+
+    it('Codex 版 skill（.agents/skills）與 .claude/skills 內容一致', () => {
+        const read = (f: string) => fs.readFileSync(f, 'utf8').replace(/\r/g, '');
+        const claudeDir = path.join(ROOT, '.claude/skills');
+        const codexDir = path.join(ROOT, '.agents/skills');
+        expect(fs.readdirSync(codexDir).sort()).toEqual(fs.readdirSync(claudeDir).sort());
+        for (const name of fs.readdirSync(claudeDir)) {
+            expect(read(path.join(codexDir, name, 'SKILL.md')), name).toBe(read(path.join(claudeDir, name, 'SKILL.md')));
+        }
     });
 
     it('子代理定義鎖定模型，且不是 Opus', () => {
@@ -75,6 +87,42 @@ describe('HarnessContract', () => {
     });
 
     describe('agent-guardrails hook', () => {
+        const codex = (payload: object) => runHook(payload, ['--codex']);
+
+        it('Codex Bash payload blocks worktree npm and destructive push without unsupported ask', () => {
+            const shell = (command: string, cwd = ROOT) => codex({ hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command }, cwd });
+            expect(shell('cd .claude/worktrees/nonexistent && npm install').permissionDecision).toBe('deny');
+            expect(shell('npm ci', 'C:/Git/_wt_test').permissionDecision).toBe('deny');
+            expect(shell('git push --force origin main').permissionDecision).toBe('deny');
+            expect(shell('git push origin main').permissionDecision).toBeUndefined();
+            expect(shell('codex exec "fix"').permissionDecision).toBe('deny');
+            expect(shell('codex exec -m gpt-6-luna -c model_reasoning_effort=low "fix"').permissionDecision).toBeUndefined();
+        });
+
+        it('Codex spawn_agent maps message and agent_type while preserving read-only exemptions', () => {
+            const spawn = (agent_type: string, message: string) => codex({ hook_event_name: 'PreToolUse', tool_name: 'spawn_agent', tool_input: { agent_type, message } });
+            expect(spawn('worker', 'Fix engine/renderers sorting').permissionDecision).toBe('deny');
+            expect(spawn('worker', 'Fix engine/renderers sorting; read RenderSpec.ts').permissionDecision).toBeUndefined();
+            expect(spawn('explorer', 'Find sortKey writers').permissionDecision).toBeUndefined();
+            expect(spawn('reviewer', 'Review engine/renderers').permissionDecision).toBeUndefined();
+        });
+
+        it('Codex apply_patch paths trigger one render reminder, including move destinations', () => {
+            const session = `codex-test-${process.pid}-${Date.now()}`;
+            const patch = (command: string) => codex({ hook_event_name: 'PostToolUse', session_id: session, tool_name: 'apply_patch', tool_input: { command } });
+            try {
+                expect(patch('*** Begin Patch\n*** Update File: data/skills/red.ts\n*** End Patch').additionalContext).toBeUndefined();
+                expect(patch('*** Begin Patch\r\n*** Update File: scratch.ts\r\n*** Move to: engine/math/VisualMath.ts\r\n*** End Patch').additionalContext).toMatch(/render-verify/);
+                expect(patch('*** Begin Patch\n*** Add File: data/vfx/example.ts\n*** End Patch').additionalContext).toBeUndefined();
+            } finally {
+                fs.rmSync(path.join(os.tmpdir(), `tactical-render-reminder-${session}`), { force: true });
+            }
+        });
+
+        it('Codex PostToolUse Bash retains baseline evidence reminders', () => {
+            expect(codex({ hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: 'npm run perf:fidelity:record' } }).additionalContext).toMatch(/rebaseline-fidelity/);
+        });
+
         const bash = (command: string, cwd = ROOT) => runHook({ tool_name: 'Bash', tool_input: { command }, cwd });
 
         it('一般 push／merge 不擋（自動長鏈）；只有破壞性 push 詢問', () => {
@@ -155,6 +203,7 @@ describe('HarnessContract', () => {
             expect(bash('"C:/Program Files/nodejs/node.exe" C:/x/codex-companion.mjs task "x"').permissionDecision).toBe('deny');
             expect(bash('& "C:\\Program Files\\nodejs\\node.exe" "C:/x/codex-companion.mjs" task "x"').permissionDecision).toBe('deny');
             expect(bash('C:/tools/codex.exe exec "x"').permissionDecision).toBe('deny');
+            expect(bash('codex exec --help').permissionDecision).toBeUndefined();
         });
 
         it('repo 外的 _wt_ 工作樹也不准 npm 安裝（node_modules 是 junction）', () => {

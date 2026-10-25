@@ -29,4 +29,4 @@
 - **正式版素材**：Quaternius 女性模型風格與 KayKit 差距過大已否決；其他新體型／神職模型標為待評估（不擴大為全部模型均被否決），外觀軸 `Team×Role×BodyType` 支援直接擴充。GPT 提議的男女重設計：建議只做少量概念稿，成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
 - **地形烘焙實作**（`docs/BAKED_RENDERING_DESIGN.md`）：熔岩圖現況順暢，暫緩。
 - **移動中排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX，沒有 static 振盪；證據在 `PROJECT_CLEANUP_COORD_R1_REVIEW.md`。
-- **Codex 執行期防護**：`.codex/hooks.json`（未追蹤）的 matcher 用的是 Claude 工具名稱，對 Codex 內部動作可能無效，尚未驗證。工作目錄裡未追蹤的舊提示詞、`f03-*.json`、`.agents/` 也還沒決定去留。
+- **Codex hook 信任**（使用者要做一次）：`.codex/hooks.json` 已改寫成 Codex 格式。下次在 Codex 開這個專案時用 `/hooks` 檢視並信任；舊的信任 hash 已經失效。PostToolUse 的提醒（改到渲染檔、重錄基準）只有單元測試，還沒在 Codex 裡實測。
