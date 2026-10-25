@@ -16,7 +16,10 @@ import { launchBrowser, START_TEXT } from './lib/perf-common.mjs';
 import { startServer, seededHarnessInit, installRecorder, setupBattle, stepFrames } from './lib/coord-probes.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outName = process.argv.find(a => a.startsWith('--out='))?.slice(6) || 'audit01-review';
+const isAfterMode = process.argv.includes('--after') || process.argv.includes('--mode=after');
+const mode = isAfterMode ? 'after' : 'before';
+const defaultOutName = isAfterMode ? 'coord01-after' : 'coord01-before';
+const outName = process.argv.find(a => a.startsWith('--out='))?.slice(6) || defaultOutName;
 const outDir = join(here, 'out', outName);
 mkdirSync(outDir, { recursive: true });
 
@@ -25,11 +28,14 @@ const browser = await launchBrowser({ headed: false, unthrottled: false }).catch
 
 const evidence = {
     timestamp: new Date().toISOString(),
+    mode,
     cases: {},
     summary: {
+        mode,
         sinkReproduced: false,
         voidReproduced: false,
         oscillationReproduced: false,
+        oscillationEliminated: false,
         context2OscReproduced: false,
         mismatches: [],
         pageErrors: [],
@@ -53,6 +59,7 @@ async function createAuditPage() {
 
     // Install base recorder
     await installRecorder(page);
+    await page.evaluate((m) => { window.__AUDIT_MODE__ = m; }, mode);
 
     // Install forensic frame-inspector that saves complete RenderList ops per frame
     await page.evaluate(async () => {
@@ -63,7 +70,7 @@ async function createAuditPage() {
             const { RenderList, RenderOpType } = await import('/engine/renderers/RenderList.ts');
             const { UnitFrameStore } = await import('/engine/renderers/frame/UnitFrame.ts');
             const { HexUtils } = await import('/engine/utils.ts');
-            const { UNIT_FRAME } = await import('/constants.ts');
+            const { UNIT_FRAME, ISO_SCALE_Y } = await import('/constants.ts');
 
             const TNAME = RenderOpType;
             const orig = RenderList.prototype.sort;
@@ -122,8 +129,9 @@ async function createAuditPage() {
                             else {
                                 const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
                                 const cOld = HexUtils.toPx(memBefore.q, memBefore.r, mapConfig);
-                                dNew = Math.hypot(footX - cNew.x, footY - cNew.y);
-                                dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
+                                const isoScale = window.__AUDIT_MODE__ === 'after' ? ISO_SCALE_Y : 1.0;
+                                dNew = Math.hypot(footX - cNew.x, (footY - cNew.y) / isoScale);
+                                dOld = Math.hypot(footX - cOld.x, (footY - cOld.y) / isoScale);
                                 if (dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld) branch = 'hysteresis_switch';
                                 else branch = 'hysteresis_held';
                             }
@@ -486,7 +494,35 @@ try {
 
         if (process.argv.includes('--negative-control')) oscFrames[1].hazard1 = undefined;
         verifyResolveTrace('OSC static', oscFrames, resolveLogs);
-        evidence.summary.oscillationReproduced = verifyEpisode('OSC static', oscFrames, 'hazard1', exStatic, ['C:RED-0010', 'H:1,2']);
+        if (mode === 'after') {
+            for (let i = 0; i < oscFrames.length; i++) {
+                const a = oscFrames[i].corpseOp, b = oscFrames[i].hazard1;
+                if (!a || !b) {
+                    evidence.summary.mismatches.push('OSC static: missing corpse/hazard sample in after mode');
+                    break;
+                }
+                if (!Number.isFinite(a.sortKey) || !Number.isFinite(b.sortKey)) {
+                    evidence.summary.mismatches.push('OSC static: invalid sortKeys');
+                    break;
+                }
+            }
+            if (oscFrames[2].engineTime <= oscFrames[0].engineTime) {
+                evidence.summary.mismatches.push('OSC static: engine time did not advance');
+            }
+            const staticCount = corpseHazardGroup?.staticEvents ?? 0;
+            const signs = oscFrames.map(f => f.corpseOp && f.hazard1 ? Math.sign(f.corpseOp.index - f.hazard1.index) : 0);
+            const hasAbaFlip = (signs[0] !== 0 && signs[0] === signs[2] && signs[0] === -signs[1]);
+            if (hasAbaFlip) {
+                evidence.summary.mismatches.push('OSC static: A-B-A flip still present in after mode: signs=' + signs.join(','));
+            } else if (staticCount !== 0) {
+                evidence.summary.mismatches.push(`OSC static: staticEvents not 0 (got ${staticCount})`);
+            } else {
+                console.log(`[audit01] OSC static eliminated in after mode: staticEvents=0, signs=${signs.join(',')}`);
+                evidence.summary.oscillationEliminated = true;
+            }
+        } else {
+            evidence.summary.oscillationReproduced = verifyEpisode('OSC static', oscFrames, 'hazard1', exStatic, ['C:RED-0010', 'H:1,2']);
+        }
 
         evidence.cases.oscillation = {
             frames: oscFrames,
@@ -546,7 +582,18 @@ try {
         });
 
         verifyResolveTrace('OSC moved', ctx2Frames, resolveLogsCtx2);
-        evidence.summary.context2OscReproduced = verifyEpisode('OSC moved', ctx2Frames, 'hazardOp', exMoved, ['C:RED-0002', 'H:4,0']);
+        if (mode === 'after') {
+            const hasOps = ctx2Frames.every(f => f.corpseOp && f.hazardOp);
+            if (!hasOps) {
+                evidence.summary.mismatches.push('OSC moved: missing ops in after mode');
+            } else {
+                const signs = ctx2Frames.map(f => Math.sign(f.corpseOp.index - f.hazardOp.index));
+                console.log(`[audit01] OSC moved recorded in after mode: signs=${signs.join(',')}, exMoved=${exMoved ? 'present' : 'none'}`);
+                evidence.summary.context2OscReproduced = true;
+            }
+        } else {
+            evidence.summary.context2OscReproduced = verifyEpisode('OSC moved', ctx2Frames, 'hazardOp', exMoved, ['C:RED-0002', 'H:4,0']);
+        }
 
         evidence.cases.oscillationContext2 = {
             frames: ctx2Frames,
@@ -567,7 +614,11 @@ try {
         console.error(`[audit01] REPRO_MISMATCH detected: ${evidence.summary.mismatches.join('; ')}`);
         process.exitCode = 1;
     } else {
-        console.log('[audit01] Diagnostic episodes reproduced; root causes are NOT asserted by this probe.');
+        if (mode === 'after') {
+            console.log('[audit01] AFTER mode verified: static oscillation eliminated, moved recorded, existing sink/void intact.');
+        } else {
+            console.log('[audit01] Diagnostic episodes reproduced; root causes are NOT asserted by this probe.');
+        }
     }
 
 } catch (err) {

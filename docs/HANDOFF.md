@@ -3,12 +3,15 @@
 > 更新：2026-10-25。**本檔只放還沒做、還沒確認、還沒決定的事**；做完就刪掉，紀錄寫進 `docs/WORKLOG.md`。
 > 其他文件：`docs/METHODOLOGY.md`（怎麼工作，與本檔一起自動載入）、`docs/DECISIONS.md`（已定的決策與理由）、`docs/WORKLOG.md`（完成紀錄，平常不讀）、`AGENTS.md`（審查清單）、`docs/VISUAL_ROADMAP.md`、`docs/VFX_PIPELINE_MAP.md`。
 
-## 2026-10-25：推送確認與排序設計收斂
+## 2026-10-25：COORD-R1 兩工作包實作完成
 
 - f08bb75 已成功推送 origin/feat/project-cleanup，未合併main。
-- 已定位COORD-OSC-01為格界與滯後採用不同投影距離尺度；只在Vite記憶體替換兩距離式，六景static14→0、oscillation68→43，FLAT/POINTY回歸與真實移動／瞬移對照通過。產品程式尚未修改。
-- COORD-TOOL-01：depth oracle仍把ObstacleSprite當Canvas，穩定遮擋量測崩潰。下一輪COORD_R1_AGENT_PROMPT先修工具，再正式實作尺度修正並完成全部護欄。證據與限制見COORD_R1_DESIGN及EVIDENCE。
-- sink、void、全庫未讀清冊仍未結案；奧義資料／時序／視覺尚未開始實作。本次不放寬驗收，也不修改死亡運動。
+- **COORD-TOOL-01 已修復（Package A，commit `96b5ea5`）**：`tools/ui-e2e/lib/depth-oracle.mjs` 支援 `ObstacleSprite` 取樣、真實尺寸裁切、非預設錨點與 WeakMap 影像快取；專用探針 `coord-oracle-sprite-check.mjs` 驗證全綠（含負向控制）。
+- **COORD-OSC-01 已修復（Package B）**：`UnitFrame.ts:resolveSortHex` 距離尺度正規化為未壓扁平面空間（`dy / ISO_SCALE_Y`），消除格界判定與滯後比較的尺度不一致；`CoordinateProtocol.test.ts` 新增 FLAT/POINTY 可重現反例、慢速移動與記憶清除測試；`cleanup-coord01-check.mjs --after` 驗證 Case 3 靜止震盪消除；六景 staticEvents 自 7 降至 1 (Forest 6->0, Case 3 Void/1002 消除)；Order Oracle 錯序總影格數自 308 降至 287。
+- **仍待做／未結案事項**：
+  - COORD-SINK-01（1.89px 插值下陷）與 COORD-VOID-01（高速穿越採樣）作為已知診斷揭露，未擴大修改產品。
+  - 全庫清冊 659 列逐檔語義審計未完成。
+  - 奧義資料／時序／視覺尚未開始實作。本次不放寬驗收，也不修改死亡運動。
 
 ## CLOSE02 主審更新
 

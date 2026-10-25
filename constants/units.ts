@@ -66,7 +66,7 @@ export const CORE_VISUAL = {
 
 /** UnitFrame 的視覺狀態參數（腳下格排序滯後，RenderSpec §2） */
 export const UNIT_FRAME = {
-    /** 腳下格只有在「新格格心比舊格格心近這麼多像素」時才切換，避免腳跨格界時排序鍵鋸齒翻轉 */
+    /** 腳下格只有在「新格格心比舊格格心近這麼多像素（未壓扁平面距離，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致）」時才切換，避免腳跨格界時排序鍵鋸齒翻轉 */
     HEX_HYSTERESIS_PX: 3,
     /**
      * 滯後放開：腳點連續這麼多幀都待在同一個錨點 STILL_PX（px，|dx|+|dy|，相對錨點的累積位移）內，就直接採用實際所在格。

@@ -10,7 +10,8 @@
 // ║  殘影（ghosts）：trailHistory 的點換算成相對腳底的偏移       ║
 // ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
-// ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX），  ║
+// ║  只有腳明顯進入新格才切換（UNIT_FRAME.HEX_HYSTERESIS_PX，  ║
+// ║  未壓扁平面距離 dy/ISO_SCALE_Y 與 HexUtils.fromPx 一致），  ║
 // ║  靜止 HEX_RELEASE_FRAMES 幀後放開（停在格界不會卡在舊格），   ║
 // ║  sortBias 因此不會在格界上鋸齒翻轉（RenderSpec §2）；腳點 Y   ║
 // ║  另有死區（UNIT_FRAME.SORT_DEADBAND_PX）：受擊後退的 1～2 px  ║
@@ -22,7 +23,7 @@ import { HexUtils, MapConfig } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { UnitDeathPainter } from "../units/painters/UnitDeathPainter";
 import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
-import { UNIT_FRAME } from "../../../constants";
+import { UNIT_FRAME, ISO_SCALE_Y } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudBarHeight } from "../../../data/units/appearance/projection";
 import { Hex } from "../../../types";
@@ -160,7 +161,8 @@ export class UnitFrameStore {
 
     /**
      * 排序用腳下格（帶滯後）：腳點原始所在格 raw 與上一幀記憶的格 prev 不同時，
-     * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換；
+     * 只有「到 raw 格心的距離 + HEX_HYSTERESIS_PX < 到 prev 格心的距離」才切換
+     * （距離在未壓扁平面計算，dy 除以 ISO_SCALE_Y，與 HexUtils.fromPx 尺度一致，COORD-OSC-01）；
      * 離 prev 超過一環（瞬移、擊飛）立即切換。腳點連續 HEX_RELEASE_FRAMES 幀待在同一個錨點 STILL_PX 內也切換：
      * 滯後只為了擋「移動中壓著格界」的鋸齒，停在格界附近的單位或屍體不會閃爍，卻會因為卡在舊格而排在
      * 自己腳下那格的地塊之前（腳被地塊蓋住；景深預言 CORPSE×TERRAIN sameHex 70 段、屍體擊飛滑停後整段殘留）。
@@ -196,8 +198,8 @@ export class UnitFrameStore {
             if (!sw) {
                 const cNew = HexUtils.toPx(raw.q, raw.r, mapConfig);
                 const cOld = HexUtils.toPx(mem.q, mem.r, mapConfig);
-                const dNew = Math.hypot(footX - cNew.x, footY - cNew.y);
-                const dOld = Math.hypot(footX - cOld.x, footY - cOld.y);
+                const dNew = Math.hypot(footX - cNew.x, (footY - cNew.y) / ISO_SCALE_Y);
+                const dOld = Math.hypot(footX - cOld.x, (footY - cOld.y) / ISO_SCALE_Y);
                 sw = dNew + UNIT_FRAME.HEX_HYSTERESIS_PX < dOld;
             }
             if (sw) { mem.q = raw.q; mem.r = raw.r; }
