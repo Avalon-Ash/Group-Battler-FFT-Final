@@ -1,0 +1,9 @@
+# 專案預設：長線實作檔位（CLAUDE.md 派工表）。使用者是 ChatGPT Plus，Astra 只在寫明理由時用。
+model = "gpt-6.1-sol"
+model_reasoning_effort = "medium"
+
+[shell_environment_policy]
+inherit = "core"
+
+[shell_environment_policy.set]
+CLAUDE_CODE_SUBAGENT_MODEL = "claude-sonnet-5-5"

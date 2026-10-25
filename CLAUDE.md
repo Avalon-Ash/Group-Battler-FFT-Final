@@ -36,9 +36,15 @@
 | 跑指令並彙整結果、小型機械性修改 | `worker` | Sonnet／medium |
 | 第二意見審查 diff、追 bug 根因 | `reviewer` | Sonnet／high |
 | 設計、架構、寫 Gemini 提示詞、合併判斷 | 自己做 | — |
-| 長時間實作 | 不開子代理，寫提示詞給 IDE 的 Gemini | — |
+| 超長、無人值守的實作 | 不開子代理，寫提示詞給 IDE 的 Gemini（使用者 `/goal` 啟動） | — |
+| 大量讀檔、逐檔清冊、摘要、機械性轉換 | Codex `task` | `gpt-6-luna`／medium |
+| 主代理自己發起的長線實作（規格明確） | Codex `task --write`，在獨立工作樹 | `gpt-6.1-sol`／medium |
+| 跨模型第二意見（渲染／座標等高風險 diff） | Codex `adversarial-review` | `gpt-6.1-sol` |
+| Sol 兩次追不到的根因 | Codex `task`（只讀） | `gpt-6-astra`／low～medium，寫理由＋`[codex-cost-ok]` |
 
 能幾個工具呼叫就解決的事直接做，不必開子代理。
+
+**Codex（GPT）**：用使用者的 ChatGPT Plus 額度，不吃 Claude 額度，但 Plus 很緊（每 5 小時估計 Astra 5～45 則、Sol 15～160、Luna 350～3,000；生圖約 3～5 倍）。呼叫方式：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --model … --effort … [--write] --cwd <工作樹> --prompt-file <檔>`，**不加 `--background`**，讓 harness 在結束時通知，不輪詢 `status`。Codex 會自己讀 `AGENTS.md`；可寫任務的提示詞照 `agent-prompt` skill 的 Codex 版。hook 擋下沒寫 `--model`（task 還要 `--effort`）的呼叫，以及沒加 `[codex-cost-ok]` 的 Astra、xhigh、非 Luna 的 high。生圖只做少量概念稿，不做整套圖集。
 
 **開獨立工作階段（`start_session`）也照上表指定 `model`／`effort`**，不可沿用主代理的 Opus（使用者是 Pro 方案）。`.claude/settings.json` 的 PreToolUse hook（`tools/hooks/agent-guardrails.mjs`）會擋下沒寫 `model` 或指定 Opus 的呼叫（確有必要時在 prompt 寫明理由並加 `[opus-ok]`），也會擋下在 `.claude/worktrees/` 裡執行的 npm 安裝類指令（工作樹的 `node_modules` 是指向主資料夾的 junction）。一般子代理預設模型由 `CLAUDE_CODE_SUBAGENT_MODEL` 設為 Sonnet。
 
@@ -49,7 +55,7 @@
 | :-- | :-- |
 | 改了渲染／生命週期，宣告完成或審查前 | `render-verify` |
 | 保真或 UI 樣式基準需要重錄 | `rebaseline-fidelity` |
-| 開新一輪、寫 Gemini 提示詞 | `agent-prompt` |
+| 開新一輪、寫 Gemini／Codex 提示詞 | `agent-prompt` |
 | 某一輪跑完要審查，或合併後收尾 | `review-round` |
 
 ## 文件分工

@@ -1,6 +1,6 @@
 ---
 name: agent-prompt
-description: 撰寫給 IDE Gemini 執行的任務提示詞 docs/<NAME>_AGENT_PROMPT.md（使用者用 /goal 啟動），以及開新一輪工作的分支流程。要把長時間、機械性的實作交出去、或規劃新一輪工作時使用。
+description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主代理以 codex-companion task 派出）執行的任務提示詞 docs/<NAME>_AGENT_PROMPT.md，以及開新一輪工作的分支流程。要把長時間、機械性的實作交出去、或規劃新一輪工作時使用。
 ---
 
 # 寫 Gemini 任務提示詞
@@ -12,6 +12,14 @@ description: 撰寫給 IDE Gemini 執行的任務提示詞 docs/<NAME>_AGENT_PRO
 2. 從 `main` 開分支 `feat/<topic>`，在原生資料夾切過去。真的要並行才開工作樹 `C:\Git\Group-Battler-<topic>`（`node_modules` junction 指回原生資料夾；移除時先 `cmd /c rmdir <path>\node_modules` 再 `git worktree remove`）。
 3. 使用者在 IDE 執行 `/goal docs/<NAME>_AGENT_PROMPT.md`。代理跑的期間主代理對該資料夾只讀不寫，也不跑 e2e／perf／Blender。
 4. 跑完 → `review-round` skill。
+
+## 改派給 Codex 時（主代理自己發起）
+- **先選檔位**（CLAUDE.md 派工表）：讀檔／摘要／轉換用 `gpt-6-luna`／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
+- **範圍要窄**：一份提示詞一個工作包。Codex 每一則訊息都計次，把讀檔範圍、驗收指令、停下條件寫死，比讓它自己探索便宜。
+- **工作樹**：可寫任務在 repo 外開工作樹（`git worktree add -b <branch> C:\Git\_wt_<topic> <base>`，用 `cmd /c mklink /J node_modules <主資料夾>\node_modules` 接 junction，不跑 npm 安裝）。不可放在主資料夾或 `.claude/worktrees` 底下，否則可能被代理 `git add` 進去。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
+- **啟動**：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --write --model <m> --effort <e> --cwd <工作樹> --prompt-file docs/<NAME>_AGENT_PROMPT.md`，不加 `--background`，結束時 harness 會通知；不輪詢。只讀任務拿掉 `--write`。
+- **範本差異**：Codex 會自己讀 `AGENTS.md`，範本照用，但改掉「用法：/goal」那行。長指令照樣用 `tools/agent/run.mjs`。Codex 能在本機開瀏覽器截圖，渲染任務要求把截圖路徑寫進報告當證據。
+- 跑完照樣走 `review-round`；Codex 的報告也不整份讀。
 
 ## 寫法原則（取自 Harness² 的提案者規則）
 - **寫查證過的事實，不要只寫「去找出 X」**：檔案:行號、常數名與現值、欄位的唯一寫入者、量測基準數字。讓代理少走摸索的路，也少一個改錯地方的機會。事實要標明「目前」，猜的不要寫。

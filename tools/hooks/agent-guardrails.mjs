@@ -17,6 +17,10 @@
  * 4. Destructive `git push` (force, --all/--mirror/--tags, deleting a branch) asks the user.
  *    A plain push or merge does not: the main agent asks in chat first (CLAUDE.md 鐵律), and a
  *    second dialog would stall the chain the user already approved.
+ * 7. Codex (GPT) calls — codex-companion task/review, `codex exec`, the codex:codex-rescue
+ *    sub-agent and the codex:rescue skill — must name --model (task also --effort): the user is
+ *    on ChatGPT Plus and the Codex default is the costliest model. Astra, xhigh, or high on a
+ *    non-Luna model needs "[codex-cost-ok]" in the command or prompt (CLAUDE.md 派工表).
  *
  * PostToolUse
  * 5. The first edit of a rendering / lifecycle file in a session gets a reminder that green
@@ -50,7 +54,36 @@ function destructivePushReason(cmd) {
     return null;
 }
 
-const BASELINE_RECORD = /perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
+// Codex（GPT）額度：使用者是 ChatGPT Plus，Astra 每 5 小時只有 5～45 則（CLAUDE.md 派工表）
+const CODEX_COST_OK = '[codex-cost-ok]';
+const CODEX_TIERS = '派工表：大量讀檔／摘要 gpt-6-luna＋medium、長線實作 gpt-6.1-sol＋medium、跨模型審查 gpt-6.1-sol。';
+const CODEX_TASK = new RegExp(`${AT_CMD}(?:node(?:\\.exe)?\\s+[^;&|\\n]*codex-companion\\.mjs["']?\\s+task\\b|codex(?:\\.exe)?\\s+exec\\b)`);
+const CODEX_REVIEW = new RegExp(`${AT_CMD}node(?:\\.exe)?\\s+[^;&|\\n]*codex-companion\\.mjs["']?\\s+(?:adversarial-)?review\\b`);
+
+/** 抓旗標值（--model x、--model=x、-m x） */
+function flagValue(text, names) {
+    for (const name of names) {
+        const m = text.match(new RegExp(`(?:^|\\s)${name}(?:=|\\s+)["']?([\\w.-]+)`));
+        if (m) return m[1];
+    }
+    return '';
+}
+
+/** Codex 呼叫沒寫模型／強度，或用了高成本組合卻沒寫理由 → 回傳拒絕理由；合規回傳 null */
+function codexCostReason(text, needEffort) {
+    const model = flagValue(text, ['--model', '-m']);
+    const effort = flagValue(text, ['--effort']) || (text.match(/model_reasoning_effort\s*=\s*["']?(\w+)/)?.[1] ?? '');
+    if (!model || (needEffort && !effort)) {
+        return `Codex 呼叫必須明寫 --model${needEffort ? ' 與 --effort' : ''}：不寫就會用 config 預設，可能是最貴的 Astra。${CODEX_TIERS}`;
+    }
+    const costly = /astra/i.test(model) || effort === 'xhigh' || (effort === 'high' && !/luna/i.test(model));
+    if (costly && !text.includes(CODEX_COST_OK)) {
+        return `Codex 指定了高成本組合（${model}／${effort || 'config 預設強度'}）。使用者是 Plus 方案，Astra 每 5 小時只有 5～45 則。${CODEX_TIERS}確有必要時寫明理由並加上 ${CODEX_COST_OK}。`;
+    }
+    return null;
+}
+
+const BASELINE_RECORD =/perf:fidelity:record|render-fidelity\.mjs[^;&|\n]*--record|E2E_UPDATE_STYLE\s*=\s*1|\$env:E2E_UPDATE_STYLE\s*=\s*['"]?1/;
 const BASELINE_REMINDER = '你剛重錄了保真／樣式基準（rebaseline-fidelity skill）。確認：① 重錄前已產生新舊差異圖，'
     + '只有本輪預期的元素變動；② 重錄獨立一個 commit，訊息寫明哪些元素變了、哪些基準 0 差異、證據圖路徑；'
     + '③ 重錄後再跑一次 npm run perf:fidelity 全部通過。合併衝突時不得「取一邊再重錄」。';
@@ -135,6 +168,15 @@ function main() {
         requireRenderSpec(String(input.prompt || ''), '子代理', deny);
     }
 
+    // codex-rescue 子代理與 codex:rescue skill 會把文字裡的 --model／--effort 轉給 codex-companion task
+    const codexRequest = (tool === 'Agent' || tool === 'Task') && input.subagent_type === 'codex:codex-rescue'
+        ? String(input.prompt || '')
+        : tool === 'Skill' && input.skill === 'codex:rescue' ? String(input.args || '') : null;
+    if (codexRequest !== null) {
+        const reason = codexCostReason(codexRequest, true);
+        if (reason) deny(reason);
+    }
+
     if (tool === 'Bash' || tool === 'PowerShell') {
         const cmd = String(input.command || '');
         const cwd = String(payload.cwd || '').replace(/\\/g, '/');
@@ -142,6 +184,11 @@ function main() {
         const inWorktree = /\/\.claude\/worktrees\//i.test(cwd + '/') || /\.claude[\\/]worktrees/i.test(cmd);
         if (npmMutating && inWorktree) {
             deny('不可在 .claude/worktrees 內執行 npm install/ci/uninstall：node_modules 是指向主資料夾的 junction，會改寫共用的套件。需要套件時停下並回報主代理。');
+        }
+        const codexTask = CODEX_TASK.test(cmd);
+        if (codexTask || CODEX_REVIEW.test(cmd)) {
+            const reason = codexCostReason(cmd, codexTask);
+            if (reason) deny(reason);
         }
         const push = destructivePushReason(cmd);
         if (push) decide('ask', push);

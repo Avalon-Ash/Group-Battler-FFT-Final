@@ -117,5 +117,27 @@ describe('HarnessContract', () => {
             expect(edit('/repo/engine/renderers/RenderList.ts').additionalContext).toBeUndefined();
             fs.rmSync(path.join(os.tmpdir(), `tactical-render-reminder-${session}`), { force: true });
         });
+
+        it('Codex 呼叫必須寫模型／強度；高成本組合要寫理由', () => {
+            const cc = 'node "C:/x/codex/scripts/codex-companion.mjs"';
+            expect(bash(`${cc} task --write --model gpt-6.1-sol --effort medium --prompt-file p.md`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --model gpt-6-luna --effort high "讀清冊"`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --write "修 bug"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6.1-sol "修 bug"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-astra --effort low "追根因"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-astra --effort low "追根因" # [codex-cost-ok] Sol 兩次沒找到`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} task --model gpt-6.1-sol --effort high "x"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} task --model gpt-6-luna --effort xhigh "x"`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} adversarial-review --background --base main`).permissionDecision).toBe('deny');
+            expect(bash(`${cc} review --wait --model gpt-6.1-sol --base main`).permissionDecision).toBeUndefined();
+            expect(bash(`${cc} status --all`).permissionDecision).toBeUndefined();
+            expect(bash('codex exec "fix"').permissionDecision).toBe('deny');
+            expect(bash('codex exec -m gpt-6-luna -c model_reasoning_effort=medium "sum"').permissionDecision).toBeUndefined();
+            expect(bash('git commit -m "docs: codex-companion.mjs task 規則"').permissionDecision).toBeUndefined();
+            const rescue = (prompt: string) => runHook({ tool_name: 'Agent', tool_input: { subagent_type: 'codex:codex-rescue', prompt } }).permissionDecision;
+            expect(rescue('查 X 的根因')).toBe('deny');
+            expect(rescue('--model gpt-6.1-sol --effort medium 查 X 的根因')).toBeUndefined();
+            expect(runHook({ tool_name: 'Skill', tool_input: { skill: 'codex:rescue', args: '修 X' } }).permissionDecision).toBe('deny');
+        });
     });
 });
