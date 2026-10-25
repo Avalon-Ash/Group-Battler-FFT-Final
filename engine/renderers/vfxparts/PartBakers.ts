@@ -86,6 +86,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             const ramp = VFX_RAMPS[n.ramp];
             if (n.shape === 'singularity') return bakeSingularity(ctx, n.size, ramp);
             if (n.shape === 'warhead') return bakeWarhead(ctx, n.size, ramp);
+            if (n.shape === 'eclipse') return bakeEclipse(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1324,6 +1325,97 @@ function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.arc(0, 0, D * S.RING_R, S.RING_LIT_ARC_DEG[0] * Math.PI / 180, S.RING_LIT_ARC_DEG[1] * Math.PI / 180);
+    ctx.stroke();
+    ctx.restore();
+}
+
+/** 正 n 邊形路徑（第一個頂點在正上方），中心 (cx, cy)。 */
+function polygonPath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, sides: number): void {
+    ctx.beginPath();
+    for (let k = 0; k < sides; k++) {
+        const a = -Math.PI / 2 + (k / sides) * TAU;
+        if (k === 0) ctx.moveTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+        else ctx.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+    }
+    ctx.closePath();
+}
+
+/**
+ * 多面蝕月（kind 'construct'，shape 'eclipse'）：錨點在中心，D＝直徑。
+ * 日冕光暈 → 低多邊形月面（三角面、受光在左上）→ 偏右下的深色暗影蓋住大半，露出左上月牙 → 暗影上淡淡的稜線 → 月牙 core 紅緣。
+ * 魔法能量體：月面半透明＋外暈，不是實心石球，也不是六角柱（ULT-V01）。
+ */
+function bakeEclipse(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    const E = C.ECLIPSE;
+    const R = D / 2;
+    const n = E.SIDES;
+    const ax = E.APEX[0] * R, ay = E.APEX[1] * R;
+    const vtx = (k: number): [number, number] => {
+        const a = -Math.PI / 2 + (k / n) * TAU;
+        return [Math.cos(a) * R, Math.sin(a) * R];
+    };
+
+    // 日冕
+    const corona = ctx.createRadialGradient(0, 0, R * E.CORONA_IN, 0, 0, R * E.CORONA_OUT);
+    corona.addColorStop(0, withAlpha(ramp.main, E.CORONA_ALPHA));
+    corona.addColorStop(1, withAlpha(ramp.dark, 0));
+    ctx.fillStyle = corona;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * E.CORONA_OUT, 0, TAU);
+    ctx.fill();
+
+    // 月面三角面：朝左上的面受光
+    const lx = -Math.SQRT1_2, ly = -Math.SQRT1_2;
+    for (let k = 0; k < n; k++) {
+        const [x0, y0] = vtx(k);
+        const [x1, y1] = vtx(k + 1);
+        const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+        const lit = Math.max(0, (mx * lx + my * ly) / (Math.hypot(mx, my) || 1));
+        const g = ctx.createLinearGradient(ax, ay, mx, my);
+        g.addColorStop(0, withAlpha(ramp.dark, E.FACET_CENTER_ALPHA));
+        g.addColorStop(1, withAlpha(lit > 0 ? ramp.main : ramp.dark, E.FACET_SHADE_ALPHA + (E.FACET_LIT_ALPHA - E.FACET_SHADE_ALPHA) * lit));
+        ctx.beginPath();
+        ctx.moveTo(ax, ay); ctx.lineTo(x0, y0); ctx.lineTo(x1, y1);
+        ctx.closePath();
+        ctx.fillStyle = g;
+        ctx.fill();
+    }
+    const edges = (alpha: number) => {
+        ctx.strokeStyle = withAlpha(ramp.core, alpha);
+        ctx.lineWidth = Math.max(1, D * C.RIM_W);
+        ctx.beginPath();
+        for (let k = 0; k < n; k++) {
+            const [x, y] = vtx(k);
+            ctx.moveTo(ax, ay); ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+    };
+    edges(E.EDGE_ALPHA);
+
+    // 蝕影：偏右下的深色多邊形，只蓋在月面上（clip），露出左上月牙
+    ctx.save();
+    polygonPath(ctx, 0, 0, R, n);
+    ctx.clip();
+    const sx = E.SHADOW_OFF[0] * R, sy = E.SHADOW_OFF[1] * R, sr = R * E.SHADOW_R;
+    const shade = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
+    shade.addColorStop(0, withAlpha(VFX_NEUTRALS[E.SHADOW_COLOR], E.SHADOW_ALPHA));
+    shade.addColorStop(1, withAlpha(ramp.dark, E.SHADOW_RIM_ALPHA));
+    polygonPath(ctx, sx, sy, sr, n);
+    ctx.fillStyle = shade;
+    ctx.fill();
+    edges(E.SHADOW_EDGE_ALPHA);
+    ctx.restore();
+
+    // 月牙紅緣
+    ctx.save();
+    ctx.shadowColor = ramp.main;
+    ctx.shadowBlur = D * C.CORE_BLUR;
+    ctx.strokeStyle = withAlpha(ramp.core, E.RIM_ALPHA);
+    ctx.lineWidth = Math.max(1, D * E.RIM_W);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(0, 0, R, (E.RIM_ARC_DEG[0] * Math.PI) / 180, (E.RIM_ARC_DEG[1] * Math.PI) / 180);
     ctx.stroke();
     ctx.restore();
 }

@@ -185,7 +185,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // sr_u3: 群體恐慌 -> 混亂迷霧
     'sr_u3': { archetype: 'STORM', primaryColor: '#4c1d95', secondaryColor: '#a78bfa', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_VOODOO', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
     // sr_u4: 猩紅血月 -> 升起的紅月 (使用 Giant Hex 模擬月亮)
-    'sr_u4': { archetype: 'HEAVEN_FALL', primaryColor: '#be123c', secondaryColor: '#991b1b', scale: 2.0, height: 300, timing: 0, vfxOverride: 'FX_ULT_RED_BLOOD_MOON' },
+    'sr_u4': { archetype: 'HEAVEN_FALL', primaryColor: '#be123c', secondaryColor: '#991b1b', scale: 2.0, height: 300, timing: 0, vfxOverride: 'FX_ULT_RED_BLOOD_MOON', charged: true, ownFallObject: true },
     // sr_u5: 惡靈附身 -> 附身儀式
     'sr_u5': { archetype: 'DOMAIN', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.2, vfxOverride: 'FX_ULT_RED_POSSESSION' },
 };

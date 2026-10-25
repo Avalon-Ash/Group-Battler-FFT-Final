@@ -7,6 +7,11 @@ const RR_U2_IMPACT = ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay('rr_u2');
 /** rr_u2 彈頭：顯形時刻與高度路徑（詠唱期間高空緩降，詠唱結束後加速落進印記） */
 const RR_U2_WARHEAD = { APPEAR: 0.35, Z_START: 520, Z_CAST_END: 420 } as const;
 const RR_U2_WARHEAD_LIFE = RR_U2_IMPACT - RR_U2_WARHEAD.APPEAR;
+/** sr_u4 的生效時刻（充能式天降：詠唱結束＋落下時間；這招沒有落下物，月亮是升起的） */
+const SR_U4_IMPACT = ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay('sr_u4');
+/** sr_u4 蝕月：升起起訖高度（月心距地面），詠唱結束時升到 Z_CAST_END，之後緩緩再升到 Z_END */
+const SR_U4_MOON = { APPEAR: 0.1, Z_START: 40, Z_CAST_END: 200, Z_END: 210, TAIL: 0.9 } as const;
+const SR_U4_MOON_LIFE = SR_U4_IMPACT + SR_U4_MOON.TAIL - SR_U4_MOON.APPEAR;
 
 // ==========================================
 // 奧義特效（零件版）— 灰燼（RED）
@@ -162,25 +167,34 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // sr_u4 猩紅血月（自身範圍 10 吸血）：角骷髏起手 → 空中月輪高懸＋血色光柱灑下＋地面聚光環＋吸血光點往上回流
+    // sr_u4 猩紅血月（全隊吸血＋持續回血，充能式天降時序：生效＝SR_U4_IMPACT＝詠唱結束＋落下時間，玩法不變）：
+    // 詠唱中角骷髏法陣展開、多面蝕月從施法者頭頂升起（暗芯、左上月牙紅緣、日冕）→
+    // 生效：月亮一閃、月華光點往下灑 → 血光滴從四周往上流回月亮。
+    // 不是落石，序列不另生共用隕石（ownFallObject）；增益技：主爆發是空中的月閃，不是向外擴張的地面衝擊環（C7）。
+    // 只畫既有的吸血與回血，不代表新增增益。
     'FX_ULT_RED_BLOOD_MOON': {
         id: 'FX_ULT_RED_BLOOD_MOON',
         emitters: [
-            // 起手：角骷髏法陣（精緻地面印記）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: 0, size: 64, vRotation: 0.2,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            // 血月月輪：懸在目標上空的月輪（空中層、緊湊較小、不再滿屏粉紅）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 56, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.95, delay: 0.3, size: 56, vz: 15,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1.05, fadeIn: 0.15, fadeOut: 0.4, alpha: 0.9 } }),
-            // 血色光柱往下灑
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 44, height: 160, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.65, delay: 0.3, size: 80, groundAnchored: true,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.5, alpha: 0.85 } }),
-            // 地面聚光環
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 10, ramp: 'ASH_BLOOD', roughness: 1, seed: 11 }, count: 1, lifetime: 0.65, delay: 0.3, size: 48,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.5 } }),
-            // 吸血光點向上回流到隊友方向（增益＝上升聚合，vz > 0）
-            part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [10, 14], lifetime: [0.65, 0.95], delay: [0.35, 0.55], size: 6,
-                shape: 'CIRCLE', shapeRadius: 110, speed: [-90, -40], vz: [80, 150], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.4 } }),
+            // 起手：角骷髏法陣，整段詠唱緩轉展開（64 * 1.0 * 1.4 = 89.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: SR_U4_IMPACT + 0.5, delay: 0, size: 64, vRotation: 0.25,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 多面蝕月：從頭頂升起（月心高度＝rise），詠唱結束時就定位
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'eclipse', size: 72, ramp: 'ASH_BLOOD' }, count: 1, lifetime: SR_U4_MOON_LIFE, delay: SR_U4_MOON.APPEAR, size: 72, vRotation: 0.15, groundAnchored: true,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.12, fadeOut: 0.2, rise: [
+                    { at: 0, z: SR_U4_MOON.Z_START },
+                    { at: (ULT_SEQUENCE.CHARGED_HIT_AT - SR_U4_MOON.APPEAR) / SR_U4_MOON_LIFE, z: SR_U4_MOON.Z_CAST_END },
+                    { at: 1, z: SR_U4_MOON.Z_END, ease: 'linear' },
+                ] } }),
+            // 生效主爆發：月閃（空中柔光，不用硬芯以免洗白；半徑最大的 glow，C2）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: SR_U4_IMPACT, size: 72, groundAnchored: true,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6, alpha: 0.8, rise: [{ at: 0, z: SR_U4_MOON.Z_CAST_END }] } }),
+            // 月華：光點從月亮高度往下灑到地面
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp: 'ASH_BLOOD', hard: true }, count: 14, lifetime: [0.6, 0.8], delay: [ULT_SEQUENCE.CHARGED_HIT_AT, SR_U4_IMPACT + 0.3], size: 5, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 140,
+                partAnim: { fadeIn: 0.2, fadeOut: 0.3, rise: [{ at: 0, z: SR_U4_MOON.Z_CAST_END }, { at: 1, z: 0, ease: 'in' }] } }),
+            // 血光上流：血滴從四周往上流回月亮（增益＝上升聚合，vz > 0）
+            part({ particleType: 'PART', part: { kind: 'droplet', size: 6, ramp: 'ASH_BLOOD' }, count: [12, 14], lifetime: [0.7, 0.9], delay: [SR_U4_IMPACT, SR_U4_IMPACT + 0.4], size: 6,
+                shape: 'CIRCLE', shapeRadius: 150, speed: [-60, -20], vz: [160, 260], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.4 } }),
         ],
     },
 

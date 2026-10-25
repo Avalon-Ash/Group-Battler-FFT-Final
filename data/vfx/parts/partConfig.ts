@@ -120,6 +120,17 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 多面蝕月（size＝直徑 D）：月面是 SIDES 邊的低多邊形，切成三角面、頂點偏 APEX（相對半徑），受光面在左上；
+         * 暗影＝同樣的多邊形偏移 SHADOW_OFF、半徑 SHADOW_R，中心填 SHADOW_COLOR、外緣漸成 ramp.dark（SHADOW_RIM_ALPHA，看得出暗面也是球面），露出左上一道月牙；暗影上仍淡淡看得到稜線（SHADOW_EDGE_ALPHA）；
+         * RIM_*＝月牙紅緣（core 亮弧的角度範圍與線寬）；CORONA_*＝日冕光暈（相對半徑的內外緣與不透明度）；HALO_R＝外框半徑（相對 D）。
+         */
+        ECLIPSE: {
+            SIDES: 12, APEX: [-0.12, -0.16] as const, FACET_CENTER_ALPHA: 0.85, FACET_LIT_ALPHA: 0.9, FACET_SHADE_ALPHA: 0.45, EDGE_ALPHA: 0.35,
+            SHADOW_OFF: [0.2, 0.14] as const, SHADOW_R: 0.92, SHADOW_COLOR: 'CHAR' as const, SHADOW_ALPHA: 0.92, SHADOW_RIM_ALPHA: 0.7, SHADOW_EDGE_ALPHA: 0.07,
+            RIM_ARC_DEG: [125, 292] as const, RIM_W: 0.035, RIM_ALPHA: 0.95,
+            CORONA_IN: 0.9, CORONA_OUT: 1.4, CORONA_ALPHA: 0.55, HALO_R: 0.72,
+        },
+        /**
          * 重型能量彈頭（size＝彈身長 L，彈尖在 (0,0) 朝下）：BODY_W＝最寬處寬，SHOULDER＝彈尖收斂到最寬處的長度，
          * TAIL_Y／TAIL_W＝尾端位置與寬；FIN_*＝尾翼（起點、長度、外展寬 FIN_SPAN、根部位置、外緣斜度）；OGIVE＝彈尖弧度；
          * BOAT_TAIL＝尾端收窄段；SPINE_X＝中脊內光的橫向位置；BAND_Y／BAND_CURVE＝彈身發光環帶與彎度；
