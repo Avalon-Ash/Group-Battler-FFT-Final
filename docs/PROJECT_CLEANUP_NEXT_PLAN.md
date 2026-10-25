@@ -1,6 +1,6 @@
 # 後續計畫：清理收尾 → 奧義時序 → Claude 視覺 → 統一平衡
 
-更新2026-10-25；以已推送 f08bb75 的 feat/project-cleanup 為產品起點。現有未追蹤提示詞不得刪除或全部加入 commit。
+更新2026-10-25：清理第一階段已合併進 main，之後的工作從 main 開新分支。現有未追蹤的提示詞不得刪除，也不得整批加入 commit。
 
 ## 審查結論與剩餘量
 
@@ -12,7 +12,7 @@ AUDIT01 枚舉快照 659 列：520 待讀、31 僅部分事實核對、108 程�
 
 | 順序 | 執行者 | 文件 | 交付與界線 |
 | --- | --- | --- | --- |
-| 1 COORD-R1 | 現有實作代理（Gemini 可用） | PROJECT_CLEANUP_COORD_R1_AGENT_PROMPT.md | 先修穩定遮擋oracle的ObstacleSprite契約，再修已定位的排序距離尺度；兩commit、同批驗收。 |
+| 1 COORD-R1 | 已完成 | PROJECT_CLEANUP_COORD_R1_REVIEW.md | oracle 修正（96b5ea5）、距離尺度（8f7ef65）、非對稱滯後（cc056b0）。 |
 | 2 ULT-T01 | 實作代理 | ULT_TIMING_AGENT_PROMPT.md | 50 招有效詠唱 ≥1.5 秒，資料／編輯／施法／演出一致；不改其他戰鬥平衡欄位。 |
 | 3 ULT-V01 | Claude，額度恢復後 | ULT_VISUAL_CLAUDE_AGENT_PROMPT.md | 50 招具象演出差異化；四代表作自驗後按職業各五招完成；真實施法／中斷／場景證據。 |
 

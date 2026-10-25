@@ -11,7 +11,7 @@ revised -> B：未壓扁平面距離 (8f7ef65) -> 保留距離尺度；改由 cc
 
 ## 報告更正
 
-`PROJECT_CLEANUP_COORD_R1_REPORT.md` §2.3 的組別數字和原始 JSON 不符。JSON 裡沒有 UNIT×TERRAIN 這一組，報告寫的「CORPSE×TERRAIN 5→1」也不對。實際數字如下：
+Gemini 原報告（COORD_R1_REPORT，8f7ef65 內，收尾時已刪）§2.3 的組別數字和原始 JSON 不符。JSON 裡沒有 UNIT×TERRAIN 這一組，報告寫的「CORPSE×TERRAIN 5→1」也不對。實際數字如下：
 
 | 穩定錯序 episodes（pair-frames） | before | 8f7ef65 | cc056b0 |
 | :-- | :-: | :-: | :-: |

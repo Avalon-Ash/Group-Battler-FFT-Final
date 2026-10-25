@@ -142,6 +142,30 @@
 - 位移技能軌跡＋近戰前衝＋奧義 C1 歸零（Gemini DM，主代理審查修正後合併 `7315658`）：報告 `docs/DASH_MOTION_REPORT.md`。`tr_u3`／`wr_u3`／`wb_u5` 詠唱調至 0.3 s 清零 `tests/ult-spec.baseline.json` C1；`MotionCommands.dashTo` 寫入朝目標爆發初速（`DASH_BURST_SPEED: 380`）與上下坡高度差補償，下坡給予起跳初速（`DASH_HOP_VZ: 140`），`SkillExecutor` 突進前由 `PhysicsSystem.recordTrailPoint` 記錄殘影起點；近戰單體與前踏主動技呼叫 `MotionCommands.lungeToward`（`MELEE_LUNGE_OFFSET_PX: 14`、`MELEE_LUNGE_SPEED: 220`）。審查修正（`dc56395`）：revised → `PhysicsEngine.stepPhysics` 下坡高度差吸收量改依安全落速上限（`FALL_DAMAGE_THRESHOLD * 0.85`）封頂（依據：6 層 144 px 高崖下衝時 `z += 144` 若全數進入自由落體，落地 `vz = -479.8` 會自摔扣 168 HP；封頂後高崖下衝仍走拋物線且自傷為 0），並同步更新 `RenderSpec.ts` §3 與 §10。驗證：696 項測試、保真 6/6 PASS（`battle_frozen` 0.305／0.32%，不需重錄）、perf 護欄、smoke 全過。
 - 行為樹優化與技能強度重調（Gemini BT，主代理審查修正後合併 `2405b6b`）：報告 `docs/BT_OPT_REPORT.md`。消除 4 類 AI 行為異常（非施法期間友軍目標殘留 `2040 -> 0` ticks、自身中心 PBAOE 空放 `11 -> 0` 次、對 `>=95%` HP 友軍空補與自殘補自己 `15 -> 0` 次、遠距空開短效自身增益），並同步重調法師／戰士等技能數值。審查修正（`c2d70aa`）：revised → `ChaseTarget(slot < 2)` 對非敵對技能改回傳 `FAILURE`（依據：滿血時治療／增益技能落入 `ChaseTarget` 對敵走位回傳 `SUCCESS` 會吞掉 Tick、阻斷輔助放普攻，或讓 `sr_a3` 治療圖騰衝入敵陣 2 格）；revised → `forceAiUpdate = true` 由純幾何查詢 `TargetingSystem.getImpactArea` 移至施法完成／中斷唯一收尾入口 `CastingEngine.resetCaster`；dropped → 移除 `sr_a3` 允許在滿血友軍旁空放的特例硬編碼；revised → 微調 `mb_u1`／`mb_u5` 威力使 2000 場對稱模擬 6 項平衡指標全數 PASS（藍方勝率一般 46.6%、交換 48.8%、合併 47.7%，p50 16.9 s，高頻技能勝率差超標 0 筆、同職業紅藍差最大 12.3%）。`battle_frozen` 因選標與傷害浮字改變重錄（`57e5089`，5 張地形 0 差異）。驗證：707 項測試、保真 6/6 PASS、smoke 全過。
 
+### S. 2026-10-23～25 專案清理第一階段（`feat/project-cleanup` 合併進 main）
+
+結論：清掉多餘的 export 和孤立模組，修了三個功能問題和座標排序；全庫逐檔語義審計沒有完成，未讀清冊和 SINK／VOID 轉入 HANDOFF。主代理是 Codex Argon／Astra 加 Gemini 3.8H，最後一段由 Claude 審查。
+
+- **功能修正**：
+  - F01 `d951930`：施法者死亡時取消還沒放完的施法序列。
+  - F02 `fbe56ca`：單體技能序列鎖定目標的即時位置，因此重錄 `battle_frozen`（`b9622b3`，五地形 hash 不變）。
+  - F03 `dd85241`：技能編輯器數值先暫存草稿，`UPDATE_SKILL` 加邊界驗證。
+- **清理**：C01–C05（私有化型別、helper、查表常數，移除未用 export）、C02 退役 `GlowSpriteCache`（−218 行）、C03 移除 `tintStrength`；H01–H05 檔頭與文件對齊；AUDIT01 收斂四個 export、隔離測試障礙物。
+- **座標（COORD-R1）**：
+  - `96b5ea5`：depth oracle 改照 `ObstacleSprite` 取樣。
+  - `8f7ef65`：排序距離改成未壓扁平面。
+  - `cc056b0`（主審）：非對稱滯後——進入前格立即切換，原始格穩定不變才放開。
+  - coord-guard 穩定錯序 19→7（只套 8f7ef65 時是 25），static 7→1。Gemini 報告的組別數字有誤，以 `docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md` 為準。
+- **合約**：Codex 派工表、hook 第 7 條強制 `--model`／`--effort`、專案 `.codex/config.toml`（`a2820d7`、`15a4e99`，合併 `cb15d46`）。Codex Sol／high 做跨模型審查，10 條意見採納 8 條。
+- **收尾**：刪除已完成的提示詞（CLOSE02、COORD_R1、F01）與被取代的報告（A0、AUDIT01、C01–C05、CLOSE02、COORD_R1、F01–F03、H01–H05、V01）。保留清冊 CSV、A0 資料（`tools/audit/cleanup-a0-inventory.mjs` 會讀）、COORD_R1_REVIEW、NEXT_PLAN、兩份 ULT 提示詞。
+- **驗證**：lint、788 個測試、build、runtime-smoke、perf:guard（保真 6/6，`battle_frozen` 0.000）。
+
+  | 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+  | :-- | :-- | :-- |
+  | COORD_R1 提示詞的文字停下條件（「新錯序無法解釋則 B 未完成」） | Gemini 照樣交付，報告把 CORPSE×TERRAIN 4→15 寫成 5→1（`coord-r1-*/coord_guard.json`） | no effect（再次印證 METHODOLOGY §4 第 8 條） |
+  | hook 第 7 條（Codex 呼叫必須寫模型與強度） | 合併前只有主代理手動呼叫，還沒攔過真實派工 | no effect（尚無樣本） |
+  | Codex 跨模型審查 harness | 找出 3 個 hook 繞過方式和 skill 範本矛盾，Claude 自審沒抓到 | helped |
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
