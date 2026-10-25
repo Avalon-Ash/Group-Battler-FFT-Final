@@ -33,7 +33,8 @@
  * ── JUDGED PAIRS ───────────────────────────────────────────────────────────────────────────────────────────
  * Types TERRAIN, OBSTACLE, HAZARD, UNIT, CORPSE, AURA; at least one side UNIT/CORPSE/OBSTACLE/AURA; screen silhouettes must overlap (convex SAT):
  *   tile      convex hull of the top ring (ty - h) and the bottom ring (ty + foundation depth)  [TerrainRenderer.bakeBlock geometry]
- *   obstacle  alpha bounding box of the real sprite, placed at (tx - ENV_SPRITE.ANCHOR_X, ty - ENV_SPRITE.ANCHOR_Y)
+ *   obstacle  alpha bounding box of the real sprite (SpriteManager.getObstacleSprite with variant/frame), placed at (tx - sprite.anchorX, ty - sprite.anchorY).
+ *             Measures solid obstacle body occlusion only; additive overlay (glow/glint) is not treated as solid occlusion silhouette.
  *   hazard    flat hex ring at ty
  *   unit      box: x ±22, y from (ty - physics.z - SpriteUnitRenderer.getHeadHeight - 4) to (ty + 14)   (pedestal + sprite)
  * Violation = expected-first op is sorted AFTER the expected-second op in the final dispatch order (RenderList.sort output).
@@ -78,25 +79,90 @@ export async function installDepthOracle(page) {
             if (!v) { v = HexGeometry.getVertices(r, true, layout); ringCache.set(k, v); }
             return v;
         };
-        const obsBoxCache = new Map();
-        function obstacleBox(type, layout) {
-            const key = `${type}:${layout}`;
-            let b = obsBoxCache.get(key);
-            if (b) return b;
-            const cv = SpriteManager.getObstacleSprite(type, layout);
-            const w = cv.width, h = cv.height;
-            const d = cv.getContext('2d').getImageData(0, 0, w, h).data;
-            let x0 = w, x1 = -1, y0 = h, y1 = -1;
-            for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-                if (d[(y * w + x) * 4 + 3] > 16) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        const obsImgCache = new WeakMap();
+        const obsCanvas = typeof document !== 'undefined' ? document.createElement('canvas') : null;
+        const obsCtx = obsCanvas ? obsCanvas.getContext('2d', { willReadFrequently: true }) : null;
+
+        function sampleObstacleSprite(sprite, desc = 'obstacle') {
+            if (!sprite || !sprite.image) {
+                throw new Error(`[depth-oracle] Invalid or null obstacle sprite: ${desc}`);
             }
-            b = x1 < 0 ? { x0: 0, y0: 0, x1: w, y1: h } : { x0, y0, x1: x1 + 1, y1: y1 + 1 };
-            // opaque sample points (every 3rd px) to measure how much of the sprite really covers another silhouette
+            const img = sprite.image;
+            let subMap = obsImgCache.get(img);
+            if (!subMap) {
+                subMap = new Map();
+                obsImgCache.set(img, subMap);
+            }
+            const sx = sprite.sx ?? 0;
+            const sy = sprite.sy ?? 0;
+            const sw = sprite.sw ?? 0;
+            const sh = sprite.sh ?? 0;
+            const w = sprite.width;
+            const h = sprite.height;
+            const ax = sprite.anchorX;
+            const ay = sprite.anchorY;
+            const key = `${sx}:${sy}:${sw}:${sh}:${w}:${h}:${ax}:${ay}`;
+            let b = subMap.get(key);
+            if (b) return b;
+
+            const cw = Math.ceil(w);
+            const ch = Math.ceil(h);
+            if (!obsCanvas || !obsCtx) {
+                throw new Error('[depth-oracle] Canvas context not available for obstacle sampling');
+            }
+            if (obsCanvas.width < cw || obsCanvas.height < ch) {
+                obsCanvas.width = Math.max(obsCanvas.width, cw);
+                obsCanvas.height = Math.max(obsCanvas.height, ch);
+            }
+            obsCtx.imageSmoothingEnabled = false;
+            obsCtx.clearRect(0, 0, cw, ch);
+
+            if (sprite.sw !== undefined && sprite.sw > 0 && sprite.sh !== undefined && sprite.sh > 0) {
+                obsCtx.drawImage(img, sx, sy, sprite.sw, sprite.sh, 0, 0, w, h);
+            } else {
+                obsCtx.drawImage(img, 0, 0, w, h);
+            }
+
+            const d = obsCtx.getImageData(0, 0, cw, ch).data;
+            let x0 = cw, x1 = -1, y0 = ch, y1 = -1;
+            for (let y = 0; y < ch; y++) {
+                for (let x = 0; x < cw; x++) {
+                    if (d[(y * cw + x) * 4 + 3] > 16) {
+                        if (x < x0) x0 = x;
+                        if (x > x1) x1 = x;
+                        if (y < y0) y0 = y;
+                        if (y > y1) y1 = y;
+                    }
+                }
+            }
+            if (x1 < 0) {
+                throw new Error(`[depth-oracle] Obstacle sprite has empty alpha mask for ${desc}: w=${w}, h=${h}, crop=${sx},${sy},${sw},${sh}`);
+            }
+            b = {
+                x0,
+                y0,
+                x1: x1 + 1,
+                y1: y1 + 1,
+                width: w,
+                height: h,
+                anchorX: ax,
+                anchorY: ay,
+            };
             const pts = [];
-            for (let y = y0; y <= y1; y += 3) for (let x = x0; x <= x1; x += 3) if (d[(y * w + x) * 4 + 3] > 64) pts.push(x, y);
+            for (let y = y0; y <= y1; y += 3) {
+                for (let x = x0; x <= x1; x += 3) {
+                    if (d[(y * cw + x) * 4 + 3] > 64) pts.push(x, y);
+                }
+            }
             b.pts = pts;
-            obsBoxCache.set(key, b);
+            subMap.set(key, b);
             return b;
+        }
+
+        function obstacleBox(op, layout) {
+            const time = engine ? (engine.battleTime ?? engine.state?.time?.battleTime ?? 0) : 0;
+            const sprite = SpriteManager.getObstacleSprite(op.ttype, layout, op.tq, op.tr, time);
+            return sampleObstacleSprite(sprite, `type=${op.ttype} at (${op.tq},${op.tr})`);
         }
         function hull(pts) {
             const p = pts.slice().sort((a, b) => a.x - b.x || a.y - b.y);
@@ -191,8 +257,8 @@ export async function installDepthOracle(page) {
                         for (const v of rr) { pts.push({ x: op.tx + v.x, y: op.ty - op.th + v.y }); pts.push({ x: op.tx + v.x, y: op.ty + depth + v.y }); }
                         it.poly = hull(pts);
                     } else if (t === T.OBSTACLE) {
-                        const b = obstacleBox(op.ttype, layout);
-                        const ox = Math.round(op.tx) - K.ENV_SPRITE.ANCHOR_X, oy = Math.round(op.ty) - K.ENV_SPRITE.ANCHOR_Y;
+                        const b = obstacleBox(op, layout);
+                        const ox = Math.round(op.tx) - b.anchorX, oy = Math.round(op.ty) - b.anchorY;
                         it.poly = rect(ox + b.x0, oy + b.y0, ox + b.x1, oy + b.y1);
                         it.sprite = { b, ox, oy };
                         it.E = op.y - c.y;
@@ -393,6 +459,8 @@ export async function installDepthOracle(page) {
             last() { return S.last; },
             /** crafted boards: oracle over the most recent frame only, no 3-frame rule */
             stop() { S.on = false; },
+            sampleObstacle(op, layout) { return obstacleBox(op, layout); },
+            sampleObstacleSprite(sprite, desc) { return sampleObstacleSprite(sprite, desc); },
         };
     });
 }
