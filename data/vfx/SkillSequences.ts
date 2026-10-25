@@ -186,7 +186,9 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     const impactDelay = ultImpactDelay(ultId);
                     const fallStart = ultConfig.charged ? U.CHARGED_HIT_AT : 0;
                     hitAt = fallStart + impactDelay;
-                    actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height, scale: ultConfig.scale, delay: fallStart + (ultConfig.timing || 0) });
+                    if (!ultConfig.ownFallObject) {
+                        actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height, scale: ultConfig.scale, delay: fallStart + (ultConfig.timing || 0) });
+                    }
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, delay: ultConfig.charged ? 0 : Math.max(0, hitAt - U.HIT_LEAD) });
                     actions.push({ type: 'SHAKE', shakeIntensity: shake(ultConfig.scale), delay: hitAt });
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.5), delay: hitAt + 0.05 });

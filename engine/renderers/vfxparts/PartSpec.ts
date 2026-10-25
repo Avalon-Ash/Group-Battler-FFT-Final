@@ -23,9 +23,10 @@ export type PrismStyle = 'glass' | 'solid';
 /**
  * 奧義魔法構造體（ULT-V01）：有體積的半透明能量體（受光面較亮較實、背光面較暗較透、外暈＋亮邊＋內光），
  * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）；
- * singularity＝多面奇點（深色多面能量核＋亮邊壓縮光環，錨點在中心，size＝直徑）。
+ * singularity＝多面奇點（深色多面能量核＋亮邊壓縮光環，錨點在中心，size＝直徑）；
+ * warhead＝重型能量彈頭（彈尖朝下，錨點在彈尖，size＝彈身長，尾焰另往上延伸）。
  */
-export type ConstructShape = 'greatsword' | 'singularity';
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -299,6 +300,13 @@ export function partBounds(n: PartSpec): PartBounds {
                 // 錨點在中心；外框含壓縮光環
                 const d = n.size * VFX_PARTS.CONSTRUCT.SINGULARITY.HALO_R * 2 + m * 2;
                 return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+            }
+            if (n.shape === 'warhead') {
+                // 彈尖朝下，錨點在彈尖；寬度＝尾翼展開，高度＝彈身＋上方尾焰
+                const W = VFX_PARTS.CONSTRUCT.WARHEAD;
+                const w = n.size * W.FIN_SPAN + m * 2;
+                const h = n.size * (1 + W.TRAIL_LEN) + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
             }
             // greatsword：劍尖朝下，錨點在劍尖（插地／砸落的接觸點）；寬度＝獅翼護手展開；四周多留外暈的模糊半徑
             const w = n.size * VFX_PARTS.CONSTRUCT.GREATSWORD.WING_SPAN + m * 2;

@@ -54,6 +54,8 @@ export interface UltVisualDef {
     cadence?: 'EVEN' | 'ACCEL' | 'CLUSTER'; // STORM：落點節奏（預設 EVEN）
     /** 充能式（ULT-V01）：資產時間軸從詠唱開始排到 ULT_SEQUENCE.CHARGED_HIT_AT 命中，不再只播最後 HIT_LEAD 秒 */
     charged?: boolean;
+    /** HEAVEN_FALL：落下物由資產自己畫（零件＋rise 高度關鍵影格，在命中那一刻落地），序列不另生共用隕石 */
+    ownFallObject?: boolean;
 }
 
 export const ULT_VISUALS: Record<string, UltVisualDef> = {
@@ -149,7 +151,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // rr_u1: 灰燼穿心 -> 黑色電磁砲
     'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#ea580c', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_RAILGUN' },
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
-    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH' },
+    'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH', charged: true, ownFallObject: true },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
     'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL', cadence: 'ACCEL' },
     // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)

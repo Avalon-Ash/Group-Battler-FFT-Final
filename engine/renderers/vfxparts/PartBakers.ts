@@ -82,7 +82,12 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
         case 'missile': return bakeMissile(ctx, n.shape, n.length, VFX_RAMPS[n.ramp]);
         case 'prism': return bakePrism(ctx, n.radius, n.height, VFX_RAMPS[n.ramp], n.layout ?? 'FLAT', n.style);
         case 'spiral': return bakeSpiral(ctx, n.radius, n.arms, n.turns, n.thickness, VFX_RAMPS[n.ramp]);
-        case 'construct': return n.shape === 'singularity' ? bakeSingularity(ctx, n.size, VFX_RAMPS[n.ramp]) : bakeGreatsword(ctx, n.size, VFX_RAMPS[n.ramp]);
+        case 'construct': {
+            const ramp = VFX_RAMPS[n.ramp];
+            if (n.shape === 'singularity') return bakeSingularity(ctx, n.size, ramp);
+            if (n.shape === 'warhead') return bakeWarhead(ctx, n.size, ramp);
+            return bakeGreatsword(ctx, n.size, ramp);
+        }
     }
 }
 
@@ -1321,6 +1326,86 @@ function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp
     ctx.arc(0, 0, D * S.RING_R, S.RING_LIT_ARC_DEG[0] * Math.PI / 180, S.RING_LIT_ARC_DEG[1] * Math.PI / 180);
     ctx.stroke();
     ctx.restore();
+}
+
+/** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */
+function coreLine(ctx: CanvasRenderingContext2D, ramp: VFXRamp, L: number, path: () => void): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    ctx.save();
+    ctx.shadowColor = ramp.core;
+    ctx.shadowBlur = L * C.CORE_BLUR;
+    ctx.strokeStyle = ramp.core;
+    ctx.lineWidth = Math.max(1, L * C.CORE_W);
+    ctx.lineCap = 'round';
+    path();
+    ctx.stroke();
+    ctx.restore();
+}
+
+/**
+ * 重型能量彈頭（kind 'construct'，shape 'warhead'）：彈尖在錨點 (0,0) 朝下，尾端在 (0, −TAIL_Y×L)。
+ * 尾焰先畫（在彈身後面往上拖），彈身左半受光、右半背光，兩片尾翼，彈身兩道發光環帶與中脊內光，彈尖一點熱光。
+ */
+function bakeWarhead(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): void {
+    const W = VFX_PARTS.CONSTRUCT.WARHEAD;
+    const bw = (W.BODY_W * L) / 2;
+    const tw = (W.TAIL_W * L) / 2;
+    const yS = -W.SHOULDER * L;
+    const yT = -W.TAIL_Y * L;
+
+    // 尾焰：從尾端往上收成尖，core → main → 透明
+    const trailTop = yT - W.TRAIL_LEN * L;
+    const trailHalf = (W.TRAIL_W * L) / 2;
+    const trail = ctx.createLinearGradient(0, yT, 0, trailTop);
+    trail.addColorStop(0, withAlpha(ramp.core, W.TRAIL_ALPHA));
+    trail.addColorStop(W.TRAIL_MID_STOP, withAlpha(ramp.main, W.TRAIL_ALPHA * W.TRAIL_MID_ALPHA));
+    trail.addColorStop(1, withAlpha(ramp.dark, 0));
+    ctx.fillStyle = trail;
+    ctx.beginPath();
+    ctx.moveTo(-trailHalf, yT);
+    ctx.quadraticCurveTo(-trailHalf / 2, (yT + trailTop) / 2, 0, trailTop);
+    ctx.quadraticCurveTo(trailHalf / 2, (yT + trailTop) / 2, trailHalf, yT);
+    ctx.closePath();
+    ctx.fill();
+
+    // 尾翼（在彈身後面）：從 FIN_START 往尾端外展
+    const fy0 = -W.FIN_START * L;
+    const fy1 = fy0 - W.FIN_LEN * L;
+    const span = (W.FIN_SPAN * L) / 2;
+    for (const side of [-1, 1]) {
+        const fin = () => {
+            ctx.beginPath();
+            ctx.moveTo(side * bw * W.FIN_ROOT, fy0);
+            ctx.lineTo(side * span, fy1 + W.FIN_LEN * L * W.FIN_EDGE);
+            ctx.lineTo(side * span, fy1);
+            ctx.lineTo(side * tw, yT);
+            ctx.closePath();
+        };
+        energyPiece(ctx, fin, faceGradient(ctx, side * span, fy1, side * bw, fy0, ramp, side < 0), ramp, L);
+    }
+
+    // 彈身：彈尖弧形收斂到肩部，直身到尾端前再收窄
+    const half = (side: number) => () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(side * bw, yS * W.OGIVE, side * bw, yS);
+        ctx.lineTo(side * bw, yT + (yS - yT) * W.BOAT_TAIL);
+        ctx.lineTo(side * tw, yT);
+        ctx.lineTo(0, yT);
+        ctx.closePath();
+    };
+    energyPiece(ctx, half(-1), faceGradient(ctx, -bw, yT, 0, 0, ramp, true), ramp, L);
+    energyPiece(ctx, half(1), faceGradient(ctx, 0, yT, bw, 0, ramp, false), ramp, L);
+
+    // 發光環帶（略向下彎，看得出彈身是圓柱）與中脊內光
+    for (const b of W.BAND_Y) {
+        const y = -b * L;
+        coreLine(ctx, ramp, L, () => { ctx.beginPath(); ctx.moveTo(-bw, y); ctx.quadraticCurveTo(0, y + bw * W.BAND_CURVE, bw, y); });
+    }
+    coreLine(ctx, ramp, L, () => { ctx.beginPath(); ctx.moveTo(-bw * W.SPINE_X, yS * W.OGIVE); ctx.lineTo(-bw * W.SPINE_X, yT); });
+
+    // 彈尖熱光
+    bakeGlowAt(ctx, 0, 0, W.NOSE_GLOW * L, ramp);
 }
 
 /** 在 (x, y) 畫一顆硬光點（bakeGlow 的平移版，炸彈引信火花用）。 */

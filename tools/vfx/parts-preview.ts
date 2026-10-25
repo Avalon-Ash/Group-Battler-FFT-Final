@@ -64,6 +64,9 @@ const rows: Row[] = [
         { name: 'spiral LION_VOID 3 arms', spec: { kind: 'spiral', radius: 64, arms: 3, turns: 0.75, thickness: 12, ramp: 'LION_VOID' } },
         { name: 'spiral LION_VOID 4 arms', spec: { kind: 'spiral', radius: 48, arms: 4, turns: 1, thickness: 8, ramp: 'LION_VOID' } },
     ] },
+    { label: 'ult construct (red)', specs: [
+        { name: 'warhead ASH_FIRE', spec: { kind: 'construct', shape: 'warhead', size: 80, ramp: 'ASH_FIRE' } },
+    ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [
     { name: 'flame ASH_FIRE jagged', spec: { kind: 'flame', height: 64, ramp: 'ASH_FIRE', jagged: true } },

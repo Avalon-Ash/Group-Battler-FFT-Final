@@ -1,5 +1,12 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 import { part } from "./ult_parts";
+import { ULT_SEQUENCE, ultImpactDelay } from "../ult_visuals";
+
+/** rr_u2 的命中時刻（充能式天降：詠唱結束＋落下時間，從資產開始起算）；彈頭在這一刻落地 */
+const RR_U2_IMPACT = ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay('rr_u2');
+/** rr_u2 彈頭：顯形時刻與高度路徑（詠唱期間高空緩降，詠唱結束後加速落進印記） */
+const RR_U2_WARHEAD = { APPEAR: 0.35, Z_START: 520, Z_CAST_END: 420 } as const;
+const RR_U2_WARHEAD_LIFE = RR_U2_IMPACT - RR_U2_WARHEAD.APPEAR;
 
 // ==========================================
 // 奧義特效（零件版）— 灰燼（RED）
@@ -118,31 +125,40 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
         ],
     },
 
-    // rr_u2 戰術核彈（HEAVEN_FALL，範圍 3 擊退）：落地印記預告 → 白熱火球上升＋大衝擊環＋高飛碎石 → 蘑菇雲升起＋火星
-    // 2026-10-21 使用者：舊版（6927b68 之前的 SHOCKWAVE／蘑菇雲煙柱／RUBBLE）是最喜歡的之一，零件化後變弱，依舊版構圖做回。
-    // 時長：序列在 hitAt − 0.3 開始，發射器須在 delay＋lifetime ≤ 1.4 內結束（C4 ≤ 2.0 s）。
+    // rr_u2 焦土衝擊（範圍 3 擊退，充能式天降，命中＝RR_U2_IMPACT＝詠唱結束＋落下時間，傷害同一刻）：
+    // 詠唱中能量彈頭在高空顯形緩降（落點預警由遊戲的落點格顯示）→ 詠唱結束後加速落地 →
+    // 命中：衝擊裙（擴張環）＋碎石 → 煙團粒子堆出蕈狀雲：慢的灰煙留成雲幹、快的焦黑煙團衝上去往外翻成蕈傘，蕈傘裡有火光。
+    // 2026-10-26 使用者：構造體蕈狀雲太卡通，蕈狀雲用粒子與煙霧做（舊版做法）。不放大白光球（避免洗白）。
+    // 蕈狀雲只是命中的視覺，不代表新增持續傷害；擊退範圍 3 格（C6）。
+    // 煙的上升高度＝vz ÷ (60 × −ln(1 − drag))（VFXPhysics 的阻力每 1/60 秒乘一次）：雲幹約 20～95px、蕈傘約 120～145px（太高會衝出鏡頭上緣）。
     'FX_ULT_RED_NUKE_FLASH': {
         id: 'FX_ULT_RED_NUKE_FLASH',
         emitters: [
-            // 落點預告印記（delay 0 < burstTime 0.3，滿足 C3 起手；64 * 1.0 * 1.4 = 89.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'hornSkull', ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.6, delay: 0, size: 64,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1.0, fadeIn: 0.1, fadeOut: 0.4 } }),
-            // 命中主爆發：白熱火球，邊膨脹邊上升成蘑菇雲的頭（glow 160 大於環，delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 160, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.75, delay: 0.3, size: 160, vz: 140,
-                partAnim: { scaleFrom: 0.35, scaleTo: 1.25, fadeOut: 0.6 } }),
-            // 範圍 3 大衝擊環（160 * 1.4 * 1.4 = 313.6px，上限 324.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 24, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.7, delay: 0.3, size: 160,
+            // 能量彈頭：高空顯形緩降，詠唱結束（CHARGED_HIT_AT）後加速，命中那一刻落地消失（彈尖高度＝rise）
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'warhead', size: 72, ramp: 'ASH_FIRE' }, count: 1, lifetime: RR_U2_WARHEAD_LIFE, delay: RR_U2_WARHEAD.APPEAR, size: 72, groundAnchored: true,
+                partAnim: { fadeIn: 0.12, rise: [
+                    { at: 0, z: RR_U2_WARHEAD.Z_START },
+                    { at: (ULT_SEQUENCE.CHARGED_HIT_AT - RR_U2_WARHEAD.APPEAR) / RR_U2_WARHEAD_LIFE, z: RR_U2_WARHEAD.Z_CAST_END, ease: 'linear' },
+                    { at: 1, z: 0, ease: 'in' },
+                ] } }),
+            // 命中主爆發：衝擊裙（範圍 3 擴張環；160 * 1.4 * 1.4 = 313.6px，上限 324.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 24, ramp: 'ASH_FIRE', roughness: 1, seed: 8 }, count: 1, lifetime: 0.7, delay: RR_U2_IMPACT, size: 160,
                 partAnim: { scaleFrom: 0.2, scaleTo: 1.4, fadeOut: 0.55 } }),
-            // 蘑菇雲：焦黑煙團往上竄、越高越大（一般混合的實體煙；快的形成雲頭、慢的留成煙柱）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 44, color: 'CHAR', roughness: 0.8, seed: 12 }, count: 12, lifetime: [0.85, 1.0], delay: [0.33, 0.4], size: 44,
-                shape: 'CIRCLE', shapeRadius: 26, speed: [10, 40], vz: [120, 420], drag: 0.03, vRotation: [-1, 1],
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.9, fadeIn: 0.08, fadeOut: 0.45, alpha: 0.92 } }),
+            // 雲幹：灰煙慢慢往上推，集中在中心一束
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 24, color: 'ASH', roughness: 0.6, seed: 3 }, count: 12, lifetime: [1.0, 1.2], delay: [RR_U2_IMPACT, RR_U2_IMPACT + 0.3], size: 24,
+                shape: 'CIRCLE', shapeRadius: 10, speed: [0, 10], vz: [40, 250], drag: 0.04, vRotation: [-0.6, 0.6],
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.1, fadeOut: 0.45, alpha: 0.85 } }),
+            // 蕈傘：焦黑煙團快速衝上去、被阻力停在高處並往外翻開，越來越大
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 44, color: 'CHAR', roughness: 0.8, seed: 12 }, count: 10, lifetime: [1.1, 1.3], delay: [RR_U2_IMPACT + 0.02, RR_U2_IMPACT + 0.12], size: 44,
+                shape: 'CIRCLE', shapeRadius: 20, speed: [110, 190], vz: [260, 310], drag: 0.035, vRotation: [-1, 1],
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeIn: 0.08, fadeOut: 0.45, alpha: 0.75 } }),
+            // 蕈傘裡的火光：跟煙團一起衝上去，從裡面照亮（加法光暈，先亮後收）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 40, ramp: 'ASH_FIRE', hard: true }, count: 6, lifetime: [0.8, 1.0], delay: [RR_U2_IMPACT + 0.04, RR_U2_IMPACT + 0.12], size: 40,
+                shape: 'CIRCLE', shapeRadius: 16, speed: [60, 120], vz: [260, 310], drag: 0.035,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6, alpha: 0.9 } }),
             // 高飛碎石
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 10, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [10, 12], lifetime: [0.7, 1.0], delay: 0.3, size: 10,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 10, shape: 'rock', ramp: 'ASH_PHYSICAL', seed: 6 }, count: [10, 12], lifetime: [0.7, 1.0], delay: RR_U2_IMPACT, size: 10,
                 shape: 'BURST_DIR', speed: [350, 700], vz: [400, 800], gravity: 2600, vRotation: [-10, 10], partAnim: { fadeOut: 0.3 } }),
-            // 火星四射（餘韻：hitAt + 0.5 s 仍存活）
-            part({ particleType: 'PART', part: { kind: 'spark', length: 14, ramp: 'ASH_FIRE' }, count: [8, 10], lifetime: [0.5, 0.8], delay: [0.32, 0.5], size: 14,
-                shape: 'BURST_DIR', speed: [220, 460], vz: [80, 300], drag: 0.04, partAnim: { fadeOut: 0.5 } }),
         ],
     },
 

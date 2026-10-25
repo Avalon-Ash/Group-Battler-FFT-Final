@@ -119,6 +119,18 @@ export const VFX_PARTS = {
             FACET_CENTER_ALPHA: 0.9, FACET_LIT_ALPHA: 0.8, FACET_SHADE_ALPHA: 0.35, FACET_EDGE_STOP: 0.8, FACET_GLINT_ALPHA: 0.7, EDGE_ALPHA: 0.35,
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
+        /**
+         * 重型能量彈頭（size＝彈身長 L，彈尖在 (0,0) 朝下）：BODY_W＝最寬處寬，SHOULDER＝彈尖收斂到最寬處的長度，
+         * TAIL_Y／TAIL_W＝尾端位置與寬；FIN_*＝尾翼（起點、長度、外展寬 FIN_SPAN、根部位置、外緣斜度）；OGIVE＝彈尖弧度；
+         * BOAT_TAIL＝尾端收窄段；SPINE_X＝中脊內光的橫向位置；BAND_Y／BAND_CURVE＝彈身發光環帶與彎度；
+         * NOSE_GLOW＝彈尖熱光；TRAIL_LEN／TRAIL_W／TRAIL_ALPHA＝尾端往上的能量尾焰（相對 L）。
+         */
+        WARHEAD: {
+            BODY_W: 0.3, SHOULDER: 0.32, TAIL_Y: 0.86, TAIL_W: 0.2, FIN_START: 0.66, FIN_LEN: 0.3, FIN_SPAN: 0.62,
+            FIN_ROOT: 0.9, FIN_EDGE: 0.25, OGIVE: 0.35, BOAT_TAIL: 0.15, SPINE_X: 0.3,
+            BAND_Y: [0.44, 0.6] as const, BAND_CURVE: 0.5, NOSE_GLOW: 0.12,
+            TRAIL_LEN: 0.5, TRAIL_W: 0.18, TRAIL_ALPHA: 0.55, TRAIL_MID_STOP: 0.4, TRAIL_MID_ALPHA: 0.6,
+        },
     },
     /**
      * 螺旋吸積帶（kind 'spiral'）：每條光帶從外緣半徑繞 turns 圈收到 INNER×半徑，寬度由 thickness 收到 TAPER 倍（越往內越細）；
