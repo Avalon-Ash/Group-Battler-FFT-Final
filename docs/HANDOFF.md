@@ -7,7 +7,8 @@
 
 - f08bb75 已成功推送 origin/feat/project-cleanup，未合併main。
 - **COORD-TOOL-01 已修復（Package A，commit `96b5ea5`）**：`tools/ui-e2e/lib/depth-oracle.mjs` 支援 `ObstacleSprite` 取樣、真實尺寸裁切、非預設錨點與 WeakMap 影像快取；專用探針 `coord-oracle-sprite-check.mjs` 驗證全綠（含負向控制）。
-- **COORD-OSC-01 已修復（Package B）**：`UnitFrame.ts:resolveSortHex` 距離尺度正規化為未壓扁平面空間（`dy / ISO_SCALE_Y`），消除格界判定與滯後比較的尺度不一致；`CoordinateProtocol.test.ts` 新增 FLAT/POINTY 可重現反例、慢速移動與記憶清除測試；`cleanup-coord01-check.mjs --after` 驗證 Case 3 靜止震盪消除；六景 staticEvents 自 7 降至 1 (Forest 6->0, Case 3 Void/1002 消除)；Order Oracle 錯序總影格數自 308 降至 287。
+- **COORD-OSC-01（Package B 8f7ef65 ＋ 主審 cc056b0）**：距離尺度改為未壓扁平面，再加上非對稱滯後：進入前格立即切換，原始格穩定不變才放開。8f7ef65 單獨套用時，格界上的屍體會被腳下地塊蓋住，穩定錯序 19→25；加上 cc056b0 後是 19→7，static 7→1，sink/void 不變。原報告 §2.3 的組別數字有誤，以 `PROJECT_CLEANUP_COORD_R1_REVIEW.md` 為準。
+- **待使用者實機確認**：屍體擊飛滑停在格界時，腳不再被腳下地塊蓋住；行走時沒有新的排序閃爍。
 - **仍待做／未結案事項**：
   - COORD-SINK-01（1.89px 插值下陷）與 COORD-VOID-01（高速穿越採樣）作為已知診斷揭露，未擴大修改產品。
   - 全庫清冊 659 列逐檔語義審計未完成。
