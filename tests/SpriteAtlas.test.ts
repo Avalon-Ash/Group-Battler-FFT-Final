@@ -41,22 +41,23 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             const manifest = JSON.parse(content) as UnitManifest;
 
             expect(manifest.version).toBe(1);
-            expect(manifest.cellPx).toBe(256);
-            expect(manifest.anchor.x).toBe(128);
-            expect(manifest.anchor.y).toBeCloseTo(184.32, 2);
+            expect(manifest.cellPx).toBe(448);
+            expect(manifest.anchor.x).toBe(224);
+            expect(manifest.anchor.y).toBeCloseTo(280.32, 2);
             expect(manifest.directions).toEqual(['SE', 'SW', 'NE', 'NW']);
             expect(manifest.referenceHeightPx).toBeCloseTo(158.3, 1);
-            expect(Object.keys(manifest.units).length).toBe(10);
+            expect(Object.keys(manifest.units).length).toBe(20);
+            expect(manifest.atlasScale).toBe(0.5);
         });
 
-        it('all 10 unit combinations exist in manifest.json', () => {
+        it('all 20 unit combinations exist in manifest.json', () => {
             const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as UnitManifest;
             const teams = ['BLUE', 'RED'];
             const roles = ['TANK', 'WARRIOR', 'RANGER', 'MAGE', 'SUPPORT'];
 
             for (const team of teams) {
-                for (const role of roles) {
-                    const key = `${team}:${role}:MALE`;
+                for (const role of roles) for (const body of ['MALE', 'FEMALE']) {
+                    const key = `${team}:${role}:${body}`;
                     expect(manifest.units[key]).toBeDefined();
                     const unit = manifest.units[key];
                     expect(unit.file).toContain('.webp');
