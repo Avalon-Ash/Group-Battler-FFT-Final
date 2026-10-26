@@ -19,7 +19,8 @@ const MAP: MapConfig = { w: 10, h: 10, offsetX: 0, offsetY: 0, layout: 'FLAT' };
 /** 公式與圖集頭頂高度的容許誤差（px） */
 const HEAD_TOLERANCE_PX = 2;
 /** 職業之間精靈高度本來就不同（法師帽 +7、輔助 −6）；單一職業與公式的差不得超過這個值 */
-const ROLE_SPREAD_PX = 8;
+// 各職業頭頂與公式的容許差：含帽子／髮型（2026-10-27 法師帽 +11.9 px，使用者核准 8→12）
+const ROLE_SPREAD_PX = 12;
 
 function loadManifest(): UnitManifest {
     const manifestPath = join(process.cwd(), 'public', 'assets', 'units', 'manifest.json');
@@ -50,11 +51,11 @@ describe('projection heights derive from sprite data', () => {
         }
         const mean = heads.reduce((a, b) => a + b, 0) / heads.length;
         expect(Math.abs(mean - projectionHeadHeight(body))).toBeLessThanOrEqual(HEAD_TOLERANCE_PX);
-        // 兩個基準職業（戰士、坦克）與公式本身貼合
+        // 兩個基準職業（戰士、坦克）：新 skin 以髮型取代高頭盔，頭頂比公式低約 5 px，改用職業容許值（使用者 2026-10-27 核准）
         for (const role of [Role.WARRIOR, Role.TANK]) {
             const agent = new Agent(`proj_ref_${role}`, Team.BLUE, 0, 0, MAP);
             agent.role = role;
-            expect(Math.abs(SpriteUnitRenderer.getHeadHeight(agent)! - projectionHeadHeight(body))).toBeLessThanOrEqual(HEAD_TOLERANCE_PX);
+            expect(Math.abs(SpriteUnitRenderer.getHeadHeight(agent)! - projectionHeadHeight(body))).toBeLessThanOrEqual(ROLE_SPREAD_PX);
         }
     });
 });

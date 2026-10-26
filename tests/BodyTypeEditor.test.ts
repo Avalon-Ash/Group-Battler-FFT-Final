@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { Team, Role, BodyTypeId } from '../types';
 import { AgentManager } from '../engine/systems/agentManager';
-import { pickBodyType, resolveBodyType } from '../data/units/appearance/bodyTypes';
+import { pickBodyType, resolveBodyType, BODY_TYPE_PROFILE } from '../data/units/appearance/bodyTypes';
 
 describe('Task A2e: BodyType Generation & Editor Integration', () => {
     describe('pickBodyType pure function determinism and distribution', () => {
@@ -61,8 +61,9 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
             expect(resolveBodyType(null)).toBe('MALE');
             expect(resolveBodyType(undefined)).toBe('MALE');
             expect(resolveBodyType({ bodyType: undefined })).toBe('MALE');
-            // FEMALE is currently disabled in default profile, should fall back to MALE
-            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('MALE');
+            // Production enables FEMALE; an explicitly disabled profile still falls back.
+            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('FEMALE');
+            expect(resolveBodyType({ bodyType: 'FEMALE' }, { ...BODY_TYPE_PROFILE, FEMALE: { ...BODY_TYPE_PROFILE.FEMALE, enabled: false } })).toBe('MALE');
         });
     });
 
@@ -77,7 +78,7 @@ describe('Task A2e: BodyType Generation & Editor Integration', () => {
             const agent = engine.agentManager.addAgent(engine, Team.BLUE, 0, 0);
             expect(agent).not.toBeNull();
             expect(agent!.bodyType).toBeDefined();
-            expect(agent!.bodyType).toBe('MALE'); // Since only MALE is enabled by default
+            expect(agent!.bodyType).toBe(pickBodyType(agent!.id, AgentManager.matchSalt));
         });
 
         it('respects bodyTypeOverride when explicitly specified in addAgent', () => {

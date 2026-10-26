@@ -1,0 +1,396 @@
+{
+  "version": 1,
+  "team": "BLUE",
+  "role": "WARRIOR",
+  "colors": {
+    "blue": "#244D91",
+    "silver": "#B7C6D2",
+    "leather": "#624333",
+    "gold": "#C5A356",
+    "ivory": "#EEE3CA",
+    "skin": "#E7B28E",
+    "hair": "#643F2C",
+    "hairLight": "#805339",
+    "hairDark": "#4A2F24",
+    "dark": "#282329",
+    "lip": "#A46C50"
+  },
+  "paletteCells": [
+    [
+      "silver",
+      "ivory",
+      "silver",
+      "silver",
+      "silver",
+      "silver",
+      "silver",
+      "silver"
+    ],
+    [
+      "silver",
+      "gold",
+      "blue",
+      "leather",
+      "silver",
+      "silver",
+      "silver",
+      "silver"
+    ],
+    [
+      "blue",
+      "blue",
+      "silver",
+      "silver",
+      "silver",
+      "leather",
+      "leather",
+      "leather"
+    ],
+    [
+      "skin",
+      "silver",
+      "dark",
+      "silver",
+      "silver",
+      "leather",
+      "leather",
+      "leather"
+    ]
+  ],
+  "head": {
+    "eyeUV": [
+      0.25,
+      0.375
+    ],
+    "browMinZ": 1.67,
+    "browMaxZ": 1.84,
+    "browUV": [
+      0.125,
+      0.25
+    ],
+    "frontY": -0.24
+  },
+  "hair": {
+    "center": [
+      0,
+      0,
+      1.72
+    ],
+    "radius": [
+      0.495,
+      0.505,
+      0.525
+    ],
+    "frontEdge": 1.83,
+    "backEdge": 1.45,
+    "locks": [
+      [
+        [
+          -0.1,
+          -0.24,
+          2.21
+        ],
+        [
+          -0.4,
+          -0.4,
+          2
+        ],
+        [
+          -0.4,
+          -0.32,
+          1.76
+        ],
+        [
+          0.05,
+          -0.5,
+          1.91
+        ]
+      ],
+      [
+        [
+          0.12,
+          -0.22,
+          2.22
+        ],
+        [
+          -0.02,
+          -0.5,
+          2
+        ],
+        [
+          -0.12,
+          -0.5,
+          1.79
+        ],
+        [
+          0.29,
+          -0.4,
+          1.92
+        ]
+      ],
+      [
+        [
+          0.23,
+          -0.15,
+          2.18
+        ],
+        [
+          0.2,
+          -0.46,
+          1.97
+        ],
+        [
+          0.37,
+          -0.32,
+          1.78
+        ],
+        [
+          0.45,
+          -0.24,
+          1.94
+        ]
+      ]
+    ],
+    "lockBulge": 0.045,
+    "bunCenter": [
+      0,
+      0.48,
+      1.57
+    ],
+    "bunScale": [
+      0.26,
+      0.2,
+      0.24
+    ],
+    "bunSubdivisions": 2,
+    "surfaceOffset": 1.035,
+    "highlightMaxX": -0.1,
+    "highlightMinNormalZ": 0.5
+  },
+  "ornament": {
+    "center": [
+      -0.49,
+      -0.1,
+      1.94
+    ],
+    "u": [
+      -0.34,
+      0.94,
+      0
+    ],
+    "v": [
+      0,
+      0,
+      1
+    ],
+    "normal": [
+      -0.94,
+      -0.34,
+      0
+    ],
+    "depth": 0.018,
+    "diamond": [
+      [
+        -0.03,
+        0.015
+      ],
+      [
+        0.025,
+        0.16
+      ],
+      [
+        0.085,
+        0.055
+      ],
+      [
+        0.075,
+        -0.105
+      ]
+    ],
+    "inset": 0.55,
+    "leaves": [
+      [
+        [
+          -0.01,
+          0.01
+        ],
+        [
+          -0.16,
+          0.14
+        ],
+        [
+          -0.13,
+          0.03
+        ],
+        [
+          -0.03,
+          -0.04
+        ]
+      ],
+      [
+        [
+          -0.02,
+          -0.03
+        ],
+        [
+          -0.19,
+          0.035
+        ],
+        [
+          -0.13,
+          -0.055
+        ],
+        [
+          -0.015,
+          -0.07
+        ]
+      ],
+      [
+        [
+          0,
+          -0.065
+        ],
+        [
+          -0.15,
+          -0.065
+        ],
+        [
+          -0.095,
+          -0.12
+        ],
+        [
+          0.035,
+          -0.105
+        ]
+      ]
+    ],
+    "sizeScale": 1.2,
+    "clearance": 0.018,
+    "grid": 24,
+    "textureSize": 256
+  },
+  "cape": {
+    "textureSize": 512,
+    "border": 0.045,
+    "logoBox": [
+      0.15,
+      0.13,
+      0.85,
+      0.84
+    ],
+    "emblem": "art-source/lionheart-warrior/lion-emblem-v02.png",
+    "alphaCutoff": 0.65
+  },
+  "preview": {
+    "cellPx": 256,
+    "referenceHeightPx": 158.3,
+    "targetHeight": 59,
+    "anchor": [
+      128,
+      184.32
+    ]
+  },
+  "face": {
+    "source": "art-source/lionheart-warrior/clean-face.json",
+    "textureSize": 512,
+    "xRange": [
+      -0.55,
+      0.55
+    ],
+    "zRange": [
+      1.2,
+      2.2
+    ],
+    "frontY": -0.24,
+    "frontNormalY": -0.35,
+    "eyeX": 0.2,
+    "eyeZ": 1.61,
+    "eyeWidth": 0.043,
+    "eyeHeight": 0.073,
+    "mouth": [
+      [
+        -0.055,
+        1.393
+      ],
+      [
+        0.035,
+        1.411
+      ],
+      [
+        0.044,
+        1.391
+      ],
+      [
+        -0.046,
+        1.376
+      ]
+    ],
+    "maleBrow": [
+      [
+        0.105,
+        1.737
+      ],
+      [
+        0.29,
+        1.765
+      ],
+      [
+        0.3,
+        1.737
+      ],
+      [
+        0.13,
+        1.71
+      ]
+    ],
+    "femaleBrow": [
+      [
+        0.11,
+        1.741
+      ],
+      [
+        0.22,
+        1.763
+      ],
+      [
+        0.29,
+        1.75
+      ],
+      [
+        0.28,
+        1.735
+      ],
+      [
+        0.19,
+        1.743
+      ],
+      [
+        0.12,
+        1.727
+      ]
+    ],
+    "femaleLid": [
+      [
+        0.15,
+        1.663
+      ],
+      [
+        0.23,
+        1.683
+      ],
+      [
+        0.28,
+        1.681
+      ],
+      [
+        0.25,
+        1.652
+      ],
+      [
+        0.2,
+        1.654
+      ]
+    ]
+  },
+  "paletteGradientFloor": 0.35
+}

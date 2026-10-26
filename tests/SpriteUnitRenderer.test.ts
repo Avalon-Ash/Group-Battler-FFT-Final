@@ -252,7 +252,9 @@ describe('Task A2b & T1 — SpriteUnitRenderer & Coordinate Alignment Test Suite
             let observedMaxH = 0;
 
             for (const unitDef of Object.values(manifest.units)) {
-                for (const animDef of Object.values(unitDef.anims)) {
+                // 死亡單位不畫護盾（StatusOrchestrator 跳過 hp <= 0），倒地姿勢不受護盾範圍限制
+                for (const [animName, animDef] of Object.entries(unitDef.anims)) {
+                    if (animName === 'death') continue;
                     for (const frames of Object.values(animDef.frames)) {
                         for (const frame of frames) {
                             const screenW = frame.w * screenScale;

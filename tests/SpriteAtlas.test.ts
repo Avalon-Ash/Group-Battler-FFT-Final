@@ -41,22 +41,23 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             const manifest = JSON.parse(content) as UnitManifest;
 
             expect(manifest.version).toBe(1);
-            expect(manifest.cellPx).toBe(256);
-            expect(manifest.anchor.x).toBe(128);
-            expect(manifest.anchor.y).toBeCloseTo(184.32, 2);
+            expect(manifest.cellPx).toBe(448);
+            expect(manifest.anchor.x).toBe(224);
+            expect(manifest.anchor.y).toBeCloseTo(280.32, 2);
             expect(manifest.directions).toEqual(['SE', 'SW', 'NE', 'NW']);
             expect(manifest.referenceHeightPx).toBeCloseTo(158.3, 1);
-            expect(Object.keys(manifest.units).length).toBe(10);
+            expect(Object.keys(manifest.units).length).toBe(20);
+            expect(manifest.atlasScale).toBe(0.5);
         });
 
-        it('all 10 unit combinations exist in manifest.json', () => {
+        it('all 20 unit combinations exist in manifest.json', () => {
             const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8')) as UnitManifest;
             const teams = ['BLUE', 'RED'];
             const roles = ['TANK', 'WARRIOR', 'RANGER', 'MAGE', 'SUPPORT'];
 
             for (const team of teams) {
-                for (const role of roles) {
-                    const key = `${team}:${role}:MALE`;
+                for (const role of roles) for (const body of ['MALE', 'FEMALE']) {
+                    const key = `${team}:${role}:${body}`;
                     expect(manifest.units[key]).toBeDefined();
                     const unit = manifest.units[key];
                     expect(unit.file).toContain('.webp');
@@ -77,19 +78,20 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
     });
 
     describe('2. BodyType SSOT, pickBodyType & resolveBodyType', () => {
-        it('BODY_TYPE_PROFILE has MALE enabled and FEMALE disabled with MALE fallback', () => {
+        it('BODY_TYPE_PROFILE enables both bodies with MALE fallback', () => {
             expect(BODY_TYPE_PROFILE.MALE.enabled).toBe(true);
             expect(BODY_TYPE_PROFILE.MALE.fallback).toBeNull();
-            expect(BODY_TYPE_PROFILE.FEMALE.enabled).toBe(false);
+            expect(BODY_TYPE_PROFILE.FEMALE.enabled).toBe(true);
             expect(BODY_TYPE_PROFILE.FEMALE.fallback).toBe('MALE');
         });
 
-        it('resolveBodyType defaults to MALE and falls back when disabled', () => {
+        it('resolveBodyType defaults to MALE and preserves enabled FEMALE', () => {
             expect(resolveBodyType(null)).toBe('MALE');
             expect(resolveBodyType(undefined)).toBe('MALE');
             expect(resolveBodyType({ bodyType: 'MALE' })).toBe('MALE');
-            // FEMALE is disabled in production profile -> resolves to MALE
-            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('MALE');
+            // Production enables both appearances without changing their geometry.
+            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('FEMALE');
+            expect(resolveBodyType({ bodyType: 'FEMALE' }, { ...BODY_TYPE_PROFILE, FEMALE: { ...BODY_TYPE_PROFILE.FEMALE, enabled: false } })).toBe('MALE');
         });
 
         it('resolveBodyType resolves FEMALE when custom profile has FEMALE enabled', () => {
@@ -112,7 +114,8 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             const r1 = pickBodyType('agent-1', 42);
             const r2 = pickBodyType('agent-1', 42);
             expect(r1).toBe(r2);
-            expect(r1).toBe('MALE');
+            expect(['MALE', 'FEMALE']).toContain(r1);
+            expect(BODY_TYPE_SPAWN.weights).toEqual({ MALE: 50, FEMALE: 50 });
         });
 
         it('pickBodyType yields balanced distribution when both MALE and FEMALE are enabled', () => {
@@ -171,12 +174,12 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             }
         });
 
-        it('lookupSpriteAppearance falls back from FEMALE to MALE when FEMALE is disabled', () => {
+        it('lookupSpriteAppearance selects the enabled female atlas', () => {
             const femaleConfig = lookupSpriteAppearance(Team.BLUE, Role.MAGE, 'FEMALE');
             const maleConfig = lookupSpriteAppearance(Team.BLUE, Role.MAGE, 'MALE');
             expect(femaleConfig).not.toBeNull();
-            expect(femaleConfig?.manifestKey).toBe(maleConfig?.manifestKey);
-            expect(femaleConfig?.manifestKey).toBe('BLUE:MAGE:MALE');
+            expect(femaleConfig?.manifestKey).not.toBe(maleConfig?.manifestKey);
+            expect(femaleConfig?.manifestKey).toBe('BLUE:MAGE:FEMALE');
         });
     });
 

@@ -1,16 +1,21 @@
 """Pack rendered PNG frames into trimmed shelf atlases (WebP) + manifest.json.
 
-Usage: python pack_sprites.py <raw_root> <out_dir> [body=MALE]
-Input : <raw_root>/<TEAM>_<ROLE>/<anim>_<DIR>_<NN>.png   (256x256 RGBA, anchor at (128, 184.32))
+Usage: python pack_sprites.py <raw_root> <out_dir> [body=MALE] [--render-meta <render-meta.json>]
+Input : <raw_root>/<TEAM>_<ROLE>/<anim>_<DIR>_<NN>.png   (default 256x256 RGBA, anchor at (128, 184.32); --render-meta overrides raw canvas/anchor)
 Output: <out_dir>/<team>_<role>_<body>.webp  and  <out_dir>/manifest.json
 Frame rect {x,y,w,h} is the trimmed rect in the atlas; {ox,oy} = offset of the rect's top-left from the
 anchor (feet) point in source pixels -- the engine draws at (anchorX + ox*scale, anchorY + oy*scale).
 """
-import sys, os, re, json, glob
+import sys, os, re, json, glob, argparse
 from PIL import Image
 
-RAW, OUT = sys.argv[1], sys.argv[2]
-BODY = sys.argv[3] if len(sys.argv) > 3 else 'MALE'
+parser = argparse.ArgumentParser()
+parser.add_argument('raw')
+parser.add_argument('out')
+parser.add_argument('body', nargs='?', default='MALE')
+parser.add_argument('--render-meta', help='Explicit renderer sidecar for padded/non-default source frames')
+args = parser.parse_args()
+RAW, OUT, BODY = args.raw, args.out, args.body
 RES = 256
 SHIFT_Y = 0.22
 ORTHO_SCALE = 3.6
@@ -35,6 +40,18 @@ manifest = {
     'units': {},
 }
 
+if args.render_meta:
+    with open(args.render_meta, encoding='utf-8') as handle:
+        meta = json.load(handle)
+    assert meta['version'] == 1 and meta['cellPx'] == meta['baseCellPx'] + 2 * meta['paddingPx']
+    assert meta['paddingPx'] >= 0 and meta['pxPerWorldUnit'] > 0
+    for axis in ('x', 'y'):
+        assert abs(meta['anchor'][axis] - meta['baseAnchor'][axis] - meta['paddingPx']) < 1e-6
+    RES = meta['cellPx']
+    ANCHOR_X, ANCHOR_Y = meta['anchor']['x'], meta['anchor']['y']
+    for key in ('cellPx', 'anchor', 'pxPerWorldUnit', 'elevationDeg', 'directions', 'baseCellPx', 'baseAnchor', 'paddingPx'):
+        manifest[key] = meta[key]
+
 pat = re.compile(r'^(\w+?)_(SE|SW|NE|NW)_(\d+)\.png$')
 total_bytes = 0
 heights = []
@@ -47,6 +64,8 @@ for unit_dir in sorted(glob.glob(os.path.join(RAW, '*_*'))):
             continue
         anim, d, n = m.group(1), m.group(2), int(m.group(3))
         im = Image.open(os.path.join(unit_dir, f)).convert('RGBA')
+        if im.size != (RES, RES):
+            raise ValueError(f'Unexpected source size {im.size}: {f}; expected {RES}x{RES}')
         bbox = im.getchannel('A').point(lambda a: 255 if a > ALPHA_THRESHOLD else 0).getbbox()
         if bbox is None:
             continue

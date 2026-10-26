@@ -135,7 +135,8 @@ export const DEATH_KNOCKBACK = {
  * 稜柱用 PRISM_RAMP（兩隊同色＝同一個狀態），掃描環與上下緣用陣營色階（factionSkin.shield.accentRamp）。
  */
 export const SHIELD_VISUAL = {
-    height: 80,
+    /** 須高於所有存活動作格（2026-10-27 新 skin 法師帽＋法杖最高 82.0 px，使用者核准 80→82） */
+    height: 82,
     radius: 38,
     headMargin: 8,
     PRISM_RAMP: 'STATUS_SKY',
@@ -166,6 +167,8 @@ export const UNIT_SHADOW = {
 } as const;
 
 export const UNIT_SPRITE = {
+    /** Bound temporary image decode memory when the roster changes. */
+    maxConcurrentLoads: 2,
     targetHeightCanvasUnits: 59,
     referenceHeightPx: 158.3,
     footOffsetLocal: (UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET) / UNIT_SCALE,

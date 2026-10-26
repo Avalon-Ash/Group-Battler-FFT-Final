@@ -1,0 +1,385 @@
+{
+  "status": "REVIEWED_NO_OBVIOUS_NEW_ARTIFACTS",
+  "frameCount": 2352,
+  "contactSheets": 108,
+  "contactScale": 0.5,
+  "nativeChecks": [
+    "RED:MAGE:FEMALE:death_SE_03",
+    "RED:MAGE:FEMALE:death_NE_03",
+    "RED:MAGE:FEMALE:attack_NE_02"
+  ],
+  "units": {
+    "BLUE:TANK:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:TANK:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:WARRIOR:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:WARRIOR:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:RANGER:MALE": {
+      "reviewer": "primary agent",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:RANGER:FEMALE": {
+      "reviewer": "primary agent",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:MAGE:MALE": {
+      "reviewer": "primary agent",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:MAGE:FEMALE": {
+      "reviewer": "primary agent",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:SUPPORT:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "BLUE:SUPPORT:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:TANK:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:TANK:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:WARRIOR:MALE": {
+      "reviewer": "primary agent",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:WARRIOR:FEMALE": {
+      "reviewer": "primary agent",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:RANGER:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:RANGER:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 108,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:MAGE:MALE": {
+      "reviewer": "primary agent",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:MAGE:FEMALE": {
+      "reviewer": "primary agent",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:SUPPORT:MALE": {
+      "reviewer": "independent reviewer",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    },
+    "RED:SUPPORT:FEMALE": {
+      "reviewer": "independent reviewer",
+      "frames": 132,
+      "clips": [
+        "idle",
+        "walk",
+        "attack",
+        "cast",
+        "hit",
+        "death"
+      ],
+      "directions": [
+        "SE",
+        "SW",
+        "NE",
+        "NW"
+      ],
+      "finding": "No obvious new hair/accessory penetration, broken surfaces, or canvas cropping in sampled rendered frames."
+    }
+  },
+  "limitations": [
+    "Visual review of exported discrete samples, not all original animation times.",
+    "Head-rigid hair has no collision simulation; no claim of zero geometric overlap."
+  ]
+}
