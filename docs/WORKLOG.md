@@ -202,6 +202,19 @@
 - 驗證：沙盒外完整 `npm test` 825 項、lint、build、runtime-smoke 通過；`perf:guard` 由 Codex 跑過（補修只影響觸控裝置）。
 - 派工教訓：Codex workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，無法 commit，由主代理代為 commit；`AgentRunner.test.ts` 在沙盒內必失敗。`agent-prompt` skill 待更新。
 
+### W. 2026-10-26 BAL-02 平衡重跑（合併 a4e8f47）
+
+結論：天降必中與雷射改投射物後藍方掉到 45.7%，Gemini 3.8H 調 15 招數值後回到 49.9%（一般 49.3%／交換 50.4%），p50 17.4 秒，勝率差超標 0 招。
+
+- 報告 `docs/BAL02_REPORT.md`（改前／改後表、15 招改動理由、§5.2 機制缺口建議）；BAL0 基準併入報告，`BAL02_BASELINE.md` 與提示詞已刪。
+- 主代理審查：只改數值欄位、皆在幅度上限內；重跑標準量測與報告逐字一致；lint／824 項測試／build 通過。
+- `battle_frozen` 依取證流程重錄（a2ca5e9，先合入 main 的 R1 再重錄）：單位、血條、浮字、特效與導播鏡頭次像素平移；5 張地形 0 重錄、全過。
+- 合約：`agent-prompt` skill 的 Codex 段改為「獨立 clone＋複製 node_modules、沙盒內不 commit、測試排除 AgentRunner」（R1 三次派工卡在沙盒寫入與 `.git` 唯讀）。
+
+| 合約改動 | 實際造成的行為差異（在哪看到） | 判定 |
+| :-- | :-- | :-- |
+| BAL02 提示詞把標準量測固定成指令＋「與背景數字 ±0.5% 不一致就停」 | Gemini BAL0 重現 44.0／47.4，主代理重跑最終數字逐字一致 | helped |
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
