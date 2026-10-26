@@ -1,0 +1,51 @@
+﻿id,名稱,目前玩法,時序（archetype／充能／生效時刻，從詠唱開始）,主剪影,運動方向,蓄力節奏,命中／受益位置,收尾,最相似,區別,發射器數（含起手）,粒子上限（不含共用命中包）,資產,證據圖（tools/ui-e2e/out/ult/，未進版控）
+tb_u1,聖光結界,AOE r3 power 300 STUN,SANCTUARY charged; cast 1.5s; effect at 1.50s,六面獅心光盾（towerShield）合圍成環,盾由地面依序長高；命中時光芒貼地六向射出,0.3–1.05 s 依序立盾,施法者周圍 3 格,光點上浮,tb_u5,光盾立起＋六向鎮壓 vs 稜柱城垛＋往外分發,6,22,FX_ULT_BLUE_SANCTUARY_IMPACT,v01-g5.png
+tb_u2,王者之風,AOE r10 power 0 TAUNT+SHIELD,DOMAIN charged; cast 1.5s; effect at 1.50s,冠冕（crown）升到頭頂,冠冕上升；王令柔光環一圈圈外傳,整段詠唱冠冕升起,全場（施法者為中心）,護盾碎光上浮,sb_u3,冠冕＋柔光波紋 vs 音階符片＋散點和聲,5,18,FX_ULT_BLUE_KINGS_BLESSING,v01-g5.png
+tb_u3,絕對防禦,AOE r4 power 500 KNOCKBACK,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.33s,巨型獅心光盾從天插地,高空緩降→詠唱結束後急墜插地,整段詠唱懸空緩降,施法者周圍 4 格（落點）,盾片外震、光點上浮,wb_u3,盾面插地＋盾片外震 vs 獅翼劍抬刃重斬,6,24,FX_ULT_BLUE_AEGIS_IMPACT,v01-g5.png
+tb_u4,泰坦降臨,SINGLE power 120 STUN,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,金色能量巨拳（fist）,抬拳蓄力→命中瞬間下壓,0.3–1.2 s 抬高,單體（近身 1 格）,裂紋、大塊碎石、塵土,wr_u5,單體拳壓＋放射裂紋 vs 範圍重砸＋塵牆,6,14,FX_ULT_BLUE_TITAN_SMASH,v01-g5.png
+tb_u5,鋼鐵長城,AOE r10 power 0 SHIELD,DOMAIN charged; cast 1.5s; effect at 1.50s,六座玻璃稜柱城垛,城垛依序升起→碎光往四周分發,0.3–1.0 s 依序升起,全隊（全場）,碎光飛向友軍,tb_u1,稜柱城牆＋分發 vs 光盾合圍＋鎮壓,5,19,FX_ULT_BLUE_FINAL_DEFENSE,v01-g5.png
+wb_u1,雷霆之怒,AOE r3 power 550 STUN,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.26s,分叉聖雷匯聚的雷核,聖雷劈向上空匯聚點；雷核砸落,整段詠唱雷核漸大,目標周圍 3 格（落點）,主雷劈下、電火花四竄,rb_u3,雷核＋分叉雷 vs 神矢＋穿孔光痕,6,21,FX_ULT_BLUE_THUNDER_SLAM,v01-g1.png
+wb_u2,破曉聖擊,AOE r4 power 650,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,地平線旭日＋貼地日輪斬面,旭日由地面升起；斬面貼地高速旋轉掃出,整段詠唱曙光暈開,施法者周圍 4 格,光點上浮,sb_u4,貼地日輪斬面 vs 天降三光柱,6,17,FX_ULT_BLUE_DAYBREAK,v01-g1.png
+wb_u3,誓約勝利,SINGLE power 600,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,獅翼聖劍（greatsword）,劍片匯聚→抬刃→重刃砸落插地,整段詠唱成形與抬起,單體,地裂、碎晶、光點上飄,tb_u3,聖劍抬刃重斬 vs 光盾插地,6,22,FX_ULT_BLUE_EXCALIBUR,(代表作) v01-four
+wb_u4,劍刃風暴,AOE r3 power 700,STORM charged; cast 1.5s; effect at 1.50s,貼地旋轉的劍輪（bladeWheel）,劍刃繞身旋轉；8 段斬弧散落,詠唱起劍輪加速成形,施法者周圍 3 格,劍輪淡出,wr_u4,貼地繞身劍輪 vs 立著的暗影多臂劍環,6,42,FX_ULT_BLUE_BLADESTORM,v01-g1.png
+wb_u5,光速斬擊,SINGLE power 900 STUN,BEAM_SNIPE charged; cast 1.5s; effect at 1.50s,三道直線劍痕＋斬擊連線光束,劍痕 0.07 s 依序交叉,光晶收攏到目標,單體（9 格遠）,單體環,rr_u4,三道錯位直線斬 vs 準星急縮＋十字血切,6,13,FX_ULT_BLUE_LIGHTSPEED,v01-g1.png
+rb_u1,極地冰河,SINGLE power 450 STUN,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.33s,前後錯落的冰稜（solid prism）,霜裂紋外擴→冰稜破土,等待期間霜裂紋蔓延,單體,冰屑飛散,mb_u2,單體冰稜破土 vs 範圍霜紋內收＋冰殼,6,19,FX_ULT_BLUE_GLACIAL_BURST,v01-g7.png
+rb_u2,星辰墜落,AOE r10 power 550,STORM charged; cast 1.5s; effect at 1.50s,高空星座＋星矢拖尾,星點依序亮起；星矢直落,詠唱中星座點亮,全場隨機 8 點,星光環,sb_u5,星矢直落 vs 細雨與柔和漣漪,5,33,FX_ULT_BLUE_STARFALL,v01-g7.png
+rb_u3,穿日神矢,SINGLE power 1200,HEAVEN_FALL charged ownFall; cast 2s; effect at 2.76s,巨型神矢（arrow）,高處聚光→筆直貫下,整段詠唱聚光,單體（20 格遠）,狹長穿孔光痕,wb_u1,神矢＋光痕 vs 雷核＋分叉雷,6,20,FX_ULT_BLUE_ORBITAL_BEAM,v01-g7.png
+rb_u4,六芒封鎖,AOE r4 power 450 ROOT,DOMAIN charged; cast 1.5s; effect at 1.50s,六枚稜晶錨點＋六芒鎖紋,錨點由外往內拉近；鎖紋收合；光柵升起,整段詠唱錨點收攏,目標周圍 4 格,光柵淡出,sr_u1,六芒稜晶光柵 vs 魂火錨點＋鏈絲,6,16,FX_ULT_BLUE_LOCKDOWN,v01-g7.png
+rb_u5,疾風百矢,SINGLE power 1000,STORM charged; cast 1.5s; effect at 1.50s,層層收攏的準星環＋同向細矢,準星收攏；細矢同一方向密集射入,詠唱中準星收攏,單體,細環,wb_u4,單體同向箭雨 vs 範圍劍輪,5,44,FX_ULT_BLUE_OVERLOAD,v01-g7.png
+mb_u1,奧術漩渦,AOE r3 power 430 PULL,DOMAIN charged; cast 1.5s; effect at 1.50s,多面奇點（singularity）＋螺旋吸積帶（spiral）,吸積帶旋轉內收；壓縮環內縮,整段詠唱吸積與奇點長大,目標周圍 3 格（牽引）,奇點坍縮放出衝擊環,mb_u3,向心吸積 vs 刻度盤停住,6,23,FX_ULT_BLUE_BLACKHOLE,(代表作) v01-four
+mb_u2,絕對零度,AOE r4 power 450 STUN,DOMAIN charged; cast 1.5s; effect at 1.50s,霜紋螺旋＋六角冰殼,霜紋從邊界往中心收；冰殼收進定住,整段詠唱霜紋內收,目標周圍 4 格,冰霧,rb_u1,範圍內收冰殼 vs 單體冰稜破土,6,26,FX_ULT_BLUE_ABSOLUTE_ZERO,v01-g2.png
+mb_u3,時間停止,AOE r10 power 0 STUN,DOMAIN charged; cast 1.5s; effect at 1.50s,六角刻度盤,高速旋轉→戛然停住（換靜止盤）；外環內縮,整段詠唱快轉,全場,碎片減速定格,mr_u3,全場刻度盤 vs 單體時間切片,5,16,FX_ULT_BLUE_TIMESTOP,v01-g2.png
+mb_u4,奧術洪流,AOE r5 power 650,STORM charged; cast 1.5s; effect at 1.50s,奧術法陣＋分流彈群,光點聚高→彈群沿弧線分流落下,詠唱中聚彈,目標周圍 5 格（8 點）,小藍閃細環,rb_u2,弧線分流彈群 vs 垂直星矢,6,45,FX_ULT_BLUE_TORRENT,v01-g2.png
+mb_u5,聚輝光柱,AOE r1 power 850,BEAM_SNIPE charged; cast 1.5s; effect at 1.50s,六枚稜晶對準＋聚能光束,稜晶慢轉收攏→合成光束,整段詠唱稜晶收攏,目標周圍 1 格,碎晶,rr_u1,厚聚能光束＋稜晶 vs 細熾紅穿刺,6,16,FX_ULT_BLUE_FOCUS_BEAM,v01-g2.png
+sb_u1,神聖干涉,SINGLE power -800 INVINCIBLE,SANCTUARY charged; cast 1.5s; effect at 1.50s,兩片薄翼光幕,兩翼從外側合攏,0.5 s 起合攏,單體（無敵）,光點上浮,sr_u5,聖光翼幕合攏 vs 鬼影螺旋鑽入,5,12,FX_ULT_BLUE_INTERVENTION,v01-g9.png
+sb_u2,復活之光,AOE r6 power -900,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.26s,地面綻開的生命光瓣,光瓣綻開→光芒分流射向隊友,等待期間光瓣綻開,施法者周圍 6 格,光點上浮,sr_u2,金色光瓣 vs 血花與血線,5,25,FX_ULT_BLUE_RESURRECTION,v01-g9.png
+sb_u3,英勇讚美,AOE r10 power -300 SHIELD,STORM charged; cast 1.5s; effect at 1.50s,層層升起的音階符片,符片升起；和聲波紋擴散,詠唱中符片分層升起,全隊 8 點,護盾符片上浮,tb_u2,散點和聲 vs 冠冕王令,5,33,FX_ULT_BLUE_HYMN,v01-g9.png
+sb_u4,神之怒火,AOE r4 power 500 STUN,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,高空審判印＋三道天罰光柱,光柱錯落接力砸下,整段詠唱審判印成形,施法者周圍 4 格,光點,wb_u2,天降光柱 vs 貼地日輪斬面,6,17,FX_ULT_BLUE_WRATH,v01-g9.png
+sb_u5,寧靜之雨,AOE r5 power -550 HOT,STORM charged; cast 1.5s; effect at 1.50s,大範圍細雨＋柔和漣漪,雨滴垂直落下；光點緩升,詠唱尾段開始下雨,施法者周圍 5 格（8 點）,治療光點上浮,mr_u4,金色細雨治療 vs 酸雨毒霧,5,45,FX_ULT_BLUE_RAIN,v01-g9.png
+tr_u1,處決斷頭台,SINGLE power 650,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 1.91s,厚重斷頭刃（guillotine）,懸起→垂直急墜,整段詠唱懸刃,單體（近身 2 格）,直劈血痕、血滴,wb_u3,垂直斜刃急墜 vs 聖劍抬刃重斬,6,13,FX_ULT_RED_GUILLOTINE_IMPACT,v01-g6.png
+tr_u2,亡靈瘟疫,AOE r3 power 200 DOT,DOMAIN charged; cast 1.5s; effect at 1.50s,腐蝕毒泡＋低伏瘴氣,毒泡冒起膨脹破掉；瘴氣往外翻滾,詠唱中毒泡此起彼落,施法者周圍 3 格,瘴氣、毒滴,mr_u4,地面毒泡外湧 vs 高空酸雨落下,6,27,FX_ULT_RED_PLAGUE,v01-g6.png
+tr_u3,不朽屍王,SINGLE power 0 SHIELD,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,攀爬骨片＋環繞肋骨刺（ribSpike）,骨片沿身體往上爬；肋骨刺依序鎖合,整段詠唱鎖甲,自身,毒光上浮,tr_u5,自身骨甲 vs 群體血骨牆,6,25,FX_ULT_RED_UNDYING,v01-g6.png
+tr_u4,永恆夢魘,AOE r8 power 0 FEAR,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,地面暗影裡睜開的深淵之眼（eye）,暗影擴大、眼睛睜開；三道影爪掃過,0.6–1.2 s 眼睛依序睜開,全場（施法者為中心）,黑煙從眼中上竄,rr_u5,眼與影爪 vs 鏈紋＋分叉深淵雷,6,19,FX_ULT_RED_NIGHTMARE,v01-g6.png
+tr_u5,鮮血之牆,AOE r4 power 0 SHIELD,SANCTUARY charged; cast 1.5s; effect at 1.50s,外圈＋內圈血骨尖肋（ribSpike）,由外往內立起；凝成牆輪廓,0.2–1.2 s 兩圈依序立起,施法者周圍 4 格,血珠上浮,tr_u3,群體尖肋牆 vs 自身骨甲,6,27,FX_ULT_RED_BLOOD_WALL,v01-g6.png
+wr_u1,諸神黃昏,SINGLE power 1000,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,三階噴發火柱,熔岩裂紋往中心收→火柱分三階噴發,整段詠唱裂紋收攏,單體（近身 2 格）,熔岩彈、灰煙,mr_u1,腳下噴發 vs 天降隕石,6,17,FX_ULT_RED_RAGNAROK_ERUPTION,v01-g10.png
+wr_u2,血腥旋風,AOE r3 power 480,STORM charged; cast 1.5s; effect at 1.50s,貼地寬血刃＋螺旋血帶,血刃與血帶高速旋轉,0.3 s 起旋轉,施法者周圍 3 格,血斬、血滴,wb_u4,血刃＋血帶 vs 劍輪,7,43,FX_ULT_RED_BLOODSTORM,v01-g10.png
+wr_u3,惡魔降臨,SINGLE power 0 HASTE+LIFESTEAL,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,惡魔翼與角冠（demonWings）,翼影展開；血火沿身體升騰,0.4 s 起展開,自身,火星上浮,sr_u5,背後翼影變身 vs 鬼影鑽入,5,13,FX_ULT_RED_DEMON_FORM,v01-g10.png
+wr_u4,千刃魔相,AOE r3 power 520 FEAR,STORM charged; cast 1.5s; effect at 1.50s,立著的暗影多臂劍環（bladeWheel）,劍環在背後展開；8 段暗影斬,0.3 s 起展開,施法者周圍 3 格,暗影斬,wb_u4,立著的暗紫劍環 vs 貼地藍鋼劍輪,6,34,FX_ULT_RED_UNLIMITED_BLADE,v01-g10.png
+wr_u5,毀滅重擊,AOE r4 power 650 KNOCKBACK,INSTANT_IMPACT charged; cast 1.5s; effect at 1.50s,一次重砸＋塵牆,震動揚塵→重砸；地塊翻飛、塵牆外推,詠唱中地面揚塵,施法者周圍 4 格,塵牆,tb_u4,範圍重砸塵牆 vs 單體巨拳,6,23,FX_ULT_RED_DEVASTATE,v01-g10.png
+rr_u1,灰燼穿心,SINGLE power 1000,BEAM_SNIPE charged; cast 1.5s; effect at 1.50s,熾紅細芯穿刺光束（PIERCE）,鎖定印記收緊；穿刺點小閃,詠唱中火星聚攏,單體（10 格遠）,焦灰碎片、灰煙,mb_u5,細熾紅穿刺 vs 厚聚能光束,6,19,FX_ULT_RED_RAILGUN,v01-g3.png
+rr_u2,焦土衝擊,AOE r3 power 750 KNOCKBACK,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.26s,能量彈頭（warhead）＋煙團蕈狀雲,彈頭緩降→急墜；煙團衝上翻成蕈傘,整段詠唱彈頭緩降,目標周圍 3 格（落點）,蕈狀雲、碎石,mr_u1,彈頭＋煙團蕈雲 vs 熔岩隕石＋坑火,6,42,FX_ULT_RED_NUKE_FLASH,(代表作) v01-rr_u2
+rr_u3,煉獄火雨,AOE r8 power 400 DOT,STORM charged; cast 1.5s; effect at 1.50s,斜向燃燒彈幕,燃燒彈斜向落下；落點火舌與焦煙,詠唱尾段開始落,施法者周圍 8 格（8 點漸快）,焦煙,mr_u4,斜向火雨 vs 垂直酸雨,6,43,FX_ULT_RED_INFERNO,v01-g3.png
+rr_u4,血腥獵殺,SINGLE power 1800,BEAM_SNIPE charged; cast 1.5s; effect at 1.50s,急縮準星＋十字血痕,準星快轉在尾段急縮；十字血切,詠唱尾段急縮,單體（10 格遠）,血滴,wb_u5,十字血切 vs 三道錯位直線斬,6,13,FX_ULT_RED_HEADHUNTER,v01-g3.png
+rr_u5,末日審判,AOE r2 power 450 FEAR,STORM charged; cast 1.5s; effect at 1.50s,灰燼鏈紋法陣＋紫黑分叉雷,電光往中心聚；分叉雷逐點劈下,詠唱中電光聚集,目標周圍 2 格（8 點）,暗煙,tr_u4,逐點深淵雷 vs 暗影之眼,6,41,FX_ULT_RED_DOOM,v01-g3.png
+mr_u1,毀滅隕石,AOE r2 power 1200 STUN,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 2.26s,拖火尾的熔岩岩塊,高空緩降→急墜,詠唱後段出現並緩降,目標周圍 2 格（落點）,坑沿火舌、熔岩碎石,rr_u2,熔岩隕石 vs 能量彈頭與蕈雲,6,18,FX_ULT_RED_METEOR_IMPACT,v01-g8.png
+mr_u2,死亡宣告,SINGLE power 1350,BEAM_SNIPE charged; cast 1.5s; effect at 1.50s,浮在目標身上的角骷髏死亡符記,符記烙上；血光向內塌縮再爆開,整段詠唱符記浮現,單體（8 格遠）,血霧、魂煙,rr_u4,內塌崩解＋血珠鏈 vs 十字血切,6,14,FX_ULT_RED_DEATH_FINGER,v01-g8.png
+mr_u3,時間凝結,SINGLE power 520 BANISH,DOMAIN charged; cast 1.5s; effect at 1.50s,環繞目標的時間切片,切片快轉→戛然停住；封印環內縮,整段詠唱快轉,單體（凝滯）,凝滯狀態接手,mb_u3,單體切片 vs 全場刻度盤,6,12,FX_ULT_RED_VOID_PORTAL,v01-g8.png
+mr_u4,末世毒雨,AOE r10 power 250 DOT,DOMAIN charged; cast 1.5s; effect at 1.50s,垂直酸雨＋地面濺環,酸滴垂直落下；毒霧低伏,詠唱中段開始落,全場,毒霧,rr_u3,垂直酸雨毒霧 vs 斜向火雨,6,33,FX_ULT_RED_POISON_RAIN,v01-g8.png
+mr_u5,靈魂爆燃,AOE r2 power 630,STORM charged; cast 1.5s; effect at 1.50s,脈動的靈火核心＋紫紅爆燃,核心膨脹；8 段爆燃接力,詠唱中核心脈動,目標周圍 2 格（8 點）,靈火舌,rr_u5,紫紅爆燃 vs 深淵雷,6,39,FX_ULT_RED_SOUL_BURN,v01-g8.png
+sr_u1,靈魂連結,AOE r4 power 280 ROOT+SILENCE,SANCTUARY charged; cast 1.5s; effect at 1.50s,五個魂火錨點＋暗紫鏈絲,錨點長出；鎖鏈環瞬間收緊,0.2 s 起錨點長出,施法者周圍 4 格,禁錮網紋,rb_u4,魂火鏈網 vs 六芒稜晶光柵,6,14,FX_ULT_RED_SOUL_WEB,v01-g4.png
+sr_u2,鮮血契約,AOE r8 power -1100,DOMAIN charged; cast 1.5s; effect at 1.50s,血線分流＋中心血花,血從施法者抽出→血線外射→血花綻開,詠唱中血珠螺旋抽出,施法者周圍 8 格,血珠回流上升,sb_u2,血線血花 vs 金色光瓣,6,35,FX_ULT_RED_BLOOD_PACT,v01-g4.png
+sr_u3,靈魂放逐,SINGLE power 0 BANISH,DOMAIN charged; cast 1.5s; effect at 1.50s,地面裂縫＋被拖出的影體,裂縫張開吸入火花→影體拖出→裂縫閉合,0.6 s 起裂縫張開,單體（放逐）,裂縫閉合,mr_u3,裂縫拖出 vs 時間切片停住,6,15,FX_ULT_RED_VOODOO,v01-g4.png
+sr_u4,猩紅血月,AOE r10 power 0 LIFESTEAL+HOT,HEAVEN_FALL charged ownFall; cast 1.5s; effect at 1.91s,多面蝕月（eclipse）,月亮由頭頂升起；月華下灑、血光上流,整段詠唱升月,全隊（全場）,血滴回流,mb_u1,升起的蝕月 vs 地面吸積奇點,5,31,FX_ULT_RED_BLOOD_MOON,(代表作) v01-sr_u4
+sr_u5,惡靈附身,SINGLE power -700 SHIELD,DOMAIN charged; cast 1.5s; effect at 1.50s,三道鬼影螺旋,鬼影繞目標轉→收縮鑽入；鬼火升騰,0.3 s 起繞轉,單體（護盾）,幽光上浮,sb_u1,鬼影鑽入 vs 光翼合攏,6,14,FX_ULT_RED_POSSESSION,v01-g4.png
