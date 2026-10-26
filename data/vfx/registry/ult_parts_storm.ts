@@ -125,30 +125,48 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [150, 350], partAnim: { fadeIn: 0.1, rise: [{ at: 0, z: 160 }, { at: 1, z: 0, ease: 'in' }] } }),
         ],
     },
-    // sb_u3 英勇讚美（全隊 Buff，8 次）：金色聖歌波紋一圈圈擴散＋光點上升
+    // sb_u3 英勇讚美（全隊治療＋護盾，充能式 8 次）：起手（只播一次）＝日輪紋章＋音階符片一層層升起
+    'FX_ULT_BLUE_HYMN_WINDUP': {
+        id: 'FX_ULT_BLUE_HYMN_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.6, delay: 0, size: 112, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3, alpha: 0.85 } }),
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: 8, lifetime: 0.9, delay: [0.2, 1.2], size: 8,
+                shape: 'CIRCLE', shapeRadius: 60, vz: [40, 70], drag: 0.02, vRotation: [-2, 2], partAnim: { fadeIn: 0.2, fadeOut: 0.3 } }),
+        ],
+    },
+    // sb_u3 每一段：和聲柔光波紋＋護盾符片上浮（治療：主爆發是柔光，波紋比柔光小）
     'FX_ULT_BLUE_HYMN': {
         id: 'FX_ULT_BLUE_HYMN',
         emitters: [
-            // 命中主爆發（glow radius 48 大於環，非擴張環；delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 48,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 26, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0, size: 26,
                 shape: 'CIRCLE', shapeRadius: 10, vz: [40, 80], partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeIn: 0.1, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: 0.45, delay: 0, size: 6,
-                shape: 'CIRCLE', shapeRadius: 10, vz: [60, 110], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 4, ramp: 'LION_HOLY', soft: true }, count: 1, lifetime: 0.6, delay: 0, size: 20,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.6, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_HOLY' }, count: 1, lifetime: 0.7, delay: 0.05, size: 6,
+                shape: 'CIRCLE', shapeRadius: 12, vz: [60, 110], drag: 0.02, vRotation: [-3, 3], partAnim: { fadeIn: 0.1, fadeOut: 0.5 } }),
         ],
     },
-    // sb_u5 寧靜之雨（範圍 5 持續治療，8 次）：金白光雨滴落下＋光霧＋擴散環
+    // sb_u5 寧靜之雨（範圍 5 持續治療，充能式 8 次）：起手（只播一次）＝日輪紋章＋大範圍細雨落下
+    'FX_ULT_BLUE_RAIN_WINDUP': {
+        id: 'FX_ULT_BLUE_RAIN_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.6, delay: 0, size: 112, vRotation: -0.3,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3, alpha: 0.85 } }),
+            part({ particleType: 'PART', part: { kind: 'droplet', size: 4, ramp: 'LION_HOLY' }, count: 12, lifetime: 0.5, delay: [0.6, HIT + 0.3], size: 4, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 160, partAnim: { fadeIn: 0.15, rise: [{ at: 0, z: 200 }, { at: 1, z: 0, ease: 'in' }] } }),
+        ],
+    },
+    // sb_u5 每一段：柔和漣漪＋柔光＋治療光點緩緩上浮
     'FX_ULT_BLUE_RAIN': {
         id: 'FX_ULT_BLUE_RAIN',
         emitters: [
-            // 命中主爆發（glow radius 48 大於環，非擴張環；delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 48,
-                shape: 'CIRCLE', shapeRadius: 10, vz: [20, 50], partAnim: { scaleFrom: 0.6, scaleTo: 1.2, fadeIn: 0.1, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'LION_HOLY' }, count: 2, lifetime: [0.35, 0.45], delay: 0, size: 4,
-                shape: 'CIRCLE', shapeRadius: 10, vz: [-40, -10], gravity: 1200, partAnim: { fadeIn: 0.1, fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 22, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0, size: 22,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 18, thickness: 3, ramp: 'LION_HOLY', soft: true }, count: 1, lifetime: 0.6, delay: 0, size: 18,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp: 'LION_HOLY', hard: true }, count: 2, lifetime: [0.6, 0.85], delay: [0.05, 0.15], size: 5,
+                shape: 'CIRCLE', shapeRadius: 16, vz: [30, 60], drag: 0.02, partAnim: { fadeIn: 0.2, fadeOut: 0.5 } }),
         ],
     },
 

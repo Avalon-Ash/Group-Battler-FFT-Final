@@ -19,6 +19,8 @@ const RB_U1_IMPACT = chargedImpactAt('rb_u1');
 const RB_U3_IMPACT = chargedImpactAt('rb_u3');
 const RB_U3_ARROW = { APPEAR: 0.3, Z_START: 300, Z_CAST_END: 280, HOLD: 0.2 } as const;
 const RB_U3_ARROW_LIFE = RB_U3_IMPACT + RB_U3_ARROW.HOLD - RB_U3_ARROW.APPEAR;
+/** sb_u2 生效＝詠唱結束＋落下時間（天降時序；這招沒有落下物，生命光瓣在等待期間綻開） */
+const SB_U2_IMPACT = chargedImpactAt('sb_u2');
 /** tb_u4 巨拳：顯形、抬起高度、命中後停留 */
 const TB_U4_FIST = { APPEAR: 0.3, Z_START: 150, Z_TOP: 200, TOP_AT: 1.2, HOLD: 0.4 } as const;
 const TB_U4_FIST_LIFE = HIT + TB_U4_FIST.HOLD - TB_U4_FIST.APPEAR;
@@ -144,22 +146,26 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // sb_u4 神之怒火（自身範圍 4 轟炸）：日輪法陣 → 三道天罰光柱依序落下＋閃光＋衝擊環 → 光點
+    // sb_u4 神之怒火（自身範圍 4 轟炸＋暈眩，充能式，命中 1.5 s）：高空審判印在詠唱中成形 →
+    // 命中：三道天罰光柱錯落接力砸下＋衝擊環＋小閃 → 光點
     'FX_ULT_BLUE_WRATH': {
         id: 'FX_ULT_BLUE_WRATH',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0, size: 112, vRotation: -0.4,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 48, height: 224, ramp: 'LION_HOLY' }, count: 3, lifetime: 0.55, delay: [0.15, 0.25], size: 48, groundAnchored: true,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 112, vRotation: -0.4,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 審判印：高空的日輪（立著的紋章）
+            part({ particleType: 'PART', part: { kind: 'sigil', radius: 56, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.3 - 0.2, delay: 0.2, size: 56, groundAnchored: true, vRotation: 0.8,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.2, rise: [{ at: 0, z: 220 }] } }),
+            // 三道天罰：錯落接力砸下
+            part({ particleType: 'PART', part: { kind: 'pillar', width: 40, height: 224, ramp: 'LION_HOLY' }, count: 3, lifetime: 0.5, delay: [HIT, HIT + 0.24], size: 40, groundAnchored: true,
                 shape: 'CIRCLE', shapeRadius: 80, partAnim: { scaleFrom: 1.2, scaleTo: 0.85, fadeIn: 0.05, fadeOut: 0.6 } }),
-            // 命中主爆發（delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 96,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 4 擴張環（128 * 1.8 * 1.4 = 322.6px，落於 232.8～432.3px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 14], lifetime: [0.8, 1.1], delay: [0.35, 0.55], size: 8,
-                shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
+            // 命中主爆發：衝擊環（範圍 4；128 * 1.6 * 1.4 = 286.7px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 128, thickness: 10, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: HIT, size: 128,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 40, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: HIT, size: 40,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 10, lifetime: [0.6, 0.9], delay: [HIT + 0.2, HIT + 0.45], size: 6,
+                shape: 'CIRCLE', shapeRadius: 110, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
 
@@ -293,21 +299,25 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // sb_u2 復活之光（自身範圍 6 治療，HEAVEN_FALL）：日輪法陣 → 重生光柱落下＋核心閃光＋柔和光環 → 大量光點上升
+    // sb_u2 復活之光（自身範圍 6 大範圍治療，充能式天降時序：生效＝SB_U2_IMPACT＝詠唱結束＋落下時間，玩法不變）：
+    // 等待期間生命光瓣從地面慢慢綻開 → 生效：柔光＋光芒分流射向周圍隊友 → 光點上浮
+    // 只是治療（不畫死者復活）；治療：主爆發是空中柔光，不是向外擴張的地面衝擊環（C7）。舊版的大白光球與光柱拿掉。
     'FX_ULT_BLUE_RESURRECTION': {
         id: 'FX_ULT_BLUE_RESURRECTION',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.05, delay: 0, size: 64, vRotation: 0.3,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 80, height: 288, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 80, groundAnchored: true,
-                partAnim: { scaleFrom: 1.1, scaleTo: 0.9, fadeIn: 0.05, fadeOut: 0.5 } }),
-            // 命中主爆發（glow radius 140 大於環，非擴張環；delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 140,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 6 柔和環（128 * 1.8 * 1.4 = 322.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.6, 0.8], delay: [0.35, 0.45], size: 8,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: SB_U2_IMPACT + 0.5, delay: 0, size: 64, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 生命光瓣：六瓣彎曲光帶從地面綻開（72 * 1.0 * 1.4 = 100.8px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 72, arms: 6, turns: 0.25, thickness: 20, ramp: 'LION_HOLY' }, count: 1, lifetime: SB_U2_IMPACT + 0.4 - 0.6, delay: 0.6, size: 72, vRotation: 0.4,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.3 } }),
+            // 生效主爆發：柔光
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: SB_U2_IMPACT, size: 72,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7, alpha: 0.7 } }),
+            // 光芒分流：往四周射向隊友
+            part({ particleType: 'PART', part: { kind: 'spark', length: 24, ramp: 'LION_HOLY' }, count: 10, lifetime: 0.4, delay: SB_U2_IMPACT, size: 24,
+                shape: 'BURST_DIR', speed: [200, 400], vz: [40, 90], drag: 0.03, partAnim: { fadeOut: 0.5 } }),
+            // 光點上浮（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 7, ramp: 'LION_HOLY', hard: true }, count: 12, lifetime: [0.7, 1.0], delay: [SB_U2_IMPACT + 0.1, SB_U2_IMPACT + 0.4], size: 7,
                 shape: 'CIRCLE', shapeRadius: 140, speed: [5, 20], vz: [60, 120], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
@@ -403,23 +413,26 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // sb_u1 神聖干涉（單體無敵）：小型獅盾法陣 → 窄光柱＋六角護盾碎片環繞＋閃光 → 光點
+    // sb_u1 神聖干涉（單體無敵＋治療，充能式，生效 1.5 s）：兩片薄翼光幕從兩側往目標合攏，中心保持清楚 →
+    // 生效：柔光＋光點上浮（無敵外觀由狀態層 INVINCIBLE 接手；治療：主爆發不是擴張衝擊環）
     'FX_ULT_BLUE_INTERVENTION': {
         id: 'FX_ULT_BLUE_INTERVENTION',
         emitters: [
-            // 起手：小型獅盾法陣（單體尺寸 <= 72px，36 * 1.0 * 1.4 = 50.4px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.5, delay: 0, size: 36, vRotation: 0.5,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 36, height: 224, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.7, delay: 0.25, size: 36, groundAnchored: true,
-                partAnim: { scaleFrom: 1.2, scaleTo: 0.8, fadeIn: 0.05, fadeOut: 0.6 } }),
-            // 命中主爆發（glow radius 64 大於環，非擴張環）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.25, size: 64,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'shard', size: 16, shape: 'hex', ramp: 'LION_HOLY' }, count: 6, lifetime: 1.0, delay: 0.3, size: 16,
-                shape: 'RING', shapeRadius: 30, vz: [30, 50], vRotation: [-2, 2], partAnim: { scaleFrom: 0.4, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            // 單體非擴張環（32 * 1.1 * 1.4 = 49.3 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.27, size: 32,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.1, fadeOut: 0.6 } }),
+            // 獅盾印記（36 * 1.0 * 1.4 = 50.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.4, delay: 0, size: 36, vRotation: 0.5,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 左翼光幕：從外側合攏
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 44, arcDeg: 150, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.3 - 0.5, delay: 0.5, size: 44,
+                partAnim: { scaleFrom: 1.7, scaleTo: 1, ease: 'in', fadeIn: 0.2, fadeOut: 0.3, rotation: Math.PI } }),
+            // 右翼光幕
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 44, arcDeg: 150, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.3 - 0.5, delay: 0.5, size: 44,
+                partAnim: { scaleFrom: 1.7, scaleTo: 1, ease: 'in', fadeIn: 0.2, fadeOut: 0.3, rotation: 0 } }),
+            // 生效主爆發：柔光
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 36, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.4, delay: HIT, size: 36,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            // 光點上浮（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 8, lifetime: [0.7, 1.0], delay: [HIT, HIT + 0.3], size: 6,
+                shape: 'CIRCLE', shapeRadius: 24, vz: [50, 100], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
 };
