@@ -976,7 +976,7 @@
     ]
   },
   "SHIELD_VISUAL": {
-    "height": 80,
+    "height": 82,
     "radius": 38,
     "headMargin": 8,
     "PRISM_RAMP": "STATUS_SKY",
