@@ -225,6 +225,16 @@
 - 驗證：沙盒外完整 `npm test` 836 項、lint、build、runtime-smoke；Codex 跑 `perf:guard`（`battle_frozen` 0.001，未重錄）、`verify:coords` 通過。
 - 派工：第一版提示詞把 `rb_a4`（冰霜陷阱）誤列為衝刺技能，Codex 照停下條件停下；以 `--resume-last` 更正後完成。`DASH_MOTION_REPORT.md`、`R2_DASH_AFTERIMAGE_REPORT.md` 已刪。
 
+### Y. 2026-10-27 獅心／灰燼 20 套 skin 正式整合（合併 fe7a9e5）
+
+結論：兩陣營五職業男女 20 套動畫接進遊戲，女性啟用（男女各半），圖集依陣容載入、換隊釋放；模擬 iPhone soak 穩態與改前相同。
+
+- GPT（Codex App）完成試烘焙審查後的整合（S0～S3：離線工具與 `art-source/faction-skins/`、0.5 倍出貨圖集＋manifest `atlasScale`、按陣容載入並行 2、離場釋放、殘影染色快取清除）。審圖用二進位檔（約 35 MB）沒有進 main。
+- **記憶體根因**（主代理）：A→B→A 換隊探針顯示應用持有的畫布不累積（圖集固定 20 張約 58 MB），渲染程序卻每換一次隊多約 10 MB——`<img>` 解碼的點陣被瀏覽器依網址快取，20 套輪流上場就一直長。改成 `fetch → createImageBitmap`、烘完 `close()`（8e140f1）：6 輪換隊渲染程序 183→181 MB（原 204→326）；iPhone soak 穩態 2046.2 MB（main 2047.1、GPT 版 2209.6）。GPU 程序 560～830 MB 擺盪屬瀏覽器紋理快取，main 相同。
+- **外觀契約**（使用者核准，af0fe0c）：`SHIELD_VISUAL.height` 80→82（圖集未就緒時的預設高度）；護盾範圍測試排除死亡動作（死亡單位不畫護盾）；頭頂容許 8／2→12 px（法師帽 +11.9、戰士坦克改髮型 −4.8；20 套平均與公式差 0.2 px）。
+- 驗證：843 項測試、lint、build、smoke、`perf:guard` 通過；300 場模擬改前改後逐場一致（體型不消耗模擬亂數）；`battle_frozen` 取證重錄（ae7d9c1，只有單位圖案變）。
+- 合約教訓：給 GPT 的提示詞寫目標＋硬限制，不細拆任務；提示詞要它 `rebase` 與 `AGENTS.md` 衝突，已改成「main 只新增文件就繼續」。提示詞與整合報告已刪。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
