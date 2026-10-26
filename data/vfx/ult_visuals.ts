@@ -168,15 +168,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- MAGE (Fel/Void) ---
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)
-    'mr_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#f97316', secondaryColor: '#7c2d12', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_METEOR_IMPACT' },
+    'mr_u1': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#f97316', secondaryColor: '#7c2d12', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_METEOR_IMPACT' },
     // mr_u2: 死亡一指 -> 紅色死光
-    'mr_u2': { archetype: 'BEAM_SNIPE', primaryColor: '#dc2626', secondaryColor: '#7f1d1d', scale: 2.0, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_DEATH_FINGER' },
+    'mr_u2': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#dc2626', secondaryColor: '#7f1d1d', scale: 2.0, beamStyle: 'BLOOD_LINK', vfxOverride: 'FX_ULT_RED_DEATH_FINGER' },
     // mr_u3: 虛空降臨 -> 虛空傳送門 (Domain)
-    'mr_u3': { archetype: 'DOMAIN', primaryColor: '#a855f7', secondaryColor: '#7e22ce', scale: 1.0, vfxOverride: 'FX_ULT_RED_VOID_PORTAL' },
+    'mr_u3': { charged: true, archetype: 'DOMAIN', primaryColor: '#a855f7', secondaryColor: '#7e22ce', scale: 1.0, vfxOverride: 'FX_ULT_RED_VOID_PORTAL' },
     // mr_u4: 末世毒雨 -> 腐蝕酸雨
-    'mr_u4': { archetype: 'DOMAIN', primaryColor: '#a3e635', secondaryColor: '#15803d', scale: 1.8, vfxOverride: 'FX_ULT_RED_POISON_RAIN' },
+    'mr_u4': { charged: true, archetype: 'DOMAIN', primaryColor: '#a3e635', secondaryColor: '#15803d', scale: 1.8, vfxOverride: 'FX_ULT_RED_POISON_RAIN' },
     // mr_u5: 靈魂爆燃 -> 連鎖爆炸
-    'mr_u5': { archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_STORM_SIGIL', cadence: 'EVEN' },
+    'mr_u5': { charged: true, archetype: 'STORM', primaryColor: '#dc2626', secondaryColor: '#fca5a5', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_SOUL_BURN', windupFx: 'FX_ULT_RED_SOUL_BURN_WINDUP', cadence: 'EVEN' },
 
     // --- SUPPORT (Blood/Curse) ---
     // sr_u1: 靈魂連結 -> 靈魂鎖鏈陣

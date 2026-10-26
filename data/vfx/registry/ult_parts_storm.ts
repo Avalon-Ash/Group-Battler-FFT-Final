@@ -227,17 +227,27 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 vz: [30, 60], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.15, fadeOut: 0.5, alpha: 0.65 } }),
         ],
     },
-    // mr_u5 靈魂爆燃（範圍 2 連鎖爆炸，8 次）：連鎖小爆（火光＋擴張火環）＋火星
+    // mr_u5 靈魂爆燃（範圍 2 連鎖爆炸，充能式 8 次）：起手（只播一次）＝灰燼法陣＋幾顆靈火核心在脈動
+    'FX_ULT_RED_SOUL_BURN_WINDUP': {
+        id: 'FX_ULT_RED_SOUL_BURN_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'magicCircle', radius: 80, ramp: 'ASH_VOID', layer: 'outer', style: 'ASH', seed: 6 }, count: 1, lifetime: HIT + 0.8, delay: 0, size: 80, vRotation: 0.5,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 10, ramp: 'ASH_VOID', hard: true }, count: 6, lifetime: [1.0, 1.4], delay: [0.2, 0.6], size: 10, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 70, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, ease: 'in', fadeIn: 0.2, fadeOut: 0.1, rise: [{ at: 0, z: 20 }] } }),
+        ],
+    },
+    // mr_u5 每一次爆燃：紫紅爆光＋靈火舌＋細環＋一顆火星（不放大白閃）
     'FX_ULT_RED_SOUL_BURN': {
         id: 'FX_ULT_RED_SOUL_BURN',
         emitters: [
-            // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
-                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_FIRE', roughness: 1, seed: 20 }, count: 1, lifetime: 0.45, delay: 0, size: 48,
-                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
-            // 火星飛散
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp: 'ASH_FIRE', hard: true }, count: 2, lifetime: [0.4, 0.7], delay: [0.05, 0.2], size: 5,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 22, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.3, delay: 0, size: 22,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART', part: { kind: 'flame', height: 40, ramp: 'ASH_VOID', jagged: true }, count: 1, lifetime: 0.4, delay: 0, size: 28, groundAnchored: true,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 10, ramp: 'ASH_FIRE' }, count: 1, lifetime: [0.4, 0.6], delay: 0.05, size: 10,
                 shape: 'CIRCLE', shapeRadius: 10, speed: [20, 40], vz: [40, 80], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
         ],
     },
@@ -360,22 +370,28 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [120, 250], vz: [120, 250], gravity: 2200, partAnim: { fadeOut: 0.3 } }),
         ],
     },
-    // mr_u2 死亡一指（單體秒殺）：起手倒三角印記 → 命中深紅閃光＋單體擴張暗環＋靈魂暗光上逸
+    // mr_u2 死亡宣告（單體秒殺，充能式，命中 1.5 s）：死亡符記（角骷髏）浮在目標身上、腳下倒三角收緊 →
+    // 命中：細血珠鏈光束（BLOOD_LINK）＋血光向內塌縮 → 爆成血霧＋魂煙上竄＋單體暗環
     'FX_ULT_RED_DEATH_FINGER': {
         id: 'FX_ULT_RED_DEATH_FINGER',
         emitters: [
-            // 起手印記（delay 0 < burstTime 0.28，滿足 C3 起手；size 36 * 1.2 * 1.5 = 64.8 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'hornSkull', ramp: 'ASH_VOID' }, count: 1, lifetime: 0.8, delay: 0, size: 36,
-                partAnim: { scaleFrom: 1.2, scaleTo: 0.8, fadeIn: 0.08, fadeOut: 0.4 } }),
-            // 命中主爆發（glow radius 64 大於環，delay 0.28 對齊 hitAt 0.3）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'ASH_VOID', hard: true }, count: 1, lifetime: 0.4, delay: 0.28, size: 64,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.8 } }),
-            // 單體擴張環（size 24 * 1.8 * 1.5 = 64.8 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'ASH_VOID', roughness: 1, seed: 23 }, count: 1, lifetime: 0.45, delay: 0.28, size: 24,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
-            // 靈魂暗光上逸（delay 0.3 + lifetime 0.8 = 1.1s >= 0.8s）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'ASH_VOID', hard: true }, count: [5, 6], lifetime: 0.8, delay: 0.3, size: 6,
-                shape: 'CIRCLE', shapeRadius: 20, speed: [5, 15], vz: [60, 110], drag: 0.02, partAnim: { fadeIn: 0.1, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 32, emblem: 'invTriangle', ramp: 'ASH_BLOOD' }, count: 1, lifetime: HIT + 0.3, delay: 0, size: 32, vRotation: 1.2,
+                partAnim: { scaleFrom: 1.4, scaleTo: 0.9, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 死亡符記：浮在目標身上的角骷髏
+            part({ particleType: 'PART', part: { kind: 'sigil', radius: 28, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: HIT - 0.3, delay: 0.3, size: 28, groundAnchored: true,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.25, rise: [{ at: 0, z: 60 }] } }),
+            // 命中：血光向內塌縮
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 28, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.2, delay: HIT, size: 28,
+                partAnim: { scaleFrom: 1.4, scaleTo: 0.3, ease: 'in' } }),
+            // 單體暗環（28 * 1.6 * 1.4 = 62.7px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 28, thickness: 8, ramp: 'ASH_BLOOD', roughness: 1, seed: 20 }, count: 1, lifetime: 0.5, delay: HIT, size: 28,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.5 } }),
+            // 由內崩解：血霧爆開
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 5, ramp: 'ASH_BLOOD' }, count: 8, lifetime: 0.7, delay: HIT + 0.15, size: 5,
+                shape: 'BURST_DIR', speed: [120, 260], vz: [120, 260], gravity: 2200, partAnim: { fadeOut: 0.3 } }),
+            // 魂煙上竄
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 22, color: 'CHAR', roughness: 1, seed: 18 }, count: 2, lifetime: 0.8, delay: HIT + 0.15, size: 22,
+                shape: 'CIRCLE', shapeRadius: 10, vz: [60, 110], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.15, fadeOut: 0.6, alpha: 0.7 } }),
         ],
     },
 };
