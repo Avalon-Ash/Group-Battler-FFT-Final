@@ -15,8 +15,8 @@ export const RED_BASIC: Skill[] = [
     { 
         id: 'tr_b2', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '血腥肉鉤', desc: '微量牽引', 
-        range: 1, cast: 0.5, cd: 1.4, cost: 0, gain: 18, 
-        type: 'SINGLE', power: 40, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
+        range: 1, cast: 0.5, cd: 1.7, cost: 0, gain: 15, 
+        type: 'SINGLE', power: 32, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 1, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
