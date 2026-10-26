@@ -18,7 +18,7 @@
 
 ## 2. 下一步
 
-1. **ULT-V01 待實機確認與合併**：50 招已在 `feat/ult-visual` 完成（報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md`、矩陣 `docs/ULT_VISUAL_MATRIX.csv`），沒合併 main、沒 push。還沒做跨地圖／移動目標／同場多奧義／取消重置的實戰驗證（報告 §4）。合併後收尾：刪 `ULT_VISUAL_CLAUDE_AGENT_PROMPT.md`、`ULT_TIMING_AGENT_PROMPT.md`，寫 WORKLOG。
+1. **ULT-V01 待實機確認與合併**：50 招已在 `feat/ult-visual` 完成（報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md`、矩陣 `docs/ULT_VISUAL_MATRIX.csv`），沒合併 main、沒 push。實戰探針（`tools/vfx/ult-battle-probe.mjs`）已跑完並修掉移動目標、詠唱打斷兩個回歸（報告 §4）。**待決定**：天降落下途中被打斷時，A 保持玩法、只讓落下物消失，或 B 改成詠唱結束就必中（報告 §5）。合併後收尾：刪 `ULT_VISUAL_CLAUDE_AGENT_PROMPT.md`、`ULT_TIMING_AGENT_PROMPT.md`，寫 WORKLOG。
 2. 奧義、時序和阻斷問題都完成後，鎖定一個 commit，統一重跑平衡。報告 §5 的玩法差異缺口（STORM 落點只是裝飾、BANISH／全隊護盾重複）在這一步一起判斷。
 3. Codex 週額度偏低（2026-10-26 剩 20%）：獅心戰士 skin 等額度恢復再接，交接文件在該工作樹 docs 底下。
 4. 有空時：繼續讀清冊未讀的檔案；SINK／VOID 要有新證據才重開。
@@ -29,6 +29,7 @@
 2. **行為樹優化與技能強度重調實機看**（`docs/BT_OPT_REPORT.md`）：觀察輔助與坦克施放對友軍治療／增益後是否立即切換回敵方目標並正常接普攻（不再對著空氣發呆或誤衝敵陣）、自身中心範圍技（PBAOE）是否只在範圍內有敵人時施放、治療技是否不再對滿血隊友空放。
 
 ## 4. 以後再說（暫緩項目）
+- **粒子硬上限搶額度**（ULT-V01 實戰探針，main 也有）：4 招同時命中就撞到 `HARD_PARTICLE_BUDGET` 380，新特效整個不播，奧義命中包可能被丟掉，持續傷害的受擊特效佔掉大部分額度。改預算政策（奧義優先、受擊特效降量）另開一輪，要跑 perf。
 - **戰場視覺／資訊混亂度收斂**（使用者 2026-10-22 回饋「戰場有點混亂，不過暫時先這樣」）：技能特效、反傷／狀態浮字與場地疊層同時出現時的資訊密度收斂，暫緩。
 - **重新部署方式**：Cloud Run 相關檔案已刪，全部搞定後再重新評估。
 - **正式版素材**：Quaternius 女性模型風格與 KayKit 差距過大已否決；其他新體型／神職模型標為待評估（不擴大為全部模型均被否決），外觀軸 `Team×Role×BodyType` 支援直接擴充。GPT 提議的男女重設計：建議只做少量概念稿，成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。

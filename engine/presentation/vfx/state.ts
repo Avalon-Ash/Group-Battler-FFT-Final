@@ -37,8 +37,8 @@ export interface Particle {
     ownerId?: string;
     /** 終極技粒子標記（SequenceSystem 寫入，vfx/render.ts 讀取以決定繪製排序）。 */
     pIsUlt?: boolean;
-    /** 終極技施放者 ID，供 cancelUltBySource 取消。 */
-    ultSourceId?: string;
+    /** 生成這顆粒子的序列編號（SequenceSystem 寫入）：CAST_BREAK 取消該次詠唱序列、單體綁定跟隨目標用 */
+    seqRun?: number;
     visualStyle?: string;
     delay?: number;
     image?: HTMLCanvasElement; 
@@ -94,7 +94,7 @@ export class VFXStateManager {
             p.visualStyle = undefined;
             p.ownerId = undefined;
             p.pIsUlt = undefined;
-            p.ultSourceId = undefined;
+            p.seqRun = undefined;
             p.delay = 0; 
             p.locked = false; 
             p.lockReason = undefined;
@@ -132,9 +132,9 @@ export class VFXStateManager {
         if (this.particlePool.length >= VFX_PARAM.MAX_POOL_SIZE) return;
         this.particlePool.push(p);
     }
-    public cancelUltBySource(sourceId: string) {
+    public cancelSequenceRun(runId: number) {
         this.particles = this.particles.filter(p => {
-            if (p.ultSourceId === sourceId) {
+            if (p.seqRun === runId) {
                 this.releaseParticle(p);
                 return false;
             }

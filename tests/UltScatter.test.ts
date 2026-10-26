@@ -78,7 +78,7 @@ describe('UltScatter (UA6: Deterministic Sunflower Scatter for STORM)', () => {
         const mockPlayEffect = vi.fn();
         const mockVfx = {
             playEffect: mockPlayEffect,
-            state: { cancelUltBySource: vi.fn() },
+            state: { particles: [], cancelSequenceRun: vi.fn() },
         } as unknown as Parameters<typeof seqSystem.run>[3];
 
         const mockEngine = {
@@ -169,7 +169,7 @@ describe('UltScatter (UA6: Deterministic Sunflower Scatter for STORM)', () => {
             const mockPlayEffect = vi.fn();
             const mockVfx = {
                 playEffect: mockPlayEffect,
-                state: { cancelUltBySource: vi.fn() },
+                state: { particles: [], cancelSequenceRun: vi.fn() },
             } as unknown as Parameters<typeof seqSystem.run>[3];
 
             // 只有 (0, 0) 是合法格子，其他全界外

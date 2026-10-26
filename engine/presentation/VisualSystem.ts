@@ -10,6 +10,7 @@
 // ║    （targetId, lockAt）；AOE／投射物／天降類／無有效目標維持靜態快照 ║
 // ║    天降類＝序列有 HEAVEN_FALL 動作或 ultImpactDelay > 0           ║
 // ║    （ownFallObject 的天降招落下物畫在資產裡，序列沒有該動作）      ║
+// ║    CAST_START 一律標 castRun：CAST_BREAK 只清掉那次詠唱序列        ║
 // ║                                                                  ║
 // ║  子系統分工 (SSOT 邊界)：                                        ║
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
@@ -82,7 +83,8 @@ export class VisualSystem {
                     const options = isEligibleSingle ? {
                         targetId: event.targetId,
                         lockAt: engine.battleTime + (event.skill.cast || 0),
-                    } : undefined;
+                        castRun: true,
+                    } : { castRun: true };
 
                     sequences.run(sequence, target3D, engine, vfx, event.sourceId, startDelay, options);
                     return; 

@@ -138,8 +138,10 @@ export class RenderSpec {
         s += "- **取樣與鎖定邊界**：\n";
         s += "  - 詠唱期間（`battleTime < lockAt`，其中 `lockAt = battleTime + skill.cast`）：每次 `SequenceSystem.update` 在派發前以 `VisualMath.getUnitAnchor(target, engine)` 動態更新目標錨點（含地形高度與物理位移）。\n";
         s += "  - 結算幀（首次 `battleTime >= lockAt`）：取當幀錨點後永久鎖定（`binding.locked = true`）；後續同序列餘波動作使用鎖定快照，不追隨移動。\n";
+        s += "  - 已生成的粒子：鎖定前由綁定序列派發出的粒子（充能式奧義在詠唱開始就生成全部粒子，命中發射器靠粒子 delay 倒數）每幀隨錨點平移（x、y 跟錨點，高度只補目標腳下地面的高低差；光束不動），鎖定後留在鎖定位置。\n";
         s += "  - 目標邊界：目標該幀被命中致死但在 `engine.agents` 中時仍可取錨點；目標移出集合則沿用最後有效快照。\n";
-        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、天降類（HEAVEN_FALL 動作或 ultImpactDelay > 0）與無有效目標者維持靜態快照。\n\n";
+        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、天降類（HEAVEN_FALL 動作或 ultImpactDelay > 0）與無有效目標者維持靜態快照。\n";
+        s += "- **詠唱取消**：每次 `SequenceSystem.run` 有編號，派發出的粒子記 `seqRun`。CAST_START 的序列（`castRun`）被 CAST_BREAK 取消時，清掉該施法者的待派發動作與該次序列已生成的粒子；同一施法者更早的序列餘波不受影響。\n\n";
 
         s += "--- \n\n";
 
