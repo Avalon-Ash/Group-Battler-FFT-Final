@@ -18,25 +18,44 @@ export function part(cfg: Omit<EmitterConfig, 'colors' | 'speed' | 'shape'> & Pa
 }
 
 /**
- * 奧義共用命中包（SkillSequences 在每個奧義的命中時刻加播，序列 scale＝奧義 scale）：
- * 大型衝擊環兩道（外圈快、內圈慢）、爆閃、地面裂紋、碎石與火星。各奧義自己的資產負責「是什麼」，這包負責「打得多重」。
+ * 奧義共用命中包（SkillSequences 只在造成傷害的奧義命中時刻加播，序列 scale＝奧義 scale × IMPACT_SCALE）：
+ * 各奧義自己的資產負責「是什麼」，這包負責「打得多重」。ULT-V01 調整：
+ * - 爆閃改柔光並縮小（舊版 96 硬芯讓每招命中都洗白）。
+ * - 分範圍版與單體版：範圍版兩道衝擊環約 2 格；單體版只留一道小環，不讓單體技畫出比實際更大的打擊範圍。
  */
 function ultImpact(id: string, ramp: VFXRampId, debrisRamp: VFXRampId): VFXAsset {
     return {
         id,
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp, hard: true }, count: 1, lifetime: 0.28, delay: 0, size: 96,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.25, fadeOut: 0.85 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 160, thickness: 7, ramp }, count: 1, lifetime: 0.55, delay: 0, size: 320,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 56, ramp }, count: 1, lifetime: 0.28, delay: 0, size: 56,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.85, alpha: 0.65 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 100, thickness: 7, ramp }, count: 1, lifetime: 0.55, delay: 0, size: 200,
                 partAnim: { scaleFrom: 0.15, scaleTo: 1, ease: 'out', fadeOut: 0.55 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 112, thickness: 5, ramp, roughness: 0.5, seed: 2 }, count: 1, lifetime: 0.7, delay: 0.06, size: 224,
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 70, thickness: 5, ramp, roughness: 0.5, seed: 2 }, count: 1, lifetime: 0.7, delay: 0.06, size: 140,
                 partAnim: { scaleFrom: 0.2, scaleTo: 1, ease: 'out', fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 96, count: 10, ramp, lengthJitter: 0.75, seed: 4 }, count: 1, lifetime: 0.9, delay: 0, size: 96,
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 80, count: 10, ramp, lengthJitter: 0.75, seed: 4 }, count: 1, lifetime: 0.9, delay: 0, size: 80,
                 partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.05, fadeOut: 0.6 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 9, shape: 'rock', ramp: debrisRamp, seed: 1 }, count: [8, 10], lifetime: [0.8, 1.1], delay: 0, size: 9,
                 shape: 'BURST_DIR', speed: [260, 520], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp, hard: true }, count: [14, 18], lifetime: [0.35, 0.6], delay: 0, size: 5,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp, hard: true }, count: [10, 14], lifetime: [0.35, 0.6], delay: 0, size: 5,
                 shape: 'BURST_DIR', speed: [300, 620], vz: [80, 260], drag: 0.06, partAnim: { fadeOut: 0.6 } }),
+        ],
+    };
+}
+
+/** 單體版：柔光＋一道小環（約 1 格內）＋少量碎石與火星 */
+function ultImpactSingle(id: string, ramp: VFXRampId, debrisRamp: VFXRampId): VFXAsset {
+    return {
+        id,
+        emitters: [
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 36, ramp }, count: 1, lifetime: 0.25, delay: 0, size: 36,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.85, alpha: 0.65 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 5, ramp }, count: 1, lifetime: 0.45, delay: 0, size: 64,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1, ease: 'out', fadeOut: 0.55 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 7, shape: 'rock', ramp: debrisRamp, seed: 1 }, count: [4, 6], lifetime: [0.6, 0.9], delay: 0, size: 7,
+                shape: 'BURST_DIR', speed: [180, 360], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp, hard: true }, count: [6, 8], lifetime: [0.3, 0.5], delay: 0, size: 4,
+                shape: 'BURST_DIR', speed: [200, 420], vz: [60, 200], drag: 0.06, partAnim: { fadeOut: 0.6 } }),
         ],
     };
 }
@@ -44,6 +63,8 @@ function ultImpact(id: string, ramp: VFXRampId, debrisRamp: VFXRampId): VFXAsset
 export const ULT_IMPACT_VFX: Record<string, VFXAsset> = {
     FX_ULT_IMPACT_BLUE: ultImpact('FX_ULT_IMPACT_BLUE', 'LION_HOLY', 'LION_PHYSICAL'),
     FX_ULT_IMPACT_RED: ultImpact('FX_ULT_IMPACT_RED', 'ASH_FIRE', 'ASH_PHYSICAL'),
+    FX_ULT_IMPACT_BLUE_SINGLE: ultImpactSingle('FX_ULT_IMPACT_BLUE_SINGLE', 'LION_HOLY', 'LION_PHYSICAL'),
+    FX_ULT_IMPACT_RED_SINGLE: ultImpactSingle('FX_ULT_IMPACT_RED_SINGLE', 'ASH_FIRE', 'ASH_PHYSICAL'),
 };
 
 export const ULT_PART_VFX: Record<string, VFXAsset> = {

@@ -251,8 +251,10 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             }
             // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻。
             // 只給造成傷害的奧義（power > 0）；治療、增益、純控制沒有打擊，畫打擊會誤導（ULT-V01：視覺忠於實際作用）
+            // 單體技用單體版（只有一道小環），不畫出比實際更大的打擊範圍
             if ((ultSkill?.power ?? 0) > 0) {
-                actions.push({ type: 'PARTICLE', id: isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE', scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+                const impactId = (isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE') + (ultSkill?.type === 'SINGLE' ? '_SINGLE' : '');
+                actions.push({ type: 'PARTICLE', id: impactId, scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
             }
             actions.push({ type: 'ULT_IMPACT', delay: hitAt });
             sequences[ultId] = { id: ultId, actions, hitAt };
