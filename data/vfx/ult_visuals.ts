@@ -83,7 +83,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
     'wb_u4': { charged: true, archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_BLADESTORM_WINDUP' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)
-    'wb_u5': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
+    'wb_u5': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'SLASH_CONNECT', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
 
     // --- RANGER (Ice/Sniper) ---
     // rb_u1: 極地冰河 -> 天降巨大冰晶六邊體
@@ -149,21 +149,22 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- RANGER (Explosive/Dark) ---
     // rr_u1: 灰燼穿心 -> 黑色電磁砲
-    'rr_u1': { archetype: 'BEAM_SNIPE', primaryColor: '#ea580c', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_RAILGUN' },
+    'rr_u1': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#ea580c', secondaryColor: '#ef4444', scale: 3.5, beamStyle: 'PIERCE', vfxOverride: 'FX_ULT_RED_RAILGUN' },
     // rr_u2: 焦土衝擊 -> 核彈 (完美的 Heaven Fall)
     'rr_u2': { archetype: 'HEAVEN_FALL', primaryColor: '#ef4444', secondaryColor: '#f97316', scale: 2.0, height: 1000, timing: 0, vfxOverride: 'FX_ULT_RED_NUKE_FLASH', charged: true, ownFallObject: true },
     // rr_u3: 煉獄火雨 -> 燃燒彈幕
-    'rr_u3': { archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_STORM_SIGIL', cadence: 'ACCEL' },
+    'rr_u3': { charged: true, archetype: 'STORM', primaryColor: '#f87171', secondaryColor: '#ea580c', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_INFERNO', windupFx: 'FX_ULT_RED_INFERNO_WINDUP', cadence: 'ACCEL' },
     // rr_u4: 血腥獵殺 -> 鎖定標記 (Beam Snap)
-    'rr_u4': { 
+    'rr_u4': {
+        charged: true,
         archetype: 'BEAM_SNIPE', 
         primaryColor: '#ea580c', 
         secondaryColor: '#dc2626', 
         scale: 2.0, 
-        beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
+        beamStyle: 'GENERIC_BEAM', vfxOverride: 'FX_ULT_RED_HEADHUNTER' 
     },
     // rr_u5: 末日審判 -> 末日降臨 (STORM)
-    'rr_u5': { archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#581c87', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'rr_u5': { charged: true, archetype: 'STORM', primaryColor: '#7f1d1d', secondaryColor: '#581c87', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_DOOM', windupFx: 'FX_ULT_RED_DOOM_WINDUP' },
 
     // --- MAGE (Fel/Void) ---
     // mr_u1: 毀滅隕石 -> 召喚巨大隕石 (Heaven Fall)
