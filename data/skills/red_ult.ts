@@ -110,9 +110,9 @@ export const RED_ULT: Skill[] = [
         id: 'rr_u2', role: Role.RANGER, team: Team.RED, tag: 'ULT', 
         name: '焦土衝擊', desc: '大範圍擊退', 
         range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 3, power: 750, color: '#ef4444', 
+        type: 'AOE', aoeRadius: 3, power: 620, color: '#ef4444', 
         visual: 'BOMB', projectileSpeed: 0, 
-        ccType: 'KNOCKBACK', ccForce: 5, 
+        ccType: 'KNOCKBACK', ccForce: 3, 
         visualHitEffect: 'FX_ULT_RED_NUKE_FLASH', element: 'FIRE'
     },
     { 
@@ -147,9 +147,9 @@ export const RED_ULT: Skill[] = [
         id: 'mr_u1', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '毀滅隕石', desc: '延遲高傷', 
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 1200, color: '#f97316', 
+        type: 'AOE', aoeRadius: 2, power: 1000, color: '#f97316', 
         visual: 'FIREBALL', projectileSpeed: 0, 
-        ccType: 'STUN', ccDur: 1.5, element: 'FIRE', 
+        ccType: 'STUN', ccDur: 1.0, element: 'FIRE', 
         visualHitEffect: 'FX_ULT_RED_METEOR_IMPACT' 
     },
     { 

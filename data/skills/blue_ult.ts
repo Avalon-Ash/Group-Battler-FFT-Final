@@ -26,7 +26,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'tb_u3', role: Role.TANK, team: Team.BLUE, tag: 'ULT', 
         name: '絕對防禦', desc: '天降神盾', 
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 4, power: 500, color: '#3b82f6', 
+        type: 'AOE', aoeRadius: 4, power: 650, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'KNOCKBACK', ccForce: 4,
         visualHitEffect: 'FX_ULT_BLUE_AEGIS_IMPACT', element: 'PHYSICAL'
@@ -100,7 +100,7 @@ export const BLUE_ULT: Skill[] = [
         id: 'rb_u1', role: Role.RANGER, team: Team.BLUE, tag: 'ULT', 
         name: '極地冰河', desc: '單體凍結', 
         range: 15, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: 450, color: '#60a5fa', 
+        type: 'SINGLE', power: 650, color: '#60a5fa', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 2.5, element: 'ICE',
         visualHitEffect: 'FX_ULT_BLUE_GLACIAL_BURST', 
