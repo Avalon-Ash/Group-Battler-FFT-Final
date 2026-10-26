@@ -16,12 +16,14 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 ## 改派給 Codex 時（主代理自己發起）
 - **先選檔位**（CLAUDE.md 派工表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
 - **範圍要窄**：一份提示詞一個工作包。成本來自上下文、工具呼叫和重試，不只是訊息數；把讀檔範圍、驗收指令、停下條件寫死，並寫明探索與重試的上限。要避免的寫法：整庫清冊、要它重貼全文、沒有新假設的重試、要它看所有截圖。
-- **工作樹**：可寫任務在 repo 外開工作樹（`git worktree add -b <branch> C:\Git\_wt_<topic> <base>`，用 `cmd /c mklink /J node_modules <主資料夾>\node_modules` 接 junction，不跑 npm 安裝）。不可放在主資料夾或 `.claude/worktrees` 底下，否則可能被代理 `git add` 進去。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
+- **工作樹**：可寫任務在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`，切好分支），`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。linked worktree 的 metadata 在主資料夾 `.git` 裡、junction 的 `node_modules` 沙盒寫不進去，都會讓 Codex 在開工前卡住（2026-10-26 R1 卡了三次）。不可放在主資料夾或 `.claude/worktrees` 底下。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
+- **沙盒限制要寫進提示詞**：workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，**Codex 不能 commit**——提示詞寫「不要 commit，改動留在工作樹，報告列出每個任務改了哪些檔」，主代理審查後分批代為 commit（訊息加 `Co-Authored-By: Codex`）。測試指令寫 `npx vitest run --exclude "**/AgentRunner.test.ts"`（那 2 項在沙盒內必失敗），主代理在沙盒外補跑完整 `npm test`。寫明「中途不要詢問；遇到停下條件就寫報告後結束」，非互動執行時它問了也沒人答（要答用 `task --resume-last`）。
 - **啟動**：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --write --model <m> --effort <e> --cwd <工作樹> --prompt-file docs/<NAME>_AGENT_PROMPT.md`，不加 `--background`，結束時 harness 會通知；不輪詢。只讀任務拿掉 `--write`。
 - **範本差異**：Codex 會自己讀 `AGENTS.md`，範本其餘部分照用，但以下要改：
   - 刪掉「用法：/goal」那行。
   - INV 的「從 `main` 開分支」改成必填表頭：工作樹絕對路徑、已建好的分支、base SHA。寫明代理只確認 `git rev-parse HEAD` 和 `git status`，不建分支、不切分支。
   - `--prompt-file` 用絕對路徑，而且先確認檔案存在。提示詞如果還沒提交，就放在 scratchpad，不要指向工作樹裡不存在的 `docs/`。
+  - 「每個任務一個 commit」改成「每個任務在報告列出改動的檔案」（Codex 不能 commit，見上）。
   - 長指令照樣用 `tools/agent/run.mjs`。Codex 能在本機開瀏覽器截圖，渲染任務要求把截圖路徑寫進報告當證據。
 - **回報格式**（寫進提示詞）：短摘要只列完成／未完成 ID、commit、每個檢查的「指令＋退出碼＋log 路徑」、截圖路徑＋觀測值。證據綁定 commit：條件相同才能沿用，改動之後必要的檢查仍要重跑。
 - 跑完照樣走 `review-round`；Codex 的報告也不整份讀。
