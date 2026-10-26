@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="zh-Hant"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>獅心與灰燼｜完整動畫試烘焙</title>
+<style>
+body{margin:24px;background:#e2e7eb;color:#22394d;font:16px system-ui,sans-serif}h1{font-size:26px}p{max-width:1000px;line-height:1.6}header{position:sticky;top:0;background:#e2e7bf;padding:12px;z-index:1;border-radius:8px}label{display:inline-block;margin:5px 12px 5px 0}select,button,input{font:inherit}button{cursor:pointer}main{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px;margin-top:20px}article{background:#f3f5f7;border-radius:10px;padding:12px;overflow:auto}h2{font-size:18px;margin:2px 0 10px}canvas{display:block;width:100%;max-width:448px;height:auto;background:#e2e7eb}body.native canvas{width:896px;max-width:none}small{display:block;margin:6px 0}.warning{color:#8c3535}
+</style>
+<h1>獅心與灰燼｜五職業男女完整動畫試烘焙</h1>
+<p>20 套、2,352 格。每張卡片固定四向：左上 SE、右上 SW、左下 NE、右下 NW。所有角色使用同一比例與原腳底錨點；十字表示世界原點，動作中的腳可以自然離開原點。此頁使用隔離試圖集，尚未接入遊戲。</p>
+<header>
+<label>陣營 <select id="team"><option value="ALL">全部</option><option value="BLUE">獅心</option><option value="RED">灰燼</option></select></label>
+<label>職業 <select id="role"><option value="ALL">全部</option><option value="TANK">騎士</option><option value="WARRIOR">戰士</option><option value="RANGER">遊俠</option><option value="MAGE">法師</option><option value="SUPPORT">輔助</option></select></label>
+<label>動作 <select id="anim"><option>idle</option><option>walk</option><option>attack</option><option>cast</option><option>hit</option><option>death</option></select></label>
+<button id="play">暫停</button><button id="prev">上一格</button><button id="next">下一格</button>
+<label>畫格 <input id="frame" type="range" min="0" max="5" value="0"><span id="frame-label">0</span></label>
+<label><input id="anchor" type="checkbox" checked>腳底錨點</label><label><input id="native" type="checkbox">原生 1:1 像素</label>
+<small>預設縮圖統一縮放；可開啟原生大小檢查髮束與配件。非循環動作在末格停留 1 秒後重播；沒有 cast 的職業明確顯示無此動畫。</small>
+</header><main id="cards"></main>
+<script>
+const manifest=__TRIAL_MANIFEST__;
+const labels={BLUE:'獅心',RED:'灰燼',TANK:'騎士',WARRIOR:'戰士',RANGER:'遊俠',MAGE:'法師',SUPPORT:'輔助',MALE:'男',FEMALE:'女'};
+const $=id=>document.getElementById(id), cards=[];
+let playing=true, epoch=performance.now(), manual=0;
+for(const [key,unit] of Object.entries(manifest.units)){
+ const [team,role,body]=key.split(':'),article=document.createElement('article');
+ const title=document.createElement('h2');title.textContent=`${labels[team]} ${labels[role]} ${labels[body]}`;article.append(title);
+ const status=document.createElement('small');article.append(status);
+ const canvas=document.createElement('canvas');canvas.width=canvas.height=896;article.append(canvas);
+ const image=new Image(),card={team,role,unit,article,status,canvas,ctx:canvas.getContext('2d'),image,loadError:false};
+ image.onerror=()=>{card.loadError=true};image.src=unit.file;
+ $('cards').append(article);cards.push(card);
+}
+function count(){return $('anim').value==='hit'?3:6}
+function pause(){playing=false;$('play').textContent='播放'}
+function reset(){epoch=performance.now();manual=0;$('frame').max=count()-1;$('frame').value=0}
+for(const id of ['team','role','anim'])$(id).onchange=reset;
+$('play').onclick=()=>{playing=!playing;epoch=performance.now();$('play').textContent=playing?'暫停':'播放'};
+$('frame').oninput=()=>{pause();manual=Number($('frame').value)};
+$('prev').onclick=()=>{pause();manual=(manual+count()-1)%count()};
+$('next').onclick=()=>{pause();manual=(manual+1)%count()};
+$('native').onchange=()=>document.body.classList.toggle('native',$('native').checked);
+function draw(time){
+ let shown=manual;
+ for(const card of cards){
+  const visible=($('team').value==='ALL'||$('team').value===card.team)&&($('role').value==='ALL'||$('role').value===card.role);
+  card.article.hidden=!visible;if(!visible)continue;
+  const clip=card.unit.anims[$('anim').value],ctx=card.ctx;ctx.clearRect(0,0,896,896);
+  if(card.loadError){card.status.textContent='試圖集載入失敗';card.status.className='warning';continue}
+  if(!clip){card.status.textContent='此職業沒有獨立 cast 動畫';continue}
+  const length=clip.frames.SE.length,seconds=(time-epoch)/1000;
+  const frame=playing?Math.min(length-1,Math.floor((seconds%(length/clip.fps+(clip.loop?0:1)))*clip.fps)):Math.min(manual,length-1);
+  shown=frame;card.status.textContent=`${$('anim').value} · ${frame+1}/${length} · ${clip.fps} fps`;
+  if(!card.image.complete||!card.image.naturalWidth)continue;
+  manifest.directions.forEach((direction,i)=>{
+   const ox=(i%2)*448,oy=Math.floor(i/2)*448,rect=clip.frames[direction][frame];
+   ctx.drawImage(card.image,rect.x,rect.y,rect.w,rect.h,ox+manifest.anchor.x+rect.ox,oy+manifest.anchor.y+rect.oy,rect.w,rect.h);
+   ctx.fillStyle='#4a5965';ctx.font='18px sans-serif';ctx.fillText(direction,ox+12,oy+24);
+   if($('anchor').checked){const x=ox+manifest.anchor.x,y=oy+manifest.anchor.y;ctx.strokeStyle='#bc516788';ctx.beginPath();ctx.moveTo(x-7,y);ctx.lineTo(x+7,y);ctx.moveTo(x,y-7);ctx.lineTo(x,y+7);ctx.stroke()}
+  });
+ }
+ if(playing)manual=shown;$('frame').value=shown;$('frame-label').textContent=`${shown+1}/${count()}`;
+ requestAnimationFrame(draw);
+}
+requestAnimationFrame(draw);
+</script></html>

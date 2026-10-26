@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "team": "BLUE",
+  "base": "lionheartWarriorSkin.json",
+  "roles": {
+    "TANK": {
+      "source": "Knight.glb",
+      "texture": "knight_texture",
+      "head": "Knight_Head",
+      "cape": "Knight_Cape",
+      "hide": [
+        "Knight_Helmet"
+      ],
+      "colors": {
+        "hair": "#514031",
+        "hairLight": "#76604A",
+        "hairDark": "#36291F"
+      },
+      "circlet": {
+        "color": "silver",
+        "center": [
+          0,
+          0,
+          1.72
+        ],
+        "z": 1.91,
+        "height": 0.055,
+        "segments": 32,
+        "clearance": 0.018
+      },
+      "paletteCells": [
+        [
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver"
+        ],
+        [
+          "silver",
+          "ivory",
+          "gold",
+          "leather",
+          "silver",
+          "gold",
+          "blue",
+          "gold"
+        ],
+        [
+          "blue",
+          "ivory",
+          "gold",
+          "silver",
+          "silver",
+          "leather",
+          "silver",
+          "leather"
+        ],
+        [
+          "skin",
+          "hair",
+          "dark",
+          "silver",
+          "silver",
+          "leather",
+          "gold",
+          "dark"
+        ]
+      ],
+      "femaleColors": {
+        "hair": "#D7DFE6",
+        "hairLight": "#F5F1E4",
+        "hairDark": "#697583"
+      }
+    },
+    "RANGER": {
+      "source": "Rogue_Hooded.glb",
+      "texture": "rogue_texture",
+      "head": "Rogue_Head_Hooded",
+      "cape": "Rogue_Cape",
+      "hide": [],
+      "colors": {
+        "hair": "#805334",
+        "hairLight": "#A37048",
+        "hairDark": "#573820"
+      },
+      "femaleHair": {
+        "bunCenter": [
+          0,
+          0.49,
+          1.58
+        ],
+        "bunScale": [
+          0.22,
+          0.24,
+          0.3
+        ]
+      },
+      "paletteCells": [
+        [
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver"
+        ],
+        [
+          "ivory",
+          "ivory",
+          "gold",
+          "leather",
+          "silver",
+          "leather",
+          "blue",
+          "gold"
+        ],
+        [
+          "blue",
+          "blue",
+          "blue",
+          "silver",
+          "silver",
+          "leather",
+          "silver",
+          "leather"
+        ],
+        [
+          "skin",
+          "hair",
+          "dark",
+          "leather",
+          "silver",
+          "leather",
+          "gold",
+          "silver"
+        ]
+      ],
+      "femaleColors": {
+        "hair": "#A8442D",
+        "hairLight": "#D87948",
+        "hairDark": "#652D26"
+      }
+    },
+    "MAGE": {
+      "source": "Mage.glb",
+      "texture": "mage_texture",
+      "head": "Mage_Head",
+      "cape": "Mage_Cape",
+      "hide": [
+        "Mage_Hat"
+      ],
+      "colors": {
+        "hair": "#49362B",
+        "hairLight": "#725342",
+        "hairDark": "#30241E"
+      },
+      "femaleHair": {
+        "bunCenter": [
+          0,
+          0.49,
+          1.5
+        ],
+        "bunScale": [
+          0.25,
+          0.21,
+          0.3
+        ]
+      },
+      "paletteCells": [
+        [
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver"
+        ],
+        [
+          "silver",
+          "ivory",
+          "blue",
+          "leather",
+          "silver",
+          "gold",
+          "gold",
+          "gold"
+        ],
+        [
+          "blue",
+          "blue",
+          "blue",
+          "silver",
+          "silver",
+          "leather",
+          "silver",
+          "leather"
+        ],
+        [
+          "skin",
+          "hair",
+          "dark",
+          "gold",
+          "ivory",
+          "leather",
+          "gold",
+          "silver"
+        ]
+      ],
+      "hat": {
+        "source": "Mage_Hat",
+        "lift": 0.23
+      },
+      "femalePaletteCells": {
+        "3,5": "gold"
+      },
+      "femaleOrnament": {
+        "center": [
+          -0.65,
+          -0.25,
+          2.3
+        ],
+        "u": [
+          0,
+          -1,
+          0
+        ],
+        "v": [
+          1,
+          0,
+          0
+        ],
+        "normal": [
+          0,
+          0,
+          1
+        ],
+        "sizeScale": 1.8
+      },
+      "femalePonytails": {
+        "sides": 8,
+        "highlightFacets": [
+          4,
+          5
+        ],
+        "rings": [
+          [
+            0.43,
+            0.26,
+            1.78,
+            0.09,
+            0.1
+          ],
+          [
+            0.56,
+            0.3,
+            1.57,
+            0.14,
+            0.13
+          ],
+          [
+            0.65,
+            0.34,
+            1.29,
+            0.15,
+            0.14
+          ],
+          [
+            0.68,
+            0.38,
+            1.02,
+            0.13,
+            0.12
+          ],
+          [
+            0.62,
+            0.43,
+            0.79,
+            0.09,
+            0.08
+          ],
+          [
+            0.51,
+            0.46,
+            0.65,
+            0.015,
+            0.018
+          ]
+        ]
+      },
+      "femaleColors": {
+        "hair": "#D7A34C",
+        "hairLight": "#F5D484",
+        "hairDark": "#86572F"
+      }
+    },
+    "SUPPORT": {
+      "source": "Mage.glb",
+      "texture": "mage_texture",
+      "head": "Mage_Head",
+      "cape": "Mage_Cape",
+      "hide": [],
+      "colors": {
+        "hair": "#9C7544",
+        "hairLight": "#BD955B",
+        "hairDark": "#6E4C2C"
+      },
+      "circlet": {
+        "color": "gold",
+        "center": [
+          0,
+          0,
+          1.72
+        ],
+        "z": 1.91,
+        "height": 0.045,
+        "segments": 32,
+        "clearance": 0.018
+      },
+      "paletteCells": [
+        [
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver",
+          "silver"
+        ],
+        [
+          "silver",
+          "ivory",
+          "blue",
+          "leather",
+          "silver",
+          "gold",
+          "blue",
+          "gold"
+        ],
+        [
+          "ivory",
+          "blue",
+          "blue",
+          "blue",
+          "silver",
+          "gold",
+          "silver",
+          "leather"
+        ],
+        [
+          "skin",
+          "hair",
+          "dark",
+          "gold",
+          "blue",
+          "leather",
+          "gold",
+          "silver"
+        ]
+      ],
+      "femaleColors": {
+        "hair": "#272B3A",
+        "hairLight": "#4B5267",
+        "hairDark": "#171C27"
+      }
+    }
+  },
+  "scalpSource": "art-source/lionheart-roles/hair-scalp.json"
+}
