@@ -200,6 +200,7 @@
 - Codex Sol／medium 在獨立 clone `C:\Git\_wt_r1` 實作：`VFX_PARTS.MAX_BYTES_BY_TIER`／`MAX_ENTRIES_BY_TIER`（桌機 224 MiB／576，階層 2／3 為 96 MiB／320）、探針 `tools/ui-e2e/part-cache-probe.mjs`。
 - 主代理審查補修：品質階層開場是 0、跑順不降階，iPhone 會吃到桌機上限；新增 `isMemoryConstrainedDevice()`（`pointer: coarse`）與 `CONSTRAINED_MIN_LIMIT_TIER = 2`。
 - 驗證：沙盒外完整 `npm test` 825 項、lint、build、runtime-smoke 通過；`perf:guard` 由 Codex 跑過（補修只影響觸控裝置）。
+- **主螢幕 `perf:frames`（238 Hz，主代理自跑）**：`battle_vfx_storm` 三輪擠出 0／0／0（改前 151／150／100），最長幀 320.7 → 66.7 ms，1% low 19.1 → 35.8 FPS，median 8.4、p95 16.7 ms 不變；快取 167～184 MB。每輪重新載入頁面，約 240 次未命中都是冷啟動烘焙，剩下 45～67 ms 的長幀歸因同為 VFX Script，推測是冷烘，暫不處理。`battle_calm` 1% low 52.7、`showcase` 58 FPS。報告 `R1_PART_CACHE_REPORT.md` 已刪。
 - 派工教訓：Codex workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，無法 commit，由主代理代為 commit；`AgentRunner.test.ts` 在沙盒內必失敗。`agent-prompt` skill 待更新。
 
 ### W. 2026-10-26 BAL-02 平衡重跑（合併 a4e8f47）

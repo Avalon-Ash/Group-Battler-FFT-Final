@@ -17,11 +17,10 @@
 **A. 平衡**：BAL-02 已合併（WORKLOG §2 W）。報告 `docs/BAL02_REPORT.md` §5.2 留了兩個要改機制的缺口，暫不排：STORM 類 10 招分段結算（要補總傷害）、`rb_u5` 投射物與 STORM 落點演出統一。之後平衡再跑時一起決定。
 
 **B. 渲染修正佇列（Codex Sol／medium，獨立工作樹，依序一次一條；主代理審 diff＋`render-verify`）**
-1. **R1 特效零件快取抖動**：已合併（WORKLOG §2 V）。剩使用者在主螢幕重跑 `perf:frames`，確認 `battle_vfx_storm` 的長幀與 1% low 改善；沒改善再查別的原因（報告 `docs/R1_PART_CACHE_REPORT.md`，確認後刪除）。
-2. **R2 衝刺殘影**：使用者回饋衝刺技能軌跡太快、看不清楚。方向：位移技能（effectType `DASH`）的殘影存留更久或更多（`AFTERIMAGE`），不改速度與玩法。證據在 `docs/DASH_MOTION_REPORT.md`，做完刪除該報告。
-3. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。
-4. **R4 網格效果優先序**：使用者認為資訊太雜的主因是網格疊加。主代理先盤點同一格會疊的網格類效果（AOE 預警、危害場、詠唱環、射程、格子脈衝），定一張優先序表（同格只畫最高優先，或次要的降透明），再派 Codex。
-5. **R5 手機模擬量測工具**：使用者手機上很難用 `?perf`。在 `tools/ui-e2e/` 做一支手機模擬量測腳本：iPhone 14 Pro 版面＋CDP CPU 降速（4 倍）跑展示模式與 8 招奧義，輸出 FPS、品質階層、粒子數與記憶體。只能模擬 CPU，GPU 與 WebKit 行為仍以實機為準。可和 R1～R4 並行（不改渲染程式）。
+1. **R2 衝刺殘影**：使用者回饋衝刺技能軌跡太快、看不清楚。方向：位移技能（effectType `DASH`）的殘影存留更久或更多（`AFTERIMAGE`），不改速度與玩法。證據在 `docs/DASH_MOTION_REPORT.md`，做完刪除該報告。
+2. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。
+3. **R4 網格效果優先序**：使用者認為資訊太雜的主因是網格疊加。主代理先盤點同一格會疊的網格類效果（AOE 預警、危害場、詠唱環、射程、格子脈衝），定一張優先序表（同格只畫最高優先，或次要的降透明），再派 Codex。
+4. **R5 手機模擬量測工具**：使用者手機上很難用 `?perf`。在 `tools/ui-e2e/` 做一支手機模擬量測腳本：iPhone 14 Pro 版面＋CDP CPU 降速（4 倍）跑展示模式與 8 招奧義，輸出 FPS、品質階層、粒子數與記憶體。只能模擬 CPU，GPU 與 WebKit 行為仍以實機為準。可和 R1～R4 並行（不改渲染程式）。
 
 **C. 獅心戰士 skin（GPT 自己跑完）**：全部做完後主代理一次審查，再排時段接進圖集與量效能（Blender 烘焙不和 `perf:*` 同時跑）。圖集只留 0.5 倍層級（`UNIT_SPRITE.mipLevels`），新 skin 照同一套烘。
 
