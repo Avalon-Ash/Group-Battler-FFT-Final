@@ -186,8 +186,8 @@ export const ULT_PART_VFX_RED: Record<string, VFXAsset> = {
                     { at: 1, z: SR_U4_MOON.Z_END, ease: 'linear' },
                 ] } }),
             // 生效主爆發：月閃（空中柔光，不用硬芯以免洗白；半徑最大的 glow，C2）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.6, delay: SR_U4_IMPACT, size: 72, groundAnchored: true,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6, alpha: 0.8, rise: [{ at: 0, z: SR_U4_MOON.Z_CAST_END }] } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.45, delay: SR_U4_IMPACT, size: 72, groundAnchored: true,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6, alpha: 0.6, rise: [{ at: 0, z: SR_U4_MOON.Z_CAST_END }] } }),
             // 月華：光點從月亮高度往下灑到地面
             part({ particleType: 'PART', part: { kind: 'glow', radius: 5, ramp: 'ASH_BLOOD', hard: true }, count: 14, lifetime: [0.6, 0.8], delay: [ULT_SEQUENCE.CHARGED_HIT_AT, SR_U4_IMPACT + 0.3], size: 5, groundAnchored: true,
                 shape: 'CIRCLE', shapeRadius: 140,

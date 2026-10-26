@@ -249,8 +249,11 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 1.5), delay: hitAt + 0.05 });
                     break;
             }
-            // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻
-            actions.push({ type: 'PARTICLE', id: isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE', scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+            // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻。
+            // 只給造成傷害的奧義（power > 0）；治療、增益、純控制沒有打擊，畫打擊會誤導（ULT-V01：視覺忠於實際作用）
+            if ((ultSkill?.power ?? 0) > 0) {
+                actions.push({ type: 'PARTICLE', id: isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE', scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+            }
             actions.push({ type: 'ULT_IMPACT', delay: hitAt });
             sequences[ultId] = { id: ultId, actions, hitAt };
         }

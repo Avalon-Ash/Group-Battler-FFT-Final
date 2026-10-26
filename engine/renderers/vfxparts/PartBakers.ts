@@ -1400,6 +1400,7 @@ function bakeEclipse(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp): v
     const sx = E.SHADOW_OFF[0] * R, sy = E.SHADOW_OFF[1] * R, sr = R * E.SHADOW_R;
     const shade = ctx.createRadialGradient(sx, sy, 0, sx, sy, sr);
     shade.addColorStop(0, withAlpha(VFX_NEUTRALS[E.SHADOW_COLOR], E.SHADOW_ALPHA));
+    shade.addColorStop(E.SHADOW_CORE_STOP, withAlpha(VFX_NEUTRALS[E.SHADOW_COLOR], E.SHADOW_ALPHA));
     shade.addColorStop(1, withAlpha(ramp.dark, E.SHADOW_RIM_ALPHA));
     polygonPath(ctx, sx, sy, sr, n);
     ctx.fillStyle = shade;

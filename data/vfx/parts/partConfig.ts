@@ -121,12 +121,12 @@ export const VFX_PARTS = {
         },
         /**
          * 多面蝕月（size＝直徑 D）：月面是 SIDES 邊的低多邊形，切成三角面、頂點偏 APEX（相對半徑），受光面在左上；
-         * 暗影＝同樣的多邊形偏移 SHADOW_OFF、半徑 SHADOW_R，中心填 SHADOW_COLOR、外緣漸成 ramp.dark（SHADOW_RIM_ALPHA，看得出暗面也是球面），露出左上一道月牙；暗影上仍淡淡看得到稜線（SHADOW_EDGE_ALPHA）；
+         * 暗影＝同樣的多邊形偏移 SHADOW_OFF、半徑 SHADOW_R，中心到 SHADOW_CORE_STOP 填 SHADOW_COLOR、最外緣漸成 ramp.dark（SHADOW_RIM_ALPHA，看得出暗面也是球面），露出左上一道月牙；暗影上仍淡淡看得到稜線（SHADOW_EDGE_ALPHA）；
          * RIM_*＝月牙紅緣（core 亮弧的角度範圍與線寬）；CORONA_*＝日冕光暈（相對半徑的內外緣與不透明度）；HALO_R＝外框半徑（相對 D）。
          */
         ECLIPSE: {
             SIDES: 12, APEX: [-0.12, -0.16] as const, FACET_CENTER_ALPHA: 0.85, FACET_LIT_ALPHA: 0.9, FACET_SHADE_ALPHA: 0.45, EDGE_ALPHA: 0.35,
-            SHADOW_OFF: [0.2, 0.14] as const, SHADOW_R: 0.92, SHADOW_COLOR: 'CHAR' as const, SHADOW_ALPHA: 0.92, SHADOW_RIM_ALPHA: 0.7, SHADOW_EDGE_ALPHA: 0.07,
+            SHADOW_OFF: [0.2, 0.14] as const, SHADOW_R: 0.92, SHADOW_COLOR: 'CHAR' as const, SHADOW_ALPHA: 0.95, SHADOW_CORE_STOP: 0.75, SHADOW_RIM_ALPHA: 0.9, SHADOW_EDGE_ALPHA: 0.07,
             RIM_ARC_DEG: [125, 292] as const, RIM_W: 0.035, RIM_ALPHA: 0.95,
             CORONA_IN: 0.9, CORONA_OUT: 1.4, CORONA_ALPHA: 0.55, HALO_R: 0.72,
         },
