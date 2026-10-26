@@ -73,6 +73,15 @@ export function getQualityTier(): QualityTier {
 }
 
 /**
+ * 是否為記憶體吃緊的觸控裝置（手機／平板，`pointer: coarse`）。
+ * 品質階層從 0 起跳、跑得順時不會降階，所以記憶體上限要另外依裝置類別收（VFX_PARTS 零件快取）。
+ */
+export function isMemoryConstrainedDevice(): boolean {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return window.matchMedia('(pointer: coarse)').matches;
+}
+
+/**
  * 設定目前品質階層（若未釘死）
  */
 export function setQualityTier(tier: QualityTier): void {

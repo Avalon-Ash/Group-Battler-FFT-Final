@@ -177,6 +177,35 @@ describe('bolt geometry', () => {
 });
 
 describe('VFXPartStore', () => {
+    it('keeps mobile limits at 96 MiB / 320 and evicts the same static working set only at tier 3', () => {
+        for (const tier of [2, 3]) {
+            expect(VFX_PARTS.MAX_BYTES_BY_TIER[tier]).toBe(96 * 1024 * 1024);
+            expect(VFX_PARTS.MAX_ENTRIES_BY_TIER[tier]).toBe(320);
+        }
+        const desktop = createVFXPartStore(fakeSurface, () => 0);
+        const mobile = createVFXPartStore(fakeSurface, () => 3);
+        // 觸控裝置停在階層 0（跑得順不降階）也要用手機上限
+        const touch = createVFXPartStore(fakeSurface, () => 0, true);
+        // Static sprites have identical frame counts and byte sizes across tiers.
+        const specs: PartSpec[] = (Object.keys(VFX_RAMPS) as Array<keyof typeof VFX_RAMPS>)
+            .slice(0, 25).map((ramp) => ({ kind: 'ring', radius: 256, thickness: 6, ramp }));
+        let total = 0;
+        for (const spec of specs) {
+            const sprite = desktop.get(spec);
+            total += sprite.bytes;
+            expect(mobile.get(spec).bytes).toBe(sprite.bytes);
+            touch.get(spec);
+        }
+        expect(total).toBeGreaterThan(96 * 1024 * 1024);
+        expect(total).toBeLessThanOrEqual(VFX_PARTS.MAX_BYTES_BY_TIER[0]);
+        expect(desktop.stats().evictions).toBe(0);
+        expect(desktop.size()).toBe(specs.length);
+        expect(mobile.stats().evictions).toBeGreaterThan(0);
+        expect(mobile.bytes()).toBeLessThanOrEqual(96 * 1024 * 1024);
+        expect(touch.stats().evictions).toBeGreaterThan(0);
+        expect(touch.bytes()).toBeLessThanOrEqual(96 * 1024 * 1024);
+    });
+
     it('bakes every part kind without throwing, at BAKE_SCALE resolution', () => {
         const store = createVFXPartStore(fakeSurface, () => 0);
         for (const spec of ALL_SPECS) {
@@ -205,7 +234,7 @@ describe('VFXPartStore', () => {
         const store = createVFXPartStore(fakeSurface, () => 0);
         for (let i = 0; i < 40; i++) store.get({ kind: 'flame', height: 256, ramp: i % 2 ? 'ASH_FIRE' : 'LION_HOLY', jagged: i % 4 < 2 });
         for (const ramp of Object.keys(VFX_RAMPS) as Array<keyof typeof VFX_RAMPS>) store.get({ kind: 'glow', radius: 256, ramp });
-        expect(store.bytes()).toBeLessThanOrEqual(VFX_PARTS.MAX_BYTES);
+        expect(store.bytes()).toBeLessThanOrEqual(VFX_PARTS.MAX_BYTES_BY_TIER[0]);
         expect(store.bytes()).toBeGreaterThan(0);
     });
 
@@ -221,11 +250,11 @@ describe('VFXPartStore', () => {
                 for (const radius of [4, 8]) {
                     store.get({ kind: 'rays', radius, count, ramp });
                     store.get(first); // 保持最近使用
-                    if (++n > VFX_PARTS.MAX_ENTRIES + 5) break outer;
+                    if (++n > VFX_PARTS.MAX_ENTRIES_BY_TIER[0] + 5) break outer;
                 }
             }
         }
-        expect(store.size()).toBe(VFX_PARTS.MAX_ENTRIES);
+        expect(store.size()).toBe(VFX_PARTS.MAX_ENTRIES_BY_TIER[0]);
         expect(store.stats().evictions).toBeGreaterThan(0);
         const misses = store.stats().misses;
         store.get(first);

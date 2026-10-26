@@ -124,7 +124,7 @@ export class DesignExporter {
         s += "  - MAX_POOL_SIZE: 物件池回收上限。\n";
         s += "  - HAZARD_FIELD_MAX_PER_CELL: 每格 locked 危害粒子上限。\n";
         s += "  - IDLE_VFX_CULL_DIST_SQ: 待機粒子的距離剔除閾值。\n";
-        s += "  - 零件快取：VFX_PARTS.MAX_ENTRIES／MAX_BYTES；柔邊零件（光暈、煙）1 倍烘焙（SOFT_BAKE_SCALE）。\n\n";
+        s += "  - 零件快取：VFX_PARTS.MAX_ENTRIES_BY_TIER／MAX_BYTES_BY_TIER；柔邊零件（光暈、煙）1 倍烘焙（SOFT_BAKE_SCALE）。\n\n";
         s += "```\n";
         s += "GameEvent (Logic) -> EventVFXMapper (Adapter) -> VFXSystem (State: particles / beams)\n";
         s += "                                                       |\n";
