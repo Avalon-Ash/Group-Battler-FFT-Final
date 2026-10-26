@@ -23,6 +23,16 @@ import { createCanvas } from "../../../graphics/CanvasUtils";
 const tintedFrames = new Map<string, HTMLCanvasElement>();
 const resolved = createResolvedSpriteFrame();
 
+// The atlas store owns roster lifetime; release all matching tinted derivatives.
+spriteAtlasStore.onRelease(manifestKey => {
+    for (const [key, canvas] of tintedFrames) {
+        if (key.startsWith(`${manifestKey}|`)) {
+            canvas.width = canvas.height = 0;
+            tintedFrames.delete(key);
+        }
+    }
+});
+
 function getTintedFrame(
     manifestKey: string, mip: number,
     fx: number, fy: number, fw: number, fh: number, color: string
@@ -45,7 +55,11 @@ function getTintedFrame(
 
     if (tintedFrames.size >= AFTERIMAGE.MAX_TINTED_FRAMES) {
         const oldest = tintedFrames.keys().next().value;
-        if (oldest !== undefined) tintedFrames.delete(oldest);
+        if (oldest !== undefined) {
+            const canvas = tintedFrames.get(oldest)!;
+            canvas.width = canvas.height = 0;
+            tintedFrames.delete(oldest);
+        }
     }
     tintedFrames.set(key, canvas);
     return canvas;

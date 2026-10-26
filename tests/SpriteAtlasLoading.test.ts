@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SpriteAtlasStore, type UnitManifest } from '../engine/renderers/units/SpriteAtlasStore';
+import { Team, Role } from '../types';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -31,5 +32,97 @@ describe('delivery atlas scale', () => {
         expect(store.getSilhouette('BLUE:WARRIOR:MALE')).toMatchObject({ width: 1024, height: 1167 });
         expect(store.getFrame('BLUE:WARRIOR:MALE', 'idle', 'SE', 0)).toEqual(frame);
         expect(drawImage.mock.calls[0].slice(1)).toEqual(atlasScale === 0.5 ? [0, 0] : [0, 0, 1024, 1167]);
+    });
+});
+
+describe('roster resource lifetime', () => {
+    const tick = async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); };
+    function setup() {
+        const requests: ControlledImage[] = [];
+        class ControlledImage {
+            naturalWidth = 1024;
+            naturalHeight = 600;
+            onload: (() => void) | null = null;
+            onerror: (() => void) | null = null;
+            set src(_value: string) { requests.push(this); }
+        }
+        vi.stubGlobal('window', {});
+        vi.stubGlobal('Image', ControlledImage);
+        vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, json: async () => ({
+            atlasScale: 0.5,
+            units: Object.fromEntries([Role.TANK, Role.WARRIOR, Role.MAGE].map(role =>
+                [`BLUE:${role}:MALE`, { file: `${role}.webp` }]))
+        }) })));
+        vi.stubGlobal('document', { createElement: () => ({ width: 0, height: 0,
+            getContext: () => ({ drawImage: vi.fn(), fillRect: vi.fn() }) }) });
+        return { requests, store: new SpriteAtlasStore() };
+    }
+    const roster = [Role.TANK, Role.WARRIOR, Role.MAGE].map(role => ({ team: Team.BLUE, role }));
+    const ready = () => (window as unknown as { __UNIT_ASSETS_READY__: boolean }).__UNIT_ASSETS_READY__;
+
+    it('loads only roster keys, limits concurrency, releases canvases and reloads on return', async () => {
+        const { store, requests } = setup();
+        await store.readyPromise;
+        expect(requests).toHaveLength(0);
+        store.syncRoster(roster);
+        await tick();
+        expect(requests).toHaveLength(2);
+        expect(ready()).toBe(false);
+        requests[0].onload!();
+        await tick();
+        expect(requests).toHaveLength(3);
+        requests[1].onload!(); requests[2].onload!();
+        await store.readyPromise;
+        expect(ready()).toBe(true);
+        const atlas = store.getAtlas('BLUE:TANK:MALE');
+        const silhouette = store.getSilhouette('BLUE:TANK:MALE');
+        const released = vi.fn();
+        store.onRelease(released);
+        store.syncRoster([roster[2]]);
+        expect(atlas).toMatchObject({ width: 0, height: 0 });
+        expect(silhouette).toMatchObject({ width: 0, height: 0 });
+        expect(store.getAtlas('BLUE:TANK:MALE')).toBeNull();
+        expect(released.mock.calls.map(c => c[0])).toEqual(['BLUE:TANK:MALE', 'BLUE:WARRIOR:MALE']);
+        store.syncRoster([roster[0]]);
+        await tick();
+        expect(requests).toHaveLength(4);
+        expect(ready()).toBe(false);
+        requests[3].onload!();
+        await store.readyPromise;
+        expect(ready()).toBe(true);
+    });
+
+    it('discards obsolete in-flight images and queued keys after a roster change', async () => {
+        const { store, requests } = setup();
+        store.syncRoster(roster);
+        await tick();
+        expect(requests).toHaveLength(2);
+        store.syncRoster([]);
+        requests[0].onload!(); requests[1].onload!();
+        await store.readyPromise;
+        expect(requests).toHaveLength(2);
+        for (const agent of roster) expect(store.getAtlas(`BLUE:${agent.role}:MALE`)).toBeNull();
+        expect(ready()).toBe(true);
+    });
+
+    it('keeps readiness false on failure without retrying every frame', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const { store, requests } = setup();
+            store.syncRoster([roster[0]]);
+            await tick();
+            requests[0].onerror!();
+            await store.readyPromise;
+            store.syncRoster([roster[0]]);
+            await tick();
+            expect(requests).toHaveLength(1);
+            expect(ready()).toBe(false);
+            store.syncRoster([]); store.syncRoster([roster[0]]);
+            await tick();
+            expect(requests).toHaveLength(2);
+            requests[1].onload!();
+            await store.readyPromise;
+            expect(ready()).toBe(true);
+        } finally { warn.mockRestore(); }
     });
 });

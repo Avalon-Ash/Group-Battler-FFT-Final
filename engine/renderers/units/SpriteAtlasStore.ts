@@ -3,14 +3,17 @@
  * -----------------------------------------------------------------------------
  * 說明：
  *  - 載入 public/assets/units/manifest.json 與各單位圖集。
- *  - 懶載入（依 manifestKey）與閒置預取。
+ *  - 依目前陣容載入，最多兩張同時解碼；換隊釋放不用的圖集。
  *  - 預烘焙「受擊白閃」剪影版本（source-in 填白，執行期零消耗直接 blit）。
  *  - 預烘焙 UNIT_SPRITE.mipLevels 列出的縮小層級（目前只有 0.5：選層級的縮放 screenScale 約 0.37，
  *    從來選不到 1.0 與 0.25），原圖與全尺寸暫存畫布烘完即釋放。
- *  - 純衍生資源快取，不含遊戲狀態；提供 readyPromise 與 window.__ASSETS_READY__。
+ *  - 純衍生資源快取，不含遊戲狀態；提供 readyPromise 與 window.__UNIT_ASSETS_READY__。
  */
 
 import { UNIT_SPRITE } from '../../../constants';
+import type { Team, Role, BodyTypeId } from '../../../types';
+import { lookupSpriteAppearance } from '../../../data/units/appearance/sprite';
+import { resolveBodyType } from '../../../data/units/appearance/bodyTypes';
 import { getFactionSkinByAtlasKey } from '../../../data/units/factionSkin';
 
 export interface UnitFrameDef {
@@ -49,8 +52,8 @@ export interface UnitManifest {
 }
 
 interface BakedAtlasEntry {
-    normalMips: Map<number, CanvasImageSource>;
-    silhouetteMips: Map<number, CanvasImageSource>;
+    normalMips: Map<number, HTMLCanvasElement>;
+    silhouetteMips: Map<number, HTMLCanvasElement>;
 }
 
 /**
@@ -94,6 +97,13 @@ export class SpriteAtlasStore {
     private manifestPromise: Promise<UnitManifest | null>;
     private warnedAssets: Set<string> = new Set();
     private revision: number = 0;
+    private wantedKeys = new Set<string>();
+    private nextKeys = new Set<string>();
+    private rosterKnown = false;
+    private failedKeys = new Set<string>();
+    private activeLoads = 0;
+    private queue: { key: string; finish: () => void }[] = [];
+    private releaseListeners = new Set<(key: string) => void>();
 
     constructor() {
         this.manifestPromise = this.loadManifest();
@@ -118,8 +128,7 @@ export class SpriteAtlasStore {
             this.manifest = data;
             this.revision++;
 
-            // 預載場上最常用的 10 個核心單位圖集
-            await this.preloadCoreUnits();
+            this.markReady();
             return data;
         } catch (err) {
             this.warnOnce(`Error loading sprite manifest: ${String(err)}`);
@@ -128,68 +137,109 @@ export class SpriteAtlasStore {
         }
     }
 
-    /**
-     * 閒置時或背景預載所有現有單位圖集
-     */
-    private async preloadCoreUnits(): Promise<void> {
-        if (!this.manifest) {
-            this.markReady();
-            return;
+    /** Keep only the current roster's derived resources; never mutate agents. */
+    public syncRoster(agents: readonly { team: Team; role: Role; bodyType?: BodyTypeId }[]): void {
+        this.nextKeys.clear();
+        for (const agent of agents) {
+            const appearance = lookupSpriteAppearance(agent.team, agent.role, resolveBodyType(agent));
+            if (appearance) this.nextKeys.add(appearance.manifestKey);
         }
-        const keys = Object.keys(this.manifest.units);
-        await Promise.all(keys.map(k => this.loadAtlas(k)));
+        this.rosterKnown = true;
+        for (const key of this.wantedKeys) {
+            if (!this.nextKeys.has(key)) {
+                this.failedKeys.delete(key);
+                this.releaseAtlas(key);
+            }
+        }
+        const previous = this.wantedKeys;
+        this.wantedKeys = this.nextKeys;
+        this.nextKeys = previous;
+        for (const key of this.wantedKeys) {
+            if (!this.atlases.has(key) && !this.loadingPromises.has(key) && !this.failedKeys.has(key)) void this.loadAtlas(key);
+        }
         this.markReady();
+    }
+
+    public onRelease(listener: (key: string) => void): () => void {
+        this.releaseListeners.add(listener);
+        return () => { this.releaseListeners.delete(listener); };
+    }
+
+    private releaseAtlas(key: string): void {
+        const entry = this.atlases.get(key);
+        if (!entry) return;
+        for (const levels of [entry.normalMips, entry.silhouetteMips]) {
+            for (const canvas of levels.values()) canvas.width = canvas.height = 0;
+            levels.clear();
+        }
+        this.atlases.delete(key);
+        for (const listener of this.releaseListeners) listener(key);
+        this.revision++;
     }
 
     private markReady(): void {
         if (typeof window !== 'undefined') {
             const win = window as unknown as { __UNIT_ASSETS_READY__?: boolean };
-            win.__UNIT_ASSETS_READY__ = true;
+            let ready = !!this.manifest && this.rosterKnown;
+            for (const key of this.wantedKeys) if (!this.atlases.has(key)) { ready = false; break; }
+            win.__UNIT_ASSETS_READY__ = ready;
         }
     }
 
-    /**
-     * 載入指定 key 之單位圖集（包含白閃剪影與 Mip 預烘焙）
-     */
-    public async loadAtlas(manifestKey: string): Promise<void> {
-        if (this.atlases.has(manifestKey)) return;
+    public loadAtlas(manifestKey: string): Promise<void> {
+        if (this.atlases.has(manifestKey) || this.failedKeys.has(manifestKey)) return Promise.resolve();
         const existing = this.loadingPromises.get(manifestKey);
         if (existing) return existing;
-
-        const promise = (async () => {
-            if (!this.manifest) {
-                await this.manifestPromise;
-            }
-            if (!this.manifest || !this.manifest.units[manifestKey]) {
-                return;
-            }
-
-            const unitDef = this.manifest.units[manifestKey];
-            const imgPath = resolveAssetUrl(`assets/units/${unitDef.file}`);
-
-            if (typeof Image === 'undefined' || typeof document === 'undefined') {
-                return;
-            }
-
-            const img = await new Promise<HTMLImageElement | null>((resolve) => {
-                const image = new Image();
-                image.onload = () => resolve(image);
-                image.onerror = () => {
-                    this.warnOnce(`Failed to load unit atlas image at ${imgPath}`);
-                    resolve(null);
-                };
-                image.src = imgPath;
-            });
-
-            if (!img) return;
-
-            const baked = this.bakeAtlas(img, getFactionSkinByAtlasKey(manifestKey)?.sprite.tint ?? null);
-            this.atlases.set(manifestKey, baked);
-            this.revision++;
-        })();
-
+        if (typeof Image === 'undefined' || typeof document === 'undefined') return Promise.resolve();
+        let finish!: () => void;
+        const promise = new Promise<void>(resolve => { finish = resolve; });
         this.loadingPromises.set(manifestKey, promise);
+        this.queue.push({ key: manifestKey, finish });
+        void this.manifestPromise.then(() => this.pumpQueue());
         return promise;
+    }
+
+    private pumpQueue(): void {
+        while (this.activeLoads < UNIT_SPRITE.maxConcurrentLoads && this.queue.length) {
+            const job = this.queue.shift()!;
+            if (!this.manifest?.units[job.key] || (this.rosterKnown && !this.wantedKeys.has(job.key))) {
+                if (this.wantedKeys.has(job.key)) this.failedKeys.add(job.key);
+                this.loadingPromises.delete(job.key);
+                job.finish();
+                continue;
+            }
+            this.activeLoads++;
+            void this.decodeAtlas(job.key).catch(error => {
+                if (!this.rosterKnown || this.wantedKeys.has(job.key)) this.failedKeys.add(job.key);
+                this.warnOnce(`Error loading ${job.key}: ${String(error)}`);
+            }).finally(() => {
+                this.activeLoads--;
+                this.loadingPromises.delete(job.key);
+                job.finish();
+                this.markReady();
+                this.pumpQueue();
+            });
+        }
+    }
+
+    private async decodeAtlas(key: string): Promise<void> {
+        const unit = this.manifest!.units[key];
+        const imgPath = resolveAssetUrl(`assets/units/${unit.file}`);
+        const img = await new Promise<HTMLImageElement | null>(resolve => {
+            const image = new Image();
+            image.onload = () => { image.onload = image.onerror = null; resolve(image); };
+            image.onerror = () => { image.onload = image.onerror = null; resolve(null); };
+            image.src = imgPath;
+        });
+        // A roster may change while decoding. Do not bake or retain obsolete assets.
+        if (this.rosterKnown && !this.wantedKeys.has(key)) return;
+        if (!img) {
+            this.failedKeys.add(key);
+            this.warnOnce(`Failed to load unit atlas image at ${imgPath}`);
+            return;
+        }
+        this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(key)?.sprite.tint ?? null));
+        this.revision++;
     }
 
     /**
@@ -201,8 +251,8 @@ export class SpriteAtlasStore {
         const w = sourceImg.naturalWidth || sourceImg.width;
         const h = sourceImg.naturalHeight || sourceImg.height;
 
-        const normalMips = new Map<number, CanvasImageSource>();
-        const silhouetteMips = new Map<number, CanvasImageSource>();
+        const normalMips = new Map<number, HTMLCanvasElement>();
+        const silhouetteMips = new Map<number, HTMLCanvasElement>();
 
         // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
         let src: HTMLImageElement | HTMLCanvasElement = sourceImg;
@@ -273,7 +323,7 @@ export class SpriteAtlasStore {
     // ─────────────────────────────────────────────────────────────
 
     public get readyPromise(): Promise<void> {
-        return Promise.all([this.manifestPromise, ...this.loadingPromises.values()]).then(() => undefined);
+        return this.manifestPromise.then(() => Promise.all(this.loadingPromises.values())).then(() => undefined);
     }
 
     public isReady(manifestKey?: string): boolean {

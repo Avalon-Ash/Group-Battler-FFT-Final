@@ -3,7 +3,7 @@ import { BodyTypeId, BodyTypeProfile } from '../../../types';
 /**
  * BODY_TYPE_PROFILE (SSOT)
  * 定義單位體型外觀軸之基礎設定、縮放、偏移與回退鏈。
- * 當前僅 MALE 具備 3D 預渲染精靈素材，FEMALE 登記為 enabled: false，預設回退至 MALE。
+ * 男女皆具備預渲染素材；保留 FEMALE -> MALE 作為停用時的回退。
  */
 export const BODY_TYPE_PROFILE: Record<BodyTypeId, BodyTypeProfile> = {
     MALE: {
@@ -16,7 +16,7 @@ export const BODY_TYPE_PROFILE: Record<BodyTypeId, BodyTypeProfile> = {
     },
     FEMALE: {
         label: '女',
-        enabled: false,
+        enabled: true,
         heightScale: 1.0,
         shadowScale: 1.0,
         anchorYOffset: 0,
@@ -29,8 +29,8 @@ export const BODY_TYPE_PROFILE: Record<BodyTypeId, BodyTypeProfile> = {
  */
 export const BODY_TYPE_SPAWN = {
     weights: {
-        MALE: 1,
-        FEMALE: 0
+        MALE: 50,
+        FEMALE: 50
     } as Record<BodyTypeId, number>
 };
 

@@ -166,6 +166,8 @@ export const UNIT_SHADOW = {
 } as const;
 
 export const UNIT_SPRITE = {
+    /** Bound temporary image decode memory when the roster changes. */
+    maxConcurrentLoads: 2,
     targetHeightCanvasUnits: 59,
     referenceHeightPx: 158.3,
     footOffsetLocal: (UNIT_BODY_OFFSET + UNIT_HOVER_OFFSET) / UNIT_SCALE,

@@ -78,19 +78,20 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
     });
 
     describe('2. BodyType SSOT, pickBodyType & resolveBodyType', () => {
-        it('BODY_TYPE_PROFILE has MALE enabled and FEMALE disabled with MALE fallback', () => {
+        it('BODY_TYPE_PROFILE enables both bodies with MALE fallback', () => {
             expect(BODY_TYPE_PROFILE.MALE.enabled).toBe(true);
             expect(BODY_TYPE_PROFILE.MALE.fallback).toBeNull();
-            expect(BODY_TYPE_PROFILE.FEMALE.enabled).toBe(false);
+            expect(BODY_TYPE_PROFILE.FEMALE.enabled).toBe(true);
             expect(BODY_TYPE_PROFILE.FEMALE.fallback).toBe('MALE');
         });
 
-        it('resolveBodyType defaults to MALE and falls back when disabled', () => {
+        it('resolveBodyType defaults to MALE and preserves enabled FEMALE', () => {
             expect(resolveBodyType(null)).toBe('MALE');
             expect(resolveBodyType(undefined)).toBe('MALE');
             expect(resolveBodyType({ bodyType: 'MALE' })).toBe('MALE');
-            // FEMALE is disabled in production profile -> resolves to MALE
-            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('MALE');
+            // Production enables both appearances without changing their geometry.
+            expect(resolveBodyType({ bodyType: 'FEMALE' })).toBe('FEMALE');
+            expect(resolveBodyType({ bodyType: 'FEMALE' }, { ...BODY_TYPE_PROFILE, FEMALE: { ...BODY_TYPE_PROFILE.FEMALE, enabled: false } })).toBe('MALE');
         });
 
         it('resolveBodyType resolves FEMALE when custom profile has FEMALE enabled', () => {
@@ -113,7 +114,8 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             const r1 = pickBodyType('agent-1', 42);
             const r2 = pickBodyType('agent-1', 42);
             expect(r1).toBe(r2);
-            expect(r1).toBe('MALE');
+            expect(['MALE', 'FEMALE']).toContain(r1);
+            expect(BODY_TYPE_SPAWN.weights).toEqual({ MALE: 50, FEMALE: 50 });
         });
 
         it('pickBodyType yields balanced distribution when both MALE and FEMALE are enabled', () => {
@@ -172,12 +174,12 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
             }
         });
 
-        it('lookupSpriteAppearance falls back from FEMALE to MALE when FEMALE is disabled', () => {
+        it('lookupSpriteAppearance selects the enabled female atlas', () => {
             const femaleConfig = lookupSpriteAppearance(Team.BLUE, Role.MAGE, 'FEMALE');
             const maleConfig = lookupSpriteAppearance(Team.BLUE, Role.MAGE, 'MALE');
             expect(femaleConfig).not.toBeNull();
-            expect(femaleConfig?.manifestKey).toBe(maleConfig?.manifestKey);
-            expect(femaleConfig?.manifestKey).toBe('BLUE:MAGE:MALE');
+            expect(femaleConfig?.manifestKey).not.toBe(maleConfig?.manifestKey);
+            expect(femaleConfig?.manifestKey).toBe('BLUE:MAGE:FEMALE');
         });
     });
 

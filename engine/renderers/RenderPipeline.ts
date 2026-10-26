@@ -113,6 +113,7 @@ export class RenderPipeline {
     }
 
     public draw(rawCtx: CanvasRenderingContext2D, engine: GameEngine, camera: Camera, highlight: Agent | null, fps: number, hoveredHex: Hex | null, hoveredSkill: Skill | null, battleTime: number, realTime: number): void {
+        spriteAtlasStore.syncRoster(engine.agents);
         const { width: pW, height: pH } = rawCtx.canvas;
         if (pW === 0 || pH === 0) return;
 
