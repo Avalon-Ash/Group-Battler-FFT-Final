@@ -5,35 +5,38 @@
 
 ## 1. 目前狀態
 
-- 清理第一階段已合併進 `main`，並已 push。完成紀錄見 WORKLOG §2 S；後續計畫見 `docs/PROJECT_CLEANUP_NEXT_PLAN.md`。
-- **兩條並行線**：
-  - Codex 在自己的工作樹（`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`，分支 `codex/lionheart-warrior-skins`）做獅心戰士男女 skin：離線製作與試烘焙。交接文件是該分支 docs 底下的 `LIONHEART_WARRIOR_SKIN_TRIAL_OPUS_HANDOFF.md`（main 上還沒有這個檔）。
-  - 奧義 ULT-T01、ULT-V01 都已合併進 `main`（2026-10-26，WORKLOG §2 T）。
-  - skin 正式接進圖集、做效能量測時，由主代理排時段；Blender 烘焙不和 `perf:*` 同時跑（CLAUDE.md 鐵律）。
-- 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 共 659 列：520 列未讀、31 列只核對部分事實、108 列不適用。逐檔語義審計**沒有完成**，之後只能逐檔累積可追溯的證據，不可整批標成完成。
-- 未結案的 findings（`docs/PROJECT_CLEANUP_AUDIT01_FINDINGS.csv`）：
-  - **COORD-SINK-01**（P2）：受擊位移讓單位滯留原格，下坡插值時下陷 1.89px。原因已定位，修法還沒批准。
-  - **COORD-VOID-01**（P3）：探針把高速自由落體誤判成虛空滯留，屬於量測工具的問題。
-  - 已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
+- `main` 與 origin 同步到 7dd59d0 之後的文件提交；奧義重製、雷射改投射物、手機記憶體兩輪都已合併（WORKLOG §2 T、DECISIONS §5）。
+- **額度**：Claude（Pro）每週額度要省；GPT 額度寬鬆。主代理只做設計、寫提示詞、審查、驗收與合併，實作優先派 Codex（工作樹）或 Gemini（IDE `/goal`）。
+- **三條並行線**（第 2 節）：A 平衡（Gemini，非渲染）、B 渲染修正佇列（Codex，同一時間只開一條）、C 獅心 skin（GPT 自己跑完，主代理最後一次看）。
+- Codex 的 skin 工作樹：`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`（分支 `codex/lionheart-warrior-skins`），主代理不寫入。
+- 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 共 659 列：520 列未讀、31 列只核對部分事實、108 列不適用。逐檔語義審計沒有完成，只能逐檔累積證據，不可整批標成完成。
+- 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
-## 2. 下一步
+## 2. 下一步（三條線）
 
-1. **`perf:frames` 在主螢幕重跑**：粒子預算放寬（630／1000）後那次量測，視窗開在 59 Hz 副螢幕被 vsync 鎖住，無效。舊值對照：把 `constants/vfx.ts` 的軟／硬上限、`MAX_POOL_SIZE`、`HAZARD_SPAWN_BURSTS_PER_FIELD` 暫時改回 240／380／350／不限（報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §4）。
-2. 奧義、時序和阻斷問題都完成後，鎖定一個 commit，統一重跑平衡（含天降必中、雷射改投射物兩項玩法改動）。報告 §5 的玩法差異缺口（STORM 落點只是裝飾、BANISH／全隊護盾重複）在這一步一起判斷。
-3. **獅心戰士 skin 可以接回來**：Codex 額度 2026-10-26 已恢復。交接文件在該工作樹 docs 底下；接進圖集與量效能時由主代理排時段（不和 `perf:*` 同時烘焙）。圖集現在只留 0.5 倍層級（`UNIT_SPRITE.mipLevels`），新 skin 照同一套烘。
-4. 有空時：繼續讀清冊未讀的檔案；SINK／VOID 要有新證據才重開。
+**A. 平衡重跑 BAL-02（Gemini 3.8H，主資料夾，不碰渲染）**
+1. 主代理先寫 BAL02 提示詞（放 docs 底下，`agent-prompt` skill）：沿用上一輪做法（`npm run balance:sim`／`balance:report`、紅藍各 1000 場 seed 1、只動數值欄位、逐欄比對 main 非數值變動 0），本輪新增要看的玩法改動：天降類必中、12 招雷射改投射物、tr_a5 改近身爆發；並判斷 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §5 的缺口（STORM 落點只是裝飾、BANISH／全隊護盾重複）。停下條件要做成會失敗的檢查（METHODOLOGY §4 第 8 條）。
+2. 交給 Gemini 前環境已清（2026-10-26：刪除完成的報告與計畫、確認無 stash／多餘工作樹）。`battle_frozen` 在 A 線最後重錄（取證流程），B 線若也動到它，先合 B 再讓 A 重錄，不得「取一邊再重錄」。
+
+**B. 渲染修正佇列（Codex Sol／medium，獨立工作樹，依序一次一條；主代理審 diff＋`render-verify`）**
+1. **R1 特效零件快取抖動**：使用者 2026-10-26 主螢幕 `perf:frames` 的特效壓力情境，每 20 秒擠出 100～151 次、重烘造成長幀（一輪最長 320 ms、1% low 19 FPS；三輪 median 8.4 ms、p95 16.5 ms）。方向：`VFX_PARTS.MAX_BYTES` 依品質階層給（桌機階層 0／1 拉高到不再抖動，手機降階時維持或收），用 `perf:frames` 的 storm 情境量擠出次數與長幀。
+2. **R2 衝刺殘影**：使用者回饋衝刺技能軌跡太快、看不清楚。方向：位移技能（effectType `DASH`）的殘影存留更久或更多（`AFTERIMAGE`），不改速度與玩法。證據在 `docs/DASH_MOTION_REPORT.md`，做完刪除該報告。
+3. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。
+4. **R4 網格效果優先序**：使用者認為資訊太雜的主因是網格疊加。主代理先盤點同一格會疊的網格類效果（AOE 預警、危害場、詠唱環、射程、格子脈衝），定一張優先序表（同格只畫最高優先，或次要的降透明），再派 Codex。
+5. **R5 手機模擬量測工具**：使用者手機上很難用 `?perf`。在 `tools/ui-e2e/` 做一支手機模擬量測腳本：iPhone 14 Pro 版面＋CDP CPU 降速（4 倍）跑展示模式與 8 招奧義，輸出 FPS、品質階層、粒子數與記憶體。只能模擬 CPU，GPU 與 WebKit 行為仍以實機為準。可和 R1～R4 並行（不改渲染程式）。
+
+**C. 獅心戰士 skin（GPT 自己跑完）**：全部做完後主代理一次審查，再排時段接進圖集與量效能（Blender 烘焙不和 `perf:*` 同時跑）。圖集只留 0.5 倍層級（`UNIT_SPRITE.mipLevels`），新 skin 照同一套烘。
+
+**有空時**：繼續讀清冊未讀的檔案。
 
 ## 3. 待使用者實機確認
-1. **iPhone 14 Pro（iOS Chrome）展示模式長跑**（已合併 d3c924a、7dd59d0）：GroundDrape 畫布池會整理、單位圖集只留 0.5 倍層級後，模擬 iPhone 版面的存活畫布從約 1.6 GB 降到約 0.4 GB。要確認不再自動重新載入；開奧義時加 `?perf` 看右上角的 FPS 與品質階層，階層 2／3 時粒子上限會跟著收。剩下最大的是特效零件快取（約 190 MB，2 倍解析度烘焙），實測仍重載再處理。
-2. **ULT-V01 50 招奧義實機看**（報告 §6）：構造體會不會太卡通；偏淡的 tr_u3、sb_u2、wb_u4；偏亮的 mb_u2、sb_u4；懸空主體（奇點、蝕月、雷核）會不會壓到血條。
-3. **雷射改投射物實機看**：12 招普攻／主動技的新飛行物外觀與命中延遲手感（DECISIONS §5 2026-10-26）。
-4. **位移技能軌跡與近戰前衝實機看**（`docs/DASH_MOTION_REPORT.md`）：開一場戰鬥觀察衝刺技能（如 `wb_a2` 光速突進、`wr_a3` 狂暴衝鋒、`rb_a4` 戰術翻滾）起手爆發推進、跨高低差斜坡／跳落曲線與殘影起點，以及近戰普攻／主動技出手時的微幅前衝體感。
-5. **行為樹優化與技能強度重調實機看**（`docs/BT_OPT_REPORT.md`）：觀察輔助與坦克施放對友軍治療／增益後是否立即切換回敵方目標並正常接普攻（不再對著空氣發呆或誤衝敵陣）、自身中心範圍技（PBAOE）是否只在範圍內有敵人時施放、治療技是否不再對滿血隊友空放。
+1. **iPhone 14 Pro 展示模式長跑**：使用者 2026-10-26 回報「應該沒事，有問題再提」。待觀察；量測改用 B5 的模擬工具。
+2. **R1～R4 做完後的實機看**：衝刺殘影、網格優先序、屍體排序、特效壓力情境的頓挫。
 
 ## 4. 以後再說（暫緩項目）
-- **戰場視覺／資訊混亂度收斂**（使用者 2026-10-22 回饋「戰場有點混亂，不過暫時先這樣」）：技能特效、反傷／狀態浮字與場地疊層同時出現時的資訊密度收斂，暫緩。
+- **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
+  - Phase 2「高度分帶雙層烘焙」：把高度 ≤ 0 的地面層烘成一張整圖，單位與高地塊照舊交錯排序。觸發條件：B5 模擬或實機顯示手機 FPS 仍偏低，且歸因在地塊繪製。步驟：① 量地塊佔每幀繪製的比例（`perf:attribution`）② 原型只做 VOID／FOREST 兩張圖 ③ 保真 6 張 0 差異或取證 ④ 轉場與漂浮位移（VOID／MAGMA）另驗。
+  - Phase 3「圖集整合／粒子合批」：收益不確定，等 Phase 2 有結論再評估。
 - **重新部署方式**：Cloud Run 相關檔案已刪，全部搞定後再重新評估。
-- **正式版素材**：Quaternius 女性模型風格與 KayKit 差距過大已否決；其他新體型／神職模型標為待評估（不擴大為全部模型均被否決），外觀軸 `Team×Role×BodyType` 支援直接擴充。GPT 提議的男女重設計：建議只做少量概念稿，成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
-- **地形烘焙實作**（`docs/BAKED_RENDERING_DESIGN.md`）：熔岩圖現況順暢，暫緩。
-- **移動中排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX，沒有 static 振盪；證據在 `PROJECT_CLEANUP_COORD_R1_REVIEW.md`。
-- **Codex hook 信任**（使用者要做一次）：`.codex/hooks.json` 已改寫成 Codex 格式。下次在 Codex 開這個專案時用 `/hooks` 檢視並信任；舊的信任 hash 已經失效。PostToolUse 的提醒（改到渲染檔、重錄基準）只有單元測試，還沒在 Codex 裡實測。
+- **正式版素材**：交給 GPT 慢慢換；外觀軸 `Team×Role×BodyType` 支援直接擴充。成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
+- **奧義視覺細修**：使用者 2026-10-26「先這樣，主要是把流程和視覺管線建出來」。之後要優化再從 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §6 與矩陣開始。

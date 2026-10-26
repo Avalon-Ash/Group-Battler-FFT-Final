@@ -183,6 +183,16 @@
 - **驗證**：lint、811 個測試、build、runtime-smoke、perf:guard 全部通過；保真與 UI 基準沒有重錄。
 - **收尾**：刪除 `ULT_TIMING_AGENT_PROMPT.md`、`ULT_VISUAL_CLAUDE_AGENT_PROMPT.md`，以及只有這兩份提示詞在讀的 `ULT_REDESIGN_PLAN.md`。
 
+### U. 2026-10-26 雷射改投射物、手機記憶體兩輪（合併 3de15a0、d3c924a、7dd59d0）
+
+結論：遠程光束只留給奧義；iPhone 長跑被系統回收分頁的主因找到並修掉，模擬 iPhone 版面的存活畫布由約 1.6 GB 降到約 0.4 GB。
+
+- **雷射改投射物**（f98b875）：12 招普攻／主動技改成真投射物、6 種新飛行物外觀，tr_a5 改近身命中爆發；`tests/BeamUltOnly.test.ts` 把守；`battle_frozen` 依取證流程重錄（5a8fc24）。
+- **GroundDrape 畫布池整理**（4a51934）：大範圍奧義把離屏畫布撐到 2048² 後從不釋放，佔 567 MB；改成每 120 幀整理（沒用到的釋放、過大的縮小）。同時粒子上限依品質階層縮放（`VFX_BUDGET.TIER_BUDGET_RATIOS`）。`perf-lifecycle-soak.mjs` 新增 `--device=iphone`。
+- **單位圖集只留 0.5 倍**（39b1025）：選層級的縮放不含鏡頭與 DPR，永遠選 0.5，全尺寸、全尺寸白閃與 0.25 從未被畫到；拿掉後單位圖集 186 → 58 MB，原圖不再持有。保真全過、未重錄。
+- **實機**：使用者回報 iPhone「應該沒事」；奧義觀感「先這樣」；雷射改投射物、近戰前衝、行為樹 OK；衝刺殘影太快看不清（HANDOFF B 線 R2）。
+- **收尾**：刪除 `BT_OPT_REPORT.md`、`ULT_TIMING_REPORT.md`、`PROJECT_CLEANUP_NEXT_PLAN.md`（三個執行包都完成）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
