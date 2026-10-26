@@ -5,7 +5,8 @@
  *  - 載入 public/assets/units/manifest.json 與各單位圖集。
  *  - 懶載入（依 manifestKey）與閒置預取。
  *  - 預烘焙「受擊白閃」剪影版本（source-in 填白，執行期零消耗直接 blit）。
- *  - 預烘焙縮小層級 Mip（1.0, 0.5, 0.25），依實際螢幕縮放選取最合適層級，消滅閃爍與鋸齒。
+ *  - 預烘焙 UNIT_SPRITE.mipLevels 列出的縮小層級（目前只有 0.5：選層級的縮放 screenScale 約 0.37，
+ *    從來選不到 1.0 與 0.25），原圖與全尺寸暫存畫布烘完即釋放。
  *  - 純衍生資源快取，不含遊戲狀態；提供 readyPromise 與 window.__ASSETS_READY__。
  */
 
@@ -190,7 +191,9 @@ class SpriteAtlasStore {
     }
 
     /**
-     * 預烘焙單張圖集的白閃剪影與所有 Mip 層級
+     * 預烘焙單張圖集：只留 UNIT_SPRITE.mipLevels 列出的層級（彩色＋白閃剪影）。
+     * 原圖與染色用的全尺寸暫存畫布烘完即釋放，不留在記憶體（2026-10-26：全尺寸從未被畫到螢幕上，
+     * 10 張圖集的全尺寸副本與原圖佔約 240 MB，iPhone 長跑因此被系統回收分頁）。
      */
     private bakeAtlas(sourceImg: HTMLImageElement, tint: { color: string; strength: number } | null): BakedAtlasEntry {
         const w = sourceImg.naturalWidth || sourceImg.width;
@@ -200,9 +203,10 @@ class SpriteAtlasStore {
         const silhouetteMips = new Map<number, CanvasImageSource>();
 
         // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
-        let img: HTMLImageElement | HTMLCanvasElement = sourceImg;
+        let src: HTMLImageElement | HTMLCanvasElement = sourceImg;
+        let tinted: HTMLCanvasElement | null = null;
         if (tint && tint.strength > 0) {
-            const tinted = document.createElement('canvas');
+            tinted = document.createElement('canvas');
             tinted.width = w;
             tinted.height = h;
             const tctx = tinted.getContext('2d');
@@ -212,34 +216,15 @@ class SpriteAtlasStore {
                 tctx.globalAlpha = tint.strength;
                 tctx.fillStyle = tint.color;
                 tctx.fillRect(0, 0, w, h);
-                img = tinted;
+                src = tinted;
             }
         }
 
-        // 1.0 原寸
-        normalMips.set(1.0, img);
-
-        // 1.0 白閃剪影（source-in 填白）
-        const silCanvas = document.createElement('canvas');
-        silCanvas.width = w;
-        silCanvas.height = h;
-        const silCtx = silCanvas.getContext('2d');
-        if (silCtx) {
-            silCtx.drawImage(img, 0, 0);
-            silCtx.globalCompositeOperation = 'source-in';
-            silCtx.fillStyle = '#ffffff';
-            silCtx.fillRect(0, 0, w, h);
-        }
-        silhouetteMips.set(1.0, silCanvas);
-
-        // 預烘焙縮小 Mip 層級 (0.5, 0.25)
         for (const level of UNIT_SPRITE.mipLevels) {
-            if (level >= 1.0) continue;
-
             const mw = Math.max(1, Math.round(w * level));
             const mh = Math.max(1, Math.round(h * level));
 
-            // 普通色彩 Mip
+            // 彩色層級
             const normCanvas = document.createElement('canvas');
             normCanvas.width = mw;
             normCanvas.height = mh;
@@ -247,23 +232,29 @@ class SpriteAtlasStore {
             if (normCtx) {
                 normCtx.imageSmoothingEnabled = true;
                 normCtx.imageSmoothingQuality = 'high';
-                normCtx.drawImage(img, 0, 0, mw, mh);
+                normCtx.drawImage(src, 0, 0, mw, mh);
             }
             normalMips.set(level, normCanvas);
 
-            // 白閃剪影 Mip
-            const silMipCanvas = document.createElement('canvas');
-            silMipCanvas.width = mw;
-            silMipCanvas.height = mh;
-            const silMipCtx = silMipCanvas.getContext('2d');
-            if (silMipCtx) {
-                silMipCtx.imageSmoothingEnabled = true;
-                silMipCtx.imageSmoothingQuality = 'high';
-                silMipCtx.drawImage(silCanvas, 0, 0, mw, mh);
+            // 白閃剪影：同層級的彩色圖直接 source-in 填白（不另建全尺寸剪影）
+            const silCanvas = document.createElement('canvas');
+            silCanvas.width = mw;
+            silCanvas.height = mh;
+            const silCtx = silCanvas.getContext('2d');
+            if (silCtx) {
+                silCtx.drawImage(normCanvas, 0, 0);
+                silCtx.globalCompositeOperation = 'source-in';
+                silCtx.fillStyle = '#ffffff';
+                silCtx.fillRect(0, 0, mw, mh);
             }
-            silhouetteMips.set(level, silMipCanvas);
+            silhouetteMips.set(level, silCanvas);
         }
 
+        // 寬高設 0 立刻還回點陣記憶體；原圖由呼叫端丟掉參照後回收
+        if (tinted) {
+            tinted.width = 0;
+            tinted.height = 0;
+        }
         return { normalMips, silhouetteMips };
     }
 
@@ -302,16 +293,16 @@ class SpriteAtlasStore {
         return this.manifest?.units[manifestKey] ?? null;
     }
 
-    public getAtlas(manifestKey: string, mipScale: number = 1.0): CanvasImageSource | null {
+    public getAtlas(manifestKey: string, mipScale: number = UNIT_SPRITE.mipLevels[0]): CanvasImageSource | null {
         const entry = this.atlases.get(manifestKey);
         if (!entry) return null;
-        return entry.normalMips.get(mipScale) ?? entry.normalMips.get(1.0) ?? null;
+        return entry.normalMips.get(mipScale) ?? entry.normalMips.get(UNIT_SPRITE.mipLevels[0]) ?? null;
     }
 
-    public getSilhouette(manifestKey: string, mipScale: number = 1.0): CanvasImageSource | null {
+    public getSilhouette(manifestKey: string, mipScale: number = UNIT_SPRITE.mipLevels[0]): CanvasImageSource | null {
         const entry = this.atlases.get(manifestKey);
         if (!entry) return null;
-        return entry.silhouetteMips.get(mipScale) ?? entry.silhouetteMips.get(1.0) ?? null;
+        return entry.silhouetteMips.get(mipScale) ?? entry.silhouetteMips.get(UNIT_SPRITE.mipLevels[0]) ?? null;
     }
 
     public getFrame(

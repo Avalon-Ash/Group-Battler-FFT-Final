@@ -5,7 +5,7 @@
  *  - 簽章為 draw(ctx, agent, t, isSilhouette)。
  *  - 依 ECS 精神，純粹消費 Agent 資料與外觀 SSOT 設定。
  *  - 繪製位置以腳底為錨點 (0, 0)，加上 frame.ox / frame.oy 乘以全域縮放。
- *  - 依縮放自動選用預烘焙 Mip（1.0, 0.5, 0.25），零執行期離屏分配。
+ *  - 依縮放選用預烘焙層級（UNIT_SPRITE.mipLevels，目前只有 0.5），零執行期離屏分配。
  *  - 受擊閃白直接 blit 預烘焙之白色剪影，被遮擋輪廓以 low alpha 剪影 blit。
  *  - 嚴格遵守零 magic number、零體型字面值、無 shadowBlur。
  */
