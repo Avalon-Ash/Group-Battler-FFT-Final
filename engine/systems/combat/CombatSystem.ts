@@ -7,7 +7,7 @@ import { Agent, GameEngine } from "../../game";
 import { Skill, NodeState } from "../../../types";
 import { ProjectileSystem } from "./ProjectileSystem";
 import { CastingEngine, BreakCastContext } from "./CastingEngine";
-import { SkillExecutor } from "./SkillExecutor";
+import { SkillExecutor, DeferredCastSnapshot } from "./SkillExecutor";
 import { HexUtils } from "../../utils";
 import { ultImpactDelay } from '../../../data/vfx/ult_visuals';
 import { unitEventPos } from "../../events/EventPos";
@@ -22,6 +22,7 @@ export class CombatSystem {
         agent: Agent;
         skill: Skill;
         engine: GameEngine;
+        snapshot: DeferredCastSnapshot;
     }> = [];
 
     constructor() {
@@ -102,7 +103,7 @@ export class CombatSystem {
             this.castingEngine.handleInterruption(a, engine);
         }
         if (lockout !== undefined) a._interruptCooldown = Math.max(a._interruptCooldown, lockout);
-        this._deferredCasts = this._deferredCasts.filter(dc => dc.agent !== a);
+        // 天降類詠唱結束就算施放成功：落下途中的打斷不取消 _deferredCasts（2026-10-26 決定）
     }
 
     public update(dt: number, engine: GameEngine) {
@@ -121,9 +122,8 @@ export class CombatSystem {
         for (let i = this._deferredCasts.length - 1; i >= 0; i--) {
             const dc = this._deferredCasts[i];
             if (dc.engine.battleTime >= dc.executeAt) {
-                if (dc.agent.hp > 0) {
-                    this.skillExecutor.executeInstantSkill(dc.agent, dc.skill, dc.engine);
-                }
+                // 施法者在落下途中陣亡也照樣結算（同投射物：已出手的攻擊不因施法者死亡消失）
+                this.skillExecutor.executeInstantSkill(dc.agent, dc.skill, dc.engine, dc.snapshot);
                 this._deferredCasts.splice(i, 1);
             }
         }
@@ -161,14 +161,16 @@ export class CombatSystem {
         
         engine.log(a, 'CAST', '施放', targetName, `施放 ${s.name} (消耗 ${s.cost} MP)`);
 
-        // 天降類：詠唱結束後再等 timing＋落下時間才結算（ultImpactDelay；特效命中也讀同一個值）
+        // 天降類：詠唱結束後再等 timing＋落下時間才結算（ultImpactDelay；特效命中也讀同一個值）。
+        // 落點與目標在詠唱結束這一刻定下，之後施法者被暈、陣亡、換目標都照這個結算
         const delay = ultImpactDelay(s.id);
         if (delay > 0) {
             this._deferredCasts.push({
                 executeAt: engine.battleTime + delay,
                 agent: a,
                 skill: s,
-                engine
+                engine,
+                snapshot: { center: SkillExecutor.castCenter(a, s), target: a.target ?? null },
             });
             return;
         }

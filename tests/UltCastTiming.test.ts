@@ -5,6 +5,7 @@
 // ║    ③ 施法途中對該招的編輯／換槽一律拒絕                          ║
 // ║    ④ 真實引擎：不同 dt 下 CAST_START→CAST_FINISH 不早於 cast     ║
 // ║    ⑤ 死亡／暈眩中斷與重置後沒有延遲爆發                          ║
+// ║    ⑥ 天降類詠唱結束就必中：落下途中暈眩或陣亡仍在原落點結算      ║
 // ║  [ARCH] skill.cast 本身就是有效值，執行期不另外 clamp。           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
@@ -211,6 +212,50 @@ describe('UltCastTiming（ULT-T01）', () => {
             const afterBreak = seen.slice(seen.indexOf('CAST_BREAK') + 1);
             expect(seen, interrupt).toContain('CAST_BREAK');
             expect(finishBeforeRecast(afterBreak), `${interrupt}: ${seen.join(',')}`).toBe(false);
+        }
+    });
+
+    it('天降類落下途中被暈或陣亡：詠唱結束就算施放成功，照樣在原落點結算（2026-10-26 決定）', () => {
+        const fall = DEFAULT_SKILL_DB.find((s) => s.id === 'mr_u1')!;
+        expect(ultImpactDelay(fall.id)).toBeGreaterThan(0);
+        for (const interrupt of ['death', 'stun'] as const) {
+            const engine = battle(9);
+            const caster = engine.agents.find((a) => a.team === fall.team && a.skills.some((s) => s?.tag === 'ULT'))!;
+            const slot = caster.skills.findIndex((s) => s?.tag === 'ULT');
+            const enemy = engine.agents.filter((e) => e.team !== caster.team).sort((x, y) => HexUtils.dist(caster, x) - HexUtils.dist(caster, y))[0];
+            caster.skills[slot] = fall;
+            caster.skillIds[slot] = fall.id;
+            caster.bt = null;
+            caster.target = enemy;
+            caster.targetHex = { q: enemy.q, r: enemy.r };
+            caster.mp = caster.maxMp;
+            caster.curCDs[slot] = 0;
+            engine.combat.initiateCast(caster, slot, engine);
+            expect(caster.castingSkillIdx, interrupt).toBe(slot);
+            const center = { q: enemy.q, r: enemy.r };
+
+            let finishedAt = -1;
+            let impact: GameEvent | undefined;
+            let impactAt = -1;
+            engine.bus.on('GAME_EVENT', (ev: GameEvent) => {
+                if (ev.sourceId !== caster.id || ev.skill?.id !== fall.id) return;
+                if (ev.type === 'CAST_FINISH') finishedAt = engine.battleTime;
+                if (ev.type === 'IMPACT_AOE' && !impact) { impact = ev; impactAt = engine.battleTime; }
+            });
+            for (let t = 0; t < fall.cast + 0.5 && finishedAt < 0; t += 1 / 60) engine.tick(1 / 60);
+            expect(finishedAt, interrupt).toBeGreaterThan(0);
+
+            // 落下途中：施法者陣亡或被暈並打斷、換目標
+            if (interrupt === 'death') caster.hp = 0;
+            else { caster.effects.STUN.remaining = 2; engine.combat.breakCast(caster, engine, 1); }
+            caster.targetHex = { q: caster.q, r: caster.r };
+            for (let t = 0; t < ultImpactDelay(fall.id) + 0.5 && !impact; t += 1 / 60) engine.tick(1 / 60);
+
+            expect(impact, interrupt).toBeDefined();
+            expect(Math.abs(impactAt - finishedAt - ultImpactDelay(fall.id)), interrupt).toBeLessThanOrEqual(1 / 60 + 1e-9);
+            const want = HexUtils.toPx(center.q, center.r, engine.mapConfig);
+            expect(impact!.pos.x, interrupt).toBeCloseTo(want.x, 3);
+            expect(impact!.pos.y, interrupt).toBeCloseTo(want.y, 3);
         }
     });
 
