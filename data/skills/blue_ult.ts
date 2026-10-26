@@ -19,7 +19,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fbbf24', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'TAUNT', ccDur: 3.5, ccType2: 'SHIELD', ccForce2: 800, 
+        ccType: 'TAUNT', ccDur: 3.5, ccType2: 'SHIELD', ccForce2: 600, 
         visualHitEffect: 'FX_ULT_BLUE_KINGS_BLESSING', element: 'HOLY'
     },
     { 
@@ -46,7 +46,7 @@ export const BLUE_ULT: Skill[] = [
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#60a5fa', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 600,
+        ccType: 'SHIELD', ccForce: 900,
         visualHitEffect: 'FX_ULT_BLUE_FINAL_DEFENSE', element: 'PHYSICAL'
     },
 
@@ -207,9 +207,9 @@ export const BLUE_ULT: Skill[] = [
         id: 'sb_u3', role: Role.SUPPORT, team: Team.BLUE, tag: 'ULT', 
         name: '英勇讚美', desc: '全隊治療與護盾', 
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 10, power: -300, color: '#3b82f6', 
+        type: 'AOE', aoeRadius: 10, power: -400, color: '#3b82f6', 
         visual: 'SMASH', projectileSpeed: 0, 
-        ccType: 'SHIELD', ccForce: 500,
+        ccType: 'SHIELD', ccForce: 450,
         visualHitEffect: 'FX_ULT_BLUE_HYMN', element: 'HOLY'
     },
     { 

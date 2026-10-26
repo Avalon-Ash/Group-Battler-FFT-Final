@@ -164,8 +164,8 @@ export const RED_ULT: Skill[] = [
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '時間凝結', desc: '將目標凝滯於時間中',
         range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
-        type: 'SINGLE', power: 520, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
-        ccType: 'BANISH', ccDur: 3.5,
+        type: 'SINGLE', power: 620, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
+        ccType: 'BANISH', ccDur: 3.0,
         specialVisualStatus: 'STASIS',
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'
     },
@@ -211,7 +211,7 @@ export const RED_ULT: Skill[] = [
         name: '靈魂放逐', desc: '將目標逐出戰場短暫消失',
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
         type: 'SINGLE', power: 0, color: '#c084fc', visual: 'BEAM', projectileSpeed: 0,
-        ccType: 'BANISH', ccDur: 4.5,
+        ccType: 'BANISH', ccDur: 5.0,
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'
     },
     { 
