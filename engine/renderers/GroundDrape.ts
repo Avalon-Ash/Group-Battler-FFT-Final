@@ -7,7 +7,10 @@
 // ║  鋪設特效不是排序 op，所以沒有「單位站在法陣上」的排序環；    ║
 // ║  站在該格的單位在該格 TERRAIN 之後才畫，棋座壓在法陣上       ║
 // ║  （ART_SPEC §13）。分類與參數：constants/vfx.ts GROUND_DRAPE。    ║
-// ║  池化：登記項與離屏畫布皆重複使用，容量只增不減。            ║
+// ║  池化：登記項與離屏畫布皆重複使用。離屏畫布每 CANVAS_TRIM_FRAMES ║
+// ║  幀檢查一次：這段期間沒用到的釋放（寬高設 0），需求遠小於容量   ║
+// ║  的縮小（大範圍奧義會把畫布撐到 2048²，iPhone 長跑因此被系統   ║
+// ║  回收分頁，2026-10-26）。                                     ║
 // ║  除了粒子，也接受「繪製函式＋單位」（施法 AOE 地面預警），    ║
 // ║  一律走離屏畫布；函式是靜態參考，不每幀配置閉包。            ║
 // ║  懸空平面（planeZ，詠唱環）：不貼頂面，而是以固定高度逐格裁切；║
@@ -54,12 +57,15 @@ interface DrapeEntry {
     drawnW: number;
     drawnH: number;
     drawnScale: number;
+    /** 本次整理週期內實際需要的最大寬高（裝置像素）；整理時據此縮小或釋放畫布，然後歸零 */
+    peakW: number;
+    peakH: number;
 }
 
 function createEntry(): DrapeEntry {
     return {
         p: null, painter: null, painterAgent: null, planeZ: NaN, ownQ: 0, ownR: 0, x: 0, footY: 0, reach: 0, extW: 0, extH: 0, progress: 0, offscreen: false,
-        canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1,
+        canvas: null, cctx: null, drawnStamp: -1, drawnW: 0, drawnH: 0, drawnScale: 1, peakW: 0, peakH: 0,
     };
 }
 
@@ -72,6 +78,33 @@ export class GroundDrapeLayer {
     public begin(): void {
         this.count = 0;
         this.stamp++;
+        if (this.stamp % GROUND_DRAPE.CANVAS_TRIM_FRAMES === 0) this.trimCanvases();
+    }
+
+    /** 整理離屏畫布：整個週期沒用到的釋放；容量超過需求 CANVAS_SHRINK_RATIO 倍的縮到需求大小 */
+    private trimCanvases(): void {
+        const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
+        for (const e of this.entries) {
+            const c = e.canvas;
+            if (c) {
+                if (e.peakW === 0 || e.peakH === 0) {
+                    // 寬高設 0 才會立刻還回點陣記憶體（WebKit 不等 GC）
+                    c.width = 0;
+                    c.height = 0;
+                    e.canvas = null;
+                    e.cctx = null;
+                } else {
+                    const needW = Math.ceil(e.peakW / step) * step;
+                    const needH = Math.ceil(e.peakH / step) * step;
+                    if (c.width * c.height > needW * needH * GROUND_DRAPE.CANVAS_SHRINK_RATIO) {
+                        c.width = needW;
+                        c.height = needH;
+                    }
+                }
+            }
+            e.peakW = 0;
+            e.peakH = 0;
+        }
     }
 
     public get size(): number { return this.count; }
@@ -253,6 +286,8 @@ export class GroundDrapeLayer {
         const step = GROUND_DRAPE.CANVAS_GROW_STEP_PX;
         if (c.width < w) c.width = Math.ceil(w / step) * step;
         if (c.height < h) c.height = Math.ceil(h / step) * step;
+        if (w > e.peakW) e.peakW = w;
+        if (h > e.peakH) e.peakH = h;
 
         octx.setTransform(1, 0, 0, 1, 0, 0);
         octx.imageSmoothingEnabled = true;

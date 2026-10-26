@@ -6,7 +6,7 @@
 // Map/Set/Array reachable from the engine. Monotonic growth is flagged in the analysis.
 // R-group: Tracks console.error with location and http status>=400 errors; non-empty errors result in process.exitCode=1.
 // Harness provides GET /favicon.ico -> 204 fixture for browser decoration request.
-// Usage: node tools/ui-e2e/perf-lifecycle-soak.mjs [--minutes=11] [--showcase=5] [--sample=10] [--out=perf_lifecycle_soak.json]
+// Usage: node tools/ui-e2e/perf-lifecycle-soak.mjs [--minutes=11] [--showcase=5] [--sample=10] [--device=desktop|iphone] [--out=perf_lifecycle_soak.json]
 //   env: PL_ANALYZE_ONLY=<json file under out/> re-runs only the analysis.
 import { createServer } from 'vite';
 import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
@@ -210,7 +210,14 @@ const server = await createServer({
 await server.listen();
 const port = server.config.server.port;
 const browser = await launchBrowser({ headed: true, unthrottled: false, extraArgs: ['--enable-precise-memory-info', '--js-flags=--expose-gc', '--mute-audio'] });
-const ctx = await browser.newContext({ viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 1 });
+// --device=iphone：iPhone 14 Pro 的視窗、DPR 3、觸控與 UA（量手機版面下的畫布與快取；CPU／GPU 仍是這台電腦）
+const DEVICE = arg('device', 'desktop');
+const ctx = await browser.newContext(DEVICE === 'iphone'
+    ? {
+        viewport: { width: 393, height: 852 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true,
+        userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/130.0.6723.90 Mobile/15E148 Safari/604.1',
+    }
+    : { viewport: { width: 2560, height: 1440 }, deviceScaleFactor: 1 });
 const page = await ctx.newPage();
 const errors = [];
 page.on('response', (res) => {
