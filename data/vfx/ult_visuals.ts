@@ -87,15 +87,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- RANGER (Ice/Sniper) ---
     // rb_u1: 極地冰河 -> 天降巨大冰晶六邊體
-    'rb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#bae6fd', secondaryColor: '#fff', scale: 1.6, height: 1200, vfxOverride: 'FX_ULT_BLUE_GLACIAL_BURST' },
+    'rb_u1': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#bae6fd', secondaryColor: '#fff', scale: 1.6, height: 1200, vfxOverride: 'FX_ULT_BLUE_GLACIAL_BURST' },
     // rb_u2: 星辰墜落 -> 六邊形流星雨
-    'rb_u2': { archetype: 'STORM', primaryColor: '#fcd34d', secondaryColor: '#fff', scale: 1.0, count: 8, timing: 0.1, vfxOverride: 'FX_ULT_BLUE_STARFALL', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'rb_u2': { charged: true, archetype: 'STORM', primaryColor: '#fcd34d', secondaryColor: '#fff', scale: 1.0, count: 8, timing: 0.1, vfxOverride: 'FX_ULT_BLUE_STARFALL', windupFx: 'FX_ULT_BLUE_STARFALL_WINDUP' },
     // rb_u3: 穿日神矢 -> 衛星離子砲 (垂直巨型六邊柱)
-    'rb_u3': { archetype: 'HEAVEN_FALL', primaryColor: '#06b6d4', secondaryColor: '#22d3ee', scale: 1.8, height: 1000, vfxOverride: 'FX_ULT_BLUE_ORBITAL_BEAM' },
+    'rb_u3': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#06b6d4', secondaryColor: '#22d3ee', scale: 1.8, height: 1000, vfxOverride: 'FX_ULT_BLUE_ORBITAL_BEAM' },
     // rb_u4: 絕對封鎖 -> 六邊形牢籠
-    'rb_u4': { archetype: 'DOMAIN', primaryColor: '#7c3aed', secondaryColor: '#8b5cf6', scale: 1.4, vfxOverride: 'FX_ULT_BLUE_LOCKDOWN' },
+    'rb_u4': { charged: true, archetype: 'DOMAIN', primaryColor: '#7c3aed', secondaryColor: '#8b5cf6', scale: 1.4, vfxOverride: 'FX_ULT_BLUE_LOCKDOWN' },
     // rb_u5: 疾風百矢 -> 自身周圍的高頻六邊形火花
-    'rb_u5': { archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_STORM_SIGIL', cadence: 'CLUSTER' },
+    'rb_u5': { charged: true, archetype: 'STORM', primaryColor: '#fff', secondaryColor: '#38bdf8', scale: 0.7, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_OVERLOAD', windupFx: 'FX_ULT_BLUE_VOLLEY_WINDUP', cadence: 'CLUSTER' },
 
     // --- MAGE (Arcane/Gravity) ---
     // mb_u1: 奧術漩渦 -> 多面奇點＋螺旋吸積帶（充能式）

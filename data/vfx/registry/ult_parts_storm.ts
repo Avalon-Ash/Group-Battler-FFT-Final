@@ -55,28 +55,48 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
         ],
     },
-    // rb_u2 星辰墜落（全場隨機箭雨，8 次）：細光矢落在隨機位置＋星光＋擴張星環
+    // rb_u2 星辰墜落（全場隨機箭雨，充能式 8 次）：起手（只播一次）＝日輪紋章＋高空星座光點依序亮起
+    'FX_ULT_BLUE_STARFALL_WINDUP': {
+        id: 'FX_ULT_BLUE_STARFALL_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 112, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3, alpha: 0.85 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 7, ramp: 'LION_HOLY', hard: true }, count: 8, lifetime: [1.0, 1.3], delay: [0.2, 0.9], size: 7, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 170, partAnim: { scaleFrom: 0.4, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.2, rise: [{ at: 0, z: 200 }] } }),
+        ],
+    },
+    // rb_u2 每一顆星矢：拖尾從上方直落（頭在地面、尾巴往上收）＋星光＋擴張星環
     'FX_ULT_BLUE_STARFALL': {
         id: 'FX_ULT_BLUE_STARFALL',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 12, height: 192, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0, size: 12, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 1.4, scaleTo: 0.6, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
-                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 96, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.3, delay: 0, size: 96, groundAnchored: true,
+                partAnim: { scaleFrom: 1, scaleTo: 0.3, fadeOut: 0.6, rotation: Math.PI / 2 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 16, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.3, delay: 0, size: 16,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
-    // rb_u5 系統超載（單體極速連射，15 次）：命中點連閃＋小衝擊環＋電光碎點
+    // rb_u5 疾風百矢（單體極速連射，充能式 8 段叢集）：起手（只播一次）＝目標腳下獅盾印記＋層層收攏的準星環（弓弦光影）
+    'FX_ULT_BLUE_VOLLEY_WINDUP': {
+        id: 'FX_ULT_BLUE_VOLLEY_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 30, emblem: 'lionShield', ramp: 'LION_PHYSICAL' }, count: 1, lifetime: HIT + 0.6, delay: 0, size: 30,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.3 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 30, thickness: 3, ramp: 'LION_PHYSICAL' }, count: 3, lifetime: 0.6, delay: [0.3, 1.0], size: 30,
+                partAnim: { scaleFrom: 1.8, scaleTo: 0.8, ease: 'in', fadeIn: 0.2, fadeOut: 0.2 } }),
+        ],
+    },
+    // rb_u5 每一段：同一方向的密集細矢（方向一致＝看得出射擊方向）＋小閃＋細環
     'FX_ULT_BLUE_OVERLOAD': {
         id: 'FX_ULT_BLUE_OVERLOAD',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_LIGHTNING', hard: true }, count: 1, lifetime: 0.15, delay: 0, size: 24,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_LIGHTNING' }, count: 1, lifetime: 0.25, delay: 0, size: 24,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.6, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 4, ramp: 'LION_LIGHTNING', hard: true }, count: [2, 3], lifetime: [0.2, 0.35], delay: 0, size: 4,
-                shape: 'BURST_DIR', speed: [200, 400], drag: 0.08, partAnim: { fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 40, ramp: 'LION_PHYSICAL' }, count: 3, lifetime: 0.15, delay: 0, size: 40,
+                shape: 'CIRCLE', shapeRadius: 16, partAnim: { scaleFrom: 1, scaleTo: 0.5, fadeOut: 0.6, rotation: 0.25 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 14, ramp: 'LION_LIGHTNING' }, count: 1, lifetime: 0.15, delay: 0, size: 14,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 16, thickness: 3, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.3, delay: 0, size: 16,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
         ],
     },
     // mb_u4 奧術洪流（範圍 5 彈幕，充能式 8 次）：每個落點＝小藍閃＋細環＋碎晶（不放大白閃，8 次疊起來會洗白）

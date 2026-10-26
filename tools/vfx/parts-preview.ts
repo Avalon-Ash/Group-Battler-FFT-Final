@@ -79,6 +79,7 @@ const rows: Row[] = [
         { name: 'ribSpike ASH_BLOOD', spec: { kind: 'construct', shape: 'ribSpike', size: 96, ramp: 'ASH_BLOOD' } },
         { name: 'ribSpike ASH_PHYSICAL', spec: { kind: 'construct', shape: 'ribSpike', size: 64, ramp: 'ASH_PHYSICAL' } },
         { name: 'eye ASH_VOID', spec: { kind: 'construct', shape: 'eye', size: 96, ramp: 'ASH_VOID' } },
+        { name: 'arrow LION_LIGHTNING', spec: { kind: 'construct', shape: 'arrow', size: 120, ramp: 'LION_LIGHTNING' } },
     ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [

@@ -120,6 +120,11 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 神矢（size＝全長 L，矢尖在 (0,0) 朝下）：HEAD_LEN／HEAD_W＝矢頭長與寬，SHAFT_W＝矢桿寬，
+         * FLETCH_*＝尾羽（起點、長度、外展），SPAN＝外框寬，TIP_GLOW＝矢尖光暈半徑（皆相對 L）。
+         */
+        ARROW: { HEAD_LEN: 0.2, HEAD_W: 0.16, SHAFT_W: 0.04, FLETCH_START: 0.78, FLETCH_LEN: 0.2, FLETCH_W: 0.09, SPAN: 0.24, TIP_GLOW: 0.08 },
+        /**
          * 斷頭刃（size＝高 H，刃底中央在 (0,0)）：WIDTH＝刃寬，SLANT＝刃口斜度（右端比左端高多少），WEIGHT_*＝頂部配重塊（高度與寬倍率），
          * EDGE_ALPHA＝刃口亮線（皆相對 H）。
          */

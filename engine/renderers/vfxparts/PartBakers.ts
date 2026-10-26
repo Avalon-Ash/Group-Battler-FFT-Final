@@ -94,6 +94,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             if (n.shape === 'guillotine') return bakeGuillotine(ctx, n.size, ramp);
             if (n.shape === 'ribSpike') return bakeRibSpike(ctx, n.size, ramp);
             if (n.shape === 'eye') return bakeEye(ctx, n.size, ramp);
+            if (n.shape === 'arrow') return bakeArrow(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1666,6 +1667,31 @@ function bakeEye(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): void 
     ctx.fillStyle = withAlpha(VFX_NEUTRALS.CHAR, E.FILL_ALPHA);
     ctx.beginPath(); ctx.ellipse(0, 0, (E.PUPIL_W * W) / 2, ir * E.PUPIL_H, 0, 0, TAU); ctx.fill();
     ctx.restore();
+}
+
+/**
+ * 神矢（kind 'construct'，shape 'arrow'）：矢尖在錨點 (0,0) 朝下，尾端在 −L。
+ * 寬矢頭左受光右背光，細矢桿一道 core 內光，尾端兩對尾羽，矢尖一點光（ULT-V01：聚光成形的神矢，不是木箭）。
+ */
+function bakeArrow(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): void {
+    const A = VFX_PARTS.CONSTRUCT.ARROW;
+    const hl = A.HEAD_LEN * L, hw = (A.HEAD_W * L) / 2, sw = (A.SHAFT_W * L) / 2;
+    // 尾羽（在矢桿後面）
+    const f0 = -A.FLETCH_START * L, f1 = f0 - A.FLETCH_LEN * L;
+    for (const side of [-1, 1]) {
+        energyPiece(ctx, () => {
+            ctx.beginPath(); ctx.moveTo(side * sw, f0); ctx.lineTo(side * A.FLETCH_W * L, f1); ctx.lineTo(side * sw, f1 + A.FLETCH_LEN * L * 0.3); ctx.closePath();
+        }, faceGradient(ctx, side * A.FLETCH_W * L, f1, 0, f0, ramp, side < 0), ramp, L);
+    }
+    // 矢桿
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-sw, -L, sw * 2, L - hl); }, faceGradient(ctx, -sw, 0, sw, 0, ramp, true), ramp, L);
+    coreLine(ctx, ramp, L, () => { ctx.beginPath(); ctx.moveTo(0, -hl); ctx.lineTo(0, -L); });
+    // 矢頭
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-hw, -hl); ctx.lineTo(0, -hl * 0.8); ctx.closePath(); },
+        faceGradient(ctx, -hw, -hl, 0, 0, ramp, true), ramp, L);
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -hl * 0.8); ctx.lineTo(hw, -hl); ctx.closePath(); },
+        faceGradient(ctx, 0, -hl, hw, 0, ramp, false), ramp, L);
+    bakeGlowAt(ctx, 0, 0, A.TIP_GLOW * L, ramp);
 }
 
 /** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */

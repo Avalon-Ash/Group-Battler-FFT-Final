@@ -30,9 +30,10 @@ export type PrismStyle = 'glass' | 'solid';
  * towerShield＝塔盾（獅心光盾，盾尖朝下，錨點在盾尖，size＝高）；crown＝冠冕（錨點在中心，size＝寬）；
  * fist＝巨拳（拳面朝下，錨點在拳面底部，size＝含前臂的全長）；
  * guillotine＝斷頭刃（厚重斜刃，錨點在刃底中央，size＝高）；ribSpike＝骨刺（彎曲的血骨尖肋，錨點在根部，size＝高）；
- * eye＝深淵之眼（杏仁形眼＋發光虹膜＋縱瞳，錨點在中心，size＝寬；貼地用）。
+ * eye＝深淵之眼（杏仁形眼＋發光虹膜＋縱瞳，錨點在中心，size＝寬；貼地用）；
+ * arrow＝神矢（寬矢頭＋細矢桿＋尾羽，矢尖朝下，錨點在矢尖，size＝全長）。
  */
-export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye';
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -309,11 +310,12 @@ export function partBounds(n: PartSpec): PartBounds {
                 const d = n.size * haloR * 2 + m * 2;
                 return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
             }
-            if (n.shape === 'towerShield' || n.shape === 'fist' || n.shape === 'guillotine' || n.shape === 'ribSpike') {
+            if (n.shape === 'towerShield' || n.shape === 'fist' || n.shape === 'guillotine' || n.shape === 'ribSpike' || n.shape === 'arrow') {
                 // 錨點在底部（盾尖／拳面／刃底／骨刺根部）；寬度依造型
                 const C = VFX_PARTS.CONSTRUCT;
                 const wr = n.shape === 'towerShield' ? C.TOWER_SHIELD.WIDTH : n.shape === 'fist' ? C.FIST.HAND_W
-                    : n.shape === 'guillotine' ? C.GUILLOTINE.WIDTH * C.GUILLOTINE.WEIGHT_W : C.RIB_SPIKE.SPAN;
+                    : n.shape === 'guillotine' ? C.GUILLOTINE.WIDTH * C.GUILLOTINE.WEIGHT_W
+                    : n.shape === 'arrow' ? C.ARROW.SPAN : C.RIB_SPIKE.SPAN;
                 const w = n.size * wr + m * 2;
                 const h = n.size + m * 2;
                 return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
