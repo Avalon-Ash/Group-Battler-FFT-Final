@@ -9,6 +9,13 @@ const WB_U1_IMPACT = chargedImpactAt('wb_u1');
 /** wb_u1 雷核：顯形時刻與匯聚高度 */
 const WB_U1_CORE = { APPEAR: 0.2, Z: 260 } as const;
 const WB_U1_CORE_LIFE = WB_U1_IMPACT - WB_U1_CORE.APPEAR;
+/** tb_u3 巨盾落地＝傷害時刻；巨盾顯形時刻、高空緩降高度、落地後插著的停留秒數 */
+const TB_U3_IMPACT = chargedImpactAt('tb_u3');
+const TB_U3_SHIELD = { APPEAR: 0.3, Z_START: 380, Z_CAST_END: 300, HOLD: 0.5 } as const;
+const TB_U3_SHIELD_LIFE = TB_U3_IMPACT + TB_U3_SHIELD.HOLD - TB_U3_SHIELD.APPEAR;
+/** tb_u4 巨拳：顯形、抬起高度、命中後停留 */
+const TB_U4_FIST = { APPEAR: 0.3, Z_START: 150, Z_TOP: 200, TOP_AT: 1.2, HOLD: 0.4 } as const;
+const TB_U4_FIST_LIFE = HIT + TB_U4_FIST.HOLD - TB_U4_FIST.APPEAR;
 
 // ==========================================
 // 奧義特效（零件版）— 獅心（BLUE）
@@ -19,48 +26,61 @@ const WB_U1_CORE_LIFE = WB_U1_IMPACT - WB_U1_CORE.APPEAR;
 // ==========================================
 
 export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
-    // tb_u3 絕對防禦（天降神盾，HEAVEN_FALL，範圍 4）：起手神盾法陣預告 → 落地神盾衝擊＋光柱＋六角護盾碎片 → 光點上飄
+    // tb_u3 絕對防禦（自身範圍 4 擊退，充能式天降：傷害＝TB_U3_IMPACT＝詠唱結束＋落下時間）：
+    // 詠唱中獅盾紋章預告、巨型獅心光盾在高空顯形緩降 → 詠唱結束後砸落插地 → 衝擊環＋盾片往外震飛 → 光點
     'FX_ULT_BLUE_AEGIS_IMPACT': {
         id: 'FX_ULT_BLUE_AEGIS_IMPACT',
         emitters: [
-            // 起手：獅盾紋章（陣營紋章），在落點預告
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.1, delay: 0, size: 112, vRotation: 0.3,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            // 起手：天降神盾光柱
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 80, height: 224, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.1, size: 80, groundAnchored: true,
-                partAnim: { scaleFrom: 1.2, scaleTo: 0.85, fadeOut: 0.6 } }),
-            // 命中：落地主爆發（delay 0.3 與自由落體落地時刻對齊）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 96, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 96,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: TB_U3_IMPACT + 0.6, delay: 0, size: 112, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 巨盾：高空緩降 → 詠唱結束後加速砸落 → 插地停留（盾尖高度＝rise）
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'towerShield', size: 150, ramp: 'LION_HOLY' }, count: 1, lifetime: TB_U3_SHIELD_LIFE, delay: TB_U3_SHIELD.APPEAR, size: 150, groundAnchored: true,
+                partAnim: { fadeIn: 0.1, fadeOut: 0.15, rise: [
+                    { at: 0, z: TB_U3_SHIELD.Z_START },
+                    { at: (HIT - TB_U3_SHIELD.APPEAR) / TB_U3_SHIELD_LIFE, z: TB_U3_SHIELD.Z_CAST_END, ease: 'linear' },
+                    { at: (TB_U3_IMPACT - TB_U3_SHIELD.APPEAR) / TB_U3_SHIELD_LIFE, z: 0, ease: 'in' },
+                    { at: 1, z: 0 },
+                ] } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: TB_U3_IMPACT, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
-            // 六角護盾碎片向外彈開
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: [8, 10], lifetime: [0.6, 0.8], delay: 0.3, size: 8,
+            // 命中主爆發：衝擊環（範圍 4；128 * 1.6 * 1.4 = 286.7px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 128, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: TB_U3_IMPACT, size: 128,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.6, fadeOut: 0.6 } }),
+            // 盾片往外震飛
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: [8, 10], lifetime: [0.6, 0.8], delay: TB_U3_IMPACT, size: 8,
                 shape: 'BURST_DIR', speed: [180, 360], vz: [250, 450], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.6, 0.85], delay: [0.4, 0.55], size: 8,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [8, 10], lifetime: [0.6, 0.85], delay: [TB_U3_IMPACT + 0.1, TB_U3_IMPACT + 0.25], size: 8,
                 shape: 'CIRCLE', shapeRadius: 90, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
-
-    // tb_u4 泰坦降臨（巨型重擊，單體）：日輪法陣快閃 → 金色重擊閃光＋放射＋衝擊環＋碎石 → 塵土
+    // tb_u4 泰坦降臨（單體巨型重擊＋暈眩，充能式，命中 1.5 s）：金色能量巨拳在目標上空抬起蓄力 → 命中瞬間下壓 →
+    // 地面放射裂紋＋單體衝擊環＋大塊碎石 → 塵土
     'FX_ULT_BLUE_TITAN_SMASH': {
         id: 'FX_ULT_BLUE_TITAN_SMASH',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.2, delay: 0, size: 36,
-                partAnim: { scaleFrom: 1.0, scaleTo: 1.0, fadeIn: 0.08, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 80,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 80, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: 0.3, size: 80,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 48,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.0, fadeOut: 0.5 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'LION_PHYSICAL', seed: 2 }, count: [8, 12], lifetime: [0.7, 0.9], delay: 0.3, size: 8,
-                shape: 'BURST_DIR', speed: [250, 450], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'DUST', seed: 3 }, count: [3, 5], lifetime: [0.7, 0.9], delay: [0.35, 0.45], size: 32,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.4, delay: 0, size: 36,
+                partAnim: { scaleFrom: 0.8, scaleTo: 1, ease: 'linear', fadeIn: 0.08, fadeOut: 0.3 } }),
+            // 巨拳：顯形後慢慢抬高蓄力 → 命中瞬間砸下 → 壓在地上停一下（拳面高度＝rise）
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'fist', size: 96, ramp: 'LION_HOLY' }, count: 1, lifetime: TB_U4_FIST_LIFE, delay: TB_U4_FIST.APPEAR, size: 96, groundAnchored: true,
+                partAnim: { fadeIn: 0.12, fadeOut: 0.2, rise: [
+                    { at: 0, z: TB_U4_FIST.Z_START },
+                    { at: (TB_U4_FIST.TOP_AT - TB_U4_FIST.APPEAR) / TB_U4_FIST_LIFE, z: TB_U4_FIST.Z_TOP },
+                    { at: (HIT - TB_U4_FIST.APPEAR) / TB_U4_FIST_LIFE, z: 0, ease: 'in' },
+                    { at: 1, z: 0 },
+                ] } }),
+            // 放射裂紋（48 * 1.0 * 1.4 = 67.2px <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 48, count: 7, ramp: 'LION_HOLY', lengthJitter: 0.6, seed: 5 }, count: 1, lifetime: 0.9, delay: HIT, size: 48,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, fadeOut: 0.6 } }),
+            // 命中主爆發：單體衝擊環（24 * 1.6 * 1.4 = 53.8px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: HIT, size: 24,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.5 } }),
+            // 大塊碎石
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 12, shape: 'rock', ramp: 'LION_PHYSICAL', seed: 2 }, count: 6, lifetime: [0.7, 0.9], delay: HIT, size: 12,
+                shape: 'BURST_DIR', speed: [180, 360], vz: [200, 380], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'DUST', seed: 3 }, count: [3, 4], lifetime: [0.7, 0.9], delay: [HIT + 0.05, HIT + 0.15], size: 32,
                 shape: 'CIRCLE', shapeRadius: 36, speed: [20, 40], vz: [10, 30], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.5, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.6 } }),
         ],
     },
-
     // wb_u1 雷霆之怒（範圍 3 暈眩，充能式天降：傷害＝WB_U1_IMPACT＝詠唱結束＋落下時間）：
     // 詠唱中分叉聖雷一道道劈向目標上空的匯聚點、雷核漸大 → 詠唱結束後雷核砸落 →
     // 落地：主雷劈下、衝擊環擴張、電火花沿地面四竄。雷核由資產自己畫（ownFallObject），不掉共用岩塊。
@@ -137,20 +157,25 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // tb_u1 聖光結界（自身範圍 3 暈眩，SANCTUARY）：獅盾法陣 → 六根光柱沿六角環升起＋中央閃光＋衝擊環 → 光點
+    // tb_u1 聖光結界（自身範圍 3 暈眩，充能式，命中 1.5 s）：六面獅心光盾沿六角環依序立起 →
+    // 合圍：六向鎮壓光芒貼地射出＋衝擊環＋小閃 → 光點
     'FX_ULT_BLUE_SANCTUARY_IMPACT': {
         id: 'FX_ULT_BLUE_SANCTUARY_IMPACT',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.7, delay: 0, size: 112, vRotation: 0.3,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            // 六根光柱：RING 均勻分布＝六角結界的六個頂點
-            part({ particleType: 'PART', part: { kind: 'pillar', width: 40, height: 192, ramp: 'LION_HOLY' }, count: 6, lifetime: 1.0, delay: 0.25, size: 40, groundAnchored: true,
-                shape: 'RING', shapeRadius: 100, partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.45, delay: 0.3, size: 80,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 96, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 96, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 光盾：六面依序從地面立起（盾尖貼地，縮放＝長高）
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'towerShield', size: 64, ramp: 'LION_HOLY' }, count: 6, lifetime: 1.2, delay: [0.3, 0.75], size: 64, groundAnchored: true,
+                shape: 'RING', shapeRadius: 100, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.25 } }),
+            // 六向鎮壓：貼地六道光芒
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 112, count: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: HIT, size: 112,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 40, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: HIT, size: 40,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.7, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.5, 0.8], size: 8,
+            // 命中主爆發：衝擊環（範圍 3；96 * 1.6 * 1.4 = 215px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: HIT, size: 96,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.7, 1.0], delay: [HIT + 0.1, HIT + 0.35], size: 8,
                 shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
@@ -272,38 +297,46 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // tb_u2 王者之風（全場嘲諷與護盾）：獅盾法陣 → 王者光環（三道擴散環）＋上射光芒 → 光點
+    // tb_u2 王者之風（全場嘲諷＋護盾，無傷害，充能式，生效 1.5 s）：獅盾紋章展開、冠冕從施法者頭上升起 →
+    // 生效：冠冕一閃＋王令波紋一圈圈往外傳＋護盾碎光從各處上浮（增益：主爆發是冠冕的空中光，不是擴張衝擊環）
     'FX_ULT_BLUE_KINGS_BLESSING': {
         id: 'FX_ULT_BLUE_KINGS_BLESSING',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.6, delay: 0, size: 112, vRotation: 0.3,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.5, delay: 0.3, size: 80,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 96, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 96,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_HOLY' }, count: 3, lifetime: 0.8, delay: [0.3, 0.7], size: 128,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 112, vRotation: 0.3,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 冠冕升起並停在頭頂上方
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'crown', size: 56, ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.7 - 0.2, delay: 0.2, size: 56, groundAnchored: true,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.25, rise: [{ at: 0, z: 40 }, { at: (HIT - 0.2) / (HIT + 0.5), z: 120 }, { at: 1, z: 130, ease: 'linear' }] } }),
+            // 生效主爆發：冠冕的光（柔光，在冠冕高度）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 72, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: HIT, size: 72, groundAnchored: true,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7, alpha: 0.7, rise: [{ at: 0, z: 120 }] } }),
+            // 王令波紋：三道柔光環一圈圈往外傳
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_HOLY', soft: true }, count: 3, lifetime: 0.8, delay: [HIT, HIT + 0.45], size: 64,
                 partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.9, 1.2], delay: [0.4, 0.8], size: 8,
-                shape: 'CIRCLE', shapeRadius: 120, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
+            // 護盾回應：碎光從各處上浮（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_HOLY' }, count: [10, 12], lifetime: [0.8, 1.1], delay: [HIT + 0.15, HIT + 0.5], size: 6,
+                shape: 'CIRCLE', shapeRadius: 140, speed: [5, 20], vz: [50, 100], drag: 0.02, vRotation: [-3, 3], partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
 
-    // tb_u5 鋼鐵長城（全隊護盾）：獅盾法陣 → 六角護盾碎片環形升起＋護盾環 → 碎片閃爍淡出
+    // tb_u5 鋼鐵長城（全隊護盾，無傷害，充能式，生效 1.5 s）：六座六角稜柱城垛沿六角環依序升起 →
+    // 生效：城牆輪廓合攏（靜止環）＋碎光往四周分給友軍
     'FX_ULT_BLUE_FINAL_DEFENSE': {
         id: 'FX_ULT_BLUE_FINAL_DEFENSE',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.7, delay: 0, size: 112, vRotation: -0.3,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            // 城牆：六面六角盾片沿六角環立起
-            part({ particleType: 'PART', part: { kind: 'shard', size: 32, shape: 'hex', ramp: 'LION_ARCANE' }, count: 6, lifetime: 1.1, delay: [0.25, 0.4], size: 32, groundAnchored: true,
-                shape: 'RING', shapeRadius: 90, vz: [20, 40], partAnim: { scaleFrom: 0.3, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.5, delay: 0.3, size: 80,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'lionShield', ramp: 'LION_ARCANE' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 112, vRotation: -0.3,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 城垛：六座玻璃稜柱依序升起（底面錨點，縮放＝升起）
+            part({ particleType: 'PART', part: { kind: 'prism', radius: 22, height: 40, ramp: 'LION_ARCANE', style: 'glass' }, count: 6, lifetime: 1.0, delay: [0.3, 1.0], size: 22, groundAnchored: true,
+                shape: 'RING', shapeRadius: 90, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 生效主爆發：城牆輪廓合攏（靜止的六角環）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 100, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.6, delay: HIT, size: 100,
+                partAnim: { fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.4, delay: HIT, size: 48,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_ARCANE' }, count: 2, lifetime: 0.8, delay: [0.3, 0.55], size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.7, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_ARCANE', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.5, 0.8], size: 8,
-                shape: 'CIRCLE', shapeRadius: 100, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
+            // 分給友軍：碎光往四周飛出並上浮（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_ARCANE' }, count: 10, lifetime: [0.6, 0.9], delay: [HIT + 0.05, HIT + 0.2], size: 6,
+                shape: 'BURST_DIR', speed: [200, 400], vz: [60, 140], drag: 0.03, vRotation: [-6, 6], partAnim: { fadeOut: 0.5 } }),
         ],
     },
 

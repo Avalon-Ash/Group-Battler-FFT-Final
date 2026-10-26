@@ -120,6 +120,21 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 塔盾（size＝高 H，盾尖在 (0,0) 朝下）：WIDTH＝盾寬，SHOULDER＝直邊開始收尖的高度，TOP_ARCH＝上緣拱起；
+         * CROSS_*＝盾面聖十字（core 內光：豎線起訖、橫線高度與半寬），BOSS_*＝盾心寶石的高度與光暈半徑（皆相對 H）。
+         */
+        TOWER_SHIELD: { WIDTH: 0.62, SHOULDER: 0.45, TOP_ARCH: 0.06, CROSS_V: [0.18, 0.9] as const, CROSS_H: 0.66, CROSS_HALF: 0.18, BOSS_Y: 0.66, BOSS_R: 0.1 },
+        /**
+         * 冠冕（size＝寬 W，中心為錨點）：HEIGHT＝全高，BAND_H＝冠環高，POINTS＝冠尖數，POINT_H＝冠尖高（皆相對 W），
+         * GEM_R＝尖端寶石光暈半徑，BAND_GEMS＝冠環上的寶石數。
+         */
+        CROWN: { HEIGHT: 0.7, BAND_H: 0.22, POINTS: 5, POINT_H: 0.42, GEM_R: 0.07, BAND_GEMS: 3 },
+        /**
+         * 巨拳（size＝全長 L，拳面底部在 (0,0) 朝下）：ARM_W＝前臂寬、ARM_TOP＝前臂頂；HAND_W／HAND_TOP＝拳頭寬與頂；
+         * KNUCKLES＝指節數、KNUCKLE_R＝指節半徑；ROUND＝外側圓角半徑；THUMB_*＝拇指（位置與半徑）；BRACER＝護腕亮紋的高度（皆相對 L）。
+         */
+        FIST: { ROUND: 0.1, ARM_W: 0.34, ARM_TOP: 1, HAND_W: 0.52, HAND_TOP: 0.56, KNUCKLES: 4, KNUCKLE_R: 0.07, THUMB_X: -0.27, THUMB_Y: 0.3, THUMB_R: [0.08, 0.14] as const, BRACER: [0.64, 0.72] as const },
+        /**
          * 劍輪（size＝直徑 D，中心為錨點）：BLADES 把劍從 ROOT（相對半徑）伸到外緣，劍身寬 WIDTH（相對半徑），
          * 劍尖往旋轉方向偏 SWEEP_DEG（風車感）；GUARD＝劍格長；每把劍後方一道 TRAIL_DEG 的殘影弧（core，TRAIL_ALPHA 漸淡）；HALO_R＝外框半徑（相對 D）。
          */

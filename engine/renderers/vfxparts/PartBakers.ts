@@ -88,6 +88,9 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             if (n.shape === 'warhead') return bakeWarhead(ctx, n.size, ramp);
             if (n.shape === 'eclipse') return bakeEclipse(ctx, n.size, ramp);
             if (n.shape === 'bladeWheel') return bakeBladeWheel(ctx, n.size, ramp);
+            if (n.shape === 'towerShield') return bakeTowerShield(ctx, n.size, ramp);
+            if (n.shape === 'crown') return bakeCrown(ctx, n.size, ramp);
+            if (n.shape === 'fist') return bakeFist(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1467,6 +1470,110 @@ function bakeBladeWheel(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp)
         const g = (R * B.GUARD) / 2;
         coreLine(ctx, ramp, D, () => { ctx.beginPath(); ctx.moveTo(bx + nx * g, by + ny * g); ctx.lineTo(bx - nx * g, by - ny * g); });
     }
+}
+
+/**
+ * 塔盾（kind 'construct'，shape 'towerShield'）：盾尖在錨點 (0,0) 朝下，上緣在 −H。
+ * 左半受光、右半背光，盾面一道聖十字內光，盾心一顆寶石光（ULT-V01：魔法光盾，不是實心鐵盾）。
+ */
+function bakeTowerShield(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp): void {
+    const S = VFX_PARTS.CONSTRUCT.TOWER_SHIELD;
+    const hw = (S.WIDTH * H) / 2;
+    const yS = -S.SHOULDER * H;
+    const half = (side: number) => () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.quadraticCurveTo(side * hw, yS * 0.4, side * hw, yS);
+        ctx.lineTo(side * hw, -H * (1 - S.TOP_ARCH));
+        ctx.quadraticCurveTo(side * hw * 0.5, -H, 0, -H);
+        ctx.closePath();
+    };
+    energyPiece(ctx, half(-1), faceGradient(ctx, -hw, -H, 0, 0, ramp, true), ramp, H);
+    energyPiece(ctx, half(1), faceGradient(ctx, 0, -H, hw, 0, ramp, false), ramp, H);
+    coreLine(ctx, ramp, H, () => { ctx.beginPath(); ctx.moveTo(0, -S.CROSS_V[0] * H); ctx.lineTo(0, -S.CROSS_V[1] * H); });
+    coreLine(ctx, ramp, H, () => { ctx.beginPath(); ctx.moveTo(-S.CROSS_HALF * H, -S.CROSS_H * H); ctx.lineTo(S.CROSS_HALF * H, -S.CROSS_H * H); });
+    bakeGlowAt(ctx, 0, -S.BOSS_Y * H, S.BOSS_R * H, ramp);
+}
+
+/**
+ * 冠冕（kind 'construct'，shape 'crown'）：錨點在中心，W＝寬。下方冠環（上亮下暗）＋ POINTS 個冠尖（左側受光），
+ * 冠尖頂與冠環上各有寶石光。
+ */
+function bakeCrown(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.CONSTRUCT.CROWN;
+    const hw = W / 2;
+    const bottom = (C.HEIGHT * W) / 2;
+    const bandTop = bottom - C.BAND_H * W;
+    const tipY = bandTop - C.POINT_H * W;
+    // 冠尖（在冠環後面）
+    for (let i = 0; i < C.POINTS; i++) {
+        const u = C.POINTS > 1 ? i / (C.POINTS - 1) : 0.5;
+        const cx = -hw + W * u;
+        const pw = W / (C.POINTS - 1) / 2;
+        const h = i % 2 === 0 ? 1 : 0.7;
+        const ty = bandTop - (bandTop - tipY) * h;
+        const point = () => {
+            ctx.beginPath();
+            ctx.moveTo(Math.max(-hw, cx - pw), bandTop);
+            ctx.lineTo(cx, ty);
+            ctx.lineTo(Math.min(hw, cx + pw), bandTop);
+            ctx.closePath();
+        };
+        energyPiece(ctx, point, faceGradient(ctx, cx - pw, ty, cx + pw, bandTop, ramp, u < 0.5), ramp, W);
+        bakeGlowAt(ctx, cx, ty, C.GEM_R * W, ramp);
+    }
+    // 冠環
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-hw, bandTop, W, bottom - bandTop); },
+        faceGradient(ctx, 0, bandTop, 0, bottom, ramp, true), ramp, W);
+    coreLine(ctx, ramp, W, () => { ctx.beginPath(); ctx.moveTo(-hw, (bandTop + bottom) / 2); ctx.lineTo(hw, (bandTop + bottom) / 2); });
+    for (let i = 0; i < C.BAND_GEMS; i++) {
+        const x = -hw + (W * (i + 1)) / (C.BAND_GEMS + 1);
+        bakeGlowAt(ctx, x, (bandTop + bottom) / 2, C.GEM_R * W * 0.8, ramp);
+    }
+}
+
+/**
+ * 巨拳（kind 'construct'，shape 'fist'）：拳面底部在錨點 (0,0) 朝下，前臂往上到 −L。
+ * 前臂與拳頭都是左受光右背光的能量體，底部一排指節、左側拇指，前臂兩道護腕亮紋（ULT-V01：泰坦之力的魔法拳，不是石雕）。
+ */
+function bakeFist(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): void {
+    const F = VFX_PARTS.CONSTRUCT.FIST;
+    const aw = (F.ARM_W * L) / 2;
+    const hw = (F.HAND_W * L) / 2;
+    const handTop = -F.HAND_TOP * L;
+    const kr = F.KNUCKLE_R * L;
+    // 圓角塊：只把外側兩角做圓（左右兩半拼起來是一整塊圓角體）
+    const rr = F.ROUND * L;
+    const block = (x0: number, y0: number, x1: number, y1: number, lit: boolean) => {
+        const r = Math.min(rr, (x1 - x0) / 2, (y1 - y0) / 2);
+        const outerLeft = lit;
+        energyPiece(ctx, () => {
+            ctx.beginPath();
+            if (outerLeft) {
+                ctx.moveTo(x1, y0); ctx.lineTo(x0 + r, y0); ctx.quadraticCurveTo(x0, y0, x0, y0 + r);
+                ctx.lineTo(x0, y1 - r); ctx.quadraticCurveTo(x0, y1, x0 + r, y1); ctx.lineTo(x1, y1);
+            } else {
+                ctx.moveTo(x0, y0); ctx.lineTo(x1 - r, y0); ctx.quadraticCurveTo(x1, y0, x1, y0 + r);
+                ctx.lineTo(x1, y1 - r); ctx.quadraticCurveTo(x1, y1, x1 - r, y1); ctx.lineTo(x0, y1);
+            }
+            ctx.closePath();
+        }, faceGradient(ctx, x0, y0, x1, y1, ramp, lit), ramp, L);
+    };
+    // 前臂
+    block(-aw, -F.ARM_TOP * L, 0, handTop, true);
+    block(0, -F.ARM_TOP * L, aw, handTop, false);
+    for (const b of F.BRACER) coreLine(ctx, ramp, L, () => { ctx.beginPath(); ctx.moveTo(-aw, -b * L); ctx.lineTo(aw, -b * L); });
+    // 拳頭
+    block(-hw, handTop, 0, -kr, true);
+    block(0, handTop, hw, -kr, false);
+    // 指節
+    for (let i = 0; i < F.KNUCKLES; i++) {
+        const x = -hw + kr + ((hw * 2 - kr * 2) * i) / (F.KNUCKLES - 1);
+        energyPiece(ctx, () => { ctx.beginPath(); ctx.arc(x, -kr, kr, 0, TAU); }, faceGradient(ctx, x - kr, -kr * 2, x + kr, 0, ramp, x < 0), ramp, L);
+    }
+    // 拇指
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.ellipse(F.THUMB_X * L, -F.THUMB_Y * L, F.THUMB_R[0] * L, F.THUMB_R[1] * L, 0, 0, TAU); },
+        faceGradient(ctx, F.THUMB_X * L - F.THUMB_R[0] * L, -F.THUMB_Y * L, F.THUMB_X * L + F.THUMB_R[0] * L, -F.THUMB_Y * L, ramp, true), ramp, L);
 }
 
 /** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */

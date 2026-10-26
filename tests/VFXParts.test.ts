@@ -53,6 +53,9 @@ const ALL_SPECS: PartSpec[] = [
     { kind: 'construct', shape: 'warhead', size: 64, ramp: 'ASH_FIRE' },
     { kind: 'construct', shape: 'eclipse', size: 64, ramp: 'ASH_BLOOD' },
     { kind: 'construct', shape: 'bladeWheel', size: 96, ramp: 'LION_PHYSICAL' },
+    { kind: 'construct', shape: 'towerShield', size: 96, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'crown', size: 64, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'fist', size: 96, ramp: 'LION_HOLY' },
 ];
 
 describe('VFX part palette', () => {

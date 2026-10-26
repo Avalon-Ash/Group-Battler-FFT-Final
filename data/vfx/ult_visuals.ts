@@ -63,15 +63,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
     
     // --- TANK (Paladin/Mech) ---
     // tb_u1: 聖光結界 -> 巨大的六邊形光牆聖域
-    'tb_u1': { archetype: 'SANCTUARY', primaryColor: '#fbbf24', secondaryColor: '#fff', scale: 1.5, count: 6, vfxOverride: 'FX_ULT_BLUE_SANCTUARY_IMPACT' },
+    'tb_u1': { charged: true, archetype: 'SANCTUARY', primaryColor: '#fbbf24', secondaryColor: '#fff', scale: 1.5, count: 6, vfxOverride: 'FX_ULT_BLUE_SANCTUARY_IMPACT' },
     // tb_u2: 王者之風 -> 全場六邊形脈衝
-    'tb_u2': { archetype: 'DOMAIN', primaryColor: '#fcd34d', secondaryColor: '#fffbeb', scale: 2.5, vfxOverride: 'FX_ULT_BLUE_KINGS_BLESSING' },
+    'tb_u2': { charged: true, archetype: 'DOMAIN', primaryColor: '#fcd34d', secondaryColor: '#fffbeb', scale: 2.5, vfxOverride: 'FX_ULT_BLUE_KINGS_BLESSING' },
     // tb_u3: 絕對防禦 -> 天降巨大六邊形光盾 (Monolith)
-    'tb_u3': { archetype: 'HEAVEN_FALL', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.8, height: 1200, vfxOverride: 'FX_ULT_BLUE_AEGIS_IMPACT' },
+    'tb_u3': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.8, height: 1200, vfxOverride: 'FX_ULT_BLUE_AEGIS_IMPACT' },
     // tb_u4: 泰坦降臨 -> 六邊形地裂
-    'tb_u4': { archetype: 'INSTANT_IMPACT', primaryColor: '#d97706', secondaryColor: '#fcd34d', scale: 1.6, vfxOverride: 'FX_ULT_BLUE_TITAN_SMASH' },
+    'tb_u4': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#d97706', secondaryColor: '#fcd34d', scale: 1.6, vfxOverride: 'FX_ULT_BLUE_TITAN_SMASH' },
     // tb_u5: 鋼鐵長城 -> 巨型全息網格
-    'tb_u5': { archetype: 'DOMAIN', primaryColor: '#3b82f6', secondaryColor: '#93c5fd', scale: 1.5, vfxOverride: 'FX_ULT_BLUE_FINAL_DEFENSE' },
+    'tb_u5': { charged: true, archetype: 'DOMAIN', primaryColor: '#3b82f6', secondaryColor: '#93c5fd', scale: 1.5, vfxOverride: 'FX_ULT_BLUE_FINAL_DEFENSE' },
 
     // --- WARRIOR (Thunder/Blade) ---
     // wb_u1: 雷霆之怒 -> 天降雷霆六邊柱
