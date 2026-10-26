@@ -6,7 +6,7 @@
 // ║           命中瞬間總表（每張地圖一張）                            ║
 // ║    move   單體技詠唱中目標移開 2 格：命中特效離新／舊位置的距離   ║
 // ║    multi  同一幀 8 招奧義：粒子峰值、預算、錯誤、各自生效時刻     ║
-// ║    cancel 詠唱中打斷（50 招）與天降落下途中打斷（10 招）：         ║
+// ║    cancel 詠唱中打斷（50 招，不得結算）與天降落下途中打斷（照常落地）║
 // ║           被打斷後是否仍有傷害或命中特效（幽靈爆發）              ║
 // ║    reset  施放中途 RESET_GAME：殘留粒子與延遲爆發                 ║
 // ║  用法：node tools/vfx/ult-battle-probe.mjs [--suite=all|maps|move|multi|cancel|reset]
@@ -402,11 +402,16 @@ try {
             return rows;
         });
         results.cancel = r;
-        const effectLeak = r.filter((x) => x.effects > 0).map((x) => `${x.id}/${x.mode}:${x.effects}`);
-        const ghost = r.filter((x) => x.particlesAtHit > 0).map((x) => `${x.id}/${x.mode}:${x.particlesAtHit}`);
-        say(`[cancel] effects after break: ${effectLeak.join(' ') || 'none'}`);
-        say(`[cancel] particles still alive at the would-be hit (ghost burst): ${ghost.join(' ') || 'none'}`);
-        if (effectLeak.length || ghost.length) failed = true;
+        // 詠唱中打斷：不得有傷害、不得有命中特效
+        const mid = r.filter((x) => x.mode === 'mid-cast');
+        const effectLeak = mid.filter((x) => x.effects > 0).map((x) => `${x.id}:${x.effects}`);
+        const ghost = mid.filter((x) => x.particlesAtHit > 0).map((x) => `${x.id}:${x.particlesAtHit}`);
+        // 天降落下途中打斷：詠唱結束就算施放成功（2026-10-26 決定），傷害與落地特效都要照常出現
+        const fall = r.filter((x) => x.mode === 'during-fall');
+        const fallMissing = fall.filter((x) => x.effects === 0 || x.particlesAtHit === 0).map((x) => `${x.id}(effects ${x.effects}, particles ${x.particlesAtHit})`);
+        say(`[cancel] mid-cast break (${mid.length}): effects ${effectLeak.join(' ') || 'none'}; ghost particles ${ghost.join(' ') || 'none'}`);
+        say(`[cancel] break during the fall (${fall.length}): did not land ${fallMissing.join(' ') || 'none'}`);
+        if (effectLeak.length || ghost.length || fallMissing.length) failed = true;
     }
 
     // ---------------- reset ----------------

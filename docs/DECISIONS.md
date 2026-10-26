@@ -38,3 +38,5 @@
 - 刪除與 `public/assets/units/` 完全相同的 `art-source/sprites/`，保留 `art-source/terrain_grid.jpg`（地形處理工具的來源圖）。
 - 2026-10-19：網格線維持現狀（參數在 `TERRAIN_SKIN.edge`，隨時可調）；遠端只留 `main`（`20260328`、`experiment/unit-rig-skin-poc` 各留本地 tag `archive/*`，`feat/procedural-material-upgrade` 已合併）；縮圈墜落改做程式化動畫（不加新美術）；部署以後再說。
 - 2026-10-19：現階段先打通功能通道，素材（曲子、模型）等正式版再換。每張地圖的戰鬥曲用占位曲（`data/audio/music.ts` `SCENE_BATTLE_TRACK`），候選留在 `docs/BGM_CANDIDATES.md`。Quaternius Ultimate Modular Women 風格與現有 KayKit 差太多，不採用。
+- 2026-10-26：天降類奧義詠唱結束就算施放成功（ULT-V01 實戰探針後使用者選 B）。落下途中被暈、被打斷或施法者陣亡都照樣在詠唱結束時的落點與目標結算；只有詠唱期間的打斷會取消。理由：改版前傷害被取消、畫面上的落下物卻照樣落地，兩者對不上；「已出手就會落下」和投射物的規則一致。
+- 2026-10-26：粒子預算放寬為軟 630／硬 1000（原 240／380），大範圍危害場的生成爆發每幀每場最多 12 格。依據是 `perf-particle-budget.mjs` 的真實 8 招量測（數字在 `constants/vfx.ts` 註解與 ULT-V01 報告 §4）。
