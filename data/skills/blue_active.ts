@@ -32,9 +32,9 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'tb_a4', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
         name: '聖鎖牽引', desc: '單體牽引', 
         range: 5, cast: 0.6, cd: 8.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 80, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 80, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 1600, 
         ccType: 'PULL', ccForce: 3, ccType2: 'TAUNT', ccDur2: 2.0,
-        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', element: 'LIGHTNING'
+        visualHitEffect: 'FX_ACTIVE_BLUE_RADIANT_BURST', visualProjectileEffect: 'PROJ_BLUE_CHAIN_HOOK', element: 'LIGHTNING'
     },
     { 
         id: 'tb_a5', role: Role.TANK, team: Team.BLUE, tag: 'ACTIVE', 
@@ -140,9 +140,9 @@ export const BLUE_ACTIVE: Skill[] = [
         id: 'mb_a2', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 
         name: '冰封禁錮', desc: '單體定身', 
         range: 6, cast: 0.5, cd: 10.0, cost: 35, gain: 0, 
-        type: 'SINGLE', power: 130, color: '#e0f2fe', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 130, color: '#e0f2fe', visual: 'BOLT', projectileSpeed: 1300, 
         ccType: 'ROOT', ccDur: 3.0, element: 'ICE', 
-        visualHitEffect: 'FX_ACTIVE_BLUE_FROST_SNAP'
+        visualHitEffect: 'FX_ACTIVE_BLUE_FROST_SNAP', visualProjectileEffect: 'PROJ_BLUE_FROST_BOLT',
     },
     { 
         id: 'mb_a3', role: Role.MAGE, team: Team.BLUE, tag: 'ACTIVE', 

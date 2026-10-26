@@ -139,9 +139,9 @@ export const RED_BASIC: Skill[] = [
         id: 'mr_b2', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
         name: '生命虹吸', desc: '吸血連結', 
         range: 5, cast: 0.5, cd: 0.9, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 82, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 82, color: '#991b1b', visual: 'BOLT', projectileSpeed: 1000, 
         effectType: 'VAMP', effectVal: 0.6, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_ORB', element: 'BLOOD'
     },
     { 
         id: 'mr_b3', role: Role.MAGE, team: Team.RED, tag: 'BASIC', 
@@ -171,9 +171,9 @@ export const RED_BASIC: Skill[] = [
         id: 'sr_b1', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '血之祭儀', desc: '吸血光束', 
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: 60, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 60, color: '#be123c', visual: 'BOLT', projectileSpeed: 1100, 
         effectType: 'VAMP', effectVal: 0.6, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_HEAVY_BOLT', element: 'BLOOD'
     },
     { 
         id: 'sr_b2', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
@@ -195,8 +195,8 @@ export const RED_BASIC: Skill[] = [
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '鮮血治癒', desc: '耗血補人', 
         range: 5, cast: 0.5, cd: 0.85, cost: 0, gain: 30, 
-        type: 'SINGLE', power: -90, color: '#991b1b', visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        type: 'SINGLE', power: -90, color: '#991b1b', visual: 'BOLT', projectileSpeed: 950, 
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_MOTE', element: 'BLOOD'
     },
     { 
         id: 'sr_b5', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 

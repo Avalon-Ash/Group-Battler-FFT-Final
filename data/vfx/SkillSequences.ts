@@ -63,12 +63,6 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.1, scale: 0.8 });
                         actions.push({ type: 'PARTICLE', id: isRed ? 'FX_SWING_RED_PIERCE_TIP' : 'FX_SWING_BLUE_PIERCE_TIP', delay: 0.02, scale: 0.8 });
                         break;
-                    case 'LASER_SHOT':
-                        actions.push({ type: 'BEAM', style: style ?? 'LIGHTNING_BEAM', color: basicConfig.color, duration: 0.2, scale: 0.8 });
-                        break;
-                    case 'RANGED_BEAM':
-                        actions.push({ type: 'BEAM', style: style ?? 'GENERIC_BEAM', color: basicConfig.color, duration: 0.25, scale: basicConfig.scale ?? 1.0 });
-                        break;
                     case 'MELEE_SMASH':
                         if (isRed) {
                             actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_SMASH', delay: 0, scale: basicConfig.scale || 1.0 });

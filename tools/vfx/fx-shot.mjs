@@ -2,7 +2,7 @@
  * fx-shot — 單一登記特效的確定性逐格截圖（空場、地圖中央一格）。用來比對零件化前後的同一個鍵。
  *   node tools/vfx/fx-shot.mjs --keys=FX_HEAL_BURST,FX_GRID_IMPACT_BLUE [--body=FX_HEAL_BURST] [--out=tools/ui-e2e/out/vfx/fx]
  * --body：列出的鍵在身體高度播放（命中、治療、出手類）；其餘貼地播放（格子脈衝類）。
- *   光束：--keys=BEAM:DEATH_RAY:RED,BEAM:HOLY_RAY:BLUE（樣式:陣營，固定在身體高度往右下打）。
+ *   光束：--keys=BEAM:DEATH_RAY:RED,BEAM:LIGHTNING_BEAM:BLUE（樣式:陣營，固定在身體高度往右下打）。
  *   死亡碎裂：--keys=DEATH:BLUE,DEATH:RED（直接呼叫 UnitShatter.spawn）。
  *   隕石：--keys=FALL:BLUE,FALL:RED（直接跑 HEAVEN_FALL METEOR 動作，高度 FALL_H）。
  *   投射物：--keys=PROJ:PROJ_BLUE_ORB:BLUE,PROJ:ARROW:RED（外觀鍵:陣營）。地圖中央放一對藍紅單位（相距 PROJ_COLS 欄），

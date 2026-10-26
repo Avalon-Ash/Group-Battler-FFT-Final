@@ -102,8 +102,8 @@ export const BLUE_BASIC: Skill[] = [
         id: 'rb_b3', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
         name: '獅眼印記', desc: '必中', 
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, // Nerf Range 6->5
-        type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 0, // Instant
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'BOLT', element: 'PHYSICAL'
+        type: 'SINGLE', power: 60, color: '#ef4444', visual: 'BOLT', projectileSpeed: 2200,
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
     },
     { 
         id: 'rb_b4', role: Role.RANGER, team: Team.BLUE, tag: 'BASIC', 
@@ -134,8 +134,8 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b2', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '閃電束', desc: '瞬發光束', 
         range: 5, cast: 0.3, cd: 0.8, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
+        type: 'SINGLE', power: 50, color: '#60a5fa', visual: 'BOLT', projectileSpeed: 2000, 
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_LIGHTNING_BOLT', element: 'LIGHTNING'
     },
     { 
         id: 'mb_b3', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
@@ -156,9 +156,9 @@ export const BLUE_BASIC: Skill[] = [
         id: 'mb_b5', role: Role.MAGE, team: Team.BLUE, tag: 'BASIC', 
         name: '魔力虹吸', desc: '吸取魔力', 
         range: 5, cast: 0.4, cd: 0.95, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 50, color: '#818cf8', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 50, color: '#818cf8', visual: 'BOLT', projectileSpeed: 1200, 
         effectType: 'MANA_BURN', effectVal: 18,
-        visualHitEffect: 'FX_HIT_BLUE_ARCANE', element: 'ARCANE'
+        visualHitEffect: 'FX_HIT_BLUE_ARCANE', visualProjectileEffect: 'PROJ_BLUE_ORB', element: 'ARCANE'
     },
 
     // --- SUPPORT (Range 4) ---
@@ -166,8 +166,8 @@ export const BLUE_BASIC: Skill[] = [
         id: 'sb_b1', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '神聖懲戒', desc: '神聖傷害', 
         range: 5, cast: 0.6, cd: 1.0, cost: 0, gain: 35, 
-        type: 'SINGLE', power: 65, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
+        type: 'SINGLE', power: 65, color: '#fef08a', visual: 'BOLT', projectileSpeed: 1400, 
+        visualHitEffect: 'FX_HIT_BLUE_HOLY', visualProjectileEffect: 'PROJ_BLUE_HOLY_BOLT', element: 'HOLY'
     },
     { 
         id: 'sb_b2', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
@@ -180,9 +180,9 @@ export const BLUE_BASIC: Skill[] = [
         id: 'sb_b3', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '聖盾投影', desc: '給予護盾', 
         range: 5, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 0, color: '#e0f2fe', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: 0, color: '#e0f2fe', visual: 'BOLT', projectileSpeed: 1000, 
         ccType: 'SHIELD', ccForce: 50,
-        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', element: 'LIGHTNING'
+        visualHitEffect: 'FX_HIT_BLUE_LIGHTNING', visualProjectileEffect: 'PROJ_BLUE_HOLY_ORB', element: 'LIGHTNING'
     },
     { 
         id: 'sb_b4', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
@@ -195,7 +195,7 @@ export const BLUE_BASIC: Skill[] = [
         id: 'sb_b5', role: Role.SUPPORT, team: Team.BLUE, tag: 'BASIC', 
         name: '預言術', desc: '遠程光束', 
         range: 5, cast: 0.8, cd: 1.0, cost: 0, gain: 35, // Range 6->5
-        type: 'SINGLE', power: 65, color: '#fcd34d', visual: 'BEAM', projectileSpeed: 0, 
-        visualHitEffect: 'FX_HIT_BLUE_HOLY', element: 'HOLY'
+        type: 'SINGLE', power: 65, color: '#fcd34d', visual: 'BOLT', projectileSpeed: 1100, 
+        visualHitEffect: 'FX_HIT_BLUE_HOLY', visualProjectileEffect: 'FIREBALL', element: 'HOLY'
     }
 ];
