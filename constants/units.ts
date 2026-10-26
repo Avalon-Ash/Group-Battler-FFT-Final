@@ -178,7 +178,12 @@ export const UNIT_SPRITE = {
     /** 精靈尚未載入時的退路圓盤半徑（UNIT_SCALE 前）與剪影色（UnitBodyPainter／UnitDeathPainter） */
     fallbackRadius: 20,
     fallbackSilhouetteColor: '#ffffff',
-    mipLevels: [1.0, 0.5, 0.25] as const,
+    /**
+     * 預烘焙的圖集層級（SpriteAtlasStore）。選層級的縮放（screenScale＝targetHeightCanvasUnits ÷ referenceHeightPx ≈ 0.37）
+     * 不含鏡頭與 DPR，所以永遠選到 0.5；1.0 與 0.25 從未被畫到，2026-10-26 拿掉以省記憶體（展示模式實測單位在螢幕上
+     * 44～75 裝置像素高，0.5 層級約 79 px 已足夠）
+     */
+    mipLevels: [0.5] as const,
     silhouetteAlpha: 0.25,
     shadowScale: 1.0,
     idleFps: 6,

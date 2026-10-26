@@ -184,17 +184,21 @@ describe('Task A2a — Unit Sprite SSOT & Atlas Store Test Suite', () => {
         it('UNIT_SPRITE constants are properly defined', () => {
             expect(UNIT_SPRITE.targetHeightCanvasUnits).toBe(59);
             expect(UNIT_SPRITE.referenceHeightPx).toBeCloseTo(158.3, 1);
-            expect(UNIT_SPRITE.mipLevels).toEqual([1.0, 0.5, 0.25]);
+            expect(UNIT_SPRITE.mipLevels).toEqual([0.5]);
         });
 
         it('selectMipLevel picks the smallest mip scale >= desiredScale', () => {
-            expect(selectMipLevel(1.5)).toBe(1.0);
-            expect(selectMipLevel(1.0)).toBe(1.0);
-            expect(selectMipLevel(0.85)).toBe(1.0);
-            expect(selectMipLevel(0.5)).toBe(0.5);
-            expect(selectMipLevel(0.45)).toBe(0.5);
-            expect(selectMipLevel(0.25)).toBe(0.25);
-            expect(selectMipLevel(0.1)).toBe(0.25);
+            expect(selectMipLevel(1.5, [1.0, 0.5, 0.25])).toBe(1.0);
+            expect(selectMipLevel(1.0, [1.0, 0.5, 0.25])).toBe(1.0);
+            expect(selectMipLevel(0.85, [1.0, 0.5, 0.25])).toBe(1.0);
+            expect(selectMipLevel(0.5, [1.0, 0.5, 0.25])).toBe(0.5);
+            expect(selectMipLevel(0.45, [1.0, 0.5, 0.25])).toBe(0.5);
+            expect(selectMipLevel(0.25, [1.0, 0.5, 0.25])).toBe(0.25);
+            expect(selectMipLevel(0.1, [1.0, 0.5, 0.25])).toBe(0.25);
+            // 預設只烘 0.5（實際縮放約 0.37，從未選到 1.0 與 0.25）：任何縮放都回 0.5
+            expect(selectMipLevel(1.5)).toBe(0.5);
+            expect(selectMipLevel(0.37)).toBe(0.5);
+            expect(selectMipLevel(0.1)).toBe(0.5);
         });
     });
 
