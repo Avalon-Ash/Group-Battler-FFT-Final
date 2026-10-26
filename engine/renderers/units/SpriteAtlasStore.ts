@@ -43,6 +43,8 @@ export interface UnitManifest {
     elevationDeg: number;
     directions: string[];
     referenceHeightPx: number;
+    /** Delivery pixel scale; frame rectangles remain in full logical coordinates. */
+    atlasScale?: number;
     units: Record<string, UnitAtlasDef>;
 }
 
@@ -85,7 +87,7 @@ export function selectMipLevel(
     return best;
 }
 
-class SpriteAtlasStore {
+export class SpriteAtlasStore {
     private manifest: UnitManifest | null = null;
     private atlases: Map<string, BakedAtlasEntry> = new Map();
     private loadingPromises: Map<string, Promise<void>> = new Map();
@@ -221,8 +223,8 @@ class SpriteAtlasStore {
         }
 
         for (const level of UNIT_SPRITE.mipLevels) {
-            const mw = Math.max(1, Math.round(w * level));
-            const mh = Math.max(1, Math.round(h * level));
+            const mw = Math.max(1, Math.round(w * level / (this.manifest?.atlasScale ?? 1)));
+            const mh = Math.max(1, Math.round(h * level / (this.manifest?.atlasScale ?? 1)));
 
             // 彩色層級
             const normCanvas = document.createElement('canvas');
@@ -232,7 +234,8 @@ class SpriteAtlasStore {
             if (normCtx) {
                 normCtx.imageSmoothingEnabled = true;
                 normCtx.imageSmoothingQuality = 'high';
-                normCtx.drawImage(src, 0, 0, mw, mh);
+                if (level === (this.manifest?.atlasScale ?? 1)) normCtx.drawImage(src, 0, 0);
+                else normCtx.drawImage(src, 0, 0, mw, mh);
             }
             normalMips.set(level, normCanvas);
 
