@@ -1,5 +1,6 @@
 import { VFXAsset, EmitterConfig } from "../../../types/VFXSchema";
 import type { VFXRampId } from "../parts/vfxPalette";
+import { ULT_SEQUENCE } from "../ult_visuals";
 
 // ==========================================
 // 奧義特效（V2a，零件版）
@@ -74,25 +75,29 @@ export const ULT_PART_VFX: Record<string, VFXAsset> = {
         ],
     },
 
-    // wr_u1 諸神黃昏（灰燼・火）：角骷髏印記烙地 → 火柱噴發＋衝擊環 → 灰煙翻騰、火星飄落
+    // wr_u1 諸神黃昏（近身單體爆發，充能式，命中 1.5 s）：詠唱中熔岩裂紋往目標腳下收攏 →
+    // 命中：火柱分三階接連噴發＋單體碎裂環＋熔岩彈 → 灰煙上竄
     'FX_ULT_RED_RAGNAROK_ERUPTION': {
         id: 'FX_ULT_RED_RAGNAROK_ERUPTION',
         emitters: [
-            // 起手：角骷髏印記（單體尺寸 <= 72px，36 * 1.0 * 1.4 = 50.4px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'hornSkull', ramp: 'ASH_FIRE' }, count: 1, lifetime: 1.4, delay: 0, size: 36,
-                partAnim: { scaleFrom: 1.1, scaleTo: 1, fadeIn: 0.08, fadeOut: 0.4 } }),
-            // 命中主爆發（delay 0.28 對齊 hitAt 0.3）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0.28, size: 48,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1.4, fadeOut: 0.8 } }),
-            // 命中：中央火柱
-            part({ particleType: 'PART', part: { kind: 'flame', height: 192, ramp: 'ASH_FIRE', jagged: true }, count: 1, lifetime: 0.8, delay: 0.3, size: 48, groundAnchored: true,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.1, fadeOut: 0.5 } }),
-            // 單體擴張環（32 * 1.1 * 1.4 = 49.3 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 32, thickness: 12, ramp: 'ASH_FIRE', roughness: 1, seed: 1 }, count: 1, lifetime: 0.5, delay: 0.3, size: 32,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.1, fadeOut: 0.5 } }),
-            // 餘韻：灰煙與火星
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'ASH_FIRE', hard: true }, count: [6, 8], lifetime: 0.8, delay: [0.35, 0.5], size: 6,
-                shape: 'CIRCLE', shapeRadius: 40, speed: [15, 40], vz: [40, 80], drag: 0.03, partAnim: { fadeOut: 0.6 } }),
+            // 角骷髏印記（36 * 1.0 * 1.4 = 50.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'hornSkull', ramp: 'ASH_FIRE' }, count: 1, lifetime: ULT_SEQUENCE.CHARGED_HIT_AT + 0.4, delay: 0, size: 36,
+                partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 熔岩裂紋往中心收攏（36 * 1.4 * 1.4 = 70.6px <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'rays', radius: 36, count: 6, ramp: 'ASH_FIRE', lengthJitter: 0.5, seed: 9 }, count: 1, lifetime: ULT_SEQUENCE.CHARGED_HIT_AT - 0.3 + 0.2, delay: 0.3, size: 36,
+                partAnim: { scaleFrom: 1.4, scaleTo: 0.6, ease: 'in', fadeIn: 0.2, fadeOut: 0.2 } }),
+            // 火柱分三階噴發
+            part({ particleType: 'PART', part: { kind: 'flame', height: 112, ramp: 'ASH_FIRE', jagged: true }, count: 3, lifetime: 0.6, delay: [ULT_SEQUENCE.CHARGED_HIT_AT, ULT_SEQUENCE.CHARGED_HIT_AT + 0.24], size: 56, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.4, scaleTo: 1.2, fadeOut: 0.5 } }),
+            // 命中主爆發：單體碎裂環（30 * 1.6 * 1.4 = 67.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 30, thickness: 10, ramp: 'ASH_FIRE', roughness: 1, seed: 10 }, count: 1, lifetime: 0.5, delay: ULT_SEQUENCE.CHARGED_HIT_AT, size: 30,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.5 } }),
+            // 熔岩彈
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'rock', ramp: 'ASH_FIRE', seed: 4 }, count: 8, lifetime: [0.6, 0.9], delay: [ULT_SEQUENCE.CHARGED_HIT_AT, ULT_SEQUENCE.CHARGED_HIT_AT + 0.2], size: 8,
+                shape: 'BURST_DIR', speed: [100, 220], vz: [350, 600], gravity: 2200, vRotation: [-8, 8], partAnim: { fadeOut: 0.3 } }),
+            // 灰煙上竄
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 28, color: 'ASH', roughness: 1, seed: 11 }, count: 3, lifetime: 0.9, delay: ULT_SEQUENCE.CHARGED_HIT_AT + 0.1, size: 28,
+                shape: 'CIRCLE', shapeRadius: 16, vz: [60, 120], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeIn: 0.15, fadeOut: 0.6, alpha: 0.7 } }),
         ],
     },
 };

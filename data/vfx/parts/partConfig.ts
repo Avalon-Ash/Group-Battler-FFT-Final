@@ -120,6 +120,13 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 惡魔翼（size＝翼展 W，背心在 (0,0)）：SHOULDER＝翼根（x, y），TIP＝翼尖（x, y），FINGERS＝翼骨數，
+         * HEM_Y＝翼膜下緣高度、HEM_SAG＝扇形下緣每段內凹量；HORN_*＝角冠（根部 x、根部 y、尖端 x、尖端 y）；
+         * TOP／BOTTOM＝外框在背心以上／以下的高度（皆相對 W）。
+         */
+        DEMON_WINGS: { SHOULDER: [0.06, -0.04] as const, TIP: [0.5, -0.34] as const, FINGERS: 3, HEM_Y: 0.2, HEM_SAG: 0.06,
+            HORN_BASE: [0.035, -0.18] as const, HORN_TIP: [0.09, -0.33] as const, HORN_W: 0.025, TOP: 0.38, BOTTOM: 0.24 },
+        /**
          * 神矢（size＝全長 L，矢尖在 (0,0) 朝下）：HEAD_LEN／HEAD_W＝矢頭長與寬，SHAFT_W＝矢桿寬，
          * FLETCH_*＝尾羽（起點、長度、外展），SPAN＝外框寬，TIP_GLOW＝矢尖光暈半徑（皆相對 L）。
          */

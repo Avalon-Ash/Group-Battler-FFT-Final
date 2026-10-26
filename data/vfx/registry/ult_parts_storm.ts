@@ -171,30 +171,54 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- RED STORM 落點 ----------
-    // wr_u2 血腥旋風（自身範圍 3，8 次）：旋轉血弧＋中央閃光＋擴張血環
+    // wr_u2 血腥旋風（自身範圍 3 吸血，充能式 8 次）：起手（只播一次）＝角骷髏紋章＋低而寬的血刃貼地旋轉、拖出螺旋血帶
+    'FX_ULT_RED_BLOODSTORM_WINDUP': {
+        id: 'FX_ULT_RED_BLOODSTORM_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 96, emblem: 'hornSkull', ramp: 'ASH_BLOOD' }, count: 1, lifetime: HIT + 0.6, delay: 0, size: 96,
+                partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.08, fadeOut: 0.3, alpha: 0.85 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 100, arms: 2, turns: 0.5, thickness: 18, ramp: 'ASH_BLOOD' }, count: 1, lifetime: HIT + 0.8 - 0.3, delay: 0.3, size: 100, vRotation: 8,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.25 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'slashArc', radius: 90, arcDeg: 200, thickness: 16, ramp: 'ASH_BLOOD' }, count: 1, lifetime: HIT + 0.8 - 0.5, delay: 0.5, size: 90, vRotation: 12,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.25 } }),
+        ],
+    },
+    // wr_u2 每一段：血斬＋細血環＋血滴（不放大白閃）
     'FX_ULT_RED_BLOODSTORM': {
         id: 'FX_ULT_RED_BLOODSTORM',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 64, arcDeg: 160, thickness: 18, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.3, delay: 0, size: 64,
-                shape: 'CIRCLE', shapeRadius: 10, vRotation: [-12, -6], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
-            // 命中主爆發（glow delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_BLOOD', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 48, arcDeg: 150, thickness: 12, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.25, delay: 0, size: 48,
+                shape: 'CIRCLE', shapeRadius: 15, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 18, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.2, delay: 0, size: 18,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 5, ramp: 'ASH_BLOOD' }, count: 1, lifetime: 0.4, delay: 0, size: 40,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'droplet', size: 4, ramp: 'ASH_BLOOD' }, count: 2, lifetime: [0.35, 0.5], delay: 0.03, size: 4,
+                shape: 'BURST_DIR', speed: [120, 240], vz: [100, 200], gravity: 2000, partAnim: { fadeOut: 0.4 } }),
         ],
     },
-    // wr_u4 無限劍制（自身範圍 3 恐懼，8 次）：骨刃從地面刺出＋中央閃光＋擴張骨環
+    // wr_u4 千刃魔相（自身範圍 3 恐懼，充能式 8 次）：起手（只播一次）＝角骷髏紋章＋施法者背後展開一圈立著的暗影劍刃（多臂魔相，各持一把刀）
+    'FX_ULT_RED_UNLIMITED_BLADE_WINDUP': {
+        id: 'FX_ULT_RED_UNLIMITED_BLADE_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 96, emblem: 'hornSkull', ramp: 'ASH_VOID' }, count: 1, lifetime: HIT + 0.6, delay: 0, size: 96,
+                partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.08, fadeOut: 0.3, alpha: 0.85 } }),
+            part({ particleType: 'PART', part: { kind: 'construct', shape: 'bladeWheel', size: 160, ramp: 'ASH_VOID' }, count: 1, lifetime: HIT + 0.8 - 0.3, delay: 0.3, size: 160, vRotation: 0.4, groundAnchored: true,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1, fadeIn: 0.2, fadeOut: 0.25, rise: [{ at: 0, z: 50 }] } }),
+        ],
+    },
+    // wr_u4 每一段：暗影刀斬＋細暗環＋一道火花（不放大白閃）
     'FX_ULT_RED_UNLIMITED_BLADE': {
         id: 'FX_ULT_RED_UNLIMITED_BLADE',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'shard', size: 32, shape: 'bone', ramp: 'ASH_PHYSICAL' }, count: 1, lifetime: 0.6, delay: 0, size: 32, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.2, scaleTo: 1, fadeOut: 0.4, ease: 'out', rotation: 1.57 } }),
-            // 命中主爆發（glow delay 0 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_FIRE', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'ASH_FIRE' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 48, arcDeg: 120, thickness: 12, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.25, delay: 0, size: 48,
+                shape: 'CIRCLE', shapeRadius: 15, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 18, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.2, delay: 0, size: 18,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 5, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.4, delay: 0, size: 40,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 16, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.3, delay: 0, size: 16,
+                shape: 'BURST_DIR', speed: [150, 300], drag: 0.05, partAnim: { fadeOut: 0.5 } }),
         ],
     },
     // rr_u3 煉獄火雨（全場火雨，充能式 8 次漸快）：起手（只播一次）＝角骷髏紋章＋斜向燃燒彈幕從高處落下（頭朝左下）

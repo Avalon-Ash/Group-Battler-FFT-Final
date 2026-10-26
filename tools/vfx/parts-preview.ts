@@ -81,6 +81,9 @@ const rows: Row[] = [
         { name: 'eye ASH_VOID', spec: { kind: 'construct', shape: 'eye', size: 96, ramp: 'ASH_VOID' } },
         { name: 'arrow LION_LIGHTNING', spec: { kind: 'construct', shape: 'arrow', size: 120, ramp: 'LION_LIGHTNING' } },
     ] },
+    { label: 'ult construct (red warrior)', specs: [
+        { name: 'demonWings ASH_BLOOD', spec: { kind: 'construct', shape: 'demonWings', size: 160, ramp: 'ASH_BLOOD' } },
+    ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [
     { name: 'flame ASH_FIRE jagged', spec: { kind: 'flame', height: 64, ramp: 'ASH_FIRE', jagged: true } },

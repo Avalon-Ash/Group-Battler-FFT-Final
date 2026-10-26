@@ -31,9 +31,10 @@ export type PrismStyle = 'glass' | 'solid';
  * fist＝巨拳（拳面朝下，錨點在拳面底部，size＝含前臂的全長）；
  * guillotine＝斷頭刃（厚重斜刃，錨點在刃底中央，size＝高）；ribSpike＝骨刺（彎曲的血骨尖肋，錨點在根部，size＝高）；
  * eye＝深淵之眼（杏仁形眼＋發光虹膜＋縱瞳，錨點在中心，size＝寬；貼地用）；
- * arrow＝神矢（寬矢頭＋細矢桿＋尾羽，矢尖朝下，錨點在矢尖，size＝全長）。
+ * arrow＝神矢（寬矢頭＋細矢桿＋尾羽，矢尖朝下，錨點在矢尖，size＝全長）；
+ * demonWings＝惡魔翼（左右翼膜＋翼骨＋中央角冠，錨點在背心，size＝翼展）。
  */
-export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow';
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow' | 'demonWings';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -319,6 +320,13 @@ export function partBounds(n: PartSpec): PartBounds {
                 const w = n.size * wr + m * 2;
                 const h = n.size + m * 2;
                 return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
+            }
+            if (n.shape === 'demonWings') {
+                // 錨點在背心；上下各留翼尖與翼膜下緣
+                const D = VFX_PARTS.CONSTRUCT.DEMON_WINGS;
+                const w = n.size + m * 2;
+                const h = n.size * (D.TOP + D.BOTTOM) + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: m + n.size * D.TOP };
             }
             if (n.shape === 'eye') {
                 // 錨點在中心

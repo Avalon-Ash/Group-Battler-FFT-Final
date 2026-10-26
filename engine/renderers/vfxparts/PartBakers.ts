@@ -95,6 +95,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             if (n.shape === 'ribSpike') return bakeRibSpike(ctx, n.size, ramp);
             if (n.shape === 'eye') return bakeEye(ctx, n.size, ramp);
             if (n.shape === 'arrow') return bakeArrow(ctx, n.size, ramp);
+            if (n.shape === 'demonWings') return bakeDemonWings(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1692,6 +1693,50 @@ function bakeArrow(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): voi
     energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -hl * 0.8); ctx.lineTo(hw, -hl); ctx.closePath(); },
         faceGradient(ctx, 0, -hl, hw, 0, ramp, false), ramp, L);
     bakeGlowAt(ctx, 0, 0, A.TIP_GLOW * L, ramp);
+}
+
+/**
+ * 惡魔翼（kind 'construct'，shape 'demonWings'）：背心在錨點 (0,0)，W＝翼展。
+ * 左右翼膜（扇形下緣、半透明、靠翼臂的一側受光）＋翼骨 core 亮線＋中央一對角冠（ULT-V01：血色魔力凝成的翼影，不是肉翼）。
+ */
+function bakeDemonWings(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): void {
+    const D = VFX_PARTS.CONSTRUCT.DEMON_WINGS;
+    for (const side of [-1, 1]) {
+        const sx = side * D.SHOULDER[0] * W, sy = D.SHOULDER[1] * W;
+        const tx = side * D.TIP[0] * W, ty = D.TIP[1] * W;
+        const hem = D.HEM_Y * W;
+        // 翼骨末端：從翼尖沿下緣往翼根分布
+        const ends: Array<[number, number]> = [];
+        for (let i = 0; i < D.FINGERS; i++) {
+            const u = (i + 1) / (D.FINGERS + 1);
+            ends.push([tx + (sx - tx) * u, ty + (hem - ty) * Math.sqrt(u)]);
+        }
+        const membrane = () => {
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(tx, ty);
+            let px = tx, py = ty;
+            for (const [ex, ey] of [...ends, [sx, hem * 0.6] as [number, number]]) {
+                ctx.quadraticCurveTo((px + ex) / 2, (py + ey) / 2 - D.HEM_SAG * W, ex, ey);
+                px = ex; py = ey;
+            }
+            ctx.closePath();
+        };
+        energyPiece(ctx, membrane, faceGradient(ctx, sx, sy, tx, hem, ramp, false), ramp, W);
+        // 翼臂與翼骨
+        coreLine(ctx, ramp, W, () => {
+            ctx.beginPath();
+            ctx.moveTo(sx, sy); ctx.lineTo(tx, ty);
+            for (const [ex, ey] of ends) { ctx.moveTo(tx + (sx - tx) * 0.15, ty + (sy - ty) * 0.15); ctx.lineTo(ex, ey); }
+        });
+        // 角冠
+        const bx = side * D.HORN_BASE[0] * W, by = D.HORN_BASE[1] * W;
+        const hx = side * D.HORN_TIP[0] * W, hy = D.HORN_TIP[1] * W;
+        const hw = D.HORN_W * W;
+        energyPiece(ctx, () => {
+            ctx.beginPath(); ctx.moveTo(bx - hw, by); ctx.quadraticCurveTo(bx - side * hw, (by + hy) / 2, hx, hy); ctx.quadraticCurveTo(bx + side * hw * 2, (by + hy) / 2, bx + hw, by); ctx.closePath();
+        }, faceGradient(ctx, bx, by, hx, hy, ramp, true), ramp, W);
+    }
 }
 
 /** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */
