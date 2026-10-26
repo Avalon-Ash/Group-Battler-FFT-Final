@@ -180,15 +180,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- SUPPORT (Blood/Curse) ---
     // sr_u1: 靈魂連結 -> 靈魂鎖鏈陣
-    'sr_u1': { archetype: 'SANCTUARY', primaryColor: '#581c87', secondaryColor: '#a855f7', scale: 1.4, count: 5, vfxOverride: 'FX_ULT_RED_SOUL_WEB' },
+    'sr_u1': { charged: true, archetype: 'SANCTUARY', primaryColor: '#581c87', secondaryColor: '#a855f7', scale: 1.4, count: 5, vfxOverride: 'FX_ULT_RED_SOUL_WEB' },
     // sr_u2: 鮮血契約 -> 鮮血魔法陣
-    'sr_u2': { archetype: 'DOMAIN', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.4, vfxOverride: 'FX_ULT_RED_BLOOD_PACT' },
+    'sr_u2': { charged: true, archetype: 'DOMAIN', primaryColor: '#ef4444', secondaryColor: '#fca5a5', scale: 1.4, vfxOverride: 'FX_ULT_RED_BLOOD_PACT' },
     // sr_u3: 群體恐慌 -> 混亂迷霧
-    'sr_u3': { archetype: 'STORM', primaryColor: '#4c1d95', secondaryColor: '#a78bfa', scale: 1.0, count: 8, timing: 0.08, vfxOverride: 'FX_ULT_RED_VOODOO', windupFx: 'FX_ULT_RED_STORM_SIGIL' },
+    'sr_u3': { charged: true, archetype: 'DOMAIN', primaryColor: '#4c1d95', secondaryColor: '#a78bfa', scale: 1.0, vfxOverride: 'FX_ULT_RED_VOODOO' },
     // sr_u4: 猩紅血月 -> 升起的紅月 (使用 Giant Hex 模擬月亮)
     'sr_u4': { archetype: 'HEAVEN_FALL', primaryColor: '#be123c', secondaryColor: '#991b1b', scale: 2.0, height: 300, timing: 0, vfxOverride: 'FX_ULT_RED_BLOOD_MOON', charged: true, ownFallObject: true },
     // sr_u5: 惡靈附身 -> 附身儀式
-    'sr_u5': { archetype: 'DOMAIN', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.2, vfxOverride: 'FX_ULT_RED_POSSESSION' },
+    'sr_u5': { charged: true, archetype: 'DOMAIN', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.2, vfxOverride: 'FX_ULT_RED_POSSESSION' },
 };
 
 /** 天降類奧義的自由落體時間（落下高度 height，未設用 ULT_SEQUENCE.DEFAULT_FALL_HEIGHT）。 */

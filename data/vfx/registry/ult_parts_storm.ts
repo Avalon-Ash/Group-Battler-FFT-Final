@@ -221,19 +221,29 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'CIRCLE', shapeRadius: 10, speed: [20, 40], vz: [40, 80], drag: 0.04, partAnim: { fadeOut: 0.6 } }),
         ],
     },
-    // sr_u3 群體恐慌（單體逐出，8 次）：深淵暗光與黑煙向目標收攏
+    // sr_u3 靈魂放逐（單體逐出，控制無傷害，DOMAIN 充能式，生效 1.5 s；原本是同一團黑煙重播 8 次的 STORM，玩法不變）：
+    // 詠唱中目標腳下裂縫張開、虛空火花被吸進去 → 生效：影體被拖出（黑煙往外上升）＋暗光 → 裂縫閉合
     'FX_ULT_RED_VOODOO': {
         id: 'FX_ULT_RED_VOODOO',
         emitters: [
-            // 命中主爆發（glow delay 0 對齊 hitAt 0.3）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 32, ramp: 'ASH_VOID', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 32,
+            // 印記（32 * 1.2 * 1.0 = 38.4px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 32, emblem: 'invTriangle', ramp: 'ASH_VOID' }, count: 1, lifetime: HIT + 0.3, delay: 0, size: 32, vRotation: -0.6,
+                partAnim: { scaleFrom: 1.2, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 裂縫張開（平貼地面的弧形裂口）
+            part({ particleType: 'PART_GROUND', part: { kind: 'slashArc', radius: 40, arcDeg: 160, thickness: 10, ramp: 'ASH_VOID' }, count: 1, lifetime: HIT - 0.6, delay: 0.6, size: 40,
+                partAnim: { scaleFrom: 0.2, scaleTo: 1, ease: 'linear', fadeIn: 0.2, rotation: 0.4 } }),
+            // 虛空火花被吸進裂縫
+            part({ particleType: 'PART', part: { kind: 'spark', length: 10, ramp: 'ASH_VOID' }, count: 8, lifetime: 0.5, delay: [0.4, 1.2], size: 10, groundAnchored: true,
+                shape: 'RING', shapeRadius: 50, speed: -90, partAnim: { fadeIn: 0.2, fadeOut: 0.2, rise: [{ at: 0, z: 10 }] } }),
+            // 生效主爆發：暗光（柔光；沒有地面衝擊環）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 36, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.35, delay: HIT, size: 36,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 單體微光環（非擴張環，size 24 * 1.0 * 0.8 = 19.2 <= 72px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 6, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.45, delay: 0, size: 24,
-                partAnim: { scaleFrom: 1.0, scaleTo: 1.0, fadeOut: 0.5 } }),
-            // 黑煙螺旋上升（vz > 0 滿足 power <= 0 規則）
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 28, color: 'CHAR', roughness: 1, seed: 15 }, count: 1, lifetime: 0.5, delay: 0, size: 28,
-                shape: 'CIRCLE', shapeRadius: 20, speed: [-15, 15], vz: [30, 60], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.7 } }),
+            // 影體被拖出：黑煙往外上升（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 28, color: 'CHAR', roughness: 1, seed: 15 }, count: 3, lifetime: 0.9, delay: [HIT, HIT + 0.1], size: 28,
+                shape: 'CIRCLE', shapeRadius: 10, speed: [40, 80], vz: [60, 110], drag: 0.03, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeIn: 0.1, fadeOut: 0.6, alpha: 0.75 } }),
+            // 裂縫閉合
+            part({ particleType: 'PART_GROUND', part: { kind: 'slashArc', radius: 40, arcDeg: 160, thickness: 10, ramp: 'ASH_VOID' }, count: 1, lifetime: 0.5, delay: HIT, size: 40,
+                partAnim: { scaleFrom: 1, scaleTo: 0.1, ease: 'in', fadeOut: 0.3, rotation: 0.4 } }),
         ],
     },
 
