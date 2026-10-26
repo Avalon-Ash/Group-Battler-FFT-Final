@@ -2,14 +2,15 @@
  * VFXPartStore — 特效零件的烘焙快取與執行期繪製（ART_SPEC §7、§8）
  * -----------------------------------------------------------------------------
  *  - get(spec)：參數量化 → 依品質階層決定影格數 → 快取命中直接回傳，否則烘焙。
- *  - 快取鍵只含參數與影格數，不含時間；超過 MAX_ENTRIES 時丟最久未使用者（LRU）。
+ *  - 快取鍵只含參數與影格數，不含時間；超過當前品質階層的條目或位元組上限時丟 LRU；
+ *    觸控裝置的上限至少取 CONSTRAINED_MIN_LIMIT_TIER（影格數仍跟實際階層）。
  *  - drawPart：執行期只用 drawImage／globalAlpha／globalCompositeOperation／平移縮放旋轉。
  *  - 純衍生資源快取（不持遊戲狀態），可注入 createSurface 與 getTier 供測試。
  */
 
 import { VFX_PARTS } from '../../../data/vfx/parts/partConfig';
 import { createCanvas } from '../../graphics/CanvasUtils';
-import { getQualityTier } from '../RenderQuality';
+import { getQualityTier, isMemoryConstrainedDevice } from '../RenderQuality';
 import { type PartSpec, type PartKind, normalizePartSpec, partKey, partBounds, partBlend, partBakeScale, frameCountForTier, baseFrameCount, emblemCounterRotation } from './PartSpec';
 import { bakePart } from './PartBakers';
 
@@ -50,7 +51,7 @@ function basePartFps(kind: PartKind): number {
     return 0;
 }
 
-export function createVFXPartStore(createSurface: PartSurfaceFactory = createCanvas, getTier: () => number = getQualityTier) {
+export function createVFXPartStore(createSurface: PartSurfaceFactory = createCanvas, getTier: () => number = getQualityTier, constrained: boolean = isMemoryConstrainedDevice()) {
     const cache = new Map<string, PartSprite>();
     const stats = { hits: 0, misses: 0, evictions: 0 };
     /** 診斷用：依零件種類累計的未命中／擠出次數（tools/ui-e2e/lib/vfx-storm.mjs 讀） */
@@ -80,7 +81,9 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
      */
     function get(spec: PartSpec, groundRotation: number = 0): PartSprite {
         const n = normalizePartSpec(spec);
-        const frameCount = frameCountForTier(n.kind, getTier());
+        const tier = Math.max(0, Math.min(VFX_PARTS.MAX_BYTES_BY_TIER.length - 1, getTier()));
+        const frameCount = frameCountForTier(n.kind, tier);
+        const limitTier = constrained ? Math.max(tier, VFX_PARTS.CONSTRAINED_MIN_LIMIT_TIER) : tier;
         const emblemRotation = emblemCounterRotation(n, groundRotation);
         const key = emblemRotation === 0 ? partKey(n, frameCount) : `${partKey(n, frameCount)}|emblemRot=${emblemRotation.toFixed(4)}`;
         const hit = cache.get(key);
@@ -95,7 +98,7 @@ export function createVFXPartStore(createSurface: PartSurfaceFactory = createCan
         const sprite = bake(n, frameCount, key, emblemRotation);
         cache.set(key, sprite);
         bytes += sprite.bytes;
-        while (cache.size > 1 && (cache.size > VFX_PARTS.MAX_ENTRIES || bytes > VFX_PARTS.MAX_BYTES)) {
+        while (cache.size > 1 && (cache.size > VFX_PARTS.MAX_ENTRIES_BY_TIER[limitTier] || bytes > VFX_PARTS.MAX_BYTES_BY_TIER[limitTier])) {
             const oldest = cache.keys().next().value;
             if (oldest === undefined) break;
             const old = cache.get(oldest);
