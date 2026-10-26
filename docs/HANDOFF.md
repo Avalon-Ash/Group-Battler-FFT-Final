@@ -8,7 +8,7 @@
 - 清理第一階段已合併進 `main`，並已 push。完成紀錄見 WORKLOG §2 S；後續計畫見 `docs/PROJECT_CLEANUP_NEXT_PLAN.md`。
 - **兩條並行線**：
   - Codex 在自己的工作樹（`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`，分支 `codex/lionheart-warrior-skins`）做獅心戰士男女 skin：離線製作與試烘焙。交接文件是該分支 docs 底下的 `LIONHEART_WARRIOR_SKIN_TRIAL_OPUS_HANDOFF.md`（main 上還沒有這個檔）。
-  - Claude 在主資料夾做奧義（ULT-T01 → ULT-V01）。
+  - 奧義 ULT-T01、ULT-V01 都已合併進 `main`（2026-10-26，WORKLOG §2 T）。
   - skin 正式接進圖集、做效能量測時，由主代理排時段；Blender 烘焙不和 `perf:*` 同時跑（CLAUDE.md 鐵律）。
 - 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 共 659 列：520 列未讀、31 列只核對部分事實、108 列不適用。逐檔語義審計**沒有完成**，之後只能逐檔累積可追溯的證據，不可整批標成完成。
 - 未結案的 findings（`docs/PROJECT_CLEANUP_AUDIT01_FINDINGS.csv`）：
@@ -18,7 +18,7 @@
 
 ## 2. 下一步
 
-1. **ULT-V01 待實機確認與合併**：50 招已在 `feat/ult-visual` 完成（報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md`、矩陣 `docs/ULT_VISUAL_MATRIX.csv`），沒合併 main、沒 push。實戰探針（`tools/vfx/ult-battle-probe.mjs`）已跑完並修掉移動目標、詠唱打斷兩個回歸；天降改成詠唱結束就必中；粒子預算放寬到 630／1000（報告 §2、§4）。`perf:frames` 這次視窗開在副螢幕、量測無效，合併前要在主螢幕重跑一次。合併後收尾：刪 `ULT_VISUAL_CLAUDE_AGENT_PROMPT.md`、`ULT_TIMING_AGENT_PROMPT.md`，寫 WORKLOG。
+1. **`perf:frames` 在主螢幕重跑**：粒子預算放寬（630／1000）後那次量測，視窗開在 59 Hz 副螢幕被 vsync 鎖住，無效。舊值對照：把 `constants/vfx.ts` 的軟／硬上限、`MAX_POOL_SIZE`、`HAZARD_SPAWN_BURSTS_PER_FIELD` 暫時改回 240／380／350／不限（報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md` §4）。
 2. 奧義、時序和阻斷問題都完成後，鎖定一個 commit，統一重跑平衡。報告 §5 的玩法差異缺口（STORM 落點只是裝飾、BANISH／全隊護盾重複）在這一步一起判斷。
 3. Codex 週額度偏低（2026-10-26 剩 20%）：獅心戰士 skin 等額度恢復再接，交接文件在該工作樹 docs 底下。
 4. 有空時：繼續讀清冊未讀的檔案；SINK／VOID 要有新證據才重開。

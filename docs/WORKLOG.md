@@ -166,6 +166,23 @@
   | hook 第 7 條（Codex 呼叫必須寫模型與強度） | 合併前只有主代理手動呼叫，還沒攔過真實派工 | no effect（尚無樣本） |
   | Codex 跨模型審查 harness | 找出 3 個 hook 繞過方式和 skill 範本矛盾，Claude 自審沒抓到 | helped |
 
+### T. 2026-10-25～26 奧義時序與視覺重製（ULT-T01 `feat/ult-timing` 合併 fb67049；ULT-V01 `feat/ult-visual` 合併 17cbacd，分支已 push）
+
+結論：50 招奧義有效詠唱至少 1.5 秒，並全部重做成充能式的魔法構造體演出；實戰探針抓到並修掉兩個回歸；天降類改成詠唱結束就必中；粒子預算放寬到 630／1000。報告 `docs/ULT_VISUAL_CLAUDE_REPORT.md`，逐招設計 `docs/ULT_VISUAL_MATRIX.csv`。
+
+- **ULT-T01**：`COMBAT_PARAM.ULT_MIN_CAST_SEC` 1.5，資料、技能編輯器、施法事件、讀條一致。
+- **ULT-V01 視覺**：
+  - 13 種構造體造型、`spiral` 零件、`PartAnim.rise` 高度關鍵影格。
+  - 全 50 招 `charged`，資產從詠唱開始播。天降類的特效命中對齊真正的傷害時刻（`ultImpactDelay`）。
+  - 共用命中包只給傷害技，另有單體版。
+  - 美術方向：召喚物是半透明能量構造體，自然現象用粒子與煙（記憶 `ult-art-direction-magic-volume`）。
+- **實戰探針** `tools/vfx/ult-battle-probe.mjs`：5 地圖 × 50 招時序與殘留、移動目標、同場多奧義、打斷、重置全部 PASS。
+  - 修掉的回歸：單體技命中發射器留在目標舊位置（b49cf08，RenderSpec §4.1 新增「已生成粒子跟隨」）；打斷後仍在原命中時刻爆開（改成每次序列有編號 `seqRun`）。
+- **玩法（使用者選 B，DECISIONS §5）**：天降類詠唱結束就必中，落點與目標在詠唱結束時記下（ab306eb）。
+- **效能**：新工具 `tools/ui-e2e/perf-particle-budget.mjs`。預算 240／380 → 630／1000、物件池 350 → 1000，大範圍危害場生成爆發每幀每場最多 12 格（80a7d32）。8 招同時：略過特效 290 → 0，p95 12.3 → 12.2 ms、p99 15.8 → 19.3 ms。`perf:frames` 那次開在副螢幕無效，HANDOFF §2 待重跑。
+- **驗證**：lint、811 個測試、build、runtime-smoke、perf:guard 全部通過；保真與 UI 基準沒有重錄。
+- **收尾**：刪除 `ULT_TIMING_AGENT_PROMPT.md`、`ULT_VISUAL_CLAUDE_AGENT_PROMPT.md`，以及只有這兩份提示詞在讀的 `ULT_REDESIGN_PLAN.md`。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

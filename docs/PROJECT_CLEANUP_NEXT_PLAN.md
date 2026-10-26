@@ -13,8 +13,8 @@ AUDIT01 枚舉快照 659 列：520 待讀、31 僅部分事實核對、108 程�
 | 順序 | 執行者 | 文件 | 交付與界線 |
 | --- | --- | --- | --- |
 | 1 COORD-R1 | 已完成 | PROJECT_CLEANUP_COORD_R1_REVIEW.md | oracle 修正（96b5ea5）、距離尺度（8f7ef65）、非對稱滯後（cc056b0）。 |
-| 2 ULT-T01 | 實作代理 | ULT_TIMING_AGENT_PROMPT.md | 50 招有效詠唱 ≥1.5 秒，資料／編輯／施法／演出一致；不改其他戰鬥平衡欄位。 |
-| 3 ULT-V01 | Claude，額度恢復後 | ULT_VISUAL_CLAUDE_AGENT_PROMPT.md | 50 招具象演出差異化；四代表作自驗後按職業各五招完成；真實施法／中斷／場景證據。 |
+| 2 ULT-T01 | 已完成 | （提示詞已刪，見 WORKLOG §2 T） | 50 招有效詠唱 ≥1.5 秒，合併 fb67049。 |
+| 3 ULT-V01 | 已完成 | ULT_VISUAL_CLAUDE_REPORT.md | 50 招重製、實戰探針、天降必中、粒子預算放寬，合併 17cbacd。 |
 
 這是三個任務包，不是保證還剩三次來回。COORD-R1依新設計執行；sink、void及未讀清冊仍另列待辦，不能說完成此包就代表全庫清理結束；不再為行尾空白或小型報告錯誤單開往返。
 
