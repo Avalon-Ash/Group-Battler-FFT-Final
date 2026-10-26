@@ -126,3 +126,43 @@ describe('roster resource lifetime', () => {
         } finally { warn.mockRestore(); }
     });
 });
+
+describe('ImageBitmap decode path', () => {
+    it('bakes from a fetched ImageBitmap and closes it, also when the roster moved on', async () => {
+        const manifest: UnitManifest = {
+            version: 1, cellPx: 448, anchor: { x: 224, y: 280.32 },
+            pxPerWorldUnit: 71.111, elevationDeg: 30, directions: ['SE'],
+            referenceHeightPx: 158.3, atlasScale: 0.5,
+            units: {
+                'BLUE:WARRIOR:MALE': { file: 'a.webp', atlas: { w: 2048, h: 2333 }, idleHeightPx: 158.3, anims: {} },
+                'BLUE:WARRIOR:FEMALE': { file: 'b.webp', atlas: { w: 2048, h: 2333 }, idleHeightPx: 158.3, anims: {} },
+            }
+        };
+        const closed: string[] = [];
+        let release: (() => void) | null = null;
+        vi.stubGlobal('window', {});
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => url.endsWith('manifest.json')
+            ? { ok: true, json: async () => manifest }
+            : { ok: true, blob: async () => ({ url }) }));
+        vi.stubGlobal('createImageBitmap', vi.fn(async (blob: { url: string }) => {
+            if (blob.url.endsWith('b.webp')) await new Promise<void>(r => { release = r; });
+            return { width: 1024, height: 1167, close: () => closed.push(blob.url) };
+        }));
+        vi.stubGlobal('Image', class {});
+        vi.stubGlobal('document', { createElement: () => ({ width: 0, height: 0,
+            getContext: () => ({ drawImage: vi.fn(), fillRect: vi.fn() }) }) });
+        const store = new SpriteAtlasStore();
+        await vi.waitFor(() => expect(store.getManifest()).not.toBeNull());
+        store.syncRoster([{ team: Team.BLUE, role: Role.WARRIOR, bodyType: 'MALE' }]);
+        await vi.waitFor(() => expect(store.getAtlas('BLUE:WARRIOR:MALE')).toMatchObject({ width: 1024, height: 1167 }));
+        expect(closed.some(u => u.endsWith('a.webp'))).toBe(true);
+
+        // 解碼途中陣容換走：不烘焙、不留快取，點陣仍要 close
+        store.syncRoster([{ team: Team.BLUE, role: Role.WARRIOR, bodyType: 'FEMALE' }]);
+        await vi.waitFor(() => expect(release).not.toBeNull());
+        store.syncRoster([{ team: Team.BLUE, role: Role.WARRIOR, bodyType: 'MALE' }]);
+        release!();
+        await vi.waitFor(() => expect(closed.some(u => u.endsWith('b.webp'))).toBe(true));
+        expect(store.getAtlas('BLUE:WARRIOR:FEMALE')).toBeNull();
+    });
+});

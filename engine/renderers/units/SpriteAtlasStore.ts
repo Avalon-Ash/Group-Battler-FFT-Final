@@ -4,6 +4,7 @@
  * 說明：
  *  - 載入 public/assets/units/manifest.json 與各單位圖集。
  *  - 依目前陣容載入，最多兩張同時解碼；換隊釋放不用的圖集。
+ *  - 解碼走 fetch → createImageBitmap，烘完 close()；不用 <img>，瀏覽器不會依網址留著解碼點陣（換隊不累積）。
  *  - 預烘焙「受擊白閃」剪影版本（source-in 填白，執行期零消耗直接 blit）。
  *  - 預烘焙 UNIT_SPRITE.mipLevels 列出的縮小層級（目前只有 0.5：選層級的縮放 screenScale 約 0.37，
  *    從來選不到 1.0 與 0.25），原圖與全尺寸暫存畫布烘完即釋放。
@@ -88,6 +89,34 @@ export function selectMipLevel(
         }
     }
     return best;
+}
+
+type AtlasImage = HTMLImageElement | ImageBitmap;
+
+/**
+ * 解碼圖集：優先 fetch → createImageBitmap，烘完由呼叫端 close()。
+ * 不經 <img>，瀏覽器不會依網址留著解碼後的點陣；換隊時舊陣容的解碼記憶體立即歸還（2026-10-27 A→B→A 量測）。
+ */
+async function decodeAtlasImage(url: string): Promise<AtlasImage | null> {
+    if (typeof createImageBitmap === 'function' && typeof fetch === 'function') {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) return null;
+            return await createImageBitmap(await res.blob());
+        } catch {
+            return null;
+        }
+    }
+    return new Promise<HTMLImageElement | null>(resolve => {
+        const image = new Image();
+        image.onload = () => { image.onload = image.onerror = null; resolve(image); };
+        image.onerror = () => { image.onload = image.onerror = null; resolve(null); };
+        image.src = url;
+    });
+}
+
+function closeAtlasImage(img: AtlasImage | null): void {
+    if (img && 'close' in img) img.close();
 }
 
 export class SpriteAtlasStore {
@@ -225,20 +254,16 @@ export class SpriteAtlasStore {
     private async decodeAtlas(key: string): Promise<void> {
         const unit = this.manifest!.units[key];
         const imgPath = resolveAssetUrl(`assets/units/${unit.file}`);
-        const img = await new Promise<HTMLImageElement | null>(resolve => {
-            const image = new Image();
-            image.onload = () => { image.onload = image.onerror = null; resolve(image); };
-            image.onerror = () => { image.onload = image.onerror = null; resolve(null); };
-            image.src = imgPath;
-        });
+        const img = await decodeAtlasImage(imgPath);
         // A roster may change while decoding. Do not bake or retain obsolete assets.
-        if (this.rosterKnown && !this.wantedKeys.has(key)) return;
+        if (this.rosterKnown && !this.wantedKeys.has(key)) { closeAtlasImage(img); return; }
         if (!img) {
             this.failedKeys.add(key);
             this.warnOnce(`Failed to load unit atlas image at ${imgPath}`);
             return;
         }
         this.atlases.set(key, this.bakeAtlas(img, getFactionSkinByAtlasKey(key)?.sprite.tint ?? null));
+        closeAtlasImage(img);
         this.revision++;
     }
 
@@ -247,15 +272,15 @@ export class SpriteAtlasStore {
      * 原圖與染色用的全尺寸暫存畫布烘完即釋放，不留在記憶體（2026-10-26：全尺寸從未被畫到螢幕上，
      * 10 張圖集的全尺寸副本與原圖佔約 240 MB，iPhone 長跑因此被系統回收分頁）。
      */
-    private bakeAtlas(sourceImg: HTMLImageElement, tint: { color: string; strength: number } | null): BakedAtlasEntry {
-        const w = sourceImg.naturalWidth || sourceImg.width;
-        const h = sourceImg.naturalHeight || sourceImg.height;
+    private bakeAtlas(sourceImg: AtlasImage, tint: { color: string; strength: number } | null): BakedAtlasEntry {
+        const w = 'naturalWidth' in sourceImg ? sourceImg.naturalWidth || sourceImg.width : sourceImg.width;
+        const h = 'naturalHeight' in sourceImg ? sourceImg.naturalHeight || sourceImg.height : sourceImg.height;
 
         const normalMips = new Map<number, HTMLCanvasElement>();
         const silhouetteMips = new Map<number, HTMLCanvasElement>();
 
         // 陣營皮膚染色槽（FACTION_SKINS.sprite.tint）：烘焙期一次性疊色，執行期零成本
-        let src: HTMLImageElement | HTMLCanvasElement = sourceImg;
+        let src: AtlasImage | HTMLCanvasElement = sourceImg;
         let tinted: HTMLCanvasElement | null = null;
         if (tint && tint.strength > 0) {
             tinted = document.createElement('canvas');
