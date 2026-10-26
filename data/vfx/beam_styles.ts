@@ -24,8 +24,6 @@ const DEFS = {
     GENERIC_BEAM: { width: 6, edge: 'clean' },
     SLASH_CONNECT: { width: 10, edge: 'clean' },
     DEATH_RAY: { width: 14, dashedEdges: true, edge: 'dashed' },
-    /** 獅心：聖光射線（粗、乾淨） */
-    HOLY_RAY: { width: 9, edge: 'clean' },
     /** 閃電束：細而亮 */
     LIGHTNING_BEAM: { width: 5, edge: 'zigzag', teamRamp: { [Team.BLUE]: 'LION_LIGHTNING' } },
     /** 灰燼：熾紅細芯的穿刺矢（rr_u1 灰燼穿心；細、乾淨） */

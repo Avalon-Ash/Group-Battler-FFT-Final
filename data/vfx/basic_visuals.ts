@@ -13,8 +13,6 @@ type BasicArchetype =
     | 'HEAVY_CLEAVE'    // Heavy Wide Swing
     | 'CROSS_CUT'       // Dual Strike X (New)
     | 'RANGED_BOLT'     // Standard Projectile
-    | 'RANGED_BEAM'     // Instant Laser
-    | 'LASER_SHOT'      // High Velocity Instahit (New)
     | 'MAGIC_ORB'       // Slow Homing
     | 'DUAL_STRIKE';    // Two hits (Legacy, mapped to Cross)
 
@@ -47,23 +45,23 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
     // --- RANGER ---
     'rb_b1': { archetype: 'RANGED_BOLT', color: '#38bdf8', secondaryColor: '#0ea5e9', scale: 1.0 },
     'rb_b2': { archetype: 'RANGED_BOLT', color: '#e0f2fe', secondaryColor: '#fff', scale: 0.8 },
-    'rb_b3': { archetype: 'LASER_SHOT', color: '#fbbf24', secondaryColor: '#fffbeb', scale: 1.2, beamStyle: 'LIGHTNING_BEAM' }, // Instahit
+    'rb_b3': { archetype: 'RANGED_BOLT', color: '#fbbf24', secondaryColor: '#fffbeb', scale: 1.2 },
     'rb_b4': { archetype: 'RANGED_BOLT', color: '#fbbf24', secondaryColor: '#fcd34d', scale: 1.1 },
     'rb_b5': { archetype: 'RANGED_BOLT', color: '#8b5cf6', secondaryColor: '#c084fc', scale: 1.0 },
 
     // --- MAGE ---
     'mb_b1': { archetype: 'MAGIC_ORB', color: '#8b5cf6', secondaryColor: '#d8b4fe', scale: 1.2 },
-    'mb_b2': { archetype: 'RANGED_BEAM', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.0, beamStyle: 'LIGHTNING_BEAM' },
+    'mb_b2': { archetype: 'MAGIC_ORB', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.0 },
     'mb_b3': { archetype: 'MAGIC_ORB', color: '#bae6fd', secondaryColor: '#fff', scale: 1.1 },
     'mb_b4': { archetype: 'MAGIC_ORB', color: '#d8b4fe', secondaryColor: '#e9d5ff', scale: 0.9 },
-    'mb_b5': { archetype: 'RANGED_BEAM', color: '#818cf8', secondaryColor: '#c7d2fe', scale: 1.0 },
+    'mb_b5': { archetype: 'MAGIC_ORB', color: '#818cf8', secondaryColor: '#c7d2fe', scale: 1.0 },
 
     // --- SUPPORT ---
-    'sb_b1': { archetype: 'RANGED_BEAM', color: '#fef08a', secondaryColor: '#fff', scale: 1.0, beamStyle: 'HOLY_RAY' },
+    'sb_b1': { archetype: 'MAGIC_ORB', color: '#fef08a', secondaryColor: '#fff', scale: 1.0 },
     'sb_b2': { archetype: 'RANGED_BOLT', color: '#bfdbfe', secondaryColor: '#fff', scale: 0.8 },
-    'sb_b3': { archetype: 'RANGED_BEAM', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.0, beamStyle: 'HOLY_RAY' },
+    'sb_b3': { archetype: 'MAGIC_ORB', color: '#e0f2fe', secondaryColor: '#fff', scale: 1.0 },
     'sb_b4': { archetype: 'RANGED_BOLT', color: '#a7f3d0', secondaryColor: '#6ee7b7', scale: 0.9 },
-    'sb_b5': { archetype: 'RANGED_BEAM', color: '#fcd34d', secondaryColor: '#fff', scale: 1.2, beamStyle: 'HOLY_RAY' },
+    'sb_b5': { archetype: 'MAGIC_ORB', color: '#fcd34d', secondaryColor: '#fff', scale: 1.2 },
 
 
     // ================= COVENANT (RED) =================
@@ -91,15 +89,15 @@ export const BASIC_VISUALS: Record<string, BasicVisualDef> = {
 
     // --- MAGE ---
     'mr_b1': { archetype: 'MAGIC_ORB', color: '#16a34a', secondaryColor: '#4ade80', scale: 1.1 },
-    'mr_b2': { archetype: 'RANGED_BEAM', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.0, beamStyle: 'BLOOD_LINK' },
+    'mr_b2': { archetype: 'MAGIC_ORB', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.0 },
     'mr_b3': { archetype: 'MAGIC_ORB', color: '#fca5a5', secondaryColor: '#fff', scale: 1.2 },
     'mr_b4': { archetype: 'MAGIC_ORB', color: '#581c87', secondaryColor: '#a855f7', scale: 1.0 },
     'mr_b5': { archetype: 'MAGIC_ORB', color: '#7c3aed', secondaryColor: '#c4b5fd', scale: 1.0 },
 
     // --- SUPPORT ---
-    'sr_b1': { archetype: 'RANGED_BEAM', color: '#be123c', secondaryColor: '#fb7185', scale: 1.0, beamStyle: 'BLOOD_LINK' },
+    'sr_b1': { archetype: 'MAGIC_ORB', color: '#be123c', secondaryColor: '#fb7185', scale: 1.0 },
     'sr_b2': { archetype: 'RANGED_BOLT', color: '#7c3aed', secondaryColor: '#fff', scale: 0.9 },
     'sr_b3': { archetype: 'MAGIC_ORB', color: '#a3e635', secondaryColor: '#d9f99d', scale: 1.0 },
-    'sr_b4': { archetype: 'RANGED_BEAM', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.1, beamStyle: 'BLOOD_LINK' },
+    'sr_b4': { archetype: 'MAGIC_ORB', color: '#991b1b', secondaryColor: '#ef4444', scale: 1.1 },
     'sr_b5': { archetype: 'RANGED_BOLT', color: '#84cc16', secondaryColor: '#bef264', scale: 1.0 },
 };

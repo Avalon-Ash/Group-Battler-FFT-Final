@@ -39,7 +39,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     'tb_a1': { archetype: 'BUFF_AURA', color: '#60a5fa', secondaryColor: '#93c5fd', scale: 1.2, impactFx: 'FX_ACTIVE_BLUE_AEGIS_WARD' },
     'tb_a2': { archetype: 'SIMPLE_IMPACT', color: '#fcd34d', secondaryColor: '#fff', scale: 1.3, impactFx: 'FX_ACTIVE_BLUE_HOLY_SMITE' },
     'tb_a3': { archetype: 'GROUND_SLAM', color: '#1e3a8a', secondaryColor: '#3b82f6', scale: 1.2, impactFx: 'FX_GRID_IMPACT_BLUE' },
-    'tb_a4': { archetype: 'DEBUFF_RAY', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.0, beamStyle: 'GENERIC_BEAM' },
+    'tb_a4': { archetype: 'DEBUFF_RAY', color: '#60a5fa', secondaryColor: '#3b82f6', scale: 1.0 },
     'tb_a5': { archetype: 'BUFF_AURA', color: '#ffffff', secondaryColor: '#e0f2fe', scale: 1.0, impactFx: 'FX_ACTIVE_BLUE_PRISM_REFLECT' },
 
     // --- WARRIOR ---
@@ -78,7 +78,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     'tr_a2': { archetype: 'BURST_AOE', color: '#7c3aed', secondaryColor: '#5b21b6', scale: 1.4, impactFx: 'FX_ACTIVE_RED_SHADOW_SCREAM' },
     'tr_a3': { archetype: 'GROUND_SLAM', color: '#450a0a', secondaryColor: '#7f1d1d', scale: 1.3, impactFx: 'FX_ACTIVE_RED_WAR_STOMP' },
     'tr_a4': { archetype: 'BUFF_AURA', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_BARRIER' },
-    'tr_a5': { archetype: 'DEBUFF_RAY', color: '#be123c', secondaryColor: '#e11d48', scale: 1.0, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
+    'tr_a5': { archetype: 'SIMPLE_IMPACT', color: '#be123c', secondaryColor: '#e11d48', scale: 1.0, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 
     // --- WARRIOR ---
     'wr_a1': { archetype: 'BURST_AOE', color: '#ef4444', secondaryColor: '#991b1b', scale: 1.3, impactFx: 'FX_ACTIVE_RED_WHIRLWIND' },
@@ -102,7 +102,7 @@ export const ACTIVE_VISUALS: Record<string, ActiveVisualDef> = {
     'mr_a5': { archetype: 'BUFF_AURA', color: '#be123c', secondaryColor: '#9f1239', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_RAGE' },
 
     // --- SUPPORT ---
-    'sr_a1': { archetype: 'DEBUFF_RAY', color: '#be123c', secondaryColor: '#fb7185', scale: 1.0, beamStyle: 'GENERIC_BEAM' },
+    'sr_a1': { archetype: 'DEBUFF_RAY', color: '#be123c', secondaryColor: '#fb7185', scale: 1.0 },
     'sr_a2': { archetype: 'BUFF_AURA', color: '#a3e635', secondaryColor: '#d9f99d', scale: 1.2, impactFx: 'FX_ACTIVE_RED_FEL_SPLASH' },
     'sr_a3': { archetype: 'BUFF_AURA', color: '#84cc16', secondaryColor: '#bef264', scale: 1.2, impactFx: 'FX_ACTIVE_RED_BLOOD_TOTEM' },
     'sr_a4': { archetype: 'BURST_AOE', color: '#581c87', secondaryColor: '#7c3aed', scale: 1.3, impactFx: 'FX_HIT_RED_SHADOW' },

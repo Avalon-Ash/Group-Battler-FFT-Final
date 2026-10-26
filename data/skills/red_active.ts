@@ -176,9 +176,9 @@ export const RED_ACTIVE: Skill[] = [
         id: 'sr_a1', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 
         name: '生命轉移', desc: '損血補隊友', 
         range: 6, cast: 0.5, cd: 5.0, cost: 0, gain: 30, 
-        type: 'SINGLE', power: -350, color: '#be123c', visual: 'BEAM', projectileSpeed: 0, 
+        type: 'SINGLE', power: -350, color: '#be123c', visual: 'BOLT', projectileSpeed: 950, 
         effectType: 'SELF_DAMAGE', effectVal: 70,
-        visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
+        visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_MOTE', element: 'BLOOD'
     },
     { 
         id: 'sr_a2', role: Role.SUPPORT, team: Team.RED, tag: 'ACTIVE', 

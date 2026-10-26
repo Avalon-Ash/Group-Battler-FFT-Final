@@ -82,6 +82,27 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
         trajectory: 'HOVER_DIP', dipAmount: 15,
         look: { shape: 'bolt', size: 40, ramp: 'LION_ICE', trail: 'streak', trailWidth: 7, glow: 20 },
     },
+    // 以下取代普攻／主動技的雷射（光束只留給奧義，2026-10-26）
+    // mb_b2 閃電束：最快、筆直的藍色電弧彈（金色留給聖光）
+    'PROJ_BLUE_LIGHTNING_BOLT': {
+        trajectory: 'LINEAR',
+        look: { shape: 'bolt', size: 38, ramp: 'LION_ARCANE', trail: 'streak', trailWidth: 4, glow: 16 },
+    },
+    // sb_b1 神聖懲戒：聖光矛，略微下沉
+    'PROJ_BLUE_HOLY_BOLT': {
+        trajectory: 'HOVER_DIP', dipAmount: 12,
+        look: { shape: 'bolt', size: 44, ramp: 'LION_HOLY', trail: 'streak', trailWidth: 6, glow: 16 },
+    },
+    // sb_b3 聖盾投影：給友軍的護盾光球，低拋物線、慢
+    'PROJ_BLUE_HOLY_ORB': {
+        trajectory: 'ARC', arcHeight: 60,
+        look: { shape: 'orb', size: 32, ramp: 'LION_HOLY', trail: 'streak', trailWidth: 6, glow: 22 },
+    },
+    // tb_a4 聖鎖牽引：直線甩出的雷光鎖鉤（對應紅方 tr_a1 血鉤）
+    'PROJ_BLUE_CHAIN_HOOK': {
+        trajectory: 'LINEAR',
+        look: { shape: 'hook', size: 42, ramp: 'LION_LIGHTNING', trail: 'streak', trailWidth: 3, glow: 8 },
+    },
 
     // ── 灰燼（RED）：重、慢、煙與血 ──
     'PROJ_RED_HEAVY_BOLT': {
@@ -105,6 +126,16 @@ export const PROJECTILE_VISUALS: Record<string, ProjectileVisualDef> = {
     'PROJ_RED_BLOOD_HOOK': {
         trajectory: 'LINEAR',
         look: { shape: 'hook', size: 42, ramp: 'ASH_BLOOD', trail: 'streak', trailWidth: 3, glow: 0 },
+    },
+    // mr_b2 生命虹吸：搖晃的血球，拖煙
+    'PROJ_RED_BLOOD_ORB': {
+        trajectory: 'WOBBLE', wobbleFreq: 1.5, wobbleAmp: 8,
+        look: { shape: 'orb', size: 46, ramp: 'ASH_BLOOD', trail: 'smoke', trailWidth: 10, smoke: 'CHAR', glow: 22 },
+    },
+    // sr_b4 鮮血治癒、sr_a1 生命轉移：給友軍的治療血珠，低拋物線、光痕
+    'PROJ_RED_BLOOD_MOTE': {
+        trajectory: 'ARC', arcHeight: 70,
+        look: { shape: 'orb', size: 34, ramp: 'ASH_BLOOD', trail: 'streak', trailWidth: 6, glow: 22 },
     },
     'PROJ_RED_SHADOW': {
         trajectory: 'WOBBLE', wobbleFreq: 0.5, wobbleAmp: 10,
