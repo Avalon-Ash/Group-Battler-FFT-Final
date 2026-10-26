@@ -193,6 +193,15 @@
 - **實機**：使用者回報 iPhone「應該沒事」；奧義觀感「先這樣」；雷射改投射物、近戰前衝、行為樹 OK；衝刺殘影太快看不清（HANDOFF B 線 R2）。
 - **收尾**：刪除 `BT_OPT_REPORT.md`、`ULT_TIMING_REPORT.md`、`PROJECT_CLEANUP_NEXT_PLAN.md`（三個執行包都完成）。
 
+### V. 2026-10-26 R1 特效零件快取依品質階層給上限（合併 7e3516d）
+
+結論：桌機特效壓力情境的零件快取不再抖動（headless 探針第 2、3 輪擠出 79／5 → 0／0，工作集約 178 MiB）；手機與觸控裝置維持 96 MiB。
+
+- Codex Sol／medium 在獨立 clone `C:\Git\_wt_r1` 實作：`VFX_PARTS.MAX_BYTES_BY_TIER`／`MAX_ENTRIES_BY_TIER`（桌機 224 MiB／576，階層 2／3 為 96 MiB／320）、探針 `tools/ui-e2e/part-cache-probe.mjs`。
+- 主代理審查補修：品質階層開場是 0、跑順不降階，iPhone 會吃到桌機上限；新增 `isMemoryConstrainedDevice()`（`pointer: coarse`）與 `CONSTRAINED_MIN_LIMIT_TIER = 2`。
+- 驗證：沙盒外完整 `npm test` 825 項、lint、build、runtime-smoke 通過；`perf:guard` 由 Codex 跑過（補修只影響觸控裝置）。
+- 派工教訓：Codex workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，無法 commit，由主代理代為 commit；`AgentRunner.test.ts` 在沙盒內必失敗。`agent-prompt` skill 待更新。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
