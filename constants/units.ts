@@ -106,6 +106,10 @@ export const AFTERIMAGE = {
     TINT_STRENGTH: 0.6,
     /** 染色影格快取上限（超過時淘汰最舊） */
     MAX_TINTED_FRAMES: 96,
+    /** 高速結束後，最後一組世界座標殘影的線性淡出秒數（戰鬥時間） */
+    LINGER_SEC: 0.3,
+    /** 只有軌跡峰值達此速度才停留；高於近戰前衝的 540 px/s */
+    LINGER_MIN_PEAK_SPEED: 600,
 } as const;
 
 /** 單位死亡擊飛（渲染層以經過時間推導位移，見 data/units/appearance/deathMotion.ts） */
