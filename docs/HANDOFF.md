@@ -18,7 +18,7 @@
 
 **B. 渲染修正佇列（Codex Sol／medium，獨立工作樹，依序一次一條；主代理審 diff＋`render-verify`）**
 1. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。
-2. **R4 網格效果優先序**：使用者認為資訊太雜的主因是網格疊加。主代理先盤點同一格會疊的網格類效果（AOE 預警、危害場、詠唱環、射程、格子脈衝），定一張優先序表（同格只畫最高優先，或次要的降透明），再派 Codex。
+2. **R4 網格效果優先序**：優先序表使用者 2026-10-27 核准，提示詞 `docs/R4_GRID_PRIORITY_AGENT_PROMPT.md` 已寫好（含詠唱預警與 AOE 指示去重、預警紅藍分色）。skin 合併後派 Codex，派工時填 base SHA。
 3. **R5 手機模擬量測工具**：使用者手機上很難用 `?perf`。在 `tools/ui-e2e/` 做一支手機模擬量測腳本：iPhone 14 Pro 版面＋CDP CPU 降速（4 倍）跑展示模式與 8 招奧義，輸出 FPS、品質階層、粒子數與記憶體。只能模擬 CPU，GPU 與 WebKit 行為仍以實機為準。可和 R1～R4 並行（不改渲染程式）。
 
 **C. 獅心／灰燼 20 套 skin**：試烘焙 `f9acdc7` 主代理 2026-10-26 審查通過（審圖二進位檔不進 main、設定 JSON 移出 `data/`、圖集離線縮 0.5 倍＋按需載入）。整合交給 GPT（使用者貼 `docs/FACTION_SKIN_INTEGRATION_AGENT_PROMPT.md`）；執行期部分等 R2 合併後才開始（渲染一次一條）。回來後主代理審 diff、取證重錄 `battle_frozen`。
