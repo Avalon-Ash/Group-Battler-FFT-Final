@@ -79,16 +79,30 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 shape: 'BURST_DIR', speed: [200, 400], drag: 0.08, partAnim: { fadeOut: 0.6 } }),
         ],
     },
-    // mb_u4 奧術洪流（範圍 5 彈幕，8 次）：奧術飛彈落點（藍光爆點＋六角碎晶＋擴張環）
+    // mb_u4 奧術洪流（範圍 5 彈幕，充能式 8 次）：每個落點＝小藍閃＋細環＋碎晶（不放大白閃，8 次疊起來會洗白）
     'FX_ULT_BLUE_TORRENT': {
         id: 'FX_ULT_BLUE_TORRENT',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 24, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.35, delay: 0, size: 24,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 20, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.3, delay: 0, size: 20,
                 shape: 'CIRCLE', shapeRadius: 10, partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_ARCANE' }, count: [2, 3], lifetime: [0.35, 0.5], delay: 0, size: 4,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_ARCANE' }, count: 2, lifetime: [0.35, 0.5], delay: 0, size: 4,
                 shape: 'CIRCLE', shapeRadius: 10, speed: [50, 150], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
             part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 4, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0, size: 48,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.4, fadeOut: 0.5 } }),
+        ],
+    },
+    // mb_u4 起手（只播一次）：奧術法陣＋光點在高處聚集 → 詠唱尾段彈群分流，沿弧線落向範圍各處（落點效果由 STORM 重播）
+    'FX_ULT_BLUE_TORRENT_WINDUP': {
+        id: 'FX_ULT_BLUE_TORRENT_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'magicCircle', radius: 96, ramp: 'LION_ARCANE', layer: 'outer', style: 'LION', seed: 2 }, count: 1, lifetime: HIT + 0.7, delay: 0, size: 96, vRotation: 0.6,
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3 } }),
+            // 光點往法陣上空聚集
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_ARCANE', hard: true }, count: 6, lifetime: 0.7, delay: [0.15, 0.9], size: 6, groundAnchored: true,
+                shape: 'RING', shapeRadius: 70, speed: -95, partAnim: { fadeIn: 0.2, fadeOut: 0.1, rise: [{ at: 0, z: 30 }, { at: 1, z: 160 }] } }),
+            // 分流彈群：從高處往四周飛出、沿弧線落地
+            part({ particleType: 'PART', part: { kind: 'missile', shape: 'orb', length: 16, ramp: 'LION_ARCANE' }, count: 6, lifetime: 0.4, delay: [HIT - 0.2, HIT + 0.25], size: 16, groundAnchored: true,
+                shape: 'BURST_DIR', speed: [150, 350], partAnim: { fadeIn: 0.1, rise: [{ at: 0, z: 160 }, { at: 1, z: 0, ease: 'in' }] } }),
         ],
     },
     // sb_u3 英勇讚美（全隊 Buff，8 次）：金色聖歌波紋一圈圈擴散＋光點上升
@@ -224,22 +238,25 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
         ],
     },
-    // mb_u5 聚能光束（巨型光束，命中範圍 1）：日輪烙印 → 光束終點爆閃＋光芒＋衝擊環＋六角碎晶
+    // mb_u5 聚輝光柱（巨型光束，命中範圍 1，充能式，命中 1.5 s）：日輪烙印＋目標上空六枚稜晶排成一圈慢轉並收攏 →
+    // 命中：光束打下（BEAM_SNIPE）＋光芒＋擴張環＋碎晶；終點閃光用柔光，不洗白
     'FX_ULT_BLUE_FOCUS_BEAM': {
         id: 'FX_ULT_BLUE_FOCUS_BEAM',
         emitters: [
-            // 起手：日輪烙印（範圍 1 尺寸 <= 108px，48 * 1.0 * 1.4 = 67.2px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 48, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: 1.2, delay: 0, size: 48, vRotation: 0.8,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
-            // 命中主爆發（delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_ARCANE', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 48,
+            // 日輪烙印（範圍 1 尺寸 <= 108px，48 * 1.0 * 1.4 = 67.2px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 48, emblem: 'sun', ramp: 'LION_ARCANE' }, count: 1, lifetime: HIT + 0.4, delay: 0, size: 48, vRotation: 0.8,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 稜晶：六枚排成一圈懸在目標上空，詠唱期間慢慢收攏到中心（對準）
+            part({ particleType: 'PART', part: { kind: 'shard', size: 14, shape: 'crystal', ramp: 'LION_ARCANE' }, count: 6, lifetime: HIT - 0.2, delay: 0.2, size: 14, groundAnchored: true,
+                shape: 'RING', shapeRadius: 56, speed: -56 / (HIT - 0.2), vRotation: 1, partAnim: { fadeIn: 0.15, rise: [{ at: 0, z: 70 }] } }),
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 40, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.4, delay: HIT, size: 40,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 48, count: 12, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.35, delay: 0.3, size: 48,
+            part({ particleType: 'PART', part: { kind: 'rays', radius: 48, count: 12, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.35, delay: HIT, size: 48,
                 partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeOut: 0.6 } }),
-            // 範圍 1 擴張環（48 * 1.2 * 1.4 = 80.6px，落於 58.2～108.1px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.45, delay: 0.3, size: 48,
+            // 命中主爆發：範圍 1 擴張環（48 * 1.2 * 1.4 = 80.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 48, thickness: 8, ramp: 'LION_ARCANE' }, count: 1, lifetime: 0.75, delay: HIT, size: 48,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_ARCANE' }, count: [4, 6], lifetime: [0.5, 0.7], delay: 0.3, size: 6,
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 6, shape: 'hex', ramp: 'LION_ARCANE' }, count: [4, 6], lifetime: [0.5, 0.7], delay: HIT, size: 6,
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
         ],
     },

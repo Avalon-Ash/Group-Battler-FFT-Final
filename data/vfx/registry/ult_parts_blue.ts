@@ -228,20 +228,27 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // mb_u2 絕對零度（DOMAIN，範圍 4）：日輪霜印 → 冰晶核心閃光＋冰霜衝擊環＋碎晶飛散 → 冰霧
+    // mb_u2 絕對零度（範圍 4 凍結，充能式，命中 1.5 s）：詠唱中霜紋螺旋從邊界往中心收、冰晶沿地面滑向中心 →
+    // 命中：六角冰殼成形＋擴張冰環＋冰屑 → 冰霧
     'FX_ULT_BLUE_ABSOLUTE_ZERO': {
         id: 'FX_ULT_BLUE_ABSOLUTE_ZERO',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_ICE' }, count: 1, lifetime: 1.5, delay: 0, size: 64, vRotation: 0.2,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_ICE', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 64,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 範圍 4 擴張環：128 * 1.8 * 1.4 = 322.6px，落於 232.8～432.3px
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 10, ramp: 'LION_ICE' }, count: 1, lifetime: 0.6, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'crystal', ramp: 'LION_ICE' }, count: [6, 8], lifetime: [0.5, 0.7], delay: 0.3, size: 8,
+            // 霜紋：六條細霜線慢慢旋進中心（120 * 1.3 * 1.4 = 218px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'spiral', radius: 120, arms: 6, turns: 0.25, thickness: 8, ramp: 'LION_ICE' }, count: 1, lifetime: 1.6, delay: 0.05, size: 120, vRotation: -0.8,
+                partAnim: { scaleFrom: 1.3, scaleTo: 0.45, ease: 'linear', fadeIn: 0.2, fadeOut: 0.15, alpha: 0.85 } }),
+            // 冰晶沿地面滑向中心
+            part({ particleType: 'PART', part: { kind: 'shard', size: 10, shape: 'crystal', ramp: 'LION_ICE' }, count: 12, lifetime: 0.7, delay: [0.2, 1.2], size: 10, groundAnchored: true,
+                shape: 'RING', shapeRadius: 150, speed: -90, partAnim: { fadeIn: 0.2, fadeOut: 0.2 } }),
+            // 冰封殼：命中時六角冰殼收進來定住
+            part({ particleType: 'PART', part: { kind: 'prism', radius: 64, height: 48, ramp: 'LION_ICE', style: 'glass' }, count: 1, lifetime: 0.9, delay: HIT, size: 64, groundAnchored: true,
+                partAnim: { scaleFrom: 1.3, scaleTo: 1, fadeIn: 0.05, fadeOut: 0.35 } }),
+            // 命中主爆發：冰環（範圍 4；128 * 1.5 * 1.4 = 268.8px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 128, thickness: 10, ramp: 'LION_ICE' }, count: 1, lifetime: 0.5, delay: HIT, size: 128,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.5, fadeOut: 0.6 } }),
+            part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 8, shape: 'crystal', ramp: 'LION_ICE' }, count: 8, lifetime: [0.5, 0.7], delay: HIT, size: 8,
                 shape: 'BURST_DIR', speed: [150, 300], vz: [180, 360], gravity: 1800, vRotation: [-8, 8], partAnim: { fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'STEEL', seed: 4 }, count: 3, lifetime: 0.8, delay: 0.35, size: 32,
+            // 冰霧（餘韻）
+            part({ particleType: 'PART', part: { kind: 'smoke', radius: 32, color: 'STEEL', seed: 4 }, count: 3, lifetime: 0.9, delay: HIT + 0.05, size: 32,
                 shape: 'CIRCLE', shapeRadius: 60, speed: [15, 30], vz: [10, 25], drag: 0.03, partAnim: { scaleFrom: 0.6, scaleTo: 1.3, fadeIn: 0.2, fadeOut: 0.6, alpha: 0.4 } }),
         ],
     },
@@ -316,23 +323,27 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // mb_u3 時間停止（全場靜止）：巨大日輪時鐘法陣緩轉 → 白光一閃＋擴散環（時間凍結）→ 光點懸停上升
+    // mb_u3 時間停止（全場靜止，控制無傷害，充能式，生效 1.5 s）：六角刻度盤整段詠唱高速旋轉 →
+    // 生效：轉盤戛然停住（換成靜止的盤；旋轉量是 1/8 圈的整數倍，換盤時日輪圖樣對得上）、外環往內一縮、懸浮碎片減速定格。
+    // 不畫打擊（沒有傷害）：主爆發是收縮環，不是向外擴張的衝擊環（C7）。
     'FX_ULT_BLUE_TIMESTOP': {
         id: 'FX_ULT_BLUE_TIMESTOP',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 128, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.8, delay: 0, size: 128, vRotation: 1.2,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.5, delay: 0.1, size: 64, vRotation: -2.0,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            // 命中主爆發（glow radius 140 大於環，非擴張環；delay 0.3 對齊 hitAt）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 140, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 140,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.8 } }),
-            // 範圍 10 環（128 * 1.8 * 1.4 = 322.6px）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.8, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.5 } }),
-            // 懸停光點（vz > 0 滿足 power <= 0 規則）
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [10, 12], lifetime: [0.9, 1.2], delay: [0.35, 0.45], size: 8,
-                shape: 'CIRCLE', shapeRadius: 130, vz: [10, 30], partAnim: { fadeIn: 0.1, fadeOut: 0.4 } }),
+            // 旋轉刻度盤（0.1～1.5 s 轉 6/8 圈）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 128, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT - 0.1, delay: 0.1, size: 128, vRotation: (Math.PI / 4) * 6 / (HIT - 0.1),
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.15 } }),
+            // 內圈反轉
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT - 0.15, delay: 0.15, size: 64, vRotation: -(Math.PI / 4) * 10 / (HIT - 0.15),
+                partAnim: { scaleFrom: 0.6, scaleTo: 1, ease: 'linear', fadeIn: 0.15 } }),
+            // 停住的刻度盤（生效後靜止，慢慢淡出）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 128, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: HIT, size: 128,
+                partAnim: { fadeOut: 0.4, alpha: 0.9 } }),
+            // 生效主爆發：外環往內一縮（140 * 1.25 * 1.4 = 245px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 140, thickness: 6, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: HIT, size: 140,
+                partAnim: { scaleFrom: 1.25, scaleTo: 1, fadeOut: 0.6 } }),
+            // 懸浮碎片：慢慢浮起、被阻力減速到幾乎定格（vz > 0）
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'hex', ramp: 'LION_HOLY' }, count: 12, lifetime: [1.4, 1.8], delay: [0.3, 1.0], size: 8,
+                shape: 'CIRCLE', shapeRadius: 140, vz: [40, 90], drag: 0.05, vRotation: [-0.5, 0.5], partAnim: { fadeIn: 0.15, fadeOut: 0.25 } }),
         ],
     },
 
