@@ -19,7 +19,7 @@
 2. 交給 Gemini 前環境已清（2026-10-26：刪除完成的報告與計畫、確認無 stash／多餘工作樹）。`battle_frozen` 在 A 線最後重錄（取證流程），B 線若也動到它，先合 B 再讓 A 重錄，不得「取一邊再重錄」。
 
 **B. 渲染修正佇列（Codex Sol／medium，獨立工作樹，依序一次一條；主代理審 diff＋`render-verify`）**
-1. **R1 特效零件快取抖動**：使用者 2026-10-26 主螢幕 `perf:frames` 的特效壓力情境，每 20 秒擠出 100～151 次、重烘造成長幀（一輪最長 320 ms、1% low 19 FPS；三輪 median 8.4 ms、p95 16.5 ms）。方向：`VFX_PARTS.MAX_BYTES` 依品質階層給（桌機階層 0／1 拉高到不再抖動，手機降階時維持或收），用 `perf:frames` 的 storm 情境量擠出次數與長幀。
+1. **R1 特效零件快取抖動**：已合併（WORKLOG §2 V）。剩使用者在主螢幕重跑 `perf:frames`，確認 `battle_vfx_storm` 的長幀與 1% low 改善；沒改善再查別的原因（報告 `docs/R1_PART_CACHE_REPORT.md`，確認後刪除）。
 2. **R2 衝刺殘影**：使用者回饋衝刺技能軌跡太快、看不清楚。方向：位移技能（effectType `DASH`）的殘影存留更久或更多（`AFTERIMAGE`），不改速度與玩法。證據在 `docs/DASH_MOTION_REPORT.md`，做完刪除該報告。
 3. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。
 4. **R4 網格效果優先序**：使用者認為資訊太雜的主因是網格疊加。主代理先盤點同一格會疊的網格類效果（AOE 預警、危害場、詠唱環、射程、格子脈衝），定一張優先序表（同格只畫最高優先，或次要的降透明），再派 Codex。
