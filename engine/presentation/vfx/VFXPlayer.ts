@@ -35,9 +35,11 @@ export class VFXPlayer {
         }
     }
     private static processEmitter(system: VFXSystem, config: EmitterConfig, cx: number, cy: number, cz: number, colorOverride?: string, groundZ?: number, ownerId?: string, hexKey?: string, scale: number = 1) {
+        // 軟／硬上限隨品質階層縮放（TIER_BUDGET_RATIOS）：已降到解析度階層的裝置（手機）用較小的上限
+        const budgetRatio = VFX_BUDGET.TIER_BUDGET_RATIOS[getQualityTier()];
         if (VFX_BUDGET.enabled) {
             const currentTotal = system.state.particles.length;
-            if (currentTotal >= VFX_BUDGET.HARD_PARTICLE_BUDGET) return;
+            if (currentTotal >= VFX_BUDGET.HARD_PARTICLE_BUDGET * budgetRatio) return;
         } else {
             // ── [PERF] 全域粒子上限 guard (Fallback when budget governor disabled) ──
             if (system.state.particles.length >= VFX_PARAM.MAX_PARTICLES) return;
@@ -66,7 +68,7 @@ export class VFXPlayer {
             if (tierRatio < 1.0) {
                 count = Math.max(1, Math.round(count * tierRatio));
             }
-            if (currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET) {
+            if (currentTotal >= VFX_BUDGET.SOFT_PARTICLE_BUDGET * budgetRatio) {
                 count = Math.max(1, Math.floor(count * 0.5));
             }
         }

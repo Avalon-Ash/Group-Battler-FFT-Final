@@ -551,6 +551,8 @@
     "CANVAS_PAD_PX": 24,
     "MAX_CANVAS_PX": 2048,
     "CANVAS_GROW_STEP_PX": 128,
+    "CANVAS_TRIM_FRAMES": 120,
+    "CANVAS_SHRINK_RATIO": 4,
     "MODE": {
       "PART_GROUND": "DIRECT"
     }
@@ -1445,6 +1447,12 @@
     "SOFT_PARTICLE_BUDGET": 630,
     "HARD_PARTICLE_BUDGET": 1000,
     "HAZARD_SPAWN_BURSTS_PER_FIELD": 12,
+    "TIER_BUDGET_RATIOS": [
+      1,
+      1,
+      0.6,
+      0.38
+    ],
     "TIER_EMISSION_RATIOS": [
       1,
       0.75,

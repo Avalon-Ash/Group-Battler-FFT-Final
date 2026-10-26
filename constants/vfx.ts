@@ -104,6 +104,10 @@ export const GROUND_DRAPE = {
     MAX_CANVAS_PX: 2048,
     /** 離屏畫布容量取整單位（裝置像素）：縮放動畫時尺寸每幀變動，不能每幀重配畫布 */
     CANVAS_GROW_STEP_PX: 128,
+    /** 每幾幀整理一次離屏畫布池（GroundDrape.trimCanvases）：整段沒用到的釋放，過大的縮小 */
+    CANVAS_TRIM_FRAMES: 120,
+    /** 畫布面積超過該週期實際需求的幾倍才縮小（避免大小特效輪流用同一格時反覆重配） */
+    CANVAS_SHRINK_RATIO: 4,
     /**
      * 鋪設類別（依繪製內容判斷，見 docs/COORD_GUARD_FINDINGS.md 對應的修正輪）：
      *  DIRECT    單一 drawImage／少量填色：每格裁切後直接畫，混合模式與原本完全一致
@@ -161,6 +165,11 @@ export const VFX_BUDGET = {
      * 會擠掉同時命中的奧義特效（ULT-V01 實戰探針 multi）
      */
     HAZARD_SPAWN_BURSTS_PER_FIELD: 12,
+    /**
+     * 各品質階層的軟／硬上限倍率 [Tier 0, Tier 1, Tier 2, Tier 3]（VFXPlayer）。桌機維持 1；
+     * 因掉幀被降到解析度階層的裝置（如 iPhone 開奧義掉到 20 FPS）上限跟著收：階層 3＝0.38 倍＝舊值 240／380
+     */
+    TIER_BUDGET_RATIOS: [1, 1, 0.6, 0.38] as const,
     /** 各品質階層粒子發射係數 [Tier 0, Tier 1, Tier 2, Tier 3] */
     TIER_EMISSION_RATIOS: [1.0, 0.75, 0.5, 0.35] as const,
     /** 單位死亡特效存活時間基準秒數；高負載或降階時以 REDUCED / NORMAL 比例縮短 */
