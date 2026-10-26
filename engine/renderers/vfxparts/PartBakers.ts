@@ -91,6 +91,9 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             if (n.shape === 'towerShield') return bakeTowerShield(ctx, n.size, ramp);
             if (n.shape === 'crown') return bakeCrown(ctx, n.size, ramp);
             if (n.shape === 'fist') return bakeFist(ctx, n.size, ramp);
+            if (n.shape === 'guillotine') return bakeGuillotine(ctx, n.size, ramp);
+            if (n.shape === 'ribSpike') return bakeRibSpike(ctx, n.size, ramp);
+            if (n.shape === 'eye') return bakeEye(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1574,6 +1577,95 @@ function bakeFist(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): void
     // 拇指
     energyPiece(ctx, () => { ctx.beginPath(); ctx.ellipse(F.THUMB_X * L, -F.THUMB_Y * L, F.THUMB_R[0] * L, F.THUMB_R[1] * L, 0, 0, TAU); },
         faceGradient(ctx, F.THUMB_X * L - F.THUMB_R[0] * L, -F.THUMB_Y * L, F.THUMB_X * L + F.THUMB_R[0] * L, -F.THUMB_Y * L, ramp, true), ramp, L);
+}
+
+/**
+ * 斷頭刃（kind 'construct'，shape 'guillotine'）：刃底中央在錨點 (0,0)，往上到 −H。
+ * 厚重斜刃（刃口左低右高）＋頂部配重塊；左半受光右半背光，刃口一道 core 亮線（ULT-V01：血色能量刃，不是鐵器）。
+ */
+function bakeGuillotine(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp): void {
+    const G = VFX_PARTS.CONSTRUCT.GUILLOTINE;
+    const hw = (G.WIDTH * H) / 2;
+    const wy = -H * (1 - G.WEIGHT_H);
+    const edgeL = 0, edgeR = -G.SLANT * H;
+    // 刃身左右兩半（刃口是從左下到右上的斜線）
+    const midEdge = (edgeL + edgeR) / 2;
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(-hw, edgeL); ctx.lineTo(0, midEdge); ctx.lineTo(0, wy); ctx.lineTo(-hw, wy); ctx.closePath(); },
+        faceGradient(ctx, -hw, wy, 0, edgeL, ramp, true), ramp, H);
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, midEdge); ctx.lineTo(hw, edgeR); ctx.lineTo(hw, wy); ctx.lineTo(0, wy); ctx.closePath(); },
+        faceGradient(ctx, 0, wy, hw, edgeR, ramp, false), ramp, H);
+    // 配重塊
+    const ww = hw * G.WEIGHT_W;
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-ww, -H, ww * 2, H * G.WEIGHT_H); },
+        faceGradient(ctx, 0, -H, 0, wy, ramp, false), ramp, H);
+    // 刃口亮線
+    ctx.save();
+    ctx.shadowColor = ramp.main;
+    ctx.shadowBlur = H * VFX_PARTS.CONSTRUCT.CORE_BLUR;
+    ctx.strokeStyle = withAlpha(ramp.core, G.EDGE_ALPHA);
+    ctx.lineWidth = Math.max(1, H * VFX_PARTS.CONSTRUCT.CORE_W * 1.5);
+    ctx.beginPath(); ctx.moveTo(-hw, edgeL); ctx.lineTo(hw, edgeR); ctx.stroke();
+    ctx.restore();
+}
+
+/**
+ * 骨刺（kind 'construct'，shape 'ribSpike'）：根部中央在錨點 (0,0)，往上彎成尖刺到 −H。
+ * 左緣受光、右緣背光，刺身兩道骨節亮紋（ULT-V01：血骨能量刺，半透明）。
+ */
+function bakeRibSpike(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp): void {
+    const R = VFX_PARTS.CONSTRUCT.RIB_SPIKE;
+    const bw = (R.BASE_W * H) / 2;
+    const tipX = R.BEND * H, tipY = -H;
+    const cx = tipX * 0.2, cy = -H * 0.55;
+    const half = (side: number) => () => {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(side * bw, 0);
+        ctx.quadraticCurveTo(cx + side * bw * 0.8, cy, tipX, tipY);
+        ctx.quadraticCurveTo(cx, cy, 0, 0);
+        ctx.closePath();
+    };
+    energyPiece(ctx, half(-1), faceGradient(ctx, -bw, 0, tipX, tipY, ramp, true), ramp, H);
+    energyPiece(ctx, half(1), faceGradient(ctx, bw, 0, tipX, tipY, ramp, false), ramp, H);
+    for (const r of R.RIDGES) {
+        const y = -r * H;
+        const x = tipX * r * r;
+        const w = bw * (1 - r);
+        coreLine(ctx, ramp, H, () => { ctx.beginPath(); ctx.moveTo(x - w, y + w * 0.3); ctx.lineTo(x + w, y - w * 0.3); });
+    }
+}
+
+/**
+ * 深淵之眼（kind 'construct'，shape 'eye'）：錨點在中心，W＝寬。杏仁形深色眼（半透明）＋發光虹膜＋深色縱瞳＋core 眼緣。
+ * 貼地（PART_GROUND）播放＝地面暗影裂開成眼。
+ */
+function bakeEye(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): void {
+    const E = VFX_PARTS.CONSTRUCT.EYE;
+    const C = VFX_PARTS.CONSTRUCT;
+    const hw = W / 2, hh = (E.HEIGHT * W) / 2;
+    const almond = () => {
+        ctx.beginPath();
+        ctx.moveTo(-hw, 0);
+        ctx.quadraticCurveTo(0, -hh * 2, hw, 0);
+        ctx.quadraticCurveTo(0, hh * 2, -hw, 0);
+        ctx.closePath();
+    };
+    energyPiece(ctx, almond, withAlpha(ramp.dark, E.FILL_ALPHA), ramp, W);
+    // 虹膜
+    const ir = E.IRIS_R * W;
+    const iris = ctx.createRadialGradient(0, 0, 0, 0, 0, ir);
+    iris.addColorStop(0, ramp.core);
+    iris.addColorStop(0.6, withAlpha(ramp.main, C.LIT_ALPHA[0]));
+    iris.addColorStop(1, withAlpha(ramp.dark, C.SHADE_ALPHA[0]));
+    ctx.save();
+    almond();
+    ctx.clip();
+    ctx.fillStyle = iris;
+    ctx.beginPath(); ctx.arc(0, 0, ir, 0, TAU); ctx.fill();
+    // 縱瞳
+    ctx.fillStyle = withAlpha(VFX_NEUTRALS.CHAR, E.FILL_ALPHA);
+    ctx.beginPath(); ctx.ellipse(0, 0, (E.PUPIL_W * W) / 2, ir * E.PUPIL_H, 0, 0, TAU); ctx.fill();
+    ctx.restore();
 }
 
 /** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */

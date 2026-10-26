@@ -120,6 +120,21 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 斷頭刃（size＝高 H，刃底中央在 (0,0)）：WIDTH＝刃寬，SLANT＝刃口斜度（右端比左端高多少），WEIGHT_*＝頂部配重塊（高度與寬倍率），
+         * EDGE_ALPHA＝刃口亮線（皆相對 H）。
+         */
+        GUILLOTINE: { WIDTH: 0.8, SLANT: 0.3, WEIGHT_H: 0.18, WEIGHT_W: 1.1, EDGE_ALPHA: 0.95 },
+        /**
+         * 骨刺（size＝高 H，根部中央在 (0,0)）：BASE_W＝根部寬，BEND＝尖端往側邊彎的量，SPAN＝外框寬（含彎曲），
+         * RIDGES＝刺身上的骨節亮紋位置（相對高度）。
+         */
+        RIB_SPIKE: { BASE_W: 0.24, BEND: 0.22, SPAN: 0.6, RIDGES: [0.3, 0.55] as const },
+        /**
+         * 深淵之眼（size＝寬 W，中心為錨點）：HEIGHT＝眼高，IRIS_R＝虹膜半徑，PUPIL_W＝縱瞳寬，PUPIL_H＝縱瞳高（相對眼高），
+         * FILL_ALPHA＝眼白（深淵）不透明度。
+         */
+        EYE: { HEIGHT: 0.45, IRIS_R: 0.17, PUPIL_W: 0.05, PUPIL_H: 0.8, FILL_ALPHA: 0.9 },
+        /**
          * 塔盾（size＝高 H，盾尖在 (0,0) 朝下）：WIDTH＝盾寬，SHOULDER＝直邊開始收尖的高度，TOP_ARCH＝上緣拱起；
          * CROSS_*＝盾面聖十字（core 內光：豎線起訖、橫線高度與半寬），BOSS_*＝盾心寶石的高度與光暈半徑（皆相對 H）。
          */

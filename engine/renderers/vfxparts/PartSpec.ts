@@ -28,9 +28,11 @@ export type PrismStyle = 'glass' | 'solid';
  * eclipse＝多面蝕月（低多邊形月面＋偏移暗影＋月牙紅緣＋日冕，錨點在中心，size＝直徑）；
  * bladeWheel＝劍輪（數把能量劍繞中心排成風車，各帶一道旋轉殘影；貼地＋vRotation＝劍刃繞身旋轉，錨點在中心，size＝直徑）；
  * towerShield＝塔盾（獅心光盾，盾尖朝下，錨點在盾尖，size＝高）；crown＝冠冕（錨點在中心，size＝寬）；
- * fist＝巨拳（拳面朝下，錨點在拳面底部，size＝含前臂的全長）。
+ * fist＝巨拳（拳面朝下，錨點在拳面底部，size＝含前臂的全長）；
+ * guillotine＝斷頭刃（厚重斜刃，錨點在刃底中央，size＝高）；ribSpike＝骨刺（彎曲的血骨尖肋，錨點在根部，size＝高）；
+ * eye＝深淵之眼（杏仁形眼＋發光虹膜＋縱瞳，錨點在中心，size＝寬；貼地用）。
  */
-export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist';
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -307,13 +309,20 @@ export function partBounds(n: PartSpec): PartBounds {
                 const d = n.size * haloR * 2 + m * 2;
                 return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
             }
-            if (n.shape === 'towerShield' || n.shape === 'fist') {
-                // 錨點在底部（盾尖／拳面）；寬度＝盾寬或拳寬
+            if (n.shape === 'towerShield' || n.shape === 'fist' || n.shape === 'guillotine' || n.shape === 'ribSpike') {
+                // 錨點在底部（盾尖／拳面／刃底／骨刺根部）；寬度依造型
                 const C = VFX_PARTS.CONSTRUCT;
-                const wr = n.shape === 'towerShield' ? C.TOWER_SHIELD.WIDTH : C.FIST.HAND_W;
+                const wr = n.shape === 'towerShield' ? C.TOWER_SHIELD.WIDTH : n.shape === 'fist' ? C.FIST.HAND_W
+                    : n.shape === 'guillotine' ? C.GUILLOTINE.WIDTH * C.GUILLOTINE.WEIGHT_W : C.RIB_SPIKE.SPAN;
                 const w = n.size * wr + m * 2;
                 const h = n.size + m * 2;
                 return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
+            }
+            if (n.shape === 'eye') {
+                // 錨點在中心
+                const w = n.size + m * 2;
+                const h = n.size * VFX_PARTS.CONSTRUCT.EYE.HEIGHT + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
             }
             if (n.shape === 'crown') {
                 // 錨點在中心；高度＝冠高

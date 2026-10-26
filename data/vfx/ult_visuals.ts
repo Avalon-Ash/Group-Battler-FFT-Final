@@ -125,15 +125,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- TANK (Blood/Undead) ---
     // tr_u1: 處決斷頭台 -> 巨大的紅色斷頭台刃 (Vertical Slash)
-    'tr_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.5, height: 300, vfxOverride: 'FX_ULT_RED_GUILLOTINE_IMPACT' },
+    'tr_u1': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#7f1d1d', secondaryColor: '#000', scale: 1.5, height: 300, vfxOverride: 'FX_ULT_RED_GUILLOTINE_IMPACT' },
     // tr_u2: 亡靈瘟疫 -> 擴散的綠色毒霧領域
-    'tr_u2': { archetype: 'DOMAIN', primaryColor: '#3f6212', secondaryColor: '#a3e635', scale: 1.8, vfxOverride: 'FX_ULT_RED_PLAGUE' },
+    'tr_u2': { charged: true, archetype: 'DOMAIN', primaryColor: '#3f6212', secondaryColor: '#a3e635', scale: 1.8, vfxOverride: 'FX_ULT_RED_PLAGUE' },
     // tr_u3: 不朽屍王 -> 血色晶體護甲
-    'tr_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#be123c', secondaryColor: '#000', scale: 1.6, vfxOverride: 'FX_ULT_RED_UNDYING' },
+    'tr_u3': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#be123c', secondaryColor: '#000', scale: 1.6, vfxOverride: 'FX_ULT_RED_UNDYING' },
     // tr_u4: 永恆夢魘 -> 黑色六邊形夢魘領域
-    'tr_u4': { archetype: 'INSTANT_IMPACT', primaryColor: '#581c87', secondaryColor: '#000', scale: 2.2, vfxOverride: 'FX_ULT_RED_NIGHTMARE' },
+    'tr_u4': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#581c87', secondaryColor: '#000', scale: 2.2, vfxOverride: 'FX_ULT_RED_NIGHTMARE' },
     // tr_u5: 鮮血之牆 -> 從地面升起的六邊形血柱
-    'tr_u5': { archetype: 'SANCTUARY', primaryColor: '#991b1b', secondaryColor: '#ef4444', scale: 1.4, count: 6, vfxOverride: 'FX_ULT_RED_BLOOD_WALL' },
+    'tr_u5': { charged: true, archetype: 'SANCTUARY', primaryColor: '#991b1b', secondaryColor: '#ef4444', scale: 1.4, count: 6, vfxOverride: 'FX_ULT_RED_BLOOD_WALL' },
 
     // --- WARRIOR (Rage/Fire) ---
     // wr_u1: 諸神黃昏 -> 地面爆發
