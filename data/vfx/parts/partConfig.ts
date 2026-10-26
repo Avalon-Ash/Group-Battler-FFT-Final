@@ -120,6 +120,11 @@ export const VFX_PARTS = {
             RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
         },
         /**
+         * 劍輪（size＝直徑 D，中心為錨點）：BLADES 把劍從 ROOT（相對半徑）伸到外緣，劍身寬 WIDTH（相對半徑），
+         * 劍尖往旋轉方向偏 SWEEP_DEG（風車感）；GUARD＝劍格長；每把劍後方一道 TRAIL_DEG 的殘影弧（core，TRAIL_ALPHA 漸淡）；HALO_R＝外框半徑（相對 D）。
+         */
+        BLADE_WHEEL: { BLADES: 6, ROOT: 0.3, WIDTH: 0.16, SWEEP_DEG: 18, GUARD: 0.16, TRAIL_DEG: 50, TRAIL_ALPHA: 0.55, TRAIL_W: 0.025, HALO_R: 0.56 },
+        /**
          * 多面蝕月（size＝直徑 D）：月面是 SIDES 邊的低多邊形，切成三角面、頂點偏 APEX（相對半徑），受光面在左上；
          * 暗影＝同樣的多邊形偏移 SHADOW_OFF、半徑 SHADOW_R，中心到 SHADOW_CORE_STOP 填 SHADOW_COLOR、最外緣漸成 ramp.dark（SHADOW_RIM_ALPHA，看得出暗面也是球面），露出左上一道月牙；暗影上仍淡淡看得到稜線（SHADOW_EDGE_ALPHA）；
          * RIM_*＝月牙紅緣（core 亮弧的角度範圍與線寬）；CORONA_*＝日冕光暈（相對半徑的內外緣與不透明度）；HALO_R＝外框半徑（相對 D）。

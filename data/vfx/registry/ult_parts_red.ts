@@ -1,14 +1,14 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 import { part } from "./ult_parts";
-import { ULT_SEQUENCE, ultImpactDelay } from "../ult_visuals";
+import { ULT_SEQUENCE, chargedImpactAt } from "../ult_visuals";
 
 /** rr_u2 的命中時刻（充能式天降：詠唱結束＋落下時間，從資產開始起算）；彈頭在這一刻落地 */
-const RR_U2_IMPACT = ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay('rr_u2');
+const RR_U2_IMPACT = chargedImpactAt('rr_u2');
 /** rr_u2 彈頭：顯形時刻與高度路徑（詠唱期間高空緩降，詠唱結束後加速落進印記） */
 const RR_U2_WARHEAD = { APPEAR: 0.35, Z_START: 520, Z_CAST_END: 420 } as const;
 const RR_U2_WARHEAD_LIFE = RR_U2_IMPACT - RR_U2_WARHEAD.APPEAR;
 /** sr_u4 的生效時刻（充能式天降：詠唱結束＋落下時間；這招沒有落下物，月亮是升起的） */
-const SR_U4_IMPACT = ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay('sr_u4');
+const SR_U4_IMPACT = chargedImpactAt('sr_u4');
 /** sr_u4 蝕月：升起起訖高度（月心距地面），詠唱結束時升到 Z_CAST_END，之後緩緩再升到 Z_END */
 const SR_U4_MOON = { APPEAR: 0.1, Z_START: 40, Z_CAST_END: 200, Z_END: 210, TAIL: 0.9 } as const;
 const SR_U4_MOON_LIFE = SR_U4_IMPACT + SR_U4_MOON.TAIL - SR_U4_MOON.APPEAR;

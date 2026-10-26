@@ -1,5 +1,9 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 import { part } from "./ult_parts";
+import { ULT_SEQUENCE } from "../ult_visuals";
+
+/** 充能式命中時刻（從詠唱開始起算） */
+const HIT = ULT_SEQUENCE.CHARGED_HIT_AT;
 
 // ==========================================
 // 奧義特效（零件版）— STORM 與 BEAM_SNIPE 類
@@ -27,15 +31,25 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- BLUE STORM 落點 ----------
-    // wb_u4 劍刃風暴（自身範圍 3，8 次）：旋轉鋼白劍弧＋中央閃光＋地面衝擊環＋迸出六角碎光
+    // wb_u4 劍刃風暴（自身範圍 3，充能式 8 段）：起手（只播一次）＝日輪紋章＋劍輪（多把能量劍貼地繞身旋轉，整段詠唱加速成形）
+    'FX_ULT_BLUE_BLADESTORM_WINDUP': {
+        id: 'FX_ULT_BLUE_BLADESTORM_WINDUP',
+        emitters: [
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.5, delay: 0, size: 64, vRotation: 0.5,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.3, alpha: 0.8 } }),
+            part({ particleType: 'PART_GROUND', part: { kind: 'construct', shape: 'bladeWheel', size: 224, ramp: 'LION_ARCANE' }, count: 1, lifetime: HIT + 0.85, delay: 0.1, size: 224, vRotation: 9,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1, ease: 'linear', fadeIn: 0.15, fadeOut: 0.2 } }),
+        ],
+    },
+    // wb_u4 每一段（散落在範圍內）：切面斬弧＋小閃＋細環＋碎光；不放大白閃（8 段疊起來會洗白）
     'FX_ULT_BLUE_BLADESTORM': {
         id: 'FX_ULT_BLUE_BLADESTORM',
         emitters: [
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 64, arcDeg: 150, thickness: 16, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0, size: 64,
+            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 56, arcDeg: 140, thickness: 12, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0, size: 56,
                 shape: 'CIRCLE', shapeRadius: 15, vRotation: [-10, 10], partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 48, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.3, delay: 0, size: 48,
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 20, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.2, delay: 0, size: 20,
                 partAnim: { scaleFrom: 0.5, scaleTo: 1.2, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 6, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.4, delay: 0, size: 40,
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 20, thickness: 5, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.4, delay: 0, size: 40,
                 partAnim: { scaleFrom: 0.4, scaleTo: 1.4, fadeOut: 0.5 } }),
             part({ particleType: 'PART_DEBRIS', part: { kind: 'shard', size: 4, shape: 'hex', ramp: 'LION_HOLY' }, count: 2, lifetime: [0.3, 0.4], delay: 0.05, size: 4,
                 shape: 'BURST_DIR', speed: [150, 300], vz: [150, 300], gravity: 2000, vRotation: [-8, 8], partAnim: { fadeOut: 0.5 } }),
@@ -188,27 +202,25 @@ export const ULT_PART_VFX_STORM: Record<string, VFXAsset> = {
     },
 
     // ---------- BEAM_SNIPE 命中點（光束本體不變） ----------
-    // wb_u5 光速斬擊（瞬移斬擊，單體）：獅心盾紋章起手 → 三道交錯瞬移劍弧＋命中核心爆閃＋單體地面環
+    // wb_u5 光速斬擊（單體瞬移斬，充能式，命中 1.5 s）：詠唱中目標腳下浮現獅盾紋章、光晶向目標收攏 →
+    // 命中：光束打出同時三道錯開的直線高速劍痕依序交叉（0.07 s 間隔）＋單體衝擊環
     'FX_ULT_BLUE_LIGHTSPEED': {
         id: 'FX_ULT_BLUE_LIGHTSPEED',
         emitters: [
-            // 起手：獅心盾紋章（與 mb_u5 日輪明確區分）
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.0, delay: 0, size: 36, vRotation: 0,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.5 } }),
-            // 瞬移斬痕 1（左斜斬）
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 104, arcDeg: 130, thickness: 22, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.25, delay: 0.12, size: 104,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.5, rotation: 0.75 } }),
-            // 瞬移斬痕 2（右斜斬）
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 104, arcDeg: 130, thickness: 22, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.20, size: 104,
-                partAnim: { scaleFrom: 0.8, scaleTo: 1.2, fadeOut: 0.5, rotation: -0.75 } }),
-            // 瞬移斬痕 3（橫斷斬）
-            part({ particleType: 'PART', part: { kind: 'slashArc', radius: 96, arcDeg: 140, thickness: 24, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.25, delay: 0.28, size: 96,
-                partAnim: { scaleFrom: 0.85, scaleTo: 1.25, fadeOut: 0.5, rotation: 1.57 } }),
-            // 命中核心爆閃
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 64, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.35, delay: 0.3, size: 64,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.7 } }),
-            // 單體地面衝擊環（scaleTo > scaleFrom 滿足 C7，size 36 * 1.2 * 1.4 = 60.48 <= 72px 滿足 C6）
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: 0.3, size: 36,
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 36, emblem: 'lionShield', ramp: 'LION_HOLY' }, count: 1, lifetime: HIT + 0.4, delay: 0, size: 36,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.1, fadeOut: 0.3 } }),
+            // 光晶收攏
+            part({ particleType: 'PART', part: { kind: 'shard', size: 8, shape: 'crystal', ramp: 'LION_HOLY' }, count: 8, lifetime: 0.75, delay: [0.4, 0.8], size: 8,
+                shape: 'RING', shapeRadius: 60, speed: -70, vRotation: [-6, 6], partAnim: { fadeIn: 0.25, fadeOut: 0.25 } }),
+            // 三道直線劍痕（頭端在目標，往後拖尾），依序交叉
+            part({ particleType: 'PART', part: { kind: 'spark', length: 144, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.3, delay: HIT, size: 144,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.3, fadeOut: 0.6, rotation: 0.6 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 144, ramp: 'LION_PHYSICAL' }, count: 1, lifetime: 0.3, delay: HIT + 0.07, size: 144,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.3, fadeOut: 0.6, rotation: 2.5 } }),
+            part({ particleType: 'PART', part: { kind: 'spark', length: 144, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.3, delay: HIT + 0.14, size: 144,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1.3, fadeOut: 0.6, rotation: -0.15 } }),
+            // 命中主爆發：單體衝擊環（36 * 1.2 * 1.4 = 60.5px <= 72px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 24, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.75, delay: HIT, size: 36,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.2, fadeOut: 0.6 } }),
         ],
     },

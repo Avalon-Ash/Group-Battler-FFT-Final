@@ -75,15 +75,15 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 
     // --- WARRIOR (Thunder/Blade) ---
     // wb_u1: 雷霆之怒 -> 天降雷霆六邊柱
-    'wb_u1': { archetype: 'HEAVEN_FALL', primaryColor: '#3b82f6', secondaryColor: '#22d3ee', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_THUNDER_SLAM' },
+    'wb_u1': { charged: true, ownFallObject: true, archetype: 'HEAVEN_FALL', primaryColor: '#3b82f6', secondaryColor: '#22d3ee', scale: 1.4, height: 1000, vfxOverride: 'FX_ULT_BLUE_THUNDER_SLAM' },
     // wb_u2: 破曉聖擊 -> 擴散的六邊形光爆
-    'wb_u2': { archetype: 'INSTANT_IMPACT', primaryColor: '#fef3c7', secondaryColor: '#f59e0b', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_DAYBREAK' },
+    'wb_u2': { charged: true, archetype: 'INSTANT_IMPACT', primaryColor: '#fef3c7', secondaryColor: '#f59e0b', scale: 1.8, vfxOverride: 'FX_ULT_BLUE_DAYBREAK' },
     // wb_u3: 誓約勝利 -> 光片聚成獅翼聖劍、在目標上空抬起，再重刃砸落插地（充能式，ULT-V01 代表作）
     'wb_u3': { archetype: 'INSTANT_IMPACT', primaryColor: '#facc15', secondaryColor: '#eab308', scale: 2.2, vfxOverride: 'FX_ULT_BLUE_EXCALIBUR', charged: true },
     // wb_u4: 劍刃風暴 -> 六邊形刀光風暴
-    'wb_u4': { archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_STORM_SIGIL' },
+    'wb_u4': { charged: true, archetype: 'STORM', primaryColor: '#60a5fa', secondaryColor: '#bae6fd', scale: 1.2, count: 8, timing: 0.05, vfxOverride: 'FX_ULT_BLUE_BLADESTORM', windupFx: 'FX_ULT_BLUE_BLADESTORM_WINDUP' },
     // wb_u5: 光速斬擊 -> 瞬移軌跡連線 (Beam)
-    'wb_u5': { archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
+    'wb_u5': { charged: true, archetype: 'BEAM_SNIPE', primaryColor: '#e0f2fe', secondaryColor: '#fff', scale: 2.5, beamStyle: 'DEATH_RAY', vfxOverride: 'FX_ULT_BLUE_LIGHTSPEED' },
 
     // --- RANGER (Ice/Sniper) ---
     // rb_u1: 極地冰河 -> 天降巨大冰晶六邊體
@@ -200,6 +200,8 @@ export function ultFallTime(def: UltVisualDef): number {
  * 單一來源：CombatSystem 的延遲結算、VisualSystem 的序列起點、SkillSequences 的命中時刻都讀它，
  * 特效命中因此落在真正傷害那一刻（ULT-V01，使用者決定保留天降延遲、玩法不變）。
  */
+/** 充能式奧義的命中時刻（從資產開始＝詠唱開始起算）：CHARGED_HIT_AT＋ultImpactDelay（天降類的落下時間，其他 0）。配方用它排落地／生效。 */
+export function chargedImpactAt(skillId: string): number { return ULT_SEQUENCE.CHARGED_HIT_AT + ultImpactDelay(skillId); }
 export function ultImpactDelay(skillId: string | undefined): number {
     const def = skillId ? ULT_VISUALS[skillId] : undefined;
     return def?.archetype === 'HEAVEN_FALL' ? (def.timing || 0) + ultFallTime(def) : 0;

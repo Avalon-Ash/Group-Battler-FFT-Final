@@ -87,6 +87,7 @@ export function bakePart(ctx: CanvasRenderingContext2D, n: PartSpec, frame: numb
             if (n.shape === 'singularity') return bakeSingularity(ctx, n.size, ramp);
             if (n.shape === 'warhead') return bakeWarhead(ctx, n.size, ramp);
             if (n.shape === 'eclipse') return bakeEclipse(ctx, n.size, ramp);
+            if (n.shape === 'bladeWheel') return bakeBladeWheel(ctx, n.size, ramp);
             return bakeGreatsword(ctx, n.size, ramp);
         }
     }
@@ -1419,6 +1420,53 @@ function bakeEclipse(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp): v
     ctx.arc(0, 0, R, (E.RIM_ARC_DEG[0] * Math.PI) / 180, (E.RIM_ARC_DEG[1] * Math.PI) / 180);
     ctx.stroke();
     ctx.restore();
+}
+
+/**
+ * 劍輪（kind 'construct'，shape 'bladeWheel'）：錨點在中心，D＝直徑。BLADES 把能量劍從內圈伸到外緣、劍尖順著旋轉方向偏一點，
+ * 每把劍前緣受光、後緣背光，後方拖一道殘影弧。貼地＋vRotation 播放＝劍刃繞施法者旋轉（ULT-V01：魔法構造體，不是實心刀）。
+ */
+function bakeBladeWheel(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp): void {
+    const C = VFX_PARTS.CONSTRUCT;
+    const B = C.BLADE_WHEEL;
+    const R = D / 2;
+    const r0 = R * B.ROOT;
+    const hw = (R * B.WIDTH) / 2;
+    const sweep = (B.SWEEP_DEG * Math.PI) / 180;
+    for (let i = 0; i < B.BLADES; i++) {
+        const a = (i / B.BLADES) * TAU;
+        // 殘影弧：在劍的後方（逆旋轉方向）
+        ctx.save();
+        ctx.strokeStyle = withAlpha(ramp.core, B.TRAIL_ALPHA);
+        ctx.lineWidth = Math.max(1, D * B.TRAIL_W);
+        ctx.lineCap = 'round';
+        ctx.shadowColor = ramp.main;
+        ctx.shadowBlur = D * C.CORE_BLUR;
+        ctx.beginPath();
+        ctx.arc(0, 0, R * (1 + B.ROOT) / 2, a + sweep / 2 - (B.TRAIL_DEG * Math.PI) / 180, a + sweep / 2 - sweep);
+        ctx.stroke();
+        ctx.restore();
+        // 劍身：根部在 r0（角度 a），劍尖在 R（角度 a＋sweep）；前緣（旋轉方向那側）受光
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const tx = Math.cos(a + sweep) * R, ty = Math.sin(a + sweep) * R;
+        const bx = ca * r0, by = sa * r0;
+        const nx = -sa, ny = ca;
+        const mx = Math.cos(a + sweep * 0.6) * R * 0.78, my = Math.sin(a + sweep * 0.6) * R * 0.78;
+        const half = (side: number) => () => {
+            ctx.beginPath();
+            ctx.moveTo(bx, by);
+            ctx.lineTo(bx + nx * hw * side, by + ny * hw * side);
+            ctx.lineTo(mx + nx * hw * side, my + ny * hw * side);
+            ctx.lineTo(tx, ty);
+            ctx.lineTo(mx, my);
+            ctx.closePath();
+        };
+        energyPiece(ctx, half(1), faceGradient(ctx, bx, by, tx, ty, ramp, true), ramp, D);
+        energyPiece(ctx, half(-1), faceGradient(ctx, bx, by, tx, ty, ramp, false), ramp, D);
+        // 劍格
+        const g = (R * B.GUARD) / 2;
+        coreLine(ctx, ramp, D, () => { ctx.beginPath(); ctx.moveTo(bx + nx * g, by + ny * g); ctx.lineTo(bx - nx * g, by - ny * g); });
+    }
 }
 
 /** 內光線：core 細線加光暈（彈頭環帶與中脊）。 */

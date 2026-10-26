@@ -25,9 +25,10 @@ export type PrismStyle = 'glass' | 'solid';
  * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）；
  * singularity＝多面奇點（深色多面能量核＋亮邊壓縮光環，錨點在中心，size＝直徑）；
  * warhead＝重型能量彈頭（彈尖朝下，錨點在彈尖，size＝彈身長，尾焰另往上延伸）；
- * eclipse＝多面蝕月（低多邊形月面＋偏移暗影＋月牙紅緣＋日冕，錨點在中心，size＝直徑）。
+ * eclipse＝多面蝕月（低多邊形月面＋偏移暗影＋月牙紅緣＋日冕，錨點在中心，size＝直徑）；
+ * bladeWheel＝劍輪（數把能量劍繞中心排成風車，各帶一道旋轉殘影；貼地＋vRotation＝劍刃繞身旋轉，錨點在中心，size＝直徑）。
  */
-export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse';
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -297,9 +298,10 @@ export function partBounds(n: PartSpec): PartBounds {
         }
         case 'construct': {
             const m = pad + n.size * VFX_PARTS.CONSTRUCT.AURA_BLUR * 2;
-            if (n.shape === 'singularity' || n.shape === 'eclipse') {
-                // 錨點在中心；外框含壓縮光環／日冕
-                const haloR = n.shape === 'eclipse' ? VFX_PARTS.CONSTRUCT.ECLIPSE.HALO_R : VFX_PARTS.CONSTRUCT.SINGULARITY.HALO_R;
+            if (n.shape === 'singularity' || n.shape === 'eclipse' || n.shape === 'bladeWheel') {
+                // 錨點在中心；外框含壓縮光環／日冕／劍尖
+                const C = VFX_PARTS.CONSTRUCT;
+                const haloR = n.shape === 'eclipse' ? C.ECLIPSE.HALO_R : n.shape === 'bladeWheel' ? C.BLADE_WHEEL.HALO_R : C.SINGULARITY.HALO_R;
                 const d = n.size * haloR * 2 + m * 2;
                 return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
             }

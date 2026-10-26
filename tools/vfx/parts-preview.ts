@@ -67,6 +67,7 @@ const rows: Row[] = [
     { label: 'ult construct (red)', specs: [
         { name: 'warhead ASH_FIRE', spec: { kind: 'construct', shape: 'warhead', size: 80, ramp: 'ASH_FIRE' } },
         { name: 'eclipse ASH_BLOOD', spec: { kind: 'construct', shape: 'eclipse', size: 96, ramp: 'ASH_BLOOD' } },
+        { name: 'bladeWheel LION_PHYSICAL', spec: { kind: 'construct', shape: 'bladeWheel', size: 112, ramp: 'LION_PHYSICAL' } },
     ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [

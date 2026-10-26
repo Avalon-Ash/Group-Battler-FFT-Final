@@ -1,5 +1,14 @@
 import { VFXAsset } from "../../../types/VFXSchema";
 import { part } from "./ult_parts";
+import { ULT_SEQUENCE, chargedImpactAt } from "../ult_visuals";
+
+/** 充能式命中時刻（從詠唱開始起算） */
+const HIT = ULT_SEQUENCE.CHARGED_HIT_AT;
+/** wb_u1 雷核落地＝傷害時刻（詠唱結束＋落下時間） */
+const WB_U1_IMPACT = chargedImpactAt('wb_u1');
+/** wb_u1 雷核：顯形時刻與匯聚高度 */
+const WB_U1_CORE = { APPEAR: 0.2, Z: 260 } as const;
+const WB_U1_CORE_LIFE = WB_U1_IMPACT - WB_U1_CORE.APPEAR;
 
 // ==========================================
 // 奧義特效（零件版）— 獅心（BLUE）
@@ -52,41 +61,60 @@ export const ULT_PART_VFX_BLUE: Record<string, VFXAsset> = {
         ],
     },
 
-    // wb_u1 雷霆之怒（跳躍轟炸，HEAVEN_FALL，範圍 3）：起手日輪印記 → 落地金雷劈下＋爆閃＋衝擊環 → 電光殘點
+    // wb_u1 雷霆之怒（範圍 3 暈眩，充能式天降：傷害＝WB_U1_IMPACT＝詠唱結束＋落下時間）：
+    // 詠唱中分叉聖雷一道道劈向目標上空的匯聚點、雷核漸大 → 詠唱結束後雷核砸落 →
+    // 落地：主雷劈下、衝擊環擴張、電火花沿地面四竄。雷核由資產自己畫（ownFallObject），不掉共用岩塊。
     'FX_ULT_BLUE_THUNDER_SLAM': {
         id: 'FX_ULT_BLUE_THUNDER_SLAM',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 96, emblem: 'sun', ramp: 'LION_LIGHTNING' }, count: 1, lifetime: 1.1, delay: 0, size: 96, vRotation: 0.8,
-                partAnim: { scaleFrom: 0.7, scaleTo: 1, fadeIn: 0.1, fadeOut: 0.4 } }),
-            part({ particleType: 'PART', part: { kind: 'bolt', length: 224, branches: 3, ramp: 'LION_LIGHTNING', seed: 4 }, count: 1, lifetime: 0.35, delay: 0.1, size: 112, groundAnchored: true,
+            // 落點日輪印記：整段詠唱到落地後淡出（64 * 1.0 * 1.4 = 89.6px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 64, emblem: 'sun', ramp: 'LION_LIGHTNING' }, count: 1, lifetime: WB_U1_IMPACT + 0.8, delay: 0, size: 64, vRotation: 0.6,
+                partAnim: { scaleFrom: 0.7, scaleTo: 1, ease: 'linear', fadeIn: 0.08, fadeOut: 0.25 } }),
+            // 匯聚聖雷：短促分叉雷從上方劈進匯聚點（雷的底端＝rise 高度）
+            part({ particleType: 'PART', part: { kind: 'bolt', length: 128, branches: 2, ramp: 'LION_LIGHTNING', seed: 3 }, count: 5, lifetime: 0.14, delay: [0.25, 1.4], size: 64, groundAnchored: true,
+                shape: 'CIRCLE', shapeRadius: 12, partAnim: { fadeOut: 0.5, rise: [{ at: 0, z: WB_U1_CORE.Z }] } }),
+            // 雷核：在匯聚點漸大，詠唱結束後加速砸落，落地那一刻消失
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 28, ramp: 'LION_LIGHTNING', hard: true }, count: 1, lifetime: WB_U1_CORE_LIFE, delay: WB_U1_CORE.APPEAR, size: 28, groundAnchored: true,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1, ease: 'linear', fadeIn: 0.1, rise: [
+                    { at: 0, z: WB_U1_CORE.Z },
+                    { at: (HIT - WB_U1_CORE.APPEAR) / WB_U1_CORE_LIFE, z: WB_U1_CORE.Z, ease: 'linear' },
+                    { at: 1, z: 0, ease: 'in' },
+                ] } }),
+            // 落地主雷
+            part({ particleType: 'PART', part: { kind: 'bolt', length: 320, branches: 3, ramp: 'LION_LIGHTNING', seed: 4 }, count: 1, lifetime: 0.3, delay: WB_U1_IMPACT, size: 160, groundAnchored: true,
                 partAnim: { fadeOut: 0.5 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 80, ramp: 'LION_LIGHTNING', hard: true }, count: 1, lifetime: 0.4, delay: 0.3, size: 80,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.7 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_LIGHTNING' }, count: 1, lifetime: 0.5, delay: 0.3, size: 128,
+            // 命中主爆發：衝擊環（範圍 3；96 * 1.6 * 1.4 = 215px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 96, thickness: 10, ramp: 'LION_LIGHTNING' }, count: 1, lifetime: 0.55, delay: WB_U1_IMPACT, size: 96,
                 partAnim: { scaleFrom: 0.3, scaleTo: 1.6, fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'bolt', length: 160, branches: 2, ramp: 'LION_LIGHTNING', seed: 7 }, count: [3, 4], lifetime: [0.2, 0.3], delay: [0.32, 0.42], size: 80, groundAnchored: true,
-                shape: 'CIRCLE', shapeRadius: 70, partAnim: { fadeOut: 0.6 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_LIGHTNING', hard: true }, count: [10, 14], lifetime: [0.5, 0.75], delay: [0.35, 0.5], size: 6,
-                shape: 'BURST_DIR', speed: [150, 350], vz: [80, 200], drag: 0.06, partAnim: { fadeOut: 0.6 } }),
+            // 電火花沿地面四竄
+            part({ particleType: 'PART', part: { kind: 'spark', length: 18, ramp: 'LION_LIGHTNING' }, count: 12, lifetime: [0.3, 0.5], delay: [WB_U1_IMPACT, WB_U1_IMPACT + 0.1], size: 18,
+                shape: 'BURST_DIR', speed: [250, 500], vz: [20, 120], drag: 0.05, partAnim: { fadeOut: 0.5 } }),
         ],
     },
 
-    // wb_u2 破曉聖擊（自身範圍 4）：日輪法陣浮現 → 旭日爆發（閃光＋十二道光芒＋雙重衝擊環） → 光點上飄
+    // wb_u2 破曉聖擊（自身範圍 4，充能式，命中 1.5 s）：詠唱中地面曙光暈開、旭日從地平線升起 →
+    // 命中：日輪斬面貼地高速掃出＋衝擊環＋日芒 → 光點緩緩上浮
     'FX_ULT_BLUE_DAYBREAK': {
         id: 'FX_ULT_BLUE_DAYBREAK',
         emitters: [
-            part({ particleType: 'PART_GROUND', part: { kind: 'sigil', radius: 112, emblem: 'sun', ramp: 'LION_HOLY' }, count: 1, lifetime: 1.5, delay: 0, size: 112, vRotation: 0.4,
-                partAnim: { scaleFrom: 0.6, scaleTo: 1, fadeIn: 0.15, fadeOut: 0.35 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 112, ramp: 'LION_HOLY', hard: true }, count: 1, lifetime: 0.55, delay: 0.3, size: 112,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.3, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'rays', radius: 128, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.5, delay: 0.3, size: 128,
-                partAnim: { scaleFrom: 0.5, scaleTo: 1.4, fadeOut: 0.6, rotation: 0.2 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.32, size: 128,
-                partAnim: { scaleFrom: 0.4, scaleTo: 1.8, fadeOut: 0.6 } }),
-            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 8, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: 0.45, size: 128,
-                partAnim: { scaleFrom: 0.3, scaleTo: 1.8, fadeOut: 0.7 } }),
-            part({ particleType: 'PART', part: { kind: 'glow', radius: 8, ramp: 'LION_HOLY', hard: true }, count: [12, 14], lifetime: [0.9, 1.2], delay: [0.45, 0.7], size: 8,
-                shape: 'CIRCLE', shapeRadius: 110, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
+            // 曙光：柔光環在地面慢慢暈開
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 64, thickness: 24, ramp: 'LION_HOLY', soft: true }, count: 1, lifetime: 1.6, delay: 0.05, size: 64,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1, ease: 'linear', fadeIn: 0.2, fadeOut: 0.2, alpha: 0.7 } }),
+            // 旭日：柔光球從地面升起
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 36, ramp: 'LION_HOLY' }, count: 1, lifetime: 1.55, delay: 0.1, size: 36, groundAnchored: true,
+                partAnim: { scaleFrom: 0.4, scaleTo: 1, ease: 'linear', fadeIn: 0.2, fadeOut: 0.15, rise: [{ at: 0, z: 0 }, { at: 1, z: 80 }] } }),
+            // 命中：日芒在旭日的位置綻開
+            part({ particleType: 'PART', part: { kind: 'rays', radius: 112, count: 12, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.45, delay: HIT, size: 112, groundAnchored: true,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.3, fadeOut: 0.6, alpha: 0.85, rotation: 0.2, rise: [{ at: 0, z: 80 }] } }),
+            // 日輪斬面：貼地的大弧刃高速旋轉掃出（112 * 1.5 * 1.4 = 235px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'slashArc', radius: 112, arcDeg: 300, thickness: 18, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.35, delay: HIT, size: 112, vRotation: 14,
+                partAnim: { scaleFrom: 0.5, scaleTo: 1.5, fadeOut: 0.5 } }),
+            // 命中主爆發：衝擊環（範圍 4；120 * 1.5 * 1.4 = 252px）
+            part({ particleType: 'PART_GROUND', part: { kind: 'ring', radius: 120, thickness: 10, ramp: 'LION_HOLY' }, count: 1, lifetime: 0.6, delay: HIT, size: 120,
+                partAnim: { scaleFrom: 0.3, scaleTo: 1.5, fadeOut: 0.6 } }),
+            // 光點上浮（餘韻）
+            part({ particleType: 'PART', part: { kind: 'glow', radius: 6, ramp: 'LION_HOLY', hard: true }, count: 12, lifetime: [0.6, 0.9], delay: [HIT + 0.1, HIT + 0.4], size: 6,
+                shape: 'CIRCLE', shapeRadius: 130, speed: [5, 20], vz: [40, 90], drag: 0.02, partAnim: { fadeIn: 0.15, fadeOut: 0.5 } }),
         ],
     },
 
