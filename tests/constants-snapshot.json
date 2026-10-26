@@ -1407,6 +1407,7 @@
     "MID_COLOR": "rgba(0,0,0,0.3)"
   },
   "UNIT_SPRITE": {
+    "maxConcurrentLoads": 2,
     "targetHeightCanvasUnits": 59,
     "referenceHeightPx": 158.3,
     "footOffsetLocal": 64.61538461538461,

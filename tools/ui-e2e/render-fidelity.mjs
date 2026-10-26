@@ -244,6 +244,13 @@ const captureBattleFrozen = async (page) => {
     if (clicked !== 1) throw new Error(`battle_frozen: dice button matched ${clicked} elements`);
     await page.waitForTimeout(200);
     await page.evaluate(() => window.__stepFrames(5));
+    // Synthetic rAF advances synchronously; let the current roster's image queue
+    // finish before capturing, so this fixture never records procedural fallbacks.
+    await page.evaluate(async () => {
+        const { spriteAtlasStore } = await import('/engine/renderers/units/SpriteAtlasStore.ts');
+        await spriteAtlasStore.readyPromise;
+        if (!window.__UNIT_ASSETS_READY__) throw new Error('battle_frozen: roster atlases not ready');
+    });
     // Start simulation
     await page.evaluate(() => {
         const e = window.__TACTICAL_ENGINE__;
