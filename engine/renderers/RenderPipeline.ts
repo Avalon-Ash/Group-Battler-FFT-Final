@@ -233,7 +233,7 @@ export class RenderPipeline {
         const lH = ctx.canvas.height / dpr;
 
         CtxOpCounter.track('submit', () => {
-            this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined);
+            this.frames.build(engine.agents, terrainH, engine.mapConfig, this.transitionT, this.transitionPhase, this._hasGround ?? undefined, t);
             this.tactical.submitRenderables(this.renderList, engine, hoveredHex, hoveredSkill, highlight, engine.projectiles, this.transitionT, this.transitionPhase, t);
             this._viewportScratch.width = lW;
             this._viewportScratch.height = lH;

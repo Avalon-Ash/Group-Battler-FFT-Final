@@ -228,6 +228,8 @@ export class RenderSpec {
         s += "- 換算：UnitFrame.fill 呼叫 Afterimage.computeAfterimageGhosts，把軌跡點換成**相對單位目前腳底繪製點**的偏移：\n";
         s += "  dx = 點.x − footX；dy = (點.y − 該點腳下繪製用高度) − floorY；z = 點.physics.z。腳下高度用繪製用高度函式（已扣漂浮位移），VOID／MAGMA 上殘影跟著地塊浮。\n";
         s += "- 條件：物理速度 > VFX_PARAM.SPEED_TILT_THRESHOLD；屍體、拖曳預覽、剪影、變羊沒有殘影；距離本體不到 AFTERIMAGE.MIN_SEPARATION_PX 的點省略。\n";
+        s += "- 停留：UnitFrameStore 以單位物件為鍵保存最後一組殘影的世界 x、繪製 Y（已扣該點繪製高度）、z 與原 alpha；高速期間峰值 ≥ AFTERIMAGE.LINGER_MIN_PEAK_SPEED 才在降速後停留 AFTERIMAGE.LINGER_SEC，依 battleTime 線性淡出，暫停不流逝。\n";
+        s += "  停留每幀只減目前 footX／floorY 轉成局部偏移，不再重取地形高度，故殘影固定在原路徑。仍跟隨單位 op 排序及轉場；新高速軌跡取代舊記憶，死亡、移除、隱藏、拖曳或變羊清除記憶。槽位每單位初次高速時配置並重用，無每幀新增殘影物件；一般移動與近戰前衝不延長。\n";
         s += "- 繪製：UnitAfterimagePainter。原點＝腳底繪製點；每個殘影 translate(dx, getVisualBodyCenterY(dy, z))、scale(UNIT_SCALE)、同本體的旋轉與漂浮，\n";
         s += "  畫 SpriteUnitRenderer.resolveFrame 解析出的**同一張影格**（同朝向），染成陣營軌跡色（getFactionSkin(team).projection.trailColor）的快取畫布。\n";
         s += "  染色影格每 (圖集, Mip, 影格, 顏色) 一張，第一次用到才建立，數量上限 AFTERIMAGE.MAX_TINTED_FRAMES；每幀零分配。\n";

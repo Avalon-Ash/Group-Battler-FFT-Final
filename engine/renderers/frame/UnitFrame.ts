@@ -9,6 +9,8 @@
 // ║  唯一寫入者：UnitFrameStore.build。                          ║
 // ║  殘影（ghosts）：trailHistory 的點換算成相對腳底的偏移       ║
 // ║  （Afterimage.ts，腳下高度＝繪製用高度，RenderSpec §10）。   ║
+// ║  高峰值軌跡降速後保存世界 x／繪製 Y／z，戰鬥時間線性淡出；║
+// ║  每幀減去目前腳點，固定在路徑；死亡／移除清除（§10）。    ║
 // ║  視覺狀態（store 內，跨幀）：每個單位上一幀的排序用腳下格，  ║
 // ║  進入前格（格心 Y 較大）立即切換；退回後格或同列側移才要求  ║
 // ║  腳明顯進入新格（UNIT_FRAME.HEX_HYSTERESIS_PX，未壓扁平面   ║
@@ -24,7 +26,7 @@ import { HexUtils, MapConfig } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { UnitDeathPainter } from "../units/painters/UnitDeathPainter";
 import { computeDeathGround } from "../../../data/units/appearance/deathMotion";
-import { UNIT_FRAME, ISO_SCALE_Y } from "../../../constants";
+import { UNIT_FRAME, ISO_SCALE_Y, AFTERIMAGE, VFX_PARAM } from "../../../constants";
 import { resolveBodyType } from "../../../data/units/appearance/bodyTypes";
 import { hudBarHeight } from "../../../data/units/appearance/projection";
 import { Hex } from "../../../types";
@@ -102,10 +104,22 @@ interface SortHexMemory {
     released: boolean;
 }
 
+/** slots 的 dx/dy 在記憶中代表世界 x／繪製 Y，輸出時才轉回局部偏移。 */
+interface AfterimageMemory {
+    slots: AfterimageGhost[];
+    count: number;
+    peakSq: number;
+    active: boolean;
+    fadeStart: number;
+    stamp: number;
+}
+
 export class UnitFrameStore {
     private readonly pool: MutableUnitFrame[] = [];
     private readonly frames: UnitFrame[] = [];
     private readonly sortHex = new Map<string, SortHexMemory>();
+    private readonly afterimages = new Map<Agent, AfterimageMemory>();
+    private afterimageTime = 0;
     private buildStamp = 0;
     /** 本幀 build 的繪製用高度函式與地圖（殘影腳下高度用；每幀由 build 設定） */
     private heightAt: (q: number, r: number) => number = () => 0;
@@ -138,9 +152,12 @@ export class UnitFrameStore {
         mapConfig: MapConfig,
         transitionT: number,
         phase: UnitFramePhase,
-        hasGround?: (q: number, r: number) => boolean
+        hasGround?: (q: number, r: number) => boolean,
+        battleTime = 0
     ): void {
         const n = agents.length;
+        if (battleTime < this.afterimageTime) this.afterimages.clear();
+        this.afterimageTime = battleTime;
         this.heightAt = renderHeightAt;
         this.mapConfig = mapConfig;
         if (this.frames.length > n) this.frames.length = n;
@@ -153,6 +170,11 @@ export class UnitFrameStore {
             if (!f) { f = createFrame(agent); this.pool[i] = f; }
             this.frames[i] = f;
             this.fill(f, agent, renderHeightAt, mapConfig, transitionT, phase, batchCulled, hasGround);
+            this.updateAfterimages(f, battleTime);
+        }
+
+        for (const [agent, mem] of this.afterimages) {
+            if (mem.stamp !== this.buildStamp) this.afterimages.delete(agent);
         }
 
         // 不在單位列表裡的單位（已移除）：丟掉它的腳下格記憶
@@ -160,6 +182,54 @@ export class UnitFrameStore {
             for (const [id, mem] of this.sortHex) {
                 if (mem.stamp !== this.buildStamp) this.sortHex.delete(id);
             }
+        }
+    }
+
+    /** 視覺記憶只由 store 寫入；槽位每單位建立一次，暫停時 battleTime 不變。 */
+    private updateAfterimages(f: MutableUnitFrame, time: number): void {
+        const a = f.agent;
+        if (f.isCorpse || a.fullyDead || !f.visible || a.banished ||
+            a.dragOverQ !== null || a.dragOverR !== null || a.view.visualStatus === 'POLYMORPH') {
+            f.ghostCount = 0;
+            this.afterimages.delete(a);
+            return;
+        }
+        const speedSq = a.physics.vx * a.physics.vx + a.physics.vy * a.physics.vy;
+        const active = speedSq > VFX_PARAM.SPEED_TILT_THRESHOLD ** 2;
+        let mem = this.afterimages.get(a);
+        if (!mem && active) {
+            mem = { slots: createGhostSlots(), count: 0, peakSq: 0, active: false, fadeStart: 0, stamp: this.buildStamp };
+            this.afterimages.set(a, mem);
+        }
+        if (!mem) return;
+        mem.stamp = this.buildStamp;
+        if (active) {
+            if (!mem.active) { mem.count = 0; mem.peakSq = 0; }
+            mem.active = true;
+            mem.peakSq = Math.max(mem.peakSq, speedSq);
+            if (f.ghostCount > 0) {
+                mem.count = f.ghostCount;
+                for (let i = 0; i < mem.count; i++) {
+                    const from = f.ghosts[i], to = mem.slots[i];
+                    to.dx = from.dx + f.footX;
+                    to.dy = from.dy + f.floorY;
+                    to.z = from.z;
+                    to.alpha = from.alpha;
+                }
+            }
+            return;
+        }
+        if (mem.active) { mem.active = false; mem.fadeStart = time; }
+        if (mem.peakSq < AFTERIMAGE.LINGER_MIN_PEAK_SPEED ** 2) return;
+        const alpha = Math.max(0, 1 - (time - mem.fadeStart) / AFTERIMAGE.LINGER_SEC);
+        if (alpha <= 0) { mem.count = 0; return; }
+        f.ghostCount = mem.count;
+        for (let i = 0; i < mem.count; i++) {
+            const from = mem.slots[i], to = f.ghosts[i];
+            to.dx = from.dx - f.footX;
+            to.dy = from.dy - f.floorY;
+            to.z = from.z;
+            to.alpha = from.alpha * alpha;
         }
     }
 
