@@ -7,7 +7,9 @@
 // ║    本類不持有任何外觀資料，只做分發，不做決策                     ║
 // ║  [ARCH] 遵守 RenderSpec §4.1 目標錨點採樣時點規則：             ║
 // ║    CAST_START 僅當單體有詠唱非投射物且目標仍在集合時傳遞綁定選項 ║
-// ║    （targetId, lockAt）；AOE／投射物／無有效目標維持靜態快照      ║
+// ║    （targetId, lockAt）；AOE／投射物／天降類／無有效目標維持靜態快照 ║
+// ║    天降類＝序列有 HEAVEN_FALL 動作或 ultImpactDelay > 0           ║
+// ║    （ownFallObject 的天降招落下物畫在資產裡，序列沒有該動作）      ║
 // ║                                                                  ║
 // ║  子系統分工 (SSOT 邊界)：                                        ║
 // ║    EventHUDMapper  → DAMAGE / HEAL / CC / CAST 事件 → HUDSystem  ║
@@ -74,6 +76,7 @@ export class VisualSystem {
                         (event.skill.cast || 0) > 0 &&
                         (!event.skill.projectileSpeed || event.skill.projectileSpeed <= 0) &&
                         sequence.actions.every(a => a.type !== 'HEAVEN_FALL') &&
+                        ultImpactDelay(event.skill.id) === 0 &&
                         Boolean(event.targetId && engine.agents.some(a => a.id === event.targetId));
 
                     const options = isEligibleSingle ? {

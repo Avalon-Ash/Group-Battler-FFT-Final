@@ -14,6 +14,7 @@ import { GridSystem } from '../engine/systems/grid';
 import { CameraSystem } from '../engine/presentation/CameraSystem';
 import { VisualMath, Point3D } from '../engine/math/VisualMath';
 import { Team, Role, GameEvent, Skill } from '../types';
+import { ultImpactDelay } from '../data/vfx/ult_visuals';
 import { VFXSequence, VFXAction } from '../types/VFXSchema';
 import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
@@ -667,12 +668,13 @@ describe('SequenceTargetBinding (F02)', () => {
             }
         });
 
-        it('does NOT pass binding options for skills containing HEAVEN_FALL actions (ensuring sequence exists and run is called)', () => {
+        it('does NOT pass binding options for heaven-fall ultimates, including ones that draw their own fall object (ensuring sequence exists and run is called)', () => {
             const caster = engine.agents[0];
             const target = engine.agents[1];
 
+            // tr_u1 是天降類（ultImpactDelay > 0）但落下物畫在資產裡（ownFallObject），序列沒有 HEAVEN_FALL 動作
             expect(SKILL_SEQUENCES['tr_u1']).toBeDefined();
-            expect(SKILL_SEQUENCES['tr_u1'].actions.some(a => a.type === 'HEAVEN_FALL')).toBe(true);
+            expect(ultImpactDelay('tr_u1')).toBeGreaterThan(0);
 
             const realTrU1 = DEFAULT_SKILL_DB.find(s => s.id === 'tr_u1');
             expect(realTrU1).toBeDefined();
@@ -696,12 +698,15 @@ describe('SequenceTargetBinding (F02)', () => {
                 pos: { x: target.px, y: target.py, z: 10 },
             };
 
+            // 充能式：序列在 CAST_START 當下就開始播，零件烘焙需要 DOM，這裡只驗路由
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => undefined);
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
                 expect(lastRunOptions).toBeUndefined();
             } finally {
                 sequenceSystem.run = origRun;
+                playSpy.mockRestore();
             }
         });
     });
