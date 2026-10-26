@@ -61,6 +61,19 @@ export interface PartAnim {
     alpha?: number;
     /** 初始旋轉（弧度）；持續旋轉用 EmitterConfig.vRotation */
     rotation?: number;
+    /**
+     * 高度路徑（ULT-V01）：生命週期內高度＝出生高度（貼地零件為當前地面）＋關鍵影格內插（world px），取代 vz 積分。
+     * 用於「在空中成形、抬起、砸落」這類具象主體運動，一個發射器就能跑完整段動作。
+     * 只動 z，足跡不變；空中特效的排序鍵本來就不含 z（RenderSpec §2）。
+     */
+    rise?: readonly RiseKey[];
+}
+
+/** 高度關鍵影格：at＝生命進度 0～1（遞增），z＝高度偏移；ease＝從前一格到這一格的曲線（預設 out）。 */
+export interface RiseKey {
+    at: number;
+    z: number;
+    ease?: 'out' | 'in' | 'linear';
 }
 
 // Add Range type

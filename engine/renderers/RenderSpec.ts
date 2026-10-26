@@ -61,6 +61,8 @@ export class RenderSpec {
         s += "高度只影響繪製位置（op.ty）。舊的 `op.z * 20`（z > 0）與固定 `+60`（z == 0）和 y*100 互相抵銷，往下掉的碎片鍵在鄰居兩側來回，\n";
         s += "相對地塊／單位／疊層逐幀翻轉（docs/COORD_GUARD_FINDINGS.md H3）。現在掉落的碎片 y 不變則鍵不變，水平移動則鍵單調，\n";
         s += "對任何靜止物件最多翻轉一次。投射物的 op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓它永遠在最上層。\n";
+        s += "零件高度路徑（PartAnim.rise，ULT-V01 奧義主體的成形／抬起／砸落）只依生命進度改 z（VFXPhysics），足跡不動，所以同樣不進鍵；\n";
+        s += "貼地零件（groundAnchored）以當前地面高度為基準加上路徑偏移。\n";
         s += "AURA 去掉舊的 `高度 * TERRAIN_SORT_SCALE`（證據：docs/COORD_GUARD_FINDINGS.md §8，景深預言判 AURA 的穩定錯序 361 → 70）。\n\n";
         s += "**沒有「法陣抬升」**：舊規則（RenderList.sort 把站在大型法陣橢圓內的單位／屍體的鍵抬到法陣前緣之後）已移除——它隨法陣生滅、縮放而開關，\n";
         s += "是 docs/COORD_GUARD_FINDINGS.md 量到的 85% 排序震盪。單位站在法陣後半需要「前緣格 < 法陣 < 單位 < 前方地塊」，這是環，沒有任何單一排序鍵能滿足；\n";
@@ -132,12 +134,14 @@ export class RenderSpec {
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 
         s += "### 4.1 目標錨點採樣與時點協議 (Target Anchor Sampling & Timing Protocol)\n\n";
-        s += "- **CAST_START 單體序列動態目標綁定**：僅限 `skill.type === 'SINGLE'`、`cast > 0`、`projectileSpeed <= 0` 或缺席、無 `HEAVEN_FALL` 動作且 `targetId` 指向現有單位的施法事件啟用動態綁定。\n";
+        s += "- **CAST_START 單體序列動態目標綁定**：僅限 `skill.type === 'SINGLE'`、`cast > 0`、`projectileSpeed <= 0` 或缺席、非天降類（序列無 `HEAVEN_FALL` 動作，且 `ultImpactDelay(skill.id) === 0`；ownFallObject 的天降招落下物畫在資產裡、序列沒有該動作，仍屬天降類）且 `targetId` 指向現有單位的施法事件啟用動態綁定。\n";
         s += "- **取樣與鎖定邊界**：\n";
         s += "  - 詠唱期間（`battleTime < lockAt`，其中 `lockAt = battleTime + skill.cast`）：每次 `SequenceSystem.update` 在派發前以 `VisualMath.getUnitAnchor(target, engine)` 動態更新目標錨點（含地形高度與物理位移）。\n";
         s += "  - 結算幀（首次 `battleTime >= lockAt`）：取當幀錨點後永久鎖定（`binding.locked = true`）；後續同序列餘波動作使用鎖定快照，不追隨移動。\n";
+        s += "  - 已生成的粒子：鎖定前由綁定序列派發出的粒子（充能式奧義在詠唱開始就生成全部粒子，命中發射器靠粒子 delay 倒數）每幀隨錨點平移（x、y 跟錨點，高度只補目標腳下地面的高低差；光束不動），鎖定後留在鎖定位置。\n";
         s += "  - 目標邊界：目標該幀被命中致死但在 `engine.agents` 中時仍可取錨點；目標移出集合則沿用最後有效快照。\n";
-        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、HEAVEN_FALL 動作與無有效目標者維持靜態快照。\n\n";
+        s += "  - 排除對象：AOE 地面目標模式、正速度投射物、天降類（HEAVEN_FALL 動作或 ultImpactDelay > 0）與無有效目標者維持靜態快照。\n";
+        s += "- **詠唱取消**：每次 `SequenceSystem.run` 有編號，派發出的粒子記 `seqRun`。CAST_START 的序列（`castRun`）被 CAST_BREAK 取消時，清掉該施法者的待派發動作與該次序列已生成的粒子；同一施法者更早的序列餘波不受影響。\n\n";
 
         s += "--- \n\n";
 

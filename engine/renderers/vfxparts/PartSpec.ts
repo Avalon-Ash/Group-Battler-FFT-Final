@@ -20,6 +20,21 @@ export type MagicCircleLayer = 'outer' | 'inner';
 export type MagicCircleStyle = 'LION' | 'ASH';
 /** 六角稜柱的材質：glass＝六面半透明（護盾），solid＝只畫朝向鏡頭的面（冰晶塊） */
 export type PrismStyle = 'glass' | 'solid';
+/**
+ * 奧義魔法構造體（ULT-V01）：有體積的半透明能量體（受光面較亮較實、背光面較暗較透、外暈＋亮邊＋內光），
+ * 不是實心物件，也不是一團光。greatsword＝獅翼聖劍（劍尖朝下，錨點在劍尖，size＝全長）；
+ * singularity＝多面奇點（深色多面能量核＋亮邊壓縮光環，錨點在中心，size＝直徑）；
+ * warhead＝重型能量彈頭（彈尖朝下，錨點在彈尖，size＝彈身長，尾焰另往上延伸）；
+ * eclipse＝多面蝕月（低多邊形月面＋偏移暗影＋月牙紅緣＋日冕，錨點在中心，size＝直徑）；
+ * bladeWheel＝劍輪（數把能量劍繞中心排成風車，各帶一道旋轉殘影；貼地＋vRotation＝劍刃繞身旋轉，錨點在中心，size＝直徑）；
+ * towerShield＝塔盾（獅心光盾，盾尖朝下，錨點在盾尖，size＝高）；crown＝冠冕（錨點在中心，size＝寬）；
+ * fist＝巨拳（拳面朝下，錨點在拳面底部，size＝含前臂的全長）；
+ * guillotine＝斷頭刃（厚重斜刃，錨點在刃底中央，size＝高）；ribSpike＝骨刺（彎曲的血骨尖肋，錨點在根部，size＝高）；
+ * eye＝深淵之眼（杏仁形眼＋發光虹膜＋縱瞳，錨點在中心，size＝寬；貼地用）；
+ * arrow＝神矢（寬矢頭＋細矢桿＋尾羽，矢尖朝下，錨點在矢尖，size＝全長）；
+ * demonWings＝惡魔翼（左右翼膜＋翼骨＋中央角冠，錨點在背心，size＝翼展）。
+ */
+export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow' | 'demonWings';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';
@@ -45,6 +60,8 @@ export type PartSpec =
     | { kind: 'ring'; radius: number; thickness: number; ramp: VFXRampId; roughness?: number; seed?: number; soft?: boolean }
     | { kind: 'slashArc'; radius: number; arcDeg: number; thickness: number; ramp: VFXRampId }
     | { kind: 'rays'; radius: number; count: number; ramp: VFXRampId; lengthJitter?: number; seed?: number }
+    /** 螺旋吸積帶：arms 條彎曲光帶從外緣 radius 繞 turns 圈收進中心，越往內越細越亮（向心壓縮）；貼地用 PART_GROUND */
+    | { kind: 'spiral'; radius: number; arms: number; turns: number; thickness: number; ramp: VFXRampId }
     | { kind: 'bolt'; length: number; branches: number; ramp: VFXRampId; seed?: number }
     | { kind: 'flame'; height: number; ramp: VFXRampId; jagged?: boolean }
     | { kind: 'smoke'; radius: number; color: VFXNeutralId; roughness?: number; seed?: number }
@@ -57,7 +74,9 @@ export type PartSpec =
     | { kind: 'missile'; shape: MissileShape; length: number; ramp: VFXRampId }
     | { kind: 'magicCircle'; radius: number; ramp: VFXRampId; layer: MagicCircleLayer; style: MagicCircleStyle; seed?: number }
     /** 立體零件：等距投影與版面（FLAT／POINTY）烘焙在 sprite 裡，繪製時不可再旋轉或壓扁 */
-    | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle };
+    | { kind: 'prism'; radius: number; height: number; ramp: VFXRampId; layout?: HexLayout; style: PrismStyle }
+    /** 具象實體（ConstructShape）：size＝主軸長度（world px），錨點依造型（見 partBounds） */
+    | { kind: 'construct'; shape: ConstructShape; size: number; ramp: VFXRampId };
 
 export type PartKind = PartSpec['kind'];
 
@@ -112,6 +131,12 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             const lengthJitter = quantizeUnit(spec.lengthJitter);
             return { kind: 'rays', radius: quantizeSize(spec.radius), count: clampInt(spec.count, 3, 32), ramp: spec.ramp, lengthJitter, seed: lengthJitter > 0 ? quantizeSeed(spec.seed) : 0 };
         }
+        case 'spiral': {
+            const S = VFX_PARTS.SPIRAL;
+            const turns = Math.max(S.TURN_STEP, Math.min(S.MAX_TURNS, Math.round(spec.turns / S.TURN_STEP) * S.TURN_STEP));
+            const radius = quantizeSize(spec.radius);
+            return { kind: 'spiral', radius, arms: clampInt(spec.arms, 2, S.MAX_ARMS), turns, thickness: Math.min(radius, quantizeSize(spec.thickness)), ramp: spec.ramp };
+        }
         case 'bolt':
             return { kind: 'bolt', length: quantizeSize(spec.length), branches: clampInt(spec.branches, 0, 6), ramp: spec.ramp, seed: quantizeSeed(spec.seed) };
         case 'flame':
@@ -140,6 +165,8 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             const q = (v: number) => Math.max(step, Math.round(v / step) * step);
             return { kind: 'prism', radius: q(spec.radius), height: q(spec.height), ramp: spec.ramp, layout: spec.layout ?? 'FLAT', style: spec.style };
         }
+        case 'construct':
+            return { kind: 'construct', shape: spec.shape, size: quantizeSize(spec.size), ramp: spec.ramp };
     }
 }
 
@@ -179,6 +206,7 @@ export function partBlend(n: PartSpec): GlobalCompositeOperation {
     if (n.kind === 'smoke' || n.kind === 'droplet' || n.kind === 'flame') return 'source-over';
     if (n.kind === 'missile' && SOLID_MISSILES.has(n.shape)) return 'source-over';
     if (n.kind === 'prism' && n.style === 'solid') return 'source-over';
+    if (n.kind === 'construct') return 'source-over';
     if (VFX_SOLID_RAMPS.includes(n.ramp)) return 'source-over';
     if (n.kind === 'shard' && n.shape !== 'crystal' && n.shape !== 'hex') return 'source-over';
     return 'lighter';
@@ -198,6 +226,12 @@ export function partBounds(n: PartSpec): PartBounds {
             // 光暈模糊會往外擴 BLUR×2，外環光暈再寬 HALO_WIDTH_MUL 倍線寬
             const M = VFX_PARTS.MAGIC;
             const d = (n.radius + M.BLUR * 2 + M.RING_A.W * M.HALO_WIDTH_MUL) * 2 + pad * 2;
+            return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+        }
+        case 'spiral': {
+            // 外緣光帶最粗：光暈半寬＋烘焙模糊
+            const S = VFX_PARTS.SPIRAL;
+            const d = (n.radius + n.thickness * S.HALO_W / 2 + n.thickness * S.HALO_BLUR * 2) * 2 + pad * 2;
             return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
         }
         case 'glow':
@@ -267,6 +301,56 @@ export function partBounds(n: PartSpec): PartBounds {
             const w = n.length + pad * 2;
             const h = n.length * VFX_PARTS.MISSILE.HEIGHT[n.shape] + pad * 2;
             return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
+        }
+        case 'construct': {
+            const m = pad + n.size * VFX_PARTS.CONSTRUCT.AURA_BLUR * 2;
+            if (n.shape === 'singularity' || n.shape === 'eclipse' || n.shape === 'bladeWheel') {
+                // 錨點在中心；外框含壓縮光環／日冕／劍尖
+                const C = VFX_PARTS.CONSTRUCT;
+                const haloR = n.shape === 'eclipse' ? C.ECLIPSE.HALO_R : n.shape === 'bladeWheel' ? C.BLADE_WHEEL.HALO_R : C.SINGULARITY.HALO_R;
+                const d = n.size * haloR * 2 + m * 2;
+                return { width: d, height: d, anchorX: d / 2, anchorY: d / 2 };
+            }
+            if (n.shape === 'towerShield' || n.shape === 'fist' || n.shape === 'guillotine' || n.shape === 'ribSpike' || n.shape === 'arrow') {
+                // 錨點在底部（盾尖／拳面／刃底／骨刺根部）；寬度依造型
+                const C = VFX_PARTS.CONSTRUCT;
+                const wr = n.shape === 'towerShield' ? C.TOWER_SHIELD.WIDTH : n.shape === 'fist' ? C.FIST.HAND_W
+                    : n.shape === 'guillotine' ? C.GUILLOTINE.WIDTH * C.GUILLOTINE.WEIGHT_W
+                    : n.shape === 'arrow' ? C.ARROW.SPAN : C.RIB_SPIKE.SPAN;
+                const w = n.size * wr + m * 2;
+                const h = n.size + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
+            }
+            if (n.shape === 'demonWings') {
+                // 錨點在背心；上下各留翼尖與翼膜下緣
+                const D = VFX_PARTS.CONSTRUCT.DEMON_WINGS;
+                const w = n.size + m * 2;
+                const h = n.size * (D.TOP + D.BOTTOM) + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: m + n.size * D.TOP };
+            }
+            if (n.shape === 'eye') {
+                // 錨點在中心
+                const w = n.size + m * 2;
+                const h = n.size * VFX_PARTS.CONSTRUCT.EYE.HEIGHT + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
+            }
+            if (n.shape === 'crown') {
+                // 錨點在中心；高度＝冠高
+                const w = n.size + m * 2;
+                const h = n.size * VFX_PARTS.CONSTRUCT.CROWN.HEIGHT + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h / 2 };
+            }
+            if (n.shape === 'warhead') {
+                // 彈尖朝下，錨點在彈尖；寬度＝尾翼展開，高度＝彈身＋上方尾焰
+                const W = VFX_PARTS.CONSTRUCT.WARHEAD;
+                const w = n.size * W.FIN_SPAN + m * 2;
+                const h = n.size * (1 + W.TRAIL_LEN) + m * 2;
+                return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
+            }
+            // greatsword：劍尖朝下，錨點在劍尖（插地／砸落的接觸點）；寬度＝獅翼護手展開；四周多留外暈的模糊半徑
+            const w = n.size * VFX_PARTS.CONSTRUCT.GREATSWORD.WING_SPAN + m * 2;
+            const h = n.size + m * 2;
+            return { width: w, height: h, anchorX: w / 2, anchorY: h - m };
         }
     }
 }

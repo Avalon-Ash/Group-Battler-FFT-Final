@@ -84,6 +84,118 @@ export const VFX_PARTS = {
         GLASS: { BACK_FACES: true, SIDE_TOP: 0.3, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.3, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0.5 },
         SOLID: { BACK_FACES: false, SIDE_TOP: 1, SIDE_BASE: 0, EDGE_ALPHA: 1, EDGE_W: 1, CAP_FILL: 0.6, CAP_EDGE_ALPHA: 1, CAP_EDGE_W: 1.5, BASE_EDGE_ALPHA: 0 },
     },
+    /**
+     * 奧義魔法構造體（kind 'construct'，ULT-V01）：有體積但不是實心物件——半透明能量體＋外暈＋亮邊＋內光。
+     * 比例都是相對主軸長度 size。LIT_ALPHA＝受光面 [core 端, main 端] 不透明度；SHADE_ALPHA＝背光面 [main 端, dark 端]（較暗較透）；
+     * AURA_BLUR／AURA_ALPHA＝烘焙時的外暈；RIM_W／RIM_ALPHA＝core 亮邊；CORE_W／CORE_BLUR＝中脊內光。
+     * GREATSWORD：劍尖朝下。BLADE_W＝劍刃寬，TIP_LEN＝劍尖收斂長，GUARD_Y＝護手高度，WING_SPAN＝獅翼全寬，
+     * FEATHER_*＝羽片（角度範圍、長度範圍、根部位置、寬度），GRIP_*＝握柄，POMMEL_R＝柄頭寶石半徑，CORE_START＝內光起點（相對劍尖長）。
+     */
+    CONSTRUCT: {
+        LIT_ALPHA: [0.9, 0.6] as const,
+        SHADE_ALPHA: [0.45, 0.22] as const,
+        AURA_BLUR: 0.05,
+        AURA_ALPHA: 0.85,
+        RIM_W: 0.007,
+        RIM_ALPHA: 0.9,
+        CORE_W: 0.012,
+        CORE_BLUR: 0.04,
+        WRAP_ALPHA: 0.7,
+        GREATSWORD: {
+            BLADE_W: 0.13, TIP_LEN: 0.12, CORE_START: 1.3,
+            GUARD_Y: 0.68, GUARD_H: 0.045, GUARD_EXTENT: 1.7, WING_SPAN: 0.62, FEATHERS: 5,
+            FEATHER_ANGLE_DEG: [8, 62] as const, FEATHER_LEN: [0.55, 1] as const, FEATHER_ROOT_X: 1.1, FEATHER_WIDTH: 0.16,
+            GRIP_LEN: 0.2, GRIP_W: 0.045, WRAPS: 5, WRAP_SLANT: 0.6, POMMEL_R: 0.04, POMMEL_LIFT: 0.8, GEM_GLOW: 0.09, GEM_CORE: 0.5,
+        },
+        /**
+         * 多面奇點（size＝直徑 D）：外六角半徑 0.5D 切成 6 個三角面，頂點偏左上 APEX（相對半徑）做出受光／背光；
+         * 中心事件視界＝轉 30° 的內六角 HORIZON（相對半徑）填 HORIZON_COLOR；FACET_*＝面的不透明度（中心深、外緣依受光）；
+         * 受光面外緣 FACET_EDGE_STOP 之後往 core 透光（FACET_GLINT_ALPHA×受光度）；HORIZON_RIM_*＝事件視界邊緣的壓縮亮光；
+         * EDGE_ALPHA＝面與面的稜線；RING_*＝外圈壓縮光環（相對 D 的半徑、線寬、模糊；受光側 core 亮弧的角度範圍與線寬倍率）；
+         * HALO_R＝外框半徑（相對 D）。
+         */
+        SINGULARITY: {
+            APEX: [-0.16, -0.2] as const, HORIZON: 0.42, HORIZON_COLOR: 'CHAR' as const, HORIZON_ALPHA: 0.92, HORIZON_RIM_W: 0.025, HORIZON_RIM_ALPHA: 0.8,
+            FACET_CENTER_ALPHA: 0.9, FACET_LIT_ALPHA: 0.8, FACET_SHADE_ALPHA: 0.35, FACET_EDGE_STOP: 0.8, FACET_GLINT_ALPHA: 0.7, EDGE_ALPHA: 0.35,
+            RING_R: 0.58, RING_W: 0.035, RING_BLUR: 0.08, RING_ALPHA: 0.55, RING_LIT_W: 0.5, RING_LIT_ALPHA: 0.95, RING_LIT_ARC_DEG: [150, 300] as const, HALO_R: 0.66,
+        },
+        /**
+         * 惡魔翼（size＝翼展 W，背心在 (0,0)）：SHOULDER＝翼根（x, y），TIP＝翼尖（x, y），FINGERS＝翼骨數，
+         * HEM_Y＝翼膜下緣高度、HEM_SAG＝扇形下緣每段內凹量；HORN_*＝角冠（根部 x、根部 y、尖端 x、尖端 y）；
+         * TOP／BOTTOM＝外框在背心以上／以下的高度（皆相對 W）。
+         */
+        DEMON_WINGS: { SHOULDER: [0.06, -0.04] as const, TIP: [0.5, -0.34] as const, FINGERS: 3, HEM_Y: 0.2, HEM_SAG: 0.06,
+            HORN_BASE: [0.035, -0.18] as const, HORN_TIP: [0.09, -0.33] as const, HORN_W: 0.025, TOP: 0.38, BOTTOM: 0.24 },
+        /**
+         * 神矢（size＝全長 L，矢尖在 (0,0) 朝下）：HEAD_LEN／HEAD_W＝矢頭長與寬，SHAFT_W＝矢桿寬，
+         * FLETCH_*＝尾羽（起點、長度、外展），SPAN＝外框寬，TIP_GLOW＝矢尖光暈半徑（皆相對 L）。
+         */
+        ARROW: { HEAD_LEN: 0.2, HEAD_W: 0.16, SHAFT_W: 0.04, FLETCH_START: 0.78, FLETCH_LEN: 0.2, FLETCH_W: 0.09, SPAN: 0.24, TIP_GLOW: 0.08 },
+        /**
+         * 斷頭刃（size＝高 H，刃底中央在 (0,0)）：WIDTH＝刃寬，SLANT＝刃口斜度（右端比左端高多少），WEIGHT_*＝頂部配重塊（高度與寬倍率），
+         * EDGE_ALPHA＝刃口亮線（皆相對 H）。
+         */
+        GUILLOTINE: { WIDTH: 0.8, SLANT: 0.3, WEIGHT_H: 0.18, WEIGHT_W: 1.1, EDGE_ALPHA: 0.95 },
+        /**
+         * 骨刺（size＝高 H，根部中央在 (0,0)）：BASE_W＝根部寬，BEND＝尖端往側邊彎的量，SPAN＝外框寬（含彎曲），
+         * RIDGES＝刺身上的骨節亮紋位置（相對高度）。
+         */
+        RIB_SPIKE: { BASE_W: 0.24, BEND: 0.22, SPAN: 0.6, RIDGES: [0.3, 0.55] as const },
+        /**
+         * 深淵之眼（size＝寬 W，中心為錨點）：HEIGHT＝眼高，IRIS_R＝虹膜半徑，PUPIL_W＝縱瞳寬，PUPIL_H＝縱瞳高（相對眼高），
+         * FILL_ALPHA＝眼白（深淵）不透明度。
+         */
+        EYE: { HEIGHT: 0.45, IRIS_R: 0.17, PUPIL_W: 0.05, PUPIL_H: 0.8, FILL_ALPHA: 0.9 },
+        /**
+         * 塔盾（size＝高 H，盾尖在 (0,0) 朝下）：WIDTH＝盾寬，SHOULDER＝直邊開始收尖的高度，TOP_ARCH＝上緣拱起；
+         * CROSS_*＝盾面聖十字（core 內光：豎線起訖、橫線高度與半寬），BOSS_*＝盾心寶石的高度與光暈半徑（皆相對 H）。
+         */
+        TOWER_SHIELD: { WIDTH: 0.62, SHOULDER: 0.45, TOP_ARCH: 0.06, CROSS_V: [0.18, 0.9] as const, CROSS_H: 0.66, CROSS_HALF: 0.18, BOSS_Y: 0.66, BOSS_R: 0.1 },
+        /**
+         * 冠冕（size＝寬 W，中心為錨點）：HEIGHT＝全高，BAND_H＝冠環高，POINTS＝冠尖數，POINT_H＝冠尖高（皆相對 W），
+         * GEM_R＝尖端寶石光暈半徑，BAND_GEMS＝冠環上的寶石數。
+         */
+        CROWN: { HEIGHT: 0.7, BAND_H: 0.22, POINTS: 5, POINT_H: 0.42, GEM_R: 0.07, BAND_GEMS: 3 },
+        /**
+         * 巨拳（size＝全長 L，拳面底部在 (0,0) 朝下）：ARM_W＝前臂寬、ARM_TOP＝前臂頂；HAND_W／HAND_TOP＝拳頭寬與頂；
+         * KNUCKLES＝指節數、KNUCKLE_R＝指節半徑；ROUND＝外側圓角半徑；THUMB_*＝拇指（位置與半徑）；BRACER＝護腕亮紋的高度（皆相對 L）。
+         */
+        FIST: { ROUND: 0.1, ARM_W: 0.34, ARM_TOP: 1, HAND_W: 0.52, HAND_TOP: 0.56, KNUCKLES: 4, KNUCKLE_R: 0.07, THUMB_X: -0.27, THUMB_Y: 0.3, THUMB_R: [0.08, 0.14] as const, BRACER: [0.64, 0.72] as const },
+        /**
+         * 劍輪（size＝直徑 D，中心為錨點）：BLADES 把劍從 ROOT（相對半徑）伸到外緣，劍身寬 WIDTH（相對半徑），
+         * 劍尖往旋轉方向偏 SWEEP_DEG（風車感）；GUARD＝劍格長；每把劍後方一道 TRAIL_DEG 的殘影弧（core，TRAIL_ALPHA 漸淡）；HALO_R＝外框半徑（相對 D）。
+         */
+        BLADE_WHEEL: { BLADES: 6, ROOT: 0.3, WIDTH: 0.16, SWEEP_DEG: 18, GUARD: 0.16, TRAIL_DEG: 50, TRAIL_ALPHA: 0.55, TRAIL_W: 0.025, HALO_R: 0.56 },
+        /**
+         * 多面蝕月（size＝直徑 D）：月面是 SIDES 邊的低多邊形，切成三角面、頂點偏 APEX（相對半徑），受光面在左上；
+         * 暗影＝同樣的多邊形偏移 SHADOW_OFF、半徑 SHADOW_R，中心到 SHADOW_CORE_STOP 填 SHADOW_COLOR、最外緣漸成 ramp.dark（SHADOW_RIM_ALPHA，看得出暗面也是球面），露出左上一道月牙；暗影上仍淡淡看得到稜線（SHADOW_EDGE_ALPHA）；
+         * RIM_*＝月牙紅緣（core 亮弧的角度範圍與線寬）；CORONA_*＝日冕光暈（相對半徑的內外緣與不透明度）；HALO_R＝外框半徑（相對 D）。
+         */
+        ECLIPSE: {
+            SIDES: 12, APEX: [-0.12, -0.16] as const, FACET_CENTER_ALPHA: 0.85, FACET_LIT_ALPHA: 0.9, FACET_SHADE_ALPHA: 0.45, EDGE_ALPHA: 0.35,
+            SHADOW_OFF: [0.2, 0.14] as const, SHADOW_R: 0.92, SHADOW_COLOR: 'CHAR' as const, SHADOW_ALPHA: 0.95, SHADOW_CORE_STOP: 0.75, SHADOW_RIM_ALPHA: 0.9, SHADOW_EDGE_ALPHA: 0.07,
+            RIM_ARC_DEG: [125, 292] as const, RIM_W: 0.035, RIM_ALPHA: 0.95,
+            CORONA_IN: 0.9, CORONA_OUT: 1.4, CORONA_ALPHA: 0.55, HALO_R: 0.72,
+        },
+        /**
+         * 重型能量彈頭（size＝彈身長 L，彈尖在 (0,0) 朝下）：BODY_W＝最寬處寬，SHOULDER＝彈尖收斂到最寬處的長度，
+         * TAIL_Y／TAIL_W＝尾端位置與寬；FIN_*＝尾翼（起點、長度、外展寬 FIN_SPAN、根部位置、外緣斜度）；OGIVE＝彈尖弧度；
+         * BOAT_TAIL＝尾端收窄段；SPINE_X＝中脊內光的橫向位置；BAND_Y／BAND_CURVE＝彈身發光環帶與彎度；
+         * NOSE_GLOW＝彈尖熱光；TRAIL_LEN／TRAIL_W／TRAIL_ALPHA＝尾端往上的能量尾焰（相對 L）。
+         */
+        WARHEAD: {
+            BODY_W: 0.3, SHOULDER: 0.32, TAIL_Y: 0.86, TAIL_W: 0.2, FIN_START: 0.66, FIN_LEN: 0.3, FIN_SPAN: 0.62,
+            FIN_ROOT: 0.9, FIN_EDGE: 0.25, OGIVE: 0.35, BOAT_TAIL: 0.15, SPINE_X: 0.3,
+            BAND_Y: [0.44, 0.6] as const, BAND_CURVE: 0.5, NOSE_GLOW: 0.12,
+            TRAIL_LEN: 0.5, TRAIL_W: 0.18, TRAIL_ALPHA: 0.55, TRAIL_MID_STOP: 0.4, TRAIL_MID_ALPHA: 0.6,
+        },
+    },
+    /**
+     * 螺旋吸積帶（kind 'spiral'）：每條光帶從外緣半徑繞 turns 圈收到 INNER×半徑，寬度由 thickness 收到 TAPER 倍（越往內越細）；
+     * 填色是以中心為圓心的放射漸層（外緣 OUTER_ALPHA 的 dark → MID_STOP 處 main → 中心 core），越往內越亮＝向心壓縮。
+     * HALO_W／HALO_BLUR／HALO_ALPHA＝外暈（相對 thickness）；CORE_W＝中線亮芯寬；SEGMENTS＝每條光帶取樣點數。
+     */
+    SPIRAL: { INNER: 0.12, TAPER: 0.2, OUTER_ALPHA: 0.1, MID_STOP: 0.55, MID_ALPHA: 0.8, HALO_W: 2, HALO_BLUR: 0.6, HALO_ALPHA: 0.6, CORE_W: 0.3, CORE_ALPHA: 0.9, SEGMENTS: 48, TURN_STEP: 0.25, MAX_TURNS: 2, MAX_ARMS: 8 },
     SPARK: { THICK_RATIO: 0.12, HEAD_GLOW_RATIO: 0.22, MAIN_STOP: 0.6, MAIN_ALPHA: 0.85 },
     DROPLET: { TIP_RATIO: 1.6, HIGHLIGHT_RATIO: 0.28, BODY_RATIO: 0.55 },
     /**

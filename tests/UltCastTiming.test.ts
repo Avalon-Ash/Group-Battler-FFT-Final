@@ -5,6 +5,7 @@
 // ║    ③ 施法途中對該招的編輯／換槽一律拒絕                          ║
 // ║    ④ 真實引擎：不同 dt 下 CAST_START→CAST_FINISH 不早於 cast     ║
 // ║    ⑤ 死亡／暈眩中斷與重置後沒有延遲爆發                          ║
+// ║    ⑥ 天降類詠唱結束就必中：落下途中暈眩或陣亡仍在原落點結算      ║
 // ║  [ARCH] skill.cast 本身就是有效值，執行期不另外 clamp。           ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
@@ -15,6 +16,8 @@ import { COMBAT_PARAM } from '../constants';
 import { normalizeSkillCast } from '../data/ui/skillEditor';
 import { Role, Team, type GameEvent, type Skill } from '../types';
 import { HexUtils } from '../engine/utils';
+import { ULT_VISUALS, ultImpactDelay } from '../data/vfx/ult_visuals';
+import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
 
 const MIN = COMBAT_PARAM.ULT_MIN_CAST_SEC;
 const ults = () => DEFAULT_SKILL_DB.filter((s) => s.tag === 'ULT');
@@ -150,6 +153,44 @@ describe('UltCastTiming（ULT-T01）', () => {
         });
     }
 
+    it('天降類：特效命中（序列起點＋hitAt）落在傷害結算那一刻＝cast＋ultImpactDelay', () => {
+        const falls = ults().filter((s) => ULT_VISUALS[s.id]?.archetype === 'HEAVEN_FALL');
+        expect(falls.length).toBeGreaterThan(0);
+        for (const s of falls) {
+            const seq = SKILL_SEQUENCES[s.id];
+            const impactAt = s.cast + ultImpactDelay(s.id);
+            expect(ultImpactDelay(s.id), s.id).toBeGreaterThan(0);
+            // VisualSystem：startDelay = max(0, impactAt − hitAt)
+            const startDelay = Math.max(0, impactAt - (seq.hitAt ?? 0));
+            expect(startDelay + (seq.hitAt ?? 0), s.id).toBeCloseTo(impactAt, 9);
+        }
+        for (const s of ults().filter((u) => ULT_VISUALS[u.id]?.archetype !== 'HEAVEN_FALL')) expect(ultImpactDelay(s.id), s.id).toBe(0);
+    });
+
+    it('天降類：真實戰鬥中 CAST_FINISH 到範圍結算（IMPACT_AOE）相隔 ultImpactDelay', () => {
+        const dt = 1 / 60;
+        const gaps: { id: string; gap: number; want: number }[] = [];
+        for (const seed of [1001, 1002, 1003, 1004]) {
+            const engine = battle(seed);
+            const finished = new Map<string, { at: number; id: string }>();
+            engine.bus.on('GAME_EVENT', (ev: GameEvent) => {
+                const id = ev.skill?.id;
+                if (!id || !ev.sourceId || ULT_VISUALS[id]?.archetype !== 'HEAVEN_FALL') return;
+                if (ev.type === 'CAST_FINISH') finished.set(ev.sourceId, { at: engine.battleTime, id });
+                else if (ev.type === 'IMPACT_AOE') {
+                    const f = finished.get(ev.sourceId);
+                    if (f && f.id === id) gaps.push({ id, gap: engine.battleTime - f.at, want: ultImpactDelay(id) });
+                    finished.delete(ev.sourceId);
+                }
+            });
+            let over = false;
+            engine.bus.on('GAME_OVER', () => { over = true; });
+            for (let t = 0; t < 120 && !over; t += dt) engine.tick(dt);
+        }
+        expect(gaps.length).toBeGreaterThan(0);
+        for (const g of gaps) expect(Math.abs(g.gap - g.want), `${g.id} gap=${g.gap}`).toBeLessThanOrEqual(dt + 1e-9);
+    });
+
     /** 中斷後到下一次 CAST_START 之前不得有 CAST_FINISH（之後重新詠唱是新的一次施法，照常結算） */
     const finishBeforeRecast = (types: string[]) => {
         const next = types.indexOf('CAST_START');
@@ -171,6 +212,50 @@ describe('UltCastTiming（ULT-T01）', () => {
             const afterBreak = seen.slice(seen.indexOf('CAST_BREAK') + 1);
             expect(seen, interrupt).toContain('CAST_BREAK');
             expect(finishBeforeRecast(afterBreak), `${interrupt}: ${seen.join(',')}`).toBe(false);
+        }
+    });
+
+    it('天降類落下途中被暈或陣亡：詠唱結束就算施放成功，照樣在原落點結算（2026-10-26 決定）', () => {
+        const fall = DEFAULT_SKILL_DB.find((s) => s.id === 'mr_u1')!;
+        expect(ultImpactDelay(fall.id)).toBeGreaterThan(0);
+        for (const interrupt of ['death', 'stun'] as const) {
+            const engine = battle(9);
+            const caster = engine.agents.find((a) => a.team === fall.team && a.skills.some((s) => s?.tag === 'ULT'))!;
+            const slot = caster.skills.findIndex((s) => s?.tag === 'ULT');
+            const enemy = engine.agents.filter((e) => e.team !== caster.team).sort((x, y) => HexUtils.dist(caster, x) - HexUtils.dist(caster, y))[0];
+            caster.skills[slot] = fall;
+            caster.skillIds[slot] = fall.id;
+            caster.bt = null;
+            caster.target = enemy;
+            caster.targetHex = { q: enemy.q, r: enemy.r };
+            caster.mp = caster.maxMp;
+            caster.curCDs[slot] = 0;
+            engine.combat.initiateCast(caster, slot, engine);
+            expect(caster.castingSkillIdx, interrupt).toBe(slot);
+            const center = { q: enemy.q, r: enemy.r };
+
+            let finishedAt = -1;
+            let impact: GameEvent | undefined;
+            let impactAt = -1;
+            engine.bus.on('GAME_EVENT', (ev: GameEvent) => {
+                if (ev.sourceId !== caster.id || ev.skill?.id !== fall.id) return;
+                if (ev.type === 'CAST_FINISH') finishedAt = engine.battleTime;
+                if (ev.type === 'IMPACT_AOE' && !impact) { impact = ev; impactAt = engine.battleTime; }
+            });
+            for (let t = 0; t < fall.cast + 0.5 && finishedAt < 0; t += 1 / 60) engine.tick(1 / 60);
+            expect(finishedAt, interrupt).toBeGreaterThan(0);
+
+            // 落下途中：施法者陣亡或被暈並打斷、換目標
+            if (interrupt === 'death') caster.hp = 0;
+            else { caster.effects.STUN.remaining = 2; engine.combat.breakCast(caster, engine, 1); }
+            caster.targetHex = { q: caster.q, r: caster.r };
+            for (let t = 0; t < ultImpactDelay(fall.id) + 0.5 && !impact; t += 1 / 60) engine.tick(1 / 60);
+
+            expect(impact, interrupt).toBeDefined();
+            expect(Math.abs(impactAt - finishedAt - ultImpactDelay(fall.id)), interrupt).toBeLessThanOrEqual(1 / 60 + 1e-9);
+            const want = HexUtils.toPx(center.q, center.r, engine.mapConfig);
+            expect(impact!.pos.x, interrupt).toBeCloseTo(want.x, 3);
+            expect(impact!.pos.y, interrupt).toBeCloseTo(want.y, 3);
         }
     });
 

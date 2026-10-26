@@ -58,6 +58,32 @@ const rows: Row[] = [
         { name: 'hex ASH_FIRE', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_FIRE' } },
         { name: 'hex ASH_VOID', spec: { kind: 'shard', size: 12, shape: 'hex', ramp: 'ASH_VOID' } },
     ] },
+    { label: 'ult construct / spiral', specs: [
+        { name: 'greatsword LION_HOLY', spec: { kind: 'construct', shape: 'greatsword', size: 96, ramp: 'LION_HOLY' } },
+        { name: 'singularity ASH_VOID', spec: { kind: 'construct', shape: 'singularity', size: 96, ramp: 'ASH_VOID' } },
+        { name: 'spiral LION_VOID 3 arms', spec: { kind: 'spiral', radius: 64, arms: 3, turns: 0.75, thickness: 12, ramp: 'LION_VOID' } },
+        { name: 'spiral LION_VOID 4 arms', spec: { kind: 'spiral', radius: 48, arms: 4, turns: 1, thickness: 8, ramp: 'LION_VOID' } },
+    ] },
+    { label: 'ult construct (red)', specs: [
+        { name: 'warhead ASH_FIRE', spec: { kind: 'construct', shape: 'warhead', size: 80, ramp: 'ASH_FIRE' } },
+        { name: 'eclipse ASH_BLOOD', spec: { kind: 'construct', shape: 'eclipse', size: 96, ramp: 'ASH_BLOOD' } },
+        { name: 'bladeWheel LION_PHYSICAL', spec: { kind: 'construct', shape: 'bladeWheel', size: 112, ramp: 'LION_PHYSICAL' } },
+    ] },
+    { label: 'ult construct (tank)', specs: [
+        { name: 'towerShield LION_HOLY', spec: { kind: 'construct', shape: 'towerShield', size: 112, ramp: 'LION_HOLY' } },
+        { name: 'crown LION_HOLY', spec: { kind: 'construct', shape: 'crown', size: 96, ramp: 'LION_HOLY' } },
+        { name: 'fist LION_HOLY', spec: { kind: 'construct', shape: 'fist', size: 112, ramp: 'LION_HOLY' } },
+        { name: 'guillotine ASH_BLOOD', spec: { kind: 'construct', shape: 'guillotine', size: 96, ramp: 'ASH_BLOOD' } },
+    ] },
+    { label: 'ult construct (red tank)', specs: [
+        { name: 'ribSpike ASH_BLOOD', spec: { kind: 'construct', shape: 'ribSpike', size: 96, ramp: 'ASH_BLOOD' } },
+        { name: 'ribSpike ASH_PHYSICAL', spec: { kind: 'construct', shape: 'ribSpike', size: 64, ramp: 'ASH_PHYSICAL' } },
+        { name: 'eye ASH_VOID', spec: { kind: 'construct', shape: 'eye', size: 96, ramp: 'ASH_VOID' } },
+        { name: 'arrow LION_LIGHTNING', spec: { kind: 'construct', shape: 'arrow', size: 120, ramp: 'LION_LIGHTNING' } },
+    ] },
+    { label: 'ult construct (red warrior)', specs: [
+        { name: 'demonWings ASH_BLOOD', spec: { kind: 'construct', shape: 'demonWings', size: 160, ramp: 'ASH_BLOOD' } },
+    ] },
 ];
 const anim: Array<{ name: string; spec: PartSpec }> = [
     { name: 'flame ASH_FIRE jagged', spec: { kind: 'flame', height: 64, ramp: 'ASH_FIRE', jagged: true } },

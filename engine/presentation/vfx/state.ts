@@ -37,8 +37,8 @@ export interface Particle {
     ownerId?: string;
     /** 終極技粒子標記（SequenceSystem 寫入，vfx/render.ts 讀取以決定繪製排序）。 */
     pIsUlt?: boolean;
-    /** 終極技施放者 ID，供 cancelUltBySource 取消。 */
-    ultSourceId?: string;
+    /** 生成這顆粒子的序列編號（SequenceSystem 寫入）：CAST_BREAK 取消該次詠唱序列、單體綁定跟隨目標用 */
+    seqRun?: number;
     visualStyle?: string;
     delay?: number;
     image?: HTMLCanvasElement; 
@@ -57,6 +57,8 @@ export interface Particle {
     partAnim?: PartAnim;
     /** 每次物理更新都貼齊地面高度（看板仍正常繪製） */
     groundAnchored?: boolean;
+    /** 出生高度：partAnim.rise 以它為基準算每幀高度（VFXPhysics） */
+    spawnZ?: number;
     /**
      * 天氣／氛圍層編號（VFXAmbience 生成；1＝場景天氣，2 起＝BIOME_ATMOSPHERE），計數同時存在的粒子用。
      * 不用 ownerId：沒有對應單位的 ownerId 會被 VFXSystem 當成擁有者已死而移除
@@ -92,7 +94,7 @@ export class VFXStateManager {
             p.visualStyle = undefined;
             p.ownerId = undefined;
             p.pIsUlt = undefined;
-            p.ultSourceId = undefined;
+            p.seqRun = undefined;
             p.delay = 0; 
             p.locked = false; 
             p.lockReason = undefined;
@@ -105,6 +107,7 @@ export class VFXStateManager {
             p.part = undefined;
             p.partAnim = undefined;
             p.groundAnchored = undefined;
+            p.spawnZ = undefined;
             p.weather = undefined;
             return p;
         }
@@ -129,9 +132,9 @@ export class VFXStateManager {
         if (this.particlePool.length >= VFX_PARAM.MAX_POOL_SIZE) return;
         this.particlePool.push(p);
     }
-    public cancelUltBySource(sourceId: string) {
+    public cancelSequenceRun(runId: number) {
         this.particles = this.particles.filter(p => {
-            if (p.ultSourceId === sourceId) {
+            if (p.seqRun === runId) {
                 this.releaseParticle(p);
                 return false;
             }

@@ -28,6 +28,8 @@ const DEFS = {
     HOLY_RAY: { width: 9, edge: 'clean' },
     /** 閃電束：細而亮 */
     LIGHTNING_BEAM: { width: 5, edge: 'zigzag', teamRamp: { [Team.BLUE]: 'LION_LIGHTNING' } },
+    /** 灰燼：熾紅細芯的穿刺矢（rr_u1 灰燼穿心；細、乾淨） */
+    PIERCE: { width: 4, edge: 'clean', teamRamp: { [Team.RED]: 'ASH_FIRE' } },
     /** 灰燼：血鏈／吸取連線（細） */
     BLOOD_LINK: { width: 4, edge: 'beads' },
 } as const satisfies Record<string, BeamStyleDef>;

@@ -4,7 +4,7 @@
 // ║        VisualSystem 路由資格門控及 CAST_BREAK 中斷清理             ║
 // ╚══════════════════════════════════════════════════════════════════╝
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GameEngine } from '../engine/game';
 import { SequenceSystem, SequenceRunOptions } from '../engine/presentation/visuals/SequenceSystem';
 import { VisualSystem } from '../engine/presentation/VisualSystem';
@@ -14,9 +14,19 @@ import { GridSystem } from '../engine/systems/grid';
 import { CameraSystem } from '../engine/presentation/CameraSystem';
 import { VisualMath, Point3D } from '../engine/math/VisualMath';
 import { Team, Role, GameEvent, Skill } from '../types';
+import { ultImpactDelay } from '../data/vfx/ult_visuals';
 import { VFXSequence, VFXAction } from '../types/VFXSchema';
 import { SKILL_SEQUENCES } from '../data/vfx/SkillSequences';
 import { DEFAULT_SKILL_DB } from '../skillDatabase';
+import { ISO_SCALE_Y } from '../constants';
+
+/** node 測試沒有 DOM 不能烘焙零件：playEffect 換成在錨點推一顆普通粒子（y 存未投影座標，同 VFXPlayer） */
+function pushStubParticle(vfx: VFXSystem, at: Point3D): void {
+    const p = vfx.state.getParticle();
+    p.x = at.x; p.y = at.y / ISO_SCALE_Y; p.z = at.z;
+    p.life = p.maxLife = 2;
+    vfx.state.particles.push(p);
+}
 
 describe('SequenceTargetBinding (F02)', () => {
     let engine: GameEngine;
@@ -485,7 +495,7 @@ describe('SequenceTargetBinding (F02)', () => {
                 role: Role.MAGE,
                 tag: 'ULT',
                 range: 4,
-                cast: 1.0,
+                cast: 1.5,
                 cd: 15,
                 cost: 100,
                 gain: 0,
@@ -503,12 +513,15 @@ describe('SequenceTargetBinding (F02)', () => {
                 pos: { x: target.px, y: target.py, z: 10 },
             };
 
+            // mb_u1 是充能式奧義：序列在 CAST_START 當下就開始播，零件烘焙需要 DOM，這裡只驗路由
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => undefined);
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
-                expect(lastRunOptions).toBeUndefined();
+                expect(lastRunOptions).toEqual({ castRun: true });
             } finally {
                 sequenceSystem.run = origRun;
+                playSpy.mockRestore();
             }
         });
 
@@ -554,7 +567,7 @@ describe('SequenceTargetBinding (F02)', () => {
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
-                expect(lastRunOptions).toBeUndefined();
+                expect(lastRunOptions).toEqual({ castRun: true });
             } finally {
                 sequenceSystem.run = origRun;
             }
@@ -601,7 +614,7 @@ describe('SequenceTargetBinding (F02)', () => {
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
-                expect(lastRunOptions).toBeUndefined();
+                expect(lastRunOptions).toEqual({ castRun: true });
             } finally {
                 sequenceSystem.run = origRun;
             }
@@ -656,7 +669,7 @@ describe('SequenceTargetBinding (F02)', () => {
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
-                expect(lastRunOptions).toBeUndefined();
+                expect(lastRunOptions).toEqual({ castRun: true });
             } finally {
                 sequenceSystem.run = origRun;
                 vfxSystem.playBeam = origPlayBeam;
@@ -664,12 +677,13 @@ describe('SequenceTargetBinding (F02)', () => {
             }
         });
 
-        it('does NOT pass binding options for skills containing HEAVEN_FALL actions (ensuring sequence exists and run is called)', () => {
+        it('does NOT pass binding options for heaven-fall ultimates, including ones that draw their own fall object (ensuring sequence exists and run is called)', () => {
             const caster = engine.agents[0];
             const target = engine.agents[1];
 
+            // tr_u1 是天降類（ultImpactDelay > 0）但落下物畫在資產裡（ownFallObject），序列沒有 HEAVEN_FALL 動作
             expect(SKILL_SEQUENCES['tr_u1']).toBeDefined();
-            expect(SKILL_SEQUENCES['tr_u1'].actions.some(a => a.type === 'HEAVEN_FALL')).toBe(true);
+            expect(ultImpactDelay('tr_u1')).toBeGreaterThan(0);
 
             const realTrU1 = DEFAULT_SKILL_DB.find(s => s.id === 'tr_u1');
             expect(realTrU1).toBeDefined();
@@ -693,12 +707,15 @@ describe('SequenceTargetBinding (F02)', () => {
                 pos: { x: target.px, y: target.py, z: 10 },
             };
 
+            // 充能式：序列在 CAST_START 當下就開始播，零件烘焙需要 DOM，這裡只驗路由
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => undefined);
             try {
                 visualSystem.flush([castEvent], engine, vfxSystem, hudSystem, gridSystem, cameraSystem, sequenceSystem);
                 expect(runCalled).toBe(true);
-                expect(lastRunOptions).toBeUndefined();
+                expect(lastRunOptions).toEqual({ castRun: true });
             } finally {
                 sequenceSystem.run = origRun;
+                playSpy.mockRestore();
             }
         });
     });
@@ -754,6 +771,62 @@ describe('SequenceTargetBinding (F02)', () => {
             expect(sequenceSystem['actionQueue'].length).toBe(1);
             sequenceSystem.clear();
             expect(sequenceSystem['actionQueue'].length).toBe(0);
+        });
+
+        it('removes only the broken cast run particles, keeping an earlier run tail from the same caster', () => {
+            const caster = engine.agents[0];
+            const target = engine.agents[1];
+            const anchor = VisualMath.getUnitAnchor(target, engine);
+            const seq: VFXSequence = { id: 'test_seq', actions: [{ type: 'PARTICLE', id: 'FX_GRID_IMPACT_BLUE', delay: 0 }] };
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => pushStubParticle(vfxSystem, anchor));
+            try {
+                sequenceSystem.run(seq, anchor, engine, vfxSystem, caster.id, 0, { castRun: true });
+                const earlierTail = vfxSystem.state.particles[0];
+                sequenceSystem.run(seq, anchor, engine, vfxSystem, caster.id, 0, { castRun: true });
+                const broken = vfxSystem.state.particles[1];
+                expect(vfxSystem.state.particles.length).toBe(2);
+
+                sequenceSystem.cancel(caster.id, vfxSystem);
+                expect(vfxSystem.state.particles).toContain(earlierTail);
+                expect(vfxSystem.state.particles).not.toContain(broken);
+            } finally {
+                playSpy.mockRestore();
+            }
+        });
+    });
+
+    describe('Bound particles follow the target until lockAt', () => {
+        it('moves particles spawned before lockAt with the target, then leaves them at the locked spot', () => {
+            const caster = engine.agents[0];
+            const target = engine.agents[1];
+            const anchor = VisualMath.getUnitAnchor(target, engine);
+            // 充能式資產：詠唱開始（delay 0）就生成，命中發射器靠粒子自己的 delay 倒數
+            const seq: VFXSequence = { id: 'test_seq', actions: [{ type: 'PARTICLE', id: 'FX_GRID_IMPACT_BLUE', delay: 0 }] };
+            const playSpy = vi.spyOn(vfxSystem, 'playEffect').mockImplementation(() => pushStubParticle(vfxSystem, anchor));
+            try {
+                sequenceSystem.run(seq, anchor, engine, vfxSystem, caster.id, 0, { targetId: target.id, lockAt: 0.5, castRun: true });
+                const p = vfxSystem.state.particles[0];
+                const x0 = p.x, y0 = p.y;
+
+                engine.battleTime = 0.2;
+                target.px += 40;
+                target.py += 20;
+                sequenceSystem.update(engine, vfxSystem);
+                expect(p.x).toBeCloseTo(x0 + 40, 5);
+                expect(p.y).toBeCloseTo(y0 + 20 / ISO_SCALE_Y, 5);
+
+                engine.battleTime = 0.5;
+                target.px += 10;
+                sequenceSystem.update(engine, vfxSystem);
+                expect(p.x).toBeCloseTo(x0 + 50, 5);
+
+                engine.battleTime = 0.7;
+                target.px += 30;
+                sequenceSystem.update(engine, vfxSystem);
+                expect(p.x).toBeCloseTo(x0 + 50, 5);
+            } finally {
+                playSpy.mockRestore();
+            }
         });
     });
 });

@@ -1,12 +1,11 @@
 import { VFXSequence, VFXAction } from "../../types/VFXSchema";
 import { Team } from "../../types";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
-import { ULT_VISUALS } from "./ult_visuals";
+import { ULT_VISUALS, ultImpactDelay } from "./ult_visuals";
 import { ACTIVE_VISUALS } from "./active_visuals";
 import { BASIC_VISUALS } from "./basic_visuals";
 import { FACTION_VISUALS } from "./faction_visuals";
 import { ULT_SEQUENCE } from "./ult_visuals";
-import { PHYSICS } from "../../constants";
 
 // 序列裡的 id 一律是 VFX_REGISTRY 的鍵、style 一律是 BEAM_STYLES 的鍵（tests/ReferenceIntegrity.test.ts 檢查）。
 // 投射物不在序列裡：ProjectileSystem 依技能的 visualProjectileEffect 生成。
@@ -177,15 +176,20 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
             const pulse = (k: number) => Math.min(U.MAX_PULSE_SCALE, k);
             const shake = (k: number) => Math.max(U.MIN_SHAKE, k);
             // hitAt＝序列開始後的命中時刻；CAST_START 延後 (詠唱 − hitAt) 才開始，命中與傷害同一刻（VFXSequence.hitAt）
-            let hitAt = U.HIT_LEAD;
+            let hitAt = ultConfig.charged ? U.CHARGED_HIT_AT : U.HIT_LEAD;
 
             switch (ultConfig.archetype) {
                 case 'HEAVEN_FALL': {
-                    // 隕石自由落體時間＝sqrt(2h/g)；資產自己的命中在 HIT_LEAD，所以提早 HIT_LEAD 播。原本固定 0.4 s，比落地早一半
+                    // 傷害在詠唱結束後再等 ultImpactDelay（timing＋落下時間）才結算；序列命中＝那一刻（VisualSystem 依同一值排起點）。
+                    // 一般版：序列從詠唱結束開始，物體落下、資產提早 HIT_LEAD 播；充能式：資產從詠唱開始，物體在詠唱結束（CHARGED_HIT_AT）才開始落
                     const height = ultConfig.height || U.DEFAULT_FALL_HEIGHT;
-                    hitAt = Math.sqrt((2 * height) / PHYSICS.GRAVITY) + (ultConfig.timing || 0);
-                    actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height, scale: ultConfig.scale });
-                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, delay: Math.max(0, hitAt - U.HIT_LEAD) });
+                    const impactDelay = ultImpactDelay(ultId);
+                    const fallStart = ultConfig.charged ? U.CHARGED_HIT_AT : 0;
+                    hitAt = fallStart + impactDelay;
+                    if (!ultConfig.ownFallObject) {
+                        actions.push({ type: 'HEAVEN_FALL', style: 'METEOR', color: ultConfig.primaryColor, height, scale: ultConfig.scale, delay: fallStart + (ultConfig.timing || 0) });
+                    }
+                    actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, delay: ultConfig.charged ? 0 : Math.max(0, hitAt - U.HIT_LEAD) });
                     actions.push({ type: 'SHAKE', shakeIntensity: shake(ultConfig.scale), delay: hitAt });
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.5), delay: hitAt + 0.05 });
                     break;
@@ -245,8 +249,13 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 1.5), delay: hitAt + 0.05 });
                     break;
             }
-            // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻
-            actions.push({ type: 'PARTICLE', id: isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE', scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+            // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻。
+            // 只給造成傷害的奧義（power > 0）；治療、增益、純控制沒有打擊，畫打擊會誤導（ULT-V01：視覺忠於實際作用）
+            // 單體技用單體版（只有一道小環），不畫出比實際更大的打擊範圍
+            if ((ultSkill?.power ?? 0) > 0) {
+                const impactId = (isRed ? 'FX_ULT_IMPACT_RED' : 'FX_ULT_IMPACT_BLUE') + (ultSkill?.type === 'SINGLE' ? '_SINGLE' : '');
+                actions.push({ type: 'PARTICLE', id: impactId, scale: fxScale * U.IMPACT_SCALE, delay: hitAt });
+            }
             actions.push({ type: 'ULT_IMPACT', delay: hitAt });
             sequences[ultId] = { id: ultId, actions, hitAt };
         }

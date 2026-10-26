@@ -1,19 +1,12 @@
 import { Particle } from "../../state";
 import { ISO_SCALE_Y } from "../../../../../constants";
 import { drawPart, partFrameAt } from "../../../../renderers/vfxparts/VFXPartStore";
-import type { PartAnim } from "../../../../../types/VFXSchema";
 import type { HexLayout } from "../../../../../types";
 import { VFX_PARTS } from "../../../../../data/vfx/parts/partConfig";
 import { HexGeometry } from "../../../../graphics/utils/HexGeometry";
 import { quantizeSize } from "../../../../renderers/vfxparts/PartSpec";
 import { BEAM_STYLES, type BeamStyleId } from "../../../../../data/vfx/beam_styles";
-
-
-function ease(t: number, kind: PartAnim['ease']): number {
-    if (kind === 'in') return t * t * t;
-    if (kind === 'linear') return t;
-    return 1 - Math.pow(1 - t, 3);
-}
+import { partAnimEase as ease } from "../../partAnimEase";
 
 /**
  * PartPainter — 以 V1 特效零件（預烘焙 PartSprite）繪製粒子（ART_SPEC §7、§8）。

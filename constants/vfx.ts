@@ -127,8 +127,8 @@ export const VFX_PARAM = {
     // ── Particle Budget ──────────────────────────────────────────
     /** 全域粒子硬上限。超過時 VFXPlayer 直接 skip spawn。*/
     MAX_PARTICLES: 450,
-    /** Pool 回收上限。超過直接丟棄，避免 pool 無限膨脹。*/
-    MAX_POOL_SIZE: 350,
+    /** Pool 回收上限。超過直接丟棄，避免 pool 無限膨脹。跟 VFX_BUDGET.HARD_PARTICLE_BUDGET 一樣大，滿載後回收的粒子都留得住 */
+    MAX_POOL_SIZE: 1000,
     /** 每格 Hazard Field 最多存活的 locked 粒子數量。*/
     HAZARD_FIELD_MAX_PER_CELL: 2,
     /** Idle VFX cull 距離平方（300px²）。超出不生成 idle 粒子。*/
@@ -143,10 +143,24 @@ export const VFX_PARAM = {
 export const VFX_BUDGET = {
     /** 總開關：關閉時行為與改動前 100% 逐像素一致 */
     enabled: true,
-    /** 全域粒子軟預算上限：超過此數量時開始對非關鍵特效啟動降級 */
-    SOFT_PARTICLE_BUDGET: 240,
-    /** 全域粒子硬上限：超過此數量時阻止非關鍵特效生成 */
-    HARD_PARTICLE_BUDGET: 380,
+    /**
+     * 全域粒子軟預算上限：超過此數量時新發射器的粒子數減半。與硬上限維持舊比例 240／380
+     * （2026-10-26 由 240 提高，依據同 HARD_PARTICLE_BUDGET）
+     */
+    SOFT_PARTICLE_BUDGET: 630,
+    /**
+     * 全域粒子硬上限：達到時新發射器整個不生成（VFXPlayer.processEmitter）。
+     * 2026-10-26 由 380 提高：`PERF_PB_MODE=ults node tools/ui-e2e/perf-particle-budget.mjs`（2560×1440 headed、RTX 4070、
+     * 解除 vsync、同一幀 8 招奧義、3 輪）——380 時略過 290 個特效、幀 p95 12.6／p99 17.5 ms；1000 時略過 7 個、
+     * p95 12.7／p99 18.6 ms；1500 時略過 0 個但 p99 21.2 ms、最長幀 85 ms。
+     * 加上 HAZARD_SPAWN_BURSTS_PER_FIELD 後重量：8 招峰值 735、略過 0 個、p95 12.2／p99 19.3 ms（380 時 12.3／15.8）
+     */
+    HARD_PARTICLE_BUDGET: 1000,
+    /**
+     * 每個危害場每幀最多播幾格生成爆發（EventVFXMapper）。半徑 10 的毒沼原本一次播 143 格、約上千顆粒子，
+     * 會擠掉同時命中的奧義特效（ULT-V01 實戰探針 multi）
+     */
+    HAZARD_SPAWN_BURSTS_PER_FIELD: 12,
     /** 各品質階層粒子發射係數 [Tier 0, Tier 1, Tier 2, Tier 3] */
     TIER_EMISSION_RATIOS: [1.0, 0.75, 0.5, 0.35] as const,
     /** 單位死亡特效存活時間基準秒數；高負載或降階時以 REDUCED / NORMAL 比例縮短 */

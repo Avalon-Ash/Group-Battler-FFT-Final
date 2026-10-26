@@ -5,6 +5,9 @@
 // ║  [ARCH] 遵守 RenderSpec §4.1 目標錨點採樣時點規則：             ║
 // ║    單體有詠唱非投射物在 lockAt 前每幀採樣 VisualMath.getUnitAnchor║
 // ║    首次 battleTime >= lockAt 鎖定錨點；AOE 與舊呼叫維持原快照     ║
+// ║    鎖定前已生成的粒子（充能式資產在詠唱開始就生成）跟著目標平移   ║
+// ║  [ARCH] 每次 run 有編號，生成的粒子記 seqRun；CAST_BREAK 只清掉  ║
+// ║    被打斷那次詠唱序列（castRun）的佇列與粒子，不動同施法者的舊餘波║
 // ╚══════════════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../../game";
@@ -12,8 +15,8 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
-import { PHYSICS, ULT_FEEL } from "../../../constants";
-import { Team } from "../../../types";
+import { ISO_SCALE_Y, PHYSICS, ULT_FEEL } from "../../../constants";
+import { Agent, Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
 import { METEOR_PARTS, METEOR_NEUTRAL, METEOR_SIZE, METEOR_SHADOW_ANIM } from "../../../data/vfx/registry/shared_parts";
@@ -24,6 +27,8 @@ import { ultFeelStore } from "../vfx/UltFeelStore";
 export interface SequenceRunOptions {
     targetId?: string;
     lockAt?: number;
+    /** CAST_START 的詠唱序列：CAST_BREAK 時 cancel(sourceId) 清掉這次的佇列與已生成粒子 */
+    castRun?: boolean;
 }
 
 interface SequenceTargetBinding {
@@ -31,6 +36,11 @@ interface SequenceTargetBinding {
     lockAt: number;
     locked: boolean;
     lastAnchor: Point3D;
+    /** 目標腳下地面高度（粒子跟隨時只補地面高低差，不跟 physics.z 跳動） */
+    lastGround: number;
+    runId: number;
+    /** 鎖定前由這個序列生成、要跟著目標平移的粒子 */
+    particles: Set<Particle>;
 }
 
 interface QueuedAction {
@@ -40,11 +50,17 @@ interface QueuedAction {
     source?: Point3D;
     sourceId?: string; // Track who started this sequence
     binding?: SequenceTargetBinding;
+    runId: number;
 }
 
 export class SequenceSystem {
     private actionQueue: QueuedAction[] = [];
     private scratchOffset = { x: 0, y: 0 };
+    private nextRunId = 1;
+    /** 每個施法者最近一次詠唱序列的編號（cancel 用） */
+    private castRunBySource = new Map<string, number>();
+    /** 還沒鎖定、帶著已生成粒子的綁定（佇列清空後仍要跟到 lockAt） */
+    private following = new Set<SequenceTargetBinding>();
 
     /**
      * 確定性向日葵分佈偏移（C: STORM 落點散布）
@@ -105,17 +121,24 @@ export class SequenceSystem {
 
     public clear() {
         this.actionQueue = [];
+        this.castRunBySource.clear();
+        this.following.clear();
     }
 
     /**
-     * Cancel all pending actions from a specific source (usually because of an interrupt)
+     * 詠唱被打斷：清掉這個施法者的待派發動作，以及最近一次詠唱序列已生成的粒子
+     * （充能式奧義在詠唱開始就生成全部粒子，命中發射器靠 delay 倒數，不清會在原本的命中時刻爆開）
      */
     public cancel(sourceId: string, vfx?: VFXSystem) {
         if (!sourceId) return;
         this.actionQueue = this.actionQueue.filter(item => item.sourceId !== sourceId);
-        if (vfx) {
-            vfx.state.cancelUltBySource(sourceId);
+        const runId = this.castRunBySource.get(sourceId);
+        if (runId === undefined) return;
+        this.castRunBySource.delete(sourceId);
+        for (const binding of this.following) {
+            if (binding.runId === runId) this.following.delete(binding);
         }
+        if (vfx) vfx.state.cancelSequenceRun(runId);
     }
 
     public run(
@@ -133,6 +156,9 @@ export class SequenceSystem {
             if (agent) sourcePos = VisualMath.getCoreAnchor(agent, engine);
         }
 
+        const runId = this.nextRunId++;
+        if (options?.castRun && sourceId) this.castRunBySource.set(sourceId, runId);
+
         let binding: SequenceTargetBinding | undefined;
         if (options?.targetId && typeof options.lockAt === 'number') {
             const targetAgent = engine.agents.find(a => a.id === options.targetId);
@@ -143,6 +169,9 @@ export class SequenceSystem {
                     lockAt: options.lockAt,
                     locked: engine.battleTime >= options.lockAt,
                     lastAnchor: { x: anchor.x, y: anchor.y, z: anchor.z },
+                    lastGround: this.groundOf(targetAgent, engine),
+                    runId,
+                    particles: new Set(),
                 };
             }
         }
@@ -152,18 +181,40 @@ export class SequenceSystem {
             const executeAt = baseTime + startDelay + (action.delay || 0);
             if (executeAt <= baseTime) {
                 const actionTarget = binding ? (binding.locked ? binding.lastAnchor : { ...binding.lastAnchor }) : target;
-                this.dispatch(action, actionTarget, sourcePos, vfx, engine, sourceId);
+                this.dispatch(action, actionTarget, sourcePos, vfx, engine, runId, binding, sourceId);
             } else {
-                this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId, binding });
+                this.actionQueue.push({ executeAt, action, target, source: sourcePos, sourceId, binding, runId });
             }
         });
+    }
+
+    private groundOf(agent: Agent, engine: GameEngine): number {
+        return VisualMath.getUnitGroundHeight(agent, (q, r) => engine.getTerrainHeight(q, r), engine.mapConfig);
+    }
+
+    /** 已生成的粒子跟著目標平移（粒子 y 是未投影座標，要除 ISO_SCALE_Y；高度只補地面高低差）。光束兩端另有自己的座標，不動 */
+    private follow(binding: SequenceTargetBinding, dx: number, dy: number, dz: number) {
+        const rawDy = dy / ISO_SCALE_Y;
+        for (const p of binding.particles) {
+            if (!p.active || p.seqRun !== binding.runId) {
+                binding.particles.delete(p);
+                continue;
+            }
+            if (p.lockReason === 'BEAM') continue;
+            p.x += dx;
+            p.y += rawDy;
+            p.z += dz;
+            if (p.spawnZ !== undefined) p.spawnZ += dz;
+            if (p.targetX !== undefined) p.targetX += dx;
+            if (p.targetY !== undefined) p.targetY += rawDy;
+        }
     }
 
     public update(engine: GameEngine, vfx: VFXSystem) {
         const now = engine.battleTime;
 
-        // F02: 在派發到期 action 之前更新尚未鎖定的 binding
-        const activeBindings = new Set<SequenceTargetBinding>();
+        // F02: 在派發到期 action 之前更新尚未鎖定的 binding（佇列裡的，以及帶著已生成粒子的）
+        const activeBindings = new Set<SequenceTargetBinding>(this.following);
         for (const item of this.actionQueue) {
             if (item.binding && !item.binding.locked) {
                 activeBindings.add(item.binding);
@@ -175,11 +226,18 @@ export class SequenceSystem {
             if (targetAgent) {
                 // 目標在 engine.agents 中（含 hp <= 0 仍在集合中的情況），更新為最新錨點
                 const anchor = VisualMath.getUnitAnchor(targetAgent, engine);
+                const ground = this.groundOf(targetAgent, engine);
+                if (binding.particles.size > 0) {
+                    this.follow(binding, anchor.x - binding.lastAnchor.x, anchor.y - binding.lastAnchor.y, ground - binding.lastGround);
+                }
                 binding.lastAnchor = { x: anchor.x, y: anchor.y, z: anchor.z };
+                binding.lastGround = ground;
             }
-            // 首次 battleTime >= lockAt 時永久鎖定
+            // 首次 battleTime >= lockAt 時永久鎖定；已生成的粒子從此留在原地
             if (now >= binding.lockAt) {
                 binding.locked = true;
+                binding.particles.clear();
+                this.following.delete(binding);
             }
         }
 
@@ -194,7 +252,7 @@ export class SequenceSystem {
                     }
                 }
                 const actionTarget = item.binding ? item.binding.lastAnchor : item.target;
-                this.dispatch(item.action, actionTarget, liveSource, vfx, engine, item.sourceId);
+                this.dispatch(item.action, actionTarget, liveSource, vfx, engine, item.runId, item.binding, item.sourceId);
                 this.actionQueue.splice(i, 1);
             }
         }
@@ -204,7 +262,23 @@ export class SequenceSystem {
         return sourceId ? engine.agents.find(a => a.id === sourceId)?.team : undefined;
     }
 
-    private dispatch(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine, sourceId?: string) {
+    private dispatch(
+        action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine,
+        runId: number, binding?: SequenceTargetBinding, sourceId?: string
+    ) {
+        const firstNew = vfx.state.particles.length;
+        this.dispatchAction(action, target, source, vfx, engine, sourceId);
+        // 這次派發新增的粒子都接在 particles 尾端（VFXPlayer、playBeam、HEAVEN_FALL 都是 push）
+        const particles = vfx.state.particles;
+        const follows = binding !== undefined && !binding.locked;
+        for (let i = firstNew; i < particles.length; i++) {
+            particles[i].seqRun = runId;
+            if (follows) binding.particles.add(particles[i]);
+        }
+        if (follows && binding.particles.size > 0) this.following.add(binding);
+    }
+
+    private dispatchAction(action: VFXAction, target: Point3D, source: Point3D | undefined, vfx: VFXSystem, engine: GameEngine, sourceId?: string) {
         const effectId = action.id || 'FX_HIT_GENERIC';
         
         const groundZ = target.z - VisualMath.Z_LAYERS.DECAL; 
@@ -261,7 +335,6 @@ export class SequenceSystem {
                     p.size = size;
                     p.locked = false;
                     p.pIsUlt = true;
-                    p.ultSourceId = sourceId;
                     vfx.state.particles.push(p);
                     return p;
                 };

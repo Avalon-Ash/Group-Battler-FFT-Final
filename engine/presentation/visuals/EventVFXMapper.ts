@@ -7,7 +7,7 @@ import { CameraSystem } from "../CameraSystem";
 import { SequenceSystem } from "./SequenceSystem";
 import { HexUtils } from "../../utils";
 import { VisualMath, Point3D } from "../../math/VisualMath";
-import { VISUAL_ANCHORS } from "../../../constants";
+import { VISUAL_ANCHORS, VFX_BUDGET } from "../../../constants";
 
 import { HAZARD_VISUALS } from "../../../data/vfx/hazard_visuals";
 
@@ -17,6 +17,9 @@ import { UnitVFXHandler } from "./handlers/UnitVFXHandler";
 import { CinematicVFXHandler } from "./handlers/CinematicVFXHandler";
 
 export class EventVFXMapper {
+    /** 同一幀內每個危害場已播的生成爆發數（HazardSystem 每格各送一次 HAZARD_SPAWN；換幀就清） */
+    private hazardBurstTime = -1;
+    private hazardBursts = new Map<string, number>();
 
     public process(
         event: GameEvent, 
@@ -70,7 +73,7 @@ export class EventVFXMapper {
                 break;
                 
             case 'HAZARD_SPAWN':
-                if (event.text) {
+                if (event.text && this.allowHazardBurst(event.targetId, engine.battleTime)) {
                     const hazardType = event.text.replace('FX_HAZARD_FIELD_', '');
                     const burstVfx = HAZARD_VISUALS[hazardType]?.spawnVfx || event.text;
                     vfx.playEffect(burstVfx, event.pos.x, event.pos.y, groundZ, undefined, undefined, undefined, hexKey);
@@ -83,6 +86,21 @@ export class EventVFXMapper {
                 }
                 break;
         }
+    }
+
+    /**
+     * 大範圍危害場（如半徑 10 的毒沼）一次送上百格 HAZARD_SPAWN，每格各播一次爆發會吃光粒子預算、擠掉同時命中的奧義特效。
+     * 每個危害場每幀只播前 VFX_BUDGET.HAZARD_SPAWN_BURSTS_PER_FIELD 格（由中心往外）；場地本身的持續畫面不受影響
+     */
+    private allowHazardBurst(hazardId: string | undefined, battleTime: number): boolean {
+        if (battleTime !== this.hazardBurstTime) {
+            this.hazardBurstTime = battleTime;
+            this.hazardBursts.clear();
+        }
+        const key = hazardId ?? '';
+        const n = this.hazardBursts.get(key) ?? 0;
+        this.hazardBursts.set(key, n + 1);
+        return n < VFX_BUDGET.HAZARD_SPAWN_BURSTS_PER_FIELD;
     }
 
     private resolveCastOrigin(bodyOrigin: Point3D, sourceId: string | undefined, engine: GameEngine): Point3D {

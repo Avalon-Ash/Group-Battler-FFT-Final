@@ -14,18 +14,28 @@ import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS } f
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
 
-export class SkillExecutor {
+/** 天降類延遲結算：詠唱結束當下記下的落點與目標（落下期間施法者被暈、陣亡、換目標都不影響） */
+export interface DeferredCastSnapshot {
+    center: { q: number; r: number };
+    target: Agent | null;
+}
 
-    public executeInstantSkill(source: Agent, skill: Skill, engine: GameEngine) {
+export class SkillExecutor {
+    /** 施法中心：range 0 是施法者所在格，其他是 targetHex（沒有就用目標格，再沒有就用自己） */
+    public static castCenter(source: Agent, skill: Skill): { q: number; r: number } {
+        if (skill.range === 0) return { q: source.q, r: source.r };
+        return source.targetHex || (source.target ? { q: source.target.q, r: source.target.r } : { q: source.q, r: source.r });
+    }
+
+    /**
+     * `deferred`：天降類延遲結算（CombatSystem）。詠唱結束就算施放成功：用當時的落點與目標，
+     * 不再檢查射程，施法者也不再突進或前衝（可能已被暈或陣亡）。
+     */
+    public executeInstantSkill(source: Agent, skill: Skill, engine: GameEngine, deferred?: DeferredCastSnapshot) {
         let targets: Agent[] = [];
         
         // 1. 確定施法中心點
-        let targetHex;
-        if (skill.range === 0) {
-            targetHex = { q: source.q, r: source.r };
-        } else {
-            targetHex = source.targetHex || (source.target ? {q: source.target.q, r: source.target.r} : {q: source.q, r: source.r});
-        }
+        const targetHex = deferred ? deferred.center : SkillExecutor.castCenter(source, skill);
 
         // 普攻沒有 CAST_START；近戰斬擊與瞬發光束由 VISUAL_BEAM 事件觸發技能序列（SkillSequences）
         if (skill.tag === 'BASIC' && source.target) {
@@ -37,7 +47,7 @@ export class SkillExecutor {
         const origin = hexEventPos(targetHex.q, targetHex.r, engine);
 
         // [NEW] DASH Effect: Move caster towards targetHex（高度／障礙／單位由 ForcedMove 裁決）
-        if (skill.effectType === 'DASH' || skill.effectType2 === 'DASH') {
+        if (!deferred && (skill.effectType === 'DASH' || skill.effectType2 === 'DASH')) {
             const dashPath = planDashPath(source, targetHex, engine);
             const dash = resolveForcedMove(source, dashPath, dashPath.length, 'DASH', engine);
             const bestH = dash.stepsTaken > 0 ? dash.finalHex : null;
@@ -61,6 +71,7 @@ export class SkillExecutor {
                 lungeToward(source, origin, PHYSICS.LUNGE_SPEED_ACTIVE);
             }
         } else if (
+            !deferred &&
             skill.range >= 1 &&
             skill.range <= 2 &&
             (skill.projectileSpeed ?? 0) === 0 &&
@@ -89,9 +100,10 @@ export class SkillExecutor {
             
             engine.events.push({ type: 'IMPACT_AOE', pos: origin, skill, color: skill.color, sourceId: source.id });
         } else {
-            if (source.target && source.target.hp > 0 && !source.target.banished && !source.target.outOfBounds) {
-                const isValidTarget = (skill.power > 0 && source.target.team !== source.team) || 
-                                      (skill.power < 0 && source.target.team === source.team) || 
+            const primary = deferred ? deferred.target : source.target;
+            if (primary && primary.hp > 0 && !primary.banished && !primary.outOfBounds) {
+                const isValidTarget = (skill.power > 0 && primary.team !== source.team) || 
+                                      (skill.power < 0 && primary.team === source.team) || 
                                       (skill.power === 0);
                 
                 // For power === 0 buffs, AI might have targeted an enemy. In this case, CCManager would block it.
@@ -100,7 +112,7 @@ export class SkillExecutor {
                
                 let shouldPush = false;
                 if (isValidTarget) {
-                    if (skill.power === 0 && isBuffCC && source.target.team !== source.team) {
+                    if (skill.power === 0 && isBuffCC && primary.team !== source.team) {
                         // AI targeted an enemy for a Buff. Don't push, so it falls back to self.
                         shouldPush = false;
                     } else {
@@ -108,9 +120,9 @@ export class SkillExecutor {
                     }
                 }
 
-                const effRange = engine.movement.getEffectiveRange(source, source.target.q, source.target.r, skill.range, engine);
-                if (shouldPush && HexUtils.dist(source, source.target) <= effRange + 0.1) {
-                    targets.push(source.target);
+                const effRange = engine.movement.getEffectiveRange(source, primary.q, primary.r, skill.range, engine);
+                if (shouldPush && (deferred || HexUtils.dist(source, primary) <= effRange + 0.1)) {
+                    targets.push(primary);
                 }
             }
         }

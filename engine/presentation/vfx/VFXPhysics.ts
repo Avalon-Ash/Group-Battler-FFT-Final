@@ -1,6 +1,7 @@
 
 import { Particle } from "./state";
 import { PHYSICS, VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, PHYSICAL_PARTICLE_TYPES } from "../../../constants";
+import { riseOffsetAt } from "./partAnimEase";
 
 export interface SpatialInfo {
     height: number;
@@ -52,8 +53,16 @@ export class VFXPhysics {
                 }
             }
         } else {
-            p.z += p.vz * dt;
-            
+            // 高度路徑：z 由生命進度決定（不積分 vz），足跡 x/y 照常移動；貼地零件以當前地面為基準
+            const rise = p.partAnim?.rise;
+            let riseOffset = 0;
+            if (rise) {
+                const t = p.maxLife > 0 ? Math.max(0, Math.min(1, 1 - p.life / p.maxLife)) : 1;
+                riseOffset = riseOffsetAt(rise, t);
+            }
+            if (rise && p.spawnZ !== undefined) p.z = p.spawnZ + riseOffset;
+            else p.z += p.vz * dt;
+
             if (p.drag !== undefined) {
                 const f = Math.pow(1 - p.drag, dt * 60);
                 p.vx *= f; p.vy *= f; p.vz *= f;
@@ -76,7 +85,7 @@ export class VFXPhysics {
             // [FIX] For ground particles, they MUST stick to the ground height exactly.
             // SSOT: Use centralized VFX_GROUND_TYPES
             if (VFX_GROUND_TYPES.has(p.type) || p.groundAnchored) {
-                p.z = currentGroundH;
+                p.z = currentGroundH + riseOffset;
                 p.vz = 0;
             }
         }

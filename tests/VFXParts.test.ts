@@ -47,6 +47,20 @@ const ALL_SPECS: PartSpec[] = [
     { kind: 'droplet', size: 14, ramp: 'ASH_BLOOD' },
     { kind: 'prism', radius: 38, height: 67, ramp: 'STATUS_SKY', layout: 'POINTY', style: 'glass' },
     { kind: 'prism', radius: 38, height: 8, ramp: 'LION_ICE', style: 'solid' },
+    { kind: 'spiral', radius: 40, arms: 3, turns: 0.75, thickness: 10, ramp: 'LION_VOID' },
+    { kind: 'construct', shape: 'greatsword', size: 64, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'singularity', size: 64, ramp: 'ASH_VOID' },
+    { kind: 'construct', shape: 'warhead', size: 64, ramp: 'ASH_FIRE' },
+    { kind: 'construct', shape: 'eclipse', size: 64, ramp: 'ASH_BLOOD' },
+    { kind: 'construct', shape: 'bladeWheel', size: 96, ramp: 'LION_PHYSICAL' },
+    { kind: 'construct', shape: 'towerShield', size: 96, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'crown', size: 64, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'fist', size: 96, ramp: 'LION_HOLY' },
+    { kind: 'construct', shape: 'guillotine', size: 96, ramp: 'ASH_BLOOD' },
+    { kind: 'construct', shape: 'ribSpike', size: 64, ramp: 'ASH_BLOOD' },
+    { kind: 'construct', shape: 'eye', size: 64, ramp: 'ASH_VOID' },
+    { kind: 'construct', shape: 'arrow', size: 96, ramp: 'LION_LIGHTNING' },
+    { kind: 'construct', shape: 'demonWings', size: 128, ramp: 'ASH_BLOOD' },
 ];
 
 describe('VFX part palette', () => {
