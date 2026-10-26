@@ -216,6 +216,15 @@
 | :-- | :-- | :-- |
 | BAL02 提示詞把標準量測固定成指令＋「與背景數字 ±0.5% 不一致就停」 | Gemini BAL0 重現 44.0／47.4，主代理重跑最終數字逐字一致 | helped |
 
+### X. 2026-10-27 R2 衝刺殘影停留（合併 53f2901）
+
+結論：衝刺殘影原本只在速度 > 300 px/s 時畫，衝刺 0.13 秒內就減速，殘影一閃即逝；改成高速結束後留在路徑上 0.3 秒淡出，可見時間 0.20 → 0.52 秒。
+
+- `UnitFrameStore` 保存最後一組殘影的世界座標，依 `battleTime` 淡出（暫停不流逝）；軌跡峰值 ≥ `AFTERIMAGE.LINGER_MIN_PEAK_SPEED`（600 px/s，近戰前衝最高 540）才停留。走路、近戰前衝殘影維持 0。RenderSpec §10 同步。
+- 探針 `tools/ui-e2e/dash-afterimage-probe.mjs`（wb_a2、wr_a3、mb_a3＋走路、前衝對照組）。
+- 驗證：沙盒外完整 `npm test` 836 項、lint、build、runtime-smoke；Codex 跑 `perf:guard`（`battle_frozen` 0.001，未重錄）、`verify:coords` 通過。
+- 派工：第一版提示詞把 `rb_a4`（冰霜陷阱）誤列為衝刺技能，Codex 照停下條件停下；以 `--resume-last` 更正後完成。`DASH_MOTION_REPORT.md`、`R2_DASH_AFTERIMAGE_REPORT.md` 已刪。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
