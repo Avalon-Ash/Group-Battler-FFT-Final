@@ -245,6 +245,11 @@
 - 驗證：沙盒外完整 `npm test` 848 項、lint、build、smoke、`verify:coords`、perf A/B 通過；`battle_frozen` 取證重錄（1aec89b，只有預警／詠唱格變），5 張地形未重錄。
 - 提示詞與報告已刪。
 
+### AA. 2026-10-27 R3 屍體滑行排序：診斷後不修
+
+- Codex（Sol／medium）只做 R3-0 量測與分類，沒有找到有證據支持、能把 CORPSE×VFX 減半的修法，照停下條件停止；主代理判定不修（DECISIONS §5 2026-10-27）。
+- 預設參數下：全部振盪 84、CORPSE×VFX 24、static 1；`--order` 穩定錯序 42 段／196 pair-frames／wrongFrames 421。後者與 COORD-R1 的 7／23／131 參數不同，另案比對（HANDOFF B1）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

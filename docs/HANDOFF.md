@@ -17,7 +17,7 @@
 **A. 平衡**：BAL-02 已合併（WORKLOG §2 W）。報告 `docs/BAL02_REPORT.md` §5.2 留了兩個要改機制的缺口，暫不排：STORM 類 10 招分段結算（要補總傷害）、`rb_u5` 投射物與 STORM 落點演出統一。之後平衡再跑時一起決定。
 
 **B. 渲染修正佇列（Codex Sol／medium，獨立工作樹，依序一次一條；主代理審 diff＋`render-verify`）**
-1. **R3 屍體滑行排序翻轉**：COORD-R1 後振盪事件 83→93，主要是屍體滑行時的 CORPSE×VFX（`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md`）。要對照 RenderSpec，修完同 commit 更新 RenderSpec 與檔頭，`verify:coords --flicker` 量化，做完刪除該審查文件。 R4 已合併，**可以派**（渲染一次一條，現在沒有其他渲染工作）。
+1. **穩定錯序是否退步（進行中）**：R3 診斷用預設參數量到 `--order` 穩定錯序 42 段／wrongFrames 421，COORD-R1 審查是 7 段／131，但兩次參數不同。COORD-R1 的參數是 `--sink --flicker --order --seeds=2 --seedStart=1 --seconds=10 --orderSeconds=10 --biomes=FOREST,VOID,MAGMA --orderBiomes=FOREST,VOID,MAGMA`；先用這組在現在的 main 重量，真的變多再派 Codex 在 `cc056b0..main` 之間找是哪一輪。`docs/PROJECT_CLEANUP_COORD_R1_REVIEW.md` 留到這項結束再刪。
 2. **R5 手機模擬量測工具**：使用者手機上很難用 `?perf`。在 `tools/ui-e2e/` 做一支手機模擬量測腳本：iPhone 14 Pro 版面＋CDP CPU 降速（4 倍）跑展示模式與 8 招奧義，輸出 FPS、品質階層、粒子數與記憶體。只能模擬 CPU，GPU 與 WebKit 行為仍以實機為準。可和 R1～R4 並行（不改渲染程式）。
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
@@ -30,7 +30,6 @@
 3. **BAL-02 後的展示戰鬥**：看幾場，確認兩邊沒有一面倒；天降奧義（`mr_u1` 降傷降暈、`rb_u1`／`tb_u3` 加傷）與 `tr_b2` 肉鉤頻率的手感。
 4. **衝刺殘影實機看**（R2 已合併）：`wb_a2`、`wr_a3`、`mb_a3` 衝刺後殘影留在路徑上約 0.3 秒淡出，看是否夠明顯、會不會太雜。
 5. **網格優先序實機看**（R4 已合併）：縮圈預警填色 0.75→0.55（邊線照常律動）、詠唱預警改陣營色、施法者腳下的 AOE 不再雙重染色、危害液面／狀態底色／縮圈染色在同格有更高優先時變淡。看是否比較不雜、預警是否還夠醒目。
-6. **R3 做完後的實機看**：屍體滑行時的排序翻轉。
 
 ## 4. 以後再說（暫緩項目）
 - **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
