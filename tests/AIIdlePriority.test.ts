@@ -39,8 +39,8 @@ describe('AIIdlePriority', () => {
             engine.map.setHeight('0,-1', 0);
             expect(engine.getEffectiveRange({ q: 0, r: 0 }, 0, -1, 0)).toBe(0);
             expect(engine.getEffectiveRange({ q: 0, r: -1 }, 0, 0, 0)).toBe(0);
-            // 其他射程仍吃高低差加成
-            expect(engine.getEffectiveRange({ q: 0, r: 0 }, 0, -1, 1)).toBeGreaterThan(1);
+            // 遠程仍吃高低差加成
+            expect(engine.getEffectiveRange({ q: 0, r: 0 }, 0, -1, 2)).toBe(4);
         });
 
         it('站在高處逃往相鄰低格：moveAgentToHex 回 RUNNING 並開始移動，不是原地 SUCCESS', () => {
@@ -99,6 +99,35 @@ describe('AIIdlePriority', () => {
             color: '#fff', power: 0, tickInterval: 1, lastTickTime: 0,
         });
     };
+
+    describe('R6：近戰不黏住孤立高台', () => {
+        beforeEach(clearArea);
+        it('有同層攻擊鄰格但超過爬升能力：換目標並移動', () => {
+            const a = mk(Team.BLUE, -3, 0, Role.WARRIOR);
+            const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
+            const reachable = mk(Team.RED, -3, 3, Role.WARRIOR);
+            a.jump = 1;
+            for (const h of [tower, ...HexUtils.neighbors(tower)]) {
+                engine.map.setHeight(HexUtils.key(h), 3 * BLOCK_HEIGHT);
+            }
+            a.target = tower;
+            engine.updateTarget(a);
+            expect(a.target).toBe(reachable);
+            expect(BTActions['ChaseTarget'](a, engine, { slot: 2 })).toBe(NodeState.RUNNING);
+            expect(a.isMoving).toBe(true);
+        });
+        it('高台四周沒有同層攻擊格：換目標並追擊', () => {
+            const a = mk(Team.BLUE, -2, 0, Role.WARRIOR);
+            const tower = mk(Team.RED, 0, 0, Role.WARRIOR);
+            const reachable = mk(Team.RED, 2, 0, Role.WARRIOR);
+            engine.map.setHeight('0,0', BLOCK_HEIGHT);
+            a.target = tower;
+            engine.updateTarget(a);
+            expect(a.target).toBe(reachable);
+            expect(BTActions['ChaseTarget'](a, engine, { slot: 2 })).toBe(NodeState.RUNNING);
+            expect(a.isMoving).toBe(true);
+        });
+    });
 
     describe('成因 B：被定身（root）時 Run! 不可永遠 RUNNING', () => {
         beforeEach(clearArea);
