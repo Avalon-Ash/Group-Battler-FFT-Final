@@ -539,6 +539,12 @@
       "EDGE_BLUR": 2.5,
       "CORE_W": 0.8,
       "PAD": 6
+    },
+    "PRIORITY": {
+      "CAST_DIM": 0.35,
+      "HAZARD_DIM": 0.5,
+      "STATUS_DIM": 0.25,
+      "WARNING_FILL_MAX": 0.4
     }
   },
   "GROUND_DRAPE": {

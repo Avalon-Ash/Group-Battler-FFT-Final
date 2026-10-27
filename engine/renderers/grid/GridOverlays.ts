@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] Upstream GroundPriority: fill budgets only; borders retain their pulse (section 12).
 // ║  GridOverlays — 地格疊層（背水一戰、地格狀態底色、區域、光源、║
 // ║  預警、射程、滑過），逐格向量六角                            ║
 // ║  [ARCH] 錨點＝getIsoVisualY(baseY, h) 再 applyLayerBias       ║
@@ -14,6 +15,8 @@ import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
 import { GRID_OVERLAY } from "../../../constants";
 import { SoftTile, type SoftTileLook } from "./SoftTile";
+
+import { groundPriority } from './GroundPriority';
 
 const LOOK: SoftTileLook = { fill: '', edge: '', fillAlpha: 0, edgeAlpha: 0, coreAlpha: 0 };
 
@@ -44,6 +47,7 @@ export const GridOverlays = {
     ) {
         // SSOT: Calculate surface Y via projection formula
         const G = GRID_OVERLAY;
+        const layers = groundPriority.at(q, r);
         const visualSurfaceY = VisualMath.getIsoVisualY(baseY, height);
         const drawY = VisualMath.applyLayerBias(visualSurfaceY, 'OVERLAY');
 
@@ -53,7 +57,7 @@ export const GridOverlays = {
             ctx.translate(x, drawY - L.LIFT);
             const pulse = (Math.sin(globalTime * L.FREQ) + 1) / 2;
             ctx.fillStyle = L.FILL;
-            ctx.globalAlpha = L.FILL_ALPHA + pulse * L.FILL_PULSE;
+            ctx.globalAlpha = (L.FILL_ALPHA + pulse * L.FILL_PULSE) * layers.lastStand;
             HexGeometry.traceHex(ctx, 0, 0, size * L.RADIUS, true, layout);
             ctx.fill();
 
@@ -71,7 +75,7 @@ export const GridOverlays = {
                 ctx.save();
                 ctx.translate(x, drawY);
                 ctx.fillStyle = def.floorColor;
-                ctx.globalAlpha = def.floorOpacity || G.STATUS_FLOOR_ALPHA;
+                ctx.globalAlpha = (def.floorOpacity || G.STATUS_FLOOR_ALPHA) * layers.status;
                 HexGeometry.traceHex(ctx, 0, 0, size, true, layout);
                 ctx.fill();
                 ctx.restore();
@@ -87,11 +91,11 @@ export const GridOverlays = {
                 zoneInfo.color,
                 zoneInfo.progress,
                 zoneInfo.isEnemy,
-                layout
+                layout, layers.zone
             );
         }
 
-        if (lightColor && lightIntensity > 0) {
+        if (lightColor && lightIntensity > 0 && layers.light > 0) {
             ctx.save();
             ctx.translate(x, drawY);
             ctx.globalCompositeOperation = 'screen'; 
@@ -112,14 +116,20 @@ export const GridOverlays = {
                 const W = G.WARNING;
                 const pulse = (Math.sin(globalTime * W.FREQ) + 1) / 2;
                 ctx.globalAlpha = W.ALPHA_MIN + pulse * W.ALPHA_PULSE;
-                drawTile(ctx, W.FILL, W.EDGE, W.FILL_ALPHA, W.EDGE_ALPHA, W.CORE_ALPHA, size, layout);
+                drawTile(ctx, W.FILL, W.EDGE, Math.min(W.FILL_ALPHA, G.PRIORITY.WARNING_FILL_MAX) * layers.warning, W.EDGE_ALPHA, W.CORE_ALPHA, size, layout);
             }
 
             ctx.globalCompositeOperation = 'screen';
             ctx.globalAlpha = 1;
             if (isRange) {
                 const R = G.RANGE;
-                drawTile(ctx, rangeColor, rangeColor, R.FILL_ALPHA, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
+                const castColor = groundPriority.castColorAt(q, r);
+                if (castColor && layers.cast > 0) {
+                    ctx.globalAlpha = layers.cast;
+                    drawTile(ctx, castColor, castColor, R.FILL_ALPHA, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
+                    ctx.globalAlpha = 1;
+                }
+                if (layers.range > 0) drawTile(ctx, rangeColor, rangeColor, 0, R.EDGE_ALPHA, R.CORE_ALPHA, size, layout);
             }
             if (isHover) {
                 const H = G.HOVER;

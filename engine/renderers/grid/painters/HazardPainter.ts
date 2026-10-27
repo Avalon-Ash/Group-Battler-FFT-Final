@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] Upstream GroundPriority dims only the liquid base, never part layers (section 12).
 // ║  HazardPainter — 持續性空間危害（熔岩、毒沼、冰封、重力場）  ║
 // ║  職責：依 HAZARD_VISUALS 在一格畫液面底＋零件層；中心格另畫  ║
 // ║        centerLayers。執行期只有 drawImage／alpha／變換。      ║
@@ -15,6 +16,8 @@ import { TERRAIN_LIQUID } from "../../../../data/vfx/terrainAmbience";
 import { VisualMath } from "../../../math/VisualMath";
 import { getQualityTier } from "../../RenderQuality";
 import { resolvePartLayer, drawPartLayer, layoutAlign, type ResolvedPartLayer } from "../../vfxparts/PartLayerPainter";
+
+import { groundPriority } from '../GroundPriority';
 
 interface ResolvedHazard {
     layers: ResolvedPartLayer[];
@@ -57,7 +60,7 @@ export const HazardPainter = {
 
         if (def.liquid) {
             const prev = ctx.globalAlpha;
-            ctx.globalAlpha = prev * fade;
+            ctx.globalAlpha = prev * fade * groundPriority.at(q, r).hazard;
             SurfacePainter.drawLiquid(ctx, x, drawY + VisualMath.Z_LAYERS.LIQUID_OFFSET, def.liquid.color, t * def.liquid.speed, def.liquid.intensity, layout,
                 variantFor(q, r, TERRAIN_LIQUID.variants), tileHash01(q, r, TERRAIN_LIQUID.crust.seed));
             ctx.globalAlpha = prev;

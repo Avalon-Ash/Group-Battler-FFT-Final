@@ -24,6 +24,8 @@ export const TACTICAL_COLORS = {
  * FREQ 是 rad/s，脈動值 pulse ∈ [0, 1]，ALPHA＝BASE＋pulse×PULSE。
  */
 export const GRID_OVERLAY = {
+    /** Ground fill priority (RenderSpec section 12); same-rank zone wins over light. */
+    PRIORITY: { CAST_DIM: 0.35, HAZARD_DIM: 0.5, STATUS_DIM: 0.25, WARNING_FILL_MAX: 0.4 },
     LAST_STAND: { LIFT: 2, FREQ: 15, RADIUS: 0.98, FILL: '#c084fc', FILL_ALPHA: 0.2, FILL_PULSE: 0.3, STROKE: '#f0abfc', LINE_W: 1.5, LINE_PULSE: 1.5, STROKE_ALPHA: 0.4, STROKE_PULSE: 0.4 },
     /** 地格狀態底色（STATUS_VISUALS.floorColor）缺不透明度時的預設 */
     STATUS_FLOOR_ALPHA: 0.4,

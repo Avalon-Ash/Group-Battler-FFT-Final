@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] Sole writer of GroundPriority per-cell budgets (RenderSpec section 12).
 // ║  GridRenderStrategy — 地塊／障礙／危害／疊層 RenderOp 提交 ║
 // ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
@@ -10,15 +11,17 @@ import { GameEngine, Agent } from "../../game";
 import { GridCache } from "./GridCache";
 import { RenderList, RenderOpType } from "../RenderList";
 import { Hex, Skill, Projectile } from "../../../types";
-import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y } from "../../../constants";
+import { TERRAIN_THEMES, HEX_SIZE, ISO_SCALE_Y, ZONE_RENDER } from "../../../constants";
 import { HexUtils } from "../../utils";
 import { VisualMath } from "../../math/VisualMath";
+
+import { groundPriority, GroundFlag as F, isCasterCenteredTelegraph } from './GroundPriority';
+import { HAZARD_VISUALS } from '../../../data/vfx/hazard_visuals';
+import { STATUS_VISUALS } from '../../../data/vfx/status_visuals';
 
 export class GridRenderStrategy {
     private _unitPresence = new Set<string>();
     private _unitVisualStatus = new Map<string, string>();
-    private _castingAOE = new Set<string>();
-    private _castingColor: string = '';
 
     public submit(
         cache: GridCache,
@@ -42,8 +45,7 @@ export class GridRenderStrategy {
 
         this._unitPresence.clear();
         this._unitVisualStatus.clear();
-        this._castingAOE.clear();
-        this._castingColor = '';
+        groundPriority.begin(cache.tileList);
 
         for (const a of engine.agents) {
             if (a.hp > 0) {
@@ -54,13 +56,12 @@ export class GridRenderStrategy {
                 // Check for casting AOE to highlight
                 if (a.castingSkillIdx !== -1 && a.currentTelegraph) {
                     const skill = a.skills[a.castingSkillIdx];
-                    if (skill) {
+                    if (skill && !isCasterCenteredTelegraph(a, skill)) {
                         const telegraph = a.currentTelegraph;
                         for (let i = 0; i < telegraph.length; i++) {
                             const c = telegraph[i];
-                            this._castingAOE.add(`${c.q},${c.r}`);
+                            groundPriority.addCast(c.q, c.r, a);
                         }
-                        if (!this._castingColor) this._castingColor = skill.color;
                     }
                 }
             }
@@ -90,7 +91,9 @@ export class GridRenderStrategy {
             }
 
             const hazardsAtTile = engine.getSpatialHazardsAt(q, r);
+            let hasLiquid = false;
             for (const h of hazardsAtTile) {
+                if (HAZARD_VISUALS[h.type].liquid) hasLiquid = true;
                 const hOp = renderList.next();
                 hOp.type = RenderOpType.HAZARD;
                 hOp.tq = q; hOp.tr = r; hOp.th = tile.h;
@@ -113,10 +116,20 @@ export class GridRenderStrategy {
             
             // Mix player hover range and AI casting AOE
             const isHoverRange = this.checkIsRange(q, r, h, hoveredSkill, highlightAgent, engine);
-            const isCastAOE = this._castingAOE.has(key);
+            const isCastAOE = groundPriority.castColorAt(q, r) !== undefined;
             const isHover = hoveredHex ? (hoveredHex.q === q && hoveredHex.r === r) : false;
             const isWarning = engine.map.warningTiles.has(key);
             const isLastStand = engine.state.isLastStand && engine.state.finalHex?.q === q && engine.state.finalHex?.r === r;
+
+            // Fill the shared budget before any op is drawn. Only actual zone fills participate.
+            const zone = op.oDanger;
+            const zoneFill = zone && (zone.isEnemy || HexUtils.dist(tile, zone) < zone.progress * (zone.radius + ZONE_RENDER.WAVE_OVERSHOOT));
+            const status = op.oStatus ? STATUS_VISUALS[op.oStatus] : undefined;
+            groundPriority.set(q, r,
+                (isWarning ? F.Warning : 0) | (isLastStand ? F.LastStand : 0) |
+                (isCastAOE ? F.Cast : 0) | (hasLiquid ? F.Hazard : 0) |
+                (status?.floorColor ? F.Status : 0) | (zoneFill ? F.Zone : 0) |
+                (op.oLightCol && op.oLightInt > 0 ? F.Light : 0) | (isHoverRange ? F.Range : 0));
 
             op.oHasUnit = !engine.isRunning && this._unitPresence.has(key);
             op.time = globalTime;
@@ -133,7 +146,7 @@ export class GridRenderStrategy {
                 overlayOp.sortBias = 0;
                 overlayOp.tsize = HEX_SIZE;
                 overlayOp.oRange = isHoverRange || isCastAOE;
-                overlayOp.oRangeCol = (isHoverRange ? hoveredSkill?.color : this._castingColor) || '';
+                overlayOp.oRangeCol = hoveredSkill?.color || '';
                 overlayOp.oHover = isHover;
                 overlayOp.oWarning = isWarning;
                 overlayOp.oLastStand = isLastStand;
