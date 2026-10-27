@@ -156,3 +156,11 @@ Rendered by `tools/assets/blender/render_obstacle.py`, packed by `pack_obstacles
 | `assets/obstacles/sandstone.webp` | SANDSTONE | Kenney Nature Kit `rock_tallA`～`D` (recoloured) | Kenney | CC0 1.0 | 2026-10-19 |
 | `assets/obstacles/ice_crystal.webp` | ICE_CRYSTAL | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
 | `assets/obstacles/obsidian_pillar.webp` | OBSIDIAN_PILLAR | Scripted hex prisms (no external model) | project | own work | 2026-10-19 |
+
+## 7. Local-only audio (NOT in repo, NOT deployed)
+
+`public/assets/audio/local/` is gitignored (`tests/AudioAssets.test.ts` checks it). It holds copyrighted files the user supplies for private local play only; they have no redistribution licence, so they must never be committed, pushed, or included in a deployed build. Cues that point here are marked `localOnly` in `data/audio/cues.ts`, are left out of `manifest.json`, and stay silent when the file is missing (no synth fallback).
+
+| Expected path | Cue | Line | Source the user used | Licence |
+| :--- | :--- | :--- | :--- | :--- |
+| `assets/audio/local/Kill/kill_1.mp3`～`kill_7.mp3` | `KILL_SPREE_1`～`7` | First Blood, Killing Spree, Rampage, Dominating, Unstoppable, Godlike, Massacre | PVPSound addon sound pack (Unreal Tournament announcer, (c) Epic Games) | none - personal use only |

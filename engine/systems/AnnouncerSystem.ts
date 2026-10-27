@@ -1,5 +1,5 @@
 import { GameEngine } from "../game";
-import { KILL_STREAK_WINDOW } from "../../constants";
+import { KILL_STREAK_WINDOW, KILL_SPREE_MIN_KILLS, KILL_SPREE_MAX_TIER } from "../../constants";
 import { GameEvent, Point } from "../../types";
 
 export class AnnouncerSystem {
@@ -29,6 +29,7 @@ export class AnnouncerSystem {
                 color: "#ef4444",
                 value: 1
             });
+            outEvents.push({ type: 'KILL_SPREE', pos, sourceId: killerId, value: 1 });
         }
 
         let streak = 1;
@@ -36,8 +37,14 @@ export class AnnouncerSystem {
         if (existing && now - existing.lastTime <= KILL_STREAK_WINDOW) {
             streak = existing.count + 1;
         }
-        
-        state.killStreaks.set(killerId, { count: streak, lastTime: now });
+        const total = (existing?.total ?? 0) + 1;
+
+        state.killStreaks.set(killerId, { count: streak, lastTime: now, total });
+
+        // 累計擊殺播報（只有音效；畫面文字仍是下方的短時間連殺）
+        if (total >= KILL_SPREE_MIN_KILLS) {
+            outEvents.push({ type: 'KILL_SPREE', pos, sourceId: killerId, value: Math.min(total, KILL_SPREE_MAX_TIER) });
+        }
 
         if (streak >= 2) {
             let streakText = "DOUBLE KILL";

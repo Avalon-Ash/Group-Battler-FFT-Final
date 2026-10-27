@@ -1,3 +1,4 @@
+import { KILL_SPREE_CUE_BY_TIER } from '../../../data/audio/cues';
 import { AUDIO, SCREEN_CONSTANTS, AUDIO_HEAVY_HIT_DAMAGE } from '../../../constants';
 import { GameEvent, Team, UICommand } from '../../../types';
 import {
@@ -191,6 +192,12 @@ export class AudioSystem {
         const cueOpts: PlayCueOptions = { x: pan };
 
         switch (evt.type) {
+            case 'KILL_SPREE': {
+                const cue = evt.value !== undefined ? KILL_SPREE_CUE_BY_TIER[evt.value] : undefined;
+                if (cue) this.audioEngine.playCue(cue, cueOpts);
+                break;
+            }
+
             case 'DAMAGE': {
                 const val = evt.value ?? 0;
                 const isCrit = evt.crit === true || val >= AUDIO_HEAVY_HIT_DAMAGE;

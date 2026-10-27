@@ -136,6 +136,23 @@ describe('AudioSystem (Event-to-Cue Bridge)', () => {
         expect(playCueSpy).toHaveBeenCalledWith('HIT_HEAVY', expect.objectContaining({ x: 0.75 }));
     });
 
+    it.each([1, 2, 3, 4, 5, 6, 7] as const)('maps KILL_SPREE value %s to KILL_SPREE_%s and preserves pan', value => {
+        audioEngine.unlock();
+        const playCueSpy = vi.spyOn(audioEngine, 'playCue');
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, pos: { x: 900, y: 300 } });
+        expect(playCueSpy).toHaveBeenCalledExactlyOnceWith(`KILL_SPREE_${value}`, { x: 0.75 });
+        // 本機音檔未載入（測試環境沒有）時靜音，不回退合成音
+        expect(playCueSpy.mock.results[0].value).toBe(false);
+    });
+
+    it.each([0, -1, 8, undefined])('ignores KILL_SPREE value %s, and KILL_STREAK text events stay silent', value => {
+        audioEngine.unlock();
+        const playCueSpy = vi.spyOn(audioEngine, 'playCue');
+        bus.emit('GAME_EVENT', { type: 'KILL_SPREE', value, pos: { x: 900, y: 300 } });
+        bus.emit('GAME_EVENT', { type: 'KILL_STREAK', value: 2, text: 'DOUBLE KILL', pos: { x: 900, y: 300 } });
+        expect(playCueSpy).not.toHaveBeenCalled();
+    });
+
     it('maps HEAL, CC_APPLIED, and CAMERA_SHAKE events', () => {
         audioEngine.unlock();
         const playCueSpy = vi.spyOn(audioEngine, 'playCue');

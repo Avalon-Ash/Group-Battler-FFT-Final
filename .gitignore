@@ -34,3 +34,6 @@ tools/ui-e2e/out/
 
 # Python offline asset tools
 __pycache__/
+
+# copyrighted audio for local use only (see docs/ASSET_LEDGER.md §7) - never commit or deploy
+public/assets/audio/local/

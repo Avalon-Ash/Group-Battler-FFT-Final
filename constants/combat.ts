@@ -4,6 +4,9 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 export const KILL_STREAK_WINDOW = 5.0;
+/** 累計擊殺播報：個人第 2 殺起播報，達此數後都播最高階 */
+export const KILL_SPREE_MIN_KILLS = 2;
+export const KILL_SPREE_MAX_TIER = 7;
 
 export const PHYSICS = {
     GRAVITY: 3500,
