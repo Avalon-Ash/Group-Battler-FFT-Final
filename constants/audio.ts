@@ -16,6 +16,8 @@ export const AUDIO = {
     DEFAULT_MUSIC_VOLUME: 0.6,
     DEFAULT_SFX_VOLUME: 0.8,
     DEFAULT_UI_VOLUME: 0.7,
+    /** 擊殺播報（本機語音檔）預設關閉；沒有本機檔案時設定視窗不顯示開關 */
+    DEFAULT_ANNOUNCER_ENABLED: false,
     PAN_RANGE: 0.8,
     PITCH_JITTER: 0.08,
     VOLUME_JITTER: 0.05,

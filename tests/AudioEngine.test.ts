@@ -370,4 +370,46 @@ describe('AudioEngine', () => {
         expect(sharedB.getActiveMusicSourceCount()).toBe(0);
         expect(getMockState()).toBe('closed');
     });
+
+    it('exclusive ANNOUNCER group: one line at a time, higher rank interrupts, same or lower rank is dropped', async () => {
+        // kill_7 刻意缺檔（unlock 會背景預載全部 SFX）：缺檔的高階不得打斷正在播的那一條
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => url.endsWith('kill_7.mp3')
+            ? { ok: false, status: 404 }
+            : { ok: true, arrayBuffer: async () => new ArrayBuffer(8) }));
+        const { ctx } = createMockAudioContext();
+        const engine = new AudioEngine({ audioContext: ctx, skipUrlCheck: true, forceMute: false });
+        engine.unlock();
+        for (let tier = 1; tier <= 7; tier++) await engine.loadBuffer(`assets/audio/local/Kill/kill_${tier}.mp3`);
+        const lastSource = () => (ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.results.at(-1)!.value;
+
+        // 播報開關預設關閉
+        expect(engine.getSettings().announcer).toBe(false);
+        expect(engine.playCue('KILL_SPREE_3')).toBe(false);
+        engine.setAnnouncerEnabled(true);
+
+        expect(engine.playCue('KILL_SPREE_3')).toBe(true);
+        const rampage = lastSource();
+        expect(engine.playCue('KILL_SPREE_2')).toBe(false);
+        expect(engine.playCue('KILL_SPREE_7')).toBe(false);
+        expect(rampage.stop).not.toHaveBeenCalled();
+
+        // 其他音效不受互斥群組影響
+        expect(engine.playCue('HIT_LIGHT')).toBe(true);
+
+        expect(engine.playCue('KILL_SPREE_5')).toBe(true);
+        const unstoppable = lastSource();
+        expect(rampage.stop).toHaveBeenCalledTimes(1);
+        expect(engine.playCue('KILL_SPREE_4')).toBe(false);
+
+        // 播完自然結束後，低階又可以播
+        unstoppable.onended();
+        expect(engine.playCue('KILL_SPREE_1')).toBe(true);
+
+        // 關掉開關會停掉正在播的那一條，之後都不播
+        const firstBlood = lastSource();
+        engine.setAnnouncerEnabled(false);
+        expect(firstBlood.stop).toHaveBeenCalledTimes(1);
+        expect(engine.playCue('KILL_SPREE_6')).toBe(false);
+        if (typeof window !== 'undefined') window.localStorage?.removeItem(AUDIO.STORAGE_KEY);
+    });
 });

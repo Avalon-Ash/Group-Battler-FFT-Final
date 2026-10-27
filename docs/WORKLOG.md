@@ -264,12 +264,18 @@
 - 音檔在 `public/assets/audio/local/Kill/kill_1～7.mp3`：Epic 版權、無散布授權，已 gitignore（測試檢查），不列 manifest，不得 commit、push 或部署（`ASSET_LEDGER.md` §7）。`CueDef.synth` 改為選填，沒有合成後備的 Cue 缺檔時靜音。
 - 試過但放棄：程序化合成提示音（Codex 實作，使用者聽了不要）、Kokoro-82M 與 Chatterbox TTS（語氣平、會念錯）。兩個 PVPSound GitHub repo 都沒有授權條款，網路上說它是 CC-BY 的說法不涵蓋遊戲原聲。
 - 參考：PVPSound 有兩套計數——Multi Kill（16 秒內，Double→Monster）與 Kill Streak（60 秒內，Killing Spree→Godlike），另有 Payback（90 秒內復仇）。我們的 `KILL_STREAK_WINDOW` 是 5 秒，戰棋節奏下可能偏短。
+- 疊音修正（合併 36f20e9）：使用者實機聽到好幾句同時播。原因是全場每個單位都會播報，PVPSound 只算玩家本人的擊殺並排隊依序播。改成 `CueDef.exclusive` 互斥群組：播報同時只有一條，高階打斷低階、同階或低階丟掉（不補播）；新那條缺檔時不打斷。
+- 開關（合併 c63286f）：音訊設定加「擊殺播報」開關，預設關閉（`AUDIO.DEFAULT_ANNOUNCER_ENABLED`），關閉時引擎丟掉 ANNOUNCER 群組並停掉正在播的。視窗用 HEAD 檢查 7 個本機檔的 content-type 都是音訊才顯示開關（dev server 對缺檔回 index.html），所以沒有本機檔的 clone 看不到。使用者實機聽過，2026-10-28 結案。
 
 ### AC. 2026-10-28 手機效能：CPU 歸因與後處理降階（合併 8191bbd）
 
 - **歸因**：iPhone 版面、CPU 4 倍、有 GPU 的視窗模式錄 CPU profile（探針 `tools/ui-e2e/out/_scratch_cpuprof.mjs`，未進 repo）：主執行緒 99% 忙碌；地塊／網格 23～25%（`drawBlock` 10%）、瀏覽器原生 26～29%、其他渲染 17～20%、特效 12～13%、單位 6～9%、模擬 2%。降到品質階層 3 仍滿載，瓶頸是繪製呼叫數。headless 沒有 GPU 時 `drawImage` 會被軟體點陣化高估，歸因要用 headed。
 - **地塊烘焙 Phase 2**：計畫擬好但使用者決定先放（HANDOFF §4）。
 - **後處理降階**（9153f7b，主代理直接改）：轉場色差與戰鬥結束模糊＋灰階都要複製整張畫布再套 filter，品質階層 2／3 改成跳過，戰鬥結束只留壓暗（`RENDER_QUALITY.POST_FX_MAX_TIER = 1`）。866 項測試、保真全過；`perf:guard` 首跑 FOREST 顆粒 A/B 1.22 屬 vsync 雜訊，重跑兩次 1.00。手機模擬單次量測：展示 1% low 13.2 → 15.6 FPS，但奧義段（改動碰不到）同樣差了約 2.6 FPS，單次雜訊同量級，效果要多次取平均才能確認。
+
+### AD. 2026-10-28 核心寶石藏到角色後面（合併 5acca84）
+
+結論：新 skin 的投影中心落在 Q 版大頭的臉上，半透明寶石蓋住臉。投影成形後的核心改在角色之前畫（`UnitCorePainter` BEHIND 層，被角色擋住），光暈放大 `CORE_VISUAL.behindGlowScale` 1.6，施法與受擊（新 `hitGlow` 0.6 × hitFlashTimer 比例）時從輪廓邊緣透出；實體寶石（拖曳、幽靈、出生前）仍在 FRONT 層，出生期間兩層交叉淡入淡出。位置與 `getCoreAnchor` 不變（投射物起點改前改後相同）。主代理直接改（84b95e7）；866 項測試、smoke、`perf:guard` 全過（battle_frozen 0.194，未重錄）。沙漠地面上施法背光偏淡，主要靠腳下法陣辨識。
 
 ## 3. 更早的輪次與審查修補
 

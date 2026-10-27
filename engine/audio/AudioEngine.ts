@@ -9,6 +9,8 @@ export interface AudioSettings {
     sfx: number;
     ui: number;
     muted: boolean;
+    /** 擊殺播報（CueDef.exclusive 群組 ANNOUNCER）是否播放 */
+    announcer: boolean;
 }
 
 export interface PlayCueOptions {
@@ -103,6 +105,8 @@ export class AudioEngine {
     private bufferCache: Map<string, AudioBuffer> = new Map();
     private warnedAssets: Set<string> = new Set();
     private lastCuePlayTime: Map<CueId, number> = new Map();
+    /** 互斥群組（CueDef.exclusive）目前正在播的那一條；同群組同一時間只有一條 */
+    private exclusiveVoices: Map<string, { voice: ActiveVoice; rank: number }> = new Map();
     private activeVoices: ActiveVoice[] = [];
     private currentMusic: CurrentMusicTrack | null = null;
     private fadingMusicSources: Set<AudioBufferSourceNode> = new Set();
@@ -202,6 +206,13 @@ export class AudioEngine {
         this.applyBusGains();
     }
 
+    /** 擊殺播報開關並持久化 */
+    public setAnnouncerEnabled(enabled: boolean): void {
+        this.settings.announcer = enabled;
+        this.saveSettings();
+        if (!enabled) this.stopExclusiveVoice('ANNOUNCER');
+    }
+
     /** 設定手動靜音切換並持久化 */
     public setMuted(muted: boolean): void {
         this.settings.muted = muted;
@@ -259,6 +270,7 @@ export class AudioEngine {
 
         const cueDef: CueDef | undefined = CUE_TABLE[cueId];
         if (!cueDef) return false;
+        if (cueDef.exclusive?.group === 'ANNOUNCER' && !this.settings.announcer) return false;
 
         const nowMs = performance.now();
         const throttleMs = cueDef.throttleMs ?? AUDIO.CUE_THROTTLE_MS;
@@ -269,6 +281,15 @@ export class AudioEngine {
             return false;
         }
 
+        // 互斥群組：正在播的那一條階數相同或更高時，這條直接丟掉
+        const exclusive = cueDef.exclusive;
+        if (exclusive) {
+            const current = this.exclusiveVoices.get(exclusive.group);
+            if (current && this.activeVoices.includes(current.voice) && exclusive.rank <= current.rank) {
+                return false;
+            }
+        }
+
         // Voice pool 限額與搶佔檢查
         if (!this.acquireVoiceSlot(cueDef.priority)) {
             return false;
@@ -277,6 +298,9 @@ export class AudioEngine {
         // 取得 AudioBuffer（實體檔快取或合成後備）
         const buffer = this.resolveBufferForCue(cueDef);
         if (!buffer) return false;
+
+        // 確定要播才打斷同群組的低階那一條（缺檔時不打斷）
+        if (exclusive) this.stopExclusiveVoice(exclusive.group);
 
         const busGainNode = this.getBusGainNode(cueDef.bus);
         if (!busGainNode) return false;
@@ -324,6 +348,7 @@ export class AudioEngine {
 
             this.activeVoices.push(voice);
             this.lastCuePlayTime.set(cueId, nowMs);
+            if (exclusive) this.exclusiveVoices.set(exclusive.group, { voice, rank: exclusive.rank });
 
             source.onended = () => {
                 this.releaseVoice(voice);
@@ -578,6 +603,7 @@ export class AudioEngine {
             }
         }
         this.activeVoices.length = 0;
+        this.exclusiveVoices.clear();
 
         if (this.ctx && this.ctx.state !== 'closed') {
             this.ctx.close().catch((err: unknown) => {
@@ -762,7 +788,8 @@ export class AudioEngine {
             music: AUDIO.DEFAULT_MUSIC_VOLUME,
             sfx: AUDIO.DEFAULT_SFX_VOLUME,
             ui: AUDIO.DEFAULT_UI_VOLUME,
-            muted: false
+            muted: false,
+            announcer: AUDIO.DEFAULT_ANNOUNCER_ENABLED
         };
 
         if (typeof window === 'undefined' || !window.localStorage) {
@@ -778,7 +805,8 @@ export class AudioEngine {
                 music: typeof parsed.music === 'number' ? Math.max(0, Math.min(1, parsed.music)) : defaults.music,
                 sfx: typeof parsed.sfx === 'number' ? Math.max(0, Math.min(1, parsed.sfx)) : defaults.sfx,
                 ui: typeof parsed.ui === 'number' ? Math.max(0, Math.min(1, parsed.ui)) : defaults.ui,
-                muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted
+                muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted,
+                announcer: typeof parsed.announcer === 'boolean' ? parsed.announcer : defaults.announcer
             };
         } catch (err: unknown) {
             this.handleAudioException('loadSettings', err);
@@ -871,10 +899,27 @@ export class AudioEngine {
         return true;
     }
 
+    /** 停掉互斥群組目前正在播的那一條 */
+    private stopExclusiveVoice(group: string): void {
+        const current = this.exclusiveVoices.get(group);
+        if (!current) return;
+        this.exclusiveVoices.delete(group);
+        try {
+            current.voice.source.onended = null;
+            current.voice.source.stop(0);
+        } catch (err: unknown) {
+            this.handleAudioException('stopExclusiveVoice', err);
+        }
+        this.releaseVoice(current.voice);
+    }
+
     private releaseVoice(voice: ActiveVoice): void {
         const idx = this.activeVoices.indexOf(voice);
         if (idx !== -1) {
             this.activeVoices.splice(idx, 1);
+        }
+        for (const [group, entry] of this.exclusiveVoices) {
+            if (entry.voice === voice) this.exclusiveVoices.delete(group);
         }
         try {
             voice.source.disconnect();

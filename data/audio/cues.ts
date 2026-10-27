@@ -61,7 +61,11 @@ export interface CueDef {
     synth?: SynthId;
     /** 檔案只放在本機 LOCAL_AUDIO_DIR（已 gitignore，不進 repo、不部署）：不列入 manifest，缺檔時靜音 */
     localOnly?: true;
+    /** 互斥群組：同群組同一時間只播一條；rank 較高的打斷正在播的，相同或較低的丟掉 */
+    exclusive?: { group: CueExclusiveGroup; rank: number };
 }
+
+export type CueExclusiveGroup = 'ANNOUNCER';
 
 /** 本機音檔資料夾：版權素材由使用者自行放置，只供本機使用（見 docs/ASSET_LEDGER.md §7） */
 export const LOCAL_AUDIO_DIR = 'assets/audio/local/';
@@ -84,7 +88,8 @@ function killSpreeCue(tier: number): CueDef {
         bus: 'sfx',
         gain: 0.9,
         priority: 9,
-        localOnly: true
+        localOnly: true,
+        exclusive: { group: 'ANNOUNCER', rank: tier }
     };
 }
 

@@ -47,6 +47,7 @@
     "DEFAULT_MUSIC_VOLUME": 0.6,
     "DEFAULT_SFX_VOLUME": 0.8,
     "DEFAULT_UI_VOLUME": 0.7,
+    "DEFAULT_ANNOUNCER_ENABLED": false,
     "PAN_RANGE": 0.8,
     "PITCH_JITTER": 0.08,
     "VOLUME_JITTER": 0.05,
@@ -363,6 +364,8 @@
     "projectedGlow": 0.12,
     "projectedGlowPulse": 0.05,
     "projectedCastGlow": 0.85,
+    "hitGlow": 0.6,
+    "behindGlowScale": 1.6,
     "ghostAlpha": 0.65,
     "canvasSize": 64
   },
