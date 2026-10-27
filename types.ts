@@ -265,7 +265,8 @@ export type UICommand =
     | { type: 'CAMERA_SNAP'; x: number; y: number; zoom?: number }
     | { type: 'SET_VIEWPORT'; width: number; height: number }
     | { type: 'SET_AUDIO_VOLUME'; bus: 'master' | 'music' | 'sfx' | 'ui'; volume: number }
-    | { type: 'SET_AUDIO_MUTED'; muted: boolean };
+    | { type: 'SET_AUDIO_MUTED'; muted: boolean }
+    | { type: 'SET_AUDIO_ANNOUNCER'; enabled: boolean };
 
 export * from './types/UIViewModel';
 

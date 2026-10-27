@@ -332,6 +332,13 @@ export class UICommandSystem {
                 break;
             }
 
+            case 'SET_AUDIO_ANNOUNCER': {
+                if (typeof cmd.enabled === 'boolean') {
+                    this.engine.audio?.getEngine().setAnnouncerEnabled(cmd.enabled);
+                }
+                break;
+            }
+
             default: {
                 // Unknown command: ignore gracefully
                 break;

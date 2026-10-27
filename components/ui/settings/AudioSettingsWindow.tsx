@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { GameEngine } from '../../../engine/game';
 import { AUDIO } from '../../../constants';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
 import { AudioBusType } from '../../../data/audio/cues';
+import { cuesInExclusiveGroup, hasCueFiles } from '../../../engine/audio/localAudioProbe';
 
 export interface AudioSettingsWindowProps {
     engine?: GameEngine;
@@ -14,6 +15,7 @@ interface AudioSettingsState {
     sfx: number;
     ui: number;
     muted: boolean;
+    announcer: boolean;
 }
 
 function loadInitialSettings(): AudioSettingsState {
@@ -23,6 +25,7 @@ function loadInitialSettings(): AudioSettingsState {
         sfx: AUDIO.DEFAULT_SFX_VOLUME,
         ui: AUDIO.DEFAULT_UI_VOLUME,
         muted: false,
+        announcer: AUDIO.DEFAULT_ANNOUNCER_ENABLED,
     };
     if (typeof window === 'undefined' || !window.localStorage) {
         return defaults;
@@ -37,6 +40,7 @@ function loadInitialSettings(): AudioSettingsState {
             sfx: typeof parsed.sfx === 'number' ? Math.max(0, Math.min(1, parsed.sfx)) : defaults.sfx,
             ui: typeof parsed.ui === 'number' ? Math.max(0, Math.min(1, parsed.ui)) : defaults.ui,
             muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted,
+            announcer: typeof parsed.announcer === 'boolean' ? parsed.announcer : defaults.announcer,
         };
     } catch {
         return defaults;
@@ -53,6 +57,14 @@ function saveSettings(settings: AudioSettingsState): void {
 export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine }) => {
     const [settings, setSettings] = useState<AudioSettingsState>(loadInitialSettings);
     const { send } = useEngineCommands(engine);
+    // 擊殺播報是只放本機的版權音檔：檔案不齊就不顯示開關
+    const [announcerAvailable, setAnnouncerAvailable] = useState(false);
+
+    useEffect(() => {
+        let alive = true;
+        void hasCueFiles(cuesInExclusiveGroup('ANNOUNCER')).then(ok => { if (alive) setAnnouncerAvailable(ok); });
+        return () => { alive = false; };
+    }, []);
 
     const isUrlMuted = typeof window !== 'undefined' && window.location
         ? new URLSearchParams(window.location.search).has(AUDIO.QUERY_MUTE_KEY)
@@ -71,6 +83,13 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
         setSettings(updated);
         saveSettings(updated);
         send({ type: 'SET_AUDIO_MUTED', muted: updated.muted });
+    };
+
+    const handleToggleAnnouncer = () => {
+        const updated = { ...settings, announcer: !settings.announcer };
+        setSettings(updated);
+        saveSettings(updated);
+        send({ type: 'SET_AUDIO_ANNOUNCER', enabled: updated.announcer });
     };
 
     const busSliders: { bus: AudioBusType; label: string; desc: string }[] = [
@@ -111,6 +130,28 @@ export const AudioSettingsWindow: React.FC<AudioSettingsWindowProps> = ({ engine
                     {settings.muted ? '已靜音' : '聲音開啟'}
                 </button>
             </div>
+
+            {/* 擊殺播報開關（本機有播報音檔才顯示） */}
+            {announcerAvailable && (
+                <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl border border-white/5">
+                    <div>
+                        <div className="font-semibold text-white">擊殺播報 (Announcer)</div>
+                        <div className="text-[10px] text-white/50">First Blood、Killing Spree… 語音</div>
+                    </div>
+                    <button
+                        data-testid="btn-announcer-toggle"
+                        onClick={handleToggleAnnouncer}
+                        className="touch-target px-4 py-1.5 rounded-lg font-bold transition-all text-xs border"
+                        style={{
+                            backgroundColor: settings.announcer ? 'rgba(6, 182, 212, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: settings.announcer ? 'rgba(6, 182, 212, 0.4)' : 'rgba(255, 255, 255, 0.2)',
+                            color: settings.announcer ? '#67e8f9' : 'rgba(255, 255, 255, 0.6)',
+                        }}
+                    >
+                        {settings.announcer ? '開啟' : '關閉'}
+                    </button>
+                </div>
+            )}
 
             {/* 音量滑桿列表 */}
             <div className="flex flex-col gap-4">
