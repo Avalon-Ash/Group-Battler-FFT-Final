@@ -53,7 +53,6 @@ const GameCanvas: React.FC<GameCanvasProps> = (props) => {
     const { camera, centerCamera, zoom } = useGameCamera(engine);
     useCameraControl({
         canvasRef, 
-        cameraRef: camera,
         onZoom: zoom,
         engine 
     });
