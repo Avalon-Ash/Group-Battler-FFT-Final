@@ -265,6 +265,12 @@
 - 試過但放棄：程序化合成提示音（Codex 實作，使用者聽了不要）、Kokoro-82M 與 Chatterbox TTS（語氣平、會念錯）。兩個 PVPSound GitHub repo 都沒有授權條款，網路上說它是 CC-BY 的說法不涵蓋遊戲原聲。
 - 參考：PVPSound 有兩套計數——Multi Kill（16 秒內，Double→Monster）與 Kill Streak（60 秒內，Killing Spree→Godlike），另有 Payback（90 秒內復仇）。我們的 `KILL_STREAK_WINDOW` 是 5 秒，戰棋節奏下可能偏短。
 
+### AC. 2026-10-28 手機效能：CPU 歸因與後處理降階（合併 8191bbd）
+
+- **歸因**：iPhone 版面、CPU 4 倍、有 GPU 的視窗模式錄 CPU profile（探針 `tools/ui-e2e/out/_scratch_cpuprof.mjs`，未進 repo）：主執行緒 99% 忙碌；地塊／網格 23～25%（`drawBlock` 10%）、瀏覽器原生 26～29%、其他渲染 17～20%、特效 12～13%、單位 6～9%、模擬 2%。降到品質階層 3 仍滿載，瓶頸是繪製呼叫數。headless 沒有 GPU 時 `drawImage` 會被軟體點陣化高估，歸因要用 headed。
+- **地塊烘焙 Phase 2**：計畫擬好但使用者決定先放（HANDOFF §4）。
+- **後處理降階**（9153f7b，主代理直接改）：轉場色差與戰鬥結束模糊＋灰階都要複製整張畫布再套 filter，品質階層 2／3 改成跳過，戰鬥結束只留壓暗（`RENDER_QUALITY.POST_FX_MAX_TIER = 1`）。866 項測試、保真全過；`perf:guard` 首跑 FOREST 顆粒 A/B 1.22 屬 vsync 雜訊，重跑兩次 1.00。手機模擬單次量測：展示 1% low 13.2 → 15.6 FPS，但奧義段（改動碰不到）同樣差了約 2.6 FPS，單次雜訊同量級，效果要多次取平均才能確認。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
