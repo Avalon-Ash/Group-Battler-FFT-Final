@@ -257,6 +257,14 @@
 - 第一份基準（合併 skin、R2、R4 之後，headless dev server）：4 倍 CPU 展示模式平均 64.7／1% low 13.2 FPS，5.4／7.5／28.7 秒降到階層 1／2／3；8 招奧義平均 75.3／1% low 11.6 FPS、全程階層 3。1 倍 CPU 全程階層 0（展示 215／58 FPS、奧義 185／43 FPS）。用法、限制與完整數字在 `docs/R5_MOBILE_EMU_REPORT.md`（保留作基準）。
 - 只能模擬 CPU 與版面；GPU、WebKit、iOS 記憶體回收以實機為準。
 
+### AC. 2026-10-28 累計擊殺播報（合併 d334abd）
+
+結論：連殺音效改用 PVPSound 的 UT 播報語音，只放本機。新增「累計擊殺」：全場首殺 First Blood，個人第 2～6 殺依序 Killing Spree、Rampage、Dominating、Unstoppable、Godlike，7 殺以上 MASSACRE（`KILL_SPREE` 事件只有音效；畫面文字仍是 5 秒窗口的 DOUBLE～PENTA KILL，不出聲）。
+
+- 音檔在 `public/assets/audio/local/Kill/kill_1～7.mp3`：Epic 版權、無散布授權，已 gitignore（測試檢查），不列 manifest，不得 commit、push 或部署（`ASSET_LEDGER.md` §7）。`CueDef.synth` 改為選填，沒有合成後備的 Cue 缺檔時靜音。
+- 試過但放棄：程序化合成提示音（Codex 實作，使用者聽了不要）、Kokoro-82M 與 Chatterbox TTS（語氣平、會念錯）。兩個 PVPSound GitHub repo 都沒有授權條款，網路上說它是 CC-BY 的說法不涵蓋遊戲原聲。
+- 參考：PVPSound 有兩套計數——Multi Kill（16 秒內，Double→Monster）與 Kill Streak（60 秒內，Killing Spree→Godlike），另有 Payback（90 秒內復仇）。我們的 `KILL_STREAK_WINDOW` 是 5 秒，戰棋節奏下可能偏短。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
