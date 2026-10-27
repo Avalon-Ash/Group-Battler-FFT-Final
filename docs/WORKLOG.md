@@ -248,7 +248,7 @@
 ### AA. 2026-10-27 R3 屍體滑行排序：診斷後不修
 
 - Codex（Sol／medium）只做 R3-0 量測與分類，沒有找到有證據支持、能把 CORPSE×VFX 減半的修法，照停下條件停止；主代理判定不修（DECISIONS §5 2026-10-27）。
-- 預設參數下：全部振盪 84、CORPSE×VFX 24、static 1；`--order` 穩定錯序 42 段／196 pair-frames／wrongFrames 421。後者與 COORD-R1 的 7／23／131 參數不同，另案比對（HANDOFF B1）。
+- 預設參數下：全部振盪 84、CORPSE×VFX 24、static 1；`--order` 穩定錯序 42 段／196 pair-frames／wrongFrames 421。後者與 COORD-R1 的參數不同。改用 COORD-R1 參數（`--sink --flicker --order --seeds=2 --seedStart=1 --seconds=10 --orderSeconds=10 --biomes=FOREST,VOID,MAGMA --orderBiomes=FOREST,VOID,MAGMA`）在 9b39bde 重量：判定 726,262 pair-frames、穩定錯序 9 段（34）、wrongFrames 105、振盪 65（COORD-R1 cc056b0：701,554／7（23）／131／93）。CORPSE×TERRAIN 仍是同一具屍體的 6 段（20），另有 AURA×TERRAIN、TERRAIN×UNIT、HAZARD×UNIT 各 1 段（3～8 幀）。**沒有退步**，不派二分搜尋；`PROJECT_CLEANUP_COORD_R1_REVIEW.md` 已刪。
 
 ## 3. 更早的輪次與審查修補
 
