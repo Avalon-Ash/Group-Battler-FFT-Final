@@ -58,6 +58,12 @@ export const RENDER_QUALITY = {
     IMAGE_SMOOTHING: 'low' as ImageSmoothingQuality,
     MAX_DPR: 2,
     DEFAULT_DPR: 1,
+    /**
+     * 全畫面後處理濾鏡（轉場色差、戰鬥結束的模糊＋灰階）只在這個品質階層以下套用。
+     * 每次都要複製整張畫布再套 filter；手機模擬（CPU 4 倍）profile 佔約 4～5%，2026-10-28 改成階層 2／3 跳過，
+     * 戰鬥結束只留壓暗。
+     */
+    POST_FX_MAX_TIER: 1,
     IGNORE_FRAME_MS: 250,
     /** 降階門檻：幀間隔平均 > 14ms（約 < 70 FPS）持續 DOWN_HOLD_S 才降階；一般 100+ FPS 遊玩不得降畫質（僅應付真正的瞬間掉幀） */
     DOWN_MS: 14,

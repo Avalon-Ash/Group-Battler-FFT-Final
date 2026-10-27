@@ -932,6 +932,7 @@
     "IMAGE_SMOOTHING": "low",
     "MAX_DPR": 2,
     "DEFAULT_DPR": 1,
+    "POST_FX_MAX_TIER": 1,
     "IGNORE_FRAME_MS": 250,
     "DOWN_MS": 14,
     "DOWN_RES_MS": 22,

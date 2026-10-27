@@ -2,7 +2,13 @@
 import { createCanvas } from "../graphics/CanvasUtils";
 import { MaterialPainter } from "../graphics/materials/MaterialPainter";
 import { MATERIAL_CONFIG } from "../../data/vfx/materialConfig";
-import { isToneGradeEnabled } from "./RenderQuality";
+import { isToneGradeEnabled, getQualityTier } from "./RenderQuality";
+import { RENDER_QUALITY } from "../../constants";
+
+/** 全畫面濾鏡只在高品質階層套用（RENDER_QUALITY.POST_FX_MAX_TIER） */
+function postFxEnabled(): boolean {
+    return getQualityTier() <= RENDER_QUALITY.POST_FX_MAX_TIER;
+}
 
 export class PostProcessor {
     private tempCanvas: HTMLCanvasElement;
@@ -17,7 +23,7 @@ export class PostProcessor {
     public apply(ctx: CanvasRenderingContext2D, width: number, height: number, trauma: number, transitionAberration: number = 0) {
         // FLASHING & JITTER REMOVED. 
         // We only support the transition aberration during scene changes.
-        if (transitionAberration <= 0.01) return;
+        if (transitionAberration <= 0.01 || !postFxEnabled()) return;
 
         const w = Math.floor(width);
         const h = Math.floor(height);
@@ -79,21 +85,24 @@ export class PostProcessor {
         if (progress <= 0) return;
         const w = Math.floor(width);
         const h = Math.floor(height);
-        if (this.tempCanvas.width !== w || this.tempCanvas.height !== h) {
-            this.tempCanvas.width = w;
-            this.tempCanvas.height = h;
-        }
         ctx.save();
         ctx.resetTransform();
-        this.tempCtx.clearRect(0, 0, w, h);
-        this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
-        
-        const blurAmount = Math.floor(progress * 4);
-        ctx.filter = `blur(${blurAmount}px) grayscale(${progress * 50}%)`;
-        ctx.clearRect(0, 0, w, h);
-        ctx.drawImage(this.tempCanvas, 0, 0, w, h);
-        ctx.filter = 'none';
-        
+        if (postFxEnabled()) {
+            if (this.tempCanvas.width !== w || this.tempCanvas.height !== h) {
+                this.tempCanvas.width = w;
+                this.tempCanvas.height = h;
+            }
+            this.tempCtx.clearRect(0, 0, w, h);
+            this.tempCtx.drawImage(ctx.canvas, 0, 0, w, h);
+
+            const blurAmount = Math.floor(progress * 4);
+            ctx.filter = `blur(${blurAmount}px) grayscale(${progress * 50}%)`;
+            ctx.clearRect(0, 0, w, h);
+            ctx.drawImage(this.tempCanvas, 0, 0, w, h);
+            ctx.filter = 'none';
+        }
+
+        // 壓暗在所有階層都保留（戰鬥結束的提示）
         ctx.fillStyle = `rgba(0, 0, 0, ${progress * 0.6})`;
         ctx.fillRect(0, 0, w, h);
         ctx.restore();
