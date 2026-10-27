@@ -23,6 +23,13 @@ export type SynthId =
     | 'BGM_PAD';
 
 export type CueId =
+    | 'KILL_SPREE_1'
+    | 'KILL_SPREE_2'
+    | 'KILL_SPREE_3'
+    | 'KILL_SPREE_4'
+    | 'KILL_SPREE_5'
+    | 'KILL_SPREE_6'
+    | 'KILL_SPREE_7'
     | 'HIT_LIGHT'
     | 'HIT_HEAVY'
     | 'SLASH'
@@ -50,13 +57,48 @@ export interface CueDef {
     throttleMs?: number;
     priority: number; // 1 (low) - 10 (high)
     pitchJitter?: number;
-    synth: SynthId;
+    /** 檔案缺失或尚未載入時的程序化合成後備；省略則該次靜音 */
+    synth?: SynthId;
+    /** 檔案只放在本機 LOCAL_AUDIO_DIR（已 gitignore，不進 repo、不部署）：不列入 manifest，缺檔時靜音 */
+    localOnly?: true;
+}
+
+/** 本機音檔資料夾：版權素材由使用者自行放置，只供本機使用（見 docs/ASSET_LEDGER.md §7） */
+export const LOCAL_AUDIO_DIR = 'assets/audio/local/';
+
+/** KILL_SPREE 事件的 value（1＝全場首殺，2～7＝擊殺者本場累計擊殺數）→ 播報 Cue */
+export const KILL_SPREE_CUE_BY_TIER: Readonly<Partial<Record<number, CueId>>> = {
+    1: 'KILL_SPREE_1',
+    2: 'KILL_SPREE_2',
+    3: 'KILL_SPREE_3',
+    4: 'KILL_SPREE_4',
+    5: 'KILL_SPREE_5',
+    6: 'KILL_SPREE_6',
+    7: 'KILL_SPREE_7'
+};
+
+/** 累計擊殺播報：First Blood、Killing Spree、Rampage、Dominating、Unstoppable、Godlike、Massacre */
+function killSpreeCue(tier: number): CueDef {
+    return {
+        files: [`${LOCAL_AUDIO_DIR}Kill/kill_${tier}.mp3`],
+        bus: 'sfx',
+        gain: 0.9,
+        priority: 9,
+        localOnly: true
+    };
 }
 
 /**
  * 音訊 Cue 表 SSOT
  */
 export const CUE_TABLE: Record<CueId, CueDef> = {
+    KILL_SPREE_1: killSpreeCue(1),
+    KILL_SPREE_2: killSpreeCue(2),
+    KILL_SPREE_3: killSpreeCue(3),
+    KILL_SPREE_4: killSpreeCue(4),
+    KILL_SPREE_5: killSpreeCue(5),
+    KILL_SPREE_6: killSpreeCue(6),
+    KILL_SPREE_7: killSpreeCue(7),
     HIT_LIGHT: {
         files: [
             'assets/audio/sfx/hit_light_1.ogg',

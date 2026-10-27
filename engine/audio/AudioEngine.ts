@@ -912,7 +912,8 @@ export class AudioEngine {
             }
         }
 
-        // 缺失時回退程序化合成後備音（快取避免每次觸發重新配置 buffer）
+        // 缺失時回退程序化合成後備音（快取避免每次觸發重新配置 buffer）；沒有後備的 Cue 這次靜音
+        if (!cueDef.synth) return null;
         const synthKey = String(cueDef.synth);
         let synthBuf = this.synthCache.get(synthKey);
         if (!synthBuf) {

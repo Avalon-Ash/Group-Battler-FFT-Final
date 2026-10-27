@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { CUE_TABLE, CueId } from '../data/audio/cues';
+import { CUE_TABLE, CueId, LOCAL_AUDIO_DIR } from '../data/audio/cues';
 
 const MANIFEST_PATH = path.resolve(__dirname, '../public/assets/audio/manifest.json');
 const AUDIO_ROOT = path.resolve(__dirname, '../public/assets/audio');
@@ -16,19 +16,33 @@ describe('Audio Assets & Manifest (S1a)', () => {
         expect(manifest).not.toBeNull();
     });
 
-    it('covers all cues defined in CUE_TABLE with at least 1 file variant', () => {
+    it('covers repo-backed cues in the manifest; local-only cues stay out of it', () => {
         const manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
         const cueKeys = Object.keys(CUE_TABLE) as CueId[];
 
         expect(cueKeys.length).toBeGreaterThanOrEqual(19);
 
         for (const cueId of cueKeys) {
+            if (CUE_TABLE[cueId].localOnly) {
+                // 版權素材只放本機（已 gitignore），不得列入 manifest，也不得有合成後備
+                expect(CUE_TABLE[cueId].files.length).toBeGreaterThanOrEqual(1);
+                for (const f of CUE_TABLE[cueId].files) expect(f.startsWith(LOCAL_AUDIO_DIR)).toBe(true);
+                expect(CUE_TABLE[cueId].synth).toBeUndefined();
+                expect(Object.hasOwn(manifest, cueId)).toBe(false);
+                continue;
+            }
+            expect(CUE_TABLE[cueId].synth, `cue ${cueId} needs a synth fallback`).toBeDefined();
             expect(manifest[cueId], `manifest must contain cue ${cueId}`).toBeDefined();
             expect(Array.isArray(manifest[cueId])).toBe(true);
             expect(manifest[cueId].length, `cue ${cueId} must have at least 1 file`).toBeGreaterThanOrEqual(1);
             // CUE_TABLE.files should match manifest
             expect(CUE_TABLE[cueId].files).toEqual(manifest[cueId]);
         }
+    });
+
+    it('local-only audio folder is gitignored (copyrighted files must never be committed)', () => {
+        const gitignore = fs.readFileSync(path.resolve(__dirname, '../.gitignore'), 'utf-8');
+        expect(gitignore.split(/\r?\n/)).toContain(`public/${LOCAL_AUDIO_DIR}`);
     });
 
     it('all referenced SFX and Music audio files physically exist and are non-empty', () => {
