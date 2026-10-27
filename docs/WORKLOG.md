@@ -235,6 +235,16 @@
 - 驗證：843 項測試、lint、build、smoke、`perf:guard` 通過；300 場模擬改前改後逐場一致（體型不消耗模擬亂數）；`battle_frozen` 取證重錄（ae7d9c1，只有單位圖案變）。
 - 合約教訓：給 GPT 的提示詞寫目標＋硬限制，不細拆任務；提示詞要它 `rebase` 與 `AGENTS.md` 衝突，已改成「main 只新增文件就繼續」。提示詞與整合報告已刪。
 
+### Z. 2026-10-27 R4 網格效果優先序（合併 b9bed4a）
+
+結論：同一格的地面資訊只留一層完整填色（縮圈預警／背水一戰 > 詠唱預警 > 危害液面 > 狀態底色 > 縮圈染色／地塊光），次要層降透明或不畫；探針場景中疊兩層以上的格子 19 → 0。
+
+- `engine/renderers/grid/GroundPriority.ts`：256 種旗標組合預先解析成倍率表，`GridRenderStrategy` 每幀唯一寫入逐格表（重用 typed array）；`GridOverlays`／`HazardPainter`／`ZoneRenderer` 只讀倍率。RenderSpec §12。
+- 施法者腳下的 AOE 詠唱不再同時畫預警染色與 AOE 指示；詠唱預警改用施法者陣營色（原本全部用第一個施法者的技能色）。玩家射程只留邊線。
+- 縮圈預警填色上限：設計稿 0.4 實測變土黃、警示感太弱，使用者看 0.75／0.55／0.40 三格對照後選 **0.55**（ced6b95）。
+- 驗證：沙盒外完整 `npm test` 848 項、lint、build、smoke、`verify:coords`、perf A/B 通過；`battle_frozen` 取證重錄（1aec89b，只有預警／詠唱格變），5 張地形未重錄。
+- 提示詞與報告已刪。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
