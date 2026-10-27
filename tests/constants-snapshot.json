@@ -361,6 +361,8 @@
     "projectedGlow": 0.12,
     "projectedGlowPulse": 0.05,
     "projectedCastGlow": 0.85,
+    "hitGlow": 0.6,
+    "behindGlowScale": 1.6,
     "ghostAlpha": 0.65,
     "canvasSize": 64
   },

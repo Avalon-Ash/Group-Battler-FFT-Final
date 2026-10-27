@@ -32,7 +32,7 @@ export const CLASS_GLYPH = {
 
 /**
  * 棋座核心（懸浮六角晶體，把角色投影出來的投影器）。
- * 投影成形後，核心藏進投影中心、淡淡地透出來；發射點與受擊點都是投影中心
+ * 投影成形後，核心藏到角色後面（先畫、被角色擋住，不蓋住臉），只有光暈從輪廓邊緣透出；發射點與受擊點都是投影中心
  * （VisualMath.projectionCenterAt，高度由 data/units/appearance/projection.ts 從精靈資料推導），
  * 繪製（UnitCorePainter）用同一個公式。投影不可見（拖曳預覽、放置幽靈、出生前）時才畫實體寶石，懸在棋座上。
  */
@@ -58,6 +58,10 @@ export const CORE_VISUAL = {
     projectedGlowPulse: 0.05,
     /** 投影成形後：施法中的光暈強度（比待機亮得多，讓「誰在詠唱」仍然看得出來） */
     projectedCastGlow: 0.85,
+    /** 受擊閃光期間額外加的光暈強度（乘上 hitFlashTimer／UNIT_SPRITE.hitFlashDuration） */
+    hitGlow: 0.6,
+    /** 投影成形後核心畫在角色後面（不蓋住臉），光暈放大這個倍率，才能從角色輪廓邊緣透出來 */
+    behindGlowScale: 1.6,
     /** 半透明預覽（放置幽靈）的不透明度 */
     ghostAlpha: 0.65,
     /** 烘焙畫布邊長（Token 畫布單位） */

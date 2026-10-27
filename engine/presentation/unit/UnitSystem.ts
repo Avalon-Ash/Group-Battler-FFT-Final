@@ -139,12 +139,16 @@ export class UnitRenderSystem {
         }
         // 編輯模式拖曳預覽：只移動實體（棋座＋核心），角色投影放下後才回來
         const isDragPreview = agent.dragOverQ !== null || agent.dragOverR !== null;
+        // 核心寶石分兩層：投影成形的部分先畫、壓在角色底下（不蓋住臉，光暈從輪廓邊緣透出），
+        // 棋座上的實體寶石畫在角色之後；位置與投射物起點同源（VisualMath.projectionCenterAt）
+        if (!isSilhouette) {
+            UnitCorePainter.draw(ctx, agent, globalTime, layout, 'BEHIND');
+        }
         if (!isDragPreview) {
             UnitBodyPainter.draw(ctx, agent, 0, 0, globalTime, isSilhouette, isSelected, 1.0, terrainHeight, frame);
         }
-        // 核心寶石畫在角色之後：投影成形後藏在投影中心（淡色），否則是棋座上的實體寶石；位置與投射物起點同源（VisualMath.projectionCenterAt）
         if (!isSilhouette) {
-            UnitCorePainter.draw(ctx, agent, globalTime, layout);
+            UnitCorePainter.draw(ctx, agent, globalTime, layout, 'FRONT');
         }
 
         ctx.restore(); 

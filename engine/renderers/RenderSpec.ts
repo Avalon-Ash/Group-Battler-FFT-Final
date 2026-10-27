@@ -128,9 +128,10 @@ export class RenderSpec {
         s += "選取連線只讀 frames，**拿不到地形高度函式**，所以無法自己重算；engine/renderers 內只有 UnitFrame.ts 可以呼叫 getUnitGroundHeight（棘輪測試擋住）。\n";
         s += "HUD、狀態用不含轉場位移的 floorY／hudAnchorY（沿用原行為）。模擬端（EventVFXMapper、AgentVFXSystem、hud.ts SHOUT 跟隨）在 tick 內執行，\n";
         s += "讀不到每幀快照，維持用下表的模擬高度函式。\n\n";
-        s += "**核心寶石（UnitCorePainter）**：投影可見（活著、出生動畫結束、非拖曳預覽）時畫在投影中心，在角色之後（上層）、低不透明度（CORE_VISUAL.projectedAlpha），\n";
-        s += "施法時光暈拉高（projectedCastGlow）；位置＝getProjectionCenterY，再加純繪製位移（受擊晃動 visualOffset），跟著 physics.z 與 §5 漂浮（單位整體一起浮）。\n";
-        s += "投影不可見（編輯模式拖曳預覽、放置幽靈、出生前）維持實體寶石，懸在棋座上（CORE_VISUAL.hoverHeight）；出生動畫期間依 spawnTimer 從棋座升到投影中心並淡出成內光。\n\n";
+        s += "**核心寶石（UnitCorePainter）**：投影可見（活著、出生動畫結束、非拖曳預覽）時畫在投影中心，**在角色之前畫（BEHIND 層，被角色擋住、不蓋住臉）**，\n";
+        s += "光暈放大 CORE_VISUAL.behindGlowScale 從角色輪廓邊緣透出：平時很淡（projectedGlow），施法（projectedCastGlow）與受擊（hitGlow × hitFlashTimer 比例）時亮起；\n";
+        s += "位置＝getProjectionCenterY，再加純繪製位移（受擊晃動 visualOffset），跟著 physics.z 與 §5 漂浮（單位整體一起浮）。只改繪製先後與外觀，發射點／受擊點不變。\n";
+        s += "投影不可見（編輯模式拖曳預覽、放置幽靈、出生前）維持實體寶石，懸在棋座上（CORE_VISUAL.hoverHeight），在角色之後畫（FRONT 層）；出生動畫期間依 spawnTimer 從棋座升到投影中心，FRONT 淡出、BEHIND 淡入。\n\n";
         s += "高度有兩種：模擬高度 engine.getTerrainHeight（物理、AI、事件）與繪製用高度（RenderPipeline 傳給各繪製端的 getTerrainHeight，\n";
         s += "＝模擬高度 − 該格漂浮位移）。單位、屍體、狀態、HUD、貼地特效用繪製用高度；模擬端永遠不讀繪製用高度。\n\n";
 
