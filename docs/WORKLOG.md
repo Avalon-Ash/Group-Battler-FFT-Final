@@ -277,6 +277,17 @@
 
 結論：新 skin 的投影中心落在 Q 版大頭的臉上，半透明寶石蓋住臉。投影成形後的核心改在角色之前畫（`UnitCorePainter` BEHIND 層，被角色擋住），光暈放大 `CORE_VISUAL.behindGlowScale` 1.6，施法與受擊（新 `hitGlow` 0.6 × hitFlashTimer 比例）時從輪廓邊緣透出；實體寶石（拖曳、幽靈、出生前）仍在 FRONT 層，出生期間兩層交叉淡入淡出。位置與 `getCoreAnchor` 不變（投射物起點改前改後相同）。主代理直接改（84b95e7）；866 項測試、smoke、`perf:guard` 全過（battle_frozen 0.194，未重錄）。沙漠地面上施法背光偏淡，主要靠腳下法陣辨識。
 
+### AE. 2026-10-28 R6 近戰高低差規則 A＋縮放（合併 ef93c09）
+
+結論：射程 1 的技能每差一層高度算一格距離（只能打同一層相鄰格），遠程保留高地加成；手動縮放不再被導播拉回，滾輪／雙指改乘法。
+
+- 射程 SSOT `TargetingSystem.getEffectiveRange`：近戰回傳 `射程 − 層數`；射程顯示 `checkIsRange` 改呼叫同一函式（座標棘輪刪 1 筆）。原本高處近戰被高地加成到可砍 3 格外、低打高保底 1 的錯一併消失。
+- 選目標：Codex 原本把「沒有同層可站鄰格／走不到」的敵人直接排除；使用者指出行為樹本來就靠追擊尋路與突進／拉取技能接近，主代理改成扣分（`COMBAT_PARAM.MELEE_UNREACHABLE_PENALTY` 1500），自己有可用的突進或拉取技能時不扣分，A* 只對暫列第一的候選跑。br-soak 10/10、0 次發呆。
+- 縮放：`UI_SETTINGS.CAMERA_ZOOM`（0.4～3.0、導播 0.45～1.6、滾輪 1.15 倍／100 px）；引擎 `CameraSystem` 是唯一來源；雙擊／雙點或換戰鬥交回導播。
+- 平衡（未調數值）：藍方 49.9% → 52.7%、p50 18 秒、超標 3 招 → HANDOFF A 的 BAL-03。
+- 與 main 的核心顯示（§AD）、連殺播報合併後：879 項測試、lint、`perf:guard`、smoke 通過；`battle_frozen` 取證重錄（3358aac）。
+- 派工：提示詞把 `tests/*.baseline.json` 整個列為受保護，棘輪要求刪除已修好的項目時 Codex 停下；規則改成「基準只准刪除不再出現的項目」。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
