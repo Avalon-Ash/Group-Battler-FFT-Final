@@ -20,6 +20,19 @@ export class CameraSystem {
     private targetX: number = 0;
     private targetY: number = 0;
     private targetZoom: number = 1.0;
+    private directorZoom: number = 1.0;
+    private manualZoom: boolean = false;
+
+    public getTargetZoom(): number { return this.targetZoom; }
+
+    private clampZoom(zoom: number): number {
+        return Math.max(UI_SETTINGS.CAMERA_ZOOM.min, Math.min(UI_SETTINGS.CAMERA_ZOOM.max, zoom));
+    }
+
+    public resetZoomControl(): void {
+        this.manualZoom = false;
+        this.targetZoom = this.directorZoom;
+    }
 
     // Physics Parameters (Exposed for UI)
     // Lower stiffness = Heavier, slower camera (Cinematic)
@@ -40,21 +53,21 @@ export class CameraSystem {
     public snapTo(x: number, y: number, zoom: number) {
         this.x = this.targetX = x;
         this.y = this.targetY = y;
-        this.zoom = this.targetZoom = zoom;
+        if (!this.manualZoom) this.zoom = this.targetZoom = this.clampZoom(zoom);
     }
 
     public reset() { 
         this.trauma = 0; 
         this.manualOverrideTimer = 0;
+        this.isManualControlling = false;
+        this.resetZoomControl();
     }
 
-    // 外部同步 (React State -> Engine)
+    // 外部 ref 僅為引擎鏡頭快照，不能把舊倍率寫回引擎。
     public sync(camera: Camera) {
-        if (this.isManualControlling) {
-            this.targetX = camera.x;
-            this.targetY = camera.y;
-            this.targetZoom = camera.zoom;
-        }
+        camera.x = this.x;
+        camera.y = this.y;
+        camera.zoom = this.zoom;
     }
 
     // 當玩家拖曳畫面時呼叫
@@ -74,12 +87,14 @@ export class CameraSystem {
     }
 
     public applyZoom(targetZoom: number) {
-        this.targetZoom = targetZoom;
-        this.manualOverrideTimer = 1.0; 
+        if (!Number.isFinite(targetZoom) || targetZoom <= 0) return;
+        this.targetZoom = this.clampZoom(targetZoom);
+        this.manualZoom = true;
     }
 
     // 導播系統的輸入接口
     public setDirectorTarget(x: number, y: number, zoom: number) {
+        this.directorZoom = this.clampZoom(zoom);
         // 只有在非手動模式下，導播系統才能控制目標點
         if (this.manualOverrideTimer <= 0) {
             this.isManualControlling = false;
@@ -87,8 +102,8 @@ export class CameraSystem {
             this.targetY = y;
             
             // Dead zone：±5% 內的 zoom 變化直接忽略，不觸發追蹤
-            if (Math.abs(zoom - this.targetZoom) > this.targetZoom * 0.05) {
-                this.targetZoom = zoom;
+            if (!this.manualZoom && Math.abs(this.directorZoom - this.targetZoom) > this.targetZoom * 0.05) {
+                this.targetZoom = this.directorZoom;
             }
         }
     }
@@ -126,7 +141,8 @@ export class CameraSystem {
         this.y += (this.targetY - this.y) * panFactor;
 
         // Zoom Smoothing (Slower)
-        const zoomFactor = 1.0 - Math.exp(-this.zoomStiffness * dt);
+        const stiffness = this.manualZoom ? UI_SETTINGS.CAMERA_ZOOM.manualStiffness : this.zoomStiffness;
+        const zoomFactor = 1.0 - Math.exp(-stiffness * dt);
         this.zoom += (this.targetZoom - this.zoom) * zoomFactor;
     }
 

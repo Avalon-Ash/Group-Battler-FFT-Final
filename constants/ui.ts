@@ -51,6 +51,8 @@ export const UI_Z = {
  */
 export const UI_SETTINGS = {
     SNAPSHOT_HZ: 10,
+    /** 2026-10-28：手動倍率與導播子範圍、輸入步幅共用 SSOT。100px 或一格滾輪 = 1.15 倍。 */
+    CAMERA_ZOOM: {"min":0.4,"max":3,"directorMin":0.45,"directorMax":1.6,"wheelFactor":1.15,"wheelPixels":100,"linePixels":16,"pagePixels":800,"manualStiffness":18,"doubleTapMs":300,"tapMaxMs":250,"tapDistance":24},
     ZONE_INITIAL_RADIUS: { min: 3, max: 20, default: 8, step: 1 },
     ZONE_SHRINK_INTERVAL: { min: 1, max: 60, default: 15, step: 1 },
     ZONE_MIN_RADIUS: { min: 0, max: 10, default: 1, step: 1 },

@@ -103,6 +103,8 @@ export class GameRenderer {
             if (typeof cmd.zoom === 'number' && Number.isFinite(cmd.zoom)) {
                 this.camera.applyZoom(cmd.zoom);
             }
+        } else if (cmd.type === 'CAMERA_RESET_ZOOM') {
+            this.camera.resetZoomControl();
         } else if (cmd.type === 'CAMERA_PAN') {
             if (typeof cmd.dx === 'number' && Number.isFinite(cmd.dx) && typeof cmd.dy === 'number' && Number.isFinite(cmd.dy)) {
                 this.camera.applyPanOffset(cmd.dx, cmd.dy);

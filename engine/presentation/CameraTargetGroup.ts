@@ -1,3 +1,4 @@
+import { UI_SETTINGS } from "../../constants";
 
 export interface CameraTarget {
     px: number;
@@ -57,6 +58,6 @@ export class CameraTargetGroup {
             ? (minDim * 0.5) / (maxRadius * paddingFactor)
             : 0.9;
 
-        return { x: cx, y: cy, zoom: Math.max(0.45, Math.min(2.0, zoom)) };
+        return { x: cx, y: cy, zoom: Math.max(UI_SETTINGS.CAMERA_ZOOM.directorMin, Math.min(UI_SETTINGS.CAMERA_ZOOM.directorMax, zoom)) };
     }
 }

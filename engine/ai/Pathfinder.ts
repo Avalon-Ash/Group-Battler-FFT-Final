@@ -20,6 +20,9 @@ export class Pathfinder {
     public findPath(startAgent: Agent, endQ: number, endR: number, range: number, ignoreUnits: boolean, spatial: SpatialProvider, targeting: TargetingSystem, isEscaping: boolean = false): Hex[] {
         const startH = HexUtils.hash(startAgent.q, startAgent.r);
         const goalHex = { q: endQ, r: endR };
+        const goalH = HexUtils.hash(endQ, endR);
+        const target = spatial.getAgentHash(goalH);
+        const occupiedAttackGoal = range > 0 && target && target !== startAgent && target.hp > 0;
         
         // 射程檢查：若已在動態射程內，則無需移動
         const effRange = targeting.getEffectiveRange(startAgent, endQ, endR, range, spatial);
@@ -50,6 +53,8 @@ export class Pathfinder {
             for (let i = 0; i < 6; i++) {
                 const neighborH = current.hash + NEIGHBOR_HASH_OFFSETS[i];
                 if (!spatial.isValidHash(neighborH)) continue;
+                // 追擊終點是可攻擊的站位，不可把敵人腳下當成擠過去後的終點。
+                if (occupiedAttackGoal && neighborH === goalH) continue;
 
                 // 物理碰撞判定
                 if (spatial.hasObstacleHash(neighborH)) {

@@ -1,9 +1,10 @@
 
 import { Agent } from "../core/Agent";
-import { Hex, Skill, SpatialProvider } from "../../types";
+import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
 import { HexUtils } from "../utils";
 import { BLOCK_HEIGHT, COMBAT_PARAM } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
+import { OBSTACLE_DB } from "../../data/obstacles";
 import { canStepUp } from "../math/ClimbRule";
 
 export type ImpactAreaContext = Pick<SpatialProvider, 'isValid'>;
@@ -25,6 +26,7 @@ export function isHostileSkill(skill: Skill): boolean {
 }
 
 export class TargetingSystem {
+    private readonly attackPathfinder = new Pathfinder();
     /**
      * 檢查目標是否為合法選取對象
      */
@@ -44,8 +46,7 @@ export class TargetingSystem {
     }
 
     /**
-     * 計算有效射程（考慮高地加成）
-     * High Ground Bonus: 每高一層 Block，射程微量增加
+     * 射程 SSOT：近戰將高度層數扣出水平射程（可為負）；遠程保留高地加成。
      */
     public getEffectiveRange(a: Hex, targetQ: number, targetR: number, baseRange: number, spatial: SpatialProvider): number {
         // baseRange 0 = 「精確抵達該格」（逃生、自身 PBAOE）：高低差加成不得讓 dist 1 的鄰格算成已抵達，
@@ -55,6 +56,9 @@ export class TargetingSystem {
         const h1 = spatial.getTerrainHeight(a.q, a.r);
         const h2 = spatial.getTerrainHeight(targetQ, targetR);
         const deltaH = h1 - h2;
+        if (baseRange <= COMBAT_PARAM.MELEE_RANGE) {
+            return baseRange - Math.round(Math.abs(deltaH) / BLOCK_HEIGHT);
+        }
         
         // [FIX] 高低差增減機制 (Height Advantage/Penalty)
         // 每一層 (BLOCK_HEIGHT = 24px) 產生 +/- 1 射程的影響
@@ -179,9 +183,25 @@ export class TargetingSystem {
         }
 
         const isSilenced = a.effects.SILENCE.remaining > 0;
+        // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
+        const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
+            (s.effectType === 'DASH' || s.effectType2 === 'DASH' || s.ccType === 'PULL' || s.ccType2 === 'PULL') &&
+            (a.curCDs[i] || 0) <= 0.1 && a.mp >= s.cost);
 
         for (const o of spatial.getAgents()) {
             if (o.team !== a.team && this.isValidTarget(o, spatial)) {
+                // 近戰（規則 A）普攻打不到的目標只扣分、不排除：追擊尋路會找同層攻擊格，
+                // 突進／拉取技能可用時完全不扣分，留給行為樹的 ACTIVE／ULT 槽先出手（使用者 2026-10-28）。
+                const basic = a.skills.find(s => s?.tag === 'BASIC');
+                const meleeBasic = !!basic && basic.range > 0 && basic.range <= COMBAT_PARAM.MELEE_RANGE && !hasGapCloser;
+                const noAttackTile = meleeBasic && !HexUtils.neighbors(o).some(n => {
+                        if (!spatial.isValid(n.q, n.r)) return false;
+                        if (HexUtils.dist(n, o) > this.getEffectiveRange(n, o.q, o.r, basic.range, spatial)) return false;
+                        const hash = HexUtils.hash(n.q, n.r);
+                        if (!spatial.hasObstacleHash(hash)) return true;
+                        const def = OBSTACLE_DB[spatial.getObstacleTypeHash(hash) || 'WALL'];
+                        return !(a.movementType === MovementType.FLYING ? def?.blocksFlying : def?.blocksMovement);
+                    });
                 const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
                 // 1. 距離權重: 極大幅度優先攻擊近身單位
@@ -221,9 +241,17 @@ export class TargetingSystem {
                     }
                 }
 
-                const score = distScore + hpScore + threatScore + stickyBonus + killShotBonus + survivalBonus;
+                let score = distScore + hpScore + threatScore + stickyBonus + killShotBonus + survivalBonus;
+                if (noAttackTile) score -= COMBAT_PARAM.MELEE_UNREACHABLE_PENALTY;
 
                 if (score > maxScore) {
+                    // 鄰格存在不代表爬得到：只對暫列第一的候選跑 A*（沿用 canStepUp，忽略暫時單位阻擋）。
+                    if (meleeBasic && !noAttackTile &&
+                        HexUtils.dist(a, o) > this.getEffectiveRange(a, o.q, o.r, basic!.range, spatial) &&
+                        this.attackPathfinder.findPath(a, o.q, o.r, basic!.range, true, spatial, this).length === 0) {
+                        score -= COMBAT_PARAM.MELEE_UNREACHABLE_PENALTY;
+                        if (score <= maxScore) continue;
+                    }
                     maxScore = score;
                     bestTarget = o;
                 }

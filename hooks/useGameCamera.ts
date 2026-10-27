@@ -3,7 +3,7 @@ import { useRef, useCallback } from 'react';
 import { GameEngine } from '../engine/game';
 import { HexUtils } from '../engine/utils';
 import { BLOCK_HEIGHT, HEX_SIZE } from '../constants';
-import { queryMapKeys, queryTerrainHeight } from '../engine/systems/ui/editorQueries';
+import { queryMapKeys, queryTerrainHeight, queryCameraTargetZoom } from '../engine/systems/ui/editorQueries';
 
 /**
  * 攝像機座標映射鉤子 v29.0
@@ -64,10 +64,12 @@ export const useGameCamera = (engine: GameEngine) => {
 
     }, [engine.mapConfig, engine.mapVersion]);
 
-    const zoom = useCallback((delta: number) => {
-        if (isNaN(delta)) return;
-        camera.current.zoom = Math.max(0.4, Math.min(3.0, camera.current.zoom + delta));
-    }, []);
+    const zoom = useCallback((factor: number) => {
+        if (!Number.isFinite(factor) || factor <= 0) return;
+        const target = queryCameraTargetZoom(engine);
+        if (target === undefined) return;
+        engine.bus.emit('UI_COMMAND', { type: 'CAMERA_ZOOM', zoom: target * factor });
+    }, [engine]);
 
     return { 
         camera, 

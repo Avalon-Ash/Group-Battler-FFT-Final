@@ -53,6 +53,10 @@ export const FORCED_MOVE = {
 };
 
 export const COMBAT_PARAM = {
+    /** 2026-10-28 使用者決定：射程 <= 1 為近戰，每層高低差消耗一格射程（雙向相同）。 */
+    MELEE_RANGE: 1,
+    /** 近戰普攻打不到（沒有同層可站鄰格或走不到）的目標扣分；不排除，自己有可用突進／拉取時不扣（2026-10-28） */
+    MELEE_UNREACHABLE_PENALTY: 1500,
     HIT_IMPULSE_MAX: 600,
     HIT_IMPULSE_MIN: 150,
     HIT_MEDIUM_THRESHOLD: 150,

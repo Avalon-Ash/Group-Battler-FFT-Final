@@ -187,8 +187,6 @@ export class GridRenderStrategy {
 
     private checkIsRange(q: number, r: number, h: number, skill: Skill | null, highlight: Agent | null, engine: GameEngine): boolean {
         if (!skill || !highlight) return false;
-        const agentH = engine.map.getTerrainHeight(highlight.q, highlight.r);
-        const bonus = Math.max(0, Math.floor((agentH - h) / 24)); 
-        return HexUtils.dist({q, r}, {q: highlight.q, r: highlight.r}) <= skill.range + bonus;
+        return HexUtils.dist(highlight, { q, r }) <= engine.getEffectiveRange(highlight, q, r, skill.range);
     }
 }

@@ -10,6 +10,11 @@ import { GameEngine, Agent } from '../../game';
 import { PointerProjector } from '../../math/PointerProjector';
 import { HexUtils } from '../../utils';
 
+/** Current engine-owned zoom target, including inputs not yet smoothed on screen. */
+export function queryCameraTargetZoom(engine: GameEngine): number | undefined {
+    return engine.renderer?.camera.getTargetZoom();
+}
+
 /**
  * Returns the agent at hex (q, r), or undefined if not present or dead.
  */

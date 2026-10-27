@@ -320,6 +320,8 @@
     "alpha": 0.8
   },
   "COMBAT_PARAM": {
+    "MELEE_RANGE": 1,
+    "MELEE_UNREACHABLE_PENALTY": 1500,
     "HIT_IMPULSE_MAX": 600,
     "HIT_IMPULSE_MIN": 150,
     "HIT_MEDIUM_THRESHOLD": 150,
@@ -1277,6 +1279,7 @@
   },
   "UI_SETTINGS": {
     "SNAPSHOT_HZ": 10,
+    "CAMERA_ZOOM": {"min":0.4,"max":3,"directorMin":0.45,"directorMax":1.6,"wheelFactor":1.15,"wheelPixels":100,"linePixels":16,"pagePixels":800,"manualStiffness":18,"doubleTapMs":300,"tapMaxMs":250,"tapDistance":24},
     "ZONE_INITIAL_RADIUS": {
       "min": 3,
       "max": 20,

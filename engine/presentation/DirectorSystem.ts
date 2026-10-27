@@ -8,15 +8,15 @@ import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
 import { AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
-import { HEX_SIZE } from "../../constants";
+import { HEX_SIZE, UI_SETTINGS } from "../../constants";
 import { VisualMath } from "../math/VisualMath";
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
     private ultZoom = 1.45;
 
-    private readonly MIN_ZOOM = 0.45;
-    private readonly MAX_ZOOM = 1.6;
+    private readonly MIN_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMin;
+    private readonly MAX_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMax;
     
     // Controls
     public enabled: boolean = true;
