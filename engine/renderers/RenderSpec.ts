@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] Section 12 also defines per-cell ground information priority.
 // ║  RenderSpec — 渲染座標協議 SSOT（層序、排序鍵、座標、錨點）║
 // ║  職責：記錄所有「位置／高度／排序／發射點」規則的唯一文件 ║
 // ║  [ARCH] 改到任何一條規則，必須在同一個 commit 更新本檔與  ║
@@ -23,11 +24,11 @@ export class RenderSpec {
 
         s += "| RenderOpType     | subLayer | 描述 |\n";
         s += "|------------------|----------|------|\n";
-        s += "| TERRAIN          | 10       | 地塊本體＋地表細節＋地塊狀態疊層＋蓋到這格的貼地鋪設特效（§9，不是獨立 op） |\n";
+        s += "| TERRAIN          | 10       | 地塊本體＋地表細節＋狀態／區域／地塊光（§12 優先序）＋貼地鋪設特效（§9，不是獨立 op） |\n";
         s += "| HAZARD           | 30       | 持續性空間危害（熔岩、毒沼、冰封、重力場；HazardPainter 零件層，錨點＝格子頂面中心，flat 層 ≤ HAZARD_RENDER.FLAT_MAX_RADIUS） |\n";
         s += "| VFX (isGround)   | 32       | 一般貼地特效（小型平貼、直立的柱／光束／結界），不套 z-boost；大型平貼特效改走 §9 |\n";
         s += "| AURA             | 38       | 單位施法圈 |\n";
-        s += "| OVERLAY          | 42       | 射程、懸停、警告、背水一戰 |\n";
+        s += "| OVERLAY          | 42       | 射程／懸停邊線、詠唱預警、縮圈警告、背水一戰（§12 優先序） |\n";
         s += "| OBSTACLE         | 44       | 地形障礙物 |\n";
         s += "| UNIT             | 46       | 角色（棋座＋核心＋角色投影） |\n";
         s += "| CORPSE           | 48       | 死亡單位（擊飛、淡出） |\n";
@@ -242,6 +243,13 @@ export class RenderSpec {
         s += "奧義專屬演出（UF，ART_SPEC §6、DECISIONS §4）：\n";
         s += "- 奧義命中光爆：表現層狀態，畫在後製之後、tactical overlay 與 HUD 之前（世界座標）。奧義名稱沿用施法者頭頂的喊招文字。畫面橫幅與詠唱暗場＋聚光都已於 2026-10-21 依使用者回饋移除：詠唱短於 5 秒不得加全畫面亮度變化（來不及聚焦，只會亮暗交替）。\n\n";
         s += "--- \n\n";
+
+        s += "## 12. Per-cell ground information priority\n\n";
+        s += "GridRenderStrategy is the sole writer: begin clears reusable Uint8Array flags and per-cell casting colors before submit. Capacity grows only when map bounds grow. GridOverlays and HazardPainter read resolveGroundLayers; ZoneRenderer receives its fill multiplier. No coordinate or layer-order change.\n";
+        s += "| Rank | Ground fill | When a higher rank is present |\n|---|---|---|\n| 1 | Shrink warning, final cell / last stand | Warning fill capped at 0.4; border pulse unchanged |\n| 2 | Telegraph | x0.35 |\n| 3 | Hazard liquid base | x0.5; smoke and part layers unchanged |\n| 4 | Unit status floor | x0.25 |\n| 5 | Zone inside tint, tile light | Hidden |\n";
+        s += "Ties: last stand wins over warning fill (both keep borders); zone tint wins over light. Player hover and range are border-only and unrestricted. AOE ground patterns and skill effects remain unrestricted. Parameter SSOT: GRID_OVERLAY.PRIORITY.\n";
+        s += "Deduplication: for aoeRadius > 0, compare the telegraph target center (targetHex, otherwise target, otherwise caster; same source as CombatSystem) with caster q,r. If equal, omit the whole telegraph tint, preserving the existing caster-centered AOE ground indicator. Targeted AOE elsewhere retains its telegraph.\n";
+        s += "Per-cell casting color: getFactionSkin(team).fallbackBodyColor; first caster in agents order wins overlap deterministically.\n\n";
 
         return s;
     }

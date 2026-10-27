@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] Upstream GridOverlays passes GroundPriority fill multiplier (section 12).
 // ║  ZoneRenderer — 地格區域效果（擴張波紋、區域底色、邊界）    ║
 // ║  參數：constants/terrain.ts ZONE_RENDER                              ║
 // ║  [ARCH] 波紋與邊界是柔光格（SoftTile，screen），2026-10-19   ║
@@ -23,7 +24,8 @@ export const ZoneRenderer = {
         color: string,
         progress: number, 
         isEnemy: boolean,
-        layout: HexLayout
+        layout: HexLayout,
+        fillMultiplier: number
     ) {
         ctx.save();
         ctx.translate(x, y);
@@ -46,7 +48,7 @@ export const ZoneRenderer = {
 
         if (baseAlpha > 0) {
             ctx.fillStyle = drawColor;
-            ctx.globalAlpha = baseAlpha;
+            ctx.globalAlpha = baseAlpha * fillMultiplier;
             HexGeometry.traceHex(ctx, 0, 0, size * Z.FILL_RADIUS, true, layout);
             ctx.fill();
         }
