@@ -265,6 +265,7 @@
 - 試過但放棄：程序化合成提示音（Codex 實作，使用者聽了不要）、Kokoro-82M 與 Chatterbox TTS（語氣平、會念錯）。兩個 PVPSound GitHub repo 都沒有授權條款，網路上說它是 CC-BY 的說法不涵蓋遊戲原聲。
 - 參考：PVPSound 有兩套計數——Multi Kill（16 秒內，Double→Monster）與 Kill Streak（60 秒內，Killing Spree→Godlike），另有 Payback（90 秒內復仇）。我們的 `KILL_STREAK_WINDOW` 是 5 秒，戰棋節奏下可能偏短。
 - 疊音修正（合併 36f20e9）：使用者實機聽到好幾句同時播。原因是全場每個單位都會播報，PVPSound 只算玩家本人的擊殺並排隊依序播。改成 `CueDef.exclusive` 互斥群組：播報同時只有一條，高階打斷低階、同階或低階丟掉（不補播）；新那條缺檔時不打斷。
+- 開關（合併 c63286f）：音訊設定加「擊殺播報」開關，預設關閉（`AUDIO.DEFAULT_ANNOUNCER_ENABLED`），關閉時引擎丟掉 ANNOUNCER 群組並停掉正在播的。視窗用 HEAD 檢查 7 個本機檔的 content-type 都是音訊才顯示開關（dev server 對缺檔回 index.html），所以沒有本機檔的 clone 看不到。使用者實機聽過，2026-10-28 結案。
 
 ### AC. 2026-10-28 手機效能：CPU 歸因與後處理降階（合併 8191bbd）
 
