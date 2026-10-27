@@ -271,6 +271,10 @@
 - **地塊烘焙 Phase 2**：計畫擬好但使用者決定先放（HANDOFF §4）。
 - **後處理降階**（9153f7b，主代理直接改）：轉場色差與戰鬥結束模糊＋灰階都要複製整張畫布再套 filter，品質階層 2／3 改成跳過，戰鬥結束只留壓暗（`RENDER_QUALITY.POST_FX_MAX_TIER = 1`）。866 項測試、保真全過；`perf:guard` 首跑 FOREST 顆粒 A/B 1.22 屬 vsync 雜訊，重跑兩次 1.00。手機模擬單次量測：展示 1% low 13.2 → 15.6 FPS，但奧義段（改動碰不到）同樣差了約 2.6 FPS，單次雜訊同量級，效果要多次取平均才能確認。
 
+### AD. 2026-10-28 核心寶石藏到角色後面（合併 5acca84）
+
+結論：新 skin 的投影中心落在 Q 版大頭的臉上，半透明寶石蓋住臉。投影成形後的核心改在角色之前畫（`UnitCorePainter` BEHIND 層，被角色擋住），光暈放大 `CORE_VISUAL.behindGlowScale` 1.6，施法與受擊（新 `hitGlow` 0.6 × hitFlashTimer 比例）時從輪廓邊緣透出；實體寶石（拖曳、幽靈、出生前）仍在 FRONT 層，出生期間兩層交叉淡入淡出。位置與 `getCoreAnchor` 不變（投射物起點改前改後相同）。主代理直接改（84b95e7）；866 項測試、smoke、`perf:guard` 全過（battle_frozen 0.194，未重錄）。沙漠地面上施法背光偏淡，主要靠腳下法陣辨識。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
