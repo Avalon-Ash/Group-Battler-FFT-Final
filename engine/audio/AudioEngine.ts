@@ -9,6 +9,8 @@ export interface AudioSettings {
     sfx: number;
     ui: number;
     muted: boolean;
+    /** 擊殺播報（CueDef.exclusive 群組 ANNOUNCER）是否播放 */
+    announcer: boolean;
 }
 
 export interface PlayCueOptions {
@@ -204,6 +206,13 @@ export class AudioEngine {
         this.applyBusGains();
     }
 
+    /** 擊殺播報開關並持久化 */
+    public setAnnouncerEnabled(enabled: boolean): void {
+        this.settings.announcer = enabled;
+        this.saveSettings();
+        if (!enabled) this.stopExclusiveVoice('ANNOUNCER');
+    }
+
     /** 設定手動靜音切換並持久化 */
     public setMuted(muted: boolean): void {
         this.settings.muted = muted;
@@ -261,6 +270,7 @@ export class AudioEngine {
 
         const cueDef: CueDef | undefined = CUE_TABLE[cueId];
         if (!cueDef) return false;
+        if (cueDef.exclusive?.group === 'ANNOUNCER' && !this.settings.announcer) return false;
 
         const nowMs = performance.now();
         const throttleMs = cueDef.throttleMs ?? AUDIO.CUE_THROTTLE_MS;
@@ -778,7 +788,8 @@ export class AudioEngine {
             music: AUDIO.DEFAULT_MUSIC_VOLUME,
             sfx: AUDIO.DEFAULT_SFX_VOLUME,
             ui: AUDIO.DEFAULT_UI_VOLUME,
-            muted: false
+            muted: false,
+            announcer: AUDIO.DEFAULT_ANNOUNCER_ENABLED
         };
 
         if (typeof window === 'undefined' || !window.localStorage) {
@@ -794,7 +805,8 @@ export class AudioEngine {
                 music: typeof parsed.music === 'number' ? Math.max(0, Math.min(1, parsed.music)) : defaults.music,
                 sfx: typeof parsed.sfx === 'number' ? Math.max(0, Math.min(1, parsed.sfx)) : defaults.sfx,
                 ui: typeof parsed.ui === 'number' ? Math.max(0, Math.min(1, parsed.ui)) : defaults.ui,
-                muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted
+                muted: typeof parsed.muted === 'boolean' ? parsed.muted : defaults.muted,
+                announcer: typeof parsed.announcer === 'boolean' ? parsed.announcer : defaults.announcer
             };
         } catch (err: unknown) {
             this.handleAudioException('loadSettings', err);

@@ -382,6 +382,11 @@ describe('AudioEngine', () => {
         for (let tier = 1; tier <= 7; tier++) await engine.loadBuffer(`assets/audio/local/Kill/kill_${tier}.mp3`);
         const lastSource = () => (ctx.createBufferSource as ReturnType<typeof vi.fn>).mock.results.at(-1)!.value;
 
+        // 播報開關預設關閉
+        expect(engine.getSettings().announcer).toBe(false);
+        expect(engine.playCue('KILL_SPREE_3')).toBe(false);
+        engine.setAnnouncerEnabled(true);
+
         expect(engine.playCue('KILL_SPREE_3')).toBe(true);
         const rampage = lastSource();
         expect(engine.playCue('KILL_SPREE_2')).toBe(false);
@@ -399,5 +404,12 @@ describe('AudioEngine', () => {
         // 播完自然結束後，低階又可以播
         unstoppable.onended();
         expect(engine.playCue('KILL_SPREE_1')).toBe(true);
+
+        // 關掉開關會停掉正在播的那一條，之後都不播
+        const firstBlood = lastSource();
+        engine.setAnnouncerEnabled(false);
+        expect(firstBlood.stop).toHaveBeenCalledTimes(1);
+        expect(engine.playCue('KILL_SPREE_6')).toBe(false);
+        if (typeof window !== 'undefined') window.localStorage?.removeItem(AUDIO.STORAGE_KEY);
     });
 });
