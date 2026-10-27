@@ -31,7 +31,7 @@
 
 ## 4. 以後再說（暫緩項目）
 - **地形烘焙（`docs/BAKED_RENDERING_DESIGN.md`）**：已做的是地塊、零件、液面、障礙物、光暈文字的快取。剩下兩階段都暫緩：
-  - Phase 2「高度分帶雙層烘焙」：把高度 ≤ 0 的地面層烘成一張整圖，單位與高地塊照舊交錯排序。觸發條件：手機 FPS 偏低（**已成立**：2026-10-27 `perf-mobile-emu --cpu=4` 展示模式 1% low 13 FPS、29 秒降到品質階層 3），且歸因在地塊繪製（**未量**）。步驟：① 量地塊佔每幀繪製的比例（`perf:attribution`）② 原型只做 VOID／FOREST 兩張圖 ③ 保真 6 張 0 差異或取證 ④ 轉場與漂浮位移（VOID／MAGMA）另驗。
+  - Phase 2「高度分帶雙層烘焙」：把高度 ≤ 0 的地面層烘成一張整圖，單位與高地塊照舊交錯排序。觸發條件：手機 FPS 偏低（**已成立**：2026-10-27 `perf-mobile-emu --cpu=4` 展示模式 1% low 13 FPS、29 秒降到品質階層 3），且歸因在地塊繪製（**2026-10-28 量了**：iPhone 版面、CPU 4 倍、有 GPU 的視窗模式錄 CPU profile，主執行緒 99% 忙碌；地塊／網格 23～25% 是最大的 JS 類別（`TerrainRenderer.drawBlock` 10%、`paintTerrainGrain` 3～4%、液面 2.5%），瀏覽器原生 26～29%、其他渲染 17～20%（後處理 `applyFinishBlur`＋`apply` 約 4～5%）、特效 12～13%、單位 6～9%、模擬 2%。降到品質階層 3 仍滿載，瓶頸是 CPU 端的繪製呼叫數，不是像素量；探針 `tools/ui-e2e/out/_scratch_cpuprof.mjs`，未進 repo）。步驟：① 量地塊佔每幀繪製的比例（`perf:attribution`）② 原型只做 VOID／FOREST 兩張圖 ③ 保真 6 張 0 差異或取證 ④ 轉場與漂浮位移（VOID／MAGMA）另驗。
   - Phase 3「圖集整合／粒子合批」：收益不確定，等 Phase 2 有結論再評估。
 - **重新部署方式**：Cloud Run 相關檔案已刪，全部搞定後再重新評估。
 - **正式版素材**：交給 GPT 慢慢換；外觀軸 `Team×Role×BodyType` 支援直接擴充。成品走「改材質＋配件後重新烘焙」，不逐格重畫 2D。
