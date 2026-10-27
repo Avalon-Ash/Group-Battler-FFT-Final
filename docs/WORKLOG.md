@@ -250,6 +250,13 @@
 - Codex（Sol／medium）只做 R3-0 量測與分類，沒有找到有證據支持、能把 CORPSE×VFX 減半的修法，照停下條件停止；主代理判定不修（DECISIONS §5 2026-10-27）。
 - 預設參數下：全部振盪 84、CORPSE×VFX 24、static 1；`--order` 穩定錯序 42 段／196 pair-frames／wrongFrames 421。後者與 COORD-R1 的參數不同。改用 COORD-R1 參數（`--sink --flicker --order --seeds=2 --seedStart=1 --seconds=10 --orderSeconds=10 --biomes=FOREST,VOID,MAGMA --orderBiomes=FOREST,VOID,MAGMA`）在 9b39bde 重量：判定 726,262 pair-frames、穩定錯序 9 段（34）、wrongFrames 105、振盪 65（COORD-R1 cc056b0：701,554／7（23）／131／93）。CORPSE×TERRAIN 仍是同一具屍體的 6 段（20），另有 AURA×TERRAIN、TERRAIN×UNIT、HAZARD×UNIT 各 1 段（3～8 幀）。**沒有退步**，不派二分搜尋；`PROJECT_CLEANUP_COORD_R1_REVIEW.md` 已刪。
 
+### AB. 2026-10-28 R5 手機模擬量測工具（合併 b652615）
+
+結論：新增 `tools/ui-e2e/perf-mobile-emu.mjs`（iPhone 14 Pro 版面＋CDP CPU 降速、真實 rAF、品質階層不釘死），取代在手機上開 `?perf`。只新增工具，產品程式碼沒動。
+
+- 第一份基準（合併 skin、R2、R4 之後，headless dev server）：4 倍 CPU 展示模式平均 64.7／1% low 13.2 FPS，5.4／7.5／28.7 秒降到階層 1／2／3；8 招奧義平均 75.3／1% low 11.6 FPS、全程階層 3。1 倍 CPU 全程階層 0（展示 215／58 FPS、奧義 185／43 FPS）。用法、限制與完整數字在 `docs/R5_MOBILE_EMU_REPORT.md`（保留作基準）。
+- 只能模擬 CPU 與版面；GPU、WebKit、iOS 記憶體回收以實機為準。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
