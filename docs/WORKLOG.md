@@ -297,6 +297,15 @@
 - 合約效果：GPT 用目標導向提示詞一次跑完，沒有中途停下詢問；主代理誤把 R7 提示詞提交到它的分支，事先提醒後它保留了該提交。
 - `BAL03_AGENT_PROMPT.md`、`R6_MELEE_ZOOM_REPORT.md` 已刪。
 
+### AG. 2026-10-28 R7 大逃殺格界屍體閃爍（合併 6f83ce4）
+
+結論：屍體擊飛滑行達到 `MAX_SLIDE` 後，舊算法每幀用隨時間變化的位移向量重新正規化，浮點末位誤差（約 1e-14 px）讓停在格界上的屍體腳下格在兩格之間交替；旁邊是塌落格時高度在 24 與 −286 之間來回，畫面閃爍。改成用固定初速方向直接求封頂終點（`deathMotion.ts`，6 行），封頂後腳下格切換 55 → 0、高度往上跳 15 → 0。
+
+- GPT（Codex App）在獨立工作樹做；沒有用到已否決的修法（高度 clamp、排序鎖、速度過濾）。RenderSpec 與檔頭同步，新增 DeathMotion 測試要求封頂後每幀座標完全相同。
+- **推擠飄移沒有重現**：隔離探針（真實 StackingResolver＋PhysicsEngine，四單位同格）被擠開的單位 0.5 秒內回到新格中心，屬正常過渡；沒改推擠程式，留待使用者提供實機情境（HANDOFF B）。
+- 驗證：GPT 在 810dd50 跑全套（300 場逐場相同、座標各項不增加、br-soak 10/10、perf:guard）；主代理在合併 BAL-03 後的 main 補跑 300 場合併前後逐場相同、880 項測試、保真 6 張全過（`battle_frozen` 0.000）。`TerrainBlockCacheBudget` 測試偶發失敗一次，重跑皆過（HANDOFF B）。
+- 合約效果：目標導向提示詞＋「300 場逐場不變」這條會失敗的硬限制，讓 GPT 在推擠沒有證據時沒有硬改。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
