@@ -17,6 +17,8 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 - **先選檔位**（CLAUDE.md 派工表）：定位、範圍明確的摘要用 `gpt-6-luna`／low，讀檔／轉換用 Luna／medium，長線實作用 `gpt-6.1-sol`／medium。Astra、xhigh，或非 Luna 的 high，都要在指令裡寫理由並加 `[codex-cost-ok]`，否則 hook 會擋下。使用者是 Plus 方案，額度很緊。
 - **範圍要窄**：一份提示詞一個工作包。成本來自上下文、工具呼叫和重試，不只是訊息數；把讀檔範圍、驗收指令、停下條件寫死，並寫明探索與重試的上限。要避免的寫法：整庫清冊、要它重貼全文、沒有新假設的重試、要它看所有截圖。
 - **工作樹**：可寫任務在 repo 外開**獨立 clone**（`git clone --no-hardlinks <主資料夾> C:\Git\_wt_<topic>`，切好分支），`node_modules` 用 `robocopy` 複製真目錄，不跑 npm 安裝。linked worktree 的 metadata 在主資料夾 `.git` 裡、junction 的 `node_modules` 沙盒寫不進去，都會讓 Codex 在開工前卡住（2026-10-26 R1 卡了三次）。不可放在主資料夾或 `.claude/worktrees` 底下。Gemini 在跑的資料夾不派 Codex 寫入；渲染工作同一時間只開一條，Gemini 和 Codex 共用這個限制。
+- **git 擁有者檢查**：獨立 clone 在 Codex 沙盒裡會被判定 dubious ownership，`git status` 等全部失敗，Luna 會照規定直接停下（2026-10-29 O6）。INV 要寫明「所有 git 指令一律 `git -c safe.directory=<工作樹> …`（單次參數，不改設定）」；測試裡呼叫 git 的也要帶這個參數（`MagicNumberBudget`、`ToolsReferenced`、`NoLocalHash` 已改）。
+- **環境相關的驗收**：保真數字跨次執行會漂移，「畫面沒變」寫成同環境 A/B（見 `render-verify`），不要寫「和改前的數字比容差」。
 - **沙盒限制要寫進提示詞**：workspace-write 沙盒連獨立 clone 的 `.git` 都唯讀，**Codex 不能 commit**——提示詞寫「不要 commit，改動留在工作樹，報告列出每個任務改了哪些檔」，主代理審查後分批代為 commit（訊息加 `Co-Authored-By: Codex`）。測試指令寫 `npx vitest run --exclude "**/AgentRunner.test.ts"`（那 2 項在沙盒內必失敗），主代理在沙盒外補跑完整 `npm test`。寫明「中途不要詢問；遇到停下條件就寫報告後結束」，非互動執行時它問了也沒人答（要答用 `task --resume-last`）。
 - **啟動**：背景 Bash 執行 `node "<plugin>/scripts/codex-companion.mjs" task --write --model <m> --effort <e> --cwd <工作樹> --prompt-file docs/<NAME>_AGENT_PROMPT.md`，不加 `--background`，結束時 harness 會通知；不輪詢。只讀任務拿掉 `--write`。
 - **範本差異**：Codex 會自己讀 `AGENTS.md`，範本其餘部分照用，但以下要改：
