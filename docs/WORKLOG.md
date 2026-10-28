@@ -288,6 +288,15 @@
 - 與 main 的核心顯示（§AD）、連殺播報合併後：879 項測試、lint、`perf:guard`、smoke 通過；`battle_frozen` 取證重錄（3358aac）。
 - 派工：提示詞把 `tests/*.baseline.json` 整個列為受保護，棘輪要求刪除已修好的項目時 Codex 停下；規則改成「基準只准刪除不再出現的項目」。
 
+### AF. 2026-10-28 BAL-03 近戰高低差規則後的平衡（合併 32ec5de）
+
+結論：R6 近戰規則 A 讓藍方升到 52.7%、3 招法師奧義超標；GPT（Codex App，目標導向提示詞）調數值後藍方 51.1／53.0／合併 52.0%，p50 17.9 秒，超標 0 招，同職業差距最大 18.9%（治療）。主代理重跑標準量測逐字一致。
+
+- 改動（只有數值，皆在 ±50% 內、射程不跨 1／2 線）：紅方近戰普攻約 10 招 power +25%；`mr_u3` power 620→900、cost 100→80；`mr_u5` 630→500；`mb_u3` cost 100→85；藍方一招主動技 cast 1.2→1.0、power 320→350；紅方治療 3 招 +20～33%。報告 `docs/BAL03_REPORT.md`（保留）。
+- 驗證：lint、build、879 項測試（`AgentRunner` 時序測試在高負載下偶發失敗，單獨重跑 7/7）、保真 6 張全過（`battle_frozen` 0.000，不用重錄）、br-soak 由 GPT 跑 10/10。
+- 合約效果：GPT 用目標導向提示詞一次跑完，沒有中途停下詢問；主代理誤把 R7 提示詞提交到它的分支，事先提醒後它保留了該提交。
+- `BAL03_AGENT_PROMPT.md`、`R6_MELEE_ZOOM_REPORT.md` 已刪。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
