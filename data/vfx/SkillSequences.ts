@@ -1,3 +1,51 @@
+/** 動畫／序列參數 SSOT，保持原值。 */
+const ULT_ARCHETYPE_PARAM = {
+    /** 天降脈衝尺寸倍率（倍） */
+    FALL_PULSE_MULT: 2.5,
+    /** 命中後脈衝延遲（秒） */
+    PULSE_DELAY_S: 0.05,
+    /** 聖域脈衝尺寸（倍） */
+    SANCTUARY_PULSE: 1.8,
+    /** 聖域鏡頭震動強度（比例） */
+    SANCTUARY_SHAKE: 0.2,
+    /** 領域脈衝尺寸倍率（倍） */
+    DOMAIN_PULSE_MULT: 2,
+    /** 領域鏡頭震動強度（比例） */
+    DOMAIN_SHAKE: 0.3,
+    /** 狙擊光束粒子尺寸上限（倍） */
+    BEAM_FX_SCALE: 1.5,
+    /** 狙擊光束長度（秒） */
+    BEAM_DURATION_S: 0.8,
+    /** 狙擊光束尺寸倍率（倍） */
+    BEAM_SCALE_MULT: 0.35,
+    /** 狙擊光束震動強度（比例） */
+    BEAM_SHAKE: 0.5,
+    /** 狙擊光束脈衝尺寸（倍） */
+    BEAM_PULSE: 1.2,
+    /** 風暴預設落點數（次） */
+    STORM_COUNT: 10,
+    /** 風暴預設間隔（秒） */
+    STORM_INTERVAL_S: 0.1,
+    /** 風暴每群落點數（次） */
+    CLUSTER_COUNT: 3,
+    /** 風暴群間隔倍率（倍） */
+    CLUSTER_GAP_MULT: 2.5,
+    /** 風暴群內間隔倍率（倍） */
+    CLUSTER_INTRA_MULT: 0.5,
+    /** 風暴落點最小尺寸倍率（倍） */
+    STORM_SCALE_MIN: 0.8,
+    /** 風暴落點尺寸交錯步幅（比例） */
+    STORM_SCALE_PHASE: 0.618,
+    /** 風暴落點尺寸變動幅度（倍） */
+    STORM_SCALE_RANGE: 0.4,
+    /** 風暴震動強度（比例） */
+    STORM_SHAKE: 0.15,
+    /** 瞬間衝擊震動倍率（倍） */
+    IMPACT_SHAKE_MULT: 0.6,
+    /** 瞬間衝擊脈衝尺寸倍率（倍） */
+    IMPACT_PULSE_MULT: 1.5,
+} as const;
+
 import { VFXSequence, VFXAction } from "../../types/VFXSchema";
 import { Team } from "../../types";
 import { DEFAULT_SKILL_DB } from "../../skillDatabase";
@@ -184,29 +232,29 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                     }
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, delay: ultConfig.charged ? 0 : Math.max(0, hitAt - U.HIT_LEAD) });
                     actions.push({ type: 'SHAKE', shakeIntensity: shake(ultConfig.scale), delay: hitAt });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.5), delay: hitAt + 0.05 });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * ULT_ARCHETYPE_PARAM.FALL_PULSE_MULT), delay: hitAt + ULT_ARCHETYPE_PARAM.PULSE_DELAY_S });
                     break;
                 }
                 case 'SANCTUARY':
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(1.8), delay: hitAt });
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.2), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(ULT_ARCHETYPE_PARAM.SANCTUARY_PULSE), delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.SANCTUARY_SHAKE), delay: hitAt });
                     break;
                 case 'DOMAIN':
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 2.0), delay: hitAt });
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.3), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * ULT_ARCHETYPE_PARAM.DOMAIN_PULSE_MULT), delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.DOMAIN_SHAKE), delay: hitAt });
                     break;
                 case 'BEAM_SNIPE':
                     // 光束在命中那一刻打出；命中點資產提早 HIT_LEAD 開始（起手紋章在目標腳下浮現）
-                    actions.push({ type: 'PARTICLE', id: ultFx, color: ultConfig.secondaryColor, scale: Math.min(U.MAX_FX_SCALE, 1.5) });
-                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: 0.8, scale: ultConfig.scale * 0.35, delay: hitAt });
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.5), delay: hitAt });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(1.2), delay: hitAt + 0.05 });
+                    actions.push({ type: 'PARTICLE', id: ultFx, color: ultConfig.secondaryColor, scale: Math.min(U.MAX_FX_SCALE, ULT_ARCHETYPE_PARAM.BEAM_FX_SCALE) });
+                    actions.push({ type: 'BEAM', style: ultConfig.beamStyle ?? 'DEATH_RAY', color: ultConfig.primaryColor, duration: ULT_ARCHETYPE_PARAM.BEAM_DURATION_S, scale: ultConfig.scale * ULT_ARCHETYPE_PARAM.BEAM_SCALE_MULT, delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.BEAM_SHAKE), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.primaryColor, scale: pulse(ULT_ARCHETYPE_PARAM.BEAM_PULSE), delay: hitAt + ULT_ARCHETYPE_PARAM.PULSE_DELAY_S });
                     break;
                 case 'STORM': {
-                    const count = ultConfig.count || 10;
-                    const interval = ultConfig.timing || 0.1;
+                    const count = ultConfig.count || ULT_ARCHETYPE_PARAM.STORM_COUNT;
+                    const interval = ultConfig.timing || ULT_ARCHETYPE_PARAM.STORM_INTERVAL_S;
                     if (ultConfig.windupFx) actions.push({ type: 'PARTICLE', id: ultConfig.windupFx });
                     const scatterRings = ultSkill?.type === 'SINGLE' ? 0 : (ultSkill?.aoeRadius ?? 1);
                     const cadence = ultConfig.cadence ?? 'EVEN';
@@ -218,28 +266,28 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                             const u = count > 1 ? k / (count - 1) : 0;
                             delay = hitAt + (1 - (1 - u) * (1 - u)) * totalSpan;
                         } else if (cadence === 'CLUSTER') {
-                            const group = Math.floor(k / 3);
-                            const intra = k % 3;
-                            delay = hitAt + group * (interval * 2.5) + intra * (interval * 0.5);
+                            const group = Math.floor(k / ULT_ARCHETYPE_PARAM.CLUSTER_COUNT);
+                            const intra = k % ULT_ARCHETYPE_PARAM.CLUSTER_COUNT;
+                            delay = hitAt + group * (interval * ULT_ARCHETYPE_PARAM.CLUSTER_GAP_MULT) + intra * (interval * ULT_ARCHETYPE_PARAM.CLUSTER_INTRA_MULT);
                         }
                         actions.push({
                             type: 'PARTICLE',
                             id: ultFx,
                             color: k % 2 === 0 ? ultConfig.primaryColor : ultConfig.secondaryColor,
-                            scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (0.8 + ((k * 0.618) % 1) * 0.4)),
+                            scale: Math.min(U.MAX_FX_SCALE, ultConfig.scale * (ULT_ARCHETYPE_PARAM.STORM_SCALE_MIN + ((k * ULT_ARCHETYPE_PARAM.STORM_SCALE_PHASE) % 1) * ULT_ARCHETYPE_PARAM.STORM_SCALE_RANGE)),
                             delay,
                             scatterRings,
                             scatterIndex: k,
                             scatterCount: count,
                         });
                     }
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.15), delay: hitAt });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.STORM_SHAKE), delay: hitAt });
                     break;
                 }
                 case 'INSTANT_IMPACT':
                     actions.push({ type: 'PARTICLE', id: ultFx, scale: fxScale, color: ultConfig.primaryColor });
-                    actions.push({ type: 'SHAKE', shakeIntensity: shake(0.6 * ultConfig.scale), delay: hitAt });
-                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * 1.5), delay: hitAt + 0.05 });
+                    actions.push({ type: 'SHAKE', shakeIntensity: shake(ULT_ARCHETYPE_PARAM.IMPACT_SHAKE_MULT * ultConfig.scale), delay: hitAt });
+                    actions.push({ type: 'GRID_PULSE', color: ultConfig.secondaryColor, scale: pulse(ultConfig.scale * ULT_ARCHETYPE_PARAM.IMPACT_PULSE_MULT), delay: hitAt + ULT_ARCHETYPE_PARAM.PULSE_DELAY_S });
                     break;
             }
             // 共用命中包：衝擊環、爆閃、裂紋、碎石（打得多重），與傷害同一刻。

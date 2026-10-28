@@ -1,6 +1,6 @@
 
 import { Point3D } from "./VisualMath";
-import { MAX_ARC_HEIGHT } from "../../constants";
+import { TRAJECTORY_PARAM, MAX_ARC_HEIGHT } from "../../constants";
 
 export type { Point3D };
 
@@ -35,10 +35,10 @@ export const TrajectoryMath = {
         const dy = end.y - start.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         
-        // 確保最近距離也有一點點弧度 (例如 baseH * 0.15)
-        const minH = baseH * 0.15;
+        // 確保最近距離也有一點點弧度 (例如 baseH * TRAJECTORY_PARAM.MIN_ARC_RATIO)
+        const minH = baseH * TRAJECTORY_PARAM.MIN_ARC_RATIO;
         // 每個距離單位等比例放大弧高
-        const ratio = dist / 300;
+        const ratio = dist / TRAJECTORY_PARAM.ARC_REFERENCE_PX;
         const targetH = minH + baseH * ratio;
         
         return Math.min(targetH, MAX_ARC_HEIGHT);
@@ -58,11 +58,11 @@ export const TrajectoryMath = {
      * 下沉幅度 = dipAmount（預設 20px Z軸）
      * 模擬初速大、重力小的輕型投射物感
      */
-    hoverDip: (start: Point3D, end: Point3D, t: number, dip: number = 20): Point3D => {
+    hoverDip: (start: Point3D, end: Point3D, t: number, dip: number = TRAJECTORY_PARAM.DEFAULT_DIP_PX): Point3D => {
         const base = TrajectoryMath.linear(start, end, t);
         // 前段下沉曲線：在 t=0.2 時達到最低點
-        const dipZ = t < 0.4
-            ? -dip * 4 * (t / 0.4) * (1 - t / 0.4)
+        const dipZ = t < TRAJECTORY_PARAM.DIP_END_T
+            ? -dip * 4 * (t / TRAJECTORY_PARAM.DIP_END_T) * (1 - t / TRAJECTORY_PARAM.DIP_END_T)
             : 0;
         return { x: base.x, y: base.y, z: base.z + dipZ };
     },
@@ -82,7 +82,7 @@ export const TrajectoryMath = {
         return {
             x: base.x + nx * wave,
             y: base.y + ny * wave,
-            z: base.z + Math.cos(t * Math.PI * 2 * freq) * amp * 0.5
+            z: base.z + Math.cos(t * Math.PI * 2 * freq) * amp * TRAJECTORY_PARAM.WOBBLE_Z_RATIO
         };
     },
 
@@ -92,17 +92,17 @@ export const TrajectoryMath = {
     evaluate: (config: TrajectoryConfig, start: Point3D, end: Point3D, t: number): Point3D => {
         if (config.type === 'ARC') {
             const adaptedH = TrajectoryMath.adaptiveArcHeight(
-                start, end, config.arcHeight || 150
+                start, end, config.arcHeight || TRAJECTORY_PARAM.DEFAULT_ARC_PX
             );
             return TrajectoryMath.parabolic(start, end, t, adaptedH);
         }
         if (config.type === 'HOVER_DIP') {
             return TrajectoryMath.hoverDip(
-                start, end, t, config.dipAmount || 20
+                start, end, t, config.dipAmount || TRAJECTORY_PARAM.DEFAULT_DIP_PX
             );
         }
         if (config.type === 'WOBBLE') {
-            return TrajectoryMath.wobble(start, end, t, config.wobbleAmp || 15, config.wobbleFreq || 2);
+            return TrajectoryMath.wobble(start, end, t, config.wobbleAmp || TRAJECTORY_PARAM.DEFAULT_WOBBLE_PX, config.wobbleFreq || TRAJECTORY_PARAM.DEFAULT_WOBBLE_FREQ);
         }
         return TrajectoryMath.linear(start, end, t);
     }

@@ -1,3 +1,4 @@
+import { SYNTH_PATCHES, SYNTH_DEFAULT_DURATION_S } from '../../data/audio/synthPatches';
 import { mulberry32 } from '../math/hash';
 import { AUDIO } from '../../constants';
 import { SynthId } from '../../data/audio/cues';
@@ -56,27 +57,27 @@ export function createSynthBuffer(
         return cached;
     }
 
-    let duration = 0.1;
+    let duration = SYNTH_DEFAULT_DURATION_S;
     switch (synthId) {
-        case 'HIT_LIGHT': duration = 0.09; break;
-        case 'HIT_HEAVY': duration = 0.22; break;
-        case 'SLASH': duration = 0.14; break;
-        case 'BOW': duration = 0.12; break;
-        case 'FIRE': duration = 0.30; break;
-        case 'ICE': duration = 0.22; break;
-        case 'HEAL': duration = 0.40; break;
-        case 'DEATH': duration = 0.45; break;
-        case 'SPAWN': duration = 0.25; break;
-        case 'COLLAPSE': duration = 0.35; break;
-        case 'RUMBLE': duration = 0.50; break;
-        case 'STUN': duration = 0.25; break;
-        case 'UI_CLICK': duration = 0.035; break;
-        case 'UI_HOVER': duration = 0.03; break;
-        case 'UI_START': duration = 0.35; break;
-        case 'VICTORY': duration = 0.85; break;
-        case 'DEFEAT': duration = 0.90; break;
-        case 'BGM_PAD': duration = 4.00; break;
-        default: duration = 0.1; break;
+        case 'HIT_LIGHT': duration = SYNTH_PATCHES.HIT_LIGHT.DURATION_S; break;
+        case 'HIT_HEAVY': duration = SYNTH_PATCHES.HIT_HEAVY.DURATION_S; break;
+        case 'SLASH': duration = SYNTH_PATCHES.SLASH.DURATION_S; break;
+        case 'BOW': duration = SYNTH_PATCHES.BOW.DURATION_S; break;
+        case 'FIRE': duration = SYNTH_PATCHES.FIRE.DURATION_S; break;
+        case 'ICE': duration = SYNTH_PATCHES.ICE.DURATION_S; break;
+        case 'HEAL': duration = SYNTH_PATCHES.HEAL.DURATION_S; break;
+        case 'DEATH': duration = SYNTH_PATCHES.DEATH.DURATION_S; break;
+        case 'SPAWN': duration = SYNTH_PATCHES.SPAWN.DURATION_S; break;
+        case 'COLLAPSE': duration = SYNTH_PATCHES.COLLAPSE.DURATION_S; break;
+        case 'RUMBLE': duration = SYNTH_PATCHES.RUMBLE.DURATION_S; break;
+        case 'STUN': duration = SYNTH_PATCHES.STUN.DURATION_S; break;
+        case 'UI_CLICK': duration = SYNTH_PATCHES.UI_CLICK.DURATION_S; break;
+        case 'UI_HOVER': duration = SYNTH_PATCHES.UI_HOVER.DURATION_S; break;
+        case 'UI_START': duration = SYNTH_PATCHES.UI_START.DURATION_S; break;
+        case 'VICTORY': duration = SYNTH_PATCHES.VICTORY.DURATION_S; break;
+        case 'DEFEAT': duration = SYNTH_PATCHES.DEFEAT.DURATION_S; break;
+        case 'BGM_PAD': duration = SYNTH_PATCHES.BGM_PAD.DURATION_S; break;
+        default: duration = SYNTH_DEFAULT_DURATION_S; break;
     }
 
     const length = Math.max(1, Math.floor(sampleRate * duration));
@@ -104,11 +105,11 @@ function generateWaveformData(
             let phase = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const freq = 360 * Math.exp(-t * 25) + 60;
+                const freq = SYNTH_PATCHES.HIT_LIGHT.SWEEP_HZ * Math.exp(-t * SYNTH_PATCHES.HIT_LIGHT.SWEEP_DECAY) + SYNTH_PATCHES.HIT_LIGHT.BASE_HZ;
                 phase += (TWO_PI * freq) / sampleRate;
-                const env = Math.exp(-t * 35);
-                const noise = (prng.next() * 2 - 1) * Math.exp(-t * 120) * 0.4;
-                data[i] = (Math.sin(phase) * 0.7 + noise) * env;
+                const env = Math.exp(-t * SYNTH_PATCHES.HIT_LIGHT.ENV_DECAY);
+                const noise = (prng.next() * 2 - 1) * Math.exp(-t * SYNTH_PATCHES.HIT_LIGHT.NOISE_DECAY) * SYNTH_PATCHES.HIT_LIGHT.NOISE_GAIN;
+                data[i] = (Math.sin(phase) * SYNTH_PATCHES.HIT_LIGHT.TONE_GAIN + noise) * env;
             }
             break;
         }
@@ -117,14 +118,14 @@ function generateWaveformData(
             let phase = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const freq = 200 * Math.exp(-t * 18) + 40;
+                const freq = SYNTH_PATCHES.HIT_HEAVY.SWEEP_HZ * Math.exp(-t * SYNTH_PATCHES.HIT_HEAVY.SWEEP_DECAY) + SYNTH_PATCHES.HIT_HEAVY.BASE_HZ;
                 phase += (TWO_PI * freq) / sampleRate;
-                const env = Math.exp(-t * 14);
-                const noise = (prng.next() * 2 - 1) * Math.exp(-t * 60) * 0.5;
+                const env = Math.exp(-t * SYNTH_PATCHES.HIT_HEAVY.ENV_DECAY);
+                const noise = (prng.next() * 2 - 1) * Math.exp(-t * SYNTH_PATCHES.HIT_HEAVY.NOISE_DECAY) * SYNTH_PATCHES.HIT_HEAVY.NOISE_GAIN;
                 const sine = Math.sin(phase);
                 // 輕微軟飽和失真增強重擊質感
                 const drive = Math.tanh(sine * 2.0);
-                data[i] = (drive * 0.75 + noise * 0.25) * env;
+                data[i] = (drive * SYNTH_PATCHES.HIT_HEAVY.TONE_GAIN + noise * SYNTH_PATCHES.HIT_HEAVY.NOISE_MIX) * env;
             }
             break;
         }
@@ -137,8 +138,8 @@ function generateWaveformData(
                 const env = Math.sin(progress * Math.PI);
                 const noise = prng.next() * 2 - 1;
                 // 透過高頻正弦調變製造鋒刃破空聲
-                const mod = Math.sin(TWO_PI * (800 + progress * 1400) * t);
-                data[i] = noise * mod * env * 0.6;
+                const mod = Math.sin(TWO_PI * (SYNTH_PATCHES.SLASH.BASE_HZ + progress * SYNTH_PATCHES.SLASH.SWEEP_HZ) * t);
+                data[i] = noise * mod * env * SYNTH_PATCHES.SLASH.GAIN;
             }
             break;
         }
@@ -148,11 +149,11 @@ function generateWaveformData(
             let phase2 = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                phase1 += (TWO_PI * 240) / sampleRate;
-                phase2 += (TWO_PI * 720) / sampleRate;
-                const env = Math.exp(-t * 28);
-                const snap = (prng.next() * 2 - 1) * Math.exp(-t * 180) * 0.5;
-                data[i] = (Math.sin(phase1) * 0.6 + Math.sin(phase2) * 0.25 + snap) * env;
+                phase1 += (TWO_PI * SYNTH_PATCHES.BOW.FUNDAMENTAL_HZ) / sampleRate;
+                phase2 += (TWO_PI * SYNTH_PATCHES.BOW.HARMONIC_HZ) / sampleRate;
+                const env = Math.exp(-t * SYNTH_PATCHES.BOW.ENV_DECAY);
+                const snap = (prng.next() * 2 - 1) * Math.exp(-t * SYNTH_PATCHES.BOW.SNAP_DECAY) * SYNTH_PATCHES.BOW.SNAP_GAIN;
+                data[i] = (Math.sin(phase1) * SYNTH_PATCHES.BOW.FUNDAMENTAL_GAIN + Math.sin(phase2) * SYNTH_PATCHES.BOW.HARMONIC_GAIN + snap) * env;
             }
             break;
         }
@@ -161,10 +162,10 @@ function generateWaveformData(
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
                 const progress = t / duration;
-                const env = Math.sin(progress * Math.PI) * Math.exp(-progress * 1.5);
+                const env = Math.sin(progress * Math.PI) * Math.exp(-progress * SYNTH_PATCHES.FIRE.ENV_DECAY);
                 const noise = prng.next() * 2 - 1;
-                const rumble = Math.sin(TWO_PI * 95 * t);
-                data[i] = (noise * 0.6 + rumble * 0.4) * env * 0.75;
+                const rumble = Math.sin(TWO_PI * SYNTH_PATCHES.FIRE.RUMBLE_HZ * t);
+                data[i] = (noise * SYNTH_PATCHES.FIRE.NOISE_GAIN + rumble * SYNTH_PATCHES.FIRE.RUMBLE_GAIN) * env * SYNTH_PATCHES.FIRE.GAIN;
             }
             break;
         }
@@ -173,10 +174,10 @@ function generateWaveformData(
             // 晶瑩冰霜音（多重純音諧波快速衰減）
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const env = Math.exp(-t * 22);
-                const h1 = Math.sin(TWO_PI * 1250 * t) * 0.4;
-                const h2 = Math.sin(TWO_PI * 1880 * t) * 0.35;
-                const h3 = Math.sin(TWO_PI * 2520 * t) * 0.25;
+                const env = Math.exp(-t * SYNTH_PATCHES.ICE.ENV_DECAY);
+                const h1 = Math.sin(TWO_PI * SYNTH_PATCHES.ICE.FIRST_HZ * t) * SYNTH_PATCHES.ICE.FIRST_GAIN;
+                const h2 = Math.sin(TWO_PI * SYNTH_PATCHES.ICE.SECOND_HZ * t) * SYNTH_PATCHES.ICE.SECOND_GAIN;
+                const h3 = Math.sin(TWO_PI * SYNTH_PATCHES.ICE.THIRD_HZ * t) * SYNTH_PATCHES.ICE.THIRD_GAIN;
                 data[i] = (h1 + h2 + h3) * env;
             }
             break;
@@ -186,13 +187,13 @@ function generateWaveformData(
             // 溫暖大三和弦琶音
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                let freq = 440;
-                if (t > 0.12 && t <= 0.24) freq = 554.37;
-                else if (t > 0.24) freq = 659.25;
+                let freq: number = SYNTH_PATCHES.HEAL.FIRST_HZ;
+                if (t > SYNTH_PATCHES.HEAL.SECOND_TIME_S && t <= SYNTH_PATCHES.HEAL.THIRD_TIME_S) freq = SYNTH_PATCHES.HEAL.SECOND_HZ;
+                else if (t > SYNTH_PATCHES.HEAL.THIRD_TIME_S) freq = SYNTH_PATCHES.HEAL.THIRD_HZ;
 
                 const env = Math.sin((t / duration) * Math.PI);
                 const s = Math.sin(TWO_PI * freq * t);
-                data[i] = s * env * 0.6;
+                data[i] = s * env * SYNTH_PATCHES.HEAL.GAIN;
             }
             break;
         }
@@ -201,11 +202,11 @@ function generateWaveformData(
             let phase = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const freq = 160 * Math.exp(-t * 4.5) + 35;
+                const freq = SYNTH_PATCHES.DEATH.SWEEP_HZ * Math.exp(-t * SYNTH_PATCHES.DEATH.SWEEP_DECAY) + SYNTH_PATCHES.DEATH.BASE_HZ;
                 phase += (TWO_PI * freq) / sampleRate;
-                const env = Math.exp(-t * 5.5);
-                const noise = (prng.next() * 2 - 1) * 0.15;
-                data[i] = (Math.sin(phase) * 0.8 + noise) * env;
+                const env = Math.exp(-t * SYNTH_PATCHES.DEATH.ENV_DECAY);
+                const noise = (prng.next() * 2 - 1) * SYNTH_PATCHES.DEATH.NOISE_GAIN;
+                data[i] = (Math.sin(phase) * SYNTH_PATCHES.DEATH.TONE_GAIN + noise) * env;
             }
             break;
         }
@@ -214,10 +215,10 @@ function generateWaveformData(
             let phase = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const freq = 300 + (t / duration) * 600;
+                const freq = SYNTH_PATCHES.SPAWN.BASE_HZ + (t / duration) * SYNTH_PATCHES.SPAWN.SWEEP_HZ;
                 phase += (TWO_PI * freq) / sampleRate;
                 const env = Math.sin((t / duration) * Math.PI);
-                data[i] = Math.sin(phase) * env * 0.65;
+                data[i] = Math.sin(phase) * env * SYNTH_PATCHES.SPAWN.GAIN;
             }
             break;
         }
@@ -225,10 +226,10 @@ function generateWaveformData(
         case 'COLLAPSE': {
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const env = Math.exp(-t * 8);
-                const rumble = Math.sin(TWO_PI * 50 * t);
-                const crack = (prng.next() * 2 - 1) * Math.exp(-((t - 0.05) ** 2) * 200);
-                data[i] = (rumble * 0.5 + crack * 0.5) * env * 0.8;
+                const env = Math.exp(-t * SYNTH_PATCHES.COLLAPSE.ENV_DECAY);
+                const rumble = Math.sin(TWO_PI * SYNTH_PATCHES.COLLAPSE.RUMBLE_HZ * t);
+                const crack = (prng.next() * 2 - 1) * Math.exp(-((t - SYNTH_PATCHES.COLLAPSE.CRACK_TIME_S) ** 2) * SYNTH_PATCHES.COLLAPSE.CRACK_SHARPNESS);
+                data[i] = (rumble * SYNTH_PATCHES.COLLAPSE.RUMBLE_GAIN + crack * SYNTH_PATCHES.COLLAPSE.CRACK_GAIN) * env * SYNTH_PATCHES.COLLAPSE.GAIN;
             }
             break;
         }
@@ -237,9 +238,9 @@ function generateWaveformData(
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
                 const env = Math.sin((t / duration) * Math.PI);
-                const sub = Math.sin(TWO_PI * 42 * t);
-                const sub2 = Math.sin(TWO_PI * 36 * t) * 0.5;
-                data[i] = (sub + sub2) * env * 0.85;
+                const sub = Math.sin(TWO_PI * SYNTH_PATCHES.RUMBLE.FIRST_HZ * t);
+                const sub2 = Math.sin(TWO_PI * SYNTH_PATCHES.RUMBLE.SECOND_HZ * t) * SYNTH_PATCHES.RUMBLE.SECOND_GAIN;
+                data[i] = (sub + sub2) * env * SYNTH_PATCHES.RUMBLE.GAIN;
             }
             break;
         }
@@ -247,10 +248,10 @@ function generateWaveformData(
         case 'STUN': {
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const env = Math.exp(-t * 16);
+                const env = Math.exp(-t * SYNTH_PATCHES.STUN.ENV_DECAY);
                 // 拍頻 8 Hz
-                const ring1 = Math.sin(TWO_PI * 880 * t) * 0.5;
-                const ring2 = Math.sin(TWO_PI * 888 * t) * 0.5;
+                const ring1 = Math.sin(TWO_PI * SYNTH_PATCHES.STUN.FIRST_HZ * t) * SYNTH_PATCHES.STUN.FIRST_GAIN;
+                const ring2 = Math.sin(TWO_PI * SYNTH_PATCHES.STUN.SECOND_HZ * t) * SYNTH_PATCHES.STUN.SECOND_GAIN;
                 data[i] = (ring1 + ring2) * env;
             }
             break;
@@ -260,10 +261,10 @@ function generateWaveformData(
             let phase = 0;
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                phase += (TWO_PI * 1400) / sampleRate;
-                const env = Math.exp(-t * 90);
-                const impulse = i < 10 ? 0.4 : 0;
-                data[i] = (Math.sin(phase) * 0.6 + impulse) * env;
+                phase += (TWO_PI * SYNTH_PATCHES.UI_CLICK.TONE_HZ) / sampleRate;
+                const env = Math.exp(-t * SYNTH_PATCHES.UI_CLICK.ENV_DECAY);
+                const impulse = i < SYNTH_PATCHES.UI_CLICK.IMPULSE_SAMPLES ? SYNTH_PATCHES.UI_CLICK.IMPULSE_GAIN : 0;
+                data[i] = (Math.sin(phase) * SYNTH_PATCHES.UI_CLICK.TONE_GAIN + impulse) * env;
             }
             break;
         }
@@ -271,8 +272,8 @@ function generateWaveformData(
         case 'UI_HOVER': {
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const env = Math.exp(-t * 100);
-                data[i] = Math.sin(TWO_PI * 880 * t) * env * 0.4;
+                const env = Math.exp(-t * SYNTH_PATCHES.UI_HOVER.ENV_DECAY);
+                data[i] = Math.sin(TWO_PI * SYNTH_PATCHES.UI_HOVER.TONE_HZ * t) * env * SYNTH_PATCHES.UI_HOVER.GAIN;
             }
             break;
         }
@@ -280,9 +281,9 @@ function generateWaveformData(
         case 'UI_START': {
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const freq = t < 0.16 ? 523.25 : 659.25;
+                const freq = t < SYNTH_PATCHES.UI_START.NOTE_TIME_S ? SYNTH_PATCHES.UI_START.FIRST_HZ : SYNTH_PATCHES.UI_START.SECOND_HZ;
                 const env = Math.sin((t / duration) * Math.PI);
-                data[i] = Math.sin(TWO_PI * freq * t) * env * 0.7;
+                data[i] = Math.sin(TWO_PI * freq * t) * env * SYNTH_PATCHES.UI_START.GAIN;
             }
             break;
         }
@@ -291,14 +292,14 @@ function generateWaveformData(
             // C5 -> E5 -> G5 -> C6
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                let freq = 523.25;
-                if (t >= 0.2 && t < 0.4) freq = 659.25;
-                else if (t >= 0.4 && t < 0.6) freq = 783.99;
-                else if (t >= 0.6) freq = 1046.50;
+                let freq: number = SYNTH_PATCHES.VICTORY.FIRST_HZ;
+                if (t >= SYNTH_PATCHES.VICTORY.SECOND_TIME_S && t < SYNTH_PATCHES.VICTORY.THIRD_TIME_S) freq = SYNTH_PATCHES.VICTORY.SECOND_HZ;
+                else if (t >= SYNTH_PATCHES.VICTORY.THIRD_TIME_S && t < SYNTH_PATCHES.VICTORY.LAST_TIME_S) freq = SYNTH_PATCHES.VICTORY.THIRD_HZ;
+                else if (t >= SYNTH_PATCHES.VICTORY.LAST_TIME_S) freq = SYNTH_PATCHES.VICTORY.LAST_HZ;
 
-                const noteProgress = (t % 0.2) / 0.2;
-                const noteEnv = t >= 0.6 ? Math.exp(-(t - 0.6) * 4) : Math.sin(noteProgress * Math.PI);
-                data[i] = Math.sin(TWO_PI * freq * t) * noteEnv * 0.7;
+                const noteProgress = (t % SYNTH_PATCHES.VICTORY.NOTE_S) / SYNTH_PATCHES.VICTORY.NOTE_S;
+                const noteEnv = t >= SYNTH_PATCHES.VICTORY.LAST_TIME_S ? Math.exp(-(t - SYNTH_PATCHES.VICTORY.LAST_TIME_S) * SYNTH_PATCHES.VICTORY.RELEASE_DECAY) : Math.sin(noteProgress * Math.PI);
+                data[i] = Math.sin(TWO_PI * freq * t) * noteEnv * SYNTH_PATCHES.VICTORY.GAIN;
             }
             break;
         }
@@ -307,14 +308,14 @@ function generateWaveformData(
             // D4 -> C4 -> Bb3 -> A3
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                let freq = 293.66;
-                if (t >= 0.22 && t < 0.44) freq = 261.63;
-                else if (t >= 0.44 && t < 0.66) freq = 233.08;
-                else if (t >= 0.66) freq = 220.00;
+                let freq: number = SYNTH_PATCHES.DEFEAT.FIRST_HZ;
+                if (t >= SYNTH_PATCHES.DEFEAT.SECOND_TIME_S && t < SYNTH_PATCHES.DEFEAT.THIRD_TIME_S) freq = SYNTH_PATCHES.DEFEAT.SECOND_HZ;
+                else if (t >= SYNTH_PATCHES.DEFEAT.THIRD_TIME_S && t < SYNTH_PATCHES.DEFEAT.LAST_TIME_S) freq = SYNTH_PATCHES.DEFEAT.THIRD_HZ;
+                else if (t >= SYNTH_PATCHES.DEFEAT.LAST_TIME_S) freq = SYNTH_PATCHES.DEFEAT.LAST_HZ;
 
-                const noteProgress = (t % 0.22) / 0.22;
-                const noteEnv = t >= 0.66 ? Math.exp(-(t - 0.66) * 3) : Math.sin(noteProgress * Math.PI);
-                data[i] = Math.sin(TWO_PI * freq * t) * noteEnv * 0.7;
+                const noteProgress = (t % SYNTH_PATCHES.DEFEAT.NOTE_S) / SYNTH_PATCHES.DEFEAT.NOTE_S;
+                const noteEnv = t >= SYNTH_PATCHES.DEFEAT.LAST_TIME_S ? Math.exp(-(t - SYNTH_PATCHES.DEFEAT.LAST_TIME_S) * SYNTH_PATCHES.DEFEAT.RELEASE_DECAY) : Math.sin(noteProgress * Math.PI);
+                data[i] = Math.sin(TWO_PI * freq * t) * noteEnv * SYNTH_PATCHES.DEFEAT.GAIN;
             }
             break;
         }
@@ -323,13 +324,13 @@ function generateWaveformData(
             // 4 秒無縫循環氛圍鋪底音（A3 + E4 + A4 + C#5）
             for (let i = 0; i < len; i++) {
                 const t = i / sampleRate;
-                const s1 = Math.sin(TWO_PI * 220 * t) * 0.35;
-                const s2 = Math.sin(TWO_PI * 330 * t) * 0.25;
-                const s3 = Math.sin(TWO_PI * 440 * t) * 0.20;
-                const s4 = Math.sin(TWO_PI * 554.37 * t) * 0.15;
+                const s1 = Math.sin(TWO_PI * SYNTH_PATCHES.BGM_PAD.FIRST_HZ * t) * SYNTH_PATCHES.BGM_PAD.FIRST_GAIN;
+                const s2 = Math.sin(TWO_PI * SYNTH_PATCHES.BGM_PAD.SECOND_HZ * t) * SYNTH_PATCHES.BGM_PAD.SECOND_GAIN;
+                const s3 = Math.sin(TWO_PI * SYNTH_PATCHES.BGM_PAD.THIRD_HZ * t) * SYNTH_PATCHES.BGM_PAD.THIRD_GAIN;
+                const s4 = Math.sin(TWO_PI * SYNTH_PATCHES.BGM_PAD.FOURTH_HZ * t) * SYNTH_PATCHES.BGM_PAD.FOURTH_GAIN;
                 // 兩端淡入淡出保證無縫循環 (cosine window)
                 const fade = Math.sin((t / duration) * Math.PI);
-                data[i] = (s1 + s2 + s3 + s4) * fade * 0.5;
+                data[i] = (s1 + s2 + s3 + s4) * fade * SYNTH_PATCHES.BGM_PAD.GAIN;
             }
             break;
         }

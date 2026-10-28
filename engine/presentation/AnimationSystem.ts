@@ -1,3 +1,4 @@
+import { ANIMATION_PARAM } from '../../constants';
 
 // ╔══════════════════════════════════════════════════════════╗
 // ║  AnimationSystem — 單位動畫狀態機                        ║
@@ -20,10 +21,10 @@ export class AnimationSystem {
 
             // 1.1 Decay Visual Offset (Damping)
             if (agent.view.visualOffset.x !== 0 || agent.view.visualOffset.y !== 0) {
-                agent.view.visualOffset.x *= (1 - 15 * dt);
-                agent.view.visualOffset.y *= (1 - 15 * dt);
-                if (Math.abs(agent.view.visualOffset.x) < 0.1) agent.view.visualOffset.x = 0;
-                if (Math.abs(agent.view.visualOffset.y) < 0.1) agent.view.visualOffset.y = 0;
+                agent.view.visualOffset.x *= (1 - ANIMATION_PARAM.OFFSET_DAMPING * dt);
+                agent.view.visualOffset.y *= (1 - ANIMATION_PARAM.OFFSET_DAMPING * dt);
+                if (Math.abs(agent.view.visualOffset.x) < ANIMATION_PARAM.OFFSET_SNAP_PX) agent.view.visualOffset.x = 0;
+                if (Math.abs(agent.view.visualOffset.y) < ANIMATION_PARAM.OFFSET_SNAP_PX) agent.view.visualOffset.y = 0;
             }
 
             // 2. Derive Animation State (Priority Based)
@@ -52,7 +53,7 @@ export class AnimationSystem {
             }
 
             // Hit reaction has high priority but short duration
-            if (agent.view.hitFlashTimer > 0.05) {
+            if (agent.view.hitFlashTimer > ANIMATION_PARAM.HIT_THRESHOLD_S) {
                 agent.animState = AnimState.HIT;
                 continue;
             }

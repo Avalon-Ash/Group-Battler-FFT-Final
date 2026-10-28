@@ -8,6 +8,10 @@
 // ║  以只減不增的基準擋住偏離。                                ║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { RENDER_LIST_PARAM, VISUAL_MATH_PARAM } from '../../constants';
+
+const R = RENDER_LIST_PARAM;
+
 export class RenderSpec {
     static generateSpec(): string {
         let s = "# TACTICAL.OS — 渲染管線座標協議 (Renderer v2.0, 2026-10-17)\n\n";
@@ -17,10 +21,10 @@ export class RenderSpec {
         s += "## 1. RenderOp 層序總表 (Layer Order SSOT)\n\n";
         s += "唯一定義點：RenderList.ts 的 SUB_LAYER。排序鍵：\n\n";
         s += "  finalSortY = op.y + op.sortBias ＋ tiebreak（CORPSE +0.5、VFX／PROJECTILE +1.0）\n";
-        s += "  sortKey    = floor((finalSortY + 10000) * 100) + subLayer\n";
+        s += `  sortKey    = floor((finalSortY + ${R.SORT_Y_OFFSET}) * ${R.SORT_Y_SCALE}) + subLayer（RENDER_LIST_PARAM.SORT_Y_OFFSET／SORT_Y_SCALE）\n`;
         s += "             空中 VFX／PROJECTILE／AURA：**高度 z 不進鍵**；鍵 = 足跡 Y ＋ 固定前緣 AIR_SORT_BIAS（§2），對粒子壽命單調\n";
-        s += "             ＋ UNIT：agent id 雜湊 * 0.00001（同鍵決定性）\n";
-        s += "             ＋ 奧義或 z > 600：+1e8（永遠在最上層）\n\n";
+        s += `             ＋ UNIT：agent id 雜湊 * ${R.ID_TIEBREAK}（RENDER_LIST_PARAM.ID_TIEBREAK，同鍵決定性）\n`;
+        s += `             ＋ 奧義或 z > ${R.TOP_Z_THRESHOLD}：+${R.TOP_SORT_BIAS}（RENDER_LIST_PARAM.TOP_Z_THRESHOLD／TOP_SORT_BIAS，永遠在最上層）\n\n`;
         s += "subLayer 只決定「同一個 Y 桶」內的先後；跨格遮擋由 finalSortY 決定（相鄰格 Y 差約 24 px，tiebreak 必須遠小於它）。\n\n";
 
         s += "| RenderOpType     | subLayer | 描述 |\n";
@@ -62,7 +66,7 @@ export class RenderSpec {
         s += "**空中物件的鍵（VFX air、PROJECTILE、AURA）= 足跡 Y ＋ 固定 AIR_SORT_BIAS，不含高度 z**。足跡 Y 是粒子在地面的投影（op.y），\n";
         s += "高度只影響繪製位置（op.ty）。舊的 `op.z * 20`（z > 0）與固定 `+60`（z == 0）和 y*100 互相抵銷，往下掉的碎片鍵在鄰居兩側來回，\n";
         s += "相對地塊／單位／疊層逐幀翻轉（docs/COORD_GUARD_FINDINGS.md H3）。現在掉落的碎片 y 不變則鍵不變，水平移動則鍵單調，\n";
-        s += "對任何靜止物件最多翻轉一次。投射物的 op.z = 5000 + 高度是刻意的：z > 600 的 +1e8 讓它永遠在最上層。\n";
+        s += `對任何靜止物件最多翻轉一次。投射物的 op.z = 5000 + 高度是刻意的：z > ${R.TOP_Z_THRESHOLD} 的 +${R.TOP_SORT_BIAS} 讓它永遠在最上層。\n`;
         s += "零件高度路徑（PartAnim.rise，ULT-V01 奧義主體的成形／抬起／砸落）只依生命進度改 z（VFXPhysics），足跡不動，所以同樣不進鍵；\n";
         s += "貼地零件（groundAnchored）以當前地面高度為基準加上路徑偏移。\n";
         s += "AURA 去掉舊的 `高度 * TERRAIN_SORT_SCALE`（證據：docs/COORD_GUARD_FINDINGS.md §8，景深預言判 AURA 的穩定錯序 361 → 70）。\n\n";
@@ -119,7 +123,7 @@ export class RenderSpec {
         s += "| 狀態零件層（StatusPartPainter） | GROUND／BODY／HEAD 三種錨點（data/vfx/status_parts.ts） | 全部讀 UnitFrame 與 projection SSOT：GROUND＝floorY − physics.z（腳下，貼地層半徑 ≤ STATUS_PART_RENDER.GROUND_MAX_RADIUS，因為狀態在單位之後的總覽層繪製、不做 §9 鋪設，必須待在腳下那格）；BODY＝投影中心（floorY − physics.z − projectionCenterHeight）；HEAD＝頭頂（projectionTopHeight）+ STATUS_PART_RENDER.HEAD_MARGIN，頭頂標記擠在頭與血條之間，同一單位只畫優先序最高者。繪製順序：GROUND → BODY → HEAD。層格式與繪製共用 PartLayerPainter（危害也用）。護盾由 ShieldPainter 畫 prism 零件，底面＝腳底、高度＝頭頂＋headMargin（computeShieldGeometry） |\n";
         s += "| 浮動文字基準線 | hudTextHeight | 血條錨點 + HUD_ANCHOR.textGap（傷害數字、詠唱字、KILL_STREAK；EventHUDMapper 依事件主角的體型取值） |\n";
         s += "| 精靈繪製原點 | getVisualBodyCenterY(腳底繪製 Y, physics.z) | 腳底繪製 Y − physics.z − UNIT_BODY_OFFSET − UNIT_HOVER_OFFSET。**這是 UnitBodyPainter／護盾／包裹類狀態的繪製原點（精靈腳底落在它之下 42px，見 UNIT_SPRITE.footOffsetLocal），不是投影中心**：投影中心在腳底之上頭頂高度的一半（目前約 29.5px），繪製原點在腳底之上 42px。UNIT_BODY_OFFSET／UNIT_HOVER_OFFSET 只剩這個繪製慣例與護盾稜柱貼地在用，錨點不再讀它們 |\n";
-        s += "| 地面目標點 | resolveTargetPoint（ground-q,r） | 格高 + 2 |\n";
+        s += `| 地面目標點 | resolveTargetPoint（ground-q,r） | 格高 + ${VISUAL_MATH_PARAM.GROUND_TARGET_LIFT}（VISUAL_MATH_PARAM.GROUND_TARGET_LIFT） |\n`;
         s += "| 漂浮位移 | floatBobAt／isFloatingBiome | 見 §5 |\n";
         s += "| 單位事件位置 | unitEventPos（engine/events/EventPos.ts） | xy＝px+physics；z＝getUnitGroundHeight（模擬高度）+ physics.z |\n";
         s += "| 格子事件位置 | hexEventPos | 六角格中心；z＝getTerrainHeight(q, r) |\n";

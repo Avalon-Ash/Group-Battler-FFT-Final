@@ -1,11 +1,12 @@
+import { RENDER_LIST_PARAM } from '../../constants';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  RenderList — RenderOp 池與深度排序（SUB_LAYER 唯一定義點） ║
-// ║  職責：sortKey＝floor((op.y＋sortBias＋tiebreak＋10000)*100) ║
+// ║  職責：sortKey 使用 RENDER_LIST_PARAM.SORT_Y_OFFSET／SORT_Y_SCALE ║
 // ║        ＋subLayer。鍵只含足跡 Y、op.sortBias 與固定平局值：  ║
 // ║        沒有高度 z 加權（空中特效的前緣由 VFXRenderer 以      ║
 // ║        sortBias 提交，RenderSpec §2），也沒有「單位站在      ║
 // ║        法陣上」的抬升（大型平貼特效改由 GroundDrapeLayer     ║
-// ║        鋪在格子頂面，§9）。唯一例外：z > 600／奧義 +1e8      ║
+// ║        鋪在格子頂面，§9）。唯一例外：z > TOP_Z_THRESHOLD／奧義 +TOP_SORT_BIAS      ║
 // ║        （永遠最上層，投射物靠它）。                           ║
 // ║  [ARCH] 規則見 engine/renderers/RenderSpec.ts §1、§2。       ║
 // ╚══════════════════════════════════════════════════════════╝
@@ -127,7 +128,7 @@ export class RenderList {
     public ops: RenderOp[] = [];
     public count: number = 0;
     private sortView: RenderOp[] = [];
-    private capacity: number = 8000;
+    private capacity: number = RENDER_LIST_PARAM.INITIAL_CAPACITY;
 
     constructor() {
         for(let i=0; i<this.capacity; i++) {
@@ -143,7 +144,7 @@ export class RenderList {
 
     public next(): RenderOp {
         if (this.count >= this.ops.length) {
-            for(let i=0; i<1000; i++) {
+            for(let i=0; i<RENDER_LIST_PARAM.GROWTH_CAPACITY; i++) {
                 const op = new RenderOp();
                 this.ops.push(op);
                 this.sortView.push(op);
@@ -171,7 +172,7 @@ export class RenderList {
                 finalSortY += VFX_TIEBREAK;
             }
 
-            let sortKey = Math.floor((finalSortY + 10000) * 100);
+            let sortKey = Math.floor((finalSortY + RENDER_LIST_PARAM.SORT_Y_OFFSET) * RENDER_LIST_PARAM.SORT_Y_SCALE);
 
             // Sub-layer within same Y bucket (unchanged)
             let subLayer = 0;
@@ -196,12 +197,12 @@ export class RenderList {
 
             // Tiebreaker for UNIT determinism (unchanged)
             if (op.type === RenderOpType.UNIT && op.agent) {
-                const idHash = parseInt(op.agent.id.slice(-4), 36) % 100;
-                sortKey += idHash * 0.00001;
+                const idHash = parseInt(op.agent.id.slice(-RENDER_LIST_PARAM.ID_SUFFIX_LENGTH), RENDER_LIST_PARAM.ID_RADIX) % RENDER_LIST_PARAM.ID_BUCKETS;
+                sortKey += idHash * RENDER_LIST_PARAM.ID_TIEBREAK;
             }
 
             // Absolute override: ULT / sky-high effects (unchanged)
-            if (op.pIsUlt || op.z > 600) sortKey += 100000000;
+            if (op.pIsUlt || op.z > RENDER_LIST_PARAM.TOP_Z_THRESHOLD) sortKey += RENDER_LIST_PARAM.TOP_SORT_BIAS;
 
             op.sortKey = sortKey;
             this.sortView[i] = op;

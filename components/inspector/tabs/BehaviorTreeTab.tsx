@@ -5,7 +5,7 @@ import { Agent, GameEngine } from '../../../engine/game';
 import { TreeNode } from '../parts/TreeNode';
 import { useDraggable } from '../../../hooks/useDraggable';
 import { useEngineCommands } from '../../../hooks/useEngineCommands';
-import { UI_Z } from '../../../constants';
+import { BT_VIEW_PARAM, UI_Z } from '../../../constants';
 
 interface BehaviorTreeTabProps {
     agent: Agent;
@@ -17,7 +17,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
     const { rebuildAgentAI } = useEngineCommands(engine);
 
     // BT Interaction State
-    const [btScale, setBtScale] = useState(0.9); // Increased default scale for readability
+    const [btScale, setBtScale] = useState(BT_VIEW_PARAM.DEFAULT_SCALE); // Increased default scale for readability
     const [btPos, setBtPos] = useState({x: 0, y: 16});
     const btContainerRef = useRef<HTMLDivElement>(null);
     const btContentRef = useRef<HTMLDivElement>(null);
@@ -68,7 +68,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
         const iw = btContentRef.current.offsetWidth;
         const ih = btContentRef.current.offsetHeight;
         if (iw === 0 || ih === 0) return;
-        const newScale = Math.min((cw * 0.92) / iw, (ch * 0.88) / ih, 1.2);
+        const newScale = Math.min((cw * BT_VIEW_PARAM.FIT_WIDTH) / iw, (ch * BT_VIEW_PARAM.FIT_HEIGHT) / ih, BT_VIEW_PARAM.FIT_MAX_SCALE);
         setBtScale(newScale);
         setBtPos({ x: 0, y: 16 });
     }, []);
@@ -76,14 +76,14 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
     // Reset view on agent change
     useEffect(() => {
         setBtPos({ x: 0, y: 16 });
-        setBtScale(0.9);
+        setBtScale(BT_VIEW_PARAM.DEFAULT_SCALE);
         requestAnimationFrame(() => fitToView());
     }, [agent.id, fitToView]);
 
     const handleBtWheel = (e: React.WheelEvent) => {
         e.stopPropagation();
-        const delta = e.deltaY > 0 ? -0.05 : 0.05;
-        setBtScale(s => Math.max(0.2, Math.min(2.0, s + delta)));
+        const delta = e.deltaY > 0 ? -BT_VIEW_PARAM.WHEEL_STEP : BT_VIEW_PARAM.WHEEL_STEP;
+        setBtScale(s => Math.max(BT_VIEW_PARAM.MIN_SCALE, Math.min(BT_VIEW_PARAM.MAX_SCALE, s + delta)));
     };
     
     // --- POINTER EVENTS (Robust Dragging) ---
@@ -149,7 +149,7 @@ export const BehaviorTreeTab: React.FC<BehaviorTreeTabProps> = ({ agent, version
             <div 
                 ref={popupRef}
                 className="fixed flex flex-col bg-black/90 border border-white/10 rounded overflow-hidden shadow-2xl"
-                style={{ ...popupStyle, width: 680, height: 520, zIndex: UI_Z.WINDOW_BASE }}
+                style={{ ...popupStyle, width: BT_VIEW_PARAM.POPUP_W, height: BT_VIEW_PARAM.POPUP_H, zIndex: UI_Z.WINDOW_BASE }}
             >
                 {/* Header Bar */}
                 <div 

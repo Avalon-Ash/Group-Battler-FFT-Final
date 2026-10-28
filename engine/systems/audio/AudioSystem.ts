@@ -1,5 +1,5 @@
 import { KILL_SPREE_CUE_BY_TIER } from '../../../data/audio/cues';
-import { AUDIO, SCREEN_CONSTANTS, AUDIO_HEAVY_HIT_DAMAGE } from '../../../constants';
+import { AUDIO_EVENT_PARAM, AUDIO, SCREEN_CONSTANTS, AUDIO_HEAVY_HIT_DAMAGE } from '../../../constants';
 import { GameEvent, Team, UICommand } from '../../../types';
 import {
     AudioEngine,
@@ -47,7 +47,7 @@ export class AudioSystem {
 
         // 預設為展示模式（與 UI session 初始狀態一致）：氛圍 BGM + 壓低的 SFX
         this.audioEngine.setShowcaseMix(true);
-        this.audioEngine.playMusic('SHOWCASE_AMBIENT', 0.5);
+        this.audioEngine.playMusic('SHOWCASE_AMBIENT', AUDIO_EVENT_PARAM.INITIAL_FADE_S);
     }
 
     /** 取得此 AudioSystem 的擁有者 Token */
@@ -101,11 +101,11 @@ export class AudioSystem {
             if (this.isShowcase) return;
             if (data.winner !== null) {
                 // 勝利只播陣營勝利曲；VICTORY 音效檔與藍方勝利曲是同一首號角，紅方贏也會聽到藍方的，且音效換場切不掉
-                this.audioEngine.playMusic(WINNER_TO_VICTORY_TRACK[data.winner], 0.2);
+                this.audioEngine.playMusic(WINNER_TO_VICTORY_TRACK[data.winner], AUDIO_EVENT_PARAM.RESULT_FADE_S);
             } else {
                 // 平手 / 同歸於盡：無勝方
                 this.audioEngine.playCue('DEFEAT');
-                this.audioEngine.playMusic('DEFEAT_STING', 0.2);
+                this.audioEngine.playMusic('DEFEAT_STING', AUDIO_EVENT_PARAM.RESULT_FADE_S);
             }
         });
 
@@ -123,23 +123,23 @@ export class AudioSystem {
         });
 
         this.subscribe('CAMERA_SHAKE', (data: { intensity: number }) => {
-            const intensity = Math.min(1.5, Math.max(0.4, data.intensity * 2.0));
+            const intensity = Math.min(AUDIO_EVENT_PARAM.SHAKE_MAX_GAIN, Math.max(AUDIO_EVENT_PARAM.SHAKE_MIN_GAIN, data.intensity * AUDIO_EVENT_PARAM.SHAKE_GAIN_MULT));
             this.audioEngine.playCue('RUMBLE', { intensity });
         });
 
         this.subscribe('TILE_COLLAPSED', (data: { q: number; r: number; worldX?: number; worldY?: number }) => {
-            const x = data.worldX !== undefined ? data.worldX : (data.q + 6) * 100;
+            const x = data.worldX !== undefined ? data.worldX : (data.q + AUDIO_EVENT_PARAM.FALLBACK_Q_OFFSET) * AUDIO_EVENT_PARAM.FALLBACK_Q_SCALE;
             const pan = this.calculateScreenXRatio(x);
-            this.audioEngine.playCue('COLLAPSE', { x: pan, intensity: 1.1 });
+            this.audioEngine.playCue('COLLAPSE', { x: pan, intensity: AUDIO_EVENT_PARAM.IMPACT_GAIN });
         });
 
         this.subscribe('ZONE_SHRUNK', () => {
-            this.audioEngine.playCue('COLLAPSE', { intensity: 0.9 });
+            this.audioEngine.playCue('COLLAPSE', { intensity: AUDIO_EVENT_PARAM.SHRINK_GAIN });
         });
 
         this.subscribe('LAST_STAND_TRIGGERED', (data: { q: number; r: number }) => {
-            const pan = this.calculateScreenXRatio((data.q + 6) * 100);
-            this.audioEngine.playCue('RUMBLE', { x: pan, intensity: 1.4 });
+            const pan = this.calculateScreenXRatio((data.q + AUDIO_EVENT_PARAM.FALLBACK_Q_OFFSET) * AUDIO_EVENT_PARAM.FALLBACK_Q_SCALE);
+            this.audioEngine.playCue('RUMBLE', { x: pan, intensity: AUDIO_EVENT_PARAM.LAST_STAND_GAIN });
         });
 
         this.subscribe('AGENT_DIED', (data: { impactX: number }) => {
@@ -149,7 +149,7 @@ export class AudioSystem {
             if (this.isBattleActive && !this.isShowcase) {
                 this.remainingAgents = Math.max(0, this.remainingAgents - 1);
                 // 存活單位 <= 4 時切換至緊張音樂層（與 BATTLE_NORMAL 嚴格互斥，僅切換一次）
-                if (this.remainingAgents <= 4 && !this.isTenseActive) {
+                if (this.remainingAgents <= AUDIO_EVENT_PARAM.TENSE_AGENT_COUNT && !this.isTenseActive) {
                     this.isTenseActive = true;
                     this.audioEngine.playMusic('BATTLE_TENSE', AUDIO.BGM_CROSSFADE_SEC);
                 }
@@ -157,11 +157,11 @@ export class AudioSystem {
         });
 
         this.subscribe('KILL', () => {
-            this.audioEngine.playCue('HIT_HEAVY', { intensity: 1.2 });
+            this.audioEngine.playCue('HIT_HEAVY', { intensity: AUDIO_EVENT_PARAM.KILL_GAIN });
         });
 
         this.subscribe('CAST_START', () => {
-            this.audioEngine.playCue('SPELL_CAST', { intensity: 0.8 });
+            this.audioEngine.playCue('SPELL_CAST', { intensity: AUDIO_EVENT_PARAM.CAST_GAIN });
         });
 
         this.subscribe('UI_COMMAND', (cmd: UICommand) => {
@@ -204,13 +204,13 @@ export class AudioSystem {
                 const isMissOrBlock = evt.text === 'MISS' || evt.text === 'BLOCK';
 
                 if (isMissOrBlock) {
-                    cueOpts.intensity = 0.5;
+                    cueOpts.intensity = AUDIO_EVENT_PARAM.MISS_GAIN;
                     this.audioEngine.playCue('SLASH', cueOpts);
                 } else if (isCrit) {
-                    cueOpts.intensity = Math.min(1.4, Math.max(0.9, val / 60));
+                    cueOpts.intensity = Math.min(AUDIO_EVENT_PARAM.HEAVY_MAX_GAIN, Math.max(AUDIO_EVENT_PARAM.HEAVY_MIN_GAIN, val / AUDIO_EVENT_PARAM.HEAVY_DAMAGE_SCALE));
                     this.audioEngine.playCue('HIT_HEAVY', cueOpts);
                 } else {
-                    cueOpts.intensity = Math.min(1.2, Math.max(0.6, val / 40));
+                    cueOpts.intensity = Math.min(AUDIO_EVENT_PARAM.LIGHT_MAX_GAIN, Math.max(AUDIO_EVENT_PARAM.LIGHT_MIN_GAIN, val / AUDIO_EVENT_PARAM.LIGHT_DAMAGE_SCALE));
                     this.audioEngine.playCue('HIT_LIGHT', cueOpts);
                 }
                 break;
@@ -260,7 +260,7 @@ export class AudioSystem {
             }
 
             case 'IMPACT_AOE': {
-                cueOpts.intensity = 1.2;
+                cueOpts.intensity = AUDIO_EVENT_PARAM.AOE_GAIN;
                 this.audioEngine.playCue('COLLAPSE', cueOpts);
                 break;
             }
@@ -271,7 +271,7 @@ export class AudioSystem {
             }
 
             case 'GROUND_IMPACT': {
-                cueOpts.intensity = 1.1;
+                cueOpts.intensity = AUDIO_EVENT_PARAM.GROUND_GAIN;
                 this.audioEngine.playCue('IMPACT_GROUND', cueOpts);
                 break;
             }

@@ -1,4 +1,4 @@
-import { AUDIO } from '../../constants';
+import { AUDIO_ENGINE_PARAM, AUDIO } from '../../constants';
 import { CueDef, CueId, CUE_TABLE, AudioBusType } from '../../data/audio/cues';
 import { TrackId, MUSIC_TABLE } from '../../data/audio/music';
 import { AudioPRNG, createSynthBuffer } from './Synth';
@@ -313,7 +313,7 @@ export class AudioEngine {
             const pitchJitter = cueDef.pitchJitter ?? AUDIO.PITCH_JITTER;
             if (pitchJitter > 0) {
                 const pitchDelta = this.prng.range(-pitchJitter, pitchJitter);
-                source.playbackRate.value = Math.max(0.2, 1.0 + pitchDelta);
+                source.playbackRate.value = Math.max(AUDIO_ENGINE_PARAM.MIN_PLAYBACK_RATE, 1.0 + pitchDelta);
             }
 
             // 音量增益與微調
@@ -417,8 +417,8 @@ export class AudioEngine {
             if (trackDef.loopEnd !== undefined) newSource.loopEnd = trackDef.loopEnd;
 
             const newGain = this.ctx.createGain();
-            const safeFade = Math.max(0.01, fadeSec);
-            newGain.gain.setValueAtTime(0.0001, now);
+            const safeFade = Math.max(AUDIO_ENGINE_PARAM.MIN_FADE_S, fadeSec);
+            newGain.gain.setValueAtTime(AUDIO_ENGINE_PARAM.SILENT_GAIN, now);
             newGain.gain.linearRampToValueAtTime(targetVolume, now + safeFade);
 
             if (this.musicGain) {
@@ -473,9 +473,9 @@ export class AudioEngine {
             oldGain.cancelScheduledValues(now);
             oldGain.setValueAtTime(oldGain.value, now);
             if (safeFade > 0) {
-                oldGain.linearRampToValueAtTime(0.0001, now + safeFade);
+                oldGain.linearRampToValueAtTime(AUDIO_ENGINE_PARAM.SILENT_GAIN, now + safeFade);
             } else {
-                oldGain.setValueAtTime(0.0001, now);
+                oldGain.setValueAtTime(AUDIO_ENGINE_PARAM.SILENT_GAIN, now);
             }
         } catch (err: unknown) {
             this.handleAudioException('fadeOutCurrentMusic.gain', err);
@@ -507,7 +507,7 @@ export class AudioEngine {
             } catch (err: unknown) {
                 this.handleAudioException('fadeOutCurrentMusic.cleanup', err);
             }
-        }, Math.ceil(safeFade * 1000) + 50);
+        }, Math.ceil(safeFade * 1000) + AUDIO_ENGINE_PARAM.FADE_CLEANUP_MARGIN_MS);
         this.fadingTimers.add(timer);
     }
 
@@ -625,7 +625,7 @@ export class AudioEngine {
         this.hasPreloaded = true;
 
         const scheduleIdle = typeof window !== 'undefined' && 'requestIdleCallback' in window
-            ? (cb: () => void) => (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
+            ? (cb: () => void) => (window as unknown as { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: AUDIO_ENGINE_PARAM.PRELOAD_IDLE_TIMEOUT_MS })
             : (cb: () => void) => setTimeout(cb, 1000);
 
         const remainingTracks: TrackId[] = (Object.keys(MUSIC_TABLE) as TrackId[]).filter(t => t !== 'SHOWCASE_AMBIENT');
@@ -725,7 +725,7 @@ export class AudioEngine {
                 const now = this.ctx.currentTime;
                 this.masterGain.gain.cancelScheduledValues(now);
                 this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                this.masterGain.gain.linearRampToValueAtTime(0.0001, now + 0.5);
+                this.masterGain.gain.linearRampToValueAtTime(AUDIO_ENGINE_PARAM.SILENT_GAIN, now + AUDIO_ENGINE_PARAM.FOCUS_FADE_S);
             }
         };
         this.focusListenerBound = () => {
@@ -734,7 +734,7 @@ export class AudioEngine {
                 const target = Math.pow(Math.max(0, Math.min(1, this.settings.master)), AUDIO.VOLUME_CURVE_EXPONENT);
                 this.masterGain.gain.cancelScheduledValues(now);
                 this.masterGain.gain.setValueAtTime(this.masterGain.gain.value, now);
-                this.masterGain.gain.linearRampToValueAtTime(target, now + 0.5);
+                this.masterGain.gain.linearRampToValueAtTime(target, now + AUDIO_ENGINE_PARAM.FOCUS_FADE_S);
             }
         };
         window.addEventListener('blur', this.blurListenerBound);

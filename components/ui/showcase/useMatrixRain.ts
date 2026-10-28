@@ -1,3 +1,4 @@
+import { MATRIX_RAIN_PARAM } from '../../../constants';
 import { stableMatrixChar as getStableChar } from '../../../engine/math/hash';
 import React, { useEffect, useRef } from 'react';
 import { MatrixConfig } from './types';
@@ -74,7 +75,7 @@ export const useMatrixRain = (
             // 更新頻率節流至 30 Hz
             if (budget.hz < 60 && budget.hz > 0) {
                 const interval = 1000 / budget.hz;
-                if (now - lastRenderTime < interval - 4) {
+                if (now - lastRenderTime < interval - MATRIX_RAIN_PARAM.FRAME_SLACK_MS) {
                     animationId = requestAnimationFrame(render);
                     return;
                 }
@@ -100,14 +101,14 @@ export const useMatrixRain = (
             ctx.textBaseline = 'top';
             let moveDelta = 0, trailDx = 0, trailDy = 0, endBound = 0;
             switch(cfg.direction) {
-                case 'DOWN':  moveDelta = 1;  trailDx = 0; trailDy = -1; endBound = height + 100; break;
-                case 'UP':    moveDelta = -1; trailDx = 0; trailDy = 1;  endBound = -100; break;
-                case 'RIGHT': moveDelta = 1;  trailDx = -1; trailDy = 0; endBound = width + 100; break;
-                case 'LEFT':  moveDelta = -1; trailDx = 1;  trailDy = 0; endBound = -100; break;
+                case 'DOWN':  moveDelta = 1;  trailDx = 0; trailDy = -1; endBound = height + MATRIX_RAIN_PARAM.END_MARGIN_PX; break;
+                case 'UP':    moveDelta = -1; trailDx = 0; trailDy = 1;  endBound = -MATRIX_RAIN_PARAM.END_MARGIN_PX; break;
+                case 'RIGHT': moveDelta = 1;  trailDx = -1; trailDy = 0; endBound = width + MATRIX_RAIN_PARAM.END_MARGIN_PX; break;
+                case 'LEFT':  moveDelta = -1; trailDx = 1;  trailDy = 0; endBound = -MATRIX_RAIN_PARAM.END_MARGIN_PX; break;
             }
             const laneSize = cfg.fontSize + cfg.spacing;
             lanes.forEach((lane, idx) => {
-                const spawnOrigin = moveDelta > 0 ? -cfg.fontSize * 5 : (isVertical ? height : width) + cfg.fontSize * 5;
+                const spawnOrigin = moveDelta > 0 ? -cfg.fontSize * MATRIX_RAIN_PARAM.SPAWN_MARGIN_FONTS : (isVertical ? height : width) + cfg.fontSize * MATRIX_RAIN_PARAM.SPAWN_MARGIN_FONTS;
                 const gapPixels = (cfg.streamGap * (isVertical ? height : width)) + (cfg.trailLength * cfg.fontSize);
                 let canSpawn = false;
                 if (!lane.latestDrop) {
@@ -121,7 +122,7 @@ export const useMatrixRain = (
                     }
                 }
                 if (canSpawn) {
-                    if (cfg.streamGap === 0 || Math.random() < 0.1) {
+                    if (cfg.streamGap === 0 || Math.random() < MATRIX_RAIN_PARAM.SPAWN_PROBABILITY) {
                         const d = createDrop(idx, cfg);
                         d.pos = spawnOrigin;
                         drops.push(d);
@@ -141,7 +142,7 @@ export const useMatrixRain = (
                 }
                 const size = Math.max(1, cfg.fontSize * drop.depth);
                 ctx.font = `bold ${size}px monospace`;
-                const depthAlpha = Math.min(1, Math.max(0.2, (drop.depth - 0.2)));
+                const depthAlpha = Math.min(1, Math.max(MATRIX_RAIN_PARAM.MIN_DEPTH_ALPHA, (drop.depth - MATRIX_RAIN_PARAM.DEPTH_ALPHA_OFFSET)));
                 const lanePos = drop.streamIdx * laneSize;
                 for (let j = 0; j < cfg.trailLength; j++) {
                     const charOffset = j * size;
@@ -155,7 +156,7 @@ export const useMatrixRain = (
                     const char = getStableChar(drop.streamIdx, virtualIdx, drop.seed, cfg.charSet, cfg.volatility, timeRef.current);
                     if (j === 0) {
                         ctx.fillStyle = cfg.headColor;
-                        if (drop.depth > 0.8) { ctx.shadowColor = cfg.headColor; ctx.shadowBlur = 5 * drop.depth; }
+                        if (drop.depth > MATRIX_RAIN_PARAM.GLOW_DEPTH) { ctx.shadowColor = cfg.headColor; ctx.shadowBlur = MATRIX_RAIN_PARAM.GLOW_BLUR_PX * drop.depth; }
                         else ctx.shadowBlur = 0;
                     } else {
                         ctx.fillStyle = cfg.textColor;
