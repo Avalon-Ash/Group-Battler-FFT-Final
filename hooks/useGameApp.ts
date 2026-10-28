@@ -316,7 +316,7 @@ export const useGameApp = () => {
                 setSession(p => ({...p, isPlaying: true, winner: null, timeScale: 1.0}));
             },
             startShowcaseMatch: () => { setupShowcaseMap(); spawnShowcaseUnits(); },
-            downloadSpec: DesignExporter.downloadSpec,
+            downloadSpec: DesignExporter.downloadAll,
             handleSelectAgent: (a: Agent | null) => setHud(p => ({...p, selectedAgent: a}))
         }
     };
