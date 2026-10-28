@@ -20,7 +20,7 @@
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
-**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH，尚未 push；O2 的 CI 要 push 後才驗得到）。剩 O3b 文件整理、O4a 規則數值搬移、O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`game.ts:367` 每次 AI 決策都記「危險決策」，偏吵，下次動 Facade 時處理；`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
+**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。剩 O3b 文件整理、O4a 規則數值搬移、O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`game.ts:367` 每次 AI 決策都記「危險決策」，偏吵，下次動 Facade 時處理；`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
 
 **多段傷害技能（等 OPT-01 後）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
 
