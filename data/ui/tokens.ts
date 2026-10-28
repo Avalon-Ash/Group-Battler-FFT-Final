@@ -29,11 +29,53 @@ export function rgbChannelsToHex(channels: string): string {
     return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+export function formatRgba(red: number, green: number, blue: number, alpha: number): string {
+    return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
 /**
  * Semantic UI Tokens SSOT.
- * All color values are formatted as "R G B" channel strings to support Tailwind's opacity modifier syntax (e.g. /20, /50).
+ * UI_TOKENS uses "R G B" channels for Tailwind opacity modifiers; UI_LITERAL_TOKENS keeps exact CSS color strings.
  * Team colors directly reference TEAM_COLORS from constants/palette.ts.
  */
+export const UI_LITERAL_TOKENS = {
+    slate500: '#64748b',
+    slate600: '#475569',
+    slate700: '#334155',
+    slate300: '#cbd5e1',
+    slate400: '#94a3b8',
+    sky400: '#38bdf8',
+    sky400Tint20: 'rgba(56, 189, 248, 0.2)',
+    cyan500: '#06b6d4',
+    cyan400: '#22d3ee',
+    cyan300: '#67e8f9',
+    cyanBrightTint20: 'rgba(34, 211, 238, 0.2)',
+    amber400: '#fbbf24',
+    amber300: '#fcd34d',
+    amberTint20: 'rgba(245, 158, 11, 0.2)',
+    amberTint50: 'rgba(245, 158, 11, 0.5)',
+    emerald400: '#4ade80',
+    emerald500: '#10b981',
+    emeraldTint70: 'rgba(34, 197, 94, 0.7)',
+    blue400: '#60a5fa',
+    blueTint70: 'rgba(59, 130, 246, 0.7)',
+    red300: '#fca5a5',
+    redTint25: 'rgba(239, 68, 68, 0.25)',
+    redTint50: 'rgba(239, 68, 68, 0.5)',
+    whiteTint5: 'rgba(255, 255, 255, 0.05)',
+    whiteTint20: 'rgba(255, 255, 255, 0.2)',
+    whiteTint60: 'rgba(255, 255, 255, 0.6)',
+    cyanTint20: 'rgba(6, 182, 212, 0.2)',
+    cyanTint40: 'rgba(6, 182, 212, 0.4)',
+    purpleTint20: 'rgba(168, 85, 247, 0.2)',
+    purpleTint50: 'rgba(168, 85, 247, 0.5)',
+    purple300: '#d8b4fe',
+    white: '#ffffff',
+    slateTint50: 'rgba(51, 65, 85, 0.5)',
+    blackTint50: 'rgba(0,0,0,0.5)',
+    redTint40: 'rgba(239, 68, 68, 0.4)',
+} as const;
+
 export const UI_TOKENS = {
     surface: {
         base: '2 6 23',        // slate-950 (app root background)

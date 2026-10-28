@@ -182,7 +182,7 @@ export const SkillDbTab: React.FC<SkillDbTabProps> = ({ engine }) => {
                                                                         <input 
                                                                             type="color" 
                                                                             className="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] cursor-pointer p-0 border-0" 
-                                                                            value={String(displayVal).startsWith('#') ? String(displayVal) : '#ffffff'} 
+                                                                            value={String(displayVal).startsWith('#') ? String(displayVal) : 'var(--token-literal-white)'}
                                                                             // Fix: Cast key to keyof Skill
                                                                             onChange={e => updateSkill(field.key, e.target.value)} 
                                                                         />

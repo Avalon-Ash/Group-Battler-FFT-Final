@@ -1,0 +1,23 @@
+{
+  "engine/graphics/EnvironmentFactory.ts": 5,
+  "engine/graphics/UIFactory.ts": 3,
+  "engine/presentation/hud.ts": 1,
+  "engine/presentation/vfx/VFXPlayer.ts": 1,
+  "engine/presentation/vfx/state.ts": 2,
+  "engine/presentation/visuals/EventVFXMapper.ts": 1,
+  "engine/presentation/visuals/SequenceSystem.ts": 1,
+  "engine/presentation/visuals/handlers/CinematicVFXHandler.ts": 1,
+  "engine/presentation/visuals/handlers/CombatVFXHandler.ts": 4,
+  "engine/renderers/CtxOpCounter.ts": 1,
+  "engine/renderers/PostProcessor.ts": 1,
+  "engine/renderers/RenderPipeline.ts": 2,
+  "engine/renderers/background.ts": 2,
+  "engine/renderers/grid/ObstacleSpriteStore.ts": 4,
+  "engine/renderers/grid/TerrainLoopAtlas.ts": 1,
+  "engine/renderers/grid/TerrainRenderer.ts": 2,
+  "engine/renderers/ult/UltWorldRenderer.ts": 9,
+  "engine/renderers/units/SpriteAtlasStore.ts": 1,
+  "engine/renderers/vfxparts/PartBakers.ts": 5,
+  "engine/systems/movement/MovementSystem.ts": 1,
+  "engine/systems/status/EffectSystem.ts": 1
+}

@@ -18,7 +18,7 @@ const LogItem = memo(({ log }: { log: LogEntry }) => (
         {/* Timeline Line */}
         <div className="absolute left-[11px] top-0 bottom-0 w-px bg-white/5 group-hover:bg-cyan-500/30 transition-colors"></div>
         {/* Timeline Dot */}
-        <div className={`absolute left-2 top-4 w-1.5 h-1.5 rounded-full ring-4 ring-slate-950 transition-all ${log.visualColor ? `bg-[${log.visualColor}]` : 'bg-slate-600'} group-hover:scale-125 group-hover:shadow-[0_0_8px_currentColor]`} style={{ backgroundColor: log.visualColor || '#475569' }}></div>
+        <div className={`absolute left-2 top-4 w-1.5 h-1.5 rounded-full ring-4 ring-slate-950 transition-all ${log.visualColor ? `bg-[${log.visualColor}]` : 'bg-slate-600'} group-hover:scale-125 group-hover:shadow-[0_0_8px_currentColor]`} style={{ backgroundColor: log.visualColor || 'var(--token-literal-slate600)' }}></div>
 
         <div className="liquid-card !bg-white/[0.02] hover:!bg-white/[0.06] !rounded-xl p-3 border border-white/5 group-hover:border-white/10 transition-all">
             <div className="flex justify-between items-start mb-1">

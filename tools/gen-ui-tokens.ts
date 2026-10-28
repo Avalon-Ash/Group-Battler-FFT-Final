@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { UI_TOKENS } from '../data/ui/tokens';
+import { UI_LITERAL_TOKENS, UI_TOKENS } from '../data/ui/tokens';
 import { TEAM_COLORS } from '../constants';
 import { Team } from '../types';
 
@@ -29,6 +29,7 @@ export function generateTokensCss(): string {
     };
 
     flatten(UI_TOKENS);
+    flatten(UI_LITERAL_TOKENS, '--token-literal');
 
     // Team metadata tokens (glow, border-radius) from TEAM_COLORS SSOT
     lines.push('');

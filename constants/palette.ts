@@ -30,6 +30,14 @@ export const DAMAGE_TEXT_COLORS = {
     REFLECT: '#f59e0b'
 };
 
+export const ANNOUNCER_TEXT_COLORS = {
+    firstBlood: '#ef4444',
+    doubleKill: '#cbd5e1',
+    tripleKill: '#fcd34d',
+    quadraKill: '#fb923c',
+    pentaKill: '#ef4444',
+} as const;
+
 export const THEME_IMPERIAL = {
     primary: '#3b82f6',
     secondary: '#fde047',
@@ -54,6 +62,8 @@ export const TEAM_COLORS = {
         secondary: THEME_IMPERIAL.secondary,
         glow: 'rgba(59, 130, 246, 0.6)',
         armorLight: THEME_IMPERIAL.armorLight,
+        uiAccent: '#60a5fa',
+        uiBorder: 'rgba(59, 130, 246, 0.3)',
         borderRadius: '1rem',
     },
     [Team.RED]: {
@@ -61,6 +71,8 @@ export const TEAM_COLORS = {
         secondary: THEME_COVENANT.secondary,
         glow: 'rgba(239, 68, 68, 0.6)',
         armorLight: '#fca5a5',
+        uiAccent: '#f87171',
+        uiBorder: 'rgba(239, 68, 68, 0.3)',
         borderRadius: '0.25rem',
     },
 } as const;

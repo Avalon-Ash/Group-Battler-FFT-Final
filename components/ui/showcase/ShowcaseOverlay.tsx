@@ -7,6 +7,7 @@ import { useCompactViewport } from '../../../hooks/useCompactViewport';
 import { useWindowStore } from '../../../hooks/useWindowStore';
 import { WINDOW_DEFINITIONS } from '../../../data/ui/windows';
 import { useShowcaseConfig, useShowcaseLayout } from './showcaseConfigStore';
+import { formatRgba } from '../../../data/ui/tokens';
 
 interface ShowcaseOverlayProps {
     onEnter: () => void;
@@ -57,11 +58,11 @@ export const ShowcaseOverlay: React.FC<ShowcaseOverlayProps> = ({ onEnter }) => 
 
     const getRgbaBg = (hex: string, alpha: number) => {
         const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-        if (!result) return `rgba(0,0,0,${alpha})`;
+        if (!result) return formatRgba(0, 0, 0, alpha);
         const r = parseInt(result[1], 16);
         const g = parseInt(result[2], 16);
         const b = parseInt(result[3], 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        return formatRgba(r, g, b, alpha);
     };
 
     return (
