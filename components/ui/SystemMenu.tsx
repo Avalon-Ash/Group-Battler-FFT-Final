@@ -113,9 +113,9 @@ export const SystemMenu: React.FC<SystemMenuProps> = ({
                             <Icons.Save className="w-5 h-5 group-hover:scale-110 transition-transform filter drop-shadow-md" />
                             <div className="flex flex-col items-start">
                                 <span className="text-xs font-bold tracking-widest text-white group-hover:text-emerald-300">
-                                    匯出設計規格 (SPEC)
+                                    下載架構白皮書
                                 </span>
-                                <span className="text-[10px] text-slate-500 uppercase">下載 Markdown 規格書</span>
+                                <span className="text-[10px] text-slate-500 uppercase">白皮書與座標規格（Markdown）</span>
                             </div>
                         </button>
                     </div>
