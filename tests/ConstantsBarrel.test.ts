@@ -91,6 +91,7 @@ export const EXPECTED_EXPORTS = [
     'VFX_PARAM',
     'VFX_RENDER',
     'VISUAL_ANCHORS',
+    'ZONE',
     'ZONE_RENDER',
     'particleBackend',
 ];
