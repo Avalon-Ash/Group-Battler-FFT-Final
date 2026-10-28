@@ -1,3 +1,7 @@
+// ╔══════════════════════════════════════════════════════════╗
+// ║ [ARCH] 屍體滑行封頂從固定初速方向求終點，禁止逐幀重正規化 ║
+// ║ 座標協議：RenderSpec §3；純繪製，不寫回模擬狀態。        ║
+// ╚══════════════════════════════════════════════════════════╝
 /**
  * 死亡擊飛位移（純函式）。
  * 渲染器無狀態：位移完全由「死亡後經過時間 t」與 Ragdoll 軀幹的初速（impact 方向）決定，
@@ -25,9 +29,11 @@ export function computeDeathOffset(vx: number, vy: number, vz: number, t: number
     let y = vy * DEATH_KNOCKBACK.SPEED_SCALE * slide;
     const len = Math.hypot(x, y);
     if (len > DEATH_KNOCKBACK.MAX_SLIDE) {
-        const s = DEATH_KNOCKBACK.MAX_SLIDE / len;
-        x *= s;
-        y *= s;
+        // 封頂終點只依初速方向；不能用隨 t 變化的 x/y 再正規化，
+        // 末位誤差會使格界腳點交替取到正常格／塌落格的高度。
+        const speed = Math.hypot(vx, vy);
+        x = (vx / speed) * DEATH_KNOCKBACK.MAX_SLIDE;
+        y = (vy / speed) * DEATH_KNOCKBACK.MAX_SLIDE;
     }
 
     // 垂直：連續彈跳

@@ -10,6 +10,15 @@ import { DEATH_KNOCKBACK, DEFAULT_HEX_LAYOUT } from '../constants';
 const MAP = { w: 12, h: 8, offsetX: 0, offsetY: 0, layout: DEFAULT_HEX_LAYOUT };
 
 describe('computeDeathOffset', () => {
+    it('keeps the capped endpoint bit-identical across frames at a collapsing boundary', () => {
+        const initial = computeDeathOffset(300, 173.20508075688772, 150, 0.3);
+        for (let frame = 18; frame <= 150; frame++) {
+            const offset = computeDeathOffset(300, 173.20508075688772, 150, frame / 60);
+            expect(offset.x).toBe(initial.x);
+            expect(offset.y).toBe(initial.y);
+        }
+    });
+
     it('is zero at (or before) the moment of death', () => {
         expect(computeDeathOffset(150, 80, 150, 0)).toEqual({ x: 0, y: 0, lift: 0 });
         expect(computeDeathOffset(150, 80, 150, -1)).toEqual({ x: 0, y: 0, lift: 0 });
