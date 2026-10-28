@@ -36,7 +36,9 @@ jobs:
         run: npm run lint
 
       - name: Unit tests
-        run: npm test
+        # AgentRunner tests the Windows-only agent harness (tools/agent/run.mjs: PowerShell/taskkill);
+        # it still runs in the local npm test.
+        run: npx vitest run --exclude "**/AgentRunner.test.ts"
 
       - name: Build
         run: npm run build
