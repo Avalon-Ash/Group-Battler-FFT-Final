@@ -337,6 +337,10 @@
 ### AM. 2026-10-29 OPT-01 O5c 程序工廠、地形、HUD 參數具名化
 - Codex Sol：`UIFactory`、`EnvironmentFactory`、`CoreFactory` 等程序工廠，`TerrainRenderer`／`TerrainLoopAtlas`／`ObstacleSpriteStore`／`TerrainBlockCache`、`NoiseLib`、`background`、`PostProcessor`、`tactical`、`hud`、`FrozenPainter` 共 347 個數字＋`UltWorldRenderer` 9 個顏色 → `constants/{terrain,render,units,hud,vfx}.ts`、`materialConfig`、`vfxPalette`。同環境 A/B 31 張（六場景＋五張地形全景＋20 張底座特寫）0 差異；perf:guard 通過。
 
+### AN. 2026-10-29 OPT-01 O5d 音訊、導播、座標數學、data 函式
+- Codex Sol：`Synth` 音色 → `data/audio/synthPatches.ts`；`AudioEngine`／`AudioSystem`、`DirectorSystem`、`AnimationSystem`、`VisualMath`、`TrajectoryMath`、`RenderList`、`RenderStats`、`useGameApp` 等 → `constants/*`；`SkillSequences`、`selectSpriteFrame` 函式內預設值 → 檔內具名物件。13 檔預算降到 0。
+- 證據：`tests/SynthGolden.test.ts`（18 種音色，搬前寫好、搬後不改字通過）；六場景＋10 格導播序列同環境 A/B 0 差異；`verify:coords` 固定種子結果相同；perf:guard 通過。主代理把 `RenderSpec` 規格文字改成「實際數值（常數名）」。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
