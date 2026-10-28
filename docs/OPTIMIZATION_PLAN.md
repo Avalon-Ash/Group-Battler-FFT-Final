@@ -75,6 +75,13 @@
 
 Z1、Z2 是行為 bug，修了會影響戰鬥結果，歸到 O4 的「改值」子輪（不和純搬移混在一起）。
 
+### F. O0 補完清查結果（2026-10-28，explorer 子代理；Codex Luna 因環境沒有 `rg`、輸出亂碼而沒有產出）
+
+- **可達性**：`PAUSE_GAME`／`RESUME_GAME` 只有 `useEngineCommands` 的輔助函式在發，而這兩個函式沒有人呼叫；`useEngineCommands` 回傳的 `resetGame`、`setTimeScale`、`setDirectorEnabled`、`setCameraTuning`、`setZoneConfig` 沒有呼叫端（元件直接用 `send`）；`WindowId` 的 `'skillDb'`、`'vfxMap'`（和 `'vfxmap'` 重複）沒有登記也沒有入口 → 併入 O1。其餘指令、設定欄位、視窗、`useGameApp` 動作都有生產端與讀取端。
+- **素材路徑**：沒有斷鏈。`public/assets/factions/blue`、`red` 是預留給正式版陣營素材的空槽位（manifest 為空），屬於設計用途，保留。
+- **data 函式的魔法數字**：`SkillSequences.ts` 奧義原型的脈衝、震動、STORM 次數與間隔（約 15 個）；`selectSpriteFrame.ts` 的朝向遲滯、受擊閃白、各動作 FPS 的預設值（約 12 個）→ 併入 O4a／O5。`bodyTypes.ts:67-73` 又是一份 FNV 雜湊 → 併入 B（O5）。
+- **文件一致性**：改在 O7 改寫白皮書時由主代理對照。
+
 ## 2. 分輪計畫
 
 依 CLAUDE.md 鐵律：**渲染線同一時間只開一條**，非渲染線可以並行。
