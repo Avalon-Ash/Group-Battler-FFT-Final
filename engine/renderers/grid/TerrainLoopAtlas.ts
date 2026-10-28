@@ -1,3 +1,4 @@
+import { mulberry32 as seeded } from '../../math/hash';
 import { HEX_SIZE, ISO_SCALE_Y, RENDER_CACHE } from "../../../constants";
 import { HexLayout } from "../../../types";
 import { createCanvas } from "../../graphics/CanvasUtils";
@@ -75,16 +76,7 @@ function smoothstep(e0: number, e1: number, x: number): number {
 }
 
 /** 確定性亂數（硬殼格點、顆粒）：同一種子永遠同一串 */
-function seeded(seed: number): () => number {
-    let a = seed >>> 0;
-    return () => {
-        a = (a + 0x6D2B79F5) >>> 0;
-        let t = a;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
-}
+
 
 /**
  * 無縫硬殼貼圖（地面座標，未壓扁）：環面 Voronoi，裂縫透明露出熔體，裂縫旁泛紅、板塊中央略亮。

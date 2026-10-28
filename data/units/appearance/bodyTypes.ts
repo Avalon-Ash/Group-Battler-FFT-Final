@@ -1,3 +1,4 @@
+import { fnv1a32 } from '../../../engine/math/hash';
 import { BodyTypeId, BodyTypeProfile } from '../../../types';
 
 /**
@@ -64,12 +65,7 @@ export function pickBodyType(
 
     // FNV-1a 32-bit 雜湊
     const seedStr = `${agentId}:${matchSalt}`;
-    let hash = 2166136261;
-    for (let i = 0; i < seedStr.length; i++) {
-        hash ^= seedStr.charCodeAt(i);
-        hash = Math.imul(hash, 16777619);
-    }
-    const u32 = hash >>> 0;
+    const u32 = fnv1a32(seedStr);
     const norm = u32 / 4294967296;
 
     let target = norm * totalWeight;

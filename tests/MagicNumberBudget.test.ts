@@ -47,7 +47,7 @@ function countMagicNumbers(file: string): number {
 describe('Magic number budget', () => {
     it('allows decreases but rejects per-file increases and unbudgeted numbers', () => {
         const budget: Record<string, number> = JSON.parse(readFileSync(path.join(__dirname, 'magic-number-budget.json'), 'utf8'));
-        const files = execFileSync('git', ['ls-files', '--', 'engine/', 'components/', 'hooks/'], { cwd: ROOT, encoding: 'utf8' })
+        const files = execFileSync('git', ['-c', `safe.directory=${ROOT.replace(/\\/g, '/')}`, 'ls-files', '--', 'engine/', 'components/', 'hooks/'], { cwd: ROOT, encoding: 'utf8' })
             .split(/\r?\n/).filter(file => /\.(ts|tsx)$/.test(file)).sort();
         const violations: string[] = [];
         for (const file of files) {

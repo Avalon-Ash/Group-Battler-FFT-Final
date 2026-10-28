@@ -655,6 +655,6 @@ export interface ActiveZone {
     radius: number;
     color: string;
     progress: number;
-    isEnemy: boolean;
+    team: Team;
 }
 

@@ -1,3 +1,4 @@
+import { murmur2Mix as starHash } from '../math/hash';
 // ╔══════════════════════════════════════════════════════════╗
 // ║  BackgroundRenderer — 場景背景繪製器                     ║
 // ║  職責：繪製遠景底色、星空、透視格線、地形剪影與動態環境特效 ║
@@ -15,13 +16,7 @@ import { VisualMath } from "../math/VisualMath";
 import { getQualityTier, getRenderDpr } from "./RenderQuality";
 
 /** 以索引為種子的純整數雜湊（回傳 [0, 1)），取代 Math.random 確保靜態星星完全確定性 */
-function starHash(i: number, salt: number): number {
-    let h = Math.imul(i ^ salt, 0x5bd1e995);
-    h ^= h >>> 15;
-    h = Math.imul(h, 0x5bd1e995);
-    h ^= h >>> 15;
-    return (h >>> 0) / 4294967296;
-}
+
 
 export class BackgroundRenderer {
     private staticCache: HTMLCanvasElement | null = null;

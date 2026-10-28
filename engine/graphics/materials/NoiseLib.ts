@@ -1,3 +1,4 @@
+import { floatXorHash2 as hash2 } from '../../math/hash';
 /**
  * NoiseLib — Canvas 2D 版的 shader 噪聲庫
  * -----------------------------------------------------------------------------
@@ -12,12 +13,7 @@ import { createCanvas } from '../CanvasUtils';
 import { NoiseFieldConfig } from '../../../data/vfx/materialConfig';
 
 /** 整數雜湊 → [0,1)，取代 GLSL 的 fract(sin(dot(...))) */
-function hash2(ix: number, iy: number, seed: number): number {
-    let h = ix * 374761393 + iy * 668265263 + seed * 2246822519;
-    h = (h ^ (h >>> 13)) * 1274126177;
-    h = h ^ (h >>> 16);
-    return (h >>> 0) / 4294967296;
-}
+
 
 function smootherstep(t: number): number {
     return t * t * t * (t * (t * 6 - 15) + 10);

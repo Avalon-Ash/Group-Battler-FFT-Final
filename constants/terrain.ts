@@ -48,24 +48,21 @@ export const GRID_OVERLAY = {
 
 /**
  * 地格區域效果（ZoneRenderer，GridOverlays 呼叫）：波紋從中心擴張到 zoneRadius＋WAVE_OVERSHOOT 格，
- * 寬 WAVE_WIDTH 格；敵方區域固定用 ENEMY_COLOR。2026-10-19 波紋與邊界改成柔光格（SoftTile，GRID_OVERLAY.TILE），
+ * 寬 WAVE_WIDTH 格；兩方均依詠唱進度擴張並使用施法者陣營色。2026-10-19 波紋與邊界改成柔光格（SoftTile，GRID_OVERLAY.TILE），
  * 不再逐格描實線雙環與虛線：波紋＝內緣光 WAVE_EDGE_ALPHA＋芯線 WAVE_CORE_ALPHA，整格不透明度＝波紋強度、放大 1＋強度×WAVE_SCALE_GROW。
  */
 export const ZONE_RENDER = {
     WAVE_OVERSHOOT: 0.5,
     WAVE_WIDTH: 1.5,
     MIN_WAVE: 0.05,
-    ENEMY_COLOR: '#ef4444',
-    ENEMY_ALPHA: 0.2,
     INSIDE_ALPHA: 0.12,
     FILL_RADIUS: 0.95,
     WAVE_EDGE_ALPHA: 0.6,
     WAVE_CORE_ALPHA: 0.25,
     WAVE_SCALE_GROW: 0.08,
-    /** 距邊界不到 BORDER_BAND 格算邊界格；邊界格的內緣光（敵方較亮以便辨識）與芯線 */
+    /** 距邊界不到 BORDER_BAND 格算邊界格；兩方共用邊界格的內緣光與芯線 */
     BORDER_BAND: 0.5,
     BORDER_EDGE_ALPHA: 0.35,
-    ENEMY_BORDER_EDGE_ALPHA: 0.5,
     BORDER_CORE_ALPHA: 0.2,
 } as const;
 

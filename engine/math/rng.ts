@@ -1,3 +1,5 @@
+import { advanceMulberry32, mulberry32Value } from './hash';
+
 /**
  * 模擬層隨機源（引擎擁有的種子化序列）。
  *
@@ -20,11 +22,8 @@ let seed = 0;
 
 /** mulberry32 單步：回傳 [0,1)。 */
 function nextSeeded(): number {
-    state = (state + 0x6D2B79F5) >>> 0;
-    let t = state;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    state = advanceMulberry32(state);
+    return mulberry32Value(state);
 }
 
 /** 預設來源：已種子化 → 模擬流；否則暫時轉呼叫 Math.random（呼叫當下才解析，vi.spyOn 仍有效）。 */

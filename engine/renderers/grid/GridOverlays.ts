@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
-// [ARCH] Upstream GroundPriority: fill budgets only; borders retain their pulse (section 12).
+// [ARCH] Upstream GroundPriority: fill budgets only; zone color uses the same faction skin as castColorAt.
 // ║  GridOverlays — 地格疊層（背水一戰、地格狀態底色、區域、光源、║
 // ║  預警、射程、滑過），逐格向量六角                            ║
 // ║  [ARCH] 錨點＝getIsoVisualY(baseY, h) 再 applyLayerBias       ║
@@ -7,6 +7,7 @@
 // ║  預警／射程／滑過是預烘焙的柔光格（SoftTile），不逐格描實線。║
 // ╚══════════════════════════════════════════════════════════╝
 
+import { getFactionSkin } from '../../../data/units/factionSkin';
 import { ZoneRenderer } from "./ZoneRenderer";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { HexLayout, ActiveZone } from "../../../types";
@@ -88,9 +89,8 @@ export const GridOverlays = {
                 ctx, x, drawY - G.ZONE_LIFT, size,
                 dist,
                 zoneInfo.radius,
-                zoneInfo.color,
+                getFactionSkin(zoneInfo.team).fallbackBodyColor,
                 zoneInfo.progress,
-                zoneInfo.isEnemy,
                 layout, layers.zone
             );
         }

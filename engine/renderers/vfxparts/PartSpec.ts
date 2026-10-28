@@ -1,3 +1,4 @@
+import { offsetMulberry32 } from '../../math/hash';
 /**
  * PartSpec — 特效零件的參數型別、量化、快取鍵與外框尺寸（ART_SPEC §7）
  * -----------------------------------------------------------------------------
@@ -357,14 +358,7 @@ export function partBounds(n: PartSpec): PartBounds {
 
 /** 烘焙用的確定性亂數（mulberry32）；只用於視覺外形，不影響戰鬥。 */
 export function createPartRng(seed: number): () => number {
-    let a = (seed + 0x9e3779b9) >>> 0;
-    return () => {
-        a = (a + 0x6d2b79f5) >>> 0;
-        let t = a;
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    };
+    return offsetMulberry32(seed);
 }
 
 /** 中點位移分叉雷的折線（純幾何，可測試）。起點 (0,0) 在上，終點 (0,length) 在下。 */

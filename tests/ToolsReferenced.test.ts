@@ -12,7 +12,7 @@ const NOT_AN_ENTRY = new Set(['docs/WORKLOG.md']);
 const NOT_AN_ENTRY_EXT = /\.csv$/;
 
 function tracked(...pathspecs: string[]): string[] {
-    return execSync(`git ls-files ${pathspecs.join(' ')}`, { cwd: ROOT, encoding: 'utf8' })
+    return execSync(`git -c safe.directory=${ROOT.replace(/\\/g, '/')} ls-files ${pathspecs.join(' ')}`, { cwd: ROOT, encoding: 'utf8' })
         .split('\n').filter(Boolean);
 }
 
