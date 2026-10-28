@@ -99,8 +99,8 @@ export const BLUE_ACTIVE: Skill[] = [
     { 
         id: 'rb_a2', role: Role.RANGER, team: Team.BLUE, tag: 'ACTIVE', 
         name: '穿雲貫甲', desc: '直線貫穿', 
-        range: 9, cast: 1.2, cd: 7.0, cost: 45, gain: 0, 
-        type: 'SINGLE', power: 320, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000, 
+        range: 9, cast: 1, cd: 7.0, cost: 45, gain: 0, 
+        type: 'SINGLE', power: 350, color: '#38bdf8', visual: 'BOLT', projectileSpeed: 3000, 
         visualHitEffect: 'FX_HIT_BLUE_PHYSICAL', visualProjectileEffect: 'PROJ_BLUE_LIGHT_ARROW', element: 'PHYSICAL'
     },
     { 

@@ -162,7 +162,7 @@ export const BLUE_ULT: Skill[] = [
     { 
         id: 'mb_u3', role: Role.MAGE, team: Team.BLUE, tag: 'ULT', 
         name: '時間停止', desc: '全場靜止', 
-        range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
+        range: 0, cast: 1.5, cd: 5.0, cost: 85, gain: 0, 
         type: 'AOE', aoeRadius: 10, power: 0, color: '#fef08a', 
         visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 3.2,
