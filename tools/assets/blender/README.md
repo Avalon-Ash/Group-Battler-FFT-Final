@@ -49,3 +49,15 @@ python tools/assets/blender/pack_sprites.py ./raw_frames public/assets/units MAL
 Output:
 - `public/assets/units/<team>_<role>_male.webp` (10 atlases)
 - `public/assets/units/manifest.json` (metadata with frame rects and offsets)
+
+## 4. Faction Skin Trials (offline, 2026-10)
+
+Used to build and review the Lionheart / Ashen faction skins (`art-source/faction-skins/`). Offline only; never imported by the game.
+
+| Script | Purpose |
+| :-- | :-- |
+| `lionheart_skin.py`, `lionheart_roles.py` | Lionheart warrior skin and per-role trials (source bodies, equipment, rigs preserved) |
+| `ashen_hair.py` | Profile-driven Ashen hair silhouettes weighted to the original head |
+| `preview_skin.py`, `preview_roles.py` | Assemble real four-direction renders into review sheets (no paint-over) |
+| `verify_overscan.py` | Check padded trial renders keep projection, scale and foot-relative pixels |
+| `sheet.py` | Contact sheet: rows = clip x direction, columns = frames |
