@@ -9,7 +9,7 @@
  *  - 當 `enabled === true` 時，使用 performance.now() 計量各階段毫秒數，並以 EMA 平滑。
  */
 
-import { RENDER_PERF } from '../../constants';
+import { RENDER_STATS_PARAM, RENDER_PERF } from '../../constants';
 import { CtxOpCounter } from './CtxOpCounter';
 
 export interface TerrainCacheRuntimeStats {
@@ -78,7 +78,7 @@ export class RenderStatsCollector {
         if (phase === 'background') {
             this.flushSubPhases();
             if (this.lastFrameStart > 0) {
-                const dt = Math.max(0.1, now - this.lastFrameStart);
+                const dt = Math.max(RENDER_STATS_PARAM.MIN_FRAME_MS, now - this.lastFrameStart);
                 this.recordFrame(now, dt);
             }
             this.lastFrameStart = now;
@@ -160,8 +160,8 @@ export class RenderStatsCollector {
         while (this.frameHistory.length > 0 && this.frameHistory[0].t < cutoff) {
             this.frameHistory.shift();
         }
-        if (this.frameHistory.length > 240) {
-            this.frameHistory.splice(0, this.frameHistory.length - 240);
+        if (this.frameHistory.length > RENDER_STATS_PARAM.HISTORY_FRAMES) {
+            this.frameHistory.splice(0, this.frameHistory.length - RENDER_STATS_PARAM.HISTORY_FRAMES);
         }
 
         if (this.frameEma === 0) {
@@ -309,10 +309,10 @@ export class RenderStatsCollector {
     public getOnePercentLowFps(): number {
         if (!this.enabled || this.frameHistory.length === 0) return this.getFps();
         const sorted = this.frameHistory.map(f => f.dt).sort((a, b) => a - b);
-        const count = Math.max(1, Math.floor(sorted.length * 0.01));
+        const count = Math.max(1, Math.floor(sorted.length * RENDER_STATS_PARAM.LOW_FPS_FRACTION));
         const worst = sorted.slice(sorted.length - count);
         const avgWorst = worst.reduce((a, b) => a + b, 0) / worst.length;
-        return +(1000 / Math.max(0.1, avgWorst)).toFixed(1);
+        return +(1000 / Math.max(RENDER_STATS_PARAM.MIN_FRAME_MS, avgWorst)).toFixed(1);
     }
 
     public getHudStats() {

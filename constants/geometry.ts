@@ -109,3 +109,71 @@ export const GRID_SPATIAL = {
     /** 障礙物遮擋單位的垂直距離上限（像素）。 */
     OBSTACLE_OCCLUSION_Y_RANGE: 120,
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const VISUAL_MATH_PARAM = {
+    /** 地平線垂直位置（畫面高度比例） */
+    HORIZON_Y_PCT: 0.62,
+    /** 投射物命中容許距離平方（px²） */
+    PROJECTILE_HIT_TOLERANCE_SQ: 900,
+    /** 地面覆蓋層抬升（px） */
+    LAYER_OVERLAY: 5,
+    /** 陰影層抬升（px） */
+    LAYER_SHADOW: 8,
+    /** 光環層抬升（px） */
+    LAYER_AURA: 1.5,
+    /** 轉場徑向距離基準（px） */
+    TRANSITION_MAX_DIST: 1000,
+    /** 轉場垂直位移（px） */
+    TRANSITION_OFFSET: 1500,
+    /** 退場徑向延遲係數（進度） */
+    OUT_RADIAL_DELAY: 0.3,
+    /** 退場局部進度速率（倍） */
+    OUT_RATE: 1.8,
+    /** 退場曲線三次項係數（倍） */
+    OUT_CURVE_GAIN: 1.5,
+    /** 退場曲線二次項係數（倍） */
+    OUT_CURVE_OFFSET: 0.5,
+    /** 進場徑向延遲係數（進度） */
+    IN_RADIAL_DELAY: 0.2,
+    /** 進場局部進度速率（倍） */
+    IN_RATE: 1.5,
+    /** 進場緩動曲線指數（無單位） */
+    IN_CURVE_POWER: 4,
+    /** 陰影尺寸下限（倍） */
+    SHADOW_MIN_SCALE: 0.4,
+    /** 陰影尺寸衰減高度（px） */
+    SHADOW_SCALE_HEIGHT: 500,
+    /** 陰影不透明度下限（比例） */
+    SHADOW_MIN_ALPHA: 0.05,
+    /** 地面陰影不透明度（比例） */
+    SHADOW_BASE_ALPHA: 0.35,
+    /** 陰影不透明度衰減高度（px） */
+    SHADOW_ALPHA_HEIGHT: 300,
+    /** 缺失目標深度絕對值（px） */
+    MISSING_TARGET_DEPTH: 9999,
+    /** 地面目標字串前綴長度（字元） */
+    GROUND_PREFIX_LENGTH: 7,
+    /** 地面目標點抬升（px） */
+    GROUND_TARGET_LIFT: 2,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const TRAJECTORY_PARAM = {
+    /** 近距離弧高下限相對基準高度（比例） */
+    MIN_ARC_RATIO: 0.15,
+    /** 弧高基準水平距離（px） */
+    ARC_REFERENCE_PX: 300,
+    /** 懸浮軌跡預設下沉高度（px） */
+    DEFAULT_DIP_PX: 20,
+    /** 下沉曲線結束進度（比例） */
+    DIP_END_T: 0.4,
+    /** 弧形軌跡預設高度（px） */
+    DEFAULT_ARC_PX: 150,
+    /** 擺動軌跡預設振幅（px） */
+    DEFAULT_WOBBLE_PX: 15,
+    /** 擺動軌跡每段預設週期數（次） */
+    DEFAULT_WOBBLE_FREQ: 2,
+    /** 擺動垂直振幅比例（倍） */
+    WOBBLE_Z_RATIO: 0.5,
+} as const;

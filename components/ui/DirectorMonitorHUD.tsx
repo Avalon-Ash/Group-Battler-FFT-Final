@@ -1,3 +1,4 @@
+import { DIRECTOR_HUD_PARAM } from '../../constants';
 import React from 'react';
 import { GameEngine } from '../../engine/game';
 import { Team } from '../../types';
@@ -101,11 +102,11 @@ export const DirectorMonitorHUD: React.FC<DirectorMonitorHUDProps> = ({ engine }
                     )}
 
                     <div className="mt-4 h-6 flex items-end gap-0.5 overflow-hidden opacity-30">
-                        {Array.from({ length: 20 }).map((_, i) => (
+                        {Array.from({ length: DIRECTOR_HUD_PARAM.BARS }).map((_, i) => (
                             <div
                                 key={i}
                                 className={`w-2 ${targetAgent ? barColor : 'bg-slate-700'} animate-pulse`}
-                                style={{ height: `${20 + ((i * 17) % 80)}%`, animationDelay: `${i * 0.1}s` }}
+                                style={{ height: `${DIRECTOR_HUD_PARAM.BAR_MIN_PERCENT + ((i * DIRECTOR_HUD_PARAM.BAR_HEIGHT_STEP) % DIRECTOR_HUD_PARAM.BAR_HEIGHT_RANGE)}%`, animationDelay: `${i * DIRECTOR_HUD_PARAM.BAR_DELAY_S}s` }}
                             />
                         ))}
                     </div>

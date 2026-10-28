@@ -78,3 +78,91 @@ export const UI_PIN = {
         playback: 'tactical_toolbar_playback',
     },
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const GAME_APP_PARAM = {
+    /** 編輯器預設生命（HP） */
+    DEFAULT_HP: 600,
+    /** 編輯器預設地圖寬（格） */
+    DEFAULT_MAP_W: 12,
+    /** 編輯器預設地圖高（格） */
+    DEFAULT_MAP_H: 8,
+    /** 自動配置每隊人數（人） */
+    TEAM_SIZE: 5,
+    /** 自動配置生命下限（HP） */
+    SPAWN_HP_MIN: 600,
+    /** 自動配置生命隨機幅度（HP） */
+    SPAWN_HP_RANGE: 400,
+    /** 展示地圖寬下限（格） */
+    SHOWCASE_MIN_W: 10,
+    /** 展示地圖高下限（格） */
+    SHOWCASE_MIN_H: 8,
+    /** 展示地圖尺寸隨機幅度（格） */
+    SHOWCASE_SIZE_RANGE: 4,
+    /** 展示進場時間（毫秒） */
+    TRANSITION_IN_MS: 1500,
+    /** 展示退場時間（毫秒） */
+    TRANSITION_OUT_MS: 1200,
+    /** 展示結算停留時間（毫秒） */
+    RESULT_HOLD_MS: 2000,
+    /** 單位數更新間隔（毫秒） */
+    UNIT_POLL_MS: 500,
+    /** 陣營警告顯示時間（毫秒） */
+    WARNING_MS: 2500,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const MATRIX_RAIN_PARAM = {
+    /** 離畫面邊界的清除餘量（px） */
+    END_MARGIN_PX: 100,
+    /** 生成點離邊界字高數（字高） */
+    SPAWN_MARGIN_FONTS: 5,
+    /** 允許生成時每幀生成機率（比例） */
+    SPAWN_PROBABILITY: 0.1,
+    /** 深度不透明度下限（比例） */
+    MIN_DEPTH_ALPHA: 0.2,
+    /** 深度不透明度偏移（比例） */
+    DEPTH_ALPHA_OFFSET: 0.2,
+    /** 頭字啟用光暈深度門檻（比值） */
+    GLOW_DEPTH: 0.8,
+    /** 頭字光暈模糊基準（px） */
+    GLOW_BLUR_PX: 5,
+    /** 幀節流容差（毫秒） */
+    FRAME_SLACK_MS: 4,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const BT_VIEW_PARAM = {
+    /** 行為樹初始縮放（倍） */
+    DEFAULT_SCALE: 0.9,
+    /** 自動縮放可用寬度（比例） */
+    FIT_WIDTH: 0.92,
+    /** 自動縮放可用高度（比例） */
+    FIT_HEIGHT: 0.88,
+    /** 自動縮放上限（倍） */
+    FIT_MAX_SCALE: 1.2,
+    /** 每次滾輪縮放步幅（倍） */
+    WHEEL_STEP: 0.05,
+    /** 手動縮放下限（倍） */
+    MIN_SCALE: 0.2,
+    /** 手動縮放上限（倍） */
+    MAX_SCALE: 2,
+    /** 彈出視窗寬度（px） */
+    POPUP_W: 680,
+    /** 彈出視窗高度（px） */
+    POPUP_H: 520,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const DIRECTOR_HUD_PARAM = {
+    /** 裝飾音量條數（條） */
+    BARS: 20,
+    /** 裝飾音量條最低高度（百分比） */
+    BAR_MIN_PERCENT: 20,
+    /** 裝飾音量條高度序列步幅（百分點） */
+    BAR_HEIGHT_STEP: 17,
+    /** 裝飾音量條高度序列範圍（百分點） */
+    BAR_HEIGHT_RANGE: 80,
+    /** 裝飾音量條動畫延遲步幅（秒） */
+    BAR_DELAY_S: 0.1,
+} as const;

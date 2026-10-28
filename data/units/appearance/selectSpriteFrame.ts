@@ -11,6 +11,30 @@
  *  - 垂直方向滯後（Hysteresis）防止目標位置微動時來回閃爍
  */
 
+/** 動畫／序列參數 SSOT，保持原值。 */
+const SPRITE_FRAME_PARAM = {
+    /** 方向遲滯距離（px） */
+    DIRECTION_THRESHOLD_PX: 6,
+    /** 方向遲滯預設時長（毫秒） */
+    FACING_HYSTERESIS_MS: 120,
+    /** 一般動畫預設影格數（格） */
+    DEFAULT_FRAMES: 6,
+    /** 受擊動畫預設影格數（格） */
+    HIT_FRAMES: 3,
+    /** 死亡動畫預設影格率（fps） */
+    DEATH_FPS: 8,
+    /** 受擊選格計時門檻（秒） */
+    HIT_THRESHOLD_S: 0.05,
+    /** 受擊閃白預設長度（秒） */
+    HIT_FLASH_S: 0.15,
+    /** 攻擊動畫預設影格率（fps） */
+    ATTACK_FPS: 12,
+    /** 行走動畫預設影格率（fps） */
+    WALK_FPS: 10,
+    /** 待機動畫預設影格率（fps） */
+    IDLE_FPS: 6,
+} as const;
+
 import { Agent } from '../../../engine/core/Agent';
 import { AnimState, ActionState, Role } from '../../../types';
 import { UNIT_SPRITE } from '../../../constants';
@@ -59,7 +83,7 @@ export function getAgentPhaseOffset(agentId: string): number {
 export function selectSpriteDirection(
     agent: Agent,
     currentTime: number = 0,
-    hysteresisThresholdPx: number = 6
+    hysteresisThresholdPx: number = SPRITE_FRAME_PARAM.DIRECTION_THRESHOLD_PX
 ): SpriteDirection {
     const isFacingEast = agent.facing > 0;
     let wantsNorth = false;
@@ -105,7 +129,7 @@ export function selectSpriteDirection(
         return desiredDir;
     }
 
-    const hysteresisSec = (UNIT_SPRITE.facingHysteresisMs || 120) / 1000;
+    const hysteresisSec = (UNIT_SPRITE.facingHysteresisMs || SPRITE_FRAME_PARAM.FACING_HYSTERESIS_MS) / 1000;
     const isHorizontalFlip = (state.dir.endsWith('E') && !desiredDir.endsWith('E')) ||
                              (state.dir.endsWith('W') && !desiredDir.endsWith('W'));
 
@@ -146,8 +170,8 @@ export function selectSpriteFrame(
     const isDead = agent.hp <= 0 || agent.animState === AnimState.DEAD || agent.fullyDead || agent.deathTimer > 0;
     if (isDead) {
         const anim = 'death';
-        const totalFrames = frameCounts[anim] ?? 6;
-        const fps = UNIT_SPRITE.deathFps || 8;
+        const totalFrames = frameCounts[anim] ?? SPRITE_FRAME_PARAM.DEFAULT_FRAMES;
+        const fps = UNIT_SPRITE.deathFps || SPRITE_FRAME_PARAM.DEATH_FPS;
         const animDuration = totalFrames / fps; // 例如 6 格 / 8 fps = 0.75 秒
         const tDead = Math.max(0, agent.deathTimer);
         const progress = animDuration > 0 ? tDead / animDuration : 1.0;
@@ -163,11 +187,11 @@ export function selectSpriteFrame(
     // ══════════════════════════════════════════════════════════════
     // 動畫優先序 2：受擊 (HIT)
     // ══════════════════════════════════════════════════════════════
-    const isHit = agent.view.hitFlashTimer > 0.05 || agent.animState === AnimState.HIT;
+    const isHit = agent.view.hitFlashTimer > SPRITE_FRAME_PARAM.HIT_THRESHOLD_S || agent.animState === AnimState.HIT;
     if (isHit) {
         const anim = 'hit';
-        const totalFrames = frameCounts[anim] ?? 3;
-        const flashDur = UNIT_SPRITE.hitFlashDuration || 0.15;
+        const totalFrames = frameCounts[anim] ?? SPRITE_FRAME_PARAM.HIT_FRAMES;
+        const flashDur = UNIT_SPRITE.hitFlashDuration || SPRITE_FRAME_PARAM.HIT_FLASH_S;
         // hitFlashTimer 從 flashDur 倒數至 0
         const progress = Math.max(0, Math.min(1, 1 - (agent.view.hitFlashTimer / flashDur)));
         const frameIndex = Math.min(totalFrames - 1, Math.floor(progress * totalFrames));
@@ -184,7 +208,7 @@ export function selectSpriteFrame(
 
     if (isCasting || isAttacking) {
         let anim = isCasting ? (supportsCast ? 'cast' : 'attack') : 'attack';
-        const totalFrames = frameCounts[anim] ?? 6;
+        const totalFrames = frameCounts[anim] ?? SPRITE_FRAME_PARAM.DEFAULT_FRAMES;
 
         let progress = 0;
         if (agent.castingSkillIdx !== -1) {
@@ -193,7 +217,7 @@ export function selectSpriteFrame(
             progress = Math.max(0, Math.min(1, 1 - (agent.castTimer / agent.castingAnimationTimer)));
         } else {
             // 無進度計時器時，沿用 t 循環
-            const fps = UNIT_SPRITE.attackFps || 12;
+            const fps = UNIT_SPRITE.attackFps || SPRITE_FRAME_PARAM.ATTACK_FPS;
             const idx = Math.floor(t * fps) % totalFrames;
             return { anim, dir, frameIndex: idx };
         }
@@ -212,8 +236,8 @@ export function selectSpriteFrame(
 
     if (isMoving) {
         const anim = 'walk';
-        const totalFrames = frameCounts[anim] ?? 6;
-        const fps = UNIT_SPRITE.walkFps || 10;
+        const totalFrames = frameCounts[anim] ?? SPRITE_FRAME_PARAM.DEFAULT_FRAMES;
+        const fps = UNIT_SPRITE.walkFps || SPRITE_FRAME_PARAM.WALK_FPS;
         const phase = getAgentPhaseOffset(agent.id);
         const frameIndex = Math.floor((t + phase) * fps) % totalFrames;
         return { anim, dir, frameIndex };
@@ -223,8 +247,8 @@ export function selectSpriteFrame(
     // 動畫優先序 5：閒置 (IDLE)
     // ══════════════════════════════════════════════════════════════
     const anim = 'idle';
-    const totalFrames = frameCounts[anim] ?? 6;
-    const fps = UNIT_SPRITE.idleFps || 6;
+    const totalFrames = frameCounts[anim] ?? SPRITE_FRAME_PARAM.DEFAULT_FRAMES;
+    const fps = UNIT_SPRITE.idleFps || SPRITE_FRAME_PARAM.IDLE_FPS;
     const phase = getAgentPhaseOffset(agent.id);
     const frameIndex = Math.floor((t + phase) * fps) % totalFrames;
     return { anim, dir, frameIndex };

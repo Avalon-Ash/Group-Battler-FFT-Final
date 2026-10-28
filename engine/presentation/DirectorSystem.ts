@@ -8,12 +8,12 @@ import { GameEngine, Agent } from "../game";
 import { HexUtils } from "../utils";
 import { AIState } from "../../types";
 import { CameraTargetGroup } from "./CameraTargetGroup";
-import { HEX_SIZE, UI_SETTINGS } from "../../constants";
+import { DIRECTOR_PARAM, HEX_SIZE, UI_SETTINGS } from "../../constants";
 import { VisualMath } from "../math/VisualMath";
 
 export class DirectorSystem {
     // Dynamic Zoom Baselines (Calculated based on Aspect Ratio)
-    private ultZoom = 1.45;
+    private ultZoom: number = DIRECTOR_PARAM.ULT_ZOOM;
 
     private readonly MIN_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMin;
     private readonly MAX_ZOOM = UI_SETTINGS.CAMERA_ZOOM.directorMax;
@@ -36,17 +36,17 @@ export class DirectorSystem {
     public bind(engine: GameEngine) {
         engine.bus.on('KILL', (data) => {
             if (data.killerId) {
-                this.forceFocus(engine, data.killerId, 2.5);
+                this.forceFocus(engine, data.killerId, DIRECTOR_PARAM.KILL_FOCUS_S);
             }
         });
         engine.bus.on('CAST_START', (data) => {
             if (data.skill?.tag === 'ULT' && data.sourceId) {
-                this.forceFocus(engine, data.sourceId, 3.5);
+                this.forceFocus(engine, data.sourceId, DIRECTOR_PARAM.ULT_FOCUS_S);
             }
         });
     }
 
-    public forceFocus(engine: GameEngine, id: string, duration: number = 2.0) {
+    public forceFocus(engine: GameEngine, id: string, duration: number = DIRECTOR_PARAM.DEFAULT_FOCUS_S) {
         const ds = engine.state.director;
         ds.targetId = id;
         ds.priorityTimer = duration; 
@@ -58,26 +58,26 @@ export class DirectorSystem {
 
         // 0. Update Zoom Logic based on Canvas Aspect Ratio
         // Responsive Scaling: Adjust zoom to fit content based on screen shape
-        const currentAR = engine.screenAspect || 1.77;
+        const currentAR = engine.screenAspect || DIRECTOR_PARAM.DEFAULT_ASPECT;
         
-        if (Math.abs(currentAR - this.lastAspectRatio) > 0.1) {
+        if (Math.abs(currentAR - this.lastAspectRatio) > DIRECTOR_PARAM.ASPECT_EPSILON) {
             this.lastAspectRatio = currentAR;
             
             // Base modifier
             let zoomMod = 1.0;
             
-            if (currentAR > 2.0) {
+            if (currentAR > DIRECTOR_PARAM.ULTRAWIDE_ASPECT) {
                 // Ultra-wide: Zoom out slightly to fit vertical height
-                zoomMod = 0.85;
+                zoomMod = DIRECTOR_PARAM.ULTRAWIDE_ZOOM;
             } else if (currentAR < 1.0) {
                 // Portrait (Mobile): Zoom out significantly to fit horizontal width
-                zoomMod = 0.65;
-            } else if (currentAR < 1.4) {
+                zoomMod = DIRECTOR_PARAM.PORTRAIT_ZOOM;
+            } else if (currentAR < DIRECTOR_PARAM.NARROW_ASPECT) {
                 // 4:3 or similar: Zoom out a bit
-                zoomMod = 0.8;
+                zoomMod = DIRECTOR_PARAM.NARROW_ZOOM;
             }
 
-            this.ultZoom = 1.45 * zoomMod;
+            this.ultZoom = DIRECTOR_PARAM.ULT_ZOOM * zoomMod;
         }
 
         const ds = engine.state.director;
@@ -120,7 +120,7 @@ export class DirectorSystem {
                 if (ds.targetId !== bestCandidate.id) {
                     ds.targetId = bestCandidate.id;
                     const isAction = bestCandidate.castingSkillIdx !== -1;
-                    ds.focusTimer = isAction ? 4.0 : 2.5;
+                    ds.focusTimer = isAction ? DIRECTOR_PARAM.ACTION_FOCUS_S : DIRECTOR_PARAM.IDLE_FOCUS_S;
                 }
             } else {
                 ds.targetId = null;
@@ -136,7 +136,7 @@ export class DirectorSystem {
             if (a.hp <= 0 || a.banished || a.outOfBounds) continue;
             
             // [FIX] 忽略正在墜落或腳下無地的單位，避免導播鏡頭被帶走
-            if (a.physics.z < -50 || !engine.isValid(a.q, a.r)) continue;
+            if (a.physics.z < -DIRECTOR_PARAM.FALL_DEPTH || !engine.isValid(a.q, a.r)) continue;
 
             // Deterministic tie-breaker based on ID to prevent camera jitter
             const deterministicRng = a.id.charCodeAt(0) % 10;
@@ -144,12 +144,12 @@ export class DirectorSystem {
 
             if (a.castingSkillIdx !== -1) {
                 const skill = a.skills[a.castingSkillIdx];
-                if (skill?.tag === 'ULT') score += 50; 
-                else if (skill?.tag === 'ACTIVE') score += 20;
-                else score += 5; 
+                if (skill?.tag === 'ULT') score += DIRECTOR_PARAM.ULT_SCORE;
+                else if (skill?.tag === 'ACTIVE') score += DIRECTOR_PARAM.ACTIVE_SCORE;
+                else score += DIRECTOR_PARAM.BASIC_SCORE;
             }
-            if (a.view.hitFlashTimer > 0) score += 15; 
-            if (a.isMoving) score += 5;
+            if (a.view.hitFlashTimer > 0) score += DIRECTOR_PARAM.HIT_SCORE;
+            if (a.isMoving) score += DIRECTOR_PARAM.MOVING_SCORE;
 
             if (a.role === 'WARRIOR' || a.role === 'TANK') score += 2;
 
@@ -183,12 +183,12 @@ export class DirectorSystem {
         const ultCasters = engine.agents.filter(a => a.hp > 0 && a.castingSkillIdx !== -1 && a.skills[a.castingSkillIdx]?.tag === "ULT");
         if (ultCasters.length > 0) {
             for (const caster of ultCasters) {
-                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), 1.2, 120);
+                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), DIRECTOR_PARAM.ULT_WEIGHT, DIRECTOR_PARAM.ULT_RADIUS);
                 const skill = caster.skills[caster.castingSkillIdx]!;
                 if (skill.type === 'AOE' && caster.targetHex) {
                     const targetPx = HexUtils.toPx(caster.targetHex.q, caster.targetHex.r, engine.mapConfig);
                     const aoeRadiusPx = (skill.aoeRadius || 1) * HEX_SIZE;
-                    this.targetGroup.add(targetPx.x, targetPx.y, 0.6, aoeRadiusPx);
+                    this.targetGroup.add(targetPx.x, targetPx.y, DIRECTOR_PARAM.AOE_WEIGHT, aoeRadiusPx);
                 }
             }
             const solved = this.targetGroup.solve(engine.screenW, engine.screenH);
@@ -200,23 +200,23 @@ export class DirectorSystem {
         const activeCasters = engine.agents.filter(a => 
             a.hp > 0 && 
             a.castingSkillIdx !== -1 && 
-            a.physics.z > -50 && 
+            a.physics.z > -DIRECTOR_PARAM.FALL_DEPTH &&
             engine.isValid(a.q, a.r)
         );
 
         if (activeCasters.length > 0) {
             for (const caster of activeCasters) {
                 const skill = caster.skills[caster.castingSkillIdx];
-                const w = skill?.tag === 'ACTIVE' ? 1.0 : 0.6;
-                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), w, 80);
+                const w = skill?.tag === 'ACTIVE' ? 1.0 : DIRECTOR_PARAM.BASIC_WEIGHT;
+                this.targetGroup.add(caster.px + caster.physics.x, this._agentVisualY(caster), w, DIRECTOR_PARAM.CAST_RADIUS);
                 const target = caster.target;
                 if (target && target.hp > 0) {
-                    this.targetGroup.add(target.px + target.physics.x, this._agentVisualY(target), w * 0.7, 80);
+                    this.targetGroup.add(target.px + target.physics.x, this._agentVisualY(target), w * DIRECTOR_PARAM.TARGET_WEIGHT_MULT, DIRECTOR_PARAM.TARGET_RADIUS);
                     // 附近的敵人也稍微抓進來
                     engine.agents.forEach(a => {
                         if (a.hp > 0 && a.team !== caster.team && a.id !== target.id) {
                             const d = HexUtils.dist(a, target);
-                            if (d <= 1) this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 0.3, 60);
+                            if (d <= 1) this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), DIRECTOR_PARAM.NEARBY_WEIGHT, DIRECTOR_PARAM.NEARBY_RADIUS);
                         }
                     });
                 }
@@ -228,10 +228,10 @@ export class DirectorSystem {
         const evaders = engine.agents.filter(a => a.hp > 0 && (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH));
         if (evaders.length > 0) {
             for (const a of evaders) {
-                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 1.0, 80);
+                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), 1.0, DIRECTOR_PARAM.TARGET_RADIUS);
                 if (a.targetHex) {
                     const destPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
-                    this.targetGroup.add(destPx.x, destPx.y, 0.4, 40);
+                    this.targetGroup.add(destPx.x, destPx.y, DIRECTOR_PARAM.DEST_WEIGHT, DIRECTOR_PARAM.DEST_RADIUS);
                 }
             }
             return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));
@@ -240,10 +240,10 @@ export class DirectorSystem {
         // 優先度 4: 全景 (修正血量權重)
         let hasTargets = false;
         for (const a of engine.agents) {
-            if (a.hp > 0 && !a.banished && !a.outOfBounds && a.physics.z > -100) {
+            if (a.hp > 0 && !a.banished && !a.outOfBounds && a.physics.z > -DIRECTOR_PARAM.PANORAMA_FALL_DEPTH) {
                 // 滿血=0.5, 快死=1.0 (低血量權重較高)
                 const weight = 1.0 - (a.hp / a.maxHp) * 0.5;
-                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), weight, 50);
+                this.targetGroup.add(a.px + a.physics.x, this._agentVisualY(a), weight, DIRECTOR_PARAM.PANORAMA_RADIUS);
                 hasTargets = true;
             }
         }
@@ -252,7 +252,7 @@ export class DirectorSystem {
             const centerQ = Math.floor((engine.mapConfig.w - 1) / 2);
             const centerR = Math.floor((engine.mapConfig.h - 1) / 2);
             const centerPx = HexUtils.toPx(centerQ, centerR, engine.mapConfig);
-            return this.smooth({ x: centerPx.x, y: centerPx.y, zoom: 0.7 });
+            return this.smooth({ x: centerPx.x, y: centerPx.y, zoom: DIRECTOR_PARAM.EMPTY_ZOOM });
         }
 
         return this.smooth(this.targetGroup.solve(engine.screenW, engine.screenH));

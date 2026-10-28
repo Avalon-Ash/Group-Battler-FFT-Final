@@ -174,3 +174,117 @@ export const POST_PROCESS = {
     /** 結束畫面最大壓暗不透明度（比例） */
     FINISH_DIM_ALPHA: 0.6,
 } as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const DIRECTOR_PARAM = {
+    /** 奧義鏡頭基準縮放（倍） */
+    ULT_ZOOM: 1.45,
+    /** 擊殺強制聚焦時間（秒） */
+    KILL_FOCUS_S: 2.5,
+    /** 奧義強制聚焦時間（秒） */
+    ULT_FOCUS_S: 3.5,
+    /** 預設強制聚焦時間（秒） */
+    DEFAULT_FOCUS_S: 2,
+    /** 缺少螢幕資訊時的寬高比（比值） */
+    DEFAULT_ASPECT: 1.77,
+    /** 寬高比重算門檻（比值） */
+    ASPECT_EPSILON: 0.1,
+    /** 超寬螢幕寬高比門檻（比值） */
+    ULTRAWIDE_ASPECT: 2,
+    /** 超寬螢幕縮放修正（倍） */
+    ULTRAWIDE_ZOOM: 0.85,
+    /** 直向螢幕縮放修正（倍） */
+    PORTRAIT_ZOOM: 0.65,
+    /** 較窄螢幕寬高比門檻（比值） */
+    NARROW_ASPECT: 1.4,
+    /** 較窄螢幕縮放修正（倍） */
+    NARROW_ZOOM: 0.8,
+    /** 施法候選焦點維持時間（秒） */
+    ACTION_FOCUS_S: 4,
+    /** 一般候選焦點維持時間（秒） */
+    IDLE_FOCUS_S: 2.5,
+    /** 候選施法者排除墜落深度（px） */
+    FALL_DEPTH: 50,
+    /** 奧義候選分數（分） */
+    ULT_SCORE: 50,
+    /** 主動技候選分數（分） */
+    ACTIVE_SCORE: 20,
+    /** 普攻候選分數（分） */
+    BASIC_SCORE: 5,
+    /** 受擊候選加分（分） */
+    HIT_SCORE: 15,
+    /** 移動候選加分（分） */
+    MOVING_SCORE: 5,
+    /** 奧義施法者取景權重（倍） */
+    ULT_WEIGHT: 1.2,
+    /** 奧義施法者取景半徑（px） */
+    ULT_RADIUS: 120,
+    /** 奧義範圍中心取景權重（倍） */
+    AOE_WEIGHT: 0.6,
+    /** 普攻施法者取景權重（倍） */
+    BASIC_WEIGHT: 0.6,
+    /** 一般施法者取景半徑（px） */
+    CAST_RADIUS: 80,
+    /** 施法目標取景權重倍率（倍） */
+    TARGET_WEIGHT_MULT: 0.7,
+    /** 目標與逃生單位取景半徑（px） */
+    TARGET_RADIUS: 80,
+    /** 鄰近敵方取景權重（倍） */
+    NEARBY_WEIGHT: 0.3,
+    /** 鄰近敵方取景半徑（px） */
+    NEARBY_RADIUS: 60,
+    /** 逃生目的地取景權重（倍） */
+    DEST_WEIGHT: 0.4,
+    /** 逃生目的地取景半徑（px） */
+    DEST_RADIUS: 40,
+    /** 全景排除墜落深度（px） */
+    PANORAMA_FALL_DEPTH: 100,
+    /** 全景單位取景半徑（px） */
+    PANORAMA_RADIUS: 50,
+    /** 空場中央鏡頭縮放（倍） */
+    EMPTY_ZOOM: 0.7,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const RENDER_LIST_PARAM = {
+    /** 預配置繪製操作數（個） */
+    INITIAL_CAPACITY: 8000,
+    /** 操作池每次擴充數（個） */
+    GROWTH_CAPACITY: 1000,
+    /** 排序座標正值偏移（px） */
+    SORT_Y_OFFSET: 10000,
+    /** 排序座標整數化倍率（鍵／px） */
+    SORT_Y_SCALE: 100,
+    /** 單位排序雜湊截取長度（字元） */
+    ID_SUFFIX_LENGTH: 4,
+    /** 單位排序雜湊解析基數（進位） */
+    ID_RADIX: 36,
+    /** 單位排序雜湊桶數（個） */
+    ID_BUCKETS: 100,
+    /** 單位同鍵排序微調（鍵／桶） */
+    ID_TIEBREAK: 0.00001,
+    /** 永遠置頂的高度門檻（px） */
+    TOP_Z_THRESHOLD: 600,
+    /** 永遠置頂的排序偏移（鍵） */
+    TOP_SORT_BIAS: 100000000,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const ANIMATION_PARAM = {
+    /** 視覺偏移線性衰減率（每秒） */
+    OFFSET_DAMPING: 15,
+    /** 視覺偏移歸零門檻（px） */
+    OFFSET_SNAP_PX: 0.1,
+    /** 受擊動畫切入計時門檻（秒） */
+    HIT_THRESHOLD_S: 0.05,
+} as const;
+
+/** 具名參數：保持原值與運算次序。 */
+export const RENDER_STATS_PARAM = {
+    /** 計算幀率的幀時間下限（毫秒） */
+    MIN_FRAME_MS: 0.1,
+    /** 保留的統計影格數（幀） */
+    HISTORY_FRAMES: 240,
+    /** 最慢影格平均的取樣比例（比例） */
+    LOW_FPS_FRACTION: 0.01,
+} as const;

@@ -11,7 +11,7 @@
 
 import { Agent, GameEngine } from "../game";
 import { HexUtils, MapConfig } from "../utils";
-import { UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, ISO_SCALE_Y, UNIT_STEP_BLEND, FLOAT_BOB, RENDER_CACHE } from "../../constants";
+import { VISUAL_MATH_PARAM, UNIT_BODY_OFFSET, UNIT_HOVER_OFFSET, ISO_SCALE_Y, UNIT_STEP_BLEND, FLOAT_BOB, RENDER_CACHE } from "../../constants";
 import { BodyTypeId } from "../../types";
 import { resolveBodyType } from "../../data/units/appearance/bodyTypes";
 import { projectionCenterHeight } from "../../data/units/appearance/projection";
@@ -23,18 +23,18 @@ export interface Point3D {
 }
 
 export class VisualMath {
-    public static readonly HORIZON_Y_PCT = 0.62;
-    public static readonly PROJECTILE_HIT_TOLERANCE_SQ = 900; 
+    public static readonly HORIZON_Y_PCT = VISUAL_MATH_PARAM.HORIZON_Y_PCT;
+    public static readonly PROJECTILE_HIT_TOLERANCE_SQ = VISUAL_MATH_PARAM.PROJECTILE_HIT_TOLERANCE_SQ;
     
     // SSOT: Visual Layer Biases (Positive value = Shift Upwards visually)
     // Used to prevent Z-fighting on the ground plane.
     public static readonly Z_LAYERS = {
         TERRAIN: 0,
         HAZARD: 3,       // Lifted above terrain
-        OVERLAY: 5,      // UI Overlays
-        SHADOW: 8,       // Shadows on top of overlays
+        OVERLAY: VISUAL_MATH_PARAM.LAYER_OVERLAY,      // UI Overlays
+        SHADOW: VISUAL_MATH_PARAM.LAYER_SHADOW,       // Shadows on top of overlays
         DECAL: 2,        // 地面衝擊（SequenceSystem 的落點高度）
-        AURA: 1.5,       // Unit Auras (just below decals to blend?) or slightly above
+        AURA: VISUAL_MATH_PARAM.LAYER_AURA,       // Unit Auras (just below decals to blend?) or slightly above
         UNIT_FEET: 0,
         LIQUID_OFFSET: 1
     };
@@ -44,20 +44,20 @@ export class VisualMath {
         const cx = config.offsetX;
         const cy = config.offsetY;
         const dist = Math.sqrt((x - cx)**2 + (y - cy)**2);
-        const maxDist = 1000;
+        const maxDist = VISUAL_MATH_PARAM.TRANSITION_MAX_DIST;
         const d = Math.min(1, dist / maxDist);
-        const BASE_OFFSET = 1500;
+        const BASE_OFFSET = VISUAL_MATH_PARAM.TRANSITION_OFFSET;
         if (phase === 'OUT') {
-            const startT = d * 0.3;
+            const startT = d * VISUAL_MATH_PARAM.OUT_RADIAL_DELAY;
             if (t < startT) return 0;
-            let localT = (t - startT) * 1.8;
+            let localT = (t - startT) * VISUAL_MATH_PARAM.OUT_RATE;
             localT = Math.max(0, Math.min(1, localT));
-            return (localT * localT * (1.5 * localT - 0.5)) * BASE_OFFSET;
+            return (localT * localT * (VISUAL_MATH_PARAM.OUT_CURVE_GAIN * localT - VISUAL_MATH_PARAM.OUT_CURVE_OFFSET)) * BASE_OFFSET;
         } else if (phase === 'IN') {
-            const startT = d * 0.2;
+            const startT = d * VISUAL_MATH_PARAM.IN_RADIAL_DELAY;
             if (t < startT) return BASE_OFFSET;
-            let localT = Math.max(0, Math.min(1, (t - startT) * 1.5));
-            return (1 - (1 - Math.pow(1 - localT, 4))) * BASE_OFFSET;
+            let localT = Math.max(0, Math.min(1, (t - startT) * VISUAL_MATH_PARAM.IN_RATE));
+            return (1 - (1 - Math.pow(1 - localT, VISUAL_MATH_PARAM.IN_CURVE_POWER))) * BASE_OFFSET;
         }
         return 0;
     }
@@ -160,8 +160,8 @@ export class VisualMath {
     }
 
     public static getShadowProperties(z: number): { scale: number, alpha: number } {
-        const scale = Math.max(0.4, 1.0 - (z / 500));
-        const alpha = Math.max(0.05, 0.35 - (z / 300));
+        const scale = Math.max(VISUAL_MATH_PARAM.SHADOW_MIN_SCALE, 1.0 - (z / VISUAL_MATH_PARAM.SHADOW_SCALE_HEIGHT));
+        const alpha = Math.max(VISUAL_MATH_PARAM.SHADOW_MIN_ALPHA, VISUAL_MATH_PARAM.SHADOW_BASE_ALPHA - (z / VISUAL_MATH_PARAM.SHADOW_ALPHA_HEIGHT));
         return { scale, alpha };
     }
 
@@ -189,11 +189,11 @@ export class VisualMath {
     }
 
     public static resolveTargetPoint(targetId: string, engine: GameEngine): Point3D {
-        if (!targetId) return { x: 0, y: 0, z: -9999 };
+        if (!targetId) return { x: 0, y: 0, z: -VISUAL_MATH_PARAM.MISSING_TARGET_DEPTH };
         const agent = engine.agents.find(a => a.id === targetId);
         if (agent) return this.getUnitAnchor(agent, engine);
         if (targetId.startsWith("ground-")) {
-            const coordsStr = targetId.substring(7); // remove "ground-"
+            const coordsStr = targetId.substring(VISUAL_MATH_PARAM.GROUND_PREFIX_LENGTH); // remove "ground-"
             const parts = coordsStr.split(",");
             if (parts.length >= 2) {
                 const q = parseInt(parts[0]);
@@ -201,10 +201,10 @@ export class VisualMath {
                 const p = HexUtils.toPx(q, r, engine.mapConfig);
                 const h = engine.getTerrainHeight(q, r);
                 if (!isNaN(p.x) && !isNaN(p.y)) {
-                    return { x: p.x, y: p.y, z: h + 2 };
+                    return { x: p.x, y: p.y, z: h + VISUAL_MATH_PARAM.GROUND_TARGET_LIFT };
                 }
             }
         }
-        return { x: 0, y: 0, z: -9999 };
+        return { x: 0, y: 0, z: -VISUAL_MATH_PARAM.MISSING_TARGET_DEPTH };
     }
 }

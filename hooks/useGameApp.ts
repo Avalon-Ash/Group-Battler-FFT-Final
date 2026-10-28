@@ -3,7 +3,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { GameEngine, Agent } from '../engine/game';
 import { ToolType, Team, Skill, Role, HexLayout, BodyTypeId } from '../types';
 import { DesignExporter } from '../engine/presentation/DesignExporter';
-import { DEFAULT_HEX_LAYOUT } from '../constants';
+import { GAME_APP_PARAM, DEFAULT_HEX_LAYOUT } from '../constants';
 import { HexUtils } from '../engine/utils';
 import { random } from '../engine/math/rng';
 import { queryMapKeys, queryHasObstacle } from '../engine/systems/ui/editorQueries';
@@ -63,13 +63,13 @@ export const useGameApp = () => {
     const [editor, setEditor] = useState({
         tool: ToolType.SELECT,
         selectedObstacle: 'WALL',
-        hpInput: 600,
+        hpInput: GAME_APP_PARAM.DEFAULT_HP,
         spawnMode: 'RANDOM' as 'RANDOM' | 'DRAFT',
         draftRole: Role.WARRIOR,
         draftBodyType: undefined as BodyTypeId | undefined,
         hexLayout: DEFAULT_HEX_LAYOUT,
-        mapW: 12,
-        mapH: 8,
+        mapW: GAME_APP_PARAM.DEFAULT_MAP_W,
+        mapH: GAME_APP_PARAM.DEFAULT_MAP_H,
         currentSceneId: 'VOID'
     });
 
@@ -115,7 +115,7 @@ export const useGameApp = () => {
         
         const spawn = (team: Team, hexes: {q: number, r: number}[]) => {
             let spawnIdx = 0;
-            for(let i=0; i<5; i++) {
+            for(let i=0; i<GAME_APP_PARAM.TEAM_SIZE; i++) {
                 if (spawnIdx >= hexes.length) break;
                 const hex = hexes[spawnIdx++];
                 engine.bus.emit('UI_COMMAND', {
@@ -123,7 +123,7 @@ export const useGameApp = () => {
                     team,
                     q: hex.q,
                     r: hex.r,
-                    hp: 600 + random() * 400,
+                    hp: GAME_APP_PARAM.SPAWN_HP_MIN + random() * GAME_APP_PARAM.SPAWN_HP_RANGE,
                     role: roles[i % roles.length],
                 });
             }
@@ -139,8 +139,8 @@ export const useGameApp = () => {
         engine.bus.emit('UI_COMMAND', { type: 'STOP_GAME' });
         engine.bus.emit('UI_COMMAND', { type: 'CLEAR_BOARD', keepScene: true, skipRebuild: true });
         setHud(prev => ({ ...prev, selectedAgent: null }));
-        const newW = Math.floor(10 + random() * 4);
-        const newH = Math.floor(8 + random() * 4);
+        const newW = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_W + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
+        const newH = Math.floor(GAME_APP_PARAM.SHOWCASE_MIN_H + random() * GAME_APP_PARAM.SHOWCASE_SIZE_RANGE);
         const newLayout: HexLayout = random() > 0.5 ? 'FLAT' : 'POINTY';
         engine.bus.emit('UI_COMMAND', {
             type: 'RANDOMIZE_MAP',
@@ -182,9 +182,9 @@ export const useGameApp = () => {
                     setTimeout(() => {
                         setSession(prev => ({ ...prev, transitionPhase: 'IDLE' }));
                         spawnShowcaseUnits(); 
-                    }, 1500);
-                }, 1200);
-            }, 2000);
+                    }, GAME_APP_PARAM.TRANSITION_IN_MS);
+                }, GAME_APP_PARAM.TRANSITION_OUT_MS);
+            }, GAME_APP_PARAM.RESULT_HOLD_MS);
             return () => clearTimeout(timer);
         }
     }, [session.winner, session.isShowcaseMode, setupShowcaseMap, spawnShowcaseUnits]);
@@ -201,7 +201,7 @@ export const useGameApp = () => {
     }, [session.isShowcaseMode]);
 
     useEffect(() => {
-        const interval = setInterval(() => setSession(prev => ({ ...prev, unitCount: engineRef.current.agents.length })), 500);
+        const interval = setInterval(() => setSession(prev => ({ ...prev, unitCount: engineRef.current.agents.length })), GAME_APP_PARAM.UNIT_POLL_MS);
         return () => clearInterval(interval);
     }, []);
 
@@ -298,7 +298,7 @@ export const useGameApp = () => {
                         setSession(p => ({...p, isPlaying: true}));
                     } else {
                         setHud(p => ({...p, showFactionWarning: true}));
-                        setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), 2500);
+                        setTimeout(() => setHud(p => ({...p, showFactionWarning: false})), GAME_APP_PARAM.WARNING_MS);
                     }
                 }
             },
