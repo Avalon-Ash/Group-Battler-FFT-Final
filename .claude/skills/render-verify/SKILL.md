@@ -26,6 +26,7 @@ node tools/ui-e2e/runtime-smoke.mjs --query=glow=1    # 有開關的功能，帶
 npm run perf:guard      # 保真 6 張 + perf A/B；失敗時差異圖在 tools/ui-e2e/out/fidelity/
 ```
 - 保真失敗而變動是預期的：**不准直接重錄**，改走 `rebaseline-fidelity` skill。
+- 要證明「畫面沒變」（重構、搬常數），不能拿兩次執行的 meanAbsDiff 比：同一台機器、不同次執行就會漂移（2026-10-29 O5a：程式碼沒變，`battle_frozen` 0.001→0.164）。做法是同環境 A/B：同一次執行裡切換改前（HEAD）與改後程式碼，各截同一組場景，逐像素比較，要 0 差異；刻意的畫面變更則用遮罩證明差異只在預期範圍內。
 - 幀時間量測（`perf:frames`）只在使用者主螢幕跑，雲端與副螢幕的數字不可信。
 
 ## 4. 動到位置／高度／排序／發射點時再加
@@ -33,7 +34,7 @@ npm run perf:guard      # 保真 6 張 + perf A/B；失敗時差異圖在 tools/
 - 確認同一個 commit 已同步更新 `engine/renderers/RenderSpec.ts` 與所改檔案的方框檔頭。
 
 ## 5. 專題探針
-既有的專題截圖腳本都在 `tools/ui-e2e/*-shot.mjs`、`*-probe.mjs`；要做新探針，從 `tools/ui-e2e/faction-shot.mjs` 抄固定種子＋`__stepFrames` 的 init script（這些 hook 不在 app 內，由腳本 `addInitScript` 注入）。一次性探針放 `tools/ui-e2e/out/_scratch_*.mjs`（不進 repo）。
+現存可沿用的截圖腳本：`tools/ui-e2e/faction-shot.mjs`（固定種子＋`__stepFrames` 的範本）、`render-fidelity.mjs`、`runtime-smoke.mjs`。新的一次性探針寫在 `tools/ui-e2e/out/`（不進版控，AGENTS §3）；要長期保留就掛 npm script。
 
 ## 回報格式
 一行一項：`lint/test/build`、`runtime-smoke`（battleTime 起訖）、`perf:guard`（各場景 meanAbsDiff）、`verify:coords`（有跑才寫）。沒跑的寫「未跑＋原因」。

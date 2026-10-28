@@ -122,7 +122,8 @@ Z1、Z2 是行為 bug，修了會影響戰鬥結果，歸到 O4 的「改值」�
 | O3 | O3a 工具腳本合併（`55c76cd`）；O3b 2026-10-29：刪 `BAL03_REPORT`、`R5_MOBILE_EMU_REPORT`（結論已在 WORKLOG）；被原始碼註解引用的設計／findings 文件保留；清冊 CSV 凍結；`perf-mobile-emu` 加 `npm run perf:mobile` 入口 |
 | O4a | 合併 2026-10-29；`MagicNumberBudget` 測試已加入 |
 | O4b | 合併（`1a2ba4d`）；Z5 移到 O5 |
-| O5～O7 | 未開始 |
+| O5a | 合併 2026-10-29：雜湊統一＋Z5 |
+| O5b～O7 | 未開始 |
 
 ## 5. 已定案（使用者授權主代理決定，2026-10-28）
 
