@@ -163,8 +163,8 @@ export const RED_ULT: Skill[] = [
     { 
         id: 'mr_u3', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '時間凝結', desc: '將目標凝滯於時間中',
-        range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0,
-        type: 'SINGLE', power: 620, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
+        range: 7, cast: 1.5, cd: 5.0, cost: 80, gain: 0,
+        type: 'SINGLE', power: 900, color: '#fef08a', visual: 'BEAM', projectileSpeed: 0,
         ccType: 'BANISH', ccDur: 3.0,
         specialVisualStatus: 'STASIS',
         visualHitEffect: 'FX_ULT_RED_VOID_PORTAL', element: 'VOID'
@@ -182,7 +182,7 @@ export const RED_ULT: Skill[] = [
         id: 'mr_u5', role: Role.MAGE, team: Team.RED, tag: 'ULT', 
         name: '靈魂爆燃', desc: '連鎖爆炸', 
         range: 8, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 2, power: 630, color: '#dc2626', 
+        type: 'AOE', aoeRadius: 2, power: 500, color: '#dc2626', 
         visual: 'FIREBALL', projectileSpeed: 0, element: 'FIRE',
         visualHitEffect: 'FX_ULT_RED_SOUL_BURN'
     },
@@ -201,7 +201,7 @@ export const RED_ULT: Skill[] = [
         id: 'sr_u2', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
         name: '鮮血契約', desc: '範圍大補', 
         range: 0, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'AOE', aoeRadius: 8, power: -1100, color: '#dc2626', 
+        type: 'AOE', aoeRadius: 8, power: -1320, color: '#dc2626', 
         visual: 'SMASH', projectileSpeed: 0, 
         effectType: 'SELF_DAMAGE', effectVal: 220,
         visualHitEffect: 'FX_ULT_RED_BLOOD_PACT', element: 'BLOOD'
@@ -228,7 +228,7 @@ export const RED_ULT: Skill[] = [
         id: 'sr_u5', role: Role.SUPPORT, team: Team.RED, tag: 'ULT', 
         name: '惡靈附身', desc: '單體強化', 
         range: 7, cast: 1.5, cd: 5.0, cost: 100, gain: 0, 
-        type: 'SINGLE', power: -700, color: '#7f1d1d', 
+        type: 'SINGLE', power: -840, color: '#7f1d1d', 
         visual: 'BEAM', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 450,
         visualHitEffect: 'FX_ULT_RED_POSSESSION', element: 'BLOOD'

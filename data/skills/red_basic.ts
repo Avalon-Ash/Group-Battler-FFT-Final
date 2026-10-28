@@ -8,7 +8,7 @@ export const RED_BASIC: Skill[] = [
         id: 'tr_b1', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '碎骨重擊', desc: '吸血打擊', 
         range: 1, cast: 0.6, cd: 1.0, cost: 0, gain: 25,
-        type: 'SINGLE', power: 70, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 88, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
         effectType: 'VAMP', effectVal: 0.4, 
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
@@ -16,7 +16,7 @@ export const RED_BASIC: Skill[] = [
         id: 'tr_b2', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '血腥肉鉤', desc: '微量牽引', 
         range: 1, cast: 0.5, cd: 1.7, cost: 0, gain: 15, 
-        type: 'SINGLE', power: 32, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 40, color: '#991b1b', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'PULL', ccForce: 1, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -24,7 +24,7 @@ export const RED_BASIC: Skill[] = [
         id: 'tr_b3', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '尖刺防禦', desc: '反傷準備', 
         range: 1, cast: 0.4, cd: 1.0, cost: 0, gain: 20,
-        type: 'SINGLE', power: 55, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 69, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SHIELD', ccForce: 25, ccSelf: true,
         ccType2: 'REFLECT', ccDur2: 3, ccForce2: 25, ccSelf2: true,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
@@ -33,7 +33,7 @@ export const RED_BASIC: Skill[] = [
         id: 'tr_b4', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '野蠻頭槌', desc: '微暈', 
         range: 1, cast: 0.3, cd: 1.0, cost: 0, gain: 30,
-        type: 'SINGLE', power: 75, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 94, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'STUN', ccDur: 0.5,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
@@ -41,7 +41,7 @@ export const RED_BASIC: Skill[] = [
         id: 'tr_b5', role: Role.TANK, team: Team.RED, tag: 'BASIC', 
         name: '兇殘撕咬', desc: '流血', 
         range: 1, cast: 0.5, cd: 1.0, cost: 0, gain: 30,
-        type: 'SINGLE', power: 55, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 69, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'DOT', ccForce: 8, ccDur: 3.0,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -51,7 +51,7 @@ export const RED_BASIC: Skill[] = [
         id: 'wr_b1', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '裂傷斬擊', desc: '流血效果', 
         range: 1, cast: 0.4, cd: 0.8, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 75, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 94, color: '#dc2626', visual: 'SLASH', projectileSpeed: 0, 
         ccType: 'DOT', ccDur: 3.0, ccForce: 20, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -59,21 +59,21 @@ export const RED_BASIC: Skill[] = [
         id: 'wr_b2', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '飛斧投擲', desc: '中程攻擊', 
         range: 4, cast: 0.5, cd: 1.0, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 70, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 1000, 
+        type: 'SINGLE', power: 88, color: '#b91c1c', visual: 'SMASH', projectileSpeed: 1000, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', visualProjectileEffect: 'PROJ_RED_AXE', element: 'PHYSICAL'
     },
     { 
         id: 'wr_b3', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '橫掃千軍', desc: '範圍傷害', 
         range: 1, cast: 0.5, cd: 1.2, cost: 0, gain: 30, 
-        type: 'AOE', aoeRadius: 1, power: 60, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
+        type: 'AOE', aoeRadius: 1, power: 75, color: '#ef4444', visual: 'SLASH', projectileSpeed: 0, 
         visualHitEffect: 'FX_HIT_RED_PHYSICAL', element: 'PHYSICAL'
     },
     { 
         id: 'wr_b4', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '重拳猛擊', desc: '打斷', 
         range: 1, cast: 0.2, cd: 1.0, cost: 0, gain: 20, 
-        type: 'SINGLE', power: 55, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 69, color: '#7f1d1d', visual: 'SMASH', projectileSpeed: 0, 
         ccType: 'SILENCE', ccDur: 0.7,
         visualHitEffect: 'FX_HIT_RED_HEAVY', element: 'PHYSICAL'
     },
@@ -81,7 +81,7 @@ export const RED_BASIC: Skill[] = [
         id: 'wr_b5', role: Role.WARRIOR, team: Team.RED, tag: 'BASIC', 
         name: '狂怒連斬', desc: '低血高傷', 
         range: 1, cast: 0.4, cd: 0.9, cost: 0, gain: 25, 
-        type: 'SINGLE', power: 75, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
+        type: 'SINGLE', power: 94, color: '#b91c1c', visual: 'SLASH', projectileSpeed: 0, 
         effectType: 'EXECUTE', effectVal: 1.25,
         visualHitEffect: 'FX_HIT_RED_BLOOD', element: 'BLOOD'
     },
@@ -195,7 +195,7 @@ export const RED_BASIC: Skill[] = [
         id: 'sr_b4', role: Role.SUPPORT, team: Team.RED, tag: 'BASIC', 
         name: '鮮血治癒', desc: '耗血補人', 
         range: 5, cast: 0.5, cd: 0.85, cost: 0, gain: 30, 
-        type: 'SINGLE', power: -90, color: '#991b1b', visual: 'BOLT', projectileSpeed: 950, 
+        type: 'SINGLE', power: -120, color: '#991b1b', visual: 'BOLT', projectileSpeed: 950, 
         visualHitEffect: 'FX_HIT_RED_BLOOD', visualProjectileEffect: 'PROJ_RED_BLOOD_MOTE', element: 'BLOOD'
     },
     { 
