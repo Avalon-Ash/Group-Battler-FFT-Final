@@ -329,6 +329,11 @@
 - Codex Sol：`PartBakers`／`PartSpec` → `data/vfx/parts/partConfig.ts`；`VFXFactory`、`UnitShatter`、`CombatVFXHandler`、`VFXPhysics`、`SequenceSystem`、`VFXSystem`、`ProjectileRenderer` → `constants/vfx.ts`。共 259 個（`PartBakers` 181→8）。零件總表 52 件 0 差異；六場景同環境 A/B 逐位元相同；perf:guard 通過。
 - 第一次 A/B 探針在未改碼時 FOREST 就有 61 萬像素差異，Codex 正確停下；改用 O5a 證明穩定的腳本後通過。
 
+### AL. 2026-10-29 OPT-01 O6 UI 顏色改用樣式代碼
+- Codex Luna：components 9 檔＋`AnnouncerSystem` 的 85 個顏色字面值 → `data/ui/tokens.ts`（`UI_LITERAL_TOKENS`，`gen:tokens` 產生 `styles/tokens.css`）或 `constants/palette.ts`（`TEAM_COLORS` UI 強調色、`ANNOUNCER_TEXT_COLORS`）。e2e:ui 樣式基準 0 差異、未重錄。Tailwind 任意色 class 保留。
+- `MagicNumberBudget` 測試加上 `tests/color-literal-budget.json`（顏色只減不增）。
+- 第一次因沙盒 git 擁有者檢查直接停下；之後提示詞一律寫 `git -c safe.directory`（`agent-prompt` skill 已記）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。

@@ -20,11 +20,11 @@
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
-**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併並 push（WORKLOG §2 AI）。O3b、O5a（雜湊統一＋Z5 詠唱預警對稱）、O5b（特效參數）在 2026-10-29 合併。剩 O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
+**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併並 push（WORKLOG §2 AI）。O3b、O5a（雜湊統一＋Z5 詠唱預警對稱）、O5b（特效參數）、O6（UI 顏色）在 2026-10-29 合併。剩 O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
 
 **多段傷害技能（等 OPT-01 後）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
 
-**偶發測試**：`tests/TerrainBlockCacheBudget.test.ts`「on overflow evicts only sprites of other zoom scales」2026-10-28 在完整測試中失敗一次（expected 2025 to be 2048），單獨跑 3 次、完整再跑 2 次都通過，疑似依執行順序或共用狀態；再出現就查。`AgentRunner` 時序測試在高負載下也會偶發。
+**偶發測試**：`tests/TerrainBlockCacheBudget.test.ts`「on overflow evicts only sprites of other zoom scales」2026-10-28 在完整測試中失敗一次（expected 2025 to be 2048），單獨跑 3 次、完整再跑 2 次都通過，疑似依執行順序或共用狀態；再出現就查。`AgentRunner` 時序測試在高負載下也會偶發。`e2e:ui` 的「Draft bodyType」檢查 2026-10-29 在 Codex 沙盒失敗一次（實際值 `FEMALE`，重跑通過），可能和男女各半的隨機有關，再出現就查。
 
 
 ## 3. 待使用者實機確認
