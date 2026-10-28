@@ -9,7 +9,7 @@ import { VisualMath } from "../../math/VisualMath";
 import { HexUtils } from "../../utils";
 import { SkillExecutor, applySelfCC } from "./SkillExecutor";
 import { HazardManager } from "./HazardManager";
-import { ISO_SCALE_Y } from "../../../constants";
+import { ISO_SCALE_Y, COMBAT_PARAM, PROJECTILE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { unitEventPos, pointEventPos } from "../../events/EventPos";
 
@@ -79,7 +79,7 @@ export class ProjectileSystem {
     if (p.skill.type === "AOE") {
       const targetHex = { q: p.targetHexQ, r: p.targetHexR };
       const impactCells = HexUtils.range(targetHex, p.skill.aoeRadius || 1);
-      const preRollCrit = p.skill.power > 0 ? random() < 0.1 : false;
+      const preRollCrit = p.skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false;
 
       impactCells.forEach((cell) => {
         const t = engine.getAgentAt(cell.q, cell.r);
@@ -168,7 +168,7 @@ export class ProjectileSystem {
     const dx = targetPoint.x - launchPoint.x;
     const dy = targetPoint.y - launchPoint.y;
     const totalDist = Math.sqrt(dx * dx + dy * dy);
-    const speed = skill.projectileSpeed || 800;
+    const speed = skill.projectileSpeed || PROJECTILE_RULES.DEFAULT_SPEED;
 
     const p = this.pool.pop() || this.createEmptyProjectile();
     p.active = true;
@@ -177,7 +177,7 @@ export class ProjectileSystem {
     p.team = source.team;
     p.skill = skill;
     p.t = 0;
-    p.totalDuration = Math.max(0.1, totalDist / speed);
+    p.totalDuration = Math.max(PROJECTILE_RULES.MIN_DURATION, totalDist / speed);
     p.startX = launchPoint.x;
     p.startY = launchPoint.y;
     p.startZ = launchPoint.z;

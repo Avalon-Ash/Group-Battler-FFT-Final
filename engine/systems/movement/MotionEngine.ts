@@ -4,10 +4,9 @@ import { HexUtils } from "../../utils";
 import { SpatialProvider } from "../../../types";
 import { random } from "../../math/rng";
 import { stopMovement } from "./MotionCommands";
-import { EFFECT_LIMITS } from "../../../constants";
+import { EFFECT_LIMITS, PHYSICS } from "../../../constants";
 
 const STACKING_RESOLUTION_FORCE = 8;
-const FACING_THRESHOLD = 1.5; 
 
 export class MotionEngine {
 
@@ -61,7 +60,7 @@ export class MotionEngine {
         const c = HexUtils.toPx(startH.q, startH.r, spatial.getMapConfig());
         const n = HexUtils.toPx(nextHex.q, nextHex.r, spatial.getMapConfig());
         
-        if (Math.abs(n.x - a.px) > FACING_THRESHOLD) {
+        if (Math.abs(n.x - a.px) > PHYSICS.FACING_THRESHOLD) {
             a.facing = n.x > a.px ? 1 : -1;
         }
         
@@ -80,8 +79,8 @@ export class MotionEngine {
         a.isMoving = false;
         a.moveProgress = 0;
         
-        a.physics.vx *= 0.1;
-        a.physics.vy *= 0.1;
+        a.physics.vx *= PHYSICS.MOVE_FINISH_VELOCITY_FACTOR;
+        a.physics.vy *= PHYSICS.MOVE_FINISH_VELOCITY_FACTOR;
         
         a.physics.vx += (random() - 0.5) * STACKING_RESOLUTION_FORCE;
         a.physics.vy += (random() - 0.5) * STACKING_RESOLUTION_FORCE;

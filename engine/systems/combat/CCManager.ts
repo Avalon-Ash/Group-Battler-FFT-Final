@@ -2,7 +2,7 @@
 import { Agent, GameEngine } from "../../game";
 import { Skill } from "../../../types";
 import { Vector } from "../../utils";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, FORCED_MOVE, DAMAGE_TEXT_COLORS, CC_RULES } from "../../../constants";
 import { STATUS_VISUALS } from "../../../data/vfx/status_visuals";
 import { triggerHitFlash } from "../../core/ViewCommands";
 import { applyDirectDamage } from "./DirectDamage";
@@ -35,7 +35,7 @@ export const CCManager = {
         if (isBuff && source.team !== target.team) return;
         if (isDebuff && source.team === target.team) return;
         
-        const amount = force || 50;
+        const amount = force || CC_RULES.DEFAULT_SHIELD_AMOUNT;
         let isImmune = false;
         let effectiveDuration = dur || 0;
 
@@ -244,7 +244,7 @@ export const CCManager = {
                     statusText = visual.label;
                     statusColor = visual.primaryColor;
                     // SSOT: Trigger hit flash to cause reaction
-                    if (target.hp > 0) triggerHitFlash(target, 0.2);
+                    if (target.hp > 0) triggerHitFlash(target, CC_RULES.KNOCKBACK_HIT_FLASH_DURATION);
                     target.physics.vz += PHYSICS.VISUAL_JUMP_KNOCKBACK; 
                     noDurationLog = true;
                     engine.bus.emit('CAMERA_SHAKE', { intensity: VFX_PARAM.SHAKE_INTENSITY_KNOCKBACK });
@@ -279,7 +279,7 @@ export const CCManager = {
         if (statusText) {
             // Append DR info if applicable
             let displayEffectText = statusText;
-            if (drMultiplier < 0.95 && drMultiplier > 0.05) {
+            if (drMultiplier < CC_RULES.DR_LABEL_UPPER_BOUND && drMultiplier > CC_RULES.DR_LABEL_LOWER_BOUND) {
                 const pct = Math.round(drMultiplier * 100);
                 displayEffectText = `${statusText} (${pct}% DR)`;
             }
@@ -314,7 +314,7 @@ export const CCManager = {
         let multiplier = Math.pow(0.5, stacks) * (1 - resilience);
         
         // Minimum duration floor or immunity (<= 0.25 means the 3rd application is immune)
-        if (multiplier <= 0.25) return { effectiveDuration: 0, isImmune: true };
+        if (multiplier <= CC_RULES.DR_IMMUNITY_THRESHOLD) return { effectiveDuration: 0, isImmune: true };
         
         target.drStacks[type] = stacks + 1;
         target.drTimers[type] = COMBAT_PARAM.DR_RESET_TIME; 

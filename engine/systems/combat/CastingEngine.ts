@@ -7,7 +7,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { Agent, GameEngine } from "../../game";
-import { CAST_LOCKOUT } from "../../../constants";
+import { CAST_LOCKOUT, CAST_RULES } from "../../../constants";
 import { unitEventPos } from "../../events/EventPos";
 import { EventPool } from "../../events/GameEventPool";
 
@@ -111,7 +111,7 @@ export class CastingEngine {
             a.forceAiUpdate = true;
         }
         if (fromCompletion) {
-            a._castCompleteCooldown = 0.15; // [FIX] Lockout to prevent instant re-cast loop
+            a._castCompleteCooldown = CAST_RULES.COMPLETE_COOLDOWN; // [FIX] Lockout to prevent instant re-cast loop
         }
         // aiState 不再存 CASTING_*（castingSkillIdx 歸 -1 即結束施法狀態，P7b），不必還原
     }

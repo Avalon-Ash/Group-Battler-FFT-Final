@@ -1,7 +1,7 @@
 import { GameEngine, Agent } from "../../game";
 import { HexUtils } from "../../utils";
 import { Hex, HexSpatialLookup } from "../../../types";
-import { BLOCK_HEIGHT, HEX_SIZE, UNIT_OCCLUSION } from "../../../constants";
+import { BLOCK_HEIGHT, HEX_SIZE, UNIT_OCCLUSION, GRID_SPATIAL } from "../../../constants";
 import { VisualMath } from "../../math/VisualMath";
 
 export class GridSpatial {
@@ -15,10 +15,10 @@ export class GridSpatial {
             cache.ensure(engine);
         }
         // 解算高度步進，匹配視覺投影
-        const maxHeight = 300; 
+        const maxHeight = GRID_SPATIAL.PICK_MAX_HEIGHT; 
         const step = BLOCK_HEIGHT;
         let bestHex: Hex | null = null;
-        let bestH = -999;
+        let bestH: number = GRID_SPATIAL.PICK_INITIAL_HEIGHT;
 
         for (let h = 0; h <= maxHeight; h += step) {
             // 修正：解算 Y 軸時應考慮 Z 的物理貢獻
@@ -49,7 +49,7 @@ export class GridSpatial {
             const dx = Math.abs(wx - tilePx);
             const dy = Math.abs(wy - visualTopY);
             
-            if (dx < HEX_SIZE * 0.9 && dy < HEX_SIZE * 0.6) {
+            if (dx < HEX_SIZE * GRID_SPATIAL.PICK_HALF_WIDTH_FACTOR && dy < HEX_SIZE * GRID_SPATIAL.PICK_HALF_HEIGHT_FACTOR) {
                 if (tileH >= bestH) {
                     bestHex = rounded;
                     bestH = tileH;
@@ -96,7 +96,7 @@ export class GridSpatial {
                 // 且距離中心足夠近（遮擋判斷）
                 if (pos.y > agent.py && 
                     Math.abs(pos.x - agent.px) < 60 &&
-                    Math.abs(pos.y - agent.py) < 120) {
+                    Math.abs(pos.y - agent.py) < GRID_SPATIAL.OBSTACLE_OCCLUSION_Y_RANGE) {
                     result.push(agent);
                     break;
                 }

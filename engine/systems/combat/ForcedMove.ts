@@ -50,7 +50,7 @@ export interface ForcedMoveResult {
 function pickStepToward(hex: Hex, dir: Point, mapConfig: MapConfig): Hex | null {
     const cPx = HexUtils.toPx(hex.q, hex.r, mapConfig);
     let best: Hex | null = null;
-    let bestDot = -2.0;
+    let bestDot = FORCED_MOVE.INITIAL_STEP_DOT;
     for (const n of HexUtils.neighbors(hex)) {
         const nPx = HexUtils.toPx(n.q, n.r, mapConfig);
         const nDir = Vector.normalize(Vector.sub(nPx, cPx));

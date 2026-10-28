@@ -2,7 +2,7 @@
 import { Agent } from "../../core/Agent";
 import { HexUtils, Vector } from "../../utils";
 import { MovementType, SpatialProvider, LogProvider } from "../../../types";
-import { BLOCK_HEIGHT } from "../../../constants";
+import { BLOCK_HEIGHT, PHYSICS } from "../../../constants";
 import { random } from "../../math/rng";
 import { stopMovement } from "./MotionCommands";
 
@@ -57,8 +57,8 @@ export class StackingResolver {
                     HexUtils.toPx(found.q, found.r, spatial.getMapConfig()), 
                     HexUtils.toPx(owner.q, owner.r, spatial.getMapConfig())
                 ));
-                guest.physics.vx += dir.x * 200;
-                guest.physics.vy += dir.y * 200;
+                guest.physics.vx += dir.x * PHYSICS.STACKING_EXPULSION_SPEED;
+                guest.physics.vy += dir.y * PHYSICS.STACKING_EXPULSION_SPEED;
                 
                 logger.log(guest, 'SYSTEM', '擠出', `從 (${owner.q},${owner.r})`, '解決重疊狀態');
             }

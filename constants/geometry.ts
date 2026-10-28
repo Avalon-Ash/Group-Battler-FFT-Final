@@ -57,3 +57,55 @@ export const ZONE = {
     /** 塌陷格低於此 Z 座標時移除（像素）。 */
     COLLAPSE_DESPAWN_Z: -2000,
 } as const;
+
+export const MAP_GENERATION = {
+    /** 平頂地圖隨機欄數下限（格）。 */
+    FLAT_MIN_COLS: 8,
+    /** 尖頂地圖隨機欄數下限（格）。 */
+    POINTY_MIN_COLS: 7,
+    /** 尖頂地圖隨機列數下限（格）。 */
+    POINTY_MIN_ROWS: 12,
+    /** 高度場三角函數的座標頻率（弧度／格）。 */
+    HEIGHT_NOISE_FREQUENCY: 0.45,
+    /** 高度場三角函數加總的振幅倍率（層）。 */
+    HEIGHT_NOISE_AMPLITUDE: 3.5,
+    /** 每格離心距離的高度增量（層／格）。 */
+    RADIAL_HEIGHT_GAIN: 0.8,
+    /** 前景深度換算除數相對 HEX_SIZE 的倍率。 */
+    VISUAL_DEPTH_SCALE: 0.8,
+    /** 每單位前景深度的高度扣減（層）。 */
+    FOREGROUND_HEIGHT_REDUCTION: 0.8,
+    /** 外圈前景每格距離的高度扣減（層／格）。 */
+    OUTER_FOREGROUND_REDUCTION: 0.3,
+    /** 強制平坦中心區域的半徑（格）。 */
+    FLAT_CENTER_RADIUS: 1.5,
+    /** 一般場景障礙物生成機率。 */
+    DEFAULT_DECORATION_DENSITY: 0.3,
+    /** 一般場景障礙物噪聲門檻（無單位）。 */
+    DEFAULT_DECORATION_NOISE_THRESHOLD: 0.4,
+    /** 森林障礙物生成機率。 */
+    FOREST_DECORATION_DENSITY: 0.45,
+    /** 森林障礙物噪聲門檻（無單位）。 */
+    FOREST_DECORATION_NOISE_THRESHOLD: 0.2,
+    /** 沙漠障礙物生成機率。 */
+    DESERT_DECORATION_DENSITY: 0.4,
+    /** 沙漠障礙物噪聲門檻（無單位）。 */
+    DESERT_DECORATION_NOISE_THRESHOLD: 0.3,
+    /** 不生成障礙物的中心半徑（格）。 */
+    CLEAR_CENTER_RADIUS: 2.5,
+    /** 障礙物噪聲座標頻率（弧度／格）。 */
+    DECORATION_NOISE_FREQUENCY: 0.8,
+} as const;
+
+export const GRID_SPATIAL = {
+    /** 世界座標選格的高度搜尋上限（像素）。 */
+    PICK_MAX_HEIGHT: 300,
+    /** 世界座標選格的初始候選高度（像素）。 */
+    PICK_INITIAL_HEIGHT: -999,
+    /** 選格水平半寬相對 HEX_SIZE 的倍率。 */
+    PICK_HALF_WIDTH_FACTOR: 0.9,
+    /** 選格垂直半高相對 HEX_SIZE 的倍率。 */
+    PICK_HALF_HEIGHT_FACTOR: 0.6,
+    /** 障礙物遮擋單位的垂直距離上限（像素）。 */
+    OBSTACLE_OCCLUSION_Y_RANGE: 120,
+} as const;

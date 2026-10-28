@@ -2,7 +2,7 @@
 import { Agent } from "../core/Agent";
 import { Hex, MovementType, SpatialProvider } from "../../types";
 import { HexUtils, NEIGHBOR_HASH_OFFSETS } from "../utils";
-import { BLOCK_HEIGHT } from "../../constants";
+import { BLOCK_HEIGHT, PATH_RULES } from "../../constants";
 import { canStepUp } from "../math/ClimbRule";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { TargetingSystem } from "./TargetingSystem";
@@ -50,7 +50,7 @@ export class Pathfinder {
                 break;
             }
 
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
                 const neighborH = current.hash + NEIGHBOR_HASH_OFFSETS[i];
                 if (!spatial.isValidHash(neighborH)) continue;
                 // 追擊終點是可攻擊的站位，不可把敵人腳下當成擠過去後的終點。
@@ -77,10 +77,10 @@ export class Pathfinder {
                 if (targeting.isWarningTile(nKey, spatial)) {
                     if (!isEscaping) {
                         // [FIX] Allow passing through warning tiles with high penalty instead of blocking
-                        moveCost += 20;
+                        moveCost += PATH_RULES.WARNING_COST;
                     } else {
                         // 逃生時允許走過警告區域，但給予懲罰以盡快離開
-                        moveCost += 5;
+                        moveCost += PATH_RULES.ESCAPE_WARNING_COST;
                     }
                 }
                 
@@ -88,7 +88,7 @@ export class Pathfinder {
                 if (enemyHazards.length > 0) {
                     if (!isEscaping) {
                         // 嘗試完全避開危險塗層
-                        moveCost += 15;
+                        moveCost += PATH_RULES.ENEMY_HAZARD_COST;
                     } else {
                         // 逃生優先，但稍微避開危險塗層
                         moveCost += 3;
@@ -114,7 +114,7 @@ export class Pathfinder {
                     } else {
                         // 下坡/跳崖成本：固定小額成本 (不隨深度增加，否則 AI 會不敢跳崖)
                         // 給予微小懲罰讓 AI 優先選擇平地，但非阻斷性
-                        moveCost += 0.2;
+                        moveCost += PATH_RULES.DESCENT_COST;
                     }
                 }
 
@@ -188,11 +188,11 @@ export class Pathfinder {
                     if (depth >= targetSafetyDepth) break;
 
                     // If we found ANY safety and we've searched enough, we can stop
-                    if (bestH !== -1 && iterations > 200) break;
+                    if (bestH !== -1 && iterations > PATH_RULES.SAFETY_EARLY_EXIT_ITERATIONS) break;
                 }
             }
 
-            for (let i = 0; i < 6; i++) {
+            for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
                 const neighborH = current.hash + NEIGHBOR_HASH_OFFSETS[i];
                 if (!spatial.isValidHash(neighborH)) continue;
 
@@ -211,7 +211,7 @@ export class Pathfinder {
                 // [ARCH] 允許路徑穿越警告格（高成本），但目標格的安全判定仍在外層 isSafe 守門
                 // 解決單位被危險格完全包圍時搜索空間歸零的問題
                 if (spatial.isWarningTile(nKey)) {
-                    moveCost += 30; // 極高懲罰，迫使路徑優先選非警告格，但不硬封鎖
+                    moveCost += PATH_RULES.SAFETY_WARNING_COST; // 極高懲罰，迫使路徑優先選非警告格，但不硬封鎖
                 }
 
                 // [ZONE-EXCLUSION] Hard-block tiles at or below current shrink level
@@ -222,7 +222,7 @@ export class Pathfinder {
                 const occ = spatial.getAgentHash(neighborH);
                 if (occ && occ.hp > 0 && occ !== agent) {
                     // 給予極高成本，讓 AI 優先選擇空地逃生
-                    moveCost += 50; 
+                    moveCost += PATH_RULES.SAFETY_OCCUPANCY_COST; 
                 }
 
                 if (agent.movementType !== MovementType.FLYING) {
@@ -236,7 +236,7 @@ export class Pathfinder {
                     if (deltaH > 0) {
                         moveCost += deltaH / BLOCK_HEIGHT * 0.5; 
                     } else {
-                        moveCost += 0.2;
+                        moveCost += PATH_RULES.DESCENT_COST;
                     }
                 }
 
@@ -257,7 +257,7 @@ export class Pathfinder {
 
                     // Special bias for flying units to keep them moving if they catch a loop
                     if (agent.movementType === MovementType.FLYING) {
-                        heuristic -= HexUtils.dist(nHex, start) * 0.1;
+                        heuristic -= HexUtils.dist(nHex, start) * PATH_RULES.FLYING_DISTANCE_BIAS;
                     }
                     
                     this.pqPush(neighborH, tentativeG + heuristic);
@@ -345,7 +345,7 @@ export class Pathfinder {
      * 用於 BTCondition HasEscapeRoute 的前置判斷。
      */
     public canEscape(agent: Agent, spatial: SpatialProvider): boolean {
-        for (let i = 0; i < 6; i++) {
+        for (let i = 0; i < PATH_RULES.HEX_NEIGHBOR_COUNT; i++) {
             const neighborH = HexUtils.hash(agent.q, agent.r) + NEIGHBOR_HASH_OFFSETS[i];
             if (!spatial.isValidHash(neighborH)) continue;
 

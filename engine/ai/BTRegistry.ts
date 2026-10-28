@@ -2,7 +2,7 @@
 import type { Agent, GameEngine } from "../game";
 import { NodeState, AIState, MovementType, ActionState, Hex } from "../../types";
 import { HexUtils } from "../utils";
-import { HEX_SIZE, CAST_LOCKOUT } from "../../constants";
+import { HEX_SIZE, CAST_LOCKOUT, BT_RULES, COMBAT_PARAM } from "../../constants";
 import { stopMovement } from "../systems/movement/MotionCommands";
 import { isHostileSkill } from "./TargetingSystem";
 const REPOSITION_RADIUS = 3; // Reposition 搜尋半徑（格）
@@ -71,8 +71,8 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (isKnockedBack && a.movementType !== MovementType.FLYING) {
             // Intentional: flying units skip physics prediction because
             // their knockback landing grid is non-deterministic across terrain.
-            const dt_est = 1 / 30; 
-            const ticks = 8; 
+            const dt_est = 1 / BT_RULES.PREDICTION_TICKS_PER_SEC; 
+            const ticks = BT_RULES.PREDICTION_TICKS; 
             const predPx = a.px + a.physics.vx * ticks * dt_est;
             const predPy = a.py + a.physics.vy * ticks * dt_est;
             const predHex = HexUtils.fromPx(predPx, predPy, engine.mapConfig);
@@ -140,7 +140,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         if (isNaN(cd) || cd < 0) cd = 0;
 
         // Increase tolerance slightly for non-basic to avoid frame-edge race conditions
-        const tolerance = (s.tag === 'BASIC') ? 0.15 : 0.05;
+        const tolerance = (s.tag === 'BASIC') ? COMBAT_PARAM.BASIC_CD_TOLERANCE : COMBAT_PARAM.SKILL_CD_TOLERANCE;
         const isOnCD = cd > tolerance; 
         
         if (isOnCD || a.mp < s.cost) return false;
@@ -153,7 +153,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
         // 被釘住（逃不掉）時不套用此限制：反正走不了，原地出手勝過乾站到塌陷（成因 C）。
         if (engine.isWarningTile(HexUtils.key(a)) && !BTConditions["IsPinned"](a, engine, {})) {
             const timeToCollapse = engine.zones.shrinkTimer;
-            const safetyBuffer = 0.2;
+            const safetyBuffer = BT_RULES.COLLAPSE_CAST_BUFFER;
             if (s.tag === 'BASIC') return false; // Never stand still for basics in a collapse zone
             if ((s.cast + safetyBuffer) > timeToCollapse) return false;
         }
@@ -174,7 +174,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
                     a._savedCombatTarget = a.target;
                 }
                 const effRange = engine.getEffectiveRange(a, result.targetAgent.q, result.targetAgent.r, skill.range);
-                const inRange = HexUtils.dist(a, result.targetAgent) <= effRange + 0.1;
+                const inRange = HexUtils.dist(a, result.targetAgent) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE;
                 if (inRange) {
                     a.target = result.targetAgent;
                     a.targetHex = null;
@@ -218,9 +218,9 @@ export const BTConditions: Record<string, BTConditionFn> = {
         const gridDist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
         // [FIX] 使用更嚴格的容差，與 SkillExecutor 保持同步，避免 AI 誤判射程導致空放
-        if (gridDist > effRange + 0.1) return false;
+        if (gridDist > effRange + COMBAT_PARAM.RANGE_TOLERANCE) return false;
 
-        if (effRange <= 1.1) {
+        if (effRange <= BT_RULES.MELEE_CHECK_RANGE) {
             const startPx = HexUtils.toPx(a.q, a.r, engine.mapConfig);
             let endPx;
             if (a.targetHex) endPx = HexUtils.toPx(a.targetHex.q, a.targetHex.r, engine.mapConfig);
@@ -230,7 +230,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             const pxDist = Math.sqrt(dx*dx + dy*dy);
             
             // 普攻/近戰目標的像素距離檢查
-            if (pxDist > HEX_SIZE * 2.2) return false;
+            if (pxDist > HEX_SIZE * BT_RULES.MELEE_PIXEL_RANGE_FACTOR) return false;
         }
         
         return true;
@@ -256,7 +256,7 @@ export const BTConditions: Record<string, BTConditionFn> = {
             
             let cd = a.curCDs[idx];
             if (isNaN(cd)) cd = 0;
-            return cd <= 0.1 && a.mp >= s.cost;
+            return cd <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost;
         });
     }
 };
@@ -363,7 +363,7 @@ export const BTActions: Record<string, BTActionFn> = {
                     // [REFACTORED] Use refined SkillReady check to prevent initiation, 
                     // but keep the break-logic for skills that became fatal after starting.
                     const timeToCollapse = engine.zones.shrinkTimer;
-                    const safetyBuffer = 0.2; 
+                    const safetyBuffer = BT_RULES.COLLAPSE_CAST_BUFFER; 
 
                     if (isWarning) {
                         if (castSkill.tag === 'BASIC') {
@@ -413,7 +413,7 @@ export const BTActions: Record<string, BTActionFn> = {
                         const hazardAtN = engine.getSpatialHazardsAt(n.q, n.r).find(h => h.team !== a.team);
                         const dangerScore = hazardAtN ? 100 : (isWarn ? 10 : 0);
                         const occ = engine.getAgentAt(n.q, n.r);
-                        const occPenalty = occ ? (occ.team === a.team ? 2 : 5) : 0;
+                        const occPenalty = occ ? (occ.team === a.team ? 2 : BT_RULES.ENEMY_OCCUPANCY_PENALTY) : 0;
                         const totalScore = dangerScore + occPenalty;
                         if (totalScore < lowestDanger) {
                             lowestDanger = totalScore;
@@ -456,13 +456,13 @@ export const BTActions: Record<string, BTActionFn> = {
                 }
             }
 
-            const state = engine.moveAgentToHex(a, a.targetHex, 0, 1.8, true);
+            const state = engine.moveAgentToHex(a, a.targetHex, 0, BT_RULES.ESCAPE_SPEED_MULTIPLIER, true);
             if (state === NodeState.SUCCESS) {
                 engine.log(a, 'DECISION', '生存：脫離險境', '', `已抵達目標點 ${HexUtils.key(a.targetHex)}`);
                 a.targetHex = null;
                 // [FIX] Reduce cooldown significantly. 0.2s is enough to prevent jitter 
                 // but 1.0s was making them sit on dangerous tiles far too long.
-                a.escapeCooldown = 0.2; 
+                a.escapeCooldown = BT_RULES.ESCAPE_RETRY_COOLDOWN; 
                 if (a.aiState === AIState.EVADING_URGENT || a.aiState === AIState.LAST_STAND_PUSH) {
                     a.aiState = AIState.IDLE;
                 }
@@ -521,8 +521,8 @@ export const BTActions: Record<string, BTActionFn> = {
         const skill = a.skills[idx];
         if (!skill) return NodeState.FAILURE;
         if (!BTConditions["CanMove"](a, engine, {})) return NodeState.FAILURE;
-        const isLowHp = a.target && (a.target.hp / a.target.maxHp < 0.25);
-        const speedMult = isLowHp ? 1.6 : (skill.tag === 'ULT' ? 1.3 : 1.0);
+        const isLowHp = a.target && (a.target.hp / a.target.maxHp < BT_RULES.LOW_HP_THRESHOLD);
+        const speedMult = isLowHp ? BT_RULES.LOW_HP_SPEED_MULTIPLIER : (skill.tag === 'ULT' ? COMBAT_PARAM.MOVE_SPEED_ULT : 1.0);
         let dest = a.targetHex || (a.target ? {q: a.target.q, r: a.target.r} : null);
         
         if (dest) {
@@ -572,11 +572,11 @@ export const BTActions: Record<string, BTActionFn> = {
             if (idx !== undefined && idx < 2) return NodeState.FAILURE;
             // 走不動但目標已在射程內：算「就位」（SUCCESS），不是失敗。
             const eff = engine.getEffectiveRange(a, a.target.q, a.target.r, chaseRange);
-            return HexUtils.dist(a, a.target) <= eff + 0.1 ? NodeState.SUCCESS : NodeState.FAILURE;
+            return HexUtils.dist(a, a.target) <= eff + COMBAT_PARAM.RANGE_TOLERANCE ? NodeState.SUCCESS : NodeState.FAILURE;
         }
 
-        const isLowHp = a.target.hp / a.target.maxHp < 0.25;
-        const speedMult = isLowHp ? 1.6 : ((skill.tag === 'ULT') ? 1.4 : 1.1);
+        const isLowHp = a.target.hp / a.target.maxHp < BT_RULES.LOW_HP_THRESHOLD;
+        const speedMult = isLowHp ? BT_RULES.LOW_HP_SPEED_MULTIPLIER : ((skill.tag === 'ULT') ? COMBAT_PARAM.CHASE_SPEED_ULT : COMBAT_PARAM.CHASE_SPEED_NORMAL);
         
         const dest = { q: a.target.q, r: a.target.r };
 
@@ -584,7 +584,7 @@ export const BTActions: Record<string, BTActionFn> = {
         if (approachEndsOnCollapse(a, engine, dest, chaseRange) && !engine.isWarningTile(HexUtils.key(a))) {
             // 目標在塌陷區邊緣、我在安全格：已在射程內就原地待命（moveAgentToHex 會回 SUCCESS），否則交給 Reposition。
             const dist = HexUtils.dist(a, dest);
-            if (dist > engine.getEffectiveRange(a, dest.q, dest.r, chaseRange) + 0.1) return NodeState.FAILURE;
+            if (dist > engine.getEffectiveRange(a, dest.q, dest.r, chaseRange) + COMBAT_PARAM.RANGE_TOLERANCE) return NodeState.FAILURE;
         }
 
         const state = engine.moveAgentToHex(a, dest, chaseRange, speedMult);
@@ -636,7 +636,7 @@ export const BTActions: Record<string, BTActionFn> = {
             if (!isPushPull) return false;
             let cd = a.curCDs[i];
             if (isNaN(cd) || cd < 0) cd = 0;
-            return cd <= 0.1 && a.mp >= s.cost;
+            return cd <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost;
         });
 
         if (idx === -1) return NodeState.FAILURE;
@@ -697,7 +697,7 @@ export const BTActions: Record<string, BTActionFn> = {
         const effRange = engine.getEffectiveRange(a, tQ, tR, skill.range);
         const dist = a.targetHex ? HexUtils.dist(a, a.targetHex) : HexUtils.dist(a, a.target!);
         
-        if (dist <= effRange + 0.1) {
+        if (dist <= effRange + COMBAT_PARAM.RANGE_TOLERANCE) {
             a.aiState = AIState.LAST_STAND_PUSH;
             const state = engine.initiateCast(a, idx);
             if (state === NodeState.RUNNING) {
@@ -713,7 +713,7 @@ export const BTActions: Record<string, BTActionFn> = {
             const dest = a.targetHex ?? (a.target ? { q: a.target.q, r: a.target.r } : null);
             if (dest) {
                 a.aiState = AIState.LAST_STAND_PUSH; 
-                const state = engine.moveAgentToHex(a, dest, skill.range, 1.5, false);
+                const state = engine.moveAgentToHex(a, dest, skill.range, BT_RULES.SUPPORT_APPROACH_SPEED, false);
                 if (state === NodeState.RUNNING) a.actionState = ActionState.WALKING;
                 if (state === NodeState.FAILURE) {
                     a.target = prevTarget;

@@ -1,10 +1,11 @@
+import { BATTLE_RULES } from '../../constants';
 import { GameEngine } from "../game";
 
 export class TimeSystem {
     public update(dt: number, engine: GameEngine) {
         const ts = engine.state.time;
-        if (Math.abs(ts.targetTimeScale - ts.timeScale) > 0.01) {
-            ts.timeScale += (ts.targetTimeScale - ts.timeScale) * 5.0 * dt; 
+        if (Math.abs(ts.targetTimeScale - ts.timeScale) > BATTLE_RULES.TIME_SCALE_SNAP_THRESHOLD) {
+            ts.timeScale += (ts.targetTimeScale - ts.timeScale) * BATTLE_RULES.TIME_SCALE_BLEND_RATE * dt; 
         } else {
             ts.timeScale = ts.targetTimeScale;
         }

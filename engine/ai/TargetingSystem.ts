@@ -2,7 +2,7 @@
 import { Agent } from "../core/Agent";
 import { Hex, Skill, SpatialProvider, MovementType } from "../../types";
 import { HexUtils } from "../utils";
-import { BLOCK_HEIGHT, COMBAT_PARAM } from "../../constants";
+import { BLOCK_HEIGHT, COMBAT_PARAM, TARGET_RULES } from "../../constants";
 import { Pathfinder } from "./Pathfinder";
 import { OBSTACLE_DB } from "../../data/obstacles";
 import { canStepUp } from "../math/ClimbRule";
@@ -69,7 +69,7 @@ export class TargetingSystem {
         if (deltaH > 4) { // 有明顯高度優勢 (高打低)
             // 每 24px +1 射程，上限 +2
             bonus = Math.min(2, Math.floor(deltaH / BLOCK_HEIGHT));
-        } else if (deltaH < -4) { // 有明顯高度劣勢 (低打高)
+        } else if (deltaH < TARGET_RULES.LOW_GROUND_THRESHOLD) { // 有明顯高度劣勢 (低打高)
             // 每 24px -1 射程，上限 -2，且確保不影響基本近戰攻擊
             penalty = Math.min(2, Math.floor(Math.abs(deltaH) / BLOCK_HEIGHT));
         }
@@ -126,7 +126,7 @@ export class TargetingSystem {
                     const centerQ = Math.floor((mapConfig.w - 1) / 2);
                     const centerR = Math.floor((mapConfig.h - 1) / 2);
 
-                    for (let radius = 1; radius <= 12; radius++) {
+                    for (let radius = 1; radius <= TARGET_RULES.SAFETY_SEARCH_RADIUS; radius++) {
                         const ring = HexUtils.range(a, radius);
                         for (const hex of ring) {
                             if (spatial.isValid(hex.q, hex.r)) {
@@ -186,7 +186,7 @@ export class TargetingSystem {
         // 可用的突進（DASH）或拉取（PULL）技能：近戰打不到的目標交給它們，不扣分
         const hasGapCloser = !isSilenced && a.skills.some((s, i) => !!s && s.range > COMBAT_PARAM.MELEE_RANGE &&
             (s.effectType === 'DASH' || s.effectType2 === 'DASH' || s.ccType === 'PULL' || s.ccType2 === 'PULL') &&
-            (a.curCDs[i] || 0) <= 0.1 && a.mp >= s.cost);
+            (a.curCDs[i] || 0) <= COMBAT_PARAM.READY_CD_TOLERANCE && a.mp >= s.cost);
 
         for (const o of spatial.getAgents()) {
             if (o.team !== a.team && this.isValidTarget(o, spatial)) {
@@ -205,31 +205,31 @@ export class TargetingSystem {
                 const dist = Math.max(0.5, HexUtils.dist(a, o));
                 
                 // 1. 距離權重: 極大幅度優先攻擊近身單位
-                const distScore = 2000 / (dist + 0.5); 
+                const distScore = TARGET_RULES.DISTANCE_SCORE_WEIGHT / (dist + 0.5); 
                 
                 // 2. 血量權重: 殘血優先 (斬殺邏輯)
-                const hpScore = (1 - o.hp / o.maxHp) * 50;
+                const hpScore = (1 - o.hp / o.maxHp) * TARGET_RULES.MISSING_HP_SCORE_WEIGHT;
                 
                 // 3. 威脅權重: 優先鎖定正在詠唱大招的敵人
                 let threatScore = 0;
                 if (!isSilenced && o.castingSkillIdx !== -1) {
                     const castingSkill = o.skills[o.castingSkillIdx];
-                    if (castingSkill?.tag === 'ULT') threatScore = 200; 
-                    else if (castingSkill?.tag === 'ACTIVE') threatScore = 50; 
+                    if (castingSkill?.tag === 'ULT') threatScore = TARGET_RULES.ULT_CAST_THREAT_SCORE; 
+                    else if (castingSkill?.tag === 'ACTIVE') threatScore = TARGET_RULES.ACTIVE_CAST_THREAT_SCORE; 
                 }
 
                 // 4. 黏著加分: 防止頻繁切換目標 (防抖)
-                const stickyBonus = (a.target === o) ? 300 : 0;
+                const stickyBonus = (a.target === o) ? TARGET_RULES.STICKY_TARGET_BONUS : 0;
 
                 // [NEW] 斬殺優先加分
-                const killShotBonus = (o.hp / o.maxHp < 0.25) ? 400 : 0;
+                const killShotBonus = (o.hp / o.maxHp < TARGET_RULES.KILL_SHOT_HP_THRESHOLD) ? TARGET_RULES.KILL_SHOT_BONUS : 0;
 
                 // 5. [NEW] 背水一戰加分: 如果自己在危險區，優先攻擊也在危險區或邊緣的敵人
                 let survivalBonus = 0;
                 if (spatial.isWarningTile(myKey)) {
-                    survivalBonus += 500;
+                    survivalBonus += TARGET_RULES.SELF_WARNING_BONUS;
                     // 如果對方也在危險區，優先解決他
-                    if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += 200;
+                    if (spatial.isWarningTile(HexUtils.key(o))) survivalBonus += TARGET_RULES.TARGET_WARNING_BONUS;
                 } else {
                     // 如果自己安全，盡量不要鎖定危險區內的敵人 (避免主動走入危險區)
                     if (spatial.isWarningTile(HexUtils.key(o))) {
@@ -237,7 +237,7 @@ export class TargetingSystem {
                         const basicSkill = a.skills.find(s => s && s.tag === 'BASIC');
                         if (basicSkill) effRange = this.getEffectiveRange(a, o.q, o.r, basicSkill.range, spatial);
                         const needToEnterZone = HexUtils.dist(a, o) > effRange;
-                        if (needToEnterZone) survivalBonus -= 800;
+                        if (needToEnterZone) survivalBonus -= TARGET_RULES.ENTER_WARNING_PENALTY;
                     }
                 }
 
@@ -287,7 +287,7 @@ export class TargetingSystem {
                 const isSelfDmg = skill.effectType === 'SELF_DAMAGE' || skill.effectType2 === 'SELF_DAMAGE';
                 const hasInjuredAlly = allies.some(a =>
                     HexUtils.dist(source, a) <= aoeRadius &&
-                    (!isSelfDmg || a.id !== source.id || a.hp < a.maxHp * 0.8) &&
+                    (!isSelfDmg || a.id !== source.id || a.hp < a.maxHp * TARGET_RULES.SELF_DAMAGE_HEAL_HP_THRESHOLD) &&
                     a.hp < a.maxHp * COMBAT_PARAM.AI_HEAL_HP_THRESHOLD
                 );
                 if (hasInjuredAlly) {
@@ -469,7 +469,7 @@ export class TargetingSystem {
                     // 打斷權重: 正在詠唱大招 (+50)，普攻/小招 (+10)
                     if (e.castingSkillIdx !== -1) {
                         const s = e.skills[e.castingSkillIdx];
-                        if (s?.tag === 'ULT') score += 50;
+                        if (s?.tag === 'ULT') score += TARGET_RULES.AOE_ULT_INTERRUPT_BONUS;
                         else score += 10;
                     }
 

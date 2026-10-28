@@ -1,3 +1,4 @@
+import { BATTLE_RULES } from '../../constants';
 import { GameEngine } from "../game";
 import { Team } from "../../types";
 import { VICTORY_PHASE_DURATION } from "../game";
@@ -23,7 +24,7 @@ export class VictorySystem {
             vs.isFinishing = true;
             vs.winningTeam = null; 
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
-            engine.state.time.targetTimeScale = 0.4; 
+            engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
         }
 
@@ -31,7 +32,7 @@ export class VictorySystem {
             vs.isFinishing = true;
             vs.winningTeam = blue === 0 ? Team.RED : Team.BLUE;
             vs.victoryTimer = VICTORY_PHASE_DURATION; 
-            engine.state.time.targetTimeScale = 0.4; 
+            engine.state.time.targetTimeScale = BATTLE_RULES.FINISH_TIME_SCALE; 
             return true;
         }
         

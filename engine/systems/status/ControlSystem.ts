@@ -1,3 +1,4 @@
+import { CONTROL_RULES } from '../../../constants';
 
 import { Agent, GameEngine } from "../../game";
 import { HexUtils } from "../../utils";
@@ -109,7 +110,7 @@ export class ControlSystem {
                     if (attacker) sourcePos = { q: attacker.q, r: attacker.r };
                 }
 
-                const range = 5;
+                const range = CONTROL_RULES.FEAR_SEARCH_RADIUS;
                 const center = { q: agent.q, r: agent.r };
                 
                 // Calculate Flee Vector: Away from source
@@ -127,8 +128,8 @@ export class ControlSystem {
                     // Pick the furthest candidate
                     candidates.sort((a_hex, b_hex) => HexUtils.dist(b_hex, sourcePos) - HexUtils.dist(a_hex, sourcePos));
                     const targetHex = candidates[0];
-                    const result = engine.moveAgentToHex(agent, targetHex, 0, 1.4);
-                    agent.fearMoveTimer = (result === 'R') ? 0.5 : 0.8;
+                    const result = engine.moveAgentToHex(agent, targetHex, 0, CONTROL_RULES.FEAR_SPEED_MULTIPLIER);
+                    agent.fearMoveTimer = (result === 'R') ? 0.5 : CONTROL_RULES.FEAR_RETRY_DELAY;
                 } else {
                     // Fallback to random move if fleeing blocked
                     const fallbackCandidates = HexUtils.range(center, range).filter(h => 
@@ -136,9 +137,9 @@ export class ControlSystem {
                     );
                     if (fallbackCandidates.length > 0) {
                         const targetHex = fallbackCandidates[Math.floor(random() * fallbackCandidates.length)];
-                        engine.moveAgentToHex(agent, targetHex, 0, 1.2);
+                        engine.moveAgentToHex(agent, targetHex, 0, CONTROL_RULES.FEAR_FALLBACK_SPEED_MULTIPLIER);
                     }
-                    agent.fearMoveTimer = 0.8; 
+                    agent.fearMoveTimer = CONTROL_RULES.FEAR_RETRY_DELAY; 
                 }
             }
         }

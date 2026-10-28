@@ -10,7 +10,7 @@ import { applyDirectDamage, applyHeal, applyLethal } from "./DirectDamage";
 import { teleportTo, dashTo, lungeToward } from "../movement/MotionCommands";
 import { triggerHitFlash, triggerHitShake } from "../../core/ViewCommands";
 import { FACTION_VISUALS } from "../../../data/vfx/faction_visuals";
-import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS } from "../../../constants";
+import { COMBAT_PARAM, PHYSICS, VFX_PARAM, DAMAGE_TEXT_COLORS, EFFECT_LIMITS, HIT_REACTION_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { unitEventPos, hexEventPos } from "../../events/EventPos";
 
@@ -121,7 +121,7 @@ export class SkillExecutor {
                 }
 
                 const effRange = engine.movement.getEffectiveRange(source, primary.q, primary.r, skill.range, engine);
-                if (shouldPush && (deferred || HexUtils.dist(source, primary) <= effRange + 0.1)) {
+                if (shouldPush && (deferred || HexUtils.dist(source, primary) <= effRange + COMBAT_PARAM.RANGE_TOLERANCE)) {
                     targets.push(primary);
                 }
             }
@@ -135,7 +135,7 @@ export class SkillExecutor {
             targets.push(source);
         }
 
-        const preRollCrit = skill.power > 0 ? random() < 0.1 : false;
+        const preRollCrit = skill.power > 0 ? random() < COMBAT_PARAM.CRIT_CHANCE : false;
         targets.forEach(target => {
             this.resolveHit(source, target, skill, isAOE ? origin : undefined, engine, preRollCrit);
         });
@@ -246,7 +246,7 @@ export class SkillExecutor {
                     triggerHitFlash(target, COMBAT_PARAM.HIT_FLASH_DURATION);
                     
                     // [NEW] Optical Shake Sync: Decoupled visual jitter
-                    const shakePower = Math.min(12, finalDamage / 8 + 3);
+                    const shakePower = Math.min(HIT_REACTION_RULES.SHAKE_MAX, finalDamage / HIT_REACTION_RULES.DAMAGE_PER_SHAKE_PX + 3);
                     triggerHitShake(target, shakePower);
 
                     // [FIX] SSOT Grid Anchor Locking for Hit VFX

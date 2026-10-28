@@ -1,7 +1,7 @@
 
 import { Agent } from "../../game";
 import { Skill, Role } from "../../../types";
-import { COMBAT_PARAM, EFFECT_LIMITS } from "../../../constants";
+import { COMBAT_PARAM, EFFECT_LIMITS, DAMAGE_RULES } from "../../../constants";
 import { random } from "../../math/rng";
 import { absorbWithShield } from "./DirectDamage";
 
@@ -72,10 +72,10 @@ export class DamageCalculator {
             const overtime = battleTime - SUDDEN_DEATH_START;
             if (isHeal) {
                 // Healing decays by 5% per second, down to 10%
-                healMultiplier = Math.max(0.1, 1.0 - (overtime * 0.05));
+                healMultiplier = Math.max(DAMAGE_RULES.MIN_HEAL_MULTIPLIER, 1.0 - (overtime * DAMAGE_RULES.OVERTIME_HEAL_DECAY));
             } else {
                 // Damage increases by 5% per second
-                dmgMultiplier = 1.0 + (overtime * 0.05);
+                dmgMultiplier = 1.0 + (overtime * DAMAGE_RULES.OVERTIME_DAMAGE_GAIN);
             }
         }
 
@@ -93,7 +93,7 @@ export class DamageCalculator {
         if (!isHeal) {
             // Vulnerable check
             if (target.effects.VULNERABLE.remaining > 0) {
-                base *= 1.35; // 35% bonus damage
+                base *= DAMAGE_RULES.VULNERABLE_MULTIPLIER; // 35% bonus damage
             }
         }
 
@@ -108,7 +108,7 @@ export class DamageCalculator {
                 // Damage = Base + (MissingHP * ScalingFactor)
                 const scalingFactor = (isExec1 ? skill.effectVal : skill.effectVal2) || COMBAT_PARAM.BASE_EXECUTE_MULTIPLIER;
                 const missingHP = target.maxHp - target.hp;
-                base += missingHP * (scalingFactor / 5); // Normalized scaling
+                base += missingHP * (scalingFactor / DAMAGE_RULES.EXECUTE_SCALING_DIVISOR); // Normalized scaling
                 result.isExecute = true;
             }
         }
@@ -125,15 +125,15 @@ export class DamageCalculator {
         }
 
         // 3. Crit Logic
-        const isCrit = preRollCrit !== undefined ? preRollCrit : random() < 0.1;
+        const isCrit = preRollCrit !== undefined ? preRollCrit : random() < COMBAT_PARAM.CRIT_CHANCE;
         if (!isHeal && isCrit) {
-            base *= 1.5;
+            base *= DAMAGE_RULES.CRIT_MULTIPLIER;
             result.isCrit = true;
         }
 
         // 4. Mitigation (Tank Block Logic)
         if (!isHeal && target.role === Role.TANK && target.hp > 0 && !isLastStand) {
-            base *= 0.85; 
+            base *= DAMAGE_RULES.TANK_DAMAGE_MULTIPLIER; 
             result.isBlock = true;
         }
 

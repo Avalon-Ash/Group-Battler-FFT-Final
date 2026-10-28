@@ -12,7 +12,7 @@ import { GameEngine, Agent } from "../game";
 import { MovementType, SpatialHazard } from "../../types";
 import { HexUtils } from "../utils";
 import type { MapConfig } from "../utils";
-import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS } from "../../constants";
+import { COMBAT_PARAM, HEX_SIZE, DAMAGE_TEXT_COLORS, HAZARD_RULES } from "../../constants";
 import { applyDirectDamage } from "./combat/DirectDamage";
 import { triggerHitFlash } from "../core/ViewCommands";
 import { unitEventPos, hexEventPos } from "../events/EventPos";
@@ -22,7 +22,7 @@ export type HazardRegisterContext = Pick<GameEngine, 'state' | 'getAgentAt' | 'm
 /** 單位相對 GRAVITY 場中心的偏移；不在牽引半徑內（或貼著中心）回傳 null。牽引與減速共用這個判定。 */
 function gravityOffset(agent: Agent, h: SpatialHazard, mapConfig: MapConfig): { dx: number; dy: number; dist: number } | null {
     if (h.type !== 'GRAVITY' || h.centerQ === undefined || h.centerR === undefined) return null;
-    const radius = h.pullRadius || (HEX_SIZE * 5);
+    const radius = h.pullRadius || (HEX_SIZE * HAZARD_RULES.DEFAULT_PULL_RADIUS_FACTOR);
     const centerPx = HexUtils.toPx(h.centerQ, h.centerR, mapConfig);
     const dx = centerPx.x - agent.px, dy = centerPx.y - agent.py;
     const dist = Math.sqrt(dx * dx + dy * dy);

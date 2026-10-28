@@ -1,5 +1,5 @@
 import { GameEngine } from "../game";
-import { KILL_STREAK_WINDOW, KILL_SPREE_MIN_KILLS, KILL_SPREE_MAX_TIER } from "../../constants";
+import { KILL_STREAK_WINDOW, KILL_SPREE_MIN_KILLS, KILL_SPREE_MAX_TIER, BATTLE_RULES } from "../../constants";
 import { GameEvent, Point } from "../../types";
 
 export class AnnouncerSystem {
@@ -53,7 +53,7 @@ export class AnnouncerSystem {
             
             if (streak === 3) { streakText = "TRIPLE KILL"; streakColor = "#fcd34d"; rank = 3; }
             else if (streak === 4) { streakText = "QUADRA KILL"; streakColor = "#fb923c"; rank = 4; }
-            else if (streak >= 5) { streakText = "PENTA KILL"; streakColor = "#ef4444"; rank = 5; }
+            else if (streak >= BATTLE_RULES.PENTA_KILL_TIER) { streakText = "PENTA KILL"; streakColor = "#ef4444"; rank = BATTLE_RULES.PENTA_KILL_TIER; }
             
             outEvents.push({
                 type: 'KILL_STREAK',
