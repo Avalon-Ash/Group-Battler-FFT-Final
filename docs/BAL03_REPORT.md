@@ -14,7 +14,7 @@
 
 開工 HEAD/main 為 810dd50759a994378d5ab82c713a1a9a0160948f，工作樹乾淨；在任何技能修改前已執行 git switch -c feat/balance-03。開工一般／交換勝率精確重現提示的 51.6%／53.8%。
 
-執行期間，同一工作目錄出現非本代理建立的提交 3ecfafe（R7 prompt），包含 docs/HANDOFF.md 與 docs/R7_DRIFT_CORPSE_AGENT_PROMPT.md。本代理保留該提交，未修改這兩檔，也未重寫歷史。主代理檢視 main...feat/balance-03 時請分開辨識這筆外部提交；本輪數值提交為 84ddb02。未 push、未合併、未 rebase、未提交到 main。
+執行期間，同一工作目錄出現非本代理建立的提交 3ecfafe（R7 prompt），包含 docs/HANDOFF.md 與 R7 提示詞（已刪）。本代理保留該提交，未修改這兩檔，也未重寫歷史。主代理檢視 main...feat/balance-03 時請分開辨識這筆外部提交；本輪數值提交為 84ddb02。未 push、未合併、未 rebase、未提交到 main。
 
 ## 每招改動與理由
 
