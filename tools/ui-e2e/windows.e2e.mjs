@@ -1342,7 +1342,8 @@ const runEditorSuite = async () => {
         return window.__TACTICAL_ENGINE__.agents.find(a => a.q === q && a.r === r);
     }, draftHex);
     ok('DRAFT mode: placed unit with selected role RANGER', draftAgent !== undefined && draftAgent.role === 'RANGER', draftAgent?.role);
-    ok('DRAFT mode: placed unit has bodyType assigned', draftAgent !== undefined && draftAgent.bodyType === 'MALE', draftAgent?.bodyType);
+    // 2026-10-27 起男女各半（依 agent id 雜湊），所以只檢查有指派合法體型
+    ok('DRAFT mode: placed unit has bodyType assigned', draftAgent !== undefined && ['MALE', 'FEMALE'].includes(draftAgent.bodyType), draftAgent?.bodyType);
 
     // ⑦ Wheel zoom: camera.zoom changes
     const initialZoom = await page.evaluate(() => window.__TACTICAL_ENGINE__.renderer.camera.zoom);

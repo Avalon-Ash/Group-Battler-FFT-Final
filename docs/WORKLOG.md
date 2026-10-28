@@ -341,6 +341,13 @@
 - Codex Sol：`Synth` 音色 → `data/audio/synthPatches.ts`；`AudioEngine`／`AudioSystem`、`DirectorSystem`、`AnimationSystem`、`VisualMath`、`TrajectoryMath`、`RenderList`、`RenderStats`、`useGameApp` 等 → `constants/*`；`SkillSequences`、`selectSpriteFrame` 函式內預設值 → 檔內具名物件。13 檔預算降到 0。
 - 證據：`tests/SynthGolden.test.ts`（18 種音色，搬前寫好、搬後不改字通過）；六場景＋10 格導播序列同環境 A/B 0 差異；`verify:coords` 固定種子結果相同；perf:guard 通過。主代理把 `RenderSpec` 規格文字改成「實際數值（常數名）」。
 
+### AO. 2026-10-29 OPT-01 O7 架構白皮書＋OPT-01 結案
+- O7（Codex Sol）：`docs/ARCHITECTURE_WHITEPAPER.md` 依現行程式碼重寫（14 章、每條附出處、數值用 `{{常數路徑}}` 下載時代入）；`DesignExporter` 改用 `?raw` 載入，系統選單項目改名「下載架構白皮書」，一次下載白皮書＋`RenderSpec` 座標規格；`tests/WhitepaperDrift.test.ts`。刪掉舊版無法由程式碼支持的宣稱（PRODUCTION_READY、絕無轉型、背水一戰中者即死等）。
+- **更正**：OPT-01 清查時說白皮書「2025-12-24 起沒有 UI 入口」是錯的——主代理只搜了 `components/`、`hooks/`，漏掉根目錄 `App.tsx:84`（`onDownloadSpec={actions.downloadSpec}` → `SystemMenu`「匯出設計規格」）。功能一直可用；O7 沿用並改善，無損失。之後清查入口要含根目錄 `App.tsx`、`index.tsx`。
+- `tools/ui-e2e/windows.e2e.mjs`「DRAFT bodyType」寫死 `MALE`，10-27 男女各半後約一半機率失敗；改成只檢查 `MALE`／`FEMALE`。
+- **OPT-01 總結**（2026-10-28～29，O0～O7）：未命名數字 1,231→115、顏色字面值 135→49（`MagicNumberBudget`、`color-literal-budget` 只減不增）；8 份雜湊統一到 `engine/math/hash.ts`（`NoLocalHash`）；刪 49 支無入口腳本（`ToolsReferenced`）；knip 歸零並列入驗收；部署前跑 lint＋test（lockfile 進版控）；縮圈兩個行為 bug（Z1 每幀強制 AI、Z2 背水一戰在 minRadius≠1 時壞掉）與最終階段切斷地圖；詠唱預警紅藍對稱；白皮書重寫。所有「只搬不改值」的輪次都以 batch-sim 逐欄位相同、黃金值測試或同環境 A/B 逐像素相同證明。
+- 合約效果：「同環境 A/B」取代「和上次數字比容差」後，O5b～O5d 三輪一次過；`git -c safe.directory` 寫進提示詞後沒有再卡沙盒。`worker` 子代理的 3 檔上限正確擋下 12 檔任務。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
