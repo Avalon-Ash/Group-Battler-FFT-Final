@@ -67,7 +67,6 @@ export class EventVFXMapper {
                 UnitVFXHandler.handle(event, engine, vfx, camera, origin, groundZ, hexKey);
                 break;
 
-            case 'VISUAL_SLASH':
             case 'VISUAL_BEAM':
                 CinematicVFXHandler.handle(event, engine, vfx, castOrigin, target, sequences);
                 break;

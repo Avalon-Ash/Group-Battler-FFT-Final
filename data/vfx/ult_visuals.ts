@@ -192,7 +192,7 @@ export const ULT_VISUALS: Record<string, UltVisualDef> = {
 };
 
 /** 天降類奧義的自由落體時間（落下高度 height，未設用 ULT_SEQUENCE.DEFAULT_FALL_HEIGHT）。 */
-export function ultFallTime(def: UltVisualDef): number {
+function ultFallTime(def: UltVisualDef): number {
     return Math.sqrt((2 * (def.height || ULT_SEQUENCE.DEFAULT_FALL_HEIGHT)) / PHYSICS.GRAVITY);
 }
 

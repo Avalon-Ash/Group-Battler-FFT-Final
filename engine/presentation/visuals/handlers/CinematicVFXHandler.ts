@@ -28,10 +28,6 @@ export class CinematicVFXHandler {
         }
 
         // 2. MINIMAL FALLBACK (Prevents breaking if data entry is missing)
-        if (event.type === 'VISUAL_SLASH') {
-            vfx.playBeam('SLASH_CONNECT', origin, target, event.color || '#fff', 0.2);
-        } else {
-            vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
-        }
+        vfx.playBeam('GENERIC_BEAM', origin, target, event.color || '#fff', 0.4);
     }
 }
