@@ -1,3 +1,4 @@
+import { mulberry32 } from '../math/hash';
 import { AUDIO } from '../../constants';
 import { SynthId } from '../../data/audio/cues';
 
@@ -6,18 +7,15 @@ import { SynthId } from '../../data/audio/cues';
  * 嚴禁呼叫 Math.random，以防止破壞視覺渲染與單元測試之確定性。
  */
 export class AudioPRNG {
-    private state: number;
+    private source: () => number;
 
     constructor(seed: number = AUDIO.PRNG_SEED) {
-        this.state = seed >>> 0;
+        this.source = mulberry32(seed);
     }
 
     /** 產生 [0, 1) 的擬隨機浮點數 */
     public next(): number {
-        let t = (this.state += 0x6d2b79f5);
-        t = Math.imul(t ^ (t >>> 15), t | 1);
-        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        return this.source();
     }
 
     /** 產生 [min, max) 範圍之隨機數 */
@@ -27,7 +25,7 @@ export class AudioPRNG {
 
     /** 重設 PRNG 種子 */
     public reset(seed: number = AUDIO.PRNG_SEED): void {
-        this.state = seed >>> 0;
+        this.source = mulberry32(seed);
     }
 }
 

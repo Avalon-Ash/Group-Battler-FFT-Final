@@ -1,3 +1,4 @@
+import { imulMix3 as edgeHash } from '../../math/hash';
 import { ISO_SCALE_Y, HEX_SIZE, TerrainTheme, RENDER_CACHE, TERRAIN_SKIN } from "../../../constants";
 import { HexGeometry } from "../../graphics/utils/HexGeometry";
 import { SurfacePainter } from "../../graphics/painters/SurfacePainter";
@@ -79,11 +80,7 @@ function paintStaticDecor(sCtx: CanvasRenderingContext2D, type: string, variant:
 }
 
 /** 確定性 0..1（崖邊裝飾的長度、位置）：同一 variant、邊、序號永遠同值 */
-function edgeHash(variant: number, edge: number, k: number): number {
-    let h = Math.imul(variant + 1, 0x9e3779b1) ^ Math.imul(edge + 7, 0x85ebca6b) ^ Math.imul(k + 13, 0xc2b2ae35);
-    h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d); h ^= h >>> 12;
-    return (h >>> 0) / 4294967296;
-}
+
 
 /**
  * 崖邊裝飾（TERRAIN_AMBIENCE.edge）：只畫在前側、鄰格較低的邊。座標 (0, 0) 為頂面中心，往下（+y）是側面。

@@ -8,7 +8,7 @@
 // ╚══════════════════════════════════════════════════════════╝
 
 import { GameEngine } from "../game";
-import { Team, ActiveZone } from "../../types";
+import { ActiveZone } from "../../types";
 import { applyLethal } from "./combat/DirectDamage";
 import { PhysicsEngine } from "../physics/PhysicsEngine";
 import { clearBanishedFlag } from "./status/ControlSystem";
@@ -172,15 +172,15 @@ export class ZoneSystem {
                     const progress = 1 - (a.castTimer / s.cast);
                     const radius = (s.aoeRadius || 1);
                     
-                    // Unified Logic: Just track if it's an enemy
-                    const isEnemy = a.team === Team.RED; // Assuming player perspective is Blue
+                    // Both teams share progress-driven waves; presentation resolves the caster faction color.
+                    const team = a.team;
 
                     this.activeZones.push({ 
                         q: tq, r: tr, 
                         radius, 
                         color: s.color, 
                         progress,
-                        isEnemy
+                        team
                     });
                 }
             }

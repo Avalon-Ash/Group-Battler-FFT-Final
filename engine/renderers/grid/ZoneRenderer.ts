@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
-// [ARCH] Upstream GridOverlays passes GroundPriority fill multiplier (section 12).
+// [ARCH] GridOverlays passes caster faction color and GroundPriority fill multiplier; both teams share one wave rule.
 // ║  ZoneRenderer — 地格區域效果（擴張波紋、區域底色、邊界）    ║
 // ║  參數：constants/terrain.ts ZONE_RENDER                              ║
 // ║  [ARCH] 波紋與邊界是柔光格（SoftTile，screen），2026-10-19   ║
@@ -23,7 +23,6 @@ export const ZoneRenderer = {
         zoneRadius: number,
         color: string,
         progress: number, 
-        isEnemy: boolean,
         layout: HexLayout,
         fillMultiplier: number
     ) {
@@ -40,31 +39,28 @@ export const ZoneRenderer = {
         }
 
         const isInside = distToCenter < currentWaveRadius;
-        const drawColor = isEnemy ? Z.ENEMY_COLOR : color;
 
-        let baseAlpha = 0;
-        if (isEnemy) baseAlpha = Z.ENEMY_ALPHA;
-        if (isInside && !isEnemy) baseAlpha = Z.INSIDE_ALPHA;
+        const baseAlpha = isInside ? Z.INSIDE_ALPHA : 0;
 
         if (baseAlpha > 0) {
-            ctx.fillStyle = drawColor;
+            ctx.fillStyle = color;
             ctx.globalAlpha = baseAlpha * fillMultiplier;
             HexGeometry.traceHex(ctx, 0, 0, size * Z.FILL_RADIUS, true, layout);
             ctx.fill();
         }
 
         ctx.globalCompositeOperation = 'screen';
-        LOOK.fill = drawColor; LOOK.edge = drawColor; LOOK.fillAlpha = 0;
+        LOOK.fill = color; LOOK.edge = color; LOOK.fillAlpha = 0;
         if (waveIntensity > Z.MIN_WAVE) {
             LOOK.edgeAlpha = Z.WAVE_EDGE_ALPHA; LOOK.coreAlpha = Z.WAVE_CORE_ALPHA;
             ctx.globalAlpha = waveIntensity;
             SoftTile.draw(ctx, LOOK, size, layout, 1 + waveIntensity * Z.WAVE_SCALE_GROW);
         }
 
-        if (isEnemy || isInside) {
+        if (isInside) {
             const isBorder = Math.abs(distToCenter - zoneRadius) < Z.BORDER_BAND;
             if (isBorder) {
-                LOOK.edgeAlpha = isEnemy ? Z.ENEMY_BORDER_EDGE_ALPHA : Z.BORDER_EDGE_ALPHA; LOOK.coreAlpha = Z.BORDER_CORE_ALPHA;
+                LOOK.edgeAlpha = Z.BORDER_EDGE_ALPHA; LOOK.coreAlpha = Z.BORDER_CORE_ALPHA;
                 ctx.globalAlpha = 1;
                 SoftTile.draw(ctx, LOOK, size, layout);
             }

@@ -1695,8 +1695,6 @@
     "WAVE_OVERSHOOT": 0.5,
     "WAVE_WIDTH": 1.5,
     "MIN_WAVE": 0.05,
-    "ENEMY_COLOR": "#ef4444",
-    "ENEMY_ALPHA": 0.2,
     "INSIDE_ALPHA": 0.12,
     "FILL_RADIUS": 0.95,
     "WAVE_EDGE_ALPHA": 0.6,
@@ -1704,7 +1702,6 @@
     "WAVE_SCALE_GROW": 0.08,
     "BORDER_BAND": 0.5,
     "BORDER_EDGE_ALPHA": 0.35,
-    "ENEMY_BORDER_EDGE_ALPHA": 0.5,
     "BORDER_CORE_ALPHA": 0.2
   },
   "particleBackend": "function"

@@ -1,3 +1,4 @@
+import { stableMatrixChar as getStableChar } from '../../../engine/math/hash';
 import React, { useEffect, useRef } from 'react';
 import { MatrixConfig } from './types';
 import { getMatrixRainBudget } from '../../../engine/renderers/RenderQuality';
@@ -57,13 +58,6 @@ export const useMatrixRain = (
             drops.push(d);
             lanes[i].latestDrop = d;
         }
-        const getStableChar = (laneIdx: number, cellIdx: number, seed: number, charSet: string, volatility: number, time: number) => {
-            const len = charSet.length;
-            if (len === 0) return "";
-            const timeStep = volatility > 0 ? Math.floor(time * volatility * 0.1) : 0;
-            const index = Math.abs((laneIdx * 15485863 + cellIdx * 1231 + timeStep * 7919 + Math.floor(seed)) % len);
-            return charSet[index];
-        };
         let lastRenderTime = 0;
         const render = (now: number = performance.now()) => {
             const budget = getMatrixRainBudget();

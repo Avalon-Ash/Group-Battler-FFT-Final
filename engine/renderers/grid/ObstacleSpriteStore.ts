@@ -1,3 +1,4 @@
+import { imulVariant2 } from '../../math/hash';
 /**
  * ObstacleSpriteStore — 障礙物預渲染精靈（VISUAL_ROADMAP O2）
  * -----------------------------------------------------------------------------
@@ -73,12 +74,7 @@ interface AtlasFrame {
 
 /** 純函式：依格子座標選變體（穩定、不閃爍） */
 export function obstacleVariant(q: number, r: number, count: number): number {
-    if (count <= 1) return 0;
-    let h = Math.imul(q | 0, 0x27d4eb2d) ^ Math.imul(r | 0, 0x165667b1);
-    h ^= h >>> 15;
-    h = Math.imul(h, 0x85ebca6b);
-    h ^= h >>> 13;
-    return (h >>> 0) % count;
+    return imulVariant2(q, r, count);
 }
 
 class ObstacleSpriteStoreImpl {

@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
-// [ARCH] Sole writer of GroundPriority per-cell budgets (RenderSpec section 12).
+// [ARCH] Sole writer of GroundPriority per-cell budgets; both teams use progress-driven zone fills (section 12).
 // ║  GridRenderStrategy — 地塊／障礙／危害／疊層 RenderOp 提交 ║
 // ║  職責：每格提交 TERRAIN、OBSTACLE、HAZARD、OVERLAY         ║
 // ║  [ARCH] 座標規則見 engine/renderers/RenderSpec.ts §2、§3：  ║
@@ -123,7 +123,7 @@ export class GridRenderStrategy {
 
             // Fill the shared budget before any op is drawn. Only actual zone fills participate.
             const zone = op.oDanger;
-            const zoneFill = zone && (zone.isEnemy || HexUtils.dist(tile, zone) < zone.progress * (zone.radius + ZONE_RENDER.WAVE_OVERSHOOT));
+            const zoneFill = zone && (HexUtils.dist(tile, zone) < zone.progress * (zone.radius + ZONE_RENDER.WAVE_OVERSHOOT));
             const status = op.oStatus ? STATUS_VISUALS[op.oStatus] : undefined;
             groundPriority.set(q, r,
                 (isWarning ? F.Warning : 0) | (isLastStand ? F.LastStand : 0) |
