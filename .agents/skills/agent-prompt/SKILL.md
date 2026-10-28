@@ -51,7 +51,8 @@ description: 撰寫給 IDE Gemini（使用者用 /goal 啟動）或 Codex（主�
 
 ### 0. 開工前（INV）
 - 先讀：`AGENTS.md`（全部）、<檔案清單，含 RenderSpec 若相關>。
-- 從 `main` 開分支 `feat/<topic>`；`git status` 必須乾淨。先跑並記進報告（不綠就停下回報）：`npm run lint`、`npm test`、`npm run build`、<基準量測>。
+- 從 `main` 開分支 `feat/<topic>`；`git status` 必須乾淨。先跑並記進報告（不綠就停下回報）：`npm run lint`、`npm test`、`npm run build`、`npm run knip`、<基準量測>。
+- 一次性的探針、截圖、重現腳本一律寫在 `tools/ui-e2e/out/`（不進版控）；要 commit 進 `tools/` 的腳本必須掛上 npm script 或被測試引用。亂數只用 `engine/math/rng.ts`，不自己寫 PRNG／雜湊。
 - **長指令（可能超過約 5 秒）一律分段跑**：`node tools/agent/run.mjs --detach <名稱> <逾時秒數> -- <指令>` 啟動，接著反覆 `node tools/agent/run.mjs --wait <名稱>` 直到第一行是 `STATE=DONE`；**指令還在跑時不得結束回合，不得只回覆「等待中」**。只有 `STATE=DONE EXIT=0` 算通過；`TIMEOUT` 重跑一次，`LOST` 改前景補跑一次。同一步失敗或逾時兩次就記進報告、跳下一個任務（`AGENTS.md` §7）；範圍外的錯誤立即停下回報。必要的驗證沒完成，該任務就標「未完成」，不得宣稱驗收通過。
 - **受保護檔案（不得修改）**：`CLAUDE.md`、`AGENTS.md`、`docs/HANDOFF.md`、`docs/METHODOLOGY.md`、`docs/DECISIONS.md`、`docs/WORKLOG.md`、`.claude/**`、`.codex/**`、`tools/hooks/**`、`tools/ui-e2e/baseline/**`、`tools/ui-e2e/style-baseline.json`、所有 `tests/*.baseline.json` 的放寬方向<、本輪不該動的檔>。**保真基準一律不得重錄**。
 - 不准 `push`、不准動 `main`、不准合併。

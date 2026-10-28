@@ -64,6 +64,9 @@
 - **No state in renderers.** Renderers read `Agent` state; they do not store their own.
 - **No symptom hiding.** Fix the cause. Example of what is forbidden: "if a unit is idle, make it walk randomly."
 - **No deleting "old" code by assumption.** Before deleting a file or export, `git grep` and show it has zero references. New pipelines often still depend on parts of old files.
+- **No duplicate utilities.** Randomness comes from `engine/math/rng.ts` (seeded, splittable). Never write a local PRNG, LCG or integer hash; if a shared helper is missing, add it next to `rng.ts` and reuse it.
+- **No committed one-off scripts.** Probes, screenshot and repro scripts go in `tools/ui-e2e/out/` (gitignored). A file you commit under `tools/` must be referenced by a `package.json` script, a test, a skill, or another committed tool.
+- **No new dead code.** `npm run knip` must not report anything new compared with `main`.
 - **No large blast radius.** If a step touches more than 3 files and your task prompt does not already list them, write the plan in your report/commit message before editing.
 
 ---
@@ -93,6 +96,7 @@
 npm run lint        # tsc --noEmit, must be 0 errors
 npm test            # unit tests, must pass
 npm run build       # production build, must succeed
+npm run knip        # no new findings vs main (unused files/exports/deps)
 npm run perf:guard  # only if you changed renderers / materials / VFX
 ```
 

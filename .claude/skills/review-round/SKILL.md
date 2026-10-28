@@ -16,11 +16,18 @@ description: 審查 Gemini（或子工作階段）跑完的分支 diff、決定�
    - 只有「看起來是好習慣」不算證據；B0 證據為 0 的修正一律 dropped（§4 第 6 條）。
    - 下行風險和上行收益一樣重：會讓畫面凍結或沒有產出的改動，除非證據壓倒性，否則 dropped。
    - 「全部不收、維持 main」也是正當結論。
-4. 渲染／生命週期改動 → `render-verify` skill。基準檔有變 → `rebaseline-fidelity` skill。
-5. 修完問使用者能不能合併；push 另外問（hook 只攔破壞性 push，一般 push／merge 靠這條規則）。
+4. 衛生檢查（代理常漏，主代理自己跑，不靠代理自報）：
+   - `npm run knip`：和 `main` 比不得多出新項目。
+   - `git diff main...<branch> --stat -- tools/`：新增的腳本必須被 npm script、測試、skill 或其他工具引用，否則要求刪除或移到 `tools/ui-e2e/out/`。
+   - `git diff main...<branch> | grep -E "^\+.*(0x6D2B79F5|9301|Math\.imul)"`：有新寫的 PRNG／雜湊就退回，改用 `engine/math/rng.ts`。
+   - 新增的數字與顏色在 `constants/`、`data/` 以外 → 要求改成具名常數。
+5. 渲染／生命週期改動 → `render-verify` skill。基準檔有變 → `rebaseline-fidelity` skill。
+6. 修完問使用者能不能合併；push 另外問（hook 只攔破壞性 push，一般 push／merge 靠這條規則）。
 
 ## 2. 收尾（合併後）
-- 刪掉該輪提示詞與被取代的報告（DECISIONS §4；`tests/DocDrift.test.ts` 擋斷鏈）。
+- 刪掉該輪提示詞與報告：報告的結論（數字表、回退方式）寫進 WORKLOG 那一節後刪除；只有 HANDOFF 還在引用的才保留（DECISIONS §4；`tests/DocDrift.test.ts` 擋斷鏈）。
+- 該輪留下、沒有長期用途的探針腳本一併刪除。
+- 這輪動到架構（Facade、系統邊界、SSOT 位置、事件流）→ 同步更新架構白皮書（O7 之後是 `docs/ARCHITECTURE_WHITEPAPER.md`，之前是 `engine/presentation/DesignExporter.ts`）。
 - 程式碼、保真重錄（獨立 commit＋證據）、文件分開 commit。
 - `docs/WORKLOG.md` 加一節：日期＋一句話結論＋commit／報告位置。
 - `docs/HANDOFF.md` 刪掉做完的 TBD，加上新的「待使用者實機確認」。

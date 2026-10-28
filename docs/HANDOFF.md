@@ -20,6 +20,10 @@
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
+**D. OPT-01 優化**（2026-10-28 開始）：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`（O0～O7）。O0 補完清查由 Codex Luna 只讀執行中。
+
+**多段傷害技能（等 OPT-01 後）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
+
 **偶發測試**：`tests/TerrainBlockCacheBudget.test.ts`「on overflow evicts only sprites of other zoom scales」2026-10-28 在完整測試中失敗一次（expected 2025 to be 2048），單獨跑 3 次、完整再跑 2 次都通過，疑似依執行順序或共用狀態；再出現就查。`AgentRunner` 時序測試在高負載下也會偶發。
 
 **有空時**：繼續讀清冊未讀的檔案。
