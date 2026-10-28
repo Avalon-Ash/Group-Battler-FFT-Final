@@ -11,7 +11,7 @@ import { AgentVFXSystem } from "./AgentVFXSystem";
 import { Point3D } from "../../math/VisualMath";
 import { GameEngine } from "../../game";
 import { HexMath } from "../../math/HexMath";
-import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT } from "../../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, DEFAULT_HEX_LAYOUT, VFX_RUNTIME } from "../../../constants";
 import type { HexLayout } from "../../../types";
 import type { Team } from "../../types/Enums";
 import { BEAM_STYLES, FACTION_BEAM_RAMP_ID, NEUTRAL_BEAM_RAMP_ID, type BeamStyleId } from "../../../data/vfx/beam_styles";
@@ -69,7 +69,7 @@ export class VFXSystem {
         
         // [FIX] 根據常數 HEX_SIZE (48) 確定清除半徑。
         // 使用 1.25 倍半徑確保覆蓋邊角 (48 * 1.25 = 60)，HEX_SIZE^2 = 2304, 60^2 = 3600
-        const HEX_R = HEX_SIZE * 1.25; 
+        const HEX_R = HEX_SIZE * VFX_RUNTIME.COLLAPSE_RADIUS_MULT;
         const rSq = HEX_R * HEX_R;
         
         // 1. Kill Particles (Simulation space)
@@ -98,7 +98,7 @@ export class VFXSystem {
         VFXPlayer.play(this, effectId, x, y, z, colorOverride, groundZ, ownerId, hexKey, scale);
     }
     
-    public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = 0.4, scale: number = 1, team?: Team) {
+    public playBeam(styleId: string, start: Point3D, end: Point3D, colorOverride?: string, duration: number = VFX_RUNTIME.BEAM_DURATION, scale: number = 1, team?: Team) {
         const p = this.state.getParticle();
         const style = BEAM_STYLES[styleId as BeamStyleId] ?? BEAM_STYLES.GENERIC_BEAM;
         p.size = style.width * scale;
@@ -114,7 +114,7 @@ export class VFXSystem {
         const ramp = VFX_RAMPS[rampId];
         p.color = colorOverride || ramp.main;
         p.beamEnd = vfxPartStore.get({ kind: 'glow', radius: p.size * VFX_PARTS.BEAM.END_GLOW_RATIO, ramp: rampId, hard: true });
-        p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * 31 + end.x * 17)) });
+        p.part = vfxPartStore.get({ kind: 'beam', width: p.size, ramp: rampId, edge: style.edge, seed: Math.floor(Math.abs(start.x * VFX_RUNTIME.BEAM_SEED_START + end.x * VFX_RUNTIME.BEAM_SEED_END)) });
         p.type = 'BEAM'; p.style = styleId; p.locked = true; p.lockReason = 'BEAM';
         this.state.particles.push(p);
     }
@@ -135,7 +135,7 @@ export class VFXSystem {
         // [RACE CONDITION GUARD] Clear newly spawned particles on collapsed tiles
         if (this.collapsedHexKeys.size > 0) {
             for (const p of this.state.particles) {
-                if (p.life >= p.maxLife * 0.9 && p.hexKey && this.collapsedHexKeys.has(p.hexKey)) {
+                if (p.life >= p.maxLife * VFX_RUNTIME.COLLAPSE_FRESH_LIFE && p.hexKey && this.collapsedHexKeys.has(p.hexKey)) {
                     p.life = -1;
                 }
             }

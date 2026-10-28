@@ -2,7 +2,7 @@
 import { VFXSystem } from "../../vfx";
 import { getFactionSkin } from "../../../../data/units/factionSkin";
 import { Agent } from "../../../core/Agent";
-import { VFX_BUDGET, DEATH_VFX } from "../../../../constants";
+import { VFX_BUDGET, DEATH_VFX, UNIT_SHATTER } from "../../../../constants";
 import { getQualityTier } from "../../../renderers/RenderQuality";
 import { vfxPartStore } from "../../../renderers/vfxparts/VFXPartStore";
 import { DEATH_PARTS } from "../../../../data/vfx/registry/shared_parts";
@@ -31,7 +31,7 @@ export const UnitShatter = {
         const lifeScale = isUnderPressure ? (VFX_BUDGET.SHATTER_LIFETIME_REDUCED / VFX_BUDGET.SHATTER_LIFETIME_NORMAL) : 1.0;
 
         // 0. Initial Burst Feedback
-        system.playEffect('FX_HIT_GENERIC', ox, oy, oz + 20, death.burstColor, floorLvl);
+        system.playEffect('FX_HIT_GENERIC', ox, oy, oz + UNIT_SHATTER.BURST_Z, death.burstColor, floorLvl);
 
         // 1. 塵煙團：緩慢向外擴散並上升
         const puffCount = isUnderPressure ? DEATH_VFX.PUFF_REDUCED : DEATH_VFX.PUFF_NORMAL;
@@ -39,9 +39,9 @@ export const UnitShatter = {
             const p = system.state.getParticle();
             const angle = Math.random() * Math.PI * 2;
             p.type = 'PART';
-            p.x = ox; p.y = oy; p.z = oz + 10;
-            p.vx = Math.cos(angle) * DEATH_VFX.PUFF_SPEED + impactX * 0.1;
-            p.vy = Math.sin(angle) * DEATH_VFX.PUFF_SPEED + impactY * 0.1;
+            p.x = ox; p.y = oy; p.z = oz + UNIT_SHATTER.PUFF_Z;
+            p.vx = Math.cos(angle) * DEATH_VFX.PUFF_SPEED + impactX * UNIT_SHATTER.PUFF_IMPACT;
+            p.vy = Math.sin(angle) * DEATH_VFX.PUFF_SPEED + impactY * UNIT_SHATTER.PUFF_IMPACT;
             p.vz = DEATH_VFX.PUFF_RISE;
             p.size = DEATH_VFX.PUFF_SIZE_MIN + Math.random() * DEATH_VFX.PUFF_SIZE_RANGE;
             p.color = DEATH_VFX.PUFF_COLOR;
@@ -49,7 +49,7 @@ export const UnitShatter = {
             p.partAnim = DEATH_PARTS.PUFF_ANIM;
             p.gravity = 0;
             p.drag = DEATH_VFX.PUFF_DRAG;
-            p.life = DEATH_VFX.PUFF_LIFE * (0.8 + Math.random() * 0.4) * lifeScale;
+            p.life = DEATH_VFX.PUFF_LIFE * (UNIT_SHATTER.PUFF_LIFE_MIN + Math.random() * UNIT_SHATTER.PUFF_LIFE_RANGE) * lifeScale;
             p.maxLife = p.life;
             system.state.particles.push(p);
         }
@@ -61,16 +61,16 @@ export const UnitShatter = {
             const angle = Math.random() * Math.PI * 2;
             const speed = DEATH_VFX.SPARK_SPEED_MIN + Math.random() * DEATH_VFX.SPARK_SPEED_RANGE;
             p.type = 'PART_DEBRIS';
-            p.x = ox; p.y = oy; p.z = oz + 15;
-            p.vx = Math.cos(angle) * speed + impactX * 0.4;
-            p.vy = Math.sin(angle) * speed + impactY * 0.4;
+            p.x = ox; p.y = oy; p.z = oz + UNIT_SHATTER.SPARK_Z;
+            p.vx = Math.cos(angle) * speed + impactX * UNIT_SHATTER.SPARK_IMPACT;
+            p.vy = Math.sin(angle) * speed + impactY * UNIT_SHATTER.SPARK_IMPACT;
             p.vz = DEATH_VFX.SPARK_RISE_MIN + Math.random() * DEATH_VFX.SPARK_RISE_RANGE;
             p.size = DEATH_VFX.SPARK_SIZE_MIN + Math.random() * DEATH_VFX.SPARK_SIZE_RANGE;
             p.color = death.burstColor;
             p.part = vfxPartStore.get({ kind: 'glow', radius: p.size, ramp: ramps.spark, hard: true });
             p.partAnim = DEATH_PARTS.SPARK_ANIM;
             p.gravity = DEATH_VFX.SPARK_GRAVITY;
-            p.life = DEATH_VFX.SPARK_LIFE * (0.8 + Math.random() * 0.4) * lifeScale;
+            p.life = DEATH_VFX.SPARK_LIFE * (UNIT_SHATTER.SPARK_LIFE_MIN + Math.random() * UNIT_SHATTER.SPARK_LIFE_RANGE) * lifeScale;
             p.maxLife = p.life;
             system.state.particles.push(p);
         }
@@ -80,10 +80,10 @@ export const UnitShatter = {
             const soul = system.state.getParticle();
             soul.x = ox; soul.y = oy; soul.z = oz;
             soul.type = 'PART';
-            soul.size = 80;
+            soul.size = UNIT_SHATTER.SOUL_SIZE;
             soul.color = death.spiritColor;
-            soul.vx = 0; soul.vy = 0; soul.vz = 100;
-            soul.life = 2.5 * lifeScale; soul.maxLife = soul.life;
+            soul.vx = 0; soul.vy = 0; soul.vz = UNIT_SHATTER.SOUL_RISE;
+            soul.life = UNIT_SHATTER.SOUL_LIFE * lifeScale; soul.maxLife = soul.life;
             soul.part = vfxPartStore.get({ kind: 'glow', radius: DEATH_PARTS.SOUL_RADIUS, ramp: ramps.spirit });
             soul.partAnim = DEATH_PARTS.SOUL_ANIM;
             system.state.particles.push(soul);
@@ -95,19 +95,19 @@ export const UnitShatter = {
             for (let i = 0; i < bloodCount; i++) {
                 const p = system.state.getParticle();
                 const angle = Math.random() * Math.PI * 2;
-                const speed = 300 + Math.random() * 400; // 較快速度
+                const speed = UNIT_SHATTER.BLOOD_SPEED_MIN + Math.random() * UNIT_SHATTER.BLOOD_SPEED_RANGE; // 較快速度
                 p.type = 'PART_DEBRIS';
-                p.x = ox; p.y = oy; p.z = oz + 10;
-                p.vx = Math.cos(angle) * speed + (impactX * 0.3);
-                p.vy = Math.sin(angle) * speed + (impactY * 0.3);
-                p.vz = 100 + Math.random() * 200;
-                p.size = 3 + Math.random() * 5;
+                p.x = ox; p.y = oy; p.z = oz + UNIT_SHATTER.BLOOD_Z;
+                p.vx = Math.cos(angle) * speed + (impactX * UNIT_SHATTER.BLOOD_IMPACT);
+                p.vy = Math.sin(angle) * speed + (impactY * UNIT_SHATTER.BLOOD_IMPACT);
+                p.vz = UNIT_SHATTER.BLOOD_RISE_MIN + Math.random() * UNIT_SHATTER.BLOOD_RISE_RANGE;
+                p.size = UNIT_SHATTER.BLOOD_SIZE_MIN + Math.random() * UNIT_SHATTER.BLOOD_SIZE_RANGE;
                 p.color = bloodColor;
                 p.part = vfxPartStore.get({ kind: 'droplet', size: p.size, ramp: ramps.blood });
                 p.partAnim = DEATH_PARTS.BLOOD_ANIM;
-                p.gravity = 2500;
-                p.vRotation = (Math.random() - 0.5) * 50;
-                p.life = (1.0 + Math.random() * 1.0) * lifeScale;
+                p.gravity = UNIT_SHATTER.BLOOD_GRAVITY;
+                p.vRotation = (Math.random() - 0.5) * UNIT_SHATTER.BLOOD_SPIN_RANGE;
+                p.life = (UNIT_SHATTER.BLOOD_LIFE_MIN + Math.random() * UNIT_SHATTER.BLOOD_LIFE_RANGE) * lifeScale;
                 p.maxLife = p.life;
                 system.state.particles.push(p);
             }

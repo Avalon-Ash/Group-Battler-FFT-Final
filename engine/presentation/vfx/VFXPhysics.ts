@@ -1,6 +1,6 @@
 
 import { Particle } from "./state";
-import { PHYSICS, VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, PHYSICAL_PARTICLE_TYPES } from "../../../constants";
+import { PHYSICS, VFX_RENDER, ISO_SCALE_Y, VFX_GROUND_TYPES, PHYSICAL_PARTICLE_TYPES, VFX_PHYSICS } from "../../../constants";
 import { riseOffsetAt } from "./partAnimEase";
 
 export interface SpatialInfo {
@@ -28,27 +28,27 @@ export class VFXPhysics {
             if (isValid) {
                 // [FIX] Account for particle size to prevent sinking. 
                 // Most physical particles are centered, so we need a bias of half size.
-                const sizeBias = (p.size || 10) * VFX_RENDER.PARTICLE_SIZE_BIAS; 
+                const sizeBias = (p.size || VFX_PHYSICS.FALLBACK_SIZE) * VFX_RENDER.PARTICLE_SIZE_BIAS;
                 const floorLevel = currentGroundH + sizeBias;
 
                 if (p.z < floorLevel) {
                     p.z = floorLevel;
 
-                    if (Math.abs(p.vz) > 120) {
-                        p.vz = -p.vz * 0.45;
-                        p.vx *= 0.7;
-                        p.vy *= 0.7;
-                        p.vRotation *= 0.6;
+                    if (Math.abs(p.vz) > VFX_PHYSICS.BOUNCE_SPEED) {
+                        p.vz = -p.vz * VFX_PHYSICS.BOUNCE_RESTITUTION;
+                        p.vx *= VFX_PHYSICS.BOUNCE_HORIZONTAL;
+                        p.vy *= VFX_PHYSICS.BOUNCE_HORIZONTAL;
+                        p.vRotation *= VFX_PHYSICS.BOUNCE_SPIN;
                     } else {
                         p.vz = 0;
-                        p.vx *= 0.2;
-                        p.vy *= 0.2;
+                        p.vx *= VFX_PHYSICS.SETTLE_HORIZONTAL;
+                        p.vy *= VFX_PHYSICS.SETTLE_HORIZONTAL;
                         p.vRotation = 0;
                     }
                 }
             } else {
                 // Void Penetration: No collision, fall until out of bounds
-                if (p.z < -2000) {
+                if (p.z < VFX_PHYSICS.VOID_CULL_Z) {
                     p.life = 0;
                 }
             }
@@ -64,10 +64,10 @@ export class VFXPhysics {
             else p.z += p.vz * dt;
 
             if (p.drag !== undefined) {
-                const f = Math.pow(1 - p.drag, dt * 60);
+                const f = Math.pow(1 - p.drag, dt * VFX_PHYSICS.DRAG_REFERENCE_HZ);
                 p.vx *= f; p.vy *= f; p.vz *= f;
             } else {
-                const f = Math.pow(PHYSICS.DEFAULT_DRAG, dt * 60);
+                const f = Math.pow(PHYSICS.DEFAULT_DRAG, dt * VFX_PHYSICS.DRAG_REFERENCE_HZ);
                 p.vx *= f;
                 p.vy *= f;
                 p.vz *= f;
@@ -78,7 +78,7 @@ export class VFXPhysics {
                 // For non-physical particles, we use a stricter clamp if they are below ground
                 p.z = currentGroundH;
                 if (p.vz < 0) p.vz = 0;
-            } else if (!isValid && p.z < -2000) {
+            } else if (!isValid && p.z < VFX_PHYSICS.VOID_CULL_Z) {
                 p.life = 0;
             }
 

@@ -12,7 +12,7 @@ import { GameEngine } from "../../../game";
 import { RenderList, RenderOpType } from "../../../renderers/RenderList";
 import { TrajectoryMath } from "../../../math/TrajectoryMath";
 import { VisualMath, Point3D } from "../../../math/VisualMath";
-import { VFX_RENDER, ISO_SCALE_Y, PROJECTILE_RENDER } from "../../../../constants";
+import { VFX_RENDER, ISO_SCALE_Y, PROJECTILE_RENDER, PROJECTILE_SAMPLING } from "../../../../constants";
 
 export const ProjectileRenderer = {
     submit(
@@ -39,12 +39,12 @@ export const ProjectileRenderer = {
             // Then use VisualMath to project BOTH points to 2D screen space and find the angle.
             // This guarantees the sprite angle matches the visual parabolic curve exactly.
             
-            let tNext = Math.min(1.0, p.t + 0.01);
+            let tNext = Math.min(1.0, p.t + PROJECTILE_SAMPLING.ANGLE_STEP);
             let visAngle;
 
-            if (p.t >= 0.99) {
+            if (p.t >= PROJECTILE_SAMPLING.BACKWARD_AT) {
                 // At end of flight: look backwards (Current - Prev)
-                const tPrev = p.t - 0.01;
+                const tPrev = p.t - PROJECTILE_SAMPLING.ANGLE_STEP;
                 const prev3D = TrajectoryMath.evaluate(traj, start3D, end3D, tPrev);
                 visAngle = VisualMath.calculateProjectedAngle(prev3D, current3D);
             } else {
@@ -62,12 +62,12 @@ export const ProjectileRenderer = {
             const visY = VisualMath.getIsoVisualY(current3D.y * ISO_SCALE_Y, current3D.z) + transOffset + launchBob * VisualMath.floatLaunchWeight(p.t);
 
             const dist = Math.sqrt((end3D.x - start3D.x)**2 + (end3D.y - start3D.y)**2);
-            const speed = dist / Math.max(0.01, p.totalDuration); 
+            const speed = dist / Math.max(PROJECTILE_SAMPLING.MIN_DURATION, p.totalDuration);
             
             const op = renderList.next();
             op.type = RenderOpType.PROJECTILE;
             op.y = current3D.y * ISO_SCALE_Y; 
-            op.z = 5000 + current3D.z; 
+            op.z = PROJECTILE_SAMPLING.SORT_Z + current3D.z;
             
             op.pVisX = current3D.x;
             op.pVisY = visY;

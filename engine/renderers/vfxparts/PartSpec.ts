@@ -91,7 +91,7 @@ export interface PartBounds {
 
 export function quantizeSize(v: number, steps: readonly number[] = VFX_PARTS.SIZE_STEPS): number {
     for (let i = 0; i < steps.length; i++) {
-        if (steps[i] >= v - 1e-4) return steps[i];
+        if (steps[i] >= v - VFX_PARTS.NORMALIZE.QUANTIZE_EPS) return steps[i];
     }
     return steps[steps.length - 1];
 }
@@ -130,7 +130,7 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
         }
         case 'rays': {
             const lengthJitter = quantizeUnit(spec.lengthJitter);
-            return { kind: 'rays', radius: quantizeSize(spec.radius), count: clampInt(spec.count, 3, 32), ramp: spec.ramp, lengthJitter, seed: lengthJitter > 0 ? quantizeSeed(spec.seed) : 0 };
+            return { kind: 'rays', radius: quantizeSize(spec.radius), count: clampInt(spec.count, 3, VFX_PARTS.RAYS.MAX_COUNT), ramp: spec.ramp, lengthJitter, seed: lengthJitter > 0 ? quantizeSeed(spec.seed) : 0 };
         }
         case 'spiral': {
             const S = VFX_PARTS.SPIRAL;
@@ -139,7 +139,7 @@ export function normalizePartSpec(spec: PartSpec): PartSpec {
             return { kind: 'spiral', radius, arms: clampInt(spec.arms, 2, S.MAX_ARMS), turns, thickness: Math.min(radius, quantizeSize(spec.thickness)), ramp: spec.ramp };
         }
         case 'bolt':
-            return { kind: 'bolt', length: quantizeSize(spec.length), branches: clampInt(spec.branches, 0, 6), ramp: spec.ramp, seed: quantizeSeed(spec.seed) };
+            return { kind: 'bolt', length: quantizeSize(spec.length), branches: clampInt(spec.branches, 0, VFX_PARTS.BOLT.MAX_BRANCHES), ramp: spec.ramp, seed: quantizeSeed(spec.seed) };
         case 'flame':
             return { kind: 'flame', height: quantizeSize(spec.height), ramp: spec.ramp, jagged: !!spec.jagged };
         case 'smoke':

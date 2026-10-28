@@ -319,3 +319,189 @@ export const ULT_FEEL = {
     /** 散布落點超出地圖時，最大收縮嘗試次數（超過仍出界則直接落在中心） */
     SCATTER_CLAMP_MAX_STEPS: 4,
 } as const;
+
+/** VFX_FACTORY：保留既有視覺參數值。 */
+export const VFX_FACTORY = {
+    /** 程序貼圖邊長（px） */
+    TEXTURE_SIZE: 128,
+    /** 接地陰影半徑（px） */
+    SHADOW_RADIUS: 40,
+    /** 森林光束半高（px） */
+    BEAM_HALF_HEIGHT: 60,
+    /** 森林光束淡入漸層位置（比例） */
+    BEAM_FADE_IN: 0.2,
+    /** 森林光束淡出漸層位置（比例） */
+    BEAM_FADE_OUT: 0.8,
+    /** 森林光束左緣（px） */
+    BEAM_LEFT: -10,
+    /** 森林光束寬度（px） */
+    BEAM_WIDTH: 20,
+    /** 森林光束高度（px） */
+    BEAM_HEIGHT: 120,
+    /** 除錯方塊左上角（px） */
+    DEBUG_ORIGIN: -5,
+    /** 除錯方塊邊長（px） */
+    DEBUG_SIZE: 10,
+    /** 霧雲畫布寬（px） */
+    FOG_WIDTH: 128,
+    /** 霧雲畫布高（px） */
+    FOG_HEIGHT: 64,
+    /** 霧雲中心水平位置（px） */
+    FOG_CENTER_X: 64,
+    /** 霧雲中心垂直位置（px） */
+    FOG_CENTER_Y: 32,
+    /** 霧雲漸層半徑（px） */
+    FOG_GRADIENT_RADIUS: 64,
+    /** 霧雲橢圓水平半徑（px） */
+    FOG_RADIUS_X: 40,
+    /** 霧雲橢圓垂直半徑（px） */
+    FOG_RADIUS_Y: 25,
+    /** 地表細節不透明度（比例） */
+    DETAIL_ALPHA: 0.3,
+    /** 森林細節尖端高度（px） */
+    FOREST_TIP_Y: -10,
+    /** 森林細節底邊半寬（px） */
+    FOREST_HALF_WIDTH: 8,
+    /** 森林細節底邊高度（px） */
+    FOREST_BASE_Y: 5,
+} as const;
+
+/** UNIT_SHATTER：保留既有視覺參數值。 */
+export const UNIT_SHATTER = {
+    /** 死亡爆發相對高度（px） */
+    BURST_Z: 20,
+    /** 死亡塵煙相對高度（px） */
+    PUFF_Z: 10,
+    /** 塵煙承接衝量的比例（倍） */
+    PUFF_IMPACT: 0.1,
+    /** 塵煙壽命最小倍率（倍） */
+    PUFF_LIFE_MIN: 0.8,
+    /** 塵煙壽命隨機倍率範圍（倍） */
+    PUFF_LIFE_RANGE: 0.4,
+    /** 死亡火花相對高度（px） */
+    SPARK_Z: 15,
+    /** 火花承接衝量的比例（倍） */
+    SPARK_IMPACT: 0.4,
+    /** 火花壽命最小倍率（倍） */
+    SPARK_LIFE_MIN: 0.8,
+    /** 火花壽命隨機倍率範圍（倍） */
+    SPARK_LIFE_RANGE: 0.4,
+    /** 靈魂粒子尺寸（px） */
+    SOUL_SIZE: 80,
+    /** 靈魂上升速度（px/s） */
+    SOUL_RISE: 100,
+    /** 靈魂壽命（s） */
+    SOUL_LIFE: 2.5,
+    /** 血滴最小水平速度（px/s） */
+    BLOOD_SPEED_MIN: 300,
+    /** 血滴水平速度隨機範圍（px/s） */
+    BLOOD_SPEED_RANGE: 400,
+    /** 血滴相對高度（px） */
+    BLOOD_Z: 10,
+    /** 血滴承接衝量的比例（倍） */
+    BLOOD_IMPACT: 0.3,
+    /** 血滴最小上升速度（px/s） */
+    BLOOD_RISE_MIN: 100,
+    /** 血滴上升速度隨機範圍（px/s） */
+    BLOOD_RISE_RANGE: 200,
+    /** 血滴最小尺寸（px） */
+    BLOOD_SIZE_MIN: 3,
+    /** 血滴尺寸隨機範圍（px） */
+    BLOOD_SIZE_RANGE: 5,
+    /** 血滴重力加速度（px/s²） */
+    BLOOD_GRAVITY: 2500,
+    /** 血滴自轉速度範圍（rad/s） */
+    BLOOD_SPIN_RANGE: 50,
+    /** 血滴最小壽命（s） */
+    BLOOD_LIFE_MIN: 1,
+    /** 血滴壽命隨機範圍（s） */
+    BLOOD_LIFE_RANGE: 1,
+} as const;
+
+/** COMBAT_VFX：保留既有視覺參數值。 */
+export const COMBAT_VFX = {
+    /** 強命中視覺判定傷害門檻（HP） */
+    CRIT_DAMAGE: 150,
+    /** 巨大命中視覺判定傷害門檻（HP） */
+    MASSIVE_DAMAGE: 400,
+    /** 巨大命中震動強度倍率（倍） */
+    MASSIVE_INTENSITY: 2.5,
+    /** 強命中震動強度倍率（倍） */
+    CRIT_INTENSITY: 1.6,
+    /** 自傷相機創傷量（比例） */
+    SACRIFICE_TRAUMA: 0.2,
+    /** 巨大命中相機創傷量（比例） */
+    MASSIVE_TRAUMA: 0.45,
+    /** 強命中相機創傷量（比例） */
+    CRIT_TRAUMA: 0.3,
+    /** 一般命中相機創傷量（比例） */
+    HIT_TRAUMA: 0.12,
+    /** 投射命中相機創傷量倍率（倍） */
+    PROJECTILE_TRAUMA: 0.2,
+    /** 範圍命中相機創傷量倍率（倍） */
+    AOE_TRAUMA: 0.35,
+} as const;
+
+/** VFX_PHYSICS：保留既有視覺參數值。 */
+export const VFX_PHYSICS = {
+    /** 缺省粒子碰撞尺寸（px） */
+    FALLBACK_SIZE: 10,
+    /** 開始反彈的最小垂直速度（px/s） */
+    BOUNCE_SPEED: 120,
+    /** 碰地反彈垂直速度保留比例（倍） */
+    BOUNCE_RESTITUTION: 0.45,
+    /** 反彈水平速度保留比例（倍） */
+    BOUNCE_HORIZONTAL: 0.7,
+    /** 反彈自轉速度保留比例（倍） */
+    BOUNCE_SPIN: 0.6,
+    /** 停止反彈時水平速度保留比例（倍） */
+    SETTLE_HORIZONTAL: 0.2,
+    /** 虛空粒子回收高度（px） */
+    VOID_CULL_Z: -2000,
+    /** 阻力衰減的參考更新頻率（Hz） */
+    DRAG_REFERENCE_HZ: 60,
+} as const;
+
+/** VFX_SEQUENCE：保留既有視覺參數值。 */
+export const VFX_SEQUENCE = {
+    /** 向日葵散布相鄰落點的黃金角（rad） */
+    SCATTER_GOLDEN_ANGLE: 2.39996,
+    /** 散布落點相對格高（px） */
+    SCATTER_Z: 5,
+    /** 序列光束缺省持續時間（s） */
+    BEAM_DURATION: 0.4,
+    /** 序列震動缺省強度（比例） */
+    SHAKE_INTENSITY: 0.3,
+    /** 天降物缺省起始高度（px） */
+    FALL_HEIGHT: 1200,
+    /** 天降物缺省尺寸倍率（倍） */
+    FALL_SCALE: 1.8,
+    /** 天降物基準尺寸（px） */
+    FALL_SIZE: 80,
+} as const;
+
+/** VFX_RUNTIME：保留既有視覺參數值。 */
+export const VFX_RUNTIME = {
+    /** 塌陷格清除半徑相對格尺寸（倍） */
+    COLLAPSE_RADIUS_MULT: 1.25,
+    /** 直接生成光束的缺省持續時間（s） */
+    BEAM_DURATION: 0.4,
+    /** 光束變體種子起點水平權重（倍） */
+    BEAM_SEED_START: 31,
+    /** 光束變體種子終點水平權重（倍） */
+    BEAM_SEED_END: 17,
+    /** 塌陷格新粒子壽命判定比例（倍） */
+    COLLAPSE_FRESH_LIFE: 0.9,
+} as const;
+
+/** PROJECTILE_SAMPLING：保留既有視覺參數值。 */
+export const PROJECTILE_SAMPLING = {
+    /** 投射物方向差分的進度步長（比例） */
+    ANGLE_STEP: 0.01,
+    /** 方向取樣改用後差分的進度（比例） */
+    BACKWARD_AT: 0.99,
+    /** 估算飛行速度的最小時間（s） */
+    MIN_DURATION: 0.01,
+    /** 投射物既有最上層排序高度偏移（px） */
+    SORT_Z: 5000,
+} as const;
