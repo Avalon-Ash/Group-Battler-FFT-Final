@@ -9,7 +9,7 @@
 - **額度**：Claude（Pro）每週額度要省；GPT 額度寬鬆。主代理只做設計、寫提示詞、審查、驗收與合併，實作優先派 Codex（工作樹）或 Gemini（IDE `/goal`）。
 - **三條並行線**（第 2 節）：A 平衡（Gemini，非渲染）、B 渲染修正佇列（Codex，同一時間只開一條）、C 獅心 skin（GPT 自己跑完，主代理最後一次看）。
 - Codex 的 skin 工作樹：`C:\Users\xino_\.codex\worktrees\lionheart-warrior-skins\`（分支 `codex/lionheart-warrior-skins`），主代理不寫入。
-- 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 共 659 列：520 列未讀、31 列只核對部分事實、108 列不適用。逐檔語義審計沒有完成，只能逐檔累積證據，不可整批標成完成。
+- 清冊 `docs/PROJECT_CLEANUP_AUDIT01_INVENTORY.csv` 2026-10-29 起**凍結**（OPT-01 決定）：逐檔人工審計改由自動化閘門取代（knip、`MagicNumberBudget`、`ToolsReferenced`、`DocDrift`、O5a 起的 `NoLocalHash`）。清冊只當歷史索引，不再逐列補標。
 - 座標 findings：COORD-SINK-01（受擊下坡下陷 1.89 px）使用者 2026-10-26 實機幾乎看不到，**不修**，有新證據（更大的下陷、玩家看得見）才重開；COORD-VOID-01 屬量測工具問題，同樣擱置。已否決的修法：永久鎖定屍體排序格、`vz<-50` 過濾、高度 clamp。
 
 ## 2. 下一步（三條線）
@@ -20,13 +20,12 @@
 
 **C. skin 後續（暫不排）**：manifest 從 73 KB 變 508 KB（格式化 JSON），可壓縮；20 張圖集共約 15.8 MB（比全尺寸試作版大，使用者要求不再加有損壓縮，維持）。
 
-**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併（WORKLOG §2 AI，未 push）。剩 O3b 文件整理、O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`game.ts:367` 每次 AI 決策都記「危險決策」，偏吵，下次動 Facade 時處理；`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
+**D. OPT-01 優化**：計畫與進度在 `docs/OPTIMIZATION_PLAN.md`。O0、O1、O2、O3a、O4b 已合併（WORKLOG §2 AH；已 push，部署閘門 2026-10-29 run 40725463074 通過）。O4a 也已合併並 push（WORKLOG §2 AI）。O3b 在 2026-10-29 收尾。剩 O5 渲染參數＋雜湊統一（含 Z5）、O6 UI 顏色、O7 白皮書。另外：`PAUSE_GAME`／`RESUME_GAME` 沒有 UI 入口但有測試，要決定砍掉或加暫停鈕。
 
 **多段傷害技能（等 OPT-01 後）**：使用者 10-28 提到黑洞這類持續多段傷害技能想修，看起來管線有問題。和 BAL02 §5.2 的 STORM 分段結算、`DUAL_STRIKE` 原本想做的兩段攻擊一起設計，現在專案沒有多段命中機制。
 
 **偶發測試**：`tests/TerrainBlockCacheBudget.test.ts`「on overflow evicts only sprites of other zoom scales」2026-10-28 在完整測試中失敗一次（expected 2025 to be 2048），單獨跑 3 次、完整再跑 2 次都通過，疑似依執行順序或共用狀態；再出現就查。`AgentRunner` 時序測試在高負載下也會偶發。
 
-**有空時**：繼續讀清冊未讀的檔案。
 
 ## 3. 待使用者實機確認
 1. **iPhone 14 Pro 展示模式長跑（含新 skin）**：2026-10-27 合併 20 套 skin＋男女各半＋按陣容載入。模擬 iPhone soak 穩態與改前相同（2046 vs 2047 MB），要實機確認不再自動重新載入、換隊時不頓。
