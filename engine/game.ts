@@ -133,7 +133,7 @@ export class GameEngine implements SpatialProvider {
         this.map.randomizeEnvironment(this);
 
         // [AUDIO] S0b: 遵守 ?mute 守則，靜音時完全不建立 AudioSystem / AudioEngine
-        const loc = typeof window !== 'undefined' ? window.location : (typeof globalThis !== 'undefined' ? (globalThis as any).location : undefined);
+        const loc = typeof window !== 'undefined' ? window.location : (typeof globalThis !== 'undefined' ? (globalThis as { location?: Location }).location : undefined);
         const isMuted = loc && loc.search ? new URLSearchParams(loc.search).has(AUDIO.QUERY_MUTE_KEY) : false;
         if (!isMuted) {
             this.audio = new AudioSystem(this.bus);

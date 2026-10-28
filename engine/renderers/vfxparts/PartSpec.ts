@@ -34,7 +34,7 @@ export type PrismStyle = 'glass' | 'solid';
  * arrow＝神矢（寬矢頭＋細矢桿＋尾羽，矢尖朝下，錨點在矢尖，size＝全長）；
  * demonWings＝惡魔翼（左右翼膜＋翼骨＋中央角冠，錨點在背心，size＝翼展）。
  */
-export type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow' | 'demonWings';
+type ConstructShape = 'greatsword' | 'singularity' | 'warhead' | 'eclipse' | 'bladeWheel' | 'towerShield' | 'crown' | 'fist' | 'guillotine' | 'ribSpike' | 'eye' | 'arrow' | 'demonWings';
 /** 投射物本體外形（指向 +x，錨點在中心）；清單由 VFX_PARTS.MISSILE.HEIGHT 的鍵定義（data/vfx/parts/partConfig.ts） */
 export type { MissileShape } from '../../../data/vfx/parts/partConfig';
 import type { MissileShape } from '../../../data/vfx/parts/partConfig';

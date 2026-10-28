@@ -194,7 +194,7 @@ export interface SpatialHazard {
     pullRadius?: number;
 }
 
-export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'VISUAL_SLASH' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
+export type GameEventType = 'DAMAGE' | 'HEAL' | 'CC_APPLIED' | 'CAST_START' | 'CAST_FINISH' | 'PROJECTILE_SPAWN' | 'PROJECTILE_HIT' | 'DEATH' | 'SPAWN' | 'VISUAL_BEAM' | 'CAST_BREAK' | 'KILL' | 'IMPACT_AOE' | 'KILL_STREAK' | 'KILL_SPREE' | 'HAZARD_SPAWN' | 'GROUND_IMPACT' | 'LAST_STAND_TRIGGERED' | 'HIT_FX';
 
 export interface GameEvent {
     type: GameEventType;
@@ -356,9 +356,7 @@ export enum ToolType {
 export type WindowId =
     | 'logs'
     | 'db'
-    | 'skillDb'
     | 'vfxmap'
-    | 'vfxMap'
     | 'inspector'
     | 'monitor'
     | 'directorSettings'

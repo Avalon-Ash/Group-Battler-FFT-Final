@@ -41,7 +41,6 @@ function fillFactionDefaults(prefix: string, primary: string, secondary: string,
                         }
                         break;
                     case 'CROSS_CUT':
-                    case 'DUAL_STRIKE':
                         if (isRed) {
                             actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_1', delay: 0, scale: basicConfig.scale || 0.9 });
                             actions.push({ type: 'PARTICLE', id: 'FX_SWING_RED_CROSS_2', delay: 0.08, scale: basicConfig.scale || 0.9 });

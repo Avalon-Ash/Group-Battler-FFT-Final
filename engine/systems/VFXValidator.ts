@@ -42,7 +42,6 @@ export function validateAllVFXBindings(skills: Skill[]) {
         return false;
     } else {
         if (isNewSet) {
-            console.log('✅ VFX Binding: All skills successfully validated.');
             lastFingerprint = currentFingerprint;
         }
         return true;

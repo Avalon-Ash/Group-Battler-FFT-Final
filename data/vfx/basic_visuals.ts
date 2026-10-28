@@ -13,8 +13,7 @@ type BasicArchetype =
     | 'HEAVY_CLEAVE'    // Heavy Wide Swing
     | 'CROSS_CUT'       // Dual Strike X (New)
     | 'RANGED_BOLT'     // Standard Projectile
-    | 'MAGIC_ORB'       // Slow Homing
-    | 'DUAL_STRIKE';    // Two hits (Legacy, mapped to Cross)
+    | 'MAGIC_ORB';      // Slow Homing
 
 export interface BasicVisualDef {
     archetype: BasicArchetype;
