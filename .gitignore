@@ -24,7 +24,6 @@ dist-ssr
 *.sw?
 
 # npm lockfile is intentionally untracked in this repo
-package-lock.json
 
 # headless UI e2e screenshots
 tools/ui-e2e/out/
