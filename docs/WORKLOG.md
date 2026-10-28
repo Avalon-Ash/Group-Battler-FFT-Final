@@ -314,6 +314,11 @@
 - O4b（`1b85051`，Codex Sol）：ZoneSystem Z1 預警格每幀強制 AI 決策、Z2 `minRadius`≠1 時背水一戰壞掉、Z3 最終階段可能切斷地圖、Z4 自寫 LCG、Z6 魔法數字。batch-sim 200 場藍方 54.5%→55.0%、平均 20.6→20.5 秒；br-soak 20/20；新增 `tests/ZoneShrink.test.ts`。
 - 合約效果：`worker` 子代理的 3 檔上限與 Facade 禁令讓它拒絕 12 檔的 O1（正確擋下，改派 Codex）；O4b 的「不准把勝率調回來」硬限制沒有被觸發（差異只有 0.5 個百分點）。
 
+### AI. 2026-10-29 OPT-01 O4a 規則數值具名化（合併 432f6a8）
+- Codex Sol：AI、戰鬥、狀態、地圖、移動、物理 29 檔的 189 個未命名數字搬進 `constants/`（新檔 `constants/ai.ts`；`DAMAGE_RULES` 等），只搬不改值。batch-sim 200 場 seed 1 改前兩次一致、改前改後 61,058 欄位一致。掃描器總數 1,216→1,027。
+- 新增 `tests/MagicNumberBudget.test.ts`＋`tests/magic-number-budget.json`：每檔未命名數字只減不增。
+- 順帶發現未改：`PhysicsEngine` 的 `isAirborne || z > 0.1` 後半看似多餘。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
