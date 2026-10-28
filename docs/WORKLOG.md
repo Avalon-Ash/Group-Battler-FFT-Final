@@ -325,6 +325,10 @@
 - Z5：詠唱預警不再假設玩家是藍方；`ActiveZone.isEnemy`→`team`，紅藍都用進度波紋＋施法者陣營色（與 `GroundPriority.castColorAt` 同源），刪 `ZONE_RENDER.ENEMY_*`。`battle_frozen` 只在預警遮罩內變動（22,750 px，遮罩外 0），保真仍 PASS，未重錄。
 - 教訓（寫進 `render-verify`）：保真數字跨次執行會漂移，「畫面沒變」要用同環境 A/B 證明；第一次派工因為拿兩次執行比容差而白停兩輪。測試裡的 `git ls-files` 加 `-c safe.directory`（Codex 沙盒 clone 擁有者檢查）。
 
+### AK. 2026-10-29 OPT-01 O5b 特效參數具名化
+- Codex Sol：`PartBakers`／`PartSpec` → `data/vfx/parts/partConfig.ts`；`VFXFactory`、`UnitShatter`、`CombatVFXHandler`、`VFXPhysics`、`SequenceSystem`、`VFXSystem`、`ProjectileRenderer` → `constants/vfx.ts`。共 259 個（`PartBakers` 181→8）。零件總表 52 件 0 差異；六場景同環境 A/B 逐位元相同；perf:guard 通過。
+- 第一次 A/B 探針在未改碼時 FOREST 就有 61 萬像素差異，Codex 正確停下；改用 O5a 證明穩定的腳本後通過。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
