@@ -306,6 +306,14 @@
 - 驗證：GPT 在 810dd50 跑全套（300 場逐場相同、座標各項不增加、br-soak 10/10、perf:guard）；主代理在合併 BAL-03 後的 main 補跑 300 場合併前後逐場相同、880 項測試、保真 6 張全過（`battle_frozen` 0.000）。`TerrainBlockCacheBudget` 測試偶發失敗一次，重跑皆過（HANDOFF B）。
 - 合約效果：目標導向提示詞＋「300 場逐場不變」這條會失敗的硬限制，讓 GPT 在推擠沒有證據時沒有硬改。
 
+### AH. 2026-10-29 OPT-01 第一批：死碼、部署閘門、工具清理、縮圈修正（合併 85d5708、edf2d71、55c76cd、1a2ba4d）
+- 計畫在 `docs/OPTIMIZATION_PLAN.md`。O0 補完清查：Codex Luna 因環境沒有 `rg`、中文亂碼而沒有產出，改用 explorer 子代理（可達性、data 魔法數字、素材路徑）。
+- O1（`973e337`，Codex Luna）：刪 `DUAL_STRIKE`、`VISUAL_SLASH`、5 個沒人呼叫的 `useEngineCommands` 輔助函式、`WindowId` 的 `skillDb`／`vfxMap`、多餘匯出、`VFXValidator` 的 `console.log`、`game.ts` 的 `as any`；knip 歸零。`PAUSE_GAME`／`RESUME_GAME` 有測試在用，保留。
+- O2（`b14f940`）：`package-lock.json` 進版控；部署改 `npm ci`、Node 24，build 前跑 lint＋test。要 push 後才驗得到 CI。
+- O3a（`d2983c9`）：刪 49 支沒有入口的一次性腳本（還原：`git checkout ab8e92c -- <path>`）；新增 `tests/ToolsReferenced.test.ts`。
+- O4b（`1b85051`，Codex Sol）：ZoneSystem Z1 預警格每幀強制 AI 決策、Z2 `minRadius`≠1 時背水一戰壞掉、Z3 最終階段可能切斷地圖、Z4 自寫 LCG、Z6 魔法數字。batch-sim 200 場藍方 54.5%→55.0%、平均 20.6→20.5 秒；br-soak 20/20；新增 `tests/ZoneShrink.test.ts`。
+- 合約效果：`worker` 子代理的 3 檔上限與 Facade 禁令讓它拒絕 12 檔的 O1（正確擋下，改派 Codex）；O4b 的「不准把勝率調回來」硬限制沒有被觸發（差異只有 0.5 個百分點）。
+
 ## 3. 更早的輪次與審查修補
 
 - **效能四（2026-10-12 合併）**：`?perf` HUD、`perf:frames`／`perf:attribution`、去 `shadowBlur`、`VFX_BUDGET`。我調過品質治理器門檻（`RENDER_QUALITY.DOWN_MS` 14／`UP_MS` 9）。當時列的殘留熱點（`TextPainter`、`ProjectileDrawer`、`ProceduralPainter` 等）已在 2026-10-19 全部清除或零件化（§3 K）。
