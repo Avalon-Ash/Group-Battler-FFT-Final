@@ -11,6 +11,7 @@
 3. **無入口的功能**：規格下載（`DesignExporter`）、`VISUAL_SLASH`、`DUAL_STRIKE`。
 4. **建置與部署無法重現**：沒有把 lockfile 納入版控，部署前也不跑測試。
 5. **工具與文件膨脹**：約 50 支一次性探針沒有任何入口；清冊 CSV 有 520 列未讀，逐檔審計已經停滯。
+6. **ZoneSystem 兩個行為 bug**：預警格上的單位每幀強制跑 AI 並洗版戰鬥紀錄（Z1）；`minRadius` 不是 1 時背水一戰會壞掉（Z2）。
 
 ## 1. 發現
 
@@ -41,9 +42,9 @@
 
 | 項目 | 證據 | 建議 |
 | :-- | :-- | :-- |
-| `engine/presentation/DesignExporter.ts`（319 行）＋ `RenderSpec.downloadSpec` | `useGameApp.ts:319` 回傳了 `downloadSpec`，但 `components/` 沒有任何地方呼叫。內文是手寫的架構描述，已經會過時（例如宣稱「不再使用 as any」，實際上還有 1 處） | 刪除，或接回 UI（**待決定**） |
-| `VISUAL_SLASH` 事件類型 | 沒有發送端，只有 `EventVFXMapper.ts:70` 和 `CinematicVFXHandler.ts:31` 有對應分支 | 刪除類型和分支 |
-| `DUAL_STRIKE` 打擊類型 | `basic_visuals.ts:17` 標成 Legacy，沒有技能在用，只剩 `SkillSequences.ts:44` 一個 case | 刪除 |
+| `engine/presentation/DesignExporter.ts`（319 行，架構白皮書）＋ `RenderSpec.downloadSpec` | 2025-12-24 重構 UI 時拿掉了 `MapEditorToolbar` 的按鈕，此後沒有入口（`useGameApp.ts:319` 回傳了，但沒有人接）。內文寫死在 TS 字串裡，已經過時：自稱 PRODUCTION_READY、宣稱不再使用 as any（實際還有 1 處）、第 9、10 節編號重複 | 使用者會用 → **保留並改寫**，見 O7 |
+| `VISUAL_SLASH` 事件類型 | 2025-12～2026-01-08 由近戰命中發送；`d5e7237`（AnimationSystem SSOT）改用 `SKILL_SEQUENCES` 的 `MELEE_SLASH` 原型＋`HIT_FX` 之後，發送端就刪掉了。現在只剩 `EventVFXMapper.ts:70` 和 `CinematicVFXHandler.ts:31` 的備援分支 | 已被取代，刪除 |
+| `DUAL_STRIKE` 打擊類型 | 2026-01-05 為 `wb_b1`、`wr_b5` 加入，原意是「兩段攻擊」，但**只做了視覺**（兩道揮砍粒子，間隔 0.08 秒），傷害一直是一段。2026-01-08 改名為 `CROSS_CUT`，舊名留作別名，`SkillSequences.ts:44` 和 `CROSS_CUT` 走同一個 case。專案裡沒有任何多段命中機制 | 刪除別名。真正的多段命中屬於戰鬥機制，併入 BAL02 §5.2 的 STORM 分段結算一起設計 |
 | `ultFallTime` 匯出、`ConstructShape` 型別匯出 | knip：只在自己的檔內使用 | 改成不匯出 |
 | `VFXValidator.ts:45` 啟動時 `console.log` | 違反合約 | 只在失敗時用 `warn` |
 | `game.ts:136` `(globalThis as any).location` | 違反合約 | 改成型別守衛 |
@@ -60,24 +61,53 @@
 5. **審計清冊**：335 KB 的 CSV，520 列未讀。逐檔人工標記成本高，也沒有防回退效果。
 6. **命名與結構**：小寫舊檔（`renderers/tactical.ts`、`presentation/hud.ts`、`systems/map.ts`、`ai.ts`、`agentManager.ts`）和 PascalCase 混用；根目錄有 `skillDatabase.ts`、`types.ts`（662 行）；`package.json` 的 name 是 `tactical-battler:-kernel-v9.7`。
 
+### E. ZoneSystem（縮圈＋背水一戰，355 行）
+
+| ID | 問題 | 影響 | 建議 |
+| :-- | :-- | :-- | :-- |
+| **Z1（bug）** | `ZoneSystem.ts:53` 先清空 `warningTiles`，`:64` 才拿它做「舊警告」快照，所以快照永遠是空的，`newlyWarned` 每一幀都成立 | 站在預警格的單位**每幀**被 `forceAiUpdate`：行為樹從約 12.5 Hz（`DEFAULT_AI_UPDATE_INTERVAL 0.08`）變成每幀都跑，`game.ts:367` 每幀記一筆「危險決策」，把戰鬥紀錄洗掉（紀錄有上限）。從 2026-04-27 `6f2fb06` 起就是這樣 | 刪掉 `:53`；預警集合只在層級或最終目標改變時重建。會改變 AI 決策頻率，要用 `balance:sim` 比對 |
+| **Z2（bug）** | `minRadius` 同時被當成「層數」（和 `safeRadius` 比）與「格數」（和 `mapKeys.size` 比）。背水一戰只在剩 1 格時觸發，設定介面卻允許 0～10 | 設成 ≥2：停在 N 格，**背水一戰永遠不會觸發**；設成 0：最後一格也會塌，全員墜落 | 拆成兩個語意明確的參數，或限制範圍並讓背水一戰改看 `<= minRadius` |
+| Z3 | 最終階段在剩下的格子裡隨機挑一格塌陷 | 可能把剩下的島切成互不相連的幾塊，單位走不到對方，形成僵局 | 只從剩餘區域的外圈挑（重算深度），並改用戰鬥 `rng` |
+| Z4 | 最終階段的 LCG（`seed*9301+49297`）寫了兩份（`:82`、`:130`），沒有用戰鬥 `rng` | 重複實作；同一張地圖每次都挑同一格 | 併入 B，用 `rng.split` |
+| Z5 | AOE 詠唱預警區（`activeZones`）也在這裡產生，而且 `isEnemy = team === RED // 假設玩家是藍方` | 職責混雜。展示模式是 AI 對 AI，紅方預警整片填滿、藍方漸進填，兩邊不對稱 | 移到展示層的選擇器，用陣營取代 `isEnemy` |
+| Z6 | 塌陷格的掉落動畫寫死重力 `3500`（註解寫 `PHYSICS.GRAVITY`，卻沒有引用）、消失門檻 `-2000`；另有 `999`、`0.001`、`31`、每 5 秒記錄一次等數字 | 魔法數字 | 改用 `constants/combat.ts` 的 `GRAVITY`，其餘移到 `ZONE` 常數 |
+| Z7 | 每幀掃全部格子＋複製 Set；格子座標用字串 `split(',')` 解析 | 小型效能浪費 | 隨 Z1 一起改 |
+
+Z1、Z2 是行為 bug，修了會影響戰鬥結果，歸到 O4 的「改值」子輪（不和純搬移混在一起）。
+
 ## 2. 分輪計畫
 
 依 CLAUDE.md 鐵律：**渲染線同一時間只開一條**，非渲染線可以並行。
 
 | 輪 | 內容 | 渲染？ | 執行者 | 驗收 |
 | :-- | :-- | :-- | :-- | :-- |
-| **O1 死碼** | C 表全部（DesignExporter 依決定處理）；修 knip.json 讓它解析得到 tools 的路徑（`paths` 或忽略 unresolved）；處理 `sharp` | 輕微（只刪 VFX 分支） | Codex Luna／medium 或 `worker` | lint／test／build、`npm run knip` 乾淨、`runtime-smoke` |
-| **O2 建置／部署** | 把 `package-lock.json` 納入版控；deploy 改用 `npm ci`、Node 24，build 前先跑 lint＋test；只做小版本升級 | 否 | `worker` | CI 綠燈一次（push 要另外取得同意） |
-| **O3 工具／文件** | 一次性腳本移到 `tools/_archive/`（或刪除）；已結案的報告移到 `docs/archive/`；清冊 CSV 凍結，改由自動化閘門取代；Codex Luna 補功能可達性清查 | 否 | Codex Luna／medium | 所有 npm scripts 與 skill 引用的路徑都還在（加測試檢查） |
-| **O4 規則數值** | A 表的戰鬥、AI、地圖、鏡頭數值搬進 `constants/`，**只搬不改值**；新增 `MagicNumberBudget` 測試與掃描腳本；`ZoneSystem` 的 LCG 先不動 | 否 | Codex Sol／medium（工作樹） | `balance:sim` 固定 seed 結果逐位相同、`constants-snapshot` 更新有理由 |
+| **O0 補完清查** | 補第 1 節沒涵蓋的部分：功能可達性（設定欄位、視窗、指令有沒有被讀到或觸發）、`data/` 函式裡的魔法數字、動態路徑素材是否真的有載入、`AGENTS.md`／`README`／白皮書的內容與程式碼是否一致 | 否（只讀） | Codex Luna／medium | 產出 findings 表，主代理抽查後併入本檔 |
+| **O1 死碼** | C 表全部（白皮書除外）；修 knip.json 讓它解析得到 tools 的路徑；處理 `sharp`；O0 找到的死碼 | 輕微（只刪 VFX 分支） | Codex Luna／medium | lint／test／build、`npm run knip` 乾淨、`runtime-smoke` |
+| **O2 建置／部署** | 保留 GitHub Pages：把 `package-lock.json` 納入版控；deploy 改用 `npm ci`、Node 24，build 前先跑 lint＋test；只做小版本升級 | 否 | `worker` | CI 綠燈一次（push 要另外取得同意） |
+| **O3 工具／文件** | 直接刪除沒有引用的一次性腳本，刪除清單和最後的 commit 記進 WORKLOG 以便還原；已結案的報告摘要併入 WORKLOG 後刪除（HANDOFF 還在引用的保留）；清冊 CSV 凍結 | 否 | Codex Luna／medium | 加測試：所有 npm scripts、skill、測試引用的路徑都存在 |
+| **O4a 規則數值搬移** | A 表的戰鬥、AI、地圖、鏡頭數值搬進 `constants/`，**只搬不改值**；新增 `MagicNumberBudget` 測試 | 否 | Codex Sol／medium（工作樹） | `balance:sim` 固定 seed 結果逐位相同 |
+| **O4b ZoneSystem 修正** | Z1～Z7 | 否（Z5 動到預警顯示，要截圖） | Codex Sol／medium（工作樹） | 新增 Z1、Z2 測試；`balance:sim` 前後比對並回報差異；`br-soak` |
 | **O5 渲染參數＋雜湊統一** | `hash.ts` 統一；`PartBakers`、Factory、`Synth` 的參數表外移；拆分 `PartBakers` | **是（唯一的渲染線）** | Codex Sol／medium（工作樹） | `perf:fidelity` 0 差異、不重錄基準、`perf:guard`、`render-verify` |
 | **O6 UI 顏色** | UI 顏色改用樣式代碼 | 否（UI 樣式） | Gemini 或 Codex Luna | `e2e:ui` 樣式基準 0 差異 |
-| 暫緩 | 大版本升級（vite 8、TS 7、tailwind 4，各自一輪）；小寫檔名統一（碰到再改）；`ZoneSystem` 改用 `rng`（會改變戰鬥結果，併入下次 BAL） | — | — | — |
+| **O7 白皮書** | 文字從 TS 字串移到 `docs/ARCHITECTURE_WHITEPAPER.md`，用 Vite `?raw` 載入，下載時代入 `constants` 的即時數值；在設定視窗加回下載按鈕；O1～O5 完成後依新架構改寫內容；合約規定每輪動到架構時同步更新 | 否 | 主代理改寫內容，接線交給 `worker` | 下載的檔案內容與程式碼一致（O0 的比對清單） |
+| 暫緩 | 大版本升級（vite 8、TS 7、tailwind 4，各自一輪）；小寫檔名統一（碰到再改）；多段命中機制（併入 BAL） | — | — | — |
 
-建議順序：O1 → O2 → O3 可以並行；O4 接在 O1 之後（O1 會改到 `game.ts`）；O5 等目前沒有其他渲染工作時再開；O6 隨時可做。
+順序：O0 先跑；O1、O2、O3 可以並行；O4a、O4b 接在 O1 之後（O1 會改到 `game.ts`）；O5 等目前沒有其他渲染工作時再開；O6 隨時可做；O7 最後做。
 
-## 3. 待使用者決定
+## 3. 合約修訂（O1 開工前，主代理親自改）
 
-1. **規格下載（`DesignExporter`）**：直接刪除，還是在 UI 加按鈕接回？
-2. **GitHub Pages 自動部署**：保留並加上測試閘門，還是先停用，等部署方式定案？
-3. **一次性工具腳本**：移到 `tools/_archive/`，還是直接刪除（git 有歷史）？
+清理只能做一次；要防止再長回來，得把規則寫進 `AGENTS.md`，並用測試強制執行：
+
+1. **共用工具只有一份**：亂數用 `engine/math/rng.ts`，雜湊用 `engine/math/hash.ts`，禁止自己寫 PRNG、雜湊、LCG。測試掃描 mulberry32、`9301` 這類特徵常數。
+2. **一次性腳本不進版控**：探針、截圖腳本寫在 `tools/ui-e2e/out/`（已被 gitignore）。要 commit 的話，必須被 npm script、skill 或測試引用，否則該輪結束前刪除。測試檢查 `tools/` 裡每個檔案都有被引用（例外要列在允許清單）。
+3. **報告隨輪結案**：一輪合併時，報告的結論併入 WORKLOG 後刪除；HANDOFF 還在引用的才保留。由 `review-round` skill 執行。
+4. **死碼歸零**：`npm run knip` 必須乾淨，列入驗收指令與 CI。
+5. **魔法數字只減不增**：`MagicNumberBudget` 測試。
+6. **白皮書同步**：動到架構（Facade、系統邊界、SSOT 位置）的輪次，要在同一個 commit 更新白皮書。
+
+## 4. 已定案（使用者授權主代理決定，2026-10-28）
+
+- 白皮書：保留並改寫（O7）。
+- GitHub Pages：保留，加上測試閘門（O2）。
+- 一次性腳本：直接刪除，WORKLOG 記錄還原方式（O3）。
+- `VISUAL_SLASH`、`DUAL_STRIKE`：刪除；多段命中留給 BAL。
