@@ -15,7 +15,7 @@ import { VFXSystem } from "../vfx";
 import { Point3D } from "../../math/VisualMath";
 import { VFXSequence, VFXAction } from "../../../types/VFXSchema";
 import { VisualMath } from "../../math/VisualMath";
-import { ISO_SCALE_Y, PHYSICS, ULT_FEEL } from "../../../constants";
+import { ISO_SCALE_Y, PHYSICS, ULT_FEEL, VFX_SEQUENCE } from "../../../constants";
 import { Agent, Team } from "../../../types";
 import { Particle } from "../vfx/state";
 import { vfxPartStore } from "../../renderers/vfxparts/VFXPartStore";
@@ -83,7 +83,7 @@ export class SequenceSystem {
         const p0 = HexUtils.toPx(0, 0, mapConfig);
         const pR = HexUtils.toPx(scatterRings, 0, mapConfig);
         const radiusPx = Math.hypot(pR.x - p0.x, pR.y - p0.y);
-        const theta = k * 2.39996;
+        const theta = k * VFX_SEQUENCE.SCATTER_GOLDEN_ANGLE;
         const dist = Math.sqrt((k + 0.5) / count) * radiusPx;
         pt.x = Math.cos(theta) * dist;
         pt.y = Math.sin(theta) * dist;
@@ -303,7 +303,7 @@ export class SequenceSystem {
                     const finalX = target.x + this.scratchOffset.x;
                     const finalY = target.y + this.scratchOffset.y;
                     const hex = HexUtils.fromPx(finalX, finalY, engine.mapConfig);
-                    const finalZ = engine.getTerrainHeight(hex.q, hex.r) + 5;
+                    const finalZ = engine.getTerrainHeight(hex.q, hex.r) + VFX_SEQUENCE.SCATTER_Z;
                     const finalGroundZ = finalZ - VisualMath.Z_LAYERS.DECAL;
                     vfx.playEffect(effectId, finalX, finalY, finalZ, action.color, finalGroundZ, undefined, undefined, action.scale ?? 1);
                 } else {
@@ -312,20 +312,20 @@ export class SequenceSystem {
                 break;
             case 'BEAM':
                 if (source) {
-                    vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || 0.4, action.scale ?? 1, this.teamOf(sourceId, engine));
+                    vfx.playBeam(action.style || 'GENERIC_BEAM', source, target, action.color, action.duration || VFX_SEQUENCE.BEAM_DURATION, action.scale ?? 1, this.teamOf(sourceId, engine));
                 }
                 break;
             case 'SHAKE':
-                engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || 0.3 });
+                engine.bus.emit('CAMERA_SHAKE', { intensity: action.shakeIntensity || VFX_SEQUENCE.SHAKE_INTENSITY });
                 break;
             case 'GRID_PULSE':
                 // 依施法者陣營選格子脈衝；曾用 action.color 是否含 '#3b' 判斷，29 個藍方技能播成紅色（docs/VFX_PIPELINE_MAP.md §2.3）
                 vfx.playEffect(this.teamOf(sourceId, engine) === Team.BLUE ? 'FX_GRID_IMPACT_BLUE' : 'FX_GRID_IMPACT_RED', target.x, target.y, groundZ + VisualMath.Z_LAYERS.HAZARD, action.color, groundZ, undefined, undefined, action.scale ?? 1);
                 break;
             case 'HEAVEN_FALL': {
-                const h = action.height || 1200;
+                const h = action.height || VFX_SEQUENCE.FALL_HEIGHT;
                 const life = Math.sqrt((2 * h) / PHYSICS.GRAVITY) + METEOR_SIZE.FALL_PAD;
-                const size = (action.scale || 1.8) * 80;
+                const size = (action.scale || VFX_SEQUENCE.FALL_SCALE) * VFX_SEQUENCE.FALL_SIZE;
                 const spawn = (): Particle => {
                     const p = vfx.state.getParticle();
                     p.x = target.x; p.y = target.y; p.z = target.z + h;

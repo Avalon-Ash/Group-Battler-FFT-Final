@@ -16,14 +16,14 @@ const TAU = Math.PI * 2;
 
 /** 六角形第 k 個頂點（半徑 r，起始角見 VFX_PARTS.HEX）。 */
 function hexVertex(r: number, k: number): [number, number] {
-    const a = VFX_PARTS.HEX.ANGLE_OFFSET_RAD + (k / 6) * TAU;
+    const a = VFX_PARTS.HEX.ANGLE_OFFSET_RAD + (k / VFX_PARTS.HEX.SIDES) * TAU;
     return [Math.cos(a) * r, Math.sin(a) * r];
 }
 
 /** 六角外框路徑（封閉）。 */
 function hexPath(ctx: CanvasRenderingContext2D, r: number): void {
     ctx.beginPath();
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < VFX_PARTS.HEX.SIDES; k++) {
         const [x, y] = hexVertex(r, k);
         if (k === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     }
@@ -32,7 +32,7 @@ function hexPath(ctx: CanvasRenderingContext2D, r: number): void {
 
 /** 六角周長上 u∈[0,1) 的點（從第 0 頂點起算）。 */
 function hexPerimeterPoint(r: number, u: number): [number, number] {
-    const t = (((u % 1) + 1) % 1) * 6;
+    const t = (((u % 1) + 1) % 1) * VFX_PARTS.HEX.SIDES;
     const k = Math.floor(t);
     const f = t - k;
     const [x0, y0] = hexVertex(r, k);
@@ -45,7 +45,7 @@ function hexArcPath(ctx: CanvasRenderingContext2D, r: number, u0: number, u1: nu
     ctx.beginPath();
     const [sx, sy] = hexPerimeterPoint(r, u0);
     ctx.moveTo(sx, sy);
-    for (let k = Math.floor(u0 * 6) + 1; k / 6 < u1; k++) {
+    for (let k = Math.floor(u0 * VFX_PARTS.HEX.SIDES) + 1; k / VFX_PARTS.HEX.SIDES < u1; k++) {
         const [x, y] = hexVertex(r, k);
         ctx.lineTo(x, y);
     }
@@ -171,7 +171,7 @@ function bakeRing(ctx: CanvasRenderingContext2D, r: number, t: number, ramp: VFX
     }
     const gaps = Math.round(C.GAPS_AT_FULL * roughness);
     for (let i = 0; i < gaps; i++) {
-        const a = (i / Math.max(1, gaps)) * TAU + rng() * 0.8;
+        const a = (i / Math.max(1, gaps)) * TAU + rng() * VFX_PARTS.RING.GAP_ANGLE_JITTER;
         const span = C.GAP_ARC_RAD * (0.5 + rng() * 0.5);
         ctx.beginPath();
         ctx.moveTo(0, 0);
@@ -210,7 +210,7 @@ function bakeSlashArc(ctx: CanvasRenderingContext2D, r: number, arcDeg: number, 
     // 外光暈（較寬、暗部色、低透明）
     ctx.globalAlpha = C.HALO_ALPHA;
     ctx.fillStyle = ramp.dark;
-    slashPath(ctx, r + t * (C.HALO_RATIO - 1) * 0.3, arc, t * C.HALO_RATIO);
+    slashPath(ctx, r + t * (C.HALO_RATIO - 1) * VFX_PARTS.SLASH.HALO_RADIUS_OFFSET, arc, t * C.HALO_RATIO);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = ramp.main;
@@ -257,15 +257,15 @@ function strokePolyline(ctx: CanvasRenderingContext2D, pts: Array<[number, numbe
 function bakeBolt(ctx: CanvasRenderingContext2D, length: number, branches: number, ramp: VFXRamp, seed: number): void {
     const C = VFX_PARTS.BOLT;
     const main = boltPolyline(length, seed).map(([x, y]) => [x, y - length] as [number, number]);
-    const rng = createPartRng(seed + 101);
+    const rng = createPartRng(seed + VFX_PARTS.BOLT.BRANCH_SEED_OFFSET);
     const paths: Array<Array<[number, number]>> = [main];
     for (let b = 0; b < branches; b++) {
         const idx = 2 + Math.floor(rng() * (main.length * C.BRANCH_REACH));
         const [sx, sy] = main[Math.min(main.length - 2, idx)];
         const side = rng() < 0.5 ? -1 : 1;
         const bl = length * C.BRANCH_LEN * (0.5 + rng() * 0.5);
-        const sub = boltPolyline(bl, seed * 7 + b + 1, C.DEPTH - C.SUB_DEPTH_DROP);
-        const ang = side * C.BRANCH_ANGLE_RAD * (0.6 + rng() * 0.4);
+        const sub = boltPolyline(bl, seed * VFX_PARTS.BOLT.SUB_SEED_MULT + b + 1, C.DEPTH - C.SUB_DEPTH_DROP);
+        const ang = side * C.BRANCH_ANGLE_RAD * (VFX_PARTS.BOLT.ANGLE_MIN_RATIO + rng() * VFX_PARTS.BOLT.ANGLE_JITTER);
         const cos = Math.cos(ang), sin = Math.sin(ang);
         paths.push(sub.map(([x, y]) => [sx + x * cos - y * sin, sy + x * sin + y * cos] as [number, number]));
     }
@@ -275,7 +275,7 @@ function bakeBolt(ctx: CanvasRenderingContext2D, length: number, branches: numbe
         ctx.strokeStyle = color;
         ctx.globalAlpha = alpha;
         for (let i = 0; i < paths.length; i++) {
-            ctx.lineWidth = i === 0 ? w : w * 0.6;
+            ctx.lineWidth = i === 0 ? w : w * VFX_PARTS.BOLT.SUB_WIDTH_RATIO;
             strokePolyline(ctx, paths[i]);
         }
     };
@@ -292,7 +292,7 @@ function flamePath(ctx: CanvasRenderingContext2D, h: number, halfW: number, phas
     const p = phase * TAU;
     const sway = (v: number) => Math.sin(p + v * 3) * h * C.SWAY * v;
     const width = (v: number) => {
-        let w = halfW * Math.pow(Math.sin(Math.PI * (1 - v) * 0.5 + 0.0001), 0.8) * Math.min(1, v * 6 + 0.35);
+        let w = halfW * Math.pow(Math.sin(Math.PI * (1 - v) * 0.5 + VFX_PARTS.FLAME.WIDTH_PHASE_EPS), VFX_PARTS.FLAME.WIDTH_POWER) * Math.min(1, v * VFX_PARTS.FLAME.BASE_TAPER_RATE + VFX_PARTS.FLAME.BASE_WIDTH_RATIO);
         if (jagged) w *= 1 + C.JAG * Math.sin(v * C.JAG_FREQ * Math.PI + p * 2) * 2;
         return Math.max(0, w);
     };
@@ -340,12 +340,12 @@ function bakeSmoke(ctx: CanvasRenderingContext2D, r: number, color: string, roug
     const lumps = C.LUMPS_MIN + Math.round(C.LUMPS_EXTRA_AT_FULL * roughness);
     for (let i = 0; i < lumps; i++) {
         const a = rng() * TAU;
-        const d = i === 0 ? 0 : r * (0.25 + rng() * 0.45);
-        const lr = r * (C.LUMP_MIN + rng() * (C.LUMP_MAX - C.LUMP_MIN)) * (i === 0 ? 1.3 : 1);
+        const d = i === 0 ? 0 : r * (VFX_PARTS.SMOKE.LUMP_DISTANCE_MIN + rng() * VFX_PARTS.SMOKE.LUMP_DISTANCE_RANGE);
+        const lr = r * (C.LUMP_MIN + rng() * (C.LUMP_MAX - C.LUMP_MIN)) * (i === 0 ? VFX_PARTS.SMOKE.CENTER_LUMP_SCALE : 1);
         const x = Math.cos(a) * d, y = Math.sin(a) * d;
         const g = ctx.createRadialGradient(x, y, 0, x, y, lr);
         g.addColorStop(0, withAlpha(color, C.ALPHA));
-        g.addColorStop(0.6, withAlpha(color, C.ALPHA * C.MID_ALPHA));
+        g.addColorStop(VFX_PARTS.SMOKE.MID_STOP, withAlpha(color, C.ALPHA * C.MID_ALPHA));
         g.addColorStop(1, withAlpha(color, 0));
         ctx.fillStyle = g;
         ctx.beginPath();
@@ -383,12 +383,12 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
         const w = s * C.CRYSTAL_ASPECT;
         ctx.fillStyle = ramp.main;
         ctx.beginPath();
-        ctx.moveTo(0, -s); ctx.lineTo(w, -s * 0.2); ctx.lineTo(w * 0.6, s * 0.7); ctx.lineTo(0, s);
-        ctx.lineTo(-w * 0.6, s * 0.7); ctx.lineTo(-w, -s * 0.2); ctx.closePath();
+        ctx.moveTo(0, -s); ctx.lineTo(w, -s * VFX_PARTS.SHARD.CRYSTAL_SHOULDER_Y); ctx.lineTo(w * VFX_PARTS.SHARD.CRYSTAL_LOWER_WIDTH, s * VFX_PARTS.SHARD.CRYSTAL_LOWER_Y); ctx.lineTo(0, s);
+        ctx.lineTo(-w * VFX_PARTS.SHARD.CRYSTAL_LOWER_WIDTH, s * VFX_PARTS.SHARD.CRYSTAL_LOWER_Y); ctx.lineTo(-w, -s * VFX_PARTS.SHARD.CRYSTAL_SHOULDER_Y); ctx.closePath();
         ctx.fill(); ctx.stroke();
         ctx.fillStyle = ramp.core;
         ctx.beginPath();
-        ctx.moveTo(0, -s); ctx.lineTo(-w, -s * 0.2); ctx.lineTo(0, s * 0.1); ctx.closePath();
+        ctx.moveTo(0, -s); ctx.lineTo(-w, -s * VFX_PARTS.SHARD.CRYSTAL_SHOULDER_Y); ctx.lineTo(0, s * VFX_PARTS.SHARD.CRYSTAL_LIGHT_Y); ctx.closePath();
         ctx.fill();
         return;
     }
@@ -397,7 +397,7 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
         for (let i = 0; i < C.ROCK_POINTS; i++) {
             const a = (i / C.ROCK_POINTS) * TAU;
             const rr = s * (1 - C.ROCK_JITTER * rng());
-            pts.push([Math.cos(a) * rr, Math.sin(a) * rr * 0.8]);
+            pts.push([Math.cos(a) * rr, Math.sin(a) * rr * VFX_PARTS.SHARD.ROCK_SQUASH]);
         }
         ctx.fillStyle = ramp.main;
         ctx.beginPath();
@@ -408,7 +408,7 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
         ctx.fillStyle = ramp.core;
         ctx.globalAlpha = C.ROCK_LIGHT_ALPHA;
         ctx.beginPath();
-        ctx.moveTo(pts[3][0] * 0.6, pts[3][1] * 0.6); ctx.lineTo(pts[4][0] * 0.8, pts[4][1] * 0.8); ctx.lineTo(0, 0);
+        ctx.moveTo(pts[3][0] * VFX_PARTS.SHARD.ROCK_LIGHT_START, pts[3][1] * VFX_PARTS.SHARD.ROCK_LIGHT_START); ctx.lineTo(pts[4][0] * VFX_PARTS.SHARD.ROCK_LIGHT_END, pts[4][1] * VFX_PARTS.SHARD.ROCK_LIGHT_END); ctx.lineTo(0, 0);
         ctx.closePath();
         ctx.fill();
         ctx.globalAlpha = 1;
@@ -418,13 +418,13 @@ function bakeShard(ctx: CanvasRenderingContext2D, s: number, shape: ShardShape, 
     const w = s * C.BONE_ASPECT;
     ctx.fillStyle = ramp.core;
     ctx.beginPath();
-    ctx.moveTo(-s * 0.75, -w * 0.5); ctx.lineTo(s * 0.75, -w * 0.5); ctx.lineTo(s * 0.75, w * 0.5); ctx.lineTo(-s * 0.75, w * 0.5);
+    ctx.moveTo(-s * VFX_PARTS.SHARD.BONE_SHAFT_HALF, -w * 0.5); ctx.lineTo(s * VFX_PARTS.SHARD.BONE_SHAFT_HALF, -w * 0.5); ctx.lineTo(s * VFX_PARTS.SHARD.BONE_SHAFT_HALF, w * 0.5); ctx.lineTo(-s * VFX_PARTS.SHARD.BONE_SHAFT_HALF, w * 0.5);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
-    for (const ex of [-s * 0.8, s * 0.8]) {
-        for (const ey of [-w * 0.6, w * 0.6]) {
+    for (const ex of [-s * VFX_PARTS.SHARD.BONE_JOINT_X, s * VFX_PARTS.SHARD.BONE_JOINT_X]) {
+        for (const ey of [-w * VFX_PARTS.SHARD.BONE_JOINT_Y, w * VFX_PARTS.SHARD.BONE_JOINT_Y]) {
             ctx.beginPath();
-            ctx.arc(ex, ey, w * 0.6, 0, TAU);
+            ctx.arc(ex, ey, w * VFX_PARTS.SHARD.BONE_JOINT_RADIUS, 0, TAU);
             ctx.fill(); ctx.stroke();
         }
     }
@@ -437,7 +437,7 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         if (gaps <= 0) { hexPath(ctx, rr); ctx.stroke(); return; }
         const seg = 1 / gaps;
         for (let i = 0; i < gaps; i++) {
-            hexArcPath(ctx, rr, i * seg + seg * 0.08, (i + 1) * seg - seg * 0.08);
+            hexArcPath(ctx, rr, i * seg + seg * VFX_PARTS.SIGIL.GAP_MARGIN, (i + 1) * seg - seg * VFX_PARTS.SIGIL.GAP_MARGIN);
             ctx.stroke();
         }
     };
@@ -470,24 +470,24 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
     const turnEmblem = () => { if (emblemRotation !== 0) ctx.rotate(emblemRotation); };
     if (emblem === 'lionShield') {
         ring(r * C.OUTER_RING, 0);
-        ticks(r * 0.85, r * C.OUTER_RING, 8);
+        ticks(r * VFX_PARTS.SIGIL.LION_TICK_INNER, r * C.OUTER_RING, VFX_PARTS.SIGIL.LION_TICKS);
         ctx.save();
         turnEmblem();
         // 騎士盾（heater）＋十字＋三尖冠
-        const w = r * 0.5, top = -r * 0.55, mid = r * 0.1, bot = r * 0.7;
+        const w = r * 0.5, top = -r * VFX_PARTS.SIGIL.LION_TOP, mid = r * VFX_PARTS.SIGIL.LION_MID, bot = r * VFX_PARTS.SIGIL.LION_BOTTOM;
         ctx.beginPath();
         ctx.moveTo(-w, top); ctx.lineTo(w, top); ctx.lineTo(w, mid);
-        ctx.quadraticCurveTo(w, bot * 0.8, 0, bot);
-        ctx.quadraticCurveTo(-w, bot * 0.8, -w, mid);
+        ctx.quadraticCurveTo(w, bot * VFX_PARTS.SIGIL.LION_CURVE_Y, 0, bot);
+        ctx.quadraticCurveTo(-w, bot * VFX_PARTS.SIGIL.LION_CURVE_Y, -w, mid);
         ctx.closePath();
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(0, top + r * 0.12); ctx.lineTo(0, bot - r * 0.15);
-        ctx.moveTo(-w * 0.65, -r * 0.1); ctx.lineTo(w * 0.65, -r * 0.1);
+        ctx.moveTo(0, top + r * VFX_PARTS.SIGIL.LION_CROSS_TOP_PAD); ctx.lineTo(0, bot - r * VFX_PARTS.SIGIL.LION_CROSS_BOTTOM_PAD);
+        ctx.moveTo(-w * VFX_PARTS.SIGIL.LION_CROSS_HALF, -r * VFX_PARTS.SIGIL.LION_CROSS_Y); ctx.lineTo(w * VFX_PARTS.SIGIL.LION_CROSS_HALF, -r * VFX_PARTS.SIGIL.LION_CROSS_Y);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(-w * 0.6, top - r * 0.05); ctx.lineTo(-w * 0.6, top - r * 0.22); ctx.lineTo(-w * 0.3, top - r * 0.12);
-        ctx.lineTo(0, top - r * 0.27); ctx.lineTo(w * 0.3, top - r * 0.12); ctx.lineTo(w * 0.6, top - r * 0.22); ctx.lineTo(w * 0.6, top - r * 0.05);
+        ctx.moveTo(-w * VFX_PARTS.SIGIL.LION_CROWN_HALF, top - r * VFX_PARTS.SIGIL.LION_CROWN_BASE_Y); ctx.lineTo(-w * VFX_PARTS.SIGIL.LION_CROWN_HALF, top - r * VFX_PARTS.SIGIL.LION_CROWN_SIDE_Y); ctx.lineTo(-w * VFX_PARTS.SIGIL.LION_CROWN_INNER_X, top - r * VFX_PARTS.SIGIL.LION_CROWN_INNER_Y);
+        ctx.lineTo(0, top - r * VFX_PARTS.SIGIL.LION_CROWN_CENTER_Y); ctx.lineTo(w * VFX_PARTS.SIGIL.LION_CROWN_INNER_X, top - r * VFX_PARTS.SIGIL.LION_CROWN_INNER_Y); ctx.lineTo(w * VFX_PARTS.SIGIL.LION_CROWN_HALF, top - r * VFX_PARTS.SIGIL.LION_CROWN_SIDE_Y); ctx.lineTo(w * VFX_PARTS.SIGIL.LION_CROWN_HALF, top - r * VFX_PARTS.SIGIL.LION_CROWN_BASE_Y);
         ctx.stroke();
         ctx.restore();
         return;
@@ -498,20 +498,20 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         turnEmblem();
         // 顱骨
         ctx.beginPath();
-        ctx.arc(0, -r * 0.05, r * 0.3, Math.PI * 0.85, Math.PI * 0.15 + TAU);
-        ctx.lineTo(r * 0.2, r * 0.32); ctx.lineTo(-r * 0.2, r * 0.32); ctx.closePath();
+        ctx.arc(0, -r * VFX_PARTS.SIGIL.SKULL_CENTER_Y, r * VFX_PARTS.SIGIL.SKULL_RADIUS, Math.PI * 0.85, Math.PI * 0.15 + TAU);
+        ctx.lineTo(r * VFX_PARTS.SIGIL.SKULL_JAW_HALF, r * VFX_PARTS.SIGIL.SKULL_JAW_Y); ctx.lineTo(-r * VFX_PARTS.SIGIL.SKULL_JAW_HALF, r * VFX_PARTS.SIGIL.SKULL_JAW_Y); ctx.closePath();
         ctx.stroke();
         // 眼窩（倒三角）
         for (const s of [-1, 1]) {
             ctx.beginPath();
-            ctx.moveTo(s * r * 0.05, -r * 0.05); ctx.lineTo(s * r * 0.2, -r * 0.08); ctx.lineTo(s * r * 0.12, r * 0.08); ctx.closePath();
+            ctx.moveTo(s * r * VFX_PARTS.SIGIL.SKULL_EYE_INNER_X, -r * VFX_PARTS.SIGIL.SKULL_EYE_TOP_Y); ctx.lineTo(s * r * VFX_PARTS.SIGIL.SKULL_EYE_OUTER_X, -r * VFX_PARTS.SIGIL.SKULL_EYE_OUTER_Y); ctx.lineTo(s * r * VFX_PARTS.SIGIL.SKULL_EYE_LOWER_X, r * VFX_PARTS.SIGIL.SKULL_EYE_LOWER_Y); ctx.closePath();
             ctx.stroke();
         }
         // 彎角
         for (const s of [-1, 1]) {
             ctx.beginPath();
-            ctx.moveTo(s * r * 0.22, -r * 0.25);
-            ctx.quadraticCurveTo(s * r * 0.65, -r * 0.35, s * r * 0.55, -r * 0.75);
+            ctx.moveTo(s * r * VFX_PARTS.SIGIL.SKULL_HORN_ROOT_X, -r * VFX_PARTS.SIGIL.SKULL_HORN_ROOT_Y);
+            ctx.quadraticCurveTo(s * r * VFX_PARTS.SIGIL.SKULL_HORN_CONTROL_X, -r * VFX_PARTS.SIGIL.SKULL_HORN_CONTROL_Y, s * r * VFX_PARTS.SIGIL.SKULL_HORN_TIP_X, -r * VFX_PARTS.SIGIL.SKULL_HORN_TIP_Y);
             ctx.stroke();
         }
         ctx.restore();
@@ -531,13 +531,13 @@ function sigilStrokes(ctx: CanvasRenderingContext2D, r: number, emblem: SigilEmb
         ctx.closePath();
         ctx.stroke();
     };
-    tri(r * 0.8);
-    tri(r * 0.35);
+    tri(r * VFX_PARTS.SIGIL.TRIANGLE_OUTER);
+    tri(r * VFX_PARTS.SIGIL.TRIANGLE_INNER);
     ctx.beginPath();
     for (let i = 0; i < 3; i++) {
         const a = -Math.PI / 2 + (i / 3) * TAU;
-        const x = Math.cos(a) * r * 0.62, y = Math.sin(a) * r * 0.62;
-        ctx.moveTo(x - r * 0.06, y - r * 0.05); ctx.lineTo(x + r * 0.02, y + r * 0.04); ctx.lineTo(x - r * 0.02, y + r * 0.08); ctx.lineTo(x + r * 0.06, y + r * 0.12);
+        const x = Math.cos(a) * r * VFX_PARTS.SIGIL.TRIANGLE_RUNE_RADIUS, y = Math.sin(a) * r * VFX_PARTS.SIGIL.TRIANGLE_RUNE_RADIUS;
+        ctx.moveTo(x - r * VFX_PARTS.SIGIL.TRI_RUNE_START_X, y - r * VFX_PARTS.SIGIL.TRI_RUNE_START_Y); ctx.lineTo(x + r * VFX_PARTS.SIGIL.TRI_RUNE_BEND_X, y + r * VFX_PARTS.SIGIL.TRI_RUNE_BEND_Y); ctx.lineTo(x - r * VFX_PARTS.SIGIL.TRI_RUNE_RETURN_X, y + r * VFX_PARTS.SIGIL.TRI_RUNE_RETURN_Y); ctx.lineTo(x + r * VFX_PARTS.SIGIL.TRI_RUNE_END_X, y + r * VFX_PARTS.SIGIL.TRI_RUNE_END_Y);
     }
     ctx.stroke();
     ctx.restore();
@@ -608,13 +608,13 @@ function runeGlyph(ctx: CanvasRenderingContext2D, s: number, style: MagicCircleS
     const strokes = 2 + Math.floor(rng() * 2);
     for (let k = 0; k < strokes; k++) {
         const x0 = (rng() - 0.5) * s, y0 = (rng() - 0.5) * s;
-        if (style === 'LION' && rng() < 0.45) {
-            ctx.moveTo(x0 + s * 0.22, y0);
-            ctx.arc(x0, y0, s * 0.22, 0, TAU * (0.5 + rng() * 0.5));
+        if (style === 'LION' && rng() < VFX_PARTS.MAGIC.RUNE_ARC_CHANCE) {
+            ctx.moveTo(x0 + s * VFX_PARTS.MAGIC.RUNE_ARC_RADIUS, y0);
+            ctx.arc(x0, y0, s * VFX_PARTS.MAGIC.RUNE_ARC_RADIUS, 0, TAU * (0.5 + rng() * 0.5));
         } else {
             const x1 = (rng() - 0.5) * s, y1 = (rng() - 0.5) * s;
             ctx.moveTo(x0, y0);
-            if (style === 'ASH') ctx.lineTo((x0 + x1) / 2 + (rng() - 0.5) * s * 0.6, (y0 + y1) / 2 + (rng() - 0.5) * s * 0.6);
+            if (style === 'ASH') ctx.lineTo((x0 + x1) / 2 + (rng() - 0.5) * s * VFX_PARTS.MAGIC.RUNE_JAG_RANGE, (y0 + y1) / 2 + (rng() - 0.5) * s * VFX_PARTS.MAGIC.RUNE_JAG_RANGE);
             ctx.lineTo(x1, y1);
         }
     }
@@ -641,9 +641,9 @@ function bakeMagicCircle(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp
         // 符文帶：沿切線方向排一圈
         const R = M.RUNES;
         const count = style === 'LION' ? R.COUNT_LION : R.COUNT_ASH;
-        const rng = createPartRng(seed + 101);
+        const rng = createPartRng(seed + VFX_PARTS.MAGIC.RUNE_SEED_OFFSET);
         // 光暈與芯各畫一次：每個符文用自己的種子重建，兩次筆畫相同
-        const seeds = Array.from({ length: count }, () => Math.floor(rng() * 1e6));
+        const seeds = Array.from({ length: count }, () => Math.floor(rng() * VFX_PARTS.MAGIC.RUNE_SEED_RANGE));
         const drawRunes = () => {
             ctx.beginPath();
             for (let i = 0; i < count; i++) {
@@ -707,7 +707,7 @@ function bakeMagicCircle(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp
         glowStroke(ctx, () => {
             ctx.beginPath();
             for (let i = 0; i < A.COUNT; i++) {
-                const a0 = (i / A.COUNT) * TAU + 0.3;
+                const a0 = (i / A.COUNT) * TAU + VFX_PARTS.MAGIC.ASH_ARC_OFFSET;
                 ctx.moveTo(Math.cos(a0) * r * A.R, Math.sin(a0) * r * A.R);
                 ctx.arc(0, 0, r * A.R, a0, a0 + A.SPAN_RAD);
             }
@@ -718,12 +718,12 @@ function bakeMagicCircle(ctx: CanvasRenderingContext2D, r: number, ramp: VFXRamp
     const node = (x: number, y: number, rr: number, alpha: number) => {
         const g = ctx.createRadialGradient(x, y, 0, x, y, rr);
         g.addColorStop(0, withAlpha(ramp.core, alpha));
-        g.addColorStop(0.4, withAlpha(ramp.main, alpha * 0.6));
+        g.addColorStop(VFX_PARTS.MAGIC.NODE_MAIN_STOP, withAlpha(ramp.main, alpha * VFX_PARTS.MAGIC.NODE_MAIN_ALPHA));
         g.addColorStop(1, withAlpha(ramp.main, 0));
         ctx.fillStyle = g;
         ctx.fillRect(x - rr, y - rr, rr * 2, rr * 2);
     };
-    const nr = Math.max(1.5, r * M.NODES.R) * 2.5;
+    const nr = Math.max(VFX_PARTS.MAGIC.NODE_MIN_RADIUS, r * M.NODES.R) * VFX_PARTS.MAGIC.NODE_RADIUS_SCALE;
     const seen = new Set<string>();
     for (const [x, y] of verts) {
         const k = `${x.toFixed(2)},${y.toFixed(2)}`;
@@ -779,8 +779,8 @@ function bakePrism(ctx: CanvasRenderingContext2D, r: number, h: number, ramp: VF
     const edgeAt = [false, false, false, false, false, false];
     ctx.fillStyle = side;
     for (let pass = 0; pass < 2; pass++) {
-        for (let i = 0; i < 6; i++) {
-            const j = (i + 1) % 6;
+        for (let i = 0; i < VFX_PARTS.HEX.SIDES; i++) {
+            const j = (i + 1) % VFX_PARTS.HEX.SIDES;
             const front = v[i].y + v[j].y > 0;
             if (front !== (pass === 1)) continue;
             if (!front && !S.BACK_FACES) continue;
@@ -798,7 +798,7 @@ function bakePrism(ctx: CanvasRenderingContext2D, r: number, h: number, ramp: VF
     ctx.strokeStyle = withAlpha(ramp.core, S.EDGE_ALPHA);
     ctx.lineWidth = S.EDGE_W;
     ctx.beginPath();
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < VFX_PARTS.HEX.SIDES; i++) {
         if (!edgeAt[i]) continue;
         ctx.moveTo(v[i].x, v[i].y);
         ctx.lineTo(v[i].x, v[i].y - h);
@@ -807,7 +807,7 @@ function bakePrism(ctx: CanvasRenderingContext2D, r: number, h: number, ramp: VF
     const hexAt = (dy: number) => {
         ctx.beginPath();
         ctx.moveTo(v[0].x, v[0].y + dy);
-        for (let i = 1; i < 6; i++) ctx.lineTo(v[i].x, v[i].y + dy);
+        for (let i = 1; i < VFX_PARTS.HEX.SIDES; i++) ctx.lineTo(v[i].x, v[i].y + dy);
         ctx.closePath();
     };
     hexAt(-h);
@@ -846,9 +846,9 @@ function bakeDroplet(ctx: CanvasRenderingContext2D, s: number, ramp: VFXRamp): v
     ctx.fillStyle = ramp.main;
     ctx.beginPath();
     ctx.moveTo(0, -r * C.TIP_RATIO);
-    ctx.quadraticCurveTo(r, -r * 0.2, r, r * 0.25);
-    ctx.arc(0, r * 0.25, r, 0, Math.PI);
-    ctx.quadraticCurveTo(-r, -r * 0.2, 0, -r * C.TIP_RATIO);
+    ctx.quadraticCurveTo(r, -r * VFX_PARTS.DROPLET.SHOULDER_Y, r, r * VFX_PARTS.DROPLET.BODY_CENTER_Y);
+    ctx.arc(0, r * VFX_PARTS.DROPLET.BODY_CENTER_Y, r, 0, Math.PI);
+    ctx.quadraticCurveTo(-r, -r * VFX_PARTS.DROPLET.SHOULDER_Y, 0, -r * C.TIP_RATIO);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = ramp.dark;
@@ -856,7 +856,7 @@ function bakeDroplet(ctx: CanvasRenderingContext2D, s: number, ramp: VFXRamp): v
     ctx.stroke();
     ctx.fillStyle = ramp.core;
     ctx.beginPath();
-    ctx.arc(-r * 0.35, 0, r * C.HIGHLIGHT_RATIO, 0, TAU);
+    ctx.arc(-r * VFX_PARTS.DROPLET.HIGHLIGHT_X, 0, r * C.HIGHLIGHT_RATIO, 0, TAU);
     ctx.fill();
 }
 
@@ -870,7 +870,7 @@ function bakeBeam(ctx: CanvasRenderingContext2D, w: number, ramp: VFXRamp, edge:
     const hh = (w * B.HALO_RATIO) / 2;
     if (edge === 'zigzag') {
         // 閃電：每個影格一條不同的折線（三層描邊），兩端固定在中線
-        const rng = createPartRng(seed * 7 + frame);
+        const rng = createPartRng(seed * VFX_PARTS.BEAM.FRAME_SEED_MULT + frame);
         const pts: Array<[number, number]> = [];
         for (let i = 0; i <= B.ZIGZAG_POINTS; i++) {
             const edgePt = i === 0 || i === B.ZIGZAG_POINTS;
@@ -900,9 +900,9 @@ function bakeBeam(ctx: CanvasRenderingContext2D, w: number, ramp: VFXRamp, edge:
     const m = (w * B.MAIN_RATIO) / 2;
     const tube = ctx.createLinearGradient(0, -m, 0, m);
     tube.addColorStop(0, withAlpha(ramp.main, 0));
-    tube.addColorStop(0.35, ramp.main);
+    tube.addColorStop(VFX_PARTS.BEAM.TUBE_MAIN_STOP_LOW, ramp.main);
     tube.addColorStop(0.5, ramp.core);
-    tube.addColorStop(0.65, ramp.main);
+    tube.addColorStop(VFX_PARTS.BEAM.TUBE_MAIN_STOP_HIGH, ramp.main);
     tube.addColorStop(1, withAlpha(ramp.main, 0));
     ctx.fillStyle = tube;
     ctx.fillRect(0, -m, L, m * 2);
@@ -921,7 +921,7 @@ function bakeBeam(ctx: CanvasRenderingContext2D, w: number, ramp: VFXRamp, edge:
         const r = Math.max(1, w * B.BEAD_R);
         for (let x = B.BEAD_PERIOD / 2; x < L; x += B.BEAD_PERIOD) {
             ctx.fillStyle = ramp.main;
-            ctx.beginPath(); ctx.arc(x, 0, r * 1.4, 0, TAU); ctx.fill();
+            ctx.beginPath(); ctx.arc(x, 0, r * VFX_PARTS.BEAM.BEAD_OUTER_SCALE, 0, TAU); ctx.fill();
             ctx.fillStyle = ramp.core;
             ctx.beginPath(); ctx.arc(x, 0, r, 0, TAU); ctx.fill();
         }
@@ -948,9 +948,9 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
         for (const sgn of [-1, 1]) {
             ctx.beginPath();
             ctx.moveTo(-h, 0);
-            ctx.lineTo(-h + L * A.FLETCH_LEN * 0.4, sgn * L * A.FLETCH_HALF);
+            ctx.lineTo(-h + L * A.FLETCH_LEN * VFX_PARTS.MISSILE.ARROW.FLETCH_PEAK, sgn * L * A.FLETCH_HALF);
             ctx.lineTo(-h + L * A.FLETCH_LEN, sgn * L * A.FLETCH_HALF);
-            ctx.lineTo(-h + L * A.FLETCH_LEN * 0.6, 0);
+            ctx.lineTo(-h + L * A.FLETCH_LEN * VFX_PARTS.MISSILE.ARROW.FLETCH_ROOT, 0);
             ctx.closePath();
             ctx.fillStyle = sgn < 0 ? ramp.core : ramp.main;
             ctx.fill(); ctx.stroke();
@@ -958,10 +958,10 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
         // 箭頭：六角菱形（ART_SPEC §0 六角骨架）
         ctx.beginPath();
         ctx.moveTo(h, 0);
-        ctx.lineTo(L * A.HEAD_START + L * 0.08, -L * A.HEAD_HALF);
+        ctx.lineTo(L * A.HEAD_START + L * VFX_PARTS.MISSILE.ARROW.HEAD_SHOULDER, -L * A.HEAD_HALF);
         ctx.lineTo(L * A.HEAD_START, -L * A.HEAD_HALF * 0.5);
         ctx.lineTo(L * A.HEAD_START, L * A.HEAD_HALF * 0.5);
-        ctx.lineTo(L * A.HEAD_START + L * 0.08, L * A.HEAD_HALF);
+        ctx.lineTo(L * A.HEAD_START + L * VFX_PARTS.MISSILE.ARROW.HEAD_SHOULDER, L * A.HEAD_HALF);
         ctx.closePath();
         ctx.fillStyle = ramp.core;
         ctx.fill(); ctx.stroke();
@@ -980,7 +980,7 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
             ctx.closePath();
         };
         crystal(1);
-        ctx.fillStyle = withAlpha(ramp.main, 0.85);
+        ctx.fillStyle = withAlpha(ramp.main, VFX_PARTS.MISSILE.BOLT.MAIN_ALPHA);
         ctx.fill();
         crystal(B.CORE_SCALE);
         ctx.fillStyle = ramp.core;
@@ -1008,15 +1008,15 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
         ctx.beginPath();
         ctx.moveTo(L * X.BLADE_START, -L * X.BLADE_HALF);
         ctx.quadraticCurveTo(h + L * X.BLADE_BULGE, 0, L * X.BLADE_START, L * X.BLADE_HALF);
-        ctx.lineTo(L * X.BLADE_START + L * 0.08, 0);
+        ctx.lineTo(L * X.BLADE_START + L * VFX_PARTS.MISSILE.AXE.INNER_NOTCH, 0);
         ctx.closePath();
         ctx.fillStyle = ramp.main;
         ctx.fill(); ctx.stroke();
         ctx.strokeStyle = ramp.core;
-        ctx.lineWidth = C.OUTLINE_W * 1.5;
+        ctx.lineWidth = C.OUTLINE_W * VFX_PARTS.MISSILE.AXE.EDGE_WIDTH_MULT;
         ctx.beginPath();
-        ctx.moveTo(L * X.BLADE_START + L * 0.05, -L * X.BLADE_HALF * 0.8);
-        ctx.quadraticCurveTo(h + L * X.BLADE_BULGE * 0.6, 0, L * X.BLADE_START + L * 0.05, L * X.BLADE_HALF * 0.8);
+        ctx.moveTo(L * X.BLADE_START + L * VFX_PARTS.MISSILE.AXE.EDGE_INSET, -L * X.BLADE_HALF * VFX_PARTS.MISSILE.AXE.EDGE_HALF);
+        ctx.quadraticCurveTo(h + L * X.BLADE_BULGE * VFX_PARTS.MISSILE.AXE.EDGE_BULGE, 0, L * X.BLADE_START + L * VFX_PARTS.MISSILE.AXE.EDGE_INSET, L * X.BLADE_HALF * VFX_PARTS.MISSILE.AXE.EDGE_HALF);
         ctx.stroke();
         return;
     }
@@ -1027,13 +1027,13 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
         ctx.beginPath(); ctx.arc(0, 0, r, 0, TAU); ctx.fill();
         ctx.strokeStyle = ramp.main;
         ctx.stroke();
-        ctx.fillStyle = withAlpha(ramp.core, 0.8);
-        ctx.beginPath(); ctx.arc(-r * 0.35, -r * 0.35, r * 0.25, 0, TAU); ctx.fill();
+        ctx.fillStyle = withAlpha(ramp.core, VFX_PARTS.MISSILE.BOMB.HIGHLIGHT_ALPHA);
+        ctx.beginPath(); ctx.arc(-r * VFX_PARTS.MISSILE.BOMB.HIGHLIGHT_OFFSET, -r * VFX_PARTS.MISSILE.BOMB.HIGHLIGHT_OFFSET, r * VFX_PARTS.MISSILE.BOMB.HIGHLIGHT_RADIUS, 0, TAU); ctx.fill();
         // 引信＋火花（朝飛行方向的後上方）
         ctx.strokeStyle = ramp.main;
-        ctx.lineWidth = C.OUTLINE_W * 1.5;
-        ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.8); ctx.lineTo(-r * 0.6 - L * M.FUSE_LEN, -r * 0.8 - L * M.FUSE_LEN); ctx.stroke();
-        bakeGlowAt(ctx, -r * 0.6 - L * M.FUSE_LEN, -r * 0.8 - L * M.FUSE_LEN, Math.max(2, L * M.SPARK), ramp);
+        ctx.lineWidth = C.OUTLINE_W * VFX_PARTS.MISSILE.BOMB.FUSE_WIDTH_MULT;
+        ctx.beginPath(); ctx.moveTo(-r * VFX_PARTS.MISSILE.BOMB.FUSE_X, -r * VFX_PARTS.MISSILE.BOMB.FUSE_Y); ctx.lineTo(-r * VFX_PARTS.MISSILE.BOMB.FUSE_X - L * M.FUSE_LEN, -r * VFX_PARTS.MISSILE.BOMB.FUSE_Y - L * M.FUSE_LEN); ctx.stroke();
+        bakeGlowAt(ctx, -r * VFX_PARTS.MISSILE.BOMB.FUSE_X - L * M.FUSE_LEN, -r * VFX_PARTS.MISSILE.BOMB.FUSE_Y - L * M.FUSE_LEN, Math.max(2, L * M.SPARK), ramp);
         return;
     }
     // hook：短索＋鉤頭（J 形）＋倒刺
@@ -1051,8 +1051,8 @@ function bakeMissile(ctx: CanvasRenderingContext2D, shape: MissileShape, L: numb
     const bx = h - r + Math.cos(Math.PI * 0.6) * r;
     const by = r + Math.sin(Math.PI * 0.6) * r;
     ctx.moveTo(bx, by);
-    ctx.lineTo(bx - L * K.BARB, by - L * K.BARB * 1.4);
-    ctx.lineTo(bx + L * K.BARB * 0.3, by - L * K.BARB * 0.6);
+    ctx.lineTo(bx - L * K.BARB, by - L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_UP);
+    ctx.lineTo(bx + L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_RIGHT, by - L * K.BARB * VFX_PARTS.MISSILE.HOOK.BARB_LOWER);
     ctx.closePath();
     ctx.fill();
 }
@@ -1265,7 +1265,7 @@ function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp
     ctx.fill();
     ctx.restore();
 
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < VFX_PARTS.HEX.SIDES; k++) {
         const [x0, y0] = hexVertex(R, k);
         const [x1, y1] = hexVertex(R, k + 1);
         const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
@@ -1291,7 +1291,7 @@ function bakeSingularity(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp
     ctx.strokeStyle = withAlpha(ramp.core, S.EDGE_ALPHA);
     ctx.lineWidth = Math.max(1, D * C.RIM_W);
     ctx.beginPath();
-    for (let k = 0; k < 6; k++) {
+    for (let k = 0; k < VFX_PARTS.HEX.SIDES; k++) {
         const [x, y] = hexVertex(R, k);
         ctx.moveTo(ax, ay); ctx.lineTo(x, y);
     }
@@ -1459,7 +1459,7 @@ function bakeBladeWheel(ctx: CanvasRenderingContext2D, D: number, ramp: VFXRamp)
         const tx = Math.cos(a + sweep) * R, ty = Math.sin(a + sweep) * R;
         const bx = ca * r0, by = sa * r0;
         const nx = -sa, ny = ca;
-        const mx = Math.cos(a + sweep * 0.6) * R * 0.78, my = Math.sin(a + sweep * 0.6) * R * 0.78;
+        const mx = Math.cos(a + sweep * VFX_PARTS.CONSTRUCT.BLADE_WHEEL.MID_SWEEP) * R * VFX_PARTS.CONSTRUCT.BLADE_WHEEL.MID_RADIUS, my = Math.sin(a + sweep * VFX_PARTS.CONSTRUCT.BLADE_WHEEL.MID_SWEEP) * R * VFX_PARTS.CONSTRUCT.BLADE_WHEEL.MID_RADIUS;
         const half = (side: number) => () => {
             ctx.beginPath();
             ctx.moveTo(bx, by);
@@ -1488,7 +1488,7 @@ function bakeTowerShield(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp
     const half = (side: number) => () => {
         ctx.beginPath();
         ctx.moveTo(0, 0);
-        ctx.quadraticCurveTo(side * hw, yS * 0.4, side * hw, yS);
+        ctx.quadraticCurveTo(side * hw, yS * VFX_PARTS.CONSTRUCT.TOWER_SHIELD.TIP_CURVE, side * hw, yS);
         ctx.lineTo(side * hw, -H * (1 - S.TOP_ARCH));
         ctx.quadraticCurveTo(side * hw * 0.5, -H, 0, -H);
         ctx.closePath();
@@ -1515,7 +1515,7 @@ function bakeCrown(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): voi
         const u = C.POINTS > 1 ? i / (C.POINTS - 1) : 0.5;
         const cx = -hw + W * u;
         const pw = W / (C.POINTS - 1) / 2;
-        const h = i % 2 === 0 ? 1 : 0.7;
+        const h = i % 2 === 0 ? 1 : VFX_PARTS.CONSTRUCT.CROWN.ALT_POINT_HEIGHT;
         const ty = bandTop - (bandTop - tipY) * h;
         const point = () => {
             ctx.beginPath();
@@ -1533,7 +1533,7 @@ function bakeCrown(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): voi
     coreLine(ctx, ramp, W, () => { ctx.beginPath(); ctx.moveTo(-hw, (bandTop + bottom) / 2); ctx.lineTo(hw, (bandTop + bottom) / 2); });
     for (let i = 0; i < C.BAND_GEMS; i++) {
         const x = -hw + (W * (i + 1)) / (C.BAND_GEMS + 1);
-        bakeGlowAt(ctx, x, (bandTop + bottom) / 2, C.GEM_R * W * 0.8, ramp);
+        bakeGlowAt(ctx, x, (bandTop + bottom) / 2, C.GEM_R * W * VFX_PARTS.CONSTRUCT.CROWN.BAND_GEM_SCALE, ramp);
     }
 }
 
@@ -1605,7 +1605,7 @@ function bakeGuillotine(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp)
     ctx.shadowColor = ramp.main;
     ctx.shadowBlur = H * VFX_PARTS.CONSTRUCT.CORE_BLUR;
     ctx.strokeStyle = withAlpha(ramp.core, G.EDGE_ALPHA);
-    ctx.lineWidth = Math.max(1, H * VFX_PARTS.CONSTRUCT.CORE_W * 1.5);
+    ctx.lineWidth = Math.max(1, H * VFX_PARTS.CONSTRUCT.CORE_W * VFX_PARTS.CONSTRUCT.GUILLOTINE.EDGE_WIDTH_MULT);
     ctx.beginPath(); ctx.moveTo(-hw, edgeL); ctx.lineTo(hw, edgeR); ctx.stroke();
     ctx.restore();
 }
@@ -1618,12 +1618,12 @@ function bakeRibSpike(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp): 
     const R = VFX_PARTS.CONSTRUCT.RIB_SPIKE;
     const bw = (R.BASE_W * H) / 2;
     const tipX = R.BEND * H, tipY = -H;
-    const cx = tipX * 0.2, cy = -H * 0.55;
+    const cx = tipX * VFX_PARTS.CONSTRUCT.RIB_SPIKE.CONTROL_X, cy = -H * VFX_PARTS.CONSTRUCT.RIB_SPIKE.CONTROL_Y;
     const half = (side: number) => () => {
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(side * bw, 0);
-        ctx.quadraticCurveTo(cx + side * bw * 0.8, cy, tipX, tipY);
+        ctx.quadraticCurveTo(cx + side * bw * VFX_PARTS.CONSTRUCT.RIB_SPIKE.CONTROL_WIDTH, cy, tipX, tipY);
         ctx.quadraticCurveTo(cx, cy, 0, 0);
         ctx.closePath();
     };
@@ -1633,7 +1633,7 @@ function bakeRibSpike(ctx: CanvasRenderingContext2D, H: number, ramp: VFXRamp): 
         const y = -r * H;
         const x = tipX * r * r;
         const w = bw * (1 - r);
-        coreLine(ctx, ramp, H, () => { ctx.beginPath(); ctx.moveTo(x - w, y + w * 0.3); ctx.lineTo(x + w, y - w * 0.3); });
+        coreLine(ctx, ramp, H, () => { ctx.beginPath(); ctx.moveTo(x - w, y + w * VFX_PARTS.CONSTRUCT.RIB_SPIKE.RIDGE_SLOPE); ctx.lineTo(x + w, y - w * VFX_PARTS.CONSTRUCT.RIB_SPIKE.RIDGE_SLOPE); });
     }
 }
 
@@ -1657,7 +1657,7 @@ function bakeEye(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp): void 
     const ir = E.IRIS_R * W;
     const iris = ctx.createRadialGradient(0, 0, 0, 0, 0, ir);
     iris.addColorStop(0, ramp.core);
-    iris.addColorStop(0.6, withAlpha(ramp.main, C.LIT_ALPHA[0]));
+    iris.addColorStop(VFX_PARTS.CONSTRUCT.EYE.IRIS_MAIN_STOP, withAlpha(ramp.main, C.LIT_ALPHA[0]));
     iris.addColorStop(1, withAlpha(ramp.dark, C.SHADE_ALPHA[0]));
     ctx.save();
     almond();
@@ -1681,16 +1681,16 @@ function bakeArrow(ctx: CanvasRenderingContext2D, L: number, ramp: VFXRamp): voi
     const f0 = -A.FLETCH_START * L, f1 = f0 - A.FLETCH_LEN * L;
     for (const side of [-1, 1]) {
         energyPiece(ctx, () => {
-            ctx.beginPath(); ctx.moveTo(side * sw, f0); ctx.lineTo(side * A.FLETCH_W * L, f1); ctx.lineTo(side * sw, f1 + A.FLETCH_LEN * L * 0.3); ctx.closePath();
+            ctx.beginPath(); ctx.moveTo(side * sw, f0); ctx.lineTo(side * A.FLETCH_W * L, f1); ctx.lineTo(side * sw, f1 + A.FLETCH_LEN * L * VFX_PARTS.CONSTRUCT.ARROW.FLETCH_RETURN); ctx.closePath();
         }, faceGradient(ctx, side * A.FLETCH_W * L, f1, 0, f0, ramp, side < 0), ramp, L);
     }
     // 矢桿
     energyPiece(ctx, () => { ctx.beginPath(); ctx.rect(-sw, -L, sw * 2, L - hl); }, faceGradient(ctx, -sw, 0, sw, 0, ramp, true), ramp, L);
     coreLine(ctx, ramp, L, () => { ctx.beginPath(); ctx.moveTo(0, -hl); ctx.lineTo(0, -L); });
     // 矢頭
-    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-hw, -hl); ctx.lineTo(0, -hl * 0.8); ctx.closePath(); },
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-hw, -hl); ctx.lineTo(0, -hl * VFX_PARTS.CONSTRUCT.ARROW.HEAD_NOTCH); ctx.closePath(); },
         faceGradient(ctx, -hw, -hl, 0, 0, ramp, true), ramp, L);
-    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -hl * 0.8); ctx.lineTo(hw, -hl); ctx.closePath(); },
+    energyPiece(ctx, () => { ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -hl * VFX_PARTS.CONSTRUCT.ARROW.HEAD_NOTCH); ctx.lineTo(hw, -hl); ctx.closePath(); },
         faceGradient(ctx, 0, -hl, hw, 0, ramp, false), ramp, L);
     bakeGlowAt(ctx, 0, 0, A.TIP_GLOW * L, ramp);
 }
@@ -1716,7 +1716,7 @@ function bakeDemonWings(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp)
             ctx.moveTo(sx, sy);
             ctx.lineTo(tx, ty);
             let px = tx, py = ty;
-            for (const [ex, ey] of [...ends, [sx, hem * 0.6] as [number, number]]) {
+            for (const [ex, ey] of [...ends, [sx, hem * VFX_PARTS.CONSTRUCT.DEMON_WINGS.HEM_ROOT] as [number, number]]) {
                 ctx.quadraticCurveTo((px + ex) / 2, (py + ey) / 2 - D.HEM_SAG * W, ex, ey);
                 px = ex; py = ey;
             }
@@ -1727,7 +1727,7 @@ function bakeDemonWings(ctx: CanvasRenderingContext2D, W: number, ramp: VFXRamp)
         coreLine(ctx, ramp, W, () => {
             ctx.beginPath();
             ctx.moveTo(sx, sy); ctx.lineTo(tx, ty);
-            for (const [ex, ey] of ends) { ctx.moveTo(tx + (sx - tx) * 0.15, ty + (sy - ty) * 0.15); ctx.lineTo(ex, ey); }
+            for (const [ex, ey] of ends) { ctx.moveTo(tx + (sx - tx) * VFX_PARTS.CONSTRUCT.DEMON_WINGS.FINGER_ROOT, ty + (sy - ty) * VFX_PARTS.CONSTRUCT.DEMON_WINGS.FINGER_ROOT); ctx.lineTo(ex, ey); }
         });
         // 角冠
         const bx = side * D.HORN_BASE[0] * W, by = D.HORN_BASE[1] * W;

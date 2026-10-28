@@ -1,9 +1,9 @@
 
 import { createCanvas } from "./CanvasUtils";
-import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER, UNIT_SHADOW } from "../../constants";
+import { HEX_SIZE, ISO_SCALE_Y, VFX_RENDER, UNIT_SHADOW, VFX_FACTORY } from "../../constants";
 import { GRASS_DETAIL, VOID_RUNES } from "../../data/vfx/terrainAmbience";
 
-const TEXTURE_SIZE = 128;
+const TEXTURE_SIZE = VFX_FACTORY.TEXTURE_SIZE;
 const CENTER = TEXTURE_SIZE / 2;
 
 /**
@@ -31,7 +31,7 @@ class VFXTextureCache {
 
         const { canvas, ctx } = createCanvas(TEXTURE_SIZE, TEXTURE_SIZE);
         ctx.translate(CENTER, CENTER);
-        const r = 40;
+        const r = VFX_FACTORY.SHADOW_RADIUS;
 
         switch (type) {
             case 'SHADOW_BLOB': {
@@ -45,18 +45,18 @@ class VFXTextureCache {
                 break;
             }
             case 'BEAM': {
-                const beamGrad = ctx.createLinearGradient(0, -60, 0, 60);
+                const beamGrad = ctx.createLinearGradient(0, -VFX_FACTORY.BEAM_HALF_HEIGHT, 0, VFX_FACTORY.BEAM_HALF_HEIGHT);
                 beamGrad.addColorStop(0, 'transparent');
-                beamGrad.addColorStop(0.2, color);
-                beamGrad.addColorStop(0.8, color);
+                beamGrad.addColorStop(VFX_FACTORY.BEAM_FADE_IN, color);
+                beamGrad.addColorStop(VFX_FACTORY.BEAM_FADE_OUT, color);
                 beamGrad.addColorStop(1, 'transparent');
                 ctx.fillStyle = beamGrad;
-                ctx.fillRect(-10, -60, 20, 120);
+                ctx.fillRect(VFX_FACTORY.BEAM_LEFT, -VFX_FACTORY.BEAM_HALF_HEIGHT, VFX_FACTORY.BEAM_WIDTH, VFX_FACTORY.BEAM_HEIGHT);
                 break;
             }
             case 'DEBUG':
                 ctx.fillStyle = VFX_RENDER.DEBUG_DOT_COLOR;
-                ctx.fillRect(-5, -5, 10, 10);
+                ctx.fillRect(VFX_FACTORY.DEBUG_ORIGIN, VFX_FACTORY.DEBUG_ORIGIN, VFX_FACTORY.DEBUG_SIZE, VFX_FACTORY.DEBUG_SIZE);
                 break;
         }
 
@@ -111,11 +111,11 @@ class VFXTextureCache {
     public generateFogCloud(color: string): HTMLCanvasElement {
         const key = `FOG_${color}`;
         if (this.cache.has(key)) return this.cache.get(key)!;
-        const { canvas, ctx } = createCanvas(128, 64);
-        const grad = ctx.createRadialGradient(64, 32, 0, 64, 32, 64);
+        const { canvas, ctx } = createCanvas(VFX_FACTORY.FOG_WIDTH, VFX_FACTORY.FOG_HEIGHT);
+        const grad = ctx.createRadialGradient(VFX_FACTORY.FOG_CENTER_X, VFX_FACTORY.FOG_CENTER_Y, 0, VFX_FACTORY.FOG_CENTER_X, VFX_FACTORY.FOG_CENTER_Y, VFX_FACTORY.FOG_GRADIENT_RADIUS);
         grad.addColorStop(0, color); grad.addColorStop(1, 'transparent');
         ctx.fillStyle = grad;
-        ctx.beginPath(); ctx.ellipse(64, 32, 40, 25, 0, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(VFX_FACTORY.FOG_CENTER_X, VFX_FACTORY.FOG_CENTER_Y, VFX_FACTORY.FOG_RADIUS_X, VFX_FACTORY.FOG_RADIUS_Y, 0, 0, Math.PI*2); ctx.fill();
         this.cache.set(key, canvas);
         return canvas;
     }
@@ -128,13 +128,13 @@ class VFXTextureCache {
         ctx.translate(HEX_SIZE, HEX_SIZE);
         
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.3;
+        ctx.globalAlpha = VFX_FACTORY.DETAIL_ALPHA;
         
         if (type === 'FOREST') {
             ctx.beginPath();
-            ctx.moveTo(0, -10);
-            ctx.lineTo(8, 5);
-            ctx.lineTo(-8, 5);
+            ctx.moveTo(0, VFX_FACTORY.FOREST_TIP_Y);
+            ctx.lineTo(VFX_FACTORY.FOREST_HALF_WIDTH, VFX_FACTORY.FOREST_BASE_Y);
+            ctx.lineTo(-VFX_FACTORY.FOREST_HALF_WIDTH, VFX_FACTORY.FOREST_BASE_Y);
             ctx.closePath();
             ctx.fill();
         } else if (type === 'VOID') {
