@@ -1,4 +1,5 @@
 // ╔══════════════════════════════════════════════════════════╗
+// [ARCH] §3: capped corpse slide endpoint uses fixed initial velocity direction.
 // [ARCH] Section 12 also defines per-cell ground information priority.
 // ║  RenderSpec — 渲染座標協議 SSOT（層序、排序鍵、座標、錨點）║
 // ║  職責：記錄所有「位置／高度／排序／發射點」規則的唯一文件 ║
@@ -73,6 +74,7 @@ export class RenderSpec {
 
         s += "--- \n\n";
 
+        s += "屍體滑行達 MAX_SLIDE 後，computeDeathOffset 以固定初速方向求封頂終點；不得從每幀滑行向量重新正規化，避免格界末位誤差造成腳下高度翻轉。\n";
         s += "## 3. 座標系 (Coordinate Spaces)\n\n";
         s += "世界座標（px, py）是 HexUtils.toPx 的輸出：已經是等角投影後的螢幕平面座標，高度另計。\n\n";
         s += "visualBaseY    = py + transitionOffset           地塊足跡 Y。TERRAIN／OVERLAY 的 op.y 與 op.ty\n";
