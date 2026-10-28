@@ -364,7 +364,8 @@ export class GameEngine implements SpatialProvider {
             }
             if (a.bt && (a.aiUpdateTimer <= 0 || a.forceAiUpdate)) {
                 const inDanger = this.isWarningTile(HexUtils.key(a));
-                if (inDanger) {
+                // 只在剛被縮圈預警叫醒時記一次（forceAiUpdate），不是每次決策都記
+                if (inDanger && a.forceAiUpdate) {
                     this.log(a, 'SYSTEM', '危險決策', '', `單位處於塌陷區，啟動行為樹決策...`);
                 }
                 a.bt.tick(a);
